@@ -219,6 +219,7 @@ function WebSignatureCanvas({
   const strokesRef = useRef<Point[][]>([]);
   const currentStrokeRef = useRef<Point[]>([]);
   const drawSpaceRef = useRef<CanvasCoordinateSpace | null>(null);
+  const touchInputActiveRef = useRef(false);
   const [hasStroke, setHasStroke] = useState(false);
   const [measured, setMeasured] = useState<{ width: number; height: number } | null>(null);
   const dims = resolveDimensions(size, widthProp, heightProp, measured ?? undefined);
@@ -361,11 +362,12 @@ function WebSignatureCanvas({
   const drawAt = useCallback((clientX: number, clientY: number, start: boolean) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const synced = syncCanvasToDisplay();
+    const ctx = synced?.ctx ?? canvas.getContext('2d');
     if (!ctx) return;
 
     const rect = canvas.getBoundingClientRect();
-    const space = readCanvasCoordinateSpace(canvas);
+    const space = drawSpaceRef.current ?? readCanvasCoordinateSpace(canvas);
     const point = clientToCanvasPoint(clientX, clientY, rect, space);
 
     if (start) {
@@ -383,7 +385,7 @@ function WebSignatureCanvas({
     ctx.lineTo(point.x, point.y);
     ctx.stroke();
     setHasStroke(true);
-  }, []);
+  }, [syncCanvasToDisplay]);
 
   const endStroke = useCallback(() => {
     if (currentStrokeRef.current.length > 1) {
@@ -439,6 +441,7 @@ function WebSignatureCanvas({
     const handleTouchStart = (event: TouchEvent) => {
       if (disabled || event.touches.length !== 1) return;
       event.preventDefault();
+      touchInputActiveRef.current = true;
       const touch = event.touches[0];
       if (!touch) return;
       beginStroke(touch.clientX, touch.clientY, touch.identifier);
@@ -457,6 +460,7 @@ function WebSignatureCanvas({
       if (!touch || activePointerId.current !== touch.identifier) return;
       event.preventDefault();
       finishStroke(touch.identifier);
+      touchInputActiveRef.current = false;
     };
 
     canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -474,7 +478,7 @@ function WebSignatureCanvas({
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
-      if (disabled || event.pointerType === 'touch') return;
+      if (disabled || event.pointerType === 'touch' || touchInputActiveRef.current) return;
       event.preventDefault();
       beginStroke(event.clientX, event.clientY, event.pointerId);
     },
@@ -483,7 +487,7 @@ function WebSignatureCanvas({
 
   const handlePointerMove = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
-      if (event.pointerType === 'touch') return;
+      if (event.pointerType === 'touch' || touchInputActiveRef.current) return;
       if (!drawing.current || disabled || activePointerId.current !== event.pointerId) return;
       event.preventDefault();
       continueStroke(event.clientX, event.clientY);
@@ -493,7 +497,7 @@ function WebSignatureCanvas({
 
   const handlePointerEnd = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
-      if (event.pointerType === 'touch') return;
+      if (event.pointerType === 'touch' || touchInputActiveRef.current) return;
       if (activePointerId.current !== event.pointerId) return;
       event.preventDefault();
       finishStroke(event.pointerId);
@@ -504,7 +508,7 @@ function WebSignatureCanvas({
   /** Mouse fallback — Playwright automation uses mouse events, not always pointer capture. */
   const handleMouseDown = useCallback(
     (event: React.MouseEvent<HTMLCanvasElement>) => {
-      if (disabled || event.button !== 0 || activePointerId.current !== null) return;
+      if (disabled || event.button !== 0 || activePointerId.current !== null || touchInputActiveRef.current) return;
       event.preventDefault();
       beginStroke(event.clientX, event.clientY, -1);
     },
@@ -513,7 +517,7 @@ function WebSignatureCanvas({
 
   const handleMouseMove = useCallback(
     (event: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!drawing.current || disabled || activePointerId.current !== -1) return;
+      if (!drawing.current || disabled || activePointerId.current !== -1 || touchInputActiveRef.current) return;
       event.preventDefault();
       continueStroke(event.clientX, event.clientY);
     },
@@ -522,7 +526,7 @@ function WebSignatureCanvas({
 
   const handleMouseUp = useCallback(
     (event: React.MouseEvent<HTMLCanvasElement>) => {
-      if (activePointerId.current !== -1) return;
+      if (activePointerId.current !== -1 || touchInputActiveRef.current) return;
       event.preventDefault();
       finishStroke(-1);
     },

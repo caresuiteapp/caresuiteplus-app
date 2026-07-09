@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PremiumButton, PremiumInput } from '@/components/ui';
 import {
@@ -210,75 +210,80 @@ export function EmployeePortalVisitTasksPanel({
     </ScrollView>
   );
 
-  const statusModal = statusPicker ? (
-    <PlatformModal
-      visible
-      title="Aufgabenstatus"
-      subtitle="Status für diese Aufgabe wählen"
-      onClose={() => {
-        setStatusPicker(null);
-        setNote('');
-      }}
-      variant={isMobile ? 'bottomSheet' : 'center'}
-      animationType={isMobile ? 'slide' : 'fade'}
-      maxWidth={480}
-    >
-      <View style={styles.statusSheet}>
-        {VISIT_TASK_STATUS_OPTIONS.map((option) => (
-          <Pressable
-            key={option.value}
-            style={[
-              styles.statusOption,
-              statusPicker.status === option.value ? styles.statusOptionActive : null,
-            ]}
-            onPress={() => void applyStatus(statusPicker.taskId, option.value)}
-          >
-            <Text style={styles.statusOptionLabel}>{option.label}</Text>
-          </Pressable>
-        ))}
-        {visitTaskStatusRequiresNote(statusPicker.status) ? (
-          <View style={styles.noteBox}>
-            <PremiumInput
-              label="Notiz *"
-              value={note}
-              onChangeText={setNote}
-              placeholder="Bitte kurz begründen"
-              multiline
-            />
-            <PremiumButton
-              title="Speichern"
-              loading={loading && pendingId === statusPicker.taskId}
-              onPress={() => void applyStatus(statusPicker.taskId, statusPicker.status, note)}
-            />
-          </View>
-        ) : null}
-      </View>
-    </PlatformModal>
+  const closeStatusPicker = useCallback(() => {
+    setStatusPicker(null);
+    setNote('');
+  }, []);
+
+  const renderStatusOption = (option: (typeof VISIT_TASK_STATUS_OPTIONS)[number]) => {
+    if (!statusPicker) return null;
+    const selectStatus = () => {
+      void applyStatus(statusPicker.taskId, option.value);
+    };
+    return (
+      <Pressable
+        key={option.value}
+        style={[
+          styles.statusOption,
+          statusPicker.status === option.value ? styles.statusOptionActive : null,
+          Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null,
+        ]}
+        onPress={selectStatus}
+        {...(Platform.OS === 'web'
+          ? ({
+              onClick: (event: { preventDefault?: () => void; stopPropagation?: () => void }) => {
+                event.preventDefault?.();
+                event.stopPropagation?.();
+                selectStatus();
+              },
+            } as Record<string, unknown>)
+          : {})}
+      >
+        <Text style={styles.statusOptionLabel}>{option.label}</Text>
+      </Pressable>
+    );
+  };
+
+  const statusPickerBody = statusPicker ? (
+    <View style={styles.statusSheet}>
+      {VISIT_TASK_STATUS_OPTIONS.map(renderStatusOption)}
+      {visitTaskStatusRequiresNote(statusPicker.status) ? (
+        <View style={styles.noteBox}>
+          <PremiumInput
+            label="Notiz *"
+            value={note}
+            onChangeText={setNote}
+            placeholder="Bitte kurz begründen"
+            multiline
+          />
+          <PremiumButton
+            title="Speichern"
+            loading={loading && pendingId === statusPicker.taskId}
+            onPress={() => void applyStatus(statusPicker.taskId, statusPicker.status, note)}
+          />
+        </View>
+      ) : null}
+    </View>
   ) : null;
 
   if (embedded) {
-    return (
-      <>
-        {body}
-        {statusModal}
-      </>
-    );
+    return statusPicker ? statusPickerBody : body;
   }
 
   return (
-    <>
-      <PlatformModal
-        visible={visible}
-        title="Aufgaben"
-        subtitle={`${totalDone} / ${tasks.length} erledigt`}
-        onClose={onClose ?? (() => {})}
-        variant={isMobile ? 'bottomSheet' : 'center'}
-        animationType={isMobile ? 'slide' : 'fade'}
-        maxWidth={560}
-      >
-        {body}
-      </PlatformModal>
-      {statusModal}
-    </>
+    <PlatformModal
+      visible={visible}
+      title={statusPicker ? 'Aufgabenstatus' : 'Aufgaben'}
+      subtitle={
+        statusPicker ? 'Status für diese Aufgabe wählen' : `${totalDone} / ${tasks.length} erledigt`
+      }
+      onClose={statusPicker ? closeStatusPicker : (onClose ?? (() => {}))}
+      onBack={statusPicker ? closeStatusPicker : undefined}
+      variant={isMobile ? 'bottomSheet' : 'center'}
+      animationType={isMobile ? 'slide' : 'fade'}
+      maxWidth={statusPicker ? 480 : 560}
+    >
+      {statusPicker ? statusPickerBody : body}
+    </PlatformModal>
   );
 }
