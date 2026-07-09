@@ -9,6 +9,7 @@ const ROLE_CAPABILITIES: Record<PlatformRoleKey, PlatformCapability[] | 'all'> =
     'modules.read',
     'modules.write',
     'plans.read',
+    'plans.write',
     'discounts.read',
     'billing.read',
     'payments.read',
@@ -106,8 +107,32 @@ export const CRITICAL_ACTIONS_REQUIRING_REASON = [
 
 export function validatePlatformReason(reason: string | null | undefined): string | null {
   const trimmed = reason?.trim() ?? '';
-  if (trimmed.length < 3) {
-    return 'Bitte geben Sie einen aussagekräftigen Grund an (mindestens 3 Zeichen).';
+  if (trimmed.length < 5) {
+    return 'Bitte geben Sie einen aussagekräftigen Grund an (mindestens 5 Zeichen).';
   }
   return null;
+}
+
+const PLATFORM_CATALOG_KEY_PATTERN = /^[a-z0-9_-]+$/;
+
+export function validatePlatformCatalogKey(
+  key: string | null | undefined,
+  label = 'Schlüssel',
+): string | null {
+  const trimmed = key?.trim() ?? '';
+  if (trimmed.length < 3) {
+    return `${label} ist Pflicht (mindestens 3 Zeichen, Kleinbuchstaben, Zahlen, _ oder -).`;
+  }
+  if (!PLATFORM_CATALOG_KEY_PATTERN.test(trimmed)) {
+    return `${label} darf nur Kleinbuchstaben, Zahlen, Unterstrich und Bindestrich enthalten.`;
+  }
+  return null;
+}
+
+export function validatePlatformAddonKey(addonKey: string | null | undefined): string | null {
+  return validatePlatformCatalogKey(addonKey, 'Add-on-Schlüssel');
+}
+
+export function validatePlatformPlanKey(planKey: string | null | undefined): string | null {
+  return validatePlatformCatalogKey(planKey, 'Plan-Schlüssel');
 }

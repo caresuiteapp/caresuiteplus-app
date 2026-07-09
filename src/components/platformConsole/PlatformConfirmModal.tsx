@@ -33,7 +33,7 @@ export function PlatformConfirmModal({
   const [typed, setTyped] = useState('');
 
   const canConfirm = useMemo(() => {
-    if (requireReason && reason.trim().length < 3) return false;
+    if (requireReason && reason.trim().length < 5) return false;
     if (requireTypedConfirmation && typed.trim() !== requireTypedConfirmation) return false;
     return true;
   }, [reason, requireReason, requireTypedConfirmation, typed]);

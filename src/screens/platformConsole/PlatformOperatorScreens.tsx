@@ -326,8 +326,10 @@ export function PlatformBillingScreen() {
   const { setConfirm, modal } = useOperatorConfirm(load);
 
   return (
-    <PlatformShellLayout title="Rechnungen" subtitle="Rechnungsübersicht und Statusverwaltung">
+    <PlatformShellLayout title="Rechnungen" subtitle="Rechnungsübersicht, Statusverwaltung und Billing Preview">
       {!canWrite ? <PlatformReadOnlyBanner message="Lesemodus — Statusänderungen erfordern billing.write." /> : null}
+      <Text style={styles.sectionTitle}>Billing Preview (mandantenübergreifend)</Text>
+      <Text style={styles.hint}>Tenant-ID eingeben und Preview auf dem Mandanten-Detail unter „Billing Preview" erzeugen.</Text>
       <View style={styles.toolbar}>
         <TextInput
           style={styles.search}

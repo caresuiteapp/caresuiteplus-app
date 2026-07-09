@@ -53,6 +53,54 @@ export type PlatformTenantFilters = {
   offset?: number;
 };
 
+type PlatformTenantListItemRaw = PlatformTenantListItem & {
+  tenant_id?: string;
+  tenant_name?: string;
+  legal_name?: string | null;
+  lifecycle_status?: string;
+  billing_status?: string;
+  plan_key?: string | null;
+  trial_ends_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  active_module_count?: number;
+};
+
+/** Mandantendetail erwartet platform_tenants.tenant_id — niemals platform_tenants.id. */
+export function resolvePlatformTenantDetailId(
+  item: Pick<PlatformTenantListItem, 'tenantId' | 'id'> & { tenant_id?: string },
+): string | null {
+  const rowId = String(item.id ?? '').trim();
+  const fromSnake = item.tenant_id != null ? String(item.tenant_id).trim() : '';
+  const fromCamel = item.tenantId != null ? String(item.tenantId).trim() : '';
+  const tenantId = fromSnake || fromCamel;
+  if (!tenantId) return null;
+  if (rowId && tenantId === rowId && fromSnake && fromSnake !== rowId) {
+    return fromSnake;
+  }
+  return tenantId;
+}
+
+export function normalizePlatformTenantListItem(raw: PlatformTenantListItemRaw): PlatformTenantListItem {
+  const rowId = String(raw.id ?? '').trim();
+  const tenantId = resolvePlatformTenantDetailId(raw) ?? '';
+  return {
+    id: rowId || tenantId,
+    tenantId,
+    tenantName: String(raw.tenantName ?? raw.tenant_name ?? ''),
+    legalName: raw.legalName ?? raw.legal_name ?? null,
+    slug: raw.slug ?? null,
+    status: raw.status,
+    lifecycleStatus: raw.lifecycleStatus ?? (raw.lifecycle_status as PlatformTenantListItem['lifecycleStatus']),
+    billingStatus: raw.billingStatus ?? (raw.billing_status as PlatformTenantListItem['billingStatus']),
+    planKey: raw.planKey ?? raw.plan_key ?? null,
+    trialEndsAt: raw.trialEndsAt ?? raw.trial_ends_at ?? null,
+    createdAt: raw.createdAt ?? raw.created_at ?? '',
+    updatedAt: raw.updatedAt ?? raw.updated_at ?? '',
+    activeModuleCount: raw.activeModuleCount ?? raw.active_module_count ?? 0,
+  };
+}
+
 export async function listPlatformTenants(
   filters: PlatformTenantFilters = {},
 ): Promise<ServiceResult<{ items: PlatformTenantListItem[]; limit: number; offset: number }>> {
@@ -82,7 +130,10 @@ export async function listPlatformTenants(
   );
   if (error) return { ok: false, error: error.message };
   if (!data) return { ok: false, error: 'Keine Mandantendaten.' };
-  return { ok: true, data };
+  const items = (data.items ?? []).map((row) =>
+    normalizePlatformTenantListItem(row as PlatformTenantListItemRaw),
+  );
+  return { ok: true, data: { items, limit: data.limit, offset: data.offset } };
 }
 
 export type PlatformTenantDetail = {
@@ -178,20 +229,9 @@ export async function assignPlatformPlan(
   billingInterval = 'monthly',
   customMonthlyCents?: number,
 ): Promise<ServiceResult<Record<string, unknown>>> {
-  const reasonError = validatePlatformReason(reason);
-  if (reasonError) return { ok: false, error: reasonError };
-
-  if (getServiceMode() === 'demo') {
-    return { ok: true, data: { tenant_id: tenantId, plan_key: planKey } };
-  }
-
-  const { data, error } = await platformRpc<Record<string, unknown>>('platform_assign_plan', {
-    p_tenant_id: tenantId,
-    p_plan_key: planKey,
-    p_reason: reason.trim(),
-    p_billing_interval: billingInterval,
-    p_custom_monthly_cents: customMonthlyCents ?? null,
+  const { assignPlatformPlanToTenant } = await import('./platformFoundationService');
+  return assignPlatformPlanToTenant(tenantId, planKey, reason, {
+    billingInterval: billingInterval as 'monthly' | 'yearly',
+    customMonthlyCents: customMonthlyCents ?? null,
   });
-  if (error) return { ok: false, error: error.message };
-  return { ok: true, data: data ?? {} };
 }
