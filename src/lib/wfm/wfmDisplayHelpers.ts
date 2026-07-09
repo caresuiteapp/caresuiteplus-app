@@ -106,6 +106,55 @@ export function formatWfmReviewQueueDuration(entry: WfmOfficeTimeEntry): string 
   return '—';
 }
 
+export type WfmReviewQueueStackLines = {
+  zeit: string;
+  quelle: string;
+  dauer: string | null;
+};
+
+const WFM_TIME_SOURCE_LABELS: Record<string, string> = {
+  time_entry: 'Buchung',
+  approved_time_entry: 'Buchung',
+  assignment_actual: 'Einsatz-Ist',
+  planned_only: 'Plan',
+};
+
+/** Offene Prüfungen — gestapelte Einsatz-Ist-Zelle */
+export function formatWfmReviewQueueIstStack(entry: WfmOfficeTimeEntry): WfmReviewQueueStackLines | null {
+  const display = resolveWfmOfficeTimeDisplay(entry);
+  if (display.displaySource === 'planned_only' && !display.hasAssignmentActual) {
+    return null;
+  }
+  const zeit =
+    display.displaySource === 'assignment_actual'
+      ? `${formatWfmTime(display.assignmentActualStart)} – ${
+          display.assignmentActualEnd ? formatWfmTime(display.assignmentActualEnd) : 'offen'
+        }`
+      : formatWfmReviewQueueIstLabel(entry);
+  const quelle = WFM_TIME_SOURCE_LABELS[display.displaySource] ?? 'Ist';
+  const dauerRaw = formatWfmReviewQueueDuration(entry);
+  return {
+    zeit,
+    quelle,
+    dauer: dauerRaw === '—' ? null : dauerRaw,
+  };
+}
+
+/** Offene Prüfungen — Buchungstext ohne Truncation */
+export function formatWfmReviewQueueBuchungLabel(entry: WfmOfficeTimeEntry): string {
+  const display = resolveWfmOfficeTimeDisplay(entry);
+  if (entry.flags.includes('missing_booking') || display.bookingStatus === 'missing_booking') {
+    return 'Keine Buchung';
+  }
+  if (display.hasTimeEntry) {
+    return `${formatWfmDurationMinutes(entry.netMinutes)} netto`;
+  }
+  if (display.displaySource === 'assignment_actual') {
+    return display.displayDurationLabel;
+  }
+  return '—';
+}
+
 /** Kompakte Ist-Zeile für Karten */
 export function formatWfmReviewQueueIstLine(entry: WfmOfficeTimeEntry): string {
   const display = resolveWfmOfficeTimeDisplay(entry);

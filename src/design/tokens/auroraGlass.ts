@@ -534,12 +534,17 @@ export function useAuroraGlassChipStyles(options: ShellGlassIntensityOptions = {
   );
 }
 
+type AuroraGlassTableOptions = {
+  solidSurface?: boolean;
+};
+
 /** PremiumDataTable aurora surfaces. */
-export function useAuroraGlassTableStyles() {
+export function useAuroraGlassTableStyles(options: AuroraGlassTableOptions = {}) {
+  const { solidSurface = false } = options;
   const { active, tokens: glass, colors, isLight } = useAuroraGlass();
   const { typography } = useLegacyTheme();
   const text = useAuroraAdaptiveText();
-  const tableSurface = isLight && active ? resolveLlganGlassSurface('subtle') : null;
+  const tableSurface = isLight && active && !solidSurface ? resolveLlganGlassSurface('subtle') : null;
 
   return useMemo(
     () =>
@@ -547,14 +552,16 @@ export function useAuroraGlassTableStyles() {
         table: {
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: active ? glass.border : colors.borderSoft,
-          backgroundColor: active
-            ? tableSurface
-              ? tableSurface.panel
-              : glass.table
-            : colors.bgSurface,
+          borderColor: solidSurface ? 'rgba(15,27,51,0.12)' : active ? glass.border : colors.borderSoft,
+          backgroundColor: solidSurface
+            ? '#FAFBFC'
+            : active
+              ? tableSurface
+                ? tableSurface.panel
+                : glass.table
+              : colors.bgSurface,
           overflow: 'hidden',
-          ...(Platform.OS === 'web' && tableSurface
+          ...(Platform.OS === 'web' && tableSurface && !solidSurface
             ? lightLiquidGlassWebFx(tableSurface.blurDesktop, tableSurface.saturate)
             : null),
         },
@@ -563,9 +570,9 @@ export function useAuroraGlassTableStyles() {
           alignItems: 'center',
           paddingVertical: careSpacing.sm,
           paddingHorizontal: careSpacing.md,
-          backgroundColor: active ? glass.header : colors.bgElevated,
+          backgroundColor: solidSurface ? '#F3F5F8' : active ? glass.header : colors.bgElevated,
           borderBottomWidth: 1,
-          borderBottomColor: active ? glass.innerBorder : colors.borderSoft,
+          borderBottomColor: solidSurface ? 'rgba(15,27,51,0.10)' : active ? glass.innerBorder : colors.borderSoft,
         },
         headerCell: {
           paddingHorizontal: careSpacing.xs,
@@ -595,7 +602,7 @@ export function useAuroraGlassTableStyles() {
           borderBottomColor: active ? glass.innerBorder : colors.borderSoft,
         },
         dataRowAlt: {
-          backgroundColor: active ? glass.rowAlt : colors.bgPremium,
+          backgroundColor: solidSurface ? 'rgba(15,27,51,0.025)' : active ? glass.rowAlt : colors.bgPremium,
         },
         dataRowSelected: {
           backgroundColor: active ? glass.rowSelected : 'rgba(139, 92, 246, 0.10)',
@@ -621,7 +628,7 @@ export function useAuroraGlassTableStyles() {
           color: text.muted,
         },
       }),
-    [active, colors, glass, isLight, tableSurface, text.muted, text.primary, typography.caption, typography.label],
+    [active, colors, glass, isLight, solidSurface, tableSurface, text.muted, text.primary, typography.caption, typography.label],
   );
 }
 

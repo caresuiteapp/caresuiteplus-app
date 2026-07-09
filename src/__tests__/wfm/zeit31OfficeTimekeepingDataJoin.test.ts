@@ -233,6 +233,10 @@ describe('ZEIT.3.1 display helpers contract', () => {
     expect(table).toContain('formatWfmPlanTimeRange');
     expect(table).toContain('formatWfmReviewQueueIstLine');
     expect(table).toContain('formatWfmReviewQueuePlannedDuration');
+    expect(table).toContain('formatWfmReviewQueueIstStack');
+    expect(table).toContain('formatWfmReviewQueueBuchungLabel');
+    expect(table).toContain('fixedLayout');
+    expect(table).toContain('REVIEW_COL.status');
     expect(table).not.toMatch(/Plan: \{formatWfmTime\(entry\.plannedStartAt\)/);
   });
 });
