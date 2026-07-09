@@ -98,6 +98,26 @@ export async function getClientLiveVisitLocation(input: {
     visitId: input.assignmentId,
   };
 
+  try {
+    return await resolveClientLiveVisitLocation(input, emptyBase);
+  } catch (cause) {
+    console.warn('[getClientLiveVisitLocation] projection failed:', cause);
+    return emptyBase;
+  }
+}
+
+async function resolveClientLiveVisitLocation(
+  input: {
+    tenantId: string;
+    clientId: string;
+    assignmentId: string;
+    status: AssignmentStatus;
+    plannedStartAt: string;
+    plannedEndAt: string;
+    portalReleaseEnabled?: boolean;
+  },
+  emptyBase: ClientLiveVisitLocation,
+): Promise<ClientLiveVisitLocation> {
   const localAssignment = listAssignmentWorkflows(input.tenantId).find(
     (row) => row.id === input.assignmentId,
   );

@@ -74,10 +74,10 @@ function resolveDocumentationStatus(
 
 function preferTasks(
   snapshotTasks: VisitTaskItem[],
-  visitTasks: VisitTaskItem[],
+  visitTasks: VisitTaskItem[] | undefined,
 ): VisitTaskItem[] {
   if (snapshotTasks.length > 0) return snapshotTasks;
-  return visitTasks;
+  return visitTasks ?? [];
 }
 
 export function applySnapshotToVisitListItem(

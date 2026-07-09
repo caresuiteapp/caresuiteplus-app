@@ -239,7 +239,14 @@ export async function fetchLivePortalClientAppointmentDetail(
       return { ok: false, error: 'Einsatz nicht gefunden.' };
     }
 
-    const visitDetail = await fetchVisitDispositionDetail(assignmentId, tenantId, 'client_portal');
+    let visitDetail: Awaited<ReturnType<typeof fetchVisitDispositionDetail>>;
+    try {
+      visitDetail = await fetchVisitDispositionDetail(assignmentId, tenantId, 'client_portal');
+    } catch (cause) {
+      console.warn('[portalAppointmentsLiveService] visit detail failed:', cause);
+      return { ok: false, error: 'Einsatzdetails konnten nicht geladen werden.' };
+    }
+
     if (!visitDetail.ok) {
       return { ok: false, error: 'Einsatz nicht gefunden.' };
     }
@@ -248,19 +255,24 @@ export async function fetchLivePortalClientAppointmentDetail(
     }
 
     const detail = visitDetail.data;
-    const assignmentStatus = detail.assignmentStatus;
+    const assignmentStatus = detail.assignmentStatus ?? 'geplant';
 
-    const liveVisit = sanitizeClientPortalLiveVisitPayload(
-      await projectClientPortalAssistLiveVisit({
-        tenantId,
-        clientId,
-        assignmentId: detail.id,
-        status: assignmentStatus,
-        plannedStartAt: detail.scheduledStart,
-        plannedEndAt: detail.scheduledEnd,
-        portalReleaseEnabled: detail.portalReleaseEnabled,
-      }),
-    );
+    let liveVisit: PortalClientAppointmentDetail['liveVisit'] = null;
+    try {
+      liveVisit = sanitizeClientPortalLiveVisitPayload(
+        await projectClientPortalAssistLiveVisit({
+          tenantId,
+          clientId,
+          assignmentId: detail.id,
+          status: assignmentStatus,
+          plannedStartAt: detail.scheduledStart,
+          plannedEndAt: detail.scheduledEnd,
+          portalReleaseEnabled: detail.portalReleaseEnabled,
+        }),
+      ) as PortalClientAppointmentDetail['liveVisit'];
+    } catch (cause) {
+      console.warn('[portalAppointmentsLiveService] live visit projection failed:', cause);
+    }
 
     const portalDetail: PortalClientAppointmentDetail = {
       id: detail.id,
@@ -272,9 +284,9 @@ export async function fetchLivePortalClientAppointmentDetail(
       caregiverName: detail.employeeName || null,
       caregiverPhone: null,
       serviceType: detail.serviceName?.trim() || detail.title,
-      preparationNotes: detail.notes?.trim() || null,
+      preparationNotes: detail.clientVisibleNotes?.trim() || null,
       canRequestChange: PLANNED_CHANGE_STATUSES.has(assignmentStatus),
-      liveVisit: liveVisit as PortalClientAppointmentDetail['liveVisit'],
+      liveVisit,
     };
     return { ok: true as const, data: portalDetail };
   });

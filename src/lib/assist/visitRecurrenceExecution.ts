@@ -174,7 +174,7 @@ export function resetVirtualOccurrenceExecutionState(
     allowedStatusTransitions: dedupeStatusTransitionButtons(
       getVisitAllowedTransitions(assignmentStatus),
     ),
-    tasks: detail.tasks.map((task) =>
+    tasks: (detail.tasks ?? []).map((task) =>
       task.status === 'open' ? task : { ...task, status: 'open' as const, notDoneReason: null },
     ),
     employeeNotes: null,

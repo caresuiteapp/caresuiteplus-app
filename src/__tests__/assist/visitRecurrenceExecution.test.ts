@@ -97,6 +97,18 @@ describe('visitRecurrenceExecution', () => {
     expect(reset.employeeNotes).toBeNull();
   });
 
+  it('toleriert fehlende Aufgabenliste beim Serientermin-Reset', () => {
+    const reset = resetVirtualOccurrenceExecutionState(
+      baseDetail({
+        id: buildVisitOccurrenceId(VISIT_ID, '2026-07-10'),
+        tasks: undefined,
+      }),
+    );
+
+    expect(reset.tasks).toEqual([]);
+    expect(reset.assignmentStatus).toBe('bestaetigt');
+  });
+
   it('setzt Listen-Einträge für virtuelle Termine zurück', () => {
     const reset = resetVirtualOccurrenceListItem(
       baseListItem({
