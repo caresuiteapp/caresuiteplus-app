@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   PlatformAuditLink,
   PlatformConfirmModal,
+  PlatformDataTable,
   PlatformDeferredNote,
+  PlatformEmptyState,
+  PlatformFilterChip,
+  PlatformFilterChipRow,
   PlatformReadOnlyBanner,
   PlatformShellLayout,
   PlatformStatusBadge,
   PLATFORM_COLORS,
 } from '@/components/platformConsole';
-import { ErrorState, LoadingState, PremiumDataTable } from '@/components/ui';
+import { ErrorState, LoadingState } from '@/components/ui';
 import {
   assignPlatformDiscount,
   endPlatformSupportSession,
@@ -85,14 +88,6 @@ function useOperatorConfirm(onSuccess: () => Promise<void>) {
   );
 
   return { setConfirm, modal };
-}
-
-function FilterChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable style={[styles.chip, active && styles.chipActive]} onPress={onPress}>
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
-    </Pressable>
-  );
 }
 
 export function PlatformDiscountsScreen() {
@@ -171,18 +166,18 @@ export function PlatformDiscountsScreen() {
           placeholderTextColor={PLATFORM_COLORS.muted}
         />
       </View>
-      <ScrollView horizontal contentContainerStyle={styles.chipRow}>
-        <FilterChip label="Alle Status" active={!statusFilter} onPress={() => setStatusFilter('')} />
+      <PlatformFilterChipRow>
+        <PlatformFilterChip label="Alle Status" active={!statusFilter} onPress={() => setStatusFilter('')} />
         {['active', 'scheduled', 'expired', 'revoked'].map((s) => (
-          <FilterChip key={s} label={s} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
+          <PlatformFilterChip key={s} label={s} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
         ))}
-      </ScrollView>
-      <ScrollView horizontal contentContainerStyle={styles.chipRow}>
-        <FilterChip label="Alle Typen" active={!typeFilter} onPress={() => setTypeFilter('')} />
+      </PlatformFilterChipRow>
+      <PlatformFilterChipRow>
+        <PlatformFilterChip label="Alle Typen" active={!typeFilter} onPress={() => setTypeFilter('')} />
         {discountTypes.map((t) => (
-          <FilterChip key={t} label={t} active={typeFilter === t} onPress={() => setTypeFilter(t)} />
+          <PlatformFilterChip key={t} label={t} active={typeFilter === t} onPress={() => setTypeFilter(t)} />
         ))}
-      </ScrollView>
+      </PlatformFilterChipRow>
 
       {loading ? (
         <LoadingState message="Rabatte werden geladen…" />
@@ -191,8 +186,7 @@ export function PlatformDiscountsScreen() {
       ) : (
         <>
           <Text style={styles.sectionTitle}>Rabattkatalog</Text>
-          <ScrollView horizontal>
-            <PremiumDataTable
+          <PlatformDataTable
               columns={[
                 { key: 'key', label: 'Key', render: (r: PlatformDiscountRow) => r.discount_key },
                 { key: 'name', label: 'Name', render: (r: PlatformDiscountRow) => r.discount_name },
@@ -207,12 +201,10 @@ export function PlatformDiscountsScreen() {
               ]}
               data={filteredCatalog}
               keyExtractor={(r) => r.id}
-            />
-          </ScrollView>
+          />
 
           <Text style={styles.sectionTitle}>Mandantenzuweisungen</Text>
-          <ScrollView horizontal>
-            <PremiumDataTable
+          <PlatformDataTable
               columns={[
                 { key: 'tenant', label: 'Mandant', render: (r: PlatformTenantDiscountRow) => r.tenant_id.slice(0, 8) },
                 { key: 'key', label: 'Rabatt', render: (r: PlatformTenantDiscountRow) => r.discount_key },
@@ -245,8 +237,7 @@ export function PlatformDiscountsScreen() {
               ]}
               data={assignments}
               keyExtractor={(r) => r.id}
-            />
-          </ScrollView>
+          />
 
           {canWrite ? (
             <View style={styles.formPanel}>
@@ -343,12 +334,12 @@ export function PlatformBillingScreen() {
           <Text style={styles.link}>Suchen</Text>
         </Pressable>
       </View>
-      <ScrollView horizontal contentContainerStyle={styles.chipRow}>
-        <FilterChip label="Alle" active={!statusFilter} onPress={() => setStatusFilter('')} />
+      <PlatformFilterChipRow>
+        <PlatformFilterChip label="Alle" active={!statusFilter} onPress={() => setStatusFilter('')} />
         {INVOICE_STATUSES.map((s) => (
-          <FilterChip key={s} label={s} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
+          <PlatformFilterChip key={s} label={s} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
         ))}
-      </ScrollView>
+      </PlatformFilterChipRow>
 
       {loading ? (
         <LoadingState message="Rechnungen werden geladen…" />
@@ -356,8 +347,7 @@ export function PlatformBillingScreen() {
         <ErrorState title="Rechnungen nicht verfügbar" message={error} onRetry={() => void load()} />
       ) : (
         <>
-          <ScrollView horizontal>
-            <PremiumDataTable
+          <PlatformDataTable
               columns={[
                 { key: 'num', label: 'Nr.', render: (r: PlatformInvoiceRow) => r.invoice_number },
                 { key: 'tenant', label: 'Mandant', render: (r: PlatformInvoiceRow) => r.tenant_id.slice(0, 8) },
@@ -378,8 +368,7 @@ export function PlatformBillingScreen() {
               ]}
               data={items}
               keyExtractor={(r) => r.id}
-            />
-          </ScrollView>
+          />
 
           {selected ? (
             <View style={styles.formPanel}>
@@ -388,11 +377,11 @@ export function PlatformBillingScreen() {
               {canWrite ? (
                 <>
                   <Text style={styles.label}>Neuer Status</Text>
-                  <ScrollView horizontal contentContainerStyle={styles.chipRow}>
+                  <PlatformFilterChipRow>
                     {INVOICE_STATUSES.map((s) => (
-                      <FilterChip key={s} label={s} active={newStatus === s} onPress={() => setNewStatus(s)} />
+                      <PlatformFilterChip key={s} label={s} active={newStatus === s} onPress={() => setNewStatus(s)} />
                     ))}
-                  </ScrollView>
+                  </PlatformFilterChipRow>
                   <Pressable
                     style={styles.primaryBtn}
                     disabled={!newStatus}
@@ -473,18 +462,18 @@ export function PlatformPaymentsScreen() {
   return (
     <PlatformShellLayout title="Zahlungen" subtitle="Zahlungsübersicht — keine Provider-Secrets">
       {!canWrite ? <PlatformReadOnlyBanner message="Lesemodus — manuelle Zahlungen erfordern payments.write." /> : null}
-      <ScrollView horizontal contentContainerStyle={styles.chipRow}>
-        <FilterChip label="Alle Status" active={!statusFilter} onPress={() => setStatusFilter('')} />
+      <PlatformFilterChipRow>
+        <PlatformFilterChip label="Alle Status" active={!statusFilter} onPress={() => setStatusFilter('')} />
         {PAYMENT_STATUSES.map((s) => (
-          <FilterChip key={s} label={s} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
+          <PlatformFilterChip key={s} label={s} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
         ))}
-      </ScrollView>
-      <ScrollView horizontal contentContainerStyle={styles.chipRow}>
-        <FilterChip label="Alle Provider" active={!providerFilter} onPress={() => setProviderFilter('')} />
+      </PlatformFilterChipRow>
+      <PlatformFilterChipRow>
+        <PlatformFilterChip label="Alle Provider" active={!providerFilter} onPress={() => setProviderFilter('')} />
         {providers.map((p) => (
-          <FilterChip key={p} label={p} active={providerFilter === p} onPress={() => setProviderFilter(p)} />
+          <PlatformFilterChip key={p} label={p} active={providerFilter === p} onPress={() => setProviderFilter(p)} />
         ))}
-      </ScrollView>
+      </PlatformFilterChipRow>
 
       {loading ? (
         <LoadingState message="Zahlungen werden geladen…" />
@@ -492,8 +481,7 @@ export function PlatformPaymentsScreen() {
         <ErrorState title="Zahlungen nicht verfügbar" message={error} onRetry={() => void load()} />
       ) : (
         <>
-          <ScrollView horizontal>
-            <PremiumDataTable
+          <PlatformDataTable
               columns={[
                 { key: 'tenant', label: 'Mandant', render: (r: PlatformPaymentRow) => r.tenant_id.slice(0, 8) },
                 { key: 'status', label: 'Status', render: (r: PlatformPaymentRow) => <PlatformStatusBadge status={r.status} /> },
@@ -509,8 +497,7 @@ export function PlatformPaymentsScreen() {
               ]}
               data={items}
               keyExtractor={(r) => r.id}
-            />
-          </ScrollView>
+          />
 
           {canWrite ? (
             <View style={styles.formPanel}>
@@ -518,11 +505,11 @@ export function PlatformPaymentsScreen() {
               <TextInput style={styles.input} value={manualTenant} onChangeText={setManualTenant} placeholder="Tenant-ID" placeholderTextColor={PLATFORM_COLORS.muted} />
               <TextInput style={styles.input} value={manualInvoice} onChangeText={setManualInvoice} placeholder="Rechnungs-ID (optional)" placeholderTextColor={PLATFORM_COLORS.muted} />
               <TextInput style={styles.input} value={manualAmount} onChangeText={setManualAmount} placeholder="Betrag in Cent" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
-              <ScrollView horizontal contentContainerStyle={styles.chipRow}>
+              <PlatformFilterChipRow>
                 {PAYMENT_STATUSES.map((s) => (
-                  <FilterChip key={s} label={s} active={manualStatus === s} onPress={() => setManualStatus(s)} />
+                  <PlatformFilterChip key={s} label={s} active={manualStatus === s} onPress={() => setManualStatus(s)} />
                 ))}
-              </ScrollView>
+              </PlatformFilterChipRow>
               <Pressable
                 style={styles.primaryBtn}
                 onPress={() =>
@@ -633,10 +620,10 @@ export function PlatformSupportScreen() {
               <TextInput style={styles.input} value={tenantId} onChangeText={setTenantId} placeholder="Tenant-ID" placeholderTextColor={PLATFORM_COLORS.muted} />
               <TextInput style={styles.input} value={durationMin} onChangeText={setDurationMin} placeholder="Dauer in Minuten" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
               <TextInput style={styles.input} value={scopes} onChangeText={setScopes} placeholder="allowed_scopes (kommagetrennt)" placeholderTextColor={PLATFORM_COLORS.muted} />
-              <View style={styles.row}>
-                <FilterChip label="Readonly" active={readonly} onPress={() => setReadonly(true)} />
-                <FilterChip label="Schreibzugriff" active={!readonly} onPress={() => setReadonly(false)} />
-              </View>
+              <PlatformFilterChipRow>
+                <PlatformFilterChip label="Readonly" active={readonly} onPress={() => setReadonly(true)} />
+                <PlatformFilterChip label="Schreibzugriff" active={!readonly} onPress={() => setReadonly(false)} />
+              </PlatformFilterChipRow>
               {!readonly ? (
                 <Text style={styles.warn}>Schreibzugriff — nur für Owner/Admin. Aktion wird auditierbar protokolliert.</Text>
               ) : null}
@@ -690,36 +677,37 @@ function SessionTable({
   onEnd?: (s: PlatformSupportSessionRow) => void;
 }) {
   if (sessions.length === 0) {
-    return <Text style={styles.hint}>Keine Sessions.</Text>;
+    return <PlatformEmptyState title="Keine Sessions" message="Aktuell keine Einträge in dieser Liste." />;
   }
   return (
-    <ScrollView horizontal>
-      <PremiumDataTable
-        columns={[
-          { key: 'tenant', label: 'Mandant', render: (r: PlatformSupportSessionRow) => r.tenant_id.slice(0, 8) },
-          { key: 'status', label: 'Status', render: (r: PlatformSupportSessionRow) => <PlatformStatusBadge status={r.status} /> },
-          {
-            key: 'mode',
-            label: 'Modus',
-            render: (r: PlatformSupportSessionRow) => (r.readonly ? 'readonly' : 'WRITE'),
-          },
-          { key: 'expires', label: 'Ablauf', render: (r: PlatformSupportSessionRow) => formatPlatformDate(r.expires_at) },
-          { key: 'reason', label: 'Grund', render: (r: PlatformSupportSessionRow) => r.reason ?? '—' },
-          {
-            key: 'actions',
-            label: '',
-            render: (r: PlatformSupportSessionRow) =>
-              canWrite && onEnd && r.status === 'active' ? (
-                <Pressable onPress={() => onEnd(r)}>
-                  <Text style={styles.link}>Beenden</Text>
-                </Pressable>
-              ) : null,
-          },
-        ]}
-        data={sessions}
-        keyExtractor={(r) => r.id}
-      />
-    </ScrollView>
+    <PlatformDataTable
+      columns={[
+        { key: 'tenant', label: 'Mandant', minWidth: 100, render: (r: PlatformSupportSessionRow) => r.tenant_id.slice(0, 8) },
+        { key: 'status', label: 'Status', minWidth: 100, render: (r: PlatformSupportSessionRow) => <PlatformStatusBadge status={r.status} /> },
+        {
+          key: 'mode',
+          label: 'Modus',
+          minWidth: 90,
+          render: (r: PlatformSupportSessionRow) => (r.readonly ? 'readonly' : 'WRITE'),
+        },
+        { key: 'expires', label: 'Ablauf', minWidth: 140, render: (r: PlatformSupportSessionRow) => formatPlatformDate(r.expires_at) },
+        { key: 'reason', label: 'Grund', minWidth: 160, render: (r: PlatformSupportSessionRow) => r.reason ?? '—' },
+        {
+          key: 'actions',
+          label: '',
+          minWidth: 88,
+          render: (r: PlatformSupportSessionRow) =>
+            canWrite && onEnd && r.status === 'active' ? (
+              <Pressable onPress={() => onEnd(r)}>
+                <Text style={styles.link}>Beenden</Text>
+              </Pressable>
+            ) : null,
+        },
+      ]}
+      data={sessions}
+      keyExtractor={(r) => r.id}
+      emptyTitle="Keine Sessions"
+    />
   );
 }
 
@@ -762,16 +750,16 @@ export function PlatformFeatureFlagsScreen() {
         <PlatformReadOnlyBanner message="Lesemodus — Flag-Änderungen erfordern flags.write (Owner/Developer)." />
       ) : null}
 
-      <ScrollView horizontal contentContainerStyle={styles.chipRow}>
+      <PlatformFilterChipRow>
         {['', 'global', 'tenant', 'module', 'user', 'beta_group'].map((s) => (
-          <FilterChip
+          <PlatformFilterChip
             key={s || 'all'}
             label={s || 'Alle Scopes'}
             active={scopeFilter === s}
             onPress={() => setScopeFilter(s)}
           />
         ))}
-      </ScrollView>
+      </PlatformFilterChipRow>
 
       {loading ? (
         <LoadingState message="Feature Flags werden geladen…" />
@@ -779,8 +767,7 @@ export function PlatformFeatureFlagsScreen() {
         <ErrorState title="Flags nicht verfügbar" message={error} onRetry={() => void load()} />
       ) : (
         <>
-          <ScrollView horizontal>
-            <PremiumDataTable
+          <PlatformDataTable
               columns={[
                 { key: 'key', label: 'Key', render: (r: PlatformFeatureFlagRow) => r.flag_key },
                 { key: 'name', label: 'Name', render: (r: PlatformFeatureFlagRow) => r.flag_name },
@@ -826,8 +813,7 @@ export function PlatformFeatureFlagsScreen() {
               ]}
               data={flags}
               keyExtractor={(r) => r.id}
-            />
-          </ScrollView>
+          />
 
           {canWriteGlobal && isOwnerOrDev ? (
             <View style={styles.formPanel}>
@@ -835,11 +821,11 @@ export function PlatformFeatureFlagsScreen() {
               <TextInput style={styles.input} value={editKey} onChangeText={setEditKey} placeholder="flag_key" placeholderTextColor={PLATFORM_COLORS.muted} />
               <TextInput style={styles.input} value={editRollout} onChangeText={setEditRollout} placeholder="Rollout 0-100" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
               <TextInput style={styles.input} value={editTenant} onChangeText={setEditTenant} placeholder="Tenant-ID (tenant scope)" placeholderTextColor={PLATFORM_COLORS.muted} />
-              <ScrollView horizontal contentContainerStyle={styles.chipRow}>
+              <PlatformFilterChipRow>
                 {['global', 'tenant', 'module', 'user', 'beta_group'].map((s) => (
-                  <FilterChip key={s} label={s} active={editScope === s} onPress={() => setEditScope(s)} />
+                  <PlatformFilterChip key={s} label={s} active={editScope === s} onPress={() => setEditScope(s)} />
                 ))}
-              </ScrollView>
+              </PlatformFilterChipRow>
               <Pressable
                 style={styles.primaryBtn}
                 onPress={() =>
@@ -890,18 +876,6 @@ const styles = StyleSheet.create({
     backgroundColor: PLATFORM_COLORS.panel,
   },
   searchBtn: { justifyContent: 'center', paddingHorizontal: spacing.md },
-  chipRow: { flexDirection: 'row', gap: spacing.xs, marginBottom: spacing.sm, paddingVertical: 4 },
-  chip: {
-    borderWidth: 1,
-    borderColor: PLATFORM_COLORS.border,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: PLATFORM_COLORS.panel,
-  },
-  chipActive: { borderColor: PLATFORM_COLORS.accent, backgroundColor: '#132036' },
-  chipText: { color: PLATFORM_COLORS.muted, fontSize: 12 },
-  chipTextActive: { color: PLATFORM_COLORS.accent, fontWeight: '600' },
   sectionTitle: { color: PLATFORM_COLORS.text, fontWeight: '700', marginTop: spacing.md, marginBottom: spacing.xs },
   formPanel: {
     marginTop: spacing.md,

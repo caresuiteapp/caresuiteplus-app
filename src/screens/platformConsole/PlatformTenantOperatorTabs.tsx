@@ -4,10 +4,12 @@ import {
   PlatformAuditLink,
   PlatformConfirmModal,
   PlatformDeferredNote,
+  PlatformFilterChip,
+  PlatformFilterChipRow,
   PlatformStatusBadge,
   PLATFORM_COLORS,
 } from '@/components/platformConsole';
-import { LoadingState, PremiumDataTable } from '@/components/ui';
+import { LoadingState } from '@/components/ui';
 import type { PlatformTenantDetail } from '@/lib/platformConsole';
 import {
   assignPlatformDiscount,
@@ -107,17 +109,16 @@ export function TenantSubscriptionTab({ tenantId, detail, role, onReload }: TabP
       {canWrite ? (
         <View style={styles.subPanel}>
           <Text style={styles.label}>Plan zuweisen / wechseln</Text>
-          <ScrollView horizontal contentContainerStyle={{ flexDirection: 'row', gap: 8 }}>
+          <PlatformFilterChipRow>
             {plans.map((p) => (
-              <Pressable
+              <PlatformFilterChip
                 key={String(p.plan_key)}
-                style={[styles.chipBtn, planKey === String(p.plan_key) && styles.chipBtnActive]}
+                label={String(p.plan_key)}
+                active={planKey === String(p.plan_key)}
                 onPress={() => setPlanKey(String(p.plan_key))}
-              >
-                <Text style={styles.meta}>{String(p.plan_key)}</Text>
-              </Pressable>
+              />
             ))}
-          </ScrollView>
+          </PlatformFilterChipRow>
           <Pressable
             style={styles.btn}
             disabled={!planKey}

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { PlatformShellLayout, PLATFORM_COLORS } from '@/components/platformConsole';
-import { ErrorState, LoadingState, PremiumDataTable } from '@/components/ui';
+import { PlatformDataTable, PlatformShellLayout, PLATFORM_COLORS } from '@/components/platformConsole';
+import { ErrorState, LoadingState } from '@/components/ui';
 import { listPlatformTenants, resolvePlatformTenantDetailId } from '@/lib/platformConsole';
 import type { PlatformTenantListItem } from '@/types/platformConsole';
 import { spacing } from '@/theme';
@@ -104,13 +104,16 @@ export function PlatformTenantsScreen() {
       ) : error ? (
         <ErrorState title="Liste nicht verfügbar" message={error} onRetry={() => void load()} />
       ) : (
-        <ScrollView horizontal>
-          <PremiumDataTable
-            columns={columns}
+        <PlatformDataTable
+            columns={columns.map((col) => ({
+              ...col,
+              minWidth: col.key === 'actions' ? 88 : col.key === 'tenantName' ? 180 : 110,
+            }))}
             data={items}
-            keyExtractor={(row) => resolvePlatformTenantDetailId(row) ?? row.id}
+            keyExtractor={(row, index) => resolvePlatformTenantDetailId(row) ?? `tenant-${index}`}
+            emptyTitle="Keine Mandanten"
+            emptyMessage="Passen Sie die Suche an oder prüfen Sie die Berechtigungen."
           />
-        </ScrollView>
       )}
     </PlatformShellLayout>
   );

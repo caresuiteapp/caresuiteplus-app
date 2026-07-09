@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { PlatformShellLayout, PLATFORM_COLORS } from '@/components/platformConsole';
+import { PlatformEmptyState, PlatformShellLayout, PLATFORM_COLORS } from '@/components/platformConsole';
 import { ErrorState, LoadingState } from '@/components/ui';
 import { listPlatformModules, listPlatformPlans } from '@/lib/platformConsole';
 import { spacing } from '@/theme';
@@ -32,6 +32,8 @@ export function PlatformModulesCatalogScreen() {
         <LoadingState message="Module werden geladen…" />
       ) : error ? (
         <ErrorState title="Module nicht verfügbar" message={error} onRetry={() => void load()} />
+      ) : items.length === 0 ? (
+        <PlatformEmptyState title="Keine Module" message="Das Modulverzeichnis ist leer." />
       ) : (
         <ScrollView contentContainerStyle={styles.list}>
           <Text style={styles.note}>
@@ -100,11 +102,10 @@ export function PlatformPlansScreen() {
 export function PlatformPlaceholderScreen({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <PlatformShellLayout title={title} subtitle={subtitle}>
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderText}>
-          Bereich vorbereitet — Daten werden über gesicherte Platform-RPCs geladen.
-        </Text>
-      </View>
+      <PlatformEmptyState
+        title="Bereich vorbereitet"
+        message="Daten werden über gesicherte Platform-RPCs geladen."
+      />
     </PlatformShellLayout>
   );
 }
