@@ -191,6 +191,8 @@ describe('tenant bootstrap role resolution', () => {
     const provider = readSrc('src/lib/auth/AuthProvider.tsx');
     expect(provider).toContain('reconcileLiveSession');
     expect(provider).toContain('authReady: isInitialized && !isLoading');
+    expect(provider).toContain('withAuthBootstrapTimeout');
+    expect(provider).toContain('void restoreSupabaseSession');
   });
 
   it('auth index never sends authenticated users to public start', () => {

@@ -14,7 +14,11 @@ import type {
   VisitProofStatus,
   VisitTaskItem,
 } from '@/lib/assist/visitTypes';
-import { resolveVisitAndAssignmentIds } from '@/lib/assist/assistExecutionVisitResolver';
+import {
+  batchResolveVisitAndAssignmentIds,
+  resolveVisitAndAssignmentIds,
+} from '@/lib/assist/assistExecutionVisitResolver';
+import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { resolveServiceEndedAt } from '@/lib/assist/assignmentLifecycleTimestamps';
 import {
   neutralizeFutureOccurrenceListItem,
@@ -175,26 +179,35 @@ export async function overlayVisitDispositionListFromAssignments(
 ): Promise<VisitDispositionListItem[]> {
   if (items.length === 0) return items;
 
-  const idPairs = await Promise.all(
-    items.map(async (item) => ({
-      item,
-      ids: await resolveVisitAndAssignmentIds(tenantId, item.id),
-    })),
+  const idMap = await batchResolveVisitAndAssignmentIds(
+    tenantId,
+    items.map((item) => item.id),
   );
 
   const snapshots = await fetchAssignmentExecutionSnapshotBatch(
     tenantId,
-    idPairs.map(({ item, ids }) => ({
-      assignmentId: ids.assignmentId,
-      visitId: ids.visitId,
-      fallbackStatus: item.assignmentStatus,
-      executionStatus: item.executionStatus,
-      documentationStatus: item.documentationStatus,
-      proofStatus: item.proofStatus,
-    })),
+    items.map((item) => {
+      const ids = idMap.get(item.id) ?? {
+        visitId: resolveVisitMasterId(item.id),
+        assignmentId: resolveVisitMasterId(item.id),
+      };
+      return {
+        assignmentId: ids.assignmentId,
+        visitId: ids.visitId,
+        fallbackStatus: item.assignmentStatus,
+        executionStatus: item.executionStatus,
+        documentationStatus: item.documentationStatus,
+        proofStatus: item.proofStatus,
+      };
+    }),
   );
 
-  return idPairs.map(({ item, ids }) => {
+  return items.map((item) => {
+    const ids = idMap.get(item.id) ?? {
+      visitId: resolveVisitMasterId(item.id),
+      assignmentId: resolveVisitMasterId(item.id),
+    };
+
     if (shouldIsolateOccurrenceExecution({ itemId: item.id })) {
       return resetVirtualOccurrenceListItem(item, item.planningStatus);
     }

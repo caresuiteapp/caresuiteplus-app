@@ -38,7 +38,7 @@ function isOpenPortalReleaseStatus(proofStatus?: string | null): boolean {
   return proofStatus === 'verified';
 }
 
-function buildDashboardStats(
+export function buildDashboardStatsFromAssignments(
   items: AssignmentListItem[],
   openTripsCount = 0,
 ): AssistDashboardStats {
@@ -141,7 +141,7 @@ export async function fetchAssistDashboardStats(
     openTripsCount = tripsResult.data.filter((t) => !t.endedAt).length;
   }
 
-  return { ok: true, data: buildDashboardStats(listResult.data, openTripsCount) };
+  return { ok: true, data: buildDashboardStatsFromAssignments(listResult.data, openTripsCount) };
 }
 
 export async function fetchTodayAssignments(

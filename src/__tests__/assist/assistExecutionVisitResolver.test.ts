@@ -30,7 +30,10 @@ vi.mock('@/lib/supabase/untypedTable', () => ({
   fromUnknownTable: (_client: unknown, table: string) => fromUnknownTable(table),
 }));
 
-import { resolveVisitAndAssignmentIds } from '@/lib/assist/assistExecutionVisitResolver';
+import {
+  batchResolveVisitAndAssignmentIds,
+  resolveVisitAndAssignmentIds,
+} from '@/lib/assist/assistExecutionVisitResolver';
 
 const TENANT = '56180c22-b894-4fab-b55e-a563c94dd6e7';
 const VISIT_ID = '11111111-1111-4111-8111-111111111111';
@@ -89,5 +92,35 @@ describe('resolveVisitAndAssignmentIds', () => {
 
     const ids = await resolveVisitAndAssignmentIds(TENANT, ASSIGNMENT_ID);
     expect(ids).toEqual({ visitId: VISIT_ID, assignmentId: ASSIGNMENT_ID });
+  });
+});
+
+describe('batchResolveVisitAndAssignmentIds', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    fromUnknownTable.mockImplementation((table: string) => {
+      if (table !== 'assist_visits') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          in: vi.fn().mockResolvedValue({ data: [], error: null }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        in: vi.fn().mockResolvedValue({
+          data: [{ id: VISIT_ID, legacy_assignment_id: ASSIGNMENT_ID }],
+          error: null,
+        }),
+      };
+    });
+  });
+
+  it('resolves many ids with at most two assist_visits queries', async () => {
+    const map = await batchResolveVisitAndAssignmentIds(TENANT, [VISIT_ID, ASSIGNMENT_ID]);
+    expect(map.get(VISIT_ID)).toEqual({ visitId: VISIT_ID, assignmentId: ASSIGNMENT_ID });
+    expect(resolveLiveAssignment).not.toHaveBeenCalled();
+    expect(fromUnknownTable).toHaveBeenCalledTimes(2);
   });
 });

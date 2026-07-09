@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import { BackHandler } from 'react-native';
 import { Redirect, usePathname, useRouter } from 'expo-router';
-import { FullScreenLoader } from '@/components/ui';
+import { ErrorState, FullScreenLoader } from '@/components/ui';
 import { isAuthSetupRoute } from './loginRouter';
 import { resolveAuthSessionTarget } from './sessionTarget';
 import { useAuth } from './context';
@@ -68,7 +68,17 @@ export function RedirectIfAuthenticated({
     }
   }
 
-  if (isAuthenticated && !isAuthSetupRoute(pathname)) {
+  if (isAuthenticated && !canRedirectHome && !isAuthSetupRoute(pathname)) {
+    return (
+      <ErrorState
+        title="Weiterleitung nicht möglich"
+        message="Ihre Sitzung konnte keinem Zielbereich zugeordnet werden. Bitte erneut anmelden."
+        onRetry={() => router.replace('/auth/business-login' as never)}
+      />
+    );
+  }
+
+  if (isAuthenticated && canRedirectHome && !isAuthSetupRoute(pathname)) {
     return <FullScreenLoader message={loadingMessage} />;
   }
 

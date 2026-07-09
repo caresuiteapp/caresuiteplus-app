@@ -1,6 +1,11 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { AssistDashboardStats, AssignmentListItem } from '@/types/modules/assist';
-import { fetchAssistDashboardStats, fetchTodayAssignments } from './assignmentListService';
+import { isAssignmentToday } from '@/data/demo/assistAssignments';
+import {
+  fetchAssignmentList,
+  buildDashboardStatsFromAssignments,
+} from './assignmentListService';
+import { fetchTripLogList } from './tripLogService';
 
 export const EMPTY_ASSIST_DASHBOARD_STATS: AssistDashboardStats = {
   totalAssignments: 0,
@@ -27,17 +32,27 @@ export async function fetchAssistDashboardBundle(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<AssistDashboardBundle>> {
-  const statsResult = await fetchAssistDashboardStats(tenantId, actorRoleKey);
-  if (!statsResult.ok) return statsResult;
+  const listResult = await fetchAssignmentList(tenantId, actorRoleKey);
+  if (!listResult.ok) return listResult;
 
-  const todayResult = await fetchTodayAssignments(tenantId, actorRoleKey);
-  if (!todayResult.ok) return todayResult;
+  let openTripsCount = 0;
+  const tripsResult = await fetchTripLogList(tenantId, actorRoleKey);
+  if (tripsResult.ok) {
+    openTripsCount = tripsResult.data.filter((trip) => !trip.endedAt).length;
+  }
+
+  const todayAssignments = listResult.data
+    .filter((item) => isAssignmentToday(item.scheduledStart))
+    .sort(
+      (a, b) =>
+        new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime(),
+    );
 
   return {
     ok: true,
     data: {
-      stats: statsResult.data,
-      todayAssignments: todayResult.data,
+      stats: buildDashboardStatsFromAssignments(listResult.data, openTripsCount),
+      todayAssignments,
     },
   };
 }
