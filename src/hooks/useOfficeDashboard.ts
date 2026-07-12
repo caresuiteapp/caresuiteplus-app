@@ -49,29 +49,43 @@ export function useOfficeDashboard(options?: UseOfficeDashboardOptions) {
       setError(null);
     }
 
-    const result = await fetchOfficeDashboardCached(tenantId, profile?.roleKey ?? null, {
-      force: silent || hasData,
-    });
+    try {
+      const result = await fetchOfficeDashboardCached(tenantId, profile?.roleKey ?? null, {
+        force: silent || hasData,
+      });
 
-    if (result.ok) {
-      setData(result.data);
-      setError(null);
-    } else if (!hasData) {
-      setData(null);
-      setError(result.error);
-    }
-
-    if (!silent && !hasData) {
-      setLoading(false);
+      if (result.ok) {
+        setData(result.data);
+        setError(null);
+      } else if (!hasData) {
+        setData(null);
+        setError(result.error);
+      }
+    } catch (cause) {
+      if (!hasData) {
+        setData(null);
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : 'Office-Dashboard konnte nicht geladen werden.',
+        );
+      }
+    } finally {
+      if (!silent && !hasData) {
+        setLoading(false);
+      }
     }
   }, [tenantId, profile?.roleKey, enabled]);
 
   const silentRefresh = useCallback(async () => {
     if (!enabled) return;
     setRefreshing(true);
-    await refresh({ silent: true });
-    setRefreshing(false);
-  }, [refresh]);
+    try {
+      await refresh({ silent: true });
+    } finally {
+      setRefreshing(false);
+    }
+  }, [enabled, refresh]);
 
   useEffect(() => {
     if (!enabled) {

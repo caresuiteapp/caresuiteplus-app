@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth/context';
 import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
 import { fetchDashboardSnapshot } from '@/lib/dashboard';
 import { subscribeToOfficeDashboardChanges } from '@/lib/realtime';
+import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 
 type RefreshOptions = {
@@ -21,12 +22,15 @@ export function useDashboard(scope: DashboardScope) {
   const [refreshing, setRefreshing] = useState(false);
   const [isLiveConnected, setIsLiveConnected] = useState(false);
   const dataRef = useRef<DashboardSnapshot | null>(null);
+  const requestInFlightRef = useRef(false);
   dataRef.current = data;
 
   const refresh = useCallback(
     async (options?: RefreshOptions) => {
       const silent = options?.silent ?? false;
       const hasData = dataRef.current !== null;
+      if (requestInFlightRef.current) return;
+      requestInFlightRef.current = true;
 
       if (!silent && !hasData) {
         setLoading(true);
@@ -41,29 +45,43 @@ export function useDashboard(scope: DashboardScope) {
         if (!silent && !hasData) {
           setLoading(false);
         }
+        requestInFlightRef.current = false;
         return;
       }
 
-      const result = await fetchDashboardSnapshot(
-        tenantId,
-        roleKey,
-        scope,
-        {
-          simulateError: options?.simulateError,
-          tenantNameHint: portalSession?.tenantName ?? null,
-        },
-      );
+      try {
+        const result = await withServiceQueryTimeout(
+          fetchDashboardSnapshot(
+            tenantId,
+            roleKey,
+            scope,
+            {
+              simulateError: options?.simulateError,
+              tenantNameHint: portalSession?.tenantName ?? null,
+            },
+          ),
+          'Dashboard',
+        );
 
-      if (result.ok) {
-        setData(result.data);
-        setError(null);
-      } else if (!hasData) {
-        setData(null);
-        setError(result.error);
-      }
-
-      if (!silent && !hasData) {
-        setLoading(false);
+        if (result.ok) {
+          setData(result.data);
+          setError(null);
+        } else if (!hasData) {
+          setData(null);
+          setError(result.error);
+        }
+      } catch (cause) {
+        if (!hasData) {
+          setData(null);
+          setError(
+            cause instanceof Error ? cause.message : 'Dashboard konnte nicht geladen werden.',
+          );
+        }
+      } finally {
+        requestInFlightRef.current = false;
+        if (!silent && !hasData) {
+          setLoading(false);
+        }
       }
     },
     [tenantId, roleKey, scope, portalSession?.tenantName],
@@ -71,8 +89,11 @@ export function useDashboard(scope: DashboardScope) {
 
   const silentRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refresh({ silent: true });
-    setRefreshing(false);
+    try {
+      await refresh({ silent: true });
+    } finally {
+      setRefreshing(false);
+    }
   }, [refresh]);
 
   useEffect(() => {

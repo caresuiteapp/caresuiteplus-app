@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ServiceResult } from '@/types';
+import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
 import type { LiveRefreshQueryConfig } from './liveRefreshTypes';
 import { DEFAULT_LIVE_POLL_MS, useLiveRefresh } from './useLiveRefresh';
 
@@ -21,11 +22,14 @@ export function useAsyncQuery<T>(
   const [tableMissing, setTableMissing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const dataRef = useRef<T | null>(null);
+  const requestInFlightRef = useRef(false);
   dataRef.current = data;
 
   const load = useCallback(
     async (silent = false) => {
       if (!options?.enabled && options?.enabled !== undefined) return;
+      if (requestInFlightRef.current) return;
+      requestInFlightRef.current = true;
 
       const isInitialLoad = dataRef.current === null;
       if (!silent && isInitialLoad) {
@@ -34,7 +38,7 @@ export function useAsyncQuery<T>(
       }
 
       try {
-        const result = await fetcher();
+        const result = await withServiceQueryTimeout(fetcher());
         if (result.ok) {
           setDataState(result.data);
           const previewResult = result as {
@@ -61,10 +65,11 @@ export function useAsyncQuery<T>(
             cause instanceof Error ? cause.message : 'Daten konnten nicht geladen werden.',
           );
         }
-      }
-
-      if (!silent && isInitialLoad) {
-        setLoading(false);
+      } finally {
+        requestInFlightRef.current = false;
+        if (!silent && isInitialLoad) {
+          setLoading(false);
+        }
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,8 +90,11 @@ export function useAsyncQuery<T>(
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    await load(true);
-    setRefreshing(false);
+    try {
+      await load(true);
+    } finally {
+      setRefreshing(false);
+    }
   }, [load]);
 
   const liveEnabled =

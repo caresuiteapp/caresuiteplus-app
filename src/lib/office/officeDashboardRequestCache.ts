@@ -1,6 +1,7 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { DashboardSnapshot } from '@/types/dashboard';
 import { fetchOfficeDashboard } from '@/lib/office/officeDashboardService';
+import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
 
 const SNAPSHOT_TTL_MS = 15_000;
 
@@ -43,13 +44,23 @@ export function fetchOfficeDashboardCached(
   const pending = inflight.get(key);
   if (pending) return pending;
 
-  const promise = fetchOfficeDashboard(tenantId, roleKey)
+  const promise = withServiceQueryTimeout(
+    fetchOfficeDashboard(tenantId, roleKey),
+    'Office-Dashboard',
+  )
     .then((result) => {
       if (result.ok) {
         snapshotCache.set(key, { snapshot: result.data, fetchedAt: Date.now() });
       }
       return result;
     })
+    .catch((cause): ServiceResult<DashboardSnapshot> => ({
+      ok: false,
+      error:
+        cause instanceof Error
+          ? cause.message
+          : 'Office-Dashboard konnte nicht geladen werden.',
+    }))
     .finally(() => {
       inflight.delete(key);
     });

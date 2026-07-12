@@ -15,6 +15,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { loginBusinessUser } from '@/lib/auth/businessAuthService';
 import { markBusinessWelcomePending } from '@/lib/auth/businessWelcomeSession';
 import { useAuth } from '@/lib/auth/context';
+import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 
 export function BusinessLoginScreen() {
   const router = useRouter();
@@ -29,15 +30,14 @@ export function BusinessLoginScreen() {
     setError(null);
     setSuccess(false);
     setLoading(true);
-    const result = await loginBusinessUser(identifier, password);
-    setLoading(false);
-
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
 
     try {
+      const result = await loginBusinessUser(identifier, password);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
       if (!result.data.supabaseSession) {
         setError(
           'Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie Ihre Zugangsdaten oder kontaktieren Sie den Support.',
@@ -48,8 +48,11 @@ export function BusinessLoginScreen() {
       await signInWithSupabaseSession(result.data.supabaseSession);
       markBusinessWelcomePending();
       setSuccess(true);
+      router.replace(resolvePostLoginRoute(result.data.loginType));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
+    } finally {
+      setLoading(false);
     }
   };
 
