@@ -146,14 +146,16 @@ describe('tenant bootstrap role resolution', () => {
     expect(guard).toContain('canRedirectHome');
     expect(guard).toContain('!canRedirectHome');
     expect(guard).toContain('resolveAuthSessionTarget');
-    expect(guard).toContain('<Redirect href={homePath');
+    expect(guard).toContain('router.replace(homePath as never)');
+    expect(guard).toContain('useHydrated');
     expect(guard).toContain('authReady');
   });
 
   it('AppStartScreen keeps authenticated users on start and never signs out', () => {
     const start = readSrc('src/screens/AppStartScreen.tsx');
     expect(start).toContain('resolveAuthSessionTarget');
-    expect(start).toContain('<Redirect href={homePath');
+    expect(start).toContain('router.replace(homePath as never)');
+    expect(start).toContain('useHydrated');
     expect(start).toContain('Weiterleitung zum Dashboard');
     expect(start).not.toContain('signOut');
     expect(start).not.toMatch(/if \(!hasSessionTarget\) \{\s*void signOut\(\)/);
@@ -215,9 +217,9 @@ describe('tenant bootstrap role resolution', () => {
   it('auth index never sends authenticated users to public start', () => {
     const authIndex = readSrc('app/auth/index.tsx');
     expect(authIndex).toContain('authReady');
-    expect(authIndex).toContain('Weiterleitung zum Dashboard');
-    expect(authIndex).toContain('<Redirect href={homePath as never} />');
-    expect(authIndex).not.toContain('<Redirect href="/" as never />');
+    expect(authIndex).toContain("isAuthenticated && canRedirectHome ? homePath : '/'");
+    expect(authIndex).toContain('router.replace(target as never)');
+    expect(authIndex).toContain('useHydrated');
   });
 
   it('RequireRole uses portal session roleKey for access checks', () => {
