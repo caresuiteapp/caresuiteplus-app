@@ -193,6 +193,16 @@ describe('tenant bootstrap role resolution', () => {
     expect(provider).toContain('authReady: isInitialized && !isLoading');
     expect(provider).toContain('withAuthBootstrapTimeout');
     expect(provider).toContain('void restoreSupabaseSession');
+    expect(provider).toContain("'Portal-Sitzung'");
+    expect(provider).toContain('4_000');
+    expect(provider).toContain("'Portal-Sitzung löschen'");
+  });
+
+  it('Supabase auth requests cannot leave login or guards loading forever', () => {
+    const authService = readSrc('src/lib/supabase/authService.ts');
+    expect(authService).toContain('AUTH_REQUEST_TIMEOUT_MS');
+    expect(authService).toContain("withAuthRequestTimeout(client.auth.getSession(), 'Sitzungsprüfung')");
+    expect(authService).toContain("'Anmeldung'");
   });
 
   it('login audit persistence cannot block authentication indefinitely', () => {

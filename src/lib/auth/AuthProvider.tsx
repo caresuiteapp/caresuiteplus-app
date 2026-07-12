@@ -1,6 +1,6 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
-import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types';
+import type { AuthSession, AuthUser, Profile } from '@/types';
 import {
   getSession,
   onAuthStateChange,
@@ -217,7 +217,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     async function init() {
       try {
-        const restoredPortal = await loadPortalSession();
+        let restoredPortal: PortalSessionRecord | null = null;
+        try {
+          restoredPortal = await withAuthBootstrapTimeout(
+            loadPortalSession(),
+            'Portal-Sitzung',
+            4_000,
+          );
+        } catch {
+          restoredPortal = null;
+        }
         if (!cancelled && restoredPortal) {
           setPortalSession(restoredPortal);
         }
@@ -358,7 +367,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   ]);
 
   const signInWithSupabaseSession = useCallback(async (supabaseSession: Session) => {
-    await clearPortalSession();
+    try {
+      await withAuthBootstrapTimeout(clearPortalSession(), 'Portal-Sitzung löschen', 4_000);
+    } catch {
+      setPortalSession(null);
+    }
     setPortalSession(null);
     setProfileBootstrapError(null);
 
