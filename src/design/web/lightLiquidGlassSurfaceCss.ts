@@ -8,9 +8,9 @@ export const LLGAN_GLASS_SURFACE_CSS = `
   :root {
     --llgan-glass-blur: 0px;
     --llgan-glass-saturate: 1.8;
-    --llgan-glass-card-alpha: 0.92;
-    --llgan-glass-panel-alpha: 0.88;
-    --llgan-glass-chip-alpha: 0.9;
+    --llgan-glass-card-alpha: 0.72;
+    --llgan-glass-panel-alpha: 0.64;
+    --llgan-glass-chip-alpha: 0.7;
   }
 
   html, body, #root, #expo-root, [data-expo-root] {
@@ -22,11 +22,17 @@ export const LLGAN_GLASS_SURFACE_CSS = `
   [data-cs-llgan-glass] {
     position: relative;
     background-color: rgba(255, 255, 255, var(--llgan-glass-card-alpha)) !important;
-    background-image: none !important;
+    background-image: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(247, 251, 255, 0.72) 48%,
+      rgba(235, 244, 255, 0.56) 100%
+    ) !important;
     border: 1px solid rgba(255, 255, 255, 0.78);
     box-shadow:
-      0 20px 56px rgba(70, 110, 170, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.88);
+      0 18px 46px rgba(70, 110, 170, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.96),
+      inset 0 -1px 0 rgba(120, 170, 235, 0.1);
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }
@@ -74,7 +80,7 @@ export const LLGAN_GLASS_SURFACE_CSS = `
   }
 
   [data-cs-llgan-glass="modal"] {
-    background-color: rgba(255, 255, 255, 0.96) !important;
+    background-color: rgba(255, 255, 255, 0.86) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }

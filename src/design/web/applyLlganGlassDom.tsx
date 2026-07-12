@@ -9,12 +9,12 @@ type GlassDomPreset = {
 };
 
 const GLASS_DOM_PRESETS: Record<LlganGlassSurfaceKind, GlassDomPreset> = {
-  panel: { alpha: 0.88, border: 'rgba(110, 160, 255, 0.3)' },
-  card: { alpha: 0.92, border: 'rgba(255, 255, 255, 0.82)' },
-  chip: { alpha: 0.9, border: 'rgba(120, 160, 255, 0.28)' },
-  input: { alpha: 0.94, border: 'rgba(120, 160, 255, 0.28)' },
-  button: { alpha: 0.92, border: 'rgba(120, 160, 255, 0.28)' },
-  modal: { alpha: 0.96, border: 'rgba(255, 255, 255, 0.78)' },
+  panel: { alpha: 0.64, border: 'rgba(110, 160, 255, 0.34)' },
+  card: { alpha: 0.72, border: 'rgba(255, 255, 255, 0.9)' },
+  chip: { alpha: 0.7, border: 'rgba(120, 160, 255, 0.3)' },
+  input: { alpha: 0.78, border: 'rgba(120, 160, 255, 0.3)' },
+  button: { alpha: 0.74, border: 'rgba(120, 160, 255, 0.3)' },
+  modal: { alpha: 0.86, border: 'rgba(255, 255, 255, 0.86)' },
 };
 
 function isDomElement(node: unknown): node is HTMLElement {
@@ -45,11 +45,15 @@ export function bindLlganGlassSurface(node: View | HTMLElement | null, kind: Llg
   el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
   el.style.setProperty('backdrop-filter', 'none', 'important');
   el.style.setProperty('background-color', `rgba(255, 255, 255, ${preset.alpha})`, 'important');
-  el.style.setProperty('background-image', 'none', 'important');
+  el.style.setProperty(
+    'background-image',
+    `linear-gradient(145deg, rgba(255,255,255,${Math.min(0.96, preset.alpha + 0.18)}) 0%, rgba(247,251,255,${preset.alpha}) 48%, rgba(235,244,255,${Math.max(0.42, preset.alpha - 0.16)}) 100%)`,
+    'important',
+  );
   el.style.setProperty('border', `1px solid ${preset.border}`, 'important');
   el.style.setProperty(
     'box-shadow',
-    '0 14px 36px rgba(70, 110, 170, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9)',
+    '0 18px 46px rgba(70, 110, 170, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.96), inset 0 -1px 0 rgba(120, 170, 235, 0.1)',
     'important',
   );
 }

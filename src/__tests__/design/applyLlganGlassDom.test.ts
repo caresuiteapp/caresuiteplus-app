@@ -49,6 +49,11 @@ describe('applyLlganGlassDom', () => {
       expect.stringContaining('rgba(255, 255, 255'),
       'important',
     );
+    expect(el.style.setProperty).toHaveBeenCalledWith(
+      'background-image',
+      expect.stringContaining('linear-gradient'),
+      'important',
+    );
     const source = await import('node:fs').then(({ readFileSync }) =>
       readFileSync('src/design/web/applyLlganGlassDom.tsx', 'utf8'),
     );
