@@ -11,6 +11,28 @@ export type AuthServiceResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: string };
 
+const AUTH_REQUEST_TIMEOUT_MS = 10_000;
+
+async function withAuthRequestTimeout<T>(
+  request: PromiseLike<T>,
+  label: string,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      request,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(`${label} hat zu lange gedauert.`));
+        }, AUTH_REQUEST_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 export function toGermanAuthError(error: AuthError | Error | null | undefined): string {
   if (!error) return 'Ein unerwarteter Anmeldefehler ist aufgetreten.';
 
@@ -67,10 +89,26 @@ export async function signInWithPassword(
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedPassword = password.trim();
 
-  const { data, error } = await client.auth.signInWithPassword({
-    email: normalizedEmail,
-    password: normalizedPassword,
-  });
+  let result: Awaited<ReturnType<typeof client.auth.signInWithPassword>>;
+  try {
+    result = await withAuthRequestTimeout(
+      client.auth.signInWithPassword({
+        email: normalizedEmail,
+        password: normalizedPassword,
+      }),
+      'Anmeldung',
+    );
+  } catch (cause) {
+    return {
+      ok: false,
+      error:
+        cause instanceof Error
+          ? cause.message
+          : 'Anmeldung hat zu lange gedauert. Bitte erneut versuchen.',
+    };
+  }
+
+  const { data, error } = result;
   if (error || !data.session) {
     return { ok: false, error: toGermanAuthError(error) };
   }
@@ -106,7 +144,20 @@ export async function getSession(): Promise<AuthServiceResult<Session | null>> {
     return { ok: true, data: null };
   }
 
-  const { data, error } = await client.auth.getSession();
+  let result: Awaited<ReturnType<typeof client.auth.getSession>>;
+  try {
+    result = await withAuthRequestTimeout(client.auth.getSession(), 'Sitzungsprüfung');
+  } catch (cause) {
+    return {
+      ok: false,
+      error:
+        cause instanceof Error
+          ? cause.message
+          : 'Sitzungsprüfung hat zu lange gedauert.',
+    };
+  }
+
+  const { data, error } = result;
   if (error) {
     return { ok: false, error: toGermanAuthError(error) };
   }

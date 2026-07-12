@@ -146,14 +146,16 @@ describe('tenant bootstrap role resolution', () => {
     expect(guard).toContain('canRedirectHome');
     expect(guard).toContain('!canRedirectHome');
     expect(guard).toContain('resolveAuthSessionTarget');
-    expect(guard).toContain('<Redirect href={homePath');
+    expect(guard).toContain('router.replace(homePath as never)');
+    expect(guard).toContain('useHydrated');
     expect(guard).toContain('authReady');
   });
 
   it('AppStartScreen keeps authenticated users on start and never signs out', () => {
     const start = readSrc('src/screens/AppStartScreen.tsx');
     expect(start).toContain('resolveAuthSessionTarget');
-    expect(start).toContain('<Redirect href={homePath');
+    expect(start).toContain('router.replace(homePath as never)');
+    expect(start).toContain('useHydrated');
     expect(start).toContain('Weiterleitung zum Dashboard');
     expect(start).not.toContain('signOut');
     expect(start).not.toMatch(/if \(!hasSessionTarget\) \{\s*void signOut\(\)/);
@@ -193,14 +195,31 @@ describe('tenant bootstrap role resolution', () => {
     expect(provider).toContain('authReady: isInitialized && !isLoading');
     expect(provider).toContain('withAuthBootstrapTimeout');
     expect(provider).toContain('void restoreSupabaseSession');
+    expect(provider).toContain("'Portal-Sitzung'");
+    expect(provider).toContain('4_000');
+    expect(provider).toContain("'Portal-Sitzung löschen'");
+  });
+
+  it('Supabase auth requests cannot leave login or guards loading forever', () => {
+    const authService = readSrc('src/lib/supabase/authService.ts');
+    expect(authService).toContain('AUTH_REQUEST_TIMEOUT_MS');
+    expect(authService).toContain("withAuthRequestTimeout(client.auth.getSession(), 'Sitzungsprüfung')");
+    expect(authService).toContain("'Anmeldung'");
+  });
+
+  it('login audit persistence cannot block authentication indefinitely', () => {
+    const audit = readSrc('src/lib/auth/loginAuditService.ts');
+    expect(audit).toContain('LOGIN_AUDIT_TIMEOUT_MS');
+    expect(audit).toContain('Promise.race');
+    expect(audit).toContain('setTimeout(resolve, LOGIN_AUDIT_TIMEOUT_MS)');
   });
 
   it('auth index never sends authenticated users to public start', () => {
     const authIndex = readSrc('app/auth/index.tsx');
     expect(authIndex).toContain('authReady');
-    expect(authIndex).toContain('Weiterleitung zum Dashboard');
-    expect(authIndex).toContain('<Redirect href={homePath as never} />');
-    expect(authIndex).not.toContain('<Redirect href="/" as never />');
+    expect(authIndex).toContain("isAuthenticated && canRedirectHome ? homePath : '/'");
+    expect(authIndex).toContain('router.replace(target as never)');
+    expect(authIndex).toContain('useHydrated');
   });
 
   it('RequireRole uses portal session roleKey for access checks', () => {

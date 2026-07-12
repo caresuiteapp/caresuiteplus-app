@@ -1,7 +1,8 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, startTransition, useEffect } from 'react';
 import { BackHandler } from 'react-native';
-import { Redirect, usePathname, useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { ErrorState, FullScreenLoader } from '@/components/ui';
+import { useHydrated } from '@/hooks/useHydrated';
 import { isAuthSetupRoute } from './loginRouter';
 import { resolveAuthSessionTarget } from './sessionTarget';
 import { useAuth } from './context';
@@ -30,6 +31,7 @@ export function RedirectIfAuthenticated({
 }: RedirectIfAuthenticatedProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const hydrated = useHydrated();
   const { authReady, authMode, isAuthenticated, profile, portalSession, user, session } = useAuth();
   const sessionPending = useSupabaseSessionProbe(authMode, authReady, isAuthenticated);
 
@@ -41,11 +43,13 @@ export function RedirectIfAuthenticated({
   });
 
   useEffect(() => {
-    if (!authReady || !isAuthenticated || !canRedirectHome) return;
+    if (!hydrated || !authReady || !isAuthenticated || !canRedirectHome) return;
     if (isAuthSetupRoute(pathname)) return;
     if (matchesNavigationTarget(pathname, homePath)) return;
-    router.replace(homePath as never);
-  }, [canRedirectHome, homePath, isAuthenticated, authReady, pathname, router]);
+    startTransition(() => {
+      router.replace(homePath as never);
+    });
+  }, [canRedirectHome, homePath, hydrated, isAuthenticated, authReady, pathname, router]);
 
   useEffect(() => {
     if (!isAuthenticated || !canRedirectHome) return undefined;
@@ -58,13 +62,13 @@ export function RedirectIfAuthenticated({
     return () => subscription.remove();
   }, [canRedirectHome, homePath, isAuthenticated, router]);
 
-  if (!authReady || sessionPending) {
+  if (!hydrated || !authReady || sessionPending) {
     return <FullScreenLoader message="Sitzung wird geprüft…" />;
   }
 
   if (isAuthenticated && canRedirectHome && !isAuthSetupRoute(pathname)) {
     if (!matchesNavigationTarget(pathname, homePath)) {
-      return <Redirect href={homePath as never} />;
+      return <FullScreenLoader message={loadingMessage} />;
     }
   }
 

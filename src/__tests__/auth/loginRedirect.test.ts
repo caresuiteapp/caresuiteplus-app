@@ -44,7 +44,7 @@ describe('post-login redirect routing', () => {
     expect(isAuthRoutePath('/portal/employee')).toBe(false);
   });
 
-  it('login screens defer navigation to RedirectIfAuthenticated', () => {
+  it('login screens complete navigation without leaving a loading state behind', () => {
     const business = readSrc('src/screens/auth/BusinessLoginScreen.tsx');
     const employee = readSrc('src/screens/auth/EmployeePortalLoginScreen.tsx');
     const client = readSrc('src/screens/auth/PortalCodeLoginScreen.tsx');
@@ -53,7 +53,9 @@ describe('post-login redirect routing', () => {
     expect(business).toContain('signInWithSupabaseSession');
     expect(business).not.toContain('signInDemo');
     expect(business).not.toContain('usePostLoginNavigation');
-    expect(business).not.toContain("router.replace('/business'");
+    expect(business).toContain('router.replace(resolvePostLoginRoute');
+    expect(business).toContain('finally');
+    expect(business).toContain('setLoading(false)');
     expect(business).toContain('setSuccess(true)');
     expect(guard).toContain('resolveAuthSessionTarget');
 
@@ -96,7 +98,8 @@ describe('post-login redirect routing', () => {
     const guard = readSrc('src/lib/auth/RedirectIfAuthenticated.tsx');
     expect(guard).toContain('isAuthSetupRoute');
     expect(guard).toContain('resolveAuthSessionTarget');
-    expect(guard).toContain('<Redirect href={homePath');
+    expect(guard).toContain('startTransition');
+    expect(guard).toContain('router.replace(homePath as never)');
     expect(guard).not.toContain("router.replace('/' as never)");
   });
 });

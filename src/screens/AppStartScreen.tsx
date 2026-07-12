@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { startTransition, useEffect } from 'react';
 import { BackHandler, StyleSheet, Text, View } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { AdaptiveCardGrid } from '@/components/adaptive';
 import { CareSuiteLogo } from '@/components/brand';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
@@ -9,6 +9,7 @@ import { AppScreen, FooterLinks, PortalCard } from '@/design/components';
 import { useAuthFlowTypography } from '@/design/tokens/authTypography';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { useHydrated } from '@/hooks/useHydrated';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useAuth } from '@/lib/auth/context';
 import { resolveAuthSessionTarget } from '@/lib/auth/sessionTarget';
@@ -23,6 +24,7 @@ const LANDING_MAX_WIDTH = 520;
 
 export function AppStartScreen() {
   const router = useRouter();
+  const hydrated = useHydrated();
   const { authReady, authMode, isAuthenticated, profile, portalSession, user, session } =
     useAuth();
   const sessionPending = useSupabaseSessionProbe(authMode, authReady, isAuthenticated);
@@ -40,9 +42,11 @@ export function AppStartScreen() {
   const showPortalChoice = shouldShowPortalChoice(isAuthenticated);
 
   useEffect(() => {
-    if (!authReady || sessionPending || !isAuthenticated || !canRedirectHome) return;
-    router.replace(homePath as never);
-  }, [authReady, canRedirectHome, homePath, isAuthenticated, router, sessionPending]);
+    if (!hydrated || !authReady || sessionPending || !isAuthenticated || !canRedirectHome) return;
+    startTransition(() => {
+      router.replace(homePath as never);
+    });
+  }, [authReady, canRedirectHome, homePath, hydrated, isAuthenticated, router, sessionPending]);
 
   useEffect(() => {
     if (!isAuthenticated || !canRedirectHome) return undefined;
@@ -62,7 +66,7 @@ export function AppStartScreen() {
     return () => subscription.remove();
   }, [showPortalChoice]);
 
-  if (!authReady || sessionPending) {
+  if (!hydrated || !authReady || sessionPending) {
     return (
       <AppScreen scroll={false}>
         <LoadingState />
@@ -71,7 +75,11 @@ export function AppStartScreen() {
   }
 
   if (isAuthenticated && canRedirectHome) {
-    return <Redirect href={homePath as never} />;
+    return (
+      <AppScreen scroll={false}>
+        <LoadingState message="Weiterleitung zum Dashboard…" />
+      </AppScreen>
+    );
   }
 
   if (isAuthenticated) {

@@ -1,5 +1,18 @@
-import { Redirect, type Href } from 'expo-router';
+import { startTransition, useEffect } from 'react';
+import { useRouter, type Href } from 'expo-router';
+import { LoadingState } from '@/components/ui';
+import { useHydrated } from '@/hooks/useHydrated';
 
 export default function RegisterRoute() {
-  return <Redirect href={'/auth/register-business' as Href} />;
+  const router = useRouter();
+  const hydrated = useHydrated();
+
+  useEffect(() => {
+    if (!hydrated) return;
+    startTransition(() => {
+      router.replace('/auth/register-business' as Href);
+    });
+  }, [hydrated, router]);
+
+  return <LoadingState message="Weiterleitung…" />;
 }

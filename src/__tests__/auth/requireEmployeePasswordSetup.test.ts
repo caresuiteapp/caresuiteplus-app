@@ -17,7 +17,9 @@ describe('RequireEmployeePasswordSetup', () => {
     const guard = readSrc('src/lib/auth/RequireEmployeePasswordSetup.tsx');
     expect(guard).toContain('mustChangePassword === true');
     expect(guard).toContain('resolveEmployeeFirstLoginHref');
-    expect(guard).toContain('<Redirect');
+    expect(guard).toContain('router.replace(resolveEmployeeFirstLoginHref');
+    expect(guard).toContain('useHydrated');
+    expect(guard).toContain('Weiterleitung zur Passwortvergabe');
   });
 
   it('routes OTP login to first-login before dashboard', () => {

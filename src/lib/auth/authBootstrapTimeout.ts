@@ -7,6 +7,7 @@ export function getAuthBootstrapTimeoutMs(): number {
 export async function withAuthBootstrapTimeout<T>(
   promise: Promise<T>,
   label = 'Profil-Bootstrap',
+  timeoutMs = BOOTSTRAP_TIMEOUT_MS,
 ): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
@@ -16,7 +17,7 @@ export async function withAuthBootstrapTimeout<T>(
       new Promise<T>((_, reject) => {
         timeoutId = setTimeout(() => {
           reject(new Error(`${label} hat zu lange gedauert.`));
-        }, BOOTSTRAP_TIMEOUT_MS);
+        }, timeoutMs);
       }),
     ]);
   } finally {
