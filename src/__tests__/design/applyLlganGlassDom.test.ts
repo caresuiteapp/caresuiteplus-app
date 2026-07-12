@@ -26,7 +26,7 @@ describe('applyLlganGlassDom', () => {
     vi.unstubAllGlobals();
   });
 
-  it('sets backdrop-filter with important on the DOM node', async () => {
+  it('uses production-safe glass without live blur or observer feedback loops', async () => {
     const { bindLlganGlassSurface } = await import('@/design/web/applyLlganGlassDom');
 
     const el = {
@@ -41,7 +41,7 @@ describe('applyLlganGlassDom', () => {
     expect(el.classList.add).toHaveBeenCalledWith('cs-llgan-glass', 'cs-llgan-glass-card');
     expect(el.style.setProperty).toHaveBeenCalledWith(
       'backdrop-filter',
-      expect.stringContaining('blur'),
+      'none',
       'important',
     );
     expect(el.style.setProperty).toHaveBeenCalledWith(
@@ -49,5 +49,10 @@ describe('applyLlganGlassDom', () => {
       expect.stringContaining('rgba(255, 255, 255'),
       'important',
     );
+    const source = await import('node:fs').then(({ readFileSync }) =>
+      readFileSync('src/design/web/applyLlganGlassDom.tsx', 'utf8'),
+    );
+    expect(source).not.toContain('new MutationObserver');
+    expect(source).not.toContain('requestAnimationFrame');
   });
 });
