@@ -6,11 +6,11 @@ export const LLGAN_GLASS_SURFACE_STYLE_ID = 'caresuite-llgan-glass-surfaces';
 
 export const LLGAN_GLASS_SURFACE_CSS = `
   :root {
-    --llgan-glass-blur: 56px;
+    --llgan-glass-blur: 0px;
     --llgan-glass-saturate: 1.8;
-    --llgan-glass-card-alpha: 0.14;
-    --llgan-glass-panel-alpha: 0.12;
-    --llgan-glass-chip-alpha: 0.18;
+    --llgan-glass-card-alpha: 0.92;
+    --llgan-glass-panel-alpha: 0.88;
+    --llgan-glass-chip-alpha: 0.9;
   }
 
   html, body, #root, #expo-root, [data-expo-root] {
@@ -27,8 +27,8 @@ export const LLGAN_GLASS_SURFACE_CSS = `
     box-shadow:
       0 20px 56px rgba(70, 110, 170, 0.12),
       inset 0 1px 0 rgba(255, 255, 255, 0.88);
-    -webkit-backdrop-filter: blur(var(--llgan-glass-blur)) saturate(var(--llgan-glass-saturate));
-    backdrop-filter: blur(var(--llgan-glass-blur)) saturate(var(--llgan-glass-saturate));
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
 
   .cs-llgan-glass::before,
@@ -69,14 +69,14 @@ export const LLGAN_GLASS_SURFACE_CSS = `
   [data-cs-llgan-glass="button"] {
     background-color: rgba(255, 255, 255, var(--llgan-glass-chip-alpha)) !important;
     border-color: rgba(120, 160, 255, 0.28);
-    -webkit-backdrop-filter: blur(28px) saturate(1.36);
-    backdrop-filter: blur(28px) saturate(1.36);
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
 
   [data-cs-llgan-glass="modal"] {
-    background-color: rgba(255, 255, 255, 0.42) !important;
-    -webkit-backdrop-filter: blur(calc(var(--llgan-glass-blur) + 6px)) saturate(var(--llgan-glass-saturate));
-    backdrop-filter: blur(calc(var(--llgan-glass-blur) + 6px)) saturate(var(--llgan-glass-saturate));
+    background-color: rgba(255, 255, 255, 0.96) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
 
   .performance-mobile.performance-ios-safari [data-cs-llgan-glass] {
@@ -86,8 +86,8 @@ export const LLGAN_GLASS_SURFACE_CSS = `
   }
 
   .disable-heavy-effects [data-cs-llgan-glass] {
-    -webkit-backdrop-filter: blur(16px) saturate(1.24) !important;
-    backdrop-filter: blur(16px) saturate(1.24) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
     background-color: rgba(255, 255, 255, 0.26) !important;
   }
 `;

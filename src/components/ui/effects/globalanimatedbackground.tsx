@@ -1,9 +1,6 @@
 import { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
-import {
-  GlobalPersistentSpaceMotionBackground,
-  StaticLightPaperBackground,
-} from '@/components/backgrounds';
+import { StaticLightPaperBackground } from '@/components/backgrounds';
 
 type GlobalAnimatedBackgroundProps = {
   /** Override ThemeModeProvider (e.g. CareSuiteBackground legacy `mode` prop). */
@@ -23,18 +20,14 @@ type GlobalAnimatedBackgroundProps = {
  */
 export function GlobalAnimatedBackground({
   mode: _modeOverride,
-  animated = true,
+  animated: _animated = true,
   style,
   children,
   dimmed = false,
 }: GlobalAnimatedBackgroundProps) {
   return (
     <View style={[styles.root, styles.lightRoot, style]} pointerEvents="none">
-      {animated ? (
-        <GlobalPersistentSpaceMotionBackground animated dimmed={dimmed} />
-      ) : (
-        <StaticLightPaperBackground dimmed={dimmed} />
-      )}
+      <StaticLightPaperBackground dimmed={dimmed} />
       {children}
     </View>
   );

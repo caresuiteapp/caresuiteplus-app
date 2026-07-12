@@ -178,15 +178,17 @@ describe('GlobalPersistentSpaceMotionBackground component', () => {
 });
 
 describe('GlobalAnimatedBackground wiring', () => {
-  it('nutzt GlobalPersistentSpaceMotionBackground im Light-Mode', async () => {
+  it('verwendet im produktiven globalen Wiring nur den statischen Hintergrund', async () => {
     const { readFileSync } = await import('node:fs');
     const { default: path } = await import('node:path');
     const source = readFileSync(
       path.join(__dirname, '..', '..', 'components', 'ui', 'effects', 'globalanimatedbackground.tsx'),
       'utf8',
     );
-    expect(source).toContain('GlobalPersistentSpaceMotionBackground');
     expect(source).toContain('StaticLightPaperBackground');
+    expect(source).not.toContain('GlobalPersistentSpaceMotionBackground');
+    expect(source).not.toContain('requestAnimationFrame');
+    expect(source).not.toContain('<canvas');
     expect(source).not.toContain('AnimatedLightPaperBackground');
   });
 

@@ -67,6 +67,9 @@ describe('OfficePremiumGlassBackground component wiring', () => {
       'utf8',
     );
     expect(source).toContain('StaticLightPaperBackground');
+    expect(source).not.toContain('GlobalPersistentSpaceMotionBackground');
+    expect(source).not.toContain('requestAnimationFrame');
+    expect(source).not.toContain('<canvas');
     expect(source).not.toContain('OfficePremiumGlassBackground');
     expect(source).not.toContain('useIsOfficeRoute');
   });
