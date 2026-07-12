@@ -29,6 +29,12 @@ function baseDetail(
 }
 
 describe('resolveAllowedActions — documentation → signature → finalize', () => {
+  it('keeps documentation inside the running service time', () => {
+    const actions = ['end_service', 'save_documentation', 'capture_signature'] as const;
+
+    expect(primaryAllowedAction([...actions], 'gestartet')).toBe('save_documentation');
+  });
+
   it('offers capture_signature on beendet after documentation submitted', () => {
     const actions = resolveAllowedActions({
       assignmentStatus: 'beendet',

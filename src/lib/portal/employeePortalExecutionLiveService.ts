@@ -407,7 +407,6 @@ export async function fetchLiveEmployeePortalAssignmentDetail(
         requiresSignature: docFlags.requiresSignature,
         requiresDocumentation: docFlags.requiresDocumentation,
         signatureStatus: docFlags.signatureStatus,
-      clientPortalSignatureCompleted: docFlags.signatureCapturedViaClientPortal === true,
         clientPortalSignatureCompleted: docFlags.signatureCapturedViaClientPortal === true,
       }),
     };
@@ -469,7 +468,6 @@ export async function transitionLiveEmployeePortalAssignment(
         requiresSignature: docFlags.requiresSignature,
         requiresDocumentation: docFlags.requiresDocumentation,
         signatureStatus: docFlags.signatureStatus,
-      clientPortalSignatureCompleted: docFlags.signatureCapturedViaClientPortal === true,
         clientPortalSignatureCompleted: docFlags.signatureCapturedViaClientPortal === true,
       }),
     };
