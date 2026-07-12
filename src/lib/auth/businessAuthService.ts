@@ -166,7 +166,7 @@ export async function loginBusinessUser(
       return { ok: false, error: sessionResult.error };
     }
 
-    await recordLoginAuditEvent({
+    void recordLoginAuditEvent({
       tenantId: null,
       loginType: 'business',
       accountId: sessionResult.data.user.id,

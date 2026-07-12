@@ -211,6 +211,7 @@ describe('liveSupabaseAuthServices', () => {
     expect(signInWithPassword).toHaveBeenCalled();
     expect(result.ok).toBe(false);
   });
+
 });
 
 describe('PortalCodeLoginScreen', () => {
