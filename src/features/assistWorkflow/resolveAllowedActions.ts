@@ -134,11 +134,12 @@ export function resolveAllowedActions(input: {
 
   const readyToFinalize =
     docSubmitted &&
+    (!detail.requiresSignature || signatureCaptured || signatureDeferred) &&
     (status === 'unterschrift_offen' ||
       status === 'dokumentation_offen' ||
       (status === 'abgeschlossen' && (!detail.requiresSignature || signatureCaptured)));
 
-  if (readyToFinalize) {
+  if (readyToFinalize && !signatureDeferred && (!detail.requiresSignature || signatureCaptured)) {
     actions.push('finalize_visit');
   }
 
@@ -149,13 +150,16 @@ export function primaryAllowedAction(
   actions: AssistWorkflowAllowedAction[],
   status: AssignmentStatus,
 ): AssistWorkflowAllowedAction | null {
-  if (actions.includes('capture_signature')) return 'capture_signature';
-  if (actions.includes('finalize_visit')) return 'finalize_visit';
+  // Documentation is part of the paid execution time and must be completed
+  // before the running service is stopped. Signatures and finalization follow
+  // only after the service has ended.
   if (actions.includes('save_documentation')) return 'save_documentation';
-  if (actions.includes('mark_arrived') && status === 'unterwegs') return 'mark_arrived';
-  if (actions.includes('start_service') && status === 'angekommen') return 'start_service';
   if (actions.includes('end_service') && status === 'gestartet') return 'end_service';
   if (actions.includes('end_pause') && status === 'pausiert') return 'end_pause';
+  if (actions.includes('capture_signature')) return 'capture_signature';
+  if (actions.includes('finalize_visit')) return 'finalize_visit';
+  if (actions.includes('mark_arrived') && status === 'unterwegs') return 'mark_arrived';
+  if (actions.includes('start_service') && status === 'angekommen') return 'start_service';
   if (actions.includes('start_en_route')) return 'start_en_route';
   return null;
 }
