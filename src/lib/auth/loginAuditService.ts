@@ -3,6 +3,27 @@ import { appendLoginAuditEvent, getLoginAuditEvents } from './accessStore';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
+const LOGIN_AUDIT_TIMEOUT_MS = 3000;
+
+async function insertLoginAuditEvent(
+  insert: PromiseLike<unknown>,
+): Promise<void> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    await Promise.race([
+      insert,
+      new Promise<void>((resolve) => {
+        timeoutId = setTimeout(resolve, LOGIN_AUDIT_TIMEOUT_MS);
+      }),
+    ]);
+  } catch {
+    return;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -24,16 +45,18 @@ export async function recordLoginAuditEvent(input: {
   if (getServiceMode() === 'supabase') {
     const client = getSupabaseClient();
     if (client) {
-      await client.from('login_audit_events').insert({
-        tenant_id: input.tenantId,
-        login_type: input.loginType,
-        account_id: input.accountId,
-        username_or_code_hint: input.usernameOrCodeHint,
-        success: input.success,
-        failure_reason: input.failureReason,
-        ip_address: input.ipAddress ?? null,
-        user_agent: input.userAgent ?? null,
-      });
+      await insertLoginAuditEvent(
+        client.from('login_audit_events').insert({
+          tenant_id: input.tenantId,
+          login_type: input.loginType,
+          account_id: input.accountId,
+          username_or_code_hint: input.usernameOrCodeHint,
+          success: input.success,
+          failure_reason: input.failureReason,
+          ip_address: input.ipAddress ?? null,
+          user_agent: input.userAgent ?? null,
+        }),
+      );
       return;
     }
   }

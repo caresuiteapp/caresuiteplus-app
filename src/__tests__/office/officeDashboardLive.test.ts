@@ -264,6 +264,41 @@ describe('office dashboard live metrics', () => {
     expect(screen).not.toContain('Abmelden');
   });
 
+  it('Dashboard-Hooks beenden hängende Ladezustände mit Timeout und finally', () => {
+    const dashboardHook = readFileSync(
+      resolve(process.cwd(), 'src/hooks/useDashboard.ts'),
+      'utf8',
+    );
+    const officeHook = readFileSync(
+      resolve(process.cwd(), 'src/hooks/useOfficeDashboard.ts'),
+      'utf8',
+    );
+    const requestCache = readFileSync(
+      resolve(process.cwd(), 'src/lib/office/officeDashboardRequestCache.ts'),
+      'utf8',
+    );
+
+    expect(dashboardHook).toContain('withServiceQueryTimeout');
+    expect(dashboardHook).toContain("'Dashboard'");
+    expect(dashboardHook).toContain('finally');
+    expect(dashboardHook).toContain('requestInFlightRef');
+    expect(officeHook).toContain('finally');
+    expect(requestCache).toContain('withServiceQueryTimeout');
+    expect(requestCache).toContain("'Office-Dashboard'");
+    expect(requestCache).toContain('inflight.delete(key)');
+  });
+
+  it('Gemeinsame Seitenabfragen laufen nicht dauerhaft im Ladezustand', () => {
+    const queryHook = readFileSync(
+      resolve(process.cwd(), 'src/hooks/core/useAsyncQuery.ts'),
+      'utf8',
+    );
+    expect(queryHook).toContain('withServiceQueryTimeout(fetcher())');
+    expect(queryHook).toContain('requestInFlightRef');
+    expect(queryHook).toContain('finally');
+    expect(queryHook).toContain('setRefreshing(false)');
+  });
+
   it('OfficeDashboardView zeigt Office-Verwaltungszentrale', () => {
     const source = readFileSync(
       resolve(process.cwd(), 'src/components/dashboard/OfficeDashboardView.tsx'),

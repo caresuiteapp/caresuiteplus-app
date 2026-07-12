@@ -195,6 +195,13 @@ describe('tenant bootstrap role resolution', () => {
     expect(provider).toContain('void restoreSupabaseSession');
   });
 
+  it('login audit persistence cannot block authentication indefinitely', () => {
+    const audit = readSrc('src/lib/auth/loginAuditService.ts');
+    expect(audit).toContain('LOGIN_AUDIT_TIMEOUT_MS');
+    expect(audit).toContain('Promise.race');
+    expect(audit).toContain('setTimeout(resolve, LOGIN_AUDIT_TIMEOUT_MS)');
+  });
+
   it('auth index never sends authenticated users to public start', () => {
     const authIndex = readSrc('app/auth/index.tsx');
     expect(authIndex).toContain('authReady');
