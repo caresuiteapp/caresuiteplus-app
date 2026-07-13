@@ -105,7 +105,7 @@ export function resolveAllowedActions(input: {
   if (
     detail.requiresDocumentation &&
     !docSubmitted &&
-    (['beendet', 'dokumentation_offen', 'abgeschlossen'].includes(status) ||
+    (['gestartet', 'beendet', 'dokumentation_offen', 'abgeschlossen'].includes(status) ||
       detail.documentationStatus === 'draft')
   ) {
     actions.push('save_documentation');
