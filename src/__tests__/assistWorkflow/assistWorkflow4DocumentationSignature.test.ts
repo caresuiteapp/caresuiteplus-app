@@ -125,6 +125,22 @@ describe('resolveAllowedActions — documentation → signature → finalize', (
 });
 
 describe('employee portal execution screen wiring', () => {
+  it('normalizes recurring occurrence IDs before live assignment verification', () => {
+    const liveContext = require('node:fs').readFileSync(
+      require('node:path').join(process.cwd(), 'src/features/liveTracking/resolveEmployeeLiveContext.ts'),
+      'utf8',
+    );
+    expect(liveContext).toContain(".eq('id', resolveVisitMasterId(resolution.assignmentId))");
+  });
+
+  it('normalizes recurring occurrence IDs before loading assignment extras', () => {
+    const live = require('node:fs').readFileSync(
+      require('node:path').join(process.cwd(), 'src/lib/portal/employeePortalExecutionLiveService.ts'),
+      'utf8',
+    );
+    expect(live).toContain(".eq('id', resolveVisitMasterId(assignmentId))");
+  });
+
   it('uses signature requirement resolver in live execution service', () => {
     const live = require('node:fs').readFileSync(
       require('node:path').join(process.cwd(), 'src/lib/portal/employeePortalExecutionLiveService.ts'),
