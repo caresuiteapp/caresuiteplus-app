@@ -34,7 +34,7 @@ import type { PortalEmployeeProfileTabKey } from '@/types/portal/employeePersonn
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 
 export function EmployeeProfileScreen() {
-  const { isPhone, isTablet, isDesktop, width } = useDeviceClass();
+  const { isTablet, isDesktop, width } = useDeviceClass();
   const { can, check, roleLabel } = usePermissions();
   const canViewProfile = can('portal.employee.profile.view');
   const text = useAuroraAdaptiveText();
@@ -71,8 +71,6 @@ export function EmployeeProfileScreen() {
   const handleRefresh = useCallback(() => {
     void Promise.all([refreshProfile(), refreshPersonnel()]);
   }, [refreshProfile, refreshPersonnel]);
-
-  const tabLayout = isPhone ? 'scroll' : 'wrap';
 
   if (!canViewProfile) {
     return (
@@ -163,8 +161,8 @@ export function EmployeeProfileScreen() {
           tabs={PORTAL_EMPLOYEE_PROFILE_TABS}
           activeKey={activeTab}
           onSelect={(key) => setActiveTab(key as PortalEmployeeProfileTabKey)}
-          layout={tabLayout}
-          rows={isWide ? 2 : undefined}
+          layout="wrap"
+          rows={isWide ? 2 : 3}
         />
 
         <PortalEmployeeProfileTabContent tab={activeTab} view={personnelView} />

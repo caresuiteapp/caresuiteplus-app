@@ -171,9 +171,9 @@ describe('Native app structure (Prompt 110)', () => {
     expect(PORTAL_EMPLOYEE_TABS.map((tab) => tab.label)).toEqual([
       'Übersicht',
       'Einsätze',
-      'Uploads / Dokumente',
       'Kalender',
       'Nachrichten',
+      'Profil',
     ]);
   });
 

@@ -39,6 +39,11 @@ async function readPickedFile(asset: DocumentPicker.DocumentPickerAsset) {
   return { name: fileName, mimeType, sizeBytes: asset.size ?? bytes.length, contentBase64: btoa(binary) };
 }
 
+function formatCategoryLabel(value: string): string {
+  const label = value.replace(/_/g, ' ').trim();
+  return label ? `${label.charAt(0).toLocaleUpperCase('de-DE')}${label.slice(1)}` : value;
+}
+
 export function EmployeePortalUploadScreen() {
   const text = useAuroraAdaptiveText();
   const { tenantId, employeeId } = usePortalActor();
@@ -149,7 +154,7 @@ export function EmployeePortalUploadScreen() {
         ) : null}
 
         <SegmentedTabs
-          tabs={categories.map((cat) => ({ key: cat, label: cat.replace(/_/g, ' ') }))}
+          tabs={categories.map((cat) => ({ key: cat, label: formatCategoryLabel(cat) }))}
           activeKey={category}
           onSelect={setCategory}
           layout="wrap"

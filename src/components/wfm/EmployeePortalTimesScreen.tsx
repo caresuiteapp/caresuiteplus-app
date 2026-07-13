@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import {
@@ -120,7 +120,17 @@ export function EmployeePortalTimesScreen() {
                   Geplant: {row.plannedRange}
                 </Text>
               ) : null}
-              <Text style={[styles.timeline, { color: text.secondary }]}>{row.timelineText}</Text>
+              <View style={styles.timelineBlock}>
+                <Text style={[styles.timelineLabel, { color: text.muted }]}>Erfasste Schritte</Text>
+                <View style={styles.timelineSteps}>
+                  {row.timelineText.split(' · ').map((step) => (
+                    <View key={step} style={styles.timelineStep}>
+                      <View style={styles.timelineDot} />
+                      <Text style={[styles.timeline, { color: text.secondary }]}>{step}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
             </PremiumCard>
           ))
         )}
@@ -158,5 +168,26 @@ const styles = StyleSheet.create({
   },
   rowTitle: { ...typography.body, fontWeight: '600' },
   rowMeta: { ...typography.caption },
-  timeline: { ...typography.body, marginTop: careSpacing.xs, lineHeight: 20 },
+  timelineBlock: {
+    marginTop: careSpacing.sm,
+    padding: careSpacing.sm,
+    gap: careSpacing.xs,
+    borderRadius: 14,
+    backgroundColor: 'rgba(241, 245, 249, 0.78)',
+  },
+  timelineLabel: { ...typography.caption, fontWeight: '700' },
+  timelineSteps: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
+  timelineStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: careSpacing.sm,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.24)',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+  },
+  timelineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#14B8A6' },
+  timeline: { ...typography.caption, lineHeight: 18 },
 });

@@ -17,51 +17,48 @@ function readSrc(relativePath: string): string {
 }
 
 describe('employee portal M.1 refactor', () => {
-  it('primary bottom nav has five tabs including Uploads and Kalender', () => {
+  it('primary bottom nav keeps the five daily destinations', () => {
     expect(EMPLOYEE_PORTAL_PRIMARY_TAB_KEYS).toEqual([
       'overview',
       'assignments',
-      'uploads',
       'calendar',
       'messages',
+      'profile',
     ]);
     expect(PORTAL_EMPLOYEE_TABS.map((tab) => tab.label)).toEqual([
       'Übersicht',
       'Einsätze',
-      'Uploads / Dokumente',
       'Kalender',
       'Nachrichten',
+      'Profil',
     ]);
     expect(PORTAL_EMPLOYEE_TABS.find((tab) => tab.key === 'calendar')?.label).toBe('Kalender');
     expect(PORTAL_EMPLOYEE_TABS.find((tab) => tab.key === 'schedule')).toBeUndefined();
   });
 
-  it('drawer navigation matches canonical HealthOS order with working times and open tasks', () => {
+  it('drawer navigation has no duplicate times or documents entries', () => {
     expect(EMPLOYEE_PORTAL_NAV_LABELS).toEqual([
       'Übersicht',
       'Einsätze',
-      'Uploads / Dokumente',
       'Kalender',
       'Nachrichten',
+      'Profil',
+      'Uploads',
       'Klientenakten',
       'Dokumente & Unterschriften',
-      'Profil',
       'Arbeitszeiten',
-      'Meine Zeiten',
-      'Dokumente',
-      'Offene Aufgaben',
     ]);
     expect(PORTAL_EMPLOYEE_DRAWER_TABS.map((tab) => tab.label)).toEqual([
+      'Uploads',
       'Klientenakten',
       'Dokumente & Unterschriften',
-      'Profil',
       'Arbeitszeiten',
-      'Meine Zeiten',
-      'Dokumente',
-      'Offene Aufgaben',
     ]);
     const all = resolveEmployeePortalNavigationTabs(PORTAL_EMPLOYEE_TABS);
-    expect(all).toHaveLength(12);
+    expect(all).toHaveLength(9);
+    expect(all.map((tab) => tab.label)).not.toContain('Meine Zeiten');
+    expect(all.map((tab) => tab.label)).not.toContain('Dokumente');
+    expect(all.map((tab) => tab.label)).not.toContain('Offene Aufgaben');
     expect(all.map((tab) => tab.key)).toEqual(EMPLOYEE_PORTAL_NAV_TABS.map((tab) => tab.key));
   });
 

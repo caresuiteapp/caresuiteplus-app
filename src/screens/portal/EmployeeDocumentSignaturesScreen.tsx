@@ -3,8 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { CsDocumentRequestCard } from '@/components/office/documentSignatures/CsDocumentRequestCard';
-import { AuroraSegmentedControl } from '@/components/aurora';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
+import { EmptyState, ErrorState, LoadingState, SegmentedTabs } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -63,7 +62,14 @@ export function EmployeeDocumentSignaturesScreen() {
       accentColor={moduleColor('assist')}
       actions={[{ key: 'refresh', label: 'Aktualisieren', onPress: () => query.refresh(), variant: 'ghost' as const }]}
     >
-      <AuroraSegmentedControl options={FILTER_OPTIONS} value={filter} onChange={(k) => setFilter(k as FilterKey)} />
+      <View style={styles.filterCard}>
+        <SegmentedTabs
+          tabs={FILTER_OPTIONS}
+          activeKey={filter}
+          onSelect={(key) => setFilter(key as FilterKey)}
+          layout="wrap"
+        />
+      </View>
       {query.loading && !query.data ? <LoadingState message="Wird geladen…" /> : null}
       {query.error ? <ErrorState message={query.error} onRetry={query.refresh} /> : null}
       {items.length === 0 && !query.loading ? (
@@ -93,5 +99,13 @@ export function EmployeeDocumentSignaturesScreen() {
 }
 
 const styles = StyleSheet.create({
+  filterCard: {
+    alignSelf: 'stretch',
+    padding: spacing.xs,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.22)',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+  },
   list: { gap: spacing.sm, marginTop: spacing.md },
 });
