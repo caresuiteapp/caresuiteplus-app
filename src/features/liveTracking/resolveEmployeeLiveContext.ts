@@ -15,7 +15,10 @@ import { formatAddressFromSnapshotOrParts } from '@/lib/formatAddress';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { getServiceMode } from '@/lib/services/mode';
-import { isResolvableVisitId } from '@/lib/assist/visitRecurrenceExpansion';
+import {
+  isResolvableVisitId,
+  resolveVisitMasterId,
+} from '@/lib/assist/visitRecurrenceExpansion';
 import {
   createLiveTrackingError,
   liveTrackingErrorFromSupabase,
@@ -205,7 +208,7 @@ export async function resolveEmployeeLiveContext(
     const { error: verifyError } = await fromUnknownTable(supabase, 'assignments')
       .select('id')
       .eq('tenant_id', tenantId)
-      .eq('id', resolution.assignmentId)
+      .eq('id', resolveVisitMasterId(resolution.assignmentId))
       .eq('employee_id', employeeId)
       .maybeSingle();
 

@@ -49,6 +49,7 @@ import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { resolveLiveAssignment } from '@/features/liveTracking/resolveLiveAssignment';
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
 import { resolveExecutableVisitId } from '@/lib/assist/visitService';
+import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import {
   hasPortalPersistedClientSignature,
   resolveEmployeePortalDocumentationFlags,
@@ -166,7 +167,7 @@ async function fetchAssignmentExtras(
     fromUnknownTable(supabase, 'assignments')
       .select('client_visible_notes, address_snapshot')
       .eq('tenant_id', tenantId)
-      .eq('id', assignmentId)
+      .eq('id', resolveVisitMasterId(assignmentId))
       .maybeSingle(),
     fromUnknownTable(supabase, 'client_contacts')
       .select('full_name, first_name, last_name, phone, is_emergency_contact')
