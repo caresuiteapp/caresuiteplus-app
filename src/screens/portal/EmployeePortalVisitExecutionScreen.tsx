@@ -1011,12 +1011,15 @@ export function EmployeePortalVisitExecutionScreen() {
               const needsSignature =
                 visit.requiresSignature ||
                 (r.data && 'nextStep' in r.data && r.data.nextStep === 'signature');
+              const signatureReady = needsSignature && isServiceEnded;
               setLocalSuccess(
-                needsSignature
+                signatureReady
                   ? 'Dokumentation gespeichert — Unterschrift erforderlich.'
-                  : 'Dokumentation gespeichert — Einsatz kann abgeschlossen werden.',
+                  : isServiceEnded
+                    ? 'Dokumentation gespeichert — Einsatz kann abgeschlossen werden.'
+                    : 'Dokumentation gespeichert — Arbeitszeit läuft weiter.',
               );
-              if (needsSignature) {
+              if (signatureReady) {
                 setAwaitingSignature(true);
                 if (!allowedActions.includes('finalize_visit_deferred_signature')) {
                   setTimeout(() => openSignatureCapture(), 150);

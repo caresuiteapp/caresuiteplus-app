@@ -166,12 +166,16 @@ export async function saveVisitDocumentation(
     }
   }
 
-  const allowedStatuses = ['beendet', 'dokumentation_offen'] as const;
+  const allowedStatuses = ['gestartet', 'beendet', 'dokumentation_offen'] as const;
   const canSaveDocumentation =
     allowedStatuses.includes(ctx.assignmentStatus as (typeof allowedStatuses)[number]) ||
     allowedStatuses.includes(ctx.derivedStatus as (typeof allowedStatuses)[number]) ||
     Boolean(ctx.visitTimes?.serviceEndedAt) ||
     Boolean(ctx.detail.actualEndAt);
+  const isLiveDocumentation =
+    (ctx.assignmentStatus === 'gestartet' || ctx.derivedStatus === 'gestartet') &&
+    !ctx.visitTimes?.serviceEndedAt &&
+    !ctx.detail.actualEndAt;
 
   if (!canSaveDocumentation) {
     return assistWorkflowErrorToResult(
@@ -182,12 +186,15 @@ export async function saveVisitDocumentation(
           assignmentId: ctx.assignmentId,
           operation: 'saveVisitDocumentation',
         },
-        'Dokumentation erst nach Beendigung des Einsatzes möglich.',
+        'Dokumentation ist erst nach Beginn des Einsatzes möglich.',
       ),
     );
   }
 
   const docText = buildDocumentationText(documentation);
+  const persistedExecutionStatus = isLiveDocumentation
+    ? 'gestartet'
+    : 'dokumentation_offen';
   let documentationPersisted = false;
 
   if (getServiceMode() === 'supabase') {
@@ -273,7 +280,7 @@ export async function saveVisitDocumentation(
     void upsertAssistVisitExecutionState(
       ctx.tenantId,
       masterAssignmentId,
-      'dokumentation_offen',
+      persistedExecutionStatus,
       {
         employeeId: ctx.employeeId,
         visitTimes: updatedCtx.visitTimes,
@@ -284,7 +291,7 @@ export async function saveVisitDocumentation(
     const executionState = await upsertAssistVisitExecutionState(
       ctx.tenantId,
       masterAssignmentId,
-      'dokumentation_offen',
+      persistedExecutionStatus,
       {
         employeeId: ctx.employeeId,
         visitTimes: updatedCtx.visitTimes,
@@ -299,23 +306,31 @@ export async function saveVisitDocumentation(
 
   const detail = {
     ...updatedCtx.detail,
-    status: 'dokumentation_offen' as const,
+    status: isLiveDocumentation ? updatedCtx.detail.status : 'dokumentation_offen' as const,
     documentationStatus: 'submitted' as const,
     documentationNotes: docText,
   };
   const visitTimes = updatedCtx.visitTimes;
+  const optimisticStatus = isLiveDocumentation
+    ? 'gestartet'
+    : 'dokumentation_offen';
+  const resolvedActions = resolveAllowedActions({
+    assignmentStatus: optimisticStatus,
+    visitTimes,
+    detail,
+    derivedStatus: optimisticStatus,
+    canStartService: false,
+  });
   const optimisticCtx: AssistExecutionContext = {
     ...updatedCtx,
-    assignmentStatus: 'dokumentation_offen',
-    derivedStatus: 'dokumentation_offen',
+    assignmentStatus: optimisticStatus,
+    derivedStatus: optimisticStatus,
     detail,
-    allowedActions: resolveAllowedActions({
-      assignmentStatus: 'dokumentation_offen',
-      visitTimes,
-      detail,
-      derivedStatus: 'dokumentation_offen',
-      canStartService: false,
-    }),
+    allowedActions: isLiveDocumentation
+      ? resolvedActions.filter((action) =>
+          !['capture_signature', 'finalize_visit', 'finalize_visit_deferred_signature'].includes(action),
+        )
+      : resolvedActions,
   };
   const nextStep = detail.requiresSignature ? 'signature' : 'finalize';
 
