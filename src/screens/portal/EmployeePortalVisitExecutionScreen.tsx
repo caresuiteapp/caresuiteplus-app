@@ -769,6 +769,7 @@ export function EmployeePortalVisitExecutionScreen() {
             documentationLastSavedAt={docLastSavedAt}
             signatureCaptured={signatureCaptured || signatureDeferred}
             requiresSignature={visit.requiresSignature}
+            signatureEnabled={isServiceEnded}
             serviceSeconds={timers?.serviceSeconds ?? null}
             attachmentCount={photoReferences.length}
             onOpenTasks={() => setTasksOpen(true)}
