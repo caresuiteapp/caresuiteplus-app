@@ -66,7 +66,7 @@ export function EmployeePortalClientRecordsScreen() {
                 <View style={styles.titleCol}>
                   <Text style={[styles.title, { color: text.primary }]}>{record.displayName}</Text>
                   {location ? (
-                    <Text style={[styles.subtitle, { color: text.secondary }]} numberOfLines={2}>
+                    <Text style={[styles.subtitle, { color: text.secondary }]}>
                       {location}
                     </Text>
                   ) : null}
@@ -91,7 +91,7 @@ export function EmployeePortalClientRecordsScreen() {
               </View>
 
               {record.hints ? (
-                <Text style={[styles.hintLine, { color: text.secondary }]} numberOfLines={2}>
+                <Text style={[styles.hintLine, { color: text.secondary }]}>
                   {record.hints}
                 </Text>
               ) : null}

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
-import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
+import { PremiumBadge, PremiumListHeroFrame } from '@/components/ui';
 import { PortalReadOnlyAvatar } from '@/components/portal/PortalReadOnlyAvatar';
 import { PORTAL_EMPLOYEE_LABEL } from '@/lib/portal/portalDisplayLabels';
 import { buildEmployeePortalProfileKpis } from '@/lib/portal/portalProfileStats';
@@ -45,21 +45,30 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
           gap: spacing.sm,
           marginTop: spacing.sm,
         },
-        kpiRow: {
+        factRow: {
           flexDirection: 'row',
           flexWrap: 'wrap',
           gap: spacing.sm,
           marginTop: spacing.md,
         },
-        kpiItem: {
-          flex: 1,
-          minWidth: 100,
+        fact: {
+          flexGrow: 1,
+          flexBasis: 140,
+          padding: spacing.md,
+          gap: 2,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: 'rgba(148, 163, 184, 0.22)',
+          backgroundColor: 'rgba(255, 255, 255, 0.72)',
         },
+        factLabel: { fontSize: 11, fontWeight: '700', color: '#64748B' },
+        factValue: { fontSize: 17, fontWeight: '800', color: '#0F172A' },
+        factMeta: { fontSize: 12, color: '#475569' },
       }),
     [heroText],
   );
 
-  const kpis = buildEmployeePortalProfileKpis(profile, mode);
+  const kpis = buildEmployeePortalProfileKpis(profile, mode).slice(0, 2);
   const roleLine = [profile.jobTitleLabel, profile.departmentLabel]
     .filter((part) => part && part !== '—')
     .join(' · ');
@@ -99,17 +108,13 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
         <PremiumBadge label={PORTAL_EMPLOYEE_LABEL} variant="cyan" />
       </View>
       {kpis.length > 0 ? (
-        <View style={styles.kpiRow}>
+        <View style={styles.factRow}>
           {kpis.map((kpi) => (
-            <PremiumKpiCard
-              key={kpi.id}
-              label={kpi.label}
-              value={kpi.value}
-              subValue={kpi.subValue}
-              icon={kpi.icon}
-              accentColor={kpi.accentColor}
-              style={styles.kpiItem}
-            />
+            <View key={kpi.id} style={styles.fact}>
+              <Text style={styles.factLabel}>{kpi.label}</Text>
+              <Text style={styles.factValue}>{kpi.value}</Text>
+              {kpi.subValue ? <Text style={styles.factMeta}>{kpi.subValue}</Text> : null}
+            </View>
           ))}
         </View>
       ) : null}

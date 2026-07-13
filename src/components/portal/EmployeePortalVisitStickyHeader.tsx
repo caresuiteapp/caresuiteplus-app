@@ -72,7 +72,7 @@ export function EmployeePortalVisitStickyHeader({
           backgroundColor: employeePortalExecutionSurface.background,
           borderBottomWidth: 1,
           borderBottomColor: employeePortalExecutionSurface.border,
-          paddingHorizontal: spacing.md,
+          paddingHorizontal: spacing.lg,
           paddingTop: Platform.OS === 'web' ? spacing.sm : Math.max(insets.top, spacing.sm),
           paddingBottom: spacing.sm,
           gap: spacing.xs,
@@ -87,7 +87,7 @@ export function EmployeePortalVisitStickyHeader({
           justifyContent: 'space-between',
           gap: spacing.sm,
         },
-        clientName: { ...typography.bodyStrong, color: text.primary, flex: 1 },
+        clientName: { ...typography.h3, color: text.primary, flex: 1 },
         timeRange: { ...typography.caption, color: text.secondary },
         statusRow: {
           flexDirection: 'row',
@@ -95,7 +95,7 @@ export function EmployeePortalVisitStickyHeader({
           gap: spacing.sm,
           flexWrap: 'wrap',
         },
-        liveTimer: { ...typography.caption, color: text.secondary },
+        liveTimer: { ...typography.bodyStrong, color: text.secondary, fontVariant: ['tabular-nums'] },
       }),
     [insets.top, text],
   );

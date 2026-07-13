@@ -29,9 +29,9 @@ describe('portal M.3 mobile layout', () => {
     expect(PORTAL_EMPLOYEE_TABS.map((tab) => tab.label)).toEqual([
       'Übersicht',
       'Einsätze',
-      'Uploads / Dokumente',
       'Kalender',
       'Nachrichten',
+      'Profil',
     ]);
     expect(resolveFixedMobileEmployeePortalTabs(PORTAL_EMPLOYEE_TABS).map((tab) => tab.key)).toEqual([
       ...PORTAL_EMPLOYEE_MOBILE_TAB_KEYS,
@@ -112,7 +112,7 @@ describe('portal M.3 mobile layout', () => {
     expect(mobile).not.toContain('ScrollView');
     expect(mobile).not.toContain('PORTAL_MOBILE_NAV_HEIGHT');
     expect(mobile).toContain('Wichtig für Sie');
-    expect(mobile).toContain('resolveTimeBasedGermanGreeting');
+    expect(mobile).toContain('resolveClientPortalHeroLines');
   });
 
   it('removes Portal-Sicht placeholder badges from portal heroes', () => {

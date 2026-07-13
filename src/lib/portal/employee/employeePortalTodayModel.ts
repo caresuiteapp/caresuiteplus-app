@@ -1,6 +1,5 @@
 import type { EmployeePortalDashboardProjection } from '@/types/portalSystem';
 import type { EmployeePortalAssignmentListItem } from '@/types/modules/employeePortalExecution';
-import { EMPLOYEE_PORTAL_NAV_TABS } from '@/lib/navigation/employeePortalNavigation';
 import {
   isActiveEmployeeAssignment,
   isDocumentationPendingEmployeeAssignment,
@@ -40,13 +39,6 @@ export type EmployeePortalTodayTask = {
   route?: string;
 };
 
-export type EmployeePortalTodayLink = {
-  id: string;
-  label: string;
-  route: string;
-  icon?: string;
-};
-
 export type EmployeePortalTodayModel = {
   greetingLine: string;
   tagesübersicht: EmployeePortalTodayMetric[];
@@ -54,7 +46,6 @@ export type EmployeePortalTodayModel = {
   currentAssignment: EmployeePortalTodayAssignment | null;
   meineEinsaetze: EmployeePortalTodayAssignment[];
   offeneAufgaben: EmployeePortalTodayTask[];
-  schnellzugriffe: EmployeePortalTodayLink[];
 };
 
 export type EmployeePortalTodayInput = {
@@ -252,17 +243,6 @@ function buildOffeneAufgaben(
   return tasks;
 }
 
-// ─── Section D: Schnellzugriffe ───────────────────────────────────────────────
-
-function buildSchnellzugriffe(): EmployeePortalTodayLink[] {
-  return EMPLOYEE_PORTAL_NAV_TABS.map((tab) => ({
-    id: tab.key,
-    label: tab.label,
-    route: tab.href,
-    icon: tab.icon,
-  }));
-}
-
 // ─── Main builder ─────────────────────────────────────────────────────────────
 
 export function buildEmployeePortalTodayModel(
@@ -278,6 +258,5 @@ export function buildEmployeePortalTodayModel(
     currentAssignment: currentItem ? toTodayAssignment(currentItem) : null,
     meineEinsaetze: buildMeineEinsaetze(dashboard),
     offeneAufgaben: buildOffeneAufgaben(dashboard),
-    schnellzugriffe: buildSchnellzugriffe(),
   };
 }

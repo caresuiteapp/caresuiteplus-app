@@ -16,9 +16,9 @@ export type PortalMobileTabKey = (typeof PORTAL_MOBILE_TAB_KEYS)[number];
 export const PORTAL_EMPLOYEE_MOBILE_TAB_KEYS = [
   'overview',
   'assignments',
-  'uploads',
   'calendar',
   'messages',
+  'profile',
 ] as const;
 
 export type PortalEmployeeMobileTabKey = (typeof PORTAL_EMPLOYEE_MOBILE_TAB_KEYS)[number];
@@ -49,12 +49,6 @@ const FALLBACK_EMPLOYEE_MOBILE_TABS: Record<PortalEmployeeMobileTabKey, ShellTab
     icon: '📋',
     href: '/portal/employee/assignments',
   },
-  uploads: {
-    key: 'uploads',
-    label: 'Uploads / Dokumente',
-    icon: '📤',
-    href: '/portal/employee/uploads',
-  },
   calendar: {
     key: 'calendar',
     label: 'Kalender',
@@ -66,6 +60,12 @@ const FALLBACK_EMPLOYEE_MOBILE_TABS: Record<PortalEmployeeMobileTabKey, ShellTab
     label: 'Nachrichten',
     icon: '💬',
     href: '/portal/employee/messages',
+  },
+  profile: {
+    key: 'profile',
+    label: 'Profil',
+    icon: '👤',
+    href: '/portal/employee/profile',
   },
 };
 
@@ -84,7 +84,7 @@ export function resolveFixedMobilePortalTabs(tabs: ShellTabConfig[]): ShellTabCo
   });
 }
 
-/** Five fixed employee mobile tabs — Übersicht, Einsätze, Uploads, Kalender, Nachrichten. */
+/** Five fixed employee mobile tabs — Übersicht, Einsätze, Kalender, Nachrichten, Profil. */
 export function resolveFixedMobileEmployeePortalTabs(tabs: ShellTabConfig[]): ShellTabConfig[] {
   return PORTAL_EMPLOYEE_MOBILE_TAB_KEYS.map((key) => {
     const dynamic =
@@ -117,13 +117,6 @@ const MODULE_TAB_PREFIX: Record<PortalModuleKey, string> = {
   stationaer: 'module-stationaer',
   beratung: 'module-beratung',
 };
-
-function tabPriority(key: string, activeModules: PortalModuleKey[] = []): number {
-  const dynamicPriority = buildDynamicTabPriority(activeModules);
-  const order = dynamicPriority.length > 0 ? dynamicPriority : BASE_TAB_PRIORITY;
-  const idx = order.indexOf(key);
-  return idx === -1 ? order.length + 1 : idx;
-}
 
 /** Prioritises tabs for assigned modules — assist/pflege feature tabs before overflow. */
 export function buildDynamicTabPriority(activeModules: PortalModuleKey[]): string[] {

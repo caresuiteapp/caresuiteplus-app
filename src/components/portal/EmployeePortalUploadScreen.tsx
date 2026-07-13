@@ -39,6 +39,11 @@ async function readPickedFile(asset: DocumentPicker.DocumentPickerAsset) {
   return { name: fileName, mimeType, sizeBytes: asset.size ?? bytes.length, contentBase64: btoa(binary) };
 }
 
+function formatCategoryLabel(value: string): string {
+  const label = value.replace(/_/g, ' ').trim();
+  return label ? `${label.charAt(0).toLocaleUpperCase('de-DE')}${label.slice(1)}` : value;
+}
+
 export function EmployeePortalUploadScreen() {
   const text = useAuroraAdaptiveText();
   const { tenantId, employeeId } = usePortalActor();
@@ -105,9 +110,11 @@ export function EmployeePortalUploadScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.infoCard}>
       <Text style={[styles.hint, { color: text.muted }]}>
         Eingereichte Dokumente landen zur Prüfung im Office — nicht direkt in der Klientenakte.
       </Text>
+      </View>
 
       <View style={styles.form}>
         <Text style={[styles.sectionTitle, { color: text.primary }]}>Neues Dokument</Text>
@@ -147,7 +154,7 @@ export function EmployeePortalUploadScreen() {
         ) : null}
 
         <SegmentedTabs
-          tabs={categories.map((cat) => ({ key: cat, label: cat.replace(/_/g, ' ') }))}
+          tabs={categories.map((cat) => ({ key: cat, label: formatCategoryLabel(cat) }))}
           activeKey={category}
           onSelect={setCategory}
           layout="wrap"
@@ -207,8 +214,15 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
   },
-  hint: { ...careTypography.caption },
-  form: { gap: careSpacing.sm },
+  hint: { ...careTypography.caption, lineHeight: 19 },
+  infoCard: {
+    padding: careSpacing.md, borderRadius: 16, borderWidth: 1,
+    borderColor: 'rgba(13, 148, 136, 0.18)', backgroundColor: 'rgba(13, 148, 136, 0.06)',
+  },
+  form: {
+    gap: careSpacing.md, padding: careSpacing.lg, borderRadius: 22, borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.22)', backgroundColor: 'rgba(255,255,255,0.94)',
+  },
   sectionTitle: { ...careTypography.bodyStrong, marginTop: careSpacing.sm },
   label: { ...careTypography.caption, fontWeight: '600' },
   meta: { ...careTypography.caption },

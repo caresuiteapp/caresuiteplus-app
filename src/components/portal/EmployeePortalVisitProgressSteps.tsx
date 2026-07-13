@@ -98,14 +98,14 @@ export function EmployeePortalVisitProgressSteps({
         row: {
           flexDirection: 'row',
           alignItems: 'center',
-          gap: spacing.xs,
-          marginTop: spacing.xs,
+          justifyContent: 'space-between', gap: 2, marginTop: spacing.sm, paddingTop: spacing.sm,
+          borderTopWidth: 1, borderTopColor: employeePortalExecutionSurface.border,
         },
-        step: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
+        step: { alignItems: 'center', gap: 5, flex: 1, minWidth: 0 },
         dot: {
-          width: 18,
-          height: 18,
-          borderRadius: 9,
+          width: 28,
+          height: 28,
+          borderRadius: 14,
           borderWidth: 1,
           borderColor: employeePortalExecutionSurface.borderStrong,
           alignItems: 'center',
@@ -118,7 +118,8 @@ export function EmployeePortalVisitProgressSteps({
         label: { ...typography.caption, color: text.muted, fontSize: 11 },
         labelActive: { color: text.primary, fontWeight: '600' },
         labelDone: { color: text.secondary },
-        arrow: { ...typography.caption, color: text.muted, fontSize: 10 },
+        connector: { position: 'absolute', top: 14, left: '-50%', right: '50%', height: 2, backgroundColor: employeePortalExecutionSurface.borderStrong },
+        connectorDone: { backgroundColor: colors.success },
       }),
     [text],
   );
@@ -130,7 +131,7 @@ export function EmployeePortalVisitProgressSteps({
         const active = !done && stepActive(step.key, current, status, requiresSignature);
         return (
           <View key={step.key} style={styles.step}>
-            {index > 0 ? <Text style={styles.arrow}>→</Text> : null}
+            {index > 0 ? <View style={[styles.connector, done ? styles.connectorDone : null]} /> : null}
             <View style={[styles.dot, done ? styles.dotDone : null, active ? styles.dotActive : null]}>
               {done ? <Text style={styles.check}>✓</Text> : null}
             </View>

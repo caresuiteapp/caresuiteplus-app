@@ -104,9 +104,9 @@ describe('HealthOS H5 Employee Portal Dashboard', () => {
     expect(source).toContain('healthos-employee-portal-today');
     expect(source).toContain('Heute');
     expect(source).toContain('Meine Einsätze');
-    expect(source).toContain('Meine Zeiten');
     expect(source).toContain('Offene Aufgaben');
-    expect(source).toContain('Schnellzugriffe');
+    expect(source).not.toContain('title="Meine Zeiten"');
+    expect(source).not.toContain('title="Schnellzugriffe"');
   });
 
   it('view uses HealthOSMetricCard, loading, error, empty states', () => {
@@ -132,7 +132,6 @@ describe('HealthOS H5 Employee Portal Dashboard', () => {
 
     expect(model.tagesübersicht.length).toBe(4);
     expect(model.meineEinsaetze.length).toBe(2);
-    expect(model.schnellzugriffe.length).toBeGreaterThan(0);
     expect(model.greetingLine).toContain('Test Mitarbeiter:in');
   });
 
@@ -178,18 +177,6 @@ describe('HealthOS H5 Employee Portal Dashboard', () => {
     expect(labels).not.toContain('pending');
     expect(labels).not.toContain('in_progress');
     expect(labels).not.toContain('Coming Soon');
-  });
-
-  it('schnellzugriffe uses existing employee portal routes only', () => {
-    const model = buildEmployeePortalTodayModel({
-      dashboard: SAMPLE_DASHBOARD,
-      displayName: 'Test',
-    });
-    for (const link of model.schnellzugriffe) {
-      expect(link.route.startsWith('/')).toBe(true);
-      expect(link.route).not.toContain('redirect');
-      expect(link.route).toMatch(/^\/portal\/employee/);
-    }
   });
 
   it('pickEmployeePortalTodayReadMetrics is read-only passthrough', () => {

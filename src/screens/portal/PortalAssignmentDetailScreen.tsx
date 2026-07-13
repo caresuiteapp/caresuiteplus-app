@@ -45,7 +45,7 @@ export function PortalAssignmentDetailScreen() {
     () =>
       StyleSheet.create({
         scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
-        previewCard: { padding: spacing.md, gap: spacing.sm },
+        previewCard: { padding: spacing.lg, gap: spacing.sm, borderRadius: 22 },
         previewTitle: { ...typography.h3, color: colors.textPrimary },
         notes: { ...typography.body, color: colors.textSecondary },
         actions: { gap: spacing.sm, marginTop: spacing.sm },
@@ -97,9 +97,6 @@ export function PortalAssignmentDetailScreen() {
       title={data.title}
       eyebrow="PORTAL · EINSATZ"
       subtitle={`${data.clientName} · ${resolvePortalScreenSubtitle(roleLabel, 'employee')}`}
-      rightSlot={
-        <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
-      }
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <CachedDataBanner visible={fromCache} cachedAt={cachedAt} partialDetail={partialDetail} />

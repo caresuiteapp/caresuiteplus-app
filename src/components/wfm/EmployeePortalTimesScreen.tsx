@@ -8,6 +8,7 @@ import {
   LoadingState,
   PremiumButton,
   SectionPanel,
+  PremiumCard,
 } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -28,13 +29,6 @@ function formatDateTime(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function formatDuration(seconds: number | null): string {
-  if (seconds == null) return '—';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, '0')} Min.`;
 }
 
 export function EmployeePortalTimesScreen() {
@@ -106,8 +100,8 @@ export function EmployeePortalTimesScreen() {
       scroll
     >
       <SectionPanel
-        title="Einsatz-Zeitstempel"
-        subtitle="Ihre Einsätze — zusammengefasst und chronologisch"
+        title="Meine Arbeitszeiten"
+        subtitle={`Einsätze der letzten ${PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS} Tage`}
       >
         {visitSummaries.length === 0 ? (
           <EmptyState
@@ -116,7 +110,7 @@ export function EmployeePortalTimesScreen() {
           />
         ) : (
           visitSummaries.map((row) => (
-            <View key={row.visitId} style={styles.row}>
+            <PremiumCard key={row.visitId} style={styles.row}>
               <Text style={[styles.rowTitle, { color: text.primary }]}>
                 {row.clientName ? `${row.title} · ${row.clientName}` : row.title}
               </Text>
@@ -126,18 +120,28 @@ export function EmployeePortalTimesScreen() {
                   Geplant: {row.plannedRange}
                 </Text>
               ) : null}
-              <Text style={[styles.timeline, { color: text.secondary }]}>{row.timelineText}</Text>
-            </View>
+              <View style={styles.timelineBlock}>
+                <Text style={[styles.timelineLabel, { color: text.muted }]}>Erfasste Schritte</Text>
+                <View style={styles.timelineSteps}>
+                  {row.timelineText.split(' · ').map((step) => (
+                    <View key={step} style={styles.timelineStep}>
+                      <View style={styles.timelineDot} />
+                      <Text style={[styles.timeline, { color: text.secondary }]}>{step}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </PremiumCard>
           ))
         )}
       </SectionPanel>
 
-      <SectionPanel title="Fahrtenbuch" subtitle="An- und Abfahrten zu Einsätzen">
+      <SectionPanel title="Meine Fahrten" subtitle="An- und Abfahrten zu Einsätzen">
         {drivingLogs.length === 0 ? (
           <Text style={{ color: text.secondary }}>Keine Fahrten im gewählten Zeitraum.</Text>
         ) : (
           drivingLogs.map((log) => (
-            <View key={log.id} style={styles.row}>
+            <PremiumCard key={log.id} style={styles.row}>
               <Text style={[styles.rowTitle, { color: text.primary }]}>
                 {log.purpose ?? 'Fahrt'}
               </Text>
@@ -148,7 +152,7 @@ export function EmployeePortalTimesScreen() {
                 {log.startedAt ? formatDateTime(log.startedAt) : '—'}
                 {log.distanceKm != null ? ` · ${log.distanceKm.toFixed(1)} km` : ''}
               </Text>
-            </View>
+            </PremiumCard>
           ))
         )}
       </SectionPanel>
@@ -160,12 +164,30 @@ export function EmployeePortalTimesScreen() {
 
 const styles = StyleSheet.create({
   row: {
-    paddingVertical: careSpacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.08)',
-    gap: 2,
+    padding: careSpacing.md, borderRadius: 18, gap: 4, marginBottom: careSpacing.sm,
   },
   rowTitle: { ...typography.body, fontWeight: '600' },
   rowMeta: { ...typography.caption },
-  timeline: { ...typography.body, marginTop: careSpacing.xs, lineHeight: 20 },
+  timelineBlock: {
+    marginTop: careSpacing.sm,
+    padding: careSpacing.sm,
+    gap: careSpacing.xs,
+    borderRadius: 14,
+    backgroundColor: 'rgba(241, 245, 249, 0.78)',
+  },
+  timelineLabel: { ...typography.caption, fontWeight: '700' },
+  timelineSteps: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
+  timelineStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: careSpacing.sm,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.24)',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+  },
+  timelineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#14B8A6' },
+  timeline: { ...typography.caption, lineHeight: 18 },
 });

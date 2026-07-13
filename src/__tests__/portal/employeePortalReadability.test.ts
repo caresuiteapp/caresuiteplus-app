@@ -51,7 +51,7 @@ describe('employee portal readability (contrast + text layout)', () => {
   });
 
   it('employee portal list rows allow multiline names and subtitles', () => {
-    expect(readSrc('src/components/portal/EmployeePortalClientRecordsScreen.tsx')).toContain('multiline');
+    expect(readSrc('src/components/portal/EmployeePortalClientRecordsScreen.tsx')).not.toContain('numberOfLines');
     expect(readSrc('src/components/portal/EmployeePortalUploadScreen.tsx')).toContain('multiline');
     expect(readSrc('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx')).toContain('multiline');
     expect(readSrc('src/components/ui/PremiumListRow.tsx')).toContain('multiline?: boolean');

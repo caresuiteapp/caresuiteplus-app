@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { AdaptiveKpiGrid } from '@/components/adaptive';
 import {
   HealthOSAlert,
   HealthOSCard,
@@ -21,7 +20,6 @@ import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import {
   buildEmployeePortalTodayModel,
   type EmployeePortalTodayMetric,
-  type EmployeePortalTodayLink,
   type EmployeePortalTodayTask,
   type EmployeePortalTodayAssignment,
 } from '@/lib/portal/employee/employeePortalTodayModel';
@@ -50,33 +48,31 @@ function MetricsSection({
   metrics: EmployeePortalTodayMetric[];
   accentColor: string;
   variant: 'glass' | 'light';
-  columns: { phone: number; tablet: number; desktop: number; wide: number };
+  columns: 2 | 4;
   onNavigate: (route?: string) => void;
 }) {
   return (
-    <AdaptiveKpiGrid
-      columns={columns}
-      items={metrics.map((metric) => ({
-        id: metric.id,
-        node: (
-          <Pressable
-            onPress={() => onNavigate(metric.route)}
-            accessibilityRole="button"
-            accessibilityLabel={`${metric.label}: ${metric.value}`}
-            testID={`healthos-employee-metric-${metric.id}`}
-          >
-            <HealthOSMetricCard
-              label={metric.label}
-              value={metric.value}
-              subValue={metric.subValue}
-              icon={metric.icon}
-              accentColor={accentColor}
-              variant={variant}
-            />
-          </Pressable>
-        ),
-      }))}
-    />
+    <View style={styles.metricsGrid}>
+      {metrics.map((metric) => (
+        <Pressable
+          key={metric.id}
+          onPress={() => onNavigate(metric.route)}
+          accessibilityRole="button"
+          accessibilityLabel={`${metric.label}: ${metric.value}`}
+          testID={`healthos-employee-metric-${metric.id}`}
+          style={[styles.metricItem, columns === 4 ? styles.metricQuarter : styles.metricHalf]}
+        >
+          <HealthOSMetricCard
+            label={metric.label}
+            value={metric.value}
+            subValue={metric.subValue}
+            icon={metric.icon}
+            accentColor={accentColor}
+            variant={variant}
+          />
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
@@ -149,33 +145,6 @@ function TaskList({
   );
 }
 
-function LinkList({
-  links,
-  accentColor,
-  onNavigate,
-}: {
-  links: EmployeePortalTodayLink[];
-  accentColor: string;
-  onNavigate: (route: string) => void;
-}) {
-  return (
-    <View style={styles.listContainer}>
-      {links.map((link, index) => (
-        <PremiumListRow
-          key={link.id}
-          title={link.label}
-          leading={
-            link.icon ? <Text style={styles.leadingIcon}>{link.icon}</Text> : undefined
-          }
-          showChevron
-          showDivider={index < links.length - 1}
-          onPress={() => onNavigate(link.route)}
-        />
-      ))}
-    </View>
-  );
-}
-
 // ─── Main view ────────────────────────────────────────────────────────────────
 
 export function HealthOSEmployeePortalTodayView({
@@ -190,12 +159,8 @@ export function HealthOSEmployeePortalTodayView({
   const router = useRouter();
   const { width } = useHydrationSafeWindowDimensions();
   const breakpoint = resolveHealthOSShellBreakpoint(width);
-  const kpiColumns =
-    breakpoint === 'mobile'
-      ? { phone: 2, tablet: 2, desktop: 4, wide: 4 }
-      : breakpoint === 'tablet'
-        ? { phone: 2, tablet: 2, desktop: 3, wide: 3 }
-        : { phone: 2, tablet: 2, desktop: 4, wide: 4 };
+  const kpiColumns: 2 | 4 =
+    breakpoint === 'desktop' || breakpoint === 'wide' ? 4 : 2;
   const moduleAccent = useMainModuleAccent();
   const shellHostsAurora = useShellHostsAurora();
   const cardVariant = shellHostsAurora ? 'light' : 'glass';
@@ -291,7 +256,7 @@ export function HealthOSEmployeePortalTodayView({
       {/* B: Meine Einsätze */}
       <HealthOSSection
         title="Meine Einsätze"
-        subtitle="Heutige und nächste Einsätze — Tap für Details"
+        subtitle="Heutige und nächste Einsätze — antippen für Details"
         accentColor={moduleAccent}
       >
         {hasEinsaetze ? (
@@ -310,34 +275,7 @@ export function HealthOSEmployeePortalTodayView({
         )}
       </HealthOSSection>
 
-      {/* C: Meine Zeiten — read-only link */}
-      <HealthOSSection
-        title="Meine Zeiten"
-        subtitle="Arbeitszeit und Abwesenheiten — lesende Übersicht"
-        accentColor={moduleAccent}
-      >
-        <HealthOSAlert
-          variant="info"
-          title="Zeiterfassung"
-          message="Arbeitszeiten und Abwesenheitsanträge sind über den Bereich Arbeitszeit verfügbar."
-        />
-        <Pressable
-          onPress={() => navigate('/portal/employee/arbeitszeit')}
-          accessibilityRole="button"
-          accessibilityLabel="Zur Zeiterfassung"
-          testID="healthos-employee-times-link"
-        >
-          <HealthOSCard variant="elevated">
-            <PremiumListRow
-              title="Zur Zeiterfassung"
-              leading={<Text style={styles.leadingIcon}>⏱️</Text>}
-              showChevron
-            />
-          </HealthOSCard>
-        </Pressable>
-      </HealthOSSection>
-
-      {/* D: Offene Aufgaben */}
+      {/* C: Offene Aufgaben */}
       <HealthOSSection
         title="Offene Aufgaben"
         subtitle="Dokumentation und Unterschriften mit Handlungsbedarf"
@@ -364,18 +302,6 @@ export function HealthOSEmployeePortalTodayView({
         )}
       </HealthOSSection>
 
-      {/* E: Schnellzugriffe */}
-      <HealthOSSection
-        title="Schnellzugriffe"
-        subtitle="Portalnavigation"
-        accentColor={moduleAccent}
-      >
-        <LinkList
-          links={model.schnellzugriffe}
-          accentColor={moduleAccent}
-          onNavigate={(route) => navigate(route)}
-        />
-      </HealthOSSection>
     </HealthOSPage>
   );
 }
@@ -383,6 +309,21 @@ export function HealthOSEmployeePortalTodayView({
 const styles = StyleSheet.create({
   listContainer: {
     gap: spacing.xs,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  metricItem: {
+    flexGrow: 1,
+    minWidth: 0,
+  },
+  metricHalf: {
+    flexBasis: '47%',
+  },
+  metricQuarter: {
+    flexBasis: '22%',
   },
   countBadge: {
     ...typography.caption,
@@ -393,10 +334,5 @@ const styles = StyleSheet.create({
   actionLabel: {
     ...typography.caption,
     fontWeight: '700',
-  },
-  leadingIcon: {
-    fontSize: 18,
-    width: 28,
-    textAlign: 'center',
   },
 });

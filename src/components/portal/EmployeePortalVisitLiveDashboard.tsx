@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { EmployeePortalVisitCompactCard } from '@/components/portal/EmployeePortalVisitCompactCard';
 import { countDoneTasks } from '@/lib/portal/groupEmployeePortalTasks';
 import { employeePortalExecutionText } from '@/lib/portal/employeePortalExecutionSurface';
@@ -11,6 +11,7 @@ type EmployeePortalVisitLiveDashboardProps = {
   documentationLastSavedAt?: string | null;
   signatureCaptured: boolean;
   requiresSignature: boolean;
+  signatureEnabled?: boolean;
   serviceSeconds: number | null;
   attachmentCount?: number;
   onOpenTasks: () => void;
@@ -49,6 +50,7 @@ export function EmployeePortalVisitLiveDashboard({
   documentationLastSavedAt,
   signatureCaptured,
   requiresSignature,
+  signatureEnabled = true,
   serviceSeconds,
   attachmentCount = 0,
   onOpenTasks,
@@ -58,20 +60,28 @@ export function EmployeePortalVisitLiveDashboard({
 }: EmployeePortalVisitLiveDashboardProps) {
   const text = employeePortalExecutionText;
   const done = countDoneTasks(tasks);
+  const { width } = useWindowDimensions();
+  const compact = width < 720;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.timerBlock}>
-        <Text style={[styles.timerLabel, { color: text.muted }]}>Einsatzzeit</Text>
+        <View>
+          <Text style={styles.liveBadge}>●  LIVE</Text>
+          <Text style={[styles.timerLabel, { color: text.muted }]}>Einsatzzeit</Text>
+        </View>
         <Text style={[styles.timerValue, { color: text.primary }]}>{formatTimer(serviceSeconds)}</Text>
       </View>
+      <View style={[styles.cardGrid, compact ? styles.cardGridCompact : null]}>
       <EmployeePortalVisitCompactCard
-        title="Aufgaben"
-        status={`${done} / ${tasks.length} erledigt`}
+        icon="✓"
+        title={`${done} von ${tasks.length}`}
+        status="Aufgaben erledigt"
         onPress={onOpenTasks}
         testID="portal-open-tasks"
       />
       <EmployeePortalVisitCompactCard
+        icon="▤"
         title="Dokumentation"
         status={documentationStatusLabel(documentationStatus, documentationLastSavedAt)}
         onPress={onOpenDocumentation}
@@ -79,14 +89,18 @@ export function EmployeePortalVisitLiveDashboard({
       />
       {requiresSignature ? (
         <EmployeePortalVisitCompactCard
+          icon="✎"
           title="Unterschrift"
-          status={signatureCaptured ? 'Gespeichert' : 'Noch offen'}
+          status={signatureCaptured ? 'Gespeichert' : signatureEnabled ? 'Noch offen' : 'Nach Einsatzende'}
           onPress={onOpenSignature}
+          disabled={!signatureEnabled}
           testID="portal-open-signature"
         />
       ) : null}
-      {onOpenAttachments ? (
+      </View>
+      {onOpenAttachments && attachmentCount > 0 ? (
         <EmployeePortalVisitCompactCard
+          icon="◉"
           title="Fotos / Anhänge"
           status={attachmentCount > 0 ? `${attachmentCount} gespeichert` : 'Optional'}
           onPress={onOpenAttachments}
@@ -98,12 +112,16 @@ export function EmployeePortalVisitLiveDashboard({
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: spacing.sm },
+  wrap: { gap: spacing.md },
   timerBlock: {
-    alignItems: 'center',
-    paddingVertical: spacing.lg,
-    gap: spacing.xs,
+    minHeight: 136, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: spacing.md,
+    borderRadius: 22, borderWidth: 1, borderColor: 'rgba(15, 143, 138, 0.20)',
+    backgroundColor: 'rgba(255,255,255,0.92)',
   },
+  liveBadge: { ...typography.bodyStrong, color: '#EF4444', marginBottom: spacing.xs },
   timerLabel: { ...typography.caption },
-  timerValue: { fontSize: 42, fontWeight: '700', letterSpacing: 1 },
+  timerValue: { fontSize: 46, fontWeight: '800', letterSpacing: 1.5, fontVariant: ['tabular-nums'] },
+  cardGrid: { flexDirection: 'row', gap: spacing.sm },
+  cardGridCompact: { flexDirection: 'column' },
 });

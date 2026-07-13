@@ -1,15 +1,13 @@
 import { useMemo } from 'react';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
-import { AdaptiveKpiGrid, type KpiGridItem } from '@/components/adaptive';
-import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
+import { PremiumBadge } from '@/components/ui';
 import { PORTAL_EMPLOYEE_LABEL } from '@/lib/portal/portalDisplayLabels';
 
 import type { PortalAppointmentDetail } from '@/types/portal/employee';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { designTokens, spacing } from '@/theme';
+import { spacing } from '@/theme';
 
 type PortalEmployeeAssignmentDetailHeroProps = {
   assignment: PortalAppointmentDetail;
@@ -84,14 +82,20 @@ function statusVariant(assignment: PortalAppointmentDetail) {
 export function PortalEmployeeAssignmentDetailHero({
   assignment,
 }: PortalEmployeeAssignmentDetailHeroProps) {
-  const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
         topRow: {
           flexDirection: 'row',
+          alignItems: 'center',
           gap: spacing.md,
+        },
+        healthCard: {
+          padding: spacing.lg, gap: spacing.md, borderRadius: 22, borderWidth: 1,
+          borderColor: 'rgba(15, 143, 138, 0.20)', backgroundColor: 'rgba(255,255,255,0.94)',
+          shadowColor: '#0F766E', shadowOpacity: 0.08, shadowRadius: 18,
+          shadowOffset: { width: 0, height: 8 },
         },
         textCol: {
           flex: 1,
@@ -102,14 +106,14 @@ export function PortalEmployeeAssignmentDetailHero({
         meta: heroText.subtitle,
         subtitle: heroText.subtitle,
         iconBadge: {
-          width: iconSize,
-          height: iconSize,
-          borderRadius: iconSize / 2,
-          backgroundColor: colors.bgElevated,
+          width: 48,
+          height: 48,
+          borderRadius: 16,
+          backgroundColor: 'rgba(13, 148, 136, 0.09)',
           alignItems: 'center',
           justifyContent: 'center',
-          borderWidth: 2,
-          borderColor: 'rgba(251,191,36,0.35)',
+          borderWidth: 1,
+          borderColor: 'rgba(13, 148, 136, 0.20)',
         },
         iconText: {
           fontSize: 22,
@@ -119,66 +123,24 @@ export function PortalEmployeeAssignmentDetailHero({
           flexWrap: 'wrap',
           gap: spacing.sm,
         },
+        facts: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+        fact: {
+          flexGrow: 1, flexBasis: 150, padding: spacing.md, borderRadius: 16,
+          backgroundColor: 'rgba(241, 245, 249, 0.75)', borderWidth: 1,
+          borderColor: 'rgba(148, 163, 184, 0.20)', gap: 3,
+        },
+        factLabel: { fontSize: 11, fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 },
+        factValue: { fontSize: 17, fontWeight: '800', color: '#0F172A' },
+        factMeta: { fontSize: 12, color: '#475569' },
       }),
-    [colors, heroText],
+    [heroText],
   );
 
   const duration = durationMinutes(assignment.startsAt, assignment.endsAt);
   const taskCount = assignment.tasks.length;
 
-  const kpiItems: KpiGridItem[] = [
-    {
-      id: 'beginn',
-      node: (
-        <PremiumKpiCard
-          label="Beginn"
-          value={formatShortDate(assignment.startsAt, true)}
-          subValue={`${formatTime(assignment.startsAt)} – ${formatTime(assignment.endsAt)}`}
-          icon="🗓️"
-          accentColor={colors.amber}
-        />
-      ),
-    },
-    {
-      id: 'dauer',
-      node: (
-        <PremiumKpiCard
-          label="Dauer"
-          value={String(duration)}
-          subValue={duration === 1 ? 'Minute' : 'Minuten'}
-          icon="⏱️"
-          accentColor={colors.violet}
-        />
-      ),
-    },
-    {
-      id: 'klient',
-      node: (
-        <PremiumKpiCard
-          label="Klient:in"
-          value={assignment.clientName}
-          subValue={assignment.clientPhone ?? undefined}
-          icon="👤"
-          accentColor={colors.orange}
-        />
-      ),
-    },
-    {
-      id: 'aufgaben',
-      node: (
-        <PremiumKpiCard
-          label="Aufgaben"
-          value={String(taskCount)}
-          subValue={taskCount === 1 ? 'Aufgabe' : 'Aufgaben'}
-          icon="✅"
-          accentColor={colors.cyan}
-        />
-      ),
-    },
-  ];
-
   return (
-    <PremiumListHeroFrame>
+    <View style={styles.healthCard}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
           <Text style={styles.title}>{assignment.title}</Text>
@@ -203,9 +165,23 @@ export function PortalEmployeeAssignmentDetailHero({
           />
         ) : null}
       </View>
-      <AdaptiveKpiGrid columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }} items={kpiItems} />
-    </PremiumListHeroFrame>
+      <View style={styles.facts}>
+        <View style={styles.fact}>
+          <Text style={styles.factLabel}>Einsatzzeit</Text>
+          <Text style={styles.factValue}>{formatShortDate(assignment.startsAt, true)}</Text>
+          <Text style={styles.factMeta}>{formatTime(assignment.startsAt)} – {formatTime(assignment.endsAt)}</Text>
+        </View>
+        <View style={styles.fact}>
+          <Text style={styles.factLabel}>Geplante Dauer</Text>
+          <Text style={styles.factValue}>{duration} Min.</Text>
+          <Text style={styles.factMeta}>Arbeitszeit laut Planung</Text>
+        </View>
+        <View style={styles.fact}>
+          <Text style={styles.factLabel}>Aufgaben</Text>
+          <Text style={styles.factValue}>{taskCount}</Text>
+          <Text style={styles.factMeta}>{taskCount === 1 ? 'Aufgabe' : 'Aufgaben'} vorgesehen</Text>
+        </View>
+      </View>
+    </View>
   );
 }
-
-const iconSize = designTokens.hero.iconBadgeSize;

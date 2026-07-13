@@ -29,7 +29,7 @@ export function PortalMobileNav({ tabs, accentColor = '#FF9500', area }: PortalM
   const text = useAuroraAdaptiveText();
   const navSurface = careLightColors.surface;
   const navBorder = careLightColors.borderStrong;
-  const activeChip = 'rgba(14, 165, 233, 0.14)';
+  const activeChip = 'rgba(13, 148, 136, 0.12)';
   const labelDefault = text.primary;
   const activeLabelColor = useInteractiveTextColor(accentColor);
   const mobileTabs = useMemo(() => resolveCompactShellMobileTabs(tabs, area), [tabs, area]);
@@ -95,21 +95,23 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    paddingTop: careSpacing.xs,
-    paddingHorizontal: careSpacing.xs,
+    paddingTop: careSpacing.sm,
+    paddingHorizontal: careSpacing.sm,
+    shadowColor: '#0F172A', shadowOpacity: 0.08, shadowRadius: 16,
+    shadowOffset: { width: 0, height: -6 },
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    minHeight: MOBILE_MIN_TOUCH_TARGET,
+    minHeight: MOBILE_MIN_TOUCH_TARGET + 10,
   },
   pill: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: MOBILE_MIN_TOUCH_TARGET,
+    minHeight: MOBILE_MIN_TOUCH_TARGET + 6,
     paddingVertical: careSpacing.xs,
     paddingHorizontal: 2,
-    borderRadius: 999,
+    borderRadius: 16,
     minWidth: 48,
     maxWidth: '100%',
     gap: 2,
