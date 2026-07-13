@@ -67,7 +67,8 @@ export function resolveVisitExecutionUiState(
   const showDocumentationForm =
     !statusBlocksDoc &&
     !documentationSubmitted &&
-    (POST_SERVICE_STATUSES.includes(effectiveStatus) ||
+    (effectiveStatus === 'gestartet' ||
+      POST_SERVICE_STATUSES.includes(effectiveStatus) ||
       (hasServiceEnded && !documentationSubmitted));
 
   const postServiceReady =

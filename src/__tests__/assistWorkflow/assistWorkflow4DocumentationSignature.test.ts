@@ -35,6 +35,25 @@ describe('resolveAllowedActions — documentation → signature → finalize', (
     expect(primaryAllowedAction([...actions], 'gestartet')).toBe('save_documentation');
   });
 
+  it('offers documentation while the service timer is running', () => {
+    const actions = resolveAllowedActions({
+      assignmentStatus: 'gestartet',
+      visitTimes: {
+        serviceStartedAt: '2026-07-01T08:00:00Z',
+      } as import('@/features/assistWorkflow/calculateVisitTimes').VisitTimesSummary,
+      detail: baseDetail({
+        status: 'gestartet',
+        documentationStatus: 'none',
+        signatureStatus: 'pending',
+      }),
+      derivedStatus: 'gestartet',
+    });
+
+    expect(actions).toContain('save_documentation');
+    expect(actions).toContain('end_service');
+    expect(primaryAllowedAction(actions, 'gestartet')).toBe('save_documentation');
+  });
+
   it('offers capture_signature on beendet after documentation submitted', () => {
     const actions = resolveAllowedActions({
       assignmentStatus: 'beendet',

@@ -40,6 +40,26 @@ function baseVisit(
 }
 
 describe('resolveVisitExecutionUiState', () => {
+  it('renders documentation while the paid service timer is running', () => {
+    const state = resolveVisitExecutionUiState({
+      visit: baseVisit({
+        status: 'gestartet',
+        documentationStatus: 'none',
+        actualStartAt: '2026-07-01T08:00:00Z',
+      }),
+      effectiveStatus: 'gestartet',
+      consistencyStatus: 'consistent',
+      allowedActions: ['save_documentation', 'end_service', 'open_route'],
+      awaitingSignature: false,
+      hasServiceEnded: false,
+    });
+
+    expect(state.statusBlocksDoc).toBe(false);
+    expect(state.showTasks).toBe(true);
+    expect(state.showDocumentationForm).toBe(true);
+    expect(state.showSignature).toBe(false);
+  });
+
   it('shows signature when proof required and documentation submitted on confirmed status', () => {
     const state = resolveVisitExecutionUiState({
       visit: baseVisit({
