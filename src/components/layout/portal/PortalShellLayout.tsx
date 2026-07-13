@@ -71,6 +71,7 @@ export function PortalShellLayout({
       : kind === 'relative'
         ? 'Angehörigenportal'
         : 'Klient:innenportal';
+  const employeeHealthOS = kind === 'employee';
 
   const topInset = Math.max(insets.top, careSpacing.xs);
   const bottomNavOffset = PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm);
@@ -86,6 +87,7 @@ export function PortalShellLayout({
 
   const scrollContentStyle = [
     styles.mainContent,
+    employeeHealthOS ? styles.employeeMainContent : null,
     messengerFocusActive ? styles.mainContentMessengerFocus : null,
     showMobileBottomNav ? { paddingBottom: mobileContentPaddingBottom } : null,
   ];
@@ -160,7 +162,7 @@ export function PortalShellLayout({
         accentColor={accentColor}
         portalLabel={portalLabel}
       />
-      {!messengerFocusActive ? (
+      {!messengerFocusActive && !employeeHealthOS ? (
         <NotificationBellFab bottomOffset={showMobileBottomNav ? bottomNavOffset : 0} />
       ) : null}
     </View>
@@ -206,6 +208,10 @@ const styles = StyleSheet.create({
     padding: careSpacing.md,
     paddingBottom: careSpacing.xl,
     backgroundColor: 'transparent',
+  },
+  employeeMainContent: {
+    width: '100%', maxWidth: 1180, alignSelf: 'center',
+    paddingHorizontal: careSpacing.lg, gap: careSpacing.md,
   },
   mainContentMessengerFocus: {
     flex: 1,

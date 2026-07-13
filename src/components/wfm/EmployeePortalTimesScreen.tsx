@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import {
@@ -8,6 +8,7 @@ import {
   LoadingState,
   PremiumButton,
   SectionPanel,
+  PremiumCard,
 } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -28,13 +29,6 @@ function formatDateTime(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function formatDuration(seconds: number | null): string {
-  if (seconds == null) return '—';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, '0')} Min.`;
 }
 
 export function EmployeePortalTimesScreen() {
@@ -106,8 +100,8 @@ export function EmployeePortalTimesScreen() {
       scroll
     >
       <SectionPanel
-        title="Einsatz-Zeitstempel"
-        subtitle="Ihre Einsätze — zusammengefasst und chronologisch"
+        title="Meine Arbeitszeiten"
+        subtitle={`Einsätze der letzten ${PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS} Tage`}
       >
         {visitSummaries.length === 0 ? (
           <EmptyState
@@ -116,7 +110,7 @@ export function EmployeePortalTimesScreen() {
           />
         ) : (
           visitSummaries.map((row) => (
-            <View key={row.visitId} style={styles.row}>
+            <PremiumCard key={row.visitId} style={styles.row}>
               <Text style={[styles.rowTitle, { color: text.primary }]}>
                 {row.clientName ? `${row.title} · ${row.clientName}` : row.title}
               </Text>
@@ -127,17 +121,17 @@ export function EmployeePortalTimesScreen() {
                 </Text>
               ) : null}
               <Text style={[styles.timeline, { color: text.secondary }]}>{row.timelineText}</Text>
-            </View>
+            </PremiumCard>
           ))
         )}
       </SectionPanel>
 
-      <SectionPanel title="Fahrtenbuch" subtitle="An- und Abfahrten zu Einsätzen">
+      <SectionPanel title="Meine Fahrten" subtitle="An- und Abfahrten zu Einsätzen">
         {drivingLogs.length === 0 ? (
           <Text style={{ color: text.secondary }}>Keine Fahrten im gewählten Zeitraum.</Text>
         ) : (
           drivingLogs.map((log) => (
-            <View key={log.id} style={styles.row}>
+            <PremiumCard key={log.id} style={styles.row}>
               <Text style={[styles.rowTitle, { color: text.primary }]}>
                 {log.purpose ?? 'Fahrt'}
               </Text>
@@ -148,7 +142,7 @@ export function EmployeePortalTimesScreen() {
                 {log.startedAt ? formatDateTime(log.startedAt) : '—'}
                 {log.distanceKm != null ? ` · ${log.distanceKm.toFixed(1)} km` : ''}
               </Text>
-            </View>
+            </PremiumCard>
           ))
         )}
       </SectionPanel>
@@ -160,10 +154,7 @@ export function EmployeePortalTimesScreen() {
 
 const styles = StyleSheet.create({
   row: {
-    paddingVertical: careSpacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.08)',
-    gap: 2,
+    padding: careSpacing.md, borderRadius: 18, gap: 4, marginBottom: careSpacing.sm,
   },
   rowTitle: { ...typography.body, fontWeight: '600' },
   rowMeta: { ...typography.caption },

@@ -96,8 +96,6 @@ export function EmployeePortalAssignmentCard({
       accessibilityRole="button"
       testID={`employee-assignment-card-${appointment.id}`}
     >
-      <View style={[styles.statusBar, { backgroundColor: accent }]} />
-
       <View style={styles.inner}>
         <View style={styles.headerRow}>
           <HealthOSStatusBadge domain="assignment" technicalValue={String(status)} />
@@ -171,14 +169,13 @@ export function EmployeePortalAssignmentCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
+    borderRadius: 20,
     borderWidth: 1,
     overflow: 'hidden',
     marginBottom: careSpacing.sm,
   },
   pressed: { opacity: 0.92 },
-  statusBar: { height: 3, width: '100%' },
-  inner: { padding: careSpacing.md, gap: careSpacing.xs },
+  inner: { padding: careSpacing.lg, gap: careSpacing.sm },
   headerRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -186,7 +183,7 @@ const styles = StyleSheet.create({
     gap: careSpacing.xs,
   },
   statusText: { ...careTypography.caption, fontWeight: '600', marginLeft: 'auto' },
-  title: { ...careTypography.bodyStrong, flexShrink: 1 },
+  title: { ...careTypography.h3, flexShrink: 1 },
   metaBlock: { gap: 2 },
   meta: { ...careTypography.caption },
   clientName: { ...careTypography.bodyStrong, marginTop: careSpacing.xs },

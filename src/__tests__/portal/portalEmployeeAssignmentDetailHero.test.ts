@@ -7,14 +7,17 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Portal Employee Assignment Detail Hero (Sprint 81)', () => {
-  it('PortalEmployeeAssignmentDetailHero nutzt PremiumListHeroFrame', () => {
+  it('PortalEmployeeAssignmentDetailHero nutzt eine ruhige statische HealthOS-Fläche', () => {
     const hero = readSrc('src/components/portal/PortalEmployeeAssignmentDetailHero.tsx');
-    expect(hero).toContain('PremiumListHeroFrame');
+    expect(hero).toContain('healthCard');
     expect(hero).toContain('PORTAL_EMPLOYEE_LABEL');
-    expect(hero).toContain('PremiumKpiCard');
-    expect(hero).toContain('AdaptiveKpiGrid');
+    expect(hero).toContain('Geplante Dauer');
+    expect(hero).toContain('taskCount');
     expect(hero).toContain('usePremiumHeroTextStyles');
-    expect(hero).not.toContain('rgba(255,255,255');
+    expect(hero).toContain("backgroundColor: 'rgba(255,255,255,0.94)'");
+    expect(hero).not.toContain('PremiumListHeroFrame');
+    expect(hero).not.toContain('PremiumKpiCard');
+    expect(hero).not.toContain('AdaptiveKpiGrid');
   });
 
   it('PortalAssignmentDetailScreen ersetzt flache PremiumCard', () => {

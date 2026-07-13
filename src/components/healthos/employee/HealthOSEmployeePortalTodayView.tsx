@@ -313,16 +313,16 @@ export function HealthOSEmployeePortalTodayView({
       {/* C: Meine Zeiten — read-only link */}
       <HealthOSSection
         title="Meine Zeiten"
-        subtitle="Arbeitszeit und Abwesenheiten — lesende Übersicht"
+        subtitle="Arbeitszeit, Fahrten und Abwesenheiten"
         accentColor={moduleAccent}
       >
         <HealthOSAlert
           variant="info"
           title="Zeiterfassung"
-          message="Arbeitszeiten und Abwesenheitsanträge sind über den Bereich Arbeitszeit verfügbar."
+          message="Prüfen Sie Einsatzzeiten und Fahrten oder öffnen Sie Ihre Abwesenheitsanträge."
         />
         <Pressable
-          onPress={() => navigate('/portal/employee/arbeitszeit')}
+          onPress={() => navigate('/portal/employee/times')}
           accessibilityRole="button"
           accessibilityLabel="Zur Zeiterfassung"
           testID="healthos-employee-times-link"

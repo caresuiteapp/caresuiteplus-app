@@ -65,17 +65,22 @@ export function PortalTopBar({
   const router = useRouter();
   const text = useAuroraAdaptiveText();
   const auroraActive = useAuroraGlassActive();
+  const employeeHealthOS = portalKind === 'employee';
   const { isLight } = useLegacyTheme();
   const useLightBar = auroraActive && isLight;
   const barSurface = useLightBar ? lightLiquidGlass.panel : auroraGlass.panel;
   const barBorder = useLightBar ? lightLiquidGlass.borderAccent : auroraGlass.border;
-  const barGlassFx = useLightBar ? lightLiquidGlassWebFx(lightLiquidGlass.blur.light) : webGlassBlur;
+  const barGlassFx = employeeHealthOS
+    ? null
+    : useLightBar
+      ? lightLiquidGlassWebFx(lightLiquidGlass.blur.light)
+      : webGlassBlur;
   const menuInk = surfaceContrastText(!useLightBar);
   const dropdownGlass = useShellGlassSurfaceStyle('modal');
   const profileChipSurface = useLightBar
     ? { borderColor: lightLiquidGlass.borderAccent, backgroundColor: lightLiquidGlass.chip }
     : { borderColor: auroraGlass.border, backgroundColor: auroraGlass.chip };
-  const { profile, signOut } = useAuth();
+  const { signOut } = useAuth();
   const { displayName } = usePortalActor();
   const { avatarUrl, avatarVersion } = usePortalProfileAvatar();
   const { context } = usePortalContext();
@@ -124,7 +129,7 @@ export function PortalTopBar({
         ) : null}
         <View style={styles.compactBrand}>
           <Text style={[styles.compactTitle, { color: text.primary }]} numberOfLines={1}>
-            CareSuite+
+            CareSuite+{employeeHealthOS ? ' HealthOS' : ''}
           </Text>
           <Text style={[styles.compactPortal, { color: text.muted }]} numberOfLines={1}>
             {portalLabel}

@@ -15,17 +15,17 @@ export const EMPLOYEE_PORTAL_NAV_TABS: ShellTabConfig[] = [
     key: 'signatures',
     label: 'Dokumente & Unterschriften',
     icon: '✍️',
-    href: '/portal/employee/documents/signatures',
+    href: '/portal/employee/signatures',
   },
   { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/employee/profile' },
   {
     key: 'time-tracking',
-    label: 'Zur Zeiterfassung',
+    label: 'Arbeitszeiten',
     icon: '🕐',
-    href: '/portal/employee/arbeitszeit',
+    href: '/portal/employee/times',
   },
   { key: 'times', label: 'Meine Zeiten', icon: '⏱️', href: '/portal/employee/times' },
-  { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/employee/documents' },
+  { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/employee/uploads' },
   { key: 'open-tasks', label: 'Offene Aufgaben', icon: '✅', href: '/portal/employee/tasks' },
 ];
 

@@ -112,7 +112,7 @@ describe('portal M.3 mobile layout', () => {
     expect(mobile).not.toContain('ScrollView');
     expect(mobile).not.toContain('PORTAL_MOBILE_NAV_HEIGHT');
     expect(mobile).toContain('Wichtig für Sie');
-    expect(mobile).toContain('resolveTimeBasedGermanGreeting');
+    expect(mobile).toContain('resolveClientPortalHeroLines');
   });
 
   it('removes Portal-Sicht placeholder badges from portal heroes', () => {

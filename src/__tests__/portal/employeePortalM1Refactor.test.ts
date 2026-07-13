@@ -36,7 +36,7 @@ describe('employee portal M.1 refactor', () => {
     expect(PORTAL_EMPLOYEE_TABS.find((tab) => tab.key === 'schedule')).toBeUndefined();
   });
 
-  it('drawer navigation matches canonical order with Zeiterfassung and Offene Aufgaben', () => {
+  it('drawer navigation matches canonical HealthOS order with working times and open tasks', () => {
     expect(EMPLOYEE_PORTAL_NAV_LABELS).toEqual([
       'Übersicht',
       'Einsätze',
@@ -44,18 +44,18 @@ describe('employee portal M.1 refactor', () => {
       'Kalender',
       'Nachrichten',
       'Klientenakten',
-      'Unterschriften',
+      'Dokumente & Unterschriften',
       'Profil',
-      'Zur Zeiterfassung',
+      'Arbeitszeiten',
       'Meine Zeiten',
       'Dokumente',
       'Offene Aufgaben',
     ]);
     expect(PORTAL_EMPLOYEE_DRAWER_TABS.map((tab) => tab.label)).toEqual([
       'Klientenakten',
-      'Unterschriften',
+      'Dokumente & Unterschriften',
       'Profil',
-      'Zur Zeiterfassung',
+      'Arbeitszeiten',
       'Meine Zeiten',
       'Dokumente',
       'Offene Aufgaben',

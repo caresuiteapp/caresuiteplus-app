@@ -138,5 +138,9 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, gap: careSpacing.md },
+  wrap: {
+    flex: 1, gap: careSpacing.lg, padding: careSpacing.md, borderRadius: 22,
+    borderWidth: 1, borderColor: 'rgba(15, 143, 138, 0.16)',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+  },
 });
