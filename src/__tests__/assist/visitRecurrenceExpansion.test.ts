@@ -175,6 +175,75 @@ describe('visitRecurrenceExpansion', () => {
     expect(expanded[2]?.scheduledStart.slice(0, 10)).toBe('2026-08-01');
   });
 
+  it('zeigt abgetrennten Serientermin wieder, wenn sein Einzeleinsatz fehlt', () => {
+    const childId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+    const series = baseListItem({
+      scheduledStart: '2026-07-03T07:00:00.000Z',
+      scheduledEnd: '2026-07-03T09:00:00.000Z',
+    });
+    const expanded = expandVisitDispositionListItems([
+      {
+        row: {
+          assignment_date: '2026-07-03',
+          planned_start_at: series.scheduledStart,
+          planned_end_at: series.scheduledEnd,
+          recurrence_json: {
+            pattern: 'weekly',
+            weekdays: ['fr'],
+            occurrenceCount: 3,
+            detachedOccurrenceDates: ['2026-07-10'],
+            materializedOccurrences: { '2026-07-10': childId },
+          },
+        },
+        item: series,
+      },
+    ]);
+
+    expect(expanded.some((item) => item.id === buildVisitOccurrenceId(VISIT_ID, '2026-07-10'))).toBe(true);
+  });
+
+  it('unterdrückt Serienkopie, wenn der abgetrennte Einzeleinsatz geladen ist', () => {
+    const childId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+    const series = baseListItem({
+      scheduledStart: '2026-07-03T07:00:00.000Z',
+      scheduledEnd: '2026-07-03T09:00:00.000Z',
+    });
+    const child = baseListItem({
+      id: childId,
+      scheduledStart: '2026-07-10T07:00:00.000Z',
+      scheduledEnd: '2026-07-10T09:00:00.000Z',
+    });
+    const expanded = expandVisitDispositionListItems([
+      {
+        row: {
+          assignment_date: '2026-07-03',
+          planned_start_at: series.scheduledStart,
+          planned_end_at: series.scheduledEnd,
+          recurrence_json: {
+            pattern: 'weekly',
+            weekdays: ['fr'],
+            occurrenceCount: 3,
+            detachedOccurrenceDates: ['2026-07-10'],
+            materializedOccurrences: { '2026-07-10': childId },
+          },
+        },
+        item: series,
+      },
+      {
+        row: {
+          assignment_date: '2026-07-10',
+          planned_start_at: child.scheduledStart,
+          planned_end_at: child.scheduledEnd,
+          recurrence_json: { pattern: 'none' },
+        },
+        item: child,
+      },
+    ]);
+
+    expect(expanded.filter((item) => item.scheduledStart.slice(0, 10) === '2026-07-10')).toHaveLength(1);
+    expect(expanded.some((item) => item.id === childId)).toBe(true);
+  });
+
   it('filtert expandierte Termine auf sichtbaren Datumsbereich', () => {
     const assignmentDate = '2026-07-06';
     const item = baseListItem({

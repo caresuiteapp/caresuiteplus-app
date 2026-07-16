@@ -1376,7 +1376,11 @@ export const visitSupabaseRepository = {
 
     const existingMaterializedId = getMaterializedOccurrenceId(recurrence, occurrenceDate);
     if (existingMaterializedId) {
-      return { ok: true, data: { id: existingMaterializedId, materialized: false } };
+      const existing = await this.getById(tenantId, existingMaterializedId);
+      if (!existing.ok) return existing;
+      if (existing.data) {
+        return { ok: true, data: { id: existingMaterializedId, materialized: false } };
+      }
     }
 
     const masterDateKey = master.data.assignmentDate?.slice(0, 10) ?? master.data.scheduledStart.slice(0, 10);
