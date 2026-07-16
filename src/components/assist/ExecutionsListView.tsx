@@ -12,8 +12,8 @@ import {
   LoadingState,
   PremiumButton,
   PremiumInput,
-  SuccessState,
 } from '@/components/ui';
+import { WorkflowToast } from '@/components/ui/WorkflowToast';
 import { buildExecutionListKpis } from '@/lib/assist/executionListStats';
 import { useExecutionList } from '@/hooks/useExecutionList';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -122,7 +122,7 @@ export function ExecutionsListView({
         />
       )}
 
-      {showSuccess ? <SuccessState message="Liste erfolgreich aktualisiert." /> : null}
+      <WorkflowToast message={showSuccess ? 'Liste erfolgreich aktualisiert.' : null} />
 
       <PremiumInput
         label="Suche"
@@ -142,7 +142,7 @@ export function ExecutionsListView({
       />
 
       <Text style={styles.filterLabel}>Sortierung</Text>
-      <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
+      <FilterChipGroup options={sortOptions} value={sortKey} onChange={(value) => setSortKey(String(Array.isArray(value) ? value[0] : value))} />
     </View>
   );
 

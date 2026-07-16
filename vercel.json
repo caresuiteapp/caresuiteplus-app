@@ -1,0 +1,10 @@
+{
+  "buildCommand": "EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

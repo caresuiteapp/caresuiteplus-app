@@ -1,0 +1,9 @@
+.git
+.vercel
+.expo
+.env.local
+node_modules
+dist
+coverage
+docs/audit
+*.log

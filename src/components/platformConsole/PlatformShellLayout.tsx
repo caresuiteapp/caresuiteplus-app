@@ -1,11 +1,12 @@
 import { ReactNode, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
-import type { PlatformCapability } from '@/types/platformConsole';
 import { PLATFORM_CONSOLE_TITLE, PLATFORM_NAV_ITEMS } from '@/lib/platformConsole/platformNavigation';
 import { platformRoleHasCapability, PLATFORM_ROLE_LABELS } from '@/lib/platformConsole';
 import { usePlatformAuth } from '@/lib/platformConsole/PlatformAuthProvider';
 import { spacing } from '@/theme';
+import { DesktopSidebarToggle } from '@/components/layout/DesktopSidebarToggle';
+import { useDesktopWorkspacePreferences } from '@/hooks/useDesktopWorkspacePreferences';
 
 const PLATFORM_COLORS = {
   bg: '#F8FAFC',
@@ -38,6 +39,7 @@ export function PlatformShellLayout({ children, title, subtitle }: PlatformShell
   const { width } = useWindowDimensions();
   const { platformUser } = usePlatformAuth();
   const isWide = width >= 960;
+  const { leftCollapsed, toggleLeft } = useDesktopWorkspacePreferences();
 
   const navItems = useMemo(
     () => filterNavByRole(platformUser?.role),
@@ -102,14 +104,17 @@ export function PlatformShellLayout({ children, title, subtitle }: PlatformShell
           borderColor: PLATFORM_COLORS.border,
         },
         auditHintText: { color: PLATFORM_COLORS.muted, fontSize: 11 },
-        content: { flex: 1, padding: spacing.lg },
+        content: { flex: 1, minWidth: 0, padding: spacing.lg },
+        visuallyHidden: {
+          position: 'absolute', width: 1, height: 1, margin: -1, overflow: 'hidden', opacity: 0,
+        },
       }),
     [isWide],
   );
 
   return (
     <View style={styles.root}>
-      <View style={styles.sidebar}>
+      {!isWide || !leftCollapsed ? <View style={styles.sidebar} nativeID="desktop-module-navigation">
         <View style={styles.brand}>
           <Text style={styles.brandTitle}>{PLATFORM_CONSOLE_TITLE}</Text>
           <Text style={styles.brandSub}>SaaS-Betrieb · isoliert</Text>
@@ -135,12 +140,21 @@ export function PlatformShellLayout({ children, title, subtitle }: PlatformShell
             <Text style={styles.userEmail}>{platformUser.email}</Text>
           </View>
         ) : null}
-      </View>
+      </View> : null}
+      {isWide ? (
+        <DesktopSidebarToggle
+          side="left"
+          collapsed={leftCollapsed}
+          onPress={toggleLeft}
+          controls="desktop-module-navigation"
+          accentColor={PLATFORM_COLORS.accent}
+        />
+      ) : null}
       <View style={styles.main}>
         {title ? (
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>{title}</Text>
-            {subtitle ? <Text style={styles.headerSub}>{subtitle}</Text> : null}
+            <Text accessibilityRole="header" style={isWide ? styles.visuallyHidden : styles.headerTitle}>{title}</Text>
+            {subtitle && !isWide ? <Text style={styles.headerSub}>{subtitle}</Text> : null}
             <View style={styles.auditHint}>
               <Text style={styles.auditHintText}>
                 Alle kritischen Aktionen werden protokolliert. Mandantendaten nur im Support-Modus.

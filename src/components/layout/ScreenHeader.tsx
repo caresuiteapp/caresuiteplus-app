@@ -32,7 +32,8 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   const router = useRouter();
   const { colors } = useLegacyTheme();
-  const { isPhone } = useDeviceClass();
+  const { isPhone, isDesktopOrWide } = useDeviceClass();
+  const hideDesktopPageDescription = isDesktopOrWide;
   const backLinkColor = useInteractiveTextColor();
   const shellHostsAurora = useShellHostsAurora();
   const showBreadcrumbs = simplifyOnPhone ? !isPhone && breadcrumbTrail : breadcrumbTrail;
@@ -49,6 +50,19 @@ export function ScreenHeader({
           borderBottomWidth: shellHostsAurora ? 0 : 1,
           borderBottomColor: colors.borderSoft,
           backgroundColor: shellHostsAurora ? 'transparent' : colors.bgPremium,
+        },
+        desktopA11yHeader: {
+          width: 0,
+          height: 0,
+          overflow: 'hidden',
+        },
+        visuallyHidden: {
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          margin: -1,
+          overflow: 'hidden',
+          opacity: 0,
         },
         left: {
           width: sideInsetWidth,
@@ -106,7 +120,11 @@ export function ScreenHeader({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={hideDesktopPageDescription ? styles.desktopA11yHeader : styles.container}>
+      {hideDesktopPageDescription ? (
+        <Text accessibilityRole="header" style={styles.visuallyHidden}>{title}</Text>
+      ) : null}
+      {!hideDesktopPageDescription ? <>
       <View style={styles.left}>
         {showBack ? (
           <Pressable onPress={handleBack} style={styles.backButton} hitSlop={12}>
@@ -126,6 +144,7 @@ export function ScreenHeader({
         ) : null}
       </View>
       <View style={styles.right}>{rightSlot}</View>
+      </> : null}
     </View>
   );
 }

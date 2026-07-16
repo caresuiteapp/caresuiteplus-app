@@ -123,6 +123,14 @@ export type ActiveExecutionItem = {
   scheduledEnd: string;
   phase: ExecutionPhase;
   assignmentStatus: WorkflowStatus;
+  employeeName?: string;
+  serviceName?: string | null;
+  executionStatus?: import('@/lib/assist/visitTypes').VisitExecutionStatus;
+  documentationStatus?: import('@/lib/assist/visitTypes').VisitDocumentationStatus;
+  proofStatus?: import('@/lib/assist/visitTypes').VisitProofStatus;
+  isIncomplete?: boolean;
+  hasError?: boolean;
+  requiresTimeCorrection?: boolean;
 };
 
 export type CareRecord = TenantScopedEntity &

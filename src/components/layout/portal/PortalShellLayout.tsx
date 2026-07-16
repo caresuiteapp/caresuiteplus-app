@@ -26,6 +26,8 @@ import {
   webShellViewportLockStyle,
 } from '@/lib/platform/webSafeArea';
 import { usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
+import { DesktopSidebarToggle } from '@/components/layout/DesktopSidebarToggle';
+import { useDesktopWorkspacePreferences } from '@/hooks/useDesktopWorkspacePreferences';
 
 export type PortalShellKind = 'client' | 'employee' | 'relative';
 
@@ -57,8 +59,9 @@ export function PortalShellLayout({
     kind === 'employee'
       ? resolveEmployeePortalNavigationTabs(PORTAL_EMPLOYEE_TABS)
       : clientDrawerTabs;
-  const [navCollapsed, setNavCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { leftCollapsed, rightCollapsed, toggleLeft, toggleRight } =
+    useDesktopWorkspacePreferences();
   const { active: messengerFocusActive } = usePortalMessengerFocus();
 
   const isCompactShell = !isDesktopOrWide;
@@ -129,24 +132,48 @@ export function PortalShellLayout({
       ) : (
         <View style={styles.body}>
           {showLeftNav ? (
-            kind === 'employee' ? (
-              <PortalTabLeftNav
-                tabs={drawerTabs}
+            <>
+              {!leftCollapsed ? (
+                <View nativeID="desktop-module-navigation" style={styles.sidebarHost}>
+                  {kind === 'employee' ? (
+                    <PortalTabLeftNav
+                      tabs={drawerTabs}
+                      accentColor={accentColor}
+                      portalLabel={portalLabel}
+                    />
+                  ) : (
+                    <PortalLeftNav accentColor={accentColor} />
+                  )}
+                </View>
+              ) : null}
+              <DesktopSidebarToggle
+                side="left"
+                collapsed={leftCollapsed}
+                onPress={toggleLeft}
+                controls="desktop-module-navigation"
                 accentColor={accentColor}
-                portalLabel={portalLabel}
               />
-            ) : (
-              <PortalLeftNav
-                accentColor={accentColor}
-                collapsed={navCollapsed}
-                onToggleCollapse={() => setNavCollapsed((v) => !v)}
-              />
-            )
+            </>
           ) : null}
 
           <View style={styles.main}>{mainContent}</View>
 
-          {showRightSidebar ? <PortalRightSidebar accentColor={accentColor} /> : null}
+          {showRightSidebar ? (
+            <>
+              <DesktopSidebarToggle
+                side="right"
+                collapsed={rightCollapsed}
+                onPress={toggleRight}
+                controls="desktop-context-panel"
+                accentColor={accentColor}
+              />
+              {!rightCollapsed ? (
+                <View nativeID="desktop-context-panel" style={styles.sidebarHost}>
+                  <PortalRightSidebar accentColor={accentColor} />
+                </View>
+              ) : null}
+            </>
+          ) : null}
         </View>
       )}
 
@@ -193,6 +220,7 @@ const styles = StyleSheet.create({
     minHeight: 0,
     zIndex: 1,
   },
+  sidebarHost: { flexShrink: 0, minHeight: 0 },
   main: {
     flex: 1,
     minWidth: 0,
