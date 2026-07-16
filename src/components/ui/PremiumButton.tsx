@@ -58,22 +58,6 @@ export function PremiumButton({
 }: Props) {
   const { mode } = useThemeMode();
   const shellHostsAurora = useShellHostsAurora();
-
-  if (mode === 'light' && !shellHostsAurora) {
-    const lightStyle = fullWidth
-      ? StyleSheet.flatten([styles.fullWidth, style])
-      : StyleSheet.flatten(style);
-    return (
-      <CareLightButton
-        title={title}
-        onPress={onPress}
-        variant={variant}
-        loading={loading}
-        style={lightStyle ?? undefined}
-      />
-    );
-  }
-
   const { colors, typography } = useLegacyTheme();
   const auroraButtonStyles = useAuroraGlassButtonStyles({ viewContext: 'form' });
   const { scaleFontSize } = useAccessibility();
@@ -98,6 +82,24 @@ export function PremiumButton({
       lineHeight: scaleFontSize(22),
     };
   }, [scaleFontSize, typography.button.fontSize, typography.button.lineHeight]);
+
+  if (mode === 'light' && !shellHostsAurora) {
+    const lightStyle = fullWidth
+      ? StyleSheet.flatten([styles.fullWidth, style])
+      : StyleSheet.flatten(style);
+    return (
+      <CareLightButton
+        title={title}
+        onPress={onPress}
+        variant={variant}
+        loading={loading}
+        disabled={disabled}
+        style={lightStyle ?? undefined}
+        accessibilityLabel={accessibilityLabel}
+        testID={testID}
+      />
+    );
+  }
 
   const content = (
     <View

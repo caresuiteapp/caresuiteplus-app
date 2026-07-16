@@ -11,7 +11,10 @@ type CareLightButtonProps = {
   variant?: 'primary' | 'secondary' | 'ghost';
   accentColor?: string;
   loading?: boolean;
+  disabled?: boolean;
   style?: ViewStyle;
+  accessibilityLabel?: string;
+  testID?: string;
 };
 
 export function CareLightButton({
@@ -20,7 +23,10 @@ export function CareLightButton({
   variant = 'primary',
   accentColor = careLightColors.orange,
   loading = false,
+  disabled = false,
   style,
+  accessibilityLabel,
+  testID,
 }: CareLightButtonProps) {
   const isPrimary = variant === 'primary';
   const isSecondary = variant === 'secondary';
@@ -28,7 +34,8 @@ export function CareLightButton({
 
   return (
     <Pressable
-      onPress={loading ? undefined : onPress}
+      disabled={disabled || loading}
+      onPress={disabled || loading ? undefined : onPress}
       style={({ pressed }) => [
         styles.base,
         isPrimary && {
@@ -38,12 +45,14 @@ export function CareLightButton({
         },
         isSecondary && styles.secondary,
         variant === 'ghost' && styles.ghost,
-        pressed && styles.pressed,
-        loading && styles.loading,
+        pressed && !disabled && !loading && styles.pressed,
+        (disabled || loading) && styles.disabled,
         style,
       ]}
       accessibilityRole="button"
-      accessibilityState={{ disabled: loading }}
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityState={{ disabled: disabled || loading }}
+      testID={testID}
     >
       <Text
         style={[
@@ -78,7 +87,7 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.88,
   },
-  loading: {
+  disabled: {
     opacity: 0.6,
   },
   label: {

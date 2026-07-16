@@ -4,10 +4,10 @@ import { CareDateInput, CareTimeInput } from '@/components/inputs';
 import { InfoBanner, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import {
   appendAdministrativeDocumentation,
+  bulkUpdateAdministrativeTasks,
   completeAdministrativeFollowUp,
   correctAdministrativeVisitTimes,
   requestClientVisitSignature,
-  updateAdministrativeTask,
 } from '@/lib/assist/administrativeVisitService';
 import type { VisitDispositionDetail, VisitTaskStatus } from '@/lib/assist/visitTypes';
 import { VISIT_TASK_STATUS_LABELS } from '@/lib/assist/visitTypes';
@@ -54,8 +54,15 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
   const [travel, setTravel] = useState('0');
   const [reason, setReason] = useState('');
   const [documentation, setDocumentation] = useState('');
+  const [taskDrafts, setTaskDrafts] = useState<Record<string, VisitTaskStatus>>(() =>
+    Object.fromEntries(visit.tasks.map((task) => [task.id, task.status])),
+  );
   const [overlap, setOverlap] = useState(false);
   const [saving, setSaving] = useState(false);
+  const persistedTaskState = useMemo(
+    () => JSON.stringify(visit.tasks.map((task) => [task.id, task.status])),
+    [visit.tasks],
+  );
 
   useEffect(() => {
     const start = visit.actualStartAt ?? visit.scheduledStart;
@@ -65,6 +72,9 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
     setEndTime(localTime(end));
     setWayTime(localTime(visit.onTheWayAt));
     setArrivedTime(localTime(visit.arrivedAt));
+    setTaskDrafts(Object.fromEntries(
+      JSON.parse(persistedTaskState) as [string, VisitTaskStatus][],
+    ));
   }, [
     visit.actualEndAt,
     visit.actualStartAt,
@@ -72,7 +82,15 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
     visit.onTheWayAt,
     visit.scheduledEnd,
     visit.scheduledStart,
+    persistedTaskState,
   ]);
+
+  const changedTasks = useMemo(
+    () => visit.tasks
+      .filter((task) => (taskDrafts[task.id] ?? task.status) !== task.status)
+      .map((task) => ({ taskId: task.id, status: taskDrafts[task.id] ?? task.status })),
+    [taskDrafts, visit.tasks],
+  );
 
   const netMinutes = useMemo(() => {
     const start = toIso(date, startTime);
@@ -107,7 +125,6 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
       setOverlap(true);
       return onMessage('Zeitüberschneidung erkannt. Prüfen und bewusst erneut bestätigen.', true);
     }
-    setReason('');
     setOverlap(false);
     onMessage(`Arbeitszeit aktualisiert${result.data.netMinutes ? `: ${result.data.netMinutes} Minuten` : ''}.`);
     await onSaved();
@@ -116,7 +133,6 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
   const requestSignature = async () => {
     const result = await requestClientVisitSignature(tenantId, visit, reason);
     if (!result.ok) return onMessage(result.error, true);
-    setReason('');
     onMessage('Signaturanforderung wurde an das Klient:innenportal übertragen.');
     await onSaved();
   };
@@ -129,16 +145,41 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
       onMessage(result.error ?? 'Die Nachbearbeitung ist fehlgeschlagen.', true);
       return false;
     }
-    setReason('');
     onMessage(message);
     await onSaved();
     return true;
   };
 
+  const saveTasks = async () => {
+    setSaving(true);
+    const result = await bulkUpdateAdministrativeTasks(visit.id, changedTasks, reason);
+    setSaving(false);
+    if (!result.ok) return onMessage(result.error, true);
+    onMessage(`${result.data.updated} Aufgaben wurden gemeinsam gespeichert und auditiert.`);
+    await onSaved();
+  };
+
+  const markAllTasks = (status: VisitTaskStatus) => {
+    setTaskDrafts(Object.fromEntries(visit.tasks.map((task) => [task.id, status])));
+  };
+
   return (
     <SectionPanel title="Administrative Nachbearbeitung" subtitle="Zeiten, Aufgaben, Dokumentation und Signatur vollständig berichtigen.">
       <View style={{ gap: spacing.md }}>
-        <PremiumInput label="Begründung für die Änderung (Pflicht)" value={reason} onChangeText={setReason} multiline />
+        <InfoBanner
+          message={reason.trim()
+            ? 'Die Begründung gilt für alle Änderungen in dieser Nachbearbeitung.'
+            : 'Zuerst eine Begründung eingeben. Danach können Zeiten, Aufgaben, Dokumentation und Signatur bearbeitet werden.'}
+        />
+        <PremiumInput
+          label="Gemeinsame Begründung für die Nachbearbeitung (Pflicht)"
+          placeholder="z. B. Einsatz wurde vor Ort durchgeführt, mobile Erfassung war nicht möglich"
+          hint="Einmal eingeben – gilt für alle folgenden Änderungen und bleibt während der Bearbeitung erhalten."
+          value={reason}
+          onChangeText={setReason}
+          multiline
+          style={{ minHeight: 88 }}
+        />
 
         <SectionPanel title="Arbeitszeit" subtitle="Alle Zeiten gelten für das gewählte Einsatzdatum.">
           <CareDateInput label="Einsatzdatum" value={date} onChange={setDate} />
@@ -154,31 +195,41 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
         </SectionPanel>
 
         <SectionPanel title="Aufgaben">
+          <InfoBanner message={`${changedTasks.length} Aufgabenänderungen vorgemerkt. Erst „Aufgaben gemeinsam speichern“ schreibt sie dauerhaft.`} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
+            <PremiumButton title="Alle erledigt" size="sm" onPress={() => markAllTasks('done')} disabled={saving} />
+            <PremiumButton title="Alle nicht gewünscht" size="sm" variant="secondary" onPress={() => markAllTasks('not_requested')} disabled={saving} />
+            <PremiumButton title="Auswahl zurücksetzen" size="sm" variant="ghost" onPress={() => setTaskDrafts(Object.fromEntries(visit.tasks.map((task) => [task.id, task.status])))} disabled={saving || changedTasks.length === 0} />
+          </View>
           {visit.tasks.map((task) => (
             <View key={task.id} style={{ gap: spacing.xs }}>
-              <Text style={typography.body}>{task.title} · {VISIT_TASK_STATUS_LABELS[task.status]}</Text>
+              <Text style={typography.body}>{task.title} · {VISIT_TASK_STATUS_LABELS[taskDrafts[task.id] ?? task.status]}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
                 {TASK_CORRECTIONS.map((status) => (
                   <PremiumButton
                     key={status}
                     title={VISIT_TASK_STATUS_LABELS[status]}
                     size="sm"
-                    variant={task.status === status ? 'primary' : 'secondary'}
-                    onPress={() => run(
-                      () => updateAdministrativeTask(visit.id, task.id, status, reason),
-                      'Aufgabe wurde aktualisiert und auditiert.',
-                    )}
-                    disabled={saving || !reason.trim() || task.status === status}
+                    variant={(taskDrafts[task.id] ?? task.status) === status ? 'primary' : 'secondary'}
+                    onPress={() => setTaskDrafts((current) => ({ ...current, [task.id]: status }))}
+                    disabled={saving}
                   />
                 ))}
               </View>
             </View>
           ))}
+          <PremiumButton
+            title={`Aufgaben gemeinsam speichern (${changedTasks.length})`}
+            onPress={saveTasks}
+            loading={saving}
+            disabled={saving || !reason.trim() || changedTasks.length === 0}
+            fullWidth
+          />
         </SectionPanel>
 
         <SectionPanel title="Dokumentation & Signatur">
-          <PremiumInput label="Dokumentation ergänzen" value={documentation} onChangeText={setDocumentation} multiline />
-          <PremiumButton title="Dokumentation ergänzen" variant="secondary" onPress={() => run(() => appendAdministrativeDocumentation(visit.id, documentation, reason), 'Dokumentation wurde ergänzt und auditiert.').then((saved) => { if (saved) setDocumentation(''); })} disabled={saving || !reason.trim() || !documentation.trim()} fullWidth />
+          <PremiumInput label="Dokumentationstext" placeholder="Durchführung, Besonderheiten und Ergebnis vollständig dokumentieren" hint="Der Text wird revisionssicher an die vorhandene Einsatzdokumentation angehängt." value={documentation} onChangeText={setDocumentation} multiline style={{ minHeight: 120 }} />
+          <PremiumButton title="Dokumentation dauerhaft speichern" variant="secondary" onPress={() => run(() => appendAdministrativeDocumentation(visit.id, documentation, reason), 'Dokumentation wurde ergänzt und auditiert.').then((saved) => { if (saved) setDocumentation(''); })} disabled={saving || !reason.trim() || !documentation.trim()} fullWidth />
           <PremiumButton title="Signatur im Klient:innenportal anfordern" variant="secondary" onPress={requestSignature} disabled={saving || !reason.trim()} fullWidth />
         </SectionPanel>
 
