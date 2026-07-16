@@ -204,7 +204,7 @@ async function mapAssistProofToPortalDocumentDetail(
     fileSizeBytes: 0,
     status: 'aktiv',
     updatedAt: proof.releasedAt ?? proof.scheduledStart ?? new Date().toISOString(),
-    visibility: 'portal',
+    visibility: 'shared',
     sensitivity: 'standard',
     clientName: proof.clientName,
     displayFileName: fileName,

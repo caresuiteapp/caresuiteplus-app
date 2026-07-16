@@ -75,7 +75,7 @@ export function PortalClientDocumentDetailScreen() {
         clientId,
         proofId: id,
         profileId: actorId,
-        signerName: data.clientName ?? 'Klient:in',
+        signerName: data?.clientName ?? 'Klient:in',
         signatureDataUrl: dataUrl,
       });
       setSignLoading(false);
