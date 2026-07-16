@@ -2,6 +2,17 @@ import type { ServiceResult } from '@/types/core/base';
 import { getServiceMode } from '@/lib/services/mode';
 import { platformSelectWhere } from './platformSupabaseClient';
 
+type SelectOptions = Parameters<typeof platformSelectWhere<Record<string, unknown>>>[2];
+
+async function selectPlatformRows(
+  table: string,
+  options: SelectOptions,
+): Promise<ServiceResult<Record<string, unknown>[]>> {
+  const { data, error } = await platformSelectWhere<Record<string, unknown>>(table, '*', options);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: data ?? [] };
+}
+
 export async function listPlatformPlanVersions(
   planKey?: string,
 ): Promise<ServiceResult<Record<string, unknown>[]>> {
@@ -20,7 +31,7 @@ export async function listPlatformPlanVersions(
       ],
     };
   }
-  return platformSelectWhere('platform_plan_versions', '*', {
+  return selectPlatformRows('platform_plan_versions', {
     orderBy: 'version_number',
     ascending: false,
     eq: planKey ? { plan_key: planKey } : undefined,
@@ -33,7 +44,7 @@ export async function listPlatformPlanModules(
   if (getServiceMode() === 'demo') {
     return { ok: true, data: [{ module_key: 'office', access_state: 'active' }] };
   }
-  return platformSelectWhere('platform_plan_modules', '*', {
+  return selectPlatformRows('platform_plan_modules', {
     orderBy: 'module_key',
     ascending: true,
     eq: { plan_version_id: planVersionId },
@@ -46,7 +57,7 @@ export async function listPlatformPlanLimits(
   if (getServiceMode() === 'demo') {
     return { ok: true, data: [{ limit_key: 'max_users', limit_value: 10 }] };
   }
-  return platformSelectWhere('platform_plan_limits', '*', {
+  return selectPlatformRows('platform_plan_limits', {
     orderBy: 'limit_key',
     ascending: true,
     eq: { plan_version_id: planVersionId },
@@ -60,7 +71,7 @@ export async function listPlatformAddonsCatalog(): Promise<ServiceResult<Record<
       data: [{ addon_key: 'sms_pack', addon_name: 'SMS Paket', status: 'active' }],
     };
   }
-  return platformSelectWhere('platform_addons', '*', { orderBy: 'addon_name', ascending: true });
+  return selectPlatformRows('platform_addons', { orderBy: 'addon_name', ascending: true });
 }
 
 export async function listPlatformAddonVersions(
@@ -72,7 +83,7 @@ export async function listPlatformAddonVersions(
       data: [{ addon_key: addonKey, version_number: 1, monthly_price_cents: 1500, status: 'active' }],
     };
   }
-  return platformSelectWhere('platform_addon_versions', '*', {
+  return selectPlatformRows('platform_addon_versions', {
     orderBy: 'version_number',
     ascending: false,
     eq: { addon_key: addonKey },
@@ -88,7 +99,7 @@ export async function listPlatformTenantSubscriptions(
       data: [{ tenant_id: tenantId, plan_key: 'starter', status: 'active', billing_interval: 'monthly' }],
     };
   }
-  return platformSelectWhere('platform_tenant_subscriptions', '*', {
+  return selectPlatformRows('platform_tenant_subscriptions', {
     orderBy: 'created_at',
     ascending: false,
     eq: { tenant_id: tenantId },
@@ -101,7 +112,7 @@ export async function listPlatformTenantAddons(
   if (getServiceMode() === 'demo') {
     return { ok: true, data: [] };
   }
-  return platformSelectWhere('platform_tenant_addons', '*', {
+  return selectPlatformRows('platform_tenant_addons', {
     orderBy: 'created_at',
     ascending: false,
     eq: { tenant_id: tenantId },
@@ -114,12 +125,12 @@ export async function getPlatformTenantCredits(
   if (getServiceMode() === 'demo') {
     return { ok: true, data: { tenant_id: tenantId, balance_cents: 0 } };
   }
-  const res = await platformSelectWhere<Record<string, unknown>>('platform_tenant_credits', '*', {
+  const { data, error } = await platformSelectWhere<Record<string, unknown>>('platform_tenant_credits', '*', {
     orderBy: 'updated_at',
     ascending: false,
     eq: { tenant_id: tenantId },
     limit: 1,
   });
-  if (!res.ok) return res;
-  return { ok: true, data: res.data?.[0] ?? null };
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: data?.[0] ?? null };
 }
