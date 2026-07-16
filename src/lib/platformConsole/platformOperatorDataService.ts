@@ -1,6 +1,6 @@
 import type { ServiceResult } from '@/types/core/base';
 import { getServiceMode } from '@/lib/services/mode';
-import { platformSelectWhere } from './platformSupabaseClient';
+import { platformRpc, platformSelectWhere } from './platformSupabaseClient';
 
 type SelectOptions = Parameters<typeof platformSelectWhere<Record<string, unknown>>>[2];
 
@@ -71,7 +71,9 @@ export async function listPlatformAddonsCatalog(): Promise<ServiceResult<Record<
       data: [{ addon_key: 'sms_pack', addon_name: 'SMS Paket', status: 'active' }],
     };
   }
-  return selectPlatformRows('platform_addons', { orderBy: 'addon_name', ascending: true });
+  const { data, error } = await platformRpc<Record<string, unknown>[]>('platform_list_addons_catalog');
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: data ?? [] };
 }
 
 export async function listPlatformAddonVersions(
@@ -83,11 +85,11 @@ export async function listPlatformAddonVersions(
       data: [{ addon_key: addonKey, version_number: 1, monthly_price_cents: 1500, status: 'active' }],
     };
   }
-  return selectPlatformRows('platform_addon_versions', {
-    orderBy: 'version_number',
-    ascending: false,
-    eq: { addon_key: addonKey },
+  const { data, error } = await platformRpc<Record<string, unknown>[]>('platform_list_addon_versions', {
+    p_addon_key: addonKey,
   });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: data ?? [] };
 }
 
 export async function listPlatformTenantSubscriptions(

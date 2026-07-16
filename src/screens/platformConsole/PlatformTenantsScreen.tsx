@@ -7,6 +7,7 @@ import {
   PlatformFilterChipRow,
   PlatformShellLayout,
   PlatformStatusBadge,
+  PlatformTenantEnvironmentBadge,
   PLATFORM_COLORS,
 } from '@/components/platformConsole';
 import { ErrorState, LoadingState } from '@/components/ui';
@@ -20,6 +21,7 @@ export function PlatformTenantsScreen() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [billingFilter, setBillingFilter] = useState('');
+  const [environmentFilter, setEnvironmentFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,9 +47,13 @@ export function PlatformTenantsScreen() {
       setLoading(false);
       return;
     }
-    setItems(result.data.items);
+    setItems(
+      environmentFilter
+        ? result.data.items.filter((item) => item.environmentMode === environmentFilter)
+        : result.data.items,
+    );
     setLoading(false);
-  }, [billingFilter, search, statusFilter]);
+  }, [billingFilter, environmentFilter, search, statusFilter]);
 
   useEffect(() => {
     void load();
@@ -61,6 +67,11 @@ export function PlatformTenantsScreen() {
         render: (row: PlatformTenantListItem) => (
           <Text style={styles.cellPrimary}>{row.tenantName}</Text>
         ),
+      },
+      {
+        key: 'environment',
+        label: 'Datenart',
+        render: (row: PlatformTenantListItem) => <PlatformTenantEnvironmentBadge mode={row.environmentMode} />,
       },
       { key: 'status', label: 'Status', render: (row: PlatformTenantListItem) => <PlatformStatusBadge status={row.status} /> },
       { key: 'planKey', label: 'Tarif', render: (row: PlatformTenantListItem) => row.planKey ?? '—' },
@@ -113,6 +124,15 @@ export function PlatformTenantsScreen() {
         </Pressable>
       </View>
       <View style={styles.filters}>
+        <View style={styles.filterGroup}>
+          <Text style={styles.filterLabel}>Echt- oder Testmandant</Text>
+          <PlatformFilterChipRow>
+            {[
+              ['', 'Alle'], ['production', 'Echt / Produktion'], ['pilot', 'Fiktive Piloten'],
+              ['demo', 'Demo'], ['internal_test', 'Interne Tests'], ['sandbox', 'Sandbox'], ['unclassified', 'Ungeklärt'],
+            ].map(([key, label]) => <PlatformFilterChip key={key || 'all'} label={label} active={environmentFilter === key} onPress={() => setEnvironmentFilter(key)} />)}
+          </PlatformFilterChipRow>
+        </View>
         <View style={styles.filterGroup}>
           <Text style={styles.filterLabel}>Mandantenstatus</Text>
           <PlatformFilterChipRow>

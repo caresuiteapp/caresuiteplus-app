@@ -33,6 +33,14 @@ export type PlatformBillingStatus =
   | 'invoice_pending'
   | 'cancelled';
 
+export type PlatformTenantEnvironmentMode =
+  | 'production'
+  | 'pilot'
+  | 'demo'
+  | 'sandbox'
+  | 'internal_test'
+  | 'unclassified';
+
 export type PlatformModuleStatus =
   | 'enabled'
   | 'disabled'
@@ -91,6 +99,10 @@ export type PlatformTenantListItem = {
   createdAt: string;
   updatedAt: string;
   activeModuleCount: number;
+  environmentMode: PlatformTenantEnvironmentMode;
+  isPilotTenant: boolean;
+  isSynthetic: boolean;
+  environmentNotes: string | null;
 };
 
 export type PlatformDashboardSummary = {

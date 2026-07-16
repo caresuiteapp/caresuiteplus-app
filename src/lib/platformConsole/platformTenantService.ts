@@ -7,6 +7,7 @@ import type {
 import { getServiceMode } from '@/lib/services/mode';
 import { platformRpc } from './platformSupabaseClient';
 import { validatePlatformReason } from './platformCapabilities';
+import type { PlatformTenantEnvironmentMode } from '@/types/platformConsole';
 
 const DEMO_TENANTS: PlatformTenantListItem[] = [
   {
@@ -23,6 +24,10 @@ const DEMO_TENANTS: PlatformTenantListItem[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     activeModuleCount: 5,
+    environmentMode: 'demo',
+    isPilotTenant: false,
+    isSynthetic: true,
+    environmentNotes: 'Lokaler Demo-Mandant',
   },
 ];
 
@@ -64,6 +69,10 @@ type PlatformTenantListItemRaw = PlatformTenantListItem & {
   created_at?: string;
   updated_at?: string;
   active_module_count?: number;
+  environment_mode?: PlatformTenantListItem['environmentMode'];
+  is_pilot_tenant?: boolean;
+  is_synthetic?: boolean;
+  environment_notes?: string | null;
 };
 
 /** Mandantendetail erwartet platform_tenants.tenant_id — niemals platform_tenants.id. */
@@ -98,6 +107,10 @@ export function normalizePlatformTenantListItem(raw: PlatformTenantListItemRaw):
     createdAt: raw.createdAt ?? raw.created_at ?? '',
     updatedAt: raw.updatedAt ?? raw.updated_at ?? '',
     activeModuleCount: raw.activeModuleCount ?? raw.active_module_count ?? 0,
+    environmentMode: raw.environmentMode ?? raw.environment_mode ?? 'unclassified',
+    isPilotTenant: raw.isPilotTenant ?? raw.is_pilot_tenant ?? false,
+    isSynthetic: raw.isSynthetic ?? raw.is_synthetic ?? false,
+    environmentNotes: raw.environmentNotes ?? raw.environment_notes ?? null,
   };
 }
 
@@ -191,6 +204,48 @@ export async function updatePlatformTenantStatus(
     p_tenant_id: tenantId,
     p_status: status,
     p_reason: reason.trim(),
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: data ?? {} };
+}
+
+export type PlatformTenantRecordUpdate = {
+  legalName?: string | null;
+  slug?: string | null;
+  primaryContactName?: string | null;
+  primaryContactEmail?: string | null;
+  primaryContactPhone?: string | null;
+  billingEmail?: string | null;
+  supportEmail?: string | null;
+  country?: string;
+  timezone?: string;
+  environmentMode: Exclude<PlatformTenantEnvironmentMode, 'unclassified'>;
+  environmentNotes?: string | null;
+};
+
+export async function updatePlatformTenantRecord(
+  tenantId: string,
+  update: PlatformTenantRecordUpdate,
+  reason: string,
+): Promise<ServiceResult<Record<string, unknown>>> {
+  const reasonError = validatePlatformReason(reason);
+  if (reasonError) return { ok: false, error: reasonError };
+  if (getServiceMode() === 'demo') return { ok: true, data: { tenant_id: tenantId, ...update } };
+
+  const { data, error } = await platformRpc<Record<string, unknown>>('platform_update_tenant_record', {
+    p_tenant_id: tenantId,
+    p_reason: reason.trim(),
+    p_legal_name: update.legalName ?? null,
+    p_slug: update.slug ?? null,
+    p_primary_contact_name: update.primaryContactName ?? null,
+    p_primary_contact_email: update.primaryContactEmail ?? null,
+    p_primary_contact_phone: update.primaryContactPhone ?? null,
+    p_billing_email: update.billingEmail ?? null,
+    p_support_email: update.supportEmail ?? null,
+    p_country: update.country ?? 'DE',
+    p_timezone: update.timezone ?? 'Europe/Berlin',
+    p_environment_mode: update.environmentMode,
+    p_environment_notes: update.environmentNotes ?? null,
   });
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: data ?? {} };

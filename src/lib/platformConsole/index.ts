@@ -7,9 +7,10 @@ export {
   resolvePlatformTenantDetailId,
   setPlatformTenantModule,
   updatePlatformTenantStatus,
+  updatePlatformTenantRecord,
   assignPlatformPlan,
 } from './platformTenantService';
-export type { PlatformTenantDetail, PlatformTenantFilters } from './platformTenantService';
+export type { PlatformTenantDetail, PlatformTenantFilters, PlatformTenantRecordUpdate } from './platformTenantService';
 export {
   assignPlatformDiscount,
   createPlatformDiscount,

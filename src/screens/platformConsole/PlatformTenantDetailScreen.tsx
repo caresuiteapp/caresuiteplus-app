@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useLocalSearchParams } from 'expo-router';
 
@@ -10,13 +10,19 @@ import {
 
   PlatformConfirmModal,
 
+  PlatformFormField,
+
   PlatformShellLayout,
+
+  PlatformStatusBadge,
+
+  PlatformTenantEnvironmentBadge,
 
   PLATFORM_COLORS,
 
 } from '@/components/platformConsole';
 
-import { ErrorState, LoadingState, SegmentedTabs } from '@/components/ui';
+import { ErrorState, LoadingState } from '@/components/ui';
 
 import {
 
@@ -28,9 +34,12 @@ import {
 
   updatePlatformTenantStatus,
 
+  updatePlatformTenantRecord,
+
 } from '@/lib/platformConsole';
 
 import type { PlatformTenantDetail } from '@/lib/platformConsole';
+import type { PlatformTenantRecordUpdate } from '@/lib/platformConsole/platformTenantService';
 
 import type { PlatformTenantModuleRow } from '@/types/platformConsole';
 
@@ -70,43 +79,29 @@ import { spacing } from '@/theme';
 
 
 
-const TABS = [
-
-  { key: 'overview', label: 'Übersicht' },
-
-  { key: 'subscription', label: 'Subscription' },
-
-  { key: 'entitlements', label: 'Entitlements' },
-
-  { key: 'modules', label: 'Module' },
-
-  { key: 'billing', label: 'Rechnungen' },
-
-  { key: 'preview', label: 'Billing Preview' },
-
-  { key: 'credits', label: 'Credits' },
-
-  { key: 'payments', label: 'Zahlungen' },
-
-  { key: 'discounts', label: 'Rabatte' },
-
-  { key: 'support', label: 'Support' },
-
-  { key: 'flags', label: 'Feature Flags' },
-
-  { key: 'limits', label: 'Limits' },
-
-  { key: 'users', label: 'Benutzer' },
-
-  { key: 'diagnosis', label: 'Diagnose' },
-
-  { key: 'audit', label: 'Audit' },
-
+const TAB_GROUPS = [
+  { key: 'record', label: 'Mandantenakte', tabs: [
+    { key: 'overview', label: 'Übersicht' }, { key: 'recordEdit', label: 'Stammdaten bearbeiten' },
+  ] },
+  { key: 'contract', label: 'Vertrag & Produkte', tabs: [
+    { key: 'subscription', label: 'Vertrag' }, { key: 'modules', label: 'Module' },
+    { key: 'entitlements', label: 'Berechtigungen' }, { key: 'limits', label: 'Limits' },
+    { key: 'flags', label: 'Feature Flags' },
+  ] },
+  { key: 'finance', label: 'Finanzen', tabs: [
+    { key: 'billing', label: 'Rechnungen' }, { key: 'preview', label: 'Abrechnungsvorschau' },
+    { key: 'payments', label: 'Zahlungen' }, { key: 'credits', label: 'Guthaben' },
+    { key: 'discounts', label: 'Rabatte' },
+  ] },
+  { key: 'access', label: 'Zugriff & Support', tabs: [
+    { key: 'users', label: 'Benutzer' }, { key: 'support', label: 'Support' },
+  ] },
+  { key: 'operations', label: 'Betrieb & Prüfung', tabs: [
+    { key: 'diagnosis', label: 'Diagnose' }, { key: 'audit', label: 'Audit' },
+  ] },
 ] as const;
 
-
-
-type TabKey = (typeof TABS)[number]['key'];
+type TabKey = (typeof TAB_GROUPS)[number]['tabs'][number]['key'];
 
 
 
@@ -149,6 +144,7 @@ export function PlatformTenantDetailScreen() {
   const canWrite = platformRoleHasCapability(platformUser?.role, 'tenants.suspend');
 
   const canModules = platformRoleHasCapability(platformUser?.role, 'modules.write');
+  const canEditRecord = platformRoleHasCapability(platformUser?.role, 'tenants.write');
 
 
 
@@ -254,23 +250,35 @@ export function PlatformTenantDetailScreen() {
 
   const tid = String(tenantId);
 
+  const activeGroup = TAB_GROUPS.find((group) => group.tabs.some((item) => item.key === tab)) ?? TAB_GROUPS[0];
+
 
 
   return (
 
     <PlatformShellLayout title={tenantName} subtitle="Mandantenakte, Vertrag, Module, Finanzen und Systemzugriffe">
 
-      <SegmentedTabs
-
-        tabs={TABS.map((t) => ({ key: t.key, label: t.label }))}
-
-        activeKey={tab}
-
-        onSelect={(v) => setTab(v as TabKey)}
-
-        layout="scroll"
-
-      />
+      <View style={styles.navigation}>
+        <View style={styles.groupTabs}>
+          {TAB_GROUPS.map((group) => {
+            const active = group.key === activeGroup.key;
+            return (
+              <Pressable key={group.key} style={[styles.groupTab, active && styles.groupTabActive]} onPress={() => setTab(group.tabs[0].key)}>
+                <Text style={[styles.groupTabText, active && styles.groupTabTextActive]}>{group.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {activeGroup.tabs.length > 1 ? (
+          <View style={styles.subTabs}>
+            {activeGroup.tabs.map((item) => (
+              <Pressable key={item.key} style={[styles.subTab, item.key === tab && styles.subTabActive]} onPress={() => setTab(item.key)}>
+                <Text style={[styles.subTabText, item.key === tab && styles.subTabTextActive]}>{item.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+      </View>
 
 
 
@@ -344,6 +352,22 @@ export function PlatformTenantDetailScreen() {
 
           />
 
+        ) : null}
+
+        {tab === 'recordEdit' ? (
+          <TenantRecordEditTab
+            detail={detail}
+            canWrite={canEditRecord}
+            onSave={(update) => setConfirm({
+              title: 'Mandantenakte speichern',
+              description: `Stammdaten und Datenklassifizierung für „${tenantName}" verbindlich aktualisieren.`,
+              auditAction: 'tenant.record_updated',
+              action: async (reason) => {
+                const result = await updatePlatformTenantRecord(tid, update, reason);
+                if (!result.ok) throw new Error(result.error);
+              },
+            })}
+          />
         ) : null}
 
 
@@ -503,24 +527,76 @@ function OverviewTab({
 }) {
 
   const t = detail.tenant;
+  const environmentMode = String(t.environmentMode ?? t.environment_mode ?? 'unclassified');
+  const environmentNotes = String(t.environmentNotes ?? t.environment_notes ?? '');
+  const activeModules = detail.modules.filter((module) => ['enabled', 'beta_enabled', 'trial'].includes(module.status));
 
   return (
+    <View style={styles.recordGrid}>
+      <View style={[styles.panel, styles.environmentPanel]}>
+        <View style={styles.panelHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.panelTitle}>Datenklassifizierung</Text>
+            <Text style={styles.panelHint}>Verbindliche Kennzeichnung für Echt-, Pilot- und Testdaten.</Text>
+          </View>
+          <PlatformTenantEnvironmentBadge mode={environmentMode} />
+        </View>
+        <Text style={styles.environmentExplanation}>
+          {environmentMode === 'production'
+            ? 'Dieser Mandant ist als echter Produktivmandant bestätigt.'
+            : environmentMode === 'unclassified'
+              ? 'Dieser Mandant ist noch nicht verlässlich klassifiziert und darf nicht als echter Produktivmandant behandelt werden.'
+              : 'Dieser Mandant enthält Test-, Demo- oder Pilotdaten und ist kein bestätigter echter Produktivmandant.'}
+        </Text>
+        {environmentNotes ? <Text style={styles.panelHint}>{environmentNotes}</Text> : null}
+      </View>
 
-    <View style={styles.panel}>
+      <View style={styles.recordColumns}>
+        <View style={[styles.panel, styles.recordColumn]}>
+          <Text style={styles.panelTitle}>Stammdaten</Text>
+          <InfoRow label="Mandanten-ID" value={String(t.tenant_id ?? t.tenantId ?? '—')} />
+          <InfoRow label="Firmenname" value={String(t.tenant_name ?? t.tenantName ?? '—')} />
+          <InfoRow label="Rechtlicher Name" value={String(t.legal_name ?? t.legalName ?? '—')} />
+          <InfoRow label="Slug" value={String(t.slug ?? '—')} />
+          <InfoRow label="Land" value={String(t.country ?? 'DE')} />
+          <InfoRow label="Zeitzone" value={String(t.timezone ?? 'Europe/Berlin')} />
+        </View>
 
-      <InfoRow label="Status" value={String(t.status ?? '—')} />
+        <View style={[styles.panel, styles.recordColumn]}>
+          <Text style={styles.panelTitle}>Kontakt</Text>
+          <InfoRow label="Ansprechperson" value={String(t.primary_contact_name ?? '—')} />
+          <InfoRow label="E-Mail" value={String(t.primary_contact_email ?? '—')} />
+          <InfoRow label="Telefon" value={String(t.primary_contact_phone ?? '—')} />
+          <InfoRow label="Abrechnung" value={String(t.billing_email ?? '—')} />
+          <InfoRow label="Support" value={String(t.support_email ?? '—')} />
+        </View>
+      </View>
 
-      <InfoRow label="Lifecycle" value={String(t.lifecycle_status ?? t.lifecycleStatus ?? '—')} />
+      <View style={styles.recordColumns}>
+        <View style={[styles.panel, styles.recordColumn]}>
+          <Text style={styles.panelTitle}>Vertrag & Betrieb</Text>
+          <InfoBadgeRow label="Mandantenstatus" status={String(t.status ?? '—')} />
+          <InfoBadgeRow label="Lifecycle" status={String(t.lifecycle_status ?? t.lifecycleStatus ?? '—')} />
+          <InfoBadgeRow label="Abrechnung" status={String(t.billing_status ?? t.billingStatus ?? '—')} />
+          <InfoRow label="Tarif" value={String(t.plan_key ?? t.planKey ?? detail.plan?.plan_key ?? '—')} />
+        </View>
 
-      <InfoRow label="Billing" value={String(t.billing_status ?? t.billingStatus ?? '—')} />
-
-      <InfoRow label="Tarif" value={String(t.plan_key ?? t.planKey ?? detail.plan?.plan_key ?? '—')} />
-
-      <InfoRow label="Slug" value={String(t.slug ?? '—')} />
+        <View style={[styles.panel, styles.recordColumn]}>
+          <Text style={styles.panelTitle}>Aktive Produkte</Text>
+          {activeModules.length ? activeModules.map((module) => (
+            <View key={module.moduleKey} style={styles.productRow}>
+              <Text style={styles.productName}>{module.moduleName}</Text>
+              <PlatformStatusBadge status={module.status} />
+            </View>
+          )) : <Text style={styles.panelHint}>Keine aktiven Module.</Text>}
+        </View>
+      </View>
 
       {canWrite ? (
-
-        <View style={styles.actions}>
+        <View style={[styles.panel, styles.dangerPanel]}>
+          <Text style={styles.panelTitle}>Sicherheitsaktionen</Text>
+          <Text style={styles.panelHint}>Sperren und Entsperren werden mit Begründung im Audit protokolliert.</Text>
+          <View style={styles.actions}>
 
           <Pressable style={styles.btnDanger} onPress={onSuspend}>
 
@@ -533,15 +609,97 @@ function OverviewTab({
             <Text style={styles.btnText}>Entsperren</Text>
 
           </Pressable>
-
+          </View>
         </View>
-
       ) : null}
-
     </View>
-
   );
 
+}
+
+function TenantRecordEditTab({
+  detail,
+  canWrite,
+  onSave,
+}: {
+  detail: PlatformTenantDetail;
+  canWrite: boolean;
+  onSave: (update: PlatformTenantRecordUpdate) => void;
+}) {
+  const t = detail.tenant;
+  const initialMode = String(t.environmentMode ?? t.environment_mode ?? 'unclassified');
+  const [legalName, setLegalName] = useState(String(t.legal_name ?? t.legalName ?? ''));
+  const [slug, setSlug] = useState(String(t.slug ?? ''));
+  const [contactName, setContactName] = useState(String(t.primary_contact_name ?? ''));
+  const [contactEmail, setContactEmail] = useState(String(t.primary_contact_email ?? ''));
+  const [contactPhone, setContactPhone] = useState(String(t.primary_contact_phone ?? ''));
+  const [billingEmail, setBillingEmail] = useState(String(t.billing_email ?? ''));
+  const [supportEmail, setSupportEmail] = useState(String(t.support_email ?? ''));
+  const [country, setCountry] = useState(String(t.country ?? 'DE'));
+  const [timezone, setTimezone] = useState(String(t.timezone ?? 'Europe/Berlin'));
+  const [environmentMode, setEnvironmentMode] = useState<PlatformTenantRecordUpdate['environmentMode']>(
+    initialMode === 'unclassified' ? 'internal_test' : initialMode as PlatformTenantRecordUpdate['environmentMode'],
+  );
+  const [environmentNotes, setEnvironmentNotes] = useState(String(t.environmentNotes ?? t.environment_notes ?? ''));
+
+  if (!canWrite) {
+    return <View style={styles.panel}><Text style={styles.panelTitle}>Nur Leserechte</Text><Text style={styles.panelHint}>Die Stammdatenpflege erfordert tenants.write.</Text></View>;
+  }
+
+  return (
+    <View style={styles.recordGrid}>
+      <View style={styles.panel}>
+        <Text style={styles.panelTitle}>Echt- oder Testmandant</Text>
+        <Text style={styles.panelHint}>Diese Auswahl ist verpflichtend. „Produktion“ darf nur für bestätigte echte Kunden verwendet werden.</Text>
+        <View style={styles.environmentOptions}>
+          {([
+            ['production', 'Echt · Produktion'], ['pilot', 'Fiktiver Pilot'], ['demo', 'Demo'],
+            ['sandbox', 'Sandbox'], ['internal_test', 'Interner Test'],
+          ] as const).map(([key, label]) => (
+            <Pressable key={key} style={[styles.environmentOption, environmentMode === key && styles.environmentOptionActive]} onPress={() => setEnvironmentMode(key)}>
+              <Text style={[styles.environmentOptionText, environmentMode === key && styles.environmentOptionTextActive]}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <PlatformFormField label="Einordnung / Hinweis" required>
+          <TextInput style={[styles.input, styles.multiline]} multiline value={environmentNotes} onChangeText={setEnvironmentNotes} placeholder="Warum ist dieser Mandant Produktion, Pilot oder Test?" placeholderTextColor={PLATFORM_COLORS.muted} />
+        </PlatformFormField>
+      </View>
+
+      <View style={styles.recordColumns}>
+        <View style={[styles.panel, styles.recordColumn]}>
+          <Text style={styles.panelTitle}>Unternehmen</Text>
+          <PlatformFormField label="Rechtlicher Name"><TextInput style={styles.input} value={legalName} onChangeText={setLegalName} /></PlatformFormField>
+          <PlatformFormField label="Slug"><TextInput style={styles.input} value={slug} onChangeText={setSlug} autoCapitalize="none" /></PlatformFormField>
+          <PlatformFormField label="Land"><TextInput style={styles.input} value={country} onChangeText={setCountry} autoCapitalize="characters" /></PlatformFormField>
+          <PlatformFormField label="Zeitzone"><TextInput style={styles.input} value={timezone} onChangeText={setTimezone} autoCapitalize="none" /></PlatformFormField>
+        </View>
+        <View style={[styles.panel, styles.recordColumn]}>
+          <Text style={styles.panelTitle}>Kontakt & Abrechnung</Text>
+          <PlatformFormField label="Ansprechperson"><TextInput style={styles.input} value={contactName} onChangeText={setContactName} /></PlatformFormField>
+          <PlatformFormField label="Kontakt-E-Mail"><TextInput style={styles.input} value={contactEmail} onChangeText={setContactEmail} autoCapitalize="none" keyboardType="email-address" /></PlatformFormField>
+          <PlatformFormField label="Telefon"><TextInput style={styles.input} value={contactPhone} onChangeText={setContactPhone} keyboardType="phone-pad" /></PlatformFormField>
+          <PlatformFormField label="Abrechnungs-E-Mail"><TextInput style={styles.input} value={billingEmail} onChangeText={setBillingEmail} autoCapitalize="none" keyboardType="email-address" /></PlatformFormField>
+          <PlatformFormField label="Support-E-Mail"><TextInput style={styles.input} value={supportEmail} onChangeText={setSupportEmail} autoCapitalize="none" keyboardType="email-address" /></PlatformFormField>
+        </View>
+      </View>
+
+      <Pressable
+        style={[styles.saveButton, !environmentNotes.trim() && styles.disabledButton]}
+        disabled={!environmentNotes.trim()}
+        onPress={() => onSave({
+          legalName: legalName.trim() || null, slug: slug.trim() || null,
+          primaryContactName: contactName.trim() || null, primaryContactEmail: contactEmail.trim() || null,
+          primaryContactPhone: contactPhone.trim() || null, billingEmail: billingEmail.trim() || null,
+          supportEmail: supportEmail.trim() || null, country: country.trim() || 'DE',
+          timezone: timezone.trim() || 'Europe/Berlin', environmentMode,
+          environmentNotes: environmentNotes.trim(),
+        })}
+      >
+        <Text style={styles.saveButtonText}>Mandantenakte speichern</Text>
+      </Pressable>
+    </View>
+  );
 }
 
 
@@ -628,9 +786,25 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 }
 
+function InfoBadgeRow({ label, status }: { label: string; status: string }) {
+  return <View style={styles.infoRow}><Text style={styles.infoLabel}>{label}</Text><PlatformStatusBadge status={status} /></View>;
+}
+
 
 
 const styles = StyleSheet.create({
+
+  navigation: { gap: spacing.xs, marginBottom: spacing.xs },
+  groupTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  groupTab: { borderWidth: 1, borderColor: PLATFORM_COLORS.border, borderRadius: 8, backgroundColor: PLATFORM_COLORS.panel, paddingHorizontal: spacing.md, paddingVertical: 9 },
+  groupTabActive: { borderColor: PLATFORM_COLORS.accent, backgroundColor: PLATFORM_COLORS.accentSoft },
+  groupTabText: { color: PLATFORM_COLORS.muted, fontSize: 13, fontWeight: '700' },
+  groupTabTextActive: { color: PLATFORM_COLORS.accent },
+  subTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, padding: 4, borderRadius: 8, backgroundColor: '#EAF0F7' },
+  subTab: { borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 7 },
+  subTabActive: { backgroundColor: PLATFORM_COLORS.panel, borderWidth: 1, borderColor: PLATFORM_COLORS.border },
+  subTabText: { color: PLATFORM_COLORS.muted, fontSize: 12, fontWeight: '600' },
+  subTabTextActive: { color: PLATFORM_COLORS.text },
 
   content: { paddingTop: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
 
@@ -649,6 +823,28 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
 
   },
+
+  recordGrid: { gap: spacing.md },
+  recordColumns: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  recordColumn: { flex: 1, minWidth: 300 },
+  environmentPanel: { borderColor: '#FCD34D' },
+  dangerPanel: { borderColor: '#FCA5A5' },
+  panelHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  panelTitle: { color: PLATFORM_COLORS.text, fontSize: 15, fontWeight: '800' },
+  panelHint: { color: PLATFORM_COLORS.muted, fontSize: 12, lineHeight: 18 },
+  environmentExplanation: { color: PLATFORM_COLORS.text, fontSize: 13, lineHeight: 19 },
+  productRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  productName: { color: PLATFORM_COLORS.text, fontSize: 13, fontWeight: '600' },
+  environmentOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  environmentOption: { borderWidth: 1, borderColor: PLATFORM_COLORS.border, borderRadius: 999, paddingHorizontal: spacing.sm, paddingVertical: 7, backgroundColor: PLATFORM_COLORS.panelSoft },
+  environmentOptionActive: { borderColor: PLATFORM_COLORS.accent, backgroundColor: PLATFORM_COLORS.accentSoft },
+  environmentOptionText: { color: PLATFORM_COLORS.muted, fontSize: 12, fontWeight: '700' },
+  environmentOptionTextActive: { color: PLATFORM_COLORS.accent },
+  input: { borderWidth: 1, borderColor: PLATFORM_COLORS.border, borderRadius: 8, backgroundColor: PLATFORM_COLORS.panelSoft, color: PLATFORM_COLORS.text, paddingHorizontal: spacing.sm, paddingVertical: 10 },
+  multiline: { minHeight: 80, textAlignVertical: 'top' },
+  saveButton: { alignSelf: 'flex-start', borderRadius: 8, backgroundColor: PLATFORM_COLORS.accent, paddingHorizontal: spacing.lg, paddingVertical: 11 },
+  saveButtonText: { color: '#FFFFFF', fontWeight: '800' },
+  disabledButton: { opacity: 0.45 },
 
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
 

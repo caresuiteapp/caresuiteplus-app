@@ -12,5 +12,6 @@ export { PlatformShellLayout, PLATFORM_COLORS } from './PlatformShellLayout';
 export { PlatformErrorBoundary } from './PlatformErrorBoundary';
 export { PlatformGlobalSearch } from './PlatformGlobalSearch';
 export { PlatformTenantPicker } from './PlatformTenantPicker';
+export { PlatformTenantEnvironmentBadge, platformTenantEnvironmentLabel } from './PlatformTenantEnvironmentBadge';
 export { PlatformFormField } from './PlatformFormField';
 export { statusLabel } from './PlatformOperatorUi';
