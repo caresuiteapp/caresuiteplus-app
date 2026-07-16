@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { PLATFORM_COLORS } from './PlatformShellLayout';
+import { PLATFORM_COLORS } from './PlatformColors';
 import { spacing } from '@/theme';
 
 type KpiItem = {

@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { PlatformDataTable, PlatformShellLayout, PLATFORM_COLORS } from '@/components/platformConsole';
+import {
+  PlatformDataTable,
+  PlatformFilterChip,
+  PlatformFilterChipRow,
+  PlatformShellLayout,
+  PlatformStatusBadge,
+  PLATFORM_COLORS,
+} from '@/components/platformConsole';
 import { ErrorState, LoadingState } from '@/components/ui';
 import { listPlatformTenants, resolvePlatformTenantDetailId } from '@/lib/platformConsole';
 import type { PlatformTenantListItem } from '@/types/platformConsole';
@@ -11,6 +18,8 @@ export function PlatformTenantsScreen() {
   const router = useRouter();
   const [items, setItems] = useState<PlatformTenantListItem[]>([]);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [billingFilter, setBillingFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +35,11 @@ export function PlatformTenantsScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const result = await listPlatformTenants({ search: search.trim() || undefined });
+    const result = await listPlatformTenants({
+      search: search.trim() || undefined,
+      status: statusFilter || undefined,
+      billingStatus: billingFilter || undefined,
+    });
     if (!result.ok) {
       setError(result.error);
       setLoading(false);
@@ -34,7 +47,7 @@ export function PlatformTenantsScreen() {
     }
     setItems(result.data.items);
     setLoading(false);
-  }, [search]);
+  }, [billingFilter, search, statusFilter]);
 
   useEffect(() => {
     void load();
@@ -49,12 +62,12 @@ export function PlatformTenantsScreen() {
           <Text style={styles.cellPrimary}>{row.tenantName}</Text>
         ),
       },
-      { key: 'status', label: 'Status', render: (row: PlatformTenantListItem) => row.status },
+      { key: 'status', label: 'Status', render: (row: PlatformTenantListItem) => <PlatformStatusBadge status={row.status} /> },
       { key: 'planKey', label: 'Tarif', render: (row: PlatformTenantListItem) => row.planKey ?? '—' },
       {
         key: 'billingStatus',
         label: 'Billing',
-        render: (row: PlatformTenantListItem) => row.billingStatus,
+        render: (row: PlatformTenantListItem) => <PlatformStatusBadge status={row.billingStatus} />,
       },
       {
         key: 'activeModuleCount',
@@ -91,13 +104,31 @@ export function PlatformTenantsScreen() {
           style={styles.search}
           value={search}
           onChangeText={setSearch}
-          placeholder="Name, Slug, E-Mail, Tenant-ID…"
+          placeholder="Name, Kürzel oder E-Mail…"
           placeholderTextColor={PLATFORM_COLORS.muted}
           onSubmitEditing={() => void load()}
         />
         <Pressable style={styles.searchBtn} onPress={() => void load()}>
           <Text style={styles.searchBtnText}>Suchen</Text>
         </Pressable>
+      </View>
+      <View style={styles.filters}>
+        <View style={styles.filterGroup}>
+          <Text style={styles.filterLabel}>Mandantenstatus</Text>
+          <PlatformFilterChipRow>
+            {[
+              ['', 'Alle'], ['active', 'Aktiv'], ['suspended', 'Gesperrt'], ['locked', 'Blockiert'], ['terminated', 'Beendet'],
+            ].map(([key, label]) => <PlatformFilterChip key={key || 'all'} label={label} active={statusFilter === key} onPress={() => setStatusFilter(key)} />)}
+          </PlatformFilterChipRow>
+        </View>
+        <View style={styles.filterGroup}>
+          <Text style={styles.filterLabel}>Abrechnung</Text>
+          <PlatformFilterChipRow>
+            {[
+              ['', 'Alle'], ['active', 'Aktiv'], ['trial', 'Testphase'], ['past_due', 'Überfällig'], ['failed', 'Fehlgeschlagen'],
+            ].map(([key, label]) => <PlatformFilterChip key={key || 'all'} label={label} active={billingFilter === key} onPress={() => setBillingFilter(key)} />)}
+          </PlatformFilterChipRow>
+        </View>
       </View>
       {loading ? (
         <LoadingState message="Mandanten werden geladen…" />
@@ -121,6 +152,9 @@ export function PlatformTenantsScreen() {
 
 const styles = StyleSheet.create({
   toolbar: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  filters: { gap: spacing.sm, marginBottom: spacing.md },
+  filterGroup: { gap: 5 },
+  filterLabel: { color: PLATFORM_COLORS.muted, fontSize: 11, fontWeight: '700' },
   search: {
     flex: 1,
     borderWidth: 1,

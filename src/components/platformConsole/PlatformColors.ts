@@ -1,0 +1,15 @@
+export const PLATFORM_COLORS = {
+  bg: '#F4F7FB',
+  sidebar: '#FFFFFF',
+  panel: '#FFFFFF',
+  panelSoft: '#F8FBFF',
+  border: '#E2E8F0',
+  borderStrong: '#CBD5E1',
+  text: '#14213D',
+  muted: '#64748B',
+  accent: '#0284C7',
+  accentSoft: '#E0F2FE',
+  warning: '#F59E0B',
+  danger: '#EF4444',
+  success: '#16A34A',
+} as const;

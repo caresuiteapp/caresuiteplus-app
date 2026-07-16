@@ -9,3 +9,8 @@ export { PlatformDeferredNote, PlatformReadOnlyBanner, PlatformStatusBadge } fro
 export { PlatformKpiGrid } from './PlatformKpiGrid';
 export { PlatformRouteGuard, PlatformAuthGate } from './PlatformRouteGuard';
 export { PlatformShellLayout, PLATFORM_COLORS } from './PlatformShellLayout';
+export { PlatformErrorBoundary } from './PlatformErrorBoundary';
+export { PlatformGlobalSearch } from './PlatformGlobalSearch';
+export { PlatformTenantPicker } from './PlatformTenantPicker';
+export { PlatformFormField } from './PlatformFormField';
+export { statusLabel } from './PlatformOperatorUi';

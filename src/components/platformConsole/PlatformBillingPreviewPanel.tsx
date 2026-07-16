@@ -4,7 +4,7 @@ import { generatePlatformInvoicePreview } from '@/lib/platformConsole';
 import { formatPlatformCents } from '@/lib/platformConsole/platformFormat';
 import { LoadingState } from '@/components/ui';
 import { PlatformAuditLink } from './PlatformAuditLink';
-import { PLATFORM_COLORS } from './PlatformShellLayout';
+import { PLATFORM_COLORS } from './PlatformColors';
 import { spacing } from '@/theme';
 
 type PlatformBillingPreviewPanelProps = {

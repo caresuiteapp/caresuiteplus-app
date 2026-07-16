@@ -146,6 +146,7 @@ export type PlatformNavItem = {
   path: string;
   label: string;
   icon: string;
+  group?: 'overview' | 'customers' | 'product' | 'finance' | 'operations';
   capability?: PlatformCapability;
 };
 
@@ -232,4 +233,37 @@ export type PlatformSupportSessionRow = {
   started_at: string;
   expires_at: string;
   ended_at: string | null;
+};
+
+export type PlatformOperatorUserRow = {
+  id: string;
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  role: PlatformRoleKey;
+  status: PlatformUserStatus;
+  last_login_at: string | null;
+  updated_at: string;
+};
+
+export type PlatformReleaseRow = {
+  id: string;
+  environment: 'preview' | 'staging' | 'production';
+  version_label: string;
+  commit_sha: string | null;
+  status: 'planned' | 'building' | 'ready' | 'failed' | 'rolled_back';
+  deployment_url: string | null;
+  migration_version: string | null;
+  checks: Record<string, unknown>;
+  notes: string | null;
+  deployed_at: string;
+};
+
+export type PlatformTenantUserRow = {
+  id: string;
+  display_name: string | null;
+  email: string | null;
+  phone: string | null;
+  role_key: string | null;
+  updated_at: string;
 };

@@ -4,18 +4,21 @@ import {
   PlatformAuditLink,
   PlatformConfirmModal,
   PlatformDataTable,
-  PlatformDeferredNote,
   PlatformEmptyState,
   PlatformFilterChip,
   PlatformFilterChipRow,
   PlatformReadOnlyBanner,
   PlatformShellLayout,
   PlatformStatusBadge,
+  PlatformTenantPicker,
+  statusLabel,
   PLATFORM_COLORS,
 } from '@/components/platformConsole';
 import { ErrorState, LoadingState } from '@/components/ui';
 import {
   assignPlatformDiscount,
+  createPlatformDiscount,
+  createPlatformManualInvoice,
   endPlatformSupportSession,
   listPlatformDiscountCatalog,
   listPlatformFeatureFlags,
@@ -29,6 +32,8 @@ import {
   setPlatformFeatureFlag,
   startPlatformSupportSession,
   updatePlatformInvoiceStatus,
+  updatePlatformPaymentStatus,
+  parsePlatformEurosToCents,
 } from '@/lib/platformConsole';
 import { formatPlatformCents, formatPlatformDate, maskPlatformProviderId } from '@/lib/platformConsole/platformFormat';
 import { usePlatformAuth } from '@/lib/platformConsole/PlatformAuthProvider';
@@ -104,6 +109,11 @@ export function PlatformDiscountsScreen() {
   const [assignKey, setAssignKey] = useState('');
   const [assignStart, setAssignStart] = useState('');
   const [assignEnd, setAssignEnd] = useState('');
+  const [newDiscountKey, setNewDiscountKey] = useState('');
+  const [newDiscountName, setNewDiscountName] = useState('');
+  const [newDiscountType, setNewDiscountType] = useState<PlatformDiscountRow['discount_type']>('percentage');
+  const [newDiscountValue, setNewDiscountValue] = useState('');
+  const [newDiscountDescription, setNewDiscountDescription] = useState('');
   const [lastAuditAction, setLastAuditAction] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -169,13 +179,13 @@ export function PlatformDiscountsScreen() {
       <PlatformFilterChipRow>
         <PlatformFilterChip label="Alle Status" active={!statusFilter} onPress={() => setStatusFilter('')} />
         {['active', 'scheduled', 'expired', 'revoked'].map((s) => (
-          <PlatformFilterChip key={s} label={s} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
+          <PlatformFilterChip key={s} label={statusLabel(s)} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
         ))}
       </PlatformFilterChipRow>
       <PlatformFilterChipRow>
         <PlatformFilterChip label="Alle Typen" active={!typeFilter} onPress={() => setTypeFilter('')} />
         {discountTypes.map((t) => (
-          <PlatformFilterChip key={t} label={t} active={typeFilter === t} onPress={() => setTypeFilter(t)} />
+          <PlatformFilterChip key={t} label={t === 'percentage' ? 'Prozent' : t === 'fixed_amount' ? 'Fester Betrag' : t === 'free_months' ? 'Freimonate' : t.replaceAll('_', ' ')} active={typeFilter === t} onPress={() => setTypeFilter(t)} />
         ))}
       </PlatformFilterChipRow>
 
@@ -190,7 +200,7 @@ export function PlatformDiscountsScreen() {
               columns={[
                 { key: 'key', label: 'Key', render: (r: PlatformDiscountRow) => r.discount_key },
                 { key: 'name', label: 'Name', render: (r: PlatformDiscountRow) => r.discount_name },
-                { key: 'type', label: 'Typ', render: (r: PlatformDiscountRow) => r.discount_type },
+                { key: 'type', label: 'Typ', render: (r: PlatformDiscountRow) => r.discount_type === 'percentage' ? 'Prozent' : r.discount_type === 'fixed_amount' ? 'Fester Betrag' : r.discount_type === 'free_months' ? 'Freimonate' : r.discount_type.replaceAll('_', ' ') },
                 {
                   key: 'value',
                   label: 'Wert',
@@ -242,10 +252,10 @@ export function PlatformDiscountsScreen() {
           {canWrite ? (
             <View style={styles.formPanel}>
               <Text style={styles.sectionTitle}>Rabatt zuweisen</Text>
-              <Text style={styles.label}>Mandant-ID</Text>
-              <TextInput style={styles.input} value={assignTenantId} onChangeText={setAssignTenantId} placeholder="Tenant-UUID" placeholderTextColor={PLATFORM_COLORS.muted} />
-              <Text style={styles.label}>Rabatt-Key</Text>
-              <TextInput style={styles.input} value={assignKey} onChangeText={setAssignKey} placeholder="discount_key" placeholderTextColor={PLATFORM_COLORS.muted} />
+              <Text style={styles.label}>Mandant</Text>
+              <PlatformTenantPicker value={assignTenantId} onChange={setAssignTenantId} required />
+              <Text style={styles.label}>Rabatt auswählen</Text>
+              <PlatformFilterChipRow>{catalog.filter((item) => item.status === 'active').map((item) => <PlatformFilterChip key={item.discount_key} label={item.discount_name} active={assignKey === item.discount_key} onPress={() => setAssignKey(item.discount_key)} />)}</PlatformFilterChipRow>
               <Text style={styles.label}>Start (ISO, optional)</Text>
               <TextInput style={styles.input} value={assignStart} onChangeText={setAssignStart} placeholder="2026-01-01T00:00:00Z" placeholderTextColor={PLATFORM_COLORS.muted} />
               <Text style={styles.label}>Ende (ISO, optional)</Text>
@@ -269,9 +279,24 @@ export function PlatformDiscountsScreen() {
               >
                 <Text style={styles.primaryBtnText}>Zuweisen (Grund erforderlich)</Text>
               </Pressable>
-              <PlatformDeferredNote phase="PLATFORM.1.3" feature="Rabattkatalog erstellen/aktivieren" />
             </View>
           ) : null}
+
+          {canWrite ? <View style={styles.formPanel}>
+            <Text style={styles.sectionTitle}>Neuen Rabatt anlegen</Text>
+            <TextInput style={styles.input} value={newDiscountKey} onChangeText={setNewDiscountKey} placeholder="Interner Rabattcode, z. B. partner_10" placeholderTextColor={PLATFORM_COLORS.muted} autoCapitalize="none" />
+            <TextInput style={styles.input} value={newDiscountName} onChangeText={setNewDiscountName} placeholder="Anzeigename" placeholderTextColor={PLATFORM_COLORS.muted} />
+            <PlatformFilterChipRow>{(['percentage','fixed_amount','free_months','lifetime_discount','beta_discount','partner_discount'] as const).map((item) => <PlatformFilterChip key={item} label={item === 'percentage' ? 'Prozent' : item === 'fixed_amount' ? 'Fester Betrag' : item === 'free_months' ? 'Freimonate' : item === 'lifetime_discount' ? 'Dauerhaft' : item === 'beta_discount' ? 'Beta' : 'Partner'} active={newDiscountType === item} onPress={() => setNewDiscountType(item)} />)}</PlatformFilterChipRow>
+            <TextInput style={styles.input} value={newDiscountValue} onChangeText={setNewDiscountValue} placeholder={newDiscountType === 'fixed_amount' ? 'Betrag in Euro' : newDiscountType === 'free_months' ? 'Anzahl Monate' : 'Prozentwert'} placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" />
+            <TextInput style={styles.input} value={newDiscountDescription} onChangeText={setNewDiscountDescription} placeholder="Beschreibung und Anwendungszweck" placeholderTextColor={PLATFORM_COLORS.muted} multiline />
+            <Pressable style={styles.primaryBtn} onPress={() => setConfirm({ title: 'Rabatt anlegen', description: `Rabatt „${newDiscountName || newDiscountKey}" wird im Katalog angelegt.`, action: async (reason) => {
+              const value = newDiscountType === 'fixed_amount' ? parsePlatformEurosToCents(newDiscountValue) : Number(newDiscountValue.replace(',', '.'));
+              if (value === null || !Number.isFinite(value)) throw new Error('Bitte einen gültigen Rabattwert eingeben.');
+              const res = await createPlatformDiscount({ key: newDiscountKey.trim(), name: newDiscountName.trim(), type: newDiscountType, value, description: newDiscountDescription }, reason);
+              if (!res.ok) throw new Error(res.error);
+              setNewDiscountKey(''); setNewDiscountName(''); setNewDiscountValue(''); setNewDiscountDescription(''); setLastAuditAction('discount.created');
+            } })}><Text style={styles.primaryBtnText}>Rabatt anlegen</Text></Pressable>
+          </View> : null}
 
           {lastAuditAction ? (
             <View style={styles.auditRow}>
@@ -297,6 +322,10 @@ export function PlatformBillingScreen() {
   const [selected, setSelected] = useState<PlatformInvoiceRow | null>(null);
   const [newStatus, setNewStatus] = useState('');
   const [lastAuditAction, setLastAuditAction] = useState<string | null>(null);
+  const [invoiceTenant, setInvoiceTenant] = useState('');
+  const [invoiceGross, setInvoiceGross] = useState('');
+  const [invoiceTax, setInvoiceTax] = useState('');
+  const [invoiceDue, setInvoiceDue] = useState(() => new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10));
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -319,8 +348,6 @@ export function PlatformBillingScreen() {
   return (
     <PlatformShellLayout title="Rechnungen" subtitle="Rechnungsübersicht, Statusverwaltung und Billing Preview">
       {!canWrite ? <PlatformReadOnlyBanner message="Lesemodus — Statusänderungen erfordern billing.write." /> : null}
-      <Text style={styles.sectionTitle}>Billing Preview (mandantenübergreifend)</Text>
-      <Text style={styles.hint}>Tenant-ID eingeben und Preview auf dem Mandanten-Detail unter „Billing Preview" erzeugen.</Text>
       <View style={styles.toolbar}>
         <TextInput
           style={styles.search}
@@ -337,7 +364,7 @@ export function PlatformBillingScreen() {
       <PlatformFilterChipRow>
         <PlatformFilterChip label="Alle" active={!statusFilter} onPress={() => setStatusFilter('')} />
         {INVOICE_STATUSES.map((s) => (
-          <PlatformFilterChip key={s} label={s} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
+          <PlatformFilterChip key={s} label={statusLabel(s)} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
         ))}
       </PlatformFilterChipRow>
 
@@ -379,7 +406,7 @@ export function PlatformBillingScreen() {
                   <Text style={styles.label}>Neuer Status</Text>
                   <PlatformFilterChipRow>
                     {INVOICE_STATUSES.map((s) => (
-                      <PlatformFilterChip key={s} label={s} active={newStatus === s} onPress={() => setNewStatus(s)} />
+                      <PlatformFilterChip key={s} label={statusLabel(s)} active={newStatus === s} onPress={() => setNewStatus(s)} />
                     ))}
                   </PlatformFilterChipRow>
                   <Pressable
@@ -411,7 +438,20 @@ export function PlatformBillingScreen() {
             </View>
           ) : null}
 
-          <PlatformDeferredNote phase="PLATFORM.1.3" feature="Manuelle Rechnungserfassung" />
+          {canWrite ? <View style={styles.formPanel}>
+            <Text style={styles.sectionTitle}>Manuelle Rechnung erstellen</Text>
+            <Text style={styles.hint}>Für Sonderabrechnungen. Die Rechnung erhält automatisch eine eindeutige Nummer und startet als offen.</Text>
+            <PlatformTenantPicker value={invoiceTenant} onChange={setInvoiceTenant} required />
+            <TextInput style={styles.input} value={invoiceGross} onChangeText={setInvoiceGross} placeholder="Bruttobetrag in Euro" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" />
+            <TextInput style={styles.input} value={invoiceTax} onChangeText={setInvoiceTax} placeholder="Enthaltene Steuer in Euro" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" />
+            <TextInput style={styles.input} value={invoiceDue} onChangeText={setInvoiceDue} placeholder="Fällig am (JJJJ-MM-TT)" placeholderTextColor={PLATFORM_COLORS.muted} />
+            <Pressable style={styles.primaryBtn} onPress={() => setConfirm({ title: 'Rechnung erstellen', description: `Eine offene Rechnung über ${invoiceGross} Euro wird für den gewählten Mandanten erstellt.`, action: async (reason) => {
+              const gross = parsePlatformEurosToCents(invoiceGross); const tax = parsePlatformEurosToCents(invoiceTax);
+              if (gross === null || tax === null) throw new Error('Brutto- und Steuerbetrag müssen gültige Euro-Beträge sein.');
+              const res = await createPlatformManualInvoice(invoiceTenant, gross, tax, invoiceDue, reason); if (!res.ok) throw new Error(res.error);
+              setInvoiceGross(''); setInvoiceTax(''); setLastAuditAction('invoice.created');
+            } })}><Text style={styles.primaryBtnText}>Rechnung erstellen</Text></Pressable>
+          </View> : null}
         </>
       )}
       {modal}
@@ -431,7 +471,10 @@ export function PlatformPaymentsScreen() {
   const [manualInvoice, setManualInvoice] = useState('');
   const [manualAmount, setManualAmount] = useState('');
   const [manualStatus, setManualStatus] = useState('succeeded');
+  const [manualInvoices, setManualInvoices] = useState<PlatformInvoiceRow[]>([]);
   const [lastAuditAction, setLastAuditAction] = useState<string | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<PlatformPaymentRow | null>(null);
+  const [changedPaymentStatus, setChangedPaymentStatus] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -452,6 +495,11 @@ export function PlatformPaymentsScreen() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!manualTenant) { setManualInvoices([]); setManualInvoice(''); return; }
+    void listPlatformInvoices({ tenantId: manualTenant }).then((result) => { if (result.ok) setManualInvoices(result.data); });
+  }, [manualTenant]);
+
   const { setConfirm, modal } = useOperatorConfirm(load);
 
   const providers = useMemo(
@@ -465,7 +513,7 @@ export function PlatformPaymentsScreen() {
       <PlatformFilterChipRow>
         <PlatformFilterChip label="Alle Status" active={!statusFilter} onPress={() => setStatusFilter('')} />
         {PAYMENT_STATUSES.map((s) => (
-          <PlatformFilterChip key={s} label={s} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
+          <PlatformFilterChip key={s} label={statusLabel(s)} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
         ))}
       </PlatformFilterChipRow>
       <PlatformFilterChipRow>
@@ -497,17 +545,19 @@ export function PlatformPaymentsScreen() {
               ]}
               data={items}
               keyExtractor={(r) => r.id}
+              selectedId={selectedPayment?.id}
+              onRowPress={(item) => { setSelectedPayment(item); setChangedPaymentStatus(item.status); }}
           />
 
           {canWrite ? (
             <View style={styles.formPanel}>
               <Text style={styles.sectionTitle}>Manuelle Zahlung erfassen</Text>
-              <TextInput style={styles.input} value={manualTenant} onChangeText={setManualTenant} placeholder="Tenant-ID" placeholderTextColor={PLATFORM_COLORS.muted} />
-              <TextInput style={styles.input} value={manualInvoice} onChangeText={setManualInvoice} placeholder="Rechnungs-ID (optional)" placeholderTextColor={PLATFORM_COLORS.muted} />
-              <TextInput style={styles.input} value={manualAmount} onChangeText={setManualAmount} placeholder="Betrag in Cent" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
+              <PlatformTenantPicker value={manualTenant} onChange={setManualTenant} required />
+              {manualInvoices.length ? <><Text style={styles.label}>Rechnung (optional)</Text><PlatformFilterChipRow><PlatformFilterChip label="Keine Zuordnung" active={!manualInvoice} onPress={() => setManualInvoice('')} />{manualInvoices.map((invoice) => <PlatformFilterChip key={invoice.id} label={invoice.invoice_number} active={manualInvoice === invoice.id} onPress={() => setManualInvoice(invoice.id)} />)}</PlatformFilterChipRow></> : null}
+              <TextInput style={styles.input} value={manualAmount} onChangeText={setManualAmount} placeholder="Betrag in Euro, z. B. 49,90" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" />
               <PlatformFilterChipRow>
                 {PAYMENT_STATUSES.map((s) => (
-                  <PlatformFilterChip key={s} label={s} active={manualStatus === s} onPress={() => setManualStatus(s)} />
+                  <PlatformFilterChip key={s} label={statusLabel(s)} active={manualStatus === s} onPress={() => setManualStatus(s)} />
                 ))}
               </PlatformFilterChipRow>
               <Pressable
@@ -515,10 +565,10 @@ export function PlatformPaymentsScreen() {
                 onPress={() =>
                   setConfirm({
                     title: 'Manuelle Zahlung',
-                    description: `Zahlung ${manualAmount} Cent für Mandant ${manualTenant} als ${manualStatus}.`,
+                    description: `Zahlung ${manualAmount} Euro für den gewählten Mandanten erfassen.`,
                     action: async (reason) => {
-                      const cents = Number(manualAmount);
-                      if (!Number.isFinite(cents) || cents < 0) throw new Error('Betrag muss ≥ 0 sein.');
+                      const cents = parsePlatformEurosToCents(manualAmount);
+                      if (cents === null) throw new Error('Bitte einen gültigen Euro-Betrag eingeben.');
                       const res = await recordPlatformManualPayment(
                         manualTenant.trim(),
                         manualInvoice.trim() || null,
@@ -537,7 +587,14 @@ export function PlatformPaymentsScreen() {
             </View>
           ) : null}
 
-          <PlatformDeferredNote phase="PLATFORM.1.3" feature="Bestehende Zahlungen nachträglich markieren (kein RPC)" />
+          {canWrite && selectedPayment ? <View style={styles.formPanel}>
+            <Text style={styles.sectionTitle}>Zahlungsstatus berichtigen</Text>
+            <Text style={styles.hint}>{formatPlatformCents(selectedPayment.amount_cents)} · {maskPlatformProviderId(selectedPayment.provider_payment_id)}</Text>
+            <PlatformFilterChipRow>{PAYMENT_STATUSES.map((item) => <PlatformFilterChip key={item} label={statusLabel(item)} active={changedPaymentStatus === item} onPress={() => setChangedPaymentStatus(item)} />)}</PlatformFilterChipRow>
+            <Pressable style={styles.primaryBtn} disabled={changedPaymentStatus === selectedPayment.status} onPress={() => setConfirm({ title: 'Zahlungsstatus ändern', description: `Der Status wird auf ${changedPaymentStatus} geändert.`, danger: ['failed','cancelled','chargeback'].includes(changedPaymentStatus), action: async (reason) => {
+              const res = await updatePlatformPaymentStatus(selectedPayment.id, changedPaymentStatus, reason); if (!res.ok) throw new Error(res.error); setLastAuditAction('payment.status_changed');
+            } })}><Text style={styles.primaryBtnText}>Status speichern</Text></Pressable>
+          </View> : null}
 
           {lastAuditAction ? (
             <View style={styles.auditRow}>
@@ -617,7 +674,7 @@ export function PlatformSupportScreen() {
           {canWrite ? (
             <View style={styles.formPanel}>
               <Text style={styles.sectionTitle}>Session starten</Text>
-              <TextInput style={styles.input} value={tenantId} onChangeText={setTenantId} placeholder="Tenant-ID" placeholderTextColor={PLATFORM_COLORS.muted} />
+              <PlatformTenantPicker value={tenantId} onChange={setTenantId} required />
               <TextInput style={styles.input} value={durationMin} onChangeText={setDurationMin} placeholder="Dauer in Minuten" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
               <TextInput style={styles.input} value={scopes} onChangeText={setScopes} placeholder="allowed_scopes (kommagetrennt)" placeholderTextColor={PLATFORM_COLORS.muted} />
               <PlatformFilterChipRow>
@@ -820,10 +877,10 @@ export function PlatformFeatureFlagsScreen() {
               <Text style={styles.sectionTitle}>Flag setzen</Text>
               <TextInput style={styles.input} value={editKey} onChangeText={setEditKey} placeholder="flag_key" placeholderTextColor={PLATFORM_COLORS.muted} />
               <TextInput style={styles.input} value={editRollout} onChangeText={setEditRollout} placeholder="Rollout 0-100" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
-              <TextInput style={styles.input} value={editTenant} onChangeText={setEditTenant} placeholder="Tenant-ID (tenant scope)" placeholderTextColor={PLATFORM_COLORS.muted} />
+              {editScope === 'tenant' ? <PlatformTenantPicker value={editTenant} onChange={setEditTenant} required /> : null}
               <PlatformFilterChipRow>
                 {['global', 'tenant', 'module', 'user', 'beta_group'].map((s) => (
-                  <PlatformFilterChip key={s} label={s} active={editScope === s} onPress={() => setEditScope(s)} />
+                  <PlatformFilterChip key={s} label={s === 'global' ? 'Global' : s === 'tenant' ? 'Mandant' : s === 'module' ? 'Modul' : s === 'user' ? 'Benutzer' : 'Beta-Gruppe'} active={editScope === s} onPress={() => setEditScope(s)} />
                 ))}
               </PlatformFilterChipRow>
               <Pressable

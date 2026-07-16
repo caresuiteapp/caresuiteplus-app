@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { PlatformShellLayout, PLATFORM_COLORS } from '@/components/platformConsole';
+import { PlatformShellLayout, PlatformTenantPicker, PLATFORM_COLORS } from '@/components/platformConsole';
 import { ErrorState, LoadingState } from '@/components/ui';
 import { listPlatformAuditLog } from '@/lib/platformConsole';
 import type { PlatformAuditEntry } from '@/types/platformConsole';
@@ -38,13 +38,9 @@ export function PlatformAuditScreen() {
   return (
     <PlatformShellLayout title="Audit Log" subtitle="Unveränderliche Protokollierung aller Plattformaktionen">
       <View style={styles.filters}>
-        <TextInput
-          style={styles.input}
-          value={tenantFilter}
-          onChangeText={setTenantFilter}
-          placeholder="Tenant-ID Filter"
-          placeholderTextColor={PLATFORM_COLORS.muted}
-        />
+        <View style={styles.tenantFilter}>
+          <PlatformTenantPicker value={tenantFilter} onChange={setTenantFilter} label="Mandant filtern" allowAll />
+        </View>
         <TextInput
           style={styles.input}
           value={actionFilter}
@@ -79,6 +75,7 @@ export function PlatformAuditScreen() {
 
 const styles = StyleSheet.create({
   filters: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  tenantFilter: { flex: 1 },
   input: {
     flex: 1,
     borderWidth: 1,

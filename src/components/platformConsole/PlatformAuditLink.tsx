@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
-import { PLATFORM_COLORS } from './PlatformShellLayout';
+import { PLATFORM_COLORS } from './PlatformColors';
 import { buildPlatformAuditPath } from '@/lib/platformConsole/platformFormat';
 
 type PlatformAuditLinkProps = {

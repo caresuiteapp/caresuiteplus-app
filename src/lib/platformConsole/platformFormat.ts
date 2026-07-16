@@ -4,6 +4,14 @@ export function formatPlatformCents(cents: unknown, currency = 'EUR'): string {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency }).format(n / 100);
 }
 
+export function parsePlatformEurosToCents(value: string): number | null {
+  const normalized = value.trim().replace(/\s/g, '').replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.');
+  if (!normalized) return null;
+  const euros = Number(normalized);
+  if (!Number.isFinite(euros) || euros < 0) return null;
+  return Math.round(euros * 100);
+}
+
 export function maskPlatformProviderId(id: unknown): string {
   if (id == null || id === '') return '—';
   const s = String(id);

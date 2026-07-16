@@ -258,7 +258,7 @@ export function PlatformTenantDetailScreen() {
 
   return (
 
-    <PlatformShellLayout title={tenantName} subtitle={`Tenant-ID: ${tenantId}`}>
+    <PlatformShellLayout title={tenantName} subtitle="Mandantenakte, Vertrag, Module, Finanzen und Systemzugriffe">
 
       <SegmentedTabs
 
@@ -442,7 +442,7 @@ export function PlatformTenantDetailScreen() {
 
         {tab === 'limits' ? <TenantLimitsTab detail={detail} /> : null}
 
-        {tab === 'users' ? <TenantUsersTab /> : null}
+        {tab === 'users' ? <TenantUsersTab tenantId={tid} /> : null}
 
         {tab === 'diagnosis' ? <TenantDiagnosisTab tenantId={tid} detail={detail} /> : null}
 
@@ -713,5 +713,3 @@ const styles = StyleSheet.create({
   auditHint: { color: PLATFORM_COLORS.muted, fontSize: 12 },
 
 });
-
-

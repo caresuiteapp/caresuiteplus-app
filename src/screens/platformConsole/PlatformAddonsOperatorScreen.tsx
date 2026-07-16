@@ -4,9 +4,11 @@ import {
   PlatformAuditLink,
   PlatformConfirmModal,
   PlatformDataTable,
+  PlatformFormField,
   PlatformReadOnlyBanner,
   PlatformShellLayout,
   PlatformStatusBadge,
+  PlatformTenantPicker,
   PLATFORM_COLORS,
 } from '@/components/platformConsole';
 import { ErrorState, LoadingState } from '@/components/ui';
@@ -24,7 +26,7 @@ import {
   listPlatformAddonVersions,
   listPlatformAddonsCatalog,
 } from '@/lib/platformConsole/platformOperatorDataService';
-import { formatPlatformCents, formatPlatformDate } from '@/lib/platformConsole/platformFormat';
+import { formatPlatformCents, formatPlatformDate, parsePlatformEurosToCents } from '@/lib/platformConsole/platformFormat';
 import { usePlatformAuth } from '@/lib/platformConsole/PlatformAuthProvider';
 import { resolvePlatformAddonRowKey } from '@/lib/platformConsole/platformRowKeys';
 import { spacing } from '@/theme';
@@ -53,7 +55,7 @@ export function PlatformAddonsOperatorScreen() {
   const [newKey, setNewKey] = useState('');
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const [newMonthly, setNewMonthly] = useState('1500');
+  const [newMonthly, setNewMonthly] = useState('15,00');
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [versionMonthly, setVersionMonthly] = useState('');
@@ -163,18 +165,21 @@ export function PlatformAddonsOperatorScreen() {
           {canWrite ? (
             <View style={styles.formPanel}>
               <Text style={styles.sectionTitle}>Add-on erstellen</Text>
-              <TextInput style={styles.input} value={newKey} onChangeText={setNewKey} placeholder="addon_key" placeholderTextColor={PLATFORM_COLORS.muted} />
-              <TextInput style={styles.input} value={newName} onChangeText={setNewName} placeholder="Name" placeholderTextColor={PLATFORM_COLORS.muted} />
-              <TextInput style={styles.input} value={newDesc} onChangeText={setNewDesc} placeholder="Beschreibung" placeholderTextColor={PLATFORM_COLORS.muted} />
-              <TextInput style={styles.input} value={newMonthly} onChangeText={setNewMonthly} placeholder="Monatspreis (Cent)" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
+              <PlatformFormField label="Interner Add-on-Code" required hint="Wird automatisch intern verwendet und später nicht mehr geändert.">
+                <TextInput style={styles.input} value={newKey} onChangeText={setNewKey} placeholder="z. B. sms_paket" placeholderTextColor={PLATFORM_COLORS.muted} />
+              </PlatformFormField>
+              <PlatformFormField label="Anzeigename" required><TextInput style={styles.input} value={newName} onChangeText={setNewName} placeholder="z. B. SMS-Paket" placeholderTextColor={PLATFORM_COLORS.muted} /></PlatformFormField>
+              <PlatformFormField label="Beschreibung"><TextInput style={styles.input} value={newDesc} onChangeText={setNewDesc} placeholder="Leistungsumfang verständlich beschreiben" placeholderTextColor={PLATFORM_COLORS.muted} multiline /></PlatformFormField>
+              <PlatformFormField label="Monatspreis in Euro" required hint="Dezimalbetrag, z. B. 15,00"><TextInput style={styles.input} value={newMonthly} onChangeText={setNewMonthly} placeholder="15,00" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" /></PlatformFormField>
               {formError ? <Text style={styles.formError}>{formError}</Text> : null}
               <Pressable
-                style={styles.primaryBtn}
+                style={[styles.primaryBtn, (!newKey.trim() || !newName.trim() || parsePlatformEurosToCents(newMonthly) === null) && styles.disabledBtn]}
+                disabled={!newKey.trim() || !newName.trim() || parsePlatformEurosToCents(newMonthly) === null}
                 onPress={() => {
                   const addonKey = newKey.trim();
                   const addonName = newName.trim();
                   const addonDesc = newDesc.trim();
-                  const monthlyCents = Number(newMonthly) || 0;
+                  const monthlyCents = parsePlatformEurosToCents(newMonthly) ?? 0;
                   const keyError = validatePlatformAddonKey(addonKey);
                   if (keyError) {
                     setFormError(keyError);
@@ -199,7 +204,7 @@ export function PlatformAddonsOperatorScreen() {
                       setNewKey('');
                       setNewName('');
                       setNewDesc('');
-                      setNewMonthly('1500');
+                      setNewMonthly('15,00');
                     },
                   });
                 }}
@@ -218,10 +223,11 @@ export function PlatformAddonsOperatorScreen() {
 
               {canWrite ? (
                 <>
-                  <TextInput style={styles.input} value={editName} onChangeText={setEditName} placeholder="Name" placeholderTextColor={PLATFORM_COLORS.muted} />
-                  <TextInput style={styles.input} value={editDesc} onChangeText={setEditDesc} placeholder="Beschreibung" placeholderTextColor={PLATFORM_COLORS.muted} />
+                  <PlatformFormField label="Anzeigename" required><TextInput style={styles.input} value={editName} onChangeText={setEditName} placeholder="Name" placeholderTextColor={PLATFORM_COLORS.muted} /></PlatformFormField>
+                  <PlatformFormField label="Beschreibung"><TextInput style={styles.input} value={editDesc} onChangeText={setEditDesc} placeholder="Beschreibung" placeholderTextColor={PLATFORM_COLORS.muted} multiline /></PlatformFormField>
                   <Pressable
-                    style={styles.primaryBtn}
+                    style={[styles.primaryBtn, !editName.trim() && styles.disabledBtn]}
+                    disabled={!editName.trim()}
                     onPress={() =>
                       setConfirm({
                         title: 'Add-on bearbeiten',
@@ -241,10 +247,11 @@ export function PlatformAddonsOperatorScreen() {
                   </Pressable>
 
                   <Text style={styles.sectionTitle}>Neue Add-on-Version</Text>
-                  <TextInput style={styles.input} value={versionMonthly} onChangeText={setVersionMonthly} placeholder="Monat (Cent)" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
-                  <TextInput style={styles.input} value={versionYearly} onChangeText={setVersionYearly} placeholder="Jahr (Cent)" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
+                  <PlatformFormField label="Monatspreis in Euro" required><TextInput style={styles.input} value={versionMonthly} onChangeText={setVersionMonthly} placeholder="15,00" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" /></PlatformFormField>
+                  <PlatformFormField label="Jahrespreis in Euro" required><TextInput style={styles.input} value={versionYearly} onChangeText={setVersionYearly} placeholder="150,00" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" /></PlatformFormField>
                   <Pressable
-                    style={styles.primaryBtn}
+                    style={[styles.primaryBtn, (parsePlatformEurosToCents(versionMonthly) === null || parsePlatformEurosToCents(versionYearly) === null) && styles.disabledBtn]}
+                    disabled={parsePlatformEurosToCents(versionMonthly) === null || parsePlatformEurosToCents(versionYearly) === null}
                     onPress={() =>
                       setConfirm({
                         title: 'Add-on-Version erstellen',
@@ -253,8 +260,8 @@ export function PlatformAddonsOperatorScreen() {
                           const res = await createPlatformAddonVersion(
                             selectedKey,
                             reason,
-                            Number(versionMonthly) || 0,
-                            Number(versionYearly) || 0,
+                            parsePlatformEurosToCents(versionMonthly) ?? 0,
+                            parsePlatformEurosToCents(versionYearly) ?? 0,
                           );
                           if (!res.ok) throw new Error(res.error);
                           setLastAuditAction('addon.version_created');
@@ -266,13 +273,13 @@ export function PlatformAddonsOperatorScreen() {
                   </Pressable>
 
                   <Text style={styles.sectionTitle}>Mandant zuweisen</Text>
-                  <TextInput style={styles.input} value={assignTenantId} onChangeText={setAssignTenantId} placeholder="tenant_id (UUID)" placeholderTextColor={PLATFORM_COLORS.muted} />
-                  <TextInput style={styles.input} value={assignOverride} onChangeText={setAssignOverride} placeholder="Preis-Override (Cent, optional)" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
+                  <PlatformTenantPicker value={assignTenantId} onChange={setAssignTenantId} required />
+                  <PlatformFormField label="Abweichender Monatspreis in Euro" hint="Optional. Leer lassen, um den Katalogpreis zu verwenden."><TextInput style={styles.input} value={assignOverride} onChangeText={setAssignOverride} placeholder="z. B. 12,50" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" /></PlatformFormField>
                   <Pressable
                     style={styles.primaryBtn}
                     onPress={() => {
                       const tenantId = assignTenantId.trim();
-                      const overrideCents = assignOverride ? Number(assignOverride) : null;
+                      const overrideCents = assignOverride ? parsePlatformEurosToCents(assignOverride) : null;
                       if (!tenantId) {
                         setFormError('Mandanten-ID ist Pflicht.');
                         return;
@@ -385,4 +392,5 @@ const styles = StyleSheet.create({
   link: { color: PLATFORM_COLORS.accent, fontWeight: '600' },
   hint: { color: PLATFORM_COLORS.muted, fontSize: 12 },
   formError: { color: PLATFORM_COLORS.danger, fontSize: 13 },
+  disabledBtn: { opacity: 0.45 },
 });

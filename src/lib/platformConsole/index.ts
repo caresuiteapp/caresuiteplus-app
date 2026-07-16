@@ -12,6 +12,8 @@ export {
 export type { PlatformTenantDetail, PlatformTenantFilters } from './platformTenantService';
 export {
   assignPlatformDiscount,
+  createPlatformDiscount,
+  createPlatformManualInvoice,
   endPlatformSupportSession,
   getPlatformLimitsDeferred,
   getPlatformPlanLimits,
@@ -25,13 +27,19 @@ export {
   listPlatformPlans,
   listPlatformSupportSessions,
   listPlatformSystemSettings,
+  listPlatformOperatorUsers,
+  listPlatformReleases,
+  listPlatformTenantUsers,
   listPlatformTenantDiscounts,
   recordPlatformManualPayment,
   removePlatformDiscount,
   setPlatformFeatureFlag,
   startPlatformSupportSession,
   updatePlatformInvoiceStatus,
+  updatePlatformPaymentStatus,
   updatePlatformSystemSetting,
+  updatePlatformOperatorUser,
+  registerPlatformRelease,
 } from './platformOpsService';
 export {
   assignPlatformAddonToTenant,
@@ -66,7 +74,7 @@ export {
   listPlatformTenantAddons,
   listPlatformTenantSubscriptions,
 } from './platformOperatorDataService';
-export { buildPlatformAuditPath, formatPlatformCents, formatPlatformDate, maskPlatformProviderId } from './platformFormat';
+export { buildPlatformAuditPath, formatPlatformCents, formatPlatformDate, maskPlatformProviderId, parsePlatformEurosToCents } from './platformFormat';
 export {
   CRITICAL_ACTIONS_REQUIRING_REASON,
   PLATFORM_ROLE_LABELS,

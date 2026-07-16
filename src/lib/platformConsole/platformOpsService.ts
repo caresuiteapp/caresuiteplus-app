@@ -7,6 +7,11 @@ import type {
   PlatformPaymentRow,
   PlatformSupportSessionRow,
   PlatformTenantDiscountRow,
+  PlatformOperatorUserRow,
+  PlatformReleaseRow,
+  PlatformRoleKey,
+  PlatformUserStatus,
+  PlatformTenantUserRow,
 } from '@/types/platformConsole';
 import { getServiceMode } from '@/lib/services/mode';
 import { platformRpc, platformSelect, platformSelectWhere } from './platformSupabaseClient';
@@ -121,6 +126,36 @@ export async function updatePlatformInvoiceStatus(
     p_status: status,
     p_reason: reason.trim(),
   });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: data ?? {} };
+}
+
+export async function createPlatformDiscount(input: { key: string; name: string; type: PlatformDiscountRow['discount_type']; value: number; description?: string }, reason: string): Promise<ServiceResult<Record<string, unknown>>> {
+  const reasonError = validatePlatformReason(reason);
+  if (reasonError) return { ok: false, error: reasonError };
+  if (!/^[a-z0-9_-]{3,}$/.test(input.key.trim())) return { ok: false, error: 'Der Rabattcode muss mindestens drei Zeichen enthalten und darf nur Kleinbuchstaben, Zahlen, _ und - verwenden.' };
+  if (!input.name.trim() || !Number.isFinite(input.value) || input.value < 0) return { ok: false, error: 'Name und ein gültiger Rabattwert sind erforderlich.' };
+  if (getServiceMode() === 'demo') return { ok: true, data: { ...input, id: 'demo-discount' } };
+  const { data, error } = await platformRpc<Record<string, unknown>>('platform_create_discount', { p_discount_key: input.key.trim(), p_name: input.name.trim(), p_discount_type: input.type, p_value: input.value, p_description: input.description?.trim() || null, p_reason: reason.trim() });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: data ?? {} };
+}
+
+export async function createPlatformManualInvoice(tenantId: string, totalCents: number, taxCents: number, dueDate: string, reason: string): Promise<ServiceResult<Record<string, unknown>>> {
+  const reasonError = validatePlatformReason(reason);
+  if (reasonError) return { ok: false, error: reasonError };
+  if (!tenantId || totalCents <= 0 || taxCents < 0 || taxCents > totalCents || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return { ok: false, error: 'Mandant, gültige Beträge und Fälligkeitsdatum sind erforderlich.' };
+  if (getServiceMode() === 'demo') return { ok: true, data: { tenant_id: tenantId, total_cents: totalCents, tax_cents: taxCents, due_date: dueDate } };
+  const { data, error } = await platformRpc<Record<string, unknown>>('platform_create_manual_invoice', { p_tenant_id: tenantId, p_total_cents: totalCents, p_tax_cents: taxCents, p_due_date: dueDate, p_reason: reason.trim() });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: data ?? {} };
+}
+
+export async function updatePlatformPaymentStatus(paymentId: string, status: string, reason: string): Promise<ServiceResult<Record<string, unknown>>> {
+  const reasonError = validatePlatformReason(reason);
+  if (reasonError) return { ok: false, error: reasonError };
+  if (getServiceMode() === 'demo') return { ok: true, data: { id: paymentId, status } };
+  const { data, error } = await platformRpc<Record<string, unknown>>('platform_update_payment_status', { p_payment_id: paymentId, p_status: status, p_reason: reason.trim() });
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: data ?? {} };
 }
@@ -316,6 +351,70 @@ export async function listPlatformSystemSettings(): Promise<ServiceResult<Record
   }));
 
   return { ok: true, data: sanitized as Record<string, unknown>[] };
+}
+
+export async function listPlatformOperatorUsers(): Promise<ServiceResult<PlatformOperatorUserRow[]>> {
+  if (getServiceMode() === 'demo') {
+    return { ok: true, data: [{ id: 'demo-owner', user_id: 'demo', email: 'owner@example.com', full_name: 'Platform Owner', role: 'platform_owner', status: 'active', last_login_at: new Date().toISOString(), updated_at: new Date().toISOString() }] };
+  }
+  const { data, error } = await platformRpc<{ items: PlatformOperatorUserRow[] }>('platform_list_operator_users');
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: data?.items ?? [] };
+}
+
+export async function updatePlatformOperatorUser(
+  platformUserId: string,
+  role: PlatformRoleKey,
+  status: PlatformUserStatus,
+  reason: string,
+): Promise<ServiceResult<Record<string, unknown>>> {
+  const reasonError = validatePlatformReason(reason);
+  if (reasonError) return { ok: false, error: reasonError };
+  if (getServiceMode() === 'demo') return { ok: true, data: { id: platformUserId, role, status } };
+  const { data, error } = await platformRpc<Record<string, unknown>>('platform_update_operator_user', {
+    p_platform_user_id: platformUserId,
+    p_role: role,
+    p_status: status,
+    p_reason: reason.trim(),
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: data ?? {} };
+}
+
+export async function listPlatformReleases(): Promise<ServiceResult<PlatformReleaseRow[]>> {
+  if (getServiceMode() === 'demo') return { ok: true, data: [] };
+  const { data, error } = await platformRpc<{ items: PlatformReleaseRow[] }>('platform_list_releases', { p_limit: 100 });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: data?.items ?? [] };
+}
+
+export async function listPlatformTenantUsers(tenantId: string): Promise<ServiceResult<PlatformTenantUserRow[]>> {
+  if (getServiceMode() === 'demo') return { ok: true, data: [{ id: 'demo-user', display_name: 'Demo Mitarbeiter:in', email: 'mitarbeiter@example.com', phone: null, role_key: 'employee', updated_at: new Date().toISOString() }] };
+  const { data, error } = await platformRpc<{ items: PlatformTenantUserRow[] }>('platform_list_tenant_users', { p_tenant_id: tenantId });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, data: data?.items ?? [] };
+}
+
+export async function registerPlatformRelease(
+  release: Omit<PlatformReleaseRow, 'id' | 'checks' | 'deployed_at'> & { checks?: Record<string, unknown> },
+  reason: string,
+): Promise<ServiceResult<PlatformReleaseRow>> {
+  const reasonError = validatePlatformReason(reason);
+  if (reasonError) return { ok: false, error: reasonError };
+  if (getServiceMode() === 'demo') return { ok: true, data: { ...release, id: 'demo-release', checks: release.checks ?? {}, deployed_at: new Date().toISOString() } };
+  const { data, error } = await platformRpc<PlatformReleaseRow>('platform_register_release', {
+    p_environment: release.environment,
+    p_version_label: release.version_label,
+    p_commit_sha: release.commit_sha,
+    p_status: release.status,
+    p_deployment_url: release.deployment_url,
+    p_migration_version: release.migration_version,
+    p_checks: release.checks ?? {},
+    p_notes: release.notes,
+    p_reason: reason.trim(),
+  });
+  if (error || !data) return { ok: false, error: error?.message ?? 'Release konnte nicht registriert werden.' };
+  return { ok: true, data };
 }
 
 const DEMO_DISCOUNTS: PlatformDiscountRow[] = [

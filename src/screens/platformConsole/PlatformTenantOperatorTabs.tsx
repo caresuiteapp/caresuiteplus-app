@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   PlatformAuditLink,
   PlatformConfirmModal,
-  PlatformDeferredNote,
   PlatformFilterChip,
   PlatformFilterChipRow,
   PlatformStatusBadge,
@@ -18,17 +17,18 @@ import {
   cancelPlatformTenantSubscription,
   endPlatformSupportSession,
   getPlatformEffectiveTenantEntitlements,
-  getPlatformLimitsDeferred,
   getPlatformPlanLimits,
   listPlatformAuditLog,
   listPlatformFeatureFlags,
   listPlatformPlans,
   listPlatformSupportSessions,
+  listPlatformTenantUsers,
   platformRoleHasCapability,
   recalculatePlatformTenantEntitlements,
   reactivatePlatformTenantSubscription,
   removePlatformDiscount,
   setPlatformFeatureFlag,
+  updatePlatformPaymentStatus,
   startPlatformSupportSession,
   suspendPlatformTenantSubscription,
   updatePlatformInvoiceStatus,
@@ -437,6 +437,9 @@ export function TenantInvoicesTab({ tenantId, detail, role, onReload }: TabProps
 
 export function TenantPaymentsTab({ tenantId, detail, role }: TabProps) {
   const canRead = platformRoleHasCapability(role, 'payments.read');
+  const canWrite = platformRoleHasCapability(role, 'payments.write');
+  const [confirm, setConfirm] = useState<{ paymentId: string; status: string } | null>(null);
+  const [loading, setLoading] = useState(false);
   if (!canRead) return <Text style={styles.hint}>Keine Berechtigung für Zahlungen.</Text>;
   const payments = mapRecordRows(detail.payments);
   return (
@@ -446,10 +449,13 @@ export function TenantPaymentsTab({ tenantId, detail, role }: TabProps) {
         <View key={String(p.id)} style={styles.row}>
           <Text style={styles.primary}>{formatPlatformCents(p.amount_cents)} · {String(p.status)}</Text>
           <Text style={styles.meta}>Provider: {String(p.provider ?? '—')}</Text>
+          {canWrite ? <View style={styles.actions}>{['succeeded','failed','refunded'].map((status) => <Pressable key={status} onPress={() => setConfirm({ paymentId: String(p.id), status })}><Text style={styles.link}>{status === 'succeeded' ? 'Erfolgreich' : status === 'failed' ? 'Fehlgeschlagen' : 'Erstattet'}</Text></Pressable>)}</View> : null}
         </View>
       ))}
       <PlatformAuditLink tenantId={tenantId} action="payment" />
-      <PlatformDeferredNote phase="PLATFORM.1.3" feature="Zahlungsstatus nachträglich ändern" />
+      <PlatformConfirmModal visible={Boolean(confirm)} title="Zahlungsstatus berichtigen" description={`Zahlung als ${confirm?.status ?? ''} markieren.`} loading={loading} onCancel={() => setConfirm(null)} onConfirm={(reason) => {
+        if (!confirm) return; setLoading(true); void updatePlatformPaymentStatus(confirm.paymentId, confirm.status, reason).finally(() => { setLoading(false); setConfirm(null); });
+      }} />
     </View>
   );
 }
@@ -681,7 +687,6 @@ export function TenantFeatureFlagsTab({ tenantId, role }: Omit<TabProps, 'detail
 export function TenantLimitsTab({ detail }: Pick<TabProps, 'detail'>) {
   const plan = (detail.plan ?? {}) as Record<string, unknown>;
   const limits = getPlatformPlanLimits(plan);
-  const deferred = getPlatformLimitsDeferred();
 
   return (
     <View style={styles.panel}>
@@ -692,28 +697,21 @@ export function TenantLimitsTab({ detail }: Pick<TabProps, 'detail'>) {
           <Text style={styles.primary}>{v ?? '—'}</Text>
         </View>
       ))}
-      <Text style={styles.section}>Nutzung / Overrides</Text>
-      <Text style={styles.hint}>Nutzungsmetriken und Override-RPCs folgen in PLATFORM.1.3 — aktuell read-only.</Text>
-      {deferred.map((k) => (
-        <View key={k} style={styles.infoRow}>
-          <Text style={styles.meta}>{k}</Text>
-          <Text style={styles.primary}>— (PLATFORM.1.3)</Text>
-        </View>
-      ))}
+      <Text style={styles.hint}>Es werden ausschließlich wirksame Tariflimits angezeigt. Nicht konfigurierte Limits gelten als unbegrenzt.</Text>
     </View>
   );
 }
 
-export function TenantUsersTab() {
+export function TenantUsersTab({ tenantId }: { tenantId: string }) {
+  const [users, setUsers] = useState<{ id: string; display_name: string | null; email: string | null; phone: string | null; role_key: string | null }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => { void listPlatformTenantUsers(tenantId).then((result) => { if (result.ok) setUsers(result.data); else setError(result.error); setLoading(false); }); }, [tenantId]);
   return (
     <View style={styles.panel}>
-      <PlatformDeferredNote
-        phase="PLATFORM.1.3"
-        feature="Mandantenbenutzer-Administration (sichere RPC fehlt)"
-      />
-      <Text style={styles.hint}>
-        Geplant: Rolle, Status, letzter Login, Einladungsstatus — ohne Passwörter, Tokens oder Secrets.
-      </Text>
+      <Text style={styles.section}>Mandantenbenutzer</Text>
+      {loading ? <LoadingState message="Benutzer werden geladen…" /> : error ? <Text style={styles.hint}>{error}</Text> : users.length === 0 ? <Text style={styles.hint}>Für diesen Mandanten sind keine Benutzerprofile vorhanden.</Text> : users.map((user) => <View key={user.id} style={styles.row}><View style={{ flex: 1 }}><Text style={styles.primary}>{user.display_name || user.email || 'Ohne Namen'}</Text><Text style={styles.meta}>{user.email || 'Keine E-Mail'} · {String(user.role_key || 'Keine Rolle')}</Text>{user.phone ? <Text style={styles.meta}>{user.phone}</Text> : null}</View></View>)}
+      <Text style={styles.hint}>Einladungen und Rollenwechsel werden innerhalb des Mandanten in Office → Zugänge verwaltet; hier erfolgt die plattformweite Kontrolle ohne Passwörter oder Tokens.</Text>
     </View>
   );
 }

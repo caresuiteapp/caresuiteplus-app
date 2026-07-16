@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PremiumButton } from '@/components/ui';
 import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
-import { PLATFORM_COLORS } from './PlatformShellLayout';
+import { PLATFORM_COLORS } from './PlatformColors';
 import { spacing } from '@/theme';
 
 type PlatformConfirmModalProps = {

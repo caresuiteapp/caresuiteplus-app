@@ -2,6 +2,7 @@ export { PlatformDashboardScreen } from './PlatformDashboardScreen';
 export { PlatformTenantsScreen } from './PlatformTenantsScreen';
 export { PlatformTenantDetailScreen } from './PlatformTenantDetailScreen';
 export { PlatformAuditScreen } from './PlatformAuditScreen';
+export { PlatformUsersScreen } from './PlatformUsersScreen';
 export { PlatformSystemScreen, PlatformReleasesScreen } from './PlatformSystemScreen';
 export {
   PlatformModulesCatalogScreen,

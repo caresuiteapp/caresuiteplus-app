@@ -6,6 +6,7 @@ import {
   PlatformDataTable,
   PlatformFilterChip,
   PlatformFilterChipRow,
+  PlatformFormField,
   PlatformReadOnlyBanner,
   PlatformShellLayout,
   PlatformStatusBadge,
@@ -28,7 +29,7 @@ import {
   listPlatformPlanModules,
   listPlatformPlanVersions,
 } from '@/lib/platformConsole/platformOperatorDataService';
-import { formatPlatformCents, formatPlatformDate } from '@/lib/platformConsole/platformFormat';
+import { formatPlatformCents, formatPlatformDate, parsePlatformEurosToCents } from '@/lib/platformConsole/platformFormat';
 import { usePlatformAuth } from '@/lib/platformConsole/PlatformAuthProvider';
 import { resolvePlatformPlanRowKey } from '@/lib/platformConsole/platformRowKeys';
 import { spacing } from '@/theme';
@@ -60,7 +61,7 @@ export function PlatformPlansOperatorScreen() {
   const [newPlanKey, setNewPlanKey] = useState('');
   const [newPlanName, setNewPlanName] = useState('');
   const [newPlanDesc, setNewPlanDesc] = useState('');
-  const [newMonthly, setNewMonthly] = useState('9900');
+  const [newMonthly, setNewMonthly] = useState('99,00');
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [versionMonthly, setVersionMonthly] = useState('');
@@ -197,12 +198,13 @@ export function PlatformPlansOperatorScreen() {
           {canWrite ? (
             <View style={styles.formPanel}>
               <Text style={styles.sectionTitle}>Tarif erstellen</Text>
-              <TextInput style={styles.input} value={newPlanKey} onChangeText={setNewPlanKey} placeholder="plan_key" placeholderTextColor={PLATFORM_COLORS.muted} />
-              <TextInput style={styles.input} value={newPlanName} onChangeText={setNewPlanName} placeholder="Name" placeholderTextColor={PLATFORM_COLORS.muted} />
-              <TextInput style={styles.input} value={newPlanDesc} onChangeText={setNewPlanDesc} placeholder="Beschreibung" placeholderTextColor={PLATFORM_COLORS.muted} />
-              <TextInput style={styles.input} value={newMonthly} onChangeText={setNewMonthly} placeholder="Monatspreis (Cent)" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
+              <PlatformFormField label="Interner Tarifcode" required hint="Kurzer stabiler Code, z. B. professional."><TextInput style={styles.input} value={newPlanKey} onChangeText={setNewPlanKey} placeholder="professional" placeholderTextColor={PLATFORM_COLORS.muted} /></PlatformFormField>
+              <PlatformFormField label="Tarifname" required><TextInput style={styles.input} value={newPlanName} onChangeText={setNewPlanName} placeholder="Professional" placeholderTextColor={PLATFORM_COLORS.muted} /></PlatformFormField>
+              <PlatformFormField label="Leistungsbeschreibung"><TextInput style={styles.input} value={newPlanDesc} onChangeText={setNewPlanDesc} placeholder="Zielgruppe und enthaltene Leistungen" placeholderTextColor={PLATFORM_COLORS.muted} multiline /></PlatformFormField>
+              <PlatformFormField label="Monatspreis in Euro" required hint="Dezimalbetrag, z. B. 299,00"><TextInput style={styles.input} value={newMonthly} onChangeText={setNewMonthly} placeholder="299,00" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" /></PlatformFormField>
               <Pressable
-                style={styles.primaryBtn}
+                style={[styles.primaryBtn, (!newPlanKey.trim() || !newPlanName.trim() || parsePlatformEurosToCents(newMonthly) === null) && styles.disabledBtn]}
+                disabled={!newPlanKey.trim() || !newPlanName.trim() || parsePlatformEurosToCents(newMonthly) === null}
                 onPress={() =>
                   setConfirm({
                     title: 'Tarif erstellen',
@@ -210,7 +212,7 @@ export function PlatformPlansOperatorScreen() {
                     action: async (reason) => {
                       const res = await createPlatformPlan(newPlanKey.trim(), newPlanName.trim(), reason, {
                         description: newPlanDesc.trim() || undefined,
-                        monthlyPriceCents: Number(newMonthly) || 0,
+                        monthlyPriceCents: parsePlatformEurosToCents(newMonthly) ?? 0,
                       });
                       if (!res.ok) throw new Error(res.error);
                       setLastAuditAction('plan.created');
@@ -234,10 +236,11 @@ export function PlatformPlansOperatorScreen() {
               {canWrite ? (
                 <>
                   <Text style={styles.label}>Tarif bearbeiten</Text>
-                  <TextInput style={styles.input} value={editName} onChangeText={setEditName} placeholder="Name" placeholderTextColor={PLATFORM_COLORS.muted} />
-                  <TextInput style={styles.input} value={editDesc} onChangeText={setEditDesc} placeholder="Beschreibung" placeholderTextColor={PLATFORM_COLORS.muted} />
+                  <PlatformFormField label="Tarifname" required><TextInput style={styles.input} value={editName} onChangeText={setEditName} placeholder="Name" placeholderTextColor={PLATFORM_COLORS.muted} /></PlatformFormField>
+                  <PlatformFormField label="Leistungsbeschreibung"><TextInput style={styles.input} value={editDesc} onChangeText={setEditDesc} placeholder="Beschreibung" placeholderTextColor={PLATFORM_COLORS.muted} multiline /></PlatformFormField>
                   <Pressable
-                    style={styles.primaryBtn}
+                    style={[styles.primaryBtn, !editName.trim() && styles.disabledBtn]}
+                    disabled={!editName.trim()}
                     onPress={() =>
                       setConfirm({
                         title: 'Tarif aktualisieren',
@@ -257,10 +260,11 @@ export function PlatformPlansOperatorScreen() {
                   </Pressable>
 
                   <Text style={styles.sectionTitle}>Neue Plan-Version</Text>
-                  <TextInput style={styles.input} value={versionMonthly} onChangeText={setVersionMonthly} placeholder="Monat (Cent)" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
-                  <TextInput style={styles.input} value={versionYearly} onChangeText={setVersionYearly} placeholder="Jahr (Cent)" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
+                  <PlatformFormField label="Monatspreis in Euro" required><TextInput style={styles.input} value={versionMonthly} onChangeText={setVersionMonthly} placeholder="299,00" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" /></PlatformFormField>
+                  <PlatformFormField label="Jahrespreis in Euro" required><TextInput style={styles.input} value={versionYearly} onChangeText={setVersionYearly} placeholder="2.990,00" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" /></PlatformFormField>
                   <Pressable
-                    style={styles.primaryBtn}
+                    style={[styles.primaryBtn, (parsePlatformEurosToCents(versionMonthly) === null || parsePlatformEurosToCents(versionYearly) === null) && styles.disabledBtn]}
+                    disabled={parsePlatformEurosToCents(versionMonthly) === null || parsePlatformEurosToCents(versionYearly) === null}
                     onPress={() =>
                       setConfirm({
                         title: 'Plan-Version erstellen',
@@ -269,8 +273,8 @@ export function PlatformPlansOperatorScreen() {
                           const res = await createPlatformPlanVersion(
                             selectedKey,
                             reason,
-                            Number(versionMonthly) || 0,
-                            Number(versionYearly) || 0,
+                            parsePlatformEurosToCents(versionMonthly) ?? 0,
+                            parsePlatformEurosToCents(versionYearly) ?? 0,
                           );
                           if (!res.ok) throw new Error(res.error);
                           setLastAuditAction('plan.version_created');
@@ -317,7 +321,7 @@ export function PlatformPlansOperatorScreen() {
                       </Pressable>
                     </View>
                   ))}
-                  <TextInput style={styles.input} value={moduleKey} onChangeText={setModuleKey} placeholder="module_key" placeholderTextColor={PLATFORM_COLORS.muted} />
+                  <PlatformFormField label="Modulcode" required hint="Wählen Sie einen Code aus dem Modulkatalog."><TextInput style={styles.input} value={moduleKey} onChangeText={setModuleKey} placeholder="z. B. assist" placeholderTextColor={PLATFORM_COLORS.muted} /></PlatformFormField>
                   <PlatformFilterChipRow>
                     {ACCESS_STATES.map((s) => (
                       <PlatformFilterChip key={s} label={s} active={moduleState === s} onPress={() => setModuleState(s)} />
@@ -351,8 +355,8 @@ export function PlatformPlansOperatorScreen() {
                       {String(l.limit_key)} = {String(l.limit_value)}
                     </Text>
                   ))}
-                  <TextInput style={styles.input} value={limitKey} onChangeText={setLimitKey} placeholder="limit_key" placeholderTextColor={PLATFORM_COLORS.muted} />
-                  <TextInput style={styles.input} value={limitValue} onChangeText={setLimitValue} placeholder="limit_value" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
+                  <PlatformFormField label="Limit" required hint="z. B. Maximale Benutzeranzahl"><TextInput style={styles.input} value={limitKey} onChangeText={setLimitKey} placeholder="max_users" placeholderTextColor={PLATFORM_COLORS.muted} /></PlatformFormField>
+                  <PlatformFormField label="Grenzwert" required><TextInput style={styles.input} value={limitValue} onChangeText={setLimitValue} placeholder="25" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" /></PlatformFormField>
                   <Pressable
                     style={styles.primaryBtn}
                     onPress={() =>
@@ -438,4 +442,5 @@ const styles = StyleSheet.create({
   hint: { color: PLATFORM_COLORS.muted, fontSize: 12 },
   auditRow: { flexDirection: 'row', marginTop: spacing.md },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  disabledBtn: { opacity: 0.45 },
 });

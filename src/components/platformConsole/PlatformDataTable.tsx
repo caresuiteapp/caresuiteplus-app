@@ -1,6 +1,6 @@
 import React from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { PLATFORM_COLORS } from './PlatformShellLayout';
+import { PLATFORM_COLORS } from './PlatformColors';
 import { PlatformEmptyState } from './PlatformEmptyState';
 import { spacing } from '@/theme';
 
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xs,
   },
   table: {
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: PLATFORM_COLORS.border,
     backgroundColor: PLATFORM_COLORS.panel,
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: '#0B1220',
+    backgroundColor: '#EAF2F8',
     borderBottomWidth: 1,
     borderBottomColor: PLATFORM_COLORS.border,
     minHeight: 40,
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerText: {
-    color: PLATFORM_COLORS.muted,
+    color: '#334155',
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -171,12 +171,13 @@ const styles = StyleSheet.create({
     borderBottomColor: PLATFORM_COLORS.border,
     minHeight: 44,
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
   dataRowAlt: {
-    backgroundColor: '#0D1524',
+    backgroundColor: '#F8FBFD',
   },
   dataRowSelected: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#E0F2FE',
   },
   dataCell: {
     paddingHorizontal: spacing.sm,

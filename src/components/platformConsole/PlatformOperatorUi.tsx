@@ -1,12 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { PLATFORM_COLORS } from './PlatformShellLayout';
+import { PLATFORM_COLORS } from './PlatformColors';
 import { spacing } from '@/theme';
 
-export function PlatformStatusBadge({ status }: { status: string }) {
+export function PlatformStatusBadge({ status, label }: { status: string; label?: string }) {
   const tone = statusTone(status);
   return (
     <View style={[styles.badge, { borderColor: tone.border, backgroundColor: tone.bg }]}>
-      <Text style={[styles.text, { color: tone.fg }]}>{status}</Text>
+      <Text style={[styles.text, { color: tone.fg }]}>{label ?? statusLabel(status)}</Text>
     </View>
   );
 }
@@ -41,6 +41,19 @@ function statusTone(status: string): { bg: string; border: string; fg: string } 
   return { bg: '#F1F5F9', border: PLATFORM_COLORS.border, fg: PLATFORM_COLORS.muted };
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  active: 'Aktiv', enabled: 'Aktiv', available: 'Verfügbar', succeeded: 'Erfolgreich', paid: 'Bezahlt', open: 'Offen',
+  failed: 'Fehlgeschlagen', past_due: 'Überfällig', chargeback: 'Rückbuchung', suspended: 'Gesperrt', revoked: 'Widerrufen',
+  cancelled: 'Storniert', pending: 'Ausstehend', draft: 'Entwurf', scheduled: 'Geplant', trial: 'Testphase',
+  live: 'Live', onboarding: 'Einrichtung', closed: 'Beendet', refunded: 'Erstattet', partially_paid: 'Teilbezahlt',
+  disabled: 'Deaktiviert', terminated: 'Beendet', locked: 'Gesperrt', manual_free: 'Kostenfrei', invoice_pending: 'Rechnung offen',
+};
+
+export function statusLabel(status: string): string {
+  const normalized = status.toLowerCase();
+  return STATUS_LABELS[normalized] ?? status.replaceAll('_', ' ');
+}
+
 const styles = StyleSheet.create({
   badge: {
     alignSelf: 'flex-start',
@@ -49,13 +62,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  text: { fontSize: 11, fontWeight: '600', textTransform: 'lowercase' },
+  text: { fontSize: 11, fontWeight: '700' },
   banner: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EFF6FF',
     borderWidth: 1,
-    borderColor: PLATFORM_COLORS.border,
-    borderRadius: 8,
+    borderColor: '#BFDBFE',
+    borderRadius: 10,
     padding: spacing.sm,
   },
-  bannerText: { color: PLATFORM_COLORS.muted, fontSize: 12, lineHeight: 18 },
+  bannerText: { color: '#1E40AF', fontSize: 12, lineHeight: 18 },
 });

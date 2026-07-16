@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { PLATFORM_COLORS } from './PlatformShellLayout';
+import { PLATFORM_COLORS } from './PlatformColors';
 import { spacing } from '@/theme';
 
 type PlatformFilterChipProps = {
