@@ -96,7 +96,7 @@ const WRONG_NEW_ROUTES = [
   },
   {
     route: '/assist/einsaetze/new',
-    mustInclude: ['AssignmentCreateScreen', 'EntityFormScreen'],
+    mustInclude: ['Redirect', '/assist/assignments?create=1'],
     mustNotInclude: ['EinsaetzeListScreen', 'AssignmentDetailScreen'],
   },
   {
@@ -114,7 +114,7 @@ const WRONG_NEW_ROUTES = [
 const WRONG_EDIT_ROUTES = [
   {
     route: '/assist/einsaetze/assign-001/edit',
-    mustInclude: ['AssignmentEditScreen', 'updateDemoAssignmentFields'],
+    mustInclude: ['AssignmentEditScreen', 'AssignmentEditForm', 'fetchVisitDispositionDetail'],
     mustNotInclude: ['AssignmentDetailScreen'],
   },
   {

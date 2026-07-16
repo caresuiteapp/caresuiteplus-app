@@ -4,6 +4,9 @@ import { visitSupabaseRepository } from './repositories/visitRepository.supabase
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import type { VisitDispositionListItem } from './visitTypes';
+import { getServiceMode } from '@/lib/services/mode';
+import { getActiveDemoExecutions } from '@/data/demo/assignmentExecutions';
+import { TEST_TENANT_ID } from '@/data/constants/testTenant';
 
 export function buildDueExecutionItems(visits: VisitDispositionListItem[], now = new Date()): ActiveExecutionItem[] {
   return visits
@@ -34,6 +37,10 @@ export async function fetchExecutionList(
     'assist.execution.view',
   );
   if (denied) return denied;
+
+  if (tenantId === TEST_TENANT_ID || getServiceMode() !== 'supabase') {
+    return { ok: true, data: getActiveDemoExecutions() };
+  }
 
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;

@@ -5,6 +5,7 @@ import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { ScreenShell } from '@/components/layout';
 import { LockedActionBanner } from '@/components/permissions';
+import { WorkflowToast } from '@/components/ui/WorkflowToast';
 import {
   EmployeePortalLocationConsentBanner,
   EmployeePortalVisitBottomBar,
@@ -31,7 +32,6 @@ import {
   PremiumCard,
   PremiumInput,
   SectionPanel,
-  SuccessState,
   CachedDataBanner,
 } from '@/components/ui';
 import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
@@ -856,7 +856,10 @@ export function EmployeePortalVisitExecutionScreen() {
         showProgress={showCompactProgress(phase)}
       />
 
-      {showSuccess ? <SuccessState message={localSuccess!} /> : null}
+      <WorkflowToast
+        message={showSuccess ? localSuccess : null}
+        onDismiss={() => setLocalSuccess(null)}
+      />
       {localError ? (
         <View style={styles.dismissibleError}>
           <ErrorState message={localError} />

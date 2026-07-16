@@ -62,6 +62,10 @@ export const formatDateForDisplay = formatDate;
 /** HH:MM Uhr */
 export function formatTime(value: string | Date | null | undefined): string {
   if (!value) return '';
+  if (typeof value === 'string') {
+    const wallTime = value.trim().match(/^\d{4}-\d{2}-\d{2}T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?$/);
+    if (wallTime) return `${wallTime[1]} Uhr`;
+  }
   const d = toDate(value);
   if (!d) return '';
   return `${timeFormatter.format(d)} Uhr`;
@@ -72,6 +76,11 @@ export function formatTimeRange(
   start: string | Date,
   end: string | Date,
 ): string {
+  if (typeof start === 'string' && typeof end === 'string') {
+    const startWall = start.trim().match(/^\d{4}-\d{2}-\d{2}T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?$/);
+    const endWall = end.trim().match(/^\d{4}-\d{2}-\d{2}T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?$/);
+    if (startWall && endWall) return `${startWall[1]}–${endWall[1]} Uhr`;
+  }
   const s = toDate(start);
   const e = toDate(end);
   if (!s || !e) return '';

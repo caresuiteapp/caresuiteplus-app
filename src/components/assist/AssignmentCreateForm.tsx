@@ -273,6 +273,26 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
 
   const handleSave = async (asDraft: boolean) => {
     if (!tenantId || !canManage) return;
+    if (!form.clientId) {
+      setError('Bitte eine:n Klient:in auswählen.');
+      setSection('people');
+      return;
+    }
+    if (!asDraft && !form.employeeId) {
+      setError('Für einen geplanten Einsatz ist eine mitarbeitende Person erforderlich.');
+      setSection('people');
+      return;
+    }
+    if (!asDraft && !form.subjectKey && !form.title.trim()) {
+      setError('Bitte einen Einsatz-Betreff auswählen.');
+      setSection('type');
+      return;
+    }
+    if (!asDraft && form.taskDrafts.length === 0 && !form.tasks.some((task) => task.trim())) {
+      setError('Bitte mindestens eine Aufgabe auswählen.');
+      setSection('tasks');
+      return;
+    }
     setLoading(true);
     setError(null);
     const payload: VisitCreateWizardData = {
@@ -281,10 +301,24 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
       title: form.title || subjectOptions.find((s) => s.value === form.subjectKey)?.label || 'Neuer Einsatz',
       catalogSnapshotJson: {
         subjectKey: form.subjectKey,
+        subjectLabel: subjectOptions.find((item) => item.value === form.subjectKey)?.label ?? null,
         assignmentTypeKey: form.assignmentTypeKey,
+        assignmentTypeLabel:
+          options?.assignmentTypes.find((item) => item.itemKey === form.assignmentTypeKey)?.label
+          ?? null,
         serviceCategoryKey: form.serviceCategoryKey,
+        serviceCategoryLabel:
+          options?.serviceCategories.find((item) => item.itemKey === form.serviceCategoryKey)?.label
+          ?? null,
         taskPackageId: form.taskPackageId,
+        taskPackageLabel:
+          options?.taskPackages.find((item) => item.id === form.taskPackageId)?.label ?? null,
         riskFlagKeys: form.riskFlagKeys,
+        riskFlagLabels: form.riskFlagKeys.map(
+          (key) => options?.riskFlags.find((item) => item.itemKey === key)?.label ?? key,
+        ),
+        documentationTemplateKey: form.documentationTemplate || null,
+        proofTemplateKey: form.proofTemplateKey || null,
         recurrencePattern: form.recurrencePattern,
         recurrenceEndDate: form.recurrenceEndDate || null,
         recurrenceWeekdays: form.recurrenceWeekdays,

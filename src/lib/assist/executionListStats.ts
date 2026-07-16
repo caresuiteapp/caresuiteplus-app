@@ -16,7 +16,7 @@ export function buildExecutionListKpis(items: ActiveExecutionItem[]): ExecutionL
   const corrections = items.filter((item) => item.requiresTimeCorrection).length;
   const errors = items.filter((item) => item.hasError || item.phase === 'cancelled').length;
   return [
-    { id: 'execution-kpi-due', label: 'Fällig gesamt', value: items.length, subValue: `${completed} abgeschlossen`, icon: '✓', accentColor: '#FF9500' },
+    { id: 'execution-kpi-ready', label: 'Fällig gesamt', value: items.length, subValue: `${completed} abgeschlossen`, icon: '✓', accentColor: '#FF9500' },
     { id: 'execution-kpi-follow-up', label: 'Nachbearbeitung offen', value: followUp, subValue: `${signatures} Unterschriften offen`, icon: '!', accentColor: '#4ADE80' },
     { id: 'execution-kpi-corrections', label: 'Zeitkorrekturen', value: corrections, subValue: `${errors} Fehlerfälle`, icon: '⌚', accentColor: '#62F3FF' },
   ];

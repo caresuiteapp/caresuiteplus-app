@@ -73,16 +73,18 @@ describe('Client Intake & Record Rebuild', () => {
     expect(required).toContain('facility');
   });
 
-  it('Ambulant + Betreuung kombiniert Kontexte', () => {
+  it('Ambulant + Betreuung nutzt kompakte Aktennavigation mit Fachbereichen unter Mehr', () => {
     const tabs = getClientRecordTabsForClientContext(['ambulatory_care', 'support_care']);
-    expect(tabs).toContain('medikation');
-    expect(tabs).toContain('aufgaben');
+    expect(tabs).toContain('einsaetze');
+    expect(tabs).toContain('mehr');
+    expect(tabs).not.toContain('medikation');
   });
 
-  it('Akte Tabs abhängig von Beratung', () => {
+  it('Beratungsakte bleibt kompakt und bündelt Fachansichten unter Mehr', () => {
     const tabs = getClientRecordTabsForClientContext(['consulting']);
-    expect(tabs).toContain('beratungsanlass');
-    expect(tabs).toContain('protokolle');
+    expect(tabs).toContain('verlauf');
+    expect(tabs).toContain('mehr');
+    expect(tabs).not.toContain('beratungsanlass');
   });
 
   it('Systemkataloge enthalten Leistungsart und Pflegegrad', () => {

@@ -34,6 +34,10 @@ import { getAllowedAssignmentTransitions } from '@/lib/assist/assignmentStatusMa
 import { dedupeStatusTransitionButtons } from '@/lib/assist/visitWorkflow';
 import { assignmentStatusToDimensions, isVisitIncomplete } from '@/lib/assist/visitWorkflow';
 import { buildPlannedTimestamps } from '@/lib/assist/assignmentProductionValidation';
+import {
+  hasAssignmentProductionErrors,
+  validateAssignmentCreateForm,
+} from '@/lib/assist/assignmentProductionValidation';
 import { detectAssignmentConflicts } from '@/lib/assist/assignmentConflictService';
 import {
   expandVisitRecurrenceDates,
@@ -585,6 +589,27 @@ export async function createVisitFromWizard(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
+  const validationErrors = validateAssignmentCreateForm({
+    clientId: wizard.clientId,
+    employeeId: wizard.employeeId,
+    assignmentDate: wizard.assignmentDate,
+    plannedStartTime: wizard.plannedStartTime,
+    plannedEndTime: wizard.plannedEndTime,
+    title: wizard.title,
+    tasks:
+      wizard.taskDrafts.length > 0
+        ? wizard.taskDrafts.map((task) => task.title)
+        : wizard.tasks,
+  });
+  if (wizard.saveAsDraft) {
+    delete validationErrors.employeeId;
+    delete validationErrors.title;
+    delete validationErrors.tasks;
+  }
+  if (hasAssignmentProductionErrors(validationErrors)) {
+    return { ok: false, error: Object.values(validationErrors)[0] ?? 'Bitte Pflichtfelder prüfen.' };
+  }
+
   const { plannedStartAt, plannedEndAt } = buildPlannedTimestamps({
     clientId: wizard.clientId,
     employeeId: wizard.employeeId,
@@ -721,9 +746,12 @@ export async function createVisitFromWizard(
     plannedStartAt,
     plannedEndAt,
     addressSnapshot: wizard.addressSnapshot || null,
+    locationNotes: wizard.locationNotes || null,
     tasks: taskTitles,
     budgetAmountCents: budgetAmountCents ?? wizard.budgetAmountCents,
     internalNotes: wizard.internalNotes,
+    employeeNotes: wizard.employeeNotes || null,
+    clientVisibleNotes: wizard.clientVisibleNotes || null,
     notifyEmployee: wizard.notifyEmployee,
     notifyClient: wizard.notifyClient,
     portalReleaseEnabled: wizard.portalReleaseEnabled,
@@ -735,6 +763,7 @@ export async function createVisitFromWizard(
     billingBudgetSourceKey:
       budgetAllocation?.primaryCatalogKey ?? (wizard.billingBudgetSourceKey || null),
     proofTemplateKey: wizard.proofTemplateKey || null,
+    documentationTemplateKey: wizard.documentationTemplate || null,
     riskFlagKeys: wizard.riskFlagKeys,
     recurrenceJson: buildVisitRecurrenceJson(wizard),
     catalogSnapshotJson: {

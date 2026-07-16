@@ -20,7 +20,7 @@ function readSrc(relativePath: string): string {
 describe('Mandanten-Bereich Navigation', () => {
   it('Route und Screen existieren', () => {
     expect(TENANT_SETTINGS_ROUTE).toBe('/settings/tenant');
-    expect(existsSync(path.join(root, 'app/settings/tenant.tsx'))).toBe(true);
+    expect(existsSync(path.join(root, 'app/settings/tenant/index.tsx'))).toBe(true);
     expect(existsSync(path.join(root, 'app/settings/index.tsx'))).toBe(true);
     expect(existsSync(path.join(root, 'app/settings/_layout.tsx'))).toBe(true);
     expect(existsSync(path.join(root, 'src/screens/settings/TenantSettingsScreen.tsx'))).toBe(true);
@@ -33,7 +33,7 @@ describe('Mandanten-Bereich Navigation', () => {
   });
 
   it('App-Route bindet TenantSettingsScreen', () => {
-    expect(readSrc('app/settings/tenant.tsx')).toContain('TenantSettingsScreen');
+    expect(readSrc('app/settings/tenant/index.tsx')).toContain('TenantSettingsScreen');
   });
 
   it('Mandanten-Center zeigt persönliche Einstellungen oben', () => {

@@ -65,8 +65,12 @@ const CORE_CHECKS = [
   },
   {
     label: 'Client Edit',
-    files: ['src/screens/office/ClientEditScreen.tsx'],
-    must: ['useClientEditWizard', 'submit', 'FormStepper'],
+    files: [
+      'src/screens/office/ClientEditScreen.tsx',
+      'src/screens/business/office/ClientRecordScreen.tsx',
+      'src/components/office/clientintakewizardform.tsx',
+    ],
+    must: ['clientRecordRoute', 'edit=1', 'ClientIntakeWizardForm', 'useClientIntakeWizard', 'submit'],
     mustNot: ['ClientDetailScreen'],
   },
   {

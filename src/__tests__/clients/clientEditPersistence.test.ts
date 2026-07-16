@@ -136,7 +136,7 @@ describe('persistClientEditData', () => {
       expect.objectContaining({
         first_name: 'Heinz-Peter',
         last_name: 'Reinhardt',
-        care_level: '3',
+        care_level: 'pg3',
       }),
     );
     expect(mockUnknownTable).toHaveBeenCalledWith(expect.anything(), 'client_addresses');

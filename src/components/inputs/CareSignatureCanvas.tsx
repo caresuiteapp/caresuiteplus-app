@@ -73,8 +73,13 @@ function useSignatureCanvasStyles(fillAvailable: boolean, actionLayout: 'default
         },
         actionsBar: {
           paddingTop: spacing.xs,
-          flexDirection: 'column',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
           alignItems: 'stretch',
+        },
+        secondaryAction: {
+          flex: 1,
+          minWidth: 120,
         },
         confirmBar: {
           flex: 1,
@@ -167,9 +172,9 @@ function SignatureActions({
   if (actionLayout === 'bar') {
     return (
       <View style={[styles.actions, styles.actionsBar, { paddingBottom: Math.max(spacing.sm, safeBottom) }]}>
-        <PremiumButton title="Löschen" variant="ghost" onPress={onClear} disabled={disabled} fullWidth />
+        <PremiumButton title="Löschen" variant="ghost" onPress={onClear} disabled={disabled} style={styles.secondaryAction} />
         {onCancel ? (
-          <PremiumButton title="Abbrechen" variant="secondary" onPress={onCancel} disabled={disabled} fullWidth />
+          <PremiumButton title="Abbrechen" variant="secondary" onPress={onCancel} disabled={disabled} style={styles.secondaryAction} />
         ) : null}
         {confirmButton}
       </View>
@@ -219,9 +224,12 @@ function WebSignatureCanvas({
   const strokesRef = useRef<Point[][]>([]);
   const currentStrokeRef = useRef<Point[]>([]);
   const drawSpaceRef = useRef<CanvasCoordinateSpace | null>(null);
+  const drawingContextRef = useRef<CanvasRenderingContext2D | null>(null);
+  const canvasRectRef = useRef<DOMRect | null>(null);
   const touchInputActiveRef = useRef(false);
   const frameRef = useRef<number | null>(null);
-  const queuedPointRef = useRef<{ x: number; y: number } | null>(null);
+  const queuedPointsRef = useRef<Array<{ x: number; y: number }>>([]);
+  const hasStrokeRef = useRef(false);
   const [hasStroke, setHasStroke] = useState(false);
   const [measured, setMeasured] = useState<{ width: number; height: number } | null>(null);
   const dims = resolveDimensions(size, widthProp, heightProp, measured ?? undefined);
@@ -307,6 +315,8 @@ function WebSignatureCanvas({
     }
 
     drawSpaceRef.current = nextSpace;
+    drawingContextRef.current = ctx;
+    canvasRectRef.current = rect;
     if (sizeChanged || !previousSpace) redrawStrokes(ctx, nextSpace);
     return { ctx, space: nextSpace };
   }, [redrawStrokes, strokeWidth]);
@@ -357,6 +367,7 @@ function WebSignatureCanvas({
       synced.ctx.clearRect(0, 0, synced.space.drawWidth, synced.space.drawHeight);
     }
     setHasStroke(false);
+    hasStrokeRef.current = false;
     onClear?.();
   }, [onClear, syncCanvasToDisplay]);
 
@@ -369,11 +380,10 @@ function WebSignatureCanvas({
   const drawAt = useCallback((clientX: number, clientY: number, start: boolean) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const synced = syncCanvasToDisplay();
-    const ctx = synced?.ctx ?? canvas.getContext('2d');
+    const ctx = drawingContextRef.current ?? canvas.getContext('2d');
     if (!ctx) return;
 
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvasRectRef.current ?? canvas.getBoundingClientRect();
     const space = drawSpaceRef.current ?? readCanvasCoordinateSpace(canvas);
     const point = clientToCanvasPoint(clientX, clientY, rect, space);
 
@@ -391,8 +401,17 @@ function WebSignatureCanvas({
     stroke.push(point);
     ctx.lineTo(point.x, point.y);
     ctx.stroke();
-    setHasStroke(true);
-  }, [syncCanvasToDisplay]);
+    if (!hasStrokeRef.current) {
+      hasStrokeRef.current = true;
+      setHasStroke(true);
+    }
+  }, []);
+
+  const drawQueuedPoints = useCallback(() => {
+    const points = queuedPointsRef.current;
+    queuedPointsRef.current = [];
+    for (const point of points) drawAt(point.x, point.y, false);
+  }, [drawAt]);
 
   const endStroke = useCallback(() => {
     if (currentStrokeRef.current.length > 1) {
@@ -415,9 +434,10 @@ function WebSignatureCanvas({
       }
       drawing.current = true;
       activePointerId.current = pointerId;
+      syncCanvasToDisplay();
       drawAt(clientX, clientY, true);
     },
-    [disabled, drawAt],
+    [disabled, drawAt, syncCanvasToDisplay],
   );
 
   const continueStroke = useCallback(
@@ -487,7 +507,7 @@ function WebSignatureCanvas({
   useEffect(() => () => {
     if (frameRef.current != null) cancelAnimationFrame(frameRef.current);
     frameRef.current = null;
-    queuedPointRef.current = null;
+    queuedPointsRef.current = [];
   }, []);
 
   const handlePointerDown = useCallback(
@@ -504,17 +524,18 @@ function WebSignatureCanvas({
       if (touchInputActiveRef.current) return;
       if (!drawing.current || disabled || activePointerId.current !== event.pointerId) return;
       event.preventDefault();
-      queuedPointRef.current = { x: event.clientX, y: event.clientY };
+      const coalesced = event.nativeEvent.getCoalescedEvents?.() ?? [event.nativeEvent];
+      queuedPointsRef.current.push(
+        ...coalesced.map((point) => ({ x: point.clientX, y: point.clientY })),
+      );
       if (frameRef.current == null) {
         frameRef.current = requestAnimationFrame(() => {
           frameRef.current = null;
-          const point = queuedPointRef.current;
-          queuedPointRef.current = null;
-          if (point) continueStroke(point.x, point.y);
+          drawQueuedPoints();
         });
       }
     },
-    [disabled, continueStroke],
+    [disabled, drawQueuedPoints],
   );
 
   const handlePointerEnd = useCallback(
@@ -524,12 +545,10 @@ function WebSignatureCanvas({
       event.preventDefault();
       if (frameRef.current != null) cancelAnimationFrame(frameRef.current);
       frameRef.current = null;
-      const point = queuedPointRef.current;
-      queuedPointRef.current = null;
-      if (point) continueStroke(point.x, point.y);
+      drawQueuedPoints();
       finishStroke(event.pointerId);
     },
-    [continueStroke, finishStroke],
+    [drawQueuedPoints, finishStroke],
   );
 
   /** Mouse fallback — Playwright automation uses mouse events, not always pointer capture. */
@@ -619,6 +638,9 @@ function NativeSignatureCanvas({
   const insets = useSafeAreaInsets();
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [current, setCurrent] = useState<Point[]>([]);
+  const nativeStrokesRef = useRef<Point[][]>([]);
+  const nativeCurrentRef = useRef<Point[]>([]);
+  const nativeFrameRef = useRef<number | null>(null);
   const [measured, setMeasured] = useState<{ width: number; height: number } | null>(null);
   const dims = resolveDimensions(size, widthProp, heightProp, measured ?? undefined);
   const dotSize = size === 'large' ? 3 : 2;
@@ -637,6 +659,18 @@ function NativeSignatureCanvas({
     [fillAvailable],
   );
 
+  const scheduleNativeRender = useCallback(() => {
+    if (nativeFrameRef.current != null) return;
+    nativeFrameRef.current = requestAnimationFrame(() => {
+      nativeFrameRef.current = null;
+      setCurrent([...nativeCurrentRef.current]);
+    });
+  }, []);
+
+  useEffect(() => () => {
+    if (nativeFrameRef.current != null) cancelAnimationFrame(nativeFrameRef.current);
+  }, []);
+
   const pan = useMemo(
     () =>
       PanResponder.create({
@@ -644,23 +678,38 @@ function NativeSignatureCanvas({
         onMoveShouldSetPanResponder: () => !disabled,
         onPanResponderGrant: (evt) => {
           const { locationX, locationY } = evt.nativeEvent;
-          setCurrent([{ x: locationX, y: locationY }]);
+          nativeCurrentRef.current = [{ x: locationX, y: locationY }];
+          setCurrent(nativeCurrentRef.current);
         },
         onPanResponderMove: (evt) => {
           const { locationX, locationY } = evt.nativeEvent;
-          setCurrent((prev) => [...prev, { x: locationX, y: locationY }]);
+          nativeCurrentRef.current.push({ x: locationX, y: locationY });
+          scheduleNativeRender();
         },
         onPanResponderRelease: () => {
-          setStrokes((prev) => (current.length > 1 ? [...prev, current] : prev));
+          if (nativeFrameRef.current != null) cancelAnimationFrame(nativeFrameRef.current);
+          nativeFrameRef.current = null;
+          const finished = [...nativeCurrentRef.current];
+          if (finished.length > 1) {
+            nativeStrokesRef.current = [...nativeStrokesRef.current, finished];
+            setStrokes(nativeStrokesRef.current);
+          }
+          nativeCurrentRef.current = [];
+          setCurrent([]);
+        },
+        onPanResponderTerminate: () => {
+          nativeCurrentRef.current = [];
           setCurrent([]);
         },
       }),
-    [current, disabled],
+    [disabled, scheduleNativeRender],
   );
 
   const handleClear = useCallback(() => {
     setStrokes([]);
     setCurrent([]);
+    nativeStrokesRef.current = [];
+    nativeCurrentRef.current = [];
     onClear?.();
   }, [onClear]);
 

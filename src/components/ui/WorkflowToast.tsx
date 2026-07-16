@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '@/theme';
 
@@ -8,12 +8,14 @@ export function WorkflowToast({ message, kind = 'success', onDismiss }: {
   onDismiss?: () => void;
 }) {
   const [visible, setVisible] = useState(Boolean(message));
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
   useEffect(() => {
     setVisible(Boolean(message));
     if (!message) return;
-    const timer = setTimeout(() => { setVisible(false); onDismiss?.(); }, 5000);
+    const timer = setTimeout(() => { setVisible(false); onDismissRef.current?.(); }, 5000);
     return () => clearTimeout(timer);
-  }, [kind, message, onDismiss]);
+  }, [kind, message]);
   if (!visible || !message) return null;
   return (
     <View pointerEvents="box-none" style={styles.host}>

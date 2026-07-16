@@ -207,4 +207,29 @@ describe('mapClientEditLoadToIntakeForm', () => {
 
     expect(intake.homeAccess).toEqual(['klingel', 'schluessel', 'tresor']);
   });
+
+  it('preserves extended intake and support fields during edit', () => {
+    const detail = buildDetail();
+    const full = buildFull(detail);
+    const intake = mapClientEditLoadToIntakeForm({
+      detail,
+      fullClient: full,
+      careContexts: ['daily_assistance'],
+      form: EMPTY_CLIENT_EDIT_FORM,
+      intakeSnapshot: {
+        birthPlace: 'Herne',
+        language: 'de',
+        supportWishes: ['einkauf', 'begleitung'],
+        preferredTimes: ['vormittag'],
+        mobility: 'Rollator',
+        bellName: 'Muster',
+      },
+    });
+
+    expect(intake.birthPlace).toBe('Herne');
+    expect(intake.supportWishes).toEqual(['einkauf', 'begleitung']);
+    expect(intake.preferredTimes).toEqual(['vormittag']);
+    expect(intake.mobility).toBe('Rollator');
+    expect(intake.bellName).toBe('Muster');
+  });
 });
