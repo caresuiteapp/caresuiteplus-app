@@ -139,11 +139,11 @@ describe('Urlaub regression with German dates', () => {
 
     const start = new Date(created.data.startsAt);
     const end = new Date(created.data.endsAt);
-    expect(start.getFullYear()).toBe(2026);
-    expect(start.getMonth()).toBe(7);
-    expect(start.getDate()).toBe(10);
-    expect(end.getFullYear()).toBe(2026);
-    expect(end.getMonth()).toBe(7);
-    expect(end.getDate()).toBe(12);
+    expect(start.getUTCFullYear()).toBe(2026);
+    expect(start.getUTCMonth()).toBe(7);
+    expect(start.getUTCDate()).toBe(10);
+    expect(end.getUTCFullYear()).toBe(2026);
+    expect(end.getUTCMonth()).toBe(7);
+    expect(end.getUTCDate()).toBe(12);
   });
 });

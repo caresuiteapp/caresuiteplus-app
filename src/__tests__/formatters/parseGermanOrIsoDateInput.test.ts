@@ -76,20 +76,29 @@ describe('parseGermanOrIsoDateInput', () => {
 });
 
 describe('parseWfmAbsenceDateRange', () => {
+  it('liefert host-zeitzonenunabhängige Tagesgrenzen', () => {
+    const result = parseWfmAbsenceDateRange('15.08.2026', '16.08.2026');
+    expect(result).toEqual({
+      ok: true,
+      startsAt: '2026-08-15T00:00:00.000Z',
+      endsAt: '2026-08-16T23:59:59.999Z',
+    });
+  });
+
   it('parst deutschen Zeitraum korrekt (15.08.2026)', () => {
     const result = parseWfmAbsenceDateRange('15.08.2026', '15.08.2026');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const start = new Date(result.startsAt);
     const end = new Date(result.endsAt);
-    expect(start.getFullYear()).toBe(2026);
-    expect(start.getMonth()).toBe(7);
-    expect(start.getDate()).toBe(15);
-    expect(start.getHours()).toBe(0);
-    expect(end.getFullYear()).toBe(2026);
-    expect(end.getMonth()).toBe(7);
-    expect(end.getDate()).toBe(15);
-    expect(end.getHours()).toBe(23);
+    expect(start.getUTCFullYear()).toBe(2026);
+    expect(start.getUTCMonth()).toBe(7);
+    expect(start.getUTCDate()).toBe(15);
+    expect(start.getUTCHours()).toBe(0);
+    expect(end.getUTCFullYear()).toBe(2026);
+    expect(end.getUTCMonth()).toBe(7);
+    expect(end.getUTCDate()).toBe(15);
+    expect(end.getUTCHours()).toBe(23);
   });
 
   it('lehnt Enddatum vor Startdatum ab', () => {

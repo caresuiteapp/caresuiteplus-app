@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import {
@@ -32,6 +33,7 @@ function formatDateTime(iso: string): string {
 }
 
 export function EmployeePortalTimesScreen() {
+  const router = useRouter();
   const { profile, user } = useAuth();
   const { employeeId: portalEmployeeId } = usePortalActor();
   const tenantId = useServiceTenantId();
@@ -42,6 +44,8 @@ export function EmployeePortalTimesScreen() {
   const text = useAuroraAdaptiveText();
 
   const canView = can('time.tracking.own.view');
+  const canViewAbsences = can('portal.employee.absences.view');
+  const canRequestAbsences = can('portal.employee.absences.request');
 
   const query = useAsyncQuery(
     useCallback(async () => {
@@ -99,6 +103,26 @@ export function EmployeePortalTimesScreen() {
       subtitle={`Einsatzzeiten der letzten ${PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS} Tage`}
       scroll
     >
+      {canViewAbsences ? (
+        <SectionPanel
+          title="Urlaub & Abwesenheiten"
+          subtitle="Anträge einreichen, Status prüfen oder offene Anträge zurückziehen"
+        >
+          <View style={styles.requestActions}>
+            <PremiumButton
+              title={canRequestAbsences ? 'Urlaubsantrag stellen' : 'Urlaubsanträge ansehen'}
+              variant="primary"
+              onPress={() => router.push('/portal/employee/arbeitszeit/urlaub' as never)}
+            />
+            <PremiumButton
+              title={canRequestAbsences ? 'Abwesenheit melden' : 'Abwesenheiten ansehen'}
+              variant="secondary"
+              onPress={() => router.push('/portal/employee/arbeitszeit/abwesenheiten' as never)}
+            />
+          </View>
+        </SectionPanel>
+      ) : null}
+
       <SectionPanel
         title="Meine Arbeitszeiten"
         subtitle={`Einsätze der letzten ${PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS} Tage`}
@@ -163,6 +187,11 @@ export function EmployeePortalTimesScreen() {
 }
 
 const styles = StyleSheet.create({
+  requestActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: careSpacing.sm,
+  },
   row: {
     padding: careSpacing.md, borderRadius: 18, gap: 4, marginBottom: careSpacing.sm,
   },

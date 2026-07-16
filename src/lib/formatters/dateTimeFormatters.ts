@@ -290,18 +290,35 @@ export function parseGermanOrIsoDateInputToIso(
 
 const WFM_ABSENCE_DATE_ERROR = 'Bitte prüfen Sie das Datum.';
 
+function parseWfmDateOnlyKey(value: string): string | null {
+  const trimmed = value.trim();
+  const german = trimmed.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/);
+  const parts = german
+    ? { year: Number(german[3]), month: Number(german[2]), day: Number(german[1]) }
+    : iso
+      ? { year: Number(iso[1]), month: Number(iso[2]), day: Number(iso[3]) }
+      : null;
+  if (!parts || !isValidCalendarDate(parts.year, parts.month, parts.day)) return null;
+  return `${String(parts.year).padStart(4, '0')}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+}
+
 /** Parst Start/Ende für WFM-Abwesenheitsanträge (ganztägig, lokale Tagesgrenzen). */
 export function parseWfmAbsenceDateRange(
   startInput: string,
   endInput: string,
 ): { ok: true; startsAt: string; endsAt: string } | { ok: false; error: string } {
-  const startDate = parseGermanOrIsoDateInput(startInput, { timeOfDay: 'start' });
-  const endDate = parseGermanOrIsoDateInput(endInput, { timeOfDay: 'end' });
-  if (!startDate || !endDate) {
+  const startKey = parseWfmDateOnlyKey(startInput);
+  const endKey = parseWfmDateOnlyKey(endInput);
+  if (!startKey || !endKey) {
     return { ok: false, error: WFM_ABSENCE_DATE_ERROR };
   }
-  if (endDate.getTime() < startDate.getTime()) {
+  if (endKey < startKey) {
     return { ok: false, error: WFM_ABSENCE_DATE_ERROR };
   }
-  return { ok: true, startsAt: startDate.toISOString(), endsAt: endDate.toISOString() };
+  return {
+    ok: true,
+    startsAt: `${startKey}T00:00:00.000Z`,
+    endsAt: `${endKey}T23:59:59.999Z`,
+  };
 }

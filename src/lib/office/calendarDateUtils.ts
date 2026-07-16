@@ -33,8 +33,11 @@ export function normalizeAllDayFloatingUtcBounds(
   endIso: string,
   timeZone: string = DEFAULT_CALENDAR_TIMEZONE,
 ): { startAt: string; endAt: string } {
-  const startKey = toTimezoneDateKey(startIso, timeZone);
-  const endKey = toTimezoneDateKey(endIso, timeZone);
+  const alreadyFloating =
+    /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/.test(startIso)
+    && /^\d{4}-\d{2}-\d{2}T23:59:59\.999Z$/.test(endIso);
+  const startKey = alreadyFloating ? startIso.slice(0, 10) : toTimezoneDateKey(startIso, timeZone);
+  const endKey = alreadyFloating ? endIso.slice(0, 10) : toTimezoneDateKey(endIso, timeZone);
   return {
     startAt: floatingUtcDayStart(startKey),
     endAt: floatingUtcDayEnd(endKey),

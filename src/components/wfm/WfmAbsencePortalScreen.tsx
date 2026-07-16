@@ -3,6 +3,8 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
+import { CareDateInput } from '@/components/inputs';
+import { WorkflowToast } from '@/components/ui/WorkflowToast';
 import { AuroraSegmentedControl } from '@/components/aurora';
 import {
   EmptyState,
@@ -11,7 +13,6 @@ import {
   PremiumBadge,
   PremiumButton,
   SectionPanel,
-  SuccessState,
 } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -208,19 +209,15 @@ export function WfmAbsencePortalScreen({
               Art: {WFM_ABSENCE_TYPE_LABELS[selectedType]}
             </Text>
           )}
-          <Text style={[styles.label, { color: text.secondary }]}>Von (TT.MM.JJJJ)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="01.07.2026"
+          <CareDateInput
+            label="Von"
             value={startsAt}
-            onChangeText={setStartsAt}
+            onChange={setStartsAt}
           />
-          <Text style={[styles.label, { color: text.secondary }]}>Bis (TT.MM.JJJJ)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="05.07.2026"
+          <CareDateInput
+            label="Bis"
             value={endsAt}
-            onChangeText={setEndsAt}
+            onChange={setEndsAt}
           />
           <Text style={[styles.label, { color: text.secondary }]}>Anmerkung (optional)</Text>
           <TextInput
@@ -280,7 +277,7 @@ export function WfmAbsencePortalScreen({
         )}
       </SectionPanel>
 
-      {message ? <SuccessState title="Erfolg" message={message} /> : null}
+      <WorkflowToast message={message} onDismiss={() => setMessage(null)} />
       {error ? <ErrorState title="Fehler" message={error} onRetry={() => setError(null)} /> : null}
     </ScreenShell>
   );

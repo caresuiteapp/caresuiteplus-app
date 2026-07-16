@@ -24,6 +24,18 @@ export const EMPLOYEE_PORTAL_NAV_TABS: ShellTabConfig[] = [
     icon: '🕐',
     href: '/portal/employee/times',
   },
+  {
+    key: 'vacation-request',
+    label: 'Urlaubsantrag',
+    icon: '🏖️',
+    href: '/portal/employee/arbeitszeit/urlaub',
+  },
+  {
+    key: 'absence-request',
+    label: 'Abwesenheiten',
+    icon: '🩺',
+    href: '/portal/employee/arbeitszeit/abwesenheiten',
+  },
 ];
 
 /** Primary bottom-nav tabs on phone — Übersicht … Nachrichten. */
@@ -43,6 +55,8 @@ export const EMPLOYEE_PORTAL_DRAWER_TAB_KEYS = [
   'clients',
   'signatures',
   'time-tracking',
+  'vacation-request',
+  'absence-request',
 ] as const;
 
 export type EmployeePortalDrawerTabKey = (typeof EMPLOYEE_PORTAL_DRAWER_TAB_KEYS)[number];
