@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PLATFORM_COLORS } from './PlatformColors';
 import { PlatformEmptyState } from './PlatformEmptyState';
 import { spacing } from '@/theme';
