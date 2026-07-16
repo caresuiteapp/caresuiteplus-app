@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PLATFORM_COLORS } from './PlatformColors';
 import { PlatformEmptyState } from './PlatformEmptyState';
 import { spacing } from '@/theme';
@@ -47,9 +47,6 @@ function resolveMinTableWidth<T>(columns: PlatformDataTableColumn<T>[]): number 
   }, 0);
 }
 
-const headerTextWebStyle =
-  Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as const) : undefined;
-
 export function PlatformDataTable<T>({
   columns,
   data,
@@ -71,7 +68,7 @@ export function PlatformDataTable<T>({
       <View style={styles.headerRow}>
         {columns.map((col) => (
           <View key={col.key} style={[styles.headerCell, ...columnCellStyle(col)]}>
-            <Text style={[styles.headerText, headerTextWebStyle]} numberOfLines={1}>
+            <Text style={styles.headerText} numberOfLines={1}>
               {col.label}
             </Text>
           </View>

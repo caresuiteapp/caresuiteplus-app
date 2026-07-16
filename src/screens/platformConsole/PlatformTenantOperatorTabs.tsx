@@ -449,7 +449,7 @@ export function TenantPaymentsTab({ tenantId, detail, role }: TabProps) {
         <View key={String(p.id)} style={styles.row}>
           <Text style={styles.primary}>{formatPlatformCents(p.amount_cents)} · {String(p.status)}</Text>
           <Text style={styles.meta}>Provider: {String(p.provider ?? '—')}</Text>
-          {canWrite ? <View style={styles.actions}>{['succeeded','failed','refunded'].map((status) => <Pressable key={status} onPress={() => setConfirm({ paymentId: String(p.id), status })}><Text style={styles.link}>{status === 'succeeded' ? 'Erfolgreich' : status === 'failed' ? 'Fehlgeschlagen' : 'Erstattet'}</Text></Pressable>)}</View> : null}
+          {canWrite ? <View style={styles.rowActions}>{['succeeded','failed','refunded'].map((status) => <Pressable key={status} onPress={() => setConfirm({ paymentId: String(p.id), status })}><Text style={styles.link}>{status === 'succeeded' ? 'Erfolgreich' : status === 'failed' ? 'Fehlgeschlagen' : 'Erstattet'}</Text></Pressable>)}</View> : null}
         </View>
       ))}
       <PlatformAuditLink tenantId={tenantId} action="payment" />

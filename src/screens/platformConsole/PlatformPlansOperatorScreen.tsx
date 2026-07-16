@@ -39,6 +39,7 @@ const ACCESS_STATES = ['included', 'beta_included', 'coming_soon', 'excluded'] a
 type ConfirmState = {
   title: string;
   description: string;
+  danger?: boolean;
   action: (reason: string) => Promise<void>;
 };
 
@@ -399,6 +400,7 @@ export function PlatformPlansOperatorScreen() {
         visible={Boolean(confirm)}
         title={confirm?.title ?? ''}
         description={confirm?.description ?? ''}
+        danger={confirm?.danger}
         loading={confirmLoading}
         onCancel={() => setConfirm(null)}
         onConfirm={(reason) => void runConfirm(reason)}
