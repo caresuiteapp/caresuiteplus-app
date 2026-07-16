@@ -220,19 +220,6 @@ export async function requestWfmAbsence(
 
   const now = new Date().toISOString();
   const id = newUuid();
-  const payload = {
-    tenant_id: tenantId,
-    employee_id: employeeResult.data,
-    absence_type: input.absenceType,
-    status: 'requested' as const,
-    starts_at: input.startsAt,
-    ends_at: input.endsAt,
-    all_day: input.allDay ?? true,
-    requested_days: input.requestedDays ?? null,
-    employee_note: input.employeeNote ?? '',
-    internal_note: '',
-    created_by: userId,
-  };
 
   if (getServiceMode() !== 'supabase') {
     const absence: WfmAbsence = {
@@ -264,23 +251,19 @@ export async function requestWfmAbsence(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const { data, error } = await fromUnknownTable(supabase, TABLE)
-    .insert({ id, ...payload })
-    .select('*')
-    .single();
+  const { data, error } = await supabase.rpc('employee_portal_request_wfm_absence' as never, {
+    p_tenant_id: tenantId,
+    p_absence_type: input.absenceType,
+    p_starts_at: input.startsAt,
+    p_ends_at: input.endsAt,
+    p_all_day: input.allDay ?? true,
+    p_requested_days: input.requestedDays ?? null,
+    p_employee_note: input.employeeNote ?? '',
+  } as never).single();
 
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
-
-  const absence = mapRow(data as AbsenceRow);
-  await createWfmApproval(tenantId, userId, actorRoleKey, {
-    employeeId: employeeResult.data,
-    approvalType: input.absenceType === 'vacation' ? 'vacation' : 'absence',
-    referenceType: 'workforce_absence',
-    referenceId: id,
-    payload: { absenceType: input.absenceType, startsAt: input.startsAt, endsAt: input.endsAt },
-  });
-
-  return { ok: true, data: absence };
+  if (!data) return { ok: false, error: 'Urlaubsantrag konnte nicht angelegt werden.' };
+  return { ok: true, data: mapRow(data as AbsenceRow) };
 }
 
 export async function getWfmAbsenceById(
@@ -329,8 +312,6 @@ export async function withdrawWfmAbsence(
   const employeeResult = await resolveEmployeeIdForUser(tenantId, userId, employeeId);
   if (!employeeResult.ok) return employeeResult;
 
-  const now = new Date().toISOString();
-
   if (getServiceMode() !== 'supabase') {
     const existing = demoAbsences.get(absenceId);
     if (!existing || existing.tenantId !== tenantId || existing.employeeId !== employeeResult.data) {
@@ -339,7 +320,11 @@ export async function withdrawWfmAbsence(
     if (existing.status !== 'requested') {
       return { ok: false, error: 'Nur ausstehende Anträge können zurückgezogen werden.' };
     }
-    const updated = { ...existing, status: 'cancelled' as const, updatedAt: now };
+    const updated = {
+      ...existing,
+      status: 'cancelled' as const,
+      updatedAt: new Date().toISOString(),
+    };
     demoAbsences.set(absenceId, updated);
     return { ok: true, data: updated };
   }
@@ -347,14 +332,10 @@ export async function withdrawWfmAbsence(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const { data, error } = await fromUnknownTable(supabase, TABLE)
-    .update({ status: 'cancelled', updated_at: now })
-    .eq('id', absenceId)
-    .eq('tenant_id', tenantId)
-    .eq('employee_id', employeeResult.data)
-    .eq('status', 'requested')
-    .select('*')
-    .maybeSingle();
+  const { data, error } = await supabase.rpc('employee_portal_withdraw_wfm_absence' as never, {
+    p_tenant_id: tenantId,
+    p_absence_id: absenceId,
+  } as never).single();
 
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
   if (!data) {
