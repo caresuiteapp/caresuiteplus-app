@@ -33,11 +33,14 @@ describe('employee portal tablet touch fixes', () => {
     expect(canvas).toMatch(/handleMouseDown[\s\S]*touchInputActiveRef\.current/);
   });
 
-  it('signature canvas syncs coordinate space before drawing strokes', () => {
+  it('signature canvas syncs once before a stroke and not during every point', () => {
     const canvas = readSrc('src/components/inputs/CareSignatureCanvas.tsx');
     expect(canvas).toMatch(
-      /const drawAt = useCallback\([\s\S]*syncCanvasToDisplay\(\)[\s\S]*drawSpaceRef\.current/,
+      /const beginStroke = useCallback\([\s\S]*syncCanvasToDisplay\(\)[\s\S]*drawAt/,
     );
+    const drawAtBody = canvas.slice(canvas.indexOf('const drawAt'), canvas.indexOf('const drawQueuedPoints'));
+    expect(drawAtBody).not.toContain('syncCanvasToDisplay()');
+    expect(canvas).toContain('getCoalescedEvents');
   });
 
   it('fullscreen overlay host is transparent until shell content renders', () => {

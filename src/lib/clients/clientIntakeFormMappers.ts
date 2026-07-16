@@ -48,8 +48,9 @@ export function mapClientEditLoadToIntakeForm(input: {
   careContexts: ClientCareContext[];
   form: ClientEditFormData;
   ambulatoryHomeAccess?: string | null;
+  intakeSnapshot?: Partial<ClientIntakeFormData>;
 }): ClientIntakeFormData {
-  const { detail, fullClient, careContexts, form: edit, ambulatoryHomeAccess } = input;
+  const { detail, fullClient, careContexts, form: edit, ambulatoryHomeAccess, intakeSnapshot } = input;
   const primaryAddress = resolvePrimaryAddress(fullClient);
   const careLevel = fullClient.careLevels[0] ?? null;
   const billing = fullClient.billingProfile;
@@ -69,6 +70,7 @@ export function mapClientEditLoadToIntakeForm(input: {
 
   return {
     ...createEmptyIntakeForm(),
+    ...intakeSnapshot,
     careContexts: careContexts.length > 0 ? [...careContexts] : [...edit.careContexts],
     firstName: edit.firstName,
     lastName: edit.lastName,
@@ -78,27 +80,29 @@ export function mapClientEditLoadToIntakeForm(input: {
     status: edit.status,
     specialNotes: edit.notes,
     admissionDate: EMPTY_CLIENT_INTAKE_FORM.admissionDate,
-    serviceStart: careLevel?.validFrom ?? '',
+    serviceStart: careLevel?.validFrom ?? intakeSnapshot?.serviceStart ?? '',
     street: parsedStreet.street,
     houseNumber: parsedStreet.houseNumber,
     zip: primaryAddress?.zip ?? edit.zip,
     city: primaryAddress?.city ?? edit.city,
-    floor: primaryAddress?.floor ?? edit.floor,
-    accessNotes: primaryAddress?.accessNotes ?? edit.accessNotes,
-    doorCode: primaryAddress?.doorCode ?? edit.accessCode,
-    bellName: edit.bellName,
+    floor: primaryAddress?.floor ?? (edit.floor || intakeSnapshot?.floor || ''),
+    accessNotes: primaryAddress?.accessNotes ?? (edit.accessNotes || intakeSnapshot?.accessNotes || ''),
+    doorCode: primaryAddress?.doorCode ?? (edit.accessCode || intakeSnapshot?.doorCode || ''),
+    bellName: edit.bellName || intakeSnapshot?.bellName || '',
     phone: edit.phone,
     mobile: edit.mobile,
     email: edit.email,
-    careLevel: edit.careLevel,
+    careLevel: edit.careLevel || intakeSnapshot?.careLevel || '',
     careLevelValidFrom: careLevel?.validFrom ?? '',
-    careFundName: edit.costCarrier || careLevel?.careFundName || '',
-    insuranceNumber: edit.insuranceNumber,
+    careFundName: edit.costCarrier || careLevel?.careFundName || intakeSnapshot?.careFundName || '',
+    insuranceNumber: edit.insuranceNumber || intakeSnapshot?.insuranceNumber || '',
     billingTypes: inferBillingTypes(edit, billing?.notes),
     billingType: edit.billingType,
     costBearerTypes,
     costBearerType: costBearerTypes[0] ?? '',
-    familyDoctor: doctor ? `${doctor.firstName} ${doctor.lastName}`.trim() : edit.familyDoctorName,
+    familyDoctor: doctor
+      ? `${doctor.firstName} ${doctor.lastName}`.trim()
+      : edit.familyDoctorName || intakeSnapshot?.familyDoctor || '',
     emergencyContactName: emergency
       ? `${emergency.firstName} ${emergency.lastName}`.trim()
       : edit.emergencyContactName,
@@ -106,8 +110,8 @@ export function mapClientEditLoadToIntakeForm(input: {
     assignedModules:
       edit.portalModules.length > 0 ? [...edit.portalModules] : [...EMPTY_CLIENT_INTAKE_FORM.assignedModules],
     hourlyRate: billing?.hourlyRateCents ? String(billing.hourlyRateCents / 100) : '',
-    mobility: fullClient.preferences?.mobilityNotes ?? edit.mobilityNotes,
-    communication: edit.communicationNotes,
+    mobility: fullClient.preferences?.mobilityNotes ?? (edit.mobilityNotes || intakeSnapshot?.mobility || ''),
+    communication: edit.communicationNotes || intakeSnapshot?.communication || '',
     consentDatenschutz: fullClient.consents.some((c) => c.consentType === 'datenschutz' && c.granted),
     consentVertrag: fullClient.consents.some((c) => c.consentType === 'vertrag' && c.granted),
     homeAccess: parseHomeAccessStoredValue(ambulatoryHomeAccess),

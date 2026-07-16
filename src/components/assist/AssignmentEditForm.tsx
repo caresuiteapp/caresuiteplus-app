@@ -29,6 +29,10 @@ import {
   type VisitEditFormData,
 } from '@/lib/assist/visitEditMappers';
 import { updateVisitFromWizard } from '@/lib/assist/visitService';
+import {
+  hasAssignmentProductionErrors,
+  validateAssignmentCreateForm,
+} from '@/lib/assist/assignmentProductionValidation';
 import type { VisitDispositionDetail } from '@/lib/assist/visitTypes';
 import { ASSIGNMENT_STATUS_LABELS, type AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { spacing, typography } from '@/theme';
@@ -204,7 +208,20 @@ export function AssignmentEditForm({
   }, [form.assignmentStatus, initialVisit.assignmentStatus]);
 
   const handleSave = async () => {
-    if (!tenantId || !canManage || !form.title.trim() || !form.clientId) return;
+    if (!tenantId || !canManage) return;
+    const validation = validateAssignmentCreateForm({
+      clientId: form.clientId,
+      employeeId: form.employeeId,
+      assignmentDate: form.assignmentDate,
+      plannedStartTime: form.plannedStartTime,
+      plannedEndTime: form.plannedEndTime,
+      title: form.title,
+      tasks: form.taskDrafts.map((task) => task.title),
+    });
+    if (hasAssignmentProductionErrors(validation)) {
+      setError(Object.values(validation)[0] ?? 'Bitte Pflichtfelder prüfen.');
+      return;
+    }
     setSaving(true);
     setError(null);
     const result = await updateVisitFromWizard(tenantId, visitId, form, profile?.roleKey);
@@ -292,10 +309,65 @@ export function AssignmentEditForm({
         />
         <PremiumInput
           {...FORM_CTX}
-          label="Notizen"
+          label="Ortshinweise"
+          value={form.locationNotes}
+          onChangeText={(locationNotes) => patch({ locationNotes })}
+          multiline
+        />
+        <PremiumInput
+          {...FORM_CTX}
+          label="Interne Notizen"
           value={form.internalNotes}
           onChangeText={(internalNotes) => patch({ internalNotes })}
           multiline
+        />
+        <PremiumInput
+          {...FORM_CTX}
+          label="Hinweise für Mitarbeitende"
+          value={form.employeeNotes}
+          onChangeText={(employeeNotes) => patch({ employeeNotes })}
+          multiline
+        />
+        <PremiumInput
+          {...FORM_CTX}
+          label="Hinweise für Klient:innen"
+          value={form.clientVisibleNotes}
+          onChangeText={(clientVisibleNotes) => patch({ clientVisibleNotes })}
+          multiline
+        />
+      </SectionPanel>
+
+      <SectionPanel {...FORM_CTX} title="Aufgaben">
+        {form.taskDrafts.map((task, index) => (
+          <PremiumInput
+            {...FORM_CTX}
+            key={`${task.itemKey}-${index}`}
+            label={`Aufgabe ${index + 1}${task.isRequired ? ' *' : ''}`}
+            value={task.title}
+            onChangeText={(title) => {
+              const taskDrafts = [...form.taskDrafts];
+              taskDrafts[index] = { ...task, title };
+              patch({ taskDrafts, tasks: taskDrafts.map((entry) => entry.title) });
+            }}
+          />
+        ))}
+        <PremiumButton
+          title="Aufgabe hinzufügen"
+          size="sm"
+          variant="secondary"
+          onPress={() => {
+            const taskDrafts = [
+              ...form.taskDrafts,
+              {
+                itemKey: `manual-${Date.now()}`,
+                title: '',
+                isRequired: false,
+                isOptional: true,
+                sortOrder: form.taskDrafts.length,
+              },
+            ];
+            patch({ taskDrafts, tasks: taskDrafts.map((entry) => entry.title) });
+          }}
         />
       </SectionPanel>
 
@@ -351,6 +423,29 @@ export function AssignmentEditForm({
               serviceName: services.find((service) => service.value === serviceKey)?.label ?? serviceKey,
             });
           }}
+        />
+      </SectionPanel>
+
+      <SectionPanel {...FORM_CTX} title="Dokumentation & Portal">
+        <PremiumInput
+          {...FORM_CTX}
+          label="Dokumentationsvorlage"
+          value={form.documentationTemplate}
+          onChangeText={(documentationTemplate) => patch({ documentationTemplate })}
+        />
+        <PremiumInput
+          {...FORM_CTX}
+          label="Leistungsnachweis-Vorlage"
+          value={form.proofTemplateKey}
+          onChangeText={(proofTemplateKey) => patch({ proofTemplateKey })}
+        />
+        <FilterChipGroup
+          options={[
+            { key: 'hidden', label: 'Nicht im Klient:innenportal' },
+            { key: 'visible', label: 'Im Klient:innenportal anzeigen' },
+          ]}
+          value={form.portalReleaseEnabled ? 'visible' : 'hidden'}
+          onChange={(value) => patch({ portalReleaseEnabled: value === 'visible' })}
         />
       </SectionPanel>
 

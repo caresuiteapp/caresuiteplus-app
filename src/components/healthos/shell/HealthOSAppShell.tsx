@@ -66,14 +66,15 @@ export function HealthOSAppShell({
   const showSidebar = Boolean(sidebar) && rules.sidebar.visible;
   const showBottomNav = Boolean(bottomNav) && rules.bottomNav.visible;
   const showDetail = Boolean(detailPanel) && breakpoint === 'desktop';
+  const showPageDescription = breakpoint !== 'desktop';
 
   return (
     <View style={[styles.root, style]} testID={testID}>
-      {topBar}
+      {showPageDescription ? topBar : null}
       <View style={styles.body}>
         {showSidebar ? <View style={styles.sidebar}>{sidebar}</View> : null}
         <View style={styles.center}>
-          {breadcrumbs && rules.topBar.breadcrumbs ? (
+          {showPageDescription && breadcrumbs && 'breadcrumbs' in rules.topBar && rules.topBar.breadcrumbs ? (
             <View style={styles.breadcrumbHost}>{breadcrumbs}</View>
           ) : null}
           <View style={styles.main}>{children}</View>

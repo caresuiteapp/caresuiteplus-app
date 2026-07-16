@@ -20,6 +20,8 @@ import { NotificationBellFab } from '@/components/notifications/notificationcent
 import { PlatformTopbar } from './platformtopbar';
 import { RightContextPanel } from './rightcontextpanel';
 import { AutoScrollView } from '@/components/layout/AutoScrollView';
+import { DesktopSidebarToggle } from '@/components/layout/DesktopSidebarToggle';
+import { useDesktopWorkspacePreferences } from '@/hooks/useDesktopWorkspacePreferences';
 
 type PlatformShellProps = {
   area: AppShellArea;
@@ -53,6 +55,8 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
   const showContext = width >= PLATFORM_CONTEXT_PANEL_BREAKPOINT;
   const showModuleNav = !isPhoneLayout && mainModule !== 'zentrale';
   const contentPadding = resolvePlatformContentPadding(width);
+  const { leftCollapsed, rightCollapsed, toggleLeft, toggleRight } =
+    useDesktopWorkspacePreferences();
 
   const mainWorkArea = centerKpiOverview ? (
     <View style={styles.kpiAlignColumn} testID="main-work-area">
@@ -91,12 +95,42 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.shellRow}>
         <MainModuleRail activeModule={mainModule} />
-        {showModuleNav ? <ModuleNavSidebar mainModule={mainModule} accentColor={accent} /> : null}
+        {showModuleNav ? (
+          <>
+            {!leftCollapsed ? (
+              <View nativeID="desktop-module-navigation" style={styles.sidebarHost}>
+                <ModuleNavSidebar mainModule={mainModule} accentColor={accent} />
+              </View>
+            ) : null}
+            <DesktopSidebarToggle
+              side="left"
+              collapsed={leftCollapsed}
+              onPress={toggleLeft}
+              controls="desktop-module-navigation"
+              accentColor={accent}
+            />
+          </>
+        ) : null}
         <View style={styles.contentColumn}>
           <PlatformTopbar mainModule={mainModule} accentColor={accent} />
           <View style={styles.body}>{mainWorkArea}</View>
         </View>
-        {showContext ? <RightContextPanel mainModule={mainModule} accentColor={accent} /> : null}
+        {showContext ? (
+          <>
+            <DesktopSidebarToggle
+              side="right"
+              collapsed={rightCollapsed}
+              onPress={toggleRight}
+              controls="desktop-context-panel"
+              accentColor={accent}
+            />
+            {!rightCollapsed ? (
+              <View nativeID="desktop-context-panel" style={styles.sidebarHost}>
+                <RightContextPanel mainModule={mainModule} accentColor={accent} />
+              </View>
+            ) : null}
+          </>
+        ) : null}
       </View>
       {Platform.OS !== 'web' ? <NotificationBellFab /> : null}
     </View>
@@ -108,6 +142,7 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: 'transparent' },
   shellRow: { flex: 1, flexDirection: 'row', minHeight: 0 },
+  sidebarHost: { flexShrink: 0, minHeight: 0 },
   contentColumn: { flex: 1, minWidth: 0, minHeight: 0, flexDirection: 'column' },
   body: { flex: 1, flexDirection: 'column', minHeight: 0 },
   main: { flex: 1, minWidth: 0, minHeight: 0, backgroundColor: 'transparent' },

@@ -2,18 +2,18 @@ import { useCallback, useState } from 'react';
 import type { ActiveExecutionItem, ExecutionPhase } from '@/types/modules/assist';
 import type { ListSortOption } from '@/types/list';
 import { fetchExecutionList } from '@/lib/assist/executionListService';
-import { EXECUTION_PHASE_LABELS } from '@/lib/assist/executionListStats';
 import { subscribeToAssistOperationsChanges } from '@/lib/realtime';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery, useListState } from './core';
 
 export const EXECUTION_PHASE_FILTERS: { key: ExecutionPhase | 'all'; label: string }[] = [
-  { key: 'all', label: 'Alle' },
-  { key: 'pending', label: EXECUTION_PHASE_LABELS.pending },
-  { key: 'checked_in', label: EXECUTION_PHASE_LABELS.checked_in },
-  { key: 'in_progress', label: EXECUTION_PHASE_LABELS.in_progress },
-  { key: 'completed', label: EXECUTION_PHASE_LABELS.completed },
+  { key: 'all', label: 'Alle fälligen' },
+  { key: 'pending', label: 'Nachbearbeitung erforderlich' },
+  { key: 'checked_in', label: 'Unterschrift / Dokumentation offen' },
+  { key: 'in_progress', label: 'Zeitkorrektur erforderlich' },
+  { key: 'completed', label: 'Abgeschlossen' },
+  { key: 'cancelled', label: 'Fehlerhaft / nicht erschienen / storniert' },
 ];
 
 export const EXECUTION_SORT_OPTIONS: ListSortOption<'scheduledStart' | 'clientName'>[] = [

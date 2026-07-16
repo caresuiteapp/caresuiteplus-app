@@ -7,6 +7,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const REQUIRED = [
   'src/screens/business/office/ClientIntakeWizardScreen.tsx',
+  'src/components/office/clientintakewizardform.tsx',
   'src/lib/clients/clientIntakeFieldRules.ts',
   'src/lib/clients/clientIntakeService.ts',
   'src/screens/business/office/ClientRecordScreen.tsx',
@@ -19,14 +20,14 @@ const REQUIRED = [
 ];
 
 const PATTERNS = [
-  { file: 'src/screens/business/office/ClientIntakeWizardScreen.tsx', pattern: 'leistungsart' },
-  { file: 'src/screens/business/office/ClientIntakeWizardScreen.tsx', pattern: 'CareMultiCatalogSelect' },
-  { file: 'src/screens/business/office/ClientIntakeWizardScreen.tsx', pattern: 'CareLightPageShell' },
+  { file: 'src/components/office/clientintakewizardform.tsx', pattern: 'leistungsart' },
+  { file: 'src/components/office/clientintakewizardform.tsx', pattern: 'CareMultiCatalogSelect' },
+  { file: 'src/screens/business/office/ClientIntakeWizardScreen.tsx', pattern: 'ScreenShell' },
   { file: 'src/lib/clients/clientIntakeFieldRules.ts', pattern: 'getClientRecordTabsForClientContext' },
   { file: 'src/lib/clients/clientIntakeFieldRules.ts', pattern: 'homeAccess' },
   { file: 'src/lib/clients/clientIntakeFieldRules.ts', pattern: 'roomNumber' },
   { file: 'src/screens/business/office/ClientRecordScreen.tsx', pattern: 'Stammdaten bearbeiten' },
-  { file: 'src/screens/business/office/ClientRecordScreen.tsx', pattern: 'CareLightPageShell' },
+  { file: 'src/screens/business/office/ClientRecordScreen.tsx', pattern: 'ScreenShell' },
   { file: 'app/business/office/clients/new.tsx', pattern: 'ClientIntakeWizardScreen' },
   { file: 'app/business/office/clients/[id].tsx', pattern: 'ClientRecordScreen' },
 ];
@@ -81,9 +82,9 @@ for (const { file, mustContain, mustNotContain } of WIRING_CHECKS) {
   }
 }
 
-const wizard = readFileSync(join(root, 'src/screens/business/office/ClientIntakeWizardScreen.tsx'), 'utf8');
+const wizard = readFileSync(join(root, 'src/components/office/clientintakewizardform.tsx'), 'utf8');
 if (!wizard.includes("section === 'leistungsart'")) {
-  fail('ClientIntakeWizardScreen: Leistungsart-Schritt fehlt');
+  fail('ClientIntakeWizardForm: Leistungsart-Schritt fehlt');
 }
 
 const rules = readFileSync(join(root, 'src/lib/clients/clientIntakeFieldRules.ts'), 'utf8');

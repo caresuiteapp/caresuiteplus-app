@@ -9,56 +9,23 @@ export type ExecutionListKpi = {
   accentColor: string;
 };
 
-function isToday(iso: string): boolean {
-  const date = new Date(iso);
-  const now = new Date();
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
-  );
-}
-
 export function buildExecutionListKpis(items: ActiveExecutionItem[]): ExecutionListKpi[] {
-  const ready = items.filter((item) => item.phase === 'pending').length;
-  const active = items.filter(
-    (item) => item.phase === 'checked_in' || item.phase === 'in_progress',
-  ).length;
-  const today = items.filter((item) => isToday(item.scheduledStart)).length;
   const completed = items.filter((item) => item.phase === 'completed').length;
-
+  const followUp = items.filter((item) => item.phase !== 'completed' && item.phase !== 'cancelled').length;
+  const signatures = items.filter((item) => item.proofStatus === 'none' || item.proofStatus === 'pending').length;
+  const corrections = items.filter((item) => item.requiresTimeCorrection).length;
+  const errors = items.filter((item) => item.hasError || item.phase === 'cancelled').length;
   return [
-    {
-      id: 'execution-kpi-ready',
-      label: 'Bereit',
-      value: ready,
-      subValue: ready > 0 ? 'Check-in möglich' : 'Keine wartend',
-      icon: '✅',
-      accentColor: '#FF9500',
-    },
-    {
-      id: 'execution-kpi-active',
-      label: 'Aktiv',
-      value: active,
-      subValue: `${items.length} gesamt`,
-      icon: '🚀',
-      accentColor: '#4ADE80',
-    },
-    {
-      id: 'execution-kpi-today',
-      label: 'Heute',
-      value: today,
-      subValue: completed > 0 ? `${completed} abgeschlossen` : 'Zeiterfassung',
-      icon: '📅',
-      accentColor: '#62F3FF',
-    },
+    { id: 'execution-kpi-ready', label: 'Fällig gesamt', value: items.length, subValue: `${completed} abgeschlossen`, icon: '✓', accentColor: '#FF9500' },
+    { id: 'execution-kpi-follow-up', label: 'Nachbearbeitung offen', value: followUp, subValue: `${signatures} Unterschriften offen`, icon: '!', accentColor: '#4ADE80' },
+    { id: 'execution-kpi-corrections', label: 'Zeitkorrekturen', value: corrections, subValue: `${errors} Fehlerfälle`, icon: '⌚', accentColor: '#62F3FF' },
   ];
 }
 
 export const EXECUTION_PHASE_LABELS: Record<ExecutionPhase, string> = {
-  pending: 'Bereit',
-  checked_in: 'Eingecheckt',
-  in_progress: 'Läuft',
+  pending: 'Nachbearbeitung erforderlich',
+  checked_in: 'Dokumentation / Unterschrift offen',
+  in_progress: 'Zeitkorrektur erforderlich',
   completed: 'Abgeschlossen',
-  cancelled: 'Abgebrochen',
+  cancelled: 'Fehlerhaft / storniert',
 };

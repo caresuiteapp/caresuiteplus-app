@@ -14,6 +14,7 @@ import {
 } from '@/components/healthos';
 import { resolveHealthOSShellBreakpoint } from '@/components/healthos/shell/healthosShellLayoutRules';
 import { PremiumListRow, CachedDataBanner } from '@/components/ui';
+import { AdaptiveKpiGrid } from '@/components/adaptive';
 import type { EmployeePortalDashboardProjection } from '@/types/portalSystem';
 import { useMainModuleAccent } from '@/hooks/useMainModuleAccent';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
@@ -52,27 +53,29 @@ function MetricsSection({
   onNavigate: (route?: string) => void;
 }) {
   return (
-    <View style={styles.metricsGrid}>
-      {metrics.map((metric) => (
-        <Pressable
-          key={metric.id}
-          onPress={() => onNavigate(metric.route)}
-          accessibilityRole="button"
-          accessibilityLabel={`${metric.label}: ${metric.value}`}
-          testID={`healthos-employee-metric-${metric.id}`}
-          style={[styles.metricItem, columns === 4 ? styles.metricQuarter : styles.metricHalf]}
-        >
-          <HealthOSMetricCard
-            label={metric.label}
-            value={metric.value}
-            subValue={metric.subValue}
-            icon={metric.icon}
-            accentColor={accentColor}
-            variant={variant}
-          />
-        </Pressable>
-      ))}
-    </View>
+    <AdaptiveKpiGrid
+      columns={{ phone: 2, tablet: 2, desktop: columns, wide: columns }}
+      items={metrics.map((metric) => ({
+        id: metric.id,
+        node: (
+          <Pressable
+            onPress={() => onNavigate(metric.route)}
+            accessibilityRole="button"
+            accessibilityLabel={`${metric.label}: ${metric.value}`}
+            testID={`healthos-employee-metric-${metric.id}`}
+          >
+            <HealthOSMetricCard
+              label={metric.label}
+              value={metric.value}
+              subValue={metric.subValue}
+              icon={metric.icon}
+              accentColor={accentColor}
+              variant={variant}
+            />
+          </Pressable>
+        ),
+      }))}
+    />
   );
 }
 
@@ -309,21 +312,6 @@ export function HealthOSEmployeePortalTodayView({
 const styles = StyleSheet.create({
   listContainer: {
     gap: spacing.xs,
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  metricItem: {
-    flexGrow: 1,
-    minWidth: 0,
-  },
-  metricHalf: {
-    flexBasis: '47%',
-  },
-  metricQuarter: {
-    flexBasis: '22%',
   },
   countBadge: {
     ...typography.caption,

@@ -124,6 +124,7 @@ type VisitRow = {
   task_package_id?: string | null;
   billing_budget_source_key?: string | null;
   proof_template_key?: string | null;
+  documentation_template_key?: string | null;
   risk_flag_keys?: unknown;
   catalog_snapshot_json?: unknown;
   client_visible_notes?: string | null;
@@ -185,7 +186,7 @@ const DETAIL_EXTRA_SELECT = `
   location_notes, internal_notes, employee_notes, portal_release_enabled, employee_portal_visible,
   budget_currency, subject_key, assignment_type_key, service_category_key, task_package_id,
   billing_budget_source_key, proof_template_key, risk_flag_keys, catalog_snapshot_json,
-  client_visible_notes`;
+  documentation_template_key, client_visible_notes`;
 
 const DETAIL_SELECT = `${VISIT_LIST_CORE_SELECT},
   ${DETAIL_EXTRA_SELECT},
@@ -495,6 +496,7 @@ function mapDetail(
     taskPackageId: row.task_package_id ?? null,
     billingBudgetSourceKey: row.billing_budget_source_key ?? null,
     proofTemplateKey: row.proof_template_key ?? null,
+    documentationTemplateKey: row.documentation_template_key ?? null,
     riskFlagKeys: Array.isArray(row.risk_flag_keys)
       ? row.risk_flag_keys.filter((key): key is string => typeof key === 'string')
       : [],
@@ -754,7 +756,10 @@ export const visitSupabaseRepository = {
       planned_end_at: input.plannedEndAt,
       duration_minutes: duration,
       address_snapshot: input.addressSnapshot ?? null,
+      location_notes: input.locationNotes ?? null,
       internal_notes: input.internalNotes ?? null,
+      employee_notes: input.employeeNotes ?? null,
+      client_visible_notes: input.clientVisibleNotes ?? null,
       planning_status: input.saveAsDraft ? 'draft' : 'scheduled',
       execution_status: 'pending',
       documentation_status: 'none',
@@ -770,6 +775,7 @@ export const visitSupabaseRepository = {
       task_package_id: input.taskPackageId ?? null,
       billing_budget_source_key: input.billingBudgetSourceKey ?? null,
       proof_template_key: input.proofTemplateKey ?? null,
+      documentation_template_key: input.documentationTemplateKey ?? null,
       risk_flag_keys: input.riskFlagKeys ?? [],
       recurrence_json: input.recurrenceJson ?? {},
       catalog_snapshot_json: input.catalogSnapshotJson ?? {},
@@ -814,7 +820,7 @@ export const visitSupabaseRepository = {
       description: input.description ?? null,
       addressSnapshot: input.addressSnapshot ?? null,
       internalNotes: input.internalNotes ?? null,
-      clientVisibleNotes: null,
+      clientVisibleNotes: input.clientVisibleNotes ?? null,
       canonicalStatus: insertRow.canonical_status,
       saveAsDraft: input.saveAsDraft ?? false,
       createdBy: actorProfileId ?? null,
@@ -1170,7 +1176,10 @@ export const visitSupabaseRepository = {
       planned_end_at: input.plannedEndAt,
       duration_minutes: duration,
       address_snapshot: input.addressSnapshot ?? null,
+      location_notes: input.locationNotes ?? null,
       internal_notes: input.internalNotes ?? null,
+      employee_notes: input.employeeNotes ?? null,
+      client_visible_notes: input.clientVisibleNotes ?? null,
       portal_release_enabled: input.portalReleaseEnabled ?? false,
       budget_amount_cents: input.budgetAmountCents ?? null,
       subject_key: input.subjectKey ?? null,
@@ -1179,6 +1188,7 @@ export const visitSupabaseRepository = {
       task_package_id: input.taskPackageId ?? null,
       billing_budget_source_key: input.billingBudgetSourceKey ?? null,
       proof_template_key: input.proofTemplateKey ?? null,
+      documentation_template_key: input.documentationTemplateKey ?? null,
       risk_flag_keys: input.riskFlagKeys ?? [],
       recurrence_json: input.recurrenceJson ?? {},
       catalog_snapshot_json: input.catalogSnapshotJson ?? {},
@@ -1204,7 +1214,7 @@ export const visitSupabaseRepository = {
       description: input.description ?? null,
       addressSnapshot: input.addressSnapshot ?? null,
       internalNotes: input.internalNotes ?? null,
-      clientVisibleNotes: null,
+      clientVisibleNotes: input.clientVisibleNotes ?? null,
       canonicalStatus: assignmentStatusToRemote(existing.data.assignmentStatus),
       saveAsDraft: input.saveAsDraft ?? false,
       createdBy: actorProfileId ?? null,
@@ -1392,9 +1402,12 @@ export const visitSupabaseRepository = {
       plannedStartAt: shifted.scheduledStart,
       plannedEndAt: shifted.scheduledEnd,
       addressSnapshot: master.data.addressSnapshot ?? master.data.location,
+      locationNotes: master.data.locationNotes,
       tasks: taskTitles,
       budgetAmountCents: master.data.budget?.budgetAmountCents ?? null,
       internalNotes: master.data.notes,
+      employeeNotes: master.data.employeeNotes,
+      clientVisibleNotes: master.data.clientVisibleNotes,
       notifyEmployee: false,
       notifyClient: false,
       portalReleaseEnabled: master.data.portalReleaseEnabled,
@@ -1405,6 +1418,7 @@ export const visitSupabaseRepository = {
       taskPackageId: master.data.taskPackageId ?? null,
       billingBudgetSourceKey: master.data.billingBudgetSourceKey ?? null,
       proofTemplateKey: master.data.proofTemplateKey ?? null,
+      documentationTemplateKey: master.data.documentationTemplateKey ?? null,
       riskFlagKeys: master.data.riskFlagKeys ?? [],
       recurrenceJson: {
         pattern: 'none',

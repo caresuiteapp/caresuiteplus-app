@@ -34,3 +34,5 @@ wp002-extract.txt
 scripts/audit/.migration-parts/
 supabase/.temp/
 supabase/.branches/
+.vercel
+.env*

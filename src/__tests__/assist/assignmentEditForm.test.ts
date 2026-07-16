@@ -115,7 +115,12 @@ describe('AssignmentEditForm UI contract', () => {
     expect(form).toContain('updateVisitFromWizard');
     expect(form).toContain('label="Bezeichnung *"');
     expect(form).toContain('label="Ort"');
-    expect(form).toContain('label="Notizen"');
+    expect(form).toContain('label="Ortshinweise"');
+    expect(form).toContain('label="Interne Notizen"');
+    expect(form).toContain('label="Hinweise für Mitarbeitende"');
+    expect(form).toContain('label="Hinweise für Klient:innen"');
+    expect(form).toContain('title="Aufgabe hinzufügen"');
+    expect(form).toContain('label="Dokumentationsvorlage"');
   });
 
   it('AssignmentEditScreen loads live visit detail instead of demo seed', () => {

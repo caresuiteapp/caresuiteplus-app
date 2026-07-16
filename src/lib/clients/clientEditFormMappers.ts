@@ -119,7 +119,9 @@ export function mapClientToEditForm(
     floor: primaryAddress?.floor ?? rawFields.floor,
     apartmentNumber: primaryAddress?.apartmentNumber ?? rawFields.apartmentNumber,
     accessCode: primaryAddress?.doorCode ?? '',
-    bellName: rawFields.doorbellName,
+    // Older client records stored the Klingelname in door_code. Preserve it
+    // during the one-time transition instead of silently clearing the value.
+    bellName: rawFields.doorbellName || primaryAddress?.doorCode || '',
     phone: detail.phone ?? detail.primaryContactPhone ?? '',
     mobile: rawFields.mobile,
     email: detail.email ?? '',

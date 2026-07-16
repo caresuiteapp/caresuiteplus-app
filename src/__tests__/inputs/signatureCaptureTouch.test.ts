@@ -22,7 +22,10 @@ describe('signature canvas mobile touch wiring', () => {
     );
     expect(source).toContain("data-signature-capture=\"true\"");
     expect(source).toContain("addEventListener('touchstart'");
-    expect(source).toContain("pointerType === 'touch'");
+    expect(source).toContain("if ('PointerEvent' in window) return");
+    expect(source).not.toContain("event.pointerType === 'touch'");
+    expect(source).toContain('setPointerCapture');
+    expect(source).toContain('requestAnimationFrame');
     expect(source).toContain('minHeight: 120');
   });
 

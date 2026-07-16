@@ -75,6 +75,9 @@ export function mapVisitDetailToEditForm(visit: VisitDispositionDetail): VisitEd
     billingBudgetSourceKey:
       visit.billingBudgetSourceKey ?? readCatalogSnapshotString(snapshot, 'billingBudgetSourceKey'),
     proofTemplateKey: visit.proofTemplateKey ?? readCatalogSnapshotString(snapshot, 'proofTemplateKey'),
+    documentationTemplate:
+      visit.documentationTemplateKey
+      ?? readCatalogSnapshotString(snapshot, 'documentationTemplateKey'),
     riskFlagKeys: visit.riskFlagKeys ?? [],
     budgetAmountCents: visit.budget?.budgetAmountCents ?? null,
     portalReleaseEnabled: visit.portalReleaseEnabled,
@@ -106,9 +109,12 @@ export function buildVisitUpdateInputFromEditForm(
     plannedStartAt: new Date(`${form.assignmentDate}T${form.plannedStartTime}:00`).toISOString(),
     plannedEndAt: new Date(`${form.assignmentDate}T${form.plannedEndTime}:00`).toISOString(),
     addressSnapshot: form.addressSnapshot || null,
+    locationNotes: form.locationNotes || null,
     tasks: taskTitles,
     budgetAmountCents: form.budgetAmountCents,
     internalNotes: form.internalNotes || null,
+    employeeNotes: form.employeeNotes || null,
+    clientVisibleNotes: form.clientVisibleNotes || null,
     notifyEmployee: form.notifyEmployee,
     notifyClient: form.notifyClient,
     portalReleaseEnabled: form.portalReleaseEnabled,
@@ -119,6 +125,7 @@ export function buildVisitUpdateInputFromEditForm(
     taskPackageId: form.taskPackageId || null,
     billingBudgetSourceKey: form.billingBudgetSourceKey || null,
     proofTemplateKey: form.proofTemplateKey || null,
+    documentationTemplateKey: form.documentationTemplate || null,
     riskFlagKeys: form.riskFlagKeys,
     recurrenceJson: buildVisitRecurrenceJson(form),
     catalogSnapshotJson: {

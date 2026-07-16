@@ -19,8 +19,9 @@ import {
   PremiumCard,
   PremiumInput,
   SectionPanel,
-  SuccessState,
 } from '@/components/ui';
+import { WorkflowToast } from '@/components/ui/WorkflowToast';
+import { AdministrativeVisitFollowUpPanel } from '@/components/assist/AdministrativeVisitFollowUpPanel';
 import { useAssistDocumentationBlocks } from '@/hooks/assistCatalog/useAssistCatalog';
 import { useVisitDispositionDetail } from '@/hooks/useVisitDispositionDetail';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -212,9 +213,7 @@ export function VisitExecutionScreen() {
 
   return (
     <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Durchführung`}>
-      {(successMessage || localSuccess) && (
-        <SuccessState message={successMessage ?? localSuccess ?? ''} />
-      )}
+      <WorkflowToast message={successMessage ?? localSuccess} onDismiss={() => setLocalSuccess(null)} />
       {localError ? <ErrorState message={localError} /> : null}
 
       <AssistSetupHintsBanner maxVisible={2} />
@@ -229,6 +228,19 @@ export function VisitExecutionScreen() {
           />
         </PremiumCard>
 
+        <SectionPanel title="Einsatzakte">
+          <DetailInfoRow label="Klient:in" value={visit.clientName} />
+          <DetailInfoRow label="Mitarbeitende:r" value={visit.employeeName || 'Nicht zugeordnet'} />
+          <DetailInfoRow label="Leistung" value={visit.serviceName || visit.title} />
+          <DetailInfoRow label="Adresse" value={visit.addressSnapshot || visit.location} />
+          <DetailInfoRow label="Planzeit" value={`${formatDateTime(visit.scheduledStart)} – ${formatDateTime(visit.scheduledEnd)}`} />
+          <DetailInfoRow label="Workflow" value={ASSIGNMENT_STATUS_LABELS[visit.assignmentStatus]} />
+          <DetailInfoRow label="Dokumentation" value={visit.documentationStatus} />
+          <DetailInfoRow label="Nachweis / Signatur" value={visit.proofStatus} />
+          <DetailInfoRow label="Aufgaben" value={`${visit.tasks.filter((task) => task.status !== 'open').length} von ${visit.tasks.length} bearbeitet`} />
+          {visit.errorMessage ? <DetailInfoRow label="Fehler" value={`${visit.errorCode ?? 'Fehler'}: ${visit.errorMessage}`} /> : null}
+        </SectionPanel>
+
         <SectionPanel title="Zeiterfassung">
           <DetailInfoRow label="Unterwegs ab" value={formatDateTime(visit.onTheWayAt)} />
           <DetailInfoRow label="Angekommen" value={formatDateTime(visit.arrivedAt)} />
@@ -236,6 +248,8 @@ export function VisitExecutionScreen() {
           <DetailInfoRow label="Beendet" value={formatDateTime(visit.actualEndAt)} />
           <DetailInfoRow label="Ort" value={visit.location} />
         </SectionPanel>
+
+        {canManage && tenantId ? <AdministrativeVisitFollowUpPanel visit={visit} tenantId={tenantId} onSaved={refresh} onMessage={(message, isError) => { if (isError) { setLocalSuccess(null); setLocalError(message); } else { setLocalError(null); setLocalSuccess(message); } }} /> : null}
 
         {!canManage ? (
           <LockedActionBanner

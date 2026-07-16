@@ -96,6 +96,20 @@ function formatBudget(cents: number | null | undefined, currency = 'EUR'): strin
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency }).format(cents / 100);
 }
 
+function snapshotText(
+  snapshot: Record<string, unknown> | undefined,
+  key: string,
+  fallback = '—',
+): string {
+  const value = snapshot?.[key];
+  if (typeof value === 'string' && value.trim()) return value;
+  if (Array.isArray(value)) {
+    const labels = value.filter((entry): entry is string => typeof entry === 'string' && !!entry.trim());
+    if (labels.length > 0) return labels.join(', ');
+  }
+  return fallback;
+}
+
 function StatusBadgeRow({
   planningLabel,
   proofLabel,
@@ -337,6 +351,26 @@ export function AssignmentDetailTabsPanel({
           <SectionPanel {...FORM_CTX} title="Planung" subtitle="Disposition & Termin">
             <DetailInfoRow label="Planungsstatus" value={VISIT_PLANNING_STATUS_LABELS[visit.planningStatus]} />
             <DetailInfoRow label="Leistung" value={visit.serviceName ?? visit.title} />
+            <DetailInfoRow
+              label="Einsatz-Betreff"
+              value={snapshotText(visit.catalogSnapshotJson, 'subjectLabel', visit.subjectKey ?? '—')}
+            />
+            <DetailInfoRow
+              label="Einsatzart"
+              value={snapshotText(
+                visit.catalogSnapshotJson,
+                'assignmentTypeLabel',
+                visit.assignmentTypeKey ?? '—',
+              )}
+            />
+            <DetailInfoRow
+              label="Leistungskategorie"
+              value={snapshotText(
+                visit.catalogSnapshotJson,
+                'serviceCategoryLabel',
+                visit.serviceCategoryKey ?? '—',
+              )}
+            />
             <DetailInfoRow label="Datum" value={formatDateTime(visit.scheduledStart)} />
             <DetailInfoRow label="Dauer" value={formatDuration(visit.durationMinutes)} />
             <DetailInfoRow label="Klient:in" value={visit.clientName} />
@@ -345,6 +379,7 @@ export function AssignmentDetailTabsPanel({
               label="Ort"
               value={visit.location === '—' ? 'Noch kein Ort hinterlegt' : visit.location}
             />
+            {visit.locationNotes ? <DetailInfoRow label="Ortshinweise" value={visit.locationNotes} /> : null}
           </SectionPanel>
         );
       case 'tasks':
@@ -386,6 +421,9 @@ export function AssignmentDetailTabsPanel({
             <DetailInfoRow label="Angekommen" value={formatDateTime(visit.arrivedAt)} />
             <DetailInfoRow label="Gestartet" value={formatDateTime(visit.actualStartAt)} />
             <DetailInfoRow label="Beendet" value={formatDateTime(visit.actualEndAt)} />
+            {visit.employeeNotes ? (
+              <DetailInfoRow label="Hinweis für Mitarbeitende" value={visit.employeeNotes} />
+            ) : null}
             {can('assist.execution.view') ? (
               <PremiumButton
                 title="Einsatz durchführen"
@@ -514,6 +552,29 @@ export function AssignmentDetailTabsPanel({
               <View style={styles.overviewCellFull}>
                 <SectionPanel {...FORM_CTX} title="Notizen">
                   <Text style={styles.noteText}>{visit.notes}</Text>
+                </SectionPanel>
+              </View>
+            ) : null}
+
+            {visit.employeeNotes || visit.clientVisibleNotes || (visit.riskFlagKeys?.length ?? 0) > 0 ? (
+              <View style={styles.overviewCellFull}>
+                <SectionPanel {...FORM_CTX} title="Hinweise & Risiken">
+                  {visit.employeeNotes ? (
+                    <DetailInfoRow label="Für Mitarbeitende" value={visit.employeeNotes} />
+                  ) : null}
+                  {visit.clientVisibleNotes ? (
+                    <DetailInfoRow label="Für Klient:innenportal" value={visit.clientVisibleNotes} />
+                  ) : null}
+                  {(visit.riskFlagKeys?.length ?? 0) > 0 ? (
+                    <DetailInfoRow
+                      label="Risiken"
+                      value={snapshotText(
+                        visit.catalogSnapshotJson,
+                        'riskFlagLabels',
+                        visit.riskFlagKeys?.join(', ') ?? '—',
+                      )}
+                    />
+                  ) : null}
                 </SectionPanel>
               </View>
             ) : null}

@@ -36,6 +36,41 @@ function resolveServiceType(careContexts: ClientIntakeFormData['careContexts']):
   return 'betreuung';
 }
 
+async function upsertSupportPreferences(
+  tenantId: string,
+  clientId: string,
+  form: ClientIntakeFormData,
+): Promise<ServiceResult<void>> {
+  const supabase = getClient();
+  if (!supabase) return unavailable();
+  const payload = {
+    tenant_id: tenantId,
+    client_id: clientId,
+    support_wishes: form.supportWishes,
+    preferred_times: form.preferredTimes,
+    excluded_times: form.excludedTimes,
+    mobility: form.mobility.trim() || null,
+    orientation: form.orientation.trim() || null,
+    communication: form.communication.trim() || null,
+    special_wishes: form.specialNotes.trim() || null,
+  };
+  const { data: existing } = await fromUnknownTable(supabase, 'client_support_preferences')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('client_id', clientId)
+    .maybeSingle();
+  if (existing && typeof existing === 'object' && 'id' in existing) {
+    const { tenant_id: _tenantId, client_id: _clientId, ...updatePayload } = payload;
+    const { error } = await fromUnknownTable(supabase, 'client_support_preferences')
+      .update(updatePayload)
+      .eq('id', String((existing as { id: string }).id))
+      .eq('tenant_id', tenantId);
+    return error ? { ok: false, error: toGermanSupabaseError(error) } : { ok: true, data: undefined };
+  }
+  const { error } = await fromUnknownTable(supabase, 'client_support_preferences').insert(payload);
+  return error ? { ok: false, error: toGermanSupabaseError(error) } : { ok: true, data: undefined };
+}
+
 export async function persistIntakeClientExtendedData(
   tenantId: string,
   clientId: string,
@@ -61,6 +96,9 @@ export async function persistIntakeClientExtendedData(
       return { ok: false, error: toGermanSupabaseError(error) };
     }
   }
+
+  const supportResult = await upsertSupportPreferences(tenantId, clientId, form);
+  if (!supportResult.ok) return supportResult;
 
   if (streetLine && form.zip.trim() && form.city.trim()) {
     const { error } = await fromUnknownTable(supabase, 'client_addresses').insert({
@@ -374,6 +412,9 @@ export async function syncIntakeClientExtendedData(
 
   const contextsResult = await syncCareContexts(tenantId, clientId, form.careContexts);
   if (!contextsResult.ok) return contextsResult;
+
+  const supportResult = await upsertSupportPreferences(tenantId, clientId, form);
+  if (!supportResult.ok) return supportResult;
 
   const addressResult = await upsertPrimaryAddress(tenantId, clientId, form);
   if (!addressResult.ok) return addressResult;

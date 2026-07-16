@@ -189,6 +189,7 @@ export type VisitDispositionDetail = VisitDispositionListItem & {
   taskPackageId?: string | null;
   billingBudgetSourceKey?: string | null;
   proofTemplateKey?: string | null;
+  documentationTemplateKey?: string | null;
   riskFlagKeys?: string[];
   catalogSnapshotJson?: Record<string, unknown>;
   recurrenceJson?: VisitRecurrenceJson | Record<string, unknown>;
@@ -271,9 +272,12 @@ export type VisitCreateInput = {
   plannedStartAt: string;
   plannedEndAt: string;
   addressSnapshot?: string | null;
+  locationNotes?: string | null;
   tasks: string[];
   budgetAmountCents?: number | null;
   internalNotes?: string | null;
+  employeeNotes?: string | null;
+  clientVisibleNotes?: string | null;
   notifyEmployee?: boolean;
   notifyClient?: boolean;
   portalReleaseEnabled?: boolean;
@@ -284,6 +288,7 @@ export type VisitCreateInput = {
   taskPackageId?: string | null;
   billingBudgetSourceKey?: string | null;
   proofTemplateKey?: string | null;
+  documentationTemplateKey?: string | null;
   riskFlagKeys?: string[];
   recurrenceJson?: VisitRecurrenceJson | Record<string, unknown>;
   catalogSnapshotJson?: Record<string, unknown>;
