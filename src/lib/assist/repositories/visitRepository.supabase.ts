@@ -1268,13 +1268,20 @@ export const visitSupabaseRepository = {
     if (!supabase) return unavailable();
 
     const { data: row, error: lookupError } = await fromUnknownTable(supabase, 'assist_visits')
-      .select('id, legacy_assignment_id')
+      .select('id, legacy_assignment_id, planning_status')
       .eq('tenant_id', tenantId)
       .eq('id', visitId)
       .maybeSingle();
 
     if (lookupError) return { ok: false, error: toGermanSupabaseError(lookupError) };
     if (!row) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+    if ((row as { planning_status: string }).planning_status !== 'draft') {
+      return {
+        ok: false,
+        error: 'Nur Entwürfe dürfen endgültig gelöscht werden. Geplante Einsätze bitte absagen.',
+      };
+    }
 
     const legacyAssignmentId = (row as { legacy_assignment_id: string | null }).legacy_assignment_id;
 

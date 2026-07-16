@@ -695,15 +695,15 @@ export function AssignmentDetailTabsPanel({
           style={useActionToolbar ? styles.actionBtn : undefined}
         />
       ) : null}
-      {can('assist.assignments.manage') && !isReadOnly ? (
+      {can('assist.assignments.manage') && !isReadOnly && visit.planningStatus === 'draft' ? (
         <View style={useActionToolbar ? styles.actionBtn : undefined}>
           <OfficeRecordDeleteButton
             recordLabel="Einsatz"
             displayName={displayName}
             onDelete={handleDelete}
             onDeleted={onDeleted}
-            confirmTitle="Einsatz löschen?"
-            buttonTitle="Löschen"
+            confirmTitle="Einsatzentwurf endgültig löschen?"
+            buttonTitle="Entwurf löschen"
             fullWidth={!useActionToolbar}
           />
         </View>
