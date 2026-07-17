@@ -120,6 +120,18 @@ export {
 export { getWfmLiveEmployeeOverview, getWfmMapMarkers } from './wfmLiveStatusService';
 
 export {
+  listWfmTravelRules,
+  saveWfmTravelRule,
+  listWfmMeetingEmployees,
+  listWfmTeamMeetings,
+  createWfmTeamMeeting,
+  setWfmTeamMeetingStatus,
+  type WfmTravelRule,
+  type WfmMeetingEmployee,
+  type WfmTeamMeeting,
+} from './wfmPlanningService';
+
+export {
   getWfmTeamTodayOverview,
   getWfmTeamEmployeeDayDetail,
 } from './wfmTeamTodayService';

@@ -5,7 +5,6 @@ import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumCard } from '@/components/ui';
 import { useCatalogEntries } from '@/hooks/templates';
 import { usePermissions } from '@/hooks/usePermissions';
-import { fetchCatalogList } from '@/lib/catalog/catalogService';
 import { colors, spacing, typography } from '@/theme';
 
 export function CatalogsScreen() {
