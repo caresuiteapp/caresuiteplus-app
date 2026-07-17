@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
@@ -66,7 +66,7 @@ export function DocumentLivePreviewScreen() {
 
   const sampleOptions = PREVIEW_SAMPLE_OPTIONS.map((s) => ({ key: s.id, label: s.label }));
 
-  const handleRender = async () => {
+  const handleRender = useCallback(async () => {
     if (!tenantId || !templateId) return;
     setLoading(true);
     setError(null);
@@ -77,7 +77,12 @@ export function DocumentLivePreviewScreen() {
     setLoading(false);
     if (result.ok) setPreview(result.data);
     else setError(result.error);
-  };
+  }, [tenantId, templateId, sampleId, viewMode, profile?.roleKey]);
+
+  useEffect(() => {
+    if (!tenantId || !templateId || templatesQuery.loading) return;
+    void handleRender();
+  }, [tenantId, templateId, sampleId, viewMode, templatesQuery.loading, handleRender]);
 
   const previewOutput = preview
     ? {
@@ -106,7 +111,7 @@ export function DocumentLivePreviewScreen() {
           <FilterChipGroup options={sampleOptions} value={sampleId} onChange={setSampleId} />
         </SectionPanel>
 
-        <PremiumButton title="Vorschau sofort rendern" onPress={handleRender} loading={loading} />
+        <PremiumButton title="Vorschau aktualisieren" onPress={handleRender} loading={loading} />
 
         {error ? <ErrorState message={error} /> : null}
 

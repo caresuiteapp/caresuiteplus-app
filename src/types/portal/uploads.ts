@@ -4,6 +4,9 @@ export type PortalUpload = {
   id: string;
   tenantId: string;
   clientId: string;
+  employeeId?: string | null;
+  employeeName?: string | null;
+  uploadContext?: 'mitarbeiter' | 'klient';
   portalUserId: string | null;
   portalRequestId: string | null;
   storagePath: string;

@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useVisibilityAwarePolling } from '@/lib/polling/useVisibilityAwarePolling';
 import { useManagedSupabaseChannel } from '@/lib/realtime/useManagedSupabaseChannel';
-import { DEFAULT_LIVE_POLL_MS } from '@/hooks/core';
+import { LIVE_TRACKING_POLL_MS } from '@/hooks/core';
 import { useDevicePerformance, livePollIntervalMs } from '@/lib/performance';
 import { getServiceMode } from '@/lib/services/mode';
 import { useAsyncQuery } from '@/hooks/core';
@@ -36,7 +36,7 @@ export function useAssistLiveMonitoring(options?: UseAssistLiveMonitoringOptions
 
   const bump = useCallback(() => setTick((t) => t + 1), []);
 
-  const pollMs = livePollIntervalMs(perf.profile, DEFAULT_LIVE_POLL_MS);
+  const pollMs = livePollIntervalMs(perf.profile, LIVE_TRACKING_POLL_MS);
 
   useVisibilityAwarePolling({
     enabled: enabled && Boolean(tenantId),

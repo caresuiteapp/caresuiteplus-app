@@ -220,7 +220,14 @@ const styles = StyleSheet.create({
     minHeight: 0,
     zIndex: 1,
   },
-  sidebarHost: { flexShrink: 0, minHeight: 0 },
+  sidebarHost: {
+    flexShrink: 0,
+    minHeight: 0,
+    height: '100%',
+    ...(Platform.OS === 'web'
+      ? ({ overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' } as unknown as ViewStyle)
+      : null),
+  },
   main: {
     flex: 1,
     minWidth: 0,

@@ -101,6 +101,7 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
   captureOnce: () => Promise<EmployeeGpsSnapshot | null>;
 } {
   const releaseWatchRef = useRef<(() => void) | null>(null);
+  const startingWatchRef = useRef(false);
   const lastWriteRef = useRef<number>(0);
   const lastCoordsRef = useRef<{ lat: number; lon: number } | null>(null);
 
@@ -219,7 +220,9 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
 
   const startWatching = useCallback(async (): Promise<boolean> => {
     if (!options.enabled || !options.sessionId) return false;
+    if (startingWatchRef.current) return true;
 
+    startingWatchRef.current = true;
     stopWatching();
 
     const first = await captureOnce();
@@ -255,8 +258,17 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
       trackingActive: true,
     }));
 
+    startingWatchRef.current = false;
     return true;
   }, [options.enabled, options.sessionId, options.tenantId, captureOnce, persistSnapshot, stopWatching]);
+
+  useEffect(() => {
+    if (options.enabled && options.sessionId) {
+      if (!releaseWatchRef.current) void startWatching();
+      return;
+    }
+    stopWatching();
+  }, [options.enabled, options.sessionId, startWatching, stopWatching]);
 
   useEffect(() => {
     return () => stopWatching();

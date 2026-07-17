@@ -325,16 +325,16 @@ export function applyEmployeePortalTrackingForStatus(
         overrideReason: entry.geofenceOverrideReason,
       });
     }
-    entry.trackingActive = false;
+    entry.trackingActive = entry.consent.granted;
   }
 
   if (toStatus === 'gestartet') {
     entry.serviceStartedAt = now;
-    entry.trackingActive = false;
+    entry.trackingActive = entry.consent.granted;
   }
 
   if (toStatus === 'pausiert') {
-    entry.trackingActive = false;
+    entry.trackingActive = entry.consent.granted;
   }
 
   if (toStatus === 'beendet' || toStatus === 'abgeschlossen' || toStatus === 'storniert') {
@@ -376,7 +376,10 @@ export function buildEmployeePortalTrackingSnapshot(
 
   const assistVisible =
     entry.trackingActive &&
-    (status === 'unterwegs' || status === 'angekommen') &&
+    (status === 'unterwegs' ||
+      status === 'angekommen' ||
+      status === 'gestartet' ||
+      status === 'pausiert') &&
     Boolean(entry.lastPosition);
 
   if (entry.arrivalProof === 'without_gps' && status === 'angekommen') {

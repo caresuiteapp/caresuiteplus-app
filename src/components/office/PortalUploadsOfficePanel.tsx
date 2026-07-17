@@ -104,6 +104,9 @@ export function PortalUploadsOfficePanel({ tenantId, clientId }: PortalUploadsOf
             </Text>
             <Text style={[type.caption, { color: text.muted }]}>
               {PORTAL_UPLOAD_STATUS_LABELS[upload.status]}
+              {upload.uploadContext === 'mitarbeiter'
+                ? ` · Mitarbeitendenakte${upload.employeeName ? ` · ${upload.employeeName}` : ''}`
+                : ' · Klient:innenakte'}
               {upload.category ? ` · ${upload.category}` : ''}
             </Text>
             {upload.message ? (
@@ -111,7 +114,7 @@ export function PortalUploadsOfficePanel({ tenantId, clientId }: PortalUploadsOf
             ) : null}
             <View style={styles.actions}>
               <PremiumButton
-                title={workingId === upload.id ? 'Speichern…' : 'In Akte freigeben'}
+                title={workingId === upload.id ? 'Speichern…' : 'Prüfen und in Akte übernehmen'}
                 onPress={() => void handleApprove(upload)}
                 disabled={workingId !== null}
               />

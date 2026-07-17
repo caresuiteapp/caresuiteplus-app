@@ -35,7 +35,6 @@ import {
   setEmployeePortalGeofenceOverrideReason,
   computeEmployeePortalLiveTimers,
 } from '@/lib/portal/employeePortalVisitTrackingService';
-import { isEmployeePortalVisitLiveTrackingActive } from '@/lib/portal/employeePortalLiveOverviewService';
 import type { LiveTrackingErrorCode } from '@/features/liveTracking/liveTrackingErrors';
 import {
   assignmentStatusToWorkflowStep,
@@ -413,9 +412,9 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
   const liveTrackingEnabled = useMemo(
     () =>
-      effectiveStatus === 'unterwegs' &&
+      ['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(effectiveStatus ?? '') &&
       Boolean(liveContext?.trackingSessionActive) &&
-      isEmployeePortalVisitLiveTrackingActive(effectiveStatus),
+      Boolean(effectiveStatus),
     [liveContext?.trackingSessionActive, effectiveStatus],
   );
 
@@ -461,7 +460,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       : base.consent;
 
     const dbActive =
-      effectiveStatus === 'unterwegs' &&
+      ['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(effectiveStatus) &&
       (liveContext?.trackingSessionActive ||
         gpsTracking.state.trackingActive ||
         gpsTracking.state.dbSessionActive);
@@ -470,7 +469,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       ...base,
       consent: resolvedConsent,
       warnings: rebuildEmployeePortalTrackingWarnings(resolvedConsent, gpsPermission, base.warnings),
-      trackingActive: dbActive || (effectiveStatus === 'unterwegs' && base.trackingActive),
+      trackingActive: dbActive ||
+        (['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(effectiveStatus) && base.trackingActive),
       lastPosition: gpsTracking.state.lastSnapshot
         ? {
             latitude: gpsTracking.state.lastSnapshot.latitude,
@@ -500,13 +500,6 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           : ctx.derivedStatus
         : null;
 
-      const arrived =
-        ctx.derivedStatus === 'angekommen' || ctx.assignmentStatus === 'angekommen';
-      const inService =
-        ctx.derivedStatus === 'gestartet' ||
-        ctx.derivedStatus === 'pausiert' ||
-        ctx.assignmentStatus === 'gestartet' ||
-        ctx.assignmentStatus === 'pausiert';
       const hasServiceEnded = Boolean(ctx.visitTimes?.serviceEndedAt || ctx.detail.actualEndAt);
       const postServicePhase =
         !isTerminalStatus &&
@@ -560,7 +553,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       }
 
       const liveContext =
-        (arrived || inService || ended) && ctx.liveContext
+        ended && ctx.liveContext
           ? { ...ctx.liveContext, trackingSessionActive: false }
           : ctx.liveContext;
 

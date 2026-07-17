@@ -63,7 +63,12 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
 
   return (
     <>
-      <View style={styles.root}>
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator
+        nestedScrollEnabled
+      >
         <GlassCard style={styles.card}>
           <Text style={[type.caption, styles.sectionEyebrow, { color: cardText.muted }]}>MANDANT</Text>
           <Text style={[type.bodyStrong, { color: cardText.primary }]} numberOfLines={2}>
@@ -160,7 +165,7 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
             </Text>
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
 
       <PortalGlassModal visible={mandantOpen} onClose={() => setMandantOpen(false)} title="Mandant">
         <Text style={[type.body, { color: cardText.primary, fontWeight: '700' }]}>{context.tenantName}</Text>
@@ -193,9 +198,16 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
 const styles = StyleSheet.create({
   root: {
     width: 280,
+    height: '100%',
+    minHeight: 0,
     backgroundColor: auroraGlass.panel,
     borderLeftWidth: 1,
     borderLeftColor: auroraGlass.border,
+    ...(Platform.OS === 'web'
+      ? ({ overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' } as unknown as ViewStyle)
+      : null),
+  },
+  content: {
     paddingHorizontal: careSpacing.md,
     paddingTop: careSpacing.lg,
     paddingBottom: careSpacing.lg,

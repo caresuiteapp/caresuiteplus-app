@@ -142,7 +142,14 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: 'transparent' },
   shellRow: { flex: 1, flexDirection: 'row', minHeight: 0 },
-  sidebarHost: { flexShrink: 0, minHeight: 0 },
+  sidebarHost: {
+    flexShrink: 0,
+    minHeight: 0,
+    height: '100%',
+    ...(Platform.OS === 'web'
+      ? ({ overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' } as unknown as ViewStyle)
+      : null),
+  },
   contentColumn: { flex: 1, minWidth: 0, minHeight: 0, flexDirection: 'column' },
   body: { flex: 1, flexDirection: 'column', minHeight: 0 },
   main: { flex: 1, minWidth: 0, minHeight: 0, backgroundColor: 'transparent' },

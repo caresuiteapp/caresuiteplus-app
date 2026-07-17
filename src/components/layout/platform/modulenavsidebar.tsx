@@ -195,7 +195,13 @@ function createStyles(
       color: text.muted,
       marginBottom: spacing.md,
     },
-    nav: { flex: 1 },
+    nav: {
+      flex: 1,
+      minHeight: 0,
+      ...(Platform.OS === 'web'
+        ? ({ overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' } as unknown as ViewStyle)
+        : null),
+    },
     navContent: { gap: spacing.md, paddingBottom: spacing.md },
     group: { gap: spacing.xs },
     groupTitle: {

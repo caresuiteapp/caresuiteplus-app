@@ -40,10 +40,24 @@ export function buildPortalUploadStoragePath(
 }
 
 function mapUploadRow(row: Record<string, unknown>): PortalUpload {
+  const employee = row.employees as
+    | { first_name?: string | null; last_name?: string | null }
+    | null
+    | undefined;
+  const employeeName = employee
+    ? [employee.first_name, employee.last_name].filter(Boolean).join(' ').trim() || null
+    : null;
   return {
     id: String(row.id ?? ''),
     tenantId: String(row.tenant_id ?? ''),
     clientId: String(row.client_id ?? ''),
+    employeeId: row.employee_id ? String(row.employee_id) : null,
+    employeeName,
+    uploadContext: row.upload_context
+      ? (String(row.upload_context) as 'mitarbeiter' | 'klient')
+      : row.employee_id && !row.client_id
+        ? 'mitarbeiter'
+        : 'klient',
     portalUserId: row.portal_user_id ? String(row.portal_user_id) : null,
     portalRequestId: row.portal_request_id ? String(row.portal_request_id) : null,
     storagePath: String(row.storage_path ?? ''),
@@ -246,7 +260,7 @@ export async function listPendingPortalUploads(
     if (!supabase) return unavailable();
 
     let query = fromUnknownTable(supabase, 'portal_uploads')
-      .select('*')
+      .select('*, employees(first_name, last_name)')
       .eq('tenant_id', tenantId)
       .in('status', ['hochgeladen', 'wird_geprueft'])
       .order('created_at', { ascending: false });
@@ -267,7 +281,7 @@ export async function listPendingPortalUploads(
   });
 }
 
-/** Office: approve upload → copy to client_documents with portal_visible. */
+/** Office: approve upload into the correct client or employee file. */
 export async function approvePortalUpload(
   input: ApprovePortalUploadInput,
 ): Promise<ServiceResult<PortalUpload>> {
@@ -288,6 +302,54 @@ export async function approvePortalUpload(
     const upload = mapUploadRow(row as Record<string, unknown>);
     if (upload.status === 'freigegeben' || upload.status === 'abgelehnt') {
       return { ok: false, error: 'Upload wurde bereits bearbeitet.' };
+    }
+
+    if (upload.uploadContext === 'mitarbeiter' || (!upload.clientId && upload.employeeId)) {
+      if (!upload.employeeId) {
+        return { ok: false, error: 'Mitarbeitenden-Zuordnung fehlt.' };
+      }
+
+      const title = input.title?.trim() || upload.fileName.replace(/\.[^.]+$/, '') || upload.fileName;
+      const employeeDocumentId = crypto.randomUUID?.() ?? `employee-doc-${Date.now()}`;
+      const { error: employeeDocumentError } = await fromUnknownTable(supabase, 'employee_documents').insert({
+        id: employeeDocumentId,
+        tenant_id: upload.tenantId,
+        employee_id: upload.employeeId,
+        category: input.category ?? upload.category ?? 'other',
+        title,
+        file_name: upload.fileName,
+        storage_path: upload.storagePath,
+        sensitive: false,
+        released_to_portal: true,
+      });
+      if (employeeDocumentError) {
+        return { ok: false, error: toGermanSupabaseError(employeeDocumentError) };
+      }
+
+      const now = new Date().toISOString();
+      const { data: updated, error: updateError } = await fromUnknownTable(supabase, 'portal_uploads')
+        .update({
+          status: 'freigegeben',
+          reviewed_by: input.reviewedBy,
+          reviewed_at: now,
+          review_note: `Mitarbeitendenakte: ${employeeDocumentId}`,
+          updated_at: now,
+        })
+        .eq('tenant_id', input.tenantId)
+        .eq('id', input.uploadId)
+        .select('*')
+        .single();
+      if (updateError || !updated) {
+        return {
+          ok: false,
+          error: updateError ? toGermanSupabaseError(updateError) : 'Upload konnte nicht abgeschlossen werden.',
+        };
+      }
+      return { ok: true, data: mapUploadRow(updated as Record<string, unknown>) };
+    }
+
+    if (!upload.clientId) {
+      return { ok: false, error: 'Klient:innen-Zuordnung fehlt.' };
     }
 
     const { data: blob, error: downloadError } = await supabase.storage

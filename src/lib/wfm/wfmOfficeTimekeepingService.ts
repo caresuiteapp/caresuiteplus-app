@@ -50,6 +50,7 @@ import {
   listPlannedVisitsForPeriod,
 } from './wfmOfficePlannedVisitRepository';
 import { listWfmAbsencesForTeam } from './wfmAbsenceService';
+import { isWfmAbsenceCoveringDate } from './wfmDisplayHelpers';
 import {
   applyReviewToEntry,
   buildReferenceKeyFromEntry,

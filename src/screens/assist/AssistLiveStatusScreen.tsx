@@ -44,6 +44,14 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatPositionFreshness(capturedAt: string | null | undefined): string {
+  if (!capturedAt) return 'Noch keine Position';
+  const ageSeconds = Math.max(0, Math.round((Date.now() - new Date(capturedAt).getTime()) / 1000));
+  if (ageSeconds < 15) return 'Live · gerade aktualisiert';
+  if (ageSeconds < 60) return `Live · vor ${ageSeconds} Sek.`;
+  return `Signal veraltet · vor ${Math.round(ageSeconds / 60)} Min.`;
+}
+
 function pickMapRow(
   rows: AssistLiveMonitoringRow[],
   selectedId: string | null,
@@ -158,6 +166,17 @@ export function AssistLiveStatusScreen() {
                     <Text style={styles.trackingLine}>
                       Anfahrt: {formatTimerSeconds(row.tracking.timers.driveSeconds)} · Einsatz:{' '}
                       {formatTimerSeconds(row.tracking.timers.serviceSeconds)}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.trackingLine,
+                        row.tracking.lastPosition &&
+                        Date.now() - new Date(row.tracking.lastPosition.capturedAt).getTime() > 60_000
+                          ? styles.warning
+                          : styles.liveSignal,
+                      ]}
+                    >
+                      {formatPositionFreshness(row.tracking.lastPosition?.capturedAt)}
                     </Text>
                     <Text style={styles.trackingLine}>
                       GPS: {row.tracking.gpsPermission}
@@ -285,5 +304,6 @@ const styles = StyleSheet.create({
   trackingBlock: { marginTop: spacing.sm, gap: 2 },
   trackingLine: { ...typography.caption, color: colors.textSecondary },
   warning: { ...typography.caption, color: colors.amber, marginTop: spacing.xs },
+  liveSignal: { color: colors.success, fontWeight: '700' },
   gap: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
 });

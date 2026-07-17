@@ -294,6 +294,9 @@ function createStyles(
     scroll: {
       flex: 1,
       minHeight: 0,
+      ...(Platform.OS === 'web'
+        ? ({ overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' } as unknown as ViewStyle)
+        : null),
     },
     scrollContent: {
       paddingHorizontal: spacing.sm + spacing.xs,

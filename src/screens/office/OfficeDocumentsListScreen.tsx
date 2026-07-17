@@ -10,6 +10,8 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { fetchOfficeDocumentList } from '@/lib/office/officeDocumentsService';
+import { PortalUploadsOfficePanel } from '@/components/office/PortalUploadsOfficePanel';
+import { SectionPanel } from '@/components/ui';
 
 export function OfficeDocumentsListScreen() {
   const router = useRouter();
@@ -63,6 +65,14 @@ export function OfficeDocumentsListScreen() {
       ]}
     >
       <View style={styles.content}>
+        {tenantId ? (
+          <SectionPanel
+            title="Eingang aus Mitarbeiter- und Klient:innenportal"
+            subtitle="Hochgeladene Dokumente prüfen und der richtigen Akte zuordnen"
+          >
+            <PortalUploadsOfficePanel tenantId={tenantId} />
+          </SectionPanel>
+        ) : null}
         {isEmpty ? (
           <EmptyState
             title="Keine Dokumente"
@@ -81,5 +91,6 @@ export function OfficeDocumentsListScreen() {
 const styles = StyleSheet.create({
   content: {
     flex: 1,
+    gap: 16,
   },
 });

@@ -107,6 +107,8 @@ export function PortalTabLeftNav({
 const styles = StyleSheet.create({
   root: {
     width: 248,
+    height: '100%',
+    minHeight: 0,
     borderRightWidth: 1,
     paddingHorizontal: careSpacing.sm,
     paddingBottom: careSpacing.sm,
@@ -125,6 +127,10 @@ const styles = StyleSheet.create({
   },
   nav: {
     flex: 1,
+    minHeight: 0,
+    ...(Platform.OS === 'web'
+      ? ({ overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' } as unknown as ViewStyle)
+      : null),
   },
   navContent: {
     gap: careSpacing.xs,
