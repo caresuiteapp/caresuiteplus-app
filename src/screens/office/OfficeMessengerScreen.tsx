@@ -57,8 +57,9 @@ export function OfficeMessengerScreen() {
     tab?: string;
     thread?: string;
   }>();
-  const { height, width } = useWindowDimensions();
-  const stackTopChrome = width < 1750;
+  const { height } = useWindowDimensions();
+  const [workspaceWidth, setWorkspaceWidth] = useState(0);
+  const stackTopChrome = workspaceWidth > 0 && workspaceWidth < 1240;
   const { useMasterDetail } = usePlatformLayout();
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
@@ -211,7 +212,10 @@ export function OfficeMessengerScreen() {
       showBack={mobileChatActive}
       onBack={mobileChatActive ? closeThread : undefined}
     >
-      <View style={styles.root}>
+      <View
+        style={styles.root}
+        onLayout={(event) => setWorkspaceWidth(Math.round(event.nativeEvent.layout.width))}
+      >
         {!mobileChatActive ? (
           <View style={styles.topChrome}>
             <View style={styles.controls}>

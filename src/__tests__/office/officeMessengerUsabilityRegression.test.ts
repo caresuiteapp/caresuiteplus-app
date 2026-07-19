@@ -45,4 +45,12 @@ describe('Office messenger usability regression', () => {
     expect(thread).toContain("weekday: 'long'");
     expect(attachments).toContain('accessibilityLabel="Anhang hinzufügen"');
   });
+
+  it('responds to the real messenger workspace width instead of the browser width', () => {
+    const screen = readSrc('src/screens/office/OfficeMessengerScreen.tsx');
+
+    expect(screen).toContain('workspaceWidth');
+    expect(screen).toContain('event.nativeEvent.layout.width');
+    expect(screen).toContain('workspaceWidth < 1240');
+  });
 });
