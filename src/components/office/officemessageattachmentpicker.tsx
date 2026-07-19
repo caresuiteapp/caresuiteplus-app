@@ -58,7 +58,7 @@ export function OfficeMessageAttachmentPicker({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: { gap: spacing.xs },
+        root: { gap: spacing.xs, alignSelf: 'flex-start', maxWidth: '100%' },
         row: {
           flexDirection: 'row',
           alignItems: 'center',
