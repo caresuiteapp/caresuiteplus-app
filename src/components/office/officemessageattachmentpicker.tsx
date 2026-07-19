@@ -22,6 +22,7 @@ type OfficeMessageAttachmentPickerProps = {
   error?: string | null;
   onError?: (message: string | null) => void;
   onDarkSurface?: boolean;
+  compact?: boolean;
 };
 
 function createAttachmentId(): string {
@@ -50,6 +51,7 @@ export function OfficeMessageAttachmentPicker({
   error,
   onError,
   onDarkSurface = false,
+  compact = false,
 }: OfficeMessageAttachmentPickerProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
@@ -59,6 +61,18 @@ export function OfficeMessageAttachmentPicker({
     () =>
       StyleSheet.create({
         root: { gap: spacing.xs, alignSelf: 'flex-start', maxWidth: '100%' },
+        compactButton: {
+          minHeight: 36,
+          width: 36,
+          paddingHorizontal: 0,
+          borderRadius: 18,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: onDarkSurface ? auroraGlass.chip : c.surface,
+          borderWidth: 1,
+          borderColor: onDarkSurface ? auroraGlass.border : c.border,
+        },
+        compactButtonText: { ...typography.caption, color: ink.primary, fontWeight: '700' },
         row: {
           flexDirection: 'row',
           alignItems: 'center',
@@ -166,14 +180,26 @@ export function OfficeMessageAttachmentPicker({
           ) : null}
         </View>
       ))}
-      <PremiumButton
-        title="Anhang hinzufügen"
-        size="sm"
-        variant="secondary"
-        onPress={() => void pickAttachment()}
-        disabled={disabled}
-        onDarkSurface={onDarkSurface}
-      />
+      {compact ? (
+        <Pressable
+          style={styles.compactButton}
+          onPress={() => void pickAttachment()}
+          disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel="Anhang hinzufügen"
+        >
+          <Text style={styles.compactButtonText}>📎</Text>
+        </Pressable>
+      ) : (
+        <PremiumButton
+          title="Anhang hinzufügen"
+          size="sm"
+          variant="secondary"
+          onPress={() => void pickAttachment()}
+          disabled={disabled}
+          onDarkSurface={onDarkSurface}
+        />
+      )}
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );

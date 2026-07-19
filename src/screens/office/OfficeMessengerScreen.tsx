@@ -58,6 +58,8 @@ export function OfficeMessengerScreen() {
     thread?: string;
   }>();
   const { height } = useWindowDimensions();
+  const [workspaceWidth, setWorkspaceWidth] = useState(0);
+  const stackTopChrome = workspaceWidth > 0 && workspaceWidth < 1240;
   const { useMasterDetail } = usePlatformLayout();
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
@@ -132,13 +134,41 @@ export function OfficeMessengerScreen() {
     () =>
       StyleSheet.create({
         root: messengerScreenRootStyle(height),
-        controls: { gap: spacing.sm, marginBottom: spacing.sm, flexShrink: 0 },
+        topChrome: {
+          flexDirection: stackTopChrome ? 'column' : 'row',
+          alignItems: stackTopChrome ? 'stretch' : 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+          marginBottom: spacing.sm,
+          padding: spacing.sm,
+          borderRadius: 18,
+          borderWidth: 1,
+          borderColor: c.border,
+          backgroundColor: c.surface,
+          flexShrink: 0,
+        },
+        controls: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+          flex: stackTopChrome ? undefined : 1,
+          minWidth: 0,
+        },
         audienceHint: {
           ...typography.caption,
           color: c.muted,
           paddingHorizontal: spacing.xs,
+          maxWidth: 280,
         },
-        actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, flexShrink: 0 },
+        actions: {
+          flexDirection: 'row',
+          justifyContent: stackTopChrome ? 'flex-end' : 'flex-start',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+          flexShrink: 0,
+        },
         messengerBody: {
           flex: 1,
           minHeight: 0,
@@ -153,7 +183,7 @@ export function OfficeMessengerScreen() {
           backgroundColor: c.surface,
         },
       }),
-    [c, height, typography],
+    [c, height, stackTopChrome, typography],
   );
 
   const screenTitle =
@@ -182,54 +212,60 @@ export function OfficeMessengerScreen() {
       showBack={mobileChatActive}
       onBack={mobileChatActive ? closeThread : undefined}
     >
-      <View style={styles.root}>
+      <View
+        style={styles.root}
+        onLayout={(event) => setWorkspaceWidth(Math.round(event.nativeEvent.layout.width))}
+      >
         {!mobileChatActive ? (
-          <>
+          <View style={styles.topChrome}>
             <View style={styles.controls}>
-          <AuroraSegmentedControl
-            options={audienceOptions}
-            value={audience}
-            onChange={(key) => setAudience(key as OfficeMessageAudience)}
-          />
-          <AuroraSegmentedControl
-            options={OFFICE_MESSENGER_VIEWS}
-            value={view}
-            onChange={(key) => setView(key as OfficeMessengerView)}
-          />
-          <Text style={styles.audienceHint}>
-            {view === 'broadcasts'
-              ? `Mitteilungen an ${audience === 'internal' ? 'Verwaltung, Leitung und Geschäftsführung' : audience === 'clients' ? 'alle Klient:innen' : 'alle Mitarbeitenden'}`
-              : `Chats mit ${OFFICE_AUDIENCE_LABELS[audience]} — sortiert nach Neue, Aktuelle und Alte`}
-          </Text>
-        </View>
+              <AuroraSegmentedControl
+                options={audienceOptions}
+                value={audience}
+                onChange={(key) => setAudience(key as OfficeMessageAudience)}
+              />
+              <AuroraSegmentedControl
+                options={OFFICE_MESSENGER_VIEWS}
+                value={view}
+                onChange={(key) => setView(key as OfficeMessengerView)}
+              />
+              {!stackTopChrome ? (
+                <Text style={styles.audienceHint} numberOfLines={1}>
+                  {view === 'broadcasts' ? 'Mitteilungen und Ankündigungen' : 'Direkte Unterhaltungen'}
+                </Text>
+              ) : null}
+            </View>
 
-        {!isReadOnly ? (
-          <View style={styles.actions}>
-            {view === 'chats' ? (
-              <>
-                <PremiumButton
-                  title={NEW_CHAT_LABELS[audience]}
-                  onPress={() => setNewChatMode(newChatModeForAudience(audience))}
-                />
-                {audience === 'employees' ? (
+            {!isReadOnly ? (
+              <View style={styles.actions}>
+                {view === 'chats' ? (
+                  <>
+                    <PremiumButton
+                      title={NEW_CHAT_LABELS[audience]}
+                      size="sm"
+                      onPress={() => setNewChatMode(newChatModeForAudience(audience))}
+                    />
+                    {audience === 'employees' ? (
+                      <PremiumButton
+                        title="Neuer Gruppen-Chat"
+                        size="sm"
+                        variant="secondary"
+                        onPress={() => setShowGroupChatModal(true)}
+                      />
+                    ) : null}
+                  </>
+                ) : null}
+                {canBroadcast ? (
                   <PremiumButton
-                    title="Neuer Gruppen-Chat"
-                    variant="secondary"
-                    onPress={() => setShowGroupChatModal(true)}
+                    title={BROADCAST_LABELS[audience]}
+                    size="sm"
+                    variant={view === 'broadcasts' ? 'primary' : 'secondary'}
+                    onPress={() => setShowBroadcastModal(true)}
                   />
                 ) : null}
-              </>
-            ) : null}
-            {canBroadcast ? (
-              <PremiumButton
-                title={BROADCAST_LABELS[audience]}
-                variant={view === 'broadcasts' ? 'primary' : 'secondary'}
-                onPress={() => setShowBroadcastModal(true)}
-              />
+              </View>
             ) : null}
           </View>
-        ) : null}
-          </>
         ) : null}
 
         <View style={styles.messengerBody}>

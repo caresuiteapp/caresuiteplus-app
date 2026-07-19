@@ -18,20 +18,39 @@ describe('Office messenger usability regression', () => {
     expect(source).toContain('Kopieren');
   });
 
-  it('keeps the history scrollable and opens at the latest message', () => {
+  it('keeps the history scrollable and opens at the start of the latest message', () => {
     const source = readSrc('src/components/office/officemessagethread.tsx');
 
     expect(source).toContain('office-message-history');
-    expect(source).toContain('scrollToEnd');
+    expect(source).toContain('scrollToLatestMessage');
+    expect(source).not.toContain("justifyContent: 'flex-end'");
     expect(source).toContain('keyboardShouldPersistTaps="handled"');
   });
 
-  it('uses a compact composer with toolbar and input row', () => {
+  it('uses a compact composer with toolbar and integrated input shell', () => {
     const source = readSrc('src/components/communication/ChatComposer.tsx');
 
     expect(source).toContain('styles.toolbar');
-    expect(source).toContain('styles.inputRow');
+    expect(source).toContain('styles.inputShell');
+    expect(source).toContain('styles.sendButton');
     expect(source).toContain('🎤 Sprache');
-    expect(source).toContain('Als interne Notiz');
+    expect(source).toContain('🔒 Interne Notiz');
+  });
+
+  it('renders day separators and a compact attachment action', () => {
+    const thread = readSrc('src/components/office/officemessagethread.tsx');
+    const attachments = readSrc('src/components/office/officemessageattachmentpicker.tsx');
+
+    expect(thread).toContain('styles.dayDivider');
+    expect(thread).toContain("weekday: 'long'");
+    expect(attachments).toContain('accessibilityLabel="Anhang hinzufügen"');
+  });
+
+  it('responds to the real messenger workspace width instead of the browser width', () => {
+    const screen = readSrc('src/screens/office/OfficeMessengerScreen.tsx');
+
+    expect(screen).toContain('workspaceWidth');
+    expect(screen).toContain('event.nativeEvent.layout.width');
+    expect(screen).toContain('workspaceWidth < 1240');
   });
 });

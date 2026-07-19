@@ -35,6 +35,7 @@ export function OfficeMessageThread({
   const [pendingAttachments, setPendingAttachments] = useState<PendingMessageAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const messagesRef = useRef<ScrollView>(null);
+  const latestMessageYRef = useRef(0);
   const { detail, loading, error, sending, sendMessage, startNewChat, refresh } =
     useOfficeMessageThreadDetail(threadId);
 
@@ -42,8 +43,20 @@ export function OfficeMessageThread({
     () =>
       StyleSheet.create({
         root: { flex: 1, minWidth: 0, minHeight: 0 },
-        messages: { flex: 1, minHeight: 0 },
-        messagesContent: { paddingVertical: spacing.sm, flexGrow: 1, justifyContent: 'flex-end' },
+        messages: { flex: 1, minHeight: 0, backgroundColor: c.surfaceAlt },
+        messagesContent: { paddingVertical: spacing.lg, flexGrow: 1 },
+        dayDivider: { alignItems: 'center', marginVertical: spacing.md },
+        dayPill: {
+          ...typography.caption,
+          color: c.muted,
+          backgroundColor: c.surface,
+          borderWidth: 1,
+          borderColor: c.border,
+          paddingHorizontal: spacing.md,
+          paddingVertical: 5,
+          borderRadius: 999,
+          fontWeight: '700',
+        },
         closedBanner: {
           margin: spacing.md,
           padding: spacing.md,
@@ -56,9 +69,16 @@ export function OfficeMessageThread({
     [c, typography],
   );
 
+  const scrollToLatestMessage = () => {
+    messagesRef.current?.scrollTo({
+      y: Math.max(0, latestMessageYRef.current - spacing.sm),
+      animated: false,
+    });
+  };
+
   useEffect(() => {
     if (!detail?.messages.length) return;
-    const timer = setTimeout(() => messagesRef.current?.scrollToEnd({ animated: false }), 0);
+    const timer = setTimeout(scrollToLatestMessage, 0);
     return () => clearTimeout(timer);
   }, [detail?.messages.length, threadId]);
 
@@ -128,38 +148,66 @@ export function OfficeMessageThread({
         style={styles.messages}
         contentContainerStyle={styles.messagesContent}
         keyboardShouldPersistTaps="handled"
-        onContentSizeChange={() => messagesRef.current?.scrollToEnd({ animated: false })}
+        onContentSizeChange={scrollToLatestMessage}
         testID="office-message-history"
       >
-        {detail.messages.map((message) => {
+        {detail.messages.map((message, index) => {
           const isVoiceOnly = message.body === '🎤 Sprachnachricht';
           const isOwn = message.senderType === 'office_profile';
+          const previousMessage = detail.messages[index - 1];
+          const messageDate = new Date(message.sentAt ?? message.createdAt);
+          const previousDate = previousMessage
+            ? new Date(previousMessage.sentAt ?? previousMessage.createdAt)
+            : null;
+          const showDay = !previousDate || messageDate.toDateString() !== previousDate.toDateString();
           return (
-            <OfficeMessageActionsMenu
+            <View
               key={message.id}
-              message={message}
-              disabled={detail.isClosed}
-              onChanged={refresh}
+              onLayout={
+                index === detail.messages.length - 1
+                  ? (event) => {
+                      latestMessageYRef.current = event.nativeEvent.layout.y;
+                      scrollToLatestMessage();
+                    }
+                  : undefined
+              }
             >
-              <View>
-                {!isVoiceOnly ? (
-                  <ChatBubble
-                    message={mapOfficeMessageToChatBubble(message)}
+              {showDay ? (
+                <View style={styles.dayDivider}>
+                  <Text style={styles.dayPill}>
+                    {messageDate.toLocaleDateString('de-DE', {
+                      weekday: 'long',
+                      day: '2-digit',
+                      month: 'long',
+                    })}
+                  </Text>
+                </View>
+              ) : null}
+              <OfficeMessageActionsMenu
+                message={message}
+                disabled={detail.isClosed}
+                onChanged={refresh}
+              >
+                <View>
+                  {!isVoiceOnly ? (
+                    <ChatBubble
+                      message={mapOfficeMessageToChatBubble(message)}
+                      isOwn={isOwn}
+                    />
+                  ) : null}
+                  <MessageAttachmentList
+                    messageId={message.id}
+                    attachmentOnly={isVoiceOnly}
+                    expectVoiceAttachment={isVoiceOnly}
                     isOwn={isOwn}
+                    senderDisplayName={message.senderDisplayName}
+                    sentAt={message.sentAt}
+                    showStatus
+                    messageStatus={message.status === 'read' ? 'read' : 'sent'}
                   />
-                ) : null}
-                <MessageAttachmentList
-                  messageId={message.id}
-                  attachmentOnly={isVoiceOnly}
-                  expectVoiceAttachment={isVoiceOnly}
-                  isOwn={isOwn}
-                  senderDisplayName={message.senderDisplayName}
-                  sentAt={message.sentAt}
-                  showStatus
-                  messageStatus={message.status === 'read' ? 'read' : 'sent'}
-                />
-              </View>
-            </OfficeMessageActionsMenu>
+                </View>
+              </OfficeMessageActionsMenu>
+            </View>
           );
         })}
       </ScrollView>

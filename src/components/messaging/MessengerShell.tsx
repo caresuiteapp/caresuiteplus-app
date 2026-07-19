@@ -64,6 +64,7 @@ export function MessengerShell({
 
   const showSplit = useMasterDetail;
   const showMobileThread = !showSplit && !!selectedThreadId;
+  const inboxWidth = Math.min(masterPaneWidth, 380);
 
   const styles = useMemo(
     () =>
@@ -77,11 +78,15 @@ export function MessengerShell({
           flex: 1,
           minHeight: 0,
           flexDirection: 'row',
-          borderRadius: radius.lg,
+          borderRadius: 22,
           borderWidth: 1,
           borderColor: isGlass ? surfaces.borderStrong : c.border,
           backgroundColor: isGlass ? surfaces.panel : c.surface,
           overflow: 'hidden',
+          shadowColor: '#0F172A',
+          shadowOpacity: 0.12,
+          shadowRadius: 24,
+          shadowOffset: { width: 0, height: 10 },
         },
         inboxPane: {
           flexShrink: 0,
@@ -154,7 +159,7 @@ export function MessengerShell({
     return (
       <View style={styles.root} testID="messenger-shell">
         <View style={styles.splitRow}>
-          <View style={[styles.inboxPane, { width: masterPaneWidth, maxWidth: masterPaneWidth }]}>
+          <View style={[styles.inboxPane, { width: inboxWidth, maxWidth: inboxWidth }]}>
             {inbox}
           </View>
           <View style={styles.threadPane}>
