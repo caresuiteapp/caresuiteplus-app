@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
-import { PremiumButton } from '@/components/ui';
-import { useAuroraGlassChipStyles } from '@/design/tokens/auroraGlass';
+import { auroraGlass, useAuroraGlassChipStyles } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
 import {
   CARE_EMOJI_CATEGORIES,
@@ -20,7 +18,6 @@ type CareEmojiPickerProps = {
 
 export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerProps) {
   const { c } = useCareLightPalette();
-  const { typography } = useLegacyTheme();
   const chipStyles = useAuroraGlassChipStyles({ viewContext: 'form' });
   const [activeCategory, setActiveCategory] = useState<CareEmojiCategory['key']>('alltagsbegleitung');
 
@@ -53,7 +50,7 @@ export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerP
         },
         emoji: { fontSize: 20, lineHeight: 24 },
       }),
-    [c, typography, chipStyles],
+    [c],
   );
 
   const handleSelect = (emoji: string) => {
@@ -123,15 +120,26 @@ export function CareEmojiPickerButton({
   disabled,
   onDarkSurface = false,
 }: CareEmojiPickerButtonProps) {
+  const { c } = useCareLightPalette();
   return (
-    <PremiumButton
-      title="😊"
-      size="sm"
-      variant="ghost"
+    <Pressable
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: onDarkSurface ? auroraGlass.border : c.border,
+        backgroundColor: onDarkSurface ? auroraGlass.chip : c.surface,
+        opacity: disabled ? 0.45 : 1,
+      }}
       onPress={onPress}
       disabled={disabled}
-      onDarkSurface={onDarkSurface}
+      accessibilityRole="button"
       accessibilityLabel="Emoji-Auswahl öffnen"
-    />
+    >
+      <Text style={{ fontSize: 17 }}>😊</Text>
+    </Pressable>
   );
 }

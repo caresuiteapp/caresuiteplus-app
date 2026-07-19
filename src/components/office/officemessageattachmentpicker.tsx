@@ -63,7 +63,8 @@ export function OfficeMessageAttachmentPicker({
         root: { gap: spacing.xs, alignSelf: 'flex-start', maxWidth: '100%' },
         compactButton: {
           minHeight: 36,
-          paddingHorizontal: spacing.sm,
+          width: 36,
+          paddingHorizontal: 0,
           borderRadius: 18,
           alignItems: 'center',
           justifyContent: 'center',
@@ -187,7 +188,7 @@ export function OfficeMessageAttachmentPicker({
           accessibilityRole="button"
           accessibilityLabel="Anhang hinzufügen"
         >
-          <Text style={styles.compactButtonText}>📎 Anhang</Text>
+          <Text style={styles.compactButtonText}>📎</Text>
         </Pressable>
       ) : (
         <PremiumButton

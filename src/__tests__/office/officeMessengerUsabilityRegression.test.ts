@@ -18,11 +18,12 @@ describe('Office messenger usability regression', () => {
     expect(source).toContain('Kopieren');
   });
 
-  it('keeps the history scrollable and opens at the latest message', () => {
+  it('keeps the history scrollable and opens at the start of the latest message', () => {
     const source = readSrc('src/components/office/officemessagethread.tsx');
 
     expect(source).toContain('office-message-history');
-    expect(source).toContain('scrollToEnd');
+    expect(source).toContain('scrollToLatestMessage');
+    expect(source).not.toContain("justifyContent: 'flex-end'");
     expect(source).toContain('keyboardShouldPersistTaps="handled"');
   });
 
@@ -42,6 +43,6 @@ describe('Office messenger usability regression', () => {
 
     expect(thread).toContain('styles.dayDivider');
     expect(thread).toContain("weekday: 'long'");
-    expect(attachments).toContain('📎 Anhang');
+    expect(attachments).toContain('accessibilityLabel="Anhang hinzufügen"');
   });
 });

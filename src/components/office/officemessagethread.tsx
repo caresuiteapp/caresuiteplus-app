@@ -35,6 +35,7 @@ export function OfficeMessageThread({
   const [pendingAttachments, setPendingAttachments] = useState<PendingMessageAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const messagesRef = useRef<ScrollView>(null);
+  const latestMessageYRef = useRef(0);
   const { detail, loading, error, sending, sendMessage, startNewChat, refresh } =
     useOfficeMessageThreadDetail(threadId);
 
@@ -43,7 +44,7 @@ export function OfficeMessageThread({
       StyleSheet.create({
         root: { flex: 1, minWidth: 0, minHeight: 0 },
         messages: { flex: 1, minHeight: 0, backgroundColor: c.surfaceAlt },
-        messagesContent: { paddingVertical: spacing.lg, flexGrow: 1, justifyContent: 'flex-end' },
+        messagesContent: { paddingVertical: spacing.lg, flexGrow: 1 },
         dayDivider: { alignItems: 'center', marginVertical: spacing.md },
         dayPill: {
           ...typography.caption,
@@ -68,9 +69,16 @@ export function OfficeMessageThread({
     [c, typography],
   );
 
+  const scrollToLatestMessage = () => {
+    messagesRef.current?.scrollTo({
+      y: Math.max(0, latestMessageYRef.current - spacing.sm),
+      animated: false,
+    });
+  };
+
   useEffect(() => {
     if (!detail?.messages.length) return;
-    const timer = setTimeout(() => messagesRef.current?.scrollToEnd({ animated: false }), 0);
+    const timer = setTimeout(scrollToLatestMessage, 0);
     return () => clearTimeout(timer);
   }, [detail?.messages.length, threadId]);
 
@@ -140,7 +148,7 @@ export function OfficeMessageThread({
         style={styles.messages}
         contentContainerStyle={styles.messagesContent}
         keyboardShouldPersistTaps="handled"
-        onContentSizeChange={() => messagesRef.current?.scrollToEnd({ animated: false })}
+        onContentSizeChange={scrollToLatestMessage}
         testID="office-message-history"
       >
         {detail.messages.map((message, index) => {
@@ -153,7 +161,17 @@ export function OfficeMessageThread({
             : null;
           const showDay = !previousDate || messageDate.toDateString() !== previousDate.toDateString();
           return (
-            <View key={message.id}>
+            <View
+              key={message.id}
+              onLayout={
+                index === detail.messages.length - 1
+                  ? (event) => {
+                      latestMessageYRef.current = event.nativeEvent.layout.y;
+                      scrollToLatestMessage();
+                    }
+                  : undefined
+              }
+            >
               {showDay ? (
                 <View style={styles.dayDivider}>
                   <Text style={styles.dayPill}>

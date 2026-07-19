@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { auroraGlass, darkGlassSurfaceText, surfaceContrastText } from '@/design/tokens/auroraGlass';
 import { spacing, typography } from '@/theme';
@@ -52,8 +52,9 @@ export function ChatComposer({
   onDarkSurface = false,
 }: ChatComposerProps) {
   const { c } = useCareLightPalette();
-  const { width } = useWindowDimensions();
-  const isWide = width >= 900;
+  const [composerWidth, setComposerWidth] = useState(0);
+  const isCompact = composerWidth > 0 && composerWidth < 620;
+  const isWide = composerWidth >= 680;
   const canSend = Boolean(text.trim()) || canSendWithAttachments;
   const ink = onDarkSurface ? darkGlassSurfaceText : surfaceContrastText(false);
 
@@ -75,11 +76,12 @@ export function ChatComposer({
           flexDirection: 'row',
           alignItems: 'center',
           gap: spacing.xs,
-          flexWrap: 'wrap',
+          flexWrap: isCompact ? 'nowrap' : 'wrap',
         },
         toolButton: {
           minHeight: 36,
-          paddingHorizontal: spacing.sm,
+          width: isCompact ? 36 : undefined,
+          paddingHorizontal: isCompact ? 0 : spacing.sm,
           borderRadius: 18,
           alignItems: 'center',
           justifyContent: 'center',
@@ -128,11 +130,15 @@ export function ChatComposer({
         sendButtonDisabled: { opacity: 0.4 },
         sendText: { ...typography.body, color: '#FFFFFF', fontWeight: '800' },
       }),
-    [c, ink, isInternalNote, isWide, onDarkSurface],
+    [c, ink, isCompact, isInternalNote, isWide, onDarkSurface],
   );
 
   return (
-    <View style={styles.wrap} testID="messaging-composer">
+    <View
+      style={styles.wrap}
+      testID="messaging-composer"
+      onLayout={(event) => setComposerWidth(Math.round(event.nativeEvent.layout.width))}
+    >
       {composerAccessory}
       <View style={styles.toolbar}>
         {attachmentPicker}
@@ -149,7 +155,9 @@ export function ChatComposer({
           accessibilityRole="button"
           accessibilityLabel="Sprachnachricht aufnehmen"
         >
-          <Text style={styles.toolText}>{voicePreparedOnly ? '🎤 Vorbereitet' : '🎤 Sprache'}</Text>
+          <Text style={styles.toolText}>
+            {isCompact ? '🎤' : voicePreparedOnly ? '🎤 Vorbereitet' : '🎤 Sprache'}
+          </Text>
         </Pressable>
         {showInternalToggle ? (
           <Pressable
@@ -158,12 +166,16 @@ export function ChatComposer({
             accessibilityRole="button"
             accessibilityLabel="Interne Notiz umschalten"
           >
-            <Text style={styles.toolText}>{isInternalNote ? '🔒 Interne Notiz aktiv' : '🔒 Interne Notiz'}</Text>
+            <Text style={styles.toolText}>
+              {isCompact ? '🔒' : isInternalNote ? '🔒 Interne Notiz aktiv' : '🔒 Interne Notiz'}
+            </Text>
           </Pressable>
         ) : null}
-        <Text style={styles.hint} numberOfLines={1}>
-          {isInternalNote ? COMMUNICATION_CONSENT_HINTS.internalNote : COMMUNICATION_CONSENT_HINTS.sensitive}
-        </Text>
+        {!isCompact ? (
+          <Text style={styles.hint} numberOfLines={1}>
+            {isInternalNote ? COMMUNICATION_CONSENT_HINTS.internalNote : COMMUNICATION_CONSENT_HINTS.sensitive}
+          </Text>
+        ) : null}
       </View>
       <View style={styles.inputShell}>
         <TextInput

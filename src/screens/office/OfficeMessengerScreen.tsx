@@ -57,7 +57,8 @@ export function OfficeMessengerScreen() {
     tab?: string;
     thread?: string;
   }>();
-  const { height } = useWindowDimensions();
+  const { height, width } = useWindowDimensions();
+  const stackTopChrome = width < 1750;
   const { useMasterDetail } = usePlatformLayout();
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
@@ -133,8 +134,8 @@ export function OfficeMessengerScreen() {
       StyleSheet.create({
         root: messengerScreenRootStyle(height),
         topChrome: {
-          flexDirection: 'row',
-          alignItems: 'center',
+          flexDirection: stackTopChrome ? 'column' : 'row',
+          alignItems: stackTopChrome ? 'stretch' : 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: spacing.sm,
@@ -146,14 +147,27 @@ export function OfficeMessengerScreen() {
           backgroundColor: c.surface,
           flexShrink: 0,
         },
-        controls: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm, flex: 1 },
+        controls: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+          flex: stackTopChrome ? undefined : 1,
+          minWidth: 0,
+        },
         audienceHint: {
           ...typography.caption,
           color: c.muted,
           paddingHorizontal: spacing.xs,
           maxWidth: 280,
         },
-        actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, flexShrink: 0 },
+        actions: {
+          flexDirection: 'row',
+          justifyContent: stackTopChrome ? 'flex-end' : 'flex-start',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+          flexShrink: 0,
+        },
         messengerBody: {
           flex: 1,
           minHeight: 0,
@@ -168,7 +182,7 @@ export function OfficeMessengerScreen() {
           backgroundColor: c.surface,
         },
       }),
-    [c, height, typography],
+    [c, height, stackTopChrome, typography],
   );
 
   const screenTitle =
@@ -211,9 +225,11 @@ export function OfficeMessengerScreen() {
                 value={view}
                 onChange={(key) => setView(key as OfficeMessengerView)}
               />
-              <Text style={styles.audienceHint} numberOfLines={1}>
-                {view === 'broadcasts' ? 'Mitteilungen und Ankündigungen' : 'Direkte Unterhaltungen'}
-              </Text>
+              {!stackTopChrome ? (
+                <Text style={styles.audienceHint} numberOfLines={1}>
+                  {view === 'broadcasts' ? 'Mitteilungen und Ankündigungen' : 'Direkte Unterhaltungen'}
+                </Text>
+              ) : null}
             </View>
 
             {!isReadOnly ? (
