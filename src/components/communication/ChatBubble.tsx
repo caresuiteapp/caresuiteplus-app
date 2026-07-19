@@ -27,23 +27,23 @@ export function ChatBubble({ message, isOwn, showStatus = true }: ChatBubbleProp
     () =>
       StyleSheet.create({
         bubbleOwn: {
-          backgroundColor: `${c.violet}14`,
-          borderColor: `${c.violet}55`,
+          backgroundColor: c.violet,
+          borderColor: c.violet,
         },
         bubbleOther: {
           backgroundColor: c.surface,
           borderColor: c.border,
         },
-        sender: { ...adaptiveTypography.caption, color: c.violet, fontWeight: '700' },
-        body: { ...adaptiveTypography.body, color: c.text },
-        muted: { ...adaptiveTypography.caption, color: c.muted },
+        sender: { ...adaptiveTypography.caption, color: isOwn ? 'rgba(255,255,255,0.82)' : c.violet, fontWeight: '800' },
+        body: { ...adaptiveTypography.body, color: isOwn ? '#FFFFFF' : c.text, fontSize: 16, lineHeight: 24 },
+        muted: { ...adaptiveTypography.caption, color: isOwn ? 'rgba(255,255,255,0.72)' : c.muted },
         copyText: {
           ...adaptiveTypography.caption,
-          color: copied ? colors.success : c.violet,
+          color: copied ? colors.success : isOwn ? '#FFFFFF' : c.violet,
           fontWeight: '700',
         },
       }),
-    [adaptiveTypography, c, copied],
+    [adaptiveTypography, c, copied, isOwn],
   );
 
   const copyMessage = async () => {
@@ -70,7 +70,7 @@ export function ChatBubble({ message, isOwn, showStatus = true }: ChatBubbleProp
           message.isInternalNote && styles.bubbleInternal,
         ]}
       >
-        {!isOwn ? <Text style={adaptiveStyles.sender}>{message.senderDisplayName}</Text> : null}
+        <Text style={adaptiveStyles.sender}>{isOwn ? 'Sie' : message.senderDisplayName}</Text>
         <Text selectable style={adaptiveStyles.body} testID={`message-body-${message.id}`}>
           {body}
         </Text>
@@ -87,6 +87,7 @@ export function ChatBubble({ message, isOwn, showStatus = true }: ChatBubbleProp
             <Pressable
               onPress={() => void copyMessage()}
               hitSlop={8}
+              style={styles.copyButton}
               accessibilityRole="button"
               accessibilityLabel="Nachricht kopieren"
               testID={`copy-message-${message.id}`}
@@ -101,16 +102,20 @@ export function ChatBubble({ message, isOwn, showStatus = true }: ChatBubbleProp
 }
 
 const styles = StyleSheet.create({
-  row: { marginVertical: spacing.xs, paddingHorizontal: spacing.lg },
+  row: { marginVertical: 6, paddingHorizontal: spacing.lg },
   rowOwn: { alignItems: 'flex-end' },
   rowOther: { alignItems: 'flex-start' },
   bubble: {
-    maxWidth: '78%',
-    minWidth: 180,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.md,
+    maxWidth: '72%',
+    minWidth: 200,
+    borderRadius: 20,
+    paddingHorizontal: spacing.lg,
     borderWidth: 1,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
   },
   bubbleOwn: {
     borderBottomRightRadius: radius.sm,
@@ -123,7 +128,8 @@ const styles = StyleSheet.create({
     borderColor: colors.warning,
     borderStyle: 'dashed',
   },
-  meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.xs },
+  meta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.sm },
+  copyButton: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: radius.capsule },
   edited: { fontStyle: 'italic' },
   systemWrap: { alignItems: 'center', marginVertical: spacing.sm },
   systemText: {

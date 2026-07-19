@@ -37,6 +37,9 @@ export function OfficeMessageThreadHeader({ detail }: OfficeMessageThreadHeaderP
         header: {
           borderBottomWidth: 1,
           borderBottomColor: c.border,
+          backgroundColor: c.surface,
+          paddingHorizontal: careSpacing.md,
+          paddingVertical: careSpacing.sm,
         },
         heroHeader: {
           overflow: 'hidden',
@@ -54,10 +57,22 @@ export function OfficeMessageThreadHeader({ detail }: OfficeMessageThreadHeaderP
           height: '60%',
         },
         titleRow: {
-          paddingHorizontal: careSpacing.md,
-          paddingTop: careSpacing.sm,
-          paddingBottom: 2,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: careSpacing.sm,
         },
+        avatar: {
+          width: 42,
+          height: 42,
+          borderRadius: 21,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: `${c.violet}16`,
+          borderWidth: 1,
+          borderColor: `${c.violet}40`,
+        },
+        avatarText: { ...careTypography.bodyStrong, color: c.violet },
+        titleCopy: { flex: 1, minWidth: 0 },
         title: {
           ...careTypography.h3,
           color: c.text,
@@ -66,34 +81,41 @@ export function OfficeMessageThreadHeader({ detail }: OfficeMessageThreadHeaderP
           color: '#FFFFFF',
         },
         statusRow: {
-          paddingHorizontal: careSpacing.md,
-          paddingBottom: careSpacing.xs,
-          borderTopWidth: useHero ? 0 : 1,
-          borderTopColor: `${c.border}CC`,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: careSpacing.xs,
+          marginTop: 2,
         },
         statusText: {
           ...careTypography.caption,
           color: c.muted,
           lineHeight: 18,
         },
+        statusDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: c.green },
         heroStatusText: {
           color: 'rgba(255,255,255,0.82)',
         },
       }),
-    [c, officeAccent, useHero],
+    [c, officeAccent],
   );
 
   const titleBlock = (
     <>
       <View style={styles.titleRow}>
-        <Text style={[styles.title, useHero && styles.heroTitle]} numberOfLines={1}>
-          {participantLabel}
-        </Text>
-      </View>
-      <View style={styles.statusRow}>
-        <Text style={[styles.statusText, useHero && styles.heroStatusText]} numberOfLines={2}>
-          {subtitle}
-        </Text>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{participantLabel.trim().charAt(0).toUpperCase() || '?'}</Text>
+        </View>
+        <View style={styles.titleCopy}>
+          <Text style={[styles.title, useHero && styles.heroTitle]} numberOfLines={1}>
+            {participantLabel}
+          </Text>
+          <View style={styles.statusRow}>
+            <View style={styles.statusDot} />
+            <Text style={[styles.statusText, useHero && styles.heroStatusText]} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          </View>
+        </View>
       </View>
     </>
   );

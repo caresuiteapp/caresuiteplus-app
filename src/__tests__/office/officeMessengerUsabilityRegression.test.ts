@@ -26,12 +26,22 @@ describe('Office messenger usability regression', () => {
     expect(source).toContain('keyboardShouldPersistTaps="handled"');
   });
 
-  it('uses a compact composer with toolbar and input row', () => {
+  it('uses a compact composer with toolbar and integrated input shell', () => {
     const source = readSrc('src/components/communication/ChatComposer.tsx');
 
     expect(source).toContain('styles.toolbar');
-    expect(source).toContain('styles.inputRow');
+    expect(source).toContain('styles.inputShell');
+    expect(source).toContain('styles.sendButton');
     expect(source).toContain('🎤 Sprache');
-    expect(source).toContain('Als interne Notiz');
+    expect(source).toContain('🔒 Interne Notiz');
+  });
+
+  it('renders day separators and a compact attachment action', () => {
+    const thread = readSrc('src/components/office/officemessagethread.tsx');
+    const attachments = readSrc('src/components/office/officemessageattachmentpicker.tsx');
+
+    expect(thread).toContain('styles.dayDivider');
+    expect(thread).toContain("weekday: 'long'");
+    expect(attachments).toContain('📎 Anhang');
   });
 });

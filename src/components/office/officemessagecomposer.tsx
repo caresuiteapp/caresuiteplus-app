@@ -137,6 +137,7 @@ export function OfficeMessageComposer({
               error={attachmentError}
               onError={onAttachmentError}
               onDarkSurface={onDarkSurface}
+              compact
             />
           ) : null
         }

@@ -57,11 +57,24 @@ function ThreadRow({
       StyleSheet.create({
         row: {
           paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
+          paddingVertical: spacing.md,
           borderBottomWidth: 1,
           borderBottomColor: c.border,
           backgroundColor: selected ? `${c.violet}14` : 'transparent',
+          borderLeftWidth: 3,
+          borderLeftColor: selected ? c.violet : 'transparent',
         },
+        rowContent: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+        avatar: {
+          width: 42,
+          height: 42,
+          borderRadius: 21,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: selected ? c.violet : `${c.violet}12`,
+        },
+        avatarText: { ...typography.body, color: selected ? '#FFFFFF' : c.violet, fontWeight: '800' },
+        rowCopy: { flex: 1, minWidth: 0 },
         header: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
         subject: { ...typography.body, fontWeight: '700', color: c.text, flex: 1 },
         time: { ...typography.caption, color: c.muted },
@@ -116,39 +129,46 @@ function ThreadRow({
       testID={`office-thread-row-${thread.id}`}
       accessibilityLabel={`Chat ${thread.subject}`}
     >
-      <View style={styles.header}>
-        <Text style={styles.subject} numberOfLines={1}>
-          {thread.subject}
-        </Text>
-        {thread.unreadCount > 0 ? (
-          <View style={styles.unread}>
-            <Text style={styles.unreadText}>{thread.unreadCount}</Text>
-          </View>
-        ) : (
-          <Text style={styles.time}>{timeLabel}</Text>
-        )}
-      </View>
-      <Text style={styles.preview} numberOfLines={2}>
-        {participant}: {thread.lastMessagePreview ?? '—'}
-      </Text>
-      <View style={styles.meta}>
-        {isGroup ? (
-          <View style={styles.badgeGroup}>
-            <Text style={styles.badgeGroupText}>
-              👥 Gruppe · {thread.memberCount ?? thread.employeeParticipantIds?.length ?? 0} Mitglieder
+      <View style={styles.rowContent}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{participant.trim().charAt(0).toUpperCase() || '?'}</Text>
+        </View>
+        <View style={styles.rowCopy}>
+          <View style={styles.header}>
+            <Text style={styles.subject} numberOfLines={1}>
+              {thread.subject}
             </Text>
+            {thread.unreadCount > 0 ? (
+              <View style={styles.unread}>
+                <Text style={styles.unreadText}>{thread.unreadCount}</Text>
+              </View>
+            ) : (
+              <Text style={styles.time}>{timeLabel}</Text>
+            )}
           </View>
-        ) : null}
-        {thread.categoryLabel ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{thread.categoryLabel}</Text>
+          <Text style={styles.preview} numberOfLines={2}>
+            {participant}: {thread.lastMessagePreview ?? '—'}
+          </Text>
+          <View style={styles.meta}>
+            {isGroup ? (
+              <View style={styles.badgeGroup}>
+                <Text style={styles.badgeGroupText}>
+                  👥 Gruppe · {thread.memberCount ?? thread.employeeParticipantIds?.length ?? 0} Mitglieder
+                </Text>
+              </View>
+            ) : null}
+            {thread.categoryLabel ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{thread.categoryLabel}</Text>
+              </View>
+            ) : null}
+            {thread.priority !== 'normal' ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{PRIORITY_LABELS[thread.priority]}</Text>
+              </View>
+            ) : null}
           </View>
-        ) : null}
-        {thread.priority !== 'normal' ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{PRIORITY_LABELS[thread.priority]}</Text>
-          </View>
-        ) : null}
+        </View>
       </View>
     </Pressable>
   );
