@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChatBubble } from '@/components/communication/ChatBubble';
 import { MessageAttachmentList } from '@/components/office/messageattachmentlist';
@@ -34,6 +34,7 @@ export function OfficeMessageThread({
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<PendingMessageAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const messagesRef = useRef<ScrollView>(null);
   const { detail, loading, error, sending, sendMessage, startNewChat, refresh } =
     useOfficeMessageThreadDetail(threadId);
 
@@ -42,7 +43,7 @@ export function OfficeMessageThread({
       StyleSheet.create({
         root: { flex: 1, minWidth: 0, minHeight: 0 },
         messages: { flex: 1, minHeight: 0 },
-        messagesContent: { paddingVertical: spacing.md, flexGrow: 1 },
+        messagesContent: { paddingVertical: spacing.sm, flexGrow: 1, justifyContent: 'flex-end' },
         closedBanner: {
           margin: spacing.md,
           padding: spacing.md,
@@ -54,6 +55,12 @@ export function OfficeMessageThread({
       }),
     [c, typography],
   );
+
+  useEffect(() => {
+    if (!detail?.messages.length) return;
+    const timer = setTimeout(() => messagesRef.current?.scrollToEnd({ animated: false }), 0);
+    return () => clearTimeout(timer);
+  }, [detail?.messages.length, threadId]);
 
   if (!threadId) {
     return (
@@ -116,7 +123,14 @@ export function OfficeMessageThread({
     <View style={styles.root}>
       {!hideHeader ? <OfficeMessageThreadHeader detail={detail} /> : null}
 
-      <ScrollView style={styles.messages} contentContainerStyle={styles.messagesContent}>
+      <ScrollView
+        ref={messagesRef}
+        style={styles.messages}
+        contentContainerStyle={styles.messagesContent}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => messagesRef.current?.scrollToEnd({ animated: false })}
+        testID="office-message-history"
+      >
         {detail.messages.map((message) => {
           const isVoiceOnly = message.body === '🎤 Sprachnachricht';
           const isOwn = message.senderType === 'office_profile';

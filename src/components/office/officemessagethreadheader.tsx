@@ -5,7 +5,6 @@ import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { resolveGalaxyGradientColors } from '@/design/tokens/galaxy';
 import { glassFx, neonGlow } from '@/design/tokens/motion';
 import { moduleColor } from '@/design/tokens/modules';
-import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import type { OfficeMessageThreadDetail } from '@/types/office/messaging';
@@ -56,8 +55,8 @@ export function OfficeMessageThreadHeader({ detail }: OfficeMessageThreadHeaderP
         },
         titleRow: {
           paddingHorizontal: careSpacing.md,
-          paddingTop: careSpacing.md,
-          paddingBottom: careSpacing.sm,
+          paddingTop: careSpacing.sm,
+          paddingBottom: 2,
         },
         title: {
           ...careTypography.h3,
@@ -68,7 +67,7 @@ export function OfficeMessageThreadHeader({ detail }: OfficeMessageThreadHeaderP
         },
         statusRow: {
           paddingHorizontal: careSpacing.md,
-          paddingBottom: careSpacing.sm,
+          paddingBottom: careSpacing.xs,
           borderTopWidth: useHero ? 0 : 1,
           borderTopColor: `${c.border}CC`,
         },

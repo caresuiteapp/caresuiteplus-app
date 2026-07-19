@@ -56,7 +56,8 @@ function ThreadRow({
     () =>
       StyleSheet.create({
         row: {
-          padding: spacing.md,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
           borderBottomWidth: 1,
           borderBottomColor: c.border,
           backgroundColor: selected ? `${c.violet}14` : 'transparent',
@@ -188,7 +189,7 @@ export function OfficeMessagesInbox({
         filterChipActive: { backgroundColor: `${c.violet}14`, borderColor: c.violet },
         filterText: { ...typography.caption, color: c.muted },
         filterTextActive: { color: c.violet, fontWeight: '700' },
-        search: { paddingHorizontal: spacing.sm, paddingBottom: spacing.sm },
+        search: { paddingHorizontal: spacing.sm, paddingBottom: spacing.xs },
         list: { flex: 1 },
       }),
     [c, typography],
