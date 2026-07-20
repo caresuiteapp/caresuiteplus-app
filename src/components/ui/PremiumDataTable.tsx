@@ -110,7 +110,7 @@ export function PremiumDataTable<T>({
         styles.table,
         resolvedMinWidth != null
           ? { minWidth: resolvedMinWidth, width: fixedLayout ? resolvedMinWidth : undefined }
-          : null,
+          : localStyles.fluidTable,
       ]}
       testID="table-container"
     >
@@ -207,6 +207,7 @@ export function PremiumDataTable<T>({
 }
 
 const localStyles = StyleSheet.create({
+  fluidTable: { width: '100%' },
   scrollWrap: {
     maxWidth: '100%',
     ...(Platform.OS === 'web'

@@ -13,9 +13,10 @@ import { designTokens, spacing } from '@/theme';
 type OfficeBillingHeroProps = {
   stats: BillingDashboardStats;
   roleKey: RoleKey;
+  compact?: boolean;
 };
 
-export function OfficeBillingHero({ stats, roleKey }: OfficeBillingHeroProps) {
+export function OfficeBillingHero({ stats, roleKey, compact = false }: OfficeBillingHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
@@ -40,12 +41,32 @@ export function OfficeBillingHero({ stats, roleKey }: OfficeBillingHeroProps) {
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
+  compactFrame: { marginBottom: spacing.sm },
 }),
     [colors, typography, gradients],
   );
 
 
   const kpis = buildBillingDashboardKpis(stats, mode);
+
+  if (compact) {
+    return (
+      <PremiumListHeroFrame style={styles.compactFrame}>
+        <View style={styles.topRow}>
+          <View style={styles.textCol}>
+            <Text style={styles.title}>Abrechnung</Text>
+            <Text style={styles.meta}>Rechnungen und Budgets</Text>
+          </View>
+          <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
+        </View>
+        <View style={styles.badges}>
+          {kpis.map((kpi) => (
+            <PremiumBadge key={kpi.id} label={`${kpi.label}: ${kpi.value}`} variant="cyan" />
+          ))}
+        </View>
+      </PremiumListHeroFrame>
+    );
+  }
 
   return (
     <PremiumListHeroFrame>
@@ -79,4 +100,3 @@ export function OfficeBillingHero({ stats, roleKey }: OfficeBillingHeroProps) {
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

@@ -1,12 +1,10 @@
 import { StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import {
-  EmptyState,
   ErrorState,
   LoadingState,
   PremiumButton,
@@ -28,7 +26,6 @@ export function InvoiceCreateScreen() {
   const [title, setTitle] = useState('');
   const [clientName, setClientName] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [invoiceStatus, setInvoiceStatus] = useState('entwurf');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
@@ -89,8 +86,6 @@ export function InvoiceCreateScreen() {
     }
   };
 
-  const isEmpty = !title.trim() && !clientName.trim() && !dueDate.trim();
-
   return (
     <ScreenShell title="Rechnung anlegen" subtitle="Office Abrechnung">
       <FormScreenHero
@@ -100,19 +95,15 @@ export function InvoiceCreateScreen() {
         icon="🧾"
         formMode="create"
         wpNumber={226}
+        compact
       />
-      {isEmpty ? (
-        <EmptyState title="Neue Rechnung" message="Pflichtfeld Bezeichnung und optionale Zuordnung ausfüllen." />
-      ) : null}
       <PremiumCard style={styles.card}>
-        <PremiumInput label="Bezeichnung *" value={title} onChangeText={setTitle} />
-        <PremiumInput label="Klient:in" value={clientName} onChangeText={setClientName} />
-        <PremiumInput label="Fälligkeitsdatum" value={dueDate} onChangeText={setDueDate} placeholder="JJJJ-MM-TT" />
-        <CatalogValueSelect
-          catalogType="invoice_status"
-          label="Status (Katalog)"
-          value={invoiceStatus}
-          onChange={setInvoiceStatus}
+        <PremiumInput viewContext="form" label="Bezeichnung *" value={title} onChangeText={setTitle} />
+        <PremiumInput viewContext="form" label="Klient:in" value={clientName} onChangeText={setClientName} />
+        <PremiumInput viewContext="form" label="Fälligkeitsdatum" value={dueDate} onChangeText={setDueDate} placeholder="JJJJ-MM-TT" />
+        <LockedActionBanner
+          title="Status: Entwurf"
+          message="Neue Rechnungen beginnen automatisch als Entwurf. Der Status wird anschließend in der Rechnung geändert."
         />
         {submitError ? <ErrorState title="Speichern" message={submitError} /> : null}
         <PremiumButton title="Anlegen" fullWidth onPress={handleSubmit} />

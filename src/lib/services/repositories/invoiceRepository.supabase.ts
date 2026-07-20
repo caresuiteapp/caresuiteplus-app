@@ -61,7 +61,7 @@ export const invoiceSupabaseRepository = {
 
   async create(
     tenantId: string,
-    input: { title: string; status?: InvoiceStatus },
+    input: { title: string; status?: InvoiceStatus; clientId?: string | null; dueDate?: string | null },
   ): Promise<ServiceResult<{ id: string }>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
@@ -71,6 +71,8 @@ export const invoiceSupabaseRepository = {
         tenant_id: tenantId,
         invoice_number: input.title.trim(),
         status: input.status ?? 'draft',
+        client_id: input.clientId ?? null,
+        due_date: input.dueDate ?? null,
       })
       .select('id')
       .single();

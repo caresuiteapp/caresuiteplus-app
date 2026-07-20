@@ -10,7 +10,6 @@ import { useAsyncQuery } from '@/hooks/core';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { fetchBillingDashboardStats } from '@/lib/office';
 import { useAuth } from '@/lib/auth/context';
-import { ModuleDocumentsSection } from '@/components/documents/ModuleDocumentsSection';
 import { spacing } from '@/theme';
 import { BudgetsListScreen } from './BudgetsListScreen';
 
@@ -58,7 +57,7 @@ export function OfficeBillingScreen() {
 
   return (
     <ScreenShell title="Abrechnung" subtitle="Rechnungen & Budgets" scroll={false}>
-      {stats ? <OfficeBillingHero stats={stats} roleKey={roleKey} /> : null}
+      {stats ? <OfficeBillingHero stats={stats} roleKey={roleKey} compact /> : null}
 
       <View style={styles.catalogLink}>
         <PremiumButton
@@ -76,18 +75,12 @@ export function OfficeBillingScreen() {
       <View style={styles.content}>
         {activeTab === 'invoices' ? <InvoicesTabContent /> : <BudgetsListScreen embedded />}
       </View>
-      <ModuleDocumentsSection
-        targetModule="office"
-        targetArea="billing"
-        title="Rechnungen & Mahnungen"
-        subtitle="Rechnung, Mahnung, Leistungsnachweis, Kostenvoranschlag"
-      />
     </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  catalogLink: { marginBottom: spacing.sm, marginTop: spacing.md },
+  catalogLink: { alignSelf: 'flex-start', marginBottom: spacing.sm, marginTop: spacing.sm },
   tabs: { marginBottom: spacing.sm },
   content: { flex: 1 },
 });
