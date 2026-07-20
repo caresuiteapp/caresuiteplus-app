@@ -6,6 +6,8 @@ import {
   buildSystemInvoiceNumber,
   calculateDueDate,
 } from '@/lib/office/invoiceSystemFields';
+import { getInvoiceCatalogQuantities } from '@/lib/office/invoiceCreateService';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { isAllowedPersistentFreeTextPurpose } from '@/lib/forms/structuredFieldPolicy';
 
 const root = process.cwd();
@@ -37,5 +39,21 @@ describe('Office – systemgeführte Eingaben', () => {
     expect(screen).toContain('INVOICE_TYPE_OPTIONS');
     expect(screen).toContain('PAYMENT_TERM_OPTIONS');
     expect(screen).not.toContain('<PremiumInput');
+  });
+
+  it('schreibt Pflegegrade in Systemauswahlen immer als PG groß', () => {
+    const screen = read('src/screens/office/InvoiceCreateScreen.tsx');
+    expect(formatCareLevel('pg2')).toBe('PG2');
+    expect(formatCareLevel('PG 3')).toBe('PG3');
+    expect(screen).toContain('formatCareLevel(client.careLevel)');
+    expect(screen).not.toContain('[client.city, client.careLevel]');
+  });
+
+  it('verwendet bei Katalogpositionen ausschließlich kontrollierte Mengen', () => {
+    expect(getInvoiceCatalogQuantities('hour')).toEqual([0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 8]);
+    expect(getInvoiceCatalogQuantities('km')).toContain(50);
+    const create = read('src/lib/office/invoiceCreateService.ts');
+    expect(create).toContain('createFromCatalogPosition');
+    expect(create).toContain('getInvoiceCatalogQuantities(selected.unit).includes');
   });
 });

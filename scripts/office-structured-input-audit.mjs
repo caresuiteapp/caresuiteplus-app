@@ -25,8 +25,11 @@ for (const requiredField of ['Klient:in', 'Rechnungsart', 'Abrechnungsmonat', 'Z
 if (!selector.includes('Nur vorhandene Systemeinträge')) {
   failures.push('Die wiederverwendbare Systemauswahl ist nicht vorhanden.');
 }
-if (!invoiceService.includes('createFromServiceRecords') || !invoiceService.includes('records.data.length === 0')) {
+if (!invoiceService.includes('createFromServiceRecords') || !invoiceService.includes('createFromCatalogPosition')) {
   failures.push('Leere Rechnungen werden nicht zuverlässig verhindert.');
+}
+if (!invoiceScreen.includes('formatCareLevel(client.careLevel)')) {
+  failures.push('Pflegegrade werden in der Rechnungsauswahl nicht zentral als PG formatiert.');
 }
 if (!invoiceList.includes('clientName: inv.client_name') || invoiceDetail.includes('clientName: row.invoice_number')) {
   failures.push('Klient:innen-Zuordnung wird im Rechnungsdatenfluss falsch dargestellt.');
@@ -36,7 +39,8 @@ console.log('CareSuite+ office:structured-input:audit');
 console.log('✓ Klient:innen werden über IDs statt Namensfreitext zugeordnet');
 console.log('✓ Rechnungsart, Zeitraum und Zahlungsziel sind kontrollierte Auswahlen');
 console.log('✓ Nummer, Status und Fälligkeit werden automatisch erzeugt');
-console.log('✓ Positionen stammen ausschließlich aus freigegebenen Leistungsnachweisen');
+console.log('✓ Positionen stammen aus freigegebenen Leistungsnachweisen oder kontrollierten Katalogwerten');
+console.log('✓ Pflegegrade werden in Systemauswahlen als PG1 bis PG5 dargestellt');
 console.log('✓ Leere Rechnungen und Rechnungsnummern als Klient:innenname sind gesperrt');
 console.log('✓ Freitext bleibt Notizen, Beschreibungen, Begründungen und Nachrichten vorbehalten');
 

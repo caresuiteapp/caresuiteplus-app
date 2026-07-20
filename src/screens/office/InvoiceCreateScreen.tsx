@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FormScreenHero } from '@/components/forms';
 import { CareEntitySelect } from '@/components/inputs';
 import { LockedActionBanner } from '@/components/permissions';
@@ -17,7 +17,12 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchClientList } from '@/lib/office/clientListService';
-import { createInvoice, fetchInvoicePositionPreview } from '@/lib/office/invoiceCreateService';
+import {
+  createInvoice,
+  fetchInvoiceCatalogOptions,
+  fetchInvoicePositionPreview,
+  getInvoiceCatalogQuantities,
+} from '@/lib/office/invoiceCreateService';
 import {
   buildBillingPeriodOptions,
   buildSystemInvoiceNumber,
@@ -26,6 +31,7 @@ import {
   PAYMENT_TERM_OPTIONS,
 } from '@/lib/office/invoiceSystemFields';
 import { formatDate } from '@/lib/formatters/dateTimeFormatters';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { formatCurrency } from '@/lib/office/invoiceListService';
 import { spacing } from '@/theme';
 
@@ -39,6 +45,8 @@ export function InvoiceCreateScreen() {
   const [clientId, setClientId] = useState('');
   const [billingPeriod, setBillingPeriod] = useState(billingPeriods[0]?.value ?? '');
   const [paymentTermDays, setPaymentTermDays] = useState('14');
+  const [catalogItemId, setCatalogItemId] = useState('');
+  const [catalogQuantity, setCatalogQuantity] = useState('1');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
@@ -55,7 +63,7 @@ export function InvoiceCreateScreen() {
       (clientsQuery.data ?? []).map((client) => ({
         value: client.id,
         label: `${client.lastName}, ${client.firstName}`,
-        description: [client.city, client.careLevel].filter(Boolean).join(' · '),
+        description: [client.city, formatCareLevel(client.careLevel)].filter(Boolean).join(' · '),
       })),
     [clientsQuery.data],
   );
@@ -74,6 +82,46 @@ export function InvoiceCreateScreen() {
     positionsQuery.data?.clientId === clientId && positionsQuery.data.billingPeriod === billingPeriod
       ? positionsQuery.data
       : null;
+  const catalogQuery = useAsyncQuery(
+    () => {
+      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return fetchInvoiceCatalogOptions(tenantId, profile?.roleKey);
+    },
+    [tenantId, profile?.roleKey],
+    { enabled: Boolean(tenantId) },
+  );
+  const catalogOptions = useMemo(
+    () =>
+      (catalogQuery.data ?? []).map((item) => ({
+        value: item.id,
+        label: item.name,
+        description: `${formatCurrency(item.priceCents)} je ${item.unitLabel}`,
+      })),
+    [catalogQuery.data],
+  );
+  const selectedCatalogItem = (catalogQuery.data ?? []).find((item) => item.id === catalogItemId);
+  const quantityOptions = useMemo(() => {
+    const values = selectedCatalogItem ? getInvoiceCatalogQuantities(selectedCatalogItem.unit) : [1];
+    return values.map((value) => ({
+      value: String(value),
+      label: `${new Intl.NumberFormat('de-DE').format(value)} ${selectedCatalogItem?.unitLabel ?? 'Einheit(en)'}`,
+    }));
+  }, [selectedCatalogItem]);
+  const usesCatalogPosition = Boolean(positionPreview && positionPreview.count === 0);
+  const catalogTotalCents = selectedCatalogItem
+    ? Math.round(selectedCatalogItem.priceCents * Number(catalogQuantity))
+    : 0;
+
+  useEffect(() => {
+    setCatalogItemId('');
+    setCatalogQuantity('1');
+  }, [clientId, billingPeriod]);
+
+  useEffect(() => {
+    if (selectedCatalogItem && !quantityOptions.some((option) => option.value === catalogQuantity)) {
+      setCatalogQuantity(quantityOptions[0]?.value ?? '1');
+    }
+  }, [catalogQuantity, quantityOptions, selectedCatalogItem]);
 
   if (!can('office.invoices.view') || isReadOnly) {
     return (
@@ -97,7 +145,7 @@ export function InvoiceCreateScreen() {
   if (createdId) {
     return (
       <ScreenShell title="Rechnung angelegt" subtitle="WP 226">
-        <SuccessState message="Rechnung wurde mit den ausgewählten Leistungsnachweisen angelegt." />
+        <SuccessState message="Rechnung wurde mit einer systemgeführten Position angelegt." />
         <PremiumButton
           title="Zur Detailansicht"
           fullWidth
@@ -129,6 +177,8 @@ export function InvoiceCreateScreen() {
         clientId,
         dueDate,
         billingPeriod,
+        catalogItemId: usesCatalogPosition ? catalogItemId : undefined,
+        catalogQuantity: usesCatalogPosition ? Number(catalogQuantity) : undefined,
       },
       profile?.roleKey,
     );
@@ -187,10 +237,39 @@ export function InvoiceCreateScreen() {
               message={`Diese Positionen werden automatisch übernommen · Gesamtbetrag ${formatCurrency(positionPreview.totalCents)}.`}
             />
           ) : (
-            <ErrorState
-              title="Keine abrechenbaren Positionen"
-              message="Für diese Klient:in und diesen Monat gibt es keine freigegebenen Leistungsnachweise. Es wird keine leere Rechnung angelegt."
-            />
+            <>
+              <LockedActionBanner
+                title="Position aus Leistungskatalog auswählen"
+                message="Es gibt keine freigegebenen Leistungsnachweise. Die Rechnung kann mit einer kontrollierten Katalogposition als Entwurf angelegt werden."
+              />
+              <CareEntitySelect
+                label="Leistung"
+                required
+                value={catalogItemId}
+                options={catalogOptions}
+                onChange={setCatalogItemId}
+                loading={catalogQuery.loading}
+                error={catalogQuery.error}
+                placeholder="Leistung aus dem Systemkatalog auswählen"
+                searchPlaceholder="Leistung suchen…"
+                emptyMessage="Keine aktive Leistung mit Preis im Katalog vorhanden."
+              />
+              {selectedCatalogItem ? (
+                <>
+                  <CareEntitySelect
+                    label="Menge"
+                    required
+                    value={catalogQuantity}
+                    options={quantityOptions}
+                    onChange={setCatalogQuantity}
+                  />
+                  <LockedActionBanner
+                    title="Automatisch berechnete Position"
+                    message={`${selectedCatalogItem.name} · ${formatCurrency(selectedCatalogItem.priceCents)} je ${selectedCatalogItem.unitLabel} · Gesamt ${formatCurrency(catalogTotalCents)}.`}
+                  />
+                </>
+              ) : null}
+            </>
           )
         ) : null}
         <CareEntitySelect
@@ -208,7 +287,11 @@ export function InvoiceCreateScreen() {
         <PremiumButton
           title="Anlegen"
           fullWidth
-          disabled={!clientId || !positionPreview || positionPreview.count === 0}
+          disabled={
+            !clientId
+            || !positionPreview
+            || (usesCatalogPosition && (!catalogItemId || !catalogQuantity))
+          }
           onPress={handleSubmit}
         />
         <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={() => router.back()} />

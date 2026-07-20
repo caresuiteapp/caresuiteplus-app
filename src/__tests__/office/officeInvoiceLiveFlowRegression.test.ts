@@ -29,12 +29,14 @@ describe('Office Rechnung – Live-Datenfluss', () => {
     expect(detail).not.toContain('clientName: row.invoice_number');
   });
 
-  it('verhindert leere Rechnungen und übernimmt abrechenbare Nachweise', () => {
+  it('verhindert leere Rechnungen und übernimmt Nachweise oder kontrollierte Katalogpositionen', () => {
     const create = read('src/lib/office/invoiceCreateService.ts');
     const repository = read('src/lib/services/repositories/invoiceRepository.supabase.ts');
     expect(create).toContain(".in('status', ['approved', 'billable'])");
     expect(create).toContain('records.data.length === 0');
     expect(repository).toContain('createFromServiceRecords');
+    expect(repository).toContain('createFromCatalogPosition');
+    expect(create).toContain('fetchInvoiceCatalogOptions');
     expect(repository).toContain("from('invoice_items').insert");
     expect(repository).toContain("status: 'billed'");
   });

@@ -5,6 +5,9 @@ import { invoiceSupabaseRepository } from '@/lib/services/repositories/invoiceRe
 import type { InvoiceSourceRecord } from '@/lib/services/repositories/invoiceRepository.supabase';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { formatServicePriceUnit } from '@/lib/tenant/serviceCatalogLabels';
+import type { ServicePriceUnit, TenantModuleKey } from '@/types/tenant/tenantCenter';
 
 export type InvoiceCreateInput = {
   title: string;
@@ -13,6 +16,8 @@ export type InvoiceCreateInput = {
   totalCents?: number;
   dueDate?: string;
   billingPeriod?: string;
+  catalogItemId?: string;
+  catalogQuantity?: number;
 };
 
 export type InvoicePositionPreview = {
@@ -21,6 +26,46 @@ export type InvoicePositionPreview = {
   count: number;
   totalCents: number;
 };
+
+export type InvoiceCatalogOption = {
+  id: string;
+  name: string;
+  description: string;
+  moduleKey: TenantModuleKey;
+  unit: ServicePriceUnit;
+  unitLabel: string;
+  priceCents: number;
+  taxRate: number;
+};
+
+const DEMO_CATALOG_OPTIONS: InvoiceCatalogOption[] = [
+  {
+    id: 'demo-assist-alltagsbegleitung',
+    name: 'Alltagsbegleitung',
+    description: 'Individuelle Alltagsbegleitung und Betreuung',
+    moduleKey: 'assist',
+    unit: 'hour',
+    unitLabel: 'Stunde',
+    priceCents: 3800,
+    taxRate: 0,
+  },
+  {
+    id: 'demo-assist-haushaltshilfe',
+    name: 'Haushaltshilfe',
+    description: 'Unterstützung im Haushalt',
+    moduleKey: 'assist',
+    unit: 'hour',
+    unitLabel: 'Stunde',
+    priceCents: 3800,
+    taxRate: 0,
+  },
+];
+
+export function getInvoiceCatalogQuantities(unit: ServicePriceUnit): number[] {
+  if (unit === 'hour') return [0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 8];
+  if (unit === 'km') return [1, 5, 10, 15, 20, 25, 30, 50];
+  return [1, 2, 3, 4, 5, 6, 8, 10];
+}
 
 function periodBounds(billingPeriod: string): { start: string; end: string } | null {
   if (!/^\d{4}-\d{2}$/.test(billingPeriod)) return null;
@@ -52,6 +97,55 @@ async function loadInvoiceSourceRecords(
     .order('service_date', { ascending: true });
   if (error) return { ok: false, error: 'Abrechenbare Leistungsnachweise konnten nicht geladen werden.' };
   return { ok: true, data: (data ?? []) as InvoiceSourceRecord[] };
+}
+
+export async function fetchInvoiceCatalogOptions(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<InvoiceCatalogOption[]>> {
+  const denied = enforcePermission<InvoiceCatalogOption[]>(actorRoleKey, 'office.invoices.create');
+  if (denied) return denied;
+  const tenantErr = assertTenantForMode(tenantId);
+  if (tenantErr) return { ok: false, error: tenantErr.error };
+  if (getServiceMode() !== 'supabase') return { ok: true, data: DEMO_CATALOG_OPTIONS };
+
+  const client = getSupabaseClient();
+  if (!client) return { ok: false, error: 'Supabase ist nicht verfügbar.' };
+  const { data: catalogRows, error } = await fromUnknownTable(client, 'tenant_service_catalog')
+    .select('id, module_key, name, description, unit, category, is_active, sort_order')
+    .eq('tenant_id', tenantId)
+    .eq('is_active', true)
+    .in('category', ['service', 'travel'])
+    .order('sort_order');
+  if (error) return { ok: false, error: 'Leistungskatalog konnte nicht geladen werden.' };
+  const ids = (catalogRows ?? []).map((row: Record<string, unknown>) => String(row.id));
+  if (ids.length === 0) return { ok: true, data: [] };
+  const { data: priceRows, error: priceError } = await fromUnknownTable(client, 'tenant_service_prices')
+    .select('catalog_id, price_net, tax_rate')
+    .eq('tenant_id', tenantId)
+    .eq('is_default', true)
+    .in('catalog_id', ids);
+  if (priceError) return { ok: false, error: 'Katalogpreise konnten nicht geladen werden.' };
+  const priceByCatalog = new Map(
+    ((priceRows ?? []) as Record<string, unknown>[]).map((row) => [String(row.catalog_id), row]),
+  );
+  const options = ((catalogRows ?? []) as Record<string, unknown>[]).flatMap((row) => {
+    const price = priceByCatalog.get(String(row.id));
+    const priceNet = Number(price?.price_net ?? 0);
+    const unit = row.unit as ServicePriceUnit;
+    if (!price || !Number.isFinite(priceNet) || priceNet <= 0 || unit === 'percent') return [];
+    return [{
+      id: String(row.id),
+      name: String(row.name),
+      description: String(row.description ?? ''),
+      moduleKey: row.module_key as TenantModuleKey,
+      unit,
+      unitLabel: formatServicePriceUnit(unit),
+      priceCents: Math.round(priceNet * 100),
+      taxRate: Number(price.tax_rate ?? 0),
+    }];
+  });
+  return { ok: true, data: options };
 }
 
 export async function fetchInvoicePositionPreview(
@@ -100,10 +194,30 @@ export async function createInvoice(
     const records = await loadInvoiceSourceRecords(tenantId, input.clientId, input.billingPeriod);
     if (!records.ok) return records;
     if (records.data.length === 0) {
-      return {
-        ok: false,
-        error: 'Für diese Klient:in und diesen Monat gibt es keine freigegebenen, abrechenbaren Leistungsnachweise.',
-      };
+      if (!input.catalogItemId || !input.catalogQuantity || input.catalogQuantity <= 0) {
+        return { ok: false, error: 'Bitte eine Leistung und Menge aus dem Systemkatalog auswählen.' };
+      }
+      const catalog = await fetchInvoiceCatalogOptions(tenantId, actorRoleKey);
+      if (!catalog.ok) return catalog;
+      const selected = catalog.data.find((item) => item.id === input.catalogItemId);
+      if (!selected) return { ok: false, error: 'Die gewählte Katalogleistung ist nicht mehr verfügbar.' };
+      if (!getInvoiceCatalogQuantities(selected.unit).includes(input.catalogQuantity)) {
+        return { ok: false, error: 'Die gewählte Menge ist für diese Leistung nicht zulässig.' };
+      }
+      return invoiceSupabaseRepository.createFromCatalogPosition(tenantId, {
+        title: input.title,
+        clientId: input.clientId,
+        dueDate: input.dueDate,
+        serviceMonth: input.billingPeriod,
+        position: {
+          moduleKey: selected.moduleKey,
+          name: selected.name,
+          unit: selected.unitLabel,
+          quantity: input.catalogQuantity,
+          unitPrice: selected.priceCents / 100,
+          taxRate: selected.taxRate,
+        },
+      });
     }
     return invoiceSupabaseRepository.createFromServiceRecords(tenantId, {
       title: input.title,

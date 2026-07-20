@@ -50,6 +50,15 @@ export type InvoiceSourceRecord = {
   total_amount: number | null;
 };
 
+export type InvoiceCatalogPosition = {
+  moduleKey: Database['public']['Enums']['product_key'];
+  name: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  taxRate: number;
+};
+
 async function enrichInvoiceRows(tenantId: string, rows: Omit<InvoiceRow, 'client_name'>[]): Promise<InvoiceRow[]> {
   const supabase = getClient();
   if (!supabase || rows.length === 0) return rows.map((row) => ({ ...row, client_name: 'Nicht zugeordnet' }));
@@ -218,6 +227,59 @@ export const invoiceSupabaseRepository = {
       return { ok: false, error: toGermanSupabaseError(sourceError) };
     }
 
+    return { ok: true, data: { id: invoice.id } };
+  },
+
+  async createFromCatalogPosition(
+    tenantId: string,
+    input: {
+      title: string;
+      clientId: string;
+      dueDate: string;
+      serviceMonth: string;
+      position: InvoiceCatalogPosition;
+    },
+  ): Promise<ServiceResult<{ id: string }>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+    const netAmount = input.position.quantity * input.position.unitPrice;
+    const vatAmount = netAmount * (input.position.taxRate / 100);
+    const grossAmount = netAmount + vatAmount;
+
+    const { data: invoice, error: invoiceError } = await supabase
+      .from('invoices')
+      .insert({
+        tenant_id: tenantId,
+        invoice_number: input.title.trim(),
+        status: 'draft',
+        client_id: input.clientId,
+        due_date: input.dueDate,
+        service_month: input.serviceMonth,
+        total_amount: grossAmount,
+        open_amount: grossAmount,
+      })
+      .select('id')
+      .single();
+    if (invoiceError || !invoice) return { ok: false, error: toGermanSupabaseError(invoiceError) };
+
+    const { error: itemError } = await supabase.from('invoice_items').insert({
+      tenant_id: tenantId,
+      invoice_id: invoice.id,
+      description: input.position.name,
+      product_key: input.position.moduleKey,
+      quantity: input.position.quantity,
+      unit: input.position.unit,
+      unit_price: input.position.unitPrice,
+      net_amount: netAmount,
+      gross_amount: grossAmount,
+      vat_amount: vatAmount,
+      vat_rate: input.position.taxRate,
+      sort_order: 1,
+    });
+    if (itemError) {
+      await supabase.from('invoices').delete().eq('tenant_id', tenantId).eq('id', invoice.id);
+      return { ok: false, error: toGermanSupabaseError(itemError) };
+    }
     return { ok: true, data: { id: invoice.id } };
   },
 };
