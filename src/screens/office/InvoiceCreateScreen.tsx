@@ -17,7 +17,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchClientList } from '@/lib/office/clientListService';
-import { createInvoice } from '@/lib/office/invoiceCreateService';
+import { createInvoice, fetchInvoicePositionPreview } from '@/lib/office/invoiceCreateService';
 import {
   buildBillingPeriodOptions,
   buildSystemInvoiceNumber,
@@ -26,6 +26,7 @@ import {
   PAYMENT_TERM_OPTIONS,
 } from '@/lib/office/invoiceSystemFields';
 import { formatDate } from '@/lib/formatters/dateTimeFormatters';
+import { formatCurrency } from '@/lib/office/invoiceListService';
 import { spacing } from '@/theme';
 
 export function InvoiceCreateScreen() {
@@ -59,6 +60,20 @@ export function InvoiceCreateScreen() {
     [clientsQuery.data],
   );
   const dueDate = calculateDueDate(paymentTermDays);
+  const positionsQuery = useAsyncQuery(
+    () => {
+      if (!tenantId || !clientId || !billingPeriod) {
+        return Promise.resolve({ ok: false as const, error: 'Auswahl unvollständig.' });
+      }
+      return fetchInvoicePositionPreview(tenantId, clientId, billingPeriod, profile?.roleKey);
+    },
+    [tenantId, clientId, billingPeriod, profile?.roleKey],
+    { enabled: Boolean(tenantId && clientId && billingPeriod) },
+  );
+  const positionPreview =
+    positionsQuery.data?.clientId === clientId && positionsQuery.data.billingPeriod === billingPeriod
+      ? positionsQuery.data
+      : null;
 
   if (!can('office.invoices.view') || isReadOnly) {
     return (
@@ -82,7 +97,7 @@ export function InvoiceCreateScreen() {
   if (createdId) {
     return (
       <ScreenShell title="Rechnung angelegt" subtitle="WP 226">
-        <SuccessState message="Rechnung wurde im Demo-Mandanten angelegt." />
+        <SuccessState message="Rechnung wurde mit den ausgewählten Leistungsnachweisen angelegt." />
         <PremiumButton
           title="Zur Detailansicht"
           fullWidth
@@ -113,6 +128,7 @@ export function InvoiceCreateScreen() {
         title: buildSystemInvoiceNumber(invoiceType, billingPeriod),
         clientId,
         dueDate,
+        billingPeriod,
       },
       profile?.roleKey,
     );
@@ -162,6 +178,21 @@ export function InvoiceCreateScreen() {
           options={billingPeriods}
           onChange={setBillingPeriod}
         />
+        {clientId ? (
+          positionsQuery.loading || !positionPreview ? (
+            <LoadingState message="Abrechenbare Leistungsnachweise werden geprüft…" />
+          ) : positionPreview.count > 0 ? (
+            <LockedActionBanner
+              title={`${positionPreview.count} abrechenbare Leistungsnachweise`}
+              message={`Diese Positionen werden automatisch übernommen · Gesamtbetrag ${formatCurrency(positionPreview.totalCents)}.`}
+            />
+          ) : (
+            <ErrorState
+              title="Keine abrechenbaren Positionen"
+              message="Für diese Klient:in und diesen Monat gibt es keine freigegebenen Leistungsnachweise. Es wird keine leere Rechnung angelegt."
+            />
+          )
+        ) : null}
         <CareEntitySelect
           label="Zahlungsziel"
           required
@@ -174,7 +205,12 @@ export function InvoiceCreateScreen() {
           message={`Status: Entwurf · Fällig am ${formatDate(dueDate)} · Rechnungsnummer wird beim Anlegen systemseitig erzeugt.`}
         />
         {submitError ? <ErrorState title="Speichern" message={submitError} /> : null}
-        <PremiumButton title="Anlegen" fullWidth onPress={handleSubmit} />
+        <PremiumButton
+          title="Anlegen"
+          fullWidth
+          disabled={!clientId || !positionPreview || positionPreview.count === 0}
+          onPress={handleSubmit}
+        />
         <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={() => router.back()} />
       </PremiumCard>
     </ScreenShell>

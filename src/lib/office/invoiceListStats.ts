@@ -18,11 +18,11 @@ function isOverdue(dueDate: string): boolean {
 
 export function buildInvoiceListKpis(items: InvoiceListItem[]): InvoiceListKpi[] {
   const open = items.filter(
-    (i) => i.status === 'aktiv' || i.status === 'in_bearbeitung' || i.status === 'entwurf',
+    (i) => ['draft', 'ready', 'sent', 'partly_paid', 'overdue'].includes(i.status),
   );
   const overdue = open.filter((i) => isOverdue(i.dueDate));
   const openCents = open.reduce((sum, i) => sum + i.amountCents, 0);
-  const errorCount = items.filter((i) => i.status === 'fehlerhaft').length;
+  const errorCount = items.filter((i) => i.status === 'overdue').length;
 
   return [
     {

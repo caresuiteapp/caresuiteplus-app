@@ -1,5 +1,14 @@
 import type { TenantScopedEntity, WorkflowStatus } from '../core/base';
-import type { AuditEntry } from '../detail';
+
+export type InvoiceStatus =
+  | 'draft'
+  | 'ready'
+  | 'sent'
+  | 'partly_paid'
+  | 'paid'
+  | 'overdue'
+  | 'cancelled'
+  | 'written_off';
 
 export type BudgetPeriod = 'monthly' | 'quarterly' | 'yearly';
 
@@ -53,7 +62,7 @@ export type InvoiceListItem = {
   amountCents: number;
   currency: string;
   dueDate: string;
-  status: WorkflowStatus;
+  status: InvoiceStatus;
   updatedAt: string;
 };
 

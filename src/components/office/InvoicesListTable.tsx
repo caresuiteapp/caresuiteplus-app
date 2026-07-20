@@ -3,7 +3,7 @@ import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import { formatCurrency } from '@/lib/office';
 import type { InvoiceListItem } from '@/types/modules/billing';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { INVOICE_STATUS_LABELS } from '@/lib/office/invoiceStatus';
 import { colors, typography } from '@/theme';
 
 type InvoicesListTableProps = {
@@ -26,12 +26,15 @@ function formatDate(iso: string): string {
 
 function statusVariant(status: InvoiceListItem['status']) {
   switch (status) {
-    case 'aktiv':
+    case 'paid':
       return 'green' as const;
-    case 'fehlerhaft':
+    case 'overdue':
+    case 'cancelled':
       return 'red' as const;
-    case 'in_bearbeitung':
-    case 'entwurf':
+    case 'ready':
+    case 'sent':
+    case 'partly_paid':
+    case 'draft':
       return 'orange' as const;
     default:
       return 'muted' as const;
@@ -97,7 +100,7 @@ export function InvoicesListTable({
           flex: 1,
           render: (item) => (
             <PremiumBadge
-              label={WORKFLOW_STATUS_LABELS[item.status]}
+              label={INVOICE_STATUS_LABELS[item.status]}
               variant={statusVariant(item.status)}
               dot
             />

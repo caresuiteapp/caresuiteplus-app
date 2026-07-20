@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { CatalogValueSelect } from '@/components/templates';
+import { useEffect, useMemo, useState } from 'react';
+import { CareEntitySelect } from '@/components/inputs';
 import { FormScreenHero } from '@/components/forms';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
@@ -19,6 +19,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchInvoiceDetail, updateInvoice } from '@/lib/office/invoiceDetailService';
+import { calculateDueDate, PAYMENT_TERM_OPTIONS } from '@/lib/office/invoiceSystemFields';
+import { INVOICE_STATUS_LABELS } from '@/lib/office/invoiceStatus';
+import { formatDate } from '@/lib/formatters/dateTimeFormatters';
 import { colors, spacing, typography } from '@/theme';
 
 export function InvoiceEditScreen() {
@@ -29,7 +32,6 @@ export function InvoiceEditScreen() {
   const { can, check, roleLabel, isReadOnly } = usePermissions();
   const [notes, setNotes] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [invoiceStatus, setInvoiceStatus] = useState('aktiv');
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -48,9 +50,19 @@ export function InvoiceEditScreen() {
     if (query.data) {
       setNotes(query.data.notes ?? '');
       setDueDate(query.data.dueDate.slice(0, 10));
-      setInvoiceStatus(query.data.status);
     }
   }, [query.data]);
+
+  const dueDateOptions = useMemo(() => {
+    const options = PAYMENT_TERM_OPTIONS.map((term) => {
+      const value = calculateDueDate(term.value);
+      return { value, label: `${term.label} · ${formatDate(value)}` };
+    });
+    if (dueDate && !options.some((option) => option.value === dueDate)) {
+      options.unshift({ value: dueDate, label: `Aktuelle Fälligkeit · ${formatDate(dueDate)}` });
+    }
+    return options;
+  }, [dueDate]);
 
   if (!can('office.invoices.view') || isReadOnly) {
     return (
@@ -127,18 +139,22 @@ export function InvoiceEditScreen() {
         <FormScreenHero
           eyebrow="OFFICE · RECHNUNGEN"
           title={invoice.invoiceNumber}
-          meta={`Klient:in ${invoice.clientName} · ${invoice.status}`}
+          meta={`Klient:in ${invoice.clientName} · ${INVOICE_STATUS_LABELS[invoice.status]}`}
           icon="🧾"
           formMode="edit"
           wpNumber={227}
         />
         <PremiumCard style={styles.card}>
-          <PremiumInput label="Fälligkeitsdatum" value={dueDate} onChangeText={setDueDate} placeholder="JJJJ-MM-TT" />
-          <CatalogValueSelect
-            catalogType="invoice_status"
-            label="Rechnungsstatus (Katalog)"
-            value={invoiceStatus}
-            onChange={setInvoiceStatus}
+          <CareEntitySelect
+            label="Fälligkeit"
+            required
+            value={dueDate}
+            options={dueDateOptions}
+            onChange={setDueDate}
+          />
+          <LockedActionBanner
+            title={`Status: ${INVOICE_STATUS_LABELS[invoice.status]}`}
+            message="Statuswechsel werden kontrolliert in der Rechnungsdetailansicht durchgeführt."
           />
           <PremiumInput label="Interne Hinweise" value={notes} onChangeText={setNotes} multiline />
           {saveError ? <ErrorState title="Speichern" message={saveError} /> : null}

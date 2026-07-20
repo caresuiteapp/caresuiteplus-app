@@ -44,9 +44,11 @@ describe('Office Klient:innen und Abrechnung – visuelle Regression', () => {
     const service = read('src/lib/office/invoiceCreateService.ts');
     const repository = read('src/lib/services/repositories/invoiceRepository.supabase.ts');
     expect(service).toContain('input.clientId');
-    expect(service).toContain('clientId: clientResult.data');
+    expect(service).toContain('createFromServiceRecords');
+    expect(service).toContain('input.clientId');
     expect(repository).toContain('client_id: input.clientId ?? null');
     expect(repository).toContain('due_date: input.dueDate ?? null');
+    expect(repository).toContain("from('invoice_items').insert");
   });
 
   it('entfernt den überlagernden Dokumentenblock von der Abrechnungsübersicht', () => {

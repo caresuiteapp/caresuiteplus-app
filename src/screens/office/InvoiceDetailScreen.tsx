@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { InvoiceDetailHero } from '@/components/office';
+import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
@@ -16,13 +17,13 @@ import {
 import { useCallback, useState } from 'react';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { fetchInvoiceDetail, updateInvoiceStatus } from '@/lib/office/invoiceDetailService';
+import { deleteDraftInvoice, fetchInvoiceDetail, updateInvoiceStatus } from '@/lib/office/invoiceDetailService';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
 import { formatCurrency } from '@/lib/office';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
 import { queueInvoiceExport } from '@/lib/integrations';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { INVOICE_STATUS_LABELS } from '@/lib/office/invoiceStatus';
 import { colors, spacing, typography } from '@/theme';
 
 function formatDate(iso: string): string {
@@ -190,7 +191,10 @@ export function InvoiceDetailScreen() {
           </SectionPanel>
         ) : (
           <SectionPanel title="Positionen">
-            <EmptyState title="Keine Positionen" message="Für diese Demo-Rechnung sind keine Posten hinterlegt." />
+            <EmptyState
+              title="Keine Positionen"
+              message="Dieser ältere Rechnungsentwurf enthält keine Positionen. Löschen Sie ihn unten und legen Sie ihn aus freigegebenen Leistungsnachweisen neu an."
+            />
           </SectionPanel>
         )}
 
@@ -226,7 +230,7 @@ export function InvoiceDetailScreen() {
               {invoice.allowedStatusActions.map((status) => (
                 <PremiumButton
                   key={status}
-                  title={WORKFLOW_STATUS_LABELS[status]}
+                  title={INVOICE_STATUS_LABELS[status]}
                   variant="secondary"
                   size="sm"
                   loading={actionLoading}
@@ -253,6 +257,19 @@ export function InvoiceDetailScreen() {
           fullWidth
           onPress={() => router.push(clientRecordRoute(invoice.clientId) as never)}
         />
+
+        {invoice.status === 'draft' && canChangeStatus ? (
+          <SectionPanel title="Entwurf verwerfen" subtitle="Nur für noch nicht freigegebene Rechnungen">
+            <OfficeRecordDeleteButton
+              recordLabel="Rechnungsentwurf"
+              displayName={invoice.invoiceNumber}
+              buttonTitle="Rechnungsentwurf löschen"
+              confirmTitle="Rechnungsentwurf wirklich löschen?"
+              onDelete={() => deleteDraftInvoice(invoice.id, tenantId!, profile?.roleKey)}
+              onDeleted={() => router.back()}
+            />
+          </SectionPanel>
+        ) : null}
       </ScrollView>
     </ScreenShell>
   );

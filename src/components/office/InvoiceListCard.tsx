@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
 import { formatCurrency } from '@/lib/office';
 import type { InvoiceListItem } from '@/types/modules/billing';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { INVOICE_STATUS_LABELS } from '@/lib/office/invoiceStatus';
 import { colors, spacing, typography } from '@/theme';
 
 type InvoiceListCardProps = {
@@ -21,12 +21,15 @@ function formatDate(iso: string): string {
 
 function statusVariant(status: InvoiceListItem['status']) {
   switch (status) {
-    case 'aktiv':
+    case 'paid':
       return 'green' as const;
-    case 'fehlerhaft':
+    case 'overdue':
+    case 'cancelled':
       return 'red' as const;
-    case 'in_bearbeitung':
-    case 'entwurf':
+    case 'ready':
+    case 'sent':
+    case 'partly_paid':
+    case 'draft':
       return 'orange' as const;
     default:
       return 'muted' as const;
@@ -47,7 +50,7 @@ export function InvoiceListCard({ invoice, onPress, selected = false }: InvoiceL
         </View>
       </View>
       <PremiumBadge
-        label={WORKFLOW_STATUS_LABELS[invoice.status]}
+          label={INVOICE_STATUS_LABELS[invoice.status]}
         variant={statusVariant(invoice.status)}
         dot
       />
