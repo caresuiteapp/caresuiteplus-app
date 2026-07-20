@@ -62,4 +62,19 @@ describe('Office Rechnung – Live-Datenfluss', () => {
     expect(service).toContain('deleteDraftInvoice');
     expect(service).toContain("current.data.status !== 'draft'");
   });
+
+  it('bietet eine echte PDF-Vorschau und einen PDF-Download mit Pflichtfeldprüfung', () => {
+    const screen = read('src/screens/office/InvoiceDetailScreen.tsx');
+    const pdfService = read('src/lib/office/invoicePdfService.ts');
+    expect(screen).toContain('PDF-Vorschau');
+    expect(screen).toContain('PDF herunterladen');
+    expect(pdfService).toContain("import('jspdf/dist/jspdf.es.min.js')");
+    expect(pdfService).toContain('Vollständige Unternehmensanschrift fehlt.');
+    expect(pdfService).toContain('Vollständige Empfängeranschrift fehlt.');
+    expect(pdfService).toContain('Positionssumme und Rechnungsbetrag stimmen nicht überein.');
+    expect(pdfService).toContain('ENTWURF');
+    expect(pdfService).toContain('Rechnungsnummer');
+    expect(pdfService).toContain('Leistungszeitraum');
+    expect(pdfService).toContain('Umsatzsteuer');
+  });
 });

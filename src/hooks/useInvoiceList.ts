@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import type { InvoiceListItem } from '@/types/modules/billing';
 import type { InvoiceStatus } from '@/types/modules/billing';
 import type { ListSortOption } from '@/types/list';
+import type { TenantModuleKey } from '@/types/tenant/tenantCenter';
 import { fetchInvoiceList } from '@/lib/office';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
@@ -27,7 +28,7 @@ export const INVOICE_SORT_OPTIONS: ListSortOption<'dueDate' | 'invoiceNumber'>[]
 
 const PAGE_SIZE = 10;
 
-export function useInvoiceList() {
+export function useInvoiceList(moduleFilter: TenantModuleKey | 'all' = 'all') {
   const [showSuccess, setShowSuccess] = useState(false);
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
@@ -41,7 +42,10 @@ export function useInvoiceList() {
     { enabled: !!tenantId },
   );
 
-  const allItems = query.data ?? [];
+  const allInvoices = query.data ?? [];
+  const allItems = moduleFilter === 'all'
+    ? allInvoices
+    : allInvoices.filter((invoice) => invoice.billingModule === moduleFilter);
 
   const list = useListState<InvoiceListItem, 'dueDate' | 'invoiceNumber'>({
     items: allItems,
@@ -62,6 +66,7 @@ export function useInvoiceList() {
     allItems,
     items: list.paginated.items,
     totalCount: allItems.length,
+    globalTotalCount: allInvoices.length,
     filteredCount: list.filtered.length,
     loading: query.loading,
     error: query.error,

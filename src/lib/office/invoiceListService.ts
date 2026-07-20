@@ -56,6 +56,7 @@ export async function fetchInvoiceList(
         dueDate: inv.due_date ?? inv.updated_at.slice(0, 10),
         status: inv.status,
         updatedAt: inv.updated_at,
+        billingModule: inv.billing_module,
       }));
       return { ok: true, data };
     }
@@ -75,6 +76,7 @@ export async function fetchInvoiceList(
       dueDate: inv.dueDate,
       status: mapLegacyWorkflowToInvoiceStatus(inv.status),
       updatedAt: inv.updatedAt,
+      billingModule: 'assist',
     }));
 
     return { ok: true, data };

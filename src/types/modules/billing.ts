@@ -1,4 +1,7 @@
 import type { TenantScopedEntity, WorkflowStatus } from '../core/base';
+import type { TenantModuleKey } from '../tenant/tenantCenter';
+
+export type InvoiceBillingModule = TenantModuleKey | 'mixed' | null;
 
 export type InvoiceStatus =
   | 'draft'
@@ -49,7 +52,11 @@ export type InvoiceLineItem = {
   id: string;
   description: string;
   quantity: number;
+  unit?: string | null;
   unitPriceCents: number;
+  netTotalCents?: number;
+  taxRatePercent?: number;
+  taxCents?: number;
   totalCents: number;
 };
 
@@ -64,6 +71,7 @@ export type InvoiceListItem = {
   dueDate: string;
   status: InvoiceStatus;
   updatedAt: string;
+  billingModule: InvoiceBillingModule;
 };
 
 export type BillingDashboardStats = {

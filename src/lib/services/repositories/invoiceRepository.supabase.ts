@@ -3,11 +3,13 @@ import type { Database } from '@/lib/supabase/database.types';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { SERVICE_ERRORS } from '../errors';
+import type { ServiceTaxMode } from '@/types/tenant/tenantCenter';
+import type { InvoiceBillingModule } from '@/types/modules/billing';
 
 type InvoiceStatus = Database['public']['Enums']['invoice_status'];
 
 const INVOICE_COLUMNS =
-  'id, tenant_id, invoice_number, client_id, status, total_amount, due_date, invoice_date, service_month, service_period_from, service_period_to, notes, created_at, updated_at' as const;
+  'id, tenant_id, invoice_number, client_id, status, total_amount, due_date, invoice_date, service_month, service_period_from, service_period_to, footer_text, notes, created_at, updated_at' as const;
 
 function getClient() {
   return getSupabaseClient();
@@ -29,10 +31,18 @@ export type InvoiceRow = {
   service_month: string | null;
   service_period_from: string | null;
   service_period_to: string | null;
+  footer_text: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
   client_name: string;
+  client_street: string;
+  client_house_number: string;
+  client_postal_code: string;
+  client_city: string;
+  client_country: string;
+  client_number: string;
+  billing_module: InvoiceBillingModule;
   line_items?: InvoiceItemRow[];
 };
 
@@ -41,6 +51,10 @@ export type InvoiceItemRow = {
   description: string;
   quantity: number | null;
   unit_price: number | null;
+  unit: string | null;
+  net_amount: number | null;
+  vat_amount: number | null;
+  vat_rate: number | null;
   gross_amount: number | null;
 };
 
@@ -61,26 +75,95 @@ export type InvoiceCatalogPosition = {
   quantity: number;
   unitPrice: number;
   taxRate: number;
+  taxMode: ServiceTaxMode;
 };
 
-async function enrichInvoiceRows(tenantId: string, rows: Omit<InvoiceRow, 'client_name'>[]): Promise<InvoiceRow[]> {
+function buildTaxNotice(taxMode: ServiceTaxMode, taxRate: number): string | null {
+  if (taxMode === 'exempt_4_16') return 'Umsatzsteuerfreie Leistung gemäß § 4 Nr. 16 UStG.';
+  if (taxMode === 'kleinunternehmer_19') return 'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.';
+  if (taxMode === 'none' && taxRate === 0) return 'Umsatzsteuerfreie Leistung.';
+  return null;
+}
+
+type RawInvoiceRow = Omit<
+  InvoiceRow,
+  | 'client_name'
+  | 'client_street'
+  | 'client_house_number'
+  | 'client_postal_code'
+  | 'client_city'
+  | 'client_country'
+  | 'client_number'
+  | 'billing_module'
+>;
+
+async function enrichInvoiceRows(tenantId: string, rows: RawInvoiceRow[]): Promise<InvoiceRow[]> {
   const supabase = getClient();
-  if (!supabase || rows.length === 0) return rows.map((row) => ({ ...row, client_name: 'Nicht zugeordnet' }));
+  const emptyRecipient = {
+    client_street: '',
+    client_house_number: '',
+    client_postal_code: '',
+    client_city: '',
+    client_country: '',
+    client_number: '',
+  };
+  if (!supabase || rows.length === 0) {
+    return rows.map((row) => ({
+      ...row,
+      client_name: 'Nicht zugeordnet',
+      ...emptyRecipient,
+      billing_module: null,
+    }));
+  }
   const clientIds = [...new Set(rows.map((row) => row.client_id).filter((id): id is string => Boolean(id)))];
   const names = new Map<string, string>();
+  const recipients = new Map<string, typeof emptyRecipient>();
+  const invoiceModules = new Map<string, Set<string>>();
+  const invoiceIds = rows.map((row) => row.id);
+  if (invoiceIds.length > 0) {
+    const { data: itemModules } = await supabase
+      .from('invoice_items')
+      .select('invoice_id, product_key')
+      .eq('tenant_id', tenantId)
+      .in('invoice_id', invoiceIds);
+    (itemModules ?? []).forEach((item) => {
+      if (!item.product_key) return;
+      const modules = invoiceModules.get(item.invoice_id) ?? new Set<string>();
+      modules.add(item.product_key);
+      invoiceModules.set(item.invoice_id, modules);
+    });
+  }
   if (clientIds.length > 0) {
     const { data } = await supabase
       .from('clients')
-      .select('id, first_name, last_name')
+      .select('id, first_name, last_name, street, house_number, postal_code, city, country, client_number')
       .eq('tenant_id', tenantId)
       .in('id', clientIds);
     (data ?? []).forEach((client) => {
       names.set(client.id, `${client.first_name ?? ''} ${client.last_name ?? ''}`.trim());
+      recipients.set(client.id, {
+        client_street: client.street ?? '',
+        client_house_number: client.house_number ?? '',
+        client_postal_code: client.postal_code ?? '',
+        client_city: client.city ?? '',
+        client_country: client.country ?? 'Deutschland',
+        client_number: client.client_number ?? '',
+      });
     });
   }
   return rows.map((row) => ({
     ...row,
     client_name: row.client_id ? (names.get(row.client_id) ?? 'Unbekannte Klient:in') : 'Nicht zugeordnet',
+    ...(row.client_id ? (recipients.get(row.client_id) ?? emptyRecipient) : emptyRecipient),
+    billing_module: (() => {
+      const modules = invoiceModules.get(row.id);
+      if (!modules || modules.size === 0) return null;
+      if (modules.size > 1) return 'mixed';
+      const [moduleKey] = [...modules];
+      return ['assist', 'pflege', 'stationaer', 'beratung'].includes(moduleKey)
+        ? (moduleKey as InvoiceBillingModule)
+        : null;
+    })(),
   }));
 }
 
@@ -98,7 +181,7 @@ export const invoiceSupabaseRepository = {
       .eq('tenant_id', tenantId)
       .order('updated_at', { ascending: false });
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    const enriched = await enrichInvoiceRows(tenantId, (data ?? []) as Omit<InvoiceRow, 'client_name'>[]);
+    const enriched = await enrichInvoiceRows(tenantId, (data ?? []) as RawInvoiceRow[]);
     return { ok: true, data: enriched };
   },
 
@@ -113,10 +196,10 @@ export const invoiceSupabaseRepository = {
       .maybeSingle();
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
     if (!data) return { ok: true, data: null };
-    const [enriched] = await enrichInvoiceRows(tenantId, [data as Omit<InvoiceRow, 'client_name'>]);
+    const [enriched] = await enrichInvoiceRows(tenantId, [data as RawInvoiceRow]);
     const { data: items, error: itemsError } = await supabase
       .from('invoice_items')
-      .select('id, description, quantity, unit_price, gross_amount')
+      .select('id, description, quantity, unit, unit_price, net_amount, vat_amount, vat_rate, gross_amount')
       .eq('tenant_id', tenantId)
       .eq('invoice_id', id)
       .order('sort_order', { ascending: true });
@@ -190,6 +273,7 @@ export const invoiceSupabaseRepository = {
         service_period_to: input.servicePeriodEnd,
         total_amount: totalAmount,
         open_amount: totalAmount,
+        footer_text: 'Umsatzsteuerfreie Leistung.',
       })
       .select('id')
       .single();
@@ -271,6 +355,7 @@ export const invoiceSupabaseRepository = {
         service_period_to: input.servicePeriodEnd,
         total_amount: grossAmount,
         open_amount: grossAmount,
+        footer_text: buildTaxNotice(input.position.taxMode, input.position.taxRate),
       })
       .select('id')
       .single();

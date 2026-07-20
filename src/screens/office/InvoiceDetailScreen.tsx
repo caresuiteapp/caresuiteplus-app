@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { InvoiceDetailHero } from '@/components/office';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
@@ -24,6 +24,12 @@ import { formatCurrency } from '@/lib/office';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
 import { queueInvoiceExport } from '@/lib/integrations';
 import { INVOICE_STATUS_LABELS } from '@/lib/office/invoiceStatus';
+import {
+  downloadPreparedInvoicePdf,
+  fetchInvoicePdfData,
+  generateInvoicePdf,
+  previewPreparedInvoicePdf,
+} from '@/lib/office/invoicePdfService';
 import { colors, spacing, typography } from '@/theme';
 
 function formatDate(iso: string): string {
@@ -45,6 +51,9 @@ export function InvoiceDetailScreen() {
   const [exportLoading, setExportLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState<'preview' | 'download' | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const [pdfNotice, setPdfNotice] = useState<string | null>(null);
   const canView = can('office.invoices.view');
   const canExport = can('integrations.manage');
   const canChangeStatus = can('office.invoices.status_change');
@@ -96,6 +105,40 @@ export function InvoiceDetailScreen() {
       setTimeout(() => setExportMessage(null), 2500);
     }
   }, [invoice, profile?.roleKey]);
+
+  const handlePdf = useCallback(async (mode: 'preview' | 'download') => {
+    if (!invoice || !tenantId) return;
+    const previewWindow = mode === 'preview' && Platform.OS === 'web'
+      ? window.open('', '_blank')
+      : null;
+    setPdfLoading(mode);
+    setPdfError(null);
+    setPdfNotice(null);
+    const context = await fetchInvoicePdfData(tenantId, invoice, profile?.roleKey);
+    if (!context.ok) {
+      previewWindow?.close();
+      setPdfLoading(null);
+      setPdfError(context.error);
+      return;
+    }
+    try {
+      const prepared = await generateInvoicePdf(context.data);
+      if (mode === 'preview') previewPreparedInvoicePdf(prepared, previewWindow);
+      else downloadPreparedInvoicePdf(prepared);
+      setPdfNotice(
+        prepared.validation.warnings.length > 0
+          ? prepared.validation.warnings.join(' ')
+          : mode === 'preview'
+            ? 'PDF-Vorschau wurde geöffnet.'
+            : `PDF ${prepared.fileName} wurde heruntergeladen.`,
+      );
+    } catch (pdfFailure) {
+      previewWindow?.close();
+      setPdfError(pdfFailure instanceof Error ? pdfFailure.message : 'PDF konnte nicht erzeugt werden.');
+    } finally {
+      setPdfLoading(null);
+    }
+  }, [invoice, tenantId, profile?.roleKey]);
 
   if (!canView) {
     return (
@@ -159,9 +202,35 @@ export function InvoiceDetailScreen() {
     >
       {successMessage ? <SuccessState message={successMessage} /> : null}
       {exportMessage ? <SuccessState message={exportMessage} /> : null}
+      {pdfNotice ? <SuccessState message={pdfNotice} /> : null}
+      {pdfError ? <ErrorState title="PDF nicht verfügbar" message={pdfError} /> : null}
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <InvoiceDetailHero invoice={invoice} roleKey={roleKey} isReadOnly={isReadOnly} />
+
+        <SectionPanel
+          title="Rechnungs-PDF"
+          subtitle="A4-Ausgabe mit Pflichtangabenprüfung, Empfänger, Leistungszeitraum, Steuer- und Zahlungsangaben"
+        >
+          <View style={styles.pdfActions}>
+            <PremiumButton
+              title="PDF-Vorschau"
+              variant="secondary"
+              loading={pdfLoading === 'preview'}
+              disabled={Boolean(pdfLoading)}
+              onPress={() => handlePdf('preview')}
+            />
+            <PremiumButton
+              title="PDF herunterladen"
+              loading={pdfLoading === 'download'}
+              disabled={Boolean(pdfLoading)}
+              onPress={() => handlePdf('download')}
+            />
+          </View>
+          <Text style={styles.pdfHint}>
+            Entwürfe werden eindeutig mit „ENTWURF“ gekennzeichnet. Die Ausgabe wird gesperrt, wenn gesetzliche Pflichtangaben fehlen oder Beträge nicht stimmen.
+          </Text>
+        </SectionPanel>
 
         <SectionPanel title="Zuordnung">
           <DetailInfoRow label="Klient:in" value={invoice.clientName} />
@@ -295,4 +364,6 @@ const styles = StyleSheet.create({
   lineMeta: { ...typography.caption },
   lineTotal: { ...typography.bodyStrong, color: colors.orange },
   actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  pdfActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  pdfHint: { ...typography.caption, color: colors.textMuted },
 });

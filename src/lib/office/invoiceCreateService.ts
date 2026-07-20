@@ -7,7 +7,7 @@ import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { formatServicePriceUnit } from '@/lib/tenant/serviceCatalogLabels';
-import type { ServicePriceUnit, TenantModuleKey } from '@/types/tenant/tenantCenter';
+import type { ServicePriceUnit, ServiceTaxMode, TenantModuleKey } from '@/types/tenant/tenantCenter';
 import { getClientBudgetAccounts, listClientCareEntitlements } from '@/lib/assist/clientBudgetAccountService';
 import { normalizeCareLevelKey } from '@/lib/formatters/unitFormatters';
 
@@ -23,10 +23,12 @@ export type InvoiceCreateInput = {
   catalogItemId?: string;
   catalogQuantity?: number;
   catalogQuantityMode?: 'preset' | 'manual';
+  billingModule?: TenantModuleKey;
 };
 
 export type InvoicePositionPreview = {
   clientId: string;
+  billingModule: TenantModuleKey;
   servicePeriodStart: string;
   servicePeriodEnd: string;
   count: number;
@@ -42,6 +44,7 @@ export type InvoiceCatalogOption = {
   unitLabel: string;
   priceCents: number;
   taxRate: number;
+  taxMode: ServiceTaxMode;
 };
 
 export type InvoiceBudgetCapacity = {
@@ -75,6 +78,7 @@ const DEMO_CATALOG_OPTIONS: InvoiceCatalogOption[] = [
     unitLabel: 'Stunde',
     priceCents: 3800,
     taxRate: 0,
+    taxMode: 'exempt_4_16',
   },
   {
     id: 'demo-assist-haushaltshilfe',
@@ -85,6 +89,40 @@ const DEMO_CATALOG_OPTIONS: InvoiceCatalogOption[] = [
     unitLabel: 'Stunde',
     priceCents: 3800,
     taxRate: 0,
+    taxMode: 'exempt_4_16',
+  },
+  {
+    id: 'demo-pflege-grundpflege',
+    name: 'Grundpflege nach Leistungskomplex',
+    description: 'Kontrollierte Pflegeleistung aus dem Leistungskatalog',
+    moduleKey: 'pflege',
+    unit: 'visit',
+    unitLabel: 'Leistung',
+    priceCents: 5200,
+    taxRate: 0,
+    taxMode: 'exempt_4_16',
+  },
+  {
+    id: 'demo-stationaer-pflegetag',
+    name: 'Stationärer Pflegetag',
+    description: 'Tagesbezogene stationäre Leistung',
+    moduleKey: 'stationaer',
+    unit: 'day',
+    unitLabel: 'Tag',
+    priceCents: 14800,
+    taxRate: 0,
+    taxMode: 'exempt_4_16',
+  },
+  {
+    id: 'demo-beratung-beratungseinheit',
+    name: 'Beratungseinheit',
+    description: 'Dokumentierte Beratungs- oder Schulungsleistung',
+    moduleKey: 'beratung',
+    unit: 'hour',
+    unitLabel: 'Stunde',
+    priceCents: 7200,
+    taxRate: 0,
+    taxMode: 'none',
   },
 ];
 
@@ -123,6 +161,7 @@ async function loadInvoiceSourceRecords(
   clientId: string,
   servicePeriodStart: string,
   servicePeriodEnd: string,
+  billingModule: TenantModuleKey,
 ): Promise<ServiceResult<InvoiceSourceRecord[]>> {
   if (!validDateRange(servicePeriodStart, servicePeriodEnd)) {
     return { ok: false, error: 'Der Leistungszeitraum ist ungültig.' };
@@ -134,6 +173,7 @@ async function loadInvoiceSourceRecords(
     .select('id, record_number, service_date, product_key, billable_minutes, hourly_rate, total_amount')
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)
+    .eq('product_key', billingModule)
     .is('billed_invoice_id', null)
     .in('status', ['approved', 'billable'])
     .gte('service_date', servicePeriodStart)
@@ -165,7 +205,7 @@ export async function fetchInvoiceCatalogOptions(
   const ids = (catalogRows ?? []).map((row: Record<string, unknown>) => String(row.id));
   if (ids.length === 0) return { ok: true, data: [] };
   const { data: priceRows, error: priceError } = await fromUnknownTable(client, 'tenant_service_prices')
-    .select('catalog_id, price_net, tax_rate')
+    .select('catalog_id, price_net, tax_rate, tax_mode')
     .eq('tenant_id', tenantId)
     .eq('is_default', true)
     .in('catalog_id', ids);
@@ -187,6 +227,7 @@ export async function fetchInvoiceCatalogOptions(
       unitLabel: formatServicePriceUnit(unit),
       priceCents: Math.round(priceNet * 100),
       taxRate: Number(price.tax_rate ?? 0),
+      taxMode: (price.tax_mode as ServiceTaxMode | undefined) ?? (Number(price.tax_rate ?? 0) > 0 ? 'standard_19' : 'none'),
     }];
   });
   return { ok: true, data: options };
@@ -296,6 +337,7 @@ export async function fetchInvoicePositionPreview(
   clientId: string,
   servicePeriodStart: string,
   servicePeriodEnd: string,
+  billingModule: TenantModuleKey,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<InvoicePositionPreview>> {
   const denied = enforcePermission<InvoicePositionPreview>(actorRoleKey, 'office.invoices.create');
@@ -303,9 +345,15 @@ export async function fetchInvoicePositionPreview(
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
   if (getServiceMode() !== 'supabase') {
-    return { ok: true, data: { clientId, servicePeriodStart, servicePeriodEnd, count: 1, totalCents: 0 } };
+    return { ok: true, data: { clientId, billingModule, servicePeriodStart, servicePeriodEnd, count: 1, totalCents: 0 } };
   }
-  const records = await loadInvoiceSourceRecords(tenantId, clientId, servicePeriodStart, servicePeriodEnd);
+  const records = await loadInvoiceSourceRecords(
+    tenantId,
+    clientId,
+    servicePeriodStart,
+    servicePeriodEnd,
+    billingModule,
+  );
   if (!records.ok) return records;
   const totalCents = records.data.reduce((sum, record) => {
     const minutes = Number(record.billable_minutes ?? 0);
@@ -313,7 +361,10 @@ export async function fetchInvoicePositionPreview(
     const amount = Number(record.total_amount ?? ((minutes / 60) * rate));
     return sum + Math.round(amount * 100);
   }, 0);
-  return { ok: true, data: { clientId, servicePeriodStart, servicePeriodEnd, count: records.data.length, totalCents } };
+  return {
+    ok: true,
+    data: { clientId, billingModule, servicePeriodStart, servicePeriodEnd, count: records.data.length, totalCents },
+  };
 }
 
 /** WP226 — Rechnung anlegen (Demo + Supabase-ready) */
@@ -322,6 +373,7 @@ export async function createInvoice(
   input: InvoiceCreateInput,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<{ id: string }>> {
+  const billingModule = input.billingModule ?? 'assist';
   const denied = enforcePermission<{ id: string }>(actorRoleKey, 'office.invoices.create');
   if (denied) return denied;
   if (!input.title.trim()) return { ok: false, error: 'Titel ist Pflicht.' };
@@ -332,6 +384,9 @@ export async function createInvoice(
   if (tenantErr) return { ok: false, error: tenantErr.error };
 
   if (getServiceMode() === 'supabase') {
+    if (!['assist', 'pflege', 'stationaer', 'beratung'].includes(billingModule)) {
+      return { ok: false, error: 'Bitte ein gültiges Abrechnungsmodul auswählen.' };
+    }
     if (!input.clientId) return { ok: false, error: 'Klient:in muss aus dem System ausgewählt werden.' };
     if (!input.invoiceDate || !isValidIsoDate(input.invoiceDate)) {
       return { ok: false, error: 'Rechnungsdatum ist Pflicht.' };
@@ -345,6 +400,7 @@ export async function createInvoice(
       input.clientId,
       input.servicePeriodStart,
       input.servicePeriodEnd,
+      billingModule,
     );
     if (!records.ok) return records;
     if (records.data.length === 0) {
@@ -355,6 +411,9 @@ export async function createInvoice(
       if (!catalog.ok) return catalog;
       const selected = catalog.data.find((item) => item.id === input.catalogItemId);
       if (!selected) return { ok: false, error: 'Die gewählte Katalogleistung ist nicht mehr verfügbar.' };
+      if (selected.moduleKey !== billingModule) {
+        return { ok: false, error: 'Die gewählte Leistung gehört nicht zum ausgewählten Abrechnungsmodul.' };
+      }
       if (input.catalogQuantityMode === 'manual') {
         if (selected.unit !== 'hour') {
           return { ok: false, error: 'Die genaue Dezimaleingabe ist nur für Stundenleistungen zulässig.' };
@@ -365,20 +424,22 @@ export async function createInvoice(
       } else if (!getInvoiceCatalogQuantities(selected.unit).includes(input.catalogQuantity)) {
         return { ok: false, error: 'Die gewählte Menge ist für diese Leistung nicht zulässig.' };
       }
-      const capacity = await fetchInvoiceBudgetCapacity(
-        tenantId,
-        input.clientId,
-        input.servicePeriodStart,
-        input.servicePeriodEnd,
-        actorRoleKey,
-      );
-      if (!capacity.ok) return capacity;
       const totalCents = Math.round(selected.priceCents * input.catalogQuantity * (1 + selected.taxRate / 100));
-      if (capacity.data.effectiveMaximumCents > 0 && totalCents > capacity.data.effectiveMaximumCents) {
-        return {
-          ok: false,
-          error: `Die Position überschreitet das verfügbare Budget von ${(capacity.data.effectiveMaximumCents / 100).toFixed(2).replace('.', ',')} €.` ,
-        };
+      if (billingModule === 'assist') {
+        const capacity = await fetchInvoiceBudgetCapacity(
+          tenantId,
+          input.clientId,
+          input.servicePeriodStart,
+          input.servicePeriodEnd,
+          actorRoleKey,
+        );
+        if (!capacity.ok) return capacity;
+        if (capacity.data.effectiveMaximumCents > 0 && totalCents > capacity.data.effectiveMaximumCents) {
+          return {
+            ok: false,
+            error: `Die Position überschreitet das verfügbare Budget von ${(capacity.data.effectiveMaximumCents / 100).toFixed(2).replace('.', ',')} €.` ,
+          };
+        }
       }
       return invoiceSupabaseRepository.createFromCatalogPosition(tenantId, {
         title: input.title,
@@ -394,6 +455,7 @@ export async function createInvoice(
           quantity: input.catalogQuantity,
           unitPrice: selected.priceCents / 100,
           taxRate: selected.taxRate,
+          taxMode: selected.taxMode,
         },
       });
     }

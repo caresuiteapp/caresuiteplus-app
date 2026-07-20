@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { FormScreenHero } from '@/components/forms';
 import { CareDateInput, CareEntitySelect } from '@/components/inputs';
@@ -36,9 +36,12 @@ import { formatDate } from '@/lib/formatters/dateTimeFormatters';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { formatCurrency } from '@/lib/office/invoiceListService';
 import { spacing } from '@/theme';
+import { getInvoiceModule, INVOICE_MODULES, isInvoiceModuleKey } from '@/lib/office/invoiceModules';
+import type { TenantModuleKey } from '@/types/tenant/tenantCenter';
 
 export function InvoiceCreateScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ module?: string }>();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { can, check, roleLabel, isReadOnly } = usePermissions();
@@ -52,6 +55,9 @@ export function InvoiceCreateScreen() {
     };
   }, []);
   const [invoiceType, setInvoiceType] = useState('service');
+  const [billingModule, setBillingModule] = useState<TenantModuleKey>(() =>
+    isInvoiceModuleKey(params.module) ? params.module : 'assist',
+  );
   const [clientId, setClientId] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(initialDates.invoiceDate);
   const [servicePeriodStart, setServicePeriodStart] = useState(initialDates.periodStart);
@@ -99,21 +105,23 @@ export function InvoiceCreateScreen() {
         clientId,
         servicePeriodStart,
         servicePeriodEnd,
+        billingModule,
         profile?.roleKey,
       );
     },
-    [tenantId, clientId, servicePeriodStart, servicePeriodEnd, validServicePeriod, profile?.roleKey],
+    [tenantId, clientId, servicePeriodStart, servicePeriodEnd, validServicePeriod, billingModule, profile?.roleKey],
     { enabled: Boolean(tenantId && clientId && validServicePeriod) },
   );
   const positionPreview =
     positionsQuery.data?.clientId === clientId
+      && positionsQuery.data.billingModule === billingModule
       && positionsQuery.data.servicePeriodStart === servicePeriodStart
       && positionsQuery.data.servicePeriodEnd === servicePeriodEnd
       ? positionsQuery.data
       : null;
   const capacityQuery = useAsyncQuery(
     () => {
-      if (!tenantId || !clientId || !validServicePeriod) {
+      if (!tenantId || !clientId || !validServicePeriod || billingModule !== 'assist') {
         return Promise.resolve({ ok: false as const, error: 'Auswahl unvollständig.' });
       }
       return fetchInvoiceBudgetCapacity(
@@ -124,8 +132,8 @@ export function InvoiceCreateScreen() {
         profile?.roleKey,
       );
     },
-    [tenantId, clientId, servicePeriodStart, servicePeriodEnd, validServicePeriod, profile?.roleKey],
-    { enabled: Boolean(tenantId && clientId && validServicePeriod) },
+    [tenantId, clientId, servicePeriodStart, servicePeriodEnd, validServicePeriod, billingModule, profile?.roleKey],
+    { enabled: Boolean(tenantId && clientId && validServicePeriod && billingModule === 'assist') },
   );
   const budgetCapacity = capacityQuery.data?.clientId === clientId
     && capacityQuery.data.servicePeriodStart === servicePeriodStart
@@ -142,14 +150,17 @@ export function InvoiceCreateScreen() {
   );
   const catalogOptions = useMemo(
     () =>
-      (catalogQuery.data ?? []).map((item) => ({
+      (catalogQuery.data ?? []).filter((item) => item.moduleKey === billingModule).map((item) => ({
         value: item.id,
         label: item.name,
         description: `${formatCurrency(item.priceCents)} je ${item.unitLabel}`,
       })),
-    [catalogQuery.data],
+    [billingModule, catalogQuery.data],
   );
-  const selectedCatalogItem = (catalogQuery.data ?? []).find((item) => item.id === catalogItemId);
+  const selectedCatalogItem = (catalogQuery.data ?? []).find(
+    (item) => item.id === catalogItemId && item.moduleKey === billingModule,
+  );
+  const moduleDefinition = getInvoiceModule(billingModule);
   const grossUnitPriceCents = selectedCatalogItem
     ? Math.round(selectedCatalogItem.priceCents * (1 + selectedCatalogItem.taxRate / 100))
     : 0;
@@ -172,7 +183,8 @@ export function InvoiceCreateScreen() {
     ? Math.floor((budgetCapacity.effectiveMaximumCents / grossUnitPriceCents) * 100) / 100
     : null;
   const quantityExceedsBudget = Boolean(
-    budgetCapacity
+    billingModule === 'assist'
+    && budgetCapacity
     && catalogTotalCents > budgetCapacity.effectiveMaximumCents
     && budgetCapacity.effectiveMaximumCents > 0,
   );
@@ -182,7 +194,7 @@ export function InvoiceCreateScreen() {
     setCatalogQuantity('1');
     setManualQuantity('');
     setQuantityMode('preset');
-  }, [clientId, servicePeriodStart, servicePeriodEnd]);
+  }, [billingModule, clientId, servicePeriodStart, servicePeriodEnd]);
 
   useEffect(() => {
     if (selectedCatalogItem && !quantityOptions.some((option) => option.value === catalogQuantity)) {
@@ -251,6 +263,7 @@ export function InvoiceCreateScreen() {
       tenantId,
       {
         title: buildSystemInvoiceNumber(invoiceType, servicePeriodStart.slice(0, 7)),
+        billingModule,
         clientId,
         dueDate,
         invoiceDate,
@@ -282,6 +295,21 @@ export function InvoiceCreateScreen() {
         compact
       />
       <PremiumCard style={styles.card}>
+        <CareEntitySelect
+          label="Abrechnungsmodul"
+          required
+          value={billingModule}
+          options={INVOICE_MODULES.map((module) => ({
+            value: module.key,
+            label: `${module.icon} ${module.label}`,
+            description: module.basis,
+          }))}
+          onChange={(value) => setBillingModule(value as TenantModuleKey)}
+        />
+        <LockedActionBanner
+          title={`${moduleDefinition.label}-Abrechnung`}
+          message={`${moduleDefinition.description} Positionen anderer Module werden weder angezeigt noch übernommen.`}
+        />
         <CareEntitySelect
           label="Klient:in"
           required
@@ -322,7 +350,7 @@ export function InvoiceCreateScreen() {
             <>
               <LockedActionBanner
                 title="Position aus Leistungskatalog auswählen"
-                message="Es gibt keine freigegebenen Leistungsnachweise. Die Rechnung kann mit einer kontrollierten Katalogposition als Entwurf angelegt werden."
+                message={`Es gibt keine freigegebenen ${moduleDefinition.label}-Leistungsnachweise. Die Rechnung kann mit einer kontrollierten Katalogposition dieses Moduls als Entwurf angelegt werden.`}
               />
               <CareEntitySelect
                 label="Leistung"

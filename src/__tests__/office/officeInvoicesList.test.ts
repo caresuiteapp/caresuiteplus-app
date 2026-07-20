@@ -27,6 +27,7 @@ const demoListItems: InvoiceListItem[] = demoInvoices.map((inv) => ({
   dueDate: inv.dueDate,
   status: inv.status,
   updatedAt: inv.updatedAt,
+  billingModule: 'assist',
 }));
 
 describe('Office Rechnungen list', () => {

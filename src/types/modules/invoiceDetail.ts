@@ -6,6 +6,15 @@ export type InvoiceDetail = InvoiceListItem & {
   issuedDate: string | null;
   servicePeriodStart?: string | null;
   servicePeriodEnd?: string | null;
+  recipient: {
+    street: string;
+    houseNumber: string;
+    postalCode: string;
+    city: string;
+    country: string;
+    customerNumber: string;
+  };
+  taxNotice?: string | null;
   notes: string | null;
   lineItems: InvoiceLineItem[];
   auditEntries: AuditEntry[];
