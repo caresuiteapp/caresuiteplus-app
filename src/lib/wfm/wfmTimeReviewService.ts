@@ -5,6 +5,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { resolveCanonicalWfmEmployeeId } from './wfmWorkSessionRepository';
 
 const REVIEWS_TABLE = 'workforce_time_entry_reviews';
 const ACTIONS_TABLE = 'workforce_time_review_actions';
@@ -109,7 +110,7 @@ export function resetWfmTimeReviewDemoStore(): void {
   demoActions.length = 0;
 }
 
-function useDemoStore(): boolean {
+function shouldUseDemoStore(): boolean {
   return getServiceMode() !== 'supabase' || !getSupabaseClient();
 }
 
@@ -298,7 +299,7 @@ export async function listReviewsForPeriod(
   fromDate: string,
   toDate: string,
 ): Promise<ServiceResult<WfmTimeEntryReview[]>> {
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     const rows = [...demoReviews.values()].filter(
       (r) =>
         r.tenantId === tenantId && r.workDate >= fromDate && r.workDate <= toDate,
@@ -327,7 +328,7 @@ export async function getReviewByReferenceKey(
   tenantId: string,
   referenceKey: string,
 ): Promise<ServiceResult<WfmTimeEntryReview | null>> {
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     return { ok: true, data: demoReviews.get(demoKey(tenantId, referenceKey)) ?? null };
   }
 
@@ -353,8 +354,11 @@ export async function upsertReview(
   actorId: string,
   input: ReviewTransitionInput,
 ): Promise<ServiceResult<WfmTimeEntryReview>> {
+  const canonicalEmployee = await resolveCanonicalWfmEmployeeId(tenantId, input.employeeId);
+  if (!canonicalEmployee.ok) return canonicalEmployee;
+
   const ctx = resolveReviewContext(tenantId, input.entryId, {
-    employeeId: input.employeeId,
+    employeeId: canonicalEmployee.data,
     workDate: input.workDate,
     entryKind: input.entryKind,
   });
@@ -364,7 +368,7 @@ export async function upsertReview(
     input.nextStatus,
   );
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     const key = demoKey(tenantId, ctx.referenceKey);
     const existing = demoReviews.get(key);
     const prevStatus = existing?.reviewStatus ?? null;
@@ -488,7 +492,7 @@ export async function appendReviewAction(
 ): Promise<ServiceResult<WfmTimeReviewAction>> {
   const now = new Date().toISOString();
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     const action: WfmTimeReviewAction = {
       id: crypto.randomUUID(),
       tenantId,
@@ -606,7 +610,7 @@ export async function listReviewActionsForReviews(
 ): Promise<ServiceResult<WfmTimeReviewAction[]>> {
   if (reviewIds.length === 0) return { ok: true, data: [] };
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     return {
       ok: true,
       data: demoActions.filter((action) => reviewIds.includes(action.entryReviewId)),
