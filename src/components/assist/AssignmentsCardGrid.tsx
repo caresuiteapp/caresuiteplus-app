@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { ReactNode, useMemo } from 'react';
 import { AssignmentCompactCard } from '@/components/assist/AssignmentCompactCard';
 import type { AssignmentListItem } from '@/types/modules/assist';
+import type { ServiceResult } from '@/types';
 import { careSpacing } from '@/design/tokens/spacing';
 
 /** Max width for assignment cards — one card per row, centered on wide screens. */
@@ -17,6 +18,8 @@ type AssignmentsCardGridProps = {
   onStart?: (id: string) => void;
   onEdit?: (id: string) => void;
   onMore?: (id: string) => void;
+  onDelete?: (id: string) => Promise<ServiceResult<void>>;
+  onDeleted?: () => void;
   onCardTap?: (assignment: AssignmentListItem) => void;
   ListHeaderComponent?: ReactNode;
   ListFooterComponent?: ReactNode;
@@ -32,6 +35,8 @@ export function AssignmentsCardGrid({
   onStart,
   onEdit,
   onMore,
+  onDelete,
+  onDeleted,
   onCardTap,
   ListHeaderComponent,
   ListFooterComponent,
@@ -85,6 +90,8 @@ export function AssignmentsCardGrid({
               onStart={onStart ? () => onStart(assignment.id) : undefined}
               onEdit={onEdit ? () => onEdit(assignment.id) : undefined}
               onMore={onMore ? () => onMore(assignment.id) : undefined}
+              onDelete={onDelete ? () => onDelete(assignment.id) : undefined}
+              onDeleted={onDeleted}
             />
           </View>
         ))}

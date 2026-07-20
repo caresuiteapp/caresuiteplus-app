@@ -13,6 +13,7 @@ import { VisitDispositionBadge } from '@/components/assist/VisitDispositionBadge
 import type { AssignmentListItem } from '@/types/modules/assist';
 import {
   resolveAssignmentCardBadge,
+  resolveAssignmentExecutionBadge,
 } from '@/lib/assist/assignmentCardPresentation';
 import {
   VISIT_BILLING_STATUS_LABELS,
@@ -165,6 +166,7 @@ export function buildAssignmentStatusBadges(assignment: AssignmentListItem): Sta
   const proof = (assignment.proofStatus as VisitProofStatus) ?? 'none';
   const billing = (assignment.billingStatus as VisitBillingStatus) ?? 'none';
   const primaryBadge = resolveAssignmentCardBadge(assignment);
+  const executionBadge = resolveAssignmentExecutionBadge(assignment);
 
   const badges: StatusBadgeItem[] = [
     {
@@ -178,6 +180,12 @@ export function buildAssignmentStatusBadges(assignment: AssignmentListItem): Sta
       label: VISIT_PLANNING_STATUS_LABELS[planning],
       variant: planning === 'at_risk' || planning === 'cancelled' ? 'red' : 'cyan',
       kind: 'disposition',
+    },
+    {
+      id: 'execution',
+      label: executionBadge.label,
+      variant: executionBadge.variant,
+      kind: 'workflow',
     },
   ];
 

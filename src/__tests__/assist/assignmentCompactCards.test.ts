@@ -4,8 +4,10 @@ import path from 'node:path';
 import {
   buildAssignmentFooterChips,
   enrichAssignmentListItem,
+  isAssignmentListItemDeletable,
   resolveAssignmentCardAccent,
   resolveAssignmentCardBadge,
+  resolveAssignmentExecutionBadge,
   resolveAssignmentListItemStatus,
   resolveAttachmentCount,
   resolveSgbReference,
@@ -53,6 +55,23 @@ describe('Assignment compact cards UI', () => {
   it('resolveAssignmentCardBadge shows Bestätigt for confirmed assignments', () => {
     expect(resolveAssignmentCardBadge(sampleAssignment).label).toBe('Bestätigt');
     expect(resolveAssignmentCardBadge(sampleAssignment).variant).toBe('cyan');
+  });
+
+  it('zeigt eindeutig, ob ein Einsatz läuft oder noch nicht gestartet ist', () => {
+    expect(resolveAssignmentExecutionBadge({ ...sampleAssignment, executionStatus: 'pending' })).toMatchObject({
+      label: 'Nicht gestartet',
+      running: false,
+    });
+    expect(resolveAssignmentExecutionBadge({ ...sampleAssignment, executionStatus: 'in_progress' })).toMatchObject({
+      label: 'Einsatz läuft',
+      running: true,
+    });
+  });
+
+  it('erlaubt Löschen nur vor Ausführungsbeginn und vor Abrechnung', () => {
+    expect(isAssignmentListItemDeletable({ ...sampleAssignment, executionStatus: 'pending', billingStatus: 'preview' })).toBe(true);
+    expect(isAssignmentListItemDeletable({ ...sampleAssignment, executionStatus: 'in_progress' })).toBe(false);
+    expect(isAssignmentListItemDeletable({ ...sampleAssignment, executionStatus: 'pending', billingStatus: 'invoiced' })).toBe(false);
   });
 
   it('resolveAssignmentCardAccent maps assignment status to accent colors', () => {
@@ -116,6 +135,18 @@ describe('Assignment compact cards UI', () => {
     expect(chips.find((chip) => chip.id === 'signature')?.variant).toBe('orange');
   });
 
+  it('zeigt vor Einsatzbeginn Dokumentation und Unterschrift nicht als offen', () => {
+    const chips = buildAssignmentFooterChips({
+      ...sampleAssignment,
+      executionStatus: 'pending',
+      documentationStatus: 'none',
+      proofStatus: 'none',
+      isIncomplete: false,
+    });
+    expect(chips.find((chip) => chip.id === 'docs')?.label).toBe('Dokumentation später');
+    expect(chips.find((chip) => chip.id === 'signature')?.label).toBe('Unterschrift später');
+  });
+
   it('buildAssignmentFooterChips shows Dokumentation offen for documentation_open status', () => {
     const chips = buildAssignmentFooterChips({
       ...sampleAssignment,
@@ -146,6 +177,8 @@ describe('Assignment compact cards UI', () => {
     expect(source).toContain('resolveAssignmentCardAccent');
     expect(source).toContain('HealthOSStatusBadge');
     expect(source).toContain('resolveAssignmentCardBadge');
+    expect(source).toContain('resolveAssignmentExecutionBadge');
+    expect(source).toContain('OfficeRecordDeleteButton');
     expect(source).toContain('useAssignmentTravelTime');
     expect(source).toContain('displayText');
     expect(source).toContain('formatAssignmentWeekdayDate');
@@ -177,8 +210,8 @@ describe('Assignment compact cards UI', () => {
 
   it('AssignmentCompactCard does not truncate client or employee names', () => {
     const source = readSrc('src/components/assist/AssignmentCompactCard.tsx');
-    expect(source).not.toMatch(/clientName[\s\S]{0,120}numberOfLines/);
-    expect(source).not.toMatch(/metaRow[\s\S]{0,120}numberOfLines/);
+    expect(source).toContain('<Text style={styles.clientName}>{assignment.clientName}</Text>');
+    expect(source).toContain('<Text style={styles.metaRow}>{assignment.employeeName}</Text>');
   });
 
   it('AssignmentsListView uses card grid and top filter rows with table fallback', () => {

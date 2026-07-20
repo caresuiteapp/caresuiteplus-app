@@ -79,6 +79,40 @@ export type AssignmentCardBadge = {
   variant: 'green' | 'orange' | 'red' | 'cyan' | 'muted' | 'purple';
 };
 
+export type AssignmentExecutionBadge = {
+  status: VisitExecutionStatus;
+  label: string;
+  variant: AssignmentCardBadge['variant'];
+  running: boolean;
+};
+
+export function resolveAssignmentExecutionBadge(
+  assignment: AssignmentListItem,
+): AssignmentExecutionBadge {
+  const enriched = enrichAssignmentListItem(assignment);
+  const status = (enriched.executionStatus as VisitExecutionStatus | undefined) ?? 'pending';
+  const states: Record<VisitExecutionStatus, Omit<AssignmentExecutionBadge, 'status'>> = {
+    pending: { label: 'Nicht gestartet', variant: 'muted', running: false },
+    on_way: { label: 'Anfahrt läuft', variant: 'cyan', running: true },
+    arrived: { label: 'Vor Ort', variant: 'orange', running: true },
+    in_progress: { label: 'Einsatz läuft', variant: 'green', running: true },
+    paused: { label: 'Einsatz pausiert', variant: 'orange', running: true },
+    completed: { label: 'Einsatz beendet', variant: 'cyan', running: false },
+    no_show: { label: 'Nicht erschienen', variant: 'red', running: false },
+    cancelled: { label: 'Einsatz abgesagt', variant: 'red', running: false },
+  };
+  return { status, ...states[status] };
+}
+
+export function isAssignmentListItemDeletable(assignment: AssignmentListItem): boolean {
+  const execution = resolveAssignmentExecutionBadge(assignment);
+  return (
+    (execution.status === 'pending' || execution.status === 'cancelled')
+    && assignment.billingStatus !== 'invoiced'
+    && assignment.billingStatus !== 'paid'
+  );
+}
+
 export function resolveAssignmentCardBadge(assignment: AssignmentListItem): AssignmentCardBadge {
   const assignmentStatus = resolveAssignmentListItemStatus(assignment);
   return {
@@ -179,11 +213,17 @@ function resolveSignatureState(assignment: AssignmentListItem): {
     (enriched.proofStatus as VisitProofStatus | undefined) ??
     assignmentStatusToDimensions(assignmentStatus).proof;
   const satisfied = proof === 'signed' || proof === 'verified';
+  const execution = resolveAssignmentExecutionBadge(enriched);
+  const signaturePhaseReached =
+    execution.status === 'completed'
+    || assignmentStatus === 'beendet'
+    || assignmentStatus === 'dokumentation_offen'
+    || assignmentStatus === 'unterschrift_offen';
   const open =
     assignmentStatus === 'unterschrift_offen' ||
     proof === 'pending' ||
-    proof === 'none' ||
-    (assignment.isIncomplete === true && !satisfied);
+    (signaturePhaseReached && proof === 'none') ||
+    (signaturePhaseReached && assignment.isIncomplete === true && !satisfied);
   return { proof, satisfied, open };
 }
 
@@ -207,12 +247,16 @@ export function buildAssignmentFooterChips(assignment: AssignmentListItem): Assi
         ? 'Dokumentation'
         : documentation.open
           ? 'Dokumentation offen'
-          : 'Dokumentation',
+          : 'Dokumentation später',
       variant: documentation.complete ? 'green' : documentation.open ? 'orange' : 'muted',
     },
     {
       id: 'signature',
-      label: signature.satisfied ? 'Unterschrift' : 'Unterschrift offen',
+      label: signature.satisfied
+        ? 'Unterschrift'
+        : signature.open
+          ? 'Unterschrift offen'
+          : 'Unterschrift später',
       variant: signature.satisfied ? 'green' : signature.open ? 'orange' : 'muted',
     },
     {

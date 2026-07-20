@@ -3,12 +3,16 @@ import { useMemo, useState } from 'react';
 import { PremiumBadge, PremiumButton, PremiumCard } from '@/components/ui';
 import { HealthOSStatusBadge } from '@/components/healthos';
 import { AssignmentCardHoverDetails } from '@/components/assist/AssignmentCardHoverDetails';
+import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import {
   buildAssignmentFooterChips,
+  isAssignmentListItemDeletable,
   resolveAssignmentCardAccent,
   resolveAssignmentCardBadge,
+  resolveAssignmentExecutionBadge,
   resolveSgbReference,
 } from '@/lib/assist/assignmentCardPresentation';
+import type { ServiceResult } from '@/types';
 import { useAssignmentTravelTime } from '@/hooks/useAssignmentTravelTime';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import {
@@ -29,6 +33,8 @@ type AssignmentCompactCardProps = {
   onStart?: () => void;
   onEdit?: () => void;
   onMore?: () => void;
+  onDelete?: () => Promise<ServiceResult<void>>;
+  onDeleted?: () => void;
   onPress?: () => void;
 };
 
@@ -41,12 +47,16 @@ export function AssignmentCompactCard({
   onStart,
   onEdit,
   onMore,
+  onDelete,
+  onDeleted,
   onPress,
 }: AssignmentCompactCardProps) {
   const text = useAuroraAdaptiveText();
   const accentModule = moduleColor('assist');
   const statusAccent = resolveAssignmentCardAccent(assignment);
   const statusBadge = resolveAssignmentCardBadge(assignment);
+  const executionBadge = resolveAssignmentExecutionBadge(assignment);
+  const canDelete = isAssignmentListItemDeletable(assignment);
   const footerChips = buildAssignmentFooterChips(assignment);
   const sgbRef = resolveSgbReference(assignment);
   const [hovered, setHovered] = useState(false);
@@ -94,6 +104,7 @@ export function AssignmentCompactCard({
           gap: spacing.sm,
         },
         clientName: { ...typography.bodyStrong, flex: 1, flexShrink: 1, color: text.primary },
+        statusStack: { alignItems: 'flex-end', gap: 4 },
         scheduleRow: {
           flexDirection: 'row',
           flexWrap: 'wrap',
@@ -152,11 +163,18 @@ export function AssignmentCompactCard({
       <View style={styles.inner}>
         <View style={styles.headerRow}>
           <Text style={styles.clientName}>{assignment.clientName}</Text>
-          <HealthOSStatusBadge
-            domain="assignment"
-            technicalValue={statusBadge.assignmentStatus}
-            dot
-          />
+          <View style={styles.statusStack}>
+            <HealthOSStatusBadge
+              domain="assignment"
+              technicalValue={statusBadge.assignmentStatus}
+              dot
+            />
+            <PremiumBadge
+              label={executionBadge.label}
+              variant={executionBadge.variant}
+              dot
+            />
+          </View>
         </View>
 
         <View style={styles.scheduleRow}>
@@ -213,9 +231,9 @@ export function AssignmentCompactCard({
                 style={styles.actionBtn}
               />
             ) : null}
-            {onStart ? (
+            {onStart && !['completed', 'cancelled', 'no_show'].includes(executionBadge.status) ? (
               <PremiumButton
-                title="Start"
+                title={executionBadge.running ? 'Fortsetzen' : 'Start'}
                 variant="primary"
                 size="sm"
                 onPress={onStart}
@@ -239,6 +257,19 @@ export function AssignmentCompactCard({
                 onPress={onMore}
                 style={styles.actionBtn}
               />
+            ) : null}
+            {onDelete && canDelete ? (
+              <View style={styles.actionBtn}>
+                <OfficeRecordDeleteButton
+                  recordLabel="Einsatz"
+                  displayName={`${assignment.clientName} · ${formatAssignmentWeekdayDate(assignment.scheduledStart)}`}
+                  onDelete={onDelete}
+                  onDeleted={onDeleted}
+                  confirmTitle="Einsatz endgültig löschen?"
+                  buttonTitle="Löschen"
+                  fullWidth
+                />
+              </View>
             ) : null}
           </View>
         ) : null}

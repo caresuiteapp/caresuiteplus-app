@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useMemo } from 'react';
 import { PremiumButton, PremiumDataTable } from '@/components/ui';
+import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import {
   buildAssignmentStatusBadges,
   StatusBadgesDropdown,
@@ -13,12 +14,16 @@ import {
   formatWeekday,
 } from '@/lib/formatters/dateTimeFormatters';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
+import { isAssignmentListItemDeletable } from '@/lib/assist/assignmentCardPresentation';
+import type { ServiceResult } from '@/types';
 
 type AssignmentsListTableProps = {
   assignments: AssignmentListItem[];
   selectedId?: string | null;
   onAssignmentPress?: (id: string) => void;
   onOpenDetail?: (id: string) => void;
+  onDelete?: (id: string) => Promise<ServiceResult<void>>;
+  onDeleted?: () => void;
   sortColumnKey?: string | null;
   sortDirection?: 'asc' | 'desc';
   onSortColumn?: (columnKey: string) => void;
@@ -29,6 +34,8 @@ export function AssignmentsListTable({
   selectedId = null,
   onAssignmentPress,
   onOpenDetail,
+  onDelete,
+  onDeleted,
   sortColumnKey = null,
   sortDirection = 'asc',
   onSortColumn,
@@ -39,6 +46,7 @@ export function AssignmentsListTable({
       StyleSheet.create({
         primary: tableText.name,
         meta: { ...tableText.meta, fontSize: 13 },
+        actions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
       }),
     [tableText],
   );
@@ -134,18 +142,32 @@ export function AssignmentsListTable({
         },
         {
           key: 'actions',
-          label: 'Öffnen',
-          flex: 0.9,
-          minWidth: 88,
-          render: (item) =>
-            onOpenDetail ? (
-              <PremiumButton
-                title="Öffnen"
-                variant="secondary"
-                size="sm"
-                onPress={() => onOpenDetail(item.id)}
-              />
-            ) : null,
+          label: 'Aktionen',
+          flex: 1.8,
+          minWidth: 190,
+          render: (item) => (
+            <View style={styles.actions}>
+              {onOpenDetail ? (
+                <PremiumButton
+                  title="Öffnen"
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => onOpenDetail(item.id)}
+                />
+              ) : null}
+              {onDelete && isAssignmentListItemDeletable(item) ? (
+                <OfficeRecordDeleteButton
+                  recordLabel="Einsatz"
+                  displayName={`${item.clientName} · ${formatDate(item.scheduledStart)}`}
+                  onDelete={() => onDelete(item.id)}
+                  onDeleted={onDeleted}
+                  confirmTitle="Einsatz endgültig löschen?"
+                  buttonTitle="Löschen"
+                  fullWidth={false}
+                />
+              ) : null}
+            </View>
+          ),
         },
       ]}
     />

@@ -1,4 +1,5 @@
 import {
+  Alert,
   Platform,
   RefreshControl,
   ScrollView,
@@ -29,7 +30,7 @@ import {
   SuccessState,
   DesktopListViewToggle,
 } from '@/components/ui';
-import { buildVisitDispositionKpis } from '@/lib/assist/visitService';
+import { buildVisitDispositionKpis, deleteVisitDisposition } from '@/lib/assist/visitService';
 import { auroraGlass, useAuroraGlassPanelStyle } from '@/design/tokens/auroraGlass';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useAssignmentList } from '@/hooks/useAssignmentList';
@@ -45,6 +46,11 @@ import { getServiceMode } from '@/lib/services/mode';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import { spacing } from '@/theme';
+import {
+  isAssignmentListItemDeletable,
+  resolveAssignmentExecutionBadge,
+} from '@/lib/assist/assignmentCardPresentation';
+import { confirmAction } from '@/lib/platform/confirmAction';
 
 type AssignmentsListViewProps = {
   onAssignmentPress?: (id: string) => void;
@@ -86,6 +92,7 @@ export function AssignmentsListView({
   const canView = can('assist.assignments.view');
   const canManage = can('assist.assignments.manage') && !isReadOnly;
   const roleKey = profile?.roleKey ?? 'dispatch';
+  const tenantId = profile?.tenantId ?? '';
   const openCreate = () => setWizardVisible(true);
 
   const navigateToAssignment = useCallback(
@@ -235,60 +242,95 @@ export function AssignmentsListView({
   );
 
   const buildMobileActions = useCallback(
-    (assignment: AssignmentListItem): AssignmentMobileAction[] => [
-      {
-        key: 'start',
-        label: 'Einsatz starten',
-        variant: 'primary',
-        onPress: () => router.push(`/assist/assignments/${assignment.id}/execute` as never),
-      },
-      {
-        key: 'edit',
-        label: 'Bearbeiten',
-        onPress: () => navigateToAssignment(assignment.id),
-      },
-      {
-        key: 'open',
-        label: 'Öffnen',
-        onPress: () => navigateToAssignment(assignment.id),
-      },
-      {
-        key: 'docs',
-        label: 'Dokumentation',
-        onPress: () => navigateToAssignment(assignment.id),
-      },
-      {
-        key: 'attachments',
-        label: 'Anhänge',
-        onPress: () => navigateToAssignment(assignment.id),
-      },
-      {
-        key: 'nav',
-        label: 'Navigation',
-        onPress: () => navigateToAssignment(assignment.id),
-      },
-      {
-        key: 'call',
-        label: 'Anrufen',
-        onPress: () => navigateToAssignment(assignment.id),
-      },
-      {
-        key: 'message',
-        label: 'Nachricht',
-        onPress: () => navigateToAssignment(assignment.id),
-      },
-      {
-        key: 'route',
-        label: 'Route',
-        onPress: () => navigateToAssignment(assignment.id),
-      },
-      {
-        key: 'proof',
-        label: 'Nachweis',
-        onPress: () => navigateToAssignment(assignment.id),
-      },
-    ],
-    [navigateToAssignment, router],
+    (assignment: AssignmentListItem): AssignmentMobileAction[] => {
+      const execution = resolveAssignmentExecutionBadge(assignment);
+      return [
+        ...(!['completed', 'cancelled', 'no_show'].includes(execution.status)
+          ? [
+              {
+                key: 'start',
+                label: execution.running ? 'Einsatz fortsetzen' : 'Einsatz starten',
+                variant: 'primary' as const,
+                onPress: () =>
+                  router.push(`/assist/assignments/${assignment.id}/execute` as never),
+              },
+            ]
+          : []),
+        {
+          key: 'edit',
+          label: 'Bearbeiten',
+          onPress: () => navigateToAssignment(assignment.id),
+        },
+        {
+          key: 'open',
+          label: 'Öffnen',
+          onPress: () => navigateToAssignment(assignment.id),
+        },
+        {
+          key: 'docs',
+          label: 'Dokumentation',
+          onPress: () => navigateToAssignment(assignment.id),
+        },
+        {
+          key: 'attachments',
+          label: 'Anhänge',
+          onPress: () => navigateToAssignment(assignment.id),
+        },
+        {
+          key: 'nav',
+          label: 'Navigation',
+          onPress: () => navigateToAssignment(assignment.id),
+        },
+        {
+          key: 'call',
+          label: 'Anrufen',
+          onPress: () => navigateToAssignment(assignment.id),
+        },
+        {
+          key: 'message',
+          label: 'Nachricht',
+          onPress: () => navigateToAssignment(assignment.id),
+        },
+        {
+          key: 'route',
+          label: 'Route',
+          onPress: () => navigateToAssignment(assignment.id),
+        },
+        {
+          key: 'proof',
+          label: 'Nachweis',
+          onPress: () => navigateToAssignment(assignment.id),
+        },
+        ...(canManage && tenantId && isAssignmentListItemDeletable(assignment)
+          ? [
+              {
+                key: 'delete',
+                label: 'Einsatz löschen',
+                variant: 'secondary' as const,
+                onPress: async () => {
+                  const confirmed = await confirmAction({
+                    title: 'Einsatz endgültig löschen?',
+                    message: `${assignment.clientName}\n\nDiese Aktion kann nicht rückgängig gemacht werden.`,
+                    confirmLabel: 'Löschen',
+                  });
+                  if (!confirmed) return;
+                  const result = await deleteVisitDisposition(
+                    assignment.id,
+                    tenantId,
+                    profile?.roleKey,
+                  );
+                  if (!result.ok) {
+                    Alert.alert('Löschen fehlgeschlagen', result.error);
+                    return;
+                  }
+                  await refresh();
+                },
+              },
+            ]
+          : []),
+      ];
+    },
+    [canManage, navigateToAssignment, profile?.roleKey, refresh, router, tenantId],
   );
 
   if (!canView) {
@@ -456,7 +498,12 @@ export function AssignmentsListView({
       onOpen={navigateToAssignment}
       onStart={(id) => router.push(`/assist/assignments/${id}/execute` as never)}
       onEdit={navigateToAssignment}
-      onMore={(id) => navigateToAssignment(id)}
+      onDelete={
+        canManage && tenantId
+          ? (id) => deleteVisitDisposition(id, tenantId, profile?.roleKey)
+          : undefined
+      }
+      onDeleted={() => void refresh()}
       onCardTap={
         isMobile
           ? (assignment) => setMobileSheetAssignment(assignment)
@@ -485,6 +532,12 @@ export function AssignmentsListView({
             selectedId={selectedId}
             onAssignmentPress={navigateToAssignment}
             onOpenDetail={navigateToAssignment}
+            onDelete={
+              canManage && tenantId
+                ? (id) => deleteVisitDisposition(id, tenantId, profile?.roleKey)
+                : undefined
+            }
+            onDeleted={() => void refresh()}
             sortColumnKey={tableSort.sortColumnKey}
             sortDirection={tableSort.sortDirection}
             onSortColumn={tableSort.onSortColumn}
