@@ -3,6 +3,7 @@ import { expandVisitRecurrenceDates } from '@/lib/assist/calculateAssistBudgetAl
 import {
   applyOccurrenceDateToVisitDetail,
   buildVisitOccurrenceId,
+  dedupeVisitDispositionListItems,
   expandVisitDispositionListItems,
   expandVisitRowToListItems,
   filterVisitListItemsByDateRange,
@@ -173,6 +174,48 @@ describe('visitRecurrenceExpansion', () => {
     expect(expanded[0]?.scheduledStart.slice(0, 10)).toBe(seriesDates[0]);
     expect(expanded[1]?.scheduledStart.slice(0, 10)).toBe(seriesDates[1]);
     expect(expanded[2]?.scheduledStart.slice(0, 10)).toBe('2026-08-01');
+  });
+
+  it('zeigt denselben materialisierten Serientermin nur einmal', () => {
+    const duplicateStart = '2026-07-21T07:50:00.000Z';
+    const duplicateEnd = '2026-07-21T09:50:00.000Z';
+    const duplicates = Array.from({ length: 6 }, (_, index) =>
+      baseListItem({
+        id: `00000000-0000-4000-8000-00000000000${index}`,
+        scheduledStart: duplicateStart,
+        scheduledEnd: duplicateEnd,
+        clientName: 'Doris Niemeyer',
+        employeeName: 'Kathrin Pott',
+        assignmentStatus: 'geplant',
+        executionStatus: 'pending',
+      }),
+    );
+
+    expect(dedupeVisitDispositionListItems(duplicates)).toHaveLength(1);
+  });
+
+  it('bevorzugt den beendeten Einsatz vor einer geplanten Serienkopie', () => {
+    const shared = {
+      scheduledStart: '2026-07-23T07:00:00.000Z',
+      scheduledEnd: '2026-07-23T09:00:00.000Z',
+      clientName: 'Gerd Ingo Peine',
+      employeeName: 'Kathrin Pott',
+    };
+    const planned = baseListItem({
+      ...shared,
+      id: '00000000-0000-4000-8000-000000000001',
+      assignmentStatus: 'geplant',
+      executionStatus: 'pending',
+    });
+    const completed = baseListItem({
+      ...shared,
+      id: '00000000-0000-4000-8000-000000000002',
+      assignmentStatus: 'bestaetigt',
+      executionStatus: 'completed',
+      actualEndAt: '2026-07-23T09:01:00.000Z',
+    });
+
+    expect(dedupeVisitDispositionListItems([planned, completed])).toEqual([completed]);
   });
 
   it('erzeugt einen gelöschten abgetrennten Serientermin nicht erneut', () => {

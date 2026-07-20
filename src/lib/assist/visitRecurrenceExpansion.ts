@@ -197,6 +197,104 @@ export function expandVisitRowToListItems(
   return filterVisitListItemsByDateRange(expanded, options?.dateFrom, options?.dateTo);
 }
 
+function normalizeVisitIdentityPart(value: string | null | undefined): string {
+  return (value ?? '').trim().toLocaleLowerCase('de-DE');
+}
+
+function visitLogicalIdentity(item: VisitDispositionListItem): string {
+  const clientIdentity = item.clientId || normalizeVisitIdentityPart(item.clientName);
+  const employeeIdentity = item.employeeId || normalizeVisitIdentityPart(item.employeeName);
+  const startMs = new Date(item.scheduledStart).getTime();
+  const endMs = new Date(item.scheduledEnd).getTime();
+  const start = Number.isFinite(startMs) ? startMs : item.scheduledStart;
+  const end = Number.isFinite(endMs) ? endMs : item.scheduledEnd;
+  const serviceIdentity = normalizeVisitIdentityPart(item.serviceName ?? item.title);
+
+  return [
+    item.tenantId,
+    clientIdentity,
+    employeeIdentity,
+    start,
+    end,
+    serviceIdentity,
+  ].join('|');
+}
+
+function visitExecutionPriority(item: VisitDispositionListItem): number {
+  const assignmentPriority: Record<string, number> = {
+    abgeschlossen: 900,
+    unterschrift_offen: 850,
+    dokumentation_offen: 840,
+    beendet: 830,
+    pausiert: 760,
+    gestartet: 750,
+    angekommen: 650,
+    unterwegs: 550,
+    bestaetigt: 400,
+    geplant: 300,
+    storniert: 100,
+    nicht_erschienen: 100,
+  };
+  const executionPriority: Record<string, number> = {
+    completed: 900,
+    ended: 900,
+    in_progress: 750,
+    started: 750,
+    paused: 740,
+    arrived: 650,
+    on_way: 550,
+    pending: 300,
+    cancelled: 100,
+    no_show: 100,
+  };
+
+  let priority = Math.max(
+    assignmentPriority[String(item.assignmentStatus ?? '')] ?? 0,
+    executionPriority[String(item.executionStatus ?? '')] ?? 0,
+    item.status === 'abgeschlossen' ? 900 : 0,
+    item.status === 'in_bearbeitung' ? 700 : 0,
+  );
+  if (item.onTheWayAt) priority = Math.max(priority, 550);
+  if (item.arrivedAt) priority = Math.max(priority, 650);
+  if (item.actualStartAt) priority = Math.max(priority, 750);
+  if (item.actualEndAt) priority = Math.max(priority, 950);
+  if (!item.id.includes(VISIT_OCCURRENCE_SEPARATOR)) priority += 5;
+  return priority;
+}
+
+function preferVisitListItem(
+  current: VisitDispositionListItem,
+  candidate: VisitDispositionListItem,
+): VisitDispositionListItem {
+  const currentPriority = visitExecutionPriority(current);
+  const candidatePriority = visitExecutionPriority(candidate);
+  if (candidatePriority !== currentPriority) {
+    return candidatePriority > currentPriority ? candidate : current;
+  }
+
+  const currentUpdated = new Date(current.updatedAt).getTime();
+  const candidateUpdated = new Date(candidate.updatedAt).getTime();
+  return candidateUpdated > currentUpdated ? candidate : current;
+}
+
+/**
+ * Collapse physical, legacy and synthesized copies of the same appointment.
+ * An executed record always wins over a planned recurrence copy.
+ */
+export function dedupeVisitDispositionListItems(
+  items: VisitDispositionListItem[],
+): VisitDispositionListItem[] {
+  const byLogicalVisit = new Map<string, VisitDispositionListItem>();
+  for (const item of items) {
+    const identity = visitLogicalIdentity(item);
+    const current = byLogicalVisit.get(identity);
+    byLogicalVisit.set(identity, current ? preferVisitListItem(current, item) : item);
+  }
+  return [...byLogicalVisit.values()].sort(
+    (a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime(),
+  );
+}
+
 export function expandVisitDispositionListItems(
   rows: Array<{ row: VisitRecurrenceSourceRow; item: VisitDispositionListItem }>,
   options?: ExpandVisitRecurrenceOptions,
@@ -206,9 +304,7 @@ export function expandVisitDispositionListItems(
   const expanded = rows.flatMap(({ row, item }) =>
     expandVisitRowToListItems(row, item, options),
   );
-  return expanded.sort(
-    (a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime(),
-  );
+  return dedupeVisitDispositionListItems(expanded);
 }
 
 export function hasRecurringVisitOccurrences(items: VisitDispositionListItem[]): boolean {

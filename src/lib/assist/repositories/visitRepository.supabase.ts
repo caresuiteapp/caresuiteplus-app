@@ -57,6 +57,7 @@ import {
   reserveAssignmentBudget,
 } from '@/lib/assist/assignmentBudgetAllocationService';
 import {
+  dedupeVisitDispositionListItems,
   expandVisitDispositionListItems,
   parseVisitRecurrenceJson,
   shiftVisitScheduleToDate,
@@ -693,7 +694,7 @@ export const visitSupabaseRepository = {
       expandOptions,
     );
     const synced = await overlayVisitDispositionListFromAssignments(tenantId, expanded);
-    return { ok: true, data: synced };
+    return { ok: true, data: dedupeVisitDispositionListItems(synced) };
   },
 
   async getById(
@@ -1273,7 +1274,7 @@ export const visitSupabaseRepository = {
     if (!supabase) return unavailable();
 
     const { data: row, error: lookupError } = await fromUnknownTable(supabase, 'assist_visits')
-      .select('id, legacy_assignment_id, planning_status, execution_status, documentation_status, proof_status, billing_status, actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at, recurrence_json')
+      .select('id, legacy_assignment_id, client_id, employee_id, title, planned_start_at, planned_end_at, planning_status, execution_status, documentation_status, proof_status, billing_status, actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at, recurrence_json')
       .eq('tenant_id', tenantId)
       .eq('id', visitId)
       .maybeSingle();
@@ -1282,7 +1283,13 @@ export const visitSupabaseRepository = {
     if (!row) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
     const deletionRow = row as {
+      id: string;
       legacy_assignment_id: string | null;
+      client_id: string;
+      employee_id: string | null;
+      title: string;
+      planned_start_at: string;
+      planned_end_at: string;
       execution_status: string;
       documentation_status: string;
       proof_status: string;
@@ -1317,6 +1324,64 @@ export const visitSupabaseRepository = {
       };
     }
 
+    let duplicateQuery = fromUnknownTable(supabase, 'assist_visits')
+      .select('id, legacy_assignment_id, execution_status, documentation_status, proof_status, billing_status, actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at')
+      .eq('tenant_id', tenantId)
+      .eq('client_id', deletionRow.client_id)
+      .eq('title', deletionRow.title)
+      .eq('planned_start_at', deletionRow.planned_start_at)
+      .eq('planned_end_at', deletionRow.planned_end_at);
+    duplicateQuery = deletionRow.employee_id
+      ? duplicateQuery.eq('employee_id', deletionRow.employee_id)
+      : duplicateQuery.is('employee_id', null);
+
+    const { data: duplicateRows, error: duplicateLookupError } = await duplicateQuery;
+    if (duplicateLookupError) {
+      return { ok: false, error: toGermanSupabaseError(duplicateLookupError) };
+    }
+
+    const deletableDuplicateRows = ((duplicateRows ?? []) as Array<{
+      id: string;
+      legacy_assignment_id: string | null;
+      execution_status: string;
+      documentation_status: string;
+      proof_status: string;
+      billing_status: string;
+      actual_start_at: string | null;
+      actual_end_at: string | null;
+      on_the_way_at: string | null;
+      arrived_at: string | null;
+      finished_at: string | null;
+    }>).filter((candidate) => {
+      const candidateHasExecutionEvidence = Boolean(
+        candidate.actual_start_at
+        || candidate.actual_end_at
+        || candidate.on_the_way_at
+        || candidate.arrived_at
+        || candidate.finished_at,
+      );
+      const candidateHasProtectedRecords =
+        candidate.documentation_status === 'complete'
+        || candidate.documentation_status === 'review'
+        || candidate.proof_status === 'signed'
+        || candidate.proof_status === 'verified'
+        || candidate.billing_status === 'invoiced'
+        || candidate.billing_status === 'paid';
+      return (
+        ['pending', 'cancelled'].includes(candidate.execution_status)
+        && !candidateHasExecutionEvidence
+        && !candidateHasProtectedRecords
+      );
+    });
+    const visitIdsToDelete = Array.from(new Set([
+      deletionRow.id,
+      ...deletableDuplicateRows.map((candidate) => candidate.id),
+    ]));
+    const legacyAssignmentIds = Array.from(new Set([
+      deletionRow.legacy_assignment_id,
+      ...deletableDuplicateRows.map((candidate) => candidate.legacy_assignment_id),
+    ].filter((id): id is string => Boolean(id))));
+
     const recurrence = parseVisitRecurrenceJson(deletionRow.recurrence_json ?? { pattern: 'none' });
     if (recurrence.parentSeriesId && recurrence.sourceOccurrenceDate) {
       const parent = await this.getById(tenantId, recurrence.parentSeriesId);
@@ -1344,38 +1409,39 @@ export const visitSupabaseRepository = {
       }
     }
 
-    const legacyAssignmentId = deletionRow.legacy_assignment_id;
+    for (const duplicateVisitId of visitIdsToDelete) {
+      cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', duplicateVisitId);
+    }
 
-    cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', visitId);
-
-    if (legacyAssignmentId) {
-      cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', legacyAssignmentId);
-      const { data: deletedLegacy, error: legacyDeleteError } = await fromUnknownTable(
+    if (legacyAssignmentIds.length > 0) {
+      for (const legacyAssignmentId of legacyAssignmentIds) {
+        cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', legacyAssignmentId);
+      }
+      const { error: legacyDeleteError } = await fromUnknownTable(
         supabase,
         'assignments',
       )
         .delete()
         .eq('tenant_id', tenantId)
-        .eq('id', legacyAssignmentId)
-        .select('id')
-        .maybeSingle();
+        .in('id', legacyAssignmentIds);
       if (legacyDeleteError) {
         return { ok: false, error: toGermanSupabaseError(legacyDeleteError) };
       }
-      if (!deletedLegacy) {
-        return { ok: false, error: 'Verknüpfter Einzeleinsatz konnte nicht gelöscht werden.' };
-      }
     }
 
-    const { data: deletedVisit, error } = await fromUnknownTable(supabase, 'assist_visits')
+    const { data: deletedVisits, error } = await fromUnknownTable(supabase, 'assist_visits')
       .delete()
       .eq('tenant_id', tenantId)
-      .eq('id', visitId)
-      .select('id')
-      .maybeSingle();
+      .in('id', visitIdsToDelete)
+      .select('id');
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    if (!deletedVisit) return { ok: false, error: 'Einsatz konnte nicht gelöscht werden.' };
+    const deletedVisitIds = new Set(
+      ((deletedVisits ?? []) as Array<{ id: string }>).map((deleted) => deleted.id),
+    );
+    if (visitIdsToDelete.some((id) => !deletedVisitIds.has(id))) {
+      return { ok: false, error: 'Einsatz konnte nicht vollständig gelöscht werden.' };
+    }
 
     return { ok: true, data: undefined };
   },
