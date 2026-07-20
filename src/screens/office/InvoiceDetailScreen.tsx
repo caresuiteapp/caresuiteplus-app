@@ -170,6 +170,12 @@ export function InvoiceDetailScreen() {
             label="Rechnungsdatum"
             value={invoice.issuedDate ? formatDate(invoice.issuedDate) : null}
           />
+          {invoice.servicePeriodStart && invoice.servicePeriodEnd ? (
+            <DetailInfoRow
+              label="Leistungszeitraum"
+              value={`${formatDate(invoice.servicePeriodStart)} – ${formatDate(invoice.servicePeriodEnd)}`}
+            />
+          ) : null}
           {invoice.notes ? <DetailInfoRow label="Hinweise" value={invoice.notes} /> : null}
         </SectionPanel>
 

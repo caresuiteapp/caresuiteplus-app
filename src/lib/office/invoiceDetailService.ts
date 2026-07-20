@@ -44,6 +44,8 @@ function buildDetailFromDemo(
     updatedAt: invoice.updatedAt,
     createdAt: invoice.createdAt,
     issuedDate: invoice.createdAt.slice(0, 10),
+    servicePeriodStart: null,
+    servicePeriodEnd: null,
     notes:
       getDemoInvoiceNotes(invoice.id) ??
       (invoice.status === 'fehlerhaft'
@@ -73,7 +75,9 @@ function buildDetailFromSupabase(row: InvoiceRow): InvoiceDetail {
     status,
     updatedAt: row.updated_at,
     createdAt: row.created_at,
-    issuedDate: row.created_at.slice(0, 10),
+    issuedDate: row.invoice_date,
+    servicePeriodStart: row.service_period_from ?? row.service_month,
+    servicePeriodEnd: row.service_period_to ?? row.service_month,
     notes: row.notes ?? (status === 'draft' ? 'Entwurf — noch nicht versendet.' : null),
     lineItems: (row.line_items ?? []).map((item) => ({
       id: item.id,

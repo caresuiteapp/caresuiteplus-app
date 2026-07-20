@@ -6,7 +6,11 @@ import {
   buildSystemInvoiceNumber,
   calculateDueDate,
 } from '@/lib/office/invoiceSystemFields';
-import { getInvoiceCatalogQuantities } from '@/lib/office/invoiceCreateService';
+import {
+  countInvoiceCoveredMonths,
+  getInvoiceCatalogQuantities,
+  parseInvoiceQuantity,
+} from '@/lib/office/invoiceCreateService';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { isAllowedPersistentFreeTextPurpose } from '@/lib/forms/structuredFieldPolicy';
 
@@ -38,7 +42,8 @@ describe('Office – systemgeführte Eingaben', () => {
     expect(screen).toContain('clientId');
     expect(screen).toContain('INVOICE_TYPE_OPTIONS');
     expect(screen).toContain('PAYMENT_TERM_OPTIONS');
-    expect(screen).not.toContain('<PremiumInput');
+    expect(screen).not.toMatch(/<PremiumInput[\s\S]{0,120}label="Klient:in"/);
+    expect(screen).toContain('label="Stunden *"');
   });
 
   it('schreibt Pflegegrade in Systemauswahlen immer als PG groß', () => {
@@ -55,5 +60,18 @@ describe('Office – systemgeführte Eingaben', () => {
     const create = read('src/lib/office/invoiceCreateService.ts');
     expect(create).toContain('createFromCatalogPosition');
     expect(create).toContain('getInvoiceCatalogQuantities(selected.unit).includes');
+  });
+
+  it('akzeptiert präzise Stunden mit Komma und höchstens zwei Nachkommastellen', () => {
+    expect(parseInvoiceQuantity('18,52')).toBe(18.52);
+    expect(parseInvoiceQuantity('4')).toBe(4);
+    expect(parseInvoiceQuantity('18,521')).toBeNull();
+    expect(parseInvoiceQuantity('-2')).toBeNull();
+  });
+
+  it('berechnet Monatsbudgets für Tages- und Mehrmonatszeiträume', () => {
+    expect(countInvoiceCoveredMonths('2026-07-20', '2026-07-20')).toBe(1);
+    expect(countInvoiceCoveredMonths('2026-07-20', '2026-09-02')).toBe(3);
+    expect(countInvoiceCoveredMonths('2026-02-31', '2026-03-01')).toBe(0);
   });
 });

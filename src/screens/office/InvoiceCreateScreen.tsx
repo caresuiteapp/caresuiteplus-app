@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { FormScreenHero } from '@/components/forms';
-import { CareEntitySelect } from '@/components/inputs';
+import { CareDateInput, CareEntitySelect } from '@/components/inputs';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import {
@@ -10,6 +10,7 @@ import {
   LoadingState,
   PremiumButton,
   PremiumCard,
+  PremiumInput,
   SuccessState,
 } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core';
@@ -19,12 +20,13 @@ import { useAuth } from '@/lib/auth/context';
 import { fetchClientList } from '@/lib/office/clientListService';
 import {
   createInvoice,
+  fetchInvoiceBudgetCapacity,
   fetchInvoiceCatalogOptions,
   fetchInvoicePositionPreview,
   getInvoiceCatalogQuantities,
+  parseInvoiceQuantity,
 } from '@/lib/office/invoiceCreateService';
 import {
-  buildBillingPeriodOptions,
   buildSystemInvoiceNumber,
   calculateDueDate,
   INVOICE_TYPE_OPTIONS,
@@ -40,13 +42,25 @@ export function InvoiceCreateScreen() {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { can, check, roleLabel, isReadOnly } = usePermissions();
-  const billingPeriods = useMemo(() => buildBillingPeriodOptions(), []);
+  const initialDates = useMemo(() => {
+    const now = new Date();
+    const iso = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return {
+      invoiceDate: iso(now),
+      periodStart: iso(new Date(now.getFullYear(), now.getMonth(), 1)),
+      periodEnd: iso(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+    };
+  }, []);
   const [invoiceType, setInvoiceType] = useState('service');
   const [clientId, setClientId] = useState('');
-  const [billingPeriod, setBillingPeriod] = useState(billingPeriods[0]?.value ?? '');
+  const [invoiceDate, setInvoiceDate] = useState(initialDates.invoiceDate);
+  const [servicePeriodStart, setServicePeriodStart] = useState(initialDates.periodStart);
+  const [servicePeriodEnd, setServicePeriodEnd] = useState(initialDates.periodEnd);
   const [paymentTermDays, setPaymentTermDays] = useState('14');
   const [catalogItemId, setCatalogItemId] = useState('');
   const [catalogQuantity, setCatalogQuantity] = useState('1');
+  const [quantityMode, setQuantityMode] = useState<'preset' | 'manual'>('preset');
+  const [manualQuantity, setManualQuantity] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
@@ -67,21 +81,57 @@ export function InvoiceCreateScreen() {
       })),
     [clientsQuery.data],
   );
-  const dueDate = calculateDueDate(paymentTermDays);
+  const dueDate = /^\d{4}-\d{2}-\d{2}$/.test(invoiceDate)
+    ? calculateDueDate(paymentTermDays, new Date(`${invoiceDate}T12:00:00`))
+    : '';
+  const validServicePeriod = Boolean(
+    /^\d{4}-\d{2}-\d{2}$/.test(servicePeriodStart)
+    && /^\d{4}-\d{2}-\d{2}$/.test(servicePeriodEnd)
+    && servicePeriodStart <= servicePeriodEnd,
+  );
   const positionsQuery = useAsyncQuery(
     () => {
-      if (!tenantId || !clientId || !billingPeriod) {
+      if (!tenantId || !clientId || !validServicePeriod) {
         return Promise.resolve({ ok: false as const, error: 'Auswahl unvollständig.' });
       }
-      return fetchInvoicePositionPreview(tenantId, clientId, billingPeriod, profile?.roleKey);
+      return fetchInvoicePositionPreview(
+        tenantId,
+        clientId,
+        servicePeriodStart,
+        servicePeriodEnd,
+        profile?.roleKey,
+      );
     },
-    [tenantId, clientId, billingPeriod, profile?.roleKey],
-    { enabled: Boolean(tenantId && clientId && billingPeriod) },
+    [tenantId, clientId, servicePeriodStart, servicePeriodEnd, validServicePeriod, profile?.roleKey],
+    { enabled: Boolean(tenantId && clientId && validServicePeriod) },
   );
   const positionPreview =
-    positionsQuery.data?.clientId === clientId && positionsQuery.data.billingPeriod === billingPeriod
+    positionsQuery.data?.clientId === clientId
+      && positionsQuery.data.servicePeriodStart === servicePeriodStart
+      && positionsQuery.data.servicePeriodEnd === servicePeriodEnd
       ? positionsQuery.data
       : null;
+  const capacityQuery = useAsyncQuery(
+    () => {
+      if (!tenantId || !clientId || !validServicePeriod) {
+        return Promise.resolve({ ok: false as const, error: 'Auswahl unvollständig.' });
+      }
+      return fetchInvoiceBudgetCapacity(
+        tenantId,
+        clientId,
+        servicePeriodStart,
+        servicePeriodEnd,
+        profile?.roleKey,
+      );
+    },
+    [tenantId, clientId, servicePeriodStart, servicePeriodEnd, validServicePeriod, profile?.roleKey],
+    { enabled: Boolean(tenantId && clientId && validServicePeriod) },
+  );
+  const budgetCapacity = capacityQuery.data?.clientId === clientId
+    && capacityQuery.data.servicePeriodStart === servicePeriodStart
+    && capacityQuery.data.servicePeriodEnd === servicePeriodEnd
+    ? capacityQuery.data
+    : null;
   const catalogQuery = useAsyncQuery(
     () => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
@@ -100,6 +150,9 @@ export function InvoiceCreateScreen() {
     [catalogQuery.data],
   );
   const selectedCatalogItem = (catalogQuery.data ?? []).find((item) => item.id === catalogItemId);
+  const grossUnitPriceCents = selectedCatalogItem
+    ? Math.round(selectedCatalogItem.priceCents * (1 + selectedCatalogItem.taxRate / 100))
+    : 0;
   const quantityOptions = useMemo(() => {
     const values = selectedCatalogItem ? getInvoiceCatalogQuantities(selectedCatalogItem.unit) : [1];
     return values.map((value) => ({
@@ -108,20 +161,40 @@ export function InvoiceCreateScreen() {
     }));
   }, [selectedCatalogItem]);
   const usesCatalogPosition = Boolean(positionPreview && positionPreview.count === 0);
+  const parsedManualQuantity = parseInvoiceQuantity(manualQuantity);
+  const effectiveQuantity = quantityMode === 'manual' ? parsedManualQuantity : Number(catalogQuantity);
   const catalogTotalCents = selectedCatalogItem
-    ? Math.round(selectedCatalogItem.priceCents * Number(catalogQuantity))
+    && effectiveQuantity
+    ? Math.round(selectedCatalogItem.priceCents * effectiveQuantity * (1 + selectedCatalogItem.taxRate / 100))
     : 0;
+  const maximumHours = selectedCatalogItem?.unit === 'hour' && budgetCapacity
+    && grossUnitPriceCents > 0
+    ? Math.floor((budgetCapacity.effectiveMaximumCents / grossUnitPriceCents) * 100) / 100
+    : null;
+  const quantityExceedsBudget = Boolean(
+    budgetCapacity
+    && catalogTotalCents > budgetCapacity.effectiveMaximumCents
+    && budgetCapacity.effectiveMaximumCents > 0,
+  );
 
   useEffect(() => {
     setCatalogItemId('');
     setCatalogQuantity('1');
-  }, [clientId, billingPeriod]);
+    setManualQuantity('');
+    setQuantityMode('preset');
+  }, [clientId, servicePeriodStart, servicePeriodEnd]);
 
   useEffect(() => {
     if (selectedCatalogItem && !quantityOptions.some((option) => option.value === catalogQuantity)) {
       setCatalogQuantity(quantityOptions[0]?.value ?? '1');
     }
   }, [catalogQuantity, quantityOptions, selectedCatalogItem]);
+
+  useEffect(() => {
+    setQuantityMode('preset');
+    setCatalogQuantity('1');
+    setManualQuantity('');
+  }, [catalogItemId]);
 
   if (!can('office.invoices.view') || isReadOnly) {
     return (
@@ -164,8 +237,12 @@ export function InvoiceCreateScreen() {
       setSubmitError('Bitte eine Klientin oder einen Klienten auswählen.');
       return;
     }
-    if (!invoiceType || !billingPeriod || !paymentTermDays) {
+    if (!invoiceType || !invoiceDate || !validServicePeriod || !paymentTermDays) {
       setSubmitError('Bitte alle Systemfelder auswählen.');
+      return;
+    }
+    if (usesCatalogPosition && (!effectiveQuantity || quantityExceedsBudget)) {
+      setSubmitError(quantityExceedsBudget ? 'Die gewählte Stundenmenge überschreitet das verfügbare Budget.' : 'Bitte eine gültige Menge eingeben.');
       return;
     }
     setSubmitting(true);
@@ -173,12 +250,15 @@ export function InvoiceCreateScreen() {
     const result = await createInvoice(
       tenantId,
       {
-        title: buildSystemInvoiceNumber(invoiceType, billingPeriod),
+        title: buildSystemInvoiceNumber(invoiceType, servicePeriodStart.slice(0, 7)),
         clientId,
         dueDate,
-        billingPeriod,
+        invoiceDate,
+        servicePeriodStart,
+        servicePeriodEnd,
         catalogItemId: usesCatalogPosition ? catalogItemId : undefined,
-        catalogQuantity: usesCatalogPosition ? Number(catalogQuantity) : undefined,
+        catalogQuantity: usesCatalogPosition ? (effectiveQuantity ?? undefined) : undefined,
+        catalogQuantityMode: usesCatalogPosition ? quantityMode : undefined,
       },
       profile?.roleKey,
     );
@@ -195,7 +275,7 @@ export function InvoiceCreateScreen() {
       <FormScreenHero
         eyebrow="OFFICE · RECHNUNGEN"
         title="Rechnung anlegen"
-        meta="Systemgeführt auswählen – Nummer, Status und Fälligkeit entstehen automatisch"
+        meta="Leistungszeitraum und Rechnungsdatum auswählen – Nummer, Status und Fälligkeit entstehen automatisch"
         icon="🧾"
         formMode="create"
         wpNumber={226}
@@ -221,12 +301,14 @@ export function InvoiceCreateScreen() {
           options={[...INVOICE_TYPE_OPTIONS]}
           onChange={setInvoiceType}
         />
-        <CareEntitySelect
-          label="Abrechnungsmonat"
-          required
-          value={billingPeriod}
-          options={billingPeriods}
-          onChange={setBillingPeriod}
+        <CareDateInput label="Leistung von *" value={servicePeriodStart} onChange={setServicePeriodStart} />
+        <CareDateInput
+          label="Leistung bis *"
+          value={servicePeriodEnd}
+          onChange={setServicePeriodEnd}
+          error={servicePeriodStart && servicePeriodEnd && servicePeriodStart > servicePeriodEnd
+            ? 'Das Enddatum muss am oder nach dem Startdatum liegen.'
+            : undefined}
         />
         {clientId ? (
           positionsQuery.loading || !positionPreview ? (
@@ -256,13 +338,47 @@ export function InvoiceCreateScreen() {
               />
               {selectedCatalogItem ? (
                 <>
-                  <CareEntitySelect
-                    label="Menge"
-                    required
-                    value={catalogQuantity}
-                    options={quantityOptions}
-                    onChange={setCatalogQuantity}
-                  />
+                  {selectedCatalogItem.unit === 'hour' ? (
+                    <CareEntitySelect
+                      label="Stundenerfassung"
+                      required
+                      value={quantityMode}
+                      options={[
+                        { value: 'preset', label: 'Standardauswahl' },
+                        { value: 'manual', label: 'Genaue Stunden eingeben', description: 'Bis zu zwei Nachkommastellen, z. B. 18,52' },
+                      ]}
+                      onChange={(value) => setQuantityMode(value as 'preset' | 'manual')}
+                    />
+                  ) : null}
+                  {quantityMode === 'manual' && selectedCatalogItem.unit === 'hour' ? (
+                    <PremiumInput
+                      label="Stunden *"
+                      value={manualQuantity}
+                      onChangeText={setManualQuantity}
+                      keyboardType="decimal-pad"
+                      placeholder="z. B. 18,52"
+                      hint={maximumHours != null ? `Maximal ${new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 }).format(maximumHours)} Std. für das verfügbare Budget.` : 'Höchstens zwei Nachkommastellen.'}
+                      error={manualQuantity && !parsedManualQuantity
+                        ? 'Bitte eine positive Zahl mit höchstens zwei Nachkommastellen eingeben.'
+                        : quantityExceedsBudget
+                          ? 'Die Stunden überschreiten das verfügbare Budget.'
+                          : undefined}
+                    />
+                  ) : (
+                    <CareEntitySelect
+                      label={selectedCatalogItem.unit === 'hour' ? 'Stunden' : 'Menge'}
+                      required
+                      value={catalogQuantity}
+                      options={quantityOptions}
+                      onChange={setCatalogQuantity}
+                    />
+                  )}
+                  {budgetCapacity && selectedCatalogItem.unit === 'hour' ? (
+                    <LockedActionBanner
+                      title={`${formatCareLevel(budgetCapacity.careLevel)} · maximal ${new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 }).format(maximumHours ?? 0)} Stunden`}
+                      message={`Regelanspruch im Zeitraum: § 45b ${formatCurrency(budgetCapacity.baseBudgetCents)}${budgetCapacity.conversionBudgetCents > 0 ? ` + 40 % Umwandlung ${formatCurrency(budgetCapacity.conversionBudgetCents)}` : ' · keine Umwandlung bei PG1'} · ${budgetCapacity.coveredMonths} Kalendermonat(e). Berechnungsbasis: ${formatCurrency(budgetCapacity.effectiveMaximumCents)}${budgetCapacity.availableBudgetCents != null ? ' tatsächlich verfügbar' : ''} bei ${formatCurrency(selectedCatalogItem.priceCents)} je Stunde.`}
+                    />
+                  ) : null}
                   <LockedActionBanner
                     title="Automatisch berechnete Position"
                     message={`${selectedCatalogItem.name} · ${formatCurrency(selectedCatalogItem.priceCents)} je ${selectedCatalogItem.unitLabel} · Gesamt ${formatCurrency(catalogTotalCents)}.`}
@@ -279,9 +395,10 @@ export function InvoiceCreateScreen() {
           options={[...PAYMENT_TERM_OPTIONS]}
           onChange={setPaymentTermDays}
         />
+        <CareDateInput label="Rechnungsdatum *" value={invoiceDate} onChange={setInvoiceDate} />
         <LockedActionBanner
           title="Automatische Rechnungsdaten"
-          message={`Status: Entwurf · Fällig am ${formatDate(dueDate)} · Rechnungsnummer wird beim Anlegen systemseitig erzeugt.`}
+          message={`Status: Entwurf · Rechnungsdatum ${formatDate(invoiceDate)} · Fällig am ${formatDate(dueDate)} · Rechnungsnummer wird beim Anlegen systemseitig erzeugt.`}
         />
         {submitError ? <ErrorState title="Speichern" message={submitError} /> : null}
         <PremiumButton
@@ -289,8 +406,10 @@ export function InvoiceCreateScreen() {
           fullWidth
           disabled={
             !clientId
+            || !invoiceDate
+            || !validServicePeriod
             || !positionPreview
-            || (usesCatalogPosition && (!catalogItemId || !catalogQuantity))
+            || (usesCatalogPosition && (!catalogItemId || !effectiveQuantity || quantityExceedsBudget))
           }
           onPress={handleSubmit}
         />

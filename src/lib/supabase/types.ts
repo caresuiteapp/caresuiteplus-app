@@ -33742,6 +33742,8 @@ export type Database = {
             | null
           sent_at: string | null
           service_month: string | null
+          service_period_from: string | null
+          service_period_to: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           subtotal_amount: number | null
           tenant_id: string
@@ -33785,6 +33787,8 @@ export type Database = {
             | null
           sent_at?: string | null
           service_month?: string | null
+          service_period_from?: string | null
+          service_period_to?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal_amount?: number | null
           tenant_id: string
@@ -33828,6 +33832,8 @@ export type Database = {
             | null
           sent_at?: string | null
           service_month?: string | null
+          service_period_from?: string | null
+          service_period_to?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal_amount?: number | null
           tenant_id?: string

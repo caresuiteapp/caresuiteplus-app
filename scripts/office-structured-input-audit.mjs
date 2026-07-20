@@ -16,7 +16,7 @@ for (const forbiddenLabel of ['Bezeichnung', 'Klient:in', 'Fälligkeitsdatum', '
   }
 }
 
-for (const requiredField of ['Klient:in', 'Rechnungsart', 'Abrechnungsmonat', 'Zahlungsziel']) {
+for (const requiredField of ['Klient:in', 'Rechnungsart', 'Leistung von *', 'Leistung bis *', 'Rechnungsdatum *', 'Zahlungsziel']) {
   if (!invoiceScreen.includes(`label="${requiredField}"`)) {
     failures.push(`Systemauswahl ${requiredField} fehlt im Rechnungsformular.`);
   }
@@ -31,6 +31,12 @@ if (!invoiceService.includes('createFromServiceRecords') || !invoiceService.incl
 if (!invoiceScreen.includes('formatCareLevel(client.careLevel)')) {
   failures.push('Pflegegrade werden in der Rechnungsauswahl nicht zentral als PG formatiert.');
 }
+if (!invoiceScreen.includes('Genaue Stunden eingeben') || !invoiceService.includes('parseInvoiceQuantity')) {
+  failures.push('Präzise Dezimalstunden mit kontrollierter Validierung fehlen.');
+}
+if (!invoiceService.includes('fetchInvoiceBudgetCapacity') || !invoiceScreen.includes('40 % Umwandlung')) {
+  failures.push('Pflegegrad- und stundensatzabhängige Budgetgrenze fehlt.');
+}
 if (!invoiceList.includes('clientName: inv.client_name') || invoiceDetail.includes('clientName: row.invoice_number')) {
   failures.push('Klient:innen-Zuordnung wird im Rechnungsdatenfluss falsch dargestellt.');
 }
@@ -38,6 +44,8 @@ if (!invoiceList.includes('clientName: inv.client_name') || invoiceDetail.includ
 console.log('CareSuite+ office:structured-input:audit');
 console.log('✓ Klient:innen werden über IDs statt Namensfreitext zugeordnet');
 console.log('✓ Rechnungsart, Zeitraum und Zahlungsziel sind kontrollierte Auswahlen');
+console.log('✓ Leistungszeitraum und Rechnungsdatum sind frei per Datum auswählbar');
+console.log('✓ Standardstunden und präzise Dezimalstunden werden budgetgeprüft');
 console.log('✓ Nummer, Status und Fälligkeit werden automatisch erzeugt');
 console.log('✓ Positionen stammen aus freigegebenen Leistungsnachweisen oder kontrollierten Katalogwerten');
 console.log('✓ Pflegegrade werden in Systemauswahlen als PG1 bis PG5 dargestellt');

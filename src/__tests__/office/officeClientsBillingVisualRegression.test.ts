@@ -35,10 +35,13 @@ describe('Office Klient:innen und Abrechnung – visuelle Regression', () => {
     expect(create).toContain('CareEntitySelect');
     expect(create).toContain('label="Klient:in"');
     expect(create).toContain('label="Rechnungsart"');
-    expect(create).toContain('label="Abrechnungsmonat"');
+    expect(create).toContain('label="Leistung von *"');
+    expect(create).toContain('label="Leistung bis *"');
+    expect(create).toContain('label="Rechnungsdatum *"');
     expect(create).toContain('label="Zahlungsziel"');
     expect(create).toContain('Automatische Rechnungsdaten');
-    expect(create).not.toContain('<PremiumInput');
+    expect(create).toContain('label="Stunden *"');
+    expect(create).toContain("keyboardType=\"decimal-pad\"");
     expect(create).not.toContain('<EmptyState title="Neue Rechnung"');
     expect(create).not.toContain('CatalogValueSelect');
     const service = read('src/lib/office/invoiceCreateService.ts');

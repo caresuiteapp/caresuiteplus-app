@@ -39,6 +39,20 @@ describe('Office Rechnung – Live-Datenfluss', () => {
     expect(create).toContain('fetchInvoiceCatalogOptions');
     expect(repository).toContain("from('invoice_items').insert");
     expect(repository).toContain("status: 'billed'");
+    expect(repository).toContain('service_period_from');
+    expect(repository).toContain('invoice_date: input.invoiceDate');
+    expect(create).toContain('fetchInvoiceBudgetCapacity');
+    expect(create).toContain("catalogQuantityMode === 'manual'");
+  });
+
+  it('speichert echte Datumswerte und einen frei gewählten Leistungszeitraum', () => {
+    const repository = read('src/lib/services/repositories/invoiceRepository.supabase.ts');
+    const migration = read('supabase/migrations/0261_invoice_service_period.sql');
+    expect(repository).toContain('service_month: input.servicePeriodStart');
+    expect(repository).not.toContain('service_month: input.servicePeriodStart.slice(0, 7)');
+    expect(migration).toContain('service_period_from DATE');
+    expect(migration).toContain('service_period_to DATE');
+    expect(migration).toContain('service_period_from <= service_period_to');
   });
 
   it('erlaubt das bestätigte Löschen alter leerer Entwürfe', () => {

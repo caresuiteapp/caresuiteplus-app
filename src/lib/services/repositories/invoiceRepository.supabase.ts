@@ -7,7 +7,7 @@ import { SERVICE_ERRORS } from '../errors';
 type InvoiceStatus = Database['public']['Enums']['invoice_status'];
 
 const INVOICE_COLUMNS =
-  'id, tenant_id, invoice_number, client_id, status, total_amount, due_date, notes, created_at, updated_at' as const;
+  'id, tenant_id, invoice_number, client_id, status, total_amount, due_date, invoice_date, service_month, service_period_from, service_period_to, notes, created_at, updated_at' as const;
 
 function getClient() {
   return getSupabaseClient();
@@ -25,6 +25,10 @@ export type InvoiceRow = {
   status: InvoiceStatus;
   total_amount: number | null;
   due_date: string | null;
+  invoice_date: string;
+  service_month: string | null;
+  service_period_from: string | null;
+  service_period_to: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -153,7 +157,9 @@ export const invoiceSupabaseRepository = {
       title: string;
       clientId: string;
       dueDate: string;
-      serviceMonth: string;
+      invoiceDate: string;
+      servicePeriodStart: string;
+      servicePeriodEnd: string;
       records: InvoiceSourceRecord[];
     },
   ): Promise<ServiceResult<{ id: string }>> {
@@ -178,7 +184,10 @@ export const invoiceSupabaseRepository = {
         status: 'draft',
         client_id: input.clientId,
         due_date: input.dueDate,
-        service_month: input.serviceMonth,
+        invoice_date: input.invoiceDate,
+        service_month: input.servicePeriodStart,
+        service_period_from: input.servicePeriodStart,
+        service_period_to: input.servicePeriodEnd,
         total_amount: totalAmount,
         open_amount: totalAmount,
       })
@@ -236,14 +245,16 @@ export const invoiceSupabaseRepository = {
       title: string;
       clientId: string;
       dueDate: string;
-      serviceMonth: string;
+      invoiceDate: string;
+      servicePeriodStart: string;
+      servicePeriodEnd: string;
       position: InvoiceCatalogPosition;
     },
   ): Promise<ServiceResult<{ id: string }>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
-    const netAmount = input.position.quantity * input.position.unitPrice;
-    const vatAmount = netAmount * (input.position.taxRate / 100);
+    const netAmount = Math.round(input.position.quantity * input.position.unitPrice * 100) / 100;
+    const vatAmount = Math.round(netAmount * input.position.taxRate) / 100;
     const grossAmount = netAmount + vatAmount;
 
     const { data: invoice, error: invoiceError } = await supabase
@@ -254,7 +265,10 @@ export const invoiceSupabaseRepository = {
         status: 'draft',
         client_id: input.clientId,
         due_date: input.dueDate,
-        service_month: input.serviceMonth,
+        invoice_date: input.invoiceDate,
+        service_month: input.servicePeriodStart,
+        service_period_from: input.servicePeriodStart,
+        service_period_to: input.servicePeriodEnd,
         total_amount: grossAmount,
         open_amount: grossAmount,
       })
