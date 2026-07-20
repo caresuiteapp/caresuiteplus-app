@@ -48,7 +48,7 @@ export function threadAudience(thread: OfficeMessageThread): OfficeMessageAudien
 }
 
 export function isNewChat(thread: OfficeMessageThread): boolean {
-  if (isClosedAppStatus(thread.status)) return false;
+  if (isClosedAppStatus(thread.status) || thread.status === 'deleted') return false;
   return (
     thread.unreadCount > 0 ||
     thread.status === 'new' ||
@@ -57,11 +57,11 @@ export function isNewChat(thread: OfficeMessageThread): boolean {
 }
 
 export function isOldChat(thread: OfficeMessageThread): boolean {
-  return isClosedAppStatus(thread.status);
+  return thread.status !== 'deleted' && isClosedAppStatus(thread.status);
 }
 
 export function isCurrentChat(thread: OfficeMessageThread): boolean {
-  return !isOldChat(thread) && !isNewChat(thread);
+  return thread.status !== 'deleted' && !isOldChat(thread) && !isNewChat(thread);
 }
 
 export function filterThreadsByAudience(
@@ -75,13 +75,14 @@ export function filterThreadsByChatAge(
   threads: OfficeMessageThread[],
   chatAge: OfficeChatAgeFilter,
 ): OfficeMessageThread[] {
+  const visibleThreads = threads.filter((thread) => thread.status !== 'deleted');
   switch (chatAge) {
     case 'new':
-      return threads.filter(isNewChat);
+      return visibleThreads.filter(isNewChat);
     case 'current':
-      return threads.filter(isCurrentChat);
+      return visibleThreads.filter(isCurrentChat);
     case 'old':
-      return threads.filter(isOldChat);
+      return visibleThreads.filter(isOldChat);
   }
 }
 

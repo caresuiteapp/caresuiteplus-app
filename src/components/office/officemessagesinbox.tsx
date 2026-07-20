@@ -39,6 +39,7 @@ type OfficeMessagesInboxProps = {
   onThreadSelect: (threadId: string, subject?: string) => void;
   search: string;
   onSearchChange: (value: string) => void;
+  refreshToken?: number;
 };
 
 function ThreadRow({
@@ -182,10 +183,15 @@ export function OfficeMessagesInbox({
   onThreadSelect,
   search,
   onSearchChange,
+  refreshToken = 0,
 }: OfficeMessagesInboxProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
-  const { threads, loading, error, refresh, isEmpty } = useOfficeMessageThreads(audience, chatAge);
+  const { threads, loading, error, refresh, isEmpty } = useOfficeMessageThreads(
+    audience,
+    chatAge,
+    refreshToken,
+  );
 
   const styles = useMemo(
     () =>

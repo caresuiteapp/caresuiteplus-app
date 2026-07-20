@@ -6,7 +6,7 @@ import {
   sendOfficeMessage,
   startNewOfficeThreadFromClosed,
 } from '@/lib/office/messageservice';
-import { patchOfficeMessageThread } from '@/lib/office/messagethreadservice';
+import { deleteOfficeMessageThread, patchOfficeMessageThread } from '@/lib/office/messagethreadservice';
 import type { OfficeMessagePriority, OfficeThreadStatus } from '@/types/office/messaging';
 import { markOfficeThreadMessagesRead } from '@/lib/office/messagereadservice';
 import { subscribeToOfficeMessageThread } from '@/lib/office/officemessagerealtime';
@@ -69,7 +69,7 @@ export function useOfficeMessageThreadDetail(threadId: string | null) {
         if (!result.ok) {
           setSendError(toUserFacingSendError(result.error));
         }
-      } catch (cause) {
+      } catch {
         setSendError(toUserFacingSendError());
         result = { ok: false as const, error: toUserFacingSendError() };
       } finally {
@@ -95,10 +95,13 @@ export function useOfficeMessageThreadDetail(threadId: string | null) {
   }, [tenantId, threadId, profile?.roleKey, profile?.id]);
 
   const markAsRead = useCallback(async () => {
-    if (!tenantId || !threadId || !profile?.id) return;
-    await markOfficeThreadMessagesRead(tenantId, threadId, profile.roleKey);
-    await refresh();
-  }, [tenantId, threadId, profile?.id, refresh]);
+    if (!tenantId || !threadId || !profile?.id) {
+      return { ok: false as const, error: 'Kein Chat oder Profil verfügbar.' };
+    }
+    const result = await markOfficeThreadMessagesRead(tenantId, threadId, profile.roleKey);
+    if (result.ok) await refresh();
+    return result;
+  }, [tenantId, threadId, profile?.id, profile?.roleKey, refresh]);
 
   const updateStatus = useCallback(
     async (status: OfficeThreadStatus) => {
@@ -115,6 +118,16 @@ export function useOfficeMessageThreadDetail(threadId: string | null) {
     },
     [tenantId, threadId, profile?.roleKey, profile?.id, refresh],
   );
+
+  const deleteThread = useCallback(async () => {
+    if (!tenantId || !threadId) return { ok: false as const, error: 'Kein Chat ausgewählt.' };
+    return deleteOfficeMessageThread(
+      tenantId,
+      threadId,
+      profile?.roleKey,
+      profile?.id,
+    );
+  }, [tenantId, threadId, profile?.roleKey, profile?.id]);
 
   const assignSelf = useCallback(async () => {
     if (!tenantId || !threadId || !profile?.id) {
@@ -175,6 +188,7 @@ export function useOfficeMessageThreadDetail(threadId: string | null) {
     startNewChat,
     markAsRead,
     updateStatus,
+    deleteThread,
     assignSelf,
     updatePriority,
     updateCategory,

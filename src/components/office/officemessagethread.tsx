@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChatBubble } from '@/components/communication/ChatBubble';
 import { MessageAttachmentList } from '@/components/office/messageattachmentlist';
 import { OfficeMessageComposer } from '@/components/office/officemessagecomposer';
@@ -14,12 +14,17 @@ import { mapOfficeMessageToChatBubble } from '@/lib/office/officemessagemappers'
 import type { PendingMessageAttachment } from '@/lib/office/messageattachmentvalidation';
 import { toUserFacingSendError } from '@/lib/office/voicemessageutils';
 import { officeMessengerEmptyStyles } from '@/components/office/officemessengerlayout';
+import { usePermissions } from '@/hooks/usePermissions';
+import { confirmAction } from '@/lib/platform/confirmAction';
+import { isClosedAppStatus } from '@/lib/office/messagestatuslabels';
 
 type OfficeMessageThreadProps = {
   threadId: string | null;
   onNewThreadStarted?: (newThreadId: string) => void;
   hideHeader?: boolean;
   onDarkSurface?: boolean;
+  onThreadChanged?: () => void;
+  onThreadDeleted?: () => void;
 };
 
 export function OfficeMessageThread({
@@ -27,6 +32,8 @@ export function OfficeMessageThread({
   onNewThreadStarted,
   hideHeader = false,
   onDarkSurface = false,
+  onThreadChanged,
+  onThreadDeleted,
 }: OfficeMessageThreadProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
@@ -34,10 +41,24 @@ export function OfficeMessageThread({
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<PendingMessageAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+  const [lifecycleBusy, setLifecycleBusy] = useState(false);
   const messagesRef = useRef<ScrollView>(null);
   const latestMessageYRef = useRef(0);
-  const { detail, loading, error, sending, sendMessage, startNewChat, refresh } =
-    useOfficeMessageThreadDetail(threadId);
+  const processedReadKeyRef = useRef<string | null>(null);
+  const { can, isReadOnly } = usePermissions();
+  const {
+    detail,
+    loading,
+    error,
+    sending,
+    sendMessage,
+    startNewChat,
+    refresh,
+    markAsRead,
+    updateStatus,
+    deleteThread,
+  } = useOfficeMessageThreadDetail(threadId);
 
   const styles = useMemo(
     () =>
@@ -65,6 +86,38 @@ export function OfficeMessageThread({
           gap: spacing.sm,
         },
         closedText: { ...typography.body, color: c.muted },
+        lifecycleBar: {
+          minHeight: 42,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          flexWrap: 'wrap',
+          gap: spacing.xs,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.xs,
+          borderBottomWidth: 1,
+          borderBottomColor: c.border,
+          backgroundColor: c.surface,
+        },
+        lifecycleButton: {
+          minHeight: 30,
+          justifyContent: 'center',
+          paddingHorizontal: spacing.sm,
+          borderRadius: 15,
+          borderWidth: 1,
+          borderColor: c.border,
+          backgroundColor: c.surfaceAlt,
+        },
+        lifecycleButtonDanger: { borderColor: '#c0392b' },
+        lifecycleButtonText: { ...typography.caption, color: c.text, fontWeight: '700' },
+        lifecycleButtonDangerText: { color: '#c0392b' },
+        lifecycleError: {
+          ...typography.caption,
+          color: '#c0392b',
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.xs,
+          backgroundColor: c.surface,
+        },
       }),
     [c, typography],
   );
@@ -81,6 +134,33 @@ export function OfficeMessageThread({
     const timer = setTimeout(scrollToLatestMessage, 0);
     return () => clearTimeout(timer);
   }, [detail?.messages.length, threadId]);
+
+  useEffect(() => {
+    if (!threadId || !detail) return;
+    const needsReadTransition =
+      detail.unreadCount > 0 || detail.status === 'new' || detail.status === 'received';
+    if (!needsReadTransition) return;
+
+    const readKey = `${threadId}:${detail.lastMessageAt ?? detail.updatedAt}`;
+    if (processedReadKeyRef.current === readKey) return;
+    processedReadKeyRef.current = readKey;
+
+    void (async () => {
+      const readResult = await markAsRead();
+      if (!readResult.ok) {
+        setLifecycleError(readResult.error);
+        return;
+      }
+      if (detail.status === 'new' || detail.status === 'received') {
+        const statusResult = await updateStatus('in_progress');
+        if (!statusResult.ok) {
+          setLifecycleError(statusResult.error);
+          return;
+        }
+      }
+      onThreadChanged?.();
+    })();
+  }, [detail, markAsRead, onThreadChanged, threadId, updateStatus]);
 
   if (!threadId) {
     return (
@@ -139,9 +219,72 @@ export function OfficeMessageThread({
     }
   };
 
+  const handleToggleClosed = async () => {
+    if (!detail || lifecycleBusy) return;
+    setLifecycleBusy(true);
+    setLifecycleError(null);
+    const result = await updateStatus(isClosedAppStatus(detail.status) ? 'in_progress' : 'closed');
+    setLifecycleBusy(false);
+    if (!result.ok) {
+      setLifecycleError(result.error);
+      return;
+    }
+    onThreadChanged?.();
+  };
+
+  const handleDeleteThread = async () => {
+    if (lifecycleBusy) return;
+    const confirmed = await confirmAction({
+      title: 'Chat wirklich löschen?',
+      message: 'Der Chat wird aus Neue, Aktuelle und Alte entfernt.',
+      confirmLabel: 'Chat löschen',
+      cancelLabel: 'Abbrechen',
+    });
+    if (!confirmed) return;
+
+    setLifecycleBusy(true);
+    setLifecycleError(null);
+    const result = await deleteThread();
+    setLifecycleBusy(false);
+    if (!result.ok) {
+      setLifecycleError(result.error);
+      return;
+    }
+    onThreadChanged?.();
+    onThreadDeleted?.();
+  };
+
   return (
     <View style={styles.root}>
       {!hideHeader ? <OfficeMessageThreadHeader detail={detail} /> : null}
+
+      {!isReadOnly ? (
+        <View style={styles.lifecycleBar}>
+          <Pressable
+            style={styles.lifecycleButton}
+            onPress={() => void handleToggleClosed()}
+            disabled={lifecycleBusy}
+            accessibilityRole="button"
+          >
+            <Text style={styles.lifecycleButtonText}>
+              {isClosedAppStatus(detail.status) ? '↻ Wieder öffnen' : '✓ Abschließen'}
+            </Text>
+          </Pressable>
+          {can('office.messages.delete') ? (
+            <Pressable
+              style={[styles.lifecycleButton, styles.lifecycleButtonDanger]}
+              onPress={() => void handleDeleteThread()}
+              disabled={lifecycleBusy}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.lifecycleButtonText, styles.lifecycleButtonDangerText]}>
+                🗑 Chat löschen
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+      {lifecycleError ? <Text style={styles.lifecycleError}>{lifecycleError}</Text> : null}
 
       <ScrollView
         ref={messagesRef}
@@ -186,7 +329,10 @@ export function OfficeMessageThread({
               <OfficeMessageActionsMenu
                 message={message}
                 disabled={detail.isClosed}
-                onChanged={refresh}
+                onChanged={() => {
+                  void refresh();
+                  onThreadChanged?.();
+                }}
               >
                 <View>
                   {!isVoiceOnly ? (

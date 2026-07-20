@@ -25,6 +25,7 @@ const CLOSED_APP_STATUSES = new Set<OfficeThreadStatus>([
   'resolved',
   'archived',
   'closed',
+  'deleted',
 ]);
 
 /** Office UI labels (German) */
@@ -73,7 +74,7 @@ export function fromDbThreadStatus(value: string): OfficeThreadStatus {
     case 'archived':
       return value as OfficeThreadStatus;
     case 'deleted':
-      return 'closed';
+      return 'deleted';
     default:
       return 'received';
   }
@@ -97,6 +98,8 @@ export function toDbThreadStatus(status: OfficeThreadStatus): DbThreadStatus {
       return 'closed';
     case 'archived':
       return 'archived';
+    case 'deleted':
+      return 'deleted';
     default:
       return 'received';
   }

@@ -90,6 +90,7 @@ export function OfficeMessengerScreen() {
   const [newChatMode, setNewChatMode] = useState<NewChatMode | null>(null);
   const [showGroupChatModal, setShowGroupChatModal] = useState(false);
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [inboxRefreshToken, setInboxRefreshToken] = useState(0);
 
   useEffect(() => {
     setAudience(parseOfficeMessageAudience(params.audience ?? params.filter));
@@ -195,6 +196,8 @@ export function OfficeMessengerScreen() {
     <OfficeMessageThread
       threadId={selectedThreadId}
       hideHeader={!useMasterDetail}
+      onThreadChanged={() => setInboxRefreshToken((value) => value + 1)}
+      onThreadDeleted={closeThread}
       onNewThreadStarted={(newThreadId) => {
         openThread(newThreadId);
         setChatAge('new');
@@ -295,6 +298,7 @@ export function OfficeMessengerScreen() {
                   onThreadSelect={openThread}
                   search={search}
                   onSearchChange={setSearch}
+                  refreshToken={inboxRefreshToken}
                 />
               }
               thread={chatThread}

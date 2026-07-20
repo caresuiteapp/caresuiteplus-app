@@ -12,6 +12,7 @@ import { useAsyncQuery } from './core';
 export function useOfficeMessageThreads(
   audience: OfficeMessageAudience = 'employees',
   chatAge: OfficeChatAgeFilter = 'new',
+  refreshToken = 0,
 ) {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
@@ -21,7 +22,7 @@ export function useOfficeMessageThreads(
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       return fetchOfficeMessageThreadsBySegment(tenantId, profile?.roleKey, { audience, chatAge });
     },
-    [tenantId, profile?.roleKey, profile?.id, audience, chatAge],
+    [tenantId, profile?.roleKey, profile?.id, audience, chatAge, refreshToken],
     { enabled: true },
   );
 

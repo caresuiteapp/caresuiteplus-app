@@ -213,11 +213,13 @@ export async function sendOfficeMessage(
     last_message_at: string;
     last_message_preview: string;
     updated_at: string;
+    status: 'waiting_for_reply';
     portal_unread_count?: number;
   } = {
     last_message_at: now,
     last_message_preview: messageBody.slice(0, 120),
     updated_at: now,
+    status: 'waiting_for_reply',
   };
 
   if (bumpPortalUnread) {

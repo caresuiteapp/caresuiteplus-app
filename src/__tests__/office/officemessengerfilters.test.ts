@@ -11,11 +11,11 @@ import {
 } from '@/lib/office/officemessengerfilters';
 import type { OfficeMessageThread } from '@/types/office/messaging';
 
-function thread(partial: Partial<OfficeMessageThread> & Pick<OfficeMessageThread, 'threadType'>): OfficeMessageThread {
+function thread(partial: Partial<OfficeMessageThread> = {}): OfficeMessageThread {
   return {
     id: partial.id ?? 'thread-1',
     tenantId: partial.tenantId ?? 'tenant-1',
-    threadType: partial.threadType,
+    threadType: partial.threadType ?? 'employee_office',
     status: partial.status ?? 'received',
     priority: partial.priority ?? 'normal',
     subject: partial.subject ?? 'Test',
@@ -79,5 +79,16 @@ describe('Office Messenger Filters', () => {
       const flags = [isNewChat(sample), isCurrentChat(sample), isOldChat(sample)].filter(Boolean);
       expect(flags).toHaveLength(1);
     }
+  });
+
+  it('blendet gelöschte Chats in allen drei Bereichen aus', () => {
+    const deleted = thread({ status: 'deleted', unreadCount: 4 });
+
+    expect(isNewChat(deleted)).toBe(false);
+    expect(isCurrentChat(deleted)).toBe(false);
+    expect(isOldChat(deleted)).toBe(false);
+    expect(filterThreadsByChatAge([deleted], 'new')).toEqual([]);
+    expect(filterThreadsByChatAge([deleted], 'current')).toEqual([]);
+    expect(filterThreadsByChatAge([deleted], 'old')).toEqual([]);
   });
 });
