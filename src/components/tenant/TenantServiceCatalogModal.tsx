@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumButton, PremiumInput } from '@/components/ui';
 import { FilterChipGroup } from '@/components/ui/FilterChip';
@@ -17,7 +17,6 @@ import {
   seedTenantServiceCatalogIfEmpty,
 } from '@/lib/tenant/tenantServiceCatalogService';
 import {
-  formatServicePriceUnit,
   formatServicePriceUnitShort,
   SERVICE_TAX_MODE_OPTIONS,
   TENANT_MODULE_LABELS,
@@ -26,8 +25,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 
 type TabKey = 'services' | 'travel' | 'surcharges' | 'versions';
 
-const MODULES: Array<{ key: TenantModuleKey; label: string }> = (
-  Object.entries(TENANT_MODULE_LABELS) as Array<[TenantModuleKey, string]>
+const MODULES: { key: TenantModuleKey; label: string }[] = (
+  Object.entries(TENANT_MODULE_LABELS) as [TenantModuleKey, string][]
 ).map(([key, label]) => ({ key, label }));
 
 const TAB_LABELS: Record<TabKey, string> = {
@@ -47,9 +46,25 @@ const TAB_CATEGORY: Record<TabKey, ServiceCatalogCategory | 'all'> = {
 type Props = {
   visible: boolean;
   tenantId: string;
+  initialModuleKey?: TenantModuleKey;
   onClose: () => void;
   onSaved: () => void;
 };
+
+const UNIT_OPTIONS = [
+  { key: 'hour', label: 'Stunde' },
+  { key: 'visit', label: 'Besuch' },
+  { key: 'day', label: 'Tag' },
+  { key: 'flat', label: 'Pauschale' },
+  { key: 'km', label: 'Kilometer' },
+  { key: 'percent', label: 'Prozent' },
+] as const;
+
+const CATEGORY_OPTIONS = [
+  { key: 'service', label: 'Leistung' },
+  { key: 'travel', label: 'Fahrkosten' },
+  { key: 'surcharge', label: 'Zuschlag' },
+] as const;
 
 function formatPriceLine(item: TenantServiceCatalogItem): string {
   if (item.defaultPriceNet == null) return 'Kein Preis hinterlegt';
@@ -57,7 +72,13 @@ function formatPriceLine(item: TenantServiceCatalogItem): string {
   return `${amount} € / ${formatServicePriceUnitShort(item.unit)}`;
 }
 
-export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved }: Props) {
+export function TenantServiceCatalogModal({
+  visible,
+  tenantId,
+  initialModuleKey = 'assist',
+  onClose,
+  onSaved,
+}: Props) {
   const text = useAuroraAdaptiveText();
   const { roleKey } = usePermissions();
   const [moduleKey, setModuleKey] = useState<TenantModuleKey>('assist');
@@ -68,8 +89,9 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isNew, setIsNew] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     await seedTenantServiceCatalogIfEmpty(tenantId);
@@ -80,11 +102,15 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
       return;
     }
     setItems(result.data.items);
-  };
+  }, [roleKey, tenantId]);
 
   useEffect(() => {
-    if (visible) void load();
-  }, [visible, tenantId]);
+    if (visible) {
+      setModuleKey(initialModuleKey);
+      setIsNew(false);
+      void load();
+    }
+  }, [visible, initialModuleKey, load]);
 
   const filtered = useMemo(() => {
     const category = TAB_CATEGORY[tab];
@@ -99,13 +125,13 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
 
   useEffect(() => {
     if (!filtered.length) {
-      setSelected(null);
+      if (!isNew) setSelected(null);
       return;
     }
-    if (!selected || !filtered.some((item) => item.id === selected.id)) {
+    if (!isNew && (!selected || !filtered.some((item) => item.id === selected.id))) {
       setSelected(filtered[0] ?? null);
     }
-  }, [filtered, selected?.id]);
+  }, [filtered, isNew, selected]);
 
   useEffect(() => {
     if (selected?.defaultPriceNet != null) {
@@ -113,7 +139,7 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
     } else {
       setPriceNet('');
     }
-  }, [selected?.id]);
+  }, [selected?.id, selected?.defaultPriceNet]);
 
   const handleSave = async () => {
     if (!selected) return;
@@ -122,7 +148,7 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
     const result = await saveTenantServiceCatalogItem(
       tenantId,
       {
-        id: selected.id,
+        id: isNew ? undefined : selected.id,
         moduleKey: selected.moduleKey,
         serviceKey: selected.serviceKey,
         name: selected.name,
@@ -142,9 +168,32 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
       return;
     }
     setItems(result.data.items);
-    const updated = result.data.items.find((item) => item.id === selected.id);
+    const updated = result.data.items.find((item) =>
+      isNew ? item.serviceKey === selected.serviceKey : item.id === selected.id,
+    );
     if (updated) setSelected(updated);
+    setIsNew(false);
     onSaved();
+  };
+
+  const handleNew = () => {
+    const category = TAB_CATEGORY[tab] === 'all' ? 'service' : TAB_CATEGORY[tab];
+    const serviceKey = `${moduleKey}.${category}.custom_${Date.now()}`;
+    setSelected({
+      id: '',
+      moduleKey,
+      serviceKey,
+      name: 'Neue Katalogposition',
+      description: '',
+      unit: category === 'travel' ? 'km' : category === 'surcharge' ? 'percent' : 'hour',
+      category,
+      isActive: true,
+      sortOrder: filtered.length > 0 ? Math.max(...filtered.map((item) => item.sortOrder)) + 10 : 10,
+      defaultPriceNet: null,
+      defaultTaxMode: 'exempt_4_16',
+    });
+    setPriceNet('');
+    setIsNew(true);
   };
 
   const selectedTaxMode = (selected?.defaultTaxMode ?? 'exempt_4_16') as ServiceTaxMode;
@@ -156,7 +205,7 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
       subtitle="Leistungen, Fahrkosten, Zuschläge und Preisversionen je Modul pflegen"
       onClose={onClose}
       large
-      primaryLabel="Preis speichern"
+      primaryLabel={isNew ? 'Position anlegen' : 'Änderungen speichern'}
       onPrimary={handleSave}
       primaryLoading={saving}
       primaryDisabled={!selected || tab === 'versions'}
@@ -189,6 +238,14 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
                 onPress={() => setTab(key)}
               />
             ))}
+            {tab !== 'versions' ? (
+              <PremiumButton
+                title="+ Neue Position"
+                variant="secondary"
+                size="sm"
+                onPress={handleNew}
+              />
+            ) : null}
           </View>
           {loading ? <Text style={{ color: text.muted }}>Katalog wird geladen…</Text> : null}
           {error ? <Text style={{ color: '#F87171' }}>{error}</Text> : null}
@@ -244,11 +301,36 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
                 keyboardType="decimal-pad"
                 placeholder="z. B. 38,00"
               />
-              <PremiumInput
-                label="Abrechnungseinheit"
-                value={formatServicePriceUnit(selected.unit)}
-                editable={false}
-              />
+              <View style={styles.fieldBlock}>
+                <Text style={[styles.fieldLabel, { color: text.secondary }]}>Abrechnungseinheit</Text>
+                <FilterChipGroup
+                  options={[...UNIT_OPTIONS]}
+                  value={selected.unit}
+                  onChange={(unit) => setSelected({ ...selected, unit })}
+                  wrap
+                />
+              </View>
+              <View style={styles.fieldBlock}>
+                <Text style={[styles.fieldLabel, { color: text.secondary }]}>Kategorie</Text>
+                <FilterChipGroup
+                  options={[...CATEGORY_OPTIONS]}
+                  value={selected.category}
+                  onChange={(category) => setSelected({ ...selected, category })}
+                  wrap
+                />
+              </View>
+              <View style={styles.fieldBlock}>
+                <Text style={[styles.fieldLabel, { color: text.secondary }]}>Status</Text>
+                <FilterChipGroup
+                  options={[
+                    { key: 'active', label: 'Aktiv' },
+                    { key: 'inactive', label: 'Inaktiv' },
+                  ]}
+                  value={selected.isActive ? 'active' : 'inactive'}
+                  onChange={(status) => setSelected({ ...selected, isActive: status === 'active' })}
+                  wrap
+                />
+              </View>
               <View style={styles.fieldBlock}>
                 <Text style={[styles.fieldLabel, { color: text.secondary }]}>Steuerregel</Text>
                 <FilterChipGroup

@@ -1,6 +1,6 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import type { WorkflowStatus } from '@/types/core/base';
 import type { InvoiceDetail } from '@/types/modules/invoiceDetail';
+import type { InvoiceStatus } from '@/types/modules/billing';
 import { demoClients } from '@/data/demo/clients';
 import {
   getDemoInvoiceAudit,
@@ -13,15 +13,15 @@ import {
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { invoiceSupabaseRepository } from '@/lib/services/repositories/invoiceRepository.supabase';
-import {
-  CLIENT_STATUS_HINTS,
-  getAllowedStatusActions,
-  validateTransition,
-} from '@/lib/services';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import type { Database } from '@/lib/supabase/database.types';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import type { InvoiceRow } from '@/lib/services/repositories/invoiceRepository.supabase';
+import {
+  canTransitionInvoiceStatus,
+  getAllowedInvoiceStatusActions,
+  INVOICE_STATUS_HINTS,
+  mapLegacyWorkflowToInvoiceStatus,
+} from './invoiceStatus';
 
 function resolveClientName(clientId: string): string {
   const client = demoClients.find((c) => c.id === clientId);
@@ -40,10 +40,22 @@ function buildDetailFromDemo(
     amountCents: invoice.amountCents,
     currency: invoice.currency,
     dueDate: invoice.dueDate,
-    status: invoice.status,
+    status: mapLegacyWorkflowToInvoiceStatus(invoice.status),
     updatedAt: invoice.updatedAt,
+    billingModule: 'assist',
     createdAt: invoice.createdAt,
     issuedDate: invoice.createdAt.slice(0, 10),
+    servicePeriodStart: null,
+    servicePeriodEnd: null,
+    recipient: {
+      street: '',
+      houseNumber: '',
+      postalCode: '',
+      city: '',
+      country: 'Deutschland',
+      customerNumber: invoice.clientId,
+    },
+    taxNotice: null,
     notes:
       getDemoInvoiceNotes(invoice.id) ??
       (invoice.status === 'fehlerhaft'
@@ -53,32 +65,54 @@ function buildDetailFromDemo(
           : null),
     lineItems: getDemoInvoiceLineItems(invoice.id),
     auditEntries: getDemoInvoiceAudit(invoice.id),
-    allowedStatusActions: getAllowedStatusActions(invoice.status),
-    nextActionHint: CLIENT_STATUS_HINTS[invoice.status],
+    allowedStatusActions: getAllowedInvoiceStatusActions(mapLegacyWorkflowToInvoiceStatus(invoice.status)),
+    nextActionHint: INVOICE_STATUS_HINTS[mapLegacyWorkflowToInvoiceStatus(invoice.status)],
   };
 }
 
 function buildDetailFromSupabase(row: InvoiceRow): InvoiceDetail {
-  const status = row.status as unknown as WorkflowStatus;
+  const status = row.status;
   const amountCents = Math.round((row.total_amount ?? 0) * 100);
   return {
     id: row.id,
     tenantId: row.tenant_id,
     clientId: row.client_id ?? row.id,
-    clientName: row.invoice_number,
+    clientName: row.client_name,
     invoiceNumber: row.invoice_number,
     amountCents,
     currency: 'EUR',
     dueDate: row.due_date ?? row.updated_at.slice(0, 10),
     status,
     updatedAt: row.updated_at,
+    billingModule: row.billing_module,
     createdAt: row.created_at,
-    issuedDate: row.created_at.slice(0, 10),
-    notes: status === 'entwurf' ? 'Entwurf — noch nicht versendet.' : null,
-    lineItems: [],
+    issuedDate: row.invoice_date,
+    servicePeriodStart: row.service_period_from ?? row.service_month,
+    servicePeriodEnd: row.service_period_to ?? row.service_month,
+    recipient: {
+      street: row.client_street,
+      houseNumber: row.client_house_number,
+      postalCode: row.client_postal_code,
+      city: row.client_city,
+      country: row.client_country,
+      customerNumber: row.client_number,
+    },
+    taxNotice: row.footer_text,
+    notes: row.notes ?? (status === 'draft' ? 'Entwurf — noch nicht versendet.' : null),
+    lineItems: (row.line_items ?? []).map((item) => ({
+      id: item.id,
+      description: item.description,
+      quantity: Number(item.quantity ?? 0),
+      unit: item.unit,
+      unitPriceCents: Math.round(Number(item.unit_price ?? 0) * 100),
+      netTotalCents: Math.round(Number(item.net_amount ?? item.gross_amount ?? 0) * 100),
+      taxRatePercent: Number(item.vat_rate ?? 0),
+      taxCents: Math.round(Number(item.vat_amount ?? 0) * 100),
+      totalCents: Math.round(Number(item.gross_amount ?? 0) * 100),
+    })),
     auditEntries: [],
-    allowedStatusActions: getAllowedStatusActions(status),
-    nextActionHint: CLIENT_STATUS_HINTS[status],
+    allowedStatusActions: getAllowedInvoiceStatusActions(status),
+    nextActionHint: INVOICE_STATUS_HINTS[status],
   };
 }
 
@@ -113,7 +147,7 @@ export async function fetchInvoiceDetail(
 export async function updateInvoiceStatus(
   invoiceId: string,
   tenantId: string,
-  newStatus: WorkflowStatus,
+  newStatus: InvoiceStatus,
   actorRoleKey?: RoleKey | null,
   actorName = 'Büro Demo',
 ): Promise<ServiceResult<InvoiceDetail>> {
@@ -128,9 +162,8 @@ export async function updateInvoiceStatus(
     if (!current.ok) return current;
     if (!current.data) return { ok: false, error: 'Rechnung nicht gefunden.' };
 
-    const validation = validateTransition(current.data.status as WorkflowStatus, newStatus);
-    if (!validation.valid) {
-      return { ok: false, error: validation.error ?? 'Statuswechsel nicht erlaubt.' };
+    if (!canTransitionInvoiceStatus(current.data.status, newStatus)) {
+      return { ok: false, error: 'Dieser Rechnungsstatus darf nicht gewählt werden.' };
     }
 
     const supabase = getSupabaseClient();
@@ -139,7 +172,7 @@ export async function updateInvoiceStatus(
     const { data, error } = await supabase
       .from('invoices')
       .update({
-        status: newStatus as unknown as Database['public']['Enums']['invoice_status'],
+        status: newStatus,
         updated_at: new Date().toISOString(),
       })
       .eq('tenant_id', tenantId)
@@ -151,7 +184,11 @@ export async function updateInvoiceStatus(
       return { ok: false, error: 'Rechnung konnte nicht aktualisiert werden.' };
     }
 
-    return { ok: true, data: buildDetailFromSupabase(data) };
+    const refreshed = await invoiceSupabaseRepository.getById(tenantId, data.id);
+    if (!refreshed.ok || !refreshed.data) {
+      return { ok: false, error: 'Rechnung wurde aktualisiert, konnte aber nicht neu geladen werden.' };
+    }
+    return { ok: true, data: buildDetailFromSupabase(refreshed.data) };
   }
 
   const current = getDemoInvoiceById(invoiceId);
@@ -159,14 +196,23 @@ export async function updateInvoiceStatus(
     return { ok: false, error: 'Rechnung nicht gefunden.' };
   }
 
-  const validation = validateTransition(current.status, newStatus);
-  if (!validation.valid) {
-    return { ok: false, error: validation.error ?? 'Statuswechsel nicht erlaubt.' };
+  const currentInvoiceStatus = mapLegacyWorkflowToInvoiceStatus(current.status);
+  if (!canTransitionInvoiceStatus(currentInvoiceStatus, newStatus)) {
+    return { ok: false, error: 'Dieser Rechnungsstatus darf nicht gewählt werden.' };
   }
 
+  const targetLegacyStatus =
+    newStatus === 'draft' ? 'entwurf'
+      : newStatus === 'ready' ? 'in_bearbeitung'
+        : newStatus === 'sent' ? 'aktiv'
+          : newStatus === 'paid' ? 'abgeschlossen'
+            : newStatus === 'overdue' ? 'fehlerhaft'
+              : newStatus === 'cancelled' ? 'gesperrt'
+                : newStatus === 'written_off' ? 'archiviert'
+                  : 'in_bearbeitung';
   await new Promise((r) => setTimeout(r, 300));
 
-  const updated = updateDemoInvoiceStatus(invoiceId, newStatus, actorName);
+  const updated = updateDemoInvoiceStatus(invoiceId, targetLegacyStatus, actorName);
   if (!updated) {
     return { ok: false, error: 'Rechnung konnte nicht aktualisiert werden.' };
   }
@@ -200,7 +246,23 @@ export async function updateInvoice(
     const current = await invoiceSupabaseRepository.getById(tenantId, invoiceId);
     if (!current.ok) return current;
     if (!current.data) return { ok: false, error: 'Rechnung nicht gefunden.' };
-    return { ok: true, data: buildDetailFromSupabase(current.data) };
+    const supabase = getSupabaseClient();
+    if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+    const { error } = await supabase
+      .from('invoices')
+      .update({
+        due_date: input.dueDate.trim(),
+        notes: input.notes.trim() || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('tenant_id', tenantId)
+      .eq('id', invoiceId);
+    if (error) return { ok: false, error: 'Rechnung konnte nicht gespeichert werden.' };
+    const refreshed = await invoiceSupabaseRepository.getById(tenantId, invoiceId);
+    if (!refreshed.ok || !refreshed.data) {
+      return { ok: false, error: 'Rechnung wurde gespeichert, konnte aber nicht neu geladen werden.' };
+    }
+    return { ok: true, data: buildDetailFromSupabase(refreshed.data) };
   }
 
   await new Promise((r) => setTimeout(r, 280));
@@ -215,4 +277,40 @@ export async function updateInvoice(
   }
 
   return { ok: true, data: buildDetailFromDemo(updated) };
+}
+
+export async function deleteDraftInvoice(
+  invoiceId: string,
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<void>> {
+  const denied = enforcePermission<void>(actorRoleKey, 'office.invoices.status_change');
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  if (getServiceMode() !== 'supabase') return { ok: true, data: undefined };
+
+  const current = await invoiceSupabaseRepository.getById(tenantId, invoiceId);
+  if (!current.ok) return current;
+  if (!current.data) return { ok: false, error: 'Rechnung nicht gefunden.' };
+  if (current.data.status !== 'draft') {
+    return { ok: false, error: 'Nur Rechnungsentwürfe dürfen gelöscht werden.' };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+  const { error: releaseError } = await supabase
+    .from('service_records')
+    .update({ billed_invoice_id: null, status: 'billable' })
+    .eq('tenant_id', tenantId)
+    .eq('billed_invoice_id', invoiceId);
+  if (releaseError) return { ok: false, error: 'Leistungsnachweise konnten nicht freigegeben werden.' };
+
+  const { error } = await supabase
+    .from('invoices')
+    .delete()
+    .eq('tenant_id', tenantId)
+    .eq('id', invoiceId);
+  if (error) return { ok: false, error: 'Rechnungsentwurf konnte nicht gelöscht werden.' };
+  return { ok: true, data: undefined };
 }

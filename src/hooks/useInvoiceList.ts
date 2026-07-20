@@ -1,21 +1,23 @@
 import { useCallback, useState } from 'react';
 import type { InvoiceListItem } from '@/types/modules/billing';
-import type { WorkflowStatus } from '@/types';
+import type { InvoiceStatus } from '@/types/modules/billing';
 import type { ListSortOption } from '@/types/list';
+import type { TenantModuleKey } from '@/types/tenant/tenantCenter';
 import { fetchInvoiceList } from '@/lib/office';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { INVOICE_STATUS_LABELS } from '@/lib/office/invoiceStatus';
 import { useAsyncQuery, useListState } from './core';
 
-export const INVOICE_STATUS_FILTERS: { key: WorkflowStatus | 'all'; label: string }[] = [
+export const INVOICE_STATUS_FILTERS: { key: InvoiceStatus | 'all'; label: string }[] = [
   { key: 'all', label: 'Alle' },
-  { key: 'aktiv', label: WORKFLOW_STATUS_LABELS.aktiv },
-  { key: 'in_bearbeitung', label: WORKFLOW_STATUS_LABELS.in_bearbeitung },
-  { key: 'entwurf', label: WORKFLOW_STATUS_LABELS.entwurf },
-  { key: 'abgeschlossen', label: WORKFLOW_STATUS_LABELS.abgeschlossen },
-  { key: 'archiviert', label: WORKFLOW_STATUS_LABELS.archiviert },
-  { key: 'fehlerhaft', label: WORKFLOW_STATUS_LABELS.fehlerhaft },
+  { key: 'draft', label: INVOICE_STATUS_LABELS.draft },
+  { key: 'ready', label: INVOICE_STATUS_LABELS.ready },
+  { key: 'sent', label: INVOICE_STATUS_LABELS.sent },
+  { key: 'partly_paid', label: INVOICE_STATUS_LABELS.partly_paid },
+  { key: 'paid', label: INVOICE_STATUS_LABELS.paid },
+  { key: 'overdue', label: INVOICE_STATUS_LABELS.overdue },
+  { key: 'cancelled', label: INVOICE_STATUS_LABELS.cancelled },
 ];
 
 export const INVOICE_SORT_OPTIONS: ListSortOption<'dueDate' | 'invoiceNumber'>[] = [
@@ -26,7 +28,7 @@ export const INVOICE_SORT_OPTIONS: ListSortOption<'dueDate' | 'invoiceNumber'>[]
 
 const PAGE_SIZE = 10;
 
-export function useInvoiceList() {
+export function useInvoiceList(moduleFilter: TenantModuleKey | 'all' = 'all') {
   const [showSuccess, setShowSuccess] = useState(false);
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
@@ -40,7 +42,10 @@ export function useInvoiceList() {
     { enabled: !!tenantId },
   );
 
-  const allItems = query.data ?? [];
+  const allInvoices = query.data ?? [];
+  const allItems = moduleFilter === 'all'
+    ? allInvoices
+    : allInvoices.filter((invoice) => invoice.billingModule === moduleFilter);
 
   const list = useListState<InvoiceListItem, 'dueDate' | 'invoiceNumber'>({
     items: allItems,
@@ -61,6 +66,7 @@ export function useInvoiceList() {
     allItems,
     items: list.paginated.items,
     totalCount: allItems.length,
+    globalTotalCount: allInvoices.length,
     filteredCount: list.filtered.length,
     loading: query.loading,
     error: query.error,
@@ -68,8 +74,8 @@ export function useInvoiceList() {
     showSuccess,
     search: list.search,
     setSearch: list.setSearch,
-    statusFilter: list.statusFilter as WorkflowStatus | 'all',
-    setStatusFilter: list.setStatusFilter as (v: WorkflowStatus | 'all') => void,
+    statusFilter: list.statusFilter as InvoiceStatus | 'all',
+    setStatusFilter: list.setStatusFilter as (v: InvoiceStatus | 'all') => void,
     sortKey: list.sortKey,
     setSortKey: list.setSortKey,
     sortOptions: INVOICE_SORT_OPTIONS,

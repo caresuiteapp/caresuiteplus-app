@@ -149,6 +149,15 @@ export async function syncClientBillingWarnings(
 
     const computed = computeBillingWarnings({ tenantId, clientId, ...input });
 
+    if (input.budgetAccounts.length > 0) {
+      await fromUnknownTable(client, 'client_billing_warnings')
+        .update({ is_resolved: true, resolved_at: new Date().toISOString() })
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .eq('warning_type', 'no_budget_accounts')
+        .eq('is_resolved', false);
+    }
+
     for (const w of computed) {
       const { data: existing } = await fromUnknownTable(client, 'client_billing_warnings')
         .select('id')

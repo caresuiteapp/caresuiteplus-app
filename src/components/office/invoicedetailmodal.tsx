@@ -155,14 +155,7 @@ export function InvoiceDetailModal({
 
             {isFull ? (
               <View style={styles.fullContent}>
-                <ScrollView
-                  style={styles.scroll}
-                  contentContainerStyle={styles.scrollContent}
-                  showsVerticalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                >
-                  <InvoiceDetailScreen {...{ invoiceId, embedded: true, embeddedInModal: true } as never} />
-                </ScrollView>
+                <InvoiceDetailScreen invoiceId={invoiceId} embedded />
               </View>
             ) : (
               <ScrollView
@@ -183,3 +176,4 @@ export function InvoiceDetailModal({
     </Modal>
   );
 }
+

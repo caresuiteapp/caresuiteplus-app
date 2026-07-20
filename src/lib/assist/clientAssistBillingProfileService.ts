@@ -29,6 +29,40 @@ export type GetClientAssistBillingProfileInput = {
   autoGenerateAccounts?: boolean;
 };
 
+/** Shows only the account for the requested period and removes accidental duplicate rows. */
+export function selectCurrentBudgetAccounts<T extends {
+  id: string;
+  catalogKey: string;
+  periodStart: string;
+  periodEnd: string;
+  usedCents: number;
+  reservedCents: number;
+}>(accounts: T[], asOfDate: string): T[] {
+  const current = accounts.filter(
+    (account) => account.periodStart <= asOfDate && account.periodEnd >= asOfDate,
+  );
+  const source = current.length > 0 ? current : accounts;
+  const canonical = new Map<string, T>();
+
+  for (const account of source) {
+    const existing = canonical.get(account.catalogKey);
+    if (!existing) {
+      canonical.set(account.catalogKey, account);
+      continue;
+    }
+    const existingActivity = existing.usedCents + existing.reservedCents;
+    const nextActivity = account.usedCents + account.reservedCents;
+    if (
+      account.periodStart > existing.periodStart
+      || (account.periodStart === existing.periodStart && nextActivity > existingActivity)
+    ) {
+      canonical.set(account.catalogKey, account);
+    }
+  }
+
+  return [...canonical.values()];
+}
+
 function parseAsOfDate(date?: string | Date): Date {
   if (!date) return new Date();
   if (date instanceof Date) return date;
@@ -78,7 +112,8 @@ export async function getClientAssistBillingProfile(
     const accountsResult = await listClientBudgetAccounts(tenantId, clientId, budgetYear);
     if (!accountsResult.ok) return accountsResult;
 
-    const sortedAccounts = sortAccountsByPriority(accountsResult.data, priorityResult.data);
+    const currentAccounts = selectCurrentBudgetAccounts(accountsResult.data, asOfDate);
+    const sortedAccounts = sortAccountsByPriority(currentAccounts, priorityResult.data);
 
     await syncClientBillingWarnings(tenantId, clientId, {
       careEntitlement,

@@ -19,6 +19,8 @@ export type FormScreenHeroProps = {
   accentColor?: string;
   preparedMessage?: string;
   preparedOnly?: boolean;
+  /** Compact form header without oversized KPI cards. */
+  compact?: boolean;
 };
 
 export function FormScreenHero({
@@ -30,6 +32,7 @@ export function FormScreenHero({
   wpNumber,
   step,
   accentColor,
+  compact = false,
 }: FormScreenHeroProps) {
   const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
@@ -80,7 +83,7 @@ export function FormScreenHero({
           <PremiumBadge label={`Schritt ${step.current}/${step.total}`} variant="cyan" />
         ) : null}
       </View>
-      <View style={styles.kpiRow}>
+      {!compact ? <View style={styles.kpiRow}>
         <PremiumKpiCard
           label="Modus"
           value={modeLabel}
@@ -105,7 +108,7 @@ export function FormScreenHero({
           accentColor={colors.success}
           style={styles.kpiItem}
         />
-      </View>
+      </View> : null}
     </PremiumListHeroFrame>
   );
 }

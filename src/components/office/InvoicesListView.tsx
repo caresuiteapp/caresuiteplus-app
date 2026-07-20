@@ -25,12 +25,15 @@ import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { useTableColumnSort } from '@/lib/table/tableColumnSort';
 import { useAuth } from '@/lib/auth/context';
 import { colors, spacing, typography } from '@/theme';
+import type { TenantModuleKey } from '@/types/tenant/tenantCenter';
+import { getInvoiceModule } from '@/lib/office/invoiceModules';
 
 type InvoicesListViewProps = {
   onInvoicePress?: (id: string) => void;
   selectedId?: string | null;
   embedded?: boolean;
   routePrefix?: string;
+  moduleFilter?: TenantModuleKey | 'all';
 };
 
 export function InvoicesListView({
@@ -38,6 +41,7 @@ export function InvoicesListView({
   selectedId = null,
   embedded = false,
   routePrefix = '/business/office/invoices',
+  moduleFilter = 'all',
 }: InvoicesListViewProps) {
   const router = useRouter();
   const { profile } = useAuth();
@@ -75,7 +79,12 @@ export function InvoicesListView({
     isEmpty,
     isFilterEmpty,
     allItems,
-  } = useInvoiceList();
+  } = useInvoiceList(moduleFilter);
+
+  const moduleDefinition = moduleFilter === 'all' ? null : getInvoiceModule(moduleFilter);
+  const createRoute = moduleDefinition
+    ? `/office/invoices/create?module=${moduleDefinition.key}`
+    : '/office/invoices/create';
 
   const kpis = useMemo(() => buildInvoiceListKpis(allItems), [allItems]);
   const compactHero = embedded || shellVariant === 'desktop';
@@ -105,7 +114,9 @@ export function InvoicesListView({
     <View style={styles.toolbar}>
       {embedded ? (
         <View style={styles.embeddedHeader}>
-          <Text style={styles.embeddedTitle}>Rechnungen</Text>
+          <Text style={styles.embeddedTitle}>
+            {moduleDefinition ? `${moduleDefinition.label}-Rechnungen` : 'Alle Rechnungen'}
+          </Text>
           <Text style={styles.embeddedMeta}>
             {filteredCount} von {totalCount}
           </Text>
@@ -118,7 +129,7 @@ export function InvoicesListView({
           totalCount={totalCount}
           canCreate={canCreate}
           isReadOnly={isReadOnly}
-          onCreatePress={() => router.push('/office/invoices/create' as never)}
+          onCreatePress={() => router.push(createRoute as never)}
           compact={compactHero}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
@@ -139,10 +150,18 @@ export function InvoicesListView({
       />
 
       <Text style={styles.filterLabel}>Status</Text>
-      <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter} />
+      <FilterChipGroup
+        options={statusFilters}
+        value={statusFilter}
+        onChange={(value) => setStatusFilter(Array.isArray(value) ? (value[0] ?? 'all') : value)}
+      />
 
       <Text style={styles.filterLabel}>Sortierung</Text>
-      <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
+      <FilterChipGroup
+        options={sortOptions}
+        value={sortKey}
+        onChange={(value) => setSortKey(Array.isArray(value) ? (value[0] ?? 'due_asc') : value)}
+      />
     </View>
   );
 
@@ -165,15 +184,17 @@ export function InvoicesListView({
 
   const emptyContent = isEmpty ? (
     <EmptyState
-      title="Noch keine Rechnungen"
+      title={moduleDefinition ? `Noch keine ${moduleDefinition.label}-Rechnungen` : 'Noch keine Rechnungen'}
       message={
         canCreate
-          ? 'Legen Sie die erste Rechnung an, um mit der Abrechnung zu beginnen.'
+          ? moduleDefinition
+            ? `Legen Sie die erste Rechnung im Abrechnungsbereich ${moduleDefinition.label} an.`
+            : 'Legen Sie die erste Rechnung an, um mit der Abrechnung zu beginnen.'
           : `Noch keine Rechnungen vorhanden. Anlegen ist für ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`
       }
       actionLabel={canCreate ? 'Rechnung anlegen' : undefined}
       onAction={
-        canCreate ? () => router.push('/office/invoices/create' as never) : undefined
+        canCreate ? () => router.push(createRoute as never) : undefined
       }
     />
   ) : isFilterEmpty ? (
@@ -251,7 +272,7 @@ export function InvoicesListView({
                   <PremiumButton
                     title="+ Neu"
                     size="sm"
-                    onPress={() => router.push('/office/invoices/create' as never)}
+                    onPress={() => router.push(createRoute as never)}
                   />
                 ) : undefined
               }
@@ -263,7 +284,7 @@ export function InvoicesListView({
             <PremiumButton
               title="+ Neu"
               size="sm"
-              onPress={() => router.push('/office/invoices/create' as never)}
+              onPress={() => router.push(createRoute as never)}
             />
           </View>
         ) : null}
@@ -298,7 +319,7 @@ export function InvoicesListView({
           <PremiumButton
             title="+ Neu"
             size="sm"
-            onPress={() => router.push('/office/invoices/create' as never)}
+            onPress={() => router.push(createRoute as never)}
           />
         </View>
       ) : null}

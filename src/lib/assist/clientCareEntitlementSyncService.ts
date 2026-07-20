@@ -25,6 +25,27 @@ type LegacyCareSource = {
   source: string;
 };
 
+const CARE_INSURANCE_INTRODUCTION_DATE = '1995-01-01';
+
+/** Rejects birth dates, impossible pre-insurance dates and future dates as care-grade start dates. */
+export function normalizeLegacyCareGradeValidFrom(
+  value: unknown,
+  dateOfBirth?: string | null,
+  today = new Date().toISOString().slice(0, 10),
+): string {
+  const candidate = typeof value === 'string' ? value.slice(0, 10) : '';
+  const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(candidate);
+  if (
+    !isIsoDate
+    || candidate < CARE_INSURANCE_INTRODUCTION_DATE
+    || candidate > today
+    || (!!dateOfBirth && candidate === dateOfBirth.slice(0, 10))
+  ) {
+    return today;
+  }
+  return candidate;
+}
+
 /** Map legacy grade strings (client_care_levels, clients.care_level, intake) to entitlement keys. */
 export function mapLegacyGradeToEntitlement(
   grade: string | null | undefined,
@@ -69,6 +90,14 @@ async function resolveLegacyCareLevelSource(
   const client = getSupabaseClient();
   if (!client) return null;
 
+  const { data: clientRow } = await client
+    .from('clients')
+    .select('care_level, insurance_name, insurance_number, date_of_birth')
+    .eq('tenant_id', tenantId)
+    .eq('id', clientId)
+    .maybeSingle();
+  const dateOfBirth = clientRow?.date_of_birth ? String(clientRow.date_of_birth) : null;
+
   const { data: careLevels } = await fromUnknownTable(client, 'client_care_levels')
     .select('*')
     .eq('tenant_id', tenantId)
@@ -82,7 +111,7 @@ async function resolveLegacyCareLevelSource(
     if (grade) {
       return {
         careGrade: grade,
-        validFrom: String(latestLevel.valid_from ?? new Date().toISOString().slice(0, 10)),
+        validFrom: normalizeLegacyCareGradeValidFrom(latestLevel.valid_from, dateOfBirth),
         validUntil: latestLevel.valid_until ? String(latestLevel.valid_until) : null,
         conversionEnabled: isConversionEligibleForGrade(grade),
         careFundName: latestLevel.care_fund_name ? String(latestLevel.care_fund_name) : null,
@@ -94,19 +123,12 @@ async function resolveLegacyCareLevelSource(
     }
   }
 
-  const { data: clientRow } = await client
-    .from('clients')
-    .select('care_level, insurance_name, insurance_number')
-    .eq('tenant_id', tenantId)
-    .eq('id', clientId)
-    .maybeSingle();
-
   if (clientRow?.care_level) {
     const grade = mapLegacyGradeToEntitlement(String(clientRow.care_level));
     if (grade) {
       return {
         careGrade: grade,
-        validFrom: new Date().toISOString().slice(0, 10),
+        validFrom: normalizeLegacyCareGradeValidFrom(null, dateOfBirth),
         validUntil: null,
         conversionEnabled: isConversionEligibleForGrade(grade),
         careFundName: clientRow.insurance_name ? String(clientRow.insurance_name) : null,
@@ -131,7 +153,7 @@ async function resolveLegacyCareLevelSource(
     if (grade) {
       return {
         careGrade: grade,
-        validFrom: String(row.care_level_valid_from ?? new Date().toISOString().slice(0, 10)),
+        validFrom: normalizeLegacyCareGradeValidFrom(row.care_level_valid_from, dateOfBirth),
         validUntil: null,
         conversionEnabled: isConversionEligibleForGrade(grade),
         careFundName: row.care_fund_name ? String(row.care_fund_name) : null,

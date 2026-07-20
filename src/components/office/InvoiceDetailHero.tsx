@@ -8,7 +8,7 @@ import { ROLE_LABELS } from '@/data/constants';
 
 import type { RoleKey } from '@/types';
 import type { InvoiceDetail } from '@/types/modules/invoiceDetail';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { INVOICE_STATUS_LABELS } from '@/lib/office/invoiceStatus';
 import { designTokens, spacing } from '@/theme';
 
 type InvoiceDetailHeroProps = {
@@ -19,13 +19,15 @@ type InvoiceDetailHeroProps = {
 
 function statusVariant(status: string) {
   switch (status) {
-    case 'aktiv':
+    case 'paid':
       return 'green' as const;
-    case 'fehlerhaft':
-    case 'gesperrt':
+    case 'overdue':
+    case 'cancelled':
       return 'red' as const;
-    case 'in_bearbeitung':
-    case 'entwurf':
+    case 'ready':
+    case 'sent':
+    case 'partly_paid':
+    case 'draft':
       return 'orange' as const;
     default:
       return 'muted' as const;
@@ -104,7 +106,7 @@ export function InvoiceDetailHero({ invoice, roleKey, isReadOnly }: InvoiceDetai
       </View>
       <View style={styles.badges}>
         <PremiumBadge
-          label={WORKFLOW_STATUS_LABELS[invoice.status]}
+          label={INVOICE_STATUS_LABELS[invoice.status]}
           variant={statusVariant(invoice.status)}
           dot
         />
@@ -130,4 +132,3 @@ export function InvoiceDetailHero({ invoice, roleKey, isReadOnly }: InvoiceDetai
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

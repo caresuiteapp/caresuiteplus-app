@@ -13,7 +13,7 @@ import { LockedActionBanner } from '@/components/permissions';
 import { useInvoiceDetail } from '@/hooks/useInvoiceDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { formatCurrency } from '@/lib/office';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { INVOICE_STATUS_LABELS } from '@/lib/office/invoiceStatus';
 import { colors, spacing, typography } from '@/theme';
 
 export type InvoiceDetailSummaryPanelProps = {
@@ -41,19 +41,22 @@ function formatDate(iso: string): string {
 
 function statusVariant(status: string) {
   switch (status) {
-    case 'aktiv':
+    case 'paid':
       return 'green' as const;
-    case 'fehlerhaft':
+    case 'overdue':
+    case 'cancelled':
       return 'red' as const;
-    case 'in_bearbeitung':
-    case 'entwurf':
+    case 'ready':
+    case 'sent':
+    case 'partly_paid':
+    case 'draft':
       return 'orange' as const;
     default:
       return 'muted' as const;
   }
 }
 
-export function InvoiceDetailSummaryPanel({ invoiceId }: InvoiceDetailSummaryPanelProps) {
+export function InvoiceDetailSummaryPanel({ invoiceId, onOpenFullRecord }: InvoiceDetailSummaryPanelProps) {
   const router = useRouter();
   const { isReadOnly, roleLabel } = usePermissions();
   const { data: invoice, loading, error, refresh, notFound } = useInvoiceDetail(invoiceId);
@@ -82,7 +85,7 @@ export function InvoiceDetailSummaryPanel({ invoiceId }: InvoiceDetailSummaryPan
         <Text style={styles.number}>{invoice.invoiceNumber}</Text>
         <View style={styles.badgeRow}>
           <PremiumBadge
-            label={WORKFLOW_STATUS_LABELS[invoice.status]}
+            label={INVOICE_STATUS_LABELS[invoice.status]}
             variant={statusVariant(invoice.status)}
             dot
           />
@@ -119,7 +122,7 @@ export function InvoiceDetailSummaryPanel({ invoiceId }: InvoiceDetailSummaryPan
       {invoice.lineItems.length === 0 ? (
         <EmptyState
           title="Keine Positionen"
-          message="Positionsdetails sind in der Vollansicht verfügbar."
+          message="Dieser ältere Rechnungsentwurf enthält keine Positionen und kann in der Vollansicht gelöscht werden."
         />
       ) : null}
 
@@ -128,7 +131,11 @@ export function InvoiceDetailSummaryPanel({ invoiceId }: InvoiceDetailSummaryPan
           title="Vollständige Rechnung öffnen"
           variant="primary"
           fullWidth
-          onPress={() => router.push(`/office/invoices/${invoice.id}` as never)}
+          onPress={() =>
+            onOpenFullRecord
+              ? onOpenFullRecord()
+              : router.push(`/office/invoices/${invoice.id}` as never)
+          }
         />
       </View>
     </View>

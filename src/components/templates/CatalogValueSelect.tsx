@@ -13,6 +13,7 @@ type CatalogValueSelectProps = {
   label?: string;
   required?: boolean;
   error?: string;
+  wrap?: boolean;
 };
 
 export function CatalogValueSelect({
@@ -22,6 +23,7 @@ export function CatalogValueSelect({
   label,
   required,
   error,
+  wrap = false,
 }: CatalogValueSelectProps) {
   const { colors, typography } = useLegacyTheme();
   const { options, loading, error: loadError } = useDropdownOptions(catalogType);
@@ -67,7 +69,7 @@ export function CatalogValueSelect({
       ) : chipOptions.length === 0 ? (
         <Text style={styles.hint}>Keine Katalogwerte verfügbar.</Text>
       ) : (
-        <FilterChipGroup options={chipOptions} value={value || chipOptions[0].key} onChange={onChange} />
+        <FilterChipGroup options={chipOptions} value={value || chipOptions[0].key} onChange={onChange} wrap={wrap} />
       )}
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>

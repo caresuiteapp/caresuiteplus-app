@@ -27,6 +27,7 @@ const demoListItems: InvoiceListItem[] = demoInvoices.map((inv) => ({
   dueDate: inv.dueDate,
   status: inv.status,
   updatedAt: inv.updatedAt,
+  billingModule: 'assist',
 }));
 
 describe('Office Rechnungen list', () => {
@@ -58,7 +59,8 @@ describe('Office Rechnungen list', () => {
   });
 
   it('Status- und Sortierfilter sind vollständig definiert', () => {
-    expect(INVOICE_STATUS_FILTERS.some((f) => f.key === 'aktiv')).toBe(true);
+    expect(INVOICE_STATUS_FILTERS.some((f) => f.key === 'draft')).toBe(true);
+    expect(INVOICE_STATUS_FILTERS.some((f) => f.key === 'paid')).toBe(true);
     expect(INVOICE_SORT_OPTIONS.some((o) => o.key === 'due_asc')).toBe(true);
   });
 
@@ -70,10 +72,10 @@ describe('Office Rechnungen list', () => {
     expect(source).not.toContain('Coming Soon');
   });
 
-  it('InvoicesAdaptiveScreen nutzt MasterDetailLayout mit Summary-Panel', () => {
+  it('InvoicesAdaptiveScreen nutzt die Vollbreiten-Liste mit Detailmodal', () => {
     const source = readSrc('src/screens/office/InvoicesAdaptiveScreen.tsx');
-    expect(source).toContain('MasterDetailLayout');
-    expect(source).toContain('InvoiceDetailSummaryPanel');
+    expect(source).toContain('InvoicesListScreen');
+    expect(readSrc('src/screens/office/OfficeBillingScreen.tsx')).toContain('InvoiceDetailModal');
   });
 
   it('invoiceListService nutzt guardServiceTenant', () => {

@@ -36,24 +36,6 @@ export const officeNav: ModuleNavConfig = {
       items: [
         { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/office/messages?audience=employees&view=chats&chatAge=new' },
         {
-          key: 'messages-clients',
-          label: 'Klient:innen',
-          icon: '👥',
-          href: '/office/messages?audience=clients&view=chats&chatAge=new',
-        },
-        {
-          key: 'messages-employees',
-          label: 'Mitarbeitende',
-          icon: '👤',
-          href: '/office/messages?audience=employees&view=chats&chatAge=new',
-        },
-        {
-          key: 'messages-internal',
-          label: 'Intern',
-          icon: '🏢',
-          href: '/office/messages?audience=internal&view=chats&chatAge=new',
-        },
-        {
           key: 'broadcasts',
           label: 'Broadcasts',
           icon: '📢',

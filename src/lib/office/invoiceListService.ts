@@ -8,6 +8,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { invoiceSupabaseRepository } from '@/lib/services/repositories/invoiceRepository.supabase';
 import { runService } from '@/lib/services/serviceRunner';
+import { mapLegacyWorkflowToInvoiceStatus } from './invoiceStatus';
 
 const SIMULATED_DELAY_MS = 400;
 
@@ -48,13 +49,14 @@ export async function fetchInvoiceList(
         id: inv.id,
         tenantId: inv.tenant_id,
         clientId: inv.client_id ?? inv.id,
-        clientName: inv.invoice_number,
+        clientName: inv.client_name,
         invoiceNumber: inv.invoice_number,
         amountCents: Math.round((inv.total_amount ?? 0) * 100),
         currency: 'EUR',
         dueDate: inv.due_date ?? inv.updated_at.slice(0, 10),
-        status: inv.status as unknown as InvoiceListItem['status'],
+        status: inv.status,
         updatedAt: inv.updated_at,
+        billingModule: inv.billing_module,
       }));
       return { ok: true, data };
     }
@@ -72,8 +74,9 @@ export async function fetchInvoiceList(
       amountCents: inv.amountCents,
       currency: inv.currency,
       dueDate: inv.dueDate,
-      status: inv.status,
+      status: mapLegacyWorkflowToInvoiceStatus(inv.status),
       updatedAt: inv.updatedAt,
+      billingModule: 'assist',
     }));
 
     return { ok: true, data };

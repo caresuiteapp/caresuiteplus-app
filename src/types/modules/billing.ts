@@ -1,5 +1,17 @@
 import type { TenantScopedEntity, WorkflowStatus } from '../core/base';
-import type { AuditEntry } from '../detail';
+import type { TenantModuleKey } from '../tenant/tenantCenter';
+
+export type InvoiceBillingModule = TenantModuleKey | 'mixed' | null;
+
+export type InvoiceStatus =
+  | 'draft'
+  | 'ready'
+  | 'sent'
+  | 'partly_paid'
+  | 'paid'
+  | 'overdue'
+  | 'cancelled'
+  | 'written_off';
 
 export type BudgetPeriod = 'monthly' | 'quarterly' | 'yearly';
 
@@ -40,7 +52,11 @@ export type InvoiceLineItem = {
   id: string;
   description: string;
   quantity: number;
+  unit?: string | null;
   unitPriceCents: number;
+  netTotalCents?: number;
+  taxRatePercent?: number;
+  taxCents?: number;
   totalCents: number;
 };
 
@@ -53,8 +69,9 @@ export type InvoiceListItem = {
   amountCents: number;
   currency: string;
   dueDate: string;
-  status: WorkflowStatus;
+  status: InvoiceStatus;
   updatedAt: string;
+  billingModule: InvoiceBillingModule;
 };
 
 export type BillingDashboardStats = {
