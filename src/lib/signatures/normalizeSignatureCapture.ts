@@ -3,13 +3,20 @@
  */
 import {
   detectSignatureInkBounds,
-  needsSignatureOrientationCorrection,
   normalizeSignatureImageForProof,
-  shouldRotateSignatureInk,
+  resolveSignatureCaptureRotation,
+  type SignatureCaptureOrientation,
 } from '@/lib/signatures/signatureOrientation';
 
-/** Export a cropped PNG whose written signature is horizontally readable. */
-export function exportSignatureCanvasPng(canvas: HTMLCanvasElement): string {
+/**
+ * Export the visible signature exactly in the direction in which it was
+ * written. Device orientation is used only when the backing buffer axes are
+ * demonstrably swapped; ink proportions alone never decide direction.
+ */
+export function exportSignatureCanvasPng(
+  canvas: HTMLCanvasElement,
+  orientation?: SignatureCaptureOrientation | null,
+): string {
   const sourceWidth = canvas.width;
   const sourceHeight = canvas.height;
   const sourceContext = canvas.getContext('2d', { willReadFrequently: true });
@@ -26,9 +33,7 @@ export function exportSignatureCanvasPng(canvas: HTMLCanvasElement): string {
     }
   }
 
-  const rotate = bounds
-    ? shouldRotateSignatureInk(bounds)
-    : needsSignatureOrientationCorrection(sourceWidth, sourceHeight);
+  const rotation = resolveSignatureCaptureRotation(sourceWidth, sourceHeight, orientation);
   const padding = Math.max(8, Math.round(Math.max(sourceWidth, sourceHeight) * 0.025));
   const sourceX = bounds ? Math.max(0, bounds.left - padding) : 0;
   const sourceY = bounds ? Math.max(0, bounds.top - padding) : 0;
@@ -37,16 +42,20 @@ export function exportSignatureCanvasPng(canvas: HTMLCanvasElement): string {
   const cropWidth = Math.max(1, sourceRight - sourceX);
   const cropHeight = Math.max(1, sourceBottom - sourceY);
 
-  if (!rotate && !bounds) return canvas.toDataURL('image/png');
+  if (rotation === 0 && !bounds) return canvas.toDataURL('image/png');
 
   const target = document.createElement('canvas');
-  target.width = rotate ? cropHeight : cropWidth;
-  target.height = rotate ? cropWidth : cropHeight;
+  target.width = rotation === 0 ? cropWidth : cropHeight;
+  target.height = rotation === 0 ? cropHeight : cropWidth;
 
   const ctx = target.getContext('2d');
   if (!ctx) return canvas.toDataURL('image/png');
 
-  if (rotate) {
+  if (rotation === 90) {
+    ctx.translate(cropHeight, 0);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(canvas, sourceX, sourceY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+  } else if (rotation === -90) {
     ctx.translate(0, cropWidth);
     ctx.rotate(-Math.PI / 2);
     ctx.drawImage(canvas, sourceX, sourceY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);

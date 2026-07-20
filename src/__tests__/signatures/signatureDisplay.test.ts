@@ -87,7 +87,7 @@ describe('SignatureDisplay component wiring', () => {
   it('SignatureDisplay corrects tall signature buffers on load', () => {
     const source = readSrc('src/components/signatures/SignatureDisplay.tsx');
     expect(source).toContain('needsSignatureOrientationCorrection');
-    expect(source).toContain("rotate: '-90deg'");
+    expect(source).toContain("rotate: '90deg'");
   });
 });
 
@@ -153,7 +153,7 @@ describe('PDF signature rendering', () => {
     });
 
     expect(payload.html).toContain(portraitSignature);
-    expect(payload.html).toContain('rotate(-90deg)');
+    expect(payload.html).toContain('rotate(90deg)');
     expect(payload.html).toContain('object-fit:contain');
   });
 
@@ -166,7 +166,7 @@ describe('PDF signature rendering', () => {
     });
 
     expect(payload.html).toContain(landscapeSignature);
-    expect(payload.html).not.toContain('rotate(-90deg)');
+    expect(payload.html).not.toContain('rotate(90deg)');
     expect(payload.html).toContain('max-width:280px');
   });
 });

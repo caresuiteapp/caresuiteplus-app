@@ -10,6 +10,7 @@ import {
   resolveSignatureImageDimensions,
   signatureProofImageStyleToCss,
   shouldRotateSignatureInk,
+  resolveSignatureCaptureRotation,
 } from '@/lib/signatures/signatureOrientation';
 import { pngBytes, pngDataUrl } from '@/__tests__/signatures/signatureTestFixtures';
 
@@ -61,11 +62,50 @@ describe('buildSignatureProofImageStyle', () => {
 
   it('rotates portrait buffers for horizontal proof display', () => {
     const style = buildSignatureProofImageStyle(240, 480);
-    expect(style.transform).toBe('rotate(-90deg)');
+    expect(style.transform).toBe('rotate(90deg)');
     expect(style.maxWidth).toBe(120);
     expect(style.maxHeight).toBe(280);
-    expect(signatureProofImageStyleToCss(style)).toContain('rotate(-90deg)');
+    expect(signatureProofImageStyleToCss(style)).toContain('rotate(90deg)');
     expect(signatureProofImageStyleToCss(style)).toContain('object-fit:contain');
+  });
+});
+
+describe('signature capture direction', () => {
+  it('keeps a normal landscape canvas exactly as written', () => {
+    expect(
+      resolveSignatureCaptureRotation(1200, 600, {
+        isLandscape: true,
+        orientationType: 'landscape-primary',
+        angle: 90,
+      }),
+    ).toBe(0);
+  });
+
+  it('uses the device side for a portrait backing buffer in landscape', () => {
+    expect(
+      resolveSignatureCaptureRotation(600, 1200, {
+        isLandscape: true,
+        orientationType: 'landscape-primary',
+        angle: 90,
+      }),
+    ).toBe(90);
+    expect(
+      resolveSignatureCaptureRotation(600, 1200, {
+        isLandscape: true,
+        orientationType: 'landscape-secondary',
+        angle: 270,
+      }),
+    ).toBe(-90);
+  });
+
+  it('does not guess a rotation from handwriting proportions in portrait', () => {
+    expect(
+      resolveSignatureCaptureRotation(600, 1200, {
+        isLandscape: false,
+        orientationType: 'portrait-primary',
+        angle: 0,
+      }),
+    ).toBe(0);
   });
 });
 
@@ -112,7 +152,9 @@ describe('capture pipeline wiring', () => {
     expect(source).toContain('exportSignatureCanvasPng');
     expect(source).not.toMatch(/onConfirm\(canvas\.toDataURL\('image\/png'\)\)/);
     expect(normalizer).toContain('detectSignatureInkBounds');
-    expect(normalizer).toContain('shouldRotateSignatureInk');
+    expect(normalizer).toContain('resolveSignatureCaptureRotation');
+    expect(source).toContain('orientationType: orientation.orientationType');
+    expect(source).toContain('angle: orientation.angle');
   });
 
   it('normalizes stored signature ink before Leistungsnachweis PDF rendering', () => {

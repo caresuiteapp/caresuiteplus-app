@@ -118,7 +118,7 @@ export function SignatureDisplay({
       ...styles.image,
       maxWidth: layout.maxWidth,
       maxHeight: layout.maxHeight,
-      transform: [{ rotate: '-90deg' }],
+      transform: [{ rotate: '90deg' }],
     };
   }, [orientationCorrected, styles.image]);
 

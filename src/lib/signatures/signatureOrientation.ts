@@ -56,6 +56,47 @@ export type NormalizedSignatureProofImage = {
   cropped: boolean;
 };
 
+export type SignatureCaptureOrientation = {
+  isLandscape: boolean;
+  orientationType?:
+    | 'portrait-primary'
+    | 'portrait-secondary'
+    | 'landscape-primary'
+    | 'landscape-secondary'
+    | 'unknown';
+  angle?: number | null;
+};
+
+/**
+ * Resolve a real capture-buffer mismatch from the device orientation.
+ *
+ * The browser canvas already follows the visible viewport, so a landscape
+ * buffer must not be rotated merely because a particular signature happens
+ * to be tall. Rotation is only required when the device reports landscape
+ * while the exported backing buffer is still portrait. The primary/secondary
+ * orientation then provides the otherwise unknowable rotation direction.
+ */
+export function resolveSignatureCaptureRotation(
+  width: number,
+  height: number,
+  orientation?: SignatureCaptureOrientation | null,
+): -90 | 0 | 90 {
+  if (width <= 0 || height <= 0 || width >= height || !orientation?.isLandscape) return 0;
+
+  if (orientation.orientationType === 'landscape-secondary') return -90;
+  if (orientation.orientationType === 'landscape-primary') return 90;
+
+  const normalizedAngle =
+    typeof orientation.angle === 'number'
+      ? ((orientation.angle % 360) + 360) % 360
+      : null;
+  if (normalizedAngle === 270) return -90;
+  if (normalizedAngle === 90) return 90;
+
+  // Most mobile browsers expose landscape-primary as +90 degrees.
+  return 90;
+}
+
 /**
  * Finds the written ink rather than trusting the outer PNG dimensions.
  * Mobile landscape captures can have a landscape buffer while the actual
@@ -128,7 +169,7 @@ export function buildSignatureProofImageStyle(
       ...base,
       maxWidth: 120,
       maxHeight: 280,
-      transform: 'rotate(-90deg)',
+      transform: 'rotate(90deg)',
     };
   }
 
@@ -272,8 +313,8 @@ export async function normalizeSignatureImageForProof(
   targetContext.imageSmoothingEnabled = true;
   targetContext.imageSmoothingQuality = 'high';
   if (rotate) {
-    targetContext.translate(0, target.height);
-    targetContext.rotate(-Math.PI / 2);
+    targetContext.translate(target.width, 0);
+    targetContext.rotate(Math.PI / 2);
     targetContext.drawImage(
       source,
       sourceX,
