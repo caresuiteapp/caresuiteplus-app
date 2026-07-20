@@ -1,52 +1,54 @@
 /**
- * CareSuite+ Aurora Space Glass — canonical color & gradient tokens.
- * Used system-wide for headers, CTAs, glass surfaces, and glow effects.
+ * CareSuite HealthOS Liquid Glass — compatibility tokens backed by the
+ * three-colour system palette.
  */
+import { SYSTEM_BLUE_GRADIENT, SYSTEM_LIQUID_COLORS, systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
+
 export const careSuiteAuroraTheme = {
-  background: '#070A1F',
+  background: systemLiquidGlass.page,
   gradients: {
-    primaryAurora: ['#7C3AED', '#A855F7', '#EC4899', '#06B6D4'] as const,
-    heroAurora: ['#6D28D9', '#A21CAF', '#EC4899', '#0891B2'] as const,
-    buttonPrimary: ['#8B5CF6', '#D946EF', '#EC4899'] as const,
-    buttonSecondary: ['rgba(139, 92, 246, 0.32)', 'rgba(6, 182, 212, 0.22)'] as const,
-    buttonSuccess: ['#10B981', '#06B6D4'] as const,
-    buttonDanger: ['#EF4444', '#EC4899'] as const,
-    orangeLegacyOnlyIfNeeded: ['#FB923C', '#F97316'] as const,
+    primaryAurora: [...SYSTEM_BLUE_GRADIENT] as const,
+    heroAurora: ['#061126', '#0A1934', '#1478FF'] as const,
+    buttonPrimary: [...SYSTEM_BLUE_GRADIENT] as const,
+    buttonSecondary: ['rgba(248,251,255,0.08)', 'rgba(20,120,255,0.16)'] as const,
+    buttonSuccess: ['#1478FF', '#4A9AFF'] as const,
+    buttonDanger: ['#C83A50', '#FF5D6C'] as const,
+    orangeLegacyOnlyIfNeeded: [...SYSTEM_BLUE_GRADIENT] as const,
   },
   glass: {
-    background: 'rgba(15, 23, 42, 0.52)',
-    backgroundStrong: 'rgba(15, 23, 42, 0.72)',
-    border: 'rgba(255, 255, 255, 0.14)',
-    borderStrong: 'rgba(255, 255, 255, 0.24)',
+    background: systemLiquidGlass.panel,
+    backgroundStrong: systemLiquidGlass.panelStrong,
+    border: systemLiquidGlass.border,
+    borderStrong: systemLiquidGlass.borderStrong,
   },
   text: {
-    primary: '#000000',
-    secondary: '#000000',
-    muted: '#000000',
-    darkOnLightGradient: '#000000',
+    primary: systemLiquidGlass.text.primary,
+    secondary: systemLiquidGlass.text.secondary,
+    muted: systemLiquidGlass.text.muted,
+    darkOnLightGradient: SYSTEM_LIQUID_COLORS.white,
   },
   glow: {
-    pink: 'rgba(236, 72, 153, 0.45)',
-    violet: 'rgba(139, 92, 246, 0.45)',
-    cyan: 'rgba(6, 182, 212, 0.35)',
-    orange: 'rgba(249, 115, 22, 0.30)',
+    pink: systemLiquidGlass.glow.medium,
+    violet: systemLiquidGlass.glow.medium,
+    cyan: systemLiquidGlass.glow.medium,
+    orange: systemLiquidGlass.glow.medium,
   },
   accent: {
-    violet: '#8B5CF6',
-    pink: '#EC4899',
-    cyan: '#06B6D4',
-    magenta: '#D946EF',
+    violet: SYSTEM_LIQUID_COLORS.electricBlue,
+    pink: SYSTEM_LIQUID_COLORS.electricBlue,
+    cyan: SYSTEM_LIQUID_COLORS.electricBlue,
+    magenta: SYSTEM_LIQUID_COLORS.electricBlue,
   },
 } as const;
 
 export type CareSuiteAuroraTheme = typeof careSuiteAuroraTheme;
 
 /** Three-stop hero gradient for list/detail headers. */
-export const AURORA_HERO_GRADIENT = ['#7C3AED', '#EC4899', '#06B6D4'] as const;
+export const AURORA_HERO_GRADIENT = ['#061126', '#0A1934', '#1478FF'] as const;
 
 /** Primary CTA button gradient. */
 export const AURORA_BUTTON_PRIMARY = careSuiteAuroraTheme.gradients.buttonPrimary;
 
 /** Active chip/tab tint (violet, not orange). */
-export const AURORA_CHIP_ACTIVE = 'rgba(139, 92, 246, 0.22)';
-export const AURORA_ROW_SELECTED = 'rgba(139, 92, 246, 0.14)';
+export const AURORA_CHIP_ACTIVE = systemLiquidGlass.chipActive;
+export const AURORA_ROW_SELECTED = systemLiquidGlass.rowSelected;

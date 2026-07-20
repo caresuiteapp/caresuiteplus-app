@@ -2,6 +2,7 @@ import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { spacing } from '@/theme';
 import { PLATFORM_COLORS } from './PlatformColors';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 
 type Props = { children: ReactNode };
 type State = { error: Error | null; incidentId: string | null };
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#FECACA',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: systemLiquidGlass.panelStrong,
     alignItems: 'center',
     gap: spacing.sm,
   },

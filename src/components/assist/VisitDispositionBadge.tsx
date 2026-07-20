@@ -4,6 +4,7 @@ import { PremiumBadge } from '@/components/ui';
 import { auroraGlass } from '@/design/tokens/auroraGlass';
 import { neonGlow } from '@/design/tokens/motion';
 import { spacing } from '@/theme';
+import { careSuiteColors } from '@/design/tokens/colors';
 
 type VisitDispositionBadgeProps = {
   label: string;
@@ -13,7 +14,7 @@ type VisitDispositionBadgeProps = {
 
 const VARIANT_GLOW: Record<NonNullable<VisitDispositionBadgeProps['variant']>, string> = {
   green: '#4ADE80',
-  orange: '#FF9500',
+  orange: careSuiteColors.dark.status.warning,
   red: '#FF6B6B',
   cyan: '#62F3FF',
   muted: '#94A3B8',

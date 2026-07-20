@@ -25,8 +25,8 @@ export const fxMotion = {
 /** Liquid-glass surface layers (dark). Translucent base + sheen + inner border. */
 export const glassFx = {
   /** Base translucent fills (use as LinearGradient pair). */
-  surface: ['rgba(31,36,64,0.28)', 'rgba(18,22,43,0.18)'] as [string, string],
-  surfaceElevated: ['rgba(42,40,82,0.34)', 'rgba(23,26,52,0.22)'] as [string, string],
+  surface: ['rgba(15,35,68,0.62)', 'rgba(6,17,38,0.42)'] as [string, string],
+  surfaceElevated: ['rgba(20,48,90,0.72)', 'rgba(10,25,52,0.58)'] as [string, string],
   /** Bright top sheen overlay (top → fade). */
   sheen: ['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.04)', 'transparent'] as [
     string,
@@ -35,23 +35,23 @@ export const glassFx = {
   ],
   /** 1px inner light border. */
   innerBorder: 'rgba(255,255,255,0.10)',
-  border: 'rgba(148,130,255,0.22)',
-  borderStrong: 'rgba(168,150,255,0.40)',
+  border: 'rgba(248,251,255,0.13)',
+  borderStrong: 'rgba(20,120,255,0.72)',
   hairline: 'rgba(255,255,255,0.06)',
 } as const;
 
 /** Deep-space aurora palette behind the dark shell. */
 export const auroraFx = {
-  base: ['#0B1020', '#0E1330', '#0B1020'] as [string, string, string],
+  base: ['#030A18', '#061126', '#0A1934'] as [string, string, string],
   /** Drifting neon orbs: color + relative placement + size (% of container). */
   orbs: [
-    { color: '#8B5CF6', top: '-12%', left: '-8%', size: 520, opacity: 0.42, delay: 0 },
-    { color: '#EC4899', top: '38%', left: '64%', size: 460, opacity: 0.34, delay: 1600 },
-    { color: '#06B6D4', top: '68%', left: '6%', size: 480, opacity: 0.30, delay: 3200 },
-    { color: '#38BDF8', top: '4%', left: '52%', size: 380, opacity: 0.26, delay: 800 },
+    { color: '#1478FF', top: '-12%', left: '-8%', size: 520, opacity: 0.36, delay: 0 },
+    { color: '#1478FF', top: '38%', left: '64%', size: 460, opacity: 0.24, delay: 1600 },
+    { color: '#4A9AFF', top: '68%', left: '6%', size: 480, opacity: 0.22, delay: 3200 },
+    { color: '#1478FF', top: '4%', left: '52%', size: 380, opacity: 0.20, delay: 800 },
   ] as const,
   /** Gradient-mesh overlay tint (subtle violet → transparent → cyan). */
-  mesh: ['rgba(139,92,246,0.10)', 'transparent', 'rgba(6,182,212,0.08)'] as [
+  mesh: ['rgba(20,120,255,0.12)', 'transparent', 'rgba(74,154,255,0.08)'] as [
     string,
     string,
     string,
@@ -62,18 +62,18 @@ export const auroraFx = {
 
 /** Per-module accent colors used for the dashboard "folder/module" card covers. */
 export const moduleAccentFx: Record<string, string> = {
-  office: '#06B6D4',
-  pflege: '#14B8A6',
-  assist: '#EC4899',
-  beratung: '#34D399',
-  stationaer: '#6366F1',
-  akademie: '#FFEB3B',
-  insight: '#38BDF8',
-  qm: '#8B5CF6',
+  office: '#1478FF',
+  pflege: '#1478FF',
+  assist: '#1478FF',
+  beratung: '#1478FF',
+  stationaer: '#1478FF',
+  akademie: '#1478FF',
+  insight: '#1478FF',
+  qm: '#1478FF',
 };
 
 /** Rotating accent palette for cards without a fixed module accent. */
-export const accentCycle = ['#8B5CF6', '#EC4899', '#06B6D4', '#34D399', '#F59E0B', '#6366F1'];
+export const accentCycle = ['#1478FF', '#4A9AFF', '#1478FF', '#4A9AFF'];
 
 /** Build a soft outer neon glow shadow from an accent color. */
 export function neonGlow(

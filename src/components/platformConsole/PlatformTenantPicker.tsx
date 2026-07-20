@@ -4,6 +4,7 @@ import { listPlatformTenants, resolvePlatformTenantDetailId } from '@/lib/platfo
 import type { PlatformTenantListItem } from '@/types/platformConsole';
 import { spacing } from '@/theme';
 import { PLATFORM_COLORS } from './PlatformColors';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 
 type Props = {
   value: string;
@@ -89,17 +90,17 @@ export function PlatformTenantPicker({ value, onChange, label = 'Mandant', requi
 const styles = StyleSheet.create({
   wrap: { gap: 5 },
   label: { color: PLATFORM_COLORS.text, fontSize: 12, fontWeight: '700' },
-  field: { minHeight: 46, borderWidth: 1, borderColor: PLATFORM_COLORS.borderStrong, borderRadius: 10, backgroundColor: '#FFFFFF', paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  field: { minHeight: 46, borderWidth: 1, borderColor: PLATFORM_COLORS.borderStrong, borderRadius: 12, backgroundColor: systemLiquidGlass.input, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   value: { color: PLATFORM_COLORS.text, fontSize: 14, flex: 1 },
   placeholder: { color: PLATFORM_COLORS.muted, fontSize: 14, flex: 1 },
   chevron: { color: PLATFORM_COLORS.accent, fontSize: 18 },
   hint: { color: PLATFORM_COLORS.muted, fontSize: 10 },
-  overlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.35)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  dialog: { width: '100%', maxWidth: 620, maxHeight: 640, borderRadius: 18, backgroundColor: '#FFFFFF', padding: spacing.lg, gap: spacing.sm },
+  overlay: { flex: 1, backgroundColor: 'rgba(3,10,24,0.72)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  dialog: { width: '100%', maxWidth: 620, maxHeight: 640, borderRadius: 22, backgroundColor: systemLiquidGlass.panelStrong, borderWidth: 1, borderColor: systemLiquidGlass.borderStrong, padding: spacing.lg, gap: spacing.sm },
   title: { color: PLATFORM_COLORS.text, fontSize: 20, fontWeight: '800' },
   search: { minHeight: 48, borderWidth: 1, borderColor: PLATFORM_COLORS.accent, borderRadius: 10, paddingHorizontal: spacing.md, color: PLATFORM_COLORS.text },
   list: { gap: 5, paddingBottom: spacing.md },
-  item: { minHeight: 52, borderRadius: 10, borderWidth: 1, borderColor: PLATFORM_COLORS.border, backgroundColor: '#FFFFFF', paddingHorizontal: spacing.md, justifyContent: 'center' },
+  item: { minHeight: 52, borderRadius: 12, borderWidth: 1, borderColor: PLATFORM_COLORS.border, backgroundColor: systemLiquidGlass.card, paddingHorizontal: spacing.md, justifyContent: 'center' },
   itemName: { color: PLATFORM_COLORS.text, fontWeight: '700' },
   itemMeta: { color: PLATFORM_COLORS.muted, fontSize: 11, marginTop: 2 },
   empty: { color: PLATFORM_COLORS.muted, textAlign: 'center', padding: spacing.lg },

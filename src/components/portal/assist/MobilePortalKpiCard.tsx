@@ -4,8 +4,9 @@ import { PORTAL_LIGHT_LINK_ORANGE, useAuroraAdaptiveText, useLightLiquidGlassShe
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
 
-export const PORTAL_MOBILE_CTA_GOLD = '#F5B942';
+export const PORTAL_MOBILE_CTA_GOLD = SYSTEM_LIQUID_COLORS.electricBlue;
 
 type MobilePortalKpiCardProps = {
   icon: string;
@@ -39,7 +40,7 @@ export function MobilePortalKpiCard({
   emptyMessage,
   metricSubtitle,
   ctaLabel,
-  accentColor = '#FF9500',
+  accentColor = SYSTEM_LIQUID_COLORS.electricBlue,
   onPress,
   onCta,
   hidden = false,

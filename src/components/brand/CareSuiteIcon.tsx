@@ -8,6 +8,7 @@ import {
 } from '@/design/tokens/accentContrast';
 import { withAlpha } from '@/design/tokens/motion';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
 
 const VECTOR_MAP: Record<AppStartIconKey, keyof typeof Feather.glyphMap> = {
   building: 'briefcase',
@@ -28,7 +29,7 @@ type CareSuiteIconProps = {
 export function CareSuiteIcon({
   emoji,
   iconKey,
-  accentColor = '#FF7A1A',
+  accentColor = SYSTEM_LIQUID_COLORS.electricBlue,
   size = 40,
   style,
   variant = 'default',

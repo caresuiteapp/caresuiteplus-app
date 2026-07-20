@@ -14,6 +14,7 @@ import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
+import { SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalContext } from '@/hooks/usePortalContext';
@@ -206,7 +207,7 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
               value={widgets.find((w) => w.widgetKey.includes('message'))?.metricValue ?? null}
               emptyMessage="Keine neuen Nachrichten."
               ctaLabel="Nachrichten öffnen →"
-              accentColor="#FF9500"
+              accentColor={SYSTEM_LIQUID_COLORS.electricBlue}
               onCta={() => router.push('/portal/client/messages' as never)}
               onPress={() => router.push('/portal/client/messages' as never)}
             />

@@ -59,6 +59,6 @@ export const careModuleTokens = {
 
 export type CareModuleKey = keyof typeof careModuleTokens;
 
-export function moduleColor(key: CareModuleKey, mode: ColorMode = 'light'): string {
+export function moduleColor(key: CareModuleKey, mode: ColorMode = 'dark'): string {
   return moduleColorsForMode(mode)[key];
 }

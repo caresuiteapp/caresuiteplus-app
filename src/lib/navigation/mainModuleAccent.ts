@@ -2,7 +2,7 @@ import { moduleColor } from '@/design/tokens/modules';
 import type { ColorMode } from '@/design/tokens/colors';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
-/** Canonical accent per main-module rail entry (Blau · Orange · Türkis · Grün · Rot · Lila · Gelb · Silber). */
+/** Canonical system accent — one electric blue across all product modules. */
 export function resolveMainModuleAccent(
   mainModule: MainModuleKey,
   mode: ColorMode = 'dark',
@@ -23,7 +23,7 @@ export function resolveMainModuleAccent(
     case 'akademie':
       return moduleColor('akademie', mode);
     case 'admin':
-      return '#94A3B8';
+      return moduleColor('insight', mode);
     default:
       return moduleColor('insight', mode);
   }

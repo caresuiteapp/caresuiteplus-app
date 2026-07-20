@@ -1,6 +1,7 @@
 import React from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PLATFORM_COLORS } from './PlatformColors';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { PlatformEmptyState } from './PlatformEmptyState';
 import { spacing } from '@/theme';
 
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    backgroundColor: '#EAF2F8',
+    backgroundColor: systemLiquidGlass.panelStrong,
     borderBottomWidth: 1,
     borderBottomColor: PLATFORM_COLORS.border,
     minHeight: 40,
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerText: {
-    color: '#334155',
+    color: systemLiquidGlass.text.secondary,
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -168,13 +169,13 @@ const styles = StyleSheet.create({
     borderBottomColor: PLATFORM_COLORS.border,
     minHeight: 44,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: systemLiquidGlass.table,
   },
   dataRowAlt: {
-    backgroundColor: '#F8FBFD',
+    backgroundColor: systemLiquidGlass.rowAlt,
   },
   dataRowSelected: {
-    backgroundColor: '#E0F2FE',
+    backgroundColor: systemLiquidGlass.rowSelected,
   },
   dataCell: {
     paddingHorizontal: spacing.sm,

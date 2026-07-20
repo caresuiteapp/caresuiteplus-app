@@ -23,9 +23,9 @@ export const llgsAuroraColors = {
 
 /** Black ink on milchglas panels. */
 export const llgsTypography = {
-  primary: '#000000',
-  secondary: '#000000',
-  muted: '#000000',
+  primary: '#F8FBFF',
+  secondary: 'rgba(248, 251, 255, 0.74)',
+  muted: 'rgba(248, 251, 255, 0.52)',
 } as const;
 
 /** Milchglas — synchron mit Aurora-Nebula-Glas-Tokens (llganGlassSurface). */

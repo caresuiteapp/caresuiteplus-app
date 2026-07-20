@@ -65,7 +65,7 @@ export function resolveCareLightPalette(isDark: boolean): CareLightResolved {
     };
   }
 
-  const dark = careSuiteColors.light;
+  const dark = careSuiteColors.dark;
   return {
     isDark: true,
     page: dark.background.app,

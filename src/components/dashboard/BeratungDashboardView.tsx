@@ -16,6 +16,7 @@ import type { BeratungDashboardStats, CounselingListItem } from '@/types/modules
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useMainModuleAccent } from '@/hooks/useMainModuleAccent';
 import { moduleColor } from '@/design/tokens/modules';
+import { SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
 import {
   buildBeratungDashboardPriorities,
   buildBeratungDashboardSections,
@@ -87,7 +88,7 @@ function priorityColor(severity: 'high' | 'medium' | 'low'): string {
     case 'medium':
       return '#F59E0B';
     default:
-      return '#8B5CF6';
+      return SYSTEM_LIQUID_COLORS.electricBlue;
   }
 }
 

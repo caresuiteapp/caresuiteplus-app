@@ -4,6 +4,7 @@ import { PremiumInput } from '@/components/ui/PremiumInput';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { colors, radius, spacing, typography } from '@/theme';
+import { SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
 
 export type CareEntityOption = {
   value: string;
@@ -201,7 +202,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(139,92,246,0.12)',
   },
-  closeText: { color: '#7C3AED', fontSize: 26, lineHeight: 28 },
+  closeText: { color: SYSTEM_LIQUID_COLORS.electricBlue, fontSize: 26, lineHeight: 28 },
   list: { maxHeight: 440 },
   option: {
     minHeight: 58,
@@ -217,6 +218,6 @@ const styles = StyleSheet.create({
   optionCopy: { flex: 1, gap: 2 },
   optionLabel: { fontSize: 16, fontWeight: '700' },
   optionDescription: { ...typography.caption },
-  check: { color: '#8B5CF6', fontSize: 20, fontWeight: '800' },
+  check: { color: SYSTEM_LIQUID_COLORS.electricBlue, fontSize: 20, fontWeight: '800' },
   empty: { paddingVertical: spacing.xl, textAlign: 'center' },
 });

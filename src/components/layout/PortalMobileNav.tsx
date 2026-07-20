@@ -22,7 +22,7 @@ type PortalMobileNavProps = {
 };
 
 /** Opaque bottom nav — five fixed tabs on phone (no horizontal scroll). */
-export function PortalMobileNav({ tabs, accentColor = '#FF9500', area }: PortalMobileNavProps) {
+export function PortalMobileNav({ tabs, accentColor = '#1478FF', area }: PortalMobileNavProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();

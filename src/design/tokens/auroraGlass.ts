@@ -3,7 +3,7 @@ import { Platform, StyleSheet, type TextStyle, type ViewStyle } from 'react-nati
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
-import { llgsTypography } from '@/design/tokens/lightLiquidGlassSpace';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import {
   resolveLlganGlassSurface,
   resolveLlganViewGlass,
@@ -13,11 +13,7 @@ import {
 import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { ensureLightLiquidGlassSurfaceCss } from '@/design/web/ensureLightLiquidGlassSurfaceCss';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
-import {
-  AURORA_CHIP_ACTIVE,
-  AURORA_ROW_SELECTED,
-  careSuiteAuroraTheme,
-} from '@/theme/careSuiteAurora';
+import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 
 /**
  * Shell glass surface tokens — always light milchglas over the space backdrop.
@@ -30,16 +26,16 @@ export type SurfaceContrastText = {
 
 /** Dunkle Schrift auf hellen/weißen Flächen. */
 export const lightSurfaceText: SurfaceContrastText = {
-  primary: llgsTypography.primary,
-  secondary: llgsTypography.secondary,
-  muted: llgsTypography.muted,
+  primary: systemLiquidGlass.text.primary,
+  secondary: systemLiquidGlass.text.secondary,
+  muted: systemLiquidGlass.text.muted,
 };
 
 /** @deprecated Dark glass removed — use lightSurfaceText. */
 export const darkGlassSurfaceText: SurfaceContrastText = lightSurfaceText;
 
 /** WCAG-kontrastfähiger Orange-/Amber-Ton für Links/CTAs auf hellen Portal-Flächen (≥4.5:1). */
-export const PORTAL_LIGHT_LINK_ORANGE = '#B45309';
+export const PORTAL_LIGHT_LINK_ORANGE = '#4A9AFF';
 
 export function surfaceContrastText(isDarkBackground: boolean): SurfaceContrastText {
   return isDarkBackground ? darkGlassSurfaceText : lightSurfaceText;
@@ -47,42 +43,41 @@ export function surfaceContrastText(isDarkBackground: boolean): SurfaceContrastT
 
 /** Frosted milchglas — Liquid Glass über hellem Space-Aurora-Hintergrund. */
 const llganDefaultSurface = resolveLlganGlassSurface('default');
-const llganSubtleSurface = resolveLlganGlassSurface('subtle');
 
 export const lightLiquidGlass = {
-  page: 'transparent',
-  panel: llganDefaultSurface.panel,
-  card: llganDefaultSurface.card,
-  sidebar: llganDefaultSurface.sidebar,
-  elevated: 'rgba(255,255,255,0.30)',
-  modal: llganDefaultSurface.modal,
-  input: llganSubtleSurface.input,
-  chip: llganSubtleSurface.chip,
-  chipActive: 'rgba(130,170,255,0.16)',
-  table: llganSubtleSurface.panel,
+  page: systemLiquidGlass.page,
+  panel: systemLiquidGlass.panel,
+  card: systemLiquidGlass.card,
+  sidebar: systemLiquidGlass.panelStrong,
+  elevated: systemLiquidGlass.pageElevated,
+  modal: systemLiquidGlass.panelStrong,
+  input: systemLiquidGlass.input,
+  chip: systemLiquidGlass.chip,
+  chipActive: systemLiquidGlass.chipActive,
+  table: systemLiquidGlass.table,
   row: 'transparent',
-  rowHover: 'rgba(15,27,51,0.04)',
-  rowAlt: 'rgba(15,27,51,0.02)',
-  rowSelected: 'rgba(139, 92, 246, 0.10)',
-  header: 'rgba(15,27,51,0.03)',
-  listItem: 'rgba(15,27,51,0.03)',
-  border: llganDefaultSurface.borderWhite,
-  borderAccent: llganDefaultSurface.borderAccent,
-  borderStrong: 'rgba(130,170,255,0.28)',
-  innerBorder: 'rgba(255,255,255,0.68)',
+  rowHover: systemLiquidGlass.rowHover,
+  rowAlt: systemLiquidGlass.rowAlt,
+  rowSelected: systemLiquidGlass.rowSelected,
+  header: 'rgba(248,251,255,0.04)',
+  listItem: systemLiquidGlass.chip,
+  border: systemLiquidGlass.border,
+  borderAccent: systemLiquidGlass.border,
+  borderStrong: systemLiquidGlass.borderStrong,
+  innerBorder: systemLiquidGlass.innerBorder,
   blur: {
-    light: llganSubtleSurface.blurMobile,
-    medium: llganDefaultSurface.blurDesktop,
-    heavy: llganDefaultSurface.blurDesktop + 4,
+    light: systemLiquidGlass.blur.mobile,
+    medium: systemLiquidGlass.blur.desktop,
+    heavy: systemLiquidGlass.blur.modal,
   },
   text: {
-    primary: llgsTypography.primary,
-    secondary: llgsTypography.secondary,
-    muted: llgsTypography.muted,
+    primary: systemLiquidGlass.text.primary,
+    secondary: systemLiquidGlass.text.secondary,
+    muted: systemLiquidGlass.text.muted,
   },
-  shadow: llganDefaultSurface.shadow,
-  shadowInset: llganDefaultSurface.shadowInset,
-  saturate: llganDefaultSurface.saturate,
+  shadow: systemLiquidGlass.shadow,
+  shadowInset: systemLiquidGlass.shadowInset,
+  saturate: systemLiquidGlass.saturate,
 } as const;
 
 /** Legacy alias — same light tokens everywhere (no dark glass surfaces). */
@@ -232,7 +227,7 @@ export function useLightLiquidGlassShell(): boolean {
 
 /** Composer/input strip on dark glass — false on light LLGAN shell (mobile + desktop). */
 export function useComposerDarkSurface(): boolean {
-  return false;
+  return true;
 }
 
 export type MessagingGlassSurface = {
@@ -244,11 +239,9 @@ export type MessagingGlassSurface = {
 
 /** Portal messaging "glass" variant — light surfaces on light theme for readable mobile layout. */
 export function useMessagingGlassSurface(isGlassVariant: boolean): MessagingGlassSurface {
-  const useLightGlass = useLightLiquidGlassShell();
-  const { isLight } = useLegacyTheme();
   const useLightSurfaces = true;
   const surfaces = lightLiquidGlass;
-  const onDarkSurface = false;
+  const onDarkSurface = true;
   const ink = isGlassVariant ? surfaceContrastText(onDarkSurface) : null;
   return { useLightGlass: useLightSurfaces, surfaces, onDarkSurface, ink };
 }
@@ -359,14 +352,10 @@ export function useAuroraGlassCardStyle(options: ShellGlassIntensityOptions = {}
             borderColor: isLight ? llganSurface.borderWhite : glass.border,
             borderWidth: 1,
             borderRadius: careRadius.lg,
-            ...(isLight
-              ? {
-                  ...lightLiquidGlassWebFx(llganSurface.blurDesktop, llganSurface.saturate),
-                  ...(Platform.OS !== 'web'
-                    ? { boxShadow: `${llganSurface.shadow}, ${llganSurface.shadowInset}` }
-                    : {}),
-                }
-              : {}),
+            ...lightLiquidGlassWebFx(
+              isLight ? llganSurface.blurDesktop : systemLiquidGlass.blur.desktop,
+              isLight ? llganSurface.saturate : systemLiquidGlass.saturate,
+            ),
           }
         : {},
     [active, glass.border, glass.card, isLight, llganSurface],
@@ -535,9 +524,9 @@ export function useAuroraGlassTableStyles(options: AuroraGlassTableOptions = {})
         table: {
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: solidSurface ? 'rgba(15,27,51,0.12)' : active ? glass.border : colors.borderSoft,
+          borderColor: solidSurface ? systemLiquidGlass.border : active ? glass.border : colors.borderSoft,
           backgroundColor: solidSurface
-            ? '#FAFBFC'
+            ? systemLiquidGlass.panelStrong
             : active
               ? tableSurface
                 ? tableSurface.panel
@@ -553,9 +542,9 @@ export function useAuroraGlassTableStyles(options: AuroraGlassTableOptions = {})
           alignItems: 'center',
           paddingVertical: careSpacing.sm,
           paddingHorizontal: careSpacing.md,
-          backgroundColor: solidSurface ? '#F3F5F8' : active ? glass.header : colors.bgElevated,
+          backgroundColor: solidSurface ? systemLiquidGlass.card : active ? glass.header : colors.bgElevated,
           borderBottomWidth: 1,
-          borderBottomColor: solidSurface ? 'rgba(15,27,51,0.10)' : active ? glass.innerBorder : colors.borderSoft,
+          borderBottomColor: solidSurface ? systemLiquidGlass.innerBorder : active ? glass.innerBorder : colors.borderSoft,
         },
         headerCell: {
           paddingHorizontal: careSpacing.xs,
@@ -585,7 +574,7 @@ export function useAuroraGlassTableStyles(options: AuroraGlassTableOptions = {})
           borderBottomColor: active ? glass.innerBorder : colors.borderSoft,
         },
         dataRowAlt: {
-          backgroundColor: solidSurface ? 'rgba(15,27,51,0.025)' : active ? glass.rowAlt : colors.bgPremium,
+          backgroundColor: solidSurface ? systemLiquidGlass.rowAlt : active ? glass.rowAlt : colors.bgPremium,
         },
         dataRowSelected: {
           backgroundColor: active ? glass.rowSelected : 'rgba(139, 92, 246, 0.10)',

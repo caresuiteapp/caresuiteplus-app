@@ -124,7 +124,7 @@ export function PremiumButton({
         />
       ) : null}
       {loading ? (
-        <ActivityIndicator color={isPrimary ? '#000000' : surfaceTextColor ?? colors.textPrimary} />
+        <ActivityIndicator color={isPrimary ? '#F8FBFF' : surfaceTextColor ?? colors.textPrimary} />
       ) : (
         <Text
           allowFontScaling
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   primaryText: {
-    color: '#000000',
+    color: '#F8FBFF',
     fontWeight: '700',
   },
 });

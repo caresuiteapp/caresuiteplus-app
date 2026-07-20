@@ -13,8 +13,8 @@ import {
 const root = path.join(__dirname, '..', '..');
 
 describe('popupShell tokens', () => {
-  it('defines light header gradient stops from Benachrichtigungen spec', () => {
-    expect(popupShellHeaderGradientLight).toEqual(['#8a70f5', '#e85da2', '#b598f7']);
+  it('maps the legacy light header to the canonical system-blue gradient', () => {
+    expect(popupShellHeaderGradientLight).toEqual(['#0B5FE5', '#1478FF', '#4A9AFF']);
     expect(resolvePopupShellHeaderGradient('light')).toEqual(popupShellHeaderGradientLight);
   });
 
@@ -28,19 +28,19 @@ describe('popupShell tokens', () => {
     expect(popupShellLayout.borderRadius).toBeLessThanOrEqual(24);
   });
 
-  it('tab tokens use gray inactive and purple active states', () => {
-    expect(popupShellColors.light.tab.inactiveBackground).toBe('#F3F4F6');
-    expect(popupShellColors.light.tab.activeBorder).toBe('#8B5CF6');
-    expect(popupShellColors.light.tab.activeText).toBe('#8B5CF6');
+  it('uses one glass tab language with system-blue active state', () => {
+    expect(popupShellColors.light.tab.inactiveBackground).toContain('rgba');
+    expect(popupShellColors.light.tab.activeBorder).toContain('20, 120, 255');
+    expect(popupShellColors.light.tab.activeText).toBe('#F8FBFF');
   });
 
   it('close button tokens use semi-transparent fill', () => {
     expect(popupShellColors.light.closeButton.background).toContain('rgba');
-    expect(popupShellLayout.closeButtonSize).toBe(36);
+    expect(popupShellLayout.closeButtonSize).toBe(40);
   });
 
-  it('resolvePopupShellColors returns mode-specific palette', () => {
-    expect(resolvePopupShellColors('light').body.background).toBe('#FFFFFF');
+  it('resolves both compatibility modes to one palette', () => {
+    expect(resolvePopupShellColors('light')).toBe(resolvePopupShellColors('dark'));
     expect(resolvePopupShellColors('dark').body.background).toContain('rgba');
   });
 });

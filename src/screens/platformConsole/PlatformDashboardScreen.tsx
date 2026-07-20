@@ -6,6 +6,7 @@ import { ErrorState, LoadingState } from '@/components/ui';
 import { fetchPlatformDashboardSummary, listPlatformAuditLog } from '@/lib/platformConsole';
 import type { PlatformDashboardSummary } from '@/types/platformConsole';
 import { spacing } from '@/theme';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 
 export function PlatformDashboardScreen() {
   const router = useRouter();
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   auditLine: { color: PLATFORM_COLORS.muted, fontSize: 12 },
-  commandPanel: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: PLATFORM_COLORS.border, borderRadius: 16, padding: spacing.lg, gap: spacing.md },
+  commandPanel: { backgroundColor: systemLiquidGlass.card, borderWidth: 1, borderColor: PLATFORM_COLORS.border, borderRadius: 16, padding: spacing.lg, gap: spacing.md },
   commandHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md },
   commandTitle: { color: PLATFORM_COLORS.text, fontSize: 18, fontWeight: '800' },
   commandSub: { color: PLATFORM_COLORS.muted, fontSize: 12, marginTop: 3 },

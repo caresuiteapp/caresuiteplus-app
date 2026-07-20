@@ -2,7 +2,6 @@ import { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CareSuiteWordmark } from '@/components/brand/CareSuiteWordmark';
-import { ThemeModeToggle } from '@/design/ThemeModeToggle';
 import { resolveCareSuitePalette } from '@/design/tokens/colors';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -58,7 +57,6 @@ export function CareWebShell({
             <Text style={[styles.topbarHint, { color: palette.text.muted }]}>
               Browser · responsiv
             </Text>
-            <ThemeModeToggle compact />
           </View>
         </View>
       ) : null}

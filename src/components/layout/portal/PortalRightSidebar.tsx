@@ -36,7 +36,7 @@ function openExternal(url: string) {
 }
 
 /** Client portal context panel — mandant, status, KPIs, quick access, support. */
-export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSidebarProps) {
+export function PortalRightSidebar({ accentColor = '#1478FF' }: PortalRightSidebarProps) {
   const router = useRouter();
   const auroraActive = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();

@@ -7,6 +7,7 @@ import type { PlatformTenantListItem } from '@/types/platformConsole';
 import { spacing } from '@/theme';
 import { PLATFORM_COLORS } from './PlatformColors';
 import { statusLabel } from './PlatformOperatorUi';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 
 export function PlatformGlobalSearch() {
   const router = useRouter();
@@ -119,14 +120,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: PLATFORM_COLORS.borderStrong,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: systemLiquidGlass.input,
     paddingHorizontal: 12,
   },
   searchIcon: { color: PLATFORM_COLORS.accent, fontSize: 20 },
   triggerText: { color: PLATFORM_COLORS.muted, fontSize: 13, flex: 1 },
-  shortcut: { color: PLATFORM_COLORS.muted, fontSize: 11, backgroundColor: '#F1F5F9', padding: 4, borderRadius: 5 },
-  overlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.35)', alignItems: 'center', paddingTop: 90, paddingHorizontal: spacing.lg },
-  dialog: { width: '100%', maxWidth: 680, maxHeight: 620, borderRadius: 18, backgroundColor: '#FFFFFF', padding: spacing.md, gap: spacing.sm },
+  shortcut: { color: PLATFORM_COLORS.muted, fontSize: 11, backgroundColor: systemLiquidGlass.chip, padding: 4, borderRadius: 5 },
+  overlay: { flex: 1, backgroundColor: 'rgba(3,10,24,0.72)', alignItems: 'center', paddingTop: 90, paddingHorizontal: spacing.lg },
+  dialog: { width: '100%', maxWidth: 680, maxHeight: 620, borderRadius: 22, backgroundColor: systemLiquidGlass.panelStrong, padding: spacing.md, gap: spacing.sm, borderWidth: 1, borderColor: systemLiquidGlass.borderStrong },
   input: { minHeight: 52, borderWidth: 1, borderColor: PLATFORM_COLORS.accent, borderRadius: 12, paddingHorizontal: spacing.md, color: PLATFORM_COLORS.text, fontSize: 16 },
   results: { gap: 4, paddingBottom: spacing.md },
   groupTitle: { color: PLATFORM_COLORS.muted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8, marginTop: spacing.sm, marginBottom: 4 },
@@ -135,6 +136,6 @@ const styles = StyleSheet.create({
   resultText: { color: PLATFORM_COLORS.text, fontWeight: '600', fontSize: 14 },
   resultMeta: { color: PLATFORM_COLORS.muted, fontSize: 11, marginTop: 2 },
   resultCopy: { flex: 1 },
-  tenantMark: { width: 30, height: 30, borderRadius: 9, backgroundColor: '#E0F2FE', alignItems: 'center', justifyContent: 'center' },
+  tenantMark: { width: 30, height: 30, borderRadius: 9, backgroundColor: systemLiquidGlass.chipActive, alignItems: 'center', justifyContent: 'center' },
   tenantMarkText: { color: PLATFORM_COLORS.accent, fontWeight: '800' },
 });

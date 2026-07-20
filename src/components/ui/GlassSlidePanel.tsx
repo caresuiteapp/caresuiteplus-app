@@ -50,7 +50,7 @@ export function GlassSlidePanel({
   width = DEFAULT_PANEL_WIDTH,
   children,
   toggleLabel = 'Filter',
-  accentColor = '#8B5CF6',
+  accentColor = '#1478FF',
 }: GlassSlidePanelProps) {
   const text = useAuroraAdaptiveText();
   const auroraActive = useShellHostsAurora();

@@ -6,6 +6,7 @@ import { fetchEmployeePortalAccessCandidates } from '@/lib/access/employeePortal
 import type { RoleKey } from '@/types';
 import type { EmployeePortalAccessCandidate } from '@/types/modules/employeePortalAccess';
 import { radius, spacing, typography } from '@/theme';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 
 type EmployeePortalAccessCandidatePickerProps = {
   tenantId: string;
@@ -70,7 +71,7 @@ export function EmployeePortalAccessCandidatePicker({
           marginBottom: spacing.xs,
           gap: spacing.xs,
         },
-        rowActive: { borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.08)' },
+        rowActive: { borderColor: systemLiquidGlass.borderActive, backgroundColor: systemLiquidGlass.rowSelected },
         title: { ...typography.body, fontWeight: '600', color: text.primary },
         meta: { ...typography.caption, color: text.muted },
         badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
