@@ -61,6 +61,7 @@ import {
   mapDbReviewStatusToUi,
   mapUiReviewDecisionToDb,
   pickLatestReviewActions,
+  resolveEntryKindFromOfficeEntry,
   transitionReviewStatus,
   upsertReview,
   WFM_REVIEW_SYSTEM_ACTOR,
@@ -105,7 +106,15 @@ function mergeEntryReviewOverlay(
 async function resolveReviewContextForEntry(
   tenantId: string,
   entryId: string,
+  entry?: WfmOfficeTimeEntry | null,
 ): Promise<{ employeeId: string; workDate: string; entryKind?: 'session' | 'visit' | 'manual' | 'meeting' }> {
+  if (entry && entry.id === entryId && entry.tenantId === tenantId) {
+    return {
+      employeeId: entry.employeeId,
+      workDate: entry.workDate,
+      entryKind: resolveEntryKindFromOfficeEntry(entry),
+    };
+  }
   const manual = getManualEntry(entryId);
   if (manual) {
     return { employeeId: manual.employeeId, workDate: manual.workDate, entryKind: 'manual' };
@@ -633,7 +642,7 @@ export async function adoptWfmAssignmentActualToBooking(
     actualStartAt: display.assignmentActualStart,
     actualEndAt: display.assignmentActualEnd,
     status: 'pending_review',
-  });
+  }, entry);
 }
 
 export async function applyWfmOfficeTimeCorrection(
@@ -641,6 +650,7 @@ export async function applyWfmOfficeTimeCorrection(
   actorId: string,
   actorRoleKey: RoleKey | null,
   input: WfmOfficeCorrectionInput,
+  entryContext?: WfmOfficeTimeEntry | null,
 ): Promise<ServiceResult<WfmOfficeTimeEntry>> {
   const denied = enforcePermission(actorRoleKey, 'time.tracking.admin.correct');
   if (denied) return denied;
@@ -676,7 +686,7 @@ export async function applyWfmOfficeTimeCorrection(
   if (input.pauseMinutes !== undefined) patch.pauseMinutes = input.pauseMinutes ?? 0;
   setEntryOverlay(input.entryId, patch);
 
-  const reviewCtx = await resolveReviewContextForEntry(tenantId, input.entryId);
+  const reviewCtx = await resolveReviewContextForEntry(tenantId, input.entryId, entryContext);
   const nextReviewStatus: WfmTimeReviewStatus = input.status
     ? (input.status as WfmTimeReviewStatus)
     : 'corrected';
@@ -844,6 +854,7 @@ export async function reviewWfmOfficeTimeEntry(
   entryId: string,
   decision: 'approved' | 'rejected' | 'exported' | 'locked' | 'open' | 'needs_clarification',
   reviewNote?: string,
+  entryContext?: WfmOfficeTimeEntry | null,
 ): Promise<ServiceResult<WfmOfficeTimeEntry>> {
   const denied = enforcePermission(actorRoleKey, 'time.tracking.admin.correct');
   if (denied) return denied;
@@ -857,7 +868,7 @@ export async function reviewWfmOfficeTimeEntry(
 
   const overlay = getEntryOverlay(entryId) ?? {};
   const existing = getManualEntry(entryId);
-  const reviewCtx = await resolveReviewContextForEntry(tenantId, entryId);
+  const reviewCtx = await resolveReviewContextForEntry(tenantId, entryId, entryContext);
   const currentStatus =
     overlay.reviewStatus ?? existing?.reviewStatus ?? ('open' as WfmOfficeTimeEntryStatus);
 

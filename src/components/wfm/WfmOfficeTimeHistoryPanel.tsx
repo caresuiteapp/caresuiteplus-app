@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { PremiumButton } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
@@ -73,11 +73,14 @@ export function WfmOfficeTimeHistoryPanel({
   const [editPauseMinutes, setEditPauseMinutes] = useState('0');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-  const filters: Partial<WfmOfficeTimeFilters> = {};
-  if (filterAmpel === 'rot_blau') filters.onlyRotBlau = true;
-  if (filterAmpel === 'pending') filters.onlyPendingReview = true;
-  if (filterAmpel === 'office_msg') filters.onlyOfficeMessages = true;
-  if (filterEmployeeId) filters.employeeIds = [filterEmployeeId];
+  const filters = useMemo<Partial<WfmOfficeTimeFilters>>(() => {
+    const next: Partial<WfmOfficeTimeFilters> = {};
+    if (filterAmpel === 'rot_blau') next.onlyRotBlau = true;
+    if (filterAmpel === 'pending') next.onlyPendingReview = true;
+    if (filterAmpel === 'office_msg') next.onlyOfficeMessages = true;
+    if (filterEmployeeId) next.employeeIds = [filterEmployeeId];
+    return next;
+  }, [filterAmpel, filterEmployeeId]);
 
   const historyQuery = useAsyncQuery(
     useCallback(async () => {
@@ -88,8 +91,8 @@ export function WfmOfficeTimeHistoryPanel({
         toDate: preset === 'custom' ? customTo : null,
         filters,
       });
-    }, [tenantId, roleKey, preset, customFrom, customTo, filterAmpel, filterEmployeeId]),
-    [tenantId, roleKey, preset, customFrom, customTo, filterAmpel, filterEmployeeId],
+    }, [tenantId, roleKey, preset, customFrom, customTo, filters]),
+    [tenantId, roleKey, preset, customFrom, customTo, filters],
     { enabled: !!tenantId },
   );
 
@@ -117,7 +120,7 @@ export function WfmOfficeTimeHistoryPanel({
     setEditStartAt(selected.actualStartAt ?? selected.assignmentActualStartAt ?? '');
     setEditEndAt(selected.actualEndAt ?? selected.assignmentActualEndAt ?? '');
     setEditPauseMinutes(String(selected.pauseMinutes ?? 0));
-  }, [selected?.id]);
+  }, [selected]);
 
   const runReview = async (
     decision: 'approved' | 'rejected' | 'exported' | 'locked' | 'needs_clarification',
@@ -131,6 +134,7 @@ export function WfmOfficeTimeHistoryPanel({
       selectedId,
       decision,
       reviewNote,
+      selected,
     );
     if (!result.ok) {
       setActionMessage(result.error);
@@ -152,7 +156,7 @@ export function WfmOfficeTimeHistoryPanel({
       actualStartAt: editStartAt || null,
       actualEndAt: editEndAt || null,
       pauseMinutes: Number(editPauseMinutes) || 0,
-    });
+    }, selected);
     if (!result.ok) {
       setActionMessage(result.error);
       return;

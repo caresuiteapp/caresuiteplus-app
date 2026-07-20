@@ -25,14 +25,14 @@ type Props = {
 };
 
 const REVIEW_COL = {
-  date: 112,
+  date: 110,
   employee: 150,
-  client: 170,
-  plan: 155,
-  einsatz: 190,
-  buchung: 175,
-  status: 180,
-  action: 132,
+  client: 160,
+  plan: 150,
+  einsatz: 180,
+  buchung: 160,
+  status: 170,
+  action: 130,
 } as const;
 
 const REVIEW_MIN_TABLE_WIDTH =
@@ -236,7 +236,9 @@ function ReviewQueueMobileCard({
 export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQueueMode = false }: Props) {
   const text = useAuroraAdaptiveText();
   const { width } = useWindowDimensions();
-  const mobileReview = reviewQueueMode && width < 640;
+  // Once the detail panel opens, cards keep every value readable instead of
+  // squeezing a 1,264 px table into the remaining split-pane width.
+  const mobileReview = reviewQueueMode && (width < 640 || Boolean(selectedId));
   const compactStatus = width < 960;
 
   const defaultColumns: DataTableColumn<WfmOfficeTimeEntry>[] = [

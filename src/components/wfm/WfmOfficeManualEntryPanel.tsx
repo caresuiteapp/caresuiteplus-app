@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { PremiumButton, SectionPanel, SuccessState } from '@/components/ui';
+import { CareDateInput, CareEntitySelect, CareTimeInput } from '@/components/inputs';
+import { ListFilterSelect, PremiumButton, SectionPanel, SuccessState } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { createWfmOfficeManualEntry } from '@/lib/wfm/wfmOfficeTimekeepingService';
@@ -11,7 +12,7 @@ type Props = {
   tenantId: string;
   actorId: string;
   roleKey: import('@/types').RoleKey | null;
-  employees: Array<{ id: string; name: string }>;
+  employees: { id: string; name: string }[];
 };
 
 export function WfmOfficeManualEntryPanel({ tenantId, actorId, roleKey, employees }: Props) {
@@ -21,12 +22,13 @@ export function WfmOfficeManualEntryPanel({ tenantId, actorId, roleKey, employee
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('16:00');
   const [pauseMinutes, setPauseMinutes] = useState('30');
+  const [workKind, setWorkKind] = useState<WfmOfficeWorkKind>('buero');
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const submit = async (workKind: WfmOfficeWorkKind) => {
+  const submit = async () => {
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -35,7 +37,7 @@ export function WfmOfficeManualEntryPanel({ tenantId, actorId, roleKey, employee
     const result = await createWfmOfficeManualEntry(tenantId, actorId, roleKey, {
       employeeId,
       workDate,
-      workKind: workKind === 'nachtrag' ? 'nachtrag' : workKind,
+      workKind,
       actualStartAt,
       actualEndAt,
       pauseMinutes: Number(pauseMinutes) || 0,
@@ -55,45 +57,38 @@ export function WfmOfficeManualEntryPanel({ tenantId, actorId, roleKey, employee
       <Text style={{ color: text.secondary, ...typography.caption, marginBottom: careSpacing.sm }}>
         Mitarbeitende auswählen, Datum/Zeiten eintragen, Begründung ist Pflicht.
       </Text>
+      <CareEntitySelect
+        label="Mitarbeitende"
+        value={employeeId}
+        options={employees.map((employee) => ({ value: employee.id, label: employee.name }))}
+        onChange={setEmployeeId}
+        placeholder="Mitarbeitende aus dem System auswählen"
+        emptyMessage="Keine aktiven Mitarbeitenden vorhanden."
+        required
+      />
+      <CareDateInput label="Arbeitstag" value={workDate} onChange={setWorkDate} showFormatHint={false} />
       <View style={styles.row}>
-        <TextInput
-          value={employeeId}
-          onChangeText={setEmployeeId}
-          placeholder="Mitarbeiter-ID"
-          placeholderTextColor={text.muted}
-          style={[styles.input, { color: text.primary, borderColor: text.border }]}
-        />
-        <TextInput
-          value={workDate}
-          onChangeText={setWorkDate}
-          placeholder="Datum YYYY-MM-DD"
-          placeholderTextColor={text.muted}
-          style={[styles.input, { color: text.primary, borderColor: text.border }]}
-        />
-      </View>
-      <View style={styles.row}>
-        <TextInput
-          value={startTime}
-          onChangeText={setStartTime}
-          placeholder="Start HH:MM"
-          placeholderTextColor={text.muted}
-          style={[styles.input, { color: text.primary, borderColor: text.border }]}
-        />
-        <TextInput
-          value={endTime}
-          onChangeText={setEndTime}
-          placeholder="Ende HH:MM"
-          placeholderTextColor={text.muted}
-          style={[styles.input, { color: text.primary, borderColor: text.border }]}
-        />
-        <TextInput
+        <CareTimeInput label="Beginn" value={startTime} onChange={setStartTime} showFormatHint={false} />
+        <CareTimeInput label="Ende" value={endTime} onChange={setEndTime} showFormatHint={false} />
+        <ListFilterSelect
+          label="Pause"
           value={pauseMinutes}
-          onChangeText={setPauseMinutes}
-          placeholder="Pause Min."
-          placeholderTextColor={text.muted}
-          style={[styles.input, { color: text.primary, borderColor: text.border }]}
+          options={['0', '15', '30', '45', '60'].map((value) => ({ key: value, label: `${value} Minuten` }))}
+          onChange={setPauseMinutes}
+          style={styles.select}
         />
       </View>
+      <ListFilterSelect
+        label="Arbeitsart"
+        value={workKind}
+        options={[
+          { key: 'buero', label: 'Büro' },
+          { key: 'einsatz', label: 'Einsatz' },
+          { key: 'homeoffice', label: 'Homeoffice' },
+          { key: 'fahrt', label: 'Fahrzeit' },
+        ]}
+        onChange={(value) => setWorkKind(value as WfmOfficeWorkKind)}
+      />
       <TextInput
         value={reason}
         onChangeText={setReason}
@@ -103,19 +98,7 @@ export function WfmOfficeManualEntryPanel({ tenantId, actorId, roleKey, employee
         style={[styles.input, styles.reason, { color: text.primary, borderColor: text.border }]}
       />
       <View style={styles.actions}>
-        <PremiumButton title="Nachtrag Büro" loading={loading} onPress={() => void submit('buero')} />
-        <PremiumButton
-          title="Nachtrag Einsatz"
-          variant="secondary"
-          loading={loading}
-          onPress={() => void submit('einsatz')}
-        />
-        <PremiumButton
-          title="Nachtrag HO"
-          variant="ghost"
-          loading={loading}
-          onPress={() => void submit('homeoffice')}
-        />
+        <PremiumButton title="Nachtrag speichern" loading={loading} disabled={!employeeId} onPress={() => void submit()} />
       </View>
       {message ? <SuccessState title="Gespeichert" message={message} /> : null}
       {error ? <Text style={{ color: '#c0392b', ...typography.caption }}>{error}</Text> : null}
@@ -126,6 +109,7 @@ export function WfmOfficeManualEntryPanel({ tenantId, actorId, roleKey, employee
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, marginBottom: careSpacing.sm },
   input: { borderWidth: 1, borderRadius: 8, padding: careSpacing.sm, minWidth: 120, flex: 1 },
+  select: { minWidth: 160, flex: 1 },
   reason: { minHeight: 72, marginBottom: careSpacing.sm },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
 });
