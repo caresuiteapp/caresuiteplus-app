@@ -175,7 +175,7 @@ describe('visitRecurrenceExpansion', () => {
     expect(expanded[2]?.scheduledStart.slice(0, 10)).toBe('2026-08-01');
   });
 
-  it('zeigt abgetrennten Serientermin wieder, wenn sein Einzeleinsatz fehlt', () => {
+  it('erzeugt einen gelöschten abgetrennten Serientermin nicht erneut', () => {
     const childId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
     const series = baseListItem({
       scheduledStart: '2026-07-03T07:00:00.000Z',
@@ -199,7 +199,7 @@ describe('visitRecurrenceExpansion', () => {
       },
     ]);
 
-    expect(expanded.some((item) => item.id === buildVisitOccurrenceId(VISIT_ID, '2026-07-10'))).toBe(true);
+    expect(expanded.some((item) => item.id === buildVisitOccurrenceId(VISIT_ID, '2026-07-10'))).toBe(false);
   });
 
   it('unterdrückt Serienkopie, wenn der abgetrennte Einzeleinsatz geladen ist', () => {

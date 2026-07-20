@@ -1329,13 +1329,18 @@ export const visitSupabaseRepository = {
           ...(parentRecurrence.detachedOccurrenceDates ?? []),
           recurrence.sourceOccurrenceDate,
         ]));
-        const { error: parentError } = await fromUnknownTable(supabase, 'assist_visits')
+        const { data: updatedParent, error: parentError } = await fromUnknownTable(supabase, 'assist_visits')
           .update({
             recurrence_json: { ...parentRecurrence, detachedOccurrenceDates, materializedOccurrences },
           })
           .eq('tenant_id', tenantId)
-          .eq('id', recurrence.parentSeriesId);
+          .eq('id', recurrence.parentSeriesId)
+          .select('id')
+          .maybeSingle();
         if (parentError) return { ok: false, error: toGermanSupabaseError(parentError) };
+        if (!updatedParent) {
+          return { ok: false, error: 'Serientermin konnte nicht dauerhaft entfernt werden.' };
+        }
       }
     }
 
@@ -1343,20 +1348,34 @@ export const visitSupabaseRepository = {
 
     cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', visitId);
 
-    const { error } = await fromUnknownTable(supabase, 'assist_visits')
-      .delete()
-      .eq('tenant_id', tenantId)
-      .eq('id', visitId);
-
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
-
     if (legacyAssignmentId) {
       cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', legacyAssignmentId);
-      await fromUnknownTable(supabase, 'assignments')
+      const { data: deletedLegacy, error: legacyDeleteError } = await fromUnknownTable(
+        supabase,
+        'assignments',
+      )
         .delete()
         .eq('tenant_id', tenantId)
-        .eq('id', legacyAssignmentId);
+        .eq('id', legacyAssignmentId)
+        .select('id')
+        .maybeSingle();
+      if (legacyDeleteError) {
+        return { ok: false, error: toGermanSupabaseError(legacyDeleteError) };
+      }
+      if (!deletedLegacy) {
+        return { ok: false, error: 'Verknüpfter Einzeleinsatz konnte nicht gelöscht werden.' };
+      }
     }
+
+    const { data: deletedVisit, error } = await fromUnknownTable(supabase, 'assist_visits')
+      .delete()
+      .eq('tenant_id', tenantId)
+      .eq('id', visitId)
+      .select('id')
+      .maybeSingle();
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (!deletedVisit) return { ok: false, error: 'Einsatz konnte nicht gelöscht werden.' };
 
     return { ok: true, data: undefined };
   },
@@ -1382,11 +1401,16 @@ export const visitSupabaseRepository = {
       ...(recurrence.detachedOccurrenceDates ?? []),
       occurrenceDate,
     ]));
-    const { error } = await fromUnknownTable(supabase, 'assist_visits')
+    const { data: updatedMaster, error } = await fromUnknownTable(supabase, 'assist_visits')
       .update({ recurrence_json: { ...recurrence, detachedOccurrenceDates, materializedOccurrences } })
       .eq('tenant_id', tenantId)
-      .eq('id', masterVisitId);
+      .eq('id', masterVisitId)
+      .select('id')
+      .maybeSingle();
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (!updatedMaster) {
+      return { ok: false, error: 'Serientermin konnte nicht dauerhaft entfernt werden.' };
+    }
     return { ok: true, data: undefined };
   },
 

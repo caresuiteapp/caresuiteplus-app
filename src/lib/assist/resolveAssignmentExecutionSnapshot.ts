@@ -90,6 +90,17 @@ type ExecutionStateRow = {
   service_started_at?: string | null;
 };
 
+type TimeEventRow = {
+  visit_id: string;
+  event_type: string;
+  occurred_at: string;
+};
+
+type SnapshotTimeEvent = {
+  eventType: string;
+  occurredAt: string;
+};
+
 function assignmentTaskStatusToVisit(status: string): VisitTaskStatus {
   switch (status) {
     case 'done':
@@ -204,12 +215,14 @@ async function fetchSnapshotBatchRows(
   documentationByVisit: Map<string, string>;
   photoReferencesByVisit: Map<string, string[]>;
   executionStateByVisit: Map<string, ExecutionStateRow>;
+  timeEventsByVisit: Map<string, SnapshotTimeEvent[]>;
 }> {
   const assignments = new Map<string, AssignmentRow>();
   const tasksByAssignment = new Map<string, VisitTaskItem[]>();
   const documentationByVisit = new Map<string, string>();
   const photoReferencesByVisit = new Map<string, string[]>();
   const executionStateByVisit = new Map<string, ExecutionStateRow>();
+  const timeEventsByVisit = new Map<string, SnapshotTimeEvent[]>();
 
   if (visitIds.length === 0) {
     return {
@@ -218,6 +231,7 @@ async function fetchSnapshotBatchRows(
       documentationByVisit,
       photoReferencesByVisit,
       executionStateByVisit,
+      timeEventsByVisit,
     };
   }
 
@@ -229,12 +243,13 @@ async function fetchSnapshotBatchRows(
       documentationByVisit,
       photoReferencesByVisit,
       executionStateByVisit,
+      timeEventsByVisit,
     };
   }
 
   const uniqueIds = [...new Set(visitIds.map((id) => resolveVisitMasterId(id)).filter(Boolean))];
 
-  const [assignmentResult, taskResult, docResult, executionStateResult] = await Promise.all([
+  const [assignmentResult, taskResult, docResult, executionStateResult, timeEventResult] = await Promise.all([
     fromUnknownTable(supabase, 'assignments')
       .select(
         'id, status, documentation_notes, on_the_way_at, arrived_at, finished_at, actual_start_at, actual_end_at',
@@ -256,6 +271,11 @@ async function fetchSnapshotBatchRows(
       )
       .eq('tenant_id', tenantId)
       .in('visit_id', uniqueIds),
+    fromUnknownTable(supabase, 'assist_time_events')
+      .select('visit_id, event_type, occurred_at')
+      .eq('tenant_id', tenantId)
+      .in('visit_id', uniqueIds)
+      .order('occurred_at', { ascending: true }),
   ]);
 
   if (!assignmentResult.error) {
@@ -290,7 +310,22 @@ async function fetchSnapshotBatchRows(
     }
   }
 
-  return { assignments, tasksByAssignment, documentationByVisit, photoReferencesByVisit, executionStateByVisit };
+  if (!timeEventResult.error || !isSupabaseMissingTableError(timeEventResult.error)) {
+    for (const row of (timeEventResult.data ?? []) as TimeEventRow[]) {
+      const events = timeEventsByVisit.get(row.visit_id) ?? [];
+      events.push({ eventType: row.event_type, occurredAt: row.occurred_at });
+      timeEventsByVisit.set(row.visit_id, events);
+    }
+  }
+
+  return {
+    assignments,
+    tasksByAssignment,
+    documentationByVisit,
+    photoReferencesByVisit,
+    executionStateByVisit,
+    timeEventsByVisit,
+  };
 }
 
 function buildSnapshotFromRows(input: {
@@ -475,6 +510,7 @@ export async function fetchAssignmentExecutionSnapshotBatch(
     documentationByVisit,
     photoReferencesByVisit,
     executionStateByVisit,
+    timeEventsByVisit,
   } = await fetchSnapshotBatchRows(tenantId, visitIds);
 
   for (const input of inputs) {
@@ -487,7 +523,14 @@ export async function fetchAssignmentExecutionSnapshotBatch(
     let hasSignature = Boolean(executionState?.signature_complete);
     let hasProof = false;
     let proofStatus: VisitProofStatus | null = input.proofStatus ?? null;
-    let visitTimes: ReturnType<typeof calculateVisitTimes> | null = null;
+    const persistedTimeEvents =
+      timeEventsByVisit.get(input.visitId) ??
+      timeEventsByVisit.get(resolveVisitMasterId(input.visitId)) ??
+      [];
+    let visitTimes: ReturnType<typeof calculateVisitTimes> | null =
+      persistedTimeEvents.length > 0
+        ? calculateVisitTimes(persistedTimeEvents, assignmentStatus)
+        : null;
 
     if (options?.includePersistedArtifacts) {
       const artifacts = await loadPersistedArtifacts(

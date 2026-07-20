@@ -201,36 +201,11 @@ export function expandVisitDispositionListItems(
   rows: Array<{ row: VisitRecurrenceSourceRow; item: VisitDispositionListItem }>,
   options?: ExpandVisitRecurrenceOptions,
 ): VisitDispositionListItem[] {
-  const loadedVisitIds = new Set(rows.map(({ item }) => item.id));
-  const expanded = rows.flatMap(({ row, item }) => {
-    const recurrence = parseVisitRecurrenceJson(row.recurrence_json);
-    const materialized = recurrence.materializedOccurrences ?? {};
-
-    // A failed/partial materialisation must never make an occurrence disappear.
-    // Keep a detached date suppressed only while its mapped child visit is actually loaded.
-    const orphanedDates = Object.entries(materialized)
-      .filter(([, visitId]) => !loadedVisitIds.has(visitId))
-      .map(([date]) => date);
-
-    if (orphanedDates.length === 0) {
-      return expandVisitRowToListItems(row, item, options);
-    }
-
-    const orphaned = new Set(orphanedDates);
-    return expandVisitRowToListItems(
-      {
-        ...row,
-        recurrence_json: {
-          ...recurrence,
-          detachedOccurrenceDates: (recurrence.detachedOccurrenceDates ?? []).filter(
-            (date) => !orphaned.has(date),
-          ),
-        },
-      },
-      item,
-      options,
-    );
-  });
+  // Detached dates are durable tombstones. A missing materialized child can mean that the
+  // occurrence was intentionally deleted and must never be synthesized again from the series.
+  const expanded = rows.flatMap(({ row, item }) =>
+    expandVisitRowToListItems(row, item, options),
+  );
   return expanded.sort(
     (a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime(),
   );

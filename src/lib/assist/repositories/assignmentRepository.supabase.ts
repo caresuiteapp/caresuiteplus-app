@@ -785,12 +785,15 @@ export const assignmentSupabaseRepository = {
 
     cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', assignmentId);
 
-    const { error } = await fromUnknownTable(supabase, 'assignments')
+    const { data: deletedAssignment, error } = await fromUnknownTable(supabase, 'assignments')
       .delete()
       .eq('tenant_id', tenantId)
-      .eq('id', assignmentId);
+      .eq('id', assignmentId)
+      .select('id')
+      .maybeSingle();
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (!deletedAssignment) return { ok: false, error: 'Einsatz konnte nicht gelöscht werden.' };
     return { ok: true, data: undefined };
   },
 };

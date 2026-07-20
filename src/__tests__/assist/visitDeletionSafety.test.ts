@@ -32,4 +32,33 @@ describe('Einsatz-Löschschutz', () => {
     expect(source).toContain('existing.data.actualStartAt');
     expect(source).toContain('Begonnene oder abgeschlossene Einsätze');
   });
+
+  it('bestätigt Datenbanklöschungen anhand des tatsächlich entfernten Datensatzes', () => {
+    const visitRepository = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/lib/assist/repositories/visitRepository.supabase.ts'),
+      'utf8',
+    );
+    const assignmentRepository = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/lib/assist/repositories/assignmentRepository.supabase.ts'),
+      'utf8',
+    );
+
+    expect(visitRepository).toContain(".delete()\n      .eq('tenant_id', tenantId)");
+    expect(visitRepository).toContain(".select('id')\n      .maybeSingle()");
+    expect(visitRepository).toContain('if (!deletedVisit)');
+    expect(visitRepository).toContain('if (!updatedParent)');
+    expect(visitRepository).toContain('if (!updatedMaster)');
+    expect(assignmentRepository).toContain('if (!deletedAssignment)');
+  });
+
+  it('lädt Live-Zeitereignisse bereits für die Einsatzliste', () => {
+    const source = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/lib/assist/resolveAssignmentExecutionSnapshot.ts'),
+      'utf8',
+    );
+
+    expect(source).toContain("fromUnknownTable(supabase, 'assist_time_events')");
+    expect(source).toContain(".select('visit_id, event_type, occurred_at')");
+    expect(source).toContain('calculateVisitTimes(persistedTimeEvents, assignmentStatus)');
+  });
 });

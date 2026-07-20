@@ -146,4 +146,27 @@ describe('portal execution sync consistency', () => {
     expect(listItem.status).toBe('abgeschlossen');
     expect(listItem.isIncomplete).toBe(false);
   });
+
+  it('shows persisted arrival and start times while the visit is still running', () => {
+    const snapshot = portalSnapshot('gestartet');
+    snapshot.visitTimes = {
+      driveSeconds: 600,
+      serviceSeconds: 300,
+      pauseSeconds: null,
+      totalSeconds: 900,
+      driveStartedAt: '2026-07-20T06:50:00.000Z',
+      arrivedAt: '2026-07-20T07:00:00.000Z',
+      serviceStartedAt: '2026-07-20T07:01:00.000Z',
+      serviceEndedAt: null,
+      pauseStartedAt: null,
+      activeTimer: 'service',
+    };
+
+    const listItem = applySnapshotToVisitListItem(staleListItem(), snapshot);
+
+    expect(listItem.onTheWayAt).toBe('2026-07-20T06:50:00.000Z');
+    expect(listItem.arrivedAt).toBe('2026-07-20T07:00:00.000Z');
+    expect(listItem.actualStartAt).toBe('2026-07-20T07:01:00.000Z');
+    expect(listItem.actualEndAt).toBeUndefined();
+  });
 });
