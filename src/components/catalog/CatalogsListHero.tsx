@@ -86,7 +86,7 @@ export function CatalogsListHero({
         ))}
       </View>
       <Text style={styles.hint}>
-        Kataloge sind im Demo-Modus vollständig nutzbar — Live-Sync nach Migration 0025–0026.
+        Live-Daten aus dem mandantenscharfen Leistungskatalog — dieselben Positionen werden bei der Rechnungserstellung verwendet.
       </Text>
       {showViewToggle && onViewModeChange ? (
         <DesktopListViewToggle value={viewMode} onChange={onViewModeChange} />

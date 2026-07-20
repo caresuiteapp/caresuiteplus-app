@@ -31,6 +31,29 @@ import {
   previewPreparedInvoicePdf,
 } from '@/lib/office/invoicePdfService';
 import { colors, spacing, typography } from '@/theme';
+import type { ReactNode } from 'react';
+
+type InvoiceDetailScreenProps = {
+  invoiceId?: string | null;
+  embedded?: boolean;
+};
+
+type DetailLayoutProps = {
+  embedded: boolean;
+  title: string;
+  subtitle: string;
+  rightSlot?: ReactNode;
+  children: ReactNode;
+};
+
+function DetailLayout({ embedded, title, subtitle, rightSlot, children }: DetailLayoutProps) {
+  if (embedded) return <View style={styles.embeddedRoot}>{children}</View>;
+  return (
+    <ScreenShell title={title} subtitle={subtitle} rightSlot={rightSlot}>
+      {children}
+    </ScreenShell>
+  );
+}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('de-DE', {
@@ -40,8 +63,10 @@ function formatDate(iso: string): string {
   });
 }
 
-export function InvoiceDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+export function InvoiceDetailScreen({ invoiceId, embedded = false }: InvoiceDetailScreenProps = {}) {
+  const { id: routeId } = useLocalSearchParams<{ id?: string | string[] }>();
+  const normalizedRouteId = Array.isArray(routeId) ? routeId[0] : routeId;
+  const id = invoiceId ?? normalizedRouteId;
   const router = useRouter();
   const { can, check, roleLabel, isReadOnly } = usePermissions();
   const { profile } = useAuth();
@@ -142,51 +167,52 @@ export function InvoiceDetailScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Rechnung" subtitle="Kein Zugriff">
+      <DetailLayout embedded={embedded} title="Rechnung" subtitle="Kein Zugriff">
         <ErrorState
           title="Zugriff verweigert"
           message={`Rechnungen sind für ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`}
         />
-      </ScreenShell>
+      </DetailLayout>
     );
   }
 
   if (loading) {
     return (
-      <ScreenShell title="Rechnung" subtitle="Wird geladen…">
+      <DetailLayout embedded={embedded} title="Rechnung" subtitle="Wird geladen…">
         <LoadingState message="Rechnungsdetails werden geladen…" />
-      </ScreenShell>
+      </DetailLayout>
     );
   }
 
   if (notFound || error) {
     return (
-      <ScreenShell title="Rechnung" subtitle="Fehler">
+      <DetailLayout embedded={embedded} title="Rechnung" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Die Rechnung existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zur Liste" variant="secondary" onPress={() => router.back()} />
-      </ScreenShell>
+      </DetailLayout>
     );
   }
 
   if (!invoice) {
     return (
-      <ScreenShell title="Rechnung" subtitle="Keine Daten">
+      <DetailLayout embedded={embedded} title="Rechnung" subtitle="Keine Daten">
         <ErrorState
           title="Rechnung nicht verfügbar"
           message="Die Rechnungsdaten konnten nicht geladen werden. Bitte kehren Sie zur Liste zurück und versuchen Sie es erneut."
           onRetry={refresh}
         />
         <PremiumButton title="Zur Liste" variant="secondary" onPress={() => router.back()} />
-      </ScreenShell>
+      </DetailLayout>
     );
   }
 
   return (
-    <ScreenShell
+    <DetailLayout
+      embedded={embedded}
       title={invoice.invoiceNumber}
       subtitle="Rechnungsdetails"
       rightSlot={
@@ -205,7 +231,11 @@ export function InvoiceDetailScreen() {
       {pdfNotice ? <SuccessState message={pdfNotice} /> : null}
       {pdfError ? <ErrorState title="PDF nicht verfügbar" message={pdfError} /> : null}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        style={embedded ? styles.embeddedScroll : undefined}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+      >
         <InvoiceDetailHero invoice={invoice} roleKey={roleKey} isReadOnly={isReadOnly} />
 
         <SectionPanel
@@ -346,11 +376,13 @@ export function InvoiceDetailScreen() {
           </SectionPanel>
         ) : null}
       </ScrollView>
-    </ScreenShell>
+    </DetailLayout>
   );
 }
 
 const styles = StyleSheet.create({
+  embeddedRoot: { flex: 1, minHeight: 0, padding: spacing.md },
+  embeddedScroll: { flex: 1, minHeight: 0 },
   scroll: { paddingBottom: spacing.xxl, gap: spacing.md },
   lineRow: {
     flexDirection: 'row',
@@ -367,3 +399,4 @@ const styles = StyleSheet.create({
   pdfActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   pdfHint: { ...typography.caption, color: colors.textMuted },
 });
+
