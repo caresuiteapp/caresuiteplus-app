@@ -3,4 +3,6 @@ export {
   fetchCatalogDetail,
   fetchCatalogItems,
   formatCatalogPrice,
+  parseTenantServiceCatalogId,
+  tenantServiceCatalogId,
 } from './catalogService';
