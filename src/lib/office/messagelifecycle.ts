@@ -22,9 +22,6 @@ function canMutateMessage(message: OfficeMessage): { ok: true } | { ok: false; e
   if (message.isSystemMessage) {
     return { ok: false, error: 'Systemnachrichten können nicht geändert werden.' };
   }
-  if (message.status === 'archived') {
-    return { ok: false, error: 'Nachricht ist bereits archiviert.' };
-  }
   return { ok: true };
 }
 
@@ -111,6 +108,9 @@ export async function archiveOfficeMessage(
   const { message, threadId } = loaded.data;
   const mutable = canMutateMessage(message);
   if (!mutable.ok) return mutable;
+  if (message.status === 'archived') {
+    return { ok: false, error: 'Nachricht ist bereits archiviert.' };
+  }
 
   const threadResult = await fetchOfficeMessageThreadById(tenantId, threadId, actorRoleKey);
   if (!threadResult.ok) return threadResult;
@@ -171,15 +171,29 @@ export async function hardDeleteOfficeMessage(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-  await removeAttachmentFiles(attachmentsResult.data);
-
-  const { error } = await supabase
+  const { data: deletedRows, error: deleteError } = await supabase
     .from('messages')
     .delete()
     .eq('tenant_id', tenantId)
-    .eq('id', messageId);
+    .eq('id', messageId)
+    .select('id');
 
-  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  const permanentlyDeleted = !deleteError && (deletedRows?.length ?? 0) > 0;
+  if (!permanentlyDeleted) {
+    const now = new Date().toISOString();
+    const { data: softDeleted, error: updateError } = await supabase
+      .from('messages')
+      .update({ status: 'deleted', updated_at: now })
+      .eq('tenant_id', tenantId)
+      .eq('id', messageId)
+      .select('id')
+      .maybeSingle();
+
+    if (updateError) return { ok: false, error: toGermanSupabaseError(updateError) };
+    if (!softDeleted) return { ok: false, error: 'Nachricht konnte nicht gelöscht werden.' };
+  } else {
+    await removeAttachmentFiles(attachmentsResult.data);
+  }
 
   await syncThreadPreview(tenantId, threadId);
 

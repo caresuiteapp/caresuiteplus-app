@@ -17,7 +17,7 @@ type Subscription = {
 
 const subscriptions = new Map<string, Subscription>();
 
-const POLL_INTERVAL_MS = 20_000;
+const POLL_INTERVAL_MS = 12_000;
 
 function dispatch(sub: Subscription, event: OfficeMessageRealtimeEvent): void {
   for (const handler of sub.handlers) {
@@ -123,7 +123,13 @@ export function subscribeToOfficeMessageThread(
 
     subscriptions.set(key, {
       handlers: new Set([handler]),
-      pollCleanup: null,
+      pollCleanup: createVisibilityAwareInterval(
+        () => {
+          const sub = subscriptions.get(key);
+          if (sub) dispatch(sub, { type: 'message_changed', threadId, tenantId });
+        },
+        POLL_INTERVAL_MS,
+      ),
       supabaseChannel: rtChannel,
     });
     return () => detachHandler(key, handler);
@@ -181,7 +187,13 @@ export function subscribeToOfficeMessageInbox(
 
     subscriptions.set(key, {
       handlers: new Set([handler]),
-      pollCleanup: null,
+      pollCleanup: createVisibilityAwareInterval(
+        () => {
+          const sub = subscriptions.get(key);
+          if (sub) dispatch(sub, { type: 'thread_changed', tenantId });
+        },
+        POLL_INTERVAL_MS,
+      ),
       supabaseChannel: rtChannel,
     });
     return () => detachHandler(key, handler);

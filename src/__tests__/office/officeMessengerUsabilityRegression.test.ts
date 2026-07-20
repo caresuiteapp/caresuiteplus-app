@@ -23,7 +23,7 @@ describe('Office messenger usability regression', () => {
 
     expect(source).toContain('office-message-history');
     expect(source).toContain('scrollToLatestMessage');
-    expect(source).not.toContain("justifyContent: 'flex-end'");
+    expect(source).toContain('messagesContent: { paddingVertical: spacing.lg, flexGrow: 1 }');
     expect(source).toContain('keyboardShouldPersistTaps="handled"');
   });
 
@@ -52,5 +52,23 @@ describe('Office messenger usability regression', () => {
     expect(screen).toContain('workspaceWidth');
     expect(screen).toContain('event.nativeEvent.layout.width');
     expect(screen).toContain('workspaceWidth < 1240');
+  });
+
+  it('moves opened chats automatically and exposes lifecycle actions visibly', () => {
+    const thread = readSrc('src/components/office/officemessagethread.tsx');
+    const actions = readSrc('src/components/office/officemessageactionsmenu.tsx');
+
+    expect(thread).toContain('await markAsRead()');
+    expect(thread).toContain("await updateStatus('in_progress')");
+    expect(thread).toContain('✓ Abschließen');
+    expect(thread).toContain('🗑 Chat löschen');
+    expect(actions).toContain('••• Verwalten');
+  });
+
+  it('keeps automatic refresh as a fallback when realtime events are unavailable', () => {
+    const realtime = readSrc('src/lib/office/officemessagerealtime.ts');
+
+    expect(realtime).toContain('const POLL_INTERVAL_MS = 12_000');
+    expect(realtime.match(/createVisibilityAwareInterval/g)?.length).toBeGreaterThanOrEqual(4);
   });
 });

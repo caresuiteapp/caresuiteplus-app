@@ -38,30 +38,6 @@ export function sortThreads(threads: OfficeMessageThread[]): OfficeMessageThread
   });
 }
 
-function filterThreadsByInbox(
-  threads: OfficeMessageThread[],
-  filter: OfficeInboxFilter,
-): OfficeMessageThread[] {
-  switch (filter) {
-    case 'clients':
-      return threads.filter((thread) => thread.threadType === 'client_office');
-    case 'employees':
-      return threads.filter(
-        (thread) =>
-          thread.threadType === 'employee_office' || thread.threadType === 'employee_group_office',
-      );
-    case 'internal':
-      return threads.filter((thread) => thread.threadType === 'internal');
-    case 'closed':
-      return threads.filter((thread) => isClosedAppStatus(thread.status) || thread.status === 'deleted');
-    case 'inbox':
-    default:
-      return threads.filter(
-        (thread) => !isClosedAppStatus(thread.status) && thread.status !== 'deleted',
-      );
-  }
-}
-
 function filterThreadsByRole(
   threads: OfficeMessageThread[],
   actorRoleKey?: RoleKey | null,
@@ -379,6 +355,42 @@ export async function patchOfficeMessageThread(
   if (!refreshed.ok) return refreshed;
   if (!refreshed.data) return { ok: false, error: 'Chat nicht gefunden.' };
   return { ok: true, data: refreshed.data };
+}
+
+export async function deleteOfficeMessageThread(
+  tenantId: string,
+  threadId: string,
+  actorRoleKey?: RoleKey | null,
+  profileId?: string | null,
+): Promise<ServiceResult<{ deleted: true }>> {
+  const denied = enforcePermission<{ deleted: true }>(actorRoleKey, 'office.messages.delete');
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('message_threads')
+    .update({
+      status: 'deleted',
+      office_unread_count: 0,
+      portal_unread_count: 0,
+      closed_at: now,
+      closed_by_user_id: profileId ?? null,
+      updated_at: now,
+    })
+    .eq('tenant_id', tenantId)
+    .eq('id', threadId)
+    .select('id')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  if (!data) return { ok: false, error: 'Chat konnte nicht gelöscht werden.' };
+  return { ok: true, data: { deleted: true } };
 }
 
 export { fetchThreadByIdLive, fetchThreadsLive };

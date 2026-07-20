@@ -89,8 +89,21 @@ export function OfficeMessageActionsMenu({
         cancelText: { ...typography.body, color: c.muted },
         feedbackWrap: { paddingHorizontal: spacing.md, paddingBottom: spacing.xs },
         errorText: { ...typography.caption, color: '#c0392b', paddingHorizontal: spacing.md },
+        triggerRow: {
+          flexDirection: 'row',
+          justifyContent: message.senderType === 'office_profile' ? 'flex-end' : 'flex-start',
+          paddingHorizontal: spacing.lg,
+          marginTop: -4,
+          marginBottom: spacing.xs,
+        },
+        trigger: {
+          paddingHorizontal: spacing.sm,
+          paddingVertical: 4,
+          borderRadius: radius.capsule,
+        },
+        triggerText: { ...typography.caption, color: c.muted, fontWeight: '700' },
       }),
-    [c, typography],
+    [c, message.senderType, typography],
   );
 
   function openMenu() {
@@ -195,6 +208,18 @@ export function OfficeMessageActionsMenu({
       >
         {children}
       </Pressable>
+      {actionable ? (
+        <View style={styles.triggerRow}>
+          <Pressable
+            style={styles.trigger}
+            onPress={openMenu}
+            accessibilityRole="button"
+            accessibilityLabel="Nachricht verwalten"
+          >
+            <Text style={styles.triggerText}>••• Verwalten</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={closeMenu}>
         <Pressable style={styles.backdrop} onPress={closeMenu} accessibilityRole="button">

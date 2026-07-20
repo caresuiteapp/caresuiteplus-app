@@ -501,6 +501,7 @@ export async function sendPortalOfficeMessage(
       last_message_at: now,
       last_message_preview: messageBody.slice(0, 120),
       office_unread_count: Number(threadRow?.office_unread_count ?? 0) + 1,
+      status: 'received',
       updated_at: now,
     })
     .eq('tenant_id', tenantId)
