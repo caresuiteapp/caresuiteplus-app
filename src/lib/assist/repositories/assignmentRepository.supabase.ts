@@ -762,6 +762,23 @@ export const assignmentSupabaseRepository = {
       return { ok: false, error: 'Einsatz nicht gefunden.' };
     }
 
+    const isUnstarted = ['geplant', 'bestaetigt', 'storniert'].includes(
+      existing.data.assignmentStatus,
+    );
+    const hasExecutionEvidence = Boolean(
+      existing.data.onTheWayAt
+      || existing.data.arrivedAt
+      || existing.data.actualStartAt
+      || existing.data.actualEndAt
+      || existing.data.finishedAt,
+    );
+    if (!isUnstarted || hasExecutionEvidence) {
+      return {
+        ok: false,
+        error: 'Begonnene oder abgeschlossene Einsätze dürfen nicht gelöscht werden.',
+      };
+    }
+
     cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', assignmentId);
 
     const { error } = await fromUnknownTable(supabase, 'assignments')

@@ -456,14 +456,14 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
               <>
                 <CareDateInput
                   {...FORM_CTX}
-                  label="Wiederholen bis (optional)"
+                  label="Wiederholen bis"
                   value={form.recurrenceEndDate}
                   onChange={(recurrenceEndDate) => patch({ recurrenceEndDate })}
-                  placeholder="TT.MM.JJJJ — leer = ohne Enddatum"
+                  placeholder="TT.MM.JJJJ — oder Anzahl angeben"
                 />
                 <PremiumInput
                   {...FORM_CTX}
-                  label="Anzahl Termine (optional)"
+                  label="Anzahl Termine"
                   value={
                     form.recurrenceOccurrenceCount != null
                       ? String(form.recurrenceOccurrenceCount)
@@ -476,7 +476,7 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
                         n != null && Number.isFinite(n) && n > 0 ? n : null,
                     });
                   }}
-                  placeholder="z. B. 12 — leer = unbegrenzt"
+                  placeholder="z. B. 12 — oder Enddatum angeben"
                   keyboardType="numeric"
                 />
               </>

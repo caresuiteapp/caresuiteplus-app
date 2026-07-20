@@ -84,15 +84,17 @@ export async function resolveExecutableVisitId(
     return { ok: false, error: 'Einsatz nicht gefunden.' };
   }
 
-  const { visitId: masterVisitId, occurrenceDate } = parseVisitOccurrenceId(rawVisitId);
+  const { visitId: routeMasterId, occurrenceDate } = parseVisitOccurrenceId(rawVisitId);
   if (!occurrenceDate) {
-    return { ok: true, data: { visitId: masterVisitId, materialized: false } };
+    return { ok: true, data: { visitId: routeMasterId, materialized: false } };
   }
 
   if (getServiceMode() !== 'supabase') {
     return { ok: true, data: { visitId: rawVisitId, materialized: false } };
   }
 
+  const masterVisitId =
+    (await visitSupabaseRepository.resolveVisitId(tenantId, routeMasterId)) ?? routeMasterId;
   const master = await visitSupabaseRepository.getById(tenantId, masterVisitId);
   if (!master.ok) return master;
   if (!master.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
@@ -560,6 +562,13 @@ export async function deleteVisitDisposition(
   if (getServiceMode() === 'supabase') {
     if (!isResolvableVisitId(visitId)) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
+    const { visitId: routeMasterId, occurrenceDate } = parseVisitOccurrenceId(visitId);
+    if (occurrenceDate) {
+      const masterVisitId =
+        (await visitSupabaseRepository.resolveVisitId(tenantId, routeMasterId)) ?? routeMasterId;
+      return visitSupabaseRepository.deleteOccurrence(tenantId, masterVisitId, occurrenceDate);
+    }
+
     const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
     if (resolvedId) {
       return visitSupabaseRepository.delete(tenantId, resolvedId);
@@ -774,9 +783,45 @@ export async function createVisitFromWizard(
     budgetManualOverride: wizard.budgetManualOverride ?? null,
   };
 
+  if (
+    wizard.recurrencePattern !== 'none'
+    && !wizard.recurrenceEndDate
+    && !wizard.recurrenceOccurrenceCount
+  ) {
+    return {
+      ok: false,
+      error: 'Bitte für die Serie ein Enddatum oder eine Anzahl Termine angeben.',
+    };
+  }
+
   if (getServiceMode() === 'supabase') {
     const created = await visitSupabaseRepository.create(tenantId, input);
     if (!created.ok) return created;
+
+    if (wizard.recurrencePattern !== 'none') {
+      const occurrenceDates = expandVisitRecurrenceDates({
+        assignmentDate: wizard.assignmentDate,
+        recurrencePattern: wizard.recurrencePattern,
+        recurrenceWeekdays: wizard.recurrenceWeekdays,
+        recurrenceEndDate: wizard.recurrenceEndDate || null,
+        recurrenceOccurrenceCount: wizard.recurrenceOccurrenceCount,
+        maxOccurrences: wizard.recurrenceOccurrenceCount ?? 366,
+      });
+
+      for (const occurrenceDate of occurrenceDates.slice(1)) {
+        const materialized = await visitSupabaseRepository.materializeOccurrence(
+          tenantId,
+          created.data.id,
+          occurrenceDate,
+        );
+        if (!materialized.ok) {
+          return {
+            ok: false,
+            error: `Serie konnte für ${occurrenceDate} nicht vollständig angelegt werden: ${materialized.error}`,
+          };
+        }
+      }
+    }
     return { ok: true, data: { id: created.data.id, conflicts } };
   }
 

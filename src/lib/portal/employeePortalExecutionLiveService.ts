@@ -386,7 +386,23 @@ export async function fetchLiveEmployeePortalAssignmentDetail(
   if (denied && roleKey === 'employee_portal') return denied;
 
   return runService(async () => {
-    const loaded = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
+    // A concrete series date must have its own visit/assignment row. Repair older virtual
+    // occurrences lazily when they are opened, then use that row for every following read.
+    let executableAssignmentId = assignmentId;
+    if (assignmentId.includes('::')) {
+      const executable = await resolveExecutableVisitId(tenantId, assignmentId, roleKey);
+      if (executable.ok) {
+        executableAssignmentId = executable.data.visitId;
+      } else {
+        console.warn('[employeePortalExecutionLiveService] series occurrence materialization:', executable.error);
+      }
+    }
+
+    const loaded = await loadEmployeePortalAssignmentDetail(
+      tenantId,
+      executableAssignmentId,
+      employeeId,
+    );
     if (!loaded.ok) return loaded;
     if (!loaded.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
@@ -398,10 +414,10 @@ export async function fetchLiveEmployeePortalAssignmentDetail(
     // recurring occurrences can temporarily have no standalone proof/tracking rows yet. A failed
     // optional read must therefore never push a live visit into the offline/read-only fallback.
     const [extrasResult, docFlagsResult] = await Promise.allSettled([
-      fetchAssignmentExtras(tenantId, assignmentId, loaded.data.clientId),
+      fetchAssignmentExtras(tenantId, executableAssignmentId, loaded.data.clientId),
       resolveEmployeePortalDocumentationFlags(
         tenantId,
-        assignmentId,
+        executableAssignmentId,
         loaded.data.assignmentStatus,
         loaded.data.documentationNotes,
         employeeId,

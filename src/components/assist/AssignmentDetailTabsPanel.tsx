@@ -343,6 +343,13 @@ export function AssignmentDetailTabsPanel({
     : DETAIL_TABS;
 
   const displayName = `${visit.serviceName ?? visit.title} · ${visit.clientName}`;
+  const canDeleteVisit =
+    visit.executionStatus === 'pending'
+    && !visit.actualStartAt
+    && !visit.actualEndAt
+    && !visit.finishedAt
+    && visit.billingStatus !== 'invoiced'
+    && visit.billingStatus !== 'paid';
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -695,15 +702,15 @@ export function AssignmentDetailTabsPanel({
           style={useActionToolbar ? styles.actionBtn : undefined}
         />
       ) : null}
-      {can('assist.assignments.manage') && !isReadOnly && visit.planningStatus === 'draft' ? (
+      {can('assist.assignments.manage') && !isReadOnly && canDeleteVisit ? (
         <View style={useActionToolbar ? styles.actionBtn : undefined}>
           <OfficeRecordDeleteButton
             recordLabel="Einsatz"
             displayName={displayName}
             onDelete={handleDelete}
             onDeleted={onDeleted}
-            confirmTitle="Einsatzentwurf endgültig löschen?"
-            buttonTitle="Entwurf löschen"
+            confirmTitle="Einsatz endgültig löschen?"
+            buttonTitle="Einsatz löschen"
             fullWidth={!useActionToolbar}
           />
         </View>

@@ -1268,7 +1268,7 @@ export const visitSupabaseRepository = {
     if (!supabase) return unavailable();
 
     const { data: row, error: lookupError } = await fromUnknownTable(supabase, 'assist_visits')
-      .select('id, legacy_assignment_id, planning_status')
+      .select('id, legacy_assignment_id, planning_status, execution_status, documentation_status, proof_status, billing_status, actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at, recurrence_json')
       .eq('tenant_id', tenantId)
       .eq('id', visitId)
       .maybeSingle();
@@ -1276,14 +1276,65 @@ export const visitSupabaseRepository = {
     if (lookupError) return { ok: false, error: toGermanSupabaseError(lookupError) };
     if (!row) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
-    if ((row as { planning_status: string }).planning_status !== 'draft') {
+    const deletionRow = row as {
+      legacy_assignment_id: string | null;
+      execution_status: string;
+      documentation_status: string;
+      proof_status: string;
+      billing_status: string;
+      actual_start_at: string | null;
+      actual_end_at: string | null;
+      on_the_way_at: string | null;
+      arrived_at: string | null;
+      finished_at: string | null;
+      recurrence_json?: unknown;
+    };
+    const hasExecutionEvidence = Boolean(
+      deletionRow.actual_start_at
+      || deletionRow.actual_end_at
+      || deletionRow.on_the_way_at
+      || deletionRow.arrived_at
+      || deletionRow.finished_at,
+    );
+    const isUnstarted = ['pending', 'cancelled'].includes(deletionRow.execution_status);
+    const hasProtectedRecords =
+      deletionRow.documentation_status === 'complete'
+      || deletionRow.documentation_status === 'review'
+      || deletionRow.proof_status === 'signed'
+      || deletionRow.proof_status === 'verified'
+      || deletionRow.billing_status === 'invoiced'
+      || deletionRow.billing_status === 'paid';
+
+    if (!isUnstarted || hasExecutionEvidence || hasProtectedRecords) {
       return {
         ok: false,
-        error: 'Nur Entwürfe dürfen endgültig gelöscht werden. Geplante Einsätze bitte absagen.',
+        error: 'Begonnene, nachgewiesene oder abgerechnete Einsätze dürfen nicht gelöscht werden.',
       };
     }
 
-    const legacyAssignmentId = (row as { legacy_assignment_id: string | null }).legacy_assignment_id;
+    const recurrence = parseVisitRecurrenceJson(deletionRow.recurrence_json ?? { pattern: 'none' });
+    if (recurrence.parentSeriesId && recurrence.sourceOccurrenceDate) {
+      const parent = await this.getById(tenantId, recurrence.parentSeriesId);
+      if (!parent.ok) return parent;
+      if (parent.data) {
+        const parentRecurrence = parseVisitRecurrenceJson(parent.data.recurrenceJson);
+        const materializedOccurrences = { ...(parentRecurrence.materializedOccurrences ?? {}) };
+        delete materializedOccurrences[recurrence.sourceOccurrenceDate];
+        const detachedOccurrenceDates = Array.from(new Set([
+          ...(parentRecurrence.detachedOccurrenceDates ?? []),
+          recurrence.sourceOccurrenceDate,
+        ]));
+        const { error: parentError } = await fromUnknownTable(supabase, 'assist_visits')
+          .update({
+            recurrence_json: { ...parentRecurrence, detachedOccurrenceDates, materializedOccurrences },
+          })
+          .eq('tenant_id', tenantId)
+          .eq('id', recurrence.parentSeriesId);
+        if (parentError) return { ok: false, error: toGermanSupabaseError(parentError) };
+      }
+    }
+
+    const legacyAssignmentId = deletionRow.legacy_assignment_id;
 
     cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', visitId);
 
@@ -1302,6 +1353,35 @@ export const visitSupabaseRepository = {
         .eq('id', legacyAssignmentId);
     }
 
+    return { ok: true, data: undefined };
+  },
+
+  async deleteOccurrence(
+    tenantId: string,
+    masterVisitId: string,
+    occurrenceDate: string,
+  ): Promise<ServiceResult<void>> {
+    const master = await this.getById(tenantId, masterVisitId);
+    if (!master.ok) return master;
+    if (!master.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+    const recurrence = parseVisitRecurrenceJson(master.data.recurrenceJson);
+    const materializedId = getMaterializedOccurrenceId(recurrence, occurrenceDate);
+    if (materializedId) return this.delete(tenantId, materializedId);
+
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+    const materializedOccurrences = { ...(recurrence.materializedOccurrences ?? {}) };
+    delete materializedOccurrences[occurrenceDate];
+    const detachedOccurrenceDates = Array.from(new Set([
+      ...(recurrence.detachedOccurrenceDates ?? []),
+      occurrenceDate,
+    ]));
+    const { error } = await fromUnknownTable(supabase, 'assist_visits')
+      .update({ recurrence_json: { ...recurrence, detachedOccurrenceDates, materializedOccurrences } })
+      .eq('tenant_id', tenantId)
+      .eq('id', masterVisitId);
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
     return { ok: true, data: undefined };
   },
 
