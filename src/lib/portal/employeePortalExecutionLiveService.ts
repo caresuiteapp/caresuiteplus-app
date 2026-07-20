@@ -393,14 +393,42 @@ export async function fetchLiveEmployeePortalAssignmentDetail(
     const accessDenied = assertLiveEmployeeAssignmentAccess(tenantId, employeeId, roleKey, loaded.data);
     if (accessDenied) return accessDenied;
 
-    const extras = await fetchAssignmentExtras(tenantId, assignmentId, loaded.data.clientId);
-    const docFlags = await resolveEmployeePortalDocumentationFlags(
-      tenantId,
-      assignmentId,
-      loaded.data.assignmentStatus,
-      loaded.data.documentationNotes,
-      employeeId,
-    );
+    // Notes, emergency contacts and signature/proof metadata enrich the execution view, but they
+    // are not prerequisites for opening or executing an assigned visit. In particular, virtual
+    // recurring occurrences can temporarily have no standalone proof/tracking rows yet. A failed
+    // optional read must therefore never push a live visit into the offline/read-only fallback.
+    const [extrasResult, docFlagsResult] = await Promise.allSettled([
+      fetchAssignmentExtras(tenantId, assignmentId, loaded.data.clientId),
+      resolveEmployeePortalDocumentationFlags(
+        tenantId,
+        assignmentId,
+        loaded.data.assignmentStatus,
+        loaded.data.documentationNotes,
+        employeeId,
+      ),
+    ]);
+
+    if (extrasResult.status === 'rejected') {
+      console.warn('[employeePortalExecutionLiveService] optional assignment extras unavailable');
+    }
+    if (docFlagsResult.status === 'rejected') {
+      console.warn('[employeePortalExecutionLiveService] optional signature metadata unavailable');
+    }
+
+    const extras =
+      extrasResult.status === 'fulfilled'
+        ? extrasResult.value
+        : { notesForEmployee: null, accessHints: null, emergencyContact: null };
+    const fallbackRequiresSignature = loaded.data.assignmentStatus === 'unterschrift_offen';
+    const docFlags =
+      docFlagsResult.status === 'fulfilled'
+        ? docFlagsResult.value
+        : {
+            requiresSignature: fallbackRequiresSignature,
+            requiresDocumentation: true,
+            signatureStatus: fallbackRequiresSignature ? ('pending' as const) : ('none' as const),
+            signatureCapturedViaClientPortal: false,
+          };
     return {
       ok: true,
       data: mapDetailToPortal(loaded.data, roleKey, employeeId, tenantModules, {
