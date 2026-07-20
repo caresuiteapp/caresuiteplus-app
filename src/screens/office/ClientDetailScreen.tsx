@@ -164,7 +164,18 @@ export function ClientDetailScreen({ clientId, embedded = false }: { clientId?: 
     );
   }
 
-  if (!client) return null;
+  if (!client) {
+    return (
+      <ScreenShell title="Klient:in" subtitle="Keine Daten" showBack={showBack}>
+        <ErrorState
+          title="Datensatz nicht verfügbar"
+          message="Die Klient:innen-Daten konnten nicht geladen werden. Bitte kehren Sie zur Liste zurück und versuchen Sie es erneut."
+          onRetry={fullQuery.refresh}
+        />
+        <PremiumButton title="Zur Liste" variant="secondary" onPress={() => router.back()} />
+      </ScreenShell>
+    );
+  }
 
   const fullClient = fullQuery.data;
   const fullName = `${client.firstName} ${client.lastName}`;

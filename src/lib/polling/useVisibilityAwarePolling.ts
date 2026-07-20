@@ -118,7 +118,7 @@ export function createVisibilityAwareInterval(
 
   const sub = AppState.addEventListener('change', onVisibility);
   return () => {
-    sub.remove();
+    sub?.remove?.();
     stop();
   };
 }

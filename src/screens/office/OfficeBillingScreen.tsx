@@ -2,22 +2,17 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { OfficeBillingHero } from '@/components/office';
-import { ScreenShell, MasterDetailLayout } from '@/components/layout';
-import { InvoiceDetailSummaryPanel } from '@/components/office/InvoiceDetailSummaryPanel';
+import { InvoiceDetailModal } from '@/components/office/invoicedetailmodal';
+import { ScreenShell } from '@/components/layout';
 import { InvoicesListView } from '@/components/office/InvoicesListView';
 import { PremiumButton, SegmentedTabs, type TabOption } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core';
-import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { fetchBillingDashboardStats } from '@/lib/office';
 import { useAuth } from '@/lib/auth/context';
 import { ModuleDocumentsSection } from '@/components/documents/ModuleDocumentsSection';
-import { colors, spacing } from '@/theme';
+import { spacing } from '@/theme';
 import { BudgetsListScreen } from './BudgetsListScreen';
-
-function InvoiceDetailModal(_props: { visible: boolean; invoiceId: string | null; onClose: () => void }) {
-  return null;
-}
 
 const BILLING_TABS: TabOption[] = [
   { key: 'invoices', label: 'Rechnungen' },

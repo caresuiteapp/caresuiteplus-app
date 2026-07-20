@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { BudgetDetailHero } from '@/components/office';
 import { DetailInfoRow } from '@/components/detail';
@@ -57,7 +57,18 @@ export function BudgetDetailScreen() {
     );
   }
 
-  if (!budget) return null;
+  if (!budget) {
+    return (
+      <ScreenShell title="Budget" subtitle="Keine Daten">
+        <ErrorState
+          title="Budget nicht verfügbar"
+          message="Die Budgetdaten konnten nicht geladen werden. Bitte kehren Sie zur vorherigen Seite zurück und versuchen Sie es erneut."
+          onRetry={refresh}
+        />
+        <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
+      </ScreenShell>
+    );
+  }
 
   return (
     <ScreenShell title={budget.label} subtitle={budget.clientName}>

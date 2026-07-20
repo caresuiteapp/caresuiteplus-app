@@ -32,6 +32,7 @@
     "prepared-only:audit": "node scripts/prepared-only-audit.mjs",
     "visual:audit": "node scripts/visual-reality-audit.mjs",
     "office:terminology:audit": "node scripts/office-terminology-audit.mjs",
+    "office:integrity:audit": "node scripts/office-integrity-audit.mjs",
     "client-intake:audit": "node scripts/client-intake-audit.mjs",
     "locale:audit": "node scripts/locale-format-audit.mjs",
     "catalog:audit": "node scripts/catalog-audit.mjs",

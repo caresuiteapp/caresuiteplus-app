@@ -128,7 +128,18 @@ export function InvoiceDetailScreen() {
     );
   }
 
-  if (!invoice) return null;
+  if (!invoice) {
+    return (
+      <ScreenShell title="Rechnung" subtitle="Keine Daten">
+        <ErrorState
+          title="Rechnung nicht verfügbar"
+          message="Die Rechnungsdaten konnten nicht geladen werden. Bitte kehren Sie zur Liste zurück und versuchen Sie es erneut."
+          onRetry={refresh}
+        />
+        <PremiumButton title="Zur Liste" variant="secondary" onPress={() => router.back()} />
+      </ScreenShell>
+    );
+  }
 
   return (
     <ScreenShell
