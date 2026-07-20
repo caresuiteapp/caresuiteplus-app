@@ -1,7 +1,9 @@
 import { ScrollView, StyleSheet } from 'react-native';
+import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CatalogDetailHero } from '@/components/catalog/CatalogDetailHero';
 import { ScreenShell } from '@/components/layout';
+import { TenantServiceCatalogModal } from '@/components/tenant/TenantServiceCatalogModal';
 import {
   EmptyState,
   ErrorState,
@@ -12,7 +14,9 @@ import {
   SectionPanel,
 } from '@/components/ui';
 import { useCatalogDetail } from '@/hooks/useCatalogDetail';
-import { formatCatalogPrice } from '@/lib/catalog';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { usePermissions } from '@/hooks/usePermissions';
+import { formatCatalogPrice, parseTenantServiceCatalogId } from '@/lib/catalog';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
 import { Text, View } from 'react-native';
@@ -20,7 +24,12 @@ import { Text, View } from 'react-native';
 export function CatalogDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const tenantId = useServiceTenantId();
+  const { can } = usePermissions();
+  const [editorOpen, setEditorOpen] = useState(false);
   const { catalog, items, loading, error, refresh, notFound } = useCatalogDetail(id);
+  const moduleKey = parseTenantServiceCatalogId(id);
+  const canEditLiveCatalog = Boolean(moduleKey && tenantId && can('business.tenant.manage'));
 
   if (loading) {
     return (
@@ -49,12 +58,13 @@ export function CatalogDetailScreen() {
       subtitle="Katalogdetail"
       rightSlot={
         <View style={styles.headerActions}>
-          <PremiumButton
-            title="Workflow"
-            size="sm"
-            variant="secondary"
-            onPress={() => router.push('/office/catalogs/workflow-builder' as never)}
-          />
+          {canEditLiveCatalog ? (
+            <PremiumButton
+              title="Katalog bearbeiten"
+              size="sm"
+              onPress={() => setEditorOpen(true)}
+            />
+          ) : null}
           <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
         </View>
       }
@@ -81,6 +91,15 @@ export function CatalogDetailScreen() {
           )}
         </SectionPanel>
       </ScrollView>
+      {tenantId && moduleKey ? (
+        <TenantServiceCatalogModal
+          visible={editorOpen}
+          tenantId={tenantId}
+          initialModuleKey={moduleKey}
+          onClose={() => setEditorOpen(false)}
+          onSaved={() => void refresh()}
+        />
+      ) : null}
     </ScreenShell>
   );
 }

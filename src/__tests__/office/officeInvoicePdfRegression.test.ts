@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
 import { validateInvoicePdf, type InvoicePdfData } from '@/lib/office/invoicePdfService';
 
 function validData(): InvoicePdfData {
@@ -77,12 +79,29 @@ describe('Office Rechnungs-PDF', () => {
 
   it('sperrt die PDF-Ausgabe bei fehlenden Pflichtangaben', () => {
     const data = validData();
+    data.invoice.id = '';
     data.company.taxNumber = '';
     data.invoice.recipient.street = '';
     data.invoice.amountCents = 13000;
     const result = validateInvoicePdf(data);
     expect(result.errors).toContain('Steuernummer oder Umsatzsteuer-ID fehlt.');
+    expect(result.errors).toContain('Eindeutige Rechnungs-ID fehlt.');
     expect(result.errors).toContain('Vollständige Empfängeranschrift fehlt.');
     expect(result.errors).toContain('Positionssumme und Rechnungsbetrag stimmen nicht überein.');
+  });
+
+  it('druckt die dauerhafte Rechnungs-ID und den CareSuite-Erstellerhinweis', () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), 'src/lib/office/invoicePdfService.ts'),
+      'utf8',
+    );
+    expect(source).toContain('Rechnungs-ID: ${invoice.id}');
+    expect(source).toContain('Erstellt mit: CareSuite HealthOS Software Technologie');
+    expect(source).toContain("creator: 'CareSuite HealthOS Software Technologie'");
+    expect(source).toContain("'tenant-logo',");
+    expect(source).toContain("'SLOW',");
+    expect(source).not.toContain("'FAST'");
+    expect(source).toContain("pdf.addFont('CareSuiteSans-Regular.ttf'");
+    expect(source).toContain("pdf.addFont('CareSuiteSans-Bold.ttf'");
   });
 });
