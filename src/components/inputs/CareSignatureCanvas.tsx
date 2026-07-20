@@ -374,8 +374,14 @@ function WebSignatureCanvas({
   const handleConfirm = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !hasStroke) return;
-    onConfirm(exportSignatureCanvasPng(canvas));
-  }, [hasStroke, onConfirm]);
+    onConfirm(
+      exportSignatureCanvasPng(canvas, {
+        isLandscape: orientation.isLandscape,
+        orientationType: orientation.orientationType,
+        angle: orientation.angle,
+      }),
+    );
+  }, [hasStroke, onConfirm, orientation.angle, orientation.isLandscape, orientation.orientationType]);
 
   const drawAt = useCallback((clientX: number, clientY: number, start: boolean) => {
     const canvas = canvasRef.current;

@@ -3,11 +3,14 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   buildSignatureProofImageStyle,
+  detectSignatureInkBounds,
   needsSignatureOrientationCorrection,
   readPngDimensionsFromBytes,
   readPngDimensionsFromDataUrl,
   resolveSignatureImageDimensions,
   signatureProofImageStyleToCss,
+  shouldRotateSignatureInk,
+  resolveSignatureCaptureRotation,
 } from '@/lib/signatures/signatureOrientation';
 import { pngBytes, pngDataUrl } from '@/__tests__/signatures/signatureTestFixtures';
 
@@ -59,18 +62,107 @@ describe('buildSignatureProofImageStyle', () => {
 
   it('rotates portrait buffers for horizontal proof display', () => {
     const style = buildSignatureProofImageStyle(240, 480);
-    expect(style.transform).toBe('rotate(-90deg)');
+    expect(style.transform).toBe('rotate(90deg)');
     expect(style.maxWidth).toBe(120);
     expect(style.maxHeight).toBe(280);
-    expect(signatureProofImageStyleToCss(style)).toContain('rotate(-90deg)');
+    expect(signatureProofImageStyleToCss(style)).toContain('rotate(90deg)');
     expect(signatureProofImageStyleToCss(style)).toContain('object-fit:contain');
+  });
+});
+
+describe('signature capture direction', () => {
+  it('keeps a normal landscape canvas exactly as written', () => {
+    expect(
+      resolveSignatureCaptureRotation(1200, 600, {
+        isLandscape: true,
+        orientationType: 'landscape-primary',
+        angle: 90,
+      }),
+    ).toBe(0);
+  });
+
+  it('uses the device side for a portrait backing buffer in landscape', () => {
+    expect(
+      resolveSignatureCaptureRotation(600, 1200, {
+        isLandscape: true,
+        orientationType: 'landscape-primary',
+        angle: 90,
+      }),
+    ).toBe(90);
+    expect(
+      resolveSignatureCaptureRotation(600, 1200, {
+        isLandscape: true,
+        orientationType: 'landscape-secondary',
+        angle: 270,
+      }),
+    ).toBe(-90);
+  });
+
+  it('does not guess a rotation from handwriting proportions in portrait', () => {
+    expect(
+      resolveSignatureCaptureRotation(600, 1200, {
+        isLandscape: false,
+        orientationType: 'portrait-primary',
+        angle: 0,
+      }),
+    ).toBe(0);
+  });
+});
+
+describe('signature ink orientation', () => {
+  function signaturePixels(width: number, height: number, ink: { left: number; top: number; right: number; bottom: number }) {
+    const pixels = new Uint8ClampedArray(width * height * 4);
+    for (let y = ink.top; y <= ink.bottom; y += 1) {
+      for (let x = ink.left; x <= ink.right; x += 1) {
+        const offset = (y * width + x) * 4;
+        pixels[offset] = 17;
+        pixels[offset + 1] = 17;
+        pixels[offset + 2] = 17;
+        pixels[offset + 3] = 255;
+      }
+    }
+    return pixels;
+  }
+
+  it('detects sideways ink even when the outer mobile buffer is landscape', () => {
+    const bounds = detectSignatureInkBounds(
+      signaturePixels(640, 320, { left: 300, top: 35, right: 322, bottom: 285 }),
+      640,
+      320,
+    );
+    expect(bounds).not.toBeNull();
+    expect(bounds && shouldRotateSignatureInk(bounds)).toBe(true);
+  });
+
+  it('keeps normally written horizontal ink unchanged', () => {
+    const bounds = detectSignatureInkBounds(
+      signaturePixels(640, 320, { left: 80, top: 145, right: 560, bottom: 178 }),
+      640,
+      320,
+    );
+    expect(bounds).not.toBeNull();
+    expect(bounds && shouldRotateSignatureInk(bounds)).toBe(false);
   });
 });
 
 describe('capture pipeline wiring', () => {
   it('exports normalized PNG from web canvas on confirm', () => {
     const source = readSrc('src/components/inputs/CareSignatureCanvas.tsx');
+    const normalizer = readSrc('src/lib/signatures/normalizeSignatureCapture.ts');
     expect(source).toContain('exportSignatureCanvasPng');
     expect(source).not.toMatch(/onConfirm\(canvas\.toDataURL\('image\/png'\)\)/);
+    expect(normalizer).toContain('detectSignatureInkBounds');
+    expect(normalizer).toContain('resolveSignatureCaptureRotation');
+    expect(source).toContain('orientationType: orientation.orientationType');
+    expect(source).toContain('angle: orientation.angle');
+  });
+
+  it('normalizes stored signature ink before Leistungsnachweis PDF rendering', () => {
+    const service = readSrc('src/lib/assist/assistProofPdfService.ts');
+    const payload = readSrc('src/lib/assist/assistProofPdfPayload.ts');
+    const display = readSrc('src/components/signatures/SignatureDisplay.tsx');
+    expect(service).toContain('normalizeSignatureImageForProof(signatureImageUrl)');
+    expect(payload).toContain('proof-signature-image-frame');
+    expect(display).toContain('normalizeSignatureImageForProof(imageUri)');
   });
 });

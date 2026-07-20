@@ -136,8 +136,21 @@ export function visitProofPdfStyles(): string {
       border: 1px solid #e5e7eb;
       border-radius: 8px;
       padding: 14px;
-      min-height: 88px;
+      min-height: 132px;
       page-break-inside: avoid;
+      overflow: hidden;
+    }
+    .proof-signature-image-frame {
+      width: 100%;
+      height: 96px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .proof-signature-image-frame img {
+      display: block;
+      transform-origin: center center;
     }
     .proof-signature-meta { margin: 8px 0 0; font-size: 12px; color: #4b5563; }
     .proof-footer {
