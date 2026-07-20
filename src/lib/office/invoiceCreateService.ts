@@ -8,6 +8,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 
 export type InvoiceCreateInput = {
   title: string;
+  clientId?: string;
   clientName?: string;
   totalCents?: number;
   dueDate?: string;
@@ -60,7 +61,9 @@ export async function createInvoice(
   if (tenantErr) return { ok: false, error: tenantErr.error };
 
   if (getServiceMode() === 'supabase') {
-    const clientResult = await resolveClientIdByName(tenantId, input.clientName ?? '');
+    const clientResult = input.clientId
+      ? ({ ok: true, data: input.clientId } as const)
+      : await resolveClientIdByName(tenantId, input.clientName ?? '');
     if (!clientResult.ok) return clientResult;
     return invoiceSupabaseRepository.create(tenantId, {
       title: input.title,

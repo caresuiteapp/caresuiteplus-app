@@ -33,7 +33,7 @@ describe('Office employee & invoice CRUD audit screens', () => {
 
     for (const file of ['InvoiceCreateScreen.tsx', 'InvoiceEditScreen.tsx']) {
       const source = readFileSync(path.join(root, 'src/screens/office', file), 'utf8');
-      expect(source).toMatch(/PremiumInput|CatalogValueSelect/);
+      expect(source).toMatch(/PremiumInput|CatalogValueSelect|CareEntitySelect/);
       expect(source).toMatch(/createInvoice|updateInvoice|fetchInvoiceDetail/);
     }
   });

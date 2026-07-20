@@ -29,16 +29,21 @@ describe('Office Klient:innen und Abrechnung – visuelle Regression', () => {
     expect(read('src/components/ui/PremiumDataTable.tsx')).toContain("fluidTable: { width: '100%' }");
   });
 
-  it('zeigt das Rechnungsformular kompakt und mit sichtbaren Eingabefeldern', () => {
+  it('zeigt das Rechnungsformular kompakt und vollständig systemgeführt', () => {
     const create = read('src/screens/office/InvoiceCreateScreen.tsx');
     expect(create).toContain('compact');
-    expect(create).toContain('viewContext="form"');
-    expect(create).toContain('Status: Entwurf');
+    expect(create).toContain('CareEntitySelect');
+    expect(create).toContain('label="Klient:in"');
+    expect(create).toContain('label="Rechnungsart"');
+    expect(create).toContain('label="Abrechnungsmonat"');
+    expect(create).toContain('label="Zahlungsziel"');
+    expect(create).toContain('Automatische Rechnungsdaten');
+    expect(create).not.toContain('<PremiumInput');
     expect(create).not.toContain('<EmptyState title="Neue Rechnung"');
     expect(create).not.toContain('CatalogValueSelect');
     const service = read('src/lib/office/invoiceCreateService.ts');
     const repository = read('src/lib/services/repositories/invoiceRepository.supabase.ts');
-    expect(service).toContain('resolveClientIdByName');
+    expect(service).toContain('input.clientId');
     expect(service).toContain('clientId: clientResult.data');
     expect(repository).toContain('client_id: input.clientId ?? null');
     expect(repository).toContain('due_date: input.dueDate ?? null');

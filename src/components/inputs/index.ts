@@ -1,4 +1,5 @@
 export { CareDateInput } from './CareDateInput';
+export { CareEntitySelect, type CareEntityOption } from './CareEntitySelect';
 export { CareAddressSearch } from './CareAddressSearch';
 export { CareTimeInput } from './CareTimeInput';
 export { CareCurrencyInput } from './CareCurrencyInput';
