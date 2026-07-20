@@ -34,6 +34,8 @@ import {
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toStorageUploadError } from '@/lib/storage/storagePaths';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
+import { pickSignatureImageUrl } from '@/lib/assist/visitSignatureImageService';
+import { normalizeSignatureImageForProof } from '@/lib/signatures/signatureOrientation';
 
 export type { AssistProofPdfPayload };
 export { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
@@ -65,8 +67,18 @@ export async function buildEnrichedAssistProofPdfPayload(
 
   const needsEmployee = employeeName === VISIT_PROOF_EMPLOYEE_UNKNOWN;
   const needsBranding = !branding.logoUrl || branding.tenantName === VISIT_PROOF_TENANT_NAME_FALLBACK;
+  const snapshotHasSignature = Boolean(
+    proof.signatureId ||
+    snapshot.signature ||
+    snapshot.signerName ||
+    snapshot.signedAt,
+  );
+  const needsSignature = snapshotHasSignature && !pickSignatureImageUrl(
+    merged.signatureImageUrl,
+    merged.signature?.dataUrl,
+  );
 
-  if (needsEmployee) {
+  if (needsEmployee || needsSignature) {
     const enriched = await enrichVisitProofForPreview(tenantId, proof);
     if (enriched.ok) {
       merged = mergeVisitProofEnrichment(enriched.data, merged);
@@ -84,6 +96,25 @@ export async function buildEnrichedAssistProofPdfPayload(
       },
       merged,
     );
+  }
+
+  const signatureImageUrl = pickSignatureImageUrl(
+    merged.signatureImageUrl,
+    merged.signature?.dataUrl,
+  );
+  if (signatureImageUrl) {
+    const normalized = await normalizeSignatureImageForProof(signatureImageUrl);
+    if (normalized) {
+      merged = {
+        ...merged,
+        signatureImageUrl: normalized.dataUrl,
+        signatureImageWidth: normalized.width,
+        signatureImageHeight: normalized.height,
+        signature: merged.signature
+          ? { ...merged.signature, dataUrl: normalized.dataUrl }
+          : merged.signature,
+      };
+    }
   }
 
   return buildAssistProofPdfPayload(proof, merged);

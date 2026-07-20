@@ -251,7 +251,7 @@ export function buildAssistProofPdfPayload(
   );
 
   const signatureImageHtml = signatureImageUrl
-    ? `<img src="${signatureImageUrl.replace(/"/g, '&quot;')}" alt="Unterschrift" style="${signatureImageStyle}" />`
+    ? `<div class="proof-signature-image-frame"><img src="${signatureImageUrl.replace(/"/g, '&quot;')}" alt="Unterschrift" style="${signatureImageStyle}" /></div>`
     : signerName || signedAt
       ? `<p style="margin:0;color:#6b7280;font-style:italic;font-size:12px;">Keine gezeichnete Unterschrift gespeichert.</p>`
       : '';

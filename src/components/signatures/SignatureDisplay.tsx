@@ -7,6 +7,7 @@ import {
 import {
   buildSignatureProofImageStyle,
   needsSignatureOrientationCorrection,
+  normalizeSignatureImageForProof,
 } from '@/lib/signatures/signatureOrientation';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { spacing, typography } from '@/theme';
@@ -46,8 +47,10 @@ export function SignatureDisplay({
   const text = useAuroraAdaptiveText();
   const [imageError, setImageError] = useState(false);
   const [orientationCorrected, setOrientationCorrected] = useState(false);
+  const [normalizedImageUri, setNormalizedImageUri] = useState<string | null>(null);
 
   const imageUri = pickSignatureImageUrl(signatureImageUrl, signatureDataUrl);
+  const displayImageUri = normalizedImageUri ?? imageUri;
   const metadataLine = formatSignatureMetadataLine({
     signerName,
     signedAt,
@@ -58,6 +61,18 @@ export function SignatureDisplay({
 
   useEffect(() => {
     setOrientationCorrected(false);
+    setNormalizedImageUri(null);
+    if (!imageUri) return;
+
+    let active = true;
+    void normalizeSignatureImageForProof(imageUri).then((normalized) => {
+      if (!active || !normalized) return;
+      setNormalizedImageUri(normalized.dataUrl);
+      setOrientationCorrected(false);
+    });
+    return () => {
+      active = false;
+    };
   }, [imageUri]);
 
   const styles = useMemo(
@@ -127,7 +142,7 @@ export function SignatureDisplay({
 
       {showImage ? (
         <Image
-          source={{ uri: imageUri! }}
+          source={{ uri: displayImageUri! }}
           style={correctedImageStyle}
           resizeMode="contain"
           accessibilityLabel={`Gezeichnete ${label}`}

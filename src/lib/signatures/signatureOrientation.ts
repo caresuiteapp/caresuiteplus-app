@@ -38,6 +38,81 @@ export type SignatureProofImageStyle = {
   transform?: string;
 };
 
+export type SignatureInkBounds = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+  pixelCount: number;
+};
+
+export type NormalizedSignatureProofImage = {
+  dataUrl: string;
+  width: number;
+  height: number;
+  rotated: boolean;
+  cropped: boolean;
+};
+
+/**
+ * Finds the written ink rather than trusting the outer PNG dimensions.
+ * Mobile landscape captures can have a landscape buffer while the actual
+ * signature pixels are stored sideways inside that buffer.
+ */
+export function detectSignatureInkBounds(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+): SignatureInkBounds | null {
+  if (width <= 0 || height <= 0 || pixels.length < width * height * 4) return null;
+
+  let left = width;
+  let top = height;
+  let right = -1;
+  let bottom = -1;
+  let pixelCount = 0;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 4;
+      const red = pixels[offset];
+      const green = pixels[offset + 1];
+      const blue = pixels[offset + 2];
+      const alpha = pixels[offset + 3];
+      if (alpha < 16) continue;
+
+      const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
+      const saturation = Math.max(red, green, blue) - Math.min(red, green, blue);
+      const isInk = alpha < 245 || luminance < 242 || saturation > 20;
+      if (!isInk) continue;
+
+      left = Math.min(left, x);
+      top = Math.min(top, y);
+      right = Math.max(right, x);
+      bottom = Math.max(bottom, y);
+      pixelCount += 1;
+    }
+  }
+
+  if (right < left || bottom < top || pixelCount < 4) return null;
+  return {
+    left,
+    top,
+    right,
+    bottom,
+    width: right - left + 1,
+    height: bottom - top + 1,
+    pixelCount,
+  };
+}
+
+/** A signature is always presented in reading direction: wider than tall. */
+export function shouldRotateSignatureInk(bounds: SignatureInkBounds): boolean {
+  return bounds.height > bounds.width * 1.08;
+}
+
 /** Layout for proof/PDF signature `<img>` — rotates tall buffers for display. */
 export function buildSignatureProofImageStyle(
   width?: number | null,
@@ -131,4 +206,104 @@ export async function probeSignatureImageDimensions(
   } catch {
     return null;
   }
+}
+
+/**
+ * Browser-side proof normalization for new and already stored signatures.
+ * It trims unused canvas space and rotates sideways ink into a horizontal,
+ * readable image before html2canvas creates the Leistungsnachweis PDF.
+ */
+export async function normalizeSignatureImageForProof(
+  imageUrl: string,
+): Promise<NormalizedSignatureProofImage | null> {
+  const trimmed = imageUrl.trim();
+  if (!trimmed || typeof document === 'undefined' || typeof Image === 'undefined') {
+    return null;
+  }
+
+  const image = await new Promise<HTMLImageElement | null>((resolve) => {
+    const candidate = new Image();
+    if (/^https?:\/\//i.test(trimmed)) candidate.crossOrigin = 'anonymous';
+    candidate.onload = () => resolve(candidate);
+    candidate.onerror = () => resolve(null);
+    candidate.src = trimmed;
+  });
+  if (!image || image.naturalWidth <= 0 || image.naturalHeight <= 0) return null;
+
+  const source = document.createElement('canvas');
+  source.width = image.naturalWidth;
+  source.height = image.naturalHeight;
+  const sourceContext = source.getContext('2d', { willReadFrequently: true });
+  if (!sourceContext) return null;
+  sourceContext.drawImage(image, 0, 0);
+
+  let bounds: SignatureInkBounds | null = null;
+  try {
+    bounds = detectSignatureInkBounds(
+      sourceContext.getImageData(0, 0, source.width, source.height).data,
+      source.width,
+      source.height,
+    );
+  } catch {
+    // Signed storage URLs without usable CORS still retain dimension fallback.
+  }
+
+  const rotate = bounds
+    ? shouldRotateSignatureInk(bounds)
+    : needsSignatureOrientationCorrection(source.width, source.height);
+  const padding = Math.max(8, Math.round(Math.max(source.width, source.height) * 0.025));
+  const sourceX = bounds ? Math.max(0, bounds.left - padding) : 0;
+  const sourceY = bounds ? Math.max(0, bounds.top - padding) : 0;
+  const sourceRight = bounds ? Math.min(source.width, bounds.right + padding + 1) : source.width;
+  const sourceBottom = bounds ? Math.min(source.height, bounds.bottom + padding + 1) : source.height;
+  const cropWidth = Math.max(1, sourceRight - sourceX);
+  const cropHeight = Math.max(1, sourceBottom - sourceY);
+
+  const naturalTargetWidth = rotate ? cropHeight : cropWidth;
+  const naturalTargetHeight = rotate ? cropWidth : cropHeight;
+  const maxDimension = 1600;
+  const scale = Math.min(1, maxDimension / Math.max(naturalTargetWidth, naturalTargetHeight));
+  const target = document.createElement('canvas');
+  target.width = Math.max(1, Math.round(naturalTargetWidth * scale));
+  target.height = Math.max(1, Math.round(naturalTargetHeight * scale));
+  const targetContext = target.getContext('2d');
+  if (!targetContext) return null;
+
+  targetContext.imageSmoothingEnabled = true;
+  targetContext.imageSmoothingQuality = 'high';
+  if (rotate) {
+    targetContext.translate(0, target.height);
+    targetContext.rotate(-Math.PI / 2);
+    targetContext.drawImage(
+      source,
+      sourceX,
+      sourceY,
+      cropWidth,
+      cropHeight,
+      0,
+      0,
+      target.height,
+      target.width,
+    );
+  } else {
+    targetContext.drawImage(
+      source,
+      sourceX,
+      sourceY,
+      cropWidth,
+      cropHeight,
+      0,
+      0,
+      target.width,
+      target.height,
+    );
+  }
+
+  return {
+    dataUrl: target.toDataURL('image/png'),
+    width: target.width,
+    height: target.height,
+    rotated: rotate,
+    cropped: Boolean(bounds),
+  };
 }
