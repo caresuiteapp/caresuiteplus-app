@@ -157,6 +157,10 @@ export type VisitDispositionListItem = {
   assignmentStatus: AssignmentStatus;
   planningStatus: VisitPlanningStatus;
   executionStatus?: VisitExecutionStatus;
+  onTheWayAt?: string | null;
+  arrivedAt?: string | null;
+  actualStartAt?: string | null;
+  actualEndAt?: string | null;
   documentationStatus?: VisitDocumentationStatus;
   proofStatus: VisitProofStatus;
   billingStatus: VisitBillingStatus;

@@ -182,6 +182,11 @@ describe('Assignment compact cards UI', () => {
     expect(source).toContain('useAssignmentTravelTime');
     expect(source).toContain('displayText');
     expect(source).toContain('formatAssignmentWeekdayDate');
+    expect(source).toContain("{ label: 'Anfahrt', value: assignment.onTheWayAt }");
+    expect(source).toContain("{ label: 'Angekommen', value: assignment.arrivedAt }");
+    expect(source).toContain("{ label: 'Einsatzstart', value: assignment.actualStartAt }");
+    expect(source).toContain("{ label: 'Einsatzende', value: assignment.actualEndAt }");
+    expect(source).not.toContain('AssignmentCardHoverDetails');
   });
 
   it('assignment list service enriches items with assignmentStatus for cards', () => {
@@ -225,6 +230,11 @@ describe('Assignment compact cards UI', () => {
     expect(source).toContain('serviceFilter');
     expect(source).not.toContain('AssignmentsFilterSidebar');
     expect(source).not.toContain('layoutRow');
+    expect(source).toContain('filtersExpanded');
+    expect(source).toContain('Filter anzeigen');
+    expect(source).toContain('Filter ausblenden');
+    expect(source).toMatch(/onChange=.*setDateRange/s);
+    expect((source.match(/\bwrap\b/g) ?? []).length).toBeGreaterThanOrEqual(5);
   });
 
   it('AssignmentMobileActionSheet uses bottom sheet on mobile only', () => {

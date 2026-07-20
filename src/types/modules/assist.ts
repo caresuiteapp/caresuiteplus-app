@@ -34,7 +34,6 @@ export type AssignmentListItem = Pick<
   AssignmentPlan,
   | 'id'
   | 'tenantId'
-  | 'employeeId'
   | 'title'
   | 'scheduledStart'
   | 'scheduledEnd'
@@ -44,12 +43,18 @@ export type AssignmentListItem = Pick<
   | 'employeeName'
   | 'updatedAt'
 > & {
+  employeeId: string | null;
   serviceName?: string | null;
   durationMinutes?: number | null;
   /** Canonical assignment workflow status (distinct from legacy workflow filter). */
   assignmentStatus?: import('./assignmentStatus').AssignmentStatus;
   planningStatus?: string;
   executionStatus?: string;
+  /** Persisted lifecycle timestamps used by the office assignment card. */
+  onTheWayAt?: string | null;
+  arrivedAt?: string | null;
+  actualStartAt?: string | null;
+  actualEndAt?: string | null;
   documentationStatus?: string;
   proofStatus?: string;
   billingStatus?: string;

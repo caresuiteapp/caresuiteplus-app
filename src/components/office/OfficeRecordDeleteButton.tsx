@@ -14,6 +14,7 @@ type OfficeRecordDeleteButtonProps = {
   fullWidth?: boolean;
   confirmTitle?: string;
   buttonTitle?: string;
+  buttonSize?: 'sm' | 'md';
 };
 
 export function OfficeRecordDeleteButton({
@@ -25,6 +26,7 @@ export function OfficeRecordDeleteButton({
   fullWidth = true,
   confirmTitle = 'Wirklich löschen?',
   buttonTitle = 'Löschen',
+  buttonSize = 'md',
 }: OfficeRecordDeleteButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +63,7 @@ export function OfficeRecordDeleteButton({
       <PremiumButton
         title={buttonTitle}
         variant="secondary"
+        size={buttonSize}
         fullWidth={fullWidth}
         loading={loading}
         disabled={disabled || loading}

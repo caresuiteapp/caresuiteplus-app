@@ -172,6 +172,7 @@ const VISIT_LIST_CORE_SELECT = `
   id, tenant_id, legacy_assignment_id, client_id, employee_id,
   service_key, service_name, title, description,
   assignment_date, planned_start_at, planned_end_at, duration_minutes,
+  actual_start_at, actual_end_at, on_the_way_at, arrived_at,
   address_snapshot, planning_status, execution_status, documentation_status,
   proof_status, billing_status, portal_status, canonical_status,
   is_at_risk, is_incomplete, budget_amount_cents, budget_warning,
@@ -182,7 +183,7 @@ const LIST_SELECT = `${VISIT_LIST_CORE_SELECT},
   employees(first_name, last_name)`;
 
 const DETAIL_EXTRA_SELECT = `
-  actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at,
+  finished_at,
   location_notes, internal_notes, employee_notes, portal_release_enabled, employee_portal_visible,
   budget_currency, subject_key, assignment_type_key, service_category_key, task_package_id,
   billing_budget_source_key, proof_template_key, risk_flag_keys, catalog_snapshot_json,
@@ -441,6 +442,10 @@ function mapListItem(row: VisitRow): VisitDispositionListItem {
     assignmentStatus,
     planningStatus: row.planning_status,
     executionStatus: row.execution_status,
+    onTheWayAt: row.on_the_way_at,
+    arrivedAt: row.arrived_at,
+    actualStartAt: row.actual_start_at,
+    actualEndAt: row.actual_end_at,
     documentationStatus: row.documentation_status,
     proofStatus: row.proof_status,
     billingStatus: row.billing_status,

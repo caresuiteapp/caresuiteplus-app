@@ -1,8 +1,7 @@
-import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
 import { PremiumBadge, PremiumButton, PremiumCard } from '@/components/ui';
 import { HealthOSStatusBadge } from '@/components/healthos';
-import { AssignmentCardHoverDetails } from '@/components/assist/AssignmentCardHoverDetails';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import {
   buildAssignmentFooterChips,
@@ -19,6 +18,7 @@ import {
   formatAssignmentTimeRange,
   formatAssignmentWeekdayDate,
   formatDurationMinutes,
+  formatTime,
 } from '@/lib/formatters/dateTimeFormatters';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
@@ -59,10 +59,16 @@ export function AssignmentCompactCard({
   const canDelete = isAssignmentListItemDeletable(assignment);
   const footerChips = buildAssignmentFooterChips(assignment);
   const sgbRef = resolveSgbReference(assignment);
-  const [hovered, setHovered] = useState(false);
   const travelTime = useAssignmentTravelTime(assignment, {
-    enabled: showHoverDetails && hovered,
+    enabled: showHoverDetails,
   });
+  const lifecycleTimes = [
+    { label: 'Anfahrt', value: assignment.onTheWayAt },
+    { label: 'Angekommen', value: assignment.arrivedAt },
+    { label: 'Einsatzstart', value: assignment.actualStartAt },
+    { label: 'Einsatzende', value: assignment.actualEndAt },
+  ];
+  const showLifecycleTimes = lifecycleTimes.some((entry) => Boolean(entry.value));
 
   const styles = useMemo(
     () =>
@@ -103,7 +109,7 @@ export function AssignmentCompactCard({
           justifyContent: 'space-between',
           gap: spacing.sm,
         },
-        clientName: { ...typography.bodyStrong, flex: 1, flexShrink: 1, color: text.primary },
+        clientName: { ...typography.h3, flex: 1, flexShrink: 1, color: text.primary },
         statusStack: { alignItems: 'flex-end', gap: 4 },
         scheduleRow: {
           flexDirection: 'row',
@@ -111,27 +117,47 @@ export function AssignmentCompactCard({
           gap: spacing.xs,
           alignItems: 'center',
         },
-        weekday: { ...typography.caption, color: statusAccent.color, fontWeight: '600' },
-        timeRange: { ...typography.caption, color: text.secondary },
-        duration: { ...typography.caption, color: text.muted },
+        weekday: { ...typography.label, color: statusAccent.color, fontWeight: '700' },
+        timeRange: { ...typography.label, color: text.primary },
+        duration: { ...typography.label, color: text.secondary },
         serviceRow: { gap: 2 },
-        serviceName: { ...typography.caption, color: text.primary, fontWeight: '600' },
-        sgbRef: { ...typography.caption, color: text.muted },
-        metaRow: { ...typography.caption, color: text.secondary },
+        serviceName: { ...typography.label, color: text.primary, fontWeight: '700' },
+        sgbRef: { ...typography.label, color: text.secondary },
+        metaRow: { ...typography.label, color: text.primary },
         locationRow: {
           flexDirection: 'row',
           flexWrap: 'wrap',
           gap: spacing.xs,
           alignItems: 'center',
         },
-        location: { ...typography.caption, color: text.muted, flex: 1 },
-        travel: { ...typography.caption, color: text.muted },
+        location: { ...typography.label, color: text.secondary, flex: 1 },
+        travel: { ...typography.label, color: text.secondary },
         travelUnavailable: { opacity: 0.65 },
+        lifecycleRow: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: spacing.xs,
+          marginTop: spacing.xs,
+          paddingVertical: spacing.xs,
+          borderTopWidth: 1,
+          borderBottomWidth: 1,
+          borderColor: 'rgba(148, 163, 184, 0.22)',
+        },
+        lifecycleItem: { flex: 1, flexBasis: 112, minWidth: 112, gap: 1 },
+        lifecycleLabel: { ...typography.caption, color: text.muted, fontWeight: '600' },
+        lifecycleValue: { ...typography.label, color: text.primary, fontWeight: '700' },
         footerChips: {
           flexDirection: 'row',
           flexWrap: 'wrap',
           gap: 4,
           marginTop: spacing.xs,
+        },
+        footerChip: {
+          flex: 1,
+          flexBasis: 132,
+          minWidth: 132,
+          alignSelf: 'stretch',
+          justifyContent: 'center',
         },
         actions: {
           flexDirection: 'row',
@@ -139,23 +165,10 @@ export function AssignmentCompactCard({
           gap: spacing.xs,
           marginTop: spacing.sm,
         },
-        actionBtn: { flexGrow: 1, minWidth: 72 },
-        hoverHost: {
-          ...(Platform.OS === 'web'
-            ? ({ position: 'relative' } as ViewStyle)
-            : null),
-        },
+        actionBtn: { flex: 1, flexBasis: 120, minWidth: 120 },
       }),
     [accentModule, statusAccent.color, statusAccent.tint, text],
   );
-
-  const webHoverProps =
-    Platform.OS === 'web' && showHoverDetails
-      ? ({
-          onMouseEnter: () => setHovered(true),
-          onMouseLeave: () => setHovered(false),
-        } as Record<string, unknown>)
-      : {};
 
   const cardBody = (
     <>
@@ -214,9 +227,27 @@ export function AssignmentCompactCard({
           ) : null}
         </View>
 
+        {showLifecycleTimes ? (
+          <View style={styles.lifecycleRow}>
+            {lifecycleTimes.map((entry) => (
+              <View key={entry.label} style={styles.lifecycleItem}>
+                <Text style={styles.lifecycleLabel}>{entry.label}</Text>
+                <Text style={styles.lifecycleValue}>
+                  {entry.value ? formatTime(entry.value) : '—'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
         <View style={styles.footerChips}>
           {footerChips.map((chip) => (
-            <PremiumBadge key={chip.id} label={chip.label} variant={chip.variant} />
+            <PremiumBadge
+              key={chip.id}
+              label={chip.label}
+              variant={chip.variant}
+              style={styles.footerChip}
+            />
           ))}
         </View>
 
@@ -267,6 +298,7 @@ export function AssignmentCompactCard({
                   onDeleted={onDeleted}
                   confirmTitle="Einsatz endgültig löschen?"
                   buttonTitle="Löschen"
+                  buttonSize="sm"
                   fullWidth
                 />
               </View>
@@ -287,11 +319,8 @@ export function AssignmentCompactCard({
   );
 
   return (
-    <View style={styles.hoverHost} {...webHoverProps}>
+    <View>
       {onPress ? <Pressable onPress={onPress}>{card}</Pressable> : card}
-      {showHoverDetails && hovered ? (
-        <AssignmentCardHoverDetails assignment={assignment} />
-      ) : null}
     </View>
   );
 }

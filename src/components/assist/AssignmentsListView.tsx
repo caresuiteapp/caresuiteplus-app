@@ -49,6 +49,7 @@ import { spacing } from '@/theme';
 import {
   isAssignmentListItemDeletable,
   resolveAssignmentExecutionBadge,
+  resolveAssignmentListItemStatus,
 } from '@/lib/assist/assignmentCardPresentation';
 import { confirmAction } from '@/lib/platform/confirmAction';
 
@@ -73,6 +74,7 @@ export function AssignmentsListView({
 }: AssignmentsListViewProps) {
   const router = useRouter();
   const [internalCreateOpen, setInternalCreateOpen] = useState(false);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [mobileSheetAssignment, setMobileSheetAssignment] = useState<AssignmentListItem | null>(
     null,
   );
@@ -158,11 +160,13 @@ export function AssignmentsListView({
           scheduledEnd: item.scheduledEnd,
           durationMinutes: item.durationMinutes ?? null,
           status: item.status,
+          assignmentStatus: resolveAssignmentListItemStatus(item),
           planningStatus: (item.planningStatus as 'draft') ?? 'scheduled',
           proofStatus: (item.proofStatus as 'none') ?? 'none',
           billingStatus: (item.billingStatus as 'none') ?? 'none',
           location: item.location,
           clientName: item.clientName,
+          employeeId: item.employeeId,
           employeeName: item.employeeName,
           isAtRisk: item.isAtRisk ?? false,
           isIncomplete: item.isIncomplete ?? false,
@@ -199,7 +203,7 @@ export function AssignmentsListView({
           minWidth: 0,
           ...webGlassBlur,
         },
-        flatListWeb: Platform.OS === 'web' ? ({ minWidth: 0 } as ViewStyle) : null,
+        flatListWeb: { minWidth: Platform.OS === 'web' ? 0 : undefined },
         toolbar: { gap: spacing.sm, marginBottom: spacing.md, backgroundColor: 'transparent' },
         filterLabel: {
           ...typography.label,
@@ -221,6 +225,13 @@ export function AssignmentsListView({
         embeddedTitle: { ...typography.h3, color: colors.textPrimary },
         embeddedMeta: { ...typography.caption, color: colors.textMuted },
         filterRows: { gap: spacing.xs },
+        filterToggleRow: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: spacing.xs,
+          alignItems: 'center',
+        },
+        filterToggle: { minWidth: 180 },
         filterPairRow: {
           flexDirection: 'row',
           flexWrap: 'wrap',
@@ -400,16 +411,41 @@ export function AssignmentsListView({
         hint={`${filteredCount} von ${totalCount} Einsätzen`}
       />
 
-      <View style={styles.filterRows}>
+      <View style={styles.filterToggleRow}>
+        <PremiumButton
+          title={filtersExpanded ? 'Filter ausblenden' : 'Filter anzeigen'}
+          variant="secondary"
+          size="sm"
+          onPress={() => setFiltersExpanded((current) => !current)}
+          style={styles.filterToggle}
+        />
+        {hasActiveFilters ? (
+          <PremiumButton
+            title="Filter zurücksetzen"
+            variant="ghost"
+            size="sm"
+            onPress={resetFilters}
+            style={styles.filterToggle}
+          />
+        ) : null}
+      </View>
+
+      {filtersExpanded ? <View style={styles.filterRows}>
         <Text style={styles.filterLabel}>Zeitraum</Text>
         <FilterChipGroup
           options={ASSIGNMENT_DATE_RANGE_FILTERS}
           value={dateRange}
-          onChange={setDateRange}
+          onChange={(value) => !Array.isArray(value) && setDateRange(value)}
+          wrap
         />
 
         <Text style={styles.filterLabel}>Status</Text>
-        <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter} />
+        <FilterChipGroup
+          options={statusFilters}
+          value={statusFilter}
+          onChange={(value) => !Array.isArray(value) && setStatusFilter(value)}
+          wrap
+        />
 
         <View style={styles.filterPairRow}>
           <View style={styles.filterHalf}>
@@ -417,7 +453,8 @@ export function AssignmentsListView({
             <FilterChipGroup
               options={employeeOptions}
               value={employeeFilter}
-              onChange={setEmployeeFilter}
+              onChange={(value) => !Array.isArray(value) && setEmployeeFilter(value)}
+              wrap
             />
           </View>
           <View style={styles.filterHalf}>
@@ -425,14 +462,20 @@ export function AssignmentsListView({
             <FilterChipGroup
               options={serviceOptions}
               value={serviceFilter}
-              onChange={setServiceFilter}
+              onChange={(value) => !Array.isArray(value) && setServiceFilter(value)}
+              wrap
             />
           </View>
         </View>
 
         <Text style={styles.filterLabel}>Sortierung</Text>
-        <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
-      </View>
+        <FilterChipGroup
+          options={sortOptions}
+          value={sortKey}
+          onChange={(value) => !Array.isArray(value) && setSortKey(value)}
+          wrap
+        />
+      </View> : null}
     </View>
   );
 

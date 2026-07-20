@@ -80,6 +80,16 @@ function preferTasks(
   return visitTasks ?? [];
 }
 
+function clearListLifecycleTimes(item: VisitDispositionListItem): VisitDispositionListItem {
+  return {
+    ...item,
+    onTheWayAt: null,
+    arrivedAt: null,
+    actualStartAt: null,
+    actualEndAt: null,
+  };
+}
+
 export function applySnapshotToVisitListItem(
   item: VisitDispositionListItem,
   snapshot: AssignmentExecutionSnapshot,
@@ -102,6 +112,11 @@ export function applySnapshotToVisitListItem(
     assignmentStatus,
     proofStatus,
     status: assignmentStatusToWorkflowFilter(assignmentStatus),
+    executionStatus: snapshot.executionStatus ?? dims.execution,
+    onTheWayAt: snapshot.visitTimes?.driveStartedAt ?? item.onTheWayAt,
+    arrivedAt: snapshot.visitTimes?.arrivedAt ?? item.arrivedAt,
+    actualStartAt: snapshot.visitTimes?.serviceStartedAt ?? item.actualStartAt,
+    actualEndAt: snapshot.visitTimes?.serviceEndedAt ?? item.actualEndAt,
     isIncomplete:
       snapshot.isIncomplete ||
       isVisitIncomplete({
@@ -209,12 +224,17 @@ export async function overlayVisitDispositionListFromAssignments(
     };
 
     if (shouldIsolateOccurrenceExecution({ itemId: item.id })) {
-      return resetVirtualOccurrenceListItem(item, item.planningStatus);
+      return clearListLifecycleTimes(
+        resetVirtualOccurrenceListItem(item, item.planningStatus),
+      );
     }
 
     const snapshot = snapshots.get(ids.assignmentId) ?? snapshots.get(ids.visitId);
     const overlaid = snapshot ? applySnapshotToVisitListItem(item, snapshot) : item;
-    return neutralizeFutureOccurrenceListItem(overlaid);
+    const neutralized = neutralizeFutureOccurrenceListItem(overlaid);
+    return shouldNeutralizeFutureListItem(overlaid)
+      ? clearListLifecycleTimes(neutralized)
+      : neutralized;
   });
 }
 
