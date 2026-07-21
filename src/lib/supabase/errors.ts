@@ -56,6 +56,13 @@ export function toGermanSupabaseError(error: PostgrestError | null): string {
   if (msg.includes('Keine Berechtigung')) return msg;
   if (msg.includes('nicht gefunden')) return 'Klient:in wurde nicht gefunden.';
   if (msg.includes('Ungültiger Status')) return 'Der gewählte Status ist ungültig.';
+  if (
+    error.code === '23503' &&
+    (msg.includes('workforce_time_entry_reviews_employee_id_fkey') ||
+      msg.includes('keinem gültigen Mitarbeiterprofil zugeordnet'))
+  ) {
+    return 'Arbeitszeiteintrag ist keinem gültigen Mitarbeiterprofil zugeordnet. Bitte die Mitarbeitenden-Zuordnung prüfen.';
+  }
   if (error.code === '42501' || error.code === 'PGRST301') {
     return 'Kein Zugriff auf diesen Datensatz (RLS).';
   }

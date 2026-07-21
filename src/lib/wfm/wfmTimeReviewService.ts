@@ -150,13 +150,23 @@ export function parseOfficeEntryId(entryId: string): ParsedOfficeEntryId | null 
       workDate: null,
     };
   }
+  if (entryId.startsWith('planned:')) {
+    const [, assignmentId, workDate] = entryId.split(':');
+    if (!assignmentId) return null;
+    return { entryKind: 'visit', rawReferenceId: assignmentId, workDate: workDate ?? null };
+  }
   return { entryKind: 'manual', rawReferenceId: entryId, workDate: null };
 }
 
 export function resolveReviewContext(
   tenantId: string,
   entryId: string,
-  context?: { employeeId?: string; workDate?: string; entryKind?: WfmTimeReviewEntryKind },
+  context?: {
+    employeeId?: string;
+    workDate?: string;
+    entryKind?: WfmTimeReviewEntryKind;
+    rawReferenceId?: string;
+  },
 ): {
   employeeId: string;
   workDate: string;
@@ -166,7 +176,7 @@ export function resolveReviewContext(
 } {
   const parsed = parseOfficeEntryId(entryId);
   const entryKind = context?.entryKind ?? parsed?.entryKind ?? 'manual';
-  const rawReferenceId = parsed?.rawReferenceId ?? entryId;
+  const rawReferenceId = context?.rawReferenceId ?? parsed?.rawReferenceId ?? entryId;
   const employeeId = context?.employeeId ?? '00000000-0000-4000-8000-000000000001';
   const workDate = context?.workDate ?? parsed?.workDate ?? new Date().toISOString().slice(0, 10);
   const referenceId = coerceReferenceUuid(rawReferenceId);
@@ -354,13 +364,20 @@ export async function upsertReview(
   actorId: string,
   input: ReviewTransitionInput,
 ): Promise<ServiceResult<WfmTimeEntryReview>> {
-  const canonicalEmployee = await resolveCanonicalWfmEmployeeId(tenantId, input.employeeId);
+  const parsed = parseOfficeEntryId(input.entryId);
+  const sourceReferenceId = input.rawReferenceId ?? parsed?.rawReferenceId ?? input.entryId;
+  const sourceEntryKind = input.entryKind ?? parsed?.entryKind ?? 'manual';
+  const canonicalEmployee = await resolveCanonicalWfmEmployeeId(tenantId, input.employeeId, {
+    entryKind: sourceEntryKind,
+    referenceId: sourceReferenceId,
+  });
   if (!canonicalEmployee.ok) return canonicalEmployee;
 
   const ctx = resolveReviewContext(tenantId, input.entryId, {
     employeeId: canonicalEmployee.data,
     workDate: input.workDate,
     entryKind: input.entryKind,
+    rawReferenceId: sourceReferenceId,
   });
   const exportBlocking = deriveExportBlocking(input.nextStatus);
   const now = new Date().toISOString();
@@ -407,6 +424,40 @@ export async function upsertReview(
     return { ok: false, error: 'Supabase-Client nicht verfügbar.' };
   }
 
+  const rpcResult = await (supabase as unknown as {
+    rpc: (name: string, args: Record<string, unknown>) => {
+      single: () => Promise<{ data: unknown; error: { code?: string; message?: string } | null }>;
+    };
+  }).rpc('wfm_upsert_time_review', {
+    p_tenant_id: tenantId,
+    p_employee_candidate_id: input.employeeId,
+    p_work_date: ctx.workDate,
+    p_entry_kind: ctx.entryKind,
+    p_reference_id: ctx.referenceId,
+    p_reference_key: ctx.referenceKey,
+    p_review_status: input.nextStatus,
+    p_export_blocking: exportBlocking,
+    p_review_note: input.reviewNote ?? null,
+    p_office_comment: input.officeComment ?? input.reviewNote ?? null,
+    p_action_comment: input.actionComment ?? input.reviewNote ?? null,
+  }).single();
+
+  if (!rpcResult.error && rpcResult.data) {
+    return { ok: true, data: mapReviewRow(rpcResult.data as Record<string, unknown>) };
+  }
+
+  const rpcMissing =
+    rpcResult.error?.code === 'PGRST202' ||
+    rpcResult.error?.code === '42883' ||
+    (rpcResult.error?.message ?? '').includes('Could not find the function');
+  if (rpcResult.error && !rpcMissing) {
+    return {
+      ok: false,
+      error: toGermanSupabaseError(rpcResult.error as import('@supabase/supabase-js').PostgrestError),
+    };
+  }
+
+  // Compatibility fallback until migration 0261 is installed.
   const existingResult = await getReviewByReferenceKey(tenantId, ctx.referenceKey);
   if (!existingResult.ok) return existingResult;
   const existing = existingResult.data;
@@ -458,12 +509,22 @@ export async function transitionReviewStatus(
   actorId: string,
   input: ReviewTransitionInput,
 ): Promise<ServiceResult<WfmTimeEntryReview>> {
+  const parsed = parseOfficeEntryId(input.entryId);
+  const rawReferenceId = input.rawReferenceId ?? parsed?.rawReferenceId ?? input.entryId;
+  const entryKind = input.entryKind ?? parsed?.entryKind ?? 'manual';
+  const canonicalEmployee = await resolveCanonicalWfmEmployeeId(tenantId, input.employeeId, {
+    entryKind,
+    referenceId: rawReferenceId,
+  });
+  if (!canonicalEmployee.ok) return canonicalEmployee;
+
   const existingResult = await getReviewByReferenceKey(
     tenantId,
     resolveReviewContext(tenantId, input.entryId, {
-      employeeId: input.employeeId,
+      employeeId: canonicalEmployee.data,
       workDate: input.workDate,
-      entryKind: input.entryKind,
+      entryKind,
+      rawReferenceId,
     }).referenceKey,
   );
   if (existingResult.ok && existingResult.data) {
@@ -476,7 +537,12 @@ export async function transitionReviewStatus(
     }
   }
 
-  return upsertReview(tenantId, actorId, input);
+  return upsertReview(tenantId, actorId, {
+    ...input,
+    employeeId: canonicalEmployee.data,
+    entryKind,
+    rawReferenceId,
+  });
 }
 
 export async function appendReviewAction(
@@ -519,7 +585,7 @@ export async function appendReviewAction(
       prev_status: input.prevStatus ?? null,
       new_status: input.newStatus ?? null,
       comment: input.comment ?? null,
-      actor_id: actorId,
+      actor_id: actorId === WFM_REVIEW_SYSTEM_ACTOR ? null : actorId,
       source: 'office',
       metadata: { source: 'wfm_p21_service' },
     })

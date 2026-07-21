@@ -49,6 +49,11 @@ describe('wfmTimeReviewService', () => {
       workDate: WORK_DATE,
     });
     expect(parseOfficeEntryId(`session:${SESSION}`)?.entryKind).toBe('session');
+    expect(parseOfficeEntryId(`planned:${SESSION}:${WORK_DATE}`)).toEqual({
+      entryKind: 'visit',
+      rawReferenceId: SESSION,
+      workDate: WORK_DATE,
+    });
   });
 
   it('creates pending review and appends created action', async () => {

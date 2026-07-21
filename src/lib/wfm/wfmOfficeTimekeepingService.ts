@@ -62,6 +62,7 @@ import {
   mapUiReviewDecisionToDb,
   pickLatestReviewActions,
   resolveEntryKindFromOfficeEntry,
+  resolveReferenceRawId,
   transitionReviewStatus,
   upsertReview,
   WFM_REVIEW_SYSTEM_ACTOR,
@@ -107,17 +108,28 @@ async function resolveReviewContextForEntry(
   tenantId: string,
   entryId: string,
   entry?: WfmOfficeTimeEntry | null,
-): Promise<{ employeeId: string; workDate: string; entryKind?: 'session' | 'visit' | 'manual' | 'meeting' }> {
+): Promise<{
+  employeeId: string;
+  workDate: string;
+  entryKind?: 'session' | 'visit' | 'manual' | 'meeting';
+  rawReferenceId?: string;
+}> {
   if (entry && entry.id === entryId && entry.tenantId === tenantId) {
     return {
       employeeId: entry.employeeId,
       workDate: entry.workDate,
       entryKind: resolveEntryKindFromOfficeEntry(entry),
+      rawReferenceId: resolveReferenceRawId(entry) ?? entry.id,
     };
   }
   const manual = getManualEntry(entryId);
   if (manual) {
-    return { employeeId: manual.employeeId, workDate: manual.workDate, entryKind: 'manual' };
+    return {
+      employeeId: manual.employeeId,
+      workDate: manual.workDate,
+      entryKind: 'manual',
+      rawReferenceId: manual.id,
+    };
   }
   const overlay = getEntryOverlay(entryId);
   const parsed = entryId.startsWith('visit:')
@@ -129,6 +141,9 @@ async function resolveReviewContextForEntry(
     employeeId: overlay?.employeeId ?? '00000000-0000-4000-8000-000000000001',
     workDate: parsed.workDate,
     entryKind: parsed.entryKind,
+    rawReferenceId: parsed.entryKind === 'visit'
+      ? entryId.split(':')[1] ?? entryId
+      : entryId.replace(/^session:/, ''),
   };
 }
 
@@ -695,6 +710,7 @@ export async function applyWfmOfficeTimeCorrection(
     employeeId: existing?.employeeId ?? reviewCtx.employeeId,
     workDate: existing?.workDate ?? reviewCtx.workDate,
     entryKind: reviewCtx.entryKind,
+    rawReferenceId: reviewCtx.rawReferenceId,
     nextStatus: nextReviewStatus,
     reviewNote: input.reason,
     officeComment: input.reason,
@@ -882,6 +898,7 @@ export async function reviewWfmOfficeTimeEntry(
     employeeId: existing?.employeeId ?? reviewCtx.employeeId,
     workDate: existing?.workDate ?? reviewCtx.workDate,
     entryKind: reviewCtx.entryKind,
+    rawReferenceId: reviewCtx.rawReferenceId,
     nextStatus,
     reviewNote: reviewNote ?? null,
     officeComment: reviewNote ?? null,
