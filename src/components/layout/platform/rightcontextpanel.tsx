@@ -27,10 +27,9 @@ import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { getServiceMode } from '@/lib/services/mode';
 import { useAuroraAdaptiveText, lightLiquidGlassWebFx, useShellGlassSurfaceStyle } from '@/design/tokens/auroraGlass';
 import { resolveLlganGlassSurface } from '@/design/tokens/lightLiquidGlassAuroraNebula';
-import { llgsTypography } from '@/design/tokens/lightLiquidGlassSpace';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { breakpoints } from '@/design/tokens/breakpoints';
-import { glassFx, withAlpha } from '@/design/tokens/motion';
+import { withAlpha } from '@/design/tokens/motion';
 import { radius, spacing, typography } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 import {
@@ -50,6 +49,7 @@ import { TenantMandantCardContent } from './TenantMandantCardContent';
 import { SpaceKpiIcon } from '@/components/icons/space';
 import { AccentTextChip } from '@/components/ui/AccentTextChip';
 import { resolveLightColoredTextColor } from '@/design/tokens/accentContrast';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
 const SUPPORT_LINKS_ITEMS = [
   { label: 'Hilfe & Dokumentation', icon: 'helpOrb', href: 'help' as const },
@@ -270,10 +270,9 @@ function createStyles(
 ) {
   const sidebarSurface = resolveLlganGlassSurface('default');
   const chipSurface = resolveLlganGlassSurface('subtle');
-  const glassBorder = isDark ? glassFx.border : sidebarSurface.borderAccent;
-  const chipBg = chipSurface.chip;
+  const chipBg = spatialCare.input;
   const sidebarGlass = {
-    backgroundColor: sidebarSurface.sidebar,
+    backgroundColor: spatialCare.navigation,
     ...lightLiquidGlassWebFx(sidebarSurface.blurDesktop, sidebarSurface.saturate),
   };
 
@@ -317,7 +316,7 @@ function createStyles(
     },
     sectionHeading: {
       ...typography.caption,
-      color: isDark ? colors.textMuted : llgsTypography.secondary,
+      color: spatialCare.textOnNightMuted,
       textTransform: 'uppercase',
       letterSpacing: 0.6,
     },
@@ -335,7 +334,7 @@ function createStyles(
     },
     taskTitle: {
       ...typography.body,
-      color: colors.textSecondary,
+      color: spatialCare.textOnNight,
       flex: 1,
       minWidth: 0,
       fontWeight: '600',
@@ -366,12 +365,12 @@ function createStyles(
       ...lightLiquidGlassWebFx(chipSurface.blurMobile, chipSurface.saturate),
     },
     actionIcon: { fontSize: 14 },
-    actionLabel: { ...typography.caption, color: colors.textPrimary, fontWeight: '600', flex: 1 },
+    actionLabel: { ...typography.caption, color: spatialCare.textOnNight, fontWeight: '600', flex: 1 },
     navSection: { gap: spacing.md },
     navGroup: { gap: spacing.xs },
     groupTitle: {
       ...typography.caption,
-      color: colors.textMuted,
+      color: spatialCare.textOnNightMuted,
       textTransform: 'uppercase',
       letterSpacing: 0.6,
     },
@@ -398,7 +397,7 @@ function createStyles(
       borderRadius: 3,
     },
     navIcon: { fontSize: 14, width: 18, textAlign: 'center' },
-    navLabel: { ...typography.caption, color: colors.textSecondary, fontWeight: '600', flex: 1 },
+    navLabel: { ...typography.caption, color: spatialCare.textOnNight, fontWeight: '600', flex: 1 },
     supportFooter: {
       flexShrink: 0,
       alignItems: 'stretch',
@@ -423,7 +422,7 @@ function createStyles(
     },
     supportLinkText: {
       ...typography.caption,
-      color: colors.textMuted,
+      color: spatialCare.textOnNightMuted,
       fontWeight: '600',
       textAlign: 'left',
       flexShrink: 1,

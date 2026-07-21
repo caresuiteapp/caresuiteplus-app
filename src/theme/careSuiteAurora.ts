@@ -8,9 +8,9 @@ export const careSuiteAuroraTheme = {
   background: systemLiquidGlass.page,
   gradients: {
     primaryAurora: [...SYSTEM_BLUE_GRADIENT] as const,
-    heroAurora: ['#FFFFFF', '#F7FAFF', '#EEF4FB', '#DCEBFF'] as const,
+    heroAurora: ['#252742', '#353658', '#45415F', '#272842'] as const,
     buttonPrimary: [...SYSTEM_BLUE_GRADIENT] as const,
-    buttonSecondary: ['rgba(248,251,255,0.08)', 'rgba(20,120,255,0.16)'] as const,
+    buttonSecondary: ['rgba(255,255,255,0.07)', 'rgba(105,232,255,0.14)'] as const,
     buttonSuccess: ['#1478FF', '#4A9AFF'] as const,
     buttonDanger: ['#C83A50', '#FF5D6C'] as const,
     orangeLegacyOnlyIfNeeded: [...SYSTEM_BLUE_GRADIENT] as const,
@@ -25,7 +25,7 @@ export const careSuiteAuroraTheme = {
     primary: systemLiquidGlass.text.primary,
     secondary: systemLiquidGlass.text.secondary,
     muted: systemLiquidGlass.text.muted,
-    darkOnLightGradient: SYSTEM_LIQUID_COLORS.navy,
+    darkOnLightGradient: '#F8F6FF',
   },
   glow: {
     pink: systemLiquidGlass.glow.medium,
@@ -44,7 +44,7 @@ export const careSuiteAuroraTheme = {
 export type CareSuiteAuroraTheme = typeof careSuiteAuroraTheme;
 
 /** Three-stop hero gradient for list/detail headers. */
-export const AURORA_HERO_GRADIENT = ['#FFFFFF', '#EEF4FB', '#DCEBFF'] as const;
+export const AURORA_HERO_GRADIENT = ['#252742', '#353658', '#45415F'] as const;
 
 /** Primary CTA button gradient. */
 export const AURORA_BUTTON_PRIMARY = careSuiteAuroraTheme.gradients.buttonPrimary;
