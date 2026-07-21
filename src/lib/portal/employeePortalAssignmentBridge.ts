@@ -1,9 +1,9 @@
 import type { AssignmentDetail, AssignmentTaskItem } from '@/lib/assist/repositories/assignmentRepository.supabase';
 import { assignmentStatusToRemote } from '@/lib/assist/assignmentStatusBridge';
 import {
-  dedupeStatusTransitionButtons,
   getAllowedAssignmentTransitions,
 } from '@/lib/assist/assignmentStatusMachine';
+import { dedupeStatusTransitionButtons } from '@/lib/assist/visitTransitionButtons';
 import type { VisitDispositionDetail } from '@/lib/assist/visitTypes';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import type { WorkflowStatus } from '@/types/core/base';

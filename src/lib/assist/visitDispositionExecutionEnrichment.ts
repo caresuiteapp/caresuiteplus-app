@@ -15,11 +15,11 @@ import { normalizePhotoReferenceList } from '@/lib/assist/visitInternalAttachmen
 import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
 import {
   assignmentStatusToDimensions,
-  dedupeStatusTransitionButtons,
   getVisitAllowedTransitions,
   isVisitIncomplete,
   resolveAssignmentStatusFromExecutionContext,
 } from '@/lib/assist/visitWorkflow';
+import { dedupeStatusTransitionButtons } from '@/lib/assist/visitTransitionButtons';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';

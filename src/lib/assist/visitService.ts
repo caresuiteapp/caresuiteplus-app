@@ -1,7 +1,6 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
-import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import {
   getDemoAssignmentListItems,
   getDemoAssignmentSeedById,
@@ -29,9 +28,8 @@ import type {
 } from '@/lib/assist/visitTypes';
 import { buildVisitRecurrenceJson } from '@/lib/assist/visitTypes';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
-import { assignmentStatusToRemote } from '@/lib/assist/assignmentStatusBridge';
 import { getAllowedAssignmentTransitions } from '@/lib/assist/assignmentStatusMachine';
-import { dedupeStatusTransitionButtons } from '@/lib/assist/visitWorkflow';
+import { dedupeStatusTransitionButtons } from '@/lib/assist/visitTransitionButtons';
 import { assignmentStatusToDimensions, isVisitIncomplete } from '@/lib/assist/visitWorkflow';
 import { buildPlannedTimestamps } from '@/lib/assist/assignmentProductionValidation';
 import {

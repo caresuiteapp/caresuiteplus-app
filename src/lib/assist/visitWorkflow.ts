@@ -11,6 +11,8 @@ import type {
   VisitStatusDimension,
 } from '@/lib/assist/visitTypes';
 
+export { dedupeStatusTransitionButtons } from '@/lib/assist/visitTransitionButtons';
+
 export const PLANNING_TRANSITIONS: Record<VisitPlanningStatus, VisitPlanningStatus[]> = {
   draft: ['scheduled', 'cancelled'],
   scheduled: ['confirmed', 'at_risk', 'cancelled'],
@@ -94,21 +96,6 @@ export function validateVisitStatusTransition(
     };
   }
   return { valid: true };
-}
-
-/** Deduplicate status action buttons — never show duplicate labels. */
-export function dedupeStatusTransitionButtons(
-  transitions: AssignmentStatus[],
-): AssignmentStatus[] {
-  const seen = new Set<string>();
-  const result: AssignmentStatus[] = [];
-  for (const status of transitions) {
-    const label = ASSIGNMENT_STATUS_LABELS[status];
-    if (seen.has(label)) continue;
-    seen.add(label);
-    result.push(status);
-  }
-  return result;
 }
 
 export function validateDimensionTransition<T extends string>(

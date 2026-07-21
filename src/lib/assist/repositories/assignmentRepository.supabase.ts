@@ -10,7 +10,7 @@ import {
   getAllowedAssignmentTransitions,
   validateAssignmentTransition,
 } from '@/lib/assist/assignmentStatusMachine';
-import { dedupeStatusTransitionButtons } from '@/lib/assist/visitWorkflow';
+import { dedupeStatusTransitionButtons } from '@/lib/assist/visitTransitionButtons';
 import {
   assignmentStatusToRemote,
   remoteStatusToAssignment,
