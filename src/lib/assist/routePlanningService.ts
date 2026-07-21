@@ -44,7 +44,6 @@ import {
 import { detectAbsenceAssignmentConflicts } from '@/lib/office/absenceConflictService';
 import { getEmployeePersonnelFileForAssignmentCheck } from './employeePersonnelFileService';
 import { evaluateEmployeeDeployability, isEmployeeAssignable } from '@/lib/office/employeeDeployabilityService';
-import { isBackgroundCheckAssignable } from '@/lib/office/employeeBackgroundCheckService';
 
 const CANDIDATE_EMPLOYEES = [
   'employee-001',
@@ -176,7 +175,6 @@ export function buildReplacementSuggestions(
 
   const absences = getPlanningBlockAbsences(tenantId);
   const existing = listAssignmentWorkflows(tenantId);
-  const availability = getEmployeeAvailabilityBlocks(tenantId);
   const suggestions: ReplacementSuggestion[] = [];
   const now = new Date().toISOString();
 
@@ -207,7 +205,13 @@ export function buildReplacementSuggestions(
       assignment.serviceType,
       actorRoleKey,
     );
-    if (!qualification.ok || !qualification.data?.assignable) continue;
+    // Vertretungen dürfen nicht lediglich „nicht blockiert“ sein: Sie müssen
+    // die für den Einsatz erforderliche Qualifikation tatsächlich erfüllen.
+    if (
+      !qualification.ok ||
+      !qualification.data?.assignable ||
+      !qualification.data.qualificationOk
+    ) continue;
 
     const availabilityResult = checkEmployeeAvailabilityForPlanning(
       tenantId,
@@ -351,9 +355,6 @@ export function checkEmployeeQualificationForAssignment(
     return { ok: false, error: 'Mitarbeitende:r nicht gefunden.' };
   }
 
-  const backgroundCheckOk = isBackgroundCheckAssignable(file.backgroundCheck, true);
-  const missingContract = file.documents.some((d) => d.category === 'contract' && !d.storagePath);
-
   const deployability = evaluateEmployeeDeployability({
     tenantId,
     employeeId,
@@ -365,8 +366,6 @@ export function checkEmployeeQualificationForAssignment(
     roleTitle: file.masterData.roleTitle,
     roleKey: file.portalAccess.roleKey,
     blocked: file.masterData.status === 'gesperrt',
-    requiredDocsOk: !missingContract,
-    qualifications: file.qualifications,
   });
 
   const assignable = isEmployeeAssignable(deployability);

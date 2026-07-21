@@ -148,14 +148,15 @@ describe('LightGalaxyOrbitNebulaBackground component', () => {
 });
 
 describe('GlobalAnimatedBackground wiring', () => {
-  it('nutzt GlobalPersistentSpaceMotionBackground für Light-Mode', async () => {
+  it('nutzt den kanonischen statischen Light-Paper-Hintergrund', async () => {
     const { readFileSync } = await import('node:fs');
     const { default: path } = await import('node:path');
     const source = readFileSync(
       path.join(__dirname, '..', '..', 'components', 'ui', 'effects', 'globalanimatedbackground.tsx'),
       'utf8',
     );
-    expect(source).toContain('GlobalPersistentSpaceMotionBackground');
+    expect(source).toContain('StaticLightPaperBackground');
+    expect(source).not.toContain('GlobalPersistentSpaceMotionBackground');
     expect(source).not.toContain('LightGalaxyOrbitNebulaBackground');
     expect(source).not.toContain('LightSpaceOrbitGalaxyBackground');
   });

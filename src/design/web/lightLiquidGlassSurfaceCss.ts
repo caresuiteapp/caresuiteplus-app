@@ -1,40 +1,42 @@
-/**
- * Web-only CSS: frosted milchglas surfaces via data-cs-llgan-glass attributes.
- * Injected in app/+html.tsx so backdrop-filter is active before first paint.
- */
-export const LLGAN_GLASS_SURFACE_STYLE_ID = 'caresuite-llgan-glass-surfaces';
+/** Web CSS for the one canonical CareSuite HealthOS Liquid Glass surface. */
+export const LLGAN_GLASS_SURFACE_STYLE_ID = 'caresuite-system-liquid-glass-surfaces';
 
 export const LLGAN_GLASS_SURFACE_CSS = `
   :root {
-    --llgan-glass-blur: 0px;
-    --llgan-glass-saturate: 1.8;
-    --llgan-glass-card-alpha: 0.72;
-    --llgan-glass-panel-alpha: 0.64;
-    --llgan-glass-chip-alpha: 0.7;
+    --cs-navy: #10233F;
+    --cs-blue: #1478FF;
+    --cs-white: #FFFFFF;
+    --cs-glass-panel: rgba(255, 255, 255, .74);
+    --cs-glass-card: rgba(255, 255, 255, .82);
+    --cs-glass-control: rgba(247, 250, 255, .88);
+    --cs-glass-border: rgba(16, 35, 63, .12);
+    --cs-glass-border-strong: rgba(16, 35, 63, .20);
+    --cs-glass-blur: 28px;
+    color-scheme: light;
   }
 
   html, body, #root, #expo-root, [data-expo-root] {
-    background-color: transparent !important;
-    background: transparent !important;
+    background: #F7FAFF !important;
+    background-color: #F7FAFF !important;
+    color: var(--cs-navy);
   }
 
   .cs-llgan-glass,
   [data-cs-llgan-glass] {
     position: relative;
-    background-color: rgba(255, 255, 255, var(--llgan-glass-card-alpha)) !important;
+    background-color: var(--cs-glass-card) !important;
     background-image: linear-gradient(
       145deg,
-      rgba(255, 255, 255, 0.9) 0%,
-      rgba(247, 251, 255, 0.72) 48%,
-      rgba(235, 244, 255, 0.56) 100%
+      rgba(255,255,255,.82) 0%,
+      rgba(20,120,255,.045) 42%,
+      rgba(238,244,251,.72) 100%
     ) !important;
-    border: 1px solid rgba(255, 255, 255, 0.78);
+    border: 1px solid var(--cs-glass-border);
     box-shadow:
-      0 18px 46px rgba(70, 110, 170, 0.14),
-      inset 0 1px 0 rgba(255, 255, 255, 0.96),
-      inset 0 -1px 0 rgba(120, 170, 235, 0.1);
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
+      0 18px 48px rgba(16,35,63,.14),
+      inset 0 1px 0 rgba(255,255,255,.78);
+    -webkit-backdrop-filter: blur(var(--cs-glass-blur)) saturate(1.28) !important;
+    backdrop-filter: blur(var(--cs-glass-blur)) saturate(1.28) !important;
   }
 
   .cs-llgan-glass::before,
@@ -44,56 +46,58 @@ export const LLGAN_GLASS_SURFACE_CSS = `
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    background: linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.22) 0%,
-      rgba(255, 255, 255, 0.04) 38%,
-      transparent 100%
-    );
-    opacity: 0.45;
+    background: linear-gradient(145deg, rgba(255,255,255,.58), rgba(255,255,255,.12) 38%, transparent 70%);
+    opacity: .72;
     z-index: 0;
   }
 
-  [data-cs-llgan-glass] > * {
-    position: relative;
-    z-index: 1;
-  }
+  [data-cs-llgan-glass] > * { position: relative; z-index: 1; }
 
   [data-cs-llgan-glass="panel"] {
-    background-color: rgba(255, 255, 255, var(--llgan-glass-panel-alpha)) !important;
-    border-color: rgba(110, 160, 255, 0.3);
+    background-color: var(--cs-glass-panel) !important;
+    border-color: var(--cs-glass-border);
   }
 
   .cs-llgan-glass-card,
   [data-cs-llgan-glass="card"] {
-    background-color: rgba(255, 255, 255, var(--llgan-glass-card-alpha)) !important;
-    border-color: rgba(255, 255, 255, 0.82);
+    background-color: var(--cs-glass-card) !important;
+    border-color: var(--cs-glass-border);
   }
 
   [data-cs-llgan-glass="chip"],
   [data-cs-llgan-glass="input"],
   [data-cs-llgan-glass="button"] {
-    background-color: rgba(255, 255, 255, var(--llgan-glass-chip-alpha)) !important;
-    border-color: rgba(120, 160, 255, 0.28);
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
+    background-color: var(--cs-glass-control) !important;
+    border-color: var(--cs-glass-border);
+    -webkit-backdrop-filter: blur(18px) saturate(1.2) !important;
+    backdrop-filter: blur(18px) saturate(1.2) !important;
+  }
+
+  [data-cs-llgan-glass="input"]:focus-within,
+  [data-cs-llgan-glass="button"]:focus-visible {
+    border-color: rgba(20,120,255,.72) !important;
+    box-shadow: 0 0 0 3px rgba(20,120,255,.14);
   }
 
   [data-cs-llgan-glass="modal"] {
-    background-color: rgba(255, 255, 255, 0.86) !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
+    background-color: rgba(255,255,255,.94) !important;
+    border-color: var(--cs-glass-border-strong);
+    -webkit-backdrop-filter: blur(36px) saturate(1.28) !important;
+    backdrop-filter: blur(36px) saturate(1.28) !important;
   }
 
-  .performance-mobile.performance-ios-safari [data-cs-llgan-glass] {
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-    background-color: rgba(255, 255, 255, 0.72) !important;
-  }
-
+  .performance-mobile.performance-ios-safari [data-cs-llgan-glass],
   .disable-heavy-effects [data-cs-llgan-glass] {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
-    background-color: rgba(255, 255, 255, 0.26) !important;
+    background-color: rgba(255,255,255,.97) !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
   }
 `;

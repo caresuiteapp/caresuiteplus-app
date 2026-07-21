@@ -3,11 +3,10 @@ import { useRouter } from 'expo-router';
 import { AssistDataSourceBanner } from '@/components/assist';
 import {
   HealthOSBreadcrumbs,
-  HealthOSModuleShell,
-  HealthOSTopBar,
 } from '@/components/healthos';
 import { HealthOSAssistOperationsView } from '@/components/healthos/assist';
 import { ActionToolbar } from '@/components/layout/platform';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { PremiumBadge } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
@@ -56,26 +55,18 @@ export function AssistIndexScreen() {
   ];
 
   return (
-    <HealthOSModuleShell
-      moduleLabel="Assist & Alltagsbegleitung"
-      testID="healthos-assist-operations-shell"
-      topBar={
-        <HealthOSTopBar
-          title="Assist Operations"
-          subtitle="Einsatzplanung, Durchführung und Leistungsnachweise"
-          compact={false}
-        />
-      }
-      breadcrumbs={
-        <HealthOSBreadcrumbs
-          segments={[
-            { label: 'Start', href: '/business' },
-            { label: 'Assist', href: '/assist' },
-            { label: 'Operations' },
-          ]}
-        />
-      }
+    <ScreenShell
+      title="Assist"
+      subtitle="Einsatzplanung, Durchführung und Leistungsnachweise"
+      showBack={false}
     >
+      <HealthOSBreadcrumbs
+        segments={[
+          { label: 'Start', href: '/business' },
+          { label: 'Assist', href: '/assist' },
+          { label: 'Übersicht' },
+        ]}
+      />
       <AssistDataSourceBanner />
       <ActionToolbar
         actions={toolbarActions}
@@ -105,7 +96,7 @@ export function AssistIndexScreen() {
         accessibilityRole={wp258A11y.headingRole}
         style={styles.a11yAnchor}
       />
-    </HealthOSModuleShell>
+    </ScreenShell>
   );
 }
 

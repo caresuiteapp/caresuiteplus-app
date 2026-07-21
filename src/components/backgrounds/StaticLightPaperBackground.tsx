@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { Image, Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import { webFixedViewportCoverStyle } from '@/lib/platform/webSafeArea';
 
-const LIGHT_PAPER_BACKGROUND_PNG = require('../../../assets/images/backgrounds/light-abstract-paper-background.png');const LIGHT_PAPER_BACKGROUND_SVG = require('../../../assets/images/backgrounds/light-abstract-paper-background.svg');
+const LIGHT_PAPER_BACKGROUND_PNG = require('../../../assets/images/backgrounds/light-abstract-paper-background.png');
+const LIGHT_PAPER_BACKGROUND_SVG = require('../../../assets/images/backgrounds/light-abstract-paper-background.svg');
 
 export type StaticLightPaperBackgroundProps = {
   dimmed?: boolean;
@@ -91,9 +93,11 @@ export function StaticLightPaperBackground({
 const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFillObject,
+    ...(Platform.OS === 'web' ? webFixedViewportCoverStyle() : null),
     overflow: 'hidden',
     zIndex: 0,
-  },  image: {
+  },
+  image: {
     ...StyleSheet.absoluteFillObject,
     width: '100%' as ViewStyle['width'],
     height: '100%' as ViewStyle['height'],
