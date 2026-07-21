@@ -710,9 +710,9 @@ export function WfmExportScreen() {
           {reviewDetail ? (
             <SectionPanel title="Review-Detail" subtitle={reviewDetail.referenceKey}>
               <Text style={styles.metaLine}>Exportstatus: {reviewDetail.exportStatus}</Text>
-              <Text style={styles.metaLine}>Exportversion: {reviewDetail.exportVersion ?? 1}</Text>
+              <Text style={styles.metaLine}>Exportversion (export_version): {reviewDetail.exportVersion ?? 1}</Text>
               <Text style={styles.metaLine}>
-                Nach Export geändert: {reviewDetail.changedAfterExport ? 'ja' : 'nein'}
+                Nach Export geändert (changed_after_export): {reviewDetail.changedAfterExport ? 'ja' : 'nein'}
               </Text>
               {reviewDetail.changedAfterExportReason ? (
                 <Text style={styles.metaLine}>Grund: {reviewDetail.changedAfterExportReason}</Text>

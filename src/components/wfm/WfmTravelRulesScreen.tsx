@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { ListFilterSelect } from '@/components/ui';
 import { ScreenShell } from '@/components/layout';
 import { LockedActionBanner } from '@/components/permissions';
 import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumButton, SectionPanel } from '@/components/ui';
@@ -65,7 +66,13 @@ export function WfmTravelRulesScreen() {
         <View style={styles.grid}>
           <Field label="Mindestlücke (Min.)" value={form.minGap} onChange={(minGap) => setForm((v) => ({ ...v, minGap }))} />
           <Field label="Maximallücke (Min.)" value={form.maxGap} onChange={(maxGap) => setForm((v) => ({ ...v, maxGap }))} />
-          <Field label="Rundung (1/5/10/15/30)" value={form.roundTo} onChange={(roundTo) => setForm((v) => ({ ...v, roundTo }))} />
+          <ListFilterSelect
+            label="Rundung"
+            value={form.roundTo}
+            options={[1, 5, 10, 15, 30].map((minutes) => ({ key: String(minutes), label: `${minutes} Minuten` }))}
+            onChange={(roundTo) => setForm((v) => ({ ...v, roundTo }))}
+            style={styles.select}
+          />
           <Field label="Kilometerpauschale (€)" value={form.mileage} onChange={(mileage) => setForm((v) => ({ ...v, mileage }))} />
         </View>
         <Field label="Hinweise" value={form.notes} onChange={(notes) => setForm((v) => ({ ...v, notes }))} placeholder="Interne Erläuterung" />
@@ -100,5 +107,5 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, field: { flex: 1, minWidth: 190, gap: 4 }, label: { ...typography.caption }, input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, padding: 10, backgroundColor: '#fff' }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, row: { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingVertical: careSpacing.md, gap: careSpacing.sm }, rowMain: { flex: 1, gap: 4 }, rowHeading: { flexDirection: 'row', alignItems: 'center', gap: careSpacing.sm }, title: { ...typography.bodyStrong }, caption: { ...typography.caption },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, field: { flex: 1, minWidth: 190, gap: 4 }, select: { flex: 1, minWidth: 190 }, label: { ...typography.caption }, input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, padding: 10, backgroundColor: '#fff' }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, row: { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingVertical: careSpacing.md, gap: careSpacing.sm }, rowMain: { flex: 1, gap: 4 }, rowHeading: { flexDirection: 'row', alignItems: 'center', gap: careSpacing.sm }, title: { ...typography.bodyStrong }, caption: { ...typography.caption },
 });

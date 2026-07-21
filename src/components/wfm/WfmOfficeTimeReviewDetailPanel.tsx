@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { PremiumButton } from '@/components/ui';
+import { CareTimeInput } from '@/components/inputs';
+import { ListFilterSelect, PremiumButton } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -61,6 +62,19 @@ function SectionBlock({
   );
 }
 
+function localTime(iso: string): string {
+  if (!iso) return '';
+  const value = new Date(iso);
+  if (Number.isNaN(value.getTime())) return '';
+  return `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
+}
+
+function isoAtWorkDate(workDate: string, time: string): string | null {
+  if (!/^\d{2}:\d{2}$/.test(time)) return null;
+  const value = new Date(`${workDate}T${time}:00`);
+  return Number.isNaN(value.getTime()) ? null : value.toISOString();
+}
+
 export function WfmOfficeTimeReviewDetailPanel({
   entry,
   auditEntries,
@@ -88,6 +102,11 @@ export function WfmOfficeTimeReviewDetailPanel({
   const accent = moduleColor('office');
   const display = resolveWfmOfficeTimeDisplay(entry);
   const [showHistory, setShowHistory] = useState(false);
+  const [startTime, setStartTime] = useState(localTime(editStartAt));
+  const [endTime, setEndTime] = useState(localTime(editEndAt));
+
+  useEffect(() => setStartTime(localTime(editStartAt)), [editStartAt, entry.id]);
+  useEffect(() => setEndTime(localTime(editEndAt)), [editEndAt, entry.id]);
 
   return (
     <View style={[styles.panel, { borderColor: accent }]} testID="wfm-office-review-detail-panel">
@@ -162,27 +181,35 @@ export function WfmOfficeTimeReviewDetailPanel({
 
         {canCorrect && entry.canEdit !== false ? (
           <SectionBlock title="Aktionen">
-            <TextInput
-              value={editStartAt}
-              onChangeText={onEditStartAtChange}
-              placeholder="Start (ISO)"
-              placeholderTextColor={text.muted}
-              style={[styles.input, { color: text.primary, borderColor: text.border }]}
-            />
-            <TextInput
-              value={editEndAt}
-              onChangeText={onEditEndAtChange}
-              placeholder="Ende (ISO)"
-              placeholderTextColor={text.muted}
-              style={[styles.input, { color: text.primary, borderColor: text.border }]}
-            />
-            <TextInput
+            <View style={styles.structuredRow}>
+              <View style={styles.structuredField}><CareTimeInput
+                label="Beginn"
+                value={startTime}
+                onChange={(value) => {
+                  setStartTime(value);
+                  if (!value) onEditStartAtChange('');
+                  const iso = isoAtWorkDate(entry.workDate, value);
+                  if (iso) onEditStartAtChange(iso);
+                }}
+                showFormatHint={false}
+              /></View>
+              <View style={styles.structuredField}><CareTimeInput
+                label="Ende"
+                value={endTime}
+                onChange={(value) => {
+                  setEndTime(value);
+                  if (!value) onEditEndAtChange('');
+                  const iso = isoAtWorkDate(entry.workDate, value);
+                  if (iso) onEditEndAtChange(iso);
+                }}
+                showFormatHint={false}
+              /></View>
+            </View>
+            <ListFilterSelect
+              label="Pause"
               value={editPauseMinutes}
-              onChangeText={onEditPauseMinutesChange}
-              placeholder="Pause (Min.)"
-              placeholderTextColor={text.muted}
-              keyboardType="numeric"
-              style={[styles.input, { color: text.primary, borderColor: text.border }]}
+              onChange={onEditPauseMinutesChange}
+              options={[0, 5, 10, 15, 20, 30, 45, 60, 90, 120].map((minutes) => ({ key: String(minutes), label: `${minutes} Minuten` }))}
             />
             <TextInput
               value={correctionReason}
@@ -279,6 +306,8 @@ const styles = StyleSheet.create({
   },
   line: { ...typography.caption, lineHeight: 16 },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs, marginTop: 4 },
+  structuredRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
+  structuredField: { minWidth: 130, flex: 1 },
   input: {
     borderWidth: 1,
     borderRadius: 6,

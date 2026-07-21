@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { CareDateInput, CareTimeInput } from '@/components/inputs';
 import { ScreenShell } from '@/components/layout';
 import { LockedActionBanner } from '@/components/permissions';
 import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumButton, SectionPanel } from '@/components/ui';
@@ -55,7 +56,12 @@ export function WfmTeamMeetingsScreen() {
     <ScreenShell title="Team-Meetings" subtitle="Besprechungen und Sollzeitbuchungen" showBack={false} scroll>
       <SectionPanel title="Team-Meeting planen">
         <Field label="Titel" value={title} onChange={setTitle} placeholder="z. B. Monatsbesprechung" />
-        <View style={styles.grid}><Field label="Datum (JJJJ-MM-TT)" value={date} onChange={setDate} /><Field label="Beginn" value={start} onChange={setStart} /><Field label="Ende" value={end} onChange={setEnd} /><Field label="Ort / Videolink" value={location} onChange={setLocation} /></View>
+        <View style={styles.grid}>
+          <View style={styles.structuredField}><CareDateInput label="Datum" value={date} onChange={setDate} showFormatHint={false} /></View>
+          <View style={styles.structuredField}><CareTimeInput label="Beginn" value={start} onChange={setStart} showFormatHint={false} /></View>
+          <View style={styles.structuredField}><CareTimeInput label="Ende" value={end} onChange={setEnd} showFormatHint={false} /></View>
+          <Field label="Ort / Videolink" value={location} onChange={setLocation} />
+        </View>
         <Field label="Tagesordnung / Beschreibung" value={description} onChange={setDescription} placeholder="Besprechungspunkte" />
         <Text style={styles.label}>Teilnehmende</Text>
         <View style={styles.chips}>{(query.data?.employees ?? []).map((employee) => { const selected = attendeeIds.includes(employee.id); return <Pressable key={employee.id} style={[styles.chip, selected ? styles.chipSelected : null]} onPress={() => setAttendeeIds((ids) => selected ? ids.filter((id) => id !== employee.id) : [...ids, employee.id])}><Text>{selected ? '✓ ' : ''}{employee.name}</Text></Pressable>; })}</View>
@@ -73,4 +79,4 @@ export function WfmTeamMeetingsScreen() {
 }
 
 function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) { return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput style={styles.input} value={value} onChangeText={onChange} placeholder={placeholder} /></View>; }
-const styles = StyleSheet.create({ grid: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, field: { flex: 1, minWidth: 180, gap: 4 }, label: { ...typography.caption }, input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, padding: 10, backgroundColor: '#fff' }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs }, chip: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 }, chipSelected: { borderColor: '#22d3ee', backgroundColor: '#ecfeff' }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, row: { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingVertical: careSpacing.md, gap: 5 }, rowHeading: { flexDirection: 'row', alignItems: 'center', gap: careSpacing.sm }, title: { ...typography.bodyStrong }, caption: { ...typography.caption } });
+const styles = StyleSheet.create({ grid: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, field: { flex: 1, minWidth: 180, gap: 4 }, structuredField: { flex: 1, minWidth: 180 }, label: { ...typography.caption }, input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 10, padding: 10, backgroundColor: '#fff' }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs }, chip: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 }, chipSelected: { borderColor: '#22d3ee', backgroundColor: '#ecfeff' }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, row: { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingVertical: careSpacing.md, gap: 5 }, rowHeading: { flexDirection: 'row', alignItems: 'center', gap: careSpacing.sm }, title: { ...typography.bodyStrong }, caption: { ...typography.caption } });
