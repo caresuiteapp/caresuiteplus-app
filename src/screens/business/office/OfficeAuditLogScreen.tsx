@@ -43,7 +43,7 @@ export function OfficeAuditLogScreen() {
   }
 
   return (
-    <ScreenShell title="Audit-Log" subtitle={`Office · ${roleLabel ?? 'Demo'}`} scroll={false}>
+    <ScreenShell title="Audit-Log" subtitle={`Office · ${roleLabel ?? 'Arbeitsbereich'}`} scroll={false}>
       <FlatList
         data={entries}
         keyExtractor={(item) => item.id}

@@ -112,7 +112,7 @@ export function InvoiceDetailHero({ invoice, roleKey, isReadOnly }: InvoiceDetai
         />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isReadOnly ? <PremiumBadge label="Lesemodus" variant="muted" /> : null}
-        <PremiumBadge label="DATEV preparedOnly" variant="muted" />
+        <PremiumBadge label="DATEV in Vorbereitung" variant="muted" />
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

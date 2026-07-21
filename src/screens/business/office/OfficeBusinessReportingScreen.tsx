@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard, SectionPanel } from '@/components/ui';
@@ -43,8 +43,8 @@ export function OfficeBusinessReportingScreen() {
   const summary = query.data ?? [];
 
   return (
-    <ScreenShell title="Office Auswertungen" subtitle={roleLabel ?? 'Demo'}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+    <ScreenShell title="Office Auswertungen" subtitle={roleLabel ?? 'Office'}>
+      <View style={styles.scroll}>
         <SectionPanel title="Kennzahlen">
           {summary.length === 0 ? (
             <EmptyState title="Keine Kennzahlen" />
@@ -60,13 +60,13 @@ export function OfficeBusinessReportingScreen() {
         </SectionPanel>
         <PremiumButton title="Insight Center öffnen" onPress={() => router.push('/business/reporting' as never)} />
         <PremiumButton title="Audit-Log" variant="secondary" onPress={() => router.push('/business/office/audit-log' as never)} />
-      </ScrollView>
+      </View>
     </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { padding: spacing.md, gap: spacing.sm },
+  scroll: { gap: spacing.sm },
   card: { marginBottom: spacing.sm },
   label: { ...typography.caption },
   value: { ...typography.h2, marginTop: spacing.xs },

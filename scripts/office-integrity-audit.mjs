@@ -9,6 +9,12 @@ const hrefs = [...navSource.matchAll(/href:\s*'([^']+)'/g)].map((match) => match
 const keys = [...navSource.matchAll(/key:\s*'([^']+)'/g)].map((match) => match[1]);
 const failures = [];
 
+const forbiddenMainScreenMarkers = [
+  'Wird wiederhergestellt',
+  'nach der Dateiwiederherstellung erneut verfügbar',
+  'Stub —',
+];
+
 function routeCandidates(href) {
   const route = href.split('?')[0].replace(/\/$/, '') || '/';
   const relative = route.replace(/^\//, '');
@@ -60,9 +66,92 @@ for (const file of criticalScreens) {
   }
 }
 
+for (const [file, entity] of [
+  ['src/components/office/ClientDetailSummaryPanel.tsx', 'client'],
+  ['src/components/office/EmployeeDetailSummaryPanel.tsx', 'employee'],
+]) {
+  const source = readFileSync(path.join(root, file), 'utf8');
+  if (new RegExp(`if\\s*\\(!${entity}\\)\\s*return null;`).test(source)) {
+    failures.push(`Detail-Zusammenfassung kann leer rendern: ${file}`);
+  }
+}
+
+const auditService = readFileSync(
+  path.join(root, 'src/lib/officeCore/auditLogService.ts'),
+  'utf8',
+);
+if (!auditService.includes('officeAuditLogSupabaseRepository.list(tenantId)')) {
+  failures.push('Audit-Log ist nicht mit dem Live-Supabase-Repository verbunden.');
+}
+if (auditService.includes('guardLiveDemoFeature')) {
+  failures.push('Audit-Log wird im Live-Betrieb weiterhin blockiert.');
+}
+
+const employeeWorkTimes = readFileSync(
+  path.join(root, 'src/screens/office/EmployeeWorkTimesScreen.tsx'),
+  'utf8',
+);
+if (!employeeWorkTimes.includes('setRevision((current) => current + 1)')) {
+  failures.push('Mitarbeitenden-Arbeitszeiten besitzen keine echte Aktualisierung.');
+}
+if (!employeeWorkTimes.includes('entriesResult && !entriesResult.ok')) {
+  failures.push('Servicefehler der Mitarbeitenden-Arbeitszeiten werden verschluckt.');
+}
+
+const assignmentList = readFileSync(
+  path.join(root, 'src/screens/business/office/OfficeModuleAssignmentListScreen.tsx'),
+  'utf8',
+);
+if (!assignmentList.includes('Array.isArray(key)')) {
+  failures.push('Modulfilter verarbeitet Mehrfachwerte nicht sicher.');
+}
+
+const remainingOfficeScreens = [
+  'src/screens/office/officemessagetemplatesscreen.tsx',
+  'app/office/calendar/templates/index.tsx',
+  'src/screens/business/office/OfficeBusinessReportingScreen.tsx',
+  'src/screens/business/office/OfficeModulesHubScreen.tsx',
+  'src/screens/business/office/OfficeAuditLogScreen.tsx',
+  'src/screens/qm/QmDashboardScreen.tsx',
+  'src/screens/inventory/InventoryDashboardScreen.tsx',
+  'src/screens/office/OfficeDocumentsListScreen.tsx',
+];
+
+for (const file of remainingOfficeScreens) {
+  const source = readFileSync(path.join(root, file), 'utf8');
+  for (const marker of forbiddenMainScreenMarkers) {
+    if (source.includes(marker)) failures.push(`Office-Bereich enthält Platzhalter „${marker}": ${file}`);
+  }
+}
+
+const messageTemplates = readFileSync(
+  path.join(root, 'src/screens/office/officemessagetemplatesscreen.tsx'),
+  'utf8',
+);
+if (!messageTemplates.includes('MessageTemplatesScreen')) {
+  failures.push('Nachrichten-Vorlagen verwenden nicht die produktive Vorlagenverwaltung.');
+}
+
+const reporting = readFileSync(
+  path.join(root, 'src/screens/business/office/OfficeBusinessReportingScreen.tsx'),
+  'utf8',
+);
+if (reporting.includes('<ScrollView')) {
+  failures.push('Office Reporting besitzt einen verschachtelten vertikalen Scrollbereich.');
+}
+
+const officeDocuments = readFileSync(
+  path.join(root, 'src/screens/office/OfficeDocumentsListScreen.tsx'),
+  'utf8',
+);
+if (officeDocuments.includes('fetchOfficeDocumentList')) {
+  failures.push('Dokumentenablage lädt die Dokumentliste doppelt.');
+}
+
 console.log('CareSuite+ office:integrity:audit');
 console.log(`Navigationsziele geprüft: ${hrefs.length}`);
 console.log(`Kritische Detail-Screens geprüft: ${criticalScreens.length}`);
+console.log(`Übrige Office-Bereiche geprüft: ${remainingOfficeScreens.length}`);
 
 if (failures.length > 0) {
   for (const failure of failures) console.error(`✗ ${failure}`);
@@ -73,3 +162,6 @@ console.log('✓ Keine doppelten Messenger-Einträge');
 console.log('✓ Alle Office-Navigationsziele besitzen eine Route');
 console.log('✓ Kritische Detailseiten besitzen sichtbare Fehlerzustände');
 console.log('✓ Rechnungsdetail-Popup ist funktionsfähig angebunden');
+console.log('✓ Vorlagen, Reporting und Organisationsbereiche enthalten keine Wiederherstellungs-Stubs');
+console.log('✓ Audit-Log verwendet im Live-Betrieb echte Mandantendaten');
+console.log('✓ Arbeitszeit-Aktualisierung, Servicefehler und Modulfilter sind abgesichert');

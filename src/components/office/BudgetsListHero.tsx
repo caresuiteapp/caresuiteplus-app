@@ -43,7 +43,7 @@ export function BudgetsListHero({ items, roleKey, filteredCount, totalCount }: B
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        <PremiumBadge label="Demo / preparedOnly" variant="muted" />
+        <PremiumBadge label="Vorschaudaten" variant="muted" />
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (
@@ -80,4 +80,3 @@ const styles = StyleSheet.create({
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 });
-

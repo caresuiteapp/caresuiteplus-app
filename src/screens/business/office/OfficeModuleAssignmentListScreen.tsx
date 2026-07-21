@@ -102,7 +102,7 @@ export function OfficeModuleAssignmentListScreen({ section }: OfficeModuleAssign
   return (
     <ScreenShell
       title={SECTION_LABELS[section]}
-      subtitle={`Office · ${roleLabel ?? 'Demo'}`}
+      subtitle={`Office · ${roleLabel ?? 'Arbeitsbereich'}`}
       scroll={false}
     >
       <View style={styles.toolbar}>
@@ -115,7 +115,9 @@ export function OfficeModuleAssignmentListScreen({ section }: OfficeModuleAssign
         <FilterChipGroup
           options={MODULE_FILTER_OPTIONS}
           value={moduleFilter}
-          onChange={setModuleFilter}
+          onChange={(key) =>
+            setModuleFilter((Array.isArray(key) ? key[0] : key) as ProductKey | 'all')
+          }
           wrap
         />
         <PremiumButton
