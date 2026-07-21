@@ -1,6 +1,8 @@
 import { ReactNode, useMemo } from 'react';
-import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import { usePathname } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { PremiumButton } from '@/components/ui';
 import { auroraGlass, useAuroraGlassPanelStyle } from '@/design/tokens/auroraGlass';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
@@ -54,6 +56,8 @@ export function C14vSubpageShell({
   const { isReadOnly, roleLabel } = usePermissions();
   const shellHostsAurora = useShellHostsAurora();
   const panelStyle = useAuroraGlassPanelStyle();
+  const pathname = usePathname();
+  const isEmployeePortal = pathname.startsWith('/portal/employee');
 
   const resolvedSubtitle = subtitle ?? (moduleLabel
     ? `${moduleLabel}${isReadOnly ? ' · Lesemodus' : ''} · ${roleLabel ?? 'Demo'}`
@@ -102,15 +106,8 @@ export function C14vSubpageShell({
     </View>
   ) : null;
 
-  return (
-    <ScreenShell
-      title={title}
-      subtitle={resolvedSubtitle}
-      showBack={showBack}
-      scroll={scroll}
-      rightSlot={rightSlot}
-    >
-      {/* eyebrow labels removed per user request — prop kept for backward compat */}
+  const content = (
+    <>
       {actionBar}
       <View
         style={[
@@ -121,6 +118,31 @@ export function C14vSubpageShell({
       >
         {children}
       </View>
+    </>
+  );
+
+  if (isEmployeePortal) {
+    return (
+      <PortalTabScreen
+        title={title}
+        subtitle={resolvedSubtitle}
+        eyebrow={eyebrow}
+        scroll={scroll}
+      >
+        {content}
+      </PortalTabScreen>
+    );
+  }
+
+  return (
+    <ScreenShell
+      title={title}
+      subtitle={resolvedSubtitle}
+      showBack={showBack}
+      scroll={scroll}
+      rightSlot={rightSlot}
+    >
+      {content}
     </ScreenShell>
   );
 }

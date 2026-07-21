@@ -3,7 +3,7 @@ import { Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
-import { ScreenShell } from '@/components/layout';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { LockedActionBanner } from '@/components/permissions';
 import { WorkflowToast } from '@/components/ui/WorkflowToast';
 import {
@@ -626,38 +626,38 @@ export function EmployeePortalVisitExecutionScreen() {
 
   if (!can('portal.employee.appointments.view')) {
     return (
-      <ScreenShell title={shellTitle} subtitle={resolvePortalScreenSubtitle(roleLabel, 'employee')}>
+      <PortalTabScreen title={shellTitle} subtitle={resolvePortalScreenSubtitle(roleLabel, 'employee')}>
         <LockedActionBanner
           message={check('portal.employee.appointments.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (loading) {
     return (
-      <ScreenShell title={shellTitle} subtitle="Wird geladen…">
+      <PortalTabScreen title={shellTitle} subtitle="Wird geladen…">
         <LoadingState message="Einsatz wird geladen…" />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (queryError && !hasAssignment) {
     return (
-      <ScreenShell title={shellTitle} subtitle="Datenbankfehler">
+      <PortalTabScreen title={shellTitle} subtitle="Datenbankfehler">
         <ErrorState message={queryError} onRetry={refresh} />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (notFound || !visit) {
     return (
-      <ScreenShell title={shellTitle} subtitle="Fehler">
+      <PortalTabScreen title={shellTitle} subtitle="Fehler">
         <ErrorState message={error ?? 'Einsatz nicht gefunden.'} onRetry={refresh} />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
@@ -844,7 +844,7 @@ export function EmployeePortalVisitExecutionScreen() {
   };
 
   return (
-    <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`} scroll={false}>
+    <PortalTabScreen title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`} scroll={false}>
       <EmployeePortalVisitStickyHeader
         clientName={visit.clientName}
         plannedStartAt={visit.plannedStartAt}
@@ -1201,7 +1201,7 @@ export function EmployeePortalVisitExecutionScreen() {
           }}
         />
       ) : null}
-    </ScreenShell>
+    </PortalTabScreen>
   );
 }
 

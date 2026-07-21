@@ -9,6 +9,7 @@ import { moduleColor } from '@/design/tokens/modules';
 import { withAlpha } from '@/design/tokens/motion';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { EmptyState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCommunicationPermissions, usePortalMessages } from '@/hooks/communication';
 import { useAuth } from '@/lib/auth/context';
@@ -91,9 +92,9 @@ const styles = StyleSheet.create({
 
 export function EmployeePortalMessagesScreen() {
   return (
-    <ScreenShell title="Nachrichten" subtitle="Mitarbeiter:innenportal" showBack={false}>
+    <PortalTabScreen title="Nachrichten" subtitle="Sicher mit dem Office kommunizieren" hideHeaderOnPhone scroll={false}>
       <PortalMessagesListShell detailBasePath="/portal/employee/messages" />
-    </ScreenShell>
+    </PortalTabScreen>
   );
 }
 

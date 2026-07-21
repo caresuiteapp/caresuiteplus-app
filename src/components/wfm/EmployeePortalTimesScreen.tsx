@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
-import { ScreenShell } from '@/components/layout';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import {
   EmptyState,
   ErrorState,
@@ -11,7 +11,6 @@ import {
   SectionPanel,
   PremiumCard,
 } from '@/components/ui';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -42,7 +41,7 @@ export function EmployeePortalTimesScreen() {
   const employeeId = portalEmployeeId ?? profile?.employeeId ?? null;
   const roleKey = profile?.roleKey ?? null;
   const { can, check, roleLabel } = usePermissions();
-  const text = useAuroraAdaptiveText();
+  const text = portalText;
 
   const canView = can('time.tracking.own.view');
   const canViewAbsences = can('portal.employee.absences.view');
@@ -67,7 +66,7 @@ export function EmployeePortalTimesScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Fahrten & Zeiten" subtitle={`Einsatzzeiten der letzten ${PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS} Tage`}>
+      <PortalTabScreen title="Fahrten & Zeiten" subtitle={`Einsatzzeiten der letzten ${PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS} Tage`}>
         <LockedActionBanner
           message={
             check('time.tracking.own.view').reason ??
@@ -75,23 +74,23 @@ export function EmployeePortalTimesScreen() {
           }
           roleLabel={roleLabel}
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (query.loading && !query.data) {
     return (
-      <ScreenShell title="Fahrten & Zeiten" subtitle="Wird geladen…">
+      <PortalTabScreen title="Fahrten & Zeiten" subtitle="Wird geladen…">
         <LoadingState message="Einsatzzeiten werden geladen…" />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <ScreenShell title="Fahrten & Zeiten" subtitle="Einsatzzeiten">
+      <PortalTabScreen title="Fahrten & Zeiten" subtitle="Einsatzzeiten">
         <ErrorState title="Fehler" message={query.error} onRetry={() => void query.refresh()} />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
@@ -99,7 +98,7 @@ export function EmployeePortalTimesScreen() {
   const drivingLogs = query.data?.drivingLogs ?? [];
 
   return (
-    <ScreenShell
+    <PortalTabScreen
       title="Fahrten & Zeiten"
       subtitle={`Einsatzzeiten der letzten ${PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS} Tage`}
       scroll
@@ -183,9 +182,15 @@ export function EmployeePortalTimesScreen() {
       </SectionPanel>
 
       <PremiumButton title="Aktualisieren" variant="ghost" onPress={() => void query.refresh()} />
-    </ScreenShell>
+    </PortalTabScreen>
   );
 }
+
+const portalText = {
+  primary: spatialCare.textOnNight,
+  secondary: spatialCare.textOnNightMuted,
+  muted: spatialCare.textOnNightMuted,
+} as const;
 
 const styles = StyleSheet.create({
   requestActions: {

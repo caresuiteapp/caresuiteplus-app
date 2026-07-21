@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
-import { ScreenShell } from '@/components/layout';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { AuroraSegmentedControl } from '@/components/aurora';
 import {
   ErrorState,
@@ -13,7 +13,6 @@ import {
   SuccessState,
   InfoBanner,
 } from '@/components/ui';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -78,7 +77,7 @@ export function TimeTrackingEmployeeScreen() {
   const employeeId = portalEmployeeId ?? profile?.employeeId ?? null;
   const roleKey = profile?.roleKey ?? null;
   const { can, check, roleLabel } = usePermissions();
-  const text = useAuroraAdaptiveText();
+  const text = portalText;
   const accent = moduleColor('office');
   const wfmSource = resolveWfmSource(pathname);
 
@@ -193,7 +192,7 @@ export function TimeTrackingEmployeeScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Arbeitszeit" subtitle={subtitle}>
+      <PortalTabScreen title="Arbeitszeit" subtitle={subtitle}>
         <LockedActionBanner
           message={
             check('time.tracking.own.view').reason ??
@@ -201,15 +200,15 @@ export function TimeTrackingEmployeeScreen() {
           }
           roleLabel={roleLabel}
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (statusQuery.loading && !statusQuery.data) {
     return (
-      <ScreenShell title="Arbeitszeit" subtitle="Wird geladen…">
+      <PortalTabScreen title="Arbeitszeit" subtitle="Wird geladen…">
         <LoadingState message="Arbeitszeit wird geladen…" />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
@@ -220,7 +219,7 @@ export function TimeTrackingEmployeeScreen() {
       canUseTeamOverview;
     if (isMissingEmployeeProfile) {
       return (
-        <ScreenShell title="Arbeitszeit" subtitle={subtitle} scroll>
+        <PortalTabScreen title="Arbeitszeit" subtitle={subtitle} scroll>
           <InfoBanner
             variant="info"
             title="Team-Übersicht nutzen"
@@ -238,20 +237,20 @@ export function TimeTrackingEmployeeScreen() {
               onPress={() => router.push('/business/office/time-tracking/live' as never)}
             />
           </SectionPanel>
-        </ScreenShell>
+        </PortalTabScreen>
       );
     }
 
     return (
-      <ScreenShell title="Arbeitszeit" subtitle={subtitle}>
+      <PortalTabScreen title="Arbeitszeit" subtitle={subtitle}>
         <ErrorState title="Fehler" message={statusQuery.error} onRetry={() => void refresh()} />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (isAdminWithoutEmployee) {
     return (
-      <ScreenShell title="Arbeitszeit" subtitle={subtitle} scroll>
+      <PortalTabScreen title="Arbeitszeit" subtitle={subtitle} scroll>
         <InfoBanner
           variant="info"
           title="Team-Übersicht nutzen"
@@ -276,7 +275,7 @@ export function TimeTrackingEmployeeScreen() {
             />
           ) : null}
         </SectionPanel>
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
@@ -284,7 +283,7 @@ export function TimeTrackingEmployeeScreen() {
     settingsQuery.data?.requirePrivacyConsent && !privacyAccepted && !sessionActive;
 
   return (
-    <ScreenShell title="Arbeitszeit" subtitle={subtitle} scroll>
+    <PortalTabScreen title="Arbeitszeit" subtitle={subtitle} scroll>
       <SectionPanel title="Status heute">
         <View style={styles.kpiRow}>
           <PremiumKpiCard label="Status" value={statusLabel} accentColor={accent} />
@@ -440,9 +439,15 @@ export function TimeTrackingEmployeeScreen() {
         }}
         onDecline={() => setShowPrivacyModal(false)}
       />
-    </ScreenShell>
+    </PortalTabScreen>
   );
 }
+
+const portalText = {
+  primary: spatialCare.textOnNight,
+  secondary: spatialCare.textOnNightMuted,
+  muted: spatialCare.textOnNightMuted,
+} as const;
 
 function PrivacyConsentModal(props: {
   visible: boolean;

@@ -1,7 +1,6 @@
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { GlassCard } from '@/design/components/GlassCard';
-import { lightSurfaceText } from '@/design/tokens/auroraGlass';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { moduleColor } from '@/design/tokens/modules';
@@ -19,9 +18,13 @@ type PortalDocumentListCardProps = {
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
-/** M.1 document list row — opaque light card, WCAG-readable text. */
+/** Dokumentzeile innerhalb der einheitlichen dunklen Portalwelt. */
 export function PortalDocumentListCard({ document, metaLine, onPress }: PortalDocumentListCardProps) {
-  const text = lightSurfaceText;
+  const text = {
+    primary: spatialCare.textOnNight,
+    secondary: spatialCare.textOnNightMuted,
+    muted: spatialCare.textOnNightMuted,
+  };
   const accent = moduleColor('assist');
 
   return (
@@ -34,10 +37,7 @@ export function PortalDocumentListCard({ document, metaLine, onPress }: PortalDo
       <GlassCard
         style={[
           styles.card,
-          {
-            backgroundColor: careLightColors.surface,
-            borderColor: withAlpha(accent, 0.22),
-          },
+          { borderColor: withAlpha(accent, 0.34) },
         ]}
       >
         <View style={[styles.statusBar, { backgroundColor: accent }]} />

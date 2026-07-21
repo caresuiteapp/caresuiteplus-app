@@ -6,6 +6,11 @@ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { PortalTabGlassHero } from '@/components/portal/PortalTabGlassHero';
 import { resolvePortalTabHeroContent } from '@/components/portal/portalTabHeroContent';
+import {
+  SpatialPortalMetric,
+  SpatialPortalSection,
+} from '@/components/portal/SpatialPortalSurface';
+import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
 
 import type { PortalScope } from '@/types/portal';
 import { designTokens, spacing } from '@/theme';
@@ -125,8 +130,42 @@ function PortalTabHeroLegacy(props: PortalTabHeroProps) {
   );
 }
 
+/**
+ * Employee portal hero using the same spatial section hierarchy on every tab.
+ * This deliberately bypasses the legacy light/dark theme branch so messages,
+ * documents, appointments and signatures cannot drift into different worlds.
+ */
+function PortalTabHeroSpatial(props: PortalTabHeroProps) {
+  const { colors } = useLegacyTheme();
+  const { title, subtitle, meta, kpis } = resolvePortalTabHeroContent(props, colors);
+
+  return (
+    <SpatialPortalSection
+      title={title}
+      subtitle={`${meta} · ${subtitle}`}
+      accentColor={spatialCareColors.cyanLight}
+    >
+      <View style={stylesSpatial.metrics}>
+        {kpis.map((kpi) => (
+          <SpatialPortalMetric
+            key={kpi.id}
+            label={kpi.label}
+            value={String(kpi.numericValue ?? 0)}
+            subValue={kpi.numericValue ? kpi.subValue : kpi.fallbackLabel}
+            icon={kpi.icon}
+            accentColor={kpi.accentColor ?? spatialCareColors.cyanLight}
+          />
+        ))}
+      </View>
+    </SpatialPortalSection>
+  );
+}
+
 export function PortalTabHero(props: PortalTabHeroProps) {
   const useLightGlass = useLightLiquidGlassShell();
+  if (props.scope === 'portal_employee') {
+    return <PortalTabHeroSpatial {...props} />;
+  }
   const useGlassHero =
     useLightGlass || props.scope === 'portal_client' || props.scope === 'portal_family';
   if (useGlassHero) {
@@ -136,3 +175,12 @@ export function PortalTabHero(props: PortalTabHeroProps) {
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
+
+const stylesSpatial = StyleSheet.create({
+  metrics: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+});
