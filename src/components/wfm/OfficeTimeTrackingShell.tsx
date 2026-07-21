@@ -18,6 +18,7 @@ export function OfficeTimeTrackingShell() {
   const text = useAuroraAdaptiveText();
   const accent = moduleColor('office');
   const compact = width < 760;
+  const wrapNavigation = width >= 1180;
   const activeTab = resolveOfficeTimeTrackingTabKey(pathname);
   const ownCaptureActive = isOfficeTimeTrackingOwnCaptureRoute(pathname);
 
@@ -53,13 +54,40 @@ export function OfficeTimeTrackingShell() {
       </View>
 
       <View style={[styles.navigationSurface, { borderColor: text.border }]}> 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabScroll}
-          contentContainerStyle={styles.tabRow}
-        >
-          {OFFICE_TIME_TRACKING_TABS.map((tab) => {
+        {wrapNavigation ? (
+          <View style={styles.tabRowDesktop}>
+            {OFFICE_TIME_TRACKING_TABS.map((tab) => {
+              const selected = activeTab === tab.key;
+              return (
+                <Pressable
+                  key={tab.key}
+                  onPress={() => router.push(tab.href as never)}
+                  style={({ pressed }) => [
+                    styles.tabChip,
+                    { borderColor: selected ? `${accent}70` : 'transparent' },
+                    selected && { backgroundColor: `${accent}12` },
+                    pressed && styles.tabPressed,
+                  ]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected }}
+                >
+                  <Text style={styles.tabIcon}>{tab.icon}</Text>
+                  <Text style={[styles.tabLabel, { color: selected ? accent : text.secondary }, selected && styles.tabLabelSelected]} numberOfLines={1}>
+                    {tab.label}
+                  </Text>
+                  {selected ? <View style={[styles.activeMarker, { backgroundColor: accent }]} /> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator
+            style={styles.tabScroll}
+            contentContainerStyle={styles.tabRow}
+          >
+            {OFFICE_TIME_TRACKING_TABS.map((tab) => {
             const selected = activeTab === tab.key;
             return (
               <Pressable
@@ -81,15 +109,21 @@ export function OfficeTimeTrackingShell() {
                 {selected ? <View style={[styles.activeMarker, { backgroundColor: accent }]} /> : null}
               </Pressable>
             );
-          })}
-        </ScrollView>
+            })}
+          </ScrollView>
+        )}
       </View>
 
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator
+        nestedScrollEnabled
+      >
         <View style={[styles.workspace, { borderColor: text.border }]}> 
           <Slot />
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -195,6 +229,13 @@ const styles = StyleSheet.create({
     gap: 4,
     padding: 6,
   },
+  tabRowDesktop: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 4,
+    padding: 6,
+  },
   navigationSurface: {
     marginHorizontal: careSpacing.md,
     marginTop: careSpacing.sm,
@@ -222,12 +263,14 @@ const styles = StyleSheet.create({
   activeMarker: { position: 'absolute', left: 12, right: 12, bottom: 2, height: 2, borderRadius: 2 },
   content: {
     flex: 1,
+    backgroundColor: 'transparent',
+  },
+  contentContainer: {
+    flexGrow: 1,
     padding: careSpacing.md,
     paddingTop: careSpacing.sm,
-    backgroundColor: 'transparent',
     ...(Platform.OS === 'web'
       ? {
-          overflowX: 'hidden' as const,
           maxWidth: '100%',
         }
       : null),
@@ -236,12 +279,11 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1500,
     alignSelf: 'center',
-    flex: 1,
-    minHeight: 0,
+    flexGrow: 1,
     borderWidth: 1,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.72)',
     padding: careSpacing.sm,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
 });

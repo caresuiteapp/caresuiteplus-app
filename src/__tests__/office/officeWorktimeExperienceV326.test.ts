@@ -12,6 +12,10 @@ describe('Office Arbeitszeit V32.6 Design, Struktur und Funktionen', () => {
     expect(shell).toContain('tab.icon');
     expect(shell).toContain('styles.navigationSurface');
     expect(shell).toContain('styles.workspace');
+    expect(shell).toContain('contentContainerStyle={styles.contentContainer}');
+    expect(shell).toContain('showsVerticalScrollIndicator');
+    expect(shell).toContain('styles.tabRowDesktop');
+    expect(shell).not.toContain("overflow: 'hidden',\n  },\n});");
     expect(shell).toContain("backgroundColor: 'rgba(255,255,255,0.72)'");
     expect(shell).not.toContain('DarkLiquidGlassBackground');
   });

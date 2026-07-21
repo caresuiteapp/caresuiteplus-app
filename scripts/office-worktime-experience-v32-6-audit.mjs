@@ -18,6 +18,8 @@ const planning = read('src/lib/wfm/wfmPlanningService.ts');
 
 check('Ein gemeinsamer Arbeitszeit-Workspace', shell.includes('styles.workspace') && shell.includes('styles.navigationSurface'));
 check('Alle Reiter zeigen Symbol und Beschriftung', shell.includes('tab.icon') && shell.includes('tab.label'));
+check('Alle zehn Reiter bleiben am Desktop sichtbar', shell.includes('styles.tabRowDesktop') && shell.includes('flexWrap'));
+check('Tabellen und Aktionen sind vertikal erreichbar', shell.includes('contentContainerStyle={styles.contentContainer}') && shell.includes('showsVerticalScrollIndicator'));
 check('Helle CareSuite-Oberfläche statt Testdesign', shell.includes('rgba(255,255,255,0.72)') && !shell.includes('DarkLiquidGlassBackground'));
 check('KPIs und Filter besitzen getrennte Oberflächen', layout.includes('minWidth: 118') && layout.includes('filterBar'));
 check('Arbeitszeittabelle ist lesbar', table.includes('fontSize: 13') && table.includes('rgba(255,255,255,0.94)'));
