@@ -29,11 +29,23 @@ export function WfmOfficeManualEntryPanel({ tenantId, actorId, roleKey, employee
   const [loading, setLoading] = useState(false);
 
   const submit = async () => {
-    setLoading(true);
     setError(null);
     setMessage(null);
-    const actualStartAt = new Date(`${workDate}T${startTime}:00`).toISOString();
-    const actualEndAt = new Date(`${workDate}T${endTime}:00`).toISOString();
+    if (!employeeId) { setError('Bitte eine mitarbeitende Person auswählen.'); return; }
+    if (!workDate || !/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) {
+      setError('Bitte Arbeitstag, Beginn und Ende vollständig auswählen.');
+      return;
+    }
+    const start = new Date(`${workDate}T${startTime}:00`);
+    const end = new Date(`${workDate}T${endTime}:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+      setError('Das Ende muss nach dem Beginn liegen.');
+      return;
+    }
+    if (!reason.trim()) { setError('Eine Begründung für den Nachtrag ist erforderlich.'); return; }
+    setLoading(true);
+    const actualStartAt = start.toISOString();
+    const actualEndAt = end.toISOString();
     const result = await createWfmOfficeManualEntry(tenantId, actorId, roleKey, {
       employeeId,
       workDate,

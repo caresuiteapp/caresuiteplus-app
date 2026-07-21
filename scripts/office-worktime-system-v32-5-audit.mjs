@@ -20,7 +20,7 @@ const migration = read('supabase/migrations/0262_wfm_worktime_system_repair.sql'
 
 check('Demo-Datenpfad bleibt funktionsfähig', guard.includes("getServiceMode() !== 'supabase'"));
 check('Nachträge nutzen alle aktiven Mitarbeitenden', manual.includes('listWfmActiveEmployees'));
-check('Live-Statusvarianten aktiv/active werden unterstützt', planning.includes("['aktiv', 'active']"));
+check('Live-Mitarbeiterstatus nutzt das gültige Supabase-Enum', planning.includes(".eq('status', 'active')") && !planning.includes("['aktiv', 'active']"));
 check('Roh-ISO-Zeitfelder wurden entfernt', !details.includes('placeholder="Start (ISO)"'));
 check('Korrekturzeiten sind systemgeführt', details.includes('CareTimeInput') && details.includes('ListFilterSelect'));
 check('Planungstabellen werden repariert', ['workforce_travel_rules', 'workforce_team_meetings', 'workforce_team_meeting_attendees'].every((name) => migration.includes(`CREATE TABLE IF NOT EXISTS public.${name}`)));

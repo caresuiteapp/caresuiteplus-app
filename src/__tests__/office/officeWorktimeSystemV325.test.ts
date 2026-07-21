@@ -18,7 +18,8 @@ describe('Office Arbeitszeit V32.5 Systemprüfung', () => {
     const planning = read('src/lib/wfm/wfmPlanningService.ts');
     expect(screen).toContain('listWfmActiveEmployees');
     expect(screen).not.toContain('getWfmTeamTodayOverview');
-    expect(planning).toContain(".in('status', ['aktiv', 'active'])");
+    expect(planning).toContain(".eq('status', 'active')");
+    expect(planning).not.toContain(".in('status', ['aktiv', 'active'])");
   });
 
   it('uses structured date, time, pause and rounding controls', () => {

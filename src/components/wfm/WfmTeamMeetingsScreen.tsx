@@ -30,8 +30,11 @@ export function WfmTeamMeetingsScreen() {
 
   const create = async () => {
     if (!tenantId || !title.trim()) { setError('Titel des Meetings ist erforderlich.'); return; }
-    const startsAt = new Date(`${date}T${start}:00`).toISOString(); const endsAt = new Date(`${date}T${end}:00`).toISOString();
-    if (new Date(endsAt) <= new Date(startsAt)) { setError('Das Ende muss nach dem Beginn liegen.'); return; }
+    const starts = new Date(`${date}T${start}:00`); const ends = new Date(`${date}T${end}:00`);
+    if (!date || Number.isNaN(starts.getTime()) || Number.isNaN(ends.getTime())) { setError('Bitte Datum, Beginn und Ende vollständig auswählen.'); return; }
+    if (ends <= starts) { setError('Das Ende muss nach dem Beginn liegen.'); return; }
+    if (paid && attendeeIds.length === 0) { setError('Bitte mindestens eine teilnehmende Person auswählen.'); return; }
+    const startsAt = starts.toISOString(); const endsAt = ends.toISOString();
     setSaving(true); setError(null);
     const result = await createWfmTeamMeeting({ tenantId, title, description, location, startsAt, endsAt, countsAsWorkTime: paid, attendeeIds, actorId: user?.id ?? profile?.id });
     setSaving(false); if (!result.ok) { setError(result.error); return; }

@@ -103,7 +103,9 @@ export async function saveWfmTravelRule(input: Omit<WfmTravelRule, 'id' | 'tenan
 
 export async function listWfmActiveEmployees(tenantId: string): Promise<ServiceResult<WfmMeetingEmployee[]>> {
   const supabase = getSupabaseClient(); if (!supabase) return unavailable();
-  const { data, error } = await fromUnknownTable(supabase, 'employees').select('id, first_name, last_name').eq('tenant_id', tenantId).in('status', ['aktiv', 'active']).order('last_name');
+  // employees.status is the live Supabase enum `employee_status`; UI catalog
+  // values such as `aktiv` must never be sent to this column.
+  const { data, error } = await fromUnknownTable(supabase, 'employees').select('id, first_name, last_name').eq('tenant_id', tenantId).eq('status', 'active').order('last_name');
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
   return { ok: true, data: ((data ?? []) as Row[]).map((r) => ({ id: String(r.id), name: [r.first_name, r.last_name].filter(Boolean).join(' ') || `MA ${String(r.id).slice(0, 8)}` })) };
 }

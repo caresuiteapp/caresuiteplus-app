@@ -48,7 +48,7 @@ export function WfmNachtraegeOfficeScreen() {
       {teamQuery.error ? (
         <ErrorState title="Fehler" message={teamQuery.error} onRetry={() => void teamQuery.refresh()} />
       ) : null}
-      {tenantId && actorId ? (
+      {tenantId && actorId && !teamQuery.loading && !teamQuery.error ? (
         <WfmOfficeManualEntryPanel
           tenantId={tenantId}
           actorId={actorId}
