@@ -1,14 +1,13 @@
 /**
- * CareSuite+ Design System — Premium Dark SaaS (legacy @/theme surface).
- * Dark values are sourced from careSuiteColors; use ThemeModeProvider + tokens for light mode.
+ * CareSuite+ Design System — canonical light surface for legacy @/theme imports.
  */
 import { legacyColorsFromPalette } from '@/design/tokens/themeBridge';
 
-/** Default export — light palette (system-wide black ink on light surfaces). */
+/** Default export — canonical light Liquid Glass palette. */
 export const colors = legacyColorsFromPalette('light');
 
 /** Dark palette for explicit legacy/dark-mode surfaces. */
-export const darkColors = legacyColorsFromPalette('dark');
+export const darkColors = legacyColorsFromPalette('light');
 
-/** @deprecated Use darkColors */
+/** Compatibility alias — the system uses one visual language. */
 export const lightColors = legacyColorsFromPalette('light');

@@ -15,7 +15,7 @@ type GlobalAnimatedBackgroundProps = {
 
 /**
  * Single shell-root background for CareSuite+.
- * Always uses the light space/paper backdrop — no dark or black surfaces.
+ * Hosts the one canonical light CareSuite backdrop for every product area.
  * Mount once at app/_layout root — never inside columns or per-screen.
  */
 export function GlobalAnimatedBackground({
@@ -27,7 +27,7 @@ export function GlobalAnimatedBackground({
 }: GlobalAnimatedBackgroundProps) {
   return (
     <View style={[styles.root, styles.lightRoot, style]} pointerEvents="none">
-      <StaticLightPaperBackground dimmed={dimmed} />
+      <StaticLightPaperBackground animated={_animated} dimmed={dimmed} />
       {children}
     </View>
   );
@@ -39,6 +39,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   lightRoot: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#F7FAFF',
   },
 });
