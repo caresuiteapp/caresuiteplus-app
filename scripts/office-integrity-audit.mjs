@@ -66,6 +66,46 @@ for (const file of criticalScreens) {
   }
 }
 
+for (const [file, entity] of [
+  ['src/components/office/ClientDetailSummaryPanel.tsx', 'client'],
+  ['src/components/office/EmployeeDetailSummaryPanel.tsx', 'employee'],
+]) {
+  const source = readFileSync(path.join(root, file), 'utf8');
+  if (new RegExp(`if\\s*\\(!${entity}\\)\\s*return null;`).test(source)) {
+    failures.push(`Detail-Zusammenfassung kann leer rendern: ${file}`);
+  }
+}
+
+const auditService = readFileSync(
+  path.join(root, 'src/lib/officeCore/auditLogService.ts'),
+  'utf8',
+);
+if (!auditService.includes('officeAuditLogSupabaseRepository.list(tenantId)')) {
+  failures.push('Audit-Log ist nicht mit dem Live-Supabase-Repository verbunden.');
+}
+if (auditService.includes('guardLiveDemoFeature')) {
+  failures.push('Audit-Log wird im Live-Betrieb weiterhin blockiert.');
+}
+
+const employeeWorkTimes = readFileSync(
+  path.join(root, 'src/screens/office/EmployeeWorkTimesScreen.tsx'),
+  'utf8',
+);
+if (!employeeWorkTimes.includes('setRevision((current) => current + 1)')) {
+  failures.push('Mitarbeitenden-Arbeitszeiten besitzen keine echte Aktualisierung.');
+}
+if (!employeeWorkTimes.includes('entriesResult && !entriesResult.ok')) {
+  failures.push('Servicefehler der Mitarbeitenden-Arbeitszeiten werden verschluckt.');
+}
+
+const assignmentList = readFileSync(
+  path.join(root, 'src/screens/business/office/OfficeModuleAssignmentListScreen.tsx'),
+  'utf8',
+);
+if (!assignmentList.includes('Array.isArray(key)')) {
+  failures.push('Modulfilter verarbeitet Mehrfachwerte nicht sicher.');
+}
+
 const remainingOfficeScreens = [
   'src/screens/office/officemessagetemplatesscreen.tsx',
   'app/office/calendar/templates/index.tsx',
@@ -123,3 +163,5 @@ console.log('✓ Alle Office-Navigationsziele besitzen eine Route');
 console.log('✓ Kritische Detailseiten besitzen sichtbare Fehlerzustände');
 console.log('✓ Rechnungsdetail-Popup ist funktionsfähig angebunden');
 console.log('✓ Vorlagen, Reporting und Organisationsbereiche enthalten keine Wiederherstellungs-Stubs');
+console.log('✓ Audit-Log verwendet im Live-Betrieb echte Mandantendaten');
+console.log('✓ Arbeitszeit-Aktualisierung, Servicefehler und Modulfilter sind abgesichert');

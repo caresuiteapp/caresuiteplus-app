@@ -86,7 +86,17 @@ export function EmployeeDetailSummaryPanel({
     );
   }
 
-  if (!employee) return null;
+  if (!employee) {
+    return (
+      <View style={styles.panel}>
+        <ErrorState
+          title="Datensatz nicht verfügbar"
+          message="Die Mitarbeitenden-Daten konnten nicht geladen werden."
+          onRetry={refresh}
+        />
+      </View>
+    );
+  }
 
   const fullName = `${employee.firstName} ${employee.lastName}`;
 

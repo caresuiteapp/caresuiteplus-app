@@ -1,7 +1,15 @@
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ScreenShell } from '@/components/layout';
-import { FilterChipGroup, EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumCard } from '@/components/ui';
+import {
+  FilterChipGroup,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PremiumBadge,
+  PremiumButton,
+  PremiumCard,
+} from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import {
@@ -32,22 +40,24 @@ export function EmployeeWorkTimesScreen() {
   const canExport = can('office.employee_time.export');
   const [view, setView] = useState<WorkTimeListView>('daily');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
 
   const entriesResult = useMemo(() => {
+    void revision;
     if (!canView || !tenantId) return null;
     return listEmployeeTimeEntries(tenantId, roleKey, { view });
-  }, [canView, tenantId, view, roleKey]);
+  }, [canView, tenantId, view, roleKey, revision]);
 
   const exportHistory = useMemo(() => {
+    void revision;
     if (!canExport || view !== 'export' || !tenantId) return null;
     return fetchPayrollExportHistory(tenantId, roleKey);
-  }, [canExport, tenantId, view, roleKey]);
+  }, [canExport, tenantId, view, roleKey, revision]);
 
   const refresh = useCallback(() => {
     setLoading(true);
-    setError(null);
-    setLoading(false);
+    setRevision((current) => current + 1);
+    requestAnimationFrame(() => setLoading(false));
   }, []);
 
   if (!tenantId) {
@@ -77,10 +87,17 @@ export function EmployeeWorkTimesScreen() {
     );
   }
 
-  if (error) {
+  const serviceError =
+    entriesResult && !entriesResult.ok
+      ? entriesResult.error
+      : exportHistory && !exportHistory.ok
+        ? exportHistory.error
+        : null;
+
+  if (serviceError) {
     return (
       <ScreenShell title="Arbeitszeiten" subtitle="Fehler" scroll={false}>
-        <ErrorState message={error} onRetry={refresh} />
+        <ErrorState message={serviceError} onRetry={refresh} />
       </ScreenShell>
     );
   }
@@ -92,6 +109,7 @@ export function EmployeeWorkTimesScreen() {
       title="Arbeitszeiten"
       subtitle={`Personal · ${roleLabel ?? 'Office'}`}
     >
+      <PremiumButton title="Aktualisieren" variant="ghost" onPress={refresh} />
       <FilterChipGroup
         options={VIEWS.map((v) => ({ key: v.key, label: v.label }))}
         value={view}

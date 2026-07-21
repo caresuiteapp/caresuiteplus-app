@@ -16,10 +16,10 @@ export function isRelativePortalAccessLiveReady(): boolean {
 }
 
 export const ACCESS_MANAGEMENT_PREPARED_MESSAGE =
-  'Zugangsverwaltung nutzt Demo-Daten — Live-Supabase-Sync ist nur im Demo-Modus aktiv.';
+  'In der lokalen Vorschau werden Beispieldaten angezeigt. Im Live-Betrieb werden ausschließlich Mandantendaten aus Supabase geladen.';
 
 export const CLIENT_PORTAL_ACCESS_PREPARED_MESSAGE =
-  'Klient:innenportal-Codes nutzen Demo-Daten — im Live-Modus werden Supabase-Daten verwendet.';
+  'In der lokalen Vorschau werden Beispielcodes angezeigt. Im Live-Betrieb werden ausschließlich Mandantendaten verwendet.';
 
 export const RELATIVE_PORTAL_ACCESS_PREPARED_MESSAGE =
-  'Angehörigen-Codes nutzen Demo-Daten — im Live-Modus werden Supabase-Daten verwendet.';
+  'In der lokalen Vorschau werden Beispielcodes angezeigt. Im Live-Betrieb werden ausschließlich Mandantendaten verwendet.';

@@ -65,7 +65,7 @@ export function AccessManagementDashboardHero({ stats }: AccessManagementDashboa
       <View style={styles.badges}>
         <PremiumBadge label="Mandanten-Admin" variant="orange" dot />
         {!isAccessManagementLiveReady() ? (
-          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
+          <PremiumBadge label="Vorschaudaten" variant="muted" />
         ) : (
           <PremiumBadge label="Cloud Live" variant="green" dot />
         )}
@@ -91,4 +91,3 @@ export function AccessManagementDashboardHero({ stats }: AccessManagementDashboa
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

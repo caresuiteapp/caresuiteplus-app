@@ -82,7 +82,7 @@ export function OfficeDashboardHero({
         {isLive ? (
           <PremiumBadge label="Live Mandant" variant="green" dot />
         ) : (
-          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
+          <PremiumBadge label="Vorschaudaten" variant="muted" />
         )}
       </View>
       <AdaptiveKpiGrid
@@ -104,4 +104,3 @@ export function OfficeDashboardHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

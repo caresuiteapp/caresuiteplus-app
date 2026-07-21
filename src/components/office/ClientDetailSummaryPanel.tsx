@@ -74,7 +74,17 @@ export function ClientDetailSummaryPanel({
     );
   }
 
-  if (!client) return null;
+  if (!client) {
+    return (
+      <View style={styles.panel}>
+        <ErrorState
+          title="Datensatz nicht verfügbar"
+          message="Die Klient:innen-Daten konnten nicht geladen werden."
+          onRetry={refresh}
+        />
+      </View>
+    );
+  }
 
   const fullName = `${client.firstName} ${client.lastName}`;
   const location = [client.zip, client.city].filter(Boolean).join(' ');

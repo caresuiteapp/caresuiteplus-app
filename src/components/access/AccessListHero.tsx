@@ -90,7 +90,7 @@ export function AccessListHero({ variant, itemCount, liveReady }: AccessListHero
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={`${itemCount} Einträge`} variant="orange" dot />
-        {!isLive ? <PremiumBadge label="preparedOnly" variant="muted" /> : (
+        {!isLive ? <PremiumBadge label="In Vorbereitung" variant="muted" /> : (
           <PremiumBadge label="Cloud Live" variant="green" dot />
         )}
       </View>
@@ -113,4 +113,3 @@ export function AccessListHero({ variant, itemCount, liveReady }: AccessListHero
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-
