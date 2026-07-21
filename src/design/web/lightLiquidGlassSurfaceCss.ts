@@ -1,24 +1,23 @@
-/** Web CSS for the one canonical CareSuite HealthOS Liquid Glass surface. */
+/** Web CSS for the canonical CareSuite HealthOS V34 spatial surface. */
 export const LLGAN_GLASS_SURFACE_STYLE_ID = 'caresuite-system-liquid-glass-surfaces';
 
 export const LLGAN_GLASS_SURFACE_CSS = `
   :root {
-    --cs-navy: #10233F;
-    --cs-blue: #1478FF;
+    --cs-navy: #17182D;
+    --cs-blue: #69E8FF;
     --cs-white: #FFFFFF;
-    --cs-glass-panel: rgba(255, 255, 255, .74);
+    --cs-glass-panel: rgba(247, 242, 248, .82);
     --cs-glass-card: rgba(255, 255, 255, .82);
-    --cs-glass-control: rgba(247, 250, 255, .88);
-    --cs-glass-border: rgba(16, 35, 63, .12);
-    --cs-glass-border-strong: rgba(16, 35, 63, .20);
+    --cs-glass-control: rgba(255, 255, 255, .76);
+    --cs-glass-border: rgba(23, 24, 45, .12);
+    --cs-glass-border-strong: rgba(23, 24, 45, .20);
     --cs-glass-blur: 28px;
-    color-scheme: light;
+    color-scheme: dark light;
   }
 
   html, body, #root, #expo-root, [data-expo-root] {
-    background: #F7FAFF !important;
-    background-color: #F7FAFF !important;
-    color: var(--cs-navy);
+    background: #17182D !important;
+    background-color: #17182D !important;
   }
 
   .cs-llgan-glass,
@@ -28,12 +27,12 @@ export const LLGAN_GLASS_SURFACE_CSS = `
     background-image: linear-gradient(
       145deg,
       rgba(255,255,255,.82) 0%,
-      rgba(20,120,255,.045) 42%,
-      rgba(238,244,251,.72) 100%
+      rgba(105,232,255,.045) 42%,
+      rgba(233,226,240,.78) 100%
     ) !important;
     border: 1px solid var(--cs-glass-border);
     box-shadow:
-      0 18px 48px rgba(16,35,63,.14),
+      0 18px 48px rgba(5,7,22,.20),
       inset 0 1px 0 rgba(255,255,255,.78);
     -webkit-backdrop-filter: blur(var(--cs-glass-blur)) saturate(1.28) !important;
     backdrop-filter: blur(var(--cs-glass-blur)) saturate(1.28) !important;
@@ -75,8 +74,8 @@ export const LLGAN_GLASS_SURFACE_CSS = `
 
   [data-cs-llgan-glass="input"]:focus-within,
   [data-cs-llgan-glass="button"]:focus-visible {
-    border-color: rgba(20,120,255,.72) !important;
-    box-shadow: 0 0 0 3px rgba(20,120,255,.14);
+    border-color: rgba(105,232,255,.72) !important;
+    box-shadow: 0 0 0 3px rgba(105,232,255,.14);
   }
 
   [data-cs-llgan-glass="modal"] {

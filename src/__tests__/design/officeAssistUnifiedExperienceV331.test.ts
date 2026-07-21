@@ -6,16 +6,16 @@ const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), 'utf8');
 
 describe('Office + Assist unified experience V33.1', () => {
-  it('verwendet ausschließlich die helle globale Designwelt', () => {
+  it('wird durch die gemeinsame räumliche V34-Designwelt abgelöst', () => {
     const background = read('src/components/ui/effects/globalanimatedbackground.tsx');
     const css = read('src/design/web/lightLiquidGlassSurfaceCss.ts');
     const html = read('app/+html.tsx');
 
-    expect(background).toContain('StaticLightPaperBackground');
+    expect(background).toContain('SpatialCareBackground');
     expect(background).not.toContain('DarkLiquidGlassBackground');
-    expect(css).toContain('color-scheme: light');
+    expect(css).toContain('color-scheme: dark light');
     expect(css).not.toContain('background: #030A18');
-    expect(html).toContain('content="#F7FAFF"');
+    expect(html).toContain('content="#17182D"');
   });
 
   it('setzt auf beiden Startseiten dieselbe Seitenschale ein', () => {

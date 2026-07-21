@@ -1,5 +1,6 @@
 /** CareSuite HealthOS — system-wide three-colour Liquid Glass palette. */
 import { SYSTEM_LIQUID_COLORS, systemLiquidGlass } from './systemLiquidGlass';
+import { spatialModuleAccents } from './spatialCareSuite';
 
 const systemPalette = {
   background: {
@@ -11,10 +12,10 @@ const systemPalette = {
   },
   brand: {
     navy: SYSTEM_LIQUID_COLORS.navy,
-    orange: SYSTEM_LIQUID_COLORS.electricBlue,
-    gold: SYSTEM_LIQUID_COLORS.electricBlue,
-    cyan: SYSTEM_LIQUID_COLORS.electricBlue,
-    violet: SYSTEM_LIQUID_COLORS.electricBlue,
+    orange: spatialModuleAccents.office,
+    gold: spatialModuleAccents.akademie,
+    cyan: spatialModuleAccents.assist,
+    violet: spatialModuleAccents.beratung,
   },
   text: {
     primary: systemLiquidGlass.text.primary,
@@ -29,14 +30,7 @@ const systemPalette = {
     info: SYSTEM_LIQUID_COLORS.electricBlue,
   },
   module: {
-    office: SYSTEM_LIQUID_COLORS.electricBlue,
-    assist: SYSTEM_LIQUID_COLORS.electricBlue,
-    pflege: SYSTEM_LIQUID_COLORS.electricBlue,
-    beratung: SYSTEM_LIQUID_COLORS.electricBlue,
-    stationaer: SYSTEM_LIQUID_COLORS.electricBlue,
-    akademie: SYSTEM_LIQUID_COLORS.electricBlue,
-    qm: SYSTEM_LIQUID_COLORS.electricBlue,
-    insight: SYSTEM_LIQUID_COLORS.electricBlue,
+    ...spatialModuleAccents,
   },
 } as const;
 

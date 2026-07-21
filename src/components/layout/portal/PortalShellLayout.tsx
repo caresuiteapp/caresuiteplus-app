@@ -28,6 +28,7 @@ import {
 import { usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 import { DesktopSidebarToggle } from '@/components/layout/DesktopSidebarToggle';
 import { useDesktopWorkspacePreferences } from '@/hooks/useDesktopWorkspacePreferences';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
 export type PortalShellKind = 'client' | 'employee' | 'relative';
 
@@ -207,7 +208,11 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     position: 'relative',
     zIndex: 20,
-    overflow: 'visible',
+    marginHorizontal: 14,
+    marginTop: 12,
+    borderTopLeftRadius: spatialCare.radius.stage,
+    borderTopRightRadius: spatialCare.radius.stage,
+    overflow: 'hidden',
   },
   content: {
     flex: 1,
@@ -219,6 +224,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     minHeight: 0,
     zIndex: 1,
+    margin: 14,
+    marginTop: 8,
+    borderRadius: spatialCare.radius.shell,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: spatialCare.border,
+    backgroundColor: spatialCare.stage,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: spatialCare.shadow, backdropFilter: `blur(${spatialCare.blur.stage}px)` } as unknown as ViewStyle)
+      : null),
   },
   sidebarHost: {
     flexShrink: 0,
@@ -232,7 +247,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     minHeight: 0,
-    backgroundColor: 'transparent',
+    backgroundColor: spatialCare.stage,
   },
   mainScroll: {
     flex: 1,
@@ -242,7 +257,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: careSpacing.md,
     paddingBottom: careSpacing.xl,
-    backgroundColor: 'transparent',
+    backgroundColor: spatialCare.stage,
   },
   employeeMainContent: {
     width: '100%', maxWidth: 1180, alignSelf: 'center',

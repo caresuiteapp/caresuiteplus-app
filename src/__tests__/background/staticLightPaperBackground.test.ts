@@ -27,15 +27,16 @@ describe('StaticLightPaperBackground component', () => {
   });
 });
 
-describe('GlobalAnimatedBackground static light wiring', () => {
-  it('nutzt ausschließlich den statischen Hintergrund ohne globale Canvas-Dauerschleife', async () => {
+describe('GlobalAnimatedBackground V34 spatial wiring', () => {
+  it('nutzt ausschließlich die räumliche Code-Szene ohne globale Canvas-Dauerschleife', async () => {
     const { readFileSync } = await import('node:fs');
     const { default: path } = await import('node:path');
     const source = readFileSync(
       path.join(__dirname, '..', '..', 'components', 'ui', 'effects', 'globalanimatedbackground.tsx'),
       'utf8',
     );
-    expect(source).toContain('StaticLightPaperBackground');
+    expect(source).toContain('SpatialCareBackground');
+    expect(source).not.toContain('StaticLightPaperBackground');
     expect(source).not.toContain('GlobalPersistentSpaceMotionBackground');
     expect(source).not.toContain('requestAnimationFrame');
     expect(source).not.toContain('<canvas');

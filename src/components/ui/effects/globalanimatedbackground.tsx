@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
-import { StaticLightPaperBackground } from '@/components/backgrounds';
+import { SpatialCareBackground } from '@/components/backgrounds';
 
 type GlobalAnimatedBackgroundProps = {
   /** Override ThemeModeProvider (e.g. CareSuiteBackground legacy `mode` prop). */
@@ -26,8 +26,8 @@ export function GlobalAnimatedBackground({
   dimmed = false,
 }: GlobalAnimatedBackgroundProps) {
   return (
-    <View style={[styles.root, styles.lightRoot, style]} pointerEvents="none">
-      <StaticLightPaperBackground animated={_animated} dimmed={dimmed} />
+    <View style={[styles.root, styles.spatialRoot, style]} pointerEvents="none">
+      <SpatialCareBackground dimmed={dimmed} />
       {children}
     </View>
   );
@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
   },
-  lightRoot: {
-    backgroundColor: '#F7FAFF',
+  spatialRoot: {
+    backgroundColor: '#17182D',
   },
 });

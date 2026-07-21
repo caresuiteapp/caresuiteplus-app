@@ -18,6 +18,7 @@ import { spacing } from '@/theme';
 import { AutoScrollView } from './AutoScrollView';
 import { CareLightPageShell } from './CareLightPageShell';
 import { ScreenHeader } from './ScreenHeader';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
 type ScreenShellProps = {
   title: string;
@@ -139,7 +140,14 @@ export function ScreenShell({
           flexGrow: 1,
           minHeight: 0,
           width: '100%',
-          backgroundColor: shellHostsAurora ? 'transparent' : undefined,
+          backgroundColor: shellHostsAurora ? spatialCare.stage : undefined,
+          borderRadius: shellHostsAurora ? spatialCare.radius.stage : 0,
+          overflow: 'hidden',
+          borderWidth: shellHostsAurora ? 1 : 0,
+          borderColor: shellHostsAurora ? spatialCare.border : 'transparent',
+          ...(shellHostsAurora && Platform.OS === 'web'
+            ? ({ boxShadow: spatialCare.shadowSoft } as unknown as ViewStyle)
+            : null),
         },
       }),
     [authMobileBottomPad, isAuthRoute, isPhone, shellHostsAurora],

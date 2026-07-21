@@ -22,6 +22,7 @@ import { resolveCombinedModuleLabel } from '@/lib/portal/engine/portalTerminolog
 import { resolveActiveTabKey } from '@/lib/navigation/shellConfig';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import type { PortalNavItem } from '@/lib/portal/types';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
 type PortalLeftNavProps = {
   accentColor?: string;
@@ -56,8 +57,6 @@ function NavItem({
   collapsed: boolean;
   onPress: () => void;
 }) {
-  const text = useAuroraAdaptiveText();
-
   return (
     <Pressable
       onPress={onPress}
@@ -81,7 +80,7 @@ function NavItem({
           <Text
             style={[
               styles.navLabel,
-              { color: active ? text.primary : text.secondary },
+              { color: active ? accent : spatialCare.textOnNight },
               active && { fontWeight: '700' },
             ]}
             numberOfLines={1}
@@ -96,7 +95,7 @@ function NavItem({
 
 /** Client-only left navigation — dynamic from portal engine, no office/admin items. */
 export function PortalLeftNav({
-  accentColor = '#FF9500',
+  accentColor = '#1478FF',
   collapsed = false,
   onToggleCollapse,
 }: PortalLeftNavProps) {
@@ -106,8 +105,8 @@ export function PortalLeftNav({
   const auroraActive = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
   const useLightNav = auroraActive && isLight;
-  const navSurface = useLightNav ? lightLiquidGlass.sidebar : auroraGlass.panel;
-  const navBorder = useLightNav ? lightLiquidGlass.borderAccent : auroraGlass.border;
+  const navSurface = spatialCare.navigation;
+  const navBorder = spatialCare.borderGlow;
   const navGlassFx = useLightNav ? lightLiquidGlassWebFx(lightLiquidGlass.blur.light) : webGlassBlur;
   const { context } = usePortalContext();
   const [localCollapsed, setLocalCollapsed] = useState(collapsed);
