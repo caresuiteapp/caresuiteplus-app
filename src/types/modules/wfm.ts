@@ -111,6 +111,8 @@ export interface WfmTimeEvent {
   occurredAt: string;
   sessionId: string | null;
   note: string | null;
+  referenceType?: 'visit' | 'assignment' | null;
+  referenceId?: string | null;
 }
 
 export interface WfmTodayStatus {

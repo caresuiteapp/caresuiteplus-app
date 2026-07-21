@@ -48,6 +48,8 @@ type EventRow = {
   occurred_at: string;
   session_id: string | null;
   note: string | null;
+  reference_type?: 'visit' | 'assignment' | null;
+  reference_id?: string | null;
 };
 
 const demoSessions = new Map<string, WfmWorkSession>();
@@ -91,6 +93,8 @@ function mapEventRow(row: EventRow): WfmTimeEvent {
     occurredAt: row.occurred_at,
     sessionId: row.session_id,
     note: row.note,
+    referenceType: row.reference_type ?? null,
+    referenceId: row.reference_id ?? null,
   };
 }
 
@@ -165,7 +169,7 @@ export async function fetchSessionEvents(
 
   const { data, error } = await fromUnknownTable(supabase, EVENTS_TABLE)
     .select(
-      'id, tenant_id, employee_id, user_id, event_type, work_mode, source, occurred_at, session_id, note',
+      'id, tenant_id, employee_id, user_id, event_type, work_mode, source, occurred_at, session_id, note, reference_type, reference_id',
     )
     .eq('tenant_id', tenantId)
     .eq('session_id', sessionId)
@@ -349,7 +353,7 @@ export async function insertTimeEvent(
   const { data, error } = await fromUnknownTable(supabase, EVENTS_TABLE)
     .insert(payload)
     .select(
-      'id, tenant_id, employee_id, user_id, event_type, work_mode, source, occurred_at, session_id, note',
+      'id, tenant_id, employee_id, user_id, event_type, work_mode, source, occurred_at, session_id, note, reference_type, reference_id',
     )
     .single();
 
@@ -609,7 +613,7 @@ export async function fetchEmployeeEventsInRange(
 
   const { data, error } = await fromUnknownTable(supabase, EVENTS_TABLE)
     .select(
-      'id, tenant_id, employee_id, user_id, event_type, work_mode, source, occurred_at, session_id, note',
+      'id, tenant_id, employee_id, user_id, event_type, work_mode, source, occurred_at, session_id, note, reference_type, reference_id',
     )
     .eq('tenant_id', tenantId)
     .eq('employee_id', employeeId)

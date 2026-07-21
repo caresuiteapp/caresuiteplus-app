@@ -55,6 +55,7 @@ import {
   applyReviewToEntry,
   buildReferenceKeyFromEntry,
   ensurePendingReviewForEntry,
+  getReviewByReferenceKey,
   isOpenReviewStatus,
   listReviewActionsForReviews,
   listReviewsForPeriod,
@@ -349,14 +350,15 @@ async function buildEntriesForDate(
 
     const visitStartEvents = events.filter((e) => e.eventType === 'visit_started');
     for (const startEvent of visitStartEvents) {
-      const visitId = session.currentVisitId ?? `evt-${startEvent.id}`;
+      const visitId = startEvent.referenceId ?? session.currentVisitId ?? `evt-${startEvent.id}`;
       if (visitIdsHandled.has(`${session.employeeId}:${visitId}`)) continue;
       visitIdsHandled.add(`${session.employeeId}:${visitId}`);
       const related = events.filter(
         (e) =>
-          e.eventType === 'visit_started' ||
-          e.eventType === 'visit_ended' ||
-          e.eventType === 'visit_arrived',
+          (e.referenceId ?? session.currentVisitId) === visitId &&
+          (e.eventType === 'visit_started' ||
+            e.eventType === 'visit_ended' ||
+            e.eventType === 'visit_arrived'),
       );
       const overlay = getEntryOverlay(`visit:${visitId}:${workDate}`) ?? {};
       entries.push(
@@ -555,6 +557,25 @@ export async function getWfmOfficeTimeOverview(
   const joined = joinOfficeTimekeepingData(plannedVisits, enrichedActual, employeeNames);
 
   for (const entry of joined) {
+    if (entry.flags.includes('auto_booked_from_assignment_actual')) {
+      const referenceKey = buildReferenceKeyFromEntry(tenantId, entry);
+      const existing = await getReviewByReferenceKey(tenantId, referenceKey);
+      if (!existing.ok || existing.data?.reviewStatus !== 'approved') {
+        await transitionReviewStatus(tenantId, WFM_REVIEW_SYSTEM_ACTOR, {
+          entryId: entry.id,
+          employeeId: entry.employeeId,
+          workDate: entry.workDate,
+          entryKind: resolveEntryKindFromOfficeEntry(entry),
+          rawReferenceId: resolveReferenceRawId(entry) ?? entry.id,
+          nextStatus: 'approved',
+          reviewNote: 'Automatisch aus vollständigem Einsatz-Ist innerhalb der 5-Minuten-Toleranz gebucht.',
+          officeComment: 'Automatische Arbeitszeitbuchung aus Einsatz-Ist.',
+          actorId: WFM_REVIEW_SYSTEM_ACTOR,
+          actionComment: 'Automatische Freigabe: vollständige grüne Einsatz-Ist-Zeiten.',
+        });
+      }
+      continue;
+    }
     await ensurePendingReviewForEntry(tenantId, WFM_REVIEW_SYSTEM_ACTOR, entry);
   }
 
