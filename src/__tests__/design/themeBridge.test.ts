@@ -15,7 +15,7 @@ describe('design token bridge', () => {
     expect(dark.orange).toBe(careSuiteColors.dark.brand.orange);
     expect(dark.cyan).toBe(careSuiteColors.dark.brand.cyan);
     expect(darkColors.bgBase).toBe(dark.bgBase);
-    expect(colors.textPrimary).toBe('#F8FBFF');
+    expect(colors.textPrimary).toBe('#000000');
     expect(colors.bgBase).toBe(lightColors.bgBase);
   });
 
@@ -28,7 +28,7 @@ describe('design token bridge', () => {
     const light = resolveCareTypography('light');
     const dark = resolveCareTypography('dark');
     expect(light.h1.color).toBe(careSuiteColors.light.text.primary);
-    expect(dark.h1.color).toBe('#F8FBFF');
+    expect(dark.h1.color).toBe('#000000');
   });
 
   it('resolveLegacyGradients liefert light und dark Varianten', () => {

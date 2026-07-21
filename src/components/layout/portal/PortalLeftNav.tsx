@@ -96,7 +96,7 @@ function NavItem({
 
 /** Client-only left navigation — dynamic from portal engine, no office/admin items. */
 export function PortalLeftNav({
-  accentColor = '#1478FF',
+  accentColor = '#FF9500',
   collapsed = false,
   onToggleCollapse,
 }: PortalLeftNavProps) {

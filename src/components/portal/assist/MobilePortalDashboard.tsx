@@ -13,7 +13,6 @@ import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequest
 import { PortalServiceProofsModal } from '@/components/portal/assist/PortalServiceProofsModal';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
-import { SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { usePortalAssistRealtime } from '@/hooks/usePortalAssistRealtime';
 import {
@@ -253,7 +252,7 @@ export function MobilePortalDashboard({
             value={data.kpis.documents}
             emptyMessage="Keine neuen Dokumente."
             ctaLabel="Dokumente öffnen →"
-            accentColor={SYSTEM_LIQUID_COLORS.electricBlue}
+            accentColor="#FF9500"
             onCta={() => router.push('/portal/client/documents/signatures' as never)}
             onPress={() => router.push('/portal/client/documents/signatures' as never)}
           />

@@ -4,11 +4,11 @@
  */
 import { legacyColorsFromPalette } from '@/design/tokens/themeBridge';
 
-/** Default export — canonical dark Liquid Glass palette. */
-export const colors = legacyColorsFromPalette('dark');
+/** Default export — light palette (system-wide black ink on light surfaces). */
+export const colors = legacyColorsFromPalette('light');
 
 /** Dark palette for explicit legacy/dark-mode surfaces. */
 export const darkColors = legacyColorsFromPalette('dark');
 
-/** Compatibility alias — the system uses one visual language. */
-export const lightColors = legacyColorsFromPalette('dark');
+/** @deprecated Use darkColors */
+export const lightColors = legacyColorsFromPalette('light');

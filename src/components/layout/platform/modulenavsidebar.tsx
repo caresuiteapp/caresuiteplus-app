@@ -19,7 +19,7 @@ import { useModuleNavBadges } from '@/hooks/useModuleNavBadges';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useAuroraAdaptiveText, lightLiquidGlass, lightLiquidGlassWebFx } from '@/design/tokens/auroraGlass';
-import { withAlpha } from '@/design/tokens/motion';
+import { glassFx, withAlpha } from '@/design/tokens/motion';
 import {
   PLATFORM_MODULE_NAV_WIDTH,
   PLATFORM_SHELL_HEADER_TOP_INSET,
@@ -27,6 +27,7 @@ import {
 import { radius, spacing, typography } from '@/theme';
 import { SpaceKpiIcon } from '@/components/icons/space';
 import { AccentTextChip } from '@/components/ui/AccentTextChip';
+import { resolveLightColoredTextColor } from '@/design/tokens/accentContrast';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
 type ModuleNavSidebarProps = {
@@ -53,7 +54,6 @@ function NavItem({
   isDark: boolean;
   onPress: () => void;
 }) {
-  const text = useAuroraAdaptiveText();
   const bgRest = withAlpha(accent, 0);
   const bgActive = withAlpha(accent, isDark ? 0.2 : 0.12);
   const borderRest = withAlpha(accent, 0);
@@ -81,9 +81,9 @@ function NavItem({
         <Text
           style={[
             navStyles.navLabel,
-            { color: text.primary },
+            { color: '#000000' },
             active && {
-              color: text.primary,
+              color: resolveLightColoredTextColor(accent, accent),
               fontWeight: '700',
             },
           ]}
@@ -172,6 +172,8 @@ function createStyles(
   text: ReturnType<typeof useAuroraAdaptiveText>,
   accent: string,
 ) {
+  const glassBorder = isDark ? glassFx.border : lightLiquidGlass.borderAccent;
+
   return StyleSheet.create({
     root: {
       width: PLATFORM_MODULE_NAV_WIDTH,

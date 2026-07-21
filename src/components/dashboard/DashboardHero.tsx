@@ -17,7 +17,6 @@ import type { DashboardQuickAction, DashboardSnapshot } from '@/types/dashboard'
 import { ROLE_LABELS } from '@/data/constants';
 import { radius, spacing } from '@/theme';
 import { useClientGreeting } from '@/hooks/useClientGreeting';
-import { SYSTEM_BLUE_GRADIENT, SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
 
 type DashboardHeroProps = {
   snapshot: DashboardSnapshot;
@@ -26,7 +25,7 @@ type DashboardHeroProps = {
 };
 
 /** Vivid violet→pink→cyan liquid-glass hero banner (dark) with floating depth. */
-const HERO_GRADIENT_DARK: [string, string, string] = [...SYSTEM_BLUE_GRADIENT];
+const HERO_GRADIENT_DARK: [string, string, string] = ['#7C3AED', '#EC4899', '#06B6D4'];
 
 export function DashboardHero({
   snapshot,
@@ -66,10 +65,10 @@ export function DashboardHero({
         wrapper: {
           borderRadius: radius.card,
           borderWidth: 1,
-          borderColor: isDark ? withAlpha(SYSTEM_LIQUID_COLORS.electricBlue, 0.35) : colors.borderSoft,
+          borderColor: isDark ? withAlpha('#EC4899', 0.35) : colors.borderSoft,
           overflow: 'hidden',
           marginBottom: spacing.sm,
-          ...(isDark ? neonGlow(SYSTEM_LIQUID_COLORS.electricBlue, 0.35, 28, 16) : null),
+          ...(isDark ? neonGlow('#EC4899', 0.35, 28, 16) : null),
         },
         gradient: { ...StyleSheet.absoluteFillObject },
         overlay: { ...StyleSheet.absoluteFillObject },
@@ -96,7 +95,7 @@ export function DashboardHero({
           width: 200,
           height: 200,
           borderRadius: 100,
-          backgroundColor: withAlpha(SYSTEM_LIQUID_COLORS.electricBlue, 0.22),
+          backgroundColor: withAlpha('#06B6D4', 0.22),
         },
         content: { padding: spacing.md, gap: spacing.sm },
         topRow: { flexDirection: 'row', gap: spacing.md },

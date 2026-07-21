@@ -7,7 +7,6 @@ import { employeePortalExecutionText } from '@/lib/portal/employeePortalExecutio
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { spacing, typography } from '@/theme';
-import { SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
 
 const FAB_SIZE = 52;
 const BOTTOM_BAR_HEIGHT = 64;
@@ -41,7 +40,7 @@ export function EmployeePortalVisitFabMenu({ actions }: EmployeePortalVisitFabMe
           width: FAB_SIZE,
           height: FAB_SIZE,
           borderRadius: FAB_SIZE / 2,
-          backgroundColor: SYSTEM_LIQUID_COLORS.electricBlue,
+          backgroundColor: '#8B5CF6',
           alignItems: 'center',
           justifyContent: 'center',
           ...Platform.select({

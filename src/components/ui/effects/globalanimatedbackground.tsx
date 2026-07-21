@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
-import { DarkLiquidGlassBackground } from '@/components/backgrounds';
+import { StaticLightPaperBackground } from '@/components/backgrounds';
 
 type GlobalAnimatedBackgroundProps = {
   /** Override ThemeModeProvider (e.g. CareSuiteBackground legacy `mode` prop). */
@@ -15,7 +15,7 @@ type GlobalAnimatedBackgroundProps = {
 
 /**
  * Single shell-root background for CareSuite+.
- * Hosts the one canonical dark Liquid Glass backdrop for every product area.
+ * Always uses the light space/paper backdrop — no dark or black surfaces.
  * Mount once at app/_layout root — never inside columns or per-screen.
  */
 export function GlobalAnimatedBackground({
@@ -27,7 +27,7 @@ export function GlobalAnimatedBackground({
 }: GlobalAnimatedBackgroundProps) {
   return (
     <View style={[styles.root, styles.lightRoot, style]} pointerEvents="none">
-      <DarkLiquidGlassBackground animated={_animated} dimmed={dimmed} />
+      <StaticLightPaperBackground dimmed={dimmed} />
       {children}
     </View>
   );
@@ -39,6 +39,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   lightRoot: {
-    backgroundColor: '#030A18',
+    backgroundColor: 'transparent',
   },
 });

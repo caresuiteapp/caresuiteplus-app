@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useAuroraGlassTableStyles } from '@/design/tokens/auroraGlass';
-import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 
 export type DataTableColumn<T> = {
   key: string;
@@ -222,9 +221,9 @@ const localStyles = StyleSheet.create({
   fixedRow: { minHeight: 56, alignItems: 'center' },
   fixedCell: { overflow: 'hidden', justifyContent: 'center' },
   emptySolid: {
-    backgroundColor: systemLiquidGlass.panelStrong,
+    backgroundColor: '#FAFBFC',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: systemLiquidGlass.border,
+    borderColor: 'rgba(15,27,51,0.12)',
   },
 });

@@ -168,7 +168,7 @@ function createStyles(colors: ReturnType<typeof useLegacyTheme>['colors']) {
 
   const topbarPrimaryNameText: TextStyle = {
     ...typography.bodyStrong,
-    color: colors.textPrimary,
+    color: '#000000',
     fontWeight: '700',
     lineHeight: 20,
     textAlign: 'center',

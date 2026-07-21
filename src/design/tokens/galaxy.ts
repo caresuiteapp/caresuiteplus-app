@@ -3,24 +3,23 @@
  * Single source for premium auth & landing surfaces.
  */
 import { popupShellHeaderGradientDark } from './popupShellTokens';
-import { SYSTEM_LIQUID_COLORS, systemLiquidGlass } from './systemLiquidGlass';
 export const galaxyPalette = {
-  deepSpace: systemLiquidGlass.pageDeep,
-  spaceNavy: SYSTEM_LIQUID_COLORS.navy,
-  midnightBlue: systemLiquidGlass.pageElevated,
-  galaxyPurple: SYSTEM_LIQUID_COLORS.electricBlue,
-  galaxyCyan: SYSTEM_LIQUID_COLORS.electricBlue,
-  glowBlue: SYSTEM_LIQUID_COLORS.electricBlue,
-  glowViolet: SYSTEM_LIQUID_COLORS.electricBlue,
-  careOrange: SYSTEM_LIQUID_COLORS.electricBlue,
+  deepSpace: '#F8FAFC',
+  spaceNavy: '#08111F',
+  midnightBlue: '#0B1026',
+  galaxyPurple: '#271A5D',
+  galaxyCyan: '#22D3EE',
+  glowBlue: '#38BDF8',
+  glowViolet: '#8B5CF6',
+  careOrange: '#FF6B1A',
   success: '#22C55E',
   warning: '#F59E0B',
   danger: '#EF4444',
-  textPrimary: systemLiquidGlass.text.primary,
-  textSecondary: systemLiquidGlass.text.secondary,
-  textMuted: systemLiquidGlass.text.muted,
-  borderGlass: systemLiquidGlass.border,
-  cardGlass: systemLiquidGlass.card,
+  textPrimary: '#000000',
+  textSecondary: '#000000',
+  textMuted: '#000000',
+  borderGlass: 'rgba(255,255,255,0.12)',
+  cardGlass: 'rgba(255,255,255,0.08)',
 } as const;
 
 export const galaxyGradients = {
@@ -30,7 +29,7 @@ export const galaxyGradients = {
   dashboardHero: [galaxyPalette.galaxyPurple, '#181040', galaxyPalette.midnightBlue] as const,
   /** Colorful modal header — purple → magenta → lavender (horizontal). */
   modalHeader: popupShellHeaderGradientDark,
-  primaryCta: [SYSTEM_LIQUID_COLORS.electricBlue, '#4A9AFF'] as const,
+  primaryCta: [galaxyPalette.careOrange, '#FF8F4A'] as const,
   glowOrbCyan: [`${galaxyPalette.galaxyCyan}18`, 'transparent'] as const,
   glowOrbViolet: [`${galaxyPalette.glowViolet}14`, 'transparent'] as const,
 } as const;

@@ -2,7 +2,7 @@
  * CareSuite+ — Light Liquid Glass Aurora Nebula (Canvas-Layer + Glas-Tokens).
  */
 
-import { SYSTEM_BLUE_GRADIENT, systemLiquidGlass } from './systemLiquidGlass';
+import { popupShellHeaderGradientLight } from './popupShellTokens';
 
 export const llganBaseColors = {
   iceWhite: '#F7FAFF',
@@ -38,7 +38,7 @@ export const llganPearlescentColors = {
 } as const;
 
 /** Light-mode modal header — purple → pink → violet (shared popup shell). */
-export const llganModalHeaderGradient = SYSTEM_BLUE_GRADIENT;
+export const llganModalHeaderGradient = popupShellHeaderGradientLight;
 
 export function resolveLlganModalHeaderGradient(): readonly [string, ...string[]] {
   return llganModalHeaderGradient;
@@ -189,27 +189,51 @@ export function resolveLlganViewGlass(
   intensity: LightSpaceIntensity = 'default',
 ) {
   const v = llganViewGlassByIntensity[intensity];
-  void view;
+  const cardAlpha =
+    view === 'dashboard'
+      ? v.dashboardCardAlpha
+      : view === 'login'
+        ? Math.min(0.90, v.settingsCardAlpha + 0.22)
+        : view === 'settings'
+          ? v.settingsCardAlpha
+          : view === 'table'
+            ? v.tableAlpha
+            : view === 'form'
+              ? v.modalAlpha
+              : v.settingsCardAlpha;
+  const panelAlpha =
+    view === 'form'
+      ? v.modalAlpha
+      : view === 'table'
+        ? v.tableAlpha
+        : view === 'dashboard'
+          ? v.dashboardPanelAlpha
+          : v.dashboardPanelAlpha + 0.04;
+  const buttonAlpha = v.settingsButtonAlpha;
+  const blur =
+    view === 'settings' || view === 'form' || view === 'table'
+      ? Math.max(v.glassBlur, 24)
+      : v.glassBlur;
 
   return {
-    panel: systemLiquidGlass.panel,
-    card: systemLiquidGlass.card,
-    button: systemLiquidGlass.chip,
-    sidebar: systemLiquidGlass.panelStrong,
-    chip: systemLiquidGlass.chip,
-    modal: systemLiquidGlass.panelStrong,
-    input: systemLiquidGlass.input,
-    table: systemLiquidGlass.table,
-    borderWhite: systemLiquidGlass.border,
-    borderAccent: systemLiquidGlass.border,
-    borderButton: systemLiquidGlass.border,
-    blurDesktop: systemLiquidGlass.blur.desktop,
-    blurMobile: systemLiquidGlass.blur.mobile,
-    blurButton: systemLiquidGlass.blur.mobile,
-    saturate: systemLiquidGlass.saturate,
-    saturateButton: systemLiquidGlass.saturate,
-    shadow: systemLiquidGlass.shadow,
-    shadowInset: systemLiquidGlass.shadowInset,
+    panel: rgbaWhite(panelAlpha),
+    card: rgbaWhite(cardAlpha),
+    button: rgbaWhite(buttonAlpha),
+    sidebar: rgbaWhite(v.sidebarAlpha),
+    chip: rgbaWhite(Math.max(0.34, panelAlpha - 0.08)),
+    modal: rgbaWhite(v.modalAlpha),
+    input: rgbaWhite(Math.max(0.36, panelAlpha - 0.06)),
+    table: rgbaWhite(v.tableAlpha),
+    borderWhite: 'rgba(255,255,255,0.68)',
+    borderAccent: 'rgba(110,160,255,0.32)',
+    borderButton: 'rgba(120,160,255,0.24)',
+    blurDesktop: blur,
+    blurMobile: Math.max(22, blur - 10),
+    blurButton: 24,
+    saturate: v.glassSaturate,
+    saturateButton: 1.32,
+    shadow: '0 18px 52px rgba(70,110,170,0.18)',
+    shadowInset: 'inset 0 1px 0 rgba(255,255,255,0.78)',
     centerVeilAlpha: v.centerVeilAlpha,
     nebulaOpacity: v.nebulaOpacity,
     wispOpacity: v.wispOpacity,
@@ -231,22 +255,26 @@ export function resolveLlganCanvasIntensity(
   };
 }
 
+function rgbaWhite(alpha: number): string {
+  return `rgba(255,255,255,${alpha.toFixed(2)})`;
+}
+
 export function resolveLlganGlassSurface(intensity: LightSpaceIntensity = 'default') {
-  void intensity;
+  const v = llganIntensityPresets[intensity];
   return {
-    panel: systemLiquidGlass.panel,
-    card: systemLiquidGlass.card,
-    sidebar: systemLiquidGlass.panelStrong,
-    chip: systemLiquidGlass.chip,
-    modal: systemLiquidGlass.panelStrong,
-    input: systemLiquidGlass.input,
-    borderWhite: systemLiquidGlass.border,
-    borderAccent: systemLiquidGlass.border,
-    blurDesktop: systemLiquidGlass.blur.desktop,
-    blurMobile: systemLiquidGlass.blur.mobile,
-    saturate: systemLiquidGlass.saturate,
-    shadow: systemLiquidGlass.shadow,
-    shadowInset: systemLiquidGlass.shadowInset,
+    panel: rgbaWhite(v.panelAlpha),
+    card: rgbaWhite(v.cardAlpha),
+    sidebar: rgbaWhite(v.sidebarAlpha),
+    chip: rgbaWhite(Math.max(0.32, v.panelAlpha - 0.06)),
+    modal: rgbaWhite(v.modalAlpha),
+    input: rgbaWhite(Math.max(0.32, v.panelAlpha - 0.06)),
+    borderWhite: 'rgba(255,255,255,0.68)',
+    borderAccent: 'rgba(130,170,255,0.32)',
+    blurDesktop: v.glassBlur,
+    blurMobile: Math.max(22, v.glassBlur - 10),
+    saturate: v.glassSaturate,
+    shadow: '0 22px 64px rgba(80,120,180,0.16)',
+    shadowInset: 'inset 0 1px 0 rgba(255,255,255,0.76)',
   };
 }
 
@@ -269,12 +297,12 @@ export function getLlganCssVars(intensity: LightSpaceIntensity = 'default'): Rec
 
 /** Per-module KPI card glow — light liquid glass dashboard columns. */
 export const llganModuleCardGlow: Record<string, string> = {
-  office: systemLiquidGlass.glow.soft,
-  assist: systemLiquidGlass.glow.soft,
-  pflege: systemLiquidGlass.glow.soft,
-  stationaer: systemLiquidGlass.glow.soft,
-  beratung: systemLiquidGlass.glow.soft,
-  akademie: systemLiquidGlass.glow.soft,
+  office: 'rgba(255,145,0,0.10)',
+  assist: 'rgba(80,220,255,0.10)',
+  pflege: 'rgba(40,200,110,0.10)',
+  stationaer: 'rgba(255,80,90,0.10)',
+  beratung: 'rgba(145,95,255,0.10)',
+  akademie: 'rgba(255,220,40,0.10)',
 };
 
 export function resolveLlganModuleCardGlow(moduleKey?: string): string | undefined {

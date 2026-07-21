@@ -1,9 +1,9 @@
 import { withAlpha } from './motion';
 
 /** Light glass pill backing for colored icons/labels on orbital surfaces. */
-export const ACCENT_DARK_SOFT_BASE = 'rgba(248, 251, 255, 0.06)';
-export const ACCENT_DARK_SOFT_ACTIVE = 'rgba(20, 120, 255, 0.18)';
-export const ACCENT_DARK_SOLID = '#F8FBFF';
+export const ACCENT_DARK_SOFT_BASE = 'rgba(255, 255, 255, 0.42)';
+export const ACCENT_DARK_SOFT_ACTIVE = 'rgba(255, 255, 255, 0.52)';
+export const ACCENT_DARK_SOLID = '#000000';
 
 export const ACCENT_ICON_FRAME_GRADIENT = [
   'rgba(255,255,255,0.58)',
@@ -104,8 +104,8 @@ export function resolveLightColoredTextColor(accent: string, fallback = '#000000
 }
 
 /** Primary dark text for interactive controls (links, tabs, outline buttons) on light surfaces. */
-export const LIGHT_SURFACE_INTERACTIVE_TEXT = '#F8FBFF';
-export const APP_SURFACE_TEXT = '#F8FBFF';
+export const LIGHT_SURFACE_INTERACTIVE_TEXT = '#000000';
+export const APP_SURFACE_TEXT = '#000000';
 /** White ink reserved for copy directly on aurora / gradient hero backgrounds. */
 export const AURORA_SURFACE_TEXT = '#FFFFFF';
 

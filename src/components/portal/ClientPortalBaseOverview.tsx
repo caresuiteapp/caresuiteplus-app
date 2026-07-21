@@ -6,7 +6,6 @@ import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
-import { SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { fetchClientPortalLiveMetrics } from '@/lib/portal/clientPortalDashboardLive';
@@ -116,7 +115,7 @@ export function ClientPortalBaseOverview({ context, onRefresh }: ClientPortalBas
           value={metrics.documents}
           emptyMessage="Keine Dokumente freigegeben."
           ctaLabel="Dokumente öffnen →"
-          accentColor={SYSTEM_LIQUID_COLORS.electricBlue}
+          accentColor="#FF9500"
           onCta={() => router.push('/portal/client/documents' as never)}
           onPress={() => router.push('/portal/client/documents' as never)}
         />

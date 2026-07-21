@@ -55,7 +55,7 @@ const webGlassBlur =
 
 /** Client-facing portal top bar — no office/admin tenant menu. */
 export function PortalTopBar({
-  accentColor = '#1478FF',
+  accentColor = '#FF9500',
   compact = false,
   showHamburger = false,
   onMenuPress,

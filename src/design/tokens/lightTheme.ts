@@ -1,30 +1,31 @@
-/** Legacy names backed by the canonical dark Liquid Glass palette. */
-import { SYSTEM_LIQUID_COLORS, systemLiquidGlass } from './systemLiquidGlass';
+/**
+ * CareSuite+ Light Premium — mandatory demo/default palette.
+ */
 /** HTML document + RN root fallback before hydrated backgrounds paint. */
-export const careSuiteDocumentRootBg = systemLiquidGlass.pageDeep;
+export const careSuiteDocumentRootBg = '#F8FAFC';
 
 /** System-wide body ink — pure black. */
-export const CARESUITE_INK = systemLiquidGlass.text.primary;
+export const CARESUITE_INK = '#000000';
 
 /** Light modal/popup scrim — never pure black. */
-export const careSuiteModalScrim = 'rgba(3, 10, 24, 0.62)';
-export const careSuiteModalScrimStrong = 'rgba(3, 10, 24, 0.78)';
+export const careSuiteModalScrim = 'rgba(15, 27, 51, 0.16)';
+export const careSuiteModalScrimStrong = 'rgba(15, 27, 51, 0.28)';
 
 export const careLightColors = {
-  page: systemLiquidGlass.page,
-  surface: systemLiquidGlass.card,
-  navy: SYSTEM_LIQUID_COLORS.navy,
+  page: '#F8FAFC',
+  surface: '#FFFFFF',
+  navy: '#07122A',
   text: CARESUITE_INK,
   muted: CARESUITE_INK,
-  orange: SYSTEM_LIQUID_COLORS.electricBlue,
-  gold: SYSTEM_LIQUID_COLORS.electricBlue,
-  cyan: SYSTEM_LIQUID_COLORS.electricBlue,
+  orange: '#FF7A1A',
+  gold: '#FFB347',
+  cyan: '#0EA5E9',
   green: '#22C55E',
-  violet: SYSTEM_LIQUID_COLORS.electricBlue,
-  danger: '#FF5D6C',
-  warning: '#FFBF47',
-  border: systemLiquidGlass.border,
-  borderStrong: systemLiquidGlass.borderStrong,
+  violet: '#8B5CF6',
+  danger: '#EF4444',
+  warning: '#F59E0B',
+  border: 'rgba(7,18,42,0.08)',
+  borderStrong: 'rgba(7,18,42,0.14)',
 } as const;
 
 export type CareLightColors = typeof careLightColors;

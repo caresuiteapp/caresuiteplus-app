@@ -41,7 +41,7 @@ export function PortalNavigationDrawer({
   visible,
   onClose,
   tabs,
-  accentColor = '#1478FF',
+  accentColor = '#FF9500',
   portalLabel = 'Portal',
 }: PortalNavigationDrawerProps) {
   const router = useRouter();

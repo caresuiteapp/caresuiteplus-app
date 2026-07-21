@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
-import { SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
 import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
@@ -179,7 +178,7 @@ export function ClientCreateScreen() {
             <Text style={styles.consentLabel}>Pflegevertrag / Leistungsvereinbarung *</Text>
           </Pressable>
           {errors.consentVertrag ? <Text style={styles.error}>{errors.consentVertrag}</Text> : null}
-          <PremiumCard accentColor={SYSTEM_LIQUID_COLORS.electricBlue}>
+          <PremiumCard accentColor="#FF9500">
             <SummaryRow label="Name" value={`${form.firstName} ${form.lastName}`} />
             <SummaryRow label="Geburtsdatum" value={form.dateOfBirth || '—'} />
             <SummaryRow label="Adresse" value={`${form.street}, ${form.zip} ${form.city}`} />

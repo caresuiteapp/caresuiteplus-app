@@ -42,7 +42,7 @@ const webGlassBlur =
 /** Scrollable left nav from tab config — employee portal and other fixed-tab portals. */
 export function PortalTabLeftNav({
   tabs,
-  accentColor = '#1478FF',
+  accentColor = '#FF9500',
   portalLabel,
 }: PortalTabLeftNavProps) {
   const router = useRouter();

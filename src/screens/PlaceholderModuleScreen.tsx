@@ -3,7 +3,6 @@ import { ScreenShell } from '@/components/layout';
 import { typography } from '@/theme';
 import { StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
 
 type PlaceholderModuleScreenProps = {
   title: string;
@@ -22,7 +21,7 @@ export function PlaceholderModuleScreen({
 
   return (
     <ScreenShell title={title} subtitle={subtitle}>
-      <PremiumCard accentColor={SYSTEM_LIQUID_COLORS.electricBlue}>
+      <PremiumCard accentColor="#FF9500">
         <Text style={styles.icon}>{icon}</Text>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.body}>

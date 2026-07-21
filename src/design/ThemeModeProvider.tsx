@@ -12,8 +12,8 @@ import { Dimensions, Platform } from 'react-native';
 import type { ColorMode } from '@/design/tokens/colors';
 
 const STORAGE_KEY = '@caresuite/theme-mode';
-/** Bumps when every surface migrates to the single system Liquid Glass design. */
-const THEME_PREF_MIGRATION_KEY = '@caresuite/theme-pref-liquid-glass-v33';
+/** Bumps when desktop stops auto-forcing dark into storage (2026 light-space default). */
+const THEME_PREF_MIGRATION_KEY = '@caresuite/theme-pref-migration-v2';
 
 /** PlatformShell desktop column starts at 960px — liquid glass shell from here up. */
 export const DESKTOP_AURORA_MIN_WIDTH = 960;
@@ -21,28 +21,28 @@ export const DESKTOP_AURORA_MIN_WIDTH = 960;
 export type DesktopThemeMode = 'aurora-glass' | 'light';
 
 /**
- * System design V33: every product, portal and device uses the same dark
- * Liquid Glass language. The legacy union remains only for source compatibility.
+ * Redesign 2026 default: Web/Desktop = light space nebula + light liquid glass,
+ * Mobile = light premium. A stored user preference (non-demo) overrides on all platforms.
  */
 function isDesktopWeb(): boolean {
   return Platform.OS === 'web' && Dimensions.get('window').width >= DESKTOP_AURORA_MIN_WIDTH;
 }
 
 function resolveDesktopThemeMode(): DesktopThemeMode {
-  return isDesktopWeb() ? 'aurora-glass' : 'aurora-glass';
+  return isDesktopWeb() ? 'light' : 'light';
 }
 
 function resolveInitialMode(): ColorMode {
-  return 'dark';
+  return 'light';
 }
 
 type ThemeModeContextValue = {
   mode: ColorMode;
   setMode: (mode: ColorMode) => void;
   toggleMode: () => void;
-  /** All form factors use the canonical Liquid Glass shell. */
+  /** Desktop web ≥960px uses liquid glass shell; mobile uses light premium surfaces. */
   desktopThemeMode: DesktopThemeMode;
-  /** Compatibility flag; the system no longer exposes a partial light mode. */
+  /** True when light mode is active but static @/theme imports still resolve to dark. */
   isPartialLightMode: boolean;
 };
 
@@ -54,21 +54,29 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const syncDesktop = () => {
-      setDesktopThemeMode(isDesktopWeb() ? 'aurora-glass' : 'aurora-glass');
+      setDesktopThemeMode(isDesktopWeb() ? 'light' : 'light');
     };
 
     syncDesktop();
 
     void (async () => {
       const migrated = await AsyncStorage.getItem(THEME_PREF_MIGRATION_KEY);
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      let stored = await AsyncStorage.getItem(STORAGE_KEY);
 
       // Legacy desktop shell wrote 'dark' on every resize — not a user choice.
-      if (migrated !== '1' || stored !== 'dark') {
+      if (migrated !== '1') {
         await AsyncStorage.setItem(THEME_PREF_MIGRATION_KEY, '1');
-        await AsyncStorage.setItem(STORAGE_KEY, 'dark');
+        if (isDesktopWeb() && stored === 'dark') {
+          stored = 'light';
+          await AsyncStorage.setItem(STORAGE_KEY, 'light');
+        }
       }
-      setModeState('dark');
+
+      if (stored === 'light' || stored === 'dark') {
+        setModeState(stored);
+      } else {
+        setModeState(resolveInitialMode());
+      }
     })();
 
     if (Platform.OS !== 'web') {
@@ -80,14 +88,13 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setMode = useCallback((next: ColorMode) => {
-    void next;
-    setModeState('dark');
-    void AsyncStorage.setItem(STORAGE_KEY, 'dark');
+    setModeState(next);
+    void AsyncStorage.setItem(STORAGE_KEY, next);
   }, []);
 
   const toggleMode = useCallback(() => {
-    setMode('dark');
-  }, [setMode]);
+    setMode(mode === 'dark' ? 'light' : 'dark');
+  }, [mode, setMode]);
 
   const value = useMemo(
     () => ({

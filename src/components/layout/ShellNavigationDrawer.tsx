@@ -56,7 +56,7 @@ export function ShellNavigationDrawer({
   visible,
   onClose,
   mainModule,
-  accentColor = '#1478FF',
+  accentColor = '#7C3AED',
 }: ShellNavigationDrawerProps) {
   const router = useRouter();
   const pathname = usePathname();

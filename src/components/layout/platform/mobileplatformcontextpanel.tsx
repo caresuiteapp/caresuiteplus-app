@@ -59,7 +59,7 @@ function openExternal(url: string) {
 /** Mobile (<768px) platform context — aurora glass, nav groups below Schnellaktionen. */
 export function MobilePlatformContextPanel({
   mainModule,
-  accentColor = '#1478FF',
+  accentColor = '#FF9500',
 }: MobilePlatformContextPanelProps) {
   const router = useRouter();
   const pathname = usePathname();

@@ -3,7 +3,6 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumInput, SectionPanel, InfoBanner } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { spacing, typography, radius } from '@/theme';
-import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import type { RoleKey } from '@/types';
 import type {
   CsDocumentClientRecipient,
@@ -84,7 +83,7 @@ export function CsDocumentEmployeeRecipientPicker({
           marginBottom: spacing.xs,
           gap: spacing.xs,
         },
-        rowActive: { borderColor: systemLiquidGlass.borderActive, backgroundColor: systemLiquidGlass.rowSelected },
+        rowActive: { borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.08)' },
         title: { ...typography.body, fontWeight: '600', color: text.primary },
         meta: { ...typography.caption, color: text.muted },
         badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
@@ -196,7 +195,7 @@ export function CsDocumentClientRecipientPicker({
           marginBottom: spacing.xs,
           gap: spacing.xs,
         },
-        rowActive: { borderColor: systemLiquidGlass.borderActive, backgroundColor: systemLiquidGlass.rowSelected },
+        rowActive: { borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.08)' },
         title: { ...typography.body, fontWeight: '600', color: text.primary },
         meta: { ...typography.caption, color: text.muted },
         badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },

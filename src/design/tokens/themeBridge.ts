@@ -6,7 +6,6 @@ import {
   careSuiteAuroraTheme,
 } from '@/theme/careSuiteAurora';
 import { careSuiteColors, type ColorMode } from './colors';
-import { systemLiquidGlass } from './systemLiquidGlass';
 import { resolveCareTypography } from './typography';
 
 export type { ColorMode };
@@ -20,6 +19,8 @@ export type LegacyGradients = ReturnType<typeof resolveLegacyGradients>;
  */
 export function legacyColorsFromPalette(mode: ColorMode = 'dark') {
   const p = careSuiteColors[mode];
+  const isDark = mode === 'dark';
+
   return {
     bgDeep: p.background.dark,
     bgBase: p.background.app,
@@ -32,16 +33,16 @@ export function legacyColorsFromPalette(mode: ColorMode = 'dark') {
     textPrimary: p.text.primary,
     textSecondary: p.text.secondary,
     textMuted: p.text.muted,
-    textDisabled: systemLiquidGlass.text.disabled,
+    textDisabled: '#000000',
 
     orange: p.brand.orange,
-    amber: p.brand.gold,
-    deepOrange: p.brand.orange,
+    amber: isDark ? '#FFB020' : p.brand.gold,
+    deepOrange: isDark ? '#F97316' : p.brand.orange,
     gold: p.brand.gold,
 
     cyan: p.brand.cyan,
-    cyanSoft: '#4A9AFF',
-    blue: p.status.info,
+    cyanSoft: isDark ? '#8BEFFF' : p.brand.cyan,
+    blue: isDark ? '#3B82F6' : p.status.info,
     violet: p.brand.violet,
 
     success: p.status.success,
@@ -49,15 +50,15 @@ export function legacyColorsFromPalette(mode: ColorMode = 'dark') {
     danger: p.status.danger,
     info: p.status.info,
 
-    borderSoft: systemLiquidGlass.border,
-    borderStrong: systemLiquidGlass.borderStrong,
-    borderOrange: systemLiquidGlass.borderActive,
-    borderCyan: systemLiquidGlass.borderActive,
+    borderSoft: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(7,18,42,0.08)',
+    borderStrong: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(7,18,42,0.14)',
+    borderOrange: `rgba(${isDark ? '255,149,0' : '255,122,26'},0.34)`,
+    borderCyan: isDark ? 'rgba(98,243,255,0.24)' : 'rgba(53,215,255,0.24)',
 
-    glowOrange: systemLiquidGlass.glow.medium,
-    glowAmber: systemLiquidGlass.glow.medium,
-    glowCyan: systemLiquidGlass.glow.medium,
-    glowDark: 'rgba(3,10,24,0.48)',
+    glowOrange: isDark ? 'rgba(255,149,0,0.38)' : 'rgba(255,122,26,0.28)',
+    glowAmber: isDark ? 'rgba(255,176,32,0.30)' : 'rgba(255,179,71,0.24)',
+    glowCyan: isDark ? 'rgba(98,243,255,0.24)' : 'rgba(53,215,255,0.20)',
+    glowDark: 'rgba(15,27,51,0.18)',
 
     primary: p.brand.orange,
     error: p.status.danger,
@@ -104,7 +105,9 @@ export function resolveLegacyGradients(mode: ColorMode = 'dark') {
       cyan: [`${p.brand.cyan}1F`, 'transparent'] as [string, string],
     },
     hero: {
-      list: [...AURORA_HERO_GRADIENT] as [string, string, string],
+      list: (isDark
+        ? [...AURORA_HERO_GRADIENT]
+        : [p.background.soft, p.background.app, p.background.dark]) as [string, string, string],
       aurora: [...careSuiteAuroraTheme.gradients.heroAurora] as [string, string, string, string],
     },
   };
