@@ -38,4 +38,34 @@ describe('Office Integrität', () => {
     const polling = read('src/lib/polling/useVisibilityAwarePolling.ts');
     expect(polling).toContain('sub?.remove?.()');
   });
+
+  it('bindet Nachrichten- und Kalender-Vorlagen an echte Datenquellen an', () => {
+    const messages = read('src/screens/office/officemessagetemplatesscreen.tsx');
+    const calendar = read('app/office/calendar/templates/index.tsx');
+    expect(messages).toContain('MessageTemplatesScreen');
+    expect(messages).not.toContain('Wird wiederhergestellt');
+    expect(calendar).toContain('CalendarEventTemplatePicker');
+    expect(calendar).not.toContain('Stub —');
+  });
+
+  it('verhindert tote Klicks in vorbereiteten QM- und Inventarbereichen', () => {
+    const qm = read('src/screens/qm/QmDashboardScreen.tsx');
+    const inventory = read('src/screens/inventory/InventoryDashboardScreen.tsx');
+    expect(qm).toContain('onPress={area.liveReady ?');
+    expect(inventory).toContain('onPress={area.liveReady === false ? undefined');
+    expect(qm).not.toContain('title="QM preparedOnly"');
+    expect(inventory).not.toContain('title="Inventar preparedOnly"');
+  });
+
+  it('verwendet im Office Reporting nur den Scrollbereich des ScreenShell', () => {
+    const reporting = read('src/screens/business/office/OfficeBusinessReportingScreen.tsx');
+    expect(reporting).not.toContain('<ScrollView');
+  });
+
+  it('lädt die Dokumentenablage nur einmal über die zentrale Listenkomponente', () => {
+    const documents = read('src/screens/office/OfficeDocumentsListScreen.tsx');
+    expect(documents).toContain('<DocumentsListView />');
+    expect(documents).not.toContain('fetchOfficeDocumentList');
+    expect(documents).not.toContain('useAsyncQuery');
+  });
 });

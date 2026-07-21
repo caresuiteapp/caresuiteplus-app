@@ -10,8 +10,6 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useQmDashboard } from '@/hooks/qm';
 import { usePermissions } from '@/hooks/usePermissions';
-import { fetchQmDashboard } from '@/lib/qm/qmService';
-import { useAuth } from '@/lib/auth/context';
 import { buildQmDashboardKpis } from '@/lib/qm/qmDashboardStats';
 import { mapToCareLightKpis } from '@/lib/adaptive/careLightKpiMap';
 import {
@@ -78,7 +76,7 @@ export function QmDashboardScreen() {
   return (
     <CareLightScreen>
       {!isQmDashboardLiveReady() ? (
-        <InfoBanner title="QM preparedOnly" message={QM_DASHBOARD_PREPARED_MESSAGE} />
+        <InfoBanner title="Teilbereiche in Vorbereitung" message={QM_DASHBOARD_PREPARED_MESSAGE} />
       ) : null}
       <CareLightModuleDashboard
         moduleKey="qm"
@@ -103,9 +101,11 @@ export function QmDashboardScreen() {
                 key={area.id}
                 icon={area.icon}
                 title={area.title}
+                description={area.liveReady ? undefined : 'Noch nicht freigeschaltet'}
                 accentColor={qmAccent}
                 isActive={area.liveReady}
-                onPress={() => router.push(area.route as never)}
+                preparedOnly={!area.liveReady}
+                onPress={area.liveReady ? () => router.push(area.route as never) : undefined}
               />
             ))}
           </View>

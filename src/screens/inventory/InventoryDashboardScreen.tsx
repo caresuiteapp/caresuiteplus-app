@@ -73,7 +73,7 @@ export function InventoryDashboardScreen() {
   return (
     <CareLightScreen>
       {!isInventoryLiveReady() ? (
-        <InfoBanner title="Inventar preparedOnly" message={INVENTORY_PREPARED_MESSAGE} />
+        <InfoBanner title="Teilbereiche in Vorbereitung" message={INVENTORY_PREPARED_MESSAGE} />
       ) : null}
       <CareLightModuleDashboard
         moduleKey="office"
@@ -107,9 +107,11 @@ export function InventoryDashboardScreen() {
                 key={area.id}
                 icon={area.icon}
                 title={area.title}
+                description={area.liveReady === false ? 'Noch nicht freigeschaltet' : undefined}
                 accentColor={accent}
                 isActive={area.liveReady !== false}
-                onPress={() => router.push(area.route as never)}
+                preparedOnly={area.liveReady === false}
+                onPress={area.liveReady === false ? undefined : () => router.push(area.route as never)}
               />
             ))}
           </View>
