@@ -7,14 +7,15 @@ import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard } from
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import type { AccessCredentialsReveal } from '@/lib/auth/auth.types';
-import { fetchEmployeePortalAccountById } from '@/lib/auth/accessManagementService';
-import { useAuth } from '@/lib/auth/context';
 import {
-  blockEmployeeAccess,
-  resetEmployeePassword,
-  unblockEmployeeAccess,
-} from '@/lib/auth/employeePortalAuthService';
+  blockEmployeePortalAccount,
+  fetchEmployeePortalAccountById,
+  resetEmployeePortalPassword,
+  unblockEmployeePortalAccount,
+} from '@/lib/auth/accessManagementService';
+import { useAuth } from '@/lib/auth/context';
 import { colors, typography } from '@/theme';
+import { ACCESS_STATUS_LABELS } from './accessLabels';
 
 export function EmployeePortalAccountDetailScreen() {
   const router = useRouter();
@@ -22,6 +23,8 @@ export function EmployeePortalAccountDetailScreen() {
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
   const [credentials, setCredentials] = useState<AccessCredentialsReveal | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const query = useAsyncQuery(
     () => {
@@ -36,22 +39,52 @@ export function EmployeePortalAccountDetailScreen() {
 
   const handleReset = async () => {
     if (!tenantId || !account) return;
-    const result = await resetEmployeePassword(account.id, null, tenantId);
+    setActionError(null);
+    setActionLoading(true);
+    const result = await resetEmployeePortalPassword(
+      account.id,
+      profile?.id ?? null,
+      tenantId,
+      profile?.roleKey,
+    );
+    setActionLoading(false);
     if (result.ok) {
       setCredentials(result.data);
+    } else {
+      setActionError(result.error);
     }
   };
 
   const handleBlock = async () => {
     if (!tenantId || !account) return;
-    await blockEmployeeAccess(account.id, null, 'Manuell gesperrt', tenantId);
-    router.back();
+    setActionError(null);
+    setActionLoading(true);
+    const result = await blockEmployeePortalAccount(
+      account.id,
+      profile?.id ?? null,
+      'Manuell durch die Verwaltung gesperrt',
+      tenantId,
+      profile?.roleKey,
+    );
+    setActionLoading(false);
+    if (!result.ok) {
+      setActionError(result.error);
+      return;
+    }
+    await query.refresh();
   };
 
   const handleUnblock = async () => {
     if (!tenantId || !account) return;
-    await unblockEmployeeAccess(account.id, tenantId);
-    router.back();
+    setActionError(null);
+    setActionLoading(true);
+    const result = await unblockEmployeePortalAccount(account.id, tenantId, profile?.roleKey);
+    setActionLoading(false);
+    if (!result.ok) {
+      setActionError(result.error);
+      return;
+    }
+    await query.refresh();
   };
 
   if (query.loading && !query.data) {
@@ -93,9 +126,13 @@ export function EmployeePortalAccountDetailScreen() {
 
   return (
     <ScreenShell title={account.username} subtitle="Mitarbeitendenportal" scroll>
+      {actionError ? <ErrorState message={actionError} onRetry={() => setActionError(null)} /> : null}
       <PremiumCard accentColor={colors.cyan}>
-        <Text style={styles.row}>Mitarbeiter-ID: {account.employeeId}</Text>
-        <Text style={styles.row}>Status: {account.status}</Text>
+        <Text style={styles.row}>Mitarbeitende:r: {account.employeeName ?? 'Nicht aufgelöst'}</Text>
+        {account.employeeNumber ? (
+          <Text style={styles.row}>Personalnummer: {account.employeeNumber}</Text>
+        ) : null}
+        <Text style={styles.row}>Status: {ACCESS_STATUS_LABELS[account.status]}</Text>
         <Text style={styles.row}>
           Erstlogin: {account.firstLoginCompleted ? 'abgeschlossen' : 'ausstehend'}
         </Text>
@@ -105,11 +142,17 @@ export function EmployeePortalAccountDetailScreen() {
           </Text>
         ) : null}
       </PremiumCard>
-      <PremiumButton title="Passwort zurücksetzen" onPress={() => void handleReset()} fullWidth />
+      <PremiumButton
+        title="Passwort zurücksetzen"
+        onPress={() => void handleReset()}
+        loading={actionLoading}
+        disabled={actionLoading}
+        fullWidth
+      />
       {account.status === 'blocked' ? (
-        <PremiumButton title="Entsperren" variant="secondary" onPress={() => void handleUnblock()} fullWidth />
+        <PremiumButton title="Entsperren" variant="secondary" onPress={() => void handleUnblock()} loading={actionLoading} disabled={actionLoading} fullWidth />
       ) : (
-        <PremiumButton title="Sperren" variant="secondary" onPress={() => void handleBlock()} fullWidth />
+        <PremiumButton title="Sperren" variant="secondary" onPress={() => void handleBlock()} loading={actionLoading} disabled={actionLoading} fullWidth />
       )}
     </ScreenShell>
   );

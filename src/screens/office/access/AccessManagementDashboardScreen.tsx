@@ -30,7 +30,7 @@ const QUICK_ACTIONS = [
 
   { title: 'Angehörigen-Code generieren', route: '/business/office/access/relative-portal' },
 
-  { title: 'Rollen & Rechte verwalten', route: '/business/office/access/roles' },
+  { title: 'Rollen & Rechte prüfen', route: '/business/office/access/roles' },
 
   { title: 'Login-Protokoll anzeigen', route: '/business/office/access/login-audit' },
 
@@ -215,4 +215,3 @@ const styles = StyleSheet.create({
   actions: { gap: spacing.sm },
 
 });
-

@@ -54,7 +54,36 @@ export async function fetchEmployeePortalAccountsFromSupabase(
     .order('username', { ascending: true });
 
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  return { ok: true, data: castRows(data).map(mapEmployeePortalAccountRow) };
+
+  const accounts = castRows(data).map(mapEmployeePortalAccountRow);
+  const employeeIds = [...new Set(accounts.map((entry) => entry.employeeId).filter(Boolean))];
+  if (employeeIds.length === 0) return { ok: true, data: accounts };
+
+  const { data: employeeRows, error: employeeError } = await fromUnknownTable(supabase, 'employees')
+    .select('id, first_name, last_name, employee_number')
+    .eq('tenant_id', tenantId)
+    .in('id', employeeIds);
+
+  if (employeeError) return { ok: false, error: toGermanSupabaseError(employeeError) };
+
+  const employees = new Map(
+    castRows(employeeRows).map((row) => [
+      String(row.id ?? ''),
+      {
+        name: `${String(row.first_name ?? '')} ${String(row.last_name ?? '')}`.trim(),
+        number: String(row.employee_number ?? '').trim(),
+      },
+    ]),
+  );
+
+  return {
+    ok: true,
+    data: accounts.map((account) => ({
+      ...account,
+      employeeName: employees.get(account.employeeId)?.name || null,
+      employeeNumber: employees.get(account.employeeId)?.number || null,
+    })),
+  };
 }
 
 export async function fetchRelativePortalCodesFromSupabase(
@@ -355,7 +384,25 @@ export async function fetchEmployeePortalAccountById(
 
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
   if (!data) return { ok: true, data: null };
-  return { ok: true, data: mapEmployeePortalAccountRow(data as Record<string, unknown>) };
+  const account = mapEmployeePortalAccountRow(data as Record<string, unknown>);
+  const { data: employeeRow, error: employeeError } = await fromUnknownTable(supabase, 'employees')
+    .select('id, first_name, last_name, employee_number')
+    .eq('tenant_id', tenantId)
+    .eq('id', account.employeeId)
+    .maybeSingle();
+
+  if (employeeError) return { ok: false, error: toGermanSupabaseError(employeeError) };
+  const employee = employeeRow as Record<string, unknown> | null;
+  return {
+    ok: true,
+    data: {
+      ...account,
+      employeeName: employee
+        ? `${String(employee.first_name ?? '')} ${String(employee.last_name ?? '')}`.trim() || null
+        : null,
+      employeeNumber: employee ? String(employee.employee_number ?? '').trim() || null : null,
+    },
+  };
 }
 
 export async function fetchEmployeePortalAccountByEmployeeId(

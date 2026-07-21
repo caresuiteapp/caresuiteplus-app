@@ -105,6 +105,7 @@ export function EmployeePortalAccessPanel({
       firstName,
       lastName,
       createdBy: profile?.id ?? null,
+      actorRoleKey: profile?.roleKey,
     });
     setSaving(false);
 
@@ -127,6 +128,7 @@ export function EmployeePortalAccessPanel({
       account.id,
       profile?.id ?? null,
       tenantId,
+      profile?.roleKey,
     );
     setSaving(false);
 

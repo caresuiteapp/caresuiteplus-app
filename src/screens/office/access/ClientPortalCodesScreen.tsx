@@ -92,7 +92,7 @@ export function ClientPortalCodesScreen() {
   );
 
   const items = listQuery.data ?? [];
-  const clients = clientsQuery.data ?? [];
+  const clients = useMemo(() => clientsQuery.data ?? [], [clientsQuery.data]);
 
   const clientOptions = useMemo(
     () =>
@@ -132,12 +132,14 @@ export function ClientPortalCodesScreen() {
           tenantId,
           clientId: client.id,
           accessId: existing.id,
+          actorRoleKey: profile?.roleKey,
         })
       : await setupClientPortalAccess({
           tenantId,
           clientId: client.id,
           firstName: client.firstName,
           lastName: client.lastName,
+          actorRoleKey: profile?.roleKey,
         });
 
     setGenerating(false);
@@ -214,7 +216,7 @@ export function ClientPortalCodesScreen() {
             <FilterChipGroup
               options={clientOptions}
               value={selectedClientId}
-              onChange={setSelectedClientId}
+              onChange={(key) => setSelectedClientId(Array.isArray(key) ? key[0] ?? '' : key)}
             />
             {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
             <PremiumButton

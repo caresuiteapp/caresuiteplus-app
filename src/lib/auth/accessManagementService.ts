@@ -248,7 +248,15 @@ export async function createInternalUser(input: {
   email: string;
   roleKey: TenantUser['roleKey'];
   createdBy?: string | null;
+  actorRoleKey?: RoleKey | null;
 }): Promise<ServiceResult<{ user: TenantUser; credentials: AccessCredentialsReveal }>> {
+  const denied = enforcePermission<{ user: TenantUser; credentials: AccessCredentialsReveal }>(
+    input.actorRoleKey,
+    'office.access' as never,
+  );
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(input.tenantId ?? DEMO_TENANT_ID);
+  if (tenantBlock) return tenantBlock;
   return generateInternalUserAccess({
     tenantId: input.tenantId ?? DEMO_TENANT_ID,
     companyName: input.companyName,
@@ -267,7 +275,15 @@ export async function createEmployeePortalAccount(input: {
   firstName: string;
   lastName: string;
   createdBy?: string | null;
+  actorRoleKey?: RoleKey | null;
 }): Promise<ServiceResult<{ account: EmployeePortalAccount; credentials: AccessCredentialsReveal }>> {
+  const denied = enforcePermission<{ account: EmployeePortalAccount; credentials: AccessCredentialsReveal }>(
+    input.actorRoleKey,
+    'office.access' as never,
+  );
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(input.tenantId ?? DEMO_TENANT_ID);
+  if (tenantBlock) return tenantBlock;
   return generateEmployeeAccess({
     tenantId: input.tenantId ?? DEMO_TENANT_ID,
     companyName: input.companyName,
@@ -285,7 +301,12 @@ export async function createClientPortalAccess(input: {
   lastName?: string;
   createdBy?: string | null;
   expiresAt?: string | null;
+  actorRoleKey?: RoleKey | null;
 }) {
+  const denied = enforcePermission<ClientPortalCode>(input.actorRoleKey, 'office.access' as never);
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(input.tenantId ?? DEMO_TENANT_ID);
+  if (tenantBlock) return tenantBlock;
   return generateClientPortalCode({
     tenantId: input.tenantId ?? DEMO_TENANT_ID,
     clientId: input.clientId,
@@ -303,6 +324,7 @@ export async function createRelativePortalAccess(input: {
   relativeContactId: string;
   createdBy?: string | null;
   expiresAt?: string | null;
+  actorRoleKey?: RoleKey | null;
 }): Promise<ServiceResult<{ code: RelativePortalCode; credentials: AccessCredentialsReveal }>> {
   const { setupRelativePortalAccess } = await import('@/lib/access/relativePortalAccessService');
   return setupRelativePortalAccess({
@@ -311,6 +333,7 @@ export async function createRelativePortalAccess(input: {
     relativeContactId: input.relativeContactId,
     createdBy: input.createdBy ?? null,
     expiresAt: input.expiresAt ?? null,
+    actorRoleKey: input.actorRoleKey,
   });
 }
 
@@ -318,7 +341,10 @@ export async function resetEmployeePortalPassword(
   accountId: string,
   actorId: string | null,
   tenantId: string,
+  actorRoleKey?: RoleKey | null,
 ) {
+  const denied = enforcePermission<AccessCredentialsReveal>(actorRoleKey, 'office.access' as never);
+  if (denied) return denied;
   return resetEmployeePassword(accountId, actorId, tenantId);
 }
 
@@ -327,11 +353,20 @@ export async function blockEmployeePortalAccount(
   actorId: string | null,
   reason: string,
   tenantId: string,
+  actorRoleKey?: RoleKey | null,
 ) {
+  const denied = enforcePermission<EmployeePortalAccount>(actorRoleKey, 'office.access' as never);
+  if (denied) return denied;
   return blockEmployeeAccess(accountId, actorId, reason, tenantId);
 }
 
-export async function unblockEmployeePortalAccount(accountId: string, tenantId: string) {
+export async function unblockEmployeePortalAccount(
+  accountId: string,
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+) {
+  const denied = enforcePermission<EmployeePortalAccount>(actorRoleKey, 'office.access' as never);
+  if (denied) return denied;
   return unblockEmployeeAccess(accountId, tenantId);
 }
 

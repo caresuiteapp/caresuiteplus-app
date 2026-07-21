@@ -7,6 +7,7 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchEmployeePortalAccountsList } from '@/lib/auth/accessManagementService';
+import { ACCESS_STATUS_LABELS } from './accessLabels';
 import { colors, spacing, typography } from '@/theme';
 
 export function EmployeePortalAccountsScreen() {
@@ -65,9 +66,11 @@ export function EmployeePortalAccountsScreen() {
         renderItem={({ item }) => (
           <Pressable onPress={() => router.push(`/business/office/access/employee-portal/${item.id}` as never)}>
             <PremiumCard accentColor={colors.cyan}>
-              <Text style={styles.title}>{item.username}</Text>
-              <Text style={styles.meta}>Mitarbeiter-ID: {item.employeeId}</Text>
-              <Text style={styles.status}>Status: {item.status}</Text>
+              <Text style={styles.title}>{item.employeeName ?? item.username}</Text>
+              <Text style={styles.meta}>
+                {[item.employeeNumber, item.username].filter(Boolean).join(' · ')}
+              </Text>
+              <Text style={styles.status}>Status: {ACCESS_STATUS_LABELS[item.status]}</Text>
             </PremiumCard>
           </Pressable>
         )}

@@ -56,6 +56,7 @@ export function CreateEmployeePortalAccountScreen() {
       firstName,
       lastName,
       createdBy: profile?.id ?? null,
+      actorRoleKey: profile?.roleKey,
     });
     setLoading(false);
 

@@ -64,7 +64,7 @@ export function RelativePortalCodesScreen() {
   const contactsQuery = useAsyncQuery(
     () => {
       if (!tenantId || !selectedClientId) {
-        return Promise.resolve({ ok: true as const, data: [] as Array<{ id: string; name: string }> });
+        return Promise.resolve({ ok: true as const, data: [] as { id: string; name: string }[] });
       }
       return listRelativeContactIdsForClient(tenantId, selectedClientId);
     },
@@ -73,8 +73,8 @@ export function RelativePortalCodesScreen() {
   );
 
   const items = listQuery.data ?? [];
-  const clients = clientsQuery.data ?? [];
-  const contacts = contactsQuery.data ?? [];
+  const clients = useMemo(() => clientsQuery.data ?? [], [clientsQuery.data]);
+  const contacts = useMemo(() => contactsQuery.data ?? [], [contactsQuery.data]);
 
   const clientOptions = useMemo(
     () =>
@@ -134,6 +134,7 @@ export function RelativePortalCodesScreen() {
       clientId: selectedClientId,
       relativeContactId: selectedContactId,
       createdBy: profile?.id ?? null,
+      actorRoleKey: profile?.roleKey,
     });
 
     setGenerating(false);
@@ -200,7 +201,7 @@ export function RelativePortalCodesScreen() {
             <FilterChipGroup
               options={clientOptions}
               value={selectedClientId}
-              onChange={setSelectedClientId}
+              onChange={(key) => setSelectedClientId(Array.isArray(key) ? key[0] ?? '' : key)}
             />
             {contactsQuery.loading && selectedClientId ? (
               <LoadingState message="Angehörigen-Kontakte werden geladen…" />
@@ -217,7 +218,7 @@ export function RelativePortalCodesScreen() {
               <FilterChipGroup
                 options={contactOptions}
                 value={selectedContactId}
-                onChange={setSelectedContactId}
+                onChange={(key) => setSelectedContactId(Array.isArray(key) ? key[0] ?? '' : key)}
               />
             ) : null}
             {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}

@@ -69,7 +69,7 @@ export function InternalUserDetailScreen() {
         ) : null}
       </PremiumCard>
       <PremiumButton
-        title="Modulrechte bearbeiten"
+        title="Berechtigungsprofile anzeigen"
         variant="secondary"
         onPress={() => router.push('/business/office/access/module-permissions' as never)}
         fullWidth
