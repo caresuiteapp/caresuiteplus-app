@@ -26,17 +26,20 @@ describe('employee portal readability (contrast + text layout)', () => {
     expect(card).not.toMatch(/notes[\s\S]*numberOfLines/);
   });
 
-  it('portal navigation drawer uses opaque white panel on light theme', () => {
+  it('portal navigation drawer uses a readable dark spatial panel', () => {
     const drawer = readSrc('src/components/layout/portal/PortalNavigationDrawer.tsx');
     expect(drawer).toContain('drawerText');
-    expect(drawer).toContain('lightSurfaceText');
-    expect(drawer).toContain('careLightColors.surface');
+    expect(drawer).toContain("primary: '#FFFFFF'");
+    expect(drawer).toContain('spatialCare.navigationStrong');
+    expect(drawer).toContain('LinearGradient');
     expect(drawer).not.toContain('lightLiquidGlass.elevated');
   });
 
-  it('mobile bottom nav uses opaque surface without blur', () => {
+  it('mobile bottom nav uses a compact floating spatial surface without blur', () => {
     const nav = readSrc('src/components/layout/PortalMobileNav.tsx');
-    expect(nav).toContain('careLightColors.surface');
+    expect(nav).toContain('spatialCare.navigationStrong');
+    expect(nav).toContain('borderRadius: 24');
+    expect(nav).toContain('marginHorizontal: 12');
     expect(nav).not.toContain('lightLiquidGlassWebFx');
     expect(nav).not.toContain('backdropFilter');
     expect(nav).toContain('compactLabels');

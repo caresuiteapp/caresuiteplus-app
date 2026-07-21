@@ -3,13 +3,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   HealthOSAlert,
-  HealthOSCard,
   HealthOSEmptyState,
   HealthOSErrorState,
   HealthOSLoadingState,
-  HealthOSMetricCard,
   HealthOSPage,
-  HealthOSSection,
   HealthOSStatusBadge,
 } from '@/components/healthos';
 import { resolveHealthOSShellBreakpoint } from '@/components/healthos/shell/healthosShellLayoutRules';
@@ -26,6 +23,12 @@ import {
 } from '@/lib/portal/employee/employeePortalTodayModel';
 import { spacing, typography } from '@/theme';
 import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
+import {
+  SpatialPortalMetric,
+  SpatialPortalPearlState,
+  SpatialPortalSection,
+  SpatialPortalSurface,
+} from '@/components/portal/SpatialPortalSurface';
 
 type Props = {
   dashboard: EmployeePortalDashboardProjection | null;
@@ -42,13 +45,11 @@ type Props = {
 function MetricsSection({
   metrics,
   accentColor,
-  variant,
   columns,
   onNavigate,
 }: {
   metrics: EmployeePortalTodayMetric[];
   accentColor: string;
-  variant: 'glass' | 'light';
   columns: 2 | 4;
   onNavigate: (route?: string) => void;
 }) {
@@ -64,13 +65,12 @@ function MetricsSection({
             accessibilityLabel={`${metric.label}: ${metric.value}`}
             testID={`healthos-employee-metric-${metric.id}`}
           >
-            <HealthOSMetricCard
+            <SpatialPortalMetric
               label={metric.label}
               value={metric.value}
               subValue={metric.subValue}
               icon={metric.icon}
               accentColor={accentColor}
-              variant={variant}
             />
           </Pressable>
         ),
@@ -162,14 +162,9 @@ export function HealthOSEmployeePortalTodayView({
   const router = useRouter();
   const { width } = useHydrationSafeWindowDimensions();
   const breakpoint = resolveHealthOSShellBreakpoint(width);
-  const kpiColumns: 2 | 4 =
-    breakpoint === 'desktop' || breakpoint === 'wide' ? 4 : 2;
+  const kpiColumns: 2 | 4 = breakpoint === 'desktop' ? 4 : 2;
   const moduleAccent = useMainModuleAccent();
   useShellHostsAurora();
-  // The employee portal always sits on the spatial night stage. Light KPI
-  // cards created the white/black "foreign UI" visible on mobile.
-  const cardVariant = 'glass' as const;
-
   const navigate = (route?: string) => {
     if (route) router.push(route as never);
   };
@@ -214,7 +209,7 @@ export function HealthOSEmployeePortalTodayView({
     <HealthOSPage scroll testID="healthos-employee-portal-today">
       <CachedDataBanner visible={fromCache} cachedAt={cachedAt} />
       {/* A: Tagesübersicht */}
-      <HealthOSSection
+      <SpatialPortalSection
         title="Heute"
         subtitle={`${model.greetingLine} · Tagesübersicht`}
         accentColor={moduleAccent}
@@ -222,14 +217,13 @@ export function HealthOSEmployeePortalTodayView({
         <MetricsSection
           metrics={model.tagesübersicht}
           accentColor={moduleAccent}
-          variant={cardVariant}
           columns={kpiColumns}
           onNavigate={navigate}
         />
-      </HealthOSSection>
+      </SpatialPortalSection>
 
       {model.openSignatures ? (
-        <HealthOSSection
+        <SpatialPortalSection
           title="Offene Unterschriften"
           subtitle="Dokumente vom Office — bitte zeitnah unterschreiben"
           accentColor={moduleAccent}
@@ -246,42 +240,41 @@ export function HealthOSEmployeePortalTodayView({
             accessibilityRole="button"
             testID="healthos-employee-open-signatures"
           >
-            <HealthOSMetricCard
+            <SpatialPortalMetric
               label={model.openSignatures.label}
               value={model.openSignatures.value}
               subValue={model.openSignatures.subValue}
               icon={model.openSignatures.icon}
               accentColor={moduleAccent}
-              variant={cardVariant}
             />
           </Pressable>
-        </HealthOSSection>
+        </SpatialPortalSection>
       ) : null}
 
       {/* B: Meine Einsätze */}
-      <HealthOSSection
+      <SpatialPortalSection
         title="Meine Einsätze"
         subtitle="Heutige und nächste Einsätze — antippen für Details"
         accentColor={moduleAccent}
       >
         {hasEinsaetze ? (
-          <HealthOSCard variant="elevated">
+          <SpatialPortalSurface compact>
             <AssignmentList
               assignments={model.meineEinsaetze}
               accentColor={moduleAccent}
               onNavigate={(route) => navigate(route)}
             />
-          </HealthOSCard>
+          </SpatialPortalSurface>
         ) : (
-          <HealthOSEmptyState
+          <SpatialPortalPearlState
             title="Keine Einsätze"
             message="Für heute und die nächsten Tage sind keine Einsätze eingetragen."
           />
         )}
-      </HealthOSSection>
+      </SpatialPortalSection>
 
       {/* C: Offene Aufgaben */}
-      <HealthOSSection
+      <SpatialPortalSection
         title="Offene Aufgaben"
         subtitle="Dokumentation und Unterschriften mit Handlungsbedarf"
         accentColor={moduleAccent}
@@ -300,12 +293,12 @@ export function HealthOSEmployeePortalTodayView({
             />
           </>
         ) : (
-          <HealthOSEmptyState
+          <SpatialPortalPearlState
             title="Alles erledigt"
             message="Keine offenen Dokumentationen oder Unterschriften."
           />
         )}
-      </HealthOSSection>
+      </SpatialPortalSection>
 
     </HealthOSPage>
   );

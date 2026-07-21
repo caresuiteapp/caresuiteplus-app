@@ -9,7 +9,6 @@ import {
   PortalEmployeeProfileHero,
 } from '@/components/portal';
 import { GlassCard } from '@/design/components/GlassCard';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import {
@@ -32,12 +31,12 @@ import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import type { PortalEmployeeProfileTabKey } from '@/types/portal/employeePersonnel';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
 export function EmployeeProfileScreen() {
   const { isTablet, isDesktop, width } = useDeviceClass();
   const { can, check, roleLabel } = usePermissions();
   const canViewProfile = can('portal.employee.profile.view');
-  const text = useAuroraAdaptiveText();
   const { colors } = useLegacyTheme();
   const type = resolveGalaxyTypography(width);
   const insets = useSafeAreaInsets();
@@ -141,7 +140,7 @@ export function EmployeeProfileScreen() {
         <GlassCard>
           <View style={styles.headerMeta}>
             {profile.jobTitleLabel && profile.jobTitleLabel !== '—' ? (
-              <Text style={[type.body, { color: text.primary }]}>{profile.jobTitleLabel}</Text>
+              <Text style={[type.body, { color: spatialCare.textOnNight }]}>{profile.jobTitleLabel}</Text>
             ) : null}
             <View style={styles.statusRow}>
               <PremiumBadge
@@ -151,7 +150,7 @@ export function EmployeeProfileScreen() {
               />
             </View>
             {contactLine ? (
-              <Text style={[type.caption, { color: text.secondary }]}>{contactLine}</Text>
+              <Text style={[type.caption, { color: spatialCare.textOnNightMuted }]}>{contactLine}</Text>
             ) : null}
           </View>
           <HealthOSAlert variant="info" title="Stammdaten" message={OFFICE_PROFILE_HINT} />

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
+import { LinearGradient } from 'expo-linear-gradient';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -47,7 +47,11 @@ export function PortalNavigationDrawer({
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
-  const drawerText = darkGlassSurfaceText;
+  const drawerText = {
+    primary: '#FFFFFF',
+    secondary: 'rgba(255,255,255,0.78)',
+    muted: 'rgba(255,255,255,0.62)',
+  };
   const activeKey = resolveActiveTabKey(pathname, tabs);
 
   const drawerSurface = useMemo(() => {
@@ -77,6 +81,14 @@ export function PortalNavigationDrawer({
             },
           ]}
         >
+          <LinearGradient
+            colors={['rgba(38,42,72,0.99)', 'rgba(12,15,34,0.995)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.85, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+            pointerEvents="none"
+          />
+          <View style={[styles.ambientOrb, { backgroundColor: withAlpha(accentColor, 0.13) }]} pointerEvents="none" />
           <View style={styles.header}>
             <Text style={[styles.headerTitle, { color: drawerText.primary }]}>{portalLabel}</Text>
             <Pressable onPress={onClose} style={[styles.closeBtn, webCursor]} accessibilityRole="button" accessibilityLabel="Schließen">
@@ -134,7 +146,8 @@ export function PortalNavigationDrawer({
 const styles = StyleSheet.create({
   overlay: { flex: 1, flexDirection: 'row' },
   backdrop: { flex: 1, backgroundColor: 'rgba(5, 7, 22, 0.82)' },
-  panel: { width: '86%', maxWidth: 340, borderRightWidth: 1, elevation: 24 },
+  panel: { width: '80%', maxWidth: 330, borderRightWidth: 1, elevation: 24, overflow: 'hidden' },
+  ambientOrb: { position: 'absolute', width: 230, height: 230, borderRadius: 115, left: -105, top: 70 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -158,12 +171,12 @@ const styles = StyleSheet.create({
     minHeight: MOBILE_MIN_TOUCH_TARGET,
     paddingVertical: careSpacing.sm,
     paddingHorizontal: careSpacing.sm,
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  navIcon: { fontSize: 18, width: 28, textAlign: 'center' },
-  navLabel: { ...careTypography.body, fontWeight: '600', flex: 1 },
+  navIcon: { fontSize: 17, width: 27, textAlign: 'center' },
+  navLabel: { ...careTypography.body, fontSize: 15, lineHeight: 20, fontWeight: '600', flex: 1 },
   logoutSection: {
     borderTopWidth: 1,
     marginTop: careSpacing.sm,

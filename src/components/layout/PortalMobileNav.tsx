@@ -43,7 +43,7 @@ export function PortalMobileNav({ tabs, accentColor = '#1478FF', area }: PortalM
         {
           paddingBottom: webSafeAreaPadding('bottom', bottomInset),
           backgroundColor: navSurface,
-          borderTopColor: navBorder,
+          borderColor: navBorder,
         } as ViewStyle,
       ]}
       testID="portal-mobile-nav"
@@ -92,11 +92,15 @@ export function PortalMobileNav({ tabs, accentColor = '#1478FF', area }: PortalM
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    borderTopWidth: 1,
+    borderWidth: 1,
+    borderRadius: 24,
+    marginHorizontal: 12,
+    marginBottom: 10,
     paddingTop: careSpacing.sm,
     paddingHorizontal: careSpacing.sm,
     shadowColor: '#050716', shadowOpacity: 0.34, shadowRadius: 24,
     shadowOffset: { width: 0, height: -6 },
+    overflow: 'hidden',
   },
   tab: {
     flex: 1,
