@@ -78,10 +78,10 @@ export function PortalShellLayout({
   const employeeHealthOS = kind === 'employee';
 
   const topInset = Math.max(insets.top, careSpacing.xs);
-  const bottomNavOffset = PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm);
+  const bottomNavOffset = PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, 22);
   const mobileContentPaddingBottom = useMemo(() => {
     if (Platform.OS === 'web') {
-      return webSafeAreaCalc('bottom', bottomNavOffset + careSpacing.lg) as number;
+      return webSafeAreaCalc('bottom', bottomNavOffset + careSpacing.xl) as number;
     }
     return resolvePortalMobileContentPaddingBottom(insets.bottom);
   }, [bottomNavOffset, insets.bottom]);
@@ -129,7 +129,14 @@ export function PortalShellLayout({
       </View>
 
       {isCompactShell ? (
-        <View style={styles.content}>{mainContent}</View>
+        <View
+          style={[
+            styles.content,
+            showMobileBottomNav ? { paddingBottom: bottomNavOffset } : null,
+          ]}
+        >
+          {mainContent}
+        </View>
       ) : (
         <View style={styles.body}>
           {showLeftNav ? (
@@ -261,7 +268,7 @@ const styles = StyleSheet.create({
   },
   employeeMainContent: {
     width: '100%', maxWidth: 1180, alignSelf: 'center',
-    paddingHorizontal: careSpacing.lg, gap: careSpacing.md,
+    paddingHorizontal: careSpacing.md, gap: careSpacing.md,
   },
   mainContentMessengerFocus: {
     flex: 1,

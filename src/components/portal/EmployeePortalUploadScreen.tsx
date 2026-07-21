@@ -4,6 +4,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import {
   EmptyState,
   ErrorState,
@@ -217,11 +218,11 @@ const styles = StyleSheet.create({
   hint: { ...careTypography.caption, lineHeight: 19 },
   infoCard: {
     padding: careSpacing.md, borderRadius: 16, borderWidth: 1,
-    borderColor: 'rgba(13, 148, 136, 0.18)', backgroundColor: 'rgba(13, 148, 136, 0.06)',
+    borderColor: spatialCare.borderGlow, backgroundColor: spatialCare.panelMuted,
   },
   form: {
     gap: careSpacing.md, padding: careSpacing.lg, borderRadius: 22, borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.22)', backgroundColor: 'rgba(255,255,255,0.94)',
+    borderColor: spatialCare.border, backgroundColor: spatialCare.stageStrong,
   },
   sectionTitle: { ...careTypography.bodyStrong, marginTop: careSpacing.sm },
   label: { ...careTypography.caption, fontWeight: '600' },

@@ -3,9 +3,8 @@ import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native'
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SpaceKpiIcon } from '@/components/icons/space';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { resolveCompactShellMobileTabs } from '@/lib/navigation/shellMobileTabs';
@@ -22,15 +21,14 @@ type PortalMobileNavProps = {
 };
 
 /** Opaque bottom nav — five fixed tabs on phone (no horizontal scroll). */
-export function PortalMobileNav({ tabs, accentColor = '#FF9500', area }: PortalMobileNavProps) {
+export function PortalMobileNav({ tabs, accentColor = '#1478FF', area }: PortalMobileNavProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const text = useAuroraAdaptiveText();
-  const navSurface = careLightColors.surface;
-  const navBorder = careLightColors.borderStrong;
-  const activeChip = 'rgba(13, 148, 136, 0.12)';
-  const labelDefault = text.primary;
+  const navSurface = spatialCare.navigationStrong;
+  const navBorder = spatialCare.border;
+  const activeChip = 'rgba(105, 232, 255, 0.16)';
+  const labelDefault = spatialCare.textOnNightMuted;
   const activeLabelColor = useInteractiveTextColor(accentColor);
   const mobileTabs = useMemo(() => resolveCompactShellMobileTabs(tabs, area), [tabs, area]);
   const activeKey = resolveActiveTabKey(pathname, mobileTabs);
@@ -97,7 +95,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingTop: careSpacing.sm,
     paddingHorizontal: careSpacing.sm,
-    shadowColor: '#0F172A', shadowOpacity: 0.08, shadowRadius: 16,
+    shadowColor: '#050716', shadowOpacity: 0.34, shadowRadius: 24,
     shadowOffset: { width: 0, height: -6 },
   },
   tab: {

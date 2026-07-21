@@ -9,6 +9,7 @@ import { buildEmployeePortalProfileKpis } from '@/lib/portal/portalProfileStats'
 import type { PortalEmployeeProfile } from '@/types/portal/employee';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { spacing } from '@/theme';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
 type PortalEmployeeProfileHeroProps = {
   profile: PortalEmployeeProfile;
@@ -37,8 +38,8 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
           gap: spacing.xs,
           minWidth: 0,
         },
-        title: heroText.title,
-        meta: heroText.meta,
+        title: { ...heroText.title, color: spatialCare.textOnNight },
+        meta: { ...heroText.meta, color: spatialCare.textOnNightMuted },
         badges: {
           flexDirection: 'row',
           flexWrap: 'wrap',
@@ -58,12 +59,12 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
           gap: 2,
           borderRadius: 16,
           borderWidth: 1,
-          borderColor: 'rgba(148, 163, 184, 0.22)',
-          backgroundColor: 'rgba(255, 255, 255, 0.72)',
+          borderColor: spatialCare.border,
+          backgroundColor: spatialCare.panelMuted,
         },
-        factLabel: { fontSize: 11, fontWeight: '700', color: '#64748B' },
-        factValue: { fontSize: 17, fontWeight: '800', color: '#0F172A' },
-        factMeta: { fontSize: 12, color: '#475569' },
+        factLabel: { fontSize: 11, fontWeight: '700', color: spatialCare.textOnNightMuted },
+        factValue: { fontSize: 17, fontWeight: '800', color: spatialCare.textOnNight },
+        factMeta: { fontSize: 12, color: spatialCare.textOnNightMuted },
       }),
     [heroText],
   );
