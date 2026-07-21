@@ -9,11 +9,11 @@ import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersi
 import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
 import {
   assignmentStatusToDimensions,
-  dedupeStatusTransitionButtons,
   getVisitAllowedTransitions,
   isVisitIncomplete,
   resolveAssignmentStatusFromExecutionContext,
 } from '@/lib/assist/visitWorkflow';
+import { dedupeStatusTransitionButtons } from '@/lib/assist/visitTransitionButtons';
 import type {
   VisitDocumentationStatus,
   VisitExecutionStatus,

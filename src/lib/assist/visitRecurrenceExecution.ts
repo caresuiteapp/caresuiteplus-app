@@ -5,10 +5,9 @@ import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import type { WorkflowStatus } from '@/types/core/base';
 import {
   assignmentStatusToDimensions,
-  dedupeStatusTransitionButtons,
   getVisitAllowedTransitions,
-  isVisitIncomplete,
 } from '@/lib/assist/visitWorkflow';
+import { dedupeStatusTransitionButtons } from '@/lib/assist/visitTransitionButtons';
 import type {
   VisitDispositionDetail,
   VisitDispositionListItem,
@@ -249,4 +248,4 @@ export function resolveOccurrenceAwareVisitId(rawId: string): {
   const { occurrenceDate } = parseVisitOccurrenceId(rawId);
   return { masterId, occurrenceDate };
 }
-
+
