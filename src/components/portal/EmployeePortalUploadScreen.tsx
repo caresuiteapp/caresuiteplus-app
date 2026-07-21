@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
@@ -46,7 +45,7 @@ function formatCategoryLabel(value: string): string {
 }
 
 export function EmployeePortalUploadScreen() {
-  const text = useAuroraAdaptiveText();
+  const text = portalText;
   const { tenantId, employeeId } = usePortalActor();
   const { uploads, loading, error, refresh } = useEmployeePortalUploads();
   const { records: clients } = useEmployeePortalClientRecords();
@@ -231,3 +230,9 @@ const styles = StyleSheet.create({
   error: { ...careTypography.caption },
   success: { ...careTypography.caption },
 });
+
+const portalText = {
+  primary: spatialCare.textOnNight,
+  secondary: spatialCare.textOnNightMuted,
+  muted: spatialCare.textOnNightMuted,
+} as const;

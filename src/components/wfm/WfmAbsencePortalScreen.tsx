@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
-import { ScreenShell } from '@/components/layout';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { CareDateInput } from '@/components/inputs';
 import { WorkflowToast } from '@/components/ui/WorkflowToast';
 import { AuroraSegmentedControl } from '@/components/aurora';
@@ -14,7 +14,6 @@ import {
   PremiumButton,
   SectionPanel,
 } from '@/components/ui';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -84,7 +83,7 @@ export function WfmAbsencePortalScreen({
   const employeeId = portalEmployeeId ?? profile?.employeeId ?? null;
   const roleKey = profile?.roleKey ?? null;
   const { can, check, roleLabel } = usePermissions();
-  const text = useAuroraAdaptiveText();
+  const text = portalText;
 
   const mode: 'vacation' | 'general' = defaultType === 'vacation' ? 'vacation' : 'general';
   const requestTypes = mode === 'vacation' ? VACATION_TYPES : GENERAL_ABSENCE_TYPES;
@@ -177,17 +176,17 @@ export function WfmAbsencePortalScreen({
 
   if (!canView) {
     return (
-      <ScreenShell title={title}>
+      <PortalTabScreen title={title}>
         <LockedActionBanner
           message={check('portal.employee.absences.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   return (
-    <ScreenShell title={title} subtitle="Anträge und Übersicht" scroll>
+    <PortalTabScreen title={title} subtitle="Anträge und Übersicht" scroll>
       <PremiumButton
         title="← Zurück zur Arbeitszeit"
         variant="ghost"
@@ -280,9 +279,15 @@ export function WfmAbsencePortalScreen({
 
       <WorkflowToast message={message} onDismiss={() => setMessage(null)} />
       {error ? <ErrorState title="Fehler" message={error} onRetry={() => setError(null)} /> : null}
-    </ScreenShell>
+    </PortalTabScreen>
   );
 }
+
+const portalText = {
+  primary: spatialCare.textOnNight,
+  secondary: spatialCare.textOnNightMuted,
+  muted: spatialCare.textOnNightMuted,
+} as const;
 
 const styles = StyleSheet.create({
   label: { ...typography.caption, marginTop: careSpacing.sm, marginBottom: 4 },

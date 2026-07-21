@@ -6,6 +6,8 @@ import { ScreenShell } from '@/components/layout';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
+import { usePathname } from 'expo-router';
+import { EmployeePortalPageFrame } from '@/components/portal/EmployeePortalPageFrame';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import {
   resolvePortalMobileContentPaddingBottom,
@@ -35,6 +37,8 @@ export function PortalTabScreen({
   const { isPhone } = useDeviceClass();
   const { showBottomTabs } = usePlatformLayout();
   const { active: messengerFocusActive } = usePortalMessengerFocus();
+  const pathname = usePathname();
+  const isEmployeePortal = pathname.startsWith('/portal/employee');
 
   const bareBottomPadding = useMemo(() => {
     if (messengerFocusActive || !showBottomTabs) return spacing.md;
@@ -56,6 +60,21 @@ export function PortalTabScreen({
     }
     return { paddingBottom: bareBottomPadding };
   }, [bareBottomPadding, messengerFocusActive, showBottomTabs]);
+
+  if (isEmployeePortal && !messengerFocusActive) {
+    return (
+      <View style={[styles.employeePage, barePaddingStyle]} testID="employee-portal-tab-screen">
+        <EmployeePortalPageFrame
+          title={title}
+          subtitle={subtitle}
+          eyebrow={eyebrow}
+          compact={hideHeaderOnPhone}
+        >
+          {children}
+        </EmployeePortalPageFrame>
+      </View>
+    );
+  }
 
   if (isPhone && hideHeaderOnPhone) {
     return (
@@ -99,5 +118,9 @@ const styles = StyleSheet.create({
   bareContent: {
     width: '100%',
     gap: spacing.md,
+  },
+  employeePage: {
+    width: '100%',
+    minHeight: 0,
   },
 });
