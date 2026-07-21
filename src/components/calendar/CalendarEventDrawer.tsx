@@ -77,6 +77,47 @@ function DrawerSection({ label, value, styles }: { label: string; value: string;
 
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function formatCalendarEventPeriod(event: CalendarEvent): string {
+  const start = new Date(event.start);
+  const end = new Date(event.end);
+  if (event.allDay) {
+    const dateOptions = { timeZone: 'UTC' as const, day: '2-digit' as const, month: '2-digit' as const, year: 'numeric' as const };
+    const startDate = start.toLocaleDateString('de-DE', dateOptions);
+    const endDate = end.toLocaleDateString('de-DE', dateOptions);
+    return startDate === endDate ? `${startDate} · ganztägig` : `${startDate} – ${endDate} · ganztägig`;
+  }
+
+  const startDate = start.toLocaleDateString('de-DE');
+  const endDate = end.toLocaleDateString('de-DE');
+  const startTime = start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  const endTime = end.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  return startDate === endDate
+    ? `${startDate}, ${startTime} – ${endTime} Uhr`
+    : `${startDate}, ${startTime} – ${endDate}, ${endTime} Uhr`;
+}
+
+function formatCalendarStatus(status: string): string {
+  const labels: Record<string, string> = {
+    active: 'Aktiv',
+    aktiv: 'Aktiv',
+    approved: 'Genehmigt',
+    pending: 'Zur Prüfung',
+    requested: 'Beantragt',
+    rejected: 'Abgelehnt',
+    cancelled: 'Storniert',
+  };
+  return labels[status] ?? status;
+}
+
+function participantName(name: string | undefined, id: string | null | undefined): string {
+  const resolved = name?.trim();
+  if (resolved) return resolved;
+  const fallback = id?.trim();
+  return fallback && !UUID_PATTERN.test(fallback) ? fallback : '';
+}
+
 
 
 export function CalendarEventDrawer({ visible, event, onClose, onUpdated }: CalendarEventDrawerProps) {
@@ -85,7 +126,7 @@ export function CalendarEventDrawer({ visible, event, onClose, onUpdated }: Cale
 
   const { width, height } = useWindowDimensions();
 
-  const { isDark, c } = useCareLightPalette();
+  const { c } = useCareLightPalette();
 
   const accent = moduleColor((event?.moduleKey as never) ?? 'office');
 
@@ -167,7 +208,7 @@ export function CalendarEventDrawer({ visible, event, onClose, onUpdated }: Cale
 
       }),
 
-    [c.muted, c.text, height, isDark, width],
+    [c.muted, c.text, height, width],
 
   );
 
@@ -179,10 +220,6 @@ export function CalendarEventDrawer({ visible, event, onClose, onUpdated }: Cale
 
   const typeLabel = CALENDAR_EVENT_TYPE_LABELS[event.type] ?? event.type;
 
-  const startLabel = new Date(event.start).toLocaleString('de-DE');
-
-  const endLabel = new Date(event.end).toLocaleString('de-DE');
-
   const record = event.record;
 
   const sourceType = event.sourceType ?? record?.sourceType;
@@ -190,10 +227,12 @@ export function CalendarEventDrawer({ visible, event, onClose, onUpdated }: Cale
 
 
   const showOpenAction = !!event.href;
-
-  const showArchiveHint = sourceType === 'custom_event' || sourceType === 'task_deadline';
-
-  const canEdit = sourceType !== 'assist_visit';
+  const canEdit = sourceType === 'custom_event';
+  const employeeDisplayName = participantName(event.employeeName, record?.relatedEmployeeId);
+  const clientDisplayName = participantName(event.clientName, record?.relatedClientId);
+  const openActionLabel = ['absence', 'vacation', 'sick_leave'].includes(sourceType ?? '')
+    ? 'Mitarbeiterakte öffnen'
+    : 'Datensatz öffnen';
 
 
 
@@ -223,7 +262,7 @@ export function CalendarEventDrawer({ visible, event, onClose, onUpdated }: Cale
 
               {event.status ? (
 
-                <DrawerSection label="Status" value={event.status} styles={styles} />
+                <DrawerSection label="Status" value={formatCalendarStatus(event.status)} styles={styles} />
 
               ) : null}
 
@@ -231,31 +270,25 @@ export function CalendarEventDrawer({ visible, event, onClose, onUpdated }: Cale
 
               <Text style={styles.sectionTitle}>Zeit</Text>
 
-              <DrawerSection label="Zeitraum" value={`${startLabel} – ${endLabel}`} styles={styles} />
-
-              {event.allDay ? (
-
-                <DrawerSection label="Ganztägig" value="Ja" styles={styles} />
-
-              ) : null}
+              <DrawerSection label="Zeitraum" value={formatCalendarEventPeriod(event)} styles={styles} />
 
 
 
-              {(record?.relatedClientId || record?.relatedEmployeeId || record?.relatedWardId) ? (
+              {(clientDisplayName || employeeDisplayName || record?.relatedWardId) ? (
 
                 <>
 
                   <Text style={styles.sectionTitle}>Beteiligte</Text>
 
-                  {record?.relatedClientId ? (
+                  {clientDisplayName ? (
 
-                    <DrawerSection label="Klient" value={record.relatedClientId} styles={styles} />
+                    <DrawerSection label="Klient:in" value={clientDisplayName} styles={styles} />
 
                   ) : null}
 
-                  {record?.relatedEmployeeId ? (
+                  {employeeDisplayName ? (
 
-                    <DrawerSection label="Mitarbeiter" value={record.relatedEmployeeId} styles={styles} />
+                    <DrawerSection label="Mitarbeitende Person" value={employeeDisplayName} styles={styles} />
 
                   ) : null}
 
@@ -347,7 +380,7 @@ export function CalendarEventDrawer({ visible, event, onClose, onUpdated }: Cale
 
                 <PremiumButton
 
-                  title="Öffnen"
+                  title={openActionLabel}
 
                   onPress={() => {
 
@@ -358,12 +391,6 @@ export function CalendarEventDrawer({ visible, event, onClose, onUpdated }: Cale
                   }}
 
                 />
-
-              ) : null}
-
-              {showArchiveHint ? (
-
-                <PremiumButton title="Quelldatensatz" variant="secondary" disabled />
 
               ) : null}
 
@@ -412,4 +439,3 @@ export function CalendarEventDrawer({ visible, event, onClose, onUpdated }: Cale
   );
 
 }
-

@@ -50,6 +50,21 @@ describe('Office Arbeitszeit V32 Integritätsprüfung', () => {
     expect(repository).toContain('WFM_REVIEW_EMPLOYEE_LINK_MISSING');
   });
 
+  it('writes review and history atomically with source-based employee resolution', () => {
+    const review = readSrc('src/lib/wfm/wfmTimeReviewService.ts');
+    const repository = readSrc('src/lib/wfm/wfmWorkSessionRepository.ts');
+    const migration = readSrc('supabase/migrations/0261_wfm_time_review_atomic_repair.sql');
+
+    expect(review).toContain("rpc('wfm_upsert_time_review'");
+    expect(review).toContain('rawReferenceId');
+    expect(repository).toContain("reference?.entryKind === 'visit'");
+    expect(repository).toContain("fromUnknownTable(supabase, 'assignments')");
+    expect(migration).toContain('SECURITY DEFINER');
+    expect(migration).toContain('INSERT INTO public.workforce_time_entry_reviews');
+    expect(migration).toContain('INSERT INTO public.workforce_time_review_actions');
+    expect(migration).toContain("jsonb_build_object('source', 'wfm_atomic_review_v261')");
+  });
+
   it('keeps review data readable when the detail pane opens', () => {
     const table = readSrc('src/components/wfm/WfmOfficeTimeEntryTable.tsx');
     expect(table).toContain('width < 640 || Boolean(selectedId)');

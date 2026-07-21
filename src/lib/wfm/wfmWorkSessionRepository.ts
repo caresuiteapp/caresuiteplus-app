@@ -48,6 +48,8 @@ type EventRow = {
   occurred_at: string;
   session_id: string | null;
   note: string | null;
+  reference_type?: 'visit' | 'assignment' | null;
+  reference_id?: string | null;
 };
 
 const demoSessions = new Map<string, WfmWorkSession>();
@@ -91,6 +93,8 @@ function mapEventRow(row: EventRow): WfmTimeEvent {
     occurredAt: row.occurred_at,
     sessionId: row.session_id,
     note: row.note,
+    referenceType: row.reference_type ?? null,
+    referenceId: row.reference_id ?? null,
   };
 }
 
@@ -165,7 +169,7 @@ export async function fetchSessionEvents(
 
   const { data, error } = await fromUnknownTable(supabase, EVENTS_TABLE)
     .select(
-      'id, tenant_id, employee_id, user_id, event_type, work_mode, source, occurred_at, session_id, note',
+      'id, tenant_id, employee_id, user_id, event_type, work_mode, source, occurred_at, session_id, note, reference_type, reference_id',
     )
     .eq('tenant_id', tenantId)
     .eq('session_id', sessionId)
@@ -349,7 +353,7 @@ export async function insertTimeEvent(
   const { data, error } = await fromUnknownTable(supabase, EVENTS_TABLE)
     .insert(payload)
     .select(
-      'id, tenant_id, employee_id, user_id, event_type, work_mode, source, occurred_at, session_id, note',
+      'id, tenant_id, employee_id, user_id, event_type, work_mode, source, occurred_at, session_id, note, reference_type, reference_id',
     )
     .single();
 
@@ -471,6 +475,10 @@ export async function resolveEmployeeIdForUser(
 export async function resolveCanonicalWfmEmployeeId(
   tenantId: string,
   candidateId: string,
+  reference?: {
+    entryKind?: 'session' | 'visit' | 'manual' | 'meeting';
+    referenceId?: string | null;
+  },
 ): Promise<ServiceResult<string>> {
   if (getServiceMode() !== 'supabase') return { ok: true, data: candidateId };
 
@@ -495,13 +503,47 @@ export async function resolveCanonicalWfmEmployeeId(
   if (profileError) return { ok: false, error: toGermanSupabaseError(profileError) };
   if (byProfile?.id) return { ok: true, data: String(byProfile.id) };
 
+  // Legacy WFM rows can still carry an auth/profile identifier. The referenced
+  // source row is authoritative and already tenant-scoped.
+  if (reference?.entryKind === 'visit' && reference.referenceId) {
+    const { data: assignment, error: assignmentError } = await fromUnknownTable(supabase, 'assignments')
+      .select('employee_id')
+      .eq('tenant_id', tenantId)
+      .eq('id', reference.referenceId)
+      .maybeSingle();
+    if (assignmentError && !isSupabaseMissingTableError(assignmentError)) {
+      return { ok: false, error: toGermanSupabaseError(assignmentError) };
+    }
+    if ((assignment as { employee_id?: string | null } | null)?.employee_id) {
+      return { ok: true, data: String((assignment as { employee_id: string }).employee_id) };
+    }
+  }
+
+  if (reference?.entryKind === 'session' && reference.referenceId) {
+    const { data: session, error: sessionError } = await fromUnknownTable(supabase, SESSIONS_TABLE)
+      .select('employee_id')
+      .eq('tenant_id', tenantId)
+      .eq('id', reference.referenceId)
+      .maybeSingle();
+    if (sessionError && !isSupabaseMissingTableError(sessionError)) {
+      return { ok: false, error: toGermanSupabaseError(sessionError) };
+    }
+    if ((session as { employee_id?: string | null } | null)?.employee_id) {
+      return { ok: true, data: String((session as { employee_id: string }).employee_id) };
+    }
+  }
+
   const { data: portalAccount, error: portalError } = await supabase
     .from('employee_portal_accounts')
     .select('employee_id, status, blocked_at')
     .eq('tenant_id', tenantId)
     .eq('auth_user_id', candidateId)
     .maybeSingle();
-  if (portalError) return { ok: false, error: toGermanSupabaseError(portalError) };
+  // Direct SELECT can be intentionally revoked in hardened installations.
+  // A denied fallback must not hide the deterministic source-row resolution above.
+  if (portalError && portalError.code !== '42501') {
+    return { ok: false, error: toGermanSupabaseError(portalError) };
+  }
   if (portalAccount?.employee_id && isActiveEmployeePortalAccount(portalAccount)) {
     return { ok: true, data: String(portalAccount.employee_id) };
   }
@@ -571,7 +613,7 @@ export async function fetchEmployeeEventsInRange(
 
   const { data, error } = await fromUnknownTable(supabase, EVENTS_TABLE)
     .select(
-      'id, tenant_id, employee_id, user_id, event_type, work_mode, source, occurred_at, session_id, note',
+      'id, tenant_id, employee_id, user_id, event_type, work_mode, source, occurred_at, session_id, note, reference_type, reference_id',
     )
     .eq('tenant_id', tenantId)
     .eq('employee_id', employeeId)

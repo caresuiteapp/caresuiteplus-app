@@ -6,7 +6,7 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { getWfmTeamTodayOverview } from '@/lib/wfm/wfmTeamTodayService';
+import { listWfmActiveEmployees } from '@/lib/wfm/wfmPlanningService';
 import { WfmOfficeManualEntryPanel } from '@/components/wfm/WfmOfficeManualEntryPanel';
 
 export function WfmNachtraegeOfficeScreen() {
@@ -21,11 +21,11 @@ export function WfmNachtraegeOfficeScreen() {
       if (!tenantId || !canCorrect) {
         return { ok: true as const, data: { rows: [] } };
       }
-      const result = await getWfmTeamTodayOverview(tenantId, roleKey);
+      const result = await listWfmActiveEmployees(tenantId);
       if (!result.ok) return result;
-      return { ok: true as const, data: { rows: result.data.rows } };
-    }, [tenantId, canCorrect, roleKey]),
-    [tenantId, canCorrect, roleKey],
+      return { ok: true as const, data: { employees: result.data } };
+    }, [tenantId, canCorrect]),
+    [tenantId, canCorrect],
     { enabled: !!tenantId && canCorrect },
   );
 
@@ -40,10 +40,7 @@ export function WfmNachtraegeOfficeScreen() {
     );
   }
 
-  const employees = (teamQuery.data?.rows ?? []).map((row) => ({
-    id: row.employeeId,
-    name: row.employeeName,
-  }));
+  const employees = teamQuery.data?.employees ?? [];
 
   return (
     <ScreenShell title="Nachträge" subtitle="Manuelle Office-Zeitbuchungen" showBack={false} scroll>
@@ -51,7 +48,7 @@ export function WfmNachtraegeOfficeScreen() {
       {teamQuery.error ? (
         <ErrorState title="Fehler" message={teamQuery.error} onRetry={() => void teamQuery.refresh()} />
       ) : null}
-      {tenantId && actorId ? (
+      {tenantId && actorId && !teamQuery.loading && !teamQuery.error ? (
         <WfmOfficeManualEntryPanel
           tenantId={tenantId}
           actorId={actorId}

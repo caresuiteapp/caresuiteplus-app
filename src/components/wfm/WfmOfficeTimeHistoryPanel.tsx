@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { CareDateInput } from '@/components/inputs';
 import { PremiumButton } from '@/components/ui';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -28,7 +28,6 @@ import {
 } from './WfmOfficeTimekeepingLayout';
 import { WfmOfficeTimeEntryTable } from './WfmOfficeTimeEntryTable';
 import { WfmOfficeTimeReviewDetailPanel } from './WfmOfficeTimeReviewDetailPanel';
-import { typography } from '@/theme';
 
 type Props = {
   tenantId: string;
@@ -58,7 +57,6 @@ export function WfmOfficeTimeHistoryPanel({
   initialFilterAmpel = null,
   reviewQueueMode = false,
 }: Props) {
-  const text = useAuroraAdaptiveText();
   const accent = moduleColor('office');
   const [preset, setPreset] = useState<WfmOfficePeriodPreset>(reviewQueueMode ? 'last_30_days' : 'today');
   const [customFrom, setCustomFrom] = useState('');
@@ -258,20 +256,18 @@ export function WfmOfficeTimeHistoryPanel({
 
       {preset === 'custom' ? (
         <View style={styles.customRow}>
-          <TextInput
+          <View style={styles.dateField}><CareDateInput
+            label="Von"
             value={customFrom}
-            onChangeText={setCustomFrom}
-            placeholder="Von (YYYY-MM-DD)"
-            placeholderTextColor={text.muted}
-            style={[styles.input, { color: text.primary, borderColor: text.border }]}
-          />
-          <TextInput
+            onChange={setCustomFrom}
+            showFormatHint={false}
+          /></View>
+          <View style={styles.dateField}><CareDateInput
+            label="Bis"
             value={customTo}
-            onChangeText={setCustomTo}
-            placeholder="Bis (YYYY-MM-DD)"
-            placeholderTextColor={text.muted}
-            style={[styles.input, { color: text.primary, borderColor: text.border }]}
-          />
+            onChange={setCustomTo}
+            showFormatHint={false}
+          /></View>
           <PremiumButton title="Anwenden" variant="secondary" onPress={() => void historyQuery.refresh()} />
         </View>
       ) : null}
@@ -329,12 +325,5 @@ export function WfmOfficeTimeHistoryPanel({
 const styles = StyleSheet.create({
   root: { flex: 1, gap: careSpacing.sm },
   customRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, marginBottom: careSpacing.sm },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: careSpacing.sm,
-    minWidth: 140,
-    flex: 1,
-    ...typography.caption,
-  },
+  dateField: { minWidth: 180, flex: 1 },
 });

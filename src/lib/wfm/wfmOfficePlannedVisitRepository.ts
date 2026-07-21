@@ -5,6 +5,8 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
+import type { VisitDispositionListItem } from '@/lib/assist/visitTypes';
 import { resolveAssignmentActualTimes } from './wfmAssignmentActualResolver';
 
 const CANCELLED_STATUSES = new Set(['cancelled', 'storniert', 'no_show', 'nicht_erschienen']);
@@ -79,24 +81,44 @@ function mapAssignmentRow(row: AssignmentRow): WfmOfficePlannedVisit | null {
   };
 }
 
-export async function listPlannedVisitsForPeriod(
+/**
+ * Maps the canonical Assist visit projection into the Office timekeeping model.
+ * Keeping this mapping here makes Arbeitszeit consume the same planned/actual
+ * visit stock as Einsaetze, including materialised recurrence occurrences.
+ */
+export function mapCanonicalVisitToPlannedVisit(
+  visit: VisitDispositionListItem,
+): WfmOfficePlannedVisit | null {
+  if (!visit.employeeId || visit.planningStatus === 'draft') return null;
+  if (CANCELLED_STATUSES.has(visit.assignmentStatus)) return null;
+
+  const workDate = visit.scheduledStart?.slice(0, 10) ?? '';
+  if (!workDate) return null;
+
+  return {
+    assignmentId: visit.id,
+    visitId: visit.id,
+    tenantId: visit.tenantId,
+    employeeId: visit.employeeId,
+    workDate,
+    plannedStartAt: visit.scheduledStart,
+    plannedEndAt: visit.scheduledEnd,
+    assignmentActualStartAt: visit.actualStartAt ?? null,
+    assignmentActualEndAt: visit.actualEndAt ?? null,
+    assignmentOnTheWayAt: visit.onTheWayAt ?? null,
+    assignmentArrivedAt: visit.arrivedAt ?? null,
+    assignmentFinishedAt: visit.actualEndAt ?? null,
+    clientLabel: visit.clientName?.trim() || null,
+    assignmentTitle: visit.serviceName?.trim() || visit.title?.trim() || 'Einsatz',
+    assignmentStatus: visit.assignmentStatus,
+  };
+}
+
+async function listLegacyAssignmentsForPeriod(
   tenantId: string,
   fromDate: string,
   toDate: string,
 ): Promise<ServiceResult<WfmOfficePlannedVisit[]>> {
-  if (getServiceMode() !== 'supabase') {
-    const results: WfmOfficePlannedVisit[] = [];
-    for (const [key, list] of demoPlannedVisits.entries()) {
-      if (!key.startsWith(`${tenantId}:`)) continue;
-      for (const visit of list) {
-        if (visit.workDate >= fromDate && visit.workDate <= toDate) {
-          results.push(visit);
-        }
-      }
-    }
-    return { ok: true, data: results };
-  }
-
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
@@ -122,6 +144,43 @@ export async function listPlannedVisitsForPeriod(
     if (mapped) visits.push(mapped);
   }
   return { ok: true, data: visits };
+}
+
+export async function listPlannedVisitsForPeriod(
+  tenantId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<ServiceResult<WfmOfficePlannedVisit[]>> {
+  if (getServiceMode() !== 'supabase') {
+    const results: WfmOfficePlannedVisit[] = [];
+    for (const [key, list] of demoPlannedVisits.entries()) {
+      if (!key.startsWith(`${tenantId}:`)) continue;
+      for (const visit of list) {
+        if (visit.workDate >= fromDate && visit.workDate <= toDate) {
+          results.push(visit);
+        }
+      }
+    }
+    return { ok: true, data: results };
+  }
+
+  const canonical = await visitSupabaseRepository.list(tenantId, {
+    dateFrom: `${fromDate}T00:00:00`,
+    dateTo: `${toDate}T23:59:59`,
+  });
+
+  if (canonical.ok) {
+    return {
+      ok: true,
+      data: canonical.data
+        .map(mapCanonicalVisitToPlannedVisit)
+        .filter((visit): visit is WfmOfficePlannedVisit => visit !== null),
+    };
+  }
+
+  // Compatibility for installations in which assist_visits has not yet been
+  // migrated. Once the canonical source is available it always wins.
+  return listLegacyAssignmentsForPeriod(tenantId, fromDate, toDate);
 }
 
 export async function fetchActiveEmployeeIds(tenantId: string): Promise<ServiceResult<string[]>> {

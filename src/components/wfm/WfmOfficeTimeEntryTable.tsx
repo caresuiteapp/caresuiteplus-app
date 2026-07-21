@@ -456,9 +456,15 @@ const styles = StyleSheet.create({
   wrap: { gap: careSpacing.xs },
   wrapReview: { gap: careSpacing.sm },
   tableSurface: {
-    borderRadius: 12,
-    backgroundColor: '#FAFBFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(20,120,255,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.94)',
     maxWidth: '100%',
+    shadowColor: '#173B70',
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
     ...(Platform.OS === 'web'
       ? ({
           overflowX: 'auto',
@@ -468,7 +474,7 @@ const styles = StyleSheet.create({
       : { overflow: 'hidden' }),
   },
   stackCell: { gap: 1, width: '100%' },
-  cellText: { ...typography.caption, fontSize: 12, lineHeight: 16 },
+  cellText: { ...typography.body, fontSize: 13, lineHeight: 18 },
   cellTextStrong: { fontWeight: '600', color: '#0F1B33' },
   statusBadgeWrap: {
     width: '100%',
@@ -479,9 +485,9 @@ const styles = StyleSheet.create({
   },
   statusBadge: { maxWidth: '100%', alignSelf: 'flex-start' },
   actionCell: { width: '100%', alignItems: 'flex-end', justifyContent: 'center' },
-  footerHint: { ...typography.caption, fontSize: 10, marginTop: 4 },
+  footerHint: { ...typography.caption, fontSize: 11, marginTop: 6, paddingHorizontal: 4 },
   mobileList: { gap: careSpacing.sm },
-  mobileCard: { borderWidth: 1, borderRadius: 10, padding: careSpacing.sm, gap: 4 },
+  mobileCard: { borderWidth: 1, borderRadius: 14, padding: careSpacing.md, gap: 6, backgroundColor: 'rgba(255,255,255,0.92)' },
   mobileCardSelected: {
     borderColor: 'rgba(139, 92, 246, 0.45)',
     backgroundColor: 'rgba(139, 92, 246, 0.06)',

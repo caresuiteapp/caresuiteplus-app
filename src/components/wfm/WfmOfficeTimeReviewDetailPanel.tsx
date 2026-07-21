@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { PremiumButton } from '@/components/ui';
+import { CareTimeInput } from '@/components/inputs';
+import { ListFilterSelect, PremiumButton } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -61,6 +62,19 @@ function SectionBlock({
   );
 }
 
+function localTime(iso: string): string {
+  if (!iso) return '';
+  const value = new Date(iso);
+  if (Number.isNaN(value.getTime())) return '';
+  return `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
+}
+
+function isoAtWorkDate(workDate: string, time: string): string | null {
+  if (!/^\d{2}:\d{2}$/.test(time)) return null;
+  const value = new Date(`${workDate}T${time}:00`);
+  return Number.isNaN(value.getTime()) ? null : value.toISOString();
+}
+
 export function WfmOfficeTimeReviewDetailPanel({
   entry,
   auditEntries,
@@ -88,6 +102,11 @@ export function WfmOfficeTimeReviewDetailPanel({
   const accent = moduleColor('office');
   const display = resolveWfmOfficeTimeDisplay(entry);
   const [showHistory, setShowHistory] = useState(false);
+  const [startTime, setStartTime] = useState(localTime(editStartAt));
+  const [endTime, setEndTime] = useState(localTime(editEndAt));
+
+  useEffect(() => setStartTime(localTime(editStartAt)), [editStartAt, entry.id]);
+  useEffect(() => setEndTime(localTime(editEndAt)), [editEndAt, entry.id]);
 
   return (
     <View style={[styles.panel, { borderColor: accent }]} testID="wfm-office-review-detail-panel">
@@ -162,27 +181,35 @@ export function WfmOfficeTimeReviewDetailPanel({
 
         {canCorrect && entry.canEdit !== false ? (
           <SectionBlock title="Aktionen">
-            <TextInput
-              value={editStartAt}
-              onChangeText={onEditStartAtChange}
-              placeholder="Start (ISO)"
-              placeholderTextColor={text.muted}
-              style={[styles.input, { color: text.primary, borderColor: text.border }]}
-            />
-            <TextInput
-              value={editEndAt}
-              onChangeText={onEditEndAtChange}
-              placeholder="Ende (ISO)"
-              placeholderTextColor={text.muted}
-              style={[styles.input, { color: text.primary, borderColor: text.border }]}
-            />
-            <TextInput
+            <View style={styles.structuredRow}>
+              <View style={styles.structuredField}><CareTimeInput
+                label="Beginn"
+                value={startTime}
+                onChange={(value) => {
+                  setStartTime(value);
+                  if (!value) onEditStartAtChange('');
+                  const iso = isoAtWorkDate(entry.workDate, value);
+                  if (iso) onEditStartAtChange(iso);
+                }}
+                showFormatHint={false}
+              /></View>
+              <View style={styles.structuredField}><CareTimeInput
+                label="Ende"
+                value={endTime}
+                onChange={(value) => {
+                  setEndTime(value);
+                  if (!value) onEditEndAtChange('');
+                  const iso = isoAtWorkDate(entry.workDate, value);
+                  if (iso) onEditEndAtChange(iso);
+                }}
+                showFormatHint={false}
+              /></View>
+            </View>
+            <ListFilterSelect
+              label="Pause"
               value={editPauseMinutes}
-              onChangeText={onEditPauseMinutesChange}
-              placeholder="Pause (Min.)"
-              placeholderTextColor={text.muted}
-              keyboardType="numeric"
-              style={[styles.input, { color: text.primary, borderColor: text.border }]}
+              onChange={onEditPauseMinutesChange}
+              options={[0, 5, 10, 15, 20, 30, 45, 60, 90, 120].map((minutes) => ({ key: String(minutes), label: `${minutes} Minuten` }))}
             />
             <TextInput
               value={correctionReason}
@@ -244,31 +271,36 @@ export function WfmOfficeTimeReviewDetailPanel({
 const styles = StyleSheet.create({
   panel: {
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 16,
     overflow: 'hidden',
-    maxHeight: 720,
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    maxHeight: 760,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    shadowColor: '#173B70',
+    shadowOpacity: 0.1,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
   },
   panelHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: careSpacing.sm,
-    paddingHorizontal: careSpacing.sm,
-    paddingVertical: careSpacing.sm,
+    paddingHorizontal: careSpacing.md,
+    paddingVertical: careSpacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(0,0,0,0.08)',
   },
   panelHeaderText: { flex: 1, gap: 2 },
-  panelTitle: { ...typography.bodyMedium, fontWeight: '700' },
-  panelSubtitle: { ...typography.caption, fontSize: 11 },
+  panelTitle: { ...typography.h3, fontWeight: '800' },
+  panelSubtitle: { ...typography.body, fontSize: 12 },
   panelScroll: { flex: 1 },
-  panelBody: { padding: careSpacing.sm, gap: careSpacing.sm },
+  panelBody: { padding: careSpacing.md, gap: careSpacing.sm },
   section: {
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 8,
-    padding: careSpacing.sm,
-    gap: 4,
+    borderRadius: 12,
+    padding: careSpacing.md,
+    gap: 6,
+    backgroundColor: 'rgba(248,250,252,0.86)',
   },
   sectionTitle: {
     ...typography.caption,
@@ -277,8 +309,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     marginBottom: 2,
   },
-  line: { ...typography.caption, lineHeight: 16 },
+  line: { ...typography.body, fontSize: 13, lineHeight: 19 },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs, marginTop: 4 },
+  structuredRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
+  structuredField: { minWidth: 130, flex: 1 },
   input: {
     borderWidth: 1,
     borderRadius: 6,

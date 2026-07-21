@@ -10,6 +10,11 @@ import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 
 /** Mandantenprüfung für Live-Services. */
 export function guardServiceTenant(tenantId: string): { ok: false; error: string } | null {
+  // Demo-/Test-Repositories intentionally use readable, non-UUID tenant keys.
+  // Applying production tenant guards to the in-memory path breaks otherwise
+  // valid WFM overviews, audits and exports before their demo stores are read.
+  if (getServiceMode() !== 'supabase') return null;
+
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) {
     return { ok: false, error: tenantErr.error };

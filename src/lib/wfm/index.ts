@@ -122,6 +122,7 @@ export { getWfmLiveEmployeeOverview, getWfmMapMarkers } from './wfmLiveStatusSer
 export {
   listWfmTravelRules,
   saveWfmTravelRule,
+  listWfmActiveEmployees,
   listWfmMeetingEmployees,
   listWfmTeamMeetings,
   createWfmTeamMeeting,
