@@ -18,8 +18,8 @@ import { useModalStack } from '@/hooks/useModalStack';
 import { useModuleNavBadges } from '@/hooks/useModuleNavBadges';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { useAuroraAdaptiveText, lightLiquidGlass, lightLiquidGlassWebFx } from '@/design/tokens/auroraGlass';
-import { glassFx, withAlpha } from '@/design/tokens/motion';
+import { lightLiquidGlass, lightLiquidGlassWebFx } from '@/design/tokens/auroraGlass';
+import { withAlpha } from '@/design/tokens/motion';
 import {
   PLATFORM_MODULE_NAV_WIDTH,
   PLATFORM_SHELL_HEADER_TOP_INSET,
@@ -27,8 +27,8 @@ import {
 import { radius, spacing, typography } from '@/theme';
 import { SpaceKpiIcon } from '@/components/icons/space';
 import { AccentTextChip } from '@/components/ui/AccentTextChip';
-import { resolveLightColoredTextColor } from '@/design/tokens/accentContrast';
 import type { MainModuleKey } from '@/types/navigation/platform';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
 type ModuleNavSidebarProps = {
   mainModule: MainModuleKey;
@@ -81,9 +81,9 @@ function NavItem({
         <Text
           style={[
             navStyles.navLabel,
-            { color: '#000000' },
+            { color: active ? accent : spatialCare.textOnNight },
             active && {
-              color: resolveLightColoredTextColor(accent, accent),
+              color: accent,
               fontWeight: '700',
             },
           ]}
@@ -105,12 +105,11 @@ export function ModuleNavSidebar({ mainModule, accentColor }: ModuleNavSidebarPr
   const { adaptiveShell } = usePlatformLayout();
   const { openModal } = useModalStack();
   const { colors, isDark } = useLegacyTheme();
-  const text = useAuroraAdaptiveText();
   const accent = accentColor ?? colors.violet;
   const config = getModuleNavConfig(mainModule);
   const activeKey = resolveActiveModuleNavKey(pathname, config);
   const navBadges = useModuleNavBadges(mainModule);
-  const styles = useMemo(() => createStyles(isDark, colors, text, accent), [accent, isDark, colors, text]);
+  const styles = useMemo(() => createStyles(accent), [accent]);
 
   return (
     <View style={styles.root}>
@@ -166,14 +165,7 @@ const navStyles = StyleSheet.create({
   badgeText: { fontSize: 11, fontWeight: '700' },
 });
 
-function createStyles(
-  isDark: boolean,
-  colors: ReturnType<typeof useLegacyTheme>['colors'],
-  text: ReturnType<typeof useAuroraAdaptiveText>,
-  accent: string,
-) {
-  const glassBorder = isDark ? glassFx.border : lightLiquidGlass.borderAccent;
-
+function createStyles(accent: string) {
   return StyleSheet.create({
     root: {
       width: PLATFORM_MODULE_NAV_WIDTH,
@@ -181,10 +173,10 @@ function createStyles(
       flexShrink: 0,
       alignSelf: 'stretch',
       minHeight: 0,
-      backgroundColor: lightLiquidGlass.sidebar,
+      backgroundColor: spatialCare.navigation,
       ...lightLiquidGlassWebFx(lightLiquidGlass.blur.medium),
       borderRightWidth: 1,
-      borderRightColor: withAlpha(accent, isDark ? 0.42 : 0.28),
+      borderRightColor: withAlpha(accent, 0.42),
       paddingHorizontal: spacing.md,
       paddingTop: PLATFORM_SHELL_HEADER_TOP_INSET,
       paddingBottom: spacing.md,
@@ -192,7 +184,7 @@ function createStyles(
     title: { ...typography.h3, color: accent },
     subtitle: {
       ...typography.caption,
-      color: text.muted,
+      color: spatialCare.textOnNightMuted,
       marginBottom: spacing.md,
     },
     nav: {
@@ -206,7 +198,7 @@ function createStyles(
     group: { gap: spacing.xs },
     groupTitle: {
       ...typography.caption,
-      color: text.muted,
+      color: spatialCare.textOnNightMuted,
       textTransform: 'uppercase',
       letterSpacing: 0.6,
       paddingHorizontal: spacing.sm,

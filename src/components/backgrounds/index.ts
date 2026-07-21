@@ -5,3 +5,5 @@ export { LightGalaxyOrbitNebulaBackground } from './LightGalaxyOrbitNebulaBackgr
 export { AnimatedLightPaperBackground } from './AnimatedLightPaperBackground';
 export { StaticLightPaperBackground } from './StaticLightPaperBackground';
 export { OfficePremiumGlassBackground } from './OfficePremiumGlassBackground';
+export { DarkLiquidGlassBackground } from './DarkLiquidGlassBackground';
+export { SpatialCareBackground } from './SpatialCareBackground';

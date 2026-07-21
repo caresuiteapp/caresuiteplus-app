@@ -22,6 +22,7 @@ import { RightContextPanel } from './rightcontextpanel';
 import { AutoScrollView } from '@/components/layout/AutoScrollView';
 import { DesktopSidebarToggle } from '@/components/layout/DesktopSidebarToggle';
 import { useDesktopWorkspacePreferences } from '@/hooks/useDesktopWorkspacePreferences';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
 type PlatformShellProps = {
   area: AppShellArea;
@@ -150,8 +151,23 @@ const styles = StyleSheet.create({
       ? ({ overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' } as unknown as ViewStyle)
       : null),
   },
-  contentColumn: { flex: 1, minWidth: 0, minHeight: 0, flexDirection: 'column' },
-  body: { flex: 1, flexDirection: 'column', minHeight: 0 },
+  contentColumn: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    flexDirection: 'column',
+    margin: 14,
+    marginLeft: 10,
+    borderRadius: spatialCare.radius.shell,
+    overflow: 'hidden',
+    backgroundColor: spatialCare.stage,
+    borderWidth: 1,
+    borderColor: spatialCare.border,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: spatialCare.shadow, backdropFilter: `blur(${spatialCare.blur.stage}px)` } as unknown as ViewStyle)
+      : null),
+  },
+  body: { flex: 1, flexDirection: 'column', minHeight: 0, backgroundColor: spatialCare.stage },
   main: { flex: 1, minWidth: 0, minHeight: 0, backgroundColor: 'transparent' },
   mainScrollContent: {
     flexGrow: 1,

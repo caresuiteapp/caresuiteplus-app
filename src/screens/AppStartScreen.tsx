@@ -6,6 +6,8 @@ import { CareSuiteLogo } from '@/components/brand';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { OfflineNotice } from '@/components/ui/OfflineNotice';
 import { AppScreen, FooterLinks, PortalCard } from '@/design/components';
+import { SpatialCareScene } from '@/design/components/SpatialCareScene';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { useAuthFlowTypography } from '@/design/tokens/authTypography';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -20,7 +22,7 @@ import { shouldShowPortalChoice } from '@/lib/navigation/sessionRouting';
 const LANDING_HEADLINE =
   'CareSuite+ Software\nfür Office, Assist, Pflege, Stationär,\nBeratung und Akademie';
 
-const LANDING_MAX_WIDTH = 520;
+const LANDING_MAX_WIDTH = 1180;
 
 export function AppStartScreen() {
   const router = useRouter();
@@ -141,9 +143,12 @@ export function AppStartScreen() {
   return (
     <AppScreen maxWidth={LANDING_MAX_WIDTH} contentStyle={styles.screenContent}>
       <OfflineNotice />
-      <View style={styles.landing}>
-        {heroBlock}
-        {cardsBlock}
+      <View style={[styles.landing, isDesktopOrWide && styles.landingDesktop]}>
+        {isDesktopOrWide ? <View style={styles.scene}><SpatialCareScene /></View> : null}
+        <View style={styles.portalPanel}>
+          {heroBlock}
+          {cardsBlock}
+        </View>
       </View>
       <FooterLinks />
     </AppScreen>
@@ -159,6 +164,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: careSpacing.md,
   },
+  landingDesktop: { flexDirection: 'row', alignItems: 'stretch', gap: careSpacing.lg },
+  scene: { flex: 1.05, minWidth: 0 },
+  portalPanel: { flex: 0.95, width: '100%', padding: careSpacing.lg, borderRadius: spatialCare.radius.stage, backgroundColor: spatialCare.stageStrong, borderWidth: 1, borderColor: spatialCare.border, gap: careSpacing.md },
   hero: {
     width: '100%',
     alignItems: 'center',

@@ -23,21 +23,18 @@ import {
   PLATFORM_MODULE_RAIL_WIDTH,
   PLATFORM_SHELL_HEADER_TOP_INSET,
 } from '@/lib/platform/shellLayoutMetrics';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { lightLiquidGlassWebFx } from '@/design/tokens/auroraGlass';
 import { resolveLlganGlassSurface } from '@/design/tokens/lightLiquidGlassAuroraNebula';
-import { glassFx, withAlpha } from '@/design/tokens/motion';
 import type { MainModuleKey } from '@/types/navigation/platform';
 import { SpaceModuleIcon } from '@/components/icons/space';
 import { ModuleRailFontSizeControl } from './ModuleRailFontSizeControl';
 import { NotificationBellWithCenter } from '@/components/notifications/notificationcenter';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
 type MainModuleRailProps = {
   activeModule: MainModuleKey;
 };
 
-const MODULE_RAIL_ICON_SIZE = 56;
-const MODULE_RAIL_HORIZONTAL_PADDING = (PLATFORM_MODULE_RAIL_WIDTH - MODULE_RAIL_ICON_SIZE) / 2;
 const MODULE_RAIL_GAP = PLATFORM_SHELL_HEADER_TOP_INSET;
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
@@ -79,7 +76,6 @@ function RailItem({
 export function MainModuleRail({ activeModule }: MainModuleRailProps) {
   const router = useRouter();
   const moduleAccent = useMainModuleAccent();
-  const { colors, isDark } = useLegacyTheme();
   const { tenantId } = useModuleAccess();
   const { roleKey } = usePermissions();
   const { modules: tenantModules } = useTenantModuleSettings();
@@ -92,8 +88,8 @@ export function MainModuleRail({ activeModule }: MainModuleRailProps) {
     return getVisibleMainModuleRailItems({ tenantId, roleKey, tenantModules });
   }, [tenantId, roleKey, tenantModules]);
   const railStyles = useMemo(
-    () => createRailStyles(isDark, colors, moduleAccent),
-    [isDark, colors, moduleAccent],
+    () => createRailStyles(moduleAccent),
+    [moduleAccent],
   );
 
   return (
@@ -140,13 +136,8 @@ const styles = StyleSheet.create({
   activeBar: { position: 'absolute', left: 0, top: 12, bottom: 12, width: 4, borderRadius: 4 },
 });
 
-function createRailStyles(
-  isDark: boolean,
-  colors: ReturnType<typeof useLegacyTheme>['colors'],
-  moduleAccent: string,
-) {
+function createRailStyles(moduleAccent: string) {
   const railSurface = resolveLlganGlassSurface('default');
-  const glassBorder = isDark ? glassFx.border : colors.borderSoft;
 
   return StyleSheet.create({
     root: {
@@ -154,10 +145,10 @@ function createRailStyles(
       flexGrow: 0,
       flexShrink: 0,
       alignSelf: 'stretch',
-      backgroundColor: railSurface.sidebar,
+      backgroundColor: spatialCare.navigationStrong,
       ...(lightLiquidGlassWebFx(railSurface.blurDesktop, railSurface.saturate)),
       borderRightWidth: 1,
-      borderRightColor: withAlpha(moduleAccent, 0.28),
+      borderRightColor: spatialCare.borderGlow,
       alignItems: 'center',
       paddingVertical: MODULE_RAIL_GAP,
       gap: MODULE_RAIL_GAP,

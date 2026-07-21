@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
 import { CareSuiteLogo } from '@/components/brand';
-import { ScreenShell } from '@/components/layout';
+import { AuthLayout } from '@/design/components/AuthLayout';
 import { ErrorState, PremiumButton, PremiumInput } from '@/components/ui';
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
 import { completePortalLogin } from '@/lib/auth/portalloginflow';
@@ -66,7 +66,7 @@ export function EmployeePortalLoginScreen() {
   };
 
   return (
-    <ScreenShell title="Mitarbeiterportal" subtitle="Persönlicher Mitarbeiterzugang" scroll>
+    <AuthLayout title="Mitarbeiterportal" subtitle="Persönlicher Mitarbeiterzugang" scroll>
       <View style={styles.logoWrap}>
         <CareSuiteLogo size="md" />
       </View>
@@ -82,7 +82,7 @@ export function EmployeePortalLoginScreen() {
       <PremiumInput label="Benutzername" value={username} onChangeText={setUsername} autoCapitalize="none" />
       <PremiumInput label="Passwort / Einmalpasswort" value={password} onChangeText={setPassword} secureTextEntry />
       <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
-    </ScreenShell>
+    </AuthLayout>
   );
 }
 

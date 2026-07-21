@@ -5,6 +5,7 @@ import {
   SYSTEM_LIQUID_COLORS,
   systemLiquidGlass,
 } from '@/design/tokens/systemLiquidGlass';
+import { spatialModuleAccents } from '@/design/tokens/spatialCareSuite';
 
 describe('System Liquid Glass V33', () => {
   it('besitzt genau drei verbindliche Markenfarben', () => {
@@ -17,10 +18,9 @@ describe('System Liquid Glass V33', () => {
     expect(popupShellColors.light).toBe(popupShellColors.dark);
   });
 
-  it('verwendet für jedes Modul denselben Systemakzent', () => {
-    expect(new Set(Object.values(careSuiteColors.dark.module))).toEqual(
-      new Set([SYSTEM_LIQUID_COLORS.electricBlue]),
-    );
+  it('wurde in V34 durch individuelle Modulakzente innerhalb einer Struktur erweitert', () => {
+    expect(careSuiteColors.dark.module).toEqual(spatialModuleAccents);
+    expect(new Set(Object.values(careSuiteColors.dark.module)).size).toBe(8);
   });
 
   it('stellt lesbare helle Glasschichten bereit', () => {
