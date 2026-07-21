@@ -6,6 +6,7 @@ import { CalendarToolbar } from '@/components/calendar/CalendarToolbar';
 import { CalendarEventGrid, startOfMonth } from '@/components/calendar/CalendarEventGrid';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { useEmployeePortalCalendarEvents } from '@/hooks/useEmployeePortalCalendarEvents';
 import {
   addDays,
@@ -140,7 +141,7 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
 const styles = StyleSheet.create({
   wrap: {
     flex: 1, gap: careSpacing.lg, padding: careSpacing.md, borderRadius: 22,
-    borderWidth: 1, borderColor: 'rgba(15, 143, 138, 0.16)',
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth: 1, borderColor: spatialCare.border,
+    backgroundColor: spatialCare.stageStrong,
   },
 });

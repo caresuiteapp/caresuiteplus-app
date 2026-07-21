@@ -16,6 +16,7 @@ import {
 } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -287,13 +288,14 @@ const styles = StyleSheet.create({
   label: { ...typography.caption, marginTop: careSpacing.sm, marginBottom: 4 },
   input: {
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
+    borderColor: spatialCare.border,
     borderRadius: 8,
     padding: careSpacing.sm,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: spatialCare.input,
+    color: spatialCare.textOnNight,
   },
   multiline: { minHeight: 72, textAlignVertical: 'top' },
-  row: { paddingVertical: careSpacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(0,0,0,0.08)' },
+  row: { paddingVertical: careSpacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: spatialCare.borderDark },
   rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: careSpacing.sm },
   rowTitle: { ...typography.body, fontWeight: '600' },
 });

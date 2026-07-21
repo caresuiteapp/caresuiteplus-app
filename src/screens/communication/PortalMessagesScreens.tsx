@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { ConversationListItem } from '@/components/communication';
 import { PortalTabHero } from '@/components/portal/PortalTabHero';
 import { GlassCard } from '@/design/components/GlassCard';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
 import { withAlpha } from '@/design/tokens/motion';
@@ -30,7 +30,7 @@ export function PortalMessagesListShell({
   const { profile } = useAuth();
   const scope = resolvePortalScope(profile?.roleKey ?? null);
   const perms = useCommunicationPermissions();
-  const { items, loading, refreshing, refresh, isEmpty, unreadCount } = usePortalMessages();
+  const { items, loading, refreshing, refresh, unreadCount } = usePortalMessages();
 
   if (!perms.canViewPortal) {
     return (
@@ -70,7 +70,7 @@ export function PortalMessagesListShell({
         renderItem={({ item }) => (
           <GlassCard
             style={{
-              backgroundColor: careLightColors.surface,
+              backgroundColor: spatialCare.stageStrong,
               borderColor: withAlpha(moduleColor('assist'), 0.22),
               padding: careSpacing.sm,
             }}

@@ -9,6 +9,7 @@ import {
 import { GlassCard } from '@/design/components';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { careSpacing } from '@/design/tokens/spacing';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 type PortalChoiceScreenProps = {
@@ -65,6 +66,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     minWidth: 0,
     textAlign: 'center',
+    color: spatialCare.textOnNight,
   },
-  cardDescription: { flexShrink: 1, minWidth: 0, textAlign: 'center' },
+  cardDescription: { flexShrink: 1, minWidth: 0, textAlign: 'center', color: spatialCare.textOnNightMuted },
 });

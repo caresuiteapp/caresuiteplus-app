@@ -4,6 +4,7 @@ import { countDoneTasks } from '@/lib/portal/groupEmployeePortalTasks';
 import { employeePortalExecutionText } from '@/lib/portal/employeePortalExecutionSurface';
 import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
 import { spacing, typography } from '@/theme';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
 type EmployeePortalVisitLiveDashboardProps = {
   tasks: EmployeePortalTaskItem[];
@@ -116,8 +117,8 @@ const styles = StyleSheet.create({
   timerBlock: {
     minHeight: 136, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: spacing.md,
-    borderRadius: 22, borderWidth: 1, borderColor: 'rgba(15, 143, 138, 0.20)',
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 22, borderWidth: 1, borderColor: spatialCare.borderGlow,
+    backgroundColor: spatialCare.stageStrong,
   },
   liveBadge: { ...typography.bodyStrong, color: '#EF4444', marginBottom: spacing.xs },
   timerLabel: { ...typography.caption },

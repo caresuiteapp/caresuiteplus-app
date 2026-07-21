@@ -17,6 +17,7 @@ import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -475,11 +476,13 @@ const styles = StyleSheet.create({
     padding: careSpacing.lg,
   },
   modalCard: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: spatialCare.stageStrong,
+    borderWidth: 1,
+    borderColor: spatialCare.borderGlow,
     borderRadius: 16,
     padding: careSpacing.lg,
     gap: careSpacing.sm,
   },
-  modalTitle: { ...typography.h3, color: '#1a1a2e' },
-  modalBody: { ...typography.body, color: '#333', marginBottom: careSpacing.sm },
+  modalTitle: { ...typography.h3, color: spatialCare.textOnNight },
+  modalBody: { ...typography.body, color: spatialCare.textOnNightMuted, marginBottom: careSpacing.sm },
 });

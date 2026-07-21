@@ -11,9 +11,8 @@ import {
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { darkGlassSurfaceText, lightSurfaceText } from '@/design/tokens/auroraGlass';
-import { careLightColors } from '@/design/tokens/lightTheme';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { withAlpha } from '@/design/tokens/motion';
@@ -41,29 +40,22 @@ export function PortalNavigationDrawer({
   visible,
   onClose,
   tabs,
-  accentColor = '#FF9500',
+  accentColor = '#1478FF',
   portalLabel = 'Portal',
 }: PortalNavigationDrawerProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
-  const { isLight } = useLegacyTheme();
-  const drawerText = isLight ? lightSurfaceText : darkGlassSurfaceText;
+  const drawerText = darkGlassSurfaceText;
   const activeKey = resolveActiveTabKey(pathname, tabs);
 
   const drawerSurface = useMemo(() => {
-    if (isLight) {
-      return {
-        backgroundColor: careLightColors.surface,
-        borderColor: careLightColors.borderStrong,
-      } as ViewStyle;
-    }
     return {
-      backgroundColor: '#0F172A',
-      borderColor: 'rgba(148, 163, 184, 0.35)',
+      backgroundColor: spatialCare.navigationStrong,
+      borderColor: spatialCare.borderGlow,
     } as ViewStyle;
-  }, [isLight]);
+  }, []);
 
   return (
     <Modal
@@ -75,7 +67,6 @@ export function PortalNavigationDrawer({
       testID="portal-navigation-drawer"
     >
       <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Menü schließen" />
         <View
           style={[
             styles.panel,
@@ -134,6 +125,7 @@ export function PortalNavigationDrawer({
             </Pressable>
           </View>
         </View>
+        <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Menü schließen" />
       </View>
     </Modal>
   );
@@ -141,8 +133,8 @@ export function PortalNavigationDrawer({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, flexDirection: 'row' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.62)' },
-  panel: { width: '86%', maxWidth: 340, borderLeftWidth: 1, elevation: 12 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(5, 7, 22, 0.82)' },
+  panel: { width: '86%', maxWidth: 340, borderRightWidth: 1, elevation: 24 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

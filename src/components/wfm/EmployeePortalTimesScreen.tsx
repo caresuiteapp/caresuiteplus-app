@@ -13,6 +13,7 @@ import {
 } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
     padding: careSpacing.sm,
     gap: careSpacing.xs,
     borderRadius: 14,
-    backgroundColor: 'rgba(241, 245, 249, 0.78)',
+    backgroundColor: spatialCare.panelMuted,
   },
   timelineLabel: { ...typography.caption, fontWeight: '700' },
   timelineSteps: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
@@ -214,8 +215,8 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.24)',
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderColor: spatialCare.border,
+    backgroundColor: spatialCare.input,
   },
   timelineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#14B8A6' },
   timeline: { ...typography.caption, lineHeight: 18 },

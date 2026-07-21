@@ -165,8 +165,10 @@ export function HealthOSEmployeePortalTodayView({
   const kpiColumns: 2 | 4 =
     breakpoint === 'desktop' || breakpoint === 'wide' ? 4 : 2;
   const moduleAccent = useMainModuleAccent();
-  const shellHostsAurora = useShellHostsAurora();
-  const cardVariant = shellHostsAurora ? 'light' : 'glass';
+  useShellHostsAurora();
+  // The employee portal always sits on the spatial night stage. Light KPI
+  // cards created the white/black "foreign UI" visible on mobile.
+  const cardVariant = 'glass' as const;
 
   const navigate = (route?: string) => {
     if (route) router.push(route as never);
