@@ -215,8 +215,8 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     position: 'relative',
     zIndex: 20,
-    marginHorizontal: 14,
-    marginTop: 12,
+    marginHorizontal: 18,
+    marginTop: 14,
     borderTopLeftRadius: spatialCare.radius.stage,
     borderTopRightRadius: spatialCare.radius.stage,
     overflow: 'visible',
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   },
   employeeMainContent: {
     width: '100%', maxWidth: 1180, alignSelf: 'center',
-    paddingHorizontal: careSpacing.md, gap: careSpacing.md,
+    paddingHorizontal: careSpacing.md, paddingTop: careSpacing.md, gap: careSpacing.md,
   },
   mainContentMessengerFocus: {
     flex: 1,

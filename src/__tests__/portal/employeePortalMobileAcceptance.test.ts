@@ -28,7 +28,8 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(dashboard).toContain('HealthOSEmployeePortalTodayView');
     expect(dashboard).toContain('useEmployeePortalDashboard');
     expect(todayView).toContain('AdaptiveKpiGrid');
-    expect(todayView).toContain('HealthOSMetricCard');
+    expect(todayView).toContain('SpatialPortalMetric');
+    expect(todayView).toContain('SpatialPortalSection');
     expect(todayView).toContain('buildEmployeePortalTodayModel');
   });
 
