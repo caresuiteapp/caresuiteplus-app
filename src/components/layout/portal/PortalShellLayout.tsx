@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
     minHeight: 0,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   topBarHost: {
     flexShrink: 0,
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderTopLeftRadius: spatialCare.radius.stage,
     borderTopRightRadius: spatialCare.radius.stage,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   content: {
     flex: 1,

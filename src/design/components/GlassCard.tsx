@@ -13,13 +13,13 @@ type GlassCardProps = {
   style?: import('react-native').StyleProp<ViewStyle>;
 };
 
-/** One canonical spatial pearl card for Office, Assist, portals and auth. */
+/** One canonical spatial glass card for Office, Assist, portals and auth. */
 export function GlassCard({ children, onPress, glow = false, accentColor, selected = false, style }: GlassCardProps) {
   const styles = useMemo(() => createStyles(accentColor, glow || selected), [accentColor, glow, selected]);
   const body = (
     <View style={[styles.card, style]}>
       <LinearGradient
-        colors={['rgba(255,255,255,0.94)', 'rgba(235,227,241,0.90)']}
+        colors={['rgba(72,72,108,0.94)', 'rgba(34,35,65,0.96)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject}
@@ -48,7 +48,7 @@ function createStyles(accentColor?: string, glow = false) {
       } as unknown as ViewStyle) : null),
     },
     accentEdge: { position: 'absolute', left: 0, top: 18, bottom: 18, width: 4, borderRadius: 4, backgroundColor: accentColor },
-    highlight: { position: 'absolute', left: 12, right: 12, top: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.95)' },
+    highlight: { position: 'absolute', left: 12, right: 12, top: 0, height: 1, backgroundColor: 'rgba(255,255,255,0.24)' },
     content: { position: 'relative', gap: careSpacing.sm },
     pressed: { opacity: 0.94, transform: [{ scale: 0.988 }] },
   });

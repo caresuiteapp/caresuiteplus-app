@@ -10,7 +10,7 @@ import { spatialModuleAccents } from '@/design/tokens/spatialCareSuite';
 describe('System Liquid Glass V33', () => {
   it('besitzt genau drei verbindliche Markenfarben', () => {
     expect(Object.keys(SYSTEM_LIQUID_COLORS)).toEqual(['navy', 'electricBlue', 'white']);
-    expect(Object.values(SYSTEM_LIQUID_COLORS)).toEqual(['#10233F', '#1478FF', '#FFFFFF']);
+    expect(Object.values(SYSTEM_LIQUID_COLORS)).toEqual(['#17182D', '#69E8FF', '#FFFFFF']);
   });
 
   it('liefert für alte light- und dark-Pfade dieselbe Designwelt', () => {
@@ -23,10 +23,10 @@ describe('System Liquid Glass V33', () => {
     expect(new Set(Object.values(careSuiteColors.dark.module)).size).toBe(8);
   });
 
-  it('stellt lesbare helle Glasschichten bereit', () => {
-    expect(systemLiquidGlass.page).toBe('#F7FAFF');
-    expect(systemLiquidGlass.text.primary).toBe(SYSTEM_LIQUID_COLORS.navy);
-    expect(systemLiquidGlass.borderActive).toContain('20, 120, 255');
+  it('stellt lesbare dunkle räumliche Glasschichten bereit', () => {
+    expect(systemLiquidGlass.page).toBe('#17182D');
+    expect(systemLiquidGlass.text.primary).toBe('#F8F6FF');
+    expect(systemLiquidGlass.borderActive).toContain('105, 232, 255');
     expect(systemLiquidGlass.blur.desktop).toBeGreaterThanOrEqual(24);
   });
 });

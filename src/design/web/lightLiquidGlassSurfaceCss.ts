@@ -6,13 +6,13 @@ export const LLGAN_GLASS_SURFACE_CSS = `
     --cs-navy: #17182D;
     --cs-blue: #69E8FF;
     --cs-white: #FFFFFF;
-    --cs-glass-panel: rgba(247, 242, 248, .82);
-    --cs-glass-card: rgba(255, 255, 255, .82);
-    --cs-glass-control: rgba(255, 255, 255, .76);
-    --cs-glass-border: rgba(23, 24, 45, .12);
-    --cs-glass-border-strong: rgba(23, 24, 45, .20);
+    --cs-glass-panel: rgba(39, 40, 70, .82);
+    --cs-glass-card: rgba(53, 54, 88, .80);
+    --cs-glass-control: rgba(255, 255, 255, .075);
+    --cs-glass-border: rgba(255, 255, 255, .13);
+    --cs-glass-border-strong: rgba(255, 255, 255, .22);
     --cs-glass-blur: 28px;
-    color-scheme: dark light;
+    color-scheme: dark;
   }
 
   html, body, #root, #expo-root, [data-expo-root] {
@@ -24,16 +24,17 @@ export const LLGAN_GLASS_SURFACE_CSS = `
   [data-cs-llgan-glass] {
     position: relative;
     background-color: var(--cs-glass-card) !important;
+    color: #F8F6FF;
     background-image: linear-gradient(
       145deg,
-      rgba(255,255,255,.82) 0%,
-      rgba(105,232,255,.045) 42%,
-      rgba(233,226,240,.78) 100%
+      rgba(255,255,255,.105) 0%,
+      rgba(105,232,255,.035) 42%,
+      rgba(112,104,145,.14) 100%
     ) !important;
     border: 1px solid var(--cs-glass-border);
     box-shadow:
-      0 18px 48px rgba(5,7,22,.20),
-      inset 0 1px 0 rgba(255,255,255,.78);
+      0 18px 48px rgba(5,7,22,.34),
+      inset 0 1px 0 rgba(255,255,255,.16);
     -webkit-backdrop-filter: blur(var(--cs-glass-blur)) saturate(1.28) !important;
     backdrop-filter: blur(var(--cs-glass-blur)) saturate(1.28) !important;
   }
@@ -45,8 +46,8 @@ export const LLGAN_GLASS_SURFACE_CSS = `
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    background: linear-gradient(145deg, rgba(255,255,255,.58), rgba(255,255,255,.12) 38%, transparent 70%);
-    opacity: .72;
+    background: linear-gradient(145deg, rgba(255,255,255,.14), rgba(255,255,255,.035) 38%, transparent 70%);
+    opacity: .9;
     z-index: 0;
   }
 
@@ -79,7 +80,7 @@ export const LLGAN_GLASS_SURFACE_CSS = `
   }
 
   [data-cs-llgan-glass="modal"] {
-    background-color: rgba(255,255,255,.94) !important;
+    background-color: rgba(39,40,70,.96) !important;
     border-color: var(--cs-glass-border-strong);
     -webkit-backdrop-filter: blur(36px) saturate(1.28) !important;
     backdrop-filter: blur(36px) saturate(1.28) !important;
@@ -89,7 +90,7 @@ export const LLGAN_GLASS_SURFACE_CSS = `
   .disable-heavy-effects [data-cs-llgan-glass] {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
-    background-color: rgba(255,255,255,.97) !important;
+    background-color: rgba(39,40,70,.98) !important;
   }
 
   @media (prefers-reduced-motion: reduce) {

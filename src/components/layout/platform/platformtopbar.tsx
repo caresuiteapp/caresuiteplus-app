@@ -30,6 +30,7 @@ import { PlatformProfileMenu } from '@/components/layout/platform/PlatformProfil
 import { SpaceMandantIcon } from '@/components/icons/space';
 import { radius, spacing, typography } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
 type PlatformTopbarProps = {
   mainModule: MainModuleKey;
@@ -47,7 +48,7 @@ function glassSurface(): ViewStyle {
   return {
     borderWidth: 1,
     borderColor: lightLiquidGlass.borderAccent,
-    backgroundColor: lightLiquidGlass.chip,
+    backgroundColor: spatialCare.input,
     ...lightLiquidGlassWebFx(lightLiquidGlass.blur.light),
   };
 }
@@ -168,7 +169,7 @@ function createStyles(colors: ReturnType<typeof useLegacyTheme>['colors']) {
 
   const topbarPrimaryNameText: TextStyle = {
     ...typography.bodyStrong,
-    color: '#000000',
+    color: spatialCare.textOnNight,
     fontWeight: '700',
     lineHeight: 20,
     textAlign: 'center',
@@ -258,7 +259,7 @@ function createStyles(colors: ReturnType<typeof useLegacyTheme>['colors']) {
     },
     tenantLabel: {
       ...typography.caption,
-      color: '#000000',
+      color: spatialCare.textOnNightMuted,
       fontSize: 10,
       lineHeight: 12,
       textTransform: 'uppercase',
@@ -274,7 +275,7 @@ function createStyles(colors: ReturnType<typeof useLegacyTheme>['colors']) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    chevron: { fontSize: 10, color: '#000000' },
+    chevron: { fontSize: 10, color: spatialCare.textOnNightMuted },
     dropdown: {
       position: 'absolute',
       top: '100%',
@@ -284,7 +285,7 @@ function createStyles(colors: ReturnType<typeof useLegacyTheme>['colors']) {
       borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: lightLiquidGlass.borderAccent,
-      backgroundColor: lightLiquidGlass.modal,
+      backgroundColor: spatialCare.stageStrong,
       paddingVertical: spacing.xs,
       zIndex: 30,
       ...(Platform.OS === 'web'
@@ -302,7 +303,7 @@ function createStyles(colors: ReturnType<typeof useLegacyTheme>['colors']) {
     },
     dropdownText: {
       ...typography.body,
-      color: '#000000',
+      color: spatialCare.textOnNight,
       fontWeight: '600',
       textAlign: 'center',
       width: '100%',

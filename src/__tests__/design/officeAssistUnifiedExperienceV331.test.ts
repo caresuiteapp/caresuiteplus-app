@@ -13,7 +13,7 @@ describe('Office + Assist unified experience V33.1', () => {
 
     expect(background).toContain('SpatialCareBackground');
     expect(background).not.toContain('DarkLiquidGlassBackground');
-    expect(css).toContain('color-scheme: dark light');
+    expect(css).toContain('color-scheme: dark');
     expect(css).not.toContain('background: #030A18');
     expect(html).toContain('content="#17182D"');
   });
@@ -24,11 +24,11 @@ describe('Office + Assist unified experience V33.1', () => {
     expect(read('src/components/layout/C14vSubpageShell.tsx')).toContain('<ScreenShell');
   });
 
-  it('hält Shell, Hintergrund und Seitentokens hell und lesbar', () => {
+  it('hält Shell, Hintergrund und Seitentokens räumlich dunkel und lesbar', () => {
     const tokens = read('src/design/tokens/systemLiquidGlass.ts');
-    expect(tokens).toContain("page: '#F7FAFF'");
-    expect(tokens).toContain("primary: '#10233F'");
-    expect(tokens).toContain("onAccent: '#FFFFFF'");
+    expect(tokens).toContain("page: '#17182D'");
+    expect(tokens).toContain("primary: '#F8F6FF'");
+    expect(tokens).toContain("onAccent: '#17182D'");
   });
 
   it('filtert unqualifizierte Vertretungsvorschläge aus', () => {

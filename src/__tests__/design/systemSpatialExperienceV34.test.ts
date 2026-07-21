@@ -3,9 +3,9 @@ import { spatialCare, spatialCareColors, spatialModuleAccents } from '@/design/t
 import { careSuiteColors } from '@/design/tokens/colors';
 
 describe('System Spatial Experience V34', () => {
-  it('übersetzt die Referenz in Nachtbühne und helle Arbeitsflächen', () => {
+  it('übersetzt die Referenz in Nachtbühne und dunkle räumliche Arbeitsflächen', () => {
     expect(spatialCare.page).toBe(spatialCareColors.night);
-    expect(spatialCare.stage).toContain('247, 242, 248');
+    expect(spatialCare.stage).toContain('31, 32, 58');
     expect(spatialCare.radius.shell).toBeGreaterThan(spatialCare.radius.card);
   });
 
