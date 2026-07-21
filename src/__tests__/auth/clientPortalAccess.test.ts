@@ -91,8 +91,9 @@ describe('client portal username + code access', () => {
       clientId: 'client-001',
       firstName: 'Heinz-Peter',
       lastName: 'Reinhardt',
+      actorRoleKey: 'business_admin',
     });
-    expect(setup.ok).toBe(true);
+    expect(setup.ok, setup.ok ? undefined : setup.error).toBe(true);
     if (!setup.ok) return;
 
     expect(setup.data.credentials.username).toBe('hreinhardt');
@@ -108,6 +109,7 @@ describe('client portal username + code access', () => {
       tenantId: DEMO_TENANT_ID,
       clientId: 'client-001',
       accessId: setup.data.access.id,
+      actorRoleKey: 'business_admin',
     });
     expect(rotated.ok).toBe(true);
     if (!rotated.ok) return;

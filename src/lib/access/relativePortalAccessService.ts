@@ -1,4 +1,4 @@
-import type { ServiceResult } from '@/types';
+import type { RoleKey, ServiceResult } from '@/types';
 import type { AccessCredentialsReveal, RelativePortalCode } from '@/lib/auth/auth.types';
 import { hashPortalCode, pickUniquePortalCode } from '@/lib/auth/portalCodeGenerator';
 import { getServiceMode } from '@/lib/services/mode';
@@ -11,6 +11,8 @@ import {
   setPortalCodeHash,
 } from '@/lib/auth/accessStore';
 import { insertRelativePortalCode } from './accessManagementLiveRepository';
+import { enforcePermission } from '@/lib/permissions';
+import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 
 function createPortalCodeId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -22,8 +24,16 @@ export async function setupRelativePortalAccess(input: {
   relativeContactId: string;
   createdBy?: string | null;
   expiresAt?: string | null;
+  actorRoleKey: RoleKey | null | undefined;
 }): Promise<ServiceResult<{ code: RelativePortalCode; credentials: AccessCredentialsReveal }>> {
   return runService(async () => {
+    const permissionDenied = enforcePermission<{ code: RelativePortalCode; credentials: AccessCredentialsReveal }>(
+      input.actorRoleKey,
+      'office.access' as never,
+    );
+    if (permissionDenied) return permissionDenied;
+    const tenantBlock = guardServiceTenant(input.tenantId);
+    if (tenantBlock) return tenantBlock;
     const plainCode = pickUniquePortalCode([]);
     const codeHash = await hashPortalCode(plainCode);
 
@@ -90,7 +100,7 @@ export async function setupRelativePortalAccess(input: {
 export async function listRelativeContactIdsForClient(
   tenantId: string,
   clientId: string,
-): Promise<ServiceResult<Array<{ id: string; name: string }>>> {
+): Promise<ServiceResult<{ id: string; name: string }[]>> {
   if (getServiceMode() !== 'supabase') {
     return { ok: true, data: [] };
   }

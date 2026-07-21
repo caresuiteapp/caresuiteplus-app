@@ -158,6 +158,7 @@ export function ClientPortalAccessPanel({
       clientId: client.id,
       firstName: client.firstName,
       lastName: client.lastName,
+      actorRoleKey: profile?.roleKey,
     });
     setLoading(false);
 
@@ -180,6 +181,7 @@ export function ClientPortalAccessPanel({
       tenantId,
       clientId: client.id,
       accessId: access.id,
+      actorRoleKey: profile?.roleKey,
     });
     setLoading(false);
 

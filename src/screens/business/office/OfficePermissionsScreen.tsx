@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import {
@@ -93,11 +93,6 @@ export function OfficePermissionsScreen() {
           )}
         </SectionPanel>
         <PremiumButton title="Rollen & Rechte" onPress={() => router.push('/business/office/access/roles' as never)} />
-        <PremiumButton
-          title="Modulrechte pro Benutzer"
-          variant="secondary"
-          onPress={() => router.push('/business/office/access/module-permissions' as never)}
-        />
         <PremiumButton
           title="Modulzuordnungen"
           variant="secondary"

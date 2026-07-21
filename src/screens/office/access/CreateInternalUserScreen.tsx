@@ -9,6 +9,7 @@ import { createInternalUser } from '@/lib/auth/accessManagementService';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { getInternalRoleLabel } from '@/lib/auth/internalRoleLabels';
+import { useAuth } from '@/lib/auth/context';
 import { spacing, typography } from '@/theme';
 
 const ROLE_OPTIONS: InternalRoleKey[] = [
@@ -26,6 +27,7 @@ export function CreateInternalUserScreen() {
   const router = useRouter();
   const tenantId = useServiceTenantId();
   const companyName = useTenantDisplayName();
+  const { profile } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -48,6 +50,8 @@ export function CreateInternalUserScreen() {
       lastName,
       email,
       roleKey,
+      actorRoleKey: profile?.roleKey,
+      createdBy: profile?.id ?? null,
     });
     setLoading(false);
 

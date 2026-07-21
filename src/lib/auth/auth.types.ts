@@ -70,6 +70,8 @@ export type EmployeePortalAccount = {
   id: EntityId;
   tenantId: string;
   employeeId: string;
+  employeeName?: string | null;
+  employeeNumber?: string | null;
   username: string;
   status: UserAccessStatus;
   mustChangePassword: boolean;

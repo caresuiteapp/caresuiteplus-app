@@ -1,4 +1,4 @@
-import type { ServiceResult } from '@/types';
+import type { RoleKey, ServiceResult } from '@/types';
 import type {
   ClientPortalAccess,
   ClientPortalCredentialsReveal,
@@ -14,12 +14,13 @@ import {
   pickUniqueClientPortalUsername,
 } from '@/lib/auth/clientPortalUsernameGenerator';
 import {
-  getPortalCodeHash,
   listClientPortalUsernames,
   saveClientPortalCode,
   setPortalCodeHash,
 } from '@/lib/auth/accessStore';
 import { assertDemoTenant, getClientExtendedRepository, isDemoClientBackend } from './clientBackend';
+import { enforcePermission } from '@/lib/permissions';
+import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 
 export async function fetchClientPortalAccess(
   tenantId: string,
@@ -50,8 +51,16 @@ export async function setupClientPortalAccess(input: {
   clientId: string;
   firstName: string;
   lastName: string;
+  actorRoleKey: RoleKey | null | undefined;
 }): Promise<ServiceResult<{ access: ClientPortalAccess; credentials: ClientPortalCredentialsReveal }>> {
   return runService(async () => {
+    const permissionDenied = enforcePermission<{ access: ClientPortalAccess; credentials: ClientPortalCredentialsReveal }>(
+      input.actorRoleKey,
+      'office.access' as never,
+    );
+    if (permissionDenied) return permissionDenied;
+    const tenantBlock = guardServiceTenant(input.tenantId);
+    if (tenantBlock) return tenantBlock;
     const username = pickUniqueClientPortalUsername(
       input.firstName,
       input.lastName,
@@ -141,8 +150,16 @@ export async function regenerateClientPortalAccessCode(input: {
   tenantId: string;
   clientId: string;
   accessId: string;
+  actorRoleKey: RoleKey | null | undefined;
 }): Promise<ServiceResult<{ access: ClientPortalAccess; credentials: ClientPortalCredentialsReveal }>> {
   return runService(async () => {
+    const permissionDenied = enforcePermission<{ access: ClientPortalAccess; credentials: ClientPortalCredentialsReveal }>(
+      input.actorRoleKey,
+      'office.access' as never,
+    );
+    if (permissionDenied) return permissionDenied;
+    const tenantBlock = guardServiceTenant(input.tenantId);
+    if (tenantBlock) return tenantBlock;
     const accessCode = pickUniquePortalCode([]);
     const codeHash = await hashPortalCode(accessCode);
     const now = new Date().toISOString();
