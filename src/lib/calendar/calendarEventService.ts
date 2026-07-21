@@ -24,6 +24,7 @@ import { resolveCalendarPermission } from '@/lib/calendar/calendarPermissions';
 import { isStationaerCalendarSourceType } from '@/lib/calendar/calendarSourceRegistry';
 import { mergeExpandedAssistVisitCalendarEvents, visitListItemToCalendarEvent } from '@/lib/calendar/assistVisitCalendarRecurrence';
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
+import { fetchEmployeeNamesById } from '@/lib/office/employeeGroupChatService';
 import {
   fetchCalendarEvents as fetchLegacyCalendarEvents,
   fetchAssistCalendarEvents as fetchLegacyAssistCalendarEvents,
@@ -192,6 +193,29 @@ async function enrichAssistCalendarEvents(
   });
 }
 
+async function enrichRelatedEmployeeNames(
+  tenantId: string,
+  events: CalendarEvent[],
+): Promise<CalendarEvent[]> {
+  const employeeIds = Array.from(new Set(
+    events
+      .filter((event) => !event.employeeName?.trim())
+      .map((event) => event.record?.relatedEmployeeId)
+      .filter((id): id is string => Boolean(id)),
+  ));
+  if (employeeIds.length === 0) return events;
+
+  const employeeNames = await fetchEmployeeNamesById(tenantId, employeeIds);
+  if (employeeNames.size === 0) return events;
+
+  return events.map((event) => {
+    const employeeId = event.record?.relatedEmployeeId;
+    if (event.employeeName?.trim() || !employeeId) return event;
+    const employeeName = employeeNames.get(employeeId);
+    return employeeName ? { ...event, employeeName } : event;
+  });
+}
+
 export async function getCalendarEvents(
   params: GetCalendarEventsParams,
 ): Promise<ServiceResult<CalendarEvent[]>> {
@@ -210,17 +234,18 @@ export async function getCalendarEvents(
 
   const central = await fetchFromCentralStore(params);
   if (central.ok && central.data.length > 0) {
+    let events = central.data;
     if (shouldExpandAssistRecurrences) {
-      const enriched = await enrichAssistCalendarEvents(
+      events = await enrichAssistCalendarEvents(
         params.tenantId,
-        central.data,
+        events,
         params.actorRoleKey,
         params.rangeStart,
         params.rangeEnd,
       );
-      return { ok: true, data: enriched };
     }
-    return central;
+    events = await enrichRelatedEmployeeNames(params.tenantId, events);
+    return { ok: true, data: events };
   }
 
   const isStationaerModule =
@@ -234,17 +259,18 @@ export async function getCalendarEvents(
     await syncStationaerCalendarBootstrap(params.tenantId);
     const retry = await fetchFromCentralStore(params);
     if (retry.ok && retry.data.length > 0) {
+      let events = retry.data;
       if (shouldExpandAssistRecurrences) {
-        const enriched = await enrichAssistCalendarEvents(
+        events = await enrichAssistCalendarEvents(
           params.tenantId,
-          retry.data,
+          events,
           params.actorRoleKey,
           params.rangeStart,
           params.rangeEnd,
         );
-        return { ok: true, data: enriched };
       }
-      return retry;
+      events = await enrichRelatedEmployeeNames(params.tenantId, events);
+      return { ok: true, data: events };
     }
   }
 
@@ -263,7 +289,9 @@ export async function getCalendarEvents(
     return legacy;
   }
   if (isOfficeMain) {
-    return fetchLegacyFallbackOnce(params, fetchLegacyCalendarEvents);
+    const legacy = await fetchLegacyFallbackOnce(params, fetchLegacyCalendarEvents);
+    if (!legacy.ok) return legacy;
+    return { ok: true, data: await enrichRelatedEmployeeNames(params.tenantId, legacy.data) };
   }
 
   return central.ok ? central : { ok: true, data: [] };
@@ -300,7 +328,7 @@ export async function getModuleCalendarEvents(
 
 function portalEventsToAppointmentItems(
   events: CalendarEvent[],
-): Array<{
+): {
   id: string;
   title: string;
   startsAt: string;
@@ -309,7 +337,7 @@ function portalEventsToAppointmentItems(
   location: string | null;
   clientId: string | null;
   employeeId: string | null;
-}> {
+}[] {
   return events.map((event) => ({
     id: event.sourceId ?? event.id,
     title: event.title,
