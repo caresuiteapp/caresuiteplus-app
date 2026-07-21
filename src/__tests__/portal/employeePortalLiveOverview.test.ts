@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildEmployeePortalOverviewFromAppointments,
+  dedupeEmployeePortalAppointments,
   isActiveEmployeeAssignment,
   isDocumentationPendingEmployeeAssignment,
   mapPortalAppointmentToListItem,
@@ -21,6 +22,40 @@ const BASE: PortalAppointmentItem = {
 };
 
 describe('employeePortalLiveOverviewService', () => {
+  it('shows one card and one KPI entry for duplicate technical series rows', () => {
+    const start = new Date();
+    start.setHours(9, 50, 0, 0);
+    const end = new Date(start);
+    end.setHours(11, 50, 0, 0);
+    const duplicateRows = Array.from({ length: 7 }, (_, index) => ({
+      ...BASE,
+      id: `series-copy-${index}`,
+      startsAt: start.toISOString(),
+      endsAt: end.toISOString(),
+      title: 'Haushaltswirtschaftliche Unterstützung',
+    }));
+
+    expect(dedupeEmployeePortalAppointments(duplicateRows)).toHaveLength(1);
+    expect(buildEmployeePortalOverviewFromAppointments(duplicateRows).todayAssignments).toHaveLength(1);
+  });
+
+  it('keeps a separately planned replacement when its schedule differs', () => {
+    const first = {
+      ...BASE,
+      id: 'series-old',
+      startsAt: '2026-07-21T07:50:00.000Z',
+      endsAt: '2026-07-21T09:50:00.000Z',
+    };
+    const replacement = {
+      ...first,
+      id: 'replacement-new',
+      startsAt: '2026-07-21T07:55:00.000Z',
+      endsAt: '2026-07-21T09:55:00.000Z',
+    };
+
+    expect(dedupeEmployeePortalAppointments([first, replacement])).toHaveLength(2);
+  });
+
   it('maps live portal appointments into employee list items', () => {
     const item = mapPortalAppointmentToListItem(BASE);
     expect(item.assignmentId).toBe('assign-live-1');

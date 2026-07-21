@@ -103,10 +103,53 @@ export function filterEmployeePortalAppointments(
   });
 }
 
+function normalizedAppointmentText(value: string | null | undefined): string {
+  return String(value ?? '').trim().toLocaleLowerCase('de-DE');
+}
+
+/**
+ * Collapse duplicate technical rows for the same real-world employee appointment.
+ *
+ * Historic series repairs can leave more than one assist_visits row behind. The
+ * employee portal must never turn those rows into duplicate cards, hours or KPI
+ * counts. A separately planned appointment remains visible when its time differs.
+ */
+export function dedupeEmployeePortalAppointments(
+  items: PortalAppointmentItem[],
+): PortalAppointmentItem[] {
+  const byOccurrence = new Map<string, PortalAppointmentItem>();
+
+  for (const item of items) {
+    const key = [
+      item.employeeId ?? '',
+      item.clientId,
+      item.startsAt,
+      item.endsAt,
+      normalizedAppointmentText(item.title),
+    ].join('|');
+    const current = byOccurrence.get(key);
+    if (!current) {
+      byOccurrence.set(key, item);
+      continue;
+    }
+
+    // Prefer the row with the more useful canonical state while preserving one
+    // stable occurrence. This avoids a stale "geplant" duplicate shadowing the
+    // actual current visit.
+    const currentStatus = current.assignmentStatus ?? workflowStatusToAssignment(current.status);
+    const nextStatus = item.assignmentStatus ?? workflowStatusToAssignment(item.status);
+    const currentScore = ACTIVE_ASSIGNMENT_STATUSES.has(currentStatus) ? 2 : current.assignmentStatus ? 1 : 0;
+    const nextScore = ACTIVE_ASSIGNMENT_STATUSES.has(nextStatus) ? 2 : item.assignmentStatus ? 1 : 0;
+    if (nextScore > currentScore) byOccurrence.set(key, item);
+  }
+
+  return [...byOccurrence.values()];
+}
+
 export function buildEmployeePortalOverviewFromAppointments(
   items: PortalAppointmentItem[],
 ): EmployeePortalOverview {
-  const assignments = filterEmployeePortalAppointments(items)
+  const assignments = filterEmployeePortalAppointments(dedupeEmployeePortalAppointments(items))
     .map(mapPortalAppointmentToListItem)
     .sort((a, b) => a.plannedStartAt.localeCompare(b.plannedStartAt));
   const now = new Date();

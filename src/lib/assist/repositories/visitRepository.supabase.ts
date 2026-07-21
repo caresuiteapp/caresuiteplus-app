@@ -616,9 +616,9 @@ export const visitSupabaseRepository = {
       if (options?.employeeId) query = query.eq('employee_id', options.employeeId);
       if (options?.serviceKey) query = query.eq('service_key', options.serviceKey);
       // Client portal lists all non-draft own visits; portal_release_enabled gates live-tracking/detail only.
-      if (options?.portalAudience === 'employee') {
-        query = query.eq('employee_portal_visible', true);
-      }
+      // Every assigned, non-draft visit belongs to the employee work plan. Do
+      // not hide valid new visits because an older row missed the legacy
+      // employee_portal_visible flag.
       return query;
     };
 
@@ -672,9 +672,6 @@ export const visitSupabaseRepository = {
         if (options?.clientId) flatQuery = flatQuery.eq('client_id', options.clientId);
         if (options?.employeeId) flatQuery = flatQuery.eq('employee_id', options.employeeId);
         if (options?.serviceKey) flatQuery = flatQuery.eq('service_key', options.serviceKey);
-        if (options?.portalAudience === 'employee') {
-          flatQuery = flatQuery.eq('employee_portal_visible', true);
-        }
         const flatResult = await flatQuery.order('planned_start_at', { ascending: true });
         if (flatResult.error) {
           return { ok: false, error: toGermanSupabaseError(flatResult.error) };
@@ -773,6 +770,9 @@ export const visitSupabaseRepository = {
       portal_status: input.portalReleaseEnabled ? 'scheduled' : 'hidden',
       canonical_status: assignmentStatusToRemote('geplant'),
       portal_release_enabled: input.portalReleaseEnabled ?? false,
+      // Assigned, non-draft visits are part of the employee's work plan. Client
+      // portal release is an independent decision and must not hide them.
+      employee_portal_visible: Boolean(input.employeeId) && !input.saveAsDraft,
       budget_amount_cents: input.budgetAmountCents ?? null,
       subject_key: input.subjectKey ?? null,
       assignment_type_key: input.assignmentTypeKey ?? null,
@@ -1301,6 +1301,8 @@ export const visitSupabaseRepository = {
       || deletionRow.arrived_at
       || deletionRow.finished_at,
     );
+    const recurrence = parseVisitRecurrenceJson(deletionRow.recurrence_json ?? { pattern: 'none' });
+    const isSeriesVisit = recurrence.pattern !== 'none' || Boolean(recurrence.parentSeriesId);
     const isUnstarted = ['pending', 'cancelled'].includes(deletionRow.execution_status);
     const hasProtectedRecords =
       deletionRow.documentation_status === 'complete'
@@ -1310,14 +1312,20 @@ export const visitSupabaseRepository = {
       || deletionRow.billing_status === 'invoiced'
       || deletionRow.billing_status === 'paid';
 
-    if (!isUnstarted || hasExecutionEvidence || hasProtectedRecords) {
+    // Older series rows can carry an inherited execution dimension without any
+    // actual lifecycle timestamp, proof, documentation or billing record. That
+    // technical status alone must not make an otherwise untouched occurrence
+    // undeletable.
+    const isSafelyDeletableSeriesOccurrence =
+      isSeriesVisit && !hasExecutionEvidence && !hasProtectedRecords;
+
+    if ((!isUnstarted && !isSafelyDeletableSeriesOccurrence) || hasExecutionEvidence || hasProtectedRecords) {
       return {
         ok: false,
         error: 'Begonnene, nachgewiesene oder abgerechnete Einsätze dürfen nicht gelöscht werden.',
       };
     }
 
-    const recurrence = parseVisitRecurrenceJson(deletionRow.recurrence_json ?? { pattern: 'none' });
     if (recurrence.parentSeriesId && recurrence.sourceOccurrenceDate) {
       const parent = await this.getById(tenantId, recurrence.parentSeriesId);
       if (!parent.ok) return parent;
