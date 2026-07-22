@@ -113,7 +113,7 @@ export async function loadEmployeePayrollPersonnelBundle(
       .maybeSingle(),
     fromUnknownTable(supabase, 'employee_payroll_settings')
       .select(
-        'compensation_type, compensation_amount, payout_interval, payout_method, iban, bank_name, account_holder, alternate_account_holder',
+        'compensation_type, compensation_amount, payout_interval, payout_method, iban, bank_name, account_holder, alternate_account_holder, max_payout_hours_month, overflow_to_time_account, mileage_rate_cents, payroll_notes',
       )
       .eq('tenant_id', tenantId)
       .eq('employee_id', employeeId)

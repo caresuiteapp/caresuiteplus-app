@@ -33,6 +33,7 @@ export const HEALTHOS_OFFICE_NAV: HealthOSNavConfig = {
     {
       title: 'Dokumente & Finanzen',
       items: [
+        { key: 'payroll', label: 'Gehaltsstatistik', icon: '💶', href: '/business/office/payroll' },
         {
           key: 'documents-signatures',
           label: 'Dokumente & Unterschriften',
@@ -201,6 +202,12 @@ export const HEALTHOS_EMPLOYEE_PORTAL_NAV: HealthOSNavConfig = {
           label: 'Meine Zeiten',
           icon: '⏱️',
           href: '/portal/employee/times',
+        },
+        {
+          key: 'payroll',
+          label: 'Gehalt & Auslagen',
+          icon: '💶',
+          href: '/portal/employee/payroll',
         },
         {
           key: 'absence',

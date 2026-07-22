@@ -50,6 +50,10 @@ export type EmployeePayrollSettings = {
   bankName: string | null;
   accountHolder: string | null;
   alternateAccountHolder: string | null;
+  maxPayoutHoursMonth: number | null;
+  overflowToTimeAccount: boolean;
+  mileageRateCents: number;
+  payrollNotes: string | null;
 };
 
 export type EmployeeTaxSettings = {
