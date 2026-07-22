@@ -14,6 +14,8 @@ export const spatialCareColors = {
   white: '#FFFFFF',
   ink: '#F8F6FF',
   inkMuted: '#B8B4CA',
+  inkDark: '#17182D',
+  inkDarkMuted: '#626178',
   cyanLight: '#69E8FF',
   cyanDeep: '#19A7C8',
   warmLight: '#FFE5D6',
@@ -45,8 +47,8 @@ export const spatialCare = {
   borderGlow: 'rgba(105, 232, 255, 0.46)',
   textOnNight: '#FFFFFF',
   textOnNightMuted: 'rgba(255,255,255,0.68)',
-  textOnPearl: spatialCareColors.ink,
-  textOnPearlMuted: spatialCareColors.inkMuted,
+  textOnPearl: spatialCareColors.inkDark,
+  textOnPearlMuted: spatialCareColors.inkDarkMuted,
   shadow: '0 28px 80px rgba(5, 7, 22, 0.34)',
   shadowSoft: '0 14px 40px rgba(16, 17, 37, 0.16)',
   glow: '0 0 34px rgba(105, 232, 255, 0.22)',
@@ -57,7 +59,7 @@ export const spatialCare = {
 export const spatialCareGradients = {
   background: ['#111326', '#24243D', '#555166'] as const,
   nightGlass: ['rgba(44,47,78,0.94)', 'rgba(19,21,42,0.97)'] as const,
-  pearl: ['rgba(66,65,101,0.96)', 'rgba(35,36,65,0.98)'] as const,
+  pearl: ['rgba(252,250,253,0.98)', 'rgba(222,217,234,0.98)'] as const,
   cyanEdge: ['rgba(105,232,255,0.92)', 'rgba(105,232,255,0.08)'] as const,
 } as const;
 
