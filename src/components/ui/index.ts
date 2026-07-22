@@ -43,6 +43,11 @@ export { PremiumDataTable, type DataTableColumn } from './PremiumDataTable';
 export { GlassScrollView, glassScrollSurfaceColor } from './GlassScrollView';
 export { GlassSlidePanel } from './GlassSlidePanel';
 export { InfoBanner } from './InfoBanner';
+export {
+  WorkflowFeedbackOverlay,
+  type WorkflowFeedbackKind,
+} from './WorkflowFeedbackOverlay';
+export { WorkflowToast } from './WorkflowToast';
 export { OfflineNotice } from './OfflineNotice';
 export { CachedDataBanner } from './CachedDataBanner';
 export {
