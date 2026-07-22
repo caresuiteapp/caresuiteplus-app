@@ -5,8 +5,10 @@ import type { VisitTaskStatus } from './visitTypes';
 
 export type AdministrativeTimes = {
   onTheWayAt?: string | null; arrivedAt?: string | null; startedAt: string; endedAt: string;
-  pauseMinutes: number; travelMinutes?: number; reason: string; confirmOverlap?: boolean;
+  pauseMinutes: number; travelMinutes?: number; confirmOverlap?: boolean;
 };
+
+const AUTOMATIC_ADMIN_AUDIT_REASON = 'Administrative Nachbearbeitung';
 
 const ADMINISTRATIVE_ERROR_MESSAGES = [
   'Begründung ist erforderlich',
@@ -34,7 +36,6 @@ function toAdministrativeError(error: unknown): string {
 }
 
 export function validateAdministrativeTimes(input: AdministrativeTimes): string | null {
-  if (!input.reason.trim()) return 'Begründung ist erforderlich.';
   const start = Date.parse(input.startedAt); const end = Date.parse(input.endedAt);
   if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) return 'Einsatzbeginn muss vor Einsatzende liegen.';
   if (input.pauseMinutes < 0 || input.pauseMinutes * 60_000 > end - start) return 'Die Pausendauer ist ungültig.';
@@ -53,7 +54,7 @@ export async function correctAdministrativeVisitTimes(visitId: string, input: Ad
   const { data, error } = await supabase.rpc('admin_correct_assist_visit_times' as never, {
     p_visit_id: visitId, p_on_the_way_at: input.onTheWayAt ?? null, p_arrived_at: input.arrivedAt ?? null,
     p_started_at: input.startedAt, p_ended_at: input.endedAt, p_pause_minutes: input.pauseMinutes,
-    p_travel_minutes: input.travelMinutes ?? 0, p_reason: input.reason.trim(), p_confirm_overlap: Boolean(input.confirmOverlap),
+    p_travel_minutes: input.travelMinutes ?? 0, p_reason: AUTOMATIC_ADMIN_AUDIT_REASON, p_confirm_overlap: Boolean(input.confirmOverlap),
   } as never);
   if (error) return { ok: false, error: toAdministrativeError(error) };
   const result = data as { ok: boolean; overlap?: boolean; net_minutes?: number };
@@ -61,10 +62,9 @@ export async function correctAdministrativeVisitTimes(visitId: string, input: Ad
   return { ok: true, data: { overlap: false, netMinutes: result.net_minutes } };
 }
 
-export async function requestClientVisitSignature(_tenantId: string, visit: { id: string; clientId: string; serviceName: string | null; scheduledStart: string; scheduledEnd: string; actualStartAt: string | null; actualEndAt: string | null }, reason: string): Promise<ServiceResult<{ id: string }>> {
+export async function requestClientVisitSignature(_tenantId: string, visit: { id: string; clientId: string; serviceName: string | null; scheduledStart: string; scheduledEnd: string; actualStartAt: string | null; actualEndAt: string | null }): Promise<ServiceResult<{ id: string }>> {
   const supabase = getSupabaseClient(); if (!supabase) return { ok: false, error: 'Datenbank ist nicht verfügbar.' };
-  if (!reason.trim()) return { ok: false, error: 'Begründung ist erforderlich.' };
-  const { data, error } = await supabase.rpc('admin_request_assist_visit_signature' as never, { p_visit_id: visit.id, p_reason: reason.trim() } as never);
+  const { data, error } = await supabase.rpc('admin_request_assist_visit_signature' as never, { p_visit_id: visit.id, p_reason: AUTOMATIC_ADMIN_AUDIT_REASON } as never);
   if (error || !data) return { ok: false, error: toAdministrativeError(error) };
   return { ok: true, data: { id: String(data) } };
 }
@@ -76,22 +76,19 @@ async function runAdministrativeRpc(name: string, params: Record<string, unknown
   return error ? { ok: false, error: toAdministrativeError(error) } : { ok: true, data: undefined };
 }
 
-export function appendAdministrativeDocumentation(visitId: string, content: string, reason: string) {
-  if (!content.trim() || !reason.trim()) return Promise.resolve<ServiceResult<void>>({ ok: false, error: 'Dokumentation und Begründung sind erforderlich.' });
-  return runAdministrativeRpc('admin_append_assist_visit_documentation', { p_visit_id: visitId, p_content: content.trim(), p_reason: reason.trim() });
+export function appendAdministrativeDocumentation(visitId: string, content: string) {
+  if (!content.trim()) return Promise.resolve<ServiceResult<void>>({ ok: false, error: 'Dokumentation ist erforderlich.' });
+  return runAdministrativeRpc('admin_append_assist_visit_documentation', { p_visit_id: visitId, p_content: content.trim(), p_reason: AUTOMATIC_ADMIN_AUDIT_REASON });
 }
 
-export function updateAdministrativeTask(visitId: string, taskId: string, status: string, reason: string) {
-  if (!reason.trim()) return Promise.resolve<ServiceResult<void>>({ ok: false, error: 'Begründung ist erforderlich.' });
-  return runAdministrativeRpc('admin_update_assist_visit_task', { p_visit_id: visitId, p_task_id: taskId, p_status: status, p_reason: reason.trim() });
+export function updateAdministrativeTask(visitId: string, taskId: string, status: string) {
+  return runAdministrativeRpc('admin_update_assist_visit_task', { p_visit_id: visitId, p_task_id: taskId, p_status: status, p_reason: AUTOMATIC_ADMIN_AUDIT_REASON });
 }
 
 export async function bulkUpdateAdministrativeTasks(
   visitId: string,
   updates: { taskId: string; status: VisitTaskStatus }[],
-  reason: string,
 ): Promise<ServiceResult<{ updated: number }>> {
-  if (!reason.trim()) return { ok: false, error: 'Begründung ist erforderlich.' };
   if (updates.length === 0) return { ok: false, error: 'Keine Aufgabenänderungen übergeben.' };
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Datenbank ist nicht verfügbar.' };
@@ -101,14 +98,13 @@ export async function bulkUpdateAdministrativeTasks(
       task_id: update.taskId,
       status: update.status,
     })),
-    p_reason: reason.trim(),
+    p_reason: AUTOMATIC_ADMIN_AUDIT_REASON,
   } as never);
   if (error) return { ok: false, error: toAdministrativeError(error) };
   const result = data as { updated?: number } | null;
   return { ok: true, data: { updated: result?.updated ?? updates.length } };
 }
 
-export function completeAdministrativeFollowUp(visitId: string, reason: string) {
-  if (!reason.trim()) return Promise.resolve<ServiceResult<void>>({ ok: false, error: 'Begründung ist erforderlich.' });
-  return runAdministrativeRpc('admin_complete_assist_visit_follow_up', { p_visit_id: visitId, p_reason: reason.trim() });
+export function completeAdministrativeFollowUp(visitId: string) {
+  return runAdministrativeRpc('admin_complete_assist_visit_follow_up', { p_visit_id: visitId, p_reason: AUTOMATIC_ADMIN_AUDIT_REASON });
 }

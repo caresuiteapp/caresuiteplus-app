@@ -52,7 +52,6 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
   const [arrivedTime, setArrivedTime] = useState(localTime(visit.arrivedAt));
   const [pause, setPause] = useState('0');
   const [travel, setTravel] = useState('0');
-  const [reason, setReason] = useState('');
   const [documentation, setDocumentation] = useState('');
   const [taskDrafts, setTaskDrafts] = useState<Record<string, VisitTaskStatus>>(() =>
     Object.fromEntries(visit.tasks.map((task) => [task.id, task.status])),
@@ -116,7 +115,6 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
       endedAt,
       pauseMinutes: Number(pause) || 0,
       travelMinutes: Number(travel) || 0,
-      reason,
       confirmOverlap: overlap,
     });
     setSaving(false);
@@ -131,7 +129,7 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
   };
 
   const requestSignature = async () => {
-    const result = await requestClientVisitSignature(tenantId, visit, reason);
+    const result = await requestClientVisitSignature(tenantId, visit);
     if (!result.ok) return onMessage(result.error, true);
     onMessage('Signaturanforderung wurde an das Klient:innenportal übertragen.');
     await onSaved();
@@ -152,7 +150,7 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
 
   const saveTasks = async () => {
     setSaving(true);
-    const result = await bulkUpdateAdministrativeTasks(visit.id, changedTasks, reason);
+    const result = await bulkUpdateAdministrativeTasks(visit.id, changedTasks);
     setSaving(false);
     if (!result.ok) return onMessage(result.error, true);
     onMessage(`${result.data.updated} Aufgaben wurden gemeinsam gespeichert und auditiert.`);
@@ -166,20 +164,7 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
   return (
     <SectionPanel title="Administrative Nachbearbeitung" subtitle="Zeiten, Aufgaben, Dokumentation und Signatur vollständig berichtigen.">
       <View style={{ gap: spacing.md }}>
-        <InfoBanner
-          message={reason.trim()
-            ? 'Die Begründung gilt für alle Änderungen in dieser Nachbearbeitung.'
-            : 'Zuerst eine Begründung eingeben. Danach können Zeiten, Aufgaben, Dokumentation und Signatur bearbeitet werden.'}
-        />
-        <PremiumInput
-          label="Gemeinsame Begründung für die Nachbearbeitung (Pflicht)"
-          placeholder="z. B. Einsatz wurde vor Ort durchgeführt, mobile Erfassung war nicht möglich"
-          hint="Einmal eingeben – gilt für alle folgenden Änderungen und bleibt während der Bearbeitung erhalten."
-          value={reason}
-          onChangeText={setReason}
-          multiline
-          style={{ minHeight: 88 }}
-        />
+        <InfoBanner message="Alle Änderungen können sofort vorgenommen werden und werden automatisch revisionssicher protokolliert." />
 
         <SectionPanel title="Arbeitszeit" subtitle="Alle Zeiten gelten für das gewählte Einsatzdatum.">
           <CareDateInput label="Einsatzdatum" value={date} onChange={setDate} />
@@ -191,7 +176,7 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
           <PremiumInput label="Fahrzeit (Minuten, optional)" value={travel} onChangeText={setTravel} keyboardType="number-pad" />
           {netMinutes != null ? <InfoBanner message={`Voraussichtliche Arbeitszeit: ${netMinutes} Minuten`} /> : null}
           {overlap ? <Text style={{ ...typography.body, color: '#EF4444' }}>Überschneidung erkannt: Erneutes Speichern bestätigt die Korrektur bewusst.</Text> : null}
-          <PremiumButton title={overlap ? 'Überschneidung bestätigen und buchen' : 'Zeiten prüfen und buchen'} onPress={save} loading={saving} disabled={saving || !reason.trim()} fullWidth />
+          <PremiumButton title={overlap ? 'Überschneidung bestätigen und buchen' : 'Zeiten prüfen und buchen'} onPress={save} loading={saving} disabled={saving} fullWidth />
         </SectionPanel>
 
         <SectionPanel title="Aufgaben">
@@ -222,18 +207,18 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
             title={`Aufgaben gemeinsam speichern (${changedTasks.length})`}
             onPress={saveTasks}
             loading={saving}
-            disabled={saving || !reason.trim() || changedTasks.length === 0}
+            disabled={saving || changedTasks.length === 0}
             fullWidth
           />
         </SectionPanel>
 
         <SectionPanel title="Dokumentation & Signatur">
           <PremiumInput label="Dokumentationstext" placeholder="Durchführung, Besonderheiten und Ergebnis vollständig dokumentieren" hint="Der Text wird revisionssicher an die vorhandene Einsatzdokumentation angehängt." value={documentation} onChangeText={setDocumentation} multiline style={{ minHeight: 120 }} />
-          <PremiumButton title="Dokumentation dauerhaft speichern" variant="secondary" onPress={() => run(() => appendAdministrativeDocumentation(visit.id, documentation, reason), 'Dokumentation wurde ergänzt und auditiert.').then((saved) => { if (saved) setDocumentation(''); })} disabled={saving || !reason.trim() || !documentation.trim()} fullWidth />
-          <PremiumButton title="Signatur im Klient:innenportal anfordern" variant="secondary" onPress={requestSignature} disabled={saving || !reason.trim()} fullWidth />
+          <PremiumButton title="Dokumentation dauerhaft speichern" variant="secondary" onPress={() => run(() => appendAdministrativeDocumentation(visit.id, documentation), 'Dokumentation wurde ergänzt und auditiert.').then((saved) => { if (saved) setDocumentation(''); })} disabled={saving || !documentation.trim()} fullWidth />
+          <PremiumButton title="Signatur im Klient:innenportal anfordern" variant="secondary" onPress={requestSignature} disabled={saving} fullWidth />
         </SectionPanel>
 
-        <PremiumButton title="Nachbearbeitung abschließen" onPress={() => run(() => completeAdministrativeFollowUp(visit.id, reason), 'Einsatzakte wurde vollständig abgeschlossen.')} disabled={saving || !reason.trim()} fullWidth />
+        <PremiumButton title="Nachbearbeitung abschließen" onPress={() => run(() => completeAdministrativeFollowUp(visit.id), 'Einsatzakte wurde vollständig abgeschlossen.')} disabled={saving} fullWidth />
       </View>
     </SectionPanel>
   );

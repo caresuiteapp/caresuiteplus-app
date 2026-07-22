@@ -26,9 +26,9 @@ describe('administrative Assist-Nachbearbeitung', () => {
     const faulty = { ...clean, id: 'faulty', isAtRisk: true };
     expect(buildDueExecutionItems([clean, faulty], new Date('2026-07-16T12:00:00Z')).map(x => x.assignmentId)).toEqual(['faulty']);
   });
-  it('validiert Begründung und Zeitfolge', () => {
-    expect(validateAdministrativeTimes({ startedAt: '2026-07-15T10:00:00Z', endedAt: '2026-07-15T09:00:00Z', pauseMinutes: 0, reason: 'Korrektur' })).toMatch(/vor Einsatzende/);
-    expect(validateAdministrativeTimes({ startedAt: '2026-07-15T08:00:00Z', endedAt: '2026-07-15T09:00:00Z', pauseMinutes: 0, reason: '' })).toMatch(/Begründung/);
+  it('validiert die Zeitfolge ohne vorgeschaltete Pflichtbegründung', () => {
+    expect(validateAdministrativeTimes({ startedAt: '2026-07-15T10:00:00Z', endedAt: '2026-07-15T09:00:00Z', pauseMinutes: 0 })).toMatch(/vor Einsatzende/);
+    expect(validateAdministrativeTimes({ startedAt: '2026-07-15T08:00:00Z', endedAt: '2026-07-15T09:00:00Z', pauseMinutes: 0 })).toBeNull();
   });
   it('Migration erzwingt Idempotenz, Audit, Client-RLS und WFM-SSOT', () => {
     const sql = readFileSync('supabase/migrations/0255_assist_administrative_follow_up.sql', 'utf8');
