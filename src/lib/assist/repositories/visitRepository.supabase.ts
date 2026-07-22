@@ -708,13 +708,18 @@ export const visitSupabaseRepository = {
       .maybeSingle();
 
     if (error && shouldFallbackVisitEmbeddedSelect(error)) {
+      // A schema-drift fallback must not repeat the same optional columns.
+      // select('*') only requests columns that really exist on this live generation.
       const { data: flatRow, error: flatError } = await fromUnknownTable(supabase, 'assist_visits')
-        .select(DETAIL_FLAT_SELECT)
+        .select('*')
         .eq('tenant_id', tenantId)
         .eq('id', visitId)
         .maybeSingle();
 
-      if (flatError) return { ok: false, error: toGermanSupabaseError(flatError) };
+      if (flatError) {
+        const detail = '[' + (flatError.code ?? 'unknown') + ': ' + (flatError.message ?? 'unbekannter Fehler') + ']';
+        return { ok: false, error: toGermanSupabaseError(flatError) + ' ' + detail };
+      }
       if (!flatRow) return { ok: true, data: null };
 
       const hydrated = await hydrateVisitRowRelations(
@@ -725,7 +730,10 @@ export const visitSupabaseRepository = {
       return { ok: true, data: mapDetail(hydrated) };
     }
 
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) {
+      const detail = '[' + (error.code ?? 'unknown') + ': ' + (error.message ?? 'unbekannter Fehler') + ']';
+      return { ok: false, error: toGermanSupabaseError(error) + ' ' + detail };
+    }
     if (!data) return { ok: true, data: null };
 
     return {
