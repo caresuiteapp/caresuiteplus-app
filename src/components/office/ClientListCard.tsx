@@ -13,6 +13,13 @@ type ClientListCardProps = {
   selected?: boolean;
 };
 
+function formatGermanDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat('de-DE').format(date);
+}
+
 function statusVariant(status: ClientListItem['status']) {
   switch (status) {
     case 'aktiv':
@@ -31,14 +38,17 @@ function statusVariant(status: ClientListItem['status']) {
 export function ClientListCard({ client, onPress, selected = false }: ClientListCardProps) {
   const tableText = useTableTextStyles();
   const location = [client.zip, client.city].filter(Boolean).join(' ');
-  const updatedAt = client.updatedAt
-    ? new Intl.DateTimeFormat('de-DE', { dateStyle: 'short' }).format(new Date(client.updatedAt))
-    : null;
+  const fullAddress = [client.street, location].filter(Boolean).join(', ');
+  const updatedAt = formatGermanDate(client.updatedAt);
   const facts = [
     { label: 'Wohnort', value: location },
     { label: 'Pflegegrad', value: client.careLevel ? formatCareLevel(client.careLevel) : null },
     { label: 'Kostenträger', value: client.costCarrier },
     { label: 'Aktualisiert', value: updatedAt },
+    { label: 'Vollständige Adresse', value: fullAddress },
+    { label: 'Versicherungsnummer', value: client.insuranceNumber },
+    { label: 'Geburtsdatum', value: formatGermanDate(client.dateOfBirth) },
+    { label: 'Telefon / Handy', value: client.primaryContactPhone },
   ].filter((fact) => Boolean(fact.value));
 
   const inner = (
