@@ -9,6 +9,7 @@ export type Client = TenantScopedEntity &
     careLevel: string | null;
     status: WorkflowStatus;
     primaryContactPhone: string | null;
+    street?: string | null;
     city?: string | null;
     zip?: string | null;
     /** Domain-Feld → DB `clients.cost_bearer` */
@@ -26,9 +27,13 @@ export type ClientListItem = Pick<
   | 'lastName'
   | 'status'
   | 'careLevel'
+  | 'dateOfBirth'
+  | 'primaryContactPhone'
+  | 'street'
   | 'city'
   | 'zip'
   | 'costCarrier'
+  | 'insuranceNumber'
   | 'sensitivity'
   | 'updatedAt'
 >;

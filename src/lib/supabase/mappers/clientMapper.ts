@@ -40,9 +40,13 @@ export function mapClientListItem(row: ClientRow): ClientListItem {
     lastName: row.last_name,
     status: normalized.status,
     careLevel: row.care_level,
+    dateOfBirth: row.date_of_birth,
+    primaryContactPhone: resolveClientPhone(row) ?? row.mobile ?? row.phone ?? null,
+    street: resolveClientStreetLine(row) ?? row.street,
     city: row.city,
     zip: normalized.zip,
     costCarrier: normalized.costCarrier,
+    insuranceNumber: normalized.insuranceNumber,
     sensitivity: 'internal' as SensitivityLevel,
     updatedAt: row.updated_at,
   };

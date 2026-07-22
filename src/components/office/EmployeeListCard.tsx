@@ -4,7 +4,6 @@ import { EmployeeListAvatar } from './EmployeeListAvatar';
 import type { EmployeeListItem } from '@/types/modules/employeeList';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
-import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
 import { colors, spacing } from '@/theme';
 
 type EmployeeListCardProps = {
@@ -12,6 +11,17 @@ type EmployeeListCardProps = {
   onPress?: () => void;
   selected?: boolean;
 };
+
+function resolveEmployeePosition(employee: EmployeeListItem): 'Alltagsbegleitung' | 'Büro' | 'Geschäftsführung' {
+  const source = `${employee.department ?? ''} ${employee.jobTitle ?? ''}`.toLocaleLowerCase('de-DE');
+  if (/geschäftsführ|geschaeftsfuehr|geschäftsleitung|geschaeftsleitung|ceo/.test(source)) {
+    return 'Geschäftsführung';
+  }
+  if (/büro|buero|verwaltung|office|backoffice|disposition/.test(source)) {
+    return 'Büro';
+  }
+  return 'Alltagsbegleitung';
+}
 
 function statusVariant(status: EmployeeListItem['status']) {
   switch (status) {
@@ -30,13 +40,13 @@ function statusVariant(status: EmployeeListItem['status']) {
 export function EmployeeListCard({ employee, onPress, selected = false }: EmployeeListCardProps) {
   const tableText = useTableTextStyles();
   const fullName = `${employee.firstName} ${employee.lastName}`;
+  const position = resolveEmployeePosition(employee);
   const updatedAt = employee.updatedAt
     ? new Intl.DateTimeFormat('de-DE', { dateStyle: 'short' }).format(new Date(employee.updatedAt))
     : null;
   const facts = [
-    { label: 'Abteilung', value: employee.department },
-    { label: 'E-Mail', value: employee.email },
-    { label: 'Telefon', value: employee.phone },
+    { label: 'Position', value: position },
+    { label: 'Handynummer', value: employee.phone },
     { label: 'Aktualisiert', value: updatedAt },
   ].filter((fact) => Boolean(fact.value));
 
@@ -50,7 +60,7 @@ export function EmployeeListCard({ employee, onPress, selected = false }: Employ
         />
         <View style={styles.main}>
           <Text style={tableText.name}>{fullName}</Text>
-          <Text style={tableText.meta}>{resolveEmployeeRoleLabel(employee.jobTitle)}</Text>
+          <Text style={tableText.meta}>{position}</Text>
         </View>
         <PremiumBadge
           label={WORKFLOW_STATUS_LABELS[employee.status]}
