@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
         width: '100vw',
         height: '100vh',
         zIndex: 0,
-      } as ViewStyle)
+      } as unknown as ViewStyle)
     : ({
         ...StyleSheet.absoluteFillObject,
         zIndex: 0,
