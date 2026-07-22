@@ -74,6 +74,7 @@ export function VisitExecutionScreen() {
     data: visit,
     loading,
     error,
+    actionError,
     actionLoading,
     successMessage,
     refresh,
@@ -137,8 +138,12 @@ export function VisitExecutionScreen() {
     );
     setDocLoading(false);
     if (result.ok) {
+      setLocalError(null);
       setLocalSuccess('Dokumentation gespeichert.');
       await refresh();
+    } else {
+      setLocalSuccess(null);
+      setLocalError(result.error ?? 'Dokumentation konnte nicht gespeichert werden.');
     }
   }, [id, tenantId, documentationNote, profile?.roleKey, refresh]);
 
@@ -215,6 +220,7 @@ export function VisitExecutionScreen() {
     <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Durchführung`}>
       <WorkflowToast message={successMessage ?? localSuccess} onDismiss={() => setLocalSuccess(null)} />
       {localError ? <ErrorState message={localError} /> : null}
+      {actionError ? <ErrorState message={actionError} /> : null}
 
       <AssistSetupHintsBanner maxVisible={2} />
 
@@ -295,10 +301,7 @@ export function VisitExecutionScreen() {
           </View>
         )}
 
-        {(visit.assignmentStatus === 'gestartet' ||
-          visit.assignmentStatus === 'pausiert' ||
-          showDocumentation) &&
-        canManage ? (
+        {visit.tasks.length > 0 && canManage ? (
           <VisitTasksPanel
             visit={visit}
             disabled={isLocked}

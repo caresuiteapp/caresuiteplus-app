@@ -49,7 +49,9 @@ export function useVisitDispositionDetail(visitId: string | undefined) {
   return {
     data: query.data,
     loading: query.loading,
-    error: query.error ?? statusMutation.error,
+    // A failed mutation must not discard the already loaded visit page.
+    error: query.error,
+    actionError: statusMutation.error,
     actionLoading: statusMutation.loading,
     successMessage: statusMutation.successMessage,
     refresh: query.refresh,

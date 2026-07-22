@@ -75,10 +75,15 @@ export async function syncLegacyAssignmentStatusFromVisit(
   remoteStatus: string,
   timestampPatch?: Record<string, unknown>,
 ): Promise<ServiceResult<void>> {
+  // assist_visits owns updated_by. Older production generations of the
+  // compatibility table assignments do not expose that column.
+  const { updated_by: _visitUpdatedBy, ...legacyTimestampPatch } = timestampPatch ?? {};
+  void _visitUpdatedBy;
+
   const patch: Record<string, unknown> = {
     status: remoteStatus,
     updated_at: new Date().toISOString(),
-    ...timestampPatch,
+    ...legacyTimestampPatch,
   };
 
   const { error } = await fromUnknownTable(supabase, 'assignments')
