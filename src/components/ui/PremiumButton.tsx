@@ -15,15 +15,14 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useThemeMode } from '@/design/ThemeModeProvider';
-import { useAuroraGlassButtonStyles, darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { LlganGlassShell } from '@/design/web/applyLlganGlassDom';
+import {
+  spatialCare,
+  spatialCareColors,
+} from '@/design/tokens/spatialCareSuite';
+import { withAlpha } from '@/design/tokens/motion';
 import { useAccessibility } from '@/hooks/useAccessibility';
-import { CareLightButton } from './CareLightButton';
 import { buttonHeights, motion, radius } from '@/theme';
-import { AURORA_BUTTON_PRIMARY, careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
-import { neonGlow } from '@/design/tokens/motion';
 
 type Variant = 'primary' | 'secondary' | 'ghost';
 type Size = 'sm' | 'md';
@@ -39,10 +38,10 @@ type Props = {
   fullWidth?: boolean;
   accessibilityLabel?: string;
   testID?: string;
-  /** Helle Schrift auf dunklem Button-Hintergrund (ghost/secondary). */
   onDarkSurface?: boolean;
 };
 
+/** Eine einzige kompakte Button-Hierarchie für das gesamte System. */
 export function PremiumButton({
   title,
   onPress,
@@ -52,125 +51,86 @@ export function PremiumButton({
   disabled = false,
   style,
   fullWidth = false,
-  onDarkSurface = false,
   accessibilityLabel,
   testID,
 }: Props) {
-  const { mode } = useThemeMode();
-  const shellHostsAurora = useShellHostsAurora();
-  const { colors, typography } = useLegacyTheme();
-  const auroraButtonStyles = useAuroraGlassButtonStyles({ viewContext: 'form' });
   const { scaleFontSize } = useAccessibility();
   const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const isPrimary = variant === 'primary';
-  const height = size === 'sm' ? buttonHeights.sm : buttonHeights.md;
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const isDisabled = disabled || loading;
-  const surfaceTextColor = onDarkSurface ? darkGlassSurfaceText.primary : undefined;
-  const labelStyle = useMemo(() => {
-    if (Platform.OS === 'web') {
-      return {
-        fontSize: typography.button.fontSize ?? 16,
-        lineHeight: typography.button.lineHeight ?? 22,
-      };
-    }
-    return {
-      fontSize: scaleFontSize(16),
-      lineHeight: scaleFontSize(22),
-    };
-  }, [scaleFontSize, typography.button.fontSize, typography.button.lineHeight]);
+  const height = size === 'sm' ? buttonHeights.sm : buttonHeights.md;
 
-  if (mode === 'light' && !shellHostsAurora) {
-    const lightStyle = fullWidth
-      ? StyleSheet.flatten([styles.fullWidth, style])
-      : StyleSheet.flatten(style);
-    return (
-      <CareLightButton
-        title={title}
-        onPress={onPress}
-        variant={variant}
-        loading={loading}
-        disabled={disabled}
-        style={lightStyle ?? undefined}
-        accessibilityLabel={accessibilityLabel}
-        testID={testID}
-      />
-    );
-  }
+  const localStyles = useMemo(
+    () =>
+      StyleSheet.create({
+        button: {
+          height,
+          minWidth: fullWidth ? undefined : size === 'sm' ? 96 : 120,
+          width: fullWidth ? '100%' : undefined,
+          borderRadius: radius.lg,
+          overflow: 'hidden',
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: size === 'sm' ? 16 : 20,
+          borderWidth: 1,
+          borderColor:
+            variant === 'ghost' ? spatialCare.border : withAlpha(spatialCareColors.cyanLight, 0.44),
+          backgroundColor:
+            variant === 'ghost' ? 'transparent' : withAlpha(spatialCareColors.violetMist, 0.14),
+          ...(Platform.OS === 'web'
+            ? ({
+                boxShadow:
+                  variant === 'primary'
+                    ? `0 10px 26px ${withAlpha(spatialCareColors.cyanDeep, 0.28)}`
+                    : '0 8px 18px rgba(4,8,24,0.22)',
+              } as unknown as ViewStyle)
+            : null),
+        },
+        label: {
+          color: variant === 'primary' ? spatialCareColors.nightDeep : spatialCare.textOnNight,
+          fontSize: Platform.OS === 'web' ? 16 : scaleFontSize(16),
+          lineHeight: Platform.OS === 'web' ? 21 : scaleFontSize(21),
+          fontWeight: '800',
+          textAlign: 'center',
+        },
+      }),
+    [fullWidth, height, scaleFontSize, size, variant],
+  );
 
   const content = (
-    <View
-      style={[
-        styles.inner,
-        { height, minWidth: fullWidth ? undefined : 120 },
-        fullWidth && styles.fullWidth,
-        !isPrimary && variant === 'secondary' && auroraButtonStyles.secondary,
-        !isPrimary && variant === 'ghost' && auroraButtonStyles.ghost,
-        isDisabled && styles.disabled,
-        isPrimary && neonGlow(careSuiteAuroraTheme.accent.violet, 0.35, 20, 10),
-        style,
-      ]}
-    >
-      {isPrimary ? (
+    <LlganGlassShell kind="button" style={[localStyles.button, isDisabled && styles.disabled, style]}>
+      {variant === 'primary' ? (
         <LinearGradient
-          colors={[...AURORA_BUTTON_PRIMARY]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          colors={['#8A78C4', '#55DDF6', '#D8C8E8']}
+          start={{ x: 0, y: 0.2 }}
+          end={{ x: 1, y: 0.8 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+      ) : variant === 'secondary' ? (
+        <LinearGradient
+          colors={['rgba(105,232,255,0.14)', 'rgba(139,124,255,0.1)']}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
       ) : null}
       {loading ? (
-        <ActivityIndicator color={isPrimary ? '#000000' : surfaceTextColor ?? colors.textPrimary} />
+        <ActivityIndicator color={variant === 'primary' ? spatialCareColors.nightDeep : spatialCareColors.white} />
       ) : (
-        <Text
-          allowFontScaling
-          style={[
-            auroraButtonStyles.label,
-            labelStyle,
-            isPrimary && styles.primaryText,
-            !isPrimary && auroraButtonStyles.secondaryText,
-            surfaceTextColor ? { color: surfaceTextColor } : null,
-          ]}
-        >
-          {title}
-        </Text>
+        <Text allowFontScaling style={localStyles.label}>{title}</Text>
       )}
-    </View>
+    </LlganGlassShell>
   );
 
-  const webPressableStyle =
-    Platform.OS === 'web' ? ({ cursor: isDisabled ? 'default' : 'pointer' } as ViewStyle) : null;
-
-  const webClickProps =
-    Platform.OS === 'web' && onPress && !isDisabled
-      ? ({
-          // Playwright force-click and some browser automation paths bypass RN Pressable;
-          // native onClick ensures consent/workflow handlers still run on web.
-          onClick: (event: { preventDefault?: () => void; stopPropagation?: () => void }) => {
-            event.preventDefault?.();
-            event.stopPropagation?.();
-            onPress();
-          },
-        } as Record<string, unknown>)
-      : {};
-
   return (
-    <Animated.View
-      style={[animStyle, fullWidth && styles.fullWidth]}
-      pointerEvents="box-none"
-    >
+    <Animated.View style={[animatedStyle, fullWidth && styles.fullWidth]} pointerEvents="box-none">
       <Pressable
         disabled={isDisabled}
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? title}
         testID={testID}
-        style={[fullWidth && styles.fullWidth, webPressableStyle]}
-        {...webClickProps}
+        style={Platform.OS === 'web' ? ({ cursor: isDisabled ? 'default' : 'pointer' } as ViewStyle) : undefined}
         onPressIn={() => {
           if (!isDisabled) scale.value = withSpring(0.96, motion.spring);
         }}
@@ -185,23 +145,6 @@ export function PremiumButton({
 }
 
 const styles = StyleSheet.create({
-  inner: {
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  fullWidth: {
-    width: '100%',
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  primaryText: {
-    color: '#000000',
-    fontWeight: '700',
-  },
+  fullWidth: { width: '100%' },
+  disabled: { opacity: 0.42 },
 });

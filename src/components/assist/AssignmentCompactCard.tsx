@@ -153,10 +153,9 @@ export function AssignmentCompactCard({
           marginTop: spacing.xs,
         },
         footerChip: {
-          flex: 1,
-          flexBasis: 132,
-          minWidth: 132,
-          alignSelf: 'stretch',
+          flexGrow: 0,
+          flexShrink: 1,
+          minWidth: 118,
           justifyContent: 'center',
         },
         actions: {
@@ -164,8 +163,14 @@ export function AssignmentCompactCard({
           flexWrap: 'wrap',
           gap: spacing.xs,
           marginTop: spacing.sm,
+          alignItems: 'center',
         },
-        actionBtn: { flex: 1, flexBasis: 120, minWidth: 120 },
+        actionBtn: {
+          flexGrow: 0,
+          flexShrink: 1,
+          minWidth: 104,
+          maxWidth: 176,
+        },
       }),
     [accentModule, statusAccent.color, statusAccent.tint, text],
   );

@@ -114,7 +114,8 @@ export function resolveLegacyGradients(mode: ColorMode = 'dark') {
  * React hook — bridges ThemeModeProvider to legacy @/theme keys for Premium components.
  */
 export function useLegacyTheme() {
-  const { mode } = useThemeMode();
+  useThemeMode();
+  const mode: ColorMode = 'dark';
 
   return useMemo(
     () => ({
@@ -126,7 +127,7 @@ export function useLegacyTheme() {
       isLight: mode === 'light',
       isDark: mode === 'dark',
     }),
-    [mode],
+    [],
   );
 }
 

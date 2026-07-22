@@ -2,10 +2,8 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { BreadcrumbTrail as BreadcrumbTrailType } from '@/types/navigation/breadcrumbs';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
-import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { typography } from '@/theme';
+import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
 
 type BreadcrumbTrailProps = {
   trail: BreadcrumbTrailType;
@@ -13,9 +11,6 @@ type BreadcrumbTrailProps = {
 
 export function BreadcrumbTrail({ trail }: BreadcrumbTrailProps) {
   const router = useRouter();
-  const { colors, isLight } = useLegacyTheme();
-  const text = useAuroraAdaptiveText();
-  const linkColor = useInteractiveTextColor();
 
   const styles = useMemo(
     () =>
@@ -23,7 +18,7 @@ export function BreadcrumbTrail({ trail }: BreadcrumbTrailProps) {
         row: {
           flexDirection: 'row',
           flexWrap: 'wrap',
-          justifyContent: 'center',
+          justifyContent: 'flex-start',
           alignItems: 'center',
           marginBottom: 2,
         },
@@ -33,26 +28,26 @@ export function BreadcrumbTrail({ trail }: BreadcrumbTrailProps) {
         },
         link: {
           ...typography.caption,
-          color: linkColor,
+          color: spatialCareColors.cyanLight,
           fontWeight: '600',
         },
         text: {
           ...typography.caption,
-          color: isLight ? text.secondary : colors.cyan,
-          opacity: 0.7,
+          color: spatialCareColors.inkMuted,
+          opacity: 1,
         },
         current: {
           opacity: 1,
           fontWeight: '600',
-          color: isLight ? text.primary : colors.cyan,
+          color: spatialCareColors.white,
         },
         sep: {
           ...typography.caption,
-          color: isLight ? text.muted : colors.cyan,
-          opacity: 0.5,
+          color: spatialCareColors.inkMuted,
+          opacity: 0.8,
         },
       }),
-    [colors.cyan, isLight, linkColor, text.muted, text.primary, text.secondary],
+    [],
   );
 
   if (trail.length <= 1) return null;

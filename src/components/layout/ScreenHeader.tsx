@@ -1,12 +1,10 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { BreadcrumbTrail as BreadcrumbTrailType } from '@/types/navigation/breadcrumbs';
-import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { MOBILE_MIN_TOUCH_TARGET } from '@/lib/platform/webSafeArea';
+import { spatialCare, spatialCareColors } from '@/design/tokens/spatialCareSuite';
 import { spacing, typography } from '@/theme';
 import { BreadcrumbTrail } from './BreadcrumbTrail';
 
@@ -31,11 +29,7 @@ export function ScreenHeader({
   simplifyOnPhone = true,
 }: ScreenHeaderProps) {
   const router = useRouter();
-  const { colors } = useLegacyTheme();
-  const { isPhone, isDesktopOrWide } = useDeviceClass();
-  const hideDesktopPageDescription = isDesktopOrWide;
-  const backLinkColor = useInteractiveTextColor();
-  const shellHostsAurora = useShellHostsAurora();
+  const { isPhone } = useDeviceClass();
   const showBreadcrumbs = simplifyOnPhone ? !isPhone && breadcrumbTrail : breadcrumbTrail;
   const sideInsetWidth = showBack || rightSlot ? 88 : 0;
 
@@ -46,23 +40,17 @@ export function ScreenHeader({
           flexDirection: 'row',
           alignItems: 'center',
           paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          borderBottomWidth: shellHostsAurora ? 0 : 1,
-          borderBottomColor: colors.borderSoft,
-          backgroundColor: shellHostsAurora ? 'transparent' : colors.bgPremium,
-        },
-        desktopA11yHeader: {
-          width: 0,
-          height: 0,
-          overflow: 'hidden',
-        },
-        visuallyHidden: {
-          position: 'absolute',
-          width: 1,
-          height: 1,
-          margin: -1,
-          overflow: 'hidden',
-          opacity: 0,
+          paddingVertical: spacing.md,
+          minHeight: isPhone ? 68 : 82,
+          borderBottomWidth: 1,
+          borderBottomColor: spatialCare.border,
+          backgroundColor: spatialCare.navigation,
+          ...(Platform.OS === 'web'
+            ? ({
+                backdropFilter: `blur(${spatialCare.blur.navigation}px) saturate(1.25)`,
+                WebkitBackdropFilter: `blur(${spatialCare.blur.navigation}px) saturate(1.25)`,
+              } as unknown as ViewStyle)
+            : null),
         },
         left: {
           width: sideInsetWidth,
@@ -70,7 +58,7 @@ export function ScreenHeader({
         },
         center: {
           flex: 1,
-          alignItems: 'center',
+          alignItems: isPhone ? 'center' : 'flex-start',
           minWidth: 0,
         },
         right: {
@@ -88,23 +76,23 @@ export function ScreenHeader({
         },
         backText: {
           ...typography.caption,
-          color: backLinkColor,
-          fontWeight: '600',
+          color: spatialCareColors.cyanLight,
+          fontWeight: '700',
         },
         title: {
           ...typography.h3,
-          color: colors.textPrimary,
-          textAlign: 'center',
+          color: spatialCare.textOnNight,
+          textAlign: isPhone ? 'center' : 'left',
           flexShrink: 1,
         },
         subtitle: {
           ...typography.caption,
-          color: colors.textMuted,
-          textAlign: 'center',
+          color: spatialCare.textOnNightMuted,
+          textAlign: isPhone ? 'center' : 'left',
           marginTop: 2,
         },
       }),
-    [backLinkColor, colors, shellHostsAurora, sideInsetWidth],
+    [isPhone, sideInsetWidth],
   );
 
   const handleBack = () => {
@@ -120,11 +108,7 @@ export function ScreenHeader({
   };
 
   return (
-    <View style={hideDesktopPageDescription ? styles.desktopA11yHeader : styles.container}>
-      {hideDesktopPageDescription ? (
-        <Text accessibilityRole="header" style={styles.visuallyHidden}>{title}</Text>
-      ) : null}
-      {!hideDesktopPageDescription ? <>
+    <View style={styles.container}>
       <View style={styles.left}>
         {showBack ? (
           <Pressable onPress={handleBack} style={styles.backButton} hitSlop={12}>
@@ -144,7 +128,6 @@ export function ScreenHeader({
         ) : null}
       </View>
       <View style={styles.right}>{rightSlot}</View>
-      </> : null}
     </View>
   );
 }

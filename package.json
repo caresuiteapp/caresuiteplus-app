@@ -37,6 +37,7 @@
     "office-assist:experience:audit": "node scripts/office-assist-unified-experience-v33-1-audit.mjs",
     "experience:v34:audit": "node scripts/system-spatial-experience-v34-audit.mjs",
     "experience:v34.2:audit": "node scripts/system-spatial-experience-v34-2-audit.mjs",
+    "experience:v35:audit": "node scripts/system-spatial-unification-v35-audit.mjs",
     "mobile:portal:spatial:v34.4:audit": "node scripts/mobile-portal-spatial-v34-4-audit.mjs",
     "mobile:portal:consistency:v34.5:audit": "node scripts/mobile-portal-consistency-v34-5-audit.mjs",
     "office:structured-input:audit": "node scripts/office-structured-input-audit.mjs",
