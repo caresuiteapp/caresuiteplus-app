@@ -1,15 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-// react-dom is a runtime dependency; this repository intentionally has no @types/react-dom package.
-// @ts-expect-error -- the portal API is used only on web and mirrors FullscreenOverlay.
-import { createPortal } from 'react-dom';
+import { useEffect, useRef, useState } from 'react';
 import {
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
-  type ViewStyle,
 } from 'react-native';
 import { CareSuiteLoadingIndicator } from '@/components/brand/CareSuiteLoadingIndicator';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -36,16 +31,6 @@ const feedbackMeta: Record<WorkflowFeedbackKind, { icon: string; title: string; 
   info: { icon: 'i', title: 'Information', color: '#69E8FF' },
 };
 
-function applyViewportHostStyles(host: HTMLElement) {
-  host.style.position = 'fixed';
-  host.style.inset = '0';
-  host.style.width = '100vw';
-  host.style.height = '100dvh';
-  host.style.zIndex = '16000';
-  host.style.display = 'flex';
-  host.style.isolation = 'isolate';
-}
-
 export function WorkflowFeedbackOverlay({
   message,
   title,
@@ -58,7 +43,6 @@ export function WorkflowFeedbackOverlay({
 }: Props) {
   const [messageVisible, setMessageVisible] = useState(Boolean(message));
   const visible = loading || (messageVisible && Boolean(message));
-  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
   const onDismissRef = useRef(onDismiss);
   onDismissRef.current = onDismiss;
 
@@ -81,95 +65,64 @@ export function WorkflowFeedbackOverlay({
     onDismissRef.current?.();
   };
 
-  useLayoutEffect(() => {
-    if (!visible || Platform.OS !== 'web' || typeof document === 'undefined') {
-      setPortalHost(null);
-      return;
-    }
-    const host = document.createElement('div');
-    host.setAttribute('data-caresuite-workflow-feedback', testID);
-    applyViewportHostStyles(host);
-    document.body.appendChild(host);
-    setPortalHost(host);
-    return () => {
-      host.remove();
-      setPortalHost((current) => (current === host ? null : current));
-    };
-  }, [testID, visible]);
-
-  if (!visible) return null;
-
   const meta = feedbackMeta[kind];
-  const content = (
-    <View
-      accessibilityRole="alert"
-      accessibilityViewIsModal
-      style={styles.viewport}
-      testID={testID}
-    >
-      <View style={[styles.backdrop, loading && styles.loadingBackdrop]} />
-      <View style={[styles.dialog, { borderColor: meta.color }]}>
-        {loading ? (
-          <View style={styles.loadingContent}>
-            <CareSuiteLoadingIndicator width={240} />
-            <Text style={styles.loadingTitle}>CareSuite lädt</Text>
-            <Text style={styles.message}>{loadingMessage}</Text>
-            <Text style={styles.wait}>Bitte warten und diese Seite nicht schließen.</Text>
-          </View>
-        ) : (
-          <>
-            <View style={styles.heading}>
-              <View style={[styles.icon, { backgroundColor: meta.color }]}>
-                <Text style={styles.iconText}>{meta.icon}</Text>
-              </View>
-              <View style={styles.headingText}>
-                <Text style={styles.title}>{title ?? meta.title}</Text>
-                <Text style={styles.message}>{message}</Text>
-              </View>
-              <Pressable
-                accessibilityLabel="Meldung schließen"
-                accessibilityRole="button"
-                onPress={dismiss}
-                style={styles.close}
-              >
-                <Text style={styles.closeText}>×</Text>
-              </Pressable>
-            </View>
-            <Pressable accessibilityRole="button" onPress={dismiss} style={styles.action}>
-              <Text style={styles.actionText}>Schließen</Text>
-            </Pressable>
-          </>
-        )}
-      </View>
-    </View>
-  );
-
-  if (Platform.OS === 'web' && typeof document !== 'undefined') {
-    if (!portalHost) return null;
-    return createPortal(content, portalHost);
-  }
-
   return (
     <Modal
       animationType="fade"
+      hardwareAccelerated
       onRequestClose={loading ? undefined : dismiss}
       presentationStyle="overFullScreen"
       statusBarTranslucent
       transparent
-      visible
+      visible={visible}
     >
-      {content}
+      <View
+        accessibilityRole="alert"
+        accessibilityViewIsModal
+        style={styles.viewport}
+        testID={testID}
+      >
+        <View style={[styles.backdrop, loading && styles.loadingBackdrop]} />
+        <View style={[styles.dialog, { borderColor: meta.color }]}>
+          {loading ? (
+            <View style={styles.loadingContent}>
+              <CareSuiteLoadingIndicator width={240} />
+              <Text style={styles.loadingTitle}>CareSuite lädt</Text>
+              <Text style={styles.message}>{loadingMessage}</Text>
+              <Text style={styles.wait}>Bitte warten und diese Seite nicht schließen.</Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.heading}>
+                <View style={[styles.icon, { backgroundColor: meta.color }]}>
+                  <Text style={styles.iconText}>{meta.icon}</Text>
+                </View>
+                <View style={styles.headingText}>
+                  <Text style={styles.title}>{title ?? meta.title}</Text>
+                  <Text style={styles.message}>{message}</Text>
+                </View>
+                <Pressable
+                  accessibilityLabel="Meldung schließen"
+                  accessibilityRole="button"
+                  onPress={dismiss}
+                  style={styles.close}
+                >
+                  <Text style={styles.closeText}>×</Text>
+                </Pressable>
+              </View>
+              <Pressable accessibilityRole="button" onPress={dismiss} style={styles.action}>
+                <Text style={styles.actionText}>Schließen</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      </View>
     </Modal>
   );
 }
 
-const fixedViewport = Platform.OS === 'web'
-  ? ({ position: 'fixed', inset: 0, width: '100vw', height: '100dvh' } as unknown as ViewStyle)
-  : null;
-
 const styles = StyleSheet.create({
   viewport: {
-    ...fixedViewport,
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
