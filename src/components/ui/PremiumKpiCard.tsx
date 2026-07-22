@@ -25,7 +25,7 @@ type Props = {
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
   style?: ViewStyle;
-  /** White card with dark text — for KPI grids on aurora backgrounds. */
+  /** Light card only outside Aurora. Inside Aurora it resolves to canonical glass. */
   variant?: 'glass' | 'light';
   /** @deprecated Pulse animation removed — cards stay static on glass surfaces. */
   pulse?: boolean;
@@ -56,7 +56,7 @@ export function PremiumKpiCard({
   const text = useAuroraAdaptiveText();
   const glassCardStyle = useAuroraGlassCardStyle();
   const resolvedAccent = accentColor ?? colors.cyan;
-  const isLight = variant === 'light';
+  const isLight = variant === 'light' && !shellHostsAurora;
 
   const styles = useMemo(
     () =>

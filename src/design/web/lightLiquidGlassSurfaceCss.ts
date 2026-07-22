@@ -61,7 +61,10 @@ export const LLGAN_GLASS_SURFACE_CSS = `
     z-index: 0;
   }
 
-  [data-cs-llgan-glass] > * { position: relative; z-index: 1; }
+  /* Decorative gradients and glows are absolutely positioned by their
+     component. Never turn them into normal flow children: that produced
+     several hundred pixels of empty space above real card content. */
+  [data-cs-llgan-glass] > * { z-index: 1; }
 
   /* Legacy light-world components sometimes persisted an explicit black
      inline colour. Inside the canonical dark glass shell that is never a

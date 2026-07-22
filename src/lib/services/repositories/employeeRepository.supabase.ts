@@ -27,6 +27,7 @@ function unavailable<T>(): ServiceResult<T> {
 function mapRow(row: Record<string, unknown>): EmployeeListItem {
   const jobTitle = row.role_title ?? row.job_title;
   const avatarUrl = row.avatar_url;
+  const department = row.department;
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id),
@@ -38,6 +39,7 @@ function mapRow(row: Record<string, unknown>): EmployeeListItem {
     status: mapDbStatusToCatalogStatus(String(row.status ?? '')) as EmployeeListItem['status'],
     updatedAt: String(row.updated_at),
     avatarUrl: typeof avatarUrl === 'string' && avatarUrl.trim() ? avatarUrl.trim() : null,
+    department: typeof department === 'string' && department.trim() ? department.trim() : null,
   };
 }
 
