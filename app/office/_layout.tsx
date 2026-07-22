@@ -23,5 +23,5 @@ export default function OfficeLayout() {
 }
 
 const styles = StyleSheet.create({
-  slot: { flex: 1, backgroundColor: 'transparent' },
+  slot: { flex: 1, minHeight: 0, minWidth: 0, backgroundColor: 'transparent' },
 });

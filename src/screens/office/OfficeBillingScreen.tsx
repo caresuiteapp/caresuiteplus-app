@@ -108,7 +108,12 @@ export function OfficeBillingScreen() {
       </View>
 
       {workspace === 'dashboard' ? (
-        <ScrollView contentContainerStyle={styles.dashboard} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.dashboardScroll}
+          contentContainerStyle={styles.dashboard}
+          showsVerticalScrollIndicator
+          nestedScrollEnabled
+        >
           <View style={styles.intro}>
             <Text style={styles.title}>Abrechnung nach Leistungsmodul</Text>
             <Text style={styles.subtitle}>
@@ -196,7 +201,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     flexWrap: 'wrap',
   },
-  dashboard: { paddingBottom: spacing.xxl, gap: spacing.md },
+  dashboardScroll: { flex: 1, minHeight: 0, minWidth: 0 },
+  dashboard: { flexGrow: 1, paddingBottom: spacing.xxl, gap: spacing.md },
   intro: { gap: spacing.xs },
   title: { ...typography.h2 },
   subtitle: { ...typography.body, color: colors.textMuted, maxWidth: 920 },
@@ -205,9 +211,9 @@ const styles = StyleSheet.create({
   moduleHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   moduleIcon: { fontSize: 30 },
   moduleHeadingText: { flex: 1 },
-  moduleTitle: { ...typography.h2 },
+  moduleTitle: { ...typography.h2, color: '#111827' },
   moduleBasis: { ...typography.label },
-  moduleDescription: { ...typography.body, color: colors.textMuted, minHeight: 48 },
+  moduleDescription: { ...typography.body, color: '#475569', minHeight: 48 },
   moduleMetrics: {
     flexDirection: 'row',
     gap: spacing.xl,
@@ -215,10 +221,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: 'rgba(111, 83, 242, 0.06)',
   },
-  metricValue: { ...typography.h3 },
-  metricLabel: { ...typography.caption, color: colors.textMuted },
+  metricValue: { ...typography.h3, color: '#111827' },
+  metricLabel: { ...typography.caption, color: '#475569' },
   cardActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  content: { flex: 1 },
+  content: { flex: 1, minHeight: 0, minWidth: 0 },
   workspaceHeader: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -193,6 +193,6 @@ export function CalendarPageShell({
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1 },
+  wrap: { flexGrow: 1, minHeight: 0, minWidth: 0 },
   legend: { marginBottom: careSpacing.md },
 });

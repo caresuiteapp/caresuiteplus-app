@@ -199,7 +199,8 @@ export function ExecutionsListView({
         <ScrollView
           style={styles.flatList}
           contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator
+          nestedScrollEnabled
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -257,7 +258,8 @@ export function ExecutionsListView({
           />
         )}
         contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator
+        nestedScrollEnabled
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
         }
@@ -277,8 +279,8 @@ export function ExecutionsListView({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  flatList: { flex: 1 },
+  container: { flex: 1, minHeight: 0, minWidth: 0 },
+  flatList: { flex: 1, minHeight: 0, minWidth: 0 },
   toolbar: { gap: spacing.sm, marginBottom: spacing.md },
   filterLabel: { ...typography.label, marginTop: spacing.xs },
   list: { paddingBottom: spacing.xxl },
