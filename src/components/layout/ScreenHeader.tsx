@@ -7,6 +7,7 @@ import { MOBILE_MIN_TOUCH_TARGET } from '@/lib/platform/webSafeArea';
 import { spatialCare, spatialCareColors } from '@/design/tokens/spatialCareSuite';
 import { spacing, typography } from '@/theme';
 import { BreadcrumbTrail } from './BreadcrumbTrail';
+import { SpatialScene } from '@/components/ui/SpatialScene';
 
 type ScreenHeaderProps = {
   title: string;
@@ -41,10 +42,11 @@ export function ScreenHeader({
           alignItems: 'center',
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.md,
-          minHeight: isPhone ? 68 : 82,
+          minHeight: isPhone ? 104 : 196,
           borderBottomWidth: 1,
           borderBottomColor: spatialCare.border,
           backgroundColor: spatialCare.navigation,
+          overflow: 'hidden',
           ...(Platform.OS === 'web'
             ? ({
                 backdropFilter: `blur(${spatialCare.blur.navigation}px) saturate(1.25)`,
@@ -59,7 +61,25 @@ export function ScreenHeader({
         center: {
           flex: 1,
           alignItems: isPhone ? 'center' : 'flex-start',
+          justifyContent: 'center',
           minWidth: 0,
+          maxWidth: isPhone ? undefined : '58%',
+          zIndex: 2,
+        },
+        scene: {
+          position: 'absolute',
+          right: isPhone ? -76 : 54,
+          top: isPhone ? -46 : 0,
+          opacity: isPhone ? 0.32 : 0.96,
+          transform: [{ scale: isPhone ? 0.72 : 1.08 }],
+        },
+        eyebrow: {
+          ...typography.caption,
+          color: spatialCareColors.cyanLight,
+          fontWeight: '800',
+          letterSpacing: 1.2,
+          textTransform: 'uppercase',
+          marginBottom: 4,
         },
         right: {
           width: sideInsetWidth,
@@ -84,6 +104,9 @@ export function ScreenHeader({
           color: spatialCare.textOnNight,
           textAlign: isPhone ? 'center' : 'left',
           flexShrink: 1,
+          fontSize: isPhone ? 24 : 34,
+          lineHeight: isPhone ? 30 : 40,
+          letterSpacing: -0.7,
         },
         subtitle: {
           ...typography.caption,
@@ -109,6 +132,7 @@ export function ScreenHeader({
 
   return (
     <View style={styles.container}>
+      <SpatialScene compact style={styles.scene} />
       <View style={styles.left}>
         {showBack ? (
           <Pressable onPress={handleBack} style={styles.backButton} hitSlop={12}>
@@ -118,6 +142,7 @@ export function ScreenHeader({
       </View>
       <View style={styles.center}>
         {showBreadcrumbs ? <BreadcrumbTrail trail={breadcrumbTrail!} /> : null}
+        {!showBreadcrumbs ? <Text style={styles.eyebrow}>CareSuite+ HealthOS</Text> : null}
         <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>

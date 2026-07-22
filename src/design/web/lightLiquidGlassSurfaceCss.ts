@@ -8,6 +8,9 @@ export const LLGAN_GLASS_SURFACE_CSS = `
     --cs-white: #FFFFFF;
     --cs-glass-panel: rgba(39, 40, 70, .82);
     --cs-glass-card: rgba(53, 54, 88, .80);
+    --cs-pearl-card: rgba(244, 241, 248, .96);
+    --cs-pearl-card-end: rgba(218, 214, 232, .98);
+    --cs-ink: #17182D;
     --cs-glass-control: rgba(255, 255, 255, .075);
     --cs-glass-border: rgba(255, 255, 255, .13);
     --cs-glass-border-strong: rgba(255, 255, 255, .22);
@@ -60,8 +63,13 @@ export const LLGAN_GLASS_SURFACE_CSS = `
 
   .cs-llgan-glass-card,
   [data-cs-llgan-glass="card"] {
-    background-color: var(--cs-glass-card) !important;
-    border-color: var(--cs-glass-border);
+    background-color: var(--cs-pearl-card) !important;
+    color: var(--cs-ink);
+    background-image:
+      radial-gradient(circle at 82% 110%, rgba(105,232,255,.17), transparent 34%),
+      linear-gradient(145deg, rgba(255,255,255,.98), var(--cs-pearl-card-end)) !important;
+    border-color: rgba(255,255,255,.84);
+    box-shadow: 0 20px 54px rgba(5,7,22,.20), inset 0 1px 0 rgba(255,255,255,.92);
   }
 
   [data-cs-llgan-glass="chip"],
@@ -80,8 +88,10 @@ export const LLGAN_GLASS_SURFACE_CSS = `
   }
 
   [data-cs-llgan-glass="modal"] {
-    background-color: rgba(39,40,70,.96) !important;
-    border-color: var(--cs-glass-border-strong);
+    background-color: rgba(241,238,247,.98) !important;
+    color: var(--cs-ink);
+    background-image: linear-gradient(145deg, rgba(255,255,255,.98), rgba(216,212,231,.98)) !important;
+    border-color: rgba(255,255,255,.84);
     -webkit-backdrop-filter: blur(36px) saturate(1.28) !important;
     backdrop-filter: blur(36px) saturate(1.28) !important;
   }
@@ -90,7 +100,7 @@ export const LLGAN_GLASS_SURFACE_CSS = `
   .disable-heavy-effects [data-cs-llgan-glass] {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
-    background-color: rgba(39,40,70,.98) !important;
+    background-color: rgba(237,233,245,.98) !important;
   }
 
   @media (prefers-reduced-motion: reduce) {

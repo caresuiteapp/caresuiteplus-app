@@ -27,7 +27,7 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   accentColor?: string;
-  variant?: 'default' | 'elevated';
+  variant?: 'default' | 'elevated' | 'pearl';
   sheen?: boolean;
 };
 
@@ -46,6 +46,7 @@ export function PremiumCard({
   variant = 'default',
   sheen = true,
 }: Props) {
+  const isNight = variant === 'elevated';
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -58,16 +59,16 @@ export function PremiumCard({
           borderRadius: radius.card,
           overflow: 'hidden',
           borderWidth: 1,
-          borderColor: withAlpha(accentColor, variant === 'elevated' ? 0.58 : 0.34),
+          borderColor: isNight ? withAlpha(accentColor, 0.72) : 'rgba(255,255,255,0.82)',
           shadowColor: accentColor,
           shadowOffset: { width: 0, height: 14 },
-          shadowOpacity: variant === 'elevated' ? 0.24 : 0.14,
-          shadowRadius: variant === 'elevated' ? 24 : 18,
-          elevation: variant === 'elevated' ? 12 : 8,
+          shadowOpacity: isNight ? 0.24 : 0.13,
+          shadowRadius: isNight ? 24 : 18,
+          elevation: isNight ? 12 : 8,
           ...(Platform.OS === 'web'
             ? ({
                 boxShadow:
-                  variant === 'elevated'
+                  isNight
                     ? `0 22px 48px ${withAlpha(spatialCareColors.nightDeep, 0.5)}, 0 0 30px ${withAlpha(accentColor, 0.16)}`
                     : `0 15px 34px ${withAlpha(spatialCareColors.nightDeep, 0.4)}`,
               } as unknown as ViewStyle)
@@ -83,7 +84,16 @@ export function PremiumCard({
           width: 210,
           height: 210,
           borderRadius: 105,
-          backgroundColor: withAlpha(accentColor, variant === 'elevated' ? 0.2 : 0.12),
+          backgroundColor: withAlpha(accentColor, isNight ? 0.2 : 0.1),
+        },
+        floor: {
+          position: 'absolute',
+          left: '13%',
+          right: '13%',
+          bottom: -68,
+          height: 142,
+          borderRadius: 999,
+          backgroundColor: withAlpha(accentColor, 0.14),
         },
         edge: {
           position: 'absolute',
@@ -108,16 +118,16 @@ export function PremiumCard({
           zIndex: 2,
         },
       }),
-    [accentColor, variant],
+    [accentColor, isNight],
   );
 
   const body = (
     <LlganGlassShell kind="card" style={styles.host}>
       <LinearGradient
-        colors={
-          variant === 'elevated'
-            ? [spatialCareColors.nightRaised, spatialCareColors.night, spatialCareColors.nightDeep]
-            : [...spatialCareGradients.nightGlass]
+         colors={
+           isNight
+             ? [...spatialCareGradients.nightGlass]
+             : [...spatialCareGradients.pearl]
         }
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -125,6 +135,7 @@ export function PremiumCard({
         pointerEvents="none"
       />
       {sheen ? <View style={styles.glow} pointerEvents="none" /> : null}
+      {sheen ? <View style={styles.floor} pointerEvents="none" /> : null}
       <View style={styles.innerBorder} pointerEvents="none" />
       <View style={styles.edge} pointerEvents="none" />
       <View style={styles.content}>{children}</View>
