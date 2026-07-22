@@ -5,6 +5,7 @@ import { PortalTabScreen } from './PortalTabScreen';
 import {
   EmptyState, ErrorState, InfoBanner, LoadingState, PremiumBadge,
   PremiumButton, PremiumCard, PremiumInput, SectionPanel,
+  WorkflowFeedbackOverlay, type WorkflowFeedbackKind,
 } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
@@ -32,7 +33,9 @@ export function EmployeePayrollMonthScreen() {
   const [mileageRate, setMileageRate] = useState('0,30'); const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState(''); const [vehicle, setVehicle] = useState('');
   const [receipt, setReceipt] = useState<{ uri: string; name: string; mimeType?: string | null } | null>(null);
-  const [rejectReason, setRejectReason] = useState(''); const [message, setMessage] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [feedback, setFeedback] = useState<{ message: string; kind: WorkflowFeedbackKind } | null>(null);
+  const [busyMessage, setBusyMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const query = useAsyncQuery(useCallback(async () => {
     if (!actor.tenantId || !actor.employeeId) return { ok: false as const, error: 'Mitarbeitendenkonto ist nicht vollständig verknüpft.' };
@@ -45,36 +48,78 @@ export function EmployeePayrollMonthScreen() {
     }
   }, [query.data?.mileageRateCents]);
   const label = useMemo(() => new Date(year, month - 1, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }), [year, month]);
-  const changeMonth = (delta: number) => { const date = new Date(year, month - 1 + delta, 1); setYear(date.getFullYear()); setMonth(date.getMonth() + 1); setMessage(null); };
+  const changeMonth = (delta: number) => { const date = new Date(year, month - 1 + delta, 1); setYear(date.getFullYear()); setMonth(date.getMonth() + 1); setFeedback(null); };
   async function chooseReceipt() {
     const result = await DocumentPicker.getDocumentAsync({ type: ['image/*', 'application/pdf'], copyToCacheDirectory: true });
     if (!result.canceled && result.assets[0]) setReceipt({ uri: result.assets[0].uri, name: result.assets[0].name, mimeType: result.assets[0].mimeType });
   }
   async function submitExpense() {
-    if (!actor.tenantId || !actor.employeeId) return; setSaving(true); setMessage(null);
+    if (!actor.tenantId || !actor.employeeId) return;
+    setFeedback(null);
     let receiptPath: string | null = null;
-    if (category !== 'mileage' && !receipt) { setSaving(false); setMessage('Bitte laden Sie die Quittung, Rechnung oder das Ticket als Beleg hoch.'); return; }
-    if (receipt) { const uploaded = await uploadExpenseReceipt({ tenantId: actor.tenantId, employeeId: actor.employeeId, uri: receipt.uri, fileName: receipt.name, mimeType: receipt.mimeType }); if (!uploaded.ok) { setSaving(false); setMessage(uploaded.error); return; } receiptPath = uploaded.data.path; }
-    const km = Number(mileageKm.replace(',', '.')); const rateCents = Math.round(Number(mileageRate.replace(',', '.')) * 100);
-    const amountCents = category === 'mileage' ? Math.round(km * rateCents) : Math.round(Number(amount.replace(',', '.')) * 100);
-    const result = await createExpenseClaim({ tenantId: actor.tenantId, employeeId: actor.employeeId, expenseDate, category, description, businessPurpose: purpose, amountCents, receiptPath, mileageKm: category === 'mileage' ? km : null, mileageRateCents: category === 'mileage' ? rateCents : null, origin: origin || null, destination: destination || null, vehicleLabel: vehicle || null });
-    setSaving(false); if (!result.ok) { setMessage(result.error); return; }
-    setMessage('Auslage wurde mit Beleg zur Prüfung eingereicht.'); setDescription(''); setPurpose(''); setAmount(''); setMileageKm(''); setOrigin(''); setDestination(''); setVehicle(''); setReceipt(null); await query.refresh();
+    if (category !== 'mileage' && !receipt) {
+      setFeedback({ kind: 'warning', message: 'Bitte laden Sie die Quittung, Rechnung oder das Ticket als Beleg hoch.' });
+      return;
+    }
+    setSaving(true);
+    try {
+      if (receipt) {
+        setBusyMessage('Beleg wird sicher hochgeladen…');
+        const uploaded = await uploadExpenseReceipt({ tenantId: actor.tenantId, employeeId: actor.employeeId, uri: receipt.uri, fileName: receipt.name, mimeType: receipt.mimeType });
+        if (!uploaded.ok) { setFeedback({ kind: 'error', message: uploaded.error }); return; }
+        receiptPath = uploaded.data.path;
+      }
+      setBusyMessage('Auslage wird geprüft und eingereicht…');
+      const km = Number(mileageKm.replace(',', '.')); const rateCents = Math.round(Number(mileageRate.replace(',', '.')) * 100);
+      const amountCents = category === 'mileage' ? Math.round(km * rateCents) : Math.round(Number(amount.replace(',', '.')) * 100);
+      const result = await createExpenseClaim({ tenantId: actor.tenantId, employeeId: actor.employeeId, expenseDate, category, description, businessPurpose: purpose, amountCents, receiptPath, mileageKm: category === 'mileage' ? km : null, mileageRateCents: category === 'mileage' ? rateCents : null, origin: origin || null, destination: destination || null, vehicleLabel: vehicle || null });
+      if (!result.ok) { setFeedback({ kind: 'error', message: result.error }); return; }
+      setBusyMessage('Monatsübersicht wird aktualisiert…');
+      setDescription(''); setPurpose(''); setAmount(''); setMileageKm(''); setOrigin(''); setDestination(''); setVehicle(''); setReceipt(null);
+      await query.refresh();
+      setFeedback({ kind: 'success', message: 'Auslage wurde mit Beleg zur Prüfung eingereicht.' });
+    } finally {
+      setBusyMessage(null);
+      setSaving(false);
+    }
   }
   async function decide(decision: 'confirm' | 'reject') {
-    const statement = query.data?.statement; if (!statement) return; setSaving(true); setMessage(null);
-    const result = await decidePayrollStatement(statement.id, decision, rejectReason); setSaving(false);
-    if (!result.ok) { setMessage(result.error); return; } setMessage(decision === 'confirm' ? 'Monatsübersicht verbindlich bestätigt.' : 'Monatsübersicht wurde mit Begründung abgelehnt.'); setRejectReason(''); await query.refresh();
+    const statement = query.data?.statement; if (!statement) return;
+    setSaving(true); setFeedback(null); setBusyMessage(decision === 'confirm' ? 'Monatsübersicht wird bestätigt…' : 'Rückmeldung wird übermittelt…');
+    try {
+      const result = await decidePayrollStatement(statement.id, decision, rejectReason);
+      if (!result.ok) { setFeedback({ kind: 'error', message: result.error }); return; }
+      setRejectReason(''); await query.refresh();
+      setFeedback({ kind: 'success', message: decision === 'confirm' ? 'Monatsübersicht verbindlich bestätigt.' : 'Monatsübersicht wurde mit Begründung abgelehnt.' });
+    } finally {
+      setBusyMessage(null); setSaving(false);
+    }
   }
-  async function open(path: string | null) { if (!path) return; const result = await getPayrollPdfUrl(path); if (!result.ok) { setMessage(result.error); return; } await Linking.openURL(result.data); }
+  async function open(path: string | null) {
+    if (!path) return;
+    setFeedback(null); setBusyMessage('Dokument wird vorbereitet…');
+    try {
+      const result = await getPayrollPdfUrl(path);
+      if (!result.ok) { setFeedback({ kind: 'error', message: result.error }); return; }
+      await Linking.openURL(result.data);
+    } finally {
+      setBusyMessage(null);
+    }
+  }
 
   if (query.loading && !query.data) return <PortalTabScreen title="Gehalt & Auslagen"><LoadingState message="Monatsübersicht wird geladen…" /></PortalTabScreen>;
   if (query.error && !query.data) return <PortalTabScreen title="Gehalt & Auslagen"><ErrorState title="Nicht verfügbar" message={query.error} onRetry={() => void query.refresh()} /></PortalTabScreen>;
   const statement = query.data?.statement; const snapshot = statement?.snapshot;
   return <PortalTabScreen title="Gehalt & Auslagen" subtitle="Monatsübersicht prüfen, PDF bestätigen und Auslagen einreichen" scroll>
     <View style={styles.page} testID="employee-payroll-month-screen">
+      <WorkflowFeedbackOverlay
+        kind={feedback?.kind}
+        loading={saving || Boolean(busyMessage)}
+        loadingMessage={busyMessage ?? 'Vorgang wird ausgeführt…'}
+        message={feedback?.message}
+        onDismiss={() => setFeedback(null)}
+      />
       <View style={styles.monthBar}><PremiumButton title="←" size="sm" variant="secondary" onPress={() => changeMonth(-1)} /><Text style={styles.monthTitle}>{label}</Text><PremiumButton title="→" size="sm" variant="secondary" onPress={() => changeMonth(1)} /></View>
-      {message ? <InfoBanner message={message} /> : null}
       <SectionPanel title="Meine Monatsübersicht" subtitle="Erfasste Werte und Planung bis Monatsende">
         {!statement || !snapshot ? <EmptyState title="Noch nicht veröffentlicht" message="Office hat für diesen Monat noch keine PDF-Übersicht zur Prüfung freigegeben." /> : <PremiumCard style={styles.statement}>
           <View style={styles.heading}><View><Text style={styles.title}>Version {statement.version}</Text><Text style={styles.muted}>Stand {new Date(snapshot.generatedAt).toLocaleString('de-DE')}</Text></View><PremiumBadge label={statementStatus[statement.status] ?? statement.status} variant={statement.status === 'confirmed' || statement.status === 'paid' ? 'green' : statement.status === 'rejected' ? 'orange' : 'cyan'} /></View>

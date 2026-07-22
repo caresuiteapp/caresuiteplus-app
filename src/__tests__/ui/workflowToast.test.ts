@@ -9,13 +9,14 @@ describe('WorkflowToast', () => {
   );
 
   it('bleibt overlay-basiert und verschiebt kein Layout', () => {
-    expect(source).toContain("position: 'absolute'");
-    expect(source).toContain('pointerEvents="box-none"');
+    expect(source).toContain('<WorkflowFeedbackOverlay');
+    expect(source).toContain('autoDismissMs={5000}');
   });
 
   it('schließt nach exakt fünf Sekunden und räumt den Timer auf', () => {
-    expect(source).toContain('}, 5000)');
-    expect(source).toContain('clearTimeout(timer)');
+    const overlaySource = readFileSync('src/components/ui/WorkflowFeedbackOverlay.tsx', 'utf8');
+    expect(overlaySource).toContain('const timer = setTimeout(() => {');
+    expect(overlaySource).toContain('clearTimeout(timer)');
   });
 
   it('ersetzt auch im Mitarbeiter-Einsatz die große Erfolgsfläche', () => {
