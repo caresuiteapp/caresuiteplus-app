@@ -13,14 +13,20 @@ const migration = readFileSync(
   'supabase/migrations/0257_assist_administrative_bulk_follow_up.sql',
   'utf8',
 );
+const liveRepair = readFileSync(
+  'supabase/migrations/0266_assist_administrative_follow_up_live_repair.sql',
+  'utf8',
+);
 const premiumButton = readFileSync('src/components/ui/PremiumButton.tsx', 'utf8');
 const careLightButton = readFileSync('src/components/ui/CareLightButton.tsx', 'utf8');
 
 describe('administrative Sammelnachbearbeitung', () => {
-  it('macht die gemeinsame Begründung sichtbar und behält sie für alle Aktionen', () => {
-    expect(panel).toContain('Gemeinsame Begründung für die Nachbearbeitung');
-    expect(panel).toContain('Einmal eingeben');
-    expect(panel).not.toContain("setReason('');");
+  it('macht die Nachbearbeitung ohne vorgeschaltete Pflichtbegründung sofort nutzbar', () => {
+    expect(panel).not.toContain('Gemeinsame Begründung für die Nachbearbeitung');
+    expect(panel).not.toContain('setReason');
+    expect(panel).not.toContain('!reason.trim()');
+    expect(panel).toContain('automatisch revisionssicher protokolliert');
+    expect(service).toContain("const AUTOMATIC_ADMIN_AUDIT_REASON = 'Administrative Nachbearbeitung'");
   });
 
   it('sammelt Aufgabenänderungen und speichert sie gemeinsam', () => {
@@ -43,9 +49,16 @@ describe('administrative Sammelnachbearbeitung', () => {
     expect(migration).toContain('ON CONFLICT (role_id, permission_key) DO NOTHING');
   });
 
+  it('repariert den produktiven updated_by-Schemadrift und lädt PostgREST neu', () => {
+    expect(liveRepair).toContain('ADD COLUMN IF NOT EXISTS updated_by');
+    expect(liveRepair).toContain('admin_correct_assist_visit_times');
+    expect(liveRepair).toContain("NOTIFY pgrst, 'reload schema'");
+  });
+
   it('respektiert gesperrte Aktionen auch in der hellen Desktop-Oberfläche', () => {
-    expect(premiumButton).toContain('disabled={disabled}');
-    expect(careLightButton).toContain('disabled={disabled || loading}');
-    expect(careLightButton).toContain('accessibilityState={{ disabled: disabled || loading }}');
+    expect(premiumButton).toContain('disabled={isDisabled}');
+    expect(premiumButton).toContain('const isDisabled = disabled || loading');
+    expect(careLightButton).toContain('disabled={disabled}');
+    expect(careLightButton).toContain('loading={loading}');
   });
 });
