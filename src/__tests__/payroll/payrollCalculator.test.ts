@@ -4,6 +4,7 @@ import {
   calculatePayrollSnapshot,
   moneyFromMinutes,
 } from '@/lib/payroll/payrollCalculator';
+import { isPayrollRelevantEmployee } from '@/lib/payroll/payrollEmployeeStatus';
 import type { PayrollExpenseClaim } from '@/types/modules/payrollMonth';
 
 function expense(overrides: Partial<PayrollExpenseClaim> = {}): PayrollExpenseClaim {
@@ -34,6 +35,14 @@ const base = {
 };
 
 describe('payrollCalculator', () => {
+  it('filtert Beschäftigungsstatus schemaunabhängig ohne PostgREST-Enumfilter', () => {
+    expect(isPayrollRelevantEmployee({ status: 'aktiv' })).toBe(true);
+    expect(isPayrollRelevantEmployee({ status: 'in_bearbeitung' })).toBe(true);
+    expect(isPayrollRelevantEmployee({ status: 'probezeit' })).toBe(true);
+    expect(isPayrollRelevantEmployee({ status: 'ausgeschieden' })).toBe(false);
+    expect(isPayrollRelevantEmployee({ status: 'archiviert' })).toBe(false);
+  });
+
   it('berechnet Stundenlohn minutengenau', () => {
     expect(moneyFromMinutes(90, 2_000)).toBe(3_000);
   });
