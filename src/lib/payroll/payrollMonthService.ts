@@ -164,6 +164,7 @@ function buildEmployeeSnapshot(input: {
     compensationType: asString(input.payroll?.compensation_type) === 'hourly' ? 'hourly' : 'salary',
     compensationAmount: asNumber(input.payroll?.compensation_amount),
     maxPayoutHours: input.payroll?.max_payout_hours_month == null ? null : asNumber(input.payroll?.max_payout_hours_month),
+    overflowToTimeAccount: input.payroll?.overflow_to_time_account !== false,
     actualWorkMinutes,
     travelMinutes: asNumber(account?.travel_minutes), vacationMinutes, sickMinutes, otherPaidAbsenceMinutes,
     plannedMinutes: input.plannedMinutes,
@@ -226,20 +227,25 @@ export async function listPayrollMonthOverview(
 
 export async function loadEmployeePayrollMonth(
   tenantId: string, employeeId: string, year: number, month: number,
-): Promise<ServiceResult<{ statement: PayrollStatement | null; expenses: PayrollExpenseClaim[] }>> {
+): Promise<ServiceResult<{ statement: PayrollStatement | null; expenses: PayrollExpenseClaim[]; mileageRateCents: number }>> {
   const key = `${tenantId}:${employeeId}:${year}:${month}`;
   if (getServiceMode() !== 'supabase') {
-    return { ok: true, data: { statement: (demoStatements.get(key) ?? [])[0] ?? null, expenses: demoExpenses.get(key) ?? [] } };
+    return { ok: true, data: { statement: (demoStatements.get(key) ?? [])[0] ?? null, expenses: demoExpenses.get(key) ?? [], mileageRateCents: 30 } };
   }
   const supabase = getSupabaseClient(); if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
   const { fromDate, toDate } = periodRange(year, month);
-  const [statementRes, expenseRes] = await Promise.all([
+  const [statementRes, expenseRes, mileageRateRes] = await Promise.all([
     fromUnknownTable(supabase, 'payroll_month_statements').select('*').eq('tenant_id', tenantId).eq('employee_id', employeeId).eq('period_year', year).eq('period_month', month).in('status', ['published','confirmed','rejected','locked','paid']).order('version', { ascending: false }).limit(1).maybeSingle(),
     fromUnknownTable(supabase, 'employee_expense_claims').select('*').eq('tenant_id', tenantId).eq('employee_id', employeeId).gte('expense_date', fromDate).lte('expense_date', toDate).order('expense_date', { ascending: false }),
+    supabase.rpc('employee_payroll_mileage_rate_cents' as never),
   ]);
   if (statementRes.error) return { ok: false, error: toGermanSupabaseError(statementRes.error) };
   if (expenseRes.error) return { ok: false, error: toGermanSupabaseError(expenseRes.error) };
-  return { ok: true, data: { statement: statementRes.data ? mapStatement(statementRes.data as Row) : null, expenses: ((expenseRes.data ?? []) as Row[]).map(mapExpense) } };
+  return { ok: true, data: {
+    statement: statementRes.data ? mapStatement(statementRes.data as Row) : null,
+    expenses: ((expenseRes.data ?? []) as Row[]).map(mapExpense),
+    mileageRateCents: mileageRateRes.error ? 30 : Math.max(0, asNumber(mileageRateRes.data) || 30),
+  } };
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -281,6 +287,10 @@ export async function publishPayrollStatement(
   const existingRes = await fromUnknownTable(supabase, 'payroll_month_statements').select('id, version, status').eq('tenant_id', tenantId).eq('employee_id', employee.employeeId).eq('period_year', employee.periodYear).eq('period_month', employee.periodMonth).order('version', { ascending: false });
   if (existingRes.error) return { ok: false, error: toGermanSupabaseError(existingRes.error) };
   const existing = (existingRes.data ?? []) as Row[];
+  const immutableStatement = existing.find((row) => ['confirmed','locked','paid'].includes(asString(row.status)));
+  if (immutableStatement) {
+    return { ok: false, error: 'Eine bestätigte oder gesperrte Monatsübersicht kann nicht erneut veröffentlicht werden.' };
+  }
   const version = Math.max(0, ...existing.map((row) => asNumber(row.version))) + 1;
   const statementId = createUuid();
   const { latestStatement, ...snapshot } = employee;
@@ -291,7 +301,7 @@ export async function publishPayrollStatement(
   catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'PDF-Erzeugung fehlgeschlagen.' }; }
   const upload = await invokeEdgeFunction<{ pdfPath?: string }>('render-document-pdf', { tenantId, documentId: `payroll-${statementId}`, htmlOutput: html, pdfBase64: bytesToBase64(pdfBytes), storeOnly: true });
   if (!upload.ok || !upload.data.pdfPath) return { ok: false, error: upload.ok ? 'PDF-Speicherpfad fehlt.' : upload.error };
-  const supersedeIds = existing.filter((row) => ['published','confirmed','rejected'].includes(asString(row.status))).map((row) => asString(row.id));
+  const supersedeIds = existing.filter((row) => ['published','rejected'].includes(asString(row.status))).map((row) => asString(row.id));
   if (supersedeIds.length) {
     const supersede = await fromUnknownTable(supabase, 'payroll_month_statements').update({ status: 'superseded', updated_at: new Date().toISOString() }).in('id', supersedeIds);
     if (supersede.error) return { ok: false, error: toGermanSupabaseError(supersede.error) };
@@ -356,7 +366,13 @@ export async function uploadExpenseReceipt(input: { tenantId: string; employeeId
     const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
     const path = `${input.tenantId}/payroll/expenses/${input.employeeId}/${Date.now()}-${safeName}`;
     const { error } = await supabase.storage.from('office-documents').upload(path, blob, { contentType: input.mimeType ?? blob.type ?? 'application/octet-stream', upsert: false });
-    if (error) return { ok: false, error: error.message }; return { ok: true, data: { path } };
+    if (error) {
+      const message = error.message.toLowerCase().includes('row-level security')
+        ? 'Der persönliche Belegordner ist noch nicht freigeschaltet. Bitte die Payroll-Sicherheitsmigration anwenden.'
+        : error.message;
+      return { ok: false, error: message };
+    }
+    return { ok: true, data: { path } };
   } catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'Beleg-Upload fehlgeschlagen.' }; }
 }
 

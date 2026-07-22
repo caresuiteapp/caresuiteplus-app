@@ -27,7 +27,7 @@ function expense(overrides: Partial<PayrollExpenseClaim> = {}): PayrollExpenseCl
 const base = {
   employeeId: 'employee-1', employeeName: 'Alex Beispiel', employeeNumber: 'MA-100',
   periodYear: 2026, periodMonth: 7, compensationType: 'hourly' as const,
-  compensationAmount: 20, maxPayoutHours: null, actualWorkMinutes: 6_000,
+  compensationAmount: 20, maxPayoutHours: null, overflowToTimeAccount: true, actualWorkMinutes: 6_000,
   travelMinutes: 600, vacationMinutes: 480, sickMinutes: 0,
   otherPaidAbsenceMinutes: 0, plannedMinutes: 1_200,
   timeAccountBalanceMinutes: 300, expenses: [] as PayrollExpenseClaim[],
@@ -53,6 +53,12 @@ describe('payrollCalculator', () => {
     expect(result.overtimeTransferMinutes).toBe(480);
     expect(result.earnedGrossCents).toBe(200_000);
     expect(result.projectedGrossCents).toBe(200_000);
+  });
+
+  it('respektiert die manuelle Prüfung statt automatischem Zeitkonto-Übertrag', () => {
+    const result = calculatePayrollSnapshot({ ...base, maxPayoutHours: 100, overflowToTimeAccount: false });
+    expect(result.payableMinutes).toBe(6_000);
+    expect(result.overtimeTransferMinutes).toBe(0);
   });
 
   it('bezieht geplante Einsätze ausschließlich in die Prognose ein', () => {
@@ -90,5 +96,8 @@ describe('payrollCalculator', () => {
     expect(html).toContain('Geplante Einsätze bis Monatsende');
     expect(html).toContain('ÖPNV-Ticket zum Einsatz');
     expect(html).toContain('Bruttolohn und Auslagenersatz werden getrennt ausgewiesen');
+    const escaped = buildPayrollStatementHtml({ ...snapshot, employeeName: '<script>alert(1)</script>' }, 3);
+    expect(escaped).not.toContain('<script>');
+    expect(escaped).toContain('&lt;script&gt;');
   });
 });

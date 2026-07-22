@@ -12,6 +12,7 @@ export type PayrollCalculationInput = {
   compensationType: 'salary' | 'hourly';
   compensationAmount: number;
   maxPayoutHours?: number | null;
+  overflowToTimeAccount?: boolean;
   actualWorkMinutes: number;
   travelMinutes: number;
   vacationMinutes: number;
@@ -46,7 +47,9 @@ export function calculatePayrollSnapshot(input: PayrollCalculationInput): Payrol
   const payableMinutes = maxPayoutMinutes == null
     ? contractualPayableMinutes
     : Math.min(contractualPayableMinutes, maxPayoutMinutes);
-  const overtimeTransferMinutes = Math.max(0, contractualPayableMinutes - payableMinutes);
+  const overtimeTransferMinutes = input.overflowToTimeAccount === false
+    ? 0
+    : Math.max(0, contractualPayableMinutes - payableMinutes);
   const hourlyRateCents = input.compensationType === 'hourly'
     ? Math.round(Math.max(0, input.compensationAmount) * 100)
     : 0;
@@ -125,13 +128,22 @@ export function formatPayrollMinutes(minutes: number): string {
   return `${sign}${Math.floor(absolute / 60)}:${String(absolute % 60).padStart(2, '0')} Std.`;
 }
 
+function escapePayrollHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 export function buildPayrollStatementHtml(snapshot: PayrollStatementSnapshot, version: number): string {
   const month = new Date(snapshot.periodYear, snapshot.periodMonth - 1, 1).toLocaleDateString('de-DE', {
     month: 'long', year: 'numeric',
   });
   const expenseRows = snapshot.expenseClaims
     .filter((claim) => ['approved', 'partially_approved', 'reimbursed'].includes(claim.status))
-    .map((claim) => `<tr><td>${claim.expenseDate}</td><td>${claim.description}</td><td>${formatPayrollMoney(claim.approvedAmountCents ?? claim.amountCents)}</td></tr>`)
+    .map((claim) => `<tr><td>${escapePayrollHtml(claim.expenseDate)}</td><td>${escapePayrollHtml(claim.description)}</td><td>${formatPayrollMoney(claim.approvedAmountCents ?? claim.amountCents)}</td></tr>`)
     .join('');
   return `<!doctype html><html><head><meta charset="utf-8"><style>
     body{font-family:Arial,sans-serif;color:#17192b;background:#fff;padding:28px;font-size:12px}
@@ -144,7 +156,7 @@ export function buildPayrollStatementHtml(snapshot: PayrollStatementSnapshot, ve
     table{width:100%;border-collapse:collapse}td,th{padding:7px;border-bottom:1px solid #ececf1;text-align:left}th{background:#f4f5f8}
     .notice{margin-top:24px;padding:14px;border-radius:12px;background:#f4f5f8;color:#55586b}
   </style></head><body>
-  <div class="hero"><div class="brand">CARESUITE+ · MONATSÜBERSICHT</div><h1>${snapshot.employeeName}</h1>
+  <div class="hero"><div class="brand">CARESUITE+ · MONATSÜBERSICHT</div><h1>${escapePayrollHtml(snapshot.employeeName)}</h1>
   <div class="meta">${month} · Version ${version} · erstellt ${new Date(snapshot.generatedAt).toLocaleString('de-DE')}</div>
   <div class="grid">
    <div class="row"><span>Erfasste Arbeitszeit</span><strong>${formatPayrollMinutes(snapshot.actualWorkMinutes)}</strong></div>
