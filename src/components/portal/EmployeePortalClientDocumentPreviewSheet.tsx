@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import {
-  Linking,
   Modal,
   Platform,
   Pressable,
@@ -14,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { PortalDocumentDetailHero } from '@/components/portal/PortalDocumentDetailHero';
 import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
-import { lightSurfaceText } from '@/design/tokens/auroraGlass';
+import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -37,7 +36,7 @@ export function EmployeePortalClientDocumentPreviewSheet({
   onClose,
 }: EmployeePortalClientDocumentPreviewSheetProps) {
   const insets = useSafeAreaInsets();
-  const text = lightSurfaceText;
+  const text = darkGlassSurfaceText;
   const { data, loading, error, refresh, download, downloadLoading, downloadError } =
     useEmployeePortalClientDocument(clientId, visible ? documentId : null);
 

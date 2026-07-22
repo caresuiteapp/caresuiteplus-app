@@ -1,6 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
 import {
-  ScrollView,
   StyleSheet,
   View,
   type StyleProp,
@@ -39,24 +38,28 @@ export function HealthOSPage({
           paddingVertical: healthosDensity.page.paddingVertical,
           gap: healthosDensity.page.gap,
         },
+        scrollContent: {
+          flex: 0,
+          flexGrow: 0,
+          minHeight: 0,
+        },
       }),
     [variant],
   );
 
-  if (scroll) {
-    return (
-      <ScrollView
-        style={[styles.root, style]}
-        contentContainerStyle={[styles.inner, contentContainerStyle]}
-        testID={testID}
-      >
-        {children}
-      </ScrollView>
-    );
-  }
-
+  // Scrolling belongs to ScreenShell/PortalShellLayout. A second ScrollView here
+  // created nested fixed-height viewports and clipped dashboards and long lists.
   return (
-    <View style={[styles.root, styles.inner, style]} testID={testID}>
+    <View
+      style={[
+        styles.root,
+        styles.inner,
+        scroll ? styles.scrollContent : null,
+        contentContainerStyle,
+        style,
+      ]}
+      testID={testID}
+    >
       {children}
     </View>
   );

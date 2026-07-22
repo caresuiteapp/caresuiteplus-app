@@ -25,6 +25,7 @@
     "free-platform:audit": "node scripts/free-platform-audit.mjs",
     "design:audit": "node scripts/design-audit.mjs",
     "design:system:audit": "node scripts/system-liquid-glass-v33-audit.mjs",
+    "design:spatial-contrast:audit": "node scripts/system-spatial-contrast-shell-v36-1-audit.mjs",
     "audit:no-white": "node scripts/audit-no-white-backgrounds.js",
     "audit:runtime-backgrounds": "node scripts/audit-runtime-backgrounds.mjs",
     "eas:preflight": "node scripts/eas-preflight.mjs",

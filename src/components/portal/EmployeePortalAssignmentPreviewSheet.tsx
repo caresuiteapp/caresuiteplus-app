@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PremiumButton, LoadingState, ErrorState } from '@/components/ui';
 import { HealthOSStatusBadge } from '@/components/healthos';
-import { lightSurfaceText } from '@/design/tokens/auroraGlass';
+import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -46,7 +46,7 @@ export function EmployeePortalAssignmentPreviewSheet({
 }: EmployeePortalAssignmentPreviewSheetProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const text = lightSurfaceText;
+  const text = darkGlassSurfaceText;
   const { data, loading, error, refresh, fromCache } = usePortalAppointmentDetail(
     visible ? (assignmentId ?? undefined) : undefined,
   );
