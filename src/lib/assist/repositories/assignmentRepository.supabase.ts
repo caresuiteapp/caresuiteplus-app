@@ -137,6 +137,12 @@ function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 }
 
+function diagnosticSupabaseError(error: { code?: string; message?: string } | null): string {
+  if (!error) return toGermanSupabaseError(null);
+  const detail = '[' + (error.code ?? 'unknown') + ': ' + (error.message ?? 'unbekannter Fehler') + ']';
+  return toGermanSupabaseError(error as never) + ' ' + detail;
+}
+
 function personName(
   row?: { first_name: string | null; last_name: string | null } | null,
 ): string {
@@ -310,14 +316,24 @@ export const assignmentSupabaseRepository = {
       query = query.eq('employee_id', portalEmployeeId);
     }
 
-    const { data, error } = await query.maybeSingle();
+    let { data, error } = await query.maybeSingle();
 
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) {
+      const fallback = await fromUnknownTable(supabase, 'assignments')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('id', assignmentId)
+        .maybeSingle();
+      data = fallback.data;
+      error = fallback.error;
+    }
+
+    if (error) return { ok: false, error: diagnosticSupabaseError(error) };
     if (!data) return { ok: true, data: null };
 
     const row = data as unknown as AssignmentLiveRow;
 
-    if (usePortalFlatSelect && row.client_id) {
+    if (!row.clients && row.client_id) {
       const { data: clientRow } = await fromUnknownTable(supabase, 'clients')
         .select('first_name, last_name, street, house_number, postal_code, city')
         .eq('tenant_id', tenantId)
@@ -326,6 +342,15 @@ export const assignmentSupabaseRepository = {
       if (clientRow) {
         row.clients = clientRow as AssignmentLiveRow['clients'];
       }
+    }
+
+    if (!row.employees && row.employee_id) {
+      const { data: employeeRow } = await fromUnknownTable(supabase, 'employees')
+        .select('first_name, last_name')
+        .eq('tenant_id', tenantId)
+        .eq('id', row.employee_id)
+        .maybeSingle();
+      if (employeeRow) row.employees = employeeRow as AssignmentLiveRow['employees'];
     }
 
     const { data: taskRows, error: taskError } = await fromUnknownTable(supabase, 'assignment_tasks')
@@ -467,7 +492,13 @@ export const assignmentSupabaseRepository = {
         .eq('id', masterAssignmentId);
 
       if (updateError) {
-        return { ok: false, error: toGermanSupabaseError(updateError) };
+        const minimalUpdate = await fromUnknownTable(supabase, 'assignments')
+          .update({ status: remoteStatus })
+          .eq('tenant_id', tenantId)
+          .eq('id', masterAssignmentId);
+        if (minimalUpdate.error) {
+          return { ok: false, error: diagnosticSupabaseError(minimalUpdate.error) };
+        }
       }
     } else if (Object.keys(timestampPatch).length > 0) {
       // set_assignment_status updates status only — patch lifecycle timestamps separately.
@@ -477,7 +508,7 @@ export const assignmentSupabaseRepository = {
         .eq('id', masterAssignmentId);
 
       if (timestampError) {
-        return { ok: false, error: toGermanSupabaseError(timestampError) };
+        console.warn('[assignmentRepository] optionale Lebenszykluszeiten:', timestampError.message);
       }
     }
 
@@ -543,7 +574,14 @@ export const assignmentSupabaseRepository = {
       .eq('id', taskId);
 
     if (updateError) {
-      return { ok: false, error: toGermanSupabaseError(updateError) };
+      const minimalUpdate = await fromUnknownTable(supabase, 'assignment_tasks')
+        .update({ status })
+        .eq('tenant_id', tenantId)
+        .eq('assignment_id', assignmentId)
+        .eq('id', taskId);
+      if (minimalUpdate.error) {
+        return { ok: false, error: diagnosticSupabaseError(minimalUpdate.error) };
+      }
     }
 
     await writeAssignmentAudit(supabase, {

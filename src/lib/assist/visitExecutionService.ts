@@ -73,9 +73,12 @@ export async function updateVisitTaskStatus(
       if (visitUpdate.ok) {
         return fetchVisitDispositionDetail(executableVisitId, tenantId, actorRoleKey);
       }
-      if (visitUpdate.error !== 'Aufgabe nicht gefunden.') {
-        return visitUpdate;
-      }
+      const compatibilityFailure =
+        visitUpdate.error === 'Aufgabe nicht gefunden.'
+        || visitUpdate.error.includes('Datenbank')
+        || visitUpdate.error.includes('Schema')
+        || visitUpdate.error.includes('Tabelle nicht verfügbar');
+      if (!compatibilityFailure) return visitUpdate;
     }
 
     const assignmentStatus = mapVisitTaskStatusToAssignmentStatus(status);
