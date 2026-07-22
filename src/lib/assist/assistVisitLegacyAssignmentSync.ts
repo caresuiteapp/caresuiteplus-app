@@ -68,6 +68,14 @@ export async function upsertLegacyAssignmentFromVisit(
   return { ok: true, data: { assignmentId: input.visitId } };
 }
 
+function toLegacyWorkflowStatus(remoteStatus: string): string {
+  if (remoteStatus === 'planned') return 'entwurf';
+  if (remoteStatus === 'confirmed' || remoteStatus === 'on_the_way' || remoteStatus === 'arrived') return 'aktiv';
+  if (['started', 'paused', 'finished', 'documentation_open', 'signature_open'].includes(remoteStatus)) return 'in_bearbeitung';
+  if (remoteStatus === 'completed') return 'abgeschlossen';
+  return 'fehlerhaft';
+}
+
 export async function syncLegacyAssignmentStatusFromVisit(
   supabase: SupabaseClient,
   tenantId: string,
@@ -75,27 +83,39 @@ export async function syncLegacyAssignmentStatusFromVisit(
   remoteStatus: string,
   timestampPatch?: Record<string, unknown>,
 ): Promise<ServiceResult<void>> {
-  // assist_visits owns updated_by. Older production generations of the
-  // compatibility table assignments do not expose that column.
   const { updated_by: _visitUpdatedBy, ...legacyTimestampPatch } = timestampPatch ?? {};
   void _visitUpdatedBy;
 
-  const patch: Record<string, unknown> = {
+  const updateLegacy = (patch: Record<string, unknown>) =>
+    fromUnknownTable(supabase, 'assignments')
+      .update(patch)
+      .eq('tenant_id', tenantId)
+      .eq('id', visitId);
+
+  const fullResult = await updateLegacy({
     status: remoteStatus,
     updated_at: new Date().toISOString(),
     ...legacyTimestampPatch,
+  });
+  if (!fullResult.error) return { ok: true, data: undefined };
+
+  // Production contains several historical assignments schemas. First remove
+  // optional timestamp columns, then fall back from assignment_status values
+  // to the older workflow_status vocabulary.
+  const minimalResult = await updateLegacy({ status: remoteStatus });
+  if (!minimalResult.error) return { ok: true, data: undefined };
+
+  const workflowResult = await updateLegacy({ status: toLegacyWorkflowStatus(remoteStatus) });
+  if (!workflowResult.error) return { ok: true, data: undefined };
+
+  const finalError = workflowResult.error ?? minimalResult.error ?? fullResult.error;
+  const detail = finalError
+    ? '[' + (finalError.code ?? 'unknown') + ': ' + (finalError.message ?? 'unbekannter Fehler') + ']'
+    : '';
+  return {
+    ok: false,
+    error: (toGermanSupabaseError(finalError) + ' ' + detail).trim(),
   };
-
-  const { error } = await fromUnknownTable(supabase, 'assignments')
-    .update(patch)
-    .eq('tenant_id', tenantId)
-    .eq('id', visitId);
-
-  if (error) {
-    return { ok: false, error: toGermanSupabaseError(error) };
-  }
-
-  return { ok: true, data: undefined };
 }
 
 export async function syncLegacyAssignmentTasksFromVisit(

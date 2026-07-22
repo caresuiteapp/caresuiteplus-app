@@ -937,9 +937,10 @@ export const visitSupabaseRepository = {
     const remoteStatus = assignmentStatusToRemote(toStatus);
     const now = new Date().toISOString();
 
+    // Actor information is recorded in history/audit. Keeping updated_by out
+    // of the primary mutation remains compatible with older live schemas.
     const patch: Record<string, unknown> = {
       canonical_status: remoteStatus,
-      updated_by: actorProfileId ?? null,
     };
 
     if (toStatus === 'unterwegs' && !existing.data.onTheWayAt) patch.on_the_way_at = now;
@@ -963,7 +964,10 @@ export const visitSupabaseRepository = {
       .eq('tenant_id', tenantId)
       .eq('id', visitId);
 
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) {
+      const detail = '[' + (error.code ?? 'unknown') + ': ' + (error.message ?? 'unbekannter Fehler') + ']';
+      return { ok: false, error: toGermanSupabaseError(error) + ' ' + detail };
+    }
 
     const legacyStatusSync = await syncLegacyAssignmentStatusFromVisit(
       supabase,
