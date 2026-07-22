@@ -22,6 +22,7 @@ import {
   buildPayrollStatementHtml,
   calculatePayrollSnapshot,
 } from './payrollCalculator';
+import { isPayrollRelevantEmployee } from './payrollEmployeeStatus';
 
 type Row = Record<string, unknown>;
 
@@ -184,7 +185,7 @@ export async function listPayrollMonthOverview(
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
   const { fromDate, toDate } = periodRange(year, month);
   const [employeesRes, payrollRes, contractRes, sessionsRes, accountsRes, absencesRes, expensesRes, statementsRes, plannedRes] = await Promise.all([
-    fromUnknownTable(supabase, 'employees').select('id, first_name, last_name, employee_number, status').eq('tenant_id', tenantId).in('status', ['aktiv','in_bearbeitung']).order('last_name'),
+    fromUnknownTable(supabase, 'employees').select('id, first_name, last_name, employee_number, status').eq('tenant_id', tenantId).order('last_name'),
     fromUnknownTable(supabase, 'employee_payroll_settings').select('employee_id, compensation_type, compensation_amount, max_payout_hours_month, overflow_to_time_account, mileage_rate_cents').eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'employee_contract_settings').select('employee_id, work_days').eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'workforce_work_sessions').select('employee_id, work_date, net_minutes, gross_minutes, pause_minutes, work_mode').eq('tenant_id', tenantId).gte('work_date', fromDate).lte('work_date', toDate),
@@ -201,7 +202,7 @@ export async function listPayrollMonthOverview(
   const payrollRows = rows(payrollRes.data); const contractRows = rows(contractRes.data);
   const accountRows = rows(accountsRes.data); const statementRows = rows(statementsRes.data).map(mapStatement);
   const expenses = rows(expensesRes.data).map(mapExpense); const now = Date.now();
-  const employees = rows(employeesRes.data).map((employee) => {
+  const employees = rows(employeesRes.data).filter(isPayrollRelevantEmployee).map((employee) => {
     const employeeId = asString(employee.id);
     return buildEmployeeSnapshot({ employee,
       payroll: payrollRows.find((row) => asString(row.employee_id) === employeeId),

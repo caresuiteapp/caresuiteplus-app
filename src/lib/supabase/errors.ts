@@ -73,11 +73,13 @@ export function toGermanSupabaseError(error: PostgrestError | null): string {
       ? `Tabelle nicht verfügbar (${msg})`
       : MISSING_SCHEMA_ERROR;
   }
-  if (
-    error.code === '22P02' ||
-    msg.includes('invalid input syntax for type uuid')
-  ) {
+  if (msg.includes('invalid input syntax for type uuid')) {
     return 'Ungültige Mitarbeiter-ID. Bitte Personalnummer oder interne UUID verwenden.';
+  }
+  if (error.code === '22P02') {
+    return isDevEnvironment()
+      ? `Ungültiger Datenbankwert (${msg})`
+      : 'Ein Filterwert passt nicht zum Datenbankschema. Bitte erneut versuchen.';
   }
   if (error.code === '42703' || (msg.includes('column') && msg.includes('does not exist'))) {
     return GENERIC_DB_ERROR;
