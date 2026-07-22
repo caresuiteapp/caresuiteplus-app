@@ -3,12 +3,12 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
 } from 'react-native';
 import { ClientDetailSummaryPanel } from './ClientDetailSummaryPanel';
+import { AutoScrollView } from '@/components/layout/AutoScrollView';
 import { GradientModalHeader } from '@/components/layout/platform';
 import { GlassSurface } from '@/components/ui/effects';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
@@ -133,6 +133,8 @@ export function ClientDetailModal({
         sheetHost: {
           width: isBottomSheet ? ('100%' as const) : sheetWidth,
           maxHeight: sheetMaxHeight,
+          minHeight: 0,
+          minWidth: 0,
           flex: isFull && !isBottomSheet ? 1 : undefined,
           ...Platform.select({
             web: { boxShadow: '0 24px 64px rgba(0,0,0,0.35)' as unknown as undefined },
@@ -142,6 +144,7 @@ export function ClientDetailModal({
         sheetInner: {
           flex: 1,
           minHeight: 0,
+          minWidth: 0,
         },
         scroll: {
           flex: 1,
@@ -186,11 +189,10 @@ export function ClientDetailModal({
 
               {isFull ? (
                 <View style={styles.fullContent}>
-                  <ScrollView
+                  <AutoScrollView
                     style={styles.scroll}
                     contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
+                    fillViewport={false}
                   >
                     <ClientRecordScreen
                       key={detailRevision}
@@ -201,14 +203,13 @@ export function ClientDetailModal({
                       initialMasterDataEditOpen={initialEditOpen}
                       onDeleted={handleDeleted}
                     />
-                  </ScrollView>
+                  </AutoScrollView>
                 </View>
               ) : (
-                <ScrollView
+                <AutoScrollView
                   style={styles.scroll}
                   contentContainerStyle={styles.scrollContent}
-                  showsVerticalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
+                  fillViewport={false}
                 >
                   <ClientDetailSummaryPanel
                     key={detailRevision}
@@ -217,7 +218,7 @@ export function ClientDetailModal({
                     onOpenRecordTab={handleOpenRecordTab}
                     onDeleted={handleDeleted}
                   />
-                </ScrollView>
+                </AutoScrollView>
               )}
             </GlassSurface>
           </View>

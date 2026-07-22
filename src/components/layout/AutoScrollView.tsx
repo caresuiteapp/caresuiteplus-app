@@ -72,6 +72,8 @@ export function AutoScrollView({
           overflowX: allowHorizontalOverflow ? ('auto' as const) : ('hidden' as const),
           WebkitOverflowScrolling: 'touch',
           touchAction: 'pan-y',
+          overscrollBehavior: 'contain',
+          scrollbarGutter: 'stable',
         } as ViewStyle)
       : null;
 

@@ -8,8 +8,6 @@ import {
 
   Pressable,
 
-  ScrollView,
-
   StyleSheet,
 
   View,
@@ -29,6 +27,7 @@ import type { EmployeeEditSectionKey } from '@/lib/office/employeeSectionEditLab
 import { EmployeeOffboardingModal } from './employeeoffboardingmodal';
 
 import { GradientModalHeader } from '@/components/layout/platform';
+import { AutoScrollView } from '@/components/layout/AutoScrollView';
 
 import { GlassSurface } from '@/components/ui/effects';
 
@@ -261,6 +260,10 @@ export function EmployeeDetailModal({
 
           maxHeight: sheetMaxHeight,
 
+          minHeight: 0,
+
+          minWidth: 0,
+
           flex: isPersonnel ? 1 : undefined,
 
           ...Platform.select({
@@ -278,6 +281,8 @@ export function EmployeeDetailModal({
           flex: 1,
 
           minHeight: 0,
+
+          minWidth: 0,
 
         },
 
@@ -367,15 +372,13 @@ export function EmployeeDetailModal({
 
               <View style={styles.fullContent}>
 
-                <ScrollView
+                <AutoScrollView
 
                   style={styles.scroll}
 
                   contentContainerStyle={styles.scrollContent}
 
-                  showsVerticalScrollIndicator={false}
-
-                  keyboardShouldPersistTaps="handled"
+                  fillViewport={false}
 
                 >
 
@@ -397,21 +400,19 @@ export function EmployeeDetailModal({
 
                   />
 
-                </ScrollView>
+                </AutoScrollView>
 
               </View>
 
             ) : (
 
-              <ScrollView
+              <AutoScrollView
 
                 style={styles.scroll}
 
                 contentContainerStyle={styles.scrollContent}
 
-                showsVerticalScrollIndicator={false}
-
-                keyboardShouldPersistTaps="handled"
+                fillViewport={false}
 
               >
 
@@ -431,7 +432,7 @@ export function EmployeeDetailModal({
 
                 />
 
-              </ScrollView>
+              </AutoScrollView>
 
             )}
 
@@ -494,4 +495,3 @@ export function EmployeeDetailModal({
   );
 
 }
-

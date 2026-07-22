@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react';
 
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { useRouter } from 'expo-router';
 
 import { ScreenShell } from '@/components/layout';
+import { AutoScrollView } from '@/components/layout/AutoScrollView';
 
 import { CalendarEventDrawer } from '@/components/calendar/CalendarEventDrawer';
 
@@ -162,11 +163,13 @@ export function CalendarShell({
 
       >
 
-        <View style={styles.content}>
-
+        <AutoScrollView
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+          fillViewport={false}
+        >
           <CalendarMobileView config={resolvedConfig} onEventPress={handleEventPress} />
-
-        </View>
+        </AutoScrollView>
 
       </ScreenShell>
 
@@ -190,7 +193,7 @@ export function CalendarShell({
 
 const styles = StyleSheet.create({
 
-  content: { flex: 1 },
+  content: { flex: 1, minHeight: 0, minWidth: 0 },
+  scrollContent: { flexGrow: 1, minWidth: 0, paddingBottom: 32 },
 
 });
-

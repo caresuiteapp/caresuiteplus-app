@@ -73,4 +73,4 @@ export function ExecutionsListScreen({
 
 void fetchExecutionList;
 
-const styles = StyleSheet.create({ content: { flex: 1 } });
+const styles = StyleSheet.create({ content: { flex: 1, minHeight: 0, minWidth: 0 } });
