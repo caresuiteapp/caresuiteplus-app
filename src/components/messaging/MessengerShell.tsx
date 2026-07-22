@@ -18,6 +18,8 @@ export type MessengerShellProps = {
   /** Shown in the mobile thread chrome header */
   threadTitle?: string;
   variant?: 'default' | 'glass';
+  /** Tablet/desktop can open the thread in a separate modal and keep the inbox full width. */
+  widePresentation?: 'split' | 'modal';
 };
 
 function DefaultEmptyThread({ message }: { message: string }) {
@@ -55,6 +57,7 @@ export function MessengerShell({
   onCloseThread,
   threadTitle = 'Chat',
   variant = 'default',
+  widePresentation = 'split',
 }: MessengerShellProps) {
   const { useMasterDetail, masterPaneWidth } = usePlatformLayout();
   const { c } = useCareLightPalette();
@@ -119,6 +122,20 @@ export function MessengerShell({
           backgroundColor: isGlass ? surfaces.panel : c.surface,
           overflow: 'hidden',
         },
+        modalInbox: {
+          flex: 1,
+          minHeight: 0,
+          width: '100%',
+          borderRadius: radius.lg,
+          borderWidth: 1,
+          borderColor: isGlass ? surfaces.borderStrong : c.border,
+          backgroundColor: isGlass ? surfaces.panel : c.surface,
+          overflow: 'hidden',
+          shadowColor: '#0F172A',
+          shadowOpacity: 0.1,
+          shadowRadius: 22,
+          shadowOffset: { width: 0, height: 10 },
+        },
         mobileChrome: {
           flexDirection: 'row',
           alignItems: 'center',
@@ -154,6 +171,16 @@ export function MessengerShell({
     emptyThread ?? (
       <DefaultEmptyThread message="Wählen Sie einen Chat aus der Liste, um den Verlauf anzuzeigen." />
     );
+
+  if (showSplit && widePresentation === 'modal') {
+    return (
+      <View style={styles.root} testID="messenger-shell">
+        <View style={styles.modalInbox} testID="messenger-modal-inbox">
+          {inbox}
+        </View>
+      </View>
+    );
+  }
 
   if (showSplit) {
     return (

@@ -8,6 +8,7 @@ import { OfficeBroadcastDetailModal } from '@/components/office/officebroadcastd
 import { OfficeBroadcastModal } from '@/components/office/officebroadcastmodal';
 import { OfficeBroadcastsList } from '@/components/office/officebroadcastslist';
 import { OfficeMessageThread } from '@/components/office/officemessagethread';
+import { OfficeMessageThreadModal } from '@/components/office/officemessagethreadmodal';
 import { OfficeMessagesInbox } from '@/components/office/officemessagesinbox';
 import { OfficeNewChatModal, type NewChatMode } from '@/components/office/officenewchatmodal';
 import { OfficeNewGroupChatModal } from '@/components/office/officenewgroupchatmodal';
@@ -129,6 +130,17 @@ export function OfficeMessengerScreen() {
 
   const closeThread = () => {
     setSelectedThreadId(null);
+    setSelectedThreadTitle('Chat');
+  };
+
+  const changeAudience = (nextAudience: OfficeMessageAudience) => {
+    closeThread();
+    setAudience(nextAudience);
+  };
+
+  const changeView = (nextView: OfficeMessengerView) => {
+    closeThread();
+    setView(nextView);
   };
 
   const styles = useMemo(
@@ -225,12 +237,12 @@ export function OfficeMessengerScreen() {
               <AuroraSegmentedControl
                 options={audienceOptions}
                 value={audience}
-                onChange={(key) => setAudience(key as OfficeMessageAudience)}
+                onChange={(key) => changeAudience(key as OfficeMessageAudience)}
               />
               <AuroraSegmentedControl
                 options={OFFICE_MESSENGER_VIEWS}
                 value={view}
-                onChange={(key) => setView(key as OfficeMessengerView)}
+                onChange={(key) => changeView(key as OfficeMessengerView)}
               />
               {!stackTopChrome ? (
                 <Text style={styles.audienceHint} numberOfLines={1}>
@@ -289,6 +301,7 @@ export function OfficeMessengerScreen() {
             chatThread
           ) : (
             <MessengerShell
+              widePresentation="modal"
               inbox={
                 <OfficeMessagesInbox
                   audience={audience}
@@ -309,6 +322,18 @@ export function OfficeMessengerScreen() {
           )}
         </View>
       </View>
+
+      <OfficeMessageThreadModal
+        visible={useMasterDetail && view === 'chats' && selectedThreadId !== null}
+        threadId={selectedThreadId}
+        onClose={closeThread}
+        readOnly={isReadOnly}
+        onThreadUpdated={() => setInboxRefreshToken((value) => value + 1)}
+        onNewThreadStarted={(newThreadId) => {
+          setChatAge('new');
+          openThread(newThreadId);
+        }}
+      />
 
       <OfficeBroadcastDetailModal
         visible={broadcastDetailOpen}
