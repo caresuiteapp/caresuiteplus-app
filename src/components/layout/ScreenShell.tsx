@@ -15,7 +15,6 @@ import { spacing } from '@/theme';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { AutoScrollView } from './AutoScrollView';
 import { ScreenHeader } from './ScreenHeader';
-import { LinearGradient } from 'expo-linear-gradient';
 
 type ScreenShellProps = {
   title: string;
@@ -77,14 +76,11 @@ export function ScreenShell({
           flexGrow: 1,
           minHeight: 0,
           width: '100%',
-          backgroundColor: 'rgba(238,234,245,0.97)',
-          borderTopLeftRadius: spatialCare.radius.shell,
-          borderTopRightRadius: spatialCare.radius.shell,
-          borderBottomLeftRadius: isPhone ? 0 : spatialCare.radius.stage,
-          borderBottomRightRadius: isPhone ? 0 : spatialCare.radius.stage,
+          backgroundColor: spatialCare.stage,
+          borderRadius: spatialCare.radius.stage,
           overflow: 'hidden',
           borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.78)',
+          borderColor: spatialCare.border,
           ...(Platform.OS === 'web'
             ? ({ boxShadow: spatialCare.shadowSoft } as unknown as ViewStyle)
             : null),
@@ -97,8 +93,8 @@ export function ScreenShell({
         },
         scrollContent: {
           flexGrow: isPhone && isAuthRoute ? undefined : 1,
-          padding: isPhone ? spacing.md : spacing.xxl,
-          gap: isPhone ? spacing.md : spacing.lg,
+          padding: spacing.md,
+          gap: spacing.md,
           paddingBottom: bottomPad,
           backgroundColor: 'transparent',
         },
@@ -107,8 +103,8 @@ export function ScreenShell({
           flexGrow: 1,
           minHeight: 0,
           width: '100%',
-          padding: isPhone ? spacing.md : spacing.xxl,
-          gap: isPhone ? spacing.md : spacing.lg,
+          padding: spacing.md,
+          gap: spacing.md,
           backgroundColor: 'transparent',
         },
       }),
@@ -157,13 +153,6 @@ export function ScreenShell({
         accessibilityRole={a11yMeta?.headingRole}
         accessibilityHint={a11yMeta?.reduceMotionHint}
       >
-        <LinearGradient
-          colors={['rgba(255,255,255,0.98)', 'rgba(225,220,237,0.97)', 'rgba(211,224,240,0.96)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-          pointerEvents="none"
-        />
         {body}
       </View>
     </View>

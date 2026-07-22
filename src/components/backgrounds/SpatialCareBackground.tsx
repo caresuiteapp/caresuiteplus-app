@@ -1,7 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { spatialCareColors, spatialCareGradients } from '@/design/tokens/spatialCareSuite';
-import { SpatialScene } from '@/components/ui/SpatialScene';
 
 type SpatialCareBackgroundProps = { dimmed?: boolean };
 
@@ -19,7 +18,6 @@ export function SpatialCareBackground({ dimmed = false }: SpatialCareBackgroundP
       <View style={[styles.glow, styles.glowWarm]} />
       <View style={[styles.orbit, styles.orbitLarge]} />
       <View style={[styles.orbit, styles.orbitSmall]} />
-      <SpatialScene style={styles.scene} />
       <View style={styles.horizon} />
       {dimmed ? <View style={styles.dim} /> : null}
     </View>
@@ -39,6 +37,5 @@ const styles = StyleSheet.create({
   orbitLarge: { width: '76%', height: '82%', right: '-22%', top: '8%', borderRadius: 260 },
   orbitSmall: { width: 320, height: 320, left: '8%', top: '14%', borderRadius: 96 },
   horizon: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '34%', backgroundColor: 'rgba(235,226,239,0.07)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.09)' },
-  scene: { position: 'absolute', right: '5%', top: '8%', opacity: 0.16, transform: [{ scale: 1.7 }] },
   dim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(8,10,24,0.34)' },
 });

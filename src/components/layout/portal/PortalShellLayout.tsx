@@ -225,11 +225,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     minWidth: 0,
-    marginHorizontal: 10,
-    borderTopLeftRadius: spatialCare.radius.stage,
-    borderTopRightRadius: spatialCare.radius.stage,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(238,234,245,0.98)',
   },
   body: {
     flex: 1,
@@ -242,7 +237,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: spatialCare.border,
-    backgroundColor: 'rgba(238,234,245,0.98)',
+    backgroundColor: spatialCare.stage,
     ...(Platform.OS === 'web'
       ? ({ boxShadow: spatialCare.shadow, backdropFilter: `blur(${spatialCare.blur.stage}px)` } as unknown as ViewStyle)
       : null),
@@ -259,10 +254,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     minHeight: 0,
-    backgroundColor: 'rgba(238,234,245,0.98)',
-    borderRadius: spatialCare.radius.stage,
-    margin: 10,
-    overflow: 'hidden',
+    backgroundColor: spatialCare.stage,
   },
   mainScroll: {
     flex: 1,
@@ -272,7 +264,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: careSpacing.md,
     paddingBottom: careSpacing.xl,
-    backgroundColor: 'rgba(238,234,245,0.98)',
+    backgroundColor: spatialCare.stage,
   },
   employeeMainContent: {
     width: '100%', maxWidth: 1180, alignSelf: 'center',
