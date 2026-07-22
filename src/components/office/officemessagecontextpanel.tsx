@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -88,11 +88,15 @@ export function OfficeMessageContextPanel({
         root: {
           flex: 1,
           minWidth: 0,
+          minHeight: 0,
           borderLeftWidth: 1,
           borderLeftColor: c.border,
+          backgroundColor: c.surface,
+        },
+        scrollContent: {
+          flexGrow: 1,
           padding: spacing.md,
           gap: spacing.md,
-          backgroundColor: c.surface,
         },
         title: { ...typography.h3, color: c.text },
         section: {
@@ -185,8 +189,14 @@ export function OfficeMessageContextPanel({
 
   return (
     <View style={styles.root}>
-      <Text style={styles.title}>Kontext</Text>
-      <View style={styles.section}>
+      <ScrollView
+        testID="office-message-context-scroll"
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.title}>Kontext</Text>
+        <View style={styles.section}>
         <ContextRow label="Teilnehmer" value={participant} />
         <ContextRow label="Kanal" value={THREAD_TYPE_LABELS[thread.threadType]} />
         <ContextRow label="Kategorie" value={thread.categoryLabel ?? '—'} />
@@ -199,10 +209,10 @@ export function OfficeMessageContextPanel({
             value={thread.assignedToUserName ?? thread.assignedToUserId ?? '—'}
           />
         ) : null}
-      </View>
+        </View>
 
-      {!readOnly && !isClosed ? (
-        <>
+        {!readOnly && !isClosed ? (
+          <>
           <View style={styles.section}>
             <Text style={styles.hint}>Status ändern</Text>
             <View style={styles.chips}>
@@ -300,30 +310,31 @@ export function OfficeMessageContextPanel({
               </View>
             </View>
           ) : null}
-        </>
-      ) : null}
+          </>
+        ) : null}
 
-      {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
+        {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
 
-      <PremiumButton
-        title="Chat exportieren"
-        variant="secondary"
-        onPress={() => void handleExport()}
-        disabled={busy || readOnly}
-      />
+        <PremiumButton
+          title="Chat exportieren"
+          variant="secondary"
+          onPress={() => void handleExport()}
+          disabled={busy || readOnly}
+        />
 
-      <Text style={styles.hint}>
-        Nachrichten im Office-Modul — keine direkte Klient:innen↔Mitarbeitende-Kommunikation.
-        Interne Notizen sind nur im Büro sichtbar.
-      </Text>
-      {thread.closedAt || thread.archivedAt ? (
-        <View style={styles.section}>
-          <ContextRow
-            label="Abgeschlossen am"
-            value={new Date(thread.closedAt ?? thread.archivedAt ?? '').toLocaleString('de-DE')}
-          />
-        </View>
-      ) : null}
+        <Text style={styles.hint}>
+          Nachrichten im Office-Modul — keine direkte Klient:innen↔Mitarbeitende-Kommunikation.
+          Interne Notizen sind nur im Büro sichtbar.
+        </Text>
+        {thread.closedAt || thread.archivedAt ? (
+          <View style={styles.section}>
+            <ContextRow
+              label="Abgeschlossen am"
+              value={new Date(thread.closedAt ?? thread.archivedAt ?? '').toLocaleString('de-DE')}
+            />
+          </View>
+        ) : null}
+      </ScrollView>
     </View>
   );
 }

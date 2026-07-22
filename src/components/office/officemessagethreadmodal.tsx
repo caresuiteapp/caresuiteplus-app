@@ -36,7 +36,7 @@ type OfficeMessageThreadModalProps = {
 
 type ModalTab = 'chat' | 'context';
 
-const MODAL_MAX_WIDTH = 1280;
+const MODAL_MAX_WIDTH = 1440;
 const MODAL_MIN_WIDTH = 560;
 const SIDE_BY_SIDE_BREAKPOINT = 900;
 const CONTEXT_PANEL_WIDTH = 300;
@@ -166,7 +166,16 @@ export function OfficeMessageThreadModal({
           borderLeftColor: `${c.border}CC`,
         },
       }),
-    [c.border, c.surface, isDark, isPhone, showSideBySide, sheetMaxHeight, sheetWidth],
+    [
+      c.border,
+      c.muted,
+      c.surface,
+      c.violet,
+      isPhone,
+      showSideBySide,
+      sheetMaxHeight,
+      sheetWidth,
+    ],
   );
 
   if (!threadId) return null;
@@ -226,6 +235,11 @@ export function OfficeMessageThreadModal({
                     threadId={threadId}
                     hideHeader
                     onDarkSurface={composerOnDarkSurface}
+                    onThreadChanged={handleThreadUpdated}
+                    onThreadDeleted={() => {
+                      handleThreadUpdated();
+                      onClose();
+                    }}
                     onNewThreadStarted={(newThreadId) => {
                       onNewThreadStarted?.(newThreadId);
                       handleThreadUpdated();
