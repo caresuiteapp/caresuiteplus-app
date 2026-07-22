@@ -11,7 +11,6 @@ import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
-import { SpatialScene } from '@/components/ui/SpatialScene';
 
 type PortalChoiceScreenProps = {
   entries: AppStartEntry[];
@@ -35,11 +34,8 @@ export function PortalChoiceScreen({ entries }: PortalChoiceScreenProps) {
           key={entry.path}
           accentColor={entry.accentColor}
           onPress={() => router.push(entry.path as never)}
-          variant="night"
-          glow
         >
           <View style={styles.cardInner}>
-            {entry.path.includes('office') ? <SpatialScene compact style={styles.scene} /> : null}
             <CareSuiteIcon
               iconKey={entry.iconKey}
               accentColor={entry.accentColor}
@@ -64,7 +60,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: careSpacing.sm,
   },
-  scene: { height: 116, marginTop: -22, marginBottom: -20 },
   cardTitle: {
     marginTop: careSpacing.xs,
     marginBottom: careSpacing.xs,
