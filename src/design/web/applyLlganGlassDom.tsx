@@ -4,17 +4,19 @@ import { llganGlassDataSet, type LlganGlassSurfaceKind } from '@/design/tokens/a
 import { ensureLightLiquidGlassSurfaceCss } from '@/design/web/ensureLightLiquidGlassSurfaceCss';
 
 type GlassDomPreset = {
-  alpha: number;
+  surface: string;
+  surfaceEnd: string;
   border: string;
+  blur: number;
 };
 
 const GLASS_DOM_PRESETS: Record<LlganGlassSurfaceKind, GlassDomPreset> = {
-  panel: { alpha: 0.64, border: 'rgba(110, 160, 255, 0.34)' },
-  card: { alpha: 0.72, border: 'rgba(255, 255, 255, 0.9)' },
-  chip: { alpha: 0.7, border: 'rgba(120, 160, 255, 0.3)' },
-  input: { alpha: 0.78, border: 'rgba(120, 160, 255, 0.3)' },
-  button: { alpha: 0.74, border: 'rgba(120, 160, 255, 0.3)' },
-  modal: { alpha: 0.86, border: 'rgba(255, 255, 255, 0.86)' },
+  panel: { surface: 'rgba(44,45,76,.78)', surfaceEnd: 'rgba(27,29,55,.90)', border: 'rgba(255,255,255,.16)', blur: 26 },
+  card: { surface: 'rgba(64,64,99,.76)', surfaceEnd: 'rgba(37,39,70,.90)', border: 'rgba(255,255,255,.18)', blur: 24 },
+  chip: { surface: 'rgba(255,255,255,.10)', surfaceEnd: 'rgba(255,255,255,.055)', border: 'rgba(255,255,255,.20)', blur: 18 },
+  input: { surface: 'rgba(255,255,255,.11)', surfaceEnd: 'rgba(255,255,255,.065)', border: 'rgba(255,255,255,.22)', blur: 18 },
+  button: { surface: 'rgba(255,255,255,.12)', surfaceEnd: 'rgba(255,255,255,.07)', border: 'rgba(255,255,255,.24)', blur: 18 },
+  modal: { surface: 'rgba(46,47,79,.94)', surfaceEnd: 'rgba(25,27,52,.97)', border: 'rgba(255,255,255,.20)', blur: 34 },
 };
 
 function isDomElement(node: unknown): node is HTMLElement {
@@ -42,18 +44,18 @@ export function bindLlganGlassSurface(node: View | HTMLElement | null, kind: Llg
 
   el.setAttribute('data-cs-llgan-glass', kind);
   el.classList.add('cs-llgan-glass', `cs-llgan-glass-${kind}`);
-  el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-  el.style.setProperty('backdrop-filter', 'none', 'important');
-  el.style.setProperty('background-color', `rgba(255, 255, 255, ${preset.alpha})`, 'important');
+  el.style.setProperty('-webkit-backdrop-filter', `blur(${preset.blur}px) saturate(1.28)`, 'important');
+  el.style.setProperty('backdrop-filter', `blur(${preset.blur}px) saturate(1.28)`, 'important');
+  el.style.setProperty('background-color', preset.surfaceEnd, 'important');
   el.style.setProperty(
     'background-image',
-    `linear-gradient(145deg, rgba(255,255,255,${Math.min(0.96, preset.alpha + 0.18)}) 0%, rgba(247,251,255,${preset.alpha}) 48%, rgba(235,244,255,${Math.max(0.42, preset.alpha - 0.16)}) 100%)`,
+    `radial-gradient(circle at 72% -12%, rgba(85,221,246,.16), transparent 36%), linear-gradient(145deg, ${preset.surface} 0%, ${preset.surfaceEnd} 100%)`,
     'important',
   );
   el.style.setProperty('border', `1px solid ${preset.border}`, 'important');
   el.style.setProperty(
     'box-shadow',
-    '0 18px 46px rgba(70, 110, 170, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.96), inset 0 -1px 0 rgba(120, 170, 235, 0.1)',
+    '0 22px 58px rgba(5,7,22,.34), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(105,232,255,.06)',
     'important',
   );
 }

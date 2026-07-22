@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import {
   Platform,
   Pressable,
@@ -13,13 +13,14 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useThemeMode } from '@/design/ThemeModeProvider';
-import { useAuroraGlassCardStyle } from '@/design/tokens/auroraGlass';
 import { LlganGlassShell } from '@/design/web/applyLlganGlassDom';
-import { glassFx, withAlpha } from '@/design/tokens/motion';
-import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
-import { CareLightCard } from './CareLightCard';
-import { elevation, motion, radius, sheen as sheenTokens } from '@/theme';
+import {
+  spatialCare,
+  spatialCareColors,
+  spatialCareGradients,
+} from '@/design/tokens/spatialCareSuite';
+import { withAlpha } from '@/design/tokens/motion';
+import { motion, radius } from '@/theme';
 
 type Props = {
   children: React.ReactNode;
@@ -27,312 +28,128 @@ type Props = {
   onPress?: () => void;
   accentColor?: string;
   variant?: 'default' | 'elevated';
-  /** Glossy top sheen overlay via LinearGradient (WP 027). */
   sheen?: boolean;
 };
 
-const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
+const webCursor =
+  Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
-function splitCardSurfaceStyle(style?: StyleProp<ViewStyle>): {
-  hostStyle?: ViewStyle;
-  tintOverlay?: string;
-} {
-  const flat = StyleSheet.flatten(style);
-  if (!flat) return {};
-  const { backgroundColor, ...hostStyle } = flat;
-  return {
-    hostStyle: Object.keys(hostStyle).length > 0 ? hostStyle : undefined,
-    tintOverlay: typeof backgroundColor === 'string' ? backgroundColor : undefined,
-  };
-}
-
-/** Milchglas card body for light LLGAN — dark readable text on frosted white glass. */
-function LightLganPremiumCard({
-  children,
-  style,
-  onPress,
-  accentColor,
-}: {
-  children: React.ReactNode;
-  style?: StyleProp<ViewStyle>;
-  onPress?: () => void;
-  accentColor?: string;
-}) {
-  const glassCardStyle = useAuroraGlassCardStyle({ viewContext: 'dashboard', intensity: 'strong' });
-  const { hostStyle, tintOverlay } = splitCardSurfaceStyle(style);
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        shadowHost: {
-          borderRadius: radius.card,
-          ...(Platform.OS === 'web'
-            ? ({
-                boxShadow: '0 12px 16px rgba(70, 110, 170, 0.2)',
-              } as ViewStyle)
-            : {
-                shadowColor: 'rgba(70,110,170,0.16)',
-                shadowOffset: { width: 0, height: 12 },
-                shadowOpacity: 0.2,
-                shadowRadius: 16,
-                elevation: 8,
-              }),
-        },
-        wrapper: {
-          borderRadius: radius.card,
-          overflow: Platform.OS === 'web' ? 'visible' : 'hidden',
-          position: 'relative',
-        },
-        contentClip: {
-          borderRadius: radius.card,
-          overflow: 'hidden',
-        },
-        frostSheen: {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '38%',
-          borderTopLeftRadius: radius.card,
-          borderTopRightRadius: radius.card,
-          opacity: Platform.OS === 'web' ? 0.35 : 1,
-        },
-        innerBorder: {
-          ...StyleSheet.absoluteFillObject,
-          borderRadius: radius.card,
-          borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.72)',
-        },
-        accentRim: {
-          position: 'absolute',
-          top: 0,
-          left: 24,
-          right: 24,
-          height: 2,
-          borderRadius: 2,
-        },
-        content: {
-          padding: 20,
-        },
-      }),
-    [],
-  );
-
-  const cardBody = (
-    <>
-      {Platform.OS !== 'web' ? (
-        <LinearGradient
-          colors={['rgba(255,255,255,0.52)', 'rgba(255,255,255,0.12)', 'transparent']}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.frostSheen}
-          pointerEvents="none"
-        />
-      ) : null}
-      {tintOverlay ? (
-        <View
-          style={[StyleSheet.absoluteFillObject, { backgroundColor: tintOverlay }]}
-          pointerEvents="none"
-        />
-      ) : null}
-      {Platform.OS !== 'web' ? (
-        <View style={styles.innerBorder} pointerEvents="none" />
-      ) : null}
-      {accentColor ? (
-        <View style={[styles.accentRim, { backgroundColor: accentColor }]} pointerEvents="none" />
-      ) : null}
-      <View style={[styles.content, styles.contentClip, { zIndex: 1 }]}>{children}</View>
-    </>
-  );
-
-  if (Platform.OS === 'web') {
-    const shell = (
-      <LlganGlassShell kind="card" style={[styles.shadowHost, styles.wrapper, glassCardStyle, hostStyle]}>
-        {cardBody}
-      </LlganGlassShell>
-    );
-    if (!onPress) return shell;
-    return (
-      <Pressable onPress={onPress} style={webCursor}>
-        {shell}
-      </Pressable>
-    );
-  }
-
-  const inner = (
-    <LlganGlassShell kind="card" style={[styles.wrapper, glassCardStyle]}>
-      {cardBody}
-    </LlganGlassShell>
-  );
-
-  if (!onPress) {
-    return <Animated.View style={[styles.shadowHost, animStyle, hostStyle]}>{inner}</Animated.View>;
-  }
-
-  return (
-    <Animated.View style={[styles.shadowHost, animStyle, hostStyle]}>
-      <Pressable
-        onPress={onPress}
-        onPressIn={() => {
-          scale.value = withSpring(0.987, motion.spring);
-        }}
-        onPressOut={() => {
-          scale.value = withSpring(1, motion.spring);
-        }}
-        style={webCursor}
-      >
-        {inner}
-      </Pressable>
-    </Animated.View>
-  );
-}
-
+/**
+ * Verbindliche Systemkarte für Office, Assist und alle Portale.
+ * Keine Light-/Dark-/Modul-Sonderpfade: Struktur, Tiefe und Lesbarkeit bleiben überall gleich.
+ */
 export function PremiumCard({
   children,
   style,
   onPress,
-  accentColor,
+  accentColor = spatialCareColors.cyanLight,
   variant = 'default',
-  sheen = false,
+  sheen = true,
 }: Props) {
-  const { mode } = useThemeMode();
-  const shellHostsAurora = useShellHostsAurora();
-
-  if (mode === 'light' && !shellHostsAurora) {
-    return (
-      <CareLightCard accentColor={accentColor} onPress={onPress} style={style as ViewStyle}>
-        {children}
-      </CareLightCard>
-    );
-  }
-
-  if (mode === 'light' && shellHostsAurora) {
-    return (
-      <LightLganPremiumCard accentColor={accentColor} onPress={onPress} style={style}>
-        {children}
-      </LightLganPremiumCard>
-    );
-  }
-
   const scale = useSharedValue(1);
-  const glow = accentColor ?? glassFx.borderStrong;
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        shadowHost: {
+        host: {
           borderRadius: radius.card,
-          shadowColor: glow,
-          shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: 0.16,
-          shadowRadius: 16,
-          elevation: 10,
-        },
-        wrapper: {
-          borderRadius: radius.card,
-          borderWidth: 1,
-          borderColor: accentColor ? withAlpha(accentColor, 0.32) : glassFx.border,
           overflow: 'hidden',
-          position: 'relative',
+          borderWidth: 1,
+          borderColor: withAlpha(accentColor, variant === 'elevated' ? 0.58 : 0.34),
+          shadowColor: accentColor,
+          shadowOffset: { width: 0, height: 14 },
+          shadowOpacity: variant === 'elevated' ? 0.24 : 0.14,
+          shadowRadius: variant === 'elevated' ? 24 : 18,
+          elevation: variant === 'elevated' ? 12 : 8,
+          ...(Platform.OS === 'web'
+            ? ({
+                boxShadow:
+                  variant === 'elevated'
+                    ? `0 22px 48px ${withAlpha(spatialCareColors.nightDeep, 0.5)}, 0 0 30px ${withAlpha(accentColor, 0.16)}`
+                    : `0 15px 34px ${withAlpha(spatialCareColors.nightDeep, 0.4)}`,
+              } as unknown as ViewStyle)
+            : null),
         },
         gradient: {
           ...StyleSheet.absoluteFillObject,
-          borderRadius: radius.card,
         },
-        innerBorder: {
-          ...StyleSheet.absoluteFillObject,
-          borderRadius: radius.card,
-          borderWidth: 1,
-          borderColor: glassFx.innerBorder,
-        },
-        topSheen: {
+        glow: {
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: sheenTokens.height,
-          backgroundColor: sheenTokens.color,
+          top: -76,
+          right: -40,
+          width: 210,
+          height: 210,
+          borderRadius: 105,
+          backgroundColor: withAlpha(accentColor, variant === 'elevated' ? 0.2 : 0.12),
         },
-        sheenOverlay: {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '46%',
-          borderTopLeftRadius: radius.card,
-          borderTopRightRadius: radius.card,
-        },
-        accentRim: {
+        edge: {
           position: 'absolute',
           top: 0,
           left: 24,
           right: 24,
           height: 2,
           borderRadius: 2,
+          backgroundColor: accentColor,
+          shadowColor: accentColor,
+          shadowOpacity: 0.8,
+          shadowRadius: 10,
+        },
+        innerBorder: {
+          ...StyleSheet.absoluteFillObject,
+          borderRadius: radius.card,
+          borderWidth: 1,
+          borderColor: spatialCare.borderGlow,
         },
         content: {
           padding: 20,
+          zIndex: 2,
         },
       }),
-    [accentColor, glow],
+    [accentColor, variant],
   );
 
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const gradColors = variant === 'elevated' ? glassFx.surfaceElevated : glassFx.surface;
-
-  const inner = (
-    <View style={[styles.wrapper, elevation.card]}>
+  const body = (
+    <LlganGlassShell kind="card" style={styles.host}>
       <LinearGradient
-        colors={gradColors}
-        start={sheenTokens.gradientStart}
-        end={sheenTokens.gradientEnd}
+        colors={
+          variant === 'elevated'
+            ? [spatialCareColors.nightRaised, spatialCareColors.night, spatialCareColors.nightDeep]
+            : [...spatialCareGradients.nightGlass]
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.gradient}
         pointerEvents="none"
       />
+      {sheen ? <View style={styles.glow} pointerEvents="none" /> : null}
       <View style={styles.innerBorder} pointerEvents="none" />
-      {sheen ? (
-        <LinearGradient
-          colors={glassFx.sheen}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 0.5 }}
-          style={styles.sheenOverlay}
-          pointerEvents="none"
-        />
-      ) : (
-        <View style={styles.topSheen} pointerEvents="none" />
-      )}
-      {accentColor ? (
-        <View style={[styles.accentRim, { backgroundColor: accentColor }]} pointerEvents="none" />
-      ) : null}
+      <View style={styles.edge} pointerEvents="none" />
       <View style={styles.content}>{children}</View>
-    </View>
+    </LlganGlassShell>
   );
 
-  if (!onPress) {
-    return <Animated.View style={[styles.shadowHost, animStyle, style]}>{inner}</Animated.View>;
-  }
-
   return (
-    <Animated.View style={[styles.shadowHost, animStyle, style]}>
-      <Pressable
-        onPress={onPress}
-        onPressIn={() => {
-          scale.value = withSpring(0.987, motion.spring);
-        }}
-        onPressOut={() => {
-          scale.value = withSpring(1, motion.spring);
-        }}
-        style={webCursor}
-      >
-        {inner}
-      </Pressable>
+    <Animated.View style={[animatedStyle, style]}>
+      {onPress ? (
+        <Pressable
+          onPress={onPress}
+          onPressIn={() => {
+            scale.value = withSpring(0.986, motion.spring);
+          }}
+          onPressOut={() => {
+            scale.value = withSpring(1, motion.spring);
+          }}
+          style={webCursor}
+          accessibilityRole="button"
+        >
+          {body}
+        </Pressable>
+      ) : (
+        body
+      )}
     </Animated.View>
   );
 }
