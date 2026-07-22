@@ -18,6 +18,16 @@ export const LLGAN_GLASS_SURFACE_CSS = `
   html, body, #root, #expo-root, [data-expo-root] {
     background: #17182D !important;
     background-color: #17182D !important;
+    color: #F8F6FF;
+  }
+
+  input, textarea, select, button {
+    color: inherit;
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: rgba(248, 246, 255, .56);
+    opacity: 1;
   }
 
   .cs-llgan-glass,
@@ -52,6 +62,14 @@ export const LLGAN_GLASS_SURFACE_CSS = `
   }
 
   [data-cs-llgan-glass] > * { position: relative; z-index: 1; }
+
+  /* Legacy light-world components sometimes persisted an explicit black
+     inline colour. Inside the canonical dark glass shell that is never a
+     valid content colour and made labels effectively invisible. */
+  [data-cs-llgan-glass] [style*="color: rgb(0, 0, 0)"],
+  [data-cs-llgan-glass] [style*="color: rgba(0, 0, 0"] {
+    color: #F8F6FF !important;
+  }
 
   [data-cs-llgan-glass="panel"] {
     background-color: var(--cs-glass-panel) !important;

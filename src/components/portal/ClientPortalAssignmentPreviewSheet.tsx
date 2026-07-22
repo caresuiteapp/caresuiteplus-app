@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AssistLiveMap } from '@/components/maps/AssistLiveMap';
 import { PremiumButton, LoadingState, ErrorState, SectionPanel } from '@/components/ui';
-import { lightSurfaceText } from '@/design/tokens/auroraGlass';
+import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -49,7 +49,7 @@ export function ClientPortalAssignmentPreviewSheet({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tenantId = useServiceTenantId();
-  const text = lightSurfaceText;
+  const text = darkGlassSurfaceText;
   const { data, loading, error, refresh } = usePortalClientAppointmentDetail(
     visible ? (assignmentId ?? undefined) : undefined,
   );

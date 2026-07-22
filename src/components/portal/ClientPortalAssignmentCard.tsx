@@ -1,6 +1,6 @@
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
-import { lightSurfaceText } from '@/design/tokens/auroraGlass';
+import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -58,7 +58,7 @@ export function ClientPortalAssignmentCard({
   cacheStale = false,
   onPreview,
 }: ClientPortalAssignmentCardProps) {
-  const text = lightSurfaceText;
+  const text = darkGlassSurfaceText;
   const accent = moduleColor('assist');
   const status = resolveStatus(appointment);
   const statusLabel =

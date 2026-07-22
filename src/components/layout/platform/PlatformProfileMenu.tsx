@@ -14,7 +14,10 @@ import { useAuth } from '@/lib/auth/context';
 import { USER_PROFILE_ROUTE } from '@/lib/auth/userprofileroute';
 import { APPEARANCE_SETTINGS_ROUTE } from '@/lib/screensaver/appearanceSettingsRoute';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { useShellGlassSurfaceStyle } from '@/design/tokens/auroraGlass';
+import {
+  useAuroraAdaptiveText,
+  useShellGlassSurfaceStyle,
+} from '@/design/tokens/auroraGlass';
 import { radius, spacing, typography } from '@/theme';
 
 type PlatformProfileMenuProps = {
@@ -34,6 +37,7 @@ export function PlatformProfileMenu({ accentColor, fullWidth = false }: Platform
   const router = useRouter();
   const { profile, signOut } = useAuth();
   const { colors } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
   const chipGlass = useShellGlassSurfaceStyle('chip');
   const modalGlass = useShellGlassSurfaceStyle('modal');
   const accent = accentColor ?? colors.violet;
@@ -49,7 +53,10 @@ export function PlatformProfileMenu({ accentColor, fullWidth = false }: Platform
     { label: 'Abmelden', action: () => void signOut().then(() => router.replace('/' as never)) },
   ];
 
-  const styles = useMemo(() => createStyles(fullWidth), [fullWidth]);
+  const styles = useMemo(
+    () => createStyles(fullWidth, text),
+    [fullWidth, text],
+  );
 
   return (
     <View style={styles.profileWrap}>
@@ -101,10 +108,13 @@ export function PlatformProfileMenu({ accentColor, fullWidth = false }: Platform
   );
 }
 
-function createStyles(fullWidth: boolean) {
+function createStyles(
+  fullWidth: boolean,
+  text: ReturnType<typeof useAuroraAdaptiveText>,
+) {
   const topbarPrimaryNameText: TextStyle = {
     ...typography.bodyStrong,
-    color: '#000000',
+    color: text.primary,
     fontWeight: '700',
     lineHeight: 20,
     textAlign: 'center',
@@ -158,7 +168,7 @@ function createStyles(fullWidth: boolean) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    chevron: { fontSize: 10, color: '#000000' },
+    chevron: { fontSize: 10, color: text.primary },
     dropdown: {
       position: 'absolute',
       top: '100%',
@@ -177,14 +187,14 @@ function createStyles(fullWidth: boolean) {
     },
     dropdownText: {
       ...typography.body,
-      color: '#000000',
+      color: text.primary,
       fontWeight: '600',
       textAlign: 'center',
       width: '100%',
     },
     dropdownMeta: {
       ...typography.caption,
-      color: '#000000',
+      color: text.muted,
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.xs,
       borderBottomWidth: 1,

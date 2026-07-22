@@ -6,13 +6,13 @@ import { usePortalClientLiveTracking } from '@/hooks/usePortalClientLiveTracking
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
-import { lightSurfaceText } from '@/design/tokens/auroraGlass';
+import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
 
 /** Compact live-tracking block for client appointments tab (Anfahrt / laufender Einsatz). */
 export function ClientPortalLiveTrackingSection() {
   const router = useRouter();
   const tenantId = useServiceTenantId();
-  const text = lightSurfaceText;
+  const text = darkGlassSurfaceText;
   const { state, loading } = usePortalClientLiveTracking();
 
   if (loading && !state?.assignmentId) return null;

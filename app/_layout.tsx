@@ -19,8 +19,10 @@ import { PortalWelcomeGate } from '@/components/auth/PortalWelcomeGate';
 import { PerformanceProvider, useDevicePerformance, shouldUseHeavyEffects } from '@/lib/performance';
 import { installPerformanceDiagnostics } from '@/lib/performance/performanceDiagnostics';
 import { useHydrated } from '@/hooks/useHydrated';
+import { installSystemTextDefaults } from '@/design/installSystemTextDefaults';
 
 applyInvisibleScrollIndicators();
+installSystemTextDefaults();
 
 if (__DEV__ && Platform.OS === 'web') {
   require('@/devtools/registerDevAudit');

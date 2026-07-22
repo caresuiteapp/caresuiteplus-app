@@ -18,6 +18,7 @@ import {
   AURORA_ROW_SELECTED,
   careSuiteAuroraTheme,
 } from '@/theme/careSuiteAurora';
+import { systemLiquidGlass } from './systemLiquidGlass';
 
 /**
  * Shell glass surface tokens — always light milchglas over the space backdrop.
@@ -35,8 +36,12 @@ export const lightSurfaceText: SurfaceContrastText = {
   muted: llgsTypography.muted,
 };
 
-/** @deprecated Dark glass removed — use lightSurfaceText. */
-export const darkGlassSurfaceText: SurfaceContrastText = lightSurfaceText;
+/** Readable typography for the canonical dark spatial glass surfaces. */
+export const darkGlassSurfaceText: SurfaceContrastText = {
+  primary: systemLiquidGlass.text.primary,
+  secondary: systemLiquidGlass.text.secondary,
+  muted: systemLiquidGlass.text.muted,
+};
 
 /** WCAG-kontrastfähiger Orange-/Amber-Ton für Links/CTAs auf hellen Portal-Flächen (≥4.5:1). */
 export const PORTAL_LIGHT_LINK_ORANGE = '#B45309';
@@ -85,8 +90,37 @@ export const lightLiquidGlass = {
   saturate: llganDefaultSurface.saturate,
 } as const;
 
-/** Legacy alias — same light tokens everywhere (no dark glass surfaces). */
-export const auroraGlass = lightLiquidGlass;
+/** Canonical dark spatial glass used by Office, Assist, auth and portals. */
+export const auroraGlass = {
+  ...lightLiquidGlass,
+  panel: systemLiquidGlass.panel,
+  card: systemLiquidGlass.card,
+  sidebar: systemLiquidGlass.panelStrong,
+  elevated: systemLiquidGlass.pageElevated,
+  modal: systemLiquidGlass.panelStrong,
+  input: systemLiquidGlass.input,
+  chip: systemLiquidGlass.chip,
+  chipActive: systemLiquidGlass.chipActive,
+  table: systemLiquidGlass.table,
+  rowHover: systemLiquidGlass.rowHover,
+  rowAlt: systemLiquidGlass.rowAlt,
+  rowSelected: systemLiquidGlass.rowSelected,
+  header: systemLiquidGlass.rowAlt,
+  listItem: systemLiquidGlass.rowAlt,
+  border: systemLiquidGlass.border,
+  borderAccent: systemLiquidGlass.borderActive,
+  borderStrong: systemLiquidGlass.borderStrong,
+  innerBorder: systemLiquidGlass.innerBorder,
+  blur: {
+    light: systemLiquidGlass.blur.mobile,
+    medium: systemLiquidGlass.blur.desktop,
+    heavy: systemLiquidGlass.blur.modal,
+  },
+  text: darkGlassSurfaceText,
+  shadow: systemLiquidGlass.shadow,
+  shadowInset: systemLiquidGlass.shadowInset,
+  saturate: systemLiquidGlass.saturate,
+} as const;
 
 /** RN Web data attribute for global milchglas CSS (see lightLiquidGlassSurfaceCss). */
 export type LlganGlassSurfaceKind = 'panel' | 'card' | 'chip' | 'input' | 'button' | 'modal';
@@ -159,7 +193,7 @@ export function useShellGlassSurfaceStyle(
     : resolveLlganGlassSurface(intensity);
 
   return useMemo(() => {
-    const light = active;
+    const light = active && isLight;
     const tokens = light ? lightLiquidGlass : auroraGlass;
     const backgroundColor =
       variant === 'chip'
@@ -209,8 +243,8 @@ export type AuroraGlassTokens = typeof auroraGlass;
 export type LightLiquidGlassTokens = typeof lightLiquidGlass;
 export type GlassSurfaceTokens = AuroraGlassTokens | LightLiquidGlassTokens;
 
-function resolveActiveGlassTokens(_isLight: boolean): GlassSurfaceTokens {
-  return lightLiquidGlass;
+function resolveActiveGlassTokens(isLight: boolean): GlassSurfaceTokens {
+  return isLight ? lightLiquidGlass : auroraGlass;
 }
 
 /** True when root shell hosts animated background (light or dark glass). */
@@ -227,12 +261,16 @@ export function useActiveGlassTokens(): GlassSurfaceTokens {
 
 /** Light frosted shell (LLGAN) — dark text on milchglas, matches desktop portal/office. */
 export function useLightLiquidGlassShell(): boolean {
-  return useAuroraGlassActive();
+  const active = useAuroraGlassActive();
+  const { isLight } = useLegacyTheme();
+  return active && isLight;
 }
 
 /** Composer/input strip on dark glass — false on light LLGAN shell (mobile + desktop). */
 export function useComposerDarkSurface(): boolean {
-  return false;
+  const active = useAuroraGlassActive();
+  const { isDark } = useLegacyTheme();
+  return active && isDark;
 }
 
 export type MessagingGlassSurface = {
@@ -244,11 +282,10 @@ export type MessagingGlassSurface = {
 
 /** Portal messaging "glass" variant — light surfaces on light theme for readable mobile layout. */
 export function useMessagingGlassSurface(isGlassVariant: boolean): MessagingGlassSurface {
-  const useLightGlass = useLightLiquidGlassShell();
   const { isLight } = useLegacyTheme();
-  const useLightSurfaces = true;
-  const surfaces = lightLiquidGlass;
-  const onDarkSurface = false;
+  const useLightSurfaces = isLight;
+  const surfaces = isLight ? lightLiquidGlass : auroraGlass;
+  const onDarkSurface = !isLight;
   const ink = isGlassVariant ? surfaceContrastText(onDarkSurface) : null;
   return { useLightGlass: useLightSurfaces, surfaces, onDarkSurface, ink };
 }

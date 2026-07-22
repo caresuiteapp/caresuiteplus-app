@@ -1,6 +1,6 @@
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
-import { lightSurfaceText } from '@/design/tokens/auroraGlass';
+import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumCard, PremiumButton } from '@/components/ui';
@@ -20,7 +20,7 @@ function formatDate(iso: string | null): string {
 
 export function EmployeePortalClientRecordsScreen() {
   const router = useRouter();
-  const text = lightSurfaceText;
+  const text = darkGlassSurfaceText;
   const { records, loading, error, refresh } = useEmployeePortalClientRecords();
 
   if (loading && records.length === 0) {
