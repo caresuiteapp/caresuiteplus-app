@@ -298,6 +298,13 @@ export const APP_ROUTES: AppRoute[] = [
     ],
   },
   {
+    path: '/business/office/payroll',
+    label: 'Gehaltsstatistik',
+    group: 'business',
+    requiresAuth: true,
+    allowedRoles: ['business_admin', 'business_manager', 'billing'],
+  },
+  {
     path: '/business/office/time-tracking/audit',
     label: 'Arbeitszeit-Audit',
     group: 'business',

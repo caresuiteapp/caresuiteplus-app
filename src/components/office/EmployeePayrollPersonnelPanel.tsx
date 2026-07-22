@@ -136,6 +136,10 @@ export function EmployeePayrollPersonnelPanel({
   const [bankName, setBankName] = useState('');
   const [accountHolder, setAccountHolder] = useState('');
   const [alternateAccountHolder, setAlternateAccountHolder] = useState('');
+  const [maxPayoutHoursMonth, setMaxPayoutHoursMonth] = useState('');
+  const [overflowToTimeAccount, setOverflowToTimeAccount] = useState(true);
+  const [mileageRate, setMileageRate] = useState('0,30');
+  const [payrollNotes, setPayrollNotes] = useState('');
 
   const [taxCalculationType, setTaxCalculationType] = useState('');
   const [taxId, setTaxId] = useState('');
@@ -183,6 +187,10 @@ export function EmployeePayrollPersonnelPanel({
     setBankName(pay.bankName ?? '');
     setAccountHolder(pay.accountHolder ?? '');
     setAlternateAccountHolder(pay.alternateAccountHolder ?? '');
+    setMaxPayoutHoursMonth(pay.maxPayoutHoursMonth != null ? String(pay.maxPayoutHoursMonth) : '');
+    setOverflowToTimeAccount(pay.overflowToTimeAccount);
+    setMileageRate((pay.mileageRateCents / 100).toFixed(2).replace('.', ','));
+    setPayrollNotes(pay.payrollNotes ?? '');
 
     const t = payroll.tax;
     setTaxCalculationType(t.taxCalculationType ?? '');
@@ -521,6 +529,33 @@ export function EmployeePayrollPersonnelPanel({
               value={alternateAccountHolder}
               onChangeText={setAlternateAccountHolder}
             />
+            <PremiumInput
+              label="Maximal auszahlbare Stunden pro Monat"
+              value={maxPayoutHoursMonth}
+              onChangeText={setMaxPayoutHoursMonth}
+              keyboardType="decimal-pad"
+            />
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>Mehrstunden automatisch ins Zeitkonto</Text>
+              <PremiumButton
+                title={overflowToTimeAccount ? 'Ja' : 'Nein'}
+                size="sm"
+                variant={overflowToTimeAccount ? 'primary' : 'secondary'}
+                onPress={() => setOverflowToTimeAccount((value) => !value)}
+              />
+            </View>
+            <PremiumInput
+              label="Kilometerpauschale (EUR/km)"
+              value={mileageRate}
+              onChangeText={setMileageRate}
+              keyboardType="decimal-pad"
+            />
+            <PremiumInput
+              label="Interne Abrechnungshinweise"
+              value={payrollNotes}
+              onChangeText={setPayrollNotes}
+              multiline
+            />
             <PremiumButton
               title="Vergütung speichern"
               loading={saving}
@@ -539,6 +574,10 @@ export function EmployeePayrollPersonnelPanel({
                         bankName: bankName.trim() || null,
                         accountHolder: accountHolder.trim() || null,
                         alternateAccountHolder: alternateAccountHolder.trim() || null,
+                        maxPayoutHoursMonth: parseAmount(maxPayoutHoursMonth),
+                        overflowToTimeAccount,
+                        mileageRateCents: Math.round((parseAmount(mileageRate) ?? 0.3) * 100),
+                        payrollNotes: payrollNotes.trim() || null,
                       },
                       actorRoleKey,
                       actorProfileId,
@@ -577,6 +616,19 @@ export function EmployeePayrollPersonnelPanel({
               label="Abweichender Kontoinhaber"
               value={payroll.payroll.alternateAccountHolder ?? '—'}
             />
+            <DetailInfoRow
+              label="Maximal auszahlbare Stunden"
+              value={payroll.payroll.maxPayoutHoursMonth != null ? `${payroll.payroll.maxPayoutHoursMonth} Std./Monat` : 'Keine Obergrenze'}
+            />
+            <DetailInfoRow
+              label="Mehrstunden"
+              value={payroll.payroll.overflowToTimeAccount ? 'Automatisch ins Zeitkonto' : 'Manuelle Prüfung'}
+            />
+            <DetailInfoRow
+              label="Kilometerpauschale"
+              value={`${(payroll.payroll.mileageRateCents / 100).toFixed(2).replace('.', ',')} EUR/km`}
+            />
+            <DetailInfoRow label="Abrechnungshinweis" value={payroll.payroll.payrollNotes ?? '—'} />
           </>
         )}
       </SectionPanel>
@@ -721,7 +773,7 @@ export function EmployeePayrollPersonnelPanel({
               <PremiumInput
                 label="Arbeitgeber"
                 value={row.employerName}
-                onChangeText={(value) =>
+                onChangeText={(value: string) =>
                   setSecondaryRows((prev) =>
                     prev.map((item, i) => (i === index ? { ...item, employerName: value } : item)),
                   )
@@ -730,7 +782,7 @@ export function EmployeePayrollPersonnelPanel({
               <PremiumInput
                 label="Monatsentgelt brutto (EUR)"
                 value={row.grossMonthlyIncome}
-                onChangeText={(value) =>
+                onChangeText={(value: string) =>
                   setSecondaryRows((prev) =>
                     prev.map((item, i) => (i === index ? { ...item, grossMonthlyIncome: value } : item)),
                   )

@@ -174,6 +174,12 @@ export async function updateEmployeePayrollSettings(
     const ibanError = validateEmployeeIban(patch.iban);
     if (ibanError) return { ok: false, error: ibanError };
   }
+  if (patch.maxPayoutHoursMonth != null && patch.maxPayoutHoursMonth < 0) {
+    return { ok: false, error: 'Die maximale Auszahlungsstundenzahl darf nicht negativ sein.' };
+  }
+  if (patch.mileageRateCents != null && patch.mileageRateCents < 0) {
+    return { ok: false, error: 'Die Kilometerpauschale darf nicht negativ sein.' };
+  }
 
   if (getServiceMode() !== 'supabase') {
     return mergeDemoBundle(tenantId, employeeId, (current) => ({

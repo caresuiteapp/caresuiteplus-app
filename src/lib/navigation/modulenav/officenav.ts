@@ -20,6 +20,7 @@ export const officeNav: ModuleNavConfig = {
     {
       title: 'Abrechnung & Dokumente',
       items: [
+        { key: 'payroll', label: 'Gehaltsstatistik', icon: '💶', href: '/business/office/payroll' },
         { key: 'invoices', label: 'Rechnungen', icon: '🧾', href: '/office/invoices' },
         {
           key: 'documents-signatures',

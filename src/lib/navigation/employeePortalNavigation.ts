@@ -25,6 +25,12 @@ export const EMPLOYEE_PORTAL_NAV_TABS: ShellTabConfig[] = [
     href: '/portal/employee/times',
   },
   {
+    key: 'payroll',
+    label: 'Gehalt & Auslagen',
+    icon: '💶',
+    href: '/portal/employee/payroll',
+  },
+  {
     key: 'vacation-request',
     label: 'Urlaubsantrag',
     icon: '🏖️',
@@ -55,6 +61,7 @@ export const EMPLOYEE_PORTAL_DRAWER_TAB_KEYS = [
   'clients',
   'signatures',
   'time-tracking',
+  'payroll',
   'vacation-request',
   'absence-request',
 ] as const;

@@ -45,6 +45,10 @@ export type EmployeePayrollSettingsRow = {
   bank_name?: string | null;
   account_holder?: string | null;
   alternate_account_holder?: string | null;
+  max_payout_hours_month?: number | null;
+  overflow_to_time_account?: boolean | null;
+  mileage_rate_cents?: number | null;
+  payroll_notes?: string | null;
 };
 
 export type EmployeeTaxSettingsRow = {
@@ -142,6 +146,10 @@ export function mapPayrollSettingsRow(
     bankName: row?.bank_name?.trim() || deriveBankNameFromIban(iban),
     accountHolder: row?.account_holder?.trim() || null,
     alternateAccountHolder: row?.alternate_account_holder?.trim() || null,
+    maxPayoutHoursMonth: row?.max_payout_hours_month ?? null,
+    overflowToTimeAccount: row?.overflow_to_time_account !== false,
+    mileageRateCents: row?.mileage_rate_cents ?? 30,
+    payrollNotes: row?.payroll_notes?.trim() || null,
   };
 }
 
@@ -249,6 +257,10 @@ export function buildPayrollSettingsUpsertPayload(
   if (patch.alternateAccountHolder !== undefined) {
     payload.alternate_account_holder = patch.alternateAccountHolder?.trim() || null;
   }
+  if (patch.maxPayoutHoursMonth !== undefined) payload.max_payout_hours_month = patch.maxPayoutHoursMonth;
+  if (patch.overflowToTimeAccount !== undefined) payload.overflow_to_time_account = patch.overflowToTimeAccount;
+  if (patch.mileageRateCents !== undefined) payload.mileage_rate_cents = patch.mileageRateCents;
+  if (patch.payrollNotes !== undefined) payload.payroll_notes = patch.payrollNotes?.trim() || null;
   return payload;
 }
 
