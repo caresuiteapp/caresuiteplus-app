@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { PortalTabScreen } from './PortalTabScreen';
@@ -38,6 +38,12 @@ export function EmployeePayrollMonthScreen() {
     if (!actor.tenantId || !actor.employeeId) return { ok: false as const, error: 'Mitarbeitendenkonto ist nicht vollständig verknüpft.' };
     return loadEmployeePayrollMonth(actor.tenantId, actor.employeeId, year, month);
   }, [actor.tenantId, actor.employeeId, year, month]), [actor.tenantId, actor.employeeId, year, month], { enabled: !!actor.tenantId && !!actor.employeeId });
+  useEffect(() => {
+    const cents = query.data?.mileageRateCents;
+    if (typeof cents === 'number' && Number.isFinite(cents)) {
+      setMileageRate((cents / 100).toFixed(2).replace('.', ','));
+    }
+  }, [query.data?.mileageRateCents]);
   const label = useMemo(() => new Date(year, month - 1, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }), [year, month]);
   const changeMonth = (delta: number) => { const date = new Date(year, month - 1 + delta, 1); setYear(date.getFullYear()); setMonth(date.getMonth() + 1); setMessage(null); };
   async function chooseReceipt() {

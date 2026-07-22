@@ -11,6 +11,7 @@ const requiredFiles = [
   'src/lib/payroll/payrollMonthService.ts',
   'src/types/modules/payrollMonth.ts',
   'supabase/migrations/0264_payroll_monthly_statement_and_expenses.sql',
+  'supabase/migrations/0265_payroll_integrity_and_receipt_storage.sql',
 ];
 
 const failures = [];
@@ -35,6 +36,13 @@ mustContain('supabase/migrations/0264_payroll_monthly_statement_and_expenses.sql
   'ENABLE ROW LEVEL SECURITY',
   'konkreten Ablehnungsgrund mit mindestens 10 Zeichen',
   'Bestätigte oder gesperrte Abrechnungsversionen sind unveränderbar',
+]);
+mustContain('supabase/migrations/0265_payroll_integrity_and_receipt_storage.sql', [
+  'payroll_employee_documents_select',
+  'payroll_employee_receipts_insert',
+  'employee_payroll_mileage_rate_cents',
+  'payroll_expenses_insert',
+  'payroll_audit_insert',
 ]);
 mustContain('src/lib/payroll/payrollCalculator.ts', [
   'overtimeTransferMinutes',
