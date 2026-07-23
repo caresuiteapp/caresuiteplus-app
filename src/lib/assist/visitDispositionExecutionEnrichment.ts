@@ -260,6 +260,11 @@ export function mergeVisitDispositionWithExecution(input: {
     executionStatus: dims.execution,
     isIncomplete: false,
   });
+  const employeeNotes =
+    documentationText?.trim() &&
+    detail.employeeNotes?.trim() === documentationText.trim()
+      ? null
+      : detail.employeeNotes;
 
   return {
     ...detail,
@@ -275,8 +280,8 @@ export function mergeVisitDispositionWithExecution(input: {
       getVisitAllowedTransitions(assignmentStatus),
     ),
     tasks,
-    employeeNotes: documentationText ?? detail.employeeNotes,
-    notes: documentationText ?? detail.notes,
+    employeeNotes,
+    documentationNotes: documentationText ?? detail.documentationNotes,
     onTheWayAt,
     arrivedAt,
     actualStartAt,

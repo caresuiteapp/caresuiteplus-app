@@ -65,7 +65,10 @@ export function buildVisitProofPreview(
 ): VisitProofPreview {
   const signature = visit.persistedSignature ?? getVisitSignature(visit.id);
   const signatureImageUrl = pickSignatureImageUrl(null, signature?.dataUrl);
-  const docText = documentationNote?.trim() || visit.employeeNotes?.trim() || visit.notes?.trim() || null;
+  const docText =
+    documentationNote?.trim() ||
+    visit.documentationNotes?.trim() ||
+    null;
 
   const tasks: VisitProofPreviewTaskItem[] = visit.tasks.map((task) => ({
     id: task.id,

@@ -36,6 +36,7 @@ import { toStorageUploadError } from '@/lib/storage/storagePaths';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { pickSignatureImageUrl } from '@/lib/assist/visitSignatureImageService';
 import { normalizeSignatureImageForProof } from '@/lib/signatures/signatureOrientation';
+import { resolveVisitProofDocumentationText } from '@/lib/assist/visitProofTaskPresentation';
 
 export type { AssistProofPdfPayload };
 export { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
@@ -67,6 +68,9 @@ export async function buildEnrichedAssistProofPdfPayload(
 
   const needsEmployee = employeeName === VISIT_PROOF_EMPLOYEE_UNKNOWN;
   const needsBranding = !branding.logoUrl || branding.tenantName === VISIT_PROOF_TENANT_NAME_FALLBACK;
+  const needsDocumentation =
+    resolveVisitProofDocumentationText(snapshot) ===
+    'Keine zusätzliche Dokumentation erfasst.';
   const snapshotHasSignature = Boolean(
     proof.signatureId ||
     snapshot.signature ||
@@ -78,7 +82,7 @@ export async function buildEnrichedAssistProofPdfPayload(
     merged.signature?.dataUrl,
   );
 
-  if (needsEmployee || needsSignature) {
+  if (needsEmployee || needsSignature || needsDocumentation) {
     const enriched = await enrichVisitProofForPreview(tenantId, proof);
     if (enriched.ok) {
       merged = mergeVisitProofEnrichment(enriched.data, merged);

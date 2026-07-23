@@ -125,7 +125,7 @@ export async function saveClientSignature(
       plannedStartAt: workingCtx.detail.plannedStartAt,
       plannedEndAt: workingCtx.detail.plannedEndAt,
       taskStatuses: workingCtx.detail.tasks.map((t) => ({ taskId: t.id, status: t.status })),
-      documentationNote: null,
+      documentationNote: workingCtx.detail.documentationNotes?.trim() || null,
     },
   );
 
@@ -156,7 +156,7 @@ export async function saveClientSignature(
   const documentationText =
     refreshed.data.detail.documentationStatus === 'submitted' ||
     refreshed.data.detail.documentationStatus === 'locked'
-      ? 'submitted'
+      ? refreshed.data.detail.documentationNotes?.trim() || null
       : null;
   const proof = await generateServiceRecord(refreshed.data, documentationText);
   const proofGenerated = proof.ok ? proof.data.proofPersisted : false;

@@ -172,7 +172,7 @@ export function applySnapshotToDetail(
     billingStatus: dims.billing,
     allowedStatusTransitions: snapshotAllowedTransitions(assignmentStatus),
     tasks,
-    employeeNotes: snapshot.documentationNotes ?? detail.employeeNotes,
+    documentationNotes: snapshot.documentationNotes ?? detail.documentationNotes,
     onTheWayAt,
     arrivedAt,
     actualStartAt,

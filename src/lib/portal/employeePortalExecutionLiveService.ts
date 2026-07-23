@@ -133,6 +133,7 @@ function mapDetailToPortal(
     statusHistory: [],
     pauseEvents: [],
     documentationStatus,
+    documentationNotes: docNotes || null,
     signatureStatus,
     requiresSignature,
     requiresDocumentation,

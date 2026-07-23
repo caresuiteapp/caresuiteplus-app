@@ -32,7 +32,7 @@ function staleVisitDetail(): VisitDispositionDetail {
     serviceKey: null,
     description: null,
     notes: null,
-    employeeNotes: null,
+    employeeNotes: 'Bitte den Wohnungsschlüssel anschließend zurücklegen.',
     executionStatus: 'pending',
     documentationStatus: 'none',
     portalStatus: 'scheduled',
@@ -98,5 +98,9 @@ describe('assist execution overlay detail', () => {
     expect(merged.actualEndAt).toBe('2026-07-07T10:15:00.000Z');
     expect(merged.documentationStatus).toBe('complete');
     expect(merged.proofStatus).toBe('pending');
+    expect(merged.documentationNotes).toBe('Einsatz dokumentiert');
+    expect(merged.employeeNotes).toBe(
+      'Bitte den Wohnungsschlüssel anschließend zurücklegen.',
+    );
   });
 });

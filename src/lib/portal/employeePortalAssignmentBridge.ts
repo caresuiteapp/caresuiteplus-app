@@ -73,7 +73,7 @@ export function mapVisitDetailToAssignmentDetail(visit: VisitDispositionDetail):
     onTheWayAt: visit.onTheWayAt,
     arrivedAt: visit.arrivedAt,
     finishedAt: visit.finishedAt,
-    documentationNotes: visit.employeeNotes,
+    documentationNotes: visit.documentationNotes ?? null,
     plannedStartAt: visit.scheduledStart,
     plannedEndAt: visit.scheduledEnd,
     actualStartAt: visit.actualStartAt,

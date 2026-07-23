@@ -492,6 +492,7 @@ function mapDetail(
     description: row.description,
     notes: row.internal_notes,
     employeeNotes: row.employee_notes,
+    documentationNotes: null,
     clientVisibleNotes: row.client_visible_notes ?? null,
     addressSnapshot: row.address_snapshot,
     locationNotes: row.location_notes,

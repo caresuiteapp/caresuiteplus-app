@@ -50,7 +50,8 @@ export async function finalizeVisit(
 
   const docText =
     documentationText?.trim() ||
-    (ctx.detail.documentationStatus === 'submitted' ? 'submitted' : '');
+    ctx.detail.documentationNotes?.trim() ||
+    '';
 
   const readiness = validateVisitCloseReadiness({
     tasks: ctx.detail.tasks.map((t) => ({

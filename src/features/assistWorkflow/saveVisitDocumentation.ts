@@ -106,7 +106,6 @@ async function persistDocumentationToAssistVisit(
   const { error: visitUpdateError } = await fromUnknownTable(supabase, 'assist_visits')
     .update({
       documentation_status: 'complete',
-      employee_notes: buildDocumentationText(doc),
       updated_at: now,
     })
     .eq('tenant_id', tenantId)

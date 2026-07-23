@@ -73,6 +73,8 @@ export type EmployeePortalAssignmentDetail = {
   statusHistory: EmployeePortalStatusHistoryEntry[];
   pauseEvents: EmployeePortalPauseEvent[];
   documentationStatus: 'none' | 'draft' | 'submitted' | 'locked';
+  /** Vollständiger Dokumentationstext des Einsatzes, getrennt von Mitarbeitenden-Hinweisen. */
+  documentationNotes?: string | null;
   signatureStatus:
     | 'none'
     | 'pending'
