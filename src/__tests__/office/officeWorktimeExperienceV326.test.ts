@@ -21,14 +21,23 @@ describe('Office Arbeitszeit V32.6 Design, Struktur und Funktionen', () => {
   });
 
   it('makes KPIs, filters, tables and the review pane readable', () => {
+    const shell = read('src/components/wfm/OfficeTimeTrackingShell.tsx');
     const layout = read('src/components/wfm/WfmOfficeTimekeepingLayout.tsx');
     const table = read('src/components/wfm/WfmOfficeTimeEntryTable.tsx');
     const detail = read('src/components/wfm/WfmOfficeTimeReviewDetailPanel.tsx');
+    const dataTable = read('src/design/tokens/auroraGlass.ts');
+    const button = read('src/components/ui/PremiumButton.tsx');
+    expect(shell).toContain('lightSurfaceText.primary');
     expect(layout).toContain('minWidth: 118');
     expect(layout).toContain('width: 420');
+    expect(layout).toContain('onLightSurface');
     expect(table).toContain("fontSize: 13");
     expect(table).toContain("backgroundColor: 'rgba(255,255,255,0.94)'");
+    expect(table).toContain('lightSurfaceText.secondary');
     expect(detail).toContain("backgroundColor: 'rgba(255,255,255,0.95)'");
+    expect(detail).toContain('onDarkSurface={false}');
+    expect(dataTable).toContain('solidSurface ? lightSurfaceText.primary : text.primary');
+    expect(button).toContain("variant === 'primary' || !onDarkSurface");
   });
 
   it('loads only the valid live employee enum and hides the form on load errors', () => {

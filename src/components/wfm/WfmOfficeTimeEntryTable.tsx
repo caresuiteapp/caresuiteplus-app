@@ -1,6 +1,6 @@
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { PremiumBadge, PremiumButton, PremiumDataTable, type DataTableColumn } from '@/components/ui';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { lightSurfaceText, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import {
   formatWfmPlanTimeRange,
@@ -107,8 +107,12 @@ function CellText({
   lines?: number;
   tooltip?: string;
 }) {
-  const text = useAuroraAdaptiveText();
-  const color = tone === 'primary' ? '#0F1B33' : tone === 'secondary' ? text.secondary : text.muted;
+  const color =
+    tone === 'primary'
+      ? lightSurfaceText.primary
+      : tone === 'secondary'
+        ? lightSurfaceText.secondary
+        : lightSurfaceText.muted;
   return (
     <Text
       style={[styles.cellText, { color }, tone === 'primary' ? styles.cellTextStrong : null]}
@@ -173,6 +177,7 @@ function ReviewActionButton({
         size="sm"
         style={COMPACT_ACTION_BUTTON}
         onPress={onPress}
+        onDarkSurface={false}
       />
     </View>
   );

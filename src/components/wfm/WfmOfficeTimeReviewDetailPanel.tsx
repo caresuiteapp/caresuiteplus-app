@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { CareTimeInput } from '@/components/inputs';
 import { ListFilterSelect, PremiumButton } from '@/components/ui';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { lightSurfaceText, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import {
@@ -56,7 +56,7 @@ function SectionBlock({
   const text = useAuroraAdaptiveText();
   return (
     <View style={[styles.section, { borderColor: text.border }]}>
-      <Text style={[styles.sectionTitle, { color: text.primary }]}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: lightSurfaceText.primary }]}>{title}</Text>
       {children}
     </View>
   );
@@ -112,60 +112,60 @@ export function WfmOfficeTimeReviewDetailPanel({
     <View style={[styles.panel, { borderColor: accent }]} testID="wfm-office-review-detail-panel">
       <View style={styles.panelHeader}>
         <View style={styles.panelHeaderText}>
-          <Text style={[styles.panelTitle, { color: text.primary }]}>
+          <Text style={[styles.panelTitle, { color: lightSurfaceText.primary }]}>
             {entry.employeeName}
           </Text>
-          <Text style={[styles.panelSubtitle, { color: text.secondary }]}>
+          <Text style={[styles.panelSubtitle, { color: lightSurfaceText.secondary }]}>
             {entry.workDate} · {WFM_OFFICE_WORK_KIND_LABELS[entry.workKind]}
           </Text>
         </View>
-        <PremiumButton title="Schließen" variant="ghost" onPress={onClose} />
+        <PremiumButton title="Schließen" variant="ghost" onPress={onClose} onDarkSurface={false} />
       </View>
 
       <ScrollView style={styles.panelScroll} contentContainerStyle={styles.panelBody}>
         <SectionBlock title="Einsatz">
-          <Text style={[styles.line, { color: text.secondary }]}>
+          <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
             {entry.clientLabel ?? entry.assignmentTitle ?? '—'}
           </Text>
-          <Text style={[styles.line, { color: text.secondary }]}>
+          <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
             Status: {WFM_OFFICE_TIME_STATUS_LABELS[entry.reviewStatus]}
           </Text>
           {entry.flags.includes('missing_booking') ? (
-            <Text style={[styles.line, { color: text.secondary }]}>
+            <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
               Fehlende Buchung — geplanter Einsatz ohne Ist-Zeit.
             </Text>
           ) : null}
         </SectionBlock>
 
         <SectionBlock title="Zeiten">
-          <Text style={[styles.line, { color: text.secondary }]}>{display.displayPrimaryTimeLabel}</Text>
+          <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>{display.displayPrimaryTimeLabel}</Text>
           {display.displaySecondaryTimeLabel ? (
-            <Text style={[styles.line, { color: text.secondary }]}>{display.displaySecondaryTimeLabel}</Text>
+            <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>{display.displaySecondaryTimeLabel}</Text>
           ) : null}
-          <Text style={[styles.line, { color: text.secondary }]}>
+          <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
             Plan: {formatWfmPlanTimeRange(entry.plannedStartAt, entry.plannedEndAt, entry.planDisplayStatus)}
             {display.isPlannedOnly ? ` · ${formatWfmReviewQueuePlannedDuration(entry)}` : ''}
           </Text>
           {display.hasAssignmentActual ? (
-            <Text style={[styles.line, { color: text.secondary }]}>
+            <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
               Einsatz-Ist: {formatWfmReviewQueueStartLabel(entry, null).replace('Start: ', '')} –{' '}
               {formatWfmReviewQueueEndLabel(entry, null).replace('Ende: ', '')}
             </Text>
           ) : null}
           {display.hasTimeEntry ? (
-            <Text style={[styles.line, { color: text.secondary }]}>
+            <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
               Buchung: Netto {formatWfmDurationMinutes(entry.netMinutes)} · Pause{' '}
               {formatWfmDurationMinutes(entry.pauseMinutes)}
             </Text>
           ) : null}
-          <Text style={[styles.line, { color: text.secondary }]}>
+          <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
             {formatWfmReviewQueueGesamtLabel(entry)} · Export: {entry.exportStatus}
           </Text>
         </SectionBlock>
 
         <SectionBlock title="Prüfung">
           {exportedWarning ? (
-            <Text style={[styles.line, { color: text.secondary }]}>
+            <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
               Warnung: Eintrag exportiert — Änderungen erfordern P2.3 Re-Export.
             </Text>
           ) : null}
@@ -173,8 +173,8 @@ export function WfmOfficeTimeReviewDetailPanel({
             value={reviewNote}
             onChangeText={onReviewNoteChange}
             placeholder="Kommentar / Ablehnungsgrund / Rückfrage"
-            placeholderTextColor={text.muted}
-            style={[styles.input, { color: text.primary, borderColor: text.border }]}
+            placeholderTextColor={lightSurfaceText.muted}
+            style={[styles.input, { color: lightSurfaceText.primary, borderColor: text.border }]}
             multiline
           />
         </SectionBlock>
@@ -215,24 +215,24 @@ export function WfmOfficeTimeReviewDetailPanel({
               value={correctionReason}
               onChangeText={onCorrectionReasonChange}
               placeholder="Korrektur-Begründung (Pflicht)"
-              placeholderTextColor={text.muted}
-              style={[styles.input, { color: text.primary, borderColor: text.border }]}
+              placeholderTextColor={lightSurfaceText.muted}
+              style={[styles.input, { color: lightSurfaceText.primary, borderColor: text.border }]}
             />
             <View style={styles.actionRow}>
               {display.hasAssignmentActual ? (
-                <PremiumButton title="Aus Einsatz übernehmen" variant="secondary" onPress={onAdoptAssignment} />
+                <PremiumButton title="Aus Einsatz übernehmen" variant="secondary" onPress={onAdoptAssignment} onDarkSurface={false} />
               ) : null}
-              <PremiumButton title="Speichern" variant="secondary" onPress={onSaveCorrection} />
+              <PremiumButton title="Speichern" variant="secondary" onPress={onSaveCorrection} onDarkSurface={false} />
             </View>
             <View style={styles.actionRow}>
               {entry.canApprove !== false ? (
-                <PremiumButton title="Freigeben" variant="secondary" onPress={onApprove} />
+                <PremiumButton title="Freigeben" variant="secondary" onPress={onApprove} onDarkSurface={false} />
               ) : null}
               {entry.canRequestClarification !== false ? (
-                <PremiumButton title="Rückfrage" variant="ghost" onPress={onClarification} />
+                <PremiumButton title="Rückfrage" variant="ghost" onPress={onClarification} onDarkSurface={false} />
               ) : null}
               {entry.canReject !== false ? (
-                <PremiumButton title="Ablehnen" variant="ghost" onPress={onReject} />
+                <PremiumButton title="Ablehnen" variant="ghost" onPress={onReject} onDarkSurface={false} />
               ) : null}
             </View>
           </SectionBlock>
@@ -243,14 +243,15 @@ export function WfmOfficeTimeReviewDetailPanel({
             title={showHistory ? 'Historie ausblenden' : 'Historie anzeigen'}
             variant="ghost"
             onPress={() => setShowHistory((v) => !v)}
+            onDarkSurface={false}
           />
           {showHistory ? (
             <View style={styles.history}>
               {auditEntries.length === 0 ? (
-                <Text style={[styles.line, { color: text.secondary }]}>Keine Audit-Einträge.</Text>
+                <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>Keine Audit-Einträge.</Text>
               ) : (
                 auditEntries.map((a) => (
-                  <Text key={a.id} style={[styles.line, { color: text.secondary }]}>
+                  <Text key={a.id} style={[styles.line, { color: lightSurfaceText.secondary }]}>
                     {a.createdAt.slice(0, 16)} · {a.summary}
                     {a.reason ? ` — ${a.reason}` : ''}
                   </Text>
@@ -261,7 +262,7 @@ export function WfmOfficeTimeReviewDetailPanel({
         </SectionBlock>
 
         {actionMessage ? (
-          <Text style={[styles.line, { color: text.secondary }]}>{actionMessage}</Text>
+          <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>{actionMessage}</Text>
         ) : null}
       </ScrollView>
     </View>

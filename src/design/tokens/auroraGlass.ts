@@ -599,7 +599,7 @@ export function useAuroraGlassTableStyles(options: AuroraGlassTableOptions = {})
         },
         headerText: {
           ...typography.label,
-          color: text.primary,
+          color: solidSurface ? lightSurfaceText.primary : text.primary,
           textTransform: 'uppercase',
           letterSpacing: 0.6,
           fontSize: 11,
@@ -609,7 +609,7 @@ export function useAuroraGlassTableStyles(options: AuroraGlassTableOptions = {})
           color: isLight && active ? '#000000' : careSuiteAuroraTheme.accent.violet,
         },
         cellText: {
-          color: text.primary,
+          color: solidSurface ? lightSurfaceText.primary : text.primary,
           fontSize: 14,
         },
         dataRow: {
@@ -645,7 +645,7 @@ export function useAuroraGlassTableStyles(options: AuroraGlassTableOptions = {})
         },
         emptyText: {
           ...typography.caption,
-          color: text.muted,
+          color: solidSurface ? lightSurfaceText.muted : text.muted,
         },
       }),
     [active, colors, glass, isLight, solidSurface, tableSurface, text.muted, text.primary, typography.caption, typography.label],

@@ -1,6 +1,6 @@
 import { Slot, usePathname, useRouter } from 'expo-router';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { lightSurfaceText, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import {
@@ -31,8 +31,8 @@ export function OfficeTimeTrackingShell() {
           </View>
           <View style={styles.headerText}>
             <Text style={[styles.eyebrow, { color: accent }]}>OFFICE · WORKFORCE MANAGEMENT</Text>
-            <Text style={[styles.title, { color: text.primary }]}>Arbeitszeit</Text>
-            <Text style={[styles.subtitle, { color: text.secondary }]}> 
+            <Text style={[styles.title, { color: lightSurfaceText.primary }]}>Arbeitszeit</Text>
+            <Text style={[styles.subtitle, { color: lightSurfaceText.secondary }]}>
               Zeiten erfassen, Abweichungen prüfen und Freigaben zentral steuern
             </Text>
           </View>
@@ -49,7 +49,7 @@ export function OfficeTimeTrackingShell() {
           accessibilityLabel="Eigene Erfassung öffnen"
         >
           <Text style={[styles.ownLinkIcon, { color: accent }]}>＋</Text>
-          {!compact ? <View><Text style={[styles.ownLinkKicker, { color: text.muted }]}>PERSÖNLICH</Text><Text style={[styles.ownLinkText, { color: ownCaptureActive ? accent : text.primary }]}>Eigene Erfassung</Text></View> : null}
+          {!compact ? <View><Text style={[styles.ownLinkKicker, { color: lightSurfaceText.muted }]}>PERSÖNLICH</Text><Text style={[styles.ownLinkText, { color: ownCaptureActive ? accent : lightSurfaceText.primary }]}>Eigene Erfassung</Text></View> : null}
         </Pressable>
       </View>
 
@@ -72,7 +72,7 @@ export function OfficeTimeTrackingShell() {
                   accessibilityState={{ selected }}
                 >
                   <Text style={styles.tabIcon}>{tab.icon}</Text>
-                  <Text style={[styles.tabLabel, { color: selected ? accent : text.secondary }, selected && styles.tabLabelSelected]} numberOfLines={1}>
+                  <Text style={[styles.tabLabel, { color: selected ? accent : lightSurfaceText.secondary }, selected && styles.tabLabelSelected]} numberOfLines={1}>
                     {tab.label}
                   </Text>
                   {selected ? <View style={[styles.activeMarker, { backgroundColor: accent }]} /> : null}
@@ -103,7 +103,7 @@ export function OfficeTimeTrackingShell() {
                 accessibilityState={{ selected }}
               >
                 <Text style={styles.tabIcon}>{tab.icon}</Text>
-                <Text style={[styles.tabLabel, { color: selected ? accent : text.secondary }, selected && styles.tabLabelSelected]} numberOfLines={1}>
+                <Text style={[styles.tabLabel, { color: selected ? accent : lightSurfaceText.secondary }, selected && styles.tabLabelSelected]} numberOfLines={1}>
                   {tab.label}
                 </Text>
                 {selected ? <View style={[styles.activeMarker, { backgroundColor: accent }]} /> : null}

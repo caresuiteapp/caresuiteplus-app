@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, Text, View, type ViewStyle } from 'react-native';
+import { lightSurfaceText } from '@/design/tokens/auroraGlass';
 import { useAuroraGlassChipStyles } from '@/design/tokens/auroraGlass';
 
 type FilterChipProps = {
@@ -6,9 +7,16 @@ type FilterChipProps = {
   selected?: boolean;
   onPress?: () => void;
   style?: ViewStyle;
+  onLightSurface?: boolean;
 };
 
-export function FilterChip({ label, selected = false, onPress, style }: FilterChipProps) {
+export function FilterChip({
+  label,
+  selected = false,
+  onPress,
+  style,
+  onLightSurface = false,
+}: FilterChipProps) {
   const styles = useAuroraGlassChipStyles();
 
   return (
@@ -21,7 +29,16 @@ export function FilterChip({ label, selected = false, onPress, style }: FilterCh
         style,
       ]}
     >
-      <Text style={[styles.label, selected && styles.labelSelected]}>{label}</Text>
+      <Text
+        style={[
+          styles.label,
+          onLightSurface && { color: lightSurfaceText.secondary },
+          selected && styles.labelSelected,
+          selected && onLightSurface && { color: '#0F1B33' },
+        ]}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -45,6 +62,7 @@ type FilterChipGroupProps<T extends string> = {
   multiple?: boolean;
   /** Minimum selections when `multiple` is true (default 1). */
   minSelected?: number;
+  onLightSurface?: boolean;
 };
 
 function resolveFilterChipKey<T extends string>(opt: FilterChipOption<T>, index: number): T {
@@ -65,6 +83,7 @@ export function FilterChipGroup<T extends string>({
   wrap = false,
   multiple = false,
   minSelected = 1,
+  onLightSurface = false,
 }: FilterChipGroupProps<T>) {
   const styles = useAuroraGlassChipStyles();
   const selected = value ?? selectedKey;
@@ -81,6 +100,7 @@ export function FilterChipGroup<T extends string>({
         key={optKey}
         label={opt.label}
         selected={isSelected}
+        onLightSurface={onLightSurface}
         onPress={
           handleChange
             ? () => {
