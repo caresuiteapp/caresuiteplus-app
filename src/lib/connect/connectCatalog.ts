@@ -87,10 +87,18 @@ export const CONNECT_CATALOG: ConnectCategory[] = [
   {
     key: 'communication_channels',
     label: 'Kommunikationskanäle',
-    description: 'E-Mail, SMS, WhatsApp, Push, Telefonie',
+    description: 'Google Workspace, E-Mail, Kalender, Dateien, SMS, WhatsApp, Push und Telefonie',
     icon: '📨',
-    readiness: 'coming_soon',
+    readiness: 'beta',
     integrations: [
+      integration(
+        'google_workspace',
+        'Google Workspace',
+        'Gmail, Kalender, Meet, Drive, Docs, Sheets, Slides, Chat, Tasks und Kontakte',
+        'beta',
+        true,
+        '/business/connect/google-workspace',
+      ),
       integration('email', 'E-Mail', 'SMTP- und Provider-Anbindung für transaktionale E-Mails', 'coming_soon', true),
       integration('sms', 'SMS', 'SMS-Gateway für Erinnerungen und Benachrichtigungen', 'coming_soon', true),
       integration('whatsapp', 'WhatsApp', 'WhatsApp Business API — in Prüfung', 'coming_soon', true),

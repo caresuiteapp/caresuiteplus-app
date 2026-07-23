@@ -18,6 +18,15 @@ export type ProviderDefinition = {
  */
 export const PROVIDER_REGISTRY: ProviderDefinition[] = [
   {
+    key: 'google-workspace',
+    name: 'Google Workspace',
+    category: 'messaging',
+    description: 'Gmail, Kalender, Meet, Drive, Docs, Sheets, Slides, Chat, Tasks und Kontakte',
+    secretReferenceKey: 'vault:integration-google-workspace-oauth',
+    supportsOcr: false,
+    supportsAi: false,
+  },
+  {
     key: 'datev',
     name: 'DATEV',
     category: 'accounting',

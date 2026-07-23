@@ -82,7 +82,7 @@ export function ConnectIntegrationDetailScreen() {
 
         {integration.moduleHref ? (
           <PremiumButton
-            title="Zum CareSuite+ Modul"
+            title={integration.key === 'google_workspace' ? 'Google Workspace verwalten' : 'Zum CareSuite+ Modul'}
             variant="secondary"
             onPress={() => router.push(integration.moduleHref as never)}
           />
