@@ -263,7 +263,6 @@ export function AssistLiveStatusScreen() {
             <PremiumBadge label={`${overview.todayCount} Einsätze`} variant="muted" />
             <PremiumBadge label={`${overview.runningCount} laufend`} variant="orange" />
             <PremiumBadge label={`${overview.activeTrackingCount} Tracking aktiv`} variant="cyan" />
-            <PremiumBadge label={`${overview.consentPendingCount} Einwilligung offen`} variant="orange" />
             {mapProviderReady ? (
               <PremiumBadge
                 label={isGoogleMapsConfigured() ? 'Google Maps aktiv' : 'Kartenansicht aktiv'}

@@ -65,7 +65,7 @@ export type AssistLiveMonitoringOverview = {
 };
 
 const READ_ONLY_NOTICE =
-  'Live-Tracking wird ausschließlich im Mitarbeiterportal gestartet. Assist/Office sieht den Status — startet kein GPS.';
+  'Live-Verfolgung läuft im Mitarbeiterportal während der gesamten aktiven Anfahrt und des Einsatzes. Assist/Office empfängt die Position fortlaufend — startet selbst kein GPS.';
 
 function workflowToAssignmentStatus(status: WorkflowStatus): AssignmentStatus {
   switch (status) {

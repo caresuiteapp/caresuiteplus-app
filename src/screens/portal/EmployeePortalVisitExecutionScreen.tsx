@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
@@ -7,7 +7,6 @@ import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { LockedActionBanner } from '@/components/permissions';
 import { WorkflowToast } from '@/components/ui/WorkflowToast';
 import {
-  EmployeePortalLocationConsentBanner,
   EmployeePortalVisitBottomBar,
   EmployeePortalVisitCompletionPanel,
   EmployeePortalVisitDocumentationPanel,
@@ -92,8 +91,6 @@ export function EmployeePortalVisitExecutionScreen() {
     liveContext,
     tracking,
     timers,
-    consent,
-    gpsPermission,
     loading,
     error,
     liveContextError,
@@ -105,7 +102,6 @@ export function EmployeePortalVisitExecutionScreen() {
     taskSaving,
     taskSaveError,
     refresh,
-    grantConsent,
     startDriveTracking,
     markArrived,
     startService,
@@ -118,7 +114,6 @@ export function EmployeePortalVisitExecutionScreen() {
     finalizeVisit,
     finalizeVisitDeferred,
     reportNoShow,
-    requestLocationPermission,
     setGeofenceOverride,
     openRoute,
     effectiveStatus: hookEffectiveStatus,
@@ -143,7 +138,6 @@ export function EmployeePortalVisitExecutionScreen() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [localSuccess, setLocalSuccess] = useState<string | null>(null);
   const [localWarning, setLocalWarning] = useState<string | null>(null);
-  const [consentLoading, setConsentLoading] = useState(false);
   const [driveLoading, setDriveLoading] = useState(false);
   const [geofenceOverride, setGeofenceOverrideInput] = useState('');
   const [showGeofenceOverride, setShowGeofenceOverride] = useState(false);
@@ -382,42 +376,14 @@ export function EmployeePortalVisitExecutionScreen() {
     workflowPersistence,
   ]);
 
-  const handleGrantConsent = useCallback(async () => {
-    setConsentLoading(true);
-    setLocalError(null);
-    setLocalSuccess(null);
-    const result = await grantConsent();
-    if (!result.ok) setLocalError(result.error ?? 'Einwilligung konnte nicht gespeichert werden.');
-    else setLocalSuccess('Einwilligung gespeichert.');
-    setConsentLoading(false);
-  }, [grantConsent]);
-
-  const handleRequestPermission = useCallback(async () => {
-    setLocalError(null);
-    const status = await requestLocationPermission();
-    if (status === 'granted') setLocalSuccess('Standortberechtigung erteilt.');
-    else if (status === 'denied') {
-      setLocalError(
-        Platform.OS === 'ios'
-          ? 'Standortberechtigung abgelehnt — bitte in Safari-Einstellungen freigeben.'
-          : 'Standortberechtigung nicht erteilt.',
-      );
-    }
-  }, [requestLocationPermission]);
-
   const handleStartDrive = useCallback(async () => {
     setDriveLoading(true);
     setLocalError(null);
-    if (!consent?.granted) {
-      setLocalError('Bitte zuerst Standort-Einwilligung bestätigen.');
-      setDriveLoading(false);
-      return;
-    }
     const result = await startDriveTracking();
     if (!result.ok) setLocalError(result.error ?? 'Tracking konnte nicht gestartet werden.');
-    else setLocalSuccess('Anfahrt gestartet — Tracking aktiv.');
+    else setLocalSuccess('Anfahrt gestartet — Live-Verfolgung aktiv.');
     setDriveLoading(false);
-  }, [consent, startDriveTracking]);
+  }, [startDriveTracking]);
 
   const handleArrived = useCallback(async () => {
     setLocalError(null);
@@ -900,30 +866,11 @@ export function EmployeePortalVisitExecutionScreen() {
         contentContainerStyle={[styles.scroll, { paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}
       >
-        <EmployeePortalLocationConsentBanner
-          consent={consent}
-          onAccept={handleGrantConsent}
-          loading={consentLoading}
-        />
-
         {!canExecute ? (
           <LockedActionBanner
             message={check('assist.execution.manage').reason ?? 'Statusänderungen gesperrt.'}
             roleLabel={roleLabel}
           />
-        ) : null}
-
-        {!consent?.granted || gpsPermission !== 'granted' ? (
-          <View style={styles.hiddenSetup}>
-            {consent?.granted && gpsPermission !== 'granted' ? (
-              <PremiumButton
-                title="Standortberechtigung anfragen"
-                variant="secondary"
-                fullWidth
-                onPress={handleRequestPermission}
-              />
-            ) : null}
-          </View>
         ) : null}
 
         {showGeofenceOverride ? (

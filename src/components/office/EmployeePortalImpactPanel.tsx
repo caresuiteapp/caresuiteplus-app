@@ -60,7 +60,7 @@ export function EmployeePortalImpactPanel() {
           <Text style={styles.blocked}>nicht sichtbar</Text>
         </Text>
         <Text style={styles.secondary}>
-          GPS/Tracking: nur im Mitarbeiter:innen-Portal während Einsatzdurchführung (Einwilligung).
+          GPS/Tracking: startet im Mitarbeiter:innen-Portal automatisch mit Anfahrt oder Einsatz und endet mit dem Einsatz.
         </Text>
       </PremiumCard>
 

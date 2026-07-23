@@ -35,13 +35,16 @@ export type StartEmployeeLiveTrackingInput = {
   employeeId: string;
   routeParamId: string;
   profileId?: string | null;
-  consentGrantedAt: string;
+  /** Legacy persistence field; defaults to the workflow start timestamp. */
+  consentGrantedAt?: string | null;
   consentExplainedAt?: string | null;
   gpsSnapshot?: EmployeeGpsSnapshot | null;
   /** Skip location point when browser GPS unavailable but consent granted. */
   withoutGps?: boolean;
   /** When true, also sets assignment status to unterwegs. */
   transitionToEnRoute?: boolean;
+  /** Direct service start must not create a fictitious drive_start event. */
+  recordDriveStart?: boolean;
   localConsent?: {
     granted: boolean;
     grantedAt: string | null;
@@ -153,18 +156,7 @@ export async function startEmployeeLiveTracking(
 
   if (!ctxResult.ok) return ctxResult;
   const ctx = ctxResult.data;
-
-  if (!ctx.consentStatus.granted && !input.consentGrantedAt) {
-    const err = createLiveTrackingError('LIVE_CONSENT_SAVE_FAILED', {
-      tenantId: input.tenantId,
-      employeeId: input.employeeId,
-      assignmentId: ctx.assignmentId,
-      assistVisitId: ctx.assistVisitId,
-      operation: 'startEmployeeLiveTracking',
-    });
-    logLiveTrackingError(err);
-    return liveTrackingErrorToServiceResult(err);
-  }
+  const trackingAuthorizedAt = input.consentGrantedAt ?? new Date().toISOString();
 
   let sessionId = ctx.trackingSessionId;
 
@@ -176,8 +168,8 @@ export async function startEmployeeLiveTracking(
       const started = await startTrackingSession(input.tenantId, {
         visitId: ctx.assistVisitId,
         employeeId: input.employeeId,
-        consentGrantedAt: input.consentGrantedAt,
-        consentExplainedAt: input.consentExplainedAt ?? input.consentGrantedAt,
+        consentGrantedAt: trackingAuthorizedAt,
+        consentExplainedAt: input.consentExplainedAt ?? trackingAuthorizedAt,
         source: 'employee_portal',
       });
 
@@ -209,28 +201,30 @@ export async function startEmployeeLiveTracking(
     return liveTrackingErrorToServiceResult(err);
   }
 
-  const driveEvent = await recordTimeEvent(
-    input.tenantId,
-    {
-      visitId: ctx.assistVisitId,
-      sessionId,
-      eventType: 'drive_start',
-      occurredAt: new Date().toISOString(),
-    },
-    input.profileId ?? input.employeeId,
-  );
+  if (input.recordDriveStart !== false) {
+    const driveEvent = await recordTimeEvent(
+      input.tenantId,
+      {
+        visitId: ctx.assistVisitId,
+        sessionId,
+        eventType: 'drive_start',
+        occurredAt: new Date().toISOString(),
+      },
+      input.profileId ?? input.employeeId,
+    );
 
-  if (!driveEvent.ok) {
-    const err = createLiveTrackingError('LIVE_TIME_EVENT_INSERT_FAILED', {
-      tenantId: input.tenantId,
-      employeeId: input.employeeId,
-      assignmentId: ctx.assignmentId,
-      assistVisitId: ctx.assistVisitId,
-      operation: 'startEmployeeLiveTracking.drive_start',
-      supabaseMessage: driveEvent.error,
-    });
-    logLiveTrackingError(err);
-    return liveTrackingErrorToServiceResult(err);
+    if (!driveEvent.ok) {
+      const err = createLiveTrackingError('LIVE_TIME_EVENT_INSERT_FAILED', {
+        tenantId: input.tenantId,
+        employeeId: input.employeeId,
+        assignmentId: ctx.assignmentId,
+        assistVisitId: ctx.assistVisitId,
+        operation: 'startEmployeeLiveTracking.drive_start',
+        supabaseMessage: driveEvent.error,
+      });
+      logLiveTrackingError(err);
+      return liveTrackingErrorToServiceResult(err);
+    }
   }
 
   const location = input.withoutGps || !input.gpsSnapshot
@@ -287,8 +281,8 @@ export async function startEmployeeLiveTracking(
     routeParamId: input.routeParamId,
     localConsent: {
       granted: true,
-      grantedAt: input.consentGrantedAt,
-      explainedAt: input.consentExplainedAt ?? input.consentGrantedAt,
+      grantedAt: trackingAuthorizedAt,
+      explainedAt: input.consentExplainedAt ?? trackingAuthorizedAt,
     },
   });
 

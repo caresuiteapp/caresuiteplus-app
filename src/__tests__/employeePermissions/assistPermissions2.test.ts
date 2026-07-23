@@ -168,7 +168,8 @@ describe('ASSIST.PERMISSIONS.2 onboarding hydration', () => {
       'utf8',
     );
     expect(src).toContain('getEmployeeConsentBundle');
-    expect(src).toContain('persistInternalLocationConsent');
+    expect(src).toContain('requestLocationPermissionOnce');
+    expect(src).not.toContain('Bitte zuerst die interne Standort-Einwilligung bestätigen.');
   });
 
   it('requestLocationPermissionOnce remains idempotent', async () => {

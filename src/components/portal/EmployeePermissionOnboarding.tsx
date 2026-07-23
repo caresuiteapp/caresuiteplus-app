@@ -8,16 +8,10 @@ import {
   getEmployeePermissionOverview,
   needsPermissionOnboarding,
   PERMISSION_KINDS,
-  persistInternalLocationConsent,
   requestLocationPermissionOnce,
   type EmployeePermissionKind,
   type EmployeePermissionOverviewItem,
 } from '@/features/employeePermissions';
-import { saveEmployeeLocationConsent } from '@/features/liveTracking/saveEmployeeLocationConsent';
-import {
-  grantEmployeePortalLocationConsent,
-  markEmployeePortalConsentExplained,
-} from '@/lib/portal/employeePortalVisitTrackingService';
 import { colors, spacing, typography } from '@/theme';
 
 type EmployeePermissionOnboardingProps = {
@@ -47,8 +41,6 @@ function statusLabel(status: string): string {
 export function EmployeePermissionOnboarding({
   tenantId,
   employeeId,
-  profileId,
-  assignmentId,
   visible,
   onComplete,
   onDismiss,
@@ -58,7 +50,6 @@ export function EmployeePermissionOnboarding({
   const [loading, setLoading] = useState(false);
   const [hydrating, setHydrating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [locationConsentGranted, setLocationConsentGranted] = useState(false);
 
   const hydrateFromDb = useCallback(async () => {
     setHydrating(true);
@@ -66,9 +57,7 @@ export function EmployeePermissionOnboarding({
       getEmployeeConsentBundle(tenantId, employeeId),
       getEmployeePermissionOverview(tenantId, employeeId),
     ]);
-    if (consentSnapshot.ok && consentSnapshot.data.locationInternalConsentGranted) {
-      setLocationConsentGranted(true);
-    }
+    void consentSnapshot;
     if (overview.ok) setItems(overview.data.items);
     setHydrating(false);
   }, [tenantId, employeeId]);
@@ -83,46 +72,6 @@ export function EmployeePermissionOnboarding({
   const explanation = currentKind ? EMPLOYEE_PERMISSION_EXPLANATIONS[currentKind] : null;
   const isLastStep = step >= PERMISSION_KINDS.length - 1;
 
-  const handleGrantLocationConsent = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const now = new Date().toISOString();
-
-    markEmployeePortalConsentExplained(tenantId, assignmentId ?? 'onboarding');
-    const local = grantEmployeePortalLocationConsent(tenantId, assignmentId ?? 'onboarding');
-
-    const scopeSaved = await persistInternalLocationConsent(
-      tenantId,
-      employeeId,
-      local.grantedAt ?? now,
-      local.explainedAt ?? now,
-    );
-    if (!scopeSaved.ok) {
-      setLoading(false);
-      setError(scopeSaved.error ?? 'Interne Einwilligung konnte nicht gespeichert werden.');
-      return;
-    }
-
-    if (assignmentId) {
-      const saved = await saveEmployeeLocationConsent({
-        tenantId,
-        employeeId,
-        routeParamId: assignmentId,
-        profileId: profileId ?? employeeId,
-        consentExplainedAt: local.explainedAt,
-        localConsent: local,
-      });
-      if (!saved.ok) {
-        setLoading(false);
-        setError(saved.error ?? 'Einsatz-Einwilligung konnte nicht gespeichert werden.');
-        return;
-      }
-    }
-
-    setLocationConsentGranted(true);
-    setLoading(false);
-  }, [tenantId, employeeId, assignmentId, profileId]);
-
   const handleRequestBrowserPermission = useCallback(async () => {
     if (currentKind !== 'location') return;
     setLoading(true);
@@ -133,10 +82,6 @@ export function EmployeePermissionOnboarding({
   }, [currentKind, tenantId, employeeId]);
 
   const handleNext = useCallback(async () => {
-    if (currentKind === 'location' && !locationConsentGranted) {
-      setError('Bitte zuerst die interne Standort-Einwilligung bestätigen.');
-      return;
-    }
     setError(null);
     if (!isLastStep) {
       setStep((s) => s + 1);
@@ -146,7 +91,9 @@ export function EmployeePermissionOnboarding({
     setLoading(true);
     const now = new Date().toISOString();
     const result = await completePermissionOnboardingBundle(tenantId, employeeId, {
-      locationInternalConsentAt: locationConsentGranted ? now : null,
+      // Legacy field: the tenant's employment policy is acknowledged here.
+      // No separate employee consent click is required.
+      locationInternalConsentAt: now,
       explainedKinds: [...PERMISSION_KINDS],
     });
     setLoading(false);
@@ -157,7 +104,6 @@ export function EmployeePermissionOnboarding({
     onComplete();
   }, [
     currentKind,
-    locationConsentGranted,
     isLastStep,
     tenantId,
     employeeId,
@@ -171,7 +117,7 @@ export function EmployeePermissionOnboarding({
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.scroll}>
           <Text style={styles.kicker}>Willkommen im Mitarbeiterportal</Text>
-          <Text style={styles.title}>Berechtigungen & Einwilligungen</Text>
+          <Text style={styles.title}>Geräteberechtigungen</Text>
           <Text style={styles.subtitle}>
             Schritt {step + 1} von {PERMISSION_KINDS.length} — einmalig beim ersten Einsatz
           </Text>
@@ -187,23 +133,14 @@ export function EmployeePermissionOnboarding({
           </PremiumCard>
 
           {currentKind === 'location' ? (
-            <SectionPanel title="Interne Einwilligung (Pflicht für Tracking)">
+            <SectionPanel title="Standortzugriff des Geräts">
               <Text style={styles.note}>
-                Dies ist getrennt von der Browser-Berechtigung. Ohne interne Einwilligung startet
-                kein Live-Tracking — Ankunft und Statuswechsel bleiben aber möglich.
+                Die Live-Verfolgung startet automatisch mit „Anfahrt starten“ oder
+                „Einsatz starten“ und endet automatisch mit dem Einsatz. Eine zusätzliche
+                CareSuite-Zustimmung ist nicht erforderlich.
               </Text>
-              {!locationConsentGranted ? (
-                <PremiumButton
-                  title="Standort-Einwilligung erteilen"
-                  fullWidth
-                  loading={loading || hydrating}
-                  onPress={handleGrantLocationConsent}
-                />
-              ) : (
-                <Text style={styles.success}>✓ Interne Einwilligung gespeichert (Supabase)</Text>
-              )}
               <PremiumButton
-                title="Browser-Standort anfragen (optional)"
+                title="Geräte-Standort freigeben"
                 variant="secondary"
                 fullWidth
                 loading={loading}
