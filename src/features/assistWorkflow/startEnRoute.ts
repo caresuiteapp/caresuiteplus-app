@@ -5,10 +5,6 @@ import type { RoleKey, ServiceResult } from '@/types';
 import { startEmployeeLiveTracking, type EmployeeGpsSnapshot } from '@/features/liveTracking/startEmployeeLiveTracking';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import type { AssistExecutionContext } from './types';
-import {
-  assistWorkflowErrorToResult,
-  createAssistWorkflowError,
-} from './assistWorkflowErrors';
 
 export type StartEnRouteInput = {
   tenantId: string;
@@ -16,7 +12,8 @@ export type StartEnRouteInput = {
   employeeId: string;
   profileId?: string | null;
   roleKey?: RoleKey | null;
-  consentGrantedAt: string;
+  /** Legacy persistence field; no separate per-visit employee click required. */
+  consentGrantedAt?: string | null;
   consentExplainedAt?: string | null;
   gpsSnapshot?: EmployeeGpsSnapshot | null;
   /** When true, transition to en-route without recording a GPS point. */
@@ -31,17 +28,6 @@ export type StartEnRouteInput = {
 export async function startEnRoute(
   input: StartEnRouteInput,
 ): Promise<ServiceResult<AssistExecutionContext>> {
-  if (!input.consentGrantedAt) {
-    return assistWorkflowErrorToResult(
-      createAssistWorkflowError('AWF_CONSENT_REQUIRED', {
-        tenantId: input.tenantId,
-        assignmentId: input.assignmentId,
-        employeeId: input.employeeId,
-        operation: 'startEnRoute',
-      }),
-    );
-  }
-
   const started = await startEmployeeLiveTracking({
     tenantId: input.tenantId,
     employeeId: input.employeeId,

@@ -3,6 +3,7 @@
  * Prevents multiple watchPosition calls across components/hooks.
  */
 import { Platform } from 'react-native';
+import type * as ExpoLocation from 'expo-location';
 import {
   getDevicePerformanceProfile,
   gpsWatchMaxAgeMs,
@@ -26,6 +27,9 @@ export type SingleGeolocationWatchOptions = {
 
 type WatchEntry = {
   watchId: number | null;
+  nativeSubscription: ExpoLocation.LocationSubscription | null;
+  nativeStartPending: boolean;
+  released: boolean;
   sessionKey: string;
   refCount: number;
   lastCallbackAt: number;
@@ -38,6 +42,14 @@ const watches = new Map<string, WatchEntry>();
 
 const MIN_CALLBACK_INTERVAL_MS = 5_000;
 const MIN_MOVE_METERS = 5;
+export const EMPLOYEE_LIVE_LOCATION_INTERVAL_MS = 30_000;
+
+function loadExpoLocation(): typeof ExpoLocation {
+  // Lazy loading keeps web bundles and source-only tests independent from the
+  // native module while still using the actual device location provider.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require('expo-location') as typeof ExpoLocation;
+}
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -78,11 +90,46 @@ function dispatchSnapshot(entry: WatchEntry, snapshot: GeolocationSnapshot): voi
 }
 
 function startWatch(entry: WatchEntry, enableHighAccuracy: boolean): void {
-  if (typeof navigator === 'undefined' || !navigator.geolocation) return;
-  if (entry.watchId != null) return;
-
   const profile = getDevicePerformanceProfile();
   const maxAge = gpsWatchMaxAgeMs(profile.profile);
+
+  if (Platform.OS !== 'web') {
+    if (entry.nativeSubscription || entry.nativeStartPending) return;
+    entry.nativeStartPending = true;
+    const Location = loadExpoLocation();
+    void Location.watchPositionAsync(
+      {
+        accuracy: enableHighAccuracy ? Location.Accuracy.High : Location.Accuracy.Balanced,
+        timeInterval: EMPLOYEE_LIVE_LOCATION_INTERVAL_MS,
+        distanceInterval: 0,
+      },
+      (position) => {
+        dispatchSnapshot(entry, {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracyMeters: position.coords.accuracy ?? null,
+          capturedAt: new Date(position.timestamp).toISOString(),
+        });
+      },
+    )
+      .then((subscription) => {
+        entry.nativeStartPending = false;
+        if (entry.released || !watches.has(entry.sessionKey)) {
+          subscription.remove();
+          return;
+        }
+        entry.nativeSubscription = subscription;
+      })
+      .catch((error: unknown) => {
+        entry.nativeStartPending = false;
+        const message = error instanceof Error ? error.message : 'Standortdienst nicht verfügbar.';
+        for (const handler of entry.errorHandlers) handler(2, message);
+      });
+    return;
+  }
+
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+  if (entry.watchId != null) return;
 
   entry.watchId = navigator.geolocation.watchPosition(
     (position) => dispatchSnapshot(entry, snapshotFromPosition(position)),
@@ -94,7 +141,7 @@ function startWatch(entry: WatchEntry, enableHighAccuracy: boolean): void {
     {
       enableHighAccuracy: enableHighAccuracy ?? profile.profile !== 'mobileBatterySaver',
       timeout: 15_000,
-      maximumAge: Platform.OS === 'ios' ? maxAge : Math.max(maxAge, 10_000),
+      maximumAge: Math.max(maxAge, 10_000),
     },
   );
 }
@@ -106,6 +153,9 @@ function stopWatch(sessionKey: string): void {
   if (entry.watchId != null && typeof navigator !== 'undefined' && navigator.geolocation) {
     navigator.geolocation.clearWatch(entry.watchId);
   }
+  entry.released = true;
+  entry.nativeSubscription?.remove();
+  entry.nativeSubscription = null;
   watches.delete(sessionKey);
 
   if (watches.size === 0) {
@@ -124,6 +174,9 @@ export function acquireGeolocationWatch(options: SingleGeolocationWatchOptions):
   if (!entry) {
     entry = {
       watchId: null,
+      nativeSubscription: null,
+      nativeStartPending: false,
+      released: false,
       sessionKey,
       refCount: 0,
       lastCallbackAt: 0,
@@ -155,6 +208,20 @@ export function acquireGeolocationWatch(options: SingleGeolocationWatchOptions):
 }
 
 export function captureGeolocationOnce(): Promise<GeolocationSnapshot | null> {
+  if (Platform.OS !== 'web') {
+    const Location = loadExpoLocation();
+    return Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    })
+      .then((position) => ({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracyMeters: position.coords.accuracy ?? null,
+        capturedAt: new Date(position.timestamp).toISOString(),
+      }))
+      .catch(() => null);
+  }
+
   if (typeof navigator === 'undefined' || !navigator.geolocation) {
     return Promise.resolve(null);
   }

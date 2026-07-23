@@ -69,7 +69,7 @@ export function PortalClientLiveTrackingScreen() {
         <InfoBanner
           variant="info"
           title="Datenschutz"
-          message="Der Standort wird nur während eines laufenden Einsatzes und nach Einwilligung der Betreuungskraft angezeigt. Es werden keine Fahrten oder GPS-Verläufe gespeichert."
+          message="Der Standort wird nur während einer aktiven Anfahrt oder eines laufenden Einsatzes angezeigt. Die Übertragung startet und endet automatisch mit dem Einsatzstatus."
         />
 
         {!hasActiveAssignment ? (

@@ -15,6 +15,7 @@ import {
 import {
   acquireGeolocationWatch,
   captureGeolocationOnce,
+  EMPLOYEE_LIVE_LOCATION_INTERVAL_MS,
   type GeolocationSnapshot,
 } from './useSingleGeolocationWatch';
 import {
@@ -43,6 +44,13 @@ export type EmployeeGpsTrackingState = {
   errorCode: LiveTrackingErrorCode | null;
   errorMessage: string | null;
 };
+
+export function buildLiveLocationHeartbeatSnapshot(
+  snapshot: EmployeeGpsSnapshot,
+  capturedAt = new Date().toISOString(),
+): EmployeeGpsSnapshot {
+  return { ...snapshot, capturedAt };
+}
 
 function haversineMeters(
   lat1: number,
@@ -101,9 +109,12 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
   captureOnce: () => Promise<EmployeeGpsSnapshot | null>;
 } {
   const releaseWatchRef = useRef<(() => void) | null>(null);
+  const heartbeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startingWatchRef = useRef(false);
+  const writeInFlightRef = useRef(false);
   const lastWriteRef = useRef<number>(0);
   const lastCoordsRef = useRef<{ lat: number; lon: number } | null>(null);
+  const latestSnapshotRef = useRef<EmployeeGpsSnapshot | null>(null);
 
   const [state, setState] = useState<EmployeeGpsTrackingState>({
     watching: false,
@@ -127,6 +138,14 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
   const persistSnapshot = useCallback(
     async (snapshot: EmployeeGpsSnapshot, force = false): Promise<boolean> => {
       if (!options.tenantId || !options.assistVisitId || !options.sessionId) return false;
+      latestSnapshotRef.current = snapshot;
+
+      setState((prev) => ({
+        ...prev,
+        lastSnapshot: snapshot,
+        errorCode: null,
+        errorMessage: null,
+      }));
 
       const profile = getDevicePerformanceProfile();
       const minWriteInterval = gpsMinWriteIntervalMs(profile.profile);
@@ -199,6 +218,7 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
       return null;
     }
     const snapshot = snapshotFromGeolocation(snap);
+    latestSnapshotRef.current = snapshot;
     setState((prev) => ({
       ...prev,
       lastSnapshot: snapshot,
@@ -211,6 +231,10 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
   const stopWatching = useCallback(() => {
     releaseWatchRef.current?.();
     releaseWatchRef.current = null;
+    if (heartbeatTimerRef.current) {
+      clearInterval(heartbeatTimerRef.current);
+      heartbeatTimerRef.current = null;
+    }
     setState((prev) => ({
       ...prev,
       watching: false,
@@ -224,42 +248,60 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
 
     startingWatchRef.current = true;
     stopWatching();
+    try {
+      const first = await captureOnce();
+      if (first) {
+        await persistSnapshot(first, true);
+      }
 
-    const first = await captureOnce();
-    if (first) {
-      await persistSnapshot(first, true);
-    }
+      const sessionKey = `${options.tenantId ?? 't'}:${options.sessionId}`;
 
-    const sessionKey = `${options.tenantId ?? 't'}:${options.sessionId}`;
+      releaseWatchRef.current = acquireGeolocationWatch({
+        sessionKey,
+        enabled: true,
+        onSnapshot: (snap) => {
+          void persistSnapshot(snapshotFromGeolocation(snap));
+        },
+        onError: (code) => {
+          const mapped = mapGeolocationError(code);
+          const err = createLiveTrackingError(mapped, {
+            operation: 'useEmployeeGpsTracking.watchPosition',
+          });
+          logLiveTrackingError(err);
+          setState((prev) => ({
+            ...prev,
+            errorCode: mapped,
+            errorMessage: err.userMessage,
+          }));
+        },
+      });
 
-    releaseWatchRef.current = acquireGeolocationWatch({
-      sessionKey,
-      enabled: true,
-      onSnapshot: (snap) => {
-        void persistSnapshot(snapshotFromGeolocation(snap));
-      },
-      onError: (code) => {
-        const mapped = mapGeolocationError(code);
-        const err = createLiveTrackingError(mapped, {
-          operation: 'useEmployeeGpsTracking.watchPosition',
+      // watchPosition is movement/provider driven. A separate heartbeat keeps
+      // Office genuinely live even while the employee stands still.
+      heartbeatTimerRef.current = setInterval(() => {
+        if (writeInFlightRef.current) return;
+        writeInFlightRef.current = true;
+        void (async () => {
+          let snapshot = latestSnapshotRef.current;
+          if (!snapshot) snapshot = await captureOnce();
+          if (snapshot) {
+            await persistSnapshot(buildLiveLocationHeartbeatSnapshot(snapshot), true);
+          }
+        })().finally(() => {
+          writeInFlightRef.current = false;
         });
-        logLiveTrackingError(err);
-        setState((prev) => ({
-          ...prev,
-          errorCode: mapped,
-          errorMessage: err.userMessage,
-        }));
-      },
-    });
+      }, EMPLOYEE_LIVE_LOCATION_INTERVAL_MS);
 
-    setState((prev) => ({
-      ...prev,
-      watching: true,
-      trackingActive: true,
-    }));
+      setState((prev) => ({
+        ...prev,
+        watching: true,
+        trackingActive: true,
+      }));
 
-    startingWatchRef.current = false;
-    return true;
+      return true;
+    } finally {
+      startingWatchRef.current = false;
+    }
   }, [options.enabled, options.sessionId, options.tenantId, captureOnce, persistSnapshot, stopWatching]);
 
   useEffect(() => {
@@ -273,6 +315,21 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
   useEffect(() => {
     return () => stopWatching();
   }, [stopWatching]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible' || !options.enabled || !options.sessionId) return;
+      // Browsers throttle hidden tabs. On resume, immediately obtain a fresh
+      // point and make sure the singleton watch is still attached.
+      if (!releaseWatchRef.current) void startWatching();
+      void captureOnce().then((snapshot) => {
+        if (snapshot) void persistSnapshot(snapshot, true);
+      });
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [options.enabled, options.sessionId, captureOnce, persistSnapshot, startWatching]);
 
   return { state, startWatching, stopWatching, captureOnce };
 }

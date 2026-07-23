@@ -1,4 +1,5 @@
 import { useEmployeeGpsTracking } from '@/features/liveTracking/useEmployeeGpsTracking';
+import { startEmployeeLiveTracking } from '@/features/liveTracking/startEmployeeLiveTracking';
 import type { EmployeeLiveContext } from '@/features/liveTracking/resolveEmployeeLiveContext';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
@@ -413,9 +414,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const liveTrackingEnabled = useMemo(
     () =>
       ['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(effectiveStatus ?? '') &&
-      Boolean(liveContext?.trackingSessionActive) &&
+      Boolean(liveContext?.trackingSessionId) &&
       Boolean(effectiveStatus),
-    [liveContext?.trackingSessionActive, effectiveStatus],
+    [
+      liveContext?.trackingSessionId,
+      effectiveStatus,
+    ],
   );
 
   const gpsTracking = useEmployeeGpsTracking({
@@ -731,10 +735,19 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       return { ok: false, error: 'Keine Einsatz-ID.' };
     }
 
-    const consent = getEmployeePortalLocationConsent(tenantId, assignmentId);
-    if (!consent.granted) {
-      return { ok: false, error: 'Bitte zuerst Standort-Einwilligung bestätigen.', errorCode: 'LIVE_CONSENT_SAVE_FAILED' };
-    }
+    const storedAuthorization = getEmployeePortalLocationConsent(tenantId, assignmentId);
+    const now = new Date().toISOString();
+    // The employment/tenant policy is the processing basis. These legacy DB
+    // fields remain populated for audit compatibility, but no separate
+    // per-visit click is required.
+    const trackingAuthorization = storedAuthorization.granted
+      ? storedAuthorization
+      : {
+          granted: true as const,
+          grantedAt: now,
+          explainedAt: now,
+        };
+    applyEmployeePortalLocationConsent(tenantId, assignmentId, trackingAuthorization);
 
     const perm = await requestLocationPermissionOnce(tenantId, employeeId);
     setGpsPermission(perm);
@@ -748,18 +761,17 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       }
     }
 
-    const now = consent.grantedAt ?? new Date().toISOString();
     const started = await startEnRoute({
       tenantId,
       employeeId,
       assignmentId,
       profileId: authProfileId,
       roleKey,
-      consentGrantedAt: now,
-      consentExplainedAt: consent.explainedAt,
+      consentGrantedAt: trackingAuthorization.grantedAt ?? now,
+      consentExplainedAt: trackingAuthorization.explainedAt,
       gpsSnapshot: snapshot,
       withoutGps: !snapshot,
-      localConsent: consent,
+      localConsent: trackingAuthorization,
     });
 
     if (!started.ok) {
@@ -816,12 +828,64 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   }, [runWorkflow, tenantId, assignmentId, tracking?.geofence]);
 
   const handleStartService = useCallback(
-    () =>
-      runWorkflow((ctx) => startService(ctx), {
+    async () => {
+      if (tenantId && assignmentId && employeeId && !liveContext?.trackingSessionId) {
+        const now = new Date().toISOString();
+        const trackingAuthorization = {
+          granted: true as const,
+          grantedAt: now,
+          explainedAt: now,
+        };
+        applyEmployeePortalLocationConsent(tenantId, assignmentId, trackingAuthorization);
+
+        const permission = await requestLocationPermissionOnce(tenantId, employeeId);
+        setGpsPermission(permission);
+        let snapshot = null;
+        if (permission === 'granted') {
+          snapshot = await gpsTracking.captureOnce();
+          if (!snapshot) {
+            const captured = await captureEmployeePortalForegroundPosition(tenantId, assignmentId);
+            if (captured.ok) snapshot = captured.data;
+          }
+        }
+
+        const trackingStarted = await startEmployeeLiveTracking({
+          tenantId,
+          employeeId,
+          routeParamId: assignmentId,
+          profileId: authProfileId,
+          consentGrantedAt: now,
+          consentExplainedAt: now,
+          gpsSnapshot: snapshot,
+          withoutGps: !snapshot,
+          transitionToEnRoute: false,
+          recordDriveStart: false,
+          localConsent: trackingAuthorization,
+        });
+
+        if (trackingStarted.ok) {
+          setLiveContext(trackingStarted.data.context);
+          setLiveErrorCode(null);
+          if (snapshot) await gpsTracking.startWatching();
+        } else {
+          setLiveErrorCode('LIVE_SESSION_CREATE_FAILED');
+        }
+      }
+
+      return runWorkflow((ctx) => startService(ctx), {
         timeoutLabel: 'startService',
         loadingMode: 'start_service',
-      }),
-    [runWorkflow],
+      });
+    },
+    [
+      tenantId,
+      assignmentId,
+      employeeId,
+      liveContext?.trackingSessionId,
+      authProfileId,
+      gpsTracking,
+      runWorkflow,
+    ],
   );
 
   const handleStartPause = useCallback(
