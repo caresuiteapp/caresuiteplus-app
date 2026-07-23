@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { CareTimeInput } from '@/components/inputs';
 import { ListFilterSelect, PremiumButton } from '@/components/ui';
 import { lightSurfaceText, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -122,7 +122,7 @@ export function WfmOfficeTimeReviewDetailPanel({
         <PremiumButton title="Schließen" variant="ghost" onPress={onClose} onDarkSurface={false} />
       </View>
 
-      <ScrollView style={styles.panelScroll} contentContainerStyle={styles.panelBody}>
+      <View style={styles.panelBody}>
         <SectionBlock title="Einsatz">
           <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
             {entry.clientLabel ?? entry.assignmentTitle ?? '—'}
@@ -185,6 +185,7 @@ export function WfmOfficeTimeReviewDetailPanel({
               <View style={styles.structuredField}><CareTimeInput
                 label="Beginn"
                 value={startTime}
+                onLightSurface
                 onChange={(value) => {
                   setStartTime(value);
                   if (!value) onEditStartAtChange('');
@@ -196,6 +197,7 @@ export function WfmOfficeTimeReviewDetailPanel({
               <View style={styles.structuredField}><CareTimeInput
                 label="Ende"
                 value={endTime}
+                onLightSurface
                 onChange={(value) => {
                   setEndTime(value);
                   if (!value) onEditEndAtChange('');
@@ -209,6 +211,7 @@ export function WfmOfficeTimeReviewDetailPanel({
               label="Pause"
               value={editPauseMinutes}
               onChange={onEditPauseMinutesChange}
+              onLightSurface
               options={[0, 5, 10, 15, 20, 30, 45, 60, 90, 120].map((minutes) => ({ key: String(minutes), label: `${minutes} Minuten` }))}
             />
             <TextInput
@@ -264,18 +267,18 @@ export function WfmOfficeTimeReviewDetailPanel({
         {actionMessage ? (
           <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>{actionMessage}</Text>
         ) : null}
-      </ScrollView>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   panel: {
+    width: '100%',
     borderWidth: 1,
     borderRadius: 16,
     overflow: 'hidden',
-    maxHeight: 760,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: '#FFFFFF',
     shadowColor: '#173B70',
     shadowOpacity: 0.1,
     shadowRadius: 18,
@@ -294,32 +297,35 @@ const styles = StyleSheet.create({
   panelHeaderText: { flex: 1, gap: 2 },
   panelTitle: { ...typography.h3, fontWeight: '800' },
   panelSubtitle: { ...typography.body, fontSize: 12 },
-  panelScroll: { flex: 1 },
-  panelBody: { padding: careSpacing.md, gap: careSpacing.sm },
+  panelBody: { padding: careSpacing.md, gap: careSpacing.md },
   section: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 12,
     padding: careSpacing.md,
     gap: 6,
-    backgroundColor: 'rgba(248,250,252,0.86)',
+    backgroundColor: '#F7F9FC',
   },
   sectionTitle: {
-    ...typography.caption,
+    ...typography.body,
+    fontSize: 14,
+    lineHeight: 19,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginBottom: 2,
   },
-  line: { ...typography.body, fontSize: 13, lineHeight: 19 },
+  line: { ...typography.body, fontSize: 14, lineHeight: 21 },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs, marginTop: 4 },
   structuredRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
   structuredField: { minWidth: 130, flex: 1 },
   input: {
     borderWidth: 1,
-    borderRadius: 6,
-    padding: careSpacing.xs,
-    minHeight: 36,
-    ...typography.caption,
+    borderRadius: 10,
+    padding: careSpacing.sm,
+    minHeight: 44,
+    backgroundColor: '#FFFFFF',
+    ...typography.body,
+    fontSize: 14,
   },
   history: { gap: 4, marginTop: 4 },
 });

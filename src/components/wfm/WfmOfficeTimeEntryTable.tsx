@@ -211,10 +211,10 @@ function ReviewQueueMobileCard({
       <Text style={[styles.mobileCardPrimary, { color: '#0F1B33' }]} numberOfLines={1}>
         {entry.employeeName}
       </Text>
-      <Text style={[styles.mobileCardSecondary, { color: text.secondary }]} numberOfLines={1}>
+      <Text style={[styles.mobileCardSecondary, { color: lightSurfaceText.secondary }]} numberOfLines={1}>
         {entry.clientLabel ?? entry.assignmentTitle ?? '—'}
       </Text>
-      <Text style={[styles.mobileCardSecondary, { color: text.secondary }]} numberOfLines={2}>
+      <Text style={[styles.mobileCardSecondary, { color: lightSurfaceText.secondary }]} numberOfLines={2}>
         {`Plan: ${planCell(entry)}`}
       </Text>
       {istStack ? (
@@ -239,11 +239,11 @@ function ReviewQueueMobileCard({
 }
 
 export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQueueMode = false }: Props) {
-  const text = useAuroraAdaptiveText();
   const { width } = useWindowDimensions();
-  // Once the detail panel opens, cards keep every value readable instead of
-  // squeezing a 1,264 px table into the remaining split-pane width.
-  const mobileReview = reviewQueueMode && (width < 640 || Boolean(selectedId));
+  // The office navigation consumes a substantial part of the browser width.
+  // Cards keep every value readable on regular desktop displays instead of
+  // forcing a 1,264 px table into the remaining workspace.
+  const mobileReview = reviewQueueMode && (width < 1760 || Boolean(selectedId));
   const compactStatus = width < 960;
 
   const defaultColumns: DataTableColumn<WfmOfficeTimeEntry>[] = [
@@ -251,7 +251,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
       key: 'date',
       label: 'Datum',
       width: 96,
-      render: (entry) => <Text style={{ color: text.primary, ...typography.caption }}>{entry.workDate}</Text>,
+      render: (entry) => <Text style={{ color: lightSurfaceText.primary, ...typography.body }}>{entry.workDate}</Text>,
     },
     {
       key: 'employee',
@@ -259,7 +259,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
       flex: 1,
       minWidth: 100,
       render: (entry) => (
-        <Text style={{ color: text.primary, ...typography.caption }} numberOfLines={1}>
+        <Text style={{ color: lightSurfaceText.primary, ...typography.body }} numberOfLines={1}>
           {entry.employeeName}
         </Text>
       ),
@@ -270,7 +270,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
       flex: 1,
       minWidth: 120,
       render: (entry) => (
-        <Text style={{ color: text.secondary, ...typography.caption }} numberOfLines={2}>
+        <Text style={{ color: lightSurfaceText.secondary, ...typography.body }} numberOfLines={2}>
           {planCell(entry)}
         </Text>
       ),
@@ -281,7 +281,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
       flex: 1,
       minWidth: 120,
       render: (entry) => (
-        <Text style={{ color: text.secondary, ...typography.caption }} numberOfLines={2}>
+        <Text style={{ color: lightSurfaceText.secondary, ...typography.body }} numberOfLines={2}>
           {formatWfmReviewQueueIstLine(entry)}
         </Text>
       ),
@@ -419,7 +419,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
       {mobileReview ? (
         <View style={styles.mobileList} testID="wfm-review-queue-mobile">
           {entries.length === 0 ? (
-            <Text style={{ color: text.muted, ...typography.caption }}>
+            <Text style={{ color: lightSurfaceText.muted, ...typography.body }}>
               Keine Arbeitszeiteinträge im gewählten Zeitraum.
             </Text>
           ) : (
@@ -449,7 +449,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
         </View>
       )}
       {entries.length > 0 ? (
-        <Text style={[styles.footerHint, { color: text.muted }]}>
+        <Text style={[styles.footerHint, { color: lightSurfaceText.muted }]}>
           {entries.length} Einträge · Plan und Einsatz-Ist getrennt dargestellt
         </Text>
       ) : null}
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
       : { overflow: 'hidden' }),
   },
   stackCell: { gap: 1, width: '100%' },
-  cellText: { ...typography.body, fontSize: 13, lineHeight: 18 },
+  cellText: { ...typography.body, fontSize: 14, lineHeight: 20 },
   cellTextStrong: { fontWeight: '600', color: '#0F1B33' },
   statusBadgeWrap: {
     width: '100%',
@@ -490,9 +490,9 @@ const styles = StyleSheet.create({
   },
   statusBadge: { maxWidth: '100%', alignSelf: 'flex-start' },
   actionCell: { width: '100%', alignItems: 'flex-end', justifyContent: 'center' },
-  footerHint: { ...typography.caption, fontSize: 11, marginTop: 6, paddingHorizontal: 4 },
-  mobileList: { gap: careSpacing.sm },
-  mobileCard: { borderWidth: 1, borderRadius: 14, padding: careSpacing.md, gap: 6, backgroundColor: 'rgba(255,255,255,0.92)' },
+  footerHint: { ...typography.body, fontSize: 13, lineHeight: 18, marginTop: 6, paddingHorizontal: 4 },
+  mobileList: { gap: careSpacing.md },
+  mobileCard: { borderWidth: 1, borderRadius: 14, padding: careSpacing.md, gap: 8, backgroundColor: '#FFFFFF' },
   mobileCardSelected: {
     borderColor: 'rgba(139, 92, 246, 0.45)',
     backgroundColor: 'rgba(139, 92, 246, 0.06)',
@@ -503,8 +503,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: careSpacing.xs,
   },
-  mobileCardDate: { ...typography.caption, fontWeight: '700', fontSize: 13 },
-  mobileCardPrimary: { ...typography.caption, fontWeight: '600', fontSize: 13 },
-  mobileCardSecondary: { ...typography.caption, fontSize: 12, lineHeight: 16 },
+  mobileCardDate: { ...typography.body, fontWeight: '800', fontSize: 14, lineHeight: 20 },
+  mobileCardPrimary: { ...typography.body, fontWeight: '700', fontSize: 15, lineHeight: 21 },
+  mobileCardSecondary: { ...typography.body, fontSize: 14, lineHeight: 20 },
   mobileCardAction: { marginTop: careSpacing.xs, alignItems: 'flex-end' },
 });

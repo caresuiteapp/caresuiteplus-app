@@ -91,13 +91,16 @@ type SplitWorkAreaProps = {
 
 export function WfmOfficeSplitWorkArea({ main, detail, detailOpen }: SplitWorkAreaProps) {
   const { width } = useWindowDimensions();
-  const desktop = width >= 960;
+  // The global office rail and module navigation already consume a large part
+  // of the browser width. Splitting at 960 px squeezed the actual work area to
+  // roughly 580 px on a regular Full-HD display with Windows scaling.
+  const roomyDesktop = width >= 1760;
 
   if (!detailOpen || !detail) {
     return <View style={styles.workMain}>{main}</View>;
   }
 
-  if (desktop) {
+  if (roomyDesktop) {
     return (
       <View style={styles.splitRow}>
         <View style={styles.workMain}>{main}</View>
@@ -109,7 +112,7 @@ export function WfmOfficeSplitWorkArea({ main, detail, detailOpen }: SplitWorkAr
   return (
     <View style={styles.workMain}>
       {main}
-      <View style={styles.mobileDetail}>{detail}</View>
+      <View style={styles.stackedDetail}>{detail}</View>
     </View>
   );
 }
@@ -139,10 +142,10 @@ const styles = StyleSheet.create({
     marginBottom: careSpacing.md,
   },
   kpiCell: {
-    minWidth: 118,
+    minWidth: 138,
     flexGrow: 1,
     flexBasis: Platform.OS === 'web' ? ('12%' as unknown as number) : '30%',
-    maxWidth: Platform.OS === 'web' ? 190 : undefined,
+    maxWidth: Platform.OS === 'web' ? 220 : undefined,
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: careSpacing.md,
@@ -161,9 +164,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   kpiLabel: {
-    ...typography.caption,
-    fontSize: 11,
-    lineHeight: 14,
+    ...typography.body,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '600',
     letterSpacing: 0.2,
   },
   filterBar: {
@@ -173,7 +177,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(20,120,255,0.14)',
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.76)',
+    backgroundColor: 'rgba(255,255,255,0.96)',
   },
   filterPrimary: {
     flexDirection: 'row',
@@ -210,13 +214,14 @@ const styles = StyleSheet.create({
     gap: careSpacing.sm,
   },
   workDetail: {
-    width: 420,
-    maxWidth: '42%',
+    width: 480,
+    maxWidth: '40%',
     flexShrink: 0,
     minHeight: 0,
   },
-  mobileDetail: {
-    marginTop: careSpacing.sm,
+  stackedDetail: {
+    width: '100%',
+    marginTop: careSpacing.md,
   },
   sectionHeading: {
     gap: 4,
@@ -226,9 +231,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.h3,
     fontWeight: '800',
+    fontSize: 22,
+    lineHeight: 28,
   },
   sectionSubtitle: {
     ...typography.body,
-    fontSize: 13,
+    fontSize: 14,
+    lineHeight: 19,
   },
 });

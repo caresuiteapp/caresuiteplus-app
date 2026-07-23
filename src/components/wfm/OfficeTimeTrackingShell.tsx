@@ -18,7 +18,6 @@ export function OfficeTimeTrackingShell() {
   const text = useAuroraAdaptiveText();
   const accent = moduleColor('office');
   const compact = width < 760;
-  const wrapNavigation = width >= 1180;
   const activeTab = resolveOfficeTimeTrackingTabKey(pathname);
   const ownCaptureActive = isOfficeTimeTrackingOwnCaptureRoute(pathname);
 
@@ -54,40 +53,13 @@ export function OfficeTimeTrackingShell() {
       </View>
 
       <View style={[styles.navigationSurface, { borderColor: text.border }]}> 
-        {wrapNavigation ? (
-          <View style={styles.tabRowDesktop}>
-            {OFFICE_TIME_TRACKING_TABS.map((tab) => {
-              const selected = activeTab === tab.key;
-              return (
-                <Pressable
-                  key={tab.key}
-                  onPress={() => router.push(tab.href as never)}
-                  style={({ pressed }) => [
-                    styles.tabChip,
-                    { borderColor: selected ? `${accent}70` : 'transparent' },
-                    selected && { backgroundColor: `${accent}12` },
-                    pressed && styles.tabPressed,
-                  ]}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected }}
-                >
-                  <Text style={styles.tabIcon}>{tab.icon}</Text>
-                  <Text style={[styles.tabLabel, { color: selected ? accent : lightSurfaceText.secondary }, selected && styles.tabLabelSelected]} numberOfLines={1}>
-                    {tab.label}
-                  </Text>
-                  {selected ? <View style={[styles.activeMarker, { backgroundColor: accent }]} /> : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator
-            style={styles.tabScroll}
-            contentContainerStyle={styles.tabRow}
-          >
-            {OFFICE_TIME_TRACKING_TABS.map((tab) => {
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator
+          style={styles.tabScroll}
+          contentContainerStyle={styles.tabRow}
+        >
+          {OFFICE_TIME_TRACKING_TABS.map((tab) => {
             const selected = activeTab === tab.key;
             return (
               <Pressable
@@ -109,21 +81,15 @@ export function OfficeTimeTrackingShell() {
                 {selected ? <View style={[styles.activeMarker, { backgroundColor: accent }]} /> : null}
               </Pressable>
             );
-            })}
-          </ScrollView>
-        )}
+          })}
+        </ScrollView>
       </View>
 
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator
-        nestedScrollEnabled
-      >
+      <View style={styles.content}>
         <View style={[styles.workspace, { borderColor: text.border }]}> 
           <Slot />
         </View>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -135,10 +101,11 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: careSpacing.md,
-    padding: careSpacing.md,
+    paddingHorizontal: careSpacing.md,
+    paddingVertical: careSpacing.sm,
     marginHorizontal: careSpacing.sm,
     marginTop: careSpacing.sm,
     borderWidth: 1,
@@ -157,14 +124,14 @@ const styles = StyleSheet.create({
     gap: careSpacing.md,
   },
   iconTile: {
-    width: 54,
-    height: 54,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 13,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  icon: { fontSize: 25 },
+  icon: { fontSize: 21 },
   eyebrow: {
     ...typography.caption,
     fontSize: 10,
@@ -178,18 +145,20 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h2,
     fontWeight: '800',
-    lineHeight: 31,
+    fontSize: 24,
+    lineHeight: 27,
   },
   subtitle: {
     ...typography.body,
-    fontSize: 14,
+    fontSize: 13,
+    lineHeight: 17,
   },
   ownLink: {
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: careSpacing.md,
     paddingVertical: careSpacing.sm,
-    minHeight: 52,
+    minHeight: 46,
     flexDirection: 'row',
     alignItems: 'center',
     gap: careSpacing.sm,
@@ -217,7 +186,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     ...(Platform.OS === 'web'
       ? {
-          maxHeight: 62,
+          maxHeight: 54,
           overflowX: 'auto' as const,
           overflowY: 'hidden' as const,
         }
@@ -227,14 +196,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    padding: 6,
-  },
-  tabRowDesktop: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 4,
-    padding: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
   },
   navigationSurface: {
     marginHorizontal: careSpacing.sm,
@@ -247,8 +210,8 @@ const styles = StyleSheet.create({
   tabChip: {
     flexShrink: 0,
     alignSelf: 'center',
-    minHeight: 46,
-    paddingHorizontal: 13,
+    minHeight: 42,
+    paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
@@ -258,33 +221,22 @@ const styles = StyleSheet.create({
   },
   tabPressed: { opacity: 0.76, transform: [{ scale: 0.985 }] },
   tabIcon: { fontSize: 14 },
-  tabLabel: { ...typography.caption, fontSize: 12, fontWeight: '600' },
+  tabLabel: { ...typography.body, fontSize: 13, lineHeight: 17, fontWeight: '700' },
   tabLabelSelected: { fontWeight: '800' },
   activeMarker: { position: 'absolute', left: 12, right: 12, bottom: 2, height: 2, borderRadius: 2 },
   content: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  contentContainer: {
-    flexGrow: 1,
     width: '100%',
+    backgroundColor: 'transparent',
     padding: careSpacing.sm,
-    paddingTop: careSpacing.sm,
-    ...(Platform.OS === 'web'
-      ? {
-          maxWidth: '100%',
-        }
-      : null),
   },
   workspace: {
     width: '100%',
     maxWidth: '100%',
     alignSelf: 'stretch',
-    flexGrow: 1,
     borderWidth: 1,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    padding: careSpacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    padding: careSpacing.md,
     overflow: 'visible',
   },
 });

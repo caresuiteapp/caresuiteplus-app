@@ -5,6 +5,7 @@ import {
   useAuroraGlass,
   auroraGlass,
   darkGlassSurfaceText,
+  lightSurfaceText,
   lightLiquidGlassWebFx,
 } from '@/design/tokens/auroraGlass';
 import {
@@ -20,6 +21,8 @@ type PremiumInputProps = TextInputProps & {
   error?: string;
   /** Erzwingt helle Schrift auf dunklem Eingabefeld (auroraGlass.input). */
   onDarkSurface?: boolean;
+  /** Erzwingt dunkle, kontrastreiche Schrift auf einer hellen Arbeitsfläche. */
+  onLightSurface?: boolean;
   /** LLGAN view — `form` in modal dialogs for visible borders on light glass. */
   viewContext?: LlganViewContext;
 };
@@ -29,6 +32,7 @@ export function PremiumInput({
   hint,
   error,
   onDarkSurface = false,
+  onLightSurface = false,
   viewContext,
   style,
   onChangeText,
@@ -37,7 +41,11 @@ export function PremiumInput({
   const { colors, active, tokens } = useAuroraGlass();
   const { isLight } = useLegacyTheme();
   const adaptiveText = useAuroraAdaptiveText();
-  const text = onDarkSurface ? darkGlassSurfaceText : adaptiveText;
+  const text = onDarkSurface
+    ? darkGlassSurfaceText
+    : onLightSurface
+      ? lightSurfaceText
+      : adaptiveText;
   const formGlass = resolveLlganViewGlass(viewContext ?? 'form', 'default');
   const useFormGlass = Boolean(viewContext) && active && isLight && !onDarkSurface;
 
@@ -97,6 +105,7 @@ export function PremiumInput({
       formGlass.borderAccent,
       formGlass.input,
       onDarkSurface,
+      onLightSurface,
       text.muted,
       text.primary,
       tokens.border,

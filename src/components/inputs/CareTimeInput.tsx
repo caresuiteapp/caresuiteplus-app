@@ -11,6 +11,7 @@ type Props = {
   error?: string;
   placeholder?: string;
   viewContext?: LlganViewContext;
+  onLightSurface?: boolean;
   showFormatHint?: boolean;
 };
 
@@ -25,6 +26,7 @@ export function CareTimeInput({
   error,
   placeholder = 'HH:MM',
   viewContext,
+  onLightSurface = false,
   showFormatHint = true,
 }: Props) {
   const handleChangeText = (text: string) => {
@@ -49,6 +51,7 @@ export function CareTimeInput({
         label={label ?? 'Uhrzeit'}
         value={value}
         viewContext={viewContext}
+        onLightSurface={onLightSurface}
         onChangeText={handleChangeText}
         onBlur={handleBlur}
         placeholder={placeholder}
