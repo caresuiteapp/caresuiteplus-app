@@ -5,11 +5,13 @@ describe('WorkflowFeedbackOverlay', () => {
   const source = readFileSync('src/components/ui/WorkflowFeedbackOverlay.tsx', 'utf8');
   const payroll = readFileSync('src/screens/portal/EmployeePayrollMonthScreen.tsx', 'utf8');
 
-  it('wird im Web am sichtbaren Browser-Viewport statt im Seitenfluss gerendert', () => {
-    expect(source).toContain("host.style.position = 'fixed'");
-    expect(source).toContain("host.style.inset = '0'");
-    expect(source).toContain('document.body.appendChild(host)');
-    expect(source).toContain('createPortal(content, portalHost)');
+  it('wird plattformübergreifend in einer modalen Viewport-Ebene gerendert', () => {
+    expect(source).toContain('<Modal');
+    expect(source).toContain('visible={visible}');
+    expect(source).toContain('presentationStyle="overFullScreen"');
+    expect(source).toContain('transparent');
+    expect(source).not.toContain('createPortal');
+    expect(source).not.toContain('portalHost');
   });
 
   it('zeigt laufende Vorgänge mit dem CareSuite-Ladeindikator', () => {
