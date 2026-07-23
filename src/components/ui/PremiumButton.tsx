@@ -5,7 +5,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  View,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -53,6 +52,7 @@ export function PremiumButton({
   fullWidth = false,
   accessibilityLabel,
   testID,
+  onDarkSurface = true,
 }: Props) {
   const { scaleFontSize } = useAccessibility();
   const scale = useSharedValue(1);
@@ -87,14 +87,17 @@ export function PremiumButton({
             : null),
         },
         label: {
-          color: variant === 'primary' ? spatialCareColors.nightDeep : spatialCare.textOnNight,
+          color:
+            variant === 'primary' || !onDarkSurface
+              ? spatialCareColors.nightDeep
+              : spatialCare.textOnNight,
           fontSize: Platform.OS === 'web' ? 16 : scaleFontSize(16),
           lineHeight: Platform.OS === 'web' ? 21 : scaleFontSize(21),
           fontWeight: '800',
           textAlign: 'center',
         },
       }),
-    [fullWidth, height, scaleFontSize, size, variant],
+    [fullWidth, height, onDarkSurface, scaleFontSize, size, variant],
   );
 
   const content = (
@@ -115,7 +118,13 @@ export function PremiumButton({
         />
       ) : null}
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? spatialCareColors.nightDeep : spatialCareColors.white} />
+        <ActivityIndicator
+          color={
+            variant === 'primary' || !onDarkSurface
+              ? spatialCareColors.nightDeep
+              : spatialCareColors.white
+          }
+        />
       ) : (
         <Text allowFontScaling style={localStyles.label}>{title}</Text>
       )}

@@ -268,7 +268,7 @@ export function WfmOfficeTimeHistoryPanel({
             onChange={setCustomTo}
             showFormatHint={false}
           /></View>
-          <PremiumButton title="Anwenden" variant="secondary" onPress={() => void historyQuery.refresh()} />
+          <PremiumButton title="Anwenden" variant="secondary" onPress={() => void historyQuery.refresh()} onDarkSurface={false} />
         </View>
       ) : null}
 
@@ -281,7 +281,7 @@ export function WfmOfficeTimeHistoryPanel({
         reviewQueueMode={reviewQueueMode}
       />
 
-      <PremiumButton title="Aktualisieren" variant="ghost" onPress={() => void historyQuery.refresh()} />
+      <PremiumButton title="Aktualisieren" variant="ghost" onPress={() => void historyQuery.refresh()} onDarkSurface={false} />
     </>
   );
 

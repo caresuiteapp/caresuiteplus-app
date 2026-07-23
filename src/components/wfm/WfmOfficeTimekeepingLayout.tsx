@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { FilterChip, FilterChipGroup } from '@/components/ui';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { lightSurfaceText, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { typography } from '@/theme';
 
@@ -25,10 +25,10 @@ export function WfmOfficeCompactKpiStrip({ items, maxVisible = 6 }: CompactKpiSt
     <View style={styles.kpiStrip} testID="wfm-office-kpi-strip">
       {visible.map((item) => (
         <View key={item.key} style={[styles.kpiCell, { borderColor: text.border }]}>
-          <Text style={[styles.kpiValue, { color: item.accent ?? text.primary }]} numberOfLines={1}>
+          <Text style={[styles.kpiValue, { color: item.accent ?? lightSurfaceText.primary }]} numberOfLines={1}>
             {item.value}
           </Text>
-          <Text style={[styles.kpiLabel, { color: text.secondary }]} numberOfLines={1}>
+          <Text style={[styles.kpiLabel, { color: lightSurfaceText.secondary }]} numberOfLines={1}>
             {item.label}
           </Text>
         </View>
@@ -66,6 +66,7 @@ export function WfmOfficePeriodChips<T extends string>({ options, value, onChang
       selectedKey={value}
       onSelect={onChange}
       wrap
+      onLightSurface
     />
   );
 }
@@ -79,7 +80,7 @@ export function WfmOfficeStatusChip({
   selected: boolean;
   onPress: () => void;
 }) {
-  return <FilterChip label={label} selected={selected} onPress={onPress} />;
+  return <FilterChip label={label} selected={selected} onPress={onPress} onLightSurface />;
 }
 
 type SplitWorkAreaProps = {
@@ -120,12 +121,11 @@ export function WfmOfficeSectionHeading({
   title: string;
   subtitle?: string;
 }) {
-  const text = useAuroraAdaptiveText();
   return (
     <View style={styles.sectionHeading}>
-      <Text style={[styles.sectionTitle, { color: text.primary }]}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: lightSurfaceText.primary }]}>{title}</Text>
       {subtitle ? (
-        <Text style={[styles.sectionSubtitle, { color: text.secondary }]}>{subtitle}</Text>
+        <Text style={[styles.sectionSubtitle, { color: lightSurfaceText.secondary }]}>{subtitle}</Text>
       ) : null}
     </View>
   );
