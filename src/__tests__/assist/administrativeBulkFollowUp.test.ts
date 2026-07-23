@@ -17,6 +17,10 @@ const liveRepair = readFileSync(
   'supabase/migrations/0266_assist_administrative_follow_up_live_repair.sql',
   'utf8',
 );
+const actorFkRepair = readFileSync(
+  'supabase/migrations/0267_assist_administrative_actor_fk_repair.sql',
+  'utf8',
+);
 const premiumButton = readFileSync('src/components/ui/PremiumButton.tsx', 'utf8');
 const careLightButton = readFileSync('src/components/ui/CareLightButton.tsx', 'utf8');
 
@@ -53,6 +57,13 @@ describe('administrative Sammelnachbearbeitung', () => {
     expect(liveRepair).toContain('ADD COLUMN IF NOT EXISTS updated_by');
     expect(liveRepair).toContain('admin_correct_assist_visit_times');
     expect(liveRepair).toContain("NOTIFY pgrst, 'reload schema'");
+  });
+
+  it('löst auth.uid für Actor-Fremdschlüssel auf die echte Profil-ID auf', () => {
+    expect(actorFkRepair).toContain('resolve_current_profile_id');
+    expect(actorFkRepair).toContain('p.auth_user_id = NEW.updated_by');
+    expect(actorFkRepair).toContain('normalize_assist_visit_updated_by_trigger');
+    expect(actorFkRepair).toContain('normalize_assist_time_event_recorded_by_trigger');
   });
 
   it('respektiert gesperrte Aktionen auch in der hellen Desktop-Oberfläche', () => {
