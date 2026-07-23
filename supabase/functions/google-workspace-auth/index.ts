@@ -110,7 +110,6 @@ async function handleCallback(req: Request): Promise<Response> {
       .from('google_workspace_connections')
       .upsert({
         tenant_id: oauthState.tenant_id,
-        integration_id: oauthState.integration_id,
         connected_user_id: oauthState.initiated_by,
         google_subject: userInfo.sub,
         primary_email: userInfo.email ?? null,
@@ -132,21 +131,6 @@ async function handleCallback(req: Request): Promise<Response> {
       .single();
     if (error) throw error;
 
-    if (oauthState.integration_id) {
-      await service
-        .from('tenant_connect_integrations')
-        .update({
-          integration_status: 'production',
-          environment: 'production',
-          enabled_by: oauthState.initiated_by,
-          enabled_at: new Date().toISOString(),
-          last_health_status: 'healthy',
-          last_health_check_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', oauthState.integration_id)
-        .eq('tenant_id', oauthState.tenant_id);
-    }
     await service.from('google_workspace_audit_events').insert({
       tenant_id: oauthState.tenant_id,
       connection_id: connection.id,
@@ -198,33 +182,12 @@ serve(async (req) => {
     assertWorkspaceAdmin(actor.role);
 
     if (action === 'start') {
-      const provider = await service
-        .from('connect_providers')
-        .select('id')
-        .eq('provider_key', 'google_workspace')
-        .single();
-      if (provider.error) throw provider.error;
-      const integration = await service
-        .from('tenant_connect_integrations')
-        .upsert({
-          tenant_id: actor.tenantId,
-          provider_id: provider.data.id,
-          integration_status: 'requested',
-          environment: 'production',
-          enabled_by: actor.profileId,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'tenant_id,provider_id' })
-        .select('id')
-        .single();
-      if (integration.error) throw integration.error;
-
       const state = randomBase64Url(32);
       const verifier = randomBase64Url(64);
       const scopes = GOOGLE_WORKSPACE_SCOPES.slice();
       const returnUrl = safeReturnUrl(String(body.returnUrl ?? ''));
       const { error } = await service.from('google_workspace_oauth_states').insert({
         tenant_id: actor.tenantId,
-        integration_id: integration.data.id,
         initiated_by: actor.profileId,
         state_hash: await sha256(state),
         pkce_verifier_cipher: await encryptWorkspaceSecret(verifier),
@@ -269,14 +232,6 @@ serve(async (req) => {
           updated_at: new Date().toISOString(),
         }).eq('id', current.id);
       }
-      await service.from('tenant_connect_integrations').update({
-        integration_status: 'disabled',
-        disabled_by: actor.profileId,
-        disabled_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }).eq('tenant_id', actor.tenantId).eq('provider_id',
-        (await service.from('connect_providers').select('id').eq('provider_key', 'google_workspace').single()).data?.id
-      );
       return jsonResponse({ ok: true, connection: publicConnection(null) });
     }
     return jsonResponse({ ok: false, error: 'Unbekannte Aktion.' }, 400);

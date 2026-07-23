@@ -7,7 +7,6 @@
 CREATE TABLE IF NOT EXISTS public.google_workspace_connections (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id             UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  integration_id        UUID REFERENCES public.tenant_connect_integrations(id) ON DELETE SET NULL,
   connected_user_id     UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   google_subject        TEXT,
   primary_email         TEXT,
@@ -37,7 +36,6 @@ CREATE INDEX IF NOT EXISTS idx_google_workspace_connection_status
 CREATE TABLE IF NOT EXISTS public.google_workspace_oauth_states (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id             UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  integration_id        UUID REFERENCES public.tenant_connect_integrations(id) ON DELETE SET NULL,
   initiated_by          UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   state_hash            TEXT NOT NULL UNIQUE,
   pkce_verifier_cipher  TEXT NOT NULL,
@@ -80,8 +78,13 @@ DROP POLICY IF EXISTS google_workspace_audit_admin_read ON public.google_workspa
 CREATE POLICY google_workspace_audit_admin_read
   ON public.google_workspace_audit_events FOR SELECT TO authenticated
   USING (
-    tenant_id = public.current_tenant_id()
-    AND public.current_role_key() IN ('business_admin','business_manager')
+    EXISTS (
+      SELECT 1
+      FROM public.profiles AS profile
+      WHERE profile.tenant_id = google_workspace_audit_events.tenant_id
+        AND (profile.id = auth.uid() OR profile.auth_user_id = auth.uid())
+        AND profile.role_key IN ('business_admin','business_manager')
+    )
   );
 
 -- Token/state tables are written only through service-role Edge Functions.
@@ -90,55 +93,6 @@ REVOKE ALL ON public.google_workspace_connections FROM authenticated, anon;
 REVOKE ALL ON public.google_workspace_audit_events FROM anon;
 REVOKE INSERT, UPDATE, DELETE ON public.google_workspace_audit_events FROM authenticated;
 GRANT SELECT ON public.google_workspace_audit_events TO authenticated;
-
-INSERT INTO public.connect_providers (
-  provider_key, name, category, description, website_url, provider_type, status,
-  supports_sandbox, supports_production, requires_contract, requires_avv,
-  requires_health_data_processing, requires_admin_approval
-)
-VALUES (
-  'google_workspace', 'Google Workspace', 'communication_channels',
-  'Gmail, Kalender, Meet, Drive, Docs, Sheets, Slides, Chat, Tasks und Kontakte',
-  'https://workspace.google.com/', 'communication', 'active',
-  TRUE, TRUE, FALSE, TRUE, TRUE, TRUE
-)
-ON CONFLICT (provider_key) DO UPDATE SET
-  name = EXCLUDED.name,
-  description = EXCLUDED.description,
-  website_url = EXCLUDED.website_url,
-  status = 'active',
-  supports_production = TRUE,
-  updated_at = NOW();
-
-WITH provider AS (
-  SELECT id FROM public.connect_providers WHERE provider_key = 'google_workspace'
-)
-INSERT INTO public.connect_provider_capabilities (
-  provider_id, capability_key, title, description, data_direction,
-  sensitive_data_level, requires_permission, status
-)
-SELECT provider.id, capability_key, title, description, direction, sensitivity, permission, 'active'
-FROM provider
-CROSS JOIN (VALUES
-  ('gmail', 'Gmail', 'E-Mails lesen, suchen, entwerfen, senden, beantworten, weiterleiten und archivieren', 'bidirectional', 'special_category', 'Gmail-Berechtigung'),
-  ('calendar', 'Google Kalender', 'Kalender, Serienereignisse, Teilnehmende und Erinnerungen synchronisieren', 'bidirectional', 'personal', 'Kalender-Berechtigung'),
-  ('meet', 'Google Meet', 'Meet-Konferenzen über Kalendertermine erstellen und verknüpfen', 'out', 'personal', 'Kalender-Berechtigung'),
-  ('drive', 'Google Drive', 'Dateien und mandantenbezogene Ordner lesen, erstellen, hochladen und verknüpfen', 'bidirectional', 'special_category', 'Drive-Berechtigung'),
-  ('docs', 'Google Docs', 'Dokumente aus CareSuite-Vorlagen erstellen', 'out', 'special_category', 'Drive-Berechtigung'),
-  ('sheets', 'Google Sheets', 'Tabellen und Auswertungen erstellen', 'out', 'special_category', 'Drive-Berechtigung'),
-  ('slides', 'Google Slides', 'Präsentationen und Schulungsunterlagen erstellen', 'out', 'personal', 'Drive-Berechtigung'),
-  ('tasks', 'Google Tasks', 'Aufgaben lesen, erstellen und aktualisieren', 'bidirectional', 'personal', 'Tasks-Berechtigung'),
-  ('contacts', 'Google Kontakte', 'Kontakte mit Vorschau und Duplikatkontrolle austauschen', 'bidirectional', 'personal', 'Kontakte-Berechtigung'),
-  ('chat', 'Google Chat', 'Spaces lesen und bestätigte Nachrichten senden', 'bidirectional', 'special_category', 'Chat-Berechtigung')
-) AS caps(capability_key, title, description, direction, sensitivity, permission)
-ON CONFLICT (provider_id, capability_key) DO UPDATE SET
-  title = EXCLUDED.title,
-  description = EXCLUDED.description,
-  data_direction = EXCLUDED.data_direction,
-  sensitive_data_level = EXCLUDED.sensitive_data_level,
-  requires_permission = EXCLUDED.requires_permission,
-  status = 'active',
-  updated_at = NOW();
 
 COMMENT ON TABLE public.google_workspace_connections IS
   'Mandantenbezogene Google-Workspace-Verbindung; Token ausschließlich verschlüsselt und serverseitig verarbeitet.';
