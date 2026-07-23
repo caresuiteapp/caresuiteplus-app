@@ -55,6 +55,10 @@ export function ConnectHubScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <ConnectHubHero categories={categories} roleKey={roleKey} />
         <ConnectPreparedBanner />
+        <PremiumButton
+          title="Google Workspace öffnen"
+          onPress={() => router.push('/business/connect/google-workspace' as never)}
+        />
         {can('connect.configure') ? <ConnectRoadmapPanel /> : null}
 
         <View style={styles.grid}>

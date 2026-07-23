@@ -115,11 +115,19 @@ export const APP_ROUTES: AppRoute[] = [
     requiresAuth: true,
     allowedRoles: ['business_admin', 'business_manager'],
     children: [
+      '/business/connect/google-workspace',
       '/business/connect/providers',
       '/business/connect/marketplace',
       '/business/connect/accounting/prepare',
       '/business/connect/billing/prepare',
     ],
+  },
+  {
+    path: '/business/connect/google-workspace',
+    label: 'Google Workspace',
+    group: 'business',
+    requiresAuth: true,
+    allowedRoles: ['business_admin', 'business_manager'],
   },
   {
     path: '/business/connect/providers',

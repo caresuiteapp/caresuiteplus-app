@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { CONNECT_CATALOG, getConnectIntegration } from '@/lib/connect/connectCatalog';
 import { PROVIDER_REGISTRY } from '@/lib/integrations/providerRegistry';
+import { adminNav } from '@/lib/navigation/modulenav/adminnav';
+import { zentraleNav } from '@/lib/navigation/modulenav/zentralenav';
+import { getRouteByPath } from '@/lib/navigation/routes';
 
 describe('Google Workspace integration registration', () => {
   it('is a visible live-capable Connect entry with a dedicated management route', () => {
@@ -41,5 +44,29 @@ describe('Google Workspace integration registration', () => {
   it('marks the communication category as available', () => {
     const category = CONNECT_CATALOG.find((entry) => entry.key === 'communication_channels');
     expect(category?.readiness).toBe('beta');
+  });
+
+  it('exposes Google Workspace directly in Zentrale and Admin navigation', () => {
+    const href = '/business/connect/google-workspace';
+    const zentraleItems = zentraleNav.groups.flatMap((group) => group.items);
+    const adminItems = adminNav.groups.flatMap((group) => group.items);
+
+    expect(zentraleItems).toContainEqual(expect.objectContaining({
+      label: 'Google Workspace',
+      href,
+    }));
+    expect(adminItems).toContainEqual(expect.objectContaining({
+      label: 'Google Workspace',
+      href,
+    }));
+  });
+
+  it('registers the direct route for business admins and managers', () => {
+    expect(getRouteByPath('/business/connect/google-workspace')).toEqual(
+      expect.objectContaining({
+        label: 'Google Workspace',
+        allowedRoles: ['business_admin', 'business_manager'],
+      }),
+    );
   });
 });

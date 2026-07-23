@@ -70,6 +70,12 @@ export const adminNav: ModuleNavConfig = {
     {
       title: 'Schnittstellen & System',
       items: [
+        {
+          key: 'google-workspace',
+          label: 'Google Workspace',
+          icon: '☁️',
+          href: '/business/connect/google-workspace',
+        },
         { key: 'connect', label: 'Schnittstellen', icon: '🔌', href: '/business/connect' },
         { key: 'integrations', label: 'Integrationen', icon: '🔗', href: '/business/integrations' },
         { key: 'ops', label: 'System & Monitoring', icon: '🛰️', href: '/business/ops' },

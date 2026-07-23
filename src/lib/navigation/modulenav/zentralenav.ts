@@ -16,6 +16,12 @@ export const zentraleNav: ModuleNavConfig = {
       title: 'Organisation',
       items: [
         { key: 'modules', label: 'Module & Lizenzen', icon: '🧩', href: '/business/modules' },
+        {
+          key: 'google-workspace',
+          label: 'Google Workspace',
+          icon: '☁️',
+          href: '/business/connect/google-workspace',
+        },
         { key: 'connect', label: 'Connect & Integrationen', icon: '🔌', href: '/business/connect' },
         { key: 'subscription', label: 'Abonnement', icon: '💳', href: '/business/subscription' },
       ],
