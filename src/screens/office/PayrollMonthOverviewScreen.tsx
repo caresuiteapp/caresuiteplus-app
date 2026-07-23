@@ -14,6 +14,7 @@ import {
   formatPayrollMoney, formatPayrollMinutes, getPayrollPdfUrl,
   listPayrollMonthOverview, publishPayrollStatement, reviewExpenseClaim,
 } from '@/lib/payroll';
+import { subscribeToWfmLiveChanges } from '@/lib/realtime/presets';
 import type { ExpenseClaimStatus, PayrollEmployeeMonth } from '@/types/modules/payrollMonth';
 import { colors, typography } from '@/theme';
 
@@ -46,7 +47,15 @@ export function PayrollMonthOverviewScreen() {
       return listPayrollMonthOverview(tenantId, year, month, roleKey);
     }, [tenantId, canView, year, month, roleKey]),
     [tenantId, canView, year, month, roleKey],
-    { enabled: !!tenantId && canView },
+    {
+      enabled: !!tenantId && canView,
+      live: {
+        tenantId,
+        subscribe: subscribeToWfmLiveChanges,
+        pollMs: 10_000,
+        refreshOnFocus: true,
+      },
+    },
   );
 
   const changeMonth = (delta: number) => {
@@ -84,7 +93,7 @@ export function PayrollMonthOverviewScreen() {
   return (
     <ScreenShell title="Gehaltsstatistik" subtitle="Arbeitszeit, Prognose, Zeitkonto, Auslagen und verbindliche Mitarbeitendenfreigabe">
       <View style={styles.page} testID="payroll-month-overview">
-        <View style={styles.monthBar}><PremiumButton title="←" variant="secondary" onPress={() => changeMonth(-1)} /><View style={styles.monthCopy}><Text style={styles.monthTitle}>{monthLabel(year, month)}</Text><Text style={styles.muted}>Ist-Werte bis heute · Planung bis Monatsende</Text></View><PremiumButton title="→" variant="secondary" onPress={() => changeMonth(1)} /></View>
+        <View style={styles.monthBar}><PremiumButton title="←" variant="secondary" onPress={() => changeMonth(-1)} /><View style={styles.monthCopy}><Text style={styles.monthTitle}>{monthLabel(year, month)}</Text><Text style={styles.muted}>Gemeinsame WFM-Ist-Werte bis heute · Planung bis Monatsende</Text></View><PremiumButton title="→" variant="secondary" onPress={() => changeMonth(1)} /><PremiumButton title="Aktualisieren" variant="ghost" loading={query.refreshing} onPress={() => void query.refresh()} /></View>
         {message ? <InfoBanner message={message} /> : null}
         <View style={styles.kpis}>
           <PremiumCard style={styles.kpi}><Text style={styles.kpiLabel}>Erarbeitetes Brutto</Text><Text style={styles.kpiValue}>{formatPayrollMoney(data?.totals.earnedGrossCents ?? 0)}</Text></PremiumCard>
@@ -100,7 +109,8 @@ export function PayrollMonthOverviewScreen() {
                 <Text style={styles.metric}>Arbeitszeit <Text style={styles.strong}>{formatPayrollMinutes(employee.actualWorkMinutes)}</Text></Text>
                 <Text style={styles.metric}>Fahrzeit <Text style={styles.strong}>{formatPayrollMinutes(employee.travelMinutes)}</Text></Text>
                 <Text style={styles.metric}>Urlaub/Krank <Text style={styles.strong}>{formatPayrollMinutes(employee.vacationMinutes + employee.sickMinutes)}</Text></Text>
-                <Text style={styles.metric}>Geplant <Text style={styles.strong}>{formatPayrollMinutes(employee.plannedMinutes)}</Text></Text>
+                <Text style={styles.metric}>Monatsplan <Text style={styles.strong}>{formatPayrollMinutes(employee.monthlyPlannedMinutes ?? employee.plannedMinutes)}</Text></Text>
+                <Text style={styles.metric}>Noch geplant <Text style={styles.strong}>{formatPayrollMinutes(employee.plannedMinutes)}</Text></Text>
                 <Text style={styles.metric}>Zeitkonto + <Text style={styles.strong}>{formatPayrollMinutes(employee.overtimeTransferMinutes)}</Text></Text>
               </View>
               <View style={styles.moneyRow}><View><Text style={styles.kpiLabel}>Bis heute</Text><Text style={styles.money}>{formatPayrollMoney(employee.earnedGrossCents)}</Text></View><View><Text style={styles.kpiLabel}>Monatsprognose</Text><Text style={styles.moneyForecast}>{formatPayrollMoney(employee.projectedGrossCents)}</Text></View><View><Text style={styles.kpiLabel}>inkl. Auslagen</Text><Text style={styles.money}>{formatPayrollMoney(employee.projectedTotalPayoutCents)}</Text></View></View>
@@ -119,5 +129,5 @@ export function PayrollMonthOverviewScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { width: '100%', gap: careSpacing.lg }, monthBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: careSpacing.md }, monthCopy: { alignItems: 'center', flex: 1 }, monthTitle: { ...typography.h2, color: colors.textPrimary, textTransform: 'capitalize' }, muted: { ...typography.caption, color: colors.textMuted }, kpis: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.md }, kpi: { flex: 1, minWidth: 190, padding: careSpacing.md }, kpiLabel: { ...typography.caption, color: colors.textMuted }, kpiValue: { ...typography.h2, color: colors.textPrimary }, employeeCard: { padding: careSpacing.lg, gap: careSpacing.md }, heading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: careSpacing.md }, flex: { flex: 1, minWidth: 0 }, name: { ...typography.h3, color: colors.textPrimary }, metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, metric: { ...typography.caption, color: colors.textMuted, paddingVertical: 7, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, borderColor: colors.borderSoft }, strong: { fontWeight: '700', color: colors.textPrimary }, moneyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xl }, money: { ...typography.h3, color: colors.textPrimary }, moneyForecast: { ...typography.h3, color: '#7657C8' }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, expenses: { gap: careSpacing.sm, borderTopWidth: 1, borderTopColor: colors.borderSoft, paddingTop: careSpacing.md }, subheading: { ...typography.h3, color: colors.textPrimary }, expenseRow: { gap: careSpacing.sm, borderRadius: 14, borderWidth: 1, borderColor: colors.borderSoft, padding: careSpacing.md }, reviewFields: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
+  page: { width: '100%', gap: careSpacing.lg }, monthBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: careSpacing.md }, monthCopy: { alignItems: 'center', flex: 1, minWidth: 240 }, monthTitle: { ...typography.h2, color: colors.textPrimary, textTransform: 'capitalize' }, muted: { ...typography.caption, color: colors.textMuted }, kpis: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.md }, kpi: { flex: 1, minWidth: 190, padding: careSpacing.md }, kpiLabel: { ...typography.caption, color: colors.textMuted }, kpiValue: { ...typography.h2, color: colors.textPrimary }, employeeCard: { padding: careSpacing.lg, gap: careSpacing.md }, heading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: careSpacing.md }, flex: { flex: 1, minWidth: 0 }, name: { ...typography.h3, color: colors.textPrimary }, metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, metric: { ...typography.caption, color: colors.textMuted, paddingVertical: 7, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, borderColor: colors.borderSoft }, strong: { fontWeight: '700', color: colors.textPrimary }, moneyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xl }, money: { ...typography.h3, color: colors.textPrimary }, moneyForecast: { ...typography.h3, color: '#7657C8' }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, expenses: { gap: careSpacing.sm, borderTopWidth: 1, borderTopColor: colors.borderSoft, paddingTop: careSpacing.md }, subheading: { ...typography.h3, color: colors.textPrimary }, expenseRow: { gap: careSpacing.sm, borderRadius: 14, borderWidth: 1, borderColor: colors.borderSoft, padding: careSpacing.md }, reviewFields: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
 });

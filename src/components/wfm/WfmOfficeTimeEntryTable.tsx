@@ -61,6 +61,9 @@ function ampelVariant(ampel: string | null): 'green' | 'yellow' | 'red' | 'muted
 }
 
 function rowStatusLabel(entry: WfmOfficeTimeEntry, compact: boolean): string {
+  if (entry.rowKind === 'planned_upcoming') {
+    return 'Geplant';
+  }
   if (entry.rowKind === 'planned_missing_actual' || entry.flags.includes('missing_booking')) {
     return compact ? 'Fehlt' : 'Fehlende Buchung';
   }

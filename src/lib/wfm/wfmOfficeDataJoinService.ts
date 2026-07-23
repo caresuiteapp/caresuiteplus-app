@@ -336,6 +336,64 @@ function buildPlannedMissingEntry(
   return enrichEntryWithJoinMeta(entry, 'planned_missing_actual', true);
 }
 
+function buildUpcomingPlannedEntry(
+  planned: WfmOfficePlannedVisit,
+  employeeName: string,
+): WfmOfficeTimeEntry {
+  const entry: WfmOfficeTimeEntry = {
+    id: `planned:${planned.assignmentId}:${planned.workDate}`,
+    tenantId: planned.tenantId,
+    employeeId: planned.employeeId,
+    employeeName,
+    workDate: planned.workDate,
+    assignmentId: planned.assignmentId,
+    visitId: planned.visitId,
+    clientLabel: planned.clientLabel,
+    assignmentTitle: planned.assignmentTitle,
+    assignmentStatus: planned.assignmentStatus,
+    plannedStartAt: planned.plannedStartAt,
+    plannedEndAt: planned.plannedEndAt,
+    assignmentActualStartAt: null,
+    assignmentActualEndAt: null,
+    actualStartAt: null,
+    actualEndAt: null,
+    startDeviationMinutes: null,
+    endDeviationMinutes: null,
+    startAmpel: null,
+    endAmpel: null,
+    overallAmpel: null,
+    startJustification: null,
+    endJustification: null,
+    startJustificationAt: null,
+    endJustificationAt: null,
+    pauseMinutes: 0,
+    grossMinutes: 0,
+    netMinutes: 0,
+    travelMinutes: null,
+    workKind: 'einsatz',
+    status: 'open',
+    source: 'system',
+    reviewStatus: 'open',
+    exportStatus: 'not_exported',
+    sessionId: null,
+    officeComment: null,
+    hasOpenOfficeMessage: false,
+    flags: ['upcoming'],
+  };
+  return enrichEntryWithJoinMeta(entry, 'planned_upcoming', true);
+}
+
+function isPlannedVisitOverdue(
+  planned: WfmOfficePlannedVisit,
+  now: Date,
+): boolean {
+  if (planned.assignmentActualStartAt || planned.assignmentActualEndAt) return true;
+  const deadline = planned.plannedEndAt
+    ? new Date(planned.plannedEndAt)
+    : new Date(`${planned.workDate}T23:59:59`);
+  return Number.isFinite(deadline.getTime()) && deadline.getTime() < now.getTime();
+}
+
 function buildAutomaticAssignmentBooking(
   planned: WfmOfficePlannedVisit,
   employeeName: string,
@@ -419,6 +477,7 @@ export function joinOfficeTimekeepingData(
   plannedVisits: WfmOfficePlannedVisit[],
   actualEntries: WfmOfficeTimeEntry[],
   employeeNames: Map<string, string>,
+  now: Date = new Date(),
 ): WfmOfficeTimeEntry[] {
   const uniquePlannedVisits = dedupePlannedVisits(plannedVisits, actualEntries);
   const canonicalByOccurrence = new Map(
@@ -472,9 +531,11 @@ export function joinOfficeTimekeepingData(
     if (handledOccurrenceKeys.has(plannedVisitOccurrenceKey(planned))) continue;
     const name = employeeNames.get(planned.employeeId) ?? `Mitarbeitende ${planned.employeeId.slice(0, 8)}`;
     merged.push(
-      isPlannedVisitAutoBookable(planned, actualEntries)
+      isPlannedVisitAutoBookable(planned, actualEntries, now)
         ? buildAutomaticAssignmentBooking(planned, name)
-        : buildPlannedMissingEntry(planned, name),
+        : isPlannedVisitOverdue(planned, now)
+          ? buildPlannedMissingEntry(planned, name)
+          : buildUpcomingPlannedEntry(planned, name),
     );
   }
 

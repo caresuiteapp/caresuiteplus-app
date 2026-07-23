@@ -38,6 +38,7 @@ export type WfmOfficeWorkKind =
 /** ZEIT.3.1 — Zeilentyp nach Daten-JOIN */
 export type WfmOfficeTimeRowKind =
   | 'planned_with_actual'
+  | 'planned_upcoming'
   | 'planned_missing_actual'
   | 'unplanned_actual'
   | 'manual_entry'

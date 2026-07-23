@@ -12,6 +12,7 @@ import {
   reviewWfmOfficeTimeEntry,
 } from '@/lib/wfm/wfmOfficeTimekeepingService';
 import { listWfmOfficeAuditForEntry } from '@/lib/wfm/wfmOfficeAuditService';
+import { subscribeToWfmLiveChanges } from '@/lib/realtime/presets';
 import type {
   WfmOfficePeriodPreset,
   WfmOfficeTimeEntry,
@@ -83,7 +84,6 @@ export function WfmOfficeTimeHistoryPanel({
 
   const historyQuery = useAsyncQuery(
     useCallback(async () => {
-      if (!tenantId) return { ok: true as const, data: null };
       return getWfmOfficeTimeOverview(tenantId, roleKey, {
         preset,
         fromDate: preset === 'custom' ? customFrom : null,
@@ -92,7 +92,15 @@ export function WfmOfficeTimeHistoryPanel({
       });
     }, [tenantId, roleKey, preset, customFrom, customTo, filters]),
     [tenantId, roleKey, preset, customFrom, customTo, filters],
-    { enabled: !!tenantId },
+    {
+      enabled: !!tenantId,
+      live: {
+        tenantId,
+        subscribe: subscribeToWfmLiveChanges,
+        pollMs: 10_000,
+        refreshOnFocus: true,
+      },
+    },
   );
 
   const auditQuery = useAsyncQuery(

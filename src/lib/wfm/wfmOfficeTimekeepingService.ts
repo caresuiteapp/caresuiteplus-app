@@ -76,6 +76,18 @@ function mergeEntryReviewOverlay(
   reviewMap: Map<string, WfmTimeEntryReview>,
   latestActionMap: Map<string, import('./wfmTimeReviewService').WfmTimeReviewAction>,
 ): WfmOfficeTimeEntry {
+  // Older versions prematurely materialised pending reviews for future
+  // assignments. An upcoming visit must remain planned and must never inflate
+  // the open-review counter, even if such a stale review row still exists.
+  if (entry.rowKind === 'planned_upcoming') {
+    return {
+      ...entry,
+      status: 'open',
+      reviewStatus: 'open',
+      exportStatus: 'not_exported',
+      flags: entry.flags.filter((flag) => flag !== 'missing_booking'),
+    };
+  }
   const overlay = getEntryOverlay(entry.id) ?? {};
   const referenceKey = buildReferenceKeyFromEntry(entry.tenantId, entry);
   const review = reviewMap.get(referenceKey);

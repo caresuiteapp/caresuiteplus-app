@@ -18,6 +18,7 @@ export type PayrollCalculationInput = {
   vacationMinutes: number;
   sickMinutes: number;
   otherPaidAbsenceMinutes: number;
+  monthlyPlannedMinutes?: number;
   plannedMinutes: number;
   timeAccountBalanceMinutes?: number;
   advancesCents?: number;
@@ -99,6 +100,7 @@ export function calculatePayrollSnapshot(input: PayrollCalculationInput): Payrol
     vacationMinutes,
     sickMinutes,
     otherPaidAbsenceMinutes,
+    monthlyPlannedMinutes: nonNegative(input.monthlyPlannedMinutes ?? input.plannedMinutes),
     plannedMinutes,
     payableMinutes,
     overtimeTransferMinutes,
@@ -164,11 +166,12 @@ export function buildPayrollStatementHtml(snapshot: PayrollStatementSnapshot, ve
    <div class="row"><span>Urlaub</span><strong>${formatPayrollMinutes(snapshot.vacationMinutes)}</strong></div>
    <div class="row"><span>Krankheit</span><strong>${formatPayrollMinutes(snapshot.sickMinutes)}</strong></div>
    <div class="row"><span>Weitere bezahlte Abwesenheit</span><strong>${formatPayrollMinutes(snapshot.otherPaidAbsenceMinutes)}</strong></div>
+   <div class="row"><span>Gesamter Monatsplan</span><strong>${formatPayrollMinutes(snapshot.monthlyPlannedMinutes ?? snapshot.plannedMinutes)}</strong></div>
    <div class="row"><span>Zeitkonto-Übertrag</span><strong>${formatPayrollMinutes(snapshot.overtimeTransferMinutes)}</strong></div>
   </div></div>
   <h2>Vergütung</h2>
   <div class="row"><span>Bis heute erarbeitetes Brutto</span><strong>${formatPayrollMoney(snapshot.earnedGrossCents)}</strong></div>
-  <div class="row forecast"><span>Geplante Einsätze bis Monatsende</span><strong>${formatPayrollMinutes(snapshot.plannedMinutes)}</strong></div>
+  <div class="row forecast"><span>Geplante Einsätze bis Monatsende (noch offen)</span><strong>${formatPayrollMinutes(snapshot.plannedMinutes)}</strong></div>
   <div class="row forecast"><span>Voraussichtliches Monatsbrutto</span><strong>${formatPayrollMoney(snapshot.projectedGrossCents)}</strong></div>
   <div class="row"><span>Genehmigte Auslagen</span><strong>${formatPayrollMoney(snapshot.approvedExpensesCents)}</strong></div>
   <div class="row"><span>Vorschüsse / Abzüge</span><strong>− ${formatPayrollMoney(snapshot.advancesCents + snapshot.deductionsCents)}</strong></div>

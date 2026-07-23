@@ -112,6 +112,32 @@ describe('ZEIT.3.1 data join', () => {
     expect(rows[0].displayDurationMinutes).toBe(0);
   });
 
+  it('keeps future visits planned without creating an open review', () => {
+    const rows = joinOfficeTimekeepingData(
+      [planned()],
+      [],
+      names,
+      new Date('2026-07-03T12:00:00.000Z'),
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].rowKind).toBe('planned_upcoming');
+    expect(rows[0].reviewStatus).toBe('open');
+    expect(rows[0].flags).toContain('upcoming');
+    expect(rows[0].flags).not.toContain('missing_booking');
+  });
+
+  it('turns a visit into a missing booking only after its planned end', () => {
+    const rows = joinOfficeTimekeepingData(
+      [planned()],
+      [],
+      names,
+      new Date('2026-07-04T09:01:00.000Z'),
+    );
+    expect(rows[0].rowKind).toBe('planned_missing_actual');
+    expect(rows[0].reviewStatus).toBe('pending_review');
+    expect(rows[0].flags).toContain('missing_booking');
+  });
+
   it('shows actual without planned assignment as unplanned', () => {
     const rows = joinOfficeTimekeepingData(
       [],

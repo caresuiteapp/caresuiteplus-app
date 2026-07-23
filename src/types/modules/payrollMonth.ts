@@ -97,6 +97,9 @@ export type PayrollStatementSnapshot = {
   vacationMinutes: number;
   sickMinutes: number;
   otherPaidAbsenceMinutes: number;
+  /** Gesamter Einsatzplan des ausgewählten Monats. */
+  monthlyPlannedMinutes?: number;
+  /** Noch ausstehende geplante Einsätze ab jetzt bis Monatsende. */
   plannedMinutes: number;
   payableMinutes: number;
   overtimeTransferMinutes: number;

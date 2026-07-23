@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import {
@@ -84,7 +84,15 @@ export function WfmZeitkontenScreen() {
       return getWfmTeamTodayOverview(tenantId, roleKey);
     }, [tenantId, canView, roleKey]),
     [tenantId, canView, roleKey],
-    { enabled: !!tenantId && canView },
+    {
+      enabled: !!tenantId && canView,
+      live: {
+        tenantId,
+        subscribe: subscribeToWfmLiveChanges,
+        pollMs: 10_000,
+        refreshOnFocus: true,
+      },
+    },
   );
 
   const accountsQuery = useAsyncQuery(
@@ -96,16 +104,16 @@ export function WfmZeitkontenScreen() {
       });
     }, [tenantId, canView, roleKey, periodPreset, selectedEmployeeId]),
     [tenantId, canView, roleKey, periodPreset, selectedEmployeeId],
-    { enabled: !!tenantId && canView },
+    {
+      enabled: !!tenantId && canView,
+      live: {
+        tenantId,
+        subscribe: subscribeToWfmLiveChanges,
+        pollMs: 10_000,
+        refreshOnFocus: true,
+      },
+    },
   );
-
-  useEffect(() => {
-    if (!tenantId || !canView) return;
-    return subscribeToWfmLiveChanges(tenantId, () => {
-      void teamQuery.refresh();
-      void accountsQuery.refresh();
-    });
-  }, [tenantId, canView, teamQuery, accountsQuery]);
 
   const accountColumns = useMemo((): DataTableColumn<WfmOfficeEmployeeTimeAccount>[] => [
     {
@@ -315,7 +323,7 @@ export function WfmZeitkontenScreen() {
 
       {selectedAccount ? (
         <View style={[styles.detailBlock, { borderColor: text.border }]}>
-          <Text style={{ color: text.primary, ...typography.bodyMedium }}>
+          <Text style={{ color: text.primary, ...typography.body, fontWeight: '700' }}>
             Zeitkonto — {selectedAccount.employeeName}
           </Text>
           <View style={styles.accountMetrics}>
@@ -344,7 +352,7 @@ export function WfmZeitkontenScreen() {
               Fahrzeit <Text style={{ color: text.primary }}>{formatWfmDurationMinutes(selectedAccount.travelMinutes)}</Text>
             </Text>
           </View>
-          <Text style={{ color: text.primary, ...typography.bodyMedium }}>Zeitbuchungen</Text>
+          <Text style={{ color: text.primary, ...typography.body, fontWeight: '700' }}>Zeitbuchungen</Text>
           {selectedAccount.entries.slice(0, 14).map((entry) => (
             <Text key={entry.id} style={{ color: text.secondary, ...typography.caption }}>
               {entry.workDate} · {entry.clientLabel ?? entry.assignmentTitle ?? '—'} · {entry.reviewStatus}
@@ -358,7 +366,7 @@ export function WfmZeitkontenScreen() {
               onPress={() => router.push('/business/office/time-tracking/pruefqueue' as never)}
             />
           ) : null}
-          <Text style={{ color: text.primary, ...typography.bodyMedium }}>
+          <Text style={{ color: text.primary, ...typography.body, fontWeight: '700' }}>
             Gehaltsstatistiken & PDF-Archiv
           </Text>
           {selectedAccount.payrollStatements.length === 0 ? (
@@ -417,7 +425,14 @@ export function WfmZeitkontenScreen() {
         <WfmTeamTodayDetailPanel row={selectedRow} workDate={overview.workDate} />
       ) : null}
 
-      <PremiumButton title="Aktualisieren" variant="ghost" onPress={() => void teamQuery.refresh()} />
+      <PremiumButton
+        title="Alles aktualisieren"
+        variant="ghost"
+        loading={teamQuery.refreshing || accountsQuery.refreshing}
+        onPress={() => {
+          void Promise.all([teamQuery.refresh(), accountsQuery.refresh()]);
+        }}
+      />
     </View>
   );
 }

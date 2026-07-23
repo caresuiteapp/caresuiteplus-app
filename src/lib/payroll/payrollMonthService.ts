@@ -16,8 +16,10 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 import type { WfmOfficePlannedVisit } from '@/types/modules/wfmOfficeTimekeeping';
+import type { WfmOfficeEmployeeTimeAccount } from '@/types/modules/wfmOfficeTimekeeping';
 import { renderHtmlToPdfBytes } from '@/lib/documents/documentPdfService';
 import { listPlannedVisitsForPeriod } from '@/lib/wfm/wfmOfficePlannedVisitRepository';
+import { getWfmOfficeEmployeeTimeAccounts } from '@/lib/wfm/wfmOfficeZeitkontenService';
 import {
   buildPayrollStatementHtml,
   calculatePayrollSnapshot,
@@ -131,7 +133,7 @@ function plannedMinutesForEmployee(
 }
 
 function buildEmployeeSnapshot(input: {
-  employee: Row; payroll?: Row; contract?: Row; sessionRows: Row[]; account?: Row;
+  employee: Row; payroll?: Row; contract?: Row; timeAccount?: WfmOfficeEmployeeTimeAccount;
   absenceRows: Row[]; expenses: PayrollExpenseClaim[]; plannedMinutes: number;
   year: number; month: number; latestStatement: PayrollStatement | null;
 }): PayrollEmployeeMonth {
@@ -152,10 +154,8 @@ function buildEmployeeSnapshot(input: {
     else if (type === 'sick_leave' || type === 'child_sick_leave') sickMinutes += minutes;
     else if (!['unpaid_leave', 'parental_leave'].includes(type)) otherPaidAbsenceMinutes += minutes;
   }
-  const actualWorkMinutes = input.sessionRows
-    .filter((row) => asString(row.employee_id) === employeeId)
-    .reduce((sum, row) => sum + asNumber(row.net_minutes), 0);
-  const account = input.account;
+  const account = input.timeAccount;
+  const actualWorkMinutes = account?.actualMinutes ?? 0;
   const snapshot = calculatePayrollSnapshot({
     employeeId,
     employeeName: [asString(input.employee.first_name), asString(input.employee.last_name)].filter(Boolean).join(' ') || 'Mitarbeitende:r',
@@ -166,9 +166,10 @@ function buildEmployeeSnapshot(input: {
     maxPayoutHours: input.payroll?.max_payout_hours_month == null ? null : asNumber(input.payroll?.max_payout_hours_month),
     overflowToTimeAccount: input.payroll?.overflow_to_time_account !== false,
     actualWorkMinutes,
-    travelMinutes: asNumber(account?.travel_minutes), vacationMinutes, sickMinutes, otherPaidAbsenceMinutes,
+    travelMinutes: account?.travelMinutes ?? 0, vacationMinutes, sickMinutes, otherPaidAbsenceMinutes,
+    monthlyPlannedMinutes: account?.plannedMinutes ?? input.plannedMinutes,
     plannedMinutes: input.plannedMinutes,
-    timeAccountBalanceMinutes: asNumber(account?.overtime_minutes) - asNumber(account?.undertime_minutes),
+    timeAccountBalanceMinutes: account?.saldoMinutes ?? 0,
     expenses: input.expenses.filter((expense) => expense.employeeId === employeeId),
   });
   return { ...snapshot, latestStatement: input.latestStatement };
@@ -185,30 +186,35 @@ export async function listPayrollMonthOverview(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
   const { fromDate, toDate } = periodRange(year, month);
-  const [employeesRes, payrollRes, contractRes, sessionsRes, accountsRes, absencesRes, expensesRes, statementsRes, plannedRes] = await Promise.all([
+  const [employeesRes, payrollRes, contractRes, timeAccountsRes, absencesRes, expensesRes, statementsRes, plannedRes] = await Promise.all([
     fromUnknownTable(supabase, 'employees').select('id, first_name, last_name, employee_number, status').eq('tenant_id', tenantId).order('last_name'),
     fromUnknownTable(supabase, 'employee_payroll_settings').select('employee_id, compensation_type, compensation_amount, max_payout_hours_month, overflow_to_time_account, mileage_rate_cents').eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'employee_contract_settings').select('employee_id, work_days').eq('tenant_id', tenantId),
-    fromUnknownTable(supabase, 'workforce_work_sessions').select('employee_id, work_date, net_minutes, gross_minutes, pause_minutes, work_mode').eq('tenant_id', tenantId).gte('work_date', fromDate).lte('work_date', toDate),
-    fromUnknownTable(supabase, 'workforce_time_accounts').select('employee_id, travel_minutes, overtime_minutes, undertime_minutes').eq('tenant_id', tenantId).eq('period_year', year).eq('period_month', month),
+    getWfmOfficeEmployeeTimeAccounts(tenantId, actorRoleKey ?? null, {
+      preset: 'custom',
+      fromDate,
+      toDate,
+    }),
     fromUnknownTable(supabase, 'workforce_absences').select('employee_id, absence_type, status, requested_days, starts_at, ends_at').eq('tenant_id', tenantId).lte('starts_at', `${toDate}T23:59:59`).gte('ends_at', `${fromDate}T00:00:00`),
     fromUnknownTable(supabase, 'employee_expense_claims').select('*').eq('tenant_id', tenantId).gte('expense_date', fromDate).lte('expense_date', toDate).order('expense_date', { ascending: false }),
     fromUnknownTable(supabase, 'payroll_month_statements').select('*').eq('tenant_id', tenantId).eq('period_year', year).eq('period_month', month).order('version', { ascending: false }),
     listPlannedVisitsForPeriod(tenantId, fromDate, toDate),
   ]);
-  const firstError = [employeesRes, payrollRes, contractRes, sessionsRes, accountsRes, absencesRes, expensesRes, statementsRes].find((result) => result.error)?.error;
+  const firstError = [employeesRes, payrollRes, contractRes, absencesRes, expensesRes, statementsRes].find((result) => result.error)?.error;
   if (firstError) return { ok: false, error: toGermanSupabaseError(firstError) };
+  if (!timeAccountsRes.ok) return { ok: false, error: timeAccountsRes.error };
   if (!plannedRes.ok) return plannedRes;
   const rows = (value: unknown) => (Array.isArray(value) ? value : []) as Row[];
   const payrollRows = rows(payrollRes.data); const contractRows = rows(contractRes.data);
-  const accountRows = rows(accountsRes.data); const statementRows = rows(statementsRes.data).map(mapStatement);
+  const timeAccounts = new Map(timeAccountsRes.data.map((account) => [account.employeeId, account]));
+  const statementRows = rows(statementsRes.data).map(mapStatement);
   const expenses = rows(expensesRes.data).map(mapExpense); const now = Date.now();
   const employees = rows(employeesRes.data).filter(isPayrollRelevantEmployee).map((employee) => {
     const employeeId = asString(employee.id);
     return buildEmployeeSnapshot({ employee,
       payroll: payrollRows.find((row) => asString(row.employee_id) === employeeId),
       contract: contractRows.find((row) => asString(row.employee_id) === employeeId),
-      sessionRows: rows(sessionsRes.data), account: accountRows.find((row) => asString(row.employee_id) === employeeId),
+      timeAccount: timeAccounts.get(employeeId),
       absenceRows: rows(absencesRes.data), expenses,
       plannedMinutes: plannedMinutesForEmployee(plannedRes.data, employeeId, now), year, month,
       latestStatement: statementRows.find((row) => row.employeeId === employeeId) ?? null,

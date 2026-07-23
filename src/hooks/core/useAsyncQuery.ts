@@ -23,12 +23,16 @@ export function useAsyncQuery<T>(
   const [refreshing, setRefreshing] = useState(false);
   const dataRef = useRef<T | null>(null);
   const requestInFlightRef = useRef(false);
+  const refreshQueuedRef = useRef(false);
   dataRef.current = data;
 
   const load = useCallback(
     async (silent = false) => {
       if (!options?.enabled && options?.enabled !== undefined) return;
-      if (requestInFlightRef.current) return;
+      if (requestInFlightRef.current) {
+        refreshQueuedRef.current = true;
+        return;
+      }
       requestInFlightRef.current = true;
 
       const isInitialLoad = dataRef.current === null;
@@ -38,24 +42,27 @@ export function useAsyncQuery<T>(
       }
 
       try {
-        const result = await withServiceQueryTimeout(fetcher());
-        if (result.ok) {
-          setDataState(result.data);
-          const previewResult = result as {
-            previewData?: boolean;
-            usedDemoFallback?: boolean;
-            tableMissing?: boolean;
-          };
-          setPreviewData(Boolean(previewResult.previewData || previewResult.usedDemoFallback));
-          setTableMissing(Boolean(previewResult.tableMissing));
-          setError(null);
-          options?.onSuccess?.();
-        } else if (isInitialLoad) {
-          setDataState(null);
-          setPreviewData(false);
-          setTableMissing(false);
-          setError(result.error);
-        }
+        do {
+          refreshQueuedRef.current = false;
+          const result = await withServiceQueryTimeout(fetcher());
+          if (result.ok) {
+            setDataState(result.data);
+            const previewResult = result as {
+              previewData?: boolean;
+              usedDemoFallback?: boolean;
+              tableMissing?: boolean;
+            };
+            setPreviewData(Boolean(previewResult.previewData || previewResult.usedDemoFallback));
+            setTableMissing(Boolean(previewResult.tableMissing));
+            setError(null);
+            options?.onSuccess?.();
+          } else if (isInitialLoad) {
+            setDataState(null);
+            setPreviewData(false);
+            setTableMissing(false);
+            setError(result.error);
+          }
+        } while (refreshQueuedRef.current);
       } catch (cause) {
         if (isInitialLoad) {
           setDataState(null);
