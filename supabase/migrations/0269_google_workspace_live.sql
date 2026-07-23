@@ -81,9 +81,10 @@ CREATE POLICY google_workspace_audit_admin_read
     EXISTS (
       SELECT 1
       FROM public.profiles AS profile
+      JOIN public.roles AS role ON role.id = profile.role_id
       WHERE profile.tenant_id = google_workspace_audit_events.tenant_id
-        AND (profile.id = auth.uid() OR profile.auth_user_id = auth.uid())
-        AND profile.role_key IN ('business_admin','business_manager')
+        AND profile.id = auth.uid()
+        AND role.key IN ('business_admin','business_manager')
     )
   );
 

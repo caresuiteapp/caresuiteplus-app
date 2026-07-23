@@ -157,17 +157,26 @@ export async function resolveWorkspaceActor(
   });
   const { data } = await userClient.auth.getUser();
   if (!data.user) throw new Error('Nicht autorisiert.');
-  const { data: profile } = await service
+  const { data: profile, error: profileError } = await service
     .from('profiles')
-    .select('id, tenant_id, role_key, auth_user_id')
-    .or(`auth_user_id.eq.${data.user.id},id.eq.${data.user.id}`)
+    .select('id, tenant_id, role_id')
+    .eq('id', data.user.id)
     .maybeSingle();
+  if (profileError) throw profileError;
   if (!profile?.tenant_id || !profile?.id) throw new Error('Mandantenprofil fehlt.');
+  if (!profile.role_id) throw new Error('Benutzerrolle fehlt.');
+  const { data: role, error: roleError } = await service
+    .from('roles')
+    .select('key')
+    .eq('id', profile.role_id)
+    .maybeSingle();
+  if (roleError) throw roleError;
+  if (!role?.key) throw new Error('Benutzerrolle fehlt.');
   return {
     tenantId: profile.tenant_id,
     profileId: profile.id,
-    authUserId: profile.auth_user_id ?? data.user.id,
-    role: profile.role_key ?? '',
+    authUserId: data.user.id,
+    role: role.key,
   };
 }
 
