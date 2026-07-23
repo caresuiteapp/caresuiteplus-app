@@ -35,4 +35,17 @@ describe('Serieneinsätze werden als Einzeleinsätze persistiert', () => {
     expect(source).toContain('detachedOccurrenceDates');
     expect(source).toContain('delete materializedOccurrences[occurrenceDate]');
   });
+
+  it('entfernt identische ungestartete Datenbankkopien gemeinsam', () => {
+    const source = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/lib/assist/repositories/visitRepository.supabase.ts'),
+      'utf8',
+    );
+
+    expect(source).toContain(".eq('planned_start_at', deletionRow.planned_start_at)");
+    expect(source).toContain(".eq('planned_end_at', deletionRow.planned_end_at)");
+    expect(source).toContain('const protectedDuplicate = identicalRows.find');
+    expect(source).toContain('const safelyDeletableLegacyIds =');
+    expect(source).toContain(".in('id', visitIds)");
+  });
 });
