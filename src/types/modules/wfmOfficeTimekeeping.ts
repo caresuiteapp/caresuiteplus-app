@@ -222,7 +222,27 @@ export interface WfmOfficeEmployeeTimeAccount {
   exportedMinutes: number;
   saldoMinutes: number;
   openReviewCount: number;
+  targetMinutes: number;
+  overtimeMinutes: number;
+  undertimeMinutes: number;
+  travelMinutes: number;
+  absenceMinutes: number;
+  vacationDaysUsed: number;
+  sickDays: number;
+  annualVacationDays: number | null;
+  remainingVacationDays: number | null;
+  payrollStatements: WfmOfficePayrollStatementSummary[];
   entries: WfmOfficeTimeEntry[];
+}
+
+export interface WfmOfficePayrollStatementSummary {
+  id: string;
+  periodYear: number;
+  periodMonth: number;
+  version: number;
+  status: string;
+  pdfPath: string | null;
+  createdAt: string;
 }
 
 export interface WfmOfficeTimeFilters {

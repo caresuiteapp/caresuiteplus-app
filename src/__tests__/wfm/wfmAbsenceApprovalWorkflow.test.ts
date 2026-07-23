@@ -10,6 +10,7 @@ import {
 import { resetWfmApprovalDemoStore } from '@/lib/wfm/wfmApprovalService';
 import {
   listWfmAbsenceApprovalDetails,
+  listWfmAbsenceOverviewDetails,
   reviewWfmAbsenceRequest,
   withdrawWfmAbsenceRequest,
 } from '@/lib/wfm/wfmAbsenceApprovalWorkflow';
@@ -125,6 +126,14 @@ describe('wfmAbsenceApprovalWorkflow', () => {
     expect(approved.ok).toBe(true);
     if (!approved.ok) return;
     expect(approved.data.absence?.status).toBe('approved');
+
+    const queue = await listWfmAbsenceApprovalDetails(TENANT, OFFICE);
+    expect(queue.ok && queue.data).toHaveLength(0);
+    const overview = await listWfmAbsenceOverviewDetails(TENANT, OFFICE);
+    expect(overview.ok).toBe(true);
+    if (!overview.ok) return;
+    expect(overview.data).toHaveLength(1);
+    expect(overview.data[0]?.absence.status).toBe('approved');
   });
 
   it('lehnt mit Pflichtbegründung ab und speichert Grund', async () => {

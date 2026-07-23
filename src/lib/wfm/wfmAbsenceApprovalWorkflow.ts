@@ -33,6 +33,37 @@ export type WfmAbsenceApprovalDetail = {
   conflicts: WfmAbsenceConflictWarning[];
 };
 
+export type WfmAbsenceOverviewDetail = {
+  absence: WfmAbsence;
+  employeeName: string;
+};
+
+/** Complete Office absence register. Unlike the approval queue this includes
+ * approved, active, completed, rejected and cancelled records. */
+export async function listWfmAbsenceOverviewDetails(
+  tenantId: string,
+  actorRoleKey: RoleKey | null,
+): Promise<ServiceResult<WfmAbsenceOverviewDetail[]>> {
+  const denied = enforcePermission(actorRoleKey, 'office.employees.absences.view');
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const absencesResult = await listWfmAbsencesForTeam(tenantId, actorRoleKey);
+  if (!absencesResult.ok) return absencesResult;
+
+  const employeeIds = [...new Set(absencesResult.data.map((absence) => absence.employeeId))];
+  const employeeNames = await resolveEmployeeNames(tenantId, employeeIds);
+  return {
+    ok: true,
+    data: absencesResult.data.map((absence) => ({
+      absence,
+      employeeName:
+        employeeNames.get(absence.employeeId) ?? `MA ${absence.employeeId.slice(0, 8)}`,
+    })),
+  };
+}
+
 export async function listWfmAbsenceApprovalDetails(
   tenantId: string,
   actorRoleKey: RoleKey | null,

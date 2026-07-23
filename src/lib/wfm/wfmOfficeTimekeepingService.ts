@@ -624,6 +624,18 @@ export async function getWfmOfficeTimeOverview(
     : 0;
 
   const filtered = applyFilters(joinedWithReviews, options?.filters);
+  const selectedEmployeeIds = options?.filters?.employeeIds?.length
+    ? new Set(options.filters.employeeIds)
+    : null;
+  const visibleEmployees = [...profiles.values()]
+    .filter((profile) => !selectedEmployeeIds || selectedEmployeeIds.has(profile.id))
+    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const visiblePlannedVisits = selectedEmployeeIds
+    ? plannedVisits.filter((visit) => selectedEmployeeIds.has(visit.employeeId))
+    : plannedVisits;
+  const visibleAbsentEmployeeIds = selectedEmployeeIds
+    ? new Set([...absentEmployeeIds].filter((id) => selectedEmployeeIds.has(id)))
+    : absentEmployeeIds;
   filtered.sort((a, b) => {
     const dateCmp = b.workDate.localeCompare(a.workDate);
     if (dateCmp !== 0) return dateCmp;
@@ -636,9 +648,14 @@ export async function getWfmOfficeTimeOverview(
     ok: true,
     data: {
       period,
-      kpis: computeKpis(joinedWithReviews, openRequestsCount, plannedVisits.length, absentEmployeeIds),
+      kpis: computeKpis(
+        filtered,
+        openRequestsCount,
+        visiblePlannedVisits.length,
+        visibleAbsentEmployeeIds,
+      ),
       entries: filtered,
-      employees: [...profiles.values()],
+      employees: visibleEmployees,
     },
   };
 }

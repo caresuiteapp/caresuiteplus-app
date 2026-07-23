@@ -220,6 +220,25 @@ describe('ZEIT.3.1 office overview KPIs', () => {
     expect(overview.data!.entries.some((e) => e.rowKind === 'manual_entry')).toBe(true);
     expect(overview.data!.employees.length).toBeGreaterThanOrEqual(1);
   });
+
+  it('applies an employee filter to entries, KPIs and employee options', async () => {
+    seedWfmOfficePlannedVisits(TENANT, [
+      planned({ assignmentId: 'asgn-a', employeeId: EMP_A }),
+      planned({ assignmentId: 'asgn-b', employeeId: EMP_B }),
+    ]);
+
+    const overview = await getWfmOfficeTimeOverview(TENANT, ROLE, {
+      preset: 'custom',
+      fromDate: '2026-07-04',
+      toDate: '2026-07-04',
+      filters: { employeeIds: [EMP_A] },
+    });
+    expect(overview.ok).toBe(true);
+    if (!overview.ok) return;
+    expect(overview.data.entries.every((entry) => entry.employeeId === EMP_A)).toBe(true);
+    expect(overview.data.employees.map((employee) => employee.id)).toEqual([EMP_A]);
+    expect(overview.data.kpis.plannedVisits).toBe(1);
+  });
 });
 
 describe('ZEIT.3.1 display helpers contract', () => {

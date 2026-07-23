@@ -64,6 +64,7 @@ export function WfmOfficeTimeHistoryPanel({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterAmpel, setFilterAmpel] = useState<string | null>(initialFilterAmpel);
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
+  const [employeeOptions, setEmployeeOptions] = useState<Array<{ id: string; name: string }>>([]);
   const [correctionReason, setCorrectionReason] = useState('');
   const [reviewNote, setReviewNote] = useState('');
   const [editStartAt, setEditStartAt] = useState('');
@@ -107,6 +108,18 @@ export function WfmOfficeTimeHistoryPanel({
   const selected: WfmOfficeTimeEntry | null =
     overview?.entries.find((e) => e.id === selectedId) ?? null;
   const kpis = overview?.kpis;
+
+  useEffect(() => {
+    if (!filterEmployeeId && overview?.employees) {
+      setEmployeeOptions(overview.employees);
+    }
+  }, [filterEmployeeId, overview?.employees]);
+
+  useEffect(() => {
+    if (selectedId && overview && !overview.entries.some((entry) => entry.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [overview, selectedId]);
 
   useEffect(() => {
     if (!selected) {
@@ -223,10 +236,10 @@ export function WfmOfficeTimeHistoryPanel({
               selected={!filterEmployeeId}
               onPress={() => setFilterEmployeeId(null)}
             />
-            {(overview?.employees ?? []).slice(0, 6).map((emp) => (
+            {employeeOptions.map((emp) => (
               <WfmOfficeStatusChip
                 key={emp.id}
-                label={emp.name.split(' ')[0] ?? emp.name}
+                label={emp.name}
                 selected={filterEmployeeId === emp.id}
                 onPress={() => setFilterEmployeeId(emp.id)}
               />

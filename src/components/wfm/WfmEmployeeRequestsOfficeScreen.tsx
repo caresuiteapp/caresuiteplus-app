@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
@@ -20,13 +20,17 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import {
   listWfmAbsenceApprovalDetails,
+  listWfmAbsenceOverviewDetails,
   reviewWfmAbsenceRequest,
   type WfmAbsenceApprovalDetail,
+  type WfmAbsenceOverviewDetail,
 } from '@/lib/wfm';
 import {
+  WFM_ABSENCE_STATUS_LABELS,
   WFM_ABSENCE_TYPE_LABELS,
   WFM_APPROVAL_TYPE_LABELS,
   type WfmApprovalType,
+  type WfmAbsenceStatus,
 } from '@/types/modules/wfm';
 import { typography } from '@/theme';
 
@@ -36,6 +40,16 @@ const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'Alle' },
   { key: 'vacation', label: 'Urlaub' },
   { key: 'absence', label: 'Abwesenheit' },
+];
+
+type AbsenceStatusFilter = 'all' | WfmAbsenceStatus;
+const STATUS_OPTIONS: { key: AbsenceStatusFilter; label: string }[] = [
+  { key: 'all', label: 'Alle Status' },
+  { key: 'requested', label: 'Beantragt' },
+  { key: 'approved', label: 'Genehmigt' },
+  { key: 'active', label: 'Aktiv' },
+  { key: 'completed', label: 'Abgeschlossen' },
+  { key: 'rejected', label: 'Abgelehnt' },
 ];
 
 function formatRange(startsAt: string, endsAt: string): string {
@@ -52,6 +66,7 @@ export function WfmEmployeeRequestsOfficeScreen() {
   const text = useAuroraAdaptiveText();
 
   const [filter, setFilter] = useState<FilterKey>('all');
+  const [absenceStatus, setAbsenceStatus] = useState<AbsenceStatusFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [approvalComment, setApprovalComment] = useState('');
@@ -69,6 +84,28 @@ export function WfmEmployeeRequestsOfficeScreen() {
       });
     }, [tenantId, canApprove, roleKey, filter]),
     [tenantId, canApprove, roleKey, filter],
+  );
+  const overviewQuery = useAsyncQuery(
+    useCallback(async () => {
+      if (!tenantId || !canApprove) return { ok: true as const, data: [] };
+      return listWfmAbsenceOverviewDetails(tenantId, roleKey);
+    }, [tenantId, canApprove, roleKey]),
+    [tenantId, canApprove, roleKey],
+  );
+
+  const visibleAbsences = useMemo(
+    () =>
+      (overviewQuery.data ?? []).filter((detail) => {
+        const typeMatches =
+          filter === 'all' ||
+          (filter === 'vacation'
+            ? detail.absence.absenceType === 'vacation'
+            : detail.absence.absenceType !== 'vacation');
+        const statusMatches =
+          absenceStatus === 'all' || detail.absence.status === absenceStatus;
+        return typeMatches && statusMatches;
+      }),
+    [overviewQuery.data, filter, absenceStatus],
   );
 
   const selected = (listQuery.data ?? []).find((d) => d.approval.id === selectedId) ?? null;
@@ -128,6 +165,12 @@ export function WfmEmployeeRequestsOfficeScreen() {
         }}
       />
 
+      <AuroraSegmentedControl
+        options={STATUS_OPTIONS}
+        value={absenceStatus}
+        onChange={(key) => setAbsenceStatus(key as AbsenceStatusFilter)}
+      />
+
       <SectionPanel title="Offene Anträge">
         {listQuery.loading && !listQuery.data ? (
           <LoadingState message="Anträge werden geladen…" />
@@ -144,6 +187,32 @@ export function WfmEmployeeRequestsOfficeScreen() {
               textPrimary={text.primary}
               textSecondary={text.secondary}
             />
+          ))
+        )}
+      </SectionPanel>
+
+      <SectionPanel
+        title="Alle Abwesenheiten"
+        subtitle="Beantragte, genehmigte, aktive, abgeschlossene und abgelehnte Abwesenheiten"
+      >
+        {overviewQuery.loading && !overviewQuery.data ? (
+          <LoadingState message="Abwesenheiten werden geladen…" />
+        ) : null}
+        {overviewQuery.error ? (
+          <ErrorState
+            title="Abwesenheiten nicht verfügbar"
+            message={overviewQuery.error}
+            onRetry={() => void overviewQuery.refresh()}
+          />
+        ) : null}
+        {!overviewQuery.loading && visibleAbsences.length === 0 ? (
+          <EmptyState
+            title="Keine Abwesenheiten"
+            message="Für die gewählte Kombination liegen keine Einträge vor."
+          />
+        ) : (
+          visibleAbsences.map((detail) => (
+            <AbsenceOverviewRow key={detail.absence.id} detail={detail} />
           ))
         )}
       </SectionPanel>
@@ -226,6 +295,39 @@ export function WfmEmployeeRequestsOfficeScreen() {
   );
 }
 
+function AbsenceOverviewRow({ detail }: { detail: WfmAbsenceOverviewDetail }) {
+  const text = useAuroraAdaptiveText();
+  const status = detail.absence.status;
+  const variant =
+    status === 'approved' || status === 'active' || status === 'completed'
+      ? 'green'
+      : status === 'rejected' || status === 'cancelled'
+        ? 'muted'
+        : 'orange';
+  return (
+    <View style={[styles.row, { borderColor: text.border }]}>
+      <View style={styles.rowHeader}>
+        <View style={styles.rowCopy}>
+          <Text style={[styles.rowTitle, { color: text.primary }]}>{detail.employeeName}</Text>
+          <Text style={{ color: text.secondary, ...typography.caption }}>
+            {WFM_ABSENCE_TYPE_LABELS[detail.absence.absenceType]} ·{' '}
+            {formatRange(detail.absence.startsAt, detail.absence.endsAt)}
+          </Text>
+        </View>
+        <PremiumBadge
+          label={WFM_ABSENCE_STATUS_LABELS[status]}
+          variant={variant}
+        />
+      </View>
+      {detail.absence.employeeNote ? (
+        <Text style={{ color: text.secondary, ...typography.caption }}>
+          {detail.absence.employeeNote}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 function RequestRow({
   detail,
   selected,
@@ -272,6 +374,7 @@ const styles = StyleSheet.create({
   },
   rowSelected: { backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 8, paddingHorizontal: careSpacing.xs },
   rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: careSpacing.sm },
+  rowCopy: { flex: 1, minWidth: 0, gap: 3 },
   rowTitle: { ...typography.body, fontWeight: '600' },
   detailTitle: { ...typography.body, fontWeight: '700', marginBottom: careSpacing.xs },
   label: { ...typography.caption, marginTop: careSpacing.sm, marginBottom: 4 },

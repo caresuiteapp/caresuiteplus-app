@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import {
   EmptyState,
@@ -38,6 +38,12 @@ import {
   WfmOfficeSectionHeading,
 } from '@/components/wfm/WfmOfficeTimekeepingLayout';
 import { typography } from '@/theme';
+import { getPayrollPdfUrl } from '@/lib/payroll';
+
+function formatDays(days: number | null): string {
+  if (days == null) return '—';
+  return `${days.toLocaleString('de-DE', { maximumFractionDigits: 1 })} T.`;
+}
 
 export function WfmZeitkontenScreen() {
   const tenantId = useServiceTenantId();
@@ -112,12 +118,12 @@ export function WfmZeitkontenScreen() {
       ),
     },
     {
-      key: 'plan',
-      label: 'Plan',
+      key: 'target',
+      label: 'Soll',
       width: 72,
       render: (account) => (
         <Text style={{ color: text.secondary, ...typography.caption }}>
-          {formatWfmDurationMinutes(account.plannedMinutes)}
+          {formatWfmDurationMinutes(account.targetMinutes || account.plannedMinutes)}
         </Text>
       ),
     },
@@ -132,22 +138,32 @@ export function WfmZeitkontenScreen() {
       ),
     },
     {
-      key: 'approved',
-      label: 'Genehmigt',
+      key: 'travel',
+      label: 'Fahrzeit',
       width: 88,
       render: (account) => (
         <Text style={{ color: text.secondary, ...typography.caption }}>
-          {formatWfmDurationMinutes(account.approvedMinutes)}
+          {formatWfmDurationMinutes(account.travelMinutes)}
         </Text>
       ),
     },
     {
-      key: 'exported',
-      label: 'Exportiert',
+      key: 'absence',
+      label: 'Abwesend',
       width: 88,
       render: (account) => (
         <Text style={{ color: text.secondary, ...typography.caption }}>
-          {formatWfmDurationMinutes(account.exportedMinutes)}
+          {formatWfmDurationMinutes(account.absenceMinutes)}
+        </Text>
+      ),
+    },
+    {
+      key: 'vacation',
+      label: 'Resturlaub',
+      width: 88,
+      render: (account) => (
+        <Text style={{ color: text.secondary, ...typography.caption }}>
+          {formatDays(account.remainingVacationDays)}
         </Text>
       ),
     },
@@ -222,6 +238,12 @@ export function WfmZeitkontenScreen() {
     { key: 'open', label: 'Offene Prüfungen', value: String(accountKpis.openReviews) },
   ];
 
+  const openPayrollPdf = async (path: string | null) => {
+    if (!path) return;
+    const result = await getPayrollPdfUrl(path);
+    if (result.ok) await Linking.openURL(result.data);
+  };
+
   return (
     <View style={styles.root} testID="wfm-zeitkonten-screen">
       <WfmOfficeSectionHeading
@@ -294,8 +316,35 @@ export function WfmZeitkontenScreen() {
       {selectedAccount ? (
         <View style={[styles.detailBlock, { borderColor: text.border }]}>
           <Text style={{ color: text.primary, ...typography.bodyMedium }}>
-            Tagesliste — {selectedAccount.employeeName}
+            Zeitkonto — {selectedAccount.employeeName}
           </Text>
+          <View style={styles.accountMetrics}>
+            <Text style={[styles.accountMetric, { color: text.secondary }]}>
+              Soll <Text style={{ color: text.primary }}>{formatWfmDurationMinutes(selectedAccount.targetMinutes || selectedAccount.plannedMinutes)}</Text>
+            </Text>
+            <Text style={[styles.accountMetric, { color: text.secondary }]}>
+              Ist <Text style={{ color: text.primary }}>{formatWfmDurationMinutes(selectedAccount.actualMinutes)}</Text>
+            </Text>
+            <Text style={[styles.accountMetric, { color: text.secondary }]}>
+              Überstunden <Text style={{ color: text.primary }}>{formatWfmDurationMinutes(selectedAccount.overtimeMinutes)}</Text>
+            </Text>
+            <Text style={[styles.accountMetric, { color: text.secondary }]}>
+              Minderstunden <Text style={{ color: text.primary }}>{formatWfmDurationMinutes(selectedAccount.undertimeMinutes)}</Text>
+            </Text>
+            <Text style={[styles.accountMetric, { color: text.secondary }]}>
+              Urlaub <Text style={{ color: text.primary }}>{formatDays(selectedAccount.vacationDaysUsed)} / {formatDays(selectedAccount.annualVacationDays)}</Text>
+            </Text>
+            <Text style={[styles.accountMetric, { color: text.secondary }]}>
+              Resturlaub <Text style={{ color: text.primary }}>{formatDays(selectedAccount.remainingVacationDays)}</Text>
+            </Text>
+            <Text style={[styles.accountMetric, { color: text.secondary }]}>
+              Krankheit <Text style={{ color: text.primary }}>{formatDays(selectedAccount.sickDays)}</Text>
+            </Text>
+            <Text style={[styles.accountMetric, { color: text.secondary }]}>
+              Fahrzeit <Text style={{ color: text.primary }}>{formatWfmDurationMinutes(selectedAccount.travelMinutes)}</Text>
+            </Text>
+          </View>
+          <Text style={{ color: text.primary, ...typography.bodyMedium }}>Zeitbuchungen</Text>
           {selectedAccount.entries.slice(0, 14).map((entry) => (
             <Text key={entry.id} style={{ color: text.secondary, ...typography.caption }}>
               {entry.workDate} · {entry.clientLabel ?? entry.assignmentTitle ?? '—'} · {entry.reviewStatus}
@@ -309,6 +358,29 @@ export function WfmZeitkontenScreen() {
               onPress={() => router.push('/business/office/time-tracking/pruefqueue' as never)}
             />
           ) : null}
+          <Text style={{ color: text.primary, ...typography.bodyMedium }}>
+            Gehaltsstatistiken & PDF-Archiv
+          </Text>
+          {selectedAccount.payrollStatements.length === 0 ? (
+            <Text style={{ color: text.muted, ...typography.caption }}>
+              Noch keine Gehaltsstatistik für diesen Mitarbeitenden gespeichert.
+            </Text>
+          ) : (
+            selectedAccount.payrollStatements.map((statement) => (
+              <View key={statement.id} style={styles.statementRow}>
+                <Text style={{ color: text.secondary, ...typography.caption }}>
+                  {String(statement.periodMonth).padStart(2, '0')}/{statement.periodYear} · Version {statement.version} · {statement.status}
+                </Text>
+                <PremiumButton
+                  title={statement.pdfPath ? 'PDF öffnen' : 'PDF fehlt'}
+                  size="sm"
+                  variant="ghost"
+                  disabled={!statement.pdfPath}
+                  onPress={() => void openPayrollPdf(statement.pdfPath)}
+                />
+              </View>
+            ))
+          )}
         </View>
       ) : null}
 
@@ -356,14 +428,32 @@ export function TimeTrackingTeamScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, gap: careSpacing.sm, paddingBottom: careSpacing.lg },
+  root: { flex: 1, width: '100%', gap: careSpacing.md, paddingBottom: careSpacing.lg },
   teamSummary: { ...typography.caption, fontSize: 11, lineHeight: 16 },
-  workArea: { gap: careSpacing.xs },
+  workArea: { width: '100%', gap: careSpacing.sm },
   detailBlock: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: careSpacing.sm,
-    gap: careSpacing.xs,
+    borderRadius: 14,
+    padding: careSpacing.md,
+    gap: careSpacing.sm,
+  },
+  accountMetrics: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
+  accountMetric: {
+    ...typography.caption,
+    minWidth: 150,
+    paddingVertical: careSpacing.xs,
+    paddingHorizontal: careSpacing.sm,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.64)',
+  },
+  statementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: careSpacing.sm,
+    paddingVertical: careSpacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(20,120,255,0.12)',
   },
   collapsible: { gap: careSpacing.xs, marginTop: careSpacing.sm },
 });

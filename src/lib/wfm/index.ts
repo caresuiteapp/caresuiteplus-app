@@ -90,10 +90,12 @@ export {
 
 export {
   listWfmAbsenceApprovalDetails,
+  listWfmAbsenceOverviewDetails,
   reviewWfmAbsenceRequest,
   withdrawWfmAbsenceRequest,
   loadAbsenceConflictsForReview,
   type WfmAbsenceApprovalDetail,
+  type WfmAbsenceOverviewDetail,
 } from './wfmAbsenceApprovalWorkflow';
 
 export {

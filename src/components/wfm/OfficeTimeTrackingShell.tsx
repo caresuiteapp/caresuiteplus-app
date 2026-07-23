@@ -138,9 +138,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: careSpacing.md,
-    padding: careSpacing.lg,
-    marginHorizontal: careSpacing.md,
-    marginTop: careSpacing.md,
+    padding: careSpacing.md,
+    marginHorizontal: careSpacing.sm,
+    marginTop: careSpacing.sm,
     borderWidth: 1,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.84)',
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   navigationSurface: {
-    marginHorizontal: careSpacing.md,
+    marginHorizontal: careSpacing.sm,
     marginTop: careSpacing.sm,
     borderWidth: 1,
     borderRadius: 16,
@@ -267,7 +267,8 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flexGrow: 1,
-    padding: careSpacing.md,
+    width: '100%',
+    padding: careSpacing.sm,
     paddingTop: careSpacing.sm,
     ...(Platform.OS === 'web'
       ? {
@@ -277,8 +278,8 @@ const styles = StyleSheet.create({
   },
   workspace: {
     width: '100%',
-    maxWidth: 1500,
-    alignSelf: 'center',
+    maxWidth: '100%',
+    alignSelf: 'stretch',
     flexGrow: 1,
     borderWidth: 1,
     borderRadius: 20,
