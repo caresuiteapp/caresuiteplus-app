@@ -298,7 +298,15 @@ export async function fetchLatestLocationPointForVisit(
   return { ok: true, data: mapLocationRow(data as LocationDbRow) };
 }
 
-/** Time events for visit — read-only monitor / client restricted status. */
+/**
+ * Latest time events for a visit.
+ *
+ * Recurring assignments can reuse a visit id across many cycles. Limiting an
+ * ascending query returned the oldest rows and caused a freshly saved
+ * administrative correction to disappear again during the following refresh.
+ * Fetch newest first, apply the limit there, then restore chronological order
+ * for callers that render or process the returned sequence.
+ */
 export async function fetchTimeEventsForVisit(
   tenantId: string,
   visitId: string,
@@ -311,7 +319,7 @@ export async function fetchTimeEventsForVisit(
     .select('*')
     .eq('tenant_id', tenantId)
     .eq('visit_id', visitId)
-    .order('occurred_at', { ascending: true })
+    .order('occurred_at', { ascending: false })
     .limit(limit);
 
   if (error) {
@@ -321,7 +329,14 @@ export async function fetchTimeEventsForVisit(
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 
-  return { ok: true, data: ((data ?? []) as TimeEventDbRow[]).map(mapTimeEventRow) };
+  const rows = ((data ?? []) as TimeEventDbRow[])
+    .map(mapTimeEventRow)
+    .sort(
+      (left, right) =>
+        new Date(left.occurredAt).getTime() - new Date(right.occurredAt).getTime(),
+    );
+
+  return { ok: true, data: rows };
 }
 
 /** Start session after employee portal consent. */
