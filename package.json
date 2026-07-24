@@ -4,6 +4,7 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
+    "audit:ui:contract": "node scripts/audit-healthos-ui-contract.mjs",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",

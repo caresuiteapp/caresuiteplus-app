@@ -1,9 +1,8 @@
 import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { AURORA_SURFACE_TEXT, APP_SURFACE_TEXT } from '@/design/tokens/accentContrast';
-import { useAuroraGlassChipStyles } from '@/design/tokens/auroraGlass';
-import { useListHeroSurface } from '@/design/tokens/listHeroSurfaceContext';
-import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
+import { careRadius } from '@/design/tokens/radius';
+import { careSpacing } from '@/design/tokens/spacing';
+import { careTypography } from '@/design/tokens/typography';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { spacing } from '@/theme';
 
 export type TabOption = {
@@ -40,33 +39,21 @@ export function SegmentedTabs({
   layout = 'scroll',
   rows,
 }: SegmentedTabsProps) {
-  const styles = useAuroraGlassChipStyles();
-  const heroSurface = useListHeroSurface();
-  const inactiveLabelColor = heroSurface === 'gradient' ? AURORA_SURFACE_TEXT : APP_SURFACE_TEXT;
-
   const renderTab = (tab: TabOption) => {
     const active = tab.key === activeKey;
     return (
       <Pressable
         key={tab.key}
         onPress={() => onSelect(tab.key)}
-        style={[styles.tab, active && styles.tabActive, active && localStyles.tabOverflow]}
+        style={({ pressed }) => [
+          localStyles.tab,
+          active && localStyles.tabActive,
+          pressed && localStyles.tabPressed,
+        ]}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: active }}
       >
-        {active ? (
-          <LinearGradient
-            colors={[...careSuiteAuroraTheme.gradients.buttonPrimary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-        ) : null}
-        <Text
-          style={[
-            styles.label,
-            !active && { color: inactiveLabelColor },
-            active && localStyles.activeLabel,
-          ]}
-        >
+        <Text style={[localStyles.label, active && localStyles.activeLabel]}>
           {tab.label}
         </Text>
       </Pressable>
@@ -78,7 +65,7 @@ export function SegmentedTabs({
     return (
       <View style={[localStyles.wrapContainer, style]}>
         {rowChunks.map((chunk, index) => (
-          <View key={`segment-row-${index}`} style={[styles.row, localStyles.wrapRow]}>
+          <View key={`segment-row-${index}`} style={[localStyles.row, localStyles.wrapRow]}>
             {chunk.map(renderTab)}
           </View>
         ))}
@@ -90,7 +77,7 @@ export function SegmentedTabs({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={[styles.row, style]}
+      contentContainerStyle={[localStyles.row, style]}
     >
       {tabs.map(renderTab)}
     </ScrollView>
@@ -98,8 +85,36 @@ export function SegmentedTabs({
 }
 
 const localStyles = StyleSheet.create({
-  tabOverflow: { overflow: 'hidden' },
-  activeLabel: { color: APP_SURFACE_TEXT, fontWeight: '700' },
+  row: {
+    flexDirection: 'row',
+    gap: careSpacing.sm,
+    paddingVertical: careSpacing.xs,
+  },
+  tab: {
+    minHeight: 40,
+    paddingHorizontal: careSpacing.md,
+    paddingVertical: careSpacing.sm,
+    borderRadius: careRadius.capsule,
+    borderWidth: 1,
+    borderColor: systemLiquidGlass.border,
+    backgroundColor: systemLiquidGlass.chip,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabActive: {
+    borderColor: systemLiquidGlass.borderActive,
+    backgroundColor: systemLiquidGlass.chipActive,
+  },
+  tabPressed: { opacity: 0.82 },
+  label: {
+    ...careTypography.caption,
+    color: systemLiquidGlass.text.secondary,
+    fontWeight: '600',
+  },
+  activeLabel: {
+    color: systemLiquidGlass.text.primary,
+    fontWeight: '800',
+  },
   wrapContainer: { gap: spacing.xs },
   wrapRow: { flexWrap: 'wrap' },
 });

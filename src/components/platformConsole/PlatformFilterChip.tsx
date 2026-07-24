@@ -40,8 +40,7 @@ const styles = StyleSheet.create({
   },
   chip: {
     alignSelf: 'flex-start',
-    minHeight: 32,
-    maxHeight: 36,
+    minHeight: 40,
     borderWidth: 1,
     borderColor: PLATFORM_COLORS.border,
     borderRadius: 999,
@@ -52,7 +51,7 @@ const styles = StyleSheet.create({
   },
   chipActive: {
     borderColor: PLATFORM_COLORS.accent,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: PLATFORM_COLORS.accentSoft,
   },
   chipText: {
     color: PLATFORM_COLORS.muted,
@@ -60,7 +59,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   chipTextActive: {
-    color: PLATFORM_COLORS.accent,
-    fontWeight: '600',
+    color: PLATFORM_COLORS.text,
+    fontWeight: '700',
   },
 });

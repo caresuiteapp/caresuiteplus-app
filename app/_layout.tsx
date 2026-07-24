@@ -21,6 +21,7 @@ import { installPerformanceDiagnostics } from '@/lib/performance/performanceDiag
 import { useHydrated } from '@/hooks/useHydrated';
 import { installSystemTextDefaults } from '@/design/installSystemTextDefaults';
 import { GlobalWorkflowFeedbackProvider } from '@/components/ui';
+import { isHealthOSContextualPopupRoute } from '@/lib/navigation/healthosRoutePresentation';
 
 applyInvisibleScrollIndicators();
 installSystemTextDefaults();
@@ -76,10 +77,14 @@ function RootShell() {
           <View style={styles.foregroundLayer} pointerEvents="box-none">
             <StatusBar style={isDark ? 'light' : 'dark'} />
             <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: SURFACE_COLOR },
-                animation: 'slide_from_right',
+              screenOptions={({ route }) => {
+                const contextualPopup = isHealthOSContextualPopupRoute(route.name);
+                return {
+                  headerShown: false,
+                  contentStyle: { backgroundColor: SURFACE_COLOR },
+                  animation: contextualPopup ? 'fade' : 'slide_from_right',
+                  presentation: contextualPopup ? 'transparentModal' : 'card',
+                };
               }}
             />
           </View>

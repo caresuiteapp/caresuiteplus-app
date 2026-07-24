@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
-import { usePathname } from 'expo-router';
+import { usePathname, useRouter, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getBreadcrumbs } from '@/lib/navigation';
 import { isAuthRoutePath, isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
@@ -13,8 +13,13 @@ import {
 } from '@/lib/platform/webSafeArea';
 import { spacing } from '@/theme';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import {
+  isHealthOSContextualPopupRoute,
+  resolveHealthOSPopupFallbackPath,
+} from '@/lib/navigation/healthosRoutePresentation';
 import { AutoScrollView } from './AutoScrollView';
 import { ScreenHeader } from './ScreenHeader';
+import { PlatformModal } from './platform/platformmodal';
 
 type ScreenShellProps = {
   title: string;
@@ -45,12 +50,15 @@ export function ScreenShell({
   mobileContentPaddingBottom,
 }: ScreenShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const segments = useSegments();
   const insets = useSafeAreaInsets();
   const { isPhone } = useDeviceClass();
   const effectiveRightSlot = hideMobileLogout && isPhone ? undefined : rightSlot;
   const breadcrumbTrail = showBreadcrumbs && pathname !== '/' ? getBreadcrumbs(pathname) : undefined;
   const isPortalShell = isPortalRoutePath(pathname);
   const isAuthRoute = isAuthRoutePath(pathname);
+  const contextualPopup = isHealthOSContextualPopupRoute(`/${segments.join('/')}`);
   const shellScroll = scroll && !(isPhone && isPortalShell);
   const useMobileTouchScroll = shellScroll && isPhone && !isPortalShell;
   const bottomPad =
@@ -107,6 +115,10 @@ export function ScreenShell({
           gap: spacing.md,
           backgroundColor: 'transparent',
         },
+        popupBody: {
+          width: '100%',
+          gap: spacing.md,
+        },
       }),
     [bottomPad, isAuthRoute, isPhone],
   );
@@ -132,6 +144,34 @@ export function ScreenShell({
 
   const rootStyle: ViewStyle[] = [styles.root];
   if (useMobileTouchScroll && Platform.OS === 'web') rootStyle.push(webShellViewportLockStyle());
+
+  const closeContextualPopup = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace(resolveHealthOSPopupFallbackPath(pathname) as never);
+  };
+
+  if (contextualPopup) {
+    return (
+      <View style={rootStyle} testID="screen-shell-contextual-popup">
+        <PlatformModal
+          visible
+          title={title}
+          subtitle={subtitle}
+          onClose={closeContextualPopup}
+          headerActions={effectiveRightSlot}
+          maxWidth={1180}
+          minWidth={320}
+          maxHeightRatio={0.94}
+          bodyStyle={styles.popupBody}
+        >
+          {children}
+        </PlatformModal>
+      </View>
+    );
+  }
 
   return (
     <View

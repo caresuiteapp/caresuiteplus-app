@@ -1,6 +1,8 @@
-import { Pressable, ScrollView, Text, View, type ViewStyle } from 'react-native';
-import { lightSurfaceText } from '@/design/tokens/auroraGlass';
-import { useAuroraGlassChipStyles } from '@/design/tokens/auroraGlass';
+import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { careRadius } from '@/design/tokens/radius';
+import { careSpacing } from '@/design/tokens/spacing';
+import { careTypography } from '@/design/tokens/typography';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 
 type FilterChipProps = {
   label: string;
@@ -15,10 +17,7 @@ export function FilterChip({
   selected = false,
   onPress,
   style,
-  onLightSurface = false,
 }: FilterChipProps) {
-  const styles = useAuroraGlassChipStyles();
-
   return (
     <Pressable
       onPress={onPress}
@@ -28,15 +27,10 @@ export function FilterChip({
         pressed && styles.chipPressed,
         style,
       ]}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
     >
-      <Text
-        style={[
-          styles.label,
-          onLightSurface && { color: lightSurfaceText.secondary },
-          selected && styles.labelSelected,
-          selected && onLightSurface && { color: '#0F1B33' },
-        ]}
-      >
+      <Text style={[styles.label, selected && styles.labelSelected]}>
         {label}
       </Text>
     </Pressable>
@@ -83,9 +77,7 @@ export function FilterChipGroup<T extends string>({
   wrap = false,
   multiple = false,
   minSelected = 1,
-  onLightSurface = false,
 }: FilterChipGroupProps<T>) {
-  const styles = useAuroraGlassChipStyles();
   const selected = value ?? selectedKey;
   const handleChange = onChange ?? onSelect;
 
@@ -100,7 +92,6 @@ export function FilterChipGroup<T extends string>({
         key={optKey}
         label={opt.label}
         selected={isSelected}
-        onLightSurface={onLightSurface}
         onPress={
           handleChange
             ? () => {
@@ -140,3 +131,38 @@ export function FilterChipGroup<T extends string>({
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  chip: {
+    minHeight: 40,
+    paddingHorizontal: careSpacing.md,
+    paddingVertical: careSpacing.sm,
+    borderRadius: careRadius.capsule,
+    borderWidth: 1,
+    borderColor: systemLiquidGlass.border,
+    backgroundColor: systemLiquidGlass.chip,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipSelected: {
+    borderColor: systemLiquidGlass.borderActive,
+    backgroundColor: systemLiquidGlass.chipActive,
+  },
+  chipPressed: {
+    opacity: 0.82,
+  },
+  label: {
+    ...careTypography.caption,
+    color: systemLiquidGlass.text.secondary,
+    fontWeight: '600',
+  },
+  labelSelected: {
+    color: systemLiquidGlass.text.primary,
+    fontWeight: '800',
+  },
+  row: {
+    flexDirection: 'row',
+    gap: careSpacing.sm,
+    paddingVertical: careSpacing.xs,
+  },
+});

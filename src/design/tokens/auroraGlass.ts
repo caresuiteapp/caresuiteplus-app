@@ -13,11 +13,6 @@ import {
 import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { ensureLightLiquidGlassSurfaceCss } from '@/design/web/ensureLightLiquidGlassSurfaceCss';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
-import {
-  AURORA_CHIP_ACTIVE,
-  AURORA_ROW_SELECTED,
-  careSuiteAuroraTheme,
-} from '@/theme/careSuiteAurora';
 import { systemLiquidGlass } from './systemLiquidGlass';
 
 /**
@@ -494,30 +489,25 @@ export function useAuroraGlassButtonStyles(options: ShellGlassIntensityOptions =
 }
 
 /** Filter chip + segmented tab styles for glass desktop / modal forms. */
-export function useAuroraGlassChipStyles(options: ShellGlassIntensityOptions = {}) {
-  const { active, tokens: glass, colors, isLight } = useAuroraGlass();
+export function useAuroraGlassChipStyles(_options: ShellGlassIntensityOptions = {}) {
   const { typography } = useLegacyTheme();
-  const text = useAuroraAdaptiveText();
-  const viewGlass = resolveLlganViewGlass(options.viewContext ?? 'form', options.intensity ?? 'default');
 
   return useMemo(
     () =>
       StyleSheet.create({
         chip: {
+          minHeight: 40,
           paddingHorizontal: 14,
           paddingVertical: 8,
           borderRadius: careRadius.capsule,
           borderWidth: 1,
-          borderColor: active && isLight ? viewGlass.borderButton : active ? glass.border : colors.borderSoft,
-          backgroundColor: active && isLight ? viewGlass.button : active ? glass.chip : colors.bgSurface,
-          ...(Platform.OS === 'web' && active && isLight
-            ? lightLiquidGlassWebFx(viewGlass.blurButton, viewGlass.saturateButton)
-            : {}),
+          borderColor: systemLiquidGlass.border,
+          backgroundColor: systemLiquidGlass.chip,
+          justifyContent: 'center',
         },
         chipSelected: {
-          borderColor: active && isLight ? 'rgba(120,160,255,0.32)' : careSuiteAuroraTheme.accent.violet,
-          backgroundColor:
-            active && isLight ? 'rgba(130,170,255,0.16)' : active ? glass.chipActive : 'rgba(139, 92, 246, 0.12)',
+          borderColor: systemLiquidGlass.borderActive,
+          backgroundColor: systemLiquidGlass.chipActive,
         },
         chipPressed: {
           opacity: 0.85,
@@ -525,10 +515,10 @@ export function useAuroraGlassChipStyles(options: ShellGlassIntensityOptions = {
         label: {
           ...typography.caption,
           fontWeight: '600' as TextStyle['fontWeight'],
-          color: active && isLight ? text.primary : text.secondary,
+          color: systemLiquidGlass.text.secondary,
         },
         labelSelected: {
-          color: active && isLight ? '#000000' : careSuiteAuroraTheme.accent.pink,
+          color: systemLiquidGlass.text.primary,
           fontWeight: '700' as TextStyle['fontWeight'],
         },
         row: {
@@ -541,16 +531,16 @@ export function useAuroraGlassChipStyles(options: ShellGlassIntensityOptions = {
           paddingVertical: 10,
           borderRadius: careRadius.lg,
           borderWidth: 1,
-          borderColor: active ? glass.border : colors.borderSoft,
-          backgroundColor: active ? glass.chip : colors.bgSurface,
+          borderColor: systemLiquidGlass.border,
+          backgroundColor: systemLiquidGlass.chip,
           overflow: 'hidden',
         },
         tabActive: {
-          borderColor: careSuiteAuroraTheme.accent.violet,
-          backgroundColor: active ? glass.chipActive : 'rgba(139, 92, 246, 0.12)',
+          borderColor: systemLiquidGlass.borderActive,
+          backgroundColor: systemLiquidGlass.chipActive,
         },
       }),
-    [active, colors, glass.border, glass.chip, glass.chipActive, isLight, text.primary, text.secondary, typography.caption],
+    [typography.caption],
   );
 }
 
@@ -572,14 +562,12 @@ export function useAuroraGlassTableStyles(options: AuroraGlassTableOptions = {})
         table: {
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: solidSurface ? 'rgba(15,27,51,0.12)' : active ? glass.border : colors.borderSoft,
-          backgroundColor: solidSurface
-            ? '#FAFBFC'
-            : active
-              ? tableSurface
-                ? tableSurface.panel
-                : glass.table
-              : colors.bgSurface,
+          borderColor: active ? glass.border : systemLiquidGlass.border,
+          backgroundColor: active
+            ? tableSurface
+              ? tableSurface.panel
+              : glass.table
+            : systemLiquidGlass.table,
           overflow: 'hidden',
           ...(Platform.OS === 'web' && tableSurface && !solidSurface
             ? lightLiquidGlassWebFx(tableSurface.blurDesktop, tableSurface.saturate)
@@ -590,26 +578,26 @@ export function useAuroraGlassTableStyles(options: AuroraGlassTableOptions = {})
           alignItems: 'center',
           paddingVertical: careSpacing.sm,
           paddingHorizontal: careSpacing.md,
-          backgroundColor: solidSurface ? '#F3F5F8' : active ? glass.header : colors.bgElevated,
+          backgroundColor: active ? glass.header : systemLiquidGlass.rowAlt,
           borderBottomWidth: 1,
-          borderBottomColor: solidSurface ? 'rgba(15,27,51,0.10)' : active ? glass.innerBorder : colors.borderSoft,
+          borderBottomColor: active ? glass.innerBorder : systemLiquidGlass.innerBorder,
         },
         headerCell: {
           paddingHorizontal: careSpacing.xs,
         },
         headerText: {
           ...typography.label,
-          color: solidSurface ? lightSurfaceText.primary : text.primary,
+          color: text.primary,
           textTransform: 'uppercase',
           letterSpacing: 0.6,
           fontSize: 11,
           fontWeight: '700',
         },
         headerTextActive: {
-          color: isLight && active ? '#000000' : careSuiteAuroraTheme.accent.violet,
+          color: systemLiquidGlass.text.primary,
         },
         cellText: {
-          color: solidSurface ? lightSurfaceText.primary : text.primary,
+          color: text.primary,
           fontSize: 14,
         },
         dataRow: {
@@ -622,12 +610,12 @@ export function useAuroraGlassTableStyles(options: AuroraGlassTableOptions = {})
           borderBottomColor: active ? glass.innerBorder : colors.borderSoft,
         },
         dataRowAlt: {
-          backgroundColor: solidSurface ? 'rgba(15,27,51,0.025)' : active ? glass.rowAlt : colors.bgPremium,
+          backgroundColor: active ? glass.rowAlt : systemLiquidGlass.rowAlt,
         },
         dataRowSelected: {
-          backgroundColor: active ? glass.rowSelected : 'rgba(139, 92, 246, 0.10)',
+          backgroundColor: active ? glass.rowSelected : systemLiquidGlass.rowSelected,
           borderLeftWidth: 3,
-          borderLeftColor: careSuiteAuroraTheme.accent.violet,
+          borderLeftColor: systemLiquidGlass.borderActive,
         },
         dataCell: {
           paddingHorizontal: careSpacing.xs,
@@ -645,10 +633,10 @@ export function useAuroraGlassTableStyles(options: AuroraGlassTableOptions = {})
         },
         emptyText: {
           ...typography.caption,
-          color: solidSurface ? lightSurfaceText.muted : text.muted,
+          color: text.muted,
         },
       }),
-    [active, colors, glass, isLight, solidSurface, tableSurface, text.muted, text.primary, typography.caption, typography.label],
+    [active, colors, glass, solidSurface, tableSurface, text.muted, text.primary, typography.caption, typography.label],
   );
 }
 
@@ -743,7 +731,7 @@ export function useAuroraGlassSelectStyles(options: ShellGlassIntensityOptions =
           borderBottomColor: active && isLight ? viewGlass.borderAccent : active ? glass.innerBorder : colors.borderSoft,
         },
         optionSelected: {
-          backgroundColor: active && isLight ? 'rgba(130,170,255,0.16)' : glass.chipActive,
+          backgroundColor: systemLiquidGlass.chipActive,
         },
         optionPressed: {
           opacity: 0.85,
@@ -753,7 +741,7 @@ export function useAuroraGlassSelectStyles(options: ShellGlassIntensityOptions =
           color: text.primary,
         },
         optionLabelSelected: {
-          color: active && isLight ? '#000000' : careSuiteAuroraTheme.accent.pink,
+          color: systemLiquidGlass.text.primary,
           fontWeight: '600',
         },
         modalBackdrop: {
@@ -791,9 +779,9 @@ export function useAuroraGlassSelectStyles(options: ShellGlassIntensityOptions =
         },
         modalCloseText: {
           ...typography.bodyStrong,
-          color: active && isLight ? text.primary : careSuiteAuroraTheme.accent.cyan,
+          color: systemLiquidGlass.text.primary,
         },
       }),
-    [active, colors, glass, isLight, text.muted, text.primary, text.secondary, typography.body, typography.bodyStrong, typography.caption, typography.h3, typography.label, viewGlass],
+    [active, colors, glass, isLight, text.muted, text.primary, typography.body, typography.bodyStrong, typography.caption, typography.h3, typography.label, viewGlass],
   );
 }

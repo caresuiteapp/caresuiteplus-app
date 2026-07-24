@@ -6,7 +6,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { lightSurfaceText, useAuroraGlassSelectStyles } from '@/design/tokens/auroraGlass';
+import { useAuroraGlassSelectStyles } from '@/design/tokens/auroraGlass';
 
 export type ListFilterOption = { key: string; label: string };
 
@@ -25,7 +25,6 @@ export function ListFilterSelect({
   options,
   onChange,
   style,
-  onLightSurface = false,
 }: ListFilterSelectProps) {
   const [open, setOpen] = useState(false);
   const styles = useAuroraGlassSelectStyles();
@@ -52,13 +51,7 @@ export function ListFilterSelect({
             accessibilityRole="menuitem"
             accessibilityState={{ selected }}
           >
-            <Text
-              style={[
-                styles.optionLabel,
-                onLightSurface ? { color: lightSurfaceText.primary } : null,
-                selected ? styles.optionLabelSelected : null,
-              ]}
-            >
+            <Text style={[styles.optionLabel, selected ? styles.optionLabelSelected : null]}>
               {opt.label}
             </Text>
           </Pressable>
@@ -69,9 +62,7 @@ export function ListFilterSelect({
 
   return (
     <View style={[styles.wrap, style]}>
-      <Text style={[styles.label, onLightSurface ? { color: lightSurfaceText.primary } : null]}>
-        {label}
-      </Text>
+      <Text style={styles.label}>{label}</Text>
       <Pressable
         onPress={() => setOpen((current) => !current)}
         style={({ pressed }) => [styles.trigger, pressed ? styles.triggerPressed : null]}
@@ -79,13 +70,10 @@ export function ListFilterSelect({
         accessibilityState={{ expanded: open }}
         accessibilityLabel={`${label}: ${selectedLabel}`}
       >
-        <Text
-          style={[styles.triggerText, onLightSurface ? { color: lightSurfaceText.primary } : null]}
-          numberOfLines={1}
-        >
+        <Text style={styles.triggerText} numberOfLines={1}>
           {selectedLabel}
         </Text>
-        <Text style={[styles.chevron, onLightSurface ? { color: lightSurfaceText.muted } : null]}>
+        <Text style={styles.chevron}>
           {open ? '▴' : '▾'}
         </Text>
       </Pressable>
@@ -93,9 +81,7 @@ export function ListFilterSelect({
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
           <Pressable style={styles.modalSheet} onPress={(event) => event.stopPropagation()}>
-            <Text style={[styles.modalTitle, onLightSurface ? { color: lightSurfaceText.primary } : null]}>
-              {label}
-            </Text>
+            <Text style={styles.modalTitle}>{label}</Text>
             {optionList}
             <Pressable onPress={() => setOpen(false)} style={styles.modalClose}>
               <Text style={styles.modalCloseText}>Schließen</Text>
