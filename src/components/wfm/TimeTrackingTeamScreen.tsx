@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import {
@@ -9,6 +9,7 @@ import {
   PremiumBadge,
   PremiumButton,
   PremiumDataTable,
+  useWorkflowFeedback,
   type DataTableColumn,
 } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -55,6 +56,8 @@ export function WfmZeitkontenScreen() {
   const accent = moduleColor('office');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [periodPreset, setPeriodPreset] = useState<'today' | 'this_week' | 'this_month'>('this_month');
+  const feedback = useWorkflowFeedback();
+  const loadingFeedbackId = useRef<string | null>(null);
 
   const canView = can('time.tracking.team.view');
   const canApprove = can('office.employees.absences.approve');
@@ -114,6 +117,27 @@ export function WfmZeitkontenScreen() {
       },
     },
   );
+
+  const timeDataLoading =
+    accountsQuery.loading ||
+    accountsQuery.refreshing ||
+    teamQuery.loading ||
+    teamQuery.refreshing;
+
+  useEffect(() => {
+    if (timeDataLoading && !loadingFeedbackId.current) {
+      loadingFeedbackId.current = feedback.showLoading('Arbeitszeit und Zeitkonten werden aktualisiert…');
+      return;
+    }
+    if (!timeDataLoading && loadingFeedbackId.current) {
+      feedback.dismiss(loadingFeedbackId.current);
+      loadingFeedbackId.current = null;
+    }
+  }, [feedback, timeDataLoading]);
+
+  useEffect(() => () => {
+    if (loadingFeedbackId.current) feedback.dismiss(loadingFeedbackId.current);
+  }, [feedback]);
 
   const accountColumns = useMemo((): DataTableColumn<WfmOfficeEmployeeTimeAccount>[] => [
     {
@@ -298,7 +322,7 @@ export function WfmZeitkontenScreen() {
       <View style={styles.workArea}>
         <WfmOfficeSectionHeading title="Zeitkonten je Mitarbeitende" />
         {accountsQuery.loading && !accountsQuery.data ? (
-          <LoadingState message="Zeitkonten werden geladen…" />
+          <LoadingState message="Zeitkonten werden geladen…" presentation="inline" />
         ) : null}
         {accountsQuery.error ? (
           <ErrorState title="Fehler" message={accountsQuery.error} onRetry={() => void accountsQuery.refresh()} />

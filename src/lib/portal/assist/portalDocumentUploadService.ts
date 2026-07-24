@@ -260,7 +260,7 @@ export async function listPendingPortalUploads(
     if (!supabase) return unavailable();
 
     let query = fromUnknownTable(supabase, 'portal_uploads')
-      .select('*, employees(first_name, last_name)')
+      .select('*')
       .eq('tenant_id', tenantId)
       .in('status', ['hochgeladen', 'wird_geprueft'])
       .order('created_at', { ascending: false });
@@ -274,9 +274,40 @@ export async function listPendingPortalUploads(
       return { ok: false, error: toGermanSupabaseError(error) };
     }
 
+    const uploadRows = (data ?? []) as Record<string, unknown>[];
+    const employeeIds = Array.from(new Set(
+      uploadRows
+        .map((row) => row.employee_id)
+        .filter((value): value is string => typeof value === 'string' && value.length > 0),
+    ));
+    const employeeNames = new Map<string, string>();
+
+    if (employeeIds.length > 0) {
+      const { data: employees } = await fromUnknownTable(supabase, 'employees')
+        .select('id, first_name, last_name')
+        .eq('tenant_id', tenantId)
+        .in('id', employeeIds);
+      for (const employee of (employees ?? []) as Record<string, unknown>[]) {
+        const id = String(employee.id ?? '');
+        const name = [employee.first_name, employee.last_name]
+          .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+          .join(' ')
+          .trim();
+        if (id && name) employeeNames.set(id, name);
+      }
+    }
+
     return {
       ok: true,
-      data: ((data ?? []) as Record<string, unknown>[]).map(mapUploadRow),
+      data: uploadRows.map((row) => mapUploadRow({
+        ...row,
+        employees: row.employee_id
+          ? {
+              first_name: employeeNames.get(String(row.employee_id)) ?? null,
+              last_name: null,
+            }
+          : null,
+      })),
     };
   });
 }

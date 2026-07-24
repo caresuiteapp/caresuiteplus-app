@@ -12,8 +12,35 @@ import { getWfmOfficeTimeOverview } from './wfmOfficeTimekeepingService';
 type Row = Record<string, unknown>;
 
 const numberValue = (value: unknown): number =>
-  typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  (typeof value === 'number' || typeof value === 'string') && Number.isFinite(Number(value))
+    ? Number(value)
+    : 0;
 const stringValue = (value: unknown): string => typeof value === 'string' ? value : '';
+
+const weekdayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+
+export function calculateContractTargetMinutesForRange(
+  workDays: unknown,
+  fromDate: string,
+  toDate: string,
+): number {
+  if (!workDays || typeof workDays !== 'object') return 0;
+  const schedule = workDays as Record<string, unknown>;
+  const from = new Date(`${fromDate}T00:00:00Z`);
+  const to = new Date(`${toDate}T00:00:00Z`);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from > to) return 0;
+
+  let targetMinutes = 0;
+  const cursor = new Date(from);
+  while (cursor <= to) {
+    const hours = numberValue(schedule[weekdayKeys[cursor.getUTCDay()]]);
+    if (hours > 0) {
+      targetMinutes += Math.round(hours * 60);
+    }
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return targetMinutes;
+}
 
 function monthKey(year: number, month: number): number {
   return year * 12 + month;
@@ -117,7 +144,7 @@ export async function getWfmOfficeEmployeeTimeAccounts(
           .eq('tenant_id', tenantId)
           .in('employee_id', employeeIds),
         fromUnknownTable(supabase, 'employee_contract_settings')
-          .select('employee_id, annual_vacation_days')
+          .select('employee_id, annual_vacation_days, work_days')
           .eq('tenant_id', tenantId)
           .in('employee_id', employeeIds),
         fromUnknownTable(supabase, 'payroll_month_statements')
@@ -160,8 +187,16 @@ export async function getWfmOfficeEmployeeTimeAccounts(
       if (!contractResult.error) {
         for (const row of (contractResult.data ?? []) as Row[]) {
           const account = byEmployee.get(stringValue(row.employee_id));
-          if (!account || row.annual_vacation_days == null) continue;
-          account.annualVacationDays = numberValue(row.annual_vacation_days);
+          if (!account) continue;
+          if (row.annual_vacation_days != null) {
+            account.annualVacationDays = numberValue(row.annual_vacation_days);
+          }
+          const contractTarget = calculateContractTargetMinutesForRange(
+            row.work_days,
+            overview.data.period.fromDate,
+            overview.data.period.toDate,
+          );
+          if (contractTarget > 0) account.targetMinutes = contractTarget;
         }
       }
 
@@ -183,18 +218,23 @@ export async function getWfmOfficeEmployeeTimeAccounts(
     }
   }
 
-  const accounts = [...byEmployee.values()].map((account) => ({
-    ...account,
-    saldoMinutes:
-      account.overtimeMinutes || account.undertimeMinutes
-        ? account.overtimeMinutes - account.undertimeMinutes
-        : account.actualMinutes - (account.targetMinutes || account.plannedMinutes),
-    remainingVacationDays:
-      account.annualVacationDays == null
-        ? null
-        : Math.max(0, account.annualVacationDays - account.vacationDaysUsed),
-    entries: account.entries.sort((a, b) => b.workDate.localeCompare(a.workDate)),
-  }));
+  const accounts = [...byEmployee.values()].map((account) => {
+    const effectiveTargetMinutes = account.targetMinutes || account.plannedMinutes;
+    const creditedMinutes = account.actualMinutes + account.absenceMinutes;
+    const saldoMinutes = creditedMinutes - effectiveTargetMinutes;
+    return {
+      ...account,
+      targetMinutes: effectiveTargetMinutes,
+      overtimeMinutes: Math.max(0, saldoMinutes),
+      undertimeMinutes: Math.max(0, -saldoMinutes),
+      saldoMinutes,
+      remainingVacationDays:
+        account.annualVacationDays == null
+          ? null
+          : Math.max(0, account.annualVacationDays - account.vacationDaysUsed),
+      entries: account.entries.sort((a, b) => b.workDate.localeCompare(a.workDate)),
+    };
+  });
 
   accounts.sort((a, b) => a.employeeName.localeCompare(b.employeeName, 'de'));
   return { ok: true, data: accounts };

@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import { ScreenShell } from '@/components/layout';
 import {
   EmptyState, ErrorState, InfoBanner, LoadingState, PremiumBadge,
-  PremiumButton, PremiumCard, PremiumInput, SectionPanel,
+  PremiumButton, PremiumCard, PremiumInput, SectionPanel, useWorkflowFeedback,
 } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -11,7 +11,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import {
-  formatPayrollMoney, formatPayrollMinutes, getPayrollPdfUrl,
+  formatPayrollBalanceMinutes, formatPayrollMoney, formatPayrollMinutes, getPayrollPdfUrl,
   listPayrollMonthOverview, publishPayrollStatement, reviewExpenseClaim,
 } from '@/lib/payroll';
 import { subscribeToWfmLiveChanges } from '@/lib/realtime/presets';
@@ -35,6 +35,8 @@ export function PayrollMonthOverviewScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [reviewAmounts, setReviewAmounts] = useState<Record<string, string>>({});
+  const feedback = useWorkflowFeedback();
+  const queryFeedbackId = useRef<string | null>(null);
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
   const { can, check } = usePermissions();
@@ -58,6 +60,22 @@ export function PayrollMonthOverviewScreen() {
     },
   );
 
+  useEffect(() => {
+    const isQueryBusy = query.loading || (query.refreshing && busyId === null);
+    if (isQueryBusy && !queryFeedbackId.current) {
+      queryFeedbackId.current = feedback.showLoading('Arbeitszeit, Zeitkonto und Abrechnung werden aktualisiert…');
+      return;
+    }
+    if (!isQueryBusy && queryFeedbackId.current) {
+      feedback.dismiss(queryFeedbackId.current);
+      queryFeedbackId.current = null;
+    }
+  }, [busyId, feedback, query.loading, query.refreshing]);
+
+  useEffect(() => () => {
+    if (queryFeedbackId.current) feedback.dismiss(queryFeedbackId.current);
+  }, [feedback]);
+
   const changeMonth = (delta: number) => {
     const next = new Date(year, month - 1 + delta, 1); setYear(next.getFullYear()); setMonth(next.getMonth() + 1); setMessage(null);
   };
@@ -65,29 +83,59 @@ export function PayrollMonthOverviewScreen() {
 
   async function publish(employee: PayrollEmployeeMonth) {
     if (!tenantId) return; setBusyId(employee.employeeId); setMessage(null);
-    const result = await publishPayrollStatement(tenantId, employee, roleKey); setBusyId(null);
-    if (!result.ok) { setMessage(result.error); return; }
-    setMessage(`${employee.employeeName}: Version ${result.data.version} wurde veröffentlicht.`); await query.refresh();
+    const loadingId = feedback.showLoading(`${employee.employeeName}: Abrechnung und PDF werden erstellt…`);
+    try {
+      const result = await publishPayrollStatement(tenantId, employee, roleKey);
+      feedback.dismiss(loadingId);
+      if (!result.ok) { setMessage(result.error); feedback.showError(result.error, 'Veröffentlichung fehlgeschlagen'); return; }
+      const successMessage = `${employee.employeeName}: Version ${result.data.version} wurde veröffentlicht.`;
+      setMessage(successMessage); feedback.showSuccess(successMessage, 'Abrechnung veröffentlicht'); await query.refresh();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Die Abrechnung konnte nicht veröffentlicht werden.';
+      feedback.dismiss(loadingId); setMessage(errorMessage); feedback.showError(errorMessage, 'Veröffentlichung fehlgeschlagen');
+    } finally {
+      feedback.dismiss(loadingId); setBusyId(null);
+    }
   }
   async function openPdf(path: string | null) {
-    if (!path) return; const result = await getPayrollPdfUrl(path);
-    if (!result.ok) { setMessage(result.error); return; } await Linking.openURL(result.data);
+    if (!path) return;
+    const loadingId = feedback.showLoading('Dokument wird geladen…');
+    try {
+      const result = await getPayrollPdfUrl(path);
+      feedback.dismiss(loadingId);
+      if (!result.ok) { setMessage(result.error); feedback.showError(result.error, 'Dokument nicht verfügbar'); return; }
+      await Linking.openURL(result.data);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Das Dokument konnte nicht geöffnet werden.';
+      feedback.dismiss(loadingId); setMessage(errorMessage); feedback.showError(errorMessage, 'Dokument nicht verfügbar');
+    } finally {
+      feedback.dismiss(loadingId);
+    }
   }
   async function review(claimId: string, status: Extract<ExpenseClaimStatus, 'approved' | 'partially_approved' | 'rejected' | 'needs_info'>, originalCents: number) {
     if (!tenantId) return; setBusyId(claimId); setMessage(null);
+    const loadingId = feedback.showLoading('Auslage wird geprüft und gespeichert…');
     const rawAmount = reviewAmounts[claimId]?.trim().replace(',', '.');
     const approvedAmountCents = rawAmount ? Math.round(Number(rawAmount) * 100) : originalCents;
     const note = reviewNotes[claimId]?.trim() ?? '';
     const effectiveStatus = status === 'approved' && approvedAmountCents < originalCents
       ? 'partially_approved'
       : status;
-    const result = await reviewExpenseClaim({ tenantId, claimId, status: effectiveStatus, approvedAmountCents, officeNote: note || null, rejectionReason: status === 'rejected' ? note : null }, roleKey);
-    setBusyId(null); if (!result.ok) { setMessage(result.error); return; }
-    setMessage('Auslage wurde geprüft.'); await query.refresh();
+    try {
+      const result = await reviewExpenseClaim({ tenantId, claimId, status: effectiveStatus, approvedAmountCents, officeNote: note || null, rejectionReason: status === 'rejected' ? note : null }, roleKey);
+      feedback.dismiss(loadingId);
+      if (!result.ok) { setMessage(result.error); feedback.showError(result.error, 'Prüfung fehlgeschlagen'); return; }
+      setMessage('Auslage wurde geprüft.'); feedback.showSuccess('Die Auslage wurde gespeichert.', 'Prüfung abgeschlossen'); await query.refresh();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Die Auslage konnte nicht geprüft werden.';
+      feedback.dismiss(loadingId); setMessage(errorMessage); feedback.showError(errorMessage, 'Prüfung fehlgeschlagen');
+    } finally {
+      feedback.dismiss(loadingId); setBusyId(null);
+    }
   }
 
   if (!canView) return <ScreenShell title="Gehaltsstatistik"><ErrorState title="Kein Zugriff" message={check('office.employees.view').reason ?? 'Berechtigung fehlt.'} /></ScreenShell>;
-  if (query.loading && !query.data) return <ScreenShell title="Gehaltsstatistik"><LoadingState message="Monatsdaten werden berechnet…" /></ScreenShell>;
+  if (query.loading && !query.data) return <ScreenShell title="Gehaltsstatistik"><LoadingState message="Monatsdaten werden berechnet…" presentation="inline" /></ScreenShell>;
   if (query.error && !query.data) return <ScreenShell title="Gehaltsstatistik"><ErrorState title="Gehaltsstatistik nicht verfügbar" message={query.error} onRetry={() => void query.refresh()} /></ScreenShell>;
   const data = query.data;
   return (
@@ -111,11 +159,14 @@ export function PayrollMonthOverviewScreen() {
                 <Text style={styles.metric}>Urlaub/Krank <Text style={styles.strong}>{formatPayrollMinutes(employee.vacationMinutes + employee.sickMinutes)}</Text></Text>
                 <Text style={styles.metric}>Monatsplan <Text style={styles.strong}>{formatPayrollMinutes(employee.monthlyPlannedMinutes ?? employee.plannedMinutes)}</Text></Text>
                 <Text style={styles.metric}>Noch geplant <Text style={styles.strong}>{formatPayrollMinutes(employee.plannedMinutes)}</Text></Text>
-                <Text style={styles.metric}>Zeitkonto + <Text style={styles.strong}>{formatPayrollMinutes(employee.overtimeTransferMinutes)}</Text></Text>
+                <Text style={styles.metric}>Zeitkonto <Text style={styles.strong}>{formatPayrollBalanceMinutes(employee.timeAccountBalanceMinutes)}</Text></Text>
               </View>
               <View style={styles.moneyRow}><View><Text style={styles.kpiLabel}>Bis heute</Text><Text style={styles.money}>{formatPayrollMoney(employee.earnedGrossCents)}</Text></View><View><Text style={styles.kpiLabel}>Monatsprognose</Text><Text style={styles.moneyForecast}>{formatPayrollMoney(employee.projectedGrossCents)}</Text></View><View><Text style={styles.kpiLabel}>inkl. Auslagen</Text><Text style={styles.money}>{formatPayrollMoney(employee.projectedTotalPayoutCents)}</Text></View></View>
               {employee.latestStatement?.employeeDecisionReason ? <InfoBanner message={`Ablehnungsgrund: ${employee.latestStatement.employeeDecisionReason}`} /> : null}
               <View style={styles.actions}>{employee.latestStatement?.pdfPath ? <PremiumButton title="PDF öffnen" variant="secondary" onPress={() => void openPdf(employee.latestStatement?.pdfPath ?? null)} /> : null}{canEdit && !['confirmed', 'locked', 'paid'].includes(employee.latestStatement?.status ?? '') ? <PremiumButton title={employee.latestStatement ? 'Neue Version veröffentlichen' : 'PDF erstellen & veröffentlichen'} loading={busyId === employee.employeeId} onPress={() => void publish(employee)} /> : null}</View>
+              {employee.pendingPortalUploads.length ? <View style={styles.expenses}><Text style={styles.subheading}>Neu eingereichte Portal-Dokumente</Text><Text style={styles.muted}>Diese Dateien wurden über „Meine Uploads“ eingereicht und warten auf die Office-Prüfung.</Text>{employee.pendingPortalUploads.map((upload) => (
+                <View key={upload.id} style={styles.expenseRow}><View style={styles.heading}><View style={styles.flex}><Text style={styles.strong}>{upload.fileName}</Text><Text style={styles.muted}>{new Date(upload.createdAt).toLocaleDateString('de-DE')} · {upload.category ?? 'Sonstiges'} · {upload.status === 'wird_geprueft' ? 'In Prüfung' : 'Eingereicht'}</Text></View><PremiumButton title="Dokument öffnen" size="sm" variant="ghost" onPress={() => void openPdf(upload.storagePath)} /></View></View>
+              ))}</View> : null}
               {employee.expenseClaims.length ? <View style={styles.expenses}><Text style={styles.subheading}>Auslagen & Erstattungen</Text>{employee.expenseClaims.map((claim) => (
                 <View key={claim.id} style={styles.expenseRow}><View style={styles.heading}><View style={styles.flex}><Text style={styles.strong}>{claim.description}</Text><Text style={styles.muted}>{claim.expenseDate} · {formatPayrollMoney(claim.amountCents)} · {claim.status}</Text></View>{claim.receiptPath ? <PremiumButton title="Beleg" size="sm" variant="ghost" onPress={() => void openPdf(claim.receiptPath)} /> : null}</View>
                   {(claim.status === 'submitted' || claim.status === 'needs_info') && canEdit ? <><View style={styles.reviewFields}><PremiumInput label="Genehmigter Betrag (EUR)" value={reviewAmounts[claim.id] ?? (claim.amountCents / 100).toFixed(2).replace('.', ',')} onChangeText={(value: string) => setReviewAmounts((old) => ({ ...old, [claim.id]: value }))} keyboardType="decimal-pad" /><PremiumInput label="Prüfvermerk / Ablehnungsgrund" value={reviewNotes[claim.id] ?? ''} onChangeText={(value: string) => setReviewNotes((old) => ({ ...old, [claim.id]: value }))} /></View><View style={styles.actions}><PremiumButton title="Genehmigen" size="sm" loading={busyId === claim.id} onPress={() => void review(claim.id, 'approved', claim.amountCents)} /><PremiumButton title="Rückfrage" size="sm" variant="secondary" onPress={() => void review(claim.id, 'needs_info', claim.amountCents)} /><PremiumButton title="Ablehnen" size="sm" variant="secondary" onPress={() => void review(claim.id, 'rejected', claim.amountCents)} /></View></> : null}

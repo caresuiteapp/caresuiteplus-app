@@ -34,6 +34,21 @@ export function moneyFromMinutes(minutes: number, hourlyRateCents: number): numb
   return Math.round((nonNegative(minutes) / 60) * nonNegative(hourlyRateCents));
 }
 
+export function calculatePayrollTimeAccountBalance(input: {
+  actualWorkMinutes: number;
+  vacationMinutes?: number;
+  sickMinutes?: number;
+  otherPaidAbsenceMinutes?: number;
+  targetMinutes: number;
+}): number {
+  const creditedMinutes =
+    nonNegative(input.actualWorkMinutes) +
+    nonNegative(input.vacationMinutes) +
+    nonNegative(input.sickMinutes) +
+    nonNegative(input.otherPaidAbsenceMinutes);
+  return creditedMinutes - nonNegative(input.targetMinutes);
+}
+
 export function calculatePayrollSnapshot(input: PayrollCalculationInput): PayrollStatementSnapshot {
   const actualWorkMinutes = nonNegative(input.actualWorkMinutes);
   const vacationMinutes = nonNegative(input.vacationMinutes);
@@ -128,6 +143,13 @@ export function formatPayrollMinutes(minutes: number): string {
   const sign = minutes < 0 ? '−' : '';
   const absolute = Math.abs(Math.round(minutes));
   return `${sign}${Math.floor(absolute / 60)}:${String(absolute % 60).padStart(2, '0')} Std.`;
+}
+
+export function formatPayrollBalanceMinutes(minutes: number): string {
+  const rounded = Math.round(minutes);
+  const sign = rounded > 0 ? '+' : rounded < 0 ? '−' : '±';
+  const absolute = Math.abs(rounded);
+  return `${sign} ${Math.floor(absolute / 60)}:${String(absolute % 60).padStart(2, '0')} Std.`;
 }
 
 function escapePayrollHtml(value: string): string {

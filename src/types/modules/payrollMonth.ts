@@ -138,6 +138,17 @@ export type PayrollStatement = {
 
 export type PayrollEmployeeMonth = PayrollStatementSnapshot & {
   latestStatement: PayrollStatement | null;
+  pendingPortalUploads: PayrollPortalUpload[];
+};
+
+export type PayrollPortalUpload = {
+  id: string;
+  employeeId: string;
+  fileName: string;
+  storagePath: string;
+  category: string | null;
+  status: 'hochgeladen' | 'wird_geprueft';
+  createdAt: string;
 };
 
 export type PayrollMonthOverview = {

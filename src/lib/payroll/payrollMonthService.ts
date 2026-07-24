@@ -5,6 +5,7 @@ import type {
   PayrollEmployeeMonth,
   PayrollExpenseClaim,
   PayrollMonthOverview,
+  PayrollPortalUpload,
   PayrollStatement,
   PayrollStatementSnapshot,
 } from '@/types/modules/payrollMonth';
@@ -22,6 +23,7 @@ import { listPlannedVisitsForPeriod } from '@/lib/wfm/wfmOfficePlannedVisitRepos
 import { getWfmOfficeEmployeeTimeAccounts } from '@/lib/wfm/wfmOfficeZeitkontenService';
 import {
   buildPayrollStatementHtml,
+  calculatePayrollTimeAccountBalance,
   calculatePayrollSnapshot,
 } from './payrollCalculator';
 import { isPayrollRelevantEmployee } from './payrollEmployeeStatus';
@@ -81,6 +83,18 @@ function mapStatement(row: Row): PayrollStatement {
   };
 }
 
+export function mapPayrollPortalUpload(row: Row): PayrollPortalUpload {
+  return {
+    id: asString(row.id),
+    employeeId: asString(row.employee_id),
+    fileName: asString(row.file_name),
+    storagePath: asString(row.storage_path),
+    category: asNullableString(row.category),
+    status: (asString(row.status) || 'hochgeladen') as PayrollPortalUpload['status'],
+    createdAt: asString(row.created_at),
+  };
+}
+
 function averageDailyMinutes(workDays: unknown): number {
   if (!workDays || typeof workDays !== 'object') return 0;
   const values = Object.values(workDays as Record<string, unknown>)
@@ -111,8 +125,9 @@ function absenceMinutesInPeriod(
   const end = Math.min(periodEnd.getTime(), Date.UTC(rawEnd.getUTCFullYear(), rawEnd.getUTCMonth(), rawEnd.getUTCDate()));
   let minutes = 0;
   while (cursor.getTime() <= end) {
-    const hours = schedule[weekdayKeys[cursor.getUTCDay()]];
-    if (typeof hours === 'number' && Number.isFinite(hours) && hours > 0) minutes += Math.round(hours * 60);
+    const rawHours = schedule[weekdayKeys[cursor.getUTCDay()]];
+    const hours = typeof rawHours === 'number' || typeof rawHours === 'string' ? Number(rawHours) : 0;
+    if (Number.isFinite(hours) && hours > 0) minutes += Math.round(hours * 60);
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   return minutes || Math.round((asNumber(absence.requested_days) || 1) * fallbackDailyMinutes);
@@ -134,7 +149,7 @@ function plannedMinutesForEmployee(
 
 function buildEmployeeSnapshot(input: {
   employee: Row; payroll?: Row; contract?: Row; timeAccount?: WfmOfficeEmployeeTimeAccount;
-  absenceRows: Row[]; expenses: PayrollExpenseClaim[]; plannedMinutes: number;
+  absenceRows: Row[]; expenses: PayrollExpenseClaim[]; portalUploads: PayrollPortalUpload[]; plannedMinutes: number;
   year: number; month: number; latestStatement: PayrollStatement | null;
 }): PayrollEmployeeMonth {
   const employeeId = asString(input.employee.id);
@@ -156,6 +171,19 @@ function buildEmployeeSnapshot(input: {
   }
   const account = input.timeAccount;
   const actualWorkMinutes = account?.actualMinutes ?? 0;
+  const configuredMaxPayoutHours = input.payroll?.max_payout_hours_month == null
+    ? null
+    : asNumber(input.payroll.max_payout_hours_month);
+  const contractualTargetMinutes = configuredMaxPayoutHours == null
+    ? account?.targetMinutes ?? 0
+    : Math.round(configuredMaxPayoutHours * 60);
+  const currentTimeAccountBalance = calculatePayrollTimeAccountBalance({
+    actualWorkMinutes,
+    vacationMinutes,
+    sickMinutes,
+    otherPaidAbsenceMinutes,
+    targetMinutes: contractualTargetMinutes,
+  });
   const snapshot = calculatePayrollSnapshot({
     employeeId,
     employeeName: [asString(input.employee.first_name), asString(input.employee.last_name)].filter(Boolean).join(' ') || 'Mitarbeitende:r',
@@ -163,16 +191,20 @@ function buildEmployeeSnapshot(input: {
     periodYear: input.year, periodMonth: input.month,
     compensationType: asString(input.payroll?.compensation_type) === 'hourly' ? 'hourly' : 'salary',
     compensationAmount: asNumber(input.payroll?.compensation_amount),
-    maxPayoutHours: input.payroll?.max_payout_hours_month == null ? null : asNumber(input.payroll?.max_payout_hours_month),
+    maxPayoutHours: configuredMaxPayoutHours,
     overflowToTimeAccount: input.payroll?.overflow_to_time_account !== false,
     actualWorkMinutes,
     travelMinutes: account?.travelMinutes ?? 0, vacationMinutes, sickMinutes, otherPaidAbsenceMinutes,
     monthlyPlannedMinutes: account?.plannedMinutes ?? input.plannedMinutes,
     plannedMinutes: input.plannedMinutes,
-    timeAccountBalanceMinutes: account?.saldoMinutes ?? 0,
+    timeAccountBalanceMinutes: currentTimeAccountBalance,
     expenses: input.expenses.filter((expense) => expense.employeeId === employeeId),
   });
-  return { ...snapshot, latestStatement: input.latestStatement };
+  return {
+    ...snapshot,
+    latestStatement: input.latestStatement,
+    pendingPortalUploads: input.portalUploads.filter((upload) => upload.employeeId === employeeId),
+  };
 }
 
 export async function listPayrollMonthOverview(
@@ -186,7 +218,7 @@ export async function listPayrollMonthOverview(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
   const { fromDate, toDate } = periodRange(year, month);
-  const [employeesRes, payrollRes, contractRes, timeAccountsRes, absencesRes, expensesRes, statementsRes, plannedRes] = await Promise.all([
+  const [employeesRes, payrollRes, contractRes, timeAccountsRes, absencesRes, expensesRes, statementsRes, plannedRes, portalUploadsRes] = await Promise.all([
     fromUnknownTable(supabase, 'employees').select('id, first_name, last_name, employee_number, status').eq('tenant_id', tenantId).order('last_name'),
     fromUnknownTable(supabase, 'employee_payroll_settings').select('employee_id, compensation_type, compensation_amount, max_payout_hours_month, overflow_to_time_account, mileage_rate_cents').eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'employee_contract_settings').select('employee_id, work_days').eq('tenant_id', tenantId),
@@ -199,6 +231,14 @@ export async function listPayrollMonthOverview(
     fromUnknownTable(supabase, 'employee_expense_claims').select('*').eq('tenant_id', tenantId).gte('expense_date', fromDate).lte('expense_date', toDate).order('expense_date', { ascending: false }),
     fromUnknownTable(supabase, 'payroll_month_statements').select('*').eq('tenant_id', tenantId).eq('period_year', year).eq('period_month', month).order('version', { ascending: false }),
     listPlannedVisitsForPeriod(tenantId, fromDate, toDate),
+    fromUnknownTable(supabase, 'portal_uploads')
+      .select('id, employee_id, file_name, storage_path, category, status, created_at')
+      .eq('tenant_id', tenantId)
+      .eq('upload_context', 'mitarbeiter')
+      .in('status', ['hochgeladen', 'wird_geprueft'])
+      .gte('created_at', `${fromDate}T00:00:00`)
+      .lte('created_at', `${toDate}T23:59:59`)
+      .order('created_at', { ascending: false }),
   ]);
   const firstError = [employeesRes, payrollRes, contractRes, absencesRes, expensesRes, statementsRes].find((result) => result.error)?.error;
   if (firstError) return { ok: false, error: toGermanSupabaseError(firstError) };
@@ -209,13 +249,18 @@ export async function listPayrollMonthOverview(
   const timeAccounts = new Map(timeAccountsRes.data.map((account) => [account.employeeId, account]));
   const statementRows = rows(statementsRes.data).map(mapStatement);
   const expenses = rows(expensesRes.data).map(mapExpense); const now = Date.now();
+  const portalUploads = portalUploadsRes.error
+    ? []
+    : rows(portalUploadsRes.data)
+      .map(mapPayrollPortalUpload)
+      .filter((upload) => upload.id && upload.employeeId && upload.fileName && upload.storagePath);
   const employees = rows(employeesRes.data).filter(isPayrollRelevantEmployee).map((employee) => {
     const employeeId = asString(employee.id);
     return buildEmployeeSnapshot({ employee,
       payroll: payrollRows.find((row) => asString(row.employee_id) === employeeId),
       contract: contractRows.find((row) => asString(row.employee_id) === employeeId),
       timeAccount: timeAccounts.get(employeeId),
-      absenceRows: rows(absencesRes.data), expenses,
+      absenceRows: rows(absencesRes.data), expenses, portalUploads,
       plannedMinutes: plannedMinutesForEmployee(plannedRes.data, employeeId, now), year, month,
       latestStatement: statementRows.find((row) => row.employeeId === employeeId) ?? null,
     });
@@ -299,8 +344,9 @@ export async function publishPayrollStatement(
   }
   const version = Math.max(0, ...existing.map((row) => asNumber(row.version))) + 1;
   const statementId = createUuid();
-  const { latestStatement, ...snapshot } = employee;
+  const { latestStatement, pendingPortalUploads, ...snapshot } = employee;
   void latestStatement;
+  void pendingPortalUploads;
   const html = buildPayrollStatementHtml(snapshot, version);
   let pdfBytes: Uint8Array;
   try { pdfBytes = await renderHtmlToPdfBytes(html); }
