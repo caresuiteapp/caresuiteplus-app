@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { CareTimeInput } from '@/components/inputs';
 import { ListFilterSelect, PremiumButton } from '@/components/ui';
-import { lightSurfaceText, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import {
@@ -44,7 +43,15 @@ type Props = {
   onEditPauseMinutesChange: (value: string) => void;
   actionMessage: string | null;
   exportedWarning?: boolean;
+  embedded?: boolean;
 };
+
+const REVIEW_TEXT = {
+  primary: '#0F172A',
+  secondary: '#334155',
+  muted: '#64748B',
+  border: '#CBD5E1',
+} as const;
 
 function SectionBlock({
   title,
@@ -53,10 +60,9 @@ function SectionBlock({
   title: string;
   children: React.ReactNode;
 }) {
-  const text = useAuroraAdaptiveText();
   return (
-    <View style={[styles.section, { borderColor: text.border }]}>
-      <Text style={[styles.sectionTitle, { color: lightSurfaceText.primary }]}>{title}</Text>
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
       {children}
     </View>
   );
@@ -97,8 +103,8 @@ export function WfmOfficeTimeReviewDetailPanel({
   onEditPauseMinutesChange,
   actionMessage,
   exportedWarning = false,
+  embedded = false,
 }: Props) {
-  const text = useAuroraAdaptiveText();
   const accent = moduleColor('office');
   const display = resolveWfmOfficeTimeDisplay(entry);
   const [showHistory, setShowHistory] = useState(false);
@@ -109,63 +115,66 @@ export function WfmOfficeTimeReviewDetailPanel({
   useEffect(() => setEndTime(localTime(editEndAt)), [editEndAt, entry.id]);
 
   return (
-    <View style={[styles.panel, { borderColor: accent }]} testID="wfm-office-review-detail-panel">
-      <View style={styles.panelHeader}>
+    <View
+      style={[styles.panel, { borderColor: embedded ? REVIEW_TEXT.border : accent }, embedded ? styles.panelEmbedded : null]}
+      testID="wfm-office-review-detail-panel"
+    >
+      {!embedded ? <View style={styles.panelHeader}>
         <View style={styles.panelHeaderText}>
-          <Text style={[styles.panelTitle, { color: lightSurfaceText.primary }]}>
+          <Text style={styles.panelTitle}>
             {entry.employeeName}
           </Text>
-          <Text style={[styles.panelSubtitle, { color: lightSurfaceText.secondary }]}>
+          <Text style={styles.panelSubtitle}>
             {entry.workDate} · {WFM_OFFICE_WORK_KIND_LABELS[entry.workKind]}
           </Text>
         </View>
         <PremiumButton title="Schließen" variant="ghost" onPress={onClose} onDarkSurface={false} />
-      </View>
+      </View> : null}
 
       <View style={styles.panelBody}>
         <SectionBlock title="Einsatz">
-          <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
+          <Text style={styles.line}>
             {entry.clientLabel ?? entry.assignmentTitle ?? '—'}
           </Text>
-          <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
+          <Text style={styles.line}>
             Status: {WFM_OFFICE_TIME_STATUS_LABELS[entry.reviewStatus]}
           </Text>
           {entry.flags.includes('missing_booking') ? (
-            <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
+            <Text style={styles.line}>
               Fehlende Buchung — geplanter Einsatz ohne Ist-Zeit.
             </Text>
           ) : null}
         </SectionBlock>
 
         <SectionBlock title="Zeiten">
-          <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>{display.displayPrimaryTimeLabel}</Text>
+          <Text style={styles.line}>{display.displayPrimaryTimeLabel}</Text>
           {display.displaySecondaryTimeLabel ? (
-            <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>{display.displaySecondaryTimeLabel}</Text>
+            <Text style={styles.line}>{display.displaySecondaryTimeLabel}</Text>
           ) : null}
-          <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
+          <Text style={styles.line}>
             Plan: {formatWfmPlanTimeRange(entry.plannedStartAt, entry.plannedEndAt, entry.planDisplayStatus)}
             {display.isPlannedOnly ? ` · ${formatWfmReviewQueuePlannedDuration(entry)}` : ''}
           </Text>
           {display.hasAssignmentActual ? (
-            <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
+            <Text style={styles.line}>
               Einsatz-Ist: {formatWfmReviewQueueStartLabel(entry, null).replace('Start: ', '')} –{' '}
               {formatWfmReviewQueueEndLabel(entry, null).replace('Ende: ', '')}
             </Text>
           ) : null}
           {display.hasTimeEntry ? (
-            <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
+            <Text style={styles.line}>
               Buchung: Netto {formatWfmDurationMinutes(entry.netMinutes)} · Pause{' '}
               {formatWfmDurationMinutes(entry.pauseMinutes)}
             </Text>
           ) : null}
-          <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
+          <Text style={styles.line}>
             {formatWfmReviewQueueGesamtLabel(entry)} · Export: {entry.exportStatus}
           </Text>
         </SectionBlock>
 
         <SectionBlock title="Prüfung">
           {exportedWarning ? (
-            <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>
+            <Text style={styles.warningText}>
               Warnung: Eintrag exportiert — Änderungen erfordern P2.3 Re-Export.
             </Text>
           ) : null}
@@ -173,8 +182,8 @@ export function WfmOfficeTimeReviewDetailPanel({
             value={reviewNote}
             onChangeText={onReviewNoteChange}
             placeholder="Kommentar / Ablehnungsgrund / Rückfrage"
-            placeholderTextColor={lightSurfaceText.muted}
-            style={[styles.input, { color: lightSurfaceText.primary, borderColor: text.border }]}
+            placeholderTextColor={REVIEW_TEXT.muted}
+            style={styles.input}
             multiline
           />
         </SectionBlock>
@@ -218,8 +227,8 @@ export function WfmOfficeTimeReviewDetailPanel({
               value={correctionReason}
               onChangeText={onCorrectionReasonChange}
               placeholder="Korrektur-Begründung (Pflicht)"
-              placeholderTextColor={lightSurfaceText.muted}
-              style={[styles.input, { color: lightSurfaceText.primary, borderColor: text.border }]}
+              placeholderTextColor={REVIEW_TEXT.muted}
+              style={styles.input}
             />
             <View style={styles.actionRow}>
               {display.hasAssignmentActual ? (
@@ -251,10 +260,10 @@ export function WfmOfficeTimeReviewDetailPanel({
           {showHistory ? (
             <View style={styles.history}>
               {auditEntries.length === 0 ? (
-                <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>Keine Audit-Einträge.</Text>
+                <Text style={styles.line}>Keine Audit-Einträge.</Text>
               ) : (
                 auditEntries.map((a) => (
-                  <Text key={a.id} style={[styles.line, { color: lightSurfaceText.secondary }]}>
+                  <Text key={a.id} style={styles.line}>
                     {a.createdAt.slice(0, 16)} · {a.summary}
                     {a.reason ? ` — ${a.reason}` : ''}
                   </Text>
@@ -265,7 +274,7 @@ export function WfmOfficeTimeReviewDetailPanel({
         </SectionBlock>
 
         {actionMessage ? (
-          <Text style={[styles.line, { color: lightSurfaceText.secondary }]}>{actionMessage}</Text>
+          <Text style={styles.actionMessage}>{actionMessage}</Text>
         ) : null}
       </View>
     </View>
@@ -284,6 +293,11 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
   },
+  panelEmbedded: {
+    borderWidth: 0,
+    borderRadius: 12,
+    shadowOpacity: 0,
+  },
   panelHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -295,11 +309,12 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(0,0,0,0.08)',
   },
   panelHeaderText: { flex: 1, gap: 2 },
-  panelTitle: { ...typography.h3, fontWeight: '800' },
-  panelSubtitle: { ...typography.body, fontSize: 12 },
+  panelTitle: { ...typography.h3, fontWeight: '800', color: REVIEW_TEXT.primary },
+  panelSubtitle: { ...typography.body, fontSize: 12, color: REVIEW_TEXT.secondary },
   panelBody: { padding: careSpacing.md, gap: careSpacing.md },
   section: {
     borderWidth: StyleSheet.hairlineWidth,
+    borderColor: REVIEW_TEXT.border,
     borderRadius: 12,
     padding: careSpacing.md,
     gap: 6,
@@ -313,8 +328,23 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginBottom: 2,
+    color: REVIEW_TEXT.primary,
   },
-  line: { ...typography.body, fontSize: 14, lineHeight: 21 },
+  line: { ...typography.body, fontSize: 14, lineHeight: 21, color: REVIEW_TEXT.secondary },
+  warningText: {
+    ...typography.body,
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#9A3412',
+    fontWeight: '700',
+  },
+  actionMessage: {
+    ...typography.body,
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#166534',
+    fontWeight: '700',
+  },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs, marginTop: 4 },
   structuredRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
   structuredField: { minWidth: 130, flex: 1 },
@@ -324,6 +354,8 @@ const styles = StyleSheet.create({
     padding: careSpacing.sm,
     minHeight: 44,
     backgroundColor: '#FFFFFF',
+    color: REVIEW_TEXT.primary,
+    borderColor: REVIEW_TEXT.border,
     ...typography.body,
     fontSize: 14,
   },

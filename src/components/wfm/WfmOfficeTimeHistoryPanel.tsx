@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { CareDateInput } from '@/components/inputs';
+import { PlatformModal } from '@/components/layout/platform';
 import { PremiumButton } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -18,7 +19,11 @@ import type {
   WfmOfficeTimeEntry,
   WfmOfficeTimeFilters,
 } from '@/types/modules/wfmOfficeTimekeeping';
-import { WFM_OFFICE_PERIOD_PRESET_LABELS, WFM_OFFICE_TIME_STATUS_LABELS } from '@/types/modules/wfmOfficeTimekeeping';
+import {
+  WFM_OFFICE_PERIOD_PRESET_LABELS,
+  WFM_OFFICE_TIME_STATUS_LABELS,
+  WFM_OFFICE_WORK_KIND_LABELS,
+} from '@/types/modules/wfmOfficeTimekeeping';
 import {
   WfmOfficeCompactKpiStrip,
   WfmOfficeFilterBar,
@@ -65,7 +70,7 @@ export function WfmOfficeTimeHistoryPanel({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterAmpel, setFilterAmpel] = useState<string | null>(initialFilterAmpel);
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
-  const [employeeOptions, setEmployeeOptions] = useState<Array<{ id: string; name: string }>>([]);
+  const [employeeOptions, setEmployeeOptions] = useState<{ id: string; name: string }[]>([]);
   const [correctionReason, setCorrectionReason] = useState('');
   const [reviewNote, setReviewNote] = useState('');
   const [editStartAt, setEditStartAt] = useState('');
@@ -141,6 +146,13 @@ export function WfmOfficeTimeHistoryPanel({
     setEditPauseMinutes(String(selected.pauseMinutes ?? 0));
   }, [selected]);
 
+  const closeReviewDetail = () => {
+    setSelectedId(null);
+    setReviewNote('');
+    setCorrectionReason('');
+    setActionMessage(null);
+  };
+
   const runReview = async (
     decision: 'approved' | 'rejected' | 'exported' | 'locked' | 'needs_clarification',
   ) => {
@@ -161,7 +173,8 @@ export function WfmOfficeTimeHistoryPanel({
     }
     setActionMessage(`Status: ${WFM_OFFICE_TIME_STATUS_LABELS[result.data.reviewStatus]}`);
     setReviewNote('');
-    void historyQuery.refresh();
+    await historyQuery.refresh();
+    setSelectedId(null);
   };
 
   const runCorrection = async () => {
@@ -316,7 +329,7 @@ export function WfmOfficeTimeHistoryPanel({
       onClarification={() => void runReview('needs_clarification')}
       onAdoptAssignment={() => void runAdoptAssignment()}
       onSaveCorrection={() => void runCorrection()}
-      onClose={() => setSelectedId(null)}
+      onClose={closeReviewDetail}
       reviewNote={reviewNote}
       onReviewNoteChange={setReviewNote}
       correctionReason={correctionReason}
@@ -329,22 +342,47 @@ export function WfmOfficeTimeHistoryPanel({
       onEditPauseMinutesChange={setEditPauseMinutes}
       actionMessage={actionMessage}
       exportedWarning={selected.exportStatus === 'exported'}
+      embedded={reviewQueueMode}
     />
   ) : null;
 
   return (
     <View style={styles.root} testID={reviewQueueMode ? 'wfm-offene-pruefungen' : 'wfm-arbeitszeit-historie'}>
-      <WfmOfficeSplitWorkArea
-        main={mainContent}
-        detail={detailPanel}
-        detailOpen={Boolean(selected)}
-      />
+      {reviewQueueMode ? (
+        <>
+          <View style={styles.reviewQueueMain}>{mainContent}</View>
+          <PlatformModal
+            visible={Boolean(selected)}
+            title={selected ? `Arbeitszeit prüfen · ${selected.employeeName}` : 'Arbeitszeit prüfen'}
+            subtitle={selected ? `${selected.workDate} · ${WFM_OFFICE_WORK_KIND_LABELS[selected.workKind]}` : undefined}
+            onClose={closeReviewDetail}
+            variant="center"
+            maxWidth={920}
+            minWidth={320}
+            maxHeightRatio={0.92}
+            dismissOnBackdrop
+            bodyStyle={styles.reviewModalBody}
+            isDirty={Boolean(reviewNote.trim() || correctionReason.trim())}
+            dirtyCloseMessage="Eingaben verwerfen und Prüfung schließen?"
+          >
+            {detailPanel}
+          </PlatformModal>
+        </>
+      ) : (
+        <WfmOfficeSplitWorkArea
+          main={mainContent}
+          detail={detailPanel}
+          detailOpen={Boolean(selected)}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, gap: careSpacing.sm },
+  reviewQueueMain: { flex: 1, minWidth: 0, gap: careSpacing.sm },
+  reviewModalBody: { padding: careSpacing.sm, backgroundColor: '#F8FAFC' },
   customRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, marginBottom: careSpacing.sm },
   dateField: { minWidth: 180, flex: 1 },
 });

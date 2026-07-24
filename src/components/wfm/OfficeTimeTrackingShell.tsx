@@ -1,6 +1,5 @@
 import { Slot, usePathname, useRouter } from 'expo-router';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { lightSurfaceText, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import {
@@ -11,11 +10,17 @@ import {
 } from '@/lib/navigation/officeTimeTrackingNav';
 import { typography } from '@/theme';
 
+const SHELL_TEXT = {
+  primary: '#0F172A',
+  secondary: '#334155',
+  muted: '#64748B',
+  border: '#CBD5E1',
+} as const;
+
 export function OfficeTimeTrackingShell() {
   const router = useRouter();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
-  const text = useAuroraAdaptiveText();
   const accent = moduleColor('office');
   const compact = width < 760;
   const activeTab = resolveOfficeTimeTrackingTabKey(pathname);
@@ -23,15 +28,15 @@ export function OfficeTimeTrackingShell() {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.header, { borderColor: text.border }]}> 
+      <View style={styles.header}>
         <View style={styles.headerLead}>
           <View style={[styles.iconTile, { backgroundColor: `${accent}18`, borderColor: `${accent}45` }]}> 
             <Text style={styles.icon}>⏱</Text>
           </View>
           <View style={styles.headerText}>
             <Text style={[styles.eyebrow, { color: accent }]}>OFFICE · WORKFORCE MANAGEMENT</Text>
-            <Text style={[styles.title, { color: lightSurfaceText.primary }]}>Arbeitszeit</Text>
-            <Text style={[styles.subtitle, { color: lightSurfaceText.secondary }]}>
+            <Text style={styles.title}>Arbeitszeit</Text>
+            <Text style={styles.subtitle}>
               Zeiten erfassen, Abweichungen prüfen und Freigaben zentral steuern
             </Text>
           </View>
@@ -40,7 +45,7 @@ export function OfficeTimeTrackingShell() {
           onPress={() => router.push(OFFICE_TIME_TRACKING_OWN_HREF as never)}
           style={({ pressed }) => [
             styles.ownLink,
-            { borderColor: ownCaptureActive ? accent : text.border },
+            { borderColor: ownCaptureActive ? accent : SHELL_TEXT.border },
             ownCaptureActive && { backgroundColor: `${accent}14` },
             pressed && styles.ownLinkPressed,
           ]}
@@ -48,11 +53,11 @@ export function OfficeTimeTrackingShell() {
           accessibilityLabel="Eigene Erfassung öffnen"
         >
           <Text style={[styles.ownLinkIcon, { color: accent }]}>＋</Text>
-          {!compact ? <View><Text style={[styles.ownLinkKicker, { color: lightSurfaceText.muted }]}>PERSÖNLICH</Text><Text style={[styles.ownLinkText, { color: ownCaptureActive ? accent : lightSurfaceText.primary }]}>Eigene Erfassung</Text></View> : null}
+          {!compact ? <View><Text style={styles.ownLinkKicker}>PERSÖNLICH</Text><Text style={[styles.ownLinkText, { color: ownCaptureActive ? accent : SHELL_TEXT.primary }]}>Eigene Erfassung</Text></View> : null}
         </Pressable>
       </View>
 
-      <View style={[styles.navigationSurface, { borderColor: text.border }]}> 
+      <View style={styles.navigationSurface}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator
@@ -75,7 +80,7 @@ export function OfficeTimeTrackingShell() {
                 accessibilityState={{ selected }}
               >
                 <Text style={styles.tabIcon}>{tab.icon}</Text>
-                <Text style={[styles.tabLabel, { color: selected ? accent : lightSurfaceText.secondary }, selected && styles.tabLabelSelected]} numberOfLines={1}>
+                <Text style={[styles.tabLabel, { color: selected ? accent : SHELL_TEXT.secondary }, selected && styles.tabLabelSelected]} numberOfLines={1}>
                   {tab.label}
                 </Text>
                 {selected ? <View style={[styles.activeMarker, { backgroundColor: accent }]} /> : null}
@@ -86,7 +91,7 @@ export function OfficeTimeTrackingShell() {
       </View>
 
       <View style={styles.content}>
-        <View style={[styles.workspace, { borderColor: text.border }]}> 
+        <View style={styles.workspace}>
           <Slot />
         </View>
       </View>
@@ -109,6 +114,7 @@ const styles = StyleSheet.create({
     marginHorizontal: careSpacing.sm,
     marginTop: careSpacing.sm,
     borderWidth: 1,
+    borderColor: SHELL_TEXT.border,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.84)',
     shadowColor: '#173B70',
@@ -147,11 +153,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 24,
     lineHeight: 27,
+    color: SHELL_TEXT.primary,
   },
   subtitle: {
     ...typography.body,
     fontSize: 13,
     lineHeight: 17,
+    color: SHELL_TEXT.secondary,
   },
   ownLink: {
     borderWidth: 1,
@@ -176,9 +184,10 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 0.8,
+    color: SHELL_TEXT.muted,
   },
   ownLinkText: {
-    ...typography.bodyMedium,
+    ...typography.body,
     fontWeight: '700',
   },
   tabScroll: {
@@ -203,6 +212,7 @@ const styles = StyleSheet.create({
     marginHorizontal: careSpacing.sm,
     marginTop: careSpacing.sm,
     borderWidth: 1,
+    borderColor: SHELL_TEXT.border,
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.78)',
     overflow: 'hidden',
@@ -234,6 +244,7 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
     alignSelf: 'stretch',
     borderWidth: 1,
+    borderColor: SHELL_TEXT.border,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.94)',
     padding: careSpacing.md,

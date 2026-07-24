@@ -1,9 +1,14 @@
 import { type ReactNode } from 'react';
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { FilterChip, FilterChipGroup } from '@/components/ui';
-import { lightSurfaceText, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { typography } from '@/theme';
+
+const WORKTIME_TEXT = {
+  primary: '#0F172A',
+  secondary: '#334155',
+  border: '#CBD5E1',
+} as const;
 
 export type WfmCompactKpi = {
   key: string;
@@ -18,17 +23,16 @@ type CompactKpiStripProps = {
 };
 
 export function WfmOfficeCompactKpiStrip({ items, maxVisible = 6 }: CompactKpiStripProps) {
-  const text = useAuroraAdaptiveText();
   const visible = items.slice(0, maxVisible);
 
   return (
     <View style={styles.kpiStrip} testID="wfm-office-kpi-strip">
       {visible.map((item) => (
-        <View key={item.key} style={[styles.kpiCell, { borderColor: text.border }]}>
-          <Text style={[styles.kpiValue, { color: item.accent ?? lightSurfaceText.primary }]} numberOfLines={1}>
+        <View key={item.key} style={styles.kpiCell}>
+          <Text style={[styles.kpiValue, { color: item.accent ?? WORKTIME_TEXT.primary }]} numberOfLines={1}>
             {item.value}
           </Text>
-          <Text style={[styles.kpiLabel, { color: lightSurfaceText.secondary }]} numberOfLines={1}>
+          <Text style={styles.kpiLabel} numberOfLines={1}>
             {item.label}
           </Text>
         </View>
@@ -126,9 +130,9 @@ export function WfmOfficeSectionHeading({
 }) {
   return (
     <View style={styles.sectionHeading}>
-      <Text style={[styles.sectionTitle, { color: lightSurfaceText.primary }]}>{title}</Text>
+      <Text style={styles.sectionTitle}>{title}</Text>
       {subtitle ? (
-        <Text style={[styles.sectionSubtitle, { color: lightSurfaceText.secondary }]}>{subtitle}</Text>
+        <Text style={styles.sectionSubtitle}>{subtitle}</Text>
       ) : null}
     </View>
   );
@@ -147,6 +151,7 @@ const styles = StyleSheet.create({
     flexBasis: Platform.OS === 'web' ? ('12%' as unknown as number) : '30%',
     maxWidth: Platform.OS === 'web' ? 220 : undefined,
     borderWidth: 1,
+    borderColor: WORKTIME_TEXT.border,
     borderRadius: 14,
     paddingHorizontal: careSpacing.md,
     paddingVertical: careSpacing.sm,
@@ -158,7 +163,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
   kpiValue: {
-    ...typography.bodyMedium,
+    ...typography.body,
     fontWeight: '700',
     fontSize: 20,
     lineHeight: 24,
@@ -169,6 +174,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     fontWeight: '600',
     letterSpacing: 0.2,
+    color: WORKTIME_TEXT.secondary,
   },
   filterBar: {
     gap: careSpacing.sm,
@@ -233,10 +239,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 22,
     lineHeight: 28,
+    color: WORKTIME_TEXT.primary,
   },
   sectionSubtitle: {
     ...typography.body,
     fontSize: 14,
     lineHeight: 19,
+    color: WORKTIME_TEXT.secondary,
   },
 });

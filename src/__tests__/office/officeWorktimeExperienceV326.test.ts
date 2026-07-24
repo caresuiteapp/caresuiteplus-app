@@ -28,7 +28,8 @@ describe('Office Arbeitszeit V32.7 Design, Struktur und Funktionen', () => {
     const detail = read('src/components/wfm/WfmOfficeTimeReviewDetailPanel.tsx');
     const dataTable = read('src/design/tokens/auroraGlass.ts');
     const button = read('src/components/ui/PremiumButton.tsx');
-    expect(shell).toContain('lightSurfaceText.primary');
+    expect(shell).toContain('SHELL_TEXT.primary');
+    expect(shell).toContain("primary: '#0F172A'");
     expect(layout).toContain('minWidth: 138');
     expect(layout).toContain('width: 480');
     expect(layout).toContain('width >= 1760');
@@ -36,7 +37,7 @@ describe('Office Arbeitszeit V32.7 Design, Struktur und Funktionen', () => {
     expect(layout).toContain('onLightSurface');
     expect(table).toContain("fontSize: 13");
     expect(table).toContain("backgroundColor: 'rgba(255,255,255,0.94)'");
-    expect(table).toContain('lightSurfaceText.secondary');
+    expect(table).toContain('TABLE_TEXT.secondary');
     expect(detail).toContain("backgroundColor: '#FFFFFF'");
     expect(detail).not.toContain('maxHeight: 760');
     expect(detail).toContain('onLightSurface');

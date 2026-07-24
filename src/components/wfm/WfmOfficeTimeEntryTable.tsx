@@ -1,6 +1,5 @@
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { PremiumBadge, PremiumButton, PremiumDataTable, type DataTableColumn } from '@/components/ui';
-import { lightSurfaceText, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { PremiumButton, PremiumDataTable, type DataTableColumn } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
 import {
   formatWfmPlanTimeRange,
@@ -53,11 +52,41 @@ const COMPACT_ACTION_BUTTON = {
   paddingHorizontal: 10,
 } as const;
 
-function ampelVariant(ampel: string | null): 'green' | 'yellow' | 'red' | 'muted' {
+const TABLE_TEXT = {
+  primary: '#0F172A',
+  secondary: '#334155',
+  muted: '#64748B',
+  border: '#CBD5E1',
+} as const;
+
+type BadgeTone = 'green' | 'yellow' | 'red' | 'blue' | 'warning' | 'muted';
+
+const BADGE_COLORS: Record<BadgeTone, { text: string; background: string; border: string }> = {
+  green: { text: '#166534', background: '#DCFCE7', border: '#86EFAC' },
+  yellow: { text: '#854D0E', background: '#FEF9C3', border: '#FDE047' },
+  red: { text: '#B91C1C', background: '#FEE2E2', border: '#FCA5A5' },
+  blue: { text: '#1D4ED8', background: '#DBEAFE', border: '#93C5FD' },
+  warning: { text: '#9A3412', background: '#FFEDD5', border: '#FDBA74' },
+  muted: { text: '#334155', background: '#E2E8F0', border: '#94A3B8' },
+};
+
+function ampelVariant(ampel: string | null): BadgeTone {
   if (ampel === 'green') return 'green';
   if (ampel === 'yellow') return 'yellow';
-  if (ampel === 'red' || ampel === 'blue') return 'red';
+  if (ampel === 'red') return 'red';
+  if (ampel === 'blue') return 'blue';
   return 'muted';
+}
+
+function ReadableStatusBadge({ label, tone }: { label: string; tone: BadgeTone }) {
+  const palette = BADGE_COLORS[tone];
+  return (
+    <View style={[styles.statusBadge, { backgroundColor: palette.background, borderColor: palette.border }]}>
+      <Text style={[styles.statusBadgeText, { color: palette.text }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
 }
 
 function rowStatusLabel(entry: WfmOfficeTimeEntry, compact: boolean): string {
@@ -112,10 +141,10 @@ function CellText({
 }) {
   const color =
     tone === 'primary'
-      ? lightSurfaceText.primary
+      ? TABLE_TEXT.primary
       : tone === 'secondary'
-        ? lightSurfaceText.secondary
-        : lightSurfaceText.muted;
+        ? TABLE_TEXT.secondary
+        : TABLE_TEXT.muted;
   return (
     <Text
       style={[styles.cellText, { color }, tone === 'primary' ? styles.cellTextStrong : null]}
@@ -150,13 +179,11 @@ function WfmReviewStatusBadge({ entry, compact }: { entry: WfmOfficeTimeEntry; c
 
   return (
     <View style={styles.statusBadgeWrap}>
-      <PremiumBadge label={rowStatusLabel(entry, compact)} variant={variant} size="compact" style={styles.statusBadge} />
+      <ReadableStatusBadge label={rowStatusLabel(entry, compact)} tone={variant} />
       {entry.overallAmpel ? (
-        <PremiumBadge
+        <ReadableStatusBadge
           label={WFM_DEVIATION_AMPEL_LABELS[entry.overallAmpel]}
-          variant={ampelVariant(entry.overallAmpel)}
-          size="compact"
-          style={styles.statusBadge}
+          tone={ampelVariant(entry.overallAmpel)}
         />
       ) : null}
     </View>
@@ -175,7 +202,7 @@ function ReviewActionButton({
   return (
     <View style={styles.actionCell}>
       <PremiumButton
-        title={selected ? 'Schließen' : reviewQueueMode ? 'Prüfen' : 'Details'}
+        title={reviewQueueMode ? 'Prüfen' : selected ? 'Schließen' : 'Details'}
         variant={reviewQueueMode && !selected ? 'secondary' : 'ghost'}
         size="sm"
         style={COMPACT_ACTION_BUTTON}
@@ -195,14 +222,13 @@ function ReviewQueueMobileCard({
   selected: boolean;
   onSelect: (entryId: string | null) => void;
 }) {
-  const text = useAuroraAdaptiveText();
   const istStack = formatWfmReviewQueueIstStack(entry);
 
   return (
     <View
       style={[
         styles.mobileCard,
-        { borderColor: text.border, backgroundColor: '#FAFBFC' },
+        { borderColor: TABLE_TEXT.border, backgroundColor: '#FAFBFC' },
         selected ? styles.mobileCardSelected : null,
       ]}
       testID={`wfm-review-card-${entry.id}`}
@@ -214,10 +240,10 @@ function ReviewQueueMobileCard({
       <Text style={[styles.mobileCardPrimary, { color: '#0F1B33' }]} numberOfLines={1}>
         {entry.employeeName}
       </Text>
-      <Text style={[styles.mobileCardSecondary, { color: lightSurfaceText.secondary }]} numberOfLines={1}>
+      <Text style={[styles.mobileCardSecondary, { color: TABLE_TEXT.secondary }]} numberOfLines={1}>
         {entry.clientLabel ?? entry.assignmentTitle ?? '—'}
       </Text>
-      <Text style={[styles.mobileCardSecondary, { color: lightSurfaceText.secondary }]} numberOfLines={2}>
+      <Text style={[styles.mobileCardSecondary, { color: TABLE_TEXT.secondary }]} numberOfLines={2}>
         {`Plan: ${planCell(entry)}`}
       </Text>
       {istStack ? (
@@ -246,7 +272,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
   // The office navigation consumes a substantial part of the browser width.
   // Cards keep every value readable on regular desktop displays instead of
   // forcing a 1,264 px table into the remaining workspace.
-  const mobileReview = reviewQueueMode && (width < 1760 || Boolean(selectedId));
+  const mobileReview = reviewQueueMode && width < 1760;
   const compactStatus = width < 960;
 
   const defaultColumns: DataTableColumn<WfmOfficeTimeEntry>[] = [
@@ -254,7 +280,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
       key: 'date',
       label: 'Datum',
       width: 96,
-      render: (entry) => <Text style={{ color: lightSurfaceText.primary, ...typography.body }}>{entry.workDate}</Text>,
+      render: (entry) => <Text style={{ color: TABLE_TEXT.primary, ...typography.body }}>{entry.workDate}</Text>,
     },
     {
       key: 'employee',
@@ -262,7 +288,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
       flex: 1,
       minWidth: 100,
       render: (entry) => (
-        <Text style={{ color: lightSurfaceText.primary, ...typography.body }} numberOfLines={1}>
+        <Text style={{ color: TABLE_TEXT.primary, ...typography.body }} numberOfLines={1}>
           {entry.employeeName}
         </Text>
       ),
@@ -273,7 +299,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
       flex: 1,
       minWidth: 120,
       render: (entry) => (
-        <Text style={{ color: lightSurfaceText.secondary, ...typography.body }} numberOfLines={2}>
+        <Text style={{ color: TABLE_TEXT.secondary, ...typography.body }} numberOfLines={2}>
           {planCell(entry)}
         </Text>
       ),
@@ -284,7 +310,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
       flex: 1,
       minWidth: 120,
       render: (entry) => (
-        <Text style={{ color: lightSurfaceText.secondary, ...typography.body }} numberOfLines={2}>
+        <Text style={{ color: TABLE_TEXT.secondary, ...typography.body }} numberOfLines={2}>
           {formatWfmReviewQueueIstLine(entry)}
         </Text>
       ),
@@ -422,7 +448,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
       {mobileReview ? (
         <View style={styles.mobileList} testID="wfm-review-queue-mobile">
           {entries.length === 0 ? (
-            <Text style={{ color: lightSurfaceText.muted, ...typography.body }}>
+            <Text style={{ color: TABLE_TEXT.muted, ...typography.body }}>
               Keine Arbeitszeiteinträge im gewählten Zeitraum.
             </Text>
           ) : (
@@ -452,7 +478,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
         </View>
       )}
       {entries.length > 0 ? (
-        <Text style={[styles.footerHint, { color: lightSurfaceText.muted }]}>
+        <Text style={[styles.footerHint, { color: TABLE_TEXT.muted }]}>
           {entries.length} Einträge · Plan und Einsatz-Ist getrennt dargestellt
         </Text>
       ) : null}
@@ -491,7 +517,15 @@ const styles = StyleSheet.create({
     gap: 4,
     overflow: 'hidden',
   },
-  statusBadge: { maxWidth: '100%', alignSelf: 'flex-start' },
+  statusBadge: {
+    maxWidth: '100%',
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  statusBadgeText: { fontSize: 11, lineHeight: 15, fontWeight: '700', flexShrink: 1 },
   actionCell: { width: '100%', alignItems: 'flex-end', justifyContent: 'center' },
   footerHint: { ...typography.body, fontSize: 13, lineHeight: 18, marginTop: 6, paddingHorizontal: 4 },
   mobileList: { gap: careSpacing.md },
