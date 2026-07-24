@@ -10,6 +10,7 @@ import { useDesktopWorkspacePreferences } from '@/hooks/useDesktopWorkspacePrefe
 import { PlatformErrorBoundary } from './PlatformErrorBoundary';
 import { PlatformGlobalSearch } from './PlatformGlobalSearch';
 import { PLATFORM_COLORS } from './PlatformColors';
+import { HealthOSPageSurface } from '@/components/layout/HealthOSPageSurface';
 
 type PlatformShellLayoutProps = {
   children: ReactNode;
@@ -171,7 +172,9 @@ export function PlatformShellLayout({ children, title, subtitle }: PlatformShell
           </View>
         ) : null}
         <View style={styles.content}>
-          <PlatformErrorBoundary>{children}</PlatformErrorBoundary>
+          <HealthOSPageSurface padded>
+            <PlatformErrorBoundary>{children}</PlatformErrorBoundary>
+          </HealthOSPageSurface>
         </View>
       </View>
     </View>

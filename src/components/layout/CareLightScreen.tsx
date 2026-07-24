@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CareSuiteLightBackground } from '@/components/brand/CareSuiteLightBackground';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { HealthOSPageSurface } from './HealthOSPageSurface';
 
 type CareLightScreenProps = {
   children: ReactNode;
@@ -28,7 +29,7 @@ export function CareLightScreen({ children, scroll = true, padded = true }: Care
     return (
       <View style={styles.auroraRoot}>
         <SafeAreaView style={styles.safe} edges={['top']}>
-          {content}
+          <HealthOSPageSurface padded={false}>{content}</HealthOSPageSurface>
         </SafeAreaView>
       </View>
     );

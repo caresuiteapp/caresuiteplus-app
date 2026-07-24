@@ -12,7 +12,6 @@ import {
   webShellViewportLockStyle,
 } from '@/lib/platform/webSafeArea';
 import { spacing } from '@/theme';
-import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import {
   isHealthOSContextualPopupRoute,
   resolveHealthOSPopupFallbackPath,
@@ -20,6 +19,7 @@ import {
 import { AutoScrollView } from './AutoScrollView';
 import { ScreenHeader } from './ScreenHeader';
 import { PlatformModal } from './platform/platformmodal';
+import { HealthOSPageSurface, HealthOSPageZone } from './HealthOSPageSurface';
 
 type ScreenShellProps = {
   title: string;
@@ -27,6 +27,9 @@ type ScreenShellProps = {
   showBack?: boolean;
   onBack?: () => void;
   rightSlot?: React.ReactNode;
+  actionsSlot?: React.ReactNode;
+  filtersSlot?: React.ReactNode;
+  tabsSlot?: React.ReactNode;
   children: React.ReactNode;
   scroll?: boolean;
   showBreadcrumbs?: boolean;
@@ -42,6 +45,9 @@ export function ScreenShell({
   showBack = true,
   onBack,
   rightSlot,
+  actionsSlot,
+  filtersSlot,
+  tabsSlot,
   children,
   scroll = true,
   showBreadcrumbs = true,
@@ -79,20 +85,6 @@ export function ScreenShell({
           minHeight: 0,
           backgroundColor: 'transparent',
         },
-        stage: {
-          flex: 1,
-          flexGrow: 1,
-          minHeight: 0,
-          width: '100%',
-          backgroundColor: spatialCare.stage,
-          borderRadius: spatialCare.radius.stage,
-          overflow: 'hidden',
-          borderWidth: 1,
-          borderColor: spatialCare.border,
-          ...(Platform.OS === 'web'
-            ? ({ boxShadow: spatialCare.shadowSoft } as unknown as ViewStyle)
-            : null),
-        },
         scrollHost: {
           flex: 1,
           flexGrow: 1,
@@ -123,10 +115,19 @@ export function ScreenShell({
     [bottomPad, isAuthRoute, isPhone],
   );
 
+  const structuredContent = (
+    <>
+      <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone>
+      <HealthOSPageZone kind="filters">{filtersSlot}</HealthOSPageZone>
+      <HealthOSPageZone kind="tabs">{tabsSlot}</HealthOSPageZone>
+      <HealthOSPageZone kind="content">{children}</HealthOSPageZone>
+    </>
+  );
+
   const body = shellScroll ? (
     useMobileTouchScroll ? (
       <AutoScrollView style={styles.scrollHost} contentContainerStyle={styles.scrollContent} fillViewport={false}>
-        {children}
+        {structuredContent}
       </AutoScrollView>
     ) : (
       <ScrollView
@@ -135,11 +136,11 @@ export function ScreenShell({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {children}
+        {structuredContent}
       </ScrollView>
     )
   ) : (
-    <View style={styles.content}>{children}</View>
+    <View style={styles.content}>{structuredContent}</View>
   );
 
   const rootStyle: ViewStyle[] = [styles.root];
@@ -167,7 +168,7 @@ export function ScreenShell({
           maxHeightRatio={0.94}
           bodyStyle={styles.popupBody}
         >
-          {children}
+          {structuredContent}
         </PlatformModal>
       </View>
     );
@@ -187,14 +188,14 @@ export function ScreenShell({
         onBack={onBack}
         rightSlot={effectiveRightSlot}
       />
-      <View
-        style={styles.stage}
+      <HealthOSPageSurface
+        padded={false}
         accessible={!!a11yMeta}
         accessibilityRole={a11yMeta?.headingRole}
         accessibilityHint={a11yMeta?.reduceMotionHint}
       >
         {body}
-      </View>
+      </HealthOSPageSurface>
     </View>
   );
 }

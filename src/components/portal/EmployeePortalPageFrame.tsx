@@ -3,6 +3,7 @@ import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spatialCare, spatialCareColors } from '@/design/tokens/spatialCareSuite';
+import { HealthOSPageSurface, HealthOSPageZone } from '@/components/layout/HealthOSPageSurface';
 
 type Props = {
   title: string;
@@ -10,6 +11,9 @@ type Props = {
   eyebrow?: string;
   children: ReactNode;
   compact?: boolean;
+  actionsSlot?: ReactNode;
+  filtersSlot?: ReactNode;
+  tabsSlot?: ReactNode;
 };
 
 /**
@@ -24,6 +28,9 @@ export function EmployeePortalPageFrame({
   eyebrow = 'CARESUITE+ · MITARBEITENDENPORTAL',
   children,
   compact = false,
+  actionsSlot,
+  filtersSlot,
+  tabsSlot,
 }: Props) {
   return (
     <View style={styles.page} testID="employee-portal-page-frame">
@@ -46,7 +53,14 @@ export function EmployeePortalPageFrame({
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
       </View>
-      <View style={styles.content}>{children}</View>
+      <HealthOSPageSurface padded testID="employee-portal-page-surface">
+        <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone>
+        <HealthOSPageZone kind="filters">{filtersSlot}</HealthOSPageZone>
+        <HealthOSPageZone kind="tabs">{tabsSlot}</HealthOSPageZone>
+        <HealthOSPageZone kind="content">
+          <View style={styles.content}>{children}</View>
+        </HealthOSPageZone>
+      </HealthOSPageSurface>
     </View>
   );
 }
@@ -54,7 +68,7 @@ export function EmployeePortalPageFrame({
 const styles = StyleSheet.create({
   page: {
     width: '100%',
-    maxWidth: 920,
+    maxWidth: 1720,
     alignSelf: 'center',
     gap: careSpacing.md,
   },

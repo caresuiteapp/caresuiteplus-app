@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..', '..', '..');
 const read = (file: string) => readFileSync(path.join(root, file), 'utf8');
 
 describe('Office Arbeitszeit V32.7 Design, Struktur und Funktionen', () => {
-  it('uses one bright CareSuite workspace across all ten worktime routes', () => {
+  it('uses one CareSuite workspace across all ten worktime routes', () => {
     const shell = read('src/components/wfm/OfficeTimeTrackingShell.tsx');
     expect(shell).toContain('OFFICE · WORKFORCE MANAGEMENT');
     expect(shell).toContain('tab.icon');
@@ -34,15 +34,16 @@ describe('Office Arbeitszeit V32.7 Design, Struktur und Funktionen', () => {
     expect(layout).toContain('width: 480');
     expect(layout).toContain('width >= 1760');
     expect(layout).toContain('styles.stackedDetail');
-    expect(layout).toContain('onLightSurface');
+    expect(layout).toContain('systemLiquidGlass.panelStrong');
     expect(table).toContain("fontSize: 13");
-    expect(table).toContain("backgroundColor: 'rgba(255,255,255,0.94)'");
+    expect(table).toContain('backgroundColor: systemLiquidGlass.table');
     expect(table).toContain('TABLE_TEXT.secondary');
-    expect(detail).toContain("backgroundColor: '#FFFFFF'");
+    expect(detail).toContain('backgroundColor: systemLiquidGlass.panelStrong');
     expect(detail).not.toContain('maxHeight: 760');
-    expect(detail).toContain('onLightSurface');
-    expect(detail).toContain('onDarkSurface={false}');
-    expect(dataTable).toContain('solidSurface ? lightSurfaceText.primary : text.primary');
+    expect(detail).toContain('backgroundColor: systemLiquidGlass.input');
+    expect(detail).not.toContain('onDarkSurface={false}');
+    expect(dataTable).toContain('color: text.primary');
+    expect(dataTable).toContain('backgroundColor: active');
     expect(button).toContain("variant === 'primary' || !onDarkSurface");
   });
 

@@ -2,12 +2,13 @@ import { type ReactNode } from 'react';
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { FilterChip, FilterChipGroup } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { typography } from '@/theme';
 
 const WORKTIME_TEXT = {
-  primary: '#0F172A',
-  secondary: '#334155',
-  border: '#CBD5E1',
+  primary: systemLiquidGlass.text.primary,
+  secondary: systemLiquidGlass.text.secondary,
+  border: systemLiquidGlass.border,
 } as const;
 
 export type WfmCompactKpi = {
@@ -70,7 +71,6 @@ export function WfmOfficePeriodChips<T extends string>({ options, value, onChang
       selectedKey={value}
       onSelect={onChange}
       wrap
-      onLightSurface
     />
   );
 }
@@ -84,7 +84,7 @@ export function WfmOfficeStatusChip({
   selected: boolean;
   onPress: () => void;
 }) {
-  return <FilterChip label={label} selected={selected} onPress={onPress} onLightSurface />;
+  return <FilterChip label={label} selected={selected} onPress={onPress} />;
 }
 
 type SplitWorkAreaProps = {
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.md,
     paddingVertical: careSpacing.sm,
     gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: systemLiquidGlass.card,
     shadowColor: '#173B70',
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -181,9 +181,9 @@ const styles = StyleSheet.create({
     marginBottom: careSpacing.md,
     padding: careSpacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(20,120,255,0.14)',
+    borderColor: systemLiquidGlass.border,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.96)',
+    backgroundColor: systemLiquidGlass.panelStrong,
   },
   filterPrimary: {
     flexDirection: 'row',
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     paddingTop: careSpacing.xs,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(20,120,255,0.12)',
+    borderTopColor: systemLiquidGlass.border,
   },
   filterStatus: {
     flexDirection: 'row',

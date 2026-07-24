@@ -56,20 +56,22 @@ export function AssistIndexScreen() {
       title="Assist"
       subtitle="Einsatzplanung, Durchführung und Leistungsnachweise"
       showBack={false}
+      actionsSlot={
+        <ActionToolbar
+          actions={toolbarActions}
+          accentColor={assistAccent}
+          leftSlot={
+            <View style={styles.headerBadges}>
+              <PremiumBadge label="Mandantenbezogen" variant="cyan" dot />
+              {isLiveConnected ? (
+                <PremiumBadge label="Live-Sync aktiv" variant="green" dot />
+              ) : null}
+            </View>
+          }
+        />
+      }
     >
       <AssistDataSourceBanner />
-      <ActionToolbar
-        actions={toolbarActions}
-        accentColor={assistAccent}
-        leftSlot={
-          <View style={styles.headerBadges}>
-            <PremiumBadge label="Mandantenbezogen" variant="cyan" dot />
-            {isLiveConnected ? (
-              <PremiumBadge label="Live-Sync aktiv" variant="green" dot />
-            ) : null}
-          </View>
-        }
-      />
       <HealthOSAssistOperationsView
         stats={stats}
         todayAssignments={todayAssignments}

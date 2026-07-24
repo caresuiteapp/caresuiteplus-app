@@ -1,6 +1,7 @@
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { PremiumButton, PremiumDataTable, type DataTableColumn } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import {
   formatWfmPlanTimeRange,
   formatWfmReviewQueueBuchungLabel,
@@ -53,10 +54,10 @@ const COMPACT_ACTION_BUTTON = {
 } as const;
 
 const TABLE_TEXT = {
-  primary: '#0F172A',
-  secondary: '#334155',
-  muted: '#64748B',
-  border: '#CBD5E1',
+  primary: systemLiquidGlass.text.primary,
+  secondary: systemLiquidGlass.text.secondary,
+  muted: systemLiquidGlass.text.muted,
+  border: systemLiquidGlass.border,
 } as const;
 
 type BadgeTone = 'green' | 'yellow' | 'red' | 'blue' | 'warning' | 'muted';
@@ -207,7 +208,7 @@ function ReviewActionButton({
         size="sm"
         style={COMPACT_ACTION_BUTTON}
         onPress={onPress}
-        onDarkSurface={false}
+        onDarkSurface
       />
     </View>
   );
@@ -228,16 +229,16 @@ function ReviewQueueMobileCard({
     <View
       style={[
         styles.mobileCard,
-        { borderColor: TABLE_TEXT.border, backgroundColor: '#FAFBFC' },
+        { borderColor: TABLE_TEXT.border, backgroundColor: systemLiquidGlass.card },
         selected ? styles.mobileCardSelected : null,
       ]}
       testID={`wfm-review-card-${entry.id}`}
     >
       <View style={styles.mobileCardHeader}>
-        <Text style={[styles.mobileCardDate, { color: '#0F1B33' }]}>{entry.workDate}</Text>
+        <Text style={[styles.mobileCardDate, { color: TABLE_TEXT.primary }]}>{entry.workDate}</Text>
         <WfmReviewStatusBadge entry={entry} compact />
       </View>
-      <Text style={[styles.mobileCardPrimary, { color: '#0F1B33' }]} numberOfLines={1}>
+      <Text style={[styles.mobileCardPrimary, { color: TABLE_TEXT.primary }]} numberOfLines={1}>
         {entry.employeeName}
       </Text>
       <Text style={[styles.mobileCardSecondary, { color: TABLE_TEXT.secondary }]} numberOfLines={1}>
@@ -472,7 +473,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
             onRowPress={(entry) => onSelect(selectedId === entry.id ? null : entry.id)}
             emptyMessage="Keine Arbeitszeiteinträge im gewählten Zeitraum."
             fixedLayout
-            solidSurface
+            solidSurface={false}
             minTableWidth={REVIEW_MIN_TABLE_WIDTH}
           />
         </View>
@@ -492,8 +493,8 @@ const styles = StyleSheet.create({
   tableSurface: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(20,120,255,0.14)',
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    borderColor: systemLiquidGlass.border,
+    backgroundColor: systemLiquidGlass.table,
     maxWidth: '100%',
     shadowColor: '#173B70',
     shadowOpacity: 0.06,
@@ -509,7 +510,7 @@ const styles = StyleSheet.create({
   },
   stackCell: { gap: 1, width: '100%' },
   cellText: { ...typography.body, fontSize: 14, lineHeight: 20 },
-  cellTextStrong: { fontWeight: '600', color: '#0F1B33' },
+  cellTextStrong: { fontWeight: '600', color: systemLiquidGlass.text.primary },
   statusBadgeWrap: {
     width: '100%',
     flexDirection: 'column',
@@ -529,7 +530,13 @@ const styles = StyleSheet.create({
   actionCell: { width: '100%', alignItems: 'flex-end', justifyContent: 'center' },
   footerHint: { ...typography.body, fontSize: 13, lineHeight: 18, marginTop: 6, paddingHorizontal: 4 },
   mobileList: { gap: careSpacing.md },
-  mobileCard: { borderWidth: 1, borderRadius: 14, padding: careSpacing.md, gap: 8, backgroundColor: '#FFFFFF' },
+  mobileCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: careSpacing.md,
+    gap: 8,
+    backgroundColor: systemLiquidGlass.card,
+  },
   mobileCardSelected: {
     borderColor: 'rgba(139, 92, 246, 0.45)',
     backgroundColor: 'rgba(139, 92, 246, 0.06)',

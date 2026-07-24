@@ -23,6 +23,9 @@ type PortalTabScreenProps = {
   /** On phone: skip duplicate page header — hero or section title carries context. */
   hideHeaderOnPhone?: boolean;
   eyebrow?: string;
+  actionsSlot?: ReactNode;
+  filtersSlot?: ReactNode;
+  tabsSlot?: ReactNode;
 };
 
 export function PortalTabScreen({
@@ -32,6 +35,9 @@ export function PortalTabScreen({
   scroll = true,
   hideHeaderOnPhone = false,
   eyebrow,
+  actionsSlot,
+  filtersSlot,
+  tabsSlot,
 }: PortalTabScreenProps) {
   const insets = useSafeAreaInsets();
   const { isPhone } = useDeviceClass();
@@ -69,6 +75,9 @@ export function PortalTabScreen({
           subtitle={subtitle}
           eyebrow={eyebrow}
           compact={hideHeaderOnPhone}
+          actionsSlot={actionsSlot}
+          filtersSlot={filtersSlot}
+          tabsSlot={tabsSlot}
         >
           {children}
         </EmployeePortalPageFrame>
@@ -99,6 +108,9 @@ export function PortalTabScreen({
       scroll={shellScroll}
       hideMobileLogout
       mobileContentPaddingBottom={showBottomTabs ? bareBottomPadding : undefined}
+      actionsSlot={actionsSlot}
+      filtersSlot={filtersSlot}
+      tabsSlot={tabsSlot}
     >
       <View style={styles.content}>{children}</View>
     </ScreenShell>

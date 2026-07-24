@@ -4,6 +4,7 @@ import { CareTimeInput } from '@/components/inputs';
 import { ListFilterSelect, PremiumButton } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import {
   formatWfmDurationMinutes,
   formatWfmPlanTimeRange,
@@ -46,10 +47,10 @@ type Props = {
 };
 
 const REVIEW_TEXT = {
-  primary: '#0F172A',
-  secondary: '#334155',
-  muted: '#64748B',
-  border: '#CBD5E1',
+  primary: systemLiquidGlass.text.primary,
+  secondary: systemLiquidGlass.text.secondary,
+  muted: systemLiquidGlass.text.muted,
+  border: systemLiquidGlass.border,
 } as const;
 
 function SectionBlock({
@@ -126,7 +127,7 @@ export function WfmOfficeTimeReviewDetailPanel({
             {entry.workDate} · {WFM_OFFICE_WORK_KIND_LABELS[entry.workKind]}
           </Text>
         </View>
-        <PremiumButton title="Schließen" variant="ghost" onPress={onClose} onDarkSurface={false} />
+        <PremiumButton title="Schließen" variant="ghost" onPress={onClose} onDarkSurface />
       </View> : null}
 
       <View style={styles.panelBody}>
@@ -193,7 +194,6 @@ export function WfmOfficeTimeReviewDetailPanel({
               <View style={styles.structuredField}><CareTimeInput
                 label="Beginn"
                 value={startTime}
-                onLightSurface
                 onChange={(value) => {
                   setStartTime(value);
                   if (!value) onEditStartAtChange('');
@@ -205,7 +205,6 @@ export function WfmOfficeTimeReviewDetailPanel({
               <View style={styles.structuredField}><CareTimeInput
                 label="Ende"
                 value={endTime}
-                onLightSurface
                 onChange={(value) => {
                   setEndTime(value);
                   if (!value) onEditEndAtChange('');
@@ -219,7 +218,6 @@ export function WfmOfficeTimeReviewDetailPanel({
               label="Pause"
               value={editPauseMinutes}
               onChange={onEditPauseMinutesChange}
-              onLightSurface
               options={[0, 5, 10, 15, 20, 30, 45, 60, 90, 120].map((minutes) => ({ key: String(minutes), label: `${minutes} Minuten` }))}
             />
             <TextInput
@@ -232,19 +230,19 @@ export function WfmOfficeTimeReviewDetailPanel({
             />
             <View style={styles.actionRow}>
               {display.hasAssignmentActual ? (
-                <PremiumButton title="Aus Einsatz übernehmen" variant="secondary" onPress={onAdoptAssignment} onDarkSurface={false} />
+                <PremiumButton title="Aus Einsatz übernehmen" variant="secondary" onPress={onAdoptAssignment} onDarkSurface />
               ) : null}
-              <PremiumButton title="Speichern" variant="secondary" onPress={onSaveCorrection} onDarkSurface={false} />
+              <PremiumButton title="Speichern" variant="secondary" onPress={onSaveCorrection} onDarkSurface />
             </View>
             <View style={styles.actionRow}>
               {entry.canApprove !== false ? (
-                <PremiumButton title="Freigeben" variant="secondary" onPress={onApprove} onDarkSurface={false} />
+                <PremiumButton title="Freigeben" variant="secondary" onPress={onApprove} onDarkSurface />
               ) : null}
               {entry.canRequestClarification !== false ? (
-                <PremiumButton title="Rückfrage" variant="ghost" onPress={onClarification} onDarkSurface={false} />
+                <PremiumButton title="Rückfrage" variant="ghost" onPress={onClarification} onDarkSurface />
               ) : null}
               {entry.canReject !== false ? (
-                <PremiumButton title="Ablehnen" variant="ghost" onPress={onReject} onDarkSurface={false} />
+                <PremiumButton title="Ablehnen" variant="ghost" onPress={onReject} onDarkSurface />
               ) : null}
             </View>
           </SectionBlock>
@@ -255,7 +253,7 @@ export function WfmOfficeTimeReviewDetailPanel({
             title={showHistory ? 'Historie ausblenden' : 'Historie anzeigen'}
             variant="ghost"
             onPress={() => setShowHistory((v) => !v)}
-            onDarkSurface={false}
+            onDarkSurface
           />
           {showHistory ? (
             <View style={styles.history}>
@@ -284,7 +282,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: systemLiquidGlass.panelStrong,
     shadowColor: '#173B70',
     shadowOpacity: 0.1,
     shadowRadius: 18,
@@ -303,7 +301,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.md,
     paddingVertical: careSpacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.08)',
+    borderBottomColor: systemLiquidGlass.border,
   },
   panelHeaderText: { flex: 1, gap: 2 },
   panelTitle: { ...typography.h3, fontWeight: '800', color: REVIEW_TEXT.primary },
@@ -315,7 +313,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: careSpacing.md,
     gap: 6,
-    backgroundColor: '#F7F9FC',
+    backgroundColor: systemLiquidGlass.card,
   },
   sectionTitle: {
     ...typography.body,
@@ -344,7 +342,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: careSpacing.sm,
     minHeight: 44,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: systemLiquidGlass.input,
     borderColor: REVIEW_TEXT.border,
     fontSize: 14,
     lineHeight: 21,

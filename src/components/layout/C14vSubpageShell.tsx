@@ -107,18 +107,15 @@ export function C14vSubpageShell({
   ) : null;
 
   const content = (
-    <>
-      {actionBar}
-      <View
-        style={[
-          styles.contentPanel,
-          shellHostsAurora ? styles.contentPanelAurora : null,
-          shellHostsAurora ? panelStyle : null,
-        ]}
-      >
-        {children}
-      </View>
-    </>
+    <View
+      style={[
+        styles.contentPanel,
+        shellHostsAurora ? styles.contentPanelAurora : null,
+        shellHostsAurora ? panelStyle : null,
+      ]}
+    >
+      {children}
+    </View>
   );
 
   if (isEmployeePortal) {
@@ -128,6 +125,7 @@ export function C14vSubpageShell({
         subtitle={resolvedSubtitle}
         eyebrow={eyebrow}
         scroll={scroll}
+        actionsSlot={actionBar}
       >
         {content}
       </PortalTabScreen>
@@ -141,6 +139,7 @@ export function C14vSubpageShell({
       showBack={showBack}
       scroll={scroll}
       rightSlot={rightSlot}
+      actionsSlot={actionBar}
     >
       {content}
     </ScreenShell>

@@ -18,6 +18,7 @@ export { LandscapePrompt } from './LandscapePrompt';
 export { LandscapeRequiredOverlay } from './LandscapeRequiredOverlay';
 export { OrientationGate } from './OrientationGate';
 export { ScreenShell } from './ScreenShell';
+export { HealthOSPageSurface, HealthOSPageZone } from './HealthOSPageSurface';
 export { CareLightPageShell } from './CareLightPageShell';
 export { CareLightScreenHeader } from './CareLightScreenHeader';
 export { CareLightBreadcrumbTrail } from './CareLightBreadcrumbTrail';

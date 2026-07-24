@@ -5,6 +5,7 @@ import { PlatformModal } from '@/components/layout/platform';
 import { PremiumButton, useWorkflowFeedback } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import {
   applyWfmOfficeTimeCorrection,
@@ -333,7 +334,7 @@ export function WfmOfficeTimeHistoryPanel({
             onChange={setCustomTo}
             showFormatHint={false}
           /></View>
-          <PremiumButton title="Anwenden" variant="secondary" onPress={() => void historyQuery.refresh()} onDarkSurface={false} />
+          <PremiumButton title="Anwenden" variant="secondary" onPress={() => void historyQuery.refresh()} onDarkSurface />
         </View>
       ) : null}
 
@@ -346,7 +347,7 @@ export function WfmOfficeTimeHistoryPanel({
         reviewQueueMode={reviewQueueMode}
       />
 
-      <PremiumButton title="Aktualisieren" variant="ghost" onPress={() => void historyQuery.refresh()} onDarkSurface={false} />
+      <PremiumButton title="Aktualisieren" variant="ghost" onPress={() => void historyQuery.refresh()} onDarkSurface />
     </>
   );
 
@@ -412,7 +413,7 @@ export function WfmOfficeTimeHistoryPanel({
 const styles = StyleSheet.create({
   root: { flex: 1, gap: careSpacing.sm },
   reviewQueueMain: { flex: 1, minWidth: 0, gap: careSpacing.sm },
-  reviewModalBody: { padding: careSpacing.sm, backgroundColor: '#F8FAFC' },
+  reviewModalBody: { padding: careSpacing.sm, backgroundColor: systemLiquidGlass.panel },
   customRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, marginBottom: careSpacing.sm },
   dateField: { minWidth: 180, flex: 1 },
 });
