@@ -286,6 +286,56 @@ describe('enrichVisitProofForPreview', () => {
     expect(mockFromUnknownTable).toHaveBeenCalledWith(expect.anything(), 'assist_visits');
     expect(mockFromUnknownTable).toHaveBeenCalledWith(expect.anything(), 'assignments');
   });
+
+  it('overrides stale proof times with the corrected canonical visit times', async () => {
+    mockFromUnknownTable.mockImplementation((_client, table: string) => {
+      if (table === 'assist_visits') {
+        return mockQueryResult({
+          id: 'visit-corrected',
+          title: 'Hauswirtschaftliche Unterstützung',
+          service_name: 'Hauswirtschaftliche Unterstützung',
+          planned_start_at: '2026-07-24T07:30:00.000Z',
+          planned_end_at: '2026-07-24T09:30:00.000Z',
+          on_the_way_at: '2026-07-24T07:10:00.000Z',
+          arrived_at: '2026-07-24T07:23:00.000Z',
+          actual_start_at: '2026-07-24T07:25:00.000Z',
+          actual_end_at: '2026-07-24T09:28:00.000Z',
+          duration_minutes: 123,
+          address_snapshot: null,
+          employee_id: 'emp-1',
+          legacy_assignment_id: null,
+          employees: { first_name: 'Kathrin', last_name: 'Pott' },
+          clients: null,
+          assist_visit_tasks: [],
+        });
+      }
+      return mockQueryResult(null);
+    });
+
+    const proof = sampleProof({
+      visitId: 'visit-corrected',
+      payloadSnapshot: {
+        ...sampleProof().payloadSnapshot,
+        visitTimes: {
+          driveSeconds: 25,
+          serviceSeconds: 15,
+          serviceStartedAt: '2026-07-24T06:00:00.000Z',
+          serviceEndedAt: '2026-07-24T06:00:15.000Z',
+        },
+      },
+    });
+
+    const result = await enrichVisitProofForPreview('tenant-1', proof);
+
+    expect(result.ok).toBe(true);
+    expect(result.data?.visitTimes).toMatchObject({
+      driveSeconds: 780,
+      serviceSeconds: 7380,
+      pauseSeconds: null,
+      serviceStartedAt: '2026-07-24T07:25:00.000Z',
+      serviceEndedAt: '2026-07-24T09:28:00.000Z',
+    });
+  });
 });
 
 const mockFetchProof = vi.fn();

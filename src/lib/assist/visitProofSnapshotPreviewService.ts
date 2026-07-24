@@ -460,6 +460,11 @@ type VisitEnrichmentRow = {
   service_name: string | null;
   planned_start_at: string | null;
   planned_end_at: string | null;
+  on_the_way_at?: string | null;
+  arrived_at?: string | null;
+  actual_start_at?: string | null;
+  actual_end_at?: string | null;
+  duration_minutes?: number | null;
   address_snapshot: unknown;
   employee_id?: string | null;
   legacy_assignment_id?: string | null;
@@ -490,7 +495,7 @@ type AssignmentEnrichmentRow = {
 };
 
 const VISIT_ENRICHMENT_SELECT =
-  'id, title, service_name, planned_start_at, planned_end_at, address_snapshot, employee_id, legacy_assignment_id, employees(first_name, last_name), clients(street, house_number, postal_code, city), assist_visit_tasks(id, title, status, note)';
+  'id, title, service_name, planned_start_at, planned_end_at, on_the_way_at, arrived_at, actual_start_at, actual_end_at, duration_minutes, address_snapshot, employee_id, legacy_assignment_id, employees(first_name, last_name), clients(street, house_number, postal_code, city), assist_visit_tasks(id, title, status, note)';
 
 const ASSIGNMENT_ENRICHMENT_SELECT =
   'id, title, address_snapshot, employee_id, documentation_notes, employees(first_name, last_name), clients(street, house_number, postal_code, city), assignment_tasks(id, title, status, sort_order)';
@@ -516,7 +521,6 @@ export async function enrichVisitProofForPreview(
     !readString(snapshot, 'location') &&
     !readString(snapshot, 'locationAddress') &&
     !resolveAddressSnapshot(snapshot.address_snapshot);
-  const needsTimes = !snapshot.visitTimes;
   const needsSchedule =
     !readString(snapshot, 'scheduledStart') &&
     !readString(snapshot, 'plannedStartAt');
@@ -527,15 +531,10 @@ export async function enrichVisitProofForPreview(
   let resolvedAssignmentId = readString(snapshot, 'assignmentId');
   let visitRow: VisitEnrichmentRow | null = null;
 
-  if (
-    needsEmployee ||
-    needsTasks ||
-    needsTimes ||
-    needsSchedule ||
-    needsLocation ||
-    needsDocumentation ||
-    !readString(snapshot, 'serviceName')
-  ) {
+  // Always read the canonical visit. Proof snapshots are immutable evidence of
+  // the completion moment, but an authorised administrative correction must be
+  // reflected in every current preview/PDF instead of reviving stale times.
+  {
     const { data, error } = await fromUnknownTable(supabase, 'assist_visits')
       .select(VISIT_ENRICHMENT_SELECT)
       .eq('tenant_id', tenantId)
@@ -554,6 +553,53 @@ export async function enrichVisitProofForPreview(
         enrichment.scheduledStart = visitRow.planned_start_at;
         enrichment.scheduledEnd = visitRow.planned_end_at;
       }
+      const snapshotTimes = parseVisitTimes(snapshot.visitTimes);
+      const actualStart = visitRow.actual_start_at ?? snapshotTimes?.serviceStartedAt ?? null;
+      const actualEnd = visitRow.actual_end_at ?? snapshotTimes?.serviceEndedAt ?? null;
+      const driveStart = visitRow.on_the_way_at ?? snapshotTimes?.driveStartedAt ?? null;
+      const arrivedAt = visitRow.arrived_at ?? snapshotTimes?.arrivedAt ?? null;
+      const grossServiceSeconds =
+        actualStart && actualEnd
+          ? Math.max(
+              0,
+              Math.round(
+                (new Date(actualEnd).getTime() - new Date(actualStart).getTime()) / 1000,
+              ),
+            )
+          : null;
+      const serviceSeconds =
+        typeof visitRow.duration_minutes === 'number'
+          ? Math.max(0, visitRow.duration_minutes * 60)
+          : (snapshotTimes?.serviceSeconds ?? grossServiceSeconds);
+      const driveSeconds =
+        driveStart && arrivedAt
+          ? Math.max(
+              0,
+              Math.round(
+                (new Date(arrivedAt).getTime() - new Date(driveStart).getTime()) / 1000,
+              ),
+            )
+          : (snapshotTimes?.driveSeconds ?? null);
+      const pauseSeconds =
+        grossServiceSeconds != null && serviceSeconds != null
+          ? Math.max(0, grossServiceSeconds - serviceSeconds)
+          : (snapshotTimes?.pauseSeconds ?? null);
+
+      enrichment.visitTimes = {
+        driveSeconds,
+        serviceSeconds,
+        pauseSeconds: pauseSeconds && pauseSeconds > 0 ? pauseSeconds : null,
+        totalSeconds:
+          serviceSeconds != null || driveSeconds != null
+            ? (serviceSeconds ?? 0) + (driveSeconds ?? 0)
+            : (snapshotTimes?.totalSeconds ?? null),
+        driveStartedAt: driveStart,
+        arrivedAt,
+        serviceStartedAt: actualStart,
+        serviceEndedAt: actualEnd,
+        pauseStartedAt: null,
+        activeTimer: null,
+      };
       if (needsLocation) {
         enrichment.location =
           resolveAddressSnapshot(visitRow.address_snapshot) ??

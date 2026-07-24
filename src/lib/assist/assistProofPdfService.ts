@@ -284,11 +284,23 @@ export async function generateAssistProofPdf(
     return { ok: false, error: toStorageUploadError(uploadError.message) };
   }
 
-  return updateVisitProofRow(tenantId, proofId, {
+  const updated = await updateVisitProofRow(tenantId, proofId, {
     pdf_storage_path: pdfStoragePath,
     pdf_hash: pdfHash,
     status: proof.status === 'approved' ? 'exported' : proof.status,
   });
+
+  if (updated.ok && updated.data.portalVisible) {
+    const { upsertAssistProofClientPortalDocument } = await import(
+      '@/lib/assist/assistProofPortalDocumentService'
+    );
+    await upsertAssistProofClientPortalDocument(tenantId, updated.data, {
+      actorProfileId: updated.data.generatedBy,
+      signatureRequired: updated.data.portalReleaseStatus === 'pending_client_signature',
+    });
+  }
+
+  return updated;
 }
 
 export async function downloadAssistProofPdfInBrowser(
