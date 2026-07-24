@@ -21,6 +21,8 @@ type Props = {
   loadingMessage?: string;
   onDismiss?: () => void;
   autoDismissMs?: number | null;
+  actionLabel?: string;
+  onAction?: () => void;
   testID?: string;
 };
 
@@ -39,6 +41,8 @@ export function WorkflowFeedbackOverlay({
   loadingMessage = 'Vorgang wird ausgeführt…',
   onDismiss,
   autoDismissMs = null,
+  actionLabel,
+  onAction,
   testID = 'workflow-feedback-overlay',
 }: Props) {
   const [messageVisible, setMessageVisible] = useState(Boolean(message));
@@ -110,9 +114,16 @@ export function WorkflowFeedbackOverlay({
                   <Text style={styles.closeText}>×</Text>
                 </Pressable>
               </View>
-              <Pressable accessibilityRole="button" onPress={dismiss} style={styles.action}>
-                <Text style={styles.actionText}>Schließen</Text>
-              </Pressable>
+              <View style={styles.actions}>
+                {actionLabel && onAction ? (
+                  <Pressable accessibilityRole="button" onPress={onAction} style={styles.actionPrimary}>
+                    <Text style={styles.actionPrimaryText}>{actionLabel}</Text>
+                  </Pressable>
+                ) : null}
+                <Pressable accessibilityRole="button" onPress={dismiss} style={styles.action}>
+                  <Text style={styles.actionText}>Schließen</Text>
+                </Pressable>
+              </View>
             </>
           )}
         </View>
@@ -170,6 +181,7 @@ const styles = StyleSheet.create({
   },
   closeText: { color: spatialCare.textOnNight, fontSize: 26, lineHeight: 28 },
   action: {
+    flex: 1,
     minHeight: 48,
     borderRadius: spatialCare.radius.control,
     alignItems: 'center',
@@ -178,6 +190,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: spatialCare.border,
   },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
+  actionPrimary: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: spatialCare.radius.control,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#69E8FF',
+    borderWidth: 1,
+    borderColor: '#69E8FF',
+  },
+  actionPrimaryText: { ...typography.body, color: '#0D1022', fontWeight: '800' },
   actionText: { ...typography.body, color: spatialCare.textOnNight, fontWeight: '800' },
   loadingContent: { alignItems: 'center', gap: careSpacing.sm, paddingVertical: careSpacing.md },
   loadingTitle: { ...typography.h2, color: spatialCare.textOnNight, textAlign: 'center' },

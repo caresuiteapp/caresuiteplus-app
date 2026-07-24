@@ -48,6 +48,12 @@ export {
   type WorkflowFeedbackKind,
 } from './WorkflowFeedbackOverlay';
 export { WorkflowToast } from './WorkflowToast';
+export {
+  GlobalWorkflowFeedbackProvider,
+  useWorkflowFeedback,
+  type WorkflowFeedbackApi,
+  type WorkflowFeedbackInput,
+} from './GlobalWorkflowFeedback';
 export { OfflineNotice } from './OfflineNotice';
 export { CachedDataBanner } from './CachedDataBanner';
 export {

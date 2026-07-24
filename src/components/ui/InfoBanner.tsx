@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { sanitizeUiText } from '@/lib/ui/uiVisibility';
 import { colors, radius, spacing, typography } from '@/theme';
+import { useWorkflowFeedback } from './GlobalWorkflowFeedback';
 
-type Variant = 'info' | 'success' | 'warning' | 'danger';
+type Variant = 'info' | 'success' | 'warning' | 'danger' | 'error';
+type BannerPresentation = 'auto' | 'inline' | 'overlay';
 
 type Props = {
   title?: string;
@@ -16,6 +18,7 @@ type Props = {
   actionLabel?: string;
   onAction?: () => void;
   style?: ViewStyle;
+  presentation?: BannerPresentation;
 };
 
 const CONFIG: Record<
@@ -46,6 +49,12 @@ const CONFIG: Record<
     title: colors.danger,
     icon: '✕',
   },
+  error: {
+    bg: 'rgba(239,68,68,0.12)',
+    border: 'rgba(239,68,68,0.28)',
+    title: colors.danger,
+    icon: '✕',
+  },
 };
 
 export function InfoBanner({
@@ -58,12 +67,48 @@ export function InfoBanner({
   actionLabel,
   onAction,
   style,
+  presentation = 'auto',
 }: Props) {
+  const feedback = useWorkflowFeedback();
+  const onDismissRef = useRef(onDismiss);
+  const onActionRef = useRef(onAction);
+  onDismissRef.current = onDismiss;
+  onActionRef.current = onAction;
+  const hasAction = Boolean(onAction);
   const text = useAuroraAdaptiveText();
   const cfg = CONFIG[variant];
   const displayIcon = icon ?? cfg.icon;
   const safeTitle = title ? sanitizeUiText(title) : undefined;
   const safeMessage = sanitizeUiText(message);
+  const overlay =
+    presentation === 'overlay'
+    || (presentation === 'auto' && (variant === 'success' || variant === 'danger' || variant === 'error'));
+
+  useEffect(() => {
+    if (!overlay) return;
+    const kind = variant === 'danger' || variant === 'error' ? 'error' : variant;
+    const id = feedback.show({
+      actionLabel,
+      autoDismissMs: kind === 'success' ? 5000 : null,
+      kind,
+      message: safeMessage,
+      onAction: hasAction ? () => onActionRef.current?.() : undefined,
+      onDismiss: dismissible ? () => onDismissRef.current?.() : undefined,
+      title: safeTitle,
+    });
+    return () => feedback.dismiss(id);
+  }, [
+    actionLabel,
+    dismissible,
+    feedback,
+    hasAction,
+    overlay,
+    safeMessage,
+    safeTitle,
+    variant,
+  ]);
+
+  if (overlay) return null;
 
   return (
     <View

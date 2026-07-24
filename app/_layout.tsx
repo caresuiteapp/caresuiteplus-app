@@ -20,6 +20,7 @@ import { PerformanceProvider, useDevicePerformance, shouldUseHeavyEffects } from
 import { installPerformanceDiagnostics } from '@/lib/performance/performanceDiagnostics';
 import { useHydrated } from '@/hooks/useHydrated';
 import { installSystemTextDefaults } from '@/design/installSystemTextDefaults';
+import { GlobalWorkflowFeedbackProvider } from '@/components/ui';
 
 applyInvisibleScrollIndicators();
 installSystemTextDefaults();
@@ -96,12 +97,14 @@ export default function RootLayout() {
           <WebFontScaleProvider>
             <GlobalAiProvider>
               <ModalStackProvider>
-                <ScreensaverSettingsProvider>
-                  <BusinessWelcomeGate />
-                  <PortalWelcomeGate />
-                  <GlobalScreensaver />
-                  <RootShell />
-                </ScreensaverSettingsProvider>
+                <GlobalWorkflowFeedbackProvider>
+                  <ScreensaverSettingsProvider>
+                    <BusinessWelcomeGate />
+                    <PortalWelcomeGate />
+                    <GlobalScreensaver />
+                    <RootShell />
+                  </ScreensaverSettingsProvider>
+                </GlobalWorkflowFeedbackProvider>
               </ModalStackProvider>
             </GlobalAiProvider>
           </WebFontScaleProvider>
@@ -131,7 +134,7 @@ const styles = StyleSheet.create({
         width: '100vw',
         height: '100vh',
         zIndex: 0,
-      } as ViewStyle)
+      } as unknown as ViewStyle)
     : ({
         ...StyleSheet.absoluteFillObject,
         zIndex: 0,

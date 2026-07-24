@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { CareSuiteLoadingIndicator } from '@/components/brand/CareSuiteLoadingIndicator';
 import {
@@ -15,6 +15,9 @@ import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { sanitizeUiText } from '@/lib/ui/uiVisibility';
 import { PremiumButton } from './PremiumButton';
 import { CareLightButton } from './CareLightButton';
+import { useWorkflowFeedback } from './GlobalWorkflowFeedback';
+
+type StatePresentation = 'overlay' | 'inline';
 
 function useStateTextColors() {
   const auroraActive = useAuroraGlassActive();
@@ -52,9 +55,11 @@ function useStateContainerStyle() {
 
 type LoadingStateProps = {
   message?: string;
+  presentation?: StatePresentation;
 };
 
-export function LoadingState({ message }: LoadingStateProps) {
+export function LoadingState({ message, presentation = 'overlay' }: LoadingStateProps) {
+  const feedback = useWorkflowFeedback();
   const { typography } = useLegacyTheme();
   const textColors = useStateTextColors();
   const { isPhone } = useDeviceClass();
@@ -82,6 +87,14 @@ export function LoadingState({ message }: LoadingStateProps) {
       }),
     [loaderWidth, textColors.secondary, typography.body],
   );
+
+  useEffect(() => {
+    if (presentation !== 'overlay') return;
+    const id = feedback.showLoading(message);
+    return () => feedback.dismiss(id);
+  }, [feedback, message, presentation]);
+
+  if (presentation === 'overlay') return null;
 
   return (
     <View style={styles.container} accessibilityRole="progressbar">
@@ -152,13 +165,19 @@ type ErrorStateProps = {
   title?: string;
   message: string;
   onRetry?: () => void;
+  presentation?: StatePresentation;
 };
 
 export function ErrorState({
   title = 'Fehler',
   message,
   onRetry,
+  presentation = 'overlay',
 }: ErrorStateProps) {
+  const feedback = useWorkflowFeedback();
+  const onRetryRef = useRef(onRetry);
+  onRetryRef.current = onRetry;
+  const hasRetry = Boolean(onRetry);
   const { colors, typography } = useLegacyTheme();
   const textColors = useStateTextColors();
   const containerSurface = useStateContainerStyle();
@@ -191,6 +210,18 @@ export function ErrorState({
     [colors.danger, containerSurface, textColors.secondary, typography.body, typography.h3],
   );
 
+  useEffect(() => {
+    if (presentation !== 'overlay') return;
+    const id = feedback.showError(
+      displayMessage,
+      displayTitle,
+      hasRetry ? () => onRetryRef.current?.() : undefined,
+    );
+    return () => feedback.dismiss(id);
+  }, [displayMessage, displayTitle, feedback, hasRetry, presentation]);
+
+  if (presentation === 'overlay') return null;
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{displayTitle}</Text>
@@ -209,12 +240,15 @@ export function ErrorState({
 type SuccessStateProps = {
   title?: string;
   message: string;
+  presentation?: StatePresentation;
 };
 
 export function SuccessState({
   title = 'Erfolgreich',
   message,
+  presentation = 'overlay',
 }: SuccessStateProps) {
+  const feedback = useWorkflowFeedback();
   const { colors, typography } = useLegacyTheme();
   const textColors = useStateTextColors();
   const containerSurface = useStateContainerStyle();
@@ -241,6 +275,14 @@ export function SuccessState({
       }),
     [colors.success, containerSurface, textColors.secondary, typography.body, typography.h3],
   );
+
+  useEffect(() => {
+    if (presentation !== 'overlay') return;
+    const id = feedback.showSuccess(sanitizeUiText(message), sanitizeUiText(title));
+    return () => feedback.dismiss(id);
+  }, [feedback, message, presentation, title]);
+
+  if (presentation === 'overlay') return null;
 
   return (
     <View style={styles.container}>

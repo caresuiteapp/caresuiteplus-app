@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { CareDateInput } from '@/components/inputs';
 import { PlatformModal } from '@/components/layout/platform';
-import { PremiumButton } from '@/components/ui';
+import { PremiumButton, useWorkflowFeedback } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -63,6 +63,7 @@ export function WfmOfficeTimeHistoryPanel({
   initialFilterAmpel = null,
   reviewQueueMode = false,
 }: Props) {
+  const feedback = useWorkflowFeedback();
   const accent = moduleColor('office');
   const [preset, setPreset] = useState<WfmOfficePeriodPreset>(reviewQueueMode ? 'last_30_days' : 'today');
   const [customFrom, setCustomFrom] = useState('');
@@ -76,7 +77,6 @@ export function WfmOfficeTimeHistoryPanel({
   const [editStartAt, setEditStartAt] = useState('');
   const [editEndAt, setEditEndAt] = useState('');
   const [editPauseMinutes, setEditPauseMinutes] = useState('0');
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const filters = useMemo<Partial<WfmOfficeTimeFilters>>(() => {
     const next: Partial<WfmOfficeTimeFilters> = {};
@@ -150,66 +150,97 @@ export function WfmOfficeTimeHistoryPanel({
     setSelectedId(null);
     setReviewNote('');
     setCorrectionReason('');
-    setActionMessage(null);
   };
 
   const runReview = async (
     decision: 'approved' | 'rejected' | 'exported' | 'locked' | 'needs_clarification',
   ) => {
     if (!selectedId) return;
-    setActionMessage(null);
-    const result = await reviewWfmOfficeTimeEntry(
-      tenantId,
-      reviewerId,
-      roleKey,
-      selectedId,
-      decision,
-      reviewNote,
-      selected,
-    );
-    if (!result.ok) {
-      setActionMessage(result.error);
-      return;
+    const loadingId = feedback.showLoading('Prüfung wird gespeichert…');
+    try {
+      const result = await reviewWfmOfficeTimeEntry(
+        tenantId,
+        reviewerId,
+        roleKey,
+        selectedId,
+        decision,
+        reviewNote,
+        selected,
+      );
+      if (!result.ok) {
+        feedback.showError(result.error, 'Prüfung nicht gespeichert');
+        return;
+      }
+      feedback.showSuccess(
+        `Status: ${WFM_OFFICE_TIME_STATUS_LABELS[result.data.reviewStatus]}`,
+        'Prüfung gespeichert',
+      );
+      setReviewNote('');
+      await historyQuery.refresh();
+      setSelectedId(null);
+    } catch (error) {
+      feedback.showError(
+        error instanceof Error ? error.message : 'Die Prüfung konnte nicht gespeichert werden.',
+        'Prüfung nicht gespeichert',
+      );
+    } finally {
+      feedback.dismiss(loadingId);
     }
-    setActionMessage(`Status: ${WFM_OFFICE_TIME_STATUS_LABELS[result.data.reviewStatus]}`);
-    setReviewNote('');
-    await historyQuery.refresh();
-    setSelectedId(null);
   };
 
   const runCorrection = async () => {
     if (!selectedId || !correctionReason.trim()) {
-      setActionMessage('Korrektur ohne Begründung blockiert.');
+      feedback.showWarning('Bitte geben Sie eine Korrekturbegründung ein.', 'Begründung erforderlich');
       return;
     }
-    const result = await applyWfmOfficeTimeCorrection(tenantId, reviewerId, roleKey, {
-      entryId: selectedId,
-      reason: correctionReason,
-      actualStartAt: editStartAt || null,
-      actualEndAt: editEndAt || null,
-      pauseMinutes: Number(editPauseMinutes) || 0,
-    }, selected);
-    if (!result.ok) {
-      setActionMessage(result.error);
-      return;
+    const loadingId = feedback.showLoading('Arbeitszeitkorrektur wird gespeichert…');
+    try {
+      const result = await applyWfmOfficeTimeCorrection(tenantId, reviewerId, roleKey, {
+        entryId: selectedId,
+        reason: correctionReason,
+        actualStartAt: editStartAt || null,
+        actualEndAt: editEndAt || null,
+        pauseMinutes: Number(editPauseMinutes) || 0,
+      }, selected);
+      if (!result.ok) {
+        feedback.showError(result.error, 'Korrektur nicht gespeichert');
+        return;
+      }
+      feedback.showSuccess('Die Arbeitszeitkorrektur wurde gespeichert.', 'Korrektur gespeichert');
+      setCorrectionReason('');
+      void historyQuery.refresh();
+      void auditQuery.refresh();
+    } catch (error) {
+      feedback.showError(
+        error instanceof Error ? error.message : 'Die Korrektur konnte nicht gespeichert werden.',
+        'Korrektur nicht gespeichert',
+      );
+    } finally {
+      feedback.dismiss(loadingId);
     }
-    setActionMessage('Korrektur gespeichert.');
-    setCorrectionReason('');
-    void historyQuery.refresh();
-    void auditQuery.refresh();
   };
 
   const runAdoptAssignment = async () => {
     if (!selectedId) return;
     const reason = correctionReason.trim() || reviewNote.trim() || 'Übernahme aus Einsatz-Ist';
-    const result = await adoptWfmAssignmentActualToBooking(tenantId, reviewerId, roleKey, selectedId, reason);
-    if (!result.ok) {
-      setActionMessage(result.error);
-      return;
+    const loadingId = feedback.showLoading('Einsatz-Ist wird als Buchung übernommen…');
+    try {
+      const result = await adoptWfmAssignmentActualToBooking(tenantId, reviewerId, roleKey, selectedId, reason);
+      if (!result.ok) {
+        feedback.showError(result.error, 'Übernahme nicht möglich');
+        return;
+      }
+      feedback.showSuccess('Einsatz-Ist wurde als Buchung übernommen.', 'Übernahme gespeichert');
+      void historyQuery.refresh();
+      void auditQuery.refresh();
+    } catch (error) {
+      feedback.showError(
+        error instanceof Error ? error.message : 'Einsatz-Ist konnte nicht übernommen werden.',
+        'Übernahme nicht möglich',
+      );
+    } finally {
+      feedback.dismiss(loadingId);
     }
-    setActionMessage('Einsatz-Ist als Buchung übernommen.');
-    void historyQuery.refresh();
-    void auditQuery.refresh();
   };
 
   const kpiItems = reviewQueueMode
@@ -340,7 +371,6 @@ export function WfmOfficeTimeHistoryPanel({
       onEditStartAtChange={setEditStartAt}
       onEditEndAtChange={setEditEndAt}
       onEditPauseMinutesChange={setEditPauseMinutes}
-      actionMessage={actionMessage}
       exportedWarning={selected.exportStatus === 'exported'}
       embedded={reviewQueueMode}
     />

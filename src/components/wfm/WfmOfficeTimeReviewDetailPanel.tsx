@@ -41,7 +41,6 @@ type Props = {
   onEditStartAtChange: (value: string) => void;
   onEditEndAtChange: (value: string) => void;
   onEditPauseMinutesChange: (value: string) => void;
-  actionMessage: string | null;
   exportedWarning?: boolean;
   embedded?: boolean;
 };
@@ -101,7 +100,6 @@ export function WfmOfficeTimeReviewDetailPanel({
   onEditStartAtChange,
   onEditEndAtChange,
   onEditPauseMinutesChange,
-  actionMessage,
   exportedWarning = false,
   embedded = false,
 }: Props) {
@@ -275,9 +273,6 @@ export function WfmOfficeTimeReviewDetailPanel({
           ) : null}
         </SectionBlock>
 
-        {actionMessage ? (
-          <Text style={styles.actionMessage}>{actionMessage}</Text>
-        ) : null}
       </View>
     </View>
   );
@@ -338,13 +333,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     color: '#9A3412',
-    fontWeight: '700',
-  },
-  actionMessage: {
-    ...typography.body,
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#166534',
     fontWeight: '700',
   },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs, marginTop: 4 },

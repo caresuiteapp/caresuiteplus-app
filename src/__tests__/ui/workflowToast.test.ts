@@ -8,9 +8,11 @@ describe('WorkflowToast', () => {
     'utf8',
   );
 
-  it('bleibt overlay-basiert und verschiebt kein Layout', () => {
-    expect(source).toContain('<WorkflowFeedbackOverlay');
-    expect(source).toContain('autoDismissMs={5000}');
+  it('leitet Meldungen an die globale Overlay-Ebene weiter und verschiebt kein Layout', () => {
+    expect(source).toContain('useWorkflowFeedback');
+    expect(source).toContain('feedback.show({');
+    expect(source).toContain('autoDismissMs: 5000');
+    expect(source).toContain('return null');
   });
 
   it('schließt nach exakt fünf Sekunden und räumt den Timer auf', () => {
