@@ -367,13 +367,27 @@ export async function writeExecutionDetailCache(
   employeeId: string,
   payload: EmployeePortalAssignmentDetail,
 ): Promise<boolean> {
-  await openOfflineDb();
-  if (!payload.assignmentId?.trim()) return false;
-  return putStoreRecord<AssignmentExecutionDetailCacheRecord>(ASSIGNMENTS_STORE, {
-    key: executionDetailCacheKey(tenantId, employeeId, payload.assignmentId),
+  return writeExecutionDetailCacheForKey(
     tenantId,
     employeeId,
-    assignmentId: payload.assignmentId,
+    payload.assignmentId,
+    payload,
+  );
+}
+
+async function writeExecutionDetailCacheForKey(
+  tenantId: string,
+  employeeId: string,
+  cacheAssignmentId: string,
+  payload: EmployeePortalAssignmentDetail,
+): Promise<boolean> {
+  await openOfflineDb();
+  if (!cacheAssignmentId?.trim() || !payload.assignmentId?.trim()) return false;
+  return putStoreRecord<AssignmentExecutionDetailCacheRecord>(ASSIGNMENTS_STORE, {
+    key: executionDetailCacheKey(tenantId, employeeId, cacheAssignmentId),
+    tenantId,
+    employeeId,
+    assignmentId: cacheAssignmentId,
     kind: 'execution_detail',
     payload,
     cachedAt: new Date().toISOString(),
@@ -584,12 +598,22 @@ export async function loadExecutionDetailWithCache(
     roleKey,
   );
   if (online.ok) {
-    const wrote = await writeExecutionDetailCache(tenantId, employeeId, online.data);
-    if (!wrote) {
+    const wroteCanonical = await writeExecutionDetailCache(tenantId, employeeId, online.data);
+    const wroteRouteAlias =
+      assignmentKey && assignmentKey !== online.data.assignmentId
+        ? await writeExecutionDetailCacheForKey(
+            tenantId,
+            employeeId,
+            assignmentKey,
+            online.data,
+          )
+        : true;
+    if (!wroteCanonical || !wroteRouteAlias) {
       console.warn('[CareSuite offline] writeExecutionDetailCache failed', {
         tenantId,
         employeeId,
         assignmentId: assignmentKey,
+        resolvedAssignmentId: online.data.assignmentId,
       });
     }
     return withCacheMeta(online, liveCacheMeta());

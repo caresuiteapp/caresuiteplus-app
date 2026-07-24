@@ -551,6 +551,34 @@ describe('assignmentCacheService', () => {
     expect(result.data.title).toBe('Morgeneinsatz');
   });
 
+  it('keeps a materialized running occurrence available under its route id', async () => {
+    const routeId = 'series-1::2026-07-24';
+    const runningDetail = makeExecutionDetail('visit-materialized-1', 'Laufender Einsatz', 'gestartet');
+    vi.mocked(fetchEmployeePortalAssignmentDetail)
+      .mockResolvedValueOnce({ ok: true, data: runningDetail })
+      .mockResolvedValueOnce({ ok: false, error: 'Vorübergehend nicht gefunden' });
+
+    const initial = await loadExecutionDetailWithCache(
+      'tenant-1',
+      routeId,
+      'emp-1',
+      'employee_portal',
+    );
+    const duringRealtimeRefresh = await loadExecutionDetailWithCache(
+      'tenant-1',
+      routeId,
+      'emp-1',
+      'employee_portal',
+    );
+
+    expect(initial.ok).toBe(true);
+    expect(initial.data.assignmentId).toBe('visit-materialized-1');
+    expect(duringRealtimeRefresh.ok).toBe(true);
+    expect(duringRealtimeRefresh.fromCache).toBe(true);
+    expect(duringRealtimeRefresh.data.status).toBe('gestartet');
+    expect(duringRealtimeRefresh.data.title).toBe('Laufender Einsatz');
+  });
+
   it('degrades gracefully when indexedDB is unavailable', async () => {
     vi.stubGlobal('indexedDB', undefined);
     resetOfflineDbCacheForTests();

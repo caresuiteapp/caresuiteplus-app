@@ -28,6 +28,9 @@ describe('realtime wiring', () => {
     expect(source).toContain('dataRef');
     expect(source).toContain('isInitialLoad');
     expect(source).toContain('if (!silent && isInitialLoad)');
+    expect(source).toContain('dataRef.current = result.data');
+    expect(source).toContain('else if (dataRef.current === null)');
+    expect(source).not.toContain('else if (isInitialLoad)');
   });
 
   it('usePortalSidebarData lädt KPIs ohne dupliziertes Assist-Realtime', () => {

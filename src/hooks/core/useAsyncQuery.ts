@@ -46,6 +46,7 @@ export function useAsyncQuery<T>(
           refreshQueuedRef.current = false;
           const result = await withServiceQueryTimeout(fetcher());
           if (result.ok) {
+            dataRef.current = result.data;
             setDataState(result.data);
             const previewResult = result as {
               previewData?: boolean;
@@ -56,7 +57,7 @@ export function useAsyncQuery<T>(
             setTableMissing(Boolean(previewResult.tableMissing));
             setError(null);
             options?.onSuccess?.();
-          } else if (isInitialLoad) {
+          } else if (dataRef.current === null) {
             setDataState(null);
             setPreviewData(false);
             setTableMissing(false);
@@ -64,7 +65,7 @@ export function useAsyncQuery<T>(
           }
         } while (refreshQueuedRef.current);
       } catch (cause) {
-        if (isInitialLoad) {
+        if (dataRef.current === null) {
           setDataState(null);
           setPreviewData(false);
           setTableMissing(false);
@@ -127,9 +128,12 @@ export function useAsyncQuery<T>(
 
   const setData = useCallback((value: T | null | ((prev: T | null) => T | null)) => {
     if (typeof value === 'function') {
-      setDataState(value as (prev: T | null) => T | null);
+      const next = (value as (prev: T | null) => T | null)(dataRef.current);
+      dataRef.current = next;
+      setDataState(next);
       return;
     }
+    dataRef.current = value;
     setDataState(value);
   }, []);
 
