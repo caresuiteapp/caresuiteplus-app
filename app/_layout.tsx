@@ -96,16 +96,16 @@ export default function RootLayout() {
         <PerformanceProvider>
           <WebFontScaleProvider>
             <GlobalAiProvider>
-              <ModalStackProvider>
-                <GlobalWorkflowFeedbackProvider>
+              <GlobalWorkflowFeedbackProvider>
+                <ModalStackProvider>
                   <ScreensaverSettingsProvider>
                     <BusinessWelcomeGate />
                     <PortalWelcomeGate />
                     <GlobalScreensaver />
                     <RootShell />
                   </ScreensaverSettingsProvider>
-                </GlobalWorkflowFeedbackProvider>
-              </ModalStackProvider>
+                </ModalStackProvider>
+              </GlobalWorkflowFeedbackProvider>
             </GlobalAiProvider>
           </WebFontScaleProvider>
         </PerformanceProvider>

@@ -14,6 +14,9 @@ describe('systemweite Workflow-Rückmeldungen', () => {
   it('montiert genau eine globale Feedback-Ebene am App-Root', () => {
     expect(root).toContain('<GlobalWorkflowFeedbackProvider>');
     expect(root).toContain('</GlobalWorkflowFeedbackProvider>');
+    expect(root).toMatch(
+      /<GlobalWorkflowFeedbackProvider>[\s\S]*<ModalStackProvider>[\s\S]*<\/ModalStackProvider>[\s\S]*<\/GlobalWorkflowFeedbackProvider>/,
+    );
     expect(provider).toContain('<WorkflowFeedbackOverlay');
     expect(provider).toContain('testID="global-workflow-feedback"');
   });

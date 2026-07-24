@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -12,6 +14,20 @@ import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { typography } from '@/theme';
 
 export type WorkflowFeedbackKind = 'success' | 'error' | 'warning' | 'info';
+export const WORKFLOW_FEEDBACK_Z_INDEX = 2147483647;
+
+function applyFeedbackPortalHostStyles(host: HTMLElement): void {
+  host.style.position = 'fixed';
+  host.style.inset = '0';
+  host.style.width = '100vw';
+  host.style.height = '100dvh';
+  host.style.minHeight = '100vh';
+  host.style.zIndex = String(WORKFLOW_FEEDBACK_Z_INDEX);
+  host.style.display = 'flex';
+  host.style.flexDirection = 'column';
+  host.style.pointerEvents = 'auto';
+  host.style.isolation = 'isolate';
+}
 
 type Props = {
   message?: string | null;
@@ -46,6 +62,7 @@ export function WorkflowFeedbackOverlay({
   testID = 'workflow-feedback-overlay',
 }: Props) {
   const [messageVisible, setMessageVisible] = useState(Boolean(message));
+  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
   const visible = loading || (messageVisible && Boolean(message));
   const onDismissRef = useRef(onDismiss);
   onDismissRef.current = onDismiss;
@@ -63,13 +80,96 @@ export function WorkflowFeedbackOverlay({
     return () => clearTimeout(timer);
   }, [autoDismissMs, kind, loading, message]);
 
-  const dismiss = () => {
+  const dismiss = useCallback(() => {
     if (loading) return;
     setMessageVisible(false);
     onDismissRef.current?.();
-  };
+  }, [loading]);
+
+  useLayoutEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined' || !visible) {
+      setPortalHost(null);
+      return;
+    }
+
+    const host = document.createElement('div');
+    host.setAttribute('data-caresuite-workflow-feedback', testID);
+    applyFeedbackPortalHostStyles(host);
+    document.body.appendChild(host);
+    setPortalHost(host);
+
+    return () => {
+      host.remove();
+      setPortalHost((current) => (current === host ? null : current));
+    };
+  }, [testID, visible]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined' || !visible || loading) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') dismiss();
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [dismiss, loading, visible]);
 
   const meta = feedbackMeta[kind];
+  const content = (
+    <View
+      accessibilityRole="alert"
+      accessibilityViewIsModal
+      style={styles.viewport}
+      testID={testID}
+    >
+      <View style={[styles.backdrop, loading && styles.loadingBackdrop]} />
+      <View style={[styles.dialog, { borderColor: meta.color }]}>
+        {loading ? (
+          <View style={styles.loadingContent}>
+            <CareSuiteLoadingIndicator width={240} />
+            <Text style={styles.loadingTitle}>CareSuite lädt</Text>
+            <Text style={styles.message}>{loadingMessage}</Text>
+            <Text style={styles.wait}>Bitte warten und diese Seite nicht schließen.</Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.heading}>
+              <View style={[styles.icon, { backgroundColor: meta.color }]}>
+                <Text style={styles.iconText}>{meta.icon}</Text>
+              </View>
+              <View style={styles.headingText}>
+                <Text style={styles.title}>{title ?? meta.title}</Text>
+                <Text style={styles.message}>{message}</Text>
+              </View>
+              <Pressable
+                accessibilityLabel="Meldung schließen"
+                accessibilityRole="button"
+                onPress={dismiss}
+                style={styles.close}
+              >
+                <Text style={styles.closeText}>×</Text>
+              </Pressable>
+            </View>
+            <View style={styles.actions}>
+              {actionLabel && onAction ? (
+                <Pressable accessibilityRole="button" onPress={onAction} style={styles.actionPrimary}>
+                  <Text style={styles.actionPrimaryText}>{actionLabel}</Text>
+                </Pressable>
+              ) : null}
+              <Pressable accessibilityRole="button" onPress={dismiss} style={styles.action}>
+                <Text style={styles.actionText}>Schließen</Text>
+              </Pressable>
+            </View>
+          </>
+        )}
+      </View>
+    </View>
+  );
+
+  if (Platform.OS === 'web') {
+    if (!visible || !portalHost) return null;
+    return createPortal(content, portalHost);
+  }
+
   return (
     <Modal
       animationType="fade"
@@ -80,54 +180,7 @@ export function WorkflowFeedbackOverlay({
       transparent
       visible={visible}
     >
-      <View
-        accessibilityRole="alert"
-        accessibilityViewIsModal
-        style={styles.viewport}
-        testID={testID}
-      >
-        <View style={[styles.backdrop, loading && styles.loadingBackdrop]} />
-        <View style={[styles.dialog, { borderColor: meta.color }]}>
-          {loading ? (
-            <View style={styles.loadingContent}>
-              <CareSuiteLoadingIndicator width={240} />
-              <Text style={styles.loadingTitle}>CareSuite lädt</Text>
-              <Text style={styles.message}>{loadingMessage}</Text>
-              <Text style={styles.wait}>Bitte warten und diese Seite nicht schließen.</Text>
-            </View>
-          ) : (
-            <>
-              <View style={styles.heading}>
-                <View style={[styles.icon, { backgroundColor: meta.color }]}>
-                  <Text style={styles.iconText}>{meta.icon}</Text>
-                </View>
-                <View style={styles.headingText}>
-                  <Text style={styles.title}>{title ?? meta.title}</Text>
-                  <Text style={styles.message}>{message}</Text>
-                </View>
-                <Pressable
-                  accessibilityLabel="Meldung schließen"
-                  accessibilityRole="button"
-                  onPress={dismiss}
-                  style={styles.close}
-                >
-                  <Text style={styles.closeText}>×</Text>
-                </Pressable>
-              </View>
-              <View style={styles.actions}>
-                {actionLabel && onAction ? (
-                  <Pressable accessibilityRole="button" onPress={onAction} style={styles.actionPrimary}>
-                    <Text style={styles.actionPrimaryText}>{actionLabel}</Text>
-                  </Pressable>
-                ) : null}
-                <Pressable accessibilityRole="button" onPress={dismiss} style={styles.action}>
-                  <Text style={styles.actionText}>Schließen</Text>
-                </Pressable>
-              </View>
-            </>
-          )}
-        </View>
-      </View>
+      {content}
     </Modal>
   );
 }

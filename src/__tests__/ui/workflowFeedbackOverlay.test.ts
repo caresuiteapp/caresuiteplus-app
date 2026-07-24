@@ -5,13 +5,19 @@ describe('WorkflowFeedbackOverlay', () => {
   const source = readFileSync('src/components/ui/WorkflowFeedbackOverlay.tsx', 'utf8');
   const payroll = readFileSync('src/screens/portal/EmployeePayrollMonthScreen.tsx', 'utf8');
 
-  it('wird plattformübergreifend in einer modalen Viewport-Ebene gerendert', () => {
+  it('rendert im Browser in einem eigenen obersten Body-Portal', () => {
+    expect(source).toContain("import { createPortal } from 'react-dom'");
+    expect(source).toContain('WORKFLOW_FEEDBACK_Z_INDEX = 2147483647');
+    expect(source).toContain("host.setAttribute('data-caresuite-workflow-feedback', testID)");
+    expect(source).toContain('document.body.appendChild(host)');
+    expect(source).toContain('return createPortal(content, portalHost)');
+  });
+
+  it('verwendet auf nativen Plattformen weiterhin eine modale Viewport-Ebene', () => {
     expect(source).toContain('<Modal');
     expect(source).toContain('visible={visible}');
     expect(source).toContain('presentationStyle="overFullScreen"');
     expect(source).toContain('transparent');
-    expect(source).not.toContain('createPortal');
-    expect(source).not.toContain('portalHost');
   });
 
   it('zeigt laufende Vorgänge mit dem CareSuite-Ladeindikator', () => {
