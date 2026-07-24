@@ -81,10 +81,15 @@ export function GoogleWorkspaceScreen() {
                     ) : null}
                   </>
                 ) : can('connect.configure') ? (
-                  <PremiumButton title="Mit Google verbinden" loading={actionLoading} onPress={() => void connect()} />
+                  <PremiumButton title="Google-Workspace-Konto auswählen" loading={actionLoading} onPress={() => void connect()} />
                 ) : null}
               </View>
             </PremiumCard>
+
+            <InfoBanner
+              title="Google-Konto frei wählbar"
+              message="Die E-Mail-Adresse des Google-Workspace-Kontos darf von der CareSuite-Anmeldung abweichen. CareSuite verwendet die bestehende Anmeldung ausschließlich zur sicheren Zuordnung des Mandanten. Im Google-Fenster wählen Sie anschließend das tatsächlich verwendete Workspace-Konto aus."
+            />
 
             <InfoBanner
               title="Sicherheit und Datenschutz"

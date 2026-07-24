@@ -204,7 +204,7 @@ serve(async (req) => {
         response_type: 'code',
         scope: scopes.join(' '),
         access_type: 'offline',
-        prompt: 'consent',
+        prompt: 'select_account consent',
         include_granted_scopes: 'true',
         state,
         code_challenge: await pkceChallenge(verifier),

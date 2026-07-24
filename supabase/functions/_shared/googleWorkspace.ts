@@ -1,4 +1,8 @@
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  isGoogleWorkspaceAdminRole,
+  normalizeGoogleWorkspaceRole,
+} from './googleWorkspaceRole.ts';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -159,8 +163,8 @@ export async function resolveWorkspaceActor(
   if (!data.user) throw new Error('Nicht autorisiert.');
   const { data: profile, error: profileError } = await service
     .from('profiles')
-    .select('id, tenant_id, role_id')
-    .eq('id', data.user.id)
+    .select('id, tenant_id, role_id, auth_user_id')
+    .or(`auth_user_id.eq.${data.user.id},id.eq.${data.user.id}`)
     .maybeSingle();
   if (profileError) throw profileError;
   if (!profile?.tenant_id || !profile?.id) throw new Error('Mandantenprofil fehlt.');
@@ -175,13 +179,13 @@ export async function resolveWorkspaceActor(
   return {
     tenantId: profile.tenant_id,
     profileId: profile.id,
-    authUserId: data.user.id,
-    role: role.key,
+    authUserId: profile.auth_user_id ?? data.user.id,
+    role: normalizeGoogleWorkspaceRole(role.key),
   };
 }
 
 export function assertWorkspaceAdmin(role: string): void {
-  if (!['business_admin', 'business_manager'].includes(role)) {
+  if (!isGoogleWorkspaceAdminRole(role)) {
     throw new Error('Nur Administrierende dürfen Google Workspace verbinden.');
   }
 }
