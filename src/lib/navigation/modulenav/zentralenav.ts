@@ -22,6 +22,7 @@ export const zentraleNav: ModuleNavConfig = {
           icon: '☁️',
           href: '/business/connect/google-workspace',
         },
+        { key: 'zoom', label: 'Zoom', icon: '🎥', href: '/business/connect/zoom' },
         { key: 'connect', label: 'Connect & Integrationen', icon: '🔌', href: '/business/connect' },
         { key: 'subscription', label: 'Abonnement', icon: '💳', href: '/business/subscription' },
       ],

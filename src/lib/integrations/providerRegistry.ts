@@ -27,6 +27,15 @@ export const PROVIDER_REGISTRY: ProviderDefinition[] = [
     supportsAi: false,
   },
   {
+    key: 'zoom',
+    name: 'Zoom',
+    category: 'messaging',
+    description: 'Videotermine, Meeting SDK, Teilnahme, Webhooks und Aufzeichnungen',
+    secretReferenceKey: 'vault:integration-zoom-oauth-sdk',
+    supportsOcr: false,
+    supportsAi: false,
+  },
+  {
     key: 'datev',
     name: 'DATEV',
     category: 'accounting',
