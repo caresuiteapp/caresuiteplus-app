@@ -8,10 +8,12 @@ describe('System Design Consistency V36.2', () => {
     const source = read('src/components/ui/PremiumKpiCard.tsx');
 
     expect(source).toContain('systemLiquidGlass.card');
+    expect(source).toContain('spatialCareGradients.nightGlass');
     expect(source).toContain('systemLiquidGlass.text.secondary');
     expect(source).toContain('systemLiquidGlass.text.muted');
     expect(source).not.toContain('CareLightKpiCard');
     expect(source).not.toContain("variant === 'light'");
+    expect(source).not.toContain('glassFx.surface');
   });
 
   it('keeps shared sections dark and readable in every module', () => {

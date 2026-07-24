@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { glassFx } from '@/design/tokens/motion';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
+import {
+  spatialCareColors,
+  spatialCareGradients,
+} from '@/design/tokens/spatialCareSuite';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { SpaceKpiIcon } from '@/components/icons/space';
 import { radius } from '@/theme';
@@ -135,7 +137,7 @@ export function PremiumKpiCard({
         style,
       ]}
     >
-      <LinearGradient colors={[...glassFx.surface]} style={styles.gradient} />
+      <LinearGradient colors={[...spatialCareGradients.nightGlass]} style={styles.gradient} />
       <View style={styles.innerBorder} pointerEvents="none" />
       <View style={[styles.rim, { backgroundColor: resolvedAccent }]} />
       <View style={styles.content}>
