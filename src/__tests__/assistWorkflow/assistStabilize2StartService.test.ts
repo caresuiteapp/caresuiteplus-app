@@ -11,6 +11,9 @@ const resolveMock = vi.fn();
 const fetchEventsMock = vi.fn();
 const ensureEventMock = vi.fn();
 const upsertStateMock = vi.fn();
+const mirrorStatusMock = vi.fn();
+const getServiceModeMock = vi.fn();
+const deviationGateMock = vi.fn();
 
 vi.mock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
   transitionAssistExecutionStatus: (...args: unknown[]) => transitionMock(...args),
@@ -34,6 +37,18 @@ vi.mock('@/features/assistWorkflow/saveVisitTimeEvent', () => ({
 
 vi.mock('@/features/assistWorkflow/assistVisitExecutionStatePersistence', () => ({
   upsertAssistVisitExecutionState: (...args: unknown[]) => upsertStateMock(...args),
+}));
+
+vi.mock('@/lib/portal/employeePortalExecutionLiveService', () => ({
+  mirrorAssistVisitStatusFromAssignment: (...args: unknown[]) => mirrorStatusMock(...args),
+}));
+
+vi.mock('@/lib/services/mode', () => ({
+  getServiceMode: () => getServiceModeMock(),
+}));
+
+vi.mock('@/lib/wfm/wfmOfficeTimekeepingService', () => ({
+  checkVisitDeviationGate: (...args: unknown[]) => deviationGateMock(...args),
 }));
 
 function baseVisitTimes(overrides: Partial<ReturnType<typeof calculateVisitTimes>> = {}) {
@@ -142,6 +157,9 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     });
     ensureEventMock.mockResolvedValue({ ok: true, data: { id: 'evt1', created: true } });
     upsertStateMock.mockResolvedValue({ ok: true, data: { visitId: 'v1', currentStep: 'in_service' } });
+    mirrorStatusMock.mockResolvedValue({ ok: true });
+    getServiceModeMock.mockReturnValue('demo');
+    deviationGateMock.mockReturnValue({ blocked: false, needsJustification: false });
   });
 
   it('success: angekommen → transition + readback verified', async () => {
@@ -274,6 +292,31 @@ describe('ASSIST.STABILIZE.2 startService', () => {
       expect(result.data.allowedActions).toContain('end_service');
       expect(result.data.allowedActions).toContain('start_pause');
       expect(result.data.diagnostics.canEndService).toBe(true);
+    }
+  });
+
+  it('fails visibly when the production live-status mirror cannot be persisted', async () => {
+    const started = successCtx({ assignmentStatus: 'gestartet', derivedStatus: 'gestartet' });
+    transitionMock.mockResolvedValue({ ok: true, data: started });
+    resolveMock.mockResolvedValue({ ok: true, data: started });
+    getServiceModeMock.mockReturnValue('supabase');
+    mirrorStatusMock.mockResolvedValue({
+      ok: false,
+      error: 'assist_visits status write failed',
+    });
+
+    const ctx = mockCtx({ assignmentStatus: 'angekommen', derivedStatus: 'angekommen' });
+    const result = await startService(ctx);
+
+    expect(mirrorStatusMock).toHaveBeenCalledWith(
+      ctx.tenantId,
+      ctx.assignmentId,
+      'gestartet',
+      ctx.profileId,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect((result as { errorCode?: string }).errorCode).toBe('START_SERVICE_DB_ERROR');
     }
   });
 });

@@ -44,6 +44,14 @@ describe('employee portal visit execution UX completion', () => {
     expect(dashboard).toContain('attachmentCount');
   });
 
+  it('shows live duration unambiguously as hours, minutes and seconds', () => {
+    const dashboard = readSrc('src/components/portal/EmployeePortalVisitLiveDashboard.tsx');
+    const header = readSrc('src/components/portal/EmployeePortalVisitStickyHeader.tsx');
+    expect(dashboard).toContain("String(h).padStart(2, '0')");
+    expect(header).toContain('(Std:Min:Sek)');
+    expect(header).not.toContain('`${m}:${String(s)');
+  });
+
   it('execution screen uses non-scrolling shell and safe-area aware chrome', () => {
     const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     const header = readSrc('src/components/portal/EmployeePortalVisitStickyHeader.tsx');

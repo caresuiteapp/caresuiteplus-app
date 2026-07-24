@@ -94,9 +94,38 @@ export async function saveVisitTimeEvent(
 /** Idempotent backfill — skips when event type already exists for visit. */
 export async function ensureVisitTimeEvent(
   input: SaveVisitTimeEventInput,
-  existingEvents: Array<{ eventType: string }>,
+  existingEvents: { eventType: string; occurredAt?: string }[],
 ): Promise<ServiceResult<{ id: string; created: boolean }>> {
-  if (existingEvents.some((e) => e.eventType === input.eventType)) {
+  const eventTime = (event: { occurredAt?: string }, index: number): number =>
+    event.occurredAt ? new Date(event.occurredAt).getTime() : index;
+  const latestIndex = (types: VisitTimeEventType[]): number =>
+    existingEvents.reduce(
+      (latest, event, index) =>
+        types.includes(event.eventType as VisitTimeEventType) &&
+        eventTime(event, index) > latest
+          ? eventTime(event, index)
+          : latest,
+      Number.NEGATIVE_INFINITY,
+    );
+
+  const latestDriveStart = latestIndex(['drive_start']);
+  const latestDriveEnd = latestIndex(['drive_end', 'arrive']);
+  const latestServiceStart = latestIndex(['service_start']);
+  const latestServiceEnd = latestIndex(['service_end']);
+
+  const alreadyPersisted =
+    input.eventType === 'drive_start'
+      ? latestDriveStart > latestDriveEnd
+      : input.eventType === 'arrive' || input.eventType === 'drive_end'
+        ? latestDriveStart > Number.NEGATIVE_INFINITY && latestDriveEnd >= latestDriveStart
+        : input.eventType === 'service_start'
+          ? latestServiceStart > latestServiceEnd
+          : input.eventType === 'service_end'
+            ? latestServiceStart > Number.NEGATIVE_INFINITY &&
+              latestServiceEnd >= latestServiceStart
+            : existingEvents.some((event) => event.eventType === input.eventType);
+
+  if (alreadyPersisted) {
     await mirrorAssistEventToWfm(input);
     return { ok: true, data: { id: 'existing', created: false } };
   }
@@ -116,7 +145,7 @@ export async function ensureVisitTimeEvent(
 }
 
 /** True when pause_start count exceeds pause_end (open pause segment). */
-export function hasOpenPauseSegment(events: Array<{ eventType: string }>): boolean {
+export function hasOpenPauseSegment(events: { eventType: string }[]): boolean {
   const starts = events.filter((e) => e.eventType === 'pause_start').length;
   const ends = events.filter((e) => e.eventType === 'pause_end').length;
   return starts > ends;
@@ -125,7 +154,7 @@ export function hasOpenPauseSegment(events: Array<{ eventType: string }>): boole
 /** Idempotent — writes pause_start only when no open pause exists. */
 export async function ensureOpenPauseStartEvent(
   input: SaveVisitTimeEventInput,
-  existingEvents: Array<{ eventType: string }>,
+  existingEvents: { eventType: string }[],
 ): Promise<ServiceResult<{ id: string; created: boolean }>> {
   if (hasOpenPauseSegment(existingEvents)) {
     return { ok: true, data: { id: 'existing', created: false } };
@@ -136,7 +165,7 @@ export async function ensureOpenPauseStartEvent(
 /** Idempotent — writes pause_end only when an open pause exists. */
 export async function ensureOpenPauseEndEvent(
   input: SaveVisitTimeEventInput,
-  existingEvents: Array<{ eventType: string }>,
+  existingEvents: { eventType: string }[],
 ): Promise<ServiceResult<{ id: string; created: boolean }>> {
   if (!hasOpenPauseSegment(existingEvents)) {
     return { ok: true, data: { id: 'existing', created: false } };

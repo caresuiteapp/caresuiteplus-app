@@ -11,7 +11,10 @@ import type {
   EmployeePortalTrackingSnapshot,
 } from '@/types/modules/employeePortalTracking';
 import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
-import { loadExecutionDetailWithCache } from '@/lib/offline/assignmentCacheService';
+import {
+  loadExecutionDetailWithCache,
+  writeExecutionDetailCache,
+} from '@/lib/offline/assignmentCacheService';
 import type { AssignmentCacheMeta } from '@/lib/offline/types';
 import { useConnectivity } from '@/hooks/useConnectivity';
 import { buildEmployeePortalLiveRoute } from '@/features/liveTracking/buildEmployeePortalLiveRoute';
@@ -578,17 +581,19 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       skipContextRefreshRef.current = true;
       setExecutionContext(synced);
       setLiveContext(liveContext);
-      query.setData({
+      const syncedDetail = {
         ...synced.detail,
         status: synced.assignmentStatus,
         onTheWayAt: synced.detail.onTheWayAt ?? synced.visitTimes?.driveStartedAt ?? null,
         arrivedAt: synced.detail.arrivedAt ?? synced.visitTimes?.arrivedAt ?? null,
         actualStartAt: synced.detail.actualStartAt ?? synced.visitTimes?.serviceStartedAt ?? null,
         actualEndAt: synced.detail.actualEndAt ?? synced.visitTimes?.serviceEndedAt ?? null,
-      });
+      };
+      query.setData(syncedDetail);
+      await writeExecutionDetailCache(tenantId, employeeId, syncedDetail);
       return synced;
     },
-    [query],
+    [query, tenantId, employeeId],
   );
 
   const runWorkflow = useCallback(

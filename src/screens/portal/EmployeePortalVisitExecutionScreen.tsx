@@ -75,6 +75,17 @@ function formatDurationMinutes(startIso: string, endIso: string): string {
   return `${m} Min.`;
 }
 
+function formatExecutionSyncWarning(message: string): string {
+  if (
+    /failed to fetch|networkerror|netzwerk|datenbankfehler|nicht aktualisiert|nicht geladen/i.test(
+      message,
+    )
+  ) {
+    return 'Verbindung unterbrochen – der laufende Einsatz bleibt auf diesem Gerät erhalten. Die Synchronisierung wird automatisch erneut versucht.';
+  }
+  return message;
+}
+
 export function EmployeePortalVisitExecutionScreen() {
   const { id: rawId, step: rawStep } = useLocalSearchParams<{ id: string; step?: string }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
@@ -628,6 +639,9 @@ export function EmployeePortalVisitExecutionScreen() {
   }
 
   const showSuccess = localSuccess && !localError;
+  const syncWarning = !queryError
+    ? liveContextError ?? refetchWarning
+    : null;
   const bottomPadding = bottomBarVisible ? spacing.xxl + 96 + insets.bottom : spacing.xxl + 32 + insets.bottom;
 
   const renderPhaseContent = () => {
@@ -840,13 +854,12 @@ export function EmployeePortalVisitExecutionScreen() {
         </View>
       ) : null}
       {localWarning ? <InfoBanner variant="warning" message={localWarning} /> : null}
-      {liveContextError && !queryError ? (
-        <InfoBanner variant="warning" message={`Live-Kontext: ${liveContextError}`} />
+      {syncWarning ? (
+        <InfoBanner variant="warning" message={formatExecutionSyncWarning(syncWarning)} />
       ) : null}
       {consistencyStatus === 'repairable' && nextActionHint ? (
         <InfoBanner variant="info" message={nextActionHint} />
       ) : null}
-      {refetchWarning ? <InfoBanner variant="warning" message={refetchWarning} /> : null}
       <CachedDataBanner
         visible={fromCache || readOnlyExecution}
         cachedAt={cachedAt}

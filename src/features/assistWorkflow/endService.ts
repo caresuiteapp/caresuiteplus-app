@@ -185,7 +185,10 @@ async function persistEndServiceEvents(
     );
   }
 
-  const existing = events.data.map((e) => ({ eventType: e.eventType }));
+  const existing = events.data.map((e) => ({
+    eventType: e.eventType,
+    occurredAt: e.occurredAt,
+  }));
 
   if (hasOpenPauseSegment(existing)) {
     const pauseClosed = await ensureOpenPauseEndEvent(
@@ -205,7 +208,10 @@ async function persistEndServiceEvents(
 
   const refreshedEvents = await fetchTimeEventsForVisit(ctx.tenantId, ctx.assistVisitId, 50);
   const eventList = refreshedEvents.ok
-    ? refreshedEvents.data.map((e) => ({ eventType: e.eventType }))
+    ? refreshedEvents.data.map((e) => ({
+        eventType: e.eventType,
+        occurredAt: e.occurredAt,
+      }))
     : existing;
 
   const saved = await ensureVisitTimeEvent(

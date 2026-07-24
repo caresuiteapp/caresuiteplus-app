@@ -202,12 +202,17 @@ async function persistServiceStartEvent(
     );
   }
 
-  const existing = events.data.map((e) => ({ eventType: e.eventType }));
+  const existing = events.data.map((e) => ({
+    eventType: e.eventType,
+    occurredAt: e.occurredAt,
+  }));
+  const occurredAt = new Date().toISOString();
   const saved = await ensureVisitTimeEvent(
     {
       tenantId: ctx.tenantId,
       visitId: ctx.assistVisitId,
       eventType: 'service_start',
+      occurredAt,
       recordedBy: ctx.profileId ?? ctx.employeeId,
       employeeId: ctx.employeeId,
       profileId: ctx.profileId,
@@ -221,7 +226,7 @@ async function persistServiceStartEvent(
 
   return {
     ok: true,
-    data: { occurredAt: new Date().toISOString() },
+    data: { occurredAt },
   };
 }
 
@@ -241,6 +246,30 @@ async function applyExecutionStateAfterStart(
 
   if (!upserted.ok) {
     return startServiceError(mapStartServiceFailureCode(upserted as WorkflowFail), ctx, upserted.error);
+  }
+
+  return { ok: true, data: undefined };
+}
+
+async function mirrorStartedStatus(
+  ctx: AssistExecutionContext,
+): Promise<ServiceResult<void>> {
+  if (getServiceMode() !== 'supabase') {
+    return { ok: true, data: undefined };
+  }
+
+  const mirrored = await mirrorAssistVisitStatusFromAssignment(
+    ctx.tenantId,
+    ctx.assignmentId,
+    'gestartet',
+    ctx.profileId ?? null,
+  );
+  if (!mirrored.ok) {
+    return startServiceError(
+      'START_SERVICE_DB_ERROR',
+      ctx,
+      mirrored.error ?? 'Einsatzstatus konnte nicht in den Live-Monitor gespiegelt werden.',
+    );
   }
 
   return { ok: true, data: undefined };
@@ -266,16 +295,10 @@ async function backfillServiceStart(
   const stateWrite = await applyExecutionStateAfterStart(refreshed.data, mergedTimes);
   if (!stateWrite.ok) return stateWrite;
 
-  if (getServiceMode() === 'supabase') {
-    void mirrorAssistVisitStatusFromAssignment(
-      refreshed.data.tenantId,
-      refreshed.data.assignmentId,
-      'gestartet',
-      refreshed.data.profileId ?? null,
-    );
-  }
+  const mirrored = await mirrorStartedStatus(refreshed.data);
+  if (!mirrored.ok) return mirrored;
 
-  return { ok: true, data: buildOptimisticStartedContext(refreshed.data, mergedTimes) };
+  return verifyStartServiceReadback(buildOptimisticStartedContext(refreshed.data, mergedTimes));
 }
 async function transitionToServiceStart(
   ctx: AssistExecutionContext,
@@ -304,16 +327,10 @@ async function transitionToServiceStart(
   const stateWrite = await applyExecutionStateAfterStart(reloaded.data, mergedTimes);
   if (!stateWrite.ok) return stateWrite;
 
-  if (getServiceMode() === 'supabase') {
-    void mirrorAssistVisitStatusFromAssignment(
-      reloaded.data.tenantId,
-      reloaded.data.assignmentId,
-      'gestartet',
-      reloaded.data.profileId ?? null,
-    );
-  }
+  const mirrored = await mirrorStartedStatus(reloaded.data);
+  if (!mirrored.ok) return mirrored;
 
-  return { ok: true, data: buildOptimisticStartedContext(reloaded.data, mergedTimes) };
+  return verifyStartServiceReadback(buildOptimisticStartedContext(reloaded.data, mergedTimes));
 }
 
 export async function startService(

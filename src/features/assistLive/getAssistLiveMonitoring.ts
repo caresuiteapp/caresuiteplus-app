@@ -2,7 +2,7 @@
  * ASSIST.LIVE.1 — Single source of truth for Assist live employee monitoring.
  * Uses assist_visits (Supabase) + LT.GMAPS persistence tables — same visit list as sidebar KPIs.
  */
-import type { RoleKey, ServiceResult, WorkflowStatus } from '@/types';
+import type { RoleKey, ServiceResult } from '@/types';
 import type { DayMonitorAssignmentRow } from '@/types/modules/liveMonitor';
 import type { EmployeePortalTrackingSnapshot } from '@/types/modules/employeePortalTracking';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
@@ -19,6 +19,7 @@ import { listAssignmentWorkflows } from '@/lib/assist/assignmentWorkflowService'
 import { buildWorkspaceAccessContext, canViewAssignment } from '@/lib/permissions/workspaceAccess';
 import { fetchVisitDispositionList } from '@/lib/assist/visitService';
 import { resolveAssignmentStatusFromExecutionContext } from '@/lib/assist/visitWorkflow';
+import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
 import { DAY_MONITOR_STATUS_COLORS } from '@/types/modules/liveMonitor';
 import {
   buildEmployeePortalTrackingSnapshot,
@@ -67,23 +68,6 @@ export type AssistLiveMonitoringOverview = {
 const READ_ONLY_NOTICE =
   'Live-Verfolgung läuft im Mitarbeiterportal während der gesamten aktiven Anfahrt und des Einsatzes. Assist/Office empfängt die Position fortlaufend — startet selbst kein GPS.';
 
-function workflowToAssignmentStatus(status: WorkflowStatus): AssignmentStatus {
-  switch (status) {
-    case 'entwurf':
-      return 'geplant';
-    case 'aktiv':
-      return 'unterwegs';
-    case 'in_bearbeitung':
-      return 'gestartet';
-    case 'abgeschlossen':
-      return 'abgeschlossen';
-    case 'fehlerhaft':
-      return 'storniert';
-    default:
-      return 'geplant';
-  }
-}
-
 function fallbackDisplayStatus(status: AssignmentStatus): DayMonitorAssignmentRow['displayStatus'] {
   const map: Partial<Record<AssignmentStatus, DayMonitorAssignmentRow['displayStatus']>> = {
     geplant: 'geplant',
@@ -102,12 +86,37 @@ function fallbackDisplayStatus(status: AssignmentStatus): DayMonitorAssignmentRo
   return map[status] ?? 'geplant';
 }
 
-function isRunningWorkflowStatus(status: WorkflowStatus): boolean {
-  return status === 'aktiv' || status === 'in_bearbeitung';
+function latestEventAt(
+  events: { eventType: string; occurredAt: string }[],
+  types: string[],
+  after?: string | null,
+): string | null {
+  const afterMs = after ? new Date(after).getTime() : Number.NEGATIVE_INFINITY;
+  return (
+    events
+      .filter(
+        (event) =>
+          types.includes(event.eventType) &&
+          new Date(event.occurredAt).getTime() >= afterMs,
+      )
+      .map((event) => event.occurredAt)
+      .sort((left, right) => new Date(left).getTime() - new Date(right).getTime())
+      .at(-1) ?? null
+  );
 }
 
-function diffSeconds(fromIso: string, toIso: string): number {
-  return Math.max(0, Math.round((new Date(toIso).getTime() - new Date(fromIso).getTime()) / 1000));
+function resolveTrackingStatusFromEvents(
+  status: AssignmentStatus,
+  events: { eventType: string; occurredAt: string }[],
+): AssignmentStatus {
+  const driveStart = latestEventAt(events, ['drive_start']);
+  const driveEnd = driveStart ? latestEventAt(events, ['drive_end', 'arrive'], driveStart) : null;
+  const serviceStart = latestEventAt(events, ['service_start']);
+  const serviceEnd = serviceStart ? latestEventAt(events, ['service_end'], serviceStart) : null;
+
+  if (serviceStart && !serviceEnd) return status === 'pausiert' ? 'pausiert' : 'gestartet';
+  if (driveStart && !driveEnd) return 'unterwegs';
+  return status;
 }
 
 function resolvePersistedConsent(
@@ -194,25 +203,17 @@ async function enrichTrackingFromPersistence(
         }
       : inMemory.lastPosition;
 
-  const driveStart =
-    events.find((e) => e.eventType === 'drive_start')?.occurredAt ?? inMemory.timers.driveStartedAt;
-  const serviceStart =
-    events.find((e) => e.eventType === 'service_start')?.occurredAt ?? inMemory.timers.serviceStartedAt;
-  const arriveAt = events.find((e) => e.eventType === 'arrive')?.occurredAt ?? null;
-  const nowIso = new Date().toISOString();
-
-  let driveSeconds = inMemory.timers.driveSeconds;
-  if (driveStart) {
-    const driveEnd = arriveAt ?? (status === 'unterwegs' ? nowIso : null);
-    if (driveEnd) driveSeconds = diffSeconds(driveStart, driveEnd);
-  }
-
-  let serviceSeconds = inMemory.timers.serviceSeconds;
-  if (serviceStart) {
-    const serviceEndEvent = events.find((e) => e.eventType === 'service_end')?.occurredAt;
-    const serviceEnd = serviceEndEvent ?? (status === 'gestartet' ? nowIso : null);
-    if (serviceEnd) serviceSeconds = diffSeconds(serviceStart, serviceEnd);
-  }
+  const trackingStatus = resolveTrackingStatusFromEvents(status, events);
+  const persistedTimers =
+    events.length > 0
+      ? calculateVisitTimes(
+          events.map((event) => ({
+            eventType: event.eventType,
+            occurredAt: event.occurredAt,
+          })),
+          trackingStatus,
+        )
+      : null;
 
   const consent = resolvePersistedConsent(
     session,
@@ -225,7 +226,10 @@ async function enrichTrackingFromPersistence(
 
   const assistVisible =
     trackingActive &&
-    (status === 'unterwegs' || status === 'angekommen' || status === 'gestartet') &&
+    (trackingStatus === 'unterwegs' ||
+      trackingStatus === 'angekommen' ||
+      trackingStatus === 'gestartet' ||
+      trackingStatus === 'pausiert') &&
     Boolean(lastPosition);
 
   const warnings = rebuildEmployeePortalTrackingWarnings(
@@ -244,10 +248,11 @@ async function enrichTrackingFromPersistence(
     warnings,
     timers: {
       ...inMemory.timers,
-      driveSeconds,
-      serviceSeconds,
-      driveStartedAt: driveStart,
-      serviceStartedAt: serviceStart,
+      driveSeconds: persistedTimers?.driveSeconds ?? inMemory.timers.driveSeconds,
+      serviceSeconds: persistedTimers?.serviceSeconds ?? inMemory.timers.serviceSeconds,
+      pauseSeconds: persistedTimers?.pauseSeconds ?? inMemory.timers.pauseSeconds,
+      driveStartedAt: persistedTimers?.driveStartedAt ?? inMemory.timers.driveStartedAt,
+      serviceStartedAt: persistedTimers?.serviceStartedAt ?? inMemory.timers.serviceStartedAt,
     },
   };
 }
@@ -418,20 +423,14 @@ async function enrichLiveMonitorRowsFromExecutionSnapshots(
   });
 }
 
-function computeRunningCount(rows: AssistLiveMonitoringRow[], visitWorkflowStatuses?: WorkflowStatus[]): number {
-  if (visitWorkflowStatuses?.length) {
-    return visitWorkflowStatuses.filter(isRunningWorkflowStatus).length;
-  }
+function computeRunningCount(rows: AssistLiveMonitoringRow[]): number {
   return rows.filter((row) => {
     const s = row.status;
     return (
       s === 'unterwegs' ||
       s === 'angekommen' ||
       s === 'gestartet' ||
-      s === 'pausiert' ||
-      s === 'beendet' ||
-      s === 'dokumentation_offen' ||
-      s === 'unterschrift_offen'
+      s === 'pausiert'
     );
   }).length;
 }
@@ -441,14 +440,12 @@ export async function getAssistLiveMonitoring(
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<AssistLiveMonitoringOverview>> {
   let rowsResult: ServiceResult<AssistLiveMonitoringRow[]>;
-  let visitWorkflowStatuses: WorkflowStatus[] | undefined;
 
   if (shouldUseLiveVisitList()) {
     const visitsResult = await fetchVisitDispositionList(tenantId, actorRoleKey);
     if (!visitsResult.ok) return visitsResult;
 
     const todayVisits = visitsResult.data.filter((item) => isAssignmentToday(item.scheduledStart));
-    visitWorkflowStatuses = todayVisits.map((item) => item.status);
 
     const gpsPermission = await getEmployeePortalGpsPermissionStatus();
     const rows = await Promise.all(
@@ -468,8 +465,8 @@ export async function getAssistLiveMonitoring(
           statusColor: DAY_MONITOR_STATUS_COLORS[displayStatus],
           plannedStartAt: item.scheduledStart,
           plannedEndAt: item.scheduledEnd,
-          actualStartAt: null,
-          actualEndAt: null,
+          actualStartAt: item.actualStartAt ?? null,
+          actualEndAt: item.actualEndAt ?? null,
           delayMinutes: null,
           overrunMinutes: null,
           docStatus:
@@ -518,7 +515,7 @@ export async function getAssistLiveMonitoring(
 
   const rows = await enrichLiveMonitorRowsFromExecutionSnapshots(tenantId, rowsResult.data);
   const todayCount = rows.length;
-  const runningCount = computeRunningCount(rows, visitWorkflowStatuses);
+  const runningCount = computeRunningCount(rows);
   const activeTrackingCount = rows.filter((r) => r.tracking?.trackingActive).length;
   const consentPendingCount = rows.filter(isConsentPendingForMonitoring).length;
   const gpsDeniedCount = rows.filter((r) => r.tracking?.gpsPermission === 'denied').length;

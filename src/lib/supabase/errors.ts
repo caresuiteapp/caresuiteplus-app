@@ -5,7 +5,11 @@ const MISSING_SCHEMA_ERROR =
   'Datenbank-Schema unvollständig. Leistungsarten konnten nicht gespeichert werden — bitte erneut versuchen.';
 
 function isDevEnvironment(): boolean {
-  return process.env.NODE_ENV !== 'production' || process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
+  return (
+    process.env.NODE_ENV === 'development' ||
+    process.env.NODE_ENV === 'test' ||
+    process.env.EXPO_PUBLIC_DEMO_MODE === 'true'
+  );
 }
 
 export function isSupabaseMissingTableError(error: PostgrestError | null): boolean {

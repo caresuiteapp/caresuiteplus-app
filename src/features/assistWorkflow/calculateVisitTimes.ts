@@ -24,11 +24,20 @@ export type VisitTimesSummary = {
 };
 
 function byType(events: TimeEventLike[], type: string): string[] {
-  return events.filter((e) => e.eventType === type).map((e) => e.occurredAt);
+  return events
+    .filter((e) => e.eventType === type)
+    .map((e) => e.occurredAt)
+    .sort((left, right) => new Date(left).getTime() - new Date(right).getTime());
 }
 
 function diffSeconds(from: string, to: string): number {
   return Math.max(0, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 1000));
+}
+
+function firstAfter(values: string[], start: string | null): string | null {
+  if (!start) return null;
+  const startMs = new Date(start).getTime();
+  return values.find((value) => new Date(value).getTime() >= startMs) ?? null;
 }
 
 const PAST_ARRIVAL_STATUSES: AssignmentStatus[] = [
@@ -51,10 +60,14 @@ export function calculateVisitTimes(
   const segments = getVisitTimeSegments(events, now);
 
   const driveStart = byType(events, 'drive_start').at(-1) ?? null;
-  const driveEnd = byType(events, 'drive_end').at(-1) ?? byType(events, 'arrive').at(-1) ?? null;
+  const driveEndCandidates = [
+    ...byType(events, 'drive_end'),
+    ...byType(events, 'arrive'),
+  ].sort((left, right) => new Date(left).getTime() - new Date(right).getTime());
+  const driveEnd = firstAfter(driveEndCandidates, driveStart);
   const serviceStart = byType(events, 'service_start').at(-1) ?? null;
-  const serviceEnd = byType(events, 'service_end').at(-1) ?? null;
-  const arrivedAt = byType(events, 'arrive').at(-1) ?? null;
+  const serviceEnd = firstAfter(byType(events, 'service_end'), serviceStart);
+  const arrivedAt = firstAfter(byType(events, 'arrive'), driveStart);
 
   let driveSeconds: number | null = segments.find((s) => s.kind === 'drive')?.durationSeconds ?? null;
 
@@ -71,8 +84,13 @@ export function calculateVisitTimes(
     driveSeconds = diffSeconds(driveStart, nowIso);
   }
 
-  const pauseStarts = byType(events, 'pause_start');
-  const pauseEnds = byType(events, 'pause_end');
+  const serviceStartMs = serviceStart ? new Date(serviceStart).getTime() : Number.NEGATIVE_INFINITY;
+  const pauseStarts = byType(events, 'pause_start').filter(
+    (value) => new Date(value).getTime() >= serviceStartMs,
+  );
+  const pauseEnds = byType(events, 'pause_end').filter(
+    (value) => new Date(value).getTime() >= serviceStartMs,
+  );
   let pauseSeconds: number | null = null;
   if (pauseStarts.length) {
     pauseSeconds = pauseStarts.reduce((sum, start, idx) => {

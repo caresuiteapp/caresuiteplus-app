@@ -65,4 +65,27 @@ describe('calculateVisitTimes', () => {
     expect(times.pauseSeconds).toBe(600);
     expect(times.serviceSeconds).toBe(1200);
   });
+
+  it('uses only the latest drive and service cycle for recurring visits', () => {
+    const times = calculateVisitTimes(
+      [
+        { eventType: 'drive_start', occurredAt: '2026-07-23T15:00:00.000Z' },
+        { eventType: 'arrive', occurredAt: '2026-07-23T15:17:18.000Z' },
+        { eventType: 'service_start', occurredAt: '2026-07-23T15:20:00.000Z' },
+        { eventType: 'service_end', occurredAt: '2026-07-23T17:00:00.000Z' },
+        { eventType: 'drive_start', occurredAt: '2026-07-24T07:10:00.000Z' },
+        { eventType: 'arrive', occurredAt: '2026-07-24T07:25:00.000Z' },
+        { eventType: 'service_start', occurredAt: '2026-07-24T07:30:00.000Z' },
+      ],
+      'gestartet',
+      new Date('2026-07-24T08:41:00.000Z'),
+    );
+
+    expect(times.driveStartedAt).toBe('2026-07-24T07:10:00.000Z');
+    expect(times.driveSeconds).toBe(900);
+    expect(times.serviceStartedAt).toBe('2026-07-24T07:30:00.000Z');
+    expect(times.serviceSeconds).toBe(4260);
+    expect(times.serviceEndedAt).toBeNull();
+    expect(times.activeTimer).toBe('service');
+  });
 });

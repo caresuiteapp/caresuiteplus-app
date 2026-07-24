@@ -45,7 +45,9 @@ export const ARRIVED_MANUAL_WARNING =
 async function backfillTravelEndEvents(ctx: AssistExecutionContext): Promise<string[]> {
   const warnings: string[] = [];
   const events = await fetchTimeEventsForVisit(ctx.tenantId, ctx.assistVisitId, 50);
-  const existing = events.ok ? events.data.map((e) => ({ eventType: e.eventType })) : [];
+  const existing = events.ok
+    ? events.data.map((e) => ({ eventType: e.eventType, occurredAt: e.occurredAt }))
+    : [];
 
   if (!hasTravelEnded(existing)) {
     const now = new Date().toISOString();
