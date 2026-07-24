@@ -78,7 +78,7 @@ BEGIN
      SET occurred_at = v_started_at,
          metadata = COALESCE(e.metadata, '{}'::JSONB)
            || jsonb_build_object(
-                'corrected_by_migration', '0270_p0_repair_live_visit_20260724',
+                'corrected_by_migration', '20260724111500_p0_repair_live_visit',
                 'confirmed_start_local', '09:25'
               )
     FROM latest_current_start current_start
@@ -100,7 +100,7 @@ BEGIN
       'service_start',
       v_started_at,
       jsonb_build_object(
-        'corrected_by_migration', '0270_p0_repair_live_visit_20260724',
+        'corrected_by_migration', '20260724111500_p0_repair_live_visit',
         'confirmed_start_local', '09:25'
       )
     );
