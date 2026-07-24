@@ -36,7 +36,9 @@ export function HealthOSPageSurface({
     <View style={[styles.host, fill && styles.hostFill, style]} testID={testID}>
       <View
         style={[styles.surface, fill && styles.surfaceFill]}
-        dataSet={{ csHealthosPage: 'surface' }}
+        {...(Platform.OS === 'web'
+          ? ({ dataSet: { csHealthosPage: 'surface' } } as object)
+          : {})}
         {...accessibilityProps}
       >
         <View pointerEvents="none" style={styles.innerBorder} />
@@ -64,7 +66,9 @@ export function HealthOSPageZone({ children, kind, style }: HealthOSPageZoneProp
         kind === 'content' ? styles.contentZone : styles.controlZone,
         style,
       ]}
-      dataSet={{ csHealthosZone: kind }}
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { csHealthosZone: kind } } as object)
+        : {})}
       testID={`healthos-page-zone-${kind}`}
     >
       {children}

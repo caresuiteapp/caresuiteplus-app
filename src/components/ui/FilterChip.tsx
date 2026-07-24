@@ -39,25 +39,35 @@ export function FilterChip({
 
 type FilterChipOption<T extends string> = { label: string; key?: T; value?: T };
 
-type FilterChipGroupProps<T extends string> = {
+type FilterChipGroupBaseProps<T extends string> = {
   options: FilterChipOption<T>[];
-  /** Selected option key (single-select) or keys (multi-select). */
-  value?: T | T[];
-  /** Alias for `value` (single-select). */
-  selectedKey?: T;
-  /** Called when the user picks a chip (single) or toggles chips (multi). */
-  onChange?: (key: T | T[]) => void;
-  /** Alias for `onChange` (single-select). */
-  onSelect?: (key: T) => void;
   style?: ViewStyle;
   /** Stack chips onto multiple lines instead of a horizontal scroll row. */
   wrap?: boolean;
-  /** Allow multiple chips to be selected at once (toggle on tap). */
-  multiple?: boolean;
   /** Minimum selections when `multiple` is true (default 1). */
   minSelected?: number;
   onLightSurface?: boolean;
 };
+
+type FilterChipGroupSingleProps<T extends string> = FilterChipGroupBaseProps<T> & {
+  multiple?: false;
+  value?: T;
+  selectedKey?: T;
+  onChange?: (key: T) => void;
+  onSelect?: (key: T) => void;
+};
+
+type FilterChipGroupMultipleProps<T extends string> = FilterChipGroupBaseProps<T> & {
+  multiple: true;
+  value?: T[];
+  selectedKey?: never;
+  onChange?: (keys: T[]) => void;
+  onSelect?: never;
+};
+
+type FilterChipGroupProps<T extends string> =
+  | FilterChipGroupSingleProps<T>
+  | FilterChipGroupMultipleProps<T>;
 
 function resolveFilterChipKey<T extends string>(opt: FilterChipOption<T>, index: number): T {
   const key = opt.key ?? opt.value;
@@ -79,7 +89,7 @@ export function FilterChipGroup<T extends string>({
   minSelected = 1,
 }: FilterChipGroupProps<T>) {
   const selected = value ?? selectedKey;
-  const handleChange = onChange ?? onSelect;
+  const hasHandler = Boolean(onChange ?? onSelect);
 
   const chips = options.map((opt, index) => {
     const optKey = resolveFilterChipKey(opt, index);
@@ -93,7 +103,7 @@ export function FilterChipGroup<T extends string>({
         label={opt.label}
         selected={isSelected}
         onPress={
-          handleChange
+          hasHandler
             ? () => {
                 if (multiple) {
                   const current = Array.isArray(selected) ? selected : [];
@@ -102,11 +112,11 @@ export function FilterChipGroup<T extends string>({
                   const next = has
                     ? current.filter((key) => key !== optKey)
                     : [...current, optKey];
-                  onChange?.(next);
+                  (onChange as ((keys: T[]) => void) | undefined)?.(next);
                   return;
                 }
                 if (onChange) {
-                  onChange(optKey);
+                  (onChange as ((key: T) => void) | undefined)(optKey);
                   return;
                 }
                 onSelect?.(optKey);

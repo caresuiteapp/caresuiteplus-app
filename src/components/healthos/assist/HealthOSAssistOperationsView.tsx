@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   liveRowTitle: {
-    ...typography.bodySmall,
+    ...typography.body,
     fontWeight: '600',
   },
   liveRowSub: {

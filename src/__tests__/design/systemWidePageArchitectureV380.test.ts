@@ -11,7 +11,7 @@ describe('HealthOS system-wide page architecture V38.0', () => {
     const platform = read('src/components/platformConsole/PlatformShellLayout.tsx');
     const employee = read('src/components/portal/EmployeePortalPageFrame.tsx');
 
-    expect(surface).toContain('dataSet={{ csHealthosPage:');
+    expect(surface).toContain("csHealthosPage: 'surface'");
     expect(shell).toContain('<HealthOSPageSurface');
     expect(careLight).toContain('<HealthOSPageSurface');
     expect(platform).toContain('<HealthOSPageSurface');
