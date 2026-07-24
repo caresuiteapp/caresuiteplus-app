@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { BreadcrumbTrail as BreadcrumbTrailType } from '@/types/navigation/breadcrumbs';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { spatialCare, spatialCareColors } from '@/design/tokens/spatialCareSuite';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { CareLightBreadcrumbTrail } from './CareLightBreadcrumbTrail';
@@ -63,8 +63,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.md,
     paddingVertical: careSpacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: careLightColors.border,
-    backgroundColor: careLightColors.surface,
+    borderBottomColor: spatialCare.border,
+    backgroundColor: spatialCare.navigation,
   },
   left: {
     width: 88,
@@ -82,17 +82,17 @@ const styles = StyleSheet.create({
   },
   backText: {
     ...careTypography.caption,
-    color: careLightColors.navy,
+    color: spatialCareColors.cyanLight,
     fontWeight: '600',
   },
   title: {
     ...careTypography.h3,
-    color: careLightColors.navy,
+    color: spatialCare.textOnNight,
     textAlign: 'center',
   },
   subtitle: {
     ...careTypography.caption,
-    color: careLightColors.muted,
+    color: spatialCare.textOnNightMuted,
     textAlign: 'center',
     marginTop: 2,
   },

@@ -1,8 +1,8 @@
 import { ReactNode, useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 
 type CareLightPageHeaderProps = {
   title: string;
@@ -12,7 +12,6 @@ type CareLightPageHeaderProps = {
 };
 
 export function CareLightPageHeader({ title, subtitle, rightSlot, style }: CareLightPageHeaderProps) {
-  const { c } = useCareLightPalette();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -31,15 +30,15 @@ export function CareLightPageHeader({ title, subtitle, rightSlot, style }: CareL
         },
         title: {
           ...careTypography.h2,
-          color: c.text,
+          color: systemLiquidGlass.text.primary,
           fontWeight: '800',
         },
         subtitle: {
           ...careTypography.body,
-          color: c.muted,
+          color: systemLiquidGlass.text.secondary,
         },
       }),
-    [c.muted, c.text],
+    [],
   );
 
   return (

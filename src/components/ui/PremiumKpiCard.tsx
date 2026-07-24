@@ -1,19 +1,11 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useThemeMode } from '@/design/ThemeModeProvider';
-import {
-  useAuroraAdaptiveText,
-  useAuroraGlass,
-  useAuroraGlassActive,
-  useAuroraGlassCardStyle,
-} from '@/design/tokens/auroraGlass';
 import { glassFx } from '@/design/tokens/motion';
-import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { SpaceKpiIcon } from '@/components/icons/space';
-import { CareLightKpiCard } from './CareLightKpiCard';
 import { radius } from '@/theme';
 
 type Props = {
@@ -48,15 +40,8 @@ export function PremiumKpiCard({
   valueLines = 1,
   labelCase = 'uppercase',
 }: Props) {
-  const { mode } = useThemeMode();
-  const shellHostsAurora = useShellHostsAurora();
-  const auroraActive = useAuroraGlassActive();
-  const { tokens: glass } = useAuroraGlass();
-  const { colors, typography, gradients } = useLegacyTheme();
-  const text = useAuroraAdaptiveText();
-  const glassCardStyle = useAuroraGlassCardStyle();
+  const { colors, typography } = useLegacyTheme();
   const resolvedAccent = accentColor ?? colors.cyan;
-  const isLight = variant === 'light' && !shellHostsAurora;
 
   const styles = useMemo(
     () =>
@@ -64,23 +49,16 @@ export function PremiumKpiCard({
         wrapper: {
           flex: 1,
           minWidth: '46%',
+          minHeight: 164,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: isLight
-            ? careLightColors.border
-            : auroraActive
-              ? glass.border
-              : colors.borderSoft,
-          backgroundColor: isLight
-            ? careLightColors.surface
-            : auroraActive
-              ? glass.card
-              : gradients.card.default[0],
+          borderColor: systemLiquidGlass.borderStrong,
+          backgroundColor: systemLiquidGlass.card,
           overflow: 'hidden',
-          shadowOpacity: isLight ? 0.1 : 0.3,
-          shadowRadius: isLight ? 8 : 14,
-          shadowOffset: { width: 0, height: isLight ? 2 : 6 },
-          elevation: isLight ? 3 : 8,
+          shadowOpacity: 0.28,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 8,
         },
         gradient: {
           ...StyleSheet.absoluteFillObject,
@@ -89,7 +67,7 @@ export function PremiumKpiCard({
           ...StyleSheet.absoluteFillObject,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: glassFx.innerBorder,
+          borderColor: systemLiquidGlass.innerBorder,
         },
         rim: {
           height: 2,
@@ -116,18 +94,18 @@ export function PremiumKpiCard({
           textTransform: labelCase === 'uppercase' ? 'uppercase' : 'none',
           letterSpacing: labelCase === 'uppercase' ? 0.4 : 0,
           flexShrink: 0,
-          color: isLight ? careLightColors.muted : text.secondary,
+          color: systemLiquidGlass.text.secondary,
         },
         value: {
           fontSize: 24,
           fontWeight: '800',
           letterSpacing: -0.5,
           flexShrink: 0,
-          color: isLight ? careLightColors.text : undefined,
+          color: resolvedAccent,
         },
         subValue: {
           ...typography.caption,
-          color: isLight ? careLightColors.muted : text.muted,
+          color: systemLiquidGlass.text.muted,
         },
         trend: {
           fontSize: 11,
@@ -136,57 +114,29 @@ export function PremiumKpiCard({
         },
       }),
     [
-      auroraActive,
-      colors.borderSoft,
-      glass.border,
-      glass.card,
-      gradients.card.default,
-      isLight,
-      text.muted,
-      text.secondary,
       labelCase,
+      resolvedAccent,
       typography.caption,
     ],
   );
 
-  if (mode === 'light' && !shellHostsAurora) {
-    return (
-      <CareLightKpiCard
-        label={label}
-        value={String(value)}
-        subValue={subValue}
-        icon={icon}
-        accentColor={accentColor}
-        style={style}
-      />
-    );
-  }
-
-  const trendColor = isLight
-    ? trend === 'up'
-      ? careLightColors.green
-      : trend === 'down'
-        ? careLightColors.danger
-        : careLightColors.muted
-    : trend === 'up'
+  const trendColor =
+    trend === 'up'
       ? colors.success
       : trend === 'down'
         ? colors.danger
-        : text.muted;
-
-  const surfaceGradient = auroraActive ? glassFx.surface : gradients.card.default;
+        : systemLiquidGlass.text.muted;
 
   return (
     <View
       style={[
         styles.wrapper,
-        !isLight && auroraActive ? glassCardStyle : null,
-        { shadowColor: isLight ? 'rgba(7,18,42,0.12)' : resolvedAccent },
+        { shadowColor: spatialCareColors.nightDeep },
         style,
       ]}
     >
-      {!isLight ? <LinearGradient colors={[...surfaceGradient]} style={styles.gradient} /> : null}
-      {!isLight && auroraActive ? <View style={styles.innerBorder} pointerEvents="none" /> : null}
+      <LinearGradient colors={[...glassFx.surface]} style={styles.gradient} />
+      <View style={styles.innerBorder} pointerEvents="none" />
       <View style={[styles.rim, { backgroundColor: resolvedAccent }]} />
       <View style={styles.content}>
         {icon ? (
@@ -203,7 +153,7 @@ export function PremiumKpiCard({
           {label}
         </Text>
         <Text
-          style={[styles.value, !isLight ? { color: resolvedAccent } : null]}
+          style={styles.value}
           numberOfLines={valueLines}
         >
           {value}

@@ -1,9 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AssistDataSourceBanner } from '@/components/assist';
-import {
-  HealthOSBreadcrumbs,
-} from '@/components/healthos';
 import { HealthOSAssistOperationsView } from '@/components/healthos/assist';
 import { ActionToolbar } from '@/components/layout/platform';
 import { ScreenShell } from '@/components/layout/ScreenShell';
@@ -60,13 +57,6 @@ export function AssistIndexScreen() {
       subtitle="Einsatzplanung, Durchführung und Leistungsnachweise"
       showBack={false}
     >
-      <HealthOSBreadcrumbs
-        segments={[
-          { label: 'Start', href: '/business' },
-          { label: 'Assist', href: '/assist' },
-          { label: 'Übersicht' },
-        ]}
-      />
       <AssistDataSourceBanner />
       <ActionToolbar
         actions={toolbarActions}

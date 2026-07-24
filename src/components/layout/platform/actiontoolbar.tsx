@@ -1,8 +1,8 @@
 import { ReactNode, useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { resolveLightPrimaryButtonStyle } from '@/design/tokens/accentContrast';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { glassFx, withAlpha } from '@/design/tokens/motion';
+import { withAlpha } from '@/design/tokens/motion';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { radius, typography } from '@/theme';
 
 export type ActionToolbarItem = {
@@ -26,10 +26,9 @@ const PRIMARY_ROW_MAX = 2;
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as ViewStyle) : undefined;
 
 export function ActionToolbar({ actions, leftSlot, accentColor, style }: ActionToolbarProps) {
-  const { colors, isDark } = useLegacyTheme();
+  const { colors } = useLegacyTheme();
   const accent = accentColor ?? colors.violet;
-  const primaryBtnStyle = useMemo(() => resolveLightPrimaryButtonStyle(accent), [accent]);
-  const styles = useMemo(() => createStyles(isDark, colors, accent, primaryBtnStyle), [isDark, colors, accent, primaryBtnStyle]);
+  const styles = useMemo(() => createStyles(accent), [accent]);
 
   const primaryActions = actions.slice(0, PRIMARY_ROW_MAX);
   const secondaryActions = actions.slice(PRIMARY_ROW_MAX);
@@ -83,14 +82,7 @@ export function ActionToolbar({ actions, leftSlot, accentColor, style }: ActionT
   );
 }
 
-function createStyles(
-  isDark: boolean,
-  colors: ReturnType<typeof useLegacyTheme>['colors'],
-  accent: string,
-  primaryBtnStyle: ReturnType<typeof resolveLightPrimaryButtonStyle>,
-) {
-  const glassBorder = isDark ? glassFx.border : colors.borderSoft;
-
+function createStyles(accent: string) {
   return StyleSheet.create({
     root: {
       flexDirection: 'column',
@@ -135,15 +127,15 @@ function createStyles(
       paddingVertical: 8,
       borderRadius: radius.md,
       borderWidth: 1,
-      borderColor: glassBorder,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
+      borderColor: systemLiquidGlass.borderStrong,
+      backgroundColor: systemLiquidGlass.chip,
       maxWidth: '100%',
       minWidth: 0,
       flexShrink: 1,
     },
     btnPrimary: {
-      backgroundColor: isDark ? withAlpha(accent, 0.9) : primaryBtnStyle.backgroundColor,
-      borderColor: isDark ? withAlpha(accent, 0.9) : primaryBtnStyle.borderColor,
+      backgroundColor: accent,
+      borderColor: withAlpha(accent, 0.96),
     },
     btnGhost: {
       backgroundColor: 'transparent',
@@ -152,11 +144,11 @@ function createStyles(
     btnIcon: { fontSize: 14 },
     btnLabel: {
       ...typography.button,
-      color: colors.textPrimary,
+      color: systemLiquidGlass.text.primary,
       fontWeight: '700',
       flexShrink: 1,
     },
-    btnLabelPrimary: { color: primaryBtnStyle.color },
-    btnLabelGhost: { color: colors.textMuted },
+    btnLabelPrimary: { color: systemLiquidGlass.text.onAccent },
+    btnLabelGhost: { color: systemLiquidGlass.text.secondary },
   });
 }

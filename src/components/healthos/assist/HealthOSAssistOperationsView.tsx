@@ -17,7 +17,6 @@ import { resolveHealthOSShellBreakpoint } from '@/components/healthos/shell/heal
 import { PremiumListRow } from '@/components/ui';
 import type { ActiveExecutionItem, AssistDashboardStats, AssignmentListItem } from '@/types/modules/assist';
 import { useMainModuleAccent } from '@/hooks/useMainModuleAccent';
-import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import {
   buildAssistOperationsModel,
   type AssistOperationsMetric,
@@ -160,8 +159,6 @@ export function HealthOSAssistOperationsView({
         ? { phone: 2, tablet: 2, desktop: 3, wide: 3 }
         : { phone: 2, tablet: 2, desktop: 4, wide: 4 };
   const moduleAccent = useMainModuleAccent();
-  const shellHostsAurora = useShellHostsAurora();
-  const cardVariant = shellHostsAurora ? 'light' : 'glass';
 
   const navigate = (route?: string) => {
     if (route) router.push(route as never);
@@ -219,7 +216,7 @@ export function HealthOSAssistOperationsView({
         <MetricsSection
           metrics={model.einsatzbetriebHeute}
           accentColor={moduleAccent}
-          variant={cardVariant}
+          variant="glass"
           columns={kpiColumns}
           onNavigate={navigate}
         />
@@ -278,7 +275,7 @@ export function HealthOSAssistOperationsView({
         <MetricsSection
           metrics={model.nachweiseQualitaet}
           accentColor={moduleAccent}
-          variant={cardVariant}
+          variant="glass"
           columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
           onNavigate={navigate}
         />
@@ -298,7 +295,7 @@ export function HealthOSAssistOperationsView({
         <MetricsSection
           metrics={model.budgetSummary}
           accentColor={moduleAccent}
-          variant={cardVariant}
+          variant="glass"
           columns={{ phone: 2, tablet: 2, desktop: 3, wide: 3 }}
           onNavigate={navigate}
         />

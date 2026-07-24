@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { PremiumButton } from './PremiumButton';
 
 type CareLightEmptyStateProps = {
@@ -20,7 +20,6 @@ export function CareLightEmptyState({
   onAction,
   accentColor,
 }: CareLightEmptyStateProps) {
-  const { c } = useCareLightPalette();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -34,16 +33,16 @@ export function CareLightEmptyState({
         },
         title: {
           ...careTypography.bodyStrong,
-          color: c.text,
+          color: systemLiquidGlass.text.primary,
           textAlign: 'center',
         },
         message: {
           ...careTypography.body,
-          color: c.muted,
+          color: systemLiquidGlass.text.secondary,
           textAlign: 'center',
         },
       }),
-    [c.muted, c.text],
+    [],
   );
 
   return (

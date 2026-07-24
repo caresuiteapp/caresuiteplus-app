@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
+import { colors } from '@/theme';
 import { PremiumButton } from './PremiumButton';
 
 type CareLightErrorStateProps = {
@@ -11,7 +12,6 @@ type CareLightErrorStateProps = {
 };
 
 export function CareLightErrorState({ message, onRetry }: CareLightErrorStateProps) {
-  const { c } = useCareLightPalette();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -25,15 +25,15 @@ export function CareLightErrorState({ message, onRetry }: CareLightErrorStatePro
         },
         title: {
           ...careTypography.bodyStrong,
-          color: c.danger,
+          color: colors.danger,
         },
         message: {
           ...careTypography.body,
-          color: c.muted,
+          color: systemLiquidGlass.text.secondary,
           textAlign: 'center',
         },
       }),
-    [c.danger, c.muted],
+    [],
   );
 
   return (

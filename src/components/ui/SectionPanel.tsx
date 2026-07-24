@@ -1,13 +1,9 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import {
-  useAuroraAdaptiveText,
-  useAuroraGlassActive,
-  useAuroraGlassPanelStyle,
-} from '@/design/tokens/auroraGlass';
+import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { withAlpha } from '@/design/tokens/motion';
 import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { resolveUserFacingSubtitle } from '@/lib/ui/uiVisibility';
 import { radius, spacing } from '@/theme';
 
@@ -40,17 +36,9 @@ export function SectionPanel({
   surface = 'glass',
   viewContext,
 }: SectionPanelProps) {
-  const { colors, typography, isDark, isLight } = useLegacyTheme();
-  const text = useAuroraAdaptiveText();
-  const auroraActive = useAuroraGlassActive();
-  const glassPanelStyle = useAuroraGlassPanelStyle({
-    intensity: 'default',
-    viewContext,
-  });
+  const { colors, typography } = useLegacyTheme();
   const openSurface = surface === 'open';
-  const glassSurface = !openSurface && (isDark || auroraActive);
   const moduleAccent = accentColor ?? colors.cyan;
-  const lightGlassShell = !openSurface && isLight && auroraActive;
   const userSubtitle = resolveUserFacingSubtitle(subtitle);
 
   const styles = useMemo(
@@ -60,41 +48,42 @@ export function SectionPanel({
           width: '100%',
           borderRadius: openSurface ? 0 : radius.lg,
           borderWidth: openSurface ? 0 : 1,
-          borderColor: withAlpha(moduleAccent, auroraActive ? 0.38 : isDark ? 0.45 : 0.35),
-          backgroundColor: openSurface
-            ? 'transparent'
-            : auroraActive
-              ? 'transparent'
-              : isDark
-                ? 'transparent'
-                : colors.bgSurface,
+          borderColor: withAlpha(moduleAccent, 0.44),
+          backgroundColor: openSurface ? 'transparent' : systemLiquidGlass.panel,
           overflow: fillHeight ? 'visible' : 'hidden',
           position: 'relative',
+          ...(openSurface || Platform.OS !== 'web'
+            ? null
+            : ({
+                backdropFilter: `blur(${systemLiquidGlass.blur.desktop}px) saturate(${systemLiquidGlass.saturate})`,
+                WebkitBackdropFilter: `blur(${systemLiquidGlass.blur.desktop}px) saturate(${systemLiquidGlass.saturate})`,
+                boxShadow: systemLiquidGlass.shadowSoft,
+              } as unknown as ViewStyle)),
           ...(fillHeight ? { flexGrow: 1, width: '100%' } : null),
         },
         innerBorder: {
           ...StyleSheet.absoluteFillObject,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.72)',
+          borderColor: systemLiquidGlass.innerBorder,
         },
         header: {
           paddingHorizontal: spacing.md,
           paddingTop: headerVariant === 'hero' ? spacing.lg : spacing.md,
           paddingBottom: headerVariant === 'hero' ? spacing.md : spacing.sm,
           borderBottomWidth: 1,
-          borderBottomColor: withAlpha(moduleAccent, glassSurface ? 0.35 : 0.25),
+          borderBottomColor: withAlpha(moduleAccent, 0.32),
           alignItems: headerAlign === 'center' ? 'center' : 'flex-start',
         },
         title: {
           ...(headerVariant === 'hero' ? typography.h1 : typography.h3),
-          color: text.primary,
+          color: systemLiquidGlass.text.primary,
           textAlign: headerAlign === 'center' ? 'center' : 'left',
         },
         subtitle: {
           ...(headerVariant === 'hero' ? typography.body : typography.caption),
           marginTop: headerVariant === 'hero' ? spacing.xs : 4,
-          color: lightGlassShell ? text.primary : text.secondary,
+          color: systemLiquidGlass.text.secondary,
           textAlign: headerAlign === 'center' ? 'center' : 'left',
         },
         body: {
@@ -109,15 +98,7 @@ export function SectionPanel({
         },
       }),
     [
-      auroraActive,
-      colors.bgSurface,
-      glassSurface,
-      isDark,
-      isLight,
       openSurface,
-      lightGlassShell,
-      text.primary,
-      text.secondary,
       typography.caption,
       typography.h3,
       typography.h1,
@@ -125,17 +106,13 @@ export function SectionPanel({
       headerAlign,
       headerVariant,
       moduleAccent,
-      surface,
       fillHeight,
     ],
   );
 
   return (
-    <View style={[styles.panel, lightGlassShell ? glassPanelStyle : null]}>
-      {glassSurface && !lightGlassShell ? (
-        <View style={styles.innerBorder} pointerEvents="none" />
-      ) : null}
-      {lightGlassShell ? <View style={styles.innerBorder} pointerEvents="none" /> : null}
+    <View style={styles.panel}>
+      {!openSurface ? <View style={styles.innerBorder} pointerEvents="none" /> : null}
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
         {userSubtitle ? <Text style={styles.subtitle}>{userSubtitle}</Text> : null}

@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -19,7 +20,7 @@ export function CareLightModuleTile({
   icon,
   title,
   description,
-  accentColor = careLightColors.orange,
+  accentColor = spatialCareColors.cyanLight,
   isActive = false,
   preparedOnly = false,
   onPress,
@@ -56,10 +57,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: careSpacing.sm,
-    backgroundColor: careLightColors.surface,
+    backgroundColor: systemLiquidGlass.card,
     borderRadius: careRadius.md,
     borderWidth: 1,
-    borderColor: careLightColors.border,
+    borderColor: systemLiquidGlass.border,
     padding: careSpacing.md,
   },
   pressed: {
@@ -84,15 +85,15 @@ const styles = StyleSheet.create({
   },
   title: {
     ...careTypography.bodyStrong,
-    color: careLightColors.navy,
+    color: systemLiquidGlass.text.primary,
   },
   description: {
     ...careTypography.caption,
-    color: careLightColors.muted,
+    color: systemLiquidGlass.text.secondary,
   },
   prepared: {
     ...careTypography.caption,
-    color: careLightColors.gold,
+    color: spatialCareColors.cyanLight,
     fontWeight: '600',
     marginTop: 2,
   },
