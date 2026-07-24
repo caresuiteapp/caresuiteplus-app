@@ -32,4 +32,19 @@ describe('WFM review popup and contrast contract', () => {
     expect(layout).toContain('WORKTIME_TEXT');
     expect(shell).toContain('SHELL_TEXT');
   });
+
+  it('keeps the explicit dark input color after the shared typography style', () => {
+    const detail = read('src/components/wfm/WfmOfficeTimeReviewDetailPanel.tsx');
+    const inputStyleStart = detail.indexOf('  input: {');
+    const inputStyleEnd = detail.indexOf('  history:', inputStyleStart);
+    const inputStyle = detail.slice(inputStyleStart, inputStyleEnd);
+
+    expect(inputStyleStart).toBeGreaterThan(-1);
+    expect(inputStyle).toContain('...typography.body');
+    expect(inputStyle).toContain('color: REVIEW_TEXT.primary');
+    expect(inputStyle.indexOf('...typography.body')).toBeLessThan(
+      inputStyle.indexOf('color: REVIEW_TEXT.primary'),
+    );
+    expect(detail.match(/selectionColor="#2563EB"/g)).toHaveLength(2);
+  });
 });

@@ -183,6 +183,7 @@ export function WfmOfficeTimeReviewDetailPanel({
             onChangeText={onReviewNoteChange}
             placeholder="Kommentar / Ablehnungsgrund / Rückfrage"
             placeholderTextColor={REVIEW_TEXT.muted}
+            selectionColor="#2563EB"
             style={styles.input}
             multiline
           />
@@ -228,6 +229,7 @@ export function WfmOfficeTimeReviewDetailPanel({
               onChangeText={onCorrectionReasonChange}
               placeholder="Korrektur-Begründung (Pflicht)"
               placeholderTextColor={REVIEW_TEXT.muted}
+              selectionColor="#2563EB"
               style={styles.input}
             />
             <View style={styles.actionRow}>
@@ -349,15 +351,16 @@ const styles = StyleSheet.create({
   structuredRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
   structuredField: { minWidth: 130, flex: 1 },
   input: {
+    ...typography.body,
     borderWidth: 1,
     borderRadius: 10,
     padding: careSpacing.sm,
     minHeight: 44,
     backgroundColor: '#FFFFFF',
-    color: REVIEW_TEXT.primary,
     borderColor: REVIEW_TEXT.border,
-    ...typography.body,
     fontSize: 14,
+    lineHeight: 21,
+    color: REVIEW_TEXT.primary,
   },
   history: { gap: 4, marginTop: 4 },
 });
