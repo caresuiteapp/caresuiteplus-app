@@ -36,6 +36,8 @@ function visitListItemToPortalAppointment(item: VisitDispositionListItem): Porta
     status: item.status,
     assignmentStatus: item.assignmentStatus,
     assignmentIncomplete: item.isIncomplete,
+    seriesMasterId: item.seriesMasterId,
+    seriesOccurrenceDate: item.seriesOccurrenceDate,
     location: item.location || null,
     clientId: item.clientId ?? '',
     employeeId: item.employeeId,

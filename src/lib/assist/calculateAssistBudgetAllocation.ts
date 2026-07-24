@@ -449,15 +449,16 @@ export function expandVisitRecurrenceDates(input: {
   recurrenceOccurrenceCount?: number | null;
   maxOccurrences?: number;
 }): string[] {
-  const { assignmentDate, recurrencePattern } = input;
-  if (recurrencePattern === 'none') return [assignmentDate.slice(0, 10)];
+  const { recurrencePattern } = input;
+  const startKey = input.assignmentDate.slice(0, 10);
+  if (recurrencePattern === 'none') return [startKey];
 
-  const max = input.maxOccurrences ?? input.recurrenceOccurrenceCount ?? 52;
-  const endDate = input.recurrenceEndDate
-    ? new Date(`${input.recurrenceEndDate.slice(0, 10)}T23:59:59`)
-    : null;
+  const requestedMax = input.recurrenceOccurrenceCount ?? input.maxOccurrences ?? 52;
+  const max = Math.max(1, Math.min(requestedMax, input.maxOccurrences ?? requestedMax));
+  const endKey = input.recurrenceEndDate?.slice(0, 10) || null;
   const dates: string[] = [];
-  const start = new Date(`${assignmentDate.slice(0, 10)}T12:00:00`);
+  const [startYear, startMonth, startDay] = startKey.split('-').map(Number);
+  const start = new Date(Date.UTC(startYear!, startMonth! - 1, startDay!, 12));
 
   const weekdayMap: Record<string, number> = {
     so: 0,
@@ -470,38 +471,43 @@ export function expandVisitRecurrenceDates(input: {
   };
   const targetWeekdays =
     input.recurrenceWeekdays && input.recurrenceWeekdays.length > 0
-      ? input.recurrenceWeekdays.map((d) => weekdayMap[d])
-      : [start.getDay()];
+      ? [...new Set(input.recurrenceWeekdays.map((d) => weekdayMap[d]).filter((d) => d != null))]
+      : [start.getUTCDay()];
 
-  let cursor = new Date(start);
-  let safety = 0;
+  const pushIfInRange = (date: Date): boolean => {
+    const key = date.toISOString().slice(0, 10);
+    if (endKey && key > endKey) return false;
+    dates.push(key);
+    return true;
+  };
 
-  while (dates.length < max && safety < 400) {
-    safety += 1;
-    if (endDate && cursor > endDate) break;
-
-    if (recurrencePattern === 'daily') {
-      dates.push(cursor.toISOString().slice(0, 10));
-      cursor.setDate(cursor.getDate() + 1);
-    } else if (recurrencePattern === 'weekly' || recurrencePattern === 'biweekly') {
-      if (targetWeekdays.includes(cursor.getDay())) {
-        dates.push(cursor.toISOString().slice(0, 10));
-      }
-      cursor.setDate(cursor.getDate() + 1);
-      if (cursor.getDay() === start.getDay() && recurrencePattern === 'biweekly') {
-        if (dates.length > 0 && dates.length % targetWeekdays.length === 0) {
-          cursor.setDate(cursor.getDate() + 7);
-        }
-      }
-    } else if (recurrencePattern === 'monthly') {
-      if (dates.length === 0 || cursor.getDate() === start.getDate()) {
-        dates.push(cursor.toISOString().slice(0, 10));
-      }
-      cursor.setMonth(cursor.getMonth() + 1);
+  if (recurrencePattern === 'monthly') {
+    for (let monthOffset = 0; dates.length < max && monthOffset < 1200; monthOffset += 1) {
+      const monthStart = new Date(Date.UTC(startYear!, startMonth! - 1 + monthOffset, 1, 12));
+      const year = monthStart.getUTCFullYear();
+      const month = monthStart.getUTCMonth();
+      const lastDay = new Date(Date.UTC(year, month + 1, 0, 12)).getUTCDate();
+      const occurrence = new Date(Date.UTC(year, month, Math.min(startDay!, lastDay), 12));
+      if (!pushIfInRange(occurrence)) break;
+    }
+  } else {
+    const cursor = new Date(start);
+    for (let dayOffset = 0; dates.length < max && dayOffset < 36600; dayOffset += 1) {
+      const key = cursor.toISOString().slice(0, 10);
+      if (endKey && key > endKey) break;
+      const weekIndex = Math.floor(dayOffset / 7);
+      const matches =
+        recurrencePattern === 'daily'
+        || (
+          targetWeekdays.includes(cursor.getUTCDay())
+          && (recurrencePattern === 'weekly' || weekIndex % 2 === 0)
+        );
+      if (matches) dates.push(key);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
   }
 
-  return dates.length > 0 ? dates : [assignmentDate.slice(0, 10)];
+  return dates.length > 0 ? dates : [startKey];
 }
 
 export type SeriesBudgetAllocationSummary = {

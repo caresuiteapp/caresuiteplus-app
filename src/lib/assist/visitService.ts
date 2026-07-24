@@ -54,6 +54,7 @@ import {
   applyOccurrenceDateToVisitDetail,
   isResolvableVisitId,
   parseVisitOccurrenceId,
+  parseVisitRecurrenceJson,
   resolveVisitMasterId,
 } from '@/lib/assist/visitRecurrenceExpansion';
 import {
@@ -63,6 +64,7 @@ import {
 } from '@/lib/assist/visitRecurrenceExecution';
 import {
   buildVisitUpdateInputFromEditForm,
+  mapVisitDetailToEditForm,
   type VisitEditFormData,
 } from '@/lib/assist/visitEditMappers';
 
@@ -525,6 +527,79 @@ export async function updateVisitDispositionStatus(
 
 export type { VisitStatusHistoryEntry } from '@/lib/assist/repositories/visitRepository.supabase';
 
+export type VisitSeriesMutationScope = 'this_only' | 'this_and_following';
+
+function visitOccurrenceDate(visit: VisitDispositionDetail): string {
+  const recurrence = parseVisitRecurrenceJson(visit.recurrenceJson);
+  return (
+    recurrence.sourceOccurrenceDate
+    ?? recurrence.masterOccurrenceDate
+    ?? visit.assignmentDate
+    ?? visit.scheduledStart.slice(0, 10)
+  );
+}
+
+function isProtectedSeriesHistory(visit: VisitDispositionDetail): boolean {
+  return Boolean(
+    visit.onTheWayAt
+    || visit.arrivedAt
+    || visit.actualStartAt
+    || visit.actualEndAt
+    || visit.finishedAt
+    || visit.documentationStatus === 'complete'
+    || visit.documentationStatus === 'review'
+    || visit.proofStatus === 'signed'
+    || visit.proofStatus === 'verified'
+    || visit.billingStatus === 'invoiced'
+    || visit.billingStatus === 'paid'
+  );
+}
+
+function shiftDateKey(dateKey: string, dayDelta: number): string {
+  const [year, month, day] = dateKey.slice(0, 10).split('-').map(Number);
+  const date = new Date(Date.UTC(year!, month! - 1, day! + dayDelta, 12));
+  return date.toISOString().slice(0, 10);
+}
+
+function dateKeyDelta(from: string, to: string): number {
+  const read = (value: string) => {
+    const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+    return Date.UTC(year!, month! - 1, day!, 12);
+  };
+  return Math.round((read(to) - read(from)) / 86_400_000);
+}
+
+function preserveMasterSeriesAnchor(
+  visit: VisitDispositionDetail,
+  input: VisitCreateInput,
+): VisitCreateInput {
+  const recurrence = parseVisitRecurrenceJson(visit.recurrenceJson);
+  if (recurrence.pattern === 'none' || recurrence.parentSeriesId) return input;
+
+  const oldOccurrenceDate = visitOccurrenceDate(visit);
+  const moved = input.assignmentDate !== oldOccurrenceDate;
+  return {
+    ...input,
+    recurrenceJson: {
+      ...parseVisitRecurrenceJson(input.recurrenceJson),
+      anchorDate:
+        recurrence.anchorDate
+        ?? visit.assignmentDate
+        ?? visit.scheduledStart.slice(0, 10),
+      masterOccurrenceDate: moved
+        ? input.assignmentDate
+        : recurrence.masterOccurrenceDate ?? oldOccurrenceDate,
+      detachedOccurrenceDates: moved
+        ? Array.from(new Set([
+            ...(recurrence.detachedOccurrenceDates ?? []),
+            oldOccurrenceDate,
+          ]))
+        : recurrence.detachedOccurrenceDates,
+      materializedOccurrences: recurrence.materializedOccurrences,
+    },
+  };
+}
+
 export async function fetchVisitStatusHistory(
   visitId: string,
   tenantId: string,
@@ -554,6 +629,7 @@ export async function deleteVisitDisposition(
   visitId: string,
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  scope: VisitSeriesMutationScope = 'this_only',
 ): Promise<ServiceResult<void>> {
   const denied = enforcePermission<void>(actorRoleKey, 'assist.assignments.manage');
   if (denied) return denied;
@@ -564,6 +640,56 @@ export async function deleteVisitDisposition(
   if (getServiceMode() === 'supabase') {
     if (!isResolvableVisitId(visitId)) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
+    if (scope === 'this_and_following') {
+      const currentResult = await fetchVisitDispositionDetail(
+        visitId,
+        tenantId,
+        actorRoleKey,
+      );
+      if (!currentResult.ok) return currentResult;
+      if (!currentResult.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+      const current = currentResult.data;
+      const currentRecurrence = parseVisitRecurrenceJson(current.recurrenceJson);
+      const masterId = currentRecurrence.parentSeriesId
+        ?? (currentRecurrence.pattern !== 'none' ? current.id : null);
+      if (!masterId) {
+        return deleteVisitDisposition(visitId, tenantId, actorRoleKey, 'this_only');
+      }
+
+      const series = await visitSupabaseRepository.listSeriesOccurrences(tenantId, masterId);
+      if (!series.ok) return series;
+
+      const currentKey = visitOccurrenceDate(current);
+      const todayKey = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'Europe/Berlin',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date());
+      const deletable = series.data
+        .filter((candidate) => visitOccurrenceDate(candidate) >= currentKey)
+        .filter((candidate) => (
+          (candidate.assignmentDate ?? candidate.scheduledStart.slice(0, 10)) >= todayKey
+        ))
+        .filter((candidate) => !isProtectedSeriesHistory(candidate))
+        .sort((a, b) => {
+          const masterOrder = Number(a.id === masterId) - Number(b.id === masterId);
+          return masterOrder || b.scheduledStart.localeCompare(a.scheduledStart);
+        });
+
+      for (const candidate of deletable) {
+        const deleted = candidate.id === masterId
+          ? await visitSupabaseRepository.deleteSeriesMasterOccurrenceOnly(
+              tenantId,
+              masterId,
+            )
+          : await visitSupabaseRepository.delete(tenantId, candidate.id);
+        if (!deleted.ok) return deleted;
+      }
+      return { ok: true, data: undefined };
+    }
+
     const { visitId: routeMasterId, occurrenceDate } = parseVisitOccurrenceId(visitId);
     if (occurrenceDate) {
       const masterVisitId =
@@ -573,6 +699,15 @@ export async function deleteVisitDisposition(
 
     const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
     if (resolvedId) {
+      const direct = await visitSupabaseRepository.getById(tenantId, resolvedId);
+      if (!direct.ok) return direct;
+      const recurrence = parseVisitRecurrenceJson(direct.data?.recurrenceJson);
+      if (direct.data && recurrence.pattern !== 'none' && !recurrence.parentSeriesId) {
+        return visitSupabaseRepository.deleteSeriesMasterOccurrenceOnly(
+          tenantId,
+          resolvedId,
+        );
+      }
       return visitSupabaseRepository.delete(tenantId, resolvedId);
     }
 
@@ -836,6 +971,7 @@ export async function updateVisitFromWizard(
   visitId: string,
   form: VisitEditFormData,
   actorRoleKey?: RoleKey | null,
+  scope: VisitSeriesMutationScope = 'this_only',
 ): Promise<ServiceResult<{ id: string }>> {
   const denied = enforcePermission<{ id: string }>(actorRoleKey, 'assist.assignments.manage');
   if (denied) return denied;
@@ -857,7 +993,82 @@ export async function updateVisitFromWizard(
     const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
     const targetVisitId = resolvedId ?? masterVisitId;
 
-    const updated = await visitSupabaseRepository.update(tenantId, targetVisitId, input);
+    const existingRecurrence = parseVisitRecurrenceJson(existing.data.recurrenceJson);
+    const seriesMasterId = existingRecurrence.parentSeriesId
+      ?? (existingRecurrence.pattern !== 'none' ? existing.data.id : null);
+
+    if (scope === 'this_and_following' && seriesMasterId) {
+      const series = await visitSupabaseRepository.listSeriesOccurrences(
+        tenantId,
+        seriesMasterId,
+      );
+      if (!series.ok) return series;
+
+      const selectedKey = visitOccurrenceDate(existing.data);
+      const originalDate =
+        existing.data.assignmentDate ?? existing.data.scheduledStart.slice(0, 10);
+      const dayDelta = dateKeyDelta(originalDate, input.assignmentDate);
+      const targets = series.data
+        .filter((candidate) => visitOccurrenceDate(candidate) >= selectedKey)
+        .filter((candidate) => (
+          candidate.id === targetVisitId || !isProtectedSeriesHistory(candidate)
+        ))
+        .sort((a, b) => a.scheduledStart.localeCompare(b.scheduledStart));
+
+      const updatedSnapshots: VisitDispositionDetail[] = [];
+      for (const candidate of targets) {
+        const candidateDate =
+          candidate.assignmentDate ?? candidate.scheduledStart.slice(0, 10);
+        const candidateForm: VisitEditFormData = {
+          ...form,
+          assignmentDate:
+            candidate.id === targetVisitId
+              ? input.assignmentDate
+              : shiftDateKey(candidateDate, dayDelta),
+          originalRecurrenceJson: parseVisitRecurrenceJson(candidate.recurrenceJson),
+        };
+        const { assignmentStatus: candidateStatus, ...candidateBaseInput } =
+          buildVisitUpdateInputFromEditForm(candidateForm);
+        const candidateInput = preserveMasterSeriesAnchor(candidate, candidateBaseInput);
+        const updated = await visitSupabaseRepository.update(
+          tenantId,
+          candidate.id,
+          candidateInput,
+        );
+        if (!updated.ok) {
+          for (const snapshot of updatedSnapshots.reverse()) {
+            const rollbackForm = mapVisitDetailToEditForm(snapshot);
+            const { assignmentStatus: rollbackStatus, ...rollbackInput } =
+              buildVisitUpdateInputFromEditForm(rollbackForm);
+            await visitSupabaseRepository.update(tenantId, snapshot.id, rollbackInput);
+            if (rollbackStatus !== snapshot.assignmentStatus) {
+              await visitSupabaseRepository.updateAssignmentStatus(
+                tenantId,
+                snapshot.id,
+                snapshot.assignmentStatus,
+              );
+            }
+          }
+          return updated;
+        }
+        updatedSnapshots.push(candidate);
+        if (candidateStatus !== candidate.assignmentStatus) {
+          const statusResult = await visitSupabaseRepository.updateAssignmentStatus(
+            tenantId,
+            candidate.id,
+            candidateStatus,
+          );
+          if (!statusResult.ok) return statusResult;
+        }
+      }
+      return { ok: true, data: { id: visitId } };
+    }
+
+    const updated = await visitSupabaseRepository.update(
+      tenantId,
+      targetVisitId,
+      preserveMasterSeriesAnchor(existing.data, input),
+    );
     if (!updated.ok) return updated;
 
     if (assignmentStatus !== existing.data.assignmentStatus) {

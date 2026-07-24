@@ -17,9 +17,9 @@ describe('Einsatz-Löschschutz', () => {
       path.resolve(process.cwd(), 'src/lib/assist/repositories/visitRepository.supabase.ts'),
       'utf8',
     );
-    expect(source).toContain("['pending', 'cancelled'].includes(deletionRow.execution_status)");
+    expect(source).toContain("['pending', 'cancelled'].includes(candidate.execution_status)");
     expect(source).toContain('hasExecutionEvidence');
-    expect(source).toContain("deletionRow.billing_status === 'invoiced'");
+    expect(source).toContain("candidate.billing_status === 'invoiced'");
     expect(source).toContain('Begonnene, nachgewiesene oder abgerechnete Einsätze');
   });
 
@@ -45,22 +45,21 @@ describe('Einsatz-Löschschutz', () => {
 
     expect(visitRepository).toContain(".delete()\n      .eq('tenant_id', tenantId)");
     expect(visitRepository).toContain(".select('id')\n      .maybeSingle()");
-    expect(visitRepository).toContain('deletedVisitIds.has(id)');
+    expect(visitRepository).toContain('deletedIds.has(visitId)');
     expect(visitRepository).toContain('if (!updatedParent)');
     expect(visitRepository).toContain('if (!updatedMaster)');
     expect(assignmentRepository).toContain('if (!deletedAssignment)');
   });
 
-  it('löscht identische ungestartete physische Dubletten gemeinsam', () => {
+  it('löscht getrennt geplante Einsätze niemals über unscharfe Zeitgleichheit gemeinsam', () => {
     const source = fs.readFileSync(
       path.resolve(process.cwd(), 'src/lib/assist/repositories/visitRepository.supabase.ts'),
       'utf8',
     );
 
-    expect(source).toContain('deletableDuplicateRows');
-    expect(source).toContain(".eq('planned_start_at', deletionRow.planned_start_at)");
-    expect(source).toContain(".in('id', visitIdsToDelete)");
-    expect(source).toContain("['pending', 'cancelled'].includes(candidate.execution_status)");
+    expect(source).toContain('const rowsToDelete = [deletionRow]');
+    expect(source).toContain('never a fuzzy client/employee/time/title tuple');
+    expect(source).not.toContain('const protectedDuplicate = identicalRows.find');
   });
 
   it('lädt Live-Zeitereignisse bereits für die Einsatzliste', () => {

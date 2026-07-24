@@ -34,6 +34,7 @@ import {
   sanitizeClientPortalLiveVisitPayload,
 } from './clientPortalAssistLiveVisitService';
 import { getPortalProfileLink, resolvePortalScope } from './portalVisibility';
+import { dedupePortalAppointmentOccurrences } from './employeePortalAppointmentIdentity';
 
 export type PortalAppointmentsPortalContext = {
   tenantId?: string | null;
@@ -51,6 +52,8 @@ export type PortalAppointmentItem = Pick<
   assignmentStatus?: AssignmentStatus;
   /** Visit overlay: open documentation/signature/tasks despite terminal-looking status. */
   assignmentIncomplete?: boolean;
+  seriesMasterId?: string | null;
+  seriesOccurrenceDate?: string | null;
 };
 
 const SIMULATED_DELAY_MS = 350;
@@ -173,15 +176,19 @@ export async function fetchPortalAppointments(
       };
     }
     if (scope === 'portal_employee' && tenantId?.trim() && employeeId?.trim()) {
-      const live = await fetchLivePortalAppointmentsForEmployee(tenantId, employeeId);
-      if (live.ok && live.data.length > 0) {
-        return live;
-      }
-      const calendar = await getEmployeeCalendarEvents(tenantId, employeeId);
-      if (calendar.ok && calendar.data.length > 0) {
-        return { ok: true, data: mapCalendarToPortalItems(calendar.data) };
-      }
-      return live;
+      const [live, calendar] = await Promise.all([
+        fetchLivePortalAppointmentsForEmployee(tenantId, employeeId),
+        getEmployeeCalendarEvents(tenantId, employeeId),
+      ]);
+      if (!live.ok && !calendar.ok) return live;
+
+      const merged = dedupePortalAppointmentOccurrences([
+        ...(live.ok ? live.data : []),
+        ...(calendar.ok ? mapCalendarToPortalItems(calendar.data) : []),
+      ]).sort(
+        (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+      );
+      return { ok: true, data: merged };
     }
     return { ok: true, data: [] };
   }

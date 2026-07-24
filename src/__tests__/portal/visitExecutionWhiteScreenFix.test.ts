@@ -156,8 +156,11 @@ describe('EmployeePortalVisitExecutionScreen isServiceEnded wiring', () => {
     );
   });
 
-  it('imports ScreenShell (missing import caused immediate ReferenceError white screen)', () => {
+  it('imports and renders the current portal shell (no missing shell ReferenceError)', () => {
     const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
-    expect(screen).toContain("import { ScreenShell } from '@/components/layout';");
+    expect(screen).toContain(
+      "import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';",
+    );
+    expect(screen).toContain('<PortalTabScreen');
   });
 });

@@ -28,7 +28,11 @@ import {
   mapVisitDetailToEditForm,
   type VisitEditFormData,
 } from '@/lib/assist/visitEditMappers';
-import { updateVisitFromWizard } from '@/lib/assist/visitService';
+import {
+  updateVisitFromWizard,
+  type VisitSeriesMutationScope,
+} from '@/lib/assist/visitService';
+import { parseVisitRecurrenceJson } from '@/lib/assist/visitRecurrenceExpansion';
 import {
   hasAssignmentProductionErrors,
   validateAssignmentCreateForm,
@@ -144,6 +148,7 @@ export function AssignmentEditForm({
   const [services, setServices] = useState<SelectOption[]>([]);
   const [listsLoading, setListsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [seriesScope, setSeriesScope] = useState<VisitSeriesMutationScope>('this_only');
   const [error, setError] = useState<string | null>(null);
 
   const patch = useCallback((partial: Partial<VisitEditFormData>) => {
@@ -224,7 +229,13 @@ export function AssignmentEditForm({
     }
     setSaving(true);
     setError(null);
-    const result = await updateVisitFromWizard(tenantId, visitId, form, profile?.roleKey);
+    const result = await updateVisitFromWizard(
+      tenantId,
+      visitId,
+      form,
+      profile?.roleKey,
+      seriesScope,
+    );
     setSaving(false);
     if (result.ok) {
       onSaved?.(result.data.id);
@@ -240,6 +251,33 @@ export function AssignmentEditForm({
   return (
     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
       {error ? <ErrorState message={error} /> : null}
+
+      {(() => {
+        const recurrence = parseVisitRecurrenceJson(initialVisit.recurrenceJson);
+        const isSeriesOccurrence =
+          recurrence.pattern !== 'none' || Boolean(recurrence.parentSeriesId);
+        return isSeriesOccurrence ? (
+          <SectionPanel {...FORM_CTX} title="Änderungsbereich">
+            <InfoBanner
+              message={
+                seriesScope === 'this_only'
+                  ? 'Es wird ausschließlich dieser konkrete Termin geändert.'
+                  : 'Dieser Termin und alle noch nicht begonnenen Folgetermine werden geändert. Vergangene oder bereits ausgeführte Termine bleiben unverändert.'
+              }
+              variant="info"
+            />
+            <FilterChipGroup
+              options={[
+                { key: 'this_only', label: 'Nur dieser Termin' },
+                { key: 'this_and_following', label: 'Dieser und folgende' },
+              ]}
+              value={seriesScope}
+              onChange={(value) => setSeriesScope(value as VisitSeriesMutationScope)}
+              wrap
+            />
+          </SectionPanel>
+        ) : null;
+      })()}
 
       <SectionPanel {...FORM_CTX} title="Basisdaten">
         <PremiumInput

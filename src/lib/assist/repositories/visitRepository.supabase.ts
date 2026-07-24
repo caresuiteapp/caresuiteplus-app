@@ -409,6 +409,13 @@ function visitLocationFromRow(row: VisitRow): string {
 }
 
 function mapListItem(row: VisitRow): VisitDispositionListItem {
+  const recurrence = parseVisitRecurrenceJson(row.recurrence_json);
+  const isSeriesMaster = recurrence.pattern !== 'none' && !recurrence.parentSeriesId;
+  const seriesMasterId = recurrence.parentSeriesId ?? (isSeriesMaster ? row.id : null);
+  const seriesOccurrenceDate =
+    recurrence.sourceOccurrenceDate
+    ?? recurrence.masterOccurrenceDate
+    ?? (seriesMasterId ? row.assignment_date.slice(0, 10) : null);
   const canonicalStatus = remoteStatusToAssignment(row.canonical_status);
   const assignmentStatus = deriveAssignmentStatusFromVisitDimensions({
     canonicalStatus,
@@ -432,6 +439,9 @@ function mapListItem(row: VisitRow): VisitDispositionListItem {
   return {
     id: row.id,
     tenantId: row.tenant_id,
+    seriesMasterId,
+    seriesOccurrenceDate,
+    isSeriesMaster,
     clientId: row.client_id,
     title: row.title?.trim() || row.service_name?.trim() || 'Einsatz',
     serviceName: row.service_name,
@@ -1181,6 +1191,19 @@ export const visitSupabaseRepository = {
 
     const duration = durationMinutes(input.plannedStartAt, input.plannedEndAt, null);
     const taskTitles = input.tasks.map((task) => task.trim()).filter(Boolean);
+    const existingTaskTitles = existing.data.tasks.map((task) => task.title.trim());
+    const tasksChanged = JSON.stringify(taskTitles) !== JSON.stringify(existingTaskTitles);
+
+    if (
+      tasksChanged
+      && existing.data.tasks.some((task) => task.status !== 'open')
+    ) {
+      return {
+        ok: false,
+        error:
+          'Aufgaben eines bereits bearbeiteten Einsatzes können nicht überschrieben werden.',
+      };
+    }
 
     const patch = {
       client_id: input.clientId,
@@ -1213,12 +1236,78 @@ export const visitSupabaseRepository = {
       updated_by: actorProfileId ?? null,
     };
 
+    if (tasksChanged) {
+      const { error: deleteTaskError } = await fromUnknownTable(
+        supabase,
+        'assist_visit_tasks',
+      )
+        .delete()
+        .eq('tenant_id', tenantId)
+        .eq('visit_id', visitId);
+      if (deleteTaskError) {
+        return { ok: false, error: toGermanSupabaseError(deleteTaskError) };
+      }
+
+      if (taskTitles.length > 0) {
+        const { error: insertTaskError } = await fromUnknownTable(
+          supabase,
+          'assist_visit_tasks',
+        ).insert(
+          taskTitles.map((title, index) => ({
+            tenant_id: tenantId,
+            visit_id: visitId,
+            title,
+            status: 'open',
+            is_required: true,
+            sort_order: index,
+          })),
+        );
+        if (insertTaskError) {
+          if (existing.data.tasks.length > 0) {
+            await fromUnknownTable(supabase, 'assist_visit_tasks').insert(
+              existing.data.tasks.map((task, index) => ({
+                tenant_id: tenantId,
+                visit_id: visitId,
+                title: task.title,
+                status: task.status,
+                is_required: task.isRequired,
+                not_done_reason: task.notDoneReason,
+                sort_order: index,
+              })),
+            );
+          }
+          return { ok: false, error: toGermanSupabaseError(insertTaskError) };
+        }
+      }
+    }
+
     const { error } = await fromUnknownTable(supabase, 'assist_visits')
       .update(patch)
       .eq('tenant_id', tenantId)
       .eq('id', visitId);
 
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) {
+      if (tasksChanged) {
+        await fromUnknownTable(supabase, 'assist_visit_tasks')
+          .delete()
+          .eq('tenant_id', tenantId)
+          .eq('visit_id', visitId);
+        if (existing.data.tasks.length > 0) {
+          await fromUnknownTable(supabase, 'assist_visit_tasks').insert(
+            existing.data.tasks.map((task, index) => ({
+              tenant_id: tenantId,
+              visit_id: visitId,
+              title: task.title,
+              status: task.status,
+              is_required: task.isRequired,
+              not_done_reason: task.notDoneReason,
+              sort_order: index,
+            })),
+          );
+        }
+      }
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
 
     const legacySync = await upsertLegacyAssignmentFromVisit(supabase, {
       visitId,
@@ -1279,6 +1368,149 @@ export const visitSupabaseRepository = {
     if (!refreshed.ok) return refreshed;
     if (!refreshed.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
     return { ok: true, data: refreshed.data };
+  },
+
+  async listSeriesOccurrences(
+    tenantId: string,
+    masterVisitId: string,
+  ): Promise<ServiceResult<VisitDispositionDetail[]>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const master = await this.getById(tenantId, masterVisitId);
+    if (!master.ok) return master;
+    if (!master.data) return { ok: false, error: 'Einsatzserie nicht gefunden.' };
+
+    const { data, error } = await fromUnknownTable(supabase, 'assist_visits')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('recurrence_json->>parentSeriesId', masterVisitId);
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    const childIds = ((data ?? []) as unknown as Array<{ id: string }>).map((row) => row.id);
+    const childResults = await Promise.all(childIds.map((id) => this.getById(tenantId, id)));
+    const failed = childResults.find((result) => !result.ok);
+    if (failed && !failed.ok) return failed;
+
+    const children = childResults.flatMap((result) =>
+      result.ok && result.data ? [result.data] : [],
+    );
+    return {
+      ok: true,
+      data: [master.data, ...children].sort(
+        (a, b) => a.scheduledStart.localeCompare(b.scheduledStart),
+      ),
+    };
+  },
+
+  async deleteSeriesMasterOccurrenceOnly(
+    tenantId: string,
+    masterVisitId: string,
+  ): Promise<ServiceResult<void>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const series = await this.listSeriesOccurrences(tenantId, masterVisitId);
+    if (!series.ok) return series;
+    const master = series.data.find((visit) => visit.id === masterVisitId);
+    if (!master) return { ok: false, error: 'Einsatzserie nicht gefunden.' };
+
+    const children = series.data.filter((visit) => visit.id !== masterVisitId);
+    if (children.length === 0) return this.delete(tenantId, masterVisitId);
+
+    const nextMaster = children[0]!;
+    const oldMasterRecurrence = parseVisitRecurrenceJson(master.recurrenceJson);
+    const oldMasterOccurrence =
+      oldMasterRecurrence.masterOccurrenceDate
+      ?? master.assignmentDate
+      ?? master.scheduledStart.slice(0, 10);
+    const nextMasterRecurrence = parseVisitRecurrenceJson(nextMaster.recurrenceJson);
+    const nextMasterOccurrence =
+      nextMasterRecurrence.sourceOccurrenceDate
+      ?? nextMaster.assignmentDate
+      ?? nextMaster.scheduledStart.slice(0, 10);
+    const materializedOccurrences = { ...(oldMasterRecurrence.materializedOccurrences ?? {}) };
+    delete materializedOccurrences[nextMasterOccurrence];
+
+    const promotedRecurrence = {
+      ...oldMasterRecurrence,
+      anchorDate:
+        oldMasterRecurrence.anchorDate
+        ?? master.assignmentDate
+        ?? master.scheduledStart.slice(0, 10),
+      masterOccurrenceDate: nextMasterOccurrence,
+      parentSeriesId: null,
+      sourceOccurrenceDate: null,
+      detachedOccurrenceDates: Array.from(new Set([
+        ...(oldMasterRecurrence.detachedOccurrenceDates ?? []),
+        oldMasterOccurrence,
+      ])),
+      materializedOccurrences,
+    };
+
+    const rewritten: Array<{ id: string; recurrenceJson: unknown }> = [];
+    const rewrite = async (id: string, recurrenceJson: unknown) => {
+      const { data, error } = await fromUnknownTable(supabase, 'assist_visits')
+        .update({ recurrence_json: recurrenceJson })
+        .eq('tenant_id', tenantId)
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+      if (error) return { ok: false as const, error: toGermanSupabaseError(error) };
+      if (!data) return { ok: false as const, error: 'Serienzuordnung konnte nicht gespeichert werden.' };
+      return { ok: true as const };
+    };
+
+    const promoted = await rewrite(nextMaster.id, promotedRecurrence);
+    if (!promoted.ok) return promoted;
+    rewritten.push({ id: nextMaster.id, recurrenceJson: nextMaster.recurrenceJson });
+
+    for (const child of children.slice(1)) {
+      const recurrence = parseVisitRecurrenceJson(child.recurrenceJson);
+      const result = await rewrite(child.id, {
+        ...recurrence,
+        parentSeriesId: nextMaster.id,
+      });
+      if (!result.ok) {
+        for (const rollback of rewritten.reverse()) {
+          await rewrite(rollback.id, rollback.recurrenceJson);
+        }
+        return result;
+      }
+      rewritten.push({ id: child.id, recurrenceJson: child.recurrenceJson });
+    }
+
+    // The promoted master must own mappings that point to the newly reparented
+    // children, not to the deleted technical controller.
+    const normalizedMappings = Object.fromEntries(
+      children.slice(1).map((child) => {
+        const recurrence = parseVisitRecurrenceJson(child.recurrenceJson);
+        const occurrenceDate =
+          recurrence.sourceOccurrenceDate
+          ?? child.assignmentDate
+          ?? child.scheduledStart.slice(0, 10);
+        return [occurrenceDate, child.id];
+      }),
+    );
+    const normalizedPromotion = await rewrite(nextMaster.id, {
+      ...promotedRecurrence,
+      materializedOccurrences: normalizedMappings,
+    });
+    if (!normalizedPromotion.ok) {
+      for (const rollback of rewritten.reverse()) {
+        await rewrite(rollback.id, rollback.recurrenceJson);
+      }
+      return normalizedPromotion;
+    }
+
+    const deleted = await this.delete(tenantId, masterVisitId);
+    if (!deleted.ok) {
+      for (const rollback of rewritten.reverse()) {
+        await rewrite(rollback.id, rollback.recurrenceJson);
+      }
+      return deleted;
+    }
+    return { ok: true, data: undefined };
   },
 
   async delete(tenantId: string, visitId: string): Promise<ServiceResult<void>> {
@@ -1353,35 +1585,10 @@ export const visitSupabaseRepository = {
       };
     }
 
-    // Historical sync races could create several physical rows for the same logical
-    // appointment. Deleting only the clicked id makes the next copy appear immediately.
-    let duplicateQuery = fromUnknownTable(supabase, 'assist_visits')
-      .select('id, legacy_assignment_id, client_id, employee_id, service_name, title, planned_start_at, planned_end_at, planning_status, execution_status, documentation_status, proof_status, billing_status, actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at, recurrence_json')
-      .eq('tenant_id', tenantId)
-      .eq('client_id', deletionRow.client_id)
-      .eq('planned_start_at', deletionRow.planned_start_at)
-      .eq('planned_end_at', deletionRow.planned_end_at);
-    duplicateQuery = deletionRow.employee_id
-      ? duplicateQuery.eq('employee_id', deletionRow.employee_id)
-      : duplicateQuery.is('employee_id', null);
-    const { data: duplicateData, error: duplicateError } = await duplicateQuery;
-    if (duplicateError) return { ok: false, error: toGermanSupabaseError(duplicateError) };
-
-    const normalizedService = (deletionRow.service_name || deletionRow.title).trim().toLocaleLowerCase('de-DE');
-    const identicalRows = ((duplicateData ?? []) as unknown as (typeof deletionRow)[]).filter(
-      (candidate) =>
-        (candidate.service_name || candidate.title).trim().toLocaleLowerCase('de-DE')
-          === normalizedService,
-    );
-    const protectedDuplicate = identicalRows.find((candidate) => !isSafelyDeletable(candidate));
-    if (protectedDuplicate) {
-      return {
-        ok: false,
-        error: 'Zu diesem Termin existieren bereits Ausführungsdaten. Der Einsatz wurde nicht gelöscht.',
-      };
-    }
-
-    const rowsToDelete = identicalRows.length > 0 ? identicalRows : [deletionRow];
+    // Identity is the persisted visit id (or explicit series occurrence key),
+    // never a fuzzy client/employee/time/title tuple. Two deliberately planned
+    // appointments at the same time must remain independently deletable.
+    const rowsToDelete = [deletionRow];
 
     // Every materialized series copy gets a durable tombstone before physical deletion.
     // Otherwise recurrence expansion recreates the just-deleted card on refresh.
@@ -1423,21 +1630,6 @@ export const visitSupabaseRepository = {
         .filter((id): id is string => Boolean(id)),
     ));
 
-    // Also clean up older, unlinked legacy mirrors of the same appointment. They are
-    // still used as a compatibility fallback and would otherwise resurrect the card.
-    let legacyDuplicateQuery = fromUnknownTable(supabase, 'assignments')
-      .select('id, status, title, actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at')
-      .eq('tenant_id', tenantId)
-      .eq('client_id', deletionRow.client_id)
-      .eq('planned_start_at', deletionRow.planned_start_at)
-      .eq('planned_end_at', deletionRow.planned_end_at);
-    legacyDuplicateQuery = deletionRow.employee_id
-      ? legacyDuplicateQuery.eq('employee_id', deletionRow.employee_id)
-      : legacyDuplicateQuery.is('employee_id', null);
-    const { data: legacyDuplicateData, error: legacyDuplicateError } = await legacyDuplicateQuery;
-    if (legacyDuplicateError) {
-      return { ok: false, error: toGermanSupabaseError(legacyDuplicateError) };
-    }
     const legacyRowSelect = 'id, status, title, actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at';
     const linkedLegacyResult = linkedLegacyAssignmentIds.length > 0
       ? await fromUnknownTable(supabase, 'assignments')
@@ -1448,9 +1640,8 @@ export const visitSupabaseRepository = {
     if (linkedLegacyResult.error) {
       return { ok: false, error: toGermanSupabaseError(linkedLegacyResult.error) };
     }
-    const normalizedTitle = deletionRow.title.trim().toLocaleLowerCase('de-DE');
     const legacyCandidates = new Map(
-      [...(legacyDuplicateData ?? []), ...(linkedLegacyResult.data ?? [])]
+      [...(linkedLegacyResult.data ?? [])]
         .map((candidate) => {
           const row = candidate as unknown as { id: string };
           return [row.id, candidate] as const;
@@ -1466,9 +1657,6 @@ export const visitSupabaseRepository = {
       arrived_at: string | null;
       finished_at: string | null;
     }[])
-      .filter((candidate) =>
-        (candidate.title ?? '').trim().toLocaleLowerCase('de-DE') === normalizedTitle,
-      )
       .filter((candidate) => {
         const assignmentStatus = remoteStatusToAssignment(candidate.status);
         const isUnstarted = ['geplant', 'bestaetigt', 'storniert'].includes(assignmentStatus);
@@ -1644,6 +1832,54 @@ export const visitSupabaseRepository = {
       }
     }
 
+    // The parent JSON update and child insert were historically two writes.
+    // Recover an already existing child even when an older interrupted request
+    // never stored the materializedOccurrences mapping. This read-before-create
+    // also makes retries idempotent and prevents most duplicate physical rows.
+    const { data: existingChildren, error: existingChildrenError } = await fromUnknownTable(
+      supabase,
+      'assist_visits',
+    )
+      .select('id, actual_start_at, actual_end_at, proof_status, documentation_status, updated_at')
+      .eq('tenant_id', tenantId)
+      .eq('recurrence_json->>parentSeriesId', masterVisitId)
+      .eq('recurrence_json->>sourceOccurrenceDate', occurrenceDate)
+      .order('updated_at', { ascending: false });
+
+    if (existingChildrenError) {
+      return { ok: false, error: toGermanSupabaseError(existingChildrenError) };
+    }
+
+    const recoveredChild = ((existingChildren ?? []) as unknown as Array<{
+      id: string;
+      actual_start_at: string | null;
+      actual_end_at: string | null;
+      proof_status: string | null;
+      documentation_status: string | null;
+      updated_at: string;
+    }>).sort((a, b) => {
+      const evidence = (row: typeof a) =>
+        Number(Boolean(row.actual_start_at))
+        + Number(Boolean(row.actual_end_at))
+        + Number(row.proof_status === 'signed' || row.proof_status === 'verified')
+        + Number(row.documentation_status === 'complete' || row.documentation_status === 'review');
+      return evidence(b) - evidence(a) || b.updated_at.localeCompare(a.updated_at);
+    })[0];
+
+    if (recoveredChild) {
+      const repairedRecurrence = buildRecurrenceJsonWithMaterializedOccurrence(
+        recurrence,
+        occurrenceDate,
+        recoveredChild.id,
+      );
+      const { error: repairError } = await fromUnknownTable(supabase, 'assist_visits')
+        .update({ recurrence_json: repairedRecurrence, updated_by: actorProfileId ?? null })
+        .eq('tenant_id', tenantId)
+        .eq('id', masterVisitId);
+      if (repairError) return { ok: false, error: toGermanSupabaseError(repairError) };
+      return { ok: true, data: { id: recoveredChild.id, materialized: false } };
+    }
+
     const masterDateKey = master.data.assignmentDate?.slice(0, 10) ?? master.data.scheduledStart.slice(0, 10);
     if (occurrenceDate === masterDateKey) {
       return { ok: true, data: { id: masterVisitId, materialized: false } };
@@ -1714,6 +1950,23 @@ export const visitSupabaseRepository = {
       .eq('id', masterVisitId);
 
     if (updateError) {
+      // Do not leave a hidden child behind when linking it to the series fails.
+      // This child has just been created and therefore cannot contain genuine
+      // execution evidence yet.
+      await stornoAssignmentReservation(tenantId, created.data.id, actorProfileId);
+      await fromUnknownTable(supabase, 'assignment_tasks')
+        .delete()
+        .eq('tenant_id', tenantId)
+        .eq('assignment_id', created.data.id);
+      await fromUnknownTable(supabase, 'assignments')
+        .delete()
+        .eq('tenant_id', tenantId)
+        .eq('id', created.data.id);
+      await fromUnknownTable(supabase, 'assist_visits')
+        .delete()
+        .eq('tenant_id', tenantId)
+        .eq('id', created.data.id);
+      cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', created.data.id);
       return { ok: false, error: toGermanSupabaseError(updateError) };
     }
 

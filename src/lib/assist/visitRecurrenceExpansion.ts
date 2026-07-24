@@ -64,6 +64,9 @@ export function parseVisitRecurrenceJson(raw: unknown): VisitRecurrenceJson {
     typeof obj.parentSeriesId === 'string' ? obj.parentSeriesId : obj.parentSeriesId === null ? null : undefined;
   const sourceOccurrenceDate =
     typeof obj.sourceOccurrenceDate === 'string' ? obj.sourceOccurrenceDate : undefined;
+  const anchorDate = typeof obj.anchorDate === 'string' ? obj.anchorDate : undefined;
+  const masterOccurrenceDate =
+    typeof obj.masterOccurrenceDate === 'string' ? obj.masterOccurrenceDate : undefined;
 
   if (pattern === 'none') {
     return {
@@ -72,6 +75,8 @@ export function parseVisitRecurrenceJson(raw: unknown): VisitRecurrenceJson {
       materializedOccurrences,
       parentSeriesId,
       sourceOccurrenceDate,
+      anchorDate,
+      masterOccurrenceDate,
     };
   }
 
@@ -84,6 +89,8 @@ export function parseVisitRecurrenceJson(raw: unknown): VisitRecurrenceJson {
     materializedOccurrences,
     parentSeriesId,
     sourceOccurrenceDate,
+    anchorDate,
+    masterOccurrenceDate,
   };
 }
 
@@ -165,8 +172,9 @@ export function expandVisitRowToListItems(
     return filterVisitListItemsByDateRange([item], options?.dateFrom, options?.dateTo);
   }
 
+  const masterOccurrenceDate = recurrence.masterOccurrenceDate ?? row.assignment_date.slice(0, 10);
   const dates = expandVisitRecurrenceDates({
-    assignmentDate: row.assignment_date,
+    assignmentDate: recurrence.anchorDate ?? row.assignment_date,
     recurrencePattern: recurrence.pattern,
     recurrenceWeekdays: recurrence.weekdays,
     recurrenceEndDate: recurrence.endDate ?? null,
@@ -174,15 +182,23 @@ export function expandVisitRowToListItems(
     maxOccurrences: recurrence.occurrenceCount ?? 52,
   }).filter((dateKey) => !(recurrence.detachedOccurrenceDates ?? []).includes(dateKey));
 
-  if (dates.length <= 1) {
-    return filterVisitListItemsByDateRange([item], options?.dateFrom, options?.dateTo);
-  }
-
-  const expanded = dates.map((dateKey, index) => {
+  const virtualDates = dates.filter((dateKey) => dateKey !== masterOccurrenceDate);
+  const masterItem: VisitDispositionListItem = {
+    ...item,
+    seriesMasterId: item.seriesMasterId ?? item.id,
+    seriesOccurrenceDate: masterOccurrenceDate,
+    isSeriesMaster: true,
+  };
+  const expanded = [
+    masterItem,
+    ...virtualDates.map((dateKey) => {
     const shifted = shiftVisitScheduleToDate(row.planned_start_at, row.planned_end_at, dateKey);
     const expandedItem: VisitDispositionListItem = {
       ...item,
-      id: index === 0 ? item.id : buildVisitOccurrenceId(item.id, dateKey),
+      id: buildVisitOccurrenceId(item.id, dateKey),
+      seriesMasterId: item.seriesMasterId ?? item.id,
+      seriesOccurrenceDate: dateKey,
+      isSeriesMaster: false,
       scheduledStart: shifted.scheduledStart,
       scheduledEnd: shifted.scheduledEnd,
       durationMinutes: durationMinutesFromRange(
@@ -191,8 +207,9 @@ export function expandVisitRowToListItems(
         item.durationMinutes,
       ),
     };
-    return index === 0 ? expandedItem : resetVirtualOccurrenceListItem(expandedItem, item.planningStatus);
-  });
+    return resetVirtualOccurrenceListItem(expandedItem, item.planningStatus);
+  }),
+  ];
 
   return filterVisitListItemsByDateRange(expanded, options?.dateFrom, options?.dateTo);
 }
@@ -202,6 +219,22 @@ function normalizeVisitIdentityPart(value: string | null | undefined): string {
 }
 
 function visitLogicalIdentity(item: VisitDispositionListItem): string {
+  if (item.seriesMasterId && item.seriesOccurrenceDate) {
+    return [
+      item.tenantId,
+      'series',
+      item.seriesMasterId,
+      item.seriesOccurrenceDate,
+    ].join('|');
+  }
+
+  // A persisted one-time visit is a real appointment in its own right. Two
+  // deliberately planned visits at the same time must never collapse merely
+  // because client, employee and title happen to match.
+  if (!item.id.includes(VISIT_OCCURRENCE_SEPARATOR)) {
+    return [item.tenantId, 'single', item.id].join('|');
+  }
+
   const clientIdentity = item.clientId || normalizeVisitIdentityPart(item.clientName);
   const employeeIdentity = item.employeeId || normalizeVisitIdentityPart(item.employeeName);
   const startMs = new Date(item.scheduledStart).getTime();

@@ -393,6 +393,36 @@ describe('assignmentCacheService', () => {
     expect(sorted.map((item) => item.id)).toEqual(['asg-today', 'asg-tomorrow', 'asg-later']);
   });
 
+  it('does not preserve a stale virtual duplicate after a series occurrence was materialized', () => {
+    const occurrence = '2026-07-24';
+    const masterId = '11111111-1111-4111-8111-111111111111';
+    const cachedVirtual = {
+      ...makeItem(`${masterId}::${occurrence}`, 'Serie', '2026-07-24T08:00:00.000Z'),
+      seriesMasterId: masterId,
+      seriesOccurrenceDate: occurrence,
+      cacheStale: true,
+    };
+    const livePhysical = {
+      ...cachedVirtual,
+      id: '22222222-2222-4222-8222-222222222222',
+      cacheStale: false,
+    };
+
+    const merged = mergeAssignmentListsWithStalePreservation(
+      [livePhysical],
+      [cachedVirtual],
+    );
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.id).toBe(livePhysical.id);
+    expect(merged[0]?.cacheStale).toBe(false);
+  });
+
+  it('keeps independent one-time appointments with identical times in the offline cache', () => {
+    const first = makeItem('single-a', 'Einsatz A', '2026-07-24T08:00:00.000Z');
+    const second = makeItem('single-b', 'Einsatz B', '2026-07-24T08:00:00.000Z');
+    expect(dedupeAssignmentItemsById([first, second])).toHaveLength(2);
+  });
+
   it('loads execution details A/B/C from separate cache keys', async () => {
     const detailA = makeExecutionDetail('asg-a', 'Einsatz A', 'bestaetigt');
     const detailB = makeExecutionDetail('asg-b', 'Einsatz B', 'unterwegs');
@@ -814,14 +844,29 @@ describe('assignmentCacheService', () => {
   });
 
   it('selectPrefetchAssignmentCandidates caps at MAX_PREFETCH_DETAILS', () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(8, 0, 0, 0);
     const many = Array.from({ length: 14 }, (_, index) =>
-      makeItem(`asg-${index}`, `Einsatz ${index}`, new Date(Date.UTC(2026, 6, 4 + index, 8)).toISOString()),
+      makeItem(
+        `asg-${index}`,
+        `Einsatz ${index}`,
+        new Date(tomorrow.getTime() + index * 86_400_000).toISOString(),
+      ),
     );
     expect(selectPrefetchAssignmentCandidates(many).length).toBe(MAX_PREFETCH_DETAILS);
   });
 
   it('schedules detail prefetch after successful online list load', async () => {
-    vi.mocked(fetchPortalAppointments).mockResolvedValue({ ok: true, data: threeSameDay });
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(8, 0, 0, 0);
+    const futureItems = [
+      makeItem('asg-a', 'Einsatz A', tomorrow.toISOString()),
+      makeItem('asg-b', 'Einsatz B', new Date(tomorrow.getTime() + 3_600_000).toISOString()),
+      makeItem('asg-c', 'Einsatz C', new Date(tomorrow.getTime() + 7_200_000).toISOString()),
+    ];
+    vi.mocked(fetchPortalAppointments).mockResolvedValue({ ok: true, data: futureItems });
     vi.mocked(fetchPortalAppointmentDetail).mockImplementation(async (id) => ({
       ok: true,
       data: makePortalDetail(String(id), `Portal ${id}`),

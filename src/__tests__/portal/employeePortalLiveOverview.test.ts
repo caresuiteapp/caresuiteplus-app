@@ -30,6 +30,8 @@ describe('employeePortalLiveOverviewService', () => {
     const duplicateRows = Array.from({ length: 7 }, (_, index) => ({
       ...BASE,
       id: `series-copy-${index}`,
+      seriesMasterId: 'series-master-1',
+      seriesOccurrenceDate: start.toISOString().slice(0, 10),
       startsAt: start.toISOString(),
       endsAt: end.toISOString(),
       title: 'Haushaltswirtschaftliche Unterstützung',
@@ -37,6 +39,36 @@ describe('employeePortalLiveOverviewService', () => {
 
     expect(dedupeEmployeePortalAppointments(duplicateRows)).toHaveLength(1);
     expect(buildEmployeePortalOverviewFromAppointments(duplicateRows).todayAssignments).toHaveLength(1);
+  });
+
+  it('prefers the physical completed series occurrence over stale active duplicates', () => {
+    const occurrence = '2026-07-24';
+    const selected = dedupeEmployeePortalAppointments([
+      {
+        ...BASE,
+        id: `11111111-1111-4111-8111-111111111111::${occurrence}`,
+        seriesMasterId: '11111111-1111-4111-8111-111111111111',
+        seriesOccurrenceDate: occurrence,
+        assignmentStatus: 'gestartet',
+      },
+      {
+        ...BASE,
+        id: '22222222-2222-4222-8222-222222222222',
+        seriesMasterId: '11111111-1111-4111-8111-111111111111',
+        seriesOccurrenceDate: occurrence,
+        assignmentStatus: 'abgeschlossen',
+      },
+    ]);
+
+    expect(selected).toHaveLength(1);
+    expect(selected[0]?.id).toBe('22222222-2222-4222-8222-222222222222');
+    expect(selected[0]?.assignmentStatus).toBe('abgeschlossen');
+  });
+
+  it('keeps two separately planned one-time assignments at identical times', () => {
+    const first = { ...BASE, id: 'single-1' };
+    const second = { ...BASE, id: 'single-2' };
+    expect(dedupeEmployeePortalAppointments([first, second])).toHaveLength(2);
   });
 
   it('keeps a separately planned replacement when its schedule differs', () => {

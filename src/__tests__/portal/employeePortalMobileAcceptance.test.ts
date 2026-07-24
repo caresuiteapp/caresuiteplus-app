@@ -18,7 +18,7 @@ describe('employee portal mobile acceptance fixes', () => {
 
   it('ScreenShell disables inner scroll on phone only inside portal shell', () => {
     const shell = readSrc('src/components/layout/ScreenShell.tsx');
-    expect(shell).toContain('const disableMobileInnerScroll = shellHostsAurora && isPhone && isPortalShell');
+    expect(shell).toContain('const shellScroll = scroll && !(isPhone && isPortalShell)');
     expect(shell).toContain('isAuthRoutePath(pathname)');
   });
 

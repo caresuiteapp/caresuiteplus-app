@@ -86,6 +86,22 @@ export function shouldIsolateOccurrenceExecution(input: { itemId: string }): boo
   return isVirtualRecurringOccurrenceId(input.itemId);
 }
 
+export function isConcreteSeriesOccurrence(item: VisitDispositionListItem): boolean {
+  return Boolean(item.seriesMasterId && item.seriesOccurrenceDate);
+}
+
+function hasOccurrenceExecutionEvidence(item: VisitDispositionListItem): boolean {
+  return Boolean(
+    item.onTheWayAt
+    || item.arrivedAt
+    || item.actualStartAt
+    || item.actualEndAt
+    || item.documentationStatus === 'complete'
+    || item.documentationStatus === 'review'
+    || hasSignedProofStatus(item.proofStatus),
+  );
+}
+
 function defaultVirtualOccurrenceAssignmentStatus(
   detail: VisitDispositionDetail,
 ): AssignmentStatus {
@@ -136,11 +152,17 @@ function openOccurrenceDimensions(planningStatus: VisitPlanningStatus = 'schedul
  */
 export function shouldNeutralizeFutureListItem(item: VisitDispositionListItem): boolean {
   if (isVirtualRecurringOccurrenceId(item.id)) {
-    return isScheduledOnOrAfterCutoff(item.scheduledStart);
+    return true;
   }
 
-  if (!isScheduledOnOrAfterCutoff(item.scheduledStart)) return false;
-  if (hasSignedProofStatus(item.proofStatus)) return false;
+  // Never rewrite a normal one-time visit. The former date-cutoff heuristic
+  // treated every visit after 2026-07-07 as a possible broken series row and
+  // could therefore erase a legitimate completion state.
+  if (!isConcreteSeriesOccurrence(item)) return false;
+
+  // A physical occurrence owns its lifecycle. Persisted time, documentation
+  // or proof evidence always wins and must never be inherited or discarded.
+  if (hasOccurrenceExecutionEvidence(item)) return false;
 
   return (
     item.status === 'abgeschlossen' ||
@@ -248,4 +270,3 @@ export function resolveOccurrenceAwareVisitId(rawId: string): {
   const { occurrenceDate } = parseVisitOccurrenceId(rawId);
   return { masterId, occurrenceDate };
 }
-

@@ -32,6 +32,9 @@ export function ScreenHeader({
   const { isPhone } = useDeviceClass();
   const showBreadcrumbs = simplifyOnPhone ? !isPhone && breadcrumbTrail : breadcrumbTrail;
   const leftInsetWidth = showBack ? 88 : 0;
+  const sideInsetWidth = isPhone
+    ? Math.max(leftInsetWidth, rightSlot ? 88 : 0)
+    : leftInsetWidth;
 
   const styles = useMemo(
     () =>
@@ -53,8 +56,8 @@ export function ScreenHeader({
             : null),
         },
         left: {
-          width: leftInsetWidth,
-          minWidth: leftInsetWidth,
+          width: sideInsetWidth,
+          minWidth: sideInsetWidth,
         },
         center: {
           flex: 1,
@@ -62,7 +65,8 @@ export function ScreenHeader({
           minWidth: 0,
         },
         right: {
-          minWidth: rightSlot ? 120 : 0,
+          width: isPhone ? sideInsetWidth : undefined,
+          minWidth: isPhone ? sideInsetWidth : rightSlot ? 120 : 0,
           maxWidth: isPhone ? 88 : 360,
           alignItems: 'flex-end',
           flexShrink: 0,
@@ -91,7 +95,7 @@ export function ScreenHeader({
           marginTop: 2,
         },
       }),
-    [isPhone, leftInsetWidth, rightSlot],
+    [isPhone, rightSlot, sideInsetWidth],
   );
 
   const handleBack = () => {

@@ -7,6 +7,7 @@ import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDelete
 import {
   EmptyState,
   ErrorState,
+  FilterChipGroup,
   LoadingState,
   PremiumBadge,
   PremiumButton,
@@ -31,6 +32,7 @@ import {
   fetchVisitStatusHistory,
   updateVisitTaskStatus,
 } from '@/lib/assist';
+import type { VisitSeriesMutationScope } from '@/lib/assist/visitService';
 import type { VisitDispositionDetail, VisitTaskStatus } from '@/lib/assist/visitTypes';
 import { VISIT_TASK_STATUS_LABELS } from '@/lib/assist/visitTypes';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
@@ -185,6 +187,8 @@ export function AssignmentDetailTabsPanel({
     notFound,
   } = useVisitDispositionDetail(assignmentId);
   const [taskLoading, setTaskLoading] = useState(false);
+  const [deleteSeriesScope, setDeleteSeriesScope] =
+    useState<VisitSeriesMutationScope>('this_only');
 
   useEffect(() => {
     if (refreshTrigger) void refresh();
@@ -249,6 +253,15 @@ export function AssignmentDetailTabsPanel({
         actionBtn: useActionToolbar
           ? { flexGrow: 1, flexBasis: '30%', minWidth: 132, maxWidth: '100%' as const }
           : { width: '100%' as const },
+        seriesDeleteWrap: {
+          gap: spacing.xs,
+          padding: spacing.sm,
+          borderWidth: 1,
+          borderColor: 'rgba(56,189,248,0.28)',
+          borderRadius: 14,
+        },
+        seriesDeleteLabel: { ...typography.bodyStrong },
+        seriesDeleteHint: { ...typography.caption },
         actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
         taskRow: {
           paddingVertical: spacing.xs,
@@ -333,7 +346,12 @@ export function AssignmentDetailTabsPanel({
 
   const handleDelete = async () => {
     if (!tenantId) return { ok: false as const, error: 'Kein Mandant.' };
-    return deleteVisitDisposition(assignmentId, tenantId, profile?.roleKey);
+    return deleteVisitDisposition(
+      assignmentId,
+      tenantId,
+      profile?.roleKey,
+      deleteSeriesScope,
+    );
   };
 
   const proofPreview = buildVisitProofPreview(visit, visit.employeeNotes ?? visit.notes);
@@ -350,6 +368,7 @@ export function AssignmentDetailTabsPanel({
     && !visit.finishedAt
     && visit.billingStatus !== 'invoiced'
     && visit.billingStatus !== 'paid';
+  const isSeriesVisit = Boolean(visit.seriesMasterId && visit.seriesOccurrenceDate);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -703,14 +722,50 @@ export function AssignmentDetailTabsPanel({
         />
       ) : null}
       {can('assist.assignments.manage') && !isReadOnly && canDeleteVisit ? (
-        <View style={useActionToolbar ? styles.actionBtn : undefined}>
+        <View
+          style={[
+            useActionToolbar ? styles.actionBtn : undefined,
+            isSeriesVisit ? styles.seriesDeleteWrap : undefined,
+          ]}
+        >
+          {isSeriesVisit ? (
+            <>
+              <Text style={[styles.seriesDeleteLabel, { color: text.primary }]}>
+                Löschbereich
+              </Text>
+              <FilterChipGroup
+                options={[
+                  { key: 'this_only', label: 'Nur dieser Termin' },
+                  { key: 'this_and_following', label: 'Dieser und folgende' },
+                ]}
+                value={deleteSeriesScope}
+                onChange={(value) =>
+                  setDeleteSeriesScope(value as VisitSeriesMutationScope)
+                }
+                wrap
+              />
+              <Text style={[styles.seriesDeleteHint, { color: text.secondary }]}>
+                {deleteSeriesScope === 'this_only'
+                  ? 'Andere Termine der Serie bleiben bestehen.'
+                  : 'Vergangene, begonnene, dokumentierte oder abgerechnete Termine bleiben bestehen.'}
+              </Text>
+            </>
+          ) : null}
           <OfficeRecordDeleteButton
             recordLabel="Einsatz"
             displayName={displayName}
             onDelete={handleDelete}
             onDeleted={onDeleted}
-            confirmTitle="Einsatz endgültig löschen?"
-            buttonTitle="Einsatz löschen"
+            confirmTitle={
+              deleteSeriesScope === 'this_and_following'
+                ? 'Diesen und folgende Termine löschen?'
+                : 'Einsatz endgültig löschen?'
+            }
+            buttonTitle={
+              deleteSeriesScope === 'this_and_following'
+                ? 'Diesen und folgende löschen'
+                : 'Einsatz löschen'
+            }
             fullWidth={!useActionToolbar}
           />
         </View>

@@ -395,8 +395,9 @@ export async function getPortalCalendarEvents(
       tenantId,
       events,
       {
-        clientId: context.portalType === 'client' ? context.clientId : undefined,
-        employeeId: context.portalType === 'employee' ? context.employeeId : undefined,
+        clientId: context.portalType === 'client' ? context.clientId ?? undefined : undefined,
+        employeeId:
+          context.portalType === 'employee' ? context.employeeId ?? undefined : undefined,
       },
       options?.rangeStart,
       options?.rangeEnd,
@@ -436,8 +437,9 @@ export async function getPortalCalendarEvents(
       tenantId,
       events,
       {
-        clientId: context.portalType === 'client' ? context.clientId : undefined,
-        employeeId: context.portalType === 'employee' ? context.employeeId : undefined,
+        clientId: context.portalType === 'client' ? context.clientId ?? undefined : undefined,
+        employeeId:
+          context.portalType === 'employee' ? context.employeeId ?? undefined : undefined,
       },
       options?.rangeStart,
       options?.rangeEnd,
@@ -593,7 +595,7 @@ export function buildEmployeePortalCalendarConfig(employeeId: string): CalendarV
     calendarScope: 'portal',
     moduleKey: 'portal',
     defaultView: 'agenda',
-    subtitle: 'Alle Einsätze im Team — Termine und Abwesenheiten',
+    subtitle: 'Meine Einsätze, Termine und Abwesenheiten',
     emptyStateMessage:
       'Im gewählten Zeitraum sind keine Einträge sichtbar. Wechseln Sie die Ansicht oder den Zeitraum.',
     moduleColor: '#FFB020',
@@ -603,13 +605,18 @@ export function buildEmployeePortalCalendarConfig(employeeId: string): CalendarV
   };
 }
 
-/** Employee portal calendar — team-wide assignments, planned events, absences (read-only). */
+/** Employee portal calendar — only the signed-in employee's readable events. */
 export async function getEmployeePortalCalendarEvents(
   tenantId: string,
-  _employeeId: string,
+  employeeId: string,
   options?: FetchCalendarEventsOptions,
 ): Promise<ServiceResult<CalendarEvent[]>> {
-  return getEmployeePortalTeamCalendarEvents(tenantId, options);
+  if (!employeeId.trim()) return { ok: true, data: [] };
+  return getPortalCalendarEvents(
+    tenantId,
+    { portalType: 'employee', employeeId },
+    options,
+  );
 }
 
 /** Team-wide employee portal calendar — all visible colleague assignments. */
@@ -675,7 +682,8 @@ export async function getEmployeePortalTeamCalendarEvents(
     return { ok: true, data: events };
   }
 
-  return result;
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true, data: [] };
 }
 
 /** @deprecated Use getModuleCalendarEvents('assist', ...) */

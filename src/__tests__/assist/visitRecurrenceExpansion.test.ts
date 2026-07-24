@@ -27,6 +27,7 @@ function baseListItem(overrides: Partial<VisitDispositionListItem> = {}): VisitD
     scheduledEnd: '2026-07-07T09:00:00.000Z',
     durationMinutes: 120,
     status: 'aktiv',
+    assignmentStatus: 'bestaetigt',
     planningStatus: 'scheduled',
     proofStatus: 'none',
     billingStatus: 'preview',
@@ -111,9 +112,47 @@ describe('visitRecurrenceExpansion', () => {
 
     expect(expanded).toHaveLength(3);
     expect(expanded[0]?.id).toBe(VISIT_ID);
+    expect(expanded[0]?.seriesMasterId).toBe(VISIT_ID);
+    expect(expanded[0]?.seriesOccurrenceDate).toBe(dates[0]);
     expect(expanded[1]?.id).toBe(buildVisitOccurrenceId(VISIT_ID, dates[1]!));
+    expect(expanded[1]?.seriesMasterId).toBe(VISIT_ID);
+    expect(expanded[1]?.seriesOccurrenceDate).toBe(dates[1]);
     expect(expanded[2]?.id).toBe(buildVisitOccurrenceId(VISIT_ID, dates[2]!));
     expect(expanded.map((entry) => entry.scheduledStart.slice(0, 10))).toEqual(dates);
+  });
+
+  it('führt einen einzeln verschobenen Mastertermin getrennt vom Serienanker', () => {
+    const item = baseListItem({
+      scheduledStart: '2026-07-08T07:00:00.000Z',
+      scheduledEnd: '2026-07-08T09:00:00.000Z',
+    });
+    const expanded = expandVisitRowToListItems(
+      {
+        assignment_date: '2026-07-08',
+        planned_start_at: item.scheduledStart,
+        planned_end_at: item.scheduledEnd,
+        recurrence_json: {
+          pattern: 'weekly',
+          weekdays: ['mo'],
+          occurrenceCount: 3,
+          anchorDate: '2026-07-06',
+          masterOccurrenceDate: '2026-07-08',
+          detachedOccurrenceDates: ['2026-07-06'],
+        },
+      },
+      item,
+    );
+
+    expect(expanded[0]).toMatchObject({
+      id: VISIT_ID,
+      seriesOccurrenceDate: '2026-07-08',
+      scheduledStart: '2026-07-08T07:00:00.000Z',
+    });
+    expect(expanded.map((entry) => entry.seriesOccurrenceDate)).toEqual([
+      '2026-07-08',
+      '2026-07-13',
+      '2026-07-20',
+    ]);
   });
 
   it('lässt einmalige Einsätze unverändert', () => {
@@ -182,6 +221,8 @@ describe('visitRecurrenceExpansion', () => {
     const duplicates = Array.from({ length: 6 }, (_, index) =>
       baseListItem({
         id: `00000000-0000-4000-8000-00000000000${index}`,
+        seriesMasterId: VISIT_ID,
+        seriesOccurrenceDate: '2026-07-21',
         scheduledStart: duplicateStart,
         scheduledEnd: duplicateEnd,
         clientName: 'Doris Niemeyer',
@@ -194,6 +235,25 @@ describe('visitRecurrenceExpansion', () => {
     expect(dedupeVisitDispositionListItems(duplicates)).toHaveLength(1);
   });
 
+  it('behält zwei absichtlich getrennte Einzeleinsätze zur gleichen Zeit', () => {
+    const sameSchedule = {
+      scheduledStart: '2026-07-21T07:50:00.000Z',
+      scheduledEnd: '2026-07-21T09:50:00.000Z',
+      clientName: 'Doris Niemeyer',
+      employeeName: 'Kathrin Pott',
+    };
+    const first = baseListItem({
+      ...sameSchedule,
+      id: '00000000-0000-4000-8000-000000000001',
+    });
+    const second = baseListItem({
+      ...sameSchedule,
+      id: '00000000-0000-4000-8000-000000000002',
+    });
+
+    expect(dedupeVisitDispositionListItems([first, second])).toHaveLength(2);
+  });
+
   it('bevorzugt den beendeten Einsatz vor einer geplanten Serienkopie', () => {
     const shared = {
       scheduledStart: '2026-07-23T07:00:00.000Z',
@@ -204,12 +264,16 @@ describe('visitRecurrenceExpansion', () => {
     const planned = baseListItem({
       ...shared,
       id: '00000000-0000-4000-8000-000000000001',
+      seriesMasterId: VISIT_ID,
+      seriesOccurrenceDate: '2026-07-23',
       assignmentStatus: 'geplant',
       executionStatus: 'pending',
     });
     const completed = baseListItem({
       ...shared,
       id: '00000000-0000-4000-8000-000000000002',
+      seriesMasterId: VISIT_ID,
+      seriesOccurrenceDate: '2026-07-23',
       assignmentStatus: 'bestaetigt',
       executionStatus: 'completed',
       actualEndAt: '2026-07-23T09:01:00.000Z',

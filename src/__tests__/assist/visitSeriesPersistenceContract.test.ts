@@ -34,17 +34,40 @@ describe('Serieneinsätze werden als Einzeleinsätze persistiert', () => {
     expect(source).toContain('async deleteOccurrence(');
     expect(source).toContain('detachedOccurrenceDates');
     expect(source).toContain('delete materializedOccurrences[occurrenceDate]');
+    expect(source).toContain('async deleteSeriesMasterOccurrenceOnly(');
+    expect(source).toContain('parentSeriesId: nextMaster.id');
   });
 
-  it('entfernt identische ungestartete Datenbankkopien gemeinsam', () => {
+  it('bietet Einzel- und Folgeterminbereich für Bearbeiten und Löschen an', () => {
+    const form = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/components/assist/AssignmentEditForm.tsx'),
+      'utf8',
+    );
+    const detail = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/components/assist/AssignmentDetailTabsPanel.tsx'),
+      'utf8',
+    );
+    const service = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/lib/assist/visitService.ts'),
+      'utf8',
+    );
+
+    expect(form).toContain('Nur dieser Termin');
+    expect(form).toContain('Dieser und folgende');
+    expect(detail).toContain('Löschbereich');
+    expect(detail).toContain('Vergangene, begonnene, dokumentierte oder abgerechnete Termine');
+    expect(service).toContain("scope === 'this_and_following'");
+    expect(service).toContain('isProtectedSeriesHistory');
+  });
+
+  it('behält absichtlich getrennte zeitgleiche Einsätze beim Einzellöschen', () => {
     const source = fs.readFileSync(
       path.resolve(process.cwd(), 'src/lib/assist/repositories/visitRepository.supabase.ts'),
       'utf8',
     );
 
-    expect(source).toContain(".eq('planned_start_at', deletionRow.planned_start_at)");
-    expect(source).toContain(".eq('planned_end_at', deletionRow.planned_end_at)");
-    expect(source).toContain('const protectedDuplicate = identicalRows.find');
+    expect(source).toContain('const rowsToDelete = [deletionRow]');
+    expect(source).not.toContain('const protectedDuplicate = identicalRows.find');
     expect(source).toContain('const safelyDeletableLegacyIds =');
     expect(source).toContain(".in('id', visitIds)");
   });

@@ -93,8 +93,8 @@ export const ASSIGNMENT_WORKFLOW_INVARIANTS: AssignmentWorkflowInvariant[] = [
   {
     id: 'execution-screen-shell-import',
     files: ['src/screens/portal/EmployeePortalVisitExecutionScreen.tsx'],
-    mustContain: "import { ScreenShell } from '@/components/layout'",
-    reason: 'Missing ScreenShell import caused immediate execution white screen.',
+    mustContain: "import { PortalTabScreen } from '@/screens/portal/PortalTabScreen'",
+    reason: 'Missing portal shell import causes an immediate execution white screen.',
   },
   {
     id: 'employee-execute-route',

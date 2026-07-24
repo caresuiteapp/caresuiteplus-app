@@ -2,6 +2,7 @@ import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import type {
   VisitCreateWizardData,
   VisitDispositionDetail,
+  VisitRecurrenceJson,
   VisitRecurrencePattern,
 } from '@/lib/assist/visitTypes';
 import {
@@ -12,6 +13,12 @@ import { parseVisitRecurrenceJson } from '@/lib/assist/visitRecurrenceExpansion'
 
 export type VisitEditFormData = VisitCreateWizardData & {
   assignmentStatus: AssignmentStatus;
+  /**
+   * Immutable recurrence bookkeeping read with the visit. The visible form
+   * edits business fields, while this snapshot keeps a physical occurrence
+   * attached to its series and preserves the master's materialization map.
+   */
+  originalRecurrenceJson?: VisitRecurrenceJson;
 };
 
 function padTimePart(value: number): string {
@@ -85,8 +92,36 @@ export function mapVisitDetailToEditForm(visit: VisitDispositionDetail): VisitEd
     recurrenceEndDate: recurrence.endDate ?? '',
     recurrenceWeekdays: recurrence.weekdays ?? [],
     recurrenceOccurrenceCount: recurrence.occurrenceCount ?? null,
+    originalRecurrenceJson: recurrence,
     catalogSnapshotJson: snapshot,
     assignmentStatus: visit.assignmentStatus,
+  };
+}
+
+export function mergeVisitRecurrenceForUpdate(
+  original: VisitRecurrenceJson | undefined,
+  requested: VisitRecurrenceJson,
+): VisitRecurrenceJson {
+  if (!original) return requested;
+
+  if (original.parentSeriesId && original.sourceOccurrenceDate) {
+    return {
+      pattern: 'none',
+      parentSeriesId: original.parentSeriesId,
+      sourceOccurrenceDate: original.sourceOccurrenceDate,
+      detachedOccurrenceDates: original.detachedOccurrenceDates,
+      materializedOccurrences: original.materializedOccurrences,
+      anchorDate: original.anchorDate,
+      masterOccurrenceDate: original.masterOccurrenceDate,
+    };
+  }
+
+  return {
+    ...requested,
+    detachedOccurrenceDates: original.detachedOccurrenceDates,
+    materializedOccurrences: original.materializedOccurrences,
+    anchorDate: original.anchorDate,
+    masterOccurrenceDate: original.masterOccurrenceDate,
   };
 }
 
@@ -127,7 +162,10 @@ export function buildVisitUpdateInputFromEditForm(
     proofTemplateKey: form.proofTemplateKey || null,
     documentationTemplateKey: form.documentationTemplate || null,
     riskFlagKeys: form.riskFlagKeys,
-    recurrenceJson: buildVisitRecurrenceJson(form),
+    recurrenceJson: mergeVisitRecurrenceForUpdate(
+      form.originalRecurrenceJson,
+      buildVisitRecurrenceJson(form),
+    ),
     catalogSnapshotJson: {
       ...form.catalogSnapshotJson,
       subjectKey: form.subjectKey,

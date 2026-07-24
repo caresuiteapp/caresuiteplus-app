@@ -61,7 +61,7 @@ function mapTask(task: AssignmentTaskItem): EmployeePortalTaskItem {
   return enrichPortalTaskCategory({
     id: task.id,
     title: task.title,
-    description: null,
+    description: '',
     required: task.isRequired,
     status: task.status as ExtendedAssignmentTaskStatus,
     completionNote: task.notDoneReason,
@@ -386,7 +386,7 @@ export async function fetchLiveEmployeePortalAssignmentDetail(
   );
   if (denied && roleKey === 'employee_portal') return denied;
 
-  return runService(async () => {
+  return runService<EmployeePortalAssignmentDetail>(async () => {
     // A concrete series date must have its own visit/assignment row. Repair older virtual
     // occurrences lazily when they are opened, then use that row for every following read.
     let executableAssignmentId = assignmentId;
@@ -396,6 +396,12 @@ export async function fetchLiveEmployeePortalAssignmentDetail(
         executableAssignmentId = executable.data.visitId;
       } else {
         console.warn('[employeePortalExecutionLiveService] series occurrence materialization:', executable.error);
+        return {
+          ok: false,
+          error:
+            'Dieser Serientermin konnte nicht als eigener Einsatz vorbereitet werden. '
+            + 'Bitte erneut laden; der vorherige Termin wurde nicht verändert.',
+        };
       }
     }
 
@@ -554,7 +560,7 @@ export async function transitionLiveEmployeePortalAssignment(
     executableAssignmentId,
     toStatus,
     {
-      actorProfileId: options?.profileId ?? null,
+      actorProfileId: options?.profileId ?? undefined,
       actorEmployeeId: employeeId,
     },
   );

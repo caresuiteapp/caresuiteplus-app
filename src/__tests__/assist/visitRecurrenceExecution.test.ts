@@ -5,6 +5,7 @@ import {
   resetVirtualOccurrenceExecutionState,
   resetVirtualOccurrenceListItem,
   shouldIsolateOccurrenceExecution,
+  shouldNeutralizeFutureListItem,
 } from '@/lib/assist/visitRecurrenceExecution';
 import { buildVisitOccurrenceId } from '@/lib/assist/visitRecurrenceExpansion';
 import { expandVisitRowToListItems } from '@/lib/assist/visitRecurrenceExpansion';
@@ -122,6 +123,50 @@ describe('visitRecurrenceExecution', () => {
     expect(reset.status).toBe('bestaetigt');
     expect(reset.proofStatus).toBe('none');
     expect(reset.isIncomplete).toBe(false);
+  });
+
+  it('verändert einen echten abgeschlossenen Einzeleinsatz niemals', () => {
+    const single = baseListItem({
+      id: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+      scheduledStart: '2026-08-01T07:30:00.000Z',
+      scheduledEnd: '2026-08-01T09:30:00.000Z',
+      status: 'abgeschlossen',
+      assignmentStatus: 'abgeschlossen',
+      executionStatus: 'completed',
+      documentationStatus: 'complete',
+      actualStartAt: '2026-08-01T07:31:00.000Z',
+      actualEndAt: '2026-08-01T09:29:00.000Z',
+      proofStatus: 'signed',
+    });
+
+    expect(shouldNeutralizeFutureListItem(single)).toBe(false);
+  });
+
+  it('repariert nur eine beweislos abgeschlossene physische Serieninstanz', () => {
+    const brokenOccurrence = baseListItem({
+      id: 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
+      seriesMasterId: VISIT_ID,
+      seriesOccurrenceDate: '2026-08-08',
+      scheduledStart: '2026-08-08T07:30:00.000Z',
+      scheduledEnd: '2026-08-08T09:30:00.000Z',
+      status: 'abgeschlossen',
+      assignmentStatus: 'abgeschlossen',
+      executionStatus: 'completed',
+      documentationStatus: 'none',
+      proofStatus: 'none',
+      onTheWayAt: null,
+      arrivedAt: null,
+      actualStartAt: null,
+      actualEndAt: null,
+    });
+
+    expect(shouldNeutralizeFutureListItem(brokenOccurrence)).toBe(true);
+    expect(
+      shouldNeutralizeFutureListItem({
+        ...brokenOccurrence,
+        actualStartAt: '2026-08-08T07:31:00.000Z',
+      }),
+    ).toBe(false);
   });
 
   it('speichert materialisierte Termine in recurrence_json', () => {

@@ -102,6 +102,54 @@ describe('visitEditMappers', () => {
     expect(payload.assignmentStatus).toBe('bestaetigt');
     expect(payload.tasks).toEqual(['Spaziergang']);
   });
+
+  it('preserves a materialized occurrence identity while editing one appointment', () => {
+    const form = mapVisitDetailToEditForm({
+      ...SAMPLE_VISIT,
+      recurrenceJson: {
+        pattern: 'none',
+        parentSeriesId: 'a264ad19-8c79-4350-a11b-6d71c7605515',
+        sourceOccurrenceDate: '2026-07-08',
+      },
+    });
+    form.title = 'Nur dieser Serientermin';
+
+    const payload = buildVisitUpdateInputFromEditForm(form);
+    expect(payload.recurrenceJson).toEqual({
+      pattern: 'none',
+      parentSeriesId: 'a264ad19-8c79-4350-a11b-6d71c7605515',
+      sourceOccurrenceDate: '2026-07-08',
+      detachedOccurrenceDates: undefined,
+      materializedOccurrences: undefined,
+    });
+  });
+
+  it('preserves the master materialization map during ordinary edits', () => {
+    const form = mapVisitDetailToEditForm({
+      ...SAMPLE_VISIT,
+      recurrenceJson: {
+        pattern: 'weekly',
+        weekdays: ['mi'],
+        occurrenceCount: 3,
+        detachedOccurrenceDates: ['2026-07-08'],
+        materializedOccurrences: {
+          '2026-07-08': '1bdf64db-0152-42a2-8f99-0d9eb69f46e7',
+        },
+      },
+    });
+    form.title = 'Umbenannte Serie';
+
+    const payload = buildVisitUpdateInputFromEditForm(form);
+    expect(payload.recurrenceJson).toMatchObject({
+      pattern: 'weekly',
+      weekdays: ['mi'],
+      occurrenceCount: 3,
+      detachedOccurrenceDates: ['2026-07-08'],
+      materializedOccurrences: {
+        '2026-07-08': '1bdf64db-0152-42a2-8f99-0d9eb69f46e7',
+      },
+    });
+  });
 });
 
 describe('AssignmentEditForm UI contract', () => {

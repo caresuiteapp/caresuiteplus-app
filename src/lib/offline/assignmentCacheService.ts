@@ -16,6 +16,10 @@ import {
   resolveEmployeePortalAssignmentPendingFlags,
   shouldNavigateEmployeePortalAssignmentToExecution,
 } from '@/lib/portal/employeePortalAssignmentCompletion';
+import {
+  dedupePortalAppointmentOccurrences,
+  employeePortalAppointmentIdentity,
+} from '@/lib/portal/employeePortalAppointmentIdentity';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { isBrowserOffline } from './connectivity';
 import { getStoreRecord, openOfflineDb, putStoreRecord, putSyncMeta } from './idb';
@@ -62,22 +66,13 @@ export function sortCachedAssignments(
 /** @deprecated Use sortCachedAssignments — kept for internal call sites. */
 export const sortPortalAppointmentItems = sortCachedAssignments;
 
-/** Prefer fresh online rows over stale cache duplicates (same assignment_id). */
+/** Prefer one fresh physical row per real occurrence, including series-id changes. */
 export function dedupeAssignmentItemsById(
   items: CachedPortalAppointmentItem[],
 ): CachedPortalAppointmentItem[] {
-  const byId = new Map<string, CachedPortalAppointmentItem>();
-  for (const item of items) {
-    const existing = byId.get(item.id);
-    if (!existing) {
-      byId.set(item.id, item);
-      continue;
-    }
-    if (existing.cacheStale && !item.cacheStale) {
-      byId.set(item.id, item);
-    }
-  }
-  return [...byId.values()];
+  return dedupePortalAppointmentOccurrences(
+    [...items].sort((a, b) => Number(Boolean(a.cacheStale)) - Number(Boolean(b.cacheStale))),
+  );
 }
 
 /** Keep cached assignments missing from online response as stale instead of deleting. */
@@ -85,10 +80,13 @@ export function mergeAssignmentListsWithStalePreservation(
   onlineItems: PortalAppointmentItem[],
   cachedItems: CachedPortalAppointmentItem[],
 ): CachedPortalAppointmentItem[] {
-  const onlineIds = new Set(onlineItems.map((item) => item.id));
+  const onlineOccurrences = new Set(onlineItems.map(employeePortalAppointmentIdentity));
   const fresh = onlineItems.map((item) => ({ ...item, cacheStale: false as const }));
   const stalePreserved = cachedItems
-    .filter((item) => item.id && !onlineIds.has(item.id))
+    .filter(
+      (item) =>
+        item.id && !onlineOccurrences.has(employeePortalAppointmentIdentity(item)),
+    )
     .map((item) => ({ ...item, cacheStale: true as const }));
   return dedupeAssignmentItemsById([...fresh, ...stalePreserved]);
 }
@@ -145,7 +143,7 @@ export function buildPortalDetailFromListItem(
     assignmentStatus,
     location: item.location ?? null,
     clientId: item.clientId,
-    clientName: item.clientName,
+    clientName: item.clientName ?? 'Klient:in',
     clientPhone: null,
     notes: null,
     tasks: [],
@@ -166,8 +164,8 @@ function partialCanonicalStatus(
     gestartet: 'started',
     pausiert: 'paused',
     beendet: 'finished',
-    dokumentation_offen: 'documentation_open',
-    unterschrift_offen: 'signature_open',
+    dokumentation_offen: 'documentation_pending',
+    unterschrift_offen: 'signature_pending',
     abgeschlossen: 'completed',
     storniert: 'cancelled',
     nicht_erschienen: 'no_show',
@@ -185,7 +183,7 @@ export function buildExecutionDetailFromListItem(
     tenantId,
     title: item.title,
     clientId: item.clientId,
-    clientName: item.clientName,
+    clientName: item.clientName ?? 'Klient:in',
     locationAddress: item.location ?? '',
     plannedStartAt: item.startsAt,
     plannedEndAt: item.endsAt,

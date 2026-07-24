@@ -146,6 +146,15 @@ export type VisitBudgetSnapshot = {
 export type VisitDispositionListItem = {
   id: string;
   tenantId: string;
+  /**
+   * Stable identity of a recurring series. Physical children and synthesized
+   * compatibility occurrences carry the same master id.
+   */
+  seriesMasterId?: string | null;
+  /** Local calendar date (YYYY-MM-DD) of this concrete series occurrence. */
+  seriesOccurrenceDate?: string | null;
+  /** True only for the persisted row that owns the recurrence rule. */
+  isSeriesMaster?: boolean;
   clientId?: string;
   title: string;
   serviceName: string | null;
@@ -265,6 +274,10 @@ export type VisitRecurrenceJson = {
   /** Set on visits materialized from a recurring series for execution. */
   parentSeriesId?: string | null;
   sourceOccurrenceDate?: string | null;
+  /** Immutable rule anchor when the physical first occurrence is moved on its own. */
+  anchorDate?: string | null;
+  /** Actual date of the persisted master occurrence after a this-only move. */
+  masterOccurrenceDate?: string | null;
 };
 
 export type VisitCreateInput = {

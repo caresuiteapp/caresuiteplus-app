@@ -14,6 +14,7 @@ import {
   resolveEmployeePortalAssignmentPendingFlags,
   shouldShowAssignmentInEmployeePortalList,
 } from './employeePortalAssignmentCompletion';
+import { dedupePortalAppointmentOccurrences } from './employeePortalAppointmentIdentity';
 
 const ACTIVE_ASSIGNMENT_STATUSES = new Set<AssignmentStatus>([
   'bestaetigt',
@@ -40,6 +41,14 @@ function workflowStatusToAssignment(status: WorkflowStatus): AssignmentStatus {
     archiviert: 'abgeschlossen',
   };
   return map[status] ?? remoteStatusToAssignment(status);
+}
+
+function assignmentStatusToCanonical(
+  status: AssignmentStatus,
+): EmployeePortalAssignmentListItem['canonicalStatus'] {
+  if (status === 'dokumentation_offen') return 'documentation_pending';
+  if (status === 'unterschrift_offen') return 'signature_pending';
+  return assignmentStatusToRemote(status) as EmployeePortalAssignmentListItem['canonicalStatus'];
 }
 
 function isSameDay(iso: string, ref: Date): boolean {
@@ -80,7 +89,7 @@ export function mapPortalAppointmentToListItem(
     plannedEndAt: item.endsAt,
     locationAddress: item.location ?? '',
     status,
-    canonicalStatus: assignmentStatusToRemote(status),
+    canonicalStatus: assignmentStatusToCanonical(status),
     documentationPending: pending.documentationPending,
     signaturePending: pending.signaturePending,
     isLocked: isEmployeePortalAssignmentLocked({
@@ -103,10 +112,6 @@ export function filterEmployeePortalAppointments(
   });
 }
 
-function normalizedAppointmentText(value: string | null | undefined): string {
-  return String(value ?? '').trim().toLocaleLowerCase('de-DE');
-}
-
 /**
  * Collapse duplicate technical rows for the same real-world employee appointment.
  *
@@ -117,33 +122,7 @@ function normalizedAppointmentText(value: string | null | undefined): string {
 export function dedupeEmployeePortalAppointments(
   items: PortalAppointmentItem[],
 ): PortalAppointmentItem[] {
-  const byOccurrence = new Map<string, PortalAppointmentItem>();
-
-  for (const item of items) {
-    const key = [
-      item.employeeId ?? '',
-      item.clientId,
-      item.startsAt,
-      item.endsAt,
-      normalizedAppointmentText(item.title),
-    ].join('|');
-    const current = byOccurrence.get(key);
-    if (!current) {
-      byOccurrence.set(key, item);
-      continue;
-    }
-
-    // Prefer the row with the more useful canonical state while preserving one
-    // stable occurrence. This avoids a stale "geplant" duplicate shadowing the
-    // actual current visit.
-    const currentStatus = current.assignmentStatus ?? workflowStatusToAssignment(current.status);
-    const nextStatus = item.assignmentStatus ?? workflowStatusToAssignment(item.status);
-    const currentScore = ACTIVE_ASSIGNMENT_STATUSES.has(currentStatus) ? 2 : current.assignmentStatus ? 1 : 0;
-    const nextScore = ACTIVE_ASSIGNMENT_STATUSES.has(nextStatus) ? 2 : item.assignmentStatus ? 1 : 0;
-    if (nextScore > currentScore) byOccurrence.set(key, item);
-  }
-
-  return [...byOccurrence.values()];
+  return dedupePortalAppointmentOccurrences(items);
 }
 
 export function buildEmployeePortalOverviewFromAppointments(
