@@ -5,12 +5,12 @@
  * surfaces. Cyan is a light effect, never the identity of every module.
  */
 export const spatialCareColors = {
-  night: '#17182D',
-  nightDeep: '#0D1022',
-  nightRaised: '#252742',
-  violetMist: '#777493',
-  pearl: '#DDD7E8',
-  pearlDeep: '#AFA7C4',
+  night: '#071225',
+  nightDeep: '#030A17',
+  nightRaised: '#0B1B35',
+  violetMist: '#12345B',
+  pearl: '#FFFFFF',
+  pearlDeep: '#B9F5FF',
   white: '#FFFFFF',
   ink: '#F8F6FF',
   inkMuted: '#B8B4CA',
@@ -20,25 +20,25 @@ export const spatialCareColors = {
 } as const;
 
 export const spatialModuleAccents = {
-  office: '#FF9B52',
+  office: '#69E8FF',
   assist: '#55DDF6',
-  pflege: '#48C98A',
-  beratung: '#9B7CF6',
-  stationaer: '#F26C78',
-  akademie: '#E9C84C',
-  qm: '#45B9A8',
-  insight: '#6C91F2',
+  pflege: '#A6F3FF',
+  beratung: '#69E8FF',
+  stationaer: '#D5FAFF',
+  akademie: '#FFFFFF',
+  qm: '#8DEEFF',
+  insight: '#69E8FF',
 } as const;
 
 export const spatialCare = {
   page: spatialCareColors.night,
   pageDeep: spatialCareColors.nightDeep,
-  navigation: 'rgba(24, 25, 47, 0.88)',
-  navigationStrong: 'rgba(15, 17, 35, 0.96)',
-  stage: 'rgba(31, 32, 58, 0.88)',
-  stageStrong: 'rgba(43, 44, 76, 0.94)',
-  panel: 'rgba(53, 54, 88, 0.72)',
-  panelMuted: 'rgba(95, 91, 126, 0.42)',
+  navigation: 'rgba(7, 18, 37, 0.88)',
+  navigationStrong: 'rgba(3, 10, 23, 0.96)',
+  stage: 'rgba(10, 27, 52, 0.88)',
+  stageStrong: 'rgba(12, 34, 62, 0.94)',
+  panel: 'rgba(15, 39, 71, 0.76)',
+  panelMuted: 'rgba(18, 52, 91, 0.46)',
   input: 'rgba(255, 255, 255, 0.075)',
   border: 'rgba(255, 255, 255, 0.16)',
   borderDark: 'rgba(255, 255, 255, 0.11)',
@@ -55,9 +55,9 @@ export const spatialCare = {
 } as const;
 
 export const spatialCareGradients = {
-  background: ['#111326', '#24243D', '#555166'] as const,
-  nightGlass: ['rgba(44,47,78,0.94)', 'rgba(19,21,42,0.97)'] as const,
-  pearl: ['rgba(66,65,101,0.96)', 'rgba(35,36,65,0.98)'] as const,
+  background: ['#030A17', '#071225', '#12345B'] as const,
+  nightGlass: ['rgba(15,39,71,0.94)', 'rgba(3,10,23,0.98)'] as const,
+  pearl: ['rgba(18,52,91,0.96)', 'rgba(7,18,37,0.98)'] as const,
   cyanEdge: ['rgba(105,232,255,0.92)', 'rgba(105,232,255,0.08)'] as const,
 } as const;
 

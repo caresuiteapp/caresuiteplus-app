@@ -33,6 +33,8 @@ export function PremiumListHeroFrame({
         ? ({ dataSet: { csHealthosComponent: 'list-overview' } } as object)
         : {})}
     >
+      <View pointerEvents="none" style={styles.ambientGlow} />
+      <View pointerEvents="none" style={styles.lightRail} />
       <View pointerEvents="none" style={styles.innerBorder} />
       {children}
     </View>
@@ -62,5 +64,25 @@ const styles = StyleSheet.create({
     borderRadius: spatialCare.radius.card,
     borderWidth: 1,
     borderColor: systemLiquidGlass.innerBorder,
+  },
+  ambientGlow: {
+    position: 'absolute',
+    width: 360,
+    height: 360,
+    top: -270,
+    right: -70,
+    borderRadius: 180,
+    backgroundColor: systemLiquidGlass.glow.medium,
+    opacity: 0.62,
+  },
+  lightRail: {
+    position: 'absolute',
+    top: 0,
+    left: 22,
+    right: 22,
+    height: 2,
+    borderRadius: 999,
+    backgroundColor: systemLiquidGlass.borderActive,
+    opacity: 0.88,
   },
 });

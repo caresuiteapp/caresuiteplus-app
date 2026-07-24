@@ -4,6 +4,8 @@ import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
+const SYSTEM_CYAN = '#69E8FF';
+
 type HealthOSPageSurfaceProps = Pick<
   ViewProps,
   'accessible' | 'accessibilityRole' | 'accessibilityHint'
@@ -41,6 +43,9 @@ export function HealthOSPageSurface({
           : {})}
         {...accessibilityProps}
       >
+        <View pointerEvents="none" style={styles.ambientTop} />
+        <View pointerEvents="none" style={styles.ambientBottom} />
+        <View pointerEvents="none" style={styles.lightRail} />
         <View pointerEvents="none" style={styles.innerBorder} />
         <View style={[styles.content, padded && styles.contentPadded, fill && styles.contentFill, contentStyle]}>
           {children}
@@ -103,6 +108,38 @@ const styles = StyleSheet.create({
           boxShadow: systemLiquidGlass.shadow,
         } as unknown as ViewStyle)
       : null),
+  },
+  ambientTop: {
+    position: 'absolute',
+    width: 520,
+    height: 520,
+    top: -360,
+    right: -130,
+    borderRadius: 260,
+    backgroundColor: systemLiquidGlass.glow.medium,
+    opacity: 0.66,
+  },
+  ambientBottom: {
+    position: 'absolute',
+    width: 420,
+    height: 420,
+    left: -280,
+    bottom: -290,
+    borderRadius: 210,
+    backgroundColor: systemLiquidGlass.glow.soft,
+    opacity: 0.48,
+  },
+  lightRail: {
+    position: 'absolute',
+    top: 0,
+    left: '7%',
+    right: '7%',
+    height: 2,
+    borderRadius: 999,
+    backgroundColor: systemLiquidGlass.borderActive,
+    shadowColor: SYSTEM_CYAN,
+    shadowOpacity: 0.85,
+    shadowRadius: 18,
   },
   surfaceFill: {
     flex: 1,

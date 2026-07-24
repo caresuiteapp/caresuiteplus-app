@@ -107,7 +107,12 @@ export function ScreenHeader({
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { csHealthosComponent: 'screen-header' } } as object)
+        : {})}
+    >
       <View style={styles.left}>
         {showBack ? (
           <Pressable onPress={handleBack} style={styles.backButton} hitSlop={12}>

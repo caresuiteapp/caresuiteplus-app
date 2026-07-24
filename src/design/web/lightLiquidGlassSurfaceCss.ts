@@ -3,11 +3,11 @@ export const LLGAN_GLASS_SURFACE_STYLE_ID = 'caresuite-system-liquid-glass-surfa
 
 export const LLGAN_GLASS_SURFACE_CSS = `
   :root {
-    --cs-navy: #17182D;
+    --cs-navy: #071225;
     --cs-blue: #69E8FF;
     --cs-white: #FFFFFF;
-    --cs-glass-panel: rgba(39, 40, 70, .82);
-    --cs-glass-card: rgba(53, 54, 88, .80);
+    --cs-glass-panel: rgba(12, 30, 57, .82);
+    --cs-glass-card: rgba(15, 39, 71, .84);
     --cs-glass-control: rgba(255, 255, 255, .075);
     --cs-glass-border: rgba(255, 255, 255, .13);
     --cs-glass-border-strong: rgba(255, 255, 255, .22);
@@ -16,8 +16,8 @@ export const LLGAN_GLASS_SURFACE_CSS = `
   }
 
   html, body, #root, #expo-root, [data-expo-root] {
-    background: #17182D !important;
-    background-color: #17182D !important;
+    background: #071225 !important;
+    background-color: #071225 !important;
     color: #F8F6FF;
   }
 
@@ -38,8 +38,8 @@ export const LLGAN_GLASS_SURFACE_CSS = `
     background-image: linear-gradient(
       145deg,
       rgba(255,255,255,.105) 0%,
-      rgba(105,232,255,.035) 42%,
-      rgba(112,104,145,.14) 100%
+      rgba(105,232,255,.075) 42%,
+      rgba(7,18,37,.20) 100%
     ) !important;
     border: 1px solid var(--cs-glass-border);
     box-shadow:

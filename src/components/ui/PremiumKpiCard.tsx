@@ -67,6 +67,25 @@ export function PremiumKpiCard({
           borderWidth: 1,
           borderColor: systemLiquidGlass.innerBorder,
         },
+        ambientGlow: {
+          position: 'absolute',
+          width: 156,
+          height: 156,
+          top: -92,
+          right: -54,
+          borderRadius: 78,
+          backgroundColor: resolvedAccent,
+          opacity: 0.16,
+        },
+        horizon: {
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          bottom: 0,
+          height: 1,
+          backgroundColor: resolvedAccent,
+          opacity: 0.42,
+        },
         rim: {
           position: 'absolute',
           top: 0,
@@ -140,6 +159,8 @@ export function PremiumKpiCard({
         ? ({ dataSet: { csHealthosComponent: 'kpi-card' } } as object)
         : {})}
     >
+      <View style={styles.ambientGlow} pointerEvents="none" />
+      <View style={styles.horizon} pointerEvents="none" />
       <View style={styles.innerBorder} pointerEvents="none" />
       <View style={[styles.rim, { backgroundColor: resolvedAccent }]} />
       <View style={styles.content}>
