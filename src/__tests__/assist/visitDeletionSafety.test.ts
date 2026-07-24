@@ -43,8 +43,10 @@ describe('Einsatz-Löschschutz', () => {
       'utf8',
     );
 
-    expect(visitRepository).toContain(".delete()\n      .eq('tenant_id', tenantId)");
-    expect(visitRepository).toContain(".select('id')\n      .maybeSingle()");
+    expect(visitRepository).toMatch(
+      /\.delete\(\)\s*\.eq\('tenant_id', tenantId\)\s*\.in\('id', visitIds\)\s*\.select\('id'\)/,
+    );
+    expect(visitRepository).toMatch(/\.select\('id'\)\s*\.maybeSingle\(\)/);
     expect(visitRepository).toContain('deletedIds.has(visitId)');
     expect(visitRepository).toContain('if (!updatedParent)');
     expect(visitRepository).toContain('if (!updatedMaster)');
