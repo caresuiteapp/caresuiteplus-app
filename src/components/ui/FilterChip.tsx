@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -29,6 +29,9 @@ export function FilterChip({
       ]}
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { csHealthosComponent: 'filter-chip' } } as object)
+        : {})}
     >
       <Text style={[styles.label, selected && styles.labelSelected]}>
         {label}

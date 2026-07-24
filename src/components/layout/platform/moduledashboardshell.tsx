@@ -1,12 +1,6 @@
-import { ReactNode, useMemo } from 'react';
-import { View } from 'react-native';
-import { BreadcrumbBar, PageHeader } from '@/components/layout/platform';
-import { CareLightScreen } from '@/components/layout';
+import type { ReactNode } from 'react';
 import type { BreadcrumbSegment } from '@/components/layout/platform/breadcrumbbar';
-import { useThemeMode } from '@/design/ThemeModeProvider';
-import { careLightColors } from '@/design/tokens/lightTheme';
-import { careSpacing } from '@/design/tokens/spacing';
-import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { ScreenShell } from '@/components/layout';
 
 type ModuleDashboardShellProps = {
   moduleLabel: string;
@@ -16,46 +10,23 @@ type ModuleDashboardShellProps = {
   children: ReactNode;
 };
 
-/** Shared module dashboard frame — PageHeader + breadcrumb + content. */
+/**
+ * Module dashboards no longer own a second page/header design.
+ * Every dashboard uses the same ScreenShell as the payroll reference.
+ */
 export function ModuleDashboardShell({
   moduleLabel,
   title = 'Dashboard',
   subtitle,
-  breadcrumbs,
   children,
 }: ModuleDashboardShellProps) {
-  const { mode } = useThemeMode();
-  const { colors } = useLegacyTheme();
-  const shellHostsAurora = useShellHostsAurora();
-  const pageStyle = useMemo(
-    () => ({
-      gap: careSpacing.md,
-      backgroundColor: shellHostsAurora ? 'transparent' : careLightColors.page,
-    }),
-    [shellHostsAurora],
-  );
-  const header = (
-    <>
-      <PageHeader badge={moduleLabel} title={title} subtitle={subtitle} />
-      {breadcrumbs ? <BreadcrumbBar segments={breadcrumbs} /> : null}
-    </>
-  );
-
-  // Transparent page when shell paints nebula (light or dark); CareLightScreen only off-shell mobile.
-  if (shellHostsAurora || mode === 'dark') {
-    return (
-      <View style={pageStyle}>
-        {header}
-        {children}
-      </View>
-    );
-  }
-
   return (
-    <CareLightScreen>
-      {header}
+    <ScreenShell
+      title={title}
+      subtitle={subtitle ?? moduleLabel}
+      showBack={false}
+    >
       {children}
-    </CareLightScreen>
+    </ScreenShell>
   );
 }
-

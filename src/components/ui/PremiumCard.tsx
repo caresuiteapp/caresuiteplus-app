@@ -132,7 +132,12 @@ export function PremiumCard({
   );
 
   return (
-    <Animated.View style={[animatedStyle, style]}>
+    <Animated.View
+      style={[animatedStyle, style]}
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { csHealthosComponent: onPress ? 'interactive-card' : 'card' } } as object)
+        : {})}
+    >
       {onPress ? (
         <Pressable
           onPress={onPress}

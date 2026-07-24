@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightModuleDashboard, CareLightScreen } from '@/components/layout';
+import { CareLightModuleDashboard, ScreenShell } from '@/components/layout';
 import { CareLightModuleTile, EmptyState, ErrorState, InfoBanner, LoadingState } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
@@ -49,37 +49,38 @@ export function QmDashboardScreen() {
 
   if (!can('qm.view')) {
     return (
-      <CareLightScreen>
+      <ScreenShell title="Qualitätsmanagement" subtitle="Office · QM">
         <LockedActionBanner message={check('qm.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightScreen>
+      </ScreenShell>
     );
   }
 
   if (loading && !data) {
     return (
-      <CareLightScreen>
+      <ScreenShell title="Qualitätsmanagement" subtitle="Office · QM">
         <LoadingState message="QM-Dashboard wird geladen…" />
-      </CareLightScreen>
+      </ScreenShell>
     );
   }
 
   if (error && !data) {
     return (
-      <CareLightScreen>
+      <ScreenShell title="Qualitätsmanagement" subtitle="Office · QM">
         <ErrorState message={error} onRetry={refresh} />
-      </CareLightScreen>
+      </ScreenShell>
     );
   }
 
   const kpis = data ? mapToCareLightKpis(buildQmDashboardKpis(data)) : [];
 
   return (
-    <CareLightScreen>
+    <ScreenShell title="Qualitätsmanagement" subtitle={`Office · ${roleLabel ?? 'QM'}`} showBack={false}>
       {!isQmDashboardLiveReady() ? (
         <InfoBanner title="Teilbereiche in Vorbereitung" message={QM_DASHBOARD_PREPARED_MESSAGE} />
       ) : null}
       <CareLightModuleDashboard
         moduleKey="qm"
+        showHeader={false}
         subtitle={`Office · ${roleLabel ?? 'QM'}`}
         kpis={kpis}
         kpiTitle="Kennzahlen"
@@ -111,6 +112,6 @@ export function QmDashboardScreen() {
           </View>
         }
       />
-    </CareLightScreen>
+    </ScreenShell>
   );
 }

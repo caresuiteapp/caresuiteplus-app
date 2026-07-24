@@ -28,6 +28,7 @@ type CareLightModuleDashboardProps = {
   recentSubtitle?: string;
   quickActions?: ReactNode;
   headerSlot?: ReactNode;
+  showHeader?: boolean;
   style?: ViewStyle;
 };
 
@@ -41,13 +42,14 @@ export function CareLightModuleDashboard({
   recentSubtitle,
   quickActions,
   headerSlot,
+  showHeader = true,
   style,
 }: CareLightModuleDashboardProps) {
   const { isPhone, isDesktopOrWide } = useDeviceClass();
 
   return (
     <View style={[styles.root, style]}>
-      {headerSlot ?? <CareLightModuleHeader moduleKey={moduleKey} subtitle={subtitle} />}
+      {showHeader ? (headerSlot ?? <CareLightModuleHeader moduleKey={moduleKey} subtitle={subtitle} />) : null}
 
       {kpis.length > 0 ? (
         <CareLightSection title={kpiTitle} subtitle="Aktuelle Übersicht">

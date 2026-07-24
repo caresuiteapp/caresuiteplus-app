@@ -132,7 +132,13 @@ export function PremiumButton({
   );
 
   return (
-    <Animated.View style={[animatedStyle, fullWidth && styles.fullWidth]} pointerEvents="box-none">
+    <Animated.View
+      style={[animatedStyle, fullWidth && styles.fullWidth]}
+      pointerEvents="box-none"
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { csHealthosComponent: 'button', csHealthosVariant: variant } } as object)
+        : {})}
+    >
       <Pressable
         disabled={isDisabled}
         onPress={onPress}

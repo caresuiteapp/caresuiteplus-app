@@ -194,7 +194,7 @@ export function PlatformModal({
               : 'rgba(0,0,0,0.06)',
         },
       }),
-    [formGlass.shadow, isDark, lightModal, shellColors, shellMode, sheetMaxHeight, sheetWidth, variant],
+    [formGlass.shadow, isDark, lightModal, shellColors, sheetMaxHeight, sheetWidth, variant],
   );
 
   useEffect(() => {
@@ -302,6 +302,9 @@ export function PlatformModal({
         <View
           style={styles.sheetHost}
           pointerEvents="box-none"
+          {...(Platform.OS === 'web'
+            ? ({ dataSet: { csHealthosComponent: 'modal' } } as object)
+            : {})}
           {...(variant === 'bottomSheet'
             ? {}
             : { onStartShouldSetResponder: () => true })}

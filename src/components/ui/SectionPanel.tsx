@@ -111,7 +111,12 @@ export function SectionPanel({
   );
 
   return (
-    <View style={styles.panel}>
+    <View
+      style={styles.panel}
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { csHealthosComponent: 'section' } } as object)
+        : {})}
+    >
       {!openSurface ? <View style={styles.innerBorder} pointerEvents="none" /> : null}
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>

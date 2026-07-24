@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightModuleDashboard, CareLightScreen } from '@/components/layout';
+import { CareLightModuleDashboard, ScreenShell } from '@/components/layout';
 import { CareLightModuleTile, EmptyState, ErrorState, InfoBanner, LoadingState } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { careLightColors } from '@/design/tokens/lightTheme';
@@ -46,37 +46,38 @@ export function InventoryDashboardScreen() {
 
   if (!can('inventory.view')) {
     return (
-      <CareLightScreen>
+      <ScreenShell title="Inventar & Rückgabe" subtitle="Office · Personal">
         <LockedActionBanner message={check('inventory.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightScreen>
+      </ScreenShell>
     );
   }
 
   if (loading && !data) {
     return (
-      <CareLightScreen>
+      <ScreenShell title="Inventar & Rückgabe" subtitle="Office · Personal">
         <LoadingState message="Inventar wird geladen…" />
-      </CareLightScreen>
+      </ScreenShell>
     );
   }
 
   if (error && !data) {
     return (
-      <CareLightScreen>
+      <ScreenShell title="Inventar & Rückgabe" subtitle="Office · Personal">
         <ErrorState message={error} onRetry={refresh} />
-      </CareLightScreen>
+      </ScreenShell>
     );
   }
 
   const kpis = data ? buildKpis(data) : [];
 
   return (
-    <CareLightScreen>
+    <ScreenShell title="Inventar & Rückgabe" subtitle="Office · Personal" showBack={false}>
       {!isInventoryLiveReady() ? (
         <InfoBanner title="Teilbereiche in Vorbereitung" message={INVENTORY_PREPARED_MESSAGE} />
       ) : null}
       <CareLightModuleDashboard
         moduleKey="office"
+        showHeader={false}
         subtitle="Personal · Inventar & Rückgabe"
         kpis={kpis}
         kpiTitle="Kennzahlen"
@@ -117,7 +118,7 @@ export function InventoryDashboardScreen() {
           </View>
         }
       />
-    </CareLightScreen>
+    </ScreenShell>
   );
 }
 

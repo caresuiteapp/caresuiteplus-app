@@ -1,18 +1,12 @@
 import { useMemo } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import {
-  useAuroraAdaptiveText,
-  useAuroraGlass,
-  auroraGlass,
   darkGlassSurfaceText,
   lightSurfaceText,
-  lightLiquidGlassWebFx,
 } from '@/design/tokens/auroraGlass';
-import {
-  resolveLlganViewGlass,
-  type LlganViewContext,
-} from '@/design/tokens/lightLiquidGlassAuroraNebula';
+import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { radius, spacing, typography } from '@/theme';
 
 type PremiumInputProps = TextInputProps & {
@@ -38,16 +32,16 @@ export function PremiumInput({
   onChangeText,
   ...props
 }: PremiumInputProps) {
-  const { colors, active, tokens } = useAuroraGlass();
-  const { isLight } = useLegacyTheme();
-  const adaptiveText = useAuroraAdaptiveText();
-  const text = onDarkSurface
-    ? darkGlassSurfaceText
-    : onLightSurface
-      ? lightSurfaceText
-      : adaptiveText;
-  const formGlass = resolveLlganViewGlass(viewContext ?? 'form', 'default');
-  const useFormGlass = Boolean(viewContext) && active && isLight && !onDarkSurface;
+  const { colors } = useLegacyTheme();
+  const text = onLightSurface
+    ? lightSurfaceText
+    : onDarkSurface
+      ? darkGlassSurfaceText
+      : {
+          primary: systemLiquidGlass.text.primary,
+          secondary: systemLiquidGlass.text.secondary,
+          muted: systemLiquidGlass.text.muted,
+        };
 
   const styles = useMemo(
     () =>
@@ -63,27 +57,16 @@ export function PremiumInput({
           minHeight: 48,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: onDarkSurface
-            ? auroraGlass.border
-            : useFormGlass
-              ? formGlass.borderAccent
-              : active
-                ? tokens.border
-                : colors.borderStrong,
-          backgroundColor: onDarkSurface
-            ? auroraGlass.input
-            : useFormGlass
-              ? formGlass.input
-              : active
-                ? tokens.input
-                : colors.bgInput,
+          borderColor: onLightSurface
+            ? colors.borderStrong
+            : systemLiquidGlass.borderStrong,
+          backgroundColor: onLightSurface
+            ? colors.bgInput
+            : systemLiquidGlass.input,
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
           color: text.primary,
           fontSize: 15,
-          ...(Platform.OS === 'web' && useFormGlass
-            ? lightLiquidGlassWebFx(formGlass.blurButton, formGlass.saturateButton)
-            : {}),
         },
         inputError: {
           borderColor: colors.danger,
@@ -98,24 +81,27 @@ export function PremiumInput({
         },
       }),
     [
-      active,
       colors.danger,
       colors.borderStrong,
       colors.bgInput,
-      formGlass.borderAccent,
-      formGlass.input,
-      onDarkSurface,
       onLightSurface,
       text.muted,
       text.primary,
-      tokens.border,
-      tokens.input,
-      useFormGlass,
     ],
   );
 
   return (
-    <View style={styles.wrapper}>
+    <View
+      style={styles.wrapper}
+      {...(Platform.OS === 'web'
+        ? ({
+            dataSet: {
+              csHealthosComponent: 'input',
+              csHealthosContext: viewContext ?? 'default',
+            },
+          } as object)
+        : {})}
+    >
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         placeholderTextColor={text.muted}

@@ -1,10 +1,14 @@
-import { Text, View } from 'react-native';
+import { ScreenShell } from '@/components/layout';
+import { EmptyState } from '@/components/ui';
 
 function PlaceholderScreen({ title }: { title: string }) {
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>{title} — in Vorbereitung</Text>
-    </View>
+    <ScreenShell title={title} subtitle="Office · Abrechnung">
+      <EmptyState
+        title={`${title} in Vorbereitung`}
+        message="Für diesen Bereich liegen noch keine freigegebenen Vorgänge vor."
+      />
+    </ScreenShell>
   );
 }
 

@@ -1,12 +1,8 @@
-import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
-import {
-  useCareLightPalette,
-  type CareLightResolved,
-} from '@/design/tokens/carelightadaptive';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
+import { PremiumListRow } from '@/components/ui/PremiumListRow';
 
 type CareLightListItemProps = {
   title: string;
@@ -25,72 +21,40 @@ export function CareLightListItem({
   onPress,
   style,
 }: CareLightListItemProps) {
-  const { c } = useCareLightPalette();
-  const styles = useMemo(() => makeStyles(c), [c]);
-
-  const inner = (
-    <View style={[styles.row, style]}>
-      {icon ? (
-        <View style={styles.iconWrap}>
-          <Text style={styles.icon}>{icon}</Text>
-        </View>
-      ) : null}
-      <View style={styles.textCol}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-        {meta ? <Text style={styles.meta}>{meta}</Text> : null}
-      </View>
+  const leading = icon ? (
+    <View style={styles.iconWrap}>
+      <Text style={styles.icon}>{icon}</Text>
     </View>
-  );
-
-  if (!onPress) return inner;
+  ) : undefined;
+  const combinedSubtitle = [subtitle, meta].filter(Boolean).join(' · ');
 
   return (
-    <Pressable onPress={onPress} accessibilityRole="button">
-      {({ pressed }) => <View style={pressed ? styles.pressed : undefined}>{inner}</View>}
-    </Pressable>
+    <PremiumListRow
+      title={title}
+      subtitle={combinedSubtitle || undefined}
+      leading={leading}
+      onPress={onPress}
+      showChevron={Boolean(onPress)}
+      showDivider
+      multiline
+      style={style}
+    />
   );
 }
 
-function makeStyles(c: CareLightResolved) {
-  return StyleSheet.create({
-    row: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: careSpacing.sm,
-      paddingVertical: careSpacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: c.border,
-    },
-    iconWrap: {
-      width: 40,
-      height: 40,
-      borderRadius: careRadius.sm,
-      backgroundColor: `${c.cyan}${c.isDark ? '22' : '12'}`,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    icon: {
-      fontSize: 18,
-    },
-    textCol: {
-      flex: 1,
-      gap: 2,
-    },
-    title: {
-      ...careTypography.bodyStrong,
-      color: c.text,
-    },
-    subtitle: {
-      ...careTypography.caption,
-      color: c.muted,
-    },
-    meta: {
-      ...careTypography.caption,
-      color: c.cyan,
-    },
-    pressed: {
-      opacity: 0.85,
-    },
-  });
-}
+const styles = StyleSheet.create({
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: careRadius.sm,
+    backgroundColor: systemLiquidGlass.chipActive,
+    borderWidth: 1,
+    borderColor: systemLiquidGlass.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: careSpacing.xs,
+  },
+  icon: {
+    fontSize: 18,
+  },
+});

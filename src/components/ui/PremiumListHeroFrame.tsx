@@ -1,12 +1,7 @@
-import { useThemeMode } from '@/design/ThemeModeProvider';
-import { ListHeroSurfaceContext } from '@/design/tokens/listHeroSurfaceContext';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { withAlpha } from '@/design/tokens/motion';
-import { auroraHeroWrapperStyle, auroraSharedStyles, AURORA_HERO_COLORS } from '@/components/aurora/auroraShared';
-import { CareLightListHeroFrame } from './CareLightListHeroFrame';
-import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
-import { designTokens, spacing } from '@/theme';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import { careSpacing } from '@/design/tokens/spacing';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
 type PremiumListHeroFrameProps = {
   children: React.ReactNode;
@@ -14,54 +9,58 @@ type PremiumListHeroFrameProps = {
   accentColor?: string;
 };
 
-/** Shared hero shell — aurora gradient on animated shells, plain light card elsewhere. */
-export function PremiumListHeroFrame({ children, style, accentColor }: PremiumListHeroFrameProps) {
-  const { mode } = useThemeMode();
-  const shellHostsAurora = useShellHostsAurora();
-
-  if (mode === 'light' && !shellHostsAurora) {
-    return (
-      <ListHeroSurfaceContext.Provider value="light">
-        <CareLightListHeroFrame style={style} accentColor={accentColor}>
-          {children}
-        </CareLightListHeroFrame>
-      </ListHeroSurfaceContext.Provider>
-    );
-  }
-
+/**
+ * Canonical list overview.
+ *
+ * The old implementation switched between light cards and Aurora hero
+ * gradients. That created a different page structure in almost every module.
+ * List metadata, KPIs and actions now use the same compact glass section as
+ * the payroll reference screen, independent of module and theme mode.
+ */
+export function PremiumListHeroFrame({
+  children,
+  style,
+  accentColor,
+}: PremiumListHeroFrameProps) {
   return (
-    <ListHeroSurfaceContext.Provider value="gradient">
-      <AuroraPremiumListHeroFrame style={style}>{children}</AuroraPremiumListHeroFrame>
-    </ListHeroSurfaceContext.Provider>
-  );
-}
-
-function AuroraPremiumListHeroFrame({ children, style }: PremiumListHeroFrameProps) {
-  const styles = StyleSheet.create({
-    content: {
-      padding: spacing.md,
-      gap: spacing.sm,
-    },
-  });
-
-  return (
-    <View style={[auroraHeroWrapperStyle(), style]}>
-      <LinearGradient
-        colors={[...AURORA_HERO_COLORS]}
-        start={designTokens.hero.gradientStart}
-        end={designTokens.hero.gradientEnd}
-        style={auroraSharedStyles.heroGradient}
-      />
-      <View style={auroraSharedStyles.heroOrbA} pointerEvents="none" />
-      <View style={auroraSharedStyles.heroOrbB} pointerEvents="none" />
-      <LinearGradient
-        colors={[withAlpha('#FFFFFF', 0.22), 'transparent']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={auroraSharedStyles.heroSheen}
-        pointerEvents="none"
-      />
-      <View style={styles.content}>{children}</View>
+    <View
+      style={[
+        styles.frame,
+        accentColor ? { borderColor: accentColor } : null,
+        style,
+      ]}
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { csHealthosComponent: 'list-overview' } } as object)
+        : {})}
+    >
+      <View pointerEvents="none" style={styles.innerBorder} />
+      {children}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  frame: {
+    width: '100%',
+    minWidth: 0,
+    padding: careSpacing.md,
+    gap: careSpacing.sm,
+    borderRadius: spatialCare.radius.card,
+    borderWidth: 1,
+    borderColor: systemLiquidGlass.borderStrong,
+    backgroundColor: systemLiquidGlass.panelStrong,
+    overflow: 'hidden',
+    position: 'relative',
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: systemLiquidGlass.shadowSoft,
+        } as unknown as ViewStyle)
+      : null),
+  },
+  innerBorder: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: spatialCare.radius.card,
+    borderWidth: 1,
+    borderColor: systemLiquidGlass.innerBorder,
+  },
+});

@@ -7,8 +7,8 @@ describe('System Design Consistency V36.2', () => {
   it('keeps shared KPI cards on the canonical dark HealthOS surface', () => {
     const source = read('src/components/ui/PremiumKpiCard.tsx');
 
-    expect(source).toContain('systemLiquidGlass.card');
-    expect(source).toContain('spatialCareGradients.nightGlass');
+    expect(source).toContain('systemLiquidGlass.panelStrong');
+    expect(source).toContain("csHealthosComponent: 'kpi-card'");
     expect(source).toContain('systemLiquidGlass.text.secondary');
     expect(source).toContain('systemLiquidGlass.text.muted');
     expect(source).not.toContain('CareLightKpiCard');
@@ -53,6 +53,6 @@ describe('System Design Consistency V36.2', () => {
     expect(section).toContain('<SectionPanel');
     expect(tile).toContain('systemLiquidGlass.card');
     expect(pageHeader).toContain('systemLiquidGlass.text.primary');
-    expect(screenHeader).toContain('spatialCare.navigation');
+    expect(screenHeader).toContain('<ScreenHeader');
   });
 });

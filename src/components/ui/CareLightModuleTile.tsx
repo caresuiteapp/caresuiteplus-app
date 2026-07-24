@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { careRadius } from '@/design/tokens/radius';
@@ -39,6 +39,9 @@ export function CareLightModuleTile({
       ]}
       accessibilityRole="button"
       accessibilityState={{ disabled: !onPress }}
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { csHealthosComponent: 'module-tile' } } as object)
+        : {})}
     >
       <View style={[styles.iconBadge, { backgroundColor: `${accentColor}14` }]}>
         <Text style={styles.icon}>{icon}</Text>

@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { CareLightScreen } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, InfoBanner, LoadingState } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -116,10 +116,9 @@ export function InventoryListScreen({ variant }: InventoryListScreenProps) {
   };
 
   return (
-    <CareLightScreen>
+    <ScreenShell title={titles[variant]} subtitle="Office · Inventar">
       {!isInventoryLiveReady() ? <InfoBanner title="Inventar" message={INVENTORY_PREPARED_MESSAGE} /> : null}
       {variant === 'mdm' ? <InfoBanner title="MDM" message={INVENTORY_MDM_PREPARED_MESSAGE} /> : null}
-      <Text style={styles.title}>{titles[variant]}</Text>
       {query.loading ? <LoadingState message="Wird geladen…" /> : null}
       {query.data && query.data.length === 0 ? (
         <EmptyState title="Keine Einträge" message="Noch keine Daten in dieser Ansicht." />
@@ -147,6 +146,6 @@ export function InventoryListScreen({ variant }: InventoryListScreenProps) {
       <Text style={styles.back} onPress={() => router.back()}>
         ← Zurück zum Dashboard
       </Text>
-    </CareLightScreen>
+    </ScreenShell>
   );
 }

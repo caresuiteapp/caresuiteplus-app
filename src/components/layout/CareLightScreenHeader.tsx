@@ -1,10 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import type { BreadcrumbTrail as BreadcrumbTrailType } from '@/types/navigation/breadcrumbs';
-import { spatialCare, spatialCareColors } from '@/design/tokens/spatialCareSuite';
-import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
-import { CareLightBreadcrumbTrail } from './CareLightBreadcrumbTrail';
+import { ScreenHeader } from './ScreenHeader';
 
 type CareLightScreenHeaderProps = {
   title: string;
@@ -15,85 +10,7 @@ type CareLightScreenHeaderProps = {
   rightSlot?: React.ReactNode;
 };
 
-export function CareLightScreenHeader({
-  title,
-  subtitle,
-  breadcrumbTrail,
-  showBack = true,
-  onBack,
-  rightSlot,
-}: CareLightScreenHeaderProps) {
-  const router = useRouter();
-
-  const handleBack = () => {
-    if (onBack) {
-      onBack();
-      return;
-    }
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-    router.replace('/' as never);
-  };
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.left}>
-        {showBack ? (
-          <Pressable onPress={handleBack} style={styles.backButton} hitSlop={12}>
-            <Text style={styles.backText}>← Zurück</Text>
-          </Pressable>
-        ) : null}
-      </View>
-      <View style={styles.center}>
-        {breadcrumbTrail ? <CareLightBreadcrumbTrail trail={breadcrumbTrail} /> : null}
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-      </View>
-      <View style={styles.right}>{rightSlot}</View>
-    </View>
-  );
+/** Legacy name without a second header layout. */
+export function CareLightScreenHeader(props: CareLightScreenHeaderProps) {
+  return <ScreenHeader {...props} />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: careSpacing.md,
-    paddingVertical: careSpacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: spatialCare.border,
-    backgroundColor: spatialCare.navigation,
-  },
-  left: {
-    width: 88,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  right: {
-    width: 88,
-    alignItems: 'flex-end',
-  },
-  backButton: {
-    paddingVertical: careSpacing.xs,
-  },
-  backText: {
-    ...careTypography.caption,
-    color: spatialCareColors.cyanLight,
-    fontWeight: '600',
-  },
-  title: {
-    ...careTypography.h3,
-    color: spatialCare.textOnNight,
-    textAlign: 'center',
-  },
-  subtitle: {
-    ...careTypography.caption,
-    color: spatialCare.textOnNightMuted,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-});

@@ -31,7 +31,7 @@ export function ScreenHeader({
   const router = useRouter();
   const { isPhone } = useDeviceClass();
   const showBreadcrumbs = simplifyOnPhone ? !isPhone && breadcrumbTrail : breadcrumbTrail;
-  const sideInsetWidth = showBack || rightSlot ? 88 : 0;
+  const leftInsetWidth = showBack ? 88 : 0;
 
   const styles = useMemo(
     () =>
@@ -53,8 +53,8 @@ export function ScreenHeader({
             : null),
         },
         left: {
-          width: sideInsetWidth,
-          minWidth: sideInsetWidth,
+          width: leftInsetWidth,
+          minWidth: leftInsetWidth,
         },
         center: {
           flex: 1,
@@ -62,9 +62,8 @@ export function ScreenHeader({
           minWidth: 0,
         },
         right: {
-          width: sideInsetWidth,
-          minWidth: sideInsetWidth,
-          maxWidth: sideInsetWidth || 120,
+          minWidth: rightSlot ? 120 : 0,
+          maxWidth: isPhone ? 88 : 360,
           alignItems: 'flex-end',
           flexShrink: 0,
         },
@@ -92,7 +91,7 @@ export function ScreenHeader({
           marginTop: 2,
         },
       }),
-    [isPhone, sideInsetWidth],
+    [isPhone, leftInsetWidth, rightSlot],
   );
 
   const handleBack = () => {

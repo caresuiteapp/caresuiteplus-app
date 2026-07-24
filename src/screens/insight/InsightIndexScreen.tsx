@@ -1,9 +1,8 @@
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { useMemo } from 'react';
-import { fetchInsightDashboardStats } from '@/lib/insight/insightDashboardService';
 import { useRouter } from 'expo-router';
-import { CareLightModuleDashboard, CareLightScreen } from '@/components/layout';
-import { CareLightEmptyState, CareLightErrorState, CareLightModuleTile, EmptyState, ErrorState, InfoBanner, LoadingState, PremiumInput } from '@/components/ui';
+import { CareLightModuleDashboard, ScreenShell } from '@/components/layout';
+import { CareLightEmptyState, CareLightErrorState, CareLightModuleTile, InfoBanner } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -40,40 +39,41 @@ export function InsightIndexScreen() {
 
   if (!can('dashboard.view')) {
     return (
-      <CareLightScreen>
+      <ScreenShell title="Insight" subtitle="Mandanten-Analytics">
         <CareLightEmptyState
           title="Zugriff verweigert"
           message={`InsightCenter ist für ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`}
         />
-      </CareLightScreen>
+      </ScreenShell>
     );
   }
 
   if (loading && !stats) {
     return (
-      <CareLightScreen>
+      <ScreenShell title="Insight" subtitle="Mandanten-Analytics">
         <Text style={styles.loading}>Dashboard wird geladen…</Text>
-      </CareLightScreen>
+      </ScreenShell>
     );
   }
 
   if (error && !stats) {
     return (
-      <CareLightScreen>
+      <ScreenShell title="Insight" subtitle="Mandanten-Analytics">
         <CareLightErrorState message={error} onRetry={refresh} />
-      </CareLightScreen>
+      </ScreenShell>
     );
   }
 
   const kpis = stats ? mapToCareLightKpis(buildInsightDashboardKpis(stats, 'light')) : [];
 
   return (
-    <CareLightScreen>
+    <ScreenShell title="Insight" subtitle={`Mandanten-Analytics · ${roleLabel ?? 'Demo'}`} showBack={false}>
       {!isInsightLiveReady() ? (
         <InfoBanner title="Modul in Vorbereitung" message={INSIGHT_PREPARED_MESSAGE} />
       ) : null}
       <CareLightModuleDashboard
         moduleKey="insight"
+        showHeader={false}
         subtitle={`Mandanten-Analytics · ${roleLabel ?? 'Demo'}`}
         kpis={kpis}
         recentTitle="Gespeicherte Snapshots"
@@ -107,6 +107,6 @@ export function InsightIndexScreen() {
         }
       />
       <View accessible accessibilityLabel={`${wp499InsightA11y.screenLabel} · WP ${wp499InsightA11y.wpNumber}`} accessibilityRole={wp499InsightA11y.headingRole} style={styles.a11yAnchor} />
-    </CareLightScreen>
+    </ScreenShell>
   );
 }

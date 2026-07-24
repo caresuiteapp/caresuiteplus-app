@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -52,6 +52,9 @@ export function SegmentedTabs({
         ]}
         accessibilityRole="tab"
         accessibilityState={{ selected: active }}
+        {...(Platform.OS === 'web'
+          ? ({ dataSet: { csHealthosComponent: 'tab' } } as object)
+          : {})}
       >
         <Text style={[localStyles.label, active && localStyles.activeLabel]}>
           {tab.label}

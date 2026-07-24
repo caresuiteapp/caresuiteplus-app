@@ -1,11 +1,7 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import {
-  spatialCareColors,
-  spatialCareGradients,
-} from '@/design/tokens/spatialCareSuite';
+import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { SpaceKpiIcon } from '@/components/icons/space';
 import { radius } from '@/theme';
@@ -50,20 +46,20 @@ export function PremiumKpiCard({
       StyleSheet.create({
         wrapper: {
           flex: 1,
-          minWidth: '46%',
-          minHeight: 164,
+          minWidth: 168,
+          minHeight: 108,
           borderRadius: radius.lg,
           borderWidth: 1,
           borderColor: systemLiquidGlass.borderStrong,
-          backgroundColor: systemLiquidGlass.card,
+          backgroundColor: systemLiquidGlass.panelStrong,
           overflow: 'hidden',
-          shadowOpacity: 0.28,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: 8,
-        },
-        gradient: {
-          ...StyleSheet.absoluteFillObject,
+          shadowOpacity: 0.2,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 5 },
+          elevation: 6,
+          ...(Platform.OS === 'web'
+            ? ({ boxShadow: systemLiquidGlass.shadowSoft } as unknown as ViewStyle)
+            : null),
         },
         innerBorder: {
           ...StyleSheet.absoluteFillObject,
@@ -72,23 +68,27 @@ export function PremiumKpiCard({
           borderColor: systemLiquidGlass.innerBorder,
         },
         rim: {
+          position: 'absolute',
+          top: 0,
+          left: 18,
+          right: 18,
           height: 2,
-          width: '50%',
-          alignSelf: 'center',
           borderRadius: 1,
           opacity: 0.85,
         },
         content: {
-          padding: 14,
-          gap: 4,
+          minHeight: 106,
+          padding: 16,
+          gap: 3,
+          justifyContent: 'center',
         },
         iconBubble: {
-          width: 36,
-          height: 36,
-          borderRadius: 12,
+          width: 30,
+          height: 30,
+          borderRadius: 10,
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: 4,
+          marginBottom: 2,
           overflow: 'hidden',
         },
         label: {
@@ -99,7 +99,7 @@ export function PremiumKpiCard({
           color: systemLiquidGlass.text.secondary,
         },
         value: {
-          fontSize: 24,
+          fontSize: 22,
           fontWeight: '800',
           letterSpacing: -0.5,
           flexShrink: 0,
@@ -136,14 +136,16 @@ export function PremiumKpiCard({
         { shadowColor: spatialCareColors.nightDeep },
         style,
       ]}
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { csHealthosComponent: 'kpi-card' } } as object)
+        : {})}
     >
-      <LinearGradient colors={[...spatialCareGradients.nightGlass]} style={styles.gradient} />
       <View style={styles.innerBorder} pointerEvents="none" />
       <View style={[styles.rim, { backgroundColor: resolvedAccent }]} />
       <View style={styles.content}>
         {icon ? (
           <View style={styles.iconBubble}>
-            <SpaceKpiIcon icon={icon} accentColor={resolvedAccent} size={36} />
+            <SpaceKpiIcon icon={icon} accentColor={resolvedAccent} size={30} />
           </View>
         ) : null}
         <Text

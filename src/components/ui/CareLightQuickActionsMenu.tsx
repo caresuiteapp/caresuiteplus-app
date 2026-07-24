@@ -1,7 +1,8 @@
 import { useState, type RefObject } from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumButton } from './PremiumButton';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -20,7 +21,7 @@ type CareLightQuickActionsMenuProps = {
 export function CareLightQuickActionsMenu({
   actions,
   onAction,
-  accentColor = careLightColors.orange,
+  accentColor = spatialCareColors.cyanLight,
   maxVisible = 2,
   moreLabel = 'Mehr Aktionen',
   actionRef,
@@ -91,10 +92,10 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   menu: {
-    backgroundColor: careLightColors.surface,
+    backgroundColor: systemLiquidGlass.panelStrong,
     borderRadius: careRadius.md,
     borderWidth: 1,
-    borderColor: careLightColors.borderStrong,
+    borderColor: systemLiquidGlass.borderStrong,
     overflow: 'hidden',
   },
   menuItem: {
@@ -104,10 +105,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.md,
     paddingVertical: careSpacing.sm + 2,
     borderBottomWidth: 1,
-    borderBottomColor: careLightColors.border,
+    borderBottomColor: systemLiquidGlass.border,
   },
   menuItemPressed: {
-    backgroundColor: `${careLightColors.cyan}08`,
+    backgroundColor: systemLiquidGlass.cardHover,
   },
   menuIcon: {
     fontSize: 18,
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
   },
   menuLabel: {
     ...careTypography.bodyStrong,
-    color: careLightColors.navy,
+    color: systemLiquidGlass.text.primary,
     flex: 1,
   },
 });

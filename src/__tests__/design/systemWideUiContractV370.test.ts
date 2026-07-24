@@ -68,7 +68,8 @@ describe('HealthOS system-wide UI contract V37.0', () => {
     expect(filters).toContain('systemLiquidGlass.chip');
     expect(tabs).toContain('systemLiquidGlass.chipActive');
     expect(cards).toContain('spatialCareGradients.nightGlass');
-    expect(kpis).toContain('spatialCareGradients.nightGlass');
+    expect(kpis).toContain('systemLiquidGlass.panelStrong');
+    expect(kpis).toContain("csHealthosComponent: 'kpi-card'");
     expect(tables).not.toContain("solidSurface ? '#FAFBFC'");
   });
 

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import {
-  Modal,
+  Platform,
   Pressable,
   Text,
   View,
   type ViewStyle,
 } from 'react-native';
+import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { useAuroraGlassSelectStyles } from '@/design/tokens/auroraGlass';
 
 export type ListFilterOption = { key: string; label: string };
@@ -61,7 +62,12 @@ export function ListFilterSelect({
   );
 
   return (
-    <View style={[styles.wrap, style]}>
+    <View
+      style={[styles.wrap, style]}
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { csHealthosComponent: 'filter-select' } } as object)
+        : {})}
+    >
       <Text style={styles.label}>{label}</Text>
       <Pressable
         onPress={() => setOpen((current) => !current)}
@@ -78,17 +84,17 @@ export function ListFilterSelect({
         </Text>
       </Pressable>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.modalSheet} onPress={(event) => event.stopPropagation()}>
-            <Text style={styles.modalTitle}>{label}</Text>
-            {optionList}
-            <Pressable onPress={() => setOpen(false)} style={styles.modalClose}>
-              <Text style={styles.modalCloseText}>Schließen</Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <PlatformModal
+        visible={open}
+        title={label}
+        subtitle={`Aktuell: ${selectedLabel}`}
+        onClose={() => setOpen(false)}
+        maxWidth={520}
+        minWidth={300}
+        maxHeightRatio={0.82}
+      >
+        {optionList}
+      </PlatformModal>
     </View>
   );
 }

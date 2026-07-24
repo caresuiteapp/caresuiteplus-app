@@ -113,6 +113,9 @@ export function PremiumDataTable<T>({
           : localStyles.fluidTable,
       ]}
       testID="table-container"
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { csHealthosComponent: 'table' } } as object)
+        : {})}
     >
       <View style={styles.headerRow}>
         {columns.map((col) => {

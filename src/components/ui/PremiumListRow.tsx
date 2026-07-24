@@ -12,7 +12,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { motion, spacing, typography } from '@/theme';
 import { PremiumDivider } from './PremiumDivider';
 
@@ -40,7 +40,6 @@ export function PremiumListRow({
   style,
   multiline = false,
 }: Props) {
-  const text = useAuroraAdaptiveText();
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -72,12 +71,12 @@ export function PremiumListRow({
         },
         title: {
           ...typography.bodyStrong,
-          color: text.primary,
+          color: systemLiquidGlass.text.primary,
           flexShrink: 1,
         },
         subtitle: {
           ...typography.caption,
-          color: text.secondary,
+          color: systemLiquidGlass.text.secondary,
           flexShrink: 1,
         },
         trailing: {
@@ -88,7 +87,7 @@ export function PremiumListRow({
         },
         chevron: {
           fontSize: 22,
-          color: text.muted,
+          color: systemLiquidGlass.text.muted,
           fontWeight: '300',
           marginLeft: 2,
         },
@@ -96,7 +95,7 @@ export function PremiumListRow({
           marginLeft: spacing.sm,
         },
       }),
-    [text.muted, text.primary, text.secondary],
+    [],
   );
 
   const content = (
@@ -123,13 +122,21 @@ export function PremiumListRow({
   );
 
   if (!onPress) {
-    return <View style={[styles.container, style]}>{content}</View>;
+    return (
+      <View
+        style={[styles.container, style]}
+        dataSet={{ csHealthosComponent: 'list-row' }}
+      >
+        {content}
+      </View>
+    );
   }
 
   return (
     <Animated.View style={animStyle}>
       <Pressable
         style={[styles.container, styles.pressable, style]}
+        dataSet={{ csHealthosComponent: 'list-row', csHealthosInteractive: 'true' }}
         onPress={onPress}
         onPressIn={() => {
           scale.value = withSpring(0.985, motion.spring);

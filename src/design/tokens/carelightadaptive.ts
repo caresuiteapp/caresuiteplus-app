@@ -5,7 +5,6 @@ import { careSuiteColors } from '@/design/tokens/colors';
 import {
   auroraGlass as glassTokens,
   useAuroraAdaptiveText,
-  useAuroraGlassActive,
   useAuroraGlassCardStyle,
   useAuroraGlassInputStyle,
   useAuroraGlassModalStyle,
@@ -15,16 +14,14 @@ import {
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { designTokens } from '@/theme';
 import {
-  AURORA_SURFACE_TEXT,
   LIGHT_SURFACE_INTERACTIVE_TEXT,
   resolveInteractiveTextColor,
 } from '@/design/tokens/accentContrast';
-import { ListHeroSurfaceContext, useListHeroSurface } from '@/design/tokens/listHeroSurfaceContext';
-import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
-import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
+import { useListHeroSurface } from '@/design/tokens/listHeroSurfaceContext';
 
 export type CareLightResolved = {
   isDark: boolean;
@@ -202,74 +199,36 @@ type ListHeroTextStyleOptions = {
 };
 
 /** List-hero typography — context-aware contrast for gradient vs light hero surfaces. */
-export function useListHeroTextStyles(options?: ListHeroTextStyleOptions) {
-  const text = useAuroraAdaptiveText();
-  const lightShell = useLightLiquidGlassShell();
-  const { c } = useCareLightPalette();
-  const surface = useListHeroSurface();
-
-  const variant: ListHeroTextVariant =
-    options?.variant ??
-    (options?.onGradient === true
-      ? 'gradient'
-      : options?.onGradient === false
-        ? 'light'
-        : surface);
-
-  return useMemo(() => {
-    if (variant === 'light') {
-      return {
-        eyebrow: {
-          ...careTypography.caption,
-          color: lightShell ? text.primary : text.muted,
-          letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-          fontWeight: '700' as TextStyle['fontWeight'],
-        },
-        title: {
-          ...careTypography.h2,
-          color: text.primary,
-          fontWeight: '800' as TextStyle['fontWeight'],
-        },
-        meta: {
-          ...careTypography.caption,
-          color: lightShell ? text.primary : text.secondary,
-        },
-        iconBorder: {
-          borderColor: c.border,
-        },
-      };
-    }
-
-    return {
+export function useListHeroTextStyles(_options?: ListHeroTextStyleOptions) {
+  return useMemo(
+    () => ({
       eyebrow: {
         ...careTypography.caption,
-        color: AURORA_SURFACE_TEXT,
+        color: systemLiquidGlass.text.secondary,
         letterSpacing: designTokens.hero.eyebrowLetterSpacing,
         fontWeight: '700' as TextStyle['fontWeight'],
       },
       title: {
         ...careTypography.h2,
-        color: AURORA_SURFACE_TEXT,
+        color: systemLiquidGlass.text.primary,
         fontWeight: '800' as TextStyle['fontWeight'],
       },
       meta: {
         ...careTypography.caption,
-        color: AURORA_SURFACE_TEXT,
+        color: systemLiquidGlass.text.secondary,
       },
       iconBorder: {
-        borderColor: 'rgba(255,255,255,0.4)',
+        borderColor: systemLiquidGlass.borderStrong,
       },
-    };
-  }, [c.border, lightShell, text.muted, text.primary, text.secondary, variant]);
+    }),
+    [],
+  );
 }
 
 /** Shared hero typography for PremiumListHeroFrame children (list/detail/form heroes). */
 export function usePremiumHeroTextStyles() {
   const hero = useListHeroTextStyles();
-  const { typography, colors } = useLegacyTheme();
-  const { c } = useCareLightPalette();
-  const surface = useListHeroSurface();
-  const isOnGradient = surface === 'gradient';
+  const { typography } = useLegacyTheme();
 
   return useMemo(
     () => ({
@@ -278,10 +237,10 @@ export function usePremiumHeroTextStyles() {
       meta: hero.meta,
       subtitle: { ...typography.caption, color: hero.meta.color },
       iconBadge: {
-        borderColor: isOnGradient ? 'rgba(255,255,255,0.4)' : c.border,
-        backgroundColor: isOnGradient ? 'rgba(255,255,255,0.16)' : colors.bgElevated,
+        borderColor: systemLiquidGlass.borderStrong,
+        backgroundColor: systemLiquidGlass.chip,
       },
     }),
-    [c.border, colors.bgElevated, hero.eyebrow, hero.meta, hero.title, isOnGradient, typography.caption],
+    [hero.eyebrow, hero.meta, hero.title, typography.caption],
   );
 }

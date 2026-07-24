@@ -1,13 +1,11 @@
 import { ReactNode, useMemo } from 'react';
-import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { usePathname } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { PremiumButton } from '@/components/ui';
-import { auroraGlass, useAuroraGlassPanelStyle } from '@/design/tokens/auroraGlass';
-import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { usePermissions } from '@/hooks/usePermissions';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, spacing, typography } from '@/theme';
 
 type ActionItem = {
   key: string;
@@ -29,14 +27,6 @@ type C14vSubpageShellProps = {
   accentColor?: string;
 };
 
-const webGlassBlur =
-  Platform.OS === 'web'
-    ? ({
-        backdropFilter: `blur(${auroraGlass.blur.medium}px)`,
-        WebkitBackdropFilter: `blur(${auroraGlass.blur.medium}px)`,
-      } as unknown as ViewStyle)
-    : null;
-
 /**
  * C14v unified subpage shell — enforces consistent header, action bar, and
  * glass panel structure across Office, Assist, Employee/Client portal pages.
@@ -54,8 +44,6 @@ export function C14vSubpageShell({
   accentColor,
 }: C14vSubpageShellProps) {
   const { isReadOnly, roleLabel } = usePermissions();
-  const shellHostsAurora = useShellHostsAurora();
-  const panelStyle = useAuroraGlassPanelStyle();
   const pathname = usePathname();
   const isEmployeePortal = pathname.startsWith('/portal/employee');
 
@@ -83,11 +71,6 @@ export function C14vSubpageShell({
           flex: 1,
           minHeight: 0,
         },
-        contentPanelAurora: {
-          borderRadius: radius.lg,
-          overflow: 'hidden',
-          ...webGlassBlur,
-        },
       }),
     [accentColor],
   );
@@ -106,17 +89,7 @@ export function C14vSubpageShell({
     </View>
   ) : null;
 
-  const content = (
-    <View
-      style={[
-        styles.contentPanel,
-        shellHostsAurora ? styles.contentPanelAurora : null,
-        shellHostsAurora ? panelStyle : null,
-      ]}
-    >
-      {children}
-    </View>
-  );
+  const content = <View style={styles.contentPanel}>{children}</View>;
 
   if (isEmployeePortal) {
     return (

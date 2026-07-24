@@ -1,12 +1,11 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
-import { careLightColors } from '@/design/tokens/lightTheme';
-import { colors, motion, radius, typography } from '@/theme';
+import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
+import { motion, radius, typography } from '@/theme';
 import { PremiumBadge } from './PremiumBadge';
 
 export type ModuleTileProps = {
@@ -46,13 +45,10 @@ export function ModuleTile({
           scale.value = withSpring(1, motion.spring);
         }}
         style={styles.pressable}
+        {...(Platform.OS === 'web'
+          ? ({ dataSet: { csHealthosComponent: 'module-tile' } } as object)
+          : {})}
       >
-        <LinearGradient
-          colors={[careLightColors.surface, careLightColors.page]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
         <View style={styles.topSheen} />
         <View style={[styles.accentLine, { backgroundColor: accentColor }]} />
         <Text style={styles.icon}>{icon}</Text>
@@ -79,7 +75,8 @@ const styles = StyleSheet.create({
   pressable: {
     borderRadius: radius.card,
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: systemLiquidGlass.borderStrong,
+    backgroundColor: systemLiquidGlass.card,
     padding: 16,
     minHeight: 140,
     overflow: 'hidden',
@@ -107,9 +104,11 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.bodyStrong,
+    color: systemLiquidGlass.text.primary,
   },
   description: {
     ...typography.caption,
+    color: systemLiquidGlass.text.secondary,
     flex: 1,
   },
 });
