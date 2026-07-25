@@ -2,12 +2,16 @@ import { Canvas } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import { useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
-import { ParametricBodyModel } from '@/components/pflege/bodyMap3d/ParametricBodyModel';
+import { ClinicalBodyModel } from '@/components/pflege/bodyMap3d/ClinicalBodyModel';
 import {
   BODY_MAP_VISUAL_QA_CASES,
   getBodyMapVisualQaCase,
 } from '@/lib/pflege/bodyMap3d/visualQaCatalog';
 import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
+import {
+  getMedicalMeshDefinition,
+  medicalMeshRendererLabel,
+} from '@/lib/pflege/bodyMap3d/medicalMeshCatalog';
 
 const ANGLES = [
   { id: 'front', label: 'Vorderseite', rotationY: 0 },
@@ -53,7 +57,7 @@ function ClinicalModelView({
           <hemisphereLight args={['#dcecff', '#13233f', 1.4]} />
           <directionalLight position={[3, 5, 4]} intensity={2.15} />
           <directionalLight position={[-3, 2, -4]} intensity={0.9} color="#70a5ff" />
-          <ParametricBodyModel
+          <ClinicalBodyModel
             selection={qaCase.selection}
             markers={[]}
             disabled
@@ -77,6 +81,9 @@ export function BodyMapVisualQaScreen() {
   const { variant } = useLocalSearchParams<{ variant?: string }>();
   const qaCase = getBodyMapVisualQaCase(variant);
   const caseIndex = BODY_MAP_VISUAL_QA_CASES.findIndex((entry) => entry.id === qaCase.id);
+  const rendererLabel = medicalMeshRendererLabel(
+    getMedicalMeshDefinition(qaCase.selection),
+  );
 
   return (
     <View
@@ -109,7 +116,7 @@ export function BodyMapVisualQaScreen() {
       <View style={styles.footer}>
         <Text style={styles.footerStrong}>Tatsächlich implementiertes WebGL-Modell</Text>
         <Text style={styles.footerText}>
-          Parametrischer technischer Prototyp · Hautton Mittel · keine KI-Visualisierung
+          {rendererLabel} · Hautton Mittel · keine KI-Visualisierung
         </Text>
         <Text style={styles.caseId}>{qaCase.id}</Text>
       </View>

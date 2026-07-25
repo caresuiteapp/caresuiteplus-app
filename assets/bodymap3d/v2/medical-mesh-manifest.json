@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 2,
+  "meshContractVersion": 1,
+  "release": "bodymap3d-v2-medical-mesh-pipeline",
+  "ownership": "caresuite-self-developed",
+  "renderer": "gltf-medical-mesh-with-parametric-fallback",
+  "coordinateSystem": {
+    "units": "meters",
+    "upAxis": "Y",
+    "forwardAxis": "Z",
+    "origin": "floor-center",
+    "neutralPose": "clinical-a-pose"
+  },
+  "zoneContract": {
+    "meshNamePrefix": "zone__",
+    "userDataKey": "anatomicalZoneId",
+    "skinMaterialPrefix": "skin",
+    "skinMaterialUserDataKey": "bodymapSkinMaterial"
+  },
+  "variants": [
+    {
+      "id": "body-baby-maennlich",
+      "baseModelId": "body-baby-maennlich",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 0.68,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-baby-weiblich",
+      "baseModelId": "body-baby-weiblich",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 0.68,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-baby-divers",
+      "baseModelId": "body-baby-divers",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 0.68,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-kleinkind-maennlich",
+      "baseModelId": "body-kleinkind-maennlich",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-kleinkind-weiblich",
+      "baseModelId": "body-kleinkind-weiblich",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-kleinkind-divers",
+      "baseModelId": "body-kleinkind-divers",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-kind-maennlich",
+      "baseModelId": "body-kind-maennlich",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1.42,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-kind-weiblich",
+      "baseModelId": "body-kind-weiblich",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1.42,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-kind-divers",
+      "baseModelId": "body-kind-divers",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1.42,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-junger-erwachsener-maennlich",
+      "baseModelId": "body-junger-erwachsener-maennlich",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1.72,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-junger-erwachsener-weiblich",
+      "baseModelId": "body-junger-erwachsener-weiblich",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1.72,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-junger-erwachsener-divers",
+      "baseModelId": "body-junger-erwachsener-divers",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1.72,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-erwachsener-maennlich",
+      "baseModelId": "body-erwachsener-maennlich",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1.72,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-erwachsener-weiblich",
+      "baseModelId": "body-erwachsener-weiblich",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1.72,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-erwachsener-divers",
+      "baseModelId": "body-erwachsener-divers",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1.72,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-erwachsener-divers-penis-brueste",
+      "baseModelId": "body-erwachsener-divers",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1.72,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-erwachsener-divers-vulva-keine-brueste",
+      "baseModelId": "body-erwachsener-divers",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1.72,
+      "meshContractVersion": 1
+    },
+    {
+      "id": "body-erwachsener-divers-unbekannt-brueste",
+      "baseModelId": "body-erwachsener-divers",
+      "assetPath": null,
+      "version": 1,
+      "reviewStatus": "awaiting-mesh",
+      "nominalHeightMeters": 1.72,
+      "meshContractVersion": 1
+    }
+  ]
+}

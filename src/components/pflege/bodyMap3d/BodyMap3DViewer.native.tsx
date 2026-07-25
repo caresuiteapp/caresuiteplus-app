@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber/native';
 import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '@/theme';
 import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
-import { ParametricBodyModel } from './ParametricBodyModel';
+import { ClinicalBodyModel } from './ClinicalBodyModel';
 import type { BodyMap3DViewerProps } from './BodyMap3DViewer.types';
 
 const VIEW_PRESETS = [
@@ -102,7 +102,7 @@ export function BodyMap3DViewer({
           <hemisphereLight args={['#dcecff', '#13233f', 1.35]} />
           <directionalLight position={[3, 5, 4]} intensity={2.1} />
           <directionalLight position={[-3, 2, -4]} intensity={0.85} color="#70a5ff" />
-          <ParametricBodyModel
+          <ClinicalBodyModel
             selection={selection}
             markers={markers}
             selectedMarkerId={selectedMarkerId}

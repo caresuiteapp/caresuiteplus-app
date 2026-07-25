@@ -4,7 +4,7 @@ import { ContactShadows, OrbitControls } from '@react-three/drei';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '@/theme';
 import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
-import { ParametricBodyModel } from './ParametricBodyModel';
+import { ClinicalBodyModel } from './ClinicalBodyModel';
 import type { BodyMap3DViewerProps } from './BodyMap3DViewer.types';
 
 const VIEW_PRESETS = [
@@ -81,7 +81,7 @@ export function BodyMap3DViewer({
             shadow-mapSize-height={1024}
           />
           <directionalLight position={[-3, 2, -4]} intensity={0.9} color="#70a5ff" />
-          <ParametricBodyModel
+          <ClinicalBodyModel
             selection={selection}
             markers={markers}
             selectedMarkerId={selectedMarkerId}

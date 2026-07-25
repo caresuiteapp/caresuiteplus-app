@@ -17,7 +17,7 @@ import type {
 } from '@/types/modules/bodyMap';
 import type { BodyMapSurfaceHit } from './BodyMap3DViewer.types';
 
-type ModelProps = {
+export type BodyModelProps = {
   selection: BodyMapModelSelection;
   markers: readonly BodyMap3DMarker[];
   selectedMarkerId?: string | null;
@@ -135,7 +135,7 @@ function modelScale(ageGroup: BodyMapAgeGroup): number {
   return 1;
 }
 
-function hitFromEvent(event: ThreeEvent<PointerEvent>): BodyMapSurfaceHit | null {
+export function hitFromEvent(event: ThreeEvent<PointerEvent>): BodyMapSurfaceHit | null {
   const object = event.object as Object3D & { userData: { zoneId?: string } };
   const anatomicalZoneId = object.userData.zoneId;
   if (!anatomicalZoneId) return null;
@@ -227,7 +227,7 @@ function Surface({
   );
 }
 
-function XMarker({
+export function XMarker({
   marker,
   selected,
   onPress,
@@ -280,7 +280,7 @@ export function ParametricBodyModel({
   scale = 1,
   onSurfacePress,
   onMarkerPress,
-}: ModelProps) {
+}: BodyModelProps) {
   const p = PROPORTIONS[selection.ageGroup];
   const skin = new Color(SKIN_COLORS[selection.skinTone]).getStyle();
   const heightScale = modelScale(selection.ageGroup);
