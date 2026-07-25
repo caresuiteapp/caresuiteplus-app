@@ -1,6 +1,7 @@
 ﻿node_modules/
 .expo/
 dist/
+dist-bodymap3d/
 web-build/
 expo-env.d.ts
 *.orig.*
