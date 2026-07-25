@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
@@ -97,6 +97,33 @@ const FINDING_STATUSES: readonly { id: BodyMapFindingStatus; label: string }[] =
   { id: 'wiedereroeffnet', label: 'Wiedereröffnet' },
 ];
 
+const WOUND_EDGE_OPTIONS = [
+  ['unauffaellig', 'Unauffällig'],
+  ['mazeriert', 'Mazeriert'],
+  ['unterminiert', 'Unterhöhlt'],
+  ['gerollt', 'Eingerollt'],
+  ['hyperkeratotisch', 'Hyperkeratotisch'],
+] as const;
+
+const SURROUNDING_SKIN_OPTIONS = [
+  ['roetung', 'Rötung'],
+  ['ueberwaermung', 'Überwärmung'],
+  ['oedem', 'Ödem'],
+  ['mazeration', 'Mazeration'],
+  ['trocken', 'Trocken'],
+  ['fragil', 'Fragil'],
+] as const;
+
+const INFECTION_SIGN_OPTIONS = [
+  ['zunehmende_roetung', 'Zunehmende Rötung'],
+  ['ueberwaermung', 'Überwärmung'],
+  ['schwellung', 'Schwellung'],
+  ['eitriges_exsudat', 'Eitriges Exsudat'],
+  ['auffaelliger_geruch', 'Auffälliger Geruch'],
+  ['zunehmender_schmerz', 'Zunehmender Schmerz'],
+  ['fieber', 'Fieber'],
+] as const;
+
 type PickedClinicalPhoto = {
   uri: string;
   fileName: string;
@@ -109,6 +136,53 @@ function optionalPositiveNumber(value: string): number | null {
   if (!normalized) return null;
   const parsed = Number(normalized);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function isValidOptionalPositiveNumber(value: string): boolean {
+  return !value.trim() || optionalPositiveNumber(value) != null;
+}
+
+function isValidClockPosition(value: string): boolean {
+  if (!value.trim()) return true;
+  const parsed = optionalPositiveNumber(value);
+  return parsed != null && Number.isInteger(parsed) && parsed >= 1 && parsed <= 12;
+}
+
+function isValidIsoDate(value: string): boolean {
+  if (!value.trim()) return true;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const candidate = new Date(Date.UTC(year, month - 1, day));
+  return (
+    candidate.getUTCFullYear() === year &&
+    candidate.getUTCMonth() === month - 1 &&
+    candidate.getUTCDate() === day
+  );
+}
+
+function labelsForFlags(
+  flags: Record<string, boolean | string>,
+  options: readonly (readonly [string, string])[],
+): string {
+  return Object.entries(flags)
+    .filter(([, enabled]) => enabled === true)
+    .map(([id]) => options.find(([optionId]) => optionId === id)?.[1] ?? id)
+    .join(', ');
+}
+
+function historyEventLabel(eventType: string): string {
+  return (
+    {
+      created: 'Befund angelegt',
+      updated: 'Befund aktualisiert',
+      classified: 'Klassifikation geändert',
+      treatment: 'Behandlung dokumentiert',
+      photo: 'Foto hinzugefügt',
+      healing: 'Heilungsverlauf',
+      closed: 'Befund geschlossen',
+      reopened: 'Befund wiedereröffnet',
+    }[eventType] ?? eventType
+  );
 }
 
 async function readPickedPhoto(uri: string): Promise<Uint8Array | null> {
@@ -218,6 +292,21 @@ export function BodyMapScreen() {
   const [painScore, setPainScore] = useState('');
   const [exudateAmount, setExudateAmount] = useState<'kein' | 'gering' | 'mittel' | 'stark'>('kein');
   const [pressureReliefPlan, setPressureReliefPlan] = useState('');
+  const [granulationPercent, setGranulationPercent] = useState('');
+  const [fibrinPercent, setFibrinPercent] = useState('');
+  const [necrosisPercent, setNecrosisPercent] = useState('');
+  const [exudateCharacter, setExudateCharacter] =
+    useState<'seroes' | 'blutig' | 'seroes_blutig' | 'eitrig'>('seroes');
+  const [odor, setOdor] = useState<'kein' | 'auffaellig'>('kein');
+  const [woundEdge, setWoundEdge] = useState('unauffaellig');
+  const [surroundingSkinFlags, setSurroundingSkinFlags] = useState<string[]>([]);
+  const [infectionSignFlags, setInfectionSignFlags] = useState<string[]>([]);
+  const [underminingFrom, setUnderminingFrom] = useState('');
+  const [underminingTo, setUnderminingTo] = useState('');
+  const [underminingDepth, setUnderminingDepth] = useState('');
+  const [tunnelingPresent, setTunnelingPresent] = useState(false);
+  const [medicalDevice, setMedicalDevice] = useState('');
+  const [nextReviewDate, setNextReviewDate] = useState('');
   const [pickedPhoto, setPickedPhoto] = useState<PickedClinicalPhoto | null>(null);
   const [measurementReferencePresent, setMeasurementReferencePresent] = useState(false);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
@@ -401,12 +490,71 @@ export function BodyMapScreen() {
     setPainScore('');
     setExudateAmount('kein');
     setPressureReliefPlan('');
+    setGranulationPercent('');
+    setFibrinPercent('');
+    setNecrosisPercent('');
+    setExudateCharacter('seroes');
+    setOdor('kein');
+    setWoundEdge('unauffaellig');
+    setSurroundingSkinFlags([]);
+    setInfectionSignFlags([]);
+    setUnderminingFrom('');
+    setUnderminingTo('');
+    setUnderminingDepth('');
+    setTunnelingPresent(false);
+    setMedicalDevice('');
+    setNextReviewDate('');
     setPickedPhoto(null);
     setMeasurementReferencePresent(false);
   }
 
   async function handleSaveFinding() {
     if (!tenantId || !selection || !pendingHit || isReadOnly) return;
+    const numericFields = [
+      ['Länge', lengthCm],
+      ['Breite', widthCm],
+      ['Tiefe', depthCm],
+      ['Schmerz', painScore],
+      ['Granulation', granulationPercent],
+      ['Fibrin', fibrinPercent],
+      ['Nekrose', necrosisPercent],
+      ['maximale Unterminierungstiefe', underminingDepth],
+    ] as const;
+    const invalidNumericField = numericFields.find(
+      ([, value]) => !isValidOptionalPositiveNumber(value),
+    );
+    if (isPressureFinding && invalidNumericField) {
+      setActionError(`${invalidNumericField[0]} muss eine Zahl größer oder gleich 0 sein.`);
+      return;
+    }
+    const parsedPainScore = optionalPositiveNumber(painScore);
+    if (isPressureFinding && parsedPainScore != null && parsedPainScore > 10) {
+      setActionError('Der Schmerzwert muss zwischen 0 und 10 liegen.');
+      return;
+    }
+    if (
+      isPressureFinding &&
+      (!isValidClockPosition(underminingFrom) || !isValidClockPosition(underminingTo))
+    ) {
+      setActionError(
+        'Die Uhrposition der Unterminierung muss als ganze Zahl von 1 bis 12 angegeben werden.',
+      );
+      return;
+    }
+    if (isPressureFinding && !isValidIsoDate(nextReviewDate)) {
+      setActionError('Die nächste Kontrolle muss ein gültiges Datum im Format JJJJ-MM-TT sein.');
+      return;
+    }
+    const tissuePercentages = {
+      granulation: optionalPositiveNumber(granulationPercent) ?? 0,
+      fibrin: optionalPositiveNumber(fibrinPercent) ?? 0,
+      nekrose: optionalPositiveNumber(necrosisPercent) ?? 0,
+    };
+    const tissueTotal = Object.values(tissuePercentages).reduce((sum, value) => sum + value, 0);
+    if (isPressureFinding && tissueTotal > 100) {
+      setActionError(`Die Gewebeanteile ergeben ${tissueTotal} %. Maximal zulässig sind 100 %.`);
+      return;
+    }
     setSaving(true);
     setActionError(null);
     const coordinates = markerCoordinates(pendingHit);
@@ -466,26 +614,47 @@ export function BodyMapScreen() {
           classification: pressureClassification,
           presentOnAdmission: null,
           deviceRelated: markerType === 'druckverletzung_medizinprodukt',
-          medicalDevice: null,
+          medicalDevice: medicalDevice.trim() || null,
           lengthCm: optionalPositiveNumber(lengthCm),
           widthCm: optionalPositiveNumber(widthCm),
           depthCm: optionalPositiveNumber(depthCm),
-          tissuePercentages: {},
-          exudate: { amount: exudateAmount },
+          underminingClockFrom: optionalPositiveNumber(underminingFrom),
+          underminingClockTo: optionalPositiveNumber(underminingTo),
+          underminingMaxDepthCm: optionalPositiveNumber(underminingDepth),
+          tunnelingPresent,
+          tissuePercentages,
+          exudate: { amount: exudateAmount, character: exudateCharacter, odor },
           pain: {
-            score: pain == null ? null : Math.min(10, pain),
+            score: pain,
             scale: 'NRS',
             duringCare: true,
           },
-          infectionSigns: {},
-          escalationFlags: PRESSURE_INJURY_CLASSIFICATIONS.find(
-            (entry) => entry.id === pressureClassification,
-          )?.urgentReview
-            ? ['neu_ab_kategorie_2']
-            : [],
+          woundEdge: { [woundEdge]: true },
+          surroundingSkin: Object.fromEntries(
+            surroundingSkinFlags.map((flag) => [flag, true]),
+          ),
+          infectionSigns: Object.fromEntries(infectionSignFlags.map((flag) => [flag, true])),
+          escalationFlags: [
+            ...(PRESSURE_INJURY_CLASSIFICATIONS.find(
+              (entry) => entry.id === pressureClassification,
+            )?.urgentReview
+              ? ['neu_ab_kategorie_2']
+              : []),
+            ...infectionSignFlags.filter((flag) =>
+              ['eitriges_exsudat', 'auffaelliger_geruch', 'zunehmender_schmerz', 'fieber'].includes(
+                flag,
+              ),
+            ),
+            ...(tunnelingPresent ? ['fistelgang'] : []),
+            ...(markerType === 'druckverletzung_medizinprodukt'
+              ? ['medizinproduktbezogen']
+              : []),
+          ],
           treatmentPlan: { dressing: treatment.trim() },
           pressureReliefPlan: { positioning: pressureReliefPlan.trim() },
-          nextReviewAt: null,
+          nextReviewAt: /^\d{4}-\d{2}-\d{2}$/.test(nextReviewDate)
+            ? new Date(`${nextReviewDate}T12:00:00`).toISOString()
+            : null,
         },
         profile?.id ?? null,
       );
@@ -838,6 +1007,34 @@ export function BodyMapScreen() {
                     />
                   </View>
 
+                  <Text style={styles.fieldLabel}>Gewebeanteile in Prozent</Text>
+                  <View style={styles.measurementRow}>
+                    <PremiumInput
+                      label="Granulation"
+                      value={granulationPercent}
+                      onChangeText={setGranulationPercent}
+                      keyboardType="decimal-pad"
+                      editable={!isReadOnly}
+                      style={styles.measurementInput}
+                    />
+                    <PremiumInput
+                      label="Fibrin"
+                      value={fibrinPercent}
+                      onChangeText={setFibrinPercent}
+                      keyboardType="decimal-pad"
+                      editable={!isReadOnly}
+                      style={styles.measurementInput}
+                    />
+                    <PremiumInput
+                      label="Nekrose"
+                      value={necrosisPercent}
+                      onChangeText={setNecrosisPercent}
+                      keyboardType="decimal-pad"
+                      editable={!isReadOnly}
+                      style={styles.measurementInput}
+                    />
+                  </View>
+
                   <Text style={styles.fieldLabel}>Exsudatmenge</Text>
                   <View style={styles.choiceRow}>
                     {(['kein', 'gering', 'mittel', 'stark'] as const).map((amount) => (
@@ -849,6 +1046,123 @@ export function BodyMapScreen() {
                       />
                     ))}
                   </View>
+                  <Text style={styles.fieldLabel}>Exsudatart</Text>
+                  <View style={styles.choiceRow}>
+                    {(
+                      [
+                        ['seroes', 'Serös'],
+                        ['blutig', 'Blutig'],
+                        ['seroes_blutig', 'Serös-blutig'],
+                        ['eitrig', 'Eitrig'],
+                      ] as const
+                    ).map(([id, label]) => (
+                      <SelectionChip
+                        key={id}
+                        label={label}
+                        active={exudateCharacter === id}
+                        onPress={() => setExudateCharacter(id)}
+                      />
+                    ))}
+                    <SelectionChip
+                      label={odor === 'auffaellig' ? 'Geruch auffällig' : 'Kein auffälliger Geruch'}
+                      active={odor === 'auffaellig'}
+                      onPress={() =>
+                        setOdor((value) => (value === 'auffaellig' ? 'kein' : 'auffaellig'))
+                      }
+                    />
+                  </View>
+
+                  <Text style={styles.fieldLabel}>Wundrand</Text>
+                  <View style={styles.choiceRow}>
+                    {WOUND_EDGE_OPTIONS.map(([id, label]) => (
+                      <SelectionChip
+                        key={id}
+                        label={label}
+                        active={woundEdge === id}
+                        onPress={() => setWoundEdge(id)}
+                      />
+                    ))}
+                  </View>
+
+                  <Text style={styles.fieldLabel}>Wundumgebung</Text>
+                  <View style={styles.choiceRow}>
+                    {SURROUNDING_SKIN_OPTIONS.map(([id, label]) => (
+                      <SelectionChip
+                        key={id}
+                        label={label}
+                        active={surroundingSkinFlags.includes(id)}
+                        onPress={() =>
+                          setSurroundingSkinFlags((flags) =>
+                            flags.includes(id)
+                              ? flags.filter((flag) => flag !== id)
+                              : [...flags, id],
+                          )
+                        }
+                      />
+                    ))}
+                  </View>
+
+                  <Text style={styles.fieldLabel}>Infektions-/Warnzeichen</Text>
+                  <View style={styles.choiceRow}>
+                    {INFECTION_SIGN_OPTIONS.map(([id, label]) => (
+                      <SelectionChip
+                        key={id}
+                        label={label}
+                        active={infectionSignFlags.includes(id)}
+                        onPress={() =>
+                          setInfectionSignFlags((flags) =>
+                            flags.includes(id)
+                              ? flags.filter((flag) => flag !== id)
+                              : [...flags, id],
+                          )
+                        }
+                      />
+                    ))}
+                  </View>
+
+                  <Text style={styles.fieldLabel}>Unterminierung und Tunnelung</Text>
+                  <View style={styles.measurementRow}>
+                    <PremiumInput
+                      label="Uhr von (1–12)"
+                      value={underminingFrom}
+                      onChangeText={setUnderminingFrom}
+                      keyboardType="number-pad"
+                      editable={!isReadOnly}
+                      style={styles.measurementInput}
+                    />
+                    <PremiumInput
+                      label="Uhr bis (1–12)"
+                      value={underminingTo}
+                      onChangeText={setUnderminingTo}
+                      keyboardType="number-pad"
+                      editable={!isReadOnly}
+                      style={styles.measurementInput}
+                    />
+                    <PremiumInput
+                      label="Max. Tiefe cm"
+                      value={underminingDepth}
+                      onChangeText={setUnderminingDepth}
+                      keyboardType="decimal-pad"
+                      editable={!isReadOnly}
+                      style={styles.measurementInput}
+                    />
+                  </View>
+                  <SelectionChip
+                    label={tunnelingPresent ? 'Tunnel/Fistelgang vorhanden' : 'Kein Tunnel angegeben'}
+                    active={tunnelingPresent}
+                    onPress={() => setTunnelingPresent((value) => !value)}
+                  />
+
+                  {markerType === 'druckverletzung_medizinprodukt' ? (
+                    <PremiumInput
+                      label="Verursachendes Medizinprodukt"
+                      value={medicalDevice}
+                      onChangeText={setMedicalDevice}
+                      editable={!isReadOnly}
+                      placeholder="z. B. Sauerstoffbrille, Maske, Sonde"
+                    />
+                  ) : null}
+
                   <PremiumInput
                     label="Druckentlastungs-/Lagerungsplan"
                     value={pressureReliefPlan}
@@ -856,6 +1170,14 @@ export function BodyMapScreen() {
                     editable={!isReadOnly}
                     multiline
                     hint="Lagerung, Intervall, Hilfsmittel und Mobilisation dokumentieren."
+                  />
+                  <PremiumInput
+                    label="Nächste Kontrolle"
+                    value={nextReviewDate}
+                    onChangeText={setNextReviewDate}
+                    editable={!isReadOnly}
+                    placeholder="JJJJ-MM-TT"
+                    hint="Beispiel: 2026-07-26"
                   />
                 </>
               ) : null}
@@ -990,10 +1312,140 @@ export function BodyMapScreen() {
                     {clinicalQuery.data?.pressureAssessments.length ?? 0} Dekubitus-Assessments ·{' '}
                     {clinicalQuery.data?.history.length ?? 0} Verlaufsereignisse
                   </Text>
+                  {(clinicalQuery.data?.media ?? []).length > 0 ? (
+                    <>
+                      <Text style={styles.fieldLabel}>Klinische Medien</Text>
+                      <View style={styles.mediaGrid}>
+                        {(clinicalQuery.data?.media ?? []).map((media) => (
+                          <View key={media.id} style={styles.mediaCard}>
+                            {media.signedUrl && media.mimeType?.startsWith('image/') ? (
+                              <Image
+                                source={{ uri: media.signedUrl }}
+                                style={styles.mediaPreview}
+                                resizeMode="cover"
+                                accessibilityLabel={media.originalFileName ?? 'Klinisches Foto'}
+                              />
+                            ) : (
+                              <View style={[styles.mediaPreview, styles.mediaPlaceholder]}>
+                                <Text style={styles.mediaPlaceholderText}>Datei</Text>
+                              </View>
+                            )}
+                            <Text style={styles.mediaName} numberOfLines={2}>
+                              {media.originalFileName ?? 'Klinisches Medium'}
+                            </Text>
+                            <Text style={styles.photoSize}>
+                              {media.capturePhase ?? 'Verlauf'} ·{' '}
+                              {new Date(media.capturedAt ?? media.createdAt).toLocaleString('de-DE')}
+                            </Text>
+                            <View style={styles.mediaActions}>
+                              <PremiumButton
+                                title="Vorschau"
+                                variant="secondary"
+                                disabled={!media.signedUrl}
+                                onPress={() => {
+                                  if (media.signedUrl) void Linking.openURL(media.signedUrl);
+                                }}
+                              />
+                              <PremiumButton
+                                title="Download"
+                                variant="secondary"
+                                disabled={!media.downloadUrl}
+                                onPress={() => {
+                                  if (media.downloadUrl) void Linking.openURL(media.downloadUrl);
+                                }}
+                              />
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    </>
+                  ) : null}
+                  {(clinicalQuery.data?.pressureAssessments ?? []).length > 0 ? (
+                    <>
+                      <Text style={styles.fieldLabel}>Dekubitus-Assessments</Text>
+                      {(clinicalQuery.data?.pressureAssessments ?? []).map((assessment) => {
+                        const classification =
+                          PRESSURE_INJURY_CLASSIFICATIONS.find(
+                            (entry) => entry.id === assessment.classification,
+                          )?.label ?? assessment.classification;
+                        const woundEdgeLabels = labelsForFlags(
+                          assessment.woundEdge,
+                          WOUND_EDGE_OPTIONS,
+                        );
+                        const surroundingSkinLabels = labelsForFlags(
+                          assessment.surroundingSkin,
+                          SURROUNDING_SKIN_OPTIONS,
+                        );
+                        const infectionLabels = labelsForFlags(
+                          assessment.infectionSigns,
+                          INFECTION_SIGN_OPTIONS,
+                        );
+                        return (
+                          <View key={assessment.id} style={styles.assessmentCard}>
+                            <Text style={styles.assessmentTitle}>{classification}</Text>
+                            <Text style={styles.historyTitle}>
+                              {new Date(assessment.assessedAt).toLocaleString('de-DE')}
+                            </Text>
+                            <Text style={styles.findingNote}>
+                              Maße: {assessment.lengthCm ?? '–'} × {assessment.widthCm ?? '–'} ×{' '}
+                              {assessment.depthCm ?? '–'} cm · Schmerz:{' '}
+                              {assessment.pain.score ?? '–'}/10
+                            </Text>
+                            <Text style={styles.findingMeta}>
+                              Gewebe: Granulation {assessment.tissuePercentages.granulation ?? 0} %,
+                              Fibrin {assessment.tissuePercentages.fibrin ?? 0} %, Nekrose{' '}
+                              {assessment.tissuePercentages.nekrose ?? 0} %
+                            </Text>
+                            <Text style={styles.findingMeta}>
+                              Exsudat: {assessment.exudate.amount ?? 'nicht angegeben'} ·{' '}
+                              {assessment.exudate.character ?? 'Art nicht angegeben'} · Geruch:{' '}
+                              {assessment.exudate.odor ?? 'nicht angegeben'}
+                            </Text>
+                            {woundEdgeLabels ? (
+                              <Text style={styles.findingMeta}>Wundrand: {woundEdgeLabels}</Text>
+                            ) : null}
+                            {surroundingSkinLabels ? (
+                              <Text style={styles.findingMeta}>
+                                Wundumgebung: {surroundingSkinLabels}
+                              </Text>
+                            ) : null}
+                            {infectionLabels ? (
+                              <Text style={styles.warningText}>
+                                Infektions-/Warnzeichen: {infectionLabels}
+                              </Text>
+                            ) : null}
+                            {assessment.underminingClockFrom != null ||
+                            assessment.underminingClockTo != null ? (
+                              <Text style={styles.findingMeta}>
+                                Unterminierung: {assessment.underminingClockFrom ?? '–'} bis{' '}
+                                {assessment.underminingClockTo ?? '–'} Uhr, max.{' '}
+                                {assessment.underminingMaxDepthCm ?? '–'} cm
+                              </Text>
+                            ) : null}
+                            {assessment.tunnelingPresent ? (
+                              <Text style={styles.warningText}>Tunnel/Fistelgang vorhanden</Text>
+                            ) : null}
+                            {assessment.medicalDevice ? (
+                              <Text style={styles.findingMeta}>
+                                Medizinprodukt: {assessment.medicalDevice}
+                              </Text>
+                            ) : null}
+                            {assessment.nextReviewAt ? (
+                              <Text style={styles.reviewText}>
+                                Nächste Kontrolle:{' '}
+                                {new Date(assessment.nextReviewAt).toLocaleString('de-DE')}
+                              </Text>
+                            ) : null}
+                          </View>
+                        );
+                      })}
+                    </>
+                  ) : null}
                   {(clinicalQuery.data?.history ?? []).map((entry) => (
                     <View key={entry.id} style={styles.historyRow}>
                       <Text style={styles.historyTitle}>
-                        {entry.eventType} · {new Date(entry.createdAt).toLocaleString('de-DE')}
+                        {historyEventLabel(entry.eventType)} ·{' '}
+                        {new Date(entry.createdAt).toLocaleString('de-DE')}
                       </Text>
                       {entry.note ? <Text style={styles.findingNote}>{entry.note}</Text> : null}
                     </View>
@@ -1146,4 +1598,45 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   historyTitle: { ...typography.caption, color: colors.textSecondary, fontWeight: '700' },
+  assessmentCard: {
+    borderWidth: 1,
+    borderColor: 'rgba(102,163,255,0.32)',
+    borderRadius: 14,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+    backgroundColor: 'rgba(33,91,164,0.1)',
+  },
+  assessmentTitle: { ...typography.label, color: colors.textPrimary, marginBottom: 2 },
+  warningText: { ...typography.caption, color: '#ffbd66', marginTop: 4, fontWeight: '700' },
+  reviewText: { ...typography.caption, color: '#7dd3fc', marginTop: 4, fontWeight: '700' },
+  mediaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  mediaCard: {
+    width: 240,
+    maxWidth: '100%',
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: 14,
+    padding: spacing.xs,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  mediaPreview: {
+    width: '100%',
+    height: 150,
+    borderRadius: 10,
+    backgroundColor: '#071326',
+  },
+  mediaPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  mediaPlaceholderText: { ...typography.label, color: colors.textSecondary },
+  mediaName: { ...typography.label, color: colors.textPrimary, marginTop: spacing.xs },
+  mediaActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
 });

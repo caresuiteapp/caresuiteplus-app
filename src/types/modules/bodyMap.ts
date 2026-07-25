@@ -205,6 +205,9 @@ export type BodyMapClinicalMedia = {
   measurementReferencePresent: boolean;
   note: string;
   createdAt: string;
+  /** Kurzlebige signierte URL; wird niemals in der Datenbank gespeichert. */
+  signedUrl: string | null;
+  downloadUrl: string | null;
 };
 
 export type BodyMapFindingHistoryEntry = {
@@ -232,6 +235,10 @@ export type PressureInjuryAssessmentInput = {
   lengthCm?: number | null;
   widthCm?: number | null;
   depthCm?: number | null;
+  underminingClockFrom?: number | null;
+  underminingClockTo?: number | null;
+  underminingMaxDepthCm?: number | null;
+  tunnelingPresent: boolean;
   tissuePercentages: Record<string, number>;
   exudate: {
     amount?: 'kein' | 'gering' | 'mittel' | 'stark';
@@ -244,6 +251,8 @@ export type PressureInjuryAssessmentInput = {
     atRest?: boolean;
     duringCare?: boolean;
   };
+  woundEdge: Record<string, boolean | string>;
+  surroundingSkin: Record<string, boolean | string>;
   infectionSigns: Record<string, boolean>;
   escalationFlags: string[];
   treatmentPlan: {

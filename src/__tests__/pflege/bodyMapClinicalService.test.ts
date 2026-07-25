@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   addBodyMapFindingProgress,
@@ -5,6 +7,7 @@ import {
   createPressureInjuryAssessment,
   fetchBodyMapClinicalRecord,
   uploadBodyMapClinicalPhoto,
+  validatePressureInjuryAssessment,
 } from '@/lib/pflege/bodyMapClinicalService';
 
 afterEach(() => {
@@ -54,9 +57,15 @@ describe('Bodymap-Foto, Verlauf und Dekubitus-Assessment', () => {
         lengthCm: 2.4,
         widthCm: 1.2,
         depthCm: 0.3,
+        underminingClockFrom: 3,
+        underminingClockTo: 6,
+        underminingMaxDepthCm: 1.1,
+        tunnelingPresent: true,
         tissuePercentages: { granulation: 70, fibrin: 30 },
         exudate: { amount: 'mittel', character: 'seroes' },
         pain: { score: 4, scale: 'NRS', duringCare: true },
+        woundEdge: { mazeriert: false },
+        surroundingSkin: { roetung: true },
         infectionSigns: { roetung: true },
         escalationFlags: ['neu_ab_kategorie_2'],
         treatmentPlan: { dressing: 'Schaumverband' },
@@ -71,6 +80,12 @@ describe('Bodymap-Foto, Verlauf und Dekubitus-Assessment', () => {
       note: 'Wundfläche kleiner.',
     });
     expect(progress.ok).toBe(true);
+    const closure = await addBodyMapFindingProgress({
+      ...scope,
+      status: 'geschlossen',
+      note: 'Wunde vollständig epithelialisiert.',
+    });
+    expect(closure.ok).toBe(true);
 
     const record = await fetchBodyMapClinicalRecord(
       scope.tenantId,
@@ -83,7 +98,67 @@ describe('Bodymap-Foto, Verlauf und Dekubitus-Assessment', () => {
       expect(record.data.media[0]?.measurementReferencePresent).toBe(true);
       expect(record.data.pressureAssessments).toHaveLength(1);
       expect(record.data.pressureAssessments[0]?.lengthCm).toBe(2.4);
-      expect(record.data.history[0]?.eventType).toBe('healing');
+      expect(record.data.pressureAssessments[0]?.underminingClockFrom).toBe(3);
+      expect(record.data.pressureAssessments[0]?.underminingMaxDepthCm).toBe(1.1);
+      expect(record.data.pressureAssessments[0]?.tunnelingPresent).toBe(true);
+      expect(record.data.pressureAssessments[0]?.surroundingSkin).toEqual({ roetung: true });
+      expect(record.data.history[0]?.eventType).toBe('closed');
+      expect(record.data.history[1]?.eventType).toBe('healing');
     }
+  });
+
+  it('erzeugt im Live-Abruf getrennte kurzlebige Vorschau- und Download-URLs', () => {
+    const service = readFileSync(
+      resolve(process.cwd(), 'src/lib/pflege/bodyMapClinicalService.ts'),
+      'utf8',
+    );
+    const screen = readFileSync(
+      resolve(process.cwd(), 'src/screens/pflege/BodyMapScreen.tsx'),
+      'utf8',
+    );
+
+    expect(service).toContain('createSignedUrl(media.storagePath, 3600)');
+    expect(service).toContain('download: media.originalFileName ?? true');
+    expect(service).toContain('downloadUrl: downloadResult.data?.signedUrl ?? null');
+    expect(screen).toContain('title="Vorschau"');
+    expect(screen).toContain('title="Download"');
+  });
+
+  it('weist klinisch ungültige Dekubituswerte in der Service-Schicht zurück', () => {
+    expect(
+      validatePressureInjuryAssessment({
+        classification: 'kategorie_3',
+        deviceRelated: false,
+        tunnelingPresent: false,
+        underminingClockFrom: 13,
+        tissuePercentages: { granulation: 70, fibrin: 40 },
+        exudate: {},
+        pain: { score: 11, scale: 'NRS' },
+        woundEdge: {},
+        surroundingSkin: {},
+        infectionSigns: {},
+        escalationFlags: [],
+        treatmentPlan: {},
+        pressureReliefPlan: {},
+      }),
+    ).toContain('Schmerzwert');
+
+    expect(
+      validatePressureInjuryAssessment({
+        classification: 'kategorie_3',
+        deviceRelated: false,
+        tunnelingPresent: false,
+        underminingClockFrom: 13,
+        tissuePercentages: { granulation: 60, fibrin: 40 },
+        exudate: {},
+        pain: { score: 4, scale: 'NRS' },
+        woundEdge: {},
+        surroundingSkin: {},
+        infectionSigns: {},
+        escalationFlags: [],
+        treatmentPlan: {},
+        pressureReliefPlan: {},
+      }),
+    ).toContain('1 bis 12');
   });
 });
