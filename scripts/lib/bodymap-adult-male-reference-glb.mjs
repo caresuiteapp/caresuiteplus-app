@@ -49,7 +49,7 @@ function boundsOf(positions) {
   return { min, max };
 }
 
-function ellipsoidGeometry(
+export function ellipsoidGeometry(
   center,
   radii,
   {
@@ -117,7 +117,7 @@ function ellipsoidGeometry(
   };
 }
 
-function capsuleGeometry(
+export function capsuleGeometry(
   start,
   end,
   radius,
@@ -204,7 +204,7 @@ function capsuleGeometry(
   };
 }
 
-function materialDefinitions() {
+export function materialDefinitions() {
   return [
     {
       name: 'skin_body',
@@ -818,8 +818,13 @@ export function buildAdultMaleReferenceParts() {
   return parts;
 }
 
-export function buildAdultMaleReferenceGlb() {
-  const parts = buildAdultMaleReferenceParts();
+export function buildBodyMapReferenceGlb({
+  parts,
+  variantId,
+  generator,
+  sceneName,
+  anatomicalScope,
+}) {
   const materials = materialDefinitions();
   const buffers = [];
   const bufferViews = [];
@@ -915,11 +920,11 @@ export function buildAdultMaleReferenceGlb() {
   const gltf = {
     asset: {
       version: '2.0',
-      generator: 'CareSuite Self-Developed Adult Male Reference Mesh Generator',
+      generator,
       copyright: 'CareSuite HealthOS Software Technologie',
       extras: {
         bodymap: {
-          variantId: 'body-erwachsener-maennlich',
+          variantId,
           units: 'meters',
           upAxis: 'Y',
           forwardAxis: 'Z',
@@ -933,18 +938,7 @@ export function buildAdultMaleReferenceGlb() {
           medicallyReviewed: false,
           sensitiveAnatomyReviewed: false,
           safeForClinicalRelease: false,
-          anatomicalScope: [
-            'full-body-surface',
-            'face',
-            'eyes',
-            'ears',
-            'mouth',
-            'hands',
-            'feet',
-            'buttocks',
-            'male-external-genitalia',
-            'pressure-injury-risk-surfaces',
-          ],
+          anatomicalScope,
           vertexCount,
           triangleCount,
         },
@@ -956,7 +950,7 @@ export function buildAdultMaleReferenceGlb() {
     materials,
     meshes,
     nodes,
-    scenes: [{ name: 'adult-male-technical-reference', nodes: nodes.map((_, index) => index) }],
+    scenes: [{ name: sceneName, nodes: nodes.map((_, index) => index) }],
     scene: 0,
   };
 
@@ -978,7 +972,7 @@ export function buildAdultMaleReferenceGlb() {
   return {
     bytes: output,
     summary: {
-      variantId: 'body-erwachsener-maennlich',
+      variantId,
       parts: parts.length,
       zones: parts.map((part) => part.zoneId),
       vertices: vertexCount,
@@ -987,4 +981,25 @@ export function buildAdultMaleReferenceGlb() {
       safeForClinicalRelease: false,
     },
   };
+}
+
+export function buildAdultMaleReferenceGlb() {
+  return buildBodyMapReferenceGlb({
+    parts: buildAdultMaleReferenceParts(),
+    variantId: 'body-erwachsener-maennlich',
+    generator: 'CareSuite Self-Developed Adult Male Reference Mesh Generator',
+    sceneName: 'adult-male-technical-reference',
+    anatomicalScope: [
+      'full-body-surface',
+      'face',
+      'eyes',
+      'ears',
+      'mouth',
+      'hands',
+      'feet',
+      'buttocks',
+      'male-external-genitalia',
+      'pressure-injury-risk-surfaces',
+    ],
+  });
 }

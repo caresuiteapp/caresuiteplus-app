@@ -73,9 +73,12 @@ for (const variant of variants) {
         : variant.id.includes('-weiblich') || variant.id.includes('-vulva-')
           ? meshManifest.requiredAnatomyZones.vulva
           : [];
+      const chestZones = variant.id.includes('-weiblich') || variant.id.includes('-brueste')
+        ? meshManifest.requiredChestZones?.breasts ?? []
+        : [];
       const report = inspectBodyMapGlb(readFileSync(localAsset), {
         expectedVariantId: variant.id,
-        requiredZoneIds: [...meshManifest.requiredCoreZones, ...anatomyZones],
+        requiredZoneIds: [...meshManifest.requiredCoreZones, ...anatomyZones, ...chestZones],
         expectedHeightMeters: variant.nominalHeightMeters,
         maximumVertices: meshManifest.qualityLimits.maximumVertices,
         maximumTriangles: meshManifest.qualityLimits.maximumTriangles,
@@ -122,6 +125,9 @@ for (const variant of variants) {
                 : variant.id.includes('-weiblich') || variant.id.includes('-vulva-')
                   ? meshManifest.requiredAnatomyZones.vulva
                   : []),
+              ...(variant.id.includes('-weiblich') || variant.id.includes('-brueste')
+                ? meshManifest.requiredChestZones?.breasts ?? []
+                : []),
             ],
             expectedHeightMeters: variant.nominalHeightMeters,
             maximumVertices: meshManifest.qualityLimits.maximumVertices,

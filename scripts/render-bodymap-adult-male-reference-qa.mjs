@@ -5,20 +5,48 @@ import {
   buildAdultMaleReferenceGlb,
   buildAdultMaleReferenceParts,
 } from './lib/bodymap-adult-male-reference-glb.mjs';
+import {
+  buildAdultFemaleReferenceGlb,
+  buildAdultFemaleReferenceParts,
+} from './lib/bodymap-adult-female-reference-glb.mjs';
 
 const outputRoot = process.env.BODYMAP3D_QA_OUTPUT_ROOT
   ? resolve(process.env.BODYMAP3D_QA_OUTPUT_ROOT)
   : process.cwd();
+const referenceVariant =
+  process.env.BODYMAP3D_REFERENCE_VARIANT ?? 'body-erwachsener-maennlich';
+const referenceConfigurations = {
+  'body-erwachsener-maennlich': {
+    artifactName: 'adult-male-four-view',
+    artifactDirectoryName: 'bodymap-adult-male-reference-qa',
+    phase: 5,
+    title: 'Erwachsener · Männlich · Technischer Referenzkörper v2',
+    buildParts: buildAdultMaleReferenceParts,
+    buildGlb: buildAdultMaleReferenceGlb,
+  },
+  'body-erwachsener-weiblich': {
+    artifactName: 'adult-female-four-view',
+    artifactDirectoryName: 'bodymap-adult-female-reference-qa',
+    phase: 6,
+    title: 'Erwachsen · Weiblich · Technischer Referenzkörper v2',
+    buildParts: buildAdultFemaleReferenceParts,
+    buildGlb: buildAdultFemaleReferenceGlb,
+  },
+};
+const referenceConfiguration = referenceConfigurations[referenceVariant];
+if (!referenceConfiguration) {
+  throw new Error(`Unbekannte Referenzvariante: ${referenceVariant}`);
+}
 const artifactDirectory = resolve(
   outputRoot,
-  'artifacts/bodymap-adult-male-reference-qa',
+  `artifacts/${referenceConfiguration.artifactDirectoryName}`,
 );
 const qaDirectory = resolve(outputRoot, 'docs/bodymap3d/qa');
-const svgPath = resolve(artifactDirectory, 'adult-male-four-view.svg');
-const pngPath = resolve(qaDirectory, 'adult-male-four-view.png');
-const manifestPath = resolve(qaDirectory, 'adult-male-four-view.json');
-const parts = buildAdultMaleReferenceParts();
-const generated = buildAdultMaleReferenceGlb();
+const svgPath = resolve(artifactDirectory, `${referenceConfiguration.artifactName}.svg`);
+const pngPath = resolve(qaDirectory, `${referenceConfiguration.artifactName}.png`);
+const manifestPath = resolve(qaDirectory, `${referenceConfiguration.artifactName}.json`);
+const parts = referenceConfiguration.buildParts();
+const generated = referenceConfiguration.buildGlb();
 
 const views = [
   { id: 'front', label: 'VORDERSEITE', yaw: 0 },
@@ -144,9 +172,9 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1648" height="1080" viewBox="0 0 1648 1080">
   <rect width="1648" height="1080" fill="#04101f" />
   <text x="32" y="42" fill="#66a3ff" font-family="Arial, sans-serif"
-    font-size="13" font-weight="800" letter-spacing="2">CARESUITE · BODYMAP PHASE 5</text>
+    font-size="13" font-weight="800" letter-spacing="2">CARESUITE · BODYMAP PHASE ${referenceConfiguration.phase}</text>
   <text x="32" y="72" fill="#f5f9ff" font-family="Arial, sans-serif"
-    font-size="24" font-weight="900">Erwachsener · Männlich · Technischer Referenzkörper v2</text>
+    font-size="24" font-weight="900">${referenceConfiguration.title}</text>
   ${viewMarkup}
   <rect x="28" y="925" width="1574" height="120" rx="18"
     fill="#08172b" stroke="rgba(112,165,255,0.28)" />
@@ -175,8 +203,8 @@ await writeFile(
       variantId: generated.summary.variantId,
       views: views.map((view) => view.id),
       ...generated.summary,
-      svgPath: 'artifacts/bodymap-adult-male-reference-qa/adult-male-four-view.svg',
-      pngPath: 'docs/bodymap3d/qa/adult-male-four-view.png',
+      svgPath: `artifacts/${referenceConfiguration.artifactDirectoryName}/${referenceConfiguration.artifactName}.svg`,
+      pngPath: `docs/bodymap3d/qa/${referenceConfiguration.artifactName}.png`,
     },
     null,
     2,

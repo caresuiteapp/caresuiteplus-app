@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "meshContractVersion": 1,
-  "release": "bodymap3d-v2-adult-male-technical-reference",
+  "release": "bodymap3d-v2-adult-paired-technical-references",
   "ownership": "caresuite-self-developed",
   "renderer": "gltf-medical-mesh-with-parametric-fallback",
   "coordinateSystem": {
@@ -54,12 +54,26 @@
       "surface-anus"
     ],
     "vulva": [
+      "surface-mons-pubis",
       "surface-labium-majus-left",
       "surface-labium-majus-right",
+      "surface-labium-minus-left",
+      "surface-labium-minus-right",
       "surface-clitoral-region",
       "surface-urethral-opening-vulva",
       "surface-vaginal-opening",
+      "surface-perineum",
       "surface-anus"
+    ]
+  },
+  "requiredChestZones": {
+    "breasts": [
+      "surface-breast-left",
+      "surface-breast-right",
+      "surface-areola-left",
+      "surface-areola-right",
+      "surface-nipple-left",
+      "surface-nipple-right"
     ]
   },
   "variants": [
@@ -188,11 +202,16 @@
     {
       "id": "body-erwachsener-weiblich",
       "baseModelId": "body-erwachsener-weiblich",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-erwachsener-weiblich-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1.72,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-adult-female-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-erwachsener-weiblich-v2.glb.quality.json",
+      "registeredAt": "2026-07-25T21:30:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true
     },
     {
       "id": "body-erwachsener-divers",

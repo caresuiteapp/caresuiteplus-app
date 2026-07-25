@@ -7,21 +7,21 @@ import { resolve } from 'node:path';
 
 const root = process.cwd();
 const temporaryRoot = await mkdtemp(
-  resolve(tmpdir(), 'caresuite-bodymap-phase5-portable-'),
+  resolve(tmpdir(), 'caresuite-bodymap-phase6-female-portable-'),
 );
 const generatedAssetDirectory = resolve(temporaryRoot, 'public/bodymap3d/v2');
 const committedGlbPath = resolve(
   root,
-  'public/bodymap3d/v2/body-erwachsener-maennlich-v2.glb',
+  'public/bodymap3d/v2/body-erwachsener-weiblich-v2.glb',
 );
 const committedQualityPath = `${committedGlbPath}.quality.json`;
 const committedQaManifestPath = resolve(
   root,
-  'docs/bodymap3d/qa/adult-male-four-view.json',
+  'docs/bodymap3d/qa/adult-female-four-view.json',
 );
 const committedQaPngPath = resolve(
   root,
-  'docs/bodymap3d/qa/adult-male-four-view.png',
+  'docs/bodymap3d/qa/adult-female-four-view.png',
 );
 
 function runScript(script, environment) {
@@ -57,25 +57,25 @@ async function inspectPng(path, label) {
 }
 
 try {
-  runScript('scripts/generate-bodymap-adult-male-reference-glb.mjs', {
+  runScript('scripts/generate-bodymap-adult-female-reference-glb.mjs', {
     BODYMAP3D_REFERENCE_OUTPUT_DIR: generatedAssetDirectory,
   });
-  runScript('scripts/render-bodymap-adult-male-reference-qa.mjs', {
+  runScript('scripts/render-bodymap-adult-female-reference-qa.mjs', {
     BODYMAP3D_QA_OUTPUT_ROOT: temporaryRoot,
   });
 
   const generatedGlbPath = resolve(
     generatedAssetDirectory,
-    'body-erwachsener-maennlich-v2.glb',
+    'body-erwachsener-weiblich-v2.glb',
   );
   const generatedQualityPath = `${generatedGlbPath}.quality.json`;
   const generatedQaManifestPath = resolve(
     temporaryRoot,
-    'docs/bodymap3d/qa/adult-male-four-view.json',
+    'docs/bodymap3d/qa/adult-female-four-view.json',
   );
   const generatedQaPngPath = resolve(
     temporaryRoot,
-    'docs/bodymap3d/qa/adult-male-four-view.png',
+    'docs/bodymap3d/qa/adult-female-four-view.png',
   );
 
   const [committedGlb, generatedGlb] = await Promise.all([
@@ -84,38 +84,39 @@ try {
   ]);
   assert.ok(
     committedGlb.equals(generatedGlb),
-    'Die GLB-Bytes weichen plattformunabhängig vom eingecheckten Asset ab.',
+    'Die weiblichen GLB-Bytes weichen vom eingecheckten Asset ab.',
   );
-
   assert.deepEqual(
     await parseJson(committedQualityPath),
     await parseJson(generatedQualityPath),
-    'Der semantische GLB-Qualitätsbericht weicht ab.',
+    'Der semantische weibliche GLB-Qualitätsbericht weicht ab.',
   );
   assert.deepEqual(
     await parseJson(committedQaManifestPath),
     await parseJson(generatedQaManifestPath),
-    'Das semantische Vieransichten-QA-Manifest weicht ab.',
+    'Das semantische weibliche Vieransichten-QA-Manifest weicht ab.',
   );
 
   const [committedPngBytes, generatedPngBytes] = await Promise.all([
-    inspectPng(committedQaPngPath, 'Eingecheckte Vieransichten-QA'),
-    inspectPng(generatedQaPngPath, 'Neu erzeugte Vieransichten-QA'),
+    inspectPng(committedQaPngPath, 'Eingecheckte weibliche Vieransichten-QA'),
+    inspectPng(generatedQaPngPath, 'Neu erzeugte weibliche Vieransichten-QA'),
   ]);
-  const generatedSvgPath = resolve(
-    temporaryRoot,
-    'artifacts/bodymap-adult-male-reference-qa/adult-male-four-view.svg',
+  const generatedSvg = await readFile(
+    resolve(
+      temporaryRoot,
+      'artifacts/bodymap-adult-female-reference-qa/adult-female-four-view.svg',
+    ),
+    'utf8',
   );
-  const generatedSvg = await readFile(generatedSvgPath, 'utf8');
   assert.match(generatedSvg, /NICHT MEDIZINISCH FREIGEGEBEN/);
-  assert.match(generatedSvg, /113 Zonen/);
-  assert.match(generatedSvg, /25908 Vertices/);
-  assert.match(generatedSvg, /45260 Dreiecke/);
+  assert.match(generatedSvg, /118 Zonen/);
+  assert.match(generatedSvg, /27197 Vertices/);
+  assert.match(generatedSvg, /47532 Dreiecke/);
 
   const committedStats = await stat(committedGlbPath);
   assert.equal(committedStats.size, generatedGlb.length);
 
-  console.log('Plattformneutrale Phase-5-Artefaktprüfung bestanden.');
+  console.log('Plattformneutrale weibliche Phase-6-Artefaktprüfung bestanden.');
   console.log(`GLB: ${generatedGlb.length} Bytes bytegenau identisch`);
   console.log('JSON: Qualitätsbericht und QA-Manifest semantisch identisch');
   console.log(
