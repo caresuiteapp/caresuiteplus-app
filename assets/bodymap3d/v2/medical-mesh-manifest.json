@@ -17,6 +17,51 @@
     "skinMaterialPrefix": "skin",
     "skinMaterialUserDataKey": "bodymapSkinMaterial"
   },
+  "qualityLimits": {
+    "maximumVertices": 250000,
+    "maximumTriangles": 500000,
+    "maximumFileSizeBytes": 50000000
+  },
+  "requiredCoreZones": [
+    "surface-eye-left",
+    "surface-eye-right",
+    "surface-ear-left",
+    "surface-ear-right",
+    "surface-upper-lip",
+    "surface-lower-lip",
+    "surface-chin",
+    "surface-clavicle-left",
+    "surface-shoulder-right",
+    "surface-navel",
+    "surface-scapula-left",
+    "surface-thoracic-spine",
+    "surface-sacrum",
+    "surface-coccyx",
+    "surface-ischial-left",
+    "surface-hand-left",
+    "surface-hand-right",
+    "surface-buttock-left",
+    "surface-buttock-right",
+    "surface-heel-left",
+    "surface-sole-right"
+  ],
+  "requiredAnatomyZones": {
+    "penis": [
+      "surface-penis",
+      "surface-glans",
+      "surface-scrotum-left",
+      "surface-scrotum-right",
+      "surface-anus"
+    ],
+    "vulva": [
+      "surface-labium-majus-left",
+      "surface-labium-majus-right",
+      "surface-clitoral-region",
+      "surface-urethral-opening-vulva",
+      "surface-vaginal-opening",
+      "surface-anus"
+    ]
+  },
   "variants": [
     {
       "id": "body-baby-maennlich",

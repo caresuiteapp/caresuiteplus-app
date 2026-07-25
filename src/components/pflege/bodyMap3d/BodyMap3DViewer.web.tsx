@@ -4,6 +4,10 @@ import { ContactShadows, OrbitControls } from '@react-three/drei';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '@/theme';
 import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
+import {
+  canRenderMedicalMesh,
+  getMedicalMeshDefinition,
+} from '@/lib/pflege/bodyMap3d/medicalMeshCatalog';
 import { ClinicalBodyModel } from './ClinicalBodyModel';
 import type { BodyMap3DViewerProps } from './BodyMap3DViewer.types';
 
@@ -23,6 +27,8 @@ export function BodyMap3DViewer({
   onMarkerPress,
 }: BodyMap3DViewerProps) {
   const model = getBodyMapModel(selection);
+  const medicalMesh = getMedicalMeshDefinition(selection);
+  const medicalRendererActive = canRenderMedicalMesh(medicalMesh);
   const [activeView, setActiveView] =
     useState<(typeof VIEW_PRESETS)[number]['id']>('front');
   const modelRotation = VIEW_PRESETS.find((preset) => preset.id === activeView)?.yaw ?? 0;
@@ -32,10 +38,15 @@ export function BodyMap3DViewer({
       <View style={styles.statusRow}>
         <View>
           <Text style={styles.modelLabel}>{model.label}</Text>
+          <Text style={styles.rendererStatus}>
+            {medicalRendererActive
+              ? `Medizinisches Mesh v${medicalMesh.version} · ${medicalMesh.reviewStatus}`
+              : 'Sicherer parametrischer Fallback · medizinisches Mesh ausstehend'}
+          </Text>
           <Text style={styles.help}>Ziehen: drehen · Mausrad/2 Finger: zoomen · Rechtsziehen: verschieben</Text>
         </View>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>3D</Text>
+          <Text style={styles.badgeText}>{medicalRendererActive ? 'GLB' : '3D'}</Text>
         </View>
       </View>
       <View style={styles.viewPresets}>
@@ -134,6 +145,12 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(112, 165, 255, 0.22)',
   },
   modelLabel: { ...typography.label, color: '#f5f9ff' },
+  rendererStatus: {
+    ...typography.caption,
+    color: '#66a3ff',
+    marginTop: 3,
+    fontWeight: '700',
+  },
   help: { ...typography.caption, color: '#a9b9d2', marginTop: 4 },
   badge: {
     minWidth: 42,

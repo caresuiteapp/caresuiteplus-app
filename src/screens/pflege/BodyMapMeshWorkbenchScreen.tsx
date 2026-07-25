@@ -1,0 +1,300 @@
+import { Canvas } from '@react-three/fiber';
+import { ContactShadows } from '@react-three/drei';
+import { Link, useLocalSearchParams } from 'expo-router';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ClinicalBodyModel } from '@/components/pflege/bodyMap3d/ClinicalBodyModel';
+import {
+  BODY_MAP_VISUAL_QA_CASES,
+  getBodyMapVisualQaCase,
+} from '@/lib/pflege/bodyMap3d/visualQaCatalog';
+import {
+  canRenderMedicalMesh,
+  getMedicalMeshDefinition,
+  medicalMeshRendererLabel,
+} from '@/lib/pflege/bodyMap3d/medicalMeshCatalog';
+import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
+
+const VIEWS = [
+  { id: 'front', label: 'Vorderseite', rotationY: 0 },
+  { id: 'back', label: 'Rückseite', rotationY: Math.PI },
+  { id: 'left', label: 'Linke Seite', rotationY: -Math.PI / 2 },
+  { id: 'right', label: 'Rechte Seite', rotationY: Math.PI / 2 },
+] as const;
+
+function WorkbenchModelView({
+  label,
+  rotationY,
+  qaCase,
+}: {
+  label: string;
+  rotationY: number;
+  qaCase: ReturnType<typeof getBodyMapVisualQaCase>;
+}) {
+  const model = getBodyMapModel(qaCase.selection);
+  return (
+    <View style={styles.modelCard}>
+      <Text style={styles.modelCardTitle}>{label}</Text>
+      <View style={styles.canvas}>
+        <Canvas
+          dpr={[1, 1.5]}
+          camera={{
+            position: [0, model.cameraTargetY, Math.max(model.cameraDistance, 4.8)],
+            fov: 34,
+            near: 0.01,
+            far: 50,
+          }}
+          gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true }}
+        >
+          <color attach="background" args={['#071326']} />
+          <ambientLight intensity={1.5} />
+          <hemisphereLight args={['#dcecff', '#13233f', 1.4]} />
+          <directionalLight position={[3, 5, 4]} intensity={2.1} />
+          <directionalLight position={[-3, 2, -4]} intensity={0.85} color="#70a5ff" />
+          <ClinicalBodyModel
+            selection={qaCase.selection}
+            markers={[]}
+            disabled
+            rotation={[0, rotationY, 0]}
+            onSurfacePress={() => undefined}
+          />
+          <ContactShadows
+            position={[0, -1.31, 0]}
+            opacity={0.35}
+            scale={4}
+            blur={2.5}
+            far={3}
+          />
+        </Canvas>
+      </View>
+    </View>
+  );
+}
+
+function CheckRow({
+  label,
+  passed,
+  detail,
+}: {
+  label: string;
+  passed: boolean;
+  detail: string;
+}) {
+  return (
+    <View style={styles.checkRow}>
+      <Text style={[styles.checkIcon, passed ? styles.checkPassed : styles.checkPending]}>
+        {passed ? '✓' : '○'}
+      </Text>
+      <View style={styles.checkText}>
+        <Text style={styles.checkLabel}>{label}</Text>
+        <Text style={styles.checkDetail}>{detail}</Text>
+      </View>
+    </View>
+  );
+}
+
+export function BodyMapMeshWorkbenchScreen() {
+  const { variant } = useLocalSearchParams<{ variant?: string }>();
+  const qaCase = getBodyMapVisualQaCase(variant);
+  const definition = getMedicalMeshDefinition(qaCase.selection);
+  const active = canRenderMedicalMesh(definition);
+
+  return (
+    <ScrollView
+      style={styles.page}
+      contentContainerStyle={styles.pageContent}
+      testID="bodymap-mesh-workbench-ready"
+    >
+      <View style={styles.header}>
+        <View style={styles.headerCopy}>
+          <Text style={styles.eyebrow}>CARESUITE · BODYMAP MESH WORKBENCH</Text>
+          <Text style={styles.title}>{qaCase.label}</Text>
+          <Text style={styles.subtitle}>{qaCase.subtitle}</Text>
+        </View>
+        <View style={[styles.statusBadge, active ? styles.statusActive : styles.statusPending]}>
+          <Text style={styles.statusBadgeText}>
+            {active ? definition.reviewStatus : 'FALLBACK'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.workspace}>
+        <View style={styles.sidebar}>
+          <Text style={styles.panelTitle}>18 Modellvarianten</Text>
+          <Text style={styles.panelHint}>
+            Jede Variante bleibt getrennt versioniert und medizinisch freigabepflichtig.
+          </Text>
+          <View style={styles.variantList}>
+            {BODY_MAP_VISUAL_QA_CASES.map((entry, index) => (
+              <Link
+                key={entry.id}
+                href={`/bodymap-mesh-workbench?variant=${entry.id}`}
+                style={[
+                  styles.variantLink,
+                  entry.id === qaCase.id && styles.variantLinkActive,
+                ]}
+              >
+                {String(index + 1).padStart(2, '0')} · {entry.label}
+              </Link>
+            ))}
+          </View>
+
+          <View style={styles.contractPanel}>
+            <Text style={styles.panelTitle}>Aktiver Renderer</Text>
+            <Text style={styles.rendererLabel}>{medicalMeshRendererLabel(definition)}</Text>
+            <Text style={styles.meta}>Variant-ID: {definition.id}</Text>
+            <Text style={styles.meta}>Version: {definition.version}</Text>
+            <Text style={styles.meta}>
+              Asset: {definition.assetPath ?? 'noch nicht registriert'}
+            </Text>
+          </View>
+
+          <View style={styles.contractPanel}>
+            <Text style={styles.panelTitle}>Freigabegates</Text>
+            <CheckRow
+              label="GLB registriert"
+              passed={Boolean(definition.assetPath)}
+              detail="Binärdatei und Qualitätsbericht vorhanden"
+            />
+            <CheckRow
+              label="Technisch geprüft"
+              passed={active}
+              detail="Zonen, UV, Normalen, Maße und Budgets bestanden"
+            />
+            <CheckRow
+              label="Medizinisch geprüft"
+              passed={definition.reviewStatus === 'released'}
+              detail="Anatomie und sensible Bereiche fachlich freigegeben"
+            />
+            <CheckRow
+              label="Produktionsfreigabe"
+              passed={definition.reviewStatus === 'released'}
+              detail="18er-Vergleich und klinische Abnahme dokumentiert"
+            />
+          </View>
+        </View>
+
+        <View style={styles.main}>
+          <View style={styles.notice}>
+            <Text style={styles.noticeTitle}>
+              {active
+                ? 'Registriertes medizinisches Mesh wird gerendert'
+                : 'Parametrischer Sicherheitsfallback wird gerendert'}
+            </Text>
+            <Text style={styles.noticeText}>
+              Ein fehlendes oder fehlerhaftes GLB darf die produktive Bodymap niemals
+              unbedienbar machen.
+            </Text>
+          </View>
+          <View style={styles.grid}>
+            {VIEWS.map((view) => (
+              <WorkbenchModelView
+                key={view.id}
+                label={view.label}
+                rotationY={view.rotationY}
+                qaCase={qaCase}
+              />
+            ))}
+          </View>
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: '#04101f' },
+  pageContent: { minHeight: 1200, padding: 24 },
+  header: {
+    minHeight: 94,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(112,165,255,0.28)',
+    paddingBottom: 18,
+    marginBottom: 18,
+  },
+  headerCopy: { flex: 1 },
+  eyebrow: { color: '#66a3ff', fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
+  title: { color: '#f5f9ff', fontSize: 28, fontWeight: '900', marginTop: 5 },
+  subtitle: { color: '#a9b9d2', fontSize: 14, marginTop: 4 },
+  statusBadge: {
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  statusActive: { borderColor: '#3bd671', backgroundColor: 'rgba(59,214,113,0.13)' },
+  statusPending: { borderColor: '#f6ae2d', backgroundColor: 'rgba(246,174,45,0.13)' },
+  statusBadgeText: { color: '#f5f9ff', fontSize: 12, fontWeight: '900' },
+  workspace: { flexDirection: 'row', alignItems: 'flex-start', gap: 18 },
+  sidebar: { width: 330, gap: 14 },
+  main: { flex: 1, minWidth: 0 },
+  panelTitle: { color: '#e9f2ff', fontSize: 14, fontWeight: '900' },
+  panelHint: { color: '#8297b6', fontSize: 12, lineHeight: 18 },
+  variantList: {
+    borderWidth: 1,
+    borderColor: 'rgba(112,165,255,0.2)',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  variantLink: {
+    color: '#9fb1ca',
+    fontSize: 11,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    backgroundColor: '#08172b',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(112,165,255,0.1)',
+  },
+  variantLinkActive: { color: '#fff', backgroundColor: 'rgba(23,105,224,0.38)' },
+  contractPanel: {
+    borderWidth: 1,
+    borderColor: 'rgba(112,165,255,0.2)',
+    borderRadius: 16,
+    backgroundColor: '#08172b',
+    padding: 14,
+    gap: 8,
+  },
+  rendererLabel: { color: '#66a3ff', fontSize: 12, fontWeight: '800' },
+  meta: { color: '#91a5c1', fontSize: 11 },
+  checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, paddingVertical: 4 },
+  checkIcon: { fontSize: 18, lineHeight: 20, fontWeight: '900' },
+  checkPassed: { color: '#3bd671' },
+  checkPending: { color: '#f6ae2d' },
+  checkText: { flex: 1 },
+  checkLabel: { color: '#e9f2ff', fontSize: 12, fontWeight: '800' },
+  checkDetail: { color: '#7f94b3', fontSize: 10, lineHeight: 15, marginTop: 2 },
+  notice: {
+    borderWidth: 1,
+    borderColor: 'rgba(102,163,255,0.25)',
+    borderRadius: 16,
+    padding: 14,
+    backgroundColor: 'rgba(23,105,224,0.1)',
+    marginBottom: 14,
+  },
+  noticeTitle: { color: '#e9f2ff', fontSize: 13, fontWeight: '900' },
+  noticeText: { color: '#91a5c1', fontSize: 11, marginTop: 4 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  modelCard: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    minWidth: 360,
+    height: 480,
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(112,165,255,0.22)',
+    backgroundColor: '#071326',
+  },
+  modelCardTitle: {
+    height: 40,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    color: '#dce9fb',
+    backgroundColor: '#0a1a31',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  canvas: { flex: 1 },
+});

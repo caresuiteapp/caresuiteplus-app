@@ -40,3 +40,12 @@ nicht erhalten.
 5. Intimbereiche gesondert geprüft
 6. Alle 18 Vergleichsbilder ohne Browserfehler erzeugt
 7. Erst danach Status `released`
+
+## Lokale Werkzeuge
+
+- `npm run bodymap3d:mesh:validate -- --file=... --variant=...`
+- `npm run bodymap3d:mesh:register -- --file=... --variant=...`
+- `npm run bodymap3d:mesh:calibration`
+
+Die Registrierung ist ohne `--write` immer nur lesend. Eine direkte
+CLI-Freigabe als `released` ist gesperrt.

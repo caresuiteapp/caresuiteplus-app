@@ -69,6 +69,9 @@ export function BodyMap3DViewer({
       <View style={styles.statusRow}>
         <View>
           <Text style={styles.modelLabel}>{model.label}</Text>
+          <Text style={styles.rendererStatus}>
+            Parametrischer Fallback · native GLB-Bündelung ausstehend
+          </Text>
           <Text style={styles.help}>1 Finger: drehen · 2 Finger: zoomen · Antippen: Befund setzen</Text>
         </View>
         <View style={styles.badge}>
@@ -139,6 +142,12 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(112, 165, 255, 0.22)',
   },
   modelLabel: { ...typography.label, color: '#f5f9ff' },
+  rendererStatus: {
+    ...typography.caption,
+    color: '#66a3ff',
+    marginTop: 3,
+    fontWeight: '700',
+  },
   help: { ...typography.caption, color: '#a9b9d2', marginTop: 4 },
   badge: {
     minWidth: 42,

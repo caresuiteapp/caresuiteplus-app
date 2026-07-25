@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Component, Suspense, useMemo, type ErrorInfo, type ReactNode } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { Color, Mesh, type Material, type Object3D } from 'three';
@@ -94,10 +94,49 @@ function MedicalGltfBodyModel({
   );
 }
 
+class MedicalMeshErrorBoundary extends Component<
+  { fallback: ReactNode; resetKey: string; children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Medizinisches Bodymap-Mesh konnte nicht geladen werden.', {
+      message: error.message,
+      componentStack: info.componentStack,
+      asset: this.props.resetKey,
+    });
+  }
+
+  componentDidUpdate(previousProps: Readonly<{ resetKey: string }>) {
+    if (previousProps.resetKey !== this.props.resetKey && this.state.failed) {
+      this.setState({ failed: false });
+    }
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
 export function ClinicalBodyModel(props: BodyModelProps) {
   const definition = getMedicalMeshDefinition(props.selection);
   if (!canRenderMedicalMesh(definition)) {
     return <ParametricBodyModel {...props} />;
   }
-  return <MedicalGltfBodyModel {...props} assetPath={definition.assetPath} />;
+  const fallback = <ParametricBodyModel {...props} />;
+  return (
+    <MedicalMeshErrorBoundary
+      fallback={fallback}
+      resetKey={definition.assetPath}
+    >
+      <Suspense fallback={fallback}>
+        <MedicalGltfBodyModel {...props} assetPath={definition.assetPath} />
+      </Suspense>
+    </MedicalMeshErrorBoundary>
+  );
 }

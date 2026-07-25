@@ -7,6 +7,8 @@ MIGRATION_FILE="supabase/migrations/20260725083000_bodymap_3d_medical.sql"
 TEST_FILES=(
   "src/__tests__/pflege/bodyMap3dDomain.test.ts"
   "src/__tests__/pflege/bodyMapMedicalMeshPipeline.test.ts"
+  "src/__tests__/pflege/bodyMapGlbInspector.test.ts"
+  "src/__tests__/pflege/bodyMapMeshWorkbench.test.ts"
   "src/__tests__/pflege/bodyMap3dViewerContract.test.ts"
   "src/__tests__/pflege/bodyMap3dPersistence.test.ts"
   "src/__tests__/pflege/bodyMapClinicalService.test.ts"

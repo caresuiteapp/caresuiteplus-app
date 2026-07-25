@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { inspectBodyMapGlb } from './lib/bodymap-glb-inspector.mjs';
 
 const root = process.cwd();
 const meshManifest = JSON.parse(
@@ -28,6 +29,20 @@ if (meshManifest.schemaVersion !== 2) {
 if (meshManifest.meshContractVersion !== 1) {
   errors.push('Der erwartete medizinische Mesh-Vertrag ist Version 1.');
 }
+if (
+  !Array.isArray(meshManifest.requiredCoreZones) ||
+  meshManifest.requiredCoreZones.length < 20 ||
+  new Set(meshManifest.requiredCoreZones).size !== meshManifest.requiredCoreZones.length
+) {
+  errors.push('Der V2-Vertrag benötigt mindestens 20 eindeutige anatomische Kernzonen.');
+}
+if (
+  !(meshManifest.qualityLimits?.maximumVertices > 0) ||
+  !(meshManifest.qualityLimits?.maximumTriangles > 0) ||
+  !(meshManifest.qualityLimits?.maximumFileSizeBytes > 0)
+) {
+  errors.push('Die V2-Qualitätsbudgets sind unvollständig.');
+}
 if (variants.length !== 18 || new Set(ids).size !== 18) {
   errors.push('Die medizinische Mesh-Matrix muss genau 18 eindeutige Varianten enthalten.');
 }
@@ -52,12 +67,60 @@ for (const variant of variants) {
     const localAsset = resolve(root, 'public', variant.assetPath.replace(/^\/+/, ''));
     if (!existsSync(localAsset)) {
       errors.push(`${variant.id}: registrierte GLB-Datei fehlt: ${variant.assetPath}`);
+    } else {
+      const anatomyZones = variant.id.includes('-maennlich') || variant.id.includes('-penis-')
+        ? meshManifest.requiredAnatomyZones.penis
+        : variant.id.includes('-weiblich') || variant.id.includes('-vulva-')
+          ? meshManifest.requiredAnatomyZones.vulva
+          : [];
+      const report = inspectBodyMapGlb(readFileSync(localAsset), {
+        expectedVariantId: variant.id,
+        requiredZoneIds: [...meshManifest.requiredCoreZones, ...anatomyZones],
+        expectedHeightMeters: variant.nominalHeightMeters,
+        maximumVertices: meshManifest.qualityLimits.maximumVertices,
+        maximumTriangles: meshManifest.qualityLimits.maximumTriangles,
+        maximumFileSizeBytes: meshManifest.qualityLimits.maximumFileSizeBytes,
+      });
+      for (const error of report.errors) {
+        errors.push(`${variant.id}: ${error}`);
+      }
     }
     if (variant.reviewStatus === 'awaiting-mesh') {
       errors.push(`${variant.id}: vorhandenes Asset darf nicht awaiting-mesh bleiben.`);
     }
   } else if (variant.reviewStatus !== 'awaiting-mesh') {
     errors.push(`${variant.id}: Reviewstatus ohne registriertes GLB-Asset.`);
+  }
+}
+
+const calibrationPath = resolve(
+  root,
+  'tests/fixtures/bodymap3d/body-erwachsener-maennlich-calibration.glb',
+);
+if (!existsSync(calibrationPath)) {
+  errors.push('Die technische GLB-Kalibrierungsdatei fehlt.');
+} else {
+  const calibrationReport = inspectBodyMapGlb(readFileSync(calibrationPath), {
+    expectedVariantId: 'body-erwachsener-maennlich',
+    requiredZoneIds: [
+      ...meshManifest.requiredCoreZones,
+      ...meshManifest.requiredAnatomyZones.penis,
+    ],
+    expectedHeightMeters: 1.72,
+    maximumVertices: meshManifest.qualityLimits.maximumVertices,
+    maximumTriangles: meshManifest.qualityLimits.maximumTriangles,
+    maximumFileSizeBytes: meshManifest.qualityLimits.maximumFileSizeBytes,
+  });
+  for (const error of calibrationReport.errors) {
+    errors.push(`Kalibrierungsdatei: ${error}`);
+  }
+  if (
+    calibrationReport.metadata?.calibrationOnly !== true ||
+    calibrationReport.metadata?.medicallyReviewed !== false
+  ) {
+    errors.push(
+      'Die Kalibrierungsdatei muss calibrationOnly=true und medicallyReviewed=false tragen.',
+    );
   }
 }
 

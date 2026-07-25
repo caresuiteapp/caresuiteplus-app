@@ -61,6 +61,9 @@
     "audit:assignment-workflow-gate": "vitest run src/__tests__/portal/assignmentWorkflowRegressionGate.test.ts src/__tests__/portal/employeePortalTabletTouchFix.test.ts src/__tests__/portal/visitExecutionWhiteScreenFix.test.ts src/__tests__/portal/deferredSignatureWhiteScreenFix.test.ts src/__tests__/portal/employeePortalMobileAcceptance.test.ts",
     "payroll:audit": "node scripts/payroll-month-audit.mjs",
     "bodymap3d:audit": "node scripts/bodymap3d-audit.mjs && node scripts/bodymap3d-mesh-audit.mjs",
+    "bodymap3d:mesh:validate": "node scripts/validate-bodymap-glb.mjs",
+    "bodymap3d:mesh:register": "node scripts/register-bodymap-glb.mjs",
+    "bodymap3d:mesh:calibration": "node scripts/generate-bodymap-calibration-glb.mjs",
     "bodymap3d:deploy:gitbash": "bash scripts/deploy-bodymap3d-gitbash.sh"
   },
   "dependencies": {
