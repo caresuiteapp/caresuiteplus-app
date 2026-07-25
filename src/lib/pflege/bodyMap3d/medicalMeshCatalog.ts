@@ -20,6 +20,8 @@ export type MedicalMeshDefinition = {
   reviewStatus: MedicalMeshReviewStatus;
   nominalHeightMeters: number;
   meshContractVersion: number;
+  selfDeveloped?: boolean;
+  medicalReleaseBlocked?: boolean;
 };
 
 type MedicalMeshManifest = {
@@ -74,8 +76,21 @@ export function getMedicalMeshDefinition(
 
 export function canRenderMedicalMesh(
   definition: MedicalMeshDefinition,
+  options: { allowTechnicalPreview?: boolean } = {},
 ): definition is MedicalMeshDefinition & { assetPath: string } {
-  return Boolean(definition.assetPath) && definition.reviewStatus !== 'awaiting-mesh';
+  if (!definition.assetPath) return false;
+  if (definition.reviewStatus === 'released') return true;
+  return (
+    options.allowTechnicalPreview === true &&
+    (definition.reviewStatus === 'technical-review' ||
+      definition.reviewStatus === 'medical-review')
+  );
+}
+
+export function canPreviewMedicalMesh(
+  definition: MedicalMeshDefinition,
+): definition is MedicalMeshDefinition & { assetPath: string } {
+  return canRenderMedicalMesh(definition, { allowTechnicalPreview: true });
 }
 
 export function zoneIdFromMedicalMesh(
@@ -103,8 +118,11 @@ export const MEDICAL_SKIN_TINTS: Record<BodyMapSkinTone, string> = {
 
 export function medicalMeshRendererLabel(
   definition: MedicalMeshDefinition,
+  options: { allowTechnicalPreview?: boolean } = {},
 ): string {
-  return canRenderMedicalMesh(definition)
-    ? `Medizinisches GLB-Mesh v${definition.version}`
+  return canRenderMedicalMesh(definition, options)
+    ? definition.reviewStatus === 'released'
+      ? `Medizinisch freigegebenes GLB-Mesh v${definition.version}`
+      : `Technisches GLB-Referenzmesh v${definition.version}`
     : 'Parametrischer technischer Fallback';
 }

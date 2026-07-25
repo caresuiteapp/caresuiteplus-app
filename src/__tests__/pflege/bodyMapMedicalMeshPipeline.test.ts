@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { BodyMapModelSelection } from '@/types/modules/bodyMap';
 import {
   canRenderMedicalMesh,
+  canPreviewMedicalMesh,
   getMedicalMeshDefinition,
   MEDICAL_MESH_VARIANTS,
   resolveMedicalMeshVariantId,
@@ -44,6 +45,18 @@ describe('medizinische 3D-Mesh-Pipeline', () => {
     expect(
       getMedicalMeshDefinition(adultDivers('penis', 'brueste')).reviewStatus,
     ).toBe('awaiting-mesh');
+  });
+
+  it('zeigt das selbst entwickelte Erwachsenen-Referenzmesh nur in der technischen Vorschau', () => {
+    const adultMale = MEDICAL_MESH_VARIANTS.find(
+      (entry) => entry.id === 'body-erwachsener-maennlich',
+    );
+    expect(adultMale?.assetPath).toBe(
+      '/bodymap3d/v2/body-erwachsener-maennlich-v2.glb',
+    );
+    expect(adultMale?.reviewStatus).toBe('technical-review');
+    expect(canPreviewMedicalMesh(adultMale!)).toBe(true);
+    expect(canRenderMedicalMesh(adultMale!)).toBe(false);
   });
 
   it('übernimmt Zonen-IDs aus GLB-Metadaten oder dem festgelegten Mesh-Namen', () => {

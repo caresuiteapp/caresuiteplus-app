@@ -1,9 +1,19 @@
 # CareSuite Bodymap 3D – medizinischer Mesh-Vertrag v1
 
-Dieser Ordner nimmt ausschließlich selbst entwickelte und fachlich freigegebene
-GLB-Dateien auf. Ein Mesh wird erst aktiviert, wenn sein Eintrag in
-`assets/bodymap3d/v2/medical-mesh-manifest.json` einen `assetPath` besitzt und
-mindestens den Status `technical-review` trägt.
+Dieser Ordner nimmt ausschließlich selbst entwickelte technische
+Referenzmodelle und fachlich freigegebene GLB-Dateien auf. Ein Mesh wird in der
+produktiven Patienten-Bodymap erst mit dem Status `released` aktiviert.
+Registrierte Stände mit `technical-review` oder `medical-review` sind nur in
+der geschützten internen Mesh-Werkbank sichtbar.
+
+## Phase-5-Referenzkörper
+
+`body-erwachsener-maennlich-v2.glb` ist das erste selbst entwickelte technische
+Referenzmesh. Es enthält 113 anatomische Oberflächenzonen, Normalen,
+UV-Koordinaten und eingebettete Materialien.
+
+Es ist **nicht medizinisch freigegeben**. Die Datei wird ausschließlich in der
+internen Mesh-Werkbank als `technical-review` angezeigt.
 
 ## Koordinatensystem
 
@@ -46,6 +56,9 @@ nicht erhalten.
 - `npm run bodymap3d:mesh:validate -- --file=... --variant=...`
 - `npm run bodymap3d:mesh:register -- --file=... --variant=...`
 - `npm run bodymap3d:mesh:calibration`
+- `npm run bodymap3d:mesh:adult-male-reference`
+- `npm run bodymap3d:mesh:render-reference-qa`
+- `npm run bodymap3d:mesh:capture-workbench`
 
 Die Registrierung ist ohne `--write` immer nur lesend. Eine direkte
 CLI-Freigabe als `released` ist gesperrt.

@@ -84,6 +84,63 @@ for (const variant of variants) {
       for (const error of report.errors) {
         errors.push(`${variant.id}: ${error}`);
       }
+      if (variant.selfDeveloped === true) {
+        if (
+          report.metadata?.selfDeveloped !== true ||
+          report.metadata?.referenceModel !== true
+        ) {
+          errors.push(`${variant.id}: selbst entwickeltes Referenzmodell ist nicht eindeutig markiert.`);
+        }
+        if (
+          report.metadata?.medicallyReviewed !== false ||
+          report.metadata?.safeForClinicalRelease !== false ||
+          variant.medicalReleaseBlocked !== true
+        ) {
+          errors.push(`${variant.id}: medizinische Freigabesperre ist unvollständig.`);
+        }
+      }
+    }
+    if (!variant.qualityReportPath) {
+      errors.push(`${variant.id}: Qualitätsbericht fehlt im Manifest.`);
+    } else {
+      const localReport = resolve(
+        root,
+        'public',
+        variant.qualityReportPath.replace(/^\/+/, ''),
+      );
+      if (!existsSync(localReport)) {
+        errors.push(`${variant.id}: Qualitätsbericht fehlt: ${variant.qualityReportPath}`);
+      } else if (existsSync(localAsset)) {
+        try {
+          const savedReport = JSON.parse(readFileSync(localReport, 'utf8'));
+          const currentReport = inspectBodyMapGlb(readFileSync(localAsset), {
+            expectedVariantId: variant.id,
+            requiredZoneIds: [
+              ...meshManifest.requiredCoreZones,
+              ...(variant.id.includes('-maennlich') || variant.id.includes('-penis-')
+                ? meshManifest.requiredAnatomyZones.penis
+                : variant.id.includes('-weiblich') || variant.id.includes('-vulva-')
+                  ? meshManifest.requiredAnatomyZones.vulva
+                  : []),
+            ],
+            expectedHeightMeters: variant.nominalHeightMeters,
+            maximumVertices: meshManifest.qualityLimits.maximumVertices,
+            maximumTriangles: meshManifest.qualityLimits.maximumTriangles,
+            maximumFileSizeBytes: meshManifest.qualityLimits.maximumFileSizeBytes,
+          });
+          if (
+            savedReport.valid !== true ||
+            savedReport.stats?.bytes !== currentReport.stats?.bytes ||
+            savedReport.stats?.vertices !== currentReport.stats?.vertices ||
+            savedReport.stats?.triangles !== currentReport.stats?.triangles ||
+            savedReport.metadata?.variantId !== variant.id
+          ) {
+            errors.push(`${variant.id}: Qualitätsbericht ist nicht synchron zum GLB-Asset.`);
+          }
+        } catch (error) {
+          errors.push(`${variant.id}: Qualitätsbericht ist ungültig: ${String(error)}`);
+        }
+      }
     }
     if (variant.reviewStatus === 'awaiting-mesh') {
       errors.push(`${variant.id}: vorhandenes Asset darf nicht awaiting-mesh bleiben.`);
@@ -131,6 +188,9 @@ if (errors.length) {
 }
 
 const registeredAssets = variants.filter((entry) => entry.assetPath).length;
+const technicalReferences = variants.filter(
+  (entry) => entry.assetPath && entry.reviewStatus === 'technical-review',
+).length;
 const releasedAssets = variants.filter(
   (entry) => entry.reviewStatus === 'released',
 ).length;
@@ -138,5 +198,6 @@ const releasedAssets = variants.filter(
 console.log('Bodymap-Mesh-Audit technisch bestanden.');
 console.log(`Variantenvertrag: ${variants.length}/18`);
 console.log(`Registrierte GLB-Meshes: ${registeredAssets}/18`);
+console.log(`Technische Referenzmeshes: ${technicalReferences}/18`);
 console.log(`Medizinisch freigegeben: ${releasedAssets}/18`);
-console.log(`Parametrischer Fallback aktiv: ${18 - registeredAssets}/18`);
+console.log(`Produktiver parametrischer Fallback aktiv: ${18 - releasedAssets}/18`);

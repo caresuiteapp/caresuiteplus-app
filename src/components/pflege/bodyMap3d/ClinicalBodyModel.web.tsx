@@ -54,6 +54,7 @@ function prepareMedicalScene(scene: Object3D, skinTone: BodyModelProps['selectio
 
 function MedicalGltfBodyModel({
   assetPath,
+  modelOffsetY,
   markers,
   selectedMarkerId,
   disabled,
@@ -62,7 +63,7 @@ function MedicalGltfBodyModel({
   selection,
   onSurfacePress,
   onMarkerPress,
-}: BodyModelProps & { assetPath: string }) {
+}: BodyModelProps & { assetPath: string; modelOffsetY: number }) {
   const { scene } = useGLTF(assetPath);
   const clinicalScene = useMemo(
     () => prepareMedicalScene(scene, selection.skinTone),
@@ -72,6 +73,7 @@ function MedicalGltfBodyModel({
   return (
     <group
       name="bodymap-model-root"
+      position={[0, modelOffsetY, 0]}
       rotation={rotation}
       scale={scale}
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
@@ -125,7 +127,11 @@ class MedicalMeshErrorBoundary extends Component<
 
 export function ClinicalBodyModel(props: BodyModelProps) {
   const definition = getMedicalMeshDefinition(props.selection);
-  if (!canRenderMedicalMesh(definition)) {
+  if (
+    !canRenderMedicalMesh(definition, {
+      allowTechnicalPreview: props.allowTechnicalMeshPreview,
+    })
+  ) {
     return <ParametricBodyModel {...props} />;
   }
   const fallback = <ParametricBodyModel {...props} />;
@@ -135,7 +141,11 @@ export function ClinicalBodyModel(props: BodyModelProps) {
       resetKey={definition.assetPath}
     >
       <Suspense fallback={fallback}>
-        <MedicalGltfBodyModel {...props} assetPath={definition.assetPath} />
+        <MedicalGltfBodyModel
+          {...props}
+          assetPath={definition.assetPath}
+          modelOffsetY={-definition.nominalHeightMeters / 2}
+        />
       </Suspense>
     </MedicalMeshErrorBoundary>
   );

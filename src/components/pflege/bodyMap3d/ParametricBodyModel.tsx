@@ -22,6 +22,7 @@ export type BodyModelProps = {
   markers: readonly BodyMap3DMarker[];
   selectedMarkerId?: string | null;
   disabled?: boolean;
+  allowTechnicalMeshPreview?: boolean;
   rotation?: [number, number, number];
   scale?: number;
   onSurfacePress: (hit: BodyMapSurfaceHit) => void;

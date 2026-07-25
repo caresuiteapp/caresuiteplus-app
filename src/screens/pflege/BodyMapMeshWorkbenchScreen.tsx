@@ -8,7 +8,7 @@ import {
   getBodyMapVisualQaCase,
 } from '@/lib/pflege/bodyMap3d/visualQaCatalog';
 import {
-  canRenderMedicalMesh,
+  canPreviewMedicalMesh,
   getMedicalMeshDefinition,
   medicalMeshRendererLabel,
 } from '@/lib/pflege/bodyMap3d/medicalMeshCatalog';
@@ -25,10 +25,12 @@ function WorkbenchModelView({
   label,
   rotationY,
   qaCase,
+  technicalMeshActive,
 }: {
   label: string;
   rotationY: number;
   qaCase: ReturnType<typeof getBodyMapVisualQaCase>;
+  technicalMeshActive: boolean;
 }) {
   const model = getBodyMapModel(qaCase.selection);
   return (
@@ -54,11 +56,12 @@ function WorkbenchModelView({
             selection={qaCase.selection}
             markers={[]}
             disabled
+            allowTechnicalMeshPreview
             rotation={[0, rotationY, 0]}
             onSurfacePress={() => undefined}
           />
           <ContactShadows
-            position={[0, -1.31, 0]}
+            position={[0, technicalMeshActive ? -model.nominalHeightMeters / 2 : -1.31, 0]}
             opacity={0.35}
             scale={4}
             blur={2.5}
@@ -96,7 +99,8 @@ export function BodyMapMeshWorkbenchScreen() {
   const { variant } = useLocalSearchParams<{ variant?: string }>();
   const qaCase = getBodyMapVisualQaCase(variant);
   const definition = getMedicalMeshDefinition(qaCase.selection);
-  const active = canRenderMedicalMesh(definition);
+  const active = canPreviewMedicalMesh(definition);
+  const released = definition.reviewStatus === 'released';
 
   return (
     <ScrollView
@@ -110,7 +114,12 @@ export function BodyMapMeshWorkbenchScreen() {
           <Text style={styles.title}>{qaCase.label}</Text>
           <Text style={styles.subtitle}>{qaCase.subtitle}</Text>
         </View>
-        <View style={[styles.statusBadge, active ? styles.statusActive : styles.statusPending]}>
+        <View
+          style={[
+            styles.statusBadge,
+            released ? styles.statusActive : styles.statusPending,
+          ]}
+        >
           <Text style={styles.statusBadgeText}>
             {active ? definition.reviewStatus : 'FALLBACK'}
           </Text>
@@ -140,11 +149,19 @@ export function BodyMapMeshWorkbenchScreen() {
 
           <View style={styles.contractPanel}>
             <Text style={styles.panelTitle}>Aktiver Renderer</Text>
-            <Text style={styles.rendererLabel}>{medicalMeshRendererLabel(definition)}</Text>
+            <Text style={styles.rendererLabel}>
+              {medicalMeshRendererLabel(definition, { allowTechnicalPreview: true })}
+            </Text>
             <Text style={styles.meta}>Variant-ID: {definition.id}</Text>
             <Text style={styles.meta}>Version: {definition.version}</Text>
             <Text style={styles.meta}>
               Asset: {definition.assetPath ?? 'noch nicht registriert'}
+            </Text>
+            <Text style={styles.meta}>
+              Entwicklung: {definition.selfDeveloped ? 'CareSuite selbst entwickelt' : 'ausstehend'}
+            </Text>
+            <Text style={styles.meta}>
+              Medizinische Sperre: {definition.medicalReleaseBlocked ? 'aktiv' : 'nicht gesetzt'}
             </Text>
           </View>
 
@@ -162,12 +179,12 @@ export function BodyMapMeshWorkbenchScreen() {
             />
             <CheckRow
               label="Medizinisch geprüft"
-              passed={definition.reviewStatus === 'released'}
+              passed={released}
               detail="Anatomie und sensible Bereiche fachlich freigegeben"
             />
             <CheckRow
               label="Produktionsfreigabe"
-              passed={definition.reviewStatus === 'released'}
+              passed={released}
               detail="18er-Vergleich und klinische Abnahme dokumentiert"
             />
           </View>
@@ -177,12 +194,15 @@ export function BodyMapMeshWorkbenchScreen() {
           <View style={styles.notice}>
             <Text style={styles.noticeTitle}>
               {active
-                ? 'Registriertes medizinisches Mesh wird gerendert'
+                ? released
+                  ? 'Medizinisch freigegebenes GLB-Mesh wird gerendert'
+                  : 'Technisches Referenzmesh wird ausschließlich zur Prüfung gerendert'
                 : 'Parametrischer Sicherheitsfallback wird gerendert'}
             </Text>
             <Text style={styles.noticeText}>
-              Ein fehlendes oder fehlerhaftes GLB darf die produktive Bodymap niemals
-              unbedienbar machen.
+              {active && !released
+                ? 'Dieses Modell ist nicht medizinisch freigegeben und bleibt in der Patienten-Bodymap gesperrt.'
+                : 'Ein fehlendes oder fehlerhaftes GLB darf die produktive Bodymap niemals unbedienbar machen.'}
             </Text>
           </View>
           <View style={styles.grid}>
@@ -192,6 +212,7 @@ export function BodyMapMeshWorkbenchScreen() {
                 label={view.label}
                 rotationY={view.rotationY}
                 qaCase={qaCase}
+                technicalMeshActive={active}
               />
             ))}
           </View>

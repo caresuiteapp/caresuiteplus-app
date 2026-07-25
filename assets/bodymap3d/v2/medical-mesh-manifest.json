@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "meshContractVersion": 1,
-  "release": "bodymap3d-v2-medical-mesh-pipeline",
+  "release": "bodymap3d-v2-adult-male-technical-reference",
   "ownership": "caresuite-self-developed",
   "renderer": "gltf-medical-mesh-with-parametric-fallback",
   "coordinateSystem": {
@@ -174,11 +174,16 @@
     {
       "id": "body-erwachsener-maennlich",
       "baseModelId": "body-erwachsener-maennlich",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-erwachsener-maennlich-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1.72,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-adult-male-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-erwachsener-maennlich-v2.glb.quality.json",
+      "registeredAt": "2026-07-25T19:30:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true
     },
     {
       "id": "body-erwachsener-weiblich",
