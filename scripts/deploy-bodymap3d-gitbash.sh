@@ -100,23 +100,7 @@ fi
 
 git diff --check
 npm run bodymap3d:mesh:calibration
-npm run bodymap3d:mesh:adult-male-reference
-npm run bodymap3d:mesh:render-reference-qa
-if [[ -n "$(git status --porcelain -- \
-  tests/fixtures/bodymap3d/body-erwachsener-maennlich-calibration.glb \
-  public/bodymap3d/v2/body-erwachsener-maennlich-v2.glb \
-  public/bodymap3d/v2/body-erwachsener-maennlich-v2.glb.quality.json \
-  docs/bodymap3d/qa/adult-male-four-view.png \
-  docs/bodymap3d/qa/adult-male-four-view.json)" ]]; then
-  printf 'Abbruch: Bodymap-GLB oder Vieransichten-QA ist nicht deterministisch.\n' >&2
-  git status --short -- \
-    tests/fixtures/bodymap3d/body-erwachsener-maennlich-calibration.glb \
-    public/bodymap3d/v2/body-erwachsener-maennlich-v2.glb \
-    public/bodymap3d/v2/body-erwachsener-maennlich-v2.glb.quality.json \
-    docs/bodymap3d/qa/adult-male-four-view.png \
-    docs/bodymap3d/qa/adult-male-four-view.json
-  exit 1
-fi
+npm run bodymap3d:mesh:verify-portable
 npm run bodymap3d:audit
 npx vitest run "${TEST_FILES[@]}"
 

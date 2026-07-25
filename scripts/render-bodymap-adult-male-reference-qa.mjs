@@ -6,11 +6,14 @@ import {
   buildAdultMaleReferenceParts,
 } from './lib/bodymap-adult-male-reference-glb.mjs';
 
+const outputRoot = process.env.BODYMAP3D_QA_OUTPUT_ROOT
+  ? resolve(process.env.BODYMAP3D_QA_OUTPUT_ROOT)
+  : process.cwd();
 const artifactDirectory = resolve(
-  process.cwd(),
+  outputRoot,
   'artifacts/bodymap-adult-male-reference-qa',
 );
-const qaDirectory = resolve(process.cwd(), 'docs/bodymap3d/qa');
+const qaDirectory = resolve(outputRoot, 'docs/bodymap3d/qa');
 const svgPath = resolve(artifactDirectory, 'adult-male-four-view.svg');
 const pngPath = resolve(qaDirectory, 'adult-male-four-view.png');
 const manifestPath = resolve(qaDirectory, 'adult-male-four-view.json');

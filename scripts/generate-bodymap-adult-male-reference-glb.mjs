@@ -42,7 +42,9 @@ if (
   process.exit(1);
 }
 
-const outputDirectory = resolve(root, 'public/bodymap3d/v2');
+const outputDirectory = process.env.BODYMAP3D_REFERENCE_OUTPUT_DIR
+  ? resolve(process.env.BODYMAP3D_REFERENCE_OUTPUT_DIR)
+  : resolve(root, 'public/bodymap3d/v2');
 const outputFile = resolve(outputDirectory, 'body-erwachsener-maennlich-v2.glb');
 const qualityFile = resolve(
   outputDirectory,
