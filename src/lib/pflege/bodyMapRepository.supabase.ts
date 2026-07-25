@@ -21,7 +21,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 
 export const BODY_MAP_MARKER_SELECT_COLUMNS =
-  'id, tenant_id, client_id, wound_id, gender, view, region, marker_type, x_percent, y_percent, note, model_id, anatomy_pack_id, age_group, sex, genital_anatomy, chest_anatomy, skin_tone, anatomical_zone_id, local_position, world_position, surface_normal, surface_uv, mesh_name, primitive_index, triangle_index, pressure_classification, finding_status, finding_details, created_by, created_at, updated_at';
+  'id, tenant_id, client_id, wound_id, gender, view, region, marker_type, x_percent, y_percent, note, model_id, anatomy_pack_id, age_group, sex, genital_anatomy, chest_anatomy, skin_tone, anatomical_zone_id, local_position, world_position, model_position, surface_normal, model_normal, surface_uv, mesh_name, primitive_index, triangle_index, pressure_classification, finding_status, finding_details, created_by, created_at, updated_at';
 
 export type BodyMapMarkerLiveRow = {
   id: string;
@@ -45,7 +45,9 @@ export type BodyMapMarkerLiveRow = {
   anatomical_zone_id?: string | null;
   local_position?: BodyMapSurfacePoint['localPosition'] | null;
   world_position?: BodyMapSurfacePoint['worldPosition'] | null;
+  model_position?: BodyMapSurfacePoint['modelPosition'] | null;
   surface_normal?: BodyMapSurfacePoint['normal'] | null;
+  model_normal?: BodyMapSurfacePoint['modelNormal'] | null;
   surface_uv?: BodyMapSurfacePoint['uv'] | null;
   mesh_name?: string | null;
   primitive_index?: number | null;
@@ -92,7 +94,9 @@ export function mapBodyMapMarkerRow(row: BodyMapMarkerLiveRow): BodyMapMarker {
       ? {
           localPosition: row.local_position!,
           worldPosition: row.world_position!,
+          modelPosition: row.model_position ?? undefined,
           normal: row.surface_normal!,
+          modelNormal: row.model_normal ?? undefined,
           uv: row.surface_uv ?? null,
           meshName: row.mesh_name!,
           primitiveIndex: row.primitive_index ?? null,
@@ -180,7 +184,9 @@ export const bodyMapSupabaseRepository = {
         anatomical_zone_id: input.anatomicalZoneId ?? null,
         local_position: input.surfacePoint?.localPosition ?? null,
         world_position: input.surfacePoint?.worldPosition ?? null,
+        model_position: input.surfacePoint?.modelPosition ?? null,
         surface_normal: input.surfacePoint?.normal ?? null,
+        model_normal: input.surfacePoint?.modelNormal ?? null,
         surface_uv: input.surfacePoint?.uv ?? null,
         mesh_name: input.surfacePoint?.meshName ?? null,
         primitive_index: input.surfacePoint?.primitiveIndex ?? null,

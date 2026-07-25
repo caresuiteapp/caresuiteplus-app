@@ -112,6 +112,14 @@ const SKIN_COLORS: Record<BodyMapSkinTone, string> = {
   sehr_dunkel: '#3d241c',
 };
 
+const FINGER_ZONE_BASES = [
+  { id: 'daumen', offset: -0.72, length: 0.62, angle: 0.42 },
+  { id: 'zeigefinger', offset: -0.36, length: 0.92, angle: 0.08 },
+  { id: 'mittelfinger', offset: 0, length: 1, angle: 0 },
+  { id: 'ringfinger', offset: 0.34, length: 0.9, angle: -0.05 },
+  { id: 'kleiner-finger', offset: 0.66, length: 0.72, angle: -0.12 },
+] as const;
+
 function modelScale(ageGroup: BodyMapAgeGroup): number {
   if (ageGroup === 'baby') return 0.78;
   if (ageGroup === 'kleinkind') return 0.86;
@@ -125,9 +133,21 @@ function hitFromEvent(event: ThreeEvent<PointerEvent>): BodyMapSurfaceHit | null
   if (!anatomicalZoneId) return null;
   const worldPosition = event.point.clone();
   const localPosition = object.worldToLocal(worldPosition.clone());
+  let modelRoot: Object3D | null = object;
+  while (modelRoot && modelRoot.name !== 'bodymap-model-root') {
+    modelRoot = modelRoot.parent;
+  }
+  const modelPosition = modelRoot
+    ? modelRoot.worldToLocal(worldPosition.clone())
+    : worldPosition.clone();
   const faceNormal = event.face?.normal?.clone() ?? new Vector3(0, 0, 1);
   const normalMatrix = new Matrix3().getNormalMatrix(object.matrixWorld);
   faceNormal.applyMatrix3(normalMatrix).normalize();
+  const modelNormal = faceNormal.clone();
+  if (modelRoot) {
+    const rootWorldQuaternion = modelRoot.getWorldQuaternion(new Quaternion());
+    modelNormal.applyQuaternion(rootWorldQuaternion.invert()).normalize();
+  }
   const intersection = event.intersections[0] as
     | (Intersection<Object3D> & { faceIndex?: number; index?: number })
     | undefined;
@@ -136,7 +156,9 @@ function hitFromEvent(event: ThreeEvent<PointerEvent>): BodyMapSurfaceHit | null
     surfacePoint: {
       localPosition: { x: localPosition.x, y: localPosition.y, z: localPosition.z },
       worldPosition: { x: worldPosition.x, y: worldPosition.y, z: worldPosition.z },
+      modelPosition: { x: modelPosition.x, y: modelPosition.y, z: modelPosition.z },
       normal: { x: faceNormal.x, y: faceNormal.y, z: faceNormal.z },
+      modelNormal: { x: modelNormal.x, y: modelNormal.y, z: modelNormal.z },
       uv: event.uv ? { u: event.uv.x, v: event.uv.y } : null,
       meshName: object.name || anatomicalZoneId,
       primitiveIndex: intersection?.index ?? null,
@@ -205,8 +227,8 @@ function XMarker({
   selected: boolean;
   onPress?: (marker: BodyMap3DMarker) => void;
 }) {
-  const position = marker.surfacePoint.worldPosition;
-  const normal = marker.surfacePoint.normal;
+  const position = marker.surfacePoint.modelPosition ?? marker.surfacePoint.worldPosition;
+  const normal = marker.surfacePoint.modelNormal ?? marker.surfacePoint.normal;
   const quaternion = useMemo(() => {
     const target = new Vector3(normal.x, normal.y, normal.z).normalize();
     return new Quaternion().setFromUnitVectors(new Vector3(0, 0, 1), target);
@@ -269,9 +291,32 @@ export function ParametricBodyModel({
     (selection.sex === 'weiblich' && selection.chestAnatomy !== 'keine_brueste');
   const showAdultChest =
     selection.ageGroup === 'junger_erwachsener' || selection.ageGroup === 'erwachsener';
+  const resolvedGenitalAnatomy =
+    selection.sex === 'divers'
+      ? selection.genitalAnatomy
+      : selection.sex === 'maennlich'
+        ? 'penis'
+        : 'vulva';
+  const anatomicalMaturity =
+    selection.ageGroup === 'baby'
+      ? 0.48
+      : selection.ageGroup === 'kleinkind'
+        ? 0.58
+        : selection.ageGroup === 'kind'
+          ? 0.72
+          : 1;
+  const genitalUnit = Math.max(0.026, p.pelvisWidth * 0.14 * anatomicalMaturity);
+  const genitalY = pelvisY - p.pelvisWidth * 0.22;
+  const genitalFrontZ = p.torsoDepth * 0.86;
+  const mucosaColor = selection.skinTone === 'sehr_dunkel' ? '#6f343d' : '#b75f6b';
 
   return (
-    <group rotation={rotation} scale={scale * heightScale} position={[0, -1.25, 0]}>
+    <group
+      name="bodymap-model-root"
+      rotation={rotation}
+      scale={scale * heightScale}
+      position={[0, -1.25, 0]}
+    >
       <Surface
         zoneId="kopf"
         name="surface-head"
@@ -309,6 +354,40 @@ export function ParametricBodyModel({
         </Surface>
       ))}
       {[-1, 1].map((side) => (
+        <group key={`iris-${side}`}>
+          <Surface
+            zoneId={side < 0 ? 'auge-links' : 'auge-rechts'}
+            name={side < 0 ? 'surface-iris-left' : 'surface-iris-right'}
+            color="#587b8f"
+            position={[
+              side * p.headRadius * 0.34,
+              headY + p.headRadius * 0.1,
+              p.headRadius * 0.955,
+            ]}
+            scale={[1, 0.72, 0.3]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[p.headRadius * 0.061, 20, 14]} />
+          </Surface>
+          <Surface
+            zoneId={side < 0 ? 'auge-links' : 'auge-rechts'}
+            name={side < 0 ? 'surface-pupil-left' : 'surface-pupil-right'}
+            color="#111820"
+            position={[
+              side * p.headRadius * 0.34,
+              headY + p.headRadius * 0.1,
+              p.headRadius * 0.975,
+            ]}
+            scale={[1, 0.72, 0.3]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[p.headRadius * 0.027, 16, 12]} />
+          </Surface>
+        </group>
+      ))}
+      {[-1, 1].map((side) => (
         <Surface
           key={`ear-${side}`}
           zoneId={side < 0 ? 'ohr-links' : 'ohr-rechts'}
@@ -332,6 +411,28 @@ export function ParametricBodyModel({
         onSurfacePress={onSurfacePress}
       >
         <sphereGeometry args={[p.headRadius * 0.14, 20, 12]} />
+      </Surface>
+      <Surface
+        zoneId="oberlippe"
+        name="surface-upper-lip"
+        color={mucosaColor}
+        position={[0, headY - p.headRadius * 0.35, p.headRadius * 0.945]}
+        scale={[1.7, 0.3, 0.22]}
+        disabled={disabled}
+        onSurfacePress={onSurfacePress}
+      >
+        <sphereGeometry args={[p.headRadius * 0.115, 20, 12]} />
+      </Surface>
+      <Surface
+        zoneId="unterlippe"
+        name="surface-lower-lip"
+        color={mucosaColor}
+        position={[0, headY - p.headRadius * 0.42, p.headRadius * 0.95]}
+        scale={[1.7, 0.32, 0.22]}
+        disabled={disabled}
+        onSurfacePress={onSurfacePress}
+      >
+        <sphereGeometry args={[p.headRadius * 0.115, 20, 12]} />
       </Surface>
 
       <Surface
@@ -359,18 +460,34 @@ export function ParametricBodyModel({
 
       {isBreastPresentation && showAdultChest
         ? [-1, 1].map((side) => (
-            <Surface
-              key={`breast-${side}`}
-              zoneId={side < 0 ? 'brust-links' : 'brust-rechts'}
-              name={side < 0 ? 'surface-breast-left' : 'surface-breast-right'}
-              color={skin}
-              position={[side * p.shoulderWidth * 0.2, torsoY + p.torsoLength * 0.2, p.torsoDepth]}
-              scale={[1.15, 0.9, 0.65]}
-              disabled={disabled}
-              onSurfacePress={onSurfacePress}
-            >
-              <sphereGeometry args={[p.shoulderWidth * 0.16, 24, 18]} />
-            </Surface>
+            <group key={`breast-${side}`}>
+              <Surface
+                zoneId={side < 0 ? 'brust-links' : 'brust-rechts'}
+                name={side < 0 ? 'surface-breast-left' : 'surface-breast-right'}
+                color={skin}
+                position={[side * p.shoulderWidth * 0.2, torsoY + p.torsoLength * 0.2, p.torsoDepth]}
+                scale={[1.15, 0.9, 0.65]}
+                disabled={disabled}
+                onSurfacePress={onSurfacePress}
+              >
+                <sphereGeometry args={[p.shoulderWidth * 0.16, 24, 18]} />
+              </Surface>
+              <Surface
+                zoneId={side < 0 ? 'brustwarze-links' : 'brustwarze-rechts'}
+                name={side < 0 ? 'surface-nipple-left' : 'surface-nipple-right'}
+                color={mucosaColor}
+                position={[
+                  side * p.shoulderWidth * 0.2,
+                  torsoY + p.torsoLength * 0.2,
+                  p.torsoDepth + p.shoulderWidth * 0.105,
+                ]}
+                scale={[1, 1, 0.55]}
+                disabled={disabled}
+                onSurfacePress={onSurfacePress}
+              >
+                <sphereGeometry args={[p.shoulderWidth * 0.035, 18, 12]} />
+              </Surface>
+            </group>
           ))
         : null}
 
@@ -385,6 +502,158 @@ export function ParametricBodyModel({
       >
         <sphereGeometry args={[0.23, 30, 22]} />
       </Surface>
+
+      {[-1, 1].map((side) => (
+        <Surface
+          key={`buttock-${side}`}
+          zoneId={side < 0 ? 'gesaess-links' : 'gesaess-rechts'}
+          name={side < 0 ? 'surface-buttock-left' : 'surface-buttock-right'}
+          color={skin}
+          position={[side * p.pelvisWidth * 0.2, pelvisY - p.pelvisWidth * 0.04, -p.torsoDepth * 0.72]}
+          scale={[1, 1.15, 0.66]}
+          disabled={disabled}
+          onSurfacePress={onSurfacePress}
+        >
+          <sphereGeometry args={[p.pelvisWidth * 0.24, 26, 20]} />
+        </Surface>
+      ))}
+      <Surface
+        zoneId="anus"
+        name="surface-anus"
+        color={mucosaColor}
+        position={[0, pelvisY - p.pelvisWidth * 0.26, -p.torsoDepth * 0.98]}
+        rotation={[0, 0, 0]}
+        scale={[1, 1.25, 0.42]}
+        disabled={disabled}
+        onSurfacePress={onSurfacePress}
+      >
+        <torusGeometry args={[genitalUnit * 0.26, genitalUnit * 0.09, 10, 24]} />
+      </Surface>
+
+      {resolvedGenitalAnatomy === 'penis' ? (
+        <group>
+          <Surface
+            zoneId="penis"
+            name="surface-penis"
+            color={skin}
+            position={[0, genitalY, genitalFrontZ + genitalUnit * 0.72]}
+            rotation={[Math.PI * 0.44, 0, 0]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <capsuleGeometry args={[genitalUnit * 0.36, genitalUnit * 1.25, 10, 22]} />
+          </Surface>
+          <Surface
+            zoneId="eichel"
+            name="surface-glans"
+            color={mucosaColor}
+            position={[0, genitalY - genitalUnit * 0.64, genitalFrontZ + genitalUnit * 1.03]}
+            scale={[0.88, 1.08, 0.88]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[genitalUnit * 0.42, 22, 16]} />
+          </Surface>
+          {[-1, 1].map((side) => (
+            <Surface
+              key={`scrotum-${side}`}
+              zoneId="skrotum"
+              name={side < 0 ? 'surface-scrotum-left' : 'surface-scrotum-right'}
+              color={skin}
+              position={[
+                side * genitalUnit * 0.34,
+                genitalY - genitalUnit * 0.03,
+                genitalFrontZ + genitalUnit * 0.28,
+              ]}
+              scale={[0.82, 1.12, 0.88]}
+              disabled={disabled}
+              onSurfacePress={onSurfacePress}
+            >
+              <sphereGeometry args={[genitalUnit * 0.48, 22, 16]} />
+            </Surface>
+          ))}
+          <Surface
+            zoneId="harnroehrenoeffnung-penis"
+            name="surface-urethral-opening-penis"
+            color="#6f2733"
+            position={[0, genitalY - genitalUnit * 0.68, genitalFrontZ + genitalUnit * 1.39]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[genitalUnit * 0.09, 14, 10]} />
+          </Surface>
+        </group>
+      ) : null}
+
+      {resolvedGenitalAnatomy === 'vulva' ? (
+        <group>
+          {[-1, 1].map((side) => (
+            <group key={`labia-${side}`}>
+              <Surface
+                zoneId={side < 0 ? 'labium-majus-links' : 'labium-majus-rechts'}
+                name={side < 0 ? 'surface-labium-majus-left' : 'surface-labium-majus-right'}
+                color={skin}
+                position={[
+                  side * genitalUnit * 0.42,
+                  genitalY - genitalUnit * 0.13,
+                  genitalFrontZ + genitalUnit * 0.22,
+                ]}
+                scale={[0.65, 1.38, 0.62]}
+                disabled={disabled}
+                onSurfacePress={onSurfacePress}
+              >
+                <capsuleGeometry args={[genitalUnit * 0.28, genitalUnit * 0.72, 10, 20]} />
+              </Surface>
+              <Surface
+                zoneId={side < 0 ? 'labium-minus-links' : 'labium-minus-rechts'}
+                name={side < 0 ? 'surface-labium-minus-left' : 'surface-labium-minus-right'}
+                color={mucosaColor}
+                position={[
+                  side * genitalUnit * 0.18,
+                  genitalY - genitalUnit * 0.13,
+                  genitalFrontZ + genitalUnit * 0.37,
+                ]}
+                scale={[0.48, 1.2, 0.42]}
+                disabled={disabled}
+                onSurfacePress={onSurfacePress}
+              >
+                <capsuleGeometry args={[genitalUnit * 0.2, genitalUnit * 0.58, 10, 18]} />
+              </Surface>
+            </group>
+          ))}
+          <Surface
+            zoneId="klitorisregion"
+            name="surface-clitoral-region"
+            color={mucosaColor}
+            position={[0, genitalY + genitalUnit * 0.48, genitalFrontZ + genitalUnit * 0.43]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[genitalUnit * 0.14, 16, 12]} />
+          </Surface>
+          <Surface
+            zoneId="harnroehrenoeffnung-vulva"
+            name="surface-urethral-opening-vulva"
+            color="#6f2733"
+            position={[0, genitalY + genitalUnit * 0.12, genitalFrontZ + genitalUnit * 0.48]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[genitalUnit * 0.075, 14, 10]} />
+          </Surface>
+          <Surface
+            zoneId="vaginaloeffnung"
+            name="surface-vaginal-opening"
+            color="#6f2733"
+            position={[0, genitalY - genitalUnit * 0.32, genitalFrontZ + genitalUnit * 0.46]}
+            scale={[0.72, 1.2, 0.5]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <torusGeometry args={[genitalUnit * 0.22, genitalUnit * 0.075, 10, 24]} />
+          </Surface>
+        </group>
+      ) : null}
 
       {[-1, 1].map((side) => (
         <group key={`arm-${side}`}>
@@ -430,6 +699,32 @@ export function ParametricBodyModel({
           >
             <sphereGeometry args={[p.handScale, 24, 18]} />
           </Surface>
+          {FINGER_ZONE_BASES.map((finger) => (
+            <Surface
+              key={`${finger.id}-${side}`}
+              zoneId={`${finger.id}-${side < 0 ? 'links' : 'rechts'}`}
+              name={`surface-${finger.id}-${side < 0 ? 'left' : 'right'}`}
+              color={skin}
+              position={[
+                side * armX + finger.offset * p.handScale * 0.54,
+                handY - p.handScale * (0.8 + finger.length * 0.38),
+                p.handScale * 0.05,
+              ]}
+              rotation={[0, 0, finger.angle * side]}
+              scale={[0.72, 1, 0.68]}
+              disabled={disabled}
+              onSurfacePress={onSurfacePress}
+            >
+              <capsuleGeometry
+                args={[
+                  p.handScale * 0.105,
+                  p.handScale * finger.length * 0.72,
+                  7,
+                  14,
+                ]}
+              />
+            </Surface>
+          ))}
         </group>
       ))}
 

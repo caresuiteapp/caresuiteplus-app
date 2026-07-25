@@ -122,8 +122,12 @@ export type BodyMapSurfacePoint = {
   localPosition: { x: number; y: number; z: number };
   /** Weltkoordinate beim Setzen; dient der Reproduzierbarkeit und Migration. */
   worldPosition: { x: number; y: number; z: number };
+  /** Modellwurzel-lokale Koordinate; bleibt bei Drehen und Zoomen stabil. */
+  modelPosition?: { x: number; y: number; z: number };
   /** Oberflächennormale für einen bündig ausgerichteten 3D-Marker. */
   normal: { x: number; y: number; z: number };
+  /** Normalenrichtung im Koordinatensystem der Modellwurzel. */
+  modelNormal?: { x: number; y: number; z: number };
   /** UV-Koordinate, sofern das medizinische Modell UVs bereitstellt. */
   uv: { u: number; v: number } | null;
   meshName: string;

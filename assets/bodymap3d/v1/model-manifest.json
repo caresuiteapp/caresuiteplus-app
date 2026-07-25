@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "release": "bodymap3d-v1",
+  "ownership": "caresuite-self-developed",
+  "runtimeRenderer": "procedural-parametric",
+  "clinicalReleaseStatus": "technical-prototype-medical-review-required",
+  "baseModelIds": [
+    "body-baby-maennlich",
+    "body-baby-weiblich",
+    "body-baby-divers",
+    "body-kleinkind-maennlich",
+    "body-kleinkind-weiblich",
+    "body-kleinkind-divers",
+    "body-kind-maennlich",
+    "body-kind-weiblich",
+    "body-kind-divers",
+    "body-junger-erwachsener-maennlich",
+    "body-junger-erwachsener-weiblich",
+    "body-junger-erwachsener-divers",
+    "body-erwachsener-maennlich",
+    "body-erwachsener-weiblich",
+    "body-erwachsener-divers"
+  ],
+  "diversAnatomyPacks": [
+    "anatomy-pack-penis",
+    "anatomy-pack-vulva",
+    "anatomy-pack-unbekannt"
+  ],
+  "requiredClinicalSurfaces": [
+    "surface-eye-left",
+    "surface-eye-right",
+    "surface-ear-left",
+    "surface-ear-right",
+    "surface-upper-lip",
+    "surface-lower-lip",
+    "surface-hand-left",
+    "surface-hand-right",
+    "surface-buttock-left",
+    "surface-buttock-right",
+    "surface-anus",
+    "surface-penis",
+    "surface-glans",
+    "surface-scrotum-left",
+    "surface-scrotum-right",
+    "surface-labium-majus-left",
+    "surface-labium-majus-right",
+    "surface-labium-minus-left",
+    "surface-labium-minus-right",
+    "surface-clitoral-region",
+    "surface-urethral-opening-vulva",
+    "surface-vaginal-opening"
+  ],
+  "technicalAcceptance": {
+    "stableModelCoordinates": true,
+    "surfaceNormals": true,
+    "uvFallback": true,
+    "mouseOrbit": true,
+    "mouseWheelZoom": true,
+    "touchRotation": true,
+    "pinchZoom": true,
+    "persistentMarkers": true
+  },
+  "medicalAcceptance": {
+    "adultAnatomyReviewed": false,
+    "pediatricAnatomyReviewed": false,
+    "intimateAnatomyReviewed": false,
+    "skinToneReviewed": false,
+    "pressureInjuryWorkflowReviewed": false
+  }
+}

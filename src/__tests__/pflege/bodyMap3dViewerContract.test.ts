@@ -28,6 +28,8 @@ describe('3D-Bodymap Viewer-Vertrag', () => {
     const source = read('src/components/pflege/bodyMap3d/ParametricBodyModel.tsx');
     expect(source).toContain('worldPosition');
     expect(source).toContain('localPosition');
+    expect(source).toContain('modelPosition');
+    expect(source).toContain('modelNormal');
     expect(source).toContain('normalMatrix');
     expect(source).toContain('triangleIndex');
     expect(source).toContain('meshName');
@@ -38,6 +40,26 @@ describe('3D-Bodymap Viewer-Vertrag', () => {
     expect(source).toContain('function XMarker');
     expect(source).toContain('#ef233c');
     expect(source).toContain('setFromUnitVectors');
+  });
+
+  it('enthält die klinisch erforderlichen Detailoberflächen', () => {
+    const source = read('src/components/pflege/bodyMap3d/ParametricBodyModel.tsx');
+    for (const surface of [
+      'surface-pupil-left',
+      'surface-upper-lip',
+      'surface-nipple-left',
+      'surface-buttock-left',
+      'surface-anus',
+      'surface-penis',
+      'surface-glans',
+      'surface-labium-majus-left',
+      'surface-labium-minus-left',
+      'surface-clitoral-region',
+      'surface-vaginal-opening',
+      'FINGER_ZONE_BASES',
+    ]) {
+      expect(source).toContain(surface);
+    }
   });
 
   it('ersetzt die alte 2D-Rechteckkarte im Pflege-Screen', () => {
