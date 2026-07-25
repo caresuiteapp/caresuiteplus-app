@@ -66,11 +66,14 @@
     "bodymap3d:mesh:calibration": "node scripts/generate-bodymap-calibration-glb.mjs",
     "bodymap3d:mesh:adult-male-reference": "node scripts/generate-bodymap-adult-male-reference-glb.mjs",
     "bodymap3d:mesh:adult-female-reference": "node scripts/generate-bodymap-adult-female-reference-glb.mjs",
+    "bodymap3d:mesh:age-references": "node scripts/generate-bodymap-age-reference-glbs.mjs",
     "bodymap3d:mesh:verify-portable": "node scripts/verify-bodymap-adult-male-reference-portable.mjs",
     "bodymap3d:mesh:verify-female-portable": "node scripts/verify-bodymap-adult-female-reference-portable.mjs",
+    "bodymap3d:mesh:verify-age-portable": "node scripts/verify-bodymap-age-reference-portable.mjs",
     "bodymap3d:mesh:capture-workbench": "node scripts/capture-bodymap-mesh-workbench.mjs",
     "bodymap3d:mesh:render-reference-qa": "node scripts/render-bodymap-adult-male-reference-qa.mjs",
     "bodymap3d:mesh:render-female-reference-qa": "node scripts/render-bodymap-adult-female-reference-qa.mjs",
+    "bodymap3d:mesh:render-age-reference-qa": "node scripts/render-bodymap-age-reference-qa.mjs",
     "bodymap3d:deploy:gitbash": "bash scripts/deploy-bodymap3d-gitbash.sh"
   },
   "dependencies": {

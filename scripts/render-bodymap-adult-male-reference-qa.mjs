@@ -9,6 +9,11 @@ import {
   buildAdultFemaleReferenceGlb,
   buildAdultFemaleReferenceParts,
 } from './lib/bodymap-adult-female-reference-glb.mjs';
+import {
+  AGE_REFERENCE_VARIANTS,
+  buildAgeReferenceGlb,
+  buildAgeReferenceParts,
+} from './lib/bodymap-age-reference-glb.mjs';
 
 const outputRoot = process.env.BODYMAP3D_QA_OUTPUT_ROOT
   ? resolve(process.env.BODYMAP3D_QA_OUTPUT_ROOT)
@@ -21,6 +26,7 @@ const referenceConfigurations = {
     artifactDirectoryName: 'bodymap-adult-male-reference-qa',
     phase: 5,
     title: 'Erwachsener · Männlich · Technischer Referenzkörper v2',
+    nominalHeightMeters: 1.72,
     buildParts: buildAdultMaleReferenceParts,
     buildGlb: buildAdultMaleReferenceGlb,
   },
@@ -29,9 +35,26 @@ const referenceConfigurations = {
     artifactDirectoryName: 'bodymap-adult-female-reference-qa',
     phase: 6,
     title: 'Erwachsen · Weiblich · Technischer Referenzkörper v2',
+    nominalHeightMeters: 1.72,
     buildParts: buildAdultFemaleReferenceParts,
     buildGlb: buildAdultFemaleReferenceGlb,
   },
+  ...Object.fromEntries(
+    AGE_REFERENCE_VARIANTS.map((configuration) => [
+      configuration.id,
+      {
+        artifactName: `${configuration.ageGroup}-${configuration.sex}-four-view`,
+        artifactDirectoryName: `bodymap-${configuration.ageGroup}-${configuration.sex}-reference-qa`,
+        phase: 7,
+        title: `${configuration.profile.label} · ${
+          configuration.sex === 'maennlich' ? 'Männlich' : 'Weiblich'
+        } · Technischer Referenzkörper v2`,
+        nominalHeightMeters: configuration.profile.nominalHeightMeters,
+        buildParts: () => buildAgeReferenceParts(configuration.id),
+        buildGlb: () => buildAgeReferenceGlb(configuration.id),
+      },
+    ]),
+  ),
 };
 const referenceConfiguration = referenceConfigurations[referenceVariant];
 if (!referenceConfiguration) {
@@ -85,7 +108,7 @@ function shadedColor(base, intensity) {
 }
 
 function renderView(view, originX) {
-  const scale = 395;
+  const scale = 680 / referenceConfiguration.nominalHeightMeters;
   const centerX = originX + 190;
   const floorY = 865;
   const polygons = [];

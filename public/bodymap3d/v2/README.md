@@ -6,15 +6,27 @@ produktiven Patienten-Bodymap erst mit dem Status `released` aktiviert.
 Registrierte Stände mit `technical-review` oder `medical-review` sind nur in
 der geschützten internen Mesh-Werkbank sichtbar.
 
-## Erwachsene technische Referenzkörper
+## Technische Referenzkörper
 
 - `body-erwachsener-maennlich-v2.glb`: 113 Oberflächenzonen
 - `body-erwachsener-weiblich-v2.glb`: 118 Oberflächenzonen
+- `body-junger-erwachsener-maennlich-v2.glb`: 113 Oberflächenzonen
+- `body-junger-erwachsener-weiblich-v2.glb`: 118 Oberflächenzonen
+- `body-kind-maennlich-v2.glb`: 113 Oberflächenzonen
+- `body-kind-weiblich-v2.glb`: 116 Oberflächenzonen
+- `body-kleinkind-maennlich-v2.glb`: 113 Oberflächenzonen
+- `body-kleinkind-weiblich-v2.glb`: 116 Oberflächenzonen
+- `body-baby-maennlich-v2.glb`: 113 Oberflächenzonen
+- `body-baby-weiblich-v2.glb`: 116 Oberflächenzonen
 
-Beide sind selbst entwickelte technische Referenzmeshes mit Normalen,
+Alle zehn sind selbst entwickelte technische Referenzmeshes mit Normalen,
 UV-Koordinaten und eingebetteten Materialien. Sie sind **nicht medizinisch
 freigegeben** und werden ausschließlich in der internen Mesh-Werkbank als
 `technical-review` angezeigt.
+
+Die acht Altersreferenzen verwenden getrennte proportionale Landmarken für
+Beine, Becken, Schultern und Kopf. Präpubertäre weibliche Varianten besitzen
+keine entwickelten Brustkonturen.
 
 ## Koordinatensystem
 
@@ -59,10 +71,13 @@ nicht erhalten.
 - `npm run bodymap3d:mesh:calibration`
 - `npm run bodymap3d:mesh:adult-male-reference`
 - `npm run bodymap3d:mesh:adult-female-reference`
+- `npm run bodymap3d:mesh:age-references`
 - `npm run bodymap3d:mesh:verify-portable`
 - `npm run bodymap3d:mesh:verify-female-portable`
+- `npm run bodymap3d:mesh:verify-age-portable`
 - `npm run bodymap3d:mesh:render-reference-qa`
 - `npm run bodymap3d:mesh:render-female-reference-qa`
+- `npm run bodymap3d:mesh:render-age-reference-qa`
 - `npm run bodymap3d:mesh:capture-workbench`
 
 Die Registrierung ist ohne `--write` immer nur lesend. Eine direkte

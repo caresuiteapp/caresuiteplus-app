@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "meshContractVersion": 1,
-  "release": "bodymap3d-v2-adult-paired-technical-references",
+  "release": "bodymap3d-v2-ten-technical-reference-bodies",
   "ownership": "caresuite-self-developed",
   "renderer": "gltf-medical-mesh-with-parametric-fallback",
   "coordinateSystem": {
@@ -74,26 +74,46 @@
       "surface-areola-right",
       "surface-nipple-left",
       "surface-nipple-right"
+    ],
+    "prepubertal": [
+      "surface-chest",
+      "surface-pectoral-left",
+      "surface-pectoral-right",
+      "surface-nipple-left",
+      "surface-nipple-right"
     ]
   },
   "variants": [
     {
       "id": "body-baby-maennlich",
       "baseModelId": "body-baby-maennlich",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-baby-maennlich-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 0.68,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-age-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-baby-maennlich-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T00:15:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "ageReference": "baby"
     },
     {
       "id": "body-baby-weiblich",
       "baseModelId": "body-baby-weiblich",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-baby-weiblich-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 0.68,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-age-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-baby-weiblich-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T00:15:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "ageReference": "baby",
+      "chestZoneContract": "prepubertal"
     },
     {
       "id": "body-baby-divers",
@@ -107,20 +127,33 @@
     {
       "id": "body-kleinkind-maennlich",
       "baseModelId": "body-kleinkind-maennlich",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-kleinkind-maennlich-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-age-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-kleinkind-maennlich-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T00:15:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "ageReference": "kleinkind"
     },
     {
       "id": "body-kleinkind-weiblich",
       "baseModelId": "body-kleinkind-weiblich",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-kleinkind-weiblich-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-age-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-kleinkind-weiblich-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T00:15:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "ageReference": "kleinkind",
+      "chestZoneContract": "prepubertal"
     },
     {
       "id": "body-kleinkind-divers",
@@ -134,20 +167,33 @@
     {
       "id": "body-kind-maennlich",
       "baseModelId": "body-kind-maennlich",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-kind-maennlich-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1.42,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-age-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-kind-maennlich-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T00:15:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "ageReference": "kind"
     },
     {
       "id": "body-kind-weiblich",
       "baseModelId": "body-kind-weiblich",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-kind-weiblich-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1.42,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-age-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-kind-weiblich-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T00:15:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "ageReference": "kind",
+      "chestZoneContract": "prepubertal"
     },
     {
       "id": "body-kind-divers",
@@ -161,20 +207,33 @@
     {
       "id": "body-junger-erwachsener-maennlich",
       "baseModelId": "body-junger-erwachsener-maennlich",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-junger-erwachsener-maennlich-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1.72,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-age-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-junger-erwachsener-maennlich-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T00:15:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "ageReference": "junger-erwachsener"
     },
     {
       "id": "body-junger-erwachsener-weiblich",
       "baseModelId": "body-junger-erwachsener-weiblich",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-junger-erwachsener-weiblich-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1.72,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-age-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-junger-erwachsener-weiblich-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T00:15:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "ageReference": "junger-erwachsener",
+      "chestZoneContract": "breasts"
     },
     {
       "id": "body-junger-erwachsener-divers",

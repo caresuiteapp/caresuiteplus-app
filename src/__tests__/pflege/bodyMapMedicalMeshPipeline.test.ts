@@ -47,7 +47,7 @@ describe('medizinische 3D-Mesh-Pipeline', () => {
     ).toBe('awaiting-mesh');
   });
 
-  it('zeigt beide selbst entwickelten Erwachsenen-Referenzmeshes nur in der technischen Vorschau', () => {
+  it('zeigt zehn selbst entwickelte Referenzmeshes nur in der technischen Vorschau', () => {
     const adultMale = MEDICAL_MESH_VARIANTS.find(
       (entry) => entry.id === 'body-erwachsener-maennlich',
     );
@@ -66,6 +66,15 @@ describe('medizinische 3D-Mesh-Pipeline', () => {
     expect(adultFemale?.reviewStatus).toBe('technical-review');
     expect(canPreviewMedicalMesh(adultFemale!)).toBe(true);
     expect(canRenderMedicalMesh(adultFemale!)).toBe(false);
+    const technicalReferences = MEDICAL_MESH_VARIANTS.filter(
+      (entry) => entry.reviewStatus === 'technical-review',
+    );
+    expect(technicalReferences).toHaveLength(10);
+    for (const definition of technicalReferences) {
+      expect(definition.assetPath).toMatch(/^\/bodymap3d\/v2\/.+-v2\.glb$/);
+      expect(canPreviewMedicalMesh(definition)).toBe(true);
+      expect(canRenderMedicalMesh(definition)).toBe(false);
+    }
   });
 
   it('übernimmt Zonen-IDs aus GLB-Metadaten oder dem festgelegten Mesh-Namen', () => {

@@ -97,7 +97,7 @@ function scaledGeometry(geometry, [scaleX, scaleY, scaleZ]) {
   };
 }
 
-function breastParts() {
+export function breastParts() {
   return [-1, 1].flatMap((side) => {
     const sideId = side === -1 ? 'left' : 'right';
     const sideLabel = side === -1 ? 'links' : 'rechts';
@@ -134,7 +134,7 @@ function breastParts() {
   });
 }
 
-function vulvaParts() {
+export function vulvaParts() {
   return [
     {
       zoneId: 'surface-mons-pubis',

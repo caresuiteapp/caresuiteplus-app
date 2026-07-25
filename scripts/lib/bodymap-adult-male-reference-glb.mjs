@@ -824,6 +824,7 @@ export function buildBodyMapReferenceGlb({
   generator,
   sceneName,
   anatomicalScope,
+  metadataExtras = {},
 }) {
   const materials = materialDefinitions();
   const buffers = [];
@@ -941,6 +942,7 @@ export function buildBodyMapReferenceGlb({
           anatomicalScope,
           vertexCount,
           triangleCount,
+          ...metadataExtras,
         },
       },
     },
