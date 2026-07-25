@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "expo-env.d.ts",
+    "app/liquid-command/**/*.ts",
+    "app/liquid-command/**/*.tsx",
+    "src/liquid-command/**/*.ts",
+    "src/liquid-command/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/__tests__"
+  ]
+}

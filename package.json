@@ -68,7 +68,12 @@
     "bodymap3d:mesh:verify-portable": "node scripts/verify-bodymap-adult-male-reference-portable.mjs",
     "bodymap3d:mesh:capture-workbench": "node scripts/capture-bodymap-mesh-workbench.mjs",
     "bodymap3d:mesh:render-reference-qa": "node scripts/render-bodymap-adult-male-reference-qa.mjs",
-    "bodymap3d:deploy:gitbash": "bash scripts/deploy-bodymap3d-gitbash.sh"
+    "bodymap3d:deploy:gitbash": "bash scripts/deploy-bodymap3d-gitbash.sh",
+    "liquid:audit": "node scripts/audit-liquid-command-greenfield.mjs",
+    "liquid:verify": "npm run liquid:audit && npm run liquid:typecheck && npm run liquid:export:web",
+    "liquid:export:web": "node scripts/export-liquid-command-web.mjs",
+    "liquid:dev": "npx expo start --web --clear",
+    "liquid:typecheck": "tsc -p tsconfig.liquid-command.json --noEmit"
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
@@ -93,6 +98,7 @@
     "expo-linking": "~7.0.5",
     "expo-location": "~18.0.10",
     "expo-router": "~4.0.20",
+    "expo-screen-orientation": "~8.0.4",
     "expo-status-bar": "~2.0.1",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
