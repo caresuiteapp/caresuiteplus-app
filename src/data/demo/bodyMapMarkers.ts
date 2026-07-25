@@ -31,7 +31,20 @@ export function saveDemoBodyMapMarker(
 export function updateDemoBodyMapMarker(
   clientId: string,
   markerId: string,
-  patch: Partial<Pick<BodyMapMarker, 'markerType' | 'note' | 'region' | 'view' | 'xPercent' | 'yPercent'>>,
+  patch: Partial<
+    Pick<
+      BodyMapMarker,
+      | 'markerType'
+      | 'note'
+      | 'region'
+      | 'view'
+      | 'xPercent'
+      | 'yPercent'
+      | 'findingStatus'
+      | 'findingDetails'
+      | 'pressureClassification'
+    >
+  >,
 ): BodyMapMarker | null {
   const list = store.get(key(clientId)) ?? [];
   const idx = list.findIndex((m) => m.id === markerId);

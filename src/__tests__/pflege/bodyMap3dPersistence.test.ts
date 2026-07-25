@@ -90,5 +90,8 @@ describe('Medizinische 3D-Bodymap-Persistenz', () => {
     expect(migration).toContain('public.current_tenant_id()');
     expect(migration).toContain('(storage.foldername(name))[2]');
     expect(migration).toContain('measurement_reference_present');
+    expect(migration).toContain('append_body_map_finding_history_trigger');
+    expect(migration).toContain('body_map_finding_history_select_tenant');
+    expect(migration).not.toContain('body_map_finding_history_tenant_policy\n  ON public.body_map_finding_history\n  FOR ALL');
   });
 });

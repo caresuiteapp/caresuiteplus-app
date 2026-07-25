@@ -180,10 +180,15 @@ ALTER TABLE public.pressure_injury_assessments ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS body_map_finding_history_tenant_policy
   ON public.body_map_finding_history;
-CREATE POLICY body_map_finding_history_tenant_policy
-  ON public.body_map_finding_history
-  FOR ALL
-  USING (tenant_id = public.current_tenant_id())
+DROP POLICY IF EXISTS body_map_finding_history_select_tenant
+  ON public.body_map_finding_history;
+CREATE POLICY body_map_finding_history_select_tenant
+  ON public.body_map_finding_history FOR SELECT TO authenticated
+  USING (tenant_id = public.current_tenant_id());
+DROP POLICY IF EXISTS body_map_finding_history_insert_tenant
+  ON public.body_map_finding_history;
+CREATE POLICY body_map_finding_history_insert_tenant
+  ON public.body_map_finding_history FOR INSERT TO authenticated
   WITH CHECK (tenant_id = public.current_tenant_id());
 
 DROP POLICY IF EXISTS body_map_finding_media_tenant_policy
@@ -201,6 +206,51 @@ CREATE POLICY pressure_injury_assessments_tenant_policy
   FOR ALL
   USING (tenant_id = public.current_tenant_id())
   WITH CHECK (tenant_id = public.current_tenant_id());
+
+DROP TRIGGER IF EXISTS set_pressure_injury_assessments_updated_at
+  ON public.pressure_injury_assessments;
+CREATE TRIGGER set_pressure_injury_assessments_updated_at
+  BEFORE UPDATE ON public.pressure_injury_assessments
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE OR REPLACE FUNCTION public.append_body_map_finding_history()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  history_event TEXT;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    history_event := 'created';
+  ELSIF NEW.finding_status = 'geschlossen' AND OLD.finding_status IS DISTINCT FROM NEW.finding_status THEN
+    history_event := 'closed';
+  ELSIF NEW.finding_status = 'wiedereroeffnet' AND OLD.finding_status IS DISTINCT FROM NEW.finding_status THEN
+    history_event := 'reopened';
+  ELSIF NEW.finding_status IN ('heilend', 'abgeheilt') AND OLD.finding_status IS DISTINCT FROM NEW.finding_status THEN
+    history_event := 'healing';
+  ELSE
+    history_event := 'updated';
+  END IF;
+
+  INSERT INTO public.body_map_finding_history (
+    tenant_id, client_id, marker_id, event_type, snapshot, created_by
+  ) VALUES (
+    NEW.tenant_id,
+    NEW.client_id,
+    NEW.id,
+    history_event,
+    to_jsonb(NEW),
+    NEW.created_by
+  );
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS append_body_map_finding_history_trigger
+  ON public.body_map_markers;
+CREATE TRIGGER append_body_map_finding_history_trigger
+  AFTER INSERT OR UPDATE ON public.body_map_markers
+  FOR EACH ROW EXECUTE FUNCTION public.append_body_map_finding_history();
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (

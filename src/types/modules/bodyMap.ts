@@ -166,3 +166,101 @@ export type BodyMapMarkerCreateInput = {
   findingStatus?: string | null;
   findingDetails?: Record<string, unknown>;
 };
+
+export type BodyMapFindingStatus =
+  | 'verdacht'
+  | 'aktiv'
+  | 'in_behandlung'
+  | 'heilend'
+  | 'abgeheilt'
+  | 'geschlossen'
+  | 'wiedereroeffnet';
+
+export type BodyMapCapturePhase =
+  | 'initial'
+  | 'before_cleaning'
+  | 'after_cleaning'
+  | 'after_debridement'
+  | 'dressing_change'
+  | 'progress'
+  | 'closure'
+  | 'reopening';
+
+export type BodyMapClinicalMedia = {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  markerId: string;
+  storagePath: string;
+  mediaType: 'photo' | 'measurement_photo' | 'document' | 'video';
+  capturePhase: BodyMapCapturePhase | null;
+  originalFileName: string | null;
+  mimeType: string | null;
+  fileSizeBytes: number | null;
+  capturedAt: string | null;
+  measurementReferencePresent: boolean;
+  note: string;
+  createdAt: string;
+};
+
+export type BodyMapFindingHistoryEntry = {
+  id: string;
+  markerId: string;
+  eventType:
+    | 'created'
+    | 'updated'
+    | 'classified'
+    | 'treatment'
+    | 'photo'
+    | 'healing'
+    | 'closed'
+    | 'reopened';
+  snapshot: Record<string, unknown>;
+  note: string;
+  createdAt: string;
+};
+
+export type PressureInjuryAssessmentInput = {
+  classification: string;
+  presentOnAdmission?: boolean | null;
+  deviceRelated: boolean;
+  medicalDevice?: string | null;
+  lengthCm?: number | null;
+  widthCm?: number | null;
+  depthCm?: number | null;
+  tissuePercentages: Record<string, number>;
+  exudate: {
+    amount?: 'kein' | 'gering' | 'mittel' | 'stark';
+    character?: 'seroes' | 'blutig' | 'seroes_blutig' | 'eitrig';
+    odor?: 'kein' | 'auffaellig';
+  };
+  pain: {
+    score?: number | null;
+    scale?: 'NRS' | 'VAS' | 'BESD';
+    atRest?: boolean;
+    duringCare?: boolean;
+  };
+  infectionSigns: Record<string, boolean>;
+  escalationFlags: string[];
+  treatmentPlan: {
+    cleansing?: string;
+    dressing?: string;
+    interval?: string;
+  };
+  pressureReliefPlan: {
+    positioning?: string;
+    interval?: string;
+    aids?: string;
+    mobility?: string;
+  };
+  nextReviewAt?: string | null;
+};
+
+export type PressureInjuryAssessment = PressureInjuryAssessmentInput & {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  markerId: string;
+  assessedAt: string;
+  createdAt: string;
+};

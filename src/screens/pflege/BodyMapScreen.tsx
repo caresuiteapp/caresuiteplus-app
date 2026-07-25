@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { BodyMap3DViewer, type BodyMapSurfaceHit } from '@/components/pflege/bodyMap3d';
@@ -22,6 +23,12 @@ import {
   fetchBodyMapMarkers,
 } from '@/lib/pflege/bodyMapService';
 import {
+  addBodyMapFindingProgress,
+  createPressureInjuryAssessment,
+  fetchBodyMapClinicalRecord,
+  uploadBodyMapClinicalPhoto,
+} from '@/lib/pflege/bodyMapClinicalService';
+import {
   BODY_MAP_AGE_LABELS,
   BODY_MAP_ANATOMY_PACKS,
   BODY_MAP_CHEST_OPTIONS,
@@ -40,6 +47,7 @@ import type {
   BodyMapAgeGroup,
   BodyMapChestAnatomy,
   BodyMapGenitalAnatomy,
+  BodyMapFindingStatus,
   BodyMapMarker,
   BodyMapMarkerType,
   BodyMapModelSelection,
@@ -78,6 +86,40 @@ const MARKER_TYPES: readonly { id: BodyMapMarkerType; label: string }[] = [
   { id: 'verband', label: 'Verband' },
   { id: 'sonstiges', label: 'Sonstiges' },
 ];
+
+const FINDING_STATUSES: readonly { id: BodyMapFindingStatus; label: string }[] = [
+  { id: 'verdacht', label: 'Verdacht' },
+  { id: 'aktiv', label: 'Aktiv' },
+  { id: 'in_behandlung', label: 'In Behandlung' },
+  { id: 'heilend', label: 'Heilend' },
+  { id: 'abgeheilt', label: 'Abgeheilt' },
+  { id: 'geschlossen', label: 'Geschlossen' },
+  { id: 'wiedereroeffnet', label: 'Wiedereröffnet' },
+];
+
+type PickedClinicalPhoto = {
+  uri: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number | null;
+};
+
+function optionalPositiveNumber(value: string): number | null {
+  const normalized = value.trim().replace(',', '.');
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+async function readPickedPhoto(uri: string): Promise<Uint8Array | null> {
+  try {
+    const response = await fetch(uri);
+    if (!response.ok && response.status !== 0) return null;
+    return new Uint8Array(await response.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
 
 function legacyGender(sex: BodyMapSex): 'weiblich' | 'maennlich' | 'neutral' {
   if (sex === 'divers') return 'neutral';
@@ -168,7 +210,22 @@ export function BodyMapScreen() {
   const [markerType, setMarkerType] = useState<BodyMapMarkerType>('wunde');
   const [pressureClassification, setPressureClassification] = useState('kategorie_1');
   const [note, setNote] = useState('');
+  const [diagnosis, setDiagnosis] = useState('');
+  const [treatment, setTreatment] = useState('');
+  const [lengthCm, setLengthCm] = useState('');
+  const [widthCm, setWidthCm] = useState('');
+  const [depthCm, setDepthCm] = useState('');
+  const [painScore, setPainScore] = useState('');
+  const [exudateAmount, setExudateAmount] = useState<'kein' | 'gering' | 'mittel' | 'stark'>('kein');
+  const [pressureReliefPlan, setPressureReliefPlan] = useState('');
+  const [pickedPhoto, setPickedPhoto] = useState<PickedClinicalPhoto | null>(null);
+  const [measurementReferencePresent, setMeasurementReferencePresent] = useState(false);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+  const [detailMarkerId, setDetailMarkerId] = useState<string | null>(null);
+  const [progressStatus, setProgressStatus] = useState<BodyMapFindingStatus>('in_behandlung');
+  const [progressNote, setProgressNote] = useState('');
+  const [progressPhoto, setProgressPhoto] = useState<PickedClinicalPhoto | null>(null);
+  const [progressSaving, setProgressSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -179,6 +236,17 @@ export function BodyMapScreen() {
     },
     [tenantId, clientId, profile?.roleKey],
     { enabled: !!tenantId },
+  );
+
+  const clinicalQuery = useAsyncQuery(
+    () => {
+      if (!tenantId || !detailMarkerId) {
+        return Promise.resolve({ ok: false as const, error: 'Befund fehlt.' });
+      }
+      return fetchBodyMapClinicalRecord(tenantId, clientId, detailMarkerId);
+    },
+    [tenantId, clientId, detailMarkerId],
+    { enabled: !!tenantId && !!detailMarkerId },
   );
 
   const selectionDraft = useMemo<BodyMapModelSelection | null>(() => {
@@ -207,6 +275,10 @@ export function BodyMapScreen() {
     () => (query.data ?? []).filter(isPersisted3DMarker),
     [query.data],
   );
+  const detailMarker = useMemo(
+    () => (query.data ?? []).find((marker) => marker.id === detailMarkerId) ?? null,
+    [detailMarkerId, query.data],
+  );
 
   function openSelectedModel() {
     if (!selectionDraft) return;
@@ -223,6 +295,114 @@ export function BodyMapScreen() {
     setSelection(null);
     setPendingHit(null);
     setSelectedMarkerId(null);
+  }
+
+  async function handlePickPhoto() {
+    setActionError(null);
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['image/jpeg', 'image/png', 'image/webp'],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    setPickedPhoto({
+      uri: asset.uri,
+      fileName: asset.name ?? `bodymap-foto-${Date.now()}.jpg`,
+      mimeType: asset.mimeType ?? 'image/jpeg',
+      sizeBytes: asset.size ?? null,
+    });
+  }
+
+  async function handlePickProgressPhoto() {
+    setActionError(null);
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['image/jpeg', 'image/png', 'image/webp'],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    setProgressPhoto({
+      uri: asset.uri,
+      fileName: asset.name ?? `bodymap-verlauf-${Date.now()}.jpg`,
+      mimeType: asset.mimeType ?? 'image/jpeg',
+      sizeBytes: asset.size ?? null,
+    });
+  }
+
+  function openMarkerDetail(markerId: string) {
+    const marker = (query.data ?? []).find((entry) => entry.id === markerId);
+    setSelectedMarkerId(markerId);
+    setDetailMarkerId(markerId);
+    setProgressStatus(
+      (marker?.findingStatus as BodyMapFindingStatus | null | undefined) ?? 'in_behandlung',
+    );
+    setProgressNote('');
+    setProgressPhoto(null);
+  }
+
+  async function handleSaveProgress() {
+    if (!tenantId || !detailMarker || isReadOnly) return;
+    setProgressSaving(true);
+    setActionError(null);
+    const result = await addBodyMapFindingProgress({
+      tenantId,
+      clientId,
+      markerId: detailMarker.id,
+      status: progressStatus,
+      note: progressNote,
+      createdBy: profile?.id ?? null,
+    });
+    const errors: string[] = [];
+    if (!result.ok) {
+      errors.push(result.error);
+    } else if (progressPhoto) {
+      const bytes = await readPickedPhoto(progressPhoto.uri);
+      if (!bytes) {
+        errors.push('Das Verlaufsfoto konnte nicht gelesen werden.');
+      } else {
+        const photoResult = await uploadBodyMapClinicalPhoto({
+          tenantId,
+          clientId,
+          markerId: detailMarker.id,
+          fileName: progressPhoto.fileName,
+          mimeType: progressPhoto.mimeType,
+          bytes,
+          capturePhase:
+            progressStatus === 'geschlossen' || progressStatus === 'abgeheilt'
+              ? 'closure'
+              : progressStatus === 'wiedereroeffnet'
+                ? 'reopening'
+                : 'progress',
+          note: progressNote,
+          createdBy: profile?.id ?? null,
+        });
+        if (!photoResult.ok) errors.push(photoResult.error);
+      }
+    }
+    setProgressSaving(false);
+    if (errors.length > 0) {
+      setActionError(errors.join(' '));
+      return;
+    }
+    setProgressNote('');
+    setProgressPhoto(null);
+    await Promise.all([query.refresh(), clinicalQuery.refresh()]);
+  }
+
+  function resetFindingDraft() {
+    setNote('');
+    setDiagnosis('');
+    setTreatment('');
+    setLengthCm('');
+    setWidthCm('');
+    setDepthCm('');
+    setPainScore('');
+    setExudateAmount('kein');
+    setPressureReliefPlan('');
+    setPickedPhoto(null);
+    setMeasurementReferencePresent(false);
   }
 
   async function handleSaveFinding() {
@@ -263,6 +443,8 @@ export function BodyMapScreen() {
           ),
           sensitiveArea: selectedZone?.sensitive ?? false,
           pressureRiskArea: selectedZone?.pressureRisk ?? false,
+          diagnosis: diagnosis.trim(),
+          treatment: treatment.trim(),
         },
       },
       profile?.roleKey,
@@ -273,9 +455,76 @@ export function BodyMapScreen() {
       return;
     }
 
+    const followUpErrors: string[] = [];
+    if (isPressureFinding) {
+      const pain = optionalPositiveNumber(painScore);
+      const assessmentResult = await createPressureInjuryAssessment(
+        tenantId,
+        clientId,
+        result.data.id,
+        {
+          classification: pressureClassification,
+          presentOnAdmission: null,
+          deviceRelated: markerType === 'druckverletzung_medizinprodukt',
+          medicalDevice: null,
+          lengthCm: optionalPositiveNumber(lengthCm),
+          widthCm: optionalPositiveNumber(widthCm),
+          depthCm: optionalPositiveNumber(depthCm),
+          tissuePercentages: {},
+          exudate: { amount: exudateAmount },
+          pain: {
+            score: pain == null ? null : Math.min(10, pain),
+            scale: 'NRS',
+            duringCare: true,
+          },
+          infectionSigns: {},
+          escalationFlags: PRESSURE_INJURY_CLASSIFICATIONS.find(
+            (entry) => entry.id === pressureClassification,
+          )?.urgentReview
+            ? ['neu_ab_kategorie_2']
+            : [],
+          treatmentPlan: { dressing: treatment.trim() },
+          pressureReliefPlan: { positioning: pressureReliefPlan.trim() },
+          nextReviewAt: null,
+        },
+        profile?.id ?? null,
+      );
+      if (!assessmentResult.ok) {
+        followUpErrors.push(`Dekubitus-Assessment: ${assessmentResult.error}`);
+      }
+    }
+
+    if (pickedPhoto) {
+      const bytes = await readPickedPhoto(pickedPhoto.uri);
+      if (!bytes) {
+        followUpErrors.push('Das ausgewählte Foto konnte nicht gelesen werden.');
+      } else {
+        const photoResult = await uploadBodyMapClinicalPhoto({
+          tenantId,
+          clientId,
+          markerId: result.data.id,
+          fileName: pickedPhoto.fileName,
+          mimeType: pickedPhoto.mimeType,
+          bytes,
+          capturePhase: 'initial',
+          measurementReferencePresent,
+          note: note.trim(),
+          createdBy: profile?.id ?? null,
+        });
+        if (!photoResult.ok) followUpErrors.push(`Foto: ${photoResult.error}`);
+      }
+    }
+
     setSelectedMarkerId(result.data.id);
     setPendingHit(null);
-    setNote('');
+    resetFindingDraft();
+    if (followUpErrors.length > 0) {
+      setActionError(
+        `Der Befund wurde gespeichert. Zusatzdaten konnten nicht vollständig gespeichert werden: ${followUpErrors.join(
+          ' ',
+        )}`,
+      );
+    }
     await query.refresh();
   }
 
@@ -432,7 +681,7 @@ export function BodyMapScreen() {
                 selectedMarkerId={selectedMarkerId}
                 disabled={isReadOnly}
                 onSurfacePress={setPendingHit}
-                onMarkerPress={(marker) => setSelectedMarkerId(marker.id)}
+                onMarkerPress={(marker) => openMarkerDetail(marker.id)}
               />
             </SectionPanel>
 
@@ -450,7 +699,7 @@ export function BodyMapScreen() {
                       styles.findingRow,
                       selectedMarkerId === marker.id && styles.findingRowSelected,
                     ]}
-                    onPress={() => setSelectedMarkerId(marker.id)}
+                    onPress={() => openMarkerDetail(marker.id)}
                   >
                     <View style={styles.redX}>
                       <Text style={styles.redXText}>×</Text>
@@ -530,12 +779,117 @@ export function BodyMapScreen() {
               ) : null}
 
               <PremiumInput
-                label="Beschreibung, Diagnose, Behandlung oder Beobachtung"
+                label="Beobachtung / Beschreibung"
                 value={note}
                 onChangeText={setNote}
                 editable={!isReadOnly}
                 multiline
               />
+              <PremiumInput
+                label="Diagnose / Verdachtsdiagnose"
+                value={diagnosis}
+                onChangeText={setDiagnosis}
+                editable={!isReadOnly}
+                multiline
+              />
+              <PremiumInput
+                label="Behandlung / Maßnahmen"
+                value={treatment}
+                onChangeText={setTreatment}
+                editable={!isReadOnly}
+                multiline
+              />
+
+              {isPressureFinding ? (
+                <>
+                  <Text style={styles.fieldLabel}>Wundmaße in Zentimetern</Text>
+                  <View style={styles.measurementRow}>
+                    <PremiumInput
+                      label="Länge"
+                      value={lengthCm}
+                      onChangeText={setLengthCm}
+                      keyboardType="decimal-pad"
+                      editable={!isReadOnly}
+                      style={styles.measurementInput}
+                    />
+                    <PremiumInput
+                      label="Breite"
+                      value={widthCm}
+                      onChangeText={setWidthCm}
+                      keyboardType="decimal-pad"
+                      editable={!isReadOnly}
+                      style={styles.measurementInput}
+                    />
+                    <PremiumInput
+                      label="Tiefe"
+                      value={depthCm}
+                      onChangeText={setDepthCm}
+                      keyboardType="decimal-pad"
+                      editable={!isReadOnly}
+                      style={styles.measurementInput}
+                    />
+                    <PremiumInput
+                      label="Schmerz 0–10"
+                      value={painScore}
+                      onChangeText={setPainScore}
+                      keyboardType="decimal-pad"
+                      editable={!isReadOnly}
+                      style={styles.measurementInput}
+                    />
+                  </View>
+
+                  <Text style={styles.fieldLabel}>Exsudatmenge</Text>
+                  <View style={styles.choiceRow}>
+                    {(['kein', 'gering', 'mittel', 'stark'] as const).map((amount) => (
+                      <SelectionChip
+                        key={amount}
+                        label={amount[0].toUpperCase() + amount.slice(1)}
+                        active={exudateAmount === amount}
+                        onPress={() => setExudateAmount(amount)}
+                      />
+                    ))}
+                  </View>
+                  <PremiumInput
+                    label="Druckentlastungs-/Lagerungsplan"
+                    value={pressureReliefPlan}
+                    onChangeText={setPressureReliefPlan}
+                    editable={!isReadOnly}
+                    multiline
+                    hint="Lagerung, Intervall, Hilfsmittel und Mobilisation dokumentieren."
+                  />
+                </>
+              ) : null}
+
+              <Text style={styles.fieldLabel}>Klinisches Foto / Verlaufskontrolle</Text>
+              <View style={styles.photoRow}>
+                <PremiumButton
+                  title={pickedPhoto ? 'Anderes Foto wählen' : 'Foto anhängen'}
+                  variant="secondary"
+                  disabled={isReadOnly}
+                  onPress={handlePickPhoto}
+                />
+                {pickedPhoto ? (
+                  <View style={styles.photoMeta}>
+                    <Text style={styles.photoName}>{pickedPhoto.fileName}</Text>
+                    <Text style={styles.photoSize}>
+                      {pickedPhoto.sizeBytes == null
+                        ? 'Bilddatei'
+                        : `${Math.round(pickedPhoto.sizeBytes / 1024)} KB`}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+              {pickedPhoto ? (
+                <SelectionChip
+                  label={
+                    measurementReferencePresent
+                      ? 'Messreferenz vorhanden'
+                      : 'Messreferenz nicht angegeben'
+                  }
+                  active={measurementReferencePresent}
+                  onPress={() => setMeasurementReferencePresent((value) => !value)}
+                />
+              ) : null}
 
               <View style={styles.modalActions}>
                 <PremiumButton
@@ -549,6 +903,103 @@ export function BodyMapScreen() {
                   onPress={handleSaveFinding}
                 />
               </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={!!detailMarker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDetailMarkerId(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <ScrollView contentContainerStyle={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalTitleWrap}>
+                  <Text style={styles.modalEyebrow}>BEFUND & VERLAUF</Text>
+                  <Text style={styles.modalTitle}>
+                    {detailMarker
+                      ? MARKER_TYPES.find((entry) => entry.id === detailMarker.markerType)?.label ??
+                        detailMarker.markerType
+                      : 'Befund'}
+                  </Text>
+                  <Text style={styles.modalPath}>
+                    {detailMarker?.anatomicalZoneId
+                      ? getAnatomicalPath(detailMarker.anatomicalZoneId)
+                          .map((entry) => entry.label)
+                          .join(' › ')
+                      : detailMarker?.region}
+                  </Text>
+                </View>
+                <Pressable style={styles.modalClose} onPress={() => setDetailMarkerId(null)}>
+                  <Text style={styles.modalCloseText}>×</Text>
+                </Pressable>
+              </View>
+
+              {detailMarker?.note ? (
+                <InfoBanner variant="info" title="Ausgangsbefund" message={detailMarker.note} />
+              ) : null}
+
+              <Text style={styles.fieldLabel}>Aktueller Status</Text>
+              <View style={styles.choiceRow}>
+                {FINDING_STATUSES.map((status) => (
+                  <SelectionChip
+                    key={status.id}
+                    label={status.label}
+                    active={progressStatus === status.id}
+                    onPress={() => setProgressStatus(status.id)}
+                  />
+                ))}
+              </View>
+              <PremiumInput
+                label="Verlauf, Behandlung und klinische Veränderung"
+                value={progressNote}
+                onChangeText={setProgressNote}
+                multiline
+                editable={!isReadOnly}
+              />
+              <View style={styles.photoRow}>
+                <PremiumButton
+                  title={progressPhoto ? 'Anderes Verlaufsfoto' : 'Verlaufsfoto anhängen'}
+                  variant="secondary"
+                  disabled={isReadOnly}
+                  onPress={handlePickProgressPhoto}
+                />
+                {progressPhoto ? (
+                  <Text style={styles.photoName}>{progressPhoto.fileName}</Text>
+                ) : null}
+              </View>
+              <PremiumButton
+                title={progressSaving ? 'Verlauf wird gespeichert…' : 'Verlauf speichern'}
+                disabled={progressSaving || isReadOnly || !progressNote.trim()}
+                onPress={handleSaveProgress}
+              />
+
+              <Text style={styles.fieldLabel}>Dokumentierter Verlauf</Text>
+              {clinicalQuery.loading ? (
+                <LoadingState message="Verlauf wird geladen…" />
+              ) : clinicalQuery.error ? (
+                <ErrorState message={clinicalQuery.error} onRetry={clinicalQuery.refresh} />
+              ) : (
+                <>
+                  <Text style={styles.recordSummary}>
+                    {clinicalQuery.data?.media.length ?? 0} Medien ·{' '}
+                    {clinicalQuery.data?.pressureAssessments.length ?? 0} Dekubitus-Assessments ·{' '}
+                    {clinicalQuery.data?.history.length ?? 0} Verlaufsereignisse
+                  </Text>
+                  {(clinicalQuery.data?.history ?? []).map((entry) => (
+                    <View key={entry.id} style={styles.historyRow}>
+                      <Text style={styles.historyTitle}>
+                        {entry.eventType} · {new Date(entry.createdAt).toLocaleString('de-DE')}
+                      </Text>
+                      {entry.note ? <Text style={styles.findingNote}>{entry.note}</Text> : null}
+                    </View>
+                  ))}
+                </>
+              )}
             </ScrollView>
           </View>
         </View>
@@ -671,4 +1122,28 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.md,
   },
+  measurementRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  measurementInput: { minWidth: 120 },
+  photoRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  photoMeta: { flex: 1, minWidth: 180 },
+  photoName: { ...typography.label, color: colors.textPrimary },
+  photoSize: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
+  recordSummary: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.sm },
+  historyRow: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#66a3ff',
+    paddingLeft: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  historyTitle: { ...typography.caption, color: colors.textSecondary, fontWeight: '700' },
 });
