@@ -18,8 +18,16 @@ der geschützten internen Mesh-Werkbank sichtbar.
 - `body-kleinkind-weiblich-v2.glb`: 116 Oberflächenzonen
 - `body-baby-maennlich-v2.glb`: 113 Oberflächenzonen
 - `body-baby-weiblich-v2.glb`: 116 Oberflächenzonen
+- `body-baby-divers-v2.glb`: 110 Oberflächenzonen
+- `body-kleinkind-divers-v2.glb`: 110 Oberflächenzonen
+- `body-kind-divers-v2.glb`: 110 Oberflächenzonen
+- `body-junger-erwachsener-divers-v2.glb`: 110 Oberflächenzonen
+- `body-erwachsener-divers-v2.glb`: 110 Oberflächenzonen
+- `body-erwachsener-divers-penis-brueste-v2.glb`: 115 Oberflächenzonen
+- `body-erwachsener-divers-vulva-keine-brueste-v2.glb`: 116 Oberflächenzonen
+- `body-erwachsener-divers-unbekannt-brueste-v2.glb`: 112 Oberflächenzonen
 
-Alle zehn sind selbst entwickelte technische Referenzmeshes mit Normalen,
+Alle 18 sind selbst entwickelte technische Referenzmeshes mit Normalen,
 UV-Koordinaten und eingebetteten Materialien. Sie sind **nicht medizinisch
 freigegeben** und werden ausschließlich in der internen Mesh-Werkbank als
 `technical-review` angezeigt.
@@ -27,6 +35,10 @@ freigegeben** und werden ausschließlich in der internen Mesh-Werkbank als
 Die acht Altersreferenzen verwenden getrennte proportionale Landmarken für
 Beine, Becken, Schultern und Kopf. Präpubertäre weibliche Varianten besitzen
 keine entwickelten Brustkonturen.
+
+Die Divers-Modelle trennen Genitalanatomie und Brustkonfiguration modular.
+„Unbekannt“ wird nicht durch Penis oder Vulva ersetzt, sondern besitzt eine
+eigene anklickbare, ausdrücklich nicht klassifizierte Untersuchungsoberfläche.
 
 ## Koordinatensystem
 
@@ -72,12 +84,15 @@ nicht erhalten.
 - `npm run bodymap3d:mesh:adult-male-reference`
 - `npm run bodymap3d:mesh:adult-female-reference`
 - `npm run bodymap3d:mesh:age-references`
+- `npm run bodymap3d:mesh:divers-references`
 - `npm run bodymap3d:mesh:verify-portable`
 - `npm run bodymap3d:mesh:verify-female-portable`
 - `npm run bodymap3d:mesh:verify-age-portable`
+- `npm run bodymap3d:mesh:verify-divers-portable`
 - `npm run bodymap3d:mesh:render-reference-qa`
 - `npm run bodymap3d:mesh:render-female-reference-qa`
 - `npm run bodymap3d:mesh:render-age-reference-qa`
+- `npm run bodymap3d:mesh:render-divers-reference-qa`
 - `npm run bodymap3d:mesh:capture-workbench`
 
 Die Registrierung ist ohne `--write` immer nur lesend. Eine direkte

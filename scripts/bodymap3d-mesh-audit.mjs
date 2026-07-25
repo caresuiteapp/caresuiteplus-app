@@ -24,6 +24,16 @@ const chestZonesFor = (variant) => {
     ? meshManifest.requiredChestZones?.breasts ?? []
     : [];
 };
+const anatomyZonesFor = (variant) => {
+  if (variant.genitalAnatomyContract) {
+    return meshManifest.requiredAnatomyZones?.[variant.genitalAnatomyContract] ?? [];
+  }
+  return variant.id.includes('-maennlich') || variant.id.includes('-penis-')
+    ? meshManifest.requiredAnatomyZones.penis
+    : variant.id.includes('-weiblich') || variant.id.includes('-vulva-')
+      ? meshManifest.requiredAnatomyZones.vulva
+      : [];
+};
 const expectedExtraVariants = [
   'body-erwachsener-divers-penis-brueste',
   'body-erwachsener-divers-vulva-keine-brueste',
@@ -76,11 +86,7 @@ for (const variant of variants) {
     if (!existsSync(localAsset)) {
       errors.push(`${variant.id}: registrierte GLB-Datei fehlt: ${variant.assetPath}`);
     } else {
-      const anatomyZones = variant.id.includes('-maennlich') || variant.id.includes('-penis-')
-        ? meshManifest.requiredAnatomyZones.penis
-        : variant.id.includes('-weiblich') || variant.id.includes('-vulva-')
-          ? meshManifest.requiredAnatomyZones.vulva
-          : [];
+      const anatomyZones = anatomyZonesFor(variant);
       const chestZones = chestZonesFor(variant);
       const report = inspectBodyMapGlb(readFileSync(localAsset), {
         expectedVariantId: variant.id,
@@ -126,11 +132,7 @@ for (const variant of variants) {
             expectedVariantId: variant.id,
             requiredZoneIds: [
               ...meshManifest.requiredCoreZones,
-              ...(variant.id.includes('-maennlich') || variant.id.includes('-penis-')
-                ? meshManifest.requiredAnatomyZones.penis
-                : variant.id.includes('-weiblich') || variant.id.includes('-vulva-')
-                  ? meshManifest.requiredAnatomyZones.vulva
-                  : []),
+              ...anatomyZonesFor(variant),
               ...chestZonesFor(variant),
             ],
             expectedHeightMeters: variant.nominalHeightMeters,

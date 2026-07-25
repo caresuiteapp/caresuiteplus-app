@@ -17,7 +17,7 @@ const MALE_INTIMATE_ZONES = new Set([
   'surface-scrotum-right',
 ]);
 
-const AGE_PROFILES = {
+export const AGE_PROFILES = {
   'junger-erwachsener': {
     label: 'Junger Erwachsener',
     nominalHeightMeters: 1.72,
@@ -190,7 +190,7 @@ function depthScale(zoneId, profile) {
   return base;
 }
 
-function transformGeometry(geometry, zoneId, profile) {
+export function transformAgeReferenceGeometry(geometry, zoneId, profile) {
   const positions = new Float32Array(geometry.positions.length);
   const normals = new Float32Array(geometry.normals.length);
   const scaleX = lateralScale(zoneId, profile);
@@ -247,7 +247,16 @@ export function buildAgeReferenceParts(variantId) {
   const configuration = configurationFor(variantId);
   return sourcePartsForVariant(configuration).map((part) => ({
     ...part,
-    geometry: transformGeometry(part.geometry, part.zoneId, configuration.profile),
+    geometry: transformAgeReferenceGeometry(part.geometry, part.zoneId, configuration.profile),
+  }));
+}
+
+export function buildAgeTransformedParts(parts, ageGroup) {
+  const profile = AGE_PROFILES[ageGroup];
+  if (!profile) throw new Error(`Unbekannte Altersgruppe: ${ageGroup}`);
+  return parts.map((part) => ({
+    ...part,
+    geometry: transformAgeReferenceGeometry(part.geometry, part.zoneId, profile),
   }));
 }
 

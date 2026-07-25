@@ -14,6 +14,11 @@ import {
   buildAgeReferenceGlb,
   buildAgeReferenceParts,
 } from './lib/bodymap-age-reference-glb.mjs';
+import {
+  DIVERS_REFERENCE_VARIANTS,
+  buildDiversReferenceGlb,
+  buildDiversReferenceParts,
+} from './lib/bodymap-divers-reference-glb.mjs';
 
 const outputRoot = process.env.BODYMAP3D_QA_OUTPUT_ROOT
   ? resolve(process.env.BODYMAP3D_QA_OUTPUT_ROOT)
@@ -52,6 +57,32 @@ const referenceConfigurations = {
         nominalHeightMeters: configuration.profile.nominalHeightMeters,
         buildParts: () => buildAgeReferenceParts(configuration.id),
         buildGlb: () => buildAgeReferenceGlb(configuration.id),
+      },
+    ]),
+  ),
+  ...Object.fromEntries(
+    DIVERS_REFERENCE_VARIANTS.map((configuration) => [
+      configuration.id,
+      {
+        artifactName: `${configuration.id.replace(/^body-/, '')}-four-view`,
+        artifactDirectoryName: `bodymap-${configuration.id.replace(/^body-/, '')}-reference-qa`,
+        phase: 8,
+        title: `${configuration.profile.label} · Divers · ${
+          configuration.genitalAnatomy === 'penis'
+            ? 'Penis'
+            : configuration.genitalAnatomy === 'vulva'
+              ? 'Vulva'
+              : 'Genitalanatomie unbekannt'
+        } · ${
+          configuration.chestAnatomy === 'brueste'
+            ? 'Brüste'
+            : configuration.chestAnatomy === 'keine_brueste'
+              ? 'Keine Brüste'
+              : 'Brustanatomie unbekannt'
+        }`,
+        nominalHeightMeters: configuration.profile.nominalHeightMeters,
+        buildParts: () => buildDiversReferenceParts(configuration.id),
+        buildGlb: () => buildDiversReferenceGlb(configuration.id),
       },
     ]),
   ),

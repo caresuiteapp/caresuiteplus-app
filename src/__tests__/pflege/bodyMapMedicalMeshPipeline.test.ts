@@ -38,16 +38,16 @@ describe('medizinische 3D-Mesh-Pipeline', () => {
     );
   });
 
-  it('verwendet bis zur registrierten Mesh-Datei den sicheren parametrischen Fallback', () => {
+  it('verwendet bis zur medizinischen Freigabe für alle Varianten den sicheren parametrischen Fallback', () => {
     for (const definition of MEDICAL_MESH_VARIANTS) {
       expect(canRenderMedicalMesh(definition)).toBe(false);
     }
     expect(
       getMedicalMeshDefinition(adultDivers('penis', 'brueste')).reviewStatus,
-    ).toBe('awaiting-mesh');
+    ).toBe('technical-review');
   });
 
-  it('zeigt zehn selbst entwickelte Referenzmeshes nur in der technischen Vorschau', () => {
+  it('zeigt alle 18 selbst entwickelten Referenzmeshes nur in der technischen Vorschau', () => {
     const adultMale = MEDICAL_MESH_VARIANTS.find(
       (entry) => entry.id === 'body-erwachsener-maennlich',
     );
@@ -69,7 +69,7 @@ describe('medizinische 3D-Mesh-Pipeline', () => {
     const technicalReferences = MEDICAL_MESH_VARIANTS.filter(
       (entry) => entry.reviewStatus === 'technical-review',
     );
-    expect(technicalReferences).toHaveLength(10);
+    expect(technicalReferences).toHaveLength(18);
     for (const definition of technicalReferences) {
       expect(definition.assetPath).toMatch(/^\/bodymap3d\/v2\/.+-v2\.glb$/);
       expect(canPreviewMedicalMesh(definition)).toBe(true);

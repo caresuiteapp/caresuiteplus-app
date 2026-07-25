@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "meshContractVersion": 1,
-  "release": "bodymap3d-v2-ten-technical-reference-bodies",
+  "release": "bodymap3d-v2-complete-eighteen-technical-reference-bodies",
   "ownership": "caresuite-self-developed",
   "renderer": "gltf-medical-mesh-with-parametric-fallback",
   "coordinateSystem": {
@@ -64,6 +64,12 @@
       "surface-vaginal-opening",
       "surface-perineum",
       "surface-anus"
+    ],
+    "unbekannt": [
+      "surface-pubic-region-unclassified",
+      "surface-genital-observation-deferred",
+      "surface-perineum",
+      "surface-anus"
     ]
   },
   "requiredChestZones": {
@@ -76,6 +82,13 @@
       "surface-nipple-right"
     ],
     "prepubertal": [
+      "surface-chest",
+      "surface-pectoral-left",
+      "surface-pectoral-right",
+      "surface-nipple-left",
+      "surface-nipple-right"
+    ],
+    "flat": [
       "surface-chest",
       "surface-pectoral-left",
       "surface-pectoral-right",
@@ -118,11 +131,19 @@
     {
       "id": "body-baby-divers",
       "baseModelId": "body-baby-divers",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-baby-divers-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 0.68,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-divers-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-baby-divers-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T02:30:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "ageReference": "baby",
+      "genitalAnatomyContract": "unbekannt",
+      "chestZoneContract": "prepubertal"
     },
     {
       "id": "body-kleinkind-maennlich",
@@ -158,11 +179,19 @@
     {
       "id": "body-kleinkind-divers",
       "baseModelId": "body-kleinkind-divers",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-kleinkind-divers-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-divers-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-kleinkind-divers-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T02:30:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "ageReference": "kleinkind",
+      "genitalAnatomyContract": "unbekannt",
+      "chestZoneContract": "prepubertal"
     },
     {
       "id": "body-kind-maennlich",
@@ -198,11 +227,19 @@
     {
       "id": "body-kind-divers",
       "baseModelId": "body-kind-divers",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-kind-divers-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1.42,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-divers-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-kind-divers-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T02:30:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "ageReference": "kind",
+      "genitalAnatomyContract": "unbekannt",
+      "chestZoneContract": "prepubertal"
     },
     {
       "id": "body-junger-erwachsener-maennlich",
@@ -238,11 +275,19 @@
     {
       "id": "body-junger-erwachsener-divers",
       "baseModelId": "body-junger-erwachsener-divers",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-junger-erwachsener-divers-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1.72,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-divers-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-junger-erwachsener-divers-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T02:30:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "ageReference": "junger-erwachsener",
+      "genitalAnatomyContract": "unbekannt",
+      "chestZoneContract": "flat"
     },
     {
       "id": "body-erwachsener-maennlich",
@@ -275,38 +320,66 @@
     {
       "id": "body-erwachsener-divers",
       "baseModelId": "body-erwachsener-divers",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-erwachsener-divers-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1.72,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-divers-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-erwachsener-divers-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T02:30:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "genitalAnatomyContract": "unbekannt",
+      "chestZoneContract": "flat"
     },
     {
       "id": "body-erwachsener-divers-penis-brueste",
       "baseModelId": "body-erwachsener-divers",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-erwachsener-divers-penis-brueste-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1.72,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-divers-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-erwachsener-divers-penis-brueste-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T02:30:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "genitalAnatomyContract": "penis",
+      "chestZoneContract": "breasts"
     },
     {
       "id": "body-erwachsener-divers-vulva-keine-brueste",
       "baseModelId": "body-erwachsener-divers",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-erwachsener-divers-vulva-keine-brueste-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1.72,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-divers-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-erwachsener-divers-vulva-keine-brueste-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T02:30:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "genitalAnatomyContract": "vulva",
+      "chestZoneContract": "flat"
     },
     {
       "id": "body-erwachsener-divers-unbekannt-brueste",
       "baseModelId": "body-erwachsener-divers",
-      "assetPath": null,
-      "version": 1,
-      "reviewStatus": "awaiting-mesh",
+      "assetPath": "/bodymap3d/v2/body-erwachsener-divers-unbekannt-brueste-v2.glb",
+      "version": 2,
+      "reviewStatus": "technical-review",
       "nominalHeightMeters": 1.72,
-      "meshContractVersion": 1
+      "meshContractVersion": 1,
+      "sourceFileName": "scripts/lib/bodymap-divers-reference-glb.mjs",
+      "qualityReportPath": "/bodymap3d/v2/body-erwachsener-divers-unbekannt-brueste-v2.glb.quality.json",
+      "registeredAt": "2026-07-26T02:30:00.000Z",
+      "selfDeveloped": true,
+      "medicalReleaseBlocked": true,
+      "genitalAnatomyContract": "unbekannt",
+      "chestZoneContract": "breasts"
     }
   ]
 }

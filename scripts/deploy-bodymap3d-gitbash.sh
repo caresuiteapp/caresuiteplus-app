@@ -10,6 +10,7 @@ TEST_FILES=(
   "src/__tests__/pflege/bodyMapAdultMaleReferenceMesh.test.ts"
   "src/__tests__/pflege/bodyMapAdultFemaleReferenceMesh.test.ts"
   "src/__tests__/pflege/bodyMapAgeReferenceMeshes.test.ts"
+  "src/__tests__/pflege/bodyMapDiversReferenceMeshes.test.ts"
   "src/__tests__/pflege/bodyMapGlbInspector.test.ts"
   "src/__tests__/pflege/bodyMapMeshWorkbench.test.ts"
   "src/__tests__/pflege/bodyMap3dViewerContract.test.ts"
@@ -105,6 +106,7 @@ npm run bodymap3d:mesh:calibration
 npm run bodymap3d:mesh:verify-portable
 npm run bodymap3d:mesh:verify-female-portable
 npm run bodymap3d:mesh:verify-age-portable
+npm run bodymap3d:mesh:verify-divers-portable
 npm run bodymap3d:audit
 npx vitest run "${TEST_FILES[@]}"
 
