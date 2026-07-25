@@ -40,6 +40,7 @@ import type {
   BodyMapAgeGroup,
   BodyMapChestAnatomy,
   BodyMapGenitalAnatomy,
+  BodyMapMarker,
   BodyMapMarkerType,
   BodyMapModelSelection,
   BodyMapRegion,
@@ -110,6 +111,17 @@ function markerCoordinates(hit: BodyMapSurfaceHit): { xPercent: number; yPercent
   return { xPercent: 50, yPercent: 50 };
 }
 
+function isPersisted3DMarker(marker: BodyMapMarker): marker is BodyMap3DMarker {
+  return Boolean(
+    marker.modelId &&
+      marker.ageGroup &&
+      marker.sex &&
+      marker.skinTone &&
+      marker.anatomicalZoneId &&
+      marker.surfacePoint,
+  );
+}
+
 function SelectionChip({
   active,
   label,
@@ -156,7 +168,6 @@ export function BodyMapScreen() {
   const [markerType, setMarkerType] = useState<BodyMapMarkerType>('wunde');
   const [pressureClassification, setPressureClassification] = useState('kategorie_1');
   const [note, setNote] = useState('');
-  const [local3DMarkers, setLocal3DMarkers] = useState<BodyMap3DMarker[]>([]);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -192,6 +203,10 @@ export function BodyMapScreen() {
     markerType === 'dekubitus' ||
     markerType === 'druckverletzung_medizinprodukt' ||
     markerType === 'tiefe_gewebeschaedigung';
+  const persisted3DMarkers = useMemo(
+    () => (query.data ?? []).filter(isPersisted3DMarker),
+    [query.data],
+  );
 
   function openSelectedModel() {
     if (!selectionDraft) return;
@@ -218,6 +233,8 @@ export function BodyMapScreen() {
     const decoratedNote = isPressureFinding
       ? `${PRESSURE_INJURY_CLASSIFICATIONS.find((entry) => entry.id === pressureClassification)?.label ?? pressureClassification}${note.trim() ? ` — ${note.trim()}` : ''}`
       : note.trim();
+    const model = getBodyMapModel(selection);
+    const anatomyPack = getBodyMapAnatomyPack(selection);
     const result = await createBodyMapMarker(
       tenantId,
       {
@@ -229,6 +246,24 @@ export function BodyMapScreen() {
         ...coordinates,
         note: decoratedNote,
         woundId: woundId ?? null,
+        modelId: model.id,
+        anatomyPackId: anatomyPack?.id ?? null,
+        ageGroup: selection.ageGroup,
+        sex: selection.sex,
+        genitalAnatomy: selection.genitalAnatomy,
+        chestAnatomy: selection.chestAnatomy,
+        skinTone: selection.skinTone,
+        anatomicalZoneId: pendingHit.anatomicalZoneId,
+        surfacePoint: pendingHit.surfacePoint,
+        pressureClassification: isPressureFinding ? pressureClassification : null,
+        findingStatus: 'aktiv',
+        findingDetails: {
+          anatomicalPath: getAnatomicalPath(pendingHit.anatomicalZoneId).map(
+            (entry) => entry.id,
+          ),
+          sensitiveArea: selectedZone?.sensitive ?? false,
+          pressureRiskArea: selectedZone?.pressureRisk ?? false,
+        },
       },
       profile?.roleKey,
     );
@@ -238,17 +273,7 @@ export function BodyMapScreen() {
       return;
     }
 
-    const model = getBodyMapModel(selection);
-    const anatomyPack = getBodyMapAnatomyPack(selection);
-    const marker: BodyMap3DMarker = {
-      ...result.data,
-      modelId: model.id,
-      anatomyPackId: anatomyPack?.id ?? null,
-      anatomicalZoneId: pendingHit.anatomicalZoneId,
-      surfacePoint: pendingHit.surfacePoint,
-    };
-    setLocal3DMarkers((current) => [marker, ...current]);
-    setSelectedMarkerId(marker.id);
+    setSelectedMarkerId(result.data.id);
     setPendingHit(null);
     setNote('');
     await query.refresh();
@@ -401,7 +426,9 @@ export function BodyMapScreen() {
 
               <BodyMap3DViewer
                 selection={selection}
-                markers={local3DMarkers}
+                markers={persisted3DMarkers.filter(
+                  (marker) => marker.modelId === getBodyMapModel(selection).id,
+                )}
                 selectedMarkerId={selectedMarkerId}
                 disabled={isReadOnly}
                 onSurfacePress={setPendingHit}

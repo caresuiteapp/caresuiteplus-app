@@ -101,6 +101,18 @@ export type BodyMapMarker = {
   xPercent: number;
   yPercent: number;
   note: string;
+  modelId?: BodyMapModelId | null;
+  anatomyPackId?: BodyMapAnatomyPackId | null;
+  ageGroup?: BodyMapAgeGroup | null;
+  sex?: BodyMapSex | null;
+  genitalAnatomy?: BodyMapGenitalAnatomy | null;
+  chestAnatomy?: BodyMapChestAnatomy | null;
+  skinTone?: BodyMapSkinTone | null;
+  anatomicalZoneId?: string | null;
+  surfacePoint?: BodyMapSurfacePoint | null;
+  pressureClassification?: string | null;
+  findingStatus?: string | null;
+  findingDetails?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 };
@@ -122,6 +134,35 @@ export type BodyMapSurfacePoint = {
 export type BodyMap3DMarker = BodyMapMarker & {
   modelId: BodyMapModelId;
   anatomyPackId: BodyMapAnatomyPackId | null;
+  ageGroup: BodyMapAgeGroup;
+  sex: BodyMapSex;
+  genitalAnatomy: BodyMapGenitalAnatomy | null;
+  chestAnatomy: BodyMapChestAnatomy | null;
+  skinTone: BodyMapSkinTone;
   anatomicalZoneId: string;
   surfacePoint: BodyMapSurfacePoint;
+};
+
+export type BodyMapMarkerCreateInput = {
+  clientId: string;
+  gender: LegacyBodyMapGender;
+  view: BodyMapView;
+  region: BodyMapRegion;
+  markerType: BodyMapMarkerType;
+  xPercent: number;
+  yPercent: number;
+  note: string;
+  woundId?: string | null;
+  modelId?: BodyMapModelId | null;
+  anatomyPackId?: BodyMapAnatomyPackId | null;
+  ageGroup?: BodyMapAgeGroup | null;
+  sex?: BodyMapSex | null;
+  genitalAnatomy?: BodyMapGenitalAnatomy | null;
+  chestAnatomy?: BodyMapChestAnatomy | null;
+  skinTone?: BodyMapSkinTone | null;
+  anatomicalZoneId?: string | null;
+  surfacePoint?: BodyMapSurfacePoint | null;
+  pressureClassification?: string | null;
+  findingStatus?: string | null;
+  findingDetails?: Record<string, unknown>;
 };

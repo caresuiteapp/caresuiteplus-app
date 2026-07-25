@@ -89,14 +89,15 @@ describe('BodyMap live MVP (Prompt 02)', () => {
     expect(source).not.toContain('isPflegeDemoFunctional');
   });
 
-  it('BodyMapScreen misst Canvas per onLayout statt fester Pixel', () => {
-    const source = readSrc('src/screens/pflege/BodyMapScreen.tsx');
-    expect(source).toContain('canvasSize');
-    expect(source).toContain('onLayout');
-    expect(source).toContain('canvasSize.width');
-    expect(source).toContain('canvasSize.height');
-    expect(source).not.toContain('/ 280');
-    expect(source).not.toContain('/ 420');
+  it('BodyMapScreen nutzt echte 3D-Oberflächenanker statt fester 2D-Pixel', () => {
+    const screen = readSrc('src/screens/pflege/BodyMapScreen.tsx');
+    const model = readSrc('src/components/pflege/bodyMap3d/ParametricBodyModel.tsx');
+    expect(screen).toContain('BodyMap3DViewer');
+    expect(model).toContain('worldPosition');
+    expect(model).toContain('localPosition');
+    expect(model).toContain('surfacePoint');
+    expect(screen).not.toContain('/ 280');
+    expect(screen).not.toContain('/ 420');
   });
 
   it('bodyMapRepository schreibt optional Audit-Einträge', () => {

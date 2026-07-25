@@ -1,5 +1,5 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import type { BodyMapGender, BodyMapMarker, BodyMapMarkerType, BodyMapRegion, BodyMapView } from '@/types/modules/bodyMap';
+import type { BodyMapMarker, BodyMapMarkerCreateInput } from '@/types/modules/bodyMap';
 import {
   deleteDemoBodyMapMarker,
   getDemoBodyMapMarkers,
@@ -8,7 +8,8 @@ import {
 } from '@/data/demo/bodyMapMarkers';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { isPflegeDemoFunctional } from '@/lib/pflege/pflegeModuleConfig';
+import { getServiceMode } from '@/lib/services/mode';
+import { bodyMapSupabaseRepository } from '@/lib/pflege/bodyMapRepository.supabase';
 
 async function demoDelay(ms = 200): Promise<void> {
   await new Promise((r) => setTimeout(r, ms));
@@ -23,8 +24,9 @@ export async function fetchBodyMapMarkers(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  if (!isPflegeDemoFunctional()) {
-    return { ok: false, error: 'BodyMap im Live-Modus: Repository erweitern.' };
+  if (!clientId.trim()) return { ok: false, error: 'Klient:in fehlt.' };
+  if (getServiceMode() === 'supabase') {
+    return bodyMapSupabaseRepository.listByClient(tenantId, clientId);
   }
   await demoDelay();
   return { ok: true, data: getDemoBodyMapMarkers(clientId) };
@@ -32,25 +34,16 @@ export async function fetchBodyMapMarkers(
 
 export async function createBodyMapMarker(
   tenantId: string,
-  input: {
-    clientId: string;
-    gender: BodyMapGender;
-    view: BodyMapView;
-    region: BodyMapRegion;
-    markerType: BodyMapMarkerType;
-    xPercent: number;
-    yPercent: number;
-    note: string;
-    woundId?: string | null;
-  },
+  input: BodyMapMarkerCreateInput,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<BodyMapMarker>> {
   const denied = enforcePermission<BodyMapMarker>(actorRoleKey, 'pflege.plans.view');
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  if (!isPflegeDemoFunctional()) {
-    return { ok: false, error: 'BodyMap speichern: Demo-Modus erforderlich.' };
+  if (!input.clientId.trim()) return { ok: false, error: 'Klient:in fehlt.' };
+  if (getServiceMode() === 'supabase') {
+    return bodyMapSupabaseRepository.create(tenantId, input);
   }
   await demoDelay(280);
   const marker = saveDemoBodyMapMarker(input.clientId, {
@@ -64,6 +57,18 @@ export async function createBodyMapMarker(
     xPercent: input.xPercent,
     yPercent: input.yPercent,
     note: input.note,
+    modelId: input.modelId ?? null,
+    anatomyPackId: input.anatomyPackId ?? null,
+    ageGroup: input.ageGroup ?? null,
+    sex: input.sex ?? null,
+    genitalAnatomy: input.genitalAnatomy ?? null,
+    chestAnatomy: input.chestAnatomy ?? null,
+    skinTone: input.skinTone ?? null,
+    anatomicalZoneId: input.anatomicalZoneId ?? null,
+    surfacePoint: input.surfacePoint ?? null,
+    pressureClassification: input.pressureClassification ?? null,
+    findingStatus: input.findingStatus ?? 'aktiv',
+    findingDetails: input.findingDetails ?? {},
   });
   return { ok: true, data: marker };
 }
@@ -79,8 +84,9 @@ export async function patchBodyMapMarker(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  if (!isPflegeDemoFunctional()) {
-    return { ok: false, error: 'BodyMap bearbeiten: Demo-Modus erforderlich.' };
+  if (!clientId.trim()) return { ok: false, error: 'Klient:in fehlt.' };
+  if (getServiceMode() === 'supabase') {
+    return bodyMapSupabaseRepository.update(tenantId, clientId, markerId, patch);
   }
   await demoDelay(220);
   const updated = updateDemoBodyMapMarker(clientId, markerId, patch);
@@ -98,8 +104,9 @@ export async function removeBodyMapMarker(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  if (!isPflegeDemoFunctional()) {
-    return { ok: false, error: 'BodyMap löschen: Demo-Modus erforderlich.' };
+  if (!clientId.trim()) return { ok: false, error: 'Klient:in fehlt.' };
+  if (getServiceMode() === 'supabase') {
+    return bodyMapSupabaseRepository.remove(tenantId, clientId, markerId);
   }
   await demoDelay(180);
   const removed = deleteDemoBodyMapMarker(clientId, markerId);

@@ -1,9 +1,18 @@
 import type { ServiceResult } from '@/types';
 import type {
+  BodyMapAgeGroup,
+  BodyMapAnatomyPackId,
+  BodyMapChestAnatomy,
   BodyMapGender,
+  BodyMapGenitalAnatomy,
   BodyMapMarker,
+  BodyMapMarkerCreateInput,
   BodyMapMarkerType,
+  BodyMapModelId,
   BodyMapRegion,
+  BodyMapSex,
+  BodyMapSkinTone,
+  BodyMapSurfacePoint,
   BodyMapView,
 } from '@/types/modules/bodyMap';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -12,7 +21,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 
 export const BODY_MAP_MARKER_SELECT_COLUMNS =
-  'id, tenant_id, client_id, wound_id, gender, view, region, marker_type, x_percent, y_percent, note, created_by, created_at, updated_at';
+  'id, tenant_id, client_id, wound_id, gender, view, region, marker_type, x_percent, y_percent, note, model_id, anatomy_pack_id, age_group, sex, genital_anatomy, chest_anatomy, skin_tone, anatomical_zone_id, local_position, world_position, surface_normal, surface_uv, mesh_name, primitive_index, triangle_index, pressure_classification, finding_status, finding_details, created_by, created_at, updated_at';
 
 export type BodyMapMarkerLiveRow = {
   id: string;
@@ -26,6 +35,24 @@ export type BodyMapMarkerLiveRow = {
   x_percent: number;
   y_percent: number;
   note: string;
+  model_id?: BodyMapModelId | null;
+  anatomy_pack_id?: BodyMapAnatomyPackId | null;
+  age_group?: BodyMapAgeGroup | null;
+  sex?: BodyMapSex | null;
+  genital_anatomy?: BodyMapGenitalAnatomy | null;
+  chest_anatomy?: BodyMapChestAnatomy | null;
+  skin_tone?: BodyMapSkinTone | null;
+  anatomical_zone_id?: string | null;
+  local_position?: BodyMapSurfacePoint['localPosition'] | null;
+  world_position?: BodyMapSurfacePoint['worldPosition'] | null;
+  surface_normal?: BodyMapSurfacePoint['normal'] | null;
+  surface_uv?: BodyMapSurfacePoint['uv'] | null;
+  mesh_name?: string | null;
+  primitive_index?: number | null;
+  triangle_index?: number | null;
+  pressure_classification?: string | null;
+  finding_status?: string | null;
+  finding_details?: Record<string, unknown> | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -36,6 +63,11 @@ function unavailable<T>(): ServiceResult<T> {
 }
 
 export function mapBodyMapMarkerRow(row: BodyMapMarkerLiveRow): BodyMapMarker {
+  const hasSurfacePoint =
+    !!row.local_position &&
+    !!row.world_position &&
+    !!row.surface_normal &&
+    typeof row.mesh_name === 'string';
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -48,6 +80,28 @@ export function mapBodyMapMarkerRow(row: BodyMapMarkerLiveRow): BodyMapMarker {
     xPercent: Number(row.x_percent),
     yPercent: Number(row.y_percent),
     note: row.note ?? '',
+    modelId: row.model_id ?? null,
+    anatomyPackId: row.anatomy_pack_id ?? null,
+    ageGroup: row.age_group ?? null,
+    sex: row.sex ?? null,
+    genitalAnatomy: row.genital_anatomy ?? null,
+    chestAnatomy: row.chest_anatomy ?? null,
+    skinTone: row.skin_tone ?? null,
+    anatomicalZoneId: row.anatomical_zone_id ?? null,
+    surfacePoint: hasSurfacePoint
+      ? {
+          localPosition: row.local_position!,
+          worldPosition: row.world_position!,
+          normal: row.surface_normal!,
+          uv: row.surface_uv ?? null,
+          meshName: row.mesh_name!,
+          primitiveIndex: row.primitive_index ?? null,
+          triangleIndex: row.triangle_index ?? null,
+        }
+      : null,
+    pressureClassification: row.pressure_classification ?? null,
+    findingStatus: row.finding_status ?? null,
+    findingDetails: row.finding_details ?? {},
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -99,18 +153,7 @@ export const bodyMapSupabaseRepository = {
 
   async create(
     tenantId: string,
-    input: {
-      clientId: string;
-      gender: BodyMapGender;
-      view: BodyMapView;
-      region: BodyMapRegion;
-      markerType: BodyMapMarkerType;
-      xPercent: number;
-      yPercent: number;
-      note: string;
-      woundId?: string | null;
-      createdBy?: string | null;
-    },
+    input: BodyMapMarkerCreateInput & { createdBy?: string | null },
   ): Promise<ServiceResult<BodyMapMarker>> {
     const supabase = getSupabaseClient();
     if (!supabase) return unavailable();
@@ -127,6 +170,24 @@ export const bodyMapSupabaseRepository = {
         x_percent: input.xPercent,
         y_percent: input.yPercent,
         note: input.note,
+        model_id: input.modelId ?? null,
+        anatomy_pack_id: input.anatomyPackId ?? null,
+        age_group: input.ageGroup ?? null,
+        sex: input.sex ?? null,
+        genital_anatomy: input.genitalAnatomy ?? null,
+        chest_anatomy: input.chestAnatomy ?? null,
+        skin_tone: input.skinTone ?? null,
+        anatomical_zone_id: input.anatomicalZoneId ?? null,
+        local_position: input.surfacePoint?.localPosition ?? null,
+        world_position: input.surfacePoint?.worldPosition ?? null,
+        surface_normal: input.surfacePoint?.normal ?? null,
+        surface_uv: input.surfacePoint?.uv ?? null,
+        mesh_name: input.surfacePoint?.meshName ?? null,
+        primitive_index: input.surfacePoint?.primitiveIndex ?? null,
+        triangle_index: input.surfacePoint?.triangleIndex ?? null,
+        pressure_classification: input.pressureClassification ?? null,
+        finding_status: input.findingStatus ?? 'aktiv',
+        finding_details: input.findingDetails ?? {},
         created_by: input.createdBy ?? null,
         created_at: now,
         updated_at: now,
