@@ -13,7 +13,6 @@ TEST_FILES=(
 )
 
 SKIP_INSTALL=false
-APPLY_DB=false
 PUSH_BRANCH=false
 VERCEL_PRODUCTION=false
 CONFIRMED=false
@@ -29,7 +28,7 @@ usage() {
     "" \
     "Optionen:" \
     "  --skip-install       npm ci überspringen" \
-    "  --apply-db           alle ausstehenden verknüpften Supabase-Migrationen anwenden" \
+    "  --verify-db          Bodymap-Migrationsstand nur lesend anzeigen" \
     "  --push               aktuellen Git-Branch zu origin pushen" \
     "  --vercel-production  dist als Vercel-Produktionsdeployment veröffentlichen" \
     "  --yes                notwendige Bestätigung für schreibende Optionen" \
@@ -39,13 +38,14 @@ usage() {
     "  bash scripts/deploy-bodymap3d-gitbash.sh --skip-install" \
     "" \
     "Beispiel nach manuellem Review:" \
-    "  bash scripts/deploy-bodymap3d-gitbash.sh --apply-db --push --yes"
+    "  bash scripts/deploy-bodymap3d-gitbash.sh --verify-db --push --yes"
 }
 
+VERIFY_DB=false
 for argument in "$@"; do
   case "${argument}" in
     --skip-install) SKIP_INSTALL=true ;;
-    --apply-db) APPLY_DB=true ;;
+    --verify-db) VERIFY_DB=true ;;
     --push) PUSH_BRANCH=true ;;
     --vercel-production) VERCEL_PRODUCTION=true ;;
     --yes) CONFIRMED=true ;;
@@ -71,9 +71,9 @@ if [[ ! -f "${MIGRATION_FILE}" ]]; then
   printf 'Fehler: Bodymap-Migration fehlt: %s\n' "${MIGRATION_FILE}" >&2
   exit 1
 fi
-if { [[ "${APPLY_DB}" == true ]] || [[ "${PUSH_BRANCH}" == true ]] || [[ "${VERCEL_PRODUCTION}" == true ]]; } \
+if { [[ "${PUSH_BRANCH}" == true ]] || [[ "${VERCEL_PRODUCTION}" == true ]]; } \
   && [[ "${CONFIRMED}" != true ]]; then
-  printf 'Abbruch: --apply-db, --push und --vercel-production benötigen --yes.\n' >&2
+  printf 'Abbruch: --push und --vercel-production benötigen --yes.\n' >&2
   exit 1
 fi
 
@@ -104,11 +104,10 @@ npx expo export --platform web --output-dir dist-bodymap3d --clear
 
 printf '\nPreflight und Web-Export erfolgreich: dist-bodymap3d\n'
 
-if [[ "${APPLY_DB}" == true ]]; then
-  printf '\nSupabase-Migrationsstand vor dem Apply:\n'
+if [[ "${VERIFY_DB}" == true ]]; then
+  printf '\nSupabase-Migrationsstand (nur lesend):\n'
   npx supabase migration list --linked
-  printf '\nAchtung: db push wendet ALLE lokal ausstehenden Migrationen an.\n'
-  npx supabase db push
+  printf '\nEs wurden keine Supabase-Migrationen verändert.\n'
 fi
 
 if [[ "${PUSH_BRANCH}" == true ]]; then
