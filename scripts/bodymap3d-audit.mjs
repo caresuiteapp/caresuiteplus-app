@@ -29,6 +29,11 @@ if (new Set(manifest.diversAnatomyPacks).size !== 3) {
 for (const surface of manifest.requiredClinicalSurfaces) {
   if (!modelSource.includes(surface)) errors.push(`Klinische Oberfläche fehlt: ${surface}`);
 }
+for (const generator of manifest.requiredClinicalGenerators ?? []) {
+  if (!modelSource.includes(generator)) {
+    errors.push(`Klinischer Oberflächengenerator fehlt: ${generator}`);
+  }
+}
 for (const anchorContract of [
   'bodymap-model-root',
   'modelPosition',

@@ -120,6 +120,14 @@ const FINGER_ZONE_BASES = [
   { id: 'kleiner-finger', offset: 0.66, length: 0.72, angle: -0.12 },
 ] as const;
 
+const TOE_ZONE_BASES = [
+  { id: 'grosszehe', offset: 0.42, length: 1, radius: 1 },
+  { id: 'zweite-zehe', offset: 0.18, length: 0.84, radius: 0.8 },
+  { id: 'dritte-zehe', offset: 0, length: 0.76, radius: 0.72 },
+  { id: 'vierte-zehe', offset: -0.2, length: 0.67, radius: 0.64 },
+  { id: 'kleine-zehe', offset: -0.38, length: 0.56, radius: 0.58 },
+] as const;
+
 function modelScale(ageGroup: BodyMapAgeGroup): number {
   if (ageGroup === 'baby') return 0.78;
   if (ageGroup === 'kleinkind') return 0.86;
@@ -209,10 +217,11 @@ function Surface({
       {children}
       <meshPhysicalMaterial
         color={color}
-        roughness={0.58}
+        roughness={0.62}
         metalness={0}
-        clearcoat={0.08}
-        clearcoatRoughness={0.75}
+        clearcoat={0.12}
+        clearcoatRoughness={0.82}
+        envMapIntensity={0.35}
       />
     </mesh>
   );
@@ -275,17 +284,37 @@ export function ParametricBodyModel({
   const p = PROPORTIONS[selection.ageGroup];
   const skin = new Color(SKIN_COLORS[selection.skinTone]).getStyle();
   const heightScale = modelScale(selection.ageGroup);
+  const adultBodyShape =
+    selection.ageGroup === 'junger_erwachsener' || selection.ageGroup === 'erwachsener';
+  const shoulderFactor = adultBodyShape
+    ? selection.sex === 'maennlich'
+      ? 1.08
+      : selection.sex === 'weiblich'
+        ? 0.96
+        : 1
+    : 1;
+  const pelvisFactor = adultBodyShape
+    ? selection.sex === 'weiblich'
+      ? 1.1
+      : selection.sex === 'maennlich'
+        ? 0.95
+        : 1.03
+    : 1;
+  const depthFactor = adultBodyShape && selection.sex === 'maennlich' ? 1.04 : 1;
+  const shoulderWidth = p.shoulderWidth * shoulderFactor;
+  const pelvisWidth = p.pelvisWidth * pelvisFactor;
+  const torsoDepth = p.torsoDepth * depthFactor;
   const legCenterY = p.legLength / 2;
   const pelvisY = p.legLength + 0.08;
   const torsoY = pelvisY + p.torsoLength / 2 + 0.14;
   const shoulderY = pelvisY + p.torsoLength + 0.08;
   const headY = shoulderY + p.headRadius * 2.15;
-  const armX = p.shoulderWidth / 2 + p.limbRadius * 1.6;
+  const armX = shoulderWidth / 2 + p.limbRadius * 1.6;
   const upperArmLength = p.armLength * 0.48;
   const lowerArmLength = p.armLength * 0.42;
   const elbowY = shoulderY - upperArmLength;
   const handY = elbowY - lowerArmLength - p.handScale * 0.35;
-  const legX = p.pelvisWidth * 0.28;
+  const legX = pelvisWidth * 0.28;
   const isBreastPresentation =
     selection.chestAnatomy === 'brueste' ||
     (selection.sex === 'weiblich' && selection.chestAnatomy !== 'keine_brueste');
@@ -305,9 +334,9 @@ export function ParametricBodyModel({
         : selection.ageGroup === 'kind'
           ? 0.72
           : 1;
-  const genitalUnit = Math.max(0.026, p.pelvisWidth * 0.14 * anatomicalMaturity);
-  const genitalY = pelvisY - p.pelvisWidth * 0.22;
-  const genitalFrontZ = p.torsoDepth * 0.86;
+  const genitalUnit = Math.max(0.026, pelvisWidth * 0.14 * anatomicalMaturity);
+  const genitalY = pelvisY - pelvisWidth * 0.22;
+  const genitalFrontZ = torsoDepth * 0.86;
   const mucosaColor = selection.skinTone === 'sehr_dunkel' ? '#6f343d' : '#b75f6b';
 
   return (
@@ -388,18 +417,106 @@ export function ParametricBodyModel({
         </group>
       ))}
       {[-1, 1].map((side) => (
+        <group key={`eyelids-${side}`}>
+          <Surface
+            zoneId={side < 0 ? 'oberlid-links' : 'oberlid-rechts'}
+            name={side < 0 ? 'surface-upper-eyelid-left' : 'surface-upper-eyelid-right'}
+            color={skin}
+            position={[
+              side * p.headRadius * 0.34,
+              headY + p.headRadius * 0.1,
+              p.headRadius * 0.967,
+            ]}
+            scale={[1.32, 0.78, 0.42]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <torusGeometry
+              args={[p.headRadius * 0.082, p.headRadius * 0.012, 8, 20, Math.PI]}
+            />
+          </Surface>
+          <Surface
+            zoneId={side < 0 ? 'unterlid-links' : 'unterlid-rechts'}
+            name={side < 0 ? 'surface-lower-eyelid-left' : 'surface-lower-eyelid-right'}
+            color={skin}
+            position={[
+              side * p.headRadius * 0.34,
+              headY + p.headRadius * 0.1,
+              p.headRadius * 0.967,
+            ]}
+            rotation={[0, 0, Math.PI]}
+            scale={[1.32, 0.78, 0.42]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <torusGeometry
+              args={[p.headRadius * 0.082, p.headRadius * 0.011, 8, 20, Math.PI]}
+            />
+          </Surface>
+        </group>
+      ))}
+      {[-1, 1].map((side) => (
         <Surface
-          key={`ear-${side}`}
-          zoneId={side < 0 ? 'ohr-links' : 'ohr-rechts'}
-          name={side < 0 ? 'surface-ear-left' : 'surface-ear-right'}
+          key={`cheek-${side}`}
+          zoneId={side < 0 ? 'wange-links' : 'wange-rechts'}
+          name={side < 0 ? 'surface-cheek-left' : 'surface-cheek-right'}
           color={skin}
-          position={[side * p.headRadius * 0.88, headY, 0]}
-          scale={[0.35, 0.78, 0.3]}
+          position={[
+            side * p.headRadius * 0.48,
+            headY - p.headRadius * 0.16,
+            p.headRadius * 0.76,
+          ]}
+          scale={[1.15, 0.92, 0.38]}
           disabled={disabled}
           onSurfacePress={onSurfacePress}
         >
-          <sphereGeometry args={[p.headRadius * 0.32, 20, 14]} />
+          <sphereGeometry args={[p.headRadius * 0.19, 22, 16]} />
         </Surface>
+      ))}
+      {[-1, 1].map((side) => (
+        <Surface
+          key={`nose-wing-${side}`}
+          zoneId={side < 0 ? 'nasenfluegel-links' : 'nasenfluegel-rechts'}
+          name={side < 0 ? 'surface-nose-wing-left' : 'surface-nose-wing-right'}
+          color={skin}
+          position={[
+            side * p.headRadius * 0.1,
+            headY - p.headRadius * 0.12,
+            p.headRadius * 0.965,
+          ]}
+          scale={[0.9, 0.65, 0.62]}
+          disabled={disabled}
+          onSurfacePress={onSurfacePress}
+        >
+          <sphereGeometry args={[p.headRadius * 0.075, 18, 12]} />
+        </Surface>
+      ))}
+      {[-1, 1].map((side) => (
+        <group key={`ear-${side}`}>
+          <Surface
+            zoneId={side < 0 ? 'ohr-links' : 'ohr-rechts'}
+            name={side < 0 ? 'surface-ear-left' : 'surface-ear-right'}
+            color={skin}
+            position={[side * p.headRadius * 0.9, headY, 0]}
+            rotation={[0, Math.PI / 2, 0]}
+            scale={[0.52, 1, 0.72]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <torusGeometry args={[p.headRadius * 0.18, p.headRadius * 0.055, 10, 28]} />
+          </Surface>
+          <Surface
+            zoneId={side < 0 ? 'ohr-links' : 'ohr-rechts'}
+            name={side < 0 ? 'surface-ear-concha-left' : 'surface-ear-concha-right'}
+            color={mucosaColor}
+            position={[side * p.headRadius * 0.91, headY - p.headRadius * 0.01, 0]}
+            scale={[0.32, 0.7, 0.36]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[p.headRadius * 0.12, 18, 14]} />
+          </Surface>
+        </group>
       ))}
       <Surface
         zoneId="mund"
@@ -434,6 +551,17 @@ export function ParametricBodyModel({
       >
         <sphereGeometry args={[p.headRadius * 0.115, 20, 12]} />
       </Surface>
+      <Surface
+        zoneId="kinn"
+        name="surface-chin"
+        color={skin}
+        position={[0, headY - p.headRadius * 0.66, p.headRadius * 0.68]}
+        scale={[1.25, 0.7, 0.52]}
+        disabled={disabled}
+        onSurfacePress={onSurfacePress}
+      >
+        <sphereGeometry args={[p.headRadius * 0.19, 22, 16]} />
+      </Surface>
 
       <Surface
         zoneId="hals"
@@ -451,44 +579,159 @@ export function ParametricBodyModel({
         name="surface-torso"
         color={skin}
         position={[0, torsoY, 0]}
-        scale={[p.shoulderWidth / 0.52, 1, p.torsoDepth / 0.24]}
+        scale={[shoulderWidth / 0.52, 1, torsoDepth / 0.24]}
         disabled={disabled}
         onSurfacePress={onSurfacePress}
       >
         <capsuleGeometry args={[0.23, Math.max(0.12, p.torsoLength - 0.35), 12, 32]} />
       </Surface>
+      <Surface
+        zoneId="bauch"
+        name="surface-abdomen"
+        color={skin}
+        position={[0, torsoY - p.torsoLength * 0.25, torsoDepth * 0.7]}
+        scale={[shoulderWidth / 0.62, 1.05, 0.42]}
+        disabled={disabled}
+        onSurfacePress={onSurfacePress}
+      >
+        <sphereGeometry args={[0.22, 30, 22]} />
+      </Surface>
+      <Surface
+        zoneId="bauchnabel"
+        name="surface-navel"
+        color={mucosaColor}
+        position={[0, torsoY - p.torsoLength * 0.25, torsoDepth * 1.02]}
+        scale={[1, 1, 0.38]}
+        disabled={disabled}
+        onSurfacePress={onSurfacePress}
+      >
+        <torusGeometry args={[0.018 * anatomicalMaturity, 0.005, 8, 20]} />
+      </Surface>
+      {[-1, 1].map((side) => (
+        <Surface
+          key={`clavicle-${side}`}
+          zoneId={side < 0 ? 'schluesselbein-links' : 'schluesselbein-rechts'}
+          name={side < 0 ? 'surface-clavicle-left' : 'surface-clavicle-right'}
+          color={skin}
+          position={[
+            side * shoulderWidth * 0.19,
+            shoulderY - p.headRadius * 0.17,
+            torsoDepth * 0.78,
+          ]}
+          rotation={[0, 0, side * Math.PI * 0.42]}
+          scale={[0.55, 1, 0.5]}
+          disabled={disabled}
+          onSurfacePress={onSurfacePress}
+        >
+          <capsuleGeometry args={[p.limbRadius * 0.18, shoulderWidth * 0.28, 6, 16]} />
+        </Surface>
+      ))}
+      {[-1, 1].map((side) => (
+        <Surface
+          key={`shoulder-${side}`}
+          zoneId={side < 0 ? 'schulter-links' : 'schulter-rechts'}
+          name={side < 0 ? 'surface-shoulder-left' : 'surface-shoulder-right'}
+          color={skin}
+          position={[side * shoulderWidth * 0.49, shoulderY - p.limbRadius * 0.35, 0]}
+          scale={[1.12, 0.92, 1]}
+          disabled={disabled}
+          onSurfacePress={onSurfacePress}
+        >
+          <sphereGeometry args={[p.limbRadius * 1.32, 24, 18]} />
+        </Surface>
+      ))}
+      <Surface
+        zoneId="oberer-ruecken"
+        name="surface-upper-back"
+        color={skin}
+        position={[0, torsoY + p.torsoLength * 0.2, -torsoDepth * 0.91]}
+        scale={[shoulderWidth / 0.6, 1.3, 0.3]}
+        disabled={disabled}
+        onSurfacePress={onSurfacePress}
+      >
+        <sphereGeometry args={[0.22, 30, 22]} />
+      </Surface>
+      {[-1, 1].map((side) => (
+        <Surface
+          key={`scapula-${side}`}
+          zoneId={side < 0 ? 'schulterblatt-links' : 'schulterblatt-rechts'}
+          name={side < 0 ? 'surface-scapula-left' : 'surface-scapula-right'}
+          color={skin}
+          position={[
+            side * shoulderWidth * 0.22,
+            torsoY + p.torsoLength * 0.19,
+            -torsoDepth * 1.04,
+          ]}
+          scale={[1.15, 1.38, 0.25]}
+          disabled={disabled}
+          onSurfacePress={onSurfacePress}
+        >
+          <sphereGeometry args={[shoulderWidth * 0.115, 22, 16]} />
+        </Surface>
+      ))}
+      <Surface
+        zoneId="wirbelsaeule-brust"
+        name="surface-thoracic-spine"
+        color={skin}
+        position={[0, torsoY + p.torsoLength * 0.1, -torsoDepth * 1.08]}
+        scale={[0.42, 1, 0.35]}
+        disabled={disabled}
+        onSurfacePress={onSurfacePress}
+      >
+        <capsuleGeometry args={[p.limbRadius * 0.2, p.torsoLength * 0.48, 8, 20]} />
+      </Surface>
+      <Surface
+        zoneId="unterer-ruecken"
+        name="surface-lower-back"
+        color={skin}
+        position={[0, torsoY - p.torsoLength * 0.3, -torsoDepth * 0.96]}
+        scale={[shoulderWidth / 0.7, 0.9, 0.28]}
+        disabled={disabled}
+        onSurfacePress={onSurfacePress}
+      >
+        <sphereGeometry args={[0.21, 26, 18]} />
+      </Surface>
 
       {isBreastPresentation && showAdultChest
         ? [-1, 1].map((side) => (
-            <group key={`breast-${side}`}>
+            <Surface
+              key={`breast-${side}`}
+              zoneId={side < 0 ? 'brust-links' : 'brust-rechts'}
+              name={side < 0 ? 'surface-breast-left' : 'surface-breast-right'}
+              color={skin}
+              position={[side * shoulderWidth * 0.2, torsoY + p.torsoLength * 0.2, torsoDepth]}
+              scale={[1.15, 0.9, 0.65]}
+              disabled={disabled}
+              onSurfacePress={onSurfacePress}
+            >
+              <sphereGeometry args={[shoulderWidth * 0.16, 24, 18]} />
+            </Surface>
+          ))
+        : null}
+      {showAdultChest
+        ? [-1, 1].map((side) => {
+            const nippleProjection = isBreastPresentation
+              ? torsoDepth + shoulderWidth * 0.105
+              : torsoDepth * 1.02;
+            return (
               <Surface
-                zoneId={side < 0 ? 'brust-links' : 'brust-rechts'}
-                name={side < 0 ? 'surface-breast-left' : 'surface-breast-right'}
-                color={skin}
-                position={[side * p.shoulderWidth * 0.2, torsoY + p.torsoLength * 0.2, p.torsoDepth]}
-                scale={[1.15, 0.9, 0.65]}
-                disabled={disabled}
-                onSurfacePress={onSurfacePress}
-              >
-                <sphereGeometry args={[p.shoulderWidth * 0.16, 24, 18]} />
-              </Surface>
-              <Surface
+                key={`nipple-${side}`}
                 zoneId={side < 0 ? 'brustwarze-links' : 'brustwarze-rechts'}
                 name={side < 0 ? 'surface-nipple-left' : 'surface-nipple-right'}
                 color={mucosaColor}
                 position={[
-                  side * p.shoulderWidth * 0.2,
+                  side * shoulderWidth * 0.2,
                   torsoY + p.torsoLength * 0.2,
-                  p.torsoDepth + p.shoulderWidth * 0.105,
+                  nippleProjection,
                 ]}
                 scale={[1, 1, 0.55]}
                 disabled={disabled}
                 onSurfacePress={onSurfacePress}
               >
-                <sphereGeometry args={[p.shoulderWidth * 0.035, 18, 12]} />
+                <sphereGeometry args={[shoulderWidth * 0.035, 18, 12]} />
               </Surface>
-            </group>
-          ))
+            );
+          })
         : null}
 
       <Surface
@@ -496,32 +739,74 @@ export function ParametricBodyModel({
         name="surface-pelvis"
         color={skin}
         position={[0, pelvisY, 0]}
-        scale={[p.pelvisWidth / 0.38, 0.72, p.torsoDepth / 0.24]}
+        scale={[pelvisWidth / 0.38, 0.72, torsoDepth / 0.24]}
         disabled={disabled}
         onSurfacePress={onSurfacePress}
       >
         <sphereGeometry args={[0.23, 30, 22]} />
       </Surface>
+      <Surface
+        zoneId="kreuzbein"
+        name="surface-sacrum"
+        color={skin}
+        position={[0, pelvisY + pelvisWidth * 0.08, -torsoDepth * 1.03]}
+        scale={[1.15, 1.3, 0.28]}
+        disabled={disabled}
+        onSurfacePress={onSurfacePress}
+      >
+        <sphereGeometry args={[pelvisWidth * 0.12, 22, 16]} />
+      </Surface>
+      <Surface
+        zoneId="steissbein"
+        name="surface-coccyx"
+        color={skin}
+        position={[0, pelvisY - pelvisWidth * 0.17, -torsoDepth * 1.04]}
+        scale={[0.72, 1.2, 0.3]}
+        disabled={disabled}
+        onSurfacePress={onSurfacePress}
+      >
+        <sphereGeometry args={[pelvisWidth * 0.075, 18, 14]} />
+      </Surface>
 
       {[-1, 1].map((side) => (
-        <Surface
-          key={`buttock-${side}`}
-          zoneId={side < 0 ? 'gesaess-links' : 'gesaess-rechts'}
-          name={side < 0 ? 'surface-buttock-left' : 'surface-buttock-right'}
-          color={skin}
-          position={[side * p.pelvisWidth * 0.2, pelvisY - p.pelvisWidth * 0.04, -p.torsoDepth * 0.72]}
-          scale={[1, 1.15, 0.66]}
-          disabled={disabled}
-          onSurfacePress={onSurfacePress}
-        >
-          <sphereGeometry args={[p.pelvisWidth * 0.24, 26, 20]} />
-        </Surface>
+        <group key={`buttock-${side}`}>
+          <Surface
+            zoneId={side < 0 ? 'gesaess-links' : 'gesaess-rechts'}
+            name={side < 0 ? 'surface-buttock-left' : 'surface-buttock-right'}
+            color={skin}
+            position={[
+              side * pelvisWidth * 0.2,
+              pelvisY - pelvisWidth * 0.04,
+              -torsoDepth * 0.72,
+            ]}
+            scale={[1, 1.15, 0.66]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[pelvisWidth * 0.24, 26, 20]} />
+          </Surface>
+          <Surface
+            zoneId={side < 0 ? 'sitzbeinhoecker-links' : 'sitzbeinhoecker-rechts'}
+            name={side < 0 ? 'surface-ischial-left' : 'surface-ischial-right'}
+            color={skin}
+            position={[
+              side * pelvisWidth * 0.2,
+              pelvisY - pelvisWidth * 0.24,
+              -torsoDepth * 1.02,
+            ]}
+            scale={[1, 0.72, 0.35]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[pelvisWidth * 0.095, 18, 14]} />
+          </Surface>
+        </group>
       ))}
       <Surface
         zoneId="anus"
         name="surface-anus"
         color={mucosaColor}
-        position={[0, pelvisY - p.pelvisWidth * 0.26, -p.torsoDepth * 0.98]}
+        position={[0, pelvisY - pelvisWidth * 0.26, -torsoDepth * 0.98]}
         rotation={[0, 0, 0]}
         scale={[1, 1.25, 0.42]}
         disabled={disabled}
@@ -529,6 +814,20 @@ export function ParametricBodyModel({
       >
         <torusGeometry args={[genitalUnit * 0.26, genitalUnit * 0.09, 10, 24]} />
       </Surface>
+
+      {resolvedGenitalAnatomy === 'unbekannt' ? (
+        <Surface
+          zoneId="anogenitalregion"
+          name="surface-anogenital-unspecified"
+          color={skin}
+          position={[0, genitalY, genitalFrontZ + genitalUnit * 0.18]}
+          scale={[1.25, 1.12, 0.38]}
+          disabled={disabled}
+          onSurfacePress={onSurfacePress}
+        >
+          <sphereGeometry args={[genitalUnit * 0.78, 22, 16]} />
+        </Surface>
+      ) : null}
 
       {resolvedGenitalAnatomy === 'penis' ? (
         <group>
@@ -587,6 +886,17 @@ export function ParametricBodyModel({
 
       {resolvedGenitalAnatomy === 'vulva' ? (
         <group>
+          <Surface
+            zoneId="vulva"
+            name="surface-mons-pubis"
+            color={skin}
+            position={[0, genitalY + genitalUnit * 0.92, genitalFrontZ + genitalUnit * 0.08]}
+            scale={[1.35, 0.82, 0.48]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[genitalUnit * 0.62, 22, 16]} />
+          </Surface>
           {[-1, 1].map((side) => (
             <group key={`labia-${side}`}>
               <Surface
@@ -689,6 +999,17 @@ export function ParametricBodyModel({
             <capsuleGeometry args={[p.limbRadius, lowerArmLength - p.limbRadius * 2, 8, 20]} />
           </Surface>
           <Surface
+            zoneId={side < 0 ? 'handgelenk-links' : 'handgelenk-rechts'}
+            name={side < 0 ? 'surface-wrist-left' : 'surface-wrist-right'}
+            color={skin}
+            position={[side * armX, handY + p.handScale * 0.78, 0]}
+            scale={[0.82, 1, 0.78]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <capsuleGeometry args={[p.limbRadius * 0.58, p.handScale * 0.2, 7, 16]} />
+          </Surface>
+          <Surface
             zoneId={side < 0 ? 'handflaeche-links' : 'handflaeche-rechts'}
             name={side < 0 ? 'surface-hand-left' : 'surface-hand-right'}
             color={skin}
@@ -698,6 +1019,17 @@ export function ParametricBodyModel({
             onSurfacePress={onSurfacePress}
           >
             <sphereGeometry args={[p.handScale, 24, 18]} />
+          </Surface>
+          <Surface
+            zoneId={side < 0 ? 'handruecken-links' : 'handruecken-rechts'}
+            name={side < 0 ? 'surface-hand-back-left' : 'surface-hand-back-right'}
+            color={skin}
+            position={[side * armX, handY, -p.handScale * 0.31]}
+            scale={[0.7, 1.1, 0.18]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[p.handScale, 22, 16]} />
           </Surface>
           {FINGER_ZONE_BASES.map((finger) => (
             <Surface
@@ -742,6 +1074,21 @@ export function ParametricBodyModel({
             <capsuleGeometry args={[p.limbRadius, p.legLength * 0.4, 10, 24]} />
           </Surface>
           <Surface
+            zoneId={side < 0 ? 'oberschenkel-hinten-links' : 'oberschenkel-hinten-rechts'}
+            name={side < 0 ? 'surface-posterior-thigh-left' : 'surface-posterior-thigh-right'}
+            color={skin}
+            position={[
+              side * legX,
+              legCenterY + p.legLength * 0.25,
+              -p.limbRadius * 0.92,
+            ]}
+            scale={[1.08, 1, 0.34]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <capsuleGeometry args={[p.limbRadius, p.legLength * 0.36, 9, 22]} />
+          </Surface>
+          <Surface
             zoneId={side < 0 ? 'knie-links' : 'knie-rechts'}
             name={side < 0 ? 'surface-knee-left' : 'surface-knee-right'}
             color={skin}
@@ -750,6 +1097,17 @@ export function ParametricBodyModel({
             onSurfacePress={onSurfacePress}
           >
             <sphereGeometry args={[p.limbRadius * 1.22, 22, 18]} />
+          </Surface>
+          <Surface
+            zoneId={side < 0 ? 'kniekehle-links' : 'kniekehle-rechts'}
+            name={side < 0 ? 'surface-popliteal-left' : 'surface-popliteal-right'}
+            color={skin}
+            position={[side * legX, legCenterY, -p.limbRadius * 1.04]}
+            scale={[0.9, 0.78, 0.3]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[p.limbRadius * 0.86, 18, 14]} />
           </Surface>
           <Surface
             zoneId={side < 0 ? 'unterschenkel-vorn-links' : 'unterschenkel-vorn-rechts'}
@@ -763,7 +1121,43 @@ export function ParametricBodyModel({
             <capsuleGeometry args={[p.limbRadius, p.legLength * 0.4, 10, 24]} />
           </Surface>
           <Surface
-            zoneId={side < 0 ? 'ferse-links' : 'ferse-rechts'}
+            zoneId={side < 0 ? 'unterschenkel-hinten-links' : 'unterschenkel-hinten-rechts'}
+            name={side < 0 ? 'surface-calf-left' : 'surface-calf-right'}
+            color={skin}
+            position={[
+              side * legX,
+              legCenterY - p.legLength * 0.22,
+              -p.limbRadius * 0.88,
+            ]}
+            scale={[1.02, 1, 0.44]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <capsuleGeometry args={[p.limbRadius * 0.92, p.legLength * 0.31, 9, 22]} />
+          </Surface>
+          {[-1, 1].map((ankleSide) => {
+            const isInner = ankleSide === -side;
+            return (
+              <Surface
+                key={`ankle-${side}-${ankleSide}`}
+                zoneId={`${isInner ? 'innenknoechel' : 'aussenknoechel'}-${side < 0 ? 'links' : 'rechts'}`}
+                name={`surface-${isInner ? 'inner' : 'outer'}-ankle-${side < 0 ? 'left' : 'right'}`}
+                color={skin}
+                position={[
+                  side * legX + ankleSide * p.limbRadius * 0.66,
+                  p.limbRadius * 1.1,
+                  0,
+                ]}
+                scale={[0.72, 1, 0.82]}
+                disabled={disabled}
+                onSurfacePress={onSurfacePress}
+              >
+                <sphereGeometry args={[p.limbRadius * 0.52, 18, 14]} />
+              </Surface>
+            );
+          })}
+          <Surface
+            zoneId={side < 0 ? 'fussruecken-links' : 'fussruecken-rechts'}
             name={side < 0 ? 'surface-foot-left' : 'surface-foot-right'}
             color={skin}
             position={[side * legX, -0.03, p.footScale * 0.35]}
@@ -773,6 +1167,54 @@ export function ParametricBodyModel({
           >
             <sphereGeometry args={[p.footScale, 24, 18]} />
           </Surface>
+          <Surface
+            zoneId={side < 0 ? 'ferse-links' : 'ferse-rechts'}
+            name={side < 0 ? 'surface-heel-left' : 'surface-heel-right'}
+            color={skin}
+            position={[side * legX, -0.035, -p.footScale * 0.42]}
+            scale={[0.72, 0.72, 0.75]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[p.footScale * 0.5, 22, 16]} />
+          </Surface>
+          <Surface
+            zoneId={side < 0 ? 'fusssohle-links' : 'fusssohle-rechts'}
+            name={side < 0 ? 'surface-sole-left' : 'surface-sole-right'}
+            color={skin}
+            position={[side * legX, -p.footScale * 0.14, p.footScale * 0.35]}
+            scale={[0.53, 0.13, 1.18]}
+            disabled={disabled}
+            onSurfacePress={onSurfacePress}
+          >
+            <sphereGeometry args={[p.footScale, 24, 18]} />
+          </Surface>
+          {TOE_ZONE_BASES.map((toe) => (
+            <Surface
+              key={`${toe.id}-${side}`}
+              zoneId={`${toe.id}-${side < 0 ? 'links' : 'rechts'}`}
+              name={`surface-${toe.id}-${side < 0 ? 'left' : 'right'}`}
+              color={skin}
+              position={[
+                side * legX - side * toe.offset * p.footScale * 0.55,
+                -0.035,
+                p.footScale * (1.2 + toe.length * 0.24),
+              ]}
+              rotation={[Math.PI / 2, 0, 0]}
+              scale={[0.92, 1, 0.82]}
+              disabled={disabled}
+              onSurfacePress={onSurfacePress}
+            >
+              <capsuleGeometry
+                args={[
+                  p.footScale * 0.105 * toe.radius,
+                  p.footScale * 0.28 * toe.length,
+                  7,
+                  14,
+                ]}
+              />
+            </Surface>
+          ))}
         </group>
       ))}
 

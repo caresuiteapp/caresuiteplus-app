@@ -1,10 +1,18 @@
+import { useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows, OrbitControls } from '@react-three/drei';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '@/theme';
 import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
 import { ParametricBodyModel } from './ParametricBodyModel';
 import type { BodyMap3DViewerProps } from './BodyMap3DViewer.types';
+
+const VIEW_PRESETS = [
+  { id: 'front', label: 'Vorne', yaw: 0 },
+  { id: 'back', label: 'Hinten', yaw: Math.PI },
+  { id: 'left', label: 'Links', yaw: Math.PI / 2 },
+  { id: 'right', label: 'Rechts', yaw: -Math.PI / 2 },
+] as const;
 
 export function BodyMap3DViewer({
   selection,
@@ -15,6 +23,9 @@ export function BodyMap3DViewer({
   onMarkerPress,
 }: BodyMap3DViewerProps) {
   const model = getBodyMapModel(selection);
+  const [activeView, setActiveView] =
+    useState<(typeof VIEW_PRESETS)[number]['id']>('front');
+  const modelRotation = VIEW_PRESETS.find((preset) => preset.id === activeView)?.yaw ?? 0;
 
   return (
     <View style={styles.shell}>
@@ -26,6 +37,26 @@ export function BodyMap3DViewer({
         <View style={styles.badge}>
           <Text style={styles.badgeText}>3D</Text>
         </View>
+      </View>
+      <View style={styles.viewPresets}>
+        {VIEW_PRESETS.map((preset) => (
+          <Pressable
+            key={preset.id}
+            accessibilityRole="button"
+            accessibilityState={{ selected: activeView === preset.id }}
+            style={[styles.viewButton, activeView === preset.id && styles.viewButtonActive]}
+            onPress={() => setActiveView(preset.id)}
+          >
+            <Text
+              style={[
+                styles.viewButtonText,
+                activeView === preset.id && styles.viewButtonTextActive,
+              ]}
+            >
+              {preset.label}
+            </Text>
+          </Pressable>
+        ))}
       </View>
       <View style={styles.canvas}>
         <Canvas
@@ -55,6 +86,7 @@ export function BodyMap3DViewer({
             markers={markers}
             selectedMarkerId={selectedMarkerId}
             disabled={disabled}
+            rotation={[0, modelRotation, 0]}
             onSurfacePress={onSurfacePress}
             onMarkerPress={onMarkerPress}
           />
@@ -113,5 +145,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { ...typography.caption, color: '#fff', fontWeight: '800' },
+  viewPresets: {
+    minHeight: 48,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    backgroundColor: 'rgba(7,19,38,0.98)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(112,165,255,0.16)',
+  },
+  viewButton: {
+    minWidth: 72,
+    minHeight: 36,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(112,165,255,0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.035)',
+  },
+  viewButtonActive: {
+    borderColor: '#66a3ff',
+    backgroundColor: 'rgba(23,105,224,0.34)',
+  },
+  viewButtonText: { ...typography.caption, color: '#a9b9d2', fontWeight: '700' },
+  viewButtonTextActive: { color: '#fff' },
   canvas: { flex: 1, minHeight: 550 },
 });

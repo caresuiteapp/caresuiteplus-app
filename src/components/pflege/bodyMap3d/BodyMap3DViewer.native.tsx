@@ -1,10 +1,17 @@
 import { useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber/native';
-import { PanResponder, StyleSheet, Text, View } from 'react-native';
+import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '@/theme';
 import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
 import { ParametricBodyModel } from './ParametricBodyModel';
 import type { BodyMap3DViewerProps } from './BodyMap3DViewer.types';
+
+const VIEW_PRESETS = [
+  { id: 'front', label: 'Vorne', rotation: [0, 0, 0] as [number, number, number] },
+  { id: 'back', label: 'Hinten', rotation: [0, Math.PI, 0] as [number, number, number] },
+  { id: 'left', label: 'Links', rotation: [0, Math.PI / 2, 0] as [number, number, number] },
+  { id: 'right', label: 'Rechts', rotation: [0, -Math.PI / 2, 0] as [number, number, number] },
+] as const;
 
 function touchDistance(touches: readonly { pageX: number; pageY: number }[]): number | null {
   if (touches.length < 2) return null;
@@ -67,6 +74,18 @@ export function BodyMap3DViewer({
         <View style={styles.badge}>
           <Text style={styles.badgeText}>3D</Text>
         </View>
+      </View>
+      <View style={styles.viewPresets}>
+        {VIEW_PRESETS.map((preset) => (
+          <Pressable
+            key={preset.id}
+            accessibilityRole="button"
+            style={styles.viewButton}
+            onPress={() => setRotation([...preset.rotation])}
+          >
+            <Text style={styles.viewButtonText}>{preset.label}</Text>
+          </Pressable>
+        ))}
       </View>
       <View style={styles.canvas} {...panResponder.panHandlers}>
         <Canvas
@@ -131,5 +150,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { ...typography.caption, color: '#fff', fontWeight: '800' },
+  viewPresets: {
+    minHeight: 48,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    backgroundColor: '#071326',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(112,165,255,0.16)',
+  },
+  viewButton: {
+    minWidth: 72,
+    minHeight: 36,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(112,165,255,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(23,105,224,0.18)',
+  },
+  viewButtonText: { ...typography.caption, color: '#f5f9ff', fontWeight: '700' },
   canvas: { flex: 1, minHeight: 520 },
 });
