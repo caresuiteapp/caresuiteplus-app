@@ -150,6 +150,7 @@ async function resolveClientLiveVisitLocation(
       return emptyBase;
     }
   }
+  const resolution = resolved?.ok ? resolved.data : null;
 
   const portalReleased = input.portalReleaseEnabled !== false;
   if (!portalReleased) {
@@ -167,7 +168,7 @@ async function resolveClientLiveVisitLocation(
 
   const liveStatus = await fetchClientPortalRestrictedLiveStatus(
     input.tenantId,
-    resolved?.data?.assignmentId ?? input.assignmentId,
+    resolution?.assignmentId ?? input.assignmentId,
   );
 
   const usePersistence =
@@ -179,13 +180,13 @@ async function resolveClientLiveVisitLocation(
   if (usePersistence) {
     const visitId = await resolveLiveVisitId(
       input.tenantId,
-      resolved?.data?.assignmentId ?? input.assignmentId,
+      resolution?.assignmentId ?? input.assignmentId,
     );
     if (!visitId) {
       return {
         ...emptyBase,
-        assignmentId: resolved?.data?.assignmentId ?? input.assignmentId,
-        visitId: resolved?.data?.visitId ?? input.assignmentId,
+        assignmentId: resolution?.assignmentId ?? input.assignmentId,
+        visitId: resolution?.visitId ?? input.assignmentId,
         statusLabel: liveStatus.label,
         fallbackMessage: FALLBACK_NO_POSITION,
       };
@@ -202,7 +203,7 @@ async function resolveClientLiveVisitLocation(
     if (!sessionActive && !point) {
       return {
         ...emptyBase,
-        assignmentId: resolved?.data?.assignmentId ?? input.assignmentId,
+        assignmentId: resolution?.assignmentId ?? input.assignmentId,
         visitId,
         statusLabel: liveStatus.label,
         fallbackMessage: FALLBACK_NO_POSITION,
@@ -223,7 +224,7 @@ async function resolveClientLiveVisitLocation(
       statusLabel: liveStatus.label,
       lastPosition,
       fallbackMessage: lastPosition ? null : eligibility.fallback ?? FALLBACK_NO_POSITION,
-      assignmentId: resolved?.data?.assignmentId ?? input.assignmentId,
+      assignmentId: resolution?.assignmentId ?? input.assignmentId,
       visitId,
     };
   }

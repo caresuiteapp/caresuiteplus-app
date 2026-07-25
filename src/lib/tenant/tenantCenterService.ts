@@ -567,7 +567,13 @@ export async function saveTenantModuleSettings(
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
   const denied = canManageTenantModuleSettings(actorRoleKey);
-  if (denied) return denied;
+  if (denied) {
+    return {
+      ok: false,
+      error: denied.ok ? 'Keine Berechtigung.' : denied.error,
+      errorCode: denied.ok ? undefined : denied.errorCode,
+    };
+  }
 
   if (shouldUseInMemoryTenantCenterStore()) {
     const snap = ensureDemoSnapshot(tenantId);
@@ -588,10 +594,10 @@ export async function saveTenantModuleSettings(
     updated_at: new Date().toISOString(),
   }, actorRoleKey);
 
-  if (!result.ok) return result;
+  if (!result.ok) return { ok: false, error: result.error, errorCode: result.errorCode };
   setTenantModuleSettingsCache(tenantId, modules);
   syncModuleAccessFromTenantSettings(tenantId, modules);
-  return fetchTenantCenterSnapshot(tenantId, actorRoleKey);
+  return fetchTenantCenter(tenantId, actorRoleKey);
 }
 
 export async function ensureTenantCatalogSeeded(

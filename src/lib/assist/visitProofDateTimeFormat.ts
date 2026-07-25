@@ -90,13 +90,15 @@ export function formatVisitProofDateTimeRange(
   if (startValue && !endValue) return formatDateTime(startValue);
   if (!startValue && endValue) return `bis ${formatDateTime(endValue)}`;
 
-  const startDate = parseIso(startValue);
-  const endDate = parseIso(endValue!);
+  const validStart = startValue!;
+  const validEnd = endValue!;
+  const startDate = parseIso(validStart);
+  const endDate = parseIso(validEnd);
   if (!startDate || !endDate) return 'Nicht dokumentiert';
 
   if (isSameCalendarDay(startDate, endDate)) {
-    return `${formatDate(startValue)}, ${formatTime(startValue)}–${formatTime(endValue!)}`;
+    return `${formatDate(validStart)}, ${formatTime(validStart)}–${formatTime(validEnd)}`;
   }
 
-  return `${formatDateTime(startValue)} – ${formatDateTime(endValue!)}`;
+  return `${formatDateTime(validStart)} – ${formatDateTime(validEnd)}`;
 }

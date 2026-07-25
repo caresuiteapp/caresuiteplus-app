@@ -37,12 +37,12 @@ class MemoryObjectStore {
 
   put(value: StoreRecord): IDBRequest<StoreRecord> {
     const key = String(value[this.keyPath]);
-    this.data.set(key, { ...value });
-    return createRequest(this.data.get(key)!);
+    this.data!.set(key, { ...value });
+    return createRequest(this.data!.get(key)!);
   }
 
   get(key: string): IDBRequest<StoreRecord | undefined> {
-    return createRequest(this.data.get(key));
+    return createRequest(this.data!.get(key));
   }
 }
 
@@ -350,7 +350,7 @@ describe('assignmentCacheService', () => {
     expect(offline.ok).toBe(true);
     expect(offline.fromCache).toBe(true);
     expect(offline.data).toHaveLength(1);
-    expect(offline.data[0]?.id).toBe('asg-1');
+    expect(offline.data![0]?.id).toBe('asg-1');
   });
 
   it('returns live data and caches after successful online load', async () => {
@@ -385,7 +385,7 @@ describe('assignmentCacheService', () => {
 
     expect(result.ok).toBe(true);
     expect(result.fromCache).toBe(true);
-    expect(result.data.map((item) => item.id)).toEqual(['asg-b', 'asg-c', 'asg-a']);
+    expect(result.data!.map((item) => item.id)).toEqual(['asg-b', 'asg-c', 'asg-a']);
   });
 
   it('sorts today before upcoming assignments chronologically', () => {
@@ -443,12 +443,12 @@ describe('assignmentCacheService', () => {
       loadExecutionDetailWithCache('tenant-1', 'asg-c', 'emp-1', 'employee_portal'),
     ]);
 
-    expect(resultA.data.title).toBe('Einsatz A');
-    expect(resultB.data.title).toBe('Einsatz B');
-    expect(resultC.data.title).toBe('Einsatz C');
-    expect(resultA.data.assignmentId).toBe('asg-a');
-    expect(resultB.data.assignmentId).toBe('asg-b');
-    expect(resultC.data.assignmentId).toBe('asg-c');
+    expect(resultA.data!.title).toBe('Einsatz A');
+    expect(resultB.data!.title).toBe('Einsatz B');
+    expect(resultC.data!.title).toBe('Einsatz C');
+    expect(resultA.data!.assignmentId).toBe('asg-a');
+    expect(resultB.data!.assignmentId).toBe('asg-b');
+    expect(resultC.data!.assignmentId).toBe('asg-c');
   });
 
   it('preserves list items A and C when only execution detail B is updated', async () => {
@@ -555,11 +555,11 @@ describe('assignmentCacheService', () => {
       loadPortalAppointmentDetailWithCache('asg-c', 'profile-1', 'employee_portal', 'tenant-1', 'emp-1'),
     ]);
 
-    expect(resultA.data.title).toBe('Portal A');
-    expect(resultB.data.title).toBe('Portal B');
-    expect(resultC.data.title).toBe('Portal C');
-    expect(resultA.data.notes).toBe('Notiz asg-a');
-    expect(resultB.data.notes).toBe('Notiz asg-b');
+    expect(resultA.data!.title).toBe('Portal A');
+    expect(resultB.data!.title).toBe('Portal B');
+    expect(resultC.data!.title).toBe('Portal C');
+    expect(resultA.data!.notes).toBe('Notiz asg-a');
+    expect(resultB.data!.notes).toBe('Notiz asg-b');
   });
 
   it('falls back to execution detail cache when online load fails', async () => {
@@ -578,7 +578,7 @@ describe('assignmentCacheService', () => {
 
     expect(result.ok).toBe(true);
     expect(result.fromCache).toBe(true);
-    expect(result.data.title).toBe('Morgeneinsatz');
+    expect(result.data!.title).toBe('Morgeneinsatz');
   });
 
   it('keeps a materialized running occurrence available under its route id', async () => {
@@ -602,11 +602,11 @@ describe('assignmentCacheService', () => {
     );
 
     expect(initial.ok).toBe(true);
-    expect(initial.data.assignmentId).toBe('visit-materialized-1');
+    expect(initial.data!.assignmentId).toBe('visit-materialized-1');
     expect(duringRealtimeRefresh.ok).toBe(true);
     expect(duringRealtimeRefresh.fromCache).toBe(true);
-    expect(duringRealtimeRefresh.data.status).toBe('gestartet');
-    expect(duringRealtimeRefresh.data.title).toBe('Laufender Einsatz');
+    expect(duringRealtimeRefresh.data!.status).toBe('gestartet');
+    expect(duringRealtimeRefresh.data!.title).toBe('Laufender Einsatz');
   });
 
   it('degrades gracefully when indexedDB is unavailable', async () => {
@@ -733,7 +733,7 @@ describe('assignmentCacheService', () => {
     });
 
     const writePromise = writeAssignmentListCache('tenant-1', 'emp-1', sampleItems);
-    resolveOpen?.(new MemoryDatabase());
+    (resolveOpen as ((db: MemoryDatabase) => void) | null)?.(new MemoryDatabase());
     expect(await writePromise).toBe(true);
 
     const cached = await readAssignmentListCache('tenant-1', 'emp-1');
@@ -794,8 +794,8 @@ describe('assignmentCacheService', () => {
     expect(result.ok).toBe(true);
     expect(result.partialDetail).toBe(true);
     expect(result.cacheSource).toBe('list_basis');
-    expect(result.data.title).toBe('Morgen');
-    expect(result.data.tasks).toEqual([]);
+    expect(result.data!.title).toBe('Morgen');
+    expect(result.data!.tasks).toEqual([]);
   });
 
   it('returns partial execution detail from list cache when execution cache missing', async () => {
@@ -815,8 +815,8 @@ describe('assignmentCacheService', () => {
 
     expect(result.ok).toBe(true);
     expect(result.partialDetail).toBe(true);
-    expect(result.data.clientName).toBe('Klient asg-c');
-    expect(result.data.isLocked).toBe(true);
+    expect(result.data!.clientName).toBe('Klient asg-c');
+    expect(result.data!.isLocked).toBe(true);
   });
 
   it('returns honest offline error when list and detail caches are missing', async () => {

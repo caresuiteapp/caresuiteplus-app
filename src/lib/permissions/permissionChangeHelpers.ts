@@ -83,8 +83,8 @@ export function findPermissionKeyForAreaAction(
 
 export function hasCriticalPermissionChanges(
   catalog: PermissionCatalogEntry[],
-  before: PermissionKey[],
-  after: PermissionKey[],
+  before: readonly PermissionKey[],
+  after: readonly PermissionKey[],
 ): boolean {
   const beforeSet = new Set(before);
   const afterSet = new Set(after);
@@ -109,8 +109,8 @@ export function hasCriticalPermissionChanges(
 
 export function validateCriticalChangeReason(
   catalog: PermissionCatalogEntry[],
-  before: PermissionKey[],
-  after: PermissionKey[],
+  before: readonly PermissionKey[],
+  after: readonly PermissionKey[],
   reason: string | null | undefined,
 ): string | null {
   if (!hasCriticalPermissionChanges(catalog, before, after)) return null;

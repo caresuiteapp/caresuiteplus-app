@@ -586,14 +586,15 @@ export function EmployeePortalVisitExecutionScreen() {
       ? startServiceLoading || driveLoading
       : actionLoading || driveLoading);
 
+  const timerStartAt = visit?.actualStartAt ?? visit?.plannedStartAt;
   const serviceDurationLabel =
     visit?.actualStartAt && visit?.actualEndAt
       ? formatDurationMinutes(visit.actualStartAt, visit.actualEndAt)
-      : timers?.serviceSeconds
+      : timers?.serviceSeconds && timerStartAt
         ? formatDurationMinutes(
-            visit?.actualStartAt ?? visit.plannedStartAt,
+            timerStartAt,
             new Date(
-              new Date(visit?.actualStartAt ?? visit?.plannedStartAt).getTime() +
+              new Date(timerStartAt).getTime() +
                 (timers.serviceSeconds ?? 0) * 1000,
             ).toISOString(),
           )
@@ -974,7 +975,10 @@ export function EmployeePortalVisitExecutionScreen() {
               setDocLastSavedAt(new Date().toISOString());
               const needsSignature =
                 visit.requiresSignature ||
-                (r.data && 'nextStep' in r.data && r.data.nextStep === 'signature');
+                ('data' in r &&
+                  r.data &&
+                  'nextStep' in r.data &&
+                  r.data.nextStep === 'signature');
               const signatureReady = needsSignature && isServiceEnded;
               setLocalSuccess(
                 signatureReady

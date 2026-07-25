@@ -7,7 +7,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { listWfmActiveEmployees } from '@/lib/wfm/wfmPlanningService';
+import type { WfmMeetingEmployee } from '@/lib/wfm/wfmPlanningService';
 import { WfmOfficeManualEntryPanel } from '@/components/wfm/WfmOfficeManualEntryPanel';
+import type { ServiceResult } from '@/types';
 
 export function WfmNachtraegeOfficeScreen() {
   const tenantId = useServiceTenantId();
@@ -16,10 +18,10 @@ export function WfmNachtraegeOfficeScreen() {
   const { can, check, roleLabel, roleKey } = usePermissions();
   const canCorrect = can('time.tracking.admin.correct');
 
-  const teamQuery = useAsyncQuery(
-    useCallback(async () => {
+  const teamQuery = useAsyncQuery<{ employees: WfmMeetingEmployee[] }>(
+    useCallback(async (): Promise<ServiceResult<{ employees: WfmMeetingEmployee[] }>> => {
       if (!tenantId || !canCorrect) {
-        return { ok: true as const, data: { rows: [] } };
+        return { ok: true, data: { employees: [] } };
       }
       const result = await listWfmActiveEmployees(tenantId);
       if (!result.ok) return result;

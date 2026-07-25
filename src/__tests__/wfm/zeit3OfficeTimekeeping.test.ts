@@ -168,7 +168,7 @@ describe('ZEIT.3 deviation gate + office workflow', () => {
     expect(r.ok).toBe(true);
     const audit = await listWfmOfficeAuditForEntry(TENANT, ROLE, 'entry-audit');
     expect(audit.ok).toBe(true);
-    expect(audit.data.some((a) => a.action === 'correction')).toBe(true);
+    expect(audit.data!.some((a) => a.action === 'correction')).toBe(true);
   });
 
   it('manual office entry requires reason', async () => {
@@ -211,12 +211,12 @@ describe('ZEIT.3 deviation gate + office workflow', () => {
       'Unplausibel',
     );
     expect(rejectOk.ok).toBe(true);
-    expect(rejectOk.data.reviewStatus).toBe('rejected');
+    expect(rejectOk.data!.reviewStatus).toBe('rejected');
 
     setEntryOverlay('entry-approve', { reviewStatus: 'pending_review' });
     const approve = await reviewWfmOfficeTimeEntry(TENANT, ACTOR, ROLE, 'entry-approve', 'approved', 'OK');
     expect(approve.ok).toBe(true);
-    expect(approve.data.reviewStatus).toBe('approved');
+    expect(approve.data!.reviewStatus).toBe('approved');
 
     setEntryOverlay('entry-clarify', { reviewStatus: 'pending_review', employeeId: EMP, workDate: '2026-07-04' });
     const clarify = await reviewWfmOfficeTimeEntry(
@@ -228,7 +228,7 @@ describe('ZEIT.3 deviation gate + office workflow', () => {
       'Bitte Unterlagen nachreichen',
     );
     expect(clarify.ok).toBe(true);
-    expect(clarify.data.reviewStatus).toBe('needs_clarification');
+    expect(clarify.data!.reviewStatus).toBe('needs_clarification');
 
     setEntryOverlay('entry-clarify-empty', { reviewStatus: 'pending_review' });
     const clarifyBlocked = await reviewWfmOfficeTimeEntry(
@@ -297,7 +297,7 @@ describe('ZEIT.3 deviation gate + office workflow', () => {
     });
     const w = await getWfmOfficeExportWarnings(TENANT, ROLE, 'custom', '2026-07-01', '2026-07-31');
     expect(w.ok).toBe(true);
-    expect(w.data.warnings.length).toBeGreaterThan(0);
+    expect(w.data!.warnings.length).toBeGreaterThan(0);
   });
 });
 

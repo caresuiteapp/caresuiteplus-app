@@ -90,7 +90,7 @@ export function mergeEffectivePermissions(
   primaryRoleKey: RoleKey | null,
 ): EffectivePermissionSet {
   const permissionSet = new Set<PermissionKey>();
-  const sources: EffectivePermissionSet['sources'] = {};
+  const sources: Partial<EffectivePermissionSet['sources']> = {};
 
   for (const templateId of templateIds) {
     for (const perm of permissionsForTemplateId(templateId)) {
@@ -126,7 +126,7 @@ export function mergeEffectivePermissions(
     permissions: [...permissionSet].sort(),
     overrides,
     scopes,
-    sources,
+    sources: sources as EffectivePermissionSet['sources'],
   };
 }
 

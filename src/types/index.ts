@@ -22,3 +22,4 @@ export * from './forms/clientForm';
 export * from './permissions';
 export * from './templates';
 export * from './demo/seed';
+export type { CareLevelGrade as CareLevel } from './modules/client/clientCareLevel';

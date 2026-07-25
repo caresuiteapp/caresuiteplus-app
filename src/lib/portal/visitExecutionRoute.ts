@@ -10,7 +10,8 @@ export function visitExecutionRouteMatchesSnapshot(
   pathname: string | null | undefined,
   snapshotRoute: string | null | undefined,
 ): boolean {
-  if (!isVisitExecutionRoute(pathname)) return false;
+  const currentPath = pathname;
+  if (!currentPath || !isVisitExecutionRoute(currentPath)) return false;
   if (!snapshotRoute) return true;
-  return pathname === snapshotRoute || pathname.startsWith(`${snapshotRoute}?`);
+  return currentPath === snapshotRoute || currentPath.startsWith(`${snapshotRoute}?`);
 }

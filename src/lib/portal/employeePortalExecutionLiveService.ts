@@ -44,6 +44,7 @@ import {
   fetchLiveEmployeePortalOverview,
 } from './employeePortalLiveOverviewService';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { callUnknownRpc } from '@/lib/supabase/untypedRpc';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { resolveLiveAssignment } from '@/features/liveTracking/resolveLiveAssignment';
@@ -255,7 +256,7 @@ export async function mirrorAssistVisitStatusFromAssignment(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: true };
 
-  const { error } = await supabase.rpc('repair_assist_visit_workflow_status', {
+  const { error } = await callUnknownRpc(supabase, 'repair_assist_visit_workflow_status', {
     p_tenant_id: tenantId,
     p_assignment_id: assignmentId,
     p_target_status: targetStatus,
@@ -650,7 +651,11 @@ export async function updateLiveEmployeePortalTask(
   if (accessDenied) return accessDenied;
 
   const taskStatus =
-    status === 'done' ? 'done' : status === 'not_done' ? 'not_done' : (status as 'open' | 'skipped');
+    status === 'done' || status === 'open' || status === 'cancelled' || status === 'not_requested'
+      ? status
+      : status === 'not_wanted'
+        ? 'not_requested'
+        : 'not_done';
   const updated = await assignmentSupabaseRepository.updateTask(
     tenantId,
     assignmentId,
@@ -711,14 +716,21 @@ export async function updateLiveEmployeePortalTasksBatch(
     }
   }
 
-  const mapped = updates.map((item) => ({
+  const mapped: Array<{
+    taskId: string;
+    status: import('@/types/modules/assignmentStatus').AssignmentTaskStatus;
+    notDoneReason?: string;
+  }> = updates.map((item) => ({
     taskId: item.taskId,
     status:
-      item.status === 'done'
-        ? 'done'
-        : item.status === 'not_done'
-          ? 'not_done'
-          : (item.status as 'open' | 'skipped'),
+      item.status === 'done' ||
+      item.status === 'open' ||
+      item.status === 'cancelled' ||
+      item.status === 'not_requested'
+        ? item.status
+        : item.status === 'not_wanted'
+          ? 'not_requested'
+          : 'not_done',
     notDoneReason: item.completionNote,
   }));
 

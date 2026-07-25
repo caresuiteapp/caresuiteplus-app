@@ -97,7 +97,7 @@ describe('Security hardening', () => {
   });
 
   describe('Mitarbeiter-Fremdeinsatz blockiert', () => {
-    it('fetchEmployeePortalAssignmentDetail verweigert fremden Einsatz', () => {
+    it('fetchEmployeePortalAssignmentDetail verweigert fremden Einsatz', async () => {
       const foreign = upsertAssignmentWorkflowRecord({
         id: 'asg-security-foreign',
         tenantId: DEMO_TENANT_ID,
@@ -137,7 +137,7 @@ describe('Security hardening', () => {
         'employee-003',
         'employee_portal',
       );
-      expect(detail.ok).toBe(false);
+      expect((await detail).ok).toBe(false);
     });
   });
 

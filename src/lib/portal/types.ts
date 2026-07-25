@@ -8,6 +8,7 @@ export type PortalModuleKey = 'office' | 'assist' | 'pflege' | 'stationaer' | 'b
 export type PortalActorRole =
   | 'client'
   | 'relative'
+  | 'family_contact'
   | 'guardian'
   | 'invoice_recipient';
 

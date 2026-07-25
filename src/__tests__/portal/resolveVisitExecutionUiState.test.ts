@@ -17,7 +17,7 @@ function baseVisit(
     actualStartAt: null,
     actualEndAt: null,
     status: 'beendet',
-    canonicalStatus: 'in_progress',
+    canonicalStatus: 'finished',
     notesForEmployee: '',
     accessHints: null,
     emergencyContact: null,

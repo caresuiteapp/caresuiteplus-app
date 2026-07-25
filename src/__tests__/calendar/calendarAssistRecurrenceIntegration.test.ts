@@ -47,6 +47,7 @@ function baseListItem(overrides: Partial<VisitDispositionListItem> = {}): VisitD
     scheduledStart: '2026-07-03T07:30:00.000Z',
     scheduledEnd: '2026-07-03T09:30:00.000Z',
     durationMinutes: 120,
+    assignmentStatus: 'geplant',
     status: 'aktiv',
     planningStatus: 'scheduled',
     proofStatus: 'none',
@@ -97,11 +98,12 @@ function centralRecord(overrides: Partial<CalendarEventRecord> = {}): CalendarEv
     isModuleVisible: true,
     isClientPortalVisible: false,
     isEmployeePortalVisible: true,
+    isPublicHoliday: false,
     archivedAt: null,
     createdAt: '2026-07-01T10:00:00.000Z',
     updatedAt: '2026-07-01T10:00:00.000Z',
     ...overrides,
-  };
+  } as CalendarEventRecord;
 }
 
 describe('calendar assist recurrence integration', () => {
@@ -131,7 +133,7 @@ describe('calendar assist recurrence integration', () => {
     ];
     visitSupabaseRepository.list.mockResolvedValue({ ok: true, data: expanded });
 
-    const result = await getModuleCalendarEvents('assist', TENANT_ID, 'owner', {
+    const result = await getModuleCalendarEvents('assist', TENANT_ID, 'business_admin', {
       rangeStart: '2026-06-01T00:00:00.000Z',
       rangeEnd: '2026-08-31T23:59:59.999Z',
     });

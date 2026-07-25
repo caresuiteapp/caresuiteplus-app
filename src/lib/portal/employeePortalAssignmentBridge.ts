@@ -35,10 +35,16 @@ function mapVisitTasks(tasks: VisitDispositionDetail['tasks']): AssignmentTaskIt
   return tasks.map((task) => ({
     id: task.id,
     title: task.title,
-    status: task.status === 'not_requested' ? 'not_done' : task.status,
+    status:
+      task.status === 'done' || task.status === 'open' || task.status === 'cancelled'
+        ? task.status
+        : task.status === 'not_requested'
+          ? 'not_requested'
+          : 'not_done',
     isRequired: task.isRequired,
     notDoneReason: task.notDoneReason,
-    requiresNoteIfNotDone: task.status === 'not_done' || task.status === 'not_requested',
+    requiresNoteIfNotDone:
+      task.status !== 'done' && task.status !== 'open' && task.status !== 'cancelled',
   }));
 }
 

@@ -29,6 +29,15 @@ export * from './clientTasks';
 export * from './clientTimeline';
 export * from './clientSchedulingWishes';
 
+export type ClientCareContext =
+  | 'daily_assistance'
+  | 'support_care'
+  | 'companionship'
+  | 'ambulatory_care'
+  | 'stationary_care'
+  | 'consulting'
+  | 'academy_prepared';
+
 /** Vollständige digitale Klient:innen-Akte */
 export type ClientFullDetail = Omit<ClientDetail, 'contacts' | 'consents'> & {
   core: ClientCore;

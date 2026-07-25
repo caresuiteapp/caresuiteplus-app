@@ -1,5 +1,6 @@
 import { isDemoSupabaseTenantId } from '@/data/constants/demoGuard';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
+import { isDemoMode } from '@/lib/supabase/config';
 import type {
   EnvironmentGuardCode,
   EnvironmentGuardResult,
@@ -25,8 +26,7 @@ function resolveGlobalModeFromEnv(): EnvironmentMode | null {
 export function getGlobalEnvironmentMode(): EnvironmentMode {
   const configured = resolveGlobalModeFromEnv();
   if (configured) return configured;
-  const legacyDemo = process.env.EXPO_PUBLIC_DEMO_MODE?.trim().toLowerCase();
-  if (legacyDemo === 'true') return 'demo';
+  if (isDemoMode()) return 'demo';
   return 'production';
 }
 

@@ -50,7 +50,9 @@ function resolveMinTableWidth<T>(columns: DataTableColumn<T>[]): number {
 }
 
 const headerTextWebStyle =
-  Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as const) : undefined;
+  Platform.OS === 'web'
+    ? ({ whiteSpace: 'nowrap' } as unknown as import('react-native').TextStyle)
+    : undefined;
 
 type PremiumDataTableProps<T> = {
   columns: DataTableColumn<T>[];

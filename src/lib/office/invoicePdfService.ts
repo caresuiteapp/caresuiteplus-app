@@ -290,7 +290,6 @@ export async function renderInvoicePdfDocument(data: InvoicePdfData): Promise<Pr
     throw new Error(`PDF gesperrt: ${validation.errors.join(' ')}`);
   }
 
-  // @ts-expect-error jspdf ships no type declarations for its ESM browser entry
   const { jsPDF } = await import('jspdf/dist/jspdf.es.min.js');
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
   pdf.addFileToVFS('CareSuiteSans-Regular.ttf', CARESUITE_PDF_FONT_REGULAR_BASE64);

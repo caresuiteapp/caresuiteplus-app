@@ -4,6 +4,7 @@ import type { WfmEventType, WfmSessionStatus, WfmDisplayStatus } from '@/types/m
 import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
 import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { callUnknownRpc } from '@/lib/supabase/untypedRpc';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import {
   fetchSessionForDate,
@@ -24,6 +25,8 @@ const ASSIST_TO_WFM: Record<AssistTimeEventType, WfmEventType | null> = {
   pause_start: 'pause_start',
   pause_end: 'pause_end',
   arrive: 'visit_arrived',
+  arrived_without_gps: 'visit_arrived',
+  arrived_manual: 'visit_arrived',
   depart: 'visit_ended',
 };
 
@@ -217,10 +220,14 @@ async function syncAssistVisitTimesToWfmViaRpc(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-  const { data, error } = await supabase.rpc('sync_assist_visit_times_to_wfm', {
-    p_tenant_id: tenantId,
-    p_visit_id: visitId,
-  });
+  const { data, error } = await callUnknownRpc<number>(
+    supabase,
+    'sync_assist_visit_times_to_wfm',
+    {
+      p_tenant_id: tenantId,
+      p_visit_id: visitId,
+    },
+  );
 
   if (error) {
     const message = toGermanSupabaseError(error);

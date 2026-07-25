@@ -177,7 +177,8 @@ export function TenantServiceCatalogModal({
   };
 
   const handleNew = () => {
-    const category = TAB_CATEGORY[tab] === 'all' ? 'service' : TAB_CATEGORY[tab];
+    const tabCategory = TAB_CATEGORY[tab];
+    const category: ServiceCatalogCategory = tabCategory === 'all' ? 'service' : tabCategory;
     const serviceKey = `${moduleKey}.${category}.custom_${Date.now()}`;
     setSelected({
       id: '',

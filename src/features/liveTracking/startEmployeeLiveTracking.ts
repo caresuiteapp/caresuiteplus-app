@@ -101,7 +101,7 @@ async function transitionAssignmentToEnRoute(
   const { error: rpcError } = await supabase.rpc('set_assignment_status', {
     input_assignment_id: assignmentId,
     input_status: remoteStatus,
-    input_note: null,
+    input_note: undefined,
     input_employee_id: employeeId,
   });
 

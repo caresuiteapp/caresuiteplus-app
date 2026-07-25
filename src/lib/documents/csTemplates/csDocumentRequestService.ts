@@ -616,7 +616,12 @@ export async function previewCsDocumentSend(input: {
     signatureFields: CsTemplateWithActiveVersion['signatureFields'];
   }>
 > {
-  const denied = enforcePermission<{ renderedHtml: string; context: DocumentContext; issues: string[] }>(
+  const denied = enforcePermission<{
+    renderedHtml: string;
+    context: DocumentContext;
+    issues: string[];
+    signatureFields: CsTemplateWithActiveVersion['signatureFields'];
+  }>(
     input.actorRoleKey,
     'office.documents.view',
   );

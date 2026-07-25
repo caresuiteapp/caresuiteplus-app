@@ -33,6 +33,7 @@ describe('Assist Calendar Hero (Sprint 90)', () => {
           {
             id: 'a1',
             tenantId: 't1',
+            employeeId: null,
             clientName: 'Müller',
             employeeName: 'Schmidt',
             title: 'Einsatz',

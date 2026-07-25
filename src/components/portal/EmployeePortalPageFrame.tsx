@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: spatialCare.textOnNight, fontSize: 28, lineHeight: 34,
-    fontWeight: '850', letterSpacing: -0.7,
+    fontWeight: '800', letterSpacing: -0.7,
   },
   subtitle: {
     color: spatialCare.textOnNightMuted, fontSize: 14, lineHeight: 20, fontWeight: '500',

@@ -25,7 +25,7 @@ const demoListItems: InvoiceListItem[] = demoInvoices.map((inv) => ({
   amountCents: inv.amountCents,
   currency: inv.currency,
   dueDate: inv.dueDate,
-  status: inv.status,
+  status: inv.status === 'entwurf' ? 'draft' : inv.status as InvoiceListItem['status'],
   updatedAt: inv.updatedAt,
   billingModule: 'assist',
 }));

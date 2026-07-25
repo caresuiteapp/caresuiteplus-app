@@ -1,7 +1,11 @@
 /**
  * Client portal — sanitized live visit projection (backward-compatible re-exports).
  */
-export type { ClientLiveVisitLocation as ClientPortalAssistLiveVisitProjection } from '@/features/liveTracking/getClientLiveVisitLocation';
+import type { sanitizeClientLiveVisitLocation } from '@/features/liveTracking/getClientLiveVisitLocation';
+
+export type ClientPortalAssistLiveVisitProjection = ReturnType<
+  typeof sanitizeClientLiveVisitLocation
+>;
 export {
   getClientLiveVisitLocation as projectClientPortalAssistLiveVisit,
   sanitizeClientLiveVisitLocation as sanitizeClientPortalLiveVisitPayload,

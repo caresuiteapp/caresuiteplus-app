@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { RoleKey, ServiceResult } from '@/types';
+import type { CalendarModuleScope } from '@/types/modules/calendarEvent';
 import type {
   CalendarEventType,
   CalendarViewMode,
@@ -49,7 +50,7 @@ function parseVisibleTypes(raw: unknown): Record<CalendarEventType, boolean> {
 function normalizeSettings(
   tenantId: string,
   partial?: Partial<TenantCalendarSettingsForm>,
-  scope: 'office' | 'assist' = 'office',
+  scope: CalendarModuleScope = 'office',
 ): TenantCalendarSettings {
   const base =
     scope === 'assist'
@@ -77,7 +78,7 @@ function normalizeSettings(
 function mapRowToSettings(
   tenantId: string,
   row: Record<string, unknown>,
-  scope: 'office' | 'assist' = 'office',
+  scope: CalendarModuleScope = 'office',
 ): TenantCalendarSettings {
   const settingsJson = row.settings ?? row;
   const partial =
@@ -87,7 +88,7 @@ function mapRowToSettings(
   return normalizeSettings(tenantId, partial, scope);
 }
 
-function ensureDemoSettings(tenantId: string, scope: 'office' | 'assist' = 'office'): TenantCalendarSettings {
+function ensureDemoSettings(tenantId: string, scope: CalendarModuleScope = 'office'): TenantCalendarSettings {
   const key = `${scope}:${tenantId}`;
   if (!DEMO_STORE.has(key)) {
     DEMO_STORE.set(
@@ -102,7 +103,7 @@ function ensureDemoSettings(tenantId: string, scope: 'office' | 'assist' = 'offi
 
 async function loadFromStorage(
   tenantId: string,
-  scope: 'office' | 'assist' = 'office',
+  scope: CalendarModuleScope = 'office',
 ): Promise<TenantCalendarSettings | null> {
   try {
     const raw = await AsyncStorage.getItem(storageKey(tenantId));
@@ -125,7 +126,7 @@ async function saveToStorage(settings: TenantCalendarSettings): Promise<void> {
 
 async function fetchFromSupabase(
   tenantId: string,
-  scope: 'office' | 'assist' = 'office',
+  scope: CalendarModuleScope = 'office',
 ): Promise<ServiceResult<TenantCalendarSettings>> {
   const supabase = getSupabaseClient();
   const fallback =
@@ -162,7 +163,7 @@ async function fetchFromSupabase(
 
 async function saveToSupabase(
   settings: TenantCalendarSettings,
-  scope: 'office' | 'assist' = 'office',
+  scope: CalendarModuleScope = 'office',
 ): Promise<ServiceResult<TenantCalendarSettings>> {
   const supabase = getSupabaseClient();
   await saveToStorage(settings);

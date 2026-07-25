@@ -25,7 +25,7 @@ function baseDetail(
     allowedTransitions: [],
     isLocked: false,
     ...overrides,
-  };
+  } as unknown as AssistExecutionContext['detail'];
 }
 
 describe('resolveAllowedActions — documentation → signature → finalize', () => {

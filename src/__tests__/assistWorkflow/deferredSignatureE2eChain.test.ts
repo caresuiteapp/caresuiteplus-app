@@ -35,7 +35,7 @@ function buildCtx(): AssistExecutionContext {
       actualStartAt: null,
       actualEndAt: null,
       status: 'unterschrift_offen',
-      canonicalStatus: 'signature_open',
+      canonicalStatus: 'signature_pending',
       notesForEmployee: '',
       accessHints: null,
       emergencyContact: null,
@@ -69,10 +69,12 @@ function buildCtx(): AssistExecutionContext {
     liveContext: null,
     allowedActions: ['finalize_visit_deferred_signature'],
     diagnostics: {
-      consistencyStatus: 'consistent',
-      inconsistencies: [],
-      repairOptions: [],
-      nextActionHint: null,
+      isServiceStarted: true,
+      isServiceEnded: true,
+      isTravelEnded: true,
+      canEndService: false,
+      inconsistentStatus: false,
+      repairHint: null,
     },
   };
 }

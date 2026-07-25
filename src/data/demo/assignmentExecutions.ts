@@ -12,17 +12,28 @@ function clientName(clientId: string): string {
 const executionStore = new Map<string, AssignmentExecution>();
 
 function defaultExecution(assignmentId: string): AssignmentExecution {
+  const seed = getDemoAssignmentSeedById(assignmentId);
   return {
     assignmentId,
     tenantId: DEMO_TENANT_ID,
+    status: seed?.assignmentStatus ?? 'geplant',
     phase: 'pending',
+    plannedStartAt: seed?.scheduledStart ?? null,
+    plannedEndAt: seed?.scheduledEnd ?? null,
+    onTheWayAt: null,
+    arrivedAt: null,
     checkedInAt: null,
     checkedOutAt: null,
     actualStartAt: null,
     actualEndAt: null,
+    finishedAt: null,
+    documentationNotes: null,
     durationMinutes: null,
     locationNote: null,
     activityNote: null,
+    tasks: [],
+    allowedTransitions: ['unterwegs', 'angekommen', 'gestartet'],
+    serviceRecordId: null,
     updatedAt: new Date().toISOString(),
   };
 }

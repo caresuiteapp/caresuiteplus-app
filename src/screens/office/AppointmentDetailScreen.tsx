@@ -25,8 +25,18 @@ function SummaryRow({ label, value }: { label: string; value: string | null | un
   );
 }
 
-export function AppointmentDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+type AppointmentDetailScreenProps = {
+  appointmentId?: string;
+  embedded?: boolean;
+  embeddedInModal?: boolean;
+};
+
+export function AppointmentDetailScreen({
+  appointmentId,
+  embedded = false,
+}: AppointmentDetailScreenProps = {}) {
+  const { id: routeId } = useLocalSearchParams<{ id?: string }>();
+  const id = appointmentId ?? routeId;
   const router = useRouter();
   const { profile } = useAuth();
   const { can, roleLabel, isReadOnly } = usePermissions();
@@ -97,12 +107,14 @@ export function AppointmentDetailScreen() {
           </SectionPanel>
         ) : null}
 
-        <PremiumButton
-          title="Zurück zur Terminliste"
-          variant="secondary"
-          fullWidth
-          onPress={() => router.back()}
-        />
+        {!embedded ? (
+          <PremiumButton
+            title="Zurück zur Terminliste"
+            variant="secondary"
+            fullWidth
+            onPress={() => router.back()}
+          />
+        ) : null}
       </ScrollView>
     </ScreenShell>
   );

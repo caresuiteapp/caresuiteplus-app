@@ -77,19 +77,37 @@ export async function fetchAssignmentExecution(
         : row.status === 'in_bearbeitung'
           ? 'in_progress'
           : 'pending';
+    const status =
+      row.status === 'abgeschlossen'
+        ? 'abgeschlossen'
+        : row.status === 'in_bearbeitung'
+          ? 'gestartet'
+          : row.status === 'aktiv'
+            ? 'bestaetigt'
+            : 'geplant';
     return {
       ok: true,
       data: {
         assignmentId: row.id,
         tenantId: row.tenant_id,
+        status,
         phase,
+        plannedStartAt: row.created_at,
+        plannedEndAt: row.updated_at,
+        onTheWayAt: null,
+        arrivedAt: null,
         checkedInAt: row.status !== 'entwurf' ? row.updated_at : null,
         checkedOutAt: row.status === 'abgeschlossen' ? row.updated_at : null,
         actualStartAt: row.status === 'in_bearbeitung' ? row.updated_at : null,
         actualEndAt: row.status === 'abgeschlossen' ? row.updated_at : null,
+        finishedAt: row.status === 'abgeschlossen' ? row.updated_at : null,
+        documentationNotes: null,
         durationMinutes: null,
         locationNote: null,
         activityNote: null,
+        tasks: [],
+        allowedTransitions: [],
+        serviceRecordId: null,
         updatedAt: row.updated_at,
       },
     };

@@ -434,6 +434,7 @@ export async function resolveAssignmentExecutionSnapshot(
     assignmentId: masterId,
     visitId: resolvedVisitId,
     assignmentRow: null,
+    executionState: null,
     tasks: [],
     documentationText: null,
     hasSignature: false,

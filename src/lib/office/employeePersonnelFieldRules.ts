@@ -8,6 +8,7 @@ import type { RoleKey } from '@/types/core/auth';
 export const EMPLOYEE_PERSONNEL_TAB_LABELS: Record<EmployeePersonnelTabKey, string> = {
   overview: 'Übersicht',
   personnel_file: 'Personalakte',
+  portal: 'Portal',
   master_data: 'Stammdaten',
   employment: 'Anstellung',
   roles_permissions: 'Rollen & Rechte',
@@ -22,6 +23,7 @@ export const EMPLOYEE_PERSONNEL_TAB_LABELS: Record<EmployeePersonnelTabKey, stri
 export const ALL_EMPLOYEE_PERSONNEL_TABS: EmployeePersonnelTabKey[] = [
   'overview',
   'personnel_file',
+  'portal',
   'master_data',
   'employment',
   'roles_permissions',

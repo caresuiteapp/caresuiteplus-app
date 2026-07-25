@@ -109,6 +109,8 @@ export type AssistVisitProofRow = {
   pdfHash: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Legacy audit alias retained for persisted proof fixtures. */
+  updatedBy?: string | null;
 };
 
 /** Client-safe proof view — no GPS or internal tracking fields. */

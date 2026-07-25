@@ -10,6 +10,7 @@ import type {
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { callUnknownRpc } from '@/lib/supabase/untypedRpc';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { runService } from '@/lib/services/serviceRunner';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
@@ -323,11 +324,15 @@ async function markAssignmentExecutedViaRpc(
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const { data, error } = await client.rpc('mark_assist_visit_budget_executed', {
+  const { data, error } = await callUnknownRpc<number>(
+    client,
+    'mark_assist_visit_budget_executed',
+    {
     p_tenant_id: tenantId,
     p_visit_id: visitId,
     p_actor_employee_id: actorEmployeeId ?? null,
-  });
+    },
+  );
 
   if (error) {
     if (isSupabaseMissingTableError(error)) {

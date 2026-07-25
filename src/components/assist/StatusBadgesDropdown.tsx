@@ -80,7 +80,6 @@ export function StatusBadgesDropdown({ badges }: StatusBadgesDropdownProps) {
           minWidth: 24,
           height: 24,
           alignItems: 'center',
-          justifyContent: 'center',
           ...(auroraActive ? chipStyles.chip : {
             borderRadius: 999,
             borderWidth: 1,
@@ -88,6 +87,7 @@ export function StatusBadgesDropdown({ badges }: StatusBadgesDropdownProps) {
             borderColor: auroraGlass.innerBorder,
             backgroundColor: auroraGlass.chip,
           }),
+          justifyContent: 'center',
         },
         toggleText: { color: text.secondary, fontSize: 12, fontWeight: '600' },
         modalBackdrop: {

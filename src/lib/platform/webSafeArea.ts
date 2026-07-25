@@ -53,7 +53,7 @@ export function webDynamicViewportMinHeightStyle(): ViewStyle {
   return {
     flex: 1,
     minHeight: '100dvh' as DimensionValue,
-  };
+  } as unknown as ViewStyle;
 }
 
 /**
@@ -82,7 +82,7 @@ export function webFixedViewportCoverStyle(): ViewStyle {
     width: '100vw' as DimensionValue,
     height: '100dvh' as DimensionValue,
     minHeight: '100dvh' as DimensionValue,
-  };
+  } as unknown as ViewStyle;
 }
 
 function StyleSheetAbsoluteFill(): ViewStyle {

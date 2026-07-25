@@ -7,6 +7,7 @@ import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignme
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { callUnknownRpc } from '@/lib/supabase/untypedRpc';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import { deriveWorkflowStatus } from './deriveWorkflowStatus';
 import type { AssistExecutionContext } from './types';
@@ -65,7 +66,7 @@ async function forceRepairAssignmentStatus(
     return { ok: false, error: 'Supabase ist nicht verfügbar.' };
   }
 
-  const { error } = await supabase.rpc('repair_assist_visit_workflow_status', {
+  const { error } = await callUnknownRpc(supabase, 'repair_assist_visit_workflow_status', {
     p_tenant_id: tenantId,
     p_assignment_id: assignmentId,
     p_target_status: targetStatus,

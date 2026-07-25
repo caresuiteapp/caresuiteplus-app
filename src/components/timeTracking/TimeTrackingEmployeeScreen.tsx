@@ -330,7 +330,18 @@ export function TimeTrackingEmployeeScreen() {
           tenantId={tenantId}
           actorId={userId}
           roleKey={roleKey}
-          employees={employeeId ? [{ id: employeeId, name: profile?.fullName ?? profile?.email ?? 'Aktueller MA' }] : []}
+          employees={
+            employeeId
+              ? [{
+                  id: employeeId,
+                  name:
+                    profile?.displayName ??
+                    [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') ??
+                    profile?.email ??
+                    'Aktueller MA',
+                }]
+              : []
+          }
         />
       ) : null}
 

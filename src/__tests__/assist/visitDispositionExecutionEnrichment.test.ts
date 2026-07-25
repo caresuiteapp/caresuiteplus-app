@@ -149,7 +149,7 @@ describe('visitDispositionExecutionEnrichment', () => {
   it('uses execution_state service end when assignment actual_end_at was overwritten by finalize', () => {
     const merged = mergeVisitDispositionWithExecution({
       detail: baseDetail(),
-      assignmentStatus: 'completed',
+      assignmentStatus: 'abgeschlossen',
       assignmentTasks: [],
       documentationText: 'submitted',
       visitTimes: null,

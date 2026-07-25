@@ -600,7 +600,7 @@ export async function transitionEmployeePortalAssignment(
     summary: `Status → ${toStatus}`,
   });
 
-  return fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
+  return await fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
 }
 
 export async function updateEmployeePortalTask(
@@ -657,7 +657,7 @@ export async function updateEmployeePortalTask(
 
   upsertAssignmentWorkflowRecord({ ...record, tasks, updatedBy: employeeId });
 
-  return fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
+  return await fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
 }
 
 export async function updateEmployeePortalTasksBatch(
@@ -702,13 +702,13 @@ export async function updateEmployeePortalTasksBatch(
   return fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
 }
 
-export function submitEmployeePortalDocumentation(
+export async function submitEmployeePortalDocumentation(
   tenantId: string,
   assignmentId: string,
   employeeId: string,
   roleKey: RoleKey | null,
   input: EmployeePortalDocumentationInput,
-): ServiceResult<EmployeePortalAssignmentDetail> {
+): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
 
@@ -760,7 +760,7 @@ export function submitEmployeePortalDocumentation(
     if (!statusResult.ok) return statusResult;
   }
 
-  return fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
+  return await fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
 }
 
 export async function captureEmployeePortalAssignmentSignature(

@@ -153,7 +153,7 @@ export function hasOpenPauseSegment(events: { eventType: string }[]): boolean {
 
 /** Idempotent — writes pause_start only when no open pause exists. */
 export async function ensureOpenPauseStartEvent(
-  input: SaveVisitTimeEventInput,
+  input: Omit<SaveVisitTimeEventInput, 'eventType'>,
   existingEvents: { eventType: string }[],
 ): Promise<ServiceResult<{ id: string; created: boolean }>> {
   if (hasOpenPauseSegment(existingEvents)) {
@@ -164,7 +164,7 @@ export async function ensureOpenPauseStartEvent(
 
 /** Idempotent — writes pause_end only when an open pause exists. */
 export async function ensureOpenPauseEndEvent(
-  input: SaveVisitTimeEventInput,
+  input: Omit<SaveVisitTimeEventInput, 'eventType'>,
   existingEvents: { eventType: string }[],
 ): Promise<ServiceResult<{ id: string; created: boolean }>> {
   if (!hasOpenPauseSegment(existingEvents)) {

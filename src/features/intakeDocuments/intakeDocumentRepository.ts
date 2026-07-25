@@ -43,6 +43,10 @@ type TenantTemplateRow = {
 type IntakeQueryBuilder = {
   eq: (column: string, value: unknown) => IntakeQueryBuilder;
   single: () => Promise<{ data: unknown; error: PostgrestError | null }>;
+  maybeSingle: () => Promise<{
+    data: Record<string, unknown> | null;
+    error: PostgrestError | null;
+  }>;
 } & Promise<{ data: unknown; error: PostgrestError | null }>;
 
 type IntakeDbClient = {
@@ -57,6 +61,7 @@ type IntakeDbClient = {
       };
     };
     insert: (values: Record<string, unknown>) => Promise<{ error: PostgrestError | null }>;
+    update: (values: Record<string, unknown>) => IntakeQueryBuilder;
   };
 };
 

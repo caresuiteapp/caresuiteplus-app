@@ -13,7 +13,6 @@ let jsPdfPromise: Promise<JsPdfConstructor> | null = null;
 async function loadJsPdf(): Promise<JsPdfConstructor> {
   if (!jsPdfPromise) {
     jsPdfPromise = import('jspdf/dist/jspdf.es.min.js').then(
-      // @ts-expect-error jspdf ships no type declarations for ESM entry
       (module) => module.jsPDF,
     );
   }

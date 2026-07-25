@@ -125,7 +125,7 @@ export function PremiumListRow({
     return (
       <View
         style={[styles.container, style]}
-        dataSet={{ csHealthosComponent: 'list-row' }}
+        {...({ dataSet: { csHealthosComponent: 'list-row' } } as object)}
       >
         {content}
       </View>
@@ -136,7 +136,12 @@ export function PremiumListRow({
     <Animated.View style={animStyle}>
       <Pressable
         style={[styles.container, styles.pressable, style]}
-        dataSet={{ csHealthosComponent: 'list-row', csHealthosInteractive: 'true' }}
+        {...({
+          dataSet: {
+            csHealthosComponent: 'list-row',
+            csHealthosInteractive: 'true',
+          },
+        } as object)}
         onPress={onPress}
         onPressIn={() => {
           scale.value = withSpring(0.985, motion.spring);

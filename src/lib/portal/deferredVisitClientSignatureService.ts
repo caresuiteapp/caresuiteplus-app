@@ -15,6 +15,7 @@ import {
 import { invalidatePortalProofCache } from '@/lib/portal/portalProofCacheSignal';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { callUnknownRpc } from '@/lib/supabase/untypedRpc';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { resolvePortalSignatureVisitId } from './resolveEmployeePortalSignatureRequirement';
 
@@ -58,7 +59,8 @@ async function upsertDeferredSignatureClientPortalDocument(
     String(snapshot.title ?? snapshot.serviceName ?? 'Leistungsnachweis').trim() ||
     'Leistungsnachweis';
 
-  const { data, error } = await supabase.rpc(
+  const { data, error } = await callUnknownRpc<Record<string, unknown>>(
+    supabase,
     'employee_portal_upsert_deferred_signature_client_document',
     {
       p_tenant_id: tenantId,

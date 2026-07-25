@@ -98,8 +98,10 @@ function WebCareSuiteLoadingIndicator({ width }: { width: number }) {
     height: '84%',
     marginLeft: '-14%',
     borderRadius: 999,
-    backgroundImage:
-      'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 48%, transparent 100%)',
+    ...({
+      backgroundImage:
+        'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 48%, transparent 100%)',
+    } as unknown as ViewStyle),
     pointerEvents: 'none',
     ...(reducedMotion
       ? { opacity: 0 }

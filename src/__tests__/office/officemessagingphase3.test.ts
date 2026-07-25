@@ -203,7 +203,7 @@ describe('Office Messaging Phase 3', () => {
       getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://example.com/public.webm' } }),
       createSignedUrl: vi.fn().mockResolvedValue({ data: null, error: { message: 'fail' } }),
       download: vi.fn().mockResolvedValue({
-        data: new Blob([1, 2, 3], { type: 'audio/webm' }),
+        data: new Blob([new Uint8Array([1, 2, 3])], { type: 'audio/webm' }),
         error: null,
       }),
     });

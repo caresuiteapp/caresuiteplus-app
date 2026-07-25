@@ -58,7 +58,7 @@ function buildIntakeClientRecord(
     gender: form.gender || null,
     created_by: actorProfileId ?? null,
     updated_by: actorProfileId ?? null,
-  };
+  } as unknown as Database['public']['Tables']['clients']['Insert'];
 }
 
 export async function updateClientFromIntake(

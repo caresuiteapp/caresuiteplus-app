@@ -54,6 +54,7 @@ const PORTAL_ROLE_LABELS: Record<import('@/lib/portal/types').PortalActorRole, s
   relative: 'Angehörige:r',
   guardian: 'Betreuer:in',
   invoice_recipient: 'Rechnungsempfänger:in',
+  family_contact: 'Familienkontakt',
 };
 
 const CONTACT_ROLE_LABELS: Record<PortalClientContactSummary['role'], string> = {

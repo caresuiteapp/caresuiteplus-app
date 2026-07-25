@@ -261,9 +261,9 @@ describe('ZEIT.3.1 office overview KPIs', () => {
     });
     expect(overview.ok).toBe(true);
     if (!overview.ok) return;
-    expect(overview.data.entries.every((entry) => entry.employeeId === EMP_A)).toBe(true);
-    expect(overview.data.employees.map((employee) => employee.id)).toEqual([EMP_A]);
-    expect(overview.data.kpis.plannedVisits).toBe(1);
+    expect(overview.data!.entries.every((entry) => entry.employeeId === EMP_A)).toBe(true);
+    expect(overview.data!.employees.map((employee) => employee.id)).toEqual([EMP_A]);
+    expect(overview.data!.kpis.plannedVisits).toBe(1);
   });
 });
 

@@ -1,4 +1,7 @@
-import { shouldUseHeavyEffects } from './devicePerformance';
+import {
+  shouldUseHeavyEffects,
+  type DevicePerformanceProfile,
+} from './devicePerformance';
 
 /**
  * Web-only CSS overrides for thermal / battery performance.
@@ -86,8 +89,9 @@ export function syncPerformanceBodyClasses(snapshot: {
   isSafari: boolean;
   prefersReducedMotion: boolean;
   batterySaver: boolean;
+  lowMemory: boolean;
   activeTracking: boolean;
-  profile: string;
+  profile: DevicePerformanceProfile;
 }): void {
   if (typeof document === 'undefined') return;
   ensurePerformanceCssInjected();

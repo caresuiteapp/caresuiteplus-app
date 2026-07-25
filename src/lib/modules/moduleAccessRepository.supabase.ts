@@ -35,7 +35,7 @@ export type TenantProductLiveRow = {
   product_key?: ProductKey | string | null;
   status?: string | null;
   created_at?: string | null;
-  products?: { product_key: ProductKey; key?: ProductKey } | null;
+  products?: { product_key?: ProductKey; key?: ProductKey } | null;
 };
 
 function unavailable<T>(): ServiceResult<T> {

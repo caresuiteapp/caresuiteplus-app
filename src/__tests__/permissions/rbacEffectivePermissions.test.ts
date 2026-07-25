@@ -17,7 +17,7 @@ import {
   setEmployeeRoleAssignments,
 } from '@/lib/permissions/rbacService';
 import { getPermissionsForRole } from '@/lib/permissions/staticRolePermissions';
-import type { Profile } from '@/types';
+import type { PermissionKey, Profile } from '@/types';
 
 const TENANT = DEMO_TENANT_ID;
 const EMPLOYEE = 'emp-rbac-test-001';
@@ -201,7 +201,7 @@ describe('RBAC effective permissions (Rollen & Rechte)', () => {
   it('14. Kritische Änderung erfordert Begründung', () => {
     const catalog = buildPermissionCatalogEntries();
     const before = getPermissionsForRole('caregiver');
-    const after = [...before, 'business.tenant.manage'];
+    const after: PermissionKey[] = [...before, 'business.tenant.manage'];
     const missingReason = validateCriticalChangeReason(catalog, before, after, null);
     expect(missingReason).toBeTruthy();
     expect(missingReason).toContain('Begründung');

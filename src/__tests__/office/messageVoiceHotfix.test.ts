@@ -59,7 +59,7 @@ describe('Message voice hotfix', () => {
         error: null,
       }),
       download: vi.fn().mockResolvedValue({
-        data: new Blob([1, 2, 3], { type: 'audio/webm' }),
+        data: new Blob([new Uint8Array([1, 2, 3])], { type: 'audio/webm' }),
         error: null,
       }),
     });
@@ -168,7 +168,7 @@ describe('Message voice hotfix', () => {
       'sprachnachricht.webm',
     );
     const download = vi.fn().mockResolvedValue({
-      data: new Blob([9, 8, 7], { type: 'audio/webm' }),
+      data: new Blob([new Uint8Array([9, 8, 7])], { type: 'audio/webm' }),
       error: null,
     });
     const createSignedUrl = vi.fn().mockResolvedValue({

@@ -31,6 +31,7 @@ const PRIORITY_OPTIONS: { key: OfficeMessagePriority; label: string }[] = [
 const THREAD_TYPE_LABELS: Record<OfficeMessageThreadType['threadType'], string> = {
   client_office: 'Klient:innen ↔ Office',
   employee_office: 'Mitarbeitende ↔ Office',
+  employee_group_office: 'Mitarbeitendengruppe ↔ Office',
   internal: 'Intern (Büro)',
 };
 

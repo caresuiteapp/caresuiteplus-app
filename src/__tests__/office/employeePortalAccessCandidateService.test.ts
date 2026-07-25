@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockPortalSelect = vi.fn();
 const mockEmployeesSelect = vi.fn();
 const mockFromUnknownTable = vi.fn();
-const mockGetServiceMode = vi.fn(() => 'supabase');
-const mockGuardServiceTenant = vi.fn(() => null);
-const mockEnforcePermission = vi.fn(() => null);
+const mockGetServiceMode = vi.fn((..._args: unknown[]) => 'supabase');
+const mockGuardServiceTenant = vi.fn((..._args: unknown[]) => null);
+const mockEnforcePermission = vi.fn((..._args: unknown[]) => null);
 
 vi.mock('@/lib/services/mode', () => ({
   getServiceMode: () => mockGetServiceMode(),
@@ -104,7 +104,7 @@ describe('fetchEmployeePortalAccessCandidates', () => {
           last_name: 'Reinhardt',
           employee_number: 'M-1001',
           email: 'kevin@example.com',
-          role_title: 'owner',
+          role_title: 'business_admin',
           status: 'active',
         },
       ],
@@ -114,7 +114,7 @@ describe('fetchEmployeePortalAccessCandidates', () => {
       '@/lib/access/employeePortalAccessCandidateService'
     );
 
-    const result = await fetchEmployeePortalAccessCandidates(TENANT_AVENTA, 'owner');
+    const result = await fetchEmployeePortalAccessCandidates(TENANT_AVENTA, 'business_admin');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
@@ -129,7 +129,7 @@ describe('fetchEmployeePortalAccessCandidates', () => {
       '@/lib/access/employeePortalAccessCandidateService'
     );
 
-    await fetchEmployeePortalAccessCandidates(TENANT_AVENTA, 'owner');
+    await fetchEmployeePortalAccessCandidates(TENANT_AVENTA, 'business_admin');
 
     expect(mockFromUnknownTable).toHaveBeenCalled();
     const portalChain = mockFromUnknownTable.mock.results[0]?.value;
@@ -160,7 +160,7 @@ describe('fetchEmployeePortalAccessCandidates', () => {
       '@/lib/access/employeePortalAccessCandidateService'
     );
 
-    const result = await fetchEmployeePortalAccessCandidates(TENANT_AVENTA, 'owner');
+    const result = await fetchEmployeePortalAccessCandidates(TENANT_AVENTA, 'business_admin');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
@@ -198,13 +198,13 @@ describe('fetchEmployeePortalAccessCandidates', () => {
       '@/lib/access/employeePortalAccessCandidateService'
     );
 
-    const byNumber = await fetchEmployeePortalAccessCandidates(TENANT_AVENTA, 'owner', 'm-1005');
+    const byNumber = await fetchEmployeePortalAccessCandidates(TENANT_AVENTA, 'business_admin', 'm-1005');
     expect(byNumber.ok).toBe(true);
     if (!byNumber.ok) return;
     expect(byNumber.data).toHaveLength(1);
     expect(byNumber.data[0]?.fullName).toBe('Christian Reinhardt');
 
-    const byFirstName = await fetchEmployeePortalAccessCandidates(TENANT_AVENTA, 'owner', 'kevin');
+    const byFirstName = await fetchEmployeePortalAccessCandidates(TENANT_AVENTA, 'business_admin', 'kevin');
     expect(byFirstName.ok).toBe(true);
     if (!byFirstName.ok) return;
     expect(byFirstName.data).toHaveLength(1);

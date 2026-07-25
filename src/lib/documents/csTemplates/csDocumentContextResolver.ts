@@ -4,6 +4,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
+import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { enforcePermission } from '@/lib/permissions';
 import { normalizeDocumentContext } from './csDocumentContextNormalize';

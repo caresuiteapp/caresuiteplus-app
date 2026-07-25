@@ -1,4 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js';
+import { isDemoMode } from './config';
 
 const GENERIC_DB_ERROR = 'Datenbankfehler: Bitte erneut versuchen.';
 const MISSING_SCHEMA_ERROR =
@@ -8,14 +9,15 @@ function isDevEnvironment(): boolean {
   return (
     process.env.NODE_ENV === 'development' ||
     process.env.NODE_ENV === 'test' ||
-    process.env.EXPO_PUBLIC_DEMO_MODE === 'true'
+    isDemoMode()
   );
 }
 
-export function isSupabaseMissingTableError(error: PostgrestError | null): boolean {
-  if (!error) return false;
-  const msg = error.message ?? '';
-  return error.code === 'PGRST205' || msg.includes('Could not find the table');
+export function isSupabaseMissingTableError(error: PostgrestError | unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const record = error as { code?: string; message?: string };
+  const msg = record.message ?? '';
+  return record.code === 'PGRST205' || msg.includes('Could not find the table');
 }
 
 export function isSupabaseRlsError(error: PostgrestError | unknown): boolean {
@@ -53,24 +55,27 @@ export function isMissingTableServiceError(message: string): boolean {
   );
 }
 
-export function toGermanSupabaseError(error: PostgrestError | null): string {
-  if (!error) return 'Ein unerwarteter Datenbankfehler ist aufgetreten.';
+export function toGermanSupabaseError(error: PostgrestError | unknown): string {
+  if (!error || typeof error !== 'object') {
+    return 'Ein unerwarteter Datenbankfehler ist aufgetreten.';
+  }
 
-  const msg = error.message ?? '';
+  const record = error as { code?: string; message?: string };
+  const msg = record.message ?? '';
   if (msg.includes('Keine Berechtigung')) return msg;
   if (msg.includes('nicht gefunden')) return 'Klient:in wurde nicht gefunden.';
   if (msg.includes('Ungültiger Status')) return 'Der gewählte Status ist ungültig.';
   if (
-    error.code === '23503' &&
+    record.code === '23503' &&
     (msg.includes('workforce_time_entry_reviews_employee_id_fkey') ||
       msg.includes('keinem gültigen Mitarbeiterprofil zugeordnet'))
   ) {
     return 'Arbeitszeiteintrag ist keinem gültigen Mitarbeiterprofil zugeordnet. Bitte die Mitarbeitenden-Zuordnung prüfen.';
   }
-  if (error.code === '42501' || error.code === 'PGRST301') {
+  if (record.code === '42501' || record.code === 'PGRST301') {
     return 'Kein Zugriff auf diesen Datensatz (RLS).';
   }
-  if (error.code === 'PGRST116') return 'Datensatz wurde nicht gefunden.';
+  if (record.code === 'PGRST116') return 'Datensatz wurde nicht gefunden.';
   if (isSupabaseMissingTableError(error)) {
     if (msg.includes('client_care_contexts')) return MISSING_SCHEMA_ERROR;
     return isDevEnvironment()
@@ -80,27 +85,27 @@ export function toGermanSupabaseError(error: PostgrestError | null): string {
   if (msg.includes('invalid input syntax for type uuid')) {
     return 'Ungültige Mitarbeiter-ID. Bitte Personalnummer oder interne UUID verwenden.';
   }
-  if (error.code === '22P02') {
+  if (record.code === '22P02') {
     return isDevEnvironment()
       ? `Ungültiger Datenbankwert (${msg})`
       : 'Ein Filterwert passt nicht zum Datenbankschema. Bitte erneut versuchen.';
   }
-  if (error.code === '42703' || (msg.includes('column') && msg.includes('does not exist'))) {
+  if (record.code === '42703' || (msg.includes('column') && msg.includes('does not exist'))) {
     return GENERIC_DB_ERROR;
   }
-  if (error.code === 'PGRST204' || msg.includes('Could not find the') && msg.includes('column')) {
+  if (record.code === 'PGRST204' || msg.includes('Could not find the') && msg.includes('column')) {
     return isDevEnvironment()
       ? `Datenbankschema passt nicht (${msg})`
       : GENERIC_DB_ERROR;
   }
-  if (error.code === '42P01' || msg.includes('relation') && msg.includes('does not exist')) {
+  if (record.code === '42P01' || msg.includes('relation') && msg.includes('does not exist')) {
     return isDevEnvironment()
       ? `Datenbankschema unvollständig (${msg})`
       : GENERIC_DB_ERROR;
   }
 
   if (isDevEnvironment() && msg) {
-    return `${GENERIC_DB_ERROR} [${error.code ?? 'unknown'}: ${msg}]`;
+    return `${GENERIC_DB_ERROR} [${record.code ?? 'unknown'}: ${msg}]`;
   }
 
   return GENERIC_DB_ERROR;

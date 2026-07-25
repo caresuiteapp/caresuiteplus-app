@@ -53,6 +53,7 @@ function baseDetail(overrides: Partial<VisitDispositionDetail> = {}): VisitDispo
     actualEndAt: null,
     createdAt: '2026-07-01T10:00:00.000Z',
     ...overrides,
+    tasks: overrides.tasks ?? [],
   };
 }
 

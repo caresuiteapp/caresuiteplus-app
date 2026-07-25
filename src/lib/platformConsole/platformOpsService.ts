@@ -14,6 +14,7 @@ import type {
   PlatformTenantUserRow,
 } from '@/types/platformConsole';
 import { getServiceMode } from '@/lib/services/mode';
+import { isDemoMode } from '@/lib/supabase/config';
 import { platformRpc, platformSelect, platformSelectWhere } from './platformSupabaseClient';
 import { validatePlatformReason } from './platformCapabilities';
 
@@ -773,7 +774,7 @@ export function getPlatformReleaseInfo(): {
 
   return {
     environment: process.env.NODE_ENV ?? 'development',
-    demoMode: process.env.EXPO_PUBLIC_DEMO_MODE === 'true',
+    demoMode: isDemoMode(),
     supabaseUrlMasked: masked,
     buildHint: typeof __DEV__ !== 'undefined' && __DEV__ ? 'Development Build' : 'Production Build',
   };

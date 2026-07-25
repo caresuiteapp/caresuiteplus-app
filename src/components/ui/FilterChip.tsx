@@ -119,7 +119,7 @@ export function FilterChipGroup<T extends string>({
                   return;
                 }
                 if (onChange) {
-                  (onChange as ((key: T) => void) | undefined)(optKey);
+                  (onChange as (key: T) => void)(optKey);
                   return;
                 }
                 onSelect?.(optKey);

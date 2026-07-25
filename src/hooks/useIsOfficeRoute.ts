@@ -4,7 +4,7 @@ import { resolveMainModuleFromPath } from '@/lib/navigation/resolvemainmodule';
 /** True when the active route belongs to CareSuite+ Office. */
 export function useIsOfficeRoute(): boolean {
   const pathname = usePathname();
-  const segments = useSegments();
+  const segments = useSegments() as string[];
 
   if (resolveMainModuleFromPath(pathname) === 'office') {
     return true;

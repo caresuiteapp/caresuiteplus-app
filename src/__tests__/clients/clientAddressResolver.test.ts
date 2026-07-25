@@ -7,6 +7,7 @@ import {
   resolveClientStreetLine,
 } from '@/lib/clients/clientAddressResolver';
 import { mapClientFullDetail } from '@/lib/supabase/mappers/clientExtendedMapper';
+import type { ClientExtendedRow } from '@/lib/supabase/rowTypes';
 
 describe('clientAddressResolver', () => {
   it('combines street and house number', () => {
@@ -87,7 +88,7 @@ describe('mapClientFullDetail address fallback', () => {
         visibility: 'team',
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-06-01T00:00:00Z',
-      },
+      } as unknown as ClientExtendedRow,
       contacts: [],
       consents: [],
       audit: [],

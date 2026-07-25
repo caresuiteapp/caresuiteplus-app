@@ -188,7 +188,7 @@ export async function fetchLiveClientPortalProfile(
       return settingsResult;
     }
 
-    const row = clientResult.data as Record<string, unknown>;
+    const row = clientResult.data as unknown as Record<string, unknown>;
     const displayName =
       formatClientPortalDisplayName({
         firstName: row.first_name as string | null,

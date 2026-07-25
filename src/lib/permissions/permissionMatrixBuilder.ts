@@ -43,7 +43,7 @@ function permissionMatchesAction(key: PermissionKey, action: PermissionMatrixAct
 }
 
 export function buildPermissionMatrix(
-  permissions: PermissionKey[],
+  permissions: readonly PermissionKey[],
   catalog?: PermissionCatalogEntry[],
 ): PermissionMatrixRow[] {
   const areas = new Map<string, PermissionMatrixRow>();

@@ -10,6 +10,7 @@ import {
   listWfmRuleViolationsForDate,
   listWfmTeamRuleViolationsToday,
   type WfmRuleViolation,
+  type WfmRuleEvaluationResult,
 } from '@/lib/wfm/wfmRuleEngine';
 import { todayWorkDate } from '@/lib/wfm/wfmWorkSessionRepository';
 import type { WfmTrafficLight } from '@/types/modules/wfm';
@@ -60,7 +61,7 @@ export function WfmRuleWarningsPanel({
   const text = useAuroraAdaptiveText();
   const workDate = todayWorkDate();
 
-  const evalQuery = useAsyncQuery(
+  const evalQuery = useAsyncQuery<WfmRuleEvaluationResult>(
     useCallback(
       () =>
         teamView

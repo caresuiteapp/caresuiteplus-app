@@ -110,11 +110,13 @@ async function syncLegacyCareLevel(
 ): Promise<void> {
   const client = getSupabaseClient();
   if (!client) return;
+  const legacyCareLevel =
+    careGrade === 'kein' ? 'none' : careGrade === 'hospiz' ? 'unknown' : careGrade;
 
   await client
     .from('clients')
     .update({
-      care_level: careGrade,
+      care_level: legacyCareLevel,
       insurance_name: careFundName,
       insurance_number: careFundMemberId,
     })

@@ -75,6 +75,7 @@ export type EmployeePersonnelTabKey =
   | 'documents'
   | 'deployability'
   | 'work_materials'
+  | 'portal'
   | 'audit';
 
 export type EmployeeMasterData = {

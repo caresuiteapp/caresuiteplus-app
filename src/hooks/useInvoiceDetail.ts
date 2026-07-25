@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { WorkflowStatus } from '@/types';
+import type { InvoiceStatus } from '@/types/modules/billing';
 import { fetchInvoiceDetail, updateInvoiceStatus } from '@/lib/office';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
@@ -9,7 +9,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const roleKey = profile?.roleKey ?? null;
-  const actorName = profile?.displayName ?? 'Büro Demo';
+  const actorName = profile?.displayName ?? 'Büro';
 
   const query = useAsyncQuery(
     () => {
@@ -27,7 +27,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
   );
 
   const statusMutation = useMutation(
-    (newStatus: WorkflowStatus) => {
+    (newStatus: InvoiceStatus) => {
       if (!invoiceId) {
         return Promise.resolve({ ok: false as const, error: 'Keine Rechnungs-ID angegeben.' });
       }
@@ -41,7 +41,7 @@ export function useInvoiceDetail(invoiceId: string | undefined) {
   );
 
   const changeStatus = useCallback(
-    async (newStatus: WorkflowStatus) => {
+    async (newStatus: InvoiceStatus) => {
       await statusMutation.mutate(newStatus);
     },
     [statusMutation],

@@ -40,10 +40,14 @@ const schemaUnavailable = <T>(feature: string): ServiceResult<T> => ({
 });
 
 function planningError<T>(error: Parameters<typeof toGermanSupabaseError>[0], feature: string): ServiceResult<T> {
-  const message = error?.message ?? '';
+  const record =
+    error && typeof error === 'object'
+      ? (error as { code?: string; message?: string })
+      : {};
+  const message = record.message ?? '';
   const schemaMissing = isSupabaseMissingTableError(error)
-    || error?.code === '42P01'
-    || error?.code === 'PGRST202'
+    || record.code === '42P01'
+    || record.code === 'PGRST202'
     || message.includes('schema cache')
     || message.includes('complete_wfm_team_meeting');
   return schemaMissing

@@ -152,7 +152,8 @@ export async function resolveEmployeePortalDocumentationFlags(
   let signatureCapturedViaClientPortal = false;
   if (visitId) {
     const sig = await fetchValidVisitSignature(tenantId, visitId);
-    hasPersistedSignature = sig.ok && Boolean(sig.data);
+    const persistedSignature = sig.ok ? sig.data : null;
+    hasPersistedSignature = Boolean(persistedSignature);
 
     const proof = await fetchLatestVisitProof(tenantId, visitId);
     if (proof.ok && proof.data) {
@@ -168,7 +169,7 @@ export async function resolveEmployeePortalDocumentationFlags(
         hasPersistedSignature &&
         Boolean(proof.ok && proof.data) &&
         (proof.data!.payloadSnapshot?.signedViaClientPortal === true ||
-          sig.data?.metadata?.signedVia === 'client_portal');
+          persistedSignature?.metadata?.signedVia === 'client_portal');
     }
   }
 

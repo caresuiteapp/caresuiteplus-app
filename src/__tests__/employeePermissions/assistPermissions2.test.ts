@@ -53,7 +53,13 @@ function minimalCtx(status: AssistExecutionContext['assignmentStatus'] = 'unterw
     assignmentId: ASSIGNMENT,
     employeeId: EMPLOYEE,
     profileId: EMPLOYEE,
+    roleKey: 'employee_portal',
+    assistVisitId: ASSIGNMENT,
     assignmentStatus: status,
+    derivedStatus: status,
+    consistencyStatus: 'consistent',
+    inconsistencies: [],
+    repairOptions: [],
     detail: {
       assignmentId: ASSIGNMENT,
       tenantId: TENANT,
@@ -87,6 +93,16 @@ function minimalCtx(status: AssistExecutionContext['assignmentStatus'] = 'unterw
     },
     liveContext: null,
     visitTimes: null,
+    timeEvents: [],
+    allowedActions: [],
+    diagnostics: {
+      isServiceStarted: false,
+      isServiceEnded: false,
+      isTravelEnded: false,
+      canEndService: false,
+      inconsistentStatus: false,
+      repairHint: null,
+    },
   };
 }
 

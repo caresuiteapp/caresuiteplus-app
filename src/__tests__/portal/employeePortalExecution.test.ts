@@ -332,7 +332,7 @@ describe('employee portal execution (Prompt 58)', () => {
     }
   });
 
-  it('9. Dokumentation ohne Kurzbeschreibung blockiert', () => {
+  it('9. Dokumentation ohne Kurzbeschreibung blockiert', async () => {
     const created = createTestAssignment();
     expect(created.ok).toBe(true);
     if (!created.ok) return;
@@ -342,7 +342,7 @@ describe('employee portal execution (Prompt 58)', () => {
     transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'gestartet');
     transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'beendet');
 
-    const blocked = submitEmployeePortalDocumentation(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, {
+    const blocked = await submitEmployeePortalDocumentation(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, {
       shortDescription: '',
       referralRequired: false,
       emergencyOrProblem: false,
@@ -350,7 +350,7 @@ describe('employee portal execution (Prompt 58)', () => {
     expect(blocked.ok).toBe(false);
   });
 
-  it('10. Abweichungen ohne Begründung blockiert', () => {
+  it('10. Abweichungen ohne Begründung blockiert', async () => {
     const created = createTestAssignment();
     expect(created.ok).toBe(true);
     if (!created.ok) return;
@@ -360,7 +360,7 @@ describe('employee portal execution (Prompt 58)', () => {
     transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'gestartet');
     transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'beendet');
 
-    const blocked = submitEmployeePortalDocumentation(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, {
+    const blocked = await submitEmployeePortalDocumentation(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, {
       shortDescription: 'Kurz',
       deviations: 'Zeit abweichend',
       referralRequired: false,
