@@ -21,6 +21,10 @@ import {
   zoneIdFromMedicalMesh,
 } from '@/lib/pflege/bodyMap3d/medicalMeshCatalog';
 import {
+  hiddenClinicalInteractionMaterial,
+  isClinicalInteractionMesh,
+} from '@/lib/pflege/bodyMap3d/clinicalInteractionVisibility';
+import {
   hitFromEvent,
   ParametricBodyModel,
   PulsingFindingMarker,
@@ -51,9 +55,10 @@ function prepareMedicalScene(
     const mesh = object as Mesh;
     if (!mesh.isMesh) return;
     const renderSurface = mesh.userData?.bodymapRenderSurface === true;
-    const interactionProxy = mesh.userData?.bodymapInteractionProxy === true;
+    const interactionProxy = isClinicalInteractionMesh(mesh);
     const zoneId = zoneIdFromMedicalMesh(mesh.name, mesh.userData);
     if (zoneId) mesh.userData.zoneId = zoneId;
+    if (interactionProxy) mesh.userData.bodymapInteractionProxy = true;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     if (renderSurface) {
@@ -72,12 +77,7 @@ function prepareMedicalScene(
         MEDICAL_SKIN_TINTS[skinTone],
       );
       if (interactionProxy) {
-        const proxyMaterial = material.clone();
-        proxyMaterial.transparent = true;
-        proxyMaterial.opacity = 0;
-        proxyMaterial.depthWrite = false;
-        proxyMaterial.colorWrite = false;
-        return proxyMaterial;
+        return hiddenClinicalInteractionMaterial(material);
       }
       return material;
     };
@@ -299,6 +299,9 @@ export function ClinicalBodyModel(props: BodyModelProps) {
   const definition = getMedicalMeshDefinition(props.selection);
   const visualDefinition = getRealHumanVisualDefinition(props.selection);
   const realHumanActive = canRenderRealHumanVisual(visualDefinition);
+  const versionedVisualAssetPath = realHumanActive
+    ? `${visualDefinition.visualAssetPath}?v=${visualDefinition.assetSha256.slice(0, 16)}`
+    : null;
   if (
     !definition.assetPath ||
     (!realHumanActive &&
@@ -312,15 +315,13 @@ export function ClinicalBodyModel(props: BodyModelProps) {
   return (
     <MedicalMeshErrorBoundary
       fallback={fallback}
-      resetKey={`${definition.assetPath}:${visualDefinition?.visualAssetPath ?? ''}`}
+      resetKey={`${definition.assetPath}:${versionedVisualAssetPath ?? ''}`}
     >
       <Suspense fallback={fallback}>
         <MedicalGltfBodyModel
           {...props}
           assetPath={definition.assetPath}
-          visualAssetPath={
-            realHumanActive ? visualDefinition.visualAssetPath : null
-          }
+          visualAssetPath={versionedVisualAssetPath}
           modelOffsetY={-definition.nominalHeightMeters / 2}
         />
       </Suspense>

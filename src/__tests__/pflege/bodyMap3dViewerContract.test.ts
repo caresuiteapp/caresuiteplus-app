@@ -22,6 +22,37 @@ describe('3D-Bodymap Viewer-Vertrag', () => {
     expect(source).toContain('allowTechnicalMeshPreview={allowTechnicalMeshPreview}');
   });
 
+  it('rendert alte klinische Trefferflächen niemals als sichtbare Körperteile', () => {
+    const source = read(
+      'src/components/pflege/bodyMap3d/ClinicalBodyModel.web.tsx',
+    );
+    const visibilitySource = read(
+      'src/lib/pflege/bodyMap3d/clinicalInteractionVisibility.ts',
+    );
+    expect(source).toContain('isClinicalInteractionMesh(mesh)');
+    expect(source).toContain('hiddenClinicalInteractionMaterial(material)');
+    expect(visibilitySource).toContain("mesh.name.startsWith('zone__')");
+    expect(visibilitySource).toContain(
+      'mesh.userData?.technicalReference === true',
+    );
+    expect(visibilitySource).toContain(
+      "typeof mesh.userData?.anatomicalZoneId === 'string'",
+    );
+    expect(source).toContain('mesh.userData.bodymapInteractionProxy = true');
+    expect(visibilitySource).toContain('material.visible = false');
+    expect(visibilitySource).toContain('material.opacity = 0');
+    expect(visibilitySource).toContain('material.colorWrite = false');
+  });
+
+  it('lädt neu erzeugte Körper trotz Browser- und CDN-Cache sicher nach', () => {
+    const source = read(
+      'src/components/pflege/bodyMap3d/ClinicalBodyModel.web.tsx',
+    );
+    expect(source).toContain('versionedVisualAssetPath');
+    expect(source).toContain('visualDefinition.assetSha256.slice(0, 16)');
+    expect(source).toContain('visualAssetPath={versionedVisualAssetPath}');
+  });
+
   it('bietet reproduzierbare Vorder-, Rück- und Seitenansichten', () => {
     const source = read('src/components/pflege/bodyMap3d/BodyMap3DViewer.web.tsx');
     expect(source).toContain('VIEW_PRESETS');

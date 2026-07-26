@@ -428,17 +428,20 @@ function externalAnatomyGroups(variantId, nominalHeightMeters, positions) {
     direction: 'front',
   });
   if (profile.genital === 'penis') {
-    const shaftRadius = 0.021 * detailScale;
+    // Klinisch erkennbare, aber bewusst neutrale Ruheanatomie. Die frühere
+    // Geometrie war im Verhältnis zum Becken zu groß und wirkte wie mehrere
+    // überlagerte Kugeln.
+    const shaftRadius = 0.0165 * detailScale;
     add(
       'real-human-penis',
       'Penisschaft',
       0,
       capsuleGeometry(
-        [0, pelvisY + 0.018 * scale, pelvisFrontZ + 0.012 * scale],
+        [0, pelvisY + 0.01 * scale, pelvisFrontZ + 0.006 * scale],
         [
           0,
-          pelvisY - 0.055 * detailScale,
-          pelvisFrontZ + 0.068 * detailScale,
+          pelvisY - 0.04 * detailScale,
+          pelvisFrontZ + 0.05 * detailScale,
         ],
         shaftRadius,
         {
@@ -456,10 +459,10 @@ function externalAnatomyGroups(variantId, nominalHeightMeters, positions) {
       ellipsoidGeometry(
         [
           0,
-          pelvisY - 0.067 * detailScale,
-          pelvisFrontZ + 0.08 * detailScale,
+          pelvisY - 0.048 * detailScale,
+          pelvisFrontZ + 0.058 * detailScale,
         ],
-        [0.024 * detailScale, 0.028 * detailScale, 0.023 * detailScale],
+        [0.018 * detailScale, 0.021 * detailScale, 0.017 * detailScale],
         { longitudeSegments: 24, latitudeSegments: 15 },
       ),
     );
@@ -470,11 +473,11 @@ function externalAnatomyGroups(variantId, nominalHeightMeters, positions) {
         0,
         ellipsoidGeometry(
           [
-            side * 0.025 * detailScale,
-            pelvisY - 0.02 * detailScale,
-            pelvisFrontZ + 0.018 * detailScale,
+            side * 0.015 * detailScale,
+            pelvisY - 0.018 * detailScale,
+            pelvisFrontZ + 0.012 * detailScale,
           ],
-          [0.03 * detailScale, 0.042 * detailScale, 0.028 * detailScale],
+          [0.022 * detailScale, 0.031 * detailScale, 0.021 * detailScale],
           { longitudeSegments: 22, latitudeSegments: 14 },
         ),
       );
@@ -729,11 +732,11 @@ function proceduralSkinTextures() {
       Math.sin((x / size) * Math.PI * 5.3) *
       Math.cos((y / size) * Math.PI * 3.7);
     const follicle =
-      ((x * 37 + y * 73 + ((x * y) % 97)) % 251) < 3 ? -13 : 0;
+      ((x * 37 + y * 73 + ((x * y) % 97)) % 251) < 2 ? -5 : 0;
     return [
-      Math.round(247 + micro * 4 + broad * 2 + follicle),
-      Math.round(225 + micro * 3 + broad * 1.5 + follicle * 0.45),
-      Math.round(216 + micro * 2 + broad + follicle * 0.3),
+      Math.round(247 + micro * 1.4 + broad * 0.7 + follicle),
+      Math.round(225 + micro * 1.1 + broad * 0.5 + follicle * 0.45),
+      Math.round(216 + micro * 0.8 + broad * 0.35 + follicle * 0.3),
       255,
     ];
   });
@@ -885,7 +888,7 @@ function buildGlb({ variantId, nominalHeightMeters, groups, morphPlan }) {
           roughnessFactor: 0.5,
           metallicRoughnessTexture: { index: 1 },
         },
-        normalTexture: { index: 0, scale: 0.42 },
+        normalTexture: { index: 0, scale: 0.08 },
       },
       {
         name: 'eye_sclera',
@@ -1045,6 +1048,9 @@ export async function buildRealHumanGlb({ variantId, nominalHeightMeters }) {
     nominalHeightMeters,
     anatomyProfile(variantId).age,
   );
+  const bodySurfacePositions = [...bodyIndices].map(
+    (index) => model.positions[index],
+  );
   const leftEyeGeometry = geometryForGroup(model, 'helper-l-eye');
   const rightEyeGeometry = geometryForGroup(model, 'helper-r-eye');
   const groups = [
@@ -1083,7 +1089,7 @@ export async function buildRealHumanGlb({ variantId, nominalHeightMeters }) {
     ...externalAnatomyGroups(
       variantId,
       nominalHeightMeters,
-      model.positions,
+      bodySurfacePositions,
     ),
   ].filter((group) => group.geometry.indices.length > 0);
   return buildGlb({ variantId, nominalHeightMeters, groups, morphPlan });
