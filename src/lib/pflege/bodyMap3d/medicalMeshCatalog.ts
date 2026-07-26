@@ -38,6 +38,7 @@ export type RealHumanVisualDefinition = {
   id: string;
   baseModelId: BodyMapModelId;
   visualAssetPath: string;
+  assetSha256: string;
   interactionAssetPath: string;
   nominalHeightMeters: number;
   visualStatus: 'production-candidate';

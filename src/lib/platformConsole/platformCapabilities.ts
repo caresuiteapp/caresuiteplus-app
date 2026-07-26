@@ -20,6 +20,8 @@ const ROLE_CAPABILITIES: Record<PlatformRoleKey, PlatformCapability[] | 'all'> =
     'system.read',
     'releases.read',
     'users.read',
+    'bodymap.review.read',
+    'bodymap.review.write',
   ],
   platform_billing: [
     'tenants.read',
@@ -48,6 +50,7 @@ const ROLE_CAPABILITIES: Record<PlatformRoleKey, PlatformCapability[] | 'all'> =
     'audit.read',
     'system.read',
     'releases.read',
+    'bodymap.review.read',
   ],
   platform_readonly: [
     'tenants.read',
@@ -62,6 +65,7 @@ const ROLE_CAPABILITIES: Record<PlatformRoleKey, PlatformCapability[] | 'all'> =
     'system.read',
     'releases.read',
     'users.read',
+    'bodymap.review.read',
   ],
 };
 
@@ -103,6 +107,8 @@ export const CRITICAL_ACTIONS_REQUIRING_REASON = [
   'support.write_access',
   'feature_flag.global',
   'maintenance.enable',
+  'bodymap.review.approve',
+  'bodymap.review.revoke',
 ] as const;
 
 export function validatePlatformReason(reason: string | null | undefined): string | null {

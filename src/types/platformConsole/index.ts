@@ -73,7 +73,71 @@ export type PlatformCapability =
   | 'system.write'
   | 'users.read'
   | 'users.write'
-  | 'releases.read';
+  | 'releases.read'
+  | 'bodymap.review.read'
+  | 'bodymap.review.write'
+  | 'bodymap.review.approve';
+
+export type BodyMapMedicalReviewStatus =
+  | 'draft'
+  | 'in_review'
+  | 'changes_required'
+  | 'approved'
+  | 'revoked'
+  | 'superseded';
+
+export type BodyMapMedicalReviewResult =
+  | 'pending'
+  | 'pass'
+  | 'minor'
+  | 'major'
+  | 'blocker'
+  | 'not_applicable';
+
+export type BodyMapMedicalReviewItem = {
+  id?: string;
+  criterionId: string;
+  category: string;
+  result: BodyMapMedicalReviewResult;
+  notes: string;
+  evidence: Record<string, unknown>[];
+  updatedAt?: string;
+};
+
+export type BodyMapMedicalReviewIssue = {
+  id: string;
+  anatomicalZoneId: string | null;
+  viewId: 'front' | 'back' | 'left' | 'right' | null;
+  severity: 'minor' | 'major' | 'blocker';
+  status: 'open' | 'resolved' | 'accepted';
+  title: string;
+  description: string;
+  surfacePoint: { x: number; y: number; z: number } | null;
+  evidence: Record<string, unknown>[];
+  resolution: string | null;
+  createdAt: string;
+};
+
+export type BodyMapMedicalReviewRun = {
+  id: string;
+  variantId: string;
+  assetPath: string;
+  assetSha256: string;
+  sourceCommitSha: string;
+  checklistVersion: number;
+  status: BodyMapMedicalReviewStatus;
+  reviewerName: string;
+  reviewerQualification: string;
+  reviewScope: string;
+  decisionReason: string | null;
+  items: BodyMapMedicalReviewItem[];
+  issues: BodyMapMedicalReviewIssue[];
+  startedAt: string;
+  updatedAt: string;
+  submittedAt: string | null;
+  approvedAt: string | null;
+  approvedBy: string | null;
+};
 
 export type PlatformUser = {
   id: string;

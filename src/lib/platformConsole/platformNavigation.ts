@@ -8,6 +8,7 @@ export const PLATFORM_NAV_ITEMS: PlatformNavItem[] = [
   { path: '/platform/modules', label: 'Module', icon: '▦', group: 'product', capability: 'modules.read' },
   { path: '/platform/addons', label: 'Add-ons', icon: '⊕', group: 'product', capability: 'plans.read' },
   { path: '/platform/feature-flags', label: 'Feature Flags', icon: '⚑', group: 'product', capability: 'flags.read' },
+  { path: '/platform/bodymap-review', label: 'Bodymap-Prüfung', icon: '◉', group: 'product', capability: 'bodymap.review.read' },
   { path: '/platform/billing', label: 'Rechnungen', icon: '€', group: 'finance', capability: 'billing.read' },
   { path: '/platform/payments', label: 'Zahlungen', icon: '↳', group: 'finance', capability: 'payments.read' },
   { path: '/platform/support', label: 'Support', icon: '◎', group: 'operations', capability: 'support.read' },

@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 import { buildRealHumanGlb, REAL_HUMAN_SOURCE } from './lib/bodymap-real-human-glb.mjs';
 
 const root = process.cwd();
@@ -22,6 +23,7 @@ for (const legacy of legacyManifest.variants) {
     id: legacy.id,
     baseModelId: legacy.baseModelId,
     visualAssetPath: `/bodymap3d/v3/real-human/${fileName}`,
+    assetSha256: createHash('sha256').update(generated.bytes).digest('hex'),
     interactionAssetPath: legacy.assetPath,
     nominalHeightMeters: legacy.nominalHeightMeters,
     visualStatus: 'production-candidate',

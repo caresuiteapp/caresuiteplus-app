@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows, OrbitControls } from '@react-three/drei';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -15,6 +15,7 @@ import {
 } from '@/lib/pflege/bodyMap3d/medicalMeshCatalog';
 import { ClinicalBodyModel } from './ClinicalBodyModel';
 import type { BodyMap3DViewerProps } from './BodyMap3DViewer.types';
+import { getActiveBodyMapMedicalApproval } from '@/lib/pflege/bodyMap3d/medicalReviewRuntimeService';
 
 const VIEW_PRESETS = [
   { id: 'front', label: 'Vorne', yaw: 0 },
@@ -36,6 +37,21 @@ export function BodyMap3DViewer({
   const medicalMesh = getMedicalMeshDefinition(selection);
   const realHumanVisual = getRealHumanVisualDefinition(selection);
   const realHumanActive = canRenderRealHumanVisual(realHumanVisual);
+  const [medicalApproved, setMedicalApproved] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setMedicalApproved(false);
+    if (!realHumanActive) return () => { active = false; };
+    void getActiveBodyMapMedicalApproval(
+      realHumanVisual.id,
+      realHumanVisual.assetSha256,
+    ).then((approval) => {
+      if (active) setMedicalApproved(approval.approved);
+    });
+    return () => {
+      active = false;
+    };
+  }, [realHumanActive, realHumanVisual?.assetSha256, realHumanVisual?.id]);
   const medicalRendererActive =
     realHumanActive ||
     canRenderMedicalMesh(medicalMesh, {
@@ -57,16 +73,20 @@ export function BodyMap3DViewer({
         <View>
           <Text style={styles.modelLabel}>{model.label}</Text>
           <Text style={styles.rendererStatus}>
-            {medicalMeshRendererLabel(medicalMesh, {
-              allowTechnicalPreview: allowTechnicalMeshPreview,
-            })}
+            {realHumanActive
+              ? medicalApproved
+                ? 'Real-Human 3D · medizinisch freigegeben'
+                : 'Real-Human 3D · medizinische Prüfung ausstehend'
+              : medicalMeshRendererLabel(medicalMesh, {
+                  allowTechnicalPreview: allowTechnicalMeshPreview,
+                })}
           </Text>
           {technicalPreviewActive ? (
             <Text style={styles.technicalWarning}>
               TECHNISCHE REFERENZ · NICHT MEDIZINISCH FREIGEGEBEN
             </Text>
           ) : null}
-          {realHumanActive && realHumanVisual.medicalReviewStatus !== 'approved' ? (
+          {realHumanActive && !medicalApproved ? (
             <Text style={styles.technicalWarning}>
               REAL-HUMAN PRODUKTIONSKANDIDAT · MEDIZINISCHE PRÜFUNG AUSSTEHEND
             </Text>
