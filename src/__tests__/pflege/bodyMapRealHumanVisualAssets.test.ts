@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { Box3, Vector3 } from 'three';
 import manifest from '../../../assets/bodymap3d/v3/real-human-manifest.json';
 import { inspectBodyMapGlb } from '../../../scripts/lib/bodymap-glb-inspector.mjs';
 import {
@@ -95,5 +96,52 @@ describe('Phase 11 Real-Human-Visual-Assets', () => {
         'real-human-lower-teeth',
       ]),
     );
+  });
+
+  it('positioniert die männlichen Intimdetails kaudal und vollständig opak', async () => {
+    const definition = manifest.variants.find(
+      (entry) => entry.id === 'body-erwachsener-maennlich',
+    );
+    expect(definition).toBeDefined();
+    const bytes = readVariant(definition!.visualAssetPath);
+    const arrayBuffer = bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength,
+    ) as ArrayBuffer;
+    const loaded = await new Promise<Awaited<ReturnType<GLTFLoader['loadAsync']>>>(
+      (resolveLoaded, rejectLoaded) => {
+        new GLTFLoader().parse(arrayBuffer, '', resolveLoaded, rejectLoaded);
+      },
+    );
+    loaded.scene.updateMatrixWorld(true);
+    const heightRatio = (name: string) => {
+      const object = loaded.scene.getObjectByName(name);
+      expect(object, name).toBeDefined();
+      return (
+        new Box3()
+          .setFromObject(object!)
+          .getCenter(new Vector3()).y / definition!.nominalHeightMeters
+      );
+    };
+
+    expect(heightRatio('real-human-nipple-left')).toBeCloseTo(0.72, 2);
+    expect(heightRatio('real-human-anus')).toBeCloseTo(0.485, 2);
+    expect(heightRatio('real-human-penis')).toBeLessThan(0.51);
+    expect(heightRatio('real-human-glans')).toBeLessThan(0.49);
+    expect(heightRatio('real-human-coronal-ridge')).toBeLessThan(0.5);
+    expect(heightRatio('real-human-urethral-opening')).toBeLessThan(0.49);
+
+    loaded.scene.traverse((object) => {
+      if (!object.isMesh) return;
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
+      for (const material of materials) {
+        expect(material.transparent, `${object.name}/${material.name}`).toBe(
+          false,
+        );
+        expect(material.opacity, `${object.name}/${material.name}`).toBe(1);
+      }
+    });
   });
 });

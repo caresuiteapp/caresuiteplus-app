@@ -198,20 +198,25 @@ function applyClinicalStandingPose(
   const referenceCenterX =
     (referenceBounds.min[0] + referenceBounds.max[0]) / 2;
   const shoulderY = nominalHeightMeters * 0.79;
-  const shoulderX = nominalHeightMeters * 0.135;
-  const blendStart = 0.105;
+  const shoulderX = nominalHeightMeters * 0.155;
+  // HM08 liefert eine A-Pose. Die Armmaske muss deshalb ausschließlich aus
+  // der unveränderten Referenz abgeleitet werden. Die frühere Untergrenze
+  // 0.46 erfasste auch Hüfte, Gesäß und proximale Oberschenkel und erzeugte
+  // dort sichtbare Beulen. Ein Smoothstep verhindert zugleich die harte
+  // Einschnürung am Oberarmansatz.
+  const blendStart = 0.118;
   const blendEnd = 0.19;
-  const minimumArmY = 0.46;
+  const minimumArmY = 0.615;
   const maximumArmY = 0.86;
   const rotation = {
-    baby: 0.54,
-    kleinkind: 0.59,
-    kind: 0.64,
-    jugendlicher: 0.7,
-    'junger-erwachsener': 0.74,
-    erwachsener: 0.76,
-    senior: 0.76,
-    hochbetagt: 0.76,
+    baby: 0.25,
+    kleinkind: 0.27,
+    kind: 0.3,
+    jugendlicher: 0.33,
+    'junger-erwachsener': 0.35,
+    erwachsener: 0.35,
+    senior: 0.34,
+    hochbetagt: 0.32,
   }[age];
   for (let index = 0; index < positions.length; index += 1) {
     const position = positions[index];
@@ -224,15 +229,16 @@ function applyClinicalStandingPose(
     if (
       side === 0 ||
       absoluteX <= blendStart ||
-      referenceY < minimumArmY ||
-      referenceY > maximumArmY
+      referenceY > maximumArmY ||
+      (absoluteX < blendEnd && referenceY < minimumArmY)
     ) {
       continue;
     }
-    const weight = Math.max(
+    const linearWeight = Math.max(
       0,
       Math.min(1, (absoluteX - blendStart) / (blendEnd - blendStart)),
     );
+    const weight = linearWeight * linearWeight * (3 - 2 * linearWeight);
     const pivotX = shoulderX * side;
     const localX = position[0] - pivotX;
     const localY = position[1] - shoulderY;
@@ -241,6 +247,66 @@ function applyClinicalStandingPose(
     const sine = Math.sin(angle);
     position[0] = pivotX + localX * cosine - localY * sine;
     position[1] = shoulderY + localX * sine + localY * cosine;
+  }
+}
+
+function smoothUpperArmContours(
+  positions,
+  referencePositions,
+  facesByGroup,
+) {
+  const bounds = {
+    min: [Infinity, Infinity, Infinity],
+    max: [-Infinity, -Infinity, -Infinity],
+  };
+  for (const position of referencePositions) {
+    for (let axis = 0; axis < 3; axis += 1) {
+      bounds.min[axis] = Math.min(bounds.min[axis], position[axis]);
+      bounds.max[axis] = Math.max(bounds.max[axis], position[axis]);
+    }
+  }
+  const height = bounds.max[1] - bounds.min[1];
+  const centerX = (bounds.min[0] + bounds.max[0]) / 2;
+  const adjacency = Array.from({ length: positions.length }, () => new Set());
+  for (const face of facesByGroup.get('body') ?? []) {
+    for (let index = 0; index < face.length; index += 1) {
+      const current = face[index].position;
+      const next = face[(index + 1) % face.length].position;
+      adjacency[current].add(next);
+      adjacency[next].add(current);
+    }
+  }
+  const weights = referencePositions.map((reference) => {
+    const absoluteX = Math.abs((reference[0] - centerX) / height);
+    const y = (reference[1] - bounds.min[1]) / height;
+    if (absoluteX < 0.132 || absoluteX > 0.285 || y < 0.625 || y > 0.835) {
+      return 0;
+    }
+    const medial = Math.min(1, Math.max(0, (absoluteX - 0.132) / 0.035));
+    const superior = Math.min(1, Math.max(0, (0.835 - y) / 0.055));
+    const inferior = Math.min(1, Math.max(0, (y - 0.625) / 0.055));
+    return medial * superior * inferior;
+  });
+  for (let iteration = 0; iteration < 4; iteration += 1) {
+    const nextPositions = positions.map((position) => [...position]);
+    for (let index = 0; index < positions.length; index += 1) {
+      const weight = weights[index];
+      const neighbours = adjacency[index];
+      if (!weight || !neighbours.size) continue;
+      const average = [0, 0, 0];
+      for (const neighbour of neighbours) {
+        average[0] += positions[neighbour][0] / neighbours.size;
+        average[1] += positions[neighbour][1] / neighbours.size;
+        average[2] += positions[neighbour][2] / neighbours.size;
+      }
+      const blend = 0.24 * weight;
+      nextPositions[index][0] += (average[0] - positions[index][0]) * blend;
+      nextPositions[index][1] += (average[1] - positions[index][1]) * blend;
+      nextPositions[index][2] += (average[2] - positions[index][2]) * blend;
+    }
+    for (let index = 0; index < positions.length; index += 1) {
+      positions[index] = nextPositions[index];
+    }
   }
 }
 
@@ -378,7 +444,9 @@ function externalAnatomyGroups(variantId, nominalHeightMeters, positions) {
   const add = (name, label, material, geometry) =>
     groups.push({ name, label, material, geometry });
 
-  const chestY = nominalHeightMeters * 0.785;
+  // Anthropometrische Oberflächenanker relativ zur Scheitel-Fersen-Höhe.
+  // Die vorherigen Werte lagen sichtbar zu kranial.
+  const chestY = nominalHeightMeters * 0.72;
   const chestX = nominalHeightMeters * 0.048;
   for (const side of [-1, 1]) {
     const x = side * chestX;
@@ -419,7 +487,7 @@ function externalAnatomyGroups(variantId, nominalHeightMeters, positions) {
     );
   }
 
-  const pelvisY = nominalHeightMeters * 0.565;
+  const pelvisY = nominalHeightMeters * 0.502;
   const pelvisFrontZ = extremeSurfaceZ(positions, {
     x: 0,
     y: pelvisY,
@@ -431,24 +499,24 @@ function externalAnatomyGroups(variantId, nominalHeightMeters, positions) {
     // Klinisch erkennbare, aber bewusst neutrale Ruheanatomie. Die frühere
     // Geometrie war im Verhältnis zum Becken zu groß und wirkte wie mehrere
     // überlagerte Kugeln.
-    const shaftRadius = 0.0165 * detailScale;
+    const shaftRadius = 0.0145 * detailScale;
     add(
       'real-human-penis',
       'Penisschaft',
       0,
       capsuleGeometry(
-        [0, pelvisY + 0.01 * scale, pelvisFrontZ + 0.006 * scale],
+        [0, pelvisY + 0.004 * scale, pelvisFrontZ + 0.004 * scale],
         [
           0,
-          pelvisY - 0.04 * detailScale,
-          pelvisFrontZ + 0.05 * detailScale,
+          pelvisY - 0.052 * detailScale,
+          pelvisFrontZ + 0.019 * detailScale,
         ],
         shaftRadius,
         {
           radialSegments: 24,
           capSegments: 7,
           radiusX: shaftRadius,
-          radiusZ: shaftRadius * 0.94,
+          radiusZ: shaftRadius * 0.9,
         },
       ),
     );
@@ -459,11 +527,40 @@ function externalAnatomyGroups(variantId, nominalHeightMeters, positions) {
       ellipsoidGeometry(
         [
           0,
-          pelvisY - 0.048 * detailScale,
-          pelvisFrontZ + 0.058 * detailScale,
+          pelvisY - 0.057 * detailScale,
+          pelvisFrontZ + 0.021 * detailScale,
         ],
-        [0.018 * detailScale, 0.021 * detailScale, 0.017 * detailScale],
+        [0.017 * detailScale, 0.019 * detailScale, 0.0155 * detailScale],
         { longitudeSegments: 24, latitudeSegments: 15 },
+      ),
+    );
+    add(
+      'real-human-coronal-ridge',
+      'Eichelkranz',
+      6,
+      torusGeometry(
+        [
+          0,
+          pelvisY - 0.041 * detailScale,
+          pelvisFrontZ + 0.021 * detailScale,
+        ],
+        0.014 * detailScale,
+        0.0018 * detailScale,
+        { radialSegments: 12, tubularSegments: 28 },
+      ),
+    );
+    add(
+      'real-human-urethral-opening',
+      'Äußere Harnröhrenöffnung',
+      7,
+      ellipsoidGeometry(
+        [
+          0,
+          pelvisY - 0.073 * detailScale,
+          pelvisFrontZ + 0.024 * detailScale,
+        ],
+        [0.0032 * detailScale, 0.0024 * detailScale, 0.0018 * detailScale],
+        { longitudeSegments: 14, latitudeSegments: 9 },
       ),
     );
     for (const side of [-1, 1]) {
@@ -473,11 +570,11 @@ function externalAnatomyGroups(variantId, nominalHeightMeters, positions) {
         0,
         ellipsoidGeometry(
           [
-            side * 0.015 * detailScale,
-            pelvisY - 0.018 * detailScale,
-            pelvisFrontZ + 0.012 * detailScale,
+            side * 0.0125 * detailScale,
+            pelvisY - 0.032 * detailScale,
+            pelvisFrontZ + 0.006 * detailScale,
           ],
-          [0.022 * detailScale, 0.031 * detailScale, 0.021 * detailScale],
+          [0.018 * detailScale, 0.027 * detailScale, 0.017 * detailScale],
           { longitudeSegments: 22, latitudeSegments: 14 },
         ),
       );
@@ -550,7 +647,7 @@ function externalAnatomyGroups(variantId, nominalHeightMeters, positions) {
     );
   }
 
-  const anusY = nominalHeightMeters * 0.55;
+  const anusY = nominalHeightMeters * 0.485;
   const pelvisBackZ = extremeSurfaceZ(positions, {
     x: 0,
     y: anusY,
@@ -573,6 +670,50 @@ function externalAnatomyGroups(variantId, nominalHeightMeters, positions) {
     ),
   );
   return groups;
+}
+
+function torusGeometry(
+  center,
+  majorRadius,
+  tubeRadius,
+  { radialSegments = 12, tubularSegments = 24 } = {},
+) {
+  const positions = [];
+  const normals = [];
+  const uvs = [];
+  const indices = [];
+  for (let radial = 0; radial <= radialSegments; radial += 1) {
+    const v = (radial / radialSegments) * Math.PI * 2;
+    const cosineV = Math.cos(v);
+    const sineV = Math.sin(v);
+    for (let tubular = 0; tubular <= tubularSegments; tubular += 1) {
+      const u = (tubular / tubularSegments) * Math.PI * 2;
+      const cosineU = Math.cos(u);
+      const sineU = Math.sin(u);
+      const radius = majorRadius + tubeRadius * cosineV;
+      positions.push(
+        center[0] + radius * cosineU,
+        center[1] + tubeRadius * sineV,
+        center[2] + radius * sineU,
+      );
+      normals.push(cosineV * cosineU, sineV, cosineV * sineU);
+      uvs.push(tubular / tubularSegments, radial / radialSegments);
+    }
+  }
+  const row = tubularSegments + 1;
+  for (let radial = 0; radial < radialSegments; radial += 1) {
+    for (let tubular = 0; tubular < tubularSegments; tubular += 1) {
+      const a = radial * row + tubular;
+      const b = (radial + 1) * row + tubular;
+      indices.push(a, b, a + 1, b, b + 1, a + 1);
+    }
+  }
+  return {
+    positions: new Float32Array(positions),
+    normals: new Float32Array(normals),
+    uvs: new Float32Array(uvs),
+    indices: new Uint16Array(indices),
+  };
 }
 
 function discGeometry({ center, radius, segments = 32, zOffset = 0 }) {
@@ -876,6 +1017,8 @@ function buildGlb({ variantId, nominalHeightMeters, groups, morphPlan }) {
     materials: [
       {
         name: 'skin_real_human',
+        alphaMode: 'OPAQUE',
+        doubleSided: false,
         extras: {
           bodymapSkinMaterial: true,
           materialRole: 'skin',
@@ -892,6 +1035,7 @@ function buildGlb({ variantId, nominalHeightMeters, groups, morphPlan }) {
       },
       {
         name: 'eye_sclera',
+        alphaMode: 'OPAQUE',
         extras: { materialRole: 'eye-sclera' },
         pbrMetallicRoughness: {
           baseColorFactor: [0.92, 0.92, 0.88, 1],
@@ -901,6 +1045,7 @@ function buildGlb({ variantId, nominalHeightMeters, groups, morphPlan }) {
       },
       {
         name: 'mouth_teeth',
+        alphaMode: 'OPAQUE',
         extras: { materialRole: 'oral-detail' },
         pbrMetallicRoughness: {
           baseColorFactor: [0.91, 0.88, 0.79, 1],
@@ -910,6 +1055,7 @@ function buildGlb({ variantId, nominalHeightMeters, groups, morphPlan }) {
       },
       {
         name: 'eye_iris',
+        alphaMode: 'OPAQUE',
         extras: { materialRole: 'eye-iris' },
         pbrMetallicRoughness: {
           baseColorFactor: [0.21, 0.34, 0.4, 1],
@@ -919,6 +1065,7 @@ function buildGlb({ variantId, nominalHeightMeters, groups, morphPlan }) {
       },
       {
         name: 'eye_pupil',
+        alphaMode: 'OPAQUE',
         extras: { materialRole: 'eye-pupil' },
         pbrMetallicRoughness: {
           baseColorFactor: [0.012, 0.016, 0.018, 1],
@@ -928,6 +1075,8 @@ function buildGlb({ variantId, nominalHeightMeters, groups, morphPlan }) {
       },
       {
         name: 'areola_skin',
+        alphaMode: 'OPAQUE',
+        doubleSided: false,
         extras: { materialRole: 'areola-and-nipple' },
         pbrMetallicRoughness: {
           baseColorFactor: [0.48, 0.25, 0.2, 1],
@@ -937,15 +1086,19 @@ function buildGlb({ variantId, nominalHeightMeters, groups, morphPlan }) {
       },
       {
         name: 'genital_mucosa',
+        alphaMode: 'OPAQUE',
+        doubleSided: false,
         extras: { materialRole: 'external-genital-mucosa' },
         pbrMetallicRoughness: {
           baseColorFactor: [0.55, 0.27, 0.26, 1],
           metallicFactor: 0,
-          roughnessFactor: 0.48,
+          roughnessFactor: 0.68,
         },
       },
       {
         name: 'anatomical_opening',
+        alphaMode: 'OPAQUE',
+        doubleSided: false,
         extras: { materialRole: 'anatomical-opening' },
         pbrMetallicRoughness: {
           baseColorFactor: [0.2, 0.075, 0.07, 1],
@@ -1047,6 +1200,11 @@ export async function buildRealHumanGlb({ variantId, nominalHeightMeters }) {
     poseReferencePositions,
     nominalHeightMeters,
     anatomyProfile(variantId).age,
+  );
+  smoothUpperArmContours(
+    model.positions,
+    poseReferencePositions,
+    model.facesByGroup,
   );
   const bodySurfacePositions = [...bodyIndices].map(
     (index) => model.positions[index],
