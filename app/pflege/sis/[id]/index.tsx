@@ -1,3 +1,2 @@
-import { SisDetailScreen } from '@/screens/pflege/SisDetailScreen';
-
-export default SisDetailScreen;
+import { CareAssessmentWorkspaceScreen } from '@/screens/careAssessment';
+export default function Route() { return <CareAssessmentWorkspaceScreen subjectType="client" mode="workspace" />; }

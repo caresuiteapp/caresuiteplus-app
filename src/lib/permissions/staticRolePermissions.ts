@@ -38,6 +38,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'assist.tracking.view': 'Live-Tracking ansehen',
   'pflege.access': 'Pflege-Modul öffnen',
   'pflege.plans.view': 'Pflegepläne ansehen',
+  'pflege.assessments.manage': 'SIS und pflegefachliche Assessments bearbeiten und freigeben',
   'pflege.vitals.view': 'Vitalwerte ansehen',
   'beratung.access': 'Beratung-Modul öffnen',
   'beratung.cases.view': 'Beratungsfälle ansehen',
@@ -45,6 +46,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'akademie.courses.view': 'Kurse ansehen',
   'stationaer.access': 'Stationär-Modul öffnen',
   'stationaer.residents.view': 'Bewohner:innen ansehen',
+  'stationaer.assessments.manage': 'Stationäre SIS und Assessments bearbeiten und freigeben',
   'business.modules.manage': 'Module verwalten',
   'business.tenant.manage': 'Mandant & Organisation verwalten',
   'dashboard.view': 'Dashboard ansehen',
@@ -687,6 +689,8 @@ const PFLEGE_VIEW: PermissionKey[] = [
   'dashboard.view',
 ];
 
+const PFLEGE_MANAGE: PermissionKey[] = [...PFLEGE_VIEW, 'pflege.assessments.manage'];
+
 const BERATUNG_VIEW: PermissionKey[] = [
   'beratung.access',
   'beratung.cases.view',
@@ -704,6 +708,8 @@ const STATIONAER_VIEW: PermissionKey[] = [
   'stationaer.residents.view',
   'dashboard.view',
 ];
+
+const STATIONAER_MANAGE: PermissionKey[] = [...STATIONAER_VIEW, 'stationaer.assessments.manage'];
 
 const PORTAL_CLIENT: PermissionKey[] = [
   'dashboard.view',
@@ -746,8 +752,9 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     ...OFFICE_FULL,
     ...ASSIST_MANAGE,
     ...ASSIST_BUDGET_OVERRIDE,
-    ...PFLEGE_VIEW,
+    ...PFLEGE_MANAGE,
     ...MODULE_VIEW_ALL,
+    ...STATIONAER_MANAGE,
     ...CONNECT_CONFIGURE,
     ...INVENTORY_FULL,
     ...GEO_DISPATCH,
@@ -766,8 +773,9 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     ...OFFICE_FULL,
     ...ASSIST_MANAGE,
     ...ASSIST_BUDGET_OVERRIDE,
-    ...PFLEGE_VIEW,
+    ...PFLEGE_MANAGE,
     ...MODULE_VIEW_ALL,
+    ...STATIONAER_MANAGE,
     ...CONNECT_VIEW,
     ...INVENTORY_FULL,
     ...GEO_DISPATCH,
@@ -830,8 +838,8 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     'office.catalogs.view',
     ...ASSIST_VIEW,
     'assist.execution.manage',
-    ...PFLEGE_VIEW,
-    ...STATIONAER_VIEW,
+    ...PFLEGE_MANAGE,
+    ...STATIONAER_MANAGE,
     ...QM_PDL,
     ...GEO_FIELD,
     ...COMPLIANCE_VIEW,

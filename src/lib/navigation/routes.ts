@@ -1123,6 +1123,7 @@ export const APP_ROUTES: AppRoute[] = [
     children: [
       '/stationaer/calendar',
       '/stationaer/bewohner',
+      '/stationaer/assessment',
       '/stationaer/wohnbereiche',
       '/stationaer/uebergabebericht',
       '/stationaer/auswertungen',
@@ -1148,6 +1149,14 @@ export const APP_ROUTES: AppRoute[] = [
   {
     path: '/stationaer/bewohner',
     label: 'Bewohner:innen',
+    group: 'module',
+    productKey: 'stationaer',
+    requiresAuth: true,
+    allowedRoles: ['business_admin', 'business_manager', 'dispatch', 'nurse'],
+  },
+  {
+    path: '/stationaer/assessment',
+    label: 'SIS & Assessment',
     group: 'module',
     productKey: 'stationaer',
     requiresAuth: true,
