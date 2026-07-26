@@ -1,3 +1,2 @@
-import { SisListScreen } from '@/screens/pflege/SisListScreen';
-
-export default SisListScreen;
+import { CareAssessmentListScreen } from '@/screens/careAssessment';
+export default function Route() { return <CareAssessmentListScreen subjectType="client" />; }

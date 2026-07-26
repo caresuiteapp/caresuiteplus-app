@@ -13,6 +13,7 @@ export const MODULE_EXTENSION_LINKS: Partial<Record<ProductKey, ModuleExtensionL
   stationaer: [
     { path: '/stationaer/calendar', label: 'Kalender', icon: '📅' },
     { path: '/stationaer/bewohner', label: 'Bewohner:innen', icon: '🏥' },
+    { path: '/stationaer/assessment', label: 'Pflegeverständnis & SIS', icon: '📊' },
     { path: '/stationaer/wohnbereiche', label: 'Wohnbereiche', icon: '🛏️' },
     { path: '/stationaer/uebergabebericht', label: 'Übergabebericht', icon: '📝' },
     { path: '/stationaer/auswertungen', label: 'Auswertungen', icon: '📈' },
