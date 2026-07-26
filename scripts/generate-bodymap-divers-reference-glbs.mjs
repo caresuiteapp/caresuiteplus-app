@@ -62,6 +62,13 @@ for (const configuration of DIVERS_REFERENCE_VARIANTS) {
       )
         ? 'pending'
         : 'not-applicable',
+      adolescentAnatomyReview:
+        configuration.ageGroup === 'jugendlicher' ? 'pending' : 'not-applicable',
+      geriatricAnatomyReview: ['senior', 'hochbetagt'].includes(
+        configuration.ageGroup,
+      )
+        ? 'pending'
+        : 'not-applicable',
       sensitiveAnatomyReview: 'pending',
       productionRelease: 'blocked',
     },
@@ -82,11 +89,11 @@ for (const configuration of DIVERS_REFERENCE_VARIANTS) {
   });
 }
 
-console.log('Acht modulare technische Divers-3D-Referenzkörper deterministisch erzeugt.');
+console.log(`${results.length} modulare technische Divers-3D-Referenzkörper deterministisch erzeugt.`);
 for (const result of results) {
   console.log(
     `${result.id}: ${result.heightMeters} m · ${result.zones} Zonen · ${result.vertices} Vertices · ${result.triangles} Dreiecke · ${result.bytes} Bytes`,
   );
 }
-console.log('Technische GLB-Matrix nach Registrierung: 18/18');
-console.log('Medizinische Freigabe: 0/8 · Produktionsfreigabe: GESPERRT');
+console.log('Technische GLB-Matrix nach Registrierung: 30/30');
+console.log(`Medizinische Freigabe: 0/${results.length} · Produktionsfreigabe: GESPERRT`);

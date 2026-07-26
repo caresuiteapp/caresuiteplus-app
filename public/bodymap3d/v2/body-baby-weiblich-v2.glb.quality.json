@@ -3,14 +3,14 @@
   "errors": [],
   "warnings": [],
   "stats": {
-    "bytes": 1256624,
+    "bytes": 6293216,
     "chunks": 2,
     "scenes": 1,
-    "nodes": 116,
-    "meshes": 116,
-    "primitives": 116,
-    "vertices": 26315,
-    "triangles": 45932,
+    "nodes": 117,
+    "meshes": 117,
+    "primitives": 117,
+    "vertices": 165971,
+    "triangles": 92484,
     "materials": 6,
     "skinMaterials": 1,
     "textures": 0,
@@ -20,19 +20,19 @@
     "morphTargetPrimitives": 0,
     "bounds": {
       "min": {
-        "x": -0.27743998169898987,
-        "y": 0.000375000003259629,
+        "x": -0.27820271253585815,
+        "y": -0.002848841017112136,
         "z": -0.10569655150175095
       },
       "max": {
-        "x": 0.27743998169898987,
-        "y": 0.6800000071525574,
-        "z": 0.1522669643163681
+        "x": 0.2797740697860718,
+        "y": 0.68168705701828,
+        "z": 0.15409062802791595
       },
       "dimensions": {
-        "width": 0.5548799633979797,
-        "height": 0.6796250071492977,
-        "depth": 0.25796351581811905
+        "width": 0.5579767823219299,
+        "height": 0.6845358980353922,
+        "depth": 0.2597871795296669
       }
     }
   },
@@ -62,18 +62,24 @@
       "buttocks",
       "female-external-genitalia",
       "prepubertal-chest",
-      "pressure-injury-risk-surfaces"
+      "pressure-injury-risk-surfaces",
+      "continuous-visual-skin-surface",
+      "transparent-anatomical-hit-proxies"
     ],
-    "vertexCount": 26315,
-    "triangleCount": 45932,
+    "vertexCount": 165971,
+    "triangleCount": 92484,
     "ageGroup": "baby",
     "ageGroupLabel": "Baby",
     "sexPhenotype": "weiblich",
     "developmentalStage": "infant",
     "pediatricReference": true,
     "pediatricAnatomyReviewed": false,
+    "adolescentReference": false,
     "prepubertalChest": true,
-    "nominalHeightMeters": 0.68
+    "nominalHeightMeters": 0.68,
+    "visualSurfaceVersion": 3,
+    "continuousClinicalSurface": true,
+    "referenceInspiration": "user-supplied-four-view-proportion-boards"
   },
   "zones": {
     "found": [
@@ -192,14 +198,16 @@
       "surface-urethral-opening-vulva",
       "surface-vaginal-opening",
       "surface-wrist-left",
-      "surface-wrist-right"
+      "surface-wrist-right",
+      "visual-surface-body-baby-weiblich"
     ],
     "missing": []
   },
   "generatedReferenceSummary": {
     "variantId": "body-baby-weiblich",
-    "parts": 116,
+    "parts": 117,
     "zones": [
+      "visual-surface-body-baby-weiblich",
       "surface-scalp",
       "surface-face",
       "surface-occiput",
@@ -317,8 +325,8 @@
       "surface-urethral-opening-vulva",
       "surface-vaginal-opening"
     ],
-    "vertices": 26315,
-    "triangles": 45932,
+    "vertices": 165971,
+    "triangles": 92484,
     "medicallyReviewed": false,
     "safeForClinicalRelease": false
   },
@@ -329,6 +337,8 @@
     "raycastingReview": "pending",
     "medicalAnatomyReview": "pending",
     "pediatricAnatomyReview": "pending",
+    "adolescentAnatomyReview": "not-applicable",
+    "geriatricAnatomyReview": "not-applicable",
     "sensitiveAnatomyReview": "pending",
     "productionRelease": "blocked"
   }

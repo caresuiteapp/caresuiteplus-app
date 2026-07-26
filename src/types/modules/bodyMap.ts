@@ -15,8 +15,11 @@ export type BodyMapAgeGroup =
   | 'baby'
   | 'kleinkind'
   | 'kind'
+  | 'jugendlicher'
   | 'junger_erwachsener'
-  | 'erwachsener';
+  | 'erwachsener'
+  | 'senior'
+  | 'hochbetagt';
 
 export type BodyMapGenitalAnatomy = 'penis' | 'vulva' | 'unbekannt';
 
@@ -39,12 +42,21 @@ export type BodyMapModelId =
   | 'body-kind-maennlich'
   | 'body-kind-weiblich'
   | 'body-kind-divers'
+  | 'body-jugendlicher-maennlich'
+  | 'body-jugendlicher-weiblich'
+  | 'body-jugendlicher-divers'
   | 'body-junger-erwachsener-maennlich'
   | 'body-junger-erwachsener-weiblich'
   | 'body-junger-erwachsener-divers'
   | 'body-erwachsener-maennlich'
   | 'body-erwachsener-weiblich'
-  | 'body-erwachsener-divers';
+  | 'body-erwachsener-divers'
+  | 'body-senior-maennlich'
+  | 'body-senior-weiblich'
+  | 'body-senior-divers'
+  | 'body-hochbetagt-maennlich'
+  | 'body-hochbetagt-weiblich'
+  | 'body-hochbetagt-divers';
 
 export type BodyMapAnatomyPackId =
   | 'anatomy-pack-penis'

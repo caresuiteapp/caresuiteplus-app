@@ -3,14 +3,14 @@
   "errors": [],
   "warnings": [],
   "stats": {
-    "bytes": 1198392,
+    "bytes": 6261396,
     "chunks": 2,
     "scenes": 1,
-    "nodes": 110,
-    "meshes": 110,
-    "primitives": 110,
-    "vertices": 25102,
-    "triangles": 43836,
+    "nodes": 111,
+    "meshes": 111,
+    "primitives": 111,
+    "vertices": 165502,
+    "triangles": 90636,
     "materials": 6,
     "skinMaterials": 1,
     "textures": 0,
@@ -20,19 +20,19 @@
     "morphTargetPrimitives": 0,
     "bounds": {
       "min": {
-        "x": -0.27743998169898987,
-        "y": 0.000375000003259629,
+        "x": -0.27820271253585815,
+        "y": -0.002848841017112136,
         "z": -0.10569655150175095
       },
       "max": {
-        "x": 0.27743998169898987,
-        "y": 0.6800000071525574,
-        "z": 0.1522669643163681
+        "x": 0.2797740697860718,
+        "y": 0.68168705701828,
+        "z": 0.15409062802791595
       },
       "dimensions": {
-        "width": 0.5548799633979797,
-        "height": 0.6796250071492977,
-        "depth": 0.25796351581811905
+        "width": 0.5579767823219299,
+        "height": 0.6845358980353922,
+        "depth": 0.2597871795296669
       }
     }
   },
@@ -62,10 +62,12 @@
       "buttocks",
       "unbekannt-external-genital-configuration",
       "unbekannt-chest-configuration",
-      "pressure-injury-risk-surfaces"
+      "pressure-injury-risk-surfaces",
+      "continuous-visual-skin-surface",
+      "transparent-anatomical-hit-proxies"
     ],
-    "vertexCount": 25102,
-    "triangleCount": 43836,
+    "vertexCount": 165502,
+    "triangleCount": 90636,
     "ageGroup": "baby",
     "ageGroupLabel": "Baby",
     "sexPhenotype": "divers",
@@ -75,8 +77,12 @@
     "developmentalStage": "infant",
     "pediatricReference": true,
     "pediatricAnatomyReviewed": false,
+    "adolescentReference": false,
     "intimateAnatomyReviewed": false,
-    "nominalHeightMeters": 0.68
+    "nominalHeightMeters": 0.68,
+    "visualSurfaceVersion": 3,
+    "continuousClinicalSurface": true,
+    "referenceInspiration": "user-supplied-four-view-proportion-boards"
   },
   "zones": {
     "found": [
@@ -189,14 +195,16 @@
       "surface-upper-arm-right",
       "surface-upper-lip",
       "surface-wrist-left",
-      "surface-wrist-right"
+      "surface-wrist-right",
+      "visual-surface-body-baby-divers"
     ],
     "missing": []
   },
   "generatedReferenceSummary": {
     "variantId": "body-baby-divers",
-    "parts": 110,
+    "parts": 111,
     "zones": [
+      "visual-surface-body-baby-divers",
       "surface-scalp",
       "surface-face",
       "surface-occiput",
@@ -308,8 +316,8 @@
       "surface-pubic-region-unclassified",
       "surface-genital-observation-deferred"
     ],
-    "vertices": 25102,
-    "triangles": 43836,
+    "vertices": 165502,
+    "triangles": 90636,
     "medicallyReviewed": false,
     "safeForClinicalRelease": false
   },
@@ -325,6 +333,8 @@
     "raycastingReview": "pending",
     "medicalAnatomyReview": "pending",
     "pediatricAnatomyReview": "pending",
+    "adolescentAnatomyReview": "not-applicable",
+    "geriatricAnatomyReview": "not-applicable",
     "sensitiveAnatomyReview": "pending",
     "productionRelease": "blocked"
   }

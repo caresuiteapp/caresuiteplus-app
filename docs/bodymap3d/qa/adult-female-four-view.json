@@ -8,8 +8,9 @@
     "left",
     "right"
   ],
-  "parts": 118,
+  "parts": 119,
   "zones": [
+    "visual-surface-body-erwachsener-weiblich",
     "surface-scalp",
     "surface-face",
     "surface-occiput",
@@ -129,8 +130,8 @@
     "surface-urethral-opening-vulva",
     "surface-vaginal-opening"
   ],
-  "vertices": 27197,
-  "triangles": 47532,
+  "vertices": 175181,
+  "triangles": 96860,
   "medicallyReviewed": false,
   "safeForClinicalRelease": false,
   "svgPath": "artifacts/bodymap-adult-female-reference-qa/adult-female-four-view.svg",

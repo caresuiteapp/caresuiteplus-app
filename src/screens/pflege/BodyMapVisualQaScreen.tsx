@@ -7,7 +7,6 @@ import {
   BODY_MAP_VISUAL_QA_CASES,
   getBodyMapVisualQaCase,
 } from '@/lib/pflege/bodyMap3d/visualQaCatalog';
-import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
 import {
   getMedicalMeshDefinition,
   medicalMeshRendererLabel,
@@ -29,15 +28,16 @@ function ClinicalModelView({
   rotationY: number;
   qaCase: ReturnType<typeof getBodyMapVisualQaCase>;
 }) {
-  const model = getBodyMapModel(qaCase.selection);
   const qaCameraDistance =
     qaCase.selection.ageGroup === 'baby'
-      ? 4.4
+      ? 1.65
       : qaCase.selection.ageGroup === 'kleinkind'
-        ? 4.5
+        ? 2.1
         : qaCase.selection.ageGroup === 'kind'
-          ? 4.7
-          : 5;
+          ? 2.85
+          : qaCase.selection.ageGroup === 'jugendlicher'
+            ? 3.3
+            : 3.45;
   return (
     <View style={styles.viewCard}>
       <Text style={styles.viewLabel}>{label}</Text>
@@ -45,7 +45,7 @@ function ClinicalModelView({
         <Canvas
           dpr={[1, 1.5]}
           camera={{
-            position: [0, 0.05, Math.max(model.cameraDistance, qaCameraDistance)],
+            position: [0, 0.05, qaCameraDistance],
             fov: 34,
             near: 0.01,
             far: 50,
@@ -61,6 +61,7 @@ function ClinicalModelView({
             selection={qaCase.selection}
             markers={[]}
             disabled
+            allowTechnicalMeshPreview
             rotation={[0, rotationY, 0]}
             onSurfacePress={() => undefined}
           />
@@ -83,6 +84,7 @@ export function BodyMapVisualQaScreen() {
   const caseIndex = BODY_MAP_VISUAL_QA_CASES.findIndex((entry) => entry.id === qaCase.id);
   const rendererLabel = medicalMeshRendererLabel(
     getMedicalMeshDefinition(qaCase.selection),
+    { allowTechnicalPreview: true },
   );
 
   return (
@@ -98,7 +100,7 @@ export function BodyMapVisualQaScreen() {
         </View>
         <View style={styles.counter}>
           <Text style={styles.counterNumber}>{String(caseIndex + 1).padStart(2, '0')}</Text>
-          <Text style={styles.counterTotal}>/ 18</Text>
+          <Text style={styles.counterTotal}>/ {BODY_MAP_VISUAL_QA_CASES.length}</Text>
         </View>
       </View>
 

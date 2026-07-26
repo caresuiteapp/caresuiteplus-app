@@ -34,8 +34,11 @@ export const BODY_MAP_AGE_LABELS: Record<BodyMapAgeGroup, string> = {
   baby: 'Baby',
   kleinkind: 'Kleinkind',
   kind: 'Kind',
+  jugendlicher: 'Jugendliche',
   junger_erwachsener: 'Junger Erwachsener',
   erwachsener: 'Erwachsener',
+  senior: 'Senior',
+  hochbetagt: 'Hochbetagter Mensch',
 };
 
 export const BODY_MAP_SEX_LABELS: Record<BodyMapSex, string> = {
@@ -51,27 +54,18 @@ const AGE_RENDER_PROFILE: Record<
   baby: { nominalHeightMeters: 0.68, cameraDistance: 2.25, cameraTargetY: 0.34 },
   kleinkind: { nominalHeightMeters: 1.0, cameraDistance: 2.8, cameraTargetY: 0.5 },
   kind: { nominalHeightMeters: 1.42, cameraDistance: 3.6, cameraTargetY: 0.71 },
+  jugendlicher: { nominalHeightMeters: 1.66, cameraDistance: 4.1, cameraTargetY: 0.83 },
   junger_erwachsener: { nominalHeightMeters: 1.72, cameraDistance: 4.25, cameraTargetY: 0.86 },
   erwachsener: { nominalHeightMeters: 1.72, cameraDistance: 4.25, cameraTargetY: 0.86 },
+  senior: { nominalHeightMeters: 1.65, cameraDistance: 4.1, cameraTargetY: 0.82 },
+  hochbetagt: { nominalHeightMeters: 1.59, cameraDistance: 4, cameraTargetY: 0.79 },
 };
 
-const MODEL_ROWS: Array<[BodyMapAgeGroup, BodyMapSex]> = [
-  ['baby', 'maennlich'],
-  ['baby', 'weiblich'],
-  ['baby', 'divers'],
-  ['kleinkind', 'maennlich'],
-  ['kleinkind', 'weiblich'],
-  ['kleinkind', 'divers'],
-  ['kind', 'maennlich'],
-  ['kind', 'weiblich'],
-  ['kind', 'divers'],
-  ['junger_erwachsener', 'maennlich'],
-  ['junger_erwachsener', 'weiblich'],
-  ['junger_erwachsener', 'divers'],
-  ['erwachsener', 'maennlich'],
-  ['erwachsener', 'weiblich'],
-  ['erwachsener', 'divers'],
-];
+const MODEL_ROWS: Array<[BodyMapAgeGroup, BodyMapSex]> = (
+  Object.keys(BODY_MAP_AGE_LABELS) as BodyMapAgeGroup[]
+).flatMap((ageGroup) =>
+  (Object.keys(BODY_MAP_SEX_LABELS) as BodyMapSex[]).map((sex) => [ageGroup, sex]),
+);
 
 export const BODY_MAP_MODELS: readonly BodyMapModelDefinition[] = MODEL_ROWS.map(
   ([ageGroup, sex]) => {
@@ -123,7 +117,6 @@ export const BODY_MAP_CHEST_OPTIONS: readonly {
 }[] = [
   { id: 'brueste', label: 'Brüste' },
   { id: 'keine_brueste', label: 'Keine Brüste' },
-  { id: 'unbekannt', label: 'Unbekannt' },
 ];
 
 export function getBodyMapModel(selection: BodyMapModelSelection): BodyMapModelDefinition {
@@ -167,7 +160,49 @@ export function ageGroupFromAge(ageYears: number): BodyMapAgeGroup {
   if (!Number.isFinite(ageYears) || ageYears < 0) return 'erwachsener';
   if (ageYears < 1) return 'baby';
   if (ageYears < 6) return 'kleinkind';
-  if (ageYears < 18) return 'kind';
+  if (ageYears < 13) return 'kind';
+  if (ageYears < 18) return 'jugendlicher';
   if (ageYears < 30) return 'junger_erwachsener';
-  return 'erwachsener';
+  if (ageYears < 65) return 'erwachsener';
+  if (ageYears < 85) return 'senior';
+  return 'hochbetagt';
+}
+
+export function completedAgeFromBirthDate(
+  birthDate: string,
+  referenceDate = new Date(),
+): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate.trim());
+  if (!match) return null;
+  const birthYear = Number(match[1]);
+  const birthMonth = Number(match[2]);
+  const birthDay = Number(match[3]);
+  const validation = new Date(Date.UTC(birthYear, birthMonth - 1, birthDay));
+  if (
+    validation.getUTCFullYear() !== birthYear ||
+    validation.getUTCMonth() !== birthMonth - 1 ||
+    validation.getUTCDate() !== birthDay
+  ) {
+    return null;
+  }
+  const referenceYear = referenceDate.getFullYear();
+  const referenceMonth = referenceDate.getMonth() + 1;
+  const referenceDay = referenceDate.getDate();
+  let age = referenceYear - birthYear;
+  if (
+    referenceMonth < birthMonth ||
+    (referenceMonth === birthMonth && referenceDay < birthDay)
+  ) {
+    age -= 1;
+  }
+  return age >= 0 ? age : null;
+}
+
+export function ageGroupFromBirthDate(
+  birthDate: string | null | undefined,
+  referenceDate = new Date(),
+): BodyMapAgeGroup | null {
+  if (!birthDate) return null;
+  const completedAge = completedAgeFromBirthDate(birthDate, referenceDate);
+  return completedAge === null ? null : ageGroupFromAge(completedAge);
 }

@@ -26,6 +26,7 @@ import {
   SegmentedTabs,
 } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { useClientDetail } from '@/hooks/useClientDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
@@ -44,6 +45,8 @@ import {
   BODY_MAP_ANATOMY_PACKS,
   BODY_MAP_CHEST_OPTIONS,
   BODY_MAP_SEX_LABELS,
+  ageGroupFromBirthDate,
+  completedAgeFromBirthDate,
   getBodyMapAnatomyPack,
   getBodyMapModel,
   validateBodyMapSelection,
@@ -77,6 +80,16 @@ import { colors, spacing, typography } from '@/theme';
 
 const AGE_GROUPS = Object.keys(BODY_MAP_AGE_LABELS) as BodyMapAgeGroup[];
 const SEX_OPTIONS = Object.keys(BODY_MAP_SEX_LABELS) as BodyMapSex[];
+const AGE_RANGE_LABELS: Record<BodyMapAgeGroup, string> = {
+  baby: '0–11 Monate',
+  kleinkind: '1–5 Jahre',
+  kind: '6–12 Jahre',
+  jugendlicher: '13–17 Jahre',
+  junger_erwachsener: '18–29 Jahre',
+  erwachsener: '30–64 Jahre',
+  senior: '65–84 Jahre',
+  hochbetagt: 'ab 85 Jahren',
+};
 
 const SKIN_TONES: readonly { id: BodyMapSkinTone; label: string; color: string }[] = [
   { id: 'sehr_hell', label: 'Sehr hell', color: '#f4d4c4' },
@@ -324,6 +337,7 @@ export function BodyMapScreen({
   const tenantId = useServiceTenantId();
   const { isReadOnly, roleLabel } = usePermissions();
   const clientId = clientIdParam ?? id ?? 'client-001';
+  const clientDetail = useClientDetail(clientId);
   const isStationaerContext = careContext === 'stationaer';
   const subjectType = isStationaerContext ? 'resident' : 'client';
   const subjectLabel = isStationaerContext ? 'Bewohner:in' : 'Klient:in';
@@ -378,6 +392,29 @@ export function BodyMapScreen({
   const [progressSaving, setProgressSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const appliedBirthDateRef = useRef<string | null>(null);
+
+  const automaticAgeGroup = useMemo(
+    () => ageGroupFromBirthDate(clientDetail.data?.dateOfBirth),
+    [clientDetail.data?.dateOfBirth],
+  );
+  const completedAge = useMemo(
+    () =>
+      clientDetail.data?.dateOfBirth
+        ? completedAgeFromBirthDate(clientDetail.data.dateOfBirth)
+        : null,
+    [clientDetail.data?.dateOfBirth],
+  );
+
+  useEffect(() => {
+    const birthDate = clientDetail.data?.dateOfBirth ?? null;
+    if (!birthDate || !automaticAgeGroup || appliedBirthDateRef.current === birthDate) return;
+    appliedBirthDateRef.current = birthDate;
+    setAgeGroup(automaticAgeGroup);
+    setSelection((current) =>
+      current ? { ...current, ageGroup: automaticAgeGroup } : current,
+    );
+  }, [automaticAgeGroup, clientDetail.data?.dateOfBirth]);
 
   const query = useAsyncQuery(
     () => {
@@ -872,8 +909,17 @@ export function BodyMapScreen({
         {!selection ? (
           <SectionPanel
             title="1. Körpermodell auswählen"
-            subtitle="15 Grundkörper und drei modulare Divers-Anatomievarianten"
+            subtitle="24 Alters-/Geschlechtsmodelle, vollständige Divers-Anatomiematrix und 30 technische GLB-Varianten"
           >
+            {automaticAgeGroup ? (
+              <InfoBanner
+                variant="info"
+                title="Altersgruppe automatisch aus Geburtsdatum"
+                message={`${BODY_MAP_AGE_LABELS[automaticAgeGroup]}${
+                  completedAge === null ? '' : ` · ${completedAge} Jahre`
+                }. Eine manuelle Anpassung bleibt möglich; vorhandene Befunde werden beim Modellwechsel anatomisch übertragen.`}
+              />
+            ) : null}
             <Text style={styles.fieldLabel}>Geschlechtseinordnung</Text>
             <SegmentedTabs
               tabs={SEX_OPTIONS.map((entry) => ({
@@ -896,7 +942,7 @@ export function BodyMapScreen({
               {AGE_GROUPS.map((entry) => (
                 <SelectionChip
                   key={entry}
-                  label={BODY_MAP_AGE_LABELS[entry]}
+                  label={`${BODY_MAP_AGE_LABELS[entry]} · ${AGE_RANGE_LABELS[entry]}`}
                   active={ageGroup === entry}
                   onPress={() => setAgeGroup(entry)}
                 />

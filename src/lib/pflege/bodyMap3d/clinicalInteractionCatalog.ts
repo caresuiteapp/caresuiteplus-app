@@ -253,8 +253,14 @@ export function markerMatchesModelSelection(
   selection: BodyMapModelSelection,
   baseModelId: string,
 ): boolean {
-  if (marker.modelId !== baseModelId) return false;
-  if (marker.ageGroup && marker.ageGroup !== selection.ageGroup) return false;
+  /*
+   * Befunde gehören fachlich zur Person und zur anatomischen Stelle, nicht zu
+   * einem bestimmten Alters-Mesh. Beim altersbedingten Modellwechsel werden
+   * sie deshalb weitergereicht und im Viewer auf die gleichnamige Zielzone
+   * projiziert. `baseModelId` bleibt nur für alte Datensätze ohne Geschlecht
+   * als enger Kompatibilitätsfilter erhalten.
+   */
+  if (!marker.sex && marker.modelId !== baseModelId) return false;
   if (marker.sex && marker.sex !== selection.sex) return false;
   if (selection.sex !== 'divers') return true;
   return (

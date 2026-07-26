@@ -3,14 +3,14 @@
   "errors": [],
   "warnings": [],
   "stats": {
-    "bytes": 1235724,
+    "bytes": 6510640,
     "chunks": 2,
     "scenes": 1,
-    "nodes": 113,
-    "meshes": 113,
-    "primitives": 113,
-    "vertices": 25908,
-    "triangles": 45260,
+    "nodes": 114,
+    "meshes": 114,
+    "primitives": 114,
+    "vertices": 172188,
+    "triangles": 94020,
     "materials": 6,
     "skinMaterials": 1,
     "textures": 0,
@@ -21,18 +21,18 @@
     "bounds": {
       "min": {
         "x": -0.41207998991012573,
-        "y": 0.0010000000474974513,
+        "y": 0.00017986350576393306,
         "z": -0.15699046850204468
       },
       "max": {
-        "x": 0.41207998991012573,
-        "y": 1.7200000286102295,
-        "z": 0.22616122663021088
+        "x": 0.41373714804649353,
+        "y": 1.7224591970443726,
+        "z": 0.23091258108615875
       },
       "dimensions": {
-        "width": 0.8241599798202515,
-        "height": 1.719000028562732,
-        "depth": 0.38315169513225555
+        "width": 0.8258171379566193,
+        "height": 1.7222793335386086,
+        "depth": 0.38790304958820343
       }
     }
   },
@@ -61,18 +61,24 @@
       "feet",
       "buttocks",
       "male-external-genitalia",
-      "pressure-injury-risk-surfaces"
+      "pressure-injury-risk-surfaces",
+      "continuous-visual-skin-surface",
+      "transparent-anatomical-hit-proxies"
     ],
-    "vertexCount": 25908,
-    "triangleCount": 45260,
+    "vertexCount": 172188,
+    "triangleCount": 94020,
     "ageGroup": "junger-erwachsener",
     "ageGroupLabel": "Junger Erwachsener",
     "sexPhenotype": "maennlich",
     "developmentalStage": "postpubertal-young-adult",
     "pediatricReference": false,
     "pediatricAnatomyReviewed": false,
+    "adolescentReference": false,
     "prepubertalChest": false,
-    "nominalHeightMeters": 1.72
+    "nominalHeightMeters": 1.72,
+    "visualSurfaceVersion": 3,
+    "continuousClinicalSurface": true,
+    "referenceInspiration": "user-supplied-four-view-proportion-boards"
   },
   "zones": {
     "found": [
@@ -188,14 +194,16 @@
       "surface-upper-lip",
       "surface-urethral-opening-penis",
       "surface-wrist-left",
-      "surface-wrist-right"
+      "surface-wrist-right",
+      "visual-surface-body-junger-erwachsener-maennlich"
     ],
     "missing": []
   },
   "generatedReferenceSummary": {
     "variantId": "body-junger-erwachsener-maennlich",
-    "parts": 113,
+    "parts": 114,
     "zones": [
+      "visual-surface-body-junger-erwachsener-maennlich",
       "surface-scalp",
       "surface-face",
       "surface-occiput",
@@ -310,8 +318,8 @@
       "surface-little-toe-right",
       "surface-little-toe-nail-right"
     ],
-    "vertices": 25908,
-    "triangles": 45260,
+    "vertices": 172188,
+    "triangles": 94020,
     "medicallyReviewed": false,
     "safeForClinicalRelease": false
   },
@@ -322,6 +330,8 @@
     "raycastingReview": "pending",
     "medicalAnatomyReview": "pending",
     "pediatricAnatomyReview": "not-applicable",
+    "adolescentAnatomyReview": "not-applicable",
+    "geriatricAnatomyReview": "not-applicable",
     "sensitiveAnatomyReview": "pending",
     "productionRelease": "blocked"
   }

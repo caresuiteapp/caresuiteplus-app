@@ -49,6 +49,15 @@ export function resolveMedicalMeshVariantId(
     return 'body-erwachsener-divers-penis-brueste';
   }
   if (
+    selection.genitalAnatomy === 'penis' &&
+    selection.chestAnatomy === 'keine_brueste'
+  ) {
+    return 'body-erwachsener-divers-penis-keine-brueste';
+  }
+  if (selection.genitalAnatomy === 'vulva' && selection.chestAnatomy === 'brueste') {
+    return 'body-erwachsener-divers-vulva-brueste';
+  }
+  if (
     selection.genitalAnatomy === 'vulva' &&
     selection.chestAnatomy === 'keine_brueste'
   ) {
@@ -59,6 +68,12 @@ export function resolveMedicalMeshVariantId(
     selection.chestAnatomy === 'brueste'
   ) {
     return 'body-erwachsener-divers-unbekannt-brueste';
+  }
+  if (
+    selection.genitalAnatomy === 'unbekannt' &&
+    selection.chestAnatomy === 'keine_brueste'
+  ) {
+    return 'body-erwachsener-divers-unbekannt-keine-brueste';
   }
   return baseModel.id;
 }
@@ -123,6 +138,6 @@ export function medicalMeshRendererLabel(
   return canRenderMedicalMesh(definition, options)
     ? definition.reviewStatus === 'released'
       ? `Medizinisch freigegebenes GLB-Mesh v${definition.version}`
-      : `Technisches GLB-Referenzmesh v${definition.version}`
+      : 'Technisches GLB-Referenzmesh · kontinuierliche Oberfläche'
     : 'Parametrischer technischer Fallback';
 }

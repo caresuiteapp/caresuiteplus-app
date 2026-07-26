@@ -3,14 +3,14 @@
   "errors": [],
   "warnings": [],
   "stats": {
-    "bytes": 1296336,
+    "bytes": 6632888,
     "chunks": 2,
     "scenes": 1,
-    "nodes": 118,
-    "meshes": 118,
-    "primitives": 118,
-    "vertices": 27197,
-    "triangles": 47532,
+    "nodes": 119,
+    "meshes": 119,
+    "primitives": 119,
+    "vertices": 175181,
+    "triangles": 96860,
     "materials": 6,
     "skinMaterials": 1,
     "textures": 0,
@@ -20,19 +20,19 @@
     "morphTargetPrimitives": 0,
     "bounds": {
       "min": {
-        "x": -0.37535998225212097,
-        "y": 0.0010000000474974513,
-        "z": -0.15263999998569489
+        "x": -0.37642696499824524,
+        "y": 0.0007857638411223888,
+        "z": -0.15615366399288177
       },
       "max": {
-        "x": 0.37535998225212097,
-        "y": 1.7200000286102295,
-        "z": 0.21305200457572937
+        "x": 0.37642696499824524,
+        "y": 1.7226238250732422,
+        "z": 0.21641217172145844
       },
       "dimensions": {
-        "width": 0.7507199645042419,
-        "height": 1.719000028562732,
-        "depth": 0.36569200456142426
+        "width": 0.7528539299964905,
+        "height": 1.7218380612321198,
+        "depth": 0.3725658357143402
       }
     }
   },
@@ -62,10 +62,15 @@
       "breasts",
       "buttocks",
       "female-external-genitalia",
-      "pressure-injury-risk-surfaces"
+      "pressure-injury-risk-surfaces",
+      "continuous-visual-skin-surface",
+      "transparent-anatomical-hit-proxies"
     ],
-    "vertexCount": 27197,
-    "triangleCount": 47532
+    "vertexCount": 175181,
+    "triangleCount": 96860,
+    "visualSurfaceVersion": 3,
+    "continuousClinicalSurface": true,
+    "referenceInspiration": "user-supplied-four-view-proportion-boards"
   },
   "zones": {
     "found": [
@@ -186,14 +191,16 @@
       "surface-urethral-opening-vulva",
       "surface-vaginal-opening",
       "surface-wrist-left",
-      "surface-wrist-right"
+      "surface-wrist-right",
+      "visual-surface-body-erwachsener-weiblich"
     ],
     "missing": []
   },
   "generatedReferenceSummary": {
     "variantId": "body-erwachsener-weiblich",
-    "parts": 118,
+    "parts": 119,
     "zones": [
+      "visual-surface-body-erwachsener-weiblich",
       "surface-scalp",
       "surface-face",
       "surface-occiput",
@@ -313,8 +320,8 @@
       "surface-urethral-opening-vulva",
       "surface-vaginal-opening"
     ],
-    "vertices": 27197,
-    "triangles": 47532,
+    "vertices": 175181,
+    "triangles": 96860,
     "medicallyReviewed": false,
     "safeForClinicalRelease": false
   },

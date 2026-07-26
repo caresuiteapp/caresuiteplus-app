@@ -3,14 +3,14 @@
   "errors": [],
   "warnings": [],
   "stats": {
-    "bytes": 1198272,
+    "bytes": 6344220,
     "chunks": 2,
     "scenes": 1,
-    "nodes": 110,
-    "meshes": 110,
-    "primitives": 110,
-    "vertices": 25102,
-    "triangles": 43836,
+    "nodes": 111,
+    "meshes": 111,
+    "primitives": 111,
+    "vertices": 167806,
+    "triangles": 91404,
     "materials": 6,
     "skinMaterials": 1,
     "textures": 0,
@@ -21,18 +21,18 @@
     "bounds": {
       "min": {
         "x": -0.4042046368122101,
-        "y": 0.0008333333535119891,
+        "y": 0.0001497779303463176,
         "z": -0.15399019420146942
       },
       "max": {
-        "x": 0.4042046368122101,
-        "y": 1.4199999570846558,
-        "z": 0.22183901071548462
+        "x": 0.4049239754676819,
+        "y": 1.4224594831466675,
+        "z": 0.22633673250675201
       },
       "dimensions": {
-        "width": 0.8084092736244202,
-        "height": 1.4191666237311438,
-        "depth": 0.37582920491695404
+        "width": 0.809128612279892,
+        "height": 1.4223097052163212,
+        "depth": 0.38032692670822144
       }
     }
   },
@@ -62,10 +62,12 @@
       "buttocks",
       "unbekannt-external-genital-configuration",
       "unbekannt-chest-configuration",
-      "pressure-injury-risk-surfaces"
+      "pressure-injury-risk-surfaces",
+      "continuous-visual-skin-surface",
+      "transparent-anatomical-hit-proxies"
     ],
-    "vertexCount": 25102,
-    "triangleCount": 43836,
+    "vertexCount": 167806,
+    "triangleCount": 91404,
     "ageGroup": "kind",
     "ageGroupLabel": "Kind",
     "sexPhenotype": "divers",
@@ -75,8 +77,12 @@
     "developmentalStage": "prepubertal-child",
     "pediatricReference": true,
     "pediatricAnatomyReviewed": false,
+    "adolescentReference": false,
     "intimateAnatomyReviewed": false,
-    "nominalHeightMeters": 1.42
+    "nominalHeightMeters": 1.42,
+    "visualSurfaceVersion": 3,
+    "continuousClinicalSurface": true,
+    "referenceInspiration": "user-supplied-four-view-proportion-boards"
   },
   "zones": {
     "found": [
@@ -189,14 +195,16 @@
       "surface-upper-arm-right",
       "surface-upper-lip",
       "surface-wrist-left",
-      "surface-wrist-right"
+      "surface-wrist-right",
+      "visual-surface-body-kind-divers"
     ],
     "missing": []
   },
   "generatedReferenceSummary": {
     "variantId": "body-kind-divers",
-    "parts": 110,
+    "parts": 111,
     "zones": [
+      "visual-surface-body-kind-divers",
       "surface-scalp",
       "surface-face",
       "surface-occiput",
@@ -308,8 +316,8 @@
       "surface-pubic-region-unclassified",
       "surface-genital-observation-deferred"
     ],
-    "vertices": 25102,
-    "triangles": 43836,
+    "vertices": 167806,
+    "triangles": 91404,
     "medicallyReviewed": false,
     "safeForClinicalRelease": false
   },
@@ -325,6 +333,8 @@
     "raycastingReview": "pending",
     "medicalAnatomyReview": "pending",
     "pediatricAnatomyReview": "pending",
+    "adolescentAnatomyReview": "not-applicable",
+    "geriatricAnatomyReview": "not-applicable",
     "sensitiveAnatomyReview": "pending",
     "productionRelease": "blocked"
   }

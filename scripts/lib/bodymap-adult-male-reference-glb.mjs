@@ -3,6 +3,8 @@ const GLB_VERSION = 2;
 const JSON_CHUNK = 0x4e4f534a;
 const BIN_CHUNK = 0x004e4942;
 
+import { withClinicalVisualSurface } from './bodymap-clinical-visual-surface.mjs';
+
 function bytesOf(view) {
   return Buffer.from(view.buffer, view.byteOffset, view.byteLength);
 }
@@ -878,10 +880,12 @@ export function buildBodyMapReferenceGlb({
     );
     const normals = appendAccessor(part.geometry.normals, 'VEC3', 5126, 34962);
     const uvs = appendAccessor(part.geometry.uvs, 'VEC2', 5126, 34962);
+    const indexComponentType =
+      part.geometry.indices instanceof Uint32Array ? 5125 : 5123;
     const indices = appendAccessor(
       part.geometry.indices,
       'SCALAR',
-      5123,
+      indexComponentType,
       34963,
       [0],
       [part.geometry.positions.length / 3 - 1],
@@ -889,12 +893,16 @@ export function buildBodyMapReferenceGlb({
     vertexCount += part.geometry.positions.length / 3;
     triangleCount += part.geometry.indices.length / 3;
     meshes.push({
-      name: `zone__${part.zoneId}`,
+      name: part.renderOnly
+        ? `render__${part.zoneId}`
+        : `zone__${part.zoneId}`,
       extras: {
-        anatomicalZoneId: part.zoneId,
+        ...(part.renderOnly ? {} : { anatomicalZoneId: part.zoneId }),
         clinicalLabel: part.clinicalLabel,
         technicalReference: true,
         medicallyReviewed: false,
+        bodymapRenderSurface: part.renderOnly === true,
+        bodymapInteractionProxy: part.interactionProxy === true,
       },
       primitives: [
         {
@@ -986,11 +994,12 @@ export function buildBodyMapReferenceGlb({
 }
 
 export function buildAdultMaleReferenceGlb() {
+  const variantId = 'body-erwachsener-maennlich';
   return buildBodyMapReferenceGlb({
-    parts: buildAdultMaleReferenceParts(),
-    variantId: 'body-erwachsener-maennlich',
-    generator: 'CareSuite Self-Developed Adult Male Reference Mesh Generator',
-    sceneName: 'adult-male-technical-reference',
+    parts: withClinicalVisualSurface(buildAdultMaleReferenceParts(), variantId),
+    variantId,
+    generator: 'CareSuite Self-Developed Adult Male Continuous Clinical Surface Generator',
+    sceneName: 'adult-male-continuous-clinical-reference',
     anatomicalScope: [
       'full-body-surface',
       'face',
@@ -1002,6 +1011,13 @@ export function buildAdultMaleReferenceGlb() {
       'buttocks',
       'male-external-genitalia',
       'pressure-injury-risk-surfaces',
+      'continuous-visual-skin-surface',
+      'transparent-anatomical-hit-proxies',
     ],
+    metadataExtras: {
+      visualSurfaceVersion: 3,
+      continuousClinicalSurface: true,
+      referenceInspiration: 'user-supplied-four-view-proportion-boards',
+    },
   });
 }

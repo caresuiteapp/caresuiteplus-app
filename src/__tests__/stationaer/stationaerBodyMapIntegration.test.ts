@@ -46,7 +46,7 @@ describe('stationäre 3D-Bodymap-Integration', () => {
   it('nutzt dieselbe klinische Engine und keine abweichende Stationär-Kopie', () => {
     const hub = read('src/screens/stationaer/StationaerBodyMapHubScreen.tsx');
     const residentRoute = read('app/stationaer/bewohner/[id]/bodymap.tsx');
-    expect(hub).toContain('Alle 18 Körpervarianten');
+    expect(hub).toContain('Alle 30 technischen Körpervarianten');
     expect(residentRoute).toContain("@/screens/pflege/BodyMapScreen");
   });
 

@@ -36,10 +36,14 @@ const anatomyZonesFor = (variant) => {
 };
 const expectedExtraVariants = [
   'body-erwachsener-divers-penis-brueste',
+  'body-erwachsener-divers-penis-keine-brueste',
+  'body-erwachsener-divers-vulva-brueste',
   'body-erwachsener-divers-vulva-keine-brueste',
   'body-erwachsener-divers-unbekannt-brueste',
+  'body-erwachsener-divers-unbekannt-keine-brueste',
 ];
 const expectedIds = [...baseManifest.baseModelIds, ...expectedExtraVariants];
+const expectedVariantCount = expectedIds.length;
 
 if (meshManifest.schemaVersion !== 2) {
   errors.push('Das medizinische Mesh-Manifest muss Schema-Version 2 verwenden.');
@@ -61,8 +65,13 @@ if (
 ) {
   errors.push('Die V2-Qualitätsbudgets sind unvollständig.');
 }
-if (variants.length !== 18 || new Set(ids).size !== 18) {
-  errors.push('Die medizinische Mesh-Matrix muss genau 18 eindeutige Varianten enthalten.');
+if (
+  variants.length !== expectedVariantCount ||
+  new Set(ids).size !== expectedVariantCount
+) {
+  errors.push(
+    `Die medizinische Mesh-Matrix muss genau ${expectedVariantCount} eindeutige Varianten enthalten.`,
+  );
 }
 for (const id of expectedIds) {
   if (!ids.includes(id)) errors.push(`Medizinische Mesh-Variante fehlt: ${id}`);
@@ -208,8 +217,12 @@ const releasedAssets = variants.filter(
 ).length;
 
 console.log('Bodymap-Mesh-Audit technisch bestanden.');
-console.log(`Variantenvertrag: ${variants.length}/18`);
-console.log(`Registrierte GLB-Meshes: ${registeredAssets}/18`);
-console.log(`Technische Referenzmeshes: ${technicalReferences}/18`);
-console.log(`Medizinisch freigegeben: ${releasedAssets}/18`);
-console.log(`Produktiver parametrischer Fallback aktiv: ${18 - releasedAssets}/18`);
+console.log(`Variantenvertrag: ${variants.length}/${expectedVariantCount}`);
+console.log(`Registrierte GLB-Meshes: ${registeredAssets}/${expectedVariantCount}`);
+console.log(`Technische Referenzmeshes: ${technicalReferences}/${expectedVariantCount}`);
+console.log(`Medizinisch freigegeben: ${releasedAssets}/${expectedVariantCount}`);
+console.log(
+  `Produktiver parametrischer Fallback aktiv: ${
+    expectedVariantCount - releasedAssets
+  }/${expectedVariantCount}`,
+);

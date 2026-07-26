@@ -19,6 +19,7 @@ import {
   buildDiversReferenceGlb,
   buildDiversReferenceParts,
 } from './lib/bodymap-divers-reference-glb.mjs';
+import { withClinicalVisualSurface } from './lib/bodymap-clinical-visual-surface.mjs';
 
 const outputRoot = process.env.BODYMAP3D_QA_OUTPUT_ROOT
   ? resolve(process.env.BODYMAP3D_QA_OUTPUT_ROOT)
@@ -29,8 +30,8 @@ const referenceConfigurations = {
   'body-erwachsener-maennlich': {
     artifactName: 'adult-male-four-view',
     artifactDirectoryName: 'bodymap-adult-male-reference-qa',
-    phase: 5,
-    title: 'Erwachsener · Männlich · Technischer Referenzkörper v2',
+    phase: 10,
+    title: 'Erwachsener · Männlich · Kontinuierlicher klinischer Referenzkörper v3',
     nominalHeightMeters: 1.72,
     buildParts: buildAdultMaleReferenceParts,
     buildGlb: buildAdultMaleReferenceGlb,
@@ -38,8 +39,8 @@ const referenceConfigurations = {
   'body-erwachsener-weiblich': {
     artifactName: 'adult-female-four-view',
     artifactDirectoryName: 'bodymap-adult-female-reference-qa',
-    phase: 6,
-    title: 'Erwachsen · Weiblich · Technischer Referenzkörper v2',
+    phase: 10,
+    title: 'Erwachsen · Weiblich · Kontinuierlicher klinischer Referenzkörper v3',
     nominalHeightMeters: 1.72,
     buildParts: buildAdultFemaleReferenceParts,
     buildGlb: buildAdultFemaleReferenceGlb,
@@ -50,10 +51,10 @@ const referenceConfigurations = {
       {
         artifactName: `${configuration.ageGroup}-${configuration.sex}-four-view`,
         artifactDirectoryName: `bodymap-${configuration.ageGroup}-${configuration.sex}-reference-qa`,
-        phase: 7,
+        phase: 10,
         title: `${configuration.profile.label} · ${
           configuration.sex === 'maennlich' ? 'Männlich' : 'Weiblich'
-        } · Technischer Referenzkörper v2`,
+        } · Kontinuierlicher klinischer Referenzkörper v3`,
         nominalHeightMeters: configuration.profile.nominalHeightMeters,
         buildParts: () => buildAgeReferenceParts(configuration.id),
         buildGlb: () => buildAgeReferenceGlb(configuration.id),
@@ -66,7 +67,7 @@ const referenceConfigurations = {
       {
         artifactName: `${configuration.id.replace(/^body-/, '')}-four-view`,
         artifactDirectoryName: `bodymap-${configuration.id.replace(/^body-/, '')}-reference-qa`,
-        phase: 8,
+        phase: 10,
         title: `${configuration.profile.label} · Divers · ${
           configuration.genitalAnatomy === 'penis'
             ? 'Penis'
@@ -99,7 +100,10 @@ const qaDirectory = resolve(outputRoot, 'docs/bodymap3d/qa');
 const svgPath = resolve(artifactDirectory, `${referenceConfiguration.artifactName}.svg`);
 const pngPath = resolve(qaDirectory, `${referenceConfiguration.artifactName}.png`);
 const manifestPath = resolve(qaDirectory, `${referenceConfiguration.artifactName}.json`);
-const parts = referenceConfiguration.buildParts();
+const parts = withClinicalVisualSurface(
+  referenceConfiguration.buildParts(),
+  referenceVariant,
+).filter((part) => part.interactionProxy !== true);
 const generated = referenceConfiguration.buildGlb();
 
 const views = [

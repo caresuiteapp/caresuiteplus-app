@@ -146,7 +146,9 @@ const result = {
   outputFile: relative(root, outputFile).replaceAll(sep, '/'),
   viewport: { width: 1800, height: 1450, deviceScaleFactor: 1 },
   canvasState,
-  rendererStatusVisible: statusText.includes('Technisches GLB-Referenzmesh v2'),
+  rendererStatusVisible: statusText.includes(
+    'Technisches GLB-Referenzmesh · kontinuierliche Oberfläche',
+  ),
   technicalReviewVisible: statusText.includes('technical-review'),
   medicalReleaseStillPending: statusText.includes('Medizinisch geprüft'),
   browserErrors,

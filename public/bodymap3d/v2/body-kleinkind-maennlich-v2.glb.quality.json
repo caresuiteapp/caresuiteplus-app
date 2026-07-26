@@ -3,14 +3,14 @@
   "errors": [],
   "warnings": [],
   "stats": {
-    "bytes": 1235692,
+    "bytes": 6336912,
     "chunks": 2,
     "scenes": 1,
-    "nodes": 113,
-    "meshes": 113,
-    "primitives": 113,
-    "vertices": 25908,
-    "triangles": 45260,
+    "nodes": 114,
+    "meshes": 114,
+    "primitives": 114,
+    "vertices": 167364,
+    "triangles": 92412,
     "materials": 6,
     "skinMaterials": 1,
     "textures": 0,
@@ -21,18 +21,18 @@
     "bounds": {
       "min": {
         "x": -0.35106974840164185,
-        "y": 0.0006250000442378223,
+        "y": -0.00022011635883245617,
         "z": -0.13374735414981842
       },
       "max": {
-        "x": 0.35106974840164185,
-        "y": 1,
-        "z": 0.1926770657300949
+        "x": 0.352485328912735,
+        "y": 1.0019985437393188,
+        "z": 0.1948246955871582
       },
       "dimensions": {
-        "width": 0.7021394968032837,
-        "height": 0.9993749999557622,
-        "depth": 0.32642441987991333
+        "width": 0.7035550773143768,
+        "height": 1.0022186600981513,
+        "depth": 0.3285720497369766
       }
     }
   },
@@ -61,18 +61,24 @@
       "feet",
       "buttocks",
       "male-external-genitalia",
-      "pressure-injury-risk-surfaces"
+      "pressure-injury-risk-surfaces",
+      "continuous-visual-skin-surface",
+      "transparent-anatomical-hit-proxies"
     ],
-    "vertexCount": 25908,
-    "triangleCount": 45260,
+    "vertexCount": 167364,
+    "triangleCount": 92412,
     "ageGroup": "kleinkind",
     "ageGroupLabel": "Kleinkind",
     "sexPhenotype": "maennlich",
     "developmentalStage": "prepubertal-toddler",
     "pediatricReference": true,
     "pediatricAnatomyReviewed": false,
+    "adolescentReference": false,
     "prepubertalChest": false,
-    "nominalHeightMeters": 1
+    "nominalHeightMeters": 1,
+    "visualSurfaceVersion": 3,
+    "continuousClinicalSurface": true,
+    "referenceInspiration": "user-supplied-four-view-proportion-boards"
   },
   "zones": {
     "found": [
@@ -188,14 +194,16 @@
       "surface-upper-lip",
       "surface-urethral-opening-penis",
       "surface-wrist-left",
-      "surface-wrist-right"
+      "surface-wrist-right",
+      "visual-surface-body-kleinkind-maennlich"
     ],
     "missing": []
   },
   "generatedReferenceSummary": {
     "variantId": "body-kleinkind-maennlich",
-    "parts": 113,
+    "parts": 114,
     "zones": [
+      "visual-surface-body-kleinkind-maennlich",
       "surface-scalp",
       "surface-face",
       "surface-occiput",
@@ -310,8 +318,8 @@
       "surface-little-toe-right",
       "surface-little-toe-nail-right"
     ],
-    "vertices": 25908,
-    "triangles": 45260,
+    "vertices": 167364,
+    "triangles": 92412,
     "medicallyReviewed": false,
     "safeForClinicalRelease": false
   },
@@ -322,6 +330,8 @@
     "raycastingReview": "pending",
     "medicalAnatomyReview": "pending",
     "pediatricAnatomyReview": "pending",
+    "adolescentAnatomyReview": "not-applicable",
+    "geriatricAnatomyReview": "not-applicable",
     "sensitiveAnatomyReview": "pending",
     "productionRelease": "blocked"
   }

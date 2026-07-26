@@ -7,11 +7,15 @@ const root = process.cwd();
 const modelManifest = JSON.parse(
   await readFile(resolve(root, 'assets/bodymap3d/v1/model-manifest.json'), 'utf8'),
 );
-const extraDiversCases = [
-  'body-erwachsener-divers-penis-brueste',
-  'body-erwachsener-divers-vulva-keine-brueste',
-  'body-erwachsener-divers-unbekannt-brueste',
-];
+const medicalManifest = JSON.parse(
+  await readFile(
+    resolve(root, 'assets/bodymap3d/v2/medical-mesh-manifest.json'),
+    'utf8',
+  ),
+);
+const extraDiversCases = medicalManifest.variants
+  .map((entry) => entry.id)
+  .filter((id) => !modelManifest.baseModelIds.includes(id));
 const cases = [...modelManifest.baseModelIds, ...extraDiversCases];
 const buildDirectory =
   process.env.BODYMAP_QA_BUILD_DIR ?? resolve(root, '.bodymap-visual-qa-build');
@@ -23,7 +27,15 @@ const requestedLimit = Number(
   process.argv.find((argument) => argument.startsWith('--limit='))?.split('=')[1] ??
     cases.length,
 );
-const selectedCases = cases.slice(0, Math.max(1, Math.min(cases.length, requestedLimit)));
+const requestedVariant = process.argv
+  .find((argument) => argument.startsWith('--variant='))
+  ?.slice('--variant='.length);
+if (requestedVariant && !cases.includes(requestedVariant)) {
+  throw new Error(`Unbekannte QA-Variante: ${requestedVariant}`);
+}
+const selectedCases = requestedVariant
+  ? [requestedVariant]
+  : cases.slice(0, Math.max(1, Math.min(cases.length, requestedLimit)));
 
 await mkdir(outputDirectory, { recursive: true });
 
@@ -76,6 +88,7 @@ const baseUrl = `http://127.0.0.1:${serverAddress.port}`;
 
 const browser = await chromium.launch({
   headless: true,
+  executablePath: process.env.BODYMAP_QA_CHROMIUM_EXECUTABLE || undefined,
   args: [
     '--enable-webgl',
     '--ignore-gpu-blocklist',

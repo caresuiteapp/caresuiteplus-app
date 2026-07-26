@@ -8,6 +8,7 @@ import {
   AGE_PROFILES,
   buildAgeTransformedParts,
 } from './bodymap-age-reference-glb.mjs';
+import { withClinicalVisualSurface } from './bodymap-clinical-visual-surface.mjs';
 
 const MALE_INTIMATE_ZONES = new Set([
   'surface-penis',
@@ -52,6 +53,13 @@ export const DIVERS_REFERENCE_VARIANTS = [
     chestZoneContract: 'prepubertal',
   },
   {
+    id: 'body-jugendlicher-divers',
+    ageGroup: 'jugendlicher',
+    genitalAnatomy: 'unbekannt',
+    chestAnatomy: 'unbekannt',
+    chestZoneContract: 'flat',
+  },
+  {
     id: 'body-junger-erwachsener-divers',
     ageGroup: 'junger-erwachsener',
     genitalAnatomy: 'unbekannt',
@@ -66,9 +74,37 @@ export const DIVERS_REFERENCE_VARIANTS = [
     chestZoneContract: 'flat',
   },
   {
+    id: 'body-senior-divers',
+    ageGroup: 'senior',
+    genitalAnatomy: 'unbekannt',
+    chestAnatomy: 'unbekannt',
+    chestZoneContract: 'flat',
+  },
+  {
+    id: 'body-hochbetagt-divers',
+    ageGroup: 'hochbetagt',
+    genitalAnatomy: 'unbekannt',
+    chestAnatomy: 'unbekannt',
+    chestZoneContract: 'flat',
+  },
+  {
     id: 'body-erwachsener-divers-penis-brueste',
     ageGroup: 'erwachsener',
     genitalAnatomy: 'penis',
+    chestAnatomy: 'brueste',
+    chestZoneContract: 'breasts',
+  },
+  {
+    id: 'body-erwachsener-divers-penis-keine-brueste',
+    ageGroup: 'erwachsener',
+    genitalAnatomy: 'penis',
+    chestAnatomy: 'keine_brueste',
+    chestZoneContract: 'flat',
+  },
+  {
+    id: 'body-erwachsener-divers-vulva-brueste',
+    ageGroup: 'erwachsener',
+    genitalAnatomy: 'vulva',
     chestAnatomy: 'brueste',
     chestZoneContract: 'breasts',
   },
@@ -85,6 +121,13 @@ export const DIVERS_REFERENCE_VARIANTS = [
     genitalAnatomy: 'unbekannt',
     chestAnatomy: 'brueste',
     chestZoneContract: 'breasts',
+  },
+  {
+    id: 'body-erwachsener-divers-unbekannt-keine-brueste',
+    ageGroup: 'erwachsener',
+    genitalAnatomy: 'unbekannt',
+    chestAnatomy: 'keine_brueste',
+    chestZoneContract: 'flat',
   },
 ].map((configuration) => ({
   ...configuration,
@@ -167,8 +210,10 @@ export function requiredZonesForDiversReference(variantId, manifest) {
 export function buildDiversReferenceGlb(variantId) {
   const configuration = configurationFor(variantId);
   const pediatric = ['baby', 'kleinkind', 'kind'].includes(configuration.ageGroup);
+  const adolescent = configuration.ageGroup === 'jugendlicher';
+  const geriatric = ['senior', 'hochbetagt'].includes(configuration.ageGroup);
   return buildBodyMapReferenceGlb({
-    parts: buildDiversReferenceParts(variantId),
+    parts: withClinicalVisualSurface(buildDiversReferenceParts(variantId), variantId),
     variantId,
     generator: `CareSuite Self-Developed ${configuration.profile.label} Divers Modular Reference Mesh Generator`,
     sceneName: `${configuration.ageGroup}-divers-${configuration.genitalAnatomy}-${configuration.chestAnatomy}-technical-reference`,
@@ -184,6 +229,8 @@ export function buildDiversReferenceGlb(variantId) {
       `${configuration.genitalAnatomy}-external-genital-configuration`,
       `${configuration.chestAnatomy}-chest-configuration`,
       'pressure-injury-risk-surfaces',
+      'continuous-visual-skin-surface',
+      'transparent-anatomical-hit-proxies',
     ],
     metadataExtras: {
       ageGroup: configuration.ageGroup,
@@ -196,8 +243,14 @@ export function buildDiversReferenceGlb(variantId) {
       developmentalStage: configuration.profile.developmentalStage,
       pediatricReference: pediatric,
       pediatricAnatomyReviewed: false,
+      adolescentReference: adolescent,
+      adolescentAnatomyReviewed: adolescent ? false : undefined,
+      geriatricAnatomyReviewed: geriatric ? false : undefined,
       intimateAnatomyReviewed: false,
       nominalHeightMeters: configuration.profile.nominalHeightMeters,
+      visualSurfaceVersion: 3,
+      continuousClinicalSurface: true,
+      referenceInspiration: 'user-supplied-four-view-proportion-boards',
     },
   });
 }

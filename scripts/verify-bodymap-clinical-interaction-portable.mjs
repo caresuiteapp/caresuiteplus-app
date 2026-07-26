@@ -44,7 +44,7 @@ const [
 
 const meshFiles = (await readdir(resolve(root, 'public/bodymap3d/v2')))
   .filter((file) => file.endsWith('-v2.glb'));
-assert.equal(meshFiles.length, 18, 'Die Mesh-Matrix muss 18 Modelle enthalten.');
+assert.equal(meshFiles.length, 30, 'Die Mesh-Matrix muss 30 technische GLB-Varianten enthalten.');
 
 includesAll(viewer, [
   'allowTechnicalMeshPreview',
@@ -101,7 +101,7 @@ assert.ok(!/\b(?:DROP|TRUNCATE)\s+TABLE\b/i.test(migration), 'Migration enthält
 
 includesAll(stationaerHub, [
   'useResidentList',
-  'Alle 18 Körpervarianten',
+  'Alle 30 technischen Körpervarianten',
   '/stationaer/bewohner/',
 ], 'Stationär-Hub');
 includesAll(stationaerRoute, [
@@ -121,6 +121,6 @@ assert.equal(
 );
 
 console.log('Plattformneutrale Phase-9-Prüfung bestanden.');
-console.log('18 Modelle · Pflege + Stationär · 16 klinische Befundarten');
+console.log('30 GLB-Varianten · Pflege + Stationär · 16 klinische Befundarten');
 console.log('Gelber Pulsmarker · Dekubitus · Fotos · atomarer Verlauf');
 console.log('Client-/Resident-Trennung · additive Migration · keine Tabellenlöschung');

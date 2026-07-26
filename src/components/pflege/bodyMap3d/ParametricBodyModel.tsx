@@ -79,6 +79,18 @@ const PROPORTIONS: Record<BodyMapAgeGroup, Proportions> = {
     handScale: 0.1,
     footScale: 0.2,
   },
+  jugendlicher: {
+    headRadius: 0.155,
+    shoulderWidth: 0.61,
+    torsoLength: 0.77,
+    torsoDepth: 0.21,
+    pelvisWidth: 0.41,
+    armLength: 0.86,
+    legLength: 1.1,
+    limbRadius: 0.062,
+    handScale: 0.102,
+    footScale: 0.22,
+  },
   junger_erwachsener: {
     headRadius: 0.145,
     shoulderWidth: 0.65,
@@ -102,6 +114,30 @@ const PROPORTIONS: Record<BodyMapAgeGroup, Proportions> = {
     limbRadius: 0.067,
     handScale: 0.108,
     footScale: 0.235,
+  },
+  senior: {
+    headRadius: 0.148,
+    shoulderWidth: 0.62,
+    torsoLength: 0.79,
+    torsoDepth: 0.245,
+    pelvisWidth: 0.45,
+    armLength: 0.88,
+    legLength: 1.08,
+    limbRadius: 0.064,
+    handScale: 0.11,
+    footScale: 0.24,
+  },
+  hochbetagt: {
+    headRadius: 0.152,
+    shoulderWidth: 0.59,
+    torsoLength: 0.76,
+    torsoDepth: 0.255,
+    pelvisWidth: 0.46,
+    armLength: 0.84,
+    legLength: 1.01,
+    limbRadius: 0.06,
+    handScale: 0.11,
+    footScale: 0.24,
   },
 };
 
@@ -133,6 +169,8 @@ function modelScale(ageGroup: BodyMapAgeGroup): number {
   if (ageGroup === 'baby') return 0.78;
   if (ageGroup === 'kleinkind') return 0.86;
   if (ageGroup === 'kind') return 0.93;
+  if (ageGroup === 'jugendlicher') return 0.98;
+  if (ageGroup === 'hochbetagt') return 0.97;
   return 1;
 }
 
@@ -306,7 +344,11 @@ export function ParametricBodyModel({
   const skin = new Color(SKIN_COLORS[selection.skinTone]).getStyle();
   const heightScale = modelScale(selection.ageGroup);
   const adultBodyShape =
-    selection.ageGroup === 'junger_erwachsener' || selection.ageGroup === 'erwachsener';
+    selection.ageGroup === 'jugendlicher' ||
+    selection.ageGroup === 'junger_erwachsener' ||
+    selection.ageGroup === 'erwachsener' ||
+    selection.ageGroup === 'senior' ||
+    selection.ageGroup === 'hochbetagt';
   const shoulderFactor = adultBodyShape
     ? selection.sex === 'maennlich'
       ? 1.08
@@ -340,7 +382,11 @@ export function ParametricBodyModel({
     selection.chestAnatomy === 'brueste' ||
     (selection.sex === 'weiblich' && selection.chestAnatomy !== 'keine_brueste');
   const showAdultChest =
-    selection.ageGroup === 'junger_erwachsener' || selection.ageGroup === 'erwachsener';
+    selection.ageGroup === 'jugendlicher' ||
+    selection.ageGroup === 'junger_erwachsener' ||
+    selection.ageGroup === 'erwachsener' ||
+    selection.ageGroup === 'senior' ||
+    selection.ageGroup === 'hochbetagt';
   const resolvedGenitalAnatomy =
     selection.sex === 'divers'
       ? selection.genitalAnatomy
@@ -354,6 +400,8 @@ export function ParametricBodyModel({
         ? 0.58
         : selection.ageGroup === 'kind'
           ? 0.72
+          : selection.ageGroup === 'jugendlicher'
+            ? 0.9
           : 1;
   const genitalUnit = Math.max(0.026, pelvisWidth * 0.14 * anatomicalMaturity);
   const genitalY = pelvisY - pelvisWidth * 0.22;

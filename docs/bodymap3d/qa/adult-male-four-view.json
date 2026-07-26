@@ -8,8 +8,9 @@
     "left",
     "right"
   ],
-  "parts": 113,
+  "parts": 114,
   "zones": [
+    "visual-surface-body-erwachsener-maennlich",
     "surface-scalp",
     "surface-face",
     "surface-occiput",
@@ -124,8 +125,8 @@
     "surface-little-toe-right",
     "surface-little-toe-nail-right"
   ],
-  "vertices": 25908,
-  "triangles": 45260,
+  "vertices": 170964,
+  "triangles": 93612,
   "medicallyReviewed": false,
   "safeForClinicalRelease": false,
   "svgPath": "artifacts/bodymap-adult-male-reference-qa/adult-male-four-view.svg",

@@ -3,6 +3,7 @@ import {
   buildBodyMapReferenceGlb,
   ellipsoidGeometry,
 } from './bodymap-adult-male-reference-glb.mjs';
+import { withClinicalVisualSurface } from './bodymap-clinical-visual-surface.mjs';
 
 const EXCLUDED_MALE_ZONES = new Set([
   'surface-pectoral-left',
@@ -220,11 +221,12 @@ export function buildAdultFemaleReferenceParts() {
 }
 
 export function buildAdultFemaleReferenceGlb() {
+  const variantId = 'body-erwachsener-weiblich';
   return buildBodyMapReferenceGlb({
-    parts: buildAdultFemaleReferenceParts(),
-    variantId: 'body-erwachsener-weiblich',
-    generator: 'CareSuite Self-Developed Adult Female Reference Mesh Generator',
-    sceneName: 'adult-female-technical-reference',
+    parts: withClinicalVisualSurface(buildAdultFemaleReferenceParts(), variantId),
+    variantId,
+    generator: 'CareSuite Self-Developed Adult Female Continuous Clinical Surface Generator',
+    sceneName: 'adult-female-continuous-clinical-reference',
     anatomicalScope: [
       'full-body-surface',
       'face',
@@ -237,6 +239,13 @@ export function buildAdultFemaleReferenceGlb() {
       'buttocks',
       'female-external-genitalia',
       'pressure-injury-risk-surfaces',
+      'continuous-visual-skin-surface',
+      'transparent-anatomical-hit-proxies',
     ],
+    metadataExtras: {
+      visualSurfaceVersion: 3,
+      continuousClinicalSurface: true,
+      referenceInspiration: 'user-supplied-four-view-proportion-boards',
+    },
   });
 }

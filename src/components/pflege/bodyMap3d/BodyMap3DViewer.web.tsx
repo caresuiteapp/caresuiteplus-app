@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows, OrbitControls } from '@react-three/drei';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ACESFilmicToneMapping, SRGBColorSpace } from 'three';
 import { colors, spacing, typography } from '@/theme';
 import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
 import {
@@ -41,6 +42,7 @@ export function BodyMap3DViewer({
   const [activeView, setActiveView] =
     useState<(typeof VIEW_PRESETS)[number]['id']>('front');
   const modelRotation = VIEW_PRESETS.find((preset) => preset.id === activeView)?.yaw ?? 0;
+  const groundY = -medicalMesh.nominalHeightMeters / 2 - 0.015;
 
   return (
     <View style={styles.shell}>
@@ -94,18 +96,25 @@ export function BodyMap3DViewer({
             far: 50,
           }}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+          onCreated={({ gl }) => {
+            gl.toneMapping = ACESFilmicToneMapping;
+            gl.toneMappingExposure = 1.08;
+            gl.outputColorSpace = SRGBColorSpace;
+          }}
         >
           <color attach="background" args={['#071326']} />
-          <ambientLight intensity={1.5} />
-          <hemisphereLight args={['#dcecff', '#13233f', 1.4]} />
+          <ambientLight intensity={0.72} />
+          <hemisphereLight args={['#f2f7ff', '#15243d', 1.05]} />
           <directionalLight
             castShadow
-            position={[3, 5, 4]}
-            intensity={2.2}
-            shadow-mapSize-width={1024}
-            shadow-mapSize-height={1024}
+            position={[2.7, 4.5, 3.4]}
+            intensity={2.7}
+            color="#fff3e9"
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
           />
-          <directionalLight position={[-3, 2, -4]} intensity={0.9} color="#70a5ff" />
+          <directionalLight position={[-3.2, 2.2, -3.8]} intensity={1.15} color="#70a5ff" />
+          <directionalLight position={[0.3, 1.1, -4.5]} intensity={0.65} color="#dbe9ff" />
           <ClinicalBodyModel
             selection={selection}
             markers={markers}
@@ -117,10 +126,10 @@ export function BodyMap3DViewer({
             onMarkerPress={onMarkerPress}
           />
           <ContactShadows
-            position={[0, -1.31, 0]}
-            opacity={0.38}
+            position={[0, groundY, 0]}
+            opacity={0.46}
             scale={4}
-            blur={2.6}
+            blur={2.2}
             far={3}
           />
           <OrbitControls

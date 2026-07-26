@@ -6,6 +6,7 @@ import {
   buildAdultFemaleReferenceParts,
   vulvaParts,
 } from './bodymap-adult-female-reference-glb.mjs';
+import { withClinicalVisualSurface } from './bodymap-clinical-visual-surface.mjs';
 
 const SOURCE_HEIGHT = 1.72;
 const SOURCE_LANDMARKS = [0, 0.12, 0.625, 1.035, 1.405, SOURCE_HEIGHT];
@@ -18,6 +19,42 @@ const MALE_INTIMATE_ZONES = new Set([
 ]);
 
 export const AGE_PROFILES = {
+  hochbetagt: {
+    label: 'Hochbetagter Mensch',
+    nominalHeightMeters: 1.59,
+    landmarks: [0, 0.11, 0.555, 0.925, 1.275, 1.59],
+    headScale: 1.07,
+    torsoScale: 1.02,
+    pelvisScale: 1.04,
+    limbScale: 0.91,
+    handFootScale: 1,
+    intimateScale: 0.9,
+    developmentalStage: 'oldest-old-adult',
+  },
+  senior: {
+    label: 'Senior',
+    nominalHeightMeters: 1.65,
+    landmarks: [0, 0.115, 0.59, 0.98, 1.335, 1.65],
+    headScale: 1.04,
+    torsoScale: 1.01,
+    pelvisScale: 1.03,
+    limbScale: 0.95,
+    handFootScale: 1,
+    intimateScale: 0.94,
+    developmentalStage: 'older-adult',
+  },
+  jugendlicher: {
+    label: 'Jugendliche',
+    nominalHeightMeters: 1.66,
+    landmarks: [0, 0.115, 0.585, 0.975, 1.34, 1.66],
+    headScale: 1.07,
+    torsoScale: 0.94,
+    pelvisScale: 0.94,
+    limbScale: 0.96,
+    handFootScale: 0.93,
+    intimateScale: 0.82,
+    developmentalStage: 'adolescent',
+  },
   'junger-erwachsener': {
     label: 'Junger Erwachsener',
     nominalHeightMeters: 1.72,
@@ -69,7 +106,15 @@ export const AGE_PROFILES = {
 };
 
 export const AGE_REFERENCE_VARIANTS = [
-  ...['junger-erwachsener', 'kind', 'kleinkind', 'baby'].flatMap((ageGroup) =>
+  ...[
+    'hochbetagt',
+    'senior',
+    'junger-erwachsener',
+    'jugendlicher',
+    'kind',
+    'kleinkind',
+    'baby',
+  ].flatMap((ageGroup) =>
     ['maennlich', 'weiblich'].map((sex) => ({
       id: `body-${ageGroup}-${sex}`,
       ageGroup,
@@ -78,7 +123,12 @@ export const AGE_REFERENCE_VARIANTS = [
       profile: AGE_PROFILES[ageGroup],
       chestZoneContract:
         sex === 'weiblich'
-          ? ageGroup === 'junger-erwachsener'
+          ? [
+              'jugendlicher',
+              'junger-erwachsener',
+              'senior',
+              'hochbetagt',
+            ].includes(ageGroup)
             ? 'breasts'
             : 'prepubertal'
           : null,
@@ -198,8 +248,28 @@ export function transformAgeReferenceGeometry(geometry, zoneId, profile) {
 
   for (let index = 0; index < geometry.positions.length; index += 3) {
     positions[index] = geometry.positions[index] * scaleX;
-    positions[index + 1] = mapHeight(geometry.positions[index + 1], profile.landmarks);
-    positions[index + 2] = geometry.positions[index + 2] * scaleZ;
+    const mappedY = mapHeight(geometry.positions[index + 1], profile.landmarks);
+    const geriatricStage = ['older-adult', 'oldest-old-adult'].includes(
+      profile.developmentalStage,
+    );
+    const olderAdultForwardShift =
+      geriatricStage
+        ? Math.max(0, (mappedY - profile.nominalHeightMeters * 0.52) /
+            (profile.nominalHeightMeters * 0.48)) *
+          (profile.developmentalStage === 'oldest-old-adult' ? 0.058 : 0.032)
+        : 0;
+    const olderAdultBreastDrop =
+      geriatricStage &&
+      (zoneId.includes('breast') ||
+        zoneId.includes('areola') ||
+        zoneId.includes('nipple'))
+        ? profile.developmentalStage === 'oldest-old-adult'
+          ? 0.048
+          : 0.034
+        : 0;
+    positions[index + 1] = mappedY - olderAdultBreastDrop;
+    positions[index + 2] =
+      geometry.positions[index + 2] * scaleZ + olderAdultForwardShift;
 
     const sourceY = geometry.positions[index + 1];
     const epsilon = 0.0005;
@@ -226,7 +296,12 @@ export function transformAgeReferenceGeometry(geometry, zoneId, profile) {
 
 function sourcePartsForVariant(configuration) {
   if (configuration.sex === 'maennlich') return buildAdultMaleReferenceParts();
-  if (configuration.ageGroup === 'junger-erwachsener') {
+  if (
+    configuration.ageGroup === 'jugendlicher' ||
+    configuration.ageGroup === 'junger-erwachsener' ||
+    configuration.ageGroup === 'senior' ||
+    configuration.ageGroup === 'hochbetagt'
+  ) {
     return buildAdultFemaleReferenceParts();
   }
   return [
@@ -274,7 +349,9 @@ export function requiredZonesForAgeReference(variantId, manifest) {
 
 export function buildAgeReferenceGlb(variantId) {
   const configuration = configurationFor(variantId);
-  const pediatric = configuration.ageGroup !== 'junger-erwachsener';
+  const pediatric = ['baby', 'kleinkind', 'kind'].includes(configuration.ageGroup);
+  const adolescent = configuration.ageGroup === 'jugendlicher';
+  const geriatric = ['senior', 'hochbetagt'].includes(configuration.ageGroup);
   const chestScope =
     configuration.chestZoneContract === 'breasts'
       ? ['breasts']
@@ -282,7 +359,7 @@ export function buildAgeReferenceGlb(variantId) {
         ? ['prepubertal-chest']
         : [];
   return buildBodyMapReferenceGlb({
-    parts: buildAgeReferenceParts(variantId),
+    parts: withClinicalVisualSurface(buildAgeReferenceParts(variantId), variantId),
     variantId,
     generator: `CareSuite Self-Developed ${configuration.profile.label} ${configuration.sex} Reference Mesh Generator`,
     sceneName: `${configuration.ageGroup}-${configuration.sex}-technical-reference`,
@@ -300,6 +377,8 @@ export function buildAgeReferenceGlb(variantId) {
         : 'female-external-genitalia',
       ...chestScope,
       'pressure-injury-risk-surfaces',
+      'continuous-visual-skin-surface',
+      'transparent-anatomical-hit-proxies',
     ],
     metadataExtras: {
       ageGroup: configuration.ageGroup,
@@ -308,8 +387,14 @@ export function buildAgeReferenceGlb(variantId) {
       developmentalStage: configuration.profile.developmentalStage,
       pediatricReference: pediatric,
       pediatricAnatomyReviewed: false,
+      adolescentReference: adolescent,
+      adolescentAnatomyReviewed: adolescent ? false : undefined,
+      geriatricAnatomyReviewed: geriatric ? false : undefined,
       prepubertalChest: configuration.chestZoneContract === 'prepubertal',
       nominalHeightMeters: configuration.profile.nominalHeightMeters,
+      visualSurfaceVersion: 3,
+      continuousClinicalSurface: true,
+      referenceInspiration: 'user-supplied-four-view-proportion-boards',
     },
   });
 }

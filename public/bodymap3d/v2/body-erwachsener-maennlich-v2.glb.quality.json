@@ -3,14 +3,14 @@
   "errors": [],
   "warnings": [],
   "stats": {
-    "bytes": 1235372,
+    "bytes": 6466196,
     "chunks": 2,
     "scenes": 1,
-    "nodes": 113,
-    "meshes": 113,
-    "primitives": 113,
-    "vertices": 25908,
-    "triangles": 45260,
+    "nodes": 114,
+    "meshes": 114,
+    "primitives": 114,
+    "vertices": 170964,
+    "triangles": 93612,
     "materials": 6,
     "skinMaterials": 1,
     "textures": 0,
@@ -20,18 +20,18 @@
     "morphTargetPrimitives": 0,
     "bounds": {
       "min": {
-        "x": -0.40799999237060547,
-        "y": 0.0010000000474974513,
+        "x": -0.4084269404411316,
+        "y": 0.00029563895077444613,
         "z": -0.15090884268283844
       },
       "max": {
-        "x": 0.40799999237060547,
-        "y": 1.7200000286102295,
+        "x": 0.4090142548084259,
+        "y": 1.7225522994995117,
         "z": 0.2297816276550293
       },
       "dimensions": {
-        "width": 0.8159999847412109,
-        "height": 1.719000028562732,
+        "width": 0.8174411952495575,
+        "height": 1.7222566605487373,
         "depth": 0.38069047033786774
       }
     }
@@ -61,10 +61,15 @@
       "feet",
       "buttocks",
       "male-external-genitalia",
-      "pressure-injury-risk-surfaces"
+      "pressure-injury-risk-surfaces",
+      "continuous-visual-skin-surface",
+      "transparent-anatomical-hit-proxies"
     ],
-    "vertexCount": 25908,
-    "triangleCount": 45260
+    "vertexCount": 170964,
+    "triangleCount": 93612,
+    "visualSurfaceVersion": 3,
+    "continuousClinicalSurface": true,
+    "referenceInspiration": "user-supplied-four-view-proportion-boards"
   },
   "zones": {
     "found": [
@@ -180,14 +185,16 @@
       "surface-upper-lip",
       "surface-urethral-opening-penis",
       "surface-wrist-left",
-      "surface-wrist-right"
+      "surface-wrist-right",
+      "visual-surface-body-erwachsener-maennlich"
     ],
     "missing": []
   },
   "generatedReferenceSummary": {
     "variantId": "body-erwachsener-maennlich",
-    "parts": 113,
+    "parts": 114,
     "zones": [
+      "visual-surface-body-erwachsener-maennlich",
       "surface-scalp",
       "surface-face",
       "surface-occiput",
@@ -302,8 +309,8 @@
       "surface-little-toe-right",
       "surface-little-toe-nail-right"
     ],
-    "vertices": 25908,
-    "triangles": 45260,
+    "vertices": 170964,
+    "triangles": 93612,
     "medicallyReviewed": false,
     "safeForClinicalRelease": false
   },

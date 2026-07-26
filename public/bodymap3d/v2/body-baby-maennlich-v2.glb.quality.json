@@ -3,14 +3,14 @@
   "errors": [],
   "warnings": [],
   "stats": {
-    "bytes": 1235820,
+    "bytes": 6278708,
     "chunks": 2,
     "scenes": 1,
-    "nodes": 113,
-    "meshes": 113,
-    "primitives": 113,
-    "vertices": 25908,
-    "triangles": 45260,
+    "nodes": 114,
+    "meshes": 114,
+    "primitives": 114,
+    "vertices": 165744,
+    "triangles": 91872,
     "materials": 6,
     "skinMaterials": 1,
     "textures": 0,
@@ -20,19 +20,19 @@
     "morphTargetPrimitives": 0,
     "bounds": {
       "min": {
-        "x": -0.27743998169898987,
-        "y": 0.000375000003259629,
+        "x": -0.27820271253585815,
+        "y": -0.002848841017112136,
         "z": -0.10569655150175095
       },
       "max": {
-        "x": 0.27743998169898987,
-        "y": 0.6800000071525574,
-        "z": 0.1522669643163681
+        "x": 0.2797740697860718,
+        "y": 0.68168705701828,
+        "z": 0.15409062802791595
       },
       "dimensions": {
-        "width": 0.5548799633979797,
-        "height": 0.6796250071492977,
-        "depth": 0.25796351581811905
+        "width": 0.5579767823219299,
+        "height": 0.6845358980353922,
+        "depth": 0.2597871795296669
       }
     }
   },
@@ -61,18 +61,24 @@
       "feet",
       "buttocks",
       "male-external-genitalia",
-      "pressure-injury-risk-surfaces"
+      "pressure-injury-risk-surfaces",
+      "continuous-visual-skin-surface",
+      "transparent-anatomical-hit-proxies"
     ],
-    "vertexCount": 25908,
-    "triangleCount": 45260,
+    "vertexCount": 165744,
+    "triangleCount": 91872,
     "ageGroup": "baby",
     "ageGroupLabel": "Baby",
     "sexPhenotype": "maennlich",
     "developmentalStage": "infant",
     "pediatricReference": true,
     "pediatricAnatomyReviewed": false,
+    "adolescentReference": false,
     "prepubertalChest": false,
-    "nominalHeightMeters": 0.68
+    "nominalHeightMeters": 0.68,
+    "visualSurfaceVersion": 3,
+    "continuousClinicalSurface": true,
+    "referenceInspiration": "user-supplied-four-view-proportion-boards"
   },
   "zones": {
     "found": [
@@ -188,14 +194,16 @@
       "surface-upper-lip",
       "surface-urethral-opening-penis",
       "surface-wrist-left",
-      "surface-wrist-right"
+      "surface-wrist-right",
+      "visual-surface-body-baby-maennlich"
     ],
     "missing": []
   },
   "generatedReferenceSummary": {
     "variantId": "body-baby-maennlich",
-    "parts": 113,
+    "parts": 114,
     "zones": [
+      "visual-surface-body-baby-maennlich",
       "surface-scalp",
       "surface-face",
       "surface-occiput",
@@ -310,8 +318,8 @@
       "surface-little-toe-right",
       "surface-little-toe-nail-right"
     ],
-    "vertices": 25908,
-    "triangles": 45260,
+    "vertices": 165744,
+    "triangles": 91872,
     "medicallyReviewed": false,
     "safeForClinicalRelease": false
   },
@@ -322,6 +330,8 @@
     "raycastingReview": "pending",
     "medicalAnatomyReview": "pending",
     "pediatricAnatomyReview": "pending",
+    "adolescentAnatomyReview": "not-applicable",
+    "geriatricAnatomyReview": "not-applicable",
     "sensitiveAnatomyReview": "pending",
     "productionRelease": "blocked"
   }

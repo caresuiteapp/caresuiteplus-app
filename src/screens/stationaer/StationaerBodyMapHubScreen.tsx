@@ -43,7 +43,7 @@ export function StationaerBodyMapHubScreen() {
         <InfoBanner
           variant="info"
           title="Eine klinische Engine für Pflege und Stationär"
-          message="Alle 18 Körpervarianten, anatomischen Treffer, gelben Pulsmarker, Dekubitus-Assessments, Fotos und Verläufe stehen bewohnerbezogen zur Verfügung."
+          message="Alle 30 technischen Körpervarianten, anatomischen Treffer, gelben Pulsmarker, Dekubitus-Assessments, Fotos und Verläufe stehen bewohnerbezogen zur Verfügung."
         />
         <SectionPanel
           title="Bewohner:in auswählen"

@@ -21,12 +21,12 @@ const adultDivers = (
 });
 
 describe('medizinische 3D-Mesh-Pipeline', () => {
-  it('registriert genau 15 Grundmodelle und drei zusätzliche Divers-Varianten', () => {
-    expect(MEDICAL_MESH_VARIANTS).toHaveLength(18);
-    expect(new Set(MEDICAL_MESH_VARIANTS.map((entry) => entry.id)).size).toBe(18);
+  it('registriert genau 24 Grundmodelle und sechs zusätzliche Divers-Varianten', () => {
+    expect(MEDICAL_MESH_VARIANTS).toHaveLength(30);
+    expect(new Set(MEDICAL_MESH_VARIANTS.map((entry) => entry.id)).size).toBe(30);
   });
 
-  it('löst die drei zusätzlichen erwachsenen Divers-Konfigurationen eindeutig auf', () => {
+  it('löst die sechs erwachsenen Divers-Konfigurationen eindeutig auf', () => {
     expect(resolveMedicalMeshVariantId(adultDivers('penis', 'brueste'))).toBe(
       'body-erwachsener-divers-penis-brueste',
     );
@@ -35,6 +35,15 @@ describe('medizinische 3D-Mesh-Pipeline', () => {
     );
     expect(resolveMedicalMeshVariantId(adultDivers('unbekannt', 'brueste'))).toBe(
       'body-erwachsener-divers-unbekannt-brueste',
+    );
+    expect(resolveMedicalMeshVariantId(adultDivers('penis', 'keine_brueste'))).toBe(
+      'body-erwachsener-divers-penis-keine-brueste',
+    );
+    expect(resolveMedicalMeshVariantId(adultDivers('vulva', 'brueste'))).toBe(
+      'body-erwachsener-divers-vulva-brueste',
+    );
+    expect(resolveMedicalMeshVariantId(adultDivers('unbekannt', 'keine_brueste'))).toBe(
+      'body-erwachsener-divers-unbekannt-keine-brueste',
     );
   });
 
@@ -47,7 +56,7 @@ describe('medizinische 3D-Mesh-Pipeline', () => {
     ).toBe('technical-review');
   });
 
-  it('zeigt alle 18 selbst entwickelten Referenzmeshes nur in der technischen Vorschau', () => {
+  it('zeigt alle 30 selbst entwickelten Referenzmeshes nur in der technischen Vorschau', () => {
     const adultMale = MEDICAL_MESH_VARIANTS.find(
       (entry) => entry.id === 'body-erwachsener-maennlich',
     );
@@ -69,7 +78,7 @@ describe('medizinische 3D-Mesh-Pipeline', () => {
     const technicalReferences = MEDICAL_MESH_VARIANTS.filter(
       (entry) => entry.reviewStatus === 'technical-review',
     );
-    expect(technicalReferences).toHaveLength(18);
+    expect(technicalReferences).toHaveLength(30);
     for (const definition of technicalReferences) {
       expect(definition.assetPath).toMatch(/^\/bodymap3d\/v2\/.+-v2\.glb$/);
       expect(canPreviewMedicalMesh(definition)).toBe(true);

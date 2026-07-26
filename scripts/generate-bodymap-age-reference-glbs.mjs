@@ -58,7 +58,15 @@ for (const configuration of AGE_REFERENCE_VARIANTS) {
       raycastingReview: 'pending',
       medicalAnatomyReview: 'pending',
       pediatricAnatomyReview:
-        configuration.ageGroup === 'junger-erwachsener' ? 'not-applicable' : 'pending',
+        ['baby', 'kleinkind', 'kind'].includes(configuration.ageGroup)
+          ? 'pending'
+          : 'not-applicable',
+      adolescentAnatomyReview:
+        configuration.ageGroup === 'jugendlicher' ? 'pending' : 'not-applicable',
+      geriatricAnatomyReview:
+        ['senior', 'hochbetagt'].includes(configuration.ageGroup)
+          ? 'pending'
+          : 'not-applicable',
       sensitiveAnatomyReview: 'pending',
       productionRelease: 'blocked',
     },
@@ -75,11 +83,11 @@ for (const configuration of AGE_REFERENCE_VARIANTS) {
   });
 }
 
-console.log('Acht altersabhängige technische 3D-Referenzkörper deterministisch erzeugt.');
+console.log(`${results.length} altersabhängige technische 3D-Referenzkörper deterministisch erzeugt.`);
 for (const result of results) {
   console.log(
     `${result.id}: ${result.heightMeters} m · ${result.zones} Zonen · ${result.vertices} Vertices · ${result.triangles} Dreiecke · ${result.bytes} Bytes`,
   );
 }
-console.log('Medizinische Freigabe: 0/8');
-console.log('Produktionsfreigabe: 0/8 · GESPERRT');
+console.log(`Medizinische Freigabe: 0/${results.length}`);
+console.log(`Produktionsfreigabe: 0/${results.length} · GESPERRT`);
