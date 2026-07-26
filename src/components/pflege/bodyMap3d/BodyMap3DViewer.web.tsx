@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows, OrbitControls } from '@react-three/drei';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { ACESFilmicToneMapping, SRGBColorSpace } from 'three';
 import { colors, spacing, typography } from '@/theme';
 import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
@@ -30,9 +36,11 @@ export function BodyMap3DViewer({
   selectedMarkerId,
   disabled,
   allowTechnicalMeshPreview = true,
+  presentationMode = 'embedded',
   onSurfacePress,
   onMarkerPress,
 }: BodyMap3DViewerProps) {
+  const viewport = useWindowDimensions();
   const model = getBodyMapModel(selection);
   const medicalMesh = getMedicalMeshDefinition(selection);
   const realHumanVisual = getRealHumanVisualDefinition(selection);
@@ -66,9 +74,19 @@ export function BodyMap3DViewer({
     useState<(typeof VIEW_PRESETS)[number]['id']>('front');
   const modelRotation = VIEW_PRESETS.find((preset) => preset.id === activeView)?.yaw ?? 0;
   const groundY = -medicalMesh.nominalHeightMeters / 2 - 0.015;
+  const cameraFov = 32;
+  const cameraDistance =
+    medicalMesh.nominalHeightMeters /
+    (2 * Math.tan((cameraFov * Math.PI) / 360) * 0.84);
+  const reviewHeight = Math.max(720, Math.min(980, viewport.height - 150));
 
   return (
-    <View style={styles.shell}>
+    <View
+      style={[
+        styles.shell,
+        presentationMode === 'review' && { minHeight: reviewHeight },
+      ]}
+    >
       <View style={styles.statusRow}>
         <View>
           <Text style={styles.modelLabel}>{model.label}</Text>
@@ -121,11 +139,12 @@ export function BodyMap3DViewer({
       </View>
       <View style={styles.canvas}>
         <Canvas
+          key={`${model.id}:${presentationMode}`}
           shadows
           dpr={[1, 1.8]}
           camera={{
-            position: [0, 0.25, model.cameraDistance],
-            fov: 34,
+            position: [0, 0, cameraDistance],
+            fov: cameraFov,
             near: 0.01,
             far: 50,
           }}
@@ -171,8 +190,8 @@ export function BodyMap3DViewer({
             enableDamping
             dampingFactor={0.08}
             target={[0, 0, 0]}
-            minDistance={1.25}
-            maxDistance={8}
+            minDistance={Math.max(0.35, medicalMesh.nominalHeightMeters * 0.72)}
+            maxDistance={Math.max(3, medicalMesh.nominalHeightMeters * 4.5)}
             minPolarAngle={0.15}
             maxPolarAngle={Math.PI - 0.15}
           />

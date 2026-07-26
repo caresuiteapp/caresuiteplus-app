@@ -1,6 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { deflateSync } from 'node:zlib';
+import { Buffer } from 'node:buffer';
+import {
+  capsuleGeometry,
+  ellipsoidGeometry,
+} from './bodymap-adult-male-reference-glb.mjs';
 
 const GLB_MAGIC = 0x46546c67;
 const GLB_VERSION = 2;
@@ -52,6 +57,30 @@ function variantTokens(variantId) {
     femaleWeight = 0.32;
   }
   return { age, sex, femaleWeight };
+}
+
+function anatomyProfile(variantId) {
+  const tokens = variantTokens(variantId);
+  const explicitGenital = variantId.includes('-penis-')
+    ? 'penis'
+    : variantId.includes('-vulva-')
+      ? 'vulva'
+      : variantId.includes('-unbekannt-')
+        ? 'unknown'
+        : tokens.sex === 'male'
+          ? 'penis'
+          : tokens.sex === 'female'
+            ? 'vulva'
+            : 'unknown';
+  const breastProfile = variantId.endsWith('-brueste') &&
+    !variantId.endsWith('-keine-brueste')
+    ? 'breasts'
+    : variantId.endsWith('-keine-brueste')
+      ? 'no-breasts'
+      : tokens.sex === 'female'
+        ? 'breasts'
+        : 'no-breasts';
+  return { ...tokens, genital: explicitGenital, breastProfile };
 }
 
 function targetPlan(variantId) {
@@ -149,22 +178,54 @@ function normalizePositions(positions, bodyIndices, nominalHeightMeters) {
   return { scale, sourceHeight };
 }
 
-function applyClinicalStandingPose(positions, nominalHeightMeters) {
+function applyClinicalStandingPose(
+  positions,
+  referencePositions,
+  nominalHeightMeters,
+  age,
+) {
+  const referenceBounds = {
+    min: [Infinity, Infinity, Infinity],
+    max: [-Infinity, -Infinity, -Infinity],
+  };
+  for (const position of referencePositions) {
+    for (let axis = 0; axis < 3; axis += 1) {
+      referenceBounds.min[axis] = Math.min(referenceBounds.min[axis], position[axis]);
+      referenceBounds.max[axis] = Math.max(referenceBounds.max[axis], position[axis]);
+    }
+  }
+  const referenceHeight = referenceBounds.max[1] - referenceBounds.min[1];
+  const referenceCenterX =
+    (referenceBounds.min[0] + referenceBounds.max[0]) / 2;
   const shoulderY = nominalHeightMeters * 0.79;
   const shoulderX = nominalHeightMeters * 0.135;
-  const blendStart = nominalHeightMeters * 0.105;
-  const blendEnd = nominalHeightMeters * 0.19;
-  const minimumArmY = nominalHeightMeters * 0.46;
-  const maximumArmY = nominalHeightMeters * 0.86;
-  const rotation = 0.76;
-  for (const position of positions) {
-    const side = Math.sign(position[0]);
-    const absoluteX = Math.abs(position[0]);
+  const blendStart = 0.105;
+  const blendEnd = 0.19;
+  const minimumArmY = 0.46;
+  const maximumArmY = 0.86;
+  const rotation = {
+    baby: 0.54,
+    kleinkind: 0.59,
+    kind: 0.64,
+    jugendlicher: 0.7,
+    'junger-erwachsener': 0.74,
+    erwachsener: 0.76,
+    senior: 0.76,
+    hochbetagt: 0.76,
+  }[age];
+  for (let index = 0; index < positions.length; index += 1) {
+    const position = positions[index];
+    const reference = referencePositions[index];
+    const referenceX = (reference[0] - referenceCenterX) / referenceHeight;
+    const referenceY =
+      (reference[1] - referenceBounds.min[1]) / referenceHeight;
+    const side = Math.sign(referenceX);
+    const absoluteX = Math.abs(referenceX);
     if (
       side === 0 ||
       absoluteX <= blendStart ||
-      position[1] < minimumArmY ||
-      position[1] > maximumArmY
+      referenceY < minimumArmY ||
+      referenceY > maximumArmY
     ) {
       continue;
     }
@@ -269,6 +330,246 @@ function geometryBounds(positions) {
     }
   }
   return { min, max };
+}
+
+function extremeSurfaceZ(
+  positions,
+  {
+    x,
+    y,
+    radiusX,
+    radiusY,
+    direction,
+  },
+) {
+  const candidates = [];
+  for (const position of positions) {
+    if (
+      Math.abs(position[0] - x) > radiusX ||
+      Math.abs(position[1] - y) > radiusY
+    ) {
+      continue;
+    }
+    candidates.push(position[2]);
+  }
+  if (!candidates.length) return 0;
+  candidates.sort((a, b) => a - b);
+  // Ein Quantil statt des äußersten Vertex hält Details an der Haut. Einzelne
+  // Finger-, Haar- oder Nasenvertices dürfen die Oberfläche nicht verschieben.
+  const quantile = direction === 'front' ? 0.76 : 0.24;
+  return candidates[Math.floor((candidates.length - 1) * quantile)];
+}
+
+function externalAnatomyGroups(variantId, nominalHeightMeters, positions) {
+  const profile = anatomyProfile(variantId);
+  const scale = nominalHeightMeters / 1.72;
+  const ageScale = {
+    baby: 0.48,
+    kleinkind: 0.56,
+    kind: 0.67,
+    jugendlicher: 0.88,
+    'junger-erwachsener': 1,
+    erwachsener: 1,
+    senior: 0.98,
+    hochbetagt: 0.96,
+  }[profile.age];
+  const detailScale = scale * ageScale;
+  const groups = [];
+  const add = (name, label, material, geometry) =>
+    groups.push({ name, label, material, geometry });
+
+  const chestY = nominalHeightMeters * 0.785;
+  const chestX = nominalHeightMeters * 0.048;
+  for (const side of [-1, 1]) {
+    const x = side * chestX;
+    const matureBreast =
+      profile.breastProfile === 'breasts' &&
+      !['baby', 'kleinkind', 'kind'].includes(profile.age);
+    const surfaceZ = extremeSurfaceZ(positions, {
+      x,
+      y: chestY,
+      radiusX: nominalHeightMeters * 0.025,
+      radiusY: nominalHeightMeters * 0.025,
+      direction: 'front',
+    });
+    const areolaRadius = nominalHeightMeters * (matureBreast ? 0.013 : 0.008);
+    add(
+      `real-human-areola-${side < 0 ? 'left' : 'right'}`,
+      `Warzenhof ${side < 0 ? 'links' : 'rechts'}`,
+      5,
+      ellipsoidGeometry(
+        [x, chestY, surfaceZ + nominalHeightMeters * 0.002],
+        [areolaRadius, areolaRadius, nominalHeightMeters * 0.0025],
+        { longitudeSegments: 20, latitudeSegments: 12 },
+      ),
+    );
+    add(
+      `real-human-nipple-${side < 0 ? 'left' : 'right'}`,
+      `Brustwarze ${side < 0 ? 'links' : 'rechts'}`,
+      5,
+      ellipsoidGeometry(
+        [x, chestY, surfaceZ + nominalHeightMeters * 0.005],
+        [
+          nominalHeightMeters * 0.0045,
+          nominalHeightMeters * 0.0045,
+          nominalHeightMeters * 0.004,
+        ],
+        { longitudeSegments: 16, latitudeSegments: 10 },
+      ),
+    );
+  }
+
+  const pelvisY = nominalHeightMeters * 0.565;
+  const pelvisFrontZ = extremeSurfaceZ(positions, {
+    x: 0,
+    y: pelvisY,
+    radiusX: nominalHeightMeters * 0.022,
+    radiusY: nominalHeightMeters * 0.03,
+    direction: 'front',
+  });
+  if (profile.genital === 'penis') {
+    const shaftRadius = 0.021 * detailScale;
+    add(
+      'real-human-penis',
+      'Penisschaft',
+      0,
+      capsuleGeometry(
+        [0, pelvisY + 0.018 * scale, pelvisFrontZ + 0.012 * scale],
+        [
+          0,
+          pelvisY - 0.055 * detailScale,
+          pelvisFrontZ + 0.068 * detailScale,
+        ],
+        shaftRadius,
+        {
+          radialSegments: 24,
+          capSegments: 7,
+          radiusX: shaftRadius,
+          radiusZ: shaftRadius * 0.94,
+        },
+      ),
+    );
+    add(
+      'real-human-glans',
+      'Glans penis',
+      6,
+      ellipsoidGeometry(
+        [
+          0,
+          pelvisY - 0.067 * detailScale,
+          pelvisFrontZ + 0.08 * detailScale,
+        ],
+        [0.024 * detailScale, 0.028 * detailScale, 0.023 * detailScale],
+        { longitudeSegments: 24, latitudeSegments: 15 },
+      ),
+    );
+    for (const side of [-1, 1]) {
+      add(
+        `real-human-scrotum-${side < 0 ? 'left' : 'right'}`,
+        `Skrotum ${side < 0 ? 'links' : 'rechts'}`,
+        0,
+        ellipsoidGeometry(
+          [
+            side * 0.025 * detailScale,
+            pelvisY - 0.02 * detailScale,
+            pelvisFrontZ + 0.018 * detailScale,
+          ],
+          [0.03 * detailScale, 0.042 * detailScale, 0.028 * detailScale],
+          { longitudeSegments: 22, latitudeSegments: 14 },
+        ),
+      );
+    }
+  } else if (profile.genital === 'vulva') {
+    for (const side of [-1, 1]) {
+      add(
+        `real-human-labium-majus-${side < 0 ? 'left' : 'right'}`,
+        `Große Schamlippe ${side < 0 ? 'links' : 'rechts'}`,
+        5,
+        capsuleGeometry(
+          [
+            side * 0.018 * detailScale,
+            pelvisY + 0.026 * detailScale,
+            pelvisFrontZ + 0.008 * scale,
+          ],
+          [
+            side * 0.014 * detailScale,
+            pelvisY - 0.045 * detailScale,
+            pelvisFrontZ + 0.014 * scale,
+          ],
+          0.012 * detailScale,
+          {
+            radialSegments: 20,
+            capSegments: 6,
+            radiusX: 0.011 * detailScale,
+            radiusZ: 0.007 * detailScale,
+          },
+        ),
+      );
+      add(
+        `real-human-labium-minus-${side < 0 ? 'left' : 'right'}`,
+        `Kleine Schamlippe ${side < 0 ? 'links' : 'rechts'}`,
+        6,
+        capsuleGeometry(
+          [
+            side * 0.006 * detailScale,
+            pelvisY + 0.014 * detailScale,
+            pelvisFrontZ + 0.019 * scale,
+          ],
+          [
+            side * 0.005 * detailScale,
+            pelvisY - 0.033 * detailScale,
+            pelvisFrontZ + 0.021 * scale,
+          ],
+          0.005 * detailScale,
+          { radialSegments: 16, capSegments: 5 },
+        ),
+      );
+    }
+    add(
+      'real-human-clitoris',
+      'Klitoris',
+      6,
+      ellipsoidGeometry(
+        [0, pelvisY + 0.028 * detailScale, pelvisFrontZ + 0.024 * scale],
+        [0.006 * detailScale, 0.006 * detailScale, 0.004 * detailScale],
+        { longitudeSegments: 16, latitudeSegments: 10 },
+      ),
+    );
+    add(
+      'real-human-vaginal-opening',
+      'Vaginalöffnung',
+      7,
+      ellipsoidGeometry(
+        [0, pelvisY - 0.024 * detailScale, pelvisFrontZ + 0.024 * scale],
+        [0.006 * detailScale, 0.014 * detailScale, 0.003 * detailScale],
+        { longitudeSegments: 16, latitudeSegments: 10 },
+      ),
+    );
+  }
+
+  const anusY = nominalHeightMeters * 0.55;
+  const pelvisBackZ = extremeSurfaceZ(positions, {
+    x: 0,
+    y: anusY,
+    radiusX: nominalHeightMeters * 0.022,
+    radiusY: nominalHeightMeters * 0.03,
+    direction: 'back',
+  });
+  add(
+    'real-human-anus',
+    'Anus',
+    7,
+    ellipsoidGeometry(
+      [0, anusY, pelvisBackZ - nominalHeightMeters * 0.002],
+      [
+        nominalHeightMeters * 0.009,
+        nominalHeightMeters * 0.011,
+        nominalHeightMeters * 0.0025,
+      ],
+      { longitudeSegments: 18, latitudeSegments: 11 },
+    ),
+  );
+  return groups;
 }
 
 function discGeometry({ center, radius, segments = 32, zOffset = 0 }) {
@@ -391,7 +692,7 @@ function rgbaPng(width, height, pixelAt) {
 let skinTextureSet;
 function proceduralSkinTextures() {
   if (skinTextureSet) return skinTextureSet;
-  const size = 128;
+  const size = 256;
   const heightAt = (x, y) => {
     const wrappedX = (x + size) % size;
     const wrappedY = (y + size) % size;
@@ -405,7 +706,7 @@ function proceduralSkinTextures() {
   const normal = rgbaPng(size, size, (x, y) => {
     const dx = heightAt(x + 1, y) - heightAt(x - 1, y);
     const dy = heightAt(x, y + 1) - heightAt(x, y - 1);
-    const strength = 0.12;
+    const strength = 0.18;
     const nx = -dx * strength;
     const ny = -dy * strength;
     const nz = 1;
@@ -419,10 +720,24 @@ function proceduralSkinTextures() {
   });
   const metallicRoughness = rgbaPng(size, size, (x, y) => {
     const detail = Math.max(-1, Math.min(1, heightAt(x, y)));
-    const roughness = Math.round(178 + detail * 22);
+    const roughness = Math.round(164 + detail * 28);
     return [255, 0, roughness, 255];
   });
-  skinTextureSet = { normal, metallicRoughness };
+  const albedo = rgbaPng(size, size, (x, y) => {
+    const micro = Math.max(-1, Math.min(1, heightAt(x, y)));
+    const broad =
+      Math.sin((x / size) * Math.PI * 5.3) *
+      Math.cos((y / size) * Math.PI * 3.7);
+    const follicle =
+      ((x * 37 + y * 73 + ((x * y) % 97)) % 251) < 3 ? -13 : 0;
+    return [
+      Math.round(247 + micro * 4 + broad * 2 + follicle),
+      Math.round(225 + micro * 3 + broad * 1.5 + follicle * 0.45),
+      Math.round(216 + micro * 2 + broad + follicle * 0.3),
+      255,
+    ];
+  });
+  skinTextureSet = { albedo, normal, metallicRoughness };
   return skinTextureSet;
 }
 
@@ -522,6 +837,7 @@ function buildGlb({ variantId, nominalHeightMeters, groups, morphPlan }) {
   const skinTextures = proceduralSkinTextures();
   const skinNormalView = appendView(skinTextures.normal);
   const skinRoughnessView = appendView(skinTextures.metallicRoughness);
+  const skinAlbedoView = appendView(skinTextures.albedo);
   const binary = Buffer.concat(buffers);
   const gltf = {
     asset: {
@@ -564,6 +880,7 @@ function buildGlb({ variantId, nominalHeightMeters, groups, morphPlan }) {
         },
         pbrMetallicRoughness: {
           baseColorFactor: [0.725, 0.471, 0.333, 1],
+          baseColorTexture: { index: 2 },
           metallicFactor: 0,
           roughnessFactor: 0.5,
           metallicRoughnessTexture: { index: 1 },
@@ -606,6 +923,33 @@ function buildGlb({ variantId, nominalHeightMeters, groups, morphPlan }) {
           roughnessFactor: 0.2,
         },
       },
+      {
+        name: 'areola_skin',
+        extras: { materialRole: 'areola-and-nipple' },
+        pbrMetallicRoughness: {
+          baseColorFactor: [0.48, 0.25, 0.2, 1],
+          metallicFactor: 0,
+          roughnessFactor: 0.58,
+        },
+      },
+      {
+        name: 'genital_mucosa',
+        extras: { materialRole: 'external-genital-mucosa' },
+        pbrMetallicRoughness: {
+          baseColorFactor: [0.55, 0.27, 0.26, 1],
+          metallicFactor: 0,
+          roughnessFactor: 0.48,
+        },
+      },
+      {
+        name: 'anatomical_opening',
+        extras: { materialRole: 'anatomical-opening' },
+        pbrMetallicRoughness: {
+          baseColorFactor: [0.2, 0.075, 0.07, 1],
+          metallicFactor: 0,
+          roughnessFactor: 0.62,
+        },
+      },
     ],
     samplers: [
       {
@@ -626,10 +970,16 @@ function buildGlb({ variantId, nominalHeightMeters, groups, morphPlan }) {
         mimeType: 'image/png',
         bufferView: skinRoughnessView,
       },
+      {
+        name: 'skin_albedo_detail',
+        mimeType: 'image/png',
+        bufferView: skinAlbedoView,
+      },
     ],
     textures: [
       { name: 'skin_micro_normal', sampler: 0, source: 0 },
       { name: 'skin_metallic_roughness', sampler: 0, source: 1 },
+      { name: 'skin_albedo_detail', sampler: 0, source: 2 },
     ],
     meshes,
     nodes,
@@ -672,6 +1022,11 @@ async function parsedBase() {
 
 export async function buildRealHumanGlb({ variantId, nominalHeightMeters }) {
   const base = await parsedBase();
+  // Die unveränderte HM08-Topologie ist die stabile Referenz für die Pose.
+  // Altersmorphs verschieben besonders bei Babys Schulter, Hand und Becken so
+  // stark, dass eine Klassifikation anhand der bereits gemorphten Koordinaten
+  // einzelne Dreiecke auseinanderziehen würde.
+  const poseReferencePositions = base.positions.map((position) => [...position]);
   const model = {
     positions: base.positions.map((position) => [...position]),
     uvs: base.uvs,
@@ -684,7 +1039,12 @@ export async function buildRealHumanGlb({ variantId, nominalHeightMeters }) {
   }
   const bodyIndices = bodyVertexIndices(model.facesByGroup);
   normalizePositions(model.positions, bodyIndices, nominalHeightMeters);
-  applyClinicalStandingPose(model.positions, nominalHeightMeters);
+  applyClinicalStandingPose(
+    model.positions,
+    poseReferencePositions,
+    nominalHeightMeters,
+    anatomyProfile(variantId).age,
+  );
   const leftEyeGeometry = geometryForGroup(model, 'helper-l-eye');
   const rightEyeGeometry = geometryForGroup(model, 'helper-r-eye');
   const groups = [
@@ -720,6 +1080,11 @@ export async function buildRealHumanGlb({ variantId, nominalHeightMeters }) {
     },
     ...eyeSurfaceDetails(leftEyeGeometry, 'left'),
     ...eyeSurfaceDetails(rightEyeGeometry, 'right'),
+    ...externalAnatomyGroups(
+      variantId,
+      nominalHeightMeters,
+      model.positions,
+    ),
   ].filter((group) => group.geometry.indices.length > 0);
   return buildGlb({ variantId, nominalHeightMeters, groups, morphPlan });
 }

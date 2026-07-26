@@ -78,6 +78,9 @@
     "bodymap3d:mesh:render-female-reference-qa": "node scripts/render-bodymap-adult-female-reference-qa.mjs",
     "bodymap3d:mesh:render-age-reference-qa": "node scripts/render-bodymap-age-reference-qa.mjs",
     "bodymap3d:mesh:render-divers-reference-qa": "node scripts/render-bodymap-divers-reference-qa.mjs",
+    "bodymap3d:real-human:generate": "node scripts/generate-bodymap-real-human-glbs.mjs",
+    "bodymap3d:real-human:verify-geometry": "node scripts/verify-bodymap-real-human-geometry.mjs",
+    "bodymap3d:real-human:render-all": "node scripts/render-all-bodymap-real-human-qa.mjs",
     "bodymap3d:deploy:gitbash": "bash scripts/deploy-bodymap3d-gitbash.sh"
   },
   "dependencies": {

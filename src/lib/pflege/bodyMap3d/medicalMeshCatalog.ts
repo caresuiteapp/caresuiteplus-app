@@ -42,6 +42,7 @@ export type RealHumanVisualDefinition = {
   interactionAssetPath: string;
   nominalHeightMeters: number;
   visualStatus: 'production-candidate';
+  visualReviewStatus: 'blocked-until-visual-qa' | 'qa-ready';
   medicalReviewStatus: 'pending' | 'in-review' | 'approved';
   sourceLicense: 'CC0-1.0';
   vertices: number;

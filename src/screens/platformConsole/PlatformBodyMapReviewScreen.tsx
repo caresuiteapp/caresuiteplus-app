@@ -112,6 +112,7 @@ export function PlatformBodyMapReviewScreen() {
   const [issueDescription, setIssueDescription] = useState('');
   const [issueSeverity, setIssueSeverity] =
     useState<BodyMapMedicalReviewIssue['severity']>('minor');
+  const [viewerFocusMode, setViewerFocusMode] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -198,6 +199,12 @@ export function PlatformBodyMapReviewScreen() {
   }
 
   async function startReview() {
+    if (selectedVariant.visualReviewStatus !== 'qa-ready') {
+      setError(
+        'Medizinische Prüfung gesperrt: Der Körper hat die vollständige visuelle 3D-Qualitätsprüfung noch nicht bestanden.',
+      );
+      return;
+    }
     setSaving(true);
     const result = await startBodyMapMedicalReview({
       variantId: selectedVariant.id,
@@ -285,15 +292,24 @@ export function PlatformBodyMapReviewScreen() {
         />
       ) : (
         <ScrollView contentContainerStyle={styles.page}>
-          <View style={styles.kpiRow}>
-            <Kpi label="Varianten" value="30" tone="neutral" />
-            <Kpi label="Freigegeben" value={`${summary.approved}/30`} tone="success" />
-            <Kpi label="In Prüfung" value={String(summary.inReview)} tone="warning" />
-            <Kpi label="Offene Probleme" value={String(summary.openIssues)} tone="danger" />
-            <Kpi label="Asset geändert" value={String(summary.stale)} tone="danger" />
-          </View>
+          {!viewerFocusMode ? (
+            <View style={styles.kpiRow}>
+              <Kpi label="Varianten" value="30" tone="neutral" />
+              <Kpi label="Freigegeben" value={`${summary.approved}/30`} tone="success" />
+              <Kpi label="In Prüfung" value={String(summary.inReview)} tone="warning" />
+              <Kpi label="Offene Probleme" value={String(summary.openIssues)} tone="danger" />
+              <Kpi label="Asset geändert" value={String(summary.stale)} tone="danger" />
+            </View>
+          ) : null}
 
-          <View style={[styles.workspace, width < 1180 && styles.workspaceNarrow]}>
+          <View
+            style={[
+              styles.workspace,
+              width < 1180 && styles.workspaceNarrow,
+              viewerFocusMode && styles.workspaceFocus,
+            ]}
+          >
+            {!viewerFocusMode ? (
             <View style={[styles.matrixPanel, width < 1180 && styles.matrixPanelNarrow]}>
               <Text style={styles.panelTitle}>Variantenmatrix</Text>
               <TextInput
@@ -345,8 +361,9 @@ export function PlatformBodyMapReviewScreen() {
                 })}
               </ScrollView>
             </View>
+            ) : null}
 
-            <View style={styles.detailPanel}>
+            <View style={[styles.detailPanel, viewerFocusMode && styles.detailPanelFocus]}>
               <View style={styles.detailHeader}>
                 <View style={styles.flex}>
                   <Text style={styles.title}>{bodyMapVariantLabel(selectedVariant.id)}</Text>
@@ -359,6 +376,15 @@ export function PlatformBodyMapReviewScreen() {
                     Asset SHA-256: {selectedVariant.assetSha256}
                   </Text>
                 </View>
+                <Pressable
+                  accessibilityRole="button"
+                  style={styles.focusButton}
+                  onPress={() => setViewerFocusMode((current) => !current)}
+                >
+                  <Text style={styles.focusButtonText}>
+                    {viewerFocusMode ? 'Prüfzentrum anzeigen' : '3D-Großansicht'}
+                  </Text>
+                </Pressable>
                 <StatusPill status={selectedStatus} />
               </View>
 
@@ -367,6 +393,7 @@ export function PlatformBodyMapReviewScreen() {
                   selection={selectionFromBodyMapVariantId(selectedVariant.id)}
                   markers={[]}
                   allowTechnicalMeshPreview
+                  presentationMode="review"
                   onSurfacePress={(hit) =>
                     setSurfacePoint({
                       zoneId: hit.anatomicalZoneId,
@@ -375,6 +402,18 @@ export function PlatformBodyMapReviewScreen() {
                   }
                 />
               </View>
+              {selectedVariant.visualReviewStatus !== 'qa-ready' ? (
+                <View style={styles.visualBlocker}>
+                  <Text style={styles.visualBlockerTitle}>
+                    Medizinische Prüfung derzeit gesperrt
+                  </Text>
+                  <Text style={styles.bodyText}>
+                    Dieses Modell befindet sich noch im visuellen Körperaufbau. Erst
+                    nach bestandener Vierseiten-, Detail-, Naht- und
+                    Interaktionsprüfung wird die medizinische Prüfliste aktiviert.
+                  </Text>
+                </View>
+              ) : null}
               <Text style={styles.hint}>
                 Modell drehen und zoomen. Eine fehlerhafte Stelle direkt anklicken, um
                 ein positionsgebundenes Prüfproblem anzulegen.
@@ -391,7 +430,10 @@ export function PlatformBodyMapReviewScreen() {
                   {canWrite ? (
                     <ActionButton
                       label={saving ? 'Wird gestartet…' : 'Medizinische Prüfung starten'}
-                      disabled={saving}
+                      disabled={
+                        saving ||
+                        selectedVariant.visualReviewStatus !== 'qa-ready'
+                      }
                       onPress={() => void startReview()}
                     />
                   ) : null}
@@ -802,6 +844,7 @@ const styles = StyleSheet.create({
   kpiValue: { fontSize: 24, fontWeight: '900' },
   kpiLabel: { color: PLATFORM_COLORS.muted, fontSize: 12, marginTop: 3 },
   workspace: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  workspaceFocus: { alignItems: 'stretch' },
   workspaceNarrow: { flexDirection: 'column' },
   matrixPanel: {
     width: 360,
@@ -823,11 +866,31 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.md,
   },
+  detailPanelFocus: {
+    width: '100%',
+    borderRadius: 0,
+    padding: spacing.sm,
+  },
   panelTitle: { color: PLATFORM_COLORS.text, fontSize: 16, fontWeight: '800' },
   title: { color: PLATFORM_COLORS.text, fontSize: 21, fontWeight: '900' },
   meta: { color: PLATFORM_COLORS.muted, fontSize: 12, marginTop: 5 },
   fullHash: { color: PLATFORM_COLORS.muted, fontSize: 10, marginTop: 5 },
   detailHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  focusButton: {
+    minHeight: 38,
+    paddingHorizontal: spacing.md,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: PLATFORM_COLORS.accent,
+    backgroundColor: PLATFORM_COLORS.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  focusButtonText: {
+    color: PLATFORM_COLORS.text,
+    fontSize: 12,
+    fontWeight: '800',
+  },
   flex: { flex: 1, minWidth: 0 },
   input: {
     borderWidth: 1,
@@ -886,6 +949,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: PLATFORM_COLORS.warning,
     backgroundColor: PLATFORM_COLORS.panelSoft,
+  },
+  visualBlocker: {
+    padding: spacing.md,
+    gap: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: PLATFORM_COLORS.danger,
+    backgroundColor: 'rgba(220, 38, 38, 0.08)',
+  },
+  visualBlockerTitle: {
+    color: PLATFORM_COLORS.danger,
+    fontSize: 14,
+    fontWeight: '900',
   },
   bodyText: { color: PLATFORM_COLORS.muted, fontSize: 13, lineHeight: 19 },
   formGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

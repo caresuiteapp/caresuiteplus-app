@@ -1,3 +1,4 @@
+/* global URL, document */
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
@@ -21,6 +22,8 @@ const outputDirectory = resolve(
 );
 const outputFile = resolve(outputDirectory, `${variantId}-four-view.png`);
 const manifestFile = resolve(outputDirectory, `${variantId}-capture.json`);
+const readyTimeout = Number(process.env.BODYMAP_QA_READY_TIMEOUT ?? 120_000);
+const canvasTimeout = Number(process.env.BODYMAP_QA_CANVAS_TIMEOUT ?? 120_000);
 
 await mkdir(outputDirectory, { recursive: true });
 
@@ -49,7 +52,13 @@ const server = createServer(async (request, response) => {
     try {
       if ((await stat(filePath)).isDirectory()) filePath = join(filePath, 'index.html');
     } catch {
-      filePath = join(buildRoot, 'index.html');
+      try {
+        const routeFile = `${filePath}.html`;
+        await stat(routeFile);
+        filePath = routeFile;
+      } catch {
+        filePath = join(buildRoot, 'index.html');
+      }
     }
     const bytes = await readFile(filePath);
     response.writeHead(200, {
@@ -108,21 +117,46 @@ page.on('console', (message) => {
 
 const url = `http://127.0.0.1:${address.port}/bodymap-mesh-workbench?variant=${encodeURIComponent(variantId)}`;
 await page.goto(url, { waitUntil: 'networkidle', timeout: 120_000 });
-await page.getByTestId('bodymap-mesh-workbench-ready').waitFor({
-  state: 'visible',
-  timeout: 120_000,
-});
-await page.waitForFunction(
-  () => {
-    const canvases = Array.from(document.querySelectorAll('canvas'));
-    return (
-      canvases.length === 4 &&
-      canvases.every((canvas) => canvas.width > 100 && canvas.height > 100)
-    );
-  },
-  undefined,
-  { timeout: 120_000 },
-);
+try {
+  await page.getByTestId('bodymap-mesh-workbench-ready').waitFor({
+    state: 'visible',
+    timeout: readyTimeout,
+  });
+} catch (error) {
+  console.error('Workbench-Route:', page.url());
+  console.error('Workbench-Titel:', await page.title());
+  console.error(
+    'Workbench-Text:',
+    (await page.locator('body').innerText().catch(() => '')).slice(0, 1200),
+  );
+  console.error('Browserfehler:', browserErrors);
+  throw error;
+}
+try {
+  await page.waitForFunction(
+    () => {
+      const canvases = Array.from(document.querySelectorAll('canvas'));
+      return (
+        canvases.length === 4 &&
+        canvases.every((canvas) => canvas.width > 100 && canvas.height > 100)
+      );
+    },
+    undefined,
+    { timeout: canvasTimeout },
+  );
+} catch (error) {
+  console.error(
+    'Canvas-Diagnose:',
+    await page.evaluate(() =>
+      Array.from(document.querySelectorAll('canvas')).map((canvas) => ({
+        width: canvas.width,
+        height: canvas.height,
+      })),
+    ),
+  );
+  console.error('Browserfehler:', browserErrors);
+  throw error;
+}
 await page.waitForTimeout(1800);
 
 const canvasState = await page.evaluate(() =>
@@ -146,9 +180,9 @@ const result = {
   outputFile: relative(root, outputFile).replaceAll(sep, '/'),
   viewport: { width: 1800, height: 1450, deviceScaleFactor: 1 },
   canvasState,
-  rendererStatusVisible: statusText.includes(
-    'Technisches GLB-Referenzmesh · kontinuierliche Oberfläche',
-  ),
+  rendererStatusVisible:
+    statusText.includes('Real-Human 3D') ||
+    statusText.includes('Technisches GLB-Referenzmesh · kontinuierliche Oberfläche'),
   technicalReviewVisible: statusText.includes('technical-review'),
   medicalReleaseStillPending: statusText.includes('Medizinisch geprüft'),
   browserErrors,

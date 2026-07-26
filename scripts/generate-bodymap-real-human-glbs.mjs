@@ -27,6 +27,7 @@ for (const legacy of legacyManifest.variants) {
     interactionAssetPath: legacy.assetPath,
     nominalHeightMeters: legacy.nominalHeightMeters,
     visualStatus: 'production-candidate',
+    visualReviewStatus: 'blocked-until-visual-qa',
     medicalReviewStatus: 'pending',
     sourceLicense: generated.summary.sourceLicense,
     vertices: generated.summary.vertices,
@@ -51,6 +52,7 @@ await writeFile(
       qualityGate: {
         visualStatusRequiredForRuntime: 'production-candidate',
         medicalReviewStillRequired: true,
+        medicalReviewBlockedUntilVisualQa: true,
         interactionContractInheritedFrom: 'bodymap3d-v2',
         maximumFileSizeBytes: 15000000,
       },

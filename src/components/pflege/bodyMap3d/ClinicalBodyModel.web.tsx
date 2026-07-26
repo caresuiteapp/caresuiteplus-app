@@ -61,6 +61,11 @@ function prepareMedicalScene(
       mesh.userData.bodymapVisualOnly = true;
       if (hideTechnicalSurface) mesh.visible = false;
     }
+    if (interactionProxy) {
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      mesh.renderOrder = -100;
+    }
     const prepareMaterial = (source: Material) => {
       const material = tintClinicalSkinMaterial(
         source,

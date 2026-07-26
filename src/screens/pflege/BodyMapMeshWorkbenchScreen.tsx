@@ -34,6 +34,10 @@ function WorkbenchModelView({
   technicalMeshActive: boolean;
 }) {
   const model = getBodyMapModel(qaCase.selection);
+  const cameraFov = 32;
+  const cameraDistance =
+    model.nominalHeightMeters /
+    (2 * Math.tan((cameraFov * Math.PI) / 360) * 0.84);
   const qaMarker: BodyMap3DMarker = {
     id: `qa-marker-${qaCase.id}-${label}`,
     tenantId: 'visual-qa',
@@ -78,8 +82,8 @@ function WorkbenchModelView({
         <Canvas
           dpr={[1, 1.5]}
           camera={{
-            position: [0, model.cameraTargetY, Math.max(model.cameraDistance, 4.8)],
-            fov: 34,
+            position: [0, 0, cameraDistance],
+            fov: cameraFov,
             near: 0.01,
             far: 50,
           }}
@@ -167,7 +171,7 @@ export function BodyMapMeshWorkbenchScreen() {
 
       <View style={styles.workspace}>
         <View style={styles.sidebar}>
-          <Text style={styles.panelTitle}>18 Modellvarianten</Text>
+          <Text style={styles.panelTitle}>30 Modellvarianten</Text>
           <Text style={styles.panelHint}>
             Jede Variante bleibt getrennt versioniert und medizinisch freigabepflichtig.
           </Text>
@@ -224,7 +228,7 @@ export function BodyMapMeshWorkbenchScreen() {
             <CheckRow
               label="Produktionsfreigabe"
               passed={released}
-              detail="18er-Vergleich und klinische Abnahme dokumentiert"
+              detail="30er-Vergleich und klinische Abnahme dokumentiert"
             />
           </View>
         </View>

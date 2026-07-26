@@ -158,7 +158,7 @@ function renderView(view, originX) {
       <g>${polygons
         .map(
           (polygon) =>
-            `<polygon points="${polygon.points}" fill="${polygon.color}" stroke="${polygon.color}" stroke-width="0.25" stroke-linejoin="round" />`,
+            `<polygon points="${polygon.points}" fill="${polygon.color}" />`,
         )
         .join('')}</g>
       <line x1="${originX + 45}" y1="${floorY + 1}" x2="${originX + 335}" y2="${floorY + 1}"
@@ -170,7 +170,7 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1648" height="1080" viewBox="0 0 1648 1080">
   <rect width="1648" height="1080" fill="#04101f" />
   <text x="32" y="42" fill="#66a3ff" font-family="Arial, sans-serif"
-    font-size="13" font-weight="800" letter-spacing="2">CARESUITE · BODYMAP PHASE 11</text>
+    font-size="13" font-weight="800" letter-spacing="2">CARESUITE · BODYMAP VISUAL QA</text>
   <text x="32" y="72" fill="#f5f9ff" font-family="Arial, sans-serif"
     font-size="24" font-weight="900">${variantId} · REAL-HUMAN PRODUKTIONSKANDIDAT</text>
   ${views.map((view, index) => renderView(view, 28 + index * 398)).join('')}

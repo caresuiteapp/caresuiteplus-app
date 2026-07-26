@@ -54,8 +54,8 @@ describe('Phase 11 Real-Human-Visual-Assets', () => {
       expect(report.valid, definition.id).toBe(true);
       expect(report.stats?.vertices).toBe(definition.vertices);
       expect(report.stats?.triangles).toBe(definition.triangles);
-      expect(report.stats?.textures).toBe(2);
-      expect(report.stats?.images).toBe(2);
+      expect(report.stats?.textures).toBe(3);
+      expect(report.stats?.images).toBe(3);
       expect(report.metadata).toMatchObject({
         visualProductionCandidate: true,
         medicallyReviewed: false,
