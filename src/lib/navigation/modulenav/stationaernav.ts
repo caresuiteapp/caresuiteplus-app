@@ -13,6 +13,7 @@ export const stationaerNav: ModuleNavConfig = {
       items: [
         { key: 'calendar', label: 'Kalender', icon: '📅', href: '/stationaer/calendar' },
         { key: 'bewohner', label: 'Bewohner:innen', icon: '🏥', href: '/stationaer/bewohner' },
+        { key: 'bodymap', label: '3D-Bodymap', icon: '🟡', href: '/stationaer/bodymap' },
         { key: 'belegung', label: 'Belegung', icon: '🛏️', href: '/stationaer/belegung' },
         { key: 'planung', label: 'Bewohnerplanung', icon: '📋', href: '/stationaer/bewohnerplanung' },
       ],

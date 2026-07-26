@@ -7,6 +7,7 @@
 export type LegacyBodyMapGender = 'weiblich' | 'maennlich' | 'neutral';
 
 export type BodyMapSex = 'weiblich' | 'maennlich' | 'divers';
+export type BodyMapSubjectType = 'client' | 'resident';
 
 export type BodyMapGender = LegacyBodyMapGender | 'divers';
 
@@ -93,6 +94,8 @@ export type BodyMapMarker = {
   id: string;
   tenantId: string;
   clientId: string;
+  subjectType?: BodyMapSubjectType;
+  subjectId?: string;
   woundId: string | null;
   gender: BodyMapGender;
   view: BodyMapView;
@@ -149,6 +152,8 @@ export type BodyMap3DMarker = BodyMapMarker & {
 
 export type BodyMapMarkerCreateInput = {
   clientId: string;
+  subjectType?: BodyMapSubjectType;
+  subjectId?: string;
   gender: LegacyBodyMapGender;
   view: BodyMapView;
   region: BodyMapRegion;

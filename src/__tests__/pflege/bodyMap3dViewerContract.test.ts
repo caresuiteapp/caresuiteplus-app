@@ -15,6 +15,13 @@ describe('3D-Bodymap Viewer-Vertrag', () => {
     expect(source).toContain('maxDistance');
   });
 
+  it('zeigt technische GLB-Referenzen sichtbar, ohne medizinische Freigabe vorzutäuschen', () => {
+    const source = read('src/components/pflege/bodyMap3d/BodyMap3DViewer.web.tsx');
+    expect(source).toContain('allowTechnicalMeshPreview = true');
+    expect(source).toContain('TECHNISCHE REFERENZ · NICHT MEDIZINISCH FREIGEGEBEN');
+    expect(source).toContain('allowTechnicalMeshPreview={allowTechnicalMeshPreview}');
+  });
+
   it('bietet reproduzierbare Vorder-, Rück- und Seitenansichten', () => {
     const source = read('src/components/pflege/bodyMap3d/BodyMap3DViewer.web.tsx');
     expect(source).toContain('VIEW_PRESETS');
@@ -47,10 +54,12 @@ describe('3D-Bodymap Viewer-Vertrag', () => {
     expect(source).toContain('meshName');
   });
 
-  it('rendert ein räumlich ausgerichtetes rotes X', () => {
+  it('rendert einen räumlich ausgerichteten pulsierenden gelben Befundpunkt', () => {
     const source = read('src/components/pflege/bodyMap3d/ParametricBodyModel.tsx');
-    expect(source).toContain('function XMarker');
-    expect(source).toContain('#ef233c');
+    expect(source).toContain('function PulsingFindingMarker');
+    expect(source).toContain('#ffd21f');
+    expect(source).toContain('useFrame');
+    expect(source).toContain('ringGeometry');
     expect(source).toContain('setFromUnitVectors');
   });
 

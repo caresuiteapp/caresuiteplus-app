@@ -19,6 +19,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   cases: 'Fälle',
   courses: 'Kurse',
   bewohner: 'Bewohner:innen',
+  bodymap: '3D-Bodymap',
   wohnbereiche: 'Wohnbereiche',
   uebergabebericht: 'Übergabebericht',
   auswertungen: 'Auswertungen',

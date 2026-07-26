@@ -36,7 +36,7 @@ allein durch einen Softwaretest gesetzt werden.
 
 Jede anklickbare Oberfläche besitzt eine `zoneId` aus dem Anatomiekatalog. Ein
 Befund speichert Mesh-Lokalpunkt, Modellwurzelpunkt, Weltpunkt, Modell- und
-Weltnormale, UV sowie Dreiecksindex. Dadurch bleibt das rote X beim Drehen,
+Weltnormale, UV sowie Dreiecksindex. Dadurch bleibt der pulsierende gelbe Befundpunkt beim Drehen,
 Zoomen und bei späteren Modellversionen nachvollziehbar.
 
 ## Qualitätsgrenzen

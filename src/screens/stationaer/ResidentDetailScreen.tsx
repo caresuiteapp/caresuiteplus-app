@@ -1,10 +1,9 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { fetchResidentDetail } from '@/lib/stationaer/residentDetailService';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { InactiveModuleBanner, ResidentDetailHero } from '@/components/stationaer';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumButton, SectionPanel } from '@/components/ui';
 import { useResidentDetail } from '@/hooks/useResidentDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
@@ -67,6 +66,22 @@ export function ResidentDetailScreen() {
       <ResidentDetailHero resident={resident} roleKey={roleKey} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <SectionPanel
+          title="Klinische 3D-Dokumentation"
+          subtitle="Befunde, Wunden, Dekubitus, Fotos und Verlauf"
+        >
+          <Text style={styles.clinicalText}>
+            Öffnet die vollständige bewohnerbezogene 3D-Bodymap mit allen 18
+            Körpervarianten und dauerhaft verankerten gelben Befundpunkten.
+          </Text>
+          <PremiumButton
+            title="3D-Bodymap öffnen"
+            onPress={() =>
+              router.push(`/stationaer/bewohner/${resident.id}/bodymap` as never)
+            }
+          />
+        </SectionPanel>
+
         <SectionPanel title="Aufenthalt">
           <DetailInfoRow label="Zimmer" value={resident.roomName} />
           {resident.wing ? <DetailInfoRow label="Bereich" value={resident.wing} /> : null}
@@ -89,4 +104,5 @@ export function ResidentDetailScreen() {
 const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xxl, gap: spacing.md },
   notes: { ...typography.body },
+  clinicalText: { ...typography.body, marginBottom: spacing.sm },
 });

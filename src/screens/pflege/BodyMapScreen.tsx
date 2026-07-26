@@ -1,5 +1,16 @@
-import { useMemo, useState } from 'react';
-import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Easing,
+  Image,
+  Linking,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
@@ -41,6 +52,13 @@ import {
   ANATOMICAL_ZONE_BY_ID,
   getAnatomicalPath,
 } from '@/lib/pflege/bodyMap3d/anatomicalZones';
+import {
+  BODY_MAP_FINDING_DEFINITIONS,
+  buildClinicalLocationSnapshot,
+  markerMatchesModelSelection,
+  recommendedFindingDefinitions,
+  resolveAnatomicalCandidates,
+} from '@/lib/pflege/bodyMap3d/clinicalInteractionCatalog';
 import { PRESSURE_INJURY_CLASSIFICATIONS } from '@/lib/pflege/bodyMap3d/pressureInjuryCatalog';
 import type {
   BodyMap3DMarker,
@@ -68,24 +86,7 @@ const SKIN_TONES: readonly { id: BodyMapSkinTone; label: string; color: string }
   { id: 'sehr_dunkel', label: 'Sehr dunkel', color: '#3d241c' },
 ];
 
-const MARKER_TYPES: readonly { id: BodyMapMarkerType; label: string }[] = [
-  { id: 'wunde', label: 'Wunde' },
-  { id: 'dekubitus', label: 'Dekubitus' },
-  { id: 'druckverletzung_medizinprodukt', label: 'Druckverletzung Medizinprodukt' },
-  { id: 'tiefe_gewebeschaedigung', label: 'Tiefe Gewebeschädigung' },
-  { id: 'hautroetung', label: 'Hautrötung' },
-  { id: 'haematom', label: 'Hämatom' },
-  { id: 'schwellung', label: 'Schwellung' },
-  { id: 'narbe', label: 'Narbe' },
-  { id: 'verbrennung', label: 'Verbrennung' },
-  { id: 'hautveraenderung', label: 'Hautveränderung' },
-  { id: 'schmerzpunkt', label: 'Schmerzpunkt' },
-  { id: 'katheter', label: 'Katheter' },
-  { id: 'stoma', label: 'Stoma' },
-  { id: 'injektion', label: 'Injektion' },
-  { id: 'verband', label: 'Verband' },
-  { id: 'sonstiges', label: 'Sonstiges' },
-];
+const MARKER_TYPES = BODY_MAP_FINDING_DEFINITIONS;
 
 const FINDING_STATUSES: readonly { id: BodyMapFindingStatus; label: string }[] = [
   { id: 'verdacht', label: 'Verdacht' },
@@ -262,7 +263,57 @@ function SelectionChip({
   );
 }
 
-export function BodyMapScreen() {
+function PulsingFindingDot({ selected = false }: { selected?: boolean }) {
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: selected ? 620 : 900,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: selected ? 620 : 900,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulse, selected]);
+
+  return (
+    <View style={styles.findingPulseOuter}>
+      <Animated.View
+        style={[
+          styles.findingPulseHalo,
+          {
+            opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.78] }),
+            transform: [
+              {
+                scale: pulse.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.72, selected ? 1.34 : 1.18],
+                }),
+              },
+            ],
+          },
+        ]}
+      />
+      <View style={[styles.findingPulseCore, selected && styles.findingPulseCoreSelected]} />
+    </View>
+  );
+}
+
+export function BodyMapScreen({
+  careContext = 'pflege',
+}: {
+  careContext?: 'pflege' | 'stationaer';
+} = {}) {
   const router = useRouter();
   const { clientId: clientIdParam, id, woundId } = useLocalSearchParams<{
     clientId?: string;
@@ -273,6 +324,12 @@ export function BodyMapScreen() {
   const tenantId = useServiceTenantId();
   const { isReadOnly, roleLabel } = usePermissions();
   const clientId = clientIdParam ?? id ?? 'client-001';
+  const isStationaerContext = careContext === 'stationaer';
+  const subjectType = isStationaerContext ? 'resident' : 'client';
+  const subjectLabel = isStationaerContext ? 'Bewohner:in' : 'Klient:in';
+  const screenTitle = isStationaerContext
+    ? 'Stationäre medizinische 3D-Bodymap'
+    : 'Medizinische 3D-Bodymap';
 
   const [sex, setSex] = useState<BodyMapSex | null>(null);
   const [ageGroup, setAgeGroup] = useState<BodyMapAgeGroup | null>(null);
@@ -281,6 +338,9 @@ export function BodyMapScreen() {
   const [skinTone, setSkinTone] = useState<BodyMapSkinTone>('mittel');
   const [selection, setSelection] = useState<BodyMapModelSelection | null>(null);
   const [pendingHit, setPendingHit] = useState<BodyMapSurfaceHit | null>(null);
+  const [selectedAnatomicalZoneId, setSelectedAnatomicalZoneId] = useState<string | null>(
+    null,
+  );
   const [markerType, setMarkerType] = useState<BodyMapMarkerType>('wunde');
   const [pressureClassification, setPressureClassification] = useState('kategorie_1');
   const [note, setNote] = useState('');
@@ -306,6 +366,7 @@ export function BodyMapScreen() {
   const [underminingDepth, setUnderminingDepth] = useState('');
   const [tunnelingPresent, setTunnelingPresent] = useState(false);
   const [medicalDevice, setMedicalDevice] = useState('');
+  const [presentOnAdmission, setPresentOnAdmission] = useState<boolean | null>(null);
   const [nextReviewDate, setNextReviewDate] = useState('');
   const [pickedPhoto, setPickedPhoto] = useState<PickedClinicalPhoto | null>(null);
   const [measurementReferencePresent, setMeasurementReferencePresent] = useState(false);
@@ -321,9 +382,9 @@ export function BodyMapScreen() {
   const query = useAsyncQuery(
     () => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-      return fetchBodyMapMarkers(tenantId, clientId, profile?.roleKey);
+      return fetchBodyMapMarkers(tenantId, clientId, profile?.roleKey, subjectType);
     },
-    [tenantId, clientId, profile?.roleKey],
+    [tenantId, clientId, profile?.roleKey, subjectType],
     { enabled: !!tenantId },
   );
 
@@ -332,9 +393,14 @@ export function BodyMapScreen() {
       if (!tenantId || !detailMarkerId) {
         return Promise.resolve({ ok: false as const, error: 'Befund fehlt.' });
       }
-      return fetchBodyMapClinicalRecord(tenantId, clientId, detailMarkerId);
+      return fetchBodyMapClinicalRecord(
+        tenantId,
+        clientId,
+        detailMarkerId,
+        subjectType,
+      );
     },
-    [tenantId, clientId, detailMarkerId],
+    [tenantId, clientId, detailMarkerId, subjectType],
     { enabled: !!tenantId && !!detailMarkerId },
   );
 
@@ -350,12 +416,24 @@ export function BodyMapScreen() {
   }, [sex, ageGroup, genitalAnatomy, chestAnatomy, skinTone]);
 
   const selectionErrors = selectionDraft ? validateBodyMapSelection(selectionDraft) : [];
-  const selectedZone = pendingHit
-    ? ANATOMICAL_ZONE_BY_ID.get(pendingHit.anatomicalZoneId) ?? null
+  const effectiveZoneId = selectedAnatomicalZoneId ?? pendingHit?.anatomicalZoneId ?? null;
+  const selectedZone = effectiveZoneId
+    ? ANATOMICAL_ZONE_BY_ID.get(effectiveZoneId) ?? null
     : null;
-  const selectedZonePath = pendingHit
-    ? getAnatomicalPath(pendingHit.anatomicalZoneId).map((entry) => entry.label).join(' › ')
+  const selectedZonePath = effectiveZoneId
+    ? getAnatomicalPath(effectiveZoneId).map((entry) => entry.label).join(' › ')
     : '';
+  const anatomicalCandidates = useMemo(
+    () =>
+      pendingHit && selection
+        ? resolveAnatomicalCandidates(pendingHit.anatomicalZoneId, selection)
+        : [],
+    [pendingHit, selection],
+  );
+  const findingDefinitions = useMemo(
+    () => (effectiveZoneId ? recommendedFindingDefinitions(effectiveZoneId) : MARKER_TYPES),
+    [effectiveZoneId],
+  );
   const isPressureFinding =
     markerType === 'dekubitus' ||
     markerType === 'druckverletzung_medizinprodukt' ||
@@ -383,7 +461,47 @@ export function BodyMapScreen() {
   function resetModelSelection() {
     setSelection(null);
     setPendingHit(null);
+    setSelectedAnatomicalZoneId(null);
     setSelectedMarkerId(null);
+  }
+
+  function handleSurfacePress(hit: BodyMapSurfaceHit) {
+    setPendingHit(hit);
+    setSelectedAnatomicalZoneId(hit.anatomicalZoneId);
+    const firstRecommendation = recommendedFindingDefinitions(hit.anatomicalZoneId)[0];
+    if (firstRecommendation) setMarkerType(firstRecommendation.id);
+    setActionError(null);
+  }
+
+  function selectMarkerType(nextType: BodyMapMarkerType) {
+    setMarkerType(nextType);
+    if (nextType === 'druckverletzung_medizinprodukt') {
+      setPressureClassification('medizinproduktbezogen');
+    } else if (nextType === 'tiefe_gewebeschaedigung') {
+      setPressureClassification('tiefe_gewebeschaedigung');
+    } else if (
+      nextType === 'dekubitus' &&
+      ['medizinproduktbezogen', 'tiefe_gewebeschaedigung'].includes(
+        pressureClassification,
+      )
+    ) {
+      setPressureClassification('kategorie_1');
+    }
+  }
+
+  function selectPressureClassification(nextClassification: string) {
+    setPressureClassification(nextClassification);
+    if (nextClassification === 'medizinproduktbezogen') {
+      setMarkerType('druckverletzung_medizinprodukt');
+    } else if (nextClassification === 'tiefe_gewebeschaedigung') {
+      setMarkerType('tiefe_gewebeschaedigung');
+    }
+  }
+
+  function closeFindingDraft() {
+    setPendingHit(null);
+    setSelectedAnatomicalZoneId(null);
+    resetFindingDraft();
   }
 
   async function handlePickPhoto() {
@@ -442,6 +560,7 @@ export function BodyMapScreen() {
       status: progressStatus,
       note: progressNote,
       createdBy: profile?.id ?? null,
+      subjectType,
     });
     const errors: string[] = [];
     if (!result.ok) {
@@ -466,6 +585,7 @@ export function BodyMapScreen() {
                 : 'progress',
           note: progressNote,
           createdBy: profile?.id ?? null,
+          subjectType,
         });
         if (!photoResult.ok) errors.push(photoResult.error);
       }
@@ -503,13 +623,14 @@ export function BodyMapScreen() {
     setUnderminingDepth('');
     setTunnelingPresent(false);
     setMedicalDevice('');
+    setPresentOnAdmission(null);
     setNextReviewDate('');
     setPickedPhoto(null);
     setMeasurementReferencePresent(false);
   }
 
   async function handleSaveFinding() {
-    if (!tenantId || !selection || !pendingHit || isReadOnly) return;
+    if (!tenantId || !selection || !pendingHit || !effectiveZoneId || isReadOnly) return;
     const numericFields = [
       ['Länge', lengthCm],
       ['Breite', widthCm],
@@ -545,6 +666,23 @@ export function BodyMapScreen() {
       setActionError('Die nächste Kontrolle muss ein gültiges Datum im Format JJJJ-MM-TT sein.');
       return;
     }
+    if (isPressureFinding && !nextReviewDate.trim()) {
+      setActionError('Für eine Druckverletzung muss die nächste Kontrolle geplant werden.');
+      return;
+    }
+    if (isPressureFinding && !pressureReliefPlan.trim()) {
+      setActionError(
+        'Für eine Druckverletzung muss ein Druckentlastungs- oder Lagerungsplan dokumentiert werden.',
+      );
+      return;
+    }
+    if (
+      markerType === 'druckverletzung_medizinprodukt' &&
+      !medicalDevice.trim()
+    ) {
+      setActionError('Bitte das verursachende Medizinprodukt angeben.');
+      return;
+    }
     const tissuePercentages = {
       granulation: optionalPositiveNumber(granulationPercent) ?? 0,
       fibrin: optionalPositiveNumber(fibrinPercent) ?? 0,
@@ -567,9 +705,11 @@ export function BodyMapScreen() {
       tenantId,
       {
         clientId,
+        subjectType,
+        subjectId: clientId,
         gender: legacyGender(selection.sex),
         view: 'vorderseite',
-        region: legacyRegion(pendingHit.anatomicalZoneId),
+        region: legacyRegion(effectiveZoneId),
         markerType,
         ...coordinates,
         note: decoratedNote,
@@ -581,16 +721,13 @@ export function BodyMapScreen() {
         genitalAnatomy: selection.genitalAnatomy,
         chestAnatomy: selection.chestAnatomy,
         skinTone: selection.skinTone,
-        anatomicalZoneId: pendingHit.anatomicalZoneId,
+        anatomicalZoneId: effectiveZoneId,
         surfacePoint: pendingHit.surfacePoint,
         pressureClassification: isPressureFinding ? pressureClassification : null,
         findingStatus: 'aktiv',
         findingDetails: {
-          anatomicalPath: getAnatomicalPath(pendingHit.anatomicalZoneId).map(
-            (entry) => entry.id,
-          ),
-          sensitiveArea: selectedZone?.sensitive ?? false,
-          pressureRiskArea: selectedZone?.pressureRisk ?? false,
+          ...buildClinicalLocationSnapshot(effectiveZoneId),
+          originalMeshZoneId: pendingHit.anatomicalZoneId,
           diagnosis: diagnosis.trim(),
           treatment: treatment.trim(),
         },
@@ -612,7 +749,7 @@ export function BodyMapScreen() {
         result.data.id,
         {
           classification: pressureClassification,
-          presentOnAdmission: null,
+          presentOnAdmission,
           deviceRelated: markerType === 'druckverletzung_medizinprodukt',
           medicalDevice: medicalDevice.trim() || null,
           lengthCm: optionalPositiveNumber(lengthCm),
@@ -657,6 +794,7 @@ export function BodyMapScreen() {
             : null,
         },
         profile?.id ?? null,
+        subjectType,
       );
       if (!assessmentResult.ok) {
         followUpErrors.push(`Dekubitus-Assessment: ${assessmentResult.error}`);
@@ -679,6 +817,7 @@ export function BodyMapScreen() {
           measurementReferencePresent,
           note: note.trim(),
           createdBy: profile?.id ?? null,
+          subjectType,
         });
         if (!photoResult.ok) followUpErrors.push(`Foto: ${photoResult.error}`);
       }
@@ -686,6 +825,7 @@ export function BodyMapScreen() {
 
     setSelectedMarkerId(result.data.id);
     setPendingHit(null);
+    setSelectedAnatomicalZoneId(null);
     resetFindingDraft();
     if (followUpErrors.length > 0) {
       setActionError(
@@ -699,7 +839,7 @@ export function BodyMapScreen() {
 
   if (query.loading && !query.data) {
     return (
-      <ScreenShell title="Medizinische 3D-Bodymap" subtitle="Wird geladen…">
+      <ScreenShell title={screenTitle} subtitle="Wird geladen…">
         <LoadingState message="Bodymap und Befunde werden geladen…" />
       </ScreenShell>
     );
@@ -707,7 +847,7 @@ export function BodyMapScreen() {
 
   if (query.error && !query.data) {
     return (
-      <ScreenShell title="Medizinische 3D-Bodymap" subtitle="Fehler">
+      <ScreenShell title={screenTitle} subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
       </ScreenShell>
     );
@@ -715,8 +855,8 @@ export function BodyMapScreen() {
 
   return (
     <ScreenShell
-      title="Medizinische 3D-Bodymap"
-      subtitle={`Anatomische Befunddokumentation · ${roleLabel ?? 'Pflege'} · Klient:in ${clientId}`}
+      title={screenTitle}
+      subtitle={`Anatomische Befunddokumentation · ${roleLabel ?? (isStationaerContext ? 'Stationär' : 'Pflege')} · ${subjectLabel} ${clientId}`}
       onBack={() => router.back()}
     >
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -845,11 +985,17 @@ export function BodyMapScreen() {
               <BodyMap3DViewer
                 selection={selection}
                 markers={persisted3DMarkers.filter(
-                  (marker) => marker.modelId === getBodyMapModel(selection).id,
+                  (marker) =>
+                    markerMatchesModelSelection(
+                      marker,
+                      selection,
+                      getBodyMapModel(selection).id,
+                    ),
                 )}
                 selectedMarkerId={selectedMarkerId}
                 disabled={isReadOnly}
-                onSurfacePress={setPendingHit}
+                allowTechnicalMeshPreview
+                onSurfacePress={handleSurfacePress}
                 onMarkerPress={(marker) => openMarkerDetail(marker.id)}
               />
             </SectionPanel>
@@ -870,9 +1016,7 @@ export function BodyMapScreen() {
                     ]}
                     onPress={() => openMarkerDetail(marker.id)}
                   >
-                    <View style={styles.redX}>
-                      <Text style={styles.redXText}>×</Text>
-                    </View>
+                    <PulsingFindingDot selected={selectedMarkerId === marker.id} />
                     <View style={styles.findingCopy}>
                       <Text style={styles.findingTitle}>
                         {MARKER_TYPES.find((entry) => entry.id === marker.markerType)?.label ??
@@ -895,7 +1039,7 @@ export function BodyMapScreen() {
         visible={!!pendingHit}
         transparent
         animationType="slide"
-        onRequestClose={() => setPendingHit(null)}
+        onRequestClose={closeFindingDraft}
       >
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
@@ -906,7 +1050,7 @@ export function BodyMapScreen() {
                   <Text style={styles.modalTitle}>{selectedZone?.label ?? 'Körperstelle'}</Text>
                   <Text style={styles.modalPath}>{selectedZonePath}</Text>
                 </View>
-                <Pressable style={styles.modalClose} onPress={() => setPendingHit(null)}>
+                <Pressable style={styles.modalClose} onPress={closeFindingDraft}>
                   <Text style={styles.modalCloseText}>×</Text>
                 </Pressable>
               </View>
@@ -919,20 +1063,69 @@ export function BodyMapScreen() {
                 />
               ) : null}
 
-              <Text style={styles.fieldLabel}>Was liegt an dieser Stelle vor?</Text>
+              <Text style={styles.fieldLabel}>Anatomische Stelle präzisieren</Text>
+              <Text style={styles.selectionHint}>
+                Der direkt getroffene Bereich steht zuerst. Wählen Sie bei Bedarf die
+                medizinisch genauere Unter- oder Nachbarstruktur aus.
+              </Text>
               <View style={styles.choiceRow}>
-                {MARKER_TYPES.map((entry) => (
+                {anatomicalCandidates.map((entry) => (
                   <SelectionChip
                     key={entry.id}
                     label={entry.label}
-                    active={markerType === entry.id}
-                    onPress={() => setMarkerType(entry.id)}
+                    active={effectiveZoneId === entry.id}
+                    onPress={() => setSelectedAnatomicalZoneId(entry.id)}
                   />
                 ))}
               </View>
 
+              <Text style={styles.fieldLabel}>Was liegt an dieser Stelle vor?</Text>
+              <View style={styles.choiceRow}>
+                {findingDefinitions.map((entry) => (
+                  <SelectionChip
+                    key={entry.id}
+                    label={entry.label}
+                    active={markerType === entry.id}
+                    onPress={() => selectMarkerType(entry.id)}
+                  />
+                ))}
+              </View>
+              <View style={styles.findingDefinitionCard}>
+                <Text style={styles.findingDefinitionTitle}>
+                  {MARKER_TYPES.find((entry) => entry.id === markerType)?.label ?? markerType}
+                </Text>
+                <Text style={styles.findingDefinitionText}>
+                  {MARKER_TYPES.find((entry) => entry.id === markerType)?.description ??
+                    'Klinischen Befund strukturiert beschreiben.'}
+                </Text>
+                {selectedZone?.pressureRisk ? (
+                  <Text style={styles.findingDefinitionWarning}>
+                    Druckgefährdete Körperstelle: Hautzustand, Druckentlastung und nächste
+                    Kontrolle ausdrücklich dokumentieren.
+                  </Text>
+                ) : null}
+              </View>
+
               {isPressureFinding ? (
                 <>
+                  <Text style={styles.fieldLabel}>Bei Aufnahme bereits vorhanden?</Text>
+                  <View style={styles.choiceRow}>
+                    <SelectionChip
+                      label="Ja"
+                      active={presentOnAdmission === true}
+                      onPress={() => setPresentOnAdmission(true)}
+                    />
+                    <SelectionChip
+                      label="Nein"
+                      active={presentOnAdmission === false}
+                      onPress={() => setPresentOnAdmission(false)}
+                    />
+                    <SelectionChip
+                      label="Unbekannt"
+                      active={presentOnAdmission === null}
+                      onPress={() => setPresentOnAdmission(null)}
+                    />
+                  </View>
                   <Text style={styles.fieldLabel}>Dekubitus-/Druckverletzungsklassifikation</Text>
                   <View style={styles.choiceRow}>
                     {PRESSURE_INJURY_CLASSIFICATIONS.map((entry) => (
@@ -940,7 +1133,7 @@ export function BodyMapScreen() {
                         key={entry.id}
                         label={`${entry.shortLabel} · ${entry.label}`}
                         active={pressureClassification === entry.id}
-                        onPress={() => setPressureClassification(entry.id)}
+                        onPress={() => selectPressureClassification(entry.id)}
                       />
                     ))}
                   </View>
@@ -1217,7 +1410,7 @@ export function BodyMapScreen() {
                 <PremiumButton
                   title="Abbrechen"
                   variant="secondary"
-                  onPress={() => setPendingHit(null)}
+                  onPress={closeFindingDraft}
                 />
                 <PremiumButton
                   title={saving ? 'Befund wird gespeichert…' : 'Befund speichern'}
@@ -1468,6 +1661,35 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     marginBottom: spacing.xs,
   },
+  selectionHint: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+    maxWidth: 760,
+  },
+  findingDefinitionCard: {
+    borderWidth: 1,
+    borderColor: 'rgba(102,163,255,0.28)',
+    borderRadius: 14,
+    padding: spacing.sm,
+    backgroundColor: 'rgba(33,91,164,0.09)',
+    marginBottom: spacing.sm,
+  },
+  findingDefinitionTitle: {
+    ...typography.label,
+    color: colors.textPrimary,
+  },
+  findingDefinitionText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 3,
+  },
+  findingDefinitionWarning: {
+    ...typography.caption,
+    color: '#ffbd66',
+    fontWeight: '700',
+    marginTop: spacing.xs,
+  },
   choiceRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1514,16 +1736,44 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
     backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  findingRowSelected: { borderColor: '#ef233c', backgroundColor: 'rgba(239,35,60,0.08)' },
-  redX: {
+  findingRowSelected: {
+    borderColor: '#ffd21f',
+    backgroundColor: 'rgba(255,210,31,0.08)',
+  },
+  findingPulseOuter: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#ef233c',
+    borderWidth: 2,
+    borderColor: 'rgba(255,210,31,0.64)',
+    backgroundColor: 'rgba(255,210,31,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
-  redXText: { color: '#fff', fontSize: 25, fontWeight: '900', lineHeight: 28 },
+  findingPulseHalo: {
+    position: 'absolute',
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    backgroundColor: '#ffd21f',
+  },
+  findingPulseCore: {
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: '#ffd21f',
+    shadowColor: '#ffb000',
+    shadowOpacity: 0.9,
+    shadowRadius: 9,
+    zIndex: 2,
+  },
+  findingPulseCoreSelected: {
+    width: 15,
+    height: 15,
+    borderRadius: 8,
+    backgroundColor: '#fff2a8',
+  },
   findingCopy: { flex: 1 },
   findingTitle: { ...typography.label, color: colors.textPrimary },
   findingMeta: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },

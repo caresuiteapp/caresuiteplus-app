@@ -3,7 +3,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-MIGRATION_FILE="supabase/migrations/20260725083000_bodymap_3d_medical.sql"
+MIGRATION_FILES=(
+  "supabase/migrations/20260725083000_bodymap_3d_medical.sql"
+  "supabase/migrations/20260726094500_bodymap_clinical_interaction_phase9.sql"
+)
 TEST_FILES=(
   "src/__tests__/pflege/bodyMap3dDomain.test.ts"
   "src/__tests__/pflege/bodyMapMedicalMeshPipeline.test.ts"
@@ -16,13 +19,16 @@ TEST_FILES=(
   "src/__tests__/pflege/bodyMap3dViewerContract.test.ts"
   "src/__tests__/pflege/bodyMap3dPersistence.test.ts"
   "src/__tests__/pflege/bodyMapClinicalService.test.ts"
+  "src/__tests__/pflege/bodyMapClinicalInteraction.test.ts"
   "src/__tests__/pflege/bodyMapLive.test.ts"
   "src/__tests__/pflege/bodyMapVisualQa.test.ts"
+  "src/__tests__/stationaer/stationaerBodyMapIntegration.test.ts"
 )
 
 SKIP_INSTALL=false
 PUSH_BRANCH=false
 VERCEL_PRODUCTION=false
+APPLY_DB=false
 CONFIRMED=false
 
 usage() {
@@ -37,6 +43,7 @@ usage() {
     "Optionen:" \
     "  --skip-install       npm ci überspringen" \
     "  --verify-db          Bodymap-Migrationsstand nur lesend anzeigen" \
+    "  --apply-db           ausstehende verknüpfte Supabase-Migrationen anwenden" \
     "  --push               aktuellen Git-Branch zu origin pushen" \
     "  --vercel-production  dist als Vercel-Produktionsdeployment veröffentlichen" \
     "  --yes                notwendige Bestätigung für schreibende Optionen" \
@@ -46,7 +53,7 @@ usage() {
     "  bash scripts/deploy-bodymap3d-gitbash.sh --skip-install" \
     "" \
     "Beispiel nach manuellem Review:" \
-    "  bash scripts/deploy-bodymap3d-gitbash.sh --verify-db --push --yes"
+    "  bash scripts/deploy-bodymap3d-gitbash.sh --apply-db --push --vercel-production --yes"
 }
 
 VERIFY_DB=false
@@ -54,6 +61,7 @@ for argument in "$@"; do
   case "${argument}" in
     --skip-install) SKIP_INSTALL=true ;;
     --verify-db) VERIFY_DB=true ;;
+    --apply-db) APPLY_DB=true ;;
     --push) PUSH_BRANCH=true ;;
     --vercel-production) VERCEL_PRODUCTION=true ;;
     --yes) CONFIRMED=true ;;
@@ -75,14 +83,18 @@ if [[ ! -d .git ]]; then
   printf 'Fehler: Kein Git-Repository unter %s\n' "${REPO_ROOT}" >&2
   exit 1
 fi
-if [[ ! -f "${MIGRATION_FILE}" ]]; then
-  printf 'Fehler: Bodymap-Migration fehlt: %s\n' "${MIGRATION_FILE}" >&2
-  exit 1
-fi
+for migration_file in "${MIGRATION_FILES[@]}"; do
+  if [[ ! -f "${migration_file}" ]]; then
+    printf 'Fehler: Bodymap-Migration fehlt: %s\n' "${migration_file}" >&2
+    exit 1
+  fi
+done
 if { [[ "${PUSH_BRANCH}" == true ]] || [[ "${VERCEL_PRODUCTION}" == true ]]; } \
-  && [[ "${CONFIRMED}" != true ]]; then
-  printf 'Abbruch: --push und --vercel-production benötigen --yes.\n' >&2
-  exit 1
+  || [[ "${APPLY_DB}" == true ]]; then
+  if [[ "${CONFIRMED}" != true ]]; then
+    printf 'Abbruch: Schreibende Optionen benötigen --yes.\n' >&2
+    exit 1
+  fi
 fi
 
 BRANCH="$(git branch --show-current)"
@@ -91,7 +103,8 @@ printf 'Repository: %s\nBranch: %s\nCommit: %s\n' "${REPO_ROOT}" "${BRANCH}" "${
 
 if [[ -n "$(git status --porcelain)" ]]; then
   printf 'Hinweis: Der Arbeitsbaum enthält nicht eingecheckte Änderungen.\n'
-  if [[ "${PUSH_BRANCH}" == true ]] || [[ "${VERCEL_PRODUCTION}" == true ]]; then
+  if [[ "${PUSH_BRANCH}" == true ]] || [[ "${VERCEL_PRODUCTION}" == true ]] \
+    || [[ "${APPLY_DB}" == true ]]; then
     printf 'Abbruch: Push/Produktionsdeploy nur aus einem sauberen Arbeitsbaum.\n' >&2
     exit 1
   fi
@@ -107,6 +120,7 @@ npm run bodymap3d:mesh:verify-portable
 npm run bodymap3d:mesh:verify-female-portable
 npm run bodymap3d:mesh:verify-age-portable
 npm run bodymap3d:mesh:verify-divers-portable
+npm run bodymap3d:clinical:verify-portable
 npm run bodymap3d:audit
 npx vitest run "${TEST_FILES[@]}"
 
@@ -129,7 +143,12 @@ printf '\nPreflight und Web-Export erfolgreich: dist-bodymap3d\n'
 if [[ "${VERIFY_DB}" == true ]]; then
   printf '\nSupabase-Migrationsstand (nur lesend):\n'
   npx supabase migration list --linked
-  printf '\nEs wurden keine Supabase-Migrationen verändert.\n'
+  printf '\nNur lesende Prüfung abgeschlossen; es wurde keine Migration angewendet.\n'
+fi
+
+if [[ "${APPLY_DB}" == true ]]; then
+  printf '\nAusstehende Supabase-Migrationen werden auf das verknüpfte Projekt angewendet:\n'
+  npx supabase db push --linked
 fi
 
 if [[ "${PUSH_BRANCH}" == true ]]; then

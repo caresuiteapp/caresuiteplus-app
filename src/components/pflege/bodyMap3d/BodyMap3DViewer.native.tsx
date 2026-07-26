@@ -25,6 +25,7 @@ export function BodyMap3DViewer({
   markers,
   selectedMarkerId,
   disabled,
+  allowTechnicalMeshPreview: _allowTechnicalMeshPreview,
   onSurfacePress,
   onMarkerPress,
 }: BodyMap3DViewerProps) {

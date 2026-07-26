@@ -8,3 +8,4 @@ export { HandoverReportScreen } from './HandoverReportScreen';
 export { HandoverDetailScreen } from './HandoverDetailScreen';
 export { StationaerSettingsScreen } from './StationaerSettingsScreen';
 export { StationaerReportsScreen } from './StationaerReportsScreen';
+export { StationaerBodyMapHubScreen } from './StationaerBodyMapHubScreen';

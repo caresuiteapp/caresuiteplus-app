@@ -4,6 +4,7 @@ import type {
   BodyMapClinicalMedia,
   BodyMapFindingHistoryEntry,
   BodyMapFindingStatus,
+  BodyMapSubjectType,
   PressureInjuryAssessment,
   PressureInjuryAssessmentInput,
 } from '@/types/modules/bodyMap';
@@ -16,6 +17,12 @@ import { getServiceMode } from '@/lib/services/mode';
 import { updateDemoBodyMapMarker } from '@/data/demo/bodyMapMarkers';
 
 const STORAGE_BUCKET = 'bodymap-clinical-media';
+export const BODY_MAP_CLINICAL_MEDIA_MAX_BYTES = 25 * 1024 * 1024;
+export const BODY_MAP_CLINICAL_MEDIA_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
 const PRESSURE_CLASSIFICATIONS = new Set([
   'kategorie_1',
   'kategorie_2',
@@ -38,6 +45,7 @@ type UploadClinicalPhotoInput = {
   measurementReferencePresent?: boolean;
   note?: string;
   createdBy?: string | null;
+  subjectType?: BodyMapSubjectType;
 };
 
 type AddProgressInput = {
@@ -47,6 +55,7 @@ type AddProgressInput = {
   status: BodyMapFindingStatus;
   note: string;
   createdBy?: string | null;
+  subjectType?: BodyMapSubjectType;
 };
 
 const demoMedia = new Map<string, BodyMapClinicalMedia[]>();
@@ -76,6 +85,12 @@ export function validatePressureInjuryAssessment(
 ): string | null {
   if (!PRESSURE_CLASSIFICATIONS.has(input.classification)) {
     return 'Die Dekubitus-Klassifikation ist ungültig.';
+  }
+  if (input.deviceRelated && !input.medicalDevice?.trim()) {
+    return 'Bei einer medizinproduktbezogenen Druckverletzung muss das Medizinprodukt angegeben werden.';
+  }
+  if (input.classification === 'medizinproduktbezogen' && !input.deviceRelated) {
+    return 'Die Klassifikation „medizinproduktbezogen“ muss als produktbezogene Druckverletzung dokumentiert werden.';
   }
   const measurements = [
     input.lengthCm,
@@ -120,28 +135,53 @@ export function validatePressureInjuryAssessment(
   return null;
 }
 
+export function validateBodyMapClinicalMediaUpload(
+  input: Pick<UploadClinicalPhotoInput, 'fileName' | 'mimeType' | 'bytes'>,
+): string | null {
+  if (!input.fileName.trim()) return 'Für das klinische Foto fehlt ein Dateiname.';
+  if (!BODY_MAP_CLINICAL_MEDIA_MIME_TYPES.has(input.mimeType.toLowerCase())) {
+    return 'Klinische Fotos müssen als JPEG, PNG oder WebP vorliegen.';
+  }
+  if (input.bytes.byteLength === 0) return 'Die ausgewählte Fotodatei ist leer.';
+  if (input.bytes.byteLength > BODY_MAP_CLINICAL_MEDIA_MAX_BYTES) {
+    return 'Das klinische Foto darf maximal 25 MB groß sein.';
+  }
+  return null;
+}
+
 export function buildBodyMapClinicalStoragePath(
   tenantId: string,
   clientId: string,
   markerId: string,
   mediaId: string,
   fileName: string,
+  subjectType: BodyMapSubjectType = 'client',
 ): string {
-  return buildTenantStoragePath(
-    tenantId,
-    'clients',
-    clientId,
-    'bodymap',
-    markerId,
-    buildStorageObjectFileName(mediaId, fileName),
-  );
+  return subjectType === 'resident'
+    ? buildTenantStoragePath(
+        tenantId,
+        'subjects',
+        'resident',
+        clientId,
+        'bodymap',
+        markerId,
+        buildStorageObjectFileName(mediaId, fileName),
+      )
+    : buildTenantStoragePath(
+        tenantId,
+        'clients',
+        clientId,
+        'bodymap',
+        markerId,
+        buildStorageObjectFileName(mediaId, fileName),
+      );
 }
 
 function mapMedia(row: Record<string, unknown>): BodyMapClinicalMedia {
   return {
     id: String(row.id ?? ''),
     tenantId: String(row.tenant_id ?? ''),
-    clientId: String(row.client_id ?? ''),
+    clientId: String(row.subject_id ?? row.client_id ?? row.resident_record_id ?? ''),
     markerId: String(row.marker_id ?? ''),
     storagePath: String(row.storage_path ?? ''),
     mediaType: String(row.media_type ?? 'photo') as BodyMapClinicalMedia['mediaType'],
@@ -176,7 +216,7 @@ function mapPressureAssessment(row: Record<string, unknown>): PressureInjuryAsse
   return {
     id: String(row.id ?? ''),
     tenantId: String(row.tenant_id ?? ''),
-    clientId: String(row.client_id ?? ''),
+    clientId: String(row.subject_id ?? row.client_id ?? row.resident_record_id ?? ''),
     markerId: String(row.marker_id ?? ''),
     classification: String(row.classification ?? ''),
     presentOnAdmission:
@@ -217,14 +257,18 @@ function mapPressureAssessment(row: Record<string, unknown>): PressureInjuryAsse
 export async function uploadBodyMapClinicalPhoto(
   input: UploadClinicalPhotoInput,
 ): Promise<ServiceResult<BodyMapClinicalMedia>> {
+  const validationError = validateBodyMapClinicalMediaUpload(input);
+  if (validationError) return { ok: false, error: validationError };
   const mediaId = makeId('media');
   const createdAt = nowIso();
+  const subjectType = input.subjectType ?? 'client';
   const storagePath = buildBodyMapClinicalStoragePath(
     input.tenantId,
     input.clientId,
     input.markerId,
     mediaId,
     input.fileName,
+    subjectType,
   );
 
   if (getServiceMode() === 'demo') {
@@ -261,7 +305,10 @@ export async function uploadBodyMapClinicalPhoto(
     .insert({
       id: mediaId,
       tenant_id: input.tenantId,
-      client_id: input.clientId,
+      client_id: subjectType === 'client' ? input.clientId : null,
+      resident_record_id: subjectType === 'resident' ? input.clientId : null,
+      subject_type: subjectType,
+      subject_id: input.clientId,
       marker_id: input.markerId,
       storage_bucket: STORAGE_BUCKET,
       storage_path: storagePath,
@@ -285,7 +332,10 @@ export async function uploadBodyMapClinicalPhoto(
 
   await fromUnknownTable(supabase, 'body_map_finding_history').insert({
     tenant_id: input.tenantId,
-    client_id: input.clientId,
+    client_id: subjectType === 'client' ? input.clientId : null,
+    resident_record_id: subjectType === 'resident' ? input.clientId : null,
+    subject_type: subjectType,
+    subject_id: input.clientId,
     marker_id: input.markerId,
     event_type: 'photo',
     snapshot: { mediaId, storagePath, capturePhase: input.capturePhase },
@@ -299,6 +349,7 @@ export async function fetchBodyMapClinicalRecord(
   tenantId: string,
   clientId: string,
   markerId: string,
+  subjectType: BodyMapSubjectType = 'client',
 ): Promise<
   ServiceResult<{
     media: BodyMapClinicalMedia[];
@@ -322,19 +373,22 @@ export async function fetchBodyMapClinicalRecord(
     fromUnknownTable(supabase, 'body_map_finding_media')
       .select('*')
       .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
+      .eq('subject_type', subjectType)
+      .eq('subject_id', clientId)
       .eq('marker_id', markerId)
       .order('created_at', { ascending: false }),
     fromUnknownTable(supabase, 'body_map_finding_history')
       .select('*')
       .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
+      .eq('subject_type', subjectType)
+      .eq('subject_id', clientId)
       .eq('marker_id', markerId)
       .order('created_at', { ascending: false }),
     fromUnknownTable(supabase, 'pressure_injury_assessments')
       .select('*')
       .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
+      .eq('subject_type', subjectType)
+      .eq('subject_id', clientId)
       .eq('marker_id', markerId)
       .order('assessed_at', { ascending: false }),
   ]);
@@ -375,6 +429,7 @@ export async function createPressureInjuryAssessment(
   markerId: string,
   input: PressureInjuryAssessmentInput,
   assessedBy?: string | null,
+  subjectType: BodyMapSubjectType = 'client',
 ): Promise<ServiceResult<PressureInjuryAssessment>> {
   const validationError = validatePressureInjuryAssessment(input);
   if (validationError) return { ok: false, error: validationError };
@@ -394,6 +449,24 @@ export async function createPressureInjuryAssessment(
       assessment,
       ...(demoPressureAssessments.get(markerId) ?? []),
     ]);
+    const historyEntry: BodyMapFindingHistoryEntry = {
+      id: makeId('history'),
+      markerId,
+      eventType: 'classified',
+      snapshot: {
+        assessmentId: id,
+        classification: input.classification,
+        deviceRelated: input.deviceRelated,
+        escalationFlags: input.escalationFlags,
+        nextReviewAt: input.nextReviewAt ?? null,
+      },
+      note: 'Strukturiertes Dekubitus-/Druckverletzungsassessment gespeichert.',
+      createdAt,
+    };
+    demoHistory.set(markerId, [
+      historyEntry,
+      ...(demoHistory.get(markerId) ?? []),
+    ]);
     return { ok: true, data: assessment };
   }
   const supabase = getSupabaseClient();
@@ -402,7 +475,10 @@ export async function createPressureInjuryAssessment(
     .insert({
       id,
       tenant_id: tenantId,
-      client_id: clientId,
+      client_id: subjectType === 'client' ? clientId : null,
+      resident_record_id: subjectType === 'resident' ? clientId : null,
+      subject_type: subjectType,
+      subject_id: clientId,
       marker_id: markerId,
       classification: input.classification,
       present_on_admission: input.presentOnAdmission ?? null,
@@ -439,11 +515,17 @@ export async function createPressureInjuryAssessment(
 export async function addBodyMapFindingProgress(
   input: AddProgressInput,
 ): Promise<ServiceResult<{ status: BodyMapFindingStatus; createdAt: string }>> {
+  if (!input.note.trim()) {
+    return {
+      ok: false,
+      error: 'Für jede Verlaufskontrolle ist eine nachvollziehbare Notiz erforderlich.',
+    };
+  }
   const createdAt = nowIso();
   if (getServiceMode() === 'demo') {
     updateDemoBodyMapMarker(input.clientId, input.markerId, {
       findingStatus: input.status,
-    });
+    }, input.subjectType ?? 'client');
     const entry: BodyMapFindingHistoryEntry = {
       id: makeId('history'),
       markerId: input.markerId,
@@ -457,31 +539,25 @@ export async function addBodyMapFindingProgress(
   }
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
-  const closedAt =
-    input.status === 'geschlossen' || input.status === 'abgeheilt' ? createdAt : null;
-  const { error } = await fromUnknownTable(supabase, 'body_map_markers')
-    .update({
-      finding_status: input.status,
-      closed_at: closedAt,
-      updated_at: createdAt,
-    })
-    .eq('tenant_id', input.tenantId)
-    .eq('client_id', input.clientId)
-    .eq('id', input.markerId);
+  const { data, error } = await supabase.rpc(
+    'record_body_map_finding_progress' as never,
+    {
+      p_tenant_id: input.tenantId,
+      p_subject_type: input.subjectType ?? 'client',
+      p_subject_id: input.clientId,
+      p_marker_id: input.markerId,
+      p_status: input.status,
+      p_note: input.note.trim(),
+      p_created_by: input.createdBy ?? null,
+    } as never,
+  );
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  const { error: historyError } = await fromUnknownTable(
-    supabase,
-    'body_map_finding_history',
-  ).insert({
-    tenant_id: input.tenantId,
-    client_id: input.clientId,
-    marker_id: input.markerId,
-    event_type: progressEventType(input.status),
-    snapshot: { findingStatus: input.status },
-    note: input.note.trim(),
-    created_by: input.createdBy ?? null,
-    created_at: createdAt,
-  });
-  if (historyError) return { ok: false, error: toGermanSupabaseError(historyError) };
-  return { ok: true, data: { status: input.status, createdAt } };
+  const payload = data as { status?: BodyMapFindingStatus; createdAt?: string } | null;
+  return {
+    ok: true,
+    data: {
+      status: payload?.status ?? input.status,
+      createdAt: payload?.createdAt ?? createdAt,
+    },
+  };
 }

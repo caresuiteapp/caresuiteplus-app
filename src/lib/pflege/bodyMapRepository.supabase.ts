@@ -13,6 +13,7 @@ import type {
   BodyMapSex,
   BodyMapSkinTone,
   BodyMapSurfacePoint,
+  BodyMapSubjectType,
   BodyMapView,
 } from '@/types/modules/bodyMap';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -21,12 +22,15 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 
 export const BODY_MAP_MARKER_SELECT_COLUMNS =
-  'id, tenant_id, client_id, wound_id, gender, view, region, marker_type, x_percent, y_percent, note, model_id, anatomy_pack_id, age_group, sex, genital_anatomy, chest_anatomy, skin_tone, anatomical_zone_id, local_position, world_position, model_position, surface_normal, model_normal, surface_uv, mesh_name, primitive_index, triangle_index, pressure_classification, finding_status, finding_details, created_by, created_at, updated_at';
+  'id, tenant_id, client_id, resident_record_id, subject_type, subject_id, wound_id, gender, view, region, marker_type, x_percent, y_percent, note, model_id, anatomy_pack_id, age_group, sex, genital_anatomy, chest_anatomy, skin_tone, anatomical_zone_id, local_position, world_position, model_position, surface_normal, model_normal, surface_uv, mesh_name, primitive_index, triangle_index, pressure_classification, finding_status, finding_details, created_by, created_at, updated_at';
 
 export type BodyMapMarkerLiveRow = {
   id: string;
   tenant_id: string;
-  client_id: string;
+  client_id: string | null;
+  resident_record_id?: string | null;
+  subject_type?: BodyMapSubjectType | null;
+  subject_id?: string | null;
   wound_id: string | null;
   gender: BodyMapGender;
   view: BodyMapView;
@@ -73,7 +77,9 @@ export function mapBodyMapMarkerRow(row: BodyMapMarkerLiveRow): BodyMapMarker {
   return {
     id: row.id,
     tenantId: row.tenant_id,
-    clientId: row.client_id,
+    clientId: row.subject_id ?? row.client_id ?? row.resident_record_id ?? '',
+    subjectType: row.subject_type ?? (row.resident_record_id ? 'resident' : 'client'),
+    subjectId: row.subject_id ?? row.client_id ?? row.resident_record_id ?? '',
     woundId: row.wound_id,
     gender: row.gender,
     view: row.view,
@@ -143,13 +149,18 @@ export const bodyMapSupabaseRepository = {
   table: 'body_map_markers',
   entityLabel: 'BodyMap-Marker',
 
-  async listByClient(tenantId: string, clientId: string): Promise<ServiceResult<BodyMapMarker[]>> {
+  async listByClient(
+    tenantId: string,
+    clientId: string,
+    subjectType: BodyMapSubjectType = 'client',
+  ): Promise<ServiceResult<BodyMapMarker[]>> {
     const supabase = getSupabaseClient();
     if (!supabase) return unavailable();
     const { data, error } = await fromUnknownTable(supabase, 'body_map_markers')
       .select(BODY_MAP_MARKER_SELECT_COLUMNS)
       .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
+      .eq('subject_type', subjectType)
+      .eq('subject_id', clientId)
       .order('updated_at', { ascending: false });
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
     return mapBodyMapMarkerRows((data ?? []) as unknown as BodyMapMarkerLiveRow[]);
@@ -162,10 +173,15 @@ export const bodyMapSupabaseRepository = {
     const supabase = getSupabaseClient();
     if (!supabase) return unavailable();
     const now = new Date().toISOString();
+    const subjectType = input.subjectType ?? 'client';
+    const subjectId = input.subjectId ?? input.clientId;
     const { data, error } = await fromUnknownTable(supabase, 'body_map_markers')
       .insert({
         tenant_id: tenantId,
-        client_id: input.clientId,
+        client_id: subjectType === 'client' ? subjectId : null,
+        resident_record_id: subjectType === 'resident' ? subjectId : null,
+        subject_type: subjectType,
+        subject_id: subjectId,
         wound_id: input.woundId ?? null,
         gender: input.gender,
         view: input.view,
@@ -216,6 +232,7 @@ export const bodyMapSupabaseRepository = {
     clientId: string,
     markerId: string,
     patch: Partial<Pick<BodyMapMarker, 'markerType' | 'note' | 'region' | 'view' | 'xPercent' | 'yPercent'>>,
+    subjectType: BodyMapSubjectType = 'client',
   ): Promise<ServiceResult<BodyMapMarker>> {
     const supabase = getSupabaseClient();
     if (!supabase) return unavailable();
@@ -230,7 +247,8 @@ export const bodyMapSupabaseRepository = {
     const { data, error } = await fromUnknownTable(supabase, 'body_map_markers')
       .update(rowPatch)
       .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
+      .eq('subject_type', subjectType)
+      .eq('subject_id', clientId)
       .eq('id', markerId)
       .select(BODY_MAP_MARKER_SELECT_COLUMNS)
       .maybeSingle();
@@ -245,13 +263,15 @@ export const bodyMapSupabaseRepository = {
     tenantId: string,
     clientId: string,
     markerId: string,
+    subjectType: BodyMapSubjectType = 'client',
   ): Promise<ServiceResult<{ removed: boolean }>> {
     const supabase = getSupabaseClient();
     if (!supabase) return unavailable();
     const { data: existing, error: lookupError } = await fromUnknownTable(supabase, 'body_map_markers')
       .select('id')
       .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
+      .eq('subject_type', subjectType)
+      .eq('subject_id', clientId)
       .eq('id', markerId)
       .maybeSingle();
     if (lookupError) return { ok: false, error: toGermanSupabaseError(lookupError) };
@@ -260,7 +280,8 @@ export const bodyMapSupabaseRepository = {
     const { error } = await fromUnknownTable(supabase, 'body_map_markers')
       .delete()
       .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
+      .eq('subject_type', subjectType)
+      .eq('subject_id', clientId)
       .eq('id', markerId);
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
     await writeBodyMapAudit(tenantId, clientId, 'BodyMap-Marker entfernt', markerId);

@@ -9,7 +9,7 @@ V2-Pipeline hergestellt.
 
 Damit sind Interaktion und Darstellung voneinander getrennt:
 
-- Dokumentation, Trefferpunkte, rote X-Marker und Verlaufsdaten bleiben stabil.
+- Dokumentation, Trefferpunkte, pulsierende gelbe Befundpunkte und Verlaufsdaten bleiben stabil.
 - Das sichtbare Körpermodell kann je Variante schrittweise ersetzt werden.
 - Unvollständige oder nicht freigegebene Meshes werden nicht automatisch aktiv.
 - Web verwendet freigegebene GLB-Meshes; Android bleibt bis zur gebündelten

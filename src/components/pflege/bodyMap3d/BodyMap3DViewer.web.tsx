@@ -5,8 +5,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '@/theme';
 import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
 import {
+  canPreviewMedicalMesh,
   canRenderMedicalMesh,
   getMedicalMeshDefinition,
+  medicalMeshRendererLabel,
 } from '@/lib/pflege/bodyMap3d/medicalMeshCatalog';
 import { ClinicalBodyModel } from './ClinicalBodyModel';
 import type { BodyMap3DViewerProps } from './BodyMap3DViewer.types';
@@ -23,12 +25,19 @@ export function BodyMap3DViewer({
   markers,
   selectedMarkerId,
   disabled,
+  allowTechnicalMeshPreview = true,
   onSurfacePress,
   onMarkerPress,
 }: BodyMap3DViewerProps) {
   const model = getBodyMapModel(selection);
   const medicalMesh = getMedicalMeshDefinition(selection);
-  const medicalRendererActive = canRenderMedicalMesh(medicalMesh);
+  const medicalRendererActive = canRenderMedicalMesh(medicalMesh, {
+    allowTechnicalPreview: allowTechnicalMeshPreview,
+  });
+  const technicalPreviewActive =
+    allowTechnicalMeshPreview &&
+    canPreviewMedicalMesh(medicalMesh) &&
+    medicalMesh.reviewStatus !== 'released';
   const [activeView, setActiveView] =
     useState<(typeof VIEW_PRESETS)[number]['id']>('front');
   const modelRotation = VIEW_PRESETS.find((preset) => preset.id === activeView)?.yaw ?? 0;
@@ -39,10 +48,15 @@ export function BodyMap3DViewer({
         <View>
           <Text style={styles.modelLabel}>{model.label}</Text>
           <Text style={styles.rendererStatus}>
-            {medicalRendererActive
-              ? `Medizinisches Mesh v${medicalMesh.version} · ${medicalMesh.reviewStatus}`
-              : 'Sicherer parametrischer Fallback · medizinisches Mesh ausstehend'}
+            {medicalMeshRendererLabel(medicalMesh, {
+              allowTechnicalPreview: allowTechnicalMeshPreview,
+            })}
           </Text>
+          {technicalPreviewActive ? (
+            <Text style={styles.technicalWarning}>
+              TECHNISCHE REFERENZ · NICHT MEDIZINISCH FREIGEGEBEN
+            </Text>
+          ) : null}
           <Text style={styles.help}>Ziehen: drehen · Mausrad/2 Finger: zoomen · Rechtsziehen: verschieben</Text>
         </View>
         <View style={styles.badge}>
@@ -97,6 +111,7 @@ export function BodyMap3DViewer({
             markers={markers}
             selectedMarkerId={selectedMarkerId}
             disabled={disabled}
+            allowTechnicalMeshPreview={allowTechnicalMeshPreview}
             rotation={[0, modelRotation, 0]}
             onSurfacePress={onSurfacePress}
             onMarkerPress={onMarkerPress}
@@ -150,6 +165,13 @@ const styles = StyleSheet.create({
     color: '#66a3ff',
     marginTop: 3,
     fontWeight: '700',
+  },
+  technicalWarning: {
+    ...typography.caption,
+    color: '#ffbd66',
+    marginTop: 3,
+    fontWeight: '800',
+    letterSpacing: 0.45,
   },
   help: { ...typography.caption, color: '#a9b9d2', marginTop: 4 },
   badge: {

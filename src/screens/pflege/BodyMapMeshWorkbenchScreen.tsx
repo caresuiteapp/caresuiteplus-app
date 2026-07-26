@@ -13,6 +13,7 @@ import {
   medicalMeshRendererLabel,
 } from '@/lib/pflege/bodyMap3d/medicalMeshCatalog';
 import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
+import type { BodyMap3DMarker } from '@/types/modules/bodyMap';
 
 const VIEWS = [
   { id: 'front', label: 'Vorderseite', rotationY: 0 },
@@ -33,6 +34,43 @@ function WorkbenchModelView({
   technicalMeshActive: boolean;
 }) {
   const model = getBodyMapModel(qaCase.selection);
+  const qaMarker: BodyMap3DMarker = {
+    id: `qa-marker-${qaCase.id}-${label}`,
+    tenantId: 'visual-qa',
+    clientId: 'visual-qa',
+    woundId: null,
+    gender: qaCase.selection.sex === 'divers' ? 'neutral' : qaCase.selection.sex,
+    view: 'vorderseite',
+    region: 'rumpf',
+    markerType: 'wunde',
+    xPercent: 50,
+    yPercent: 50,
+    note: 'Pulsierender gelber Phase-9-Befundpunkt',
+    modelId: model.id,
+    anatomyPackId: null,
+    ageGroup: qaCase.selection.ageGroup,
+    sex: qaCase.selection.sex,
+    genitalAnatomy: qaCase.selection.genitalAnatomy,
+    chestAnatomy: qaCase.selection.chestAnatomy,
+    skinTone: qaCase.selection.skinTone,
+    anatomicalZoneId: 'brustbein',
+    surfacePoint: {
+      localPosition: { x: 0, y: model.nominalHeightMeters * 0.62, z: 0.12 },
+      worldPosition: { x: 0, y: 0.2, z: 0.12 },
+      modelPosition: { x: 0, y: model.nominalHeightMeters * 0.62, z: 0.12 },
+      normal: { x: 0, y: 0, z: 1 },
+      modelNormal: { x: 0, y: 0, z: 1 },
+      uv: { u: 0.5, v: 0.5 },
+      meshName: 'zone__brustbein',
+      primitiveIndex: null,
+      triangleIndex: null,
+    },
+    pressureClassification: null,
+    findingStatus: 'aktiv',
+    findingDetails: { visualQa: true },
+    createdAt: '2026-07-26T00:00:00.000Z',
+    updatedAt: '2026-07-26T00:00:00.000Z',
+  };
   return (
     <View style={styles.modelCard}>
       <Text style={styles.modelCardTitle}>{label}</Text>
@@ -54,7 +92,8 @@ function WorkbenchModelView({
           <directionalLight position={[-3, 2, -4]} intensity={0.85} color="#70a5ff" />
           <ClinicalBodyModel
             selection={qaCase.selection}
-            markers={[]}
+            markers={[qaMarker]}
+            selectedMarkerId={qaMarker.id}
             disabled
             allowTechnicalMeshPreview
             rotation={[0, rotationY, 0]}
@@ -196,12 +235,12 @@ export function BodyMapMeshWorkbenchScreen() {
               {active
                 ? released
                   ? 'Medizinisch freigegebenes GLB-Mesh wird gerendert'
-                  : 'Technisches Referenzmesh wird ausschließlich zur Prüfung gerendert'
+                  : 'Technisches Referenzmesh wird mit sichtbarer Freigabekennzeichnung gerendert'
                 : 'Parametrischer Sicherheitsfallback wird gerendert'}
             </Text>
             <Text style={styles.noticeText}>
               {active && !released
-                ? 'Dieses Modell ist nicht medizinisch freigegeben und bleibt in der Patienten-Bodymap gesperrt.'
+                ? 'Dieses Modell ist nicht medizinisch freigegeben. Es darf technisch verwendet werden, wird aber in der Patienten-Bodymap dauerhaft eindeutig als technische Referenz gekennzeichnet.'
                 : 'Ein fehlendes oder fehlerhaftes GLB darf die produktive Bodymap niemals unbedienbar machen.'}
             </Text>
           </View>

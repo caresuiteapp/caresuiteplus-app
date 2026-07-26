@@ -12,7 +12,7 @@ import {
 import {
   hitFromEvent,
   ParametricBodyModel,
-  XMarker,
+  PulsingFindingMarker,
   type BodyModelProps,
 } from './ParametricBodyModel';
 
@@ -85,7 +85,7 @@ function MedicalGltfBodyModel({
     >
       <primitive object={clinicalScene} />
       {markers.map((marker) => (
-        <XMarker
+        <PulsingFindingMarker
           key={marker.id}
           marker={marker}
           selected={marker.id === selectedMarkerId}

@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-07-26T09:13:50.035Z",
+  "variantId": "body-erwachsener-divers-penis-brueste",
+  "url": "http://127.0.0.1:42501/bodymap-mesh-workbench?variant=body-erwachsener-divers-penis-brueste",
+  "outputFile": "docs/bodymap3d/qa/bodymap-phase9-clinical-marker/body-erwachsener-divers-penis-brueste-four-view.png",
+  "viewport": {
+    "width": 1800,
+    "height": 1450,
+    "deviceScaleFactor": 1
+  },
+  "canvasState": [
+    {
+      "width": 693,
+      "height": 438,
+      "dataLength": 50198
+    },
+    {
+      "width": 693,
+      "height": 438,
+      "dataLength": 49110
+    },
+    {
+      "width": 693,
+      "height": 438,
+      "dataLength": 36170
+    },
+    {
+      "width": 693,
+      "height": 438,
+      "dataLength": 35950
+    }
+  ],
+  "rendererStatusVisible": true,
+  "technicalReviewVisible": true,
+  "medicalReleaseStillPending": true,
+  "browserErrors": []
+}

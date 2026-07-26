@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import type { ThreeEvent } from '@react-three/fiber';
+import { useMemo, useRef } from 'react';
+import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import {
   Color,
   Matrix3,
@@ -228,7 +228,7 @@ function Surface({
   );
 }
 
-export function XMarker({
+export function PulsingFindingMarker({
   marker,
   selected,
   onPress,
@@ -237,13 +237,19 @@ export function XMarker({
   selected: boolean;
   onPress?: (marker: BodyMap3DMarker) => void;
 }) {
+  const pulseRef = useRef<Mesh>(null);
   const position = marker.surfacePoint.modelPosition ?? marker.surfacePoint.worldPosition;
   const normal = marker.surfacePoint.modelNormal ?? marker.surfacePoint.normal;
   const quaternion = useMemo(() => {
     const target = new Vector3(normal.x, normal.y, normal.z).normalize();
     return new Quaternion().setFromUnitVectors(new Vector3(0, 0, 1), target);
   }, [normal.x, normal.y, normal.z]);
-  const markerScale = selected ? 1.35 : 1;
+  useFrame(({ clock }) => {
+    if (!pulseRef.current) return;
+    const phase = clock.elapsedTime * (selected ? 4.8 : 3.2);
+    const pulse = (selected ? 1.22 : 1) + Math.sin(phase) * (selected ? 0.2 : 0.13);
+    pulseRef.current.scale.setScalar(pulse);
+  });
 
   return (
     <group
@@ -254,19 +260,33 @@ export function XMarker({
         position.z + normal.z * 0.012,
       ]}
       quaternion={quaternion}
-      scale={markerScale}
       onPointerDown={(event) => {
         event.stopPropagation();
         onPress?.(marker);
       }}
     >
-      <mesh rotation={[0, 0, Math.PI / 4]}>
-        <boxGeometry args={[0.095, 0.014, 0.014]} />
-        <meshStandardMaterial color="#ef233c" emissive="#7d0012" emissiveIntensity={0.7} />
+      <mesh ref={pulseRef}>
+        <ringGeometry args={[0.052, 0.074, 32]} />
+        <meshBasicMaterial
+          color={selected ? '#fff2a8' : '#ffd633'}
+          transparent
+          opacity={selected ? 0.92 : 0.72}
+          depthWrite={false}
+        />
       </mesh>
-      <mesh rotation={[0, 0, -Math.PI / 4]}>
-        <boxGeometry args={[0.095, 0.014, 0.014]} />
-        <meshStandardMaterial color="#ef233c" emissive="#7d0012" emissiveIntensity={0.7} />
+      <mesh position={[0, 0, 0.004]}>
+        <circleGeometry args={[selected ? 0.046 : 0.04, 32]} />
+        <meshStandardMaterial
+          color="#ffd21f"
+          emissive="#ffb000"
+          emissiveIntensity={selected ? 1.65 : 1.1}
+          roughness={0.28}
+          metalness={0}
+        />
+      </mesh>
+      <mesh position={[0, 0, 0.007]}>
+        <circleGeometry args={[selected ? 0.019 : 0.015, 24]} />
+        <meshBasicMaterial color="#fff8c7" />
       </mesh>
     </group>
   );
@@ -1220,7 +1240,7 @@ export function ParametricBodyModel({
       ))}
 
       {markers.map((marker) => (
-        <XMarker
+        <PulsingFindingMarker
           key={marker.id}
           marker={marker}
           selected={marker.id === selectedMarkerId}

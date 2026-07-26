@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
-import { extname, join, resolve, sep } from 'node:path';
+import { extname, join, relative, resolve, sep } from 'node:path';
 
 function valueOf(name) {
   return process.argv
@@ -143,7 +143,7 @@ const result = {
   generatedAt: new Date().toISOString(),
   variantId,
   url,
-  outputFile,
+  outputFile: relative(root, outputFile).replaceAll(sep, '/'),
   viewport: { width: 1800, height: 1450, deviceScaleFactor: 1 },
   canvasState,
   rendererStatusVisible: statusText.includes('Technisches GLB-Referenzmesh v2'),
