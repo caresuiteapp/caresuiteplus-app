@@ -94,6 +94,10 @@ const browser = await chromium.launch({
     '--ignore-gpu-blocklist',
     '--use-angle=swiftshader',
     '--disable-dev-shm-usage',
+    '--disable-crash-reporter',
+    '--disable-crashpad',
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
   ],
 });
 const context = await browser.newContext({

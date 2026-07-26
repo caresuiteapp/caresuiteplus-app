@@ -1,0 +1,765 @@
+{
+  "schemaVersion": 1,
+  "visualAssetContractVersion": 1,
+  "release": "bodymap3d-v3-real-human-production-candidates",
+  "source": {
+    "name": "MakeHuman HM08 core topology",
+    "license": "CC0-1.0",
+    "sourceUrl": "https://github.com/makehumancommunity/makehuman",
+    "importedCommit": "617c78e14ddfce78de938998bf45b2e13ff76edb",
+    "careSuiteImplementation": "Independent CareSuite OBJ/target morph, normalization, glTF and clinical overlay pipeline"
+  },
+  "coordinateSystem": {
+    "units": "meters",
+    "upAxis": "Y",
+    "forwardAxis": "Z",
+    "origin": "floor-center",
+    "neutralPose": "clinical-a-pose"
+  },
+  "qualityGate": {
+    "visualStatusRequiredForRuntime": "production-candidate",
+    "medicalReviewStillRequired": true,
+    "interactionContractInheritedFrom": "bodymap3d-v2",
+    "maximumFileSizeBytes": 15000000
+  },
+  "variants": [
+    {
+      "id": "body-baby-maennlich",
+      "baseModelId": "body-baby-maennlich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-baby-maennlich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-baby-maennlich-v2.glb",
+      "nominalHeightMeters": 0.68,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701376,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-baby.target",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "id": "body-baby-weiblich",
+      "baseModelId": "body-baby-weiblich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-baby-weiblich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-baby-weiblich-v2.glb",
+      "nominalHeightMeters": 0.68,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701376,
+      "morphPlan": [
+        {
+          "file": "caucasian-female-baby.target",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "id": "body-baby-divers",
+      "baseModelId": "body-baby-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-baby-divers-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-baby-divers-v2.glb",
+      "nominalHeightMeters": 0.68,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701424,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-baby.target",
+          "weight": 0.5
+        },
+        {
+          "file": "caucasian-female-baby.target",
+          "weight": 0.5
+        }
+      ]
+    },
+    {
+      "id": "body-kleinkind-maennlich",
+      "baseModelId": "body-kleinkind-maennlich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-kleinkind-maennlich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-kleinkind-maennlich-v2.glb",
+      "nominalHeightMeters": 1,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701424,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-baby.target",
+          "weight": 0.35
+        },
+        {
+          "file": "caucasian-male-child.target",
+          "weight": 0.65
+        }
+      ]
+    },
+    {
+      "id": "body-kleinkind-weiblich",
+      "baseModelId": "body-kleinkind-weiblich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-kleinkind-weiblich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-kleinkind-weiblich-v2.glb",
+      "nominalHeightMeters": 1,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701432,
+      "morphPlan": [
+        {
+          "file": "caucasian-female-baby.target",
+          "weight": 0.35
+        },
+        {
+          "file": "caucasian-female-child.target",
+          "weight": 0.65
+        }
+      ]
+    },
+    {
+      "id": "body-kleinkind-divers",
+      "baseModelId": "body-kleinkind-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-kleinkind-divers-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-kleinkind-divers-v2.glb",
+      "nominalHeightMeters": 1,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701532,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-baby.target",
+          "weight": 0.175
+        },
+        {
+          "file": "caucasian-female-baby.target",
+          "weight": 0.175
+        },
+        {
+          "file": "caucasian-male-child.target",
+          "weight": 0.325
+        },
+        {
+          "file": "caucasian-female-child.target",
+          "weight": 0.325
+        }
+      ]
+    },
+    {
+      "id": "body-kind-maennlich",
+      "baseModelId": "body-kind-maennlich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-kind-maennlich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-kind-maennlich-v2.glb",
+      "nominalHeightMeters": 1.42,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701372,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-child.target",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "id": "body-kind-weiblich",
+      "baseModelId": "body-kind-weiblich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-kind-weiblich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-kind-weiblich-v2.glb",
+      "nominalHeightMeters": 1.42,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701368,
+      "morphPlan": [
+        {
+          "file": "caucasian-female-child.target",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "id": "body-kind-divers",
+      "baseModelId": "body-kind-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-kind-divers-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-kind-divers-v2.glb",
+      "nominalHeightMeters": 1.42,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701428,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-child.target",
+          "weight": 0.5
+        },
+        {
+          "file": "caucasian-female-child.target",
+          "weight": 0.5
+        }
+      ]
+    },
+    {
+      "id": "body-jugendlicher-maennlich",
+      "baseModelId": "body-jugendlicher-maennlich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-jugendlicher-maennlich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-jugendlicher-maennlich-v2.glb",
+      "nominalHeightMeters": 1.66,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701448,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-child.target",
+          "weight": 0.35
+        },
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 0.65
+        }
+      ]
+    },
+    {
+      "id": "body-jugendlicher-weiblich",
+      "baseModelId": "body-jugendlicher-weiblich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-jugendlicher-weiblich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-jugendlicher-weiblich-v2.glb",
+      "nominalHeightMeters": 1.66,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701440,
+      "morphPlan": [
+        {
+          "file": "caucasian-female-child.target",
+          "weight": 0.35
+        },
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 0.65
+        }
+      ]
+    },
+    {
+      "id": "body-jugendlicher-divers",
+      "baseModelId": "body-jugendlicher-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-jugendlicher-divers-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-jugendlicher-divers-v2.glb",
+      "nominalHeightMeters": 1.66,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701548,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-child.target",
+          "weight": 0.175
+        },
+        {
+          "file": "caucasian-female-child.target",
+          "weight": 0.175
+        },
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 0.325
+        },
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 0.325
+        }
+      ]
+    },
+    {
+      "id": "body-junger-erwachsener-maennlich",
+      "baseModelId": "body-junger-erwachsener-maennlich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-junger-erwachsener-maennlich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-junger-erwachsener-maennlich-v2.glb",
+      "nominalHeightMeters": 1.72,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701408,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "id": "body-junger-erwachsener-weiblich",
+      "baseModelId": "body-junger-erwachsener-weiblich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-junger-erwachsener-weiblich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-junger-erwachsener-weiblich-v2.glb",
+      "nominalHeightMeters": 1.72,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701408,
+      "morphPlan": [
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "id": "body-junger-erwachsener-divers",
+      "baseModelId": "body-junger-erwachsener-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-junger-erwachsener-divers-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-junger-erwachsener-divers-v2.glb",
+      "nominalHeightMeters": 1.72,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701448,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 0.5
+        },
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 0.5
+        }
+      ]
+    },
+    {
+      "id": "body-senior-maennlich",
+      "baseModelId": "body-senior-maennlich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-senior-maennlich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-senior-maennlich-v2.glb",
+      "nominalHeightMeters": 1.65,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701424,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 0.3
+        },
+        {
+          "file": "caucasian-male-old.target",
+          "weight": 0.7
+        }
+      ]
+    },
+    {
+      "id": "body-senior-weiblich",
+      "baseModelId": "body-senior-weiblich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-senior-weiblich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-senior-weiblich-v2.glb",
+      "nominalHeightMeters": 1.65,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701432,
+      "morphPlan": [
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 0.3
+        },
+        {
+          "file": "caucasian-female-old.target",
+          "weight": 0.7
+        }
+      ]
+    },
+    {
+      "id": "body-senior-divers",
+      "baseModelId": "body-senior-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-senior-divers-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-senior-divers-v2.glb",
+      "nominalHeightMeters": 1.65,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701532,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 0.15
+        },
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 0.15
+        },
+        {
+          "file": "caucasian-male-old.target",
+          "weight": 0.35
+        },
+        {
+          "file": "caucasian-female-old.target",
+          "weight": 0.35
+        }
+      ]
+    },
+    {
+      "id": "body-hochbetagt-maennlich",
+      "baseModelId": "body-hochbetagt-maennlich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-hochbetagt-maennlich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-hochbetagt-maennlich-v2.glb",
+      "nominalHeightMeters": 1.59,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701380,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-old.target",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "id": "body-hochbetagt-weiblich",
+      "baseModelId": "body-hochbetagt-weiblich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-hochbetagt-weiblich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-hochbetagt-weiblich-v2.glb",
+      "nominalHeightMeters": 1.59,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701380,
+      "morphPlan": [
+        {
+          "file": "caucasian-female-old.target",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "id": "body-hochbetagt-divers",
+      "baseModelId": "body-hochbetagt-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-hochbetagt-divers-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-hochbetagt-divers-v2.glb",
+      "nominalHeightMeters": 1.59,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701432,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-old.target",
+          "weight": 0.5
+        },
+        {
+          "file": "caucasian-female-old.target",
+          "weight": 0.5
+        }
+      ]
+    },
+    {
+      "id": "body-erwachsener-maennlich",
+      "baseModelId": "body-erwachsener-maennlich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-erwachsener-maennlich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-erwachsener-maennlich-v2.glb",
+      "nominalHeightMeters": 1.72,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701440,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 0.75
+        },
+        {
+          "file": "caucasian-male-old.target",
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "id": "body-erwachsener-weiblich",
+      "baseModelId": "body-erwachsener-weiblich",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-erwachsener-weiblich-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-erwachsener-weiblich-v2.glb",
+      "nominalHeightMeters": 1.72,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701436,
+      "morphPlan": [
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 0.75
+        },
+        {
+          "file": "caucasian-female-old.target",
+          "weight": 0.25
+        }
+      ]
+    },
+    {
+      "id": "body-erwachsener-divers",
+      "baseModelId": "body-erwachsener-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-erwachsener-divers-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-erwachsener-divers-v2.glb",
+      "nominalHeightMeters": 1.72,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701544,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 0.375
+        },
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 0.375
+        },
+        {
+          "file": "caucasian-male-old.target",
+          "weight": 0.125
+        },
+        {
+          "file": "caucasian-female-old.target",
+          "weight": 0.125
+        }
+      ]
+    },
+    {
+      "id": "body-erwachsener-divers-penis-brueste",
+      "baseModelId": "body-erwachsener-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-erwachsener-divers-penis-brueste-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-erwachsener-divers-penis-brueste-v2.glb",
+      "nominalHeightMeters": 1.72,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701596,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 0.21000000000000002
+        },
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 0.54
+        },
+        {
+          "file": "caucasian-male-old.target",
+          "weight": 0.07
+        },
+        {
+          "file": "caucasian-female-old.target",
+          "weight": 0.18
+        }
+      ]
+    },
+    {
+      "id": "body-erwachsener-divers-penis-keine-brueste",
+      "baseModelId": "body-erwachsener-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-erwachsener-divers-penis-keine-brueste-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-erwachsener-divers-penis-keine-brueste-v2.glb",
+      "nominalHeightMeters": 1.72,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701600,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 0.51
+        },
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 0.24
+        },
+        {
+          "file": "caucasian-male-old.target",
+          "weight": 0.16999999999999998
+        },
+        {
+          "file": "caucasian-female-old.target",
+          "weight": 0.08
+        }
+      ]
+    },
+    {
+      "id": "body-erwachsener-divers-vulva-brueste",
+      "baseModelId": "body-erwachsener-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-erwachsener-divers-vulva-brueste-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-erwachsener-divers-vulva-brueste-v2.glb",
+      "nominalHeightMeters": 1.72,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701596,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 0.21000000000000002
+        },
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 0.54
+        },
+        {
+          "file": "caucasian-male-old.target",
+          "weight": 0.07
+        },
+        {
+          "file": "caucasian-female-old.target",
+          "weight": 0.18
+        }
+      ]
+    },
+    {
+      "id": "body-erwachsener-divers-vulva-keine-brueste",
+      "baseModelId": "body-erwachsener-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-erwachsener-divers-vulva-keine-brueste-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-erwachsener-divers-vulva-keine-brueste-v2.glb",
+      "nominalHeightMeters": 1.72,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701600,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 0.51
+        },
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 0.24
+        },
+        {
+          "file": "caucasian-male-old.target",
+          "weight": 0.16999999999999998
+        },
+        {
+          "file": "caucasian-female-old.target",
+          "weight": 0.08
+        }
+      ]
+    },
+    {
+      "id": "body-erwachsener-divers-unbekannt-brueste",
+      "baseModelId": "body-erwachsener-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-erwachsener-divers-unbekannt-brueste-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-erwachsener-divers-unbekannt-brueste-v2.glb",
+      "nominalHeightMeters": 1.72,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701604,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 0.21000000000000002
+        },
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 0.54
+        },
+        {
+          "file": "caucasian-male-old.target",
+          "weight": 0.07
+        },
+        {
+          "file": "caucasian-female-old.target",
+          "weight": 0.18
+        }
+      ]
+    },
+    {
+      "id": "body-erwachsener-divers-unbekannt-keine-brueste",
+      "baseModelId": "body-erwachsener-divers",
+      "visualAssetPath": "/bodymap3d/v3/real-human/body-erwachsener-divers-unbekannt-keine-brueste-real-v3.glb",
+      "interactionAssetPath": "/bodymap3d/v2/body-erwachsener-divers-unbekannt-keine-brueste-v2.glb",
+      "nominalHeightMeters": 1.72,
+      "visualStatus": "production-candidate",
+      "medicalReviewStatus": "pending",
+      "sourceLicense": "CC0-1.0",
+      "vertices": 14945,
+      "triangles": 27356,
+      "fileSizeBytes": 701608,
+      "morphPlan": [
+        {
+          "file": "caucasian-male-young.target",
+          "weight": 0.51
+        },
+        {
+          "file": "caucasian-female-young.target",
+          "weight": 0.24
+        },
+        {
+          "file": "caucasian-male-old.target",
+          "weight": 0.16999999999999998
+        },
+        {
+          "file": "caucasian-female-old.target",
+          "weight": 0.08
+        }
+      ]
+    }
+  ]
+}

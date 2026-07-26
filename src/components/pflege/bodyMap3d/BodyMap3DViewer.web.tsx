@@ -6,9 +6,11 @@ import { ACESFilmicToneMapping, SRGBColorSpace } from 'three';
 import { colors, spacing, typography } from '@/theme';
 import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
 import {
+  canRenderRealHumanVisual,
   canPreviewMedicalMesh,
   canRenderMedicalMesh,
   getMedicalMeshDefinition,
+  getRealHumanVisualDefinition,
   medicalMeshRendererLabel,
 } from '@/lib/pflege/bodyMap3d/medicalMeshCatalog';
 import { ClinicalBodyModel } from './ClinicalBodyModel';
@@ -32,10 +34,15 @@ export function BodyMap3DViewer({
 }: BodyMap3DViewerProps) {
   const model = getBodyMapModel(selection);
   const medicalMesh = getMedicalMeshDefinition(selection);
-  const medicalRendererActive = canRenderMedicalMesh(medicalMesh, {
-    allowTechnicalPreview: allowTechnicalMeshPreview,
-  });
+  const realHumanVisual = getRealHumanVisualDefinition(selection);
+  const realHumanActive = canRenderRealHumanVisual(realHumanVisual);
+  const medicalRendererActive =
+    realHumanActive ||
+    canRenderMedicalMesh(medicalMesh, {
+      allowTechnicalPreview: allowTechnicalMeshPreview,
+    });
   const technicalPreviewActive =
+    !realHumanActive &&
     allowTechnicalMeshPreview &&
     canPreviewMedicalMesh(medicalMesh) &&
     medicalMesh.reviewStatus !== 'released';
@@ -59,10 +66,17 @@ export function BodyMap3DViewer({
               TECHNISCHE REFERENZ · NICHT MEDIZINISCH FREIGEGEBEN
             </Text>
           ) : null}
+          {realHumanActive && realHumanVisual.medicalReviewStatus !== 'approved' ? (
+            <Text style={styles.technicalWarning}>
+              REAL-HUMAN PRODUKTIONSKANDIDAT · MEDIZINISCHE PRÜFUNG AUSSTEHEND
+            </Text>
+          ) : null}
           <Text style={styles.help}>Ziehen: drehen · Mausrad/2 Finger: zoomen · Rechtsziehen: verschieben</Text>
         </View>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{medicalRendererActive ? 'GLB' : '3D'}</Text>
+          <Text style={styles.badgeText}>
+            {realHumanActive ? 'REAL' : medicalRendererActive ? 'GLB' : '3D'}
+          </Text>
         </View>
       </View>
       <View style={styles.viewPresets}>

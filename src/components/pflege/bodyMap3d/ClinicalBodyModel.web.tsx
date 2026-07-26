@@ -13,8 +13,10 @@ import {
 } from 'three';
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import {
+  canRenderRealHumanVisual,
   canRenderMedicalMesh,
   getMedicalMeshDefinition,
+  getRealHumanVisualDefinition,
   MEDICAL_SKIN_TINTS,
   zoneIdFromMedicalMesh,
 } from '@/lib/pflege/bodyMap3d/medicalMeshCatalog';
@@ -39,7 +41,11 @@ function tintClinicalSkinMaterial(
   return clone;
 }
 
-function prepareMedicalScene(scene: Object3D, skinTone: BodyModelProps['selection']['skinTone']) {
+function prepareMedicalScene(
+  scene: Object3D,
+  skinTone: BodyModelProps['selection']['skinTone'],
+  hideTechnicalSurface = false,
+) {
   const clone = cloneSkeleton(scene);
   clone.traverse((object) => {
     const mesh = object as Mesh;
@@ -53,6 +59,7 @@ function prepareMedicalScene(scene: Object3D, skinTone: BodyModelProps['selectio
     if (renderSurface) {
       mesh.raycast = () => {};
       mesh.userData.bodymapVisualOnly = true;
+      if (hideTechnicalSurface) mesh.visible = false;
     }
     const prepareMaterial = (source: Material) => {
       const material = tintClinicalSkinMaterial(
@@ -69,6 +76,28 @@ function prepareMedicalScene(scene: Object3D, skinTone: BodyModelProps['selectio
       }
       return material;
     };
+    if (Array.isArray(mesh.material)) {
+      mesh.material = mesh.material.map(prepareMaterial);
+    } else if (mesh.material) {
+      mesh.material = prepareMaterial(mesh.material);
+    }
+  });
+  return clone;
+}
+
+function prepareRealHumanScene(
+  scene: Object3D,
+  skinTone: BodyModelProps['selection']['skinTone'],
+) {
+  const clone = cloneSkeleton(scene);
+  clone.traverse((object) => {
+    const mesh = object as Mesh;
+    if (!mesh.isMesh) return;
+    mesh.raycast = () => {};
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    const prepareMaterial = (source: Material) =>
+      tintClinicalSkinMaterial(source, MEDICAL_SKIN_TINTS[skinTone]);
     if (Array.isArray(mesh.material)) {
       mesh.material = mesh.material.map(prepareMaterial);
     } else if (mesh.material) {
@@ -107,7 +136,7 @@ function nearestUvVertex(
  */
 function markersProjectedToScene(
   scene: Object3D,
-  markers: BodyMap3DMarker[],
+  markers: readonly BodyMap3DMarker[],
 ): BodyMap3DMarker[] {
   scene.updateMatrixWorld(true);
   const zoneMeshes = new Map<string, Mesh>();
@@ -172,6 +201,7 @@ function markersProjectedToScene(
 
 function MedicalGltfBodyModel({
   assetPath,
+  visualAssetPath,
   modelOffsetY,
   markers,
   selectedMarkerId,
@@ -181,11 +211,23 @@ function MedicalGltfBodyModel({
   selection,
   onSurfacePress,
   onMarkerPress,
-}: BodyModelProps & { assetPath: string; modelOffsetY: number }) {
+}: BodyModelProps & {
+  assetPath: string;
+  visualAssetPath: string | null;
+  modelOffsetY: number;
+}) {
   const { scene } = useGLTF(assetPath);
+  const visualGltf = useGLTF(visualAssetPath ?? assetPath);
   const clinicalScene = useMemo(
-    () => prepareMedicalScene(scene, selection.skinTone),
-    [scene, selection.skinTone],
+    () => prepareMedicalScene(scene, selection.skinTone, Boolean(visualAssetPath)),
+    [scene, selection.skinTone, visualAssetPath],
+  );
+  const realHumanScene = useMemo(
+    () =>
+      visualAssetPath
+        ? prepareRealHumanScene(visualGltf.scene, selection.skinTone)
+        : null,
+    [selection.skinTone, visualAssetPath, visualGltf.scene],
   );
   const projectedMarkers = useMemo(
     () => markersProjectedToScene(clinicalScene, markers),
@@ -205,6 +247,7 @@ function MedicalGltfBodyModel({
         if (hit) onSurfacePress(hit);
       }}
     >
+      {realHumanScene ? <primitive object={realHumanScene} /> : null}
       <primitive object={clinicalScene} />
       {projectedMarkers.map((marker) => (
         <PulsingFindingMarker
@@ -249,10 +292,14 @@ class MedicalMeshErrorBoundary extends Component<
 
 export function ClinicalBodyModel(props: BodyModelProps) {
   const definition = getMedicalMeshDefinition(props.selection);
+  const visualDefinition = getRealHumanVisualDefinition(props.selection);
+  const realHumanActive = canRenderRealHumanVisual(visualDefinition);
   if (
-    !canRenderMedicalMesh(definition, {
-      allowTechnicalPreview: props.allowTechnicalMeshPreview,
-    })
+    !definition.assetPath ||
+    (!realHumanActive &&
+      !canRenderMedicalMesh(definition, {
+        allowTechnicalPreview: props.allowTechnicalMeshPreview,
+      }))
   ) {
     return <ParametricBodyModel {...props} />;
   }
@@ -260,12 +307,15 @@ export function ClinicalBodyModel(props: BodyModelProps) {
   return (
     <MedicalMeshErrorBoundary
       fallback={fallback}
-      resetKey={definition.assetPath}
+      resetKey={`${definition.assetPath}:${visualDefinition?.visualAssetPath ?? ''}`}
     >
       <Suspense fallback={fallback}>
         <MedicalGltfBodyModel
           {...props}
           assetPath={definition.assetPath}
+          visualAssetPath={
+            realHumanActive ? visualDefinition.visualAssetPath : null
+          }
           modelOffsetY={-definition.nominalHeightMeters / 2}
         />
       </Suspense>

@@ -4,6 +4,7 @@ import type {
   BodyMapSkinTone,
 } from '@/types/modules/bodyMap';
 import medicalMeshManifest from '../../../../assets/bodymap3d/v2/medical-mesh-manifest.json';
+import realHumanManifest from '../../../../assets/bodymap3d/v3/real-human-manifest.json';
 import { getBodyMapModel } from './modelCatalog';
 
 export type MedicalMeshReviewStatus =
@@ -33,10 +34,34 @@ type MedicalMeshManifest = {
 
 const manifest = medicalMeshManifest as MedicalMeshManifest;
 
+export type RealHumanVisualDefinition = {
+  id: string;
+  baseModelId: BodyMapModelId;
+  visualAssetPath: string;
+  interactionAssetPath: string;
+  nominalHeightMeters: number;
+  visualStatus: 'production-candidate';
+  medicalReviewStatus: 'pending' | 'in-review' | 'approved';
+  sourceLicense: 'CC0-1.0';
+  vertices: number;
+  triangles: number;
+  fileSizeBytes: number;
+};
+
+type RealHumanManifest = {
+  schemaVersion: number;
+  visualAssetContractVersion: number;
+  variants: RealHumanVisualDefinition[];
+};
+
+const realHuman = realHumanManifest as RealHumanManifest;
+
 export const MEDICAL_MESH_VARIANTS: readonly MedicalMeshDefinition[] =
   manifest.variants;
 
 export const MEDICAL_MESH_CONTRACT_VERSION = manifest.meshContractVersion;
+export const REAL_HUMAN_VISUAL_VARIANTS: readonly RealHumanVisualDefinition[] =
+  realHuman.variants;
 
 export function resolveMedicalMeshVariantId(
   selection: BodyMapModelSelection,
@@ -89,6 +114,22 @@ export function getMedicalMeshDefinition(
   return definition;
 }
 
+export function getRealHumanVisualDefinition(
+  selection: BodyMapModelSelection,
+): RealHumanVisualDefinition | null {
+  const variantId = resolveMedicalMeshVariantId(selection);
+  return REAL_HUMAN_VISUAL_VARIANTS.find((entry) => entry.id === variantId) ?? null;
+}
+
+export function canRenderRealHumanVisual(
+  definition: RealHumanVisualDefinition | null,
+): definition is RealHumanVisualDefinition {
+  return Boolean(
+    definition?.visualAssetPath &&
+      definition.visualStatus === 'production-candidate',
+  );
+}
+
 export function canRenderMedicalMesh(
   definition: MedicalMeshDefinition,
   options: { allowTechnicalPreview?: boolean } = {},
@@ -135,6 +176,14 @@ export function medicalMeshRendererLabel(
   definition: MedicalMeshDefinition,
   options: { allowTechnicalPreview?: boolean } = {},
 ): string {
+  const visualDefinition = REAL_HUMAN_VISUAL_VARIANTS.find(
+    (entry) => entry.id === definition.id,
+  );
+  if (canRenderRealHumanVisual(visualDefinition ?? null)) {
+    return visualDefinition?.medicalReviewStatus === 'approved'
+      ? 'Real-Human 3D · medizinisch freigegeben'
+      : 'Real-Human 3D · medizinische Prüfung ausstehend';
+  }
   return canRenderMedicalMesh(definition, options)
     ? definition.reviewStatus === 'released'
       ? `Medizinisch freigegebenes GLB-Mesh v${definition.version}`
