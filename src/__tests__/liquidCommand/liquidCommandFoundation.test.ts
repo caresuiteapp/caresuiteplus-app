@@ -5,6 +5,11 @@ import {
   liquidModules,
   liquidWorkAreas,
 } from '@/liquid-command/navigation/moduleCatalog';
+import { isLiquidCommandRoutePath } from '@/liquid-command/navigation/isLiquidCommandRoute';
+import {
+  getLiquidPrimaryWorkflowRoute,
+  getLiquidRecordRoute,
+} from '@/liquid-command/navigation/workflowRoutes';
 
 describe('Liquid Command foundation', () => {
   it('uses the binding master-specification colors', () => {
@@ -63,5 +68,58 @@ describe('Liquid Command foundation', () => {
     for (const module of liquidModules) {
       expect(liquidWorkAreas[module.key].length).toBeGreaterThan(0);
     }
+  });
+
+  it('uses the canonical application routes instead of a parallel demo namespace', () => {
+    expect(liquidModules.map((module) => module.route)).toEqual([
+      '/',
+      '/office',
+      '/assist',
+      '/pflege',
+      '/stationaer',
+      '/beratung',
+      '/akademie',
+      '/robotics',
+      '/platform',
+      '/settings',
+    ]);
+    expect(
+      Object.values(liquidWorkAreas)
+        .flat()
+        .some((area) => area.route.startsWith('/liquid-command')),
+    ).toBe(false);
+  });
+
+  it('cuts migrated authentication, portal and module routes out of the legacy shell', () => {
+    for (const route of [
+      '/',
+      '/auth/business-login',
+      '/portal/employee',
+      '/office/invoices/create',
+      '/assist/live-status',
+      '/pflege/bodymap',
+      '/stationaer/bodymap',
+      '/beratung/faelle',
+      '/akademie/kurse',
+      '/robotics',
+      '/platform/tenants',
+      '/settings/tenant',
+    ]) {
+      expect(isLiquidCommandRoutePath(route)).toBe(true);
+    }
+    expect(isLiquidCommandRoutePath('/medical')).toBe(false);
+  });
+
+  it('connects Liquid workspaces with productive record and creation workflows', () => {
+    expect(getLiquidRecordRoute('office', 'people', 'employee-1')).toBe(
+      '/office/employees/employee-1',
+    );
+    expect(getLiquidPrimaryWorkflowRoute('assist', 'assignments')).toBe(
+      '/assist/einsaetze/new',
+    );
+    expect(getLiquidPrimaryWorkflowRoute('pflege', 'wounds')).toBe('/pflege/bodymap');
+    expect(getLiquidPrimaryWorkflowRoute('stationaer', 'services')).toBe(
+      '/stationaer/bodymap',
+    );
   });
 });

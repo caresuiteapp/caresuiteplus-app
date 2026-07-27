@@ -11,6 +11,7 @@ const staticDirectory =
 const outputDirectory =
   process.env.LIQUID_COMMAND_QA_DIR ?? '/tmp/caresuite-liquid-command-qa';
 const port = Number(process.env.LIQUID_COMMAND_QA_PORT ?? 4173);
+const browserExecutable = process.env.LIQUID_COMMAND_BROWSER_EXECUTABLE;
 const origin = `http://127.0.0.1:${port}`;
 
 await mkdir(outputDirectory, { recursive: true });
@@ -57,25 +58,25 @@ await new Promise((resolve) => server.listen(port, '127.0.0.1', resolve));
 const targets = [
   {
     name: 'desktop-access',
-    path: '/liquid-command/access',
+    path: '/auth',
     viewport: { width: 1440, height: 900 },
     expected: 'Ein Zugang. Der richtige Arbeitskontext.',
   },
   {
     name: 'tablet-landscape-business',
-    path: '/liquid-command/access/business',
+    path: '/auth/business-login',
     viewport: { width: 1180, height: 820 },
     expected: 'Willkommen zurück.',
   },
   {
     name: 'tablet-portrait-register',
-    path: '/liquid-command/access/register',
+    path: '/auth/register',
     viewport: { width: 820, height: 1180 },
     expected: 'Organisation',
   },
   {
     name: 'phone-portrait-access',
-    path: '/liquid-command/access',
+    path: '/auth',
     viewport: { width: 390, height: 844 },
     expected: 'Ein Zugang. Der richtige Arbeitskontext.',
   },
@@ -85,7 +86,10 @@ let browser;
 const failures = [];
 let recoveredStaticBoundaries = 0;
 try {
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({
+    headless: true,
+    ...(browserExecutable ? { executablePath: browserExecutable } : {}),
+  });
   for (const target of targets) {
     const page = await browser.newPage({ viewport: target.viewport });
     const pageErrors = [];

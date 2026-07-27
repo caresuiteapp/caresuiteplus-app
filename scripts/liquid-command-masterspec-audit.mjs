@@ -104,6 +104,60 @@ if (!sourceText.includes('registerBusinessTenant')) {
   failures.push('Organisationsregistrierung fehlt.');
 }
 
+for (const route of [
+  'app/auth/index.tsx',
+  'app/auth/business-login.tsx',
+  'app/auth/employee-login.tsx',
+  'app/auth/client-login.tsx',
+  'app/auth/family-login.tsx',
+  'app/portal/client/(tabs)/index.tsx',
+  'app/portal/employee/(tabs)/index.tsx',
+  'app/portal/relative/index.tsx',
+  'app/office/index.tsx',
+  'app/assist/index.tsx',
+  'app/pflege/index.tsx',
+  'app/stationaer/index.tsx',
+  'app/beratung/index.tsx',
+  'app/akademie/index.tsx',
+  'app/robotics/index.tsx',
+  'app/platform/index.tsx',
+  'app/settings/index.tsx',
+]) {
+  requireFile(route);
+}
+
+for (const layout of [
+  'app/office/_layout.tsx',
+  'app/assist/_layout.tsx',
+  'app/pflege/_layout.tsx',
+  'app/stationaer/_layout.tsx',
+  'app/beratung/_layout.tsx',
+  'app/akademie/_layout.tsx',
+  'app/portal/_layout.tsx',
+  'app/portal/client/_layout.tsx',
+  'app/portal/employee/_layout.tsx',
+  'app/portal/relative/_layout.tsx',
+]) {
+  const path = join(root, layout);
+  if (!existsSync(path)) continue;
+  const text = readFileSync(path, 'utf8');
+  if (
+    /ShellLayout|routeLayoutContentStyle|ShellAnimatedBackgroundLayer|(?:Client|Employee|Relative)PortalShell/.test(
+      text,
+    )
+  ) {
+    failures.push(`Alt-Shell in migrierter Route: ${layout}`);
+  }
+}
+
+const moduleCatalog = readFileSync(
+  join(root, 'src/liquid-command/navigation/moduleCatalog.ts'),
+  'utf8',
+);
+if (/route:\s*['"]\/liquid-command\/(?:office|assist|pflege|stationaer|beratung|akademie|robotics|platform|settings)/.test(moduleCatalog)) {
+  failures.push('Modulkatalog verwendet noch parallele Demo-Routen.');
+}
+
 if (failures.length) {
   console.error(`Liquid Command Audit fehlgeschlagen (${failures.length}):`);
   for (const failure of failures) console.error(`- ${failure}`);
