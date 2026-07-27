@@ -138,28 +138,28 @@ const accessOptions = [
     title: 'Unternehmen & Verwaltung',
     detail: 'Geschäftsführung, Administration, Disposition und Fachrollen',
     glyph: '▣',
-    route: '/liquid-command/access/business',
+    route: '/auth/business-login',
   },
   {
     id: 'employee',
     title: 'Mitarbeitenden-App',
     detail: 'Mein Tag, Einsätze, Zeiten, Dokumente und Gehalt',
     glyph: '◇',
-    route: '/liquid-command/access/employee',
+    route: '/auth/employee-login',
   },
   {
     id: 'client',
     title: 'Klient:innenportal',
     detail: 'Termine, Live-Anfahrt, Dokumente, Nachrichten und Rechnungen',
     glyph: '○',
-    route: '/liquid-command/access/client',
+    route: '/auth/client-login',
   },
   {
     id: 'family',
     title: 'Angehörigenportal',
     detail: 'Freigegebene Termine, Hinweise und Kommunikation',
     glyph: '◎',
-    route: '/liquid-command/access/family',
+    route: '/auth/family-login',
   },
 ] as const;
 
@@ -200,7 +200,7 @@ export function AccessHubScreen() {
           fullWidth
           label="Organisation registrieren"
           variant="secondary"
-          onPress={() => router.push('/liquid-command/access/register' as never)}
+          onPress={() => router.push('/auth/register' as never)}
         />
         <Text style={styles.accessFootnote}>
           Bewerbende und externe Fachpersonen verwenden den persönlichen Link aus ihrer Einladung.
@@ -236,7 +236,7 @@ export function BusinessAccessScreen() {
         return;
       }
       await signInWithSupabaseSession(result.data.supabaseSession);
-      router.replace('/liquid-command' as never);
+      router.replace('/' as never);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Anmeldung fehlgeschlagen.');
     } finally {
@@ -249,7 +249,7 @@ export function BusinessAccessScreen() {
       eyebrow="UNTERNEHMEN & VERWALTUNG"
       title="Willkommen zurück."
       subtitle="Melden Sie sich mit der freigegebenen Organisationsidentität an."
-      backRoute="/liquid-command/access"
+      backRoute="/auth"
       side={<SecuritySide />}
     >
       <LiquidSurface active contentStyle={styles.formCard}>
@@ -287,12 +287,12 @@ export function BusinessAccessScreen() {
           <LiquidButton
             label="Passwort vergessen"
             variant="ghost"
-            onPress={() => router.push('/liquid-command/access/recovery' as never)}
+            onPress={() => router.push('/auth/forgot-password' as never)}
           />
           <LiquidButton
             label="Organisation registrieren"
             variant="ghost"
-            onPress={() => router.push('/liquid-command/access/register' as never)}
+            onPress={() => router.push('/auth/register' as never)}
           />
         </View>
       </LiquidSurface>
@@ -350,8 +350,8 @@ export function EmployeeAccessScreen() {
       await signInPortalSession(completed.data.portalSession);
       router.replace(
         result.data.mustChangePassword
-          ? '/liquid-command/access/employee-first-login'
-          : '/liquid-command/portal/employee' as never,
+          ? '/auth/employee-first-login'
+          : '/portal/employee' as never,
       );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Anmeldung fehlgeschlagen.');
@@ -365,7 +365,7 @@ export function EmployeeAccessScreen() {
       eyebrow="MITARBEITENDEN-APP"
       title="Ihr Arbeitstag beginnt hier."
       subtitle="Persönlicher Zugang für Einsätze, Zeiten, Dokumente und Gehaltsinformationen."
-      backRoute="/liquid-command/access"
+      backRoute="/auth"
       side={<SecuritySide />}
     >
       <LiquidSurface active contentStyle={styles.formCard}>
@@ -430,7 +430,7 @@ export function PortalAccessScreen({ portal }: { portal: 'client' | 'family' }) 
       }
       await signInPortalSession(completed.data.portalSession);
       router.replace(
-        isClient ? '/liquid-command/portal/client' as never : '/liquid-command/portal/family' as never,
+        isClient ? '/portal/client' as never : '/portal/relative' as never,
       );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Portal-Anmeldung fehlgeschlagen.');
@@ -448,7 +448,7 @@ export function PortalAccessScreen({ portal }: { portal: 'client' | 'family' }) 
           ? 'Termine, Live-Anfahrt, Dokumente und Nachrichten in einfacher Sprache.'
           : 'Sie sehen ausschließlich Informationen, für die eine gültige Freigabe besteht.'
       }
-      backRoute="/liquid-command/access"
+      backRoute="/auth"
       side={<SecuritySide />}
     >
       <LiquidSurface active contentStyle={styles.formCard}>
@@ -628,7 +628,7 @@ export function RegisterOrganizationScreen() {
           title="Registrierung erfolgreich"
           message={success.username ? `Administrations-Benutzername: ${success.username}` : 'Administrationskonto erstellt.'}
         />
-        <LiquidButton fullWidth label="Zur Anmeldung" onPress={() => router.replace('/liquid-command/access/business' as never)} />
+        <LiquidButton fullWidth label="Zur Anmeldung" onPress={() => router.replace('/auth/business-login' as never)} />
       </AccessShell>
     );
   }
@@ -638,7 +638,7 @@ export function RegisterOrganizationScreen() {
       eyebrow={`REGISTRIERUNG · SCHRITT ${step + 1} VON ${registrationSteps.length}`}
       title={registrationSteps[step][0]}
       subtitle={registrationSteps[step][1]}
-      backRoute="/liquid-command/access"
+      backRoute="/auth"
       side={
         <LiquidSurface active contentStyle={styles.stepCard}>
           <LiquidText variant="kicker">FORTSCHRITT</LiquidText>
@@ -801,7 +801,7 @@ export function PasswordRecoveryScreen() {
       eyebrow="PASSWORT-WIEDERHERSTELLUNG"
       title="Zugang sicher wiederherstellen."
       subtitle="Ein Rücksetz-Link wird ausschließlich an das verknüpfte Administrationskonto gesendet."
-      backRoute="/liquid-command/access/business"
+      backRoute="/auth/business-login"
       side={<SecuritySide />}
     >
       <LiquidSurface active contentStyle={styles.formCard}>
@@ -816,7 +816,7 @@ export function PasswordRecoveryScreen() {
           required
         />
         <LiquidButton fullWidth label="Rücksetz-Link anfordern" loading={loading} onPress={() => void submit()} />
-        <LiquidButton fullWidth label="Zur Anmeldung" variant="secondary" onPress={() => router.replace('/liquid-command/access/business' as never)} />
+        <LiquidButton fullWidth label="Zur Anmeldung" variant="secondary" onPress={() => router.replace('/auth/business-login' as never)} />
       </LiquidSurface>
     </AccessShell>
   );
@@ -857,7 +857,7 @@ export function PasswordResetScreen() {
     }
     await supabaseSignOut();
     setLoading(false);
-    router.replace('/liquid-command/access/business' as never);
+    router.replace('/auth/business-login' as never);
   };
 
   return (
@@ -865,7 +865,7 @@ export function PasswordResetScreen() {
       eyebrow="NEUES PASSWORT"
       title="Sitzung schützen."
       subtitle="Vergeben Sie ein neues Passwort für das bestätigte Konto."
-      backRoute="/liquid-command/access/business"
+      backRoute="/auth/business-login"
       side={<SecuritySide />}
     >
       {!ready ? (
@@ -876,7 +876,7 @@ export function PasswordResetScreen() {
           title="Link ungültig oder abgelaufen"
           message="Fordern Sie einen neuen Rücksetz-Link an."
           actionLabel="Neuen Link anfordern"
-          onAction={() => router.replace('/liquid-command/access/recovery' as never)}
+          onAction={() => router.replace('/auth/forgot-password' as never)}
         />
       ) : (
         <LiquidSurface active contentStyle={styles.formCard}>
@@ -919,7 +919,7 @@ export function EmployeeFirstLoginScreen() {
       return;
     }
     await updatePortalSession({ mustChangePassword: false });
-    router.replace('/liquid-command/portal/employee' as never);
+    router.replace('/portal/employee' as never);
   };
 
   return (
@@ -927,7 +927,7 @@ export function EmployeeFirstLoginScreen() {
       eyebrow="ERSTE ANMELDUNG"
       title="Persönliches Passwort festlegen."
       subtitle="Das Einmalpasswort wird nach erfolgreichem Abschluss ungültig."
-      backRoute="/liquid-command/access/employee"
+      backRoute="/auth/employee-login"
       side={<SecuritySide />}
     >
       <LiquidSurface active contentStyle={styles.formCard}>

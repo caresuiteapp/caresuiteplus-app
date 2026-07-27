@@ -1,3 +1,5 @@
-import { PortalCodeLoginScreen } from '@/screens/auth/PortalCodeLoginScreen';
+import { PortalAccessScreen } from '@/liquid-command/screens/AccessScreens';
 
-export default PortalCodeLoginScreen;
+export default function ClientPortalCodeLoginRoute() {
+  return <PortalAccessScreen portal="client" />;
+}

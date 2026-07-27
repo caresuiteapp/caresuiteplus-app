@@ -91,7 +91,7 @@ function TodayTimeline({
           compact
           label="Alle Einsätze"
           variant="ghost"
-          onPress={() => router.push('/liquid-command/assist?area=assignments' as never)}
+          onPress={() => router.push('/assist?area=assignments' as never)}
         />
       </View>
       <View style={styles.timelineScale}>
@@ -111,7 +111,7 @@ function TodayTimeline({
                 key={visit.id}
                 accessibilityRole="button"
                 accessibilityLabel={`${visit.clientName}, ${formatTime(visit.scheduledStart)}, ${visit.title}`}
-                onPress={() => router.push(`/liquid-command/assist?area=assignments&record=${visit.id}` as never)}
+                onPress={() => router.push(`/assist?area=assignments&record=${visit.id}` as never)}
                 style={({ pressed }) => [
                   styles.timelineRow,
                   pressed && styles.pressed,
@@ -204,7 +204,7 @@ function BodyMapPanel() {
         fullWidth
         label="BodyMap öffnen"
         variant="secondary"
-        onPress={() => router.push('/liquid-command/pflege?area=wounds' as never)}
+        onPress={() => router.push('/pflege?area=wounds' as never)}
       />
     </LiquidSurface>
   );
@@ -245,7 +245,7 @@ export function CommandCenterScreen() {
       contextLabel="Unternehmenslage"
       contextDetail={formatSync(state.lastSynchronizedAt)}
       primaryActionLabel="Neue Aktion"
-      onPrimaryAction={() => router.push('/liquid-command/assist?area=planning' as never)}
+      onPrimaryAction={() => router.push('/assist?area=planning' as never)}
       aside={layout.formFactor === 'tablet-portrait' ? undefined : aside}
     >
       {state.loading && !state.initialized ? (

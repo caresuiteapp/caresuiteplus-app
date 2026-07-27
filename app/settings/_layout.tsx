@@ -1,17 +1,5 @@
-import { Stack } from 'expo-router';
-import { RequireAuth } from '@/lib/auth';
-import { routeLayoutContentStyle } from '@/design/routeLayoutStyle';
+import { LiquidModuleRouteLayout } from '@/liquid-command/shell/LiquidModuleRouteLayout';
 
 export default function SettingsLayout() {
-  return (
-    <RequireAuth redirectTo={'/auth/business-login' as never}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: routeLayoutContentStyle,
-          animation: 'slide_from_right',
-        }}
-      />
-    </RequireAuth>
-  );
+  return <LiquidModuleRouteLayout requireRole={false} requireProduct={false} />;
 }

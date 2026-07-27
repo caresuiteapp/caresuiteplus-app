@@ -1,3 +1,3 @@
-import { ForgotPasswordScreen } from '@/screens/auth/ForgotPasswordScreen';
+import { PasswordRecoveryScreen } from '@/liquid-command/screens/AccessScreens';
 
-export default ForgotPasswordScreen;
+export default PasswordRecoveryScreen;

@@ -1,3 +1,5 @@
-import { AssistIndexScreen } from '@/screens/assist/AssistIndexScreen';
+import { ModuleWorkspaceScreen } from '@/liquid-command/screens/ModuleWorkspaceScreen';
 
-export default AssistIndexScreen;
+export default function AssistIndexRoute() {
+  return <ModuleWorkspaceScreen moduleKey="assist" />;
+}

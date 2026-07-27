@@ -1,3 +1,3 @@
-import { ResetPasswordScreen } from '@/screens/auth/ResetPasswordScreen';
+import { PasswordResetScreen } from '@/liquid-command/screens/AccessScreens';
 
-export default ResetPasswordScreen;
+export default PasswordResetScreen;

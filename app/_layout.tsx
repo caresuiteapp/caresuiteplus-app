@@ -22,6 +22,7 @@ import { useHydrated } from '@/hooks/useHydrated';
 import { installSystemTextDefaults } from '@/design/installSystemTextDefaults';
 import { GlobalWorkflowFeedbackProvider } from '@/components/ui';
 import { isHealthOSContextualPopupRoute } from '@/lib/navigation/healthosRoutePresentation';
+import { isLiquidCommandRoutePath } from '@/liquid-command/navigation/isLiquidCommandRoute';
 
 applyInvisibleScrollIndicators();
 installSystemTextDefaults();
@@ -38,7 +39,7 @@ function RootShell() {
   const pathname = usePathname();
   const hydrated = useHydrated();
   const perf = useDevicePerformance();
-  const isLiquidCommandRoute = pathname === '/' || pathname.startsWith('/liquid-command');
+  const isLiquidCommandRoute = isLiquidCommandRoutePath(pathname);
   const hostsGlobalBackground = !isLiquidCommandRoute && !isPortalRoutePath(pathname);
 
   useEffect(() => {
@@ -97,7 +98,7 @@ function RootShell() {
 
 function RouteScopedLegacyOverlays() {
   const pathname = usePathname();
-  const isLiquidCommandRoute = pathname === '/' || pathname.startsWith('/liquid-command');
+  const isLiquidCommandRoute = isLiquidCommandRoutePath(pathname);
   if (isLiquidCommandRoute) return null;
   return (
     <>

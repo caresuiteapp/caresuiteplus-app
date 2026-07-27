@@ -1,6 +1,5 @@
 import { Stack } from 'expo-router';
 import { PlatformAuthProvider } from '@/lib/platformConsole/PlatformAuthProvider';
-import { routeLayoutContentStyle } from '@/design/routeLayoutStyle';
 
 export default function PlatformRootLayout() {
   return (
@@ -8,8 +7,8 @@ export default function PlatformRootLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: routeLayoutContentStyle,
-          animation: 'slide_from_right',
+          contentStyle: { backgroundColor: 'transparent' },
+          animation: 'fade',
         }}
       >
         <Stack.Screen name="login" options={{ animation: 'fade' }} />

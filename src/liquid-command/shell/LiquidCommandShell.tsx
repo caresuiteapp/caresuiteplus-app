@@ -371,11 +371,11 @@ function BottomNavigation({
 }) {
   const router = useRouter();
   const items = [
-    { key: 'home', label: 'Heute', glyph: '⌂', route: '/liquid-command' },
-    { key: 'assist', label: 'Einsätze', glyph: '◇', route: '/liquid-command/assist' },
+    { key: 'home', label: 'Heute', glyph: '⌂', route: '/' },
+    { key: 'assist', label: 'Einsätze', glyph: '◇', route: '/assist' },
     { key: 'action', label: 'Neu', glyph: '+', route: null },
-    { key: 'messages', label: 'Nachrichten', glyph: '▱', route: '/liquid-command/office?area=communication' },
-    { key: 'settings', label: 'Mehr', glyph: '•••', route: '/liquid-command/settings' },
+    { key: 'messages', label: 'Nachrichten', glyph: '▱', route: '/office?area=communication' },
+    { key: 'settings', label: 'Mehr', glyph: '•••', route: '/settings' },
   ] as const;
 
   return (

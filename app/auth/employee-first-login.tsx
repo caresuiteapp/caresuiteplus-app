@@ -1,3 +1,3 @@
-import { EmployeeFirstLoginPasswordScreen } from '@/screens/auth/EmployeeFirstLoginPasswordScreen';
+import { EmployeeFirstLoginScreen } from '@/liquid-command/screens/AccessScreens';
 
-export default EmployeeFirstLoginPasswordScreen;
+export default EmployeeFirstLoginScreen;

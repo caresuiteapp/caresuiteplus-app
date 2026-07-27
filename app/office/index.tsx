@@ -1,3 +1,5 @@
-import { OfficeIndexScreen } from '@/screens/office/OfficeIndexScreen';
+import { ModuleWorkspaceScreen } from '@/liquid-command/screens/ModuleWorkspaceScreen';
 
-export default OfficeIndexScreen;
+export default function OfficeIndexRoute() {
+  return <ModuleWorkspaceScreen moduleKey="office" />;
+}

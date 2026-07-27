@@ -1,3 +1,5 @@
-import { StationaerIndexScreen } from '@/screens/stationaer/StationaerIndexScreen';
+import { ModuleWorkspaceScreen } from '@/liquid-command/screens/ModuleWorkspaceScreen';
 
-export default StationaerIndexScreen;
+export default function StationaerIndexRoute() {
+  return <ModuleWorkspaceScreen moduleKey="stationaer" />;
+}

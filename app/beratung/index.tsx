@@ -1,3 +1,5 @@
-import { BeratungIndexScreen } from '@/screens/beratung/BeratungIndexScreen';
+import { ModuleWorkspaceScreen } from '@/liquid-command/screens/ModuleWorkspaceScreen';
 
-export default BeratungIndexScreen;
+export default function BeratungIndexRoute() {
+  return <ModuleWorkspaceScreen moduleKey="beratung" />;
+}

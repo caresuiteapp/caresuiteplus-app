@@ -1,3 +1,5 @@
-import { AkademieIndexScreen } from '@/screens/akademie/AkademieIndexScreen';
+import { ModuleWorkspaceScreen } from '@/liquid-command/screens/ModuleWorkspaceScreen';
 
-export default AkademieIndexScreen;
+export default function AkademieIndexRoute() {
+  return <ModuleWorkspaceScreen moduleKey="akademie" />;
+}

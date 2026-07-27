@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import {
   useCurrentSystemAdapter,
@@ -20,6 +20,10 @@ import {
 import { liquidColors, liquidRadius, liquidSpace, type LiquidSemanticTone } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import { getLiquidModule, liquidWorkAreas } from '../navigation/moduleCatalog';
+import {
+  getLiquidPrimaryWorkflowRoute,
+  getLiquidRecordRoute,
+} from '../navigation/workflowRoutes';
 import { LiquidCommandShell } from '../shell/LiquidCommandShell';
 import type { LiquidModuleKey, LiquidPageType, LiquidWorkArea } from '../types';
 
@@ -320,11 +324,13 @@ function SelectedRecord({
   area,
   onClose,
   onCreateTask,
+  onOpen,
 }: {
   item: WorkspaceItem | null;
   area: LiquidWorkArea;
   onClose: () => void;
   onCreateTask: (item: WorkspaceItem) => void;
+  onOpen: (item: WorkspaceItem) => void;
 }) {
   const [note, setNote] = useState('');
   if (!item) {
@@ -371,7 +377,7 @@ function SelectedRecord({
         hint="Diese lokale Eingabe wird erst durch eine freigegebene Fachaktion gespeichert."
       />
       <View style={styles.detailActions}>
-        <LiquidButton label="Datensatz ist geöffnet" disabled onPress={onClose} />
+        <LiquidButton label="Fachakte öffnen" onPress={() => onOpen(item)} />
         <LiquidButton
           label="Aufgabe anlegen"
           variant="secondary"
@@ -681,6 +687,7 @@ function patternStateKind(pageType: LiquidPageType): LiquidStateKind {
 }
 
 export function ModuleWorkspaceScreen({ moduleKey }: { moduleKey: LiquidModuleKey }) {
+  const router = useRouter();
   const params = useLocalSearchParams<{ area?: string; record?: string }>();
   const module = getLiquidModule(moduleKey);
   const areas = liquidWorkAreas[moduleKey];
@@ -769,6 +776,13 @@ export function ModuleWorkspaceScreen({ moduleKey }: { moduleKey: LiquidModuleKe
   }
 
   const openCreate = (item?: WorkspaceItem) => {
+    if (!item) {
+      const route = getLiquidPrimaryWorkflowRoute(moduleKey, activeArea.id);
+      if (route) {
+        router.push(route as never);
+        return;
+      }
+    }
     setDraftTitle(item ? `Aufgabe zu ${item.title}` : '');
     setDraftOwner('');
     setDraftPrepared(false);
@@ -781,6 +795,14 @@ export function ModuleWorkspaceScreen({ moduleKey }: { moduleKey: LiquidModuleKe
       area={activeArea}
       onClose={() => setSelected(null)}
       onCreateTask={openCreate}
+      onOpen={(item) => {
+        const route = getLiquidRecordRoute(moduleKey, activeArea.id, item.id);
+        if (route) {
+          router.push(route as never);
+          return;
+        }
+        setSelected(item);
+      }}
     />
   );
 

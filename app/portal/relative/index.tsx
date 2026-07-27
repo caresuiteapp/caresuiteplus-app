@@ -1,3 +1,5 @@
-import { RelativePortalOverviewScreen } from '@/screens/portal/RelativePortalOverviewScreen';
+import { PortalHomeScreen } from '@/liquid-command/screens/PortalHomeScreen';
 
-export default RelativePortalOverviewScreen;
+export default function RelativePortalOverviewRoute() {
+  return <PortalHomeScreen portal="family" />;
+}

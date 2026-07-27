@@ -1,5 +1,5 @@
-import { Redirect } from 'expo-router';
+import { ModuleWorkspaceScreen } from '@/liquid-command/screens/ModuleWorkspaceScreen';
 
 export default function PlatformRoot() {
-  return <Redirect href={'/platform/dashboard' as never} />;
+  return <ModuleWorkspaceScreen moduleKey="platform" />;
 }

@@ -1,3 +1,3 @@
-import { BusinessRegisterScreen } from '@/screens/auth/BusinessRegisterScreen';
+import { RegisterOrganizationScreen } from '@/liquid-command/screens/AccessScreens';
 
-export default BusinessRegisterScreen;
+export default RegisterOrganizationScreen;

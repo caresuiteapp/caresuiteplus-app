@@ -541,7 +541,7 @@ export function PortalHomeScreen({
 
   const signOut = async () => {
     await auth.signOut();
-    router.replace('/liquid-command/access' as never);
+    router.replace('/auth' as never);
   };
 
   if (auth.authReady && (!auth.isAuthenticated || roleKey !== definition.allowedRole)) {
@@ -553,7 +553,7 @@ export function PortalHomeScreen({
             title="Portalzugang erforderlich"
             message={`Dieser Bereich ist ausschließlich für ${definition.title} freigegeben.`}
             actionLabel="Zum passenden Zugang"
-            onAction={() => router.replace('/liquid-command/access' as never)}
+            onAction={() => router.replace('/auth' as never)}
           />
         </View>
       </LiquidBackdrop>
