@@ -135,6 +135,7 @@ export function AssignmentsListView({
     hasMore,
     loadMore,
     refresh,
+    dismissDeletedAssignment,
     resetFilters,
     hasActiveFilters,
     isEmpty,
@@ -334,6 +335,7 @@ export function AssignmentsListView({
                     Alert.alert('Löschen fehlgeschlagen', result.error);
                     return;
                   }
+                  dismissDeletedAssignment(assignment.id);
                   await refresh();
                 },
               },
@@ -341,7 +343,15 @@ export function AssignmentsListView({
           : []),
       ];
     },
-    [canManage, navigateToAssignment, profile?.roleKey, refresh, router, tenantId],
+    [
+      canManage,
+      dismissDeletedAssignment,
+      navigateToAssignment,
+      profile?.roleKey,
+      refresh,
+      router,
+      tenantId,
+    ],
   );
 
   if (!canView) {
@@ -546,7 +556,10 @@ export function AssignmentsListView({
           ? (id) => deleteVisitDisposition(id, tenantId, profile?.roleKey)
           : undefined
       }
-      onDeleted={() => void refresh()}
+      onDeleted={(id) => {
+        dismissDeletedAssignment(id);
+        void refresh();
+      }}
       onCardTap={
         isMobile
           ? (assignment) => setMobileSheetAssignment(assignment)
@@ -580,7 +593,10 @@ export function AssignmentsListView({
                 ? (id) => deleteVisitDisposition(id, tenantId, profile?.roleKey)
                 : undefined
             }
-            onDeleted={() => void refresh()}
+            onDeleted={(id) => {
+              dismissDeletedAssignment(id);
+              void refresh();
+            }}
             sortColumnKey={tableSort.sortColumnKey}
             sortDirection={tableSort.sortDirection}
             onSortColumn={tableSort.onSortColumn}

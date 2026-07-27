@@ -239,7 +239,10 @@ export async function fetchVisitDispositionList(
 
   if (getServiceMode() === 'supabase') {
     const visitResult = await visitSupabaseRepository.list(tenantId);
-    if (visitResult.ok && visitResult.data.length > 0) {
+    // assist_visits is the authoritative planning source. An empty successful
+    // result means there are no visits. Falling back to legacy assignments in
+    // that case resurrects an already deleted mirror as a visible card.
+    if (visitResult.ok) {
       return visitResult;
     }
     const fallback = await assignmentSupabaseRepository.list(tenantId);

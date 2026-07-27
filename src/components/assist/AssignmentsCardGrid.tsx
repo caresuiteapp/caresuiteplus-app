@@ -19,7 +19,7 @@ type AssignmentsCardGridProps = {
   onEdit?: (id: string) => void;
   onMore?: (id: string) => void;
   onDelete?: (id: string) => Promise<ServiceResult<void>>;
-  onDeleted?: () => void;
+  onDeleted?: (id: string) => void;
   onCardTap?: (assignment: AssignmentListItem) => void;
   ListHeaderComponent?: ReactNode;
   ListFooterComponent?: ReactNode;
@@ -91,7 +91,9 @@ export function AssignmentsCardGrid({
               onEdit={onEdit ? () => onEdit(assignment.id) : undefined}
               onMore={onMore ? () => onMore(assignment.id) : undefined}
               onDelete={onDelete ? () => onDelete(assignment.id) : undefined}
-              onDeleted={onDeleted}
+              onDeleted={
+                onDeleted ? () => onDeleted(assignment.id) : undefined
+              }
             />
           </View>
         ))}

@@ -23,7 +23,7 @@ type AssignmentsListTableProps = {
   onAssignmentPress?: (id: string) => void;
   onOpenDetail?: (id: string) => void;
   onDelete?: (id: string) => Promise<ServiceResult<void>>;
-  onDeleted?: () => void;
+  onDeleted?: (id: string) => void;
   sortColumnKey?: string | null;
   sortDirection?: 'asc' | 'desc';
   onSortColumn?: (columnKey: string) => void;
@@ -160,7 +160,7 @@ export function AssignmentsListTable({
                   recordLabel="Einsatz"
                   displayName={`${item.clientName} · ${formatDate(item.scheduledStart)}`}
                   onDelete={() => onDelete(item.id)}
-                  onDeleted={onDeleted}
+                  onDeleted={onDeleted ? () => onDeleted(item.id) : undefined}
                   confirmTitle="Einsatz endgültig löschen?"
                   buttonTitle="Löschen"
                   fullWidth={false}

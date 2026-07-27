@@ -50,6 +50,9 @@ export function useAssignmentList() {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [hiddenDeletedKeys, setHiddenDeletedKeys] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [dateRange, setDateRange] = useState<AssignmentDateRangeFilter>('all');
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
@@ -72,7 +75,28 @@ export function useAssignmentList() {
     },
   );
 
-  const allItems = query.data ?? [];
+  const deletionIdentity = useCallback(
+    (item: AssignmentListItem) =>
+      [
+        item.tenantId,
+        item.clientName,
+        item.employeeName,
+        item.scheduledStart,
+        item.scheduledEnd,
+        item.title,
+      ].join('::'),
+    [],
+  );
+
+  const allItems = useMemo(
+    () =>
+      (query.data ?? []).filter(
+        (item) =>
+          !hiddenDeletedKeys.has(item.id) &&
+          !hiddenDeletedKeys.has(deletionIdentity(item)),
+      ),
+    [deletionIdentity, hiddenDeletedKeys, query.data],
+  );
 
   const list = useListState<AssignmentListItem, 'scheduledStart' | 'clientName'>({
     items: allItems,
@@ -130,6 +154,22 @@ export function useAssignmentList() {
     setTimeout(() => setShowSuccess(false), 2000);
   }, [query]);
 
+  const dismissDeletedAssignment = useCallback(
+    (assignmentId: string) => {
+      const item = (query.data ?? []).find((candidate) => candidate.id === assignmentId);
+      setHiddenDeletedKeys((current) => {
+        const next = new Set(current);
+        next.add(assignmentId);
+        if (item) next.add(deletionIdentity(item));
+        return next;
+      });
+      query.setData((current) =>
+        current?.filter((candidate) => candidate.id !== assignmentId) ?? current,
+      );
+    },
+    [deletionIdentity, query],
+  );
+
   const resetFilters = useCallback(() => {
     list.resetFilters();
     setDateRange('all');
@@ -168,6 +208,7 @@ export function useAssignmentList() {
     hasMore: paginatedItems.hasMore,
     loadMore: list.loadMore,
     refresh,
+    dismissDeletedAssignment,
     resetFilters,
     hasActiveFilters: list.hasActiveFilters || hasExtendedFilters,
     isEmpty: !query.loading && !query.error && allItems.length === 0,
