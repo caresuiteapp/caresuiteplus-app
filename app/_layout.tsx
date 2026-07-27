@@ -38,7 +38,8 @@ function RootShell() {
   const pathname = usePathname();
   const hydrated = useHydrated();
   const perf = useDevicePerformance();
-  const hostsGlobalBackground = !isPortalRoutePath(pathname);
+  const isLiquidCommandRoute = pathname === '/' || pathname.startsWith('/liquid-command');
+  const hostsGlobalBackground = !isLiquidCommandRoute && !isPortalRoutePath(pathname);
 
   useEffect(() => {
     cleanupOrphanedFullscreenOverlays();
@@ -94,6 +95,19 @@ function RootShell() {
   );
 }
 
+function RouteScopedLegacyOverlays() {
+  const pathname = usePathname();
+  const isLiquidCommandRoute = pathname === '/' || pathname.startsWith('/liquid-command');
+  if (isLiquidCommandRoute) return null;
+  return (
+    <>
+      <BusinessWelcomeGate />
+      <PortalWelcomeGate />
+      <GlobalScreensaver />
+    </>
+  );
+}
+
 export default function RootLayout() {
   return (
     <AuthProvider>
@@ -104,9 +118,7 @@ export default function RootLayout() {
               <GlobalWorkflowFeedbackProvider>
                 <ModalStackProvider>
                   <ScreensaverSettingsProvider>
-                    <BusinessWelcomeGate />
-                    <PortalWelcomeGate />
-                    <GlobalScreensaver />
+                    <RouteScopedLegacyOverlays />
                     <RootShell />
                   </ScreensaverSettingsProvider>
                 </ModalStackProvider>

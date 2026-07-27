@@ -1,4 +1,12 @@
-import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ReactNode,
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { AuthSession, AuthUser, Profile } from '@/types';
 import {
@@ -277,8 +285,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       } finally {
         if (!cancelled) {
-          setIsLoading(false);
-          setIsInitialized(true);
+          startTransition(() => {
+            setIsLoading(false);
+            setIsInitialized(true);
+          });
         }
       }
     }

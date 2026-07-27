@@ -53,6 +53,8 @@
     "arbeitsplan:audit": "node scripts/arbeitsplan-route-audit.mjs",
     "navigation:audit": "node scripts/navigation-duplicate-audit.mjs",
     "functional:audit": "node scripts/functional-reality-audit.mjs",
+    "liquid-command:audit": "node scripts/liquid-command-masterspec-audit.mjs",
+    "liquid-command:visual-qa": "node scripts/liquid-command-visual-qa.mjs",
     "einzelseiten:generate": "node scripts/extract-einzelseiten-routes.mjs && node scripts/generate-einzelseiten-bridges.mjs",
     "audit:p0-series-reset": "node scripts/audit/p0SeriesOccurrenceExecutionReset.mjs",
     "audit:p0-series-reset:write": "node scripts/audit/p0SeriesOccurrenceExecutionReset.mjs --write",

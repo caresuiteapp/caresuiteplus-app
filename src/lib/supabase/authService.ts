@@ -195,7 +195,7 @@ export function onAuthStateChange(
 }
 
 export function getPasswordResetRedirectUrl(): string {
-  return `${getAuthRedirectBaseUrl()}/auth/reset-password`;
+  return `${getAuthRedirectBaseUrl()}/liquid-command/access/reset-password`;
 }
 
 export async function requestPasswordResetEmail(
