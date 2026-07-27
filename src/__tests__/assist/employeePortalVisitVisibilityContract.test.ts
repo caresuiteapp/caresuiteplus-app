@@ -18,8 +18,8 @@ describe('Assist employee portal visit visibility contract', () => {
     expect(source).not.toContain("flatQuery = flatQuery.eq('employee_portal_visible', true)");
   });
 
-  it('permits untouched series rows with inherited execution state to be deleted', () => {
-    expect(source).toContain('isSafelyDeletableSeriesOccurrence');
-    expect(source).toContain('isSeriesVisit && !hasExecutionEvidence && !hasProtectedRecords');
+  it('permits series rows regardless of their inherited execution state to be deleted', () => {
+    expect(source).not.toContain('isSafelyDeletableSeriesOccurrence');
+    expect(source).toContain("'delete_assist_visit'");
   });
 });

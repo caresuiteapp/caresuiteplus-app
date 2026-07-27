@@ -43,17 +43,26 @@ export function OfficeRecordDeleteButton({
     if (!confirmed) return;
 
     setLoading(true);
-    const result = await onDelete();
-    setLoading(false);
+    try {
+      const result = await onDelete();
 
-    if (!result.ok) {
-      setError(result.error);
-      return;
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      setSuccessMessage(`${recordLabel} wurde gelöscht.`);
+      onDeleted?.();
+      setTimeout(() => setSuccessMessage(null), 2500);
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : `${recordLabel} konnte nicht gelöscht werden.`,
+      );
+    } finally {
+      setLoading(false);
     }
-
-    setSuccessMessage(`${recordLabel} wurde gelöscht.`);
-    onDeleted?.();
-    setTimeout(() => setSuccessMessage(null), 2500);
   }
 
   return (

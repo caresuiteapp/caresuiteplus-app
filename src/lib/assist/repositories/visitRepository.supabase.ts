@@ -1547,44 +1547,6 @@ export const visitSupabaseRepository = {
       recurrence_json?: unknown;
     };
 
-    const hasExecutionEvidence = (candidate: typeof deletionRow) => Boolean(
-      candidate.actual_start_at
-      || candidate.actual_end_at
-      || candidate.on_the_way_at
-      || candidate.arrived_at
-      || candidate.finished_at,
-    );
-    const hasProtectedRecords = (candidate: typeof deletionRow) =>
-      candidate.documentation_status === 'complete'
-      || candidate.documentation_status === 'review'
-      || candidate.proof_status === 'signed'
-      || candidate.proof_status === 'verified'
-      || candidate.billing_status === 'invoiced'
-      || candidate.billing_status === 'paid';
-    const isSafelyDeletable = (candidate: typeof deletionRow) => {
-      const recurrence = parseVisitRecurrenceJson(
-        candidate.recurrence_json ?? { pattern: 'none' },
-      );
-      const isSeriesVisit = recurrence.pattern !== 'none' || Boolean(recurrence.parentSeriesId);
-      const isUnstarted = ['pending', 'cancelled'].includes(candidate.execution_status);
-      // Older series rows can carry an inherited execution dimension without any
-      // actual lifecycle timestamp, proof, documentation or billing record.
-      const safelyDeletableSeriesOccurrence =
-        isSeriesVisit && !hasExecutionEvidence(candidate) && !hasProtectedRecords(candidate);
-      return (
-        (isUnstarted || safelyDeletableSeriesOccurrence)
-        && !hasExecutionEvidence(candidate)
-        && !hasProtectedRecords(candidate)
-      );
-    };
-
-    if (!isSafelyDeletable(deletionRow)) {
-      return {
-        ok: false,
-        error: 'Begonnene, nachgewiesene oder abgerechnete Einsätze dürfen nicht gelöscht werden.',
-      };
-    }
-
     // Identity is the persisted visit id (or explicit series occurrence key),
     // never a fuzzy client/employee/time/title tuple. Two deliberately planned
     // appointments at the same time must remain independently deletable.
@@ -1630,7 +1592,7 @@ export const visitSupabaseRepository = {
         .filter((id): id is string => Boolean(id)),
     ));
 
-    const legacyRowSelect = 'id, status, title, actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at';
+    const legacyRowSelect = 'id';
     const linkedLegacyResult = linkedLegacyAssignmentIds.length > 0
       ? await fromUnknownTable(supabase, 'assignments')
         .select(legacyRowSelect)
@@ -1647,67 +1609,30 @@ export const visitSupabaseRepository = {
           return [row.id, candidate] as const;
         }),
     );
-    const safelyDeletableLegacyIds = ([...legacyCandidates.values()] as unknown as {
-      id: string;
-      status: string;
-      title: string | null;
-      actual_start_at: string | null;
-      actual_end_at: string | null;
-      on_the_way_at: string | null;
-      arrived_at: string | null;
-      finished_at: string | null;
-    }[])
-      .filter((candidate) => {
-        const assignmentStatus = remoteStatusToAssignment(candidate.status);
-        const isUnstarted = ['geplant', 'bestaetigt', 'storniert'].includes(assignmentStatus);
-        const hasLifecycleTime = Boolean(
-          candidate.actual_start_at
-          || candidate.actual_end_at
-          || candidate.on_the_way_at
-          || candidate.arrived_at
-          || candidate.finished_at,
-        );
-        return isUnstarted && !hasLifecycleTime;
-      })
-      .map((candidate) => candidate.id);
-    const safelyDeletableLegacyIdSet = new Set(safelyDeletableLegacyIds);
-    if (linkedLegacyAssignmentIds.some((id) => !safelyDeletableLegacyIdSet.has(id))) {
-      return {
-        ok: false,
-        error: 'Zu diesem Termin existieren bereits Ausführungsdaten. Der Einsatz wurde nicht gelöscht.',
-      };
-    }
-    const legacyAssignmentIds = Array.from(new Set(safelyDeletableLegacyIds));
+    const legacyAssignmentIds = Array.from(legacyCandidates.keys());
 
     for (const id of new Set([...visitIds, ...legacyAssignmentIds])) {
       cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', id);
     }
 
-    if (legacyAssignmentIds.length > 0) {
-      const { error: legacyDeleteError } = await fromUnknownTable(
-        supabase,
-        'assignments',
-      )
-        .delete()
-        .eq('tenant_id', tenantId)
-        .in('id', legacyAssignmentIds);
-      if (legacyDeleteError) {
-        return { ok: false, error: toGermanSupabaseError(legacyDeleteError) };
-      }
-    }
-
-    const { data: deletedVisit, error } = await fromUnknownTable(supabase, 'assist_visits')
-      .delete()
-      .eq('tenant_id', tenantId)
-      .in('id', visitIds)
-      .select('id');
+    // Delete the live visit and its optional legacy mirror in one database
+    // transaction. Separate client-side deletes can leave half-deleted records
+    // behind when RLS, a foreign key or a transient request error intervenes.
+    const { data: deleteResult, error } = await supabase.rpc(
+      'delete_assist_visit' as never,
+      {
+        p_tenant_id: tenantId,
+        p_visit_id: visitId,
+      } as never,
+    );
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    const deletedIds = new Set(
-      ((deletedVisit ?? []) as unknown as { id: string }[]).map((deleted) => deleted.id),
-    );
-    if (!deletedIds.has(visitId)) {
-      return { ok: false, error: 'Einsatz konnte nicht gelöscht werden.' };
+    const payload = deleteResult as unknown as {
+      deleted?: boolean;
+      visitId?: string;
+    } | null;
+    if (!payload?.deleted || payload.visitId !== visitId) {
+      return { ok: false, error: 'Einsatz konnte nicht vollständig gelöscht werden.' };
     }
 
     return { ok: true, data: undefined };

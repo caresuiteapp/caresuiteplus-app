@@ -68,10 +68,10 @@ describe('Assignment compact cards UI', () => {
     });
   });
 
-  it('erlaubt Löschen nur vor Ausführungsbeginn und vor Abrechnung', () => {
+  it('erlaubt bewusstes Löschen unabhängig von Ausführung und Abrechnung', () => {
     expect(isAssignmentListItemDeletable({ ...sampleAssignment, executionStatus: 'pending', billingStatus: 'preview' })).toBe(true);
-    expect(isAssignmentListItemDeletable({ ...sampleAssignment, executionStatus: 'in_progress' })).toBe(false);
-    expect(isAssignmentListItemDeletable({ ...sampleAssignment, executionStatus: 'pending', billingStatus: 'invoiced' })).toBe(false);
+    expect(isAssignmentListItemDeletable({ ...sampleAssignment, executionStatus: 'in_progress' })).toBe(true);
+    expect(isAssignmentListItemDeletable({ ...sampleAssignment, executionStatus: 'pending', billingStatus: 'invoiced' })).toBe(true);
   });
 
   it('resolveAssignmentCardAccent maps assignment status to accent colors', () => {

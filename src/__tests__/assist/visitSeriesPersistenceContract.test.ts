@@ -55,9 +55,10 @@ describe('Serieneinsätze werden als Einzeleinsätze persistiert', () => {
     expect(form).toContain('Nur dieser Termin');
     expect(form).toContain('Dieser und folgende');
     expect(detail).toContain('Löschbereich');
-    expect(detail).toContain('Vergangene, begonnene, dokumentierte oder abgerechnete Termine');
+    expect(detail).toContain('unabhängig von ihrem Bearbeitungsstatus gelöscht');
     expect(service).toContain("scope === 'this_and_following'");
     expect(service).toContain('isProtectedSeriesHistory');
+    expect(service).not.toContain('.filter((candidate) => !isProtectedSeriesHistory(candidate))');
   });
 
   it('behält absichtlich getrennte zeitgleiche Einsätze beim Einzellöschen', () => {
@@ -68,7 +69,7 @@ describe('Serieneinsätze werden als Einzeleinsätze persistiert', () => {
 
     expect(source).toContain('const rowsToDelete = [deletionRow]');
     expect(source).not.toContain('const protectedDuplicate = identicalRows.find');
-    expect(source).toContain('const safelyDeletableLegacyIds =');
-    expect(source).toContain(".in('id', visitIds)");
+    expect(source).toContain('const legacyAssignmentIds = Array.from(legacyCandidates.keys())');
+    expect(source).toContain("'delete_assist_visit'");
   });
 });

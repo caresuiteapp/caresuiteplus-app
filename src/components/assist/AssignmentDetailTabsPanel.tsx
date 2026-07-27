@@ -361,13 +361,7 @@ export function AssignmentDetailTabsPanel({
     : DETAIL_TABS;
 
   const displayName = `${visit.serviceName ?? visit.title} · ${visit.clientName}`;
-  const canDeleteVisit =
-    visit.executionStatus === 'pending'
-    && !visit.actualStartAt
-    && !visit.actualEndAt
-    && !visit.finishedAt
-    && visit.billingStatus !== 'invoiced'
-    && visit.billingStatus !== 'paid';
+  const canDeleteVisit = true;
   const isSeriesVisit = Boolean(visit.seriesMasterId && visit.seriesOccurrenceDate);
 
   const renderTabContent = () => {
@@ -747,7 +741,7 @@ export function AssignmentDetailTabsPanel({
               <Text style={[styles.seriesDeleteHint, { color: text.secondary }]}>
                 {deleteSeriesScope === 'this_only'
                   ? 'Andere Termine der Serie bleiben bestehen.'
-                  : 'Vergangene, begonnene, dokumentierte oder abgerechnete Termine bleiben bestehen.'}
+                  : 'Der ausgewählte Termin und alle folgenden Termine werden unabhängig von ihrem Bearbeitungsstatus gelöscht.'}
               </Text>
             </>
           ) : null}

@@ -2,35 +2,33 @@ import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 
-describe('Einsatz-Löschschutz', () => {
-  it('zeigt endgültiges Löschen für noch nicht begonnene Einsätze', () => {
+describe('Einsatz-Löschung', () => {
+  it('zeigt endgültiges Löschen unabhängig vom Einsatzstatus', () => {
     const source = fs.readFileSync(
       path.resolve(process.cwd(), 'src/components/assist/AssignmentDetailTabsPanel.tsx'),
       'utf8',
     );
-    expect(source).toContain("visit.executionStatus === 'pending'");
+    expect(source).toContain('const canDeleteVisit = true');
     expect(source).toContain('Einsatz löschen');
   });
 
-  it('schützt begonnene, nachgewiesene und abgerechnete Einsätze im Repository', () => {
+  it('blockiert begonnene, nachgewiesene und abgerechnete Einsätze nicht mehr', () => {
     const source = fs.readFileSync(
       path.resolve(process.cwd(), 'src/lib/assist/repositories/visitRepository.supabase.ts'),
       'utf8',
     );
-    expect(source).toContain("['pending', 'cancelled'].includes(candidate.execution_status)");
-    expect(source).toContain('hasExecutionEvidence');
-    expect(source).toContain("candidate.billing_status === 'invoiced'");
-    expect(source).toContain('Begonnene, nachgewiesene oder abgerechnete Einsätze');
+    expect(source).not.toContain("['pending', 'cancelled'].includes(candidate.execution_status)");
+    expect(source).not.toContain('hasExecutionEvidence');
+    expect(source).not.toContain('Begonnene, nachgewiesene oder abgerechnete Einsätze');
   });
 
-  it('schützt auch alte Assignment-Datensätze vor dem Löschen nach Ausführungsbeginn', () => {
+  it('blockiert auch alte Assignment-Datensätze nicht anhand des Ausführungsstatus', () => {
     const source = fs.readFileSync(
       path.resolve(process.cwd(), 'src/lib/assist/repositories/assignmentRepository.supabase.ts'),
       'utf8',
     );
-    expect(source).toContain("['geplant', 'bestaetigt', 'storniert'].includes");
-    expect(source).toContain('existing.data.actualStartAt');
-    expect(source).toContain('Begonnene oder abgeschlossene Einsätze');
+    expect(source).not.toContain("['geplant', 'bestaetigt', 'storniert'].includes");
+    expect(source).not.toContain('Begonnene oder abgeschlossene Einsätze');
   });
 
   it('bestätigt Datenbanklöschungen anhand des tatsächlich entfernten Datensatzes', () => {
@@ -43,11 +41,9 @@ describe('Einsatz-Löschschutz', () => {
       'utf8',
     );
 
-    expect(visitRepository).toMatch(
-      /\.delete\(\)\s*\.eq\('tenant_id', tenantId\)\s*\.in\('id', visitIds\)\s*\.select\('id'\)/,
-    );
+    expect(visitRepository).toContain("'delete_assist_visit'");
+    expect(visitRepository).toContain('payload?.deleted');
     expect(visitRepository).toMatch(/\.select\('id'\)\s*\.maybeSingle\(\)/);
-    expect(visitRepository).toContain('deletedIds.has(visitId)');
     expect(visitRepository).toContain('if (!updatedParent)');
     expect(visitRepository).toContain('if (!updatedMaster)');
     expect(assignmentRepository).toContain('if (!deletedAssignment)');

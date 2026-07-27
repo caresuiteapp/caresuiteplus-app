@@ -104,13 +104,8 @@ export function resolveAssignmentExecutionBadge(
   return { status, ...states[status] };
 }
 
-export function isAssignmentListItemDeletable(assignment: AssignmentListItem): boolean {
-  const execution = resolveAssignmentExecutionBadge(assignment);
-  return (
-    (execution.status === 'pending' || execution.status === 'cancelled')
-    && assignment.billingStatus !== 'invoiced'
-    && assignment.billingStatus !== 'paid'
-  );
+export function isAssignmentListItemDeletable(_assignment: AssignmentListItem): boolean {
+  return true;
 }
 
 export function resolveAssignmentCardBadge(assignment: AssignmentListItem): AssignmentCardBadge {

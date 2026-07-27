@@ -661,18 +661,8 @@ export async function deleteVisitDisposition(
       if (!series.ok) return series;
 
       const currentKey = visitOccurrenceDate(current);
-      const todayKey = new Intl.DateTimeFormat('sv-SE', {
-        timeZone: 'Europe/Berlin',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).format(new Date());
       const deletable = series.data
         .filter((candidate) => visitOccurrenceDate(candidate) >= currentKey)
-        .filter((candidate) => (
-          (candidate.assignmentDate ?? candidate.scheduledStart.slice(0, 10)) >= todayKey
-        ))
-        .filter((candidate) => !isProtectedSeriesHistory(candidate))
         .sort((a, b) => {
           const masterOrder = Number(a.id === masterId) - Number(b.id === masterId);
           return masterOrder || b.scheduledStart.localeCompare(a.scheduledStart);
