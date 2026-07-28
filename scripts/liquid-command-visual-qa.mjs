@@ -60,13 +60,13 @@ const targets = [
     name: 'desktop-login',
     path: '/auth',
     viewport: { width: 1440, height: 900 },
-    expected: 'CareSuite HealthOS',
+    expected: 'Sicher anmelden.',
   },
   {
     name: 'tablet-landscape-business',
     path: '/auth/business-login',
     viewport: { width: 1180, height: 820 },
-    expected: 'CareSuite HealthOS',
+    expected: 'Sicher anmelden.',
   },
   {
     name: 'tablet-portrait-register',
@@ -78,7 +78,7 @@ const targets = [
     name: 'phone-portrait-login',
     path: '/auth',
     viewport: { width: 390, height: 844 },
-    expected: 'CareSuite HealthOS',
+    expected: 'Sicher anmelden.',
   },
   {
     name: 'phone-employee-portal-login',
@@ -114,6 +114,7 @@ try {
     });
     await page.goto(`${origin}${target.path}`, { waitUntil: 'networkidle' });
     await page.getByText(target.expected, { exact: false }).first().waitFor();
+    await page.getByLabel('CareSuite HealthOS', { exact: true }).first().waitFor();
     const accessMain = page.getByTestId('liquid-access-main');
     const accessBounds = await accessMain.boundingBox();
     const minimumWidth = target.viewport.width <= 430 ? 340 : 420;

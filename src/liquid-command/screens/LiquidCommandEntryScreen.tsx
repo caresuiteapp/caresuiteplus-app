@@ -12,7 +12,7 @@ export function LiquidCommandEntryScreen() {
       <LiquidBackdrop>
         <LiquidState
           kind="loading"
-          title="CareSuite HealthOS startet"
+          title="System wird gestartet"
           message="Sitzung, Rolle und Mandantenkontext werden sicher wiederhergestellt."
         />
       </LiquidBackdrop>

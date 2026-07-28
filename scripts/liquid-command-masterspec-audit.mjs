@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { extname, join, relative } from 'node:path';
 import process from 'node:process';
 
@@ -18,6 +19,25 @@ function collect(directory) {
 function requireFile(path) {
   if (!existsSync(join(root, path))) failures.push(`Fehlende Datei: ${path}`);
 }
+
+function requireSha256(path, expected) {
+  const absolutePath = join(root, path);
+  if (!existsSync(absolutePath)) {
+    failures.push(`Fehlendes verbindliches Marken-Asset: ${path}`);
+    return;
+  }
+  const actual = createHash('sha256').update(readFileSync(absolutePath)).digest('hex');
+  if (actual !== expected) failures.push(`Verbindliches Marken-Asset verändert: ${path}`);
+}
+
+requireSha256(
+  'assets/brand/caresuite-healthos-logo.png',
+  '4651b339f3e0b852614f9d17bda6bd97e7721fbdca4125be28ec8c9ff45ee557',
+);
+requireSha256(
+  'assets/brand/clinical-bodymap-preview.png',
+  '82d4b655d49bf20a111ab333dd982f79e60d063110cf42ca5c3432d548c1e6cf',
+);
 
 [
   'app/index.tsx',
@@ -250,9 +270,19 @@ const commandCenter = readFileSync(
   join(root, 'src/liquid-command/screens/CommandCenterScreen.tsx'),
   'utf8',
 );
+const clientNetworkMapWeb = readFileSync(
+  join(root, 'src/liquid-command/components/ClientNetworkMap.web.tsx'),
+  'utf8',
+);
+const clientNetworkMapNative = readFileSync(
+  join(root, 'src/liquid-command/components/ClientNetworkMap.tsx'),
+  'utf8',
+);
 if (
   !commandCenter.includes('ClientNetworkMap') ||
-  !commandCenter.includes('Alle Klient:innen auf der Karte')
+  !clientNetworkMapWeb.includes('clients.map') ||
+  !clientNetworkMapWeb.includes('repeatCount="indefinite"') ||
+  !clientNetworkMapNative.includes('Animated.loop')
 ) {
   failures.push('Dauerhafte mandantenweite Klient:innenkarte fehlt.');
 }

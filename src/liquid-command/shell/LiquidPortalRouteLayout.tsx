@@ -6,6 +6,7 @@ import {
   LiquidBackdrop,
   LiquidButton,
   LiquidIconButton,
+  LiquidGlyph,
   LiquidLogo,
   LiquidSurface,
 } from '../components/LiquidPrimitives';
@@ -72,7 +73,7 @@ function PortalChrome({ kind }: { kind: PortalKind }) {
       <View style={styles.shell}>
         {layout.isDesktop ? (
           <View style={styles.rail}>
-            <LiquidLogo compact />
+            <LiquidLogo mini />
             <ScrollView contentContainerStyle={styles.railItems} showsVerticalScrollIndicator={false}>
               {navigation.map((item) => (
                 <Pressable
@@ -86,7 +87,11 @@ function PortalChrome({ kind }: { kind: PortalKind }) {
                     pressed && styles.pressed,
                   ]}
                 >
-                  <Text style={styles.railGlyph}>{item.glyph}</Text>
+                  <LiquidGlyph
+                    active={activeId === item.id}
+                    glyph={item.glyph}
+                    size={19}
+                  />
                   <Text numberOfLines={1} style={styles.railLabel}>{item.label}</Text>
                 </Pressable>
               ))}
@@ -96,9 +101,9 @@ function PortalChrome({ kind }: { kind: PortalKind }) {
         <View style={styles.main}>
           <View style={styles.topbar}>
             {!layout.isDesktop ? <LiquidLogo compact /> : (
-              <View>
+              <View style={styles.portalBrand}>
                 <Text style={styles.portalKicker}>{kind === 'employee' ? 'MITARBEITENDENPORTAL' : kind === 'client' ? 'KLIENT:INNENPORTAL' : 'ANGEHÖRIGENPORTAL'}</Text>
-                <Text style={styles.portalTitle}>CareSuite HealthOS</Text>
+                <LiquidLogo compact />
               </View>
             )}
             <View style={styles.identity}>
@@ -159,7 +164,11 @@ function PortalChrome({ kind }: { kind: PortalKind }) {
               onPress={() => router.push(item.route as never)}
               style={({ pressed }) => [styles.bottomItem, pressed && styles.pressed]}
             >
-              <Text style={[styles.bottomGlyph, activeId === item.id && styles.bottomGlyphActive]}>{item.glyph}</Text>
+              <LiquidGlyph
+                active={activeId === item.id}
+                glyph={item.glyph}
+                size={20}
+              />
               <Text style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}>{item.label}</Text>
             </Pressable>
           ))}
@@ -254,11 +263,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1,
   },
-  portalTitle: {
-    color: liquidColors.white,
-    fontSize: 18,
-    lineHeight: 23,
-    fontWeight: '800',
+  portalBrand: {
+    gap: 4,
   },
   identity: {
     minWidth: 0,

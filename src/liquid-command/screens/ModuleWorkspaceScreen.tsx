@@ -10,6 +10,7 @@ import {
   LiquidButton,
   LiquidBackdrop,
   LiquidField,
+  LiquidGlyph,
   LiquidMetric,
   LiquidState,
   LiquidStatus,
@@ -667,13 +668,13 @@ function SettingsPattern({ moduleKey }: { moduleKey: LiquidModuleKey }) {
             style={styles.settingsRow}
           >
             <View style={styles.settingsGlyph}>
-              <Text style={styles.settingsGlyphText}>⚙</Text>
+              <LiquidGlyph glyph="⚙" size={20} />
             </View>
             <View style={styles.listMain}>
               <Text style={styles.listTitle}>{area.label}</Text>
               <Text style={styles.listDetail}>{area.description}</Text>
             </View>
-            <Text style={styles.settingsArrow}>›</Text>
+            <LiquidGlyph glyph="›" size={18} />
           </Pressable>
         ))}
       </View>
@@ -1166,16 +1167,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(20,120,255,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  settingsGlyphText: {
-    color: liquidColors.blue200,
-    fontSize: 20,
-    lineHeight: 24,
-  },
-  settingsArrow: {
-    color: liquidColors.blue200,
-    fontSize: 28,
-    lineHeight: 32,
   },
   createPanel: {
     padding: liquidSpace[4],

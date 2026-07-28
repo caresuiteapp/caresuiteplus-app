@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ClientListItem } from '@/types/modules/office';
 import { liquidColors, liquidRadius } from '../foundation/tokens';
 
@@ -23,15 +23,15 @@ function positionPercent(value: string, salt: number): `${number}%` {
 }
 
 /**
- * Native/offline fallback. It represents the complete tenant client network
- * without pretending that synthetic positions are geographic coordinates.
- * Web resolves real addresses through the configured Maps provider.
+ * Native/offline view of the complete tenant client network. Positions are
+ * intentionally stylized and stable; every client remains permanently visible.
  */
 export function ClientNetworkMap({
   clients,
   height = 320,
   onClientSelect,
 }: ClientNetworkMapProps) {
+  const pulse = useRef(new Animated.Value(0)).current;
   const nodes = useMemo(
     () =>
       clients.map((client) => ({
@@ -41,6 +41,26 @@ export function ClientNetworkMap({
       })),
     [clients],
   );
+  const pulseScale = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 2.35],
+  });
+  const pulseOpacity = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.68, 0],
+  });
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.timing(pulse, {
+        toValue: 1,
+        duration: 2150,
+        useNativeDriver: true,
+      }),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulse]);
 
   return (
     <View
@@ -48,9 +68,6 @@ export function ClientNetworkMap({
       accessibilityLabel={`Versorgungsnetz mit ${clients.length} Klientinnen und Klienten`}
       style={[styles.stage, { minHeight: height }]}
     >
-      <View style={[styles.gridLine, styles.gridLineOne]} />
-      <View style={[styles.gridLine, styles.gridLineTwo]} />
-      <View style={[styles.gridLine, styles.gridLineThree]} />
       {nodes.map(({ client, left, top }) => (
         <Pressable
           key={client.id}
@@ -63,6 +80,16 @@ export function ClientNetworkMap({
             pressed && styles.nodePressed,
           ]}
         >
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.nodePulse,
+              {
+                opacity: pulseOpacity,
+                transform: [{ scale: pulseScale }],
+              },
+            ]}
+          />
           <View style={styles.nodeCore} />
         </Pressable>
       ))}
@@ -90,32 +117,6 @@ const styles = StyleSheet.create({
     borderColor: liquidColors.blue300Alpha32,
     backgroundColor: 'rgba(2,14,32,0.88)',
   },
-  gridLine: {
-    position: 'absolute',
-    height: 1,
-    backgroundColor: 'rgba(61,145,255,0.3)',
-    shadowColor: liquidColors.blue500,
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-  },
-  gridLineOne: {
-    width: '90%',
-    left: '5%',
-    top: '36%',
-    transform: [{ rotate: '-9deg' }],
-  },
-  gridLineTwo: {
-    width: '80%',
-    left: '10%',
-    top: '60%',
-    transform: [{ rotate: '13deg' }],
-  },
-  gridLineThree: {
-    width: '58%',
-    left: '32%',
-    top: '48%',
-    transform: [{ rotate: '-31deg' }],
-  },
   node: {
     position: 'absolute',
     width: 24,
@@ -134,6 +135,14 @@ const styles = StyleSheet.create({
   },
   nodePressed: {
     transform: [{ scale: 1.15 }],
+  },
+  nodePulse: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: liquidColors.blue400,
   },
   nodeCore: {
     width: 7,

@@ -79,7 +79,14 @@ export function resolveLiquidLayout(
       formFactor === 'desktop' ||
       formFactor === 'compact-web' ||
       formFactor === 'tablet-landscape',
-    contentPadding: isPhone ? 16 : formFactor === 'tablet-portrait' ? 20 : 24,
+    contentPadding:
+      isPhone
+        ? 16
+        : formFactor === 'tablet-portrait'
+          ? 16
+          : formFactor === 'desktop'
+            ? 8
+            : 12,
     panelCount:
       formFactor === 'desktop'
         ? 4

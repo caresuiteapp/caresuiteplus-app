@@ -35,6 +35,7 @@ import {
   LiquidBackdrop,
   LiquidButton,
   LiquidField,
+  LiquidGlyph,
   LiquidLogo,
   LiquidState,
   LiquidStatus,
@@ -141,7 +142,7 @@ function SecuritySide() {
         ['⌁', 'Sitzungswiederherstellung'],
       ].map(([glyph, label]) => (
         <View key={label} style={styles.securityRow}>
-          <View style={styles.securityGlyph}><Text style={styles.securityGlyphText}>{glyph}</Text></View>
+          <View style={styles.securityGlyph}><LiquidGlyph glyph={glyph} size={20} /></View>
           <Text style={styles.securityLabel}>{label}</Text>
         </View>
       ))}
@@ -221,7 +222,7 @@ export function BusinessAccessScreen() {
   return (
     <AccessShell
       eyebrow="SICHERER ZUGANG"
-      title="CareSuite HealthOS"
+      title="Sicher anmelden."
       subtitle="Melden Sie sich an oder öffnen Sie den für Sie freigegebenen Portalzugang."
       compact
     >
@@ -289,9 +290,9 @@ export function BusinessAccessScreen() {
             onPress={() => router.push(option.route as never)}
             style={({ pressed }) => [styles.portalAccessRow, pressed && styles.pressed]}
           >
-            <Text style={styles.portalAccessGlyph}>{option.glyph}</Text>
+            <LiquidGlyph glyph={option.glyph} size={21} />
             <Text style={styles.portalAccessLabel}>{option.title}</Text>
-            <Text style={styles.portalAccessArrow}>›</Text>
+            <LiquidGlyph glyph="›" size={18} />
           </Pressable>
         ))}
       </View>
@@ -605,7 +606,7 @@ export function RegisterOrganizationScreen() {
     return (
       <AccessShell
         eyebrow="ORGANISATION AKTIV"
-        title="CareSuite HealthOS ist bereit."
+        title="Ihre Organisation ist bereit."
         subtitle="Das Administrationskonto wurde angelegt. Melden Sie sich an und führen Sie das Onboarding fort."
         side={<SecuritySide />}
       >
@@ -638,7 +639,11 @@ export function RegisterOrganizationScreen() {
               style={[styles.stepRow, step === index && styles.stepRowActive]}
             >
               <View style={[styles.stepNumber, index <= step && styles.stepNumberActive]}>
-                <Text style={styles.stepNumberLabel}>{index < step ? '✓' : index + 1}</Text>
+                {index < step ? (
+                  <LiquidGlyph active glyph="✓" size={17} />
+                ) : (
+                  <Text style={styles.stepNumberLabel}>{index + 1}</Text>
+                )}
               </View>
               <View style={styles.stepCopy}>
                 <Text style={styles.stepLabel}>{label}</Text>
@@ -697,7 +702,7 @@ export function RegisterOrganizationScreen() {
                   onPress={() => toggleModule(key)}
                   style={[styles.moduleOption, selected && styles.moduleOptionSelected]}
                 >
-                  <Text style={styles.moduleCheck}>{selected ? '✓' : '○'}</Text>
+                  <LiquidGlyph active={selected} glyph={selected ? '✓' : '○'} size={20} />
                   <View style={styles.moduleCopy}>
                     <Text style={styles.moduleLabel}>{label}</Text>
                     <Text style={styles.moduleDetail}>{key === 'office' ? 'Immer aktiv' : 'Kostenlos aktivieren'}</Text>
@@ -724,7 +729,7 @@ export function RegisterOrganizationScreen() {
               onPress={() => setAccepted((current) => !current)}
               style={[styles.acceptRow, accepted && styles.acceptRowSelected]}
             >
-              <Text style={styles.moduleCheck}>{accepted ? '✓' : '○'}</Text>
+              <LiquidGlyph active={accepted} glyph={accepted ? '✓' : '○'} size={20} />
               <Text style={styles.acceptLabel}>
                 Ich bestätige Datenschutz, Nutzungsbedingungen und meine Berechtigung zur Registrierung.
               </Text>

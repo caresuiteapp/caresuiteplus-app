@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   liquidColors,
   liquidRadius,
@@ -33,6 +35,84 @@ type LiquidSurfaceProps = {
   solid?: boolean;
   accessibilityLabel?: string;
 };
+
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+
+const liquidGlyphIcons: Record<string, IoniconName> = {
+  '⌂': 'home-outline',
+  '▣': 'grid-outline',
+  '◇': 'navigate-outline',
+  '✚': 'medical-outline',
+  '▦': 'business-outline',
+  '▧': 'briefcase-outline',
+  '◎': 'people-circle-outline',
+  '△': 'school-outline',
+  '⬡': 'hardware-chip-outline',
+  '◈': 'layers-outline',
+  '⚙': 'settings-outline',
+  '☷': 'options-outline',
+  '⌕': 'search-outline',
+  '◔': 'notifications-outline',
+  '♙': 'person-outline',
+  '▱': 'chatbubble-ellipses-outline',
+  '€': 'cash-outline',
+  '◷': 'time-outline',
+  '□': 'document-text-outline',
+  '⌘': 'apps-outline',
+  '⌾': 'body-outline',
+  '○': 'ellipse-outline',
+  '≡': 'list-outline',
+  '✓': 'checkmark-outline',
+  '!': 'warning-outline',
+  '+': 'add-outline',
+  '−': 'remove-outline',
+  '→': 'arrow-forward-outline',
+  '‹': 'chevron-back-outline',
+  '↪': 'log-out-outline',
+  '×': 'close-outline',
+  '▤': 'reader-outline',
+  '✉': 'mail-outline',
+  '⌑': 'lock-closed-outline',
+  '↻': 'refresh-outline',
+  '✋': 'hand-left-outline',
+  '✎': 'create-outline',
+  '♧': 'chatbubbles-outline',
+  '▷': 'play-outline',
+  '◌': 'sync-outline',
+  '◉': 'shield-checkmark-outline',
+  '⌁': 'refresh-circle-outline',
+  '›': 'chevron-forward-outline',
+  '⌖': 'location-outline',
+  '➤': 'navigate-outline',
+};
+
+export function LiquidGlyph({
+  glyph,
+  active = false,
+  color,
+  size = 21,
+}: {
+  glyph: string;
+  active?: boolean;
+  color?: string;
+  size?: number;
+}) {
+  const iconName = liquidGlyphIcons[glyph];
+  if (iconName) {
+    return (
+      <Ionicons
+        color={color ?? (active ? liquidColors.blue200 : liquidColors.white72)}
+        name={iconName}
+        size={size}
+      />
+    );
+  }
+  return (
+    <Text style={[styles.iconGlyph, active && styles.iconGlyphActive, color ? { color } : null]}>
+      {glyph}
+    </Text>
+  );
+}
 
 export function LiquidSurface({
   children,
@@ -96,13 +176,24 @@ export function LiquidText({
   );
 }
 
-export function LiquidLogo({ compact = false }: { compact?: boolean }) {
+export function LiquidLogo({
+  compact = false,
+  mini = false,
+}: {
+  compact?: boolean;
+  mini?: boolean;
+}) {
   return (
     <View accessible accessibilityRole="header" accessibilityLabel="CareSuite HealthOS">
-      <Text style={[styles.brand, compact && styles.brandCompact]}>
-        CareSuite <Text style={styles.brandAccent}>HealthOS</Text>
-      </Text>
-      {!compact ? <Text style={styles.brandMode}>LIQUID COMMAND</Text> : null}
+      <Image
+        resizeMode="contain"
+        source={require('../../../assets/brand/caresuite-healthos-logo.png')}
+        style={[
+          styles.brandImage,
+          compact && styles.brandImageCompact,
+          mini && styles.brandImageMini,
+        ]}
+      />
     </View>
   );
 }
@@ -153,7 +244,7 @@ export function LiquidButton({
         <ActivityIndicator color={liquidColors.white} />
       ) : (
         <>
-          {icon ? <Text style={styles.buttonIcon}>{icon}</Text> : null}
+          {icon ? <LiquidGlyph active glyph={icon} size={18} /> : null}
           <Text style={styles.buttonLabel}>{label}</Text>
         </>
       )}
@@ -186,7 +277,7 @@ export function LiquidIconButton({
         pressed && styles.buttonPressed,
       ]}
     >
-      <Text style={[styles.iconGlyph, active && styles.iconGlyphActive]}>{glyph}</Text>
+      <LiquidGlyph active={active} glyph={glyph} />
       {badge ? (
         <View style={styles.iconBadge}>
           <Text style={styles.iconBadgeLabel}>{badge}</Text>
@@ -298,7 +389,7 @@ export function LiquidMetric({
   return (
     <View accessible accessibilityLabel={`${label}: ${value}${detail ? `. ${detail}` : ''}`} style={styles.metric}>
       <View style={styles.metricHeader}>
-        {glyph ? <Text style={[styles.metricGlyph, { color }]}>{glyph}</Text> : null}
+        {glyph ? <LiquidGlyph color={color} glyph={glyph} size={16} /> : null}
         <Text style={styles.metricLabel}>{label}</Text>
       </View>
       <Text style={styles.metricValue}>{value}</Text>
@@ -345,7 +436,7 @@ export function LiquidState({
         <ActivityIndicator color={liquidColors.blue400} size="large" />
       ) : (
         <View style={styles.stateGlyph}>
-          <Text style={styles.stateGlyphText}>{stateGlyph[kind]}</Text>
+          <LiquidGlyph glyph={stateGlyph[kind]} size={24} />
         </View>
       )}
       <View style={styles.stateCopy}>
@@ -404,27 +495,17 @@ const styles = StyleSheet.create({
     borderColor: liquidColors.blue400,
     backgroundColor: 'rgba(8,38,76,0.72)',
   },
-  brand: {
-    color: liquidColors.white,
-    fontSize: 21,
-    lineHeight: 26,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+  brandImage: {
+    width: 320,
+    height: 40,
   },
-  brandCompact: {
-    fontSize: 18,
+  brandImageCompact: {
+    width: 224,
+    height: 28,
   },
-  brandAccent: {
-    color: liquidColors.blue400,
-    fontWeight: '500',
-  },
-  brandMode: {
-    marginTop: 2,
-    color: liquidColors.white56,
-    fontSize: 10,
-    lineHeight: 14,
-    fontWeight: '700',
-    letterSpacing: 1.4,
+  brandImageMini: {
+    width: 94,
+    height: 12,
   },
   button: {
     minHeight: 42,
@@ -651,12 +732,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(20,120,255,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  stateGlyphText: {
-    color: liquidColors.blue200,
-    fontSize: 24,
-    lineHeight: 28,
-    fontWeight: '800',
   },
   stateCopy: {
     flex: 1,

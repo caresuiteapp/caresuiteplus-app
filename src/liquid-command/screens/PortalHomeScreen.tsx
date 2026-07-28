@@ -29,6 +29,7 @@ import {
   LiquidButton,
   LiquidDivider,
   LiquidIconButton,
+  LiquidGlyph,
   LiquidLogo,
   LiquidMetric,
   LiquidState,
@@ -218,7 +219,11 @@ function PortalNavigation({
             pressed && styles.pressed,
           ]}
         >
-          <Text style={styles.navigationGlyph}>{section.glyph}</Text>
+          <LiquidGlyph
+            active={section.id === active}
+            glyph={section.glyph}
+            size={19}
+          />
           <Text
             numberOfLines={1}
             style={[
@@ -263,7 +268,7 @@ function AppointmentRows({
         const status = appointment.assignmentStatus ?? appointment.status;
         return (
           <LiquidSurface key={appointment.id} contentStyle={styles.row}>
-            <View style={styles.rowGlyph}><Text style={styles.rowGlyphText}>◷</Text></View>
+            <View style={styles.rowGlyph}><LiquidGlyph glyph="◷" size={19} /></View>
             <View style={styles.rowCopy}>
               <LiquidText variant="section">{appointment.title}</LiquidText>
               <LiquidText variant="meta">
@@ -342,7 +347,7 @@ function DocumentRows({
         ) : null}
         {documents.map((document) => (
           <LiquidSurface key={document.id} contentStyle={styles.documentRow}>
-            <View style={styles.rowGlyph}><Text style={styles.rowGlyphText}>▤</Text></View>
+            <View style={styles.rowGlyph}><LiquidGlyph glyph="▤" size={19} /></View>
             <View style={styles.rowCopy}>
               <LiquidText variant="section">{document.title}</LiquidText>
               <LiquidText variant="meta">
@@ -405,7 +410,7 @@ function MessageRows({ messages }: { messages: MessageListItem[] }) {
     <View style={styles.rows}>
       {messages.map((message) => (
         <LiquidSurface key={message.id} contentStyle={styles.row}>
-          <View style={styles.rowGlyph}><Text style={styles.rowGlyphText}>✉</Text></View>
+          <View style={styles.rowGlyph}><LiquidGlyph glyph="✉" size={19} /></View>
           <View style={styles.rowCopy}>
             <LiquidText variant="section">{message.subject}</LiquidText>
             <LiquidText variant="meta">
@@ -465,7 +470,7 @@ function Overview({
               onPress={() => onNavigate(item.id)}
               style={({ pressed }) => [styles.quickCard, pressed && styles.pressed]}
             >
-              <Text style={styles.quickGlyph}>{item.glyph}</Text>
+              <LiquidGlyph glyph={item.glyph} size={23} />
               <Text style={styles.quickLabel}>{item.label}</Text>
             </Pressable>
           ))}
@@ -560,7 +565,7 @@ function InformationalPanel({
   };
   return (
     <LiquidSurface active contentStyle={styles.infoPanel}>
-      <View style={styles.infoGlyph}><Text style={styles.infoGlyphText}>⌑</Text></View>
+      <View style={styles.infoGlyph}><LiquidGlyph glyph="⌑" size={24} /></View>
       <LiquidText variant="kicker">{item.status.toUpperCase()}</LiquidText>
       <LiquidText variant="title">{item.title}</LiquidText>
       <LiquidText variant="body">{item.message}</LiquidText>

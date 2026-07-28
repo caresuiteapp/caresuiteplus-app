@@ -15,6 +15,7 @@ import {
   LiquidButton,
   LiquidDivider,
   LiquidIconButton,
+  LiquidGlyph,
   LiquidLogo,
   LiquidState,
   LiquidStatus,
@@ -59,7 +60,7 @@ function RotateDeviceScreen() {
     <LiquidBackdrop>
       <View style={styles.rotate}>
         <LiquidSurface active contentStyle={styles.rotateCard}>
-          <Text style={styles.rotateGlyph}>↻</Text>
+          <LiquidGlyph glyph="↻" size={34} />
           <LiquidText variant="title" accessibilityRole="header">Smartphone drehen</LiquidText>
           <LiquidText variant="body" style={styles.centerText}>
             CareSuite HealthOS wird auf Smartphones im Hochformat bedient. Für Unterschrift,
@@ -87,12 +88,6 @@ function ModuleDock({ activeModule }: { activeModule: LiquidModuleKey }) {
               active={activeModule === module.key}
               onPress={() => router.push(module.route as never)}
             />
-            <Text
-              numberOfLines={1}
-              style={[styles.dockLabel, activeModule === module.key && styles.dockLabelActive]}
-            >
-              {module.shortLabel}
-            </Text>
           </View>
         ))}
       </ScrollView>
@@ -243,13 +238,13 @@ function CommandPalette({
                   ]}
                 >
                   <View style={styles.paletteGlyph}>
-                    <Text style={styles.paletteGlyphText}>{item.glyph}</Text>
+                    <LiquidGlyph glyph={item.glyph} size={20} />
                   </View>
                   <View style={styles.paletteResultCopy}>
                     <Text style={styles.paletteResultLabel}>{item.label}</Text>
                     <Text style={styles.paletteResultDescription}>{item.description}</Text>
                   </View>
-                  <Text style={styles.paletteArrow}>›</Text>
+                  <LiquidGlyph glyph="›" size={18} />
                 </Pressable>
               ))}
               {!results.length ? (
@@ -372,36 +367,36 @@ function ProfileMenu({
               onPress={() => open('/settings/profile')}
               style={({ pressed }) => [styles.profileMenuRow, pressed && styles.pressed]}
             >
-              <Text style={styles.profileMenuGlyph}>♙</Text>
+              <View style={styles.profileMenuGlyph}><LiquidGlyph glyph="♙" size={21} /></View>
               <View style={styles.profileMenuCopy}>
                 <Text style={styles.profileMenuLabel}>Profil & Sicherheit</Text>
                 <Text style={styles.profileMenuDetail}>Persönliche Angaben und Zugang</Text>
               </View>
-              <Text style={styles.paletteArrow}>›</Text>
+              <LiquidGlyph glyph="›" size={18} />
             </Pressable>
             <Pressable
               accessibilityRole="button"
               onPress={() => open('/office/messages')}
               style={({ pressed }) => [styles.profileMenuRow, pressed && styles.pressed]}
             >
-              <Text style={styles.profileMenuGlyph}>▱</Text>
+              <View style={styles.profileMenuGlyph}><LiquidGlyph glyph="▱" size={21} /></View>
               <View style={styles.profileMenuCopy}>
                 <Text style={styles.profileMenuLabel}>Nachrichten</Text>
                 <Text style={styles.profileMenuDetail}>Unterhaltungen und Aufgaben</Text>
               </View>
-              <Text style={styles.paletteArrow}>›</Text>
+              <LiquidGlyph glyph="›" size={18} />
             </Pressable>
             <Pressable
               accessibilityRole="button"
               onPress={() => open('/business/office/payroll')}
               style={({ pressed }) => [styles.profileMenuRow, pressed && styles.pressed]}
             >
-              <Text style={styles.profileMenuGlyph}>€</Text>
+              <View style={styles.profileMenuGlyph}><LiquidGlyph glyph="€" size={21} /></View>
               <View style={styles.profileMenuCopy}>
                 <Text style={styles.profileMenuLabel}>Gehaltsstatistik</Text>
                 <Text style={styles.profileMenuDetail}>Monatsübersicht und Zeitkonto</Text>
               </View>
-              <Text style={styles.paletteArrow}>›</Text>
+              <LiquidGlyph glyph="›" size={18} />
             </Pressable>
             <LiquidDivider />
             <LiquidButton
@@ -420,20 +415,16 @@ function ProfileMenu({
 
 function CommandBar({
   activeModule,
-  primaryActionLabel,
-  onPrimaryAction,
   onOpenSearch,
   onOpenNotifications,
   onOpenProfile,
 }: {
   activeModule: LiquidModuleKey;
-  primaryActionLabel: string;
-  onPrimaryAction: () => void;
   onOpenSearch: () => void;
   onOpenNotifications: () => void;
   onOpenProfile: () => void;
 }) {
-  const { showCommandLabels, isPhone } = useLiquidLayout();
+  const { isPhone } = useLiquidLayout();
   const { profile, user } = useAuth();
   const router = useRouter();
   const displayName = profile?.displayName || user?.displayName || 'Profil';
@@ -461,31 +452,29 @@ function CommandBar({
                 pressed && styles.pressed,
               ]}
             >
-              <Text style={styles.commandShortcutGlyph}>{item.glyph}</Text>
-              {showCommandLabels ? <Text style={styles.commandShortcutLabel}>{item.label}</Text> : null}
+              <LiquidGlyph glyph={item.glyph} size={18} />
+              {item.id === 'today' && activeModule === 'home' ? (
+                <Text style={styles.commandShortcutLabel}>{item.label}</Text>
+              ) : null}
             </Pressable>
           ))}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Suchen"
+            onPress={onOpenSearch}
+            style={({ pressed }) => [styles.commandShortcut, pressed && styles.pressed]}
+          >
+            <LiquidGlyph glyph="⌕" size={18} />
+          </Pressable>
         </View>
       ) : null}
       <View style={styles.commandActions}>
-        <LiquidButton
-          compact
-          icon="⌕"
-          label={showCommandLabels ? 'Suchen' : 'Suche'}
-          onPress={onOpenSearch}
-          variant="secondary"
-        />
         {!isPhone ? (
-          <LiquidButton
-            compact
-            icon="+"
-            label={primaryActionLabel}
-            onPress={onPrimaryAction}
-          />
+          <LiquidStatus label="Live" tone="live" />
         ) : null}
         <LiquidIconButton
           label="Benachrichtigungen"
-          glyph="◔"
+          glyph="☷"
           onPress={onOpenNotifications}
         />
         {!isPhone ? (
@@ -496,14 +485,8 @@ function CommandBar({
             style={({ pressed }) => [styles.profile, pressed && styles.pressed]}
           >
             <View style={styles.avatar}>
-              <Text style={styles.avatarLabel}>{displayName.slice(0, 1).toUpperCase()}</Text>
+              <LiquidGlyph glyph="♙" size={20} />
             </View>
-            {showCommandLabels ? (
-              <View>
-                <Text numberOfLines={1} style={styles.profileName}>{displayName}</Text>
-                <Text style={styles.profileRole}>{profile?.roleKey ?? 'CareSuite'}</Text>
-              </View>
-            ) : null}
           </Pressable>
         ) : null}
       </View>
@@ -549,9 +532,7 @@ function BottomNavigation({
               selected && styles.bottomGlyphActive,
               central && styles.bottomGlyphCentral,
             ]}>
-              <Text style={[styles.bottomGlyphText, (selected || central) && styles.bottomGlyphTextActive]}>
-                {item.glyph}
-              </Text>
+              <LiquidGlyph active={selected || central} glyph={item.glyph} size={22} />
             </View>
             <Text style={[styles.bottomLabel, selected && styles.bottomLabelActive]}>{item.label}</Text>
           </Pressable>
@@ -602,8 +583,6 @@ export function LiquidCommandShell({
         <View style={styles.shellMain}>
           <CommandBar
             activeModule={activeModule}
-            primaryActionLabel={actionLabel}
-            onPrimaryAction={action}
             onOpenSearch={() => setPaletteOpen(true)}
             onOpenNotifications={() => setNotificationsOpen(true)}
             onOpenProfile={() => setProfileOpen(true)}
@@ -658,6 +637,7 @@ export function LiquidCommandShell({
                 contentContainerStyle={[
                   styles.content,
                   { padding: layout.contentPadding },
+                  !showPageHeader && styles.contentWithoutHeader,
                   layout.isPhone && styles.contentPhone,
                 ]}
                 keyboardShouldPersistTaps="handled"
@@ -804,37 +784,36 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  contentWithoutHeader: {
+    paddingTop: 0,
+  },
   dock: {
     width: 104,
     paddingTop: 102,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingBottom: 16,
     borderRightWidth: 0,
-    backgroundColor: 'rgba(2,15,34,0.72)',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     gap: 8,
     zIndex: liquidLayers.dock,
   },
   dockItems: {
+    width: 72,
+    minHeight: 720,
+    paddingTop: 9,
+    paddingBottom: 9,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(112,181,255,0.42)',
+    backgroundColor: 'rgba(5,23,47,0.9)',
     alignItems: 'center',
-    gap: 10,
-    paddingBottom: 10,
+    justifyContent: 'space-between',
+    gap: 8,
   },
   dockItem: {
-    width: 70,
+    width: 54,
     alignItems: 'center',
-    gap: 2,
-  },
-  dockLabel: {
-    maxWidth: 70,
-    color: liquidColors.white56,
-    fontSize: 10,
-    lineHeight: 13,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  dockLabelActive: {
-    color: liquidColors.blue200,
   },
   commandBar: {
     minHeight: 98,
@@ -854,7 +833,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   commandContext: {
-    width: 230,
+    width: 312,
     paddingLeft: 0,
   },
   commandEyebrow: {
@@ -874,12 +853,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 8,
+    gap: 10,
   },
   commandShortcutBar: {
     minWidth: 0,
     flex: 1,
-    maxWidth: 688,
+    maxWidth: 690,
     height: 60,
     padding: 5,
     borderRadius: liquidRadius.small,
@@ -918,12 +897,12 @@ const styles = StyleSheet.create({
   },
   profile: {
     minHeight: 48,
-    maxWidth: 210,
-    paddingHorizontal: 7,
+    width: 48,
+    paddingHorizontal: 5,
     borderRadius: liquidRadius.small,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
+    justifyContent: 'center',
   },
   avatar: {
     width: 38,
@@ -934,12 +913,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(20,120,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatarLabel: {
-    color: liquidColors.white,
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '800',
   },
   profileName: {
     maxWidth: 130,
@@ -1264,11 +1237,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  paletteArrow: {
-    color: liquidColors.blue200,
-    fontSize: 26,
-    lineHeight: 30,
-  },
   noResults: {
     paddingVertical: 28,
     alignItems: 'center',
@@ -1292,11 +1260,6 @@ const styles = StyleSheet.create({
     padding: 28,
     alignItems: 'center',
     gap: 14,
-  },
-  rotateGlyph: {
-    color: liquidColors.blue200,
-    fontSize: 48,
-    lineHeight: 54,
   },
   centerText: {
     textAlign: 'center',

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useCurrentSystemAdapter } from '../adapters/currentSystemAdapter';
 import {
   LiquidButton,
+  LiquidGlyph,
   LiquidMetric,
   LiquidState,
   LiquidStatus,
@@ -14,6 +15,7 @@ import { liquidColors, liquidRadius } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import { LiquidCommandShell } from '../shell/LiquidCommandShell';
 import { ClientNetworkMap } from '../components/ClientNetworkMap';
+import { ClinicalBodyMapPreview } from '../components/ClinicalBodyMapPreview';
 
 function formatTime(value: string): string {
   const date = new Date(value);
@@ -42,20 +44,12 @@ function ClientMap({
   tenantId: string | null;
 }) {
   const router = useRouter();
+  const layout = useLiquidLayout();
   return (
     <LiquidSurface active style={styles.mapCard} contentStyle={styles.mapContent}>
-      <View style={styles.mapHeader}>
-        <View>
-          <LiquidText variant="kicker">VERSORGUNGSNETZ · DAUERHAFT</LiquidText>
-          <LiquidText variant="section">Alle Klient:innen auf der Karte</LiquidText>
-        </View>
-        <View style={styles.mapActions}>
-          <LiquidStatus label={`${clients.length} Klient:innen`} tone="live" />
-        </View>
-      </View>
       <ClientNetworkMap
         clients={clients}
-        height={282}
+        height={layout.isPhone ? 236 : layout.formFactor === 'tablet-portrait' ? 292 : 346}
         tenantId={tenantId}
         onClientSelect={(clientId) =>
           router.push(`/business/office/clients/${clientId}` as never)
@@ -85,33 +79,48 @@ function SummaryRail({
   const critical = clients.filter((client) =>
     client.status === 'gesperrt' || client.status === 'fehlerhaft',
   ).length;
+  const stable = clients.filter((client) => client.status === 'aktiv').length;
+  const observation = Math.max(0, clients.length - stable - critical);
+  const assignedEmployeeIds = new Set(
+    visits.map((visit) => visit.employeeId).filter((value): value is string => Boolean(value)),
+  );
+  const availableEmployees = Math.max(0, employees.length - assignedEmployeeIds.size);
+  const availability = employees.length
+    ? Math.round((availableEmployees / employees.length) * 100)
+    : 0;
 
   return (
     <View style={[styles.summaryRail, stacked && styles.summaryRailStacked]}>
-      <LiquidSurface style={stacked ? styles.summaryPanelStacked : undefined} contentStyle={styles.summaryCard}>
+      <LiquidSurface
+        style={[styles.assignmentSummary, stacked && styles.summaryPanelStacked]}
+        contentStyle={styles.summaryCard}
+      >
         <Pressable
           accessibilityRole="button"
           onPress={() => router.push('/assist/einsaetze' as never)}
           style={({ pressed }) => [styles.summaryHeader, pressed && styles.pressed]}
         >
           <LiquidText variant="section">Einsätze</LiquidText>
-          <Text style={styles.summaryArrow}>→</Text>
+          <LiquidGlyph glyph="→" size={18} />
         </Pressable>
         <View style={styles.summaryMetricGrid}>
-          <LiquidMetric label="Geplant" value={visits.length} glyph="□" tone="live" />
+          <LiquidMetric label="Geplant" value={visits.length} glyph="▧" tone="live" />
           <LiquidMetric label="Aktiv" value={active} glyph="▷" tone="live" />
           <LiquidMetric label="Fertig" value={completed} glyph="✓" tone="success" />
           <LiquidMetric label="Offen" value={open} glyph="◷" tone={open ? 'warning' : 'success'} />
         </View>
       </LiquidSurface>
-      <LiquidSurface style={stacked ? styles.summaryPanelStacked : undefined} contentStyle={styles.summaryCard}>
+      <LiquidSurface
+        style={[styles.clientSummary, stacked && styles.summaryPanelStacked]}
+        contentStyle={styles.summaryCard}
+      >
         <Pressable
           accessibilityRole="button"
           onPress={() => router.push('/business/office/clients' as never)}
           style={({ pressed }) => [styles.summaryHeader, pressed && styles.pressed]}
         >
           <LiquidText variant="section">Klient:innen</LiquidText>
-          <Text style={styles.summaryArrow}>→</Text>
+          <LiquidGlyph glyph="→" size={18} />
         </Pressable>
         <View style={styles.clientDonutRow}>
           <View style={styles.clientDonut}>
@@ -120,29 +129,40 @@ function SummaryRail({
           </View>
           <View style={styles.clientLegend}>
             <View style={styles.legendRow}>
-              <View style={[styles.legendDot, { backgroundColor: liquidColors.success }]} />
-              <Text style={styles.legendLabel}>Aktiv</Text>
-              <Text style={styles.legendValue}>{Math.max(0, clients.length - critical)}</Text>
+              <View style={[styles.legendDot, { backgroundColor: liquidColors.blue400 }]} />
+              <Text style={styles.legendLabel}>Stabil</Text>
+              <Text style={styles.legendValue}>{stable}</Text>
+            </View>
+            <View style={styles.legendRow}>
+              <View style={[styles.legendDot, { backgroundColor: liquidColors.blue600 }]} />
+              <Text style={styles.legendLabel}>Beobachtung</Text>
+              <Text style={styles.legendValue}>{observation}</Text>
             </View>
             <View style={styles.legendRow}>
               <View style={[styles.legendDot, { backgroundColor: liquidColors.warning }]} />
-              <Text style={styles.legendLabel}>Prüfen</Text>
+              <Text style={styles.legendLabel}>Kritisch</Text>
               <Text style={styles.legendValue}>{critical}</Text>
             </View>
           </View>
         </View>
       </LiquidSurface>
-      <LiquidSurface style={stacked ? styles.summaryPanelStacked : undefined} contentStyle={styles.summaryCard}>
+      <LiquidSurface
+        style={[styles.personnelSummary, stacked && styles.summaryPanelStacked]}
+        contentStyle={styles.summaryCard}
+      >
         <Pressable
           accessibilityRole="button"
           onPress={() => router.push('/business/office/employees' as never)}
           style={({ pressed }) => [styles.summaryHeader, pressed && styles.pressed]}
         >
           <LiquidText variant="section">Personal</LiquidText>
-          <Text style={styles.summaryArrow}>→</Text>
+          <LiquidGlyph glyph="→" size={18} />
         </Pressable>
-        <Text style={styles.staffValue}>{employees.length}</Text>
-        <Text style={styles.staffMeta}>Mitarbeitende im Mandantenkontext</Text>
+        <Text style={styles.staffMeta}>Verfügbar</Text>
+        <View style={styles.availabilityRow}>
+          <Text style={styles.staffValue}>{availability}</Text>
+          <Text style={styles.staffPercent}>%</Text>
+        </View>
         <View style={styles.staffDots}>
           {employees.slice(0, 12).map((employee) => (
             <View key={employee.id} style={styles.staffDot}>
@@ -151,6 +171,17 @@ function SummaryRail({
               </Text>
             </View>
           ))}
+        </View>
+        <View style={styles.staffStats}>
+          <View style={styles.staffStat}>
+            <Text style={styles.staffStatLabel}>Eingesetzt</Text>
+            <Text style={styles.staffStatValue}>{assignedEmployeeIds.size}</Text>
+          </View>
+          <View style={styles.staffStatDivider} />
+          <View style={styles.staffStat}>
+            <Text style={styles.staffStatLabel}>Geplant</Text>
+            <Text style={styles.staffStatValue}>{visits.length}</Text>
+          </View>
         </View>
       </LiquidSurface>
     </View>
@@ -239,20 +270,41 @@ function AlertsPanel({
   documents: number;
 }) {
   const entries = [
-    ...(errors.length ? [{ tone: 'danger' as const, title: 'Datenquelle nicht erreichbar', detail: `${errors.length} Bereich(e)` }] : []),
-    ...(incomplete ? [{ tone: 'warning' as const, title: 'Dokumentation unvollständig', detail: `${incomplete} Einsatz/Einsätze` }] : []),
-    ...(!documents ? [{ tone: 'neutral' as const, title: 'Keine Dokumente im Kontext', detail: 'Ablage prüfen' }] : []),
+    ...(errors.length ? [{
+      glyph: '!',
+      tone: 'danger' as const,
+      title: 'Datenquelle nicht erreichbar',
+      detail: `${errors.length} Bereich(e) prüfen`,
+    }] : []),
+    ...(incomplete ? [{
+      glyph: '▤',
+      tone: 'warning' as const,
+      title: 'Dokumentation unvollständig',
+      detail: `${incomplete} Einsatz/Einsätze`,
+    }] : []),
+    ...(!documents ? [{
+      glyph: '□',
+      tone: 'neutral' as const,
+      title: 'Keine Dokumente im Kontext',
+      detail: 'Ablage prüfen',
+    }] : []),
   ];
   return (
-    <LiquidSurface contentStyle={styles.asideCard}>
+    <LiquidSurface style={styles.alertsPanel} contentStyle={styles.asideCard}>
       <View style={styles.sectionHeader}>
-        <LiquidText variant="section">Hinweise</LiquidText>
+        <LiquidText variant="section">Alerts</LiquidText>
         <LiquidStatus label={`${entries.length}`} tone={entries.length ? 'warning' : 'success'} />
       </View>
       {entries.length ? entries.map((entry) => (
         <View key={entry.title} style={styles.alertRow}>
-          <LiquidStatus label={entry.title} tone={entry.tone} />
-          <Text style={styles.alertDetail}>{entry.detail}</Text>
+          <View style={styles.alertIcon}>
+            <LiquidGlyph glyph={entry.glyph} size={20} />
+          </View>
+          <View style={styles.alertCopy}>
+            <Text style={styles.alertTitle}>{entry.title}</Text>
+            <Text style={styles.alertDetail}>{entry.detail}</Text>
+          </View>
+          <LiquidGlyph glyph="→" size={16} />
         </View>
       )) : (
         <View style={styles.compactEmpty}>
@@ -266,31 +318,14 @@ function AlertsPanel({
 function BodyMapPanel() {
   const router = useRouter();
   return (
-    <LiquidSurface contentStyle={styles.asideCard}>
-      <View style={styles.sectionHeader}>
-        <View>
-          <LiquidText variant="kicker">KLINISCH</LiquidText>
-          <LiquidText variant="section">BodyMap</LiquidText>
-        </View>
-        <Text style={styles.bodyMapGlyph}>⌾</Text>
-      </View>
-      <View style={styles.bodyMapStage}>
-        <View style={styles.bodyHead} />
-        <View style={styles.bodyTorso} />
-        <View style={[styles.bodyLimb, styles.bodyArmLeft]} />
-        <View style={[styles.bodyLimb, styles.bodyArmRight]} />
-        <View style={[styles.bodyLimb, styles.bodyLegLeft]} />
-        <View style={[styles.bodyLimb, styles.bodyLegRight]} />
-        <View style={[styles.bodyMarker, { top: '39%', left: '56%' }]} />
-        <View style={[styles.bodyMarker, { top: '67%', left: '43%' }]} />
-      </View>
-      <LiquidButton
-        fullWidth
-        label="BodyMap öffnen"
-        variant="secondary"
-        onPress={() => router.push('/pflege/bodymap' as never)}
-      />
-    </LiquidSurface>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Klinische BodyMap mit Vorder- und Rückansicht öffnen"
+      onPress={() => router.push('/pflege/bodymap' as never)}
+      style={({ pressed }) => [styles.bodyMapPanel, pressed && styles.pressed]}
+    >
+      <ClinicalBodyMapPreview />
+    </Pressable>
   );
 }
 
@@ -326,7 +361,6 @@ export function CommandCenterScreen() {
       contextDetail={formatSync(state.lastSynchronizedAt)}
       primaryActionLabel="Neue Aktion"
       onPrimaryAction={() => router.push('/assist/einsaetze/new' as never)}
-      aside={layout.formFactor === 'tablet-portrait' ? undefined : aside}
       showContextBar={false}
       showPageHeader={false}
     >
@@ -348,24 +382,19 @@ export function CommandCenterScreen() {
         />
       ) : null}
 
-      <View style={[styles.overviewRow, !layout.isDesktop && styles.overviewRowStacked]}>
+      <View style={[styles.dashboardLayout, !layout.isDesktop && styles.dashboardLayoutCompact]}>
         <SummaryRail
           clients={state.data.clients}
           employees={state.data.employees}
           stacked={!layout.isDesktop}
           visits={todaysVisits}
         />
-        <View style={styles.mapColumn}>
+        <View style={[styles.centerColumn, !layout.isDesktop && styles.compactFullWidth]}>
           <ClientMap clients={state.data.clients} tenantId={state.tenantId} />
+          <TodayTimeline visits={todaysVisits} />
         </View>
+        <View style={[styles.rightRail, !layout.isDesktop && styles.compactFullWidth]}>{aside}</View>
       </View>
-      <TodayTimeline visits={todaysVisits} />
-
-      {layout.formFactor === 'tablet-portrait' || layout.isPhone ? (
-        <View style={styles.mobileAside}>
-          {aside}
-        </View>
-      ) : null}
 
       {errorMessages.length && !state.errors.session ? (
         <LiquidState
@@ -382,12 +411,12 @@ export function CommandCenterScreen() {
 }
 
 const styles = StyleSheet.create({
-  overviewRow: {
+  dashboardLayout: {
     flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: 16,
+    alignItems: 'flex-start',
+    gap: 14,
   },
-  overviewRowStacked: {
+  dashboardLayoutCompact: {
     flexDirection: 'column',
   },
   summaryRail: {
@@ -403,6 +432,15 @@ const styles = StyleSheet.create({
     minWidth: 240,
     flex: 1,
   },
+  assignmentSummary: {
+    minHeight: 238,
+  },
+  clientSummary: {
+    minHeight: 206,
+  },
+  personnelSummary: {
+    minHeight: 274,
+  },
   summaryCard: {
     padding: 14,
     gap: 10,
@@ -411,12 +449,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  summaryArrow: {
-    color: liquidColors.blue200,
-    fontSize: 20,
-    lineHeight: 24,
-    fontWeight: '700',
   },
   summaryMetricGrid: {
     flexDirection: 'row',
@@ -486,6 +518,17 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     fontWeight: '800',
   },
+  availabilityRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  staffPercent: {
+    color: liquidColors.white72,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '700',
+  },
   staffMeta: {
     color: liquidColors.white56,
     fontSize: 11,
@@ -511,27 +554,53 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textTransform: 'uppercase',
   },
-  mapColumn: {
+  staffStats: {
+    marginTop: 'auto',
+    minHeight: 60,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: liquidColors.white08,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  staffStat: {
+    flex: 1,
+    gap: 2,
+  },
+  staffStatDivider: {
+    width: 1,
+    height: 40,
+    marginHorizontal: 14,
+    backgroundColor: liquidColors.white12,
+  },
+  staffStatLabel: {
+    color: liquidColors.white56,
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  staffStatValue: {
+    color: liquidColors.white,
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '800',
+  },
+  centerColumn: {
     minWidth: 0,
     flex: 1,
+    gap: 14,
+  },
+  rightRail: {
+    width: 336,
+    gap: 14,
+  },
+  compactFullWidth: {
+    width: '100%',
   },
   mapCard: {
-    minHeight: 370,
+    minHeight: 348,
   },
   mapContent: {
-    padding: 16,
-    gap: 12,
-  },
-  mapHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  mapActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    padding: 0,
   },
   map: {
     position: 'relative',
@@ -704,14 +773,44 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   asideCard: {
-    padding: 16,
-    gap: 14,
+    padding: 14,
+    gap: 12,
+  },
+  alertsPanel: {
+    minHeight: 260,
   },
   alertRow: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: liquidColors.white08,
-    gap: 7,
+    minHeight: 64,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: liquidColors.white12,
+    borderRadius: liquidRadius.small,
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  alertIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: liquidColors.white12,
+    backgroundColor: 'rgba(20,120,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alertCopy: {
+    minWidth: 0,
+    flex: 1,
+    gap: 2,
+  },
+  alertTitle: {
+    color: liquidColors.white,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
   },
   alertDetail: {
     color: liquidColors.white56,
@@ -722,82 +821,12 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     alignItems: 'center',
   },
-  bodyMapGlyph: {
-    color: liquidColors.blue200,
-    fontSize: 24,
-    lineHeight: 28,
-  },
-  bodyMapStage: {
-    position: 'relative',
-    height: 210,
-    alignItems: 'center',
-  },
-  bodyHead: {
-    position: 'absolute',
-    top: 9,
-    width: 38,
-    height: 45,
-    borderRadius: 19,
-    borderWidth: 1,
-    borderColor: liquidColors.blue200,
-    backgroundColor: 'rgba(20,120,255,0.13)',
-  },
-  bodyTorso: {
-    position: 'absolute',
-    top: 56,
-    width: 68,
-    height: 88,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    borderWidth: 1,
-    borderColor: liquidColors.blue200,
-    backgroundColor: 'rgba(20,120,255,0.11)',
-  },
-  bodyLimb: {
-    position: 'absolute',
-    width: 18,
-    height: 92,
-    borderRadius: 9,
-    borderWidth: 1,
-    borderColor: liquidColors.blue200,
-    backgroundColor: 'rgba(20,120,255,0.09)',
-  },
-  bodyArmLeft: {
-    top: 61,
-    marginLeft: -88,
-    transform: [{ rotate: '8deg' }],
-  },
-  bodyArmRight: {
-    top: 61,
-    marginLeft: 88,
-    transform: [{ rotate: '-8deg' }],
-  },
-  bodyLegLeft: {
-    top: 138,
-    marginLeft: -22,
-    height: 70,
-  },
-  bodyLegRight: {
-    top: 138,
-    marginLeft: 22,
-    height: 70,
-  },
-  bodyMarker: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: liquidColors.white,
-    backgroundColor: liquidColors.blue500,
+  bodyMapPanel: {
+    width: '100%',
+    borderRadius: liquidRadius.card,
     shadowColor: liquidColors.blue500,
-    shadowOpacity: 1,
-    shadowRadius: 8,
-  },
-  mobileAside: {
-    gap: 16,
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
   },
   pressed: {
     opacity: 0.8,

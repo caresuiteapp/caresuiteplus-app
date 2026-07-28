@@ -1,0 +1,30 @@
+import { Image, StyleSheet, View } from 'react-native';
+
+export function ClinicalBodyMapPreview() {
+  return (
+    <View
+      accessible
+      accessibilityLabel="Klinische BodyMap mit Vorderansicht, Rückansicht, Werkzeugen und Befundmarkern"
+      style={styles.frame}
+    >
+      <Image
+        resizeMode="contain"
+        source={require('../../../assets/brand/clinical-bodymap-preview.png')}
+        style={styles.image}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  frame: {
+    width: '100%',
+    aspectRatio: 327 / 418,
+    overflow: 'hidden',
+    borderRadius: 15,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+});
