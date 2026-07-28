@@ -14,10 +14,10 @@ import {
 
 describe('Liquid Command foundation', () => {
   it('uses the binding master-specification colors', () => {
-    expect(liquidColors.navy950).toBe('#06152B');
-    expect(liquidColors.navy800).toBe('#0A2342');
-    expect(liquidColors.blue500).toBe('#1478FF');
-    expect(liquidColors.blue200).toBe('#8BC1FF');
+    expect(liquidColors.navy950).toBe('#010817');
+    expect(liquidColors.navy800).toBe('#061B35');
+    expect(liquidColors.blue500).toBe('#1683FF');
+    expect(liquidColors.blue200).toBe('#9ACBFF');
     expect(liquidColors.white).toBe('#FFFFFF');
   });
 
@@ -138,7 +138,7 @@ describe('Liquid Command foundation', () => {
 
   it('connects Liquid workspaces with productive record and creation workflows', () => {
     expect(getLiquidRecordRoute('office', 'people', 'employee-1')).toBe(
-      '/office/employees/employee-1',
+      '/business/office/employees/employee-1',
     );
     expect(getLiquidPrimaryWorkflowRoute('assist', 'assignments')).toBe(
       '/assist/einsaetze/new',

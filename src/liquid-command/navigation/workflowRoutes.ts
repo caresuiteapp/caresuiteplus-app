@@ -4,10 +4,10 @@ type RouteBuilder = (recordId: string) => string;
 
 const recordRoutes: Partial<Record<LiquidModuleKey, Record<string, RouteBuilder>>> = {
   office: {
-    company: (id) => `/office/clients/${id}`,
-    people: (id) => `/office/employees/${id}`,
-    billing: (id) => `/office/invoices/${id}`,
-    documents: (id) => `/office/documents/${id}`,
+    company: (id) => `/business/office/clients/${id}`,
+    people: (id) => `/business/office/employees/${id}`,
+    billing: (id) => `/business/office/invoices/${id}`,
+    documents: (id) => `/business/office/documents/${id}`,
   },
   assist: {
     assignments: (id) => `/assist/assignments/${id}`,
@@ -38,13 +38,13 @@ const recordRoutes: Partial<Record<LiquidModuleKey, Record<string, RouteBuilder>
 
 const primaryWorkflowRoutes: Partial<Record<LiquidModuleKey, Record<string, string>>> = {
   office: {
-    company: '/office/clients/create',
-    people: '/office/employees/create',
-    billing: '/office/invoices/create',
-    documents: '/office/documents/upload',
-    communication: '/office/messages/compose',
-    inventory: '/office/inventory/items',
-    audit: '/office/audit-log',
+    company: '/business/office/clients/new',
+    people: '/business/office/employees/new',
+    billing: '/business/office/invoices/new',
+    documents: '/business/office/documents/upload',
+    communication: '/business/messages/new',
+    inventory: '/business/office/inventory/items',
+    audit: '/business/office/audit-log',
   },
   assist: {
     clients: '/assist/zugeordnete-klienten',

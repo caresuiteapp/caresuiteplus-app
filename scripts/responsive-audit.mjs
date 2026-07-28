@@ -58,7 +58,8 @@ const shellSource = source('src/liquid-command/shell/LiquidCommandShell.tsx');
 for (const marker of [
   "layout.formFactor === 'phone-landscape-blocked'",
   'layout.showDock',
-  'layout.isPhone ? <BottomNavigation',
+  '!layout.isDesktop ? (',
+  '<BottomNavigation activeModule={activeModule}',
   "layout.formFactor === 'tablet-portrait'",
 ]) {
   if (!shellSource.includes(marker)) {
@@ -67,8 +68,11 @@ for (const marker of [
 }
 
 const portalShellSource = source('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
-if (!portalShellSource.includes('layout.isPhone ?')) {
-  failures.push('Portal-Shell besitzt keine eigene Smartphone-Navigation.');
+if (
+  !portalShellSource.includes('!layout.isDesktop ? (') ||
+  !portalShellSource.includes('compactNavigation.map')
+) {
+  failures.push('Portal-Shell besitzt keine eigene Smartphone-/Tablet-Navigation.');
 }
 if (!portalShellSource.includes('Abmelden')) {
   failures.push('Portal-Shell besitzt keine sichtbare Abmeldung.');

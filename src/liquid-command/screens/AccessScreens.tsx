@@ -51,6 +51,7 @@ type AccessShellProps = {
   children: ReactNode;
   backRoute?: string;
   side?: ReactNode;
+  compact?: boolean;
 };
 
 function AccessShell({
@@ -60,6 +61,7 @@ function AccessShell({
   children,
   backRoute,
   side,
+  compact = false,
 }: AccessShellProps) {
   const router = useRouter();
   const layout = useLiquidLayout();
@@ -69,18 +71,20 @@ function AccessShell({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.accessRoot}
       >
-        <View style={styles.accessTopBar}>
-          <LiquidLogo />
-          {backRoute ? (
-            <LiquidButton
-              compact
-              label="Zurück"
-              icon="‹"
-              variant="ghost"
-              onPress={() => router.replace(backRoute as never)}
-            />
-          ) : null}
-        </View>
+        {!compact ? (
+          <View style={styles.accessTopBar}>
+            <LiquidLogo />
+            {backRoute ? (
+              <LiquidButton
+                compact
+                label="Zurück"
+                icon="‹"
+                variant="ghost"
+                onPress={() => router.replace(backRoute as never)}
+              />
+            ) : null}
+          </View>
+        ) : null}
         <ScrollView
           contentContainerStyle={[
             styles.accessScroll,
@@ -89,8 +93,17 @@ function AccessShell({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.accessGrid, layout.isPhone && styles.accessGridPhone]}>
-            <View style={styles.accessMain}>
+          <View style={[
+            styles.accessGrid,
+            layout.isPhone && styles.accessGridPhone,
+            compact && styles.accessGridCompact,
+          ]}>
+            <View style={[styles.accessMain, compact && styles.accessMainCompact]}>
+              {compact ? (
+                <View style={styles.compactBrand}>
+                  <LiquidLogo />
+                </View>
+              ) : null}
               <View style={styles.accessHeading}>
                 <LiquidText variant="kicker">{eyebrow}</LiquidText>
                 <LiquidText
@@ -103,9 +116,9 @@ function AccessShell({
               </View>
               {children}
             </View>
-            {!layout.isPhone && side ? <View style={styles.accessSide}>{side}</View> : null}
+            {!compact && !layout.isPhone && side ? <View style={styles.accessSide}>{side}</View> : null}
           </View>
-          {layout.isPhone && side ? <View style={styles.accessMobileSide}>{side}</View> : null}
+          {!compact && layout.isPhone && side ? <View style={styles.accessMobileSide}>{side}</View> : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </LiquidBackdrop>
@@ -164,50 +177,7 @@ const accessOptions = [
 ] as const;
 
 export function AccessHubScreen() {
-  const router = useRouter();
-  return (
-    <AccessShell
-      eyebrow="CARESUITE HEALTHOS"
-      title="Ein Zugang. Der richtige Arbeitskontext."
-      subtitle="Wählen Sie den Zugang, der Ihrer Rolle und Verantwortung entspricht."
-      side={<SecuritySide />}
-    >
-      <View style={styles.accessOptions}>
-        {accessOptions.map((option) => (
-          <Pressable
-            key={option.id}
-            accessibilityRole="button"
-            accessibilityLabel={`${option.title}. ${option.detail}`}
-            onPress={() => router.push(option.route as never)}
-            style={({ pressed }) => [
-              styles.accessOption,
-              pressed && styles.pressed,
-            ]}
-          >
-            <View style={styles.accessOptionGlyph}>
-              <Text style={styles.accessOptionGlyphText}>{option.glyph}</Text>
-            </View>
-            <View style={styles.accessOptionCopy}>
-              <Text style={styles.accessOptionTitle}>{option.title}</Text>
-              <Text style={styles.accessOptionDetail}>{option.detail}</Text>
-            </View>
-            <Text style={styles.accessArrow}>›</Text>
-          </Pressable>
-        ))}
-      </View>
-      <View style={styles.accessFooterActions}>
-        <LiquidButton
-          fullWidth
-          label="Organisation registrieren"
-          variant="secondary"
-          onPress={() => router.push('/auth/register' as never)}
-        />
-        <Text style={styles.accessFootnote}>
-          Bewerbende und externe Fachpersonen verwenden den persönlichen Link aus ihrer Einladung.
-        </Text>
-      </View>
-    </AccessShell>
-  );
+  return <BusinessAccessScreen />;
 }
 
 export function BusinessAccessScreen() {
@@ -246,13 +216,24 @@ export function BusinessAccessScreen() {
 
   return (
     <AccessShell
-      eyebrow="UNTERNEHMEN & VERWALTUNG"
-      title="Willkommen zurück."
-      subtitle="Melden Sie sich mit der freigegebenen Organisationsidentität an."
-      backRoute="/auth"
-      side={<SecuritySide />}
+      eyebrow="SICHERER ZUGANG"
+      title="CareSuite HealthOS"
+      subtitle="Melden Sie sich an oder öffnen Sie den für Sie freigegebenen Portalzugang."
+      compact
     >
       <LiquidSurface active contentStyle={styles.formCard}>
+        <View style={styles.loginTabs}>
+          <View style={styles.loginTabActive}>
+            <Text style={styles.loginTabActiveLabel}>Anmelden</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/auth/register' as never)}
+            style={styles.loginTab}
+          >
+            <Text style={styles.loginTabLabel}>Registrieren</Text>
+          </Pressable>
+        </View>
         {error ? (
           <LiquidState
             kind="error"
@@ -282,7 +263,7 @@ export function BusinessAccessScreen() {
           secureTextEntry
           required
         />
-        <LiquidButton fullWidth label="Sicher anmelden" loading={loading} onPress={() => void submit()} />
+        <LiquidButton fullWidth label="Anmelden" loading={loading} onPress={() => void submit()} />
         <View style={styles.formSecondaryActions}>
           <LiquidButton
             label="Passwort vergessen"
@@ -296,24 +277,25 @@ export function BusinessAccessScreen() {
           />
         </View>
       </LiquidSurface>
-      <LiquidSurface solid contentStyle={styles.ssoCard}>
-        <View style={styles.ssoCopy}>
-          <LiquidText variant="section">Workspace-Identität</LiquidText>
-          <LiquidText variant="meta">
-            Freigegebene Google-Workspace-Identitäten werden mandantenbezogen verknüpft.
-          </LiquidText>
-        </View>
-        <LiquidButton
-          label="Mit Workspace anmelden"
-          variant="secondary"
-          onPress={() =>
-            setError(
-              'Für diesen Mandanten ist noch keine Workspace-Identität konfiguriert. Bitte verwenden Sie E-Mail und Passwort.',
-            )
-          }
-          accessibilityHint="Die Identität muss zuerst von der Organisation freigegeben werden."
-        />
-      </LiquidSurface>
+      <View style={styles.portalAccess}>
+        {accessOptions.slice(1).map((option) => (
+          <Pressable
+            key={option.id}
+            accessibilityRole="button"
+            onPress={() => router.push(option.route as never)}
+            style={({ pressed }) => [styles.portalAccessRow, pressed && styles.pressed]}
+          >
+            <Text style={styles.portalAccessGlyph}>{option.glyph}</Text>
+            <Text style={styles.portalAccessLabel}>{option.title}</Text>
+            <Text style={styles.portalAccessArrow}>›</Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={styles.securityBadges}>
+        <Text style={styles.securityBadge}>Sichere Daten</Text>
+        <Text style={styles.securityBadge}>DSGVO-konform</Text>
+        <Text style={styles.securityBadge}>Vertrauensvoll</Text>
+      </View>
     </AccessShell>
   );
 }
@@ -961,7 +943,7 @@ const styles = StyleSheet.create({
     maxWidth: 1440,
     alignSelf: 'center',
     padding: 32,
-    paddingVertical: 48,
+    paddingVertical: 40,
   },
   accessScrollPhone: {
     padding: 16,
@@ -975,10 +957,25 @@ const styles = StyleSheet.create({
   accessGridPhone: {
     flexDirection: 'column',
   },
+  accessGridCompact: {
+    minHeight: 780,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   accessMain: {
     minWidth: 0,
     flex: 1,
     gap: 22,
+  },
+  accessMainCompact: {
+    width: '100%',
+    maxWidth: 500,
+    flex: 0,
+    alignSelf: 'center',
+  },
+  compactBrand: {
+    alignItems: 'center',
+    marginBottom: 12,
   },
   accessSide: {
     width: 370,
@@ -1086,6 +1083,85 @@ const styles = StyleSheet.create({
   formCard: {
     padding: 22,
     gap: 16,
+  },
+  loginTabs: {
+    height: 52,
+    padding: 3,
+    borderRadius: liquidRadius.control,
+    borderWidth: 1,
+    borderColor: liquidColors.white22,
+    backgroundColor: 'rgba(2,13,30,0.62)',
+    flexDirection: 'row',
+  },
+  loginTab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loginTabActive: {
+    flex: 1,
+    borderRadius: 7,
+    backgroundColor: liquidColors.blue600,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loginTabLabel: {
+    color: liquidColors.white88,
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '700',
+  },
+  loginTabActiveLabel: {
+    color: liquidColors.white,
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '800',
+  },
+  portalAccess: {
+    gap: 7,
+  },
+  portalAccessRow: {
+    minHeight: 48,
+    paddingHorizontal: 14,
+    borderRadius: liquidRadius.control,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(5,24,49,0.76)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  portalAccessGlyph: {
+    width: 24,
+    color: liquidColors.blue200,
+    fontSize: 18,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  portalAccessLabel: {
+    flex: 1,
+    color: liquidColors.white88,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  portalAccessArrow: {
+    color: liquidColors.blue200,
+    fontSize: 22,
+    lineHeight: 24,
+  },
+  securityBadges: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  securityBadge: {
+    flex: 1,
+    color: liquidColors.blue200,
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   formSecondaryActions: {
     flexDirection: 'row',

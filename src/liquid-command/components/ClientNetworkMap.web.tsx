@@ -7,6 +7,7 @@ import {
   type GoogleMapInstance,
   type GoogleMarkerInstance,
   type GoogleMapsNamespace,
+  type GooglePolylineInstance,
 } from '@/lib/maps/googleMapsLoader';
 import type { ClientListItem } from '@/types/modules/office';
 import { liquidColors, liquidRadius } from '../foundation/tokens';
@@ -107,6 +108,7 @@ export function ClientNetworkMap({
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const markerRefs = useRef<GoogleMarkerInstance[]>([]);
+  const routeRefs = useRef<GooglePolylineInstance[]>([]);
   const addressableCount = useMemo(
     () => clients.filter((client) => Boolean(clientAddress(client))).length,
     [clients],
@@ -163,14 +165,65 @@ export function ClientNetworkMap({
     }
 
     markerRefs.current.forEach((marker) => marker.setMap(null));
+    routeRefs.current.forEach((route) => route.setMap(null));
+    const markerIcon = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+        <defs>
+          <filter id="g" x="-80%" y="-80%" width="260%" height="260%">
+            <feGaussianBlur stdDeviation="3.2" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <circle cx="20" cy="20" r="13" fill="#08284f" stroke="#55aaff" stroke-width="1.5" filter="url(#g)"/>
+        <circle cx="20" cy="20" r="5.2" fill="#eaf5ff"/>
+        <circle cx="20" cy="20" r="2.8" fill="#1683ff"/>
+      </svg>
+    `)}`;
     markerRefs.current = markers.map((item) => {
       const marker = new google.maps.Marker({
         map: mapRef.current ?? undefined,
         position: { lat: item.latitude, lng: item.longitude },
         title: `${item.label} · ${item.subtitle}`,
+        icon: {
+          url: markerIcon,
+          scaledSize: new google.maps.Size(34, 34),
+          anchor: new google.maps.Point(17, 17),
+        },
       });
       marker.addListener('click', () => onClientSelect?.(item.id));
       return marker;
+    });
+
+    const routePairs = markers.flatMap((item, index) => {
+      const previous = markers[index - 1];
+      const branch = index > 3 && index % 3 === 0 ? markers[index - 3] : null;
+      return [
+        ...(previous ? [[previous, item] as const] : []),
+        ...(branch ? [[branch, item] as const] : []),
+      ];
+    });
+    routeRefs.current = routePairs.flatMap(([from, to]) => {
+      const path = [
+        { lat: from.latitude, lng: from.longitude },
+        { lat: to.latitude, lng: to.longitude },
+      ];
+      const glow = new google.maps.Polyline({
+        map: mapRef.current ?? undefined,
+        path,
+        geodesic: true,
+        strokeColor: '#1683ff',
+        strokeOpacity: 0.24,
+        strokeWeight: 9,
+      });
+      const core = new google.maps.Polyline({
+        map: mapRef.current ?? undefined,
+        path,
+        geodesic: true,
+        strokeColor: '#2f92ff',
+        strokeOpacity: 0.92,
+        strokeWeight: 2,
+      });
+      return [glow, core];
     });
 
     if (markers.length === 1) {
@@ -234,14 +287,16 @@ export function ClientNetworkMap({
 }
 
 const HEALTH_OS_CLIENT_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#071b35' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#8bc1ff' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#06152b' }] },
-  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#081f3d' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#09284c' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#123d70' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#1764b8' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#031126' }] },
+  { elementType: 'geometry', stylers: [{ color: '#04142b' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#779bc4' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#020b19' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#051a35' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#0b315e' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#082348' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#13549a' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#010918' }] },
 ] as const;
 
 const styles = StyleSheet.create({

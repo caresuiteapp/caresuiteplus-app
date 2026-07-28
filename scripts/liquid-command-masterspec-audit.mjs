@@ -69,10 +69,10 @@ for (const path of sources) {
 }
 
 for (const [token, value] of Object.entries({
-  navy950: '#06152B',
-  navy800: '#0A2342',
-  blue500: '#1478FF',
-  blue200: '#8BC1FF',
+  navy950: '#010817',
+  navy800: '#061B35',
+  blue500: '#1683FF',
+  blue200: '#9ACBFF',
   white: '#FFFFFF',
 })) {
   if (!sourceText.includes(`${token}: '${value}'`)) {

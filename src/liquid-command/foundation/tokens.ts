@@ -1,17 +1,17 @@
 import type { TextStyle, ViewStyle } from 'react-native';
 
 export const liquidColors = {
-  navy950: '#06152B',
-  navy900: '#071B35',
-  navy800: '#0A2342',
-  navy700: '#0D315E',
-  blue600: '#0067E6',
-  blue500: '#1478FF',
-  blue400: '#3D91FF',
-  blue300: '#8BC1FF',
-  blue200: '#8BC1FF',
-  blue500Alpha16: 'rgba(20,120,255,0.16)',
-  blue300Alpha32: 'rgba(139,193,255,0.32)',
+  navy950: '#010817',
+  navy900: '#031127',
+  navy800: '#061B35',
+  navy700: '#0A2A52',
+  blue600: '#056CE8',
+  blue500: '#1683FF',
+  blue400: '#3597FF',
+  blue300: '#70B5FF',
+  blue200: '#9ACBFF',
+  blue500Alpha16: 'rgba(22,131,255,0.16)',
+  blue300Alpha32: 'rgba(112,181,255,0.32)',
   white: '#FFFFFF',
   white88: 'rgba(255,255,255,0.88)',
   white72: 'rgba(255,255,255,0.72)',
@@ -45,25 +45,25 @@ export const liquidSpace = {
 } as const;
 
 export const liquidRadius = {
-  control: 10,
-  small: 14,
-  card: 20,
-  panel: 28,
+  control: 9,
+  small: 11,
+  card: 15,
+  panel: 18,
   pill: 999,
   md: 14,
   lg: 20,
 } as const;
 
 export const liquidType = {
-  displayDesktop: 40,
+  displayDesktop: 34,
   displayMobile: 30,
-  titleDesktop: 28,
+  titleDesktop: 25,
   titleMobile: 24,
-  section: 20,
-  body: 16,
-  meta: 14,
-  control: 16,
-  kicker: 12,
+  section: 18,
+  body: 14,
+  meta: 12,
+  control: 14,
+  kicker: 11,
 } as const;
 
 export const liquidMotion = {
@@ -94,9 +94,9 @@ export const liquidShadows = {
   panel: {
     shadowColor: liquidColors.blue500,
     shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.16,
-    shadowRadius: 36,
-    elevation: 12,
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 8,
   } satisfies ViewStyle,
   focus: {
     shadowColor: liquidColors.blue500,
@@ -111,33 +111,33 @@ export const liquidTypography = {
   display: {
     color: liquidColors.white,
     fontSize: liquidType.displayDesktop,
-    lineHeight: 46,
+    lineHeight: 40,
     fontWeight: '800',
     letterSpacing: -1.1,
   } satisfies TextStyle,
   title: {
     color: liquidColors.white,
     fontSize: liquidType.titleDesktop,
-    lineHeight: 34,
+    lineHeight: 30,
     fontWeight: '800',
     letterSpacing: -0.45,
   } satisfies TextStyle,
   section: {
     color: liquidColors.white,
     fontSize: liquidType.section,
-    lineHeight: 26,
+    lineHeight: 23,
     fontWeight: '700',
   } satisfies TextStyle,
   body: {
     color: liquidColors.white88,
     fontSize: liquidType.body,
-    lineHeight: 24,
+    lineHeight: 21,
     fontWeight: '400',
   } satisfies TextStyle,
   meta: {
     color: liquidColors.white72,
     fontSize: liquidType.meta,
-    lineHeight: 20,
+    lineHeight: 17,
     fontWeight: '500',
   } satisfies TextStyle,
   kicker: {

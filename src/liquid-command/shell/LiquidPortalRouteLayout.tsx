@@ -2,7 +2,13 @@ import { useMemo, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { useAuth, RequireAuth, RequireEmployeePasswordSetup, RequireRole } from '@/lib/auth';
-import { LiquidBackdrop, LiquidButton, LiquidLogo, LiquidSurface } from '../components/LiquidPrimitives';
+import {
+  LiquidBackdrop,
+  LiquidButton,
+  LiquidIconButton,
+  LiquidLogo,
+  LiquidSurface,
+} from '../components/LiquidPrimitives';
 import { liquidColors, liquidLayers, liquidRadius } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 
@@ -64,6 +70,19 @@ function PortalChrome({ kind }: { kind: PortalKind }) {
   const layout = useLiquidLayout();
   const auth = useAuth();
   const navigation = PORTAL_NAVIGATION[kind];
+  const compactNavigation = navigation.filter((item) =>
+    kind === 'employee'
+      ? ['home', 'assignments', 'messages', 'profile'].includes(item.id)
+      : kind === 'client'
+        ? ['home', 'appointments', 'documents', 'messages', 'profile'].includes(item.id)
+        : ['home', 'messages'].includes(item.id),
+  );
+  const profileRoute =
+    kind === 'employee'
+      ? '/portal/employee/profile'
+      : kind === 'client'
+        ? '/portal/client/profile'
+        : null;
   const displayName =
     auth.profile?.displayName || auth.portalSession?.displayName || auth.user?.displayName || 'Portal';
 
@@ -84,7 +103,7 @@ function PortalChrome({ kind }: { kind: PortalKind }) {
   return (
     <LiquidBackdrop>
       <View style={styles.shell}>
-        {!layout.isPhone ? (
+        {layout.isDesktop ? (
           <View style={styles.rail}>
             <LiquidLogo compact />
             <ScrollView contentContainerStyle={styles.railItems} showsVerticalScrollIndicator={false}>
@@ -109,30 +128,63 @@ function PortalChrome({ kind }: { kind: PortalKind }) {
         ) : null}
         <View style={styles.main}>
           <View style={styles.topbar}>
-            {layout.isPhone ? <LiquidLogo compact /> : (
+            {!layout.isDesktop ? <LiquidLogo compact /> : (
               <View>
                 <Text style={styles.portalKicker}>{kind === 'employee' ? 'MITARBEITENDENPORTAL' : kind === 'client' ? 'KLIENT:INNENPORTAL' : 'ANGEHÖRIGENPORTAL'}</Text>
                 <Text style={styles.portalTitle}>CareSuite HealthOS</Text>
               </View>
             )}
             <View style={styles.identity}>
-              {!layout.isPhone ? (
-                <View style={styles.identityCopy}>
-                  <Text numberOfLines={1} style={styles.identityName}>{displayName}</Text>
-                  <Text style={styles.identityRole}>Sicher angemeldet</Text>
-                </View>
-              ) : null}
-              <LiquidButton compact label="Abmelden" variant="ghost" onPress={() => void signOut()} />
+              {layout.isDesktop ? (
+                <>
+                  <View style={styles.identityCopy}>
+                    <Text numberOfLines={1} style={styles.identityName}>{displayName}</Text>
+                    <Text style={styles.identityRole}>Sicher angemeldet</Text>
+                  </View>
+                  <LiquidButton compact label="Abmelden" variant="ghost" onPress={() => void signOut()} />
+                </>
+              ) : (
+                <>
+                  <LiquidIconButton
+                    label="Nachrichten"
+                    glyph="♧"
+                    onPress={() => router.push(
+                      kind === 'employee'
+                        ? '/portal/employee/messages'
+                        : kind === 'client'
+                          ? '/portal/client/messages'
+                          : '/portal/relative/messages' as never,
+                    )}
+                  />
+                  <LiquidIconButton
+                    label={profileRoute ? 'Profil' : 'Abmelden'}
+                    glyph="♙"
+                    onPress={() => profileRoute
+                      ? router.push(profileRoute as never)
+                      : void signOut()}
+                  />
+                </>
+              )}
             </View>
           </View>
-          <LiquidSurface solid style={styles.contentFrame} contentStyle={styles.content}>
+          <LiquidSurface
+            solid={layout.isDesktop}
+            style={[
+              styles.contentFrame,
+              !layout.isDesktop && styles.contentFrameCompact,
+            ]}
+            contentStyle={[
+              styles.content,
+              !layout.isDesktop && styles.contentCompact,
+            ]}
+          >
             <PortalStack />
           </LiquidSurface>
         </View>
       </View>
-      {layout.isPhone ? (
+      {!layout.isDesktop ? (
         <View style={styles.bottomNav}>
-          {navigation.slice(0, 5).map((item) => (
+          {compactNavigation.map((item) => (
             <Pressable
               key={item.id}
               accessibilityRole="tab"
@@ -268,23 +320,33 @@ const styles = StyleSheet.create({
     minHeight: 0,
     margin: 14,
   },
+  contentFrameCompact: {
+    margin: 0,
+    marginBottom: 84,
+    borderWidth: 0,
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+  },
   content: {
     flex: 1,
     minHeight: 0,
     backgroundColor: 'rgba(7,27,53,0.78)',
   },
+  contentCompact: {
+    backgroundColor: 'transparent',
+  },
   bottomNav: {
     position: 'absolute',
-    left: 10,
-    right: 10,
-    bottom: 10,
-    minHeight: 72,
-    paddingHorizontal: 5,
-    paddingVertical: 6,
-    borderRadius: 24,
+    left: 12,
+    right: 12,
+    bottom: 12,
+    minHeight: 68,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: liquidColors.white18,
-    backgroundColor: 'rgba(6,21,43,0.96)',
+    borderColor: liquidColors.blue600,
+    backgroundColor: 'rgba(2,13,31,0.98)',
     flexDirection: 'row',
     alignItems: 'center',
     zIndex: liquidLayers.overlay,

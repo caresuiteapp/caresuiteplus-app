@@ -369,8 +369,8 @@ export function LiquidBackdrop({ children }: { children: ReactNode }) {
     <View style={styles.backdrop}>
       <LinearGradient
         pointerEvents="none"
-        colors={[liquidColors.navy950, liquidColors.navy900, liquidColors.navy950]}
-        locations={[0, 0.52, 1]}
+        colors={['#010817', '#021126', '#010817']}
+        locations={[0, 0.48, 1]}
         style={StyleSheet.absoluteFill}
       />
       <View pointerEvents="none" style={styles.glowTop} />
@@ -385,8 +385,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: liquidRadius.card,
     borderWidth: 1,
-    borderColor: liquidColors.white12,
-    backgroundColor: 'rgba(10,35,66,0.62)',
+    borderColor: 'rgba(112,181,255,0.34)',
+    backgroundColor: 'rgba(5,23,47,0.78)',
     ...liquidShadows.panel,
   },
   blur: {
@@ -394,15 +394,15 @@ const styles = StyleSheet.create({
   },
   surfaceContent: {
     flex: 1,
-    backgroundColor: liquidColors.white08,
+    backgroundColor: 'rgba(7,29,57,0.54)',
   },
   surfaceSolid: {
-    backgroundColor: 'rgba(10,35,66,0.94)',
+    backgroundColor: 'rgba(5,24,49,0.96)',
   },
   surfaceActive: {
     borderWidth: 1,
-    borderColor: liquidColors.blue500,
-    backgroundColor: 'rgba(20,120,255,0.11)',
+    borderColor: liquidColors.blue400,
+    backgroundColor: 'rgba(8,38,76,0.72)',
   },
   brand: {
     color: liquidColors.white,
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
   },
   button: {
-    minHeight: 48,
+    minHeight: 42,
     paddingHorizontal: liquidSpace[4],
     paddingVertical: liquidSpace[3],
     borderRadius: liquidRadius.control,
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
     ...liquidShadows.focus,
   },
   buttonCompact: {
-    minHeight: 42,
+    minHeight: 38,
     paddingVertical: liquidSpace[2],
     paddingHorizontal: liquidSpace[3],
   },
@@ -483,15 +483,15 @@ const styles = StyleSheet.create({
   },
   buttonLabel: {
     color: liquidColors.white,
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: '700',
     textAlign: 'center',
   },
   iconButton: {
     position: 'relative',
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: liquidRadius.small,
     borderWidth: 1,
     borderColor: 'transparent',
@@ -505,8 +505,8 @@ const styles = StyleSheet.create({
   },
   iconGlyph: {
     color: liquidColors.white72,
-    fontSize: 23,
-    lineHeight: 27,
+    fontSize: 21,
+    lineHeight: 25,
   },
   iconGlyphActive: {
     color: liquidColors.blue200,
@@ -599,11 +599,11 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   metric: {
-    minWidth: 142,
+    minWidth: 112,
     flex: 1,
     padding: liquidSpace[4],
     borderRadius: liquidRadius.small,
-    backgroundColor: liquidColors.white08,
+    backgroundColor: 'rgba(9,34,66,0.72)',
     borderWidth: 1,
     borderColor: liquidColors.white12,
     gap: 5,
@@ -625,8 +625,8 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     color: liquidColors.white,
-    fontSize: 27,
-    lineHeight: 32,
+    fontSize: 25,
+    lineHeight: 29,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
@@ -677,16 +677,16 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
     overflow: 'hidden',
-    backgroundColor: liquidColors.navy950,
+    backgroundColor: '#010817',
   },
   glowTop: {
     position: 'absolute',
-    top: -220,
-    right: -160,
-    width: 520,
-    height: 520,
-    borderRadius: 260,
-    backgroundColor: 'rgba(20,120,255,0.18)',
+    top: -300,
+    right: -240,
+    width: 620,
+    height: 620,
+    borderRadius: 310,
+    backgroundColor: 'rgba(15,101,210,0.08)',
   },
   glowBottom: {
     position: 'absolute',
@@ -695,6 +695,6 @@ const styles = StyleSheet.create({
     width: 560,
     height: 560,
     borderRadius: 280,
-    backgroundColor: 'rgba(20,120,255,0.10)',
+    backgroundColor: 'rgba(15,101,210,0.07)',
   },
 });

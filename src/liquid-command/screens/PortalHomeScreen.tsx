@@ -28,6 +28,7 @@ import {
   LiquidBackdrop,
   LiquidButton,
   LiquidDivider,
+  LiquidIconButton,
   LiquidLogo,
   LiquidMetric,
   LiquidState,
@@ -427,41 +428,98 @@ function Overview({
   documents,
   messages,
   portal,
-}: PortalData & { portal: 'employee' | 'client' | 'family' }) {
+  onNavigate,
+}: PortalData & {
+  portal: 'employee' | 'client' | 'family';
+  onNavigate: (section: string) => void;
+}) {
+  const layout = useLiquidLayout();
   const nextAppointment = appointments[0];
   const unread = messages.filter((message) => !message.readAt).length;
+  const quickItems =
+    portal === 'employee'
+      ? [
+          { id: 'appointments', label: 'Einsätze', glyph: '□' },
+          { id: 'documents', label: 'Dokumente', glyph: '▤' },
+          { id: 'appointments', label: 'Anfahrt', glyph: '➤' },
+        ]
+      : portal === 'client'
+        ? [
+            { id: 'appointments', label: 'Termine', glyph: '□' },
+            { id: 'documents', label: 'Dokumente', glyph: '▤' },
+            { id: 'live', label: 'Anfahrt', glyph: '➤' },
+          ]
+        : [
+            { id: 'appointments', label: 'Termine', glyph: '□' },
+            { id: 'documents', label: 'Dokumente', glyph: '▤' },
+            { id: 'messages', label: 'Nachrichten', glyph: '✉' },
+          ];
   return (
     <View style={styles.sectionGap}>
-      <View style={styles.metricGrid}>
-        <LiquidMetric label="Nächste Termine" value={appointments.length} detail="freigegeben" glyph="◷" />
-        <LiquidMetric
-          label="Neue Nachrichten"
-          value={unread}
-          detail={unread ? 'bitte ansehen' : 'alles gelesen'}
-          glyph="✉"
-          tone={unread ? 'live' : 'success'}
-        />
-        <LiquidMetric label="Dokumente" value={documents.length} detail="sichtbar" glyph="▤" />
-      </View>
-      <LiquidSurface active contentStyle={styles.heroCard}>
-        <View style={styles.heroCopy}>
-          <LiquidText variant="kicker">ALS NÄCHSTES</LiquidText>
-          <LiquidText variant="title">
-            {nextAppointment ? nextAppointment.title : 'Alles im Plan'}
-          </LiquidText>
-          <LiquidText variant="body">
-            {nextAppointment
-              ? `${formatDateTime(nextAppointment.startsAt)} · ${nextAppointment.location || 'Ort folgt'}`
-              : portal === 'employee'
-                ? 'Für Ihren Arbeitskontext ist aktuell kein weiterer Einsatz freigegeben.'
-                : 'Für Ihren Versorgungskontext ist aktuell kein weiterer Termin freigegeben.'}
-          </LiquidText>
+      {!layout.isPhone ? (
+        <View style={styles.quickGrid}>
+          {quickItems.map((item, index) => (
+            <Pressable
+              key={`${item.id}-${index}`}
+              accessibilityRole="button"
+              onPress={() => onNavigate(item.id)}
+              style={({ pressed }) => [styles.quickCard, pressed && styles.pressed]}
+            >
+              <Text style={styles.quickGlyph}>{item.glyph}</Text>
+              <Text style={styles.quickLabel}>{item.label}</Text>
+            </Pressable>
+          ))}
         </View>
-        <LiquidStatus
-          label={nextAppointment ? String(nextAppointment.assignmentStatus ?? nextAppointment.status) : 'Aktuell'}
-          tone={nextAppointment ? statusTone(nextAppointment.assignmentStatus ?? nextAppointment.status) : 'success'}
-        />
-      </LiquidSurface>
+      ) : null}
+      <View style={styles.portalDashboardGrid}>
+        <LiquidSurface active style={styles.nextCard} contentStyle={styles.heroCard}>
+          <View style={styles.heroCopy}>
+            <LiquidText variant="kicker">HEUTE</LiquidText>
+            <LiquidText variant="title">
+              {nextAppointment ? nextAppointment.title : 'Alles im Plan'}
+            </LiquidText>
+            <LiquidText variant="body">
+              {nextAppointment
+                ? `${formatDateTime(nextAppointment.startsAt)} · ${nextAppointment.location || 'Ort folgt'}`
+                : portal === 'employee'
+                  ? 'Für Ihren Arbeitskontext ist aktuell kein weiterer Einsatz freigegeben.'
+                  : 'Für Ihren Versorgungskontext ist aktuell kein weiterer Termin freigegeben.'}
+            </LiquidText>
+            <LiquidStatus
+              label={nextAppointment ? String(nextAppointment.assignmentStatus ?? nextAppointment.status) : 'Aktuell'}
+              tone={nextAppointment ? statusTone(nextAppointment.assignmentStatus ?? nextAppointment.status) : 'success'}
+            />
+            <LiquidButton
+              compact
+              label={portal === 'employee' ? 'Einsatz öffnen' : 'Termin öffnen'}
+              icon="›"
+              onPress={() => onNavigate('appointments')}
+            />
+          </View>
+        </LiquidSurface>
+        <LiquidSurface style={styles.routeCard} contentStyle={styles.routeCardContent}>
+          <View>
+            <LiquidText variant="kicker">LIVE ANKUNFT</LiquidText>
+            <LiquidText variant="section">Anfahrt im Blick</LiquidText>
+          </View>
+          <View style={styles.routeStage}>
+            <View style={[styles.routeLine, styles.routeLineOne]} />
+            <View style={[styles.routeLine, styles.routeLineTwo]} />
+            <View style={styles.routePin}><View style={styles.routePinCore} /></View>
+          </View>
+          <View style={styles.portalFacts}>
+            <LiquidMetric label="Termine" value={appointments.length} detail="freigegeben" />
+            <LiquidMetric label="Nachrichten" value={unread} detail={unread ? 'neu' : 'gelesen'} />
+            <LiquidMetric label="Dokumente" value={documents.length} detail="sichtbar" />
+          </View>
+          <LiquidButton
+            compact
+            label="Anfahrt öffnen"
+            icon="➤"
+            onPress={() => onNavigate(portal === 'employee' ? 'appointments' : 'live')}
+          />
+        </LiquidSurface>
+      </View>
     </View>
   );
 }
@@ -538,6 +596,9 @@ export function PortalHomeScreen({
   const { context, data, errors, loading, profileId, reload, roleKey } = usePortalData();
   const displayName =
     auth.profile?.displayName || auth.portalSession?.displayName || auth.user?.displayName || 'Portal';
+  const compactSections = definition.sections.filter((section) =>
+    ['today', 'appointments', 'documents', 'messages', 'salary'].includes(section.id),
+  );
 
   const signOut = async () => {
     await auth.signOut();
@@ -581,7 +642,7 @@ export function PortalHomeScreen({
         />
       );
     }
-    if (active === 'today') return <Overview {...data} portal={portal} />;
+    if (active === 'today') return <Overview {...data} portal={portal} onNavigate={setActive} />;
     if (active === 'appointments') return <AppointmentRows appointments={data.appointments} />;
     if (active === 'live') return <AppointmentRows appointments={data.appointments} liveOnly />;
     if (active === 'documents') {
@@ -603,13 +664,34 @@ export function PortalHomeScreen({
       <View style={styles.root}>
         <View style={styles.topBar}>
           <LiquidLogo compact />
-          <View style={styles.topContext}>
-            <Text style={styles.topEyebrow}>{definition.eyebrow}</Text>
-            <Text style={styles.topTitle}>{definition.title}</Text>
-          </View>
+          {layout.isDesktop ? (
+            <View style={styles.topContext}>
+              <Text style={styles.topEyebrow}>{definition.eyebrow}</Text>
+              <Text style={styles.topTitle}>{definition.title}</Text>
+            </View>
+          ) : <View style={styles.topContext} />}
           <View style={styles.topActions}>
-            {!layout.isPhone ? <LiquidStatus label={displayName} tone="success" detail="angemeldet" /> : null}
-            <LiquidButton compact label="Abmelden" variant="ghost" onPress={() => void signOut()} />
+            {layout.isDesktop ? (
+              <>
+                <LiquidStatus label={displayName} tone="success" detail="angemeldet" />
+                <LiquidButton compact label="Abmelden" variant="ghost" onPress={() => void signOut()} />
+              </>
+            ) : (
+              <>
+                <LiquidIconButton
+                  label="Benachrichtigungen"
+                  glyph="♧"
+                  onPress={() => setActive('messages')}
+                />
+                <LiquidIconButton
+                  label={portal === 'family' ? 'Abmelden' : 'Profil'}
+                  glyph="♙"
+                  onPress={() => portal === 'family'
+                    ? void signOut()
+                    : router.push(`/portal/${portal}/profile` as never)}
+                />
+              </>
+            )}
           </View>
         </View>
         {layout.isDesktop ? (
@@ -646,18 +728,12 @@ export function PortalHomeScreen({
           </View>
         ) : (
           <View style={styles.mobileBody}>
-            <PortalNavigation
-              active={active}
-              horizontal
-              onSelect={setActive}
-              sections={definition.sections}
-            />
             <ScrollView
               style={styles.workspace}
               contentContainerStyle={styles.mobileWorkspaceContent}
               showsVerticalScrollIndicator={false}
             >
-              <View style={styles.pageHeading}>
+              <View style={[styles.pageHeading, active === 'today' && styles.pageHeadingToday]}>
                 <LiquidText variant="kicker">{definition.eyebrow}</LiquidText>
                 <LiquidText variant={layout.isPhone ? 'title' : 'display'} accessibilityRole="header">
                   {definition.sections.find((section) => section.id === active)?.label}
@@ -667,6 +743,14 @@ export function PortalHomeScreen({
               {errors.length ? <LiquidStatus label={errors[0]} tone="warning" /> : null}
               <PortalContent active={active}>{renderContent()}</PortalContent>
             </ScrollView>
+            <View style={styles.portalBottomNav}>
+              <PortalNavigation
+                active={active}
+                horizontal
+                onSelect={setActive}
+                sections={compactSections}
+              />
+            </View>
           </View>
         )}
       </View>
@@ -677,7 +761,7 @@ export function PortalHomeScreen({
 const styles = StyleSheet.create({
   root: { flex: 1, minHeight: '100%' },
   topBar: {
-    minHeight: 72,
+    minHeight: 68,
     paddingHorizontal: liquidSpace.xl,
     paddingVertical: liquidSpace.md,
     borderBottomWidth: 1,
@@ -730,21 +814,133 @@ const styles = StyleSheet.create({
   workspace: { flex: 1 },
   workspaceContent: { padding: liquidSpace.xxl, gap: liquidSpace.xl },
   mobileBody: { flex: 1 },
-  horizontalNavigation: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: liquidColors.white12 },
-  horizontalNavigationContent: { paddingHorizontal: liquidSpace.md, paddingVertical: liquidSpace.sm, gap: liquidSpace.sm },
-  mobileWorkspaceContent: { padding: liquidSpace.lg, gap: liquidSpace.lg },
+  horizontalNavigation: { flexGrow: 0 },
+  horizontalNavigationContent: { paddingHorizontal: liquidSpace.sm, paddingVertical: liquidSpace.sm, gap: liquidSpace.sm },
+  mobileWorkspaceContent: { padding: liquidSpace.lg, paddingBottom: 100, gap: liquidSpace.lg },
+  portalBottomNav: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: 12,
+    minHeight: 72,
+    overflow: 'hidden',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(3,17,39,0.96)',
+  },
   pageHeading: { gap: liquidSpace.xs },
+  pageHeadingToday: {
+    paddingBottom: liquidSpace.xs,
+  },
   content: { gap: liquidSpace.lg },
   sectionGap: { gap: liquidSpace.lg },
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: liquidSpace.md,
+  },
+  quickCard: {
+    minHeight: 126,
+    minWidth: 116,
+    flex: 1,
+    borderRadius: liquidRadius.card,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(7,30,61,0.76)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: liquidSpace.sm,
+  },
+  quickGlyph: {
+    color: liquidColors.blue400,
+    fontSize: 34,
+    lineHeight: 39,
+    textShadowColor: liquidColors.blue500,
+    textShadowRadius: 12,
+  },
+  quickLabel: {
+    color: liquidColors.blue200,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '700',
+  },
+  portalDashboardGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: liquidSpace.lg,
+  },
+  nextCard: {
+    minWidth: 280,
+    flex: 1,
+  },
   metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: liquidSpace.md },
   heroCard: {
     padding: liquidSpace.xl,
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     justifyContent: 'space-between',
     gap: liquidSpace.lg,
   },
   heroCopy: { flex: 1, gap: liquidSpace.xs },
+  routeCard: {
+    minWidth: 320,
+    flex: 1.3,
+  },
+  routeCardContent: {
+    padding: liquidSpace.lg,
+    gap: liquidSpace.md,
+  },
+  routeStage: {
+    position: 'relative',
+    minHeight: 130,
+    overflow: 'hidden',
+    borderRadius: liquidRadius.small,
+    backgroundColor: 'rgba(2,14,32,0.72)',
+  },
+  routeLine: {
+    position: 'absolute',
+    height: 2,
+    backgroundColor: liquidColors.blue400,
+    shadowColor: liquidColors.blue500,
+    shadowOpacity: 1,
+    shadowRadius: 9,
+  },
+  routeLineOne: {
+    top: '52%',
+    left: '12%',
+    width: '72%',
+    transform: [{ rotate: '-16deg' }],
+  },
+  routeLineTwo: {
+    top: '48%',
+    left: '38%',
+    width: '48%',
+    transform: [{ rotate: '23deg' }],
+  },
+  routePin: {
+    position: 'absolute',
+    top: '44%',
+    left: '48%',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: liquidColors.blue200,
+    backgroundColor: 'rgba(22,131,255,0.24)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  routePinCore: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: liquidColors.blue400,
+  },
+  portalFacts: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: liquidSpace.sm,
+  },
   rows: { gap: liquidSpace.sm },
   row: {
     minHeight: 82,

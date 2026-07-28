@@ -643,6 +643,7 @@ function AnalyticsPattern({ items, area }: { items: WorkspaceItem[]; area: Liqui
 }
 
 function SettingsPattern({ moduleKey }: { moduleKey: LiquidModuleKey }) {
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const areas = liquidWorkAreas[moduleKey];
   const normalized = query.toLowerCase().trim();
@@ -662,7 +663,7 @@ function SettingsPattern({ moduleKey }: { moduleKey: LiquidModuleKey }) {
           <Pressable
             key={area.id}
             accessibilityRole="button"
-            onPress={() => setQuery(area.label)}
+            onPress={() => router.push(area.route as never)}
             style={styles.settingsRow}
           >
             <View style={styles.settingsGlyph}>

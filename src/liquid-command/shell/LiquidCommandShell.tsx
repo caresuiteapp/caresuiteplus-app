@@ -51,6 +51,7 @@ type LiquidCommandShellProps = {
   allowPhoneLandscape?: boolean;
   contentMode?: 'scroll' | 'fill';
   showPageHeader?: boolean;
+  showContextBar?: boolean;
 };
 
 function RotateDeviceScreen() {
@@ -74,8 +75,6 @@ function ModuleDock({ activeModule }: { activeModule: LiquidModuleKey }) {
   const router = useRouter();
   return (
     <View accessibilityRole="tablist" style={styles.dock}>
-      <LiquidLogo compact />
-      <LiquidDivider />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.dockItems}
@@ -437,7 +436,6 @@ function CommandBar({
   const { showCommandLabels, isPhone } = useLiquidLayout();
   const { profile, user } = useAuth();
   const router = useRouter();
-  const module = getLiquidModule(activeModule);
   const displayName = profile?.displayName || user?.displayName || 'Profil';
   const commandShortcuts = liquidGlobalShortcuts.slice(0, 6);
 
@@ -445,8 +443,7 @@ function CommandBar({
     <View style={[styles.commandBar, isPhone && styles.commandBarPhone]}>
       {isPhone ? <LiquidLogo compact /> : (
         <View style={styles.commandContext}>
-          <Text style={styles.commandEyebrow}>{module.shortLabel.toUpperCase()}</Text>
-          <Text style={styles.commandTitle}>{module.label}</Text>
+          <LiquidLogo compact />
         </View>
       )}
       {!isPhone ? (
@@ -524,9 +521,9 @@ function BottomNavigation({
   const router = useRouter();
   const items = [
     { key: 'home', label: 'Heute', glyph: '⌂', route: '/' },
-    { key: 'assist', label: 'Einsätze', glyph: '◇', route: '/assist' },
+    { key: 'assist', label: 'Einsätze', glyph: '◇', route: '/assist/einsaetze' },
     { key: 'action', label: 'Neu', glyph: '+', route: null },
-    { key: 'messages', label: 'Nachrichten', glyph: '▱', route: '/office?area=communication' },
+    { key: 'messages', label: 'Nachrichten', glyph: '▱', route: '/business/messages' },
     { key: 'settings', label: 'Profil', glyph: '♙', route: '/settings/profile' },
   ] as const;
 
@@ -578,6 +575,7 @@ export function LiquidCommandShell({
   allowPhoneLandscape = false,
   contentMode = 'scroll',
   showPageHeader = true,
+  showContextBar = true,
 }: LiquidCommandShellProps) {
   const layout = useLiquidLayout();
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -610,13 +608,15 @@ export function LiquidCommandShell({
             onOpenNotifications={() => setNotificationsOpen(true)}
             onOpenProfile={() => setProfileOpen(true)}
           />
-          <View style={styles.contextBar}>
-            <View style={styles.contextCopy}>
-              <Text style={styles.contextLabel}>{contextLabel}</Text>
-              <Text numberOfLines={1} style={styles.contextDetail}>{contextDetail}</Text>
+          {showContextBar ? (
+            <View style={styles.contextBar}>
+              <View style={styles.contextCopy}>
+                <Text style={styles.contextLabel}>{contextLabel}</Text>
+                <Text numberOfLines={1} style={styles.contextDetail}>{contextDetail}</Text>
+              </View>
+              <LiquidStatus label="Aktuell" tone="live" detail="mandantenweit synchronisiert" />
             </View>
-            <LiquidStatus label="Aktuell" tone="live" detail="mandantenweit synchronisiert" />
-          </View>
+          ) : null}
           {layout.isPhone || layout.formFactor === 'tablet-portrait' ? (
             <WorkAreaNavigation
               moduleKey={activeModule}
@@ -677,18 +677,20 @@ export function LiquidCommandShell({
                 <View
                   style={[
                     styles.contentColumns,
-                    aside && !layout.isPhone ? styles.contentColumnsWithAside : null,
+                    aside && layout.isDesktop ? styles.contentColumnsWithAside : null,
                   ]}
                 >
                   <View style={styles.contentPrimary}>{children}</View>
-                  {aside && !layout.isPhone ? <View style={styles.contentAside}>{aside}</View> : null}
+                  {aside && layout.isDesktop ? <View style={styles.contentAside}>{aside}</View> : null}
                 </View>
               </ScrollView>
             )}
           </View>
         </View>
       </View>
-      {layout.isPhone ? <BottomNavigation activeModule={activeModule} onPrimaryAction={action} /> : null}
+      {!layout.isDesktop ? (
+        <BottomNavigation activeModule={activeModule} onPrimaryAction={action} />
+      ) : null}
       <CommandPalette visible={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <NotificationCenter
         visible={notificationsOpen}
@@ -797,20 +799,19 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   dock: {
-    width: 88,
-    paddingTop: 18,
-    paddingHorizontal: 8,
-    paddingBottom: 12,
-    borderRightWidth: 1,
-    borderRightColor: liquidColors.white12,
-    backgroundColor: 'rgba(6,21,43,0.88)',
+    width: 104,
+    paddingTop: 102,
+    paddingHorizontal: 14,
+    paddingBottom: 16,
+    borderRightWidth: 0,
+    backgroundColor: 'rgba(2,15,34,0.72)',
     alignItems: 'center',
-    gap: 14,
+    gap: 8,
     zIndex: liquidLayers.dock,
   },
   dockItems: {
     alignItems: 'center',
-    gap: 7,
+    gap: 10,
     paddingBottom: 10,
   },
   dockItem: {
@@ -830,16 +831,16 @@ const styles = StyleSheet.create({
     color: liquidColors.blue200,
   },
   commandBar: {
-    minHeight: 76,
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: liquidColors.white12,
-    backgroundColor: 'rgba(6,21,43,0.84)',
+    minHeight: 98,
+    paddingHorizontal: 10,
+    paddingRight: 24,
+    paddingVertical: 14,
+    borderBottomWidth: 0,
+    backgroundColor: 'rgba(1,8,23,0.72)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: liquidSpace[4],
+    gap: 18,
     zIndex: liquidLayers.dock,
   },
   commandBarPhone: {
@@ -847,7 +848,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   commandContext: {
-    minWidth: 0,
+    width: 230,
+    paddingLeft: 0,
   },
   commandEyebrow: {
     color: liquidColors.blue200,
@@ -871,13 +873,13 @@ const styles = StyleSheet.create({
   commandShortcutBar: {
     minWidth: 0,
     flex: 1,
-    maxWidth: 720,
-    height: 52,
+    maxWidth: 688,
+    height: 60,
     padding: 5,
     borderRadius: liquidRadius.small,
     borderWidth: 1,
-    borderColor: liquidColors.white12,
-    backgroundColor: 'rgba(10,35,66,0.55)',
+    borderColor: 'rgba(112,181,255,0.36)',
+    backgroundColor: 'rgba(4,20,42,0.78)',
     flexDirection: 'row',
     alignItems: 'stretch',
     justifyContent: 'space-between',
@@ -895,7 +897,7 @@ const styles = StyleSheet.create({
   commandShortcutActive: {
     borderWidth: 1,
     borderColor: liquidColors.blue400,
-    backgroundColor: 'rgba(20,120,255,0.24)',
+    backgroundColor: 'rgba(22,131,255,0.28)',
   },
   commandShortcutGlyph: {
     color: liquidColors.blue200,
@@ -946,12 +948,12 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   contextBar: {
-    minHeight: 48,
+    minHeight: 44,
     paddingHorizontal: 22,
     paddingVertical: 7,
     borderBottomWidth: 1,
     borderBottomColor: liquidColors.white08,
-    backgroundColor: 'rgba(10,35,66,0.52)',
+    backgroundColor: 'rgba(4,20,42,0.58)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -983,7 +985,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   areaRail: {
-    width: 246,
+    width: 226,
     margin: 16,
     marginRight: 0,
     alignSelf: 'stretch',
@@ -1080,8 +1082,8 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 1920,
     alignSelf: 'center',
-    paddingBottom: 64,
-    gap: 24,
+    paddingBottom: 48,
+    gap: 16,
   },
   contentPhone: {
     paddingBottom: 112,
@@ -1090,7 +1092,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    gap: 20,
+    gap: 16,
   },
   pageHeading: {
     minWidth: 0,
@@ -1107,16 +1109,16 @@ const styles = StyleSheet.create({
   contentColumnsWithAside: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 20,
+    gap: 14,
   },
   contentPrimary: {
     minWidth: 0,
     flex: 1,
-    gap: 20,
+    gap: 14,
   },
   contentAside: {
-    width: 320,
-    gap: 16,
+    width: 336,
+    gap: 14,
   },
   bottomNav: {
     position: 'absolute',

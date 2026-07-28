@@ -64,7 +64,7 @@ export function useLiquidLayout(): LiquidLayout {
     isTablet,
     isDesktop,
     isPortrait,
-    showDock: !isPhone,
+    showDock: isDesktop,
     showCommandLabels: formFactor === 'desktop' || formFactor === 'tablet-landscape',
     contentPadding: isPhone ? 16 : formFactor === 'tablet-portrait' ? 20 : 24,
     panelCount:

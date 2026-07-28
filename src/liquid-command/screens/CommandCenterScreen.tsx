@@ -10,7 +10,7 @@ import {
   LiquidSurface,
   LiquidText,
 } from '../components/LiquidPrimitives';
-import { liquidColors, liquidRadius, liquidSpace } from '../foundation/tokens';
+import { liquidColors, liquidRadius } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import { LiquidCommandShell } from '../shell/LiquidCommandShell';
 import { ClientNetworkMap } from '../components/ClientNetworkMap';
@@ -51,17 +51,11 @@ function ClientMap({
         </View>
         <View style={styles.mapActions}>
           <LiquidStatus label={`${clients.length} Klient:innen`} tone="live" />
-          <LiquidButton
-            compact
-            label="Live-Status"
-            variant="ghost"
-            onPress={() => router.push('/assist?area=live' as never)}
-          />
         </View>
       </View>
       <ClientNetworkMap
         clients={clients}
-        height={330}
+        height={282}
         tenantId={tenantId}
         onClientSelect={(clientId) =>
           router.push(`/business/office/clients/${clientId}` as never)
@@ -97,7 +91,7 @@ function SummaryRail({
       <LiquidSurface style={stacked ? styles.summaryPanelStacked : undefined} contentStyle={styles.summaryCard}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push('/assist?area=assignments' as never)}
+          onPress={() => router.push('/assist/einsaetze' as never)}
           style={({ pressed }) => [styles.summaryHeader, pressed && styles.pressed]}
         >
           <LiquidText variant="section">Einsätze</LiquidText>
@@ -113,7 +107,7 @@ function SummaryRail({
       <LiquidSurface style={stacked ? styles.summaryPanelStacked : undefined} contentStyle={styles.summaryCard}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push('/assist?area=clients' as never)}
+          onPress={() => router.push('/business/office/clients' as never)}
           style={({ pressed }) => [styles.summaryHeader, pressed && styles.pressed]}
         >
           <LiquidText variant="section">Klient:innen</LiquidText>
@@ -141,7 +135,7 @@ function SummaryRail({
       <LiquidSurface style={stacked ? styles.summaryPanelStacked : undefined} contentStyle={styles.summaryCard}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push('/office?area=people' as never)}
+          onPress={() => router.push('/business/office/employees' as never)}
           style={({ pressed }) => [styles.summaryHeader, pressed && styles.pressed]}
         >
           <LiquidText variant="section">Personal</LiquidText>
@@ -181,7 +175,7 @@ function TodayTimeline({
           compact
           label="Alle Einsätze"
           variant="ghost"
-          onPress={() => router.push('/assist?area=assignments' as never)}
+          onPress={() => router.push('/assist/einsaetze' as never)}
         />
       </View>
       <View style={styles.timelineScale}>
@@ -201,7 +195,7 @@ function TodayTimeline({
                 key={visit.id}
                 accessibilityRole="button"
                 accessibilityLabel={`${visit.clientName}, ${formatTime(visit.scheduledStart)}, ${visit.title}`}
-                onPress={() => router.push(`/assist?area=assignments&record=${visit.id}` as never)}
+                onPress={() => router.push(`/assist/einsaetze/${visit.id}` as never)}
                 style={({ pressed }) => [
                   styles.timelineRow,
                   pressed && styles.pressed,
@@ -294,7 +288,7 @@ function BodyMapPanel() {
         fullWidth
         label="BodyMap öffnen"
         variant="secondary"
-        onPress={() => router.push('/pflege?area=wounds' as never)}
+        onPress={() => router.push('/pflege/bodymap' as never)}
       />
     </LiquidSurface>
   );
@@ -331,8 +325,10 @@ export function CommandCenterScreen() {
       contextLabel="Unternehmenslage"
       contextDetail={formatSync(state.lastSynchronizedAt)}
       primaryActionLabel="Neue Aktion"
-      onPrimaryAction={() => router.push('/assist?area=planning' as never)}
+      onPrimaryAction={() => router.push('/assist/einsaetze/new' as never)}
       aside={layout.formFactor === 'tablet-portrait' ? undefined : aside}
+      showContextBar={false}
+      showPageHeader={false}
     >
       {state.loading && !state.initialized ? (
         <LiquidState
@@ -395,8 +391,8 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   summaryRail: {
-    width: 276,
-    gap: 14,
+    width: 310,
+    gap: 12,
   },
   summaryRailStacked: {
     width: '100%',
@@ -408,8 +404,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   summaryCard: {
-    padding: 15,
-    gap: 12,
+    padding: 14,
+    gap: 10,
   },
   summaryHeader: {
     flexDirection: 'row',
@@ -520,11 +516,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mapCard: {
-    minHeight: 454,
+    minHeight: 370,
   },
   mapContent: {
-    padding: liquidSpace[5],
-    gap: 16,
+    padding: 16,
+    gap: 12,
   },
   mapHeader: {
     flexDirection: 'row',
@@ -609,8 +605,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   timelineCard: {
-    padding: liquidSpace[5],
-    gap: 14,
+    padding: 16,
+    gap: 11,
   },
   sectionHeader: {
     flexDirection: 'row',

@@ -14,6 +14,10 @@ export type GoogleMarkerInstance = {
   addListener: (event: string, handler: () => void) => void;
 };
 
+export type GooglePolylineInstance = {
+  setMap: (map: GoogleMapInstance | null) => void;
+};
+
 export type GoogleInfoWindowInstance = {
   setContent: (content: string) => void;
   open: (options: { map: GoogleMapInstance; anchor?: GoogleMarkerInstance }) => void;
@@ -58,7 +62,27 @@ export type GoogleMapsNamespace = {
       map?: GoogleMapInstance;
       position: { lat: number; lng: number };
       title?: string;
+      icon?: {
+        url: string;
+        scaledSize?: unknown;
+        anchor?: unknown;
+      };
     }) => GoogleMarkerInstance;
+    Polyline: new (opts: {
+      map?: GoogleMapInstance;
+      path: { lat: number; lng: number }[];
+      geodesic?: boolean;
+      strokeColor?: string;
+      strokeOpacity?: number;
+      strokeWeight?: number;
+      icons?: {
+        icon: { path: string; scale?: number; strokeColor?: string; strokeOpacity?: number };
+        offset: string;
+        repeat?: string;
+      }[];
+    }) => GooglePolylineInstance;
+    Size: new (width: number, height: number) => unknown;
+    Point: new (x: number, y: number) => unknown;
     InfoWindow: new (opts?: { content?: string }) => GoogleInfoWindowInstance;
     LatLngBounds: new () => GoogleLatLngBoundsInstance;
     Geocoder: new () => GoogleGeocoderInstance;
