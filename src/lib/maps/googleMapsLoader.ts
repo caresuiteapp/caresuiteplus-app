@@ -62,6 +62,7 @@ export type GoogleMapsNamespace = {
       map?: GoogleMapInstance;
       position: { lat: number; lng: number };
       title?: string;
+      optimized?: boolean;
       icon?: {
         url: string;
         scaledSize?: unknown;

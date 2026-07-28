@@ -281,7 +281,10 @@ const clientNetworkMapNative = readFileSync(
 if (
   !commandCenter.includes('ClientNetworkMap') ||
   !clientNetworkMapWeb.includes('clients.map') ||
+  !clientNetworkMapWeb.includes('getGoogleMapsBrowserKey') ||
+  !clientNetworkMapWeb.includes('mapsNamespace.maps.Geocoder') ||
   !clientNetworkMapWeb.includes('repeatCount="indefinite"') ||
+  clientNetworkMapWeb.includes('google.maps.Polyline') ||
   !clientNetworkMapNative.includes('Animated.loop')
 ) {
   failures.push('Dauerhafte mandantenweite Klient:innenkarte fehlt.');

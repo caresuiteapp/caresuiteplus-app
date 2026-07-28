@@ -1,5 +1,16 @@
-import { useMemo, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { getGoogleMapsBrowserKey } from '@/lib/maps/getGoogleMapsBrowserKey';
+import {
+  loadGoogleMapsApi,
+  type GoogleGeocoderInstance,
+  type GoogleMapInstance,
+  type GoogleMarkerInstance,
+  type GoogleMapsNamespace,
+} from '@/lib/maps/googleMapsLoader';
 import type { ClientListItem } from '@/types/modules/office';
+import { LiquidGlyph } from './LiquidPrimitives';
+import { liquidColors, liquidRadius } from '../foundation/tokens';
 
 export type ClientNetworkMapProps = {
   clients: ClientListItem[];
@@ -8,321 +19,392 @@ export type ClientNetworkMapProps = {
   onClientSelect?: (clientId: string) => void;
 };
 
-type NetworkNode = {
-  client: ClientListItem;
-  x: number;
-  y: number;
-  kind: 'home' | 'person';
+const coordinateCache = new Map<string, { latitude: number; longitude: number } | null>();
+
+type ClientMapMarker = {
+  id: string;
+  latitude: number;
+  longitude: number;
+  label: string;
+  subtitle: string;
 };
 
-const NODE_POSITIONS = [
-  [174, 70],
-  [265, 118],
-  [355, 95],
-  [438, 138],
-  [524, 104],
-  [612, 148],
-  [708, 117],
-  [768, 178],
-  [664, 224],
-  [556, 198],
-  [454, 244],
-  [336, 210],
-  [236, 248],
-  [124, 204],
-] as const;
+function clientAddress(client: ClientListItem): string {
+  return [
+    client.street?.trim(),
+    [client.zip?.trim(), client.city?.trim()].filter(Boolean).join(' '),
+  ].filter(Boolean).join(', ');
+}
 
-const ROAD_PATHS = [
-  'M-40 76 C130 46 224 98 354 62 S650 27 940 72',
-  'M-30 236 C142 192 235 258 396 216 S698 158 940 210',
-  'M90 -20 C126 68 88 142 160 340',
-  'M258 -20 C286 82 236 164 304 340',
-  'M454 -20 C420 90 505 148 474 340',
-  'M690 -20 C612 90 736 180 710 340',
-  'M830 -20 C784 96 852 192 802 340',
-  'M-20 154 C164 114 278 174 420 146 S716 92 930 138',
-  'M16 294 C202 256 330 310 494 270 S728 226 924 252',
-] as const;
+function geocode(
+  geocoder: GoogleGeocoderInstance,
+  address: string,
+): Promise<{ latitude: number; longitude: number } | null> {
+  const cached = coordinateCache.get(address);
+  if (cached !== undefined) return Promise.resolve(cached);
 
-const BLOCK_PATHS = [
-  'M26 18h112l-18 48H12z',
-  'M156 8h108l18 64-120 12z',
-  'M300 18h126l-20 72-104-10z',
-  'M448 4h144l-34 74-126 4z',
-  'M618 12h112l32 64-148 8z',
-  'M772 4h112l-2 76-124-12z',
-  'M14 94h126l14 62-144 16z',
-  'M170 92h118l-18 74-126-8z',
-  'M312 98h108l30 64-148 14z',
-  'M470 92h124l12 70-142 12z',
-  'M632 94h118l-20 72-126 8z',
-  'M770 92h126l12 68-146 12z',
-  'M20 184h122l-24 82-116-14z',
-  'M160 186h132l18 76-154 2z',
-  'M330 186h112l-18 82-118-6z',
-  'M468 188h132l16 78-154 0z',
-  'M640 184h112l-12 82-126-8z',
-  'M778 184h116l18 76-144 8z',
-] as const;
-
-function networkNodes(clients: ClientListItem[]): NetworkNode[] {
-  return clients.map((client, index) => {
-    const [x, y] = NODE_POSITIONS[index % NODE_POSITIONS.length];
-    const lap = Math.floor(index / NODE_POSITIONS.length);
-    return {
-      client,
-      x: Math.min(852, x + lap * 14),
-      y: Math.min(286, y + lap * 12),
-      kind: index % 3 === 0 ? 'home' : 'person',
-    };
+  return new Promise((resolve) => {
+    geocoder.geocode({ address }, (results, status) => {
+      const first = status === 'OK' ? results?.[0] : null;
+      const coordinate = first
+        ? {
+            latitude: first.geometry.location.lat(),
+            longitude: first.geometry.location.lng(),
+          }
+        : null;
+      coordinateCache.set(address, coordinate);
+      resolve(coordinate);
+    });
   });
 }
 
-function PersonGlyph() {
-  return (
-    <>
-      <circle cx="0" cy="-3.5" r="2.6" fill="currentColor" />
-      <path d="M-4.2 5.4c.5-4 2-6 4.2-6s3.7 2 4.2 6z" fill="currentColor" />
-    </>
-  );
+async function geocodeClients(
+  clients: ClientListItem[],
+  geocoder: GoogleGeocoderInstance,
+  onProgress: (markers: ClientMapMarker[], processed: number) => void,
+  isCancelled: () => boolean,
+): Promise<void> {
+  const pending = clients
+    .map((client) => ({ client, address: clientAddress(client) }))
+    .filter((entry) => Boolean(entry.address));
+  const markers: ClientMapMarker[] = [];
+  let cursor = 0;
+  let processed = 0;
+
+  const worker = async () => {
+    while (!isCancelled()) {
+      const index = cursor;
+      cursor += 1;
+      const entry = pending[index];
+      if (!entry) return;
+      const coordinate = await geocode(geocoder, entry.address);
+      processed += 1;
+      if (coordinate) {
+        markers.push({
+          id: entry.client.id,
+          latitude: coordinate.latitude,
+          longitude: coordinate.longitude,
+          label: `${entry.client.firstName} ${entry.client.lastName}`,
+          subtitle: entry.address,
+        });
+      }
+      if (!isCancelled()) onProgress([...markers], processed);
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(4, pending.length) }, () => worker()));
 }
 
-function HomeGlyph() {
-  return (
-    <>
-      <path d="M-5 0 0-4.7 5 0v6h-10z" fill="none" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M-1.4 6V2.2h2.8V6" fill="none" stroke="currentColor" strokeWidth="1.4" />
-    </>
-  );
-}
-
-function MapToolIcon({
-  kind,
-}: {
-  kind: 'layers' | 'locate' | 'plus' | 'minus' | 'navigate';
-}) {
-  const path = {
-    layers: 'M4 7.5 12 3l8 4.5-8 4.5-8-4.5Zm0 4L12 16l8-4.5M4 15.5 12 20l8-4.5',
-    locate: 'M12 5.25A6.75 6.75 0 1 0 18.75 12 6.76 6.76 0 0 0 12 5.25Zm0-3v3m0 13.5v3m6.75-9.75h3M2.25 12h3',
-    plus: 'M12 5v14M5 12h14',
-    minus: 'M5 12h14',
-    navigate: 'm4 5 16-2-7 18-2.5-7.5L4 5Z',
-  }[kind];
-  return (
-    <svg aria-hidden="true" height="20" viewBox="0 0 24 24" width="20">
-      <path
-        d={path}
-        fill={kind === 'navigate' ? 'currentColor' : 'none'}
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.7"
-      />
+function pulsingMarkerIcon(): string {
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+      <defs>
+        <filter id="g" x="-90%" y="-90%" width="280%" height="280%">
+          <feGaussianBlur stdDeviation="3.2" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <circle cx="32" cy="32" r="15" fill="none" stroke="#1683ff" stroke-width="2" opacity=".72">
+        <animate attributeName="r" values="15;29" dur="2.15s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values=".72;0" dur="2.15s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="32" cy="32" r="13" fill="#08284f" stroke="#55aaff" stroke-width="1.7" filter="url(#g)"/>
+      <circle cx="32" cy="32" r="5.3" fill="#eaf5ff"/>
+      <circle cx="32" cy="32" r="2.8" fill="#1683ff"/>
     </svg>
-  );
+  `)}`;
 }
 
 export function ClientNetworkMap({
   clients,
-  height = 346,
+  tenantId = null,
+  height = 380,
   onClientSelect,
 }: ClientNetworkMapProps) {
-  const nodes = useMemo(() => networkNodes(clients), [clients]);
+  const [markers, setMarkers] = useState<ClientMapMarker[]>([]);
+  const [processed, setProcessed] = useState(0);
+  const [providerReady, setProviderReady] = useState<boolean | null>(null);
+  const [google, setGoogle] = useState<GoogleMapsNamespace | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<GoogleMapInstance | null>(null);
+  const markerRefs = useRef<GoogleMarkerInstance[]>([]);
+  const addressableCount = useMemo(
+    () => clients.filter((client) => Boolean(clientAddress(client))).length,
+    [clients],
+  );
+  const clientKey = useMemo(
+    () => clients.map((client) => `${client.id}:${client.updatedAt ?? ''}`).join('|'),
+    [clients],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    setMarkers([]);
+    setProcessed(0);
+
+    void getGoogleMapsBrowserKey(tenantId)
+      .then(async (key) => {
+        if (cancelled) return;
+        setProviderReady(Boolean(key));
+        if (!key) return;
+        const mapsNamespace = await loadGoogleMapsApi(key);
+        if (cancelled) return;
+        setGoogle(mapsNamespace);
+        const geocoder = new mapsNamespace.maps.Geocoder();
+        await geocodeClients(
+          clients,
+          geocoder,
+          (nextMarkers, nextProcessed) => {
+            setMarkers(nextMarkers);
+            setProcessed(nextProcessed);
+          },
+          () => cancelled,
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setProviderReady(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clientKey, clients, tenantId]);
+
+  useEffect(() => {
+    if (!google || !mapContainerRef.current || !markers.length) return;
+    if (!mapRef.current) {
+      mapRef.current = new google.maps.Map(mapContainerRef.current, {
+        center: { lat: markers[0].latitude, lng: markers[0].longitude },
+        zoom: markers.length === 1 ? 15 : 12,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
+        styles: HEALTH_OS_CLIENT_MAP_STYLE,
+      });
+    }
+
+    markerRefs.current.forEach((marker) => marker.setMap(null));
+    const markerIcon = pulsingMarkerIcon();
+    markerRefs.current = markers.map((item) => {
+      const marker = new google.maps.Marker({
+        map: mapRef.current ?? undefined,
+        position: { lat: item.latitude, lng: item.longitude },
+        title: `${item.label} · ${item.subtitle}`,
+        optimized: false,
+        icon: {
+          url: markerIcon,
+          scaledSize: new google.maps.Size(50, 50),
+          anchor: new google.maps.Point(25, 25),
+        },
+      });
+      marker.addListener('click', () => onClientSelect?.(item.id));
+      return marker;
+    });
+
+    if (markers.length === 1) {
+      mapRef.current.setCenter({ lat: markers[0].latitude, lng: markers[0].longitude });
+    } else {
+      const bounds = new google.maps.LatLngBounds();
+      markers.forEach((item) => bounds.extend({ lat: item.latitude, lng: item.longitude }));
+      mapRef.current.fitBounds(bounds);
+    }
+  }, [google, markers, onClientSelect]);
+
+  useEffect(() => {
+    if (!google || !mapRef.current || !mapContainerRef.current || typeof ResizeObserver === 'undefined') {
+      return undefined;
+    }
+    const observer = new ResizeObserver(() => {
+      if (mapRef.current) google.maps.event.trigger(mapRef.current, 'resize');
+    });
+    observer.observe(mapContainerRef.current);
+    return () => observer.disconnect();
+  }, [google]);
+
+  if (providerReady === false || (!markers.length && processed >= addressableCount)) {
+    return (
+      <View style={[styles.fallback, { minHeight: height }]}>
+        <LiquidGlyph active glyph="⌖" size={34} />
+        <Text style={styles.fallbackTitle}>{clients.length} Klient:innen im Versorgungsnetz</Text>
+        <Text style={styles.fallbackDetail}>
+          Google Maps benötigt vollständige Klientenadressen und einen für den Mandanten
+          freigegebenen Maps-Schlüssel. Vorhandene Orte bleiben unten direkt auswählbar.
+        </Text>
+        <View style={styles.clientChips}>
+          {clients.slice(0, 12).map((client) => (
+            <Pressable
+              key={client.id}
+              accessibilityRole="button"
+              onPress={() => onClientSelect?.(client.id)}
+              style={({ pressed }) => [styles.clientChip, pressed && styles.pressed]}
+            >
+              <Text style={styles.clientChipLabel}>
+                {client.firstName} {client.lastName}
+              </Text>
+              <Text style={styles.clientChipMeta}>{client.zip ?? ''} {client.city ?? ''}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    );
+  }
 
   return (
-    <div
-      aria-label={`Stilisiertes Versorgungsnetz mit ${clients.length} Klientinnen und Klienten`}
-      style={{ ...styles.stage, height }}
-    >
-      <svg
-        aria-hidden="true"
-        preserveAspectRatio="none"
-        style={styles.svg}
-        viewBox="0 0 900 320"
-      >
-        <defs>
-          <linearGradient id="healthos-map-base" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" stopColor="#06172f" />
-            <stop offset=".48" stopColor="#04142b" />
-            <stop offset="1" stopColor="#020b1a" />
-          </linearGradient>
-          <radialGradient id="healthos-map-focus" cx=".56" cy=".54" r=".62">
-            <stop offset="0" stopColor="#0d4d93" stopOpacity=".34" />
-            <stop offset=".56" stopColor="#082856" stopOpacity=".16" />
-            <stop offset="1" stopColor="#020a18" stopOpacity="0" />
-          </radialGradient>
-          <pattern id="healthos-map-grid" width="34" height="34" patternUnits="userSpaceOnUse">
-            <path d="M34 0H0V34" fill="none" stroke="#2e71b8" strokeOpacity=".09" strokeWidth=".7" />
-          </pattern>
-          <filter id="healthos-node-glow" x="-120%" y="-120%" width="340%" height="340%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        <rect width="900" height="320" fill="url(#healthos-map-base)" />
-        <rect width="900" height="320" fill="url(#healthos-map-grid)" />
-        <rect width="900" height="320" fill="url(#healthos-map-focus)" />
-        <g fill="#0a2850" fillOpacity=".32" stroke="#2264a5" strokeOpacity=".13" strokeWidth=".8">
-          {BLOCK_PATHS.map((path) => <path key={path} d={path} />)}
-        </g>
-        <g fill="none" strokeLinecap="round">
-          {ROAD_PATHS.map((path, index) => (
-            <g key={path}>
-              <path d={path} stroke="#071226" strokeWidth={index < 2 ? 13 : 8} />
-              <path d={path} stroke="#174b84" strokeOpacity=".36" strokeWidth={index < 2 ? 3.2 : 2.2} />
-              <path d={path} stroke="#4a8bc9" strokeOpacity=".13" strokeWidth=".8" />
-            </g>
-          ))}
-        </g>
-        {nodes.map(({ client, x, y, kind }, index) => (
-          <g
-            key={client.id}
-            aria-label={`${client.firstName} ${client.lastName}`}
-            onClick={() => onClientSelect?.(client.id)}
-            role="button"
-            style={{ cursor: 'pointer', color: '#eaf5ff' }}
-            tabIndex={0}
-          >
-            <circle
-              cx={x}
-              cy={y}
-              fill="none"
-              r="13"
-              stroke="#2392ff"
-              strokeOpacity=".7"
-              strokeWidth="2"
-            >
-              <animate
-                attributeName="r"
-                begin={`${(index % 8) * 0.18}s`}
-                dur="2.15s"
-                repeatCount="indefinite"
-                values="13;29"
-              />
-              <animate
-                attributeName="stroke-opacity"
-                begin={`${(index % 8) * 0.18}s`}
-                dur="2.15s"
-                repeatCount="indefinite"
-                values=".68;0"
-              />
-            </circle>
-            <circle
-              cx={x}
-              cy={y}
-              fill="#0a2b57"
-              filter="url(#healthos-node-glow)"
-              r="14"
-              stroke="#2f96ff"
-              strokeWidth="1.4"
-            />
-            <circle cx={x} cy={y} fill="#0f6fd2" fillOpacity=".45" r="9.5" />
-            <g transform={`translate(${x} ${y})`}>
-              {kind === 'home' ? <HomeGlyph /> : <PersonGlyph />}
-            </g>
-          </g>
-        ))}
-      </svg>
-
-      <div aria-hidden="true" style={styles.leftTools}>
-        <div style={{ ...styles.toolButton, ...styles.toolButtonActive }}>
-          <MapToolIcon kind="layers" />
-        </div>
-        <div style={styles.toolButton}>
-          <MapToolIcon kind="locate" />
-        </div>
-      </div>
-      <div aria-hidden="true" style={styles.rightTools}>
-        <div style={styles.toolButton}><MapToolIcon kind="plus" /></div>
-        <div style={styles.toolButton}><MapToolIcon kind="minus" /></div>
-        <div style={{ ...styles.toolButton, color: '#86c4ff' }}>
-          <MapToolIcon kind="navigate" />
-        </div>
-      </div>
-
-      {!clients.length ? (
-        <div style={styles.empty}>
-          <strong style={styles.emptyTitle}>Keine Klient:innen im aktuellen Mandantenkontext</strong>
-          <span style={styles.emptyDetail}>Neue Stammdaten erscheinen hier automatisch.</span>
-        </div>
-      ) : null}
-    </div>
+    <View style={styles.container}>
+      <style>
+        {`
+          #healthos-client-map [role="button"]:focus,
+          #healthos-client-map img:focus {
+            outline: none !important;
+          }
+          #healthos-client-map [role="button"]:focus-visible,
+          #healthos-client-map img:focus-visible {
+            border-radius: 999px !important;
+            box-shadow: 0 0 0 3px rgba(112,181,255,.9), 0 0 18px rgba(22,131,255,.75) !important;
+          }
+        `}
+      </style>
+      <View style={[styles.mapFrame, { height }]}>
+        <div
+          id="healthos-client-map"
+          ref={mapContainerRef}
+          style={{ width: '100%', height: '100%', minHeight: height }}
+        />
+        {!markers.length ? (
+          <View style={styles.mapLoading}>
+            <LiquidGlyph active glyph="⌖" size={34} />
+            <Text style={styles.fallbackTitle}>Google-Klient:innenkarte wird aufgebaut</Text>
+            <Text style={styles.fallbackDetail}>Adressen und Ortsnamen werden mandantenbezogen aufgelöst.</Text>
+          </View>
+        ) : null}
+      </View>
+      <View pointerEvents="none" style={styles.progressBadge}>
+        <Text style={styles.progressCount}>{markers.length}/{clients.length}</Text>
+        <Text style={styles.progressLabel}>
+          Klient:innen dauerhaft auf Google Maps
+          {processed < addressableCount ? ' · Adressen werden geladen' : ''}
+        </Text>
+      </View>
+    </View>
   );
 }
 
-const styles: Record<string, CSSProperties> = {
-  stage: {
+const HEALTH_OS_CLIENT_MAP_STYLE = [
+  { elementType: 'geometry', stylers: [{ color: '#04142b' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#91afd2' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#020b19' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#b6d8ff' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.stroke', stylers: [{ color: '#031127' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#051a35' }] },
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#0b315e' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#082348' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#7fa4cd' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#13549a' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#010918' }] },
+] as const;
+
+const styles = StyleSheet.create({
+  container: {
     position: 'relative',
     width: '100%',
-    minHeight: 250,
-    overflow: 'hidden',
-    borderRadius: 11,
-    border: '1px solid rgba(112,181,255,.32)',
-    background: '#020b1a',
-    boxShadow: 'inset 0 0 46px rgba(0,0,0,.42), 0 0 26px rgba(22,131,255,.1)',
   },
-  svg: {
-    position: 'absolute',
-    inset: 0,
+  mapFrame: {
     width: '100%',
-    height: '100%',
-  },
-  leftTools: {
-    position: 'absolute',
-    left: 14,
-    top: 14,
-    display: 'grid',
     overflow: 'hidden',
-    border: '1px solid rgba(112,181,255,.26)',
-    borderRadius: 11,
-    background: 'rgba(3,16,35,.9)',
-    boxShadow: '0 12px 28px rgba(0,0,0,.25)',
+    borderRadius: liquidRadius.small,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(2,14,32,0.88)',
   },
-  rightTools: {
+  mapLoading: {
+    ...StyleSheet.absoluteFillObject,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: 'rgba(2,14,32,0.82)',
+  },
+  progressBadge: {
     position: 'absolute',
-    right: 15,
-    bottom: 15,
-    display: 'grid',
+    left: 16,
+    bottom: 16,
+    maxWidth: '72%',
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    borderRadius: liquidRadius.control,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(6,21,43,0.92)',
+  },
+  progressCount: {
+    color: liquidColors.white,
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: '800',
+  },
+  progressLabel: {
+    color: liquidColors.white64,
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '600',
+  },
+  fallback: {
+    width: '100%',
+    padding: 22,
     overflow: 'hidden',
-    border: '1px solid rgba(112,181,255,.26)',
-    borderRadius: 11,
-    background: 'rgba(3,16,35,.92)',
-    boxShadow: '0 12px 28px rgba(0,0,0,.25)',
+    borderRadius: liquidRadius.small,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(2,14,32,0.88)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
-  toolButton: {
-    width: 38,
-    height: 38,
-    display: 'grid',
-    placeItems: 'center',
-    color: 'rgba(255,255,255,.86)',
-    borderBottom: '1px solid rgba(255,255,255,.08)',
-    fontFamily: 'system-ui, sans-serif',
-    fontSize: 20,
-    lineHeight: 1,
-  },
-  toolButtonActive: {
-    color: '#78bcff',
-    background: 'rgba(22,131,255,.16)',
-  },
-  empty: {
-    position: 'absolute',
-    inset: 0,
-    display: 'grid',
-    placeContent: 'center',
-    gap: 6,
-    padding: 28,
-    color: '#fff',
+  fallbackTitle: {
+    color: liquidColors.white,
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '800',
     textAlign: 'center',
-    background: 'rgba(2,11,26,.7)',
   },
-  emptyTitle: {
-    fontSize: 15,
-  },
-  emptyDetail: {
-    color: 'rgba(255,255,255,.58)',
+  fallbackDetail: {
+    maxWidth: 650,
+    color: liquidColors.white56,
     fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
   },
-};
+  clientChips: {
+    marginTop: 8,
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  clientChip: {
+    minWidth: 130,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: liquidRadius.control,
+    borderWidth: 1,
+    borderColor: liquidColors.white12,
+    backgroundColor: liquidColors.white08,
+  },
+  clientChipLabel: {
+    color: liquidColors.white88,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '700',
+  },
+  clientChipMeta: {
+    color: liquidColors.white56,
+    fontSize: 9,
+    lineHeight: 13,
+  },
+  pressed: {
+    opacity: 0.76,
+  },
+});

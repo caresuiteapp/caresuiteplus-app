@@ -49,7 +49,7 @@ function ClientMap({
     <LiquidSurface active style={styles.mapCard} contentStyle={styles.mapContent}>
       <ClientNetworkMap
         clients={clients}
-        height={layout.isPhone ? 236 : layout.formFactor === 'tablet-portrait' ? 292 : 346}
+        height={layout.isPhone ? 248 : layout.formFactor === 'tablet-portrait' ? 320 : 382}
         tenantId={tenantId}
         onClientSelect={(clientId) =>
           router.push(`/business/office/clients/${clientId}` as never)
@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   mapCard: {
-    minHeight: 348,
+    minHeight: 384,
   },
   mapContent: {
     padding: 0,
