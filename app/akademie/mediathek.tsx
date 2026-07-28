@@ -1,3 +1,3 @@
-import { MediaLibraryScreen } from '@/screens/akademie/AkademieDedicatedScreens';
+import { MediaLibraryScreen } from '@/product-workflows/screens/akademie/AkademieDedicatedScreens';
 
 export default MediaLibraryScreen;

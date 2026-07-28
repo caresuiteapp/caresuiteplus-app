@@ -1,5 +1,5 @@
-import { RequirePermission } from '@/components/permissions';
-import { EmployeeCreateScreen } from '@/screens/office/EmployeeCreateScreen';
+import { RequirePermission } from '@/product-workflows/components/permissions';
+import { EmployeeCreateScreen } from '@/product-workflows/screens/office/EmployeeCreateScreen';
 
 export default function EmployeeCreateRoute() {
   return (

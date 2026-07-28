@@ -1,3 +1,3 @@
-import { InvoiceEditScreen } from '@/screens/office/InvoiceEditScreen';
+import { InvoiceEditScreen } from '@/product-workflows/screens/office/InvoiceEditScreen';
 
 export default InvoiceEditScreen;

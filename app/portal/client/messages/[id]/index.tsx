@@ -1,3 +1,3 @@
-import { ClientPortalConversationScreen } from '@/screens/communication';
+import { ClientPortalConversationScreen } from '@/product-workflows/screens/communication';
 
 export default ClientPortalConversationScreen;

@@ -1,12 +1,10 @@
 import { useMemo } from 'react';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import {
-  AURORA_BUTTON_PRIMARY,
-  AURORA_HERO_GRADIENT,
-  careSuiteAuroraTheme,
-} from '@/theme/careSuiteAurora';
-import { careSuiteColors, type ColorMode } from './colors';
-import { systemLiquidGlass } from './systemLiquidGlass';
+  liquidColors,
+  liquidShadows,
+} from '@/liquid-command/foundation/tokens';
+import type { ColorMode } from './colors';
 import { resolveCareTypography } from './typography';
 
 export type { ColorMode };
@@ -19,93 +17,96 @@ export type LegacyGradients = ReturnType<typeof resolveLegacyGradients>;
  * Dark palette is the default for existing Premium screens.
  */
 export function legacyColorsFromPalette(mode: ColorMode = 'dark') {
-  const p = careSuiteColors[mode];
+  void mode;
   return {
-    bgDeep: p.background.dark,
-    bgBase: p.background.app,
-    bgPremium: p.background.soft,
-    bgSurface: p.background.elevated,
-    bgElevated: p.background.elevated,
-    bgPanel: p.background.soft,
-    bgInput: p.background.app,
+    bgDeep: liquidColors.navy950,
+    bgBase: liquidColors.navy900,
+    bgPremium: liquidColors.navy800,
+    bgSurface: 'rgba(6,27,53,0.88)',
+    bgElevated: 'rgba(10,42,82,0.78)',
+    bgPanel: 'rgba(6,27,53,0.76)',
+    bgInput: 'rgba(1,8,23,0.74)',
 
-    textPrimary: p.text.primary,
-    textSecondary: p.text.secondary,
-    textMuted: p.text.muted,
-    textDisabled: systemLiquidGlass.text.disabled,
+    textPrimary: liquidColors.white,
+    textSecondary: liquidColors.white88,
+    textMuted: liquidColors.white64,
+    textDisabled: liquidColors.white32,
 
-    orange: p.brand.orange,
-    amber: p.brand.gold,
-    deepOrange: p.brand.orange,
-    gold: p.brand.gold,
+    // Compatibility names intentionally resolve to the one Liquid Command accent.
+    orange: liquidColors.blue500,
+    amber: liquidColors.blue300,
+    deepOrange: liquidColors.blue600,
+    gold: liquidColors.blue200,
+    cyan: liquidColors.blue400,
+    cyanSoft: liquidColors.blue300,
+    blue: liquidColors.blue500,
+    violet: liquidColors.blue400,
 
-    cyan: p.brand.cyan,
-    cyanSoft: '#4A9AFF',
-    blue: p.status.info,
-    violet: p.brand.violet,
+    success: liquidColors.success,
+    warning: liquidColors.warning,
+    danger: liquidColors.danger,
+    info: liquidColors.blue400,
 
-    success: p.status.success,
-    warning: p.status.warning,
-    danger: p.status.danger,
-    info: p.status.info,
+    borderSoft: liquidColors.white12,
+    borderStrong: liquidColors.blue300Alpha32,
+    borderOrange: liquidColors.blue400,
+    borderCyan: liquidColors.blue400,
 
-    borderSoft: systemLiquidGlass.border,
-    borderStrong: systemLiquidGlass.borderStrong,
-    borderOrange: systemLiquidGlass.borderActive,
-    borderCyan: systemLiquidGlass.borderActive,
+    glowOrange: liquidColors.blue300Alpha32,
+    glowAmber: liquidColors.blue300Alpha32,
+    glowCyan: liquidColors.blue300Alpha32,
+    glowDark: liquidColors.black24,
 
-    glowOrange: systemLiquidGlass.glow.medium,
-    glowAmber: systemLiquidGlass.glow.medium,
-    glowCyan: systemLiquidGlass.glow.medium,
-    glowDark: 'rgba(3,10,24,0.48)',
-
-    primary: p.brand.orange,
-    error: p.status.danger,
+    primary: liquidColors.blue500,
+    error: liquidColors.danger,
   } as const;
 }
 
 /** Light/dark gradient sets for Premium cards, heroes, and glass surfaces. */
 export function resolveLegacyGradients(mode: ColorMode = 'dark') {
-  const p = careSuiteColors[mode];
-  const isDark = mode === 'dark';
+  void mode;
 
   return {
     card: {
-      default: [p.background.elevated, p.background.soft] as [string, string],
-      elevated: [p.background.soft, p.background.elevated] as [string, string],
+      default: ['rgba(6,27,53,0.92)', 'rgba(3,17,39,0.96)'] as [string, string],
+      elevated: ['rgba(10,42,82,0.90)', 'rgba(6,27,53,0.96)'] as [string, string],
     },
-    primary: (isDark ? [...AURORA_BUTTON_PRIMARY] : [p.brand.orange, p.brand.gold]) as [
+    primary: [liquidColors.blue600, liquidColors.blue400] as [
       string,
       string,
-      ...string[],
     ],
     sheen: {
-      subtle: (isDark
-        ? ['rgba(255,255,255,0.14)', 'rgba(255,255,255,0.04)', 'transparent']
-        : ['rgba(255,255,255,0.55)', 'rgba(255,255,255,0.18)', 'transparent']) as [
+      subtle: ['rgba(255,255,255,0.14)', 'rgba(255,255,255,0.04)', 'transparent'] as [
         string,
         string,
         string,
       ],
-      strong: (isDark
-        ? ['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.06)', 'transparent']
-        : ['rgba(255,255,255,0.72)', 'rgba(255,255,255,0.28)', 'transparent']) as [
+      strong: ['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.06)', 'transparent'] as [
         string,
         string,
         string,
       ],
     },
     glass: {
-      panel: ['rgba(72,72,108,0.90)', 'rgba(34,35,65,0.94)'] as [string, string],
-      overlay: ['rgba(8,10,24,0.42)', 'rgba(8,10,24,0.72)'] as [string, string],
+      panel: ['rgba(6,27,53,0.90)', 'rgba(3,17,39,0.96)'] as [string, string],
+      overlay: ['rgba(1,8,23,0.56)', 'rgba(1,8,23,0.88)'] as [string, string],
     },
     ambient: {
-      orange: [`${p.brand.orange}2E`, 'transparent'] as [string, string],
-      cyan: [`${p.brand.cyan}1F`, 'transparent'] as [string, string],
+      orange: [liquidColors.blue500Alpha16, 'transparent'] as [string, string],
+      cyan: [liquidColors.blue500Alpha16, 'transparent'] as [string, string],
     },
     hero: {
-      list: [...AURORA_HERO_GRADIENT] as [string, string, string],
-      aurora: [...careSuiteAuroraTheme.gradients.heroAurora] as [string, string, string, string],
+      list: [liquidColors.navy800, liquidColors.navy700, liquidColors.navy900] as [
+        string,
+        string,
+        string,
+      ],
+      aurora: [
+        liquidColors.navy950,
+        liquidColors.navy800,
+        liquidColors.navy700,
+        liquidColors.navy900,
+      ] as [string, string, string, string],
     },
   };
 }
@@ -123,9 +124,47 @@ export function useLegacyTheme() {
       colors: legacyColorsFromPalette(mode),
       typography: resolveCareTypography(mode),
       gradients: resolveLegacyGradients(mode),
-      palette: careSuiteColors[mode],
-      isLight: mode === 'light',
-      isDark: mode === 'dark',
+      palette: {
+        background: {
+          app: liquidColors.navy900,
+          soft: liquidColors.navy800,
+          elevated: liquidColors.navy700,
+          dark: liquidColors.navy950,
+          darkElevated: liquidColors.navy800,
+        },
+        brand: {
+          navy: liquidColors.navy900,
+          orange: liquidColors.blue500,
+          gold: liquidColors.blue200,
+          cyan: liquidColors.blue400,
+          violet: liquidColors.blue400,
+        },
+        text: {
+          primary: liquidColors.white,
+          secondary: liquidColors.white88,
+          muted: liquidColors.white64,
+          inverse: liquidColors.navy950,
+        },
+        status: {
+          success: liquidColors.success,
+          warning: liquidColors.warning,
+          danger: liquidColors.danger,
+          info: liquidColors.blue400,
+        },
+        module: {
+          office: liquidColors.blue500,
+          assist: liquidColors.blue400,
+          pflege: liquidColors.blue300,
+          beratung: liquidColors.blue400,
+          stationaer: liquidColors.blue200,
+          akademie: liquidColors.white,
+          qm: liquidColors.blue300,
+          insight: liquidColors.blue400,
+        },
+      },
+      isLight: false,
+      isDark: true,
+      shadow: liquidShadows.panel,
     }),
     [],
   );

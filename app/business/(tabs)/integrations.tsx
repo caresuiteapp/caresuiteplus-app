@@ -1,4 +1,4 @@
-import { IntegrationsListScreen } from '@/screens/integrations/IntegrationsListScreen';
+import { IntegrationsListScreen } from '@/product-workflows/screens/integrations/IntegrationsListScreen';
 
 export default function IntegrationsRoute() {
   return <IntegrationsListScreen />;

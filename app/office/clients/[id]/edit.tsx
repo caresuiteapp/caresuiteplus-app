@@ -1,3 +1,3 @@
-import { ClientEditScreen } from '@/screens/office/ClientEditScreen';
+import { ClientEditScreen } from '@/product-workflows/screens/office/ClientEditScreen';
 
 export default ClientEditScreen;

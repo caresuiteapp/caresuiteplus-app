@@ -1,3 +1,3 @@
-import { OfficeDocumentsListScreen } from '@/screens/office/OfficeDocumentsListScreen';
+import { OfficeDocumentsListScreen } from '@/product-workflows/screens/office/OfficeDocumentsListScreen';
 
 export default OfficeDocumentsListScreen;

@@ -1,3 +1,3 @@
-import { BudgetDetailScreen } from '@/screens/office/BudgetDetailScreen';
+import { BudgetDetailScreen } from '@/product-workflows/screens/office/BudgetDetailScreen';
 
 export default BudgetDetailScreen;

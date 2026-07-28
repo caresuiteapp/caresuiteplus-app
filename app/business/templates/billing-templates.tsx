@@ -1,3 +1,3 @@
-import { BillingTemplatesScreen } from '@/screens/templates';
+import { BillingTemplatesScreen } from '@/product-workflows/screens/templates';
 
 export default BillingTemplatesScreen;

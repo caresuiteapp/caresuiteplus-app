@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CalendarEventTemplatePicker } from '@/components/calendar/CalendarEventTemplatePicker';
-import { ScreenShell } from '@/components/layout';
-import { PremiumBadge, PremiumButton, SectionPanel } from '@/components/ui';
-import { moduleColor } from '@/design/tokens/modules';
+import { CalendarEventTemplatePicker } from '@/product-workflows/components/calendar/CalendarEventTemplatePicker';
+import { ScreenShell } from '@/product-workflows/components/layout';
+import { PremiumBadge, PremiumButton, SectionPanel } from '@/product-workflows/components/ui';
+import { moduleColor } from '@/product-workflows/design/tokens/modules';
 import type { CalendarEventTemplate } from '@/types/calendar';
-import { spacing, typography } from '@/theme';
+import { spacing, typography } from '@/product-workflows/theme';
 
 /** Echte Kalender-Vorlagenübersicht mit System- und Mandantenvorlagen. */
 export default function CalendarTemplatesScreen() {

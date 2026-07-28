@@ -8,7 +8,7 @@ export const careSuiteAuroraTheme = {
   background: systemLiquidGlass.page,
   gradients: {
     primaryAurora: [...SYSTEM_BLUE_GRADIENT] as const,
-    heroAurora: ['#252742', '#353658', '#45415F', '#272842'] as const,
+    heroAurora: ['#010817', '#031127', '#061B35', '#0A2A52'] as const,
     buttonPrimary: [...SYSTEM_BLUE_GRADIENT] as const,
     buttonSecondary: ['rgba(255,255,255,0.07)', 'rgba(105,232,255,0.14)'] as const,
     buttonSuccess: ['#1478FF', '#4A9AFF'] as const,
@@ -44,7 +44,7 @@ export const careSuiteAuroraTheme = {
 export type CareSuiteAuroraTheme = typeof careSuiteAuroraTheme;
 
 /** Three-stop hero gradient for list/detail headers. */
-export const AURORA_HERO_GRADIENT = ['#252742', '#353658', '#45415F'] as const;
+export const AURORA_HERO_GRADIENT = ['#061B35', '#0A2A52', '#031127'] as const;
 
 /** Primary CTA button gradient. */
 export const AURORA_BUTTON_PRIMARY = careSuiteAuroraTheme.gradients.buttonPrimary;

@@ -26,7 +26,7 @@ export async function notifyOfficeMessageEvent(
     const { error } = await supabase.from('communication_notifications').insert({
       tenant_id: input.tenantId,
       type: input.type,
-      thread_id: input.threadId,
+      office_thread_id: input.threadId,
       title: input.title,
       body: input.body,
     });

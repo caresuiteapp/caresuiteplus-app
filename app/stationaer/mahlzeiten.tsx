@@ -1,3 +1,3 @@
-import { MealsPlanningScreen } from '@/screens/stationaer/StationaerListScreens';
+import { MealsPlanningScreen } from '@/product-workflows/screens/stationaer/StationaerListScreens';
 
 export default MealsPlanningScreen;

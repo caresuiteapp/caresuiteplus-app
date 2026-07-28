@@ -18,7 +18,7 @@ describe('assist navigation cleanup', () => {
   });
 
   it('assistnav keeps separate touren and fahrten hrefs', () => {
-    const nav = readSrc('src/lib/navigation/modulenav/assistnav.ts');
+    const nav = readSrc('src/lib/navigation/moduleNav/assistNav.ts');
     expect(nav).toContain("href: '/assist/fahrten'");
     expect(nav).toContain("href: '/assist/touren'");
   });

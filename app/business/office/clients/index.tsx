@@ -1,3 +1,3 @@
-import { ClientsListScreen } from '@/screens/office/ClientsListScreen';
+import { ClientsListScreen } from '@/product-workflows/screens/office/ClientsListScreen';
 
 export default ClientsListScreen;

@@ -1,3 +1,3 @@
-import { DocumentTemplatesScreen } from '@/screens/templates';
+import { DocumentTemplatesScreen } from '@/product-workflows/screens/templates';
 
 export default DocumentTemplatesScreen;

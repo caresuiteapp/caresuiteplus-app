@@ -1,9 +1,14 @@
 import type { ReactNode } from 'react';
-import { Stack, usePathname } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { RequireAuth, RequireRole } from '@/lib/auth';
 import { LiquidProductAccessGuard } from '../guards/LiquidProductAccessGuard';
 import { LiquidCommandShell } from './LiquidCommandShell';
 import type { LiquidModuleKey } from '../types';
+import { describeLiquidRoute } from '../navigation/routeContext';
+import {
+  getLiquidPrimaryActionLabel,
+  getLiquidPrimaryWorkflowRoute,
+} from '../navigation/workflowRoutes';
 
 type LiquidModuleRouteLayoutProps = {
   children?: ReactNode;
@@ -40,6 +45,15 @@ const MODULE_ROOTS: Record<LiquidModuleKey, readonly string[]> = {
 
 function inferLiquidModule(pathname: string): LiquidModuleKey {
   if (pathname.startsWith('/business/messages') || pathname.startsWith('/business/office')) return 'office';
+  if (
+    pathname.startsWith('/business/connect') ||
+    pathname.startsWith('/business/integrations') ||
+    pathname.startsWith('/business/templates') ||
+    pathname.startsWith('/business/security') ||
+    pathname.startsWith('/business/settings') ||
+    pathname.startsWith('/design-system') ||
+    pathname.startsWith('/onboarding')
+  ) return 'settings';
   if (pathname.startsWith('/business')) return 'office';
   if (pathname.startsWith('/office') || pathname.startsWith('/communication') || pathname.startsWith('/insight')) return 'office';
   if (pathname.startsWith('/assist')) return 'assist';
@@ -52,37 +66,33 @@ function inferLiquidModule(pathname: string): LiquidModuleKey {
   return 'settings';
 }
 
-function inferArea(pathname: string, moduleKey: LiquidModuleKey): string | null {
-  const normalized = pathname.toLowerCase();
-  if (normalized.includes('/messages')) return 'communication';
-  if (normalized.includes('/payroll')) return 'payroll';
-  if (normalized.includes('/time-tracking')) return 'timekeeping';
-  if (normalized.includes('/clients') || normalized.includes('/klient')) return moduleKey === 'assist' ? 'clients' : 'clients';
-  if (normalized.includes('/employees') || normalized.includes('/personal')) return 'people';
-  if (normalized.includes('/documents')) return 'documents';
-  if (normalized.includes('/invoice') || normalized.includes('/billing')) return 'billing';
-  if (normalized.includes('/assignment') || normalized.includes('/einsatz')) return 'assignments';
-  if (normalized.includes('/bodymap') || normalized.includes('/wund')) return 'wounds';
-  return null;
-}
-
 function isModuleRoot(pathname: string, moduleKey: LiquidModuleKey): boolean {
   return MODULE_ROOTS[moduleKey].includes(pathname);
 }
 
 function LiquidModuleContent() {
   const pathname = usePathname();
+  const router = useRouter();
   const moduleKey = inferLiquidModule(pathname);
   if (isModuleRoot(pathname, moduleKey)) return <LiquidModuleStack />;
+  const routeContext = describeLiquidRoute(pathname, moduleKey);
+  const primaryRoute = routeContext.areaId
+    ? getLiquidPrimaryWorkflowRoute(moduleKey, routeContext.areaId)
+    : null;
+  const primaryActionLabel = routeContext.areaId
+    ? getLiquidPrimaryActionLabel(moduleKey, routeContext.areaId)
+    : null;
 
   return (
     <LiquidCommandShell
       activeModule={moduleKey}
-      activeArea={inferArea(pathname, moduleKey)}
+      activeArea={routeContext.areaId}
       title="Facharbeitsbereich"
       subtitle="Produktiver CareSuite-Workflow im gemeinsamen Liquid-Command-System."
-      contextLabel="Aktive Fachseite"
-      contextDetail={pathname}
+      contextLabel={routeContext.contextLabel}
+      contextDetail={routeContext.contextDetail}
+      primaryActionLabel={primaryActionLabel ?? undefined}
+      onPrimaryAction={primaryRoute ? () => router.push(primaryRoute as never) : undefined}
       contentMode="fill"
       showPageHeader={false}
     >

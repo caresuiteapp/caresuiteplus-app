@@ -1,3 +1,3 @@
-import { QmLegalReferencesScreen } from '@/screens/qm/QmLegalReferencesScreen';
+import { QmLegalReferencesScreen } from '@/product-workflows/screens/qm/QmLegalReferencesScreen';
 
 export default QmLegalReferencesScreen;

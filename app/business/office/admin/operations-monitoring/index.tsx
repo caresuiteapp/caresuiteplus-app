@@ -1,3 +1,3 @@
-import { OperationsMonitoringScreen } from '@/screens/admin';
+import { OperationsMonitoringScreen } from '@/product-workflows/screens/admin';
 
 export default OperationsMonitoringScreen;

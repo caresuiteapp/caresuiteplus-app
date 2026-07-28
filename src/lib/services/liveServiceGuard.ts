@@ -1,4 +1,5 @@
 import type { ServiceResult } from '@/types';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import {
   assertDemoDataNotInProduction,
   assertTenantAllowedForMode,
@@ -13,7 +14,18 @@ export function guardServiceTenant(tenantId: string): { ok: false; error: string
   // Demo-/Test-Repositories intentionally use readable, non-UUID tenant keys.
   // Applying production tenant guards to the in-memory path breaks otherwise
   // valid WFM overviews, audits and exports before their demo stores are read.
-  if (getServiceMode() !== 'supabase') return null;
+  if (getServiceMode() !== 'supabase') {
+    // Local feature tests use readable tenant aliases; UUID-shaped foreign tenants
+    // must still be rejected so cross-tenant behavior is exercised in demo mode.
+    if (
+      tenantId === DEMO_TENANT_ID ||
+      tenantId.startsWith('tenant-') ||
+      isInternalTest(tenantId)
+    ) {
+      return null;
+    }
+    return { ok: false, error: 'Kein Zugriff auf diesen Mandanten.' };
+  }
 
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) {

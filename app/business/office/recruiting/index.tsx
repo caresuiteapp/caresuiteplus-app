@@ -1,3 +1,3 @@
-import { RecruitingDashboardScreen } from '@/screens/office/RecruitingDashboardScreen';
+import { RecruitingDashboardScreen } from '@/product-workflows/screens/office/RecruitingDashboardScreen';
 
 export default RecruitingDashboardScreen;

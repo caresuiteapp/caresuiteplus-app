@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { PortalNewChatModal } from '@/components/portal/portalnewchatmodal';
+import { PortalNewChatModal } from '@/components/portal/PortalNewChatModal';
 import { PortalOfficeInbox } from '@/components/portal/portalofficeinbox';
 import { PortalOfficeThread } from '@/components/portal/portalofficethread';
 import { MessengerShell } from '@/components/messaging';

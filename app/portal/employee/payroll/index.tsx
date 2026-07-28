@@ -1,2 +1,2 @@
-import { EmployeePayrollMonthScreen } from '@/screens/portal/EmployeePayrollMonthScreen';
+import { EmployeePayrollMonthScreen } from '@/product-workflows/screens/portal/EmployeePayrollMonthScreen';
 export default EmployeePayrollMonthScreen;

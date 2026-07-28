@@ -35,7 +35,7 @@ describe('modal stack navigation', () => {
   });
 
   it('modal screens registry includes assist settings and record prep', () => {
-    const screens = readSrc('src/lib/navigation/modulenav/modalscreens.ts');
+    const screens = readSrc('src/lib/navigation/moduleNav/modalScreens.ts');
     expect(screens).toContain("'assist.settings'");
     expect(screens).toContain("'prep.client.record'");
     expect(screens).toContain("'prep.employee.record'");

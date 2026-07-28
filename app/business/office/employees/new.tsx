@@ -1,3 +1,3 @@
-import { EmployeeCreateScreen } from '@/screens/office/EmployeeCreateScreen';
+import { EmployeeCreateScreen } from '@/product-workflows/screens/office/EmployeeCreateScreen';
 
 export default EmployeeCreateScreen;

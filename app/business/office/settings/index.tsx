@@ -1,3 +1,3 @@
-import { OfficeBusinessSettingsScreen } from '@/screens/business/office/OfficeBusinessSettingsScreen';
+import { OfficeBusinessSettingsScreen } from '@/product-workflows/screens/business/office/OfficeBusinessSettingsScreen';
 
 export default OfficeBusinessSettingsScreen;

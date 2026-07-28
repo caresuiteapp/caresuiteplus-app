@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
-import { ScreenShell } from '@/components/layout';
-import { EmployeePortalClientRecordDetailScreen } from '@/components/portal/EmployeePortalClientRecordDetailScreen';
+import { ScreenShell } from '@/product-workflows/components/layout';
+import { EmployeePortalClientRecordDetailScreen } from '@/product-workflows/components/portal/EmployeePortalClientRecordDetailScreen';
 
 export default function EmployeeClientRecordDetailRoute() {
   const { id: rawId } = useLocalSearchParams<{ id: string }>();

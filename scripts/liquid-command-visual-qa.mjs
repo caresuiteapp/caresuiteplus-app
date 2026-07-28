@@ -57,16 +57,16 @@ await new Promise((resolve) => server.listen(port, '127.0.0.1', resolve));
 
 const targets = [
   {
-    name: 'desktop-access',
+    name: 'desktop-login',
     path: '/auth',
     viewport: { width: 1440, height: 900 },
-    expected: 'Ein Zugang. Der richtige Arbeitskontext.',
+    expected: 'CareSuite HealthOS',
   },
   {
     name: 'tablet-landscape-business',
     path: '/auth/business-login',
     viewport: { width: 1180, height: 820 },
-    expected: 'Willkommen zurück.',
+    expected: 'CareSuite HealthOS',
   },
   {
     name: 'tablet-portrait-register',
@@ -75,10 +75,22 @@ const targets = [
     expected: 'Organisation',
   },
   {
-    name: 'phone-portrait-access',
+    name: 'phone-portrait-login',
     path: '/auth',
     viewport: { width: 390, height: 844 },
-    expected: 'Ein Zugang. Der richtige Arbeitskontext.',
+    expected: 'CareSuite HealthOS',
+  },
+  {
+    name: 'phone-employee-portal-login',
+    path: '/auth/employee-login',
+    viewport: { width: 390, height: 844 },
+    expected: 'Ihr Arbeitstag beginnt hier.',
+  },
+  {
+    name: 'tablet-portrait-client-portal-login',
+    path: '/auth/client-login',
+    viewport: { width: 820, height: 1180 },
+    expected: 'Ihre Versorgung. Klar im Blick.',
   },
 ];
 
@@ -102,13 +114,21 @@ try {
     });
     await page.goto(`${origin}${target.path}`, { waitUntil: 'networkidle' });
     await page.getByText(target.expected, { exact: false }).first().waitFor();
+    const accessMain = page.getByTestId('liquid-access-main');
+    const accessBounds = await accessMain.boundingBox();
+    const minimumWidth = target.viewport.width <= 430 ? 340 : 420;
+    if (!accessBounds || accessBounds.width < minimumWidth) {
+      failures.push(
+        `${target.name}: Zugangsinhalt kollabiert (${Math.round(accessBounds?.width ?? 0)}px statt mindestens ${minimumWidth}px).`,
+      );
+    }
     await page.screenshot({
       path: join(outputDirectory, `${target.name}.png`),
       fullPage: true,
     });
-    if (target.name === 'desktop-access') {
-      const accessChoices = page.getByRole('button').filter({ hasText: /portal|App|Verwaltung/ });
-      if ((await accessChoices.count()) < 4) failures.push('desktop-access: Zugangsoptionen fehlen.');
+    if (target.name === 'desktop-login') {
+      const portalChoices = page.getByRole('button').filter({ hasText: /portal|App/ });
+      if ((await portalChoices.count()) < 3) failures.push('desktop-login: Portalzugänge fehlen.');
     }
     if (target.name === 'tablet-landscape-business') {
       await page.getByLabel('E-Mail', { exact: true }).fill('qa@einrichtung.de');

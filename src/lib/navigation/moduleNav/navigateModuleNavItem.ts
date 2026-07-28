@@ -1,6 +1,6 @@
 import type { ModuleNavItem } from '@/types/navigation/platform';
 import type { Router } from 'expo-router';
-import { MODULE_NAV_MODAL_SCREENS } from '@/lib/navigation/modulenav/modalscreens';
+import { MODULE_NAV_MODAL_SCREENS } from '@/lib/navigation/moduleNav/modalScreens';
 import type { OpenModalOptions } from '@/types/modalNavigation';
 
 export function shouldOpenNavItemInModal(item: ModuleNavItem, adaptiveShell: string): boolean {

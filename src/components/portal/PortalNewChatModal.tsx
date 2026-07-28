@@ -21,6 +21,7 @@ import { usePortalActor } from '@/hooks/usePortalActor';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { spacing, radius } from '@/theme';
 import type { OfficeMessageCategory } from '@/types/office/messaging';
+import { PORTAL_EMERGENCY_DISCLAIMER } from '@/lib/office/messagecategoryconstants';
 
 type PortalNewChatModalProps = {
   visible: boolean;
@@ -221,6 +222,7 @@ export function PortalNewChatModal({
       />
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      <Text style={styles.label}>{PORTAL_EMERGENCY_DISCLAIMER}</Text>
     </>
   );
 

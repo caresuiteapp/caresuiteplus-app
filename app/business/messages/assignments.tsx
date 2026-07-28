@@ -1,2 +1,2 @@
-import { MessageAssignmentsScreen } from '@/screens/communication/MessageAssignmentsScreen';
+import { MessageAssignmentsScreen } from '@/product-workflows/screens/communication/MessageAssignmentsScreen';
 export default MessageAssignmentsScreen;

@@ -1,3 +1,3 @@
-import { CreateEmployeePortalAccountScreen } from '@/screens/office/access/CreateEmployeePortalAccountScreen';
+import { CreateEmployeePortalAccountScreen } from '@/product-workflows/screens/office/access/CreateEmployeePortalAccountScreen';
 
 export default CreateEmployeePortalAccountScreen;

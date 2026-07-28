@@ -21,7 +21,7 @@ import type { AssistDashboardStats } from '@/types/modules/assist';
 import type { AssistLiveSidebarCounters } from '@/lib/assist/assistDashboardWorkspace';
 import type { BeratungDashboardStats } from '@/types/modules/beratung';
 import type { StationaerDashboardStats } from '@/types/modules/stationaer';
-import { getModuleNavConfig } from '@/lib/navigation/modulenav';
+import { getModuleNavConfig } from '@/lib/navigation/moduleNav';
 
 export type ContextQuickAction = {
   label: string;

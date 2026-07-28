@@ -1,3 +1,3 @@
-import { CasesAdaptiveScreen } from '@/screens/beratung/CasesAdaptiveScreen';
+import { CasesAdaptiveScreen } from '@/product-workflows/screens/beratung/CasesAdaptiveScreen';
 
 export default CasesAdaptiveScreen;

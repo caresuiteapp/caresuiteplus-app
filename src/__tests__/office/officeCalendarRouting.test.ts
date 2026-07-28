@@ -19,7 +19,7 @@ describe('Office calendar routing', () => {
   });
 
   it('module nav sidebar Klient:innen group links Kalender to /office/calendar', () => {
-    const nav = readSrc('src/lib/navigation/modulenav/officenav.ts');
+    const nav = readSrc('src/lib/navigation/moduleNav/officeNav.ts');
     expect(nav).toContain("label: 'Kalender', icon: '📅', href: '/office/calendar'");
     expect(nav).not.toContain("label: 'Termine', icon: '📅', href: '/office/appointments'");
   });

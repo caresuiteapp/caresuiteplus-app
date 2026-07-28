@@ -1,3 +1,3 @@
-import { DocumentInboxScreen } from '@/screens/documents/DocumentInboxScreen';
+import { DocumentInboxScreen } from '@/product-workflows/screens/documents/DocumentInboxScreen';
 
 export default DocumentInboxScreen;

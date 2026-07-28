@@ -1,3 +1,3 @@
-import { PflegeRisksListScreen } from '@/screens/pflege/PflegeRisksListScreen';
+import { PflegeRisksListScreen } from '@/product-workflows/screens/pflege/PflegeRisksListScreen';
 
 export default PflegeRisksListScreen;

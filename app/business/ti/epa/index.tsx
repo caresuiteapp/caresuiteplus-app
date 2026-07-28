@@ -1,2 +1,2 @@
-import { EPAVorbereitungScreen } from '@/screens/ti/EPAVorbereitungScreen';
+import { EPAVorbereitungScreen } from '@/product-workflows/screens/ti/EPAVorbereitungScreen';
 export default EPAVorbereitungScreen;

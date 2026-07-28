@@ -1,3 +1,3 @@
-import { ShiftScheduleCreateScreen } from '@/screens/pflege/ShiftScheduleCreateScreen';
+import { ShiftScheduleCreateScreen } from '@/product-workflows/screens/pflege/ShiftScheduleCreateScreen';
 
 export default ShiftScheduleCreateScreen;

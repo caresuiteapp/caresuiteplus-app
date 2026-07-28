@@ -1,3 +1,3 @@
-import { QmAiAssistantScreen } from '@/screens/qm/QmAiAssistantScreen';
+import { QmAiAssistantScreen } from '@/product-workflows/screens/qm/QmAiAssistantScreen';
 
 export default QmAiAssistantScreen;

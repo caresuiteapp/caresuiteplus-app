@@ -1,11 +1,11 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
-import { DISABLE_HOVER_EFFECTS_CSS } from '@/design/web/disableHoverEffectsCss';
-import { GLASS_SCROLLBARS_CSS } from '@/design/web/glassScrollbarsCss';
-import { LLGAN_GLASS_SURFACE_CSS } from '@/design/web/lightLiquidGlassSurfaceCss';
-import { INVISIBLE_SCROLLBARS_CSS } from '@/design/web/invisibleScrollbarsCss';
-import { WEB_FONT_SCALE_CSS } from '@/design/web/webFontScaleCss';
-import { HEALTHOS_PAGE_CONTRACT_CSS } from '@/design/web/healthOSPageContractCss';
+import { DISABLE_HOVER_EFFECTS_CSS } from '@/product-workflows/design/web/disableHoverEffectsCss';
+import { GLASS_SCROLLBARS_CSS } from '@/product-workflows/design/web/glassScrollbarsCss';
+import { LLGAN_GLASS_SURFACE_CSS } from '@/product-workflows/design/web/lightLiquidGlassSurfaceCss';
+import { INVISIBLE_SCROLLBARS_CSS } from '@/product-workflows/design/web/invisibleScrollbarsCss';
+import { WEB_FONT_SCALE_CSS } from '@/product-workflows/design/web/webFontScaleCss';
+import { HEALTHOS_PAGE_CONTRACT_CSS } from '@/product-workflows/design/web/healthOSPageContractCss';
 import { WEB_SAFE_AREA_GLOBAL_CSS } from '@/lib/platform/webSafeArea';
 
 export default function Root({ children }: PropsWithChildren) {

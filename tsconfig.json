@@ -5,7 +5,14 @@
     "module": "ESNext",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@/product-workflows/screens": ["src/screens/index.ts"],
+      "@/product-workflows/screens/*": ["src/screens/*"],
+      "@/product-workflows/components": ["src/components/index.ts"],
+      "@/product-workflows/components/*": ["src/components/*"],
+      "@/product-workflows/design/*": ["src/design/*"],
+      "@/product-workflows/theme": ["src/theme/index.ts"],
+      "@/product-workflows/theme/*": ["src/theme/*"]
     },
     "types": ["vitest/globals"]
   },

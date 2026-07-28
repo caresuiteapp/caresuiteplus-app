@@ -1,3 +1,3 @@
-import { CareRecordsListScreen } from '@/screens/assist/CareRecordsListScreen';
+import { CareRecordsListScreen } from '@/product-workflows/screens/assist/CareRecordsListScreen';
 
 export default CareRecordsListScreen;

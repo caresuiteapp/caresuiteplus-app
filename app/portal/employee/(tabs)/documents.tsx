@@ -1,5 +1,5 @@
-import { PortalDocumentsTab } from '@/components/portal';
-import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
+import { PortalDocumentsTab } from '@/product-workflows/components/portal';
+import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScreen';
 
 export default function EmployeeDocumentsRoute() {
   return (

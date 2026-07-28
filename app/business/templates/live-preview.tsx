@@ -1,3 +1,3 @@
-import { DocumentLivePreviewScreen } from '@/screens/documents/DocumentLivePreviewScreen';
+import { DocumentLivePreviewScreen } from '@/product-workflows/screens/documents/DocumentLivePreviewScreen';
 
 export default DocumentLivePreviewScreen;

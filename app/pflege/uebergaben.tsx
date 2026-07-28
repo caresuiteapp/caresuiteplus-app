@@ -1,3 +1,3 @@
-import { PflegeHandoversListScreen } from '@/screens/pflege/PflegeDedicatedScreens';
+import { PflegeHandoversListScreen } from '@/product-workflows/screens/pflege/PflegeDedicatedScreens';
 
 export default PflegeHandoversListScreen;

@@ -1,3 +1,3 @@
-import { CarePlansAdaptiveScreen } from '@/screens/pflege/CarePlansAdaptiveScreen';
+import { CarePlansAdaptiveScreen } from '@/product-workflows/screens/pflege/CarePlansAdaptiveScreen';
 
 export default CarePlansAdaptiveScreen;

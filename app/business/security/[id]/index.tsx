@@ -1,2 +1,2 @@
-import { SecurityDetailScreen } from '@/screens/security/SecurityDetailScreen';
+import { SecurityDetailScreen } from '@/product-workflows/screens/security/SecurityDetailScreen';
 export default SecurityDetailScreen;

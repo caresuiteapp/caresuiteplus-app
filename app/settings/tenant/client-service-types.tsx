@@ -7,7 +7,7 @@ import {
   PremiumCard,
   PremiumInput,
   SectionPanel,
-} from '@/components/ui';
+} from '@/product-workflows/components/ui';
 import { listTenantClientServiceTypes, updateTenantClientServiceType } from '@/lib/client/clientServiceTypeService';
 import {
   listTenantServiceTypeBillingRules,
@@ -17,9 +17,9 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useRouter } from 'expo-router';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/product-workflows/components/layout';
 import { useState } from 'react';
-import { colors, spacing, typography } from '@/theme';
+import { colors, spacing, typography } from '@/product-workflows/theme';
 
 /** Mandanten-Leistungsarten — Core K.4 list/edit active types. */
 export default function TenantClientServiceTypesScreen() {

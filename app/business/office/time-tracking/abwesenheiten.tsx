@@ -1,3 +1,3 @@
-import { WfmEmployeeRequestsOfficeScreen } from '@/components/wfm/WfmEmployeeRequestsOfficeScreen';
+import { WfmEmployeeRequestsOfficeScreen } from '@/product-workflows/components/wfm/WfmEmployeeRequestsOfficeScreen';
 
 export default WfmEmployeeRequestsOfficeScreen;

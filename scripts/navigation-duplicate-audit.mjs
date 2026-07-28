@@ -70,7 +70,7 @@ function findRouteFile(routePath) {
 
 function readScreenSource(routeFile) {
   let src = readFileSync(routeFile, 'utf8');
-  const m = src.match(/from '@\/screens\/([^']+)'/);
+  const m = src.match(/from '@\/(?:product-workflows\/)?screens\/([^']+)'/);
   if (m) {
     const sp = join(root, 'src/screens', `${m[1]}.tsx`);
     if (existsSync(sp)) src += `\n${readFileSync(sp, 'utf8')}`;
@@ -96,7 +96,7 @@ const WRONG_NEW_ROUTES = [
   },
   {
     route: '/assist/einsaetze/new',
-    mustInclude: ['Redirect', '/assist/assignments?create=1'],
+    mustInclude: ['AssignmentCreateScreen'],
     mustNotInclude: ['EinsaetzeListScreen', 'AssignmentDetailScreen'],
   },
   {

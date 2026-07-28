@@ -1,3 +1,3 @@
-import { CsOfficeDocumentSignaturesScreen } from '@/screens/office/CsOfficeDocumentSignaturesScreen';
+import { CsOfficeDocumentSignaturesScreen } from '@/product-workflows/screens/office/CsOfficeDocumentSignaturesScreen';
 
 export default CsOfficeDocumentSignaturesScreen;

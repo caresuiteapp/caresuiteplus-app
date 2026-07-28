@@ -1,3 +1,3 @@
-import { CounselingTemplatesScreen } from '@/screens/templates';
+import { CounselingTemplatesScreen } from '@/product-workflows/screens/templates';
 
 export default CounselingTemplatesScreen;

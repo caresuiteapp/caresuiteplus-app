@@ -1,4 +1,4 @@
-import { WoundDocumentationListScreen } from '@/screens/pflege/WoundDocumentationListScreen';
+import { WoundDocumentationListScreen } from '@/product-workflows/screens/pflege/WoundDocumentationListScreen';
 
 export default function WoundDocumentationRoute() {
   return <WoundDocumentationListScreen />;

@@ -1,4 +1,4 @@
-import { PlatformPaymentsScreen } from '@/screens/platformConsole';
+import { PlatformPaymentsScreen } from '@/product-workflows/screens/platformConsole';
 
 export default function PlatformPaymentsRoute() {
   return <PlatformPaymentsScreen />;

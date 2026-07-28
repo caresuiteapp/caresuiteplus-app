@@ -1,5 +1,5 @@
-import { EmployeePortalClientRecordsScreen } from '@/components/portal/EmployeePortalClientRecordsScreen';
-import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
+import { EmployeePortalClientRecordsScreen } from '@/product-workflows/components/portal/EmployeePortalClientRecordsScreen';
+import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScreen';
 
 export default function EmployeeClientRecordsRoute() {
   return (

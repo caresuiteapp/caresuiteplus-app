@@ -1,3 +1,3 @@
-import { InvoiceCreateScreen } from '@/screens/office/InvoiceCreateScreen';
+import { InvoiceCreateScreen } from '@/product-workflows/screens/office/InvoiceCreateScreen';
 
 export default InvoiceCreateScreen;

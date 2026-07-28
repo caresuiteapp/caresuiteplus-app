@@ -1,3 +1,3 @@
-import { VitalReadingDetailScreen } from '@/screens/pflege/VitalReadingDetailScreen';
+import { VitalReadingDetailScreen } from '@/product-workflows/screens/pflege/VitalReadingDetailScreen';
 
 export default VitalReadingDetailScreen;

@@ -142,7 +142,7 @@ describe('portal signature navigation', () => {
     const { readFileSync } = await import('node:fs');
     const { join } = await import('node:path');
     const nav = readFileSync(
-      join(process.cwd(), 'src/lib/navigation/modulenav/officenav.ts'),
+      join(process.cwd(), 'src/lib/navigation/moduleNav/officeNav.ts'),
       'utf8',
     );
     expect(nav).toContain("label: 'Dokumente & Unterschriften'");

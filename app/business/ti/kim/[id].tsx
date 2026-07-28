@@ -1,2 +1,2 @@
-import { KIMMessageDetailScreen } from '@/screens/ti/KIMMessageDetailScreen';
+import { KIMMessageDetailScreen } from '@/product-workflows/screens/ti/KIMMessageDetailScreen';
 export default KIMMessageDetailScreen;

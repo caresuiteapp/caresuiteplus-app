@@ -1,2 +1,2 @@
-import { ClientPortalAnnouncementsScreen } from '@/screens/portal/ClientPortalAnnouncementsScreen';
+import { ClientPortalAnnouncementsScreen } from '@/product-workflows/screens/portal/ClientPortalAnnouncementsScreen';
 export default ClientPortalAnnouncementsScreen;

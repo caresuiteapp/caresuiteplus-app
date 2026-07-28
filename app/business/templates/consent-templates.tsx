@@ -1,3 +1,3 @@
-import { ConsentTemplatesScreen } from '@/screens/templates';
+import { ConsentTemplatesScreen } from '@/product-workflows/screens/templates';
 
 export default ConsentTemplatesScreen;

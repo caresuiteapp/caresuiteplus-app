@@ -51,7 +51,7 @@ export const PORTAL_THREAD_STATUS_LABELS: Record<OfficeThreadStatus, string> = {
   new: 'Neu',
   received: 'Eingegangen',
   in_progress: 'In Bearbeitung',
-  waiting_for_reply: 'Wir melden uns',
+  waiting_for_reply: 'Rückmeldung erforderlich',
   internal_review: 'In Bearbeitung',
   resolved: 'Erledigt',
   closed: 'Abgeschlossen',

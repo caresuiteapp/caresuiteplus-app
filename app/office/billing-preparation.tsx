@@ -5,15 +5,15 @@ import {
   PremiumButton,
   PremiumCard,
   SectionPanel,
-} from '@/components/ui';
-import { ScreenShell } from '@/components/layout';
+} from '@/product-workflows/components/ui';
+import { ScreenShell } from '@/product-workflows/components/layout';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { getDraftableBillingCandidates } from '@/lib/billing/clientBillingCandidateService';
 import { formatCurrency } from '@/lib/formatters/numberFormatters';
 import { BILLING_CANDIDATE_STATUS_LABELS } from '@/types/clientBilling';
 import { useRouter } from 'expo-router';
-import { colors, spacing, typography } from '@/theme';
+import { colors, spacing, typography } from '@/product-workflows/theme';
 
 /** Office — Abrechnungsvorbereitung (K.5, keine finale Rechnung). */
 export default function OfficeBillingPreparationScreen() {

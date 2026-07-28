@@ -1,10 +1,10 @@
 import { Link } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
-import { GlassCard } from '@/design/components/GlassCard';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
-import { careSpacing } from '@/design/tokens/spacing';
-import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
-import { colors } from '@/theme';
+import { GlassCard } from '@/product-workflows/design/components/GlassCard';
+import { useAuroraAdaptiveText } from '@/product-workflows/design/tokens/auroraGlass';
+import { careSpacing } from '@/product-workflows/design/tokens/spacing';
+import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScreen';
+import { colors } from '@/product-workflows/theme';
 
 export default function EmployeePortalExecutionHubRoute() {
   const text = useAuroraAdaptiveText();

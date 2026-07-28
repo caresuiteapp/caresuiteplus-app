@@ -16,7 +16,7 @@ import {
   OFFICE_THREAD_STATUS_LABELS,
   PORTAL_THREAD_STATUS_LABELS,
 } from '@/lib/office/messagestatuslabels';
-import { exportOfficeMessageThread } from '@/lib/office/officemessageexportservice';
+import { exportOfficeMessageThread } from '@/lib/office/officeMessageExportService';
 import { fetchOfficeMessageCategories } from '@/lib/office/messagethreadservice';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -31,6 +31,7 @@ const PRIORITY_OPTIONS: { key: OfficeMessagePriority; label: string }[] = [
 const THREAD_TYPE_LABELS: Record<OfficeMessageThreadType['threadType'], string> = {
   client_office: 'Klient:innen ↔ Office',
   employee_office: 'Mitarbeitende ↔ Office',
+  employee_group_office: 'Mitarbeitendengruppe ↔ Office',
   internal: 'Intern (Büro)',
 };
 

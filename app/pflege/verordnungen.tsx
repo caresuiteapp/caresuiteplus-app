@@ -1,3 +1,3 @@
-import { MedicationListScreen } from '@/screens/pflege/MedicationListScreen';
+import { MedicationListScreen } from '@/product-workflows/screens/pflege/MedicationListScreen';
 
 export default MedicationListScreen;

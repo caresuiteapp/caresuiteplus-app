@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { CONNECT_CATALOG, getConnectIntegration } from '@/lib/connect/connectCatalog';
 import { PROVIDER_REGISTRY } from '@/lib/integrations/providerRegistry';
-import { adminNav } from '@/lib/navigation/modulenav/adminnav';
-import { zentraleNav } from '@/lib/navigation/modulenav/zentralenav';
+import { adminNav } from '@/lib/navigation/moduleNav/adminNav';
+import { zentraleNav } from '@/lib/navigation/moduleNav/zentraleNav';
 import { getRouteByPath } from '@/lib/navigation/routes';
 
 describe('Google Workspace integration registration', () => {

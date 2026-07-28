@@ -1,3 +1,3 @@
-import { KontaktverlaufListScreen } from '@/screens/beratung/BeratungDedicatedScreens';
+import { KontaktverlaufListScreen } from '@/product-workflows/screens/beratung/BeratungDedicatedScreens';
 
 export default KontaktverlaufListScreen;

@@ -1,2 +1,2 @@
-import { CommunicationAdaptiveScreen } from '@/screens/communication/CommunicationAdaptiveScreen';
+import { CommunicationAdaptiveScreen } from '@/product-workflows/screens/communication/CommunicationAdaptiveScreen';
 export default CommunicationAdaptiveScreen;

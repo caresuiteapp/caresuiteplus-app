@@ -1,3 +1,3 @@
-import { AkademieKurseListScreen } from '@/screens/akademie/AkademieKurseListScreen';
+import { AkademieKurseListScreen } from '@/product-workflows/screens/akademie/AkademieKurseListScreen';
 
 export default AkademieKurseListScreen;

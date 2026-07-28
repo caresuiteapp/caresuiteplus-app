@@ -1,3 +1,3 @@
-import { InsightIndexScreen } from '@/screens/insight';
+import { InsightIndexScreen } from '@/product-workflows/screens/insight';
 
 export default InsightIndexScreen;

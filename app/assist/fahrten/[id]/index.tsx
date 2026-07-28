@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { TripsAdaptiveScreen } from '@/screens/assist/TripsAdaptiveScreen';
+import { TripsAdaptiveScreen } from '@/product-workflows/screens/assist/TripsAdaptiveScreen';
 
 /** Deep link — opens Fahrten list with detail modal for the given trip id. */
 export default function TripDetailRoute() {

@@ -1,3 +1,3 @@
-import { PflegeAssessmentsListScreen } from '@/screens/pflege/PflegeDedicatedScreens';
+import { PflegeAssessmentsListScreen } from '@/product-workflows/screens/pflege/PflegeDedicatedScreens';
 
 export default PflegeAssessmentsListScreen;

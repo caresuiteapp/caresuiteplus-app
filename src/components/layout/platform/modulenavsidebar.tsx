@@ -12,8 +12,8 @@ import { usePathname, useRouter } from 'expo-router';
 import {
   getModuleNavConfig,
   resolveActiveModuleNavKey,
-} from '@/lib/navigation/modulenav';
-import { navigateModuleNavItem } from '@/lib/navigation/modulenav/navigateModuleNavItem';
+} from '@/lib/navigation/moduleNav';
+import { navigateModuleNavItem } from '@/lib/navigation/moduleNav/navigateModuleNavItem';
 import { useModalStack } from '@/hooks/useModalStack';
 import { useModuleNavBadges } from '@/hooks/useModuleNavBadges';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';

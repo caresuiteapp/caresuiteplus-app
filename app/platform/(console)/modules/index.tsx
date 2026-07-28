@@ -1,3 +1,3 @@
-import { PlatformModulesCatalogScreen } from '@/screens/platformConsole';
+import { PlatformModulesCatalogScreen } from '@/product-workflows/screens/platformConsole';
 
 export default PlatformModulesCatalogScreen;

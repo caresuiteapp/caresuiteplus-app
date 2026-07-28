@@ -1,3 +1,3 @@
-import { AcademyTemplatesScreen } from '@/screens/templates';
+import { AcademyTemplatesScreen } from '@/product-workflows/screens/templates';
 
 export default AcademyTemplatesScreen;

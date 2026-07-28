@@ -1,3 +1,3 @@
-import { PlatformTenantsScreen } from '@/screens/platformConsole';
+import { PlatformTenantsScreen } from '@/product-workflows/screens/platformConsole';
 
 export default PlatformTenantsScreen;

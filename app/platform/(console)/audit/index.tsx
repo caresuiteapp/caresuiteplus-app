@@ -1,3 +1,3 @@
-import { PlatformAuditScreen } from '@/screens/platformConsole';
+import { PlatformAuditScreen } from '@/product-workflows/screens/platformConsole';
 
 export default PlatformAuditScreen;

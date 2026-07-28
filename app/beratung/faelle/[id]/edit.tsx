@@ -1,3 +1,3 @@
-import { CaseEditScreen } from '@/screens/beratung/CaseEditScreen';
+import { CaseEditScreen } from '@/product-workflows/screens/beratung/CaseEditScreen';
 
 export default CaseEditScreen;

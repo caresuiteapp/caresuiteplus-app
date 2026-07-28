@@ -1,3 +1,3 @@
-import { TrainingManagementScreen } from '@/screens/office/TrainingManagementScreen';
+import { TrainingManagementScreen } from '@/product-workflows/screens/office/TrainingManagementScreen';
 
 export default TrainingManagementScreen;

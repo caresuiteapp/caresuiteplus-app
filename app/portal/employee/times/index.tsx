@@ -1,3 +1,3 @@
-import { EmployeePortalTimesScreen } from '@/components/wfm/EmployeePortalTimesScreen';
+import { EmployeePortalTimesScreen } from '@/product-workflows/components/wfm/EmployeePortalTimesScreen';
 
 export default EmployeePortalTimesScreen;

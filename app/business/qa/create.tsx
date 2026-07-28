@@ -1,2 +1,2 @@
-import { QaCreateScreen } from '@/screens/qa/QaCreateScreen';
+import { QaCreateScreen } from '@/product-workflows/screens/qa/QaCreateScreen';
 export default QaCreateScreen;

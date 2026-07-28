@@ -1,3 +1,3 @@
-import { CourseCreateScreen } from '@/screens/akademie/CourseCreateScreen';
+import { CourseCreateScreen } from '@/product-workflows/screens/akademie/CourseCreateScreen';
 
 export default CourseCreateScreen;

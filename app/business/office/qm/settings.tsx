@@ -1,3 +1,3 @@
-import { QmSettingsScreen } from '@/screens/qm/QmSettingsScreen';
+import { QmSettingsScreen } from '@/product-workflows/screens/qm/QmSettingsScreen';
 
 export default QmSettingsScreen;

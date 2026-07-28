@@ -1,3 +1,3 @@
-import { LeistungsnachweiseListScreen } from '@/screens/assist/LeistungsnachweiseListScreen';
+import { LeistungsnachweiseListScreen } from '@/product-workflows/screens/assist/LeistungsnachweiseListScreen';
 
 export default LeistungsnachweiseListScreen;

@@ -1,3 +1,3 @@
-import { OfficeMessageTemplatesScreen } from '@/screens/office/officemessagetemplatesscreen';
+import { OfficeMessageTemplatesScreen } from '@/product-workflows/screens/office/OfficeMessageTemplatesScreen';
 
 export default OfficeMessageTemplatesScreen;

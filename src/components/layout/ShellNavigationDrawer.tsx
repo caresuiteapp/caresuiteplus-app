@@ -19,8 +19,8 @@ import {
 import {
   getModuleNavConfig,
   resolveActiveModuleNavKey,
-} from '@/lib/navigation/modulenav';
-import { navigateModuleNavItem } from '@/lib/navigation/modulenav/navigateModuleNavItem';
+} from '@/lib/navigation/moduleNav';
+import { navigateModuleNavItem } from '@/lib/navigation/moduleNav/navigateModuleNavItem';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTenantModuleSettings } from '@/hooks/useTenantModuleSettings';

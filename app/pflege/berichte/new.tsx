@@ -1,3 +1,3 @@
-import { PflegeberichtErstellenScreen } from '@/screens/pflege/PflegeberichtErstellenScreen';
+import { PflegeberichtErstellenScreen } from '@/product-workflows/screens/pflege/PflegeberichtErstellenScreen';
 
 export default PflegeberichtErstellenScreen;

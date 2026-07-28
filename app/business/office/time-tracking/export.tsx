@@ -1,3 +1,3 @@
-import { WfmExportScreen } from '@/components/wfm/WfmExportScreen';
+import { WfmExportScreen } from '@/product-workflows/components/wfm/WfmExportScreen';
 
 export default WfmExportScreen;

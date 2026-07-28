@@ -1,3 +1,3 @@
-import { AssistServiceCatalogScreen } from '@/screens/admin/AssistServiceCatalogScreen';
+import { AssistServiceCatalogScreen } from '@/product-workflows/screens/admin/AssistServiceCatalogScreen';
 
 export default AssistServiceCatalogScreen;

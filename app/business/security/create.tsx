@@ -1,2 +1,2 @@
-import { SecurityCreateScreen } from '@/screens/security/SecurityCreateScreen';
+import { SecurityCreateScreen } from '@/product-workflows/screens/security/SecurityCreateScreen';
 export default SecurityCreateScreen;

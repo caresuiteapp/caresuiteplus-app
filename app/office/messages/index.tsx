@@ -1,3 +1,3 @@
-import { OfficeMessengerScreen } from '@/screens/office/OfficeMessengerScreen';
+import { OfficeMessengerScreen } from '@/product-workflows/screens/office/OfficeMessengerScreen';
 
 export default OfficeMessengerScreen;

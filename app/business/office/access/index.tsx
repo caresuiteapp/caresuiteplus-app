@@ -1,3 +1,3 @@
-import { AccessManagementDashboardScreen } from '@/screens/office/access';
+import { AccessManagementDashboardScreen } from '@/product-workflows/screens/office/access';
 
 export default AccessManagementDashboardScreen;

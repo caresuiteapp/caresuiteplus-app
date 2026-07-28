@@ -8,7 +8,7 @@ import {
   PremiumButton,
   PremiumCard,
   SectionPanel,
-} from '@/components/ui';
+} from '@/product-workflows/components/ui';
 import {
   colors,
   designTokens,
@@ -17,7 +17,7 @@ import {
   spacing,
   typography,
   typographyScale,
-} from '@/theme';
+} from '@/product-workflows/theme';
 import { DesignSystemComponentsSection } from './components';
 
 const CATEGORY_LABELS: Record<string, string> = {

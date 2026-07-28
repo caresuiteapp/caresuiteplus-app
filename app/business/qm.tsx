@@ -1,3 +1,3 @@
-import { QmDashboardScreen } from '@/screens/qm/QmDashboardScreen';
+import { QmDashboardScreen } from '@/product-workflows/screens/qm/QmDashboardScreen';
 
 export default QmDashboardScreen;

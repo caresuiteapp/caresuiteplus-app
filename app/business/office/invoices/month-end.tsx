@@ -1,3 +1,3 @@
-import { MonthEndClosingScreen } from '@/screens/business/office/OfficeInvoiceExtensionScreens';
+import { MonthEndClosingScreen } from '@/product-workflows/screens/business/office/OfficeInvoiceExtensionScreens';
 
 export default MonthEndClosingScreen;

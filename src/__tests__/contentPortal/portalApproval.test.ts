@@ -29,7 +29,7 @@ describe('content portal approval inbox', () => {
   });
 
   it('registers office.portal.approvals modal key', () => {
-    const modals = readFileSync(path.join(root, 'src/lib/navigation/modulenav/modalscreens.ts'), 'utf8');
+    const modals = readFileSync(path.join(root, 'src/lib/navigation/moduleNav/modalScreens.ts'), 'utf8');
     expect(modals).toContain("'office.portal.approvals'");
     expect(modals).toContain('PortalApprovalModalPrepScreen');
   });

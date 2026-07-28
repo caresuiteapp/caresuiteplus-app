@@ -1,3 +1,3 @@
-import { AssistTasksListScreen } from '@/screens/assist/AssistTasksListScreen';
+import { AssistTasksListScreen } from '@/product-workflows/screens/assist/AssistTasksListScreen';
 
 export default AssistTasksListScreen;

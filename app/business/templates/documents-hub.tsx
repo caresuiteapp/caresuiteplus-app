@@ -1,3 +1,3 @@
-import { DocumentSettingsHubScreen } from '@/screens/documents/DocumentSettingsHubScreen';
+import { DocumentSettingsHubScreen } from '@/product-workflows/screens/documents/DocumentSettingsHubScreen';
 
 export default DocumentSettingsHubScreen;

@@ -1,3 +1,3 @@
-import { AssistIndexScreen } from '@/screens/assist/AssistIndexScreen';
+import { AssistIndexScreen } from '@/product-workflows/screens/assist/AssistIndexScreen';
 
 export default AssistIndexScreen;

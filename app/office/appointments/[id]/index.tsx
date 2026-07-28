@@ -1,3 +1,3 @@
-import { AppointmentDetailScreen } from '@/screens/office/AppointmentDetailScreen';
+import { AppointmentDetailScreen } from '@/product-workflows/screens/office/AppointmentDetailScreen';
 
 export default AppointmentDetailScreen;

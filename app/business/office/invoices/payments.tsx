@@ -1,3 +1,3 @@
-import { InvoicePaymentsScreen } from '@/screens/business/office/OfficeInvoiceExtensionScreens';
+import { InvoicePaymentsScreen } from '@/product-workflows/screens/business/office/OfficeInvoiceExtensionScreens';
 
 export default InvoicePaymentsScreen;

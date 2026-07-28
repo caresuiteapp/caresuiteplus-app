@@ -1,3 +1,3 @@
-import { WfmPruefqueueScreen } from '@/components/wfm/WfmPruefqueueScreen';
+import { WfmPruefqueueScreen } from '@/product-workflows/components/wfm/WfmPruefqueueScreen';
 
 export default WfmPruefqueueScreen;

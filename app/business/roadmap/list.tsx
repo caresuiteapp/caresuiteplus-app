@@ -1,2 +1,2 @@
-import { RoadmapListScreen } from '@/screens/roadmap/RoadmapListScreen';
+import { RoadmapListScreen } from '@/product-workflows/screens/roadmap/RoadmapListScreen';
 export default RoadmapListScreen;

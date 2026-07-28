@@ -7,7 +7,7 @@ const read = (file: string) => readFileSync(path.join(root, file), 'utf8');
 
 describe('Office Integrität', () => {
   it('zeigt Zielgruppen nur einmal im Messenger und nicht erneut in der Seitenleiste', () => {
-    const nav = read('src/lib/navigation/modulenav/officenav.ts');
+    const nav = read('src/lib/navigation/moduleNav/officeNav.ts');
     expect(nav).not.toContain("key: 'messages-clients'");
     expect(nav).not.toContain("key: 'messages-employees'");
     expect(nav).not.toContain("key: 'messages-internal'");
@@ -40,7 +40,7 @@ describe('Office Integrität', () => {
   });
 
   it('bindet Nachrichten- und Kalender-Vorlagen an echte Datenquellen an', () => {
-    const messages = read('src/screens/office/officemessagetemplatesscreen.tsx');
+    const messages = read('src/screens/office/OfficeMessageTemplatesScreen.tsx');
     const calendar = read('app/office/calendar/templates/index.tsx');
     expect(messages).toContain('MessageTemplatesScreen');
     expect(messages).not.toContain('Wird wiederhergestellt');

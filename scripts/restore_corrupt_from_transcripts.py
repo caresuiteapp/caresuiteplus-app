@@ -11,7 +11,7 @@ TRANSCRIPT_DIR = Path(
 
 FORCE_TARGETS = {
     "src/components/office/officemessagethread.tsx",
-    "src/components/office/officemessagecontextpanel.tsx",
+    "src/components/office/OfficeMessageContextPanel.tsx",
     "src/components/office/officemessagesinbox.tsx",
     "src/components/office/officenewchatmodal.tsx",
     "src/components/layout/platform/moduledashboardshell.tsx",

@@ -11,44 +11,11 @@ import {
 } from '../components/LiquidPrimitives';
 import { liquidColors, liquidLayers, liquidRadius } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
-
-type PortalKind = 'employee' | 'client' | 'relative';
-
-type PortalNavigationItem = {
-  id: string;
-  label: string;
-  glyph: string;
-  route: string;
-};
-
-const PORTAL_ROOTS: Record<PortalKind, string> = {
-  employee: '/portal/employee',
-  client: '/portal/client',
-  relative: '/portal/relative',
-};
-
-const PORTAL_NAVIGATION: Record<PortalKind, readonly PortalNavigationItem[]> = {
-  employee: [
-    { id: 'home', label: 'Heute', glyph: '⌂', route: '/portal/employee' },
-    { id: 'assignments', label: 'Einsätze', glyph: '◇', route: '/portal/employee/assignments' },
-    { id: 'time', label: 'Arbeitszeit', glyph: '◷', route: '/portal/employee/arbeitszeit' },
-    { id: 'payroll', label: 'Gehalt', glyph: '€', route: '/portal/employee/payroll' },
-    { id: 'messages', label: 'Nachrichten', glyph: '▱', route: '/portal/employee/messages' },
-    { id: 'profile', label: 'Profil', glyph: '♙', route: '/portal/employee/profile' },
-  ],
-  client: [
-    { id: 'home', label: 'Übersicht', glyph: '⌂', route: '/portal/client' },
-    { id: 'appointments', label: 'Termine', glyph: '□', route: '/portal/client/appointments' },
-    { id: 'documents', label: 'Dokumente', glyph: '▤', route: '/portal/client/documents' },
-    { id: 'messages', label: 'Nachrichten', glyph: '▱', route: '/portal/client/messages' },
-    { id: 'budget', label: 'Budget', glyph: '€', route: '/portal/client/budget' },
-    { id: 'profile', label: 'Profil', glyph: '♙', route: '/portal/client/profile' },
-  ],
-  relative: [
-    { id: 'home', label: 'Übersicht', glyph: '⌂', route: '/portal/relative' },
-    { id: 'messages', label: 'Nachrichten', glyph: '▱', route: '/portal/relative/messages' },
-  ],
-};
+import {
+  liquidPortalNavigation,
+  liquidPortalRoots,
+  type ProductPortalKind as PortalKind,
+} from '../navigation/portalCatalog';
 
 const transparentContent = { backgroundColor: 'transparent' } as const;
 
@@ -69,12 +36,12 @@ function PortalChrome({ kind }: { kind: PortalKind }) {
   const router = useRouter();
   const layout = useLiquidLayout();
   const auth = useAuth();
-  const navigation = PORTAL_NAVIGATION[kind];
+  const navigation = liquidPortalNavigation[kind];
   const compactNavigation = navigation.filter((item) =>
     kind === 'employee'
-      ? ['home', 'assignments', 'messages', 'profile'].includes(item.id)
+      ? ['home', 'assignments', 'calendar', 'documents', 'profile'].includes(item.id)
       : kind === 'client'
-        ? ['home', 'appointments', 'documents', 'messages', 'profile'].includes(item.id)
+        ? ['home', 'appointments', 'live', 'documents', 'profile'].includes(item.id)
         : ['home', 'messages'].includes(item.id),
   );
   const profileRoute =
@@ -93,7 +60,7 @@ function PortalChrome({ kind }: { kind: PortalKind }) {
     return matching?.id ?? 'home';
   }, [navigation, pathname]);
 
-  if (pathname === PORTAL_ROOTS[kind]) return <PortalStack />;
+  if (pathname === liquidPortalRoots[kind]) return <PortalStack />;
 
   const signOut = async () => {
     await auth.signOut();

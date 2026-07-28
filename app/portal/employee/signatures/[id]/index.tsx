@@ -1,1 +1,1 @@
-export { PortalSignatureDetailScreen as default } from '@/screens/portal/PortalSignatureDetailScreen';
+export { PortalSignatureDetailScreen as default } from '@/product-workflows/screens/portal/PortalSignatureDetailScreen';

@@ -62,7 +62,7 @@ mustContain('src/screens/office/PayrollMonthOverviewScreen.tsx', [
   'Genehmigen',
   'Rückfrage',
 ]);
-mustContain('src/lib/navigation/modulenav/officenav.ts', ['Gehaltsstatistik']);
+mustContain('src/lib/navigation/moduleNav/officeNav.ts', ['Gehaltsstatistik']);
 mustContain('src/lib/navigation/employeePortalNavigation.ts', ['Gehalt & Auslagen']);
 
 if (failures.length) {

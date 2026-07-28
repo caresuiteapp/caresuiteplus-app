@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { PlatformAuthGate, PlatformErrorBoundary } from '@/components/platformConsole';
+import { PlatformAuthGate, PlatformErrorBoundary } from '@/product-workflows/components/platformConsole';
 
 export default function PlatformConsoleLayout() {
   return (

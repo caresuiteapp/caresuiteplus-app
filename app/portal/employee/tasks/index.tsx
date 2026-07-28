@@ -1,5 +1,5 @@
-import { PortalEmptyState } from '@/components/portal/PortalEmptyState';
-import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
+import { PortalEmptyState } from '@/product-workflows/components/portal/PortalEmptyState';
+import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScreen';
 
 export default function EmployeePortalTasksRoute() {
   return (

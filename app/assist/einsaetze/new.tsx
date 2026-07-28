@@ -1,6 +1,3 @@
-import { Redirect } from 'expo-router';
+import { AssignmentCreateScreen } from '@/product-workflows/screens/assist/AssignmentCreateScreen';
 
-/** Legacy route — weiterleiten zur Einsatzplanung und Create-Formular öffnen. */
-export default function AssistEinsatzNewRedirect() {
-  return <Redirect href="/assist/assignments?create=1" />;
-}
+export default AssignmentCreateScreen;

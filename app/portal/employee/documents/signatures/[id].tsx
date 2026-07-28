@@ -1,4 +1,4 @@
-import { CsDocumentRequestDetailScreen } from '@/screens/documents/CsDocumentRequestDetailScreen';
+import { CsDocumentRequestDetailScreen } from '@/product-workflows/screens/documents/CsDocumentRequestDetailScreen';
 import { useAuth } from '@/lib/auth/context';
 
 export default function EmployeeDocumentSignatureDetailRoute() {

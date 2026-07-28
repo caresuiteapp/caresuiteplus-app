@@ -1,3 +1,3 @@
-import { EmployeePortalMessagesScreen } from '@/screens/communication';
+import { EmployeePortalMessagesScreen } from '@/product-workflows/screens/communication';
 
 export default EmployeePortalMessagesScreen;

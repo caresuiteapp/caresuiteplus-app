@@ -1,3 +1,3 @@
-import { QmTemplatesScreen } from '@/screens/qm/QmTemplatesScreen';
+import { QmTemplatesScreen } from '@/product-workflows/screens/qm/QmTemplatesScreen';
 
 export default QmTemplatesScreen;

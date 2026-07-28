@@ -1,2 +1,2 @@
-import { RelativePortalMessagesScreen } from '@/screens/communication';
+import { RelativePortalMessagesScreen } from '@/product-workflows/screens/communication';
 export default RelativePortalMessagesScreen;

@@ -1,6 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
-import { MODULE_NAV_MODAL_SCREENS } from '@/lib/navigation/modulenav';
+import { MODULE_NAV_MODAL_SCREENS } from '@/lib/navigation/moduleNav';
 import { useModalStack } from '@/hooks/useModalStack';
 
 /** Renders the top modal entry; stack depth drives back navigation. */

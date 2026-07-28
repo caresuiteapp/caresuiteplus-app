@@ -1,3 +1,3 @@
-import { AssistCatalogHubScreen } from '@/screens/office/AssistCatalogHubScreen';
+import { AssistCatalogHubScreen } from '@/product-workflows/screens/office/AssistCatalogHubScreen';
 
 export default AssistCatalogHubScreen;

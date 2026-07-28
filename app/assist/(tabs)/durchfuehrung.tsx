@@ -1,3 +1,3 @@
-import { ExecutionsListScreen } from '@/screens/assist/ExecutionsListScreen';
+import { ExecutionsListScreen } from '@/product-workflows/screens/assist/ExecutionsListScreen';
 
 export default ExecutionsListScreen;

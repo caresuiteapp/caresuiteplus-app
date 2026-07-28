@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { EmployeeDetailScreen } from '@/screens/office/EmployeeDetailScreen';
 import { EmptyState, PremiumButton } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
-import type { ModuleNavModalComponentProps } from '@/lib/navigation/modulenav/modalscreens';
+import type { ModuleNavModalComponentProps } from '@/lib/navigation/moduleNav/modalScreens';
 
 export function EmployeeRecordModalPrepScreen({ payload }: ModuleNavModalComponentProps = {}) {
   const router = useRouter();

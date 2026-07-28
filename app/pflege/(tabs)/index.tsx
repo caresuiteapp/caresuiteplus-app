@@ -1,3 +1,3 @@
-import { PflegeIndexScreen } from '@/screens/pflege/PflegeIndexScreen';
+import { PflegeIndexScreen } from '@/product-workflows/screens/pflege/PflegeIndexScreen';
 
 export default PflegeIndexScreen;

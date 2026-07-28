@@ -23,7 +23,7 @@ import {
   validatePortalCodeLogin,
 } from '@/lib/auth/clientPortalAuthService';
 import { sanitizePortalUsernameInput } from '@/lib/auth/clientPortalUsernameGenerator';
-import { completePortalLogin } from '@/lib/auth/portalloginflow';
+import { completePortalLogin } from '@/lib/auth/portalLoginFlow';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
 import { requestBusinessPasswordReset } from '@/lib/auth/passwordResetService';
 import {
@@ -65,6 +65,7 @@ function AccessShell({
 }: AccessShellProps) {
   const router = useRouter();
   const layout = useLiquidLayout();
+  const stacked = layout.isPhone || (layout.isTablet && layout.isPortrait);
   return (
     <LiquidBackdrop>
       <KeyboardAvoidingView
@@ -95,10 +96,13 @@ function AccessShell({
         >
           <View style={[
             styles.accessGrid,
-            layout.isPhone && styles.accessGridPhone,
+            stacked && styles.accessGridPhone,
             compact && styles.accessGridCompact,
           ]}>
-            <View style={[styles.accessMain, compact && styles.accessMainCompact]}>
+            <View
+              testID="liquid-access-main"
+              style={[styles.accessMain, compact && styles.accessMainCompact]}
+            >
               {compact ? (
                 <View style={styles.compactBrand}>
                   <LiquidLogo />
@@ -116,9 +120,9 @@ function AccessShell({
               </View>
               {children}
             </View>
-            {!compact && !layout.isPhone && side ? <View style={styles.accessSide}>{side}</View> : null}
+            {!compact && !stacked && side ? <View style={styles.accessSide}>{side}</View> : null}
           </View>
-          {!compact && layout.isPhone && side ? <View style={styles.accessMobileSide}>{side}</View> : null}
+          {!compact && stacked && side ? <View style={styles.accessMobileSide}>{side}</View> : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </LiquidBackdrop>
@@ -956,8 +960,10 @@ const styles = StyleSheet.create({
   },
   accessGridPhone: {
     flexDirection: 'column',
+    alignItems: 'stretch',
   },
   accessGridCompact: {
+    width: '100%',
     minHeight: 780,
     alignItems: 'center',
     justifyContent: 'center',
@@ -970,7 +976,9 @@ const styles = StyleSheet.create({
   accessMainCompact: {
     width: '100%',
     maxWidth: 500,
-    flex: 0,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
     alignSelf: 'center',
   },
   compactBrand: {

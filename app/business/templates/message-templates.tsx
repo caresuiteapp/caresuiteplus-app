@@ -1,3 +1,3 @@
-import { MessageTemplatesScreen } from '@/screens/templates';
+import { MessageTemplatesScreen } from '@/product-workflows/screens/templates';
 
 export default MessageTemplatesScreen;

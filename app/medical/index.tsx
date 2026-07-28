@@ -1,3 +1,3 @@
-import { MedicalCatalogHubScreen } from '@/screens/medical/MedicalCatalogHubScreen';
+import { MedicalCatalogHubScreen } from '@/product-workflows/screens/medical/MedicalCatalogHubScreen';
 
 export default MedicalCatalogHubScreen;

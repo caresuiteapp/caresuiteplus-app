@@ -1,2 +1,2 @@
-import { TIDocumentAssignmentScreen } from '@/screens/ti/TIDocumentAssignmentScreen';
+import { TIDocumentAssignmentScreen } from '@/product-workflows/screens/ti/TIDocumentAssignmentScreen';
 export default TIDocumentAssignmentScreen;

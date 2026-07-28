@@ -1,3 +1,3 @@
-import { InternalUsersScreen } from '@/screens/office/access';
+import { InternalUsersScreen } from '@/product-workflows/screens/office/access';
 
 export default InternalUsersScreen;

@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { InsightSnapshotDetailScreen } from '@/screens/insight';
+import { InsightSnapshotDetailScreen } from '@/product-workflows/screens/insight';
 
 export default function InsightSnapshotDetailRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();

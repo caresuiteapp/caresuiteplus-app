@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { EmptyState } from '@/components/ui';
 import { OfficePortalApprovalsInbox } from '@/components/office/OfficePortalApprovalsInbox';
 import { careSpacing } from '@/design/tokens/spacing';
-import type { ModuleNavModalComponentProps } from '@/lib/navigation/modulenav/modalscreens';
+import type { ModuleNavModalComponentProps } from '@/lib/navigation/moduleNav/modalScreens';
 
 /** Modal prep — tenant-wide portal approval inbox. */
 export function PortalApprovalModalPrepScreen({ payload }: ModuleNavModalComponentProps = {}) {

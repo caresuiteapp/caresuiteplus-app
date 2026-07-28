@@ -1,3 +1,3 @@
-import { InternalTasksScreen } from '@/screens/office/access';
+import { InternalTasksScreen } from '@/product-workflows/screens/office/access';
 
 export default InternalTasksScreen;

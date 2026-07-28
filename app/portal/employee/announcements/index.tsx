@@ -1,2 +1,2 @@
-import { EmployeePortalAnnouncementsScreen } from '@/screens/portal/EmployeePortalAnnouncementsScreen';
+import { EmployeePortalAnnouncementsScreen } from '@/product-workflows/screens/portal/EmployeePortalAnnouncementsScreen';
 export default EmployeePortalAnnouncementsScreen;

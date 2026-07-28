@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
-import { LoadingState } from '@/components/ui';
+import { LoadingState } from '@/product-workflows/components/ui';
 import { buildPlatformLoginPath, hasSupabaseAuthSession } from '@/lib/platformConsole/platformSession';
-import { PlatformForbiddenScreen } from '@/screens/platformConsole';
+import { PlatformForbiddenScreen } from '@/product-workflows/screens/platformConsole';
 
 export default function PlatformForbiddenRoute() {
   const [ready, setReady] = useState(false);

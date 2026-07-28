@@ -1,1 +1,1 @@
-export { InventoryDashboardScreen as default } from '@/screens/inventory/InventoryDashboardScreen';
+export { InventoryDashboardScreen as default } from '@/product-workflows/screens/inventory/InventoryDashboardScreen';

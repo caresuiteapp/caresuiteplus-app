@@ -1,4 +1,4 @@
-import { MarketplaceRequestScreen } from '@/screens/marketplace';
+import { MarketplaceRequestScreen } from '@/product-workflows/screens/marketplace';
 
 export default function MarketplaceRequestRoute() {
   return <MarketplaceRequestScreen />;

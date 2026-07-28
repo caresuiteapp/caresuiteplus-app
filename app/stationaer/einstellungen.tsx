@@ -1,3 +1,3 @@
-import { StationaerSettingsScreen } from '@/screens/stationaer/StationaerSettingsScreen';
+import { StationaerSettingsScreen } from '@/product-workflows/screens/stationaer/StationaerSettingsScreen';
 
 export default StationaerSettingsScreen;

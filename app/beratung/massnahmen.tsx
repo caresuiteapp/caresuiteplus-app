@@ -1,3 +1,3 @@
-import { BeratungMeasuresListScreen } from '@/screens/beratung/BeratungMeasuresListScreen';
+import { BeratungMeasuresListScreen } from '@/product-workflows/screens/beratung/BeratungMeasuresListScreen';
 
 export default BeratungMeasuresListScreen;

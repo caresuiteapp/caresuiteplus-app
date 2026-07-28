@@ -1,3 +1,3 @@
-import { QmMeasuresScreen } from '@/screens/qm/QmMeasuresScreen';
+import { QmMeasuresScreen } from '@/product-workflows/screens/qm/QmMeasuresScreen';
 
 export default QmMeasuresScreen;

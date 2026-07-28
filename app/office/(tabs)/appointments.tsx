@@ -1,3 +1,3 @@
-import { AppointmentsAdaptiveScreen } from '@/screens/office/AppointmentsAdaptiveScreen';
+import { AppointmentsAdaptiveScreen } from '@/product-workflows/screens/office/AppointmentsAdaptiveScreen';
 
 export default AppointmentsAdaptiveScreen;

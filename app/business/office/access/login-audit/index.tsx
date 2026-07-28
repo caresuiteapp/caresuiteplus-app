@@ -1,3 +1,3 @@
-import { LoginAuditScreen } from '@/screens/office/access';
+import { LoginAuditScreen } from '@/product-workflows/screens/office/access';
 
 export default LoginAuditScreen;

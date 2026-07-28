@@ -632,7 +632,13 @@ export function LiquidCommandShell({
               </LiquidSurface>
             ) : null}
             {contentMode === 'fill' ? (
-              <View style={[styles.contentFill, { padding: layout.contentPadding }]}>
+              <View
+                style={[
+                  styles.contentFill,
+                  { padding: layout.contentPadding },
+                  !layout.isDesktop && styles.contentFillCompact,
+                ]}
+              >
                 {showPageHeader ? (
                   <View style={styles.pageHeader}>
                     <View style={styles.pageHeading}>
@@ -1071,6 +1077,9 @@ const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: 0,
     gap: 14,
+  },
+  contentFillCompact: {
+    paddingBottom: 104,
   },
   contentPrimaryFill: {
     flex: 1,

@@ -1,3 +1,3 @@
-import { WfmHistorieOfficeScreen } from '@/components/wfm/WfmHistorieOfficeScreen';
+import { WfmHistorieOfficeScreen } from '@/product-workflows/components/wfm/WfmHistorieOfficeScreen';
 
 export default WfmHistorieOfficeScreen;

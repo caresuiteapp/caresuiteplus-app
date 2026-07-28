@@ -1,2 +1,2 @@
-import { RoadmapHubScreen } from '@/screens/roadmap/RoadmapHubScreen';
+import { RoadmapHubScreen } from '@/product-workflows/screens/roadmap/RoadmapHubScreen';
 export default RoadmapHubScreen;

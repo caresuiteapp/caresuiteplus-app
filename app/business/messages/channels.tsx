@@ -1,2 +1,2 @@
-import { CommunicationChannelSettingsScreen } from '@/screens/communication/CommunicationChannelSettingsScreen';
+import { CommunicationChannelSettingsScreen } from '@/product-workflows/screens/communication/CommunicationChannelSettingsScreen';
 export default CommunicationChannelSettingsScreen;

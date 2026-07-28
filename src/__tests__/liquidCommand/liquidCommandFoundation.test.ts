@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { liquidColors } from '@/liquid-command/foundation/tokens';
-import { resolveLiquidFormFactor } from '@/liquid-command/foundation/useLiquidLayout';
+import {
+  resolveLiquidFormFactor,
+  resolveLiquidLayout,
+} from '@/liquid-command/foundation/useLiquidLayout';
 import {
   liquidGlobalShortcuts,
   liquidModules,
@@ -30,6 +33,19 @@ describe('Liquid Command foundation', () => {
     [1440, 900, 'web', 'desktop'],
   ] as const)('resolves %sx%s %s as %s', (width, height, platform, expected) => {
     expect(resolveLiquidFormFactor(width, height, platform)).toBe(expected);
+  });
+
+  it('keeps compact web and tablet landscape in the tablet navigation model', () => {
+    const compact = resolveLiquidLayout(1200, 800, 'web');
+    expect(compact.formFactor).toBe('compact-web');
+    expect(compact.isTablet).toBe(true);
+    expect(compact.isDesktop).toBe(false);
+    expect(compact.showDock).toBe(false);
+    expect(compact.showCommandLabels).toBe(true);
+
+    const desktop = resolveLiquidLayout(1440, 900, 'web');
+    expect(desktop.isDesktop).toBe(true);
+    expect(desktop.showDock).toBe(true);
   });
 
   it('contains the complete module dock and every universal page type', () => {

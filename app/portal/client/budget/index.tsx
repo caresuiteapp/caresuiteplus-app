@@ -1,16 +1,16 @@
-import { PortalEmptyState } from '@/components/portal/PortalEmptyState';
-import { PortalSectionGate } from '@/components/portal/PortalSectionGate';
-import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
-import { LoadingState } from '@/components/ui';
+import { PortalEmptyState } from '@/product-workflows/components/portal/PortalEmptyState';
+import { PortalSectionGate } from '@/product-workflows/components/portal/PortalSectionGate';
+import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScreen';
+import { LoadingState } from '@/product-workflows/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { fetchClientPortalSettingsResolved } from '@/lib/client/clientPortalSettingsService';
 import { getClientPortalBudgetProjection } from '@/lib/portal/clientPortalProjectionService';
-import { GlassCard } from '@/design/components/GlassCard';
+import { GlassCard } from '@/product-workflows/design/components/GlassCard';
 import { StyleSheet, Text, View } from 'react-native';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
-import { careSpacing } from '@/design/tokens/spacing';
+import { useAuroraAdaptiveText } from '@/product-workflows/design/tokens/auroraGlass';
+import { careSpacing } from '@/product-workflows/design/tokens/spacing';
 
 function formatEuro(cents: number): string {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100);

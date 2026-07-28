@@ -1,3 +1,3 @@
-import { CatalogsScreen } from '@/screens/templates/CatalogsScreen';
+import { CatalogsScreen } from '@/product-workflows/screens/templates/CatalogsScreen';
 
 export default CatalogsScreen;

@@ -7,7 +7,7 @@ import {
   PremiumCard,
   PremiumInput,
   SectionPanel,
-} from '@/components/ui';
+} from '@/product-workflows/components/ui';
 import {
   listTenantBudgetDefaults,
   listTenantBudgetYears,
@@ -19,8 +19,8 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useRouter } from 'expo-router';
-import { ScreenShell } from '@/components/layout';
-import { colors, spacing, typography } from '@/theme';
+import { ScreenShell } from '@/product-workflows/components/layout';
+import { colors, spacing, typography } from '@/product-workflows/theme';
 
 /** Mandanten-Budget-Vorlagen — Core K.4 years, types, 2026 template. */
 export default function TenantClientBudgetDefaultsScreen() {

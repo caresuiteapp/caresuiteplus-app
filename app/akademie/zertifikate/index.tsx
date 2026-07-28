@@ -1,3 +1,3 @@
-import { CertificatesScreen } from '@/screens/akademie/CertificatesScreen';
+import { CertificatesScreen } from '@/product-workflows/screens/akademie/CertificatesScreen';
 
 export default CertificatesScreen;

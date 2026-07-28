@@ -1,4 +1,4 @@
-import { IntegrationDetailScreen } from '@/screens/integrations/IntegrationDetailScreen';
+import { IntegrationDetailScreen } from '@/product-workflows/screens/integrations/IntegrationDetailScreen';
 
 export default function IntegrationDetailRoute() {
   return <IntegrationDetailScreen />;

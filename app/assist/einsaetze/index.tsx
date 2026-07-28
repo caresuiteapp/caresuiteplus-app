@@ -1,3 +1,3 @@
-import { EinsaetzeListScreen } from '@/screens/assist/EinsaetzeListScreen';
+import { EinsaetzeListScreen } from '@/product-workflows/screens/assist/EinsaetzeListScreen';
 
 export default EinsaetzeListScreen;

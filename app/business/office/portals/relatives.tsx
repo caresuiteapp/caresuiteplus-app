@@ -1,3 +1,3 @@
-import { RelativePortalCodesScreen } from '@/screens/office/access/RelativePortalCodesScreen';
+import { RelativePortalCodesScreen } from '@/product-workflows/screens/office/access/RelativePortalCodesScreen';
 
 export default RelativePortalCodesScreen;

@@ -4,7 +4,7 @@ import {
   mapPortalSupabaseTokensFromEdge,
   signInWithPortalSupabaseTokens,
   type PortalSupabaseTokens,
-} from './portalsupabaseauth';
+} from './portalSupabaseAuth';
 
 export type PortalLoginResult = {
   portalSession: PortalSessionRecord;

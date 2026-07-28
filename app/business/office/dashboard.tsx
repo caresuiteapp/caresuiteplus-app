@@ -1,3 +1,3 @@
-import { OfficeIndexScreen } from '@/screens/office/OfficeIndexScreen';
+import { OfficeIndexScreen } from '@/product-workflows/screens/office/OfficeIndexScreen';
 
 export default OfficeIndexScreen;

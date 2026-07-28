@@ -1,2 +1,2 @@
-import { PayrollMonthOverviewScreen } from '@/screens/office/PayrollMonthOverviewScreen';
+import { PayrollMonthOverviewScreen } from '@/product-workflows/screens/office/PayrollMonthOverviewScreen';
 export default PayrollMonthOverviewScreen;

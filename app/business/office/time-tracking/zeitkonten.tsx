@@ -1,3 +1,3 @@
-import { WfmZeitkontenScreen } from '@/components/wfm/TimeTrackingTeamScreen';
+import { WfmZeitkontenScreen } from '@/product-workflows/components/wfm/TimeTrackingTeamScreen';
 
 export default WfmZeitkontenScreen;

@@ -1,4 +1,4 @@
-import { ClientLegalDocumentsScreen } from '@/screens/business/office/ClientLegalDocumentsScreen';
+import { ClientLegalDocumentsScreen } from '@/product-workflows/screens/business/office/ClientLegalDocumentsScreen';
 
 export default function ClientConsentsRoute() {
   return <ClientLegalDocumentsScreen focus="consents" />;

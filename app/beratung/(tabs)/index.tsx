@@ -1,3 +1,3 @@
-import { BeratungIndexScreen } from '@/screens/beratung/BeratungIndexScreen';
+import { BeratungIndexScreen } from '@/product-workflows/screens/beratung/BeratungIndexScreen';
 
 export default BeratungIndexScreen;

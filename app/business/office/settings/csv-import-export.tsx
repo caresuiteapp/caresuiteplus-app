@@ -1,3 +1,3 @@
-import { CsvImportExportScreen } from '@/components/csv/CsvImportExportScreen';
+import { CsvImportExportScreen } from '@/product-workflows/components/csv/CsvImportExportScreen';
 
 export default CsvImportExportScreen;

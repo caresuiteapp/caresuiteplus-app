@@ -1,3 +1,3 @@
-import { TemplateEditScreen } from '@/screens/templates';
+import { TemplateEditScreen } from '@/product-workflows/screens/templates';
 
 export default TemplateEditScreen;

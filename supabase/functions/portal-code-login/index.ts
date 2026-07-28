@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { maskCodeHint, normalizePortalCode, verifyPortalCode } from '../_shared/crypto.ts';
 import { corsHeaders, getServiceClient, jsonResponse, readClientMeta, tryInsert } from '../_shared/http.ts';
+import { ensurePortalSupabaseAuth } from '../_shared/portalAuth.ts';
 
 type LoginBody = {
   code: string;
@@ -127,6 +128,22 @@ serve(async (req) => {
       user_agent: meta.userAgent,
     });
 
+    const authResult = await ensurePortalSupabaseAuth(supabase, {
+      portalType,
+      accountId: matched.id as string,
+      tenantId: matched.tenant_id as string,
+      roleKey: portalType === 'relative' ? 'family_portal' : 'client_portal',
+      displayName:
+        (matched.display_name as string | null)?.trim() ||
+        (portalType === 'relative' ? 'Angehörigenportal' : 'Klient:innenportal'),
+      linkTable: table,
+      linkRowId: matched.id as string,
+    });
+
+    if (!authResult.ok) {
+      return jsonResponse({ ok: false, error: authResult.error }, 500);
+    }
+
     return jsonResponse({
       ok: true,
       portalAccountId: matched.id,
@@ -134,6 +151,8 @@ serve(async (req) => {
       portalType,
       sessionToken,
       expiresAt,
+      supabaseAccessToken: authResult.accessToken,
+      supabaseRefreshToken: authResult.refreshToken,
     });
   } catch (err) {
     return jsonResponse({ ok: false, error: String(err) }, 500);

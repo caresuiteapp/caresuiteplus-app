@@ -1,3 +1,3 @@
-import { HtmlDocumentTemplatesScreen } from '@/screens/documents/HtmlDocumentTemplatesScreen';
+import { HtmlDocumentTemplatesScreen } from '@/product-workflows/screens/documents/HtmlDocumentTemplatesScreen';
 
 export default HtmlDocumentTemplatesScreen;

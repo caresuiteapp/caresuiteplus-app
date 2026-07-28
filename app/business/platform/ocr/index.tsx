@@ -1,4 +1,4 @@
-import { OcrJobsListScreen } from '@/screens/platform/OcrJobsListScreen';
+import { OcrJobsListScreen } from '@/product-workflows/screens/platform/OcrJobsListScreen';
 
 export default function OcrJobsRoute() {
   return <OcrJobsListScreen />;

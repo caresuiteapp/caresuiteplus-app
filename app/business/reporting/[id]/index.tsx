@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { ReportDetailScreen } from '@/screens/reporting';
+import { ReportDetailScreen } from '@/product-workflows/screens/reporting';
 
 /** WP505 — Berichtsdetail */
 export default function ReportDetailRoute() {

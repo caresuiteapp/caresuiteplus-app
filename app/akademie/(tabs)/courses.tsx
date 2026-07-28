@@ -1,3 +1,3 @@
-import { CoursesAdaptiveScreen } from '@/screens/akademie/CoursesAdaptiveScreen';
+import { CoursesAdaptiveScreen } from '@/product-workflows/screens/akademie/CoursesAdaptiveScreen';
 
 export default CoursesAdaptiveScreen;

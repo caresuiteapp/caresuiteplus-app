@@ -30,10 +30,10 @@ describe('Module nav modal routing', () => {
   it('ModuleNavSidebar öffnet PlatformModal auf Desktop/Tablet', () => {
     const sidebar = readSrc('src/components/layout/platform/modulenavsidebar.tsx');
     expect(sidebar).toContain('navigateModuleNavItem');
-    const nav = readSrc('src/lib/navigation/modulenav/navigateModuleNavItem.ts');
+    const nav = readSrc('src/lib/navigation/moduleNav/navigateModuleNavItem.ts');
     expect(nav).toContain('openInModal');
     expect(nav).toContain("adaptiveShell === 'desktop'");
-    expect(readSrc('src/lib/navigation/moduleNav/modalscreens.ts')).toContain('embeddedInModal');
+    expect(readSrc('src/lib/navigation/moduleNav/modalScreens.ts')).toContain('embeddedInModal');
   });
 
   it('Settings-Screens nutzen SettingsScreenFrame für PlatformShell', () => {

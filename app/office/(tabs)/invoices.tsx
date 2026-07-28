@@ -1,3 +1,3 @@
-import { OfficeBillingScreen } from '@/screens/office/OfficeBillingScreen';
+import { OfficeBillingScreen } from '@/product-workflows/screens/office/OfficeBillingScreen';
 
 export default OfficeBillingScreen;

@@ -1,4 +1,4 @@
-import { PortalClientAppointmentDetailScreen } from '@/screens/portal/PortalClientAppointmentDetailScreen';
+import { PortalClientAppointmentDetailScreen } from '@/product-workflows/screens/portal/PortalClientAppointmentDetailScreen';
 
 export default function ClientAppointmentDetailRoute() {
   return <PortalClientAppointmentDetailScreen />;

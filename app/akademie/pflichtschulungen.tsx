@@ -1,3 +1,3 @@
-import { MandatoryTrainingsScreen } from '@/screens/akademie/AkademieDedicatedScreens';
+import { MandatoryTrainingsScreen } from '@/product-workflows/screens/akademie/AkademieDedicatedScreens';
 
 export default MandatoryTrainingsScreen;

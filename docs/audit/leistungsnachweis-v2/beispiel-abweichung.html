@@ -90,8 +90,21 @@
       border: 1px solid #e5e7eb;
       border-radius: 8px;
       padding: 14px;
-      min-height: 88px;
+      min-height: 132px;
       page-break-inside: avoid;
+      overflow: hidden;
+    }
+    .proof-signature-image-frame {
+      width: 100%;
+      height: 96px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .proof-signature-image-frame img {
+      display: block;
+      transform-origin: center center;
     }
     .proof-signature-meta { margin: 8px 0 0; font-size: 12px; color: #4b5563; }
     .proof-footer {
@@ -116,8 +129,8 @@
     <h1 class="proof-title">Leistungsnachweis</h1>
     <p class="proof-meta">
       Nachweis-Nr. LN-TEST
-      · Erstellt 15.06.2026, 11:10
-      · Leistungsdatum 15.06.2026, 10:00 · Pflege Plus GmbH
+      · Erstellt 15.06.2026, 12:10
+      · Leistungsdatum 15.06.2026, 11:00 · Pflege Plus GmbH
     </p>
 
     <div class="proof-cards">
@@ -134,9 +147,9 @@
       <div class="proof-card">
         <h3>Einsatzzeiten</h3>
         <div class="proof-grid">
-          <span class="proof-label">Geplanter Zeitraum</span><span>15.06.2026, 10:00–11:00</span>
-          <span class="proof-label">Tatsächlicher Beginn</span><span>15.06.2026, 10:15</span>
-          <span class="proof-label">Tatsächliches Ende</span><span>15.06.2026, 11:00</span>
+          <span class="proof-label">Geplanter Zeitraum</span><span>15.06.2026, 11:00–12:00</span>
+          <span class="proof-label">Tatsächlicher Beginn</span><span>15.06.2026, 11:15</span>
+          <span class="proof-label">Tatsächliches Ende</span><span>15.06.2026, 12:00</span>
           <span class="proof-label">Leistungsdauer</span><span>45 min</span>
           <span class="proof-label">Anfahrt</span><span>10 min</span>
           
@@ -167,7 +180,7 @@
       <h2>Unterschrift Klient:in</h2>
       <div class="proof-signature-box">
         <p style="margin:0;color:#6b7280;font-style:italic;font-size:12px;">Keine gezeichnete Unterschrift gespeichert.</p>
-        <p class="proof-signature-meta">Erika Mustermann (client) · 15.06.2026, 11:05</p>
+        <p class="proof-signature-meta">Erika Mustermann (client) · 15.06.2026, 12:05</p>
         
       </div>
     </section>

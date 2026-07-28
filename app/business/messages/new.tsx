@@ -1,2 +1,2 @@
-import { NewConversationScreen } from '@/screens/communication/NewConversationScreen';
+import { NewConversationScreen } from '@/product-workflows/screens/communication/NewConversationScreen';
 export default NewConversationScreen;

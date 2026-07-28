@@ -1,3 +1,3 @@
-import { PflegeSettingsScreen } from '@/screens/pflege/PflegeSettingsScreen';
+import { PflegeSettingsScreen } from '@/product-workflows/screens/pflege/PflegeSettingsScreen';
 
 export default PflegeSettingsScreen;

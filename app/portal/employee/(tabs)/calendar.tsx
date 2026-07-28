@@ -1,5 +1,5 @@
-import { EmployeePortalCalendarScreen } from '@/components/portal/EmployeePortalCalendarScreen';
-import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
+import { EmployeePortalCalendarScreen } from '@/product-workflows/components/portal/EmployeePortalCalendarScreen';
+import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScreen';
 
 export default function EmployeeCalendarRoute() {
   return (

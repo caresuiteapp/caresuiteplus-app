@@ -1,2 +1,2 @@
-import { QaListScreen } from '@/screens/qa/QaListScreen';
+import { QaListScreen } from '@/product-workflows/screens/qa/QaListScreen';
 export default QaListScreen;

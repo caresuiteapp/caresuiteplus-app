@@ -48,12 +48,22 @@ export function resolveLiquidFormFactor(
 
 export function useLiquidLayout(): LiquidLayout {
   const { width, height } = useWindowDimensions();
-  const formFactor = resolveLiquidFormFactor(width, height);
+  return resolveLiquidLayout(width, height);
+}
+
+export function resolveLiquidLayout(
+  width: number,
+  height: number,
+  platform: typeof Platform.OS = Platform.OS,
+): LiquidLayout {
+  const formFactor = resolveLiquidFormFactor(width, height, platform);
   const isPhone =
     formFactor === 'phone-portrait' || formFactor === 'phone-landscape-blocked';
   const isTablet =
-    formFactor === 'tablet-portrait' || formFactor === 'tablet-landscape';
-  const isDesktop = formFactor === 'compact-web' || formFactor === 'desktop';
+    formFactor === 'tablet-portrait' ||
+    formFactor === 'tablet-landscape' ||
+    formFactor === 'compact-web';
+  const isDesktop = formFactor === 'desktop';
   const isPortrait = height >= width;
 
   return {
@@ -65,7 +75,10 @@ export function useLiquidLayout(): LiquidLayout {
     isDesktop,
     isPortrait,
     showDock: isDesktop,
-    showCommandLabels: formFactor === 'desktop' || formFactor === 'tablet-landscape',
+    showCommandLabels:
+      formFactor === 'desktop' ||
+      formFactor === 'compact-web' ||
+      formFactor === 'tablet-landscape',
     contentPadding: isPhone ? 16 : formFactor === 'tablet-portrait' ? 20 : 24,
     panelCount:
       formFactor === 'desktop'

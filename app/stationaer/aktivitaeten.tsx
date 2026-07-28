@@ -1,3 +1,3 @@
-import { ActivitiesPlanningScreen } from '@/screens/stationaer/StationaerDedicatedScreens';
+import { ActivitiesPlanningScreen } from '@/product-workflows/screens/stationaer/StationaerDedicatedScreens';
 
 export default ActivitiesPlanningScreen;

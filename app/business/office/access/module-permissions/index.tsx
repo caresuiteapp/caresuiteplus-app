@@ -1,3 +1,3 @@
-import { UserModulePermissionsScreen } from '@/screens/office/access';
+import { UserModulePermissionsScreen } from '@/product-workflows/screens/office/access';
 
 export default UserModulePermissionsScreen;

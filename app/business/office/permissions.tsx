@@ -1,3 +1,3 @@
-import { OfficePermissionsScreen } from '@/screens/business/office/OfficePermissionsScreen';
+import { OfficePermissionsScreen } from '@/product-workflows/screens/business/office/OfficePermissionsScreen';
 
 export default OfficePermissionsScreen;

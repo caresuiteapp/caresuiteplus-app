@@ -1,3 +1,3 @@
-import { FollowUpsScreen } from '@/screens/beratung/FollowUpsScreen';
+import { FollowUpsScreen } from '@/product-workflows/screens/beratung/FollowUpsScreen';
 
 export default FollowUpsScreen;

@@ -22,7 +22,7 @@ describe('Client Core K.4 — record UI wiring', () => {
   });
 
   it('modal stack registers client record and edit modals', () => {
-    const modals = readSrc('src/lib/navigation/modulenav/modalscreens.ts');
+    const modals = readSrc('src/lib/navigation/moduleNav/modalScreens.ts');
     expect(modals).toContain("'prep.client.record'");
     expect(modals).toContain("'prep.client.edit'");
     expect(modals).toContain("'client.serviceProfile.add'");

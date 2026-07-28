@@ -1,4 +1,4 @@
-import { ModuleAssignedClientsScreen } from '@/screens/modules/ModuleAssignedClientsScreen';
+import { ModuleAssignedClientsScreen } from '@/product-workflows/screens/modules/ModuleAssignedClientsScreen';
 
 export default function BeratungAssignedClientsRoute() {
   return (

@@ -1,4 +1,4 @@
-import { DevToolGate } from '@/components/auth/DevToolGate';
+import { DevToolGate } from '@/product-workflows/components/auth/DevToolGate';
 import { LiquidModuleRouteLayout } from '@/liquid-command/shell/LiquidModuleRouteLayout';
 
 export default function DesignSystemLayout() {

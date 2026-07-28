@@ -1,5 +1,5 @@
-import { EmployeePortalUploadScreen } from '@/components/portal/EmployeePortalUploadScreen';
-import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
+import { EmployeePortalUploadScreen } from '@/product-workflows/components/portal/EmployeePortalUploadScreen';
+import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScreen';
 
 export default function EmployeeUploadsRoute() {
   return (

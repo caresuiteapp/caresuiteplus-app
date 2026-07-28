@@ -1,3 +1,3 @@
-import { MdShareViewScreen } from '@/screens/qm/MdShareViewScreen';
+import { MdShareViewScreen } from '@/product-workflows/screens/qm/MdShareViewScreen';
 
 export default MdShareViewScreen;

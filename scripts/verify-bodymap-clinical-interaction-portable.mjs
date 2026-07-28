@@ -38,7 +38,7 @@ const [
   source('supabase/migrations/20260726094500_bodymap_clinical_interaction_phase9.sql'),
   source('src/screens/stationaer/StationaerBodyMapHubScreen.tsx'),
   source('app/stationaer/bewohner/[id]/bodymap.tsx'),
-  source('src/lib/navigation/modulenav/stationaernav.ts'),
+  source('src/lib/navigation/moduleNav/stationaerNav.ts'),
   source('src/screens/stationaer/ResidentDetailScreen.tsx'),
 ]);
 

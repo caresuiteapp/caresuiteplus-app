@@ -1,2 +1,2 @@
-import { ReleaseHubScreen } from '@/screens/release/ReleaseHubScreen';
+import { ReleaseHubScreen } from '@/product-workflows/screens/release/ReleaseHubScreen';
 export default ReleaseHubScreen;

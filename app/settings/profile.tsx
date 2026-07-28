@@ -1,4 +1,4 @@
-import { UserProfileScreen } from '@/screens/settings/userprofilescreen';
+import { UserProfileScreen } from '@/product-workflows/screens/settings/userprofilescreen';
 
 export default function UserProfileRoute() {
   return <UserProfileScreen />;

@@ -1,3 +1,3 @@
-import { FundamentScreen } from '@/screens';
+import { FundamentScreen } from '@/product-workflows/screens';
 
 export default FundamentScreen;

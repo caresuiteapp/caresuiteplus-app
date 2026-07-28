@@ -1,3 +1,3 @@
-import { PlaceholderManagementScreen } from '@/screens/documents/PlaceholderManagementScreen';
+import { PlaceholderManagementScreen } from '@/product-workflows/screens/documents/PlaceholderManagementScreen';
 
 export default PlaceholderManagementScreen;

@@ -10,6 +10,8 @@ type MessageComposeScreenShellProps = {
   domain: string;
   permission: PermissionKey;
   audienceScope: 'office' | 'portal';
+  enableRecipientSelection?: boolean;
+  title?: string;
 };
 
 export function MessageComposeScreenShell({
@@ -17,18 +19,36 @@ export function MessageComposeScreenShell({
   domain,
   permission,
   audienceScope,
+  enableRecipientSelection = false,
+  title = 'Nachricht',
 }: MessageComposeScreenShellProps) {
   const router = useRouter();
-  const { sent, subject, setSubject, body, setBody, error, isSending, send } = useDomainComposeMessage({
+  const {
+    sent,
+    subject,
+    setSubject,
+    body,
+    setBody,
+    error,
+    isSending,
+    send,
+    recipientType,
+    setRecipientType,
+    recipientId,
+    setRecipientId,
+    recipientOptions,
+    recipientsLoading,
+  } = useDomainComposeMessage({
     wpNumber,
     domain,
     permission,
     audienceScope,
+    enableRecipientSelection,
   });
 
   if (sent) {
     return (
-      <ScreenShell title="Nachricht" subtitle={`WP ${wpNumber}`}>
+      <ScreenShell title={title} subtitle={`WP ${wpNumber}`}>
         <SuccessState message="Nachricht wurde gespeichert." />
         <PremiumButton title="Zurück" onPress={() => router.back()} />
       </ScreenShell>
@@ -36,7 +56,7 @@ export function MessageComposeScreenShell({
   }
 
   return (
-    <ScreenShell title="Nachricht" subtitle={`${domain} · Kommunikation`}>
+    <ScreenShell title={title} subtitle={`${domain} · Kommunikation`}>
       <ComposeMessageForm
         wpNumber={wpNumber}
         subject={subject}
@@ -46,6 +66,13 @@ export function MessageComposeScreenShell({
         error={error}
         isSending={isSending}
         send={send}
+        enableRecipientSelection={enableRecipientSelection}
+        recipientType={recipientType}
+        setRecipientType={setRecipientType}
+        recipientId={recipientId}
+        setRecipientId={setRecipientId}
+        recipientOptions={recipientOptions}
+        recipientsLoading={recipientsLoading}
       />
     </ScreenShell>
   );

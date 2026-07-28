@@ -1,3 +1,3 @@
-import { PlatformDashboardScreen } from '@/screens/platformConsole';
+import { PlatformDashboardScreen } from '@/product-workflows/screens/platformConsole';
 
 export default PlatformDashboardScreen;

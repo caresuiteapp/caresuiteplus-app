@@ -1,3 +1,3 @@
-import { TemplateCreateScreen } from '@/screens/templates';
+import { TemplateCreateScreen } from '@/product-workflows/screens/templates';
 
 export default TemplateCreateScreen;

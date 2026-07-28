@@ -1,3 +1,3 @@
-import { OfficeCalendarScreen } from '@/screens/office/OfficeCalendarScreen';
+import { OfficeCalendarScreen } from '@/product-workflows/screens/office/OfficeCalendarScreen';
 
 export default OfficeCalendarScreen;

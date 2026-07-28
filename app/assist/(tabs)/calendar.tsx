@@ -1,3 +1,3 @@
-import { AssistCalendarScreen } from '@/screens/assist/AssistCalendarScreen';
+import { AssistCalendarScreen } from '@/product-workflows/screens/assist/AssistCalendarScreen';
 
 export default AssistCalendarScreen;

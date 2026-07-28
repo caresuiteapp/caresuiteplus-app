@@ -6,7 +6,7 @@ import {
   AuroraSegmentedControl,
   AuroraGlassCard,
   AuroraBadge,
-} from '@/components/aurora';
+} from '@/product-workflows/components/aurora';
 import {
   InfoBanner,
   PremiumAvatar,
@@ -14,8 +14,8 @@ import {
   PremiumDivider,
   PremiumListRow,
   SectionPanel,
-} from '@/components/ui';
-import { colors, spacing, typography } from '@/theme';
+} from '@/product-workflows/components/ui';
+import { colors, spacing, typography } from '@/product-workflows/theme';
 
 export function DesignSystemComponentsSection() {
   const [showBanner, setShowBanner] = useState(true);

@@ -1,3 +1,3 @@
-import { OfficeDocumentDetailScreen } from '@/screens/office/OfficeDocumentDetailScreen';
+import { OfficeDocumentDetailScreen } from '@/product-workflows/screens/office/OfficeDocumentDetailScreen';
 
 export default OfficeDocumentDetailScreen;

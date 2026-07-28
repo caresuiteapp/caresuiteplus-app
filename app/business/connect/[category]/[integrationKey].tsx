@@ -1,4 +1,4 @@
-import { ConnectIntegrationDetailScreen } from '@/screens/connect/ConnectIntegrationDetailScreen';
+import { ConnectIntegrationDetailScreen } from '@/product-workflows/screens/connect/ConnectIntegrationDetailScreen';
 
 export default function ConnectIntegrationDetailRoute() {
   return <ConnectIntegrationDetailScreen />;

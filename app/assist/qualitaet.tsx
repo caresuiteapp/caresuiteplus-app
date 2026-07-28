@@ -1,3 +1,3 @@
-import { AssistQualityListScreen } from '@/screens/assist/AssistDedicatedScreens';
+import { AssistQualityListScreen } from '@/product-workflows/screens/assist/AssistDedicatedScreens';
 
 export default AssistQualityListScreen;

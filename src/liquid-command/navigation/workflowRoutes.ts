@@ -38,11 +38,15 @@ const recordRoutes: Partial<Record<LiquidModuleKey, Record<string, RouteBuilder>
 
 const primaryWorkflowRoutes: Partial<Record<LiquidModuleKey, Record<string, string>>> = {
   office: {
-    company: '/business/office/clients/new',
+    company: '/settings/tenant',
+    clients: '/business/office/clients/new',
     people: '/business/office/employees/new',
+    timekeeping: '/business/office/time-tracking/nachtraege',
+    payroll: '/business/office/payroll',
     billing: '/business/office/invoices/new',
     documents: '/business/office/documents/upload',
     communication: '/business/messages/new',
+    portals: '/business/office/access/employee-portal/new',
     inventory: '/business/office/inventory/items',
     audit: '/business/office/audit-log',
   },
@@ -98,11 +102,85 @@ const primaryWorkflowRoutes: Partial<Record<LiquidModuleKey, Record<string, stri
   },
   settings: {
     organization: '/settings/tenant',
-    roles: '/business/settings',
+    roles: '/business/office/permissions',
     integrations: '/business/integrations',
     privacy: '/settings/data-request',
     templates: '/business/templates',
-    notifications: '/settings/profile',
+    branding: '/settings/appearance',
+  },
+};
+
+const primaryActionLabels: Partial<Record<LiquidModuleKey, Record<string, string>>> = {
+  office: {
+    company: 'Organisation bearbeiten',
+    clients: 'Klient:in anlegen',
+    people: 'Mitarbeitende anlegen',
+    timekeeping: 'Nachtrag erfassen',
+    payroll: 'Gehaltsmonat öffnen',
+    billing: 'Rechnung erstellen',
+    documents: 'Dokument hochladen',
+    communication: 'Nachricht verfassen',
+    portals: 'Portalzugang anlegen',
+    inventory: 'Inventar öffnen',
+    audit: 'Audit öffnen',
+  },
+  assist: {
+    clients: 'Klient:innen öffnen',
+    assignments: 'Einsatz planen',
+    planning: 'Einsatz planen',
+    live: 'Live-Status öffnen',
+    proofs: 'Nachweise prüfen',
+    budgets: 'Budgets öffnen',
+    portals: 'Portale öffnen',
+  },
+  pflege: {
+    sis: 'SIS anlegen',
+    measures: 'Maßnahme planen',
+    medication: 'Medikation anlegen',
+    diagnoses: 'Diagnosen öffnen',
+    wounds: 'BodyMap öffnen',
+    vitals: 'Vitalwert erfassen',
+    reports: 'Pflegebericht anlegen',
+  },
+  stationaer: {
+    residents: 'Bewohner:innen öffnen',
+    wards: 'Belegung öffnen',
+    shifts: 'Schichtplanung öffnen',
+    handover: 'Übergabe öffnen',
+    services: 'BodyMap öffnen',
+    occupancy: 'Belegung öffnen',
+  },
+  beratung: {
+    cases: 'Beratungsfall anlegen',
+    appointments: 'Terminplanung öffnen',
+    assessments: 'Erstgespräch starten',
+    recommendations: 'Maßnahmen öffnen',
+    proofs: 'Protokoll anlegen',
+    'follow-up': 'Wiedervorlage anlegen',
+  },
+  akademie: {
+    paths: 'Lernpfade öffnen',
+    courses: 'Kurs anlegen',
+    exams: 'Prüfungen öffnen',
+    certificates: 'Zertifikate öffnen',
+    mandatory: 'Pflichten öffnen',
+  },
+  platform: {
+    tenants: 'Mandanten öffnen',
+    plans: 'Tarife öffnen',
+    billing: 'Abrechnung öffnen',
+    flags: 'Feature Flags öffnen',
+    support: 'Support öffnen',
+    releases: 'Releases öffnen',
+    audit: 'Audit öffnen',
+  },
+  settings: {
+    organization: 'Organisation öffnen',
+    roles: 'Rollen öffnen',
+    integrations: 'Integrationen öffnen',
+    privacy: 'Datenschutz öffnen',
+    templates: 'Vorlagen öffnen',
+    branding: 'Darstellung öffnen',
   },
 };
 
@@ -119,4 +197,11 @@ export function getLiquidPrimaryWorkflowRoute(
   areaId: string,
 ): string | null {
   return primaryWorkflowRoutes[moduleKey]?.[areaId] ?? null;
+}
+
+export function getLiquidPrimaryActionLabel(
+  moduleKey: LiquidModuleKey,
+  areaId: string,
+): string | null {
+  return primaryActionLabels[moduleKey]?.[areaId] ?? null;
 }

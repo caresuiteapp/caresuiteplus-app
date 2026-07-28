@@ -21,7 +21,7 @@ describe('stationäre 3D-Bodymap-Integration', () => {
   });
 
   it('verlinkt die Bodymap in Navigation und Bewohnerakte', () => {
-    expect(read('src/lib/navigation/modulenav/stationaernav.ts')).toContain(
+    expect(read('src/lib/navigation/moduleNav/stationaerNav.ts')).toContain(
       "href: '/stationaer/bodymap'",
     );
     expect(read('src/screens/stationaer/ResidentDetailScreen.tsx')).toContain(
@@ -47,7 +47,7 @@ describe('stationäre 3D-Bodymap-Integration', () => {
     const hub = read('src/screens/stationaer/StationaerBodyMapHubScreen.tsx');
     const residentRoute = read('app/stationaer/bewohner/[id]/bodymap.tsx');
     expect(hub).toContain('Alle 30 technischen Körpervarianten');
-    expect(residentRoute).toContain("@/screens/pflege/BodyMapScreen");
+    expect(residentRoute).toContain("@/product-workflows/screens/pflege/BodyMapScreen");
   });
 
   it('isoliert im Demo-Lauf identische Pflege- und Bewohner-IDs', async () => {

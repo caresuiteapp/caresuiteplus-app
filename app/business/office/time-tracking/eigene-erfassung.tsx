@@ -1,3 +1,3 @@
-import { TimeTrackingEmployeeScreen } from '@/components/timeTracking/TimeTrackingEmployeeScreen';
+import { TimeTrackingEmployeeScreen } from '@/product-workflows/components/timeTracking/TimeTrackingEmployeeScreen';
 
 export default TimeTrackingEmployeeScreen;

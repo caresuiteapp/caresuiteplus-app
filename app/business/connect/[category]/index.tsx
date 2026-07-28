@@ -1,4 +1,4 @@
-import { ConnectCategoryScreen } from '@/screens/connect/ConnectCategoryScreen';
+import { ConnectCategoryScreen } from '@/product-workflows/screens/connect/ConnectCategoryScreen';
 
 export default function ConnectCategoryRoute() {
   return <ConnectCategoryScreen />;

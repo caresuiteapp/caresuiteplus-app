@@ -1,3 +1,3 @@
-import { AkademieSettingsScreen } from '@/screens/akademie/AkademieSettingsScreen';
+import { AkademieSettingsScreen } from '@/product-workflows/screens/akademie/AkademieSettingsScreen';
 
 export default AkademieSettingsScreen;

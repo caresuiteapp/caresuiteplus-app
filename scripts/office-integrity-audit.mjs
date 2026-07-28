@@ -3,7 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 
 const root = process.cwd();
-const navPath = path.join(root, 'src/lib/navigation/modulenav/officenav.ts');
+const navPath = path.join(root, 'src/lib/navigation/moduleNav/officeNav.ts');
 const navSource = readFileSync(navPath, 'utf8');
 const hrefs = [...navSource.matchAll(/href:\s*'([^']+)'/g)].map((match) => match[1]);
 const keys = [...navSource.matchAll(/key:\s*'([^']+)'/g)].map((match) => match[1]);
@@ -107,7 +107,7 @@ if (!assignmentList.includes('Array.isArray(key)')) {
 }
 
 const remainingOfficeScreens = [
-  'src/screens/office/officemessagetemplatesscreen.tsx',
+  'src/screens/office/OfficeMessageTemplatesScreen.tsx',
   'app/office/calendar/templates/index.tsx',
   'src/screens/business/office/OfficeBusinessReportingScreen.tsx',
   'src/screens/business/office/OfficeModulesHubScreen.tsx',
@@ -125,7 +125,7 @@ for (const file of remainingOfficeScreens) {
 }
 
 const messageTemplates = readFileSync(
-  path.join(root, 'src/screens/office/officemessagetemplatesscreen.tsx'),
+  path.join(root, 'src/screens/office/OfficeMessageTemplatesScreen.tsx'),
   'utf8',
 );
 if (!messageTemplates.includes('MessageTemplatesScreen')) {

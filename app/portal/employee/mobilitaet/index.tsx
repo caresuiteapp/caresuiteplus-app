@@ -1,3 +1,3 @@
-import { EmployeeMobilitySettingsScreen } from '@/screens/portal/EmployeeMobilitySettingsScreen';
+import { EmployeeMobilitySettingsScreen } from '@/product-workflows/screens/portal/EmployeeMobilitySettingsScreen';
 
 export default EmployeeMobilitySettingsScreen;

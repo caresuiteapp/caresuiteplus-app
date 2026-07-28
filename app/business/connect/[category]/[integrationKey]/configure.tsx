@@ -1,5 +1,5 @@
-import { ConnectProviderConfigureScreen } from '@/screens/connect/ConnectProviderConfigureScreen';
-import { ConnectFeatureRouteGuard } from '@/components/connect';
+import { ConnectProviderConfigureScreen } from '@/product-workflows/screens/connect/ConnectProviderConfigureScreen';
+import { ConnectFeatureRouteGuard } from '@/product-workflows/components/connect';
 import { useLocalSearchParams } from 'expo-router';
 
 export default function ConnectProviderConfigureRoute() {

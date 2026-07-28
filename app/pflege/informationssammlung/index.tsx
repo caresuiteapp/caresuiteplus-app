@@ -1,3 +1,3 @@
-import { InformationCollectionListScreen } from '@/screens/pflege/PflegeDedicatedScreens';
+import { InformationCollectionListScreen } from '@/product-workflows/screens/pflege/PflegeDedicatedScreens';
 
 export default InformationCollectionListScreen;

@@ -9,7 +9,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { GradientModalHeader } from '@/components/layout/platform';
-import { OfficeMessageContextPanel } from '@/components/office/officemessagecontextpanel';
+import { OfficeMessageContextPanel } from '@/components/office/OfficeMessageContextPanel';
 import { OfficeMessageThread } from '@/components/office/officemessagethread';
 import { GlassSurface } from '@/components/ui/effects';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';

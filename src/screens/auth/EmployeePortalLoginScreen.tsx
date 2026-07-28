@@ -6,7 +6,7 @@ import { CareSuiteLogo } from '@/components/brand';
 import { AuthLayout } from '@/design/components/AuthLayout';
 import { ErrorState, PremiumButton, PremiumInput } from '@/components/ui';
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
-import { completePortalLogin } from '@/lib/auth/portalloginflow';
+import { completePortalLogin } from '@/lib/auth/portalLoginFlow';
 import { markPortalWelcomePending } from '@/lib/auth/portalWelcomeSession';
 import { resolveEmployeeFirstLoginHref, resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';

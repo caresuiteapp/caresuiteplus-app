@@ -1,3 +1,3 @@
-import { TrainingPlanScreen } from '@/screens/akademie/AkademieDedicatedScreens';
+import { TrainingPlanScreen } from '@/product-workflows/screens/akademie/AkademieDedicatedScreens';
 
 export default TrainingPlanScreen;

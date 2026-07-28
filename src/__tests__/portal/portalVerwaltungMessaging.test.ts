@@ -28,7 +28,8 @@ describe('Portal Verwaltung messaging', () => {
     const screen = readSrc('src/screens/portal/portalofficemessagesscreens.tsx');
     const messenger = readSrc('src/components/portal/portalofficemessenger.tsx');
 
-    expect(route).toContain('PortalTabScreen');
+    expect(route).toContain('ClientPortalMessagesScreen');
+    expect(screen).toContain('PortalTabScreen');
     expect(screen).toContain('variant="glass"');
     expect(screen).toContain('Verwaltung');
     expect(messenger).toContain('MessengerShell');

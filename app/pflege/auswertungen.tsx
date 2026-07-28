@@ -1,3 +1,3 @@
-import { PflegeReportsScreen } from '@/screens/pflege/PflegeReportsScreen';
+import { PflegeReportsScreen } from '@/product-workflows/screens/pflege/PflegeReportsScreen';
 
 export default PflegeReportsScreen;

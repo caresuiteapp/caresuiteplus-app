@@ -3,8 +3,8 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { getConnectIntegration } from '@/lib/connect/connectCatalog';
 import { PROVIDER_REGISTRY } from '@/lib/integrations/providerRegistry';
-import { adminNav } from '@/lib/navigation/modulenav/adminnav';
-import { zentraleNav } from '@/lib/navigation/modulenav/zentralenav';
+import { adminNav } from '@/lib/navigation/moduleNav/adminNav';
+import { zentraleNav } from '@/lib/navigation/moduleNav/zentraleNav';
 import { getRouteByPath } from '@/lib/navigation/routes';
 
 function source(relativePath: string): string {

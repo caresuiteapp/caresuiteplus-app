@@ -188,7 +188,7 @@ describe('HealthOS H2 shell layer', () => {
 
   it('existing PlatformShell and officeNav remain unchanged', () => {
     const platform = readSrc('src/components/layout/platform/platformshell.tsx');
-    const officeNav = readSrc('src/lib/navigation/modulenav/officenav.ts');
+    const officeNav = readSrc('src/lib/navigation/moduleNav/officeNav.ts');
     expect(platform).not.toContain('HealthOS');
     expect(officeNav).not.toContain('HealthOS');
   });

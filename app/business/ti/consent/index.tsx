@@ -1,2 +1,2 @@
-import { TIConsentManagementScreen } from '@/screens/ti/TIConsentManagementScreen';
+import { TIConsentManagementScreen } from '@/product-workflows/screens/ti/TIConsentManagementScreen';
 export default TIConsentManagementScreen;

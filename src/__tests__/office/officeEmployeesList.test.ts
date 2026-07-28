@@ -53,7 +53,7 @@ describe('Office Mitarbeitende list', () => {
   it('EmployeesListView hat Suche, Filter und States', () => {
     const source = readSrc('src/components/office/EmployeesListView.tsx');
     expect(source).toContain('PremiumInput');
-    expect(source).toContain('FilterChipGroup');
+    expect(source).toContain('ListFilterSelect');
     expect(source).toContain('EmptyState');
     expect(source).toContain('ErrorState');
     expect(source).toContain('LoadingState');
@@ -132,7 +132,7 @@ describe('Office Mitarbeitende list', () => {
 
   it('EmployeeDetailModal nutzt Popup-Modals für Edit und Offboarding', () => {
     const source = readSrc('src/components/office/employeedetailmodal.tsx');
-    expect(source).toContain('EmployeeEditModal');
+    expect(source).toContain('EmployeeSectionEditModal');
     expect(source).toContain('EmployeeOffboardingModal');
     expect(source).toContain('onEditMasterData');
     expect(source).toContain('onOpenOffboarding');

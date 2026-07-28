@@ -1,2 +1,2 @@
-import { ERezeptVorbereitungScreen } from '@/screens/ti/ERezeptVorbereitungScreen';
+import { ERezeptVorbereitungScreen } from '@/product-workflows/screens/ti/ERezeptVorbereitungScreen';
 export default ERezeptVorbereitungScreen;

@@ -1,3 +1,3 @@
-import { TemplateCenterScreen } from '@/screens/templates/TemplateCenterScreen';
+import { TemplateCenterScreen } from '@/product-workflows/screens/templates/TemplateCenterScreen';
 
 export default TemplateCenterScreen;

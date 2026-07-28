@@ -1,3 +1,3 @@
-import { ClientPortalCodesScreen } from '@/screens/office/access/ClientPortalCodesScreen';
+import { ClientPortalCodesScreen } from '@/product-workflows/screens/office/access/ClientPortalCodesScreen';
 
 export default ClientPortalCodesScreen;

@@ -1,3 +1,3 @@
-import { PflegeVisitsListScreen } from '@/screens/pflege/PflegeDedicatedScreens';
+import { PflegeVisitsListScreen } from '@/product-workflows/screens/pflege/PflegeDedicatedScreens';
 
 export default PflegeVisitsListScreen;

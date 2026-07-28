@@ -1,3 +1,3 @@
-import { CarePlanDetailScreen } from '@/screens/pflege/CarePlanDetailScreen';
+import { CarePlanDetailScreen } from '@/product-workflows/screens/pflege/CarePlanDetailScreen';
 
 export default CarePlanDetailScreen;

@@ -1,4 +1,4 @@
-import { InsightDataSourcesListScreen } from '@/screens/insight';
+import { InsightDataSourcesListScreen } from '@/product-workflows/screens/insight';
 
 export default function InsightDataSourcesRoute() {
   return <InsightDataSourcesListScreen />;

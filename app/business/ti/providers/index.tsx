@@ -1,2 +1,2 @@
-import { TIProviderSettingsScreen } from '@/screens/ti/TIProviderSettingsScreen';
+import { TIProviderSettingsScreen } from '@/product-workflows/screens/ti/TIProviderSettingsScreen';
 export default TIProviderSettingsScreen;

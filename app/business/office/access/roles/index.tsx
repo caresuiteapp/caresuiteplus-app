@@ -1,3 +1,3 @@
-import { RolePermissionsScreen } from '@/screens/office/access';
+import { RolePermissionsScreen } from '@/product-workflows/screens/office/access';
 
 export default RolePermissionsScreen;

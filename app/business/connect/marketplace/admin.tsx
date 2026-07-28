@@ -1,4 +1,4 @@
-import { MarketplaceAdminScreen } from '@/screens/marketplace';
+import { MarketplaceAdminScreen } from '@/product-workflows/screens/marketplace';
 
 export default function MarketplaceAdminRoute() {
   return <MarketplaceAdminScreen />;

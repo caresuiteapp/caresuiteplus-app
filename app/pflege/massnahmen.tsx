@@ -1,3 +1,3 @@
-import { PflegeMeasuresListScreen } from '@/screens/pflege/PflegeDedicatedScreens';
+import { PflegeMeasuresListScreen } from '@/product-workflows/screens/pflege/PflegeDedicatedScreens';
 
 export default PflegeMeasuresListScreen;

@@ -1,3 +1,3 @@
-import { TeilnehmendeListScreen } from '@/screens/akademie/TeilnehmendeListScreen';
+import { TeilnehmendeListScreen } from '@/product-workflows/screens/akademie/TeilnehmendeListScreen';
 
 export default TeilnehmendeListScreen;

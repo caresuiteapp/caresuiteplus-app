@@ -1,2 +1,2 @@
-import { PilotReadinessScreen } from '@/screens/pilot/PilotReadinessScreen';
+import { PilotReadinessScreen } from '@/product-workflows/screens/pilot/PilotReadinessScreen';
 export default PilotReadinessScreen;

@@ -72,7 +72,7 @@ export const designTokens = {
   sheen,
   elevationV2,
   hero: {
-    gradient: ['#1A2030', '#12182A', '#0D1220'] as const,
+    gradient: ['#061B35', '#0A2A52', '#031127'] as const,
     gradientStart: { x: 0, y: 0 } as const,
     gradientEnd: { x: 1, y: 1 } as const,
     eyebrowLetterSpacing: 1,
@@ -82,6 +82,6 @@ export const designTokens = {
     rowMinHeight: 52,
     headerBackground: 'rgba(255,255,255,0.04)',
     rowAltBackground: 'rgba(255,255,255,0.02)',
-    selectedBackground: 'rgba(255,149,0,0.10)',
+    selectedBackground: 'rgba(22,131,255,0.16)',
   },
 } as const;

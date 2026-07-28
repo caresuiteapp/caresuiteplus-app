@@ -3,7 +3,7 @@ import { ClientRecordScreen } from '@/screens/business/office/ClientRecordScreen
 import { EmptyState, PremiumButton } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
-import type { ModuleNavModalComponentProps } from '@/lib/navigation/modulenav/modalscreens';
+import type { ModuleNavModalComponentProps } from '@/lib/navigation/moduleNav/modalScreens';
 import { useRouter } from 'expo-router';
 
 export function ClientRecordModalPrepScreen({ payload }: ModuleNavModalComponentProps = {}) {

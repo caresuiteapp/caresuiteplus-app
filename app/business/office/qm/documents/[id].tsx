@@ -1,3 +1,3 @@
-import { QmDocumentDetailScreen } from '@/screens/qm/QmDocumentDetailScreen';
+import { QmDocumentDetailScreen } from '@/product-workflows/screens/qm/QmDocumentDetailScreen';
 
 export default QmDocumentDetailScreen;

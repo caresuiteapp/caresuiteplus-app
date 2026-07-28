@@ -1,3 +1,3 @@
-import { SisDetailScreen } from '@/screens/pflege/SisDetailScreen';
+import { SisDetailScreen } from '@/product-workflows/screens/pflege/SisDetailScreen';
 
 export default SisDetailScreen;

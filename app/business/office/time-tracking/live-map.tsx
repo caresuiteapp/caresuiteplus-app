@@ -1,3 +1,3 @@
-import { OfficeWfmLiveMapScreen } from '@/components/wfm/OfficeWfmLiveMapScreen';
+import { OfficeWfmLiveMapScreen } from '@/product-workflows/components/wfm/OfficeWfmLiveMapScreen';
 
 export default OfficeWfmLiveMapScreen;

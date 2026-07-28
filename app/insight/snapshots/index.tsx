@@ -1,4 +1,4 @@
-import { InsightSnapshotsListScreen } from '@/screens/insight';
+import { InsightSnapshotsListScreen } from '@/product-workflows/screens/insight';
 
 export default function InsightSnapshotsRoute() {
   return <InsightSnapshotsListScreen />;

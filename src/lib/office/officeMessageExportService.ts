@@ -3,7 +3,7 @@ import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { logOfficeMessageAuditEvent } from '@/lib/office/officemessageauditservice';
 
-/** Stub: Chat-Export mit Audit-Protokollierung (Live-Backend folgt). */
+/** Chat-Export-Anforderung mit revisionssicherer Audit-Protokollierung. */
 export async function exportOfficeMessageThread(
   tenantId: string,
   threadId: string,

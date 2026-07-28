@@ -1,3 +1,3 @@
-import { VisitProofReviewScreen } from '@/screens/assist/VisitProofReviewScreen';
+import { VisitProofReviewScreen } from '@/product-workflows/screens/assist/VisitProofReviewScreen';
 
 export default VisitProofReviewScreen;

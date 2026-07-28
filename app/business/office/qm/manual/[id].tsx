@@ -1,3 +1,3 @@
-import { QmHandbookChapterScreen } from '@/screens/qm/QmHandbookChapterScreen';
+import { QmHandbookChapterScreen } from '@/product-workflows/screens/qm/QmHandbookChapterScreen';
 
 export default QmHandbookChapterScreen;

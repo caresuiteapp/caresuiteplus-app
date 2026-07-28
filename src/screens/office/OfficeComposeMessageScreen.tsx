@@ -8,6 +8,8 @@ export function OfficeComposeMessageScreen() {
       domain="office"
       permission="office.access"
       audienceScope="office"
+      enableRecipientSelection
+      title="Nachricht verfassen"
     />
   );
 }

@@ -2,7 +2,11 @@ import { ReactNode, useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { careSpacing } from '@/design/tokens/spacing';
-import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import {
+  liquidColors,
+  liquidRadius,
+  liquidSpace,
+} from '@/liquid-command/foundation/tokens';
 
 type GlassCardProps = {
   children: ReactNode;
@@ -19,7 +23,7 @@ export function GlassCard({ children, onPress, glow = false, accentColor, select
   const body = (
     <View style={[styles.card, style]}>
       <LinearGradient
-        colors={['rgba(72,72,108,0.94)', 'rgba(34,35,65,0.96)']}
+        colors={['rgba(6,27,53,0.94)', 'rgba(3,17,39,0.98)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject}
@@ -38,12 +42,14 @@ function createStyles(accentColor?: string, glow = false) {
   return StyleSheet.create({
     card: {
       position: 'relative', overflow: 'hidden', padding: careSpacing.md,
-      borderRadius: spatialCare.radius.card, borderWidth: 1,
-      borderColor: accentColor ? `${accentColor}70` : spatialCare.borderDark,
-      backgroundColor: spatialCare.stageStrong,
+      borderRadius: liquidRadius.card, borderWidth: 1,
+      borderColor: accentColor ? `${accentColor}70` : liquidColors.white12,
+      backgroundColor: liquidColors.navy800,
       ...(Platform.OS === 'web' ? ({
-        boxShadow: glow && accentColor ? `0 18px 48px ${accentColor}32` : spatialCare.shadowSoft,
-        backdropFilter: `blur(${spatialCare.blur.stage}px)`,
+        boxShadow: glow && accentColor
+          ? `0 18px 48px ${accentColor}32`
+          : `0 18px 48px ${liquidColors.black24}`,
+        backdropFilter: `blur(${liquidSpace.xxl}px)`,
         transition: 'transform 160ms ease, box-shadow 160ms ease',
       } as unknown as ViewStyle) : null),
     },

@@ -1,1 +1,1 @@
-export { PlatformBodyMapReviewScreen as default } from '@/screens/platformConsole/PlatformBodyMapReviewScreen';
+export { PlatformBodyMapReviewScreen as default } from '@/product-workflows/screens/platformConsole/PlatformBodyMapReviewScreen';

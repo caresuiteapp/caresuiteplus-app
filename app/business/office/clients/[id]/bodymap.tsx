@@ -1,3 +1,3 @@
-import { BodyMapScreen } from '@/screens/pflege/BodyMapScreen';
+import { BodyMapScreen } from '@/product-workflows/screens/pflege/BodyMapScreen';
 
 export default BodyMapScreen;

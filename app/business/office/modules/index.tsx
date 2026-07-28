@@ -1,3 +1,3 @@
-import { OfficeModulesHubScreen } from '@/screens/business/office/OfficeModulesHubScreen';
+import { OfficeModulesHubScreen } from '@/product-workflows/screens/business/office/OfficeModulesHubScreen';
 
 export default OfficeModulesHubScreen;

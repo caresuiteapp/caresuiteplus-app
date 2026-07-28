@@ -1,3 +1,3 @@
-import { DailyStructureScreen } from '@/screens/stationaer/StationaerListScreens';
+import { DailyStructureScreen } from '@/product-workflows/screens/stationaer/StationaerListScreens';
 
 export default DailyStructureScreen;

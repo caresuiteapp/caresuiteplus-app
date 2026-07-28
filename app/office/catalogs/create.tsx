@@ -1,2 +1,2 @@
-import { CatalogEditScreen } from '@/screens/catalog/CatalogEditScreen';
+import { CatalogEditScreen } from '@/product-workflows/screens/catalog/CatalogEditScreen';
 export default function CatalogCreateRoute() { return <CatalogEditScreen />; }

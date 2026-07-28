@@ -1,2 +1,2 @@
-import { SecurityListScreen } from '@/screens/security/SecurityListScreen';
+import { SecurityListScreen } from '@/product-workflows/screens/security/SecurityListScreen';
 export default SecurityListScreen;

@@ -1,3 +1,3 @@
-import { PlatformReleasesScreen } from '@/screens/platformConsole';
+import { PlatformReleasesScreen } from '@/product-workflows/screens/platformConsole';
 
 export default PlatformReleasesScreen;

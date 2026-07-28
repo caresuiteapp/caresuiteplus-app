@@ -1,3 +1,3 @@
-import { MdAuditPackageDetailScreen } from '@/screens/qm/MdAuditPackageDetailScreen';
+import { MdAuditPackageDetailScreen } from '@/product-workflows/screens/qm/MdAuditPackageDetailScreen';
 
 export default MdAuditPackageDetailScreen;
