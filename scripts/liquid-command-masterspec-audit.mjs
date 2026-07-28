@@ -179,7 +179,7 @@ const migratedTopLevelRoots = new Set([
 ]);
 
 for (const path of applicationRouteFiles) {
-  const route = relative(appRoot, path);
+  const route = relative(appRoot, path).replaceAll('\\', '/');
   if (
     route === '_layout.tsx' ||
     route === 'index.tsx' ||
@@ -199,7 +199,7 @@ const allLayouts = applicationRouteFiles.filter((path) => path.endsWith('_layout
 const forbiddenLayoutShell =
   /ShellLayout|routeLayoutContentStyle|ShellAnimatedBackgroundLayer|(?:Client|Employee|Relative)PortalShell|OfficeTimeTrackingShell/;
 for (const path of allLayouts) {
-  const route = relative(root, path);
+  const route = relative(root, path).replaceAll('\\', '/');
   if (route === 'app/_layout.tsx') continue;
   const text = readFileSync(path, 'utf8');
   if (forbiddenLayoutShell.test(text)) {
