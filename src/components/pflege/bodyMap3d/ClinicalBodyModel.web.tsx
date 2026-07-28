@@ -93,6 +93,8 @@ function prepareMedicalScene(
 function prepareRealHumanScene(
   scene: Object3D,
   skinTone: BodyModelProps['selection']['skinTone'],
+  visualMode: BodyModelProps['visualMode'] = 'skin',
+  wireframe = false,
 ) {
   const clone = cloneSkeleton(scene);
   clone.traverse((object) => {
@@ -101,8 +103,32 @@ function prepareRealHumanScene(
     mesh.raycast = () => {};
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    const prepareMaterial = (source: Material) =>
-      tintClinicalSkinMaterial(source, MEDICAL_SKIN_TINTS[skinTone]);
+    const prepareMaterial = (source: Material) => {
+      if (visualMode !== 'clinical-network') {
+        return tintClinicalSkinMaterial(source, MEDICAL_SKIN_TINTS[skinTone]);
+      }
+      const material = source.clone() as Material & {
+        color?: Color;
+        emissive?: Color;
+        emissiveIntensity?: number;
+        metalness?: number;
+        opacity?: number;
+        roughness?: number;
+        transparent?: boolean;
+        wireframe?: boolean;
+        depthWrite?: boolean;
+      };
+      material.color?.set(wireframe ? '#67c6ff' : '#0b579c');
+      material.emissive?.set(wireframe ? '#1683ff' : '#062c55');
+      material.emissiveIntensity = wireframe ? 0.85 : 0.38;
+      material.metalness = 0.12;
+      material.roughness = 0.58;
+      material.transparent = true;
+      material.opacity = wireframe ? 0.22 : 0.72;
+      material.wireframe = wireframe;
+      material.depthWrite = !wireframe;
+      return material;
+    };
     if (Array.isArray(mesh.material)) {
       mesh.material = mesh.material.map(prepareMaterial);
     } else if (mesh.material) {
@@ -213,6 +239,7 @@ function MedicalGltfBodyModel({
   disabled,
   rotation = [0, 0, 0],
   scale = 1,
+  visualMode = 'skin',
   selection,
   onSurfacePress,
   onMarkerPress,
@@ -230,9 +257,16 @@ function MedicalGltfBodyModel({
   const realHumanScene = useMemo(
     () =>
       visualAssetPath
-        ? prepareRealHumanScene(visualGltf.scene, selection.skinTone)
+        ? prepareRealHumanScene(visualGltf.scene, selection.skinTone, visualMode)
         : null,
-    [selection.skinTone, visualAssetPath, visualGltf.scene],
+    [selection.skinTone, visualAssetPath, visualGltf.scene, visualMode],
+  );
+  const clinicalNetworkScene = useMemo(
+    () =>
+      visualAssetPath && visualMode === 'clinical-network'
+        ? prepareRealHumanScene(visualGltf.scene, selection.skinTone, visualMode, true)
+        : null,
+    [selection.skinTone, visualAssetPath, visualGltf.scene, visualMode],
   );
   const projectedMarkers = useMemo(
     () => markersProjectedToScene(clinicalScene, markers),
@@ -253,6 +287,7 @@ function MedicalGltfBodyModel({
       }}
     >
       {realHumanScene ? <primitive object={realHumanScene} /> : null}
+      {clinicalNetworkScene ? <primitive object={clinicalNetworkScene} /> : null}
       <primitive object={clinicalScene} />
       {projectedMarkers.map((marker) => (
         <PulsingFindingMarker

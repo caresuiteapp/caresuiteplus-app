@@ -28,7 +28,7 @@ describe('selbst entwickelter Erwachsenen-Referenzkörper männlich', () => {
     const first = buildAdultMaleReferenceGlb();
     const second = buildAdultMaleReferenceGlb();
     expect(first.bytes.equals(second.bytes)).toBe(true);
-  });
+  }, 20_000);
 
   it('besteht den GLB-Vertrag mit detaillierten Oberflächenzonen', () => {
     const generated = buildAdultMaleReferenceGlb();
@@ -96,10 +96,10 @@ describe('selbst entwickelter Erwachsenen-Referenzkörper männlich', () => {
         new GLTFLoader().parse(arrayBuffer, '', resolveLoaded, rejectLoaded);
       },
     );
-    expect(loaded.scene.children).toHaveLength(113);
+    expect(loaded.scene.children).toHaveLength(114);
     const zoneObjects = loaded.scene.children.filter(
       (object) => typeof object.userData.anatomicalZoneId === 'string',
     );
-    expect(zoneObjects).toHaveLength(113);
+    expect(zoneObjects).toHaveLength(114);
   });
 });

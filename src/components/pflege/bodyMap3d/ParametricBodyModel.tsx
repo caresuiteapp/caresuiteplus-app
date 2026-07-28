@@ -23,6 +23,7 @@ export type BodyModelProps = {
   selectedMarkerId?: string | null;
   disabled?: boolean;
   allowTechnicalMeshPreview?: boolean;
+  visualMode?: 'skin' | 'clinical-network';
   rotation?: [number, number, number];
   scale?: number;
   onSurfacePress: (hit: BodyMapSurfaceHit) => void;
@@ -337,11 +338,14 @@ export function ParametricBodyModel({
   disabled,
   rotation = [0, 0, 0],
   scale = 1,
+  visualMode = 'skin',
   onSurfacePress,
   onMarkerPress,
 }: BodyModelProps) {
   const p = PROPORTIONS[selection.ageGroup];
-  const skin = new Color(SKIN_COLORS[selection.skinTone]).getStyle();
+  const skin = new Color(
+    visualMode === 'clinical-network' ? '#0a67b7' : SKIN_COLORS[selection.skinTone],
+  ).getStyle();
   const heightScale = modelScale(selection.ageGroup);
   const adultBodyShape =
     selection.ageGroup === 'jugendlicher' ||

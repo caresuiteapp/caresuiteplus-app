@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber/native';
 import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '@/theme';
 import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
 import { ClinicalBodyModel } from './ClinicalBodyModel';
@@ -26,12 +27,14 @@ export function BodyMap3DViewer({
   selectedMarkerId,
   disabled,
   allowTechnicalMeshPreview: _allowTechnicalMeshPreview,
+  presentationMode = 'embedded',
   onSurfacePress,
   onMarkerPress,
 }: BodyMap3DViewerProps) {
   const model = getBodyMapModel(selection);
   const [rotation, setRotation] = useState<[number, number, number]>([0, 0, 0]);
   const [zoom, setZoom] = useState(1);
+  const [activeTool, setActiveTool] = useState<'navigate' | 'marker'>('navigate');
   const rotationStart = useRef<[number, number]>([0, 0]);
   const zoomStart = useRef(1);
   const pinchStart = useRef<number | null>(null);
@@ -40,7 +43,8 @@ export function BodyMap3DViewer({
     () =>
       PanResponder.create({
         onMoveShouldSetPanResponder: (_, gesture) =>
-          Math.abs(gesture.dx) > 3 || Math.abs(gesture.dy) > 3,
+          activeTool === 'navigate' &&
+          (Math.abs(gesture.dx) > 3 || Math.abs(gesture.dy) > 3),
         onPanResponderGrant: (event) => {
           rotationStart.current = [rotation[0], rotation[1]];
           zoomStart.current = zoom;
@@ -62,22 +66,71 @@ export function BodyMap3DViewer({
           ]);
         },
       }),
-    [rotation, zoom],
+    [activeTool, rotation, zoom],
   );
 
+  const clinicalMode = presentationMode === 'clinical';
+
   return (
-    <View style={styles.shell}>
+    <View style={[styles.shell, clinicalMode && styles.clinicalShell]}>
       <View style={styles.statusRow}>
         <View>
-          <Text style={styles.modelLabel}>{model.label}</Text>
-          <Text style={styles.rendererStatus}>
-            Parametrischer Fallback · native GLB-Bündelung ausstehend
+          <Text style={styles.modelLabel}>
+            {clinicalMode ? 'Klinische 3D-BodyMap' : model.label}
           </Text>
-          <Text style={styles.help}>1 Finger: drehen · 2 Finger: zoomen · Antippen: Befund setzen</Text>
+          <Text style={styles.rendererStatus}>
+            {clinicalMode ? 'Einheitliches anatomisches 3D-Netz' : 'Native 3D-Darstellung'}
+          </Text>
+          <Text style={styles.help}>
+            {activeTool === 'navigate'
+              ? '1 Finger: drehen · 2 Finger: zoomen'
+              : 'Körperoberfläche antippen: Befund setzen'}
+          </Text>
         </View>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>3D</Text>
         </View>
+      </View>
+      <View style={styles.toolRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="3D-Modell drehen"
+          style={[styles.toolButton, activeTool === 'navigate' && styles.toolButtonActive]}
+          onPress={() => setActiveTool('navigate')}
+        >
+          <Ionicons
+            name="hand-left-outline"
+            size={18}
+            color={activeTool === 'navigate' ? '#ffffff' : '#8fc8ff'}
+          />
+          <Text style={styles.toolButtonText}>Drehen</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Befund auf der Körperoberfläche setzen"
+          style={[styles.toolButton, activeTool === 'marker' && styles.toolButtonActive]}
+          onPress={() => setActiveTool('marker')}
+          disabled={disabled}
+        >
+          <Ionicons
+            name="locate-outline"
+            size={18}
+            color={activeTool === 'marker' ? '#ffffff' : '#8fc8ff'}
+          />
+          <Text style={styles.toolButtonText}>Befund</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="3D-Ansicht zurücksetzen"
+          style={styles.toolButton}
+          onPress={() => {
+            setRotation([0, 0, 0]);
+            setZoom(1);
+          }}
+        >
+          <Ionicons name="refresh-outline" size={18} color="#8fc8ff" />
+          <Text style={styles.toolButtonText}>Reset</Text>
+        </Pressable>
       </View>
       <View style={styles.viewPresets}>
         {VIEW_PRESETS.map((preset) => (
@@ -110,7 +163,8 @@ export function BodyMap3DViewer({
             selection={selection}
             markers={markers}
             selectedMarkerId={selectedMarkerId}
-            disabled={disabled}
+            disabled={disabled || activeTool !== 'marker'}
+            visualMode={presentationMode === 'clinical' ? 'clinical-network' : 'skin'}
             rotation={rotation}
             scale={zoom}
             onSurfacePress={onSurfacePress}
@@ -130,6 +184,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSoft,
     backgroundColor: '#071326',
+  },
+  clinicalShell: {
+    borderColor: 'rgba(65, 151, 255, 0.72)',
+    shadowColor: '#1479ff',
+    shadowOpacity: 0.3,
+    shadowRadius: 18,
   },
   statusRow: {
     minHeight: 70,
@@ -160,6 +220,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeText: { ...typography.caption, color: '#fff', fontWeight: '800' },
+  toolRow: {
+    minHeight: 52,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    flexDirection: 'row',
+    gap: spacing.xs,
+    backgroundColor: '#071326',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(112,165,255,0.16)',
+  },
+  toolButton: {
+    minHeight: 40,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(112,165,255,0.3)',
+    backgroundColor: 'rgba(23,105,224,0.12)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  toolButtonActive: {
+    borderColor: '#2289ff',
+    backgroundColor: '#1769e0',
+  },
+  toolButtonText: { ...typography.caption, color: '#f5f9ff', fontWeight: '800' },
   viewPresets: {
     minHeight: 48,
     paddingHorizontal: spacing.sm,

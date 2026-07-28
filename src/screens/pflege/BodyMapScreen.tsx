@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   Easing,
   Image,
@@ -9,10 +10,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { ScreenShell } from '@/components/layout';
 import { BodyMap3DViewer, type BodyMapSurfaceHit } from '@/components/pflege/bodyMap3d';
 import {
@@ -22,8 +25,6 @@ import {
   LoadingState,
   PremiumButton,
   PremiumInput,
-  SectionPanel,
-  SegmentedTabs,
 } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useClientDetail } from '@/hooks/useClientDetail';
@@ -33,6 +34,8 @@ import { useAuth } from '@/lib/auth/context';
 import {
   createBodyMapMarker,
   fetchBodyMapMarkers,
+  patchBodyMapMarker,
+  removeBodyMapMarker,
 } from '@/lib/pflege/bodyMapService';
 import {
   addBodyMapFindingProgress,
@@ -41,15 +44,8 @@ import {
   uploadBodyMapClinicalPhoto,
 } from '@/lib/pflege/bodyMapClinicalService';
 import {
-  BODY_MAP_AGE_LABELS,
-  BODY_MAP_ANATOMY_PACKS,
-  BODY_MAP_CHEST_OPTIONS,
-  BODY_MAP_SEX_LABELS,
-  ageGroupFromBirthDate,
-  completedAgeFromBirthDate,
   getBodyMapAnatomyPack,
   getBodyMapModel,
-  validateBodyMapSelection,
 } from '@/lib/pflege/bodyMap3d/modelCatalog';
 import {
   ANATOMICAL_ZONE_BY_ID,
@@ -58,46 +54,35 @@ import {
 import {
   BODY_MAP_FINDING_DEFINITIONS,
   buildClinicalLocationSnapshot,
-  markerMatchesModelSelection,
   recommendedFindingDefinitions,
   resolveAnatomicalCandidates,
 } from '@/lib/pflege/bodyMap3d/clinicalInteractionCatalog';
 import { PRESSURE_INJURY_CLASSIFICATIONS } from '@/lib/pflege/bodyMap3d/pressureInjuryCatalog';
 import type {
   BodyMap3DMarker,
-  BodyMapAgeGroup,
-  BodyMapChestAnatomy,
-  BodyMapGenitalAnatomy,
   BodyMapFindingStatus,
   BodyMapMarker,
   BodyMapMarkerType,
   BodyMapModelSelection,
   BodyMapRegion,
   BodyMapSex,
-  BodyMapSkinTone,
 } from '@/types/modules/bodyMap';
 import { colors, spacing, typography } from '@/theme';
+import {
+  liquidColors,
+  liquidRadius,
+  liquidShadows,
+  liquidSpace,
+  liquidTypography,
+} from '@/liquid-command/foundation/tokens';
 
-const AGE_GROUPS = Object.keys(BODY_MAP_AGE_LABELS) as BodyMapAgeGroup[];
-const SEX_OPTIONS = Object.keys(BODY_MAP_SEX_LABELS) as BodyMapSex[];
-const AGE_RANGE_LABELS: Record<BodyMapAgeGroup, string> = {
-  baby: '0–11 Monate',
-  kleinkind: '1–5 Jahre',
-  kind: '6–12 Jahre',
-  jugendlicher: '13–17 Jahre',
-  junger_erwachsener: '18–29 Jahre',
-  erwachsener: '30–64 Jahre',
-  senior: '65–84 Jahre',
-  hochbetagt: 'ab 85 Jahren',
+const CLINICAL_BODYMAP_SELECTION: BodyMapModelSelection = {
+  sex: 'divers',
+  ageGroup: 'erwachsener',
+  genitalAnatomy: 'unbekannt',
+  chestAnatomy: 'keine_brueste',
+  skinTone: 'mittel',
 };
-
-const SKIN_TONES: readonly { id: BodyMapSkinTone; label: string; color: string }[] = [
-  { id: 'sehr_hell', label: 'Sehr hell', color: '#f4d4c4' },
-  { id: 'hell', label: 'Hell', color: '#ddb29a' },
-  { id: 'mittel', label: 'Mittel', color: '#b97855' },
-  { id: 'dunkel', label: 'Dunkel', color: '#75452f' },
-  { id: 'sehr_dunkel', label: 'Sehr dunkel', color: '#3d241c' },
-];
 
 const MARKER_TYPES = BODY_MAP_FINDING_DEFINITIONS;
 
@@ -322,12 +307,87 @@ function PulsingFindingDot({ selected = false }: { selected?: boolean }) {
   );
 }
 
+type BodyMapWorkspacePanel = 'model' | 'findings' | 'clinical';
+
+function WorkspaceTool({
+  icon,
+  label,
+  active,
+  count,
+  onPress,
+}: {
+  icon: string;
+  label: string;
+  active: boolean;
+  count?: number;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.workspaceTool,
+        active && styles.workspaceToolActive,
+        pressed && styles.workspaceToolPressed,
+      ]}
+    >
+      <Ionicons
+        color={active ? liquidColors.white : liquidColors.blue200}
+        name={icon as never}
+        size={21}
+      />
+      <Text style={[styles.workspaceToolLabel, active && styles.workspaceToolLabelActive]}>
+        {label}
+      </Text>
+      {typeof count === 'number' ? (
+        <View style={styles.workspaceToolBadge}>
+          <Text style={styles.workspaceToolBadgeText}>{count}</Text>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function BodyMapMetric({
+  icon,
+  label,
+  value,
+  tone = 'blue',
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  tone?: 'blue' | 'yellow' | 'green';
+}) {
+  return (
+    <View style={styles.metricCard}>
+      <View
+        style={[
+          styles.metricIcon,
+          tone === 'yellow' && styles.metricIconYellow,
+          tone === 'green' && styles.metricIconGreen,
+        ]}
+      >
+        <Ionicons name={icon as never} size={18} color={liquidColors.white} />
+      </View>
+      <View>
+        <Text style={styles.metricValue}>{value}</Text>
+        <Text style={styles.metricLabel}>{label}</Text>
+      </View>
+    </View>
+  );
+}
+
 export function BodyMapScreen({
   careContext = 'pflege',
 }: {
   careContext?: 'pflege' | 'stationaer';
 } = {}) {
   const router = useRouter();
+  const viewport = useWindowDimensions();
   const { clientId: clientIdParam, id, woundId } = useLocalSearchParams<{
     clientId?: string;
     id?: string;
@@ -345,12 +405,7 @@ export function BodyMapScreen({
     ? 'Stationäre medizinische 3D-Bodymap'
     : 'Medizinische 3D-Bodymap';
 
-  const [sex, setSex] = useState<BodyMapSex | null>(null);
-  const [ageGroup, setAgeGroup] = useState<BodyMapAgeGroup | null>(null);
-  const [genitalAnatomy, setGenitalAnatomy] = useState<BodyMapGenitalAnatomy | null>(null);
-  const [chestAnatomy, setChestAnatomy] = useState<BodyMapChestAnatomy | null>(null);
-  const [skinTone, setSkinTone] = useState<BodyMapSkinTone>('mittel');
-  const [selection, setSelection] = useState<BodyMapModelSelection | null>(null);
+  const selection = CLINICAL_BODYMAP_SELECTION;
   const [pendingHit, setPendingHit] = useState<BodyMapSurfaceHit | null>(null);
   const [selectedAnatomicalZoneId, setSelectedAnatomicalZoneId] = useState<string | null>(
     null,
@@ -388,34 +443,13 @@ export function BodyMapScreen({
   const [detailMarkerId, setDetailMarkerId] = useState<string | null>(null);
   const [progressStatus, setProgressStatus] = useState<BodyMapFindingStatus>('in_behandlung');
   const [progressNote, setProgressNote] = useState('');
+  const [detailNote, setDetailNote] = useState('');
   const [progressPhoto, setProgressPhoto] = useState<PickedClinicalPhoto | null>(null);
   const [progressSaving, setProgressSaving] = useState(false);
+  const [detailSaving, setDetailSaving] = useState(false);
+  const [workspacePanel, setWorkspacePanel] = useState<BodyMapWorkspacePanel>('model');
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const appliedBirthDateRef = useRef<string | null>(null);
-
-  const automaticAgeGroup = useMemo(
-    () => ageGroupFromBirthDate(clientDetail.data?.dateOfBirth),
-    [clientDetail.data?.dateOfBirth],
-  );
-  const completedAge = useMemo(
-    () =>
-      clientDetail.data?.dateOfBirth
-        ? completedAgeFromBirthDate(clientDetail.data.dateOfBirth)
-        : null,
-    [clientDetail.data?.dateOfBirth],
-  );
-
-  useEffect(() => {
-    const birthDate = clientDetail.data?.dateOfBirth ?? null;
-    if (!birthDate || !automaticAgeGroup || appliedBirthDateRef.current === birthDate) return;
-    appliedBirthDateRef.current = birthDate;
-    setAgeGroup(automaticAgeGroup);
-    setSelection((current) =>
-      current ? { ...current, ageGroup: automaticAgeGroup } : current,
-    );
-  }, [automaticAgeGroup, clientDetail.data?.dateOfBirth]);
-
   const query = useAsyncQuery(
     () => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
@@ -441,18 +475,6 @@ export function BodyMapScreen({
     { enabled: !!tenantId && !!detailMarkerId },
   );
 
-  const selectionDraft = useMemo<BodyMapModelSelection | null>(() => {
-    if (!sex || !ageGroup) return null;
-    return {
-      sex,
-      ageGroup,
-      genitalAnatomy: sex === 'divers' ? genitalAnatomy : null,
-      chestAnatomy: sex === 'divers' ? chestAnatomy : null,
-      skinTone,
-    };
-  }, [sex, ageGroup, genitalAnatomy, chestAnatomy, skinTone]);
-
-  const selectionErrors = selectionDraft ? validateBodyMapSelection(selectionDraft) : [];
   const effectiveZoneId = selectedAnatomicalZoneId ?? pendingHit?.anatomicalZoneId ?? null;
   const selectedZone = effectiveZoneId
     ? ANATOMICAL_ZONE_BY_ID.get(effectiveZoneId) ?? null
@@ -483,30 +505,15 @@ export function BodyMapScreen({
     () => (query.data ?? []).find((marker) => marker.id === detailMarkerId) ?? null,
     [detailMarkerId, query.data],
   );
-
-  function openSelectedModel() {
-    if (!selectionDraft) return;
-    const errors = validateBodyMapSelection(selectionDraft);
-    if (errors.length > 0) {
-      setActionError(errors.join(' '));
-      return;
-    }
-    setSelection(selectionDraft);
-    setActionError(null);
-  }
-
-  function resetModelSelection() {
-    setSelection(null);
-    setPendingHit(null);
-    setSelectedAnatomicalZoneId(null);
-    setSelectedMarkerId(null);
-  }
+  const compactWorkspace = viewport.width < 1180;
+  const phoneWorkspace = viewport.width < 720;
 
   function handleSurfacePress(hit: BodyMapSurfaceHit) {
     setPendingHit(hit);
     setSelectedAnatomicalZoneId(hit.anatomicalZoneId);
     const firstRecommendation = recommendedFindingDefinitions(hit.anatomicalZoneId)[0];
     if (firstRecommendation) setMarkerType(firstRecommendation.id);
+    setWorkspacePanel('clinical');
     setActionError(null);
   }
 
@@ -579,11 +586,69 @@ export function BodyMapScreen({
     const marker = (query.data ?? []).find((entry) => entry.id === markerId);
     setSelectedMarkerId(markerId);
     setDetailMarkerId(markerId);
+    setWorkspacePanel('clinical');
     setProgressStatus(
       (marker?.findingStatus as BodyMapFindingStatus | null | undefined) ?? 'in_behandlung',
     );
+    setDetailNote(marker?.note ?? '');
     setProgressNote('');
     setProgressPhoto(null);
+  }
+
+  async function handleUpdateFinding() {
+    if (!tenantId || !detailMarker || isReadOnly) return;
+    setDetailSaving(true);
+    setActionError(null);
+    const result = await patchBodyMapMarker(
+      tenantId,
+      clientId,
+      detailMarker.id,
+      { note: detailNote.trim() },
+      profile?.roleKey,
+      subjectType,
+    );
+    setDetailSaving(false);
+    if (!result.ok) {
+      setActionError(result.error);
+      return;
+    }
+    await query.refresh();
+  }
+
+  function handleDeleteFinding() {
+    if (!tenantId || !detailMarker || isReadOnly) return;
+    Alert.alert(
+      'Befund wirklich löschen?',
+      'Der Befundpunkt wird aus der BodyMap entfernt. Zugeordnete klinische Verlaufsdaten bleiben entsprechend der Aufbewahrungsregeln nachvollziehbar.',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Befund löschen',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setDetailSaving(true);
+              setActionError(null);
+              const result = await removeBodyMapMarker(
+                tenantId,
+                clientId,
+                detailMarker.id,
+                profile?.roleKey,
+                subjectType,
+              );
+              setDetailSaving(false);
+              if (!result.ok) {
+                setActionError(result.error);
+                return;
+              }
+              setDetailMarkerId(null);
+              setSelectedMarkerId(null);
+              await query.refresh();
+            })();
+          },
+        },
+      ],
+    );
   }
 
   async function handleSaveProgress() {
@@ -895,190 +960,304 @@ export function BodyMapScreen({
       title={screenTitle}
       subtitle={`Anatomische Befunddokumentation · ${roleLabel ?? (isStationaerContext ? 'Stationär' : 'Pflege')} · ${subjectLabel} ${clientId}`}
       onBack={() => router.back()}
+      scroll={false}
+      showBreadcrumbs={false}
     >
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <InfoBanner
-          variant="info"
-          title="Klinische 3D-Dokumentation"
-          message="Körpermodell auswählen, dreidimensional untersuchen und die exakte Oberfläche für einen Befund antippen."
-        />
+      <ScrollView
+        style={styles.workspaceScroll}
+        contentContainerStyle={[
+          styles.workspaceScrollContent,
+          phoneWorkspace && styles.workspaceScrollContentPhone,
+        ]}
+      >
+        <View style={[styles.workspaceHero, phoneWorkspace && styles.workspaceHeroPhone]}>
+          <View style={styles.workspaceHeroCopy}>
+            <Text style={styles.workspaceEyebrow}>KLINISCHE DOKUMENTATION · DAUERHAFT</Text>
+            <Text style={[styles.workspaceTitle, phoneWorkspace && styles.workspaceTitlePhone]}>
+              BodyMap
+            </Text>
+            <Text style={styles.workspaceSubtitle}>
+              Körperoberfläche untersuchen, Befunde exakt verorten und den vollständigen
+              klinischen Verlauf dokumentieren.
+            </Text>
+            <View style={styles.workspaceContextRow}>
+              <View style={styles.workspaceContextPill}>
+                <Ionicons name="person-outline" size={15} color={liquidColors.blue200} />
+                <Text style={styles.workspaceContextText}>
+                  {clientDetail.data
+                    ? `${clientDetail.data.firstName} ${clientDetail.data.lastName}`
+                    : `${subjectLabel} ${clientId}`}
+                </Text>
+              </View>
+              <View style={styles.workspaceContextPill}>
+                <Ionicons name="shield-checkmark-outline" size={15} color={liquidColors.success} />
+                <Text style={styles.workspaceContextText}>
+                  {isReadOnly ? 'Nur Lesen' : 'Dokumentation freigegeben'}
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.workspaceMetrics}>
+            <BodyMapMetric
+              icon="location-outline"
+              label="Befunde"
+              value={String(query.data?.length ?? 0)}
+            />
+            <BodyMapMetric
+              icon="pulse-outline"
+              label="Aktiv"
+              value={String(
+                (query.data ?? []).filter(
+                  (marker) =>
+                    !['abgeheilt', 'geschlossen'].includes(marker.findingStatus ?? 'aktiv'),
+                ).length,
+              )}
+              tone="yellow"
+            />
+            <BodyMapMetric
+              icon="git-network-outline"
+              label="3D-Netz"
+              value="1"
+              tone="green"
+            />
+          </View>
+        </View>
+
         {actionError ? (
           <InfoBanner variant="danger" title="Aktion fehlgeschlagen" message={actionError} />
         ) : null}
 
-        {!selection ? (
-          <SectionPanel
-            title="1. Körpermodell auswählen"
-            subtitle="24 Alters-/Geschlechtsmodelle, vollständige Divers-Anatomiematrix und 30 technische GLB-Varianten"
+        <View
+          testID="bodymap-liquid-workspace"
+          style={[
+            styles.workspace,
+            compactWorkspace && styles.workspaceCompact,
+            phoneWorkspace && styles.workspacePhone,
+          ]}
+        >
+          <View
+            style={[
+              styles.workspaceRail,
+              compactWorkspace && styles.workspaceRailCompact,
+              phoneWorkspace && styles.workspaceRailPhone,
+            ]}
           >
-            {automaticAgeGroup ? (
-              <InfoBanner
-                variant="info"
-                title="Altersgruppe automatisch aus Geburtsdatum"
-                message={`${BODY_MAP_AGE_LABELS[automaticAgeGroup]}${
-                  completedAge === null ? '' : ` · ${completedAge} Jahre`
-                }. Eine manuelle Anpassung bleibt möglich; vorhandene Befunde werden beim Modellwechsel anatomisch übertragen.`}
-              />
-            ) : null}
-            <Text style={styles.fieldLabel}>Geschlechtseinordnung</Text>
-            <SegmentedTabs
-              tabs={SEX_OPTIONS.map((entry) => ({
-                key: entry,
-                label: BODY_MAP_SEX_LABELS[entry],
-              }))}
-              activeKey={sex ?? ''}
-              onSelect={(key) => {
-                const nextSex = key as BodyMapSex;
-                setSex(nextSex);
-                if (nextSex !== 'divers') {
-                  setGenitalAnatomy(null);
-                  setChestAnatomy(null);
-                }
-              }}
+            <WorkspaceTool
+              icon="body-outline"
+              label="Modell"
+              active={workspacePanel === 'model'}
+              onPress={() => setWorkspacePanel('model')}
             />
+            <WorkspaceTool
+              icon="location-outline"
+              label="Befunde"
+              count={query.data?.length ?? 0}
+              active={workspacePanel === 'findings'}
+              onPress={() => setWorkspacePanel('findings')}
+            />
+            <WorkspaceTool
+              icon="medkit-outline"
+              label="Klinik"
+              active={workspacePanel === 'clinical'}
+              onPress={() => setWorkspacePanel('clinical')}
+            />
+          </View>
 
-            <Text style={styles.fieldLabel}>Altersgruppe</Text>
-            <View style={styles.choiceRow}>
-              {AGE_GROUPS.map((entry) => (
-                <SelectionChip
-                  key={entry}
-                  label={`${BODY_MAP_AGE_LABELS[entry]} · ${AGE_RANGE_LABELS[entry]}`}
-                  active={ageGroup === entry}
-                  onPress={() => setAgeGroup(entry)}
-                />
-              ))}
-            </View>
-
-            {sex === 'divers' ? (
+          <ScrollView
+            style={[
+              styles.workspaceSidePanel,
+              compactWorkspace && styles.workspaceSidePanelCompact,
+              phoneWorkspace && styles.workspaceSidePanelPhone,
+            ]}
+            contentContainerStyle={styles.workspaceSidePanelContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            {workspacePanel === 'model' ? (
               <>
-                <Text style={styles.fieldLabel}>Welche Genitalanatomie liegt vor?</Text>
-                <View style={styles.choiceRow}>
-                  {BODY_MAP_ANATOMY_PACKS.map((entry) => (
-                    <SelectionChip
-                      key={entry.id}
-                      label={entry.label}
-                      active={genitalAnatomy === entry.genitalAnatomy}
-                      onPress={() => setGenitalAnatomy(entry.genitalAnatomy)}
-                    />
-                  ))}
+                <View style={styles.panelHeading}>
+                  <View>
+                    <Text style={styles.panelEyebrow}>3D-ANSICHT</Text>
+                    <Text style={styles.panelTitle}>Klinische Karte</Text>
+                  </View>
+                  <Ionicons name="body-outline" size={22} color={liquidColors.blue200} />
                 </View>
-                <Text style={styles.fieldLabel}>Welche Brustausprägung liegt vor?</Text>
-                <View style={styles.choiceRow}>
-                  {BODY_MAP_CHEST_OPTIONS.map((entry) => (
-                    <SelectionChip
-                      key={entry.id}
-                      label={entry.label}
-                      active={chestAnatomy === entry.id}
-                      onPress={() => setChestAnatomy(entry.id)}
-                    />
-                  ))}
-                </View>
-              </>
-            ) : null}
-
-            <Text style={styles.fieldLabel}>Hautton der Darstellung</Text>
-            <View style={styles.choiceRow}>
-              {SKIN_TONES.map((entry) => (
-                <SelectionChip
-                  key={entry.id}
-                  label={entry.label}
-                  color={entry.color}
-                  active={skinTone === entry.id}
-                  onPress={() => setSkinTone(entry.id)}
-                />
-              ))}
-            </View>
-
-            {selectionErrors.length > 0 ? (
-              <InfoBanner
-                variant="warning"
-                title="Auswahl noch unvollständig"
-                message={selectionErrors.join(' ')}
-              />
-            ) : null}
-
-            <PremiumButton
-              title="3D-Bodymap öffnen"
-              disabled={!selectionDraft || selectionErrors.length > 0}
-              onPress={openSelectedModel}
-            />
-          </SectionPanel>
-        ) : (
-          <>
-            <SectionPanel
-              title="2. Körperoberfläche untersuchen"
-              subtitle="Jede markierte Stelle bleibt an ihrer dreidimensionalen Oberflächenkoordinate verankert"
-            >
-              <View style={styles.modelToolbar}>
-                <View style={styles.modelMeta}>
-                  <Text style={styles.modelTitle}>{getBodyMapModel(selection).label}</Text>
-                  <Text style={styles.modelSubtitle}>
-                    {selection.sex === 'divers'
-                      ? `${getBodyMapAnatomyPack(selection)?.label ?? 'Anatomie unbekannt'} · ${
-                          BODY_MAP_CHEST_OPTIONS.find((entry) => entry.id === selection.chestAnatomy)
-                            ?.label ?? 'Brustausprägung unbekannt'
-                        }`
-                      : BODY_MAP_SEX_LABELS[selection.sex]}
+                <View style={styles.inlineNotice}>
+                  <Ionicons name="git-network-outline" size={18} color={liquidColors.blue200} />
+                  <Text style={styles.inlineNoticeText}>
+                    Einheitliches blaues 3D-Anatomienetz ohne Körpervarianten und Hautrealismus.
                   </Text>
                 </View>
-                <PremiumButton
-                  title="Modell wechseln"
-                  variant="secondary"
-                  onPress={resetModelSelection}
-                />
-              </View>
-
-              <BodyMap3DViewer
-                selection={selection}
-                markers={persisted3DMarkers.filter(
-                  (marker) =>
-                    markerMatchesModelSelection(
-                      marker,
-                      selection,
-                      getBodyMapModel(selection).id,
-                    ),
-                )}
-                selectedMarkerId={selectedMarkerId}
-                disabled={isReadOnly}
-                allowTechnicalMeshPreview
-                onSurfacePress={handleSurfacePress}
-                onMarkerPress={(marker) => openMarkerDetail(marker.id)}
-              />
-            </SectionPanel>
-
-            <SectionPanel title={`Gespeicherte Befunde (${query.data?.length ?? 0})`}>
-              {(query.data?.length ?? 0) === 0 ? (
-                <EmptyState
-                  title="Noch keine Befunde"
-                  message="Tippen Sie auf eine Körperstelle, um den ersten Befund anzulegen."
-                />
-              ) : (
-                (query.data ?? []).map((marker) => (
-                  <Pressable
-                    key={marker.id}
-                    style={[
-                      styles.findingRow,
-                      selectedMarkerId === marker.id && styles.findingRowSelected,
-                    ]}
-                    onPress={() => openMarkerDetail(marker.id)}
-                  >
-                    <PulsingFindingDot selected={selectedMarkerId === marker.id} />
-                    <View style={styles.findingCopy}>
-                      <Text style={styles.findingTitle}>
-                        {MARKER_TYPES.find((entry) => entry.id === marker.markerType)?.label ??
-                          marker.markerType}
+                <View style={styles.viewGuideList}>
+                  <View style={styles.viewGuideRow}>
+                    <Ionicons name="hand-left-outline" size={19} color={liquidColors.blue200} />
+                    <View style={styles.viewGuideCopy}>
+                      <Text style={styles.viewGuideTitle}>Drehen und verschieben</Text>
+                      <Text style={styles.viewGuideText}>
+                        Ziehen mit Maus oder Finger bewegt die anatomische Karte.
                       </Text>
-                      <Text style={styles.findingMeta}>
-                        {marker.region} · {new Date(marker.updatedAt).toLocaleString('de-DE')}
-                      </Text>
-                      {marker.note ? <Text style={styles.findingNote}>{marker.note}</Text> : null}
                     </View>
-                  </Pressable>
-                ))
-              )}
-            </SectionPanel>
-          </>
-        )}
+                  </View>
+                  <View style={styles.viewGuideRow}>
+                    <Ionicons name="locate-outline" size={19} color={liquidColors.blue200} />
+                    <View style={styles.viewGuideCopy}>
+                      <Text style={styles.viewGuideTitle}>Befund setzen</Text>
+                      <Text style={styles.viewGuideText}>
+                        Zielwerkzeug aktivieren und die exakte Körperstelle antippen.
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.viewGuideRow}>
+                    <Ionicons name="scan-outline" size={19} color={liquidColors.blue200} />
+                    <View style={styles.viewGuideCopy}>
+                      <Text style={styles.viewGuideTitle}>Vorne, hinten und seitlich</Text>
+                      <Text style={styles.viewGuideText}>
+                        Ansichten bleiben reproduzierbar und markerstabil.
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.viewGuideRow}>
+                    <Ionicons name="accessibility-outline" size={19} color={liquidColors.success} />
+                    <View style={styles.viewGuideCopy}>
+                      <Text style={styles.viewGuideTitle}>Anatomisch verankert</Text>
+                      <Text style={styles.viewGuideText}>
+                        Alle bisherigen Marker werden auf die gemeinsame Körperkarte übertragen.
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.panelHeading}>
+                  <View>
+                    <Text style={styles.panelEyebrow}>
+                      {workspacePanel === 'clinical' ? 'KLINISCH' : 'BEFUNDE'}
+                    </Text>
+                    <Text style={styles.panelTitle}>
+                      {workspacePanel === 'clinical' ? 'Dokumentation' : 'Gespeichert'}
+                    </Text>
+                  </View>
+                  <View style={styles.panelCount}>
+                    <Text style={styles.panelCountText}>{query.data?.length ?? 0}</Text>
+                  </View>
+                </View>
+                {(query.data?.length ?? 0) === 0 ? (
+                  <EmptyState
+                    title="Noch keine Befunde"
+                    message="Aktivieren Sie das Zielwerkzeug und tippen Sie auf die Körperoberfläche."
+                  />
+                ) : (
+                  <View style={styles.findingList}>
+                    {(query.data ?? []).map((marker) => (
+                      <Pressable
+                        key={marker.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Befund ${marker.markerType} öffnen`}
+                        style={[
+                          styles.findingRow,
+                          selectedMarkerId === marker.id && styles.findingRowSelected,
+                        ]}
+                        onPress={() => openMarkerDetail(marker.id)}
+                      >
+                        <PulsingFindingDot selected={selectedMarkerId === marker.id} />
+                        <View style={styles.findingCopy}>
+                          <Text style={styles.findingTitle}>
+                            {MARKER_TYPES.find((entry) => entry.id === marker.markerType)?.label ??
+                              marker.markerType}
+                          </Text>
+                          <Text style={styles.findingMeta}>
+                            {marker.anatomicalZoneId
+                              ? getAnatomicalPath(marker.anatomicalZoneId)
+                                  .map((entry) => entry.label)
+                                  .slice(-2)
+                                  .join(' › ')
+                              : marker.region}
+                          </Text>
+                          <Text style={styles.findingStatus}>
+                            {FINDING_STATUSES.find(
+                              (status) => status.id === (marker.findingStatus ?? 'aktiv'),
+                            )?.label ?? marker.findingStatus}
+                            {' · '}
+                            {new Date(marker.updatedAt).toLocaleDateString('de-DE')}
+                          </Text>
+                          {marker.note ? (
+                            <Text style={styles.findingNote} numberOfLines={2}>
+                              {marker.note}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <Ionicons
+                          name="chevron-forward-outline"
+                          size={18}
+                          color={liquidColors.white56}
+                        />
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </>
+            )}
+          </ScrollView>
+
+          <View style={[styles.workspaceStage, phoneWorkspace && styles.workspaceStagePhone]}>
+            <View style={styles.stageHeader}>
+              <View style={styles.stageTitleWrap}>
+                <Text style={styles.panelEyebrow}>ANATOMISCHE 3D-OBERFLÄCHE</Text>
+                <Text style={styles.stageTitle}>Klinische 3D-BodyMap</Text>
+                <Text style={styles.stageSubtitle}>
+                  Zielwerkzeug setzt anatomisch verankerte Befunde · Marker öffnen den Verlauf
+                </Text>
+              </View>
+              <View style={styles.stageLiveBadge}>
+                <View style={styles.stageLiveDot} />
+                <Text style={styles.stageLiveText}>3D AKTIV</Text>
+              </View>
+            </View>
+
+            <BodyMap3DViewer
+              selection={selection}
+              markers={persisted3DMarkers}
+              selectedMarkerId={selectedMarkerId}
+              disabled={isReadOnly}
+              allowTechnicalMeshPreview
+              presentationMode="clinical"
+              onSurfacePress={handleSurfacePress}
+              onMarkerPress={(marker) => openMarkerDetail(marker.id)}
+            />
+          </View>
+        </View>
+
+        <View style={styles.capabilityStrip}>
+          <View style={styles.capability}>
+            <Ionicons name="locate-outline" size={20} color={liquidColors.blue200} />
+            <View>
+              <Text style={styles.capabilityTitle}>3D-verankert</Text>
+              <Text style={styles.capabilityText}>UV, Normale und anatomische Zone</Text>
+            </View>
+          </View>
+          <View style={styles.capability}>
+            <Ionicons name="camera-outline" size={20} color={liquidColors.blue200} />
+            <View>
+              <Text style={styles.capabilityTitle}>Klinische Medien</Text>
+              <Text style={styles.capabilityText}>Initial-, Verlaufs- und Abschlussfotos</Text>
+            </View>
+          </View>
+          <View style={styles.capability}>
+            <Ionicons name="time-outline" size={20} color={liquidColors.blue200} />
+            <View>
+              <Text style={styles.capabilityTitle}>Lückenloser Verlauf</Text>
+              <Text style={styles.capabilityText}>Status, Behandlung und Kontrollen</Text>
+            </View>
+          </View>
+          <View style={styles.capability}>
+            <Ionicons name="bed-outline" size={20} color={liquidColors.blue200} />
+            <View>
+              <Text style={styles.capabilityTitle}>Dekubitus</Text>
+              <Text style={styles.capabilityText}>Kategorien, Maße und Druckentlastung</Text>
+            </View>
+          </View>
+        </View>
       </ScrollView>
 
       <Modal
@@ -1500,9 +1679,28 @@ export function BodyMapScreen({
                 </Pressable>
               </View>
 
-              {detailMarker?.note ? (
-                <InfoBanner variant="info" title="Ausgangsbefund" message={detailMarker.note} />
-              ) : null}
+              <Text style={styles.fieldLabel}>Befundbeschreibung</Text>
+              <PremiumInput
+                label="Beschreibung, Diagnose und Besonderheiten"
+                value={detailNote}
+                onChangeText={setDetailNote}
+                multiline
+                editable={!isReadOnly}
+              />
+              <View style={styles.findingMasterActions}>
+                <PremiumButton
+                  title={detailSaving ? 'Wird gespeichert…' : 'Beschreibung speichern'}
+                  disabled={detailSaving || isReadOnly || detailNote.trim() === detailMarker?.note}
+                  onPress={handleUpdateFinding}
+                />
+                <PremiumButton
+                  title="Befund löschen"
+                  variant="ghost"
+                  style={styles.dangerButton}
+                  disabled={detailSaving || isReadOnly}
+                  onPress={handleDeleteFinding}
+                />
+              </View>
 
               <Text style={styles.fieldLabel}>Aktueller Status</Text>
               <View style={styles.choiceRow}>
@@ -1701,6 +1899,464 @@ export function BodyMapScreen({
 
 const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xxl, gap: spacing.sm },
+  workspaceScroll: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: 'transparent',
+  },
+  workspaceScrollContent: {
+    padding: liquidSpace.lg,
+    paddingBottom: 64,
+    gap: liquidSpace.lg,
+  },
+  workspaceScrollContentPhone: {
+    padding: liquidSpace.sm,
+    paddingBottom: 96,
+  },
+  workspaceHero: {
+    minHeight: 168,
+    padding: liquidSpace.xl,
+    borderRadius: liquidRadius.panel,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(3,17,39,0.84)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: liquidSpace.xl,
+    overflow: 'hidden',
+  },
+  workspaceHeroPhone: {
+    padding: liquidSpace.lg,
+    alignItems: 'flex-start',
+    flexDirection: 'column',
+  },
+  workspaceHeroCopy: {
+    flex: 1,
+    maxWidth: 820,
+  },
+  workspaceEyebrow: {
+    ...liquidTypography.kicker,
+    color: liquidColors.blue200,
+  },
+  workspaceTitle: {
+    ...liquidTypography.display,
+    fontSize: 38,
+    lineHeight: 44,
+    marginTop: 5,
+  },
+  workspaceTitlePhone: {
+    fontSize: 31,
+    lineHeight: 37,
+  },
+  workspaceSubtitle: {
+    ...liquidTypography.body,
+    color: liquidColors.white72,
+    maxWidth: 760,
+    marginTop: 5,
+  },
+  workspaceContextRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: liquidSpace.sm,
+    marginTop: liquidSpace.md,
+  },
+  workspaceContextPill: {
+    minHeight: 34,
+    paddingHorizontal: liquidSpace.md,
+    borderRadius: liquidRadius.pill,
+    borderWidth: 1,
+    borderColor: liquidColors.white12,
+    backgroundColor: liquidColors.white08,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: liquidSpace.sm,
+  },
+  workspaceContextText: {
+    ...liquidTypography.meta,
+    color: liquidColors.white88,
+    fontWeight: '700',
+  },
+  workspaceMetrics: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: liquidSpace.sm,
+  },
+  metricCard: {
+    minWidth: 122,
+    minHeight: 66,
+    paddingHorizontal: liquidSpace.md,
+    paddingVertical: liquidSpace.sm,
+    borderRadius: liquidRadius.card,
+    borderWidth: 1,
+    borderColor: liquidColors.white12,
+    backgroundColor: 'rgba(5,28,57,0.84)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: liquidSpace.sm,
+  },
+  metricIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: liquidColors.blue600,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  metricIconYellow: {
+    backgroundColor: '#9A6700',
+  },
+  metricIconGreen: {
+    backgroundColor: '#08785D',
+  },
+  metricValue: {
+    color: liquidColors.white,
+    fontSize: 20,
+    lineHeight: 23,
+    fontWeight: '800',
+  },
+  metricLabel: {
+    ...liquidTypography.meta,
+    color: liquidColors.white64,
+  },
+  workspace: {
+    width: '100%',
+    minHeight: 760,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: liquidSpace.md,
+  },
+  workspaceCompact: {
+    flexWrap: 'wrap',
+    minHeight: 0,
+  },
+  workspacePhone: {
+    flexDirection: 'column',
+    gap: liquidSpace.sm,
+  },
+  workspaceRail: {
+    width: 86,
+    padding: liquidSpace.sm,
+    borderRadius: liquidRadius.panel,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(3,17,39,0.92)',
+    alignItems: 'stretch',
+    gap: liquidSpace.sm,
+  },
+  workspaceRailCompact: {
+    width: '100%',
+    minHeight: 76,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  workspaceRailPhone: {
+    minHeight: 68,
+    padding: 6,
+  },
+  workspaceTool: {
+    position: 'relative',
+    minHeight: 76,
+    paddingHorizontal: 4,
+    borderRadius: liquidRadius.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  workspaceToolActive: {
+    borderColor: liquidColors.blue400,
+    backgroundColor: liquidColors.blue500Alpha16,
+    ...liquidShadows.focus,
+  },
+  workspaceToolPressed: {
+    opacity: 0.76,
+    transform: [{ scale: 0.98 }],
+  },
+  workspaceToolLabel: {
+    ...liquidTypography.meta,
+    color: liquidColors.white56,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  workspaceToolLabelActive: {
+    color: liquidColors.white,
+  },
+  workspaceToolBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    borderRadius: 10,
+    backgroundColor: liquidColors.blue600,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  workspaceToolBadgeText: {
+    color: liquidColors.white,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  workspaceSidePanel: {
+    width: 332,
+    minWidth: 300,
+    maxHeight: 820,
+    borderRadius: liquidRadius.panel,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(5,28,57,0.9)',
+    overflow: 'hidden',
+  },
+  workspaceSidePanelContent: {
+    padding: liquidSpace.lg,
+    paddingBottom: liquidSpace.xl,
+  },
+  workspaceSidePanelCompact: {
+    width: 340,
+    maxHeight: 720,
+  },
+  workspaceSidePanelPhone: {
+    width: '100%',
+    minWidth: 0,
+    maxHeight: 620,
+  },
+  panelHeading: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: liquidSpace.md,
+    marginBottom: liquidSpace.md,
+  },
+  panelEyebrow: {
+    ...liquidTypography.kicker,
+    color: liquidColors.blue200,
+  },
+  panelTitle: {
+    ...liquidTypography.section,
+    fontSize: 21,
+    lineHeight: 26,
+    marginTop: 2,
+  },
+  panelCount: {
+    minWidth: 38,
+    height: 32,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    backgroundColor: liquidColors.blue500Alpha16,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  panelCountText: {
+    color: liquidColors.blue200,
+    fontWeight: '800',
+  },
+  inlineNotice: {
+    padding: liquidSpace.sm,
+    borderRadius: liquidRadius.small,
+    backgroundColor: liquidColors.blue500Alpha16,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: liquidSpace.sm,
+  },
+  inlineNoticeText: {
+    ...liquidTypography.meta,
+    color: liquidColors.white88,
+    flex: 1,
+  },
+  viewGuideList: {
+    marginTop: liquidSpace.lg,
+    gap: liquidSpace.sm,
+  },
+  viewGuideRow: {
+    minHeight: 70,
+    padding: liquidSpace.sm,
+    borderRadius: liquidRadius.card,
+    borderWidth: 1,
+    borderColor: liquidColors.white12,
+    backgroundColor: liquidColors.white08,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: liquidSpace.sm,
+  },
+  viewGuideCopy: {
+    flex: 1,
+  },
+  viewGuideTitle: {
+    ...liquidTypography.meta,
+    color: liquidColors.white,
+    fontWeight: '800',
+  },
+  viewGuideText: {
+    ...liquidTypography.meta,
+    color: liquidColors.white56,
+    marginTop: 3,
+  },
+  panelWarning: {
+    ...liquidTypography.meta,
+    color: liquidColors.warning,
+    marginBottom: liquidSpace.sm,
+  },
+  findingList: {
+    gap: liquidSpace.sm,
+  },
+  findingStatus: {
+    ...liquidTypography.meta,
+    color: liquidColors.blue200,
+    marginTop: 3,
+  },
+  workspaceStage: {
+    flex: 1,
+    minWidth: 520,
+    minHeight: 760,
+    padding: liquidSpace.md,
+    borderRadius: liquidRadius.panel,
+    borderWidth: 1,
+    borderColor: liquidColors.blue400,
+    backgroundColor: 'rgba(3,17,39,0.94)',
+    ...liquidShadows.panel,
+  },
+  workspaceStagePhone: {
+    minWidth: 0,
+    width: '100%',
+    minHeight: 650,
+    padding: liquidSpace.sm,
+  },
+  stageHeader: {
+    minHeight: 76,
+    paddingHorizontal: liquidSpace.sm,
+    paddingBottom: liquidSpace.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: liquidSpace.md,
+  },
+  stageTitleWrap: {
+    flex: 1,
+  },
+  stageTitle: {
+    ...liquidTypography.section,
+    fontSize: 22,
+    lineHeight: 27,
+    marginTop: 2,
+  },
+  stageSubtitle: {
+    ...liquidTypography.meta,
+    color: liquidColors.white64,
+    marginTop: 3,
+  },
+  stageModelButton: {
+    minHeight: 38,
+    paddingHorizontal: liquidSpace.md,
+    borderRadius: liquidRadius.pill,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: liquidColors.blue500Alpha16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: liquidSpace.sm,
+  },
+  stageModelButtonText: {
+    ...liquidTypography.meta,
+    color: liquidColors.white,
+    fontWeight: '800',
+  },
+  stageLiveBadge: {
+    minHeight: 34,
+    paddingHorizontal: liquidSpace.md,
+    borderRadius: liquidRadius.pill,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: liquidColors.blue500Alpha16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: liquidSpace.sm,
+  },
+  stageLiveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: liquidColors.blue300,
+    shadowColor: liquidColors.blue300,
+    shadowOpacity: 0.9,
+    shadowRadius: 8,
+  },
+  stageLiveText: {
+    ...liquidTypography.meta,
+    color: liquidColors.blue200,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  stageEmpty: {
+    flex: 1,
+    minHeight: 610,
+    borderRadius: liquidRadius.card,
+    borderWidth: 1,
+    borderColor: liquidColors.white12,
+    backgroundColor: liquidColors.navy950,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: liquidSpace.xl,
+  },
+  stageEmptyGlow: {
+    width: 148,
+    height: 148,
+    borderRadius: 74,
+    backgroundColor: liquidColors.blue500Alpha16,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...liquidShadows.focus,
+  },
+  stageEmptyTitle: {
+    ...liquidTypography.section,
+    fontSize: 22,
+    marginTop: liquidSpace.lg,
+  },
+  stageEmptyText: {
+    ...liquidTypography.body,
+    color: liquidColors.white64,
+    textAlign: 'center',
+    maxWidth: 420,
+    marginTop: liquidSpace.sm,
+  },
+  capabilityStrip: {
+    width: '100%',
+    padding: liquidSpace.md,
+    borderRadius: liquidRadius.panel,
+    borderWidth: 1,
+    borderColor: liquidColors.white12,
+    backgroundColor: 'rgba(3,17,39,0.78)',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: liquidSpace.md,
+  },
+  capability: {
+    flex: 1,
+    minWidth: 220,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: liquidSpace.sm,
+  },
+  capabilityTitle: {
+    ...liquidTypography.meta,
+    color: liquidColors.white,
+    fontWeight: '800',
+  },
+  capabilityText: {
+    ...liquidTypography.meta,
+    color: liquidColors.white56,
+    marginTop: 1,
+  },
   fieldLabel: {
     ...typography.label,
     color: colors.textPrimary,
@@ -1869,6 +2525,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
     marginTop: spacing.md,
+  },
+  findingMasterActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  dangerButton: {
+    borderColor: 'rgba(255,91,110,0.58)',
+    backgroundColor: 'rgba(255,91,110,0.08)',
   },
   measurementRow: {
     flexDirection: 'row',

@@ -11,11 +11,23 @@ const modelSource = readFileSync(
 );
 
 const errors = [];
-const expectedAges = ['baby', 'kleinkind', 'kind', 'junger-erwachsener', 'erwachsener'];
+const expectedAges = [
+  'baby',
+  'kleinkind',
+  'kind',
+  'jugendlicher',
+  'junger-erwachsener',
+  'erwachsener',
+  'senior',
+  'hochbetagt',
+];
 const expectedSexes = ['maennlich', 'weiblich', 'divers'];
 
-if (new Set(manifest.baseModelIds).size !== 15) {
-  errors.push('Die Manifest-Matrix muss genau 15 eindeutige Grundmodelle enthalten.');
+const expectedModelCount = expectedAges.length * expectedSexes.length;
+if (new Set(manifest.baseModelIds).size !== expectedModelCount) {
+  errors.push(
+    `Die Manifest-Matrix muss genau ${expectedModelCount} eindeutige Grundmodelle enthalten.`,
+  );
 }
 for (const age of expectedAges) {
   for (const sex of expectedSexes) {

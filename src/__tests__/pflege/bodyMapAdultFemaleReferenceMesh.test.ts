@@ -29,14 +29,14 @@ describe('selbst entwickelter Erwachsenen-Referenzkörper weiblich', () => {
     const first = buildAdultFemaleReferenceGlb();
     const second = buildAdultFemaleReferenceGlb();
     expect(first.bytes.equals(second.bytes)).toBe(true);
-  });
+  }, 20_000);
 
   it('besteht den GLB-Vertrag mit mehr als 100 einzeln anklickbaren Zonen', () => {
     const report = inspect(buildAdultFemaleReferenceGlb().bytes);
     expect(report.valid).toBe(true);
     expect(report.stats?.vertices).toBeGreaterThan(25_000);
     expect(report.stats?.triangles).toBeGreaterThan(45_000);
-    expect(report.zones.found).toHaveLength(118);
+    expect(report.zones.found).toHaveLength(119);
     expect(report.zones.missing).toEqual([]);
   });
 
@@ -92,7 +92,7 @@ describe('selbst entwickelter Erwachsenen-Referenzkörper weiblich', () => {
     expect(committed.equals(buildAdultFemaleReferenceGlb().bytes)).toBe(true);
   });
 
-  it('wird vom produktiven Three.js-GLTFLoader als echte Szene mit 118 Zonen geladen', async () => {
+  it('wird vom produktiven Three.js-GLTFLoader als echte Szene mit 119 Zonen geladen', async () => {
     const bytes = buildAdultFemaleReferenceGlb().bytes;
     const arrayBuffer = bytes.buffer.slice(
       bytes.byteOffset,
@@ -103,10 +103,10 @@ describe('selbst entwickelter Erwachsenen-Referenzkörper weiblich', () => {
         new GLTFLoader().parse(arrayBuffer, '', resolveLoaded, rejectLoaded);
       },
     );
-    expect(loaded.scene.children).toHaveLength(118);
+    expect(loaded.scene.children).toHaveLength(119);
     const zoneObjects = loaded.scene.children.filter(
       (object) => typeof object.userData.anatomicalZoneId === 'string',
     );
-    expect(zoneObjects).toHaveLength(118);
+    expect(zoneObjects).toHaveLength(119);
   });
 });

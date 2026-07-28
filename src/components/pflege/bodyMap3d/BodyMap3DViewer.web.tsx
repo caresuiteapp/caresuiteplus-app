@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { useEffect, useRef, useState } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import { ContactShadows, OrbitControls } from '@react-three/drei';
 import {
   Pressable,
@@ -8,8 +8,8 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { ACESFilmicToneMapping, SRGBColorSpace } from 'three';
-import { colors, spacing, typography } from '@/theme';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { ACESFilmicToneMapping, SRGBColorSpace, Vector3 } from 'three';
 import { getBodyMapModel } from '@/lib/pflege/bodyMap3d/modelCatalog';
 import {
   canRenderRealHumanVisual,
@@ -22,6 +22,13 @@ import {
 import { ClinicalBodyModel } from './ClinicalBodyModel';
 import type { BodyMap3DViewerProps } from './BodyMap3DViewer.types';
 import { getActiveBodyMapMedicalApproval } from '@/lib/pflege/bodyMap3d/medicalReviewRuntimeService';
+import {
+  liquidColors,
+  liquidRadius,
+  liquidShadows,
+  liquidSpace,
+  liquidTypography,
+} from '@/liquid-command/foundation/tokens';
 
 const VIEW_PRESETS = [
   { id: 'front', label: 'Vorne', yaw: 0 },
@@ -29,6 +36,62 @@ const VIEW_PRESETS = [
   { id: 'left', label: 'Links', yaw: Math.PI / 2 },
   { id: 'right', label: 'Rechts', yaw: -Math.PI / 2 },
 ] as const;
+
+type ViewerTool = 'rotate' | 'marker';
+
+function ViewerToolButton({
+  icon,
+  label,
+  active,
+  disabled,
+  onPress,
+}: {
+  icon: string;
+  label: string;
+  active: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: active, disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.toolButton,
+        active && styles.toolButtonActive,
+        pressed && styles.toolButtonPressed,
+        disabled && styles.toolButtonDisabled,
+      ]}
+    >
+      <Ionicons
+        name={icon as never}
+        size={21}
+        color={active ? liquidColors.white : liquidColors.blue200}
+      />
+    </Pressable>
+  );
+}
+
+function CameraZoomController({
+  baseDistance,
+  zoom,
+}: {
+  baseDistance: number;
+  zoom: number;
+}) {
+  const { camera } = useThree();
+  useEffect(() => {
+    const direction = camera.position.clone();
+    if (direction.lengthSq() < 0.0001) direction.copy(new Vector3(0, 0, 1));
+    direction.normalize();
+    camera.position.copy(direction.multiplyScalar(baseDistance / zoom));
+    camera.updateProjectionMatrix();
+  }, [baseDistance, camera, zoom]);
+  return null;
+}
 
 export function BodyMap3DViewer({
   selection,
@@ -41,6 +104,14 @@ export function BodyMap3DViewer({
   onMarkerPress,
 }: BodyMap3DViewerProps) {
   const viewport = useWindowDimensions();
+  const clinicalMode = presentationMode === 'clinical';
+  const compact = viewport.width < 760;
+  const orbitRef = useRef<{
+    reset: () => void;
+    update: () => void;
+  } | null>(null);
+  const [activeTool, setActiveTool] = useState<ViewerTool>('marker');
+  const [zoom, setZoom] = useState(1);
   const model = getBodyMapModel(selection);
   const medicalMesh = getMedicalMeshDefinition(selection);
   const realHumanVisual = getRealHumanVisualDefinition(selection);
@@ -49,7 +120,7 @@ export function BodyMap3DViewer({
   useEffect(() => {
     let active = true;
     setMedicalApproved(false);
-    if (!realHumanActive) return () => { active = false; };
+    if (clinicalMode || !realHumanActive) return () => { active = false; };
     void getActiveBodyMapMedicalApproval(
       realHumanVisual.id,
       realHumanVisual.assetSha256,
@@ -59,7 +130,7 @@ export function BodyMap3DViewer({
     return () => {
       active = false;
     };
-  }, [realHumanActive, realHumanVisual?.assetSha256, realHumanVisual?.id]);
+  }, [clinicalMode, realHumanActive, realHumanVisual?.assetSha256, realHumanVisual?.id]);
   const medicalRendererActive =
     realHumanActive ||
     canRenderMedicalMesh(medicalMesh, {
@@ -79,19 +150,33 @@ export function BodyMap3DViewer({
     medicalMesh.nominalHeightMeters /
     (2 * Math.tan((cameraFov * Math.PI) / 360) * 0.84);
   const reviewHeight = Math.max(720, Math.min(980, viewport.height - 150));
+  const setPreset = (viewId: (typeof VIEW_PRESETS)[number]['id']) => {
+    setActiveView(viewId);
+    setZoom(1);
+    orbitRef.current?.reset();
+    orbitRef.current?.update();
+  };
+  const zoomIn = () => setZoom((current) => Math.min(2.4, current * 1.2));
+  const zoomOut = () => setZoom((current) => Math.max(0.62, current / 1.2));
 
   return (
     <View
       style={[
         styles.shell,
         presentationMode === 'review' && { minHeight: reviewHeight },
+        clinicalMode && styles.shellClinical,
+        compact && styles.shellCompact,
       ]}
     >
       <View style={styles.statusRow}>
-        <View>
-          <Text style={styles.modelLabel}>{model.label}</Text>
+        <View style={styles.statusCopy}>
+          <Text style={styles.modelLabel}>
+            {clinicalMode ? 'Klinische 3D-Anatomiekarte' : model.label}
+          </Text>
           <Text style={styles.rendererStatus}>
-            {realHumanActive
+            {clinicalMode
+              ? 'Blaues anatomisches Netzwerk · alle Befunde auf einer gemeinsamen Karte'
+              : realHumanActive
               ? medicalApproved
                 ? 'Real-Human 3D · medizinisch freigegeben'
                 : 'Real-Human 3D · medizinische Prüfung ausstehend'
@@ -99,22 +184,25 @@ export function BodyMap3DViewer({
                   allowTechnicalPreview: allowTechnicalMeshPreview,
                 })}
           </Text>
-          {technicalPreviewActive ? (
+          {!clinicalMode && technicalPreviewActive ? (
             <Text style={styles.technicalWarning}>
               TECHNISCHE REFERENZ · NICHT MEDIZINISCH FREIGEGEBEN
             </Text>
           ) : null}
-          {realHumanActive && !medicalApproved ? (
+          {!clinicalMode && realHumanActive && !medicalApproved ? (
             <Text style={styles.technicalWarning}>
               REAL-HUMAN PRODUKTIONSKANDIDAT · MEDIZINISCHE PRÜFUNG AUSSTEHEND
             </Text>
           ) : null}
-          <Text style={styles.help}>Ziehen: drehen · Mausrad/2 Finger: zoomen · Rechtsziehen: verschieben</Text>
+          <Text style={styles.help}>
+            {activeTool === 'marker'
+              ? 'Ziel aktiv: Körperstelle antippen · Marker öffnen den klinischen Verlauf'
+              : 'Navigation aktiv: ziehen, zoomen und die Perspektive verschieben'}
+          </Text>
         </View>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>
-            {realHumanActive ? 'REAL' : medicalRendererActive ? 'GLB' : '3D'}
-          </Text>
+          <View style={styles.badgePulse} />
+          <Text style={styles.badgeText}>{clinicalMode ? 'NETZ' : realHumanActive ? 'REAL' : medicalRendererActive ? 'GLB' : '3D'}</Text>
         </View>
       </View>
       <View style={styles.viewPresets}>
@@ -124,8 +212,19 @@ export function BodyMap3DViewer({
             accessibilityRole="button"
             accessibilityState={{ selected: activeView === preset.id }}
             style={[styles.viewButton, activeView === preset.id && styles.viewButtonActive]}
-            onPress={() => setActiveView(preset.id)}
+            onPress={() => setPreset(preset.id)}
           >
+            <Ionicons
+              name={
+                preset.id === 'front'
+                  ? 'body-outline'
+                  : preset.id === 'back'
+                    ? 'accessibility-outline'
+                    : 'scan-outline'
+              }
+              size={16}
+              color={activeView === preset.id ? liquidColors.white : liquidColors.white64}
+            />
             <Text
               style={[
                 styles.viewButtonText,
@@ -138,6 +237,47 @@ export function BodyMap3DViewer({
         ))}
       </View>
       <View style={styles.canvas}>
+        <View style={[styles.toolRail, compact && styles.toolRailCompact]}>
+          <ViewerToolButton
+            icon="hand-left-outline"
+            label="Körperkarte drehen"
+            active={activeTool === 'rotate'}
+            onPress={() => setActiveTool('rotate')}
+          />
+          <ViewerToolButton
+            icon="locate-outline"
+            label="Befundpunkt setzen"
+            active={activeTool === 'marker'}
+            disabled={disabled}
+            onPress={() => setActiveTool('marker')}
+          />
+          <ViewerToolButton
+            icon="refresh-outline"
+            label="Ansicht zurücksetzen"
+            active={false}
+            onPress={() => setPreset('front')}
+          />
+        </View>
+        <View style={[styles.zoomRail, compact && styles.zoomRailCompact]}>
+          <ViewerToolButton
+            icon="add-outline"
+            label="Vergrößern"
+            active={false}
+            onPress={zoomIn}
+          />
+          <ViewerToolButton
+            icon="remove-outline"
+            label="Verkleinern"
+            active={false}
+            onPress={zoomOut}
+          />
+          <ViewerToolButton
+            icon="expand-outline"
+            label="Ganzkörper zentrieren"
+            active={false}
+            onPress={() => setPreset(activeView)}
+          />
+        </View>
         <Canvas
           key={`${model.id}:${presentationMode}`}
           shadows
@@ -155,14 +295,15 @@ export function BodyMap3DViewer({
             gl.outputColorSpace = SRGBColorSpace;
           }}
         >
+          <CameraZoomController baseDistance={cameraDistance} zoom={zoom} />
           <color attach="background" args={['#071326']} />
-          <ambientLight intensity={0.72} />
-          <hemisphereLight args={['#f2f7ff', '#15243d', 1.05]} />
+          <ambientLight intensity={clinicalMode ? 0.9 : 0.72} />
+          <hemisphereLight args={['#bde8ff', '#051b35', clinicalMode ? 1.35 : 1.05]} />
           <directionalLight
             castShadow
             position={[2.7, 4.5, 3.4]}
-            intensity={2.7}
-            color="#fff3e9"
+            intensity={clinicalMode ? 2.2 : 2.7}
+            color={clinicalMode ? '#78cfff' : '#fff3e9'}
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
           />
@@ -172,8 +313,9 @@ export function BodyMap3DViewer({
             selection={selection}
             markers={markers}
             selectedMarkerId={selectedMarkerId}
-            disabled={disabled}
+            disabled={disabled || activeTool !== 'marker'}
             allowTechnicalMeshPreview={allowTechnicalMeshPreview}
+            visualMode={clinicalMode ? 'clinical-network' : 'skin'}
             rotation={[0, modelRotation, 0]}
             onSurfacePress={onSurfacePress}
             onMarkerPress={onMarkerPress}
@@ -186,9 +328,13 @@ export function BodyMap3DViewer({
             far={3}
           />
           <OrbitControls
+            ref={orbitRef as never}
             makeDefault
             enableDamping
             dampingFactor={0.08}
+            enableRotate={activeTool === 'rotate'}
+            enablePan={activeTool === 'rotate'}
+            enableZoom
             target={[0, 0, 0]}
             minDistance={Math.max(0.35, medicalMesh.nominalHeightMeters * 0.72)}
             maxDistance={Math.max(3, medicalMesh.nominalHeightMeters * 4.5)}
@@ -204,75 +350,181 @@ export function BodyMap3DViewer({
 const styles = StyleSheet.create({
   shell: {
     minHeight: 620,
-    borderRadius: 22,
+    borderRadius: liquidRadius.card,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: '#071326',
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: liquidColors.navy950,
+  },
+  shellClinical: {
+    minHeight: 660,
+    borderColor: liquidColors.blue400,
+    ...liquidShadows.focus,
+  },
+  shellCompact: {
+    minHeight: 610,
   },
   statusRow: {
-    minHeight: 70,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    minHeight: 84,
+    paddingHorizontal: liquidSpace.lg,
+    paddingVertical: liquidSpace.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(8, 22, 43, 0.96)',
+    gap: liquidSpace.md,
+    backgroundColor: 'rgba(3,17,39,0.96)',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(112, 165, 255, 0.22)',
+    borderBottomColor: liquidColors.blue300Alpha32,
   },
-  modelLabel: { ...typography.label, color: '#f5f9ff' },
+  statusCopy: {
+    flex: 1,
+  },
+  modelLabel: {
+    ...liquidTypography.section,
+    color: liquidColors.white,
+  },
   rendererStatus: {
-    ...typography.caption,
-    color: '#66a3ff',
+    ...liquidTypography.meta,
+    color: liquidColors.blue200,
     marginTop: 3,
     fontWeight: '700',
   },
   technicalWarning: {
-    ...typography.caption,
+    ...liquidTypography.meta,
     color: '#ffbd66',
     marginTop: 3,
     fontWeight: '800',
     letterSpacing: 0.45,
   },
-  help: { ...typography.caption, color: '#a9b9d2', marginTop: 4 },
+  help: {
+    ...liquidTypography.meta,
+    color: liquidColors.white56,
+    marginTop: 4,
+  },
   badge: {
-    minWidth: 42,
-    height: 28,
-    paddingHorizontal: 10,
-    borderRadius: 14,
-    backgroundColor: '#1769e0',
+    minWidth: 72,
+    height: 34,
+    paddingHorizontal: liquidSpace.md,
+    borderRadius: liquidRadius.pill,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: liquidColors.blue500Alpha16,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 7,
   },
-  badgeText: { ...typography.caption, color: '#fff', fontWeight: '800' },
+  badgePulse: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: liquidColors.blue300,
+    shadowColor: liquidColors.blue300,
+    shadowOpacity: 1,
+    shadowRadius: 8,
+  },
+  badgeText: {
+    ...liquidTypography.meta,
+    color: liquidColors.white,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
   viewPresets: {
-    minHeight: 48,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    minHeight: 56,
+    paddingHorizontal: liquidSpace.lg,
+    paddingVertical: liquidSpace.sm,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
-    backgroundColor: 'rgba(7,19,38,0.98)',
+    gap: liquidSpace.sm,
+    backgroundColor: 'rgba(3,17,39,0.98)',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(112,165,255,0.16)',
+    borderBottomColor: liquidColors.white12,
   },
   viewButton: {
-    minWidth: 72,
-    minHeight: 36,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 18,
+    minWidth: 94,
+    minHeight: 38,
+    paddingHorizontal: liquidSpace.md,
+    borderRadius: liquidRadius.pill,
     borderWidth: 1,
-    borderColor: 'rgba(112,165,255,0.28)',
+    borderColor: liquidColors.white12,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.035)',
+    gap: 7,
+    backgroundColor: liquidColors.white08,
   },
   viewButtonActive: {
-    borderColor: '#66a3ff',
-    backgroundColor: 'rgba(23,105,224,0.34)',
+    borderColor: liquidColors.blue400,
+    backgroundColor: liquidColors.blue500Alpha16,
+    ...liquidShadows.focus,
   },
-  viewButtonText: { ...typography.caption, color: '#a9b9d2', fontWeight: '700' },
-  viewButtonTextActive: { color: '#fff' },
-  canvas: { flex: 1, minHeight: 550 },
+  viewButtonText: {
+    ...liquidTypography.meta,
+    color: liquidColors.white64,
+    fontWeight: '700',
+  },
+  viewButtonTextActive: {
+    color: liquidColors.white,
+  },
+  canvas: {
+    position: 'relative',
+    flex: 1,
+    minHeight: 550,
+    backgroundColor: liquidColors.navy950,
+  },
+  toolRail: {
+    position: 'absolute',
+    zIndex: 5,
+    top: liquidSpace.md,
+    left: liquidSpace.md,
+    width: 52,
+    padding: 5,
+    borderRadius: liquidRadius.card,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(3,17,39,0.9)',
+    gap: 5,
+  },
+  toolRailCompact: {
+    top: liquidSpace.sm,
+    left: liquidSpace.sm,
+  },
+  zoomRail: {
+    position: 'absolute',
+    zIndex: 5,
+    right: liquidSpace.md,
+    bottom: liquidSpace.md,
+    width: 52,
+    padding: 5,
+    borderRadius: liquidRadius.card,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(3,17,39,0.9)',
+    gap: 5,
+  },
+  zoomRailCompact: {
+    right: liquidSpace.sm,
+    bottom: liquidSpace.sm,
+  },
+  toolButton: {
+    width: 40,
+    height: 40,
+    borderRadius: liquidRadius.control,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toolButtonActive: {
+    borderColor: liquidColors.blue400,
+    backgroundColor: liquidColors.blue600,
+    ...liquidShadows.focus,
+  },
+  toolButtonPressed: {
+    opacity: 0.74,
+    transform: [{ scale: 0.96 }],
+  },
+  toolButtonDisabled: {
+    opacity: 0.35,
+  },
 });

@@ -21,7 +21,7 @@ export type BodyMap3DViewerProps = {
    */
   allowTechnicalMeshPreview?: boolean;
   /** Große technische/medizinische Prüfansicht statt Einbettung im Pflegeformular. */
-  presentationMode?: 'embedded' | 'review';
+  presentationMode?: 'embedded' | 'review' | 'clinical';
   onSurfacePress: (hit: BodyMapSurfaceHit) => void;
   onMarkerPress?: (marker: BodyMap3DMarker) => void;
 };

@@ -85,6 +85,7 @@
     "bodymap3d:real-human:generate": "node scripts/generate-bodymap-real-human-glbs.mjs",
     "bodymap3d:real-human:verify-geometry": "node scripts/verify-bodymap-real-human-geometry.mjs",
     "bodymap3d:real-human:verify-spatial": "node scripts/verify-bodymap-spatial-integrity.mjs",
+    "bodymap:r7:acceptance": "node scripts/bodymap-r7-acceptance.mjs",
     "bodymap3d:real-human:render-all": "node scripts/render-all-bodymap-real-human-qa.mjs",
     "bodymap3d:deploy:gitbash": "bash scripts/deploy-bodymap3d-gitbash.sh"
   },

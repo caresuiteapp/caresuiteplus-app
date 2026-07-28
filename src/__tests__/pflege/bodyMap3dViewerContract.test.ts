@@ -144,12 +144,28 @@ describe('3D-Bodymap Viewer-Vertrag', () => {
     expect(source).toContain("selection.sex === 'weiblich'");
   });
 
-  it('ersetzt die alte 2D-Rechteckkarte im Pflege-Screen', () => {
+  it('ersetzt die alte 2D-Rechteckkarte und die sichtbare Variantenwahl durch die klinische 3D-Karte', () => {
     const source = read('src/screens/pflege/BodyMapScreen.tsx');
     expect(source).toContain('<BodyMap3DViewer');
-    expect(source).toContain('Welche Genitalanatomie liegt vor?');
-    expect(source).toContain('Welche Brustausprägung liegt vor?');
+    expect(source).toContain('CLINICAL_BODYMAP_SELECTION');
+    expect(source).toContain('presentationMode="clinical"');
+    expect(source).toContain('Einheitliches blaues 3D-Anatomienetz');
+    expect(source).not.toContain('Welche Genitalanatomie liegt vor?');
+    expect(source).not.toContain('Welche Brustausprägung liegt vor?');
     expect(source).not.toContain('const REGIONS');
     expect(source).not.toContain('styles.canvas');
+  });
+
+  it('bietet im klinischen Modus Navigation, Zielwerkzeug, Zoom und Netzwerkdarstellung', () => {
+    const viewer = read('src/components/pflege/bodyMap3d/BodyMap3DViewer.web.tsx');
+    const model = read('src/components/pflege/bodyMap3d/ClinicalBodyModel.web.tsx');
+    expect(viewer).toContain("type ViewerTool = 'rotate' | 'marker'");
+    expect(viewer).toContain('Befundpunkt setzen');
+    expect(viewer).toContain('Vergrößern');
+    expect(viewer).toContain("disabled={disabled || activeTool !== 'marker'}");
+    expect(viewer).toContain("onPress={() => setActiveTool('marker')}");
+    expect(viewer).toContain("visualMode={clinicalMode ? 'clinical-network' : 'skin'}");
+    expect(model).toContain("visualMode === 'clinical-network'");
+    expect(model).toContain('clinicalNetworkScene');
   });
 });
