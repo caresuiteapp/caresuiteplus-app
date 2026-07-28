@@ -1,7 +1,8 @@
 import { spawnSync } from 'node:child_process';
 
-const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+const npm = 'npm';
+const npx = 'npx';
+const windowsShell = process.platform === 'win32';
 
 const gates = [
   {
@@ -93,6 +94,8 @@ for (const [index, gate] of gates.entries()) {
     cwd: process.cwd(),
     env: process.env,
     stdio: 'inherit',
+    shell: windowsShell,
+    windowsHide: true,
   });
 
   if (result.error) {

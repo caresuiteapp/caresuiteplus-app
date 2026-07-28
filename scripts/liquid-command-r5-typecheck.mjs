@@ -5,13 +5,15 @@ import process from 'node:process';
 const base =
   process.env.LIQUID_COMMAND_R5_BASE ??
   'f5a530cd7b82981fe417263ec02016496c6288fd';
-const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+const npx = 'npx';
 
 function run(command, args, options = {}) {
   return spawnSync(command, args, {
     cwd: process.cwd(),
     encoding: 'utf8',
     maxBuffer: 32 * 1024 * 1024,
+    shell: process.platform === 'win32' && command === npx,
+    windowsHide: true,
     ...options,
   });
 }
