@@ -1,6 +1,5 @@
 import { Stack } from 'expo-router';
 import { RequireAuth, RequireRole } from '@/lib/auth';
-import { routeLayoutContentStyle } from '@/design/routeLayoutStyle';
 
 export default function OfficeModulesLayout() {
   return (
@@ -9,8 +8,8 @@ export default function OfficeModulesLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: routeLayoutContentStyle,
-            animation: 'slide_from_right',
+            contentStyle: { backgroundColor: 'transparent' },
+            animation: 'fade',
           }}
         />
       </RequireRole>

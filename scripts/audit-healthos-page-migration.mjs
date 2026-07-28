@@ -67,6 +67,10 @@ const shellMarkers = [
   '<PlatformShellLayout',
   '<HealthOSPageSurface',
   '<ModuleDashboardShell',
+  '<LiquidCommandShell',
+  '<LiquidBackdrop',
+  '<LiquidPortalRouteLayout',
+  '<LiquidModuleRouteLayout',
 ];
 
 function routeLabel(file) {
@@ -81,7 +85,7 @@ function routeLabel(file) {
 function isAuditedProductRoute(route, file) {
   const basename = file.split(/[\\/]/).at(-1);
   if (basename === '_layout.tsx' || basename?.startsWith('+')) return false;
-  return route !== '/' && !/^\/(auth|onboarding|design-system|shell-preview|.*-shell-preview)(\/|$)/.test(route);
+  return route !== '/' && !/^\/(auth|onboarding|design-system|liquid-command|shell-preview|.*-shell-preview)(\/|$)/.test(route);
 }
 
 function usesCanonicalShell(files) {

@@ -29,7 +29,12 @@ import {
   liquidSpace,
 } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
-import { getLiquidModule, liquidModules, liquidWorkAreas } from '../navigation/moduleCatalog';
+import {
+  getLiquidModule,
+  liquidGlobalShortcuts,
+  liquidModules,
+  liquidWorkAreas,
+} from '../navigation/moduleCatalog';
 import type { LiquidModuleKey } from '../types';
 
 type LiquidCommandShellProps = {
@@ -44,6 +49,8 @@ type LiquidCommandShellProps = {
   primaryActionLabel?: string;
   onPrimaryAction?: () => void;
   allowPhoneLandscape?: boolean;
+  contentMode?: 'scroll' | 'fill';
+  showPageHeader?: boolean;
 };
 
 function RotateDeviceScreen() {
@@ -153,13 +160,23 @@ function CommandPalette({
   const [query, setQuery] = useState('');
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    const moduleResults = liquidModules.flatMap((module) => [
+    const moduleResults = [
+      ...liquidGlobalShortcuts.map((shortcut) => ({
+        id: `shortcut-${shortcut.id}`,
+        label: shortcut.label,
+        description: shortcut.description,
+        route: shortcut.route,
+        glyph: shortcut.glyph,
+        keywords: shortcut.keywords,
+      })),
+      ...liquidModules.flatMap((module) => [
       {
         id: `module-${module.key}`,
         label: module.label,
         description: module.description,
         route: module.route,
         glyph: module.glyph,
+        keywords: `${module.label} ${module.description}`,
       },
       ...liquidWorkAreas[module.key].map((area) => ({
         id: `${module.key}-${area.id}`,
@@ -167,14 +184,16 @@ function CommandPalette({
         description: area.description,
         route: area.route,
         glyph: module.glyph,
+        keywords: `${module.label} ${area.label} ${area.description}`,
       })),
-    ]);
-    if (!normalized) return moduleResults.slice(0, 12);
+    ]),
+    ];
+    if (!normalized) return moduleResults.slice(0, 18);
     return moduleResults
       .filter((item) =>
-        `${item.label} ${item.description}`.toLowerCase().includes(normalized),
+        `${item.label} ${item.description} ${item.keywords}`.toLowerCase().includes(normalized),
       )
-      .slice(0, 18);
+      .slice(0, 24);
   }, [query]);
 
   const open = (route: string) => {
@@ -297,23 +316,130 @@ function NotificationCenter({
   );
 }
 
+function ProfileMenu({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const auth = useAuth();
+  const displayName =
+    auth.profile?.displayName || auth.user?.displayName || 'CareSuite Profil';
+  const role = auth.profile?.roleKey ?? 'CareSuite';
+
+  const open = (route: string) => {
+    onClose();
+    router.push(route as never);
+  };
+
+  const signOut = async () => {
+    onClose();
+    await auth.signOut();
+    router.replace('/auth' as never);
+  };
+
+  return (
+    <Modal
+      animationType="fade"
+      transparent
+      visible={visible}
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <Pressable accessibilityLabel="Profilmenü schließen" onPress={onClose} style={styles.modalBackdrop}>
+        <Pressable
+          accessibilityRole="none"
+          onPress={(event) => event.stopPropagation()}
+          style={styles.profileMenuWrap}
+        >
+          <LiquidSurface active contentStyle={styles.profileMenu}>
+            <View style={styles.profileMenuHeader}>
+              <View style={styles.profileMenuAvatar}>
+                <Text style={styles.profileMenuAvatarLabel}>
+                  {displayName.slice(0, 1).toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.profileMenuIdentity}>
+                <Text numberOfLines={1} style={styles.profileMenuName}>{displayName}</Text>
+                <Text numberOfLines={1} style={styles.profileMenuRole}>{role}</Text>
+              </View>
+              <LiquidIconButton label="Schließen" glyph="×" onPress={onClose} />
+            </View>
+            <LiquidDivider />
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => open('/settings/profile')}
+              style={({ pressed }) => [styles.profileMenuRow, pressed && styles.pressed]}
+            >
+              <Text style={styles.profileMenuGlyph}>♙</Text>
+              <View style={styles.profileMenuCopy}>
+                <Text style={styles.profileMenuLabel}>Profil & Sicherheit</Text>
+                <Text style={styles.profileMenuDetail}>Persönliche Angaben und Zugang</Text>
+              </View>
+              <Text style={styles.paletteArrow}>›</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => open('/office/messages')}
+              style={({ pressed }) => [styles.profileMenuRow, pressed && styles.pressed]}
+            >
+              <Text style={styles.profileMenuGlyph}>▱</Text>
+              <View style={styles.profileMenuCopy}>
+                <Text style={styles.profileMenuLabel}>Nachrichten</Text>
+                <Text style={styles.profileMenuDetail}>Unterhaltungen und Aufgaben</Text>
+              </View>
+              <Text style={styles.paletteArrow}>›</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => open('/business/office/payroll')}
+              style={({ pressed }) => [styles.profileMenuRow, pressed && styles.pressed]}
+            >
+              <Text style={styles.profileMenuGlyph}>€</Text>
+              <View style={styles.profileMenuCopy}>
+                <Text style={styles.profileMenuLabel}>Gehaltsstatistik</Text>
+                <Text style={styles.profileMenuDetail}>Monatsübersicht und Zeitkonto</Text>
+              </View>
+              <Text style={styles.paletteArrow}>›</Text>
+            </Pressable>
+            <LiquidDivider />
+            <LiquidButton
+              fullWidth
+              icon="↪"
+              label="Sicher abmelden"
+              variant="danger"
+              onPress={() => void signOut()}
+            />
+          </LiquidSurface>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 function CommandBar({
   activeModule,
   primaryActionLabel,
   onPrimaryAction,
   onOpenSearch,
   onOpenNotifications,
+  onOpenProfile,
 }: {
   activeModule: LiquidModuleKey;
   primaryActionLabel: string;
   onPrimaryAction: () => void;
   onOpenSearch: () => void;
   onOpenNotifications: () => void;
+  onOpenProfile: () => void;
 }) {
   const { showCommandLabels, isPhone } = useLiquidLayout();
   const { profile, user } = useAuth();
+  const router = useRouter();
   const module = getLiquidModule(activeModule);
   const displayName = profile?.displayName || user?.displayName || 'Profil';
+  const commandShortcuts = liquidGlobalShortcuts.slice(0, 6);
 
   return (
     <View style={[styles.commandBar, isPhone && styles.commandBarPhone]}>
@@ -323,6 +449,27 @@ function CommandBar({
           <Text style={styles.commandTitle}>{module.label}</Text>
         </View>
       )}
+      {!isPhone ? (
+        <View accessibilityRole="tablist" style={styles.commandShortcutBar}>
+          {commandShortcuts.map((item) => (
+            <Pressable
+              key={item.id}
+              accessibilityRole="tab"
+              accessibilityLabel={`${item.label}. ${item.description}`}
+              accessibilityState={{ selected: item.id === 'today' && activeModule === 'home' }}
+              onPress={() => router.push(item.route as never)}
+              style={({ pressed }) => [
+                styles.commandShortcut,
+                item.id === 'today' && activeModule === 'home' && styles.commandShortcutActive,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.commandShortcutGlyph}>{item.glyph}</Text>
+              {showCommandLabels ? <Text style={styles.commandShortcutLabel}>{item.label}</Text> : null}
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
       <View style={styles.commandActions}>
         <LiquidButton
           compact
@@ -345,7 +492,12 @@ function CommandBar({
           onPress={onOpenNotifications}
         />
         {!isPhone ? (
-          <View accessibilityLabel={`Profil ${displayName}`} style={styles.profile}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Profil ${displayName} öffnen`}
+            onPress={onOpenProfile}
+            style={({ pressed }) => [styles.profile, pressed && styles.pressed]}
+          >
             <View style={styles.avatar}>
               <Text style={styles.avatarLabel}>{displayName.slice(0, 1).toUpperCase()}</Text>
             </View>
@@ -355,7 +507,7 @@ function CommandBar({
                 <Text style={styles.profileRole}>{profile?.roleKey ?? 'CareSuite'}</Text>
               </View>
             ) : null}
-          </View>
+          </Pressable>
         ) : null}
       </View>
     </View>
@@ -375,7 +527,7 @@ function BottomNavigation({
     { key: 'assist', label: 'Einsätze', glyph: '◇', route: '/assist' },
     { key: 'action', label: 'Neu', glyph: '+', route: null },
     { key: 'messages', label: 'Nachrichten', glyph: '▱', route: '/office?area=communication' },
-    { key: 'settings', label: 'Mehr', glyph: '•••', route: '/settings' },
+    { key: 'settings', label: 'Profil', glyph: '♙', route: '/settings/profile' },
   ] as const;
 
   return (
@@ -424,10 +576,13 @@ export function LiquidCommandShell({
   primaryActionLabel,
   onPrimaryAction,
   allowPhoneLandscape = false,
+  contentMode = 'scroll',
+  showPageHeader = true,
 }: LiquidCommandShellProps) {
   const layout = useLiquidLayout();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const module = getLiquidModule(activeModule);
   const actionLabel = primaryActionLabel ?? module.primaryAction;
   const action = onPrimaryAction ?? (() => setPaletteOpen(true));
@@ -437,7 +592,10 @@ export function LiquidCommandShell({
   }
 
   const showAreaRail =
-    !layout.isPhone && layout.formFactor !== 'tablet-portrait' && liquidWorkAreas[activeModule].length > 0;
+    activeModule !== 'home' &&
+    !layout.isPhone &&
+    layout.formFactor !== 'tablet-portrait' &&
+    liquidWorkAreas[activeModule].length > 0;
 
   return (
     <LiquidBackdrop>
@@ -450,13 +608,14 @@ export function LiquidCommandShell({
             onPrimaryAction={action}
             onOpenSearch={() => setPaletteOpen(true)}
             onOpenNotifications={() => setNotificationsOpen(true)}
+            onOpenProfile={() => setProfileOpen(true)}
           />
           <View style={styles.contextBar}>
             <View style={styles.contextCopy}>
               <Text style={styles.contextLabel}>{contextLabel}</Text>
               <Text numberOfLines={1} style={styles.contextDetail}>{contextDetail}</Text>
             </View>
-            <LiquidStatus label="Live" tone="live" detail="gerade synchronisiert" />
+            <LiquidStatus label="Aktuell" tone="live" detail="mandantenweit synchronisiert" />
           </View>
           {layout.isPhone || layout.formFactor === 'tablet-portrait' ? (
             <WorkAreaNavigation
@@ -472,41 +631,60 @@ export function LiquidCommandShell({
                 <WorkAreaNavigation moduleKey={activeModule} activeArea={activeArea} />
               </LiquidSurface>
             ) : null}
-            <ScrollView
-              style={styles.contentScroll}
-              contentContainerStyle={[
-                styles.content,
-                { padding: layout.contentPadding },
-                layout.isPhone && styles.contentPhone,
-              ]}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.pageHeader}>
-                <View style={styles.pageHeading}>
-                  <LiquidText variant="kicker">{module.label.toUpperCase()}</LiquidText>
-                  <LiquidText
-                    variant={layout.isPhone ? 'title' : 'display'}
-                    accessibilityRole="header"
-                  >
-                    {title}
-                  </LiquidText>
-                  <LiquidText variant="body" style={styles.pageSubtitle}>{subtitle}</LiquidText>
-                </View>
-                {!layout.isPhone ? (
-                  <LiquidButton label={actionLabel} icon="+" onPress={action} />
+            {contentMode === 'fill' ? (
+              <View style={[styles.contentFill, { padding: layout.contentPadding }]}>
+                {showPageHeader ? (
+                  <View style={styles.pageHeader}>
+                    <View style={styles.pageHeading}>
+                      <LiquidText variant="kicker">{module.label.toUpperCase()}</LiquidText>
+                      <LiquidText variant={layout.isPhone ? 'title' : 'display'} accessibilityRole="header">
+                        {title}
+                      </LiquidText>
+                      <LiquidText variant="body" style={styles.pageSubtitle}>{subtitle}</LiquidText>
+                    </View>
+                  </View>
                 ) : null}
+                <View style={styles.contentPrimaryFill}>{children}</View>
               </View>
-              <View
-                style={[
-                  styles.contentColumns,
-                  aside && !layout.isPhone ? styles.contentColumnsWithAside : null,
+            ) : (
+              <ScrollView
+                style={styles.contentScroll}
+                contentContainerStyle={[
+                  styles.content,
+                  { padding: layout.contentPadding },
+                  layout.isPhone && styles.contentPhone,
                 ]}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
               >
-                <View style={styles.contentPrimary}>{children}</View>
-                {aside && !layout.isPhone ? <View style={styles.contentAside}>{aside}</View> : null}
-              </View>
-            </ScrollView>
+                {showPageHeader ? (
+                  <View style={styles.pageHeader}>
+                    <View style={styles.pageHeading}>
+                      <LiquidText variant="kicker">{module.label.toUpperCase()}</LiquidText>
+                      <LiquidText
+                        variant={layout.isPhone ? 'title' : 'display'}
+                        accessibilityRole="header"
+                      >
+                        {title}
+                      </LiquidText>
+                      <LiquidText variant="body" style={styles.pageSubtitle}>{subtitle}</LiquidText>
+                    </View>
+                    {!layout.isPhone ? (
+                      <LiquidButton label={actionLabel} icon="+" onPress={action} />
+                    ) : null}
+                  </View>
+                ) : null}
+                <View
+                  style={[
+                    styles.contentColumns,
+                    aside && !layout.isPhone ? styles.contentColumnsWithAside : null,
+                  ]}
+                >
+                  <View style={styles.contentPrimary}>{children}</View>
+                  {aside && !layout.isPhone ? <View style={styles.contentAside}>{aside}</View> : null}
+                </View>
+              </ScrollView>
+            )}
           </View>
         </View>
       </View>
@@ -516,6 +694,7 @@ export function LiquidCommandShell({
         visible={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
       />
+      <ProfileMenu visible={profileOpen} onClose={() => setProfileOpen(false)} />
     </LiquidBackdrop>
   );
 }
@@ -534,6 +713,84 @@ const styles = StyleSheet.create({
   noticePanel: {
     padding: 20,
     gap: 16,
+  },
+  profileMenuWrap: {
+    width: '100%',
+    maxWidth: 430,
+    alignSelf: 'flex-end',
+    margin: 24,
+  },
+  profileMenu: {
+    padding: 18,
+    gap: 12,
+  },
+  profileMenuHeader: {
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  profileMenuAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: liquidColors.blue400,
+    backgroundColor: 'rgba(20,120,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileMenuAvatarLabel: {
+    color: liquidColors.white,
+    fontSize: 19,
+    lineHeight: 24,
+    fontWeight: '800',
+  },
+  profileMenuIdentity: {
+    minWidth: 0,
+    flex: 1,
+  },
+  profileMenuName: {
+    color: liquidColors.white,
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '800',
+  },
+  profileMenuRole: {
+    color: liquidColors.white56,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  profileMenuRow: {
+    minHeight: 64,
+    paddingHorizontal: 10,
+    borderRadius: liquidRadius.control,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  profileMenuGlyph: {
+    width: 32,
+    color: liquidColors.blue200,
+    fontSize: 22,
+    lineHeight: 26,
+    textAlign: 'center',
+  },
+  profileMenuCopy: {
+    minWidth: 0,
+    flex: 1,
+    gap: 2,
+  },
+  profileMenuLabel: {
+    color: liquidColors.white,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '700',
+  },
+  profileMenuDetail: {
+    color: liquidColors.white56,
+    fontSize: 11,
+    lineHeight: 15,
   },
   shellMain: {
     flex: 1,
@@ -610,6 +867,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 8,
+  },
+  commandShortcutBar: {
+    minWidth: 0,
+    flex: 1,
+    maxWidth: 720,
+    height: 52,
+    padding: 5,
+    borderRadius: liquidRadius.small,
+    borderWidth: 1,
+    borderColor: liquidColors.white12,
+    backgroundColor: 'rgba(10,35,66,0.55)',
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    justifyContent: 'space-between',
+  },
+  commandShortcut: {
+    minWidth: 54,
+    flex: 1,
+    paddingHorizontal: 8,
+    borderRadius: liquidRadius.control,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  commandShortcutActive: {
+    borderWidth: 1,
+    borderColor: liquidColors.blue400,
+    backgroundColor: 'rgba(20,120,255,0.24)',
+  },
+  commandShortcutGlyph: {
+    color: liquidColors.blue200,
+    fontSize: 17,
+    lineHeight: 20,
+  },
+  commandShortcutLabel: {
+    color: liquidColors.white88,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
   },
   profile: {
     minHeight: 48,
@@ -766,6 +1063,18 @@ const styles = StyleSheet.create({
   contentScroll: {
     flex: 1,
     minWidth: 0,
+  },
+  contentFill: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    gap: 14,
+  },
+  contentPrimaryFill: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    overflow: 'hidden',
   },
   content: {
     width: '100%',

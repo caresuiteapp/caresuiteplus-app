@@ -55,6 +55,7 @@ export function EmployeeProfileScreen() {
   const loading = profileLoading || personnelLoading;
   const error = profileError ?? personnelError;
   const isWide = isTablet || isDesktop;
+  const tabLayout = isWide ? 'wrap' : 'scroll';
 
   const contentPadding = useMemo(
     () => ({
@@ -156,13 +157,13 @@ export function EmployeeProfileScreen() {
           <HealthOSAlert variant="info" title="Stammdaten" message={OFFICE_PROFILE_HINT} />
         </GlassCard>
 
-        <SegmentedTabs
-          tabs={PORTAL_EMPLOYEE_PROFILE_TABS}
-          activeKey={activeTab}
-          onSelect={(key) => setActiveTab(key as PortalEmployeeProfileTabKey)}
-          layout="wrap"
-          rows={isWide ? 2 : 3}
-        />
+         <SegmentedTabs
+           tabs={PORTAL_EMPLOYEE_PROFILE_TABS}
+           activeKey={activeTab}
+           onSelect={(key) => setActiveTab(key as PortalEmployeeProfileTabKey)}
+           layout={tabLayout}
+           rows={isWide ? 2 : undefined}
+         />
 
         <PortalEmployeeProfileTabContent tab={activeTab} view={personnelView} />
       </ScrollView>

@@ -24,6 +24,23 @@ export type GoogleLatLngBoundsInstance = {
   extend: (latLng: { lat: number; lng: number }) => void;
 };
 
+export type GoogleGeocoderResult = {
+  geometry: {
+    location: {
+      lat: () => number;
+      lng: () => number;
+    };
+  };
+  formatted_address?: string;
+};
+
+export type GoogleGeocoderInstance = {
+  geocode: (
+    request: { address: string },
+    callback: (results: GoogleGeocoderResult[] | null, status: string) => void,
+  ) => void;
+};
+
 export type GoogleMapsNamespace = {
   maps: {
     Map: new (
@@ -34,6 +51,7 @@ export type GoogleMapsNamespace = {
         mapTypeControl?: boolean;
         streetViewControl?: boolean;
         fullscreenControl?: boolean;
+        styles?: readonly unknown[];
       },
     ) => GoogleMapInstance;
     Marker: new (opts: {
@@ -43,6 +61,7 @@ export type GoogleMapsNamespace = {
     }) => GoogleMarkerInstance;
     InfoWindow: new (opts?: { content?: string }) => GoogleInfoWindowInstance;
     LatLngBounds: new () => GoogleLatLngBoundsInstance;
+    Geocoder: new () => GoogleGeocoderInstance;
     event: { trigger: (instance: unknown, event: string) => void };
   };
 };

@@ -4,7 +4,8 @@ import process from 'node:process';
 
 const root = process.cwd();
 const liquidRoot = join(root, 'src', 'liquid-command');
-const routeRoot = join(root, 'app', 'liquid-command');
+const appRoot = join(root, 'app');
+const compatibilityRouteRoot = join(appRoot, 'liquid-command');
 const failures = [];
 
 function collect(directory) {
@@ -50,7 +51,10 @@ for (const module of [
 
 const sources = collect(liquidRoot).filter((path) => ['.ts', '.tsx'].includes(extname(path)));
 const sourceText = sources.map((path) => readFileSync(path, 'utf8')).join('\n');
-const routeFiles = collect(routeRoot).filter((path) => extname(path) === '.tsx');
+const compatibilityRouteFiles = collect(compatibilityRouteRoot).filter(
+  (path) => extname(path) === '.tsx',
+);
+const applicationRouteFiles = collect(appRoot).filter((path) => extname(path) === '.tsx');
 
 const forbiddenImports = /from\s+['"]@\/(components|screens|design|theme)(?:\/|['"])/g;
 for (const path of sources) {
@@ -150,12 +154,115 @@ for (const layout of [
   }
 }
 
+const migratedTopLevelRoots = new Set([
+  'admin',
+  'akademie',
+  'assist',
+  'auth',
+  'beratung',
+  'business',
+  'communication',
+  'design-system',
+  'insight',
+  'liquid-command',
+  'medical',
+  'office',
+  'onboarding',
+  'pflege',
+  'platform',
+  'portal',
+  'public',
+  'robotics',
+  'settings',
+  'stationaer',
+  'zentrale',
+]);
+
+for (const path of applicationRouteFiles) {
+  const route = relative(appRoot, path);
+  if (
+    route === '_layout.tsx' ||
+    route === 'index.tsx' ||
+    route === '+html.tsx' ||
+    route === '+not-found.tsx'
+  ) {
+    continue;
+  }
+  const topLevelRoot = route.split('/')[0];
+  if (!route.includes('/') && readFileSync(path, 'utf8').includes('<Redirect')) continue;
+  if (!migratedTopLevelRoots.has(topLevelRoot)) {
+    failures.push(`Route ohne Greenfield-Cutover: app/${route}`);
+  }
+}
+
+const allLayouts = applicationRouteFiles.filter((path) => path.endsWith('_layout.tsx'));
+const forbiddenLayoutShell =
+  /ShellLayout|routeLayoutContentStyle|ShellAnimatedBackgroundLayer|(?:Client|Employee|Relative)PortalShell|OfficeTimeTrackingShell/;
+for (const path of allLayouts) {
+  const route = relative(root, path);
+  if (route === 'app/_layout.tsx') continue;
+  const text = readFileSync(path, 'utf8');
+  if (forbiddenLayoutShell.test(text)) {
+    failures.push(`Alt-Shell in Routenlayout: ${route}`);
+  }
+}
+
+const cutoverSource = readFileSync(
+  join(root, 'src/liquid-command/navigation/isLiquidCommandRoute.ts'),
+  'utf8',
+);
+for (const routeRootName of migratedTopLevelRoots) {
+  if (routeRootName === 'liquid-command') continue;
+  if (!cutoverSource.includes(`'/${routeRootName}'`)) {
+    failures.push(`Globaler Greenfield-Cutover fehlt: /${routeRootName}`);
+  }
+}
+
+const compatibilityLayout = readFileSync(
+  join(root, 'app/liquid-command/_layout.tsx'),
+  'utf8',
+);
+if (!compatibilityLayout.includes('<Redirect')) {
+  failures.push('Parallele /liquid-command-Demo ist noch direkt erreichbar.');
+}
+
 const moduleCatalog = readFileSync(
   join(root, 'src/liquid-command/navigation/moduleCatalog.ts'),
   'utf8',
 );
 if (/route:\s*['"]\/liquid-command\/(?:office|assist|pflege|stationaer|beratung|akademie|robotics|platform|settings)/.test(moduleCatalog)) {
   failures.push('Modulkatalog verwendet noch parallele Demo-Routen.');
+}
+
+for (const requiredWorkflow of [
+  'Gehaltsstatistik',
+  'Nachrichten',
+  'Arbeitszeit',
+  'Portale & Zugänge',
+  'Profil',
+]) {
+  if (!moduleCatalog.includes(requiredWorkflow)) {
+    failures.push(`Global erreichbarer Workflow fehlt: ${requiredWorkflow}`);
+  }
+}
+
+const commandCenter = readFileSync(
+  join(root, 'src/liquid-command/screens/CommandCenterScreen.tsx'),
+  'utf8',
+);
+if (
+  !commandCenter.includes('ClientNetworkMap') ||
+  !commandCenter.includes('Alle Klient:innen auf der Karte')
+) {
+  failures.push('Dauerhafte mandantenweite Klient:innenkarte fehlt.');
+}
+
+const shellSource = readFileSync(
+  join(root, 'src/liquid-command/shell/LiquidCommandShell.tsx'),
+  'utf8',
+);
+if (!shellSource.includes('auth.signOut()') || !shellSource.includes('Sicher abmelden')) {
+  failures.push('Profilmenü mit sicherer Abmeldung fehlt.');
 }
 
 if (failures.length) {
@@ -165,5 +272,5 @@ if (failures.length) {
 }
 
 console.log(
-  `Liquid Command Audit: OK · ${sources.length} isolierte UI-Dateien · ${routeFiles.length} Routen · 10 Module · 8 Seitentypen`,
+  `Liquid Command Audit: OK · ${sources.length} isolierte UI-Dateien · ${applicationRouteFiles.length} TSX-Routendateien vollständig im Cutover · ${compatibilityRouteFiles.length} alte Vorschaupfade kanonisch umgeleitet · 10 Module · 8 Seitentypen`,
 );

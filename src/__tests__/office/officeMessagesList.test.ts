@@ -77,10 +77,12 @@ describe('Office Nachrichten list', () => {
     expect(source).not.toContain('Coming Soon');
   });
 
-  it('OfficeMessagesAdaptiveScreen nutzt MasterDetailLayout mit Summary-Panel', () => {
-    const source = readSrc('src/screens/office/OfficeMessagesAdaptiveScreen.tsx');
-    expect(source).toContain('MasterDetailLayout');
-    expect(source).toContain('OfficeMessageDetailSummaryPanel');
+  it('OfficeMessagesAdaptiveScreen nutzt den produktiven adaptiven Messenger', () => {
+    const adaptiveSource = readSrc('src/screens/office/OfficeMessagesAdaptiveScreen.tsx');
+    const messengerSource = readSrc('src/screens/office/OfficeMessengerScreen.tsx');
+    expect(adaptiveSource).toContain('OfficeMessengerScreen');
+    expect(messengerSource).toContain('MessengerShell');
+    expect(messengerSource).toContain('OfficeMessageThread');
   });
 
   it('OfficeMessageListCard unterstützt Auswahlzustand für Master-Detail', () => {

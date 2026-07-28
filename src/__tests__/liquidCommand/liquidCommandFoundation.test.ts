@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { liquidColors } from '@/liquid-command/foundation/tokens';
 import { resolveLiquidFormFactor } from '@/liquid-command/foundation/useLiquidLayout';
 import {
+  liquidGlobalShortcuts,
   liquidModules,
   liquidWorkAreas,
 } from '@/liquid-command/navigation/moduleCatalog';
@@ -104,10 +105,35 @@ describe('Liquid Command foundation', () => {
       '/robotics',
       '/platform/tenants',
       '/settings/tenant',
+      '/business/office/payroll',
+      '/communication',
+      '/insight',
+      '/medical',
+      '/zentrale',
+      '/admin',
     ]) {
       expect(isLiquidCommandRoutePath(route)).toBe(true);
     }
-    expect(isLiquidCommandRoutePath('/medical')).toBe(false);
+  });
+
+  it('keeps the missing operational workflows permanently reachable', () => {
+    expect(liquidGlobalShortcuts.map((shortcut) => shortcut.label)).toEqual(
+      expect.arrayContaining([
+        'Einsätze',
+        'Klient:innen',
+        'Nachrichten',
+        'Gehaltsstatistik',
+        'Arbeitszeit',
+        'Dokumente',
+        'Portale & Zugänge',
+        'BodyMap',
+        'Profil',
+      ]),
+    );
+    expect(liquidGlobalShortcuts.find((shortcut) => shortcut.label === 'Gehaltsstatistik')?.route)
+      .toBe('/business/office/payroll');
+    expect(liquidGlobalShortcuts.find((shortcut) => shortcut.label === 'Profil')?.route)
+      .toBe('/settings/profile');
   });
 
   it('connects Liquid workspaces with productive record and creation workflows', () => {

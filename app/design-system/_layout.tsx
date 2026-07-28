@@ -1,16 +1,10 @@
-import { Stack } from 'expo-router';
 import { DevToolGate } from '@/components/auth/DevToolGate';
-import { routeLayoutContentStyle } from '@/design/routeLayoutStyle';
+import { LiquidModuleRouteLayout } from '@/liquid-command/shell/LiquidModuleRouteLayout';
 
 export default function DesignSystemLayout() {
   return (
     <DevToolGate>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: routeLayoutContentStyle,
-        }}
-      />
+      <LiquidModuleRouteLayout requireProduct={false} />
     </DevToolGate>
   );
 }

@@ -1,10 +1,5 @@
-import { FundamentScreen } from '@/screens';
-import { DevToolGate } from '@/components/auth/DevToolGate';
+import { Redirect } from 'expo-router';
 
 export default function FundamentRoute() {
-  return (
-    <DevToolGate>
-      <FundamentScreen />
-    </DevToolGate>
-  );
+  return <Redirect href="/design-system" />;
 }

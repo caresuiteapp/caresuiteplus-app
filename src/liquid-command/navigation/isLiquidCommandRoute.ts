@@ -11,6 +11,15 @@ const LIQUID_ROUTE_ROOTS = [
   '/platform',
   '/settings',
   '/portal',
+  '/business',
+  '/communication',
+  '/insight',
+  '/medical',
+  '/onboarding',
+  '/admin',
+  '/zentrale',
+  '/public',
+  '/design-system',
 ] as const;
 
 /**

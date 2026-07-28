@@ -1,5 +1,102 @@
 import type { LiquidModuleDefinition, LiquidModuleKey, LiquidWorkArea } from '../types';
 
+export type LiquidGlobalShortcut = {
+  id: string;
+  label: string;
+  description: string;
+  glyph: string;
+  route: string;
+  keywords: string;
+};
+
+/**
+ * Productive cross-module destinations that must remain reachable from every
+ * Liquid Command screen. These routes open the existing, validated workflows;
+ * Liquid Command is the navigation owner, not a parallel demo catalogue.
+ */
+export const liquidGlobalShortcuts: readonly LiquidGlobalShortcut[] = [
+  {
+    id: 'today',
+    label: 'Heute',
+    description: 'Unternehmenslage, Klient:innenkarte und heutige Einsätze',
+    glyph: '▦',
+    route: '/',
+    keywords: 'dashboard command center karte klienten heute',
+  },
+  {
+    id: 'assignments',
+    label: 'Einsätze',
+    description: 'Alle Einsätze, Durchführung, Bearbeitung und Abschluss',
+    glyph: '≡',
+    route: '/assist?area=assignments',
+    keywords: 'termine einsatz visit planung durchführen',
+  },
+  {
+    id: 'clients',
+    label: 'Klient:innen',
+    description: 'Stammdaten, Versorgung, Budgets und Dokumente',
+    glyph: '○',
+    route: '/assist?area=clients',
+    keywords: 'kunden klienten akte pflegegrad budget',
+  },
+  {
+    id: 'messages',
+    label: 'Nachrichten',
+    description: 'Posteingang, Unterhaltungen, Aufgaben und Vorlagen',
+    glyph: '▱',
+    route: '/office/messages',
+    keywords: 'kommunikation chat inbox postfach nachrichten',
+  },
+  {
+    id: 'payroll',
+    label: 'Gehaltsstatistik',
+    description: 'Monatsübersicht, Zeitkonten, Auslagen, PDF und Bestätigung',
+    glyph: '€',
+    route: '/business/office/payroll',
+    keywords: 'gehalt lohn payroll brutto zeitkonto auslagen pdf',
+  },
+  {
+    id: 'timekeeping',
+    label: 'Arbeitszeit',
+    description: 'Zeiten, Prüfungen, Abwesenheiten, Zeitkonten und Exporte',
+    glyph: '◷',
+    route: '/business/office/time-tracking',
+    keywords: 'arbeitszeit wfm urlaub krank überstunden prüfung',
+  },
+  {
+    id: 'documents',
+    label: 'Dokumente',
+    description: 'Ablage, Vorschau, Download, Versionen und Signaturen',
+    glyph: '□',
+    route: '/office?area=documents',
+    keywords: 'dateien dokumente unterschrift signatur download vorschau',
+  },
+  {
+    id: 'portals',
+    label: 'Portale & Zugänge',
+    description: 'Mitarbeitende, Klient:innen, Angehörige und interne Benutzer',
+    glyph: '⌘',
+    route: '/business/office/access',
+    keywords: 'portal zugang login codes mitarbeiter klient angehörige benutzer',
+  },
+  {
+    id: 'bodymap',
+    label: 'BodyMap',
+    description: 'Körperkarte, Wunden, Dekubitus und Verlaufskontrolle',
+    glyph: '⌾',
+    route: '/pflege/bodymap',
+    keywords: 'körper bodymap wunde dekubitus pflege',
+  },
+  {
+    id: 'profile',
+    label: 'Profil',
+    description: 'Persönliche Angaben, Sicherheit und Sitzung',
+    glyph: '♙',
+    route: '/settings/profile',
+    keywords: 'profil konto passwort abmelden sicherheit',
+  },
+] as const;
+
 export const liquidModules: readonly LiquidModuleDefinition[] = [
   {
     key: 'home',
@@ -95,15 +192,19 @@ export const liquidModules: readonly LiquidModuleDefinition[] = [
 
 export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]> = {
   home: [
-    { id: 'situation', label: 'Live-Situation', description: 'Aktive Einsätze und Risiken', pageType: 'command-center', route: '/' },
+    { id: 'situation', label: 'Versorgung heute', description: 'Alle Klient:innen, Einsätze und Risiken', pageType: 'command-center', route: '/' },
     { id: 'decisions', label: 'Entscheidungen', description: 'Freigaben und Eskalationen', pageType: 'review', route: '/?area=decisions' },
   ],
   office: [
     { id: 'company', label: 'Unternehmen', description: 'Stammdaten, Standorte und Organisation', pageType: 'record', route: '/office?area=company' },
-    { id: 'people', label: 'Personal', description: 'Mitarbeitende, Zeitkonten und Gehalt', pageType: 'work-list', route: '/office?area=people' },
+    { id: 'clients', label: 'Klient:innen', description: 'Stammdaten, Akten, Kostenträger und Portale', pageType: 'work-list', route: '/office?area=clients' },
+    { id: 'people', label: 'Personal', description: 'Mitarbeitende und Personalakten', pageType: 'work-list', route: '/office?area=people' },
+    { id: 'timekeeping', label: 'Arbeitszeit', description: 'Prüfungen, Abwesenheiten und Zeitkonten', pageType: 'review', route: '/business/office/time-tracking' },
+    { id: 'payroll', label: 'Gehaltsstatistik', description: 'Monatsberechnung, Auslagen, PDF und Bestätigung', pageType: 'analytics', route: '/business/office/payroll' },
     { id: 'billing', label: 'Rechnungen', description: 'Abrechnung, Zahlungen und Mahnungen', pageType: 'review', route: '/office?area=billing' },
     { id: 'documents', label: 'Dokumente', description: 'Vorschau, Download, Versionen und Signaturen', pageType: 'work-list', route: '/office?area=documents' },
-    { id: 'communication', label: 'Kommunikation', description: 'Nachrichten, Aufgaben und Vorlagen', pageType: 'work-list', route: '/office?area=communication' },
+    { id: 'communication', label: 'Nachrichten', description: 'Posteingang, Unterhaltungen, Aufgaben und Vorlagen', pageType: 'work-list', route: '/office/messages' },
+    { id: 'portals', label: 'Portale & Zugänge', description: 'Konten, Codes, Rollen und Freigaben', pageType: 'settings', route: '/business/office/access' },
     { id: 'inventory', label: 'Inventar', description: 'Geräte, Ausgabe und Rückgabe', pageType: 'work-list', route: '/office?area=inventory' },
     { id: 'audit', label: 'Audit', description: 'Nachvollziehbare Änderungen und Exporte', pageType: 'analytics', route: '/office?area=audit' },
   ],

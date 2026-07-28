@@ -13,6 +13,7 @@ import {
 import { liquidColors, liquidRadius, liquidSpace } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import { LiquidCommandShell } from '../shell/LiquidCommandShell';
+import { ClientNetworkMap } from '../components/ClientNetworkMap';
 
 function formatTime(value: string): string {
   const date = new Date(value);
@@ -33,43 +34,132 @@ function formatSync(value: string | null): string {
   }).format(date)}`;
 }
 
-function OperationsMap({ activeCount }: { activeCount: number }) {
-  const nodes = [
-    { left: '12%', top: '62%' },
-    { left: '24%', top: '34%' },
-    { left: '42%', top: '52%' },
-    { left: '55%', top: '24%' },
-    { left: '69%', top: '58%' },
-    { left: '83%', top: '36%' },
-  ] as const;
+function ClientMap({
+  clients,
+  tenantId,
+}: {
+  clients: ReturnType<typeof useCurrentSystemAdapter>['data']['clients'];
+  tenantId: string | null;
+}) {
+  const router = useRouter();
   return (
     <LiquidSurface active style={styles.mapCard} contentStyle={styles.mapContent}>
       <View style={styles.mapHeader}>
         <View>
-          <LiquidText variant="kicker">LIVE-LAGE</LiquidText>
-          <LiquidText variant="section">Operative Karte</LiquidText>
+          <LiquidText variant="kicker">VERSORGUNGSNETZ · DAUERHAFT</LiquidText>
+          <LiquidText variant="section">Alle Klient:innen auf der Karte</LiquidText>
         </View>
-        <LiquidStatus label={`${activeCount} aktiv`} tone="live" />
+        <View style={styles.mapActions}>
+          <LiquidStatus label={`${clients.length} Klient:innen`} tone="live" />
+          <LiquidButton
+            compact
+            label="Live-Status"
+            variant="ghost"
+            onPress={() => router.push('/assist?area=live' as never)}
+          />
+        </View>
       </View>
-      <View accessible accessibilityLabel={`Operative Karte mit ${activeCount} aktiven Einsätzen`} style={styles.map}>
-        <View style={[styles.mapLine, styles.mapLineOne]} />
-        <View style={[styles.mapLine, styles.mapLineTwo]} />
-        <View style={[styles.mapLine, styles.mapLineThree]} />
-        {nodes.map((node, index) => (
-          <View
-            key={`${node.left}-${node.top}`}
-            style={[styles.mapNode, { left: node.left, top: node.top }]}
-          >
-            <View style={[styles.mapNodeCore, index < activeCount ? styles.mapNodeLive : undefined]} />
-          </View>
-        ))}
-        {!activeCount ? (
-          <View style={styles.mapEmpty}>
-            <Text style={styles.mapEmptyText}>Keine laufenden Einsätze</Text>
-          </View>
-        ) : null}
-      </View>
+      <ClientNetworkMap
+        clients={clients}
+        height={330}
+        tenantId={tenantId}
+        onClientSelect={(clientId) =>
+          router.push(`/business/office/clients/${clientId}` as never)
+        }
+      />
     </LiquidSurface>
+  );
+}
+
+function SummaryRail({
+  visits,
+  clients,
+  employees,
+  stacked = false,
+}: {
+  visits: ReturnType<typeof useCurrentSystemAdapter>['data']['visits'];
+  clients: ReturnType<typeof useCurrentSystemAdapter>['data']['clients'];
+  employees: ReturnType<typeof useCurrentSystemAdapter>['data']['employees'];
+  stacked?: boolean;
+}) {
+  const router = useRouter();
+  const active = visits.filter((visit) =>
+    ['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(visit.assignmentStatus ?? ''),
+  ).length;
+  const completed = visits.filter((visit) => visit.assignmentStatus === 'abgeschlossen').length;
+  const open = visits.filter((visit) => visit.assignmentStatus !== 'abgeschlossen').length;
+  const critical = clients.filter((client) =>
+    client.status === 'gesperrt' || client.status === 'fehlerhaft',
+  ).length;
+
+  return (
+    <View style={[styles.summaryRail, stacked && styles.summaryRailStacked]}>
+      <LiquidSurface style={stacked ? styles.summaryPanelStacked : undefined} contentStyle={styles.summaryCard}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/assist?area=assignments' as never)}
+          style={({ pressed }) => [styles.summaryHeader, pressed && styles.pressed]}
+        >
+          <LiquidText variant="section">Einsätze</LiquidText>
+          <Text style={styles.summaryArrow}>→</Text>
+        </Pressable>
+        <View style={styles.summaryMetricGrid}>
+          <LiquidMetric label="Geplant" value={visits.length} glyph="□" tone="live" />
+          <LiquidMetric label="Aktiv" value={active} glyph="▷" tone="live" />
+          <LiquidMetric label="Fertig" value={completed} glyph="✓" tone="success" />
+          <LiquidMetric label="Offen" value={open} glyph="◷" tone={open ? 'warning' : 'success'} />
+        </View>
+      </LiquidSurface>
+      <LiquidSurface style={stacked ? styles.summaryPanelStacked : undefined} contentStyle={styles.summaryCard}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/assist?area=clients' as never)}
+          style={({ pressed }) => [styles.summaryHeader, pressed && styles.pressed]}
+        >
+          <LiquidText variant="section">Klient:innen</LiquidText>
+          <Text style={styles.summaryArrow}>→</Text>
+        </Pressable>
+        <View style={styles.clientDonutRow}>
+          <View style={styles.clientDonut}>
+            <Text style={styles.clientDonutValue}>{clients.length}</Text>
+            <Text style={styles.clientDonutLabel}>Gesamt</Text>
+          </View>
+          <View style={styles.clientLegend}>
+            <View style={styles.legendRow}>
+              <View style={[styles.legendDot, { backgroundColor: liquidColors.success }]} />
+              <Text style={styles.legendLabel}>Aktiv</Text>
+              <Text style={styles.legendValue}>{Math.max(0, clients.length - critical)}</Text>
+            </View>
+            <View style={styles.legendRow}>
+              <View style={[styles.legendDot, { backgroundColor: liquidColors.warning }]} />
+              <Text style={styles.legendLabel}>Prüfen</Text>
+              <Text style={styles.legendValue}>{critical}</Text>
+            </View>
+          </View>
+        </View>
+      </LiquidSurface>
+      <LiquidSurface style={stacked ? styles.summaryPanelStacked : undefined} contentStyle={styles.summaryCard}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/office?area=people' as never)}
+          style={({ pressed }) => [styles.summaryHeader, pressed && styles.pressed]}
+        >
+          <LiquidText variant="section">Personal</LiquidText>
+          <Text style={styles.summaryArrow}>→</Text>
+        </Pressable>
+        <Text style={styles.staffValue}>{employees.length}</Text>
+        <Text style={styles.staffMeta}>Mitarbeitende im Mandantenkontext</Text>
+        <View style={styles.staffDots}>
+          {employees.slice(0, 12).map((employee) => (
+            <View key={employee.id} style={styles.staffDot}>
+              <Text style={styles.staffDotLabel}>
+                {(employee.firstName || employee.lastName || 'M').slice(0, 1)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </LiquidSurface>
+    </View>
   );
 }
 
@@ -219,10 +309,6 @@ export function CommandCenterScreen() {
     () => state.data.visits.filter((visit) => new Date(visit.scheduledStart).toDateString() === today),
     [state.data.visits, today],
   );
-  const activeVisits = todaysVisits.filter((visit) =>
-    ['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(visit.assignmentStatus ?? ''),
-  );
-  const completed = todaysVisits.filter((visit) => visit.assignmentStatus === 'abgeschlossen');
   const incomplete = todaysVisits.filter((visit) => visit.isIncomplete);
   const errorMessages = Object.values(state.errors).filter((value): value is string => Boolean(value));
 
@@ -240,8 +326,8 @@ export function CommandCenterScreen() {
   return (
     <LiquidCommandShell
       activeModule="home"
-      title="Versorgung in Bewegung."
-      subtitle="Live-Situation, Prioritäten und nächste Handlungen in einer gemeinsamen Arbeitsfläche."
+      title="Versorgung heute."
+      subtitle="Alle Klient:innen, Einsätze, Prioritäten und nächsten Handlungen in einer gemeinsamen Arbeitsfläche."
       contextLabel="Unternehmenslage"
       contextDetail={formatSync(state.lastSynchronizedAt)}
       primaryActionLabel="Neue Aktion"
@@ -266,14 +352,17 @@ export function CommandCenterScreen() {
         />
       ) : null}
 
-      <View style={styles.metricGrid}>
-        <LiquidMetric label="Einsätze heute" value={todaysVisits.length} detail={`${activeVisits.length} aktiv`} glyph="◇" tone="live" />
-        <LiquidMetric label="Abgeschlossen" value={completed.length} detail="heute" glyph="✓" tone="success" />
-        <LiquidMetric label="Klient:innen" value={state.data.clients.length} detail="im Mandantenkontext" glyph="○" />
-        <LiquidMetric label="Prüfungen" value={incomplete.length} detail="unvollständig" glyph="!" tone={incomplete.length ? 'warning' : 'success'} />
+      <View style={[styles.overviewRow, !layout.isDesktop && styles.overviewRowStacked]}>
+        <SummaryRail
+          clients={state.data.clients}
+          employees={state.data.employees}
+          stacked={!layout.isDesktop}
+          visits={todaysVisits}
+        />
+        <View style={styles.mapColumn}>
+          <ClientMap clients={state.data.clients} tenantId={state.tenantId} />
+        </View>
       </View>
-
-      <OperationsMap activeCount={activeVisits.length} />
       <TodayTimeline visits={todaysVisits} />
 
       {layout.formFactor === 'tablet-portrait' || layout.isPhone ? (
@@ -297,13 +386,141 @@ export function CommandCenterScreen() {
 }
 
 const styles = StyleSheet.create({
-  metricGrid: {
+  overviewRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 16,
+  },
+  overviewRowStacked: {
+    flexDirection: 'column',
+  },
+  summaryRail: {
+    width: 276,
+    gap: 14,
+  },
+  summaryRailStacked: {
+    width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  summaryPanelStacked: {
+    minWidth: 240,
+    flex: 1,
+  },
+  summaryCard: {
+    padding: 15,
     gap: 12,
   },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  summaryArrow: {
+    color: liquidColors.blue200,
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '700',
+  },
+  summaryMetricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  clientDonutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  clientDonut: {
+    width: 94,
+    height: 94,
+    borderRadius: 47,
+    borderWidth: 10,
+    borderColor: liquidColors.blue400,
+    backgroundColor: 'rgba(20,120,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: liquidColors.blue500,
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+  },
+  clientDonutValue: {
+    color: liquidColors.white,
+    fontSize: 23,
+    lineHeight: 27,
+    fontWeight: '800',
+  },
+  clientDonutLabel: {
+    color: liquidColors.white56,
+    fontSize: 10,
+    lineHeight: 13,
+  },
+  clientLegend: {
+    minWidth: 0,
+    flex: 1,
+    gap: 10,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  legendDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  legendLabel: {
+    minWidth: 0,
+    flex: 1,
+    color: liquidColors.white64,
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  legendValue: {
+    color: liquidColors.white,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '800',
+  },
+  staffValue: {
+    color: liquidColors.white,
+    fontSize: 30,
+    lineHeight: 34,
+    fontWeight: '800',
+  },
+  staffMeta: {
+    color: liquidColors.white56,
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  staffDots: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 5,
+  },
+  staffDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(20,120,255,0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  staffDotLabel: {
+    color: liquidColors.white,
+    fontSize: 8,
+    lineHeight: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  mapColumn: {
+    minWidth: 0,
+    flex: 1,
+  },
   mapCard: {
-    minHeight: 330,
+    minHeight: 454,
   },
   mapContent: {
     padding: liquidSpace[5],
@@ -314,6 +531,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  mapActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   map: {
     position: 'relative',

@@ -7,7 +7,7 @@ export default function EmployeeDocumentSignatureDetailRoute() {
     <CsDocumentRequestDetailScreen
       mode="employee"
       signerRole="employee"
-      signerNameDefault={profile?.displayName}
+      signerNameDefault={profile?.displayName ?? undefined}
     />
   );
 }
