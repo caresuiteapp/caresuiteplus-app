@@ -163,26 +163,47 @@ export function subscribeToOfficeMessageInbox(
   if (supabase) {
     const channelName = `office:inbox:${tenantId}`;
     const rtChannel = createSupabaseChannel(supabase, channelName, (channel) =>
-      channel.on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'message_threads',
-          filter: `tenant_id=eq.${tenantId}`,
-        },
-        (payload) => {
-          const row = payload.new as { id?: string } | null;
-          const sub = subscriptions.get(key);
-          if (sub) {
-            dispatch(sub, {
-              type: 'thread_changed',
-              tenantId,
-              threadId: row?.id,
-            });
-          }
-        },
-      ),
+      channel
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'message_threads',
+            filter: `tenant_id=eq.${tenantId}`,
+          },
+          (payload) => {
+            const row = (payload.new ?? payload.old) as { id?: string } | null;
+            const sub = subscriptions.get(key);
+            if (sub) {
+              dispatch(sub, {
+                type: 'thread_changed',
+                tenantId,
+                threadId: row?.id,
+              });
+            }
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'messages',
+            filter: `tenant_id=eq.${tenantId}`,
+          },
+          (payload) => {
+            const row = (payload.new ?? payload.old) as { thread_id?: string } | null;
+            const sub = subscriptions.get(key);
+            if (sub) {
+              dispatch(sub, {
+                type: 'message_changed',
+                tenantId,
+                threadId: row?.thread_id,
+              });
+            }
+          },
+        ),
     );
 
     subscriptions.set(key, {

@@ -1,5 +1,5 @@
-import { useMemo, type ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState, type ReactNode } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { useAuth, RequireAuth, RequireEmployeePasswordSetup, RequireRole } from '@/lib/auth';
 import {
@@ -37,14 +37,10 @@ function PortalChrome({ kind }: { kind: PortalKind }) {
   const router = useRouter();
   const layout = useLiquidLayout();
   const auth = useAuth();
+  const [moreOpen, setMoreOpen] = useState(false);
   const navigation = liquidPortalNavigation[kind];
-  const compactNavigation = navigation.filter((item) =>
-    kind === 'employee'
-      ? ['home', 'assignments', 'calendar', 'documents', 'profile'].includes(item.id)
-      : kind === 'client'
-        ? ['home', 'appointments', 'live', 'documents', 'profile'].includes(item.id)
-        : ['home', 'messages'].includes(item.id),
-  );
+  const compactNavigation = navigation.filter((item) => item.compact);
+  const moreNavigation = navigation.filter((item) => !item.compact);
   const profileRoute =
     kind === 'employee'
       ? '/portal/employee/profile'
@@ -155,24 +151,100 @@ function PortalChrome({ kind }: { kind: PortalKind }) {
         </View>
       </View>
       {!layout.isDesktop ? (
-        <View style={styles.bottomNav}>
-          {compactNavigation.map((item) => (
+        <>
+          <View style={styles.bottomNav}>
+            {compactNavigation.map((item) => (
+              <Pressable
+                key={item.id}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeId === item.id }}
+                onPress={() => router.push(item.route as never)}
+                style={({ pressed }) => [styles.bottomItem, pressed && styles.pressed]}
+              >
+                <LiquidGlyph
+                  active={activeId === item.id}
+                  glyph={item.glyph}
+                  size={20}
+                />
+                <Text style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}>{item.label}</Text>
+              </Pressable>
+            ))}
+            {moreNavigation.length ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Weitere Portalbereiche öffnen"
+                accessibilityState={{ expanded: moreOpen }}
+                onPress={() => setMoreOpen(true)}
+                style={({ pressed }) => [styles.bottomItem, pressed && styles.pressed]}
+              >
+                <LiquidGlyph
+                  active={moreNavigation.some((item) => item.id === activeId)}
+                  glyph="•••"
+                  size={20}
+                />
+                <Text
+                  style={[
+                    styles.bottomLabel,
+                    moreNavigation.some((item) => item.id === activeId) && styles.bottomLabelActive,
+                  ]}
+                >
+                  Mehr
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+          <Modal
+            animationType="fade"
+            onRequestClose={() => setMoreOpen(false)}
+            transparent
+            visible={moreOpen}
+          >
             <Pressable
-              key={item.id}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: activeId === item.id }}
-              onPress={() => router.push(item.route as never)}
-              style={({ pressed }) => [styles.bottomItem, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Menü schließen"
+              onPress={() => setMoreOpen(false)}
+              style={styles.moreBackdrop}
             >
-              <LiquidGlyph
-                active={activeId === item.id}
-                glyph={item.glyph}
-                size={20}
-              />
-              <Text style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}>{item.label}</Text>
+              <Pressable
+                accessibilityRole="menu"
+                onPress={(event) => event.stopPropagation()}
+                style={styles.morePanel}
+              >
+                <View style={styles.moreHeader}>
+                  <View>
+                    <Text style={styles.moreKicker}>PORTALNAVIGATION</Text>
+                    <Text style={styles.moreTitle}>Alle Bereiche</Text>
+                  </View>
+                  <LiquidIconButton label="Schließen" glyph="×" onPress={() => setMoreOpen(false)} />
+                </View>
+                <ScrollView
+                  contentContainerStyle={styles.moreGrid}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {moreNavigation.map((item) => (
+                    <Pressable
+                      key={item.id}
+                      accessibilityRole="menuitem"
+                      onPress={() => {
+                        setMoreOpen(false);
+                        router.push(item.route as never);
+                      }}
+                      style={({ pressed }) => [
+                        styles.moreItem,
+                        activeId === item.id && styles.moreItemActive,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <LiquidGlyph active={activeId === item.id} glyph={item.glyph} size={21} />
+                      <Text style={styles.moreLabel}>{item.label}</Text>
+                      <Text style={styles.moreArrow}>›</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </Pressable>
             </Pressable>
-          ))}
-        </View>
+          </Modal>
+        </>
       ) : null}
     </LiquidBackdrop>
   );
@@ -349,5 +421,71 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.76,
+  },
+  moreBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: 12,
+    backgroundColor: 'rgba(0,6,18,0.72)',
+  },
+  morePanel: {
+    maxHeight: '78%',
+    padding: 16,
+    paddingBottom: 22,
+    borderWidth: 1,
+    borderColor: liquidColors.blue600,
+    borderRadius: 22,
+    backgroundColor: 'rgba(4,20,43,0.99)',
+  },
+  moreHeader: {
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  moreKicker: {
+    color: liquidColors.blue200,
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  moreTitle: {
+    marginTop: 2,
+    color: liquidColors.white,
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '800',
+  },
+  moreGrid: {
+    gap: 7,
+  },
+  moreItem: {
+    minHeight: 50,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: liquidColors.white12,
+    borderRadius: liquidRadius.control,
+    backgroundColor: 'rgba(20,54,91,0.45)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  moreItemActive: {
+    borderColor: liquidColors.blue400,
+    backgroundColor: 'rgba(20,120,255,0.2)',
+  },
+  moreLabel: {
+    flex: 1,
+    color: liquidColors.white,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
+  moreArrow: {
+    color: liquidColors.blue200,
+    fontSize: 22,
+    lineHeight: 24,
   },
 });

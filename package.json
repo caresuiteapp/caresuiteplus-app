@@ -57,6 +57,7 @@
     "liquid-command:visual-qa": "node scripts/liquid-command-visual-qa.mjs",
     "liquid-command:r5:acceptance": "node scripts/liquid-command-r5-acceptance.mjs",
     "liquid-command:r5:typecheck": "node scripts/liquid-command-r5-typecheck.mjs",
+    "portal:r8:acceptance": "node scripts/portal-r8-acceptance.mjs",
     "einzelseiten:generate": "node scripts/extract-einzelseiten-routes.mjs && node scripts/generate-einzelseiten-bridges.mjs",
     "audit:p0-series-reset": "node scripts/audit/p0SeriesOccurrenceExecutionReset.mjs",
     "audit:p0-series-reset:write": "node scripts/audit/p0SeriesOccurrenceExecutionReset.mjs --write",

@@ -14,12 +14,12 @@ import {
   fetchPortalAppointments,
   fetchPortalDocumentDetail,
   fetchPortalDocuments,
-  fetchPortalMessages,
   formatFileSize,
   type PortalAppointmentItem,
 } from '@/lib/portal';
+import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
 import type { RoleKey } from '@/types';
-import type { MessageListItem } from '@/types/portal/communication';
+import type { OfficeMessageThread } from '@/types/office/messaging';
 import type {
   PortalDocumentDetail,
   PortalDocumentListItem,
@@ -39,25 +39,34 @@ import {
 } from '../components/LiquidPrimitives';
 import { liquidColors, liquidRadius, liquidSpace } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
+import { liquidPortalNavigation } from '../navigation/portalCatalog';
 import type { LiquidPortalKey } from '../types';
 
 type PortalSection = {
   id: string;
   label: string;
   glyph: string;
+  route: string;
 };
 
 type PortalData = {
   appointments: PortalAppointmentItem[];
   documents: PortalDocumentListItem[];
-  messages: MessageListItem[];
 };
 
 const EMPTY_PORTAL_DATA: PortalData = {
   appointments: [],
   documents: [],
-  messages: [],
 };
+
+function portalSections(kind: 'employee' | 'client' | 'relative'): PortalSection[] {
+  return liquidPortalNavigation[kind].map((item) => ({
+    id: item.id === 'home' ? 'today' : item.id,
+    label: item.label,
+    glyph: item.glyph,
+    route: item.route,
+  }));
+}
 
 const portalDefinitions: Record<
   Extract<LiquidPortalKey, 'employee' | 'client' | 'family'>,
@@ -72,39 +81,19 @@ const portalDefinitions: Record<
     title: 'Mitarbeitenden-App',
     eyebrow: 'MEIN ARBEITSTAG',
     allowedRole: 'employee_portal',
-    sections: [
-      { id: 'today', label: 'Mein Tag', glyph: '⌂' },
-      { id: 'appointments', label: 'Einsätze', glyph: '◇' },
-      { id: 'time', label: 'Zeiten', glyph: '◷' },
-      { id: 'documents', label: 'Dokumente', glyph: '▤' },
-      { id: 'messages', label: 'Nachrichten', glyph: '✉' },
-      { id: 'salary', label: 'Gehalt', glyph: '€' },
-    ],
+    sections: portalSections('employee'),
   },
   client: {
     title: 'Klient:innenportal',
     eyebrow: 'MEINE VERSORGUNG',
     allowedRole: 'client_portal',
-    sections: [
-      { id: 'today', label: 'Übersicht', glyph: '⌂' },
-      { id: 'appointments', label: 'Termine', glyph: '◷' },
-      { id: 'live', label: 'Live-Anfahrt', glyph: '⌖' },
-      { id: 'documents', label: 'Dokumente', glyph: '▤' },
-      { id: 'messages', label: 'Nachrichten', glyph: '✉' },
-      { id: 'invoices', label: 'Rechnungen', glyph: '€' },
-    ],
+    sections: portalSections('client'),
   },
   family: {
     title: 'Angehörigenportal',
     eyebrow: 'FREIGEGEBENE INFORMATIONEN',
     allowedRole: 'family_portal',
-    sections: [
-      { id: 'today', label: 'Übersicht', glyph: '⌂' },
-      { id: 'appointments', label: 'Termine', glyph: '◷' },
-      { id: 'notices', label: 'Hinweise', glyph: '!' },
-      { id: 'documents', label: 'Dokumente', glyph: '▤' },
-      { id: 'messages', label: 'Kommunikation', glyph: '✉' },
-    ],
+    sections: portalSections('relative'),
   },
 };
 
@@ -161,19 +150,17 @@ function usePortalData() {
     }
 
     setLoading(true);
-    const [appointments, documents, messages] = await Promise.all([
+    const [appointments, documents] = await Promise.all([
       fetchPortalAppointments(profileId, roleKey, context),
       fetchPortalDocuments(profileId, roleKey, context),
-      fetchPortalMessages(profileId, roleKey),
     ]);
 
     setData({
       appointments: appointments.ok ? appointments.data : [],
       documents: documents.ok ? documents.data : [],
-      messages: messages.ok ? messages.data : [],
     });
     setErrors(
-      [appointments, documents, messages]
+      [appointments, documents]
         .filter((result) => !result.ok)
         .map((result) => ('error' in result ? result.error : 'Daten konnten nicht geladen werden.')),
     );
@@ -396,33 +383,46 @@ function DocumentRows({
   );
 }
 
-function MessageRows({ messages }: { messages: MessageListItem[] }) {
-  if (!messages.length) {
+function MessageRows({
+  onOpen,
+  threads,
+}: {
+  onOpen: (threadId: string) => void;
+  threads: OfficeMessageThread[];
+}) {
+  if (!threads.length) {
     return (
       <LiquidState
         kind="empty"
-        title="Keine Nachrichten"
-        message="Im freigegebenen Kommunikationsbereich liegen keine Nachrichten vor."
+        title="Keine aktiven Chats"
+        message="Im freigegebenen Kommunikationsbereich ist aktuell kein Chat geöffnet."
       />
     );
   }
   return (
     <View style={styles.rows}>
-      {messages.map((message) => (
-        <LiquidSurface key={message.id} contentStyle={styles.row}>
-          <View style={styles.rowGlyph}><LiquidGlyph glyph="✉" size={19} /></View>
-          <View style={styles.rowCopy}>
-            <LiquidText variant="section">{message.subject}</LiquidText>
-            <LiquidText variant="meta">
-              {message.senderName} · {formatDateTime(message.updatedAt)}
-            </LiquidText>
-            <LiquidText numberOfLines={2}>{message.body}</LiquidText>
-          </View>
-          <LiquidStatus
-            label={message.readAt ? 'Gelesen' : 'Neu'}
-            tone={message.readAt ? 'neutral' : 'live'}
-          />
-        </LiquidSurface>
+      {threads.map((thread) => (
+        <Pressable
+          key={thread.id}
+          accessibilityRole="button"
+          accessibilityLabel={`Chat ${thread.subject} öffnen`}
+          onPress={() => onOpen(thread.id)}
+        >
+          <LiquidSurface contentStyle={styles.row}>
+            <View style={styles.rowGlyph}><LiquidGlyph glyph="▱" size={19} /></View>
+            <View style={styles.rowCopy}>
+              <LiquidText variant="section">{thread.subject}</LiquidText>
+              <LiquidText variant="meta">
+                {thread.categoryLabel || 'Kommunikation'} · {formatDateTime(thread.lastMessageAt ?? thread.updatedAt)}
+              </LiquidText>
+              <LiquidText numberOfLines={2}>{thread.lastMessagePreview || 'Noch keine Nachricht'}</LiquidText>
+            </View>
+            <LiquidStatus
+              label={thread.unreadCount ? `${thread.unreadCount} neu` : 'Aktiv'}
+              tone={thread.unreadCount ? 'live' : 'neutral'}
+            />
+          </LiquidSurface>
+        </Pressable>
       ))}
     </View>
   );
@@ -431,22 +431,24 @@ function MessageRows({ messages }: { messages: MessageListItem[] }) {
 function Overview({
   appointments,
   documents,
-  messages,
+  threads,
   portal,
   onNavigate,
 }: PortalData & {
+  threads: OfficeMessageThread[];
   portal: 'employee' | 'client' | 'family';
   onNavigate: (section: string) => void;
 }) {
   const layout = useLiquidLayout();
   const nextAppointment = appointments[0];
-  const unread = messages.filter((message) => !message.readAt).length;
+  const unread = threads.reduce((sum, thread) => sum + thread.unreadCount, 0);
+  const activeChats = threads.length;
   const quickItems =
     portal === 'employee'
       ? [
-          { id: 'appointments', label: 'Einsätze', glyph: '□' },
+          { id: 'assignments', label: 'Einsätze', glyph: '□' },
           { id: 'documents', label: 'Dokumente', glyph: '▤' },
-          { id: 'appointments', label: 'Anfahrt', glyph: '➤' },
+          { id: 'messages', label: 'Nachrichten', glyph: '▱' },
         ]
       : portal === 'client'
         ? [
@@ -498,7 +500,7 @@ function Overview({
               compact
               label={portal === 'employee' ? 'Einsatz öffnen' : 'Termin öffnen'}
               icon="›"
-              onPress={() => onNavigate('appointments')}
+              onPress={() => onNavigate(portal === 'employee' ? 'assignments' : 'appointments')}
             />
           </View>
         </LiquidSurface>
@@ -514,14 +516,18 @@ function Overview({
           </View>
           <View style={styles.portalFacts}>
             <LiquidMetric label="Termine" value={appointments.length} detail="freigegeben" />
-            <LiquidMetric label="Nachrichten" value={unread} detail={unread ? 'neu' : 'gelesen'} />
+            <LiquidMetric
+              label="Aktive Chats"
+              value={activeChats}
+              detail={unread ? `${unread} ungelesen` : 'aktuell'}
+            />
             <LiquidMetric label="Dokumente" value={documents.length} detail="sichtbar" />
           </View>
           <LiquidButton
             compact
             label="Anfahrt öffnen"
             icon="➤"
-            onPress={() => onNavigate(portal === 'employee' ? 'appointments' : 'live')}
+            onPress={() => onNavigate(portal === 'employee' ? 'assignments' : 'live')}
           />
         </LiquidSurface>
       </View>
@@ -599,11 +605,19 @@ export function PortalHomeScreen({
   const definition = portalDefinitions[portal];
   const [active, setActive] = useState('today');
   const { context, data, errors, loading, profileId, reload, roleKey } = usePortalData();
+  const officeMessages = usePortalOfficeMessages('open');
   const displayName =
     auth.profile?.displayName || auth.portalSession?.displayName || auth.user?.displayName || 'Portal';
-  const compactSections = definition.sections.filter((section) =>
-    ['today', 'appointments', 'documents', 'messages', 'salary'].includes(section.id),
-  );
+  const mobileSections = definition.sections;
+
+  const navigateToSection = (sectionId: string) => {
+    const section = definition.sections.find((item) => item.id === sectionId);
+    if (!section || section.id === 'today') {
+      setActive('today');
+      return;
+    }
+    router.push(section.route as never);
+  };
 
   const signOut = async () => {
     await auth.signOut();
@@ -627,7 +641,7 @@ export function PortalHomeScreen({
   }
 
   const renderContent = () => {
-    if (loading && !data.appointments.length && !data.documents.length && !data.messages.length) {
+    if (loading && !data.appointments.length && !data.documents.length) {
       return (
         <LiquidState
           kind="loading"
@@ -636,7 +650,7 @@ export function PortalHomeScreen({
         />
       );
     }
-    if (errors.length && !data.appointments.length && !data.documents.length && !data.messages.length) {
+    if (errors.length && !data.appointments.length && !data.documents.length) {
       return (
         <LiquidState
           kind="error"
@@ -647,7 +661,16 @@ export function PortalHomeScreen({
         />
       );
     }
-    if (active === 'today') return <Overview {...data} portal={portal} onNavigate={setActive} />;
+    if (active === 'today') {
+      return (
+        <Overview
+          {...data}
+          onNavigate={navigateToSection}
+          portal={portal}
+          threads={officeMessages.threads}
+        />
+      );
+    }
     if (active === 'appointments') return <AppointmentRows appointments={data.appointments} />;
     if (active === 'live') return <AppointmentRows appointments={data.appointments} liveOnly />;
     if (active === 'documents') {
@@ -660,7 +683,16 @@ export function PortalHomeScreen({
         />
       );
     }
-    if (active === 'messages') return <MessageRows messages={data.messages} />;
+    if (active === 'messages') {
+      return (
+        <MessageRows
+          onOpen={(threadId) => router.push(
+            `/portal/${portal === 'family' ? 'relative' : portal}/messages/${threadId}` as never,
+          )}
+          threads={officeMessages.threads}
+        />
+      );
+    }
     return <InformationalPanel portal={portal} section={active} />;
   };
 
@@ -686,7 +718,7 @@ export function PortalHomeScreen({
                 <LiquidIconButton
                   label="Benachrichtigungen"
                   glyph="♧"
-                  onPress={() => setActive('messages')}
+                  onPress={() => navigateToSection('messages')}
                 />
                 <LiquidIconButton
                   label={portal === 'family' ? 'Abmelden' : 'Profil'}
@@ -705,7 +737,7 @@ export function PortalHomeScreen({
               <LiquidText variant="kicker">PORTALNAVIGATION</LiquidText>
               <PortalNavigation
                 active={active}
-                onSelect={setActive}
+                onSelect={navigateToSection}
                 sections={definition.sections}
               />
               <View style={styles.sideFooter}>
@@ -752,8 +784,8 @@ export function PortalHomeScreen({
               <PortalNavigation
                 active={active}
                 horizontal
-                onSelect={setActive}
-                sections={compactSections}
+                onSelect={navigateToSection}
+                sections={mobileSections}
               />
             </View>
           </View>

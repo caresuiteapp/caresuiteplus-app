@@ -57,13 +57,13 @@ describe('ClientPortalOverviewScreen adaptive engine wiring', () => {
   });
 
   it('portal messaging hooks wait for resolved client link via usePortalActor', () => {
-    const messagesHook = readSrc('src/hooks/usePortalOfficeMessages.ts');
+    const messagesHook = readSrc('src/hooks/useportalofficemessages.ts');
     expect(messagesHook).toContain('usePortalActor');
     expect(messagesHook).toContain('isLinkedReady');
     expect(messagesHook).toContain('clientId');
     expect(messagesHook).toContain('{ clientId, employeeId }');
 
-    const threadHook = readSrc('src/hooks/usePortalOfficeThreadDetail.ts');
+    const threadHook = readSrc('src/hooks/useportalofficethreaddetail.ts');
     expect(threadHook).toContain('usePortalActor');
     expect(threadHook).toContain('isLinkedReady');
 
