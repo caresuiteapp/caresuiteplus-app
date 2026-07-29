@@ -2,6 +2,7 @@ import type { ServiceResult } from '@/types';
 import type { Database } from '@/lib/supabase/database.types';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import {
@@ -151,6 +152,72 @@ export async function activateClientFromIntake(
   }
 
   return { ok: true, data: { id: data.id } };
+}
+
+/**
+ * Repairs an intake that reached document signing but remained a lead because
+ * a later derived synchronization failed. Existing signatures are only read.
+ */
+export async function repairCompletedClientIntakeActivation(
+  tenantId: string,
+  clientId: string,
+  actorProfileId?: string | null,
+): Promise<ServiceResult<void>> {
+  const supabase = getClient();
+  if (!supabase) return unavailable();
+
+  const { data: client, error: clientError } = await supabase
+    .from('clients')
+    .select('status')
+    .eq('id', clientId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+  if (clientError) {
+    return { ok: false, error: toGermanSupabaseError(clientError) };
+  }
+  if (!client || client.status !== 'lead') {
+    return { ok: true, data: undefined };
+  }
+
+  const [eventResult, signatureResult] = await Promise.all([
+    fromUnknownTable(supabase, 'client_timeline_events')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .contains('metadata', { source: 'intake' })
+      .limit(1)
+      .maybeSingle(),
+    fromUnknownTable(supabase, 'client_document_signatures')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .eq('signer_role', 'client')
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  if (eventResult.error) {
+    return { ok: false, error: toGermanSupabaseError(eventResult.error) };
+  }
+  if (signatureResult.error) {
+    return { ok: false, error: toGermanSupabaseError(signatureResult.error) };
+  }
+  if (!eventResult.data || !signatureResult.data) {
+    return { ok: true, data: undefined };
+  }
+
+  const { error: activationError } = await supabase
+    .from('clients')
+    .update({
+      status: 'active',
+      updated_by: actorProfileId ?? null,
+    })
+    .eq('id', clientId)
+    .eq('tenant_id', tenantId)
+    .eq('status', 'lead');
+  return activationError
+    ? { ok: false, error: toGermanSupabaseError(activationError) }
+    : { ok: true, data: undefined };
 }
 
 export function summarizeIntakeBillingType(form: ClientIntakeFormData): string {

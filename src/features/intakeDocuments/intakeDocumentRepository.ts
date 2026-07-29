@@ -6,7 +6,13 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { getSystemIntakeTemplateByKey, INTAKE_DOCUMENT_SYSTEM_TEMPLATES } from './intakeDocumentSystemTemplates';
 import { resolveOfficeDocumentTitle } from '@/lib/office/officeDocumentDisplay';
-import type { IntakeDocumentTemplate } from './intakeDocumentTypes';
+import type {
+  IntakeDocumentState,
+  IntakeDocumentStatus,
+  IntakeDocumentTemplate,
+  IntakeDocumentType,
+  IntakeSignatureRole,
+} from './intakeDocumentTypes';
 
 type SystemTemplateRow = {
   id: string;
@@ -74,6 +80,104 @@ function getDb(): IntakeDbClient | null {
 
 function unavailable(): ServiceResult<never> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+}
+
+export async function loadPersistedIntakeDocumentsForClient(
+  tenantId: string,
+  clientId: string,
+): Promise<ServiceResult<IntakeDocumentState[]>> {
+  const db = getDb();
+  if (!db) return unavailable();
+
+  const { data: documentData, error: documentError } = await db
+    .from('client_intake_documents')
+    .select(
+      'id, template_key, document_type, title, status, is_required, version, source, tenant_template_id, preview_html, finalized_html, rendered_pdf_path, missing_placeholders, preview_opened_at, finalized_at',
+    )
+    .eq('tenant_id', tenantId)
+    .eq('client_id', clientId);
+  if (documentError) {
+    return { ok: false, error: toGermanSupabaseError(documentError) };
+  }
+
+  const rows = (documentData as {
+    id: string;
+    template_key: string;
+    document_type: string;
+    title: string;
+    status: string;
+    is_required: boolean;
+    version: number;
+    source: string;
+    tenant_template_id: string | null;
+    preview_html: string | null;
+    finalized_html: string | null;
+    rendered_pdf_path: string | null;
+    missing_placeholders: unknown;
+    preview_opened_at: string | null;
+    finalized_at: string | null;
+  }[] | null) ?? [];
+
+  if (rows.length === 0) return { ok: true, data: [] };
+
+  const documentIds = rows.map((row) => row.id);
+  const { data: signatureData, error: signatureError } = await db
+    .from('client_document_signatures')
+    .select('document_id, signer_role, signature_data, signed_at, signer_name')
+    .eq('tenant_id', tenantId)
+    .eq('client_id', clientId)
+    .in('document_id', documentIds);
+  if (signatureError) {
+    return { ok: false, error: toGermanSupabaseError(signatureError) };
+  }
+
+  const signaturesByDocument = new Map<
+    string,
+    IntakeDocumentState['signatures']
+  >();
+  for (const row of (signatureData as {
+    document_id: string;
+    signer_role: string;
+    signature_data: string;
+    signed_at: string;
+    signer_name: string | null;
+  }[] | null) ?? []) {
+    const role = row.signer_role as IntakeSignatureRole;
+    const signatures = signaturesByDocument.get(row.document_id) ?? {};
+    signatures[role] = {
+      role,
+      dataUrl: row.signature_data,
+      signedAt: row.signed_at,
+      signerName: row.signer_name,
+    };
+    signaturesByDocument.set(row.document_id, signatures);
+  }
+
+  return {
+    ok: true,
+    data: rows.map((row) => ({
+      templateKey: row.template_key,
+      documentType: row.document_type as IntakeDocumentType,
+      title: row.title,
+      isRequired: row.is_required,
+      status: row.status as IntakeDocumentStatus,
+      source: row.source === 'tenant' ? 'tenant' : 'system',
+      tenantTemplateId: row.tenant_template_id,
+      version: row.version,
+      missingPlaceholders: Array.isArray(row.missing_placeholders)
+        ? row.missing_placeholders.filter(
+            (value): value is string => typeof value === 'string',
+          )
+        : [],
+      unresolvedKeys: [],
+      previewHtml: row.preview_html,
+      finalizedHtml: row.finalized_html,
+      renderedPdfPath: row.rendered_pdf_path,
+      signatures: signaturesByDocument.get(row.id) ?? {},
+      previewOpenedAt: row.preview_opened_at,
+      finalizedAt: row.finalized_at,
+    })),
+  };
 }
 
 function mapSystemRow(row: SystemTemplateRow): IntakeDocumentTemplate {

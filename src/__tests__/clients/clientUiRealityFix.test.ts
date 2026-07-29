@@ -59,6 +59,23 @@ describe('Client UI Reality Fix', () => {
     expect(modal).toContain('footerActions');
     expect(modal).toContain('Ungespeicherte Änderungen');
     expect(modal).toContain('CLIENT_MASTER_DATA_SECTIONS');
+    expect(modal).toContain('validateOnSubmit: false');
+    expect(modal).toContain('resolveChangedSections');
+    expect(modal).toContain("submitting ? 'Wird gespeichert…' : 'Speichern'");
+
+    const sections = readSrc('lib/clients/clientMasterDataSections.ts');
+    expect(sections).not.toContain("key: 'vertraege_einwilligungen'");
+  });
+
+  it('loads existing intake signatures instead of asking the client to sign again', () => {
+    const edit = readSrc('lib/clients/clientIntakeEditService.ts');
+    const documents = readSrc('features/intakeDocuments/intakeDocumentRepository.ts');
+    const hook = readSrc('hooks/useClientIntakeWizard.ts');
+    expect(edit).toContain('loadPersistedIntakeDocumentsForClient');
+    expect(documents).toContain("from('client_document_signatures')");
+    expect(documents).toContain('signature_data');
+    expect(documents).toContain('signedAt: row.signed_at');
+    expect(hook).toContain("editSections?.includes('vertraege_einwilligungen')");
   });
 
   it('buildClientDetailKpis avoids invoice KPI labels', () => {

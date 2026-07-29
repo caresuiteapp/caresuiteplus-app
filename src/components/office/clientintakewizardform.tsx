@@ -39,6 +39,7 @@ export function ClientIntakeSectionContent({
   contentStyles,
   panelViewContext,
   clientId,
+  showIntakeOnlyFields = true,
 }: {
   section: IntakeSectionKey;
   wizard: ReturnType<typeof useClientIntakeWizard>;
@@ -46,6 +47,8 @@ export function ClientIntakeSectionContent({
   /** Use `form` when rendered inside AppGlassModal section edits. */
   panelViewContext?: LlganViewContext;
   clientId?: string;
+  /** Hides intake-only questions that are not part of the persisted client profile. */
+  showIntakeOnlyFields?: boolean;
 }) {
   const { form, errors, updateField, updateBillingTypes, updateCostBearerTypes, contextHint, tenantId, replaceForm, createdId } = wizard;
   const resolvedClientId = clientId ?? createdId ?? undefined;
@@ -102,8 +105,12 @@ export function ClientIntakeSectionContent({
       <SectionPanel {...panelCtx} title="Versorgung / Pflege / Betreuung">
         <CareCatalogSelect catalogKey="care_level" label="Pflegegrad" value={form.careLevel} onChange={(v) => updateField('careLevel', v)} error={errors.careLevel} />
         <PremiumInput label="Hausarzt" value={form.familyDoctor} onChangeText={(v) => updateField('familyDoctor', v)} error={errors.familyDoctor} />
-        <CareCatalogSelect catalogKey="consulting_types" label="Beratungsart" value={form.consultingType} onChange={(v) => updateField('consultingType', v)} error={errors.consultingType} />
-        <PremiumInput label="Beratungsanlass" value={form.consultingReason} onChangeText={(v) => updateField('consultingReason', v)} error={errors.consultingReason} />
+        {showIntakeOnlyFields ? (
+          <>
+            <CareCatalogSelect catalogKey="consulting_types" label="Beratungsart" value={form.consultingType} onChange={(v) => updateField('consultingType', v)} error={errors.consultingType} />
+            <PremiumInput label="Beratungsanlass" value={form.consultingReason} onChangeText={(v) => updateField('consultingReason', v)} error={errors.consultingReason} />
+          </>
+        ) : null}
         <CareMultiCatalogSelect catalogKey="support_tasks" label="Gewünschte Unterstützung (System)" values={form.supportWishes} onChange={(v) => updateField('supportWishes', v)} error={errors.supportWishes} />
         <AssistCatalogMultiSelect catalogKey="assist.intake.service_wish" label="Leistungswunsch (Office-Katalog)" values={form.supportWishes} onChange={(v) => updateField('supportWishes', v)} />
       </SectionPanel>

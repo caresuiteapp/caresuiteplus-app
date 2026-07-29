@@ -11,8 +11,13 @@ import {
 } from '@/components/ui';
 import { useClientIntakeWizard } from '@/hooks/useClientIntakeWizard';
 import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
-import { CLIENT_MASTER_DATA_SECTIONS } from '@/lib/clients/clientMasterDataSections';
+import {
+  CLIENT_MASTER_DATA_SECTIONS,
+  CLIENT_MASTER_DATA_SECTION_KEYS,
+} from '@/lib/clients/clientMasterDataSections';
 import { confirmAction } from '@/lib/platform/confirmAction';
+import type { IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
+import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { spacing } from '@/theme';
 
 export type ClientMasterDataEditModalProps = {
@@ -26,6 +31,86 @@ function formsEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+const MASTER_SECTION_FIELDS: Partial<Record<
+  IntakeSectionKey,
+  (keyof ClientIntakeFormData)[]
+>> = {
+  leistungsart: ['careContexts'],
+  stammdaten: [
+    'salutation',
+    'firstName',
+    'lastName',
+    'dateOfBirth',
+    'gender',
+    'housingForm',
+    'admissionDate',
+    'serviceStart',
+    'specialNotes',
+  ],
+  adresse_kontakt: [
+    'street',
+    'houseNumber',
+    'zip',
+    'city',
+    'phone',
+    'mobile',
+    'email',
+    'preferredContact',
+  ],
+  versorgung: [
+    'careLevel',
+    'familyDoctor',
+    'supportWishes',
+  ],
+  kostentraeger: [
+    'billingType',
+    'billingTypes',
+    'costBearerType',
+    'costBearerTypes',
+    'careFundName',
+    'careFundStreet',
+    'careFundZip',
+    'careFundCity',
+    'healthInsurance',
+    'healthInsuranceStreet',
+    'healthInsuranceZip',
+    'healthInsuranceCity',
+    'healthInsuranceIk',
+    'privatversicherungName',
+    'sozialamtName',
+    'beihilfeName',
+    'selbstzahlerName',
+    'berufsgenossenschaftName',
+    'unfallversicherungName',
+    'sonstigerName',
+    'costBearerIk',
+    'insuranceNumber',
+    'selfPay',
+  ],
+  angehoerige: ['emergencyContactName', 'emergencyContactPhone'],
+  notfall_zugang: [
+    'homeAccess',
+    'keyStatus',
+    'keyNumber',
+    'doorCode',
+    'facilityName',
+    'careArea',
+    'roomNumber',
+    'pets',
+  ],
+};
+
+function resolveChangedSections(
+  initial: ClientIntakeFormData | null,
+  current: ClientIntakeFormData,
+): IntakeSectionKey[] {
+  if (!initial) return [];
+  return CLIENT_MASTER_DATA_SECTION_KEYS.filter((section) =>
+    (MASTER_SECTION_FIELDS[section] ?? []).some(
+      (field) => !formsEqual(initial[field], current[field]),
+    ));
+}
+
 /** Full master-data edit — scrollable sections with sticky modal footer. */
 export function ClientMasterDataEditModal({
   visible,
@@ -34,8 +119,13 @@ export function ClientMasterDataEditModal({
   onSaved,
 }: ClientMasterDataEditModalProps) {
   const contentStyles = useAdaptiveContentStyles();
-  const wizard = useClientIntakeWizard({ mode: 'edit', clientId });
-  const initialFormRef = useRef<string | null>(null);
+  const wizard = useClientIntakeWizard({
+    mode: 'edit',
+    clientId,
+    editSections: CLIENT_MASTER_DATA_SECTION_KEYS,
+    validateOnSubmit: false,
+  });
+  const initialFormRef = useRef<ClientIntakeFormData | null>(null);
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -60,7 +150,7 @@ export function ClientMasterDataEditModal({
 
   useEffect(() => {
     if (!loading && !loadError && !notFound && initialFormRef.current === null) {
-      initialFormRef.current = JSON.stringify(form);
+      initialFormRef.current = form;
     }
   }, [form, loadError, loading, notFound]);
 
@@ -70,7 +160,11 @@ export function ClientMasterDataEditModal({
     }
   }, [visible]);
 
-  const isDirty = initialFormRef.current !== null && !formsEqual(form, JSON.parse(initialFormRef.current));
+  const changedSections = useMemo(
+    () => resolveChangedSections(initialFormRef.current, form),
+    [form],
+  );
+  const isDirty = changedSections.length > 0;
 
   const handleClose = useCallback(async () => {
     if (isDirty && !isSuccess) {
@@ -86,7 +180,7 @@ export function ClientMasterDataEditModal({
   }, [isDirty, isSuccess, onClose]);
 
   const handleSave = async () => {
-    const id = await submit();
+    const id = await submit(changedSections);
     if (id) {
       onSaved?.(id);
       onClose();
@@ -133,6 +227,7 @@ export function ClientMasterDataEditModal({
                 wizard={wizard}
                 contentStyles={contentStyles}
                 panelViewContext="form"
+                showIntakeOnlyFields={false}
               />
             </SectionPanel>
           </View>
@@ -146,7 +241,7 @@ export function ClientMasterDataEditModal({
     <AppGlassModal
       visible={visible}
       title="Stammdaten bearbeiten"
-      subtitle="Alle Bereiche in einem Formular"
+      subtitle="Profilangaben unabhängig von Verträgen bearbeiten"
       onClose={() => void handleClose()}
       maxWidth={760}
       footerActions={
@@ -154,9 +249,10 @@ export function ClientMasterDataEditModal({
           ? [
               { title: 'Abbrechen', onPress: () => void handleClose(), variant: 'secondary' },
               {
-                title: 'Speichern',
+                title: submitting ? 'Wird gespeichert…' : 'Speichern',
                 onPress: handleSave,
                 loading: submitting,
+                disabled: submitting || !isDirty,
                 variant: 'glass',
               },
             ]

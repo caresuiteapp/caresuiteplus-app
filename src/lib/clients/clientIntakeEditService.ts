@@ -7,6 +7,7 @@ import { isDemoClientBackend } from '@/lib/clients/clientBackend';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { parseHomeAccessStoredValue } from '@/lib/clients/clientIntakeHomeAccess';
+import { loadPersistedIntakeDocumentsForClient } from '@/features/intakeDocuments/intakeDocumentRepository';
 
 async function fetchIntakeSnapshot(
   tenantId: string,
@@ -116,6 +117,7 @@ export async function fetchClientIntakeEditData(
   clientId: string,
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  options?: { includeIntakeDocuments?: boolean },
 ): Promise<ServiceResult<ClientIntakeFormData>> {
   if (isDemoClientBackend()) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -129,16 +131,27 @@ export async function fetchClientIntakeEditData(
   const editResult = await fetchClientEditData(clientId, tenantId, actorRoleKey);
   if (!editResult.ok) return editResult;
 
-  const intakeSnapshot = isDemoClientBackend()
-    ? {}
-    : await fetchIntakeSnapshot(tenantId, clientId);
+  const [intakeSnapshot, persistedDocumentsResult] = isDemoClientBackend()
+    ? [{}, { ok: true as const, data: [] }]
+    : await Promise.all([
+        fetchIntakeSnapshot(tenantId, clientId),
+        options?.includeIntakeDocuments
+          ? loadPersistedIntakeDocumentsForClient(tenantId, clientId)
+          : Promise.resolve({ ok: true as const, data: [] }),
+      ]);
+  if (!persistedDocumentsResult.ok) return persistedDocumentsResult;
 
   return {
     ok: true,
     data: mapClientEditLoadToIntakeForm({
       ...editResult.data,
       ambulatoryHomeAccess: intakeSnapshot.homeAccess?.join(','),
-      intakeSnapshot,
+      intakeSnapshot: {
+        ...intakeSnapshot,
+        ...(options?.includeIntakeDocuments
+          ? { intakeDocuments: persistedDocumentsResult.data }
+          : {}),
+      },
     }),
   };
 }

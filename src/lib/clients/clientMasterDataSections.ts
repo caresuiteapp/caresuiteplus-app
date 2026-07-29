@@ -13,9 +13,8 @@ export const CLIENT_MASTER_DATA_SECTIONS: {
   { key: 'kostentraeger', title: 'Kostenträger', subtitle: 'Abrechnung & Kassen' },
   { key: 'angehoerige', title: 'Angehörige', subtitle: 'Notfallkontakte & Bevollmächtigte' },
   { key: 'notfall_zugang', title: 'Notfall & Zugang', subtitle: 'Schlüssel & Wohnungszugang' },
-  {
-    key: 'vertraege_einwilligungen',
-    title: 'Portal & Datenschutz',
-    subtitle: 'Einwilligungen & Verträge',
-  },
 ];
+
+export const CLIENT_MASTER_DATA_SECTION_KEYS = CLIENT_MASTER_DATA_SECTIONS.map(
+  ({ key }) => key,
+);

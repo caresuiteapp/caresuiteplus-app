@@ -432,7 +432,10 @@ export async function syncIntakeClientExtendedData(
     if (!addressResult.ok) return addressResult;
   }
 
-  if (shouldPersist('kostentraeger') && form.careLevel.trim()) {
+  if (
+    (shouldPersist('kostentraeger') || shouldPersist('versorgung'))
+    && form.careLevel.trim()
+  ) {
     const { data: existingLevels } = await fromUnknownTable(supabase, 'client_care_levels')
       .select('id')
       .eq('tenant_id', tenantId)
@@ -469,7 +472,11 @@ export async function syncIntakeClientExtendedData(
     }
   }
 
-  if (shouldPersist('kostentraeger') || shouldPersist('leistungsart')) {
+  if (
+    shouldPersist('kostentraeger')
+    || shouldPersist('leistungsart')
+    || shouldPersist('versorgung')
+  ) {
     const billingPayload = {
       billing_type: billingType,
       hourly_rate_cents: parseHourlyRateCents(form.hourlyRate),
@@ -551,7 +558,10 @@ export async function syncIntakeClientExtendedData(
     if (!emergencyResult.ok) return emergencyResult;
   }
 
-  if (shouldPersist('notfall_zugang') && form.familyDoctor.trim()) {
+  if (
+    (shouldPersist('notfall_zugang') || shouldPersist('versorgung'))
+    && form.familyDoctor.trim()
+  ) {
     const doctorResult = await upsertContactByType(
       tenantId,
       clientId,
@@ -571,7 +581,10 @@ export async function syncIntakeClientExtendedData(
     || form.accessNotes.trim()
     || form.pets;
 
-  if (shouldPersist('notfall_zugang') && hasAmbulatoryData) {
+  if (
+    (shouldPersist('notfall_zugang') || shouldPersist('versorgung'))
+    && hasAmbulatoryData
+  ) {
     const ambulatoryPayload = {
       home_access: homeAccessStored,
       key_status: form.keyStatus || null,
@@ -614,7 +627,10 @@ export async function syncIntakeClientExtendedData(
     }
   }
 
-  if (shouldPersist('versorgung') && (form.facilityName.trim() || form.roomNumber.trim())) {
+  if (
+    (shouldPersist('versorgung') || shouldPersist('notfall_zugang'))
+    && (form.facilityName.trim() || form.roomNumber.trim())
+  ) {
     const stationaryPayload = {
       facility_name: form.facilityName.trim() || null,
       facility_location: form.facilityLocation.trim() || null,
@@ -688,7 +704,11 @@ export async function syncIntakeClientExtendedData(
     if (timelineError) return { ok: false, error: toGermanSupabaseError(timelineError) };
   }
 
-  if (shouldPersist('kostentraeger') || shouldPersist('leistungsart')) {
+  if (
+    shouldPersist('kostentraeger')
+    || shouldPersist('leistungsart')
+    || shouldPersist('versorgung')
+  ) {
     const entitlementResult = await syncClientCareEntitlementFromLegacy(
       tenantId,
       clientId,

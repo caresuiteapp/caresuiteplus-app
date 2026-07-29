@@ -52,12 +52,18 @@ export type UseClientIntakeWizardOptions = {
   clientId?: string;
   /** Limits validation and persistence when editing one record section. */
   editSections?: IntakeSectionKey[];
+  /** Existing records may be incomplete and must remain partially editable. */
+  validateOnSubmit?: boolean;
 };
 
 export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
   const mode = options?.mode ?? 'create';
   const editClientId = options?.clientId;
   const editSections = options?.editSections;
+  const validateOnSubmit = options?.validateOnSubmit ?? true;
+  const includeIntakeDocuments = Boolean(
+    editSections?.includes('vertraege_einwilligungen'),
+  );
   const isEditMode = mode === 'edit' && !!editClientId;
 
   const { user, profile } = useAuth();
@@ -172,7 +178,9 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     setLoadError(null);
     setNotFound(false);
 
-    void fetchClientIntakeEditData(editClientId, tenantId, profile?.roleKey).then((result) => {
+    void fetchClientIntakeEditData(editClientId, tenantId, profile?.roleKey, {
+      includeIntakeDocuments,
+    }).then((result) => {
       if (cancelled) return;
       setLoading(false);
       if (!result.ok) {
@@ -191,7 +199,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     return () => {
       cancelled = true;
     };
-  }, [isEditMode, editClientId, tenantId, profile?.roleKey]);
+  }, [isEditMode, editClientId, includeIntakeDocuments, tenantId, profile?.roleKey]);
 
   const persistDraft = useCallback(
     async (options?: { showFeedback?: boolean }) => {
@@ -469,50 +477,65 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     });
   }, [form, stepIndex, steps]);
 
-  const submit = useCallback(async () => {
+  const submit = useCallback(async (sectionsOverride?: IntakeSectionKey[]) => {
     if (submitLock.current || submitting || !tenantId) return null;
     if (isEditMode && !editClientId) return null;
     submitLock.current = true;
     setSubmitting(true);
     setSubmitError(null);
+    const submittedSections = sectionsOverride?.length
+      ? sectionsOverride
+      : editSections;
 
-    const sectionsToValidate =
-      isEditMode && editSections?.length ? editSections : steps;
-    for (const section of sectionsToValidate) {
-      const stepErrors = validateIntakeStep(section, form);
-      if (hasIntakeErrors(stepErrors)) {
-        setErrors(stepErrors);
-        setStepIndex(steps.indexOf(section));
-        setSubmitting(false);
-        submitLock.current = false;
-        return null;
+    if (validateOnSubmit) {
+      const sectionsToValidate =
+        isEditMode && submittedSections?.length ? submittedSections : steps;
+      for (const section of sectionsToValidate) {
+        const stepErrors = validateIntakeStep(section, form);
+        if (hasIntakeErrors(stepErrors)) {
+          setErrors(stepErrors);
+          setStepIndex(steps.indexOf(section));
+          setSubmitting(false);
+          submitLock.current = false;
+          return null;
+        }
       }
     }
 
-    const result = isEditMode
-      ? await submitClientIntakeUpdate(tenantId, editClientId!, form, {
-          actorProfileId: profile?.id ?? user?.id ?? null,
-          actorRoleKey: profile?.roleKey ?? user?.roleKey ?? null,
-          sections: editSections,
-        })
-      : await submitClientIntake(tenantId, form, {
-          actorProfileId: profile?.id ?? user?.id ?? null,
-          draftClientId,
-          actorRoleKey: profile?.roleKey ?? user?.roleKey ?? null,
-        });
-    setSubmitting(false);
-    submitLock.current = false;
+    try {
+      const result = isEditMode
+        ? await submitClientIntakeUpdate(tenantId, editClientId!, form, {
+            actorProfileId: profile?.id ?? user?.id ?? null,
+            actorRoleKey: profile?.roleKey ?? user?.roleKey ?? null,
+            sections: submittedSections,
+          })
+        : await submitClientIntake(tenantId, form, {
+            actorProfileId: profile?.id ?? user?.id ?? null,
+            draftClientId,
+            actorRoleKey: profile?.roleKey ?? user?.roleKey ?? null,
+          });
 
-    if (result.ok) {
-      if (!isEditMode && userId) {
-        await clearClientIntakeDraft(userId, tenantId);
+      if (result.ok) {
+        if (!isEditMode && userId) {
+          await clearClientIntakeDraft(userId, tenantId);
+        }
+        skipNextSave.current = true;
+        setCreatedId(result.data.id);
+        return result.data.id;
       }
-      skipNextSave.current = true;
-      setCreatedId(result.data.id);
-      return result.data.id;
+      setSubmitError(result.error);
+      return null;
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : 'Änderungen konnten nicht gespeichert werden.',
+      );
+      return null;
+    } finally {
+      setSubmitting(false);
+      submitLock.current = false;
     }
-    setSubmitError(result.error);
-    return null;
   }, [
     draftClientId,
     editClientId,
@@ -527,6 +550,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     user?.id,
     user?.roleKey,
     userId,
+    validateOnSubmit,
   ]);
 
   return {

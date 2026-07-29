@@ -28,6 +28,7 @@ import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeD
 import {
   activateClientFromIntake,
   createClientFromIntake,
+  repairCompletedClientIntakeActivation,
   updateClientFromIntake,
 } from './repositories/clientIntakeRepository.supabase';
 import { mapIntakeModulesToPortal, saveClientModuleAssignments } from '@/lib/portal/clientModuleAssignmentService';
@@ -332,6 +333,18 @@ export async function submitClientIntakeUpdate(
       if (shouldPersist('leistungsart')) {
         const coreSync = await syncClientCoreAfterIntake(tenantId, clientId, form);
         if (!coreSync.ok) return coreSync;
+      }
+
+      const activationRepair = await repairCompletedClientIntakeActivation(
+        tenantId,
+        clientId,
+        options?.actorProfileId ?? null,
+      );
+      if (!activationRepair.ok) {
+        console.warn(
+          '[clientIntakeService] intake activation repair:',
+          activationRepair.error,
+        );
       }
 
       return { ok: true, data: { id: clientId } };
