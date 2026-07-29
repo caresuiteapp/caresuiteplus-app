@@ -47,7 +47,7 @@ describe('Portal documents live wiring', () => {
     expect(live).toContain('preview_html');
     expect(live).toContain('collectIntakeLookupKeys');
     expect(live).toContain('resolveIntakeTemplateKey');
-    expect(live).toContain("status', ['finalized', 'signed']");
+    expect(live).toContain("status', ['finalized', 'signed', 'pending_signature']");
 
     const tab = readSrc('src/components/portal/PortalDocumentsTab.tsx');
     expect(tab).toContain('formatPortalDocumentMeta');
@@ -117,6 +117,24 @@ describe('Portal documents live wiring', () => {
     expect(migration).toContain("'finalized'");
     expect(migration).toContain("'signed'");
     expect(migration).not.toContain("'abgeschlossen'");
+  });
+
+  it('repairs stuck intakes and releases client-signed intake documents', () => {
+    const migration = readFileSync(
+      path.join(
+        root,
+        'supabase',
+        'migrations',
+        '20260729093000_client_intake_persistence_portal_repair.sql',
+      ),
+      'utf8',
+    );
+    expect(migration).toContain("c.status = 'lead'");
+    expect(migration).toContain("COALESCE(e.metadata ->> 'source', '') = 'intake'");
+    expect(migration).toContain("cid.status = 'pending_signature'");
+    expect(migration).toContain("sig.signer_role = 'client'");
+    expect(migration).toContain('portal_visible = TRUE');
+    expect(migration).toContain("status IN ('finalized', 'signed', 'pending_signature')");
   });
 
   it('document detail hook passes portal context in live mode', () => {

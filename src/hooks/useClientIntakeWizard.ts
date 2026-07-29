@@ -50,11 +50,14 @@ export type ClientIntakeWizardMode = 'create' | 'edit';
 export type UseClientIntakeWizardOptions = {
   mode?: ClientIntakeWizardMode;
   clientId?: string;
+  /** Limits validation and persistence when editing one record section. */
+  editSections?: IntakeSectionKey[];
 };
 
 export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
   const mode = options?.mode ?? 'create';
   const editClientId = options?.clientId;
+  const editSections = options?.editSections;
   const isEditMode = mode === 'edit' && !!editClientId;
 
   const { user, profile } = useAuth();
@@ -473,7 +476,9 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     setSubmitting(true);
     setSubmitError(null);
 
-    for (const section of steps) {
+    const sectionsToValidate =
+      isEditMode && editSections?.length ? editSections : steps;
+    for (const section of sectionsToValidate) {
       const stepErrors = validateIntakeStep(section, form);
       if (hasIntakeErrors(stepErrors)) {
         setErrors(stepErrors);
@@ -488,6 +493,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
       ? await submitClientIntakeUpdate(tenantId, editClientId!, form, {
           actorProfileId: profile?.id ?? user?.id ?? null,
           actorRoleKey: profile?.roleKey ?? user?.roleKey ?? null,
+          sections: editSections,
         })
       : await submitClientIntake(tenantId, form, {
           actorProfileId: profile?.id ?? user?.id ?? null,
@@ -510,13 +516,16 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
   }, [
     draftClientId,
     editClientId,
+    editSections,
     form,
     isEditMode,
     profile?.id,
+    profile?.roleKey,
     steps,
     submitting,
     tenantId,
     user?.id,
+    user?.roleKey,
     userId,
   ]);
 

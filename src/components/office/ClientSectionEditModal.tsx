@@ -30,7 +30,11 @@ export function ClientSectionEditModal({
   onSaved,
 }: ClientSectionEditModalProps) {
   const contentStyles = useAdaptiveContentStyles();
-  const wizard = useClientIntakeWizard({ mode: 'edit', clientId });
+  const wizard = useClientIntakeWizard({
+    mode: 'edit',
+    clientId,
+    editSections: [section],
+  });
   const {
     loading,
     loadError,

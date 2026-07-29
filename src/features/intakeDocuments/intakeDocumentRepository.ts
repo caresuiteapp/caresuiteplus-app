@@ -41,8 +41,17 @@ type TenantTemplateRow = {
 };
 
 type IntakeQueryBuilder = {
+  select: (query?: string) => IntakeQueryBuilder;
   eq: (column: string, value: unknown) => IntakeQueryBuilder;
-  single: () => Promise<{ data: unknown; error: PostgrestError | null }>;
+  in: (column: string, values: unknown[]) => IntakeQueryBuilder;
+  single: () => Promise<{
+    data: Record<string, unknown> | null;
+    error: PostgrestError | null;
+  }>;
+  maybeSingle: () => Promise<{
+    data: Record<string, unknown> | null;
+    error: PostgrestError | null;
+  }>;
 } & Promise<{ data: unknown; error: PostgrestError | null }>;
 
 type IntakeDbClient = {
@@ -51,12 +60,9 @@ type IntakeDbClient = {
     upsert: (
       values: Record<string, unknown>,
       options?: { onConflict?: string },
-    ) => {
-      select: (query?: string) => {
-        single: () => Promise<{ data: { id: string } | null; error: PostgrestError | null }>;
-      };
-    };
-    insert: (values: Record<string, unknown>) => Promise<{ error: PostgrestError | null }>;
+    ) => IntakeQueryBuilder;
+    insert: (values: Record<string, unknown>) => IntakeQueryBuilder;
+    update: (values: Record<string, unknown>) => IntakeQueryBuilder;
   };
 };
 
@@ -287,45 +293,66 @@ async function linkOrInsertPromotedIntakeDocument(
     templateKey: string;
     documentType: string;
     title: string;
+    intakeStatus: string;
     actorProfileId?: string | null;
   },
 ): Promise<ServiceResult<void>> {
   const fileName = `${input.templateKey}.html`;
-  const { data: existingByIntake } = await db
+  const clientDocumentStatus =
+    input.intakeStatus === 'finalized' ? 'abgeschlossen' : 'bestaetigt';
+  const promotedPatch = {
+    intake_document_id: input.intakeDocumentId,
+    source: 'intake',
+    mime_type: 'text/html',
+    status: clientDocumentStatus,
+    portal_visible: true,
+    title: resolveOfficeDocumentTitle({
+      title: input.title,
+      fileName,
+      documentSource: 'intake',
+    }),
+  };
+
+  const { data: existingByIntake, error: existingByIntakeError } = await db
     .from('client_documents')
     .select('id')
     .eq('tenant_id', input.tenantId)
     .eq('client_id', input.clientId)
     .eq('intake_document_id', input.intakeDocumentId)
     .maybeSingle();
-  if (existingByIntake) return { ok: true, data: undefined };
+  if (existingByIntakeError) {
+    return { ok: false, error: toGermanSupabaseError(existingByIntakeError) };
+  }
+  if (existingByIntake) {
+    const { error: updateError } = await db
+      .from('client_documents')
+      .update(promotedPatch)
+      .eq('id', existingByIntake.id)
+      .eq('tenant_id', input.tenantId);
+    return updateError
+      ? { ok: false, error: toGermanSupabaseError(updateError) }
+      : { ok: true, data: undefined };
+  }
 
-  const { data: existingByFile } = await db
+  const { data: existingByFile, error: existingByFileError } = await db
     .from('client_documents')
     .select('id, intake_document_id, source, mime_type')
     .eq('tenant_id', input.tenantId)
     .eq('client_id', input.clientId)
     .eq('file_name', fileName)
     .maybeSingle();
+  if (existingByFileError) {
+    return { ok: false, error: toGermanSupabaseError(existingByFileError) };
+  }
 
   if (existingByFile) {
-    if (!existingByFile.intake_document_id) {
-      const { error: linkError } = await db
-        .from('client_documents')
-        .update({
-          intake_document_id: input.intakeDocumentId,
-          source: 'intake',
-          mime_type: 'text/html',
-          title: resolveOfficeDocumentTitle({
-            title: input.title,
-            fileName,
-            documentSource: 'intake',
-          }),
-        })
-        .eq('id', existingByFile.id);
-      if (linkError) {
-        return { ok: false, error: toGermanSupabaseError(linkError) };
-      }
+    const { error: linkError } = await db
+      .from('client_documents')
+      .update(promotedPatch)
+      .eq('id', existingByFile.id)
+      .eq('tenant_id', input.tenantId);
+    if (linkError) {
+      return { ok: false, error: toGermanSupabaseError(linkError) };
     }
     return { ok: true, data: undefined };
   }
@@ -345,6 +372,7 @@ async function linkOrInsertPromotedIntakeDocument(
     sensitivity: 'care',
     source: 'intake',
     intake_document_id: input.intakeDocumentId,
+    portal_visible: true,
     uploaded_by: input.actorProfileId ?? null,
   });
   if (error && error.code !== '23505') {
@@ -363,7 +391,14 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
   const db = getDb();
   if (!db) return unavailable();
 
-  const finalizedDocs = form?.intakeDocuments.filter((doc) => doc.status === 'finalized' && doc.finalizedHtml)
+  const finalizedDocs = form?.intakeDocuments.filter((doc) => (
+    Boolean(doc.finalizedHtml || doc.previewHtml)
+    && (
+      doc.status === 'finalized'
+      || doc.status === 'signed'
+      || (doc.status === 'pending_signature' && Boolean(doc.signatures.client?.dataUrl))
+    )
+  ))
     ?? [];
 
   if (form) {
@@ -380,6 +415,7 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
         templateKey: doc.templateKey,
         documentType: doc.documentType,
         title: doc.title,
+        intakeStatus: doc.status,
         actorProfileId,
       });
       if (!linked.ok) return linked;
@@ -389,23 +425,48 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
 
   const { data: intakeRows, error: intakeError } = await db
     .from('client_intake_documents')
-    .select('id, template_key, document_type, title, status, finalized_html')
+    .select('id, template_key, document_type, title, status, finalized_html, preview_html')
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)
-    .eq('status', 'finalized');
+    .in('status', ['finalized', 'signed', 'pending_signature']);
 
   if (intakeError) {
     return { ok: false, error: toGermanSupabaseError(intakeError) };
   }
 
-  for (const row of (intakeRows as {
+  const rows = (intakeRows as {
     id: string;
     template_key: string;
     document_type: string;
     title: string;
     status: string;
     finalized_html: string | null;
-  }[] | null) ?? []) {
+    preview_html: string | null;
+  }[] | null) ?? [];
+
+  const pendingIds = rows
+    .filter((row) => row.status === 'pending_signature')
+    .map((row) => row.id);
+  const clientSignedIds = new Set<string>();
+  if (pendingIds.length > 0) {
+    const { data: signatures, error: signatureError } = await db
+      .from('client_document_signatures')
+      .select('document_id')
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .eq('signer_role', 'client')
+      .in('document_id', pendingIds);
+    if (signatureError) {
+      return { ok: false, error: toGermanSupabaseError(signatureError) };
+    }
+    for (const signature of (signatures as { document_id: string }[] | null) ?? []) {
+      clientSignedIds.add(signature.document_id);
+    }
+  }
+
+  for (const row of rows) {
+    if (row.status === 'pending_signature' && !clientSignedIds.has(row.id)) continue;
+    if (!row.finalized_html && !row.preview_html) continue;
     const linked = await linkOrInsertPromotedIntakeDocument(db, {
       tenantId,
       clientId,
@@ -413,6 +474,7 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
       templateKey: row.template_key,
       documentType: row.document_type,
       title: row.title,
+      intakeStatus: row.status,
       actorProfileId,
     });
     if (!linked.ok) return linked;

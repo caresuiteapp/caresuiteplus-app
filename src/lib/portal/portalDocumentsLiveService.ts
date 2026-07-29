@@ -128,7 +128,7 @@ async function fetchIntakeRowsForPortalDocuments(
       .select(INTAKE_HTML_SELECT)
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
-      .in('status', ['finalized', 'signed']);
+      .in('status', ['finalized', 'signed', 'pending_signature']);
 
   const merged = new Map<string, IntakeHtmlRow>();
 

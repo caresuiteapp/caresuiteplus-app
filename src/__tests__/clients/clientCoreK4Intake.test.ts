@@ -29,14 +29,27 @@ describe('Client Core K.4 — intake mapping smoke', () => {
     );
   });
 
-  it('uses retry-safe extended writes and propagates care entitlement errors', () => {
+  it('uses retry-safe extended writes without blocking on derived care entitlement errors', () => {
     const persistence = readFileSync(
       resolve(ROOT, 'src/lib/clients/clientIntakePersistence.ts'),
       'utf8',
     );
     expect(persistence).toContain("eventMode?: 'create' | 'edit'");
     expect(persistence).toContain(".contains('metadata', { source: 'intake' })");
-    expect(persistence).toContain('if (!entitlementResult.ok) return entitlementResult');
+    expect(persistence).toContain("console.warn('[clientIntakePersistence] care entitlement sync:'");
+    expect(persistence).not.toContain('if (!entitlementResult.ok) return entitlementResult');
+  });
+
+  it('limits profile section edits to their own persistence domain', () => {
+    const modal = readFileSync(
+      resolve(ROOT, 'src/components/office/ClientSectionEditModal.tsx'),
+      'utf8',
+    );
+    const intake = readFileSync(resolve(ROOT, 'src/lib/clients/clientIntakeService.ts'), 'utf8');
+    expect(modal).toContain('editSections: [section]');
+    expect(intake).toContain('sections?: IntakeSectionKey[]');
+    expect(intake).toContain("shouldPersist('vertraege_einwilligungen')");
+    expect(intake).toContain("{ sections: options?.sections }");
   });
 
   it('useClientIntakeWizard loads DB sections via getServiceIntakeSections', () => {

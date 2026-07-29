@@ -221,11 +221,15 @@ export async function submitClientIntake(
           portalModules,
           options?.actorProfileId ?? null,
         );
-        if (!moduleResult.ok) return moduleResult;
+        if (!moduleResult.ok) {
+          console.warn('[clientIntakeService] portal module sync:', moduleResult.error);
+        }
       }
 
       const coreSync = await syncClientCoreAfterIntake(tenantId, clientResult.data.id, form);
-      if (!coreSync.ok) return coreSync;
+      if (!coreSync.ok) {
+        console.warn('[clientIntakeService] client core sync:', coreSync.error);
+      }
 
       const activationResult = await activateClientFromIntake(
         tenantId,
@@ -253,13 +257,20 @@ export async function submitClientIntakeUpdate(
   tenantId: string,
   clientId: string,
   form: ClientIntakeFormData,
-  options?: { actorProfileId?: string | null; actorRoleKey?: RoleKey | null },
+  options?: {
+    actorProfileId?: string | null;
+    actorRoleKey?: RoleKey | null;
+    sections?: IntakeSectionKey[];
+  },
 ): Promise<ServiceResult<{ id: string }>> {
   const denied = enforcePermission<{ id: string }>(options?.actorRoleKey, 'office.clients.edit');
   if (denied) return denied;
 
   return runService(async () => {
     if (!isDemoClientBackend()) {
+      const shouldPersist = (section: IntakeSectionKey): boolean =>
+        !options?.sections?.length || options.sections.includes(section);
+
       const clientResult = await updateClientFromIntake(
         tenantId,
         clientId,
@@ -268,41 +279,60 @@ export async function submitClientIntakeUpdate(
       );
       if (!clientResult.ok) return clientResult;
 
-      const carrierResult = await persistIntakeCostCarriers(
-        tenantId,
-        clientId,
-        form,
-        options?.actorProfileId ?? null,
-      );
-      if (!carrierResult.ok) return carrierResult;
+      if (shouldPersist('kostentraeger')) {
+        const carrierResult = await persistIntakeCostCarriers(
+          tenantId,
+          clientId,
+          form,
+          options?.actorProfileId ?? null,
+        );
+        if (!carrierResult.ok) return carrierResult;
+      }
 
-      const extendedResult = await syncIntakeClientExtendedData(
-        tenantId,
-        clientId,
-        form,
-        options?.actorProfileId ?? null,
-      );
-      if (!extendedResult.ok) return extendedResult;
+      const extendedSections: IntakeSectionKey[] = [
+        'leistungsart',
+        'adresse_kontakt',
+        'kostentraeger',
+        'angehoerige',
+        'notfall_zugang',
+        'versorgung',
+      ];
+      if (extendedSections.some(shouldPersist)) {
+        const extendedResult = await syncIntakeClientExtendedData(
+          tenantId,
+          clientId,
+          form,
+          options?.actorProfileId ?? null,
+          { sections: options?.sections },
+        );
+        if (!extendedResult.ok) return extendedResult;
+      }
 
-      const documentsResult = await persistClientIntakeDocuments(
-        tenantId,
-        clientId,
-        form,
-        options?.actorProfileId ?? null,
-      );
-      if (!documentsResult.ok) return documentsResult;
+      if (shouldPersist('vertraege_einwilligungen')) {
+        const documentsResult = await persistClientIntakeDocuments(
+          tenantId,
+          clientId,
+          form,
+          options?.actorProfileId ?? null,
+        );
+        if (!documentsResult.ok) return documentsResult;
+      }
 
-      const portalModules = mapIntakeModulesToPortal(form.assignedModules);
-      const moduleResult = await saveClientModuleAssignments(
-        tenantId,
-        clientId,
-        portalModules,
-        options?.actorProfileId ?? null,
-      );
-      if (!moduleResult.ok) return moduleResult;
+      if (shouldPersist('module')) {
+        const portalModules = mapIntakeModulesToPortal(form.assignedModules);
+        const moduleResult = await saveClientModuleAssignments(
+          tenantId,
+          clientId,
+          portalModules,
+          options?.actorProfileId ?? null,
+        );
+        if (!moduleResult.ok) return moduleResult;
+      }
 
-      const coreSync = await syncClientCoreAfterIntake(tenantId, clientId, form);
-      if (!coreSync.ok) return coreSync;
+      if (shouldPersist('leistungsart')) {
+        const coreSync = await syncClientCoreAfterIntake(tenantId, clientId, form);
+        if (!coreSync.ok) return coreSync;
+      }
 
       return { ok: true, data: { id: clientId } };
     }

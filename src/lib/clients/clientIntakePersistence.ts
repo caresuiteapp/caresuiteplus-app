@@ -1,5 +1,6 @@
 import type { ServiceResult } from '@/types';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
+import type { IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -402,25 +403,36 @@ export async function syncIntakeClientExtendedData(
   clientId: string,
   form: ClientIntakeFormData,
   actorProfileId?: string | null,
-  options: { eventMode?: 'create' | 'edit' } = {},
+  options: {
+    eventMode?: 'create' | 'edit';
+    sections?: IntakeSectionKey[];
+  } = {},
 ): Promise<ServiceResult<void>> {
   const supabase = getClient();
   if (!supabase) return unavailable();
+  const shouldPersist = (section: IntakeSectionKey): boolean =>
+    !options.sections?.length || options.sections.includes(section);
 
   const billingType = resolveIntakeBillingProfileType(form.billingTypes);
   const primaryCostBearerName = resolvePrimaryCostBearerName(form);
   const primaryCostBearerRef = resolvePrimaryCostBearerReference(form);
 
-  const contextsResult = await syncCareContexts(tenantId, clientId, form.careContexts);
-  if (!contextsResult.ok) return contextsResult;
+  if (shouldPersist('leistungsart')) {
+    const contextsResult = await syncCareContexts(tenantId, clientId, form.careContexts);
+    if (!contextsResult.ok) return contextsResult;
+  }
 
-  const supportResult = await upsertSupportPreferences(tenantId, clientId, form);
-  if (!supportResult.ok) return supportResult;
+  if (shouldPersist('leistungsart') || shouldPersist('versorgung')) {
+    const supportResult = await upsertSupportPreferences(tenantId, clientId, form);
+    if (!supportResult.ok) return supportResult;
+  }
 
-  const addressResult = await upsertPrimaryAddress(tenantId, clientId, form);
-  if (!addressResult.ok) return addressResult;
+  if (shouldPersist('adresse_kontakt')) {
+    const addressResult = await upsertPrimaryAddress(tenantId, clientId, form);
+    if (!addressResult.ok) return addressResult;
+  }
 
-  if (form.careLevel.trim()) {
+  if (shouldPersist('kostentraeger') && form.careLevel.trim()) {
     const { data: existingLevels } = await fromUnknownTable(supabase, 'client_care_levels')
       .select('id')
       .eq('tenant_id', tenantId)
@@ -457,83 +469,89 @@ export async function syncIntakeClientExtendedData(
     }
   }
 
-  const billingPayload = {
-    billing_type: billingType,
-    hourly_rate_cents: parseHourlyRateCents(form.hourlyRate),
-    service_type: resolveServiceType(form.careContexts),
-    cost_bearer_name: primaryCostBearerName,
-    cost_bearer_reference: primaryCostBearerRef,
-    invoice_recipient: String((form as Record<string, unknown>).selbstzahlerName ?? '').trim() || null,
-    notes: form.billingTypes.join(', ') || null,
-  };
+  if (shouldPersist('kostentraeger') || shouldPersist('leistungsart')) {
+    const billingPayload = {
+      billing_type: billingType,
+      hourly_rate_cents: parseHourlyRateCents(form.hourlyRate),
+      service_type: resolveServiceType(form.careContexts),
+      cost_bearer_name: primaryCostBearerName,
+      cost_bearer_reference: primaryCostBearerRef,
+      invoice_recipient: String((form as Record<string, unknown>).selbstzahlerName ?? '').trim() || null,
+      notes: form.billingTypes.join(', ') || null,
+    };
 
-  const { data: existingBilling } = await fromUnknownTable(supabase, 'client_billing_profiles')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .eq('client_id', clientId)
-    .maybeSingle();
+    const { data: existingBilling } = await fromUnknownTable(supabase, 'client_billing_profiles')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .maybeSingle();
 
-  if (existingBilling && typeof existingBilling === 'object' && 'id' in existingBilling) {
-    const { error } = await fromUnknownTable(supabase, 'client_billing_profiles')
-      .update(billingPayload)
-      .eq('id', String((existingBilling as { id: string }).id))
-      .eq('tenant_id', tenantId);
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  } else {
-    const { error } = await fromUnknownTable(supabase, 'client_billing_profiles').insert({
-      tenant_id: tenantId,
-      client_id: clientId,
-      ...billingPayload,
-    });
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (existingBilling && typeof existingBilling === 'object' && 'id' in existingBilling) {
+      const { error } = await fromUnknownTable(supabase, 'client_billing_profiles')
+        .update(billingPayload)
+        .eq('id', String((existingBilling as { id: string }).id))
+        .eq('tenant_id', tenantId);
+      if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    } else {
+      const { error } = await fromUnknownTable(supabase, 'client_billing_profiles').insert({
+        tenant_id: tenantId,
+        client_id: clientId,
+        ...billingPayload,
+      });
+      if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    }
   }
 
-  const { data: existingInsurance } = await fromUnknownTable(supabase, 'client_insurance_profiles')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .eq('client_id', clientId)
-    .eq('is_primary', true)
-    .maybeSingle();
+  if (shouldPersist('kostentraeger')) {
+    const { data: existingInsurance } = await fromUnknownTable(supabase, 'client_insurance_profiles')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .eq('is_primary', true)
+      .maybeSingle();
 
-  const insurancePayload = {
-    care_level: form.careLevel.trim() || null,
-    care_level_status: form.careLevelStatus.trim() || null,
-    care_level_valid_from: form.careLevelValidFrom.trim() || null,
-    care_fund_name: form.careFundName.trim() || null,
-    health_insurance: form.healthInsurance.trim() || null,
-    cost_bearer_ik: form.costBearerIk.trim() || null,
-    insurance_number: form.insuranceNumber.trim() || null,
-    billing_type: billingType,
-    self_pay: form.selfPay,
-    is_primary: true,
-  };
+    const insurancePayload = {
+      care_level: form.careLevel.trim() || null,
+      care_level_status: form.careLevelStatus.trim() || null,
+      care_level_valid_from: form.careLevelValidFrom.trim() || null,
+      care_fund_name: form.careFundName.trim() || null,
+      health_insurance: form.healthInsurance.trim() || null,
+      cost_bearer_ik: form.costBearerIk.trim() || null,
+      insurance_number: form.insuranceNumber.trim() || null,
+      billing_type: billingType,
+      self_pay: form.selfPay,
+      is_primary: true,
+    };
 
-  if (existingInsurance && typeof existingInsurance === 'object' && 'id' in existingInsurance) {
-    const { error } = await fromUnknownTable(supabase, 'client_insurance_profiles')
-      .update(insurancePayload)
-      .eq('id', String((existingInsurance as { id: string }).id))
-      .eq('tenant_id', tenantId);
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  } else {
-    const { error } = await fromUnknownTable(supabase, 'client_insurance_profiles').insert({
-      tenant_id: tenantId,
-      client_id: clientId,
-      ...insurancePayload,
-    });
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (existingInsurance && typeof existingInsurance === 'object' && 'id' in existingInsurance) {
+      const { error } = await fromUnknownTable(supabase, 'client_insurance_profiles')
+        .update(insurancePayload)
+        .eq('id', String((existingInsurance as { id: string }).id))
+        .eq('tenant_id', tenantId);
+      if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    } else {
+      const { error } = await fromUnknownTable(supabase, 'client_insurance_profiles').insert({
+        tenant_id: tenantId,
+        client_id: clientId,
+        ...insurancePayload,
+      });
+      if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    }
   }
 
-  const emergencyResult = await upsertContactByType(
-    tenantId,
-    clientId,
-    form.emergencyContactName,
-    form.emergencyContactPhone,
-    'notfallkontakt',
-    'emergency_contact',
-  );
-  if (!emergencyResult.ok) return emergencyResult;
+  if (shouldPersist('angehoerige') || shouldPersist('notfall_zugang')) {
+    const emergencyResult = await upsertContactByType(
+      tenantId,
+      clientId,
+      form.emergencyContactName,
+      form.emergencyContactPhone,
+      'notfallkontakt',
+      'emergency_contact',
+    );
+    if (!emergencyResult.ok) return emergencyResult;
+  }
 
-  if (form.familyDoctor.trim()) {
+  if (shouldPersist('notfall_zugang') && form.familyDoctor.trim()) {
     const doctorResult = await upsertContactByType(
       tenantId,
       clientId,
@@ -553,7 +571,7 @@ export async function syncIntakeClientExtendedData(
     || form.accessNotes.trim()
     || form.pets;
 
-  if (hasAmbulatoryData) {
+  if (shouldPersist('notfall_zugang') && hasAmbulatoryData) {
     const ambulatoryPayload = {
       home_access: homeAccessStored,
       key_status: form.keyStatus || null,
@@ -596,7 +614,7 @@ export async function syncIntakeClientExtendedData(
     }
   }
 
-  if (form.facilityName.trim() || form.roomNumber.trim()) {
+  if (shouldPersist('versorgung') && (form.facilityName.trim() || form.roomNumber.trim())) {
     const stationaryPayload = {
       facility_name: form.facilityName.trim() || null,
       facility_location: form.facilityLocation.trim() || null,
@@ -670,12 +688,18 @@ export async function syncIntakeClientExtendedData(
     if (timelineError) return { ok: false, error: toGermanSupabaseError(timelineError) };
   }
 
-  const entitlementResult = await syncClientCareEntitlementFromLegacy(
-    tenantId,
-    clientId,
-    { regenerateAccounts: true },
-  );
-  if (!entitlementResult.ok) return entitlementResult;
+  if (shouldPersist('kostentraeger') || shouldPersist('leistungsart')) {
+    const entitlementResult = await syncClientCareEntitlementFromLegacy(
+      tenantId,
+      clientId,
+      { regenerateAccounts: true },
+    );
+    if (!entitlementResult.ok) {
+      // Budget entitlement is derived data. It must never roll back a complete
+      // client intake or block profile changes; the next budget read can retry.
+      console.warn('[clientIntakePersistence] care entitlement sync:', entitlementResult.error);
+    }
+  }
 
   return { ok: true, data: undefined };
 }
