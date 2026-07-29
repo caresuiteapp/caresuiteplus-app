@@ -15,6 +15,7 @@ import {
   resolveContractTemplateKey,
 } from '@/features/intakeDocuments/buildIntakeDocumentContext';
 import {
+  applySharedClientSignatureToDocuments,
   applyDocumentSignature,
   finalizeDocument,
   getTemplateForDocument,
@@ -117,6 +118,8 @@ function buildStyles(
       color: safeColors.textPrimary,
     },
     sigSection: { gap: spacing.sm, marginTop: spacing.sm },
+    batchActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+    selectionSummary: { ...body, color: careSuiteAuroraTheme.text.primary },
     checkItem: { ...body, marginBottom: 4 },
     error,
   });
@@ -133,6 +136,8 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [signatureRole, setSignatureRole] = useState<IntakeSignatureRole>('client');
   const [signatureModalVisible, setSignatureModalVisible] = useState(false);
+  const [sharedSignatureModalVisible, setSharedSignatureModalVisible] = useState(false);
+  const [sharedSignatureMessage, setSharedSignatureMessage] = useState<string | null>(null);
 
   const contractOptions = useMemo(
     () => listAvailableContractTypes(form.careContexts).map((key) => ({
@@ -181,6 +186,17 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   );
   const optionalDocs = templates.filter((t) => t.documentType === 'additional_consent');
   const assignmentTemplate = templates.find((t) => t.documentType === 'assignment_declaration');
+  const selectedTemplates = useMemo(
+    () => templates.filter((template) => (
+      requiredDocs.some((required) => required.templateKey === template.templateKey)
+      || (template.documentType === 'assignment_declaration' && form.intakeAssignmentEnabled)
+      || (
+        template.documentType === 'additional_consent'
+        && form.intakeOptionalConsents.includes(template.templateKey)
+      )
+    )),
+    [form.intakeAssignmentEnabled, form.intakeOptionalConsents, requiredDocs, templates],
+  );
 
   const handleContractTypeChange = (key: string) => {
     onChange({
@@ -199,19 +215,6 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
       setSignatureRole(template.signatureSlots[0]?.role ?? 'client');
     },
     [form, onChange, tenantMeta],
-  );
-
-  const handleSignDocument = useCallback(
-    (template: IntakeDocumentTemplate) => {
-      const doc = form.intakeDocuments.find((d) => d.templateKey === template.templateKey);
-      if (!doc?.previewHtml) {
-        handleOpenPreview(template);
-        return;
-      }
-      setActiveKey(template.templateKey);
-      setSignatureRole(template.signatureSlots[0]?.role ?? 'client');
-    },
-    [form.intakeDocuments, handleOpenPreview],
   );
 
   const handleSignature = useCallback(
@@ -256,6 +259,45 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
     });
   };
 
+  const selectAllDocuments = useCallback(() => {
+    onChange({
+      ...form,
+      intakeAssignmentEnabled: true,
+      intakeOptionalConsents: [...OPTIONAL_CONSENT_TEMPLATE_KEYS],
+    });
+    setSharedSignatureMessage(null);
+  }, [form, onChange]);
+
+  const clearOptionalSelection = useCallback(() => {
+    onChange({
+      ...form,
+      intakeAssignmentEnabled: false,
+      intakeOptionalConsents: [],
+    });
+    setSharedSignatureMessage(null);
+  }, [form, onChange]);
+
+  const handleSharedSignature = useCallback((dataUrl: string) => {
+    const result = applySharedClientSignatureToDocuments(
+      form,
+      templates,
+      selectedTemplates.map((template) => template.templateKey),
+      dataUrl,
+      tenantMeta,
+    );
+    onChange(result.form);
+    setSharedSignatureModalVisible(false);
+
+    const parts = [`${result.signedTemplateKeys.length} Dokument(e) mit einer Unterschrift bestätigt.`];
+    if (result.pendingTemplateKeys.length > 0) {
+      parts.push(`${result.pendingTemplateKeys.length} Dokument(e) warten noch auf eine weitere erforderliche Unterschrift.`);
+    }
+    if (result.errors.length > 0) {
+      parts.push(`${result.errors.length} Dokument(e) konnten wegen fehlender Angaben nicht bestätigt werden.`);
+    }
+    setSharedSignatureMessage(parts.join(' '));
+  }, [form, onChange, selectedTemplates, templates, tenantMeta]);
+
   const previewHtml = activeDoc?.previewHtml;
   const signatureSlots = activeTemplate?.signatureSlots ?? [];
 
@@ -287,10 +329,11 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
           return (
             <PremiumCard key={template.templateKey} style={styles.docCard}>
               <View style={styles.docHeader}>
+                <Text style={styles.toggleCheck}>☑</Text>
                 <View style={styles.docTitleWrap}>
                   <Text style={styles.docTitle}>{template.title}</Text>
                   <Text style={styles.docMeta}>
-                    {template.source === 'tenant' ? 'Mandantenvorlage' : 'Systemvorlage'} · v{template.version}
+                    Pflichtdokument · vorausgewählt · {template.source === 'tenant' ? 'Mandantenvorlage' : 'Systemvorlage'} · v{template.version}
                   </Text>
                 </View>
                 <Text style={[styles.badge, statusBadgeStyle(status, styles)]}>
@@ -303,13 +346,6 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
                   variant="secondary"
                   onPress={() => handleOpenPreview(template)}
                 />
-                {status !== 'finalized' && template.signatureSlots.length > 0 ? (
-                  <PremiumButton
-                    title="Unterschreiben"
-                    variant="primary"
-                    onPress={() => handleSignDocument(template)}
-                  />
-                ) : null}
               </View>
             </PremiumCard>
           );
@@ -317,6 +353,10 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
       </SectionPanel>
 
       <SectionPanel {...panelCtx} title="Optionale Dokumente">
+        <View style={styles.batchActions}>
+          <PremiumButton title="Alle auswählen" variant="secondary" onPress={selectAllDocuments} />
+          <PremiumButton title="Optionale Auswahl aufheben" variant="secondary" onPress={clearOptionalSelection} />
+        </View>
         <Pressable
           style={styles.toggleRow}
           onPress={() => onChange({ ...form, intakeAssignmentEnabled: !form.intakeAssignmentEnabled })}
@@ -352,6 +392,35 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
             </PremiumCard>
           );
         })}
+      </SectionPanel>
+
+      <SectionPanel
+        {...panelCtx}
+        title="Gemeinsam unterschreiben"
+        subtitle="Eine Klienten-Unterschrift für das gesamte ausgewählte Dokumentenpaket"
+      >
+        <Text style={styles.selectionSummary}>
+          {selectedTemplates.length} Dokument(e) ausgewählt. Pflichtdokumente sind automatisch enthalten.
+        </Text>
+        <InfoBanner
+          variant="info"
+          message="Mit der folgenden Unterschrift bestätigt die Klientin bzw. der Klient alle ausgewählten Dokumente. Die identische Unterschrift mit identischem Zeitstempel wird automatisch in jedes ausgewählte Dokument übernommen."
+        />
+        <PremiumButton
+          title={`Alle ${selectedTemplates.length} ausgewählten Dokumente unterschreiben`}
+          variant="primary"
+          disabled={selectedTemplates.length === 0}
+          onPress={() => {
+            setSharedSignatureMessage(null);
+            setSharedSignatureModalVisible(true);
+          }}
+        />
+        {sharedSignatureMessage ? (
+          <InfoBanner
+            variant={sharedSignatureMessage.includes('konnten') ? 'warning' : 'success'}
+            message={sharedSignatureMessage}
+          />
+        ) : null}
       </SectionPanel>
 
       {activeTemplate && activeDoc ? (
@@ -443,6 +512,15 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
           label={`${signatureRoleLabel} — Bitte im großen Feld unterschreiben.`}
           onConfirm={handleSignature}
           onClose={() => setSignatureModalVisible(false)}
+        />
+      ) : null}
+
+      {sharedSignatureModalVisible ? (
+        <CareSignatureModal
+          visible
+          label={`Klient:in — eine Unterschrift bestätigt ${selectedTemplates.length} ausgewählte Dokumente.`}
+          onConfirm={handleSharedSignature}
+          onClose={() => setSharedSignatureModalVisible(false)}
         />
       ) : null}
 

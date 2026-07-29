@@ -111,6 +111,100 @@ export function applyDocumentSignature(
   };
 }
 
+export type SharedClientSignatureResult = {
+  form: ClientIntakeFormData;
+  signedTemplateKeys: string[];
+  finalizedTemplateKeys: string[];
+  pendingTemplateKeys: string[];
+  errors: { templateKey: string; title: string; error: string }[];
+};
+
+/**
+ * Applies one client signature to every selected intake document.
+ *
+ * The very same signature payload and timestamp are used for every document.
+ * Documents that require an additional employee/representative signature stay
+ * signed but open until those additional signatures have been supplied.
+ */
+export function applySharedClientSignatureToDocuments(
+  form: ClientIntakeFormData,
+  templates: IntakeDocumentTemplate[],
+  selectedTemplateKeys: string[],
+  dataUrl: string,
+  tenantDisplay?: IntakeTenantDisplay,
+  signedAt = new Date().toISOString(),
+): SharedClientSignatureResult {
+  const selectedKeys = new Set(selectedTemplateKeys);
+  const signature: IntakeDocumentSignature = {
+    role: 'client',
+    dataUrl,
+    signedAt,
+  };
+  let nextForm = form;
+  const signedTemplateKeys: string[] = [];
+  const finalizedTemplateKeys: string[] = [];
+  const pendingTemplateKeys: string[] = [];
+  const errors: SharedClientSignatureResult['errors'] = [];
+
+  for (const template of templates) {
+    if (!selectedKeys.has(template.templateKey)) continue;
+    if (!template.signatureSlots.some((slot) => slot.role === 'client')) {
+      errors.push({
+        templateKey: template.templateKey,
+        title: template.title,
+        error: 'Dieses Dokument enthält kein Feld für die Klienten-Unterschrift.',
+      });
+      continue;
+    }
+
+    const opened = openDocumentPreview(nextForm, template, tenantDisplay);
+    const signatureLabels = new Set(
+      Object.entries(template.placeholderSchema)
+        .filter(([key]) => key.startsWith('signature.'))
+        .map(([, meta]) => meta.label),
+    );
+    const missingDocumentData = opened.missingPlaceholders.filter(
+      (label) => !signatureLabels.has(label),
+    );
+    if (missingDocumentData.length > 0) {
+      nextForm = updateIntakeDocumentInForm(nextForm, opened);
+      errors.push({
+        templateKey: template.templateKey,
+        title: template.title,
+        error: `Pflichtangaben fehlen: ${missingDocumentData.join(', ')}`,
+      });
+      continue;
+    }
+
+    const signed = applyDocumentSignature(
+      opened,
+      template,
+      nextForm,
+      'client',
+      signature,
+      tenantDisplay,
+    );
+    signedTemplateKeys.push(template.templateKey);
+
+    const finalized = finalizeDocument(signed, template, nextForm, tenantDisplay);
+    if (finalized.ok) {
+      nextForm = updateIntakeDocumentInForm(nextForm, finalized.document);
+      finalizedTemplateKeys.push(template.templateKey);
+    } else {
+      nextForm = updateIntakeDocumentInForm(nextForm, signed);
+      pendingTemplateKeys.push(template.templateKey);
+    }
+  }
+
+  return {
+    form: nextForm,
+    signedTemplateKeys,
+    finalizedTemplateKeys,
+    pendingTemplateKeys,
+    errors,
+  };
+}
+
 export function finalizeDocument(
   doc: IntakeDocumentState,
   template: IntakeDocumentTemplate,

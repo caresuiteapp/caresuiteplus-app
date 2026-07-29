@@ -10,6 +10,7 @@ import {
   resolveIntakeContractType,
 } from '@/features/intakeDocuments/buildIntakeDocumentContext';
 import {
+  applySharedClientSignatureToDocuments,
   applyDocumentSignature,
   finalizeDocument,
   openDocumentPreview,
@@ -435,5 +436,67 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     const preview = renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form));
     expect(preview.html).not.toContain('— EUR');
     expect(preview.unresolvedKeys).toContain('billing.hourly_rate');
+  });
+
+  it('36. eine Klienten-Unterschrift wird auf alle ausgewählten Dokumente übernommen', () => {
+    const form = baseForm({
+      careContexts: ['daily_assistance'],
+      intakeContractType: 'assist',
+      intakeAssignmentEnabled: true,
+      intakeOptionalConsents: ['communication_consent_default'],
+      hourlyRate: '45,00',
+    });
+    const templates = listApplicableIntakeTemplates(form);
+    const selectedKeys = templates.map((template) => template.templateKey);
+    const signedAt = '2026-07-29T08:15:00.000Z';
+    const dataUrl = 'data:image/png;base64,gemeinsame-signatur';
+
+    const result = applySharedClientSignatureToDocuments(
+      form,
+      templates,
+      selectedKeys,
+      dataUrl,
+      { name: 'Helferhasen+ UG' },
+      signedAt,
+    );
+
+    expect(result.signedTemplateKeys).toEqual(selectedKeys);
+    expect(result.errors).toHaveLength(0);
+    for (const key of selectedKeys) {
+      const doc = result.form.intakeDocuments.find((item) => item.templateKey === key);
+      expect(doc?.signatures.client?.dataUrl).toBe(dataUrl);
+      expect(doc?.signatures.client?.signedAt).toBe(signedAt);
+      expect(doc?.previewHtml).toContain(dataUrl);
+    }
+  });
+
+  it('37. gemeinsame Unterschrift lässt Verträge mit zweiter Pflichtsignatur offen', () => {
+    const form = baseForm();
+    const templates = listApplicableIntakeTemplates(form);
+    const contract = templates.find((template) => template.documentType === 'client_contract')!;
+
+    const result = applySharedClientSignatureToDocuments(
+      form,
+      templates,
+      [contract.templateKey],
+      'data:image/png;base64,klient',
+      undefined,
+      '2026-07-29T08:30:00.000Z',
+    );
+
+    const signedContract = result.form.intakeDocuments.find(
+      (doc) => doc.templateKey === contract.templateKey,
+    );
+    expect(signedContract?.signatures.client?.dataUrl).toContain('klient');
+    expect(result.pendingTemplateKeys).toContain(contract.templateKey);
+    expect(result.finalizedTemplateKeys).not.toContain(contract.templateKey);
+  });
+
+  it('38. UI bietet Sammelauswahl und eine gemeinsame Unterschrift an', () => {
+    const panel = readSrc('components/inputs/CareIntakeDocumentsStepPanel.tsx');
+    expect(panel).toContain('Alle auswählen');
+    expect(panel).toContain('Gemeinsam unterschreiben');
+    expect(panel).toContain('applySharedClientSignatureToDocuments');
+    expect(panel).toContain('identischem Zeitstempel');
   });
 });
