@@ -155,28 +155,38 @@ export async function loadPersistedIntakeDocumentsForClient(
 
   return {
     ok: true,
-    data: rows.map((row) => ({
-      templateKey: row.template_key,
-      documentType: row.document_type as IntakeDocumentType,
-      title: row.title,
-      isRequired: row.is_required,
-      status: row.status as IntakeDocumentStatus,
-      source: row.source === 'tenant' ? 'tenant' : 'system',
-      tenantTemplateId: row.tenant_template_id,
-      version: row.version,
-      missingPlaceholders: Array.isArray(row.missing_placeholders)
-        ? row.missing_placeholders.filter(
-            (value): value is string => typeof value === 'string',
-          )
-        : [],
-      unresolvedKeys: [],
-      previewHtml: row.preview_html,
-      finalizedHtml: row.finalized_html,
-      renderedPdfPath: row.rendered_pdf_path,
-      signatures: signaturesByDocument.get(row.id) ?? {},
-      previewOpenedAt: row.preview_opened_at,
-      finalizedAt: row.finalized_at,
-    })),
+    data: rows.map((row) => {
+      const signatures = signaturesByDocument.get(row.id) ?? {};
+      const hasClientSignature = Boolean(signatures.client?.dataUrl);
+      const recoveredStatus: IntakeDocumentStatus =
+        hasClientSignature && ['not_started', 'preview_open'].includes(row.status)
+          ? row.finalized_html || row.finalized_at
+            ? 'finalized'
+            : 'signed'
+          : row.status as IntakeDocumentStatus;
+      return {
+        templateKey: row.template_key,
+        documentType: row.document_type as IntakeDocumentType,
+        title: row.title,
+        isRequired: row.is_required,
+        status: recoveredStatus,
+        source: row.source === 'tenant' ? 'tenant' : 'system',
+        tenantTemplateId: row.tenant_template_id,
+        version: row.version,
+        missingPlaceholders: Array.isArray(row.missing_placeholders)
+          ? row.missing_placeholders.filter(
+              (value): value is string => typeof value === 'string',
+            )
+          : [],
+        unresolvedKeys: [],
+        previewHtml: row.preview_html,
+        finalizedHtml: row.finalized_html,
+        renderedPdfPath: row.rendered_pdf_path,
+        signatures,
+        previewOpenedAt: row.preview_opened_at,
+        finalizedAt: row.finalized_at,
+      };
+    }),
   };
 }
 
@@ -531,8 +541,7 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
     .from('client_intake_documents')
     .select('id, template_key, document_type, title, status, finalized_html, preview_html')
     .eq('tenant_id', tenantId)
-    .eq('client_id', clientId)
-    .in('status', ['finalized', 'signed', 'pending_signature']);
+    .eq('client_id', clientId);
 
   if (intakeError) {
     return { ok: false, error: toGermanSupabaseError(intakeError) };
@@ -548,18 +557,16 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
     preview_html: string | null;
   }[] | null) ?? [];
 
-  const pendingIds = rows
-    .filter((row) => row.status === 'pending_signature')
-    .map((row) => row.id);
+  const documentIds = rows.map((row) => row.id);
   const clientSignedIds = new Set<string>();
-  if (pendingIds.length > 0) {
+  if (documentIds.length > 0) {
     const { data: signatures, error: signatureError } = await db
       .from('client_document_signatures')
       .select('document_id')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
       .eq('signer_role', 'client')
-      .in('document_id', pendingIds);
+      .in('document_id', documentIds);
     if (signatureError) {
       return { ok: false, error: toGermanSupabaseError(signatureError) };
     }
@@ -569,7 +576,11 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
   }
 
   for (const row of rows) {
-    if (row.status === 'pending_signature' && !clientSignedIds.has(row.id)) continue;
+    const hasClientSignature = clientSignedIds.has(row.id);
+    const isPersistedComplete = ['finalized', 'signed'].includes(row.status);
+    const isPendingAndSigned =
+      row.status === 'pending_signature' && hasClientSignature;
+    if (!isPersistedComplete && !isPendingAndSigned && !hasClientSignature) continue;
     if (!row.finalized_html && !row.preview_html) continue;
     const linked = await linkOrInsertPromotedIntakeDocument(db, {
       tenantId,
@@ -578,7 +589,12 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
       templateKey: row.template_key,
       documentType: row.document_type,
       title: row.title,
-      intakeStatus: row.status,
+      intakeStatus:
+        hasClientSignature && ['not_started', 'preview_open'].includes(row.status)
+          ? row.finalized_html
+            ? 'finalized'
+            : 'signed'
+          : row.status,
       actorProfileId,
     });
     if (!linked.ok) return linked;

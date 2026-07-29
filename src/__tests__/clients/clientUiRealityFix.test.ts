@@ -75,7 +75,28 @@ describe('Client UI Reality Fix', () => {
     expect(documents).toContain("from('client_document_signatures')");
     expect(documents).toContain('signature_data');
     expect(documents).toContain('signedAt: row.signed_at');
+    expect(documents).toContain('hasClientSignature');
+    expect(documents).toContain('clientSignedIds.has(row.id)');
     expect(hook).toContain("editSections?.includes('vertraege_einwilligungen')");
+  });
+
+  it('saves only production client columns and keeps derived sync non-blocking', () => {
+    const repository = readSrc(
+      'lib/clients/repositories/clientIntakeRepository.supabase.ts',
+    );
+    const service = readSrc('lib/clients/clientIntakeService.ts');
+    const persistence = readSrc('lib/clients/clientIntakePersistence.ts');
+
+    expect(repository).toContain(
+      "Database['public']['Tables']['clients']['Update']",
+    );
+    expect(repository).toContain("shouldUpdate('stammdaten')");
+    expect(repository).not.toContain('service_start: form.serviceStart');
+    expect(repository).not.toContain('birth_place: form.birthPlace');
+    expect(persistence).toContain('isMissingTableError(existingError)');
+    expect(service).toContain(
+      "console.warn('[clientIntakeService] client core sync:'",
+    );
   });
 
   it('buildClientDetailKpis avoids invoice KPI labels', () => {

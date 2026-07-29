@@ -33,7 +33,6 @@ function buildIntakeClientRecord(
     first_name: form.firstName.trim(),
     last_name: form.lastName.trim(),
     date_of_birth: form.dateOfBirth || null,
-    salutation: form.salutation || null,
     care_level: (form.careLevel.trim() || null) as Database['public']['Enums']['care_level'] | null,
     status,
     street: form.street.trim() || null,
@@ -48,14 +47,6 @@ function buildIntakeClientRecord(
     insurance_name: primaryCostBearerName,
     cost_bearer: primaryCostBearerName,
     admission_date: form.admissionDate || null,
-    service_start: form.serviceStart || null,
-    birth_place: form.birthPlace.trim() || null,
-    nationality: form.nationality.trim() || null,
-    language: form.language.trim() || null,
-    marital_status: form.maritalStatus.trim() || null,
-    housing_form: form.housingForm.trim() || null,
-    special_notes: form.specialNotes.trim() || null,
-    primary_contact_phone: form.phone.trim() || form.mobile.trim() || null,
     gender: form.gender || null,
     created_by: actorProfileId ?? null,
     updated_by: actorProfileId ?? null,
@@ -67,12 +58,59 @@ export async function updateClientFromIntake(
   clientId: string,
   form: ClientIntakeFormData,
   actorProfileId?: string | null,
+  sections?: import('@/lib/clients/clientIntakeFieldRules').IntakeSectionKey[],
 ): Promise<ServiceResult<{ id: string }>> {
   const supabase = getClient();
   if (!supabase) return unavailable();
 
-  const record = buildIntakeClientRecord(tenantId, form, actorProfileId, 'active');
-  const { status: _status, ...updateRecord } = record;
+  const shouldUpdate = (
+    section: import('@/lib/clients/clientIntakeFieldRules').IntakeSectionKey,
+  ): boolean => !sections?.length || sections.includes(section);
+  const updateRecord: Database['public']['Tables']['clients']['Update'] = {
+    updated_by: actorProfileId ?? null,
+  };
+
+  if (shouldUpdate('stammdaten')) {
+    Object.assign(updateRecord, {
+      first_name: form.firstName.trim(),
+      last_name: form.lastName.trim(),
+      date_of_birth: form.dateOfBirth || null,
+      gender: form.gender || null,
+      admission_date: form.admissionDate || null,
+      internal_notes: form.specialNotes.trim() || null,
+    });
+  }
+  if (shouldUpdate('adresse_kontakt')) {
+    Object.assign(updateRecord, {
+      street: form.street.trim() || null,
+      house_number: form.houseNumber.trim() || null,
+      postal_code: form.zip.trim() || null,
+      city: form.city.trim() || null,
+      phone: form.phone.trim() || null,
+      mobile: form.mobile.trim() || null,
+      email: form.email.trim() || null,
+    });
+  }
+  if (shouldUpdate('versorgung')) {
+    updateRecord.care_level = (
+      form.careLevel.trim() || null
+    ) as Database['public']['Enums']['care_level'] | null;
+  }
+  if (shouldUpdate('kostentraeger')) {
+    const primaryCostBearerName = resolvePrimaryCostBearerName(form);
+    Object.assign(updateRecord, {
+      insurance_number: form.insuranceNumber.trim() || null,
+      insurance_name: primaryCostBearerName,
+      cost_bearer: primaryCostBearerName,
+    });
+  }
+  if (shouldUpdate('notfall_zugang')) {
+    Object.assign(updateRecord, {
+      access_notes: form.accessNotes.trim() || null,
+      floor: form.floor.trim() || null,
+      pets: form.pets.trim() || null,
+    });
+  }
 
   const { data, error } = await supabase
     .from('clients')

@@ -13,6 +13,7 @@ import {
 import { resolveIntakeBillingProfileType } from '@/lib/clients/clientIntakeBilling';
 import { serializeHomeAccessValues } from '@/lib/clients/clientIntakeHomeAccess';
 import { syncClientCareEntitlementFromLegacy } from '@/lib/assist/clientCareEntitlementSyncService';
+import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 
 function getClient() {
   return getSupabaseClient();
@@ -55,11 +56,18 @@ async function upsertSupportPreferences(
     communication: form.communication.trim() || null,
     special_wishes: form.specialNotes.trim() || null,
   };
-  const { data: existing } = await fromUnknownTable(supabase, 'client_support_preferences')
+  const { data: existing, error: existingError } = await fromUnknownTable(
+    supabase,
+    'client_support_preferences',
+  )
     .select('id')
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)
     .maybeSingle();
+  if (existingError) {
+    if (isMissingTableError(existingError)) return { ok: true, data: undefined };
+    return { ok: false, error: toGermanSupabaseError(existingError) };
+  }
   if (existing && typeof existing === 'object' && 'id' in existing) {
     const { tenant_id: _tenantId, client_id: _clientId, ...updatePayload } = payload;
     const { error } = await fromUnknownTable(supabase, 'client_support_preferences')
@@ -69,6 +77,7 @@ async function upsertSupportPreferences(
     return error ? { ok: false, error: toGermanSupabaseError(error) } : { ok: true, data: undefined };
   }
   const { error } = await fromUnknownTable(supabase, 'client_support_preferences').insert(payload);
+  if (error && isMissingTableError(error)) return { ok: true, data: undefined };
   return error ? { ok: false, error: toGermanSupabaseError(error) } : { ok: true, data: undefined };
 }
 
@@ -701,7 +710,14 @@ export async function syncIntakeClientExtendedData(
       is_internal: false,
       metadata: { source: eventMode === 'create' ? 'intake' : 'intake_edit' },
     });
-    if (timelineError) return { ok: false, error: toGermanSupabaseError(timelineError) };
+    if (timelineError) {
+      // The actual client records have already been persisted. Audit timeline
+      // availability must not make a successful profile save appear failed.
+      console.warn(
+        '[clientIntakePersistence] timeline event:',
+        toGermanSupabaseError(timelineError),
+      );
+    }
   }
 
   if (

@@ -277,6 +277,7 @@ export async function submitClientIntakeUpdate(
         clientId,
         form,
         options?.actorProfileId ?? null,
+        options?.sections,
       );
       if (!clientResult.ok) return clientResult;
 
@@ -332,7 +333,12 @@ export async function submitClientIntakeUpdate(
 
       if (shouldPersist('leistungsart')) {
         const coreSync = await syncClientCoreAfterIntake(tenantId, clientId, form);
-        if (!coreSync.ok) return coreSync;
+        if (!coreSync.ok) {
+          // Service profiles, budgets and portal defaults are derived data.
+          // A profile change must remain saved even when a derived sync is
+          // temporarily unavailable.
+          console.warn('[clientIntakeService] client core sync:', coreSync.error);
+        }
       }
 
       const activationRepair = await repairCompletedClientIntakeActivation(
