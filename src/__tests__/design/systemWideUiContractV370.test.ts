@@ -37,6 +37,8 @@ describe('HealthOS system-wide UI contract V37.0', () => {
     expect(isHealthOSContextualPopupRoute('/assist/nachweise/review')).toBe(true);
     expect(isHealthOSContextualPopupRoute('/office/appointments/create')).toBe(true);
     expect(isHealthOSContextualPopupRoute('/office/messages/compose')).toBe(true);
+    expect(isHealthOSContextualPopupRoute('/settings')).toBe(false);
+    expect(isHealthOSContextualPopupRoute('/settings/tenant')).toBe(true);
     expect(isHealthOSContextualPopupRoute('/portal/employee/assignments/[id]/execute')).toBe(false);
     expect(isHealthOSContextualPopupRoute('/auth/business-login')).toBe(false);
   });

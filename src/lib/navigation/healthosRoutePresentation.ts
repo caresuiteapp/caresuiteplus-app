@@ -23,6 +23,10 @@ const FULL_PAGE_PREFIXES = [
   '/platform/login',
 ];
 
+const FULL_PAGE_EXACT_ROUTES = new Set([
+  '/settings',
+]);
+
 const FULL_PAGE_WORKFLOW_MARKERS = [
   '/assignments/[id]/execute',
   '/execution/',
@@ -50,6 +54,13 @@ function normalizeRoutePattern(routePattern: string): string {
 export function isHealthOSContextualPopupRoute(routePattern: string): boolean {
   const normalized = normalizeRoutePattern(routePattern);
   const withoutGroups = normalized.replace(/\/\([^/]+\)/g, '');
+
+  // Module roots are navigation destinations, never contextual actions.
+  // `/settings` would otherwise match the generic `settings` action segment
+  // and reclassify the previously mounted screen as a transparent modal.
+  if (FULL_PAGE_EXACT_ROUTES.has(withoutGroups)) {
+    return false;
+  }
 
   if (
     FULL_PAGE_PREFIXES.some(
