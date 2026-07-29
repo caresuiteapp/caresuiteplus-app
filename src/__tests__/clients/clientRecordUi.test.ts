@@ -21,6 +21,15 @@ describe('Client Core K.4 — record UI wiring', () => {
     expect(edit).toContain('router.replace');
   });
 
+  it('client intake uses a large standalone desktop workspace', () => {
+    const modal = readSrc('src/components/office/clientintakemodal.tsx');
+    expect(modal).toContain('const MODAL_MAX_WIDTH = 1680');
+    expect(modal).toContain('const DESKTOP_MODAL_SIZE_RATIO = 0.96');
+    expect(modal).toContain('backgroundColor: isBottomSheet');
+    expect(modal).toContain(': c.page');
+    expect(modal).toContain('transparent={isBottomSheet}');
+  });
+
   it('modal stack registers client record and edit modals', () => {
     const modals = readSrc('src/lib/navigation/moduleNav/modalScreens.ts');
     expect(modals).toContain("'prep.client.record'");

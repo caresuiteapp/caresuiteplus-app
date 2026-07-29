@@ -119,7 +119,20 @@ function buildStyles(
     },
     sigSection: { gap: spacing.sm, marginTop: spacing.sm },
     batchActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-    selectionSummary: { ...body, color: careSuiteAuroraTheme.text.primary },
+    signatureHero: {
+      gap: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: careSuiteAuroraTheme.accent.cyan,
+      backgroundColor: 'rgba(30, 144, 255, 0.10)',
+    },
+    signatureCount: {
+      ...title,
+      color: careSuiteAuroraTheme.accent.cyan,
+      fontSize: 24,
+    },
+    selectionSummary: { ...body, color: careSuiteAuroraTheme.text.secondary },
     checkItem: { ...body, marginBottom: 4 },
     error,
   });
@@ -288,12 +301,12 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
     onChange(result.form);
     setSharedSignatureModalVisible(false);
 
-    const parts = [`${result.signedTemplateKeys.length} Dokument(e) mit einer Unterschrift bestätigt.`];
+    const parts = [`${result.signedTemplateKeys.length} Dokumente bestätigt.`];
     if (result.pendingTemplateKeys.length > 0) {
-      parts.push(`${result.pendingTemplateKeys.length} Dokument(e) warten noch auf eine weitere erforderliche Unterschrift.`);
+      parts.push(`${result.pendingTemplateKeys.length} warten noch auf eine Mitarbeitenden-Unterschrift.`);
     }
     if (result.errors.length > 0) {
-      parts.push(`${result.errors.length} Dokument(e) konnten wegen fehlender Angaben nicht bestätigt werden.`);
+      parts.push(`${result.errors.length} konnten wegen fehlender Angaben nicht bestätigt werden.`);
     }
     setSharedSignatureMessage(parts.join(' '));
   }, [form, onChange, selectedTemplates, templates, tenantMeta]);
@@ -304,11 +317,8 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   return (
     <View style={styles.wrap}>
       {loadError ? <InfoBanner variant="warning" message={loadError} /> : null}
-      {getServiceMode() === 'supabase' ? (
-        <InfoBanner variant="info" message="Systemvorlage — vom Mandanten prüfbar. Keine automatische Rechtsberatung." />
-      ) : null}
 
-      <SectionPanel {...panelCtx} title="Vertragsart" subtitle="Passend zur gewählten Leistungsart">
+      <SectionPanel {...panelCtx} title="Vertragsart">
         <FilterChipGroup
           options={contractOptions}
           value={form.intakeContractType || contractOptions[0]?.key || ''}
@@ -317,12 +327,6 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
       </SectionPanel>
 
       <SectionPanel {...panelCtx} title="Pflichtdokumente">
-        {validation.warnings.intakePrivacy || validation.warnings.intakeContract ? (
-          <InfoBanner
-            variant="info"
-            message="Pflichtdokumente können auch nach dem Speichern von Mitarbeitenden im Portal gelesen, unterschrieben und abgeschlossen werden."
-          />
-        ) : null}
         {requiredDocs.map((template) => {
           const doc = form.intakeDocuments.find((d) => d.templateKey === template.templateKey);
           const status = doc?.status ?? 'not_started';
@@ -333,7 +337,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
                 <View style={styles.docTitleWrap}>
                   <Text style={styles.docTitle}>{template.title}</Text>
                   <Text style={styles.docMeta}>
-                    Pflichtdokument · vorausgewählt · {template.source === 'tenant' ? 'Mandantenvorlage' : 'Systemvorlage'} · v{template.version}
+                    Pflicht · {template.source === 'tenant' ? 'Eigene Vorlage' : 'CareSuite-Vorlage'} · v{template.version}
                   </Text>
                 </View>
                 <Text style={[styles.badge, statusBadgeStyle(status, styles)]}>
@@ -352,10 +356,10 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
         })}
       </SectionPanel>
 
-      <SectionPanel {...panelCtx} title="Optionale Dokumente">
+      <SectionPanel {...panelCtx} title="Zusätzliche Dokumente">
         <View style={styles.batchActions}>
           <PremiumButton title="Alle auswählen" variant="secondary" onPress={selectAllDocuments} />
-          <PremiumButton title="Optionale Auswahl aufheben" variant="secondary" onPress={clearOptionalSelection} />
+          <PremiumButton title="Auswahl löschen" variant="ghost" onPress={clearOptionalSelection} />
         </View>
         <Pressable
           style={styles.toggleRow}
@@ -372,7 +376,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
           </PremiumCard>
         ) : null}
 
-        <Text style={styles.subheading}>Zusatz-Einwilligungen</Text>
+        <Text style={styles.subheading}>Einwilligungen</Text>
         {OPTIONAL_CONSENT_TEMPLATE_KEYS.map((key) => (
           <Pressable key={key} style={styles.toggleRow} onPress={() => toggleOptionalConsent(key)}>
             <Text style={styles.toggleCheck}>{form.intakeOptionalConsents.includes(key) ? '☑' : '☐'}</Text>
@@ -396,25 +400,23 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
 
       <SectionPanel
         {...panelCtx}
-        title="Gemeinsam unterschreiben"
-        subtitle="Eine Klienten-Unterschrift für das gesamte ausgewählte Dokumentenpaket"
+        title="Dokumentenpaket"
       >
-        <Text style={styles.selectionSummary}>
-          {selectedTemplates.length} Dokument(e) ausgewählt. Pflichtdokumente sind automatisch enthalten.
-        </Text>
-        <InfoBanner
-          variant="info"
-          message="Mit der folgenden Unterschrift bestätigt die Klientin bzw. der Klient alle ausgewählten Dokumente. Die identische Unterschrift mit identischem Zeitstempel wird automatisch in jedes ausgewählte Dokument übernommen."
-        />
-        <PremiumButton
-          title={`Alle ${selectedTemplates.length} ausgewählten Dokumente unterschreiben`}
-          variant="primary"
-          disabled={selectedTemplates.length === 0}
-          onPress={() => {
-            setSharedSignatureMessage(null);
-            setSharedSignatureModalVisible(true);
-          }}
-        />
+        <View style={styles.signatureHero}>
+          <Text style={styles.signatureCount}>{selectedTemplates.length} Dokumente</Text>
+          <Text style={styles.selectionSummary}>
+            Eine Unterschrift bestätigt das gesamte ausgewählte Paket.
+          </Text>
+          <PremiumButton
+            title="Jetzt gemeinsam unterschreiben"
+            variant="primary"
+            disabled={selectedTemplates.length === 0}
+            onPress={() => {
+              setSharedSignatureMessage(null);
+              setSharedSignatureModalVisible(true);
+            }}
+          />
+        </View>
         {sharedSignatureMessage ? (
           <InfoBanner
             variant={sharedSignatureMessage.includes('konnten') ? 'warning' : 'success'}
@@ -459,12 +461,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
                 {previewHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
               </Text>
             </ScrollView>
-          ) : (
-            <InfoBanner
-              variant="info"
-              message={'Bitte „Vorschau öffnen" wählen, um das Dokument anzuzeigen.'}
-            />
-          )}
+          ) : null}
 
           {signatureSlots.length > 0 && activeDoc.status !== 'finalized' ? (
             <View style={styles.sigSection}>
@@ -486,12 +483,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
               />
               {hasRoleSignature ? (
                 <InfoBanner variant="success" message={`Unterschrift (${signatureRoleLabel}) erfasst.`} />
-              ) : (
-                <InfoBanner
-                  variant="info"
-                  message="Bitte erst nach vollständiger Dokumentenlektüre unterschreiben."
-                />
-              )}
+              ) : null}
               <PremiumButton
                 title="Dokument abschließen und sperren"
                 onPress={handleFinalize}
@@ -501,7 +493,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
           ) : null}
 
           {activeDoc.status === 'finalized' ? (
-            <InfoBanner variant="success" message="Dokument abgeschlossen — Inhalt und Unterschriften gesperrt." />
+            <InfoBanner variant="success" message="Dokument abgeschlossen und gesperrt." />
           ) : null}
         </SectionPanel>
       ) : null}
@@ -518,19 +510,21 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
       {sharedSignatureModalVisible ? (
         <CareSignatureModal
           visible
-          label={`Klient:in — eine Unterschrift bestätigt ${selectedTemplates.length} ausgewählte Dokumente.`}
+          label={`Klient:in · ${selectedTemplates.length} Dokumente`}
           onConfirm={handleSharedSignature}
           onClose={() => setSharedSignatureModalVisible(false)}
         />
       ) : null}
 
-      <SectionPanel {...panelCtx} title="Abschlussstatus">
-        {validation.checklist.map((item) => (
+      {validation.checklist.some((item) => !item.complete) ? (
+        <SectionPanel {...panelCtx} title="Noch offen">
+          {validation.checklist.filter((item) => !item.complete).map((item) => (
           <Text key={item.key} style={styles.checkItem}>
-            {item.complete ? '✓' : '○'} {item.label}
+            ○ {item.label}
           </Text>
-        ))}
-      </SectionPanel>
+          ))}
+        </SectionPanel>
+      ) : null}
     </View>
   );
 }

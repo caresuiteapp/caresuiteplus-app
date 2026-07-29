@@ -25,9 +25,13 @@ import { validateCostBearerEntry, persistIntakeCostCarriers } from '@/features/c
 import { listApplicableIntakeTemplates } from '@/features/intakeDocuments/buildIntakeDocumentContext';
 import { validateIntakeDocumentsStep } from '@/features/intakeDocuments/validateIntakeDocuments';
 import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
-import { createClientFromIntake, updateClientFromIntake } from './repositories/clientIntakeRepository.supabase';
+import {
+  activateClientFromIntake,
+  createClientFromIntake,
+  updateClientFromIntake,
+} from './repositories/clientIntakeRepository.supabase';
 import { mapIntakeModulesToPortal, saveClientModuleAssignments } from '@/lib/portal/clientModuleAssignmentService';
-import { persistIntakeClientExtendedData, syncIntakeClientExtendedData } from './clientIntakePersistence';
+import { syncIntakeClientExtendedData } from './clientIntakePersistence';
 import { syncClientCoreAfterIntake } from '@/lib/client/clientCoreIntakeSyncService';
 
 import {
@@ -192,11 +196,12 @@ export async function submitClientIntake(
       );
       if (!carrierResult.ok) return carrierResult;
 
-      const extendedResult = await persistIntakeClientExtendedData(
+      const extendedResult = await syncIntakeClientExtendedData(
         tenantId,
         clientResult.data.id,
         form,
         options?.actorProfileId ?? null,
+        { eventMode: 'create' },
       );
       if (!extendedResult.ok) return extendedResult;
 
@@ -221,6 +226,13 @@ export async function submitClientIntake(
 
       const coreSync = await syncClientCoreAfterIntake(tenantId, clientResult.data.id, form);
       if (!coreSync.ok) return coreSync;
+
+      const activationResult = await activateClientFromIntake(
+        tenantId,
+        clientResult.data.id,
+        options?.actorProfileId ?? null,
+      );
+      if (!activationResult.ok) return activationResult;
 
       return { ok: true, data: { id: clientResult.data.id } };
     }

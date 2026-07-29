@@ -12,6 +12,33 @@ describe('Client Core K.4 — intake mapping smoke', () => {
     expect(intake).toContain('syncClientCoreAfterIntake');
   });
 
+  it('keeps a new intake as lead until all related writes succeed', () => {
+    const intake = readFileSync(resolve(ROOT, 'src/lib/clients/clientIntakeService.ts'), 'utf8');
+    const repository = readFileSync(
+      resolve(ROOT, 'src/lib/clients/repositories/clientIntakeRepository.supabase.ts'),
+      'utf8',
+    );
+    expect(repository).toContain("buildIntakeClientRecord(tenantId, form, actorProfileId, 'lead')");
+    expect(repository).toContain('export async function activateClientFromIntake');
+    expect(intake).toContain("{ eventMode: 'create' }");
+    expect(intake.indexOf('persistClientIntakeDocuments')).toBeLessThan(
+      intake.lastIndexOf('activateClientFromIntake'),
+    );
+    expect(intake.indexOf('syncClientCoreAfterIntake')).toBeLessThan(
+      intake.lastIndexOf('activateClientFromIntake'),
+    );
+  });
+
+  it('uses retry-safe extended writes and propagates care entitlement errors', () => {
+    const persistence = readFileSync(
+      resolve(ROOT, 'src/lib/clients/clientIntakePersistence.ts'),
+      'utf8',
+    );
+    expect(persistence).toContain("eventMode?: 'create' | 'edit'");
+    expect(persistence).toContain(".contains('metadata', { source: 'intake' })");
+    expect(persistence).toContain('if (!entitlementResult.ok) return entitlementResult');
+  });
+
   it('useClientIntakeWizard loads DB sections via getServiceIntakeSections', () => {
     const hook = readFileSync(resolve(ROOT, 'src/hooks/useClientIntakeWizard.ts'), 'utf8');
     expect(hook).toContain('getServiceIntakeSections');

@@ -495,8 +495,8 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
   it('38. UI bietet Sammelauswahl und eine gemeinsame Unterschrift an', () => {
     const panel = readSrc('components/inputs/CareIntakeDocumentsStepPanel.tsx');
     expect(panel).toContain('Alle auswählen');
-    expect(panel).toContain('Gemeinsam unterschreiben');
+    expect(panel).toContain('Jetzt gemeinsam unterschreiben');
     expect(panel).toContain('applySharedClientSignatureToDocuments');
-    expect(panel).toContain('identischem Zeitstempel');
+    expect(panel).toContain('Dokumentenpaket');
   });
 });

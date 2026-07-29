@@ -97,7 +97,9 @@ export async function createClientFromIntake(
   const supabase = getClient();
   if (!supabase) return unavailable();
 
-  const record = buildIntakeClientRecord(tenantId, form, actorProfileId, 'active');
+  // Keep an unfinished intake recoverable. The client is activated only after
+  // every related record, document and signature has been persisted.
+  const record = buildIntakeClientRecord(tenantId, form, actorProfileId, 'lead');
 
   if (draftClientId) {
     const { data, error } = await supabase
@@ -117,6 +119,33 @@ export async function createClientFromIntake(
   }
 
   const { data, error } = await supabase.from('clients').insert(record).select('id').single();
+  if (error || !data) {
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  return { ok: true, data: { id: data.id } };
+}
+
+export async function activateClientFromIntake(
+  tenantId: string,
+  clientId: string,
+  actorProfileId?: string | null,
+): Promise<ServiceResult<{ id: string }>> {
+  const supabase = getClient();
+  if (!supabase) return unavailable();
+
+  const { data, error } = await supabase
+    .from('clients')
+    .update({
+      status: 'active',
+      updated_by: actorProfileId ?? null,
+    })
+    .eq('id', clientId)
+    .eq('tenant_id', tenantId)
+    .in('status', ['lead', 'active'])
+    .select('id')
+    .single();
+
   if (error || !data) {
     return { ok: false, error: toGermanSupabaseError(error) };
   }

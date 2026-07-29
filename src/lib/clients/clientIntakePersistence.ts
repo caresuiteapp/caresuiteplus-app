@@ -402,6 +402,7 @@ export async function syncIntakeClientExtendedData(
   clientId: string,
   form: ClientIntakeFormData,
   actorProfileId?: string | null,
+  options: { eventMode?: 'create' | 'edit' } = {},
 ): Promise<ServiceResult<void>> {
   const supabase = getClient();
   if (!supabase) return unavailable();
@@ -634,21 +635,47 @@ export async function syncIntakeClientExtendedData(
     }
   }
 
-  const { error: timelineError } = await fromUnknownTable(supabase, 'client_timeline_events').insert({
-    tenant_id: tenantId,
-    client_id: clientId,
-    event_type: 'sonstige',
-    icon: '✏️',
-    title: 'Stammdaten aktualisiert',
-    subtitle: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
-    status: 'abgeschlossen',
-    actor_name: actorProfileId ?? null,
-    is_internal: false,
-    metadata: { source: 'intake_edit' },
-  });
-  if (timelineError) return { ok: false, error: toGermanSupabaseError(timelineError) };
+  const eventMode = options.eventMode ?? 'edit';
+  let shouldInsertTimelineEvent = true;
+  if (eventMode === 'create') {
+    const { data: existingEvent, error: existingEventError } = await fromUnknownTable(
+      supabase,
+      'client_timeline_events',
+    )
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .contains('metadata', { source: 'intake' })
+      .limit(1)
+      .maybeSingle();
+    if (existingEventError) {
+      return { ok: false, error: toGermanSupabaseError(existingEventError) };
+    }
+    shouldInsertTimelineEvent = !existingEvent;
+  }
 
-  await syncClientCareEntitlementFromLegacy(tenantId, clientId, { regenerateAccounts: true });
+  if (shouldInsertTimelineEvent) {
+    const { error: timelineError } = await fromUnknownTable(supabase, 'client_timeline_events').insert({
+      tenant_id: tenantId,
+      client_id: clientId,
+      event_type: 'sonstige',
+      icon: eventMode === 'create' ? '📋' : '✏️',
+      title: eventMode === 'create' ? 'Aufnahmedaten gespeichert' : 'Stammdaten aktualisiert',
+      subtitle: `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
+      status: 'abgeschlossen',
+      actor_name: actorProfileId ?? null,
+      is_internal: false,
+      metadata: { source: eventMode === 'create' ? 'intake' : 'intake_edit' },
+    });
+    if (timelineError) return { ok: false, error: toGermanSupabaseError(timelineError) };
+  }
+
+  const entitlementResult = await syncClientCareEntitlementFromLegacy(
+    tenantId,
+    clientId,
+    { regenerateAccounts: true },
+  );
+  if (!entitlementResult.ok) return entitlementResult;
 
   return { ok: true, data: undefined };
 }

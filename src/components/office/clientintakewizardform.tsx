@@ -340,16 +340,11 @@ export function ClientIntakeWizardForm({
         showsVerticalScrollIndicator={false}
       >
         {draftRestored ? (
-          <InfoBanner title="Entwurf wiederhergestellt" message="Ihre zuletzt gespeicherten Eingaben wurden geladen." />
+          <InfoBanner message="Entwurf geladen" />
         ) : null}
         {draftSaveFeedback ? (
           <InfoBanner
-            title={draftSaveFeedback.message}
-            message={
-              draftSaveFeedback.variant === 'warning'
-                ? 'Bitte prüfen Sie die markierten Felder.'
-                : 'Entwurf wurde gespeichert.'
-            }
+            message={draftSaveFeedback.variant === 'warning' ? draftSaveFeedback.message : 'Entwurf gespeichert'}
           />
         ) : null}
         {showHero && stepIndex === 0 ? (

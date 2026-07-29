@@ -30,8 +30,9 @@ export type ClientIntakeModalProps = {
   onUpdated?: (clientId: string) => void;
 };
 
-const MODAL_MAX_WIDTH = 720;
+const MODAL_MAX_WIDTH = 1680;
 const MODAL_MIN_WIDTH = 320;
+const DESKTOP_MODAL_SIZE_RATIO = 0.96;
 
 export function ClientIntakeModal({
   visible,
@@ -42,7 +43,7 @@ export function ClientIntakeModal({
   onUpdated,
 }: ClientIntakeModalProps) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const { isDark } = useCareLightPalette();
+  const { isDark, c } = useCareLightPalette();
   const auroraActive = useAuroraGlassActive();
   const lightModal = !isDark && auroraActive;
   const formGlass = resolveLlganViewGlass('form', 'default');
@@ -65,8 +66,11 @@ export function ClientIntakeModal({
       isBottomSheet
         ? undefined
         : Math.min(
-            screenWidth - spacing.lg * 2,
-            Math.max(MODAL_MIN_WIDTH, Math.min(MODAL_MAX_WIDTH, screenWidth * 0.92)),
+            screenWidth - spacing.md * 2,
+            Math.max(
+              MODAL_MIN_WIDTH,
+              Math.min(MODAL_MAX_WIDTH, screenWidth * DESKTOP_MODAL_SIZE_RATIO),
+            ),
           ),
     [isBottomSheet, screenWidth],
   );
@@ -75,7 +79,10 @@ export function ClientIntakeModal({
     () =>
       isBottomSheet
         ? screenHeight * 0.92
-        : Math.min(screenHeight * 0.9, screenHeight - spacing.lg * 2),
+        : Math.min(
+            screenHeight * DESKTOP_MODAL_SIZE_RATIO,
+            screenHeight - spacing.md * 2,
+          ),
     [isBottomSheet, screenHeight],
   );
 
@@ -84,10 +91,14 @@ export function ClientIntakeModal({
       StyleSheet.create({
         backdrop: {
           flex: 1,
-          backgroundColor: lightModal ? careSuiteModalScrim : careSuiteModalScrimStrong,
+          backgroundColor: isBottomSheet
+            ? lightModal
+              ? careSuiteModalScrim
+              : careSuiteModalScrimStrong
+            : c.page,
           justifyContent: isBottomSheet ? 'flex-end' : 'center',
           alignItems: 'center',
-          padding: isBottomSheet ? 0 : spacing.lg,
+          padding: isBottomSheet ? 0 : spacing.md,
         },
         sheetHost: {
           width: isBottomSheet ? ('100%' as const) : sheetWidth,
@@ -105,7 +116,7 @@ export function ClientIntakeModal({
           minHeight: 0,
         },
       }),
-    [formGlass.shadow, isBottomSheet, isDark, lightModal, sheetMaxHeight, sheetWidth],
+    [c.page, formGlass.shadow, isBottomSheet, lightModal, sheetMaxHeight, sheetWidth],
   );
 
   const isEditMode = mode === 'edit' && !!clientId;
@@ -125,7 +136,7 @@ export function ClientIntakeModal({
   return (
     <Modal
       visible={visible}
-      transparent
+      transparent={isBottomSheet}
       animationType={isBottomSheet ? 'slide' : 'fade'}
       onRequestClose={onClose}
       statusBarTranslucent
