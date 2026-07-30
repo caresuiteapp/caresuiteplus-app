@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
@@ -874,7 +883,11 @@ export function EmployeePortalVisitExecutionScreen() {
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={[styles.scroll, { paddingBottom: bottomPadding }]}
-        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        showsVerticalScrollIndicator
+        style={styles.scrollViewport}
+        testID="employee-visit-execution-scroll"
       >
         {!canExecute ? (
           <LockedActionBanner
@@ -1181,6 +1194,21 @@ export function EmployeePortalVisitExecutionScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollViewport: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    width: '100%',
+    ...(Platform.OS === 'web'
+      ? ({
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          touchAction: 'pan-y',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorY: 'contain',
+        } as unknown as ViewStyle)
+      : null),
+  },
   scroll: { gap: spacing.md, paddingHorizontal: spacing.md, paddingTop: spacing.sm },
   phaseCard: { padding: spacing.md, gap: spacing.sm },
   criticalInfoCard: {

@@ -67,7 +67,9 @@ export function EmployeePortalPageFrame({
 
 const styles = StyleSheet.create({
   page: {
+    flex: 1,
     width: '100%',
+    minHeight: 0,
     maxWidth: 1720,
     alignSelf: 'center',
     gap: careSpacing.md,
@@ -118,5 +120,5 @@ const styles = StyleSheet.create({
   subtitle: {
     color: spatialCare.textOnNightMuted, fontSize: 14, lineHeight: 20, fontWeight: '500',
   },
-  content: { width: '100%', gap: careSpacing.md },
+  content: { flex: 1, width: '100%', minHeight: 0, gap: careSpacing.md },
 });

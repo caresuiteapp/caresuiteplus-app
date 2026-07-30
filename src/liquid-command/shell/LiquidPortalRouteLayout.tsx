@@ -330,6 +330,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     minHeight: 0,
+    overflow: 'hidden',
   },
   topbar: {
     minHeight: 74,
@@ -380,6 +381,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: 0,
     margin: 14,
+    overflow: 'hidden',
   },
   contentFrameCompact: {
     margin: 0,
@@ -392,6 +394,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     minHeight: 0,
+    overflow: 'hidden',
     backgroundColor: 'rgba(7,27,53,0.78)',
   },
   contentCompact: {

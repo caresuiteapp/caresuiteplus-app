@@ -1,5 +1,5 @@
 import { ReactNode, useMemo } from 'react';
-import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PortalMobileTabHeader } from '@/components/portal/PortalMobileTabHeader';
 import { ScreenShell } from '@/components/layout';
@@ -68,19 +68,38 @@ export function PortalTabScreen({
   }, [bareBottomPadding, messengerFocusActive, showBottomTabs]);
 
   if (isEmployeePortal && !messengerFocusActive) {
+    const page = (
+      <EmployeePortalPageFrame
+        title={title}
+        subtitle={subtitle}
+        eyebrow={eyebrow}
+        compact={hideHeaderOnPhone}
+        actionsSlot={actionsSlot}
+        filtersSlot={filtersSlot}
+        tabsSlot={tabsSlot}
+      >
+        {children}
+      </EmployeePortalPageFrame>
+    );
+
+    if (scroll) {
+      return (
+        <ScrollView
+          contentContainerStyle={[styles.employeeScrollContent, barePaddingStyle]}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+          showsVerticalScrollIndicator
+          style={styles.employeeScrollViewport}
+          testID="employee-portal-tab-scroll"
+        >
+          {page}
+        </ScrollView>
+      );
+    }
+
     return (
       <View style={[styles.employeePage, barePaddingStyle]} testID="employee-portal-tab-screen">
-        <EmployeePortalPageFrame
-          title={title}
-          subtitle={subtitle}
-          eyebrow={eyebrow}
-          compact={hideHeaderOnPhone}
-          actionsSlot={actionsSlot}
-          filtersSlot={filtersSlot}
-          tabsSlot={tabsSlot}
-        >
-          {children}
-        </EmployeePortalPageFrame>
+        {page}
       </View>
     );
   }
@@ -127,12 +146,33 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
   },
+  employeePage: {
+    flex: 1,
+    width: '100%',
+    minHeight: 0,
+  },
+  employeeScrollViewport: {
+    flex: 1,
+    width: '100%',
+    minWidth: 0,
+    minHeight: 0,
+    ...(Platform.OS === 'web'
+      ? ({
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          touchAction: 'pan-y',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorY: 'contain',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  employeeScrollContent: {
+    flexGrow: 1,
+    width: '100%',
+    minWidth: 0,
+  },
   bareContent: {
     width: '100%',
     gap: spacing.md,
-  },
-  employeePage: {
-    width: '100%',
-    minHeight: 0,
   },
 });
