@@ -14,6 +14,10 @@ import {
   toDateKey,
 } from '@/lib/office/calendarDateUtils';
 import { OfficeCalendarEventChip } from './OfficeCalendarEventChip';
+import {
+  buildAssignmentProfileDropTargetProps,
+  type AssignmentProfileDropHandler,
+} from '@/components/calendar/OfficeAssignmentProfileCalendarPlanner';
 
 type OfficeCalendarMonthViewProps = {
   anchor: Date;
@@ -21,6 +25,8 @@ type OfficeCalendarMonthViewProps = {
   weekStartDay: WeekStartDay;
   maxCollapsedEvents: number;
   onEventPress?: (event: CalendarEvent) => void;
+  selectedAssignmentProfileId?: string | null;
+  onAssignmentProfileDrop?: AssignmentProfileDropHandler;
 };
 
 export function OfficeCalendarMonthView({
@@ -29,6 +35,8 @@ export function OfficeCalendarMonthView({
   weekStartDay,
   maxCollapsedEvents,
   onEventPress,
+  selectedAssignmentProfileId,
+  onAssignmentProfileDrop,
 }: OfficeCalendarMonthViewProps) {
   const text = useAuroraAdaptiveText();
   const today = new Date();
@@ -69,12 +77,19 @@ export function OfficeCalendarMonthView({
           const isToday = isSameDay(date, today);
 
           return (
-            <View
+            <Pressable
               key={key}
+              onPress={
+                selectedAssignmentProfileId && onAssignmentProfileDrop
+                  ? () => onAssignmentProfileDrop(selectedAssignmentProfileId, date)
+                  : undefined
+              }
+              {...buildAssignmentProfileDropTargetProps(date, onAssignmentProfileDrop)}
               style={[
                 styles.cell,
                 !inMonth && styles.cellOutside,
                 isToday && styles.cellToday,
+                selectedAssignmentProfileId && styles.cellDropReady,
               ]}
             >
               <Text style={[styles.dayNum, { color: !inMonth ? text.muted : text.primary }]}>{date.getDate()}</Text>
@@ -98,7 +113,7 @@ export function OfficeCalendarMonthView({
                   <Text style={[styles.moreLabel, { color: text.secondary }]}>− weniger</Text>
                 </Pressable>
               ) : null}
-            </View>
+            </Pressable>
           );
         })}
       </View>
@@ -143,6 +158,9 @@ const styles = StyleSheet.create({
   cellToday: {
     backgroundColor: auroraGlass.rowSelected,
     borderRadius: careRadius.sm,
+  },
+  cellDropReady: {
+    borderColor: '#2388FF',
   },
   dayNum: {
     fontSize: 12,

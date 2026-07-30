@@ -13,6 +13,10 @@ import {
 } from '@/lib/office/calendarDateUtils';
 import { CalendarEventLabel } from '@/components/calendar/CalendarEventLabel';
 import { OfficeCalendarEventChip } from './OfficeCalendarEventChip';
+import {
+  buildAssignmentProfileDropTargetProps,
+  type AssignmentProfileDropHandler,
+} from '@/components/calendar/OfficeAssignmentProfileCalendarPlanner';
 
 type OfficeCalendarWeekViewProps = {
   anchor: Date;
@@ -21,6 +25,8 @@ type OfficeCalendarWeekViewProps = {
   weekFullDay: boolean;
   dayViewStartHour: number;
   onEventPress?: (event: CalendarEvent) => void;
+  selectedAssignmentProfileId?: string | null;
+  onAssignmentProfileDrop?: AssignmentProfileDropHandler;
 };
 
 const HOUR_HEIGHT = 48;
@@ -62,6 +68,8 @@ export function OfficeCalendarWeekView({
   weekFullDay,
   dayViewStartHour,
   onEventPress,
+  selectedAssignmentProfileId,
+  onAssignmentProfileDrop,
 }: OfficeCalendarWeekViewProps) {
   const text = useAuroraAdaptiveText();
   const gridScrollRef = useRef<ScrollView>(null);
@@ -134,8 +142,23 @@ export function OfficeCalendarWeekView({
                 return (
                   <View key={toDateKey(day)} style={styles.dayGrid}>
                     {hours.map((h) => (
-                      <View
+                      <Pressable
                         key={h}
+                        onPress={
+                          selectedAssignmentProfileId && onAssignmentProfileDrop
+                            ? () =>
+                                onAssignmentProfileDrop(
+                                  selectedAssignmentProfileId,
+                                  day,
+                                  `${String(h).padStart(2, '0')}:00`,
+                                )
+                            : undefined
+                        }
+                        {...buildAssignmentProfileDropTargetProps(
+                          day,
+                          onAssignmentProfileDrop,
+                          `${String(h).padStart(2, '0')}:00`,
+                        )}
                         style={[styles.slot, { height: HOUR_HEIGHT, borderColor: auroraGlass.innerBorder }]}
                       />
                     ))}

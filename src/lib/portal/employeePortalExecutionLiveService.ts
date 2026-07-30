@@ -82,6 +82,7 @@ function mapDetailToPortal(
     emergencyContact?: string | null;
     requiresSignature?: boolean;
     requiresDocumentation?: boolean;
+    requiresRoute?: boolean;
     signatureStatus?: EmployeePortalAssignmentDetail['signatureStatus'];
     clientPortalSignatureCompleted?: boolean;
   },
@@ -138,7 +139,7 @@ function mapDetailToPortal(
     requiresSignature,
     requiresDocumentation,
     clientPortalSignatureCompleted: extras?.clientPortalSignatureCompleted ?? false,
-    requiresRoute: Boolean(detail.location?.trim()),
+    requiresRoute: extras?.requiresRoute ?? Boolean(detail.location?.trim()),
     canStartExecution: canStart.allowed && !isAssignmentLocked(status),
     canOpenRoute: Boolean(detail.location?.trim()),
     canCaptureGps: canCaptureGps(roleKey),
@@ -158,18 +159,47 @@ async function fetchAssignmentExtras(
   tenantId: string,
   assignmentId: string,
   clientId: string,
-): Promise<{ notesForEmployee: string | null; accessHints: string | null; emergencyContact: string | null }> {
+): Promise<{
+  notesForEmployee: string | null;
+  accessHints: string | null;
+  emergencyContact: string | null;
+  requiresRoute?: boolean;
+}> {
   const supabase = getSupabaseClient();
   if (!supabase) {
     return { notesForEmployee: null, accessHints: null, emergencyContact: null };
   }
 
-  const [assignmentResult, contactResult] = await Promise.all([
+  const [assignmentResult, clientResult, ambulatoryResult, preferencesResult, risksResult, contactResult] = await Promise.all([
     fromUnknownTable(supabase, 'assignments')
-      .select('client_visible_notes, address_snapshot')
+      .select('description, internal_notes, operational_context, address_snapshot')
       .eq('tenant_id', tenantId)
       .eq('id', resolveVisitMasterId(assignmentId))
       .maybeSingle(),
+    fromUnknownTable(supabase, 'clients')
+      .select(
+        'visible_notes_for_employee, emergency_notes, allergies, mobility_notes, pets, key_management_notes, internal_notes',
+      )
+      .eq('tenant_id', tenantId)
+      .eq('id', clientId)
+      .maybeSingle(),
+    fromUnknownTable(supabase, 'client_ambulatory_details')
+      .select(
+        'home_access, key_status, key_number, key_safe_code, door_code, bell_name, floor, parking_notes, access_notes, hazard_notes, pets',
+      )
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .maybeSingle(),
+    fromUnknownTable(supabase, 'client_preferences')
+      .select('mobility_notes, household_notes, pet_notes, access_instructions')
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .maybeSingle(),
+    fromUnknownTable(supabase, 'client_risks')
+      .select('category, level, description, mitigation, assessed_at')
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .order('assessed_at', { ascending: false }),
     fromUnknownTable(supabase, 'client_contacts')
       .select('full_name, first_name, last_name, phone, is_emergency_contact')
       .eq('tenant_id', tenantId)
@@ -183,6 +213,91 @@ async function fetchAssignmentExtras(
   }
 
   const assignmentRow = assignmentResult.data as Record<string, unknown> | null;
+  const clientRow = clientResult.data as Record<string, unknown> | null;
+  const ambulatoryRow = ambulatoryResult.data as Record<string, unknown> | null;
+  const preferencesRow = preferencesResult.data as Record<string, unknown> | null;
+  const operationalContext =
+    assignmentRow?.operational_context
+    && typeof assignmentRow.operational_context === 'object'
+    && !Array.isArray(assignmentRow.operational_context)
+      ? assignmentRow.operational_context as Record<string, unknown>
+      : null;
+  const operationalRequirements =
+    operationalContext?.requirements
+    && typeof operationalContext.requirements === 'object'
+    && !Array.isArray(operationalContext.requirements)
+      ? operationalContext.requirements as Record<string, unknown>
+      : null;
+  const text = (value: unknown): string | null => {
+    const resolved = typeof value === 'string' ? value.trim() : '';
+    return resolved || null;
+  };
+  const section = (label: string, value: unknown): string | null => {
+    const resolved = text(value);
+    return resolved ? `${label}: ${resolved}` : null;
+  };
+  const compactSections = (parts: (string | null | undefined)[]): string | null => {
+    const seen = new Set<string>();
+    const unique = parts.filter((part): part is string => {
+      const resolved = part?.trim();
+      if (!resolved || seen.has(resolved)) return false;
+      seen.add(resolved);
+      return true;
+    });
+    return unique.length ? unique.join('\n\n') : null;
+  };
+
+  const risks = !risksResult.error && Array.isArray(risksResult.data)
+    ? (risksResult.data as Record<string, unknown>[]).map((risk) => {
+        const category = text(risk.category)?.toUpperCase() ?? 'RISIKO';
+        const level = text(risk.level)?.toUpperCase();
+        const description = text(risk.description);
+        const mitigation = text(risk.mitigation);
+        if (!description) return null;
+        return `${category}${level ? ` · ${level}` : ''}: ${description}${
+          mitigation ? ` — Maßnahme: ${mitigation}` : ''
+        }`;
+      }).filter((value): value is string => Boolean(value))
+    : [];
+
+  // Bei neuen Einsätzen ist `operational_context` der unveränderliche Snapshot
+  // zum Freigabezeitpunkt. Für ältere Einsätze werden die aktuellen Aktenwerte
+  // als sichere Rückwärtskompatibilität verwendet.
+  const snapshotEmployeeNotes = text(operationalContext?.employeeNotes);
+  const liveEmployeeNotes = compactSections([
+    risks.length ? `RISIKEN\n${risks.join('\n')}` : null,
+    section('Notfall-/Risikohinweis', clientRow?.emergency_notes),
+    section('Gefahren im Haushalt', ambulatoryRow?.hazard_notes),
+    section('Allergien', clientRow?.allergies),
+    section('Mobilität', clientRow?.mobility_notes ?? preferencesRow?.mobility_notes),
+    section('Haustiere', clientRow?.pets ?? ambulatoryRow?.pets ?? preferencesRow?.pet_notes),
+    section('Haushalt', preferencesRow?.household_notes),
+    section('Hinweis für Mitarbeitende', clientRow?.visible_notes_for_employee),
+    section('Interner Aktenhinweis', clientRow?.internal_notes),
+  ]);
+  const notesForEmployee =
+    snapshotEmployeeNotes
+    ?? compactSections([
+      text(assignmentRow?.description),
+      text(assignmentRow?.internal_notes),
+      liveEmployeeNotes,
+    ]);
+
+  const snapshotAccess = text(operationalContext?.accessAndKeys);
+  const accessHints = snapshotAccess ?? compactSections([
+    section('Schlüsselhinweis', clientRow?.key_management_notes),
+    section('Hauszugang', ambulatoryRow?.home_access),
+    section('Schlüsselstatus', ambulatoryRow?.key_status),
+    section('Schlüsselnummer', ambulatoryRow?.key_number),
+    section('Schlüsseltresor', ambulatoryRow?.key_safe_code),
+    section('Türcode', ambulatoryRow?.door_code),
+    section('Klingel', ambulatoryRow?.bell_name),
+    section('Etage', ambulatoryRow?.floor),
+    section('Parken', ambulatoryRow?.parking_notes),
+    section('Zugang', ambulatoryRow?.access_notes),
+    section('Zugangsablauf', preferencesRow?.access_instructions),
+  ]);
+
   let emergencyContact: string | null = null;
   if (!contactResult.error && contactResult.data?.length) {
     const contact = contactResult.data[0] as Record<string, unknown>;
@@ -194,11 +309,13 @@ async function fetchAssignmentExtras(
   }
 
   return {
-    notesForEmployee: assignmentRow?.client_visible_notes
-      ? String(assignmentRow.client_visible_notes)
-      : null,
-    accessHints: null,
+    notesForEmployee,
+    accessHints,
     emergencyContact,
+    requiresRoute:
+      typeof operationalRequirements?.route === 'boolean'
+        ? operationalRequirements.route
+        : undefined,
   };
 }
 

@@ -7,6 +7,7 @@ import { OfficeCalendarMonthView } from '@/components/office/calendar/OfficeCale
 import { OfficeCalendarWeekView } from '@/components/office/calendar/OfficeCalendarWeekView';
 import { OfficeCalendarYearView } from '@/components/office/calendar/OfficeCalendarYearView';
 import { startOfMonth } from '@/lib/office/calendarDateUtils';
+import type { AssignmentProfileDropHandler } from './OfficeAssignmentProfileCalendarPlanner';
 
 type CalendarEventGridProps = {
   viewMode: CalendarViewMode;
@@ -18,6 +19,8 @@ type CalendarEventGridProps = {
   weekFullDay: boolean;
   onEventPress?: (event: CalendarEvent) => void;
   onSelectMonth?: (monthIndex: number) => void;
+  selectedAssignmentProfileId?: string | null;
+  onAssignmentProfileDrop?: AssignmentProfileDropHandler;
 };
 
 export function CalendarEventGrid({
@@ -30,6 +33,8 @@ export function CalendarEventGrid({
   weekFullDay,
   onEventPress,
   onSelectMonth,
+  selectedAssignmentProfileId,
+  onAssignmentProfileDrop,
 }: CalendarEventGridProps) {
   if (viewMode === 'day') {
     return (
@@ -38,6 +43,8 @@ export function CalendarEventGrid({
         events={events}
         dayViewStartHour={dayViewStartHour}
         onEventPress={onEventPress}
+        selectedAssignmentProfileId={selectedAssignmentProfileId}
+        onAssignmentProfileDrop={onAssignmentProfileDrop}
       />
     );
   }
@@ -51,6 +58,8 @@ export function CalendarEventGrid({
         weekFullDay={weekFullDay}
         dayViewStartHour={dayViewStartHour}
         onEventPress={onEventPress}
+        selectedAssignmentProfileId={selectedAssignmentProfileId}
+        onAssignmentProfileDrop={onAssignmentProfileDrop}
       />
     );
   }
@@ -63,6 +72,8 @@ export function CalendarEventGrid({
         weekStartDay={weekStartDay}
         maxCollapsedEvents={maxCollapsedEvents}
         onEventPress={onEventPress}
+        selectedAssignmentProfileId={selectedAssignmentProfileId}
+        onAssignmentProfileDrop={onAssignmentProfileDrop}
       />
     );
   }

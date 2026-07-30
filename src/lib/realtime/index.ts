@@ -16,6 +16,7 @@ export {
   subscribeToAssistLiveTrackingChanges,
   subscribeToAssistOperationsChanges,
   subscribeToClientListChanges,
+  subscribeToClientAssignmentProfileChanges,
   subscribeToClientRecordChanges,
   subscribeToEmployeeDetailChanges,
   subscribeToEmployeeListChanges,

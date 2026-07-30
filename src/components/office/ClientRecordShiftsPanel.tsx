@@ -18,6 +18,7 @@ import { formatDate, formatDateTime } from '@/lib/formatters/dateTimeFormatters'
 import type { AssignmentListItem } from '@/types/modules/assist';
 import type { ClientFullDetail } from '@/types/modules/client';
 import { ClientProofBillingStatusPanel } from '@/components/office/ClientProofBillingStatusPanel';
+import { ClientAssignmentProfilesPanel } from '@/components/office/ClientAssignmentProfilesPanel';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
 
@@ -125,6 +126,10 @@ export function ClientRecordShiftsPanel({ clientId, fullClient }: ClientRecordSh
 
   return (
     <View style={styles.panel}>
+      {!isReadOnly ? (
+        <ClientAssignmentProfilesPanel clientId={clientId} fullClient={fullClient} />
+      ) : null}
+
       <SectionPanel
         title="Einsätze"
         subtitle={
@@ -159,8 +164,8 @@ export function ClientRecordShiftsPanel({ clientId, fullClient }: ClientRecordSh
       {!isReadOnly ? (
         <SectionPanel title="Planung">
           <Text style={styles.hint}>
-            Neue Einsätze planen Sie in CareSuite+ Assist unter Einsätze. Aufgaben und Wünsche pflegen Sie im Tab
-            „Aufgaben & Wünsche“.
+            Einsatzprofile erscheinen automatisch im Office-Kalender. Ziehen Sie das gewünschte Profil auf einen Tag
+            und bestätigen Sie nur die Uhrzeit. Der Einsatz wird anschließend direkt freigegeben.
           </Text>
         </SectionPanel>
       ) : null}

@@ -671,9 +671,6 @@ export function EmployeePortalVisitExecutionScreen() {
           {visit.emergencyContact ? (
             <DetailInfoRow label="Telefon" value={visit.emergencyContact} />
           ) : null}
-          {visit.notesForEmployee ? (
-            <DetailInfoRow label="Hinweise" value={visit.notesForEmployee} />
-          ) : null}
           <View style={styles.phaseActions}>
             <PremiumButton title="Navigation starten" variant="secondary" fullWidth onPress={handleOpenMap} />
             {visit.emergencyContact ? (
@@ -899,6 +896,24 @@ export function EmployeePortalVisitExecutionScreen() {
         {tracking?.warnings.map((w) => (
           <InfoBanner key={w} variant="warning" message={w} />
         ))}
+
+        {visit.notesForEmployee || visit.accessHints ? (
+          <PremiumCard style={styles.criticalInfoCard}>
+            <View style={styles.criticalInfoHeader}>
+              <Text style={styles.criticalInfoKicker}>VOR UND WÄHREND DES EINSATZES BEACHTEN</Text>
+              <Text style={styles.phaseTitle}>Wichtige Einsatzhinweise</Text>
+            </View>
+            {visit.notesForEmployee ? (
+              <DetailInfoRow
+                label="Sicherheit, Risiken und Besonderheiten"
+                value={visit.notesForEmployee}
+              />
+            ) : null}
+            {visit.accessHints ? (
+              <DetailInfoRow label="Schlüssel und Zugang" value={visit.accessHints} />
+            ) : null}
+          </PremiumCard>
+        ) : null}
 
         {renderPhaseContent()}
 
@@ -1168,6 +1183,19 @@ export function EmployeePortalVisitExecutionScreen() {
 const styles = StyleSheet.create({
   scroll: { gap: spacing.md, paddingHorizontal: spacing.md, paddingTop: spacing.sm },
   phaseCard: { padding: spacing.md, gap: spacing.sm },
+  criticalInfoCard: {
+    padding: spacing.md,
+    gap: spacing.sm,
+    borderColor: colors.warning,
+    borderWidth: 1,
+  },
+  criticalInfoHeader: { gap: spacing.xs },
+  criticalInfoKicker: {
+    ...typography.caption,
+    color: colors.warning,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   phaseTitle: { ...typography.h3, color: colors.textPrimary },
   phaseHint: { ...typography.body, color: colors.textSecondary },
   phaseActions: { gap: spacing.sm, marginTop: spacing.sm },

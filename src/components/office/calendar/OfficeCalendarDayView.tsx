@@ -11,12 +11,18 @@ import {
 } from '@/lib/office/calendarDateUtils';
 import { CalendarEventLabel } from '@/components/calendar/CalendarEventLabel';
 import { OfficeCalendarEventChip } from './OfficeCalendarEventChip';
+import {
+  buildAssignmentProfileDropTargetProps,
+  type AssignmentProfileDropHandler,
+} from '@/components/calendar/OfficeAssignmentProfileCalendarPlanner';
 
 type OfficeCalendarDayViewProps = {
   anchor: Date;
   events: CalendarEvent[];
   dayViewStartHour: number;
   onEventPress?: (event: CalendarEvent) => void;
+  selectedAssignmentProfileId?: string | null;
+  onAssignmentProfileDrop?: AssignmentProfileDropHandler;
 };
 
 const HOUR_HEIGHT = 56;
@@ -26,6 +32,8 @@ export function OfficeCalendarDayView({
   events,
   dayViewStartHour,
   onEventPress,
+  selectedAssignmentProfileId,
+  onAssignmentProfileDrop,
 }: OfficeCalendarDayViewProps) {
   const text = useAuroraAdaptiveText();
   const scrollRef = useRef<ScrollView>(null);
@@ -64,7 +72,25 @@ export function OfficeCalendarDayView({
               return isSameDay(start, anchor) && start.getHours() === h;
             });
             return (
-              <View key={h} style={[styles.row, { minHeight: HOUR_HEIGHT }]}>
+              <Pressable
+                key={h}
+                onPress={
+                  selectedAssignmentProfileId && onAssignmentProfileDrop
+                    ? () =>
+                        onAssignmentProfileDrop(
+                          selectedAssignmentProfileId,
+                          anchor,
+                          `${String(h).padStart(2, '0')}:00`,
+                        )
+                    : undefined
+                }
+                {...buildAssignmentProfileDropTargetProps(
+                  anchor,
+                  onAssignmentProfileDrop,
+                  `${String(h).padStart(2, '0')}:00`,
+                )}
+                style={[styles.row, { minHeight: HOUR_HEIGHT }]}
+              >
                 <Text style={[styles.hour, { color: text.muted }]}>{String(h).padStart(2, '0')}:00</Text>
                 <View style={styles.slot}>
                   {slotEvents.map((event) => {
@@ -90,7 +116,7 @@ export function OfficeCalendarDayView({
                     );
                   })}
                 </View>
-              </View>
+              </Pressable>
             );
           })}
         </View>

@@ -21,12 +21,21 @@ import { CalendarFilterBar } from './CalendarFilterBar';
 import { CalendarCreateAction } from './CalendarCreateAction';
 import { CalendarEventGrid, startOfMonth } from './CalendarEventGrid';
 import { CalendarCreateModal } from './CalendarCreateModal';
+import {
+  OfficeAssignmentProfileCalendarPlanner,
+  type AssignmentProfileDropHandler,
+} from './OfficeAssignmentProfileCalendarPlanner';
 
 export type CalendarPageShellProps = {
   config: CalendarViewConfig;
   onEventPress?: (event: CalendarEvent) => void;
   showCreateAction?: boolean;
   showSettings?: boolean;
+};
+
+type CalendarGridContentProps = {
+  selectedProfileId: string | null;
+  onProfileDrop?: AssignmentProfileDropHandler;
 };
 
 function resolveSettingsScope(config: CalendarViewConfig): 'office' | 'assist' {
@@ -121,7 +130,7 @@ export function CalendarPageShell({
 
   const emptyMessage = config.emptyStateMessage ?? 'Für diesen Zeitraum sind keine Kalendereinträge sichtbar.';
 
-  return (
+  const renderCalendar = ({ selectedProfileId, onProfileDrop }: CalendarGridContentProps) => (
     <View style={styles.wrap}>
       <CalendarToolbar
         viewMode={viewMode}
@@ -158,6 +167,8 @@ export function CalendarPageShell({
         weekFullDay={weekFullDay}
         onEventPress={onEventPress}
         onSelectMonth={handleSelectMonth}
+        selectedAssignmentProfileId={selectedProfileId}
+        onAssignmentProfileDrop={onProfileDrop}
       />
 
       {showSettings ? (
@@ -190,6 +201,18 @@ export function CalendarPageShell({
       />
     </View>
   );
+
+  if (config.moduleKey === 'all' || config.moduleKey === 'office') {
+    return (
+      <OfficeAssignmentProfileCalendarPlanner onScheduled={refresh}>
+        {({ selectedProfileId, onProfileDrop }) =>
+          renderCalendar({ selectedProfileId, onProfileDrop })
+        }
+      </OfficeAssignmentProfileCalendarPlanner>
+    );
+  }
+
+  return renderCalendar({ selectedProfileId: null });
 }
 
 const styles = StyleSheet.create({

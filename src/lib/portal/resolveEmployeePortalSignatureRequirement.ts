@@ -98,6 +98,35 @@ export async function resolveEmployeePortalDocumentationFlags(
   let visitDocumentationComplete = false;
 
   if (supabase && visitId) {
+    const { data: assignmentRow, error: assignmentError } = await fromUnknownTable(
+      supabase,
+      'assignments',
+    )
+      .select('operational_context')
+      .eq('tenant_id', tenantId)
+      .eq('id', resolveVisitMasterId(assignmentId))
+      .maybeSingle();
+
+    if (!assignmentError && assignmentRow?.operational_context) {
+      const context =
+        typeof assignmentRow.operational_context === 'object'
+        && !Array.isArray(assignmentRow.operational_context)
+          ? assignmentRow.operational_context as Record<string, unknown>
+          : null;
+      const requirements =
+        context?.requirements
+        && typeof context.requirements === 'object'
+        && !Array.isArray(context.requirements)
+          ? context.requirements as Record<string, unknown>
+          : null;
+      if (typeof requirements?.signature === 'boolean') {
+        requiresSignature = requirements.signature;
+      }
+      if (typeof requirements?.documentation === 'boolean') {
+        requiresDocumentation = requirements.documentation;
+      }
+    }
+
     const { data: visitRow, error: visitError } = await fromUnknownTable(supabase, 'assist_visits')
       .select('service_key, proof_status, proof_template_key, documentation_status')
       .eq('tenant_id', tenantId)

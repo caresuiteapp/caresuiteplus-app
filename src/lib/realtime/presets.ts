@@ -99,8 +99,26 @@ export function subscribeToClientRecordChanges(
         { table: 'clients', filter: `id=eq.${clientId}` },
         { table: 'client_documents', filter: client },
         { table: 'assignments', filter: client },
+        { table: 'client_assignment_profiles', filter: client },
         { table: 'portal_requests', filter: client },
         { table: 'audit_logs', filter: tenant },
+      ],
+    },
+    handler,
+  );
+}
+
+/** Wiederverwendbare Einsatzprofile in Office-Kalender und Klientenakte. */
+export function subscribeToClientAssignmentProfileChanges(
+  tenantId: string,
+  handler: RealtimeHandler,
+): () => void {
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `client-assignment-profiles:${tenantId}`,
+      channelName: `office:assignment-profiles:${tenantId}`,
+      specs: [
+        { table: 'client_assignment_profiles', filter: tenantFilter(tenantId) },
       ],
     },
     handler,
