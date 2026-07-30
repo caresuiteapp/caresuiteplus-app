@@ -50,6 +50,8 @@ const ACCESS_OPTIONS: AccessOption[] = [
   },
 ];
 
+const ACCESS_ANIMATION_USES_NATIVE_DRIVER = Platform.OS !== 'web';
+
 function useReducedMotion() {
   const [reducedMotion, setReducedMotion] = useState(false);
 
@@ -84,13 +86,13 @@ function AnimatedBackdrop({ reducedMotion }: { reducedMotion: boolean }) {
           toValue: 1,
           duration: 13000,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
+          useNativeDriver: ACCESS_ANIMATION_USES_NATIVE_DRIVER,
         }),
         Animated.timing(drift, {
           toValue: 0,
           duration: 13000,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
+          useNativeDriver: ACCESS_ANIMATION_USES_NATIVE_DRIVER,
         }),
       ]),
     );
@@ -100,13 +102,13 @@ function AnimatedBackdrop({ reducedMotion }: { reducedMotion: boolean }) {
           toValue: 1,
           duration: 9000,
           easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
+          useNativeDriver: ACCESS_ANIMATION_USES_NATIVE_DRIVER,
         }),
         Animated.timing(breathe, {
           toValue: 0,
           duration: 9000,
           easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
+          useNativeDriver: ACCESS_ANIMATION_USES_NATIVE_DRIVER,
         }),
       ]),
     );
@@ -200,7 +202,7 @@ function AccessCard({
       delay: 140 + index * 100,
       duration: 520,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: ACCESS_ANIMATION_USES_NATIVE_DRIVER,
     });
     const floatLoop = Animated.loop(
       Animated.sequence([
@@ -208,13 +210,13 @@ function AccessCard({
           toValue: 1,
           duration: 2600 + index * 180,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
+          useNativeDriver: ACCESS_ANIMATION_USES_NATIVE_DRIVER,
         }),
         Animated.timing(float, {
           toValue: 0,
           duration: 2600 + index * 180,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
+          useNativeDriver: ACCESS_ANIMATION_USES_NATIVE_DRIVER,
         }),
       ]),
     );
@@ -225,10 +227,14 @@ function AccessCard({
           toValue: 1,
           duration: 900,
           easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
+          useNativeDriver: ACCESS_ANIMATION_USES_NATIVE_DRIVER,
         }),
         Animated.delay(2300),
-        Animated.timing(shimmer, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.timing(shimmer, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: ACCESS_ANIMATION_USES_NATIVE_DRIVER,
+        }),
       ]),
     );
     entranceAnimation.start();
@@ -246,7 +252,7 @@ function AccessCard({
       toValue: hovered ? 1 : 0,
       duration: hovered ? 190 : 260,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: ACCESS_ANIMATION_USES_NATIVE_DRIVER,
     }).start();
   }, [hovered, interaction]);
 
@@ -361,7 +367,7 @@ function RegistrationCard({
       delay: 470,
       duration: 540,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: ACCESS_ANIMATION_USES_NATIVE_DRIVER,
     }).start();
   }, [entrance, reducedMotion]);
 

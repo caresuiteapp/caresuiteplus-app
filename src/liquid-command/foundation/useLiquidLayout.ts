@@ -1,4 +1,5 @@
-import { Platform, useWindowDimensions } from 'react-native';
+import { Platform } from 'react-native';
+import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
 import { liquidBreakpoints } from './tokens';
 
 export type LiquidFormFactor =
@@ -47,7 +48,7 @@ export function resolveLiquidFormFactor(
 }
 
 export function useLiquidLayout(): LiquidLayout {
-  const { width, height } = useWindowDimensions();
+  const { width, height } = useHydrationSafeWindowDimensions();
   return resolveLiquidLayout(width, height);
 }
 
