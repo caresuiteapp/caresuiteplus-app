@@ -51,4 +51,18 @@ describe('P0 portal identity and tenant repair', () => {
     expect(shell).toContain("overflow: 'hidden'");
     expect(shell).toContain('<AutoScrollView');
   });
+
+  it('separates internal tenant policies from portal policies', () => {
+    const sql = read(
+      'supabase/migrations/20260730173000_portal_internal_rls_separation.sql',
+    );
+    expect(sql).toContain('CREATE OR REPLACE FUNCTION public.is_internal_tenant_actor');
+    expect(sql).toContain("'assignments'");
+    expect(sql).toContain('DROP POLICY IF EXISTS assist_visits_tenant');
+    expect(sql).toContain('public.is_internal_tenant_actor(tenant_id)');
+    expect(sql).toContain("public.current_role_key() = 'employee_portal'");
+    expect(sql).toContain('v.employee_id = public.resolve_current_employee_id()');
+    expect(sql).toContain('P0 verification failed: assignments internal policy missing');
+    expect(sql).toContain('P0 verification failed: client update policy missing');
+  });
 });

@@ -185,17 +185,17 @@ export function AssignmentsListView({
   });
   const { colors, typography } = useLegacyTheme();
   const isLive = getServiceMode() === 'supabase';
-  const webGlassBlur =
-    Platform.OS === 'web'
-      ? ({
-          backdropFilter: `blur(${auroraGlass.blur.medium}px)`,
-          WebkitBackdropFilter: `blur(${auroraGlass.blur.medium}px)`,
-        } as unknown as ViewStyle)
-      : null;
 
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
+  const styles = useMemo(() => {
+    const webGlassBlur =
+      Platform.OS === 'web'
+        ? ({
+            backdropFilter: `blur(${auroraGlass.blur.medium}px)`,
+            WebkitBackdropFilter: `blur(${auroraGlass.blur.medium}px)`,
+          } as unknown as ViewStyle)
+        : null;
+
+    return StyleSheet.create({
         container: { flex: 1, backgroundColor: 'transparent' },
         flatList: { flex: 1, backgroundColor: 'transparent' },
         listPanel: {
@@ -249,9 +249,8 @@ export function AssignmentsListView({
           alignItems: 'center',
           marginBottom: spacing.xs,
         },
-      }),
-    [colors, typography, webGlassBlur],
-  );
+    });
+  }, [colors, typography]);
 
   const buildMobileActions = useCallback(
     (assignment: AssignmentListItem): AssignmentMobileAction[] => {
@@ -271,7 +270,7 @@ export function AssignmentsListView({
         {
           key: 'edit',
           label: 'Bearbeiten',
-          onPress: () => navigateToAssignment(assignment.id),
+          onPress: () => router.push(`/assist/assignments/${assignment.id}/edit` as never),
         },
         {
           key: 'open',
@@ -281,37 +280,14 @@ export function AssignmentsListView({
         {
           key: 'docs',
           label: 'Dokumentation',
-          onPress: () => navigateToAssignment(assignment.id),
-        },
-        {
-          key: 'attachments',
-          label: 'Anhänge',
-          onPress: () => navigateToAssignment(assignment.id),
-        },
-        {
-          key: 'nav',
-          label: 'Navigation',
-          onPress: () => navigateToAssignment(assignment.id),
-        },
-        {
-          key: 'call',
-          label: 'Anrufen',
-          onPress: () => navigateToAssignment(assignment.id),
-        },
-        {
-          key: 'message',
-          label: 'Nachricht',
-          onPress: () => navigateToAssignment(assignment.id),
-        },
-        {
-          key: 'route',
-          label: 'Route',
-          onPress: () => navigateToAssignment(assignment.id),
+          onPress: () =>
+            router.push(`/assist/assignments/${assignment.id}?tab=execution` as never),
         },
         {
           key: 'proof',
           label: 'Nachweis',
-          onPress: () => navigateToAssignment(assignment.id),
+          onPress: () =>
+            router.push(`/assist/assignments/${assignment.id}?tab=proof` as never),
         },
         ...(canManage && tenantId && isAssignmentListItemDeletable(assignment)
           ? [
@@ -550,7 +526,7 @@ export function AssignmentsListView({
       showInlineActions={isDesktop}
       onOpen={navigateToAssignment}
       onStart={(id) => router.push(`/assist/assignments/${id}/execute` as never)}
-      onEdit={navigateToAssignment}
+      onEdit={(id) => router.push(`/assist/assignments/${id}/edit` as never)}
       onDelete={
         canManage && tenantId
           ? (id) => deleteVisitDisposition(id, tenantId, profile?.roleKey)

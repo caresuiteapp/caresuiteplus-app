@@ -79,7 +79,7 @@ export function AssignmentEditScreen() {
         onCancel={() => router.back()}
         onSaved={() => {
           setSaved(true);
-          setTimeout(() => router.replace(`/assist/einsaetze/${id}` as never), 900);
+          setTimeout(() => router.replace(`/assist/assignments/${id}` as never), 900);
         }}
       />
     </ScreenShell>

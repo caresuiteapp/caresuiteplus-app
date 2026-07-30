@@ -27,16 +27,16 @@ const assistDashboard = read('src/screens/assist/AssistIndexScreen.tsx');
 const subpageShell = read('src/components/layout/C14vSubpageShell.tsx');
 const routePlanning = read('src/lib/assist/routePlanningService.ts');
 
-check('ein statischer heller Hintergrund ist systemweit aktiv',
-  globalBackground.includes('StaticLightPaperBackground') &&
+check('der kanonische Spatial-Care-Hintergrund ist systemweit aktiv',
+  globalBackground.includes('SpatialCareBackground') &&
   !globalBackground.includes('DarkLiquidGlassBackground'));
-check('die Web-Wurzel erzwingt keinen dunklen Testmodus',
-  webSurfaceCss.includes('color-scheme: light') &&
-  webSurfaceCss.includes('background: #F7FAFF') &&
-  !webSurfaceCss.includes('background: #030A18'));
+check('die Web-Wurzel verwendet die produktive HealthOS-Dunkelfläche',
+  webSurfaceCss.includes('color-scheme: dark') &&
+  webSurfaceCss.includes('background: #071225') &&
+  !webSurfaceCss.includes('background: #F7FAFF'));
 check('Office und Assist verwenden dieselbe äußere Shell',
-  officeLayout.includes('<ShellLayout area="office"') &&
-  assistLayout.includes('<ShellLayout area="assist"'));
+  officeLayout.includes('LiquidModuleRouteLayout') &&
+  assistLayout.includes('LiquidModuleRouteLayout'));
 check('Office- und Assist-Startseite verwenden dieselbe Seitenschale',
   officeDashboard.includes('<ScreenShell') && assistDashboard.includes('<ScreenShell'));
 check('Unterseiten laufen zentral über ScreenShell', subpageShell.includes('<ScreenShell'));
@@ -52,9 +52,9 @@ check('keine leere Office-/Assist-Routendatei',
 const screenFiles = [...walk('src/screens/office'), ...walk('src/screens/assist')]
   .filter((file) => file.endsWith('.tsx'));
 const darkRuntime = screenFiles.filter((file) =>
-  /DarkLiquidGlassBackground|backgroundColor:\s*['"]#0(?:30A18|61126|A1934)/.test(read(file)),
+  /DarkLiquidGlassBackground/.test(read(file)),
 );
-check('keine Office-/Assist-Seite bindet die dunkle Testwelt ein', darkRuntime.length === 0);
+check('keine Office-/Assist-Seite bindet den veralteten Testhintergrund ein', darkRuntime.length === 0);
 
 console.log('CareSuite+ Office + Assist Experience Audit V33.1');
 for (const label of assertions) console.log(`✓ ${label}`);

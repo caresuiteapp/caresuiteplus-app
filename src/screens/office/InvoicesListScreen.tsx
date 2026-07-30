@@ -2,11 +2,8 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { InvoicesListView } from '@/components/office/InvoicesListView';
-import { PremiumButton, EmptyState, ErrorState, LoadingState } from '@/components/ui';
-import { moduleColor } from '@/design/tokens/modules';
-import { useInvoiceList } from '@/hooks/useInvoiceList';
+import { PremiumButton } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
-import { fetchInvoiceList } from '@/lib/office/invoiceListService';
 
 export function InvoicesListScreen({
   onInvoicePress,
@@ -20,8 +17,6 @@ export function InvoicesListScreen({
   const router = useRouter();
   const { can, isReadOnly } = usePermissions();
   const canCreate = can('office.invoices.view') && !isReadOnly;
-  const officeAccent = moduleColor('office');
-  const list = useInvoiceList();
 
   if (embedded) {
     return (
@@ -30,22 +25,6 @@ export function InvoicesListScreen({
         selectedId={selectedId}
         embedded
       />
-    );
-  }
-
-  if (list.loading && list.allItems.length === 0) {
-    return (
-      <ScreenShell title="Rechnungen" subtitle="Wird geladen…" scroll={false}>
-        <LoadingState message="Rechnungen werden geladen…" />
-      </ScreenShell>
-    );
-  }
-
-  if (list.error && list.allItems.length === 0) {
-    return (
-      <ScreenShell title="Rechnungen" subtitle="Fehler" scroll={false}>
-        <ErrorState message={list.error} onRetry={list.refresh} />
-      </ScreenShell>
     );
   }
 
@@ -64,20 +43,11 @@ export function InvoicesListScreen({
       scroll={false}
     >
       <View style={styles.content}>
-        {list.isEmpty && !list.hasActiveFilters ? (
-          <EmptyState
-            title="Keine Rechnungen"
-            message="Erstellen Sie die erste Rechnung im Demo-Mandanten."
-            actionLabel={canCreate ? 'Rechnung anlegen' : undefined}
-            onAction={canCreate ? () => router.push('/business/office/invoices/new' as never) : undefined}
-          />
-        ) : (
-          <InvoicesListView
-            onInvoicePress={onInvoicePress}
-            selectedId={selectedId}
-            routePrefix="/business/office/invoices"
-          />
-        )}
+        <InvoicesListView
+          onInvoicePress={onInvoicePress}
+          selectedId={selectedId}
+          routePrefix="/business/office/invoices"
+        />
       </View>
     </ScreenShell>
   );
@@ -86,5 +56,7 @@ export function InvoicesListScreen({
 const styles = StyleSheet.create({
   content: {
     flex: 1,
+    minWidth: 0,
+    minHeight: 0,
   },
 });

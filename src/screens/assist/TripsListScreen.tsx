@@ -1,16 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
-import { ScreenShell } from '@/components/layout';
 import { TripsListView } from '@/components/assist/TripsListView';
 import { TrackingListView } from '@/components/assist/TrackingListView';
-import { EmptyState, ErrorState, LoadingState, SegmentedTabs, type TabOption } from '@/components/ui';
+import { SegmentedTabs, type TabOption } from '@/components/ui';
 import { auroraGlass, useAuroraGlassPanelStyle } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
-import { useTripList } from '@/hooks/useTripList';
-import { fetchTripLogList } from '@/lib/assist/tripLogService';
 import { getServiceMode } from '@/lib/services/mode';
 import { radius, spacing } from '@/theme';
 
@@ -42,7 +39,6 @@ export function TripsListScreen({
   const canTrips = can('assist.trips.view');
   const canTracking = can('assist.tracking.view');
   const [activeTab, setActiveTab] = useState<'fahrten' | 'tracking'>(canTrips ? 'fahrten' : 'tracking');
-  const list = useTripList();
   const roleSubtitle = getServiceMode() === 'supabase' ? roleLabel ?? 'Assist' : roleLabel ?? 'Demo';
   const assistAccent = moduleColor('assist');
 
@@ -81,22 +77,6 @@ export function TripsListScreen({
     return content;
   }
 
-  if (list.loading && list.allItems.length === 0 && activeTab === 'fahrten') {
-    return (
-      <ScreenShell title="Mobilität" subtitle="Wird geladen…" scroll={false}>
-        <LoadingState message="Fahrten werden geladen…" />
-      </ScreenShell>
-    );
-  }
-
-  if (list.error && list.allItems.length === 0 && activeTab === 'fahrten') {
-    return (
-      <ScreenShell title="Mobilität" subtitle="Fehler" scroll={false}>
-        <ErrorState message={list.error} onRetry={list.refresh} />
-      </ScreenShell>
-    );
-  }
-
   const listBody = (
     <>
       {showTabs ? (
@@ -107,13 +87,7 @@ export function TripsListScreen({
           style={styles.tabs}
         />
       ) : null}
-      <View style={styles.content}>
-        {list.isEmpty && !list.hasActiveFilters && activeTab === 'fahrten' ? (
-          <EmptyState title="Keine Fahrten" message="Es sind noch keine Fahrten im Fahrtenbuch erfasst." />
-        ) : (
-          content
-        )}
-      </View>
+      <View style={styles.content}>{content}</View>
     </>
   );
 
@@ -138,9 +112,7 @@ export function TripsListScreen({
   );
 }
 
-void fetchTripLogList;
-
 const styles = StyleSheet.create({
   tabs: { marginBottom: spacing.sm },
-  content: { flex: 1 },
+  content: { flex: 1, minWidth: 0, minHeight: 0 },
 });

@@ -1,7 +1,10 @@
 import { ScrollView, StyleSheet } from 'react-native';
 import { useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AssignmentDetailTabsPanel } from '@/components/assist/AssignmentDetailTabsPanel';
+import {
+  AssignmentDetailTabsPanel,
+  isAssignmentDetailTabKey,
+} from '@/components/assist/AssignmentDetailTabsPanel';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useVisitDispositionDetail } from '@/hooks/useVisitDispositionDetail';
@@ -20,7 +23,7 @@ export function AssignmentDetailScreen({
   embedded = false,
   onClose,
 }: AssignmentDetailScreenProps = {}) {
-  const { id: routeId } = useLocalSearchParams<{ id: string }>();
+  const { id: routeId, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const assignmentId = assignmentIdProp ?? routeId;
   const router = useRouter();
   const { roleLabel } = usePermissions();
@@ -92,6 +95,7 @@ export function AssignmentDetailScreen({
     >
       <AssignmentDetailTabsPanel
         assignmentId={assignmentId}
+        initialTab={tab && isAssignmentDetailTabKey(tab) ? tab : 'overview'}
         mode="full"
         onClose={embedded ? onClose : undefined}
       />

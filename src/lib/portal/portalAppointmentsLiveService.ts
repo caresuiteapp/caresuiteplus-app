@@ -31,6 +31,7 @@ function visitListItemToPortalAppointment(item: VisitDispositionListItem): Porta
   return {
     id: item.id,
     title: item.title,
+    serviceName: item.serviceName,
     startsAt: item.scheduledStart,
     endsAt: item.scheduledEnd,
     status: item.status,

@@ -17,6 +17,7 @@ import {
 import { usePortalAppointmentDetail } from '@/hooks/usePortalAppointmentDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
+import { employeePortalHomeAppointmentTitle } from '@/lib/portal/portalHomeAppointment';
 import { colors, spacing, typography } from '@/theme';
 
 function formatTime(iso: string): string {
@@ -94,7 +95,7 @@ export function PortalAssignmentDetailScreen() {
 
   return (
     <C14vSubpageShell
-      title={data.title}
+      title={employeePortalHomeAppointmentTitle(data)}
       eyebrow="PORTAL · EINSATZ"
       subtitle={`${data.clientName} · ${resolvePortalScreenSubtitle(roleLabel, 'employee')}`}
     >

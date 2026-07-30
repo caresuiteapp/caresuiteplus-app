@@ -12,10 +12,11 @@ export function cleanupOrphanedFullscreenOverlays(): number {
   const nodes = document.body.querySelectorAll(OVERLAY_SELECTOR);
   nodes.forEach((node) => node.remove());
 
-  if (nodes.length === 0) return 0;
-
   const remaining = document.body.querySelectorAll(OVERLAY_SELECTOR);
   if (remaining.length === 0) {
+    // A dialog can be removed by routing before its cleanup effect runs. In
+    // that case no overlay host remains, but the body lock would otherwise
+    // survive and make every following portal page appear non-scrollable.
     document.body.style.overflow = '';
     document.body.style.overscrollBehavior = '';
     document.body.style.touchAction = '';

@@ -1,3 +1,3 @@
-import { AssignmentsAdaptiveScreen } from '@/product-workflows/screens/assist/AssignmentsAdaptiveScreen';
+import { AssignmentsListScreen } from '@/product-workflows/screens/assist/AssignmentsListScreen';
 
-export default AssignmentsAdaptiveScreen;
+export default AssignmentsListScreen;

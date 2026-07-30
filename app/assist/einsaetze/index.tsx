@@ -1,3 +1,5 @@
-import { EinsaetzeListScreen } from '@/product-workflows/screens/assist/EinsaetzeListScreen';
+import { Redirect } from 'expo-router';
 
-export default EinsaetzeListScreen;
+export default function EinsaetzeRedirect() {
+  return <Redirect href="/assist/assignments" />;
+}

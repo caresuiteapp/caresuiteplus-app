@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -41,6 +42,15 @@ import { liquidColors, liquidRadius, liquidSpace } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import { liquidPortalNavigation } from '../navigation/portalCatalog';
 import type { LiquidPortalKey } from '../types';
+import {
+  employeePortalHomeAppointmentTitle,
+  selectPortalHomeAppointment,
+} from '@/lib/portal/portalHomeAppointment';
+import {
+  resolveEmployeePortalAssignmentNavigationRoute,
+  resolveEmployeePortalAssignmentPendingFlags,
+} from '@/lib/portal/employeePortalAssignmentCompletion';
+import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 
 type PortalSection = {
   id: string;
@@ -434,13 +444,19 @@ function Overview({
   threads,
   portal,
   onNavigate,
+  onOpenAppointment,
 }: PortalData & {
   threads: OfficeMessageThread[];
   portal: 'employee' | 'client' | 'family';
   onNavigate: (section: string) => void;
+  onOpenAppointment: (appointment: PortalAppointmentItem) => void;
 }) {
   const layout = useLiquidLayout();
-  const nextAppointment = appointments[0];
+  const nextAppointment = selectPortalHomeAppointment(appointments);
+  const nextAppointmentTitle =
+    nextAppointment && portal === 'employee'
+      ? employeePortalHomeAppointmentTitle(nextAppointment)
+      : nextAppointment?.title;
   const unread = threads.reduce((sum, thread) => sum + thread.unreadCount, 0);
   const activeChats = threads.length;
   const quickItems =
@@ -483,7 +499,7 @@ function Overview({
           <View style={styles.heroCopy}>
             <LiquidText variant="kicker">HEUTE</LiquidText>
             <LiquidText variant="title">
-              {nextAppointment ? nextAppointment.title : 'Alles im Plan'}
+              {nextAppointmentTitle ?? 'Alles im Plan'}
             </LiquidText>
             <LiquidText variant="body">
               {nextAppointment
@@ -500,7 +516,10 @@ function Overview({
               compact
               label={portal === 'employee' ? 'Einsatz öffnen' : 'Termin öffnen'}
               icon="›"
-              onPress={() => onNavigate(portal === 'employee' ? 'assignments' : 'appointments')}
+              onPress={() =>
+                nextAppointment
+                  ? onOpenAppointment(nextAppointment)
+                  : onNavigate(portal === 'employee' ? 'assignments' : 'appointments')}
             />
           </View>
         </LiquidSurface>
@@ -619,6 +638,31 @@ export function PortalHomeScreen({
     router.push(section.route as never);
   };
 
+  const openAppointment = (appointment: PortalAppointmentItem) => {
+    if (portal === 'employee') {
+      const status =
+        appointment.assignmentStatus ?? remoteStatusToAssignment(appointment.status);
+      const pending = resolveEmployeePortalAssignmentPendingFlags({
+        status,
+        assignmentIncomplete: appointment.assignmentIncomplete,
+      });
+      router.push(
+        resolveEmployeePortalAssignmentNavigationRoute({
+          assignmentId: appointment.id,
+          status,
+          documentationPending: pending.documentationPending,
+          signaturePending: pending.signaturePending,
+        }) as never,
+      );
+      return;
+    }
+    if (portal === 'client') {
+      router.push(`/portal/client/appointments/${appointment.id}` as never);
+      return;
+    }
+    navigateToSection('appointments');
+  };
+
   const signOut = async () => {
     await auth.signOut();
     router.replace('/auth' as never);
@@ -666,6 +710,7 @@ export function PortalHomeScreen({
         <Overview
           {...data}
           onNavigate={navigateToSection}
+          onOpenAppointment={openAppointment}
           portal={portal}
           threads={officeMessages.threads}
         />
@@ -748,8 +793,9 @@ export function PortalHomeScreen({
               </View>
             </LiquidSurface>
             <ScrollView
-              style={styles.workspace}
+              style={[styles.workspace, styles.workspaceWeb]}
               contentContainerStyle={styles.workspaceContent}
+              nestedScrollEnabled
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.pageHeading}>
@@ -766,8 +812,9 @@ export function PortalHomeScreen({
         ) : (
           <View style={styles.mobileBody}>
             <ScrollView
-              style={styles.workspace}
+              style={[styles.workspace, styles.workspaceWeb]}
               contentContainerStyle={styles.mobileWorkspaceContent}
+              nestedScrollEnabled
               showsVerticalScrollIndicator={false}
             >
               <View style={[styles.pageHeading, active === 'today' && styles.pageHeadingToday]}>
@@ -796,7 +843,7 @@ export function PortalHomeScreen({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, minHeight: '100%' },
+  root: { flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' },
   topBar: {
     minHeight: 68,
     paddingHorizontal: liquidSpace.xl,
@@ -817,7 +864,7 @@ const styles = StyleSheet.create({
   },
   topTitle: { color: liquidColors.white, fontSize: 16, fontWeight: '700' },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: liquidSpace.sm },
-  portalGrid: { flex: 1, flexDirection: 'row' },
+  portalGrid: { flex: 1, minWidth: 0, minHeight: 0, flexDirection: 'row' },
   sidePanel: { width: 260, borderRadius: 0, borderTopWidth: 0, borderBottomWidth: 0, borderLeftWidth: 0 },
   sidePanelContent: { flex: 1, borderRadius: 0, padding: liquidSpace.lg },
   sideNavigation: { flex: 1, marginTop: liquidSpace.lg },
@@ -848,12 +895,27 @@ const styles = StyleSheet.create({
   navigationLabel: { color: liquidColors.white64, fontSize: 14, fontWeight: '600' },
   navigationLabelActive: { color: liquidColors.white },
   sideFooter: { gap: liquidSpace.md },
-  workspace: { flex: 1 },
-  workspaceContent: { padding: liquidSpace.xxl, gap: liquidSpace.xl },
-  mobileBody: { flex: 1 },
+  workspace: { flex: 1, minWidth: 0, minHeight: 0 },
+  workspaceWeb:
+    Platform.OS === 'web'
+      ? ({ overflowX: 'hidden', touchAction: 'pan-y' } as never)
+      : {},
+  workspaceContent: {
+    width: '100%',
+    flexGrow: 1,
+    padding: liquidSpace.xxl,
+    gap: liquidSpace.xl,
+  },
+  mobileBody: { flex: 1, minWidth: 0, minHeight: 0 },
   horizontalNavigation: { flexGrow: 0 },
   horizontalNavigationContent: { paddingHorizontal: liquidSpace.sm, paddingVertical: liquidSpace.sm, gap: liquidSpace.sm },
-  mobileWorkspaceContent: { padding: liquidSpace.lg, paddingBottom: 100, gap: liquidSpace.lg },
+  mobileWorkspaceContent: {
+    width: '100%',
+    flexGrow: 1,
+    padding: liquidSpace.lg,
+    paddingBottom: 100,
+    gap: liquidSpace.lg,
+  },
   portalBottomNav: {
     position: 'absolute',
     left: 12,

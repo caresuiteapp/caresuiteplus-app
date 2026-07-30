@@ -8,6 +8,7 @@ import { careTypography } from '@/design/tokens/typography';
 import { moduleColor } from '@/design/tokens/modules';
 import { withAlpha } from '@/design/tokens/motion';
 import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
+import { employeePortalHomeAppointmentTitle } from '@/lib/portal/portalHomeAppointment';
 import { ASSIGNMENT_STATUS_LABELS, type AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -103,7 +104,9 @@ export function EmployeePortalAssignmentCard({
           <Text style={[styles.statusText, { color: text.secondary }]}>{statusLabel}</Text>
         </View>
 
-        <Text style={[styles.title, { color: text.primary }]}>{appointment.title}</Text>
+        <Text style={[styles.title, { color: text.primary }]}>
+          {employeePortalHomeAppointmentTitle(appointment)}
+        </Text>
 
         <View style={styles.metaBlock}>
           <Text style={[styles.meta, { color: text.secondary }]}>

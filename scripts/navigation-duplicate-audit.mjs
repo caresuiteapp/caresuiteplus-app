@@ -95,7 +95,7 @@ const WRONG_NEW_ROUTES = [
     mustNotInclude: ['ShiftScheduleListScreen'],
   },
   {
-    route: '/assist/einsaetze/new',
+    route: '/assist/assignments/new',
     mustInclude: ['AssignmentCreateScreen'],
     mustNotInclude: ['EinsaetzeListScreen', 'AssignmentDetailScreen'],
   },
@@ -113,7 +113,7 @@ const WRONG_NEW_ROUTES = [
 
 const WRONG_EDIT_ROUTES = [
   {
-    route: '/assist/einsaetze/assign-001/edit',
+    route: '/assist/assignments/assign-001/edit',
     mustInclude: ['AssignmentEditScreen', 'AssignmentEditForm', 'fetchVisitDispositionDetail'],
     mustNotInclude: ['AssignmentDetailScreen'],
   },

@@ -1,3 +1,5 @@
-import { AssignmentCreateScreen } from '@/product-workflows/screens/assist/AssignmentCreateScreen';
+import { Redirect } from 'expo-router';
 
-export default AssignmentCreateScreen;
+export default function EinsatzCreateRedirect() {
+  return <Redirect href="/assist/assignments/new" />;
+}

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { InvoiceListItem } from '@/types/modules/billing';
 import type { InvoiceStatus } from '@/types/modules/billing';
 import type { ListSortOption } from '@/types/list';
@@ -42,10 +42,15 @@ export function useInvoiceList(moduleFilter: TenantModuleKey | 'all' = 'all') {
     { enabled: !!tenantId },
   );
 
-  const allInvoices = query.data ?? [];
-  const allItems = moduleFilter === 'all'
-    ? allInvoices
-    : allInvoices.filter((invoice) => invoice.billingModule === moduleFilter);
+  const refreshQuery = query.refresh;
+  const allInvoices = useMemo(() => query.data ?? [], [query.data]);
+  const allItems = useMemo(
+    () =>
+      moduleFilter === 'all'
+        ? allInvoices
+        : allInvoices.filter((invoice) => invoice.billingModule === moduleFilter),
+    [allInvoices, moduleFilter],
+  );
 
   const list = useListState<InvoiceListItem, 'dueDate' | 'invoiceNumber'>({
     items: allItems,
@@ -57,10 +62,10 @@ export function useInvoiceList(moduleFilter: TenantModuleKey | 'all' = 'all') {
   });
 
   const refresh = useCallback(async () => {
-    await query.refresh();
+    await refreshQuery();
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
-  }, [query]);
+  }, [refreshQuery]);
 
   return {
     allItems,

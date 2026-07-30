@@ -74,6 +74,9 @@ export function useAssignmentList() {
         : undefined,
     },
   );
+  const refreshQuery = query.refresh;
+  const setQueryData = query.setData;
+  const queryData = query.data;
 
   const deletionIdentity = useCallback(
     (item: AssignmentListItem) =>
@@ -149,25 +152,25 @@ export function useAssignmentList() {
   }, [allItems]);
 
   const refresh = useCallback(async () => {
-    await query.refresh();
+    await refreshQuery();
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
-  }, [query]);
+  }, [refreshQuery]);
 
   const dismissDeletedAssignment = useCallback(
     (assignmentId: string) => {
-      const item = (query.data ?? []).find((candidate) => candidate.id === assignmentId);
+      const item = (queryData ?? []).find((candidate) => candidate.id === assignmentId);
       setHiddenDeletedKeys((current) => {
         const next = new Set(current);
         next.add(assignmentId);
         if (item) next.add(deletionIdentity(item));
         return next;
       });
-      query.setData((current) =>
+      setQueryData((current) =>
         current?.filter((candidate) => candidate.id !== assignmentId) ?? current,
       );
     },
-    [deletionIdentity, query],
+    [deletionIdentity, queryData, setQueryData],
   );
 
   const resetFilters = useCallback(() => {

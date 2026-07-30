@@ -1,5 +1,5 @@
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { ExecutionListCard } from './ExecutionListCard';
 import { ExecutionsListHero } from './ExecutionsListHero';
@@ -30,12 +30,14 @@ type ExecutionsListViewProps = {
   onExecutionPress?: (assignmentId: string) => void;
   selectedId?: string | null;
   embedded?: boolean;
+  externalRefreshKey?: number;
 };
 
 export function ExecutionsListView({
   onExecutionPress,
   selectedId = null,
   embedded = false,
+  externalRefreshKey = 0,
 }: ExecutionsListViewProps) {
   const router = useRouter();
   const { profile } = useAuth();
@@ -82,6 +84,12 @@ export function ExecutionsListView({
     isFilterEmpty,
     allItems,
   } = useExecutionList();
+
+  useEffect(() => {
+    if (externalRefreshKey > 0) {
+      void refresh();
+    }
+  }, [externalRefreshKey, refresh]);
 
   const kpis = useMemo(() => buildExecutionListKpis(allItems), [allItems]);
   const compactHero = embedded || shellVariant === 'desktop';

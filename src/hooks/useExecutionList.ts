@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { ActiveExecutionItem, ExecutionPhase } from '@/types/modules/assist';
 import type { ListSortOption } from '@/types/list';
 import { fetchExecutionList } from '@/lib/assist/executionListService';
@@ -62,7 +62,8 @@ export function useExecutionList() {
     },
   );
 
-  const allItems = query.data ?? [];
+  const refreshQuery = query.refresh;
+  const allItems = useMemo(() => query.data ?? [], [query.data]);
 
   const list = useListState<ActiveExecutionItem, 'scheduledStart' | 'clientName'>({
     items: allItems,
@@ -74,10 +75,10 @@ export function useExecutionList() {
   });
 
   const refresh = useCallback(async () => {
-    await query.refresh();
+    await refreshQuery();
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
-  }, [query]);
+  }, [refreshQuery]);
 
   return {
     items: list.paginated.items,

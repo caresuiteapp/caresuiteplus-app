@@ -280,6 +280,7 @@ export function LiquidPortalRouteLayout({
 const styles = StyleSheet.create({
   shell: {
     flex: 1,
+    minWidth: 0,
     minHeight: 0,
     flexDirection: 'row',
   },
@@ -376,6 +377,7 @@ const styles = StyleSheet.create({
   },
   contentFrame: {
     flex: 1,
+    minWidth: 0,
     minHeight: 0,
     margin: 14,
   },
@@ -388,6 +390,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    minWidth: 0,
     minHeight: 0,
     backgroundColor: 'rgba(7,27,53,0.78)',
   },

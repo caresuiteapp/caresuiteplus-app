@@ -48,6 +48,8 @@ export type PortalAppointmentItem = Pick<
 > & {
   clientName?: string;
   employeeName?: string;
+  /** Operational service label from the visit; optional for calendar-only entries. */
+  serviceName?: string | null;
   /** When set (live assist_visits), preferred over workflow status mapping. */
   assignmentStatus?: AssignmentStatus;
   /** Visit overlay: open documentation/signature/tasks despite terminal-looking status. */

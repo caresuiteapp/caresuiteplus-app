@@ -114,8 +114,11 @@ export function useClientList() {
     },
   );
 
-  const allItems = query.data ?? [];
-  const kpiItems = isLive ? (kpiQuery.data ?? []) : allItems;
+  const refreshQuery = query.refresh;
+  const refreshKpis = kpiQuery.refresh;
+  const allItems = useMemo(() => query.data ?? [], [query.data]);
+  const allKpiItems = useMemo(() => kpiQuery.data ?? [], [kpiQuery.data]);
+  const kpiItems = isLive ? allKpiItems : allItems;
 
   useEffect(() => {
     if (
@@ -175,10 +178,10 @@ export function useClientList() {
   }, [allItems]);
 
   const refresh = useCallback(async () => {
-    await Promise.all([query.refresh(), isLive ? kpiQuery.refresh() : Promise.resolve()]);
+    await Promise.all([refreshQuery(), isLive ? refreshKpis() : Promise.resolve()]);
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
-  }, [isLive, kpiQuery, query]);
+  }, [isLive, refreshKpis, refreshQuery]);
 
   const resetFilters = useCallback(() => {
     if (isLive) {

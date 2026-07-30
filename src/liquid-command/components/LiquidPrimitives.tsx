@@ -750,6 +750,8 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     flex: 1,
+    minWidth: 0,
+    minHeight: 0,
     position: 'relative',
     overflow: 'hidden',
     backgroundColor: '#010817',

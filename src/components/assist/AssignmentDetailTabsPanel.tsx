@@ -58,6 +58,21 @@ const DETAIL_TABS: TabOption[] = [
   { key: 'history', label: 'Verlauf' },
 ];
 
+export type AssignmentDetailTabKey =
+  | 'overview'
+  | 'planning'
+  | 'tasks'
+  | 'budget'
+  | 'execution'
+  | 'proof'
+  | 'history';
+
+const DETAIL_TAB_KEYS = new Set(DETAIL_TABS.map((tab) => tab.key));
+
+export function isAssignmentDetailTabKey(value: string): value is AssignmentDetailTabKey {
+  return DETAIL_TAB_KEYS.has(value);
+}
+
 const FORM_CTX = { viewContext: 'form' as const };
 
 type AssignmentDetailTabsPanelProps = {
@@ -72,6 +87,8 @@ type AssignmentDetailTabsPanelProps = {
   onDeleted?: () => void;
   /** Increment to reload visit detail after an external save (e.g. edit modal). */
   refreshTrigger?: number;
+  /** Opens a deliberate subsection when linked from a contextual action. */
+  initialTab?: AssignmentDetailTabKey;
 };
 
 function formatDateTime(iso: string | null | undefined): string {
@@ -166,12 +183,13 @@ export function AssignmentDetailTabsPanel({
   onClose,
   onDeleted,
   refreshTrigger,
+  initialTab = 'overview',
 }: AssignmentDetailTabsPanelProps) {
   const router = useRouter();
   const deviceClass = useDeviceClass();
   const isWideOverview = isDesktopClass(deviceClass);
   const { isReadOnly, roleLabel, can } = usePermissions();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState<AssignmentDetailTabKey>(initialTab);
   const text = useAuroraAdaptiveText();
   const assistAccent = moduleColor('assist');
   const tenantId = useServiceTenantId();
@@ -193,6 +211,10 @@ export function AssignmentDetailTabsPanel({
   useEffect(() => {
     if (refreshTrigger) void refresh();
   }, [refreshTrigger, refresh]);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const historyQuery = useAsyncQuery(
     () => {
@@ -306,7 +328,7 @@ export function AssignmentDetailTabsPanel({
           borderBottomColor: 'rgba(15,23,42,0.08)',
         },
       }),
-    [text, isModalLayout, isPreview, isWideOverview, useActionToolbar],
+    [text, isModalLayout, isWideOverview, useActionToolbar],
   );
 
   if (loading) return <LoadingState message="Einsatz wird geladen…" />;
@@ -625,7 +647,9 @@ export function AssignmentDetailTabsPanel({
         <SegmentedTabs
           tabs={visibleTabs}
           activeKey={activeTab}
-          onSelect={setActiveTab}
+          onSelect={(key) => {
+            if (isAssignmentDetailTabKey(key)) setActiveTab(key);
+          }}
           style={styles.tabs}
         />
       ) : null}

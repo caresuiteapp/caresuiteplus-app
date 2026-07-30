@@ -1,3 +1,6 @@
-import { AssignmentEditScreen } from '@/product-workflows/screens/assist/AssignmentEditScreen';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
-export default AssignmentEditScreen;
+export default function EinsatzEditRedirect() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return <Redirect href={`/assist/assignments/${id}/edit`} />;
+}

@@ -47,7 +47,8 @@ export function useEmployeeList() {
     },
   );
 
-  const allItems = query.data ?? [];
+  const refreshQuery = query.refresh;
+  const allItems = useMemo(() => query.data ?? [], [query.data]);
 
   const list = useListState<EmployeeListItem, 'lastName' | 'jobTitle'>({
     items: allItems,
@@ -59,10 +60,10 @@ export function useEmployeeList() {
   });
 
   const refresh = useCallback(async () => {
-    await query.refresh();
+    await refreshQuery();
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
-  }, [query]);
+  }, [refreshQuery]);
 
   return useMemo(
     () => ({
