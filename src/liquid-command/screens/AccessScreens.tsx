@@ -20,7 +20,6 @@ import {
 import type { BusinessRegistrationInput } from '@/lib/auth/auth.types';
 import {
   loginClientPortal,
-  validatePortalCodeLogin,
 } from '@/lib/auth/clientPortalAuthService';
 import { sanitizePortalUsernameInput } from '@/lib/auth/clientPortalUsernameGenerator';
 import { completePortalLogin } from '@/lib/auth/portalLoginFlow';
@@ -44,6 +43,7 @@ import {
 } from '../components/LiquidPrimitives';
 import { liquidColors, liquidRadius } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
+export { AccessHubScreen } from './AccessHubScreen';
 
 type AccessShellProps = {
   eyebrow: string;
@@ -150,41 +150,6 @@ function SecuritySide() {
   );
 }
 
-const accessOptions = [
-  {
-    id: 'business',
-    title: 'Unternehmen & Verwaltung',
-    detail: 'Geschäftsführung, Administration, Disposition und Fachrollen',
-    glyph: '▣',
-    route: '/auth/business-login',
-  },
-  {
-    id: 'employee',
-    title: 'Mitarbeitenden-App',
-    detail: 'Mein Tag, Einsätze, Zeiten, Dokumente und Gehalt',
-    glyph: '◇',
-    route: '/auth/employee-login',
-  },
-  {
-    id: 'client',
-    title: 'Klient:innenportal',
-    detail: 'Termine, Live-Anfahrt, Dokumente, Nachrichten und Rechnungen',
-    glyph: '○',
-    route: '/auth/client-login',
-  },
-  {
-    id: 'family',
-    title: 'Angehörigenportal',
-    detail: 'Freigegebene Termine, Hinweise und Kommunikation',
-    glyph: '◎',
-    route: '/auth/family-login',
-  },
-] as const;
-
-export function AccessHubScreen() {
-  return <BusinessAccessScreen />;
-}
-
 export function BusinessAccessScreen() {
   const router = useRouter();
   const { signInWithSupabaseSession } = useAuth();
@@ -221,24 +186,13 @@ export function BusinessAccessScreen() {
 
   return (
     <AccessShell
-      eyebrow="SICHERER ZUGANG"
-      title="Sicher anmelden."
-      subtitle="Melden Sie sich an oder öffnen Sie den für Sie freigegebenen Portalzugang."
-      compact
+      eyebrow="VERWALTUNG"
+      title="Verwaltung sicher öffnen."
+      subtitle="Anmeldung für Geschäftsführung, Administration und interne Fachbereiche."
+      backRoute="/auth"
+      side={<SecuritySide />}
     >
       <LiquidSurface active contentStyle={styles.formCard}>
-        <View style={styles.loginTabs}>
-          <View style={styles.loginTabActive}>
-            <Text style={styles.loginTabActiveLabel}>Anmelden</Text>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push('/auth/register' as never)}
-            style={styles.loginTab}
-          >
-            <Text style={styles.loginTabLabel}>Registrieren</Text>
-          </Pressable>
-        </View>
         {error ? (
           <LiquidState
             kind="error"
@@ -275,32 +229,8 @@ export function BusinessAccessScreen() {
             variant="ghost"
             onPress={() => router.push('/auth/forgot-password' as never)}
           />
-          <LiquidButton
-            label="Organisation registrieren"
-            variant="ghost"
-            onPress={() => router.push('/auth/register' as never)}
-          />
         </View>
       </LiquidSurface>
-      <View style={styles.portalAccess}>
-        {accessOptions.slice(1).map((option) => (
-          <Pressable
-            key={option.id}
-            accessibilityRole="button"
-            onPress={() => router.push(option.route as never)}
-            style={({ pressed }) => [styles.portalAccessRow, pressed && styles.pressed]}
-          >
-            <LiquidGlyph glyph={option.glyph} size={21} />
-            <Text style={styles.portalAccessLabel}>{option.title}</Text>
-            <LiquidGlyph glyph="›" size={18} />
-          </Pressable>
-        ))}
-      </View>
-      <View style={styles.securityBadges}>
-        <Text style={styles.securityBadge}>Sichere Daten</Text>
-        <Text style={styles.securityBadge}>DSGVO-konform</Text>
-        <Text style={styles.securityBadge}>Vertrauensvoll</Text>
-      </View>
     </AccessShell>
   );
 }
@@ -379,18 +309,16 @@ export function EmployeeAccessScreen() {
   );
 }
 
-export function PortalAccessScreen({ portal }: { portal: 'client' | 'family' }) {
+export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
   const router = useRouter();
   const { signInPortalSession } = useAuth();
   const [username, setUsername] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const isClient = portal === 'client';
-
   const submit = async () => {
     setError(null);
-    if (isClient && !username.trim()) {
+    if (!username.trim()) {
       setError('Benutzername ist erforderlich.');
       return;
     }
@@ -400,9 +328,7 @@ export function PortalAccessScreen({ portal }: { portal: 'client' | 'family' }) 
     }
     setLoading(true);
     try {
-      const result = isClient
-        ? await loginClientPortal(username, code)
-        : await validatePortalCodeLogin(code, 'relative');
+      const result = await loginClientPortal(username, code);
       if (!result.ok || !result.data.portalSession) {
         setError(result.ok ? 'Die sichere Portal-Sitzung fehlt.' : result.error);
         return;
@@ -416,9 +342,7 @@ export function PortalAccessScreen({ portal }: { portal: 'client' | 'family' }) 
         return;
       }
       await signInPortalSession(completed.data.portalSession);
-      router.replace(
-        isClient ? '/portal/client' as never : '/portal/relative' as never,
-      );
+      router.replace('/portal/client' as never);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Portal-Anmeldung fehlgeschlagen.');
     } finally {
@@ -428,28 +352,22 @@ export function PortalAccessScreen({ portal }: { portal: 'client' | 'family' }) 
 
   return (
     <AccessShell
-      eyebrow={isClient ? 'KLIENT:INNENPORTAL' : 'ANGEHÖRIGENPORTAL'}
-      title={isClient ? 'Ihre Versorgung. Klar im Blick.' : 'Freigegebene Informationen. Sicher verbunden.'}
-      subtitle={
-        isClient
-          ? 'Termine, Live-Anfahrt, Dokumente und Nachrichten in einfacher Sprache.'
-          : 'Sie sehen ausschließlich Informationen, für die eine gültige Freigabe besteht.'
-      }
+      eyebrow="KLIENT:INNENPORTAL"
+      title="Ihre Versorgung. Klar im Blick."
+      subtitle="Termine, Live-Anfahrt, Dokumente und Nachrichten in einfacher Sprache."
       backRoute="/auth"
       side={<SecuritySide />}
     >
       <LiquidSurface active contentStyle={styles.formCard}>
         {error ? <LiquidState kind="error" title="Zugang nicht möglich" message={error} /> : null}
-        {isClient ? (
-          <LiquidField
-            label="Benutzername"
-            value={username}
-            onChangeText={(value) => setUsername(sanitizePortalUsernameInput(value))}
-            autoCapitalize="none"
-            autoCorrect={false}
-            required
-          />
-        ) : null}
+        <LiquidField
+          label="Benutzername"
+          value={username}
+          onChangeText={(value) => setUsername(sanitizePortalUsernameInput(value))}
+          autoCapitalize="none"
+          autoCorrect={false}
+          required
+        />
         <LiquidField
           label="Portal-Code"
           value={code}

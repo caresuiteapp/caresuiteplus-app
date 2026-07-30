@@ -344,7 +344,6 @@ export const APP_ROUTES: AppRoute[] = [
       '/business/office/access/internal-users',
       '/business/office/access/employee-portal',
       '/business/office/access/client-portal',
-      '/business/office/access/relative-portal',
       '/business/office/access/roles',
       '/business/office/access/login-audit',
       '/business/office/access/module-permissions',
@@ -367,13 +366,6 @@ export const APP_ROUTES: AppRoute[] = [
   {
     path: '/business/office/access/client-portal',
     label: 'Klient:innenportal',
-    group: 'business',
-    requiresAuth: true,
-    allowedRoles: ['business_admin', 'business_manager'],
-  },
-  {
-    path: '/business/office/access/relative-portal',
-    label: 'Angehörigenportal',
     group: 'business',
     requiresAuth: true,
     allowedRoles: ['business_admin', 'business_manager'],
@@ -420,22 +412,6 @@ export const APP_ROUTES: AppRoute[] = [
     requiresAuth: true,
     allowedRoles: ['business_admin'],
   },
-  {
-    path: '/portal/relative',
-    label: 'Angehörigenportal',
-    group: 'portal',
-    requiresAuth: true,
-    allowedRoles: ['family_portal'],
-    children: ['/portal/relative/messages'],
-  },
-  {
-    path: '/portal/relative/messages',
-    label: 'Angehörigen-Nachrichten',
-    group: 'portal',
-    requiresAuth: true,
-    allowedRoles: ['family_portal'],
-  },
-
   {
     path: '/office',
     label: 'Office',
@@ -1337,7 +1313,7 @@ export const APP_ROUTES: AppRoute[] = [
     label: 'Klient:innenportal',
     group: 'portal',
     requiresAuth: true,
-    allowedRoles: ['client_portal', 'family_portal'],
+    allowedRoles: ['client_portal'],
     children: [
       '/portal/client/appointments',
       '/portal/client/documents',
@@ -1350,28 +1326,28 @@ export const APP_ROUTES: AppRoute[] = [
     label: 'Termine',
     group: 'portal',
     requiresAuth: true,
-    allowedRoles: ['client_portal', 'family_portal'],
+    allowedRoles: ['client_portal'],
   },
   {
     path: '/portal/client/documents',
     label: 'Dokumente',
     group: 'portal',
     requiresAuth: true,
-    allowedRoles: ['client_portal', 'family_portal'],
+    allowedRoles: ['client_portal'],
   },
   {
     path: '/portal/client/messages',
     label: 'Nachrichten',
     group: 'portal',
     requiresAuth: true,
-    allowedRoles: ['client_portal', 'family_portal'],
+    allowedRoles: ['client_portal'],
   },
   {
     path: '/portal/client/announcements',
     label: 'Mitteilungen',
     group: 'portal',
     requiresAuth: true,
-    allowedRoles: ['client_portal', 'family_portal'],
+    allowedRoles: ['client_portal'],
   },
 
   // Platform Console — eigene Guard-Kette (PlatformRouteGuard), keine Mandantenrollen

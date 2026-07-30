@@ -1,9 +1,8 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createEmployeePortalAccount, createInternalUser } from '@/lib/auth/accessManagementService';
 import { setupClientPortalAccess } from '@/lib/clients/clientPortalAccessService';
-import { setupRelativePortalAccess } from '@/lib/access/relativePortalAccessService';
 
 const read = (relativePath: string) =>
   readFileSync(path.join(process.cwd(), relativePath), 'utf8');
@@ -36,12 +35,6 @@ describe('Office Zugänge und Portale V32.9', () => {
         lastName: 'B',
         actorRoleKey: deniedRole,
       }),
-      setupRelativePortalAccess({
-        tenantId: 'tenant-test',
-        clientId: 'client-test',
-        relativeContactId: 'contact-test',
-        actorRoleKey: deniedRole,
-      }),
     ]);
 
     for (const result of results) {
@@ -69,11 +62,12 @@ describe('Office Zugänge und Portale V32.9', () => {
     expect(detail).toContain('ACCESS_STATUS_LABELS[account.status]');
   });
 
-  it('verwendet typsichere Einzelauswahl in Portalfiltern', () => {
+  it('verwendet typsichere Einzelauswahl im Klient:innenportal und entfernt das Angehörigenportal', () => {
     const clientPortal = read('src/screens/office/access/ClientPortalCodesScreen.tsx');
-    const relativePortal = read('src/screens/office/access/RelativePortalCodesScreen.tsx');
     expect(clientPortal).toContain("Array.isArray(key) ? key[0] ?? '' : key");
-    expect(relativePortal.match(/Array\.isArray\(key\) \? key\[0\] \?\? '' : key/g)).toHaveLength(2);
+    expect(
+      existsSync(path.join(process.cwd(), 'src/screens/office/access/RelativePortalCodesScreen.tsx')),
+    ).toBe(false);
   });
 
   it('entfernt die funktionslose Demo-Vorschau für Modulrechte', () => {

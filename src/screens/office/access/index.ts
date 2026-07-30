@@ -7,7 +7,6 @@ export { EmployeePortalAccountsScreen } from './EmployeePortalAccountsScreen';
 export { EmployeePortalAccountDetailScreen } from './EmployeePortalAccountDetailScreen';
 export { CreateEmployeePortalAccountScreen } from './CreateEmployeePortalAccountScreen';
 export { ClientPortalCodesScreen } from './ClientPortalCodesScreen';
-export { RelativePortalCodesScreen } from './RelativePortalCodesScreen';
 export { RolePermissionsScreen } from './RolePermissionsScreen';
 export { UserModulePermissionsScreen } from './UserModulePermissionsScreen';
 export { LoginAuditScreen } from './LoginAuditScreen';

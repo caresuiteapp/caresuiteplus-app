@@ -27,7 +27,6 @@ const REQUIRED_ROUTE_PATHS = [
   '/insight/data-sources',
   '/portal/employee/announcements',
   '/portal/client/announcements',
-  '/portal/relative/messages',
 ];
 
 describe('Routes Registry (Sprint 97–98)', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const root = path.join(__dirname, '..', '..', '..');
@@ -41,14 +41,12 @@ describe('Access management live config', () => {
 });
 
 describe('Access screens live wiring', () => {
-  it('RelativePortalCodesScreen nutzt Live-Services statt Demo-Store', () => {
-    const screen = readSrc('src/screens/office/access/RelativePortalCodesScreen.tsx');
-    expect(screen).toContain('fetchRelativePortalAccessList');
-    expect(screen).toContain('setupRelativePortalAccess');
-    expect(screen).toContain('isRelativePortalAccessLiveReady');
-    expect(screen).not.toContain('useDemoData');
-    expect(screen).not.toContain('DEMO_TENANT_ID');
-    expect(screen).not.toContain('getRelativePortalCodes');
+  it('eigenständiges Angehörigenportal ist aus der Zugangsverwaltung entfernt', () => {
+    const dashboard = readSrc('src/screens/office/access/AccessManagementDashboardScreen.tsx');
+    expect(dashboard).not.toContain('/business/office/access/relative-portal');
+    expect(
+      existsSync(path.join(root, 'src/screens/office/access/RelativePortalCodesScreen.tsx')),
+    ).toBe(false);
   });
 
   it('InternalUsersScreen nutzt fetchInternalUsersList statt useDemoData', () => {
@@ -70,10 +68,10 @@ describe('Access screens live wiring', () => {
     expect(screen).not.toContain('useDemoData');
   });
 
-  it('AccessListHero zeigt Supabase Live Badge wenn live', () => {
+  it('AccessListHero zeigt Cloud-Live-Badge wenn live', () => {
     const hero = readSrc('src/components/access/AccessListHero.tsx');
-    expect(hero).toContain('Supabase Live');
-    expect(hero).toContain('isRelativePortalAccessLiveReady');
+    expect(hero).toContain('Cloud Live');
+    expect(hero).toContain('isClientPortalAccessLiveReady');
   });
 
   it('accessManagementService routet Dashboard-Stats über Supabase', () => {

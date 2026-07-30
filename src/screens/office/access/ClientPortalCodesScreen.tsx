@@ -40,10 +40,6 @@ const QUICK_LINKS = [
     route: '/business/office/access/employee-portal',
   },
   {
-    title: 'Angehörigenportal',
-    route: '/business/office/access/relative-portal',
-  },
-  {
     title: 'Rollen & Rechte',
     route: '/business/office/access/roles',
   },

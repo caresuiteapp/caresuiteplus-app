@@ -13,7 +13,6 @@ describe('isPortalRoutePath', () => {
   it('matches portal route prefixes', () => {
     expect(isPortalRoutePath('/portal/client')).toBe(true);
     expect(isPortalRoutePath('/portal/employee/assignments/1')).toBe(true);
-    expect(isPortalRoutePath('/portal/relative/messages')).toBe(true);
     expect(isPortalRoutePath('/portal')).toBe(true);
   });
 
@@ -25,9 +24,8 @@ describe('isPortalRoutePath', () => {
 });
 
 describe('Portal animated background wiring', () => {
-  it('portal root layout mounts ShellAnimatedBackgroundLayer', () => {
+  it('portal root layout keeps its stack transparent for the global background', () => {
     const layout = readSrc('app/portal/_layout.tsx');
-    expect(layout).toContain('ShellAnimatedBackgroundLayer');
     expect(layout).toContain("backgroundColor: 'transparent'");
   });
 
@@ -51,20 +49,15 @@ describe('Portal animated background wiring', () => {
     const employeeLayout = readSrc('app/portal/employee/_layout.tsx');
     expect(clientTabs).toContain("backgroundColor: 'transparent'");
     expect(employeeTabs).toContain("backgroundColor: 'transparent'");
-    expect(clientLayout).toContain('ClientPortalShell');
-    expect(employeeLayout).toContain('EmployeePortalShell');
-  });
-
-  it('relative portal uses RelativePortalShell', () => {
-    const layout = readSrc('app/portal/relative/_layout.tsx');
-    expect(layout).toContain('RelativePortalShell');
+    expect(clientLayout).toContain('LiquidPortalRouteLayout');
+    expect(clientLayout).toContain('kind="client"');
+    expect(employeeLayout).toContain('LiquidPortalRouteLayout');
+    expect(employeeLayout).toContain('kind="employee"');
   });
 
   it('PortalShellLayout keeps transparent surfaces for glass cards', () => {
     const shell = readSrc('src/components/layout/portal/PortalShellLayout.tsx');
     expect(shell).toContain("backgroundColor: 'transparent'");
-    expect(shell).toContain("'relative'");
-    expect(shell).toContain('Angehörigenportal');
   });
 
   it('AutoScrollView scroll hosts are transparent', () => {

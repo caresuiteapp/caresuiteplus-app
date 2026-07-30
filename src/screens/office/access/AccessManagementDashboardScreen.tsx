@@ -28,8 +28,6 @@ const QUICK_ACTIONS = [
 
   { title: 'Klient:innen-Code generieren', route: '/business/office/access/client-portal' },
 
-  { title: 'Angehörigen-Code generieren', route: '/business/office/access/relative-portal' },
-
   { title: 'Rollen & Rechte prüfen', route: '/business/office/access/roles' },
 
   { title: 'Login-Protokoll anzeigen', route: '/business/office/access/login-audit' },
@@ -145,8 +143,6 @@ export function AccessManagementDashboardScreen() {
             ['Mitarbeitendenportal', '/business/office/access/employee-portal'],
 
             ['Klient:innenportal', '/business/office/access/client-portal'],
-
-            ['Angehörigenportal', '/business/office/access/relative-portal'],
 
           ].map(([title, route]) => (
 

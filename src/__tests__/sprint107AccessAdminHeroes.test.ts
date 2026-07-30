@@ -12,7 +12,6 @@ const ACCESS_ROUTE_PATHS = [
   '/business/office/access/internal-users',
   '/business/office/access/employee-portal',
   '/business/office/access/client-portal',
-  '/business/office/access/relative-portal',
   '/business/office/access/roles',
   '/business/office/access/login-audit',
   '/business/office/access/module-permissions',
@@ -66,7 +65,7 @@ describe('Auth/Admin/TI Settings Heroes (Sprint 107)', () => {
   it('AuthRegisterHero nutzt PremiumListHeroFrame', () => {
     const hero = readSrc('src/components/auth/AuthRegisterHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('FREE PLATFORM');
+    expect(hero).toContain('formatFreePlatformPrice');
     expect(hero).toContain('Kostenlos starten');
   });
 
