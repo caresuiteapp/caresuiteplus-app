@@ -37,6 +37,31 @@ describe('Office-Einsatzprofile → Assist-Kalender → freigegebener Einsatz', 
     expect(migration).toContain('besteht zu dieser Zeit bereits ein Einsatz');
   });
 
+  it('persists the complete Assist template configuration and creates the modern Assist visit', () => {
+    const migration = read(
+      'supabase/migrations/20260730193000_office_assignment_profiles_full_assist_templates.sql',
+    );
+    const clientPanel = read('src/components/office/ClientAssignmentProfilesPanel.tsx');
+
+    expect(migration).toContain('task_drafts JSONB');
+    expect(migration).toContain('subject_key TEXT');
+    expect(migration).toContain('assignment_type_key TEXT');
+    expect(migration).toContain('service_category_key TEXT');
+    expect(migration).toContain('task_package_id UUID');
+    expect(migration).toContain('billing_budget_source_key TEXT');
+    expect(migration).toContain('risk_flag_keys JSONB');
+    expect(migration).toContain('documentation_template_key TEXT');
+    expect(migration).toContain('proof_template_key TEXT');
+    expect(migration).toContain('INSERT INTO public.assist_visits');
+    expect(migration).toContain("'confirmed'");
+    expect(migration).toContain("'released'");
+    expect(migration).toContain('INSERT INTO public.assist_visit_tasks');
+    expect(clientPanel).toContain('useAssistAssignmentOptions');
+    expect(clientPanel).toContain('loadTaskPackageItems');
+    expect(clientPanel).toContain('fetchTenantServiceCatalog');
+    expect(clientPanel).toContain('Einsatzvorlagen & Leistungskatalog');
+  });
+
   it('uses drag and drop plus a time-only confirmation modal', () => {
     const planner = read(
       'src/components/calendar/OfficeAssignmentProfileCalendarPlanner.tsx',
@@ -46,6 +71,11 @@ describe('Office-Einsatzprofile → Assist-Kalender → freigegebener Einsatz', 
 
     expect(planner).toContain('ASSIGNMENT_PROFILE_DRAG_MIME');
     expect(planner).toContain('onDragStart');
+    expect(planner).toContain("window.addEventListener('dragover'");
+    expect(planner).toContain("window.addEventListener('drop'");
+    expect(planner).toContain('ASSIGNMENT_DROP_SELECTOR');
+    expect(planner).toContain('autoScrollAssignmentProfileDrag');
+    expect(planner).toContain('requestAnimationFrame(tick)');
     expect(planner).toContain('onProfileDrop');
     expect(planner).toContain('Uhrzeit festlegen');
     expect(planner).toContain('Einsatz direkt freigeben');

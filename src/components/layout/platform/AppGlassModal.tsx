@@ -18,6 +18,8 @@ export type AppGlassModalProps = {
   maxWidth?: number;
   moduleKey?: 'office' | 'assist' | 'portal' | 'admin';
   headerActions?: ReactNode;
+  isDirty?: boolean;
+  dirtyCloseMessage?: string;
 };
 
 /** Unified glass modal shell for record section edits and Office dialogs. */
@@ -33,6 +35,8 @@ export function AppGlassModal({
   maxWidth = 720,
   moduleKey = 'office',
   headerActions,
+  isDirty = false,
+  dirtyCloseMessage,
 }: AppGlassModalProps) {
   return (
     <PlatformModal
@@ -47,6 +51,8 @@ export function AppGlassModal({
       maxWidth={maxWidth}
       maxHeightRatio={0.92}
       glowColor={moduleColor(moduleKey as import('@/design/tokens/modules').CareModuleKey)}
+      isDirty={isDirty}
+      dirtyCloseMessage={dirtyCloseMessage}
     >
       {children}
     </PlatformModal>

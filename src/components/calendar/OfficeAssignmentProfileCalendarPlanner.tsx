@@ -1,5 +1,14 @@
-import { createElement, useMemo, useState, type ReactNode } from 'react';
+import {
+  createElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useRouter } from 'expo-router';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import {
   EmptyState,
@@ -19,6 +28,7 @@ import { subscribeToClientAssignmentProfileChanges } from '@/lib/realtime';
 import { toDateKey } from '@/lib/office/calendarDateUtils';
 import type { ClientAssignmentProfile } from '@/types/modules/clientAssignmentProfile';
 import { colors, spacing, typography } from '@/theme';
+import { autoScrollAssignmentProfileDrag } from './assignmentProfileDragAutoScroll';
 
 export const ASSIGNMENT_PROFILE_DRAG_MIME = 'application/x-caresuite-assignment-profile';
 
@@ -38,6 +48,16 @@ type Props = {
   onScheduled: () => void | Promise<void>;
 };
 
+const ASSIGNMENT_DROP_DATE_DATA_KEY = 'csAssignmentDropDate';
+const ASSIGNMENT_DROP_TIME_DATA_KEY = 'csAssignmentDropTime';
+const ASSIGNMENT_DROP_SELECTOR = '[data-cs-assignment-drop-date]';
+type AssignmentDropElement = HTMLElement & {
+  dataset: DOMStringMap & {
+    csAssignmentDropDate?: string;
+    csAssignmentDropTime?: string;
+  };
+};
+
 function durationLabel(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const remainder = minutes % 60;
@@ -55,10 +75,14 @@ function DraggableProfileCard({
   profile,
   selected,
   onSelect,
+  onBrowserDragStart,
+  onBrowserDragEnd,
 }: {
   profile: ClientAssignmentProfile;
   selected: boolean;
   onSelect: () => void;
+  onBrowserDragStart: (profileId: string, pointerX: number, pointerY: number) => void;
+  onBrowserDragEnd: () => void;
 }) {
   const card = (
     <Pressable
@@ -95,7 +119,9 @@ function DraggableProfileCard({
         event.dataTransfer?.setData(ASSIGNMENT_PROFILE_DRAG_MIME, profile.id);
         event.dataTransfer?.setData('text/plain', profile.id);
         if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy';
+        onBrowserDragStart(profile.id, event.clientX, event.clientY);
       },
+      onDragEnd: onBrowserDragEnd,
       style: { cursor: 'grab' },
       title: 'In den Kalender ziehen',
     },
@@ -110,22 +136,15 @@ export function buildAssignmentProfileDropTargetProps(
 ): object {
   if (Platform.OS !== 'web' || !onDrop) return {};
   return {
-    onDragOver: (event: DragEvent) => {
-      event.preventDefault();
-      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
-    },
-    onDrop: (event: DragEvent) => {
-      event.preventDefault();
-      const profileId =
-        event.dataTransfer?.getData(ASSIGNMENT_PROFILE_DRAG_MIME)
-        || event.dataTransfer?.getData('text/plain')
-        || '';
-      if (profileId) onDrop(profileId, date, suggestedTime);
+    dataSet: {
+      [ASSIGNMENT_DROP_DATE_DATA_KEY]: toDateKey(date),
+      [ASSIGNMENT_DROP_TIME_DATA_KEY]: suggestedTime ?? '',
     },
   };
 }
 
 export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }: Props) {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const compact = width < 1100;
   const tenantId = useServiceTenantId();
@@ -149,19 +168,104 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }
   const [startTime, setStartTime] = useState(suggestedStartTime);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const activeDragProfileId = useRef<string | null>(null);
+  const dragPointer = useRef({ x: 0, y: 0 });
+  const dragScrollFrame = useRef<number | null>(null);
   const profiles = useMemo(() => query.data ?? [], [query.data]);
   const pendingProfile = useMemo(
     () => profiles.find((profile) => profile.id === pendingProfileId) ?? null,
     [pendingProfileId, profiles],
   );
 
-  function handleDrop(profileId: string, date: Date, time?: string) {
+  const handleDrop = useCallback((profileId: string, date: Date, time?: string) => {
     if (!profiles.some((profile) => profile.id === profileId)) return;
     setPendingProfileId(profileId);
     setPendingDate(date);
     setStartTime(time ?? suggestedStartTime());
     setError(null);
-  }
+  }, [profiles]);
+
+  const stopBrowserDrag = useCallback(() => {
+    activeDragProfileId.current = null;
+    if (dragScrollFrame.current !== null) {
+      cancelAnimationFrame(dragScrollFrame.current);
+      dragScrollFrame.current = null;
+    }
+    if (typeof document !== 'undefined') {
+      delete document.documentElement.dataset.csAssignmentProfileDragging;
+    }
+  }, []);
+
+  const beginBrowserDrag = useCallback((profileId: string, pointerX: number, pointerY: number) => {
+    activeDragProfileId.current = profileId;
+    dragPointer.current = { x: pointerX, y: pointerY };
+    setSelectedProfileId(profileId);
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.csAssignmentProfileDragging = 'true';
+    }
+    if (dragScrollFrame.current === null) {
+      const tick = () => {
+        if (!activeDragProfileId.current) {
+          dragScrollFrame.current = null;
+          return;
+        }
+        autoScrollAssignmentProfileDrag(dragPointer.current.x, dragPointer.current.y);
+        dragScrollFrame.current = requestAnimationFrame(tick);
+      };
+      dragScrollFrame.current = requestAnimationFrame(tick);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+
+    const handleBrowserDragOver = (event: DragEvent) => {
+      if (!activeDragProfileId.current) return;
+      event.preventDefault();
+      dragPointer.current = { x: event.clientX, y: event.clientY };
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    };
+
+    const handleBrowserDrop = (event: DragEvent) => {
+      const profileId =
+        event.dataTransfer?.getData(ASSIGNMENT_PROFILE_DRAG_MIME)
+        || event.dataTransfer?.getData('text/plain')
+        || activeDragProfileId.current
+        || '';
+      if (!profileId) return;
+
+      const elementAtPointer = document.elementFromPoint(event.clientX, event.clientY);
+      const dropElement = elementAtPointer?.closest(
+        ASSIGNMENT_DROP_SELECTOR,
+      ) as AssignmentDropElement | null;
+      if (!dropElement?.dataset.csAssignmentDropDate) {
+        stopBrowserDrag();
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      const date = new Date(`${dropElement.dataset.csAssignmentDropDate}T12:00:00`);
+      if (!Number.isNaN(date.getTime())) {
+        handleDrop(
+          profileId,
+          date,
+          dropElement.dataset.csAssignmentDropTime || undefined,
+        );
+      }
+      stopBrowserDrag();
+    };
+
+    window.addEventListener('dragover', handleBrowserDragOver, true);
+    window.addEventListener('drop', handleBrowserDrop, true);
+    window.addEventListener('dragend', stopBrowserDrag, true);
+    return () => {
+      window.removeEventListener('dragover', handleBrowserDragOver, true);
+      window.removeEventListener('drop', handleBrowserDrop, true);
+      window.removeEventListener('dragend', stopBrowserDrag, true);
+      stopBrowserDrag();
+    };
+  }, [handleDrop, stopBrowserDrag]);
 
   function handleTouchDate(profileId: string, date: Date, time?: string) {
     handleDrop(profileId, date, time);
@@ -217,6 +321,8 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }
             <EmptyState
               title="Keine Einsatzprofile"
               message="Einsatzprofile werden in der jeweiligen Klientenakte im Tab „Einsätze & Termine“ erstellt."
+              actionLabel="Klientenakten öffnen"
+              onAction={() => router.push('/office/clients' as never)}
             />
           ) : (
             <View style={[styles.profileList, compact && styles.profileListCompact]}>
@@ -228,6 +334,8 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }
                   onSelect={() =>
                     setSelectedProfileId((current) => (current === profile.id ? null : profile.id))
                   }
+                  onBrowserDragStart={beginBrowserDrag}
+                  onBrowserDragEnd={stopBrowserDrag}
                 />
               ))}
             </View>
@@ -282,6 +390,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }
               value={startTime}
               placeholder="09:00"
               maxLength={5}
+              inputMode="numeric"
               onChangeText={setStartTime}
               autoFocus
               onDarkSurface
@@ -330,7 +439,7 @@ const styles = StyleSheet.create({
   profileListCompact: { flexDirection: 'row', flexWrap: 'wrap' },
   profilePressable: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderSoft,
     borderRadius: 12,
     padding: spacing.sm,
     backgroundColor: colors.bgSurface,

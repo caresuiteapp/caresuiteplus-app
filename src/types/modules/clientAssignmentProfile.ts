@@ -1,3 +1,5 @@
+import type { AssistAssignmentTaskDraft } from '@/types/assistCatalog';
+
 export type ClientAssignmentProfile = {
   id: string;
   tenantId: string;
@@ -7,9 +9,23 @@ export type ClientAssignmentProfile = {
   employeeName: string;
   profileName: string;
   assignmentTitle: string;
+  description: string;
   durationMinutes: number;
   taskTitles: string[];
+  taskDrafts: AssistAssignmentTaskDraft[];
+  serviceKey: string;
+  serviceName: string;
+  subjectKey: string;
+  assignmentTypeKey: string;
+  serviceCategoryKey: string;
+  taskPackageId: string | null;
+  billingBudgetSourceKey: string;
+  riskFlagKeys: string[];
+  documentationTemplateKey: string;
+  proofTemplateKey: string;
+  catalogSnapshotJson: Record<string, unknown>;
   locationAddress: string;
+  locationNotes: string;
   notesForEmployee: string;
   internalNotes: string;
   clientVisibleNotes: string;

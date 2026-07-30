@@ -9,6 +9,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
+import type { AssistAssignmentTaskDraft } from '@/types/assistCatalog';
 
 type ProfileRow = {
   id: string;
@@ -17,9 +18,23 @@ type ProfileRow = {
   employee_id: string | null;
   profile_name: string;
   assignment_title: string;
+  description: string | null;
   duration_minutes: number;
   task_titles: unknown;
+  task_drafts: unknown;
+  service_key: string | null;
+  service_name: string | null;
+  subject_key: string | null;
+  assignment_type_key: string | null;
+  service_category_key: string | null;
+  task_package_id: string | null;
+  billing_budget_source_key: string | null;
+  risk_flag_keys: unknown;
+  documentation_template_key: string | null;
+  proof_template_key: string | null;
+  catalog_snapshot_json: unknown;
   location_address: string | null;
+  location_notes: string | null;
   notes_for_employee: string | null;
   internal_notes: string | null;
   client_visible_notes: string | null;
@@ -58,7 +73,50 @@ function taskTitles(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function taskDrafts(value: unknown, fallbackTitles: string[]): AssistAssignmentTaskDraft[] {
+  if (!Array.isArray(value)) {
+    return fallbackTitles.map((title, sortOrder) => ({
+      itemKey: `manual-${sortOrder}`,
+      title,
+      isRequired: true,
+      isOptional: false,
+      sortOrder,
+      requiresNoteIfNotDone: true,
+    }));
+  }
+  return value.reduce<AssistAssignmentTaskDraft[]>((drafts, entry, sortOrder) => {
+      if (!entry || typeof entry !== 'object') return drafts;
+      const draft = entry as Partial<AssistAssignmentTaskDraft>;
+      const title = String(draft.title ?? '').trim();
+      if (!title) return drafts;
+      drafts.push({
+        catalogItemId: draft.catalogItemId ?? null,
+        itemKey: String(draft.itemKey ?? `manual-${sortOrder}`),
+        title,
+        isRequired: draft.isRequired !== false,
+        isOptional: Boolean(draft.isOptional),
+        sortOrder: Number.isFinite(draft.sortOrder) ? Number(draft.sortOrder) : sortOrder,
+        defaultDurationMinutes: draft.defaultDurationMinutes ?? null,
+        requiresNoteIfNotDone: Boolean(draft.requiresNoteIfNotDone),
+        notExecutable: Boolean(draft.notExecutable),
+      });
+      return drafts;
+    }, []);
+}
+
+function stringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => String(entry).trim()).filter(Boolean);
+}
+
+function jsonObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
 function mapRow(row: ProfileRow): ClientAssignmentProfile {
+  const titles = taskTitles(row.task_titles);
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -68,9 +126,23 @@ function mapRow(row: ProfileRow): ClientAssignmentProfile {
     employeeName: personName(row.employees) || 'Nicht zugewiesen',
     profileName: row.profile_name,
     assignmentTitle: row.assignment_title,
+    description: row.description ?? '',
     durationMinutes: row.duration_minutes,
-    taskTitles: taskTitles(row.task_titles),
+    taskTitles: titles,
+    taskDrafts: taskDrafts(row.task_drafts, titles),
+    serviceKey: row.service_key ?? '',
+    serviceName: row.service_name ?? '',
+    subjectKey: row.subject_key ?? '',
+    assignmentTypeKey: row.assignment_type_key ?? '',
+    serviceCategoryKey: row.service_category_key ?? '',
+    taskPackageId: row.task_package_id,
+    billingBudgetSourceKey: row.billing_budget_source_key ?? '',
+    riskFlagKeys: stringArray(row.risk_flag_keys),
+    documentationTemplateKey: row.documentation_template_key ?? '',
+    proofTemplateKey: row.proof_template_key ?? '',
+    catalogSnapshotJson: jsonObject(row.catalog_snapshot_json),
     locationAddress: row.location_address ?? '',
+    locationNotes: row.location_notes ?? '',
     notesForEmployee: row.notes_for_employee ?? '',
     internalNotes: row.internal_notes ?? '',
     clientVisibleNotes: row.client_visible_notes ?? '',
@@ -87,15 +159,23 @@ function mapRow(row: ProfileRow): ClientAssignmentProfile {
   };
 }
 
-function validateProfile(input: ClientAssignmentProfileInput): string | null {
+export function validateClientAssignmentProfileInput(
+  input: ClientAssignmentProfileInput,
+): string | null {
   if (!input.clientId.trim()) return 'Klient:in fehlt.';
   if (!input.profileName.trim()) return 'Profilname ist erforderlich.';
   if (!input.assignmentTitle.trim()) return 'Einsatzbezeichnung ist erforderlich.';
   if (!input.employeeId?.trim()) return 'Mitarbeitende Person ist erforderlich.';
+  if (!input.subjectKey.trim() && !input.assignmentTitle.trim()) {
+    return 'Einsatz-Betreff oder Einsatzbezeichnung ist erforderlich.';
+  }
   if (input.durationMinutes < 15 || input.durationMinutes > 720) {
     return 'Die Dauer muss zwischen 15 Minuten und 12 Stunden liegen.';
   }
-  if (input.taskTitles.map((task) => task.trim()).filter(Boolean).length === 0) {
+  if (
+    input.taskDrafts.filter((task) => task.title.trim()).length === 0
+    && input.taskTitles.map((task) => task.trim()).filter(Boolean).length === 0
+  ) {
     return 'Mindestens eine Aufgabe ist erforderlich.';
   }
   return null;
@@ -103,7 +183,10 @@ function validateProfile(input: ClientAssignmentProfileInput): string | null {
 
 const PROFILE_SELECT = `
   id, tenant_id, client_id, employee_id, profile_name, assignment_title,
-  duration_minutes, task_titles, location_address, notes_for_employee,
+  description, duration_minutes, task_titles, task_drafts, service_key, service_name,
+  subject_key, assignment_type_key, service_category_key, task_package_id,
+  billing_budget_source_key, risk_flag_keys, documentation_template_key,
+  proof_template_key, catalog_snapshot_json, location_address, location_notes, notes_for_employee,
   internal_notes, client_visible_notes, billing_relevant, requires_signature,
   requires_documentation, requires_route, client_portal_visible,
   employee_portal_visible, is_active, sort_order, created_at, updated_at,
@@ -151,7 +234,7 @@ export async function saveClientAssignmentProfile(
 ): Promise<ServiceResult<ClientAssignmentProfile>> {
   const tenantError = assertTenantForMode(tenantId);
   if (tenantError) return tenantError;
-  const validationError = validateProfile(input);
+  const validationError = validateClientAssignmentProfileInput(input);
   if (validationError) return { ok: false, error: validationError };
 
   const now = new Date().toISOString();
@@ -168,9 +251,23 @@ export async function saveClientAssignmentProfile(
       employeeName: 'Mitarbeitende:r',
       profileName: input.profileName.trim(),
       assignmentTitle: input.assignmentTitle.trim(),
+      description: input.description.trim(),
       durationMinutes: input.durationMinutes,
       taskTitles: input.taskTitles.map((task) => task.trim()).filter(Boolean),
+      taskDrafts: input.taskDrafts,
+      serviceKey: input.serviceKey,
+      serviceName: input.serviceName,
+      subjectKey: input.subjectKey,
+      assignmentTypeKey: input.assignmentTypeKey,
+      serviceCategoryKey: input.serviceCategoryKey,
+      taskPackageId: input.taskPackageId,
+      billingBudgetSourceKey: input.billingBudgetSourceKey,
+      riskFlagKeys: input.riskFlagKeys,
+      documentationTemplateKey: input.documentationTemplateKey,
+      proofTemplateKey: input.proofTemplateKey,
+      catalogSnapshotJson: input.catalogSnapshotJson,
       locationAddress: input.locationAddress.trim(),
+      locationNotes: input.locationNotes.trim(),
       notesForEmployee: input.notesForEmployee.trim(),
       internalNotes: input.internalNotes.trim(),
       clientVisibleNotes: input.clientVisibleNotes.trim(),
@@ -198,9 +295,23 @@ export async function saveClientAssignmentProfile(
     employee_id: input.employeeId,
     profile_name: input.profileName.trim(),
     assignment_title: input.assignmentTitle.trim(),
+    description: input.description.trim() || null,
     duration_minutes: input.durationMinutes,
     task_titles: input.taskTitles.map((task) => task.trim()).filter(Boolean),
+    task_drafts: input.taskDrafts,
+    service_key: input.serviceKey || null,
+    service_name: input.serviceName || null,
+    subject_key: input.subjectKey || null,
+    assignment_type_key: input.assignmentTypeKey || null,
+    service_category_key: input.serviceCategoryKey || null,
+    task_package_id: input.taskPackageId || null,
+    billing_budget_source_key: input.billingBudgetSourceKey || null,
+    risk_flag_keys: input.riskFlagKeys,
+    documentation_template_key: input.documentationTemplateKey || null,
+    proof_template_key: input.proofTemplateKey || null,
+    catalog_snapshot_json: input.catalogSnapshotJson,
     location_address: input.locationAddress.trim() || null,
+    location_notes: input.locationNotes.trim() || null,
     notes_for_employee: input.notesForEmployee.trim() || null,
     internal_notes: input.internalNotes.trim() || null,
     client_visible_notes: input.clientVisibleNotes.trim() || null,
