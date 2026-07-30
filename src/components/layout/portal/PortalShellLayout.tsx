@@ -112,7 +112,7 @@ export function PortalShellLayout({
     <View
       style={[
         styles.root,
-        isCompactShell ? webShellViewportLockStyle() : null,
+        webShellViewportLockStyle(),
         isCompactShell ? ({ paddingTop: webSafeAreaPadding('top', topInset) } as ViewStyle) : null,
       ]}
       testID="portal-shell-layout"
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
     minHeight: 0,
-    overflow: 'visible',
+    overflow: 'hidden',
   },
   topBarHost: {
     flexShrink: 0,

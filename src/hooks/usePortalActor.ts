@@ -8,6 +8,10 @@ import {
   fetchPortalClientIdByAccessAccount,
   fetchPortalClientIdForAuthUser,
 } from '@/lib/portal/resolvePortalClientLink';
+import {
+  fetchPortalEmployeeIdByAccessAccount,
+  fetchPortalEmployeeIdForAuthUser,
+} from '@/lib/portal/resolvePortalEmployeeLink';
 import { getSession } from '@/lib/supabase';
 import type { RoleKey } from '@/types';
 
@@ -24,6 +28,7 @@ export type PortalActor = {
   displayName: string;
   isReady: boolean;
   isResolvingClientLink: boolean;
+  isResolvingEmployeeLink: boolean;
   isResolvingDisplayName: boolean;
   /** True when portal actor has tenant, role, profile and linked client/employee id. */
   isLinkedReady: boolean;
@@ -34,7 +39,9 @@ export function usePortalActor(): PortalActor {
   const [clientDisplayName, setClientDisplayName] = useState<string | null>(null);
   const [employeeDisplayName, setEmployeeDisplayName] = useState<string | null>(null);
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
+  const [resolvedEmployeeId, setResolvedEmployeeId] = useState<string | null>(null);
   const [isResolvingClientLink, setIsResolvingClientLink] = useState(false);
+  const [isResolvingEmployeeLink, setIsResolvingEmployeeLink] = useState(false);
   const [isResolvingDisplayName, setIsResolvingDisplayName] = useState(false);
 
   const isActivePortalSession = Boolean(
@@ -50,7 +57,8 @@ export function usePortalActor(): PortalActor {
   const actorId = profile?.id ?? portalSession?.accountId ?? null;
   const sessionClientId = portalSession?.clientId ?? null;
   const clientId = sessionClientId ?? resolvedClientId ?? null;
-  const employeeId = portalSession?.employeeId ?? null;
+  const sessionEmployeeId = portalSession?.employeeId ?? null;
+  const employeeId = sessionEmployeeId ?? resolvedEmployeeId ?? null;
 
   const isClientPortalActor = roleKey === 'client_portal' || roleKey === 'family_portal';
 
@@ -115,6 +123,38 @@ export function usePortalActor(): PortalActor {
       setIsResolvingClientLink(false);
     };
   }, [isClientPortalActor, sessionClientId, tenantId, portalSession, updatePortalSession]);
+
+  useEffect(() => {
+    if (roleKey !== 'employee_portal' || sessionEmployeeId || !tenantId) {
+      setIsResolvingEmployeeLink(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsResolvingEmployeeLink(true);
+
+    void (async () => {
+      const accountId = portalSession?.accountId?.trim() || null;
+      const linkedByAccount = accountId
+        ? await fetchPortalEmployeeIdByAccessAccount(tenantId, accountId)
+        : null;
+      const linkedEmployeeId =
+        linkedByAccount ?? (await fetchPortalEmployeeIdForAuthUser(tenantId));
+
+      if (!cancelled && linkedEmployeeId) {
+        setResolvedEmployeeId(linkedEmployeeId);
+        if (portalSession) {
+          void updatePortalSession({ employeeId: linkedEmployeeId });
+        }
+      }
+      if (!cancelled) setIsResolvingEmployeeLink(false);
+    })();
+
+    return () => {
+      cancelled = true;
+      setIsResolvingEmployeeLink(false);
+    };
+  }, [roleKey, sessionEmployeeId, tenantId, portalSession, updatePortalSession]);
 
   const fallbackDisplayName = useMemo(() => {
     const isClientPortal = roleKey === 'client_portal' || roleKey === 'family_portal';
@@ -190,6 +230,7 @@ export function usePortalActor(): PortalActor {
     const isLinkedReady =
       isReady &&
       !isResolvingClientLink &&
+      !isResolvingEmployeeLink &&
       ((roleKey === 'client_portal' || roleKey === 'family_portal'
         ? Boolean(clientId)
         : roleKey === 'employee_portal'
@@ -205,6 +246,7 @@ export function usePortalActor(): PortalActor {
       displayName,
       isReady,
       isResolvingClientLink,
+      isResolvingEmployeeLink,
       isResolvingDisplayName,
       isLinkedReady,
     };
@@ -216,7 +258,7 @@ export function usePortalActor(): PortalActor {
     employeeId,
     displayName,
     isResolvingClientLink,
+    isResolvingEmployeeLink,
     isResolvingDisplayName,
   ]);
 }
-

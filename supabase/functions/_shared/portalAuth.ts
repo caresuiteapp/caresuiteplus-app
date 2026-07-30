@@ -147,6 +147,33 @@ async function resolveAuthUserId(
   return { authUserId: updated.user.id, error: null };
 }
 
+async function refreshPortalAuthMetadata(
+  supabase: SupabaseClient,
+  authUserId: string,
+  input: EnsurePortalAuthInput,
+): Promise<string | null> {
+  const { data, error: lookupError } = await supabase.auth.admin.getUserById(authUserId);
+  if (lookupError || !data.user) {
+    return lookupError?.message ?? 'Portal-Auth-Benutzer konnte nicht geladen werden.';
+  }
+
+  const { error: updateError } = await supabase.auth.admin.updateUserById(authUserId, {
+    app_metadata: {
+      ...data.user.app_metadata,
+      tenant_id: input.tenantId,
+      role_key: input.roleKey,
+      portal_type: input.portalType,
+      portal_account_id: input.accountId,
+    },
+    user_metadata: {
+      ...data.user.user_metadata,
+      display_name: input.displayName,
+    },
+  });
+
+  return updateError?.message ?? null;
+}
+
 async function resolveRoleId(
   supabase: SupabaseClient,
   roleKey: string,
@@ -248,6 +275,13 @@ export async function ensurePortalSupabaseAuth(
 
   const authUserId = resolved.authUserId;
   const now = new Date().toISOString();
+
+  // Existing linked portal users used to skip metadata refresh. Their JWT could
+  // therefore keep an old tenant/role and every subsequent RLS check failed.
+  const metadataError = await refreshPortalAuthMetadata(supabase, authUserId, input);
+  if (metadataError) {
+    return { ok: false, error: metadataError };
+  }
 
   const { error: linkUpdateError } = await supabase
     .from(input.linkTable)
