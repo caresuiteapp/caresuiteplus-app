@@ -14,7 +14,6 @@ export const officeNav: ModuleNavConfig = {
         { key: 'clients', label: 'Klient:innen', icon: '👥', href: '/office/clients' },
         { key: 'employees', label: 'Mitarbeitende', icon: '👤', href: '/office/employees' },
         { key: 'time-tracking', label: 'Arbeitszeit', icon: '⏱️', href: '/business/office/time-tracking/live' },
-        { key: 'calendar', label: 'Kalender', icon: '📅', href: '/office/calendar' },
       ],
     },
     {

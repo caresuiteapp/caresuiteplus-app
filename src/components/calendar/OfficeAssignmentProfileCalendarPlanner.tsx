@@ -284,11 +284,11 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }
               maxLength={5}
               onChangeText={setStartTime}
               autoFocus
-              onLightSurface
+              onDarkSurface
             />
             <Text style={styles.releaseHint}>
-              Nach Bestätigung wird der Einsatz unmittelbar als bestätigt gespeichert und in Office,
-              Assist sowie den freigegebenen Portalen veröffentlicht.
+              Nach Bestätigung wird der Einsatz unmittelbar als bestätigt gespeichert, im
+              Assist-Kalender veröffentlicht und dem Mitarbeitendenportal bereitgestellt.
             </Text>
             {error ? <Text style={styles.error}>{error}</Text> : null}
           </View>

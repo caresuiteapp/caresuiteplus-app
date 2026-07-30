@@ -211,7 +211,7 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
   assist: [
     { id: 'clients', label: 'Klient:innen', description: 'Versorgungskontext und Budgets', pageType: 'work-list', route: '/assist/zugeordnete-klienten' },
     { id: 'assignments', label: 'Einsätze', description: 'Status, Bearbeitung und Abschluss', pageType: 'work-list', route: '/assist/einsaetze' },
-    { id: 'planning', label: 'Planung', description: 'Kalender, Ressourcen und Konflikte', pageType: 'planning', route: '/assist/kalender' },
+    { id: 'planning', label: 'Kalender & Einsatzplanung', description: 'Einsatzprofile, Drag-and-drop, Ressourcen und Direktfreigabe', pageType: 'planning', route: '/assist/kalender' },
     { id: 'live', label: 'Live-Status', description: 'GPS, Anfahrt und Abweichungen', pageType: 'command-center', route: '/assist/live-status' },
     { id: 'proofs', label: 'Nachweise', description: 'Prüfung, Unterschrift und Freigabe', pageType: 'review', route: '/assist/nachweise/review' },
     { id: 'budgets', label: 'Budgets', description: 'Anspruch, Verbrauch und Prognose', pageType: 'analytics', route: '/assist/abrechnungsquellen' },

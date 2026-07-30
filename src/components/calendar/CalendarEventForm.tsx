@@ -231,7 +231,7 @@ export function CalendarEventForm({
       {step === 'visibility' ? (
         <>
           <View style={styles.row}>
-            <Text style={styles.label}>Office-Kalender</Text>
+            <Text style={styles.label}>Assist-Kalender</Text>
             <Switch
               value={form.isOfficeVisible}
               onValueChange={(isOfficeVisible) => onChange({ isOfficeVisible })}

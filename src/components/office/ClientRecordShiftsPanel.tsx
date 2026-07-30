@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import {
   EmptyState,
   ErrorState,
   LoadingState,
   PremiumBadge,
+  PremiumButton,
   PremiumCard,
   SectionPanel,
 } from '@/components/ui';
@@ -94,6 +96,7 @@ function ClientShiftCard({ assignment }: { assignment: AssignmentListItem }) {
 }
 
 export function ClientRecordShiftsPanel({ clientId, fullClient }: ClientRecordShiftsPanelProps) {
+  const router = useRouter();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { isReadOnly } = usePermissions();
@@ -162,11 +165,15 @@ export function ClientRecordShiftsPanel({ clientId, fullClient }: ClientRecordSh
       <ClientProofBillingStatusPanel clientId={clientId} />
 
       {!isReadOnly ? (
-        <SectionPanel title="Planung">
+        <SectionPanel title="Planung in Assist">
           <Text style={styles.hint}>
-            Einsatzprofile erscheinen automatisch im Office-Kalender. Ziehen Sie das gewünschte Profil auf einen Tag
+            Einsatzprofile erscheinen automatisch im Assist-Kalender. Ziehen Sie das gewünschte Profil auf einen Tag
             und bestätigen Sie nur die Uhrzeit. Der Einsatz wird anschließend direkt freigegeben.
           </Text>
+          <PremiumButton
+            title="Assist-Kalender öffnen"
+            onPress={() => router.push('/assist/kalender' as never)}
+          />
         </SectionPanel>
       ) : null}
     </View>

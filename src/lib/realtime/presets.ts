@@ -108,7 +108,7 @@ export function subscribeToClientRecordChanges(
   );
 }
 
-/** Wiederverwendbare Einsatzprofile in Office-Kalender und Klientenakte. */
+/** Wiederverwendbare Einsatzprofile in Assist-Kalender und Office-Klientenakte. */
 export function subscribeToClientAssignmentProfileChanges(
   tenantId: string,
   handler: RealtimeHandler,

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const root = path.join(__dirname, '..', '..', '..');
 const read = (relativePath: string) => readFileSync(path.join(root, relativePath), 'utf8');
 
-describe('Office Einsatzprofile → Kalender → freigegebener Einsatz', () => {
+describe('Office-Einsatzprofile → Assist-Kalender → freigegebener Einsatz', () => {
   it('stores reusable client profiles without date or start time', () => {
     const migration = read(
       'supabase/migrations/20260730090000_office_assignment_profiles_calendar_drop.sql',
@@ -42,6 +42,7 @@ describe('Office Einsatzprofile → Kalender → freigegebener Einsatz', () => {
       'src/components/calendar/OfficeAssignmentProfileCalendarPlanner.tsx',
     );
     const clientPanel = read('src/components/office/ClientAssignmentProfilesPanel.tsx');
+    const calendarShell = read('src/components/calendar/CalendarPageShell.tsx');
 
     expect(planner).toContain('ASSIGNMENT_PROFILE_DRAG_MIME');
     expect(planner).toContain('onDragStart');
@@ -50,6 +51,23 @@ describe('Office Einsatzprofile → Kalender → freigegebener Einsatz', () => {
     expect(planner).toContain('Einsatz direkt freigeben');
     expect(clientPanel).toContain('Kein Tag und keine Uhrzeit');
     expect(clientPanel).toContain('ClientAssignmentProfilesPanel');
+    expect(clientPanel).toContain('Assist-Kalender');
+    expect(calendarShell).toContain("config.moduleKey === 'assist'");
+  });
+
+  it('keeps the long profile form readable and scrollable on dark surfaces', () => {
+    const clientPanel = read('src/components/office/ClientAssignmentProfilesPanel.tsx');
+    const planner = read('src/components/calendar/OfficeAssignmentProfileCalendarPlanner.tsx');
+    const modal = read('src/components/layout/platform/platformmodal.tsx');
+    const actionButton = read('src/components/layout/platform/gradientmodalactionbutton.tsx');
+
+    expect(clientPanel).not.toContain('onLightSurface');
+    expect(clientPanel.match(/onDarkSurface/g)?.length).toBeGreaterThanOrEqual(8);
+    expect(planner).toContain('onDarkSurface');
+    expect(modal).toContain('<ScrollView');
+    expect(modal).toContain('nestedScrollEnabled');
+    expect(modal).toContain('showsVerticalScrollIndicator');
+    expect(actionButton).toContain("'#FFFFFF'");
   });
 
   it('snapshots operational client context instead of treating it as decoration', () => {

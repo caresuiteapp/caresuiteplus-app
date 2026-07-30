@@ -166,7 +166,6 @@ export const officeContextPanelNav: ModuleNavConfig = {
         { key: 'dashboard', label: 'Dashboard', icon: 'kpiChart', href: '/business' },
         { key: 'messages', label: 'Nachrichten', icon: 'messageWave', href: '/business/messages' },
         { key: 'reporting', label: 'Reporting', icon: 'trendChart', href: '/business/reporting' },
-        { key: 'calendar', label: 'Kalender', icon: 'calendar', href: '/office/calendar' },
         { key: 'tasks', label: 'Aufgaben & Vorgänge', icon: 'taskCheck', href: '/business/office/access/tasks' },
       ],
     },

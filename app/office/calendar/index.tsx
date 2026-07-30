@@ -1,3 +1,6 @@
-import { OfficeCalendarScreen } from '@/product-workflows/screens/office/OfficeCalendarScreen';
+import { Redirect } from 'expo-router';
 
-export default OfficeCalendarScreen;
+/** Historischer Office-Link: Einsatzplanung liegt verbindlich in Assist. */
+export default function OfficeCalendarRedirect() {
+  return <Redirect href="/assist/kalender" />;
+}

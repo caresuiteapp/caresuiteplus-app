@@ -19,7 +19,11 @@ export default function CalendarTemplatesScreen() {
       title="Kalender-Vorlagen"
       subtitle="System- und Mandantenvorlagen auswählen"
       rightSlot={
-        <PremiumButton title="Zum Kalender" variant="secondary" onPress={() => router.push('/office/calendar' as never)} />
+        <PremiumButton
+          title="Zur Assist-Einsatzplanung"
+          variant="secondary"
+          onPress={() => router.push('/assist/kalender' as never)}
+        />
       }
     >
       <SectionPanel

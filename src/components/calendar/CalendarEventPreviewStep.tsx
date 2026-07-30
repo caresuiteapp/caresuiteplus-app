@@ -47,7 +47,7 @@ export function CalendarEventPreviewStep({ form, template, moduleKey }: Calendar
 
       <Text style={[styles.section, { color: text.muted }]}>Sichtbarkeit</Text>
       <PreviewRow
-        label="Office-Kalender"
+        label="Assist-Kalender"
         value={form.isOfficeVisible ? 'Sichtbar' : 'Ausgeblendet'}
         muted={text.muted}
       />

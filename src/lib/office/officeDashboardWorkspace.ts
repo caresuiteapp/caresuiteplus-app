@@ -166,13 +166,6 @@ export const OFFICE_HEADER_PRIMARY_ACTIONS: DashboardQuickAction[] = [
 
 export const OFFICE_HEADER_SECONDARY_ACTIONS: DashboardQuickAction[] = [
   {
-    id: 'office-header-calendar',
-    label: 'Kalender öffnen',
-    icon: '🗓️',
-    route: '/office/calendar',
-    variant: 'secondary',
-  },
-  {
     id: 'office-header-messages',
     label: 'Nachrichten öffnen',
     icon: '💬',
@@ -284,17 +277,10 @@ export function buildOfficeDashboardSections(snapshot: DashboardSnapshot): Offic
       ],
     },
     {
-      id: 'calendar',
-      title: 'Kalender & Planung',
-      subtitle: 'Termine und Wochenübersicht',
+      id: 'appointments',
+      title: 'Terminverwaltung',
+      subtitle: 'Termine verwalten',
       links: [
-        {
-          id: 'calendar-view',
-          label: 'Kalender',
-          description: 'Mehransicht und Planung',
-          route: '/office/calendar',
-          icon: '🗓️',
-        },
         {
           id: 'calendar-appointments',
           label: 'Terminverwaltung',

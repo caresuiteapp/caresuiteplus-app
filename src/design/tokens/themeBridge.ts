@@ -172,7 +172,7 @@ export function useLegacyTheme() {
 
 /** Default PlanPilot entry routes per module dashboard. */
 export const planPilotRoutes: Record<string, string> = {
-  office: '/office/calendar',
+  office: '/office',
   assist: '/assist/calendar',
   pflege: '/pflege/shift-schedule',
   beratung: '/beratung/cases',

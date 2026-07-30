@@ -8,7 +8,7 @@ const DEFAULT_KPI_ROUTES: Record<string, string> = {
   invoices: '/office/invoices',
   'employees-active': '/office/employees',
   'employees-total': '/office/employees',
-  'appointments-week': '/office/calendar',
+  'appointments-week': '/assist/kalender',
   assignments: '/assist/assignments',
   'service-records': '/assist/nachweise',
   tasks: '/business/office/access/tasks',

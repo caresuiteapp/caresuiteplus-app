@@ -431,7 +431,6 @@ export const APP_ROUTES: AppRoute[] = [
       '/office/clients',
       '/office/employees',
       '/office/appointments',
-      '/office/calendar',
       '/office/invoices',
       '/office/documents',
       '/office/documents-signatures',

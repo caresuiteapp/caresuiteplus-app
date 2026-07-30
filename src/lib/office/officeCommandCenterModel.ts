@@ -127,7 +127,7 @@ export function buildOfficeCommandCenterModel(
       value: metrics.assignmentsToday,
       subValue: metricSubValue(ta.assignments, 'Einsätze', 'Keine Einsätze heute', metrics.assignmentsToday),
       icon: '📋',
-      route: '/office/calendar',
+      route: '/assist/kalender',
     },
     {
       id: 'ops-appointments-today',

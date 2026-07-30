@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 
-/** German alias → canonical calendar route */
+/** Historischer Office-Link: Einsatzplanung liegt verbindlich in Assist. */
 export default function OfficeKalenderRedirect() {
-  return <Redirect href="/office/calendar" />;
+  return <Redirect href="/assist/kalender" />;
 }

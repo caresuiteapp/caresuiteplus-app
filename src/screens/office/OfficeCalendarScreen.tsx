@@ -1,5 +1,5 @@
-import { CalendarShell } from '@/components/calendar/CalendarShell';
+import { Redirect } from 'expo-router';
 
 export function OfficeCalendarScreen() {
-  return <CalendarShell moduleKey="all" subtitle="Office Hauptkalender" />;
+  return <Redirect href="/assist/kalender" />;
 }

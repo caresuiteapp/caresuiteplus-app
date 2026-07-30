@@ -213,7 +213,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
         {profiles.length === 0 ? (
           <EmptyState
             title="Noch keine Einsatzprofile"
-            message="Speichern Sie alle wiederkehrenden Einsatzdaten einmalig. Im Office-Kalender wird später nur noch das Profil auf einen Tag gezogen und die Uhrzeit bestätigt."
+            message="Speichern Sie alle wiederkehrenden Einsatzdaten einmalig. Im Assist-Kalender wird später nur noch das Profil auf einen Tag gezogen und die Uhrzeit bestätigt."
             actionLabel={!isReadOnly ? 'Erstes Einsatzprofil erstellen' : undefined}
             onAction={!isReadOnly ? openCreate : undefined}
           />
@@ -272,13 +272,13 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
             value={draft.profileName}
             placeholder="z. B. Haushalt Montag"
             onChangeText={(profileName) => setDraft((current) => ({ ...current, profileName }))}
-            onLightSurface
+            onDarkSurface
           />
           <PremiumInput
             label="Einsatzbezeichnung"
             value={draft.assignmentTitle}
             onChangeText={(assignmentTitle) => setDraft((current) => ({ ...current, assignmentTitle }))}
-            onLightSurface
+            onDarkSurface
           />
           <PremiumInput
             label="Dauer in Minuten"
@@ -288,7 +288,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
               setDraft((current) => ({ ...current, durationMinutes: Number(value.replace(/\D/g, '')) || 0 }))
             }
             hint="Die Dauer wird gespeichert; Datum und Startzeit werden erst im Kalender gewählt."
-            onLightSurface
+            onDarkSurface
           />
 
           <Text style={styles.fieldLabel}>Mitarbeitende Person</Text>
@@ -314,34 +314,34 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
             placeholder={'Eine Aufgabe pro Zeile\nEinkaufen\nWohnung reinigen'}
             multiline
             style={styles.multiline}
-            onLightSurface
+            onDarkSurface
           />
           <PremiumInput
             label="Einsatzort"
             value={draft.locationAddress}
             onChangeText={(locationAddress) => setDraft((current) => ({ ...current, locationAddress }))}
-            onLightSurface
+            onDarkSurface
           />
           <PremiumInput
             label="Hinweis für Mitarbeitende"
             value={draft.notesForEmployee}
             onChangeText={(notesForEmployee) => setDraft((current) => ({ ...current, notesForEmployee }))}
             multiline
-            onLightSurface
+            onDarkSurface
           />
           <PremiumInput
             label="Interne Notiz"
             value={draft.internalNotes}
             onChangeText={(internalNotes) => setDraft((current) => ({ ...current, internalNotes }))}
             multiline
-            onLightSurface
+            onDarkSurface
           />
           <PremiumInput
             label="Hinweis für Klientenportal"
             value={draft.clientVisibleNotes}
             onChangeText={(clientVisibleNotes) => setDraft((current) => ({ ...current, clientVisibleNotes }))}
             multiline
-            onLightSurface
+            onDarkSurface
           />
           <View style={styles.toggles}>
             <ToggleRow

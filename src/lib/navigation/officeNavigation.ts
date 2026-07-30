@@ -78,15 +78,6 @@ export const OFFICE_NAV_AREAS: readonly OfficeNavArea[] = [
     accentColor: '#62F3FF',
   },
   {
-    id: 'calendar',
-    key: 'calendar',
-    label: 'Kalender',
-    icon: '🗓️',
-    href: '/office/calendar',
-    description: 'Mehransicht Kalender',
-    accentColor: '#62F3FF',
-  },
-  {
     id: 'messages',
     key: 'messages',
     label: 'Nachrichten',

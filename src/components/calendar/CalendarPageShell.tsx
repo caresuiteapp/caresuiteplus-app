@@ -202,7 +202,11 @@ export function CalendarPageShell({
     </View>
   );
 
-  if (config.moduleKey === 'all' || config.moduleKey === 'office') {
+  if (
+    config.moduleKey === 'all'
+    || config.moduleKey === 'office'
+    || config.moduleKey === 'assist'
+  ) {
     return (
       <OfficeAssignmentProfileCalendarPlanner onScheduled={refresh}>
         {({ selectedProfileId, onProfileDrop }) =>

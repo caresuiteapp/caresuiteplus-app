@@ -19,7 +19,6 @@ export const HEALTHOS_OFFICE_NAV: HealthOSNavConfig = {
       items: [
         { key: 'clients', label: 'Klient:innen', icon: '👥', href: '/office/clients' },
         { key: 'employees', label: 'Mitarbeitende', icon: '👤', href: '/office/employees' },
-        { key: 'assignments', label: 'Einsätze', icon: '📋', href: '/office/calendar' },
         {
           key: 'proofs',
           label: 'Nachweise',

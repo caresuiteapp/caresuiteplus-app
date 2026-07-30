@@ -45,7 +45,9 @@ export function GradientModalActionButton({
       : isDanger
         ? '#B91C1C'
         : text.primary
-    : '#000000';
+    : isDanger
+      ? '#FECACA'
+      : '#FFFFFF';
 
   return (
     <Pressable

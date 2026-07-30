@@ -32,7 +32,7 @@ export function resolveCalendarEventHref(record: CalendarEventRecord): string | 
 }
 
 export const CALENDAR_MODULE_ROUTES: Record<string, string> = {
-  office: '/office/calendar',
+  office: '/assist/calendar',
   assist: '/assist/calendar',
   pflege: '/pflege/calendar',
   stationaer: '/stationaer/calendar',
@@ -41,11 +41,13 @@ export const CALENDAR_MODULE_ROUTES: Record<string, string> = {
 };
 
 export const CALENDAR_ROUTE_ALIASES: Record<string, string> = {
-  '/office/kalender': '/office/calendar',
+  '/office/calendar': '/assist/calendar',
+  '/office/kalender': '/assist/calendar',
   '/assist/kalender': '/assist/calendar',
   '/pflege/kalender': '/pflege/calendar',
   '/stationaer/kalender': '/stationaer/calendar',
   '/beratung/kalender': '/beratung/calendar',
   '/akademie/kalender': '/akademie/calendar',
-  '/business/office/calendar': '/office/calendar',
+  '/business/office/calendar': '/assist/calendar',
+  '/business/office/kalender': '/assist/calendar',
 };

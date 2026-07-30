@@ -11,46 +11,55 @@ function readSrc(relativePath: string): string {
   return readFileSync(path.join(root, relativePath), 'utf8');
 }
 
-describe('Office calendar routing', () => {
-  it('context panel Kalender links to /office/calendar not appointments', () => {
+describe('Assist owns assignment planning; Office only manages profiles', () => {
+  it('does not expose a calendar in the Office context panel', () => {
     const data = readSrc('src/components/layout/platform/platformContextData.ts');
-    expect(data).toContain("label: 'Kalender', icon: '📅', href: '/office/calendar'");
-    expect(data).not.toContain("label: 'Kalender', icon: '📅', href: '/office/appointments'");
+    expect(data).not.toContain("href: '/office/calendar'");
+    expect(data).not.toContain("href: '/office/kalender'");
   });
 
-  it('module nav sidebar Klient:innen group links Kalender to /office/calendar', () => {
+  it('does not expose a calendar in the Office module navigation', () => {
     const nav = readSrc('src/lib/navigation/moduleNav/officeNav.ts');
-    expect(nav).toContain("label: 'Kalender', icon: '📅', href: '/office/calendar'");
-    expect(nav).not.toContain("label: 'Termine', icon: '📅', href: '/office/appointments'");
+    expect(nav).not.toContain("href: '/office/calendar'");
+    expect(nav).not.toContain("href: '/office/kalender'");
   });
 
-  it('office nav has separate Termine and Kalender areas', () => {
+  it('keeps Office appointment management without an Office calendar area', () => {
     const appointments = OFFICE_NAV_AREAS.find((a) => a.key === 'appointments');
     const calendar = OFFICE_NAV_AREAS.find((a) => a.key === 'calendar');
     expect(appointments?.href).toBe('/office/appointments');
-    expect(calendar?.href).toBe('/office/calendar');
-    expect(calendar?.label).toBe('Kalender');
+    expect(calendar).toBeUndefined();
   });
 
-  it('APP_ROUTES registers calendar and kalender alias', () => {
+  it('keeps historical Office paths registered only as safe redirects', () => {
     expect(APP_ROUTES.some((r) => r.path === '/office/calendar')).toBe(true);
     expect(APP_ROUTES.some((r) => r.path === '/office/kalender')).toBe(true);
     const office = APP_ROUTES.find((r) => r.path === '/office');
-    expect(office?.children).toContain('/office/calendar');
-  });
+    expect(office?.children).not.toContain('/office/calendar');
 
-  it('einzelseiten map resolves German office kalender alias', () => {
-    expect(resolveEinzelseitenRoute('/office/kalender').target).toBe('/office/calendar');
-    expect(resolveEinzelseitenRoute('/business/office/kalender').target).toBe('/office/calendar');
-  });
-
-  it('planPilot office default is calendar', () => {
-    const theme = readSrc('src/design/tokens/themeBridge.ts');
-    expect(theme).toContain("office: '/office/calendar'");
-  });
-
-  it('calendar screen route file exists', () => {
     const route = readSrc('app/office/calendar/index.tsx');
-    expect(route).toContain('OfficeCalendarScreen');
+    const alias = readSrc('app/office/kalender.tsx');
+    expect(route).toContain('<Redirect href="/assist/kalender"');
+    expect(alias).toContain('<Redirect href="/assist/kalender"');
+  });
+
+  it('resolves historical Office calendar aliases to Assist planning', () => {
+    expect(resolveEinzelseitenRoute('/office/kalender').target).toBe('/assist/kalender');
+    expect(resolveEinzelseitenRoute('/business/office/kalender').target).toBe('/assist/kalender');
+  });
+
+  it('does not use a calendar as the Office PlanPilot default', () => {
+    const theme = readSrc('src/design/tokens/themeBridge.ts');
+    expect(theme).toContain("office: '/office'");
+  });
+
+  it('exposes assignment-profile planning in Assist', () => {
+    const catalog = readSrc('src/liquid-command/navigation/moduleCatalog.ts');
+    const shell = readSrc('src/components/calendar/CalendarPageShell.tsx');
+    const record = readSrc('src/components/office/ClientRecordShiftsPanel.tsx');
+    expect(catalog).toContain("label: 'Kalender & Einsatzplanung'");
+    expect(catalog).toContain("route: '/assist/kalender'");
+    expect(shell).toContain("config.moduleKey === 'assist'");
+    expect(record).toContain('title="Assist-Kalender öffnen"');
   });
 });

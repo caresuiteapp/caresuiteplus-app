@@ -1046,19 +1046,19 @@
   {
     "id": "0175",
     "prompt": "/office/kalender",
-    "target": "/office/calendar",
+    "target": "/assist/kalender",
     "tab": null
   },
   {
     "id": "0176",
     "prompt": "/business/office/calendar",
-    "target": "/office/calendar",
+    "target": "/assist/kalender",
     "tab": null
   },
   {
     "id": "0177",
     "prompt": "/business/office/kalender",
-    "target": "/office/calendar",
+    "target": "/assist/kalender",
     "tab": null
   }
 ]

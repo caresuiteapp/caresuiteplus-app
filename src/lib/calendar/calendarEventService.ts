@@ -41,7 +41,7 @@ import { MODULE_CALENDAR_COLORS, MODULE_EVENT_TYPES } from '@/lib/calendar/calen
 import { CALENDAR_MODULE_ROUTES } from '@/lib/calendar/calendarRouteRegistry';
 
 const MODULE_SUBTITLES: Record<CalendarViewConfig['moduleKey'], string> = {
-  all: 'Office Hauptkalender',
+  all: 'Assist Einsatzkalender',
   office: 'Office Kalender',
   assist: 'Assist Kalender',
   pflege: 'Pflege Kalender',

@@ -68,6 +68,7 @@ describe('Office mobile platform layout', () => {
 
   it('context panel sections have at least 5 items and collapse to 2 initially', () => {
     const data = readSrc('src/components/layout/platform/platformContextData.ts');
+    const workspace = readSrc('src/lib/office/officeDashboardWorkspace.ts');
     const desktop = readSrc('src/components/layout/platform/rightcontextpanel.tsx');
     const mobile = readSrc('src/components/layout/platform/mobileplatformcontextpanel.tsx');
 
@@ -83,15 +84,9 @@ describe('Office mobile platform layout', () => {
     expect(desktop).toContain('closeMenu');
     expect(mobile).toContain('closeMenu');
 
-    const quickActionLabels = [
-      'Klient:in anlegen',
-      'Rechnung erstellen',
-      'Termin planen',
-      'Dokument hochladen',
-      'Mitarbeitende anlegen',
-    ];
+    const quickActionLabels = ['Klient anlegen', 'Mitarbeiter anlegen', 'Termin', 'Dokument', 'Nachricht'];
     for (const label of quickActionLabels) {
-      expect(data).toContain(label);
+      expect(workspace).toContain(`label: '${label}'`);
     }
 
     const navGroups = ['Übersicht', 'Organisation', 'Insight & QM'] as const;
@@ -99,8 +94,8 @@ describe('Office mobile platform layout', () => {
       expect(data).toContain(`title: '${group}'`);
     }
 
-    expect(data).toContain("href: '/office/calendar'");
-    expect(data).not.toContain("label: 'Kalender', icon: '📅', href: '/office/appointments'");
+    expect(data).not.toContain("href: '/office/calendar'");
+    expect(data).not.toContain("href: '/office/kalender'");
     expect(data).toContain("href: '/business/office/access/tasks'");
     expect(data).toContain("href: '/business/office/settings'");
     expect(data).toContain("href: '/business/office/access/roles'");
@@ -117,9 +112,11 @@ describe('Office mobile platform layout', () => {
   it('MobilePlatformContextPanel keeps office quick actions with real routes', () => {
     const mobile = readSrc('src/components/layout/platform/mobileplatformcontextpanel.tsx');
     const data = readSrc('src/components/layout/platform/platformContextData.ts');
+    const workspace = readSrc('src/lib/office/officeDashboardWorkspace.ts');
     expect(mobile).toContain('OFFICE_QUICK_ACTIONS');
     expect(mobile).toContain('router.push');
-    expect(data).toContain('Klient:in anlegen');
-    expect(data).toContain('Rechnung erstellen');
+    expect(data).toContain('OFFICE_SIDEBAR_QUICK_ACTIONS');
+    expect(workspace).toContain("label: 'Klient anlegen'");
+    expect(workspace).toContain("label: 'Abrechnung prüfen'");
   });
 });

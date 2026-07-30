@@ -158,8 +158,7 @@ export function PlatformModal({
           overflow: 'hidden',
         },
         bodyScroll: {
-          flexGrow: 1,
-          flexShrink: 1,
+          flex: 1,
           minHeight: 0,
         },
         body: {
@@ -185,13 +184,16 @@ export function PlatformModal({
           gap: careSpacing.sm,
           paddingHorizontal: careSpacing.lg,
           paddingBottom: careSpacing.lg,
-          paddingTop: careSpacing.xs,
+          paddingTop: careSpacing.md,
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: lightModal
             ? shellColors.footerBorder
             : isDark
               ? shellColors.footerBorder
               : 'rgba(0,0,0,0.06)',
+          backgroundColor: lightModal
+            ? shellColors.body.background
+            : 'rgba(1,8,23,0.98)',
         },
       }),
     [formGlass.shadow, isDark, lightModal, shellColors, sheetMaxHeight, sheetWidth, variant],
@@ -253,19 +255,16 @@ export function PlatformModal({
           actions={headerActions}
         />
       </View>
-      {Platform.OS === 'web' ? (
-        <View style={[styles.body, bodyStyle]}>{children}</View>
-      ) : (
-        <ScrollView
-          style={styles.bodyScroll}
-          contentContainerStyle={[styles.body, bodyStyle]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
-        >
-          {children}
-        </ScrollView>
-      )}
+      <ScrollView
+        style={styles.bodyScroll}
+        contentContainerStyle={[styles.body, bodyStyle]}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        showsVerticalScrollIndicator
+        showsHorizontalScrollIndicator={false}
+      >
+        {children}
+      </ScrollView>
       {footerActions && footerActions.length > 0 ? (
         <View style={styles.footer}>
           {footerActions.map((action) => (
