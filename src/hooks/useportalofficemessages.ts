@@ -8,6 +8,7 @@ import { subscribeToOfficeMessageInbox } from '@/lib/office/officemessagerealtim
 import { useAuth } from '@/lib/auth/context';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 export function usePortalOfficeMessages(filter: PortalOfficeInboxFilter = 'open') {
   const { profile, portalSession } = useAuth();
@@ -72,7 +73,12 @@ export function usePortalOfficeMessages(filter: PortalOfficeInboxFilter = 'open'
   return {
     threads: query.data ?? [],
     loading: query.loading,
-    error: query.error,
+    error: query.error
+      ? toPortalUserFacingError(
+          query.error,
+          'Ihre Nachrichten konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+        )
+      : null,
     refreshing: query.refreshing,
     refresh,
     isEmpty: !query.loading && !query.error && (query.data?.length ?? 0) === 0,

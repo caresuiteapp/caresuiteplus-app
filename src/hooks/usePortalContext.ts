@@ -4,6 +4,7 @@ import { resolvePortalContext } from '@/lib/portal/engine/resolvePortalContext';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAuth } from '@/lib/auth/context';
 import { AsyncTimeoutError, withTimeout } from '@/lib/async/withTimeout';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 export type PortalContextState = {
   context: PortalContext | null;
@@ -65,9 +66,14 @@ export function usePortalContext(): PortalContextState {
     } catch (caught) {
       setContext(null);
       if (caught instanceof AsyncTimeoutError) {
-        setError(caught.message);
+        setError(
+          toPortalUserFacingError(
+            caught.message,
+            'Das Portal braucht länger als erwartet. Bitte laden Sie die Seite erneut.',
+          ),
+        );
       } else {
-        setError('Portal-Kontext konnte nicht geladen werden.');
+        setError('Ihre Übersicht konnte gerade nicht geladen werden.');
       }
     } finally {
       setLoading(false);

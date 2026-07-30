@@ -2,12 +2,7 @@ import type { ServiceResult } from '@/types';
 import type { PortalDocumentCategory, PortalDocumentDetail, PortalDocumentListItem } from '@/types/portal/documents';
 import type { ClientDocumentRecord } from '@/types/modules/client';
 import type { DataVisibilityScope } from '@/types/portal/visibility';
-import {
-  canClientPortalSeeFeature,
-  fetchClientPortalSettingsResolved,
-} from '@/lib/client/clientPortalSettingsService';
 import { enrichClientDocumentWithIntakeRows } from '@/lib/clients/clientDocumentMerge';
-import { syncClientDocumentPortalReleaseIfEnabled } from '@/lib/clients/clientDocumentsService';
 import {
   PORTAL_CLIENT_DOCUMENT_STATUSES,
   PORTAL_INTERNAL_SENSITIVITIES,
@@ -217,8 +212,6 @@ async function loadPortalVisibleClientDocuments(
   tenantId: string,
   clientId: string,
 ): Promise<ServiceResult<PortalDocumentListItem[]>> {
-  await syncClientDocumentPortalReleaseIfEnabled(tenantId, clientId);
-
   const supabase = getSupabaseClient();
   if (!supabase) return unavailable();
 
@@ -234,7 +227,11 @@ async function loadPortalVisibleClientDocuments(
 
   if (error) {
     if (isMissingTableError(error)) return { ok: true, data: [] };
-    return { ok: false, error: error.message };
+    console.warn('[portalDocumentsLiveService] client_documents:', error.message);
+    return {
+      ok: false,
+      error: 'Ihre Dokumente konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+    };
   }
 
   const rows = (data ?? []) as Record<string, unknown>[];
@@ -259,12 +256,6 @@ export async function fetchLivePortalDocumentsForClient(
   clientId: string,
 ): Promise<ServiceResult<PortalDocumentListItem[]>> {
   return runService(async () => {
-    const settings = await fetchClientPortalSettingsResolved(tenantId, clientId);
-    if (!settings.ok) return settings;
-    if (!canClientPortalSeeFeature(settings.data, 'documents')) {
-      return { ok: true, data: [] };
-    }
-
     return loadPortalVisibleClientDocuments(tenantId, clientId);
   });
 }
@@ -285,8 +276,6 @@ async function loadPortalVisibleClientDocumentDetail(
   clientId: string,
   documentId: string,
 ): Promise<ServiceResult<PortalDocumentDetail>> {
-  await syncClientDocumentPortalReleaseIfEnabled(tenantId, clientId);
-
   const supabase = getSupabaseClient();
   if (!supabase) return unavailable();
 
@@ -304,7 +293,8 @@ async function loadPortalVisibleClientDocumentDetail(
     if (isMissingTableError(error)) {
       return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
     }
-    return { ok: false, error: error.message };
+    console.warn('[portalDocumentsLiveService] client_document detail:', error.message);
+    return { ok: false, error: 'Das Dokument konnte gerade nicht geöffnet werden.' };
   }
   if (!data) {
     const assistProof = await fetchAssistProofPortalDocumentDetail(tenantId, clientId, documentId);
@@ -336,12 +326,6 @@ export async function fetchLivePortalDocumentDetail(
   documentId: string,
 ): Promise<ServiceResult<PortalDocumentDetail>> {
   return runService(async () => {
-    const settings = await fetchClientPortalSettingsResolved(tenantId, clientId);
-    if (!settings.ok) return settings;
-    if (!canClientPortalSeeFeature(settings.data, 'documents')) {
-      return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
-    }
-
     return loadPortalVisibleClientDocumentDetail(tenantId, clientId, documentId);
   });
 }

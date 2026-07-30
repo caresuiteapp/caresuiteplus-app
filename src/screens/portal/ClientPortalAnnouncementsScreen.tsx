@@ -1,36 +1,30 @@
-import { ScrollView, StyleSheet, Text } from 'react-native';
-import { ScreenShell } from '@/components/layout';
-import { PortalAnnouncementsHero } from '@/components/portal';
-import { PremiumCard } from '@/components/ui';
-import { clientPortalDemo } from '@/data/demo/domains/clientPortalDemo';
-import { typography, spacing } from '@/theme';
+import { View, StyleSheet } from 'react-native';
+import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
+import { PortalEmptyState } from '@/components/portal/assist/PortalEmptyState';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
+import { careSpacing } from '@/design/tokens/spacing';
 
-/** WP352 — Portal-Sicht Klient:innen */
 export function ClientPortalAnnouncementsScreen() {
-  const records = clientPortalDemo.records;
-  const activeCount = records.filter((r) => r.status === 'aktiv').length;
-
   return (
-    <ScreenShell title="Mitteilungen" subtitle="Klient:innenportal · WP 352">
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <PortalAnnouncementsHero
-          scope="portal_client"
-          itemCount={records.length}
-          activeCount={activeCount}
+    <PortalTabScreen title="Mitteilungen" hideHeaderOnPhone>
+      <View style={styles.content}>
+        <PortalGlassHero
+          title="Mitteilungen"
+          subtitle="Wichtige Informationen von Ihrem Pflegebüro"
+          showStatusDot
         />
-        {records.map((r) => (
-          <PremiumCard key={r.id}>
-            <Text style={styles.title}>{r.label}</Text>
-            <Text style={styles.meta}>Status: {r.status}</Text>
-          </PremiumCard>
-        ))}
-      </ScrollView>
-    </ScreenShell>
+        <PortalEmptyState
+          title="Keine neuen Mitteilungen"
+          message="Sobald Ihr Pflegebüro eine Information für Sie veröffentlicht, erscheint sie hier."
+        />
+      </View>
+    </PortalTabScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { gap: spacing.md },
-  title: { ...typography.bodyStrong },
-  meta: { ...typography.caption },
+  content: {
+    gap: careSpacing.md,
+    paddingBottom: careSpacing.xxl,
+  },
 });

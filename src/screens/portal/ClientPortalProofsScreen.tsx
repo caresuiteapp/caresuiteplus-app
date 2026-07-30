@@ -19,6 +19,7 @@ import { subscribePortalProofCache } from '@/lib/portal/portalProofCacheSignal';
 import type { PortalServiceProof } from '@/types/portal/serviceProofs';
 import { ErrorState, LoadingState, CareLightButton } from '@/components/ui';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 const STATUS_COLORS: Record<string, string> = {
   offen: PORTAL_LIGHT_LINK_ORANGE,
@@ -51,7 +52,12 @@ export function ClientPortalProofsScreen() {
     if (result.ok) {
       setProofs(result.data);
     } else {
-      setError(result.error);
+      setError(
+        toPortalUserFacingError(
+          result.error,
+          'Ihre Nachweise konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+        ),
+      );
       setProofs([]);
     }
     setLoading(false);
@@ -93,7 +99,12 @@ export function ClientPortalProofsScreen() {
     });
     setActionProofId(null);
     if (!result.ok) {
-      setError(result.error);
+      setError(
+        toPortalUserFacingError(
+          result.error,
+          'Ihre Rückfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.',
+        ),
+      );
     }
   };
 

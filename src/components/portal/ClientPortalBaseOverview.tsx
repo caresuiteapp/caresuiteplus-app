@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MobilePortalKpiCard } from '@/components/portal/assist/MobilePortalKpiCard';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
-import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
@@ -121,18 +120,12 @@ export function ClientPortalBaseOverview({ context, onRefresh }: ClientPortalBas
         />
       </View>
 
-      {!context.hasModuleAssignments ? (
-        <GlassCard>
-          <Text style={[type.bodyStrong, { color: text.primary, marginBottom: careSpacing.xs }]}>
-            Module noch nicht freigegeben
-          </Text>
-          <Text style={[type.body, { color: text.secondary, marginBottom: careSpacing.md }]}>
-            Assist, Pflege, Stationär oder Beratung können in Ihrem Pflegebüro freigeschaltet
-            werden. Einsätze und Nachrichten sind bereits verfügbar, sobald Daten freigegeben sind.
-          </Text>
-          <PremiumButton title="Erneut prüfen" onPress={handleRefresh} />
-        </GlassCard>
-      ) : null}
+      <PremiumButton
+        title="Übersicht aktualisieren"
+        variant="secondary"
+        onPress={handleRefresh}
+        fullWidth
+      />
     </View>
   );
 }

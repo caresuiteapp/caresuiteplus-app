@@ -13,6 +13,7 @@ import { toUserFacingSendError, VOICE_SEND_TIMEOUT_MS, withMessagingTimeout } fr
 import { useAuth } from '@/lib/auth/context';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 export function usePortalOfficeThreadDetail(threadId: string | null) {
   const { profile, portalSession } = useAuth();
@@ -81,6 +82,7 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
     actorDisplayName,
     actorClientId,
     actorEmployeeId,
+    portalSession,
     silentRefresh,
   ]);
 
@@ -119,7 +121,7 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
       }
       return result;
     },
-    [tenantId, threadId, actorRoleKey, actorProfileId, actorDisplayName, actorClientId, actorEmployeeId, refresh],
+    [tenantId, threadId, actorRoleKey, actorProfileId, actorDisplayName, actorClientId, actorEmployeeId, portalSession, refresh],
   );
 
   const startNewChat = useCallback(async () => {
@@ -144,13 +146,20 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
     actorDisplayName,
     actorClientId,
     actorEmployeeId,
+    portalSession,
     refresh,
   ]);
 
   return {
     detail: query.data as OfficeMessageThreadDetail | undefined,
     loading: query.loading || (!!threadId && !isLinkedReady),
-    error: query.error ?? sendError,
+    error:
+      query.error || sendError
+        ? toPortalUserFacingError(
+            query.error ?? sendError,
+            'Der Chat konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+          )
+        : null,
     refreshing: query.refreshing,
     sending,
     refresh,

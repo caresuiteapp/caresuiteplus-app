@@ -1,10 +1,8 @@
 import { useMemo, useState, useCallback, type ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { LockedActionBanner } from '@/components/permissions';
-import { MobilePortalKpiCard } from '@/components/portal/assist/MobilePortalKpiCard';
 import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequestFormModal';
 import { ClientPortalProfileAssignmentsSection } from '@/components/portal/ClientPortalProfileAssignmentsSection';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
@@ -259,7 +257,6 @@ function renderProfileSections(profile: PortalClientProfile, isWide: boolean, te
 }
 
 export function ClientPortalProfileScreen() {
-  const router = useRouter();
   const { profile: authProfile } = useAuth();
   const { can, check, roleLabel } = usePermissions();
   const canViewProfile = can('portal.client.profile.view');
@@ -302,9 +299,7 @@ export function ClientPortalProfileScreen() {
   const moduleLabels = (context?.activeModuleKeys ?? []).map(
     (key) => `${PORTAL_MODULE_ICONS[key]} ${PORTAL_MODULE_LABELS[key]}`,
   );
-  const releaseLabel = context?.hasModuleAssignments
-    ? 'Module freigegeben'
-    : 'Warten auf Modulfreigabe';
+  const releaseLabel = portalAccess?.portalEnabled === false ? 'Zugang pausiert' : 'Zugang aktiv';
   const accessStatusLabel = portalAccess?.status
     ? PORTAL_ACCESS_STATUS_LABELS[portalAccess.status]
     : portalAccess?.portalEnabled
@@ -410,11 +405,10 @@ export function ClientPortalProfileScreen() {
 
         <GlassCard>
           <Text style={[type.caption, { color: text.muted, marginBottom: careSpacing.sm }]}>
-            PORTAL & FREIGABE
+            IHR PORTALZUGANG
           </Text>
-          <ProfileInfoRow label="Portalrolle" value={PORTAL_ROLE_LABELS[portalRole]} />
+          <ProfileInfoRow label="Zugang für" value={PORTAL_ROLE_LABELS[portalRole]} />
           <ProfileInfoRow label="Zugangsstatus" value={accessStatusLabel} />
-          <ProfileInfoRow label="Freigabe" value={releaseLabel} />
           {portalAccess?.lastLoginAt ? (
             <ProfileInfoRow
               label="Letzte Anmeldung"
@@ -423,18 +417,14 @@ export function ClientPortalProfileScreen() {
           ) : null}
           {moduleLabels.length > 0 ? (
             <View style={styles.moduleWrap}>
-              <Text style={[type.caption, { color: text.muted }]}>Module</Text>
+              <Text style={[type.caption, { color: text.muted }]}>Verfügbare Bereiche</Text>
               <View style={styles.badgeRow}>
                 {moduleLabels.map((label) => (
                   <PremiumBadge key={label} label={label} variant="cyan" />
                 ))}
               </View>
             </View>
-          ) : (
-            <Text style={[type.caption, { color: text.muted, marginTop: careSpacing.sm }]}>
-              Noch keine Module freigegeben. Bitte wenden Sie sich an Ihr Pflegebüro.
-            </Text>
-          )}
+          ) : null}
         </GlassCard>
 
         {renderProfileSections(profile, isWide, text.muted, text.primary)}

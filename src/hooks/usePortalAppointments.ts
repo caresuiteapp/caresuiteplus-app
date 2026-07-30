@@ -9,6 +9,7 @@ import { subscribeToEmployeePortalChanges, subscribeToPortalAssistChanges } from
 import { useAsyncQuery } from './core';
 import { resolvePortalScope } from '@/lib/portal/portalVisibility';
 import { filterEmployeePortalAppointments } from '@/lib/portal/employeePortalLiveOverviewService';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 export function usePortalAppointments() {
   const { authReady, user } = useAuth();
@@ -98,7 +99,12 @@ export function usePortalAppointments() {
       (queryEnabled && query.loading && items.length === 0),
     error: missingClientLink
       ? 'Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
-      : query.error,
+      : query.error
+        ? toPortalUserFacingError(
+            query.error,
+            'Ihre Termine konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+          )
+        : null,
     refreshing: query.refreshing,
     showSuccess,
     refresh,

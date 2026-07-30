@@ -32,6 +32,7 @@ import type { PortalContext } from '@/lib/portal/types';
 import type { AssistDashboardData, PortalRequestType } from '@/types/portal/assist';
 import type { PortalStructuredRequestPayload } from '@/types/portal/requestPayloads';
 import { ErrorState, LoadingState, SuccessState } from '@/components/ui';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 type AssistOverviewModal = 'anfragen' | 'aktivitaeten';
 
@@ -73,7 +74,6 @@ export function MobilePortalDashboard({
     moduleLabel: terminology.moduleLabel,
   });
   const tripsReleased = canAccessPortalFeature(context, 'assist', 'trips');
-  const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
   const requestsReleased = canAccessPortalFeature(context, 'assist', 'anfragen');
   const activitiesReleased = canAccessPortalFeature(context, 'assist', 'aktivitaeten');
 
@@ -132,7 +132,12 @@ export function MobilePortalDashboard({
     if (result.ok) {
       setDashboard(result.data);
     } else if (!silent) {
-      setError(result.error);
+      setError(
+        toPortalUserFacingError(
+          result.error,
+          'Ihre Übersicht konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+        ),
+      );
     }
     if (!silent) {
       setLoading(false);
@@ -184,7 +189,12 @@ export function MobilePortalDashboard({
       setTimeout(() => setLocalSuccess(false), 2500);
       await loadDashboard();
     } else {
-      setError(result.error);
+      setError(
+        toPortalUserFacingError(
+          result.error,
+          'Ihre Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.',
+        ),
+      );
     }
   };
 
@@ -234,7 +244,7 @@ export function MobilePortalDashboard({
           emptyActionLabel="Einsatz anfragen"
         />
 
-        <Text style={[styles.sectionLabel, { color: text.primary }]}>Wichtig für Sie</Text>
+        <Text style={[styles.sectionLabel, { color: text.primary }]}>Auf einen Blick</Text>
         <View style={styles.priorityGrid}>
           <MobilePortalKpiCard
             icon="💬"
@@ -253,8 +263,8 @@ export function MobilePortalDashboard({
             emptyMessage="Keine neuen Dokumente."
             ctaLabel="Dokumente öffnen →"
             accentColor="#FF9500"
-            onCta={() => router.push('/portal/client/documents/signatures' as never)}
-            onPress={() => router.push('/portal/client/documents/signatures' as never)}
+            onCta={() => router.push('/portal/client/documents' as never)}
+            onPress={() => router.push('/portal/client/documents' as never)}
           />
           <MobilePortalKpiCard
             icon="📋"
@@ -268,7 +278,7 @@ export function MobilePortalDashboard({
           />
         </View>
 
-        <Text style={[styles.sectionLabel, { color: text.primary }]}>Weitere Bereiche</Text>
+        <Text style={[styles.sectionLabel, { color: text.primary }]}>Weitere Angebote</Text>
         <View style={styles.kpiGrid}>
           <MobilePortalKpiCard
             icon="📅"

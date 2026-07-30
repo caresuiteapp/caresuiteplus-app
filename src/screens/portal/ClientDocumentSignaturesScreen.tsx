@@ -8,9 +8,9 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useServiceTenantId } from '@/hooks/useTenantId';
-import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { fetchPortalCsDocumentRequests } from '@/lib/documents/csTemplates';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 import { spacing } from '@/theme';
 
 type FilterKey = 'open' | 'done';
@@ -22,24 +22,22 @@ const FILTER_OPTIONS = [
 
 export function ClientDocumentSignaturesScreen() {
   const router = useRouter();
-  const tenantId = useServiceTenantId();
-  const { profile, portalSession } = useAuth();
+  const { tenantId, clientId, roleKey, isLinkedReady } = usePortalActor();
   const { can } = usePermissions();
   const [filter, setFilter] = useState<FilterKey>('open');
-
-  const clientId = portalSession?.clientId ?? null;
 
   const query = useAsyncQuery(
     useCallback(async () => {
       if (!tenantId || !clientId) return { ok: true as const, data: [] };
       return fetchPortalCsDocumentRequests({
         tenantId,
-        roleKey: profile?.roleKey ?? 'client_portal',
+        roleKey: roleKey ?? 'client_portal',
         clientId,
         includeCompleted: filter === 'done',
       });
-    }, [tenantId, clientId, profile?.roleKey, filter]),
-    [tenantId, clientId, profile?.roleKey, filter],
+    }, [tenantId, clientId, roleKey, filter]),
+    [tenantId, clientId, roleKey, filter],
+    { enabled: isLinkedReady && !!tenantId && !!clientId },
   );
 
   const items =
@@ -64,9 +62,19 @@ export function ClientDocumentSignaturesScreen() {
       actions={[{ key: 'refresh', label: 'Aktualisieren', onPress: () => query.refresh(), variant: 'ghost' as const }]}
     >
       <AuroraSegmentedControl options={FILTER_OPTIONS} value={filter} onChange={(k) => setFilter(k as FilterKey)} />
-      {query.loading && !query.data ? <LoadingState message="Wird geladen…" /> : null}
-      {query.error ? <ErrorState message={query.error} onRetry={query.refresh} /> : null}
-      {items.length === 0 && !query.loading ? (
+      {query.loading && !query.data ? (
+        <LoadingState message="Offene Dokumente werden geladen…" />
+      ) : null}
+      {query.error ? (
+        <ErrorState
+          message={toPortalUserFacingError(
+            query.error,
+            'Ihre offenen Dokumente konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+          )}
+          onRetry={query.refresh}
+        />
+      ) : null}
+      {items.length === 0 && !query.loading && !query.error ? (
         <EmptyState
           title={filter === 'open' ? 'Keine offenen Dokumente' : 'Noch nichts erledigt'}
           message={

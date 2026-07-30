@@ -3,6 +3,7 @@ import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { fetchPortalDocuments } from '@/lib/portal';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 export function usePortalDocuments() {
   const { tenantId, clientId, actorId, roleKey, isReady } = usePortalActor();
@@ -30,7 +31,12 @@ export function usePortalDocuments() {
   return {
     items,
     loading: query.loading,
-    error: query.error,
+    error: query.error
+      ? toPortalUserFacingError(
+          query.error,
+          'Ihre Dokumente konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+        )
+      : null,
     refreshing: query.refreshing,
     showSuccess,
     refresh,

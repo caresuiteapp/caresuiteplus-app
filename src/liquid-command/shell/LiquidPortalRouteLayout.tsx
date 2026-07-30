@@ -32,7 +32,7 @@ function PortalStack() {
   );
 }
 
-function PortalChrome({ kind }: { kind: PortalKind }) {
+function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const layout = useLiquidLayout();
@@ -57,7 +57,14 @@ function PortalChrome({ kind }: { kind: PortalKind }) {
     return matching?.id ?? 'home';
   }, [navigation, pathname]);
 
-  if (pathname === liquidPortalRoots[kind]) return <PortalStack />;
+  if (pathname === liquidPortalRoots[kind]) {
+    return (
+      <>
+        <PortalStack />
+        {overlay}
+      </>
+    );
+  }
 
   const signOut = async () => {
     await auth.signOut();
@@ -246,12 +253,19 @@ function PortalChrome({ kind }: { kind: PortalKind }) {
           </Modal>
         </>
       ) : null}
+      {overlay}
     </LiquidBackdrop>
   );
 }
 
-export function LiquidPortalRouteLayout({ kind }: { kind: PortalKind }) {
-  let content: ReactNode = <PortalChrome kind={kind} />;
+export function LiquidPortalRouteLayout({
+  kind,
+  overlay,
+}: {
+  kind: PortalKind;
+  overlay?: ReactNode;
+}) {
+  let content: ReactNode = <PortalChrome kind={kind} overlay={overlay} />;
   content = <RequireRole>{content}</RequireRole>;
   if (kind === 'employee') {
     content = <RequireEmployeePasswordSetup>{content}</RequireEmployeePasswordSetup>;

@@ -4,6 +4,7 @@ import type { ClientPortalAccessSummary } from '@/lib/portal/clientProfileLiveSe
 import type { PortalClientProfile } from '@/types/portal/client';
 import { usePortalActor } from './usePortalActor';
 import { useAsyncQuery } from './core';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 export function useClientPortalProfile() {
   const { tenantId, clientId, actorId, roleKey, isReady } = usePortalActor();
@@ -40,7 +41,13 @@ export function useClientPortalProfile() {
     portalAccess,
     carePlans: carePlanQuery.data ?? [],
     loading: profileQuery.loading || carePlanQuery.loading,
-    error: profileQuery.error ?? carePlanQuery.error,
+    error:
+      profileQuery.error || carePlanQuery.error
+        ? toPortalUserFacingError(
+            profileQuery.error ?? carePlanQuery.error,
+            'Ihr Profil konnte gerade nicht vollständig geladen werden. Bitte versuchen Sie es erneut.',
+          )
+        : null,
     refresh,
     isReady,
     missingClientLink: isReady && !clientId,

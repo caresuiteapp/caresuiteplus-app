@@ -39,6 +39,7 @@ import type { PortalContext } from '@/lib/portal/types';
 import type { AssistDashboardData, PortalRequestType } from '@/types/portal/assist';
 import type { PortalStructuredRequestPayload } from '@/types/portal/requestPayloads';
 import { ErrorState, LoadingState, SuccessState } from '@/components/ui';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 type AssistOverviewModal = 'anfragen' | 'aktivitaeten';
 
@@ -196,7 +197,12 @@ function AssistPortalOverviewDesktop({
     if (result.ok) {
       setDashboard(result.data);
     } else if (!silent) {
-      setError(result.error);
+      setError(
+        toPortalUserFacingError(
+          result.error,
+          'Ihre Übersicht konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+        ),
+      );
     }
     if (!silent) {
       setLoading(false);
@@ -248,7 +254,12 @@ function AssistPortalOverviewDesktop({
       setTimeout(() => setLocalSuccess(false), 2500);
       await loadDashboard();
     } else {
-      setError(result.error);
+      setError(
+        toPortalUserFacingError(
+          result.error,
+          'Ihre Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.',
+        ),
+      );
     }
   };
 
@@ -322,7 +333,7 @@ function AssistPortalOverviewDesktop({
           />
           <PortalKpiCard
             label="Nachrichten"
-            description="Threads"
+            description="Neue Nachrichten"
             value={data.kpis.messages}
             emptyMessage="Noch keine Nachrichten."
             ctaLabel="Verwaltung anschreiben"
@@ -357,7 +368,7 @@ function AssistPortalOverviewDesktop({
           {budgetReleased ? (
             <PortalKpiCard
               label="Budget"
-              description="§45b"
+              description="Verfügbarer Betrag"
               value={data.budget ? data.budget.remainingAmount : null}
               emptyMessage="Budget noch nicht freigegeben."
             />
@@ -394,7 +405,7 @@ function AssistPortalOverviewDesktop({
 
         {budgetReleased && data.budget ? (
           <GlassCard glow accentColor="#FFD166">
-            <Text style={[type.caption, { color: text.muted }]}>BUDGET §45B</Text>
+            <Text style={[type.caption, { color: text.muted }]}>ENTLASTUNGSBUDGET</Text>
             <Text style={[type.cardTitle, { color: text.primary }]}>
               {data.budget.remainingAmount.toLocaleString('de-DE', {
                 style: 'currency',
@@ -403,7 +414,7 @@ function AssistPortalOverviewDesktop({
               verfügbar
             </Text>
             <Text style={[type.caption, { color: text.secondary }]}>
-              Zeitraum {data.budget.periodStart} – {data.budget.periodEnd}
+              Verfügbarer Betrag für den Zeitraum {data.budget.periodStart} – {data.budget.periodEnd}
             </Text>
           </GlassCard>
         ) : null}

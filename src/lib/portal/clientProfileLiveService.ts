@@ -1,6 +1,7 @@
 import type { ServiceResult } from '@/types';
 import type { PortalClientCarePlanSummary, PortalClientProfile } from '@/types/portal/client';
 import type { PortalAccessStatus } from '@/types/modules/client/clientPortal';
+import type { ClientPortalSettingsResolved } from '@/types/clientCore';
 import { fetchClientPortalSettingsResolved } from '@/lib/client/clientPortalSettingsService';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
@@ -36,6 +37,18 @@ const CLIENT_PROFILE_SELECT = [
   'cost_bearer',
   'access_notes',
 ].join(', ');
+
+const PORTAL_SELF_VIEW_FALLBACK: ClientPortalSettingsResolved = {
+  portalEnabled: true,
+  showAppointments: true,
+  showMessages: true,
+  showDocuments: true,
+  showProofs: true,
+  showBudget: false,
+  showVisitTracking: false,
+  inheritTenantDefaults: true,
+  source: 'merged',
+};
 
 export type ClientPortalAccessSummary = {
   portalUsername: string | null;
@@ -184,9 +197,12 @@ export async function fetchLiveClientPortalProfile(
       return { ok: false, error: 'Klient:innenprofil nicht gefunden.' };
     }
 
-    if (!settingsResult.ok) {
-      return settingsResult;
-    }
+    // A portal session may be allowed to read its own profile while tenant-wide
+    // settings remain hidden by RLS. Do not make the complete profile fail for
+    // that optional configuration read.
+    const portalSettings = settingsResult.ok
+      ? settingsResult.data
+      : PORTAL_SELF_VIEW_FALLBACK;
 
     const row = clientResult.data as Record<string, unknown>;
     const displayName =
@@ -212,7 +228,7 @@ export async function fetchLiveClientPortalProfile(
     const profile = buildClientPortalProfileProjection({
       tenantId,
       clientId,
-      settings: settingsResult.data,
+      settings: portalSettings,
       clientRow: row,
       contacts: (contactsResult.data ?? []) as Record<string, unknown>[],
       insuranceRow: (insuranceResult.data as Record<string, unknown> | null) ?? null,
