@@ -12,6 +12,7 @@ import {
   saveClientIntakeDraft,
 } from '@/lib/clients/clientIntakeDraftStorage';
 import { upsertClientIntakeDraft } from '@/lib/clients/repositories/clientIntakeDraftRepository.supabase';
+import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
 import { getServiceMode } from '@/lib/services/mode';
 import {
   clearCostBearerTypeFields,
@@ -245,6 +246,27 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
         nextClientId = remoteResult.data.id;
         if (nextClientId !== draftClientId) {
           setDraftClientId(nextClientId);
+        }
+
+        const containsSignedDocument = form.intakeDocuments.some((document) =>
+          Object.values(document.signatures).some((signature) => Boolean(signature?.dataUrl)),
+        );
+        if (containsSignedDocument) {
+          const documentResult = await persistClientIntakeDocuments(
+            tenantId,
+            nextClientId,
+            form,
+            profile?.id ?? user?.id ?? null,
+          );
+          if (!documentResult.ok) {
+            if (options?.showFeedback) {
+              setDraftSaveFeedback({
+                message: documentResult.error ?? 'Unterschriften konnten nicht gespeichert werden.',
+                variant: 'warning',
+              });
+            }
+            return false;
+          }
         }
       }
 

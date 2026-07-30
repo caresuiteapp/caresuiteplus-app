@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAiPageContext } from '@/ai/useAiPageContext';
 import { ContextCard, clientRecordKpiGridStyle, DetailInfoRow } from '@/components/detail';
@@ -23,6 +23,8 @@ import { useClientFullDetail } from '@/hooks/useClientFullDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
+import { loadClientIntakeDraft } from '@/lib/clients/clientIntakeDraftStorage';
+import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
 import { archiveClient, deleteClient } from '@/lib/office';
 import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
 import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview';
@@ -158,7 +160,7 @@ export function ClientRecordScreen({
   }>();
   const id = clientIdProp ?? routeId;
   const router = useRouter();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const tenantId = useServiceTenantId();
   const { can } = usePermissions();
   const { detail, careContexts, tabs, loading, error, refresh } = useClientRecord(id);
@@ -172,7 +174,37 @@ export function ClientRecordScreen({
       : 'uebersicht';
   const [activeTab, setActiveTab] = useState<ClientRecordTabKey>(initialTab);
   const [masterDataEditOpen, setMasterDataEditOpen] = useState(initialMasterDataEditOpen);
+  const localSignedRecoveryAttemptedRef = useRef<string | null>(null);
   const sectionEdit = useSectionEditModal<IntakeSectionKey>();
+
+  useEffect(() => {
+    const userId = user?.id ?? profile?.id ?? null;
+    if (!userId || !tenantId || !id || localSignedRecoveryAttemptedRef.current === id) return;
+    localSignedRecoveryAttemptedRef.current = id;
+
+    let cancelled = false;
+    void loadClientIntakeDraft(userId, tenantId).then(async (draft) => {
+      if (cancelled || !draft || draft.clientId !== id) return;
+      const containsSignedDocument = draft.form.intakeDocuments.some((document) =>
+        Object.values(document.signatures).some((signature) => Boolean(signature?.dataUrl)),
+      );
+      if (!containsSignedDocument) return;
+
+      const recovered = await persistClientIntakeDocuments(
+        tenantId,
+        id,
+        draft.form,
+        profile?.id ?? user?.id ?? null,
+      );
+      if (!cancelled && recovered.ok) {
+        await Promise.all([refresh(), fullQuery.refresh()]);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fullQuery, id, profile?.id, refresh, tenantId, user?.id]);
 
   useEffect(() => {
     const resolved = resolveClientRecordTabKey(resolvedTabParam);

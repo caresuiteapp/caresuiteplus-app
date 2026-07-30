@@ -47,7 +47,6 @@ describe('Client UI Reality Fix', () => {
   });
 
   it('ClientRecordScreen moves delete to Gefahrenzone and uses master data modal', () => {
-    const record = readSrc('screens/business/office/ClientRecordScreen.tsx');
     expect(record).toContain('Gefahrenzone');
     expect(record).toContain('ClientMasterDataEditModal');
     expect(record).not.toContain('headerDelete');
@@ -78,6 +77,39 @@ describe('Client UI Reality Fix', () => {
     expect(documents).toContain('hasClientSignature');
     expect(documents).toContain('clientSignedIds.has(row.id)');
     expect(hook).toContain("editSections?.includes('vertraege_einwilligungen')");
+  });
+
+  it('recovers signed intake documents after interrupted client assignment writes', () => {
+    const documents = readSrc('features/intakeDocuments/intakeDocumentRepository.ts');
+    const hook = readSrc('hooks/useClientIntakeWizard.ts');
+    const record = readSrc('screens/business/office/ClientRecordScreen.tsx');
+    const migration = readFileSync(
+      path.join(
+        srcRoot,
+        '..',
+        'supabase',
+        'migrations',
+        '20260731090000_signed_intake_document_recovery.sql',
+      ),
+      'utf8',
+    );
+
+    const signatureLookup = documents.slice(
+      documents.indexOf("from('client_document_signatures')"),
+      documents.indexOf('if (signatureError)'),
+    );
+    expect(signatureLookup).not.toContain(".eq('client_id', clientId)");
+    expect(documents).toContain("update({ status: recoveredStatus })");
+    expect(hook).toContain('containsSignedDocument');
+    expect(hook).toContain('persistClientIntakeDocuments');
+    expect(record).toContain('loadClientIntakeDraft');
+    expect(record).toContain('draft.clientId !== id');
+    expect(record).toContain('persistClientIntakeDocuments');
+    expect(migration).toContain('sig.document_id = doc.id');
+    expect(migration).toContain("sig.signer_role = 'client'");
+    expect(migration).toContain('INSERT INTO public.client_documents');
+    expect(migration).toContain("status = 'active'");
+    expect(migration).toContain('no required intake document is left unsigned');
   });
 
   it('saves only production client columns and keeps derived sync non-blocking', () => {

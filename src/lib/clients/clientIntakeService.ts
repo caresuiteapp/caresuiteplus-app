@@ -189,6 +189,16 @@ export async function submitClientIntake(
       );
       if (!clientResult.ok) return clientResult;
 
+      // Signed documents are irreplaceable intake evidence. Persist them before
+      // any derived carrier, budget or module write that may fail independently.
+      const documentsResult = await persistClientIntakeDocuments(
+        tenantId,
+        clientResult.data.id,
+        form,
+        options?.actorProfileId ?? null,
+      );
+      if (!documentsResult.ok) return documentsResult;
+
       const carrierResult = await persistIntakeCostCarriers(
         tenantId,
         clientResult.data.id,
@@ -205,14 +215,6 @@ export async function submitClientIntake(
         { eventMode: 'create' },
       );
       if (!extendedResult.ok) return extendedResult;
-
-      const documentsResult = await persistClientIntakeDocuments(
-        tenantId,
-        clientResult.data.id,
-        form,
-        options?.actorProfileId ?? null,
-      );
-      if (!documentsResult.ok) return documentsResult;
 
       const portalModules = mapIntakeModulesToPortal(form.assignedModules);
       if (portalModules.length > 0) {

@@ -125,7 +125,6 @@ export async function loadPersistedIntakeDocumentsForClient(
     .from('client_document_signatures')
     .select('document_id, signer_role, signature_data, signed_at, signer_name')
     .eq('tenant_id', tenantId)
-    .eq('client_id', clientId)
     .in('document_id', documentIds);
   if (signatureError) {
     return { ok: false, error: toGermanSupabaseError(signatureError) };
@@ -564,7 +563,6 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
       .from('client_document_signatures')
       .select('document_id')
       .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
       .eq('signer_role', 'client')
       .in('document_id', documentIds);
     if (signatureError) {
@@ -582,6 +580,25 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
       row.status === 'pending_signature' && hasClientSignature;
     if (!isPersistedComplete && !isPendingAndSigned && !hasClientSignature) continue;
     if (!row.finalized_html && !row.preview_html) continue;
+    const recoveredStatus =
+      hasClientSignature && ['not_started', 'preview_open', 'pending_signature'].includes(row.status)
+        ? row.finalized_html
+          ? 'finalized'
+          : 'signed'
+        : row.status;
+
+    if (recoveredStatus !== row.status) {
+      const { error: recoveryError } = await db
+        .from('client_intake_documents')
+        .update({ status: recoveredStatus })
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .eq('id', row.id);
+      if (recoveryError) {
+        return { ok: false, error: toGermanSupabaseError(recoveryError) };
+      }
+    }
+
     const linked = await linkOrInsertPromotedIntakeDocument(db, {
       tenantId,
       clientId,
@@ -589,12 +606,7 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
       templateKey: row.template_key,
       documentType: row.document_type,
       title: row.title,
-      intakeStatus:
-        hasClientSignature && ['not_started', 'preview_open'].includes(row.status)
-          ? row.finalized_html
-            ? 'finalized'
-            : 'signed'
-          : row.status,
+      intakeStatus: recoveredStatus,
       actorProfileId,
     });
     if (!linked.ok) return linked;
