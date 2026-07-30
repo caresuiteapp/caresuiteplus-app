@@ -619,6 +619,7 @@ export async function transitionLiveEmployeePortalAssignment(
 
   const accessDenied = assertLiveEmployeeAssignmentAccess(tenantId, employeeId, roleKey, existing.data);
   if (accessDenied) return accessDenied;
+  const persistentAssignmentId = existing.data.id;
 
   const fromStatus = existing.data.assignmentStatus;
   if (fromStatus === toStatus) {
@@ -674,7 +675,7 @@ export async function transitionLiveEmployeePortalAssignment(
   // Assignments table is source of truth for portal execution (RLS + set_assignment_status RPC).
   const updated = await assignmentSupabaseRepository.updateStatus(
     tenantId,
-    executableAssignmentId,
+    persistentAssignmentId,
     toStatus,
     {
       actorProfileId: options?.profileId ?? undefined,
@@ -684,13 +685,13 @@ export async function transitionLiveEmployeePortalAssignment(
   if (!updated.ok) return updated;
   let detailAfterUpdate: AssignmentDetail = updated.data;
 
-  applyEmployeePortalTrackingForStatus(tenantId, executableAssignmentId, fromStatus, toStatus);
+  applyEmployeePortalTrackingForStatus(tenantId, persistentAssignmentId, fromStatus, toStatus);
   if (!options?.skipStatusPersistence) {
-    const entry = peekEmployeePortalTrackingEntry(tenantId, executableAssignmentId);
+    const entry = peekEmployeePortalTrackingEntry(tenantId, persistentAssignmentId);
     await persistEmployeePortalStatusTransition(
       {
         tenantId,
-        assignmentId: executableAssignmentId,
+        assignmentId: persistentAssignmentId,
         employeeId,
         profileId: options?.profileId ?? null,
         locationAddress: detailAfterUpdate.location,
@@ -704,7 +705,7 @@ export async function transitionLiveEmployeePortalAssignment(
 
   await mirrorAssistVisitStatusFromAssignment(
     tenantId,
-    executableAssignmentId,
+    persistentAssignmentId,
     toStatus,
     options?.profileId ?? null,
   );
@@ -713,7 +714,7 @@ export async function transitionLiveEmployeePortalAssignment(
   if (visitRow.ok && visitRow.data) {
     const reloaded = await loadEmployeePortalAssignmentDetail(
       tenantId,
-      executableAssignmentId,
+      persistentAssignmentId,
       employeeId,
     );
     if (reloaded.ok && reloaded.data) detailAfterUpdate = reloaded.data;
@@ -721,12 +722,12 @@ export async function transitionLiveEmployeePortalAssignment(
 
   const extras = await fetchAssignmentExtras(
     tenantId,
-    executableAssignmentId,
+    persistentAssignmentId,
     detailAfterUpdate.clientId,
   );
   const docFlags = await resolveEmployeePortalDocumentationFlags(
     tenantId,
-    assignmentId,
+    persistentAssignmentId,
     detailAfterUpdate.assignmentStatus,
     detailAfterUpdate.documentationNotes,
     employeeId,

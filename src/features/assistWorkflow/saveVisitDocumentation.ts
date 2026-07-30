@@ -123,7 +123,9 @@ export async function saveVisitDocumentation(
 ): Promise<ServiceResult<SaveVisitDocumentationResult>> {
   const { ctx } = input;
   const documentation = normalizeDocumentationInput(input.documentation);
-  const masterAssignmentId = resolveVisitMasterId(ctx.assignmentId);
+  const masterAssignmentId = resolveVisitMasterId(
+    ctx.detail.assignmentId || ctx.assignmentId,
+  );
 
   if (!documentation.shortDescription.trim()) {
     return assistWorkflowErrorToResult(
@@ -241,28 +243,36 @@ export async function saveVisitDocumentation(
 
   let updatedCtx = ctx;
   if (documentationPersisted && ctx.assignmentStatus === 'beendet') {
-    void transitionAssistExecutionStatus(ctx, 'dokumentation_offen', {
+    const transitioned = await transitionAssistExecutionStatus(ctx, 'dokumentation_offen', {
       hasServiceStarted: true,
       hasDocumentation: true,
-    }).then((transitioned) => {
-      if (transitioned.ok) {
-        void upsertAssistVisitExecutionState(
-          ctx.tenantId,
-          masterAssignmentId,
-          'dokumentation_offen',
-          {
-            employeeId: ctx.employeeId,
-            visitTimes: transitioned.data.visitTimes,
-            documentationComplete: true,
-          },
-        );
-      }
     });
-    updatedCtx = {
-      ...ctx,
-      assignmentStatus: 'dokumentation_offen',
-      derivedStatus: 'dokumentation_offen',
-    };
+    if (transitioned.ok) {
+      updatedCtx = transitioned.data;
+      await upsertAssistVisitExecutionState(
+        ctx.tenantId,
+        masterAssignmentId,
+        'dokumentation_offen',
+        {
+          employeeId: ctx.employeeId,
+          visitTimes: transitioned.data.visitTimes,
+          documentationComplete: true,
+        },
+      );
+    } else {
+      // The documentation is already durable. Keep the employee in the
+      // post-service workflow even when a legacy status mirror is temporarily
+      // unavailable; a later refresh can safely reconcile the status.
+      console.warn(
+        '[saveVisitDocumentation] documentation stored, status transition deferred:',
+        transitioned.error,
+      );
+      updatedCtx = {
+        ...ctx,
+        assignmentStatus: 'dokumentation_offen',
+        derivedStatus: 'dokumentation_offen',
+      };
+    }
   } else if (ctx.assignmentStatus === 'beendet') {
     const transitioned = await transitionAssistExecutionStatus(ctx, 'dokumentation_offen', {
       hasServiceStarted: true,

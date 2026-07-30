@@ -54,6 +54,27 @@ async function findVisitIdByLegacyAssignment(
   return String((data as { id: string }).id);
 }
 
+async function findLegacyAssignmentIdByVisit(
+  tenantId: string,
+  visitId: string,
+): Promise<string | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase || !isUuid(visitId)) return null;
+
+  const { data, error } = await fromUnknownTable(supabase, 'assist_visits')
+    .select('legacy_assignment_id')
+    .eq('tenant_id', tenantId)
+    .eq('id', visitId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  const legacyAssignmentId = (data as { legacy_assignment_id?: string | null })
+    .legacy_assignment_id;
+  return legacyAssignmentId && isUuid(legacyAssignmentId)
+    ? legacyAssignmentId
+    : null;
+}
+
 function assertScope(
   resolution: Omit<LiveAssignmentResolution, 'detail' | 'source'> & { detail: AssignmentDetail },
   input: ResolveLiveAssignmentInput,
@@ -161,26 +182,61 @@ export async function resolveLiveAssignment(
     };
   }
 
-  // Portal employee scope: never fall back to assist_visits when assignment row is filtered out.
-  if (input.employeeId?.trim()) {
-    return { ok: false, error: 'Einsatz nicht zugewiesen.' };
-  }
-
+  // Employee portal routes originate from assist_visits, while execution writes
+  // still use the linked assignments row in older tenants. The visit read is
+  // protected by portal RLS and assertScope below, so resolving this bridge does
+  // not widen access when an unrelated assignment row was filtered out.
   const fromVisit = await visitSupabaseRepository.getById(tenantId, masterId);
   if (!fromVisit.ok) return fromVisit;
   if (fromVisit.data) {
-    const detail = applyOccurrenceToAssignmentDetail(mapVisitDetailToAssignmentDetail(fromVisit.data));
-    const scope = assertScope(
+    const visitScope = assertScope(
       {
         assignmentId: rawId,
         visitId: masterId,
         clientId: fromVisit.data.clientId,
         employeeId: fromVisit.data.employeeId ?? null,
-        detail,
+        detail: mapVisitDetailToAssignmentDetail(fromVisit.data),
       },
       input,
     );
-    if (scope) return scope;
+    if (visitScope) return visitScope;
+
+    const legacyAssignmentId = await findLegacyAssignmentIdByVisit(tenantId, masterId);
+    if (legacyAssignmentId) {
+      const linkedAssignment = await assignmentSupabaseRepository.getById(
+        tenantId,
+        legacyAssignmentId,
+        { portalEmployeeId: input.employeeId },
+      );
+      if (!linkedAssignment.ok) return linkedAssignment;
+      if (linkedAssignment.data) {
+        const detail = applyOccurrenceToAssignmentDetail(linkedAssignment.data);
+        const linkedScope = assertScope(
+          {
+            assignmentId: legacyAssignmentId,
+            visitId: masterId,
+            clientId: detail.clientId,
+            employeeId: detail.employeeId || null,
+            detail,
+          },
+          input,
+        );
+        if (linkedScope) return linkedScope;
+        return {
+          ok: true,
+          data: {
+            assignmentId: legacyAssignmentId,
+            visitId: masterId,
+            clientId: detail.clientId,
+            employeeId: detail.employeeId || null,
+            detail,
+            source: 'legacy_bridge',
+          },
+        };
+      }
+    }
+
+    const detail = applyOccurrenceToAssignmentDetail(mapVisitDetailToAssignmentDetail(fromVisit.data));
     return {
       ok: true,
       data: {
