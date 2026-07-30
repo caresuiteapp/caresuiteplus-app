@@ -62,6 +62,42 @@ describe('Office-Einsatzprofile → Assist-Kalender → freigegebener Einsatz', 
     expect(clientPanel).toContain('Einsatzvorlagen & Leistungskatalog');
   });
 
+  it('repairs every Assist target column used by the real drop-release RPC', () => {
+    const repair = read(
+      'supabase/migrations/20260730213000_office_assignment_profile_release_schema_repair.sql',
+    );
+    const release = read(
+      'supabase/migrations/20260730193000_office_assignment_profiles_full_assist_templates.sql',
+    );
+
+    const visitColumns = [
+      'subject_key',
+      'assignment_type_key',
+      'service_category_key',
+      'task_package_id',
+      'billing_budget_source_key',
+      'documentation_template_key',
+      'proof_template_key',
+      'risk_flag_keys',
+      'catalog_snapshot_json',
+      'updated_by',
+    ];
+    const taskColumns = ['catalog_item_id', 'item_key', 'is_optional', 'payload_json'];
+
+    for (const column of visitColumns) {
+      expect(release).toContain(column);
+      expect(repair).toContain(`ADD COLUMN IF NOT EXISTS ${column}`);
+    }
+    for (const column of taskColumns) {
+      expect(release).toContain(column);
+      expect(repair).toContain(`ADD COLUMN IF NOT EXISTS ${column}`);
+    }
+
+    expect(repair).toContain("NOTIFY pgrst, 'reload schema'");
+    expect(repair).toContain('BEGIN;');
+    expect(repair).toContain('COMMIT;');
+  });
+
   it('uses drag and drop plus a time-only confirmation modal', () => {
     const planner = read(
       'src/components/calendar/OfficeAssignmentProfileCalendarPlanner.tsx',
