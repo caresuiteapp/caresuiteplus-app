@@ -17,6 +17,8 @@ const assignmentSupabaseRepository = vi.hoisted(() => ({
 }));
 
 const fetchVisitDispositionDetail = vi.hoisted(() => vi.fn());
+const resolveExecutableVisitId = vi.hoisted(() => vi.fn());
+const resolveVisitAndAssignmentIds = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/assist/repositories/visitRepository.supabase', () => ({
   visitSupabaseRepository,
@@ -28,6 +30,11 @@ vi.mock('@/lib/assist/repositories/assignmentRepository.supabase', () => ({
 
 vi.mock('@/lib/assist/visitService', () => ({
   fetchVisitDispositionDetail,
+  resolveExecutableVisitId,
+}));
+
+vi.mock('@/lib/assist/assistExecutionVisitResolver', () => ({
+  resolveVisitAndAssignmentIds,
 }));
 
 vi.mock('@/lib/services/mode', () => ({
@@ -104,7 +111,23 @@ describe('visitExecutionService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearVisitSignature(VISIT_ID);
+    resolveExecutableVisitId.mockResolvedValue({
+      ok: true,
+      data: { visitId: VISIT_ID, materialized: false },
+    });
     visitSupabaseRepository.resolveVisitId.mockResolvedValue(null);
+    visitSupabaseRepository.updateTask.mockResolvedValue({
+      ok: false,
+      error: 'Aufgabe nicht gefunden.',
+    });
+    assignmentSupabaseRepository.updateTask.mockResolvedValue({
+      ok: false,
+      error: 'Aufgabe nicht gefunden.',
+    });
+    resolveVisitAndAssignmentIds.mockResolvedValue({
+      visitId: VISIT_ID,
+      assignmentId: VISIT_ID,
+    });
     fetchVisitDispositionDetail.mockResolvedValue({ ok: true, data: baseDetail() });
   });
 
@@ -144,6 +167,45 @@ describe('visitExecutionService', () => {
         undefined,
       );
       expect(fetchVisitDispositionDetail).toHaveBeenCalled();
+    });
+
+    it('uses the linked legacy assignment id when visit and assignment ids differ', async () => {
+      const linkedVisitId = '919c2d7d-5cef-4936-ab8e-f298680a1c96';
+      const linkedAssignmentId = '394f8400-ecae-476b-bf15-d6b7fd29d297';
+      resolveVisitAndAssignmentIds.mockResolvedValue({
+        visitId: linkedVisitId,
+        assignmentId: linkedAssignmentId,
+      });
+      visitSupabaseRepository.resolveVisitId.mockResolvedValue(linkedVisitId);
+      visitSupabaseRepository.updateTask.mockResolvedValue({
+        ok: false,
+        error: 'Aufgabe nicht gefunden.',
+      });
+      assignmentSupabaseRepository.updateTask.mockResolvedValue({ ok: true, data: undefined });
+
+      const result = await updateVisitTaskStatus(
+        VISIT_ID,
+        TASK_ID,
+        TENANT,
+        'done',
+        ADMIN,
+      );
+
+      expect(result.ok).toBe(true);
+      expect(visitSupabaseRepository.updateTask).toHaveBeenCalledWith(
+        TENANT,
+        linkedVisitId,
+        TASK_ID,
+        'done',
+        undefined,
+      );
+      expect(assignmentSupabaseRepository.updateTask).toHaveBeenCalledWith(
+        TENANT,
+        linkedAssignmentId,
+        TASK_ID,
+        'done',
+        undefined,
+      );
     });
 
     it('does not treat 0-row visit update as success when error is not task-not-found', async () => {

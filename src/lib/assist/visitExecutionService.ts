@@ -9,6 +9,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { isResolvableVisitId, resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { fetchVisitDispositionDetail, resolveExecutableVisitId } from '@/lib/assist/visitService';
+import { resolveVisitAndAssignmentIds } from '@/lib/assist/assistExecutionVisitResolver';
 
 const VISIT_TASK_REASON_STATUSES: VisitTaskStatus[] = [
   'partial',
@@ -59,8 +60,11 @@ export async function updateVisitTaskStatus(
     if (!executable.ok) return executable;
     const executableVisitId = executable.data.visitId;
 
-    const masterAssignmentId = resolveVisitMasterId(executableVisitId);
-    const resolvedVisitId = await visitSupabaseRepository.resolveVisitId(tenantId, executableVisitId);
+    const resolvedIds = await resolveVisitAndAssignmentIds(tenantId, executableVisitId);
+    const masterAssignmentId = resolveVisitMasterId(resolvedIds.assignmentId);
+    const resolvedVisitId =
+      (await visitSupabaseRepository.resolveVisitId(tenantId, resolvedIds.visitId))
+      ?? resolvedIds.visitId;
 
     if (resolvedVisitId) {
       const visitUpdate = await visitSupabaseRepository.updateTask(
@@ -75,7 +79,6 @@ export async function updateVisitTaskStatus(
       }
       const compatibilityFailure =
         visitUpdate.error === 'Aufgabe nicht gefunden.'
-        || visitUpdate.error.includes('Datenbank')
         || visitUpdate.error.includes('Schema')
         || visitUpdate.error.includes('Tabelle nicht verfügbar');
       if (!compatibilityFailure) return visitUpdate;

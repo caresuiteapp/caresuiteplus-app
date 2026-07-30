@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -7,6 +8,7 @@ import {
   Text,
   useWindowDimensions,
   View,
+  type ViewStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AssistExecutionProblemInboxPanel } from '@/components/assist/AssistExecutionProblemInboxPanel';
@@ -245,8 +247,13 @@ export function AssistLiveStatusScreen() {
       scroll={false}
     >
       <ScrollView
+        style={styles.scrollViewport}
         contentContainerStyle={styles.scroll}
+        nestedScrollEnabled
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}
+        testID="assist-live-status-scroll"
       >
         <InfoBanner variant="info" title="Nur Anzeige" message={overview?.readOnlyNotice ?? ''} />
 
@@ -291,6 +298,22 @@ export function AssistLiveStatusScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollViewport: {
+    flex: 1,
+    minHeight: 0,
+    minWidth: 0,
+    width: '100%',
+    ...(Platform.OS === 'web'
+      ? ({
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y',
+          overscrollBehavior: 'contain',
+          scrollbarGutter: 'stable',
+        } as unknown as ViewStyle)
+      : null),
+  },
   scroll: { paddingBottom: spacing.xxl, gap: spacing.md },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   splitRow: { flexDirection: 'row', gap: spacing.lg, alignItems: 'flex-start' },
