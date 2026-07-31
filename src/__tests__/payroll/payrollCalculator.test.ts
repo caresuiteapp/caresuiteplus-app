@@ -56,6 +56,20 @@ describe('payrollCalculator', () => {
     expect(result.projectedGrossCents).toBe(200_000);
   });
 
+  it('begrenzt den Minijob bei 15 Euro auf 40,2 Stunden und überträgt 13:49 Stunden', () => {
+    const result = calculatePayrollSnapshot({
+      ...base,
+      compensationAmount: 15,
+      maxPayoutHours: 40.2,
+      actualWorkMinutes: 3_241,
+      vacationMinutes: 0,
+      targetWorkMinutes: 2_412,
+    });
+    expect(result.payableMinutes).toBe(2_412);
+    expect(result.earnedGrossCents).toBe(60_300);
+    expect(result.overtimeTransferMinutes).toBe(829);
+  });
+
   it('respektiert die manuelle Prüfung statt automatischem Zeitkonto-Übertrag', () => {
     const result = calculatePayrollSnapshot({ ...base, maxPayoutHours: 100, overflowToTimeAccount: false });
     expect(result.payableMinutes).toBe(6_000);

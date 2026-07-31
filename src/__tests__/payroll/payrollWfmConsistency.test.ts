@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { resolvePayrollPerformedMinutes } from '@/lib/payroll/payrollMonthService';
+import {
+  employeeAssignmentTimeLines,
+  resolvePayrollMaxPayoutHours,
+  resolvePayrollPerformedMinutes,
+} from '@/lib/payroll/payrollMonthService';
+import type {
+  WfmOfficeEmployeeTimeAccount,
+  WfmOfficePlannedVisit,
+} from '@/types/modules/wfmOfficeTimekeeping';
 
 const payrollService = readFileSync(
   join(process.cwd(), 'src/lib/payroll/payrollMonthService.ts'),
@@ -63,7 +71,58 @@ describe('Payroll und WFM verwenden einen gemeinsamen aktuellen Datenstand', () 
       status: 'unterschrift_offen',
       explicitMinutes: 127,
       plannedMinutes: 120,
+    })).toBe(120);
+    expect(resolvePayrollPerformedMinutes({
+      status: 'gestartet',
+      explicitMinutes: 127,
+      plannedMinutes: 120,
     })).toBe(127);
+  });
+
+  it('merges an orphaned WFM booking into the matching assignment instead of counting it twice', () => {
+    const visit = {
+      assignmentId: 'visit-1', visitId: 'visit-1', tenantId: 'tenant-1', employeeId: 'employee-1',
+      workDate: '2026-07-20', plannedStartAt: '2026-07-20T13:00:00.000Z',
+      plannedEndAt: '2026-07-20T15:00:00.000Z', plannedDurationMinutes: 120,
+      clientLabel: 'Heinz-Peter Reinhardt', assignmentTitle: 'Alltagsbegleitung',
+      assignmentStatus: 'abgeschlossen',
+    } satisfies WfmOfficePlannedVisit;
+    const account = {
+      entries: [{
+        id: 'legacy-entry-1', assignmentId: null, workDate: '2026-07-20',
+        plannedStartAt: visit.plannedStartAt, plannedEndAt: visit.plannedEndAt,
+        actualStartAt: '2026-07-20T13:15:00.000Z', actualEndAt: '2026-07-20T14:45:00.000Z',
+        assignmentActualStartAt: null, assignmentActualEndAt: null,
+        actualDisplayStatus: 'captured', netMinutes: 90, travelMinutes: 0,
+        assignmentStatus: 'abgeschlossen', reviewStatus: 'open',
+        plannedDurationMinutes: 120, employeeId: 'employee-1', employeeName: 'Mhi Aldeen Al Jlelati',
+        tenantId: 'tenant-1', visitId: null, clientLabel: 'Heinz-Peter Reinhardt',
+        assignmentTitle: 'Alltagsbegleitung', plannedMinutes: 120,
+      }],
+    } as unknown as WfmOfficeEmployeeTimeAccount;
+
+    const lines = employeeAssignmentTimeLines(account, [visit], 'employee-1');
+    expect(lines).toHaveLength(1);
+    expect(lines[0]?.assignmentId).toBe('visit-1');
+    expect(lines[0]?.plannedMinutes).toBe(120);
+    expect(lines[0]?.actualMinutes).toBe(120);
+  });
+
+  it('derives the 2026 minijob cap from personnel employment type and hourly wage', () => {
+    expect(resolvePayrollMaxPayoutHours({
+      periodYear: 2026,
+      employmentType: 'mini_job',
+      compensationType: 'hourly',
+      compensationAmount: 15,
+      configuredMaxPayoutHours: null,
+    })).toBe(40.2);
+    expect(resolvePayrollMaxPayoutHours({
+      periodYear: 2026,
+      employmentType: 'part_time',
+      compensationType: 'hourly',
+      compensationAmount: 15,
+      configuredMaxPayoutHours: null,
+    })).toBeNull();
   });
 
   it('refreshes reviews, time accounts and payroll through the shared WFM subscription', () => {

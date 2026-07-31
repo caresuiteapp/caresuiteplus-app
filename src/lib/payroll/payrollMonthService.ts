@@ -53,6 +53,39 @@ const asNullableString = (value: unknown): string | null => {
 };
 const asNumber = (value: unknown): number => typeof value === 'number' && Number.isFinite(value) ? value : 0;
 
+const MINIJOB_MONTHLY_LIMIT_CENTS: Record<number, number> = {
+  2024: 53_800,
+  2025: 55_600,
+  2026: 60_300,
+  2027: 63_300,
+};
+
+export function isMiniJobEmploymentType(value: unknown): boolean {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  return normalized === 'mini_job' || normalized === 'minijob';
+}
+
+export function resolvePayrollMaxPayoutHours(input: {
+  periodYear: number;
+  employmentType: unknown;
+  compensationType: unknown;
+  compensationAmount: unknown;
+  configuredMaxPayoutHours: unknown;
+}): number | null {
+  const configured = input.configuredMaxPayoutHours == null
+    ? null
+    : asNumber(input.configuredMaxPayoutHours);
+  if (!isMiniJobEmploymentType(input.employmentType) || input.compensationType !== 'hourly') {
+    return configured;
+  }
+
+  const hourlyRateCents = Math.round(asNumber(input.compensationAmount) * 100);
+  const monthlyLimitCents = MINIJOB_MONTHLY_LIMIT_CENTS[input.periodYear];
+  if (!monthlyLimitCents || hourlyRateCents <= 0) return configured;
+  const statutoryHours = monthlyLimitCents / hourlyRateCents;
+  return configured == null ? statutoryHours : Math.min(configured, statutoryHours);
+}
+
 function mapExpense(row: Row): PayrollExpenseClaim {
   return {
     id: asString(row.id), tenantId: asString(row.tenant_id), employeeId: asString(row.employee_id),
@@ -181,13 +214,14 @@ export function resolvePayrollPerformedMinutes(input: {
   actualEndAt?: string | null;
   plannedMinutes: number;
 }): number {
+  if (isPayrollConductedAssignmentStatus(input.status) && input.plannedMinutes > 0) {
+    return Math.max(0, Math.round(input.plannedMinutes));
+  }
   const explicitMinutes = Math.max(0, Math.round(input.explicitMinutes ?? 0));
   if (explicitMinutes > 0) return explicitMinutes;
   const capturedMinutes = minutesBetween(input.actualStartAt, input.actualEndAt);
   if (capturedMinutes > 0) return capturedMinutes;
-  return isPayrollConductedAssignmentStatus(input.status)
-    ? Math.max(0, Math.round(input.plannedMinutes))
-    : 0;
+  return 0;
 }
 
 function plannedDurationForVisit(visit: WfmOfficePlannedVisit): number {
@@ -220,7 +254,32 @@ function plannedVisitLine(visit: WfmOfficePlannedVisit): PayrollAssignmentTimeLi
   };
 }
 
-function employeeAssignmentTimeLines(
+function samePayrollTimestamp(left: string | null | undefined, right: string | null | undefined): boolean {
+  if (!left || !right) return false;
+  const leftTime = new Date(left).getTime();
+  const rightTime = new Date(right).getTime();
+  return Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime === rightTime;
+}
+
+function resolvePayrollEntryKey(
+  entry: WfmOfficeEmployeeTimeAccount['entries'][number],
+  byKey: Map<string, PayrollAssignmentTimeLine>,
+): string {
+  if (entry.assignmentId) return `assignment:${entry.assignmentId}`;
+
+  for (const [key, line] of byKey.entries()) {
+    if (!key.startsWith('assignment:') || line.workDate !== entry.workDate) continue;
+    const plannedRangeMatches = samePayrollTimestamp(line.plannedStartAt, entry.plannedStartAt)
+      && samePayrollTimestamp(line.plannedEndAt, entry.plannedEndAt);
+    const actualRangeMatches = samePayrollTimestamp(line.actualStartAt, entry.actualStartAt ?? entry.assignmentActualStartAt)
+      && samePayrollTimestamp(line.actualEndAt, entry.actualEndAt ?? entry.assignmentActualEndAt);
+    if (plannedRangeMatches || actualRangeMatches) return key;
+  }
+
+  return `entry:${entry.id}`;
+}
+
+export function employeeAssignmentTimeLines(
   account: WfmOfficeEmployeeTimeAccount | undefined,
   visits: WfmOfficePlannedVisit[],
   employeeId: string,
@@ -231,7 +290,7 @@ function employeeAssignmentTimeLines(
     byKey.set(`assignment:${visit.assignmentId}`, plannedVisitLine(visit));
   }
   for (const entry of account?.entries ?? []) {
-    const key = entry.assignmentId ? `assignment:${entry.assignmentId}` : `entry:${entry.id}`;
+    const key = resolvePayrollEntryKey(entry, byKey);
     const existing = byKey.get(key);
     const plannedMinutes = existing?.plannedMinutes
       ?? entry.plannedDurationMinutes
@@ -254,7 +313,7 @@ function employeeAssignmentTimeLines(
       plannedMinutes,
     });
     byKey.set(key, {
-      assignmentId: entry.assignmentId,
+      assignmentId: entry.assignmentId ?? existing?.assignmentId ?? null,
       workDate: entry.workDate,
       clientLabel: entry.clientLabel ?? existing?.clientLabel ?? null,
       assignmentTitle: entry.assignmentTitle?.trim() || existing?.assignmentTitle || 'Arbeitszeit',
@@ -325,9 +384,14 @@ function buildEmployeeSnapshot(input: {
     (sum, line) => sum + line.plannedMinutes,
     0,
   );
-  const configuredMaxPayoutHours = input.payroll?.max_payout_hours_month == null
-    ? null
-    : asNumber(input.payroll.max_payout_hours_month);
+  const miniJob = isMiniJobEmploymentType(input.employee.employment_type);
+  const configuredMaxPayoutHours = resolvePayrollMaxPayoutHours({
+    periodYear: input.year,
+    employmentType: input.employee.employment_type,
+    compensationType: input.payroll?.compensation_type,
+    compensationAmount: input.payroll?.compensation_amount,
+    configuredMaxPayoutHours: input.payroll?.max_payout_hours_month,
+  });
   const contractualTargetMinutes = configuredMaxPayoutHours == null
     ? account?.targetMinutes ?? 0
     : Math.round(configuredMaxPayoutHours * 60);
@@ -346,7 +410,7 @@ function buildEmployeeSnapshot(input: {
     compensationType: asString(input.payroll?.compensation_type) === 'hourly' ? 'hourly' : 'salary',
     compensationAmount: asNumber(input.payroll?.compensation_amount),
     maxPayoutHours: configuredMaxPayoutHours,
-    overflowToTimeAccount: input.payroll?.overflow_to_time_account !== false,
+    overflowToTimeAccount: miniJob ? true : input.payroll?.overflow_to_time_account !== false,
     actualWorkMinutes,
     travelMinutes: account?.travelMinutes ?? 0, vacationMinutes, sickMinutes, otherPaidAbsenceMinutes,
     targetWorkMinutes: contractualTargetMinutes,
@@ -380,7 +444,7 @@ export async function listPayrollMonthOverview(
   const next = followingPeriod(year, month);
   const nextRange = periodRange(next.year, next.month);
   const [employeesRes, payrollRes, contractRes, timeAccountsRes, absencesRes, expensesRes, statementsRes, plannedRes, nextPlannedRes, portalUploadsRes] = await Promise.all([
-    fromUnknownTable(supabase, 'employees').select('id, first_name, last_name, employee_number, status').eq('tenant_id', tenantId).order('last_name'),
+    fromUnknownTable(supabase, 'employees').select('id, first_name, last_name, employee_number, employment_type, status').eq('tenant_id', tenantId).order('last_name'),
     fromUnknownTable(supabase, 'employee_payroll_settings').select('employee_id, compensation_type, compensation_amount, max_payout_hours_month, overflow_to_time_account, mileage_rate_cents').eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'employee_contract_settings').select('employee_id, work_days').eq('tenant_id', tenantId),
     getWfmOfficeEmployeeTimeAccounts(tenantId, actorRoleKey ?? null, {

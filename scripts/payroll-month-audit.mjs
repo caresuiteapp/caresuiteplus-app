@@ -58,6 +58,11 @@ mustContain('src/lib/payroll/payrollMonthService.ts', [
   'dokumentation_offen',
   'unterschrift_offen',
   'assignmentActualMinutes',
+  'resolvePayrollEntryKey',
+  "key.startsWith('assignment:')",
+  'resolvePayrollMaxPayoutHours',
+  'MINIJOB_MONTHLY_LIMIT_CENTS',
+  'employment_type',
 ]);
 mustContain('src/screens/portal/EmployeePayrollMonthScreen.tsx', [
   'Verbindlich bestätigen',
