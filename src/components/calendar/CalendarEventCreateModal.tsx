@@ -79,7 +79,9 @@ function eventToForm(event: CalendarEvent): ReturnType<typeof createDefaultFormS
     isClientPortalVisible: record?.isClientPortalVisible ?? false,
     isEmployeePortalVisible: record?.isEmployeePortalVisible ?? false,
     sourceType: record?.sourceType ?? 'custom_event',
-    eventType: record?.eventType ?? event.type,
+    eventType:
+      record?.eventType
+      ?? (event.type === 'geburtstag' || event.type === 'feiertag' ? 'termin' : event.type),
     templateKey: null,
   };
 }
