@@ -34,6 +34,7 @@ function buildIntakeClientRecord(
     tenant_id: tenantId,
     first_name: form.firstName.trim(),
     last_name: form.lastName.trim(),
+    salutation: form.salutation.trim() || null,
     date_of_birth: form.dateOfBirth || null,
     care_level: (form.careLevel.trim() || null) as Database['public']['Enums']['care_level'] | null,
     status,
@@ -49,6 +50,10 @@ function buildIntakeClientRecord(
     insurance_name: primaryCostBearerName,
     cost_bearer: primaryCostBearerName,
     admission_date: form.admissionDate || null,
+    service_start: form.serviceStart || null,
+    housing_form: form.housingForm.trim() || null,
+    special_notes: form.specialNotes.trim() || null,
+    preferred_contact: form.preferredContact.trim() || null,
     gender: form.gender || null,
     created_by: actorProfileId ?? null,
     updated_by: actorProfileId ?? null,
@@ -71,20 +76,27 @@ export async function updateClientFromIntake(
   const updateRecord: Database['public']['Tables']['clients']['Update'] = {
     updated_by: actorProfileId ?? null,
   };
+  const expectedReadback: Record<string, unknown> = {};
 
   if (shouldUpdate('stammdaten')) {
-    Object.assign(updateRecord, {
+    const masterDataPatch = {
       first_name: form.firstName.trim(),
       last_name: form.lastName.trim(),
+      salutation: form.salutation.trim() || null,
       date_of_birth: form.dateOfBirth || null,
       gender: form.gender || null,
       admission_date: form.admissionDate || null,
+      service_start: form.serviceStart || null,
+      housing_form: form.housingForm.trim() || null,
       internal_notes: form.specialNotes.trim() || null,
+      special_notes: form.specialNotes.trim() || null,
       status: workflowStatusToRemote(form.status as WorkflowStatus),
-    });
+    };
+    Object.assign(updateRecord, masterDataPatch);
+    Object.assign(expectedReadback, masterDataPatch);
   }
   if (shouldUpdate('adresse_kontakt')) {
-    Object.assign(updateRecord, {
+    const contactPatch = {
       street: form.street.trim() || null,
       house_number: form.houseNumber.trim() || null,
       postal_code: form.zip.trim() || null,
@@ -92,27 +104,36 @@ export async function updateClientFromIntake(
       phone: form.phone.trim() || null,
       mobile: form.mobile.trim() || null,
       email: form.email.trim() || null,
-    });
+      preferred_contact: form.preferredContact.trim() || null,
+    };
+    Object.assign(updateRecord, contactPatch);
+    Object.assign(expectedReadback, contactPatch);
   }
   if (shouldUpdate('versorgung')) {
-    updateRecord.care_level = (
+    const careLevel = (
       form.careLevel.trim() || null
     ) as Database['public']['Enums']['care_level'] | null;
+    updateRecord.care_level = careLevel;
+    expectedReadback.care_level = careLevel;
   }
   if (shouldUpdate('kostentraeger')) {
     const primaryCostBearerName = resolvePrimaryCostBearerName(form);
-    Object.assign(updateRecord, {
+    const costBearerPatch = {
       insurance_number: form.insuranceNumber.trim() || null,
       insurance_name: primaryCostBearerName,
       cost_bearer: primaryCostBearerName,
-    });
+    };
+    Object.assign(updateRecord, costBearerPatch);
+    Object.assign(expectedReadback, costBearerPatch);
   }
   if (shouldUpdate('notfall_zugang')) {
-    Object.assign(updateRecord, {
+    const accessPatch = {
       access_notes: form.accessNotes.trim() || null,
       floor: form.floor.trim() || null,
       pets: form.pets.trim() || null,
-    });
+    };
+    Object.assign(updateRecord, accessPatch);
+    Object.assign(expectedReadback, accessPatch);
   }
 
   const { data, error } = await supabase
@@ -120,11 +141,22 @@ export async function updateClientFromIntake(
     .update(updateRecord)
     .eq('id', clientId)
     .eq('tenant_id', tenantId)
-    .select('id')
+    .select('*')
     .single();
 
   if (error || !data) {
     return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  const persisted = data as unknown as Record<string, unknown>;
+  const mismatchedFields = Object.entries(expectedReadback)
+    .filter(([key, value]) => persisted[key] !== value)
+    .map(([key]) => key);
+  if (mismatchedFields.length > 0) {
+    return {
+      ok: false,
+      error: `Stammdaten wurden nicht vollständig übernommen: ${mismatchedFields.join(', ')}.`,
+    };
   }
 
   return { ok: true, data: { id: data.id } };

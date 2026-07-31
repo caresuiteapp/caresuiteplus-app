@@ -18520,6 +18520,11 @@ export type Database = {
           internal_notes: string | null
           key_management_notes: string | null
           last_name: string
+          salutation: string | null
+          service_start: string | null
+          housing_form: string | null
+          special_notes: string | null
+          preferred_contact: string | null
           mobile: string | null
           mobility_notes: string | null
           pets: string | null
@@ -18567,6 +18572,11 @@ export type Database = {
           internal_notes?: string | null
           key_management_notes?: string | null
           last_name: string
+          salutation?: string | null
+          service_start?: string | null
+          housing_form?: string | null
+          special_notes?: string | null
+          preferred_contact?: string | null
           mobile?: string | null
           mobility_notes?: string | null
           pets?: string | null
@@ -18614,6 +18624,11 @@ export type Database = {
           internal_notes?: string | null
           key_management_notes?: string | null
           last_name?: string
+          salutation?: string | null
+          service_start?: string | null
+          housing_form?: string | null
+          special_notes?: string | null
+          preferred_contact?: string | null
           mobile?: string | null
           mobility_notes?: string | null
           pets?: string | null

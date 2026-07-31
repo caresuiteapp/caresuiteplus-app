@@ -19,7 +19,7 @@ async function fetchIntakeSnapshot(
   const [clientResult, supportResult, ambulatoryResult, stationaryResult, insuranceResult] =
     await Promise.all([
       fromUnknownTable(supabase, 'clients')
-        .select('admission_date, service_start, birth_place, nationality, language, marital_status, housing_form, special_notes')
+        .select('admission_date, service_start, birth_place, nationality, language, marital_status, housing_form, special_notes, preferred_contact')
         .eq('tenant_id', tenantId)
         .eq('id', clientId)
         .maybeSingle(),
@@ -65,6 +65,7 @@ async function fetchIntakeSnapshot(
     maritalStatus: text(client, 'marital_status'),
     housingForm: text(client, 'housing_form'),
     specialNotes: text(client, 'special_notes'),
+    preferredContact: text(client, 'preferred_contact'),
     supportWishes: strings(support, 'support_wishes'),
     preferredTimes: strings(support, 'preferred_times'),
     excludedTimes: strings(support, 'excluded_times'),
