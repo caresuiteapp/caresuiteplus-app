@@ -16,7 +16,7 @@ export const EMPLOYEE_PORTAL_NAV_TABS: ShellTabConfig[] = [
     key: 'signatures',
     label: 'Dokumente & Unterschriften',
     icon: '✍️',
-    href: '/portal/employee/signatures',
+    href: '/portal/employee/documents/signatures',
   },
   {
     key: 'time-tracking',

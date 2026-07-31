@@ -9,19 +9,21 @@ function readSrc(relativePath: string): string {
 describe('Portal Tab Heroes (Sprint 53)', () => {
   it('PortalTabHero nutzt PremiumListHeroFrame für beide Portale', () => {
     const hero = readSrc('src/components/portal/PortalTabHero.tsx');
+    const content = readSrc('src/components/portal/portalTabHeroContent.ts');
     expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('portal_employee');
     expect(hero).toContain('portal_client');
-    expect(hero).toContain('MITARBEITERPORTAL');
-    expect(hero).toContain('KLIENT:INNENPORTAL');
+    expect(content).toContain('MITARBEITERPORTAL');
+    expect(content).toContain('KLIENT:INNENPORTAL');
   });
 
   it('PortalTabHero deckt Nachrichten, Dokumente und Einsätze ab', () => {
     const hero = readSrc('src/components/portal/PortalTabHero.tsx');
+    const content = readSrc('src/components/portal/portalTabHeroContent.ts');
     expect(hero).toContain("'messages'");
     expect(hero).toContain("'documents'");
     expect(hero).toContain("'appointments'");
-    expect(hero).toContain('Einsätze');
+    expect(content).toContain('Einsätze');
   });
 
   it('PortalMessagesTab integriert PortalTabHero', () => {

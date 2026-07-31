@@ -2,6 +2,14 @@ import type { PortalModuleKey, PortalTerminology } from '@/lib/portal/types';
 import { PORTAL_MODULE_LABELS } from './portalModuleKeys';
 
 const TERMINOLOGY_BY_MODULE: Record<PortalModuleKey, PortalTerminology> = {
+  office: {
+    greetingLabel: 'Willkommen in Ihrem Organisationsportal',
+    appointmentLabel: 'Termin',
+    appointmentLabelPlural: 'Termine',
+    personLabel: 'Portalnutzer:in',
+    careTeamLabel: 'Verwaltung',
+    moduleLabel: 'Office',
+  },
   assist: {
     greetingLabel: 'Willkommen in Ihrem Assist-Portal',
     appointmentLabel: 'Einsatz',
@@ -33,6 +41,14 @@ const TERMINOLOGY_BY_MODULE: Record<PortalModuleKey, PortalTerminology> = {
     personLabel: 'Klient:in',
     careTeamLabel: 'Beratungsteam',
     moduleLabel: 'Beratung',
+  },
+  akademie: {
+    greetingLabel: 'Willkommen in Ihrem Lernportal',
+    appointmentLabel: 'Lerntermin',
+    appointmentLabelPlural: 'Lerntermine',
+    personLabel: 'Teilnehmer:in',
+    careTeamLabel: 'Akademie-Team',
+    moduleLabel: 'Akademie',
   },
 };
 

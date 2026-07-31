@@ -79,17 +79,18 @@ describe('resolvePortalHeroCopy', () => {
 });
 
 describe('Assist portal mobile layout', () => {
-  it('MobilePortalDashboard uses time-based greeting on phone', () => {
+  it('MobilePortalDashboard uses the shared personalized greeting on phone', () => {
     const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');
-    expect(mobile).toContain('resolveTimeBasedGermanGreeting');
-    expect(mobile).toContain('titleSecondary={context.displayName}');
+    expect(mobile).toContain('resolveClientPortalHeroLines');
+    expect(mobile).toContain('titleSecondary={heroLines.nameLine}');
     expect(mobile).toContain('showStatusDot');
     expect(mobile).not.toContain('resolvePortalHeroCopy');
     expect(mobile).not.toContain('ScrollView');
   });
   it('client portal tabs layout delegates shell to root layout', () => {
     const layout = readSrc('app/portal/client/_layout.tsx');
-    expect(layout).toContain('ClientPortalShell');
+    expect(layout).toContain('LiquidPortalRouteLayout');
+    expect(layout).toContain('kind="client"');
   });
 
   it('delegates phone overview to MobilePortalDashboard without touching desktop JSX', () => {
@@ -109,7 +110,7 @@ describe('Assist portal mobile layout', () => {
     expect(mobile).toContain('MobilePortalKpiCard');
     expect(mobile).toContain('MobilePortalSidebarCards');
     expect(mobile).toContain('emptyActionLabel="Einsatz anfragen"');
-    expect(mobile).toContain('Wichtig für Sie');
+    expect(mobile).toContain('Auf einen Blick');
     expect(mobile).not.toContain('PortalQuickActions');
   });
 
@@ -180,7 +181,7 @@ describe('Assist portal mobile layout', () => {
     expect(screen).toContain('hideHeaderOnPhone');
     const route = readSrc('app/portal/client/(tabs)/index.tsx');
     expect(route).toContain('hideHeaderOnPhone');
-    expect(route).toContain('scroll={false}');
+    expect(route).toContain('scroll');
   });
 
   it('desktop shell layout unchanged at >=1200px breakpoint', () => {

@@ -105,14 +105,33 @@ export function PortalTabScreen({
   }
 
   if (isPhone && hideHeaderOnPhone) {
+    const page = (
+      <View style={[styles.bareContent, scroll ? null : styles.bareContentFill, barePaddingStyle]}>
+        {!messengerFocusActive && (subtitle || eyebrow) ? (
+          <PortalMobileTabHeader title={title} subtitle={subtitle} eyebrow={eyebrow} />
+        ) : null}
+        {children}
+      </View>
+    );
+
+    if (scroll && !messengerFocusActive) {
+      return (
+        <ScrollView
+          contentContainerStyle={styles.bareScrollContent}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+          showsVerticalScrollIndicator
+          style={styles.bareScrollViewport}
+          testID="client-portal-tab-scroll"
+        >
+          {page}
+        </ScrollView>
+      );
+    }
+
     return (
       <View style={[styles.bare, messengerFocusActive ? styles.bareFocus : null]} testID="portal-tab-bare">
-        <View style={[styles.bareContent, barePaddingStyle]}>
-          {!messengerFocusActive && (subtitle || eyebrow) ? (
-            <PortalMobileTabHeader title={title} subtitle={subtitle} eyebrow={eyebrow} />
-          ) : null}
-          {children}
-        </View>
+        {page}
       </View>
     );
   }
@@ -174,5 +193,28 @@ const styles = StyleSheet.create({
   bareContent: {
     width: '100%',
     gap: spacing.md,
+  },
+  bareContentFill: {
+    flex: 1,
+    minHeight: 0,
+  },
+  bareScrollViewport: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    width: '100%',
+    ...(Platform.OS === 'web'
+      ? ({
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          touchAction: 'pan-y',
+          WebkitOverflowScrolling: 'touch',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  bareScrollContent: {
+    flexGrow: 1,
+    width: '100%',
+    minWidth: 0,
   },
 });

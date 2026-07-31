@@ -1,5 +1,5 @@
-import { PortalAccessScreen } from '@/liquid-command/screens/AccessScreens';
+import { Redirect } from 'expo-router';
 
 export default function FamilyAccessRoute() {
-  return <PortalAccessScreen portal="family" />;
+  return <Redirect href="/auth/client-login" />;
 }

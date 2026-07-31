@@ -98,72 +98,81 @@ export async function resolveEmployeePortalDocumentationFlags(
   let visitDocumentationComplete = false;
 
   if (supabase && visitId) {
-    const { data: assignmentRow, error: assignmentError } = await fromUnknownTable(
-      supabase,
-      'assignments',
-    )
-      .select('operational_context')
-      .eq('tenant_id', tenantId)
-      .eq('id', resolveVisitMasterId(assignmentId))
-      .maybeSingle();
+    try {
+      const { data: assignmentRow, error: assignmentError } = await fromUnknownTable(
+        supabase,
+        'assignments',
+      )
+        .select('operational_context')
+        .eq('tenant_id', tenantId)
+        .eq('id', resolveVisitMasterId(assignmentId))
+        .maybeSingle();
 
-    if (!assignmentError && assignmentRow?.operational_context) {
-      const context =
-        typeof assignmentRow.operational_context === 'object'
-        && !Array.isArray(assignmentRow.operational_context)
-          ? assignmentRow.operational_context as Record<string, unknown>
-          : null;
-      const requirements =
-        context?.requirements
-        && typeof context.requirements === 'object'
-        && !Array.isArray(context.requirements)
-          ? context.requirements as Record<string, unknown>
-          : null;
-      if (typeof requirements?.signature === 'boolean') {
-        requiresSignature = requirements.signature;
-      }
-      if (typeof requirements?.documentation === 'boolean') {
-        requiresDocumentation = requirements.documentation;
-      }
-    }
-
-    const { data: visitRow, error: visitError } = await fromUnknownTable(supabase, 'assist_visits')
-      .select('service_key, proof_status, proof_template_key, documentation_status')
-      .eq('tenant_id', tenantId)
-      .eq('id', visitId)
-      .maybeSingle();
-
-    if (!visitError && visitRow) {
-      const proofStatus = String(visitRow.proof_status ?? '');
-      if (proofStatus === 'pending' || proofStatus === 'signed') {
-        requiresSignature = true;
-      }
-
-      const proofTemplateKey = String(visitRow.proof_template_key ?? '').trim();
-      if (proofTemplateKey) {
-        requiresSignature = true;
-      }
-
-      visitDocumentationComplete = String(visitRow.documentation_status ?? '') === 'complete';
-
-      const serviceKey = String(visitRow.service_key ?? '').trim();
-      if (serviceKey) {
-        const { data: catalogRow, error: catalogError } = await fromUnknownTable(
-          supabase,
-          'assist_service_catalog_items',
-        )
-          .select('requires_signature, requires_documentation')
-          .eq('tenant_id', tenantId)
-          .eq('service_key', serviceKey)
-          .maybeSingle();
-
-        if (catalogError && isMissingTableError(catalogError)) {
-          // catalog table not deployed — proof_template_key / heuristics below
-        } else if (!catalogError && catalogRow) {
-          requiresSignature = Boolean(catalogRow.requires_signature);
-          requiresDocumentation = catalogRow.requires_documentation !== false;
+      if (!assignmentError && assignmentRow?.operational_context) {
+        const context =
+          typeof assignmentRow.operational_context === 'object'
+          && !Array.isArray(assignmentRow.operational_context)
+            ? assignmentRow.operational_context as Record<string, unknown>
+            : null;
+        const requirements =
+          context?.requirements
+          && typeof context.requirements === 'object'
+          && !Array.isArray(context.requirements)
+            ? context.requirements as Record<string, unknown>
+            : null;
+        if (typeof requirements?.signature === 'boolean') {
+          requiresSignature = requirements.signature;
+        }
+        if (typeof requirements?.documentation === 'boolean') {
+          requiresDocumentation = requirements.documentation;
         }
       }
+    } catch {
+      // Older deployments and offline/test adapters may not expose operational_context.
+      // The visit and catalog fallbacks below remain authoritative in that case.
+    }
+
+    try {
+      const { data: visitRow, error: visitError } = await fromUnknownTable(supabase, 'assist_visits')
+        .select('service_key, proof_status, proof_template_key, documentation_status')
+        .eq('tenant_id', tenantId)
+        .eq('id', visitId)
+        .maybeSingle();
+
+      if (!visitError && visitRow) {
+        const proofStatus = String(visitRow.proof_status ?? '');
+        if (proofStatus === 'pending' || proofStatus === 'signed') {
+          requiresSignature = true;
+        }
+
+        const proofTemplateKey = String(visitRow.proof_template_key ?? '').trim();
+        if (proofTemplateKey) {
+          requiresSignature = true;
+        }
+
+        visitDocumentationComplete = String(visitRow.documentation_status ?? '') === 'complete';
+
+        const serviceKey = String(visitRow.service_key ?? '').trim();
+        if (serviceKey) {
+          const { data: catalogRow, error: catalogError } = await fromUnknownTable(
+            supabase,
+            'assist_service_catalog_items',
+          )
+            .select('requires_signature, requires_documentation')
+            .eq('tenant_id', tenantId)
+            .eq('service_key', serviceKey)
+            .maybeSingle();
+
+          if (catalogError && isMissingTableError(catalogError)) {
+            // catalog table not deployed — proof_template_key / heuristics below
+          } else if (!catalogError && catalogRow) {
+            requiresSignature = Boolean(catalogRow.requires_signature);
+            requiresDocumentation = catalogRow.requires_documentation !== false;
+          }
+        }
+      }
+    } catch {
+      // Do not block the execution workflow when optional catalog metadata is unavailable.
     }
   }
 
@@ -180,24 +189,28 @@ export async function resolveEmployeePortalDocumentationFlags(
   let hasDeferredPortalSignature = false;
   let signatureCapturedViaClientPortal = false;
   if (visitId) {
-    const sig = await fetchValidVisitSignature(tenantId, visitId);
-    hasPersistedSignature = sig.ok && Boolean(sig.data);
+    try {
+      const sig = await fetchValidVisitSignature(tenantId, visitId);
+      const persistedSignature = sig.ok ? sig.data : null;
+      hasPersistedSignature = Boolean(persistedSignature);
 
-    const proof = await fetchLatestVisitProof(tenantId, visitId);
-    if (proof.ok && proof.data) {
-      if (
-        !hasPersistedSignature &&
-        proof.data.portalVisible === true &&
-        proof.data.portalReleaseStatus === 'pending_client_signature' &&
-        !proof.data.signatureId
-      ) {
-        hasDeferredPortalSignature = true;
+      const proof = await fetchLatestVisitProof(tenantId, visitId);
+      if (proof.ok && proof.data) {
+        if (
+          !hasPersistedSignature &&
+          proof.data.portalVisible === true &&
+          proof.data.portalReleaseStatus === 'pending_client_signature' &&
+          !proof.data.signatureId
+        ) {
+          hasDeferredPortalSignature = true;
+        }
+        signatureCapturedViaClientPortal =
+          hasPersistedSignature &&
+          (proof.data.payloadSnapshot?.signedViaClientPortal === true ||
+            persistedSignature?.metadata?.signedVia === 'client_portal');
       }
-      signatureCapturedViaClientPortal =
-        hasPersistedSignature &&
-        Boolean(proof.ok && proof.data) &&
-        (proof.data!.payloadSnapshot?.signedViaClientPortal === true ||
-          sig.data?.metadata?.signedVia === 'client_portal');
+    } catch {
+      // A transient proof lookup must not hide documentation or crash an active visit.
     }
   }
 

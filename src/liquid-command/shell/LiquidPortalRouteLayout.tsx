@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, RequireAuth, RequireEmployeePasswordSetup, RequireRole } from '@/lib/auth';
 import {
   LiquidBackdrop,
@@ -18,7 +19,14 @@ import {
   type ProductPortalKind as PortalKind,
 } from '../navigation/portalCatalog';
 
-const transparentContent = { backgroundColor: 'transparent' } as const;
+const transparentContent = {
+  flex: 1,
+  minWidth: 0,
+  minHeight: 0,
+  width: '100%',
+  overflow: 'hidden',
+  backgroundColor: 'transparent',
+} as const;
 
 function PortalStack() {
   return (
@@ -36,6 +44,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const pathname = usePathname();
   const router = useRouter();
   const layout = useLiquidLayout();
+  const insets = useSafeAreaInsets();
   const auth = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
   const navigation = liquidPortalNavigation[kind];
@@ -102,7 +111,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
           </View>
         ) : null}
         <View style={styles.main}>
-          <View style={styles.topbar}>
+          <View style={[styles.topbar, !layout.isDesktop && { paddingTop: Math.max(insets.top, 10) }]}>
             {!layout.isDesktop ? <LiquidLogo compact /> : (
               <View style={styles.portalBrand}>
                 <Text style={styles.portalKicker}>{kind === 'employee' ? 'MITARBEITENDENPORTAL' : kind === 'client' ? 'KLIENT:INNENPORTAL' : 'ANGEHÖRIGENPORTAL'}</Text>
@@ -147,6 +156,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
             style={[
               styles.contentFrame,
               !layout.isDesktop && styles.contentFrameCompact,
+              !layout.isDesktop && { marginBottom: 84 + insets.bottom },
             ]}
             contentStyle={[
               styles.content,
@@ -159,7 +169,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
       </View>
       {!layout.isDesktop ? (
         <>
-          <View style={styles.bottomNav}>
+          <View style={[styles.bottomNav, { bottom: Math.max(insets.bottom, 12) }]}>
             {compactNavigation.map((item) => (
               <Pressable
                 key={item.id}
@@ -418,6 +428,7 @@ const styles = StyleSheet.create({
   },
   bottomItem: {
     flex: 1,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,

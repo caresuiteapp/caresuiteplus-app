@@ -247,6 +247,8 @@ export async function getEmployeePortalProjection(
           openTasks: [],
           openDocumentationCount: overview.data.openDocumentations,
           missingSignatureCount: overview.data.missingSignatures,
+          openSignatureDocumentCount: 0,
+          overdueSignatureDocumentCount: 0,
           messageCount: overview.data.adminMessageCount,
         },
         blockedFields: impact.blockedClientFields,

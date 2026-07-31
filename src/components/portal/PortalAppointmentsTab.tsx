@@ -40,7 +40,7 @@ export function PortalAppointmentsTab({
   detailBasePath,
 }: PortalAppointmentsTabProps) {
   const router = useRouter();
-  const { isPhone, width } = useDeviceClass();
+  const { width } = useDeviceClass();
   const { profile } = useAuth();
   const scope = resolvePortalScope(profile?.roleKey ?? null);
   const isEmployeePortal = scope === 'portal_employee';
@@ -211,13 +211,9 @@ export function PortalAppointmentsTab({
     </>
   );
 
-  if (!isEmployeePortal && isPhone) {
-    return <View style={styles.scroll}>{listBody}</View>;
-  }
-
   return (
     <ScrollView
-      style={isEmployeePortal ? styles.scrollViewport : undefined}
+      style={styles.scrollViewport}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       nestedScrollEnabled
@@ -225,7 +221,7 @@ export function PortalAppointmentsTab({
         <RefreshControl refreshing={refreshing} onRefresh={refresh} />
       }
       contentContainerStyle={styles.scroll}
-      testID={isEmployeePortal ? 'employee-assignments-scroll' : undefined}
+      testID={isEmployeePortal ? 'employee-assignments-scroll' : 'client-appointments-scroll'}
     >
       {listBody}
     </ScrollView>
@@ -249,6 +245,6 @@ const styles = StyleSheet.create({
           WebkitOverflowScrolling: 'touch',
           overscrollBehaviorY: 'contain',
         } as never)
-      : null),
+      : {}),
   },
 });

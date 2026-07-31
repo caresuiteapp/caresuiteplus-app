@@ -21,11 +21,12 @@ export function useEmployeePortalRealtime(
     return (handler: () => void) => subscribeToEmployeePortalChanges(tenantId, employeeId, handler);
   }, [enabled, tenantId, employeeId]);
 
-  return useLiveRefresh({
+  const live = useLiveRefresh({
     enabled,
     onRefresh,
     subscribe: subscribeFactory,
     pollMs: options?.pollMs ?? DEFAULT_LIVE_POLL_MS,
     refreshOnFocus: options?.refreshOnFocus ?? true,
   });
+  return { isConnected: live.isLiveConnected };
 }

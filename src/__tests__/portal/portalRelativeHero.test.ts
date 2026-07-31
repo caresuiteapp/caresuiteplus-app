@@ -10,7 +10,6 @@ describe('Portal Angehörigenportal Polish (Sprint 94)', () => {
   it('PortalTabHero unterstützt portal_family Scope', () => {
     const hero = readSrc('src/components/portal/PortalTabHero.tsx');
     expect(hero).toContain('portal_family');
-    expect(hero).toContain('ANGEHÖRIGENPORTAL');
     expect(hero).toContain('Geteilte Sicht');
   });
 

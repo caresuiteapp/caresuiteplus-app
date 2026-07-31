@@ -127,9 +127,8 @@ async function regenerateProofAfterClientSignature(
     updated_at: new Date().toISOString(),
   });
 
-  if (!updated.ok || !updated.data) {
-    return { ok: false, error: updated.error ?? 'Leistungsnachweis konnte nicht aktualisiert werden.' };
-  }
+  if (!updated.ok) return { ok: false, error: updated.error };
+  if (!updated.data) return { ok: false, error: 'Leistungsnachweis konnte nicht aktualisiert werden.' };
 
   void sig;
   return updated;
@@ -176,9 +175,8 @@ export async function saveClientPortalAssistProofSignature(input: {
   }
 
   const loaded = await fetchVisitProofById(input.tenantId, input.proofId);
-  if (!loaded.ok || !loaded.data) {
-    return { ok: false, error: loaded.error ?? 'Leistungsnachweis nicht gefunden.' };
-  }
+  if (!loaded.ok) return { ok: false, error: loaded.error };
+  if (!loaded.data) return { ok: false, error: 'Leistungsnachweis nicht gefunden.' };
 
   const proof = loaded.data;
   const payload = buildSignaturePayloadFromProof(proof, input.clientId);
@@ -203,9 +201,8 @@ export async function saveClientPortalAssistProofSignature(input: {
     },
   });
 
-  if (!saved.ok || !saved.data) {
-    return { ok: false, error: saved.error ?? 'Unterschrift konnte nicht gespeichert werden.' };
-  }
+  if (!saved.ok) return { ok: false, error: saved.error };
+  if (!saved.data) return { ok: false, error: 'Unterschrift konnte nicht gespeichert werden.' };
 
   const regenerated = await regenerateProofAfterClientSignature(
     input.tenantId,
@@ -214,9 +211,8 @@ export async function saveClientPortalAssistProofSignature(input: {
     input.signerName.trim(),
     signedAt,
   );
-  if (!regenerated.ok || !regenerated.data) {
-    return { ok: false, error: regenerated.error ?? 'Leistungsnachweis konnte nicht aktualisiert werden.' };
-  }
+  if (!regenerated.ok) return { ok: false, error: regenerated.error };
+  if (!regenerated.data) return { ok: false, error: 'Leistungsnachweis konnte nicht aktualisiert werden.' };
 
   const title =
     readSnapshotString(regenerated.data.payloadSnapshot ?? {}, 'title') ??

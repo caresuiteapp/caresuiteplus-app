@@ -9,11 +9,12 @@ function readSrc(relativePath: string): string {
 }
 
 describe('employee portal mobile acceptance fixes', () => {
-  it('PortalTabScreen avoids nested scroll on phone inside portal shell', () => {
+  it('PortalTabScreen assigns one explicit scroll owner per portal page', () => {
     const screen = readSrc('src/screens/portal/PortalTabScreen.tsx');
     expect(screen).toContain('const shellScroll = isPhone ? false : scroll');
     expect(screen).toContain('PortalMobileTabHeader');
-    expect(screen).not.toMatch(/bareContent:[\s\S]*flex:\s*1/);
+    expect(screen).toContain('testID="employee-portal-tab-scroll"');
+    expect(screen).toContain('testID="client-portal-tab-scroll"');
   });
 
   it('ScreenShell disables inner scroll on phone only inside portal shell', () => {

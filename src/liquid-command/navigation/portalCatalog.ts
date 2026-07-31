@@ -32,7 +32,7 @@ export const liquidPortalNavigation: Record<
     { id: 'absence', label: 'Abwesenheit', glyph: '◌', route: '/portal/employee/arbeitszeit/abwesenheiten', group: 'work' },
     { id: 'documents', label: 'Dokumente', glyph: '▤', route: '/portal/employee/documents', compact: true, group: 'communication' },
     { id: 'uploads', label: 'Uploads', glyph: '↑', route: '/portal/employee/uploads', group: 'communication' },
-    { id: 'signatures', label: 'Unterschriften', glyph: '✎', route: '/portal/employee/signatures', group: 'communication' },
+    { id: 'signatures', label: 'Unterschriften', glyph: '✎', route: '/portal/employee/documents/signatures', group: 'communication' },
     { id: 'messages', label: 'Nachrichten', glyph: '▱', route: '/portal/employee/messages', compact: true, group: 'communication' },
     { id: 'announcements', label: 'Mitteilungen', glyph: '!', route: '/portal/employee/announcements', group: 'communication' },
     { id: 'payroll', label: 'Gehaltsstatistik', glyph: '€', route: '/portal/employee/payroll', group: 'account' },

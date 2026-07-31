@@ -11,6 +11,7 @@ function readSrc(relativePath: string): string {
 
 describe('CareSuite access hub redesign', () => {
   const hub = readSrc('src/liquid-command/screens/AccessHubScreen.tsx');
+  const accessScreens = readSrc('src/liquid-command/screens/AccessScreens.tsx');
 
   it('uses the approved centered copy and larger CareSuite logo', () => {
     expect(hub).toContain('IHR ZUGANG');
@@ -42,6 +43,17 @@ describe('CareSuite access hub redesign', () => {
     );
     expect(hub).toContain('Firma / Unternehmen registrieren');
     expect(hub).toContain('CareSuite HealthOS für Ihre Organisation einrichten');
+  });
+
+  it('keeps login forms usable with mobile safe areas and the open keyboard', () => {
+    expect(accessScreens).toContain('KeyboardAvoidingView');
+    expect(accessScreens).toContain("Platform.OS === 'ios' ? 'padding'");
+    expect(accessScreens).toContain("Platform.OS === 'android' ? 'height'");
+    expect(accessScreens).toContain('useSafeAreaInsets');
+    expect(accessScreens).toContain('styles.accessScrollViewport');
+    expect(accessScreens).toContain('keyboardShouldPersistTaps="handled"');
+    expect(accessScreens).toContain('layout.isPhone && styles.accessScrollPhone');
+    expect(accessScreens).toContain("width: '100%'");
   });
 
   it('adds restrained motion and respects reduced-motion accessibility', () => {

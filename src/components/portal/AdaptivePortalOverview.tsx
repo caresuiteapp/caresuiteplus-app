@@ -157,11 +157,7 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
           title={`${heroLines.greetingLine},`}
           titleSecondary={heroLines.nameLine}
           subtitle={heroLines.providerLine}
-          meta={
-            context.portalRole === 'family_contact'
-              ? `Angehörigenzugang · Portal für ${heroLines.nameLine}`
-              : terminology.personLabel
-          }
+          meta={terminology.personLabel}
           badge={PORTAL_MODULE_LABELS[context.primaryModule ?? 'assist']}
           showStatusDot
         />

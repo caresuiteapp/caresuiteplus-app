@@ -205,16 +205,16 @@ export function useEmployeePermissionOnboardingGate(
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, paddingTop: spacing.xl },
+  container: { flex: 1, backgroundColor: colors.bgBase, paddingTop: spacing.xl },
   scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
   kicker: { ...typography.caption, color: colors.textMuted, textTransform: 'uppercase' },
-  title: { ...typography.h2, color: colors.text },
+  title: { ...typography.h2, color: colors.textPrimary },
   subtitle: { ...typography.body, color: colors.textMuted, marginBottom: spacing.sm },
   permissionTitle: { ...typography.h3, marginBottom: spacing.xs },
   permissionDesc: { ...typography.body, color: colors.textMuted },
   status: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
   note: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.sm },
-  success: { ...typography.body, color: colors.green, marginBottom: spacing.sm },
-  error: { ...typography.body, color: colors.red },
+  success: { ...typography.body, color: colors.success, marginBottom: spacing.sm },
+  error: { ...typography.body, color: colors.danger },
   actions: { gap: spacing.sm, marginTop: spacing.md },
 });

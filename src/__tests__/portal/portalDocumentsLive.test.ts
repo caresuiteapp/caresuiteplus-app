@@ -27,9 +27,9 @@ describe('Portal documents live wiring', () => {
     const live = readSrc('src/lib/portal/portalDocumentsLiveService.ts');
     expect(live).toContain("fromUnknownTable(supabase, 'client_documents')");
     expect(live).toContain(".eq('portal_visible', true)");
-    expect(live).toContain('canClientPortalSeeFeature');
+    expect(live).toContain('PORTAL_CLIENT_DOCUMENT_STATUSES');
     expect(live).toContain('createSignedUrl');
-    expect(live).toContain('syncClientDocumentPortalReleaseIfEnabled');
+    expect(live).toContain('loadPortalVisibleClientDocuments');
     expect(live).toContain('mapClientDocumentToPortalListItem');
     expect(live).toContain('client_intake_documents');
     expect(live).toContain('enrichClientDocumentWithIntakeRows');
@@ -51,7 +51,7 @@ describe('Portal documents live wiring', () => {
 
     const tab = readSrc('src/components/portal/PortalDocumentsTab.tsx');
     expect(tab).toContain('formatPortalDocumentMeta');
-    expect(tab).toContain('displayFileName');
+    expect(tab).toContain('PortalDocumentListCard');
     expect(tab).toContain('useDeviceClass');
     expect(tab).toContain('usePlatformLayout');
     expect(tab).toContain('PORTAL_MOBILE_NAV_HEIGHT');

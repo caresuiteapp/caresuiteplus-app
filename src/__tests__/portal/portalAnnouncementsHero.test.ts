@@ -16,13 +16,11 @@ describe('Portal Announcements Hero (Sprint 98)', () => {
     expect(hero).toContain('KLIENT:INNENPORTAL');
   });
 
-  it('Announcement-Screens integrieren PortalAnnouncementsHero', () => {
+  it('Announcement-Screens use the portal-specific canonical hero', () => {
     expect(readSrc('src/screens/portal/EmployeePortalAnnouncementsScreen.tsx')).toContain(
       'PortalAnnouncementsHero',
     );
-    expect(readSrc('src/screens/portal/ClientPortalAnnouncementsScreen.tsx')).toContain(
-      'PortalAnnouncementsHero',
-    );
+    expect(readSrc('src/screens/portal/ClientPortalAnnouncementsScreen.tsx')).toContain('PortalGlassHero');
   });
 
   it('buildPortalAnnouncementsKpis zählt aktive Einträge', () => {

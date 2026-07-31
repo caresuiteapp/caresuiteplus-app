@@ -75,7 +75,7 @@ export function EmployeePortalVisitStickyHeader({
           gap: spacing.xs,
           ...employeePortalExecutionShadow,
           ...(Platform.OS === 'web'
-            ? ({ position: 'sticky', top: 0, zIndex: 20 } as ViewStyle)
+            ? ({ position: 'sticky', top: 0, zIndex: 20 } as unknown as ViewStyle)
             : null),
         },
         topRow: {

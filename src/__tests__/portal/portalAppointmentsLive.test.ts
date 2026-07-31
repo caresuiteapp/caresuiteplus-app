@@ -15,7 +15,7 @@ describe('Portal appointments live wiring', () => {
     expect(hook).toContain('clientId');
     expect(hook).toContain('tenantId');
     expect(hook).toContain('isLinkedReady');
-    expect(hook).not.toContain('useAuth');
+    expect(hook).toContain('supabaseSessionReady');
   });
 
   it('appointments hook uses live refresh for employee and client portals', () => {

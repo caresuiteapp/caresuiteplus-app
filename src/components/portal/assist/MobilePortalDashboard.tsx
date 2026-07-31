@@ -228,11 +228,7 @@ export function MobilePortalDashboard({
           title={`${heroLines.greetingLine},`}
           titleSecondary={heroLines.nameLine}
           subtitle={heroLines.providerLine}
-          meta={
-            context.portalRole === 'family_contact'
-              ? `Angehörigenzugang · Portal für ${context.displayName}`
-              : terminology.personLabel
-          }
+          meta={terminology.personLabel}
           badge={terminology.moduleLabel}
           showStatusDot
         />

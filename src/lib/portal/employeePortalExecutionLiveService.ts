@@ -1,5 +1,5 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import type { AssignmentStatus, AssignmentTaskStatus } from '@/types/modules/assignmentStatus';
 import type { CanonicalAssignmentStatus } from '@/types/modules/assignmentWorkflow';
 import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
 import type {
@@ -69,6 +69,14 @@ function mapTask(task: AssignmentTaskItem): EmployeePortalTaskItem {
     categoryKey: task.categoryKey ?? null,
     categoryLabel: task.categoryLabel ?? null,
   });
+}
+
+function toPersistedTaskStatus(status: ExtendedAssignmentTaskStatus): AssignmentTaskStatus {
+  if (status === 'done' || status === 'open' || status === 'cancelled') return status;
+  if (status === 'not_requested' || status === 'not_wanted' || status === 'skipped') {
+    return 'not_requested';
+  }
+  return 'not_done';
 }
 
 function mapDetailToPortal(
@@ -376,7 +384,11 @@ export async function mirrorAssistVisitStatusFromAssignment(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: true };
 
-  const { error } = await supabase.rpc('repair_assist_visit_workflow_status', {
+  const callRpc = supabase.rpc as unknown as (
+    name: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ error: { message: string } | null }>;
+  const { error } = await callRpc('repair_assist_visit_workflow_status', {
     p_tenant_id: tenantId,
     p_assignment_id: assignmentId,
     p_target_status: targetStatus,
@@ -771,8 +783,7 @@ export async function updateLiveEmployeePortalTask(
   const accessDenied = assertLiveEmployeeAssignmentAccess(tenantId, employeeId, roleKey, existing.data);
   if (accessDenied) return accessDenied;
 
-  const taskStatus =
-    status === 'done' ? 'done' : status === 'not_done' ? 'not_done' : (status as 'open' | 'skipped');
+  const taskStatus = toPersistedTaskStatus(status);
   const updated = await assignmentSupabaseRepository.updateTask(
     tenantId,
     assignmentId,
@@ -833,14 +844,13 @@ export async function updateLiveEmployeePortalTasksBatch(
     }
   }
 
-  const mapped = updates.map((item) => ({
+  const mapped: {
+    taskId: string;
+    status: AssignmentTaskStatus;
+    notDoneReason?: string;
+  }[] = updates.map((item) => ({
     taskId: item.taskId,
-    status:
-      item.status === 'done'
-        ? 'done'
-        : item.status === 'not_done'
-          ? 'not_done'
-          : (item.status as 'open' | 'skipped'),
+    status: toPersistedTaskStatus(item.status),
     notDoneReason: item.completionNote,
   }));
 

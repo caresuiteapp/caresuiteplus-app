@@ -14,7 +14,7 @@ export default function ClientPortalOverviewRoute() {
         title="Klient:innenportal"
         eyebrow="PORTAL · KLIENT:INNEN"
         hideHeaderOnPhone
-        scroll={false}
+        scroll
       >
         <LoadingState message="Ihre persönliche Übersicht wird geladen…" />
       </PortalTabScreen>
@@ -26,7 +26,7 @@ export default function ClientPortalOverviewRoute() {
       title="Klient:innenportal"
       eyebrow="PORTAL · KLIENT:INNEN"
       hideHeaderOnPhone
-      scroll={false}
+      scroll
     >
       <AdaptivePortalOverview
         showSuccess={showSuccess}

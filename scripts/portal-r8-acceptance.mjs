@@ -55,7 +55,7 @@ for (const route of [
   '/portal/employee/arbeitszeit/abwesenheiten',
   '/portal/employee/documents',
   '/portal/employee/uploads',
-  '/portal/employee/signatures',
+  '/portal/employee/documents/signatures',
   '/portal/employee/messages',
   '/portal/employee/announcements',
   '/portal/employee/payroll',

@@ -5,7 +5,7 @@ import {
 } from '@/lib/assist/assignmentStatusMachine';
 import { dedupeStatusTransitionButtons } from '@/lib/assist/visitTransitionButtons';
 import type { VisitDispositionDetail } from '@/lib/assist/visitTypes';
-import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import type { AssignmentStatus, AssignmentTaskStatus } from '@/types/modules/assignmentStatus';
 import type { WorkflowStatus } from '@/types/core/base';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import {
@@ -31,14 +31,34 @@ function assignmentStatusToWorkflowFilter(status: AssignmentStatus): WorkflowSta
   return map[status] ?? 'aktiv';
 }
 
+function visitTaskStatusToAssignmentStatus(
+  status: VisitDispositionDetail['tasks'][number]['status'],
+): AssignmentTaskStatus {
+  switch (status) {
+    case 'done':
+    case 'open':
+    case 'not_requested':
+    case 'cancelled':
+      return status;
+    case 'partial':
+    case 'not_possible':
+    case 'deferred':
+      return 'not_done';
+  }
+}
+
 function mapVisitTasks(tasks: VisitDispositionDetail['tasks']): AssignmentTaskItem[] {
   return tasks.map((task) => ({
     id: task.id,
     title: task.title,
-    status: task.status === 'not_requested' ? 'not_done' : task.status,
+    status: visitTaskStatusToAssignmentStatus(task.status),
     isRequired: task.isRequired,
     notDoneReason: task.notDoneReason,
-    requiresNoteIfNotDone: task.status === 'not_done' || task.status === 'not_requested',
+    requiresNoteIfNotDone:
+      task.status === 'partial' ||
+      task.status === 'not_possible' ||
+      task.status === 'deferred' ||
+      task.status === 'not_requested',
   }));
 }
 

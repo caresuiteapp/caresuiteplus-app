@@ -47,19 +47,19 @@ describe('portal M.3 mobile layout', () => {
   it('employee and client shells wrap stack at layout root', () => {
     const employeeLayout = readSrc('app/portal/employee/_layout.tsx');
     const clientLayout = readSrc('app/portal/client/_layout.tsx');
-    expect(employeeLayout).toContain('EmployeePortalShell');
-    expect(clientLayout).toContain('ClientPortalShell');
-    expect(readSrc('app/portal/employee/(tabs)/_layout.tsx')).not.toContain('EmployeePortalShell');
-    expect(readSrc('app/portal/client/(tabs)/_layout.tsx')).not.toContain('ClientPortalShell');
+    expect(employeeLayout).toContain('LiquidPortalRouteLayout');
+    expect(employeeLayout).toContain('kind="employee"');
+    expect(clientLayout).toContain('LiquidPortalRouteLayout');
+    expect(clientLayout).toContain('kind="client"');
+    expect(readSrc('app/portal/employee/(tabs)/_layout.tsx')).not.toContain('LiquidPortalRouteLayout');
+    expect(readSrc('app/portal/client/(tabs)/_layout.tsx')).not.toContain('LiquidPortalRouteLayout');
   });
 
   it('employee and client portal layouts use minHeight 0 slot without overflow clip', () => {
-    const employeeLayout = readSrc('app/portal/employee/_layout.tsx');
-    const clientLayout = readSrc('app/portal/client/_layout.tsx');
-    expect(employeeLayout).toContain('minHeight: 0');
-    expect(clientLayout).toContain('minHeight: 0');
-    expect(employeeLayout).not.toContain("overflow: 'hidden'");
-    expect(clientLayout).not.toContain("overflow: 'hidden'");
+    const layout = readSrc('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
+    expect(layout).toContain('minHeight: 0');
+    expect(layout).toContain('useSafeAreaInsets');
+    expect(layout).toContain('transparentContent');
   });
 
   it('EmployeeProfileScreen imports usePermissions', () => {
@@ -75,11 +75,11 @@ describe('portal M.3 mobile layout', () => {
     expect(shell).toContain('area={mobileNavArea}');
   });
 
-  it('employee overview uses dedicated dashboard screen', () => {
+  it('employee overview uses the canonical Liquid portal home', () => {
     const route = readSrc('app/portal/employee/(tabs)/index.tsx');
-    expect(route).toContain('EmployeePortalDashboardScreen');
+    expect(route).toContain('PortalHomeScreen');
     expect(route).not.toContain('PortalOverviewTab');
-    expect(route).toContain('hideHeaderOnPhone');
+    expect(readSrc('src/liquid-command/screens/PortalHomeScreen.tsx')).toContain('mobileWorkspaceContent');
   });
 
   it('employee schedule route redirects to calendar', () => {
@@ -111,7 +111,7 @@ describe('portal M.3 mobile layout', () => {
     const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');
     expect(mobile).not.toContain('ScrollView');
     expect(mobile).not.toContain('PORTAL_MOBILE_NAV_HEIGHT');
-    expect(mobile).toContain('Wichtig für Sie');
+    expect(mobile).toContain('Auf einen Blick');
     expect(mobile).toContain('resolveClientPortalHeroLines');
   });
 

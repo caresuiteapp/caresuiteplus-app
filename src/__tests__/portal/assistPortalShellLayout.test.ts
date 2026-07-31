@@ -9,10 +9,11 @@ function readSrc(relativePath: string): string {
 }
 
 describe('PortalShellLayout', () => {
-  it('client tabs layout uses ClientPortalShell wrapper', () => {
+  it('client root layout uses the canonical Liquid portal wrapper', () => {
     const layout = readSrc('app/portal/client/_layout.tsx');
-    expect(layout).toContain('ClientPortalShell');
-    expect(readSrc('app/portal/client/(tabs)/_layout.tsx')).not.toContain('ClientPortalShell');
+    expect(layout).toContain('LiquidPortalRouteLayout');
+    expect(layout).toContain('kind="client"');
+    expect(readSrc('app/portal/client/(tabs)/_layout.tsx')).not.toContain('LiquidPortalRouteLayout');
   });
 
   it('employee portal uses PortalShellLayout not PlatformShell', () => {

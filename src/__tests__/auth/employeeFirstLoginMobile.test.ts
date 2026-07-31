@@ -13,8 +13,8 @@ describe('employee first-login mobile fixes', () => {
     const shell = readSrc('src/components/layout/ScreenShell.tsx');
     expect(shell).toContain('isPortalRoutePath(pathname)');
     expect(shell).toContain('isAuthRoutePath(pathname)');
-    expect(shell).toContain('const disableMobileInnerScroll = shellHostsAurora && isPhone && isPortalShell');
-    expect(shell).toContain('!(isPhone && isAuthRoute)');
+    expect(shell).toContain('const shellScroll = scroll && !(isPhone && isPortalShell)');
+    expect(shell).toContain('shellScroll && isPhone && !isPortalShell');
     expect(shell).toContain('useMobileTouchScroll');
     expect(shell).toContain('AutoScrollView');
     expect(shell).toContain('MOBILE_AUTH_BOTTOM_RESERVE');

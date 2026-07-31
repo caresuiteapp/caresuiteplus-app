@@ -58,7 +58,11 @@ async function upsertDeferredSignatureClientPortalDocument(
     String(snapshot.title ?? snapshot.serviceName ?? 'Leistungsnachweis').trim() ||
     'Leistungsnachweis';
 
-  const { data, error } = await supabase.rpc(
+  const callRpc = supabase.rpc as unknown as (
+    name: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await callRpc(
     'employee_portal_upsert_deferred_signature_client_document',
     {
       p_tenant_id: tenantId,
@@ -139,9 +143,8 @@ export async function releaseDeferredClientSignatureRequest(
       },
       ctx.profileId ?? ctx.employeeId ?? null,
     );
-    if (!created.ok || !created.data) {
-      return { ok: false, error: created.error ?? 'Unterschriftsanfrage konnte nicht angelegt werden.' };
-    }
+    if (!created.ok) return { ok: false, error: created.error };
+    if (!created.data) return { ok: false, error: 'Unterschriftsanfrage konnte nicht angelegt werden.' };
     proofId = created.data.id;
   }
 
@@ -152,9 +155,8 @@ export async function releaseDeferredClientSignatureRequest(
     released_to_portal_at: now,
     updated_by: ctx.profileId ?? null,
   });
-  if (!released.ok || !released.data) {
-    return { ok: false, error: released.error ?? 'Portal-Freigabe fehlgeschlagen.' };
-  }
+  if (!released.ok) return { ok: false, error: released.error };
+  if (!released.data) return { ok: false, error: 'Portal-Freigabe fehlgeschlagen.' };
 
   const clientId = ctx.detail.clientId;
   if (!clientId) {

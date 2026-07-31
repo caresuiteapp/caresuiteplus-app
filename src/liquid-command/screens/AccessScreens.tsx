@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   completeFirstLogin,
   loginBusinessUser,
@@ -66,15 +67,17 @@ function AccessShell({
 }: AccessShellProps) {
   const router = useRouter();
   const layout = useLiquidLayout();
+  const insets = useSafeAreaInsets();
   const stacked = layout.isPhone || (layout.isTablet && layout.isPortrait);
   return (
     <LiquidBackdrop>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
         style={styles.accessRoot}
       >
         {!compact ? (
-          <View style={styles.accessTopBar}>
+          <View style={[styles.accessTopBar, { paddingTop: Math.max(insets.top, 14) }]}>
             <LiquidLogo />
             {backRoute ? (
               <LiquidButton
@@ -88,9 +91,11 @@ function AccessShell({
           </View>
         ) : null}
         <ScrollView
+          style={styles.accessScrollViewport}
           contentContainerStyle={[
             styles.accessScroll,
             layout.isPhone && styles.accessScrollPhone,
+            { paddingBottom: Math.max(insets.bottom, layout.isPhone ? 24 : 40) },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -853,6 +858,7 @@ export function EmployeeFirstLoginScreen() {
 const styles = StyleSheet.create({
   accessRoot: {
     flex: 1,
+    minHeight: 0,
   },
   accessTopBar: {
     minHeight: 82,
@@ -864,8 +870,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexShrink: 0,
+  },
+  accessScrollViewport: {
+    flex: 1,
+    minHeight: 0,
+    width: '100%',
   },
   accessScroll: {
+    flexGrow: 1,
     width: '100%',
     maxWidth: 1440,
     alignSelf: 'center',
@@ -1014,6 +1027,7 @@ const styles = StyleSheet.create({
   formCard: {
     padding: 22,
     gap: 16,
+    width: '100%',
   },
   loginTabs: {
     height: 52,

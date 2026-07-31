@@ -590,7 +590,9 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         actualEndAt: synced.detail.actualEndAt ?? synced.visitTimes?.serviceEndedAt ?? null,
       };
       query.setData(syncedDetail);
-      await writeExecutionDetailCache(tenantId, employeeId, syncedDetail);
+      if (tenantId && employeeId) {
+        await writeExecutionDetailCache(tenantId, employeeId, syncedDetail);
+      }
       return synced;
     },
     [query, tenantId, employeeId],
@@ -798,6 +800,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     const result = (await runWorkflow(async (ctx) => {
       let gpsSnapshot = null;
       let arrivalMode: 'gps' | 'without_gps' | 'manual' = 'without_gps';
+      let manualReason: string | null = null;
 
       if (tenantId && assignmentId) {
         const pos = await Promise.race([
@@ -813,6 +816,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           const entry = peekEmployeePortalTrackingEntry(tenantId, assignmentId);
           if (entry.geofenceOverrideReason?.trim()) {
             arrivalMode = 'manual';
+            manualReason = entry.geofenceOverrideReason.trim();
           }
         }
       }
@@ -822,7 +826,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         geofence: tracking?.geofence ?? null,
         gpsSnapshot,
         arrivalMode,
-        manualReason: tracking?.geofence?.overrideReason ?? null,
+        manualReason,
       });
     }, {
       timeoutLabel: 'markArrived',

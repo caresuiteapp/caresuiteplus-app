@@ -103,7 +103,6 @@ for (const layout of moduleLayouts) {
 for (const [layout, kind] of [
   ['app/portal/client/_layout.tsx', 'client'],
   ['app/portal/employee/_layout.tsx', 'employee'],
-  ['app/portal/relative/_layout.tsx', 'relative'],
 ]) {
   const portalLayout = source(layout);
   if (
@@ -119,7 +118,6 @@ const layoutFiles = [
   'app/business/office/time-tracking/_layout.tsx',
   'app/portal/client/_layout.tsx',
   'app/portal/employee/_layout.tsx',
-  'app/portal/relative/_layout.tsx',
 ];
 const legacyShellPattern =
   /ShellLayout|CareAdaptiveShell|PortalShellLayout|OfficeTimeTrackingShell|routeLayoutContentStyle/;
@@ -136,5 +134,5 @@ if (failures.length) {
 }
 
 console.log(
-  `Liquid Command responsive:audit: OK · 6 Formfaktorzustände · ${moduleLayouts.length} Modulwurzeln · 3 Portal-Familien · Smartphone-Querformat gesperrt`,
+  `Liquid Command responsive:audit: OK · 6 Formfaktorzustände · ${moduleLayouts.length} Modulwurzeln · 2 Portal-Familien · Smartphone-Querformat gesperrt`,
 );

@@ -63,7 +63,7 @@ export default function EmployeePortalTasksRoute() {
               key={task.id}
               title={task.label}
               subtitle={`${task.count} ${task.count === 1 ? 'Aufgabe' : 'Aufgaben'} offen`}
-              leading={<Text style={[styles.icon, { color: text.link }]}>✓</Text>}
+              leading={<Text style={[styles.icon, { color: text.secondary }]}>✓</Text>}
               trailing={<Text style={[styles.count, { color: text.primary }]}>{task.count}</Text>}
               showChevron={Boolean(task.route)}
               showDivider={index < tasks.length - 1}

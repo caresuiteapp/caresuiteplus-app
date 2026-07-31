@@ -109,7 +109,7 @@ export function ClientPortalProofsScreen() {
   };
 
   return (
-    <PortalTabScreen title="Nachweise" hideHeaderOnPhone>
+    <PortalTabScreen title="Nachweise" hideHeaderOnPhone scroll={false}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <PortalGlassHero
           title="Leistungsnachweise"

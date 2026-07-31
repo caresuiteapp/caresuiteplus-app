@@ -248,7 +248,7 @@ describe('PortalRequestFormModal UI', () => {
 
   it('uses modal-based ListFilterSelect picker on all platforms', () => {
     const source = readSrc('src/components/ui/ListFilterSelect.tsx');
-    expect(source).toContain('<Modal visible={open}');
-    expect(source).not.toContain("Platform.OS === 'web'");
+    expect(source).toContain('<PlatformModal');
+    expect(source).toContain('visible={open}');
   });
 });

@@ -205,7 +205,7 @@ async function loadClientsByIds(
   }
 
   const map = new Map<string, ClientRow>();
-  for (const row of (data ?? []) as ClientRow[]) {
+  for (const row of (data ?? []) as unknown as ClientRow[]) {
     map.set(row.id, row);
   }
   return { ok: true, data: map };

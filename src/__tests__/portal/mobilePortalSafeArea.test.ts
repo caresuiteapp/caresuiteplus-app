@@ -46,11 +46,13 @@ describe('PortalShellLayout mobile safe area', () => {
     const portalShell = readSrc('src/components/portal/PortalShell.tsx');
     const employeeLayout = readSrc('app/portal/employee/_layout.tsx');
     const clientLayout = readSrc('app/portal/client/_layout.tsx');
+    const liquidLayout = readSrc('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
     expect(portalShell).not.toContain("overflow: 'hidden'");
     expect(portalShell).not.toContain('styles.slot');
-    expect(employeeLayout).not.toContain("overflow: 'hidden'");
-    expect(clientLayout).not.toContain("overflow: 'hidden'");
-    expect(employeeLayout).toContain('minHeight: 0');
+    expect(employeeLayout).toContain('LiquidPortalRouteLayout');
+    expect(clientLayout).toContain('LiquidPortalRouteLayout');
+    expect(liquidLayout).toContain('minHeight: 0');
+    expect(liquidLayout).toContain('transparentContent');
   });
 
   it('pins bottom nav above safe area with absolute host', () => {
@@ -123,7 +125,7 @@ describe('Background cover — no non-proportional stretch', () => {
     expect(psm).toContain('coverScale');
     expect(psm).toContain('Math.max(scaleX, scaleY)');
     expect(psm).not.toMatch(/ctx\.scale\(w \/ PSM_VIEWBOX_W, h \/ PSM_VIEWBOX_H\)/);
-    expect(psm).toContain('webFixedViewportCoverStyle');
+    expect(psm).toContain('ctx.scale(coverScale, coverScale)');
   });
 });
 

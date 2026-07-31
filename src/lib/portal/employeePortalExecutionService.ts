@@ -708,7 +708,7 @@ export function submitEmployeePortalDocumentation(
   employeeId: string,
   roleKey: RoleKey | null,
   input: EmployeePortalDocumentationInput,
-): ServiceResult<EmployeePortalAssignmentDetail> {
+): ServiceResult<EmployeePortalAssignmentDetail> | Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
 
