@@ -199,12 +199,28 @@ function assignmentRows(lines: PayrollAssignmentTimeLine[], includeActual: boole
   </tr>`).join('');
 }
 
+function chunkPayrollRows<T>(items: T[], pageSize: number): T[][] {
+  if (items.length === 0) return [];
+  const pageCount = Math.ceil(items.length / pageSize);
+  const balancedPageSize = Math.ceil(items.length / pageCount);
+  return Array.from({ length: pageCount }, (_, index) =>
+    items.slice(index * balancedPageSize, (index + 1) * balancedPageSize));
+}
+
+function payrollPage(content: string, pageNumber: number, pageCount: number): string {
+  return `<main class="pdf-page" data-pdf-page="${pageNumber}">
+    <div class="pdf-content">${content}</div>
+    <footer>CareSuite HealthOS · Abrechnungsübersicht · Seite ${pageNumber} von ${pageCount}</footer>
+  </main>`;
+}
+
 export function buildPayrollStatementHtml(snapshot: PayrollStatementSnapshot, version: number): string {
   const month = new Date(snapshot.periodYear, snapshot.periodMonth - 1, 1).toLocaleDateString('de-DE', {
     month: 'long', year: 'numeric',
   });
-  const expenseRows = snapshot.expenseClaims
+  const approvedExpenses = snapshot.expenseClaims
     .filter((claim) => ['approved', 'partially_approved', 'reimbursed'].includes(claim.status))
+  const expenseRows = (claims: PayrollExpenseClaim[]) => claims
     .map((claim) => `<tr><td>${escapePayrollHtml(claim.expenseDate)}</td><td>${escapePayrollHtml(claim.description)}</td><td>${formatPayrollMoney(claim.approvedAmountCents ?? claim.amountCents)}</td></tr>`)
     .join('');
   const currentAssignments = snapshot.assignmentTimeLines ?? [];
@@ -217,20 +233,11 @@ export function buildPayrollStatementHtml(snapshot: PayrollStatementSnapshot, ve
   const nextMonthLabel = nextMonthPreview
     ? new Date(nextMonthPreview.periodYear, nextMonthPreview.periodMonth - 1, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })
     : 'Folgemonat';
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
-    @page{size:A4;margin:14mm 12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#17192b;background:#fff;margin:0;font-size:10px;line-height:1.35}
-    h1{font-size:24px;margin:0;color:#17192b} h2{font-size:15px;margin-top:24px;color:#343757}
-    .brand{color:#177d8d;font-weight:800;letter-spacing:1px}.meta{color:#686b7e;margin:6px 0 18px}
-    .hero{border:1px solid #b9dfe4;border-radius:18px;padding:22px;background:#f5fbfc}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-top:16px}
-    .row{display:flex;justify-content:space-between;border-bottom:1px solid #ececf1;padding:7px 0}
-    .total{font-size:15px;font-weight:800;color:#0f6875}.forecast{color:#7657c8}
-    table{width:100%;border-collapse:collapse;table-layout:fixed}td,th{padding:6px 5px;border-bottom:1px solid #ececf1;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#f4f5f8}
-    thead{display:table-header-group}tr{break-inside:avoid}.muted{color:#686b7e;font-size:9px}.positive{color:#087a65;font-weight:700}.negative{color:#b4283d;font-weight:700}
-    .page-break{break-before:page}.section-subtitle{color:#686b7e;margin:-8px 0 10px}.empty{padding:12px;background:#f4f5f8;border-radius:10px;color:#686b7e}
-    .notice{margin-top:24px;padding:14px;border-radius:12px;background:#f4f5f8;color:#55586b}
-  </style></head><body>
-  <div class="hero"><div class="brand">CARESUITE+ · MONATSÜBERSICHT</div><h1>${escapePayrollHtml(snapshot.employeeName)}</h1>
+  const currentAssignmentChunks = chunkPayrollRows(currentAssignments, 8);
+  const nextAssignmentChunks = chunkPayrollRows(nextMonthPreview?.assignments ?? [], 9);
+  const pageContents: string[] = [];
+
+  pageContents.push(`<div class="hero"><div class="brand">CARESUITE+ · MONATSÜBERSICHT</div><h1>${escapePayrollHtml(snapshot.employeeName)}</h1>
   <div class="meta">${month} · Version ${version} · erstellt ${new Date(snapshot.generatedAt).toLocaleString('de-DE')}</div>
   <div class="grid">
    <div class="row"><span>Erfasste Arbeitszeit</span><strong>${formatPayrollMinutes(snapshot.actualWorkMinutes)}</strong></div>
@@ -252,17 +259,53 @@ export function buildPayrollStatementHtml(snapshot: PayrollStatementSnapshot, ve
   <div class="row"><span>Vorschüsse / Abzüge</span><strong>− ${formatPayrollMoney(snapshot.advancesCents + snapshot.deductionsCents)}</strong></div>
   <div class="row total"><span>Voraussichtliche Gesamtauszahlung</span><strong>${formatPayrollMoney(snapshot.projectedTotalPayoutCents)}</strong></div>
   <h2>Genehmigte Auslagen und Erstattungen</h2>
-  ${expenseRows ? `<table><thead><tr><th>Datum</th><th>Beschreibung</th><th>Erstattung</th></tr></thead><tbody>${expenseRows}</tbody></table>` : '<p>Keine genehmigten Auslagen in diesem Abrechnungsmonat.</p>'}
-  <section class="page-break">
-    <h2>Einsätze und erfasste Arbeitszeiten · ${month}</h2>
-    <p class="section-subtitle">Vollständige Gegenüberstellung von Einsatzplan, tatsächlich erfasster Arbeitszeit, Fahrzeit und Soll-/Ist-Abweichung.</p>
-    ${currentAssignments.length ? `<table><thead><tr><th style="width:11%">Datum</th><th style="width:25%">Klient:in / Einsatz</th><th style="width:17%">Soll</th><th style="width:17%">Ist</th><th style="width:11%">Fahrt</th><th style="width:11%">Differenz</th><th style="width:8%">Status</th></tr></thead><tbody>${assignmentRows(currentAssignments, true)}</tbody></table>` : '<div class="empty">Für diesen Monat sind keine Einsatz- oder Zeiterfassungszeilen vorhanden.</div>'}
-  </section>
-  <section class="page-break">
-    <h2>Vollständige Vorschau · ${escapePayrollHtml(nextMonthLabel)}</h2>
-    <p class="section-subtitle">Alle zum Erstellungszeitpunkt freigegebenen oder geplanten Einsätze des Folgemonats · Gesamt ${formatPayrollMinutes(nextMonthPreview?.totalPlannedMinutes ?? 0)}.</p>
-    ${nextMonthPreview?.assignments.length ? `<table><thead><tr><th style="width:14%">Datum</th><th style="width:40%">Klient:in / Einsatz</th><th style="width:25%">Geplante Zeit</th><th style="width:21%">Status</th></tr></thead><tbody>${assignmentRows(nextMonthPreview.assignments, false)}</tbody></table>` : '<div class="empty">Für den Folgemonat sind noch keine Einsätze geplant.</div>'}
-  </section>
-  <div class="notice">Geplante Einsätze sind eine Prognose und noch kein endgültig entstandener Vergütungsanspruch. Bruttolohn und Auslagenersatz werden getrennt ausgewiesen. Diese Abrechnungsversion wird nach Bestätigung unveränderbar archiviert.</div>
-  </body></html>`;
+  ${approvedExpenses.length ? `<table><thead><tr><th>Datum</th><th>Beschreibung</th><th>Erstattung</th></tr></thead><tbody>${expenseRows(approvedExpenses.slice(0, 5))}</tbody></table>${approvedExpenses.length > 5 ? '<p class="continued">Weitere Auslagen auf der Folgeseite.</p>' : ''}` : '<p>Keine genehmigten Auslagen in diesem Abrechnungsmonat.</p>'}`);
+
+  const remainingExpenses = approvedExpenses.slice(5);
+  chunkPayrollRows(remainingExpenses, 18).forEach((claims, index, chunks) => {
+    pageContents.push(`<h2>Genehmigte Auslagen und Erstattungen${chunks.length > 1 ? ` · Fortsetzung ${index + 1}` : ' · Fortsetzung'}</h2>
+      <table><thead><tr><th>Datum</th><th>Beschreibung</th><th>Erstattung</th></tr></thead><tbody>${expenseRows(claims)}</tbody></table>`);
+  });
+
+  if (currentAssignmentChunks.length === 0) {
+    pageContents.push(`<h2>Einsätze und erfasste Arbeitszeiten · ${month}</h2>
+      <p class="section-subtitle">Vollständige Gegenüberstellung von Einsatzplan, tatsächlich erfasster Arbeitszeit, Fahrzeit und Soll-/Ist-Abweichung.</p>
+      <div class="empty">Für diesen Monat sind keine Einsatz- oder Zeiterfassungszeilen vorhanden.</div>`);
+  } else {
+    currentAssignmentChunks.forEach((lines, index) => {
+      pageContents.push(`<h2>Einsätze und erfasste Arbeitszeiten · ${month}${currentAssignmentChunks.length > 1 ? ` · ${index + 1}/${currentAssignmentChunks.length}` : ''}</h2>
+        <p class="section-subtitle">Vollständige Gegenüberstellung von Einsatzplan, tatsächlich erfasster Arbeitszeit, Fahrzeit und Soll-/Ist-Abweichung.</p>
+        <table><thead><tr><th style="width:11%">Datum</th><th style="width:23%">Klient:in / Einsatz</th><th style="width:14%">Soll</th><th style="width:14%">Ist</th><th style="width:9%">Fahrt</th><th style="width:12%">Differenz</th><th style="width:17%">Status</th></tr></thead><tbody>${assignmentRows(lines, true)}</tbody></table>`);
+    });
+  }
+
+  if (nextAssignmentChunks.length === 0) {
+    pageContents.push(`<h2>Vollständige Vorschau · ${escapePayrollHtml(nextMonthLabel)}</h2>
+      <p class="section-subtitle">Alle zum Erstellungszeitpunkt freigegebenen oder geplanten Einsätze des Folgemonats · Gesamt ${formatPayrollMinutes(nextMonthPreview?.totalPlannedMinutes ?? 0)}.</p>
+      <div class="empty">Für den Folgemonat sind noch keine Einsätze geplant.</div>`);
+  } else {
+    nextAssignmentChunks.forEach((lines, index) => {
+      pageContents.push(`<h2>Vollständige Vorschau · ${escapePayrollHtml(nextMonthLabel)}${nextAssignmentChunks.length > 1 ? ` · ${index + 1}/${nextAssignmentChunks.length}` : ''}</h2>
+        <p class="section-subtitle">Alle zum Erstellungszeitpunkt freigegebenen oder geplanten Einsätze des Folgemonats · Gesamt ${formatPayrollMinutes(nextMonthPreview?.totalPlannedMinutes ?? 0)}.</p>
+        <table><thead><tr><th style="width:14%">Datum</th><th style="width:40%">Klient:in / Einsatz</th><th style="width:25%">Geplante Zeit</th><th style="width:21%">Status</th></tr></thead><tbody>${assignmentRows(lines, false)}</tbody></table>
+        ${index === nextAssignmentChunks.length - 1 ? '<div class="notice">Geplante Einsätze sind eine Prognose und noch kein endgültig entstandener Vergütungsanspruch. Bruttolohn und Auslagenersatz werden getrennt ausgewiesen. Diese Abrechnungsversion wird nach Bestätigung unveränderbar archiviert.</div>' : ''}`);
+    });
+  }
+
+  const pages = pageContents.map((content, index) => payrollPage(content, index + 1, pageContents.length)).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    @page{size:A4;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}body{font-family:Arial,sans-serif;color:#17192b;font-size:11px;line-height:1.45}
+    .pdf-page{position:relative;width:794px;height:1123px;padding:48px 46px 42px;background:#fff;overflow:hidden;break-after:page}.pdf-content{height:100%;overflow:hidden}
+    footer{position:absolute;left:46px;right:46px;bottom:18px;padding-top:7px;border-top:1px solid #ececf1;color:#777b8e;font-size:8px;text-align:right}
+    h1{font-size:24px;margin:0;color:#17192b} h2{font-size:15px;margin-top:24px;color:#343757}
+    .brand{color:#177d8d;font-weight:800;letter-spacing:1px}.meta{color:#686b7e;margin:6px 0 18px}
+    .hero{border:1px solid #b9dfe4;border-radius:18px;padding:22px;background:#f5fbfc}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-top:16px}
+    .row{display:flex;justify-content:space-between;border-bottom:1px solid #ececf1;padding:7px 0}
+    .total{font-size:15px;font-weight:800;color:#0f6875}.forecast{color:#7657c8}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}td,th{padding:9px 6px;border-bottom:1px solid #ececf1;text-align:left;vertical-align:top;overflow-wrap:break-word}th{background:#f4f5f8}
+    thead{display:table-header-group}tr{break-inside:avoid}.muted{color:#686b7e;font-size:10px}.positive{color:#087a65;font-weight:700}.negative{color:#b4283d;font-weight:700}
+    .section-subtitle{color:#686b7e;margin:-8px 0 10px}.empty{padding:12px;background:#f4f5f8;border-radius:10px;color:#686b7e}.continued{color:#686b7e;font-style:italic}
+    .notice{margin-top:24px;padding:14px;border-radius:12px;background:#f4f5f8;color:#55586b}
+  </style></head><body>${pages}</body></html>`;
 }

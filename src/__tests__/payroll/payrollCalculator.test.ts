@@ -144,4 +144,41 @@ describe('payrollCalculator', () => {
     expect(escaped).not.toContain('<script>');
     expect(escaped).toContain('&lt;script&gt;');
   });
+
+  it('verteilt lange Abrechnungen auf echte, großzügige A4-Seiten ohne abgeschnittene Zeilen', () => {
+    const assignment = (index: number, month: 7 | 8) => ({
+      assignmentId: `assignment-${month}-${index}`,
+      workDate: `2026-${String(month).padStart(2, '0')}-${String((index % 27) + 1).padStart(2, '0')}`,
+      clientLabel: `Klient:in ${index}`,
+      assignmentTitle: 'Hauswirtschaftliche Unterstützung mit vollständiger Dokumentation',
+      plannedStartAt: `2026-${String(month).padStart(2, '0')}-01T08:00:00.000Z`,
+      plannedEndAt: `2026-${String(month).padStart(2, '0')}-01T10:00:00.000Z`,
+      actualStartAt: month === 7 ? `2026-07-01T08:05:00.000Z` : null,
+      actualEndAt: month === 7 ? `2026-07-01T10:05:00.000Z` : null,
+      plannedMinutes: 120,
+      actualMinutes: month === 7 ? 120 : 0,
+      travelMinutes: 0,
+      differenceMinutes: 0,
+      status: month === 7 ? 'documentation_open' : 'confirmed',
+    });
+    const snapshot = calculatePayrollSnapshot({
+      ...base,
+      assignmentTimeLines: Array.from({ length: 21 }, (_, index) => assignment(index, 7)),
+      nextMonthPreview: {
+        periodYear: 2026,
+        periodMonth: 8,
+        totalPlannedMinutes: 2_400,
+        assignments: Array.from({ length: 20 }, (_, index) => assignment(index, 8)),
+      },
+    });
+
+    const html = buildPayrollStatementHtml(snapshot, 4);
+    expect(html.match(/data-pdf-page=/g)).toHaveLength(7);
+    expect(html).toContain('width:794px;height:1123px');
+    expect(html).toContain('font-size:11px;line-height:1.45');
+    expect(html).toContain('padding:9px 6px');
+    expect(html).toContain('Einsätze und erfasste Arbeitszeiten · Juli 2026 · 3/3');
+    expect(html).toContain('Vollständige Vorschau · August 2026 · 3/3');
+    expect(html).toContain('Seite 7 von 7');
+  });
 });

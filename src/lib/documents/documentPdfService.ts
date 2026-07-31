@@ -96,11 +96,50 @@ export async function renderHtmlToPdfBytes(html: string): Promise<Uint8Array> {
   container.style.top = '0';
   container.style.width = '794px';
   container.style.background = '#ffffff';
-  container.style.padding = '24px';
+  container.style.padding = '0';
   document.body.appendChild(container);
 
   try {
     const { html2canvas, jsPDF } = await loadPdfRenderer();
+    if ('fonts' in document) await document.fonts.ready;
+
+    const explicitPages = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-pdf-page]'),
+    );
+    if (explicitPages.length > 0) {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      for (let index = 0; index < explicitPages.length; index += 1) {
+        const page = explicitPages[index];
+        if (!page) continue;
+        const pageCanvas = await html2canvas(page, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          width: 794,
+          height: 1123,
+          windowWidth: 794,
+          windowHeight: 1123,
+        });
+        if (index > 0) pdf.addPage();
+        pdf.addImage(
+          pageCanvas.toDataURL('image/png'),
+          'PNG',
+          0,
+          0,
+          pageWidth,
+          pageHeight,
+          undefined,
+          'FAST',
+        );
+      }
+
+      return new Uint8Array(pdf.output('arraybuffer'));
+    }
+
+    container.style.padding = '24px';
     const canvas = await html2canvas(container, {
       scale: 2,
       useCORS: true,
