@@ -11,10 +11,11 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Client UI Reality Fix', () => {
-  it('ClientsListTable uses adaptive dark text on glass tables', () => {
+  it('ClientsListTable uses the shared readable glass-table text styles', () => {
     const table = readSrc('components/office/ClientsListTable.tsx');
-    expect(table).toContain('useAuroraAdaptiveText');
-    expect(table).toContain("fontWeight: '700'");
+    expect(table).toContain('useTableTextStyles');
+    expect(table).toContain('tableText.name');
+    expect(table).toContain('tableText.cellText');
   });
 
   it('ClientsListHero shows compact KPI row and smaller action buttons', () => {
@@ -47,6 +48,7 @@ describe('Client UI Reality Fix', () => {
   });
 
   it('ClientRecordScreen moves delete to Gefahrenzone and uses master data modal', () => {
+    const record = readSrc('screens/business/office/ClientRecordScreen.tsx');
     expect(record).toContain('Gefahrenzone');
     expect(record).toContain('ClientMasterDataEditModal');
     expect(record).not.toContain('headerDelete');

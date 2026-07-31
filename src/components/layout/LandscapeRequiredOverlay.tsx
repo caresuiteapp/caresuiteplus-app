@@ -31,51 +31,11 @@ export function LandscapeRequiredOverlay({
     ? 'Querformat konnte hier nicht automatisch aktiviert werden. Bitte Gerät drehen oder im Hochformat fortfahren.'
     : 'Bitte Gerät ins Querformat drehen, um fortzufahren.';
 
-  if (variant === 'banner') {
-    return (
-      <View style={styles.bannerHost} pointerEvents="box-none">
-        <View
-          style={[styles.banner, { backgroundColor: colors?.surface ?? '#fff' }]}
-          accessibilityRole="text"
-          accessibilityLabel="Querformat empfohlen"
-        >
-          <View style={styles.bannerText}>
-            <Text style={[styles.bannerTitle, typography?.caption, { color: colors?.textPrimary ?? '#111' }]}>
-              Querformat empfohlen
-            </Text>
-            <Text style={[styles.bannerMessage, typography?.caption, { color: colors?.textMuted ?? '#666' }]}>
-              Drehen Sie Ihr Gerät für mehr Platz.
-            </Text>
-          </View>
-          <PremiumButton
-            title="Aktivieren"
-            variant="secondary"
-            onPress={onActivateLandscape}
-            loading={pending}
-          />
-          {onDismiss ? (
-            <Pressable
-              onPress={onDismiss}
-              accessibilityRole="button"
-              accessibilityLabel="Hinweis schließen"
-              hitSlop={8}
-              style={styles.dismissButton}
-            >
-              <Text style={[styles.dismissLabel, typography?.caption, { color: colors?.textMuted ?? '#666' }]}>
-                ✕
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-      </View>
-    );
-  }
-
   if (variant === 'hint') {
     return (
       <View style={styles.hintHost} pointerEvents="box-none">
         <View
-          style={[styles.hintCard, { backgroundColor: colors?.surface ?? '#fff' }]}
+          style={[styles.hintCard, { backgroundColor: colors?.bgSurface ?? '#fff' }]}
           accessibilityRole="text"
           accessibilityLabel="Querformat empfohlen"
         >
@@ -117,7 +77,7 @@ export function LandscapeRequiredOverlay({
       accessibilityLabel="Querformat erforderlich"
       pointerEvents="auto"
     >
-      <View style={[styles.card, { backgroundColor: colors?.surface ?? '#fff' }]}>
+      <View style={[styles.card, { backgroundColor: colors?.bgSurface ?? '#fff' }]}>
         <Text style={[styles.title, typography?.h3, { color: colors?.textPrimary ?? '#111' }]}>
           Querformat erforderlich
         </Text>

@@ -54,8 +54,9 @@ function sampleProof(overrides: Partial<AssistVisitProofRow> = {}): AssistVisitP
     releasedToPortalAt: '2026-06-15T10:00:00.000Z',
     createdAt: '2026-06-15T08:00:00.000Z',
     updatedAt: '2026-06-15T10:00:00.000Z',
-    updatedBy: null,
     ...overrides,
+    billingReleased: overrides.billingReleased ?? false,
+    pdfHash: overrides.pdfHash ?? null,
   };
 }
 

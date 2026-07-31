@@ -30,8 +30,10 @@ function buildCtx(overrides?: Partial<AssistExecutionContext>): AssistExecutionC
       plannedEndAt: '2026-07-01T11:00:00.000Z',
       actualStartAt: null,
       actualEndAt: null,
+      onTheWayAt: null,
+      arrivedAt: null,
       status: 'unterschrift_offen',
-      canonicalStatus: 'signature_open',
+      canonicalStatus: 'signature_pending',
       notesForEmployee: '',
       accessHints: null,
       emergencyContact: null,
@@ -39,7 +41,7 @@ function buildCtx(overrides?: Partial<AssistExecutionContext>): AssistExecutionC
         {
           id: 't1',
           title: 'Begleitung',
-          description: null,
+          description: '',
           required: true,
           status: 'done',
           completionNote: null,
@@ -76,10 +78,12 @@ function buildCtx(overrides?: Partial<AssistExecutionContext>): AssistExecutionC
     liveContext: null,
     allowedActions: ['finalize_visit_deferred_signature'],
     diagnostics: {
-      consistencyStatus: 'consistent',
-      inconsistencies: [],
-      repairOptions: [],
-      nextActionHint: null,
+      isServiceStarted: false,
+      isServiceEnded: false,
+      isTravelEnded: false,
+      canEndService: false,
+      inconsistentStatus: false,
+      repairHint: null,
     },
     ...overrides,
   };
@@ -185,7 +189,7 @@ describe('resolveAllowedActions — deferred signature finalize', () => {
         tasks: [],
         allowedTransitions: [],
         isLocked: false,
-      } as import('@/types/modules/employeePortalExecution').EmployeePortalAssignmentDetail,
+      } as unknown as import('@/types/modules/employeePortalExecution').EmployeePortalAssignmentDetail,
       derivedStatus: 'unterschrift_offen',
     });
     expect(actions).toContain('finalize_visit_deferred_signature');

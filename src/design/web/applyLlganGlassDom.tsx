@@ -1,5 +1,5 @@
 import { useCallback, useRef, type ReactNode } from 'react';
-import { Platform, View, type ViewStyle } from 'react-native';
+import { Platform, View, type StyleProp, type ViewStyle } from 'react-native';
 import { llganGlassDataSet, type LlganGlassSurfaceKind } from '@/design/tokens/auroraGlass';
 import { ensureLightLiquidGlassSurfaceCss } from '@/design/web/ensureLightLiquidGlassSurfaceCss';
 
@@ -62,7 +62,7 @@ export function bindLlganGlassSurface(node: View | HTMLElement | null, kind: Llg
 
 type LlganGlassShellProps = {
   kind: LlganGlassSurfaceKind;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   children: ReactNode;
 };
 

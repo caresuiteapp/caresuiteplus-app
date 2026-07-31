@@ -424,7 +424,7 @@ export async function loadPortalAppointmentsWithCache(
   const scoped = hasScopedEmployeeCache(tenantId, employeeId);
 
   if (scoped && isBrowserOffline(options?.preferCache)) {
-    const cached = await readSortedAssignmentListCache(tenantId, employeeId);
+    const cached = await readSortedAssignmentListCache(tenantId!, employeeId!);
     if (cached) {
       return withCacheMeta(
         { ok: true, data: cached.items },
@@ -440,15 +440,15 @@ export async function loadPortalAppointmentsWithCache(
     clientId,
   });
   if (online.ok && scoped) {
-    const merged = await mergeAssignmentListCache(tenantId, employeeId, online.data);
+    const merged = await mergeAssignmentListCache(tenantId!, employeeId!, online.data);
     void import('./assignmentDetailPrefetch').then((mod) =>
-      mod.scheduleAssignmentDetailPrefetch(profileId, roleKey, tenantId, employeeId, merged),
+      mod.scheduleAssignmentDetailPrefetch(profileId, roleKey, tenantId!, employeeId!, merged),
     );
     return withCacheMeta({ ok: true, data: merged }, liveCacheMeta());
   }
 
   if (scoped) {
-    const cached = await readSortedAssignmentListCache(tenantId, employeeId);
+    const cached = await readSortedAssignmentListCache(tenantId!, employeeId!);
     if (cached) {
       return withCacheMeta(
         { ok: true, data: cached.items },
@@ -457,7 +457,10 @@ export async function loadPortalAppointmentsWithCache(
     }
   }
 
-  return withCacheMeta(online, emptyCacheMeta());
+  return withCacheMeta<CachedPortalAppointmentItem[]>(
+    online.ok ? { ok: true, data: online.data } : { ok: false, error: online.error },
+    emptyCacheMeta(),
+  );
 }
 
 export async function loadPortalAppointmentDetailWithCache(
@@ -473,7 +476,7 @@ export async function loadPortalAppointmentDetailWithCache(
   const assignmentKey = appointmentId?.trim() ?? '';
 
   if (scoped && assignmentKey && isBrowserOffline(options?.preferCache)) {
-    const cached = await readPortalAppointmentDetailCache(tenantId, employeeId, assignmentKey);
+    const cached = await readPortalAppointmentDetailCache(tenantId!, employeeId!, assignmentKey);
     if (cached) {
       return withCacheMeta(
         { ok: true, data: cached.payload },
@@ -485,14 +488,14 @@ export async function loadPortalAppointmentDetailWithCache(
       );
     }
 
-    const listCached = await readSortedAssignmentListCache(tenantId, employeeId);
+    const listCached = await readSortedAssignmentListCache(tenantId!, employeeId!);
     const listItem = listCached?.items.find((item) => item.id === assignmentKey);
     if (listItem) {
       return withCacheMeta(
         { ok: true, data: buildPortalDetailFromListItem(listItem) },
         {
           fromCache: true,
-          cachedAt: listCached.cachedAt,
+          cachedAt: listCached!.cachedAt,
           partialDetail: true,
           cacheSource: 'list_basis',
         },
@@ -507,7 +510,7 @@ export async function loadPortalAppointmentDetailWithCache(
     employeeId,
   });
   if (online.ok && scoped) {
-    const wrote = await writePortalAppointmentDetailCache(tenantId, employeeId, online.data);
+    const wrote = await writePortalAppointmentDetailCache(tenantId!, employeeId!, online.data);
     if (!wrote) {
       console.warn('[CareSuite offline] writePortalAppointmentDetailCache failed', {
         tenantId,
@@ -519,7 +522,7 @@ export async function loadPortalAppointmentDetailWithCache(
   }
 
   if (scoped && assignmentKey) {
-    const cached = await readPortalAppointmentDetailCache(tenantId, employeeId, assignmentKey);
+    const cached = await readPortalAppointmentDetailCache(tenantId!, employeeId!, assignmentKey);
     if (cached) {
       return withCacheMeta(
         { ok: true, data: cached.payload },
@@ -531,14 +534,14 @@ export async function loadPortalAppointmentDetailWithCache(
       );
     }
 
-    const listCached = await readSortedAssignmentListCache(tenantId, employeeId);
+    const listCached = await readSortedAssignmentListCache(tenantId!, employeeId!);
     const listItem = listCached?.items.find((item) => item.id === assignmentKey);
     if (listItem) {
       return withCacheMeta(
         { ok: true, data: buildPortalDetailFromListItem(listItem) },
         {
           fromCache: true,
-          cachedAt: listCached.cachedAt,
+          cachedAt: listCached!.cachedAt,
           partialDetail: true,
           cacheSource: 'list_basis',
         },
@@ -546,7 +549,10 @@ export async function loadPortalAppointmentDetailWithCache(
     }
   }
 
-  return withCacheMeta(online, emptyCacheMeta());
+  return withCacheMeta<PortalAppointmentDetail>(
+    online.ok ? { ok: true, data: online.data } : { ok: false, error: online.error },
+    emptyCacheMeta(),
+  );
 }
 
 export async function loadExecutionDetailWithCache(
@@ -579,7 +585,7 @@ export async function loadExecutionDetailWithCache(
         { ok: true, data: buildExecutionDetailFromListItem(listItem, tenantId) },
         {
           fromCache: true,
-          cachedAt: listCached.cachedAt,
+          cachedAt: listCached!.cachedAt,
           partialDetail: true,
           cacheSource: 'list_basis',
         },
@@ -637,7 +643,7 @@ export async function loadExecutionDetailWithCache(
         { ok: true, data: buildExecutionDetailFromListItem(listItem, tenantId) },
         {
           fromCache: true,
-          cachedAt: listCached.cachedAt,
+          cachedAt: listCached!.cachedAt,
           partialDetail: true,
           cacheSource: 'list_basis',
         },
@@ -645,7 +651,10 @@ export async function loadExecutionDetailWithCache(
     }
   }
 
-  return withCacheMeta(online, emptyCacheMeta());
+  return withCacheMeta<EmployeePortalAssignmentDetail>(
+    { ok: false, error: online.error },
+    emptyCacheMeta(),
+  );
 }
 
 export async function loadDashboardProjectionWithCache(

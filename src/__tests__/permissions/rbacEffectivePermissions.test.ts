@@ -201,7 +201,7 @@ describe('RBAC effective permissions (Rollen & Rechte)', () => {
   it('14. Kritische Änderung erfordert Begründung', () => {
     const catalog = buildPermissionCatalogEntries();
     const before = getPermissionsForRole('caregiver');
-    const after = [...before, 'business.tenant.manage'];
+    const after: import('@/types').PermissionKey[] = [...before, 'business.tenant.manage'];
     const missingReason = validateCriticalChangeReason(catalog, before, after, null);
     expect(missingReason).toBeTruthy();
     expect(missingReason).toContain('Begründung');

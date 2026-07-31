@@ -170,9 +170,9 @@ function usePortalData() {
       documents: documents.ok ? documents.data : [],
     });
     setErrors(
-      [appointments, documents]
-        .filter((result) => !result.ok)
-        .map((result) => ('error' in result ? result.error : 'Daten konnten nicht geladen werden.')),
+      [appointments, documents].flatMap((result) =>
+        result.ok ? [] : [result.error],
+      ),
     );
     setLoading(false);
   }, [authReady, context, isAuthenticated, profileId, roleKey]);

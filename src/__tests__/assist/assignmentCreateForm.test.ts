@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
@@ -14,6 +14,13 @@ import { fetchAssignmentEmployeeList } from '@/lib/assist/assignmentEmployeeList
 import { fetchClientTasks } from '@/lib/clients/clientTasksService';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import type { ClientTask } from '@/types/modules/client';
+
+vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'demo', isDemoMode: () => true }));
+vi.mock('@/lib/clients/clientBackend', () => ({
+  isDemoClientBackend: () => true,
+  assertDemoTenant: () => null,
+  getClientExtendedRepository: vi.fn(),
+}));
 
 const root = path.join(__dirname, '..', '..', '..');
 
@@ -56,13 +63,11 @@ describe('Assignment create form', () => {
     expect(DEFAULT_ASSIGNMENT_BEZEICHNUNG).toBe('Alltagsbegleitung');
   });
 
-  it('AssignmentCreateScreen nutzt Bezeichnungs-Optionen und Klienten-Aufgaben', () => {
-    const screen = readSrc('src/screens/assist/AssignmentCreateScreen.tsx');
-    expect(screen).toContain('ASSIGNMENT_BEZEICHNUNG_OPTIONS');
-    expect(screen).toContain('fetchClientTasks');
-    expect(screen).toContain('buildDefaultTaskSelections');
-    expect(screen).not.toContain('Weitere Aufgabe');
-    expect(screen).not.toContain('onChangeText={(title)');
+  it('AssignmentCreateForm nutzt Bezeichnungs-Optionen und Klienten-Aufgaben', () => {
+    const screen = readSrc('src/components/assist/AssignmentCreateForm.tsx');
+    expect(screen).toContain('useAssistAssignmentOptions');
+    expect(screen).toContain('loadTaskPackageItems');
+    expect(screen).toContain('mergeTaskDrafts');
   });
 
   it('übernimmt aktive Aufgaben aus der Klientenakte als Vorauswahl', () => {

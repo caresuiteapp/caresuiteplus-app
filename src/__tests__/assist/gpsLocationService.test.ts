@@ -50,7 +50,7 @@ describe('gpsLocationService preparedOnly guards (Sprint 74)', () => {
     const result = await requestGpsForegroundPermission();
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toContain('Vorbereitung');
+      expect(result.error).toContain('Standortdaten');
     }
     expect(locationMock.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
   });

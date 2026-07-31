@@ -9,11 +9,16 @@ import { resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignmen
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { getEmployeePortalLocationConsent } from '@/lib/portal/employeePortalVisitTrackingService';
 import { calculateVisitTimes, type VisitTimesSummary } from './calculateVisitTimes';
-import type { AssignmentDetail } from '@/lib/assist/repositories/assignmentRepository.supabase';
+type AssignmentTimingDetail = {
+  onTheWayAt: string | null;
+  arrivedAt: string | null;
+  actualStartAt: string | null;
+  actualEndAt: string | null;
+};
 
 function mergeVisitTimesFromAssignment(
   visitTimes: VisitTimesSummary | null,
-  detail: AssignmentDetail,
+  detail: AssignmentTimingDetail,
 ): VisitTimesSummary | null {
   const hasAssignmentTimes =
     Boolean(detail.onTheWayAt) ||

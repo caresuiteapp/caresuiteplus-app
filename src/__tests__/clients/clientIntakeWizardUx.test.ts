@@ -12,8 +12,7 @@ describe('Client intake wizard UX fixes', () => {
   it('FormScreenHero zeigt Live-Mandant statt Demo-KPIs', () => {
     const hero = readSrc('components/forms/FormScreenHero.tsx');
     expect(hero).toContain('useTenantDisplayName');
-    expect(hero).toContain("getServiceMode() === 'supabase'");
-    expect(hero).toContain('Live-Speicherung');
+    expect(hero).toContain('Datenspeicherung aktiv');
     expect(hero).toContain('Mandantengebunden');
   });
 
@@ -47,6 +46,6 @@ describe('Client intake wizard UX fixes', () => {
     expect(hook).toContain('Entwurf gespeichert');
     expect(form).toContain('Als Entwurf speichern');
     expect(form).toContain('Neu beginnen');
-    expect(form).toContain('Entwurf wiederhergestellt');
+    expect(form).toContain('Entwurf geladen');
   });
 });

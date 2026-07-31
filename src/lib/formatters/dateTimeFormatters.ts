@@ -32,7 +32,9 @@ function toDate(value: string | Date): Date | null {
   const isoDateOnly = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoDateOnly) {
     const [, year, month, day] = isoDateOnly;
-    const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+    // Calendar dates have no time zone. Noon UTC keeps the same civil date
+    // when the runtime itself is west or east of the configured app zone.
+    const parsed = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 12));
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
   const parsed = new Date(trimmed);

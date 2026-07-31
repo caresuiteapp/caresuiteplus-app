@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import {
   fetchAssistCalendarEvents,
@@ -11,6 +11,8 @@ import {
   CALENDAR_EVENT_TYPE_COLORS,
 } from '@/types/modules/calendarEvent';
 import { fetchTenantCalendarSettings } from '@/lib/office/tenantCalendarSettingsService';
+
+vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'demo', isDemoMode: () => true }));
 
 describe('Assist calendar events', () => {
   it('loads assist-scoped events with einsatz type from assignments', async () => {

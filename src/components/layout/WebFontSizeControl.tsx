@@ -10,7 +10,7 @@ const COMPACT_CONTROL_HEIGHT = 24;
 
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as TextStyle) : null;
 const webDisabled =
-  Platform.OS === 'web' ? ({ cursor: 'default', opacity: 0.35 } as TextStyle) : { opacity: 0.35 };
+  Platform.OS === 'web' ? ({ cursor: 'auto', opacity: 0.35 } as TextStyle) : { opacity: 0.35 };
 
 type WebFontSizeControlProps = {
   compact?: boolean;
@@ -29,9 +29,9 @@ export function WebFontSizeControl({ compact = false }: WebFontSizeControlProps)
       <Pressable
         onPress={canDecrease ? decrease : undefined}
         disabled={!canDecrease}
-        style={({ hovered }: { hovered?: boolean }) => [
+        style={({ pressed }) => [
           styles.actionWrap as ViewStyle,
-          canDecrease && hovered ? (styles.actionWrapHover as ViewStyle) : null,
+          canDecrease && pressed ? (styles.actionWrapHover as ViewStyle) : null,
         ]}
         accessibilityRole="button"
         accessibilityLabel="Schrift verkleinern"
@@ -43,9 +43,9 @@ export function WebFontSizeControl({ compact = false }: WebFontSizeControlProps)
       <Pressable
         onPress={canIncrease ? increase : undefined}
         disabled={!canIncrease}
-        style={({ hovered }: { hovered?: boolean }) => [
+        style={({ pressed }) => [
           styles.actionWrap as ViewStyle,
-          canIncrease && hovered ? (styles.actionWrapHover as ViewStyle) : null,
+          canIncrease && pressed ? (styles.actionWrapHover as ViewStyle) : null,
         ]}
         accessibilityRole="button"
         accessibilityLabel="Schrift vergrößern"

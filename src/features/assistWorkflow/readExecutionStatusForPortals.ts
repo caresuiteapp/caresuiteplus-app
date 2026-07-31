@@ -42,7 +42,7 @@ export async function readExecutionStatusForPortals(
       hasDocumentation: snapshot.hasDocumentation,
       hasSignature: snapshot.hasSignature,
       hasProof: snapshot.hasProof,
-      proofStatus: snapshot.proofStatus,
+      proofStatus: snapshot.proofStatus ?? null,
       visitTimes: snapshot.visitTimes,
       noShowNote: null,
     },

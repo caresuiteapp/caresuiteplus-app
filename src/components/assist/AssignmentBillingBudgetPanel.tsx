@@ -82,7 +82,7 @@ function ServiceEntitlementCards({ profile }: { profile: ClientAssistBillingProf
             <Text style={[styles.cardTitle, { color: text.primary }]}>{label}</Text>
             <PremiumBadge
               label={active ? (canUse ? 'verfügbar' : 'gesperrt') : 'inaktiv'}
-              variant={canUse ? 'green' : active ? 'orange' : 'gray'}
+              variant={canUse ? 'green' : active ? 'orange' : 'muted'}
             />
             {account ? (
               <Text style={[styles.meta, { color: text.secondary }]}>
@@ -380,7 +380,7 @@ export function AssignmentBillingBudgetPanel({
           {manualOverride ? (
             <PremiumButton
               title="Korrektur zurücksetzen"
-              variant="glass"
+              variant="ghost"
               onPress={() => {
                 onManualOverrideChange(null);
                 setOverrideCatalogKey('');

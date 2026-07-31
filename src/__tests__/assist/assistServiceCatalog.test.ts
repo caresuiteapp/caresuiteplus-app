@@ -240,9 +240,8 @@ describe('Assist Leistungskatalog Wiring', () => {
     expect(screen).toContain('Mehr → Verwaltung → Leistungen & Aufgaben');
     expect(screen).toContain('AssistServiceCatalogHero');
 
-    const routes = readSrc('src/lib/navigation/routes.ts');
-    expect(routes).toContain('/business/office/admin/services');
-    expect(routes).toContain('Leistungen & Aufgaben');
+    const route = readSrc('app/business/office/admin/services/index.tsx');
+    expect(route).toContain('AssistServiceCatalogScreen');
   });
 
   it('Live-Migrationskennung ist konsistent', () => {

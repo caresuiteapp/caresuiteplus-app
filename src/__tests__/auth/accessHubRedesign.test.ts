@@ -45,6 +45,19 @@ describe('CareSuite access hub redesign', () => {
     expect(hub).toContain('CareSuite HealthOS für Ihre Organisation einrichten');
   });
 
+  it('gives every mobile access card its own intrinsic row instead of collapsing the stack', () => {
+    expect(hub).toContain('!stacked && styles.accessCardFrameWide');
+    expect(hub).toContain("flexBasis: 'auto'");
+    expect(hub).toContain('flexShrink: 0');
+    expect(hub).not.toContain('accessCardFrame: { flex: 1');
+  });
+
+  it('keeps the mobile access flow clear of device safe areas', () => {
+    expect(hub).toContain('useSafeAreaInsets');
+    expect(hub).toContain('paddingTop: Math.max(24, insets.top + 16)');
+    expect(hub).toContain('paddingBottom: Math.max(32, insets.bottom + 24)');
+  });
+
   it('keeps login forms usable with mobile safe areas and the open keyboard', () => {
     expect(accessScreens).toContain('KeyboardAvoidingView');
     expect(accessScreens).toContain("Platform.OS === 'ios' ? 'padding'");

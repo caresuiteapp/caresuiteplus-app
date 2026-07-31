@@ -54,7 +54,7 @@ export function buildIntakePlaceholderContext(
     ...costCarrierFields,
     'care.level': formatCareLevel(form.careLevel),
     'billing.types': form.billingTypes.join(', '),
-    'billing.hourly_rate': form.hourlyRate.trim() || '—',
+    'billing.hourly_rate': resolveBillingHourlyRate(form, tenantDisplay),
     'contract.service_start': formatDate(form.serviceStart.trim() || form.admissionDate.trim()),
     'document.date': formatDate(new Date()),
     'document.location': form.city.trim() || tenantDisplay?.city?.trim() || '—',

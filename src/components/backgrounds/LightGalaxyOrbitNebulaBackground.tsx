@@ -838,12 +838,12 @@ const styles = StyleSheet.create({
   layerA: {
     ...StyleSheet.absoluteFillObject,
     ...(Platform.OS === 'web' ? { backgroundImage:
-      'linear-gradient(135deg, #A8AEB6 0%, #B8BEC6 28%, #C4CAD2 52%, #B0B6BE 78%, #9CA2AC 100%)' } : null) as ViewStyle,
+      'linear-gradient(135deg, #A8AEB6 0%, #B8BEC6 28%, #C4CAD2 52%, #B0B6BE 78%, #9CA2AC 100%)' } : null) as unknown as ViewStyle,
   },
   layerJ: {
     ...StyleSheet.absoluteFillObject,
     ...(Platform.OS === 'web' ? { backgroundImage:
-      'radial-gradient(ellipse 96% 88% at 50% 44%, rgba(196,200,206,0.038) 0%, rgba(188,192,198,0.014) 42%, transparent 72%)' } : null) as ViewStyle,
+      'radial-gradient(ellipse 96% 88% at 50% 44%, rgba(196,200,206,0.038) 0%, rgba(188,192,198,0.014) 42%, transparent 72%)' } : null) as unknown as ViewStyle,
     pointerEvents: 'none',
   },
   layerJNative: {

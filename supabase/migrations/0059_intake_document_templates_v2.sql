@@ -84,7 +84,7 @@ UPDATE public.intake_document_system_templates SET
   requires_client_signature = true,
   requires_employee_signature = false,
   requires_representative_signature = false,
-  html_content = '<div class="document-header"><h1>Abtretungserklärung und Erteilung eines Zahlungsauftrags</h1><p class="subtitle">zur Direktabrechnung mit der Pflegekasse gemäß § 13 Abs. 3 SGB XI i. V. m. § 13 SGB V</p></div>
+  html_content = '<div class="document-header"><h1>Abtretungserklärung und Erteilung eines Zahlungsauftrags</h1><p class="subtitle">{{cost_carrier.assignment_subtitle}}</p></div>
 <div class="document-parties"><table>
 <tr><td class="label">Leistungserbringer:</td><td><strong>{{tenant.name}}</strong><br/>{{tenant.street}}<br/>{{tenant.zip}} {{tenant.city}}</td></tr>
 <tr><td class="label">Klient:in:</td><td><strong>{{client.salutation}} {{client.full_name}}</strong><br/>geb. am {{client.date_of_birth}}<br/>{{client.street}}<br/>{{client.zip}} {{client.city}}</td></tr>
@@ -92,7 +92,7 @@ UPDATE public.intake_document_system_templates SET
 <tr><td class="label">Kostenträger:</td><td>{{cost_carrier.primary_name}} · Pflegekasse: {{cost_carrier.care_fund_name}}</td></tr>
 </table></div>
 <div class="document-section"><h2>§ 1 Erklärung zur Anspruchsabtretung</h2>
-<p class="document-paragraph">Ich, {{client.salutation}} {{client.full_name}}, geboren am {{client.date_of_birth}}, wohnhaft {{client.street}}, {{client.zip}} {{client.city}}, trete hiermit unwiderruflich — bis auf weiteres und unter Vorbehalt des Widerrufs gemäß § 7 — sämtliche Ansprüche auf Erstattung von Pflege- und Betreuungsleistungen, die mir gegenüber der Pflegekasse <strong>{{cost_carrier.care_fund_name}}</strong> (Institutionskennzeichen: {{cost_carrier.care_fund_ik}}) zustehen, an den Leistungserbringer <strong>{{tenant.name}}</strong> ab.</p></div>
+<p class="document-paragraph">{{cost_carrier.assignment_intro}}</p></div>
 <div class="document-section"><h2>§ 2 Umfang der abgetretenen Ansprüche</h2>
 <p class="document-paragraph">Die Abtretung umfasst insbesondere Ansprüche auf:</p>
 <ul class="document-paragraph">
@@ -109,7 +109,7 @@ UPDATE public.intake_document_system_templates SET
 <div class="document-section"><h2>§ 4 Leistungsnachweise und Budgetrahmen</h2>
 <p class="document-paragraph">Die Abrechnung erfolgt auf Grundlage ordnungsgemäßer Leistungsnachweise. Der Leistungserbringer weist mich darauf hin, dass Leistungen nur im Rahmen der bewilligten Budgets und Leistungsansprüche abgerechnet werden können. Nicht gedeckte Kosten (Eigenanteile, Zusatzleistungen, nicht erstattungsfähige Leistungen) sind von mir als Selbstzahler zu tragen.</p></div>
 <div class="document-section"><h2>§ 5 Nicht gedeckte Kosten</h2>
-<p class="document-paragraph">Kosten, die nicht oder nicht vollständig von der Pflegekasse übernommen werden, werden mir gesondert in Rechnung gestellt. Der Stundensatz für Selbstzahlerleistungen beträgt, soweit vereinbart: {{billing.hourly_rate}} EUR.</p></div>
+<p class="document-paragraph">{{cost_carrier.uncovered_costs_clause}} Der Stundensatz für Selbstzahlerleistungen beträgt, soweit vereinbart: {{billing.hourly_rate}} EUR.</p></div>
 <div class="document-section"><h2>§ 6 Widerruf</h2>
 <p class="document-paragraph">Diese Abtretungserklärung kann jederzeit schriftlich widerrufen werden. Der Widerruf wird erst wirksam, wenn er dem Leistungserbringer zugegangen ist. Bis zum Wirksamwerden des Widerrufs erbrachte Leistungen bleiben von der Abtretung erfasst.</p></div>
 <div class="document-section"><h2>§ 7 Bestätigung</h2>
@@ -401,7 +401,7 @@ UPDATE public.intake_document_system_templates SET
 <div class="document-section"><h2>§ 1 Zweck</h2>
 <p class="document-paragraph">Zur Sicherstellung einer ganzheitlichen Versorgungsplanung ist es erforderlich, dass behandelnde Ärzt:innen und der Leistungserbringer {{tenant.name}} relevante Gesundheitsinformationen austauschen dürfen.</p></div>
 <div class="document-section"><h2>§ 2 Umfang der Entbindung</h2>
-<p class="document-paragraph">Ich, {{client.full_name}}, entbinde hiermit meine behandelnden Ärzt:innen — insbesondere {{consulting.family_doctor}} — von der ärztlichen Schweigepflicht (§ 203 Abs. 1 Nr. 1 StGB) gegenüber dem Leistungserbringer {{tenant.name}} und dessen befugtem Personal.</p>
+<p class="document-paragraph">Ich, {{client.full_name}}, entbinde hiermit {{consulting.family_doctor_clause}} von der ärztlichen Schweigepflicht (§ 203 Abs. 1 Nr. 1 StGB) gegenüber dem Leistungserbringer {{tenant.name}} und dessen befugtem Personal.</p>
 <p class="document-paragraph">Der Informationsaustausch umfasst Diagnosen, Medikation, Therapieempfehlungen, Pflegebedarf und verordnete Maßnahmen, soweit dies für die Planung und Durchführung der vereinbarten Leistungen erforderlich ist.</p></div>
 <div class="document-section"><h2>§ 3 Dauer und Widerruf</h2>
 <p class="document-paragraph">Diese Entbindung gilt bis auf schriftlichen Widerruf. Der Widerruf ist jederzeit möglich und wird mit Zugang beim Leistungserbringer wirksam.</p></div>

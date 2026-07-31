@@ -77,10 +77,6 @@ export function StatusBadgesDropdown({ badges }: StatusBadgesDropdownProps) {
       StyleSheet.create({
         row: { flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' },
         toggle: {
-          minWidth: 24,
-          height: 24,
-          alignItems: 'center',
-          justifyContent: 'center',
           ...(auroraActive ? chipStyles.chip : {
             borderRadius: 999,
             borderWidth: 1,
@@ -88,6 +84,10 @@ export function StatusBadgesDropdown({ badges }: StatusBadgesDropdownProps) {
             borderColor: auroraGlass.innerBorder,
             backgroundColor: auroraGlass.chip,
           }),
+          minWidth: 24,
+          height: 24,
+          alignItems: 'center',
+          justifyContent: 'center',
         },
         toggleText: { color: text.secondary, fontSize: 12, fontWeight: '600' },
         modalBackdrop: {

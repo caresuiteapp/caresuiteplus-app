@@ -441,7 +441,7 @@ export function BudgetAccountsEditableGrid({
               a.locked ? 'gesperrt' : profile.canUseBudgetByCatalogKey[a.catalogKey] ? 'OK' : 'leer'
             }
             variant={
-              a.locked ? 'orange' : profile.canUseBudgetByCatalogKey[a.catalogKey] ? 'green' : 'gray'
+              a.locked ? 'orange' : profile.canUseBudgetByCatalogKey[a.catalogKey] ? 'green' : 'muted'
             }
           />
         ),
@@ -453,7 +453,7 @@ export function BudgetAccountsEditableGrid({
         render: (a) =>
           !isReadOnly ? (
             <View style={styles.actionCell}>
-              <PremiumButton title="Bearbeiten" variant="glass" onPress={() => setEditAccount(a)} />
+              <PremiumButton title="Bearbeiten" variant="ghost" onPress={() => setEditAccount(a)} />
             </View>
           ) : (
             <Text style={[styles.cellSecondary, { color: text.secondary }]}>—</Text>
@@ -470,7 +470,7 @@ export function BudgetAccountsEditableGrid({
       : profile.canUseBudgetByCatalogKey[a.catalogKey]
         ? 'OK'
         : 'leer';
-    const statusVariant = a.locked ? 'orange' as const : profile.canUseBudgetByCatalogKey[a.catalogKey] ? 'green' as const : 'gray' as const;
+    const statusVariant = a.locked ? 'orange' as const : profile.canUseBudgetByCatalogKey[a.catalogKey] ? 'green' as const : 'muted' as const;
 
     return (
       <PremiumCard key={a.id} style={styles.mobileCard}>
@@ -502,7 +502,7 @@ export function BudgetAccountsEditableGrid({
             disabled={isReadOnly || a.locked}
           />
           {!isReadOnly ? (
-            <PremiumButton title="Bearbeiten" variant="glass" onPress={() => setEditAccount(a)} />
+            <PremiumButton title="Bearbeiten" variant="ghost" onPress={() => setEditAccount(a)} />
           ) : null}
         </View>
       </PremiumCard>

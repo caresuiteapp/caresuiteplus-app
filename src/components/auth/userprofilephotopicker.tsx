@@ -11,6 +11,7 @@ import { pickUserAvatarFile } from '@/lib/auth/pickUserAvatarFile';
 import type { UserAvatarPending } from '@/lib/auth/useravatarservice';
 import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { withAlpha } from '@/design/tokens/motion';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 
 type Size = 'sm' | 'md';
 

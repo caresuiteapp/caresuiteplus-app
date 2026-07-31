@@ -70,7 +70,7 @@ export function subscribeToTenantTables(
 
   const supabase = getSupabaseClient();
   if (!supabase) {
-    registerRealtimeSubscription(subscriptionKey, { handlers: new Set([handler]), timer: null });
+    registerRealtimeSubscription(subscriptionKey, { handlers: new Set([handler]), pollCleanup: null });
     return () => detachRealtimeHandler(subscriptionKey, handler);
   }
 
@@ -80,7 +80,7 @@ export function subscribeToTenantTables(
 
   registerRealtimeSubscription(subscriptionKey, {
     handlers: new Set([handler]),
-    timer: null,
+    pollCleanup: null,
     supabaseChannel: rtChannel,
   });
 

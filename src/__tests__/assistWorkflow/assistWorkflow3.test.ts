@@ -22,11 +22,11 @@ function baseDetail(): AssistExecutionContext['detail'] {
     plannedEndAt: '2026-06-29T10:00:00Z',
     status: 'gestartet',
     requiresSignature: true,
-    documentationStatus: 'pending',
+    documentationStatus: 'draft',
     tasks: [],
     allowedTransitions: ['nicht_erschienen'],
     isLocked: false,
-  };
+  } as unknown as AssistExecutionContext['detail'];
 }
 
 describe('resolveAllowedActions (ASSIST.WORKFLOW.3)', () => {

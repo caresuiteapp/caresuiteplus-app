@@ -30,12 +30,14 @@ async function loadPdfRenderer(): Promise<PdfRenderer> {
   if (!pdfRendererPromise) {
     pdfRendererPromise = Promise.all([
       import('html2canvas'),
-      // @ts-expect-error jspdf ships no type declarations for ESM entry
       import('jspdf/dist/jspdf.es.min.js'),
-    ]).then(([html2canvasModule, jsPDFModule]) => ({
-      html2canvas: html2canvasModule.default,
-      jsPDF: jsPDFModule.jsPDF,
-    }));
+    ]).then(([html2canvasModule, jsPDFModule]) => {
+      const typedJsPdfModule = jsPDFModule as unknown as typeof import('jspdf');
+      return {
+        html2canvas: html2canvasModule.default,
+        jsPDF: typedJsPdfModule.jsPDF,
+      };
+    });
   }
   return pdfRendererPromise;
 }

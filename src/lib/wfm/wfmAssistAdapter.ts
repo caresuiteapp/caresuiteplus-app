@@ -24,6 +24,8 @@ const ASSIST_TO_WFM: Record<AssistTimeEventType, WfmEventType | null> = {
   pause_start: 'pause_start',
   pause_end: 'pause_end',
   arrive: 'visit_arrived',
+  arrived_without_gps: 'visit_arrived',
+  arrived_manual: 'visit_arrived',
   depart: 'visit_ended',
 };
 
@@ -217,7 +219,7 @@ async function syncAssistVisitTimesToWfmViaRpc(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-  const { data, error } = await supabase.rpc('sync_assist_visit_times_to_wfm', {
+  const { data, error } = await (supabase as unknown as { rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> }).rpc('sync_assist_visit_times_to_wfm', {
     p_tenant_id: tenantId,
     p_visit_id: visitId,
   });

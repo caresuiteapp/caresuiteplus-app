@@ -18,9 +18,9 @@ describe('Assist Calendar Hero (Sprint 90)', () => {
 
   it('AssistCalendarScreen nutzt vollen Assist-Kalender und Detail-Modal', () => {
     const screen = readSrc('src/screens/assist/AssistCalendarScreen.tsx');
-    expect(screen).toContain('AssistCalendarView');
+    expect(screen).toContain('CalendarShell');
     expect(screen).toContain('AssignmentDetailGlassModal');
-    expect(screen).toContain('ScreenShell');
+    expect(screen).toContain('CalendarEventDrawer');
     expect(screen).not.toContain('AssistCalendarListHero');
   });
 
@@ -33,6 +33,7 @@ describe('Assist Calendar Hero (Sprint 90)', () => {
           {
             id: 'a1',
             tenantId: 't1',
+            employeeId: null,
             clientName: 'Müller',
             employeeName: 'Schmidt',
             title: 'Einsatz',
@@ -40,6 +41,12 @@ describe('Assist Calendar Hero (Sprint 90)', () => {
             scheduledStart: '2026-06-14T08:00:00Z',
             scheduledEnd: '2026-06-14T10:00:00Z',
             status: 'aktiv',
+            assignmentStatus: 'geplant',
+            planningStatus: 'scheduled',
+            proofStatus: 'none',
+            billingStatus: 'none',
+            isAtRisk: false,
+            isIncomplete: false,
             updatedAt: '2026-06-14',
           },
         ],

@@ -3,7 +3,7 @@ import { DEMO_TENANT_ID } from './tenant';
 
 const now = new Date().toISOString();
 
-export const demoClients: ClientListItem[] = [
+const demoClientSeeds: Omit<ClientListItem, 'dateOfBirth' | 'primaryContactPhone'>[] = [
   {
     id: 'client-001',
     tenantId: DEMO_TENANT_ID,
@@ -245,6 +245,12 @@ export const demoClients: ClientListItem[] = [
     updatedAt: now,
   },
 ];
+
+export const demoClients: ClientListItem[] = demoClientSeeds.map((client) => ({
+  ...client,
+  dateOfBirth: null,
+  primaryContactPhone: null,
+}));
 
 export {
   getDemoClientFullDetail,

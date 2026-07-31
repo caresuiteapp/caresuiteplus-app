@@ -380,13 +380,9 @@ export function EmployeeRolesPermissionsHub({
 
 
 
-      const errors = [overridesResult, scopesResult, effectiveResult]
-
-        .filter((result) => !result.ok)
-
-        .map((result) => result.error)
-
-        .filter((message): message is string => Boolean(message));
+      const errors = [overridesResult, scopesResult, effectiveResult].flatMap((result) =>
+        result.ok ? [] : [result.error],
+      );
 
 
 
@@ -1049,5 +1045,4 @@ export function EmployeeRolesPermissionsHub({
   );
 
 }
-
 

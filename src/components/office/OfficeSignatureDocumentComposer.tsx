@@ -18,6 +18,7 @@ import {
 } from '@/lib/portal/portalSignatureFieldParser';
 import type { ComposeOfficeSignatureDocumentInput } from '@/lib/portal/officeSignatureDocumentComposerService';
 import type { DocumentEngineTemplateListItem } from '@/types/documents/documentEngine';
+import type { RoleKey } from '@/types';
 import type {
   PortalSignatureDocumentType,
   PortalSignaturePriority,
@@ -51,7 +52,7 @@ type Props = {
 async function buildTemplateHtml(
   tenantId: string,
   template: DocumentEngineTemplateListItem,
-  actorRoleKey: string | null | undefined,
+  actorRoleKey: RoleKey | null | undefined,
   entityType: DocumentEntityType,
   entityId: string,
 ): Promise<{ ok: true; html: string } | { ok: false; error: string }> {

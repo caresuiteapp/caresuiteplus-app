@@ -49,7 +49,7 @@ async function resolveActiveLiveTracking(
       plannedEndAt: active.endsAt,
       portalReleaseEnabled: true,
     }),
-  ) as ClientPortalAssistLiveVisitProjection;
+  ) as unknown as ClientPortalAssistLiveVisitProjection;
 
   return {
     assignmentId: active.id,

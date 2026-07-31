@@ -90,7 +90,7 @@ function WebCareSuiteLoadingIndicator({ width }: { width: number }) {
     backgroundColor: 'transparent',
   };
 
-  const shimmerStyle: ViewStyle = {
+  const shimmerStyle = {
     position: 'absolute',
     top: '8%',
     left: '50%',
@@ -109,7 +109,7 @@ function WebCareSuiteLoadingIndicator({ width }: { width: number }) {
           animationTimingFunction: 'ease-in-out',
           animationIterationCount: 'infinite',
         } as ViewStyle)),
-  };
+  } as unknown as ViewStyle;
 
   return (
     <View style={wrapStyle} accessibilityLabel="CareSuite+ wird geladen">

@@ -6,9 +6,13 @@ import { useAuth } from '@/lib/auth/context';
 import { checkProductAccess } from '@/lib/navigation';
 import { LiquidBackdrop, LiquidState } from '../components/LiquidPrimitives';
 
+type StableRouter = {
+  replace: (target: string | Record<string, unknown>) => void;
+};
+
 export function LiquidProductAccessGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
+  const router = useRouter() as unknown as StableRouter;
   const hydrated = useHydrated();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
@@ -39,7 +43,7 @@ export function LiquidProductAccessGuard({ children }: { children: ReactNode }) 
           title="Modul nicht aktiv"
           message={decision.message ?? 'Dieses Modul ist für Ihren Mandanten nicht freigeschaltet.'}
           actionLabel="Module verwalten"
-          onAction={() => router.replace('/business/modules' as never)}
+          onAction={() => router.replace('/business/modules')}
         />
       </LiquidBackdrop>
     );

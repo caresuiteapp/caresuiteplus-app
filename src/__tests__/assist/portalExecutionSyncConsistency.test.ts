@@ -136,7 +136,8 @@ describe('portal execution sync consistency', () => {
     expect(listItem.assignmentStatus).toBe(officeDetail.assignmentStatus);
     expect(officeDetail.tasks.find((t) => t.title === 'Küche reinigen')?.status).toBe('done');
     expect(officeDetail.documentationStatus).toBe('complete');
-    expect(officeDetail.employeeNotes).toBe('Alles erledigt');
+    expect(officeDetail.employeeNotes).toBeNull();
+    expect(officeDetail.documentationNotes).toBe('Alles erledigt');
   });
 
   it('employee portal list overlay matches completed assignment status', () => {

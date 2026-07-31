@@ -17,6 +17,7 @@ function assignment(partial: Partial<AssignmentListItem> & Pick<AssignmentListIt
   return {
     id: partial.id,
     tenantId: partial.tenantId ?? 'tenant-1',
+    employeeId: partial.employeeId ?? null,
     title: partial.title ?? 'Einsatz',
     scheduledStart: partial.scheduledStart ?? '2026-06-23T10:00:00.000Z',
     scheduledEnd: partial.scheduledEnd ?? '2026-06-23T11:00:00.000Z',

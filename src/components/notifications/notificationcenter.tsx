@@ -415,7 +415,7 @@ export function NotificationBellFab({ employeeId, bottomOffset = 0 }: Notificati
   const fabStyle = useMemo(
     (): ViewStyle => ({
       ...(Platform.OS === 'web'
-        ? ({ position: 'fixed' } as ViewStyle)
+        ? ({ position: 'fixed' } as unknown as ViewStyle)
         : { position: 'absolute' }),
       bottom: spacing.lg + Math.max(insets.bottom, 0) + bottomOffset,
       right: spacing.lg,

@@ -13,6 +13,8 @@ const detail: EmployeePortalAssignmentDetail = {
   plannedEndAt: '2026-06-29T10:00:00.000Z',
   actualStartAt: null,
   actualEndAt: null,
+  onTheWayAt: null,
+  arrivedAt: null,
   status: 'beendet',
   canonicalStatus: 'completed',
   notesForEmployee: '',

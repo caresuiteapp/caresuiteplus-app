@@ -56,9 +56,10 @@ function toStorageUploadPayload(
       return fileData.type ? fileData : new Blob([fileData], { type: normalizedMime });
     }
     const bytes = fileData instanceof Uint8Array ? fileData : new Uint8Array(fileData);
-    return new Blob([bytes], { type: normalizedMime });
+    return new Blob([new Uint8Array(bytes).buffer as ArrayBuffer], { type: normalizedMime });
   }
-  return fileData instanceof Uint8Array ? fileData : new Uint8Array(fileData);
+  if (fileData instanceof Uint8Array) return fileData;
+  return new Uint8Array(fileData as ArrayBuffer);
 }
 
 async function downloadAttachmentBlobUrl(

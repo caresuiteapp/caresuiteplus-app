@@ -10,7 +10,8 @@ export function useIsOfficeRoute(): boolean {
     return true;
   }
 
-  const first = segments[0];
-  const second = segments[1];
+  const routeSegments = segments as readonly string[];
+  const first = routeSegments[0];
+  const second = routeSegments[1];
   return first === 'office' || (first === 'business' && second === 'office');
 }

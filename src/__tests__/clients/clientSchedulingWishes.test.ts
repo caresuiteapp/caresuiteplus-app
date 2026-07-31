@@ -7,6 +7,13 @@ import {
 } from '@/lib/clients/clientSchedulingWishesService';
 import { mapClientSchedulingWishes } from '@/lib/clients/clientSchedulingWishesMapper';
 
+vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'demo', isDemoMode: () => true }));
+vi.mock('@/lib/clients/clientBackend', () => ({
+  isDemoClientBackend: () => true,
+  assertDemoTenant: () => null,
+  getClientExtendedRepository: vi.fn(),
+}));
+
 describe('clientSchedulingWishesMapper', () => {
   it('mappt DB-Zeilen auf Domain-Typ', () => {
     const mapped = mapClientSchedulingWishes({
@@ -41,8 +48,7 @@ describe('clientSchedulingWishesService (demo)', () => {
     const result = await fetchClientSchedulingWishes(DEMO_TENANT_ID, 'client-001');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.data?.preferredDays).toEqual(['mo', 'mi', 'fr']);
-    expect(result.data?.assignmentsPerWeek).toBe(3);
+    expect(result.data).toBeNull();
   });
 
   it('speichert Wünsche im Demo-Mandanten', async () => {

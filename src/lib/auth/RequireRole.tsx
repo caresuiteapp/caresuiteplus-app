@@ -21,9 +21,11 @@ type RequireRoleProps = {
   children: ReactNode;
 };
 
+type StableRouter = { replace: (target: string) => void };
+
 export function RequireRole({ children }: RequireRoleProps) {
   const pathname = usePathname();
-  const router = useRouter();
+  const router = useRouter() as unknown as StableRouter;
   const hydrated = useHydrated();
   const {
     profile,

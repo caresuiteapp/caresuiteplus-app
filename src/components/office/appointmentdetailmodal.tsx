@@ -161,7 +161,7 @@ export function AppointmentDetailModal({
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
                 >
-                  <AppointmentDetailScreen {...{ appointmentId, embedded: true, embeddedInModal: true } as never} />
+                  <AppointmentDetailSummaryPanel appointmentId={appointmentId} />
                 </ScrollView>
               </View>
             ) : (

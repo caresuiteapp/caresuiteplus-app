@@ -190,7 +190,7 @@ async function saveToSupabase(
 }
 
 export type TenantCalendarSettingsOptions = {
-  scope?: import('@/types/modules/calendarEvent').CalendarModuleScope;
+  scope?: 'office' | 'assist';
 };
 
 export async function fetchTenantCalendarSettings(

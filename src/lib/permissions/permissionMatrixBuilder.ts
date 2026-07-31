@@ -43,7 +43,7 @@ function permissionMatchesAction(key: PermissionKey, action: PermissionMatrixAct
 }
 
 export function buildPermissionMatrix(
-  permissions: PermissionKey[],
+  permissions: readonly PermissionKey[],
   catalog?: PermissionCatalogEntry[],
 ): PermissionMatrixRow[] {
   const areas = new Map<string, PermissionMatrixRow>();
@@ -77,10 +77,10 @@ export function buildPermissionMatrix(
 }
 
 export function filterPermissionsForTab(
-  permissions: PermissionKey[],
-  modulePrefixes: string[],
+  permissions: readonly PermissionKey[],
+  modulePrefixes: readonly string[],
 ): PermissionKey[] {
-  if (!modulePrefixes.length) return permissions;
+  if (!modulePrefixes.length) return [...permissions];
   return permissions.filter((key) =>
     modulePrefixes.some((prefix) => key === prefix || key.startsWith(`${prefix}.`)),
   );

@@ -614,7 +614,10 @@ export const assignmentSupabaseRepository = {
     if (!supabase) return unavailable();
     if (!updates.length) {
       const current = await this.getById(tenantId, assignmentId);
-      return current;
+      if (!current.ok) return current;
+      return current.data
+        ? { ok: true, data: current.data }
+        : { ok: false, error: 'Einsatz nicht gefunden.' };
     }
 
     const now = new Date().toISOString();

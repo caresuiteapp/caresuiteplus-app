@@ -164,6 +164,8 @@ export function updateDemoClientDetail(detail: ClientDetail): void {
           lastName: detail.lastName,
           status: detail.status,
           careLevel: detail.careLevel,
+          dateOfBirth: detail.dateOfBirth,
+          primaryContactPhone: detail.primaryContactPhone,
           city: detail.city ?? null,
           zip: detail.zip ?? null,
           sensitivity: detail.sensitivity,

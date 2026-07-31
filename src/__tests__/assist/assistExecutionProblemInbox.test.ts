@@ -85,7 +85,7 @@ describe('assistExecutionProblemInboxService', () => {
     const { fetchAssistExecutionProblems } = await import('@/lib/assist/assistExecutionProblemInboxService');
     const result = await fetchAssistExecutionProblems('tenant-1');
     expect(result.ok).toBe(true);
-    expect(result.data.some((p) => p.code === 'ended_missing_documentation')).toBe(true);
+    expect(result.data!.some((p) => p.code === 'ended_missing_documentation')).toBe(true);
   });
 
   it('exports all P0 blocker codes', async () => {

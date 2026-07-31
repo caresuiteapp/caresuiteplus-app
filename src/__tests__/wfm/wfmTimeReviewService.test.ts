@@ -163,7 +163,7 @@ describe('wfmTimeReviewService', () => {
 
     const listed = await listReviewsForPeriod(TENANT, WORK_DATE, WORK_DATE);
     expect(listed.ok).toBe(true);
-    expect(listed.data.length).toBe(1);
+    expect(listed.data!.length).toBe(1);
   });
 
   it('counts open reviews without approved/corrected', async () => {
@@ -219,7 +219,7 @@ describe('wfmTimeReviewService', () => {
     });
     const listed = await listReviewsForPeriod(TENANT, WORK_DATE, WORK_DATE);
     expect(listed.ok).toBe(true);
-    expect(listed.data.length).toBe(1);
+    expect(listed.data!.length).toBe(1);
   });
 
   it('maps UI decisions without export persistence fields', () => {

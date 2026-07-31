@@ -132,6 +132,12 @@ export function buildStandardExampleContext(): SystemTemplateExampleContext {
       documentation: 'Grundpflege durchgeführt, Klient:in wach und orientiert.',
       budget_reference: 'SGB XI — Entlastungsleistung',
     },
+    employee: {
+      full_name: 'Anna Pflege',
+      first_name: 'Anna',
+      last_name: 'Pflege',
+      role: 'Pflegefachkraft',
+    },
     contract: {
       number: 'V-2026-001',
       date: '01.01.2026',
@@ -184,6 +190,7 @@ function buildTemplate(input: TemplateSeedInput): SystemDocumentTemplate {
     recipient: { ...baseContext.recipient, ...input.exampleContext?.recipient },
     invoice: { ...baseContext.invoice, ...input.exampleContext?.invoice },
     visit: { ...baseContext.visit, ...input.exampleContext?.visit },
+    employee: { ...baseContext.employee, ...input.exampleContext?.employee },
     contract: { ...baseContext.contract, ...input.exampleContext?.contract },
     signature: { ...baseContext.signature, ...input.exampleContext?.signature },
     document: { ...baseContext.document, ...input.exampleContext?.document },

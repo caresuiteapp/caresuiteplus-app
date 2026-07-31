@@ -274,6 +274,7 @@ export type AssignmentConflictCode =
   | 'qualification_missing'
   | 'employee_inactive'
   | 'background_check_missing'
+  | 'compliance_training_missing'
   | 'employee_blocked'
   | 'employee_not_assignable'
   | 'module_permission_missing'

@@ -1,5 +1,5 @@
 import type { EmployeeAbsence } from '@/types/modules/employeeAbsence';
-import type { ManagementTask } from '@/types/modules/liveMonitor';
+import type { ManagementTask, ManagementTaskStatus, ManagementTaskType } from '@/types/modules/liveMonitor';
 import type {
   PersonalComplianceEmployeeRow,
   PersonalComplianceKpiKey,
@@ -63,19 +63,19 @@ const OPEN_CORRECTION_STATUSES = new Set<QmCorrectionRequest['status']>([
   'waiting_for_employee',
 ]);
 
-const OPEN_TASK_STATUSES = new Set([
+const OPEN_TASK_STATUSES = new Set<ManagementTaskStatus>([
   'open',
   'in_progress',
   'waiting_for_employee',
   'waiting_for_management',
-] as const);
+]);
 
-const PERSONNEL_TASK_TYPES = new Set([
+const PERSONNEL_TASK_TYPES = new Set<ManagementTaskType>([
   'master_data_review',
   'missing_contract',
   'absence_replacement',
   'absence_conflict',
-] as const);
+]);
 
 const ACTIVE_ABSENCE_STATUSES = new Set<EmployeeAbsence['status']>(['approved', 'active']);
 

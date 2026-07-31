@@ -343,7 +343,7 @@ export function useVoiceOrbPlacement() {
         : 0;
 
     return {
-      ...(Platform.OS === 'web' ? ({ position: 'fixed' } as ViewStyle) : null),
+      ...(Platform.OS === 'web' ? ({ position: 'fixed' } as unknown as ViewStyle) : null),
       left: shellLeftInset + spacing.lg + Math.max(insets.left, 0),
       bottom: spacing.lg + Math.max(insets.bottom, 0) + bottomNavOffset,
     };

@@ -133,7 +133,10 @@ export async function saveEmployeeLocationConsent(
   const explainedAt = input.consentExplainedAt ?? input.localConsent?.explainedAt ?? now;
 
   if (ctx.consentStatus.granted && ctx.consentStatus.grantedAt) {
-    const sessionId = ctx.trackingSessionId ?? (await fetchLatestSessionForVisit(input.tenantId, ctx.assistVisitId)).data?.id;
+    const latestSession = ctx.trackingSessionId
+      ? null
+      : await fetchLatestSessionForVisit(input.tenantId, ctx.assistVisitId);
+    const sessionId = ctx.trackingSessionId ?? (latestSession?.ok ? latestSession.data?.id : null);
     if (sessionId) {
       await persistEmployeeConsentScope(
         input.tenantId,

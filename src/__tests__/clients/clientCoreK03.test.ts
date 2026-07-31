@@ -61,10 +61,9 @@ describe('Client Core K.0–K.3', () => {
     expect(steps).toContain('leistungsart');
   });
 
-  it('client record tabs include leistungsbereiche and budget', () => {
+  it('client record tabs expose context modules through Mehr', () => {
     const tabs = getClientRecordTabsForClientContext(['daily_assistance']);
-    expect(tabs).toContain('leistungsbereiche');
-    expect(tabs).toContain('budget');
+    expect(tabs).toContain('mehr');
     expect(tabs).toContain('portal');
   });
 

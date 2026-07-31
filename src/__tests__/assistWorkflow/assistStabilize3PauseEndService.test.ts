@@ -321,7 +321,10 @@ describe('ASSIST.STABILIZE.3 endService', () => {
     transitionMock.mockResolvedValue({ ok: true, data: ended });
     resolveMock.mockResolvedValue({ ok: true, data: ended });
 
-    const input = ctx({ assignmentStatus: 'gestartet' });
+    const input = ctx({
+      assignmentStatus: 'gestartet',
+      detail: { ...baseDetail('gestartet'), plannedEndAt: new Date().toISOString() },
+    });
     const result = await endService(input);
 
     expect(result.ok).toBe(true);

@@ -45,7 +45,7 @@ export function LandscapePrompt({
         {
           paddingBottom: Math.max(spacing.sm, insets.bottom),
           borderTopColor: colors?.borderSoft ?? 'rgba(0,0,0,0.08)',
-          backgroundColor: colors?.surface ?? '#fff',
+          backgroundColor: colors?.bgSurface ?? '#fff',
         },
       ]}
       accessibilityRole="text"

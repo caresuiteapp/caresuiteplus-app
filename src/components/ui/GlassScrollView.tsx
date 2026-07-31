@@ -69,7 +69,7 @@ export function GlassScrollView({
   const [edges, setEdges] = useState<EdgeState>({ start: false, end: false });
   const metricsRef = useRef({ viewport: 0, content: 0, offset: 0 });
 
-  const scrollRef = useRef<ScrollView | View>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const applyWebScrollClasses = useCallback(() => {
     if (Platform.OS !== 'web') return;
@@ -255,11 +255,13 @@ export function GlassScrollView({
           ref={scrollRef}
           horizontal={horizontal}
           // RN Web: dataSet + ref classList scopes glass scrollbar CSS over global invisible scrollbars.
-          dataSet={{
-            csGlassScroll: 'true',
-            csGlassScrollTheme: isLightGlass ? 'light' : 'dark',
-            csGlassScrollAxis: horizontal ? 'horizontal' : 'vertical',
-          }}
+          {...({
+            dataSet: {
+              csGlassScroll: 'true',
+              csGlassScrollTheme: isLightGlass ? 'light' : 'dark',
+              csGlassScrollAxis: horizontal ? 'horizontal' : 'vertical',
+            },
+          } as object)}
           style={[styles.webScroll, webOverflowStyle]}
           contentContainerStyle={[contentContainerStyle, contentInnerStyle]}
           showsHorizontalScrollIndicator={false}

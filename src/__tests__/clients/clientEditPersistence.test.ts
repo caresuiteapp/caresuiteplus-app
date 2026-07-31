@@ -34,7 +34,7 @@ const baseForm = {
   ...EMPTY_CLIENT_EDIT_FORM,
   firstName: 'Heinz-Peter',
   lastName: 'Reinhardt',
-  careLevel: 'pg3' as import('@/types').CareLevel,
+  careLevel: 'pg3' as import('@/types/modules/client/clientCareLevel').CareLevelGrade,
   careContexts: ['daily_assistance'] as ClientCareContext[],
   street: 'Ringstraße',
   houseNumber: '3',

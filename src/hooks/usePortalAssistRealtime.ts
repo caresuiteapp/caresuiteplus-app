@@ -25,11 +25,12 @@ export function usePortalAssistRealtime(
     return (handler: () => void) => subscribeToPortalAssistChanges(tenantId, clientId, handler);
   }, [enabled, tenantId, clientId]);
 
-  return useLiveRefresh({
+  const refresh = useLiveRefresh({
     enabled,
     onRefresh,
     subscribe: subscribeFactory,
     pollMs,
     refreshOnFocus: options?.refreshOnFocus ?? true,
   });
+  return { isConnected: refresh.isLiveConnected };
 }

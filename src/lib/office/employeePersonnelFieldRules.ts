@@ -11,6 +11,7 @@ export const EMPLOYEE_PERSONNEL_TAB_LABELS: Record<EmployeePersonnelTabKey, stri
   master_data: 'Stammdaten',
   employment: 'Anstellung',
   roles_permissions: 'Rollen & Rechte',
+  portal: 'Portalzugang',
   qualifications: 'Qualifikationen',
   background_check: 'Führungszeugnis',
   documents: 'Dokumente',

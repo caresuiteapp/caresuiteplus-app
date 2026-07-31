@@ -224,6 +224,7 @@ describe('visitExecutionService', () => {
       );
 
       expect(result.ok).toBe(false);
+      if (result.ok) throw new Error('Fehlerergebnis erwartet.');
       expect(result.error).toBe('Datenbankfehler beim Speichern.');
       expect(assignmentSupabaseRepository.updateTask).not.toHaveBeenCalled();
     });
@@ -266,6 +267,7 @@ describe('visitExecutionService', () => {
       );
 
       expect(result.ok).toBe(false);
+      if (result.ok) throw new Error('Fehlerergebnis erwartet.');
       expect(result.error).toBe('Aufgabe nicht gefunden.');
     });
   });

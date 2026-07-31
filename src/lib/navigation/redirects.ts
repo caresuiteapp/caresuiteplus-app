@@ -1,4 +1,3 @@
-import type { Href } from 'expo-router';
 import type { ProductKey, RoleKey } from '@/types';
 import { hasEffectiveModuleGateAccess, hasLegacyTenantModuleGateAccess, isPlatformExplicitDeny, resolveProductModuleAccessDecision } from '@/lib/modules/moduleAccessService';
 import { isProductScopeKey } from '@/lib/modules/moduleVisibilityConfig';
@@ -20,22 +19,22 @@ export type RedirectReason =
 
 export type RedirectDecision = {
   shouldRedirect: boolean;
-  target: Href;
+  target: string;
   reason?: RedirectReason;
   message?: string;
 };
 
-export function getPostLoginRedirect(roleKey: RoleKey): Href {
+export function getPostLoginRedirect(roleKey: RoleKey): string {
   switch (roleKey) {
     case 'employee_portal':
     case 'caregiver':
     case 'nurse':
-      return '/portal/employee' as Href;
+      return '/portal/employee';
     case 'client_portal':
     case 'family_portal':
-      return '/portal/client' as Href;
+      return '/portal/client';
     default:
-      return DEMO_BUSINESS_ENTRY_ROUTE as Href;
+      return DEMO_BUSINESS_ENTRY_ROUTE;
   }
 }
 
@@ -79,19 +78,19 @@ export function checkRoleAccess(
 ): RedirectDecision {
   const route = getRouteByPath(path);
   if (!route?.allowedRoles || route.allowedRoles.length === 0) {
-    return { shouldRedirect: false, target: path as Href };
+    return { shouldRedirect: false, target: path };
   }
   if (!roleKey || !route.allowedRoles.includes(roleKey)) {
     return {
       shouldRedirect: true,
-      target: (roleKey
+      target: roleKey
         ? getPostLoginRedirect(roleKey)
-        : getLoginRedirectForPath(path)) as Href,
+        : getLoginRedirectForPath(path),
       reason: 'wrong_role',
       message: 'Sie haben keine Berechtigung für diesen Bereich.',
     };
   }
-  return { shouldRedirect: false, target: path as Href };
+  return { shouldRedirect: false, target: path };
 }
 
 export function checkModuleAccess(
@@ -104,7 +103,7 @@ export function checkModuleAccess(
 
   const scopeKey = resolveModuleScopeFromPath(path);
   if (!scopeKey) {
-    return { shouldRedirect: false, target: path as Href };
+    return { shouldRedirect: false, target: path };
   }
 
   const navState = resolveModuleNavState(scopeKey, { tenantId, roleKey });
@@ -112,7 +111,7 @@ export function checkModuleAccess(
   if (navState.effectiveStatus === 'disabled') {
     return {
       shouldRedirect: true,
-      target: '/business' as Href,
+      target: '/business',
       reason: 'module_disabled',
       message: navState.blockReason ?? 'Dieses Modul ist derzeit nicht verfügbar.',
     };
@@ -121,7 +120,7 @@ export function checkModuleAccess(
   if (navState.effectiveStatus === 'coming_soon') {
     return {
       shouldRedirect: true,
-      target: '/business' as Href,
+      target: '/business',
       reason: 'module_coming_soon',
       message: navState.blockReason ?? 'Dieses Modul ist in Vorbereitung.',
     };
@@ -130,7 +129,7 @@ export function checkModuleAccess(
   if (navState.effectiveStatus === 'internal' && !navState.isNavigable) {
     return {
       shouldRedirect: true,
-      target: '/business' as Href,
+      target: '/business',
       reason: 'module_internal',
       message: navState.blockReason ?? 'Dieser Bereich ist nur für Administratoren verfügbar.',
     };
@@ -139,13 +138,13 @@ export function checkModuleAccess(
   if (isProductScopeKey(scopeKey) && !navState.isNavigable) {
     return {
       shouldRedirect: true,
-      target: '/business/modules' as Href,
+      target: '/business/modules',
       reason: 'module_inactive',
       message: navState.blockReason ?? 'Das Modul ist für Ihren Mandanten nicht aktiv.',
     };
   }
 
-  return { shouldRedirect: false, target: path as Href };
+  return { shouldRedirect: false, target: path };
 }
 
 export function checkProductAccess(
@@ -155,7 +154,7 @@ export function checkProductAccess(
 ): RedirectDecision {
   const route = getRouteByPath(path);
   if (!route?.productKey) {
-    return { shouldRedirect: false, target: path as Href };
+    return { shouldRedirect: false, target: path };
   }
 
   const productKey = route.productKey;
@@ -172,13 +171,13 @@ export function checkProductAccess(
     if (isPlatformExplicitDeny(platformDecision)) {
       return {
         shouldRedirect: true,
-        target: '/business/modules' as Href,
+        target: '/business/modules',
         reason: 'module_inactive',
         message: 'Dieses Modul ist für Ihren Mandanten nicht freigeschaltet.',
       };
     }
     if (platformDecision.source === 'platform' && platformDecision.allowed) {
-      return { shouldRedirect: false, target: path as Href };
+      return { shouldRedirect: false, target: path };
     }
   }
 
@@ -186,14 +185,14 @@ export function checkProductAccess(
     const canBypassInactive =
       roleKey === 'business_admin' || roleKey === 'business_manager';
     if (canBypassInactive) {
-      return { shouldRedirect: false, target: path as Href };
+      return { shouldRedirect: false, target: path };
     }
     return {
       shouldRedirect: true,
-      target: '/business/modules' as Href,
+      target: '/business/modules',
       reason: 'module_inactive',
       message: `Das Modul „${route.label}" ist für Ihren Mandanten nicht aktiv.`,
     };
   }
-  return { shouldRedirect: false, target: path as Href };
+  return { shouldRedirect: false, target: path };
 }

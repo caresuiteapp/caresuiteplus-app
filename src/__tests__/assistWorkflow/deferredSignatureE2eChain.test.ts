@@ -34,8 +34,10 @@ function buildCtx(): AssistExecutionContext {
       plannedEndAt: '2026-07-01T11:00:00.000Z',
       actualStartAt: null,
       actualEndAt: null,
+      onTheWayAt: null,
+      arrivedAt: null,
       status: 'unterschrift_offen',
-      canonicalStatus: 'signature_open',
+      canonicalStatus: 'signature_pending',
       notesForEmployee: '',
       accessHints: null,
       emergencyContact: null,
@@ -43,7 +45,7 @@ function buildCtx(): AssistExecutionContext {
         {
           id: 't1',
           title: 'Begleitung',
-          description: null,
+          description: '',
           required: true,
           status: 'done',
           completionNote: null,
@@ -69,10 +71,12 @@ function buildCtx(): AssistExecutionContext {
     liveContext: null,
     allowedActions: ['finalize_visit_deferred_signature'],
     diagnostics: {
-      consistencyStatus: 'consistent',
-      inconsistencies: [],
-      repairOptions: [],
-      nextActionHint: null,
+      isServiceStarted: false,
+      isServiceEnded: false,
+      isTravelEnded: false,
+      canEndService: false,
+      inconsistentStatus: false,
+      repairHint: null,
     },
   };
 }

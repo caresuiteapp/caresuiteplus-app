@@ -17,6 +17,7 @@ import { runLivePreview } from '@/lib/documents/documentTemplateService';
 import { fetchTenantDocumentSettings, mergeTenantSettingsIntoContext } from '@/lib/documents/tenantDocumentSettingsService';
 import { renderHtmlToPdfBytes } from '@/lib/documents/documentPdfService';
 import type { DocumentEngineTemplateListItem } from '@/types/documents/documentEngine';
+import type { RoleKey } from '@/types';
 import type { DocumentTemplateTypeKey } from '@/features/documents/templateEngine/types';
 import { spacing, typography } from '@/theme';
 
@@ -45,7 +46,7 @@ function resolveEntityContext(props: DocumentModuleTemplatesPanelProps): {
 async function buildModuleDocumentHtml(
   tenantId: string,
   template: DocumentEngineTemplateListItem,
-  actorRoleKey: string | null | undefined,
+  actorRoleKey: RoleKey | null | undefined,
   entityType: DocumentEntityType,
   entityId: string,
 ): Promise<{ ok: true; html: string } | { ok: false; error: string }> {
@@ -330,7 +331,7 @@ export function DocumentModuleTemplatesPanel(props: DocumentModuleTemplatesPanel
         visible={previewVisible}
         onClose={() => setPreviewVisible(false)}
         title={selected?.name ?? 'Vorschau'}
-        wide
+        maxWidth={1180}
       >
         <DocumentHtmlPreview
           title={selected?.name ?? 'Vorschau'}

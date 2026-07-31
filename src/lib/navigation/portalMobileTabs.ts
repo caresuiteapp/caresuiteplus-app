@@ -111,7 +111,7 @@ const BASE_TAB_PRIORITY = [
   'profile',
 ];
 
-const MODULE_TAB_PREFIX: Record<PortalModuleKey, string> = {
+const MODULE_TAB_PREFIX: Partial<Record<PortalModuleKey, string>> = {
   assist: 'assist-',
   pflege: 'module-pflege',
   stationaer: 'module-stationaer',
@@ -133,7 +133,8 @@ export function buildDynamicTabPriority(activeModules: PortalModuleKey[]): strin
         'assist-anfragen',
       );
     } else {
-      priority.push(MODULE_TAB_PREFIX[moduleKey]);
+      const moduleTab = MODULE_TAB_PREFIX[moduleKey];
+      if (moduleTab) priority.push(moduleTab);
     }
   }
   priority.push('messages', 'documents', 'profile');

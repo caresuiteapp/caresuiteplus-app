@@ -9,6 +9,13 @@ import {
   updateClientTask,
 } from '@/lib/clients/clientTasksService';
 
+vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'demo', isDemoMode: () => true }));
+vi.mock('@/lib/clients/clientBackend', () => ({
+  isDemoClientBackend: () => true,
+  assertDemoTenant: () => null,
+  getClientExtendedRepository: vi.fn(),
+}));
+
 const root = path.join(__dirname, '..', '..', '..');
 
 describe('ClientTasksPanel wiring', () => {

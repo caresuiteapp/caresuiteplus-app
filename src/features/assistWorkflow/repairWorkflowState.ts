@@ -65,7 +65,7 @@ async function forceRepairAssignmentStatus(
     return { ok: false, error: 'Supabase ist nicht verfügbar.' };
   }
 
-  const { error } = await supabase.rpc('repair_assist_visit_workflow_status', {
+  const { error } = await (supabase as unknown as { rpc: (name: string, args: Record<string, unknown>) => Promise<{ error: unknown }> }).rpc('repair_assist_visit_workflow_status', {
     p_tenant_id: tenantId,
     p_assignment_id: assignmentId,
     p_target_status: targetStatus,

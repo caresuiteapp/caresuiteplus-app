@@ -263,8 +263,7 @@ export async function startNewOfficeThreadFromClosed(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-  const { data, error } = await supabase
-    .from('message_threads')
+  const { data, error } = await fromUnknownTable(supabase, 'message_threads')
     .insert({
       tenant_id: tenantId,
       thread_type: toDbThreadType(source.threadType),
@@ -327,8 +326,7 @@ export async function createOfficeMessageThread(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-  const { data, error } = await supabase
-    .from('message_threads')
+  const { data, error } = await fromUnknownTable(supabase, 'message_threads')
     .insert({
       tenant_id: tenantId,
       thread_type: toDbThreadType(input.threadType),

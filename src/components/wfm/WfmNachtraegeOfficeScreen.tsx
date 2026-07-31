@@ -19,7 +19,7 @@ export function WfmNachtraegeOfficeScreen() {
   const teamQuery = useAsyncQuery(
     useCallback(async () => {
       if (!tenantId || !canCorrect) {
-        return { ok: true as const, data: { rows: [] } };
+        return { ok: true as const, data: { employees: [] } };
       }
       const result = await listWfmActiveEmployees(tenantId);
       if (!result.ok) return result;

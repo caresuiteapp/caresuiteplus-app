@@ -10,6 +10,8 @@ type RequireModuleVisibilityProps = {
   children: ReactNode;
 };
 
+type StableRouter = { replace: (target: string) => void };
+
 function titleForReason(reason?: string): string {
   switch (reason) {
     case 'module_coming_soon':
@@ -27,7 +29,7 @@ function titleForReason(reason?: string): string {
 
 export function RequireModuleVisibility({ children }: RequireModuleVisibilityProps) {
   const pathname = usePathname();
-  const router = useRouter();
+  const router = useRouter() as unknown as StableRouter;
   const hydrated = useHydrated();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();

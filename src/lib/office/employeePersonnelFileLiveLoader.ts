@@ -139,7 +139,7 @@ async function loadEmployeeDocuments(
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      return data as EmployeeDocumentLiveRow[];
+      return data as unknown as EmployeeDocumentLiveRow[];
     }
 
     if (error && !isSupabaseMissingTableError(error) && !isMissingColumnError(error)) {

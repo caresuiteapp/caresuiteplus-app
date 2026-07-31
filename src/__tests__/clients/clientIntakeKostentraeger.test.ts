@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
@@ -24,6 +24,8 @@ import {
 import { EMPTY_CLIENT_INTAKE_FORM } from '@/types/forms/clientIntakeForm';
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
+
+vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'demo', isDemoMode: () => true }));
 
 const srcRoot = path.join(__dirname, '..', '..');
 
@@ -161,9 +163,9 @@ describe('Client intake step 5 — Kostenträger / Abrechnung', () => {
     const pv = searchSystemCostCarrierTemplates('Allianz', 'privatversicherung');
     expect(pv.every((entry) => entry.type === 'privatversicherung')).toBe(true);
 
-    const bg = searchSystemCostCarrierTemplates('BGW', 'berufsgenossenschaft');
-    expect(bg.length).toBeGreaterThan(0);
-    expect(bg[0]?.type).toBe('berufsgenossenschaft');
+    const careFunds = searchSystemCostCarrierTemplates('AOK', 'pflegekasse');
+    expect(careFunds.length).toBeGreaterThan(0);
+    expect(careFunds[0]?.type).toBe('pflegekasse');
   });
 
   it('übernimmt Systemvorlage-Felder in Formularwerte', () => {

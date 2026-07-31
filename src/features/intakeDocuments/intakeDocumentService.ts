@@ -164,7 +164,7 @@ export function applySharedClientSignatureToDocuments(
         .map(([, meta]) => meta.label),
     );
     const missingDocumentData = opened.missingPlaceholders.filter(
-      (label) => !signatureLabels.has(label),
+      (label) => !signatureLabels.has(label) && !label.startsWith('Unterschrift '),
     );
     if (missingDocumentData.length > 0) {
       nextForm = updateIntakeDocumentInForm(nextForm, opened);

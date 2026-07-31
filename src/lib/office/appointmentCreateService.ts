@@ -8,6 +8,7 @@ export type AppointmentCreateInput = {
   endsAt?: string;
   allDay?: boolean;
   location?: string | null;
+  clientId?: string | null;
 };
 
 /** WP206 — delegates to unified calendar save service */
@@ -30,7 +31,7 @@ export async function createAppointment(
       startAt: input.startsAt ?? now.toISOString(),
       endAt: end.toISOString(),
       locationName: input.location ?? null,
-      relatedClientId: input.clientName ?? null,
+      relatedClientId: input.clientId ?? null,
       isOfficeVisible: true,
       isModuleVisible: true,
     },

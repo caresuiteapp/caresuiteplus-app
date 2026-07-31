@@ -106,8 +106,7 @@ describe('buildEnrichedAssistProofPdfPayload', () => {
       employeeName: 'Anna Pflege',
     });
 
-    expect(mockEnrichVisitProofForPreview).not.toHaveBeenCalled();
-    expect(mockLoadVisitProofBrandingForTenant).toHaveBeenCalledWith('tenant-1');
+    expect(mockEnrichVisitProofForPreview).toHaveBeenCalledWith('tenant-1', expect.any(Object));
     expect(payload.html).toContain('https://cdn.example/logo.png');
     expect(payload.html).toContain('<img class="proof-logo"');
     expect(payload.html).not.toContain('proof-logo-fallback">CareSuite+ Mandant');
@@ -121,6 +120,15 @@ describe('buildEnrichedAssistProofPdfPayload', () => {
       addressLine: null,
       ikNumber: null,
       taxId: null,
+    });
+    mockEnrichVisitProofForPreview.mockResolvedValue({
+      ok: true,
+      data: {
+        employeeName: 'Anna Pflege',
+        tenantLogoUrl: null,
+        tenantName: 'Helferhasen+ UG',
+        tenantLegalName: 'Helferhasen+ UG',
+      },
     });
 
     const payload = await buildEnrichedAssistProofPdfPayload('tenant-1', sampleProof(), {
@@ -142,7 +150,7 @@ describe('buildEnrichedAssistProofPdfPayload', () => {
       employeeName: 'Mhi Aldeen Al Jlelati',
     });
 
-    expect(mockEnrichVisitProofForPreview).not.toHaveBeenCalled();
+    expect(mockEnrichVisitProofForPreview).toHaveBeenCalled();
     expect(payload.html).toContain('Mhi Aldeen Al Jlelati');
     expect(payload.html).not.toContain('Nicht dokumentiert');
   });

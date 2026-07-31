@@ -94,7 +94,7 @@ export function createManagementTask(input: {
   createInternalTaskFromManagementTask({
     tenantId: input.tenantId,
     managementTaskId: task.id,
-    assignmentId: input.assignmentId,
+    assignmentId: task.assignmentId,
     taskType: input.taskType,
     title: task.title,
     description: task.description,

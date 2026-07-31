@@ -91,7 +91,7 @@ export function createAssistWorkflowError(
   const defaultMessage = USER_MESSAGES[code];
   return {
     code,
-    userMessage: technicalMessage?.trim() ? technicalMessage : defaultMessage,
+    userMessage: defaultMessage,
     technicalMessage: technicalMessage ?? defaultMessage,
     context,
   };

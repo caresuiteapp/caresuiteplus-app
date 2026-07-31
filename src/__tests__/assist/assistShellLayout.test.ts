@@ -9,11 +9,9 @@ function readSrc(rel: string): string {
 }
 
 describe('Assist module shell layout', () => {
-  it('root assist layout wraps Stack in ShellLayout', () => {
+  it('root assist layout uses the shared Liquid route layout', () => {
     const layout = readSrc('app/assist/_layout.tsx');
-    expect(layout).toContain('ShellLayout');
-    expect(layout).toContain('area="assist"');
-    expect(layout).toMatch(/<Stack[\s\S]*\/>/);
+    expect(layout).toContain('LiquidModuleRouteLayout');
   });
 
   it('assist tabs layout does not nest a second ShellLayout', () => {
@@ -38,11 +36,9 @@ describe('Assist module shell layout', () => {
     expect(route).toContain('AssistLiveStatusScreen');
   });
 
-  it('CareLightPageShell uses flexGrow layout inside PlatformShell aurora host', () => {
+  it('CareLightPageShell delegates to ScreenShell', () => {
     const shell = readSrc('src/components/layout/CareLightPageShell.tsx');
-    expect(shell).toContain('flexGrow: 1');
-    expect(shell).toContain('styles.contentHost');
-    expect(shell).toContain('testID="care-light-page-shell"');
+    expect(shell).toContain('<ScreenShell {...props} />');
   });
 
   it('route stack content style stretches to fill shell main area', () => {
@@ -58,9 +54,8 @@ describe('Assist module shell layout', () => {
     expect(shell).toMatch(/mainContentStretch:[\s\S]*flex: 1/);
   });
 
-  it('ScreenShell aurora host uses flex fill for scroll=false pages', () => {
+  it('ScreenShell provides a flex-filling content host', () => {
     const shell = readSrc('src/components/layout/ScreenShell.tsx');
-    expect(shell).toMatch(/auroraRoot:[\s\S]*flex: 1/);
-    expect(shell).toMatch(/contentHost:[\s\S]*flex: 1/);
+    expect(shell).toMatch(/root:[\s\S]*flex: 1/);
   });
 });

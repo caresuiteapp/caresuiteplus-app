@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import { useAuroraGlassTableStyles } from '@/design/tokens/auroraGlass';
 
 export type DataTableColumn<T> = {
@@ -50,7 +50,7 @@ function resolveMinTableWidth<T>(columns: DataTableColumn<T>[]): number {
 }
 
 const headerTextWebStyle =
-  Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as const) : undefined;
+  Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as unknown as TextStyle) : undefined;
 
 type PremiumDataTableProps<T> = {
   columns: DataTableColumn<T>[];

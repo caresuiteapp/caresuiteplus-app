@@ -70,6 +70,7 @@ export type EmployeePersonnelTabKey =
   | 'master_data'
   | 'employment'
   | 'roles_permissions'
+  | 'portal'
   | 'qualifications'
   | 'background_check'
   | 'documents'

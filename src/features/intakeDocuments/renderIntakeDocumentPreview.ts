@@ -103,7 +103,7 @@ export function wrapIntakeDocumentHtml(bodyHtml: string): string {
 
 function signatureHtml(sig: IntakeDocumentSignature | undefined, placeholder: string): string {
   if (!sig?.dataUrl) {
-    return `<span class="missing">[Unterschrift ausstehend: ${placeholder}]</span>`;
+    return '';
   }
   return `<img class="sig-img" src="${sig.dataUrl}" alt="Unterschrift"/><br/><small>${new Date(sig.signedAt).toLocaleString('de-DE')}</small>`;
 }
@@ -119,7 +119,7 @@ export function renderIntakeDocumentHtml(
   signatures: Partial<Record<'client' | 'employee' | 'legal_representative', IntakeDocumentSignature>> = {},
   options?: { markMissing?: boolean; lockSignatures?: boolean; wrapDocument?: boolean },
 ): IntakePreviewResult {
-  const markMissing = options?.markMissing ?? true;
+  const markMissing = options?.markMissing ?? false;
   const wrapDocument = options?.wrapDocument ?? true;
   const missingPlaceholders: string[] = [];
   const unresolvedKeys: string[] = [];
@@ -137,6 +137,16 @@ export function renderIntakeDocumentHtml(
     if (!value || value.startsWith('[')) {
       missingPlaceholders.push(meta.label || key);
     }
+  }
+
+  for (const slot of template.signatureSlots) {
+    if (!slot.required || signatures[slot.role]?.dataUrl) continue;
+    const label = slot.role === 'client'
+      ? 'Unterschrift Klient:in'
+      : slot.role === 'employee'
+        ? 'Unterschrift Mitarbeitende:r'
+        : 'Unterschrift Vertretung';
+    missingPlaceholders.push(label);
   }
 
   const bodyHtml = template.htmlContent.replace(PLACEHOLDER_PATTERN, (_match, key: string) => {

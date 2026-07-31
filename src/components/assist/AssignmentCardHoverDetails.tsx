@@ -48,7 +48,7 @@ export function AssignmentCardHoverDetails({ assignment }: AssignmentCardHoverDe
   ].filter(Boolean) as { label: string; value: string }[];
 
   return (
-    <LlganGlassShell kind="card" style={[styles.panel, glassStyle]}>
+    <LlganGlassShell kind="card" style={StyleSheet.flatten([styles.panel, glassStyle])}>
       {rows.map((row) => (
         <View key={row.label}>
           <Text style={styles.title}>{row.label}</Text>

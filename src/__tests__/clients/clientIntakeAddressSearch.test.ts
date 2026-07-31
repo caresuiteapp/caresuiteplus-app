@@ -10,7 +10,7 @@ function readSrc(relativePath: string): string {
 
 describe('Client intake step 3 — Adresse & Kontakt', () => {
   it('Wizard nutzt Adresssuche mit editierbaren Einzelfeldern', () => {
-    const screen = readSrc('screens/business/office/ClientIntakeWizardScreen.tsx');
+    const screen = readSrc('components/office/clientintakewizardform.tsx');
     expect(screen).toContain('CareAddressSearch');
     expect(screen).toContain("updateField('street', address.street)");
     expect(screen).toContain("updateField('houseNumber', address.houseNumber)");

@@ -522,7 +522,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
         bottom: 0,
         zIndex: 150,
         pointerEvents: 'box-none',
-      } as ViewStyle;
+      } as unknown as ViewStyle;
     }
     return { ...StyleSheet.absoluteFillObject, zIndex: 150, pointerEvents: 'box-none' };
   }, []);

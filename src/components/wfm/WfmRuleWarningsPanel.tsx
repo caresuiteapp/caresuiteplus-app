@@ -4,12 +4,13 @@ import { PremiumBadge, SectionPanel } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import type { RoleKey } from '@/types';
+import type { RoleKey, ServiceResult } from '@/types';
 import {
   evaluateAndStoreArbzgForToday,
   listWfmRuleViolationsForDate,
   listWfmTeamRuleViolationsToday,
   type WfmRuleViolation,
+  type WfmRuleEvaluationResult,
 } from '@/lib/wfm/wfmRuleEngine';
 import { todayWorkDate } from '@/lib/wfm/wfmWorkSessionRepository';
 import type { WfmTrafficLight } from '@/types/modules/wfm';
@@ -62,9 +63,9 @@ export function WfmRuleWarningsPanel({
 
   const evalQuery = useAsyncQuery(
     useCallback(
-      () =>
+      async (): Promise<ServiceResult<WfmRuleEvaluationResult>> =>
         teamView
-          ? listWfmTeamRuleViolationsToday(tenantId, roleKey).then((r) =>
+          ? listWfmTeamRuleViolationsToday(tenantId, roleKey).then((r): ServiceResult<WfmRuleEvaluationResult> =>
               r.ok
                 ? {
                     ok: true as const,

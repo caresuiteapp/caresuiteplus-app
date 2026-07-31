@@ -32,11 +32,11 @@ import {
 
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'demo' }));
 
-const TENANT = 'b2222222-2222-4222-8222-222222222201';
+const TENANT = 'tenant-wfm-correction-export-test';
 const EMP = 'b2222222-2222-4222-8222-222222222231';
 const ACTOR = 'b2222222-2222-4222-8222-222222222211';
 const ROLE = 'business_admin' as const;
-const EMPLOYEE_ROLE = 'employee' as const;
+const EMPLOYEE_ROLE = 'caregiver' as const;
 const WORK_DATE = '2026-07-07';
 const SESSION = 'b2222222-2222-4222-8222-222222222241';
 const PERIOD = { startDate: WORK_DATE, endDate: WORK_DATE };

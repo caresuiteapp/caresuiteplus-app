@@ -205,7 +205,7 @@ export async function listEmployeeVisitTimes(
   const visitMetaById = new Map<string, VisitMeta>();
   const employeeVisitIds: string[] = [];
   for (const row of employeeVisits ?? []) {
-    const visit = row as {
+    const visit = row as unknown as {
       id: string;
       title: string | null;
       planned_start_at: string | null;

@@ -24,11 +24,11 @@ describe('WFM review popup and contrast contract', () => {
     const layout = read('src/components/wfm/WfmOfficeTimekeepingLayout.tsx');
     const shell = read('src/components/wfm/OfficeTimeTrackingShell.tsx');
 
-    expect(table).toContain("primary: '#0F172A'");
-    expect(table).toContain("muted: { text: '#334155'");
+    expect(table).toContain('primary: systemLiquidGlass.text.primary');
+    expect(table).toContain('secondary: systemLiquidGlass.text.secondary');
     expect(table).toContain('ReadableStatusBadge');
-    expect(detail).toContain("secondary: '#334155'");
-    expect(detail).toContain("border: '#CBD5E1'");
+    expect(detail).toContain('secondary: systemLiquidGlass.text.secondary');
+    expect(detail).toContain('border: systemLiquidGlass.border');
     expect(layout).toContain('WORKTIME_TEXT');
     expect(shell).toContain('SHELL_TEXT');
   });

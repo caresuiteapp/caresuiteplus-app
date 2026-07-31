@@ -241,7 +241,7 @@ export async function getBudgetMovementsForCandidate(
   tenantId: string,
   candidateId: string,
 ): Promise<ServiceResult<ClientBillingCandidateBudgetMovement[]>> {
-  return runService(async () => {
+  return runService<ClientBillingCandidateBudgetMovement[]>(async () => {
     const client = getSupabaseClient();
     if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 

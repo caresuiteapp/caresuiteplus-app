@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { liquidColors, liquidShadows } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
@@ -260,6 +261,7 @@ function AccessCard({
     <Animated.View
       style={[
         styles.accessCardFrame,
+        !stacked && styles.accessCardFrameWide,
         stacked && styles.accessCardFrameStacked,
         {
           opacity: entrance,
@@ -430,6 +432,7 @@ function RegistrationCard({
 export function AccessHubScreen() {
   const router = useRouter();
   const layout = useLiquidLayout();
+  const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
   const stacked = layout.width < 900;
 
@@ -438,7 +441,14 @@ export function AccessHubScreen() {
       <AnimatedBackdrop reducedMotion={reducedMotion} />
       <ScrollView
         bounces={false}
-        contentContainerStyle={[styles.scrollContent, stacked && styles.scrollContentStacked]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          stacked && styles.scrollContentStacked,
+          stacked && {
+            paddingTop: Math.max(24, insets.top + 16),
+            paddingBottom: Math.max(32, insets.bottom + 24),
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.content, stacked && styles.contentStacked]}>
@@ -534,8 +544,14 @@ const styles = StyleSheet.create({
   subtitleStacked: { maxWidth: 390, fontSize: 14, lineHeight: 20 },
   accessGrid: { width: '100%', flexDirection: 'row', alignItems: 'stretch', gap: 20 },
   accessGridStacked: { flexDirection: 'column', gap: 12 },
-  accessCardFrame: { flex: 1, minWidth: 0, borderRadius: 20, ...liquidShadows.panel },
-  accessCardFrameStacked: { flex: 0, width: '100%' },
+  accessCardFrame: { minWidth: 0, borderRadius: 20, ...liquidShadows.panel },
+  accessCardFrameWide: { flex: 1 },
+  accessCardFrameStacked: {
+    width: '100%',
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+  },
   accessCard: {
     minHeight: 352,
     padding: 18,

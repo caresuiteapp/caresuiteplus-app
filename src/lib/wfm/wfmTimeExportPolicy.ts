@@ -122,19 +122,19 @@ export function isFinalizedExportJobStatus(status: string): boolean {
   return status === 'finalized' || status === 'completed';
 }
 
-export function canCreateReviewedTimeExport(actorRoleKey: RoleKey | null): ReturnType<
-  typeof enforcePermission
-> {
-  return enforcePermission(actorRoleKey, 'time.tracking.admin.export');
+export function canCreateReviewedTimeExport(
+  actorRoleKey: RoleKey | null,
+): { ok: false; error: string } | null {
+  return enforcePermission(actorRoleKey, 'time.tracking.admin.export') as { ok: false; error: string } | null;
 }
 
 export function canCreateReviewedTimeCorrectionExport(
   actorRoleKey: RoleKey | null,
-): ReturnType<typeof enforcePermission> {
+): { ok: false; error: string } | null {
   return canFinalizeCorrectionExport(actorRoleKey);
 }
 
-export function canMarkExportDrift(actorRoleKey: RoleKey | null): ReturnType<typeof enforcePermission> | null {
+export function canMarkExportDrift(actorRoleKey: RoleKey | null): { ok: false; error: string } | null {
   if (!actorRoleKey) {
     return { ok: false, error: 'Sie sind nicht angemeldet. Bitte melden Sie sich an.' };
   }
@@ -144,16 +144,16 @@ export function canMarkExportDrift(actorRoleKey: RoleKey | null): ReturnType<typ
   return { ok: false, error: 'Keine Berechtigung für Drift-Markierung.' };
 }
 
-export function canFinalizeCorrectionExport(actorRoleKey: RoleKey | null): ReturnType<
-  typeof enforcePermission
-> {
+export function canFinalizeCorrectionExport(
+  actorRoleKey: RoleKey | null,
+): { ok: false; error: string } | null {
   if (!actorRoleKey) {
     return { ok: false, error: 'Sie sind nicht angemeldet. Bitte melden Sie sich an.' };
   }
   if (hasAnyPermission(actorRoleKey, [...CORRECTION_FINALIZE_PERMISSIONS])) {
     return null;
   }
-  return enforcePermission(actorRoleKey, 'time.tracking.admin.export');
+  return enforcePermission(actorRoleKey, 'time.tracking.admin.export') as { ok: false; error: string } | null;
 }
 
 export function validateCorrectionReason(reason: string | null | undefined): string | null {

@@ -95,7 +95,7 @@ function mapCandidateRow(row: CandidateRow): ClientBillingCandidate {
 export async function getTenantBillingSettings(
   tenantId: string,
 ): Promise<ServiceResult<TenantBillingSettings | null>> {
-  return runService(async () => {
+  return runService<TenantBillingSettings | null>(async () => {
     const denied = guardServiceTenant(tenantId);
     if (denied) return denied;
 
@@ -473,7 +473,7 @@ export async function getBillingCandidatesForProof(
   tenantId: string,
   proofId: string,
 ): Promise<ServiceResult<ClientBillingCandidate | null>> {
-  return runService(async () => {
+  return runService<ClientBillingCandidate | null>(async () => {
     const client = getSupabaseClient();
     if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
@@ -496,7 +496,7 @@ export async function getDraftableBillingCandidates(
   tenantId: string,
   clientId?: string,
 ): Promise<ServiceResult<ClientBillingCandidate[]>> {
-  return runService(async () => {
+  return runService<ClientBillingCandidate[]>(async () => {
     const client = getSupabaseClient();
     if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 

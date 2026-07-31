@@ -142,11 +142,13 @@ async function resolveClientLiveVisitLocation(
         clientId: input.clientId,
       });
 
+  const resolvedAssignment = resolved?.ok ? resolved.data : null;
+
   if (!localAssignment) {
-    if (!resolved?.ok || !resolved.data) {
+    if (!resolvedAssignment) {
       return { ...emptyBase, fallbackMessage: 'Einsatz nicht gefunden.' };
     }
-    if (resolved.data.clientId !== input.clientId) {
+    if (resolvedAssignment.clientId !== input.clientId) {
       return emptyBase;
     }
   }
@@ -167,7 +169,7 @@ async function resolveClientLiveVisitLocation(
 
   const liveStatus = await fetchClientPortalRestrictedLiveStatus(
     input.tenantId,
-    resolved?.data?.assignmentId ?? input.assignmentId,
+    resolvedAssignment?.assignmentId ?? input.assignmentId,
   );
 
   const usePersistence =
@@ -179,13 +181,13 @@ async function resolveClientLiveVisitLocation(
   if (usePersistence) {
     const visitId = await resolveLiveVisitId(
       input.tenantId,
-      resolved?.data?.assignmentId ?? input.assignmentId,
+      resolvedAssignment?.assignmentId ?? input.assignmentId,
     );
     if (!visitId) {
       return {
         ...emptyBase,
-        assignmentId: resolved?.data?.assignmentId ?? input.assignmentId,
-        visitId: resolved?.data?.visitId ?? input.assignmentId,
+        assignmentId: resolvedAssignment?.assignmentId ?? input.assignmentId,
+        visitId: resolvedAssignment?.visitId ?? input.assignmentId,
         statusLabel: liveStatus.label,
         fallbackMessage: FALLBACK_NO_POSITION,
       };
@@ -202,7 +204,7 @@ async function resolveClientLiveVisitLocation(
     if (!sessionActive && !point) {
       return {
         ...emptyBase,
-        assignmentId: resolved?.data?.assignmentId ?? input.assignmentId,
+        assignmentId: resolvedAssignment?.assignmentId ?? input.assignmentId,
         visitId,
         statusLabel: liveStatus.label,
         fallbackMessage: FALLBACK_NO_POSITION,
@@ -223,7 +225,7 @@ async function resolveClientLiveVisitLocation(
       statusLabel: liveStatus.label,
       lastPosition,
       fallbackMessage: lastPosition ? null : eligibility.fallback ?? FALLBACK_NO_POSITION,
-      assignmentId: resolved?.data?.assignmentId ?? input.assignmentId,
+      assignmentId: resolvedAssignment?.assignmentId ?? input.assignmentId,
       visitId,
     };
   }

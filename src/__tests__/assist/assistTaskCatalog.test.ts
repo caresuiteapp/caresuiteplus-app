@@ -22,6 +22,13 @@ import {
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { fetchClientTasks } from '@/lib/clients/clientTasksService';
 
+vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'demo', isDemoMode: () => true }));
+vi.mock('@/lib/clients/clientBackend', () => ({
+  isDemoClientBackend: () => true,
+  assertDemoTenant: () => null,
+  getClientExtendedRepository: vi.fn(),
+}));
+
 describe('Assist task catalog structure', () => {
   it('defines 7 predefined packages with tasks', () => {
     expect(getAssistTaskPackages()).toHaveLength(7);

@@ -1,4 +1,3 @@
-import { resolveClientZip } from '@/lib/clients/clientAddressResolver';
 import { formatAddressFromSnapshotOrParts } from '@/lib/formatAddress';
 
 export type VisitLocationClientRow = {
@@ -26,7 +25,7 @@ export function resolveVisitLocation(source: VisitLocationSource): string {
   const formatted = formatAddressFromSnapshotOrParts(null, {
     street: client?.street,
     houseNumber: client?.house_number,
-    zip: client ? resolveClientZip(client) : null,
+    zip: client?.postal_code,
     city: client?.city,
   });
   if (formatted) return formatted;

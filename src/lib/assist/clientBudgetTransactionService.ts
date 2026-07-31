@@ -323,7 +323,7 @@ async function markAssignmentExecutedViaRpc(
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const { data, error } = await client.rpc('mark_assist_visit_budget_executed', {
+  const { data, error } = await (client as unknown as { rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> }).rpc('mark_assist_visit_budget_executed', {
     p_tenant_id: tenantId,
     p_visit_id: visitId,
     p_actor_employee_id: actorEmployeeId ?? null,
@@ -369,6 +369,7 @@ export async function markAssignmentExecuted(
         );
       }
     } else {
+      const rpcError = rpcResult.ok ? null : rpcResult.error;
       let directUpdated = 0;
       for (const reservation of reservations) {
         const { error } = await fromUnknownTable(client, 'client_budget_transactions')
@@ -379,7 +380,7 @@ export async function markAssignmentExecuted(
           const message =
             rpcResult.ok && rpcResult.data === 0
               ? 'Budget-Reservierung konnte nicht auf „durchgeführt“ gesetzt werden.'
-              : rpcResult.error ?? toGermanSupabaseError(error);
+              : rpcError ?? toGermanSupabaseError(error);
           return { ok: false, error: message };
         }
         directUpdated += 1;
@@ -398,7 +399,7 @@ export async function markAssignmentExecuted(
         return {
           ok: false,
           error:
-            rpcResult.error ??
+            rpcError ??
             'Budget-Reservierung konnte nicht auf „durchgeführt“ gesetzt werden.',
         };
       }

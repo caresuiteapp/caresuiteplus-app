@@ -257,8 +257,6 @@ const REQUIRED_FILES = [
   'app/portal/employee/messages/[threadId].tsx',
   'app/portal/client/messages/index.tsx',
   'app/portal/client/messages/[threadId].tsx',
-  'app/portal/relative/messages/index.tsx',
-  'app/portal/relative/messages/[threadId].tsx',
   'src/features/communication/index.ts',
   'src/features/communication/communication.service.ts',
   'src/features/communication/communication.demoData.ts',

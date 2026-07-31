@@ -13,6 +13,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { executionSupabaseRepository } from '@/lib/services/repositories/executionRepository.supabase';
 import { resolveExecutableVisitId } from '@/lib/assist/visitService';
+import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 
 function tenantDenied<T>(tenantId: string): ServiceResult<T> | null {
   const block = guardServiceTenant(tenantId);
@@ -82,14 +83,24 @@ export async function fetchAssignmentExecution(
       data: {
         assignmentId: row.id,
         tenantId: row.tenant_id,
+        status: remoteStatusToAssignment(row.status),
         phase,
+        plannedStartAt: null,
+        plannedEndAt: null,
+        onTheWayAt: null,
+        arrivedAt: null,
         checkedInAt: row.status !== 'entwurf' ? row.updated_at : null,
         checkedOutAt: row.status === 'abgeschlossen' ? row.updated_at : null,
         actualStartAt: row.status === 'in_bearbeitung' ? row.updated_at : null,
         actualEndAt: row.status === 'abgeschlossen' ? row.updated_at : null,
+        finishedAt: row.status === 'abgeschlossen' ? row.updated_at : null,
+        documentationNotes: null,
         durationMinutes: null,
         locationNote: null,
         activityNote: null,
+        tasks: [],
+        allowedTransitions: [],
+        serviceRecordId: null,
         updatedAt: row.updated_at,
       },
     };

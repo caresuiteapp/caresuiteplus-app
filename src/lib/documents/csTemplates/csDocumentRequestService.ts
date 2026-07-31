@@ -616,11 +616,11 @@ export async function previewCsDocumentSend(input: {
     signatureFields: CsTemplateWithActiveVersion['signatureFields'];
   }>
 > {
-  const denied = enforcePermission<{ renderedHtml: string; context: DocumentContext; issues: string[] }>(
+  const denied = enforcePermission(
     input.actorRoleKey,
     'office.documents.view',
   );
-  if (denied) return denied;
+  if (denied) return { ok: false, error: denied.ok ? 'Keine Berechtigung.' : denied.error };
 
   const templateResult = await fetchCsTemplateWithActiveVersion(
     input.tenantId,

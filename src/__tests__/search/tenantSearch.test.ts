@@ -146,6 +146,8 @@ describe('tenantSearchService', () => {
           tenantId: DEMO_TENANT_ID,
           firstName: 'Werner',
           lastName: 'Müller',
+          dateOfBirth: null,
+          primaryContactPhone: null,
           status: 'aktiv',
           careLevel: 'PG 3',
           city: 'Berlin',

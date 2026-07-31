@@ -59,7 +59,7 @@ const SAMPLE_ACTIVE_EXECUTIONS: ActiveExecutionItem[] = [
     scheduledStart: new Date().toISOString(),
     scheduledEnd: new Date().toISOString(),
     phase: 'in_progress',
-    assignmentStatus: 'gestartet',
+    assignmentStatus: 'in_bearbeitung',
   },
   {
     assignmentId: 'a2',
@@ -69,7 +69,7 @@ const SAMPLE_ACTIVE_EXECUTIONS: ActiveExecutionItem[] = [
     scheduledStart: new Date().toISOString(),
     scheduledEnd: new Date().toISOString(),
     phase: 'checked_in',
-    assignmentStatus: 'angekommen',
+    assignmentStatus: 'aktiv',
   },
 ];
 

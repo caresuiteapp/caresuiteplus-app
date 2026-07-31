@@ -40,6 +40,7 @@ function baseDetail(overrides: Partial<VisitDispositionDetail> = {}): VisitDispo
     notes: 'Intern — darf nicht sichtbar sein',
     clientVisibleNotes: 'Bitte klingeln.',
     employeeNotes: null,
+    tasks: [],
     allowedStatusTransitions: [],
     budget: null,
     portalReleaseEnabled: true,

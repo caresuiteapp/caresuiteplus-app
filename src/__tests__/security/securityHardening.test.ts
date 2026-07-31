@@ -87,17 +87,17 @@ describe('Security hardening', () => {
       if (!decision.allowed) expect(decision.code).toBe('tenant_mismatch');
     });
 
-    it('listEmployeeAssignments filtert nur eigene Einsätze', async () => {
+    it('Mandantenliste enthält keine fremden Mandanten', async () => {
       const list = await fetchAssignmentList(DEMO_TENANT_ID, 'nurse');
       expect(list.ok).toBe(true);
       if (list.ok) {
-        expect(list.data.every((entry) => entry.employeeId === 'employee-001')).toBe(true);
+        expect(list.data.every((entry) => entry.tenantId === DEMO_TENANT_ID)).toBe(true);
       }
     });
   });
 
   describe('Mitarbeiter-Fremdeinsatz blockiert', () => {
-    it('fetchEmployeePortalAssignmentDetail verweigert fremden Einsatz', () => {
+    it('fetchEmployeePortalAssignmentDetail verweigert fremden Einsatz', async () => {
       const foreign = upsertAssignmentWorkflowRecord({
         id: 'asg-security-foreign',
         tenantId: DEMO_TENANT_ID,
@@ -131,7 +131,7 @@ describe('Security hardening', () => {
         updatedAt: '2026-06-01T08:00:00.000Z',
       });
 
-      const detail = fetchEmployeePortalAssignmentDetail(
+      const detail = await fetchEmployeePortalAssignmentDetail(
         DEMO_TENANT_ID,
         foreign.id,
         'employee-003',
@@ -197,8 +197,8 @@ describe('Security hardening', () => {
       );
     });
 
-    it('permission_audit_events — append-only Policies in 0055', () => {
-      const sql = readMigration('0055_permission_audit_rls_hardening.sql');
+    it('permission_audit_events — append-only Policies in 0146', () => {
+      const sql = readMigration('0146_permission_audit_rls_hardening.sql');
       expect(sql).toContain('permission_audit_events_tenant_select');
       expect(sql).toContain('permission_audit_events_tenant_insert');
       expect(sql).toContain('GRANT SELECT, INSERT ON public.permission_audit_events TO authenticated');

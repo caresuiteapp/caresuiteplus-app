@@ -11,8 +11,8 @@ type DocumentTemplateListPanelProps = {
   loading?: boolean;
 };
 
-function statusVariant(status: string): 'success' | 'warning' | 'muted' {
-  if (status === 'active') return 'success';
+function statusVariant(status: string): 'green' | 'warning' | 'muted' {
+  if (status === 'active') return 'green';
   if (status === 'draft') return 'warning';
   return 'muted';
 }

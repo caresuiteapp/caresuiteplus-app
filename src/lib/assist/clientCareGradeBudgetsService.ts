@@ -114,7 +114,7 @@ async function syncLegacyCareLevel(
   await client
     .from('clients')
     .update({
-      care_level: careGrade,
+      care_level: careGrade === 'kein' ? 'none' : careGrade === 'hospiz' ? 'unknown' : careGrade,
       insurance_name: careFundName,
       insurance_number: careFundMemberId,
     })

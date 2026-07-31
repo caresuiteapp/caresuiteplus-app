@@ -54,7 +54,7 @@ describe('Client intake draft storage', () => {
     const form = {
       ...createEmptyIntakeForm(),
       firstName: 'Lena',
-      careContexts: ['ambulatory_care' as import('@/types/modules/client').ClientCareContext],
+      careContexts: ['ambulatory_care' as import('@/lib/clients/clientIntakeFieldRules').ClientCareContext],
       consentDatenschutz: true,
       consentVertrag: true,
       consentTypes: ['datenschutz'],

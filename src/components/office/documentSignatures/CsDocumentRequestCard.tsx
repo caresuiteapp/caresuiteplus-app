@@ -36,7 +36,7 @@ export function CsDocumentRequestCard({
       ? 'orange'
       : item.priority === 'low'
         ? 'muted'
-        : 'blue';
+        : 'cyan';
 
   return (
     <PremiumCard>

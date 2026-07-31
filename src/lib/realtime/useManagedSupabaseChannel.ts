@@ -46,7 +46,7 @@ export function useManagedSupabaseChannel(
 
       registerRealtimeSubscription(channelName, {
         handlers: new Set([() => onEventRef.current()]),
-        timer: null,
+        pollCleanup: null,
         supabaseChannel: channel,
       });
 
@@ -86,7 +86,7 @@ export function subscribeManagedChannel(
     const channel = createRealtimeChannel(supabase, key, registerListeners);
     registerRealtimeSubscription(key, {
       handlers: new Set([handler]),
-      timer: null,
+      pollCleanup: null,
       supabaseChannel: channel,
     });
     return attachRealtimeHandler(key, handler);

@@ -1,4 +1,4 @@
-import { shouldUseHeavyEffects } from './devicePerformance';
+import { shouldUseHeavyEffects, type DevicePerformanceSnapshot } from './devicePerformance';
 
 /**
  * Web-only CSS overrides for thermal / battery performance.
@@ -80,15 +80,7 @@ export function ensurePerformanceCssInjected(): void {
   document.head.appendChild(tag);
 }
 
-export function syncPerformanceBodyClasses(snapshot: {
-  isMobile: boolean;
-  isIOS: boolean;
-  isSafari: boolean;
-  prefersReducedMotion: boolean;
-  batterySaver: boolean;
-  activeTracking: boolean;
-  profile: string;
-}): void {
+export function syncPerformanceBodyClasses(snapshot: DevicePerformanceSnapshot): void {
   if (typeof document === 'undefined') return;
   ensurePerformanceCssInjected();
   const root = document.documentElement;

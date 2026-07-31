@@ -18,7 +18,7 @@ import {
 
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'demo' }));
 
-const TENANT = 'b2222222-2222-4222-8222-222222222201';
+const TENANT = 'tenant-wfm-export-test';
 const EMP = 'b2222222-2222-4222-8222-222222222231';
 const ACTOR = 'b2222222-2222-4222-8222-222222222211';
 const ROLE = 'business_admin' as const;

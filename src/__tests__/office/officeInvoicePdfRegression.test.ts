@@ -37,6 +37,7 @@ function validData(): InvoicePdfData {
       currency: 'EUR',
       dueDate: '2026-08-12',
       status: 'draft',
+      billingModule: 'assist',
       updatedAt: '2026-07-29T10:00:00Z',
       createdAt: '2026-07-29T10:00:00Z',
       issuedDate: '2026-07-29',

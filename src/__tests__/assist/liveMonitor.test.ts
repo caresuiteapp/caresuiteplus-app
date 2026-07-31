@@ -291,7 +291,7 @@ describe('Live Monitor (Prompt 60)', () => {
     const monitor = fetchDayMonitor(TENANT, ADMIN);
     expect(monitor.ok).toBe(false);
     if (!monitor.ok) {
-      expect(monitor.error).toContain('Live-Monitor');
+      expect(monitor.error).toContain('Produktionsmodus');
     }
   });
 

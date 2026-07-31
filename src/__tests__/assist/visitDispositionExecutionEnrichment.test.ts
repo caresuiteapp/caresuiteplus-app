@@ -99,11 +99,12 @@ describe('visitDispositionExecutionEnrichment', () => {
     expect(merged.tasks.find((task) => task.title === 'Küche reinigen')?.status).toBe('done');
     expect(merged.tasks.find((task) => task.title === 'Unterwegs markieren')?.status).toBe('done');
     expect(merged.tasks.find((task) => task.title === 'Einsatz starten')?.status).toBe('done');
-    expect(merged.employeeNotes).toBe('Alles erledigt');
+    expect(merged.employeeNotes).toBeNull();
+    expect(merged.documentationNotes).toBe('Alles erledigt');
     expect(merged.documentationStatus).toBe('complete');
     expect(merged.isIncomplete).toBe(true);
 
-    const preview = buildVisitProofPreview(merged, merged.employeeNotes);
+    const preview = buildVisitProofPreview(merged, merged.documentationNotes);
     const docField = preview.fields.find((field) => field.label === 'Dokumentation');
     const signatureField = preview.fields.find((field) => field.label === 'Unterschrift');
     expect(docField?.missing).toBe(false);
@@ -149,7 +150,7 @@ describe('visitDispositionExecutionEnrichment', () => {
   it('uses execution_state service end when assignment actual_end_at was overwritten by finalize', () => {
     const merged = mergeVisitDispositionWithExecution({
       detail: baseDetail(),
-      assignmentStatus: 'completed',
+      assignmentStatus: 'abgeschlossen',
       assignmentTasks: [],
       documentationText: 'submitted',
       visitTimes: null,

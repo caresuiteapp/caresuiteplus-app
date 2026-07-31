@@ -64,7 +64,7 @@ const AGE_RENDER_PROFILE: Record<
 const MODEL_ROWS: Array<[BodyMapAgeGroup, BodyMapSex]> = (
   Object.keys(BODY_MAP_AGE_LABELS) as BodyMapAgeGroup[]
 ).flatMap((ageGroup) =>
-  (Object.keys(BODY_MAP_SEX_LABELS) as BodyMapSex[]).map((sex) => [ageGroup, sex]),
+  (Object.keys(BODY_MAP_SEX_LABELS) as BodyMapSex[]).map((sex): [BodyMapAgeGroup, BodyMapSex] => [ageGroup, sex]),
 );
 
 export const BODY_MAP_MODELS: readonly BodyMapModelDefinition[] = MODEL_ROWS.map(

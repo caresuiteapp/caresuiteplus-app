@@ -20,6 +20,7 @@ import {
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { type PreviewAwareResult } from '@/lib/supabase/missingtablefallback';
 import { fromDbThreadType } from '@/lib/office/messagebusinessrules';
@@ -89,8 +90,7 @@ async function fetchNavBadgeThreadsLive(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-  const { data, error } = await supabase
-    .from('message_threads')
+  const { data, error } = await fromUnknownTable(supabase, 'message_threads')
     .select(
       'id, tenant_id, thread_type, status, office_unread_count, last_message_at, created_at, updated_at',
     )
@@ -112,8 +112,7 @@ async function fetchThreadsLive(tenantId: string): Promise<ServiceResult<OfficeM
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-  const { data, error } = await supabase
-    .from('message_threads')
+  const { data, error } = await fromUnknownTable(supabase, 'message_threads')
     .select('*')
     .eq('tenant_id', tenantId)
     .in('thread_type', ['client', 'employee', 'employee_group', 'internal'])

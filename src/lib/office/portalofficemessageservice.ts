@@ -11,6 +11,7 @@ import type {
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import {
   filterPortalVisibleMessages,
@@ -177,8 +178,7 @@ async function fetchPortalThreadsLive(
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
   const dbType = toDbThreadType(expectedThreadType(actor.audience));
-  let query = supabase
-    .from('message_threads')
+  let query = fromUnknownTable(supabase, 'message_threads')
     .select('*')
     .eq('tenant_id', tenantId);
 
@@ -344,8 +344,7 @@ export async function createPortalOfficeThread(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-  const { data, error } = await supabase
-    .from('message_threads')
+  const { data, error } = await fromUnknownTable(supabase, 'message_threads')
     .insert({
       tenant_id: tenantId,
       thread_type: toDbThreadType(threadType),
@@ -547,8 +546,7 @@ export async function startNewPortalThreadFromClosed(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-  const { data, error } = await supabase
-    .from('message_threads')
+  const { data, error } = await fromUnknownTable(supabase, 'message_threads')
     .insert({
       tenant_id: tenantId,
       thread_type: toDbThreadType(source.threadType),

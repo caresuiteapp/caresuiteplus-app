@@ -87,6 +87,8 @@ export const demoClientRepository: ClientRepository = {
       lastName: form.lastName.trim(),
       status: form.status,
       careLevel: form.careLevel.trim() || null,
+      dateOfBirth: form.dateOfBirth?.trim() || null,
+      primaryContactPhone: form.phone.trim() || null,
       city: form.city.trim(),
       zip: form.zip.trim(),
       sensitivity: form.sensitivity,

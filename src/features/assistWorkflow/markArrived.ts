@@ -108,7 +108,11 @@ export async function markArrived(input: MarkArrivedInput): Promise<MarkArrivedR
     });
     return refreshed.ok
       ? { ok: true, data: refreshed.data, arrivalWarning: null }
-      : { ok: false, error: refreshed.error };
+      : {
+          ok: true,
+          data: ctx,
+          arrivalWarning: 'Ankunft ist bereits gespeichert. Die aktuellen Einsatzdaten konnten nicht neu geladen werden.',
+        };
   }
 
   const entry = peekEmployeePortalTrackingEntry(ctx.tenantId, ctx.assignmentId);

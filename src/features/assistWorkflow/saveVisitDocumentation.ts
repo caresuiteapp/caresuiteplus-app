@@ -204,17 +204,10 @@ export async function saveVisitDocumentation(
       (await resolveAssistVisitIdForPersistence(ctx.tenantId, masterAssignmentId));
 
     if (!visitId) {
-      return assistWorkflowErrorToResult(
-        createAssistWorkflowError(
-          'AWF_DATABASE_ERROR',
-          {
-            tenantId: ctx.tenantId,
-            assignmentId: ctx.assignmentId,
-            operation: 'saveVisitDocumentation.resolveVisit',
-          },
-          'Einsatzbesuch konnte nicht zugeordnet werden — Dokumentation nicht gespeichert.',
-        ),
-      );
+      return {
+        ok: false,
+        error: 'Einsatzbesuch konnte nicht zugeordnet werden — Dokumentation nicht gespeichert.',
+      };
     }
 
     const visitDoc = await persistDocumentationToAssistVisit(

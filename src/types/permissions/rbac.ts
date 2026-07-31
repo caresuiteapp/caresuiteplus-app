@@ -79,7 +79,7 @@ export type EffectivePermissionSet = {
   permissions: PermissionKey[];
   overrides: EmployeePermissionOverride[];
   scopes: EmployeeDataScope[];
-  sources: Record<PermissionKey, 'role' | 'override_grant' | 'override_deny'>;
+  sources: Partial<Record<PermissionKey, 'role' | 'override_grant' | 'override_deny'>>;
 };
 
 export type PermissionMatrixAction = 'read' | 'create' | 'edit' | 'delete' | 'approve' | 'export';

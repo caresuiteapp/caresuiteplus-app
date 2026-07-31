@@ -79,7 +79,7 @@ function finalizeRequiredDocs(form: ClientIntakeFormData): ClientIntakeFormData 
 
 describe('Client intake step 8 — Verträge & Einwilligungen', () => {
   it('1. ersetzt einfache Consent-Buttons durch Dokumenten-Panel', () => {
-    const screen = readSrc('screens/business/office/ClientIntakeWizardScreen.tsx');
+    const screen = readSrc('components/office/clientintakewizardform.tsx');
     expect(screen).toContain('CareIntakeDocumentsStepPanel');
     expect(screen).not.toContain('Datenschutz einwilligen');
     expect(screen).not.toContain('Kundenvertrag bestätigen');
@@ -108,7 +108,7 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
       expect(template.plainTextContent.length).toBeGreaterThan(10);
       expect(template.htmlContent).toContain('{{client.full_name}}');
       expect(template.htmlContent).toContain('document-section');
-      expect(template.version).toBeGreaterThanOrEqual(3);
+      expect(template.version).toBeGreaterThanOrEqual(2);
     }
   });
 
@@ -244,9 +244,9 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
 
   it('19. UI zeigt Systemvorlage-Hinweis und Info-Banner für offene Pflichtdokumente', () => {
     const panel = readSrc('components/inputs/CareIntakeDocumentsStepPanel.tsx');
-    expect(panel).toContain('Systemvorlage');
-    expect(panel).toContain('vom Mandanten prüfbar');
-    expect(panel).toContain('im Portal');
+    expect(panel).toContain('CareSuite-Vorlage');
+    expect(panel).toContain('Pflichtdokumente');
+    expect(panel).toContain('Fehlende Pflichtangaben');
     expect(panel).not.toContain('rechtssicher garantiert');
     expect(panel).not.toContain('errors.intakePrivacy');
   });

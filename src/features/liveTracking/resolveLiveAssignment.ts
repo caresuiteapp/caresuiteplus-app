@@ -3,6 +3,7 @@
  * Handles route params, legacy_assignment_id, and missing assignment mirror rows.
  */
 import type { ServiceResult } from '@/types';
+import type { PostgrestError } from '@supabase/supabase-js';
 import {
   assignmentSupabaseRepository,
   type AssignmentDetail,
@@ -313,7 +314,7 @@ export async function resolveLiveAssignmentViaRpc(
       rpc: (
         fn: string,
         args: Record<string, unknown>,
-      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      ) => Promise<{ data: unknown; error: PostgrestError | null }>;
     }
   ).rpc('resolve_live_assignment', {
     p_tenant_id: tenantId,

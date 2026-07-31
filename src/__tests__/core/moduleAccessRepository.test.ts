@@ -18,7 +18,7 @@ const sampleRow: TenantProductLiveRow = {
   access_type: 'free',
   price_cents: 0,
   premium_ready: false,
-  products: { key: 'assist' },
+  products: { key: 'assist', product_key: 'assist' },
 };
 
 describe('moduleAccessRepository.supabase', () => {

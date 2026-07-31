@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState, type Ref } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   formatMapLastUpdated,
@@ -192,7 +192,7 @@ function GoogleMapsLiveMapInner({
   return (
     <View style={styles.container}>
       <View style={[styles.mapFrame, { height }]}>
-        <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+        <div ref={mapContainerRef as unknown as Ref<HTMLDivElement>} style={{ width: '100%', height: '100%' }} />
         {!ready ? (
           <View style={styles.loadingOverlay}>
             <Text style={styles.loadingText}>Karte wird geladen…</Text>

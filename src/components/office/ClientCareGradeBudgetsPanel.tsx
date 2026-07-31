@@ -172,7 +172,7 @@ export function ClientCareGradeBudgetsPanel({
               {profile.conversionEligible ? (
                 <PremiumButton
                   title={profile.careEntitlement?.conversionEnabled ? 'Umwandlung aus' : 'Umwandlung an'}
-                  variant="glass"
+                  variant="ghost"
                   onPress={() => setModal('conversion')}
                 />
               ) : null}
@@ -254,7 +254,7 @@ export function ClientCareGradeBudgetsPanel({
                 <Text style={[styles.cardTitle, { color: text.primary }]}>
                   {r.priorityOrder}. {r.label}
                 </Text>
-                <PremiumBadge label={r.available ? 'verfügbar' : 'gesperrt'} variant={r.available ? 'green' : 'gray'} />
+                <PremiumBadge label={r.available ? 'verfügbar' : 'gesperrt'} variant={r.available ? 'green' : 'muted'} />
               </View>
             </PremiumCard>
           ))

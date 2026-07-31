@@ -19,6 +19,7 @@ export function useTenantCalendarSettings(scope: CalendarModuleScope = 'office')
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const settingsScope = scope === 'assist' ? 'assist' : 'office';
 
   const refresh = useCallback(async () => {
     if (!tenantId) {
@@ -28,14 +29,14 @@ export function useTenantCalendarSettings(scope: CalendarModuleScope = 'office')
     }
     setLoading(true);
     setError(null);
-    const result = await fetchTenantCalendarSettings(tenantId, profile?.roleKey, { scope });
+    const result = await fetchTenantCalendarSettings(tenantId, profile?.roleKey, { scope: settingsScope });
     if (result.ok) {
       setSettings(result.data);
     } else {
       setError(result.error);
     }
     setLoading(false);
-  }, [tenantId, profile?.roleKey, scope]);
+  }, [tenantId, profile?.roleKey, settingsScope]);
 
   useEffect(() => {
     void refresh();
@@ -46,7 +47,7 @@ export function useTenantCalendarSettings(scope: CalendarModuleScope = 'office')
       if (!tenantId) return { ok: false as const, error: 'Kein Mandant.' };
       setSaving(true);
       setError(null);
-      const result = await saveTenantCalendarSettings(tenantId, form, profile?.roleKey, { scope });
+      const result = await saveTenantCalendarSettings(tenantId, form, profile?.roleKey, { scope: settingsScope });
       if (result.ok) {
         setSettings(result.data);
       } else {
@@ -55,7 +56,7 @@ export function useTenantCalendarSettings(scope: CalendarModuleScope = 'office')
       setSaving(false);
       return result;
     },
-    [tenantId, profile?.roleKey, scope],
+    [tenantId, profile?.roleKey, settingsScope],
   );
 
   return {
