@@ -10,13 +10,13 @@ import {
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
+import { CareTimeInput } from '@/components/inputs/CareTimeInput';
 import {
   EmptyState,
   ErrorState,
   LoadingState,
   PremiumBadge,
   PremiumCard,
-  PremiumInput,
 } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -29,6 +29,7 @@ import { toDateKey } from '@/lib/office/calendarDateUtils';
 import type { ClientAssignmentProfile } from '@/types/modules/clientAssignmentProfile';
 import { colors, spacing, typography } from '@/theme';
 import { autoScrollAssignmentProfileDrag } from './assignmentProfileDragAutoScroll';
+import { isNormalizedTimeInput, normalizeTimeInput } from '@/lib/formatters/normalizeTimeInput';
 
 export const ASSIGNMENT_PROFILE_DRAG_MIME = 'application/x-caresuite-assignment-profile';
 
@@ -273,13 +274,19 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }
 
   async function handleSchedule() {
     if (!tenantId || !pendingProfile || !pendingDate) return;
+    const normalizedStartTime = normalizeTimeInput(startTime);
+    if (!isNormalizedTimeInput(normalizedStartTime)) {
+      setError('Bitte eine gültige Uhrzeit im Format HH:MM eingeben.');
+      return;
+    }
+    setStartTime(normalizedStartTime);
     setSaving(true);
     setError(null);
     const result = await scheduleClientAssignmentProfile(
       tenantId,
       pendingProfile.id,
       toDateKey(pendingDate),
-      startTime,
+      normalizedStartTime,
     );
     setSaving(false);
     if (!result.ok) {
@@ -371,7 +378,7 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }
           {
             title: 'Einsatz direkt freigeben',
             loading: saving,
-            disabled: !/^\d{2}:\d{2}$/.test(startTime),
+            disabled: !isNormalizedTimeInput(normalizeTimeInput(startTime)),
             onPress: handleSchedule,
           },
         ]}
@@ -385,15 +392,14 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }
               </Text>
               <Text style={styles.summaryMeta}>{pendingProfile.employeeName}</Text>
             </View>
-            <PremiumInput
+            <CareTimeInput
               label="Startzeit"
               value={startTime}
               placeholder="09:00"
-              maxLength={5}
-              inputMode="numeric"
-              onChangeText={setStartTime}
-              autoFocus
+              onChange={setStartTime}
               onDarkSurface
+              showFormatHint={false}
+              autoFocus
             />
             <Text style={styles.releaseHint}>
               Nach Bestätigung wird der Einsatz unmittelbar als bestätigt gespeichert, im

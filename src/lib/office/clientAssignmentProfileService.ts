@@ -54,6 +54,29 @@ type ProfileRow = {
 
 const demoProfiles: ClientAssignmentProfile[] = [];
 
+export function toClientAssignmentScheduleError(error: unknown): string {
+  if (!error || typeof error !== 'object') {
+    return 'Einsatz konnte nicht gespeichert werden. Bitte erneut versuchen.';
+  }
+  const record = error as { code?: string; message?: string };
+  const message = record.message?.trim() ?? '';
+  if (
+    ['22004', '23P01', '23502', '23503', '23514', 'P0002'].includes(record.code ?? '')
+    && message
+  ) {
+    return message;
+  }
+  if (
+    record.code === '42703'
+    || record.code === '42P01'
+    || record.code === 'PGRST202'
+    || record.code === 'PGRST204'
+  ) {
+    return 'Das Datenbankschema der Einsatzplanung ist unvollständig. Bitte die Freigabe-Reparatur anwenden.';
+  }
+  return toGermanSupabaseError(error);
+}
+
 function personName(
   row?: { first_name?: string | null; last_name?: string | null } | null,
 ): string {
@@ -396,6 +419,6 @@ export async function scheduleClientAssignmentProfile(
     p_assignment_date: assignmentDate,
     p_start_time: startTime,
   } as never);
-  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  if (error) return { ok: false, error: toClientAssignmentScheduleError(error) };
   return { ok: true, data: data as unknown as ScheduledClientAssignment };
 }

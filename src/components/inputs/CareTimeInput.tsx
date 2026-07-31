@@ -12,7 +12,9 @@ type Props = {
   placeholder?: string;
   viewContext?: LlganViewContext;
   onLightSurface?: boolean;
+  onDarkSurface?: boolean;
   showFormatHint?: boolean;
+  autoFocus?: boolean;
 };
 
 function shouldAutoFormatWhileTyping(text: string): boolean {
@@ -27,7 +29,9 @@ export function CareTimeInput({
   placeholder = 'HH:MM',
   viewContext,
   onLightSurface = false,
+  onDarkSurface = false,
   showFormatHint = true,
+  autoFocus = false,
 }: Props) {
   const handleChangeText = (text: string) => {
     if (shouldAutoFormatWhileTyping(text)) {
@@ -52,10 +56,13 @@ export function CareTimeInput({
         value={value}
         viewContext={viewContext}
         onLightSurface={onLightSurface}
+        onDarkSurface={onDarkSurface}
         onChangeText={handleChangeText}
         onBlur={handleBlur}
         placeholder={placeholder}
         error={error}
+        maxLength={5}
+        autoFocus={autoFocus}
         keyboardType="numbers-and-punctuation"
       />
       {showFormatHint ? <Text style={styles.hint}>Format: HH:MM Uhr</Text> : null}

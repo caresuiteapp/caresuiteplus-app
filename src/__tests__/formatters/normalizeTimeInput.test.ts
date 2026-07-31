@@ -5,6 +5,7 @@ describe('normalizeTimeInput', () => {
   it('formats 4-digit compact input', () => {
     expect(normalizeTimeInput('1530')).toBe('15:30');
     expect(normalizeTimeInput('0930')).toBe('09:30');
+    expect(normalizeTimeInput('0850')).toBe('08:50');
     expect(normalizeTimeInput('0000')).toBe('00:00');
     expect(normalizeTimeInput('2359')).toBe('23:59');
   });

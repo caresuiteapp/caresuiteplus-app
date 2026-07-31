@@ -1,11 +1,24 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { toClientAssignmentScheduleError } from '@/lib/office/clientAssignmentProfileService';
 
 const root = path.join(__dirname, '..', '..', '..');
 const read = (relativePath: string) => readFileSync(path.join(root, relativePath), 'utf8');
 
 describe('Office-Einsatzprofile → Assist-Kalender → freigegebener Einsatz', () => {
+  it('shows actionable release errors instead of hiding them as a generic database error', () => {
+    expect(
+      toClientAssignmentScheduleError({
+        code: '23P01',
+        message: 'Die mitarbeitende Person ist zu dieser Zeit bereits eingeplant.',
+      }),
+    ).toBe('Die mitarbeitende Person ist zu dieser Zeit bereits eingeplant.');
+    expect(
+      toClientAssignmentScheduleError({ code: '42703', message: 'column is missing' }),
+    ).toContain('Datenbankschema der Einsatzplanung');
+  });
+
   it('stores reusable client profiles without date or start time', () => {
     const migration = read(
       'supabase/migrations/20260730090000_office_assignment_profiles_calendar_drop.sql',
@@ -96,6 +109,31 @@ describe('Office-Einsatzprofile → Assist-Kalender → freigegebener Einsatz', 
     expect(repair).toContain("NOTIFY pgrst, 'reload schema'");
     expect(repair).toContain('BEGIN;');
     expect(repair).toContain('COMMIT;');
+    expect(repair).not.toMatch(/DROP\s+TABLE/i);
+    expect(repair).not.toMatch(/DELETE\s+FROM/i);
+  });
+
+  it('repairs the complete database path used by direct calendar release', () => {
+    const repair = read(
+      'supabase/migrations/20260731190000_assignment_profile_release_schema_complete_repair.sql',
+    );
+
+    for (const table of [
+      'client_ambulatory_details',
+      'client_preferences',
+      'client_risks',
+      'assignments',
+      'assignment_tasks',
+      'calendar_events',
+      'assist_visits',
+      'assist_visit_tasks',
+    ]) {
+      expect(repair).toContain(`public.${table}`);
+    }
+    expect(repair).toContain('schedule_client_assignment_profile(uuid,uuid,date,time without time zone)');
+    expect(repair).toContain("NOTIFY pgrst, 'reload schema'");
+    expect(repair).toContain('BEGIN;');
+    expect(repair).toContain('COMMIT;');
   });
 
   it('uses drag and drop plus a time-only confirmation modal', () => {
@@ -115,6 +153,9 @@ describe('Office-Einsatzprofile → Assist-Kalender → freigegebener Einsatz', 
     expect(planner).toContain('onProfileDrop');
     expect(planner).toContain('Uhrzeit festlegen');
     expect(planner).toContain('Einsatz direkt freigeben');
+    expect(planner).toContain('<CareTimeInput');
+    expect(planner).toContain('normalizeTimeInput(startTime)');
+    expect(planner).toContain('isNormalizedTimeInput');
     expect(clientPanel).toContain('Kein Tag und keine Uhrzeit');
     expect(clientPanel).toContain('ClientAssignmentProfilesPanel');
     expect(clientPanel).toContain('Assist-Kalender');
