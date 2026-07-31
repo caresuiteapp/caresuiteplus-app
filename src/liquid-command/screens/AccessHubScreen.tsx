@@ -564,11 +564,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   accessCardStacked: {
-    minHeight: 132,
-    padding: 12,
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    gap: 14,
+    minHeight: 156,
+    padding: 14,
+    position: 'relative',
+    justifyContent: 'flex-end',
   },
   accessCardHovered: {
     borderColor: 'rgba(112,181,255,0.96)',
@@ -587,7 +586,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  robotStageStacked: { width: 112, minHeight: 104, flex: 0 },
+  robotStageStacked: {
+    position: 'absolute',
+    left: 22,
+    bottom: 10,
+    width: 112,
+    minHeight: 118,
+    zIndex: 4,
+    elevation: 12,
+  },
   robotGlow: {
     position: 'absolute',
     width: 190,
@@ -603,7 +610,13 @@ const styles = StyleSheet.create({
   robotImage: { width: 244, height: 244 },
   robotImageStacked: { width: 118, height: 118 },
   cardCopy: { width: '100%', alignItems: 'center', gap: 12 },
-  cardCopyStacked: { minWidth: 0, flex: 1, alignItems: 'stretch', gap: 9 },
+  cardCopyStacked: {
+    width: '100%',
+    minWidth: 0,
+    alignItems: 'center',
+    gap: 12,
+    zIndex: 2,
+  },
   accessTitle: {
     color: liquidColors.white,
     fontSize: 24,
@@ -611,7 +624,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textAlign: 'center',
   },
-  accessTitleStacked: { fontSize: 18, lineHeight: 23, textAlign: 'left' },
+  accessTitleStacked: {
+    width: '100%',
+    fontSize: 18,
+    lineHeight: 23,
+    textAlign: 'center',
+  },
   accessCta: {
     width: '100%',
     minHeight: 50,
