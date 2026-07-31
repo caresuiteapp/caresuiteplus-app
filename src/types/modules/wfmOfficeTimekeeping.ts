@@ -204,6 +204,7 @@ export interface WfmOfficePlannedVisit {
   workDate: string;
   plannedStartAt: string | null;
   plannedEndAt: string | null;
+  plannedDurationMinutes?: number | null;
   assignmentActualStartAt?: string | null;
   assignmentActualEndAt?: string | null;
   assignmentOnTheWayAt?: string | null;

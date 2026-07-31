@@ -20,6 +20,7 @@ type AssignmentRow = {
   assignment_date: string;
   planned_start_at: string | null;
   planned_end_at: string | null;
+  duration_minutes: number | null;
   actual_start_at: string | null;
   actual_end_at: string | null;
   on_the_way_at: string | null;
@@ -71,6 +72,7 @@ function mapAssignmentRow(row: AssignmentRow): WfmOfficePlannedVisit | null {
     workDate,
     plannedStartAt: row.planned_start_at,
     plannedEndAt: row.planned_end_at,
+    plannedDurationMinutes: row.duration_minutes,
     assignmentActualStartAt: actualTimes.startAt,
     assignmentActualEndAt: actualTimes.endAt,
     assignmentOnTheWayAt: row.on_the_way_at,
@@ -104,6 +106,7 @@ export function mapCanonicalVisitToPlannedVisit(
     workDate,
     plannedStartAt: visit.scheduledStart,
     plannedEndAt: visit.scheduledEnd,
+    plannedDurationMinutes: visit.durationMinutes,
     assignmentActualStartAt: visit.actualStartAt ?? null,
     assignmentActualEndAt: visit.actualEndAt ?? null,
     assignmentOnTheWayAt: visit.onTheWayAt ?? null,
@@ -124,7 +127,7 @@ async function listLegacyAssignmentsForPeriod(
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
   const select =
-    'id, tenant_id, client_id, employee_id, assignment_date, planned_start_at, planned_end_at, actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at, status, title, clients(first_name, last_name)';
+    'id, tenant_id, client_id, employee_id, assignment_date, planned_start_at, planned_end_at, duration_minutes, actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at, status, title, clients(first_name, last_name)';
 
   const { data, error } = await fromUnknownTable(supabase, 'assignments')
     .select(select)

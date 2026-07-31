@@ -147,8 +147,9 @@ function plannedMinutesForEmployee(
   return rows.reduce((sum, visit) => {
     if (visit.employeeId !== employeeId || !visit.plannedStartAt || !visit.plannedEndAt) return sum;
     if (visit.assignmentActualEndAt || new Date(visit.plannedStartAt).getTime() <= now) return sum;
+    const storedDuration = Math.round(visit.plannedDurationMinutes ?? 0);
     const duration = Math.max(0, new Date(visit.plannedEndAt).getTime() - new Date(visit.plannedStartAt).getTime());
-    return sum + Math.round(duration / 60000);
+    return sum + (storedDuration > 0 ? storedDuration : Math.round(duration / 60000));
   }, 0);
 }
 
@@ -158,9 +159,50 @@ function minutesBetween(start: string | null | undefined, end: string | null | u
   return Number.isFinite(duration) ? Math.max(0, Math.round(duration / 60000)) : 0;
 }
 
+const PAYROLL_CONDUCTED_ASSIGNMENT_STATUSES = new Set([
+  'beendet',
+  'dokumentation_offen',
+  'unterschrift_offen',
+  'abgeschlossen',
+  'finished',
+  'documentation_open',
+  'signature_open',
+  'completed',
+]);
+
+export function isPayrollConductedAssignmentStatus(status: string | null | undefined): boolean {
+  return PAYROLL_CONDUCTED_ASSIGNMENT_STATUSES.has((status ?? '').trim().toLowerCase());
+}
+
+export function resolvePayrollPerformedMinutes(input: {
+  status: string | null | undefined;
+  explicitMinutes?: number | null;
+  actualStartAt?: string | null;
+  actualEndAt?: string | null;
+  plannedMinutes: number;
+}): number {
+  const explicitMinutes = Math.max(0, Math.round(input.explicitMinutes ?? 0));
+  if (explicitMinutes > 0) return explicitMinutes;
+  const capturedMinutes = minutesBetween(input.actualStartAt, input.actualEndAt);
+  if (capturedMinutes > 0) return capturedMinutes;
+  return isPayrollConductedAssignmentStatus(input.status)
+    ? Math.max(0, Math.round(input.plannedMinutes))
+    : 0;
+}
+
+function plannedDurationForVisit(visit: WfmOfficePlannedVisit): number {
+  const storedDuration = Math.max(0, Math.round(visit.plannedDurationMinutes ?? 0));
+  return storedDuration || minutesBetween(visit.plannedStartAt, visit.plannedEndAt);
+}
+
 function plannedVisitLine(visit: WfmOfficePlannedVisit): PayrollAssignmentTimeLine {
-  const plannedMinutes = minutesBetween(visit.plannedStartAt, visit.plannedEndAt);
-  const actualMinutes = minutesBetween(visit.assignmentActualStartAt, visit.assignmentActualEndAt);
+  const plannedMinutes = plannedDurationForVisit(visit);
+  const actualMinutes = resolvePayrollPerformedMinutes({
+    status: visit.assignmentStatus,
+    actualStartAt: visit.assignmentActualStartAt,
+    actualEndAt: visit.assignmentActualEndAt,
+    plannedMinutes,
+  });
   return {
     assignmentId: visit.assignmentId,
     workDate: visit.workDate,
@@ -189,13 +231,28 @@ function employeeAssignmentTimeLines(
     byKey.set(`assignment:${visit.assignmentId}`, plannedVisitLine(visit));
   }
   for (const entry of account?.entries ?? []) {
-    const plannedMinutes = entry.plannedDurationMinutes ?? minutesBetween(entry.plannedStartAt, entry.plannedEndAt);
-    const actualStartAt = entry.actualStartAt ?? entry.assignmentActualStartAt ?? null;
-    const actualEndAt = entry.actualEndAt ?? entry.assignmentActualEndAt ?? null;
-    const hasCapturedTime = Boolean(actualStartAt || actualEndAt || entry.actualDisplayStatus === 'captured' || entry.netMinutes > 0);
-    const actualMinutes = hasCapturedTime ? Math.max(0, entry.netMinutes || minutesBetween(actualStartAt, actualEndAt)) : 0;
     const key = entry.assignmentId ? `assignment:${entry.assignmentId}` : `entry:${entry.id}`;
     const existing = byKey.get(key);
+    const plannedMinutes = existing?.plannedMinutes
+      ?? entry.plannedDurationMinutes
+      ?? minutesBetween(entry.plannedStartAt, entry.plannedEndAt);
+    const actualStartAt = entry.actualStartAt
+      ?? entry.assignmentActualStartAt
+      ?? existing?.actualStartAt
+      ?? null;
+    const actualEndAt = entry.actualEndAt
+      ?? entry.assignmentActualEndAt
+      ?? existing?.actualEndAt
+      ?? null;
+    const hasCapturedTime = Boolean(actualStartAt || actualEndAt || entry.actualDisplayStatus === 'captured' || entry.netMinutes > 0);
+    const status = entry.assignmentStatus ?? existing?.status ?? entry.reviewStatus ?? null;
+    const actualMinutes = resolvePayrollPerformedMinutes({
+      status,
+      explicitMinutes: hasCapturedTime ? entry.netMinutes : 0,
+      actualStartAt,
+      actualEndAt,
+      plannedMinutes,
+    });
     byKey.set(key, {
       assignmentId: entry.assignmentId,
       workDate: entry.workDate,
@@ -209,7 +266,7 @@ function employeeAssignmentTimeLines(
       actualMinutes,
       travelMinutes: Math.max(0, entry.travelMinutes ?? 0),
       differenceMinutes: actualMinutes - plannedMinutes,
-      status: entry.assignmentStatus ?? entry.reviewStatus ?? existing?.status ?? null,
+      status,
     });
   }
   return [...byKey.values()].sort((a, b) =>
@@ -257,7 +314,17 @@ function buildEmployeeSnapshot(input: {
     else if (!['unpaid_leave', 'parental_leave'].includes(type)) otherPaidAbsenceMinutes += minutes;
   }
   const account = input.timeAccount;
-  const actualWorkMinutes = account?.actualMinutes ?? 0;
+  const assignmentActualMinutes = input.assignmentTimeLines.reduce(
+    (sum, line) => sum + line.actualMinutes,
+    0,
+  );
+  const actualWorkMinutes = input.assignmentTimeLines.length > 0
+    ? assignmentActualMinutes
+    : account?.actualMinutes ?? 0;
+  const assignmentPlannedMinutes = input.assignmentTimeLines.reduce(
+    (sum, line) => sum + line.plannedMinutes,
+    0,
+  );
   const configuredMaxPayoutHours = input.payroll?.max_payout_hours_month == null
     ? null
     : asNumber(input.payroll.max_payout_hours_month);
@@ -283,7 +350,9 @@ function buildEmployeeSnapshot(input: {
     actualWorkMinutes,
     travelMinutes: account?.travelMinutes ?? 0, vacationMinutes, sickMinutes, otherPaidAbsenceMinutes,
     targetWorkMinutes: contractualTargetMinutes,
-    monthlyPlannedMinutes: account?.plannedMinutes ?? input.plannedMinutes,
+    monthlyPlannedMinutes: input.assignmentTimeLines.length > 0
+      ? assignmentPlannedMinutes
+      : account?.plannedMinutes ?? input.plannedMinutes,
     plannedMinutes: input.plannedMinutes,
     timeAccountBalanceMinutes: currentTimeAccountBalance,
     expenses: input.expenses.filter((expense) => expense.employeeId === employeeId),

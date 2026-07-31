@@ -53,6 +53,12 @@ mustContain('src/lib/payroll/payrollCalculator.ts', [
   'Vollständige Vorschau',
   'Soll-/Ist-Differenz',
 ]);
+mustContain('src/lib/payroll/payrollMonthService.ts', [
+  'resolvePayrollPerformedMinutes',
+  'dokumentation_offen',
+  'unterschrift_offen',
+  'assignmentActualMinutes',
+]);
 mustContain('src/screens/portal/EmployeePayrollMonthScreen.tsx', [
   'Verbindlich bestätigen',
   'Ablehnungsgrund',

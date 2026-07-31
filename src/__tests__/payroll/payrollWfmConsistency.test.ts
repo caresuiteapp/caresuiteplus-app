@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { resolvePayrollPerformedMinutes } from '@/lib/payroll/payrollMonthService';
 
 const payrollService = readFileSync(
   join(process.cwd(), 'src/lib/payroll/payrollMonthService.ts'),
@@ -34,10 +35,35 @@ const asyncQueryHook = readFileSync(
 describe('Payroll und WFM verwenden einen gemeinsamen aktuellen Datenstand', () => {
   it('calculates payroll actuals from the same WFM time accounts as Office', () => {
     expect(payrollService).toContain('getWfmOfficeEmployeeTimeAccounts');
-    expect(payrollService).toContain('actualWorkMinutes = account?.actualMinutes ?? 0');
+    expect(payrollService).toContain('assignmentActualMinutes');
+    expect(payrollService).toContain('dokumentation_offen');
+    expect(payrollService).toContain('unterschrift_offen');
+    expect(payrollService).not.toContain('const actualWorkMinutes = account?.actualMinutes ?? 0');
     expect(payrollService).not.toContain(
       "fromUnknownTable(supabase, 'workforce_work_sessions').select('employee_id, work_date, net_minutes",
     );
+  });
+
+  it('counts performed assignments even while documentation or signature remains open', () => {
+    const julyAssignments = [
+      [181, 'unterschrift_offen'], [240, 'abgeschlossen'], [150, 'abgeschlossen'],
+      [180, 'abgeschlossen'], [150, 'abgeschlossen'], [240, 'abgeschlossen'],
+      [150, 'dokumentation_offen'], [150, 'abgeschlossen'], [240, 'abgeschlossen'],
+      [150, 'abgeschlossen'], [120, 'abgeschlossen'], [120, 'abgeschlossen'],
+      [120, 'abgeschlossen'], [240, 'abgeschlossen'], [150, 'abgeschlossen'],
+      [150, 'abgeschlossen'], [120, 'abgeschlossen'], [120, 'abgeschlossen'],
+      [120, 'unterschrift_offen'], [150, 'unterschrift_offen'],
+    ] as const;
+    const actualMinutes = julyAssignments.reduce((sum, [plannedMinutes, status]) =>
+      sum + resolvePayrollPerformedMinutes({ status, plannedMinutes }), 0);
+
+    expect(actualMinutes).toBe(3_241);
+    expect(resolvePayrollPerformedMinutes({ status: 'bestaetigt', plannedMinutes: 120 })).toBe(0);
+    expect(resolvePayrollPerformedMinutes({
+      status: 'unterschrift_offen',
+      explicitMinutes: 127,
+      plannedMinutes: 120,
+    })).toBe(127);
   });
 
   it('refreshes reviews, time accounts and payroll through the shared WFM subscription', () => {
