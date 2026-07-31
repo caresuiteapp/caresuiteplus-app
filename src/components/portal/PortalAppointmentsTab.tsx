@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PortalTabHero } from '@/components/portal/PortalTabHero';
 import { ClientPortalAssignmentCard } from '@/components/portal/ClientPortalAssignmentCard';
@@ -211,17 +211,21 @@ export function PortalAppointmentsTab({
     </>
   );
 
-  if (isPhone) {
+  if (!isEmployeePortal && isPhone) {
     return <View style={styles.scroll}>{listBody}</View>;
   }
 
   return (
     <ScrollView
+      style={isEmployeePortal ? styles.scrollViewport : undefined}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={refresh} />
       }
       contentContainerStyle={styles.scroll}
+      testID={isEmployeePortal ? 'employee-assignments-scroll' : undefined}
     >
       {listBody}
     </ScrollView>
@@ -232,5 +236,19 @@ const styles = StyleSheet.create({
   scroll: {
     gap: spacing.md,
     paddingBottom: spacing.xxl,
+  },
+  scrollViewport: {
+    flex: 1,
+    minHeight: 0,
+    width: '100%',
+    ...(Platform.OS === 'web'
+      ? ({
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          touchAction: 'pan-y',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorY: 'contain',
+        } as never)
+      : null),
   },
 });

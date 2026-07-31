@@ -494,8 +494,17 @@ function Overview({
           ))}
         </View>
       ) : null}
-      <View style={styles.portalDashboardGrid}>
-        <LiquidSurface active style={styles.nextCard} contentStyle={styles.heroCard}>
+      <View
+        style={[
+          styles.portalDashboardGrid,
+          layout.isPhone && styles.portalDashboardGridPhone,
+        ]}
+      >
+        <LiquidSurface
+          active
+          style={[styles.nextCard, layout.isPhone && styles.dashboardCardPhone]}
+          contentStyle={styles.heroCard}
+        >
           <View style={styles.heroCopy}>
             <LiquidText variant="kicker">HEUTE</LiquidText>
             <LiquidText variant="title">
@@ -523,7 +532,10 @@ function Overview({
             />
           </View>
         </LiquidSurface>
-        <LiquidSurface style={styles.routeCard} contentStyle={styles.routeCardContent}>
+        <LiquidSurface
+          style={[styles.routeCard, layout.isPhone && styles.dashboardCardPhone]}
+          contentStyle={styles.routeCardContent}
+        >
           <View>
             <LiquidText variant="kicker">LIVE ANKUNFT</LiquidText>
             <LiquidText variant="section">Anfahrt im Blick</LiquidText>
@@ -969,6 +981,12 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: liquidSpace.lg,
   },
+  portalDashboardGridPhone: {
+    flexDirection: 'column',
+    flexWrap: 'nowrap',
+    width: '100%',
+    minWidth: 0,
+  },
   nextCard: {
     minWidth: 280,
     flex: 1,
@@ -984,6 +1002,12 @@ const styles = StyleSheet.create({
   routeCard: {
     minWidth: 320,
     flex: 1.3,
+  },
+  dashboardCardPhone: {
+    flex: 0,
+    minWidth: 0,
+    width: '100%',
+    maxWidth: '100%',
   },
   routeCardContent: {
     padding: liquidSpace.lg,
