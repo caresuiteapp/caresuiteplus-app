@@ -49,6 +49,9 @@ mustContain('src/lib/payroll/payrollCalculator.ts', [
   'projectedGrossCents',
   'approvedExpensesCents',
   'Geplante Einsätze bis Monatsende',
+  'Einsätze und erfasste Arbeitszeiten',
+  'Vollständige Vorschau',
+  'Soll-/Ist-Differenz',
 ]);
 mustContain('src/screens/portal/EmployeePayrollMonthScreen.tsx', [
   'Verbindlich bestätigen',

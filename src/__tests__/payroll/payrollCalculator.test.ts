@@ -30,6 +30,7 @@ const base = {
   compensationAmount: 20, maxPayoutHours: null, overflowToTimeAccount: true, actualWorkMinutes: 6_000,
   travelMinutes: 600, vacationMinutes: 480, sickMinutes: 0,
   otherPaidAbsenceMinutes: 0, plannedMinutes: 1_200,
+  targetWorkMinutes: 6_300,
   timeAccountBalanceMinutes: 300, expenses: [] as PayrollExpenseClaim[],
   now: '2026-07-22T12:00:00.000Z',
 };
@@ -89,12 +90,41 @@ describe('payrollCalculator', () => {
   });
 
   it('erzeugt eine vollständige, deutschsprachige PDF-Vorlage', () => {
-    const snapshot = calculatePayrollSnapshot({ ...base, expenses: [expense({ status: 'approved' })] });
+    const snapshot = calculatePayrollSnapshot({
+      ...base,
+      expenses: [expense({ status: 'approved' })],
+      assignmentTimeLines: [{
+        assignmentId: 'assignment-1', workDate: '2026-07-14', clientLabel: 'Iris Jäger',
+        assignmentTitle: 'Hauswirtschaftliche Unterstützung',
+        plannedStartAt: '2026-07-14T08:00:00.000Z', plannedEndAt: '2026-07-14T10:00:00.000Z',
+        actualStartAt: '2026-07-14T08:05:00.000Z', actualEndAt: '2026-07-14T10:10:00.000Z',
+        plannedMinutes: 120, actualMinutes: 125, travelMinutes: 20, differenceMinutes: 5, status: 'completed',
+      }],
+      nextMonthPreview: {
+        periodYear: 2026, periodMonth: 8, totalPlannedMinutes: 180,
+        assignments: [{
+          assignmentId: 'assignment-2', workDate: '2026-08-03', clientLabel: 'Frank Hartmann',
+          assignmentTitle: 'Betreuungseinsatz',
+          plannedStartAt: '2026-08-03T09:00:00.000Z', plannedEndAt: '2026-08-03T12:00:00.000Z',
+          actualStartAt: null, actualEndAt: null, plannedMinutes: 180, actualMinutes: 0,
+          travelMinutes: 0, differenceMinutes: -180, status: 'confirmed',
+        }],
+      },
+    });
     const html = buildPayrollStatementHtml(snapshot, 2);
     expect(html).toContain('MONATSÜBERSICHT');
     expect(html).toContain('Version 2');
     expect(html).toContain('Geplante Einsätze bis Monatsende');
     expect(html).toContain('ÖPNV-Ticket zum Einsatz');
+    expect(html).toContain('Vertragliches Soll');
+    expect(html).toContain('Anrechenbares Ist');
+    expect(html).toContain('Soll-/Ist-Differenz');
+    expect(html).toContain('Einsätze und erfasste Arbeitszeiten');
+    expect(html).toContain('Iris Jäger');
+    expect(html).toContain('Hauswirtschaftliche Unterstützung');
+    expect(html).toContain('Vollständige Vorschau');
+    expect(html).toContain('August 2026');
+    expect(html).toContain('Frank Hartmann');
     expect(html).toContain('Bruttolohn und Auslagenersatz werden getrennt ausgewiesen');
     const escaped = buildPayrollStatementHtml({ ...snapshot, employeeName: '<script>alert(1)</script>' }, 3);
     expect(escaped).not.toContain('<script>');

@@ -1,5 +1,7 @@
 import type {
+  PayrollAssignmentTimeLine,
   PayrollExpenseClaim,
+  PayrollNextMonthPreview,
   PayrollStatementSnapshot,
 } from '@/types/modules/payrollMonth';
 
@@ -18,12 +20,15 @@ export type PayrollCalculationInput = {
   vacationMinutes: number;
   sickMinutes: number;
   otherPaidAbsenceMinutes: number;
+  targetWorkMinutes?: number;
   monthlyPlannedMinutes?: number;
   plannedMinutes: number;
   timeAccountBalanceMinutes?: number;
   advancesCents?: number;
   deductionsCents?: number;
   expenses: PayrollExpenseClaim[];
+  assignmentTimeLines?: PayrollAssignmentTimeLine[];
+  nextMonthPreview?: PayrollNextMonthPreview;
   now?: string;
 };
 
@@ -54,6 +59,7 @@ export function calculatePayrollSnapshot(input: PayrollCalculationInput): Payrol
   const vacationMinutes = nonNegative(input.vacationMinutes);
   const sickMinutes = nonNegative(input.sickMinutes);
   const otherPaidAbsenceMinutes = nonNegative(input.otherPaidAbsenceMinutes);
+  const targetWorkMinutes = nonNegative(input.targetWorkMinutes);
   const plannedMinutes = nonNegative(input.plannedMinutes);
   const contractualPayableMinutes =
     actualWorkMinutes + vacationMinutes + sickMinutes + otherPaidAbsenceMinutes;
@@ -115,6 +121,9 @@ export function calculatePayrollSnapshot(input: PayrollCalculationInput): Payrol
     vacationMinutes,
     sickMinutes,
     otherPaidAbsenceMinutes,
+    targetWorkMinutes,
+    creditedActualMinutes: contractualPayableMinutes,
+    targetActualDifferenceMinutes: contractualPayableMinutes - targetWorkMinutes,
     monthlyPlannedMinutes: nonNegative(input.monthlyPlannedMinutes ?? input.plannedMinutes),
     plannedMinutes,
     payableMinutes,
@@ -133,6 +142,8 @@ export function calculatePayrollSnapshot(input: PayrollCalculationInput): Payrol
     ),
     generatedAt: input.now ?? new Date().toISOString(),
     expenseClaims: input.expenses,
+    assignmentTimeLines: input.assignmentTimeLines ?? [],
+    nextMonthPreview: input.nextMonthPreview,
   };
 }
 
@@ -161,6 +172,33 @@ function escapePayrollHtml(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
+const formatDate = (value: string): string => {
+  const parsed = new Date(`${value.slice(0, 10)}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? escapePayrollHtml(value) : parsed.toLocaleDateString('de-DE');
+};
+
+const formatTime = (value: string | null): string => {
+  if (!value) return '—';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '—';
+  return parsed.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+};
+
+const formatTimeRange = (start: string | null, end: string | null): string =>
+  start || end ? `${formatTime(start)} - ${formatTime(end)}` : '-';
+
+function assignmentRows(lines: PayrollAssignmentTimeLine[], includeActual: boolean): string {
+  return lines.map((line) => `<tr>
+    <td>${formatDate(line.workDate)}</td>
+    <td><strong>${escapePayrollHtml(line.clientLabel ?? 'Ohne Klientenzuordnung')}</strong><br><span class="muted">${escapePayrollHtml(line.assignmentTitle)}</span></td>
+    <td>${formatTimeRange(line.plannedStartAt, line.plannedEndAt)}<br><span class="muted">${formatPayrollMinutes(line.plannedMinutes)}</span></td>
+    ${includeActual ? `<td>${formatTimeRange(line.actualStartAt, line.actualEndAt)}<br><span class="muted">${formatPayrollMinutes(line.actualMinutes)}</span></td>
+    <td>${formatPayrollMinutes(line.travelMinutes)}</td>
+    <td class="${line.differenceMinutes < 0 ? 'negative' : line.differenceMinutes > 0 ? 'positive' : ''}">${formatPayrollBalanceMinutes(line.differenceMinutes)}</td>` : ''}
+    <td>${escapePayrollHtml(line.status || 'geplant')}</td>
+  </tr>`).join('');
+}
+
 export function buildPayrollStatementHtml(snapshot: PayrollStatementSnapshot, version: number): string {
   const month = new Date(snapshot.periodYear, snapshot.periodMonth - 1, 1).toLocaleDateString('de-DE', {
     month: 'long', year: 'numeric',
@@ -169,15 +207,27 @@ export function buildPayrollStatementHtml(snapshot: PayrollStatementSnapshot, ve
     .filter((claim) => ['approved', 'partially_approved', 'reimbursed'].includes(claim.status))
     .map((claim) => `<tr><td>${escapePayrollHtml(claim.expenseDate)}</td><td>${escapePayrollHtml(claim.description)}</td><td>${formatPayrollMoney(claim.approvedAmountCents ?? claim.amountCents)}</td></tr>`)
     .join('');
+  const currentAssignments = snapshot.assignmentTimeLines ?? [];
+  const nextMonthPreview = snapshot.nextMonthPreview;
+  const creditedActualMinutes = snapshot.creditedActualMinutes ?? (
+    snapshot.actualWorkMinutes + snapshot.vacationMinutes + snapshot.sickMinutes + snapshot.otherPaidAbsenceMinutes
+  );
+  const targetWorkMinutes = snapshot.targetWorkMinutes ?? snapshot.monthlyPlannedMinutes ?? 0;
+  const targetActualDifferenceMinutes = snapshot.targetActualDifferenceMinutes ?? (creditedActualMinutes - targetWorkMinutes);
+  const nextMonthLabel = nextMonthPreview
+    ? new Date(nextMonthPreview.periodYear, nextMonthPreview.periodMonth - 1, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })
+    : 'Folgemonat';
   return `<!doctype html><html><head><meta charset="utf-8"><style>
-    body{font-family:Arial,sans-serif;color:#17192b;background:#fff;padding:28px;font-size:12px}
+    @page{size:A4;margin:14mm 12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#17192b;background:#fff;margin:0;font-size:10px;line-height:1.35}
     h1{font-size:24px;margin:0;color:#17192b} h2{font-size:15px;margin-top:24px;color:#343757}
     .brand{color:#177d8d;font-weight:800;letter-spacing:1px}.meta{color:#686b7e;margin:6px 0 18px}
     .hero{border:1px solid #b9dfe4;border-radius:18px;padding:22px;background:#f5fbfc}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-top:16px}
     .row{display:flex;justify-content:space-between;border-bottom:1px solid #ececf1;padding:7px 0}
     .total{font-size:15px;font-weight:800;color:#0f6875}.forecast{color:#7657c8}
-    table{width:100%;border-collapse:collapse}td,th{padding:7px;border-bottom:1px solid #ececf1;text-align:left}th{background:#f4f5f8}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}td,th{padding:6px 5px;border-bottom:1px solid #ececf1;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#f4f5f8}
+    thead{display:table-header-group}tr{break-inside:avoid}.muted{color:#686b7e;font-size:9px}.positive{color:#087a65;font-weight:700}.negative{color:#b4283d;font-weight:700}
+    .page-break{break-before:page}.section-subtitle{color:#686b7e;margin:-8px 0 10px}.empty{padding:12px;background:#f4f5f8;border-radius:10px;color:#686b7e}
     .notice{margin-top:24px;padding:14px;border-radius:12px;background:#f4f5f8;color:#55586b}
   </style></head><body>
   <div class="hero"><div class="brand">CARESUITE+ · MONATSÜBERSICHT</div><h1>${escapePayrollHtml(snapshot.employeeName)}</h1>
@@ -189,6 +239,9 @@ export function buildPayrollStatementHtml(snapshot: PayrollStatementSnapshot, ve
    <div class="row"><span>Krankheit</span><strong>${formatPayrollMinutes(snapshot.sickMinutes)}</strong></div>
    <div class="row"><span>Weitere bezahlte Abwesenheit</span><strong>${formatPayrollMinutes(snapshot.otherPaidAbsenceMinutes)}</strong></div>
    <div class="row"><span>Gesamter Monatsplan</span><strong>${formatPayrollMinutes(snapshot.monthlyPlannedMinutes ?? snapshot.plannedMinutes)}</strong></div>
+   <div class="row"><span>Vertragliches Soll</span><strong>${formatPayrollMinutes(targetWorkMinutes)}</strong></div>
+   <div class="row"><span>Anrechenbares Ist</span><strong>${formatPayrollMinutes(creditedActualMinutes)}</strong></div>
+   <div class="row"><span>Soll-/Ist-Differenz</span><strong>${formatPayrollBalanceMinutes(targetActualDifferenceMinutes)}</strong></div>
    <div class="row"><span>Zeitkonto-Übertrag</span><strong>${formatPayrollMinutes(snapshot.overtimeTransferMinutes)}</strong></div>
   </div></div>
   <h2>Vergütung</h2>
@@ -200,6 +253,16 @@ export function buildPayrollStatementHtml(snapshot: PayrollStatementSnapshot, ve
   <div class="row total"><span>Voraussichtliche Gesamtauszahlung</span><strong>${formatPayrollMoney(snapshot.projectedTotalPayoutCents)}</strong></div>
   <h2>Genehmigte Auslagen und Erstattungen</h2>
   ${expenseRows ? `<table><thead><tr><th>Datum</th><th>Beschreibung</th><th>Erstattung</th></tr></thead><tbody>${expenseRows}</tbody></table>` : '<p>Keine genehmigten Auslagen in diesem Abrechnungsmonat.</p>'}
+  <section class="page-break">
+    <h2>Einsätze und erfasste Arbeitszeiten · ${month}</h2>
+    <p class="section-subtitle">Vollständige Gegenüberstellung von Einsatzplan, tatsächlich erfasster Arbeitszeit, Fahrzeit und Soll-/Ist-Abweichung.</p>
+    ${currentAssignments.length ? `<table><thead><tr><th style="width:11%">Datum</th><th style="width:25%">Klient:in / Einsatz</th><th style="width:17%">Soll</th><th style="width:17%">Ist</th><th style="width:11%">Fahrt</th><th style="width:11%">Differenz</th><th style="width:8%">Status</th></tr></thead><tbody>${assignmentRows(currentAssignments, true)}</tbody></table>` : '<div class="empty">Für diesen Monat sind keine Einsatz- oder Zeiterfassungszeilen vorhanden.</div>'}
+  </section>
+  <section class="page-break">
+    <h2>Vollständige Vorschau · ${escapePayrollHtml(nextMonthLabel)}</h2>
+    <p class="section-subtitle">Alle zum Erstellungszeitpunkt freigegebenen oder geplanten Einsätze des Folgemonats · Gesamt ${formatPayrollMinutes(nextMonthPreview?.totalPlannedMinutes ?? 0)}.</p>
+    ${nextMonthPreview?.assignments.length ? `<table><thead><tr><th style="width:14%">Datum</th><th style="width:40%">Klient:in / Einsatz</th><th style="width:25%">Geplante Zeit</th><th style="width:21%">Status</th></tr></thead><tbody>${assignmentRows(nextMonthPreview.assignments, false)}</tbody></table>` : '<div class="empty">Für den Folgemonat sind noch keine Einsätze geplant.</div>'}
+  </section>
   <div class="notice">Geplante Einsätze sind eine Prognose und noch kein endgültig entstandener Vergütungsanspruch. Bruttolohn und Auslagenersatz werden getrennt ausgewiesen. Diese Abrechnungsversion wird nach Bestätigung unveränderbar archiviert.</div>
   </body></html>`;
 }

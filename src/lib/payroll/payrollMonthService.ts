@@ -3,6 +3,7 @@ import type {
   CreateExpenseClaimInput,
   ExpenseClaimStatus,
   PayrollEmployeeMonth,
+  PayrollAssignmentTimeLine,
   PayrollExpenseClaim,
   PayrollMonthOverview,
   PayrollPortalUpload,
@@ -39,6 +40,10 @@ function periodRange(year: number, month: number) {
     fromDate: `${year}-${String(month).padStart(2, '0')}-01`,
     toDate: `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`,
   };
+}
+
+function followingPeriod(year: number, month: number) {
+  return month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
 }
 
 const asString = (value: unknown): string => typeof value === 'string' ? value : '';
@@ -147,9 +152,91 @@ function plannedMinutesForEmployee(
   }, 0);
 }
 
+function minutesBetween(start: string | null | undefined, end: string | null | undefined): number {
+  if (!start || !end) return 0;
+  const duration = new Date(end).getTime() - new Date(start).getTime();
+  return Number.isFinite(duration) ? Math.max(0, Math.round(duration / 60000)) : 0;
+}
+
+function plannedVisitLine(visit: WfmOfficePlannedVisit): PayrollAssignmentTimeLine {
+  const plannedMinutes = minutesBetween(visit.plannedStartAt, visit.plannedEndAt);
+  const actualMinutes = minutesBetween(visit.assignmentActualStartAt, visit.assignmentActualEndAt);
+  return {
+    assignmentId: visit.assignmentId,
+    workDate: visit.workDate,
+    clientLabel: visit.clientLabel,
+    assignmentTitle: visit.assignmentTitle?.trim() || 'Einsatz',
+    plannedStartAt: visit.plannedStartAt,
+    plannedEndAt: visit.plannedEndAt,
+    actualStartAt: visit.assignmentActualStartAt ?? null,
+    actualEndAt: visit.assignmentActualEndAt ?? null,
+    plannedMinutes,
+    actualMinutes,
+    travelMinutes: 0,
+    differenceMinutes: actualMinutes - plannedMinutes,
+    status: visit.assignmentStatus,
+  };
+}
+
+function employeeAssignmentTimeLines(
+  account: WfmOfficeEmployeeTimeAccount | undefined,
+  visits: WfmOfficePlannedVisit[],
+  employeeId: string,
+): PayrollAssignmentTimeLine[] {
+  const byKey = new Map<string, PayrollAssignmentTimeLine>();
+  for (const visit of visits) {
+    if (visit.employeeId !== employeeId) continue;
+    byKey.set(`assignment:${visit.assignmentId}`, plannedVisitLine(visit));
+  }
+  for (const entry of account?.entries ?? []) {
+    const plannedMinutes = entry.plannedDurationMinutes ?? minutesBetween(entry.plannedStartAt, entry.plannedEndAt);
+    const actualStartAt = entry.actualStartAt ?? entry.assignmentActualStartAt ?? null;
+    const actualEndAt = entry.actualEndAt ?? entry.assignmentActualEndAt ?? null;
+    const hasCapturedTime = Boolean(actualStartAt || actualEndAt || entry.actualDisplayStatus === 'captured' || entry.netMinutes > 0);
+    const actualMinutes = hasCapturedTime ? Math.max(0, entry.netMinutes || minutesBetween(actualStartAt, actualEndAt)) : 0;
+    const key = entry.assignmentId ? `assignment:${entry.assignmentId}` : `entry:${entry.id}`;
+    const existing = byKey.get(key);
+    byKey.set(key, {
+      assignmentId: entry.assignmentId,
+      workDate: entry.workDate,
+      clientLabel: entry.clientLabel ?? existing?.clientLabel ?? null,
+      assignmentTitle: entry.assignmentTitle?.trim() || existing?.assignmentTitle || 'Arbeitszeit',
+      plannedStartAt: entry.plannedStartAt ?? existing?.plannedStartAt ?? null,
+      plannedEndAt: entry.plannedEndAt ?? existing?.plannedEndAt ?? null,
+      actualStartAt,
+      actualEndAt,
+      plannedMinutes,
+      actualMinutes,
+      travelMinutes: Math.max(0, entry.travelMinutes ?? 0),
+      differenceMinutes: actualMinutes - plannedMinutes,
+      status: entry.assignmentStatus ?? entry.reviewStatus ?? existing?.status ?? null,
+    });
+  }
+  return [...byKey.values()].sort((a, b) =>
+    a.workDate.localeCompare(b.workDate) || (a.plannedStartAt ?? '').localeCompare(b.plannedStartAt ?? ''),
+  );
+}
+
+function nextMonthPreviewForEmployee(
+  visits: WfmOfficePlannedVisit[], employeeId: string, year: number, month: number,
+) {
+  const assignments = visits
+    .filter((visit) => visit.employeeId === employeeId)
+    .map(plannedVisitLine)
+    .sort((a, b) => a.workDate.localeCompare(b.workDate) || (a.plannedStartAt ?? '').localeCompare(b.plannedStartAt ?? ''));
+  return {
+    periodYear: year,
+    periodMonth: month,
+    totalPlannedMinutes: assignments.reduce((sum, assignment) => sum + assignment.plannedMinutes, 0),
+    assignments,
+  };
+}
+
 function buildEmployeeSnapshot(input: {
   employee: Row; payroll?: Row; contract?: Row; timeAccount?: WfmOfficeEmployeeTimeAccount;
   absenceRows: Row[]; expenses: PayrollExpenseClaim[]; portalUploads: PayrollPortalUpload[]; plannedMinutes: number;
+  assignmentTimeLines: PayrollAssignmentTimeLine[];
+  nextMonthPreview: ReturnType<typeof nextMonthPreviewForEmployee>;
   year: number; month: number; latestStatement: PayrollStatement | null;
 }): PayrollEmployeeMonth {
   const employeeId = asString(input.employee.id);
@@ -195,10 +282,13 @@ function buildEmployeeSnapshot(input: {
     overflowToTimeAccount: input.payroll?.overflow_to_time_account !== false,
     actualWorkMinutes,
     travelMinutes: account?.travelMinutes ?? 0, vacationMinutes, sickMinutes, otherPaidAbsenceMinutes,
+    targetWorkMinutes: contractualTargetMinutes,
     monthlyPlannedMinutes: account?.plannedMinutes ?? input.plannedMinutes,
     plannedMinutes: input.plannedMinutes,
     timeAccountBalanceMinutes: currentTimeAccountBalance,
     expenses: input.expenses.filter((expense) => expense.employeeId === employeeId),
+    assignmentTimeLines: input.assignmentTimeLines,
+    nextMonthPreview: input.nextMonthPreview,
   });
   return {
     ...snapshot,
@@ -218,7 +308,9 @@ export async function listPayrollMonthOverview(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
   const { fromDate, toDate } = periodRange(year, month);
-  const [employeesRes, payrollRes, contractRes, timeAccountsRes, absencesRes, expensesRes, statementsRes, plannedRes, portalUploadsRes] = await Promise.all([
+  const next = followingPeriod(year, month);
+  const nextRange = periodRange(next.year, next.month);
+  const [employeesRes, payrollRes, contractRes, timeAccountsRes, absencesRes, expensesRes, statementsRes, plannedRes, nextPlannedRes, portalUploadsRes] = await Promise.all([
     fromUnknownTable(supabase, 'employees').select('id, first_name, last_name, employee_number, status').eq('tenant_id', tenantId).order('last_name'),
     fromUnknownTable(supabase, 'employee_payroll_settings').select('employee_id, compensation_type, compensation_amount, max_payout_hours_month, overflow_to_time_account, mileage_rate_cents').eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'employee_contract_settings').select('employee_id, work_days').eq('tenant_id', tenantId),
@@ -231,6 +323,7 @@ export async function listPayrollMonthOverview(
     fromUnknownTable(supabase, 'employee_expense_claims').select('*').eq('tenant_id', tenantId).gte('expense_date', fromDate).lte('expense_date', toDate).order('expense_date', { ascending: false }),
     fromUnknownTable(supabase, 'payroll_month_statements').select('*').eq('tenant_id', tenantId).eq('period_year', year).eq('period_month', month).order('version', { ascending: false }),
     listPlannedVisitsForPeriod(tenantId, fromDate, toDate),
+    listPlannedVisitsForPeriod(tenantId, nextRange.fromDate, nextRange.toDate),
     fromUnknownTable(supabase, 'portal_uploads')
       .select('id, employee_id, file_name, storage_path, category, status, created_at')
       .eq('tenant_id', tenantId)
@@ -244,6 +337,7 @@ export async function listPayrollMonthOverview(
   if (firstError) return { ok: false, error: toGermanSupabaseError(firstError) };
   if (!timeAccountsRes.ok) return { ok: false, error: timeAccountsRes.error };
   if (!plannedRes.ok) return plannedRes;
+  if (!nextPlannedRes.ok) return nextPlannedRes;
   const rows = (value: unknown) => (Array.isArray(value) ? value : []) as Row[];
   const payrollRows = rows(payrollRes.data); const contractRows = rows(contractRes.data);
   const timeAccounts = new Map(timeAccountsRes.data.map((account) => [account.employeeId, account]));
@@ -262,6 +356,8 @@ export async function listPayrollMonthOverview(
       timeAccount: timeAccounts.get(employeeId),
       absenceRows: rows(absencesRes.data), expenses, portalUploads,
       plannedMinutes: plannedMinutesForEmployee(plannedRes.data, employeeId, now), year, month,
+      assignmentTimeLines: employeeAssignmentTimeLines(timeAccounts.get(employeeId), plannedRes.data, employeeId),
+      nextMonthPreview: nextMonthPreviewForEmployee(nextPlannedRes.data, employeeId, next.year, next.month),
       latestStatement: statementRows.find((row) => row.employeeId === employeeId) ?? null,
     });
   });

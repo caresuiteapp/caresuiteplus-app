@@ -82,6 +82,29 @@ export type PayrollExpenseClaim = {
   updatedAt: string;
 };
 
+export type PayrollAssignmentTimeLine = {
+  assignmentId: string | null;
+  workDate: string;
+  clientLabel: string | null;
+  assignmentTitle: string;
+  plannedStartAt: string | null;
+  plannedEndAt: string | null;
+  actualStartAt: string | null;
+  actualEndAt: string | null;
+  plannedMinutes: number;
+  actualMinutes: number;
+  travelMinutes: number;
+  differenceMinutes: number;
+  status: string | null;
+};
+
+export type PayrollNextMonthPreview = {
+  periodYear: number;
+  periodMonth: number;
+  totalPlannedMinutes: number;
+  assignments: PayrollAssignmentTimeLine[];
+};
+
 export type PayrollStatementSnapshot = {
   employeeId: string;
   employeeName: string;
@@ -97,6 +120,12 @@ export type PayrollStatementSnapshot = {
   vacationMinutes: number;
   sickMinutes: number;
   otherPaidAbsenceMinutes: number;
+  /** Vertragliches Soll des ausgewählten Monats. */
+  targetWorkMinutes?: number;
+  /** Arbeitszeit plus bezahlte Abwesenheiten. */
+  creditedActualMinutes?: number;
+  /** Anrechenbare Ist-Zeit abzüglich vertraglichem Soll. */
+  targetActualDifferenceMinutes?: number;
   /** Gesamter Einsatzplan des ausgewählten Monats. */
   monthlyPlannedMinutes?: number;
   /** Noch ausstehende geplante Einsätze ab jetzt bis Monatsende. */
@@ -114,6 +143,10 @@ export type PayrollStatementSnapshot = {
   projectedTotalPayoutCents: number;
   generatedAt: string;
   expenseClaims: PayrollExpenseClaim[];
+  /** Revisionsfeste Einsatz- und Zeiterfassungszeilen des Abrechnungsmonats. */
+  assignmentTimeLines?: PayrollAssignmentTimeLine[];
+  /** Vollständige Einsatzvorschau des unmittelbar folgenden Monats. */
+  nextMonthPreview?: PayrollNextMonthPreview;
 };
 
 export type PayrollStatement = {
