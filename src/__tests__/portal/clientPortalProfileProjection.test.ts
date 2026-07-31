@@ -54,6 +54,13 @@ describe('clientPortalProfileProjection', () => {
         care_level_valid_from: '2024-01-01',
       },
       careContexts: [{ context_key: 'daily_assistance' }],
+      ambulatoryDetails: {
+        home_access: 'Schlüssel bei Dienststelle',
+        hazard_notes: 'Sturzgefahr im Flur',
+        pets: 'Hund',
+        smoker_household: true,
+        aids_on_site: 'Rollator',
+      },
       contacts: [
         {
           id: 'ec1',
@@ -77,6 +84,14 @@ describe('clientPortalProfileProjection', () => {
     expect(profile.careModels).toContain('Alltagsbegleitung');
     expect(profile.representativeContacts).toHaveLength(1);
     expect(profile.portalHints).toBe('Klingeln bei Müller');
+    expect(profile.operationalInformation).toEqual(
+      expect.arrayContaining([
+        { label: 'Gefahren / Sturzgefahr', value: 'Sturzgefahr im Flur' },
+        { label: 'Haustiere', value: 'Hund' },
+        { label: 'Hilfsmittel vor Ort', value: 'Rollator' },
+      ]),
+    );
+    expect(profileSectionHasContent(profile, 'operational')).toBe(true);
     expect(profileSectionHasContent(profile, 'insurance')).toBe(true);
   });
 
@@ -94,6 +109,7 @@ describe('clientPortalProfileProjection', () => {
 
     expect(profile.email).toBeNull();
     expect(profile.insuranceNumberMasked).toBeNull();
+    expect(profile.operationalInformation).toEqual([]);
     expect(profileSectionHasContent(profile, 'contact')).toBe(false);
   });
 });

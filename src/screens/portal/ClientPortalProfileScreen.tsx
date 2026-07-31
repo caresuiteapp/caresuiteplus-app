@@ -219,6 +219,16 @@ function renderProfileSections(profile: PortalClientProfile, isWide: boolean, te
     );
   }
 
+  if (profileSectionHasContent(profile, 'operational')) {
+    sections.push(
+      <ProfileSectionCard key="operational" title="WICHTIGE ANGABEN ZUR VERSORGUNG">
+        {(profile.operationalInformation ?? []).map((item) => (
+          <ProfileInfoRow key={item.label} label={item.label} value={item.value} />
+        ))}
+      </ProfileSectionCard>,
+    );
+  }
+
   if (profileSectionHasContent(profile, 'representatives')) {
     sections.push(
       <ProfileSectionCard key="representatives" title="ANSPRECHPARTNER / BEVOLLMÄCHTIGTE">
@@ -407,7 +417,7 @@ export function ClientPortalProfileScreen() {
           <Text style={[type.caption, { color: text.muted, marginBottom: careSpacing.sm }]}>
             IHR PORTALZUGANG
           </Text>
-          <ProfileInfoRow label="Zugang für" value={PORTAL_ROLE_LABELS[portalRole]} />
+          <ProfileInfoRow label="Portalrolle" value={PORTAL_ROLE_LABELS[portalRole]} />
           <ProfileInfoRow label="Zugangsstatus" value={accessStatusLabel} />
           {portalAccess?.lastLoginAt ? (
             <ProfileInfoRow

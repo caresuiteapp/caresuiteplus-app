@@ -50,6 +50,7 @@ describe('Client portal profile live wiring', () => {
     expect(screen).toContain('BETREUUNG & PFLEGE');
     expect(screen).toContain('ANSPRECHPARTNER / BEVOLLMÄCHTIGTE');
     expect(screen).toContain('PORTAL-HINWEISE');
+    expect(screen).toContain('WICHTIGE ANGABEN ZUR VERSORGUNG');
     expect(screen).toContain('clientPortalProfileProjection');
   });
 
@@ -61,6 +62,7 @@ describe('Client portal profile live wiring', () => {
     expect(live).toContain('buildClientPortalProfileProjection');
     expect(live).toContain('client_insurance_profiles');
     expect(live).toContain('client_care_contexts');
+    expect(live).toContain('get_client_portal_operational_profile');
   });
 
   it('migration 0105 adds portal self-select RLS', () => {

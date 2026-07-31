@@ -18,7 +18,8 @@ export type ClientPortalProfileFieldKey =
   | 'insurance'
   | 'care'
   | 'representatives'
-  | 'portalHints';
+  | 'portalHints'
+  | 'operational';
 
 const CARE_CONTEXT_LABELS: Record<string, string> = {
   daily_assistance: 'Alltagsbegleitung',
@@ -137,6 +138,7 @@ export type BuildClientPortalProfileInput = {
   insuranceRow?: Record<string, unknown> | null;
   careContexts?: Record<string, unknown>[] | null;
   supportPreferences?: Record<string, unknown> | null;
+  ambulatoryDetails?: Record<string, unknown> | null;
   metrics?: { documents: number };
   nextAssignment?: Record<string, unknown> | null;
   displayName: string;
@@ -195,6 +197,24 @@ export function buildClientPortalProfileProjection(
   const portalHints = canClientPortalSeeProfileField(settings, 'portalHints')
     ? pickString(clientRow, 'access_notes')
     : null;
+  const operational = input.ambulatoryDetails ?? null;
+  const operationalInformation = canClientPortalSeeProfileField(settings, 'operational')
+    ? ([
+        ['Wohnungszugang', pickString(operational, 'home_access')],
+        ['Etage', pickString(operational, 'floor')],
+        ['Aufzug', operational?.elevator_available === true ? 'Vorhanden' : null],
+        ['Parkhinweise', pickString(operational, 'parking_notes')],
+        ['Zugangshinweise', pickString(operational, 'access_notes')],
+        ['Gefahren / Sturzgefahr', pickString(operational, 'hazard_notes')],
+        ['Haustiere', pickString(operational, 'pets')],
+        ['Raucherhaushalt', operational?.smoker_household === true ? 'Ja' : null],
+        ['Hilfsmittel vor Ort', pickString(operational, 'aids_on_site')],
+        ['Hygienehinweise', pickString(operational, 'hygiene_notes')],
+        ['Infektionshinweise', pickString(operational, 'infection_notes')],
+      ] as [string, string | null][])
+        .filter((entry): entry is [string, string] => Boolean(entry[1]))
+        .map(([label, value]) => ({ label, value }))
+    : [];
 
   const assignment = input.nextAssignment;
   const nextAppointmentTitle = assignment
@@ -259,6 +279,8 @@ export function buildClientPortalProfileProjection(
     careModels: canClientPortalSeeProfileField(settings, 'care') ? careModels : [],
     representativeContacts,
     portalHints,
+    status: pickString(clientRow, 'status'),
+    operationalInformation,
   };
 
   for (const blocked of CLIENTS_BLOCKED_KEYS) {
@@ -306,6 +328,8 @@ export function profileSectionHasContent(
       return profile.representativeContacts.length > 0 || Boolean(profile.emergencyContact);
     case 'portalHints':
       return Boolean(profile.portalHints?.trim());
+    case 'operational':
+      return (profile.operationalInformation?.length ?? 0) > 0;
     default:
       return false;
   }

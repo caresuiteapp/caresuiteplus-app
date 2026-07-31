@@ -13,6 +13,7 @@ import {
 } from '@/components/inputs';
 import {
   ErrorState,
+  FilterChipGroup,
   FormStepper,
   InfoBanner,
   LoadingState,
@@ -72,6 +73,7 @@ export function ClientIntakeSectionContent({
   if (section === 'stammdaten') {
     return (
       <SectionPanel {...panelCtx} title="Stammdaten">
+        <CareCatalogSelect catalogKey="client_status" label="Status" value={form.status} onChange={(v) => updateField('status', v)} />
         <CareCatalogSelect catalogKey="salutation" label="Anrede" value={form.salutation} onChange={(v) => updateField('salutation', v)} />
         <PremiumInput label="Vorname *" value={form.firstName} onChangeText={(v) => updateField('firstName', v)} error={errors.firstName} />
         <PremiumInput label="Nachname *" value={form.lastName} onChangeText={(v) => updateField('lastName', v)} error={errors.lastName} />
@@ -104,6 +106,8 @@ export function ClientIntakeSectionContent({
     return (
       <SectionPanel {...panelCtx} title="Versorgung / Pflege / Betreuung">
         <CareCatalogSelect catalogKey="care_level" label="Pflegegrad" value={form.careLevel} onChange={(v) => updateField('careLevel', v)} error={errors.careLevel} />
+        <CareCatalogSelect catalogKey="care_level_status" label="Pflegegrad-Status" value={form.careLevelStatus} onChange={(v) => updateField('careLevelStatus', v)} />
+        <CareDateInput label="Pflegegrad gültig ab" value={form.careLevelValidFrom} onChange={(v) => updateField('careLevelValidFrom', v)} />
         <PremiumInput label="Hausarzt" value={form.familyDoctor} onChangeText={(v) => updateField('familyDoctor', v)} error={errors.familyDoctor} />
         {showIntakeOnlyFields ? (
           <>
@@ -113,6 +117,11 @@ export function ClientIntakeSectionContent({
         ) : null}
         <CareMultiCatalogSelect catalogKey="support_tasks" label="Gewünschte Unterstützung (System)" values={form.supportWishes} onChange={(v) => updateField('supportWishes', v)} error={errors.supportWishes} />
         <AssistCatalogMultiSelect catalogKey="assist.intake.service_wish" label="Leistungswunsch (Office-Katalog)" values={form.supportWishes} onChange={(v) => updateField('supportWishes', v)} />
+        <PremiumInput label="Bevorzugte Zeiten" value={form.preferredTimes.join('\n')} onChangeText={(v) => updateField('preferredTimes', v.split('\n').map((entry) => entry.trim()).filter(Boolean))} multiline />
+        <PremiumInput label="Ausgeschlossene Zeiten" value={form.excludedTimes.join('\n')} onChangeText={(v) => updateField('excludedTimes', v.split('\n').map((entry) => entry.trim()).filter(Boolean))} multiline />
+        <PremiumInput label="Mobilität" value={form.mobility} onChangeText={(v) => updateField('mobility', v)} multiline />
+        <PremiumInput label="Orientierung" value={form.orientation} onChangeText={(v) => updateField('orientation', v)} multiline />
+        <PremiumInput label="Kommunikation" value={form.communication} onChangeText={(v) => updateField('communication', v)} multiline />
       </SectionPanel>
     );
   }
@@ -179,11 +188,30 @@ export function ClientIntakeSectionContent({
         />
         <CareCatalogSelect catalogKey="key_status" label="Schlüsselstatus" value={form.keyStatus} onChange={(v) => updateField('keyStatus', v)} />
         <PremiumInput label="Schlüsselnummer" value={form.keyNumber} onChangeText={(v) => updateField('keyNumber', v)} />
+        <PremiumInput label="Schlüsseltresor-Code" value={form.keySafeCode} onChangeText={(v) => updateField('keySafeCode', v)} secureTextEntry />
         <PremiumInput label="Türcode" value={form.doorCode} onChangeText={(v) => updateField('doorCode', v)} />
+        <PremiumInput label="Klingelname" value={form.bellName} onChangeText={(v) => updateField('bellName', v)} />
+        <PremiumInput label="Etage" value={form.floor} onChangeText={(v) => updateField('floor', v)} />
+        <FilterChipGroup
+          options={[{ key: 'nein', label: 'Kein Aufzug' }, { key: 'ja', label: 'Aufzug vorhanden' }]}
+          value={form.elevatorAvailable ? 'ja' : 'nein'}
+          onChange={(v) => updateField('elevatorAvailable', v === 'ja')}
+        />
+        <PremiumInput label="Parkhinweise" value={form.parkingNotes} onChangeText={(v) => updateField('parkingNotes', v)} multiline />
+        <PremiumInput label="Zugangshinweise" value={form.accessNotes} onChangeText={(v) => updateField('accessNotes', v)} multiline />
+        <PremiumInput label="Gefahren / Sturzgefahr" value={form.hazardNotes} onChangeText={(v) => updateField('hazardNotes', v)} multiline />
         <PremiumInput label="Einrichtung" value={form.facilityName} onChangeText={(v) => updateField('facilityName', v)} error={errors.facilityName} />
         <CareCatalogSelect catalogKey="stationary_areas" label="Wohnbereich" value={form.careArea} onChange={(v) => updateField('careArea', v)} />
         <PremiumInput label="Zimmernummer" value={form.roomNumber} onChangeText={(v) => updateField('roomNumber', v)} error={errors.roomNumber} />
         <CareCatalogSelect catalogKey="pets" label="Haustiere" value={form.pets} onChange={(v) => updateField('pets', v)} />
+        <FilterChipGroup
+          options={[{ key: 'nein', label: 'Nichtraucherhaushalt' }, { key: 'ja', label: 'Raucherhaushalt' }]}
+          value={form.smokerHousehold ? 'ja' : 'nein'}
+          onChange={(v) => updateField('smokerHousehold', v === 'ja')}
+        />
+        <PremiumInput label="Hilfsmittel vor Ort" value={form.aidsOnSite} onChangeText={(v) => updateField('aidsOnSite', v)} multiline />
+        <PremiumInput label="Hygienehinweise" value={form.hygieneNotes} onChangeText={(v) => updateField('hygieneNotes', v)} multiline />
+        <PremiumInput label="Infektionshinweise" value={form.infectionNotes} onChangeText={(v) => updateField('infectionNotes', v)} multiline />
       </SectionPanel>
     );
   }

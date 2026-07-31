@@ -37,6 +37,7 @@ const MASTER_SECTION_FIELDS: Partial<Record<
 >> = {
   leistungsart: ['careContexts'],
   stammdaten: [
+    'status',
     'salutation',
     'firstName',
     'lastName',
@@ -59,8 +60,15 @@ const MASTER_SECTION_FIELDS: Partial<Record<
   ],
   versorgung: [
     'careLevel',
+    'careLevelStatus',
+    'careLevelValidFrom',
     'familyDoctor',
     'supportWishes',
+    'preferredTimes',
+    'excludedTimes',
+    'mobility',
+    'orientation',
+    'communication',
   ],
   kostentraeger: [
     'billingType',
@@ -92,11 +100,22 @@ const MASTER_SECTION_FIELDS: Partial<Record<
     'homeAccess',
     'keyStatus',
     'keyNumber',
+    'keySafeCode',
     'doorCode',
+    'bellName',
+    'floor',
+    'elevatorAvailable',
+    'parkingNotes',
+    'accessNotes',
+    'hazardNotes',
     'facilityName',
     'careArea',
     'roomNumber',
     'pets',
+    'smokerHousehold',
+    'aidsOnSite',
+    'hygieneNotes',
+    'infectionNotes',
   ],
 };
 

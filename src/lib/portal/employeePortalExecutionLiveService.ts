@@ -185,7 +185,7 @@ async function fetchAssignmentExtras(
       .maybeSingle(),
     fromUnknownTable(supabase, 'client_ambulatory_details')
       .select(
-        'home_access, key_status, key_number, key_safe_code, door_code, bell_name, floor, parking_notes, access_notes, hazard_notes, pets',
+        'home_access, key_status, key_number, key_safe_code, door_code, bell_name, floor, elevator_available, parking_notes, access_notes, hazard_notes, pets, smoker_household, aids_on_site, hygiene_notes, infection_notes',
       )
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
@@ -268,6 +268,10 @@ async function fetchAssignmentExtras(
     risks.length ? `RISIKEN\n${risks.join('\n')}` : null,
     section('Notfall-/Risikohinweis', clientRow?.emergency_notes),
     section('Gefahren im Haushalt', ambulatoryRow?.hazard_notes),
+    ambulatoryRow?.smoker_household === true ? 'Raucherhaushalt: Ja' : null,
+    section('Hilfsmittel vor Ort', ambulatoryRow?.aids_on_site),
+    section('Hygienehinweis', ambulatoryRow?.hygiene_notes),
+    section('Infektionshinweis', ambulatoryRow?.infection_notes),
     section('Allergien', clientRow?.allergies),
     section('Mobilität', clientRow?.mobility_notes ?? preferencesRow?.mobility_notes),
     section('Haustiere', clientRow?.pets ?? ambulatoryRow?.pets ?? preferencesRow?.pet_notes),

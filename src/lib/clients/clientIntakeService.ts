@@ -25,6 +25,8 @@ import { validateCostBearerEntry, persistIntakeCostCarriers } from '@/features/c
 import { listApplicableIntakeTemplates } from '@/features/intakeDocuments/buildIntakeDocumentContext';
 import { validateIntakeDocumentsStep } from '@/features/intakeDocuments/validateIntakeDocuments';
 import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
+import { syncCareLevelDependentDocuments } from '@/lib/clients/clientCareLevelDocumentSync';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import {
   activateClientFromIntake,
   createClientFromIntake,
@@ -274,6 +276,20 @@ export async function submitClientIntakeUpdate(
       const shouldPersist = (section: IntakeSectionKey): boolean =>
         !options?.sections?.length || options.sections.includes(section);
 
+      let previousCareLevel: string | null = null;
+      if (shouldPersist('versorgung') || shouldPersist('kostentraeger')) {
+        const supabase = getSupabaseClient();
+        if (supabase) {
+          const { data } = await supabase
+            .from('clients')
+            .select('care_level')
+            .eq('tenant_id', tenantId)
+            .eq('id', clientId)
+            .maybeSingle();
+          previousCareLevel = data?.care_level ?? null;
+        }
+      }
+
       const clientResult = await updateClientFromIntake(
         tenantId,
         clientId,
@@ -310,6 +326,17 @@ export async function submitClientIntakeUpdate(
           { sections: options?.sections },
         );
         if (!extendedResult.ok) return extendedResult;
+      }
+
+      if (shouldPersist('versorgung') || shouldPersist('kostentraeger')) {
+        const documentSync = await syncCareLevelDependentDocuments({
+          tenantId,
+          clientId,
+          previousCareLevel,
+          form,
+          actorProfileId: options?.actorProfileId ?? null,
+        });
+        if (!documentSync.ok) return documentSync;
       }
 
       if (shouldPersist('vertraege_einwilligungen')) {

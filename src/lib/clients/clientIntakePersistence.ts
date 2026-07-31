@@ -207,36 +207,32 @@ export async function persistIntakeClientExtendedData(
   }
 
   const homeAccessStored = serializeHomeAccessValues(form.homeAccess);
-  const hasAmbulatoryData =
-    homeAccessStored ||
-    form.keyStatus ||
-    form.familyDoctor.trim() ||
-    form.accessNotes.trim() ||
-    form.pets;
-
-  if (hasAmbulatoryData) {
-    const { error } = await fromUnknownTable(supabase, 'client_ambulatory_details').insert({
-      tenant_id: tenantId,
-      client_id: clientId,
-      home_access: homeAccessStored,
-      key_status: form.keyStatus || null,
-      key_number: form.keyNumber.trim() || null,
-      key_safe_code: form.keySafeCode.trim() || null,
-      door_code: form.doorCode.trim() || null,
-      bell_name: form.bellName.trim() || null,
-      floor: form.floor.trim() || null,
-      elevator_available: form.elevatorAvailable,
-      parking_notes: form.parkingNotes.trim() || null,
-      access_notes: form.accessNotes.trim() || null,
-      hazard_notes: form.hazardNotes.trim() || null,
-      pets: form.pets || null,
-      smoker_household: form.smokerHousehold,
-      aids_on_site: form.aidsOnSite.trim() || null,
-      hygiene_notes: form.hygieneNotes.trim() || null,
-      infection_notes: form.infectionNotes.trim() || null,
-      family_doctor: form.familyDoctor.trim() || null,
-    });
-    if (error && error.code !== '23505') return { ok: false, error: toGermanSupabaseError(error) };
+  const { error: ambulatoryError } = await fromUnknownTable(
+    supabase,
+    'client_ambulatory_details',
+  ).insert({
+    tenant_id: tenantId,
+    client_id: clientId,
+    home_access: homeAccessStored,
+    key_status: form.keyStatus || null,
+    key_number: form.keyNumber.trim() || null,
+    key_safe_code: form.keySafeCode.trim() || null,
+    door_code: form.doorCode.trim() || null,
+    bell_name: form.bellName.trim() || null,
+    floor: form.floor.trim() || null,
+    elevator_available: form.elevatorAvailable,
+    parking_notes: form.parkingNotes.trim() || null,
+    access_notes: form.accessNotes.trim() || null,
+    hazard_notes: form.hazardNotes.trim() || null,
+    pets: form.pets || null,
+    smoker_household: form.smokerHousehold,
+    aids_on_site: form.aidsOnSite.trim() || null,
+    hygiene_notes: form.hygieneNotes.trim() || null,
+    infection_notes: form.infectionNotes.trim() || null,
+    family_doctor: form.familyDoctor.trim() || null,
+  });
+  if (ambulatoryError && ambulatoryError.code !== '23505') {
+    return { ok: false, error: toGermanSupabaseError(ambulatoryError) };
   }
 
   if (form.facilityName.trim() || form.roomNumber.trim()) {
@@ -583,17 +579,7 @@ export async function syncIntakeClientExtendedData(
   }
 
   const homeAccessStored = serializeHomeAccessValues(form.homeAccess);
-  const hasAmbulatoryData =
-    homeAccessStored
-    || form.keyStatus
-    || form.familyDoctor.trim()
-    || form.accessNotes.trim()
-    || form.pets;
-
-  if (
-    (shouldPersist('notfall_zugang') || shouldPersist('versorgung'))
-    && hasAmbulatoryData
-  ) {
+  if (shouldPersist('notfall_zugang') || shouldPersist('versorgung')) {
     const ambulatoryPayload = {
       home_access: homeAccessStored,
       key_status: form.keyStatus || null,

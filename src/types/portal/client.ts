@@ -40,6 +40,8 @@ export type PortalClientProfile = {
   careModels: string[];
   representativeContacts: PortalClientContactSummary[];
   portalHints: string | null;
+  status?: string | null;
+  operationalInformation?: { label: string; value: string }[];
 };
 
 export type PortalClientCarePlanSummary = {

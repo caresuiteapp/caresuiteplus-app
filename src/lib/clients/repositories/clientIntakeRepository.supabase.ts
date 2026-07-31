@@ -10,6 +10,8 @@ import {
   resolvePrimaryCostBearerName,
 } from '@/lib/clients/clientIntakeCostBearerConfig';
 import { resolveIntakeBillingProfileType } from '@/lib/clients/clientIntakeBilling';
+import { workflowStatusToRemote } from '@/lib/services/clients/clientStatusBridge';
+import type { WorkflowStatus } from '@/types/core/base';
 
 function getClient() {
   return getSupabaseClient();
@@ -78,6 +80,7 @@ export async function updateClientFromIntake(
       gender: form.gender || null,
       admission_date: form.admissionDate || null,
       internal_notes: form.specialNotes.trim() || null,
+      status: workflowStatusToRemote(form.status as WorkflowStatus),
     });
   }
   if (shouldUpdate('adresse_kontakt')) {

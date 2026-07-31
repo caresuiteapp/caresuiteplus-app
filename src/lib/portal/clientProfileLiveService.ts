@@ -17,6 +17,7 @@ import { PORTAL_UPCOMING_ASSIGNMENT_STATUSES } from '@/lib/portal/portalAssignme
 const CLIENT_PROFILE_SELECT = [
   'first_name',
   'last_name',
+  'status',
   'gender',
   'care_level',
   'city',
@@ -130,6 +131,12 @@ export async function fetchLiveClientPortalProfile(
       return { ok: false, error: 'Kein Klient:innenprofil mit diesem Portal verknüpft.' };
     }
 
+    const operationalPromise = (
+      supabase.rpc as unknown as (
+        functionName: string,
+      ) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>
+    )('get_client_portal_operational_profile');
+
     const [
       clientResult,
       accessResult,
@@ -140,6 +147,7 @@ export async function fetchLiveClientPortalProfile(
       insuranceResult,
       careContextsResult,
       supportPrefsResult,
+      ambulatoryResult,
     ] = await Promise.all([
       fromUnknownTable(supabase, 'clients')
         .select(CLIENT_PROFILE_SELECT)
@@ -185,6 +193,7 @@ export async function fetchLiveClientPortalProfile(
         .eq('tenant_id', tenantId)
         .eq('client_id', clientId)
         .maybeSingle(),
+      operationalPromise,
     ]);
 
     if (clientResult.error) {
@@ -204,7 +213,7 @@ export async function fetchLiveClientPortalProfile(
       ? settingsResult.data
       : PORTAL_SELF_VIEW_FALLBACK;
 
-    const row = clientResult.data as Record<string, unknown>;
+    const row = clientResult.data as unknown as Record<string, unknown>;
     const displayName =
       formatClientPortalDisplayName({
         firstName: row.first_name as string | null,
@@ -224,6 +233,9 @@ export async function fetchLiveClientPortalProfile(
     if (contactsResult.error && !isMissingTableError(contactsResult.error)) {
       console.warn('[clientProfileLiveService] client_contacts:', contactsResult.error.message);
     }
+    if (ambulatoryResult.error && !isMissingTableError(ambulatoryResult.error)) {
+      console.warn('[clientProfileLiveService] client_ambulatory_details:', ambulatoryResult.error.message);
+    }
 
     const profile = buildClientPortalProfileProjection({
       tenantId,
@@ -234,6 +246,7 @@ export async function fetchLiveClientPortalProfile(
       insuranceRow: (insuranceResult.data as Record<string, unknown> | null) ?? null,
       careContexts: (careContextsResult.data ?? []) as Record<string, unknown>[],
       supportPreferences: (supportPrefsResult.data as Record<string, unknown> | null) ?? null,
+      ambulatoryDetails: ambulatoryResult.data?.[0] ?? null,
       metrics,
       nextAssignment: (nextAssignmentResult.data as Record<string, unknown> | null) ?? null,
       displayName,
