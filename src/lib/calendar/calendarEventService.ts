@@ -26,6 +26,10 @@ import { mergeExpandedAssistVisitCalendarEvents, visitListItemToCalendarEvent } 
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
 import { fetchEmployeeNamesById } from '@/lib/office/employeeGroupChatService';
 import {
+  loadAssistOperationalCalendarEvents,
+  mergeOperationalCalendarEvents,
+} from '@/lib/calendar/assistCalendarOperationalEvents';
+import {
   fetchCalendarEvents as fetchLegacyCalendarEvents,
   fetchAssistCalendarEvents as fetchLegacyAssistCalendarEvents,
   filterEventsByVisibleTypes,
@@ -176,21 +180,23 @@ async function enrichAssistCalendarEvents(
       && event.sourceId
       && (!event.clientName?.trim() || !event.employeeName?.trim()),
   );
-  if (!needsEnrichment) return enriched;
+  if (needsEnrichment) {
+    const { fetchAssignmentList } = await import('@/lib/assist/assignmentListService');
+    const assignmentsResult = await fetchAssignmentList(tenantId, actorRoleKey);
+    if (assignmentsResult.ok) {
+      const byId = new Map(assignmentsResult.data.map((item) => [item.id, item]));
+      enriched = enriched.map((event) => {
+        if (event.type !== 'einsatz' || !event.sourceId) return event;
+        const masterId = event.sourceId.includes('::') ? event.sourceId.split('::')[0]! : event.sourceId;
+        const assignment = byId.get(event.sourceId) ?? byId.get(masterId);
+        if (!assignment) return event;
+        return enrichCalendarEventWithAssignment(event, assignment);
+      });
+    }
+  }
 
-  const { fetchAssignmentList } = await import('@/lib/assist/assignmentListService');
-  const assignmentsResult = await fetchAssignmentList(tenantId, actorRoleKey);
-  if (!assignmentsResult.ok) return enriched;
-
-  const byId = new Map(assignmentsResult.data.map((item) => [item.id, item]));
-
-  return enriched.map((event) => {
-    if (event.type !== 'einsatz' || !event.sourceId) return event;
-    const masterId = event.sourceId.includes('::') ? event.sourceId.split('::')[0]! : event.sourceId;
-    const assignment = byId.get(event.sourceId) ?? byId.get(masterId);
-    if (!assignment) return event;
-    return enrichCalendarEventWithAssignment(event, assignment);
-  });
+  const operational = await loadAssistOperationalCalendarEvents(tenantId, rangeStart, rangeEnd);
+  return mergeOperationalCalendarEvents(enriched, operational);
 }
 
 async function enrichRelatedEmployeeNames(

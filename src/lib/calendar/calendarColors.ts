@@ -37,6 +37,8 @@ export const EVENT_TYPE_COLORS: Record<string, string> = {
   sonstiges: '#64748B',
   erinnerung: '#94A3B8',
   uebergabe: '#FFD166',
+  geburtstag: '#F472B6',
+  feiertag: '#EF4444',
 };
 
 export function resolveCalendarEventColor(

@@ -143,8 +143,9 @@ describe('calendar assist recurrence integration', () => {
       dateFrom: '2026-06-01T00:00:00.000Z',
       dateTo: '2026-08-31T23:59:59.999Z',
     });
-    expect(result.data).toHaveLength(3);
+    expect(result.data).toHaveLength(4);
     expect(result.data.map((event: CalendarEvent) => event.start.slice(0, 10))).toEqual([
+      '2026-06-04',
       '2026-07-03',
       '2026-07-10',
       '2026-07-17',

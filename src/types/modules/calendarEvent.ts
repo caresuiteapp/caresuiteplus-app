@@ -7,6 +7,8 @@ export type CalendarEventType =
   | 'urlaub'
   | 'krank'
   | 'abwesenheit'
+  | 'geburtstag'
+  | 'feiertag'
   | 'team_meeting'
   | 'uebergabe'
   | 'weiterbildung';
@@ -44,6 +46,8 @@ export const CALENDAR_EVENT_TYPE_LABELS: Record<CalendarEventType, string> = {
   urlaub: 'Urlaub',
   krank: 'Krank',
   abwesenheit: 'Abwesenheiten',
+  geburtstag: 'Geburtstage',
+  feiertag: 'Feiertage',
   team_meeting: 'Team Meetings',
   uebergabe: 'Übergaben',
   weiterbildung: 'Weiterbildungen',
@@ -56,6 +60,8 @@ export const CALENDAR_EVENT_TYPE_COLORS: Record<CalendarEventType, string> = {
   urlaub: '#22C55E',
   krank: '#F97316',
   abwesenheit: '#A78BFA',
+  geburtstag: '#F472B6',
+  feiertag: '#EF4444',
   team_meeting: '#7C5CFF',
   uebergabe: '#FFD166',
   weiterbildung: '#EC4899',
@@ -81,6 +87,8 @@ export const DEFAULT_VISIBLE_TYPES: Record<CalendarEventType, boolean> = {
   urlaub: true,
   krank: true,
   abwesenheit: true,
+  geburtstag: true,
+  feiertag: true,
   team_meeting: true,
   uebergabe: true,
   weiterbildung: true,
@@ -93,6 +101,8 @@ export const ASSIST_CALENDAR_EVENT_TYPES: CalendarEventType[] = [
   'urlaub',
   'krank',
   'abwesenheit',
+  'geburtstag',
+  'feiertag',
   'team_meeting',
   'uebergabe',
   'weiterbildung',

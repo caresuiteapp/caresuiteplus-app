@@ -103,7 +103,7 @@ export function AssignmentsListView({
         onAssignmentPress(id);
         return;
       }
-      router.push(`/assist/assignments/${id}` as never);
+      router.push(`/assist/assignments/${id}/edit` as never);
     },
     [onAssignmentPress, router],
   );
