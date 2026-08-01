@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const root = path.join(__dirname, '..', '..', '..');
-const readSrc = (relativePath: string) => readFileSync(path.join(root, relativePath), 'utf8');
+const readSrc = (relativePath: string) =>
+  readFileSync(path.join(root, relativePath), 'utf8').replace(/\r\n/g, '\n');
 
 describe('employee portal R23 production acceptance', () => {
   it('keeps one canonical, focused employee navigation on every form factor', () => {

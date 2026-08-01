@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const root = path.join(__dirname, '..', '..', '..');
 const readSource = (relativePath: string) =>
-  readFileSync(path.join(root, relativePath), 'utf8');
+  readFileSync(path.join(root, relativePath), 'utf8').replace(/\r\n/g, '\n');
 
 describe('employee portal execution continuity', () => {
   it('bridges portal visit ids to their linked legacy assignment before writes', () => {
