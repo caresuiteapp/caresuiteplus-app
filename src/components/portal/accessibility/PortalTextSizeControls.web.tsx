@@ -1,0 +1,104 @@
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { formatWebFontScaleLabel } from '@/design/web/webFontScaleConfig';
+import { useWebFontScale } from '@/design/web/WebFontScaleProvider';
+import { liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
+
+type Props = { compact?: boolean };
+
+export function PortalTextSizeControls({ compact = false }: Props) {
+  const { scale, increase, decrease, reset, canIncrease, canDecrease } = useWebFontScale();
+  const label = formatWebFontScaleLabel(scale);
+
+  if (compact) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={canIncrease ? `Textgröße ${label}. Text vergrößern` : `Textgröße ${label}. Auf 100 Prozent zurücksetzen`}
+        onPress={canIncrease ? increase : reset}
+        style={({ pressed }) => [styles.compactTrigger, pressed && styles.pressed]}
+        testID="portal-text-size-controls"
+      >
+        <Text style={styles.bigA}>aA</Text>
+      </Pressable>
+    );
+  }
+
+  return (
+    <View
+      accessibilityLabel={`Textgröße ${label}`}
+      style={[styles.wrap, compact && styles.wrapCompact]}
+      testID="portal-text-size-controls"
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Text verkleinern"
+        accessibilityState={{ disabled: !canDecrease }}
+        disabled={!canDecrease}
+        onPress={decrease}
+        style={({ pressed }) => [styles.button, compact && styles.buttonCompact, !canDecrease && styles.disabled, pressed && styles.pressed]}
+      >
+        <Text style={styles.smallA}>A−</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Textgröße ${label}. Auf 100 Prozent zurücksetzen`}
+        onPress={reset}
+        style={({ pressed }) => [styles.value, compact && styles.valueCompact, pressed && styles.pressed]}
+      >
+        <Text style={styles.largeA}>aA</Text>
+        {!compact ? <Text style={styles.percent}>{label}</Text> : null}
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Text vergrößern"
+        accessibilityState={{ disabled: !canIncrease }}
+        disabled={!canIncrease}
+        onPress={increase}
+        style={({ pressed }) => [styles.button, compact && styles.buttonCompact, !canIncrease && styles.disabled, pressed && styles.pressed]}
+      >
+        <Text style={styles.bigA}>A+</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: {
+    minHeight: 42,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    borderRadius: liquidRadius.control,
+    backgroundColor: 'rgba(9,43,78,0.82)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  wrapCompact: { minHeight: 38 },
+  compactTrigger: {
+    width: 42,
+    height: 42,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    borderRadius: liquidRadius.control,
+    backgroundColor: 'rgba(9,43,78,0.82)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  button: {
+    minWidth: 42,
+    minHeight: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonCompact: { minWidth: 36, minHeight: 32 },
+  value: { minWidth: 58, minHeight: 36, alignItems: 'center', justifyContent: 'center' },
+  valueCompact: { minWidth: 38 },
+  smallA: { color: liquidColors.white88, fontSize: 13, lineHeight: 18, fontWeight: '800' },
+  largeA: { color: liquidColors.blue200, fontSize: 15, lineHeight: 18, fontWeight: '900' },
+  bigA: { color: liquidColors.white, fontSize: 17, lineHeight: 20, fontWeight: '900' },
+  percent: { color: liquidColors.white72, fontSize: 9, lineHeight: 11, fontWeight: '700' },
+  disabled: { opacity: 0.35 },
+  pressed: { opacity: 0.72 },
+});

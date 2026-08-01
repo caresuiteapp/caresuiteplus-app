@@ -7,6 +7,7 @@ import { MobilePortalSidebarCards } from '@/components/portal/assist/MobilePorta
 import { PortalActivitiesModal } from '@/components/portal/assist/PortalActivitiesModal';
 import { PortalDocumentUploadModal } from '@/components/portal/assist/PortalDocumentUploadModal';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
+import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import { PortalNextAppointmentHero } from '@/components/portal/assist/PortalNextAppointmentHero';
 import { PortalOpenRequestsModal } from '@/components/portal/assist/PortalOpenRequestsModal';
 import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequestFormModal';
@@ -231,6 +232,12 @@ export function MobilePortalDashboard({
           meta={terminology.personLabel}
           badge={terminology.moduleLabel}
           showStatusDot
+        />
+
+        <ClientPortalGuide
+          compact
+          title="Schön, dass Sie da sind"
+          message="Hier sehen Sie das Wichtigste. Über aA oben können Sie die Schrift vergrößern."
         />
 
         <PortalNextAppointmentHero

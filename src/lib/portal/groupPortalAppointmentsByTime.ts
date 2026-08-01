@@ -20,8 +20,10 @@ export function groupPortalAppointmentsByTime(
   now: Date = new Date(),
 ): PortalAppointmentTimeGroup[] {
   const nowMs = now.getTime();
-  const upcoming = items.filter((item) => new Date(item.startsAt).getTime() >= nowMs).sort(sortUpcoming);
-  const past = items.filter((item) => new Date(item.startsAt).getTime() < nowMs).sort(sortPast);
+  // An appointment remains current/upcoming until its planned end. This prevents an
+  // ongoing visit from jumping into history as soon as its start time has passed.
+  const upcoming = items.filter((item) => new Date(item.endsAt).getTime() >= nowMs).sort(sortUpcoming);
+  const past = items.filter((item) => new Date(item.endsAt).getTime() < nowMs).sort(sortPast);
 
   const groups: PortalAppointmentTimeGroup[] = [];
   if (upcoming.length > 0) {

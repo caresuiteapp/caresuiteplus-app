@@ -24,6 +24,7 @@ export {
 export {
   fetchCsDocumentRequests,
   fetchPortalCsDocumentRequests,
+  fetchPortalCsDocumentRequestDetail,
   fetchCsDocumentRequestDetail,
   sendCsDocumentRequest,
   markCsDocumentRequestOpened,

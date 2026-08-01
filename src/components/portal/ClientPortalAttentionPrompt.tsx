@@ -1,19 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
 import { PremiumButton } from '@/components/ui';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
-import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
 import { fetchPortalCsDocumentRequests } from '@/lib/documents/csTemplates';
+import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
+import { subscribeToClientPortalDocumentRequestChanges, type RealtimeHandler } from '@/lib/realtime';
 
 const DISMISSED_KEY = 'caresuite.clientPortal.attention.dismissed';
-const SIGNATURE_REFRESH_MS = 60_000;
 
 function readDismissedFingerprint(): string | null {
   if (typeof globalThis.sessionStorage === 'undefined') return null;
@@ -36,19 +34,22 @@ function saveDismissedFingerprint(fingerprint: string): void {
 export function ClientPortalAttentionPrompt() {
   const router = useRouter();
   const pathname = usePathname();
-  const text = useAuroraAdaptiveText();
-  const { width } = useDeviceClass();
-  const type = resolveGalaxyTypography(width);
   const { tenantId, clientId, roleKey, isLinkedReady } = usePortalActor();
   const messages = usePortalOfficeMessages('open');
   const [dismissedFingerprint, setDismissedFingerprint] = useState<string | null>(() =>
     readDismissedFingerprint(),
   );
+  const subscribe = useCallback(
+    (currentTenantId: string, handler: RealtimeHandler) => {
+      if (!clientId) return () => undefined;
+      return subscribeToClientPortalDocumentRequestChanges(currentTenantId, clientId, handler);
+    },
+    [clientId],
+  );
 
   const {
     data: signatureData,
     loading: signaturesLoading,
-    silentRefresh: refreshSignatures,
   } = useAsyncQuery(
     () => {
       if (!tenantId || !clientId || !roleKey) {
@@ -62,16 +63,11 @@ export function ClientPortalAttentionPrompt() {
       });
     },
     [tenantId, clientId, roleKey],
-    { enabled: isLinkedReady && !!tenantId && !!clientId && !!roleKey },
+    {
+      enabled: isLinkedReady && !!tenantId && !!clientId && !!roleKey,
+      live: { tenantId, subscribe, pollMs: 30_000, refreshOnFocus: true },
+    },
   );
-
-  useEffect(() => {
-    if (!isLinkedReady) return;
-    const timer = setInterval(() => {
-      void refreshSignatures();
-    }, SIGNATURE_REFRESH_MS);
-    return () => clearInterval(timer);
-  }, [isLinkedReady, refreshSignatures]);
 
   const unreadThreads = useMemo(
     () => messages.threads.filter((thread) => thread.unreadCount > 0),
@@ -138,38 +134,16 @@ export function ClientPortalAttentionPrompt() {
       onPrimary={unreadCount > 0 ? openMessages : navigateToSignatures}
     >
       <View style={styles.content}>
-        {unreadCount > 0 ? (
-          <View style={styles.notice}>
-            <Text style={[type.bodyStrong, { color: text.primary }]}>
-              {unreadCount === 1
-                ? 'Sie haben eine neue Nachricht.'
-                : `Sie haben ${unreadCount} neue Nachrichten.`}
-            </Text>
-            <Text style={[type.body, { color: text.secondary }]}>
-              Öffnen Sie den Chat, um die Nachricht zu lesen und direkt zu antworten.
-            </Text>
-          </View>
-        ) : null}
-
-        {signatureCount > 0 ? (
-          <View style={styles.notice}>
-            <Text style={[type.bodyStrong, { color: text.primary }]}>
-              {signatureCount === 1
-                ? 'Ein Dokument wartet auf Ihre Unterschrift.'
-                : `${signatureCount} Dokumente warten auf Ihre Unterschrift.`}
-            </Text>
-            <Text style={[type.body, { color: text.secondary }]}>
-              Sie können die Dokumente zuerst lesen und anschließend sicher unterschreiben.
-            </Text>
-            {unreadCount > 0 ? (
-              <PremiumButton
-                title="Offene Unterschriften öffnen"
-                variant="secondary"
-                onPress={navigateToSignatures}
-                fullWidth
-              />
-            ) : null}
-          </View>
+        <ClientPortalGuide
+          compact
+          title={title}
+          message={[
+            unreadCount > 0 ? `${unreadCount === 1 ? 'Eine neue Nachricht wartet' : `${unreadCount} neue Nachrichten warten`} auf Sie.` : null,
+            signatureCount > 0 ? `${signatureCount === 1 ? 'Ein Dokument braucht' : `${signatureCount} Dokumente brauchen`} noch Ihre Unterschrift.` : null,
+          ].filter(Boolean).join(' ')}
+        />
+        {unreadCount > 0 && signatureCount > 0 ? (
+          <PremiumButton title="Offene Unterschriften öffnen" variant="secondary" onPress={navigateToSignatures} fullWidth />
         ) : null}
       </View>
     </PortalGlassModal>
@@ -179,8 +153,5 @@ export function ClientPortalAttentionPrompt() {
 const styles = StyleSheet.create({
   content: {
     gap: careSpacing.md,
-  },
-  notice: {
-    gap: careSpacing.xs,
   },
 });

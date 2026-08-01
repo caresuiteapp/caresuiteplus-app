@@ -43,7 +43,7 @@ export const liquidPortalNavigation: Record<
   ],
   client: [
     { id: 'home', label: 'Übersicht', glyph: '⌂', route: '/portal/client', compact: true, group: 'overview' },
-    { id: 'appointments', label: 'Termine', glyph: '□', route: '/portal/client/appointments', compact: true, group: 'work' },
+    { id: 'appointments', label: 'Einsätze', glyph: '□', route: '/portal/client/appointments', compact: true, group: 'work' },
     { id: 'live', label: 'Live-Anfahrt', glyph: '⌖', route: '/portal/client/live', group: 'work' },
     { id: 'documents', label: 'Dokumente', glyph: '▤', route: '/portal/client/documents', compact: true, group: 'communication' },
     { id: 'signatures', label: 'Unterschriften', glyph: '✎', route: '/portal/client/documents/signatures', group: 'communication' },

@@ -285,6 +285,27 @@ export async function fetchCsDocumentRequestDetail(
   }
 }
 
+export async function fetchPortalCsDocumentRequestDetail(input: {
+  tenantId: string;
+  requestId: string;
+  roleKey: RoleKey | null;
+  employeeId?: string | null;
+  clientId?: string | null;
+}): Promise<ServiceResult<CsDocumentRequestListItem>> {
+  const visible = await fetchPortalCsDocumentRequests({
+    tenantId: input.tenantId,
+    roleKey: input.roleKey,
+    employeeId: input.employeeId,
+    clientId: input.clientId,
+    includeCompleted: true,
+  });
+  if (!visible.ok) return visible;
+  if (!visible.data.some((request) => request.id === input.requestId)) {
+    return { ok: false, error: 'Dieses Dokument ist nicht für Ihren Portalzugang bestimmt.' };
+  }
+  return fetchCsDocumentRequestDetail(input.tenantId, input.requestId, input.roleKey, { portalMode: true });
+}
+
 export async function sendCsDocumentRequest(
   input: CsSendDocumentInput,
   actorRoleKey?: RoleKey | null,
@@ -466,11 +487,13 @@ export async function markCsDocumentRequestOpened(
     const supabase = getSupabaseClient();
     if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-    await fromUnknownTable(supabase, 'cs_document_requests')
+    const { error } = await fromUnknownTable(supabase, 'cs_document_requests')
       .update({ status: 'opened', updated_at: new Date().toISOString() })
       .eq('id', requestId)
       .eq('owner_tenant_id', tenantId)
       .eq('status', 'sent');
+
+    if (error) throw error;
 
     await logCsDocumentRequestAudit({
       tenantId,
@@ -492,6 +515,11 @@ export async function signCsDocumentRequest(input: {
   signatureDataUrl: string;
   anchorToken?: string;
   userAgent?: string | null;
+  portalActor?: {
+    roleKey: RoleKey;
+    employeeId?: string | null;
+    clientId?: string | null;
+  };
 }): Promise<ServiceResult<CsDocumentRequestListItem>> {
   if (getServiceMode() !== 'supabase') {
     const item = DEMO_REQUESTS.get(input.requestId);
@@ -515,7 +543,7 @@ export async function signCsDocumentRequest(input: {
         ...item,
         renderedHtml: nextHtml,
         status: allDone ? 'completed' : 'partially_signed',
-        portalVisible: !allDone,
+        portalVisible: true,
         completedAt: allDone ? signedAt : null,
       },
       signatures,
@@ -528,7 +556,30 @@ export async function signCsDocumentRequest(input: {
     const supabase = getSupabaseClient();
     if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-    const detail = await fetchCsDocumentRequestDetail(input.tenantId, input.requestId);
+    if (input.portalActor) {
+      const allowed = await fetchPortalCsDocumentRequests({
+        tenantId: input.tenantId,
+        roleKey: input.portalActor.roleKey,
+        employeeId: input.portalActor.employeeId,
+        clientId: input.portalActor.clientId,
+        includeCompleted: false,
+      });
+      if (!allowed.ok) return allowed;
+      const assigned = allowed.data.find((request) => request.id === input.requestId);
+      if (!assigned || !assigned.pendingSignatureRoles.includes(input.signerRole)) {
+        return { ok: false, error: 'Dieses Dokument ist nicht für Ihre Unterschrift bestimmt.' };
+      }
+    }
+
+    const detail = input.portalActor
+      ? await fetchPortalCsDocumentRequestDetail({
+          tenantId: input.tenantId,
+          requestId: input.requestId,
+          roleKey: input.portalActor.roleKey,
+          employeeId: input.portalActor.employeeId,
+          clientId: input.portalActor.clientId,
+        })
+      : await fetchCsDocumentRequestDetail(input.tenantId, input.requestId);
     if (!detail.ok) return detail;
 
     const signedAt = new Date().toISOString();
@@ -568,7 +619,7 @@ export async function signCsDocumentRequest(input: {
       .update({
         status: nextStatus,
         rendered_html: nextHtml,
-        portal_visible: !allDone,
+        portal_visible: true,
         completed_at: allDone ? signedAt : null,
         updated_at: signedAt,
       })

@@ -1,6 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
-import { PortalEmptyState } from '@/components/portal/assist/PortalEmptyState';
+import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { careSpacing } from '@/design/tokens/spacing';
 
@@ -13,7 +13,8 @@ export function ClientPortalAnnouncementsScreen() {
           subtitle="Wichtige Informationen von Ihrem Pflegebüro"
           showStatusDot
         />
-        <PortalEmptyState
+        <ClientPortalGuide
+          compact
           title="Keine neuen Mitteilungen"
           message="Sobald Ihr Pflegebüro eine Information für Sie veröffentlicht, erscheint sie hier."
         />

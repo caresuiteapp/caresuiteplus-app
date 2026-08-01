@@ -1,9 +1,5 @@
 import { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { EmptyState } from '@/components/ui';
-import { GlassCard } from '@/design/components/GlassCard';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
-import { careSpacing } from '@/design/tokens/spacing';
+import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import type { ClientPortalFeatureKey } from '@/types/clientCore';
 import type { ClientPortalSettingsResolved } from '@/types/clientCore';
 import { canClientPortalSeeFeature } from '@/lib/client/clientPortalSettingsService';
@@ -20,31 +16,15 @@ type PortalSectionGateProps = {
 export function PortalSectionGate({
   settings,
   feature,
-  lockedTitle = 'Bereich nicht freigegeben',
-  lockedMessage = 'Dieser Bereich ist für Ihr Portal derzeit nicht sichtbar.',
+  lockedTitle = 'Hier gibt es noch nichts zu sehen',
+  lockedMessage = 'Sobald neue Informationen für Sie bereitstehen, erscheinen sie automatisch an dieser Stelle.',
   children,
 }: PortalSectionGateProps) {
-  const text = useAuroraAdaptiveText();
-
   if (!settings || !canClientPortalSeeFeature(settings, feature)) {
     return (
-      <GlassCard style={styles.card}>
-        <EmptyState title={lockedTitle} message={lockedMessage} />
-        {feature === 'visit_tracking' ? (
-          <View style={styles.note}>
-            <Text style={{ color: text.muted }}>
-              GPS- und Fahrtenbuchdaten sind im Klient:innenportal nicht verfügbar.
-            </Text>
-          </View>
-        ) : null}
-      </GlassCard>
+      <ClientPortalGuide compact title={lockedTitle} message={lockedMessage} />
     );
   }
 
   return <>{children}</>;
 }
-
-const styles = StyleSheet.create({
-  card: { padding: careSpacing.md },
-  note: { marginTop: careSpacing.sm },
-});

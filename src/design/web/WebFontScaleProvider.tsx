@@ -23,6 +23,7 @@ type WebFontScaleContextValue = {
   scale: WebFontScale;
   increase: () => void;
   decrease: () => void;
+  reset: () => void;
   canIncrease: boolean;
   canDecrease: boolean;
 };
@@ -74,15 +75,20 @@ export function WebFontScaleProvider({ children }: { children: ReactNode }) {
     persistScale(WEB_FONT_SCALE_STEPS[nextIdx]);
   }, [persistScale, scale]);
 
+  const reset = useCallback(() => {
+    persistScale(WEB_FONT_SCALE_DEFAULT);
+  }, [persistScale]);
+
   const value = useMemo(
     () => ({
       scale,
       increase,
       decrease,
+      reset,
       canIncrease: scale < WEB_FONT_SCALE_STEPS[WEB_FONT_SCALE_STEPS.length - 1],
       canDecrease: scale > WEB_FONT_SCALE_STEPS[0],
     }),
-    [decrease, increase, scale],
+    [decrease, increase, reset, scale],
   );
 
   return <WebFontScaleContext.Provider value={value}>{children}</WebFontScaleContext.Provider>;

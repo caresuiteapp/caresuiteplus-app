@@ -56,7 +56,10 @@ export function CsDocumentRequestCard({
           <PremiumBadge label="Pflicht vor Einsatz" variant="red" />
         ) : null}
         {item.pendingSignatureRoles.length > 0 ? (
-          <PremiumBadge label={`Signatur: ${item.pendingSignatureRoles.join(', ')}`} variant="orange" />
+          <PremiumBadge
+            label={portalLabels ? 'Ihre Unterschrift fehlt noch' : `Signatur: ${item.pendingSignatureRoles.join(', ')}`}
+            variant="orange"
+          />
         ) : null}
       </View>
       {onOpen ? (

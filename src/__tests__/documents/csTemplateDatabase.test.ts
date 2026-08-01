@@ -332,7 +332,7 @@ describe('csDocumentRequestService (demo mode)', () => {
     if (!result.ok) return;
 
     expect(result.data.status).toBe('completed');
-    expect(result.data.portalVisible).toBe(false);
+    expect(result.data.portalVisible).toBe(true);
     expect(result.data.pendingSignatureRoles).toHaveLength(0);
     expect(filterRequestsByTab([result.data], 'open')).toHaveLength(0);
     expect(filterRequestsByTab([result.data], 'completed')).toHaveLength(1);

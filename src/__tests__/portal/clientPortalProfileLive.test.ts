@@ -35,10 +35,13 @@ describe('Client portal profile live wiring', () => {
     expect(screen).not.toContain('ScreenShell');
   });
 
-  it('profile screen shows portal role, modules, and stammdaten request', () => {
+  it('profile screen keeps technical access data and assignments out of the profile', () => {
     const screen = readSrc('src/screens/portal/ClientPortalProfileScreen.tsx');
     expect(screen).toContain('usePortalContext');
-    expect(screen).toContain('Portalrolle');
+    expect(screen).not.toContain('Portalrolle');
+    expect(screen).not.toContain('Zugangsstatus');
+    expect(screen).not.toContain('ClientPortalProfileAssignmentsSection');
+    expect(screen).toContain('Ihre Einsätze stehen übersichtlich');
     expect(screen).toContain('Stammdaten ändern');
     expect(screen).toContain('PortalRequestFormModal');
   });

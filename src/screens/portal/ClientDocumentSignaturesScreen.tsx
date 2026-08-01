@@ -1,16 +1,19 @@
 import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { CsDocumentRequestCard } from '@/components/office/documentSignatures/CsDocumentRequestCard';
-import { AuroraSegmentedControl } from '@/components/aurora';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
-import { moduleColor } from '@/design/tokens/modules';
+import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { fetchPortalCsDocumentRequests } from '@/lib/documents/csTemplates';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import { subscribeToClientPortalDocumentRequestChanges, type RealtimeHandler } from '@/lib/realtime';
+import { liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
 import { spacing } from '@/theme';
 
 type FilterKey = 'open' | 'done';
@@ -25,6 +28,15 @@ export function ClientDocumentSignaturesScreen() {
   const { tenantId, clientId, roleKey, isLinkedReady } = usePortalActor();
   const { can } = usePermissions();
   const [filter, setFilter] = useState<FilterKey>('open');
+  const { width } = useDeviceClass();
+  const type = resolveGalaxyTypography(width);
+  const subscribe = useCallback(
+    (currentTenantId: string, handler: RealtimeHandler) => {
+      if (!clientId) return () => undefined;
+      return subscribeToClientPortalDocumentRequestChanges(currentTenantId, clientId, handler);
+    },
+    [clientId],
+  );
 
   const query = useAsyncQuery(
     useCallback(async () => {
@@ -37,7 +49,10 @@ export function ClientDocumentSignaturesScreen() {
       });
     }, [tenantId, clientId, roleKey, filter]),
     [tenantId, clientId, roleKey, filter],
-    { enabled: isLinkedReady && !!tenantId && !!clientId },
+    {
+      enabled: isLinkedReady && !!tenantId && !!clientId,
+      live: { tenantId, subscribe, pollMs: 30_000, refreshOnFocus: true },
+    },
   );
 
   const items =
@@ -47,60 +62,86 @@ export function ClientDocumentSignaturesScreen() {
 
   if (!can('portal.client.documents.view' as never)) {
     return (
-      <C14vSubpageShell title="Meine Dokumente" showBack accentColor={moduleColor('assist')}>
+      <PortalTabScreen title="Unterschriften" scroll={false}>
         <EmptyState title="Kein Zugriff" message="Dokumente sind derzeit nicht verfügbar." />
-      </C14vSubpageShell>
+      </PortalTabScreen>
     );
   }
 
   return (
-    <C14vSubpageShell
+    <PortalTabScreen
       title="Unterschriften"
       subtitle="Bitte lesen und unterschreiben Sie offene Dokumente"
-      showBack
-      accentColor={moduleColor('assist')}
-      actions={[{ key: 'refresh', label: 'Aktualisieren', onPress: () => query.refresh(), variant: 'ghost' as const }]}
+      scroll={false}
     >
-      <AuroraSegmentedControl options={FILTER_OPTIONS} value={filter} onChange={(k) => setFilter(k as FilterKey)} />
-      {query.loading && !query.data ? (
-        <LoadingState message="Offene Dokumente werden geladen…" />
-      ) : null}
-      {query.error ? (
-        <ErrorState
-          message={toPortalUserFacingError(
-            query.error,
-            'Ihre offenen Dokumente konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
-          )}
-          onRetry={query.refresh}
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator>
+        <ClientPortalGuide
+          compact
+          title={items.length > 0 && filter === 'open' ? `${items.length} ${items.length === 1 ? 'Dokument wartet' : 'Dokumente warten'} auf Sie` : 'Unterschriften sicher erledigen'}
+          message="Öffnen Sie ein Dokument, lesen Sie es vollständig und unterschreiben Sie direkt mit dem Finger, Stift oder der Maus. Neue Dokumente erscheinen automatisch."
         />
-      ) : null}
-      {items.length === 0 && !query.loading && !query.error ? (
-        <EmptyState
-          title={filter === 'open' ? 'Keine offenen Dokumente' : 'Noch nichts erledigt'}
-          message={
-            filter === 'open'
-              ? 'Sobald Ihnen ein Dokument zugesendet wird, erscheint es hier.'
-              : 'Unterschriebene Dokumente finden Sie hier.'
-          }
-        />
-      ) : (
-        <View style={styles.list}>
-          {items.map((item) => (
-            <CsDocumentRequestCard
-              key={item.id}
-              item={item}
-              compact
-              portalLabels
-              openLabel="Öffnen und unterschreiben"
-              onOpen={() => router.push(`/portal/client/documents/signatures/${item.id}` as never)}
-            />
-          ))}
+        <View style={styles.toolbar}>
+          <View style={styles.switcher} accessibilityRole="tablist">
+            {FILTER_OPTIONS.map((option) => (
+              <Pressable
+                key={option.key}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: filter === option.key }}
+                onPress={() => setFilter(option.key as FilterKey)}
+                style={({ pressed }) => [styles.switch, filter === option.key && styles.switchActive, pressed && styles.pressed]}
+              >
+                <Text style={[type.bodyStrong, styles.switchText, filter === option.key && styles.switchTextActive]}>
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <Pressable accessibilityRole="button" onPress={() => void query.refresh()} style={({ pressed }) => [styles.refresh, pressed && styles.pressed]}>
+            <Text style={[type.bodyStrong, styles.refreshText]}>↻ Aktualisieren</Text>
+          </Pressable>
         </View>
-      )}
-    </C14vSubpageShell>
+        {query.loading && !query.data ? <LoadingState message="Ihre Dokumente werden geladen…" /> : null}
+        {query.error ? (
+          <ErrorState
+            message={toPortalUserFacingError(query.error, 'Ihre Dokumente konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.')}
+            onRetry={query.refresh}
+          />
+        ) : null}
+        {items.length === 0 && !query.loading && !query.error ? (
+          <ClientPortalGuide
+            compact
+            title={filter === 'open' ? 'Im Moment ist nichts offen' : 'Noch nichts erledigt'}
+            message={filter === 'open' ? 'Sobald Ihr Betreuungsteam ein Dokument sendet, erscheint es automatisch hier.' : 'Ihre fertig unterschriebenen Dokumente werden hier gesammelt.'}
+          />
+        ) : (
+          <View style={styles.list}>
+            {items.map((item) => (
+              <CsDocumentRequestCard
+                key={item.id}
+                item={item}
+                compact
+                portalLabels
+                openLabel={filter === 'open' ? 'Lesen und unterschreiben' : 'Dokument ansehen'}
+                onOpen={() => router.push(`/portal/client/documents/signatures/${item.id}` as never)}
+              />
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </PortalTabScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { gap: spacing.sm, marginTop: spacing.md },
+  scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
+  toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  switcher: { flex: 1, minWidth: 240, padding: 4, borderWidth: 1, borderColor: liquidColors.white12, borderRadius: liquidRadius.card, backgroundColor: 'rgba(4,24,51,0.76)', flexDirection: 'row', gap: 4 },
+  switch: { flex: 1, minHeight: 46, borderRadius: liquidRadius.control, alignItems: 'center', justifyContent: 'center' },
+  switchActive: { borderWidth: 1, borderColor: liquidColors.blue400, backgroundColor: liquidColors.blue500Alpha16 },
+  switchText: { color: liquidColors.white64 },
+  switchTextActive: { color: liquidColors.white },
+  refresh: { minHeight: 46, paddingHorizontal: 15, borderWidth: 1, borderColor: liquidColors.blue300Alpha32, borderRadius: liquidRadius.control, alignItems: 'center', justifyContent: 'center' },
+  refreshText: { color: liquidColors.blue200 },
+  list: { gap: spacing.sm },
+  pressed: { opacity: 0.74 },
 });

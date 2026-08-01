@@ -66,22 +66,22 @@ const SCOPE_CONFIG = (colors: LegacyColors): Record<'portal_employee' | 'portal_
       messages: {
         title: 'Nachrichten',
         icon: '✉️',
-        subtitle: 'Chat mit der Verwaltung — Antworten nach Freigabe sichtbar.',
+        subtitle: 'Ihre sicheren Nachrichten an das Betreuungsteam.',
       },
       documents: {
         title: 'Dokumente',
         icon: '📄',
-        subtitle: 'Freigegebene Dokumente und Nachweise für Sie.',
+        subtitle: 'Ihre Unterlagen verständlich und sicher an einem Ort.',
       },
       appointments: {
         title: 'Einsätze',
         icon: '📅',
-        subtitle: 'Anstehende Einsätze und Besuche in Ihrer Übersicht.',
+        subtitle: 'Kommende und vergangene Einsätze bleiben übersichtlich getrennt.',
       },
       signatures: {
         title: 'Unterschriften',
         icon: '✍️',
-        subtitle: 'Dokumente zur digitalen Unterschrift für Sie.',
+        subtitle: 'Dokumente lesen und direkt sicher unterschreiben.',
       },
     },
   },
@@ -196,7 +196,7 @@ export function resolvePortalTabHeroContent(
           : [
               {
                 id: 'active',
-                label: 'Aktiv',
+                label: scopeKey === 'portal_client' ? 'Kommend' : 'Aktiv',
                 numericValue: activeCount,
                 fallbackLabel: 'Keine aktiven',
                 icon: '✅',

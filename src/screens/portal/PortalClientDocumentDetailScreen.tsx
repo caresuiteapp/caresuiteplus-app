@@ -6,7 +6,8 @@ import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalDocumentDetailHero } from '@/components/portal';
-import { ScreenShell } from '@/components/layout';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
+import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import {
   ErrorState,
   LoadingState,
@@ -62,9 +63,6 @@ export function PortalClientDocumentDetailScreen() {
     }),
     [insets.bottom, showBottomTabs],
   );
-  const mobileNavPadding =
-    PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm);
-
   const handleSignConfirm = useCallback(
     async (dataUrl: string) => {
       if (!tenantId || !clientId || !id) return;
@@ -92,46 +90,47 @@ export function PortalClientDocumentDetailScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Dokument" subtitle={resolvePortalScreenSubtitle(roleLabel, 'client')}>
+      <PortalTabScreen title="Dokument" subtitle={resolvePortalScreenSubtitle(roleLabel, 'client')} hideHeaderOnPhone>
         <LockedActionBanner
           message={check('portal.client.documents.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (loading) {
     return (
-      <ScreenShell title="Dokument" subtitle="Wird geladen…">
+      <PortalTabScreen title="Dokument" subtitle="Wird geladen…" hideHeaderOnPhone>
         <LoadingState message="Dokument wird geladen…" />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (notFound || error) {
     return (
-      <ScreenShell title="Dokument" subtitle="Fehler">
+      <PortalTabScreen title="Dokument" hideHeaderOnPhone>
         <ErrorState
-          title={notFound ? 'Nicht gefunden' : 'Fehler'}
-          message={error ?? 'Das Dokument existiert nicht.'}
+          title={notFound ? 'Dokument nicht gefunden' : 'Dokument nicht verfügbar'}
+          message={error ?? 'Dieses Dokument kann gerade nicht angezeigt werden.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (!data) return null;
 
   return (
-    <ScreenShell
+    <PortalTabScreen
       title={isPhone ? 'Dokument' : data.title}
       subtitle={isPhone ? data.title : data.displayFileName ?? undefined}
-      rightSlot={
+      hideHeaderOnPhone
+      scroll={false}
+      actionsSlot={
         <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
       }
-      mobileContentPaddingBottom={showBottomTabs ? mobileNavPadding : undefined}
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -141,6 +140,14 @@ export function PortalClientDocumentDetailScreen() {
         {successMessage ? <SuccessState message={successMessage} /> : null}
 
         <PortalDocumentDetailHero document={data} scope="client" />
+
+        {data.signaturePending ? (
+          <ClientPortalGuide
+            compact
+            title="Ihre Unterschrift fehlt noch"
+            message="Bitte lesen Sie den Nachweis vollständig. Anschließend können Sie direkt mit dem Finger, Stift oder der Maus unterschreiben."
+          />
+        ) : null}
 
         {data.description ? (
           <Text style={[styles.hint, { color: themeColors.textPrimary }]}>{data.description}</Text>
@@ -198,7 +205,7 @@ export function PortalClientDocumentDetailScreen() {
         onClose={() => setSignatureOpen(false)}
         onConfirm={handleSignConfirm}
       />
-    </ScreenShell>
+    </PortalTabScreen>
   );
 }
 

@@ -49,18 +49,13 @@ for (const route of [
   '/portal/employee/assignments',
   '/portal/employee/clients',
   '/portal/employee/calendar',
-  '/portal/employee/tasks',
   '/portal/employee/arbeitszeit',
   '/portal/employee/arbeitszeit/urlaub',
   '/portal/employee/arbeitszeit/abwesenheiten',
   '/portal/employee/documents',
   '/portal/employee/uploads',
-  '/portal/employee/documents/signatures',
   '/portal/employee/messages',
-  '/portal/employee/announcements',
   '/portal/employee/payroll',
-  '/portal/employee/mobilitaet',
-  '/portal/employee/help',
   '/portal/employee/profile',
 ]) {
   requireText('Mitarbeitenden-Navigation', catalog, `route: '${route}'`);

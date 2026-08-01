@@ -1,4 +1,5 @@
 import type { TextStyle, ViewStyle } from 'react-native';
+import { applyWebFontScaleToTextStyle } from '@/design/web/webFontSize';
 
 export const liquidColors = {
   navy950: '#010817',
@@ -108,45 +109,45 @@ export const liquidShadows = {
 } as const;
 
 export const liquidTypography = {
-  display: {
+  display: applyWebFontScaleToTextStyle({
     color: liquidColors.white,
     fontSize: liquidType.displayDesktop,
     lineHeight: 40,
     fontWeight: '800',
     letterSpacing: -1.1,
-  } satisfies TextStyle,
-  title: {
+  } satisfies TextStyle),
+  title: applyWebFontScaleToTextStyle({
     color: liquidColors.white,
     fontSize: liquidType.titleDesktop,
     lineHeight: 30,
     fontWeight: '800',
     letterSpacing: -0.45,
-  } satisfies TextStyle,
-  section: {
+  } satisfies TextStyle),
+  section: applyWebFontScaleToTextStyle({
     color: liquidColors.white,
     fontSize: liquidType.section,
     lineHeight: 23,
     fontWeight: '700',
-  } satisfies TextStyle,
-  body: {
+  } satisfies TextStyle),
+  body: applyWebFontScaleToTextStyle({
     color: liquidColors.white88,
     fontSize: liquidType.body,
     lineHeight: 21,
     fontWeight: '400',
-  } satisfies TextStyle,
-  meta: {
+  } satisfies TextStyle),
+  meta: applyWebFontScaleToTextStyle({
     color: liquidColors.white72,
     fontSize: liquidType.meta,
     lineHeight: 17,
     fontWeight: '500',
-  } satisfies TextStyle,
-  kicker: {
+  } satisfies TextStyle),
+  kicker: applyWebFontScaleToTextStyle({
     color: liquidColors.blue200,
     fontSize: liquidType.kicker,
     lineHeight: 16,
     fontWeight: '800',
     letterSpacing: 1.2,
-  } satisfies TextStyle,
+  } satisfies TextStyle),
 } as const;
 
 export const liquidGrid = {

@@ -41,6 +41,23 @@ export function subscribeToPortalAssistChanges(
   );
 }
 
+/** Client portal document inbox — newly sent requests, status and completed signatures. */
+export function subscribeToClientPortalDocumentRequestChanges(
+  tenantId: string,
+  clientId: string,
+  handler: RealtimeHandler,
+): () => void {
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `portal-document-requests:${tenantId}:${clientId}`,
+      channelName: `portal:document-requests:${tenantId}:${clientId}`,
+      demoPollMs: 30_000,
+      specs: [{ table: 'cs_document_requests', filter: clientFilter(clientId) }],
+    },
+    handler,
+  );
+}
+
 /** Office dashboard KPIs, timeline and workspace counts. */
 export function subscribeToOfficeDashboardChanges(
   tenantId: string,

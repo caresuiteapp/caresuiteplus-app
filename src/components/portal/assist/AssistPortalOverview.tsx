@@ -40,6 +40,7 @@ import type { AssistDashboardData, PortalRequestType } from '@/types/portal/assi
 import type { PortalStructuredRequestPayload } from '@/types/portal/requestPayloads';
 import { ErrorState, LoadingState, SuccessState } from '@/components/ui';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 
 type AssistOverviewModal = 'anfragen' | 'aktivitaeten';
 
@@ -313,6 +314,12 @@ function AssistPortalOverviewDesktop({
           subtitle={heroCopy.subtitle}
           meta={heroCopy.meta}
           badge={heroCopy.badge}
+        />
+
+        <ClientPortalGuide
+          compact
+          title="Schön, dass Sie da sind"
+          message="Hier sehen Sie das Wichtigste auf einen Blick. Für größere Schrift nutzen Sie jederzeit aA oben in der Leiste."
         />
 
         <PortalNextAppointmentHero

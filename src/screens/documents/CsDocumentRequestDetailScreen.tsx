@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
@@ -6,7 +6,6 @@ import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { SignatureDisplay } from '@/components/signatures/SignatureDisplay';
 import {
-  CareLightButton,
   EmptyState,
   ErrorState,
   LoadingState,
@@ -23,6 +22,7 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import {
   fetchCsDocumentRequestDetail,
+  fetchPortalCsDocumentRequestDetail,
   markCsDocumentRequestOpened,
   signCsDocumentRequest,
 } from '@/lib/documents/csTemplates';
@@ -30,6 +30,9 @@ import { resolveCsDocumentRequestStatusLabel } from '@/types/documents/csTemplat
 import type { CsSignerRole } from '@/types/documents/csTemplateDatabase';
 import { typography, spacing } from '@/theme';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
+import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
+import { usePortalActor } from '@/hooks/usePortalActor';
 
 type PortalMode = 'office' | 'employee' | 'client';
 
@@ -38,6 +41,48 @@ type Props = {
   signerRole: CsSignerRole;
   signerNameDefault?: string;
 };
+
+function RequestDetailShell({
+  mode,
+  title,
+  subtitle,
+  accent,
+  canSign,
+  onSign,
+  children,
+}: {
+  mode: PortalMode;
+  title: string;
+  subtitle?: string;
+  accent: string;
+  canSign?: boolean;
+  onSign?: () => void;
+  children: ReactNode;
+}) {
+  if (mode === 'office') {
+    return (
+      <C14vSubpageShell
+        title={title}
+        subtitle={subtitle}
+        showBack
+        accentColor={accent}
+        actions={canSign && onSign ? [{ key: 'sign', label: 'Unterschreiben', onPress: onSign, variant: 'primary' as const }] : []}
+      >
+        {children}
+      </C14vSubpageShell>
+    );
+  }
+
+  return (
+    <PortalTabScreen
+      title={title}
+      subtitle={subtitle}
+      actionsSlot={canSign && onSign ? <PremiumButton title="Jetzt unterschreiben" onPress={onSign} /> : undefined}
+    >
+      {children}
+    </PortalTabScreen>
+  );
+}
 
 export function CsDocumentRequestDetailScreen({
   mode,
@@ -48,12 +93,14 @@ export function CsDocumentRequestDetailScreen({
   const router = useRouter();
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
+  const portalActor = usePortalActor();
   const text = useAuroraAdaptiveText();
   const isPortal = mode !== 'office';
   const [signModal, setSignModal] = useState(false);
   const [working, setWorking] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [signSuccess, setSignSuccess] = useState(false);
+  const autoOpenedRequestRef = useRef<string | null>(null);
 
   const query = useAsyncQuery(
     async () => {
@@ -61,9 +108,15 @@ export function CsDocumentRequestDetailScreen({
       if (mode === 'office') {
         return fetchCsDocumentRequestDetail(tenantId, id, profile?.roleKey);
       }
-      return fetchCsDocumentRequestDetail(tenantId, id, profile?.roleKey, { portalMode: true });
+      return fetchPortalCsDocumentRequestDetail({
+        tenantId,
+        requestId: id,
+        roleKey: portalActor.roleKey,
+        employeeId: portalActor.employeeId,
+        clientId: portalActor.clientId,
+      });
     },
-    [tenantId, id, profile?.roleKey, mode],
+    [tenantId, id, profile?.roleKey, mode, portalActor.roleKey, portalActor.employeeId, portalActor.clientId],
     { enabled: !!tenantId && !!id },
   );
 
@@ -94,6 +147,14 @@ export function CsDocumentRequestDetailScreen({
     await query.refresh();
   };
 
+  useEffect(() => {
+    if (!isPortal || item?.status !== 'sent' || !id || autoOpenedRequestRef.current === id) return;
+    autoOpenedRequestRef.current = id;
+    void handleOpen();
+    // The request id/status deliberately owns this one-time portal acknowledgement.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isPortal, item?.status]);
+
   const handleSign = async (dataUrl: string) => {
     if (!tenantId || !id) return;
     setWorking(true);
@@ -105,6 +166,13 @@ export function CsDocumentRequestDetailScreen({
       signerName: signerNameDefault ?? profile?.displayName ?? 'Unterzeichner:in',
       signatureDataUrl: dataUrl,
       anchorToken: `${signerRole}_signature`,
+      portalActor: isPortal && portalActor.roleKey
+        ? {
+            roleKey: portalActor.roleKey,
+            employeeId: portalActor.employeeId,
+            clientId: portalActor.clientId,
+          }
+        : undefined,
     });
     setWorking(false);
     setSignModal(false);
@@ -120,41 +188,46 @@ export function CsDocumentRequestDetailScreen({
 
   if (query.loading && !item) {
     return (
-      <C14vSubpageShell title="Dokument" showBack accentColor={accent}>
+      <RequestDetailShell mode={mode} title="Dokument" accent={accent}>
         <LoadingState message="Dokument wird geladen…" />
-      </C14vSubpageShell>
+      </RequestDetailShell>
     );
   }
 
   if (query.error || !item) {
     return (
-      <C14vSubpageShell title="Dokument" showBack accentColor={accent}>
-        <ErrorState message={query.error ?? 'Dokument nicht gefunden.'} onRetry={query.refresh} />
-      </C14vSubpageShell>
+      <RequestDetailShell mode={mode} title="Dokument" accent={accent}>
+        <ErrorState message={query.error ?? 'Dieses Dokument kann gerade nicht angezeigt werden.'} onRetry={query.refresh} />
+      </RequestDetailShell>
     );
   }
 
-  const signAction = canSign
-    ? isPortal
-      ? [{ key: 'sign', label: 'Unterschreiben', onPress: () => setSignModal(true), variant: 'primary' as const }]
-      : [{ key: 'sign', label: 'Unterschreiben', onPress: () => setSignModal(true), variant: 'primary' as const }]
-    : [];
-
   return (
     <>
-      <C14vSubpageShell
+      <RequestDetailShell
+        mode={mode}
         title={item.title}
         subtitle={statusLabel}
-        showBack
-        accentColor={accent}
-        actions={signAction}
+        accent={accent}
+        canSign={Boolean(canSign)}
+        onSign={() => setSignModal(true)}
       >
+        {isPortal && canSign ? (
+          <ClientPortalGuide
+            compact
+            title="Bitte prüfen und unterschreiben"
+            message="Lesen Sie das Dokument vollständig. Danach können Sie oben auf „Jetzt unterschreiben“ tippen und direkt mit Finger, Stift oder Maus unterschreiben."
+          />
+        ) : null}
         <Text style={styles.meta}>
           Fällig {item.dueDate ? new Date(item.dueDate).toLocaleDateString('de-DE') : '—'}
           {item.requiredBeforeService ? ' · Pflicht vor Einsatz' : ''}
         </Text>
         {item.pendingSignatureRoles.length > 0 ? (
-          <PremiumBadge label={`Offene Signatur: ${item.pendingSignatureRoles.join(', ')}`} variant="orange" />
+          <PremiumBadge
+            label={isPortal ? 'Ihre Unterschrift fehlt noch' : `Offene Signatur: ${item.pendingSignatureRoles.join(', ')}`}
+            variant="orange"
+          />
         ) : null}
         {signSuccess ? (
           <SuccessState
@@ -166,15 +239,7 @@ export function CsDocumentRequestDetailScreen({
           />
         ) : null}
         {actionError ? <InfoBanner variant="danger" message={actionError} /> : null}
-        {item.status === 'sent' && mode !== 'office' ? (
-          isPortal ? (
-            <CareLightButton title="Als geöffnet markieren" variant="secondary" onPress={() => void handleOpen()} />
-          ) : (
-            <PremiumButton title="Als geöffnet markieren" variant="ghost" onPress={() => void handleOpen()} />
-          )
-        ) : null}
-
-        <SectionPanel title="Vorschau" subtitle="Gerendertes Dokument">
+        <SectionPanel title="Dokument prüfen" subtitle="Bitte lesen Sie den Inhalt vollständig, bevor Sie unterschreiben.">
           {item.renderedHtml ? (
             <DocumentHtmlPreview title={item.title} previewHtml={item.renderedHtml} />
           ) : (
@@ -188,7 +253,7 @@ export function CsDocumentRequestDetailScreen({
               {signedEntries.map((sig) => (
                 <SignatureDisplay
                   key={sig.id}
-                  label={`Unterschrift (${sig.signerRole})`}
+                  label={isPortal ? 'Gespeicherte Unterschrift' : `Unterschrift (${sig.signerRole})`}
                   signerName={sig.signerName}
                   signedAt={sig.signedAt}
                   compact
@@ -203,7 +268,7 @@ export function CsDocumentRequestDetailScreen({
             <Text style={{ color: PORTAL_LIGHT_LINK_ORANGE, fontWeight: '700' }}>Zurück zur Liste</Text>
           </Pressable>
         ) : null}
-      </C14vSubpageShell>
+      </RequestDetailShell>
 
       <CareSignatureModal
         visible={signModal}

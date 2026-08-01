@@ -8,6 +8,7 @@ import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 import { usePathname } from 'expo-router';
 import { EmployeePortalPageFrame } from '@/components/portal/EmployeePortalPageFrame';
+import { ClientPortalPageFrame } from '@/components/portal/ClientPortalPageFrame';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import {
   resolvePortalMobileContentPaddingBottom,
@@ -45,6 +46,7 @@ export function PortalTabScreen({
   const { active: messengerFocusActive } = usePortalMessengerFocus();
   const pathname = usePathname();
   const isEmployeePortal = pathname.startsWith('/portal/employee');
+  const isClientPortal = pathname.startsWith('/portal/client');
 
   const bareBottomPadding = useMemo(() => {
     if (messengerFocusActive || !showBottomTabs) return spacing.md;
@@ -99,6 +101,43 @@ export function PortalTabScreen({
 
     return (
       <View style={[styles.employeePage, barePaddingStyle]} testID="employee-portal-tab-screen">
+        {page}
+      </View>
+    );
+  }
+
+  if (isClientPortal && !messengerFocusActive) {
+    const page = (
+      <ClientPortalPageFrame
+        title={title}
+        subtitle={subtitle}
+        eyebrow={eyebrow}
+        compact={hideHeaderOnPhone}
+        actionsSlot={actionsSlot}
+        filtersSlot={filtersSlot}
+        tabsSlot={tabsSlot}
+      >
+        {children}
+      </ClientPortalPageFrame>
+    );
+
+    if (scroll) {
+      return (
+        <ScrollView
+          contentContainerStyle={[styles.portalScrollContent, barePaddingStyle]}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+          showsVerticalScrollIndicator
+          style={styles.portalScrollViewport}
+          testID="client-portal-tab-scroll"
+        >
+          {page}
+        </ScrollView>
+      );
+    }
+
+    return (
+      <View style={[styles.portalPage, barePaddingStyle]} testID="client-portal-tab-screen">
         {page}
       </View>
     );
@@ -170,6 +209,11 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 0,
   },
+  portalPage: {
+    flex: 1,
+    width: '100%',
+    minHeight: 0,
+  },
   employeeScrollViewport: {
     flex: 1,
     width: '100%',
@@ -186,6 +230,26 @@ const styles = StyleSheet.create({
       : null),
   },
   employeeScrollContent: {
+    flexGrow: 1,
+    width: '100%',
+    minWidth: 0,
+  },
+  portalScrollViewport: {
+    flex: 1,
+    width: '100%',
+    minWidth: 0,
+    minHeight: 0,
+    ...(Platform.OS === 'web'
+      ? ({
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          touchAction: 'pan-y',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorY: 'contain',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  portalScrollContent: {
     flexGrow: 1,
     width: '100%',
     minWidth: 0,

@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequestFormModal';
-import { ClientPortalProfileAssignmentsSection } from '@/components/portal/ClientPortalProfileAssignmentsSection';
+import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { GlassCard } from '@/design/components/GlassCard';
@@ -32,27 +32,14 @@ import {
   resolvePortalRequestTypeLabel,
   serializePortalRequestPayload,
 } from '@/lib/portal/assist';
-import {
-  PORTAL_MODULE_ICONS,
-  PORTAL_MODULE_LABELS,
-  resolvePortalActorRole,
-} from '@/lib/portal/engine';
 import { profileSectionHasContent } from '@/lib/portal/clientPortalProfileProjection';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
-import { PORTAL_ACCESS_STATUS_LABELS } from '@/types/modules/client/clientPortal';
 import type { PortalStructuredRequestPayload } from '@/types/portal/requestPayloads';
 import type { PortalClientContactSummary, PortalClientProfile } from '@/types/portal/client';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { useAuth } from '@/lib/auth/context';
-
-const PORTAL_ROLE_LABELS: Record<import('@/lib/portal/types').PortalActorRole, string> = {
-  client: 'Klient:in',
-  relative: 'Angehörige:r',
-  guardian: 'Betreuer:in',
-  invoice_recipient: 'Rechnungsempfänger:in',
-};
 
 const CONTACT_ROLE_LABELS: Record<PortalClientContactSummary['role'], string> = {
   emergency: 'Notfall',
@@ -281,7 +268,6 @@ export function ClientPortalProfileScreen() {
   const { context } = usePortalContext();
   const {
     profile,
-    portalAccess,
     carePlans,
     loading,
     error,
@@ -304,17 +290,6 @@ export function ClientPortalProfileScreen() {
     }),
     [insets.bottom, showBottomTabs],
   );
-
-  const portalRole = context?.portalRole ?? resolvePortalActorRole('client_portal');
-  const moduleLabels = (context?.activeModuleKeys ?? []).map(
-    (key) => `${PORTAL_MODULE_ICONS[key]} ${PORTAL_MODULE_LABELS[key]}`,
-  );
-  const releaseLabel = portalAccess?.portalEnabled === false ? 'Zugang pausiert' : 'Zugang aktiv';
-  const accessStatusLabel = portalAccess?.status
-    ? PORTAL_ACCESS_STATUS_LABELS[portalAccess.status]
-    : portalAccess?.portalEnabled
-      ? 'Aktiv'
-      : 'Unbekannt';
 
   const handleStammdatenRequest = useCallback(
     async (payload: PortalStructuredRequestPayload) => {
@@ -364,7 +339,7 @@ export function ClientPortalProfileScreen() {
       <PortalTabScreen title="Profil" scroll={false} hideHeaderOnPhone>
         <ErrorState
           title="Profil nicht verfügbar"
-          message="Kein Klient:innenprofil mit diesem Portal verknüpft."
+          message="Ihre persönlichen Daten konnten gerade nicht angezeigt werden. Bitte melden Sie sich erneut an oder schreiben Sie Ihrem Betreuungsteam."
           onRetry={refresh}
         />
       </PortalTabScreen>
@@ -394,7 +369,7 @@ export function ClientPortalProfileScreen() {
           eyebrow="KLIENT:INNENPORTAL · PROFIL"
           title={profile.displayName}
           subtitle={context?.tenantName ?? 'Ihr persönlicher Portalbereich'}
-          badge={releaseLabel}
+          badge="Persönliche Daten"
           leadingIcon={
             <TopbarProfileAvatar
               name={profile.displayName}
@@ -413,33 +388,13 @@ export function ClientPortalProfileScreen() {
           </GlassCard>
         ) : null}
 
-        <GlassCard>
-          <Text style={[type.caption, { color: text.muted, marginBottom: careSpacing.sm }]}>
-            IHR PORTALZUGANG
-          </Text>
-          <ProfileInfoRow label="Portalrolle" value={PORTAL_ROLE_LABELS[portalRole]} />
-          <ProfileInfoRow label="Zugangsstatus" value={accessStatusLabel} />
-          {portalAccess?.lastLoginAt ? (
-            <ProfileInfoRow
-              label="Letzte Anmeldung"
-              value={formatDate(portalAccess.lastLoginAt)}
-            />
-          ) : null}
-          {moduleLabels.length > 0 ? (
-            <View style={styles.moduleWrap}>
-              <Text style={[type.caption, { color: text.muted }]}>Verfügbare Bereiche</Text>
-              <View style={styles.badgeRow}>
-                {moduleLabels.map((label) => (
-                  <PremiumBadge key={label} label={label} variant="cyan" />
-                ))}
-              </View>
-            </View>
-          ) : null}
-        </GlassCard>
+        <ClientPortalGuide
+          compact
+          title="Hier finden Sie nur Ihre persönlichen Daten"
+          message="Ihre Einsätze stehen übersichtlich im Bereich „Einsätze“. Wenn sich Stammdaten geändert haben, können Sie uns direkt eine sichere Änderungsanfrage senden."
+        />
 
         {renderProfileSections(profile, isWide, text.muted, text.primary)}
-
-        <ClientPortalProfileAssignmentsSection />
 
         <GlassCard>
           <PremiumButton

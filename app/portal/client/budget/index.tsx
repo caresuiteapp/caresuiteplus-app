@@ -23,7 +23,7 @@ export default function ClientPortalBudgetRoute() {
 
   const settingsQuery = useAsyncQuery(
     () => {
-      if (!tenantId || !clientId) return Promise.resolve({ ok: false as const, error: 'Keine ID.' });
+      if (!tenantId || !clientId) return Promise.resolve({ ok: false as const, error: 'Ihre Budgetdaten konnten gerade nicht zugeordnet werden.' });
       return fetchClientPortalSettingsResolved(tenantId, clientId);
     },
     [tenantId, clientId],
@@ -32,7 +32,7 @@ export default function ClientPortalBudgetRoute() {
 
   const budgetQuery = useAsyncQuery(
     () => {
-      if (!tenantId || !clientId) return Promise.resolve({ ok: false as const, error: 'Keine ID.' });
+      if (!tenantId || !clientId) return Promise.resolve({ ok: false as const, error: 'Ihre Budgetdaten konnten gerade nicht zugeordnet werden.' });
       return getClientPortalBudgetProjection(tenantId, clientId);
     },
     [tenantId, clientId],

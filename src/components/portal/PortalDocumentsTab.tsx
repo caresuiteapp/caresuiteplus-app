@@ -1,8 +1,7 @@
-import { RefreshControl, ScrollView, StyleSheet, Pressable, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { careSpacing } from '@/design/tokens/spacing';
-import { PORTAL_LIGHT_LINK_ORANGE } from '@/design/tokens/auroraGlass';
 import { PortalTabHero } from '@/components/portal/PortalTabHero';
 import { PortalDocumentListCard } from '@/components/portal/PortalDocumentListCard';
 import {
@@ -21,6 +20,7 @@ import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { moduleColor } from '@/design/tokens/modules';
 import { spacing } from '@/theme';
+import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('de-DE', {
@@ -38,9 +38,10 @@ function formatPortalDocumentMeta(doc: PortalDocumentListItem): string {
 
 type PortalDocumentsTabProps = {
   detailBasePath?: string;
+  ownsScroll?: boolean;
 };
 
-export function PortalDocumentsTab({ detailBasePath }: PortalDocumentsTabProps = {}) {
+export function PortalDocumentsTab({ detailBasePath, ownsScroll = false }: PortalDocumentsTabProps = {}) {
   const router = useRouter();
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
@@ -91,13 +92,13 @@ export function PortalDocumentsTab({ detailBasePath }: PortalDocumentsTabProps =
       {showSuccess ? <SuccessState message="Dokumente aktualisiert." /> : null}
 
       {scope === 'portal_client' || scope === 'portal_family' ? (
-        <Pressable
-          onPress={() => router.push('/portal/client/documents/signatures' as never)}
-          style={styles.signaturesLink}
-          accessibilityRole="button"
-        >
-          <Text style={styles.signaturesLinkText}>Offene Unterschriften anzeigen →</Text>
-        </Pressable>
+        <ClientPortalGuide
+          compact
+          title="Dokumente mit Unterschrift"
+          message="Wenn Ihre Unterschrift benötigt wird, finden Sie das Dokument in einem eigenen, übersichtlichen Bereich."
+          actionLabel="Unterschriften öffnen"
+          onAction={() => router.push('/portal/client/documents/signatures' as never)}
+        />
       ) : null}
 
       {isEmpty ? (
@@ -125,7 +126,9 @@ export function PortalDocumentsTab({ detailBasePath }: PortalDocumentsTabProps =
   );
 
   if (isPhone) {
-    return <View style={[styles.scroll, contentPadding]}>{listBody}</View>;
+    if (!ownsScroll) {
+      return <View style={[styles.scroll, contentPadding]}>{listBody}</View>;
+    }
   }
 
   return (
@@ -147,16 +150,5 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: '100%',
     alignSelf: 'stretch',
-  },
-  signaturesLink: {
-    alignSelf: 'flex-start',
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingVertical: careSpacing.xs,
-  },
-  signaturesLinkText: {
-    color: PORTAL_LIGHT_LINK_ORANGE,
-    fontWeight: '700',
-    fontSize: 14,
   },
 });

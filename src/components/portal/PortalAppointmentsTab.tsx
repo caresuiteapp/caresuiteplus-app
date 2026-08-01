@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PortalTabHero } from '@/components/portal/PortalTabHero';
 import { ClientPortalAssignmentCard } from '@/components/portal/ClientPortalAssignmentCard';
@@ -29,6 +29,8 @@ import {
   shouldNavigateEmployeePortalAssignmentToExecution,
 } from '@/lib/portal/employeePortalAssignmentCompletion';
 import { spacing } from '@/theme';
+import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
+import { liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
 
 type PortalAppointmentsTabProps = {
   appointmentsLabel?: string;
@@ -47,6 +49,7 @@ export function PortalAppointmentsTab({
   const text = useAuroraAdaptiveText();
   const type = resolveGalaxyTypography(width);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [clientView, setClientView] = useState<'upcoming' | 'past'>('upcoming');
 
   const {
     items,
@@ -64,6 +67,9 @@ export function PortalAppointmentsTab({
   } = usePortalAppointments();
 
   const appointmentGroups = useMemo(() => groupPortalAppointmentsByTime(items), [items]);
+  const clientUpcoming = appointmentGroups.find((group) => group.key === 'upcoming')?.items ?? [];
+  const clientPast = appointmentGroups.find((group) => group.key === 'past')?.items ?? [];
+  const clientVisibleItems = clientView === 'upcoming' ? clientUpcoming : clientPast;
 
   if ((loading || isResolvingClientLink || !supabaseSessionReady) && items.length === 0) {
     return (
@@ -125,7 +131,7 @@ export function PortalAppointmentsTab({
         tab="appointments"
         scope={scope}
         totalCount={items.length}
-        activeCount={items.filter((a) => a.status === 'aktiv').length}
+        activeCount={isEmployeePortal ? items.filter((a) => a.status === 'aktiv').length : clientUpcoming.length}
         titleOverride={appointmentsLabel}
       />
 
@@ -136,6 +142,39 @@ export function PortalAppointmentsTab({
       <CachedDataBanner visible={fromCache} cachedAt={cachedAt} />
 
       {!isEmployeePortal ? <ClientPortalLiveTrackingSection /> : null}
+
+      {!isEmployeePortal && !isEmpty ? (
+        <View style={styles.clientSwitcher} accessibilityRole="tablist">
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{ selected: clientView === 'upcoming' }}
+            onPress={() => setClientView('upcoming')}
+            style={({ pressed }) => [
+              styles.clientSwitch,
+              clientView === 'upcoming' && styles.clientSwitchActive,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[type.bodyStrong, styles.clientSwitchText, clientView === 'upcoming' && styles.clientSwitchTextActive]}>
+              Kommend ({clientUpcoming.length})
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{ selected: clientView === 'past' }}
+            onPress={() => setClientView('past')}
+            style={({ pressed }) => [
+              styles.clientSwitch,
+              clientView === 'past' && styles.clientSwitchActive,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[type.bodyStrong, styles.clientSwitchText, clientView === 'past' && styles.clientSwitchTextActive]}>
+              Vergangen ({clientPast.length})
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {isEmpty ? (
         <EmptyState
@@ -173,13 +212,22 @@ export function PortalAppointmentsTab({
             })}
           </View>
         ))
+      ) : clientVisibleItems.length === 0 ? (
+        <ClientPortalGuide
+          compact
+          title={clientView === 'upcoming' ? 'Alles ruhig im Moment' : 'Noch keine vergangenen Einsätze'}
+          message={
+            clientView === 'upcoming'
+              ? 'Sobald ein neuer Einsatz geplant ist, sehen Sie ihn hier. Vergangene Einsätze bleiben getrennt im Bereich „Vergangen“.'
+              : 'Abgeschlossene Einsätze werden später automatisch in diesem Bereich angezeigt.'
+          }
+        />
       ) : (
-        appointmentGroups.map((group) => (
-          <View key={group.key}>
-            <Text style={[type.label, { color: text.primary, marginBottom: careSpacing.sm }]}>
-              {group.label}
-            </Text>
-            {group.items.map((appt) => {
+        <View>
+          <Text style={[type.label, { color: text.primary, marginBottom: careSpacing.sm }]}>
+            {clientView === 'upcoming' ? 'Kommende Einsätze' : 'Vergangene Einsätze'}
+          </Text>
+          {clientVisibleItems.map((appt) => {
               const cachedItem = appt as CachedPortalAppointmentItem;
               return (
                 <ClientPortalAssignmentCard
@@ -190,8 +238,7 @@ export function PortalAppointmentsTab({
                 />
               );
             })}
-          </View>
-        ))
+        </View>
       )}
 
       {isEmployeePortal ? (
@@ -247,4 +294,30 @@ const styles = StyleSheet.create({
         } as never)
       : {}),
   },
+  clientSwitcher: {
+    width: '100%',
+    padding: 4,
+    borderWidth: 1,
+    borderColor: liquidColors.white12,
+    borderRadius: liquidRadius.card,
+    backgroundColor: 'rgba(4,24,51,0.76)',
+    flexDirection: 'row',
+    gap: 4,
+  },
+  clientSwitch: {
+    flex: 1,
+    minHeight: 48,
+    paddingHorizontal: 12,
+    borderRadius: liquidRadius.control,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clientSwitchActive: {
+    borderWidth: 1,
+    borderColor: liquidColors.blue400,
+    backgroundColor: liquidColors.blue500Alpha16,
+  },
+  clientSwitchText: { color: liquidColors.white64, textAlign: 'center' },
+  clientSwitchTextActive: { color: liquidColors.white },
+  pressed: { opacity: 0.74 },
 });

@@ -1,12 +1,8 @@
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AssistLiveMap } from '@/components/maps/AssistLiveMap';
-import { LockedActionBanner } from '@/components/permissions';
-import { ScreenShell } from '@/components/layout';
 import {
-  EmptyState,
   ErrorState,
-  InfoBanner,
   LoadingState,
   PremiumButton,
   SectionPanel,
@@ -14,40 +10,42 @@ import {
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePortalClientLiveTracking } from '@/hooks/usePortalClientLiveTracking';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
+import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 
 export function PortalClientLiveTrackingScreen() {
   const router = useRouter();
-  const { can, check, roleLabel } = usePermissions();
+  const { can } = usePermissions();
   const canView = can('portal.client.appointments.view');
   const tenantId = useServiceTenantId();
   const { state, loading, error, refresh } = usePortalClientLiveTracking();
 
   if (!canView) {
     return (
-      <ScreenShell title="Live-Standort" subtitle={resolvePortalScreenSubtitle(roleLabel, 'client')}>
-        <LockedActionBanner
-          message={check('portal.client.appointments.view').reason ?? 'Keine Berechtigung.'}
-          roleLabel={roleLabel}
+      <PortalTabScreen title="Live-Anfahrt">
+        <ClientPortalGuide
+          compact
+          title="Hier gibt es noch nichts zu sehen"
+          message="Sobald eine Live-Anfahrt für Sie verfügbar ist, erscheint sie automatisch an dieser Stelle."
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (loading && !state) {
     return (
-      <ScreenShell title="Live-Standort" subtitle="Wird geladen…">
+      <PortalTabScreen title="Live-Anfahrt" subtitle="Wird geladen…">
         <LoadingState message="Live-Standort wird geladen…" />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (error && !state) {
     return (
-      <ScreenShell title="Live-Standort" subtitle="Fehler">
-        <ErrorState message={error} onRetry={refresh} />
-      </ScreenShell>
+      <PortalTabScreen title="Live-Anfahrt">
+        <ErrorState message="Die Live-Anfahrt konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut." onRetry={refresh} />
+      </PortalTabScreen>
     );
   }
 
@@ -55,10 +53,11 @@ export function PortalClientLiveTrackingScreen() {
   const hasActiveAssignment = Boolean(state?.assignmentId);
 
   return (
-    <ScreenShell
-      title="Live-Standort"
-      subtitle="Live-Standort Ihrer Betreuungskraft"
-      rightSlot={
+    <PortalTabScreen
+      title="Live-Anfahrt"
+      subtitle="Sehen Sie, wann Ihre Betreuungskraft unterwegs ist"
+      scroll={false}
+      actionsSlot={
         <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
       }
     >
@@ -66,16 +65,17 @@ export function PortalClientLiveTrackingScreen() {
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}
       >
-        <InfoBanner
-          variant="info"
-          title="Datenschutz"
-          message="Der Standort wird nur während einer aktiven Anfahrt oder eines laufenden Einsatzes angezeigt. Die Übertragung startet und endet automatisch mit dem Einsatzstatus."
+        <ClientPortalGuide
+          compact
+          title="Ihre Privatsphäre bleibt geschützt"
+          message="Der Standort ist nur während der Anfahrt oder eines laufenden Einsatzes sichtbar und verschwindet danach automatisch."
         />
 
         {!hasActiveAssignment ? (
-          <EmptyState
-            title="Kein laufender Einsatz"
-            message="Live-Standort ist nur verfügbar, wenn Ihre Betreuungskraft gerade unterwegs ist oder den Einsatz durchführt."
+          <ClientPortalGuide
+            compact
+            title="Gerade ist niemand unterwegs"
+            message="Wenn Ihre Betreuungskraft die Anfahrt startet, sehen Sie den aktuellen Stand automatisch hier."
             actionLabel="Zu meinen Einsätzen"
             onAction={() => router.push('/portal/client/appointments' as never)}
           />
@@ -96,13 +96,11 @@ export function PortalClientLiveTrackingScreen() {
                 tenantId={tenantId}
               />
             ) : (
-              <View style={styles.fallbackBox}>
-                <Text style={styles.fallbackIcon}>🗺️</Text>
-                <Text style={styles.fallbackText}>
-                  {liveVisit?.fallbackMessage ??
-                    'Noch keine Standortdaten — Tracking startet im Mitarbeiterportal während der Einsatzdurchführung.'}
-                </Text>
-              </View>
+              <ClientPortalGuide
+                compact
+                title="Die Anfahrt wird vorbereitet"
+                message={liveVisit?.fallbackMessage ?? 'Sobald ein Standort verfügbar ist, wird die Karte automatisch eingeblendet.'}
+              />
             )}
 
             {state?.assignmentId ? (
@@ -118,7 +116,7 @@ export function PortalClientLiveTrackingScreen() {
           </SectionPanel>
         )}
       </ScrollView>
-    </ScreenShell>
+    </PortalTabScreen>
   );
 }
 
@@ -131,22 +129,5 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     marginBottom: spacing.sm,
-  },
-  fallbackBox: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.bgSurface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.lg,
-    gap: spacing.sm,
-    minHeight: 200,
-  },
-  fallbackIcon: { fontSize: 28 },
-  fallbackText: {
-    ...typography.caption,
-    color: colors.textMuted,
-    textAlign: 'center',
   },
 });

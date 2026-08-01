@@ -1,7 +1,5 @@
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
-import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
-import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { moduleColor } from '@/design/tokens/modules';
@@ -10,6 +8,7 @@ import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
 import { ASSIGNMENT_STATUS_LABELS, type AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
 
 type ClientPortalAssignmentCardProps = {
   appointment: PortalAppointmentItem;
@@ -58,12 +57,16 @@ export function ClientPortalAssignmentCard({
   cacheStale = false,
   onPreview,
 }: ClientPortalAssignmentCardProps) {
-  const text = darkGlassSurfaceText;
+  const text = {
+    primary: liquidColors.white,
+    secondary: liquidColors.white88,
+    muted: liquidColors.white64,
+  };
   const accent = moduleColor('assist');
   const status = resolveStatus(appointment);
   const statusLabel =
     ASSIGNMENT_STATUS_LABELS[status] ?? WORKFLOW_STATUS_LABELS[appointment.status] ?? status;
-  const cardTint = careLightColors.surface;
+  const cardTint = 'rgba(8,39,75,0.84)';
   const serviceLabel = serviceCategory ?? appointment.title;
 
   return (
@@ -141,14 +144,17 @@ export function ClientPortalAssignmentCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 14,
+    borderRadius: liquidRadius.panel,
     borderWidth: 1,
     overflow: 'hidden',
     marginBottom: careSpacing.sm,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 14px 36px rgba(0,16,44,0.22)', backdropFilter: 'blur(18px)' } as unknown as ViewStyle)
+      : { shadowColor: '#00132D', shadowOpacity: 0.24, shadowRadius: 16, elevation: 5 }),
   },
   pressed: { opacity: 0.92 },
   statusBar: { height: 3, width: '100%' },
-  inner: { padding: careSpacing.md, gap: careSpacing.xs },
+  inner: { padding: careSpacing.lg, gap: careSpacing.sm },
   headerRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

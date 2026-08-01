@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
-import { PortalEmptyState } from '@/components/portal/assist/PortalEmptyState';
+import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import { GlassCard } from '@/design/components/GlassCard';
 import { PORTAL_LIGHT_LINK_ORANGE, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -121,7 +121,11 @@ export function ClientPortalProofsScreen() {
         {error ? <ErrorState title="Nachweise" message={error} onRetry={loadProofs} /> : null}
 
         {!loading && !error && proofs.length === 0 ? (
-          <PortalEmptyState message="Sobald ein Einsatz abgeschlossen wurde, erscheinen hier die freigegebenen Leistungsnachweise." />
+          <ClientPortalGuide
+            compact
+            title="Noch keine Leistungsnachweise"
+            message="Sobald ein Einsatz abgeschlossen und für Sie bereitgestellt wurde, erscheint der Nachweis automatisch hier."
+          />
         ) : null}
 
         {!loading && proofs.length > 0 ? (

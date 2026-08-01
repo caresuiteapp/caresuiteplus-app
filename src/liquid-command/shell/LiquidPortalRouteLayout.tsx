@@ -19,6 +19,8 @@ import {
   liquidPortalRoots,
   type ProductPortalKind as PortalKind,
 } from '../navigation/portalCatalog';
+import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
+import { webScaledFontMetric } from '@/design/web/webFontSize';
 
 const transparentContent = {
   flex: 1,
@@ -85,8 +87,8 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
     <LiquidBackdrop>
       <View style={styles.shell}>
         {layout.isDesktop ? (
-          <View style={styles.rail}>
-            <LiquidLogo compact />
+          <View style={[styles.rail, kind === 'client' && styles.clientRail]}>
+            {kind === 'client' ? <LiquidLogo mini /> : <LiquidLogo compact />}
             <ScrollView contentContainerStyle={styles.railItems} showsVerticalScrollIndicator={false}>
               {navigation.map((item) => (
                 <Pressable
@@ -96,6 +98,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   onPress={() => router.replace(item.route as never)}
                   style={({ pressed }) => [
                     styles.railItem,
+                    kind === 'client' && styles.clientRailItem,
                     activeId === item.id && styles.railItemActive,
                     pressed && styles.pressed,
                   ]}
@@ -105,7 +108,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                     glyph={item.glyph}
                     size={19}
                   />
-                  <Text numberOfLines={1} style={styles.railLabel}>{item.label}</Text>
+                  <Text numberOfLines={1} style={[styles.railLabel, kind === 'client' && styles.clientRailLabel]}>{item.label}</Text>
                 </Pressable>
               ))}
             </ScrollView>
@@ -113,10 +116,10 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
               accessibilityRole="button"
               accessibilityLabel="Sicher abmelden"
               onPress={() => void signOut()}
-              style={({ pressed }) => [styles.railLogout, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.railLogout, kind === 'client' && styles.clientRailLogout, pressed && styles.pressed]}
             >
               <LiquidGlyph glyph="↪" size={19} />
-              <Text style={styles.railLabel}>Abmelden</Text>
+              <Text style={[styles.railLabel, kind === 'client' && styles.clientRailLabel]}>Abmelden</Text>
             </Pressable>
           </View>
         ) : null}
@@ -133,6 +136,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
             <View style={styles.identity}>
               {layout.isDesktop ? (
                 <>
+                  {kind === 'client' ? <PortalTextSizeControls /> : null}
                   <View style={styles.identityCopy}>
                     <Text numberOfLines={1} style={styles.identityName}>{displayName}</Text>
                     <Text style={styles.identityRole}>Sicher angemeldet</Text>
@@ -141,6 +145,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 </>
               ) : (
                 <>
+                  {kind === 'client' ? <PortalTextSizeControls compact /> : null}
                   <LiquidIconButton
                     label="Nachrichten"
                     glyph="♧"
@@ -152,13 +157,15 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                           : '/portal/relative/messages' as never,
                     )}
                   />
-                  <LiquidIconButton
-                    label={profileRoute ? 'Profil' : 'Abmelden'}
-                    glyph="♙"
-                    onPress={() => profileRoute
-                      ? router.replace(profileRoute as never)
-                      : void signOut()}
-                  />
+                  {kind !== 'client' ? (
+                    <LiquidIconButton
+                      label={profileRoute ? 'Profil' : 'Abmelden'}
+                      glyph="♙"
+                      onPress={() => profileRoute
+                        ? router.replace(profileRoute as never)
+                        : void signOut()}
+                    />
+                  ) : null}
                 </>
               )}
             </View>
@@ -248,6 +255,12 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   contentContainerStyle={styles.moreGrid}
                   showsVerticalScrollIndicator={false}
                 >
+                  {kind === 'client' ? (
+                    <View style={styles.moreAccessibility}>
+                      <Text style={styles.moreAccessibilityLabel}>LESBARKEIT & ZOOM</Text>
+                      <PortalTextSizeControls />
+                    </View>
+                  ) : null}
                   {moreNavigation.map((item) => (
                     <Pressable
                       key={item.id}
@@ -328,6 +341,11 @@ const styles = StyleSheet.create({
     gap: 18,
     zIndex: liquidLayers.dock,
   },
+  clientRail: {
+    width: 214,
+    paddingHorizontal: 12,
+    alignItems: 'stretch',
+  },
   railItems: {
     gap: 6,
     paddingBottom: 20,
@@ -341,6 +359,15 @@ const styles = StyleSheet.create({
     borderRadius: liquidRadius.control,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 11,
+  },
+  clientRailItem: {
+    width: '100%',
+    minHeight: 50,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
     gap: 11,
   },
   railItemActive: {
@@ -359,6 +386,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 11,
   },
+  clientRailLogout: {
+    width: '100%',
+    minHeight: 50,
+    paddingHorizontal: 13,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    gap: 11,
+  },
   railGlyph: {
     color: liquidColors.blue200,
     fontSize: 19,
@@ -367,9 +402,15 @@ const styles = StyleSheet.create({
   railLabel: {
     flex: 1,
     color: liquidColors.white72,
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: webScaledFontMetric(13),
+    lineHeight: webScaledFontMetric(17),
     fontWeight: '700',
+    textAlign: 'left',
+  },
+  clientRailLabel: {
+    flexShrink: 1,
+    fontSize: webScaledFontMetric(13),
+    lineHeight: webScaledFontMetric(18),
     textAlign: 'left',
   },
   main: {
@@ -392,8 +433,8 @@ const styles = StyleSheet.create({
   },
   portalKicker: {
     color: liquidColors.blue200,
-    fontSize: 10,
-    lineHeight: 13,
+    fontSize: webScaledFontMetric(10),
+    lineHeight: webScaledFontMetric(13),
     fontWeight: '800',
     letterSpacing: 1,
   },
@@ -420,14 +461,14 @@ const styles = StyleSheet.create({
   identityName: {
     maxWidth: 180,
     color: liquidColors.white,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: webScaledFontMetric(12),
+    lineHeight: webScaledFontMetric(16),
     fontWeight: '700',
   },
   identityRole: {
     color: liquidColors.white56,
-    fontSize: 10,
-    lineHeight: 13,
+    fontSize: webScaledFontMetric(10),
+    lineHeight: webScaledFontMetric(13),
   },
   contentFrame: {
     flex: 1,
@@ -486,8 +527,8 @@ const styles = StyleSheet.create({
   },
   bottomLabel: {
     color: liquidColors.white56,
-    fontSize: 9,
-    lineHeight: 12,
+    fontSize: webScaledFontMetric(9),
+    lineHeight: webScaledFontMetric(12),
     fontWeight: '600',
   },
   bottomLabelActive: {
@@ -519,20 +560,34 @@ const styles = StyleSheet.create({
   },
   moreKicker: {
     color: liquidColors.blue200,
-    fontSize: 10,
-    lineHeight: 13,
+    fontSize: webScaledFontMetric(10),
+    lineHeight: webScaledFontMetric(13),
     fontWeight: '800',
     letterSpacing: 1,
   },
   moreTitle: {
     marginTop: 2,
     color: liquidColors.white,
-    fontSize: 20,
-    lineHeight: 25,
+    fontSize: webScaledFontMetric(20),
+    lineHeight: webScaledFontMetric(25),
     fontWeight: '800',
   },
   moreGrid: {
     gap: 7,
+  },
+  moreAccessibility: {
+    marginBottom: 8,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: liquidColors.white12,
+    gap: 7,
+  },
+  moreAccessibilityLabel: {
+    color: liquidColors.blue200,
+    fontSize: webScaledFontMetric(10),
+    lineHeight: webScaledFontMetric(13),
+    fontWeight: '800',
+    letterSpacing: 1,
   },
   moreItem: {
     minHeight: 50,
@@ -557,13 +612,13 @@ const styles = StyleSheet.create({
   moreLabel: {
     flex: 1,
     color: liquidColors.white,
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: webScaledFontMetric(14),
+    lineHeight: webScaledFontMetric(18),
     fontWeight: '700',
   },
   moreArrow: {
     color: liquidColors.blue200,
-    fontSize: 22,
-    lineHeight: 24,
+    fontSize: webScaledFontMetric(22),
+    lineHeight: webScaledFontMetric(24),
   },
 });
