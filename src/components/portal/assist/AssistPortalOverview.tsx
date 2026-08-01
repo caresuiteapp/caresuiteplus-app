@@ -1,24 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AssistPortalShell } from '@/components/portal/assist/AssistPortalShell';
+import { ClientPortalHomeDashboard } from '@/components/portal/assist/ClientPortalHomeDashboard';
 import { MobilePortalDashboard } from '@/components/portal/assist/MobilePortalDashboard';
 import { PortalActivitiesModal } from '@/components/portal/assist/PortalActivitiesModal';
 import { PortalDocumentUploadModal } from '@/components/portal/assist/PortalDocumentUploadModal';
-import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { PortalOpenRequestsModal } from '@/components/portal/assist/PortalOpenRequestsModal';
 import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequestFormModal';
-import { PortalKpiCard } from '@/components/portal/assist/PortalKpiCard';
-import { PortalNextAppointmentHero } from '@/components/portal/assist/PortalNextAppointmentHero';
-import { PortalQuickActions, type PortalQuickAction } from '@/components/portal/assist/PortalQuickActions';
 import { PortalServiceProofsModal } from '@/components/portal/assist/PortalServiceProofsModal';
-import { GlassCard } from '@/design/components/GlassCard';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
-import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
-import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { usePortalAssistRealtime } from '@/hooks/usePortalAssistRealtime';
 import {
@@ -29,18 +21,12 @@ import {
   resolvePortalRequestTypeLabel,
   serializePortalRequestPayload,
 } from '@/lib/portal/assist';
-import {
-  canAccessPortalFeature,
-  resolvePortalHeroCopy,
-  resolvePortalTerminology,
-} from '@/lib/portal/engine';
-import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
+import { canAccessPortalFeature } from '@/lib/portal/engine';
 import type { PortalContext } from '@/lib/portal/types';
 import type { AssistDashboardData, PortalRequestType } from '@/types/portal/assist';
 import type { PortalStructuredRequestPayload } from '@/types/portal/requestPayloads';
 import { ErrorState, LoadingState, SuccessState } from '@/components/ui';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
-import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 
 type AssistOverviewModal = 'anfragen' | 'aktivitaeten';
 
@@ -86,22 +72,8 @@ function AssistPortalOverviewDesktop({
   onRefresh,
   initialModal = null,
 }: AssistPortalOverviewProps) {
-  const { width } = useDeviceClass();
-  const text = useAuroraAdaptiveText();
-  const type = resolveGalaxyTypography(width);
-  const insets = useSafeAreaInsets();
-  const { showBottomTabs } = usePlatformLayout();
   const router = useRouter();
   const params = useLocalSearchParams<{ modal?: string; action?: string }>();
-  const contentPadding = useMemo(
-    () => ({
-      paddingHorizontal: careSpacing.md,
-      paddingBottom: showBottomTabs
-        ? PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm)
-        : careSpacing.xl + insets.bottom,
-    }),
-    [insets.bottom, showBottomTabs],
-  );
   const { actorId } = usePortalActor();
 
   const [dashboard, setDashboard] = useState<AssistDashboardData | null>(null);
@@ -116,32 +88,11 @@ function AssistPortalOverviewDesktop({
   const [localSuccess, setLocalSuccess] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  const terminology = resolvePortalTerminology('assist');
-  const heroCopy = resolvePortalHeroCopy({
-    displayName: context.displayName,
-    tenantName: context.tenantName,
-    terminology,
-    isPhone: false,
-  });
   const tripsReleased = canAccessPortalFeature(context, 'assist', 'trips');
   const budgetReleased = canAccessPortalFeature(context, 'assist', 'budget');
   const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
   const requestsReleased = canAccessPortalFeature(context, 'assist', 'anfragen');
   const activitiesReleased = canAccessPortalFeature(context, 'assist', 'aktivitaeten');
-
-  const quickActions = useMemo(() => {
-    const actions: PortalQuickAction[] = [
-      { key: 'nav_messages', label: 'Nachricht', icon: '💬' },
-      { key: 'termin_aendern', label: 'Einsatzänderung', icon: '📅' },
-      { key: 'zusatztermin', label: 'Zusatzeinsatz', icon: '➕' },
-      { key: 'upload', label: 'Upload', icon: '📎' },
-      { key: 'rueckruf', label: 'Rückruf', icon: '📞' },
-    ];
-    if (proofsReleased) {
-      actions.push({ key: 'nachweise', label: 'Nachweise', icon: '📋' });
-    }
-    return actions;
-  }, [proofsReleased]);
 
   const clearModalRoute = useCallback(() => {
     if (params.modal) {
@@ -264,26 +215,6 @@ function AssistPortalOverviewDesktop({
     }
   };
 
-  const handleQuickAction = (action: PortalQuickAction) => {
-    if (action.key === 'nav_messages') {
-      router.push('/portal/client/messages' as never);
-      return;
-    }
-    if (action.key === 'nav_documents') {
-      router.push('/portal/client/documents' as never);
-      return;
-    }
-    if (action.key === 'upload') {
-      setUploadModalOpen(true);
-      return;
-    }
-    if (action.key === 'nachweise') {
-      setProofsModalOpen(true);
-      return;
-    }
-    setRequestModal(action.key as PortalRequestType);
-  };
-
   if (loading && !dashboard) {
     return <LoadingState message="Klient:innenportal wird geladen…" />;
   }
@@ -296,11 +227,7 @@ function AssistPortalOverviewDesktop({
 
   return (
     <AssistPortalShell>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.container, contentPadding]}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.container}>
         {showSuccess || localSuccess ? (
           <SuccessState message="Ihre Anfrage wurde übermittelt." />
         ) : null}
@@ -308,124 +235,23 @@ function AssistPortalOverviewDesktop({
           <SuccessState message="Dokument wurde hochgeladen und zur Prüfung gesendet." />
         ) : null}
 
-        <PortalGlassHero
-          eyebrow={heroCopy.eyebrow}
-          title={heroCopy.title}
-          subtitle={heroCopy.subtitle}
-          meta={heroCopy.meta}
-          badge={heroCopy.badge}
-        />
-
-        <ClientPortalGuide
-          compact
-          title="Schön, dass Sie da sind"
-          message="Hier sehen Sie das Wichtigste auf einen Blick. Für größere Schrift nutzen Sie jederzeit aA oben in der Leiste."
-        />
-
-        <PortalNextAppointmentHero
-          appointment={data.nextAppointment}
+        <ClientPortalHomeDashboard
+          context={context}
+          data={data}
+          tripsReleased={tripsReleased}
+          budgetReleased={budgetReleased}
+          proofsReleased={proofsReleased}
+          requestsReleased={requestsReleased}
+          activitiesReleased={activitiesReleased}
           onRequestChange={() => setRequestModal('termin_aendern')}
-          onRequestExtra={() => setRequestModal('zusatztermin')}
+          onRequestExtra={openZusatzterminRequest}
+          onUpload={() => setUploadModalOpen(true)}
+          onProofs={() => setProofsModalOpen(true)}
+          onOpenRequests={openRequestsModal}
+          onOpenActivities={openActivitiesModal}
+          onRequestCallback={() => setRequestModal('rueckruf')}
         />
-
-        <View style={styles.kpiGrid}>
-          <PortalKpiCard
-            label="Einsätze"
-            description="Anstehend"
-            value={data.kpis.appointments}
-            emptyMessage="Keine Einsätze geplant."
-            ctaLabel="Zusatzeinsatz"
-            onCta={() => setRequestModal('zusatztermin')}
-            onPress={() => router.push('/portal/client/appointments' as never)}
-          />
-          <PortalKpiCard
-            label="Nachrichten"
-            description="Neue Nachrichten"
-            value={data.kpis.messages}
-            emptyMessage="Noch keine Nachrichten."
-            ctaLabel="Verwaltung anschreiben"
-            onCta={() => router.push('/portal/client/messages?compose=1' as never)}
-            onPress={() => router.push('/portal/client/messages' as never)}
-          />
-          <PortalKpiCard
-            label="Dokumente"
-            description="Freigegeben"
-            value={data.kpis.documents}
-            emptyMessage="Noch keine Dokumente."
-            ctaLabel="Dokument hochladen"
-            onCta={() => setUploadModalOpen(true)}
-            onPress={() => router.push('/portal/client/documents' as never)}
-          />
-          <PortalKpiCard
-            label="Nachweise"
-            description="Offen"
-            value={data.kpis.proofs}
-            emptyMessage="Keine Nachweise offen."
-            ctaLabel="Nachweise anzeigen"
-            onCta={() => router.push('/portal/client/proofs' as never)}
-            onPress={() => router.push('/portal/client/proofs' as never)}
-          />
-          <PortalKpiCard
-            label="Unterschriften"
-            description="Ausstehend"
-            value={data.kpis.signatures}
-            emptyMessage="Keine Unterschriften ausstehend."
-            onPress={() => router.push('/portal/client/documents/signatures' as never)}
-          />
-          {budgetReleased ? (
-            <PortalKpiCard
-              label="Budget"
-              description="Verfügbarer Betrag"
-              value={data.budget ? data.budget.remainingAmount : null}
-              emptyMessage="Budget noch nicht freigegeben."
-            />
-          ) : null}
-          <PortalKpiCard
-            label="Anfragen"
-            description="Offen"
-            value={data.kpis.openRequests}
-            emptyMessage="Keine offenen Anfragen."
-            ctaLabel="Anfrage stellen"
-            onCta={openZusatzterminRequest}
-            onPress={openRequestsModal}
-            hidden={!requestsReleased}
-          />
-          <PortalKpiCard
-            label="Aktivitäten"
-            description="Neu"
-            value={data.kpis.activities}
-            emptyMessage="Noch keine Aktivitäten."
-            onPress={openActivitiesModal}
-            hidden={!activitiesReleased}
-          />
-          <PortalKpiCard
-            label="Begleitungen"
-            description="Geplant"
-            value={data.kpis.begleitungen}
-            emptyMessage="Keine Begleitungen geplant."
-            hidden={!tripsReleased || !data.kpis.begleitungen}
-            onPress={() => router.push('/portal/client?module=assist&section=begleitungen' as never)}
-          />
-        </View>
-
-        <PortalQuickActions onAction={handleQuickAction} actions={quickActions} />
-
-        {budgetReleased && data.budget ? (
-          <GlassCard glow accentColor="#FFD166">
-            <Text style={[type.caption, { color: text.muted }]}>ENTLASTUNGSBUDGET</Text>
-            <Text style={[type.cardTitle, { color: text.primary }]}>
-              {data.budget.remainingAmount.toLocaleString('de-DE', {
-                style: 'currency',
-                currency: data.budget.currency,
-              })}{' '}
-              verfügbar
-            </Text>
-            <Text style={[type.caption, { color: text.secondary }]}>
-              Verfügbarer Betrag für den Zeitraum {data.budget.periodStart} – {data.budget.periodEnd}
-            </Text>
-          </GlassCard>
-        ) : null}
-      </ScrollView>
+      </View>
 
       <PortalDocumentUploadModal
         visible={uploadModalOpen}
@@ -487,18 +313,10 @@ function AssistPortalOverviewDesktop({
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-  },
   container: {
     gap: careSpacing.md,
     width: '100%',
     maxWidth: '100%',
-  },
-  kpiGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: careSpacing.sm,
-    width: '100%',
+    paddingHorizontal: careSpacing.md,
   },
 });

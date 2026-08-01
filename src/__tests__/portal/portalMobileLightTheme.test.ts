@@ -12,7 +12,6 @@ function readSrc(relativePath: string): string {
 const PORTAL_MOBILE_LIGHT_SURFACES = [
   'src/components/portal/assist/PortalGlassHero.tsx',
   'src/components/portal/assist/MobilePortalKpiCard.tsx',
-  'src/components/portal/assist/PortalNextAppointmentHero.tsx',
   'src/components/portal/assist/MobilePortalSidebarCards.tsx',
 ] as const;
 
@@ -36,10 +35,13 @@ describe('portal mobile light theme surfaces', () => {
     expect(src).not.toMatch(/card:\s*\{[^}]*backgroundColor:\s*'rgba\(20,27,40/);
   });
 
-  it('PortalNextAppointmentHero gates cardPhoneDark behind !useLightGlass', () => {
+  it('premium client home and appointment use fixed high-contrast light surfaces', () => {
+    const home = readSrc('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
     const src = readSrc('src/components/portal/assist/PortalNextAppointmentHero.tsx');
-    expect(src).toContain('cardPhoneDark');
-    expect(src).toMatch(/!useLightGlass.*cardPhoneDark|cardPhoneDark.*!useLightGlass/s);
+    expect(home).toContain("colors={['#FFFFFF', '#EDF6FF', '#D9ECFF']}");
+    expect(home).toContain("primary: '#061B35'");
+    expect(src).toContain("colors={['#FFFFFF', '#F4F9FF', '#E5F1FF']}");
+    expect(src).toContain("color: '#061B35'");
   });
 
   it('MobilePortalSidebarCards avoids bare auroraGlass chip in StyleSheet', () => {
@@ -56,10 +58,11 @@ describe('portal mobile light theme surfaces', () => {
     expect(src).not.toMatch(/profileChip:[\s\S]*auroraGlass\.chip/);
   });
 
-  it('profile/messages/dashboard routes use PortalGlassHero (fixed shared hero)', () => {
+  it('profile and messages keep PortalGlassHero while dashboard uses premium home hero', () => {
     expect(readSrc('src/screens/portal/ClientPortalProfileScreen.tsx')).toContain('PortalGlassHero');
     expect(readSrc('src/screens/portal/portalofficemessagesscreens.tsx')).toContain('PortalGlassHero');
-    expect(readSrc('src/components/portal/assist/MobilePortalDashboard.tsx')).toContain('PortalGlassHero');
+    expect(readSrc('src/components/portal/assist/MobilePortalDashboard.tsx')).toContain('ClientPortalHomeDashboard');
+    expect(readSrc('src/components/portal/assist/ClientPortalHomeDashboard.tsx')).toContain('client-portal-premium-home-hero');
   });
 
   it('Termine tab hero uses adaptive text via PremiumListHeroFrame', () => {

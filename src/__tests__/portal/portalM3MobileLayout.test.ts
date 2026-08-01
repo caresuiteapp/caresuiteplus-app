@@ -109,10 +109,12 @@ describe('portal M.3 mobile layout', () => {
 
   it('MobilePortalDashboard uses shell scroll surface only', () => {
     const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');
+    const home = readSrc('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
     expect(mobile).not.toContain('ScrollView');
     expect(mobile).not.toContain('PORTAL_MOBILE_NAV_HEIGHT');
-    expect(mobile).toContain('Auf einen Blick');
-    expect(mobile).toContain('resolveClientPortalHeroLines');
+    expect(mobile).toContain('ClientPortalHomeDashboard');
+    expect(home).toContain('resolveClientPortalHeroLines');
+    expect(home).toContain('Ihre Bereiche');
   });
 
   it('removes Portal-Sicht placeholder badges from portal heroes', () => {

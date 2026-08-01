@@ -75,8 +75,8 @@ describe('Portal Verwaltung messaging', () => {
   });
 
   it('overview KPI deep-links to compose modal', () => {
-    const overview = readSrc('src/components/portal/assist/AssistPortalOverview.tsx');
-    expect(overview).toContain("'/portal/client/messages?compose=1'");
+    const home = readSrc('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
+    expect(home).toContain("'/portal/client/messages?compose=1'");
   });
 
   it('employee portal inbox shows group badge labels', () => {

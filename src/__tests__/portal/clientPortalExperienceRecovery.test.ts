@@ -18,10 +18,10 @@ describe('client portal experience recovery', () => {
   });
 
   it('opens the complete document list from the mobile dashboard', () => {
-    const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');
-    const documentBlock = mobile.slice(
-      mobile.indexOf('label="Dokumente"'),
-      mobile.indexOf('label="Nachweise"'),
+    const home = readSrc('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
+    const documentBlock = home.slice(
+      home.indexOf('title="Dokumente"'),
+      home.indexOf('title="Unterschriften"'),
     );
     expect(documentBlock).toContain("router.push('/portal/client/documents'");
     expect(documentBlock).not.toContain('/documents/signatures');

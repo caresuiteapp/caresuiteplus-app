@@ -79,12 +79,13 @@ describe('resolvePortalHeroCopy', () => {
 });
 
 describe('Assist portal mobile layout', () => {
-  it('MobilePortalDashboard uses the shared personalized greeting on phone', () => {
+  it('MobilePortalDashboard uses the shared premium home on phone', () => {
     const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');
-    expect(mobile).toContain('resolveClientPortalHeroLines');
-    expect(mobile).toContain('titleSecondary={heroLines.nameLine}');
-    expect(mobile).toContain('showStatusDot');
-    expect(mobile).not.toContain('resolvePortalHeroCopy');
+    const home = readSrc('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
+    expect(mobile).toContain('ClientPortalHomeDashboard');
+    expect(home).toContain('resolveClientPortalHeroLines');
+    expect(home).toContain('client-portal-premium-home-hero');
+    expect(home).toContain('CareSuite Portalbegleiter');
     expect(mobile).not.toContain('ScrollView');
   });
   it('client portal tabs layout delegates shell to root layout', () => {
@@ -97,8 +98,8 @@ describe('Assist portal mobile layout', () => {
     const overview = readSrc('src/components/portal/assist/AssistPortalOverview.tsx');
     expect(overview).toContain('MobilePortalDashboard');
     expect(overview).toContain('if (isPhone)');
-    expect(overview).toContain('isPhone: false');
-    expect(overview).toContain('PortalKpiCard');
+    expect(overview).toContain('ClientPortalHomeDashboard');
+    expect(overview).not.toContain('PortalKpiCard');
   });
 
   it('MobilePortalDashboard uses single scroll surface via portal shell', () => {
@@ -107,10 +108,9 @@ describe('Assist portal mobile layout', () => {
     expect(mobile).not.toContain('PORTAL_MOBILE_NAV_HEIGHT');
     expect(mobile).not.toContain('ScrollView');
     expect(mobile).toContain("width: '100%'");
-    expect(mobile).toContain('MobilePortalKpiCard');
-    expect(mobile).toContain('MobilePortalSidebarCards');
-    expect(mobile).toContain('emptyActionLabel="Einsatz anfragen"');
-    expect(mobile).toContain('Auf einen Blick');
+    expect(mobile).toContain('ClientPortalHomeDashboard');
+    expect(mobile).not.toContain('MobilePortalKpiCard');
+    expect(mobile).not.toContain('MobilePortalSidebarCards');
     expect(mobile).not.toContain('PortalQuickActions');
   });
 
@@ -144,7 +144,8 @@ describe('Assist portal mobile layout', () => {
     const hero = readSrc('src/components/portal/assist/PortalNextAppointmentHero.tsx');
     expect(hero).toContain('emptyActionLabel');
     expect(hero).toContain('actionsPhone');
-    expect(hero).toContain('minHeight: 44');
+    expect(hero).toContain('minHeight: 46');
+    expect(hero).toContain('IHR NÄCHSTER EINSATZ');
   });
 
   it('portal mobile nav uses five fixed tabs without overflow menu', () => {

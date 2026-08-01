@@ -66,9 +66,9 @@ describe('realtime wiring', () => {
   });
 
   it('Office- und Portal-Messaging nutzen bestehende Realtime-Hooks', () => {
-    expect(readSrc('src/hooks/useOfficeMessageThreads.ts')).toContain('subscribeToOfficeMessageInbox');
-    expect(readSrc('src/hooks/usePortalOfficeMessages.ts')).toContain('subscribeToOfficeMessageInbox');
-    expect(readSrc('src/hooks/useOfficeMessageThreadDetail.ts')).toContain('subscribeToOfficeMessageThread');
+    expect(readSrc('src/hooks/useofficemessagethreads.ts')).toContain('subscribeToOfficeMessageInbox');
+    expect(readSrc('src/hooks/useportalofficemessages.ts')).toContain('subscribeToOfficeMessageInbox');
+    expect(readSrc('src/hooks/useofficemessagethreaddetail.ts')).toContain('subscribeToOfficeMessageThread');
   });
 
   it('useEmployeeList nutzt useAsyncQuery live mit Employee-Liste', () => {

@@ -1,19 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AssistPortalShell } from '@/components/portal/assist/AssistPortalShell';
-import { MobilePortalKpiCard } from '@/components/portal/assist/MobilePortalKpiCard';
-import { MobilePortalSidebarCards } from '@/components/portal/assist/MobilePortalSidebarCards';
+import { ClientPortalHomeDashboard } from '@/components/portal/assist/ClientPortalHomeDashboard';
 import { PortalActivitiesModal } from '@/components/portal/assist/PortalActivitiesModal';
 import { PortalDocumentUploadModal } from '@/components/portal/assist/PortalDocumentUploadModal';
-import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
-import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
-import { PortalNextAppointmentHero } from '@/components/portal/assist/PortalNextAppointmentHero';
 import { PortalOpenRequestsModal } from '@/components/portal/assist/PortalOpenRequestsModal';
 import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequestFormModal';
 import { PortalServiceProofsModal } from '@/components/portal/assist/PortalServiceProofsModal';
 import { careSpacing } from '@/design/tokens/spacing';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { usePortalAssistRealtime } from '@/hooks/usePortalAssistRealtime';
 import {
@@ -24,11 +19,7 @@ import {
   resolvePortalRequestTypeLabel,
   serializePortalRequestPayload,
 } from '@/lib/portal/assist';
-import { resolveClientPortalHeroLines } from '@/lib/portal/clientPortalGreeting';
-import {
-  canAccessPortalFeature,
-  resolvePortalTerminology,
-} from '@/lib/portal/engine';
+import { canAccessPortalFeature } from '@/lib/portal/engine';
 import type { PortalContext } from '@/lib/portal/types';
 import type { AssistDashboardData, PortalRequestType } from '@/types/portal/assist';
 import type { PortalStructuredRequestPayload } from '@/types/portal/requestPayloads';
@@ -67,14 +58,9 @@ export function MobilePortalDashboard({
   const [localSuccess, setLocalSuccess] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  const terminology = resolvePortalTerminology('assist');
-  const text = useAuroraAdaptiveText();
-  const heroLines = resolveClientPortalHeroLines({
-    displayName: context.displayName,
-    tenantName: context.tenantName,
-    moduleLabel: terminology.moduleLabel,
-  });
   const tripsReleased = canAccessPortalFeature(context, 'assist', 'trips');
+  const budgetReleased = canAccessPortalFeature(context, 'assist', 'budget');
+  const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
   const requestsReleased = canAccessPortalFeature(context, 'assist', 'anfragen');
   const activitiesReleased = canAccessPortalFeature(context, 'assist', 'aktivitaeten');
 
@@ -225,122 +211,22 @@ export function MobilePortalDashboard({
           <SuccessState message="Dokument wurde hochgeladen und zur Prüfung gesendet." />
         ) : null}
 
-        <PortalGlassHero
-          title={`${heroLines.greetingLine},`}
-          titleSecondary={heroLines.nameLine}
-          subtitle={heroLines.providerLine}
-          meta={terminology.personLabel}
-          badge={terminology.moduleLabel}
-          showStatusDot
-        />
-
-        <ClientPortalGuide
-          compact
-          title="Schön, dass Sie da sind"
-          message="Hier sehen Sie das Wichtigste. Über aA oben können Sie die Schrift vergrößern."
-        />
-
-        <PortalNextAppointmentHero
-          appointment={data.nextAppointment}
+        <ClientPortalHomeDashboard
+          context={context}
+          data={data}
+          tripsReleased={tripsReleased}
+          budgetReleased={budgetReleased}
+          proofsReleased={proofsReleased}
+          requestsReleased={requestsReleased}
+          activitiesReleased={activitiesReleased}
           onRequestChange={() => setRequestModal('termin_aendern')}
-          onRequestExtra={() => setRequestModal('zusatztermin')}
-          emptyActionLabel="Einsatz anfragen"
+          onRequestExtra={openZusatzterminRequest}
+          onUpload={() => setUploadModalOpen(true)}
+          onProofs={() => setProofsModalOpen(true)}
+          onOpenRequests={openRequestsModal}
+          onOpenActivities={openActivitiesModal}
+          onRequestCallback={() => setRequestModal('rueckruf')}
         />
-
-        <Text style={[styles.sectionLabel, { color: text.primary }]}>Auf einen Blick</Text>
-        <View style={styles.priorityGrid}>
-          <MobilePortalKpiCard
-            icon="💬"
-            label="Nachrichten"
-            value={data.kpis.messages}
-            emptyMessage="Keine neuen Nachrichten."
-            ctaLabel="Nachrichten öffnen →"
-            accentColor="#7B61FF"
-            onCta={() => router.push('/portal/client/messages' as never)}
-            onPress={() => router.push('/portal/client/messages' as never)}
-          />
-          <MobilePortalKpiCard
-            icon="📄"
-            label="Dokumente"
-            value={data.kpis.documents}
-            emptyMessage="Keine neuen Dokumente."
-            ctaLabel="Dokumente öffnen →"
-            accentColor="#FF9500"
-            onCta={() => router.push('/portal/client/documents' as never)}
-            onPress={() => router.push('/portal/client/documents' as never)}
-          />
-          <MobilePortalKpiCard
-            icon="📋"
-            label="Nachweise"
-            value={data.kpis.proofs}
-            emptyMessage="Keine Nachweise offen."
-            ctaLabel="Nachweise anzeigen →"
-            accentColor="#2DD4BF"
-            onCta={() => router.push('/portal/client/proofs' as never)}
-            onPress={() => router.push('/portal/client/proofs' as never)}
-          />
-        </View>
-
-        <Text style={[styles.sectionLabel, { color: text.primary }]}>Weitere Angebote</Text>
-        <View style={styles.kpiGrid}>
-          <MobilePortalKpiCard
-            icon="📅"
-            label="Einsätze"
-            value={data.kpis.appointments}
-            emptyMessage="Keine Einsätze geplant."
-            ctaLabel="Einsatz anfragen →"
-            accentColor="#4CC9F0"
-            onCta={() => setRequestModal('zusatztermin')}
-            onPress={() => router.push('/portal/client/appointments' as never)}
-          />
-          <MobilePortalKpiCard
-            icon="✍️"
-            label="Unterschriften"
-            value={data.kpis.signatures}
-            emptyMessage="Keine Unterschriften ausstehend."
-            ctaLabel="Anzeigen →"
-            accentColor="#F472B6"
-            onCta={() => router.push('/portal/client/documents/signatures' as never)}
-            onPress={() => router.push('/portal/client/documents/signatures' as never)}
-          />
-          <MobilePortalKpiCard
-            icon="📨"
-            label="Anfragen"
-            value={data.kpis.openRequests}
-            emptyMessage="Keine offenen Anfragen."
-            metricSubtitle="Offene Anfrage"
-            ctaLabel="Anzeigen →"
-            accentColor="#FFD166"
-            onCta={openRequestsModal}
-            onPress={openRequestsModal}
-            hidden={!requestsReleased}
-          />
-          <MobilePortalKpiCard
-            icon="📰"
-            label="Aktivitäten"
-            value={data.kpis.activities}
-            emptyMessage="Noch keine Aktivitäten."
-            metricSubtitle="Letzte 30 Tage"
-            ctaLabel="Anzeigen →"
-            accentColor="#60A5FA"
-            onCta={openActivitiesModal}
-            onPress={openActivitiesModal}
-            hidden={!activitiesReleased}
-          />
-          <MobilePortalKpiCard
-            icon="🚗"
-            label="Begleitungen"
-            value={data.kpis.begleitungen}
-            emptyMessage="Keine Begleitungen geplant."
-            ctaLabel="Mehr erfahren →"
-            accentColor="#34D399"
-            hidden={!tripsReleased || !data.kpis.begleitungen}
-            onCta={() => router.push('/portal/client?module=assist&section=begleitungen' as never)}
-            onPress={() => router.push('/portal/client?module=assist&section=begleitungen' as never)}
-          />
-        </View>
-
-        <MobilePortalSidebarCards />
       </View>
 
       <PortalDocumentUploadModal
@@ -407,25 +293,5 @@ const styles = StyleSheet.create({
     gap: careSpacing.lg,
     width: '100%',
     maxWidth: '100%',
-  },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    opacity: 0.85,
-  },
-  priorityGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: careSpacing.sm,
-    width: '100%',
-    justifyContent: 'space-between',
-  },
-  kpiGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: careSpacing.xs,
-    width: '100%',
-    justifyContent: 'space-between',
   },
 });
