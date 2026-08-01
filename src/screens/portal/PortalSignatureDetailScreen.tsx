@@ -9,6 +9,7 @@ import { ErrorState, LoadingState } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePortalSignatureDetail } from '@/hooks/usePortalSignatureDetail';
 import { spacing } from '@/theme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 export function PortalSignatureDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -61,6 +62,6 @@ export function PortalSignatureDetailScreen() {
 const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xxl },
   content: { gap: spacing.md, paddingHorizontal: spacing.md },
-  heroTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  heroSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 4 },
+  heroTitle: { fontSize: 22, fontWeight: '800', color: portalPremium.text.primary },
+  heroSubtitle: { fontSize: 14, color: portalPremium.text.secondary, marginTop: 4 },
 });

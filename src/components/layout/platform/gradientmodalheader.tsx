@@ -22,6 +22,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 
 export type GradientModalHeaderProps = {
   title: string;
@@ -38,14 +39,15 @@ export function GradientModalHeader({
   onClose,
   actions,
 }: GradientModalHeaderProps) {
+  const portalTheme = usePortalPremiumTheme();
   const { isLight } = useLegacyTheme();
   const auroraActive = useAuroraGlassActive();
   const shellHostsAurora = useShellHostsAurora();
-  const auroraHeader = auroraActive && shellHostsAurora;
-  const plainLightHeader = isLight && !auroraHeader;
+  const auroraHeader = !portalTheme.active && auroraActive && shellHostsAurora;
+  const plainLightHeader = portalTheme.active || (isLight && !auroraHeader);
   const text = useAuroraAdaptiveText();
   const headerGlass = useShellGlassSurfaceStyle('modal', { viewContext: 'form' });
-  const shellMode = isLight ? 'light' : 'dark';
+  const shellMode = portalTheme.active || isLight ? 'light' : 'dark';
   const shellColors = resolvePopupShellColors(shellMode);
 
   const headerColors = auroraHeader || !plainLightHeader

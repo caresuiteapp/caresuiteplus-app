@@ -1,6 +1,6 @@
 import { Linking, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumButton } from '@/components/ui';
-import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -20,7 +20,7 @@ type PhoneActionRowProps = {
 };
 
 export function PhoneActionRow({ label, value, icon = '📞' }: PhoneActionRowProps) {
-  const text = darkGlassSurfaceText;
+  const text = useAuroraAdaptiveText();
 
   return (
     <Pressable

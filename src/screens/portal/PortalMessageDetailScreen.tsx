@@ -16,7 +16,7 @@ import { usePortalMessageDetail } from '@/hooks/usePortalMessageDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
-import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 export function PortalMessageDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -133,19 +133,21 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: spatialCare.border,
-    backgroundColor: spatialCare.panelMuted,
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceRaised,
   },
   body: {
     ...typography.body,
     lineHeight: 22,
-    color: spatialCare.textOnNight,
+    color: portalPremium.text.primary,
   },
   replyBox: {
     gap: spacing.sm,
     padding: spacing.sm,
     borderRadius: 18,
-    backgroundColor: spatialCare.stageStrong,
+    borderWidth: 1,
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceSoft,
   },
   error: {
     ...typography.caption,

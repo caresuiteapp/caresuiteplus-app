@@ -3,7 +3,6 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
-import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import {
   EmptyState,
   ErrorState,
@@ -24,6 +23,7 @@ import {
   type EmployeePortalUploadContext,
 } from '@/lib/portal/employeePortalUploadService';
 import { isDemoMode } from '@/lib/supabase/config';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 async function readPickedFile(asset: DocumentPicker.DocumentPickerAsset) {
   const fileName = asset.name ?? 'dokument';
@@ -217,11 +217,11 @@ const styles = StyleSheet.create({
   hint: { ...careTypography.caption, lineHeight: 19 },
   infoCard: {
     padding: careSpacing.md, borderRadius: 16, borderWidth: 1,
-    borderColor: spatialCare.borderGlow, backgroundColor: spatialCare.panelMuted,
+    borderColor: portalPremium.borderStrong, backgroundColor: portalPremium.surfaceSoft,
   },
   form: {
     gap: careSpacing.md, padding: careSpacing.lg, borderRadius: 22, borderWidth: 1,
-    borderColor: spatialCare.border, backgroundColor: spatialCare.stageStrong,
+    borderColor: portalPremium.border, backgroundColor: portalPremium.surfaceRaised,
   },
   sectionTitle: { ...careTypography.bodyStrong, marginTop: careSpacing.sm },
   label: { ...careTypography.caption, fontWeight: '600' },
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
 });
 
 const portalText = {
-  primary: spatialCare.textOnNight,
-  secondary: spatialCare.textOnNightMuted,
-  muted: spatialCare.textOnNightMuted,
+  primary: portalPremium.text.primary,
+  secondary: portalPremium.text.secondary,
+  muted: portalPremium.text.muted,
 } as const;

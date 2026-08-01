@@ -80,10 +80,11 @@ export function PortalNextAppointmentHero({
   const router = useRouter();
   const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
+  const compact = isPhone || width < 760;
   const parts = appointment ? formatAppointmentParts(appointment.startsAt) : null;
 
   return (
-    <View style={[styles.card, isPhone && styles.cardPhone]} testID="client-next-appointment-card">
+    <View style={[styles.card, compact && styles.cardPhone]} testID="client-next-appointment-card">
       <LinearGradient
         colors={['#FFFFFF', '#F4F9FF', '#E5F1FF']}
         start={{ x: 0, y: 0 }}
@@ -103,8 +104,8 @@ export function PortalNextAppointmentHero({
       </View>
 
       {appointment && parts ? (
-        <View style={[styles.appointmentBody, isPhone && styles.appointmentBodyPhone]}>
-          <View style={[styles.dateTile, isPhone && styles.dateTilePhone]}>
+        <View style={[styles.appointmentBody, compact && styles.appointmentBodyPhone]}>
+          <View style={[styles.dateTile, compact && styles.dateTilePhone]}>
             <Text style={styles.dateWeekday}>{parts.weekday}</Text>
             <View style={styles.dateRow}>
               <Text style={styles.dateDay}>{parts.day}</Text>
@@ -126,7 +127,7 @@ export function PortalNextAppointmentHero({
             ) : (
               <Text style={[type.body, styles.location]}>Die Einzelheiten finden Sie in Ihrem Einsatz.</Text>
             )}
-            <View style={[styles.actions, isPhone && styles.actionsPhone]}>
+            <View style={[styles.actions, compact && styles.actionsPhone]}>
               <AppointmentButton
                 icon="arrow-forward-circle-outline"
                 label="Einsatz ansehen"
@@ -144,11 +145,11 @@ export function PortalNextAppointmentHero({
           </View>
         </View>
       ) : (
-        <View style={styles.emptyBody}>
+        <View style={[styles.emptyBody, compact && styles.emptyBodyPhone]}>
           <View style={styles.emptyIcon}>
             <Ionicons name="calendar-outline" color="#075DC7" size={28} />
           </View>
-          <View style={styles.emptyCopy}>
+          <View style={[styles.emptyCopy, compact && styles.emptyCopyPhone]}>
             <Text style={[type.bodyStrong, styles.emptyTitle]}>Aktuell ist kein weiterer Einsatz geplant.</Text>
             <Text style={[type.body, styles.emptyMessage]}>Wenn Sie Unterstützung benötigen, können Sie direkt einen neuen Einsatz anfragen.</Text>
           </View>
@@ -363,6 +364,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: careSpacing.md,
   },
+  emptyBodyPhone: {
+    minHeight: 0,
+    padding: 14,
+    alignItems: 'flex-start',
+  },
   emptyIcon: {
     width: 54,
     height: 54,
@@ -375,6 +381,10 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 210,
     gap: 4,
+  },
+  emptyCopyPhone: {
+    flexBasis: '70%',
+    minWidth: 0,
   },
   emptyTitle: {
     color: '#061B35',

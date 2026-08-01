@@ -47,7 +47,7 @@ function statusVariant(status: string) {
 }
 
 export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppointmentDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -64,11 +64,11 @@ export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppoin
   title: heroText.title,
   meta: {
     ...typography.bodyStrong,
-    color: 'rgba(255,255,255,0.85)',
+    color: heroText.meta.color,
   },
   subtitle: {
     ...typography.caption,
-    color: 'rgba(255,255,255,0.75)',
+    color: heroText.subtitle.color,
   },
   iconBadge: {
     width: iconSize,
@@ -98,7 +98,7 @@ export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppoin
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [colors, typography, heroText.eyebrow, heroText.meta.color, heroText.subtitle.color, heroText.title],
   );
 
 
@@ -156,4 +156,3 @@ export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppoin
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

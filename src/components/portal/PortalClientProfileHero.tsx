@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { PORTAL_CLIENT_LABEL } from '@/lib/portal/portalDisplayLabels';
 import {
@@ -14,22 +15,14 @@ import { getServiceMode } from '@/lib/services/mode';
 
 import type { PortalClientProfile } from '@/types/portal/client';
 import { designTokens, spacing } from '@/theme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 type PortalClientProfileHeroProps = {
   profile: PortalClientProfile;
 };
 
-function formatNextAppointment(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('de-DE', {
-    weekday: 'short',
-    day: '2-digit',
-    month: '2-digit',
-  });
-}
-
 export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -47,11 +40,11 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
     width: iconSize,
     height: iconSize,
     borderRadius: iconSize / 2,
-    backgroundColor: colors.bgElevated,
+    backgroundColor: portalPremium.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(98,243,255,0.35)',
+    borderColor: portalPremium.borderStrong,
   },
   iconText: { fontSize: 22 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
@@ -59,7 +52,7 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
   kpiItem: { flex: 1, minWidth: 100 },
   preparedHint: heroText.meta,
 }),
-    [colors, typography, gradients, heroText.meta],
+    [colors, typography, heroText.meta, heroText.title],
   );
 
 
@@ -72,14 +65,10 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
       <View style={styles.topRow}>
         <View style={styles.textCol}>
           <Text style={styles.title}>{profile.displayName}</Text>
-          <Text style={styles.meta}>
-            {profile.nextAppointmentTitle
-              ? `Nächster Einsatz: ${profile.nextAppointmentTitle}`
-              : 'Ihr persönlicher Portal-Bereich'}
-          </Text>
+          <Text style={styles.meta}>Ihre persönlichen Stammdaten und Versorgungsangaben</Text>
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>🏠</Text>
+          <Ionicons name="person-circle-outline" color={portalPremium.accent.blue} size={27} />
         </View>
       </View>
       <View style={styles.badges}>
@@ -103,16 +92,6 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
             style={styles.kpiItem}
           />
         ))}
-        {profile.nextAppointmentAt ? (
-          <PremiumKpiCard
-            label="Nächster Einsatz"
-            value={formatNextAppointment(profile.nextAppointmentAt)}
-            subValue={profile.nextAppointmentTitle ?? undefined}
-            icon="📅"
-            accentColor={colors.success}
-            style={styles.kpiItem}
-          />
-        ) : null}
       </View>
       {!profileDataLive && !authLive ? (
         <Text style={styles.preparedHint}>{PORTAL_PROFILE_PREPARED_MESSAGE}</Text>
@@ -122,4 +101,3 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

@@ -16,16 +16,17 @@ const PORTAL_MOBILE_LIGHT_SURFACES = [
 ] as const;
 
 describe('portal mobile light theme surfaces', () => {
-  it.each(PORTAL_MOBILE_LIGHT_SURFACES)('%s uses useLightLiquidGlassShell for dark overrides', (file) => {
+  it.each(PORTAL_MOBILE_LIGHT_SURFACES)('%s uses a light-aware portal surface', (file) => {
     const src = readSrc(file);
-    expect(src).toContain('useLightLiquidGlassShell');
+    expect(src).toMatch(/useLightLiquidGlassShell|portalPremium/);
   });
 
-  it('PortalGlassHero gates compactCardDark behind !useLightGlass', () => {
+  it('PortalGlassHero uses the fixed premium surface without a dark compact override', () => {
     const src = readSrc('src/components/portal/assist/PortalGlassHero.tsx');
-    expect(src).toContain('compactCardDark');
-    expect(src).toMatch(/!useLightGlass.*compactCardDark|compactCardDark.*!useLightGlass/s);
-    expect(src).not.toMatch(/compactCard:\s*\{[^}]*backgroundColor:\s*'rgba\(20,27,40/);
+    expect(src).toContain('portalPremium.border');
+    expect(src).toContain('cardCompact');
+    expect(src).not.toContain('compactCardDark');
+    expect(src).not.toMatch(/cardCompact:\s*\{[^}]*backgroundColor:\s*'rgba\(20,27,40/);
   });
 
   it('MobilePortalKpiCard gates cardDark behind !useLightGlass', () => {

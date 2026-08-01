@@ -31,7 +31,7 @@ import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import type { PortalEmployeeProfileTabKey } from '@/types/portal/employeePersonnel';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 export function EmployeeProfileScreen() {
   const { isTablet, isDesktop, width } = useDeviceClass();
@@ -141,7 +141,7 @@ export function EmployeeProfileScreen() {
         <GlassCard>
           <View style={styles.headerMeta}>
             {profile.jobTitleLabel && profile.jobTitleLabel !== '—' ? (
-              <Text style={[type.body, { color: spatialCare.textOnNight }]}>{profile.jobTitleLabel}</Text>
+              <Text style={[type.body, { color: portalPremium.text.primary }]}>{profile.jobTitleLabel}</Text>
             ) : null}
             <View style={styles.statusRow}>
               <PremiumBadge
@@ -151,7 +151,7 @@ export function EmployeeProfileScreen() {
               />
             </View>
             {contactLine ? (
-              <Text style={[type.caption, { color: spatialCare.textOnNightMuted }]}>{contactLine}</Text>
+              <Text style={[type.caption, { color: portalPremium.text.secondary }]}>{contactLine}</Text>
             ) : null}
           </View>
           <HealthOSAlert variant="info" title="Stammdaten" message={OFFICE_PROFILE_HINT} />

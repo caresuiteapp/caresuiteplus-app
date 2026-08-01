@@ -43,7 +43,7 @@ function statusVariant(status: string) {
 }
 
 export function PortalMessageDetailHero({ message, scope }: PortalMessageDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -60,11 +60,11 @@ export function PortalMessageDetailHero({ message, scope }: PortalMessageDetailH
   title: heroText.title,
   meta: {
     ...typography.bodyStrong,
-    color: 'rgba(255,255,255,0.85)',
+    color: heroText.meta.color,
   },
   subtitle: {
     ...typography.caption,
-    color: 'rgba(255,255,255,0.75)',
+    color: heroText.subtitle.color,
   },
   iconBadge: {
     width: iconSize,
@@ -94,16 +94,13 @@ export function PortalMessageDetailHero({ message, scope }: PortalMessageDetailH
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [colors, typography, heroText.eyebrow, heroText.meta.color, heroText.subtitle.color, heroText.title],
   );
-
-
-  const scopeLabel =
-    scope === 'client'
-      ? 'KLIENT:INNENPORTAL'
-      : scope === 'family'
-        ? 'ANGEHÖRIGENPORTAL'
-        : 'MITARBEITERPORTAL';
+  const scopeLabel = scope === 'client'
+    ? 'KLIENT:INNENPORTAL'
+    : scope === 'family'
+      ? 'ANGEHÖRIGENPORTAL'
+      : 'MITARBEITERPORTAL';
   const isUnread = !message.readAt;
 
   return (
@@ -125,6 +122,7 @@ export function PortalMessageDetailHero({ message, scope }: PortalMessageDetailH
           dot
         />
         <PremiumBadge label={VISIBILITY_LABELS[message.visibility]} variant="muted" />
+        <PremiumBadge label={scopeLabel} variant="cyan" />
         {isUnread ? <PremiumBadge label="Ungelesen" variant="orange" dot /> : null}
         {message.canReply ? <PremiumBadge label="Antwort möglich" variant="green" /> : null}
       </View>
@@ -165,4 +163,3 @@ export function PortalMessageDetailHero({ message, scope }: PortalMessageDetailH
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

@@ -47,6 +47,7 @@ export function PortalTabScreen({
   const pathname = usePathname();
   const isEmployeePortal = pathname.startsWith('/portal/employee');
   const isClientPortal = pathname.startsWith('/portal/client');
+  const isPortalHome = pathname === '/portal/client' || pathname === '/portal/employee';
 
   const bareBottomPadding = useMemo(() => {
     if (messengerFocusActive || !showBottomTabs) return spacing.md;
@@ -75,7 +76,8 @@ export function PortalTabScreen({
         title={title}
         subtitle={subtitle}
         eyebrow={eyebrow}
-        compact={hideHeaderOnPhone}
+        compact={hideHeaderOnPhone && isPhone}
+        showHero={!isPortalHome}
         actionsSlot={actionsSlot}
         filtersSlot={filtersSlot}
         tabsSlot={tabsSlot}
@@ -112,7 +114,8 @@ export function PortalTabScreen({
         title={title}
         subtitle={subtitle}
         eyebrow={eyebrow}
-        compact={hideHeaderOnPhone}
+        compact={hideHeaderOnPhone && isPhone}
+        showHero={!isPortalHome}
         actionsSlot={actionsSlot}
         filtersSlot={filtersSlot}
         tabsSlot={tabsSlot}

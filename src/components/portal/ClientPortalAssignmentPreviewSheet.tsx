@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AssistLiveMap } from '@/components/maps/AssistLiveMap';
 import { PremiumButton, LoadingState, ErrorState, SectionPanel } from '@/components/ui';
-import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
+import { lightSurfaceText } from '@/design/tokens/auroraGlass';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -49,7 +49,7 @@ export function ClientPortalAssignmentPreviewSheet({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tenantId = useServiceTenantId();
-  const text = darkGlassSurfaceText;
+  const text = lightSurfaceText;
   const { data, loading, error, refresh } = usePortalClientAppointmentDetail(
     visible ? (assignmentId ?? undefined) : undefined,
   );
@@ -180,8 +180,8 @@ const styles = StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15, 23, 42, 0.45)' },
   sheet: {
     maxHeight: '88%',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
     borderTopWidth: 1,
     borderColor: 'rgba(148, 163, 184, 0.35)',
   },
@@ -212,7 +212,14 @@ const styles = StyleSheet.create({
   header: { gap: careSpacing.xs },
   title: { ...careTypography.h3, fontWeight: '800' },
   meta: { ...careTypography.body },
-  section: { gap: 4 },
+  section: {
+    gap: 4,
+    padding: careSpacing.md,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(5,108,232,0.16)',
+    backgroundColor: 'rgba(237,246,255,0.72)',
+  },
   label: { ...careTypography.caption, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
   value: { ...careTypography.body },
   actions: { gap: careSpacing.sm, marginTop: careSpacing.sm },

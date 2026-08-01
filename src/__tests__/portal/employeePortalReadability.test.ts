@@ -17,11 +17,12 @@ describe('employee portal readability (contrast + text layout)', () => {
     expect(sheet).not.toContain('useAuroraAdaptiveText');
   });
 
-  it('assignment cards use the premium dark HealthOS card', () => {
+  it('assignment cards use the readable premium light card', () => {
     const card = readSrc('src/components/portal/EmployeePortalAssignmentCard.tsx');
-    expect(card).toContain('darkGlassSurfaceText');
+    expect(card).toContain('portalPremium.text');
     expect(card).toContain('LinearGradient');
     expect(card).toContain('spatialCare');
+    expect(card).toContain("colors={['#FFFFFF', '#F2F8FF', '#E3F1FF']}");
     expect(card).not.toContain('lightLiquidGlass.card');
     expect(card).not.toContain('useAuroraAdaptiveText');
     expect(card).not.toMatch(/notes[\s\S]*numberOfLines/);

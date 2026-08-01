@@ -24,6 +24,7 @@ import {
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
+import { usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { GradientModalActionButton } from './gradientmodalactionbutton';
 import type { GradientModalActionButtonVariant } from './gradientmodalactionbutton';
 import { GradientModalHeader } from './gradientmodalheader';
@@ -89,15 +90,16 @@ export function PlatformModal({
   isDirty = false,
   dirtyCloseMessage = 'Ungespeicherte Änderungen verwerfen?',
 }: PlatformModalProps) {
+  const portalTheme = usePortalPremiumTheme();
   const { isDark, c } = useCareLightPalette();
   const { isLight } = useLegacyTheme();
   const auroraActive = useAuroraGlassActive();
-  const lightModal = isLight && auroraActive;
+  const lightModal = portalTheme.active || (isLight && auroraActive);
   const formGlass = resolveLlganViewGlass('form', 'default');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const resolvedAnimation = animationType ?? (variant === 'bottomSheet' ? 'slide' : 'fade');
   const accent = glowColor ?? c.violet;
-  const shellMode = isDark ? 'dark' : 'light';
+  const shellMode = portalTheme.active || !isDark ? 'light' : 'dark';
   const shellColors = resolvePopupShellColors(shellMode);
   const shellRadius = popupShellLayout.borderRadius;
 

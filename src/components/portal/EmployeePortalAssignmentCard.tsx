@@ -3,17 +3,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
 import { HealthOSStatusBadge } from '@/components/healthos';
-import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { moduleColor } from '@/design/tokens/modules';
 import { withAlpha } from '@/design/tokens/motion';
-import { spatialCare, spatialCareColors } from '@/design/tokens/spatialCareSuite';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
 import { employeePortalHomeAppointmentTitle } from '@/lib/portal/portalHomeAppointment';
 import { ASSIGNMENT_STATUS_LABELS, type AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 type EmployeePortalAssignmentCardProps = {
   appointment: PortalAppointmentItem;
@@ -71,7 +71,7 @@ export function EmployeePortalAssignmentCard({
   canStart = false,
   startBlockedReason,
 }: EmployeePortalAssignmentCardProps) {
-  const text = darkGlassSurfaceText;
+  const text = portalPremium.text;
   const accent = moduleColor('assist');
   const status = resolveStatus(appointment);
   const statusLabel = ASSIGNMENT_STATUS_LABELS[status] ?? WORKFLOW_STATUS_LABELS[appointment.status] ?? status;
@@ -99,7 +99,7 @@ export function EmployeePortalAssignmentCard({
       testID={`employee-assignment-card-${appointment.id}`}
     >
       <LinearGradient
-        colors={['rgba(10,42,82,0.98)', 'rgba(3,17,39,0.99)']}
+        colors={['#FFFFFF', '#F2F8FF', '#E3F1FF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject}
@@ -110,7 +110,7 @@ export function EmployeePortalAssignmentCard({
       <View style={styles.inner}>
         <View style={styles.headerRow}>
           <View style={styles.datePill}>
-            <Ionicons name="calendar-outline" color={spatialCareColors.cyanLight} size={17} />
+            <Ionicons name="calendar-outline" color={portalPremium.accent.blue} size={17} />
             <Text style={styles.datePillText}>{formatDate(appointment.startsAt)}</Text>
           </View>
           <HealthOSStatusBadge domain="assignment" technicalValue={String(status)} />
@@ -125,7 +125,7 @@ export function EmployeePortalAssignmentCard({
             </Text>
             {appointment.clientName ? (
               <View style={styles.inlineMeta}>
-                <Ionicons name="person-outline" color={spatialCareColors.pearlDeep} size={16} />
+                <Ionicons name="person-outline" color={portalPremium.accent.blueDark} size={16} />
                 <Text style={[styles.clientName, { color: text.primary }]}>{appointment.clientName}</Text>
               </View>
             ) : null}
@@ -138,7 +138,7 @@ export function EmployeePortalAssignmentCard({
 
         {appointment.location ? (
           <View style={styles.inlineMeta}>
-            <Ionicons name="location-outline" color={spatialCareColors.pearlDeep} size={16} />
+            <Ionicons name="location-outline" color={portalPremium.accent.blueDark} size={16} />
             <Text style={[styles.address, { color: text.secondary }]}>{appointment.location}</Text>
           </View>
         ) : null}
@@ -195,10 +195,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
     marginBottom: careSpacing.sm,
-    backgroundColor: spatialCare.stageStrong,
+    backgroundColor: portalPremium.surface,
     ...(Platform.OS === 'web'
-      ? ({ boxShadow: '0 18px 46px rgba(0,8,24,0.34)' } as unknown as ViewStyle)
-      : { shadowColor: '#000814', shadowOpacity: 0.32, shadowRadius: 20, elevation: 8 }),
+      ? ({ boxShadow: portalPremium.shadow.card } as unknown as ViewStyle)
+      : { shadowColor: '#002657', shadowOpacity: 0.16, shadowRadius: 18, elevation: 7 }),
   },
   pressed: { opacity: 0.96, transform: [{ scale: 0.992 }] },
   accentEdge: { position: 'absolute', left: 0, top: 18, bottom: 18, width: 4, borderRadius: 4 },
@@ -215,22 +215,22 @@ const styles = StyleSheet.create({
   },
   datePill: {
     minHeight: 34, paddingHorizontal: 11, borderRadius: 999,
-    borderWidth: 1, borderColor: spatialCare.borderGlow,
-    backgroundColor: 'rgba(22,131,255,0.13)', flexDirection: 'row',
+    borderWidth: 1, borderColor: portalPremium.borderStrong,
+    backgroundColor: 'rgba(5,108,232,0.09)', flexDirection: 'row',
     alignItems: 'center', gap: 7,
   },
-  datePillText: { ...careTypography.caption, color: '#FFFFFF', fontWeight: '800' },
+  datePillText: { ...careTypography.caption, color: portalPremium.accent.blueDark, fontWeight: '800' },
   statusText: { ...careTypography.caption, fontWeight: '600', marginLeft: 'auto' },
   primaryRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: careSpacing.md },
   primaryCopy: { flex: 1, minWidth: 230, gap: 7 },
   title: { ...careTypography.h3, flexShrink: 1, fontSize: 21, lineHeight: 27 },
   timeBlock: {
     minWidth: 172, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 15,
-    borderWidth: 1, borderColor: spatialCare.border,
-    backgroundColor: 'rgba(255,255,255,0.055)', alignItems: 'flex-end', gap: 2,
+    borderWidth: 1, borderColor: portalPremium.borderSoft,
+    backgroundColor: 'rgba(255,255,255,0.72)', alignItems: 'flex-end', gap: 2,
   },
-  timeRange: { color: '#FFFFFF', fontSize: 17, lineHeight: 22, fontWeight: '800' },
-  duration: { color: spatialCare.textOnNightMuted, fontSize: 11, lineHeight: 15, fontWeight: '600' },
+  timeRange: { color: portalPremium.text.primary, fontSize: 17, lineHeight: 22, fontWeight: '800' },
+  duration: { color: portalPremium.text.muted, fontSize: 11, lineHeight: 15, fontWeight: '600' },
   metaBlock: { gap: 2 },
   meta: { ...careTypography.caption },
   inlineMeta: { flexDirection: 'row', alignItems: 'center', gap: 7, minWidth: 0 },
@@ -248,6 +248,6 @@ const styles = StyleSheet.create({
     marginTop: careSpacing.sm,
     paddingTop: careSpacing.sm,
     borderTopWidth: 1,
-    borderTopColor: spatialCare.borderDark,
+    borderTopColor: portalPremium.borderSoft,
   },
 });

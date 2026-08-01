@@ -4,7 +4,7 @@ import { PortalAnnouncementsHero } from '@/components/portal';
 import { PremiumCard } from '@/components/ui';
 import { employeePortalDemo } from '@/data/demo/domains/employeePortalDemo';
 import { typography, spacing } from '@/theme';
-import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 /** WP332 — Portal-Sicht Mitarbeiter */
 export function EmployeePortalAnnouncementsScreen() {
@@ -32,6 +32,6 @@ export function EmployeePortalAnnouncementsScreen() {
 
 const styles = StyleSheet.create({
   scroll: { gap: spacing.md },
-  title: { ...typography.bodyStrong, color: spatialCare.textOnNight },
-  meta: { ...typography.caption, color: spatialCare.textOnNightMuted },
+  title: { ...typography.bodyStrong, color: portalPremium.text.primary },
+  meta: { ...typography.caption, color: portalPremium.text.secondary },
 });

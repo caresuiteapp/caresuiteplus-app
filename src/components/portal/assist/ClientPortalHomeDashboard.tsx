@@ -207,6 +207,7 @@ function WelcomeHero({
 }) {
   const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
+  const compactHero = isPhone || width < 760;
   const heroLines = resolveClientPortalHeroLines({
     displayName: context.displayName,
     tenantName: context.tenantName,
@@ -214,7 +215,7 @@ function WelcomeHero({
   });
 
   return (
-    <View style={[styles.welcomeHero, isPhone && styles.welcomeHeroPhone]} testID="client-portal-premium-home-hero">
+    <View style={[styles.welcomeHero, compactHero && styles.welcomeHeroPhone]} testID="client-portal-premium-home-hero">
       <LinearGradient
         colors={['#FFFFFF', '#EDF6FF', '#D9ECFF']}
         locations={[0, 0.56, 1]}
@@ -224,7 +225,7 @@ function WelcomeHero({
         pointerEvents="none"
       />
       <View style={styles.welcomeGlow} pointerEvents="none" />
-      <View style={[styles.welcomeCopy, isPhone && styles.welcomeCopyPhone]}>
+      <View style={[styles.welcomeCopy, compactHero && styles.welcomeCopyPhone]}>
         <View style={styles.portalPill}>
           <Ionicons name="shield-checkmark" color={ink.blue} size={15} />
           <Text style={styles.portalPillText}>MEIN KLIENT:INNENPORTAL</Text>
@@ -235,13 +236,13 @@ function WelcomeHero({
         <Text style={[type.body, styles.welcomeProvider]}>{context.tenantName}</Text>
       </View>
 
-      <View style={[styles.guideArea, isPhone && styles.guideAreaPhone]}>
+      <View style={[styles.guideArea, compactHero && styles.guideAreaPhone]}>
         <Image
           accessibilityIgnoresInvertColors
           accessibilityLabel="CareSuite Portalbegleiter"
           resizeMode="contain"
           source={require('../../../../assets/auth/access-client.png')}
-          style={[styles.guideMascot, isPhone && styles.guideMascotPhone]}
+          style={[styles.guideMascot, compactHero && styles.guideMascotPhone]}
         />
         <View style={styles.guideBubble}>
           <View style={styles.guideBubbleTail} />
@@ -266,10 +267,11 @@ function WelcomeHero({
 function AttentionBar({ items }: { items: AttentionItem[] }) {
   const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
+  const compact = isPhone || width < 760;
   if (items.length === 0) return null;
 
   return (
-    <View style={[styles.attentionBar, isPhone && styles.attentionBarPhone]} testID="client-portal-attention-bar">
+    <View style={[styles.attentionBar, compact && styles.attentionBarPhone]} testID="client-portal-attention-bar">
       <View style={styles.attentionHeading}>
         <View style={styles.attentionIcon}>
           <Ionicons name="sparkles" color="#075DC7" size={21} />
@@ -279,7 +281,7 @@ function AttentionBar({ items }: { items: AttentionItem[] }) {
           <Text style={[type.caption, styles.attentionSubtitle]}>Diese Punkte benötigen noch Ihre Aufmerksamkeit.</Text>
         </View>
       </View>
-      <View style={[styles.attentionItems, isPhone && styles.attentionItemsPhone]}>
+      <View style={[styles.attentionItems, compact && styles.attentionItemsPhone]}>
         {items.map((item) => (
           <Pressable
             key={item.key}
@@ -318,8 +320,9 @@ export function ClientPortalHomeDashboard({
   const router = useRouter();
   const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
+  const compact = isPhone || width < 760;
   const stackedMain = isPhone || width < 1120;
-  const actionWidth: DimensionValue = isPhone ? '100%' : width < 1540 ? '48.8%' : '23.8%';
+  const actionWidth: DimensionValue = compact ? '100%' : width < 1540 ? '48.8%' : '23.8%';
   const guide = resolveClientPortalHomeGuide(data);
 
   const openGuideTarget = () => {
@@ -538,11 +541,11 @@ const styles = StyleSheet.create({
   },
   welcomeHeroPhone: {
     minHeight: 0,
-    padding: 18,
+    padding: 16,
     borderRadius: 20,
     flexDirection: 'column',
     alignItems: 'stretch',
-    gap: 16,
+    gap: 14,
   },
   welcomeGlow: {
     position: 'absolute',
@@ -601,7 +604,8 @@ const styles = StyleSheet.create({
     flex: 0,
     minWidth: 0,
     maxWidth: '100%',
-    alignItems: 'flex-end',
+    width: '100%',
+    alignItems: 'center',
   },
   guideMascot: {
     width: 102,
@@ -609,8 +613,8 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   guideMascotPhone: {
-    width: 70,
-    height: 82,
+    width: 58,
+    height: 68,
   },
   guideBubble: {
     flex: 1,

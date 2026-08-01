@@ -1,6 +1,6 @@
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { GlassCard } from '@/design/components/GlassCard';
-import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { moduleColor } from '@/design/tokens/modules';
@@ -18,13 +18,9 @@ type PortalDocumentListCardProps = {
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
-/** Dokumentzeile innerhalb der einheitlichen dunklen Portalwelt. */
+/** Dokumentkarte innerhalb des gemeinsamen hellen Premium-Portals. */
 export function PortalDocumentListCard({ document, metaLine, onPress }: PortalDocumentListCardProps) {
-  const text = {
-    primary: spatialCare.textOnNight,
-    secondary: spatialCare.textOnNightMuted,
-    muted: spatialCare.textOnNightMuted,
-  };
+  const text = useAuroraAdaptiveText();
   const accent = moduleColor('assist');
 
   return (

@@ -15,6 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LlganGlassShell } from '@/design/web/applyLlganGlassDom';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import {
   spatialCare,
   spatialCareColors,
@@ -54,6 +55,7 @@ export function PremiumButton({
   testID,
   onDarkSurface = true,
 }: Props) {
+  const portalTheme = usePortalPremiumTheme();
   const { scaleFontSize } = useAccessibility();
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -74,13 +76,31 @@ export function PremiumButton({
           paddingHorizontal: size === 'sm' ? 16 : 20,
           borderWidth: 1,
           borderColor:
-            variant === 'ghost' ? spatialCare.border : withAlpha(spatialCareColors.cyanLight, 0.44),
+            portalTheme.active
+              ? variant === 'primary'
+                ? portalPremium.accent.blue
+                : portalPremium.borderStrong
+              : variant === 'ghost'
+                ? spatialCare.border
+                : withAlpha(spatialCareColors.cyanLight, 0.44),
           backgroundColor:
-            variant === 'ghost' ? 'transparent' : withAlpha(spatialCareColors.violetMist, 0.14),
+            portalTheme.active
+              ? variant === 'ghost'
+                ? 'transparent'
+                : variant === 'secondary'
+                  ? 'rgba(255,255,255,0.82)'
+                  : portalPremium.accent.blue
+              : variant === 'ghost'
+                ? 'transparent'
+                : withAlpha(spatialCareColors.violetMist, 0.14),
           ...(Platform.OS === 'web'
             ? ({
                 boxShadow:
-                  variant === 'primary'
+                  portalTheme.active
+                    ? variant === 'primary'
+                      ? '0 10px 24px rgba(5,108,232,0.24)'
+                      : '0 8px 18px rgba(0,38,82,0.10)'
+                    : variant === 'primary'
                     ? `0 10px 26px ${withAlpha(spatialCareColors.cyanDeep, 0.28)}`
                     : '0 8px 18px rgba(4,8,24,0.22)',
               } as unknown as ViewStyle)
@@ -88,23 +108,29 @@ export function PremiumButton({
         },
         label: {
           color:
-            variant === 'primary' || !onDarkSurface
-              ? spatialCareColors.nightDeep
-              : spatialCare.textOnNight,
+            portalTheme.active
+              ? variant === 'primary'
+                ? portalPremium.text.onStrong
+                : portalPremium.accent.blueDark
+              : variant === 'primary' || !onDarkSurface
+                ? spatialCareColors.nightDeep
+                : spatialCare.textOnNight,
           fontSize: Platform.OS === 'web' ? 16 : scaleFontSize(16),
           lineHeight: Platform.OS === 'web' ? 21 : scaleFontSize(21),
           fontWeight: '800',
           textAlign: 'center',
         },
       }),
-    [fullWidth, height, onDarkSurface, scaleFontSize, size, variant],
+    [fullWidth, height, onDarkSurface, portalTheme.active, scaleFontSize, size, variant],
   );
 
   const content = (
     <LlganGlassShell kind="button" style={[localStyles.button, isDisabled && styles.disabled, style]}>
       {variant === 'primary' ? (
         <LinearGradient
-          colors={['#8A78C4', '#55DDF6', '#D8C8E8']}
+          colors={portalTheme.active
+            ? [portalPremium.accent.blue, '#0879F5', portalPremium.accent.blueDark]
+            : ['#8A78C4', '#55DDF6', '#D8C8E8']}
           start={{ x: 0, y: 0.2 }}
           end={{ x: 1, y: 0.8 }}
           style={StyleSheet.absoluteFill}
@@ -112,7 +138,9 @@ export function PremiumButton({
         />
       ) : variant === 'secondary' ? (
         <LinearGradient
-          colors={['rgba(105,232,255,0.14)', 'rgba(139,124,255,0.1)']}
+          colors={portalTheme.active
+            ? ['rgba(255,255,255,0.96)', 'rgba(232,244,255,0.94)']
+            : ['rgba(105,232,255,0.14)', 'rgba(139,124,255,0.1)']}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
@@ -120,9 +148,13 @@ export function PremiumButton({
       {loading ? (
         <ActivityIndicator
           color={
-            variant === 'primary' || !onDarkSurface
-              ? spatialCareColors.nightDeep
-              : spatialCareColors.white
+            portalTheme.active
+              ? variant === 'primary'
+                ? portalPremium.text.onStrong
+                : portalPremium.accent.blueDark
+              : variant === 'primary' || !onDarkSurface
+                ? spatialCareColors.nightDeep
+                : spatialCareColors.white
           }
         />
       ) : (

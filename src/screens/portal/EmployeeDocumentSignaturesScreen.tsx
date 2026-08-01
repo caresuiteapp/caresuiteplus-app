@@ -11,7 +11,7 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchPortalCsDocumentRequests } from '@/lib/documents/csTemplates';
 import { spacing } from '@/theme';
-import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 type FilterKey = 'open' | 'done';
 
@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: spatialCare.border,
-    backgroundColor: spatialCare.stageStrong,
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceSoft,
   },
   list: { gap: spacing.sm, marginTop: spacing.md },
 });

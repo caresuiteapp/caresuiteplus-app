@@ -5,6 +5,7 @@ import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { SpaceKpiIcon } from '@/components/icons/space';
 import { radius } from '@/theme';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 
 type Props = {
   label: string;
@@ -39,6 +40,7 @@ export function PremiumKpiCard({
   labelCase = 'uppercase',
 }: Props) {
   const { colors, typography } = useLegacyTheme();
+  const portal = usePortalPremiumTheme();
   const resolvedAccent = accentColor ?? colors.cyan;
 
   const styles = useMemo(
@@ -50,22 +52,22 @@ export function PremiumKpiCard({
           minHeight: 108,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: systemLiquidGlass.borderStrong,
-          backgroundColor: systemLiquidGlass.panelStrong,
+          borderColor: portal.active ? portalPremium.border : systemLiquidGlass.borderStrong,
+          backgroundColor: portal.active ? portalPremium.surfaceRaised : systemLiquidGlass.panelStrong,
           overflow: 'hidden',
           shadowOpacity: 0.2,
           shadowRadius: 12,
           shadowOffset: { width: 0, height: 5 },
           elevation: 6,
           ...(Platform.OS === 'web'
-            ? ({ boxShadow: systemLiquidGlass.shadowSoft } as unknown as ViewStyle)
+            ? ({ boxShadow: portal.active ? portalPremium.shadow.card : systemLiquidGlass.shadowSoft } as unknown as ViewStyle)
             : null),
         },
         innerBorder: {
           ...StyleSheet.absoluteFillObject,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: systemLiquidGlass.innerBorder,
+          borderColor: portal.active ? portalPremium.innerBorder : systemLiquidGlass.innerBorder,
         },
         ambientGlow: {
           position: 'absolute',
@@ -115,7 +117,7 @@ export function PremiumKpiCard({
           textTransform: labelCase === 'uppercase' ? 'uppercase' : 'none',
           letterSpacing: labelCase === 'uppercase' ? 0.4 : 0,
           flexShrink: 0,
-          color: systemLiquidGlass.text.secondary,
+          color: portal.active ? portalPremium.text.secondary : systemLiquidGlass.text.secondary,
         },
         value: {
           fontSize: 22,
@@ -126,7 +128,7 @@ export function PremiumKpiCard({
         },
         subValue: {
           ...typography.caption,
-          color: systemLiquidGlass.text.muted,
+          color: portal.active ? portalPremium.text.muted : systemLiquidGlass.text.muted,
         },
         trend: {
           fontSize: 11,
@@ -136,6 +138,7 @@ export function PremiumKpiCard({
       }),
     [
       labelCase,
+      portal.active,
       resolvedAccent,
       typography.caption,
     ],
@@ -146,7 +149,9 @@ export function PremiumKpiCard({
       ? colors.success
       : trend === 'down'
         ? colors.danger
-        : systemLiquidGlass.text.muted;
+        : portal.active
+          ? portalPremium.text.muted
+          : systemLiquidGlass.text.muted;
 
   return (
     <View

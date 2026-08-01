@@ -3,6 +3,7 @@ import { Platform, StyleSheet, View, type ViewProps, type ViewStyle } from 'reac
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import { usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 
 const SYSTEM_CYAN = '#69E8FF';
 
@@ -34,19 +35,20 @@ export function HealthOSPageSurface({
   testID = 'healthos-page-surface',
   ...accessibilityProps
 }: HealthOSPageSurfaceProps) {
+  const portal = usePortalPremiumTheme();
   return (
     <View style={[styles.host, fill && styles.hostFill, style]} testID={testID}>
       <View
-        style={[styles.surface, fill && styles.surfaceFill]}
+        style={[styles.surface, portal.active && styles.portalSurface, fill && styles.surfaceFill]}
         {...(Platform.OS === 'web'
           ? ({ dataSet: { csHealthosPage: 'surface' } } as object)
           : {})}
         {...accessibilityProps}
       >
-        <View pointerEvents="none" style={styles.ambientTop} />
-        <View pointerEvents="none" style={styles.ambientBottom} />
-        <View pointerEvents="none" style={styles.lightRail} />
-        <View pointerEvents="none" style={styles.innerBorder} />
+        {!portal.active ? <View pointerEvents="none" style={styles.ambientTop} /> : null}
+        {!portal.active ? <View pointerEvents="none" style={styles.ambientBottom} /> : null}
+        <View pointerEvents="none" style={[styles.lightRail, portal.active && styles.portalLightRail]} />
+        {!portal.active ? <View pointerEvents="none" style={styles.innerBorder} /> : null}
         <View style={[styles.content, padded && styles.contentPadded, fill && styles.contentFill, contentStyle]}>
           {children}
         </View>
@@ -109,6 +111,15 @@ const styles = StyleSheet.create({
         } as unknown as ViewStyle)
       : null),
   },
+  portalSurface: {
+    overflow: 'visible',
+    borderWidth: 0,
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+    ...(Platform.OS === 'web'
+      ? ({ backdropFilter: 'none', WebkitBackdropFilter: 'none', boxShadow: 'none' } as unknown as ViewStyle)
+      : null),
+  },
   ambientTop: {
     position: 'absolute',
     width: 520,
@@ -140,6 +151,14 @@ const styles = StyleSheet.create({
     shadowColor: SYSTEM_CYAN,
     shadowOpacity: 0.85,
     shadowRadius: 18,
+  },
+  portalLightRail: {
+    left: '4%',
+    right: '4%',
+    height: 1,
+    backgroundColor: 'rgba(112,181,255,0.42)',
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
   },
   surfaceFill: {
     flex: 1,

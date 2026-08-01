@@ -48,7 +48,8 @@ describe('client portal premium home R25', () => {
 
   it('uses one-column phone cards and responsive two/four-column desktop cards', () => {
     const home = read('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
-    expect(home).toContain("isPhone ? '100%'");
+    expect(home).toContain("compact ? '100%'");
+    expect(home).toContain('isPhone || width < 760');
     expect(home).toContain("width < 1540 ? '48.8%' : '23.8%'");
     expect(home).toContain('width < 1120');
     expect(home).toContain('maxWidth: 1480');

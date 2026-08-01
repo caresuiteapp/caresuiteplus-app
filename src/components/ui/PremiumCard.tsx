@@ -21,6 +21,7 @@ import {
 } from '@/design/tokens/spatialCareSuite';
 import { withAlpha } from '@/design/tokens/motion';
 import { motion, radius } from '@/theme';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 
 type Props = {
   children: React.ReactNode;
@@ -46,6 +47,7 @@ export function PremiumCard({
   variant = 'default',
   sheen = true,
 }: Props) {
+  const portal = usePortalPremiumTheme();
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -58,7 +60,9 @@ export function PremiumCard({
           borderRadius: radius.card,
           overflow: 'hidden',
           borderWidth: 1,
-          borderColor: withAlpha(accentColor, variant === 'elevated' ? 0.58 : 0.34),
+          borderColor: portal.active
+            ? withAlpha(accentColor, variant === 'elevated' ? 0.48 : 0.3)
+            : withAlpha(accentColor, variant === 'elevated' ? 0.58 : 0.34),
           shadowColor: accentColor,
           shadowOffset: { width: 0, height: 14 },
           shadowOpacity: variant === 'elevated' ? 0.24 : 0.14,
@@ -68,8 +72,12 @@ export function PremiumCard({
             ? ({
                 boxShadow:
                   variant === 'elevated'
-                    ? `0 22px 48px ${withAlpha(spatialCareColors.nightDeep, 0.5)}, 0 0 30px ${withAlpha(accentColor, 0.16)}`
-                    : `0 15px 34px ${withAlpha(spatialCareColors.nightDeep, 0.4)}`,
+                    ? portal.active
+                      ? portalPremium.shadow.panel
+                      : `0 22px 48px ${withAlpha(spatialCareColors.nightDeep, 0.5)}, 0 0 30px ${withAlpha(accentColor, 0.16)}`
+                    : portal.active
+                      ? portalPremium.shadow.card
+                      : `0 15px 34px ${withAlpha(spatialCareColors.nightDeep, 0.4)}`,
               } as unknown as ViewStyle)
             : null),
         },
@@ -101,24 +109,26 @@ export function PremiumCard({
           ...StyleSheet.absoluteFillObject,
           borderRadius: radius.card,
           borderWidth: 1,
-          borderColor: spatialCare.borderGlow,
+          borderColor: portal.active ? portalPremium.innerBorder : spatialCare.borderGlow,
         },
         content: {
           padding: 20,
           zIndex: 2,
         },
       }),
-    [accentColor, variant],
+    [accentColor, portal.active, variant],
   );
 
   const body = (
     <LlganGlassShell kind="card" style={styles.host}>
       <LinearGradient
-        colors={
-          variant === 'elevated'
+        colors={portal.active
+          ? variant === 'elevated'
+            ? ['#FFFFFF', '#EEF6FF', '#DDEEFF']
+            : ['#FFFFFF', '#F5FAFF', '#E8F3FF']
+          : variant === 'elevated'
             ? [spatialCareColors.nightRaised, spatialCareColors.night, spatialCareColors.nightDeep]
-            : [...spatialCareGradients.nightGlass]
-        }
+            : [...spatialCareGradients.nightGlass]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}

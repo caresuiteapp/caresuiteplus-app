@@ -14,6 +14,7 @@ import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { ensureLightLiquidGlassSurfaceCss } from '@/design/web/ensureLightLiquidGlassSurfaceCss';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { systemLiquidGlass } from './systemLiquidGlass';
+import { portalPremium, usePortalPremiumTheme } from './portalPremium';
 
 /**
  * Shell glass surface tokens — always light milchglas over the space backdrop.
@@ -182,13 +183,15 @@ export function useShellGlassSurfaceStyle(
 ): ViewStyle {
   const active = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
+  const portal = usePortalPremiumTheme();
+  const surfaceIsLight = portal.active || isLight;
   const intensity = resolveShellIntensity(variant, options.intensity, options.viewContext);
   const llganSurface = options.viewContext || variant === 'modal'
     ? resolveLlganViewGlass(options.viewContext ?? 'form', intensity)
     : resolveLlganGlassSurface(intensity);
 
   return useMemo(() => {
-    const light = active && isLight;
+    const light = active && surfaceIsLight;
     const tokens = light ? lightLiquidGlass : auroraGlass;
     const backgroundColor =
       variant === 'chip'
@@ -222,7 +225,7 @@ export function useShellGlassSurfaceStyle(
       borderColor,
       backgroundColor,
       overflow: Platform.OS === 'web' ? 'visible' : 'hidden',
-      ...(light && isLight
+      ...(light
         ? lightLiquidGlassWebFx(blurPx, saturate)
         : Platform.OS === 'web'
           ? ({
@@ -231,7 +234,7 @@ export function useShellGlassSurfaceStyle(
             } as ViewStyle)
           : null),
     };
-  }, [active, intensity, isLight, llganSurface, variant]);
+  }, [active, llganSurface, surfaceIsLight, variant]);
 }
 
 export type AuroraGlassTokens = typeof auroraGlass;
@@ -244,28 +247,33 @@ function resolveActiveGlassTokens(isLight: boolean): GlassSurfaceTokens {
 
 /** True when root shell hosts animated background (light or dark glass). */
 export function useAuroraGlassActive(): boolean {
-  return useShellHostsAurora();
+  const shellActive = useShellHostsAurora();
+  const portal = usePortalPremiumTheme();
+  return portal.active || shellActive;
 }
 
 /** Active glass token set — light liquid or dark aurora based on theme mode. */
 export function useActiveGlassTokens(): GlassSurfaceTokens {
   const active = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
-  return active ? resolveActiveGlassTokens(isLight) : lightLiquidGlass;
+  const portal = usePortalPremiumTheme();
+  return active ? resolveActiveGlassTokens(portal.active || isLight) : lightLiquidGlass;
 }
 
 /** Light frosted shell (LLGAN) — dark text on milchglas, matches desktop portal/office. */
 export function useLightLiquidGlassShell(): boolean {
   const active = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
-  return active && isLight;
+  const portal = usePortalPremiumTheme();
+  return portal.active || (active && isLight);
 }
 
 /** Composer/input strip on dark glass — false on light LLGAN shell (mobile + desktop). */
 export function useComposerDarkSurface(): boolean {
   const active = useAuroraGlassActive();
   const { isDark } = useLegacyTheme();
-  return active && isDark;
+  const portal = usePortalPremiumTheme();
+  return !portal.active && active && isDark;
 }
 
 export type MessagingGlassSurface = {
@@ -278,9 +286,10 @@ export type MessagingGlassSurface = {
 /** Portal messaging "glass" variant — light surfaces on light theme for readable mobile layout. */
 export function useMessagingGlassSurface(isGlassVariant: boolean): MessagingGlassSurface {
   const { isLight } = useLegacyTheme();
-  const useLightSurfaces = isLight;
-  const surfaces = isLight ? lightLiquidGlass : auroraGlass;
-  const onDarkSurface = !isLight;
+  const portal = usePortalPremiumTheme();
+  const useLightSurfaces = portal.active || isLight;
+  const surfaces = useLightSurfaces ? lightLiquidGlass : auroraGlass;
+  const onDarkSurface = !useLightSurfaces;
   const ink = isGlassVariant ? surfaceContrastText(onDarkSurface) : null;
   return { useLightGlass: useLightSurfaces, surfaces, onDarkSurface, ink };
 }
@@ -289,10 +298,20 @@ export function useMessagingGlassSurface(isGlassVariant: boolean): MessagingGlas
 export function useAuroraAdaptiveText() {
   const active = useAuroraGlassActive();
   const { colors, isLight } = useLegacyTheme();
-  const glass = resolveActiveGlassTokens(isLight);
+  const portal = usePortalPremiumTheme();
+  const surfaceIsLight = portal.active || isLight;
+  const glass = resolveActiveGlassTokens(surfaceIsLight);
 
   return useMemo(() => {
-    if (active && isLight) {
+    if (portal.active) {
+      return {
+        primary: portalPremium.text.primary,
+        secondary: portalPremium.text.secondary,
+        muted: portalPremium.text.muted,
+        border: portalPremium.borderSoft,
+      };
+    }
+    if (active && surfaceIsLight) {
       return {
         primary: lightLiquidGlass.text.primary,
         secondary: lightLiquidGlass.text.secondary,
@@ -324,6 +343,8 @@ export function useAuroraAdaptiveText() {
     glass.text.primary,
     glass.text.secondary,
     isLight,
+    portal.active,
+    surfaceIsLight,
   ]);
 }
 
@@ -331,17 +352,19 @@ export function useAuroraAdaptiveText() {
 export function useAuroraGlass() {
   const active = useAuroraGlassActive();
   const { colors, isLight, isDark } = useLegacyTheme();
-  const tokens = active ? resolveActiveGlassTokens(isLight) : auroraGlass;
+  const portal = usePortalPremiumTheme();
+  const surfaceIsLight = portal.active || isLight;
+  const tokens = active ? resolveActiveGlassTokens(surfaceIsLight) : auroraGlass;
 
   return useMemo(
     () => ({
       active,
-      isDark,
-      isLight,
+      isDark: portal.active ? false : isDark,
+      isLight: surfaceIsLight,
       tokens,
       colors,
     }),
-    [active, colors, isDark, isLight, tokens],
+    [active, colors, isDark, portal.active, surfaceIsLight, tokens],
   );
 }
 
@@ -349,26 +372,28 @@ export function useAuroraGlass() {
 export function useAuroraGlassPanelStyle(options: ShellGlassIntensityOptions = {}): ViewStyle {
   const active = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
+  const portal = usePortalPremiumTheme();
+  const surfaceIsLight = portal.active || isLight;
   const intensity = options.intensity ?? 'default';
   const llganSurface =
-    options.viewContext && isLight
+    options.viewContext && surfaceIsLight
       ? resolveLlganViewGlass(options.viewContext, intensity)
       : resolveLlganGlassSurface(intensity);
-  const glass = resolveActiveGlassTokens(isLight);
+  const glass = resolveActiveGlassTokens(surfaceIsLight);
 
   return useMemo(
     () =>
       active
         ? {
-            backgroundColor: isLight ? llganSurface.panel : glass.panel,
-            borderColor: isLight ? llganSurface.borderAccent : glass.border,
+            backgroundColor: surfaceIsLight ? llganSurface.panel : glass.panel,
+            borderColor: surfaceIsLight ? llganSurface.borderAccent : glass.border,
             borderWidth: 1,
-            ...(isLight
+            ...(surfaceIsLight
               ? lightLiquidGlassWebFx(llganSurface.blurDesktop, llganSurface.saturate)
               : {}),
           }
         : {},
-    [active, glass.border, glass.panel, isLight, llganSurface],
+    [active, glass.border, glass.panel, llganSurface, surfaceIsLight],
   );
 }
 
@@ -376,22 +401,24 @@ export function useAuroraGlassPanelStyle(options: ShellGlassIntensityOptions = {
 export function useAuroraGlassCardStyle(options: ShellGlassIntensityOptions = {}): ViewStyle {
   const active = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
+  const portal = usePortalPremiumTheme();
+  const surfaceIsLight = portal.active || isLight;
   const intensity = resolveShellIntensity('card', options.intensity, options.viewContext);
   const viewContext = options.viewContext ?? 'dashboard';
-  const llganSurface = isLight
+  const llganSurface = surfaceIsLight
     ? resolveLlganViewGlass(viewContext, intensity)
     : resolveLlganGlassSurface(intensity);
-  const glass = resolveActiveGlassTokens(isLight);
+  const glass = resolveActiveGlassTokens(surfaceIsLight);
 
   return useMemo(
     () =>
       active
         ? {
-            backgroundColor: isLight ? llganSurface.card : glass.card,
-            borderColor: isLight ? llganSurface.borderWhite : glass.border,
+            backgroundColor: surfaceIsLight ? llganSurface.card : glass.card,
+            borderColor: surfaceIsLight ? llganSurface.borderWhite : glass.border,
             borderWidth: 1,
             borderRadius: careRadius.lg,
-            ...(isLight
+            ...(surfaceIsLight
               ? {
                   ...lightLiquidGlassWebFx(llganSurface.blurDesktop, llganSurface.saturate),
                   ...(Platform.OS !== 'web'
@@ -401,7 +428,7 @@ export function useAuroraGlassCardStyle(options: ShellGlassIntensityOptions = {}
               : {}),
           }
         : {},
-    [active, glass.border, glass.card, isLight, llganSurface],
+    [active, glass.border, glass.card, llganSurface, surfaceIsLight],
   );
 }
 
@@ -409,7 +436,8 @@ export function useAuroraGlassCardStyle(options: ShellGlassIntensityOptions = {}
 export function useAuroraGlassInputStyle(): ViewStyle {
   const active = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
-  const glass = resolveActiveGlassTokens(isLight);
+  const portal = usePortalPremiumTheme();
+  const glass = resolveActiveGlassTokens(portal.active || isLight);
 
   return useMemo(
     () =>
@@ -431,20 +459,22 @@ export function useAuroraGlassModalStyle(
 ): ViewStyle {
   const active = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
+  const portal = usePortalPremiumTheme();
+  const surfaceIsLight = portal.active || isLight;
   const intensity = options.intensity ?? 'default';
   const viewGlass = resolveLlganViewGlass(options.viewContext ?? 'form', intensity);
-  const glass = resolveActiveGlassTokens(isLight);
+  const glass = resolveActiveGlassTokens(surfaceIsLight);
 
   return useMemo(
     () =>
       active
         ? {
-            backgroundColor: isLight ? viewGlass.modal : glass.modal,
-            borderColor: isLight ? viewGlass.borderWhite : glass.borderStrong,
+            backgroundColor: surfaceIsLight ? viewGlass.modal : glass.modal,
+            borderColor: surfaceIsLight ? viewGlass.borderWhite : glass.borderStrong,
             borderWidth: 1,
             borderRadius: careRadius.lg,
             overflow: 'hidden',
-            ...(isLight
+            ...(surfaceIsLight
               ? {
                   ...lightLiquidGlassWebFx(viewGlass.blurDesktop, viewGlass.saturate),
                   boxShadow: `${viewGlass.shadow}, ${viewGlass.shadowInset}`,
@@ -452,7 +482,7 @@ export function useAuroraGlassModalStyle(
               : {}),
           }
         : {},
-    [active, glass.borderStrong, glass.modal, isLight, viewGlass],
+    [active, glass.borderStrong, glass.modal, surfaceIsLight, viewGlass],
   );
 }
 

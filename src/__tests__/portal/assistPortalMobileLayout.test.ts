@@ -171,9 +171,10 @@ describe('Assist portal mobile layout', () => {
     const hero = readSrc('src/components/portal/assist/PortalGlassHero.tsx');
     expect(hero).toContain('leadingIcon');
     expect(hero).toContain('titleSecondary');
-    expect(hero).toContain('phoneRow');
+    expect(hero).toContain('isPhone || width < 760');
+    expect(hero).toContain('headerCompact');
     expect(hero).toContain('showStatusDot');
-    expect(hero).toContain('useLightLiquidGlassShell');
+    expect(hero).toContain('portalPremium');
     expect(hero).not.toContain('titleRowPhone');
   });
 

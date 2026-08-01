@@ -2,6 +2,8 @@ import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { careSpacing } from '@/design/tokens/spacing';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import { LinearGradient } from 'expo-linear-gradient';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 
 type PremiumListHeroFrameProps = {
   children: React.ReactNode;
@@ -22,10 +24,12 @@ export function PremiumListHeroFrame({
   style,
   accentColor,
 }: PremiumListHeroFrameProps) {
+  const portal = usePortalPremiumTheme();
   return (
     <View
       style={[
         styles.frame,
+        portal.active && styles.portalFrame,
         accentColor ? { borderColor: accentColor } : null,
         style,
       ]}
@@ -33,9 +37,18 @@ export function PremiumListHeroFrame({
         ? ({ dataSet: { csHealthosComponent: 'list-overview' } } as object)
         : {})}
     >
-      <View pointerEvents="none" style={styles.ambientGlow} />
-      <View pointerEvents="none" style={styles.lightRail} />
-      <View pointerEvents="none" style={styles.innerBorder} />
+      {portal.active ? (
+        <LinearGradient
+          colors={['#FFFFFF', '#F3F9FF', '#E4F1FF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+          pointerEvents="none"
+        />
+      ) : null}
+      <View pointerEvents="none" style={[styles.ambientGlow, portal.active && styles.portalAmbientGlow]} />
+      <View pointerEvents="none" style={[styles.lightRail, portal.active && styles.portalLightRail]} />
+      <View pointerEvents="none" style={[styles.innerBorder, portal.active && styles.portalInnerBorder]} />
       {children}
     </View>
   );
@@ -59,6 +72,13 @@ const styles = StyleSheet.create({
         } as unknown as ViewStyle)
       : null),
   },
+  portalFrame: {
+    borderColor: portalPremium.border,
+    backgroundColor: portalPremium.surface,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: portalPremium.shadow.card } as unknown as ViewStyle)
+      : { shadowColor: '#00265A', shadowOpacity: 0.16, shadowRadius: 18, elevation: 7 }),
+  },
   innerBorder: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: spatialCare.radius.card,
@@ -75,6 +95,10 @@ const styles = StyleSheet.create({
     backgroundColor: systemLiquidGlass.glow.medium,
     opacity: 0.62,
   },
+  portalAmbientGlow: {
+    backgroundColor: 'rgba(53,151,255,0.16)',
+    opacity: 1,
+  },
   lightRail: {
     position: 'absolute',
     top: 0,
@@ -84,5 +108,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: systemLiquidGlass.borderActive,
     opacity: 0.88,
+  },
+  portalLightRail: {
+    backgroundColor: portalPremium.accent.blue,
+    opacity: 0.55,
+  },
+  portalInnerBorder: {
+    borderColor: portalPremium.innerBorder,
   },
 });

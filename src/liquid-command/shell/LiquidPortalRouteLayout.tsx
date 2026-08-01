@@ -21,6 +21,7 @@ import {
 } from '../navigation/portalCatalog';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
 import { webScaledFontMetric } from '@/design/web/webFontSize';
+import { PortalPremiumProvider } from '@/design/tokens/portalPremium';
 
 const transparentContent = {
   flex: 1,
@@ -136,7 +137,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
             <View style={styles.identity}>
               {layout.isDesktop ? (
                 <>
-                  {kind === 'client' ? <PortalTextSizeControls /> : null}
+                  {kind === 'client' || kind === 'employee' ? <PortalTextSizeControls /> : null}
                   <View style={styles.identityCopy}>
                     <Text numberOfLines={1} style={styles.identityName}>{displayName}</Text>
                     <Text style={styles.identityRole}>Sicher angemeldet</Text>
@@ -145,7 +146,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 </>
               ) : (
                 <>
-                  {kind === 'client' ? <PortalTextSizeControls compact /> : null}
+                  {kind === 'client' || kind === 'employee' ? <PortalTextSizeControls compact /> : null}
                   <LiquidIconButton
                     label="Nachrichten"
                     glyph="♧"
@@ -255,7 +256,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   contentContainerStyle={styles.moreGrid}
                   showsVerticalScrollIndicator={false}
                 >
-                  {kind === 'client' ? (
+                  {kind === 'client' || kind === 'employee' ? (
                     <View style={styles.moreAccessibility}>
                       <Text style={styles.moreAccessibilityLabel}>LESBARKEIT & ZOOM</Text>
                       <PortalTextSizeControls />
@@ -316,11 +317,15 @@ export function LiquidPortalRouteLayout({
   if (kind === 'employee') {
     content = <RequireEmployeePasswordSetup>{content}</RequireEmployeePasswordSetup>;
   }
-  return (
+  const guarded = (
     <RequireAuth redirectTo={liquidPortalLoginRoutes[kind] as never}>
       {content}
     </RequireAuth>
   );
+  if (kind === 'client' || kind === 'employee') {
+    return <PortalPremiumProvider kind={kind}>{guarded}</PortalPremiumProvider>;
+  }
+  return guarded;
 }
 
 const styles = StyleSheet.create({

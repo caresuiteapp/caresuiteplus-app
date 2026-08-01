@@ -22,6 +22,7 @@ import {
   resolveInteractiveTextColor,
 } from '@/design/tokens/accentContrast';
 import { useListHeroSurface } from '@/design/tokens/listHeroSurfaceContext';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 
 export type CareLightResolved = {
   isDark: boolean;
@@ -84,7 +85,8 @@ export function resolveCareLightPalette(isDark: boolean): CareLightResolved {
 
 export function useCareLightPalette(): { isDark: boolean; c: CareLightResolved } {
   const { mode } = useThemeMode();
-  const isDark = mode === 'dark';
+  const portal = usePortalPremiumTheme();
+  const isDark = portal.active ? false : mode === 'dark';
   return useMemo(() => ({ isDark, c: resolveCareLightPalette(isDark) }), [isDark]);
 }
 
@@ -200,28 +202,29 @@ type ListHeroTextStyleOptions = {
 
 /** List-hero typography — context-aware contrast for gradient vs light hero surfaces. */
 export function useListHeroTextStyles(_options?: ListHeroTextStyleOptions) {
+  const portal = usePortalPremiumTheme();
   return useMemo(
     () => ({
       eyebrow: {
         ...careTypography.caption,
-        color: systemLiquidGlass.text.secondary,
+        color: portal.active ? portalPremium.accent.blueDark : systemLiquidGlass.text.secondary,
         letterSpacing: designTokens.hero.eyebrowLetterSpacing,
         fontWeight: '700' as TextStyle['fontWeight'],
       },
       title: {
         ...careTypography.h2,
-        color: systemLiquidGlass.text.primary,
+        color: portal.active ? portalPremium.text.primary : systemLiquidGlass.text.primary,
         fontWeight: '800' as TextStyle['fontWeight'],
       },
       meta: {
         ...careTypography.caption,
-        color: systemLiquidGlass.text.secondary,
+        color: portal.active ? portalPremium.text.secondary : systemLiquidGlass.text.secondary,
       },
       iconBorder: {
-        borderColor: systemLiquidGlass.borderStrong,
+        borderColor: portal.active ? portalPremium.borderStrong : systemLiquidGlass.borderStrong,
       },
     }),
-    [],
+    [portal.active],
   );
 }
 
@@ -229,6 +232,7 @@ export function useListHeroTextStyles(_options?: ListHeroTextStyleOptions) {
 export function usePremiumHeroTextStyles() {
   const hero = useListHeroTextStyles();
   const { typography } = useLegacyTheme();
+  const portal = usePortalPremiumTheme();
 
   return useMemo(
     () => ({
@@ -237,10 +241,10 @@ export function usePremiumHeroTextStyles() {
       meta: hero.meta,
       subtitle: { ...typography.caption, color: hero.meta.color },
       iconBadge: {
-        borderColor: systemLiquidGlass.borderStrong,
-        backgroundColor: systemLiquidGlass.chip,
+        borderColor: portal.active ? portalPremium.borderStrong : systemLiquidGlass.borderStrong,
+        backgroundColor: portal.active ? portalPremium.surfaceSoft : systemLiquidGlass.chip,
       },
     }),
-    [hero.eyebrow, hero.meta, hero.title, typography.caption],
+    [hero.eyebrow, hero.meta, hero.title, portal.active, typography.caption],
   );
 }

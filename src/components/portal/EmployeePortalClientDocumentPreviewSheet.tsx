@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { PortalDocumentDetailHero } from '@/components/portal/PortalDocumentDetailHero';
 import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
-import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
+import { lightSurfaceText } from '@/design/tokens/auroraGlass';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -36,7 +36,7 @@ export function EmployeePortalClientDocumentPreviewSheet({
   onClose,
 }: EmployeePortalClientDocumentPreviewSheetProps) {
   const insets = useSafeAreaInsets();
-  const text = darkGlassSurfaceText;
+  const text = lightSurfaceText;
   const { data, loading, error, refresh, download, downloadLoading, downloadError } =
     useEmployeePortalClientDocument(clientId, visible ? documentId : null);
 
@@ -142,8 +142,8 @@ const styles = StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject },
   sheet: {
     maxHeight: '92%',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
     borderWidth: 1,
     paddingTop: careSpacing.sm,
     paddingHorizontal: careSpacing.md,

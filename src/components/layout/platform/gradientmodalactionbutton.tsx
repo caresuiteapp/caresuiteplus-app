@@ -10,6 +10,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 
 export type GradientModalActionButtonVariant = 'primary' | 'glass' | 'danger' | 'secondary';
 
@@ -28,10 +29,11 @@ export function GradientModalActionButton({
   disabled = false,
   variant = 'glass',
 }: GradientModalActionButtonProps) {
+  const portalTheme = usePortalPremiumTheme();
   const { isLight } = useLegacyTheme();
   const auroraActive = useAuroraGlassActive();
   const shellHostsAurora = useShellHostsAurora();
-  const lightModal = isLight && auroraActive && shellHostsAurora;
+  const lightModal = portalTheme.active || (isLight && auroraActive && shellHostsAurora);
   const text = useAuroraAdaptiveText();
   const glassButtons = useAuroraGlassButtonStyles({ viewContext: 'form' });
 

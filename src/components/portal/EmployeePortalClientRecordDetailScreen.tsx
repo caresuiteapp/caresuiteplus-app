@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { useAuroraAdaptiveText, darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { AdaptiveKpiGrid, type KpiGridItem } from '@/components/adaptive';
@@ -52,7 +52,7 @@ function buildAddress(record: EmployeePortalClientRecordDetail): string {
 }
 
 function InfoBlock({ label, value }: { label: string; value: string | null | undefined }) {
-  const text = darkGlassSurfaceText;
+  const text = useAuroraAdaptiveText();
   if (!value?.trim()) return null;
   return (
     <View style={styles.infoBlock}>
@@ -63,7 +63,7 @@ function InfoBlock({ label, value }: { label: string; value: string | null | und
 }
 
 function ClientRecordHero({ record }: { record: EmployeePortalClientRecordDetail }) {
-  const text = darkGlassSurfaceText;
+  const text = useAuroraAdaptiveText();
   const address = buildAddress(record);
 
   const kpiItems = useMemo((): KpiGridItem[] => {

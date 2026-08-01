@@ -1,6 +1,9 @@
+import type { ComponentProps } from 'react';
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   HealthOSAlert,
   HealthOSEmptyState,
@@ -23,6 +26,9 @@ import {
 } from '@/lib/portal/employee/employeePortalTodayModel';
 import { spacing, typography } from '@/theme';
 import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
+import { useClientGreeting } from '@/hooks/useClientGreeting';
+import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
+import { portalPremium } from '@/design/tokens/portalPremium';
 import {
   SpatialPortalMetric,
   SpatialPortalPearlState,
@@ -39,6 +45,147 @@ type Props = {
   fromCache?: boolean;
   cachedAt?: string | null;
 };
+
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+
+const employeeQuickActions: { label: string; icon: IoniconName; route: string }[] = [
+  { label: 'Meine Einsätze', icon: 'calendar-outline', route: '/portal/employee/assignments' },
+  { label: 'Nachrichten', icon: 'chatbubbles-outline', route: '/portal/employee/messages' },
+  { label: 'Arbeitszeit', icon: 'time-outline', route: '/portal/employee/times' },
+  { label: 'Dokumente', icon: 'folder-open-outline', route: '/portal/employee/documents' },
+];
+
+const breakLongWords = Platform.OS === 'web'
+  ? ({ overflowWrap: 'anywhere', wordBreak: 'break-word' } as unknown as TextStyle)
+  : null;
+
+const premiumShadow = Platform.OS === 'web'
+  ? ({ boxShadow: portalPremium.shadow.panel } as unknown as ViewStyle)
+  : ({ shadowColor: '#001B42', shadowOpacity: 0.2, shadowRadius: 22, shadowOffset: { width: 0, height: 13 }, elevation: 8 } as ViewStyle);
+
+function EmployeePremiumWelcome({
+  displayName,
+  model,
+  onNavigate,
+}: {
+  displayName: string;
+  model: ReturnType<typeof buildEmployeePortalTodayModel>;
+  onNavigate: (route?: string) => void;
+}) {
+  const { width } = useHydrationSafeWindowDimensions();
+  const compact = width < 760;
+  const type = resolveGalaxyTypography(width);
+  const greeting = useClientGreeting();
+  const guide = model.currentAssignment
+    ? {
+        title: 'Ihr aktueller Einsatz ist bereit',
+        message: `${model.currentAssignment.title} · ${model.currentAssignment.timeRange}`,
+        action: 'Einsatz öffnen',
+        route: model.currentAssignment.navigationRoute,
+      }
+    : model.offeneAufgaben.length > 0
+      ? {
+          title: 'Es gibt noch etwas zu erledigen',
+          message: 'Offene Dokumentationen und Unterschriften finden Sie direkt in Ihrer Tagesübersicht.',
+          action: 'Aufgaben ansehen',
+          route: model.offeneAufgaben[0]?.route,
+        }
+      : model.meineEinsaetze[0]
+        ? {
+            title: 'Ihr nächster Einsatz ist vorbereitet',
+            message: `${model.meineEinsaetze[0].title} · ${model.meineEinsaetze[0].timeRange}`,
+            action: 'Einsatz ansehen',
+            route: model.meineEinsaetze[0].navigationRoute,
+          }
+        : {
+            title: 'Alles ist im grünen Bereich',
+            message: 'Heute gibt es keine dringenden Aufgaben. Neue Informationen erscheinen automatisch hier.',
+            action: undefined,
+            route: undefined,
+          };
+
+  return (
+    <>
+      <View style={[styles.welcomeHero, compact && styles.welcomeHeroCompact]} testID="employee-portal-premium-home-hero">
+        <LinearGradient
+          colors={['#FFFFFF', '#F1F7FF', '#DCEBFF']}
+          locations={[0, 0.58, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+          pointerEvents="none"
+        />
+        <View style={styles.welcomeGlow} pointerEvents="none" />
+        <View style={[styles.welcomeCopy, compact && styles.welcomeCopyCompact]}>
+          <View style={styles.portalPill}>
+            <Ionicons name="briefcase" color={portalPremium.accent.blue} size={15} />
+            <Text style={styles.portalPillText}>MEIN MITARBEITENDENPORTAL</Text>
+          </View>
+          <Text style={[type.h1, styles.welcomeTitle, breakLongWords]}>
+            {greeting}, {displayName}
+          </Text>
+          <Text style={[type.body, styles.welcomeProvider]}>CareSuite – Ihr sicherer Arbeitsbereich</Text>
+        </View>
+
+        <View style={[styles.guideArea, compact && styles.guideAreaCompact]}>
+          <Image
+            accessibilityIgnoresInvertColors
+            accessibilityLabel="CareSuite Portalbegleiter"
+            resizeMode="contain"
+            source={require('../../../../assets/auth/access-employee.png')}
+            style={[styles.guideMascot, compact && styles.guideMascotCompact]}
+          />
+          <View style={styles.guideBubble}>
+            <View style={styles.guideBubbleTail} />
+            <Text style={[type.bodyStrong, styles.guideTitle, breakLongWords]}>{guide.title}</Text>
+            <Text style={[type.caption, styles.guideMessage]}>{guide.message}</Text>
+            {guide.action && guide.route ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => onNavigate(guide.route)}
+                style={({ pressed }) => [styles.guideAction, pressed && styles.pressed]}
+              >
+                <Text style={styles.guideActionText}>{guide.action}</Text>
+                <Ionicons name="arrow-forward" color="#FFFFFF" size={16} />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.quickPanel} testID="employee-portal-premium-quick-actions">
+        <LinearGradient
+          colors={['#0B5CC9', '#073E8D', '#052B68']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+          pointerEvents="none"
+        />
+        <View style={styles.quickPanelGlow} pointerEvents="none" />
+        <View style={styles.quickHeading}>
+          <Text style={[type.caption, styles.quickEyebrow]}>SCHNELL ERLEDIGT</Text>
+          <Text style={[type.cardTitle, styles.quickTitle]}>Was möchten Sie tun?</Text>
+        </View>
+        <View style={[styles.quickTasks, compact && styles.quickTasksCompact]}>
+          {employeeQuickActions.map((item) => (
+            <Pressable
+              key={item.route}
+              accessibilityRole="button"
+              onPress={() => onNavigate(item.route)}
+              style={({ pressed }) => [styles.quickTask, compact && styles.quickTaskCompact, pressed && styles.quickTaskPressed]}
+            >
+              <View style={styles.quickTaskIcon}>
+                <Ionicons name={item.icon} color="#FFFFFF" size={19} />
+              </View>
+              <Text style={[type.bodyStrong, styles.quickTaskLabel]}>{item.label}</Text>
+              <Ionicons name="chevron-forward" color="rgba(255,255,255,0.72)" size={18} />
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    </>
+  );
+}
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -208,6 +355,7 @@ export function HealthOSEmployeePortalTodayView({
   return (
     <HealthOSPage scroll testID="healthos-employee-portal-today">
       <CachedDataBanner visible={fromCache} cachedAt={cachedAt} />
+      <EmployeePremiumWelcome displayName={displayName} model={model} onNavigate={navigate} />
       {/* A: Tagesübersicht */}
       <SpatialPortalSection
         title="Heute"
@@ -305,6 +453,107 @@ export function HealthOSEmployeePortalTodayView({
 }
 
 const styles = StyleSheet.create({
+  welcomeHero: {
+    minHeight: 220,
+    position: 'relative',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: portalPremium.border,
+    borderRadius: 26,
+    padding: 26,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 24,
+    ...premiumShadow,
+  },
+  welcomeHeroCompact: {
+    minHeight: 0,
+    padding: 16,
+    borderRadius: 20,
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 14,
+  },
+  welcomeGlow: {
+    position: 'absolute',
+    right: -90,
+    top: -130,
+    width: 360,
+    height: 360,
+    borderRadius: 999,
+    backgroundColor: 'rgba(53,151,255,0.20)',
+  },
+  welcomeCopy: { flex: 1.25, minWidth: 0, gap: 8 },
+  welcomeCopyCompact: { flex: 0 },
+  portalPill: {
+    alignSelf: 'flex-start',
+    minHeight: 32,
+    paddingHorizontal: 11,
+    borderWidth: 1,
+    borderColor: portalPremium.borderSoft,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  portalPillText: { color: portalPremium.accent.blueDark, fontSize: 11, lineHeight: 14, fontWeight: '900', letterSpacing: 0.75 },
+  welcomeTitle: { color: portalPremium.text.primary, fontWeight: '900', letterSpacing: -0.6 },
+  welcomeProvider: { color: portalPremium.text.secondary, fontWeight: '700' },
+  guideArea: { flex: 1, minWidth: 330, maxWidth: 560, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  guideAreaCompact: { flex: 0, minWidth: 0, maxWidth: '100%', width: '100%' },
+  guideMascot: { width: 102, height: 118, flexShrink: 0 },
+  guideMascotCompact: { width: 58, height: 68 },
+  guideBubble: {
+    flex: 1,
+    minWidth: 0,
+    position: 'relative',
+    padding: 15,
+    borderWidth: 1,
+    borderColor: portalPremium.borderSoft,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.84)',
+    gap: 5,
+  },
+  guideBubbleTail: {
+    position: 'absolute', left: -7, bottom: 22, width: 14, height: 14,
+    borderLeftWidth: 1, borderBottomWidth: 1, borderColor: portalPremium.borderSoft,
+    backgroundColor: '#F5FAFF', transform: [{ rotate: '45deg' }],
+  },
+  guideTitle: { color: portalPremium.text.primary, fontWeight: '800' },
+  guideMessage: { color: portalPremium.text.secondary },
+  guideAction: {
+    alignSelf: 'flex-start', minHeight: 40, marginTop: 4, paddingHorizontal: 13,
+    borderRadius: 11, backgroundColor: portalPremium.accent.blue,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
+  },
+  guideActionText: { color: '#FFFFFF', fontSize: 13, lineHeight: 17, fontWeight: '800' },
+  quickPanel: {
+    position: 'relative', overflow: 'hidden', padding: 18, borderWidth: 1,
+    borderColor: portalPremium.border, borderRadius: 21, gap: 12, ...premiumShadow,
+  },
+  quickPanelGlow: {
+    position: 'absolute', right: -70, top: -90, width: 230, height: 230,
+    borderRadius: 999, backgroundColor: 'rgba(53,151,255,0.22)',
+  },
+  quickHeading: { gap: 2 },
+  quickEyebrow: { color: '#9ACBFF', fontWeight: '900', letterSpacing: 0.9 },
+  quickTitle: { color: '#FFFFFF', fontWeight: '900' },
+  quickTasks: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  quickTasksCompact: { flexDirection: 'column' },
+  quickTask: {
+    flex: 1, minWidth: 210, minHeight: 48, paddingHorizontal: 10, borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)', borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'center', gap: 10,
+  },
+  quickTaskCompact: { width: '100%', minWidth: 0 },
+  quickTaskPressed: { backgroundColor: 'rgba(255,255,255,0.16)' },
+  quickTaskIcon: {
+    width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  quickTaskLabel: { flex: 1, color: '#FFFFFF', fontWeight: '700' },
+  pressed: { opacity: 0.8, transform: [{ scale: 0.988 }] },
   listContainer: {
     gap: spacing.xs,
   },

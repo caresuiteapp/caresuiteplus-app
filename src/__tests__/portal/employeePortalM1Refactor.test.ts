@@ -72,11 +72,12 @@ describe('employee portal M.1 refactor', () => {
     expect(shell).toContain('drawerTabs');
   });
 
-  it('employee assignment cards use the premium dark HealthOS surface', () => {
+  it('employee assignment cards use the shared premium light surface', () => {
     const card = readSrc('src/components/portal/EmployeePortalAssignmentCard.tsx');
-    expect(card).toContain('darkGlassSurfaceText');
+    expect(card).toContain('portalPremium.text');
     expect(card).toContain('LinearGradient');
     expect(card).toContain('spatialCare');
+    expect(card).toContain("colors={['#FFFFFF', '#F2F8FF', '#E3F1FF']}");
     expect(card).not.toContain('useAuroraAdaptiveText');
   });
 
