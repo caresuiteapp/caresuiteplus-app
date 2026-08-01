@@ -40,7 +40,10 @@ import {
 } from '../components/LiquidPrimitives';
 import { liquidColors, liquidRadius, liquidSpace } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
-import { liquidPortalNavigation } from '../navigation/portalCatalog';
+import {
+  liquidPortalLoginRoutes,
+  liquidPortalNavigation,
+} from '../navigation/portalCatalog';
 import type { LiquidPortalKey } from '../types';
 import {
   employeePortalHomeAppointmentTitle,
@@ -188,11 +191,13 @@ function PortalNavigation({
   active,
   horizontal,
   onSelect,
+  onSignOut,
   sections,
 }: {
   active: string;
   horizontal?: boolean;
   onSelect: (section: string) => void;
+  onSignOut: () => void;
   sections: PortalSection[];
 }) {
   return (
@@ -232,6 +237,19 @@ function PortalNavigation({
           </Text>
         </Pressable>
       ))}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Sicher abmelden"
+        onPress={onSignOut}
+        style={({ pressed }) => [
+          horizontal ? styles.navigationChip : styles.navigationRow,
+          styles.navigationLogout,
+          pressed && styles.pressed,
+        ]}
+      >
+        <LiquidGlyph glyph="↪" size={19} />
+        <Text numberOfLines={1} style={styles.navigationLabel}>Abmelden</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -640,6 +658,7 @@ export function PortalHomeScreen({
   const displayName =
     auth.profile?.displayName || auth.portalSession?.displayName || auth.user?.displayName || 'Portal';
   const mobileSections = definition.sections;
+  const loginRoute = liquidPortalLoginRoutes[portal === 'family' ? 'relative' : portal];
 
   const navigateToSection = (sectionId: string) => {
     const section = definition.sections.find((item) => item.id === sectionId);
@@ -647,7 +666,7 @@ export function PortalHomeScreen({
       setActive('today');
       return;
     }
-    router.push(section.route as never);
+    router.replace(section.route as never);
   };
 
   const openAppointment = (appointment: PortalAppointmentItem) => {
@@ -677,7 +696,7 @@ export function PortalHomeScreen({
 
   const signOut = async () => {
     await auth.signOut();
-    router.replace('/auth' as never);
+    router.replace(loginRoute as never);
   };
 
   if (auth.authReady && (!auth.isAuthenticated || roleKey !== definition.allowedRole)) {
@@ -689,7 +708,7 @@ export function PortalHomeScreen({
             title="Portalzugang erforderlich"
             message={`Dieser Bereich ist ausschließlich für ${definition.title} freigegeben.`}
             actionLabel="Zum passenden Zugang"
-            onAction={() => router.replace('/auth' as never)}
+            onAction={() => router.replace(loginRoute as never)}
           />
         </View>
       </LiquidBackdrop>
@@ -795,6 +814,7 @@ export function PortalHomeScreen({
               <PortalNavigation
                 active={active}
                 onSelect={navigateToSection}
+                onSignOut={() => void signOut()}
                 sections={definition.sections}
               />
               <View style={styles.sideFooter}>
@@ -844,6 +864,7 @@ export function PortalHomeScreen({
                 active={active}
                 horizontal
                 onSelect={navigateToSection}
+                onSignOut={() => void signOut()}
                 sections={mobileSections}
               />
             </View>
@@ -902,6 +923,9 @@ const styles = StyleSheet.create({
   navigationActive: {
     backgroundColor: liquidColors.blue500,
     borderColor: liquidColors.blue300,
+  },
+  navigationLogout: {
+    borderColor: liquidColors.blue300Alpha32,
   },
   navigationGlyph: { color: liquidColors.white, fontSize: 17 },
   navigationLabel: { color: liquidColors.white64, fontSize: 14, fontWeight: '600' },

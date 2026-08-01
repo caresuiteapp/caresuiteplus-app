@@ -15,6 +15,7 @@ import { liquidColors, liquidLayers, liquidRadius } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import {
   liquidPortalNavigation,
+  liquidPortalLoginRoutes,
   liquidPortalRoots,
   type ProductPortalKind as PortalKind,
 } from '../navigation/portalCatalog';
@@ -77,7 +78,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
 
   const signOut = async () => {
     await auth.signOut();
-    router.replace('/auth' as never);
+    router.replace(liquidPortalLoginRoutes[kind] as never);
   };
 
   return (
@@ -92,7 +93,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   key={item.id}
                   accessibilityRole="tab"
                   accessibilityState={{ selected: activeId === item.id }}
-                  onPress={() => router.push(item.route as never)}
+                  onPress={() => router.replace(item.route as never)}
                   style={({ pressed }) => [
                     styles.railItem,
                     activeId === item.id && styles.railItemActive,
@@ -108,6 +109,15 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 </Pressable>
               ))}
             </ScrollView>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Sicher abmelden"
+              onPress={() => void signOut()}
+              style={({ pressed }) => [styles.railLogout, pressed && styles.pressed]}
+            >
+              <LiquidGlyph glyph="↪" size={19} />
+              <Text style={styles.railLabel}>Abmelden</Text>
+            </Pressable>
           </View>
         ) : null}
         <View style={styles.main}>
@@ -132,7 +142,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   <LiquidIconButton
                     label="Nachrichten"
                     glyph="♧"
-                    onPress={() => router.push(
+                    onPress={() => router.replace(
                       kind === 'employee'
                         ? '/portal/employee/messages'
                         : kind === 'client'
@@ -144,7 +154,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                     label={profileRoute ? 'Profil' : 'Abmelden'}
                     glyph="♙"
                     onPress={() => profileRoute
-                      ? router.push(profileRoute as never)
+                      ? router.replace(profileRoute as never)
                       : void signOut()}
                   />
                 </>
@@ -175,7 +185,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 key={item.id}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: activeId === item.id }}
-                onPress={() => router.push(item.route as never)}
+                onPress={() => router.replace(item.route as never)}
                 style={({ pressed }) => [styles.bottomItem, pressed && styles.pressed]}
               >
                 <LiquidGlyph
@@ -186,29 +196,27 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 <Text style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}>{item.label}</Text>
               </Pressable>
             ))}
-            {moreNavigation.length ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Weitere Portalbereiche öffnen"
-                accessibilityState={{ expanded: moreOpen }}
-                onPress={() => setMoreOpen(true)}
-                style={({ pressed }) => [styles.bottomItem, pressed && styles.pressed]}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Weitere Portalbereiche öffnen"
+              accessibilityState={{ expanded: moreOpen }}
+              onPress={() => setMoreOpen(true)}
+              style={({ pressed }) => [styles.bottomItem, pressed && styles.pressed]}
+            >
+              <LiquidGlyph
+                active={moreNavigation.some((item) => item.id === activeId)}
+                glyph="•••"
+                size={20}
+              />
+              <Text
+                style={[
+                  styles.bottomLabel,
+                  moreNavigation.some((item) => item.id === activeId) && styles.bottomLabelActive,
+                ]}
               >
-                <LiquidGlyph
-                  active={moreNavigation.some((item) => item.id === activeId)}
-                  glyph="•••"
-                  size={20}
-                />
-                <Text
-                  style={[
-                    styles.bottomLabel,
-                    moreNavigation.some((item) => item.id === activeId) && styles.bottomLabelActive,
-                  ]}
-                >
-                  Mehr
-                </Text>
-              </Pressable>
-            ) : null}
+                Mehr
+              </Text>
+            </Pressable>
           </View>
           <Modal
             animationType="fade"
@@ -244,7 +252,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                       accessibilityRole="menuitem"
                       onPress={() => {
                         setMoreOpen(false);
-                        router.push(item.route as never);
+                        router.replace(item.route as never);
                       }}
                       style={({ pressed }) => [
                         styles.moreItem,
@@ -257,6 +265,19 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                       <Text style={styles.moreArrow}>›</Text>
                     </Pressable>
                   ))}
+                  <Pressable
+                    accessibilityRole="menuitem"
+                    accessibilityLabel="Sicher abmelden"
+                    onPress={() => {
+                      setMoreOpen(false);
+                      void signOut();
+                    }}
+                    style={({ pressed }) => [styles.moreItem, styles.moreLogout, pressed && styles.pressed]}
+                  >
+                    <LiquidGlyph glyph="↪" size={21} />
+                    <Text style={styles.moreLabel}>Abmelden</Text>
+                    <Text style={styles.moreArrow}>›</Text>
+                  </Pressable>
                 </ScrollView>
               </Pressable>
             </Pressable>
@@ -281,7 +302,7 @@ export function LiquidPortalRouteLayout({
     content = <RequireEmployeePasswordSetup>{content}</RequireEmployeePasswordSetup>;
   }
   return (
-    <RequireAuth redirectTo={`/auth/${kind === 'employee' ? 'employee' : kind === 'client' ? 'client' : 'family'}-login` as never}>
+    <RequireAuth redirectTo={liquidPortalLoginRoutes[kind] as never}>
       {content}
     </RequireAuth>
   );
@@ -323,6 +344,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: liquidColors.blue400,
     backgroundColor: 'rgba(20,120,255,0.2)',
+  },
+  railLogout: {
+    width: 96,
+    minHeight: 58,
+    paddingHorizontal: 7,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: liquidColors.white12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
   },
   railGlyph: {
     color: liquidColors.blue200,
@@ -506,6 +538,10 @@ const styles = StyleSheet.create({
   moreItemActive: {
     borderColor: liquidColors.blue400,
     backgroundColor: 'rgba(20,120,255,0.2)',
+  },
+  moreLogout: {
+    marginTop: 7,
+    borderColor: liquidColors.blue300Alpha32,
   },
   moreLabel: {
     flex: 1,

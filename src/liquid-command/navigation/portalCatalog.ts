@@ -17,6 +17,12 @@ export const liquidPortalRoots: Record<ProductPortalKind, string> = {
   relative: '/portal/relative',
 };
 
+export const liquidPortalLoginRoutes: Record<ProductPortalKind, string> = {
+  employee: '/auth/employee-login',
+  client: '/auth/client-login',
+  relative: '/auth/client-login',
+};
+
 export const liquidPortalNavigation: Record<
   ProductPortalKind,
   readonly LiquidPortalNavigationItem[]
