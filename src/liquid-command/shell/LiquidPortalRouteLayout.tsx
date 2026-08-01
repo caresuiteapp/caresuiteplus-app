@@ -331,7 +331,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   rail: {
-    width: 220,
+    // The compact CareSuite logo is 224 px wide. Reserve its real width plus
+    // the rail padding so it cannot overlap the portal heading.
+    width: 252,
     paddingHorizontal: 14,
     paddingVertical: 20,
     borderRightWidth: 1,

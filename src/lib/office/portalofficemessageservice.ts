@@ -184,8 +184,7 @@ async function fetchPortalThreadsLive(
   let query = fromUnknownTable(supabase, 'message_threads')
     .select('*')
     .eq('tenant_id', tenantId)
-    .neq('status', 'deleted')
-    .is('deleted_at', null);
+    .neq('status', 'deleted');
 
   if (actor.audience === 'client') {
     query = query.eq('thread_type', dbType).eq('client_id', actor.clientId!);

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { CalendarEvent, CalendarViewMode } from '@/types/modules/calendarEvent';
 import { CalendarToolbar } from '@/components/calendar/CalendarToolbar';
@@ -107,6 +107,22 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
     config?.emptyStateMessage ??
     'Im gewählten Zeitraum sind keine Einträge sichtbar. Wechseln Sie die Ansicht oder den Zeitraum.';
 
+  const needsWideCanvas = viewMode === 'month' || viewMode === 'week' || viewMode === 'year';
+
+  const calendarGrid = (
+    <CalendarEventGrid
+      viewMode={viewMode}
+      anchor={anchor}
+      events={events}
+      weekStartDay={weekStartDay}
+      maxCollapsedEvents={3}
+      dayViewStartHour={6}
+      weekFullDay
+      onEventPress={handleEventPress}
+      onSelectMonth={handleSelectMonth}
+    />
+  );
+
   return (
     <View style={styles.wrap} testID="employee-portal-calendar">
       <CalendarToolbar
@@ -121,18 +137,19 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
 
       {events.length === 0 ? (
         <EmptyState title="Keine Ereignisse in diesem Zeitraum" message={emptyMessage} />
+      ) : needsWideCanvas ? (
+        <ScrollView
+          horizontal
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator
+          contentContainerStyle={styles.wideCanvas}
+          style={styles.horizontalViewport}
+          testID="employee-calendar-horizontal-scroll"
+        >
+          {calendarGrid}
+        </ScrollView>
       ) : (
-        <CalendarEventGrid
-          viewMode={viewMode}
-          anchor={anchor}
-          events={events}
-          weekStartDay={weekStartDay}
-          maxCollapsedEvents={3}
-          dayViewStartHour={6}
-          weekFullDay
-          onEventPress={handleEventPress}
-          onSelectMonth={handleSelectMonth}
-        />
+        calendarGrid
       )}
     </View>
   );
@@ -140,8 +157,25 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
 
 const styles = StyleSheet.create({
   wrap: {
-    flex: 1, gap: careSpacing.lg, padding: careSpacing.md, borderRadius: 22,
+    width: '100%', minWidth: 0, gap: careSpacing.lg, padding: careSpacing.md, borderRadius: 22,
     borderWidth: 1, borderColor: spatialCare.border,
     backgroundColor: spatialCare.stageStrong,
+  },
+  horizontalViewport: {
+    width: '100%',
+    minWidth: 0,
+    ...(Platform.OS === 'web'
+      ? ({
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          touchAction: 'pan-x',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorX: 'contain',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  wideCanvas: {
+    minWidth: 1040,
+    flexGrow: 1,
   },
 });

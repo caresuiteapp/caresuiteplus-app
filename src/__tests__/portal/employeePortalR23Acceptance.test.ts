@@ -44,7 +44,7 @@ describe('employee portal R23 production acceptance', () => {
     const messages = readSrc('src/lib/office/portalofficemessageservice.ts');
     expect(messages).toContain("thread.status !== 'deleted'");
     expect(messages).toContain(".neq('status', 'deleted')");
-    expect(messages).toContain(".is('deleted_at', null)");
+    expect(messages).not.toContain(".is('deleted_at', null)");
   });
 
   it('uses the CareSuite employee guide and reduced-motion-safe premium effects', () => {

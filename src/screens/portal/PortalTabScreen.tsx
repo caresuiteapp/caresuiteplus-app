@@ -222,8 +222,8 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web'
       ? ({
           overflowY: 'auto',
-          overflowX: 'hidden',
-          touchAction: 'pan-y',
+          overflowX: 'auto',
+          touchAction: 'pan-x pan-y',
           WebkitOverflowScrolling: 'touch',
           overscrollBehaviorY: 'contain',
         } as unknown as ViewStyle)
@@ -270,8 +270,8 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web'
       ? ({
           overflowY: 'auto',
-          overflowX: 'hidden',
-          touchAction: 'pan-y',
+          overflowX: 'auto',
+          touchAction: 'pan-x pan-y',
           WebkitOverflowScrolling: 'touch',
         } as unknown as ViewStyle)
       : null),
