@@ -45,7 +45,6 @@ describe('employee portal M.1 refactor', () => {
       'Profil',
       'Uploads',
       'Klientenakten',
-      'Dokumente & Unterschriften',
       'Arbeitszeiten',
       'Gehalt & Auslagen',
       'Urlaubsantrag',
@@ -54,14 +53,13 @@ describe('employee portal M.1 refactor', () => {
     expect(PORTAL_EMPLOYEE_DRAWER_TABS.map((tab) => tab.label)).toEqual([
       'Uploads',
       'Klientenakten',
-      'Dokumente & Unterschriften',
       'Arbeitszeiten',
       'Gehalt & Auslagen',
       'Urlaubsantrag',
       'Abwesenheiten',
     ]);
     const all = resolveEmployeePortalNavigationTabs(PORTAL_EMPLOYEE_TABS);
-    expect(all).toHaveLength(12);
+    expect(all).toHaveLength(11);
     expect(all.map((tab) => tab.label)).not.toContain('Meine Zeiten');
     expect(all.map((tab) => tab.label)).not.toContain('Dokumente');
     expect(all.map((tab) => tab.label)).not.toContain('Offene Aufgaben');
@@ -74,12 +72,12 @@ describe('employee portal M.1 refactor', () => {
     expect(shell).toContain('drawerTabs');
   });
 
-  it('employee assignment cards use light surface text on opaque cards', () => {
+  it('employee assignment cards use the premium dark HealthOS surface', () => {
     const card = readSrc('src/components/portal/EmployeePortalAssignmentCard.tsx');
-    expect(card).toContain('lightSurfaceText');
+    expect(card).toContain('darkGlassSurfaceText');
+    expect(card).toContain('LinearGradient');
+    expect(card).toContain('spatialCare');
     expect(card).not.toContain('useAuroraAdaptiveText');
-    expect(card).not.toContain('color: \'#fff\'');
-    expect(card).not.toContain('color: "#fff"');
   });
 
   it('PortalAppointmentsTab integrates preview sheet for employees', () => {
@@ -88,10 +86,10 @@ describe('employee portal M.1 refactor', () => {
     expect(tab).toContain('EmployeePortalAssignmentPreviewSheet');
   });
 
-  it('employee messages use default messenger variant for readable composer', () => {
+  it('employee messages use the premium glass messenger variant', () => {
     const screen = readSrc('src/screens/portal/portalofficemessagesscreens.tsx');
     expect(screen).toMatch(
-      /EmployeePortalOfficeMessagesScreen[\s\S]*PortalOfficeMessenger audience="employee" variant="default"/,
+      /EmployeePortalOfficeMessagesScreen[\s\S]*PortalOfficeMessenger audience="employee" variant="glass"/,
     );
   });
 
@@ -134,7 +132,9 @@ describe('employee portal M.1 refactor', () => {
     expect(service).toContain('postal_code');
     expect(service).not.toContain('care_grade');
     expect(service).not.toMatch(/CLIENT_LIST_SELECT\s*=\s*'[^']*\bzip\b/);
-    expect(service).toContain('loadEmployeeClientVisits');
+    expect(service).toContain('loadTeamClientVisits');
+    expect(service).toContain('loadAllTenantClients');
+    expect(service).toContain('fetchLivePortalAppointmentsForEmployeeTeam');
     expect(service).toContain('assist_visits');
     expect(service).not.toMatch(/assist_visits[\s\S]*clients\(/);
   });

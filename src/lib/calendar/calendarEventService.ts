@@ -601,7 +601,7 @@ export function buildEmployeePortalCalendarConfig(employeeId: string): CalendarV
     calendarScope: 'portal',
     moduleKey: 'portal',
     defaultView: 'agenda',
-    subtitle: 'Meine Einsätze, Termine und Abwesenheiten',
+    subtitle: 'Alle Einsätze des Teams sowie Termine und Abwesenheiten',
     emptyStateMessage:
       'Im gewählten Zeitraum sind keine Einträge sichtbar. Wechseln Sie die Ansicht oder den Zeitraum.',
     moduleColor: '#FFB020',
@@ -647,7 +647,7 @@ export async function getEmployeePortalTeamCalendarEvents(
       options?.rangeStart,
       options?.rangeEnd,
     );
-    return { ok: true, data: merged };
+    return { ok: true, data: await enrichRelatedEmployeeNames(tenantId, merged) };
   }
 
   if (getServiceMode() === 'supabase') {

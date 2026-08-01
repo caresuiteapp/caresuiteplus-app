@@ -114,17 +114,17 @@ describe('portal signature dashboard model', () => {
 });
 
 describe('portal signature navigation', () => {
-  it('employee drawer navigation includes Unterschriften', async () => {
+  it('employee drawer navigation keeps signatures out of the reduced menu', async () => {
     const { PORTAL_EMPLOYEE_DRAWER_TABS } = await import('@/lib/navigation/employeePortalNavigation');
-    expect(PORTAL_EMPLOYEE_DRAWER_TABS.some((t) => t.key === 'signatures')).toBe(true);
+    expect(PORTAL_EMPLOYEE_DRAWER_TABS.some((t) => t.key === 'signatures')).toBe(false);
   });
 
-  it('healthos employee nav includes Unterschriften', async () => {
+  it('healthos employee nav keeps signatures out of the reduced menu', async () => {
     const { HEALTHOS_EMPLOYEE_PORTAL_NAV } = await import(
       '@/components/healthos/navigation/healthosNavigationConfig'
     );
     const items = HEALTHOS_EMPLOYEE_PORTAL_NAV.groups.flatMap((group) => group.items);
-    expect(items.some((item) => item.key === 'signatures')).toBe(true);
+    expect(items.some((item) => item.key === 'signatures')).toBe(false);
   });
 
   it('office nav includes Dokumente & Unterschriften', async () => {
@@ -157,10 +157,12 @@ describe('portal signature navigation', () => {
     expect(office?.children).toContain('/business/office/documents/signatures');
   });
 
-  it('employee portal nav links cs signatures route', async () => {
+  it('employee portal signatures remain routable without a menu entry', async () => {
     const { EMPLOYEE_PORTAL_NAV_TABS } = await import('@/lib/navigation/employeePortalNavigation');
     const signatures = EMPLOYEE_PORTAL_NAV_TABS.find((t) => t.key === 'signatures');
-    expect(signatures?.href).toBe('/portal/employee/documents/signatures');
+    expect(signatures).toBeUndefined();
+    const { APP_ROUTES } = await import('@/lib/navigation/routes');
+    expect(APP_ROUTES.some((route) => route.path === '/portal/employee/documents/signatures')).toBe(true);
   });
 });
 

@@ -3,7 +3,7 @@ import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import {
   buildEmployeePortalCalendarConfig,
-  getEmployeePortalCalendarEvents,
+  getEmployeePortalTeamCalendarEvents,
 } from '@/lib/calendar/calendarEventService';
 
 export function useEmployeePortalCalendarEvents(rangeStart?: string, rangeEnd?: string) {
@@ -19,7 +19,7 @@ export function useEmployeePortalCalendarEvents(rangeStart?: string, rangeEnd?: 
       if (!tenantId || !employeeId) {
         return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       }
-      return getEmployeePortalCalendarEvents(tenantId, employeeId, { rangeStart, rangeEnd });
+      return getEmployeePortalTeamCalendarEvents(tenantId, { rangeStart, rangeEnd });
     },
     [tenantId, employeeId, rangeStart, rangeEnd],
     { enabled: isReady && !!tenantId && !!employeeId },

@@ -10,7 +10,7 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { runService } from '@/lib/services/serviceRunner';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { sanitizeEmployeePortalPayload } from '@/lib/portal/portalVisibilityService';
-import { fetchLivePortalAppointmentsForEmployee } from '@/lib/portal/portalAppointmentsLiveService';
+import { fetchLivePortalAppointmentsForEmployeeTeam } from '@/lib/portal/portalAppointmentsLiveService';
 import { fetchEmployeePortalClientDocuments } from '@/lib/portal/portalDocumentsLiveService';
 import { PORTAL_DOCUMENT_CATEGORY_LABELS } from '@/types/portal/documents';
 
@@ -61,12 +61,12 @@ export type EmployeePortalClientRecordDetail = EmployeePortalClientRecordListIte
   keyManagementNotes: string | null;
   accessHint: string | null;
   contacts: EmployeePortalClientContact[];
-  assignmentHistory: Array<{
+  assignmentHistory: {
     assignmentId: string;
     title: string;
     plannedStartAt: string;
     status: string;
-  }>;
+  }[];
   portalDocuments: EmployeePortalClientRecordDocument[];
 };
 
@@ -162,9 +162,8 @@ function isActiveAssignmentStatus(status: string | null | undefined): boolean {
   return assignmentStatus === 'gestartet' || assignmentStatus === 'bestaetigt' || assignmentStatus === 'unterwegs';
 }
 
-async function loadEmployeeClientVisits(
+async function loadTeamClientVisits(
   tenantId: string,
-  employeeId: string,
 ): Promise<ServiceResult<VisitClientRow[]>> {
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -172,7 +171,7 @@ async function loadEmployeeClientVisits(
   const { data, error } = await fromUnknownTable(supabase, 'assist_visits')
     .select('id, client_id, planned_start_at, canonical_status, client_visible_notes, title')
     .eq('tenant_id', tenantId)
-    .eq('employee_id', employeeId)
+    .eq('employee_portal_visible', true)
     .neq('planning_status', 'draft')
     .order('planned_start_at', { ascending: false })
     .limit(500);
@@ -183,6 +182,32 @@ async function loadEmployeeClientVisits(
   }
 
   return { ok: true, data: (data ?? []) as VisitClientRow[] };
+}
+
+async function loadAllTenantClients(
+  tenantId: string,
+  detail = false,
+): Promise<ServiceResult<Map<string, ClientRow>>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { data, error } = await fromUnknownTable(supabase, 'clients')
+    .select(detail ? CLIENT_DETAIL_SELECT : CLIENT_LIST_SELECT)
+    .eq('tenant_id', tenantId)
+    .or('status.is.null,status.neq.deleted')
+    .is('deleted_at', null)
+    .order('last_name', { ascending: true })
+    .order('first_name', { ascending: true })
+    .limit(2000);
+
+  if (error) {
+    if (isMissingTableError(error)) return { ok: true, data: new Map() };
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  const map = new Map<string, ClientRow>();
+  for (const row of (data ?? []) as unknown as ClientRow[]) map.set(row.id, row);
+  return { ok: true, data: map };
 }
 
 async function loadClientsByIds(
@@ -226,6 +251,16 @@ function aggregateClientRecords(
     }
   >();
 
+  for (const clientId of clientRows.keys()) {
+    byClient.set(clientId, {
+      clientId,
+      activeCount: 0,
+      lastAt: null,
+      nextAt: null,
+      hints: null,
+    });
+  }
+
   const now = Date.now();
   for (const visit of visits) {
     if (!visit.client_id) continue;
@@ -267,23 +302,26 @@ function aggregateClientRecords(
 
 export async function fetchEmployeePortalClientRecords(
   tenantId: string,
-  employeeId: string,
+  _employeeId: string,
 ): Promise<ServiceResult<EmployeePortalClientRecordListItem[]>> {
   return runService(async () => {
-    const visitsResult = await loadEmployeeClientVisits(tenantId, employeeId);
-    if (!visitsResult.ok) {
-      const appts = await fetchLivePortalAppointmentsForEmployee(tenantId, employeeId);
-      if (!appts.ok) return visitsResult;
-      if (appts.data.length === 0) return { ok: true, data: [] };
+    const [visitsResult, allClientsResult] = await Promise.all([
+      loadTeamClientVisits(tenantId),
+      loadAllTenantClients(tenantId),
+    ]);
+    if (!allClientsResult.ok) return allClientsResult;
 
-      const clientIds = [...new Set(appts.data.map((item) => item.clientId).filter(Boolean))];
-      const clientsResult = await loadClientsByIds(tenantId, clientIds);
-      if (!clientsResult.ok) return clientsResult;
+    if (!visitsResult.ok) {
+      const appts = await fetchLivePortalAppointmentsForEmployeeTeam(tenantId);
+      if (!appts.ok) return visitsResult;
 
       const byClient = new Map<
         string,
         { activeCount: number; lastAt: string | null; nextAt: string | null }
       >();
+      for (const clientId of allClientsResult.data.keys()) {
+        byClient.set(clientId, { activeCount: 0, lastAt: null, nextAt: null });
+      }
       const now = Date.now();
       for (const item of appts.data) {
         if (!item.clientId) continue;
@@ -307,7 +345,7 @@ export async function fetchEmployeePortalClientRecords(
       }
 
       const records = [...byClient.entries()].map(([clientId, meta]) =>
-        mapListItemFromClient(clientId, clientsResult.data.get(clientId) ?? null, {
+        mapListItemFromClient(clientId, allClientsResult.data.get(clientId) ?? null, {
           ...meta,
           hints: null,
         }),
@@ -316,15 +354,9 @@ export async function fetchEmployeePortalClientRecords(
       return { ok: true, data: records };
     }
 
-    if (visitsResult.data.length === 0) return { ok: true, data: [] };
-
-    const clientIds = [...new Set(visitsResult.data.map((visit) => visit.client_id).filter(Boolean))];
-    const clientsResult = await loadClientsByIds(tenantId, clientIds);
-    if (!clientsResult.ok) return clientsResult;
-
     return {
       ok: true,
-      data: aggregateClientRecords(visitsResult.data, clientsResult.data),
+      data: aggregateClientRecords(visitsResult.data, allClientsResult.data),
     };
   });
 }
@@ -356,7 +388,7 @@ async function loadClientContacts(
 
   if (error || !data) return [];
 
-  return (data as Array<Record<string, unknown>>).map((row) => {
+  return (data as Record<string, unknown>[]).map((row) => {
     const displayName =
       String(row.full_name ?? '').trim() ||
       `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim() ||
@@ -384,7 +416,7 @@ export async function fetchEmployeePortalClientRecordDetail(
     const base = list.data.find((item) => item.clientId === clientId);
     if (!base) return { ok: true, data: null };
 
-    const appts = await fetchLivePortalAppointmentsForEmployee(tenantId, employeeId);
+    const appts = await fetchLivePortalAppointmentsForEmployeeTeam(tenantId);
     if (!appts.ok) return appts;
 
     const history = appts.data

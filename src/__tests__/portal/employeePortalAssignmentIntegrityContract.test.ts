@@ -7,12 +7,13 @@ const readSrc = (relativePath: string) =>
   readFileSync(path.join(root, relativePath), 'utf8');
 
 describe('employee portal assignment integrity contract', () => {
-  it('uses the signed-in employee scope instead of the team calendar', () => {
+  it('uses the complete tenant team calendar in the employee portal', () => {
     const source = readSrc('src/lib/calendar/calendarEventService.ts');
-    expect(source).toMatch(
-      /getEmployeePortalCalendarEvents\([\s\S]*portalType:\s*'employee',\s*employeeId/,
+    expect(source).toContain('getEmployeePortalTeamCalendarEvents');
+    expect(source).toContain('Alle Einsätze des Teams sowie Termine und Abwesenheiten');
+    expect(readSrc('src/hooks/useEmployeePortalCalendarEvents.ts')).toContain(
+      'getEmployeePortalTeamCalendarEvents',
     );
-    expect(source).toContain('Meine Einsätze, Termine und Abwesenheiten');
   });
 
   it('keeps appointment viewing separate from execution mutation permission', () => {

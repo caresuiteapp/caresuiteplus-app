@@ -13,12 +13,6 @@ export const EMPLOYEE_PORTAL_NAV_TABS: ShellTabConfig[] = [
   { key: 'uploads', label: 'Uploads', icon: '📤', href: '/portal/employee/uploads' },
   { key: 'clients', label: 'Klientenakten', icon: '👥', href: '/portal/employee/clients' },
   {
-    key: 'signatures',
-    label: 'Dokumente & Unterschriften',
-    icon: '✍️',
-    href: '/portal/employee/documents/signatures',
-  },
-  {
     key: 'time-tracking',
     label: 'Arbeitszeiten',
     icon: '🕐',
@@ -59,7 +53,6 @@ export type EmployeePortalPrimaryTabKey = (typeof EMPLOYEE_PORTAL_PRIMARY_TAB_KE
 export const EMPLOYEE_PORTAL_DRAWER_TAB_KEYS = [
   'uploads',
   'clients',
-  'signatures',
   'time-tracking',
   'payroll',
   'vacation-request',

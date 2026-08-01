@@ -78,7 +78,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
 
   const signOut = async () => {
     await auth.signOut();
-    router.replace(liquidPortalLoginRoutes[kind] as never);
+    router.replace('/' as never);
   };
 
   return (
@@ -86,7 +86,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
       <View style={styles.shell}>
         {layout.isDesktop ? (
           <View style={styles.rail}>
-            <LiquidLogo mini />
+            <LiquidLogo compact />
             <ScrollView contentContainerStyle={styles.railItems} showsVerticalScrollIndicator={false}>
               {navigation.map((item) => (
                 <Pressable
@@ -125,7 +125,9 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
             {!layout.isDesktop ? <LiquidLogo compact /> : (
               <View style={styles.portalBrand}>
                 <Text style={styles.portalKicker}>{kind === 'employee' ? 'MITARBEITENDENPORTAL' : kind === 'client' ? 'KLIENT:INNENPORTAL' : 'ANGEHÖRIGENPORTAL'}</Text>
-                <LiquidLogo compact />
+                <Text style={styles.portalTitle}>
+                  {kind === 'employee' ? 'Mein Arbeitsbereich' : kind === 'client' ? 'Meine Versorgung' : 'Freigegebene Informationen'}
+                </Text>
               </View>
             )}
             <View style={styles.identity}>
@@ -316,29 +318,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   rail: {
-    width: 116,
-    paddingHorizontal: 9,
-    paddingVertical: 18,
+    width: 220,
+    paddingHorizontal: 14,
+    paddingVertical: 20,
     borderRightWidth: 1,
     borderRightColor: liquidColors.white12,
     backgroundColor: 'rgba(6,21,43,0.9)',
-    alignItems: 'center',
+    alignItems: 'stretch',
     gap: 18,
     zIndex: liquidLayers.dock,
   },
   railItems: {
-    gap: 8,
+    gap: 6,
     paddingBottom: 20,
+    paddingTop: 12,
   },
   railItem: {
-    width: 96,
-    minHeight: 62,
-    paddingHorizontal: 7,
-    paddingVertical: 8,
+    width: '100%',
+    minHeight: 48,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
     borderRadius: liquidRadius.control,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
+    gap: 11,
   },
   railItemActive: {
     borderWidth: 1,
@@ -346,15 +349,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(20,120,255,0.2)',
   },
   railLogout: {
-    width: 96,
-    minHeight: 58,
-    paddingHorizontal: 7,
-    paddingVertical: 8,
+    width: '100%',
+    minHeight: 50,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
     borderTopWidth: 1,
     borderTopColor: liquidColors.white12,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
+    gap: 11,
   },
   railGlyph: {
     color: liquidColors.blue200,
@@ -362,11 +365,12 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   railLabel: {
+    flex: 1,
     color: liquidColors.white72,
-    fontSize: 10,
-    lineHeight: 13,
+    fontSize: 13,
+    lineHeight: 17,
     fontWeight: '700',
-    textAlign: 'center',
+    textAlign: 'left',
   },
   main: {
     flex: 1,
@@ -395,6 +399,13 @@ const styles = StyleSheet.create({
   },
   portalBrand: {
     gap: 4,
+  },
+  portalTitle: {
+    color: liquidColors.white,
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '800',
+    letterSpacing: -0.35,
   },
   identity: {
     minWidth: 0,

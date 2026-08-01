@@ -1,5 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
+  AccessibilityInfo,
+  Animated,
+  Easing,
+  Image,
   Linking,
   Platform,
   Pressable,
@@ -71,6 +75,63 @@ const EMPTY_PORTAL_DATA: PortalData = {
   appointments: [],
   documents: [],
 };
+
+function PortalAmbientPulse() {
+  const progress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let mounted = true;
+    let animation: Animated.CompositeAnimation | null = null;
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduceMotion) => {
+      if (!mounted || reduceMotion) return;
+      animation = Animated.loop(
+        Animated.timing(progress, {
+          toValue: 1,
+          duration: 2600,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      );
+      animation.start();
+    });
+    return () => {
+      mounted = false;
+      animation?.stop();
+    };
+  }, [progress]);
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.routePulse,
+        {
+          opacity: progress.interpolate({ inputRange: [0, 0.22, 1], outputRange: [0.52, 0.3, 0] }),
+          transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1.55] }) }],
+        },
+      ]}
+    />
+  );
+}
+
+function PortalGuide({ message }: { message: string }) {
+  return (
+    <View style={styles.guide} accessibilityLabel={`CareSuite Hinweis: ${message}`}>
+      <View style={styles.guideCharacterFrame}>
+        <View style={styles.guideCharacterGlow} />
+        <Image
+          resizeMode="contain"
+          source={require('../../../assets/auth/access-employee.png')}
+          style={styles.guideCharacter}
+        />
+      </View>
+      <View style={styles.guideBubble}>
+        <View style={styles.guideBubbleTail} />
+        <Text style={styles.guideBubbleText}>{message}</Text>
+      </View>
+    </View>
+  );
+}
 
 function portalSections(kind: 'employee' | 'client' | 'relative'): PortalSection[] {
   return liquidPortalNavigation[kind].map((item) => ({
@@ -497,6 +558,15 @@ function Overview({
           ];
   return (
     <View style={styles.sectionGap}>
+      {portal === 'employee' ? (
+        <PortalGuide
+          message={
+            nextAppointment
+              ? `Dein nächster Einsatz beginnt ${formatDateTime(nextAppointment.startsAt)}. Alles Wichtige findest du direkt in der Einsatzkarte.`
+              : 'Für heute steht aktuell kein weiterer Einsatz an. Neue Einsätze und Nachrichten erscheinen hier automatisch.'
+          }
+        />
+      ) : null}
       {!layout.isPhone ? (
         <View style={styles.quickGrid}>
           {quickItems.map((item, index) => (
@@ -532,7 +602,7 @@ function Overview({
               {nextAppointment
                 ? `${formatDateTime(nextAppointment.startsAt)} · ${nextAppointment.location || 'Ort folgt'}`
                 : portal === 'employee'
-                  ? 'Für Ihren Arbeitskontext ist aktuell kein weiterer Einsatz freigegeben.'
+                  ? 'Für heute steht aktuell kein weiterer Einsatz an.'
                   : 'Für Ihren Versorgungskontext ist aktuell kein weiterer Termin freigegeben.'}
             </LiquidText>
             <LiquidStatus
@@ -551,17 +621,34 @@ function Overview({
           </View>
         </LiquidSurface>
         <LiquidSurface
+          active
           style={[styles.routeCard, layout.isPhone && styles.dashboardCardPhone]}
           contentStyle={styles.routeCardContent}
         >
-          <View>
-            <LiquidText variant="kicker">LIVE ANKUNFT</LiquidText>
-            <LiquidText variant="section">Anfahrt im Blick</LiquidText>
+          <View style={styles.routeHeader}>
+            <View>
+              <LiquidText variant="kicker">ARBEITSCOCKPIT</LiquidText>
+              <LiquidText variant="section">Heute auf einen Blick</LiquidText>
+            </View>
+            <LiquidStatus
+              label={nextAppointment ? 'Bereit' : 'Kein Einsatz'}
+              tone={nextAppointment ? 'live' : 'neutral'}
+            />
           </View>
           <View style={styles.routeStage}>
-            <View style={[styles.routeLine, styles.routeLineOne]} />
-            <View style={[styles.routeLine, styles.routeLineTwo]} />
-            <View style={styles.routePin}><View style={styles.routePinCore} /></View>
+            <PortalAmbientPulse />
+            <View style={styles.routeOrbitOuter} />
+            <View style={styles.routeOrbitInner} />
+            <View style={styles.routePin}><LiquidGlyph active glyph="➤" size={24} /></View>
+            <View style={styles.routeStageCopy}>
+              <Text style={styles.routeStageEyebrow}>{nextAppointment ? 'NÄCHSTER START' : 'TAGESSTATUS'}</Text>
+              <Text style={styles.routeStageTitle}>
+                {nextAppointment ? formatDateTime(nextAppointment.startsAt) : 'Alles erledigt'}
+              </Text>
+              <Text style={styles.routeStageMeta} numberOfLines={2}>
+                {nextAppointment?.location || 'Neue Einsätze erscheinen hier automatisch.'}
+              </Text>
+            </View>
           </View>
           <View style={styles.portalFacts}>
             <LiquidMetric label="Termine" value={appointments.length} detail="freigegeben" />
@@ -574,7 +661,7 @@ function Overview({
           </View>
           <LiquidButton
             compact
-            label="Anfahrt öffnen"
+            label={nextAppointment ? 'Einsatz und Anfahrt öffnen' : 'Einsätze öffnen'}
             icon="➤"
             onPress={() => onNavigate(portal === 'employee' ? 'assignments' : 'live')}
           />
@@ -696,7 +783,7 @@ export function PortalHomeScreen({
 
   const signOut = async () => {
     await auth.signOut();
-    router.replace(loginRoute as never);
+    router.replace('/' as never);
   };
 
   if (auth.authReady && (!auth.isAuthenticated || roleKey !== definition.allowedRole)) {
@@ -819,9 +906,7 @@ export function PortalHomeScreen({
               />
               <View style={styles.sideFooter}>
                 <LiquidDivider />
-                <LiquidText variant="meta">
-                  Sie sehen nur Inhalte, die für Ihren Zugang freigegeben sind.
-                </LiquidText>
+                <LiquidStatus label="Sicher verbunden" tone="success" />
               </View>
             </LiquidSurface>
             <ScrollView
@@ -898,7 +983,7 @@ const styles = StyleSheet.create({
   topTitle: { color: liquidColors.white, fontSize: 16, fontWeight: '700' },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: liquidSpace.sm },
   portalGrid: { flex: 1, minWidth: 0, minHeight: 0, flexDirection: 'row' },
-  sidePanel: { width: 260, borderRadius: 0, borderTopWidth: 0, borderBottomWidth: 0, borderLeftWidth: 0 },
+  sidePanel: { width: 228, borderRadius: 0, borderTopWidth: 0, borderBottomWidth: 0, borderLeftWidth: 0 },
   sidePanelContent: { flex: 1, borderRadius: 0, padding: liquidSpace.lg },
   sideNavigation: { flex: 1, marginTop: liquidSpace.lg },
   sideNavigationContent: { gap: liquidSpace.xs },
@@ -938,6 +1023,8 @@ const styles = StyleSheet.create({
       : {},
   workspaceContent: {
     width: '100%',
+    maxWidth: 1680,
+    alignSelf: 'center',
     flexGrow: 1,
     padding: liquidSpace.xxl,
     gap: liquidSpace.xl,
@@ -970,19 +1057,51 @@ const styles = StyleSheet.create({
   },
   content: { gap: liquidSpace.lg },
   sectionGap: { gap: liquidSpace.lg },
+  guide: {
+    minHeight: 92,
+    paddingHorizontal: liquidSpace.lg,
+    paddingVertical: liquidSpace.sm,
+    borderRadius: liquidRadius.lg,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(7,30,61,0.84)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: liquidSpace.md,
+    overflow: 'hidden',
+  },
+  guideCharacterFrame: { width: 76, height: 76, alignItems: 'center', justifyContent: 'flex-end' },
+  guideCharacterGlow: {
+    position: 'absolute', width: 62, height: 62, borderRadius: 31,
+    backgroundColor: 'rgba(53,151,255,0.22)', shadowColor: liquidColors.blue400,
+    shadowOpacity: 0.72, shadowRadius: 18,
+  },
+  guideCharacter: { width: 72, height: 82 },
+  guideBubble: {
+    flex: 1, minWidth: 0, paddingHorizontal: liquidSpace.lg, paddingVertical: liquidSpace.md,
+    borderRadius: 17, borderWidth: 1, borderColor: liquidColors.white18,
+    backgroundColor: 'rgba(255,255,255,0.075)',
+  },
+  guideBubbleTail: {
+    position: 'absolute', left: -7, top: 27, width: 14, height: 14,
+    backgroundColor: 'rgba(22,45,75,0.98)', borderLeftWidth: 1,
+    borderBottomWidth: 1, borderColor: liquidColors.white18,
+    transform: [{ rotate: '45deg' }],
+  },
+  guideBubbleText: { color: liquidColors.white88, fontSize: 13, lineHeight: 19, fontWeight: '600' },
   quickGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: liquidSpace.md,
   },
   quickCard: {
-    minHeight: 126,
+    minHeight: 112,
     minWidth: 116,
     flex: 1,
     borderRadius: liquidRadius.card,
     borderWidth: 1,
     borderColor: liquidColors.blue300Alpha32,
-    backgroundColor: 'rgba(7,30,61,0.76)',
+    backgroundColor: 'rgba(7,30,61,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
     gap: liquidSpace.sm,
@@ -1037,40 +1156,50 @@ const styles = StyleSheet.create({
     padding: liquidSpace.lg,
     gap: liquidSpace.md,
   },
+  routeHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: liquidSpace.md },
   routeStage: {
     position: 'relative',
-    minHeight: 130,
+    minHeight: 150,
     overflow: 'hidden',
-    borderRadius: liquidRadius.small,
-    backgroundColor: 'rgba(2,14,32,0.72)',
+    borderRadius: liquidRadius.lg,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(2,14,32,0.88)',
+    justifyContent: 'center',
+    paddingLeft: 146,
+    paddingRight: liquidSpace.lg,
   },
-  routeLine: {
+  routeOrbitOuter: {
     position: 'absolute',
-    height: 2,
-    backgroundColor: liquidColors.blue400,
+    left: 24,
+    top: 22,
+    width: 106,
+    height: 106,
+    borderRadius: 53,
+    borderWidth: 1,
+    borderColor: liquidColors.blue300Alpha32,
+    backgroundColor: 'rgba(22,131,255,0.07)',
     shadowColor: liquidColors.blue500,
-    shadowOpacity: 1,
-    shadowRadius: 9,
+    shadowOpacity: 0.7,
+    shadowRadius: 18,
   },
-  routeLineOne: {
-    top: '52%',
-    left: '12%',
-    width: '72%',
-    transform: [{ rotate: '-16deg' }],
+  routePulse: {
+    position: 'absolute', left: 35, top: 33, width: 84, height: 84,
+    borderRadius: 42, borderWidth: 2, borderColor: liquidColors.blue300,
+    backgroundColor: 'rgba(53,151,255,0.08)',
   },
-  routeLineTwo: {
-    top: '48%',
-    left: '38%',
-    width: '48%',
-    transform: [{ rotate: '23deg' }],
+  routeOrbitInner: {
+    position: 'absolute', left: 42, top: 40, width: 70, height: 70,
+    borderRadius: 35, borderWidth: 1, borderColor: liquidColors.blue300,
+    backgroundColor: 'rgba(22,131,255,0.10)',
   },
   routePin: {
     position: 'absolute',
-    top: '44%',
-    left: '48%',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    top: 56,
+    left: 58,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     borderWidth: 2,
     borderColor: liquidColors.blue200,
     backgroundColor: 'rgba(22,131,255,0.24)',
@@ -1083,6 +1212,10 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: liquidColors.blue400,
   },
+  routeStageCopy: { gap: 3, minWidth: 0 },
+  routeStageEyebrow: { color: liquidColors.blue200, fontSize: 9, lineHeight: 12, fontWeight: '900', letterSpacing: 1.1 },
+  routeStageTitle: { color: liquidColors.white, fontSize: 18, lineHeight: 23, fontWeight: '800' },
+  routeStageMeta: { color: liquidColors.white64, fontSize: 12, lineHeight: 17, fontWeight: '500' },
   portalFacts: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1142,6 +1275,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: liquidSpace.xl,
   },
-  pressed: { opacity: 0.78 },
+  pressed: { opacity: 0.86, transform: [{ scale: 0.985 }] },
   focused: { borderColor: liquidColors.blue300, borderWidth: 2 },
 });

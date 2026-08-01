@@ -221,12 +221,6 @@ export const HEALTHOS_EMPLOYEE_PORTAL_NAV: HealthOSNavConfig = {
       title: 'Profil',
       items: [
         {
-          key: 'signatures',
-          label: 'Dokumente & Unterschriften',
-          icon: '✍️',
-          href: '/portal/employee/documents/signatures',
-        },
-        {
           key: 'documents',
           label: 'Dokumente',
           icon: '📄',

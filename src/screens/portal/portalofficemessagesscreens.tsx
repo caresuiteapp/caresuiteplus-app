@@ -75,12 +75,17 @@ export function EmployeePortalOfficeMessagesScreen() {
   return (
     <PortalTabScreen
       title="Nachrichten"
-      subtitle="Schreiben Sie der Verwaltung — Antworten erscheinen hier im Chat."
+      subtitle="Direkt, sicher und immer aktuell mit Verwaltung und Team verbunden."
       hideHeaderOnPhone
       scroll={false}
     >
       <View style={styles.employeeMessages}>
-        <PortalOfficeMessenger audience="employee" variant="default" />
+        <PortalGlassHero
+          title="Ihre Gespräche"
+          subtitle="Alles Wichtige an einem Ort – neue Antworten erscheinen sofort."
+          showStatusDot
+        />
+        <PortalOfficeMessenger audience="employee" variant="glass" />
       </View>
     </PortalTabScreen>
   );

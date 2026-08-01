@@ -29,28 +29,23 @@ describe('Portal messaging and navigation R8', () => {
     expect(realtime).toContain('POLL_INTERVAL_MS');
   });
 
-  it('exposes all employee portal work and account areas', () => {
+  it('exposes the reduced employee portal work and account areas', () => {
     const ids = liquidPortalNavigation.employee.map((item) => item.id);
 
-    expect(ids).toEqual(expect.arrayContaining([
+    expect(ids).toEqual([
       'home',
       'assignments',
       'clients',
       'calendar',
-      'tasks',
       'time',
       'leave',
       'absence',
       'documents',
       'uploads',
-      'signatures',
       'messages',
-      'announcements',
       'payroll',
-      'mobility',
-      'help',
       'profile',
-    ]));
+    ]);
   });
 
   it('exposes all client portal communication and account areas', () => {

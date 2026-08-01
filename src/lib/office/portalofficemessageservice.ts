@@ -132,10 +132,13 @@ function filterByInbox(
   threads: OfficeMessageThread[],
   filter: PortalOfficeInboxFilter,
 ): OfficeMessageThread[] {
+  // Deleted conversations are an Office retention/audit concern. They must
+  // never reappear in participant portals, including the "closed" view.
+  const visibleThreads = threads.filter((thread) => thread.status !== 'deleted');
   if (filter === 'closed') {
-    return threads.filter((thread) => CLOSED_STATUSES.has(thread.status));
+    return visibleThreads.filter((thread) => CLOSED_STATUSES.has(thread.status));
   }
-  return threads.filter((thread) => !CLOSED_STATUSES.has(thread.status));
+  return visibleThreads.filter((thread) => !CLOSED_STATUSES.has(thread.status));
 }
 
 function mapThreadRow(row: Record<string, unknown>): OfficeMessageThread | null {
@@ -180,7 +183,9 @@ async function fetchPortalThreadsLive(
   const dbType = toDbThreadType(expectedThreadType(actor.audience));
   let query = fromUnknownTable(supabase, 'message_threads')
     .select('*')
-    .eq('tenant_id', tenantId);
+    .eq('tenant_id', tenantId)
+    .neq('status', 'deleted')
+    .is('deleted_at', null);
 
   if (actor.audience === 'client') {
     query = query.eq('thread_type', dbType).eq('client_id', actor.clientId!);

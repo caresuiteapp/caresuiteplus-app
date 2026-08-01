@@ -38,7 +38,7 @@ describe('employee portal mobile acceptance fixes', () => {
     const route = readSrc('app/portal/employee/(tabs)/calendar.tsx');
     expect(route).toContain('hideHeaderOnPhone');
     expect(route).toContain('EmployeePortalCalendarScreen');
-    expect(route).toContain('subtitle="Einsätze, Termine und Abwesenheiten"');
+    expect(route).toContain('subtitle="Alle Mitarbeitenden, Einsätze, Termine und Abwesenheiten"');
   });
 
   it('legacy schedule route redirects to calendar', () => {

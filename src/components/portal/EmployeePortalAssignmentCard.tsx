@@ -1,12 +1,14 @@
 import { Linking, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
 import { HealthOSStatusBadge } from '@/components/healthos';
-import { lightSurfaceText } from '@/design/tokens/auroraGlass';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { moduleColor } from '@/design/tokens/modules';
 import { withAlpha } from '@/design/tokens/motion';
+import { spatialCare, spatialCareColors } from '@/design/tokens/spatialCareSuite';
 import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
 import { employeePortalHomeAppointmentTitle } from '@/lib/portal/portalHomeAppointment';
 import { ASSIGNMENT_STATUS_LABELS, type AssignmentStatus } from '@/types/modules/assignmentStatus';
@@ -69,11 +71,10 @@ export function EmployeePortalAssignmentCard({
   canStart = false,
   startBlockedReason,
 }: EmployeePortalAssignmentCardProps) {
-  const text = lightSurfaceText;
+  const text = darkGlassSurfaceText;
   const accent = moduleColor('assist');
   const status = resolveStatus(appointment);
   const statusLabel = ASSIGNMENT_STATUS_LABELS[status] ?? WORKFLOW_STATUS_LABELS[appointment.status] ?? status;
-  const cardTint = careLightColors.surface;
 
   const openMaps = () => {
     if (onNavigate) {
@@ -90,39 +91,56 @@ export function EmployeePortalAssignmentCard({
       onPress={onPreview}
       style={({ pressed }) => [
         styles.card,
-        { backgroundColor: cardTint, borderColor: withAlpha(accent, 0.25) },
+        { borderColor: withAlpha(accent, 0.44) },
         pressed && styles.pressed,
         webCursor,
       ]}
       accessibilityRole="button"
       testID={`employee-assignment-card-${appointment.id}`}
     >
+      <LinearGradient
+        colors={['rgba(10,42,82,0.98)', 'rgba(3,17,39,0.99)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+        pointerEvents="none"
+      />
+      <View style={[styles.accentEdge, { backgroundColor: accent }]} pointerEvents="none" />
+      <View style={styles.orbitGlow} pointerEvents="none" />
       <View style={styles.inner}>
         <View style={styles.headerRow}>
+          <View style={styles.datePill}>
+            <Ionicons name="calendar-outline" color={spatialCareColors.cyanLight} size={17} />
+            <Text style={styles.datePillText}>{formatDate(appointment.startsAt)}</Text>
+          </View>
           <HealthOSStatusBadge domain="assignment" technicalValue={String(status)} />
           {cacheStale ? <PremiumBadge label="Veraltet" variant="muted" /> : null}
           <Text style={[styles.statusText, { color: text.secondary }]}>{statusLabel}</Text>
         </View>
 
-        <Text style={[styles.title, { color: text.primary }]}>
-          {employeePortalHomeAppointmentTitle(appointment)}
-        </Text>
-
-        <View style={styles.metaBlock}>
-          <Text style={[styles.meta, { color: text.secondary }]}>
-            {formatDate(appointment.startsAt)} · {formatTimeRange(appointment.startsAt, appointment.endsAt)}
-          </Text>
-          <Text style={[styles.meta, { color: text.muted }]}>
-            Geplante Dauer: {formatDurationMinutes(appointment.startsAt, appointment.endsAt)}
-          </Text>
+        <View style={styles.primaryRow}>
+          <View style={styles.primaryCopy}>
+            <Text style={[styles.title, { color: text.primary }]}>
+              {employeePortalHomeAppointmentTitle(appointment)}
+            </Text>
+            {appointment.clientName ? (
+              <View style={styles.inlineMeta}>
+                <Ionicons name="person-outline" color={spatialCareColors.pearlDeep} size={16} />
+                <Text style={[styles.clientName, { color: text.primary }]}>{appointment.clientName}</Text>
+              </View>
+            ) : null}
+          </View>
+          <View style={styles.timeBlock}>
+            <Text style={styles.timeRange}>{formatTimeRange(appointment.startsAt, appointment.endsAt)}</Text>
+            <Text style={styles.duration}>Geplant · {formatDurationMinutes(appointment.startsAt, appointment.endsAt)}</Text>
+          </View>
         </View>
 
-        {appointment.clientName ? (
-          <Text style={[styles.clientName, { color: text.primary }]}>{appointment.clientName}</Text>
-        ) : null}
-
         {appointment.location ? (
-          <Text style={[styles.address, { color: text.secondary }]}>{appointment.location}</Text>
+          <View style={styles.inlineMeta}>
+            <Ionicons name="location-outline" color={spatialCareColors.pearlDeep} size={16} />
+            <Text style={[styles.address, { color: text.secondary }]}>{appointment.location}</Text>
+          </View>
         ) : null}
 
         {serviceCategory ? (
@@ -172,24 +190,51 @@ export function EmployeePortalAssignmentCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
+    position: 'relative',
+    borderRadius: spatialCare.radius.card,
     borderWidth: 1,
     overflow: 'hidden',
     marginBottom: careSpacing.sm,
+    backgroundColor: spatialCare.stageStrong,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 18px 46px rgba(0,8,24,0.34)' } as unknown as ViewStyle)
+      : { shadowColor: '#000814', shadowOpacity: 0.32, shadowRadius: 20, elevation: 8 }),
   },
-  pressed: { opacity: 0.92 },
-  inner: { padding: careSpacing.lg, gap: careSpacing.sm },
+  pressed: { opacity: 0.96, transform: [{ scale: 0.992 }] },
+  accentEdge: { position: 'absolute', left: 0, top: 18, bottom: 18, width: 4, borderRadius: 4 },
+  orbitGlow: {
+    position: 'absolute', right: -54, top: -72, width: 190, height: 190,
+    borderRadius: 95, backgroundColor: 'rgba(53,151,255,0.10)',
+  },
+  inner: { padding: careSpacing.lg, paddingLeft: careSpacing.xl, gap: careSpacing.sm },
   headerRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: careSpacing.xs,
   },
+  datePill: {
+    minHeight: 34, paddingHorizontal: 11, borderRadius: 999,
+    borderWidth: 1, borderColor: spatialCare.borderGlow,
+    backgroundColor: 'rgba(22,131,255,0.13)', flexDirection: 'row',
+    alignItems: 'center', gap: 7,
+  },
+  datePillText: { ...careTypography.caption, color: '#FFFFFF', fontWeight: '800' },
   statusText: { ...careTypography.caption, fontWeight: '600', marginLeft: 'auto' },
-  title: { ...careTypography.h3, flexShrink: 1 },
+  primaryRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: careSpacing.md },
+  primaryCopy: { flex: 1, minWidth: 230, gap: 7 },
+  title: { ...careTypography.h3, flexShrink: 1, fontSize: 21, lineHeight: 27 },
+  timeBlock: {
+    minWidth: 172, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 15,
+    borderWidth: 1, borderColor: spatialCare.border,
+    backgroundColor: 'rgba(255,255,255,0.055)', alignItems: 'flex-end', gap: 2,
+  },
+  timeRange: { color: '#FFFFFF', fontSize: 17, lineHeight: 22, fontWeight: '800' },
+  duration: { color: spatialCare.textOnNightMuted, fontSize: 11, lineHeight: 15, fontWeight: '600' },
   metaBlock: { gap: 2 },
   meta: { ...careTypography.caption },
-  clientName: { ...careTypography.bodyStrong, marginTop: careSpacing.xs },
+  inlineMeta: { flexDirection: 'row', alignItems: 'center', gap: 7, minWidth: 0 },
+  clientName: { ...careTypography.bodyStrong, flexShrink: 1 },
   address: { ...careTypography.body, flexShrink: 1 },
   sectionLabel: { ...careTypography.caption, fontWeight: '700', marginTop: careSpacing.xs },
   taskList: { gap: 2 },
@@ -201,5 +246,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: careSpacing.sm,
     marginTop: careSpacing.sm,
+    paddingTop: careSpacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: spatialCare.borderDark,
   },
 });
