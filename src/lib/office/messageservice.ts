@@ -204,33 +204,17 @@ export async function sendOfficeMessage(
     }
   }
 
-  const bumpPortalUnread =
-    !isInternalNote &&
-    (threadResult.data.threadType === 'client_office' ||
-      threadResult.data.threadType === 'employee_group_office');
-
   const threadUpdate: {
     last_message_at: string;
     last_message_preview: string;
     updated_at: string;
     status: 'waiting_for_reply';
-    portal_unread_count?: number;
   } = {
     last_message_at: now,
     last_message_preview: messageBody.slice(0, 120),
     updated_at: now,
     status: 'waiting_for_reply',
   };
-
-  if (bumpPortalUnread) {
-    const { data: threadRow } = await supabase
-      .from('message_threads')
-      .select('portal_unread_count')
-      .eq('tenant_id', tenantId)
-      .eq('id', threadId)
-      .maybeSingle();
-    threadUpdate.portal_unread_count = Number(threadRow?.portal_unread_count ?? 0) + 1;
-  }
 
   await supabase
     .from('message_threads')
@@ -383,13 +367,6 @@ export async function createOfficeMessageThread(
       status: 'sent',
     });
 
-    if (input.threadType === 'client_office' || input.threadType === 'employee_group_office') {
-      await supabase
-        .from('message_threads')
-        .update({ portal_unread_count: 1, updated_at: now })
-        .eq('tenant_id', tenantId)
-        .eq('id', threadId);
-    }
   }
 
   const threadResult = await fetchOfficeMessageThreadById(tenantId, threadId, actorRoleKey);

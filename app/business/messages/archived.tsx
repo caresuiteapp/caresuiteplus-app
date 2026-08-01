@@ -1,2 +1,5 @@
-import { ArchivedConversationsScreen } from '@/product-workflows/screens/communication/ArchivedConversationsScreen';
-export default ArchivedConversationsScreen;
+import { Redirect } from 'expo-router';
+
+export default function ArchivedCommunicationThreadsRoute() {
+  return <Redirect href="/business/messages?chatAge=old" />;
+}

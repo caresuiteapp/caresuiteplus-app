@@ -25,9 +25,11 @@ describe('Kommunikationszentrum Compose (Sprint 45)', () => {
     expect(source).not.toContain('service_role');
   });
 
-  it('Compose-Route nutzt NewConversationScreen', () => {
+  it('Compose-Route öffnet den produktiven Office-Composer', () => {
     const source = readSrc('app/business/messages/new.tsx');
-    expect(source).toContain('NewConversationScreen');
+    expect(source).toContain('Redirect');
+    expect(source).toContain('/business/messages?compose=1');
+    expect(source).not.toContain('NewConversationScreen');
   });
 
   it('CommunicationCenterListView öffnet Compose als Modal', () => {

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { PortalOfficeMessenger } from '@/components/portal/portalofficemessenger';
@@ -136,7 +136,18 @@ export function ClientPortalOfficeConversationScreen() {
 export function EmployeePortalOfficeConversationScreen() {
   const { threadId, id } = useLocalSearchParams<{ threadId?: string | string[]; id?: string | string[] }>();
   const resolvedId = resolveRouteParam(threadId) ?? resolveRouteParam(id);
+  const router = useRouter();
   const { can, check } = usePermissions();
+  const { setActive: setMessengerFocusActive } = usePortalMessengerFocus();
+  const { useMasterDetail } = usePlatformLayout();
+  const { c } = useCareLightPalette();
+  const showMobileChrome = !useMasterDetail && !!resolvedId;
+
+  useEffect(() => {
+    if (!resolvedId || useMasterDetail) return;
+    setMessengerFocusActive(true);
+    return () => setMessengerFocusActive(false);
+  }, [resolvedId, useMasterDetail, setMessengerFocusActive]);
 
   if (!can('portal.employee.messages.view')) {
     return (
@@ -149,11 +160,24 @@ export function EmployeePortalOfficeConversationScreen() {
   }
 
   return (
-    <ScreenShell title="Chat an die Verwaltung" showBack>
-      <View style={styles.thread}>
-        <PortalOfficeThread threadId={resolvedId} />
+    <PortalTabScreen title="Chat" hideHeaderOnPhone scroll={false}>
+      <View style={styles.thread} testID={showMobileChrome ? 'messenger-mobile-thread' : undefined}>
+        {showMobileChrome ? (
+          <View style={conversationChromeStyles.bar}>
+            <Pressable
+              onPress={() => router.replace('/portal/employee/messages' as never)}
+              style={conversationChromeStyles.backBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Zurück zur Liste"
+              testID="messenger-back-to-list"
+            >
+              <Text style={[conversationChromeStyles.backLabel, { color: c.violet }]}>← Liste</Text>
+            </Pressable>
+          </View>
+        ) : null}
+        <PortalOfficeThread threadId={resolvedId} hideHeader={showMobileChrome} />
       </View>
-    </ScreenShell>
+    </PortalTabScreen>
   );
 }
 

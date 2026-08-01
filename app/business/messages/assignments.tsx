@@ -1,2 +1,5 @@
-import { MessageAssignmentsScreen } from '@/product-workflows/screens/communication/MessageAssignmentsScreen';
-export default MessageAssignmentsScreen;
+import { Redirect } from 'expo-router';
+
+export default function CommunicationAssignmentsRoute() {
+  return <Redirect href="/business/messages?chatAge=new" />;
+}

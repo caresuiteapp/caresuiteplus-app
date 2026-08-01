@@ -1,49 +1,24 @@
-import { getServiceMode } from '@/lib/services/mode';
 import {
   ClientPortalOfficeConversationScreen,
   ClientPortalOfficeMessagesScreen,
   EmployeePortalOfficeConversationScreen,
   EmployeePortalOfficeMessagesScreen,
 } from '@/screens/portal/portalofficemessagesscreens';
-import {
-  EmployeePortalMessagesScreen as LegacyEmployeePortalMessagesScreen,
-  ClientPortalMessagesScreen as LegacyClientPortalMessagesScreen,
-} from './PortalMessagesScreens';
-import {
-  ConversationScreen as LegacyEmployeePortalConversationScreen,
-  ConversationScreen as LegacyClientPortalConversationScreen,
-} from './ConversationScreen';
-
-function useLivePortalMessaging(): boolean {
-  return getServiceMode() === 'supabase';
-}
 
 export function EmployeePortalMessagesScreen() {
-  if (useLivePortalMessaging()) {
-    return <EmployeePortalOfficeMessagesScreen />;
-  }
-  return <LegacyEmployeePortalMessagesScreen />;
+  return <EmployeePortalOfficeMessagesScreen />;
 }
 
 export function ClientPortalMessagesScreen() {
-  if (useLivePortalMessaging()) {
-    return <ClientPortalOfficeMessagesScreen />;
-  }
-  return <LegacyClientPortalMessagesScreen />;
+  return <ClientPortalOfficeMessagesScreen />;
 }
 
 export function EmployeePortalConversationScreen() {
-  if (useLivePortalMessaging()) {
-    return <EmployeePortalOfficeConversationScreen />;
-  }
-  return <LegacyEmployeePortalConversationScreen />;
+  return <EmployeePortalOfficeConversationScreen />;
 }
 
 export function ClientPortalConversationScreen() {
-  if (useLivePortalMessaging()) {
-    return <ClientPortalOfficeConversationScreen />;
-  }
-  return <LegacyClientPortalConversationScreen />;
+  return <ClientPortalOfficeConversationScreen />;
 }
 
 export { RelativePortalMessagesScreen } from './PortalMessagesScreens';

@@ -84,6 +84,16 @@ function ThreadRow({
           fontWeight: '700',
         },
         badgeText: { ...typography.caption, color: ink?.secondary ?? c.violet },
+        unreadBadge: {
+          minWidth: 22,
+          height: 22,
+          paddingHorizontal: 6,
+          borderRadius: 11,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: isGlass ? PORTAL_LIGHT_LINK_ORANGE : c.violet,
+        },
+        unreadText: { ...typography.caption, color: '#FFFFFF', fontWeight: '800' },
       }),
     [c, ink, isGlass, surfaces.border, selected, typography],
   );
@@ -115,6 +125,11 @@ function ThreadRow({
         {thread.categoryLabel ? (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{thread.categoryLabel}</Text>
+          </View>
+        ) : null}
+        {thread.unreadCount > 0 ? (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadText}>{thread.unreadCount > 99 ? '99+' : thread.unreadCount}</Text>
           </View>
         ) : null}
       </View>
@@ -153,7 +168,7 @@ export function PortalOfficeInbox({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: { flex: 1, minWidth: 0 },
+        root: { flex: 1, minWidth: 0, minHeight: 0 },
         filters: { flexDirection: 'row', gap: spacing.xs, padding: spacing.sm },
         filterChip: {
           paddingHorizontal: spacing.sm,
@@ -169,7 +184,7 @@ export function PortalOfficeInbox({
         filterText: { ...typography.caption, color: ink?.muted ?? c.muted },
         filterTextActive: { color: isGlass ? PORTAL_LIGHT_LINK_ORANGE : c.violet, fontWeight: '700' },
         search: { paddingHorizontal: spacing.sm, paddingBottom: spacing.sm },
-        list: { flex: 1 },
+        list: { flex: 1, minHeight: 0 },
         emptyWrap: { padding: spacing.md },
       }),
     [c, ink, isGlass, surfaces.border, surfaces.chipActive, typography],
@@ -247,6 +262,18 @@ export function PortalOfficeInbox({
               actionLabel={composeLabel}
               onAction={onCompose}
             />
+          )}
+        </View>
+      ) : filteredThreads.length === 0 ? (
+        <View style={styles.emptyWrap}>
+          {isGlass ? (
+            <PortalEmptyState
+              title="Keine Treffer"
+              message="Für diese Suche wurde kein Chat gefunden."
+              onDarkSurface={onDarkSurface}
+            />
+          ) : (
+            <EmptyState title="Keine Treffer" message="Für diese Suche wurde kein Chat gefunden." />
           )}
         </View>
       ) : (

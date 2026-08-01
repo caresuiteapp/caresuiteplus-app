@@ -196,7 +196,7 @@ export function OfficeMessagesInbox({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: { flex: 1, minWidth: 0 },
+        root: { flex: 1, minWidth: 0, minHeight: 0 },
         sectionLabel: {
           ...typography.caption,
           color: c.muted,
@@ -216,7 +216,7 @@ export function OfficeMessagesInbox({
         filterText: { ...typography.caption, color: c.muted },
         filterTextActive: { color: c.violet, fontWeight: '700' },
         search: { paddingHorizontal: spacing.sm, paddingBottom: spacing.xs },
-        list: { flex: 1 },
+        list: { flex: 1, minHeight: 0 },
       }),
     [c, typography],
   );

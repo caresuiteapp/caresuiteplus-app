@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { ChatBubble } from '@/components/communication/ChatBubble';
 import { MessageAttachmentList } from '@/components/office/messageattachmentlist';
 import { OfficeMessageComposer } from '@/components/office/officemessagecomposer';
 import { OfficeMessageActionsMenu } from '@/components/office/officemessageactionsmenu';
 import { OfficeMessageThreadHeader } from '@/components/office/officemessagethreadheader';
+import { OfficeMessageContextPanel } from '@/components/office/OfficeMessageContextPanel';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -37,12 +38,15 @@ export function OfficeMessageThread({
 }: OfficeMessageThreadProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
+  const { width: screenWidth } = useWindowDimensions();
   const [draft, setDraft] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<PendingMessageAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [lifecycleError, setLifecycleError] = useState<string | null>(null);
   const [lifecycleBusy, setLifecycleBusy] = useState(false);
+  const [showContext, setShowContext] = useState(false);
+  const showContextBeside = screenWidth >= 1200;
   const messagesRef = useRef<ScrollView>(null);
   const latestMessageYRef = useRef(0);
   const processedReadKeyRef = useRef<string | null>(null);
@@ -58,12 +62,36 @@ export function OfficeMessageThread({
     markAsRead,
     updateStatus,
     deleteThread,
+    assignSelf,
+    updatePriority,
+    updateCategory,
   } = useOfficeMessageThreadDetail(threadId);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         root: { flex: 1, minWidth: 0, minHeight: 0 },
+        workspace: {
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          flexDirection: showContextBeside ? 'row' : 'column',
+        },
+        conversation: { flex: 1, minWidth: 0, minHeight: 0 },
+        contextPane: {
+          flex: showContextBeside ? undefined : 1,
+          width: showContextBeside ? 320 : undefined,
+          minWidth: 0,
+          minHeight: 0,
+        },
+        contextBackBar: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          padding: spacing.sm,
+          borderBottomWidth: 1,
+          borderBottomColor: c.border,
+          backgroundColor: c.surface,
+        },
         messages: { flex: 1, minHeight: 0, backgroundColor: c.surfaceAlt },
         messagesContent: { paddingVertical: spacing.lg, flexGrow: 1 },
         dayDivider: { alignItems: 'center', marginVertical: spacing.md },
@@ -119,7 +147,7 @@ export function OfficeMessageThread({
           backgroundColor: c.surface,
         },
       }),
-    [c, typography],
+    [c, showContextBeside, typography],
   );
 
   const scrollToLatestMessage = () => {
@@ -255,11 +283,27 @@ export function OfficeMessageThread({
   };
 
   return (
-    <View style={styles.root}>
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 72 : 0}
+    >
+      <View style={styles.workspace}>
+      {!showContext || showContextBeside ? (
+      <View style={styles.conversation}>
       {!hideHeader ? <OfficeMessageThreadHeader detail={detail} /> : null}
 
-      {!isReadOnly ? (
-        <View style={styles.lifecycleBar}>
+      <View style={styles.lifecycleBar}>
+          <Pressable
+            style={styles.lifecycleButton}
+            onPress={() => setShowContext((value) => !value)}
+            accessibilityRole="button"
+            accessibilityLabel="Chat-Kontext anzeigen"
+          >
+            <Text style={styles.lifecycleButtonText}>{showContext ? 'Chat anzeigen' : 'Kontext'}</Text>
+          </Pressable>
+        {!isReadOnly ? (
+          <>
           <Pressable
             style={styles.lifecycleButton}
             onPress={() => void handleToggleClosed()}
@@ -282,8 +326,9 @@ export function OfficeMessageThread({
               </Text>
             </Pressable>
           ) : null}
+          </>
+        ) : null}
         </View>
-      ) : null}
       {lifecycleError ? <Text style={styles.lifecycleError}>{lifecycleError}</Text> : null}
 
       <ScrollView
@@ -390,6 +435,47 @@ export function OfficeMessageThread({
         />
         </>
       )}
-    </View>
+      </View>
+      ) : null}
+
+      {showContext ? (
+        <View style={styles.contextPane}>
+          {!showContextBeside ? (
+            <View style={styles.contextBackBar}>
+              <Pressable
+                style={styles.lifecycleButton}
+                onPress={() => setShowContext(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Zurück zum Chat"
+              >
+                <Text style={styles.lifecycleButtonText}>← Zurück zum Chat</Text>
+              </Pressable>
+            </View>
+          ) : null}
+          <OfficeMessageContextPanel
+            thread={detail}
+            readOnly={isReadOnly}
+            onThreadUpdated={onThreadChanged}
+            onUpdateStatus={async (status) => {
+              const result = await updateStatus(status);
+              return { ok: result.ok, error: result.ok ? undefined : result.error };
+            }}
+            onAssignSelf={async () => {
+              const result = await assignSelf();
+              return { ok: result.ok, error: result.ok ? undefined : result.error };
+            }}
+            onUpdatePriority={async (priority) => {
+              const result = await updatePriority(priority);
+              return { ok: result.ok, error: result.ok ? undefined : result.error };
+            }}
+            onUpdateCategory={async (categoryId) => {
+              const result = await updateCategory(categoryId);
+              return { ok: result.ok, error: result.ok ? undefined : result.error };
+            }}
+          />
+        </View>
+      ) : null}
+      </View>
+    </KeyboardAvoidingView>
   );
 }

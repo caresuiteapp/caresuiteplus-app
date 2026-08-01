@@ -35,6 +35,10 @@ function firstSearchParam(value: unknown): string | undefined {
   return undefined;
 }
 
+function isOfficeMessengerPath(path: string): boolean {
+  return path === '/office/messages' || path === '/business/messages';
+}
+
 export function officeMessageAudienceNavKey(audience: OfficeMessageAudience): string {
   switch (audience) {
     case 'clients':
@@ -51,7 +55,7 @@ export function resolveOfficeMessageNavRouteContext(
   params: Record<string, unknown> = {},
 ): OfficeMessageNavRouteContext | null {
   const path = pathname.split('?')[0].replace(/\/$/, '') || '/';
-  if (path !== '/office/messages') return null;
+  if (!isOfficeMessengerPath(path)) return null;
 
   const view = firstSearchParam(params.view) ?? firstSearchParam(params.tab);
   if (view === 'broadcasts') {
@@ -73,7 +77,7 @@ export function resolveOfficeMessageNavMessengerContext(
   messengerView: OfficeMessageNavMessengerView | null,
 ): OfficeMessageNavRouteContext | null {
   const path = pathname.split('?')[0].replace(/\/$/, '') || '/';
-  if (path !== '/office/messages' || !messengerView) return null;
+  if (!isOfficeMessengerPath(path) || !messengerView) return null;
 
   if (messengerView.view === 'broadcasts') {
     return { activeNavKeys: ['messages'], seenAudiences: [] };

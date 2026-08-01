@@ -839,7 +839,42 @@ export async function updateCommunicationSettings(
   const tenantErr = assertTenant(tenantId);
   if (tenantErr) return tenantErr;
 
+  if (getServiceMode() === 'supabase') {
+    const { settingsSupabaseRepository } = getCommRepos();
+    return settingsSupabaseRepository.upsert(tenantId, communicationSettingsPatchToRow(patch));
+  }
+
   const settings = getDemoCommunicationSettings();
   Object.assign(settings, patch, { updatedAt: new Date().toISOString() });
   return { ok: true, data: settings };
+}
+
+function communicationSettingsPatchToRow(
+  patch: Partial<CommunicationSettings>,
+): Partial<Record<string, unknown>> {
+  const row: Record<string, unknown> = {};
+  const assign = (key: keyof CommunicationSettings, dbKey: string) => {
+    if (Object.prototype.hasOwnProperty.call(patch, key)) row[dbKey] = patch[key];
+  };
+
+  assign('centerEnabled', 'center_enabled');
+  assign('clientPortalEnabled', 'client_portal_enabled');
+  assign('employeePortalEnabled', 'employee_portal_enabled');
+  assign('relativePortalEnabled', 'relative_portal_enabled');
+  assign('voiceMessagesEnabled', 'voice_messages_enabled');
+  assign('attachmentsEnabled', 'attachments_enabled');
+  assign('emojisEnabled', 'emojis_enabled');
+  assign('reactionsEnabled', 'reactions_enabled');
+  assign('internalNotesEnabled', 'internal_notes_enabled');
+  assign('autoArchiveMonths', 'auto_archive_months');
+  assign('maxFileSizeMb', 'max_file_size_mb');
+  assign('allowedFileTypes', 'allowed_file_types');
+  assign('pushEnabled', 'push_enabled');
+  assign('emailEnabled', 'email_enabled');
+  assign('smsEnabled', 'sms_enabled');
+  assign('realtimeEnabled', 'realtime_enabled');
+  assign('showReadReceipts', 'show_read_receipts');
+  assign('showTypingIndicator', 'show_typing_indicator');
+
+  return row;
 }

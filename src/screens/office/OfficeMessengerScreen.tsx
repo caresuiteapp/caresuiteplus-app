@@ -8,7 +8,6 @@ import { OfficeBroadcastDetailModal } from '@/components/office/officebroadcastd
 import { OfficeBroadcastModal } from '@/components/office/officebroadcastmodal';
 import { OfficeBroadcastsList } from '@/components/office/officebroadcastslist';
 import { OfficeMessageThread } from '@/components/office/officemessagethread';
-import { OfficeMessageThreadModal } from '@/components/office/officemessagethreadmodal';
 import { OfficeMessagesInbox } from '@/components/office/officemessagesinbox';
 import { OfficeNewChatModal, type NewChatMode } from '@/components/office/officenewchatmodal';
 import { OfficeNewGroupChatModal } from '@/components/office/officenewgroupchatmodal';
@@ -57,6 +56,9 @@ export function OfficeMessengerScreen() {
     view?: string;
     tab?: string;
     thread?: string;
+    threadId?: string;
+    compose?: string;
+    create?: string;
   }>();
   const { height } = useWindowDimensions();
   const [workspaceWidth, setWorkspaceWidth] = useState(0);
@@ -88,7 +90,12 @@ export function OfficeMessengerScreen() {
   const [selectedBroadcastId, setSelectedBroadcastId] = useState<string | null>(null);
   const [broadcastDetailOpen, setBroadcastDetailOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [newChatMode, setNewChatMode] = useState<NewChatMode | null>(null);
+  const [newChatMode, setNewChatMode] = useState<NewChatMode | null>(() => {
+    const shouldCompose = params.compose === '1' || params.compose === 'true' || params.create === '1';
+    return shouldCompose
+      ? newChatModeForAudience(parseOfficeMessageAudience(params.audience ?? params.filter))
+      : null;
+  });
   const [showGroupChatModal, setShowGroupChatModal] = useState(false);
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [inboxRefreshToken, setInboxRefreshToken] = useState(0);
@@ -112,11 +119,11 @@ export function OfficeMessengerScreen() {
   }, [audience, canViewInternal]);
 
   useEffect(() => {
-    const threadParam = params.thread;
+    const threadParam = params.thread ?? params.threadId;
     if (typeof threadParam === 'string' && threadParam.trim()) {
       setSelectedThreadId(threadParam);
     }
-  }, [params.thread]);
+  }, [params.thread, params.threadId]);
 
   useEffect(() => {
     setOfficeMessageNavBadgeMessengerView({ audience, view });
@@ -301,7 +308,6 @@ export function OfficeMessengerScreen() {
             chatThread
           ) : (
             <MessengerShell
-              widePresentation="modal"
               inbox={
                 <OfficeMessagesInbox
                   audience={audience}
@@ -322,18 +328,6 @@ export function OfficeMessengerScreen() {
           )}
         </View>
       </View>
-
-      <OfficeMessageThreadModal
-        visible={useMasterDetail && view === 'chats' && selectedThreadId !== null}
-        threadId={selectedThreadId}
-        onClose={closeThread}
-        readOnly={isReadOnly}
-        onThreadUpdated={() => setInboxRefreshToken((value) => value + 1)}
-        onNewThreadStarted={(newThreadId) => {
-          setChatAge('new');
-          openThread(newThreadId);
-        }}
-      />
 
       <OfficeBroadcastDetailModal
         visible={broadcastDetailOpen}

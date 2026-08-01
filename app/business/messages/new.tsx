@@ -1,2 +1,5 @@
-import { NewConversationScreen } from '@/product-workflows/screens/communication/NewConversationScreen';
-export default NewConversationScreen;
+import { Redirect } from 'expo-router';
+
+export default function NewCommunicationThreadRoute() {
+  return <Redirect href="/business/messages?compose=1" />;
+}

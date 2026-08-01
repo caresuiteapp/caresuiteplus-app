@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
-import { LoadingState, PremiumButton } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import {
   getCommunicationSettings,
   updateCommunicationSettings,
@@ -20,6 +20,7 @@ export function CommunicationSettingsScreen() {
   const tenantId = useServiceTenantId();
   const perms = useCommunicationPermissions();
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const query = useAsyncQuery(
     () => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
@@ -54,6 +55,14 @@ export function CommunicationSettingsScreen() {
     );
   }
 
+  if (query.error && !query.data) {
+    return (
+      <ScreenShell title="Einstellungen">
+        <ErrorState message={query.error} onRetry={query.refresh} />
+      </ScreenShell>
+    );
+  }
+
   if (query.loading || !query.data) {
     return (
       <ScreenShell title="Einstellungen">
@@ -67,7 +76,13 @@ export function CommunicationSettingsScreen() {
   const toggle = async (key: keyof typeof settings, value: boolean) => {
     if (!tenantId) return;
     setSaving(true);
-    await updateCommunicationSettings(tenantId, { [key]: value }, profile?.roleKey);
+    setSaveError(null);
+    const result = await updateCommunicationSettings(tenantId, { [key]: value }, profile?.roleKey);
+    if (!result.ok) {
+      setSaveError(result.error);
+      setSaving(false);
+      return;
+    }
     await query.refresh();
     setSaving(false);
   };
@@ -90,6 +105,7 @@ export function CommunicationSettingsScreen() {
   return (
     <ScreenShell title="Einstellungen" subtitle="Tenant-Kommunikation">
       <View style={styles.list}>
+        {saveError ? <ErrorState message={saveError} /> : null}
         {rows.map((row) => (
           <View key={row.key} style={styles.row}>
             <Text style={styles.label}>{row.label}</Text>

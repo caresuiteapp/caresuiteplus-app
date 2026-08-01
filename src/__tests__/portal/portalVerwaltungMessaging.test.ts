@@ -24,7 +24,7 @@ describe('Portal Verwaltung messaging', () => {
   });
 
   it('client messages tab uses glass Verwaltung messenger with MessengerShell', () => {
-    const route = readSrc('app/portal/client/(tabs)/messages.tsx');
+    const route = readSrc('app/portal/client/messages/index.tsx');
     const screen = readSrc('src/screens/portal/portalofficemessagesscreens.tsx');
     const messenger = readSrc('src/components/portal/portalofficemessenger.tsx');
 

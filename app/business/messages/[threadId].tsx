@@ -1,2 +1,3 @@
-import { ConversationScreen } from '@/product-workflows/screens/communication/ConversationScreen';
-export default ConversationScreen;
+import { OfficeMessengerScreen } from '@/product-workflows/screens/office/OfficeMessengerScreen';
+
+export default OfficeMessengerScreen;

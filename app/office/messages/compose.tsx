@@ -1,3 +1,5 @@
-import { OfficeComposeMessageScreen } from '@/product-workflows/screens/office/OfficeComposeMessageScreen';
+import { Redirect } from 'expo-router';
 
-export default OfficeComposeMessageScreen;
+export default function OfficeComposeMessageRoute() {
+  return <Redirect href="/office/messages?compose=1" />;
+}

@@ -487,19 +487,11 @@ export async function sendPortalOfficeMessage(
     }
   }
 
-  const { data: threadRow } = await supabase
-    .from('message_threads')
-    .select('office_unread_count')
-    .eq('tenant_id', tenantId)
-    .eq('id', threadId)
-    .maybeSingle();
-
   await supabase
     .from('message_threads')
     .update({
       last_message_at: now,
       last_message_preview: messageBody.slice(0, 120),
-      office_unread_count: Number(threadRow?.office_unread_count ?? 0) + 1,
       status: 'received',
       updated_at: now,
     })

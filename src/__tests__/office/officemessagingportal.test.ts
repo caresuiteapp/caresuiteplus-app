@@ -127,7 +127,7 @@ vi.mock('@/lib/supabase/untypedTable', () => ({
         }),
       };
     }
-    return { select: vi.fn() };
+    return mockFrom(table);
   },
 }));
 

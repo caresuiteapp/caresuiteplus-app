@@ -28,7 +28,7 @@ vi.mock('@/lib/supabase/client', () => ({
   }),
 }));
 
-vi.mock('@/lib/office/messageService', () => ({
+vi.mock('@/lib/office/messageservice', () => ({
   createOfficeMessageThread: vi.fn().mockResolvedValue({
     ok: true,
     data: { id: 'thread-reply-1', threadType: 'employee_office' },
