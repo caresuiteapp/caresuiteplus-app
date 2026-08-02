@@ -53,7 +53,7 @@ export function PortalClientDocumentDetailScreen() {
     downloadError,
     successMessage,
     notFound,
-  } = usePortalDocumentDetail(id);
+  } = usePortalDocumentDetail(id, 'client');
 
   const scrollPadding = useMemo(
     () => ({

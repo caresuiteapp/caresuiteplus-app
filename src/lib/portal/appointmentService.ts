@@ -35,6 +35,7 @@ import {
 } from './clientPortalAssistLiveVisitService';
 import { getPortalProfileLink, resolvePortalScope } from './portalVisibility';
 import { dedupePortalAppointmentOccurrences } from './employeePortalAppointmentIdentity';
+import { portalAudienceForRole } from './portalAudience';
 
 export type PortalAppointmentsPortalContext = {
   tenantId?: string | null;
@@ -93,10 +94,6 @@ function resolveEmployeePhone(employeeId: string | null): string | null {
   return demoEmployees.find((e) => e.id === employeeId)?.phone ?? null;
 }
 
-function isClientPortalRole(roleKey: RoleKey | null): boolean {
-  return roleKey === 'client_portal' || roleKey === 'family_portal';
-}
-
 export async function fetchPortalAppointments(
   profileId: string,
   roleKey: RoleKey | null,
@@ -114,17 +111,17 @@ export async function fetchPortalAppointments(
     return { ok: false, error: 'Kein Profil für Einsatzabruf vorhanden.' };
   }
 
-  const employeeDenied = enforcePermission<PortalAppointmentItem[]>(
+  const audience = portalAudienceForRole(roleKey);
+  if (!audience) {
+    return { ok: false, error: 'Keine Berechtigung für Portal-Einsätze.' };
+  }
+  const denied = enforcePermission<PortalAppointmentItem[]>(
     roleKey,
-    'portal.employee.appointments.view',
+    audience === 'employee'
+      ? 'portal.employee.appointments.view'
+      : 'portal.client.appointments.view',
   );
-  if (employeeDenied && roleKey === 'employee_portal') return employeeDenied;
-
-  const clientDenied = enforcePermission<PortalAppointmentItem[]>(
-    roleKey,
-    'portal.client.appointments.view',
-  );
-  if (clientDenied && isClientPortalRole(roleKey)) return clientDenied;
+  if (denied && (roleKey === 'employee_portal' || audience === 'client')) return denied;
 
   if (options?.simulateEmpty) {
     return { ok: true, data: [] };
@@ -253,6 +250,9 @@ export async function fetchPortalAppointmentDetail(
   roleKey: RoleKey | null,
   portalContext?: PortalAppointmentsPortalContext,
 ): Promise<ServiceResult<PortalAppointmentDetail>> {
+  if (portalAudienceForRole(roleKey) !== 'employee') {
+    return { ok: false, error: 'Keine Berechtigung für Mitarbeitenden-Einsatzdetails.' };
+  }
   const denied = enforcePermission<PortalAppointmentDetail>(
     roleKey,
     'portal.employee.appointments.view',
@@ -385,11 +385,14 @@ export async function fetchPortalClientAppointmentDetail(
   roleKey: RoleKey | null,
   portalContext?: PortalAppointmentsPortalContext,
 ): Promise<ServiceResult<PortalClientAppointmentDetail>> {
+  if (portalAudienceForRole(roleKey) !== 'client') {
+    return { ok: false, error: 'Keine Berechtigung für Klient:innen-Einsatzdetails.' };
+  }
   const denied = enforcePermission<PortalClientAppointmentDetail>(
     roleKey,
     'portal.client.appointments.view',
   );
-  if (denied && isClientPortalRole(roleKey)) return denied;
+  if (denied) return denied;
 
   if (!profileId || !roleKey) {
     return { ok: false, error: 'Kein Profil für Einsatzabruf vorhanden.' };

@@ -16,15 +16,15 @@ import { useAsyncQuery } from './core';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 export function usePortalOfficeThreadDetail(threadId: string | null) {
-  const { profile, portalSession } = useAuth();
+  const { portalSession } = useAuth();
   const { tenantId, clientId, employeeId, actorId, roleKey, displayName, isLinkedReady, isResolvingClientLink } =
     usePortalActor();
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
-  const actorRoleKey = profile?.roleKey ?? roleKey ?? portalSession?.roleKey ?? null;
-  const actorProfileId = profile?.id ?? actorId ?? portalSession?.accountId ?? null;
-  const actorDisplayName = profile?.displayName ?? displayName ?? null;
+  const actorRoleKey = roleKey;
+  const actorProfileId = actorId;
+  const actorDisplayName = displayName;
   const actorClientId = clientId ?? portalSession?.clientId ?? null;
   const actorEmployeeId = employeeId ?? portalSession?.employeeId ?? null;
 

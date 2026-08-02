@@ -12,26 +12,32 @@ import { ScreenShell } from '@/components/layout';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { EmptyState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCommunicationPermissions, usePortalMessages } from '@/hooks/communication';
-import { useAuth } from '@/lib/auth/context';
-import { resolvePortalScope } from '@/lib/portal/portalVisibility';
+import type { PortalScope } from '@/types/portal';
+import type { CommunicationAudience } from '@/features/communication/communication.types';
 import { colors, spacing } from '@/theme';
 
 type PortalMessagesScreenProps = {
+  audience: Exclude<CommunicationAudience, 'business'>;
   detailBasePath: string;
   quickActionLabel?: string;
   onQuickAction?: () => void;
 };
 
 export function PortalMessagesListShell({
+  audience,
   detailBasePath,
   quickActionLabel = 'Nachricht ans Büro',
   onQuickAction,
 }: PortalMessagesScreenProps) {
   const router = useRouter();
-  const { profile } = useAuth();
-  const scope = resolvePortalScope(profile?.roleKey ?? null);
+  const scope: PortalScope =
+    audience === 'employee_portal'
+      ? 'portal_employee'
+      : audience === 'relative_portal'
+        ? 'portal_family'
+        : 'portal_client';
   const perms = useCommunicationPermissions();
-  const { items, loading, refreshing, refresh, unreadCount } = usePortalMessages();
+  const { items, loading, refreshing, refresh, unreadCount } = usePortalMessages(audience);
 
   if (!perms.canViewPortal) {
     return (
@@ -93,7 +99,10 @@ const styles = StyleSheet.create({
 export function EmployeePortalMessagesScreen() {
   return (
     <PortalTabScreen title="Nachrichten" subtitle="Sicher mit dem Office kommunizieren" hideHeaderOnPhone scroll={false}>
-      <PortalMessagesListShell detailBasePath="/portal/employee/messages" />
+      <PortalMessagesListShell
+        audience="employee_portal"
+        detailBasePath="/portal/employee/messages"
+      />
     </PortalTabScreen>
   );
 }
@@ -101,7 +110,10 @@ export function EmployeePortalMessagesScreen() {
 export function ClientPortalMessagesScreen() {
   return (
     <ScreenShell title="Nachrichten" subtitle="Klient:innenportal" showBack={false}>
-      <PortalMessagesListShell detailBasePath="/portal/client/messages" />
+      <PortalMessagesListShell
+        audience="client_portal"
+        detailBasePath="/portal/client/messages"
+      />
     </ScreenShell>
   );
 }
@@ -109,7 +121,10 @@ export function ClientPortalMessagesScreen() {
 export function RelativePortalMessagesScreen() {
   return (
     <ScreenShell title="Nachrichten" subtitle="Angehörigenportal" showBack={false}>
-      <PortalMessagesListShell detailBasePath="/portal/relative/messages" />
+      <PortalMessagesListShell
+        audience="relative_portal"
+        detailBasePath="/portal/relative/messages"
+      />
     </ScreenShell>
   );
 }

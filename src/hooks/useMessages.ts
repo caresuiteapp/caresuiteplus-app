@@ -1,19 +1,24 @@
 import { useCallback, useState } from 'react';
 import type { MessageListItem } from '@/types/portal/communication';
 import { fetchPortalMessages } from '@/lib/portal';
-import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
+import {
+  isRoleAllowedForPortalAudience,
+  type OperationalPortalAudience,
+} from '@/lib/portal/portalAudience';
 
-export function useMessages() {
-  const { profile } = useAuth();
-  const profileId = profile?.id ?? '';
-  const roleKey = profile?.roleKey ?? null;
+export function useMessages(audience: OperationalPortalAudience) {
+  const { actorId, roleKey } = usePortalActor();
+  const profileId = actorId ?? '';
+  const roleMatchesAudience = isRoleAllowedForPortalAudience(roleKey, audience);
+  const scopedRoleKey = roleMatchesAudience ? roleKey : null;
   const [showSuccess, setShowSuccess] = useState(false);
 
   const query = useAsyncQuery(
-    () => fetchPortalMessages(profileId, roleKey),
-    [profileId, roleKey],
-    { enabled: !!profileId && !!roleKey },
+    () => fetchPortalMessages(profileId, scopedRoleKey),
+    [profileId, scopedRoleKey],
+    { enabled: !!profileId && !!scopedRoleKey },
   );
 
   const items = query.data ?? [];
@@ -29,7 +34,9 @@ export function useMessages() {
     items,
     unreadCount,
     loading: query.loading,
-    error: query.error,
+    error: !roleMatchesAudience && roleKey
+      ? 'Diese Sitzung gehört zu einem anderen Portal.'
+      : query.error,
     refreshing: query.refreshing,
     showSuccess,
     refresh,

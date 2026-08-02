@@ -29,7 +29,7 @@ describe('Portal Tab Heroes (Sprint 53)', () => {
   it('PortalMessagesTab integriert PortalTabHero', () => {
     const tab = readSrc('src/components/portal/PortalMessagesTab.tsx');
     expect(tab).toContain('PortalTabHero');
-    expect(tab).toContain('resolvePortalScope');
+    expect(tab).toContain('portalScopeForAudience');
     expect(tab).toContain('tab="messages"');
   });
 

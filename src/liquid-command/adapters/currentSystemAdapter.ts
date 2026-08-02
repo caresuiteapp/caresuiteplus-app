@@ -12,6 +12,7 @@ import type { EmployeeListItem } from '@/types/modules/employeeList';
 import type { InvoiceListItem } from '@/types/modules/billing';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import type { VisitDispositionListItem } from '@/lib/assist/visitTypes';
+import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
 
 export type LiquidCurrentData = {
   clients: ClientListItem[];
@@ -73,9 +74,12 @@ async function resolveDataset<K extends LiquidDataSourceKey>(
  * translated into one stable state contract here.
  */
 export function useCurrentSystemAdapter(): LiquidCurrentDataState {
-  const { profile, portalSession, authReady, isAuthenticated } = useAuth();
-  const tenantId = profile?.tenantId ?? portalSession?.tenantId ?? null;
-  const roleKey = profile?.roleKey ?? portalSession?.roleKey ?? null;
+  const { profile, portalSession, user, authReady, isAuthenticated } = useAuth();
+  const hasActivePortalSession = Boolean(portalSession?.roleKey);
+  const tenantId = hasActivePortalSession
+    ? (portalSession?.tenantId ?? profile?.tenantId ?? null)
+    : (profile?.tenantId ?? portalSession?.tenantId ?? null);
+  const roleKey = resolveEffectiveRoleKey(profile, user, portalSession);
   const [data, setData] = useState<LiquidCurrentData>(EMPTY_DATA);
   const [errors, setErrors] = useState<LiquidCurrentDataState['errors']>({});
   const [loading, setLoading] = useState(false);

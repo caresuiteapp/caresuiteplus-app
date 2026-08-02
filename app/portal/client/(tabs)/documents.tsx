@@ -4,7 +4,7 @@ import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScr
 export default function ClientDocumentsRoute() {
   return (
     <PortalTabScreen title="Dokumente" hideHeaderOnPhone scroll={false}>
-      <PortalDocumentsTab detailBasePath="/portal/client/documents" ownsScroll />
+      <PortalDocumentsTab audience="client" detailBasePath="/portal/client/documents" ownsScroll />
     </PortalTabScreen>
   );
 }

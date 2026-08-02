@@ -67,11 +67,11 @@ export function PortalViewScreen({
           />
         );
       case 'appointments':
-        return <PortalAppointmentsTab appointmentsLabel={appointmentsLabel} />;
+        return <PortalAppointmentsTab audience={variant} appointmentsLabel={appointmentsLabel} />;
       case 'messages':
-        return <PortalMessagesTab />;
+        return <PortalMessagesTab audience={variant} />;
       case 'documents':
-        return <PortalDocumentsTab />;
+        return <PortalDocumentsTab audience={variant} />;
       default:
         return null;
     }

@@ -21,8 +21,10 @@ import {
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalAppointments } from '@/hooks/usePortalAppointments';
 import type { CachedPortalAppointmentItem } from '@/lib/offline/types';
-import { useAuth } from '@/lib/auth/context';
-import { resolvePortalScope } from '@/lib/portal/portalVisibility';
+import {
+  portalScopeForAudience,
+  type OperationalPortalAudience,
+} from '@/lib/portal/portalAudience';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import {
   resolveEmployeePortalAssignmentPendingFlags,
@@ -34,19 +36,20 @@ import { liquidRadius } from '@/liquid-command/foundation/tokens';
 import { portalPremium } from '@/design/tokens/portalPremium';
 
 type PortalAppointmentsTabProps = {
+  audience: OperationalPortalAudience;
   appointmentsLabel?: string;
   detailBasePath?: string;
 };
 
 export function PortalAppointmentsTab({
+  audience,
   appointmentsLabel = 'Einsätze',
   detailBasePath,
 }: PortalAppointmentsTabProps) {
   const router = useRouter();
   const { width } = useDeviceClass();
-  const { profile } = useAuth();
-  const scope = resolvePortalScope(profile?.roleKey ?? null);
-  const isEmployeePortal = scope === 'portal_employee';
+  const scope = portalScopeForAudience(audience);
+  const isEmployeePortal = audience === 'employee';
   const text = useAuroraAdaptiveText();
   const type = resolveGalaxyTypography(width);
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -65,7 +68,7 @@ export function PortalAppointmentsTab({
     isResolvingClientLink,
     missingClientLink,
     supabaseSessionReady,
-  } = usePortalAppointments();
+  } = usePortalAppointments(audience);
 
   const appointmentGroups = useMemo(() => groupPortalAppointmentsByTime(items), [items]);
   const clientUpcoming = appointmentGroups.find((group) => group.key === 'upcoming')?.items ?? [];
@@ -107,6 +110,7 @@ export function PortalAppointmentsTab({
   }
 
   const openEmployeeAssignment = (appt: (typeof items)[number]) => {
+    if (audience !== 'employee') return;
     const status = appt.assignmentStatus ?? remoteStatusToAssignment(appt.status);
     const pending = resolveEmployeePortalAssignmentPendingFlags({
       status,

@@ -13,8 +13,10 @@ import {
 import { usePortalDocuments } from '@/hooks/usePortalDocuments';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
-import { useAuth } from '@/lib/auth/context';
-import { resolvePortalScope } from '@/lib/portal/portalVisibility';
+import {
+  portalScopeForAudience,
+  type OperationalPortalAudience,
+} from '@/lib/portal/portalAudience';
 import { formatOfficeDocumentSizeDisplay } from '@/lib/office/officeDocumentDisplay';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
@@ -37,17 +39,21 @@ function formatPortalDocumentMeta(doc: PortalDocumentListItem): string {
 }
 
 type PortalDocumentsTabProps = {
+  audience: OperationalPortalAudience;
   detailBasePath?: string;
   ownsScroll?: boolean;
 };
 
-export function PortalDocumentsTab({ detailBasePath, ownsScroll = false }: PortalDocumentsTabProps = {}) {
+export function PortalDocumentsTab({
+  audience,
+  detailBasePath,
+  ownsScroll = false,
+}: PortalDocumentsTabProps) {
   const router = useRouter();
-  const { profile } = useAuth();
   const insets = useSafeAreaInsets();
   const { isPhone } = useDeviceClass();
   const { showBottomTabs } = usePlatformLayout();
-  const scope = resolvePortalScope(profile?.roleKey ?? null);
+  const scope = portalScopeForAudience(audience);
   const accent = moduleColor('assist');
   const contentPadding = {
     paddingHorizontal: isPhone ? careSpacing.sm : 0,
@@ -64,7 +70,7 @@ export function PortalDocumentsTab({ detailBasePath, ownsScroll = false }: Porta
     showSuccess,
     refresh,
     isEmpty,
-  } = usePortalDocuments();
+  } = usePortalDocuments(audience);
 
   if (loading && items.length === 0) {
     return <LoadingState message="Dokumente werden geladen…" />;

@@ -51,7 +51,11 @@ export function ClientDocumentSignaturesScreen() {
     }, [tenantId, clientId, roleKey, filter]),
     [tenantId, clientId, roleKey, filter],
     {
-      enabled: isLinkedReady && !!tenantId && !!clientId,
+      enabled:
+        isLinkedReady &&
+        roleKey === 'client_portal' &&
+        !!tenantId &&
+        !!clientId,
       live: { tenantId, subscribe, pollMs: 30_000, refreshOnFocus: true },
     },
   );

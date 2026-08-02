@@ -12,6 +12,7 @@ import {
   fetchLivePortalDocumentsForClient,
 } from './portalDocumentsLiveService';
 import { filterPortalEntities, resolvePortalScope } from './portalVisibility';
+import { portalAudienceForRole } from './portalAudience';
 
 export type PortalDocumentsPortalContext = {
   tenantId?: string | null;
@@ -62,17 +63,17 @@ export async function fetchPortalDocuments(
     return { ok: false, error: 'Kein Profil für Dokumentenabruf vorhanden.' };
   }
 
-  const employeeDenied = enforcePermission<PortalDocumentListItem[]>(
+  const audience = portalAudienceForRole(roleKey);
+  if (!audience) {
+    return { ok: false, error: 'Keine Berechtigung für Portal-Dokumente.' };
+  }
+  const denied = enforcePermission<PortalDocumentListItem[]>(
     roleKey,
-    'portal.employee.documents.view',
+    audience === 'employee'
+      ? 'portal.employee.documents.view'
+      : 'portal.client.documents.view',
   );
-  if (employeeDenied && roleKey === 'employee_portal') return employeeDenied;
-
-  const clientDenied = enforcePermission<PortalDocumentListItem[]>(
-    roleKey,
-    'portal.client.documents.view',
-  );
-  if (clientDenied && isClientPortalRole(roleKey)) return clientDenied;
+  if (denied && (roleKey === 'employee_portal' || audience === 'client')) return denied;
 
   if (options?.simulateEmpty) {
     return { ok: true, data: [] };
@@ -149,6 +150,10 @@ export async function fetchPortalDocumentDetail(
   roleKey: RoleKey | null,
   portalContext?: PortalDocumentsPortalContext,
 ): Promise<ServiceResult<PortalDocumentDetail>> {
+  const audience = portalAudienceForRole(roleKey);
+  if (!audience) {
+    return { ok: false, error: 'Keine Berechtigung für Portal-Dokumente.' };
+  }
   const employeeDenied = enforcePermission<PortalDocumentDetail>(
     roleKey,
     'portal.employee.documents.view',

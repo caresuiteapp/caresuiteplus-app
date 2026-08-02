@@ -8,7 +8,7 @@ import { moduleColor } from '@/design/tokens/modules';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { fetchPortalCsDocumentRequests } from '@/lib/documents/csTemplates';
 import { spacing } from '@/theme';
 import { portalPremium } from '@/design/tokens/portalPremium';
@@ -23,23 +23,22 @@ const FILTER_OPTIONS = [
 export function EmployeeDocumentSignaturesScreen() {
   const router = useRouter();
   const tenantId = useServiceTenantId();
-  const { profile, portalSession } = useAuth();
+  const { employeeId, roleKey, isLinkedReady } = usePortalActor();
   const { can } = usePermissions();
   const [filter, setFilter] = useState<FilterKey>('open');
-
-  const employeeId = portalSession?.employeeId ?? profile?.employeeId ?? null;
 
   const query = useAsyncQuery(
     useCallback(async () => {
       if (!tenantId || !employeeId) return { ok: true as const, data: [] };
       return fetchPortalCsDocumentRequests({
         tenantId,
-        roleKey: 'employee_portal',
+        roleKey: roleKey ?? 'employee_portal',
         employeeId,
         includeCompleted: filter === 'done',
       });
-    }, [tenantId, employeeId, filter]),
-    [tenantId, employeeId, filter],
+    }, [tenantId, employeeId, roleKey, filter]),
+    [tenantId, employeeId, roleKey, filter],
+    { enabled: isLinkedReady && roleKey === 'employee_portal' },
   );
 
   const items =

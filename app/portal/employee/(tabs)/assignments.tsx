@@ -5,6 +5,7 @@ export default function EmployeeAssignmentsRoute() {
   return (
     <PortalTabScreen title="Einsätze" hideHeaderOnPhone scroll={false}>
       <PortalAppointmentsTab
+        audience="employee"
         appointmentsLabel="Einsätze"
         detailBasePath="/portal/employee/assignments"
       />

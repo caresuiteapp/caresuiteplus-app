@@ -58,6 +58,7 @@ import {
   resolveEmployeePortalAssignmentPendingFlags,
 } from '@/lib/portal/employeePortalAssignmentCompletion';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
+import { usePortalActor } from '@/hooks/usePortalActor';
 
 type PortalSection = {
   id: string;
@@ -192,34 +193,36 @@ function statusTone(value: string): 'neutral' | 'live' | 'success' | 'warning' |
   return 'neutral';
 }
 
-function usePortalData() {
-  const { authReady, isAuthenticated, portalSession, profile, user } = useAuth();
+function usePortalData(portal: 'employee' | 'client' | 'family') {
+  const { authReady, isAuthenticated } = useAuth();
+  const { tenantId, clientId, employeeId, actorId, roleKey } = usePortalActor();
   const [data, setData] = useState<PortalData>(EMPTY_PORTAL_DATA);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
-  const profileId = profile?.id ?? user?.id ?? portalSession?.accountId ?? '';
-  const roleKey = profile?.roleKey ?? portalSession?.roleKey ?? null;
+  const profileId = actorId ?? '';
+  const roleMatchesPortal =
+    (portal === 'employee' && roleKey === 'employee_portal') ||
+    (portal === 'client' && roleKey === 'client_portal') ||
+    (portal === 'family' && roleKey === 'family_portal');
   const context = useMemo(
     () => ({
-      tenantId: profile?.tenantId ?? portalSession?.tenantId ?? null,
-      clientId: portalSession?.clientId ?? null,
-      employeeId: profile?.employeeId ?? portalSession?.employeeId ?? null,
+      tenantId,
+      clientId: portal !== 'employee' && roleMatchesPortal ? clientId : null,
+      employeeId: portal === 'employee' && roleMatchesPortal ? employeeId : null,
     }),
-    [
-      portalSession?.clientId,
-      portalSession?.employeeId,
-      portalSession?.tenantId,
-      profile?.employeeId,
-      profile?.tenantId,
-    ],
+    [clientId, employeeId, portal, roleMatchesPortal, tenantId],
   );
 
   const reload = useCallback(async () => {
     if (!authReady) return;
-    if (!isAuthenticated || !profileId || !roleKey) {
+    if (!isAuthenticated || !profileId || !roleKey || !roleMatchesPortal) {
       setData(EMPTY_PORTAL_DATA);
-      setErrors(['Für Portal-Daten ist eine gültige Sitzung erforderlich.']);
+      setErrors([
+        roleKey && !roleMatchesPortal
+          ? 'Diese Sitzung gehört zu einem anderen Portal.'
+          : 'Für Portal-Daten ist eine gültige Sitzung erforderlich.',
+      ]);
       return;
     }
 
@@ -239,7 +242,7 @@ function usePortalData() {
       ),
     );
     setLoading(false);
-  }, [authReady, context, isAuthenticated, profileId, roleKey]);
+  }, [authReady, context, isAuthenticated, profileId, roleKey, roleMatchesPortal]);
 
   useEffect(() => {
     void reload();
@@ -740,7 +743,7 @@ export function PortalHomeScreen({
   const layout = useLiquidLayout();
   const definition = portalDefinitions[portal];
   const [active, setActive] = useState('today');
-  const { context, data, errors, loading, profileId, reload, roleKey } = usePortalData();
+  const { context, data, errors, loading, profileId, reload, roleKey } = usePortalData(portal);
   const officeMessages = usePortalOfficeMessages('open');
   const displayName =
     auth.profile?.displayName || auth.portalSession?.displayName || auth.user?.displayName || 'Portal';

@@ -34,7 +34,7 @@ export function PortalDocumentDetailScreen() {
     downloadError,
     successMessage,
     notFound,
-  } = usePortalDocumentDetail(id);
+  } = usePortalDocumentDetail(id, 'employee');
 
   if (!canView) {
     return (

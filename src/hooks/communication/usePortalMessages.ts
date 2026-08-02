@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
-import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { listThreads } from '@/features/communication/communication.service';
 import type { CommunicationAudience } from '@/features/communication/communication.types';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -20,21 +20,27 @@ function resolveAudience(roleKey: string | null | undefined): CommunicationAudie
   }
 }
 
-export function usePortalMessages() {
-  const { profile } = useAuth();
+export function usePortalMessages(
+  expectedAudience: Exclude<CommunicationAudience, 'business'>,
+) {
+  const { actorId, roleKey } = usePortalActor();
   const tenantId = useServiceTenantId();
-  const audience = resolveAudience(profile?.roleKey);
+  const audience = resolveAudience(roleKey);
+  const audienceMatches = audience === expectedAudience;
 
   const query = useAsyncQuery(
     () => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-      return listThreads(tenantId, { filter: 'all' }, profile?.roleKey, profile?.id);
+      if (!audienceMatches) {
+        return Promise.resolve({ ok: false as const, error: 'Diese Sitzung gehört zu einem anderen Portal.' });
+      }
+      return listThreads(tenantId, { filter: 'all' }, roleKey, actorId ?? undefined);
     },
-    [tenantId, profile?.roleKey, profile?.id],
-    { enabled: !!tenantId && audience !== 'business' },
+    [tenantId, audienceMatches, roleKey, actorId],
+    { enabled: !!tenantId && audienceMatches },
   );
 
-  const items = query.data ?? [];
+  const items = useMemo(() => query.data ?? [], [query.data]);
   const unreadCount = useMemo(
     () =>
       items.reduce((sum, t) => {
@@ -51,9 +57,11 @@ export function usePortalMessages() {
   return {
     items,
     unreadCount,
-    audience,
+    audience: expectedAudience,
     loading: query.loading,
-    error: query.error,
+    error: !audienceMatches && roleKey
+      ? 'Diese Sitzung gehört zu einem anderen Portal.'
+      : query.error,
     refreshing: query.refreshing,
     refresh,
     isEmpty: !query.loading && !query.error && items.length === 0,

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ClientPortalAssignmentCard } from '@/components/portal/ClientPortalAssignmentCard';
 import { ClientPortalAssignmentPreviewSheet } from '@/components/portal/ClientPortalAssignmentPreviewSheet';
@@ -18,7 +18,7 @@ export function ClientPortalProfileAssignmentsSection() {
   const text = useAuroraAdaptiveText();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
-  const { items, loading, isEmpty } = usePortalAppointments();
+  const { items, loading, isEmpty } = usePortalAppointments('client');
   const [previewId, setPreviewId] = useState<string | null>(null);
 
   const groups = useMemo(() => groupPortalAppointmentsByTime(items), [items]);

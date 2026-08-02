@@ -4,26 +4,36 @@ import { downloadPortalDocument, fetchPortalDocumentDetail } from '@/lib/portal'
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { isDemoMode } from '@/lib/supabase/config';
 import { useAsyncQuery, useMutation } from './core';
+import {
+  isRoleAllowedForPortalAudience,
+  type OperationalPortalAudience,
+} from '@/lib/portal/portalAudience';
 
-export function usePortalDocumentDetail(documentId: string | undefined) {
+export function usePortalDocumentDetail(
+  documentId: string | undefined,
+  audience: OperationalPortalAudience,
+) {
   const { tenantId, clientId, actorId, roleKey, isReady } = usePortalActor();
   const profileId = actorId ?? '';
+  const roleMatchesAudience = isRoleAllowedForPortalAudience(roleKey, audience);
+  const scopedRoleKey = roleMatchesAudience ? roleKey : null;
+  const scopedClientId = audience === 'client' && roleMatchesAudience ? clientId : null;
 
   const query = useAsyncQuery(
     () =>
-      fetchPortalDocumentDetail(documentId ?? '', profileId, roleKey, {
+      fetchPortalDocumentDetail(documentId ?? '', profileId, scopedRoleKey, {
         tenantId,
-        clientId,
+        clientId: scopedClientId,
       }),
-    [documentId, profileId, roleKey, tenantId, clientId],
-    { enabled: !!documentId && isReady },
+    [documentId, profileId, scopedRoleKey, tenantId, scopedClientId],
+    { enabled: !!documentId && isReady && roleMatchesAudience },
   );
 
   const downloadMutation = useMutation(
     (_: null) =>
-      downloadPortalDocument(documentId ?? '', profileId, roleKey, {
+      downloadPortalDocument(documentId ?? '', profileId, scopedRoleKey, {
         tenantId,
-        clientId,
+        clientId: scopedClientId,
       }),
     {
       successMessage: isDemoMode() ? 'Download vorbereitet.' : 'Download gestartet.',
@@ -46,7 +56,9 @@ export function usePortalDocumentDetail(documentId: string | undefined) {
   return {
     data: query.data,
     loading: query.loading,
-    error: query.error,
+    error: !roleMatchesAudience && roleKey
+      ? 'Diese Sitzung gehört zu einem anderen Portal.'
+      : query.error,
     refresh,
     download,
     downloadLoading: downloadMutation.loading,

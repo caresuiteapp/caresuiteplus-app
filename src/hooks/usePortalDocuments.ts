@@ -4,20 +4,27 @@ import { fetchPortalDocuments } from '@/lib/portal';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import {
+  isRoleAllowedForPortalAudience,
+  type OperationalPortalAudience,
+} from '@/lib/portal/portalAudience';
 
-export function usePortalDocuments() {
+export function usePortalDocuments(audience: OperationalPortalAudience) {
   const { tenantId, clientId, actorId, roleKey, isReady } = usePortalActor();
   const profileId = actorId ?? '';
   const [showSuccess, setShowSuccess] = useState(false);
+  const roleMatchesAudience = isRoleAllowedForPortalAudience(roleKey, audience);
+  const scopedRoleKey = roleMatchesAudience ? roleKey : null;
+  const scopedClientId = audience === 'client' && roleMatchesAudience ? clientId : null;
 
   const query = useAsyncQuery(
     () =>
-      fetchPortalDocuments(profileId, roleKey, {
+      fetchPortalDocuments(profileId, scopedRoleKey, {
         tenantId,
-        clientId,
+        clientId: scopedClientId,
       }),
-    [profileId, roleKey, tenantId, clientId],
-    { enabled: isReady },
+    [profileId, scopedRoleKey, tenantId, scopedClientId],
+    { enabled: isReady && roleMatchesAudience },
   );
 
   const items = query.data ?? [];
@@ -31,7 +38,9 @@ export function usePortalDocuments() {
   return {
     items,
     loading: query.loading,
-    error: query.error
+    error: !roleMatchesAudience && roleKey
+      ? 'Diese Sitzung gehört zu einem anderen Portal.'
+      : query.error
       ? toPortalUserFacingError(
           query.error,
           'Ihre Dokumente konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
@@ -40,7 +49,7 @@ export function usePortalDocuments() {
     refreshing: query.refreshing,
     showSuccess,
     refresh,
-    isEmpty: !query.loading && !query.error && items.length === 0,
+    isEmpty: roleMatchesAudience && !query.loading && !query.error && items.length === 0,
   };
 }
 

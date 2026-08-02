@@ -11,8 +11,10 @@ import {
 } from '@/components/ui';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useMessages } from '@/hooks/useMessages';
-import { useAuth } from '@/lib/auth/context';
-import { resolvePortalScope } from '@/lib/portal/portalVisibility';
+import {
+  portalScopeForAudience,
+  type OperationalPortalAudience,
+} from '@/lib/portal/portalAudience';
 import { VISIBILITY_LABELS } from '@/types/portal/visibility';
 import { colors, spacing, typography } from '@/theme';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -26,15 +28,15 @@ function formatDate(iso: string): string {
 }
 
 type PortalMessagesTabProps = {
+  audience: OperationalPortalAudience;
   detailBasePath?: string;
 };
 
-export function PortalMessagesTab({ detailBasePath }: PortalMessagesTabProps = {}) {
+export function PortalMessagesTab({ audience, detailBasePath }: PortalMessagesTabProps) {
   const router = useRouter();
   const { isPhone } = useDeviceClass();
-  const { profile } = useAuth();
   const adaptiveText = useAuroraAdaptiveText();
-  const scope = resolvePortalScope(profile?.roleKey ?? null);
+  const scope = portalScopeForAudience(audience);
   const {
     items,
     unreadCount,
@@ -44,7 +46,7 @@ export function PortalMessagesTab({ detailBasePath }: PortalMessagesTabProps = {
     showSuccess,
     refresh,
     isEmpty,
-  } = useMessages();
+  } = useMessages(audience);
 
   if (loading && items.length === 0) {
     return <LoadingState message="Nachrichten werden geladen…" />;

@@ -7,11 +7,14 @@ import { useConnectivity } from '@/hooks/useConnectivity';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToEmployeePortalChanges, subscribeToPortalAssistChanges } from '@/lib/realtime';
 import { useAsyncQuery } from './core';
-import { resolvePortalScope } from '@/lib/portal/portalVisibility';
 import { filterEmployeePortalAppointments } from '@/lib/portal/employeePortalLiveOverviewService';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import {
+  isRoleAllowedForPortalAudience,
+  type OperationalPortalAudience,
+} from '@/lib/portal/portalAudience';
 
-export function usePortalAppointments() {
+export function usePortalAppointments(audience: OperationalPortalAudience) {
   const { authReady, user } = useAuth();
   const {
     tenantId,
@@ -30,47 +33,52 @@ export function usePortalAppointments() {
     cachedAt: null,
   });
 
+  const roleMatchesAudience = isRoleAllowedForPortalAudience(roleKey, audience);
+  const scopedClientId = audience === 'client' && roleMatchesAudience ? clientId : null;
+  const scopedEmployeeId = audience === 'employee' && roleMatchesAudience ? employeeId : null;
+  const scopedRoleKey = roleMatchesAudience ? roleKey : null;
+
   const needsSupabaseSession =
     roleKey === 'client_portal' || roleKey === 'family_portal' || roleKey === 'employee_portal';
   const supabaseSessionReady = !needsSupabaseSession || Boolean(user);
-  const queryEnabled = authReady && isLinkedReady && supabaseSessionReady;
+  const queryEnabled =
+    authReady && roleMatchesAudience && isLinkedReady && supabaseSessionReady;
 
   const liveConfig = useMemo(() => {
     if (!tenantId) return undefined;
-    if (employeeId) {
+    if (audience === 'employee' && scopedEmployeeId) {
       return {
         tenantId,
         subscribe: (tid: string, handler: () => void) =>
-          subscribeToEmployeePortalChanges(tid, employeeId, handler),
+          subscribeToEmployeePortalChanges(tid, scopedEmployeeId, handler),
       };
     }
-    if (clientId) {
+    if (audience === 'client' && scopedClientId) {
       return {
         tenantId,
         subscribe: (tid: string, handler: () => void) =>
-          subscribeToPortalAssistChanges(tid, clientId, handler),
+          subscribeToPortalAssistChanges(tid, scopedClientId, handler),
       };
     }
     return undefined;
-  }, [tenantId, employeeId, clientId]);
+  }, [audience, tenantId, scopedEmployeeId, scopedClientId]);
 
-  const scope = resolvePortalScope(roleKey ?? null);
-  const isEmployeePortal = scope === 'portal_employee';
+  const isEmployeePortal = audience === 'employee';
 
   const query = useAsyncQuery(
     async () => {
       const result = await loadPortalAppointmentsWithCache(
         profileId,
-        roleKey,
+        scopedRoleKey,
         tenantId,
-        employeeId,
-        clientId,
+        scopedEmployeeId,
+        scopedClientId,
         { preferCache: isOffline },
       );
       setCacheMeta({ fromCache: result.fromCache, cachedAt: result.cachedAt });
       return result;
     },
-    [profileId, roleKey, tenantId, clientId, employeeId, isOffline],
+    [profileId, scopedRoleKey, tenantId, scopedClientId, scopedEmployeeId, isOffline],
     { enabled: queryEnabled, live: liveConfig },
   );
 
@@ -88,16 +96,21 @@ export function usePortalAppointments() {
   const missingClientLink =
     authReady &&
     !isResolvingClientLink &&
-    (roleKey === 'client_portal' || roleKey === 'family_portal') &&
-    !clientId;
+    audience === 'client' &&
+    roleMatchesAudience &&
+    !scopedClientId;
+
+  const portalRoleMismatch = authReady && Boolean(roleKey) && !roleMatchesAudience;
 
   return {
     items,
     loading:
       !authReady ||
-      isResolvingClientLink ||
+      (audience === 'client' && isResolvingClientLink) ||
       (queryEnabled && query.loading && items.length === 0),
-    error: missingClientLink
+    error: portalRoleMismatch
+      ? 'Diese Sitzung gehört zu einem anderen Portal. Bitte öffnen Sie den für Ihre Anmeldung vorgesehenen Bereich.'
+      : missingClientLink
       ? 'Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
       : query.error
         ? toPortalUserFacingError(
@@ -115,8 +128,10 @@ export function usePortalAppointments() {
     isLinkedReady,
     isResolvingClientLink,
     missingClientLink,
+    portalRoleMismatch,
     supabaseSessionReady,
   };
 }
 
 export type { PortalAppointmentItem };
+export type { OperationalPortalAudience };

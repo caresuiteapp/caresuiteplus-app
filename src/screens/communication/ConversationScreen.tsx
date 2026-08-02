@@ -13,7 +13,7 @@ import {
 import { PortalRelativeConversationHero } from '@/components/portal/PortalRelativeConversationHero';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { assignThread } from '@/features/communication/communication.assignments';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { isDemoMode } from '@/lib/supabase/config';
@@ -28,8 +28,9 @@ import {
   useThread,
 } from '@/hooks/communication';
 import { useAuth } from '@/lib/auth/context';
+import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
 import { resolvePortalScope } from '@/lib/portal/portalVisibility';
-import { colors, spacing } from '@/theme';
+import { spacing } from '@/theme';
 
 export function ConversationScreen({
   threadId: threadIdProp,
@@ -43,8 +44,9 @@ export function ConversationScreen({
   const showBack = !embedded;
   const router = useRouter();
   const tenantId = useServiceTenantId();
-  const { profile } = useAuth();
-  const portalScope = resolvePortalScope(profile?.roleKey ?? null);
+  const { profile, portalSession, user } = useAuth();
+  const effectiveRoleKey = resolveEffectiveRoleKey(profile, user, portalSession);
+  const portalScope = resolvePortalScope(effectiveRoleKey);
   const perms = useCommunicationPermissions();
   const { thread, loading, error, refresh, notFound } = useThread(threadId);
   const { messages, refresh: refreshMessages } = useMessages(threadId);

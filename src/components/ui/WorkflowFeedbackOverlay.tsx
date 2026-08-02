@@ -11,7 +11,7 @@ import {
 import { CareSuiteLoadingIndicator } from '@/components/brand/CareSuiteLoadingIndicator';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
-import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { portalPremium, usePortalPremiumRuntimeTheme } from '@/design/tokens/portalPremium';
 import { typography } from '@/theme';
 
 export type WorkflowFeedbackKind = 'success' | 'error' | 'warning' | 'info';
@@ -62,7 +62,7 @@ export function WorkflowFeedbackOverlay({
   onAction,
   testID = 'workflow-feedback-overlay',
 }: Props) {
-  const portal = usePortalPremiumTheme();
+  const portal = usePortalPremiumRuntimeTheme();
   const [messageVisible, setMessageVisible] = useState(Boolean(message));
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
   const visible = loading || (messageVisible && Boolean(message));

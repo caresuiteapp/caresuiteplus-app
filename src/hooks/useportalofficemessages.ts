@@ -11,7 +11,7 @@ import { useAsyncQuery } from './core';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 export function usePortalOfficeMessages(filter: PortalOfficeInboxFilter = 'open') {
-  const { profile, portalSession } = useAuth();
+  const { portalSession } = useAuth();
   const {
     tenantId,
     clientId,
@@ -30,10 +30,10 @@ export function usePortalOfficeMessages(filter: PortalOfficeInboxFilter = 'open'
     () => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       const actorResult = resolvePortalActor(
-        profile?.roleKey ?? roleKey ?? portalSession?.roleKey ?? null,
+        roleKey,
         portalSession,
-        profile?.id ?? actorId ?? portalSession?.accountId,
-        profile?.displayName ?? displayName,
+        actorId,
+        displayName,
         { clientId, employeeId },
       );
       if (!actorResult.ok) return Promise.resolve(actorResult);
@@ -41,9 +41,6 @@ export function usePortalOfficeMessages(filter: PortalOfficeInboxFilter = 'open'
     },
     [
       tenantId,
-      profile?.roleKey,
-      profile?.id,
-      profile?.displayName,
       portalAccountId,
       portalClientId,
       portalEmployeeId,

@@ -22,6 +22,7 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { spacing, radius } from '@/theme';
 import type { OfficeMessageCategory } from '@/types/office/messaging';
 import { PORTAL_EMERGENCY_DISCLAIMER } from '@/lib/office/messagecategoryconstants';
+import { portalAudienceForRole } from '@/lib/portal/portalAudience';
 
 type PortalNewChatModalProps = {
   visible: boolean;
@@ -40,7 +41,7 @@ export function PortalNewChatModal({
 }: PortalNewChatModalProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
-  const { profile, portalSession } = useAuth();
+  const { portalSession } = useAuth();
   const tenantId = useServiceTenantId();
   const {
     clientId,
@@ -58,7 +59,8 @@ export function PortalNewChatModal({
   const [categories, setCategories] = useState<OfficeMessageCategory[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const canSend = isLinkedReady && Boolean(categoryId) && !submitting;
+  const actorAudienceMatches = portalAudienceForRole(roleKey) === audience;
+  const canSend = actorAudienceMatches && isLinkedReady && Boolean(categoryId) && !submitting;
 
   const styles = useMemo(
     () =>
@@ -109,13 +111,13 @@ export function PortalNewChatModal({
   }, [visible, tenantId, audience, draftActorId, subject, initialMessage, categoryId]);
 
   useEffect(() => {
-    if (!visible || !tenantId || !isLinkedReady) return;
+    if (!visible || !tenantId || !isLinkedReady || !actorAudienceMatches) return;
     void (async () => {
       const actorResult = resolvePortalActor(
-        profile?.roleKey ?? roleKey ?? portalSession?.roleKey ?? null,
+        roleKey,
         portalSession,
-        profile?.id ?? actorId ?? portalSession?.accountId,
-        profile?.displayName ?? displayName,
+        actorId,
+        displayName,
         { clientId, employeeId },
       );
       if (!actorResult.ok) return;
@@ -134,17 +136,21 @@ export function PortalNewChatModal({
     visible,
     tenantId,
     isLinkedReady,
-    profile,
     portalSession,
     roleKey,
     actorId,
     displayName,
     clientId,
     employeeId,
+    actorAudienceMatches,
   ]);
 
   const handleCreate = async () => {
     if (!tenantId || !categoryId) return;
+    if (!actorAudienceMatches) {
+      setError('Diese Sitzung gehört zu einem anderen Portal.');
+      return;
+    }
     if (!isLinkedReady) {
       setError(
         isResolvingClientLink
@@ -159,10 +165,10 @@ export function PortalNewChatModal({
     }
 
     const actorResult = resolvePortalActor(
-      profile?.roleKey ?? roleKey ?? portalSession?.roleKey ?? null,
+      roleKey,
       portalSession,
-      profile?.id ?? actorId ?? portalSession?.accountId,
-      profile?.displayName ?? displayName,
+      actorId,
+      displayName,
       { clientId, employeeId },
     );
     if (!actorResult.ok) {

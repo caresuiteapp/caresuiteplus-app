@@ -77,11 +77,10 @@ export function WfmAbsencePortalScreen({
 }: WfmAbsencePortalScreenProps) {
   const router = useRouter();
   const { profile, user } = useAuth();
-  const { employeeId: portalEmployeeId } = usePortalActor();
+  const { employeeId: portalEmployeeId, actorId, roleKey } = usePortalActor();
   const tenantId = useServiceTenantId();
-  const userId = user?.id ?? profile?.id ?? '';
+  const userId = actorId ?? user?.id ?? profile?.id ?? '';
   const employeeId = portalEmployeeId ?? profile?.employeeId ?? null;
-  const roleKey = profile?.roleKey ?? null;
   const { can, check, roleLabel } = usePermissions();
   const text = portalText;
 
