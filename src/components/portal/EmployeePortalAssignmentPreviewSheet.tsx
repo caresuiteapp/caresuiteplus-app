@@ -74,19 +74,36 @@ export function EmployeePortalAssignmentPreviewSheet({
   };
 
   const footerActions: PlatformModalAction[] = data
-    ? [
-        { title: 'Schließen', variant: 'secondary', onPress: onClose },
-        { title: 'Details öffnen', variant: 'secondary', onPress: openDetails },
-        ...(canOpenExecution && executionRoute
-          ? [
-              {
-                title: canStartExecution ? 'Zur Durchführung' : 'Dokumentation fortsetzen',
-                variant: 'primary' as const,
-                onPress: openExecution,
-              },
-            ]
-          : []),
-      ]
+    ? isPhone
+      ? [
+          {
+            title: 'Details öffnen',
+            variant: canOpenExecution ? 'secondary' : 'primary',
+            onPress: openDetails,
+          },
+          ...(canOpenExecution && executionRoute
+            ? [
+                {
+                  title: canStartExecution ? 'Zur Durchführung' : 'Dokumentation fortsetzen',
+                  variant: 'primary' as const,
+                  onPress: openExecution,
+                },
+              ]
+            : []),
+        ]
+      : [
+          { title: 'Schließen', variant: 'secondary', onPress: onClose },
+          { title: 'Details öffnen', variant: 'secondary', onPress: openDetails },
+          ...(canOpenExecution && executionRoute
+            ? [
+                {
+                  title: canStartExecution ? 'Zur Durchführung' : 'Dokumentation fortsetzen',
+                  variant: 'primary' as const,
+                  onPress: openExecution,
+                },
+              ]
+            : []),
+        ]
     : [{ title: 'Schließen', variant: 'secondary', onPress: onClose }];
 
   return (
@@ -96,11 +113,12 @@ export function EmployeePortalAssignmentPreviewSheet({
       subtitle={data?.clientName ? `Klient:in: ${data.clientName}` : 'Ihr geplanter Einsatz'}
       onClose={onClose}
       footerActions={footerActions}
+      variant={isPhone ? 'bottomSheet' : 'center'}
       maxWidth={780}
       minWidth={0}
       maxHeightRatio={isPhone ? 0.9 : 0.86}
-      animationType="fade"
-      bodyStyle={styles.modalBody}
+      animationType={isPhone ? 'slide' : 'fade'}
+      bodyStyle={[styles.modalBody, isPhone && styles.modalBodyPhone]}
       sheetStyle={styles.modalSheet}
     >
       {loading && !data ? (
@@ -182,6 +200,9 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: careSpacing.md,
+  },
+  modalBodyPhone: {
+    padding: careSpacing.sm,
   },
   content: {
     width: '100%',

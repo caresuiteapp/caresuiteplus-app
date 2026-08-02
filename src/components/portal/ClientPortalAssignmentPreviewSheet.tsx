@@ -62,10 +62,12 @@ export function ClientPortalAssignmentPreviewSheet({
   };
 
   const footerActions: PlatformModalAction[] = data
-    ? [
-        { title: 'Schließen', variant: 'secondary', onPress: onClose },
-        { title: 'Einsatz vollständig öffnen', variant: 'primary', onPress: openDetails },
-      ]
+    ? isPhone
+      ? [{ title: 'Einsatz öffnen', variant: 'primary', onPress: openDetails }]
+      : [
+          { title: 'Schließen', variant: 'secondary', onPress: onClose },
+          { title: 'Einsatz vollständig öffnen', variant: 'primary', onPress: openDetails },
+        ]
     : [{ title: 'Schließen', variant: 'secondary', onPress: onClose }];
 
   const livePosition = data?.liveVisit?.mapVisible ? data.liveVisit.lastPosition : null;
@@ -77,11 +79,12 @@ export function ClientPortalAssignmentPreviewSheet({
       subtitle={data?.caregiverName ? `Ihre Betreuungskraft: ${data.caregiverName}` : 'Ihr geplanter Einsatz'}
       onClose={onClose}
       footerActions={footerActions}
+      variant={isPhone ? 'bottomSheet' : 'center'}
       maxWidth={760}
       minWidth={0}
       maxHeightRatio={isPhone ? 0.9 : 0.86}
-      animationType="fade"
-      bodyStyle={styles.modalBody}
+      animationType={isPhone ? 'slide' : 'fade'}
+      bodyStyle={[styles.modalBody, isPhone && styles.modalBodyPhone]}
       sheetStyle={styles.modalSheet}
     >
       {loading && !data ? (
@@ -159,6 +162,9 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: careSpacing.md,
+  },
+  modalBodyPhone: {
+    padding: careSpacing.sm,
   },
   content: {
     width: '100%',

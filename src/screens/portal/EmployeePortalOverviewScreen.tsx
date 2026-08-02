@@ -10,14 +10,14 @@ export function EmployeePortalOverviewScreen() {
 
   if (!isReady) {
     return (
-      <PortalTabScreen title="Mitarbeiterportal" scroll={false} hideHeaderOnPhone>
+      <PortalTabScreen title="Mitarbeiterportal" scroll hideHeaderOnPhone>
         <LoadingState message="Übersicht wird geladen…" />
       </PortalTabScreen>
     );
   }
 
   return (
-    <PortalTabScreen title="Mitarbeiterportal" scroll={false} hideHeaderOnPhone>
+    <PortalTabScreen title="Mitarbeiterportal" scroll hideHeaderOnPhone>
       <EmployeePortalDashboardScreen
         showSuccess={showSuccess}
         onRefresh={() => {

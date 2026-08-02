@@ -10,6 +10,7 @@ import type { PortalEmployeeProfile } from '@/types/portal/employee';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { spacing } from '@/theme';
 import { portalPremium } from '@/design/tokens/portalPremium';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 type PortalEmployeeProfileHeroProps = {
   profile: PortalEmployeeProfile;
@@ -20,6 +21,7 @@ function statusVariant(status: string) {
 }
 
 export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHeroProps) {
+  const { isPhone } = useDeviceClass();
   const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
@@ -27,8 +29,8 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
       StyleSheet.create({
         layout: {
           flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.md,
+          alignItems: isPhone ? 'flex-start' : 'center',
+          gap: isPhone ? spacing.sm : spacing.md,
         },
         avatarCol: {
           flexShrink: 0,
@@ -38,24 +40,28 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
           gap: spacing.xs,
           minWidth: 0,
         },
-        title: { ...heroText.title, color: portalPremium.text.primary },
+        title: {
+          ...heroText.title,
+          color: portalPremium.text.primary,
+          ...(isPhone ? { fontSize: 23, lineHeight: 28 } : null),
+        },
         meta: { ...heroText.meta, color: portalPremium.text.secondary },
         badges: {
           flexDirection: 'row',
           flexWrap: 'wrap',
           gap: spacing.sm,
-          marginTop: spacing.sm,
+          marginTop: isPhone ? spacing.xs : spacing.sm,
         },
         factRow: {
           flexDirection: 'row',
           flexWrap: 'wrap',
           gap: spacing.sm,
-          marginTop: spacing.md,
+          marginTop: isPhone ? spacing.sm : spacing.md,
         },
         fact: {
           flexGrow: 1,
           flexBasis: 140,
-          padding: spacing.md,
+          padding: isPhone ? spacing.sm : spacing.md,
           gap: 2,
           borderRadius: 16,
           borderWidth: 1,
@@ -66,16 +72,19 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
         factValue: { fontSize: 17, fontWeight: '800', color: portalPremium.text.primary },
         factMeta: { fontSize: 12, color: portalPremium.text.secondary },
       }),
-    [heroText],
+    [heroText, isPhone],
   );
 
   const kpis = buildEmployeePortalProfileKpis(profile, mode).slice(0, 2);
   const roleLine = [profile.jobTitleLabel, profile.departmentLabel]
     .filter((part) => part && part !== '—')
     .join(' · ');
+  const contactLine = [profile.email, profile.mobile ?? profile.phone]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
-    <PremiumListHeroFrame>
+    <PremiumListHeroFrame style={isPhone ? frameStyles.phone : undefined}>
       <View style={styles.layout}>
         <View style={styles.avatarCol}>
           <PortalReadOnlyAvatar
@@ -83,7 +92,7 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
             avatarUrl={profile.avatarUrl}
             avatarVersion={profile.avatarUpdatedAt ?? profile.avatarUrl}
             accentColor={colors.cyan}
-            size="xl"
+            size={isPhone ? 'lg' : 'xl'}
           />
         </View>
         <View style={styles.textCol}>
@@ -97,6 +106,11 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
           ) : null}
           {profile.employeeNumber ? (
             <Text style={styles.meta}>Personalnummer {profile.employeeNumber}</Text>
+          ) : null}
+          {contactLine ? (
+            <Text style={styles.meta} numberOfLines={isPhone ? 2 : 1}>
+              {contactLine}
+            </Text>
           ) : null}
         </View>
       </View>
@@ -122,3 +136,10 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
     </PremiumListHeroFrame>
   );
 }
+
+const frameStyles = StyleSheet.create({
+  phone: {
+    padding: spacing.sm,
+    gap: spacing.xs,
+  },
+});

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LockedActionBanner } from '@/components/permissions';
 import {
@@ -8,14 +8,11 @@ import {
   PORTAL_EMPLOYEE_PROFILE_TABS,
   PortalEmployeeProfileHero,
 } from '@/components/portal';
-import { GlassCard } from '@/design/components/GlassCard';
 import { careSpacing } from '@/design/tokens/spacing';
-import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import {
   EmptyState,
   ErrorState,
   LoadingState,
-  PremiumBadge,
   SegmentedTabs,
 } from '@/components/ui';
 import { HealthOSAlert } from '@/components/healthos';
@@ -28,17 +25,14 @@ import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { isTechnicalPortalErrorMessage } from '@/lib/portal/portalErrorSanitizer';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import type { PortalEmployeeProfileTabKey } from '@/types/portal/employeePersonnel';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { portalPremium } from '@/design/tokens/portalPremium';
 
 export function EmployeeProfileScreen() {
-  const { isTablet, isDesktop, width } = useDeviceClass();
+  const { isPhone, isTablet, isDesktop } = useDeviceClass();
   const { can, check, roleLabel } = usePermissions();
   const canViewProfile = can('portal.employee.profile.view');
   const { colors } = useLegacyTheme();
-  const type = resolveGalaxyTypography(width);
   const insets = useSafeAreaInsets();
   const { showBottomTabs } = usePlatformLayout();
   const [activeTab, setActiveTab] = useState<PortalEmployeeProfileTabKey>('overview');
@@ -64,8 +58,11 @@ export function EmployeeProfileScreen() {
         ? PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm)
         : careSpacing.xl + insets.bottom,
       gap: careSpacing.md,
+      ...(isPhone
+        ? { paddingHorizontal: careSpacing.sm, gap: careSpacing.sm }
+        : null),
     }),
-    [insets.bottom, showBottomTabs],
+    [insets.bottom, isPhone, showBottomTabs],
   );
 
   const handleRefresh = useCallback(() => {
@@ -125,8 +122,6 @@ export function EmployeeProfileScreen() {
     );
   }
 
-  const contactLine = [profile.email, profile.mobile ?? profile.phone].filter(Boolean).join(' · ');
-
   return (
     <PortalTabScreen title="Profil" subtitle={profile.displayName} hideHeaderOnPhone scroll={false}>
       <ScrollView
@@ -138,24 +133,9 @@ export function EmployeeProfileScreen() {
       >
         <PortalEmployeeProfileHero profile={profile} />
 
-        <GlassCard>
-          <View style={styles.headerMeta}>
-            {profile.jobTitleLabel && profile.jobTitleLabel !== '—' ? (
-              <Text style={[type.body, { color: portalPremium.text.primary }]}>{profile.jobTitleLabel}</Text>
-            ) : null}
-            <View style={styles.statusRow}>
-              <PremiumBadge
-                label={WORKFLOW_STATUS_LABELS[profile.status]}
-                variant={profile.status === 'aktiv' ? 'green' : 'orange'}
-                dot
-              />
-            </View>
-            {contactLine ? (
-              <Text style={[type.caption, { color: portalPremium.text.secondary }]}>{contactLine}</Text>
-            ) : null}
-          </View>
+        <View style={styles.officeHint}>
           <HealthOSAlert variant="info" title="Stammdaten" message={OFFICE_PROFILE_HINT} />
-        </GlassCard>
+        </View>
 
          <SegmentedTabs
            tabs={PORTAL_EMPLOYEE_PROFILE_TABS}
@@ -175,12 +155,8 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
   },
-  headerMeta: {
-    gap: careSpacing.xs,
-    marginBottom: careSpacing.sm,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  officeHint: {
+    width: '100%',
+    minWidth: 0,
   },
 });

@@ -75,11 +75,14 @@ describe('portal M.3 mobile layout', () => {
     expect(shell).toContain('area={mobileNavArea}');
   });
 
-  it('employee overview uses the canonical Liquid portal home', () => {
+  it('employee overview uses the shared premium portal screen instead of a second shell', () => {
     const route = readSrc('app/portal/employee/(tabs)/index.tsx');
-    expect(route).toContain('PortalHomeScreen');
+    expect(route).toContain('EmployeePortalOverviewScreen');
+    expect(route).not.toContain('PortalHomeScreen');
     expect(route).not.toContain('PortalOverviewTab');
-    expect(readSrc('src/liquid-command/screens/PortalHomeScreen.tsx')).toContain('mobileWorkspaceContent');
+    expect(readSrc('src/screens/portal/EmployeePortalOverviewScreen.tsx')).toContain(
+      '<PortalTabScreen title="Mitarbeiterportal" scroll hideHeaderOnPhone>',
+    );
   });
 
   it('employee schedule route redirects to calendar', () => {

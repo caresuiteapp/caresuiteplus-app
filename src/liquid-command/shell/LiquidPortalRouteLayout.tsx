@@ -16,7 +16,6 @@ import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import {
   liquidPortalNavigation,
   liquidPortalLoginRoutes,
-  liquidPortalRoots,
   type ProductPortalKind as PortalKind,
 } from '../navigation/portalCatalog';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
@@ -69,15 +68,6 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
       .find((item) => pathname === item.route || pathname.startsWith(`${item.route}/`));
     return matching?.id ?? 'home';
   }, [navigation, pathname]);
-
-  if (pathname === liquidPortalRoots[kind]) {
-    return (
-      <>
-        <PortalStack />
-        {overlay}
-      </>
-    );
-  }
 
   const signOut = async () => {
     await auth.signOut();
@@ -203,7 +193,14 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   glyph={item.glyph}
                   size={20}
                 />
-                <Text style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}>{item.label}</Text>
+                <Text
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.72}
+                  numberOfLines={1}
+                  style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}
+                >
+                  {item.label}
+                </Text>
               </Pressable>
             ))}
             <Pressable
@@ -219,6 +216,9 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 size={20}
               />
               <Text
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
+                numberOfLines={1}
                 style={[
                   styles.bottomLabel,
                   moreNavigation.some((item) => item.id === activeId) && styles.bottomLabelActive,
@@ -503,11 +503,11 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     position: 'absolute',
-    left: 12,
-    right: 12,
+    left: 8,
+    right: 8,
     bottom: 12,
     minHeight: 68,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
     paddingVertical: 5,
     borderRadius: 18,
     borderWidth: 1,
@@ -519,10 +519,15 @@ const styles = StyleSheet.create({
   },
   bottomItem: {
     flex: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    maxWidth: '20%',
     minHeight: 48,
+    paddingHorizontal: 2,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
+    overflow: 'hidden',
   },
   bottomGlyph: {
     color: liquidColors.white56,
@@ -533,10 +538,12 @@ const styles = StyleSheet.create({
     color: liquidColors.blue200,
   },
   bottomLabel: {
+    width: '100%',
     color: liquidColors.white56,
     fontSize: webScaledFontMetric(9),
     lineHeight: webScaledFontMetric(12),
     fontWeight: '600',
+    textAlign: 'center',
   },
   bottomLabelActive: {
     color: liquidColors.white,

@@ -73,7 +73,8 @@ describe('portal premium runtime R28', () => {
       expect(source, file).toContain('PlatformModal');
       expect(source, file).toContain('minWidth={0}');
       expect(source, file).toContain('maxHeightRatio={isPhone ? 0.9 : 0.86}');
-      expect(source, file).toContain('animationType="fade"');
+      expect(source, file).toContain("variant={isPhone ? 'bottomSheet' : 'center'}");
+      expect(source, file).toContain("animationType={isPhone ? 'slide' : 'fade'}");
       expect(source, file).toContain('portalPremium.text.primary');
       expect(source, file).not.toContain('useWindowDimensions');
     }

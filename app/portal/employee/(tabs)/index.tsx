@@ -1,5 +1,5 @@
-import { PortalHomeScreen } from '@/liquid-command/screens/PortalHomeScreen';
+import { EmployeePortalOverviewScreen } from '@/screens/portal/EmployeePortalOverviewScreen';
 
 export default function EmployeePortalOverviewRoute() {
-  return <PortalHomeScreen portal="employee" />;
+  return <EmployeePortalOverviewScreen />;
 }

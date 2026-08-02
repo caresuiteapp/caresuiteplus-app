@@ -51,6 +51,7 @@ describe('portal appointment detail contrast R30', () => {
       expect(preview, file).toContain('PlatformModal');
       expect(preview, file).toContain('minWidth={0}');
       expect(preview, file).toContain('maxHeightRatio={isPhone ? 0.9 : 0.86}');
+      expect(preview, file).toContain("variant={isPhone ? 'bottomSheet' : 'center'}");
       expect(preview, file).toContain('portalPremium.surfaceRaised');
       expect(preview, file).not.toMatch(
         /import\s*\{[^}]*\bModal\b[^}]*\}\s*from\s*['"]react-native/,
