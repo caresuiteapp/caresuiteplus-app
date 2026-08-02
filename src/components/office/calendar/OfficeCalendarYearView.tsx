@@ -5,12 +5,12 @@ import { GlassCard } from '@/design/components/GlassCard';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import {
   addMonths,
   endOfMonth,
   eventOverlapsDay,
   MONTH_LABELS_DE,
-  startOfMonth,
   startOfYear,
   toDateKey,
 } from '@/lib/office/calendarDateUtils';
@@ -53,6 +53,7 @@ const DENSITY_COLORS = {
 
 export function OfficeCalendarYearView({ anchor, events, onSelectMonth }: OfficeCalendarYearViewProps) {
   const text = useAuroraAdaptiveText();
+  const portal = usePortalPremiumTheme();
   const year = anchor.getFullYear();
   const yearStart = startOfYear(anchor);
 
@@ -83,7 +84,16 @@ export function OfficeCalendarYearView({ anchor, events, onSelectMonth }: Office
             <Pressable
               key={monthIndex}
               onPress={() => onSelectMonth(monthIndex)}
-              style={[styles.monthTile, { backgroundColor: DENSITY_COLORS[level] }]}
+              style={[
+                styles.monthTile,
+                portal.active && styles.portalMonthTile,
+                {
+                  backgroundColor:
+                    portal.active && level === 'none'
+                      ? portalPremium.surfaceSoft
+                      : DENSITY_COLORS[level],
+                },
+              ]}
               accessibilityRole="button"
             >
               <Text style={[styles.monthLabel, { color: text.primary }]}>{MONTH_LABELS_DE[monthIndex]}</Text>
@@ -97,7 +107,15 @@ export function OfficeCalendarYearView({ anchor, events, onSelectMonth }: Office
                   return (
                     <View
                       key={toDateKey(day)}
-                      style={[styles.miniDot, busy && { backgroundColor: auroraGlass.chipActive }]}
+                      style={[
+                        styles.miniDot,
+                        portal.active && styles.portalMiniDot,
+                        busy && {
+                          backgroundColor: portal.active
+                            ? portalPremium.accent.blue
+                            : auroraGlass.chipActive,
+                        },
+                      ]}
                     />
                   );
                 })}
@@ -142,4 +160,6 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: auroraGlass.innerBorder,
   },
+  portalMonthTile: { borderColor: portalPremium.borderSoft },
+  portalMiniDot: { backgroundColor: portalPremium.borderSoft },
 });

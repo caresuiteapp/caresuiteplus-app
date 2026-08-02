@@ -22,13 +22,14 @@ export type MessengerShellProps = {
   widePresentation?: 'split' | 'modal';
 };
 
-function DefaultEmptyThread({ message }: { message: string }) {
+function DefaultEmptyThread({ message, isGlass }: { message: string; isGlass: boolean }) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
+  const { ink } = useMessagingGlassSurface(isGlass);
   return (
     <View style={emptyStyles.wrap}>
-      <Text style={[emptyStyles.title, typography.h3, { color: c.text }]}>Chat auswählen</Text>
-      <Text style={[emptyStyles.text, typography.body, { color: c.muted }]}>{message}</Text>
+      <Text style={[emptyStyles.title, typography.h3, { color: ink?.primary ?? c.text }]}>Chat auswählen</Text>
+      <Text style={[emptyStyles.text, typography.body, { color: ink?.muted ?? c.muted }]}>{message}</Text>
     </View>
   );
 }
@@ -169,7 +170,10 @@ export function MessengerShell({
 
   const placeholder =
     emptyThread ?? (
-      <DefaultEmptyThread message="Wählen Sie einen Chat aus der Liste, um den Verlauf anzuzeigen." />
+      <DefaultEmptyThread
+        isGlass={isGlass}
+        message="Wählen Sie einen Chat aus der Liste, um den Verlauf anzuzeigen."
+      />
     );
 
   if (showSplit && widePresentation === 'modal') {

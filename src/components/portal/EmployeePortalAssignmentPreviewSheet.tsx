@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
   type ViewStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -46,6 +47,8 @@ export function EmployeePortalAssignmentPreviewSheet({
 }: EmployeePortalAssignmentPreviewSheetProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const compact = width < 768;
   const text = lightSurfaceText;
   const { data, loading, error, refresh, fromCache } = usePortalAppointmentDetail(
     visible ? (assignmentId ?? undefined) : undefined,
@@ -72,22 +75,23 @@ export function EmployeePortalAssignmentPreviewSheet({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType={compact ? 'slide' : 'fade'}
       onRequestClose={onClose}
       statusBarTranslucent
       testID="employee-assignment-preview-sheet"
     >
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, compact ? styles.overlayCompact : styles.overlayDesktop]}>
         <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Vorschau schließen" />
         <View
           style={[
             styles.sheet,
+            compact ? styles.sheetCompact : styles.sheetDesktop,
             panelStyle,
             { backgroundColor: careLightColors.surface, borderColor: careLightColors.borderStrong },
           ]}
         >
           <View style={styles.handleRow}>
-            <View style={styles.handle} />
+            {compact ? <View style={styles.handle} /> : null}
             <Pressable onPress={onClose} style={[styles.closeBtn, webCursor]} accessibilityLabel="Schließen">
               <Text style={[styles.closeText, { color: text.muted }]}>✕</Text>
             </Pressable>
@@ -183,15 +187,22 @@ export function EmployeePortalAssignmentPreviewSheet({
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
+  overlay: { flex: 1 },
+  overlayCompact: { justifyContent: 'flex-end' },
+  overlayDesktop: { justifyContent: 'center', alignItems: 'center', padding: careSpacing.xl },
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15, 23, 42, 0.45)' },
   sheet: {
     maxHeight: '88%',
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  sheetCompact: {
+    width: '100%',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    borderTopWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.35)',
+    borderBottomWidth: 0,
   },
+  sheetDesktop: { width: '100%', maxWidth: 780, borderRadius: 28 },
   handleRow: {
     flexDirection: 'row',
     alignItems: 'center',

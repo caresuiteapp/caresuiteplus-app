@@ -11,6 +11,7 @@ import {
 import { CareSuiteLoadingIndicator } from '@/components/brand/CareSuiteLoadingIndicator';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { typography } from '@/theme';
 
 export type WorkflowFeedbackKind = 'success' | 'error' | 'warning' | 'info';
@@ -61,6 +62,7 @@ export function WorkflowFeedbackOverlay({
   onAction,
   testID = 'workflow-feedback-overlay',
 }: Props) {
+  const portal = usePortalPremiumTheme();
   const [messageVisible, setMessageVisible] = useState(Boolean(message));
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
   const visible = loading || (messageVisible && Boolean(message));
@@ -122,13 +124,20 @@ export function WorkflowFeedbackOverlay({
       testID={testID}
     >
       <View style={[styles.backdrop, loading && styles.loadingBackdrop]} />
-      <View style={[styles.dialog, { borderColor: meta.color }]}>
+      <View
+        style={[styles.dialog, portal.active && styles.portalDialog, { borderColor: meta.color }]}
+        {...(Platform.OS === 'web'
+          ? ({ dataSet: { csHealthosComponent: 'modal' } } as object)
+          : {})}
+      >
         {loading ? (
           <View style={styles.loadingContent}>
             <CareSuiteLoadingIndicator width={240} />
-            <Text style={styles.loadingTitle}>CareSuite lädt</Text>
-            <Text style={styles.message}>{loadingMessage}</Text>
-            <Text style={styles.wait}>Bitte warten und diese Seite nicht schließen.</Text>
+            <Text style={[styles.loadingTitle, portal.active && styles.portalTitle]}>CareSuite lädt</Text>
+            <Text style={[styles.message, portal.active && styles.portalMessage]}>{loadingMessage}</Text>
+            <Text style={[styles.wait, portal.active && styles.portalWait]}>
+              Bitte warten und diese Seite nicht schließen.
+            </Text>
           </View>
         ) : (
           <>
@@ -137,26 +146,36 @@ export function WorkflowFeedbackOverlay({
                 <Text style={styles.iconText}>{meta.icon}</Text>
               </View>
               <View style={styles.headingText}>
-                <Text style={styles.title}>{title ?? meta.title}</Text>
-                <Text style={styles.message}>{message}</Text>
+                <Text style={[styles.title, portal.active && styles.portalTitle]}>{title ?? meta.title}</Text>
+                <Text style={[styles.message, portal.active && styles.portalMessage]}>{message}</Text>
               </View>
               <Pressable
                 accessibilityLabel="Meldung schließen"
                 accessibilityRole="button"
                 onPress={dismiss}
-                style={styles.close}
+                style={[styles.close, portal.active && styles.portalClose]}
               >
-                <Text style={styles.closeText}>×</Text>
+                <Text style={[styles.closeText, portal.active && styles.portalCloseText]}>×</Text>
               </Pressable>
             </View>
             <View style={styles.actions}>
               {actionLabel && onAction ? (
-                <Pressable accessibilityRole="button" onPress={onAction} style={styles.actionPrimary}>
-                  <Text style={styles.actionPrimaryText}>{actionLabel}</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onAction}
+                  style={[styles.actionPrimary, portal.active && styles.portalActionPrimary]}
+                >
+                  <Text style={[styles.actionPrimaryText, portal.active && styles.portalActionPrimaryText]}>
+                    {actionLabel}
+                  </Text>
                 </Pressable>
               ) : null}
-              <Pressable accessibilityRole="button" onPress={dismiss} style={styles.action}>
-                <Text style={styles.actionText}>Schließen</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={dismiss}
+                style={[styles.action, portal.active && styles.portalAction]}
+              >
+                <Text style={[styles.actionText, portal.active && styles.portalActionText]}>Schließen</Text>
               </Pressable>
             </View>
           </>
@@ -211,6 +230,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 18 },
     elevation: 24,
   },
+  portalDialog: {
+    backgroundColor: portalPremium.surfaceRaised,
+    shadowColor: '#002657',
+    shadowOpacity: 0.24,
+  },
   heading: { flexDirection: 'row', alignItems: 'flex-start', gap: careSpacing.md },
   headingText: { flex: 1, minWidth: 0, gap: careSpacing.xs },
   icon: {
@@ -259,4 +283,13 @@ const styles = StyleSheet.create({
   loadingContent: { alignItems: 'center', gap: careSpacing.sm, paddingVertical: careSpacing.md },
   loadingTitle: { ...typography.h2, color: spatialCare.textOnNight, textAlign: 'center' },
   wait: { ...typography.caption, color: spatialCare.textOnNightMuted, textAlign: 'center' },
+  portalTitle: { color: portalPremium.text.primary },
+  portalMessage: { color: portalPremium.text.secondary },
+  portalWait: { color: portalPremium.text.muted },
+  portalClose: { borderColor: portalPremium.borderStrong, backgroundColor: portalPremium.surfaceSoft },
+  portalCloseText: { color: portalPremium.text.primary },
+  portalAction: { backgroundColor: portalPremium.surfaceMuted, borderColor: portalPremium.borderStrong },
+  portalActionText: { color: portalPremium.accent.blueDark },
+  portalActionPrimary: { backgroundColor: portalPremium.accent.blue, borderColor: portalPremium.accent.blue },
+  portalActionPrimaryText: { color: portalPremium.text.onStrong },
 });

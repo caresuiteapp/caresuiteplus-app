@@ -4,6 +4,7 @@ import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { CalendarEventLabel } from '@/components/calendar/CalendarEventLabel';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careRadius } from '@/design/tokens/radius';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { formatTime } from '@/lib/office/calendarDateUtils';
 import { isAssignmentCalendarEvent } from '@/lib/calendar/calendarEventDisplay';
 
@@ -21,12 +22,20 @@ export function OfficeCalendarEventChip({
   onEventPress,
 }: OfficeCalendarEventChipProps) {
   const text = useAuroraAdaptiveText();
+  const portal = usePortalPremiumTheme();
   const router = useRouter();
   const isAssignment = isAssignmentCalendarEvent(event);
   const timeLabel = event.allDay ? 'Ganztägig' : formatTime(event.start);
 
   const content = (
-    <View style={[styles.chip, compact && styles.chipCompact, { borderLeftColor: event.color }]}>
+    <View
+      style={[
+        styles.chip,
+        portal.active && styles.portalChip,
+        compact && styles.chipCompact,
+        { borderLeftColor: event.color },
+      ]}
+    >
       {!isAssignment && !event.allDay && showTime && !compact ? (
         <Text style={[styles.time, { color: text.muted }]}>{timeLabel}</Text>
       ) : null}
@@ -69,6 +78,13 @@ const styles = StyleSheet.create({
   chipCompact: {
     paddingVertical: 2,
     paddingHorizontal: 4,
+  },
+  portalChip: {
+    backgroundColor: portalPremium.surfaceSoft,
+    borderTopWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: portalPremium.borderSoft,
   },
   time: {
     fontSize: 10,

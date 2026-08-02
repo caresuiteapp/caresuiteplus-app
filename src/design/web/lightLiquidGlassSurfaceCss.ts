@@ -74,6 +74,20 @@ export const LLGAN_GLASS_SURFACE_CSS = `
     color: #F8F6FF !important;
   }
 
+  html[data-cs-portal-premium] {
+    color-scheme: light;
+  }
+
+  html[data-cs-portal-premium] .cs-llgan-glass,
+  html[data-cs-portal-premium] [data-cs-llgan-glass] {
+    color: #061B35;
+  }
+
+  html[data-cs-portal-premium] [data-cs-llgan-glass] [style*="color: rgb(0, 0, 0)"],
+  html[data-cs-portal-premium] [data-cs-llgan-glass] [style*="color: rgba(0, 0, 0"] {
+    color: #061B35 !important;
+  }
+
   [data-cs-llgan-glass="panel"] {
     background-color: var(--cs-glass-panel) !important;
     border-color: var(--cs-glass-border);
@@ -112,6 +126,61 @@ export const LLGAN_GLASS_SURFACE_CSS = `
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
     background-color: rgba(39,40,70,.98) !important;
+  }
+
+  /*
+   * Portal workspaces deliberately sit on the dark navy shell while every
+   * content surface follows the bright overview design. These rules must stay
+   * after the generic kind and mobile-performance rules above because those
+   * legacy contracts use !important.
+   */
+  html[data-cs-portal-premium] .cs-llgan-glass,
+  html[data-cs-portal-premium] [data-cs-llgan-glass],
+  html[data-cs-portal-premium].performance-mobile.performance-ios-safari [data-cs-llgan-glass],
+  html[data-cs-portal-premium].disable-heavy-effects [data-cs-llgan-glass],
+  html[data-cs-portal-premium] .performance-mobile.performance-ios-safari [data-cs-llgan-glass],
+  html[data-cs-portal-premium] .disable-heavy-effects [data-cs-llgan-glass] {
+    --cs-glass-panel: #FFFFFF;
+    --cs-glass-card: #F7FBFF;
+    --cs-glass-control: #EAF4FF;
+    --cs-glass-border: rgba(5,108,232,.18);
+    --cs-glass-border-strong: rgba(5,108,232,.34);
+    background-color: #F7FBFF !important;
+    background-image:
+      radial-gradient(circle at 92% -18%, rgba(112,181,255,.19), transparent 42%),
+      linear-gradient(145deg, #FFFFFF, #EEF7FF) !important;
+    border-color: rgba(5,108,232,.18) !important;
+    color: #061B35 !important;
+    box-shadow:
+      0 14px 34px rgba(0,38,82,.13),
+      inset 0 1px 0 rgba(255,255,255,.96) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-llgan-glass="panel"],
+  html[data-cs-portal-premium] [data-cs-llgan-glass="modal"] {
+    background-color: #FFFFFF !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-llgan-glass="chip"],
+  html[data-cs-portal-premium] [data-cs-llgan-glass="input"],
+  html[data-cs-portal-premium] [data-cs-llgan-glass="button"] {
+    background-color: #EAF4FF !important;
+    background-image: linear-gradient(145deg, #FFFFFF, #EAF4FF) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-llgan-glass="input"] input,
+  html[data-cs-portal-premium] [data-cs-llgan-glass="input"] textarea,
+  html[data-cs-portal-premium] [data-cs-llgan-glass="input"] select {
+    color: #061B35 !important;
+    caret-color: #056CE8 !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-llgan-glass="input"] input::placeholder,
+  html[data-cs-portal-premium] [data-cs-llgan-glass="input"] textarea::placeholder {
+    color: #647D94 !important;
+    opacity: 1 !important;
   }
 
   @media (prefers-reduced-motion: reduce) {

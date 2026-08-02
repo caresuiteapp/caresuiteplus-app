@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import type { CalendarEvent, WeekStartDay } from '@/types/modules/calendarEvent';
 import { GlassCard } from '@/design/components/GlassCard';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import {
   eventsForDay,
   formatMonthYear,
@@ -39,6 +40,7 @@ export function OfficeCalendarMonthView({
   onAssignmentProfileDrop,
 }: OfficeCalendarMonthViewProps) {
   const text = useAuroraAdaptiveText();
+  const portal = usePortalPremiumTheme();
   const today = new Date();
   const [expandedDays, setExpandedDays] = useState<Set<string>>(() => new Set());
 
@@ -87,8 +89,10 @@ export function OfficeCalendarMonthView({
               {...buildAssignmentProfileDropTargetProps(date, onAssignmentProfileDrop)}
               style={[
                 styles.cell,
+                portal.active && styles.portalCell,
                 !inMonth && styles.cellOutside,
                 isToday && styles.cellToday,
+                isToday && portal.active && styles.portalCellToday,
                 selectedAssignmentProfileId && styles.cellDropReady,
               ]}
             >
@@ -131,8 +135,10 @@ const styles = StyleSheet.create({
     marginBottom: careSpacing.sm,
   },
   weekHeader: {
-    flexDirection: 'row',
     marginBottom: careSpacing.xs,
+    ...(Platform.OS === 'web'
+      ? ({ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' } as unknown as ViewStyle)
+      : { flexDirection: 'row' as const }),
   },
   weekday: {
     flex: 1,
@@ -141,16 +147,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    ...(Platform.OS === 'web'
+      ? ({ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' } as unknown as ViewStyle)
+      : { flexDirection: 'row' as const, flexWrap: 'wrap' as const }),
   },
   cell: {
-    width: `${100 / 7}%` as unknown as number,
+    width: Platform.OS === 'web' ? 'auto' : (`${100 / 7}%` as unknown as number),
+    minWidth: 0,
     minHeight: 96,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: auroraGlass.innerBorder,
     padding: 4,
     backgroundColor: auroraGlass.row,
+  },
+  portalCell: {
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceRaised,
   },
   cellOutside: {
     opacity: 0.45,
@@ -159,6 +171,7 @@ const styles = StyleSheet.create({
     backgroundColor: auroraGlass.rowSelected,
     borderRadius: careRadius.sm,
   },
+  portalCellToday: { backgroundColor: portalPremium.surfaceMuted },
   cellDropReady: {
     borderColor: '#2388FF',
   },

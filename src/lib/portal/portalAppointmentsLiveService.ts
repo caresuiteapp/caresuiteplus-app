@@ -242,18 +242,46 @@ export async function fetchLivePortalClientAppointmentDetail(
       return { ok: false, error: 'Einsatz nicht gefunden.' };
     }
 
+    const visibleFallback = async (): Promise<PortalClientAppointmentDetail | null> => {
+      const visible = await fetchLivePortalAppointmentsForClient(tenantId, clientId);
+      if (!visible.ok) return null;
+      const item = visible.data.find((candidate) => candidate.id === assignmentId);
+      if (!item) return null;
+      const status = item.assignmentStatus ?? remoteStatusToAssignment(item.status);
+      return {
+        id: item.id,
+        title: item.title,
+        startsAt: item.startsAt,
+        endsAt: item.endsAt,
+        status: item.status,
+        location: item.location || null,
+        caregiverName: item.employeeName || null,
+        caregiverPhone: null,
+        serviceType: item.serviceName?.trim() || item.title,
+        preparationNotes: null,
+        canRequestChange: PLANNED_CHANGE_STATUSES.has(status),
+        liveVisit: null,
+      };
+    };
+
     let visitDetail: Awaited<ReturnType<typeof fetchVisitDispositionDetail>>;
     try {
       visitDetail = await fetchVisitDispositionDetail(assignmentId, tenantId, 'client_portal');
     } catch (cause) {
       console.warn('[portalAppointmentsLiveService] visit detail failed:', cause);
+      const fallback = await visibleFallback();
+      if (fallback) return { ok: true as const, data: fallback };
       return { ok: false, error: 'Einsatzdetails konnten nicht geladen werden.' };
     }
 
     if (!visitDetail.ok) {
+      const fallback = await visibleFallback();
+      if (fallback) return { ok: true as const, data: fallback };
       return { ok: false, error: 'Einsatz nicht gefunden.' };
     }
     if (!visitDetail.data || visitDetail.data.clientId !== clientId) {
+      const fallback = await visibleFallback();
+      if (fallback) return { ok: true as const, data: fallback };
       return { ok: false, error: 'Einsatz nicht gefunden.' };
     }
 

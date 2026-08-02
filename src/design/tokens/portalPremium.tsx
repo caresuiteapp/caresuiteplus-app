@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, type ReactNode } from 'react';
 
 export type PortalPremiumKind = 'client' | 'employee';
 
@@ -62,6 +62,20 @@ export function PortalPremiumProvider({
   kind: PortalPremiumKind;
   children: ReactNode;
 }) {
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const root = document.documentElement;
+    const previous = root.getAttribute('data-cs-portal-premium');
+    root.setAttribute('data-cs-portal-premium', kind);
+
+    return () => {
+      if (root.getAttribute('data-cs-portal-premium') !== kind) return;
+      if (previous) root.setAttribute('data-cs-portal-premium', previous);
+      else root.removeAttribute('data-cs-portal-premium');
+    };
+  }, [kind]);
+
   return (
     <PortalPremiumContext.Provider value={{ active: true, kind }}>
       {children}
@@ -72,4 +86,3 @@ export function PortalPremiumProvider({
 export function usePortalPremiumTheme(): PortalPremiumContextValue {
   return useContext(PortalPremiumContext);
 }
-

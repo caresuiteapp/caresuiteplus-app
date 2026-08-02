@@ -4,6 +4,7 @@ import type { CalendarEvent, WeekStartDay } from '@/types/modules/calendarEvent'
 import { GlassCard } from '@/design/components/GlassCard';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import {
   eventsForDay,
   formatWeekRange,
@@ -72,6 +73,7 @@ export function OfficeCalendarWeekView({
   onAssignmentProfileDrop,
 }: OfficeCalendarWeekViewProps) {
   const text = useAuroraAdaptiveText();
+  const portal = usePortalPremiumTheme();
   const gridScrollRef = useRef<ScrollView>(null);
   const days = useMemo(() => getWeekDays(anchor, weekStartDay), [anchor, weekStartDay]);
   const hours = useMemo(() => hourRange(weekFullDay), [weekFullDay]);
@@ -99,7 +101,15 @@ export function OfficeCalendarWeekView({
             {days.map((day) => {
               const isToday = isSameDay(day, today);
               return (
-                <View key={toDateKey(day)} style={[styles.dayCol, isToday && styles.dayColToday]}>
+                <View
+                  key={toDateKey(day)}
+                  style={[
+                    styles.dayCol,
+                    portal.active && styles.portalBorder,
+                    isToday && styles.dayColToday,
+                    isToday && portal.active && styles.portalToday,
+                  ]}
+                >
                   <Text style={[styles.dayLabel, { color: text.muted }]}>
                     {day.toLocaleDateString('de-DE', { weekday: 'short' })}
                   </Text>
@@ -109,7 +119,7 @@ export function OfficeCalendarWeekView({
             })}
           </View>
 
-          <View style={styles.allDayRow}>
+          <View style={[styles.allDayRow, portal.active && styles.portalBorder]}>
             <Text style={[styles.allDayLabel, { color: text.muted }]}>GT</Text>
             {days.map((day) => {
               const allDay = eventsForDay(events, day).filter((e) => e.allDay);
@@ -159,7 +169,15 @@ export function OfficeCalendarWeekView({
                           onAssignmentProfileDrop,
                           `${String(h).padStart(2, '0')}:00`,
                         )}
-                        style={[styles.slot, { height: HOUR_HEIGHT, borderColor: auroraGlass.innerBorder }]}
+                        style={[
+                          styles.slot,
+                          {
+                            height: HOUR_HEIGHT,
+                            borderColor: portal.active
+                              ? portalPremium.borderSoft
+                              : auroraGlass.innerBorder,
+                          },
+                        ]}
                       />
                     ))}
                     {dayEvents.map((event) => {
@@ -167,6 +185,7 @@ export function OfficeCalendarWeekView({
                       if (!pos) return null;
                       const eventStyle = [
                         styles.timedEvent,
+                        portal.active && styles.portalEvent,
                         {
                           top: pos.top,
                           height: pos.height,
@@ -244,4 +263,7 @@ const styles = StyleSheet.create({
     padding: 4,
     overflow: 'hidden',
   },
+  portalBorder: { borderColor: portalPremium.borderSoft },
+  portalToday: { backgroundColor: portalPremium.surfaceMuted },
+  portalEvent: { backgroundColor: portalPremium.surfaceSoft },
 });

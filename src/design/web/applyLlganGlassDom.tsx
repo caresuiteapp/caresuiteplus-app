@@ -21,12 +21,12 @@ const GLASS_DOM_PRESETS: Record<LlganGlassSurfaceKind, GlassDomPreset> = {
 };
 
 const PORTAL_GLASS_DOM_PRESETS: Record<LlganGlassSurfaceKind, GlassDomPreset> = {
-  panel: { surface: 'rgba(255,255,255,.97)', surfaceEnd: 'rgba(234,244,255,.98)', border: 'rgba(112,181,255,.42)', blur: 22 },
-  card: { surface: 'rgba(255,255,255,.98)', surfaceEnd: 'rgba(238,247,255,.98)', border: 'rgba(112,181,255,.38)', blur: 18 },
-  chip: { surface: 'rgba(234,244,255,.98)', surfaceEnd: 'rgba(220,238,255,.98)', border: 'rgba(5,108,232,.22)', blur: 14 },
-  input: { surface: 'rgba(255,255,255,.99)', surfaceEnd: 'rgba(242,248,255,.99)', border: 'rgba(5,108,232,.28)', blur: 14 },
-  button: { surface: 'rgba(234,244,255,.98)', surfaceEnd: 'rgba(220,238,255,.98)', border: 'rgba(5,108,232,.30)', blur: 14 },
-  modal: { surface: 'rgba(255,255,255,.99)', surfaceEnd: 'rgba(234,244,255,.99)', border: 'rgba(112,181,255,.48)', blur: 26 },
+  panel: { surface: '#FFFFFF', surfaceEnd: '#EAF4FF', border: 'rgba(112,181,255,.42)', blur: 0 },
+  card: { surface: '#FFFFFF', surfaceEnd: '#EEF7FF', border: 'rgba(112,181,255,.38)', blur: 0 },
+  chip: { surface: '#F7FBFF', surfaceEnd: '#EAF4FF', border: 'rgba(5,108,232,.22)', blur: 0 },
+  input: { surface: '#FFFFFF', surfaceEnd: '#F2F8FF', border: 'rgba(5,108,232,.28)', blur: 0 },
+  button: { surface: '#F7FBFF', surfaceEnd: '#EAF4FF', border: 'rgba(5,108,232,.30)', blur: 0 },
+  modal: { surface: '#FFFFFF', surfaceEnd: '#EAF4FF', border: 'rgba(112,181,255,.48)', blur: 0 },
 };
 
 function isDomElement(node: unknown): node is HTMLElement {

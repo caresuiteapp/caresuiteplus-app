@@ -287,6 +287,128 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
     -webkit-backdrop-filter: blur(42px) saturate(1.35) !important;
   }
 
+  /*
+   * Client and employee portals use the bright premium overview language.
+   * Keep these overrides after the generic dark HealthOS contract: the
+   * generic rules intentionally use !important while legacy screens migrate.
+   * Without an equally explicit portal scope they repaint otherwise-correct
+   * React Native portal cards dark after render.
+   */
+  html[data-cs-portal-premium] [data-cs-healthos-component="screen-header"] {
+    background:
+      radial-gradient(circle at 86% -12%, rgba(112,181,255,.26), transparent 40%),
+      linear-gradient(118deg, #FFFFFF 0%, #F3F8FF 54%, #DCEEFF 100%) !important;
+    border-color: rgba(5,108,232,.22) !important;
+    box-shadow: 0 16px 38px rgba(0,38,82,.14) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="screen-header"]::after {
+    display: none !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="list-overview"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="section"] {
+    background:
+      radial-gradient(circle at 90% -28%, rgba(112,181,255,.20), transparent 40%),
+      linear-gradient(145deg, rgba(255,255,255,.99), rgba(234,244,255,.98)) !important;
+    border-color: rgba(5,108,232,.22) !important;
+    box-shadow:
+      0 16px 38px rgba(0,38,82,.14),
+      inset 0 1px 0 rgba(255,255,255,.96) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="card"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] {
+    background:
+      radial-gradient(circle at 92% -20%, rgba(112,181,255,.18), transparent 43%),
+      linear-gradient(145deg, #FFFFFF, #EEF7FF) !important;
+    border-color: rgba(5,108,232,.22) !important;
+    box-shadow:
+      0 14px 34px rgba(0,38,82,.13),
+      inset 0 1px 0 rgba(255,255,255,.96) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"]:focus-within,
+  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"]:hover,
+  html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"]:hover {
+    border-color: rgba(5,108,232,.58) !important;
+    background:
+      radial-gradient(circle at 88% -14%, rgba(112,181,255,.28), transparent 44%),
+      linear-gradient(145deg, #FFFFFF, #E4F2FF) !important;
+    box-shadow:
+      0 20px 44px rgba(0,38,82,.18),
+      0 0 22px rgba(5,108,232,.08),
+      inset 0 1px 0 rgba(255,255,255,.98) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="button"] {
+    border-color: rgba(5,108,232,.30) !important;
+    box-shadow: none !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="button"]:hover {
+    border-color: rgba(5,108,232,.62) !important;
+    box-shadow: none !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="filter-chip"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="tab"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="filter-select"] {
+    border-color: rgba(5,108,232,.22) !important;
+    background: linear-gradient(145deg, #FFFFFF, #EAF4FF) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="table"] {
+    background: linear-gradient(145deg, #FFFFFF, #EEF7FF) !important;
+    border-color: rgba(5,108,232,.22) !important;
+    box-shadow:
+      0 16px 38px rgba(0,38,82,.14),
+      inset 0 1px 0 rgba(255,255,255,.94) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="list-row"] {
+    border-color: rgba(5,108,232,.12) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="list-row"]:hover {
+    background: rgba(5,108,232,.065) !important;
+    border-color: rgba(5,108,232,.30) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="modal"] {
+    background:
+      radial-gradient(circle at 88% -12%, rgba(112,181,255,.25), transparent 40%),
+      linear-gradient(145deg, #FFFFFF, #EAF4FF) !important;
+    border-color: rgba(5,108,232,.34) !important;
+    box-shadow:
+      0 30px 90px rgba(0,18,48,.28),
+      inset 0 1px 0 rgba(255,255,255,.96) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] input,
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] textarea,
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] select {
+    color: #061B35 !important;
+    caret-color: #056CE8 !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] input::placeholder,
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] textarea::placeholder {
+    color: #647D94 !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] input:focus,
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] textarea:focus,
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] select:focus {
+    border-color: rgba(5,108,232,.62) !important;
+    outline-color: rgba(5,108,232,.14) !important;
+    box-shadow:
+      0 0 0 1px rgba(5,108,232,.20),
+      0 10px 26px rgba(0,38,82,.12) !important;
+  }
+
   @media (max-width: 767px) {
     body::before,
     body::after {

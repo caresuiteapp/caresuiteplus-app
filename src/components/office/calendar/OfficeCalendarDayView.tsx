@@ -4,6 +4,7 @@ import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { GlassCard } from '@/design/components/GlassCard';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import {
   eventsForDay,
   formatDayHeader,
@@ -36,6 +37,7 @@ export function OfficeCalendarDayView({
   onAssignmentProfileDrop,
 }: OfficeCalendarDayViewProps) {
   const text = useAuroraAdaptiveText();
+  const portal = usePortalPremiumTheme();
   const scrollRef = useRef<ScrollView>(null);
   const hours = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
 
@@ -56,7 +58,7 @@ export function OfficeCalendarDayView({
       <Text style={[styles.title, { color: text.primary }]}>{formatDayHeader(anchor)}</Text>
 
       {allDay.length > 0 ? (
-        <View style={styles.allDay}>
+        <View style={[styles.allDay, portal.active && styles.portalSoftSurface]}>
           <Text style={[styles.allDayLabel, { color: text.muted }]}>Ganztägig</Text>
           {allDay.map((event) => (
             <OfficeCalendarEventChip key={event.id} event={event} onEventPress={onEventPress} />
@@ -89,12 +91,16 @@ export function OfficeCalendarDayView({
                   onAssignmentProfileDrop,
                   `${String(h).padStart(2, '0')}:00`,
                 )}
-                style={[styles.row, { minHeight: HOUR_HEIGHT }]}
+                style={[styles.row, portal.active && styles.portalRow, { minHeight: HOUR_HEIGHT }]}
               >
                 <Text style={[styles.hour, { color: text.muted }]}>{String(h).padStart(2, '0')}:00</Text>
                 <View style={styles.slot}>
                   {slotEvents.map((event) => {
-                    const blockStyle = [styles.eventBlock, { borderLeftColor: event.color }];
+                    const blockStyle = [
+                      styles.eventBlock,
+                      portal.active && styles.portalSoftSurface,
+                      { borderLeftColor: event.color },
+                    ];
                     const inner = (
                       <CalendarEventLabel event={event} variant="stacked" showService />
                     );
@@ -160,4 +166,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     padding: careSpacing.sm,
   },
+  portalRow: { borderColor: portalPremium.borderSoft },
+  portalSoftSurface: { backgroundColor: portalPremium.surfaceSoft },
 });
