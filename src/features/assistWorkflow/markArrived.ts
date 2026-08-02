@@ -42,6 +42,35 @@ export const ARRIVED_WITHOUT_GPS_WARNING =
 export const ARRIVED_MANUAL_WARNING =
   'Ankunft manuell bestätigt — Geofence-Hinweis wurde überschrieben.';
 
+async function persistArrivedExecutionMirrors(
+  ctx: AssistExecutionContext,
+  visitTimes: AssistExecutionContext['visitTimes'],
+): Promise<ServiceResult<void>> {
+  const executionState = await upsertAssistVisitExecutionState(
+    ctx.tenantId,
+    ctx.assignmentId,
+    'angekommen',
+    { employeeId: ctx.employeeId, visitTimes },
+  );
+  if (!executionState.ok) return executionState;
+
+  if (getServiceMode() === 'supabase') {
+    const mirrored = await mirrorAssistVisitStatusFromAssignment(
+      ctx.tenantId,
+      ctx.assignmentId,
+      'angekommen',
+      ctx.profileId ?? null,
+    );
+    if (!mirrored.ok) {
+      return {
+        ok: false,
+        error: mirrored.error ?? 'Ankunft konnte nicht in den Live-Monitor übertragen werden.',
+      };
+    }
+  }
+  return { ok: true, data: undefined };
+}
+
 async function backfillTravelEndEvents(ctx: AssistExecutionContext): Promise<string[]> {
   const warnings: string[] = [];
   const events = await fetchTimeEventsForVisit(ctx.tenantId, ctx.assistVisitId, 50);
@@ -90,14 +119,26 @@ export async function markArrived(input: MarkArrivedInput): Promise<MarkArrivedR
   if (fromStatus === 'angekommen') {
     const backfillWarnings = await backfillTravelEndEvents(ctx);
     if (backfillWarnings.length) {
-      logAssistWorkflowError(
+      return assistWorkflowErrorToResult(
         createAssistWorkflowError('WORKFLOW_TIME_EVENT_FAILED', {
           tenantId: ctx.tenantId,
           assignmentId: ctx.assignmentId,
           operation: 'markArrived.backfill',
           supabaseMessage: backfillWarnings.join('; '),
         }),
-      );
+      ) as MarkArrivedResult;
+    }
+    const mirrors = await persistArrivedExecutionMirrors(ctx, ctx.visitTimes);
+    if (!mirrors.ok) {
+      return assistWorkflowErrorToResult(
+        createAssistWorkflowError('AWF_DATABASE_ERROR', {
+          tenantId: ctx.tenantId,
+          assignmentId: ctx.assignmentId,
+          employeeId: ctx.employeeId,
+          operation: 'markArrived.mirror',
+          supabaseMessage: mirrors.error,
+        }),
+      ) as MarkArrivedResult;
     }
     const refreshed = await resolveAssistExecutionContext({
       tenantId: ctx.tenantId,
@@ -152,7 +193,12 @@ export async function markArrived(input: MarkArrivedInput): Promise<MarkArrivedR
   );
 
   const timeEventWarnings = persistResult.warnings.filter(
-    (w) => w.includes('time') || w.includes('Event') || w.includes('Zeit'),
+    (w) =>
+      w.includes('time') ||
+      w.includes('Event') ||
+      w.includes('Zeit') ||
+      w.includes('WFM') ||
+      w.includes('Arbeitszeit'),
   );
 
   if (timeEventWarnings.length) {
@@ -180,18 +226,17 @@ export async function markArrived(input: MarkArrivedInput): Promise<MarkArrivedR
     );
   }
 
-  void upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'angekommen', {
-    employeeId: ctx.employeeId,
-    visitTimes: transition.data.visitTimes,
-  });
-
-  if (getServiceMode() === 'supabase') {
-    void mirrorAssistVisitStatusFromAssignment(
-      ctx.tenantId,
-      ctx.assignmentId,
-      'angekommen',
-      ctx.profileId ?? null,
-    );
+  const mirrors = await persistArrivedExecutionMirrors(ctx, transition.data.visitTimes);
+  if (!mirrors.ok) {
+    return assistWorkflowErrorToResult(
+      createAssistWorkflowError('AWF_DATABASE_ERROR', {
+        tenantId: ctx.tenantId,
+        assignmentId: ctx.assignmentId,
+        employeeId: ctx.employeeId,
+        operation: 'markArrived.mirror',
+        supabaseMessage: mirrors.error,
+      }),
+    ) as MarkArrivedResult;
   }
 
   let arrivalWarning: string | null = null;

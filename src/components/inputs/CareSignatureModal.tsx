@@ -22,8 +22,8 @@ import { useOrientation } from '@/hooks/useOrientation';
 import { blockDocumentTouchScrollOutsideSignatureCapture } from '@/lib/dom/signatureCaptureScrollLock';
 import { spacing, typography } from '@/theme';
 
-const DESKTOP_MIN_WIDTH = 600;
-const DESKTOP_CANVAS_HEIGHT = 320;
+const DESKTOP_MIN_WIDTH = 720;
+const DESKTOP_CANVAS_MIN_HEIGHT = 400;
 const MOBILE_WIDTH_RATIO = 0.92;
 
 type Props = {
@@ -182,7 +182,10 @@ export function CareSignatureModal({
     [screenWidth],
   );
 
-  const desktopCanvasHeight = Math.max(DESKTOP_CANVAS_HEIGHT, 200);
+  const desktopCanvasHeight = Math.max(
+    DESKTOP_CANVAS_MIN_HEIGHT,
+    Math.min(520, Math.round(screenHeight * 0.5)),
+  );
 
   useEffect(() => {
     if (!visible || Platform.OS !== 'web' || fullscreen) return;
@@ -241,7 +244,11 @@ export function CareSignatureModal({
             pointerEvents="box-none"
           >
             <View style={styles.fullscreenHeader}>
-              <PlainSignatureHeader title="Unterschrift" subtitle={label} onClose={onClose} />
+              <PlainSignatureHeader
+                title="Unterschrift"
+                subtitle={`${label} · Bitte groß und waagerecht unterschreiben.`}
+                onClose={onClose}
+              />
             </View>
             <View style={styles.fullscreenBody} pointerEvents="box-none">
               <View style={styles.canvasSlot}>{canvas}</View>
@@ -264,7 +271,9 @@ export function CareSignatureModal({
         <View style={[styles.sheetHost, { width: sheetWidth, maxHeight: screenHeight * 0.92 }]}>
           <GradientModalHeader title="Unterschrift" onClose={onClose} />
           <View style={styles.body}>
-            <Text style={styles.subtitle}>{label}</Text>
+            <Text style={styles.subtitle}>
+              {label} · Bitte groß und waagerecht unterschreiben. Die Schreibfläche führt Striche am Rand sicher weiter.
+            </Text>
             <View style={styles.canvasSlot}>{canvas}</View>
           </View>
         </View>

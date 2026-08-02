@@ -179,8 +179,7 @@ export async function persistEmployeePortalStatusTransition(
         eventType,
         now,
       );
-      // WFM mirror is best-effort — must not block arrival / status transitions.
-      if (!syncResult.ok && process.env.NODE_ENV !== 'production') {
+      if (!syncResult.ok) {
         warnings.push(syncResult.error ?? 'WFM-Sync fehlgeschlagen.');
       }
     }
@@ -262,7 +261,8 @@ export async function persistEmployeePortalStatusTransition(
     sessionByKey.delete(key);
   }
 
-  // Ancillary writes (geofence, driving log, WFM mirror) are best-effort — never block workflow.
+  // Callers classify time/WFM warnings as critical; geofence and driving-log
+  // diagnostics remain recoverable ancillary warnings.
   return { ok: true, warnings };
 }
 

@@ -56,6 +56,37 @@ export type NormalizedSignatureProofImage = {
   cropped: boolean;
 };
 
+export type CanonicalSignatureFrame = {
+  width: number;
+  height: number;
+  contentX: number;
+  contentY: number;
+};
+
+/**
+ * A proof signature is stored in a predictable landscape frame while its ink
+ * remains in the exact direction in which it was written.
+ */
+export function resolveCanonicalSignatureFrame(
+  contentWidth: number,
+  contentHeight: number,
+  padding: number,
+): CanonicalSignatureFrame {
+  const safeWidth = Math.max(1, Math.ceil(contentWidth));
+  const safeHeight = Math.max(1, Math.ceil(contentHeight));
+  const safePadding = Math.max(0, Math.ceil(padding));
+  const paddedWidth = safeWidth + safePadding * 2;
+  const paddedHeight = safeHeight + safePadding * 2;
+  const width = Math.max(paddedWidth, Math.ceil(paddedHeight * 2.4));
+  const height = Math.max(paddedHeight, Math.ceil(width / 4));
+  return {
+    width,
+    height,
+    contentX: Math.round((width - safeWidth) / 2),
+    contentY: Math.round((height - safeHeight) / 2),
+  };
+}
+
 export type SignatureCaptureOrientation = {
   isLandscape: boolean;
   orientationType?:
@@ -154,28 +185,17 @@ export function shouldRotateSignatureInk(bounds: SignatureInkBounds): boolean {
   return bounds.height > bounds.width * 1.08;
 }
 
-/** Layout for proof/PDF signature `<img>` — rotates tall buffers for display. */
+/** Layout for proof/PDF signature `<img>` — never rotates user handwriting. */
 export function buildSignatureProofImageStyle(
   width?: number | null,
   height?: number | null,
 ): SignatureProofImageStyle {
-  const base = {
+  void width;
+  void height;
+  return {
     objectFit: 'contain' as const,
     marginTop: 8,
-  };
-
-  if (width && height && needsSignatureOrientationCorrection(width, height)) {
-    return {
-      ...base,
-      maxWidth: 120,
-      maxHeight: 280,
-      transform: 'rotate(90deg)',
-    };
-  }
-
-  return {
-    ...base,
-    maxWidth: 280,
+    maxWidth: 320,
     maxHeight: 120,
   };
 }
@@ -251,8 +271,8 @@ export async function probeSignatureImageDimensions(
 
 /**
  * Browser-side proof normalization for new and already stored signatures.
- * It trims unused canvas space and rotates sideways ink into a horizontal,
- * readable image before html2canvas creates the Leistungsnachweis PDF.
+ * It trims unused canvas space and places the original ink, without rotation,
+ * into a canonical landscape frame before the Leistungsnachweis is rendered.
  */
 export async function normalizeSignatureImageForProof(
   imageUrl: string,
@@ -289,19 +309,14 @@ export async function normalizeSignatureImageForProof(
     // Signed storage URLs without usable CORS still retain dimension fallback.
   }
 
-  const rotate = bounds
-    ? shouldRotateSignatureInk(bounds)
-    : needsSignatureOrientationCorrection(source.width, source.height);
   const padding = Math.max(8, Math.round(Math.max(source.width, source.height) * 0.025));
-  const sourceX = bounds ? Math.max(0, bounds.left - padding) : 0;
-  const sourceY = bounds ? Math.max(0, bounds.top - padding) : 0;
-  const sourceRight = bounds ? Math.min(source.width, bounds.right + padding + 1) : source.width;
-  const sourceBottom = bounds ? Math.min(source.height, bounds.bottom + padding + 1) : source.height;
-  const cropWidth = Math.max(1, sourceRight - sourceX);
-  const cropHeight = Math.max(1, sourceBottom - sourceY);
-
-  const naturalTargetWidth = rotate ? cropHeight : cropWidth;
-  const naturalTargetHeight = rotate ? cropWidth : cropHeight;
+  const sourceX = bounds?.left ?? 0;
+  const sourceY = bounds?.top ?? 0;
+  const cropWidth = Math.max(1, bounds?.width ?? source.width);
+  const cropHeight = Math.max(1, bounds?.height ?? source.height);
+  const frame = resolveCanonicalSignatureFrame(cropWidth, cropHeight, padding);
+  const naturalTargetWidth = frame.width;
+  const naturalTargetHeight = frame.height;
   const maxDimension = 1600;
   const scale = Math.min(1, maxDimension / Math.max(naturalTargetWidth, naturalTargetHeight));
   const target = document.createElement('canvas');
@@ -312,39 +327,23 @@ export async function normalizeSignatureImageForProof(
 
   targetContext.imageSmoothingEnabled = true;
   targetContext.imageSmoothingQuality = 'high';
-  if (rotate) {
-    targetContext.translate(target.width, 0);
-    targetContext.rotate(Math.PI / 2);
-    targetContext.drawImage(
-      source,
-      sourceX,
-      sourceY,
-      cropWidth,
-      cropHeight,
-      0,
-      0,
-      target.height,
-      target.width,
-    );
-  } else {
-    targetContext.drawImage(
-      source,
-      sourceX,
-      sourceY,
-      cropWidth,
-      cropHeight,
-      0,
-      0,
-      target.width,
-      target.height,
-    );
-  }
+  targetContext.drawImage(
+    source,
+    sourceX,
+    sourceY,
+    cropWidth,
+    cropHeight,
+    Math.round(frame.contentX * scale),
+    Math.round(frame.contentY * scale),
+    Math.max(1, Math.round(cropWidth * scale)),
+    Math.max(1, Math.round(cropHeight * scale)),
+  );
 
   return {
     dataUrl: target.toDataURL('image/png'),
     width: target.width,
     height: target.height,
-    rotated: rotate,
+    rotated: false,
     cropped: Boolean(bounds),
   };
 }

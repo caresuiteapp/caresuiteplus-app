@@ -4,14 +4,15 @@
 import {
   detectSignatureInkBounds,
   normalizeSignatureImageForProof,
-  resolveSignatureCaptureRotation,
+  resolveCanonicalSignatureFrame,
   type SignatureCaptureOrientation,
 } from '@/lib/signatures/signatureOrientation';
 
 /**
  * Export the visible signature exactly in the direction in which it was
- * written. Device orientation is used only when the backing buffer axes are
- * demonstrably swapped; ink proportions alone never decide direction.
+ * written. The ink is placed, without rotation, into a landscape proof frame.
+ * This avoids device-orientation guesses that can turn a valid signature
+ * sideways or upside down.
  */
 export function exportSignatureCanvasPng(
   canvas: HTMLCanvasElement,
@@ -33,39 +34,39 @@ export function exportSignatureCanvasPng(
     }
   }
 
-  const rotation = resolveSignatureCaptureRotation(sourceWidth, sourceHeight, orientation);
+  // The visible canvas is already synchronized to its CSS coordinate space.
+  // Retain the parameter for API compatibility, but never rotate the ink from
+  // volatile device-orientation metadata.
+  void orientation;
   const padding = Math.max(8, Math.round(Math.max(sourceWidth, sourceHeight) * 0.025));
-  const sourceX = bounds ? Math.max(0, bounds.left - padding) : 0;
-  const sourceY = bounds ? Math.max(0, bounds.top - padding) : 0;
-  const sourceRight = bounds ? Math.min(sourceWidth, bounds.right + padding + 1) : sourceWidth;
-  const sourceBottom = bounds ? Math.min(sourceHeight, bounds.bottom + padding + 1) : sourceHeight;
-  const cropWidth = Math.max(1, sourceRight - sourceX);
-  const cropHeight = Math.max(1, sourceBottom - sourceY);
-
-  if (rotation === 0 && !bounds) return canvas.toDataURL('image/png');
+  const sourceX = bounds?.left ?? 0;
+  const sourceY = bounds?.top ?? 0;
+  const cropWidth = Math.max(1, bounds?.width ?? sourceWidth);
+  const cropHeight = Math.max(1, bounds?.height ?? sourceHeight);
+  const frame = resolveCanonicalSignatureFrame(cropWidth, cropHeight, padding);
 
   const target = document.createElement('canvas');
-  target.width = rotation === 0 ? cropWidth : cropHeight;
-  target.height = rotation === 0 ? cropHeight : cropWidth;
+  target.width = frame.width;
+  target.height = frame.height;
 
   const ctx = target.getContext('2d');
   if (!ctx) return canvas.toDataURL('image/png');
 
-  if (rotation === 90) {
-    ctx.translate(cropHeight, 0);
-    ctx.rotate(Math.PI / 2);
-    ctx.drawImage(canvas, sourceX, sourceY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-  } else if (rotation === -90) {
-    ctx.translate(0, cropWidth);
-    ctx.rotate(-Math.PI / 2);
-    ctx.drawImage(canvas, sourceX, sourceY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-  } else {
-    ctx.drawImage(canvas, sourceX, sourceY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-  }
+  ctx.drawImage(
+    canvas,
+    sourceX,
+    sourceY,
+    cropWidth,
+    cropHeight,
+    frame.contentX,
+    frame.contentY,
+    cropWidth,
+    cropHeight,
+  );
   return target.toDataURL('image/png');
 }
 
-/** Normalize an inline PNG data URL when dimensions are portrait-oriented. */
+/** Normalize an inline PNG into the canonical proof frame without rotating ink. */
 export async function normalizeSignatureDataUrl(dataUrl: string): Promise<string> {
   const trimmed = dataUrl.trim();
   if (!trimmed.startsWith('data:image/') || typeof document === 'undefined') {

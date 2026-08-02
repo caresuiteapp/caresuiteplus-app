@@ -1,14 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Image, StyleSheet, Text, View, type ImageStyle } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import {
   formatSignatureMetadataLine,
   pickSignatureImageUrl,
 } from '@/lib/assist/visitSignatureImageService';
-import {
-  buildSignatureProofImageStyle,
-  needsSignatureOrientationCorrection,
-  normalizeSignatureImageForProof,
-} from '@/lib/signatures/signatureOrientation';
+import { normalizeSignatureImageForProof } from '@/lib/signatures/signatureOrientation';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { spacing, typography } from '@/theme';
 
@@ -46,7 +42,6 @@ export function SignatureDisplay({
 }: SignatureDisplayProps) {
   const text = useAuroraAdaptiveText();
   const [imageError, setImageError] = useState(false);
-  const [orientationCorrected, setOrientationCorrected] = useState(false);
   const [normalizedImageUri, setNormalizedImageUri] = useState<string | null>(null);
 
   const imageUri = pickSignatureImageUrl(signatureImageUrl, signatureDataUrl);
@@ -60,7 +55,6 @@ export function SignatureDisplay({
   const showImage = Boolean(imageUri) && !imageError && !imageLoadFailed;
 
   useEffect(() => {
-    setOrientationCorrected(false);
     setNormalizedImageUri(null);
     if (!imageUri) return;
 
@@ -68,7 +62,6 @@ export function SignatureDisplay({
     void normalizeSignatureImageForProof(imageUri).then((normalized) => {
       if (!active || !normalized) return;
       setNormalizedImageUri(normalized.dataUrl);
-      setOrientationCorrected(false);
     });
     return () => {
       active = false;
@@ -111,17 +104,6 @@ export function SignatureDisplay({
     [text, compact],
   );
 
-  const correctedImageStyle = useMemo((): ImageStyle => {
-    if (!orientationCorrected) return styles.image;
-    const layout = buildSignatureProofImageStyle(100, 200);
-    return {
-      ...styles.image,
-      maxWidth: layout.maxWidth,
-      maxHeight: layout.maxHeight,
-      transform: [{ rotate: '90deg' }],
-    };
-  }, [orientationCorrected, styles.image]);
-
   let statusMessage: string | null = null;
 
   if (notRequired) {
@@ -143,14 +125,10 @@ export function SignatureDisplay({
       {showImage ? (
         <Image
           source={{ uri: displayImageUri! }}
-          style={correctedImageStyle}
+          style={styles.image}
           resizeMode="contain"
           accessibilityLabel={`Gezeichnete ${label}`}
           onError={() => setImageError(true)}
-          onLoad={(event) => {
-            const { width, height } = event.nativeEvent.source;
-            setOrientationCorrected(needsSignatureOrientationCorrection(width, height));
-          }}
         />
       ) : null}
 

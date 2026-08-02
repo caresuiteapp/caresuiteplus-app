@@ -719,12 +719,20 @@ export async function transitionLiveEmployeePortalAssignment(
     );
   }
 
-  await mirrorAssistVisitStatusFromAssignment(
+  const mirrored = await mirrorAssistVisitStatusFromAssignment(
     tenantId,
     persistentAssignmentId,
     toStatus,
     options?.profileId ?? null,
   );
+  if (!mirrored.ok) {
+    return {
+      ok: false,
+      error:
+        mirrored.error ??
+        'Einsatzstatus wurde gespeichert, aber nicht in den Live-Monitor übertragen.',
+    };
+  }
 
   const visitRow = await visitSupabaseRepository.getById(tenantId, executableAssignmentId);
   if (visitRow.ok && visitRow.data) {

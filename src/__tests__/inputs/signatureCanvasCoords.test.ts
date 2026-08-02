@@ -1,10 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import {
+  clampCanvasPointToSafeArea,
   clientToCanvasPoint,
   pointerToCanvasPoint,
   readCanvasCoordinateSpace,
   scaleCanvasPoints,
 } from '@/components/inputs/signatureCanvasCoords';
+
+describe('clampCanvasPointToSafeArea', () => {
+  const space = { drawWidth: 600, drawHeight: 320 };
+
+  it('keeps captured points far enough inside the bitmap to preserve stroke width', () => {
+    expect(clampCanvasPointToSafeArea({ x: 0, y: 320 }, space, 8)).toEqual({ x: 8, y: 312 });
+    expect(clampCanvasPointToSafeArea({ x: 300, y: 160 }, space, 8)).toEqual({ x: 300, y: 160 });
+  });
+
+  it('continues a pointer-captured stroke safely when the pointer leaves the canvas', () => {
+    expect(clampCanvasPointToSafeArea({ x: -80, y: 500 }, space, 8)).toEqual({ x: 8, y: 312 });
+  });
+});
 
 describe('pointerToCanvasPoint', () => {
   it('maps 1:1 when draw space matches display size', () => {

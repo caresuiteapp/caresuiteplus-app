@@ -8,6 +8,7 @@ import { transitionAssistExecutionStatus } from './internal/transitionAssistExec
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import { ensureOpenPauseEndEvent, hasOpenPauseSegment } from './saveVisitTimeEvent';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
+import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
 import type { AssistExecutionContext } from './types';
 import {
   assistWorkflowErrorFromSupabase,
@@ -148,6 +149,18 @@ async function applyExecutionStateAfterResume(
   return { ok: true, data: undefined };
 }
 
+async function mirrorResumedStatus(ctx: AssistExecutionContext): Promise<ServiceResult<void>> {
+  const mirrored = await mirrorAssistVisitStatusFromAssignment(
+    ctx.tenantId,
+    ctx.assignmentId,
+    'gestartet',
+    ctx.profileId ?? null,
+  );
+  return mirrored.ok
+    ? { ok: true, data: undefined }
+    : pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, mirrored.error);
+}
+
 export async function endPause(
   ctx: AssistExecutionContext,
 ): Promise<ServiceResult<AssistExecutionContext>> {
@@ -165,7 +178,11 @@ export async function endPause(
 
   if (ctx.assignmentStatus === 'gestartet' && !hasOpenPauseSegment(ctx.timeEvents)) {
     const refreshed = await reloadContext(ctx);
-    return refreshed.ok ? refreshed : pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, refreshed.error);
+    if (!refreshed.ok) return pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, refreshed.error);
+    const stateWrite = await applyExecutionStateAfterResume(ctx, refreshed.data.visitTimes);
+    if (!stateWrite.ok) return stateWrite;
+    const mirrored = await mirrorResumedStatus(ctx);
+    return mirrored.ok ? refreshed : mirrored;
   }
 
   if (ctx.assignmentStatus !== 'pausiert' && ctx.derivedStatus !== 'pausiert') {
@@ -191,6 +208,9 @@ export async function endPause(
 
   const stateWrite = await applyExecutionStateAfterResume(ctx, refreshed.data.visitTimes);
   if (!stateWrite.ok) return stateWrite;
+
+  const mirrored = await mirrorResumedStatus(ctx);
+  if (!mirrored.ok) return mirrored;
 
   return verifyEndPauseReadback(ctx);
 }

@@ -114,16 +114,17 @@ describe('schedule calendar (Prompt 61)', () => {
   });
 
   it('6. Konfliktansicht markiert Konflikte', () => {
-    createAssignmentWorkflow(
+    const overlapping = createAssignmentWorkflow(
       {
         ...BASE_INPUT,
-        employeeId: 'employee-002',
-        title: 'Klient Doppel',
+        employeeId: null,
+        title: 'Offener Einsatz für denselben Klienten',
         plannedStartAt: '2026-07-01T09:30:00.000Z',
         plannedEndAt: '2026-07-01T10:30:00.000Z',
       },
       ADMIN,
     );
+    if (!overlapping.ok) throw new Error(overlapping.error);
 
     const conflicts = fetchScheduleCalendarView(TENANT, 'conflicts', { anchorDateKey: '2026-07-01' }, ADMIN);
     expect(conflicts.ok).toBe(true);

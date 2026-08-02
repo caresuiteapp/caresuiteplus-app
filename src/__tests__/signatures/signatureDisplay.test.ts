@@ -84,10 +84,11 @@ describe('SignatureDisplay component wiring', () => {
     expect(panel).not.toContain('signerName} (${');
   });
 
-  it('SignatureDisplay corrects tall signature buffers on load', () => {
+  it('SignatureDisplay normalizes captures without dimension-based rotation', () => {
     const source = readSrc('src/components/signatures/SignatureDisplay.tsx');
-    expect(source).toContain('needsSignatureOrientationCorrection');
-    expect(source).toContain("rotate: '90deg'");
+    expect(source).toContain('normalizeSignatureImageForProof');
+    expect(source).not.toContain('needsSignatureOrientationCorrection');
+    expect(source).not.toContain("rotate: '90deg'");
   });
 });
 
@@ -144,7 +145,7 @@ describe('PDF signature rendering', () => {
     expect(payload.html).not.toContain('<img');
   });
 
-  it('rotates portrait signature buffers in PDF HTML for horizontal readability', () => {
+  it('does not rotate portrait handwriting in PDF HTML', () => {
     const portraitSignature = pngDataUrl(240, 480);
     const payload = buildAssistProofPdfPayload(sampleProof(), {
       signatureImageUrl: portraitSignature,
@@ -153,7 +154,8 @@ describe('PDF signature rendering', () => {
     });
 
     expect(payload.html).toContain(portraitSignature);
-    expect(payload.html).toContain('rotate(90deg)');
+    expect(payload.html).not.toContain('rotate(90deg)');
+    expect(payload.html).toContain('max-width:320px');
     expect(payload.html).toContain('object-fit:contain');
   });
 
@@ -167,6 +169,6 @@ describe('PDF signature rendering', () => {
 
     expect(payload.html).toContain(landscapeSignature);
     expect(payload.html).not.toContain('rotate(90deg)');
-    expect(payload.html).toContain('max-width:280px');
+    expect(payload.html).toContain('max-width:320px');
   });
 });

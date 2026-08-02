@@ -6,6 +6,7 @@ import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import {
   appendLocationPoint,
   fetchActiveTrackingSession,
+  fetchTimeEventsForVisit,
   recordTimeEvent,
   startTrackingSession,
 } from '@/lib/assist/assistTrackingPersistenceService';
@@ -90,7 +91,6 @@ async function transitionAssignmentToEnRoute(
   tenantId: string,
   assignmentId: string,
   employeeId: string,
-  profileId?: string | null,
 ): Promise<ServiceResult<void>> {
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase ist nicht verfügbar.' };
@@ -128,18 +128,17 @@ async function transitionAssignmentToEnRoute(
     }
   }
 
-  // Best-effort mirror — prevents visit/assignment canonical drift on en-route.
-  const { mirrorAssistVisitStatusFromAssignment } = await import(
-    '@/lib/portal/employeePortalExecutionLiveService'
-  );
-  void mirrorAssistVisitStatusFromAssignment(
-    tenantId,
-    assignmentId,
-    'unterwegs',
-    profileId ?? null,
-  );
-
   return { ok: true, data: undefined };
+}
+
+function latestEventTime(
+  events: { eventType: string; occurredAt: string }[],
+  types: string[],
+): string | null {
+  return events
+    .filter((event) => types.includes(event.eventType))
+    .map((event) => event.occurredAt)
+    .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0] ?? null;
 }
 
 /** Start or resume live tracking — all DB steps; no partial success. */
@@ -162,7 +161,19 @@ export async function startEmployeeLiveTracking(
 
   if (!sessionId || !ctx.trackingSessionActive) {
     const existing = await fetchActiveTrackingSession(input.tenantId, ctx.assistVisitId);
-    if (existing.ok && existing.data?.id) {
+    if (!existing.ok) {
+      const err = createLiveTrackingError('LIVE_SESSION_CREATE_FAILED', {
+        tenantId: input.tenantId,
+        employeeId: input.employeeId,
+        assignmentId: ctx.assignmentId,
+        assistVisitId: ctx.assistVisitId,
+        operation: 'startEmployeeLiveTracking.session.read',
+        supabaseMessage: existing.error,
+      });
+      logLiveTrackingError(err);
+      return liveTrackingErrorToServiceResult(err);
+    }
+    if (existing.data?.id) {
       sessionId = existing.data.id;
     } else {
       const started = await startTrackingSession(input.tenantId, {
@@ -202,25 +213,70 @@ export async function startEmployeeLiveTracking(
   }
 
   if (input.recordDriveStart !== false) {
-    const driveEvent = await recordTimeEvent(
-      input.tenantId,
-      {
-        visitId: ctx.assistVisitId,
-        sessionId,
-        eventType: 'drive_start',
-        occurredAt: new Date().toISOString(),
-      },
-      input.profileId ?? input.employeeId,
-    );
-
-    if (!driveEvent.ok) {
+    const existingEvents = await fetchTimeEventsForVisit(input.tenantId, ctx.assistVisitId, 50);
+    if (!existingEvents.ok) {
       const err = createLiveTrackingError('LIVE_TIME_EVENT_INSERT_FAILED', {
         tenantId: input.tenantId,
         employeeId: input.employeeId,
         assignmentId: ctx.assignmentId,
         assistVisitId: ctx.assistVisitId,
-        operation: 'startEmployeeLiveTracking.drive_start',
-        supabaseMessage: driveEvent.error,
+        operation: 'startEmployeeLiveTracking.drive_start.read',
+        supabaseMessage: existingEvents.error,
+      });
+      logLiveTrackingError(err);
+      return liveTrackingErrorToServiceResult(err);
+    }
+
+    const lastStart = latestEventTime(existingEvents.data, ['drive_start']);
+    const lastEnd = latestEventTime(existingEvents.data, ['drive_end', 'arrive']);
+    const hasOpenDrive = Boolean(
+      lastStart && (!lastEnd || new Date(lastStart).getTime() > new Date(lastEnd).getTime()),
+    );
+    const driveStartedAt = hasOpenDrive && lastStart ? lastStart : new Date().toISOString();
+
+    if (!hasOpenDrive) {
+      const driveEvent = await recordTimeEvent(
+        input.tenantId,
+        {
+          visitId: ctx.assistVisitId,
+          sessionId,
+          eventType: 'drive_start',
+          occurredAt: driveStartedAt,
+        },
+        input.profileId ?? input.employeeId,
+      );
+
+      if (!driveEvent.ok) {
+        const err = createLiveTrackingError('LIVE_TIME_EVENT_INSERT_FAILED', {
+          tenantId: input.tenantId,
+          employeeId: input.employeeId,
+          assignmentId: ctx.assignmentId,
+          assistVisitId: ctx.assistVisitId,
+          operation: 'startEmployeeLiveTracking.drive_start',
+          supabaseMessage: driveEvent.error,
+        });
+        logLiveTrackingError(err);
+        return liveTrackingErrorToServiceResult(err);
+      }
+    }
+
+    const { syncAssistTimeEventToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
+    const wfmSync = await syncAssistTimeEventToWfm(
+      input.tenantId,
+      input.employeeId,
+      input.profileId ?? null,
+      ctx.assistVisitId,
+      'drive_start',
+      driveStartedAt,
+    );
+    if (!wfmSync.ok) {
+      const err = createLiveTrackingError('LIVE_TIME_EVENT_INSERT_FAILED', {
+        tenantId: input.tenantId,
+        employeeId: input.employeeId,
+        assignmentId: ctx.assignmentId,
+        assistVisitId: ctx.assistVisitId,
+        operation: 'startEmployeeLiveTracking.drive_start.wfm',
+        supabaseMessage: wfmSync.error,
       });
       logLiveTrackingError(err);
       return liveTrackingErrorToServiceResult(err);
@@ -269,10 +325,33 @@ export async function startEmployeeLiveTracking(
       input.tenantId,
       ctx.assignmentId,
       input.employeeId,
-      input.profileId ?? null,
     );
     if (!statusResult.ok) return statusResult as ServiceResult<never>;
     statusUpdated = true;
+  }
+
+  if (input.transitionToEnRoute !== false) {
+    const { mirrorAssistVisitStatusFromAssignment } = await import(
+      '@/lib/portal/employeePortalExecutionLiveService'
+    );
+    const mirrored = await mirrorAssistVisitStatusFromAssignment(
+      input.tenantId,
+      ctx.assignmentId,
+      'unterwegs',
+      input.profileId ?? null,
+    );
+    if (!mirrored.ok) {
+      const err = createLiveTrackingError('LIVE_TIME_EVENT_INSERT_FAILED', {
+        tenantId: input.tenantId,
+        employeeId: input.employeeId,
+        assignmentId: ctx.assignmentId,
+        assistVisitId: ctx.assistVisitId,
+        operation: 'startEmployeeLiveTracking.status_mirror',
+        supabaseMessage: mirrored.error,
+      });
+      logLiveTrackingError(err);
+      return liveTrackingErrorToServiceResult(err);
+    }
   }
 
   const refreshed = await resolveEmployeeLiveContext({

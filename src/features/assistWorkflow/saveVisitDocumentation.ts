@@ -84,7 +84,7 @@ async function persistDocumentationToAssistVisit(
     care_report_notes: doc.careReportNotes?.trim() ?? null,
     photo_references: doc.photoReferences ?? [],
     submitted_at: now,
-    submitted_by: null,
+    submitted_by: profileId,
     locked: false,
   };
 
@@ -242,16 +242,6 @@ export async function saveVisitDocumentation(
     });
     if (transitioned.ok) {
       updatedCtx = transitioned.data;
-      await upsertAssistVisitExecutionState(
-        ctx.tenantId,
-        masterAssignmentId,
-        'dokumentation_offen',
-        {
-          employeeId: ctx.employeeId,
-          visitTimes: transitioned.data.visitTimes,
-          documentationComplete: true,
-        },
-      );
     } else {
       // The documentation is already durable. Keep the employee in the
       // post-service workflow even when a legacy status mirror is temporarily
@@ -278,32 +268,24 @@ export async function saveVisitDocumentation(
     }
   }
 
-  if (getServiceMode() === 'supabase' && documentationPersisted) {
-    void upsertAssistVisitExecutionState(
-      ctx.tenantId,
-      masterAssignmentId,
-      persistedExecutionStatus,
-      {
-        employeeId: ctx.employeeId,
-        visitTimes: updatedCtx.visitTimes,
-        documentationComplete: true,
-      },
-    );
-  } else {
-    const executionState = await upsertAssistVisitExecutionState(
-      ctx.tenantId,
-      masterAssignmentId,
-      persistedExecutionStatus,
-      {
-        employeeId: ctx.employeeId,
-        visitTimes: updatedCtx.visitTimes,
-        documentationComplete: true,
-      },
-    );
+  const executionState = await upsertAssistVisitExecutionState(
+    ctx.tenantId,
+    masterAssignmentId,
+    persistedExecutionStatus,
+    {
+      employeeId: ctx.employeeId,
+      visitTimes: updatedCtx.visitTimes,
+      documentationComplete: true,
+    },
+  );
 
-    if (!executionState.ok && getServiceMode() === 'supabase') {
-      return { ok: false, error: executionState.error ?? 'Dokumentationsstatus konnte nicht gespeichert werden.' };
-    }
+  if (!executionState.ok) {
+    return {
+      ok: false,
+      error:
+        executionState.error ??
+        'Dokumentation wurde gespeichert, aber der Einsatzstatus konnte nicht bestätigt werden.',
+    };
   }
 
   const detail = {

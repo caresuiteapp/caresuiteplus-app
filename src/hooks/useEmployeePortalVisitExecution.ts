@@ -75,6 +75,10 @@ import {
   WORKFLOW_START_SERVICE_TIMEOUT_MS,
 } from '@/features/assistWorkflow/internal/withWorkflowTimeout';
 import { isStaleWorkflowTransitionError } from '@/features/assistWorkflow/internal/isStaleWorkflowTransitionError';
+import {
+  didWorkflowActionReachPostcondition,
+  type RecoverableWorkflowAction,
+} from '@/features/assistWorkflow/workflowRecoveryVerification';
 
 function unwrapWorkflowContextPayload(payload: unknown): AssistExecutionContext | null {
   if (!payload || typeof payload !== 'object') return null;
@@ -606,6 +610,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         loadingMode?: 'generic' | 'start_service';
         timeoutMs?: number;
         preferExistingContext?: boolean;
+        recoveryAction?: RecoverableWorkflowAction;
       },
     ): Promise<{ ok: boolean; data?: T; error?: string; errorCode?: string }> => {
       let ctx =
@@ -637,6 +642,16 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         );
 
         if (result.ok) {
+          if (
+            result.data &&
+            typeof result.data === 'object' &&
+            'wfmSyncFailed' in result.data &&
+            result.data.wfmSyncFailed === true
+          ) {
+            setRefetchWarning(
+              'Der Einsatz ist abgeschlossen, aber die Übergabe an die Arbeitszeiterfassung ist noch nicht bestätigt. Bitte die Verwaltung informieren.',
+            );
+          }
           const syncedContext = unwrapWorkflowContextPayload(result.data);
           if (syncedContext) {
             await syncAfterWorkflow(syncedContext);
@@ -647,7 +662,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           const refreshed = await refreshExecutionContext();
           if (refreshed) {
             await syncAfterWorkflow(refreshed);
-            return { ok: true, data: refreshed as T };
+            if (
+              options?.recoveryAction &&
+              didWorkflowActionReachPostcondition(options.recoveryAction, ctx, refreshed)
+            ) {
+              return { ok: true, data: refreshed as T };
+            }
           }
         }
 
@@ -657,12 +677,17 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           const recovered = await refreshExecutionContext();
           if (recovered) {
             await syncAfterWorkflow(recovered);
-            return { ok: true, data: recovered as T };
+            if (
+              options?.recoveryAction &&
+              didWorkflowActionReachPostcondition(options.recoveryAction, ctx, recovered)
+            ) {
+              return { ok: true, data: recovered as T };
+            }
           }
           return {
             ok: false,
-            error: 'Zeitüberschreitung — bitte erneut versuchen.',
-            errorCode: 'START_SERVICE_TIMEOUT',
+            error: 'Zeitüberschreitung — der Server hat die Aktion nicht bestätigt. Bitte den angezeigten Einsatzstatus prüfen und die Aktion erneut ausführen.',
+            errorCode: 'WORKFLOW_ACTION_TIMEOUT_UNCONFIRMED',
           };
         }
         return {
@@ -831,6 +856,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     }, {
       timeoutLabel: 'markArrived',
       timeoutMs: WORKFLOW_MARK_ARRIVED_TIMEOUT_MS,
+      recoveryAction: 'mark_arrived',
     })) as MarkArrivedResult;
 
     return result;
@@ -884,6 +910,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       return runWorkflow((ctx) => startService(ctx), {
         timeoutLabel: 'startService',
         loadingMode: 'start_service',
+        recoveryAction: 'start_service',
       });
     },
     [
@@ -898,12 +925,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   );
 
   const handleStartPause = useCallback(
-    () => runWorkflow((ctx) => startPause(ctx)),
+    () => runWorkflow((ctx) => startPause(ctx), { recoveryAction: 'start_pause' }),
     [runWorkflow],
   );
 
   const handleEndPause = useCallback(
-    () => runWorkflow((ctx) => endPause(ctx)),
+    () => runWorkflow((ctx) => endPause(ctx), { recoveryAction: 'end_pause' }),
     [runWorkflow],
   );
 
@@ -911,6 +938,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     const result = await runWorkflow((ctx) => endService(ctx), {
       timeoutLabel: 'endService',
       timeoutMs: WORKFLOW_END_SERVICE_TIMEOUT_MS,
+      recoveryAction: 'end_service',
     });
     if (
       !result.ok &&
@@ -968,22 +996,22 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
   const handleSaveSignature = useCallback(
     (signature: EmployeePortalSignatureCaptureInput) =>
-      runWorkflow((ctx) => saveClientSignature({ ctx, signature })),
+      runWorkflow((ctx) => saveClientSignature({ ctx, signature }), { recoveryAction: 'save_signature' }),
     [runWorkflow],
   );
 
   const handleFinalize = useCallback(
-    () => runWorkflow((ctx) => finalizeVisit(ctx)),
+    () => runWorkflow((ctx) => finalizeVisit(ctx), { recoveryAction: 'finalize' }),
     [runWorkflow],
   );
 
   const handleFinalizeDeferred = useCallback(
-    () => runWorkflow((ctx) => finalizeVisitWithDeferredClientSignature(ctx)),
+    () => runWorkflow((ctx) => finalizeVisitWithDeferredClientSignature(ctx), { recoveryAction: 'finalize_deferred' }),
     [runWorkflow],
   );
 
   const handleNoShow = useCallback(
-    (note: string) => runWorkflow((ctx) => reportNoShow(ctx, note)),
+    (note: string) => runWorkflow((ctx) => reportNoShow(ctx, note), { recoveryAction: 'report_no_show' }),
     [runWorkflow],
   );
 

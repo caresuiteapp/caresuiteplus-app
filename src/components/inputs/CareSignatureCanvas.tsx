@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PremiumButton } from '@/components/ui';
 import {
+  clampCanvasPointToSafeArea,
   clientToCanvasPoint,
   readCanvasCoordinateSpace,
   scaleCanvasPoints,
@@ -29,6 +30,8 @@ const STROKE_WIDTH_COMPACT = 2;
 const STROKE_WIDTH_LARGE = 3.5;
 const DEFAULT_LARGE_WIDTH = 600;
 const DEFAULT_LARGE_HEIGHT = 320;
+const FULLSCREEN_CANVAS_MIN_HEIGHT = 220;
+const SIGNATURE_SAFE_INSET = 8;
 
 const FALLBACK_TYPOGRAPHY = resolveCareTypography('dark');
 const FALLBACK_COLORS = legacyColorsFromPalette('dark');
@@ -55,7 +58,7 @@ function useSignatureCanvasStyles(fillAvailable: boolean, actionLayout: 'default
             ? {
                 flex: 1,
                 height: undefined,
-                minHeight: 120,
+                minHeight: FULLSCREEN_CANVAS_MIN_HEIGHT,
                 alignSelf: 'stretch',
               }
             : null),
@@ -228,7 +231,7 @@ function WebSignatureCanvas({
   const canvasRectRef = useRef<DOMRect | null>(null);
   const touchInputActiveRef = useRef(false);
   const frameRef = useRef<number | null>(null);
-  const queuedPointsRef = useRef<Array<{ x: number; y: number }>>([]);
+  const queuedPointsRef = useRef<{ x: number; y: number }[]>([]);
   const hasStrokeRef = useRef(false);
   const [hasStroke, setHasStroke] = useState(false);
   const [measured, setMeasured] = useState<{ width: number; height: number } | null>(null);
@@ -391,7 +394,11 @@ function WebSignatureCanvas({
 
     const rect = canvasRectRef.current ?? canvas.getBoundingClientRect();
     const space = drawSpaceRef.current ?? readCanvasCoordinateSpace(canvas);
-    const point = clientToCanvasPoint(clientX, clientY, rect, space);
+    const point = clampCanvasPointToSafeArea(
+      clientToCanvasPoint(clientX, clientY, rect, space),
+      space,
+      Math.max(SIGNATURE_SAFE_INSET, strokeWidth * 2),
+    );
 
     if (start) {
       currentStrokeRef.current = [point];
@@ -411,7 +418,7 @@ function WebSignatureCanvas({
       hasStrokeRef.current = true;
       setHasStroke(true);
     }
-  }, []);
+  }, [strokeWidth]);
 
   const drawQueuedPoints = useCallback(() => {
     const points = queuedPointsRef.current;
@@ -597,7 +604,7 @@ function WebSignatureCanvas({
           style={{
             width: '100%',
             height: fillAvailable ? '100%' : dims.height,
-            minHeight: fillAvailable ? 120 : undefined,
+            minHeight: fillAvailable ? FULLSCREEN_CANVAS_MIN_HEIGHT : undefined,
             touchAction: 'none',
             background: '#fff',
             borderRadius: fillAvailable ? 0 : 8,
@@ -651,6 +658,16 @@ function NativeSignatureCanvas({
   const dims = resolveDimensions(size, widthProp, heightProp, measured ?? undefined);
   const dotSize = size === 'large' ? 3 : 2;
 
+  const normalizeNativePoint = useCallback(
+    (x: number, y: number) =>
+      clampCanvasPointToSafeArea(
+        { x, y },
+        { drawWidth: dims.width, drawHeight: dims.height },
+        SIGNATURE_SAFE_INSET,
+      ),
+    [dims.height, dims.width],
+  );
+
   const handleCanvasLayout = useCallback(
     (event: LayoutChangeEvent) => {
       if (!fillAvailable) return;
@@ -684,12 +701,12 @@ function NativeSignatureCanvas({
         onMoveShouldSetPanResponder: () => !disabled,
         onPanResponderGrant: (evt) => {
           const { locationX, locationY } = evt.nativeEvent;
-          nativeCurrentRef.current = [{ x: locationX, y: locationY }];
+          nativeCurrentRef.current = [normalizeNativePoint(locationX, locationY)];
           setCurrent(nativeCurrentRef.current);
         },
         onPanResponderMove: (evt) => {
           const { locationX, locationY } = evt.nativeEvent;
-          nativeCurrentRef.current.push({ x: locationX, y: locationY });
+          nativeCurrentRef.current.push(normalizeNativePoint(locationX, locationY));
           scheduleNativeRender();
         },
         onPanResponderRelease: () => {
@@ -708,7 +725,7 @@ function NativeSignatureCanvas({
           setCurrent([]);
         },
       }),
-    [disabled, scheduleNativeRender],
+    [disabled, normalizeNativePoint, scheduleNativeRender],
   );
 
   const handleClear = useCallback(() => {

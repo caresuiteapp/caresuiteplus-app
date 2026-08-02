@@ -137,6 +137,8 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(canvas).toContain('actionLayout');
     expect(canvas).toContain('useOrientation');
     expect(canvas).toContain('scaleCanvasPoints');
+    expect(canvas).toContain('FULLSCREEN_CANVAS_MIN_HEIGHT');
+    expect(canvas).toContain('clampCanvasPointToSafeArea');
     expect(canvas).toContain('Löschen');
     expect(canvas).toContain('Abbrechen');
     expect(canvas).toContain('Unterschrift bestätigen');

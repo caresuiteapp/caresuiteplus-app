@@ -32,8 +32,8 @@ export type SaveVisitTimeEventInput = {
   metadata?: Record<string, unknown>;
 };
 
-async function mirrorAssistEventToWfm(input: SaveVisitTimeEventInput): Promise<void> {
-  if (!input.employeeId && !input.profileId) return;
+async function mirrorAssistEventToWfm(input: SaveVisitTimeEventInput): Promise<ServiceResult<void>> {
+  if (!input.employeeId && !input.profileId) return { ok: true, data: undefined };
 
   const { syncAssistTimeEventToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
   const occurredAt = input.occurredAt ?? new Date().toISOString();
@@ -48,16 +48,23 @@ async function mirrorAssistEventToWfm(input: SaveVisitTimeEventInput): Promise<v
     input.eventType,
     occurredAt,
   );
-  if (!syncResult.ok && process.env.NODE_ENV !== 'production') {
-    console.warn('[saveVisitTimeEvent] WFM-Sync fehlgeschlagen:', syncResult.error);
+  if (!syncResult.ok) {
+    return {
+      ok: false,
+      error:
+        syncResult.error ??
+        'Zeitereignis wurde gespeichert, aber die Arbeitszeiterfassung konnte nicht aktualisiert werden.',
+    };
   }
+  return { ok: true, data: undefined };
 }
 
 export async function saveVisitTimeEvent(
   input: SaveVisitTimeEventInput,
 ): Promise<ServiceResult<{ id: string }>> {
   if (getServiceMode() !== 'supabase') {
-    await mirrorAssistEventToWfm(input);
+    const mirrored = await mirrorAssistEventToWfm(input);
+    if (!mirrored.ok) return mirrored;
     return { ok: true, data: { id: 'demo' } };
   }
 
@@ -86,7 +93,8 @@ export async function saveVisitTimeEvent(
     );
   }
 
-  await mirrorAssistEventToWfm(input);
+  const mirrored = await mirrorAssistEventToWfm(input);
+  if (!mirrored.ok) return mirrored;
 
   return recorded;
 }
@@ -126,7 +134,16 @@ export async function ensureVisitTimeEvent(
             : existingEvents.some((event) => event.eventType === input.eventType);
 
   if (alreadyPersisted) {
-    await mirrorAssistEventToWfm(input);
+    const mirrored = await mirrorAssistEventToWfm(input);
+    if (!mirrored.ok) {
+      return assistWorkflowErrorToResult(
+        createAssistWorkflowError('WORKFLOW_TIME_EVENT_FAILED', {
+          tenantId: input.tenantId,
+          assistVisitId: input.visitId,
+          operation: `ensureVisitTimeEvent.${input.eventType}.wfm`,
+        }, mirrored.error),
+      );
+    }
     return { ok: true, data: { id: 'existing', created: false } };
   }
 

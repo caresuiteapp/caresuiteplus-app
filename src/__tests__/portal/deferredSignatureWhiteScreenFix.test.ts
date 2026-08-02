@@ -19,8 +19,8 @@ describe('deferred signature white screen fix', () => {
     const hook = readSrc('src/hooks/useEmployeePortalVisitExecution.ts');
     expect(hook).toContain("terminalStatuses: AssignmentStatus[] = ['abgeschlossen', 'storniert', 'nicht_erschienen']");
     expect(hook).toContain('const syncedAssignmentStatus: AssignmentStatus = terminalStatus');
-    expect(hook).not.toMatch(
-      /ended\s*\?\s*'beendet'\s*:\s*ctx\.assignmentStatus[\s\S]*abgeschlossen/,
+    expect(hook).toMatch(
+      /const syncedAssignmentStatus: AssignmentStatus = terminalStatus\s*\?\s*terminalStatus[\s\S]*:\s*ended\s*\?\s*'beendet'/,
     );
   });
 

@@ -8,6 +8,7 @@ import { transitionAssistExecutionStatus } from './internal/transitionAssistExec
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import { ensureOpenPauseStartEvent, hasOpenPauseSegment } from './saveVisitTimeEvent';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
+import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
 import type { AssistExecutionContext } from './types';
 import {
   assistWorkflowErrorFromSupabase,
@@ -150,6 +151,18 @@ async function applyExecutionStateAfterPause(
   return { ok: true, data: undefined };
 }
 
+async function mirrorPausedStatus(ctx: AssistExecutionContext): Promise<ServiceResult<void>> {
+  const mirrored = await mirrorAssistVisitStatusFromAssignment(
+    ctx.tenantId,
+    ctx.assignmentId,
+    'pausiert',
+    ctx.profileId ?? null,
+  );
+  return mirrored.ok
+    ? { ok: true, data: undefined }
+    : pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, mirrored.error);
+}
+
 export async function startPause(
   ctx: AssistExecutionContext,
 ): Promise<ServiceResult<AssistExecutionContext>> {
@@ -168,13 +181,20 @@ export async function startPause(
   if (ctx.assignmentStatus === 'pausiert' || ctx.derivedStatus === 'pausiert') {
     if (hasOpenPauseSegment(ctx.timeEvents)) {
       const refreshed = await reloadContext(ctx);
-      return refreshed.ok ? refreshed : pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, refreshed.error);
+      if (!refreshed.ok) return pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, refreshed.error);
+      const stateWrite = await applyExecutionStateAfterPause(ctx, refreshed.data.visitTimes);
+      if (!stateWrite.ok) return stateWrite;
+      const mirrored = await mirrorPausedStatus(ctx);
+      return mirrored.ok ? refreshed : mirrored;
     }
     const saved = await persistPauseStartEvent(ctx);
     if (!saved.ok) return saved;
     const refreshed = await reloadContext(ctx);
     if (!refreshed.ok) return pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, refreshed.error);
-    await applyExecutionStateAfterPause(ctx, refreshed.data.visitTimes);
+    const stateWrite = await applyExecutionStateAfterPause(ctx, refreshed.data.visitTimes);
+    if (!stateWrite.ok) return stateWrite;
+    const mirrored = await mirrorPausedStatus(ctx);
+    if (!mirrored.ok) return mirrored;
     return verifyStartPauseReadback(ctx);
   }
 
@@ -205,6 +225,9 @@ export async function startPause(
 
   const stateWrite = await applyExecutionStateAfterPause(ctx, refreshed.data.visitTimes);
   if (!stateWrite.ok) return stateWrite;
+
+  const mirrored = await mirrorPausedStatus(ctx);
+  if (!mirrored.ok) return mirrored;
 
   return verifyStartPauseReadback(ctx);
 }

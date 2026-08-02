@@ -12,6 +12,28 @@ export type CanvasCoordinateSpace = {
 };
 
 /**
+ * Keeps the centre of the pen inside a protected inset. Pointer capture can
+ * continue to deliver coordinates after a finger leaves the visible canvas;
+ * clamping those points to the inset preserves the stroke without clipping
+ * half of it at the bitmap edge.
+ */
+export function clampCanvasPointToSafeArea(
+  point: CanvasPoint,
+  space: Pick<CanvasCoordinateSpace, 'drawWidth' | 'drawHeight'>,
+  inset: number,
+): CanvasPoint {
+  const safeInset = Math.max(0, inset);
+  const minX = Math.min(safeInset, space.drawWidth / 2);
+  const minY = Math.min(safeInset, space.drawHeight / 2);
+  const maxX = Math.max(minX, space.drawWidth - minX);
+  const maxY = Math.max(minY, space.drawHeight - minY);
+  return {
+    x: Math.max(minX, Math.min(maxX, point.x)),
+    y: Math.max(minY, Math.min(maxY, point.y)),
+  };
+}
+
+/**
  * Maps pointer offset (relative to canvas padding edge) into canvas draw coordinates.
  * Equivalent to scaling by canvas.width/rect.width when draw space matches display size.
  */

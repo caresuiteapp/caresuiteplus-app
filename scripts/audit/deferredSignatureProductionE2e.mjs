@@ -6,7 +6,7 @@
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, URL } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const baseUrl = (process.env.AUDIT_WEB_URL ?? 'https://caresuiteplus.app').replace(/\/$/, '');
@@ -28,6 +28,8 @@ const results = {
   assignmentId: ASSIGNMENT_ID,
   checks: {},
 };
+
+const auditProxy = process.env.HTTPS_PROXY ?? process.env.HTTP_PROXY;
 
 function report(key, pass, detail = '') {
   results.checks[key] = { pass, detail };
@@ -81,11 +83,14 @@ async function injectPortalSession(page, login) {
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.evaluate(
     ([portalKey, portalVal, authKey, authVal, accountId]) => {
-      localStorage.setItem(portalKey, portalVal);
-      if (authKey && authVal) localStorage.setItem(authKey, authVal);
-      localStorage.removeItem('portal-welcome-pending');
+      globalThis.localStorage.setItem(portalKey, portalVal);
+      if (authKey && authVal) globalThis.localStorage.setItem(authKey, authVal);
+      globalThis.localStorage.removeItem('portal-welcome-pending');
       if (accountId) {
-        localStorage.setItem(`portal-welcome-seen:employee:${accountId}`, new Date().toISOString());
+        globalThis.localStorage.setItem(
+          `portal-welcome-seen:employee:${accountId}`,
+          new Date().toISOString(),
+        );
       }
     },
     [
@@ -114,7 +119,7 @@ async function waitForLoadedShell(page, timeout = 45000) {
   try {
     await page.waitForFunction(
       () => {
-        const t = document.body?.innerText ?? '';
+        const t = globalThis.document.body?.innerText ?? '';
         return !t.includes('Wird geladen…') && !t.includes('Wird geladen...');
       },
       { timeout },
@@ -147,8 +152,16 @@ async function main() {
     process.exit(2);
   }
 
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  const browser = await chromium.launch({
+    headless: true,
+    proxy: auditProxy ? { server: auditProxy } : undefined,
+  });
+  const page = await browser.newPage({
+    viewport: { width: 1280, height: 900 },
+    // CI/audit runners can sit behind a TLS-inspecting proxy. Production's
+    // public certificate is still validated by the direct HTTP health check.
+    ignoreHTTPSErrors: Boolean(auditProxy),
+  });
   const consoleErrors = [];
   const rpcCalls = [];
   page.on('console', (msg) => {

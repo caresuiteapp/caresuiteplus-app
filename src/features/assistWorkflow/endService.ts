@@ -117,6 +117,39 @@ function buildOptimisticEndedContext(
   };
 }
 
+async function persistEndedExecutionMirrors(
+  ctx: AssistExecutionContext,
+  visitTimes: VisitTimesSummary,
+): Promise<ServiceResult<void>> {
+  const upserted = await upsertAssistVisitExecutionState(
+    ctx.tenantId,
+    ctx.assignmentId,
+    'beendet',
+    {
+      employeeId: ctx.employeeId,
+      visitTimes,
+      documentationComplete: false,
+    },
+  );
+  if (!upserted.ok) return upserted;
+
+  if (getServiceMode() === 'supabase') {
+    const mirrored = await mirrorAssistVisitStatusFromAssignment(
+      ctx.tenantId,
+      ctx.assignmentId,
+      'beendet',
+      ctx.profileId ?? null,
+    );
+    if (!mirrored.ok) {
+      return {
+        ok: false,
+        error: mirrored.error ?? 'Einsatzende konnte nicht an Verwaltung und Budget übertragen werden.',
+      };
+    }
+  }
+  return { ok: true, data: undefined };
+}
+
 async function verifyEndServiceReadback(
   ctx: AssistExecutionContext,
 ): Promise<ServiceResult<AssistExecutionContext>> {
@@ -263,6 +296,13 @@ export async function endService(
   }
 
   if (ctx.visitTimes?.serviceEndedAt) {
+    const mirrors = await persistEndedExecutionMirrors(
+      ctx,
+      mergeServiceEndedVisitTimes(ctx, ctx.visitTimes),
+    );
+    if (!mirrors.ok) {
+      return endServiceError('WORKFLOW_TIME_EVENT_FAILED', ctx, mirrors.error);
+    }
     const refreshed = await reloadContext(ctx);
     return refreshed.ok ? refreshed : endServiceError('WORKFLOW_TIME_EVENT_FAILED', ctx, refreshed.error);
   }
@@ -299,28 +339,9 @@ export async function endService(
   const endedAt = new Date().toISOString();
   const mergedTimes = mergeServiceEndedVisitTimes(result.data, result.data.visitTimes, endedAt);
 
-  const upserted = await upsertAssistVisitExecutionState(
-    ctx.tenantId,
-    ctx.assignmentId,
-    'beendet',
-    {
-      employeeId: ctx.employeeId,
-      visitTimes: mergedTimes,
-      documentationComplete: false,
-    },
-  );
-
-  if (!upserted.ok) {
-    return endServiceError('WORKFLOW_TIME_EVENT_FAILED', ctx, upserted.error);
-  }
-
-  if (getServiceMode() === 'supabase') {
-    void mirrorAssistVisitStatusFromAssignment(
-      ctx.tenantId,
-      ctx.assignmentId,
-      'beendet',
-      ctx.profileId ?? null,
-    );
+  const mirrors = await persistEndedExecutionMirrors(ctx, mergedTimes);
+  if (!mirrors.ok) {
+    return endServiceError('WORKFLOW_TIME_EVENT_FAILED', ctx, mirrors.error);
   }
 
   return { ok: true, data: buildOptimisticEndedContext(result.data, mergedTimes) };

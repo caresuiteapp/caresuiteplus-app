@@ -8,6 +8,7 @@ import {
   readPngDimensionsFromBytes,
   readPngDimensionsFromDataUrl,
   resolveSignatureImageDimensions,
+  resolveCanonicalSignatureFrame,
   signatureProofImageStyleToCss,
   shouldRotateSignatureInk,
   resolveSignatureCaptureRotation,
@@ -54,19 +55,35 @@ describe('PNG dimension probes', () => {
 describe('buildSignatureProofImageStyle', () => {
   it('keeps landscape signatures horizontal without transform', () => {
     const style = buildSignatureProofImageStyle(640, 320);
-    expect(style.maxWidth).toBe(280);
+    expect(style.maxWidth).toBe(320);
     expect(style.maxHeight).toBe(120);
     expect(style.transform).toBeUndefined();
     expect(signatureProofImageStyleToCss(style)).not.toContain('rotate');
   });
 
-  it('rotates portrait buffers for horizontal proof display', () => {
+  it('never rotates portrait handwriting based on image dimensions', () => {
     const style = buildSignatureProofImageStyle(240, 480);
-    expect(style.transform).toBe('rotate(90deg)');
-    expect(style.maxWidth).toBe(120);
-    expect(style.maxHeight).toBe(280);
-    expect(signatureProofImageStyleToCss(style)).toContain('rotate(90deg)');
+    expect(style.transform).toBeUndefined();
+    expect(style.maxWidth).toBe(320);
+    expect(style.maxHeight).toBe(120);
+    expect(signatureProofImageStyleToCss(style)).not.toContain('rotate');
     expect(signatureProofImageStyleToCss(style)).toContain('object-fit:contain');
+  });
+});
+
+describe('canonical landscape frame', () => {
+  it('keeps wide handwriting horizontal and adds a clipping-safe margin', () => {
+    const frame = resolveCanonicalSignatureFrame(480, 80, 12);
+    expect(frame.width).toBeGreaterThan(frame.height);
+    expect(frame.contentX).toBeGreaterThanOrEqual(12);
+    expect(frame.contentY).toBeGreaterThanOrEqual(12);
+  });
+
+  it('places narrow upright handwriting into landscape without rotating it', () => {
+    const frame = resolveCanonicalSignatureFrame(80, 220, 12);
+    expect(frame.width).toBeGreaterThan(frame.height * 2);
+    expect(frame.contentX).toBeGreaterThan(0);
+    expect(frame.contentY).toBeGreaterThanOrEqual(12);
   });
 });
 
@@ -152,7 +169,8 @@ describe('capture pipeline wiring', () => {
     expect(source).toContain('exportSignatureCanvasPng');
     expect(source).not.toMatch(/onConfirm\(canvas\.toDataURL\('image\/png'\)\)/);
     expect(normalizer).toContain('detectSignatureInkBounds');
-    expect(normalizer).toContain('resolveSignatureCaptureRotation');
+    expect(normalizer).toContain('resolveCanonicalSignatureFrame');
+    expect(normalizer).not.toContain('ctx.rotate');
     expect(source).toContain('orientationType: orientation.orientationType');
     expect(source).toContain('angle: orientation.angle');
   });
@@ -164,5 +182,6 @@ describe('capture pipeline wiring', () => {
     expect(service).toContain('normalizeSignatureImageForProof(signatureImageUrl)');
     expect(payload).toContain('proof-signature-image-frame');
     expect(display).toContain('normalizeSignatureImageForProof(imageUri)');
+    expect(display).not.toContain("rotate: '90deg'");
   });
 });

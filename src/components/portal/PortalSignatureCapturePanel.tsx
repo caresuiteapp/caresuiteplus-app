@@ -11,7 +11,6 @@ import {
   SectionPanel,
 } from '@/components/ui';
 import { usePortalSignatureSourcePdf } from '@/hooks/usePortalSignatureSourcePdf';
-import { requestLandscapeLock } from '@/lib/orientation/requestLandscapeLock';
 import type {
   PortalSignatureDocumentDetail,
   PortalSignatureSignerRole,
@@ -66,9 +65,6 @@ export function PortalSignatureCapturePanel({
   const showPdfPreview = detail.documentSourceType === 'pdf_upload' && Platform.OS === 'web';
 
   const openModal = useCallback(() => {
-    if (Platform.OS === 'web') {
-      void requestLandscapeLock({ tryFullscreen: true });
-    }
     setModalVisible(true);
   }, []);
 

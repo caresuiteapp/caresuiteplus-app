@@ -3,6 +3,7 @@
  */
 import type { ServiceResult } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { getServiceMode } from '@/lib/services/mode';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
@@ -28,8 +29,10 @@ export async function reportNoShow(
 
   if (getServiceMode() === 'supabase') {
     const supabase = getSupabaseClient();
-    if (supabase) {
-      await fromUnknownTable(supabase, 'assist_visits')
+    if (!supabase) {
+      return { ok: false, error: 'Datenbank ist nicht verfügbar — Ausfall wurde nicht gespeichert.' };
+    }
+    const { error: visitError } = await fromUnknownTable(supabase, 'assist_visits')
         .update({
           execution_status: 'no_show',
           error_message: note.trim(),
@@ -37,15 +40,16 @@ export async function reportNoShow(
         })
         .eq('tenant_id', ctx.tenantId)
         .eq('id', ctx.assistVisitId);
+    if (visitError) return { ok: false, error: toGermanSupabaseError(visitError) };
 
-      await fromUnknownTable(supabase, 'assignments')
+    const { error: assignmentError } = await fromUnknownTable(supabase, 'assignments')
         .update({
           documentation_notes: note.trim(),
           updated_at: new Date().toISOString(),
         })
         .eq('tenant_id', ctx.tenantId)
         .eq('id', ctx.assignmentId);
-    }
+    if (assignmentError) return { ok: false, error: toGermanSupabaseError(assignmentError) };
   }
 
   return transitionAssistExecutionStatus(ctx, 'nicht_erschienen', {
