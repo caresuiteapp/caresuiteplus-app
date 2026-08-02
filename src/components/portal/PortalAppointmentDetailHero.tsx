@@ -1,12 +1,12 @@
-import { useMemo } from 'react';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 
 import type { PortalClientAppointmentDetail } from '@/types/portal/client';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { designTokens, spacing } from '@/theme';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { careSpacing } from '@/design/tokens/spacing';
+import { careTypography } from '@/design/tokens/typography';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 type PortalAppointmentDetailHeroProps = {
   appointment: PortalClientAppointmentDetail;
@@ -47,71 +47,17 @@ function statusVariant(status: string) {
 }
 
 export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppointmentDetailHeroProps) {
-  const { colors, typography } = useLegacyTheme();
-  const heroText = usePremiumHeroTextStyles();
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-  topRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  textCol: {
-    flex: 1,
-    gap: 2,
-  },
-  eyebrow: heroText.eyebrow,
-  title: heroText.title,
-  meta: {
-    ...typography.bodyStrong,
-    color: heroText.meta.color,
-  },
-  subtitle: {
-    ...typography.caption,
-    color: heroText.subtitle.color,
-  },
-  iconBadge: {
-    width: iconSize,
-    height: iconSize,
-    borderRadius: iconSize / 2,
-    backgroundColor: colors.bgElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(98,243,255,0.35)',
-  },
-  iconText: {
-    fontSize: 22,
-  },
-  badges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  kpiRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  kpiItem: {
-    flex: 1,
-    minWidth: 100,
-  },
-}),
-    [colors, typography, heroText.eyebrow, heroText.meta.color, heroText.subtitle.color, heroText.title],
-  );
-
-
+  const { isPhone } = useDeviceClass();
   const duration = durationMinutes(appointment.startsAt, appointment.endsAt);
   const scopeLabel = scope === 'client' ? 'KLIENT:INNENPORTAL' : 'MITARBEITERPORTAL';
 
   return (
-    <PremiumListHeroFrame>
-      <View style={styles.topRow}>
+    <PremiumListHeroFrame style={isPhone ? styles.framePhone : undefined}>
+      <View style={[styles.topRow, isPhone && styles.topRowPhone]}>
         <View style={styles.textCol}>
+          <Text style={styles.eyebrow}>{scopeLabel} · IHR EINSATZ</Text>
           <Text style={styles.title}>{appointment.title}</Text>
           <Text style={styles.meta}>{appointment.serviceType}</Text>
-          {appointment.location ? <Text style={styles.subtitle}>{appointment.location}</Text> : null}
         </View>
         <View style={styles.iconBadge}>
           <Text style={styles.iconText}>📅</Text>
@@ -123,36 +69,103 @@ export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppoin
           variant={statusVariant(appointment.status)}
           dot
         />
-        <PremiumBadge label={scopeLabel} variant="cyan" />
       </View>
-      <View style={styles.kpiRow}>
+      <View style={[styles.kpiRow, isPhone && styles.kpiRowPhone]}>
         <PremiumKpiCard
           label="Datum"
           value={formatShortDate(appointment.startsAt)}
           subValue={`${formatTime(appointment.startsAt)} – ${formatTime(appointment.endsAt)}`}
           icon="🗓️"
-          accentColor={colors.cyan}
-          style={styles.kpiItem}
+          accentColor={portalPremium.accent.blue}
+          style={isPhone ? styles.kpiItemPhone : styles.kpiItem}
         />
         <PremiumKpiCard
           label="Dauer"
           value={String(duration)}
           subValue={duration === 1 ? 'Minute' : 'Minuten'}
           icon="⏱️"
-          accentColor={colors.violet}
-          style={styles.kpiItem}
+          accentColor={portalPremium.accent.violet}
+          style={isPhone ? styles.kpiItemPhone : styles.kpiItem}
         />
         <PremiumKpiCard
-          label="Zuständig"
+          label={scope === 'client' ? 'Betreuungskraft' : 'Zuständig'}
           value={appointment.caregiverName ?? '—'}
           subValue={appointment.caregiverPhone ?? undefined}
           icon="👤"
-          accentColor={colors.orange}
-          style={styles.kpiItem}
+          accentColor={portalPremium.accent.teal}
+          style={isPhone ? styles.kpiItemPhone : styles.kpiItem}
         />
       </View>
     </PremiumListHeroFrame>
   );
 }
 
-const iconSize = designTokens.hero.iconBadgeSize;
+const styles = StyleSheet.create({
+  framePhone: {
+    padding: careSpacing.md,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: careSpacing.md,
+  },
+  topRowPhone: {
+    gap: careSpacing.sm,
+  },
+  textCol: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  eyebrow: {
+    ...careTypography.caption,
+    color: portalPremium.accent.blueDark,
+    fontWeight: '800',
+    letterSpacing: 0.45,
+  },
+  title: {
+    ...careTypography.h2,
+    color: portalPremium.text.primary,
+    fontWeight: '900',
+  },
+  meta: {
+    ...careTypography.bodyStrong,
+    color: portalPremium.text.secondary,
+  },
+  iconBadge: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    backgroundColor: portalPremium.surfaceSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: portalPremium.borderStrong,
+    flexShrink: 0,
+  },
+  iconText: {
+    fontSize: 23,
+  },
+  badges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: careSpacing.sm,
+  },
+  kpiRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: careSpacing.sm,
+  },
+  kpiRowPhone: {
+    flexDirection: 'column',
+  },
+  kpiItem: {
+    flex: 1,
+    minWidth: 180,
+  },
+  kpiItemPhone: {
+    flex: 0,
+    width: '100%',
+    minWidth: 0,
+  },
+});

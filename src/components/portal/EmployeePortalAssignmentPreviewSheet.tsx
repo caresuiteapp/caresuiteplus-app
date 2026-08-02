@@ -1,26 +1,13 @@
-import { useMemo } from 'react';
-import {
-  Linking,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-  type ViewStyle,
-} from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PlatformModal, type PlatformModalAction } from '@/components/layout/platform';
 import { PremiumButton, LoadingState, ErrorState } from '@/components/ui';
 import { HealthOSStatusBadge } from '@/components/healthos';
-import { lightSurfaceText } from '@/design/tokens/auroraGlass';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { usePortalAppointmentDetail } from '@/hooks/usePortalAppointmentDetail';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
-import { usePortalAppointmentDetail } from '@/hooks/usePortalAppointmentDetail';
-import { webSafeAreaPadding } from '@/lib/platform/webSafeArea';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 type EmployeePortalAssignmentPreviewSheetProps = {
   assignmentId: string | null;
@@ -28,16 +15,29 @@ type EmployeePortalAssignmentPreviewSheetProps = {
   onClose: () => void;
 };
 
-const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('de-DE', {
-    weekday: 'short',
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('de-DE', {
+    weekday: 'long',
     day: '2-digit',
-    month: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('de-DE', {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function PreviewFact({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.fact}>
+      <Text style={styles.factLabel}>{label}</Text>
+      <Text style={styles.factValue}>{value}</Text>
+    </View>
+  );
 }
 
 export function EmployeePortalAssignmentPreviewSheet({
@@ -46,10 +46,7 @@ export function EmployeePortalAssignmentPreviewSheet({
   onClose,
 }: EmployeePortalAssignmentPreviewSheetProps) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const compact = width < 768;
-  const text = lightSurfaceText;
+  const { isPhone } = useDeviceClass();
   const { data, loading, error, refresh, fromCache } = usePortalAppointmentDetail(
     visible ? (assignmentId ?? undefined) : undefined,
   );
@@ -64,179 +61,226 @@ export function EmployeePortalAssignmentPreviewSheet({
     void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`);
   };
 
-  const panelStyle = useMemo(
-    () => ({
-      paddingBottom: webSafeAreaPadding('bottom', insets.bottom + careSpacing.md) as number,
-    }),
-    [insets.bottom],
-  );
+  const openDetails = () => {
+    if (!data) return;
+    onClose();
+    router.push(`/portal/employee/assignments/${data.id}` as never);
+  };
+
+  const openExecution = () => {
+    if (!executionRoute) return;
+    onClose();
+    router.push(executionRoute as never);
+  };
+
+  const footerActions: PlatformModalAction[] = data
+    ? [
+        { title: 'Schließen', variant: 'secondary', onPress: onClose },
+        { title: 'Details öffnen', variant: 'secondary', onPress: openDetails },
+        ...(canOpenExecution && executionRoute
+          ? [
+              {
+                title: canStartExecution ? 'Zur Durchführung' : 'Dokumentation fortsetzen',
+                variant: 'primary' as const,
+                onPress: openExecution,
+              },
+            ]
+          : []),
+      ]
+    : [{ title: 'Schließen', variant: 'secondary', onPress: onClose }];
 
   return (
-    <Modal
+    <PlatformModal
       visible={visible}
-      transparent
-      animationType={compact ? 'slide' : 'fade'}
-      onRequestClose={onClose}
-      statusBarTranslucent
-      testID="employee-assignment-preview-sheet"
+      title={data?.title ?? 'Einsatzvorschau'}
+      subtitle={data?.clientName ? `Klient:in: ${data.clientName}` : 'Ihr geplanter Einsatz'}
+      onClose={onClose}
+      footerActions={footerActions}
+      maxWidth={780}
+      minWidth={0}
+      maxHeightRatio={isPhone ? 0.9 : 0.86}
+      animationType="fade"
+      bodyStyle={styles.modalBody}
+      sheetStyle={styles.modalSheet}
     >
-      <View style={[styles.overlay, compact ? styles.overlayCompact : styles.overlayDesktop]}>
-        <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Vorschau schließen" />
-        <View
-          style={[
-            styles.sheet,
-            compact ? styles.sheetCompact : styles.sheetDesktop,
-            panelStyle,
-            { backgroundColor: careLightColors.surface, borderColor: careLightColors.borderStrong },
-          ]}
-        >
-          <View style={styles.handleRow}>
-            {compact ? <View style={styles.handle} /> : null}
-            <Pressable onPress={onClose} style={[styles.closeBtn, webCursor]} accessibilityLabel="Schließen">
-              <Text style={[styles.closeText, { color: text.muted }]}>✕</Text>
-            </Pressable>
+      {loading && !data ? (
+        <LoadingState message="Einsatz wird geladen…" />
+      ) : error && !data ? (
+        <ErrorState title="Einsatz konnte nicht geladen werden" message={error} onRetry={refresh} />
+      ) : data ? (
+        <View style={styles.content} testID="employee-assignment-preview-readable-content">
+          <View style={styles.statusRow}>
+            <HealthOSStatusBadge domain="assignment" technicalValue={String(data.status)} />
+            {fromCache ? <Text style={styles.cacheHint}>Offline-Ansicht</Text> : null}
           </View>
 
-          {loading && !data ? (
-            <LoadingState message="Einsatz wird geladen…" />
-          ) : error && !data ? (
-            <ErrorState title="Einsatz" message={error} onRetry={refresh} />
-          ) : data ? (
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-              <View style={styles.header}>
-                <HealthOSStatusBadge domain="assignment" technicalValue={String(data.status)} />
-                <Text style={[styles.title, { color: text.primary }]}>{data.title}</Text>
-                <Text style={[styles.meta, { color: text.secondary }]}>{data.clientName}</Text>
+          <View style={[styles.factGrid, isPhone && styles.factGridPhone]}>
+            <PreviewFact label="Datum" value={formatDate(data.startsAt)} />
+            <PreviewFact
+              label="Einsatzzeit"
+              value={`${formatTime(data.startsAt)} – ${formatTime(data.endsAt)} Uhr`}
+            />
+          </View>
+
+          <View style={styles.informationCard}>
+            <Text style={styles.informationEyebrow}>EINSATZINFORMATIONEN</Text>
+            <View style={styles.informationRow}>
+              <Text style={styles.informationLabel}>Klient:in</Text>
+              <Text style={styles.informationValue}>{data.clientName}</Text>
+            </View>
+            {data.location ? (
+              <View style={styles.informationRow}>
+                <Text style={styles.informationLabel}>Adresse</Text>
+                <Text style={styles.informationValue}>{data.location}</Text>
               </View>
-
-              <View style={styles.section}>
-                <Text style={[styles.label, { color: text.muted }]}>Zeit</Text>
-                <Text style={[styles.value, { color: text.primary }]}>
-                  {formatDateTime(data.startsAt)} – {formatDateTime(data.endsAt)}
-                </Text>
+            ) : null}
+            {data.clientPhone ? (
+              <View style={styles.informationRow}>
+                <Text style={styles.informationLabel}>Kontakt</Text>
+                <Text style={styles.informationValue}>{data.clientPhone}</Text>
               </View>
-
-              {data.location ? (
-                <View style={styles.section}>
-                  <Text style={[styles.label, { color: text.muted }]}>Adresse</Text>
-                  <Text style={[styles.value, { color: text.primary }]}>{data.location}</Text>
-                </View>
-              ) : null}
-
-              {data.clientPhone ? (
-                <View style={styles.section}>
-                  <Text style={[styles.label, { color: text.muted }]}>Kontakt</Text>
-                  <Text style={[styles.value, { color: text.primary }]}>{data.clientPhone}</Text>
-                </View>
-              ) : null}
-
-              {data.notes ? (
-                <View style={styles.section}>
-                  <Text style={[styles.label, { color: text.muted }]}>Hinweise</Text>
-                  <Text style={[styles.value, { color: text.secondary }]}>{data.notes}</Text>
-                </View>
-              ) : null}
-
-              {data.tasks.length > 0 ? (
-                <View style={styles.section}>
-                  <Text style={[styles.label, { color: text.muted }]}>Aufgaben</Text>
-                  {data.tasks.map((task) => (
-                    <Text key={task} style={[styles.task, { color: text.secondary }]}>
-                      • {task}
-                    </Text>
-                  ))}
-                </View>
-              ) : null}
-
-              {fromCache ? (
-                <Text style={[styles.cacheHint, { color: text.muted }]}>
-                  Offline-Daten — Aktionen ggf. eingeschränkt.
-                </Text>
-              ) : null}
-
-              <View style={styles.actions}>
-                {data.location ? (
-                  <PremiumButton title="Route öffnen" variant="secondary" onPress={openRoute} />
-                ) : null}
-                {canOpenExecution && executionRoute ? (
-                  <PremiumButton
-                    title={canStartExecution ? 'Zur Durchführung' : 'Dokumentation fortsetzen'}
-                    onPress={() => {
-                      onClose();
-                      router.push(executionRoute as never);
-                    }}
-                  />
-                ) : null}
-                <PremiumButton
-                  title="Details öffnen"
-                  variant="secondary"
-                  onPress={() => {
-                    onClose();
-                    router.push(`/portal/employee/assignments/${data.id}` as never);
-                  }}
-                />
+            ) : null}
+            {data.notes ? (
+              <View style={styles.informationRow}>
+                <Text style={styles.informationLabel}>Hinweise</Text>
+                <Text style={styles.informationValue}>{data.notes}</Text>
               </View>
+            ) : null}
+          </View>
 
-              {/* TODO: Fahrt starten / Angekommen / Einsatz beenden — Workflow-Aktionen über Assist-Execution-API */}
-            </ScrollView>
+          {data.tasks.length > 0 ? (
+            <View style={styles.taskCard}>
+              <Text style={styles.informationEyebrow}>AUFGABEN</Text>
+              {data.tasks.map((task) => (
+                <View key={task} style={styles.taskRow}>
+                  <Text style={styles.taskBullet}>✓</Text>
+                  <Text style={styles.taskText}>{task}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {data.location ? (
+            <PremiumButton title="Route in Karten öffnen" variant="secondary" onPress={openRoute} fullWidth />
+          ) : null}
+
+          {fromCache ? (
+            <Text style={styles.cacheText}>
+              Diese Angaben stammen aus dem Offline-Speicher. Arbeitsaktionen werden erst nach der Aktualisierung freigegeben.
+            </Text>
           ) : null}
         </View>
-      </View>
-    </Modal>
+      ) : null}
+    </PlatformModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1 },
-  overlayCompact: { justifyContent: 'flex-end' },
-  overlayDesktop: { justifyContent: 'center', alignItems: 'center', padding: careSpacing.xl },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15, 23, 42, 0.45)' },
-  sheet: {
-    maxHeight: '88%',
-    borderWidth: 1,
-    overflow: 'hidden',
+  modalSheet: {
+    backgroundColor: portalPremium.surfaceRaised,
+    borderColor: portalPremium.borderStrong,
   },
-  sheetCompact: {
+  modalBody: {
+    padding: careSpacing.md,
+  },
+  content: {
     width: '100%',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    borderBottomWidth: 0,
+    gap: careSpacing.md,
   },
-  sheetDesktop: { width: '100%', maxWidth: 780, borderRadius: 28 },
-  handleRow: {
+  statusRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: careSpacing.sm,
-    paddingHorizontal: careSpacing.md,
+    gap: careSpacing.sm,
   },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(148, 163, 184, 0.6)',
+  cacheHint: {
+    ...careTypography.caption,
+    color: portalPremium.accent.amber,
+    fontWeight: '800',
   },
-  closeBtn: {
-    position: 'absolute',
-    right: careSpacing.md,
-    top: careSpacing.sm,
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+  factGrid: {
+    flexDirection: 'row',
+    gap: careSpacing.sm,
   },
-  closeText: { fontSize: 18, fontWeight: '700' },
-  content: { padding: careSpacing.lg, gap: careSpacing.lg, paddingBottom: careSpacing.xl },
-  header: { gap: careSpacing.xs },
-  title: { ...careTypography.h3, fontWeight: '800' },
-  meta: { ...careTypography.body },
-  section: {
-    gap: 4, padding: careSpacing.md, borderRadius: 16, borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.20)', backgroundColor: 'rgba(241, 245, 249, 0.70)',
+  factGridPhone: {
+    flexDirection: 'column',
   },
-  label: { ...careTypography.caption, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
-  value: { ...careTypography.body },
-  task: { ...careTypography.body },
-  cacheHint: { ...careTypography.caption, fontStyle: 'italic' },
-  actions: { gap: careSpacing.sm, marginTop: careSpacing.sm },
+  fact: {
+    flex: 1,
+    minWidth: 0,
+    padding: careSpacing.md,
+    gap: 4,
+    borderRadius: portalPremium.radius.card,
+    borderWidth: 1,
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceSoft,
+  },
+  factLabel: {
+    ...careTypography.caption,
+    color: portalPremium.text.muted,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.35,
+  },
+  factValue: {
+    ...careTypography.bodyStrong,
+    color: portalPremium.text.primary,
+  },
+  informationCard: {
+    padding: careSpacing.md,
+    gap: careSpacing.sm,
+    borderRadius: portalPremium.radius.card,
+    borderWidth: 1,
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surface,
+  },
+  taskCard: {
+    padding: careSpacing.md,
+    gap: careSpacing.sm,
+    borderRadius: portalPremium.radius.card,
+    borderWidth: 1,
+    borderColor: portalPremium.border,
+    backgroundColor: portalPremium.surfaceSoft,
+  },
+  informationEyebrow: {
+    ...careTypography.caption,
+    color: portalPremium.accent.blueDark,
+    fontWeight: '900',
+    letterSpacing: 0.45,
+  },
+  informationRow: {
+    gap: 2,
+    paddingTop: careSpacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: portalPremium.borderSoft,
+  },
+  informationLabel: {
+    ...careTypography.caption,
+    color: portalPremium.text.muted,
+    fontWeight: '800',
+  },
+  informationValue: {
+    ...careTypography.body,
+    color: portalPremium.text.primary,
+  },
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: careSpacing.sm,
+  },
+  taskBullet: {
+    ...careTypography.bodyStrong,
+    color: portalPremium.accent.teal,
+  },
+  taskText: {
+    ...careTypography.body,
+    color: portalPremium.text.primary,
+    flex: 1,
+    minWidth: 0,
+  },
+  cacheText: {
+    ...careTypography.caption,
+    color: portalPremium.text.secondary,
+    fontStyle: 'italic',
+  },
 });

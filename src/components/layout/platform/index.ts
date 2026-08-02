@@ -23,6 +23,7 @@ export type {
   CollapsibleSidebarSectionProps,
 } from './collapsiblesidebarsection';
 export { PlatformModal } from './platformmodal';
+export type { PlatformModalAction, PlatformModalProps, PlatformModalVariant } from './platformmodal';
 export { CarePopupShell } from './CarePopupShell';
 export type { CarePopupShellProps } from './CarePopupShell';
 export { CarePopupTabPills } from './CarePopupTabPills';

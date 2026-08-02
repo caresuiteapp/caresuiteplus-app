@@ -9,12 +9,14 @@ function readSrc(relativePath: string): string {
 }
 
 describe('employee portal readability (contrast + text layout)', () => {
-  it('assignment preview sheet uses opaque white surface', () => {
+  it('assignment preview sheet uses the bounded portal modal with explicit premium contrast', () => {
     const sheet = readSrc('src/components/portal/EmployeePortalAssignmentPreviewSheet.tsx');
-    expect(sheet).toContain('lightSurfaceText');
-    expect(sheet).toContain('careLightColors.surface');
+    expect(sheet).toContain('PlatformModal');
+    expect(sheet).toContain('portalPremium.text.primary');
+    expect(sheet).toContain('maxHeightRatio={isPhone ? 0.9 : 0.86}');
     expect(sheet).not.toContain('lightLiquidGlass.elevated');
     expect(sheet).not.toContain('useAuroraAdaptiveText');
+    expect(sheet).not.toContain('useWindowDimensions');
   });
 
   it('assignment cards use the readable premium light card', () => {

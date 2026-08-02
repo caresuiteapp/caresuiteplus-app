@@ -64,17 +64,18 @@ describe('portal premium runtime R28', () => {
     expect(messenger).toContain('ink?.primary ?? c.text');
   });
 
-  it('keeps appointment previews compact on phone and centered on wider screens', () => {
+  it('keeps appointment previews bounded, scroll-owned and readable at every width', () => {
     for (const file of [
       'src/components/portal/ClientPortalAssignmentPreviewSheet.tsx',
       'src/components/portal/EmployeePortalAssignmentPreviewSheet.tsx',
     ]) {
       const source = read(file);
-      expect(source, file).toContain('useWindowDimensions');
-      expect(source, file).toContain('const compact = width < 768');
-      expect(source, file).toContain("animationType={compact ? 'slide' : 'fade'}");
-      expect(source, file).toContain('styles.sheetDesktop');
-      expect(source, file).toContain('maxWidth: 780');
+      expect(source, file).toContain('PlatformModal');
+      expect(source, file).toContain('minWidth={0}');
+      expect(source, file).toContain('maxHeightRatio={isPhone ? 0.9 : 0.86}');
+      expect(source, file).toContain('animationType="fade"');
+      expect(source, file).toContain('portalPremium.text.primary');
+      expect(source, file).not.toContain('useWindowDimensions');
     }
   });
 

@@ -1,26 +1,14 @@
-import { useMemo } from 'react';
-import {
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-  type ViewStyle,
-} from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AssistLiveMap } from '@/components/maps/AssistLiveMap';
-import { PremiumButton, LoadingState, ErrorState, SectionPanel } from '@/components/ui';
-import { lightSurfaceText } from '@/design/tokens/auroraGlass';
-import { careLightColors } from '@/design/tokens/lightTheme';
-import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
+import { PlatformModal, type PlatformModalAction } from '@/components/layout/platform';
+import { ErrorState, LoadingState } from '@/components/ui';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalClientAppointmentDetail } from '@/hooks/usePortalClientAppointmentDetail';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { webSafeAreaPadding } from '@/lib/platform/webSafeArea';
+import { careSpacing } from '@/design/tokens/spacing';
+import { careTypography } from '@/design/tokens/typography';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 type ClientPortalAssignmentPreviewSheetProps = {
   assignmentId: string | null;
@@ -29,16 +17,29 @@ type ClientPortalAssignmentPreviewSheetProps = {
   detailBasePath?: string;
 };
 
-const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('de-DE', {
-    weekday: 'short',
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('de-DE', {
+    weekday: 'long',
     day: '2-digit',
-    month: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('de-DE', {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function PreviewFact({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.fact}>
+      <Text style={styles.factLabel}>{label}</Text>
+      <Text style={styles.factValue}>{value}</Text>
+    </View>
+  );
 }
 
 export function ClientPortalAssignmentPreviewSheet({
@@ -48,190 +49,227 @@ export function ClientPortalAssignmentPreviewSheet({
   detailBasePath = '/portal/client/appointments',
 }: ClientPortalAssignmentPreviewSheetProps) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const compact = width < 768;
+  const { isPhone } = useDeviceClass();
   const tenantId = useServiceTenantId();
-  const text = lightSurfaceText;
   const { data, loading, error, refresh } = usePortalClientAppointmentDetail(
     visible ? (assignmentId ?? undefined) : undefined,
   );
 
-  const panelStyle = useMemo(
-    () => ({
-      paddingBottom: webSafeAreaPadding('bottom', insets.bottom + careSpacing.md) as number,
-    }),
-    [insets.bottom],
-  );
+  const openDetails = () => {
+    if (!data) return;
+    onClose();
+    router.push(`${detailBasePath}/${data.id}` as never);
+  };
+
+  const footerActions: PlatformModalAction[] = data
+    ? [
+        { title: 'Schließen', variant: 'secondary', onPress: onClose },
+        { title: 'Einsatz vollständig öffnen', variant: 'primary', onPress: openDetails },
+      ]
+    : [{ title: 'Schließen', variant: 'secondary', onPress: onClose }];
+
+  const livePosition = data?.liveVisit?.mapVisible ? data.liveVisit.lastPosition : null;
 
   return (
-    <Modal
+    <PlatformModal
       visible={visible}
-      transparent
-      animationType={compact ? 'slide' : 'fade'}
-      onRequestClose={onClose}
-      statusBarTranslucent
-      testID="client-assignment-preview-sheet"
+      title={data?.title ?? 'Einsatzvorschau'}
+      subtitle={data?.caregiverName ? `Ihre Betreuungskraft: ${data.caregiverName}` : 'Ihr geplanter Einsatz'}
+      onClose={onClose}
+      footerActions={footerActions}
+      maxWidth={760}
+      minWidth={0}
+      maxHeightRatio={isPhone ? 0.9 : 0.86}
+      animationType="fade"
+      bodyStyle={styles.modalBody}
+      sheetStyle={styles.modalSheet}
     >
-      <View style={[styles.overlay, compact ? styles.overlayCompact : styles.overlayDesktop]}>
-        <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Vorschau schließen" />
-        <View
-          style={[
-            styles.sheet,
-            compact ? styles.sheetCompact : styles.sheetDesktop,
-            panelStyle,
-            { backgroundColor: careLightColors.surface, borderColor: careLightColors.borderStrong },
-          ]}
-        >
-          <View style={styles.handleRow}>
-            {compact ? <View style={styles.handle} /> : null}
-            <Pressable onPress={onClose} style={[styles.closeBtn, webCursor]} accessibilityLabel="Schließen">
-              <Text style={[styles.closeText, { color: text.muted }]}>✕</Text>
-            </Pressable>
+      {loading && !data ? (
+        <LoadingState message="Ihr Einsatz wird geladen…" />
+      ) : error && !data ? (
+        <ErrorState
+          title="Einsatz konnte nicht geladen werden"
+          message={error}
+          onRetry={refresh}
+        />
+      ) : data ? (
+        <View style={styles.content} testID="client-assignment-preview-readable-content">
+          <View style={[styles.factGrid, isPhone && styles.factGridPhone]}>
+            <PreviewFact label="Datum" value={formatDate(data.startsAt)} />
+            <PreviewFact
+              label="Uhrzeit"
+              value={`${formatTime(data.startsAt)} – ${formatTime(data.endsAt)} Uhr`}
+            />
           </View>
 
-          {loading && !data ? (
-            <LoadingState message="Einsatz wird geladen…" />
-          ) : error && !data ? (
-            <ErrorState title="Einsatz" message={error} onRetry={refresh} />
-          ) : data ? (
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-              <View style={styles.header}>
-                <Text style={[styles.title, { color: text.primary }]}>{data.title}</Text>
-                {data.caregiverName ? (
-                  <Text style={[styles.meta, { color: text.secondary }]}>
-                    Mitarbeitende: {data.caregiverName}
-                  </Text>
-                ) : null}
+          <View style={styles.informationCard}>
+            <Text style={styles.informationEyebrow}>IHR TERMIN</Text>
+            {data.location ? (
+              <View style={styles.informationRow}>
+                <Text style={styles.informationLabel}>Treffpunkt</Text>
+                <Text style={styles.informationValue}>{data.location}</Text>
               </View>
+            ) : null}
+            {data.serviceType ? (
+              <View style={styles.informationRow}>
+                <Text style={styles.informationLabel}>Unterstützung</Text>
+                <Text style={styles.informationValue}>{data.serviceType}</Text>
+              </View>
+            ) : null}
+            {data.preparationNotes ? (
+              <View style={styles.informationRow}>
+                <Text style={styles.informationLabel}>Hinweis</Text>
+                <Text style={styles.informationValue}>{data.preparationNotes}</Text>
+              </View>
+            ) : null}
+          </View>
 
-              <View style={styles.section}>
-                <Text style={[styles.label, { color: text.muted }]}>Zeit</Text>
-                <Text style={[styles.value, { color: text.primary }]}>
-                  {formatDateTime(data.startsAt)} – {formatDateTime(data.endsAt)}
+          <View style={styles.liveCard} testID="client-assignment-preview-live-arrival">
+            <Text style={styles.liveEyebrow}>LIVE-ANFAHRT</Text>
+            <Text style={styles.liveTitle}>Wann ist Ihre Betreuungskraft unterwegs?</Text>
+            {data.liveVisit?.statusLabel ? (
+              <Text style={styles.liveStatus}>{data.liveVisit.statusLabel}</Text>
+            ) : null}
+            {livePosition ? (
+              <AssistLiveMap
+                position={livePosition}
+                markerLabel={data.caregiverName ?? 'Betreuungskraft'}
+                height={isPhone ? 180 : 220}
+                tenantId={tenantId}
+              />
+            ) : (
+              <View style={styles.liveHint}>
+                <Text style={styles.liveHintIcon}>i</Text>
+                <Text style={styles.liveHintText}>
+                  Die Karte erscheint automatisch kurz vor dem Termin, sobald Ihre Betreuungskraft unterwegs ist.
                 </Text>
               </View>
-
-              {data.location ? (
-                <View style={styles.section}>
-                  <Text style={[styles.label, { color: text.muted }]}>Adresse</Text>
-                  <Text style={[styles.value, { color: text.primary }]}>{data.location}</Text>
-                </View>
-              ) : null}
-
-              {data.serviceType ? (
-                <View style={styles.section}>
-                  <Text style={[styles.label, { color: text.muted }]}>Leistungsart</Text>
-                  <Text style={[styles.value, { color: text.primary }]}>{data.serviceType}</Text>
-                </View>
-              ) : null}
-
-              {data.caregiverPhone ? (
-                <View style={styles.section}>
-                  <Text style={[styles.label, { color: text.muted }]}>Kontakt</Text>
-                  <Text style={[styles.value, { color: text.primary }]}>{data.caregiverPhone}</Text>
-                </View>
-              ) : null}
-
-              {data.preparationNotes ? (
-                <View style={styles.section}>
-                  <Text style={[styles.label, { color: text.muted }]}>Hinweise</Text>
-                  <Text style={[styles.value, { color: text.secondary }]}>{data.preparationNotes}</Text>
-                </View>
-              ) : null}
-
-              {data.liveVisit ? (
-                <SectionPanel
-                  title="Live-Standort"
-                  subtitle={data.liveVisit.statusLabel ?? 'Aktueller Einsatzstatus'}
-                >
-                  {data.liveVisit.mapVisible && data.liveVisit.lastPosition ? (
-                    <AssistLiveMap
-                      position={data.liveVisit.lastPosition}
-                      markerLabel={data.caregiverName ?? 'Mitarbeitende:r'}
-                      height={200}
-                      tenantId={tenantId}
-                    />
-                  ) : (
-                    <Text style={[styles.value, { color: text.secondary }]}>
-                      {data.liveVisit.fallbackMessage ??
-                        'Live-Karte ist derzeit nicht verfügbar.'}
-                    </Text>
-                  )}
-                </SectionPanel>
-              ) : null}
-
-              <View style={styles.actions}>
-                <PremiumButton
-                  title="Details öffnen"
-                  variant="secondary"
-                  onPress={() => {
-                    onClose();
-                    router.push(`${detailBasePath}/${data.id}` as never);
-                  }}
-                />
-              </View>
-            </ScrollView>
-          ) : null}
+            )}
+          </View>
         </View>
-      </View>
-    </Modal>
+      ) : null}
+    </PlatformModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1 },
-  overlayCompact: { justifyContent: 'flex-end' },
-  overlayDesktop: { justifyContent: 'center', alignItems: 'center', padding: careSpacing.xl },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15, 23, 42, 0.45)' },
-  sheet: {
-    maxHeight: '88%',
-    borderWidth: 1,
-    overflow: 'hidden',
+  modalSheet: {
+    backgroundColor: portalPremium.surfaceRaised,
+    borderColor: portalPremium.borderStrong,
   },
-  sheetCompact: {
+  modalBody: {
+    padding: careSpacing.md,
+  },
+  content: {
     width: '100%',
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    borderBottomWidth: 0,
+    gap: careSpacing.md,
   },
-  sheetDesktop: { width: '100%', maxWidth: 780, borderRadius: 26 },
-  handleRow: {
+  factGrid: {
+    flexDirection: 'row',
+    gap: careSpacing.sm,
+  },
+  factGridPhone: {
+    flexDirection: 'column',
+  },
+  fact: {
+    flex: 1,
+    minWidth: 0,
+    padding: careSpacing.md,
+    gap: 4,
+    borderRadius: portalPremium.radius.card,
+    borderWidth: 1,
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceSoft,
+  },
+  factLabel: {
+    ...careTypography.caption,
+    color: portalPremium.text.muted,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.35,
+  },
+  factValue: {
+    ...careTypography.bodyStrong,
+    color: portalPremium.text.primary,
+  },
+  informationCard: {
+    padding: careSpacing.md,
+    gap: careSpacing.sm,
+    borderRadius: portalPremium.radius.card,
+    borderWidth: 1,
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surface,
+  },
+  informationEyebrow: {
+    ...careTypography.caption,
+    color: portalPremium.accent.blueDark,
+    fontWeight: '900',
+    letterSpacing: 0.45,
+  },
+  informationRow: {
+    gap: 2,
+    paddingTop: careSpacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: portalPremium.borderSoft,
+  },
+  informationLabel: {
+    ...careTypography.caption,
+    color: portalPremium.text.muted,
+    fontWeight: '800',
+  },
+  informationValue: {
+    ...careTypography.body,
+    color: portalPremium.text.primary,
+  },
+  liveCard: {
+    padding: careSpacing.md,
+    gap: careSpacing.xs,
+    borderRadius: portalPremium.radius.card,
+    borderWidth: 1,
+    borderColor: portalPremium.border,
+    backgroundColor: portalPremium.surfaceSoft,
+  },
+  liveEyebrow: {
+    ...careTypography.caption,
+    color: portalPremium.accent.teal,
+    fontWeight: '900',
+    letterSpacing: 0.45,
+  },
+  liveTitle: {
+    ...careTypography.h3,
+    color: portalPremium.text.primary,
+    fontWeight: '900',
+  },
+  liveStatus: {
+    ...careTypography.caption,
+    color: portalPremium.text.secondary,
+    marginBottom: careSpacing.xs,
+  },
+  liveHint: {
+    marginTop: careSpacing.xs,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: careSpacing.sm,
-    paddingHorizontal: careSpacing.md,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(148, 163, 184, 0.6)',
-  },
-  closeBtn: {
-    position: 'absolute',
-    right: careSpacing.md,
-    top: careSpacing.sm,
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeText: { fontSize: 18, fontWeight: '700' },
-  content: { padding: careSpacing.md, gap: careSpacing.md, paddingBottom: careSpacing.xl },
-  header: { gap: careSpacing.xs },
-  title: { ...careTypography.h3, fontWeight: '800' },
-  meta: { ...careTypography.body },
-  section: {
-    gap: 4,
+    gap: careSpacing.sm,
     padding: careSpacing.md,
-    borderRadius: 16,
+    borderRadius: portalPremium.radius.control,
+    backgroundColor: portalPremium.surfaceRaised,
     borderWidth: 1,
-    borderColor: 'rgba(5,108,232,0.16)',
-    backgroundColor: 'rgba(237,246,255,0.72)',
+    borderColor: portalPremium.borderSoft,
   },
-  label: { ...careTypography.caption, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
-  value: { ...careTypography.body },
-  actions: { gap: careSpacing.sm, marginTop: careSpacing.sm },
+  liveHintIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    backgroundColor: portalPremium.accent.blue,
+    color: portalPremium.text.onStrong,
+    fontWeight: '900',
+  },
+  liveHintText: {
+    ...careTypography.body,
+    color: portalPremium.text.secondary,
+    flex: 1,
+    minWidth: 0,
+  },
 });

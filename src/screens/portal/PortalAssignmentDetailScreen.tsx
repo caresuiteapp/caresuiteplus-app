@@ -1,8 +1,6 @@
-import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalEmployeeAssignmentDetailHero } from '@/components/portal';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
@@ -20,6 +18,15 @@ import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { employeePortalHomeAppointmentTitle } from '@/lib/portal/portalHomeAppointment';
 import { spacing, typography } from '@/theme';
 import { portalPremium } from '@/design/tokens/portalPremium';
+
+function EmployeeDetailFact({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.fact}>
+      <Text style={styles.factLabel}>{label}</Text>
+      <Text style={styles.factValue}>{value}</Text>
+    </View>
+  );
+}
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -42,18 +49,6 @@ export function PortalAssignmentDetailScreen() {
 
   const { data, loading, error, refresh, notFound, fromCache, cachedAt, partialDetail } =
     usePortalAppointmentDetail(id);
-
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
-        previewCard: { padding: spacing.lg, gap: spacing.sm, borderRadius: 22 },
-        previewTitle: { ...typography.h3, color: portalPremium.text.primary },
-        notes: { ...typography.body, color: portalPremium.text.secondary },
-        actions: { gap: spacing.sm, marginTop: spacing.sm },
-      }),
-    [],
-  );
 
   if (!canView) {
     return (
@@ -107,22 +102,26 @@ export function PortalAssignmentDetailScreen() {
 
         <PremiumCard style={styles.previewCard}>
           <Text style={styles.previewTitle}>Einsatzvorschau</Text>
-          <DetailInfoRow label="Klient:in" value={data.clientName} />
-          {data.location ? <DetailInfoRow label="Adresse" value={data.location} /> : null}
-          <DetailInfoRow
+          <View style={styles.factGrid}>
+            <EmployeeDetailFact label="Klient:in" value={data.clientName} />
+            {data.location ? <EmployeeDetailFact label="Adresse" value={data.location} /> : null}
+          </View>
+          <View style={styles.factGrid}>
+            <EmployeeDetailFact
             label="Einsatzzeit"
             value={`${formatTime(data.startsAt)} – ${formatTime(data.endsAt)}`}
-          />
-          <DetailInfoRow
-            label="Geplante Dauer"
-            value={formatDurationMinutes(data.startsAt, data.endsAt)}
-          />
-          {data.clientPhone ? <DetailInfoRow label="Telefon" value={data.clientPhone} /> : null}
+            />
+            <EmployeeDetailFact
+              label="Geplante Dauer"
+              value={formatDurationMinutes(data.startsAt, data.endsAt)}
+            />
+          </View>
+          {data.clientPhone ? <EmployeeDetailFact label="Telefon" value={data.clientPhone} /> : null}
           {data.notes ? (
-            <>
-              <DetailInfoRow label="Hinweise" value="" />
+            <View style={styles.notesCard}>
+              <Text style={styles.factLabel}>Hinweise</Text>
               <Text style={styles.notes}>{data.notes}</Text>
-            </>
+            </View>
           ) : null}
         </PremiumCard>
 
@@ -141,3 +140,42 @@ export function PortalAssignmentDetailScreen() {
     </C14vSubpageShell>
   );
 }
+
+const styles = StyleSheet.create({
+  scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
+  previewCard: { padding: spacing.lg, gap: spacing.sm, borderRadius: 22 },
+  previewTitle: { ...typography.h3, color: portalPremium.text.primary },
+  factGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  fact: {
+    flex: 1,
+    minWidth: 220,
+    gap: 3,
+    padding: spacing.md,
+    borderRadius: portalPremium.radius.card,
+    borderWidth: 1,
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceRaised,
+  },
+  factLabel: {
+    ...typography.caption,
+    color: portalPremium.text.muted,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.35,
+  },
+  factValue: { ...typography.bodyStrong, color: portalPremium.text.primary },
+  notesCard: {
+    gap: 3,
+    padding: spacing.md,
+    borderRadius: portalPremium.radius.card,
+    borderWidth: 1,
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceSoft,
+  },
+  notes: { ...typography.body, color: portalPremium.text.secondary },
+  actions: { gap: spacing.sm, marginTop: spacing.sm },
+});
