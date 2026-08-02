@@ -13,7 +13,8 @@ import { usePortalActor } from '@/hooks/usePortalActor';
 import { fetchPortalCsDocumentRequests } from '@/lib/documents/csTemplates';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 import { subscribeToClientPortalDocumentRequestChanges, type RealtimeHandler } from '@/lib/realtime';
-import { liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
+import { liquidRadius } from '@/liquid-command/foundation/tokens';
+import { portalPremium } from '@/design/tokens/portalPremium';
 import { spacing } from '@/theme';
 
 type FilterKey = 'open' | 'done';
@@ -135,13 +136,13 @@ export function ClientDocumentSignaturesScreen() {
 const styles = StyleSheet.create({
   scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  switcher: { flex: 1, minWidth: 240, padding: 4, borderWidth: 1, borderColor: liquidColors.white12, borderRadius: liquidRadius.card, backgroundColor: 'rgba(4,24,51,0.76)', flexDirection: 'row', gap: 4 },
+  switcher: { flex: 1, minWidth: 240, padding: 4, borderWidth: 1, borderColor: portalPremium.borderSoft, borderRadius: liquidRadius.card, backgroundColor: portalPremium.surfaceRaised, flexDirection: 'row', gap: 4 },
   switch: { flex: 1, minHeight: 46, borderRadius: liquidRadius.control, alignItems: 'center', justifyContent: 'center' },
-  switchActive: { borderWidth: 1, borderColor: liquidColors.blue400, backgroundColor: liquidColors.blue500Alpha16 },
-  switchText: { color: liquidColors.white64 },
-  switchTextActive: { color: liquidColors.white },
-  refresh: { minHeight: 46, paddingHorizontal: 15, borderWidth: 1, borderColor: liquidColors.blue300Alpha32, borderRadius: liquidRadius.control, alignItems: 'center', justifyContent: 'center' },
-  refreshText: { color: liquidColors.blue200 },
+  switchActive: { borderWidth: 1, borderColor: portalPremium.borderStrong, backgroundColor: portalPremium.surfaceMuted },
+  switchText: { color: portalPremium.text.secondary },
+  switchTextActive: { color: portalPremium.accent.blueDark },
+  refresh: { minHeight: 46, paddingHorizontal: 15, borderWidth: 1, borderColor: portalPremium.borderStrong, borderRadius: liquidRadius.control, backgroundColor: portalPremium.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
+  refreshText: { color: portalPremium.accent.blueDark },
   list: { gap: spacing.sm },
   pressed: { opacity: 0.74 },
 });

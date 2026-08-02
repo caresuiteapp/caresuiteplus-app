@@ -4,7 +4,8 @@ import { PortalDashboardHero } from '@/components/portal/PortalDashboardHero';
 import { SuccessState } from '@/components/ui';
 import { useDashboard } from '@/hooks/useDashboard';
 import type { DashboardScope } from '@/types/dashboard';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 type PortalOverviewTabProps = {
   scope: DashboardScope;
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: portalPremium.text.secondary,
     textAlign: 'center',
     marginTop: spacing.sm,
   },

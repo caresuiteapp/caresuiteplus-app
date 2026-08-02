@@ -71,6 +71,7 @@ import {
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -529,9 +530,7 @@ export function EmployeePortalVisitExecutionScreen() {
       endPause,
       openSignatureCapture,
       finalizeVisit,
-      finalizeVisitDeferred,
       handleFinalizeDeferredSignature,
-      releaseSignatureUi,
     ],
   );
 
@@ -1228,15 +1227,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  phaseTitle: { ...typography.h3, color: colors.textPrimary },
-  phaseHint: { ...typography.body, color: colors.textSecondary },
+  phaseTitle: { ...typography.h3, color: portalPremium.text.primary },
+  phaseHint: { ...typography.body, color: portalPremium.text.secondary },
   phaseActions: { gap: spacing.sm, marginTop: spacing.sm },
   liveWrap: { gap: spacing.md },
   hiddenSetup: { gap: spacing.sm },
   dismissibleError: { gap: spacing.xs, paddingHorizontal: spacing.md },
   dismissText: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: portalPremium.text.muted,
     textAlign: 'center',
     paddingVertical: spacing.xs,
   },

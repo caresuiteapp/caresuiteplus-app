@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalMessageDetailHero } from '@/components/portal';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
-import { ScreenShell } from '@/components/layout';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import {
   ErrorState,
   LoadingState,
@@ -40,33 +40,33 @@ export function PortalMessageDetailScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Nachricht" subtitle={resolvePortalScreenSubtitle(roleLabel, 'employee')}>
+      <PortalTabScreen title="Nachricht" subtitle={resolvePortalScreenSubtitle(roleLabel, 'employee')}>
         <LockedActionBanner
           message={check('portal.employee.messages.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (loading) {
     return (
-      <ScreenShell title="Nachricht" subtitle="Wird geladen…">
+      <PortalTabScreen title="Nachricht" subtitle="Wird geladen…">
         <LoadingState message="Nachricht wird geladen…" />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (notFound || error) {
     return (
-      <ScreenShell title="Nachricht" subtitle="Fehler">
+      <PortalTabScreen title="Nachricht" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Die Nachricht existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
@@ -85,6 +85,7 @@ export function PortalMessageDetailScreen() {
       rightSlot={
         <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
       }
+      contentOwnsHero
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {successMessage ? <SuccessState message={successMessage} /> : null}

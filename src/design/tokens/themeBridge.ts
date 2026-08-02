@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useThemeMode } from '@/design/ThemeModeProvider';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import {
   liquidColors,
   liquidShadows,
@@ -17,7 +18,50 @@ export type LegacyGradients = ReturnType<typeof resolveLegacyGradients>;
  * Dark palette is the default for existing Premium screens.
  */
 export function legacyColorsFromPalette(mode: ColorMode = 'dark') {
-  void mode;
+  if (mode === 'light') {
+    return {
+      bgDeep: portalPremium.backdropStrong,
+      bgBase: portalPremium.backdrop,
+      bgPremium: portalPremium.surfaceSoft,
+      bgSurface: portalPremium.surface,
+      bgElevated: portalPremium.surfaceRaised,
+      bgPanel: portalPremium.surface,
+      bgInput: portalPremium.surfaceRaised,
+
+      textPrimary: portalPremium.text.primary,
+      textSecondary: portalPremium.text.secondary,
+      textMuted: portalPremium.text.muted,
+      textDisabled: '#91A4B6',
+
+      orange: portalPremium.accent.blue,
+      amber: portalPremium.accent.amber,
+      deepOrange: portalPremium.accent.blueDark,
+      gold: portalPremium.accent.amber,
+      cyan: portalPremium.accent.blue,
+      cyanSoft: '#4C9CFF',
+      blue: portalPremium.accent.blue,
+      violet: portalPremium.accent.violet,
+
+      success: portalPremium.accent.success,
+      warning: portalPremium.accent.amber,
+      danger: portalPremium.accent.danger,
+      info: portalPremium.accent.blue,
+
+      borderSoft: portalPremium.borderSoft,
+      borderStrong: portalPremium.borderStrong,
+      borderOrange: portalPremium.borderStrong,
+      borderCyan: portalPremium.borderStrong,
+
+      glowOrange: 'rgba(5,108,232,0.14)',
+      glowAmber: 'rgba(168,97,0,0.12)',
+      glowCyan: 'rgba(5,108,232,0.14)',
+      glowDark: 'rgba(0,38,82,0.10)',
+
+      primary: portalPremium.accent.blue,
+      error: portalPremium.accent.danger,
+    } as const;
+  }
+
   return {
     bgDeep: liquidColors.navy950,
     bgBase: liquidColors.navy900,
@@ -64,7 +108,47 @@ export function legacyColorsFromPalette(mode: ColorMode = 'dark') {
 
 /** Light/dark gradient sets for Premium cards, heroes, and glass surfaces. */
 export function resolveLegacyGradients(mode: ColorMode = 'dark') {
-  void mode;
+  if (mode === 'light') {
+    return {
+      card: {
+        default: ['#FFFFFF', '#EEF7FF'] as [string, string],
+        elevated: ['#FFFFFF', '#E4F2FF'] as [string, string],
+      },
+      primary: [portalPremium.accent.blueDark, portalPremium.accent.blue] as [
+        string,
+        string,
+      ],
+      sheen: {
+        subtle: ['rgba(255,255,255,0.86)', 'rgba(112,181,255,0.12)', 'transparent'] as [
+          string,
+          string,
+          string,
+        ],
+        strong: ['rgba(255,255,255,0.96)', 'rgba(112,181,255,0.20)', 'transparent'] as [
+          string,
+          string,
+          string,
+        ],
+      },
+      glass: {
+        panel: ['rgba(255,255,255,0.96)', 'rgba(234,244,255,0.97)'] as [string, string],
+        overlay: ['rgba(247,251,255,0.94)', 'rgba(220,238,255,0.98)'] as [string, string],
+      },
+      ambient: {
+        orange: ['rgba(5,108,232,0.15)', 'transparent'] as [string, string],
+        cyan: ['rgba(112,181,255,0.22)', 'transparent'] as [string, string],
+      },
+      hero: {
+        list: ['#FFFFFF', '#EAF4FF', '#CFE7FF'] as [string, string, string],
+        aurora: ['#FFFFFF', '#F2F8FF', '#DCEEFF', '#C5E2FF'] as [
+          string,
+          string,
+          string,
+          string,
+        ],
+      },
+    };
+  }
 
   return {
     card: {
@@ -116,40 +200,43 @@ export function resolveLegacyGradients(mode: ColorMode = 'dark') {
  */
 export function useLegacyTheme() {
   useThemeMode();
-  const mode: ColorMode = 'dark';
+  const portal = usePortalPremiumTheme();
+  const mode: ColorMode = portal.active ? 'light' : 'dark';
 
   return useMemo(
-    () => ({
-      mode,
-      colors: legacyColorsFromPalette(mode),
-      typography: resolveCareTypography(mode),
-      gradients: resolveLegacyGradients(mode),
-      palette: {
+    () => {
+      const isLight = mode === 'light';
+      return {
+        mode,
+        colors: legacyColorsFromPalette(mode),
+        typography: resolveCareTypography(mode),
+        gradients: resolveLegacyGradients(mode),
+        palette: {
         background: {
-          app: liquidColors.navy900,
-          soft: liquidColors.navy800,
-          elevated: liquidColors.navy700,
+          app: isLight ? portalPremium.backdrop : liquidColors.navy900,
+          soft: isLight ? portalPremium.surfaceSoft : liquidColors.navy800,
+          elevated: isLight ? portalPremium.surfaceRaised : liquidColors.navy700,
           dark: liquidColors.navy950,
-          darkElevated: liquidColors.navy800,
+          darkElevated: isLight ? portalPremium.backdrop : liquidColors.navy800,
         },
         brand: {
           navy: liquidColors.navy900,
-          orange: liquidColors.blue500,
-          gold: liquidColors.blue200,
-          cyan: liquidColors.blue400,
-          violet: liquidColors.blue400,
+          orange: isLight ? portalPremium.accent.blue : liquidColors.blue500,
+          gold: isLight ? portalPremium.accent.amber : liquidColors.blue200,
+          cyan: isLight ? portalPremium.accent.blue : liquidColors.blue400,
+          violet: isLight ? portalPremium.accent.violet : liquidColors.blue400,
         },
         text: {
-          primary: liquidColors.white,
-          secondary: liquidColors.white88,
-          muted: liquidColors.white64,
+          primary: isLight ? portalPremium.text.primary : liquidColors.white,
+          secondary: isLight ? portalPremium.text.secondary : liquidColors.white88,
+          muted: isLight ? portalPremium.text.muted : liquidColors.white64,
           inverse: liquidColors.navy950,
         },
         status: {
-          success: liquidColors.success,
-          warning: liquidColors.warning,
-          danger: liquidColors.danger,
-          info: liquidColors.blue400,
+          success: isLight ? portalPremium.accent.success : liquidColors.success,
+          warning: isLight ? portalPremium.accent.amber : liquidColors.warning,
+          danger: isLight ? portalPremium.accent.danger : liquidColors.danger,
+          info: isLight ? portalPremium.accent.blue : liquidColors.blue400,
         },
         module: {
           office: liquidColors.blue500,
@@ -162,11 +249,12 @@ export function useLegacyTheme() {
           insight: liquidColors.blue400,
         },
       },
-      isLight: false,
-      isDark: true,
-      shadow: liquidShadows.panel,
-    }),
-    [],
+        isLight,
+        isDark: !isLight,
+        shadow: isLight ? portalPremium.shadow.card : liquidShadows.panel,
+      };
+    },
+    [mode],
   );
 }
 

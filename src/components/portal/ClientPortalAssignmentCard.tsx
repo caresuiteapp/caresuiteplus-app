@@ -1,4 +1,5 @@
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -8,7 +9,8 @@ import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
 import { ASSIGNMENT_STATUS_LABELS, type AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
+import { liquidRadius } from '@/liquid-command/foundation/tokens';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 type ClientPortalAssignmentCardProps = {
   appointment: PortalAppointmentItem;
@@ -57,16 +59,11 @@ export function ClientPortalAssignmentCard({
   cacheStale = false,
   onPreview,
 }: ClientPortalAssignmentCardProps) {
-  const text = {
-    primary: liquidColors.white,
-    secondary: liquidColors.white88,
-    muted: liquidColors.white64,
-  };
+  const text = portalPremium.text;
   const accent = moduleColor('assist');
   const status = resolveStatus(appointment);
   const statusLabel =
     ASSIGNMENT_STATUS_LABELS[status] ?? WORKFLOW_STATUS_LABELS[appointment.status] ?? status;
-  const cardTint = 'rgba(8,39,75,0.84)';
   const serviceLabel = serviceCategory ?? appointment.title;
 
   return (
@@ -74,14 +71,22 @@ export function ClientPortalAssignmentCard({
       onPress={onPreview}
       style={({ pressed }) => [
         styles.card,
-        { backgroundColor: cardTint, borderColor: withAlpha(accent, 0.25) },
+        { borderColor: withAlpha(accent, 0.38) },
         pressed && styles.pressed,
         webCursor,
       ]}
       accessibilityRole="button"
       testID={`client-assignment-card-${appointment.id}`}
     >
-      <View style={[styles.statusBar, { backgroundColor: accent }]} />
+      <LinearGradient
+        colors={['#FFFFFF', '#F2F8FF', '#E3F1FF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+        pointerEvents="none"
+      />
+      <View style={[styles.statusBar, { backgroundColor: accent }]} pointerEvents="none" />
+      <View style={styles.orbitGlow} pointerEvents="none" />
 
       <View style={styles.inner}>
         <View style={styles.headerRow}>
@@ -148,13 +153,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
     marginBottom: careSpacing.sm,
+    backgroundColor: portalPremium.surface,
     ...(Platform.OS === 'web'
-      ? ({ boxShadow: '0 14px 36px rgba(0,16,44,0.22)', backdropFilter: 'blur(18px)' } as unknown as ViewStyle)
-      : { shadowColor: '#00132D', shadowOpacity: 0.24, shadowRadius: 16, elevation: 5 }),
+      ? ({ boxShadow: portalPremium.shadow.card } as unknown as ViewStyle)
+      : { shadowColor: '#002657', shadowOpacity: 0.16, shadowRadius: 18, elevation: 7 }),
   },
-  pressed: { opacity: 0.92 },
-  statusBar: { height: 3, width: '100%' },
-  inner: { padding: careSpacing.lg, gap: careSpacing.sm },
+  pressed: { opacity: 0.96, transform: [{ scale: 0.992 }] },
+  statusBar: { position: 'absolute', left: 0, top: 18, bottom: 18, width: 4, borderRadius: 4 },
+  orbitGlow: {
+    position: 'absolute', right: -54, top: -72, width: 190, height: 190,
+    borderRadius: 95, backgroundColor: 'rgba(53,151,255,0.10)',
+  },
+  inner: { padding: careSpacing.lg, paddingLeft: careSpacing.xl, gap: careSpacing.sm },
   headerRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -175,5 +185,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: careSpacing.sm,
     marginTop: careSpacing.sm,
+    paddingTop: careSpacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: portalPremium.borderSoft,
   },
 });

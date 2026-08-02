@@ -8,7 +8,8 @@ import {
   type AssistWorkflowStep,
 } from '@/features/assistWorkflow';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 type EmployeePortalVisitWorkflowTimelineProps = {
   status: AssignmentStatus;
@@ -86,11 +87,11 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: colors.textMuted,
+    backgroundColor: portalPremium.text.muted,
   },
-  dotDone: { backgroundColor: colors.success },
-  dotCurrent: { backgroundColor: colors.amber, transform: [{ scale: 1.2 }] },
-  label: { ...typography.caption, color: colors.textMuted },
-  labelDone: { color: colors.textSecondary },
-  labelCurrent: { ...typography.bodyStrong, color: colors.textPrimary },
+  dotDone: { backgroundColor: portalPremium.accent.success },
+  dotCurrent: { backgroundColor: portalPremium.accent.amber, transform: [{ scale: 1.2 }] },
+  label: { ...typography.caption, color: portalPremium.text.muted },
+  labelDone: { color: portalPremium.text.secondary },
+  labelCurrent: { ...typography.bodyStrong, color: portalPremium.text.primary },
 });

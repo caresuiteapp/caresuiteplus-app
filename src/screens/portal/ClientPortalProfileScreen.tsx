@@ -40,6 +40,7 @@ import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { useAuth } from '@/lib/auth/context';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 const CONTACT_ROLE_LABELS: Record<PortalClientContactSummary['role'], string> = {
   emergency: 'Notfall',
@@ -488,7 +489,7 @@ const styles = StyleSheet.create({
     marginBottom: careSpacing.md,
     paddingBottom: careSpacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomColor: portalPremium.borderSoft,
   },
   contactHeader: {
     flexDirection: 'row',

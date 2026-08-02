@@ -4,6 +4,7 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { withAlpha } from '@/design/tokens/motion';
 import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { resolveUserFacingSubtitle } from '@/lib/ui/uiVisibility';
 import { radius, spacing } from '@/theme';
 
@@ -37,6 +38,7 @@ export function SectionPanel({
   viewContext,
 }: SectionPanelProps) {
   const { colors, typography } = useLegacyTheme();
+  const portal = usePortalPremiumTheme();
   const openSurface = surface === 'open';
   const moduleAccent = accentColor ?? colors.cyan;
   const userSubtitle = resolveUserFacingSubtitle(subtitle);
@@ -49,7 +51,11 @@ export function SectionPanel({
           borderRadius: openSurface ? 0 : radius.lg,
           borderWidth: openSurface ? 0 : 1,
           borderColor: withAlpha(moduleAccent, 0.44),
-          backgroundColor: openSurface ? 'transparent' : systemLiquidGlass.panel,
+          backgroundColor: openSurface
+            ? 'transparent'
+            : portal.active
+              ? portalPremium.surface
+              : systemLiquidGlass.panel,
           overflow: fillHeight ? 'visible' : 'hidden',
           position: 'relative',
           ...(openSurface || Platform.OS !== 'web'
@@ -57,7 +63,7 @@ export function SectionPanel({
             : ({
                 backdropFilter: `blur(${systemLiquidGlass.blur.desktop}px) saturate(${systemLiquidGlass.saturate})`,
                 WebkitBackdropFilter: `blur(${systemLiquidGlass.blur.desktop}px) saturate(${systemLiquidGlass.saturate})`,
-                boxShadow: systemLiquidGlass.shadowSoft,
+                boxShadow: portal.active ? portalPremium.shadow.card : systemLiquidGlass.shadowSoft,
               } as unknown as ViewStyle)),
           ...(fillHeight ? { flexGrow: 1, width: '100%' } : null),
         },
@@ -65,7 +71,7 @@ export function SectionPanel({
           ...StyleSheet.absoluteFillObject,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: systemLiquidGlass.innerBorder,
+          borderColor: portal.active ? portalPremium.innerBorder : systemLiquidGlass.innerBorder,
         },
         header: {
           paddingHorizontal: spacing.md,
@@ -77,13 +83,13 @@ export function SectionPanel({
         },
         title: {
           ...(headerVariant === 'hero' ? typography.h1 : typography.h3),
-          color: systemLiquidGlass.text.primary,
+          color: portal.active ? portalPremium.text.primary : systemLiquidGlass.text.primary,
           textAlign: headerAlign === 'center' ? 'center' : 'left',
         },
         subtitle: {
           ...(headerVariant === 'hero' ? typography.body : typography.caption),
           marginTop: headerVariant === 'hero' ? spacing.xs : 4,
-          color: systemLiquidGlass.text.secondary,
+          color: portal.active ? portalPremium.text.secondary : systemLiquidGlass.text.secondary,
           textAlign: headerAlign === 'center' ? 'center' : 'left',
         },
         body: {
@@ -107,6 +113,7 @@ export function SectionPanel({
       headerVariant,
       moduleAccent,
       fillHeight,
+      portal.active,
     ],
   );
 

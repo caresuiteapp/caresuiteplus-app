@@ -30,7 +30,8 @@ import {
 } from '@/lib/portal/employeePortalAssignmentCompletion';
 import { spacing } from '@/theme';
 import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
-import { liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
+import { liquidRadius } from '@/liquid-command/foundation/tokens';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 type PortalAppointmentsTabProps = {
   appointmentsLabel?: string;
@@ -298,9 +299,9 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 4,
     borderWidth: 1,
-    borderColor: liquidColors.white12,
+    borderColor: portalPremium.borderSoft,
     borderRadius: liquidRadius.card,
-    backgroundColor: 'rgba(4,24,51,0.76)',
+    backgroundColor: portalPremium.surfaceRaised,
     flexDirection: 'row',
     gap: 4,
   },
@@ -314,10 +315,10 @@ const styles = StyleSheet.create({
   },
   clientSwitchActive: {
     borderWidth: 1,
-    borderColor: liquidColors.blue400,
-    backgroundColor: liquidColors.blue500Alpha16,
+    borderColor: portalPremium.borderStrong,
+    backgroundColor: portalPremium.surfaceMuted,
   },
-  clientSwitchText: { color: liquidColors.white64, textAlign: 'center' },
-  clientSwitchTextActive: { color: liquidColors.white },
+  clientSwitchText: { color: portalPremium.text.secondary, textAlign: 'center' },
+  clientSwitchTextActive: { color: portalPremium.accent.blueDark },
   pressed: { opacity: 0.74 },
 });

@@ -4,7 +4,8 @@ import { PremiumBadge, SectionPanel } from '@/components/ui';
 import { isAssistTrackingPersistenceActive } from '@/lib/assist/gpsTrackingConfig';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import type { EmployeePortalLiveTimers } from '@/types/modules/employeePortalTracking';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 function formatDuration(seconds: number | null, emptyLabel: string): string {
   if (seconds == null) return emptyLabel;
@@ -66,5 +67,5 @@ export function EmployeePortalLiveTimersPanel({
 
 const styles = StyleSheet.create({
   activeRow: { marginBottom: spacing.sm },
-  hint: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
+  hint: { ...typography.caption, color: portalPremium.text.muted, marginTop: spacing.sm },
 });

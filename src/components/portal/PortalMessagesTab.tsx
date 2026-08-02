@@ -15,6 +15,7 @@ import { useAuth } from '@/lib/auth/context';
 import { resolvePortalScope } from '@/lib/portal/portalVisibility';
 import { VISIBILITY_LABELS } from '@/types/portal/visibility';
 import { colors, spacing, typography } from '@/theme';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('de-DE', {
@@ -32,6 +33,7 @@ export function PortalMessagesTab({ detailBasePath }: PortalMessagesTabProps = {
   const router = useRouter();
   const { isPhone } = useDeviceClass();
   const { profile } = useAuth();
+  const adaptiveText = useAuroraAdaptiveText();
   const scope = resolvePortalScope(profile?.roleKey ?? null);
   const {
     items,
@@ -88,18 +90,24 @@ export function PortalMessagesTab({ detailBasePath }: PortalMessagesTabProps = {
             }
           >
             <View style={styles.cardHeader}>
-              <Text style={[styles.subject, !msg.readAt && styles.unreadSubject]}>
+              <Text
+                style={[
+                  styles.subject,
+                  { color: adaptiveText.primary },
+                  !msg.readAt && styles.unreadSubject,
+                ]}
+              >
                 {msg.subject}
               </Text>
               {!msg.readAt ? (
                 <PremiumBadge label="Neu" variant="orange" />
               ) : null}
             </View>
-            <Text style={styles.body} numberOfLines={3}>
+            <Text style={[styles.body, { color: adaptiveText.secondary }]} numberOfLines={3}>
               {msg.body}
             </Text>
             <View style={styles.footer}>
-              <Text style={styles.meta}>
+              <Text style={[styles.meta, { color: adaptiveText.muted }]}>
                 Von {msg.senderName} · {formatDate(msg.updatedAt)}
               </Text>
               <PremiumBadge
@@ -151,7 +159,6 @@ const styles = StyleSheet.create({
   },
   body: {
     ...typography.body,
-    color: colors.textSecondary,
   },
   footer: {
     flexDirection: 'row',

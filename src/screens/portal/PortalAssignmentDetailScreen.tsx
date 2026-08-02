@@ -6,7 +6,7 @@ import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalEmployeeAssignmentDetailHero } from '@/components/portal';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
-import { ScreenShell } from '@/components/layout';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import {
   ErrorState,
   LoadingState,
@@ -18,7 +18,8 @@ import { usePortalAppointmentDetail } from '@/hooks/usePortalAppointmentDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { employeePortalHomeAppointmentTitle } from '@/lib/portal/portalHomeAppointment';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -47,8 +48,8 @@ export function PortalAssignmentDetailScreen() {
       StyleSheet.create({
         scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
         previewCard: { padding: spacing.lg, gap: spacing.sm, borderRadius: 22 },
-        previewTitle: { ...typography.h3, color: colors.textPrimary },
-        notes: { ...typography.body, color: colors.textSecondary },
+        previewTitle: { ...typography.h3, color: portalPremium.text.primary },
+        notes: { ...typography.body, color: portalPremium.text.secondary },
         actions: { gap: spacing.sm, marginTop: spacing.sm },
       }),
     [],
@@ -56,33 +57,33 @@ export function PortalAssignmentDetailScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Einsatz" subtitle={resolvePortalScreenSubtitle(roleLabel, 'employee')}>
+      <PortalTabScreen title="Einsatz" subtitle={resolvePortalScreenSubtitle(roleLabel, 'employee')}>
         <LockedActionBanner
           message={check('portal.employee.appointments.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (loading) {
     return (
-      <ScreenShell title="Einsatz" subtitle="Wird geladen…">
+      <PortalTabScreen title="Einsatz" subtitle="Wird geladen…">
         <LoadingState message="Einsatzdetails werden geladen…" />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (notFound || error) {
     return (
-      <ScreenShell title="Einsatz" subtitle="Fehler">
+      <PortalTabScreen title="Einsatz" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Der Einsatz existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
@@ -98,6 +99,7 @@ export function PortalAssignmentDetailScreen() {
       title={employeePortalHomeAppointmentTitle(data)}
       eyebrow="PORTAL · EINSATZ"
       subtitle={`${data.clientName} · ${resolvePortalScreenSubtitle(roleLabel, 'employee')}`}
+      contentOwnsHero
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <CachedDataBanner visible={fromCache} cachedAt={cachedAt} partialDetail={partialDetail} />

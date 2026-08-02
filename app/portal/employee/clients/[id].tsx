@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { ScreenShell } from '@/product-workflows/components/layout';
+import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScreen';
 import { EmployeePortalClientRecordDetailScreen } from '@/product-workflows/components/portal/EmployeePortalClientRecordDetailScreen';
 
 export default function EmployeeClientRecordDetailRoute() {
@@ -7,8 +7,8 @@ export default function EmployeeClientRecordDetailRoute() {
   const clientId = Array.isArray(rawId) ? rawId[0] : rawId;
 
   return (
-    <ScreenShell title="Klientenakte" showBack>
+    <PortalTabScreen title="Klientenakte" contentOwnsHero>
       <EmployeePortalClientRecordDetailScreen clientId={clientId} />
-    </ScreenShell>
+    </PortalTabScreen>
   );
 }

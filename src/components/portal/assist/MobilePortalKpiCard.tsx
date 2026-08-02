@@ -4,6 +4,7 @@ import { PORTAL_LIGHT_LINK_ORANGE, useAuroraAdaptiveText, useLightLiquidGlassShe
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { SpaceKpiIcon } from '@/components/icons/space';
 
 export const PORTAL_MOBILE_CTA_GOLD = '#F5B942';
 
@@ -57,7 +58,7 @@ export function MobilePortalKpiCard({
   const content = (
     <View style={styles.inner}>
       <View style={[styles.iconBox, { borderColor: `${accentColor}55`, backgroundColor: `${accentColor}18` }]}>
-        <Text style={styles.icon}>{icon}</Text>
+        <SpaceKpiIcon icon={icon} accentColor={accentColor} size={28} frame="rail" />
       </View>
       <Text style={[type.caption, styles.title, { color: text.primary }]} {...noBreakTextProps}>
         {label}
@@ -155,10 +156,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  icon: {
-    fontSize: 18,
-    lineHeight: 22,
   },
   title: {
     fontWeight: '700',

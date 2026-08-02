@@ -41,7 +41,7 @@ export function PremiumBadge({ label, variant = 'orange', style, dot = false, si
   const { isLight } = useLegacyTheme();
   const useLightShell = useLightLiquidGlassShell() || isLight;
   const base = CONFIG[variant] ?? CONFIG.muted;
-  const chip = useLightShell ? null : isLight ? resolveAccentTextChipStyle(base.text) : null;
+  const chip = useLightShell || isLight ? resolveAccentTextChipStyle(base.text) : null;
   const compact = size === 'compact';
   const displayLabel = userFriendlyLabel(label);
 

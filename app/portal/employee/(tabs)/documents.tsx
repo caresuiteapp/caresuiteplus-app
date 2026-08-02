@@ -3,7 +3,7 @@ import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScr
 
 export default function EmployeeDocumentsRoute() {
   return (
-    <PortalTabScreen title="Dokumente">
+    <PortalTabScreen title="Dokumente" contentOwnsHero>
       <PortalDocumentsTab detailBasePath="/portal/employee/documents" />
     </PortalTabScreen>
   );

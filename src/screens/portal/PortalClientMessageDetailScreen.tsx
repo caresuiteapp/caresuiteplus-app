@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalMessageDetailHero } from '@/components/portal';
-import { ScreenShell } from '@/components/layout';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import {
   ErrorState,
   LoadingState,
@@ -15,6 +15,7 @@ import { usePortalMessageDetail } from '@/hooks/usePortalMessageDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 export function PortalClientMessageDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -38,43 +39,45 @@ export function PortalClientMessageDetailScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Nachricht" subtitle={resolvePortalScreenSubtitle(roleLabel, 'client')}>
+      <PortalTabScreen title="Nachricht" subtitle={resolvePortalScreenSubtitle(roleLabel, 'client')}>
         <LockedActionBanner
           message={check('portal.client.messages.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (loading) {
     return (
-      <ScreenShell title="Nachricht" subtitle="Wird geladen…">
+      <PortalTabScreen title="Nachricht" subtitle="Wird geladen…">
         <LoadingState message="Nachricht wird geladen…" />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (notFound || error) {
     return (
-      <ScreenShell title="Nachricht" subtitle="Fehler">
+      <PortalTabScreen title="Nachricht" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Die Nachricht existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (!data) return null;
 
   return (
-    <ScreenShell
+    <PortalTabScreen
       title={data.subject}
       subtitle={`Von ${data.senderName}`}
-      rightSlot={
+      scroll={false}
+      contentOwnsHero
+      actionsSlot={
         <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
       }
     >
@@ -110,7 +113,7 @@ export function PortalClientMessageDetailScreen() {
           />
         ) : null}
       </ScrollView>
-    </ScreenShell>
+    </PortalTabScreen>
   );
 }
 
@@ -121,13 +124,24 @@ const styles = StyleSheet.create({
   },
   bodyCard: {
     gap: spacing.sm,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: portalPremium.borderSoft,
+    borderRadius: portalPremium.radius.card,
+    backgroundColor: portalPremium.surfaceRaised,
   },
   body: {
     ...typography.body,
     lineHeight: 22,
+    color: portalPremium.text.primary,
   },
   replyBox: {
     gap: spacing.sm,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: portalPremium.borderSoft,
+    borderRadius: portalPremium.radius.card,
+    backgroundColor: portalPremium.surfaceSoft,
   },
   error: {
     ...typography.caption,

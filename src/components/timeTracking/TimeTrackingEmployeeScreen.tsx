@@ -16,7 +16,7 @@ import {
 import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
-import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import { portalPremium } from '@/design/tokens/portalPremium';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -444,9 +444,9 @@ export function TimeTrackingEmployeeScreen() {
 }
 
 const portalText = {
-  primary: spatialCare.textOnNight,
-  secondary: spatialCare.textOnNightMuted,
-  muted: spatialCare.textOnNightMuted,
+  primary: portalPremium.text.primary,
+  secondary: portalPremium.text.secondary,
+  muted: portalPremium.text.muted,
 } as const;
 
 function PrivacyConsentModal(props: {
@@ -481,13 +481,13 @@ const styles = StyleSheet.create({
     padding: careSpacing.lg,
   },
   modalCard: {
-    backgroundColor: spatialCare.stageStrong,
+    backgroundColor: portalPremium.surfaceRaised,
     borderWidth: 1,
-    borderColor: spatialCare.borderGlow,
+    borderColor: portalPremium.borderStrong,
     borderRadius: 16,
     padding: careSpacing.lg,
     gap: careSpacing.sm,
   },
-  modalTitle: { ...typography.h3, color: spatialCare.textOnNight },
-  modalBody: { ...typography.body, color: spatialCare.textOnNightMuted, marginBottom: careSpacing.sm },
+  modalTitle: { ...typography.h3, color: portalPremium.text.primary },
+  modalBody: { ...typography.body, color: portalPremium.text.secondary, marginBottom: careSpacing.sm },
 });

@@ -12,7 +12,7 @@ export function EmployeePortalAnnouncementsScreen() {
   const activeCount = records.filter((r) => r.status === 'aktiv').length;
 
   return (
-    <PortalTabScreen title="Ankündigungen" subtitle="Mitteilungen aus dem Office">
+    <PortalTabScreen title="Ankündigungen" subtitle="Mitteilungen aus dem Office" contentOwnsHero>
       <View style={styles.scroll}>
         <PortalAnnouncementsHero
           scope="portal_employee"

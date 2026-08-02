@@ -25,6 +25,8 @@ type C14vSubpageShellProps = {
   actions?: ActionItem[];
   rightSlot?: ReactNode;
   accentColor?: string;
+  /** Content already renders a complete portal detail hero. */
+  contentOwnsHero?: boolean;
 };
 
 /**
@@ -42,6 +44,7 @@ export function C14vSubpageShell({
   actions,
   rightSlot,
   accentColor,
+  contentOwnsHero = false,
 }: C14vSubpageShellProps) {
   const { isReadOnly, roleLabel } = usePermissions();
   const pathname = usePathname();
@@ -99,6 +102,7 @@ export function C14vSubpageShell({
         eyebrow={eyebrow}
         scroll={scroll}
         actionsSlot={actionBar}
+        contentOwnsHero={contentOwnsHero}
       >
         {content}
       </PortalTabScreen>

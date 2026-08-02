@@ -12,7 +12,8 @@ import {
   type EmployeePermissionKind,
   type EmployeePermissionOverviewItem,
 } from '@/features/employeePermissions';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 type EmployeePermissionOnboardingProps = {
   tenantId: string;
@@ -103,7 +104,6 @@ export function EmployeePermissionOnboarding({
     }
     onComplete();
   }, [
-    currentKind,
     isLastStep,
     tenantId,
     employeeId,
@@ -122,7 +122,7 @@ export function EmployeePermissionOnboarding({
             Schritt {step + 1} von {PERMISSION_KINDS.length} — einmalig beim ersten Einsatz
           </Text>
 
-          <PremiumCard accentColor={colors.cyan}>
+          <PremiumCard accentColor={portalPremium.accent.blue}>
             <Text style={styles.permissionTitle}>{explanation.label}</Text>
             <Text style={styles.permissionDesc}>{explanation.description}</Text>
             {currentItem ? (
@@ -205,16 +205,16 @@ export function useEmployeePermissionOnboardingGate(
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgBase, paddingTop: spacing.xl },
+  container: { flex: 1, backgroundColor: portalPremium.backdrop, paddingTop: spacing.xl },
   scroll: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
-  kicker: { ...typography.caption, color: colors.textMuted, textTransform: 'uppercase' },
-  title: { ...typography.h2, color: colors.textPrimary },
-  subtitle: { ...typography.body, color: colors.textMuted, marginBottom: spacing.sm },
-  permissionTitle: { ...typography.h3, marginBottom: spacing.xs },
-  permissionDesc: { ...typography.body, color: colors.textMuted },
-  status: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
-  note: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.sm },
-  success: { ...typography.body, color: colors.success, marginBottom: spacing.sm },
-  error: { ...typography.body, color: colors.danger },
+  kicker: { ...typography.caption, color: portalPremium.text.onStrongMuted, textTransform: 'uppercase' },
+  title: { ...typography.h2, color: portalPremium.text.onStrong },
+  subtitle: { ...typography.body, color: portalPremium.text.onStrongMuted, marginBottom: spacing.sm },
+  permissionTitle: { ...typography.h3, color: portalPremium.text.primary, marginBottom: spacing.xs },
+  permissionDesc: { ...typography.body, color: portalPremium.text.secondary },
+  status: { ...typography.caption, color: portalPremium.text.muted, marginTop: spacing.sm },
+  note: { ...typography.caption, color: portalPremium.text.secondary, marginBottom: spacing.sm },
+  success: { ...typography.body, color: portalPremium.accent.success, marginBottom: spacing.sm },
+  error: { ...typography.body, color: portalPremium.accent.danger },
   actions: { gap: spacing.sm, marginTop: spacing.md },
 });

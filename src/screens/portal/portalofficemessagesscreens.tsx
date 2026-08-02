@@ -4,7 +4,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { PortalOfficeMessenger } from '@/components/portal/portalofficemessenger';
 import { PortalOfficeThread } from '@/components/portal/portalofficethread';
-import { ScreenShell } from '@/components/layout';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -49,11 +48,11 @@ export function ClientPortalOfficeMessagesScreen() {
   const { can, check } = usePermissions();
   if (!can('portal.client.messages.view')) {
     return (
-      <ScreenShell title="Nachrichten" subtitle="Klient:innenportal" showBack={false}>
+      <PortalTabScreen title="Nachrichten" subtitle="Klient:innenportal">
         <LockedActionBanner
           message={check('portal.client.messages.view').reason ?? 'Keine Berechtigung.'}
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
@@ -64,11 +63,11 @@ export function EmployeePortalOfficeMessagesScreen() {
   const { can, check } = usePermissions();
   if (!can('portal.employee.messages.view')) {
     return (
-      <ScreenShell title="Nachrichten" subtitle="Mitarbeiter:innenportal" showBack={false}>
+      <PortalTabScreen title="Nachrichten" subtitle="Mitarbeiter:innenportal">
         <LockedActionBanner
           message={check('portal.employee.messages.view').reason ?? 'Keine Berechtigung.'}
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
@@ -109,11 +108,11 @@ export function ClientPortalOfficeConversationScreen() {
 
   if (!can('portal.client.messages.view')) {
     return (
-      <ScreenShell title="Chat" showBack>
+      <PortalTabScreen title="Chat">
         <LockedActionBanner
           message={check('portal.client.messages.view').reason ?? 'Keine Berechtigung.'}
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
@@ -156,11 +155,11 @@ export function EmployeePortalOfficeConversationScreen() {
 
   if (!can('portal.employee.messages.view')) {
     return (
-      <ScreenShell title="Chat" showBack>
+      <PortalTabScreen title="Chat">
         <LockedActionBanner
           message={check('portal.employee.messages.view').reason ?? 'Keine Berechtigung.'}
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 

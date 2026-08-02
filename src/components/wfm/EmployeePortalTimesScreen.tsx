@@ -12,7 +12,7 @@ import {
   PremiumCard,
 } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
-import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import { portalPremium } from '@/design/tokens/portalPremium';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -187,9 +187,9 @@ export function EmployeePortalTimesScreen() {
 }
 
 const portalText = {
-  primary: spatialCare.textOnNight,
-  secondary: spatialCare.textOnNightMuted,
-  muted: spatialCare.textOnNightMuted,
+  primary: portalPremium.text.primary,
+  secondary: portalPremium.text.secondary,
+  muted: portalPremium.text.muted,
 } as const;
 
 const styles = StyleSheet.create({
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     padding: careSpacing.sm,
     gap: careSpacing.xs,
     borderRadius: 14,
-    backgroundColor: spatialCare.panelMuted,
+    backgroundColor: portalPremium.surfaceSoft,
   },
   timelineLabel: { ...typography.caption, fontWeight: '700' },
   timelineSteps: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
@@ -220,8 +220,8 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: spatialCare.border,
-    backgroundColor: spatialCare.input,
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceRaised,
   },
   timelineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#14B8A6' },
   timeline: { ...typography.caption, lineHeight: 18 },

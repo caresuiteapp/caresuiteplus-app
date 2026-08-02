@@ -11,7 +11,8 @@ import {
   type ClientHelpCategory,
   type ClientHelpContact,
 } from '@/lib/portal/clientHelpContacts';
-import { liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
+import { liquidRadius } from '@/liquid-command/foundation/tokens';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 const CATEGORY_ORDER: ClientHelpCategory[] = ['emergency', 'medical', 'crisis', 'violence', 'family', 'daily'];
 
@@ -72,7 +73,7 @@ export function ClientPortalHelpScreen() {
           clearButtonMode="while-editing"
           onChangeText={setSearch}
           placeholder="Suchen, z. B. Gift, Polizei, Pflege, Gewalt …"
-          placeholderTextColor={liquidColors.white56}
+          placeholderTextColor={portalPremium.text.muted}
           style={[type.body, styles.search]}
           value={search}
         />
@@ -114,41 +115,41 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: careSpacing.md,
   },
-  emergencyText: { color: liquidColors.white },
-  emergencyCall: { minHeight: 46, paddingHorizontal: 18, borderRadius: liquidRadius.control, backgroundColor: liquidColors.white, alignItems: 'center', justifyContent: 'center' },
+  emergencyText: { color: portalPremium.text.onStrong },
+  emergencyCall: { minHeight: 46, paddingHorizontal: 18, borderRadius: liquidRadius.control, backgroundColor: portalPremium.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
   emergencyCallText: { color: '#8B1A2E' },
   search: {
     minHeight: 54,
     paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: liquidColors.blue300Alpha32,
+    borderColor: portalPremium.borderStrong,
     borderRadius: liquidRadius.card,
-    backgroundColor: 'rgba(8,39,75,0.86)',
-    color: liquidColors.white,
+    backgroundColor: portalPremium.surfaceRaised,
+    color: portalPremium.text.primary,
   },
   section: { gap: careSpacing.sm },
-  sectionTitle: { color: liquidColors.white },
+  sectionTitle: { color: portalPremium.text.onStrong },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.md },
   card: {
     width: '100%',
     padding: careSpacing.lg,
     borderWidth: 1,
-    borderColor: liquidColors.white12,
+    borderColor: portalPremium.borderSoft,
     borderRadius: liquidRadius.panel,
-    backgroundColor: 'rgba(8,39,75,0.82)',
+    backgroundColor: portalPremium.surfaceRaised,
     gap: careSpacing.sm,
   },
   cardWide: { flexBasis: '48%', flexGrow: 1 },
-  cardEmergency: { borderColor: 'rgba(255,91,110,0.55)' },
-  cardTitle: { color: liquidColors.white },
-  callButton: { minHeight: 58, paddingHorizontal: 14, paddingVertical: 8, borderRadius: liquidRadius.control, backgroundColor: liquidColors.blue500Alpha16, justifyContent: 'center' },
-  callButtonEmergency: { backgroundColor: 'rgba(255,91,110,0.18)' },
-  number: { color: liquidColors.white },
-  callLabel: { color: liquidColors.blue200, fontWeight: '800' },
-  availability: { color: liquidColors.success, fontWeight: '700' },
-  description: { color: liquidColors.white88 },
+  cardEmergency: { borderColor: 'rgba(197,58,82,0.42)', backgroundColor: '#FFF5F7' },
+  cardTitle: { color: portalPremium.text.primary },
+  callButton: { minHeight: 58, paddingHorizontal: 14, paddingVertical: 8, borderRadius: liquidRadius.control, backgroundColor: portalPremium.surfaceMuted, justifyContent: 'center' },
+  callButtonEmergency: { backgroundColor: 'rgba(197,58,82,0.10)' },
+  number: { color: portalPremium.accent.blueDark },
+  callLabel: { color: portalPremium.accent.blue, fontWeight: '800' },
+  availability: { color: portalPremium.accent.success, fontWeight: '700' },
+  description: { color: portalPremium.text.secondary },
   sourceLink: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  sourceText: { color: liquidColors.blue200, textDecorationLine: 'underline' },
-  footnote: { color: liquidColors.white56, paddingBottom: careSpacing.lg },
+  sourceText: { color: portalPremium.accent.blueDark, textDecorationLine: 'underline' },
+  footnote: { color: portalPremium.text.onStrongMuted, paddingBottom: careSpacing.lg },
   pressed: { opacity: 0.74 },
 });

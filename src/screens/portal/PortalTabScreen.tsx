@@ -23,6 +23,8 @@ type PortalTabScreenProps = {
   scroll?: boolean;
   /** On phone: skip duplicate page header — hero or section title carries context. */
   hideHeaderOnPhone?: boolean;
+  /** The page content already renders its own premium hero; never add a second one. */
+  contentOwnsHero?: boolean;
   eyebrow?: string;
   actionsSlot?: ReactNode;
   filtersSlot?: ReactNode;
@@ -35,6 +37,7 @@ export function PortalTabScreen({
   children,
   scroll = true,
   hideHeaderOnPhone = false,
+  contentOwnsHero,
   eyebrow,
   actionsSlot,
   filtersSlot,
@@ -48,6 +51,7 @@ export function PortalTabScreen({
   const isEmployeePortal = pathname.startsWith('/portal/employee');
   const isClientPortal = pathname.startsWith('/portal/client');
   const isPortalHome = pathname === '/portal/client' || pathname === '/portal/employee';
+  const contentProvidesHero = contentOwnsHero ?? hideHeaderOnPhone;
 
   const bareBottomPadding = useMemo(() => {
     if (messengerFocusActive || !showBottomTabs) return spacing.md;
@@ -77,7 +81,7 @@ export function PortalTabScreen({
         subtitle={subtitle}
         eyebrow={eyebrow}
         compact={hideHeaderOnPhone && isPhone}
-        showHero={!isPortalHome}
+        showHero={!isPortalHome && !contentProvidesHero}
         actionsSlot={actionsSlot}
         filtersSlot={filtersSlot}
         tabsSlot={tabsSlot}
@@ -115,7 +119,7 @@ export function PortalTabScreen({
         subtitle={subtitle}
         eyebrow={eyebrow}
         compact={hideHeaderOnPhone && isPhone}
-        showHero={!isPortalHome}
+        showHero={!isPortalHome && !contentProvidesHero}
         actionsSlot={actionsSlot}
         filtersSlot={filtersSlot}
         tabsSlot={tabsSlot}

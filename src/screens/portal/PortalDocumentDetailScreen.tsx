@@ -4,7 +4,7 @@ import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalDocumentDetailHero } from '@/components/portal';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
-import { ScreenShell } from '@/components/layout';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import {
   ErrorState,
   LoadingState,
@@ -15,6 +15,7 @@ import { usePortalDocumentDetail } from '@/hooks/usePortalDocumentDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 export function PortalDocumentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -37,33 +38,33 @@ export function PortalDocumentDetailScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Dokument" subtitle={resolvePortalScreenSubtitle(roleLabel, 'employee')}>
+      <PortalTabScreen title="Dokument" subtitle={resolvePortalScreenSubtitle(roleLabel, 'employee')}>
         <LockedActionBanner
           message={check('portal.employee.documents.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (loading) {
     return (
-      <ScreenShell title="Dokument" subtitle="Wird geladen…">
+      <PortalTabScreen title="Dokument" subtitle="Wird geladen…">
         <LoadingState message="Dokument wird geladen…" />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
   if (notFound || error) {
     return (
-      <ScreenShell title="Dokument" subtitle="Fehler">
+      <PortalTabScreen title="Dokument" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Das Dokument existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </ScreenShell>
+      </PortalTabScreen>
     );
   }
 
@@ -77,6 +78,7 @@ export function PortalDocumentDetailScreen() {
       rightSlot={
         <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
       }
+      contentOwnsHero
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {successMessage ? <SuccessState message={successMessage} /> : null}
@@ -135,7 +137,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: portalPremium.text.secondary,
     textAlign: 'center',
   },
 });

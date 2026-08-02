@@ -244,15 +244,19 @@ function WelcomeHero({
           source={require('../../../../assets/auth/access-client.png')}
           style={[styles.guideMascot, compactHero && styles.guideMascotPhone]}
         />
-        <View style={styles.guideBubble}>
-          <View style={styles.guideBubbleTail} />
+        <View style={[styles.guideBubble, compactHero && styles.guideBubblePhone]}>
+          {!compactHero ? <View style={styles.guideBubbleTail} /> : null}
           <Text style={[type.bodyStrong, styles.guideTitle, breakLongWords]}>{guide.title}</Text>
           <Text style={[type.caption, styles.guideMessage]}>{guide.message}</Text>
           {guide.actionLabel && onGuideAction ? (
             <Pressable
               accessibilityRole="button"
               onPress={onGuideAction}
-              style={({ pressed }) => [styles.guideAction, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.guideAction,
+                compactHero && styles.guideActionPhone,
+                pressed && styles.pressed,
+              ]}
             >
               <Text style={styles.guideActionText}>{guide.actionLabel}</Text>
               <Ionicons name="arrow-forward" color={ink.white} size={16} />
@@ -605,7 +609,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
     maxWidth: '100%',
     width: '100%',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'stretch',
   },
   guideMascot: {
     width: 102,
@@ -615,6 +620,7 @@ const styles = StyleSheet.create({
   guideMascotPhone: {
     width: 58,
     height: 68,
+    alignSelf: 'center',
   },
   guideBubble: {
     flex: 1,
@@ -626,6 +632,11 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     backgroundColor: 'rgba(255,255,255,0.84)',
     gap: 5,
+  },
+  guideBubblePhone: {
+    flex: 0,
+    width: '100%',
+    padding: 14,
   },
   guideBubbleTail: {
     position: 'absolute',
@@ -658,6 +669,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
   },
+  guideActionPhone: { width: '100%', alignSelf: 'stretch' },
   guideActionText: {
     color: ink.white,
     fontSize: 13,

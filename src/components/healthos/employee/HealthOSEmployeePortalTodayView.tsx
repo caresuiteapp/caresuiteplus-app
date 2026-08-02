@@ -135,15 +135,19 @@ function EmployeePremiumWelcome({
             source={require('../../../../assets/auth/access-employee.png')}
             style={[styles.guideMascot, compact && styles.guideMascotCompact]}
           />
-          <View style={styles.guideBubble}>
-            <View style={styles.guideBubbleTail} />
+          <View style={[styles.guideBubble, compact && styles.guideBubbleCompact]}>
+            {!compact ? <View style={styles.guideBubbleTail} /> : null}
             <Text style={[type.bodyStrong, styles.guideTitle, breakLongWords]}>{guide.title}</Text>
             <Text style={[type.caption, styles.guideMessage]}>{guide.message}</Text>
             {guide.action && guide.route ? (
               <Pressable
                 accessibilityRole="button"
                 onPress={() => onNavigate(guide.route)}
-                style={({ pressed }) => [styles.guideAction, pressed && styles.pressed]}
+                style={({ pressed }) => [
+                  styles.guideAction,
+                  compact && styles.guideActionCompact,
+                  pressed && styles.pressed,
+                ]}
               >
                 <Text style={styles.guideActionText}>{guide.action}</Text>
                 <Ionicons name="arrow-forward" color="#FFFFFF" size={16} />
@@ -501,9 +505,12 @@ const styles = StyleSheet.create({
   welcomeTitle: { color: portalPremium.text.primary, fontWeight: '900', letterSpacing: -0.6 },
   welcomeProvider: { color: portalPremium.text.secondary, fontWeight: '700' },
   guideArea: { flex: 1, minWidth: 330, maxWidth: 560, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  guideAreaCompact: { flex: 0, minWidth: 0, maxWidth: '100%', width: '100%' },
+  guideAreaCompact: {
+    flex: 0, minWidth: 0, maxWidth: '100%', width: '100%',
+    flexDirection: 'column', alignItems: 'stretch',
+  },
   guideMascot: { width: 102, height: 118, flexShrink: 0 },
-  guideMascotCompact: { width: 58, height: 68 },
+  guideMascotCompact: { width: 58, height: 68, alignSelf: 'center' },
   guideBubble: {
     flex: 1,
     minWidth: 0,
@@ -515,6 +522,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.84)',
     gap: 5,
   },
+  guideBubbleCompact: { flex: 0, width: '100%', padding: 14 },
   guideBubbleTail: {
     position: 'absolute', left: -7, bottom: 22, width: 14, height: 14,
     borderLeftWidth: 1, borderBottomWidth: 1, borderColor: portalPremium.borderSoft,
@@ -527,6 +535,7 @@ const styles = StyleSheet.create({
     borderRadius: 11, backgroundColor: portalPremium.accent.blue,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7,
   },
+  guideActionCompact: { width: '100%', alignSelf: 'stretch' },
   guideActionText: { color: '#FFFFFF', fontSize: 13, lineHeight: 17, fontWeight: '800' },
   quickPanel: {
     position: 'relative', overflow: 'hidden', padding: 18, borderWidth: 1,

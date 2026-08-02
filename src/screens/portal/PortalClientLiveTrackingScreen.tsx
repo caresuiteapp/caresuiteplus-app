@@ -10,9 +10,10 @@ import {
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePortalClientLiveTracking } from '@/hooks/usePortalClientLiveTracking';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 export function PortalClientLiveTrackingScreen() {
   const router = useRouter();
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
   },
   caregiver: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: portalPremium.text.secondary,
     marginBottom: spacing.sm,
   },
 });

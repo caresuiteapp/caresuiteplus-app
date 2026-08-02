@@ -15,7 +15,7 @@ import {
   SectionPanel,
 } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
-import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import { portalPremium } from '@/design/tokens/portalPremium';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -284,23 +284,23 @@ export function WfmAbsencePortalScreen({
 }
 
 const portalText = {
-  primary: spatialCare.textOnNight,
-  secondary: spatialCare.textOnNightMuted,
-  muted: spatialCare.textOnNightMuted,
+  primary: portalPremium.text.primary,
+  secondary: portalPremium.text.secondary,
+  muted: portalPremium.text.muted,
 } as const;
 
 const styles = StyleSheet.create({
   label: { ...typography.caption, marginTop: careSpacing.sm, marginBottom: 4 },
   input: {
     borderWidth: 1,
-    borderColor: spatialCare.border,
+    borderColor: portalPremium.borderStrong,
     borderRadius: 8,
     padding: careSpacing.sm,
-    backgroundColor: spatialCare.input,
-    color: spatialCare.textOnNight,
+    backgroundColor: portalPremium.surfaceRaised,
+    color: portalPremium.text.primary,
   },
   multiline: { minHeight: 72, textAlignVertical: 'top' },
-  row: { paddingVertical: careSpacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: spatialCare.borderDark },
+  row: { paddingVertical: careSpacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: portalPremium.borderSoft },
   rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: careSpacing.sm },
   rowTitle: { ...typography.body, fontWeight: '600' },
 });

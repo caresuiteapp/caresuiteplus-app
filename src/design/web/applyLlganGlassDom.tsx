@@ -2,6 +2,7 @@ import { useCallback, useRef, type ReactNode } from 'react';
 import { Platform, View, type StyleProp, type ViewStyle } from 'react-native';
 import { llganGlassDataSet, type LlganGlassSurfaceKind } from '@/design/tokens/auroraGlass';
 import { ensureLightLiquidGlassSurfaceCss } from '@/design/web/ensureLightLiquidGlassSurfaceCss';
+import { usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 
 type GlassDomPreset = {
   surface: string;
@@ -19,6 +20,15 @@ const GLASS_DOM_PRESETS: Record<LlganGlassSurfaceKind, GlassDomPreset> = {
   modal: { surface: 'rgba(16,42,76,.97)', surfaceEnd: 'rgba(3,14,31,.99)', border: 'rgba(105,232,255,.42)', blur: 42 },
 };
 
+const PORTAL_GLASS_DOM_PRESETS: Record<LlganGlassSurfaceKind, GlassDomPreset> = {
+  panel: { surface: 'rgba(255,255,255,.97)', surfaceEnd: 'rgba(234,244,255,.98)', border: 'rgba(112,181,255,.42)', blur: 22 },
+  card: { surface: 'rgba(255,255,255,.98)', surfaceEnd: 'rgba(238,247,255,.98)', border: 'rgba(112,181,255,.38)', blur: 18 },
+  chip: { surface: 'rgba(234,244,255,.98)', surfaceEnd: 'rgba(220,238,255,.98)', border: 'rgba(5,108,232,.22)', blur: 14 },
+  input: { surface: 'rgba(255,255,255,.99)', surfaceEnd: 'rgba(242,248,255,.99)', border: 'rgba(5,108,232,.28)', blur: 14 },
+  button: { surface: 'rgba(234,244,255,.98)', surfaceEnd: 'rgba(220,238,255,.98)', border: 'rgba(5,108,232,.30)', blur: 14 },
+  modal: { surface: 'rgba(255,255,255,.99)', surfaceEnd: 'rgba(234,244,255,.99)', border: 'rgba(112,181,255,.48)', blur: 26 },
+};
+
 function isDomElement(node: unknown): node is HTMLElement {
   if (typeof node !== 'object' || node === null) return false;
   const el = node as HTMLElement;
@@ -32,7 +42,11 @@ function resolveGlassElement(node: View | HTMLElement | null): HTMLElement | nul
 }
 
 /** Apply the production-safe glass appearance once without observer feedback loops. */
-export function bindLlganGlassSurface(node: View | HTMLElement | null, kind: LlganGlassSurfaceKind): void {
+export function bindLlganGlassSurface(
+  node: View | HTMLElement | null,
+  kind: LlganGlassSurfaceKind,
+  portalActive = false,
+): void {
   if (Platform.OS !== 'web' || !node) return;
 
   ensureLightLiquidGlassSurfaceCss('strong');
@@ -40,7 +54,7 @@ export function bindLlganGlassSurface(node: View | HTMLElement | null, kind: Llg
   const el = resolveGlassElement(node);
   if (!el?.style) return;
 
-  const preset = GLASS_DOM_PRESETS[kind];
+  const preset = portalActive ? PORTAL_GLASS_DOM_PRESETS[kind] : GLASS_DOM_PRESETS[kind];
 
   el.setAttribute('data-cs-llgan-glass', kind);
   el.classList.add('cs-llgan-glass', `cs-llgan-glass-${kind}`);
@@ -49,15 +63,22 @@ export function bindLlganGlassSurface(node: View | HTMLElement | null, kind: Llg
   el.style.setProperty('background-color', preset.surfaceEnd, 'important');
   el.style.setProperty(
     'background-image',
-    `radial-gradient(circle at 82% -18%, rgba(105,232,255,.24), transparent 40%), linear-gradient(145deg, ${preset.surface} 0%, ${preset.surfaceEnd} 100%)`,
+    portalActive
+      ? `radial-gradient(circle at 82% -18%, rgba(112,181,255,.30), transparent 42%), linear-gradient(145deg, ${preset.surface} 0%, ${preset.surfaceEnd} 100%)`
+      : `radial-gradient(circle at 82% -18%, rgba(105,232,255,.24), transparent 40%), linear-gradient(145deg, ${preset.surface} 0%, ${preset.surfaceEnd} 100%)`,
     'important',
   );
   el.style.setProperty('border', `1px solid ${preset.border}`, 'important');
   el.style.setProperty(
     'box-shadow',
-    '0 26px 68px rgba(0,7,22,.48), 0 0 32px rgba(105,232,255,.08), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(105,232,255,.10)',
+    portalActive
+      ? '0 14px 34px rgba(0,38,82,.16), inset 0 1px 0 rgba(255,255,255,.94), inset 0 -1px 0 rgba(112,181,255,.15)'
+      : '0 26px 68px rgba(0,7,22,.48), 0 0 32px rgba(105,232,255,.08), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(105,232,255,.10)',
     'important',
   );
+  if (portalActive) {
+    el.style.setProperty('color', '#061B35', 'important');
+  }
 }
 
 type LlganGlassShellProps = {
@@ -69,13 +90,14 @@ type LlganGlassShellProps = {
 /** Web milchglas host — inline RN backdrop-filter + data-cs-llgan-glass CSS backup. */
 export function LlganGlassShell({ kind, style, children }: LlganGlassShellProps) {
   const shellRef = useRef<View | null>(null);
+  const portal = usePortalPremiumTheme();
 
   const setShellRef = useCallback(
     (node: View | null) => {
       shellRef.current = node;
-      bindLlganGlassSurface(node, kind);
+      bindLlganGlassSurface(node, kind, portal.active);
     },
-    [kind],
+    [kind, portal.active],
   );
 
   if (Platform.OS !== 'web') {

@@ -3,6 +3,7 @@ import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { spacing } from '@/theme';
 
 export type TabOption = {
@@ -39,6 +40,7 @@ export function SegmentedTabs({
   layout = 'scroll',
   rows,
 }: SegmentedTabsProps) {
+  const portal = usePortalPremiumTheme();
   const renderTab = (tab: TabOption) => {
     const active = tab.key === activeKey;
     return (
@@ -47,7 +49,9 @@ export function SegmentedTabs({
         onPress={() => onSelect(tab.key)}
         style={({ pressed }) => [
           localStyles.tab,
+          portal.active && portalStyles.tab,
           active && localStyles.tabActive,
+          active && portal.active && portalStyles.tabActive,
           pressed && localStyles.tabPressed,
         ]}
         accessibilityRole="tab"
@@ -56,7 +60,14 @@ export function SegmentedTabs({
           ? ({ dataSet: { csHealthosComponent: 'tab' } } as object)
           : {})}
       >
-        <Text style={[localStyles.label, active && localStyles.activeLabel]}>
+        <Text
+          style={[
+            localStyles.label,
+            portal.active && portalStyles.label,
+            active && localStyles.activeLabel,
+            active && portal.active && portalStyles.activeLabel,
+          ]}
+        >
           {tab.label}
         </Text>
       </Pressable>
@@ -120,4 +131,17 @@ const localStyles = StyleSheet.create({
   },
   wrapContainer: { gap: spacing.xs },
   wrapRow: { flexWrap: 'wrap' },
+});
+
+const portalStyles = StyleSheet.create({
+  tab: {
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceRaised,
+  },
+  tabActive: {
+    borderColor: portalPremium.borderStrong,
+    backgroundColor: portalPremium.surfaceMuted,
+  },
+  label: { color: portalPremium.text.secondary },
+  activeLabel: { color: portalPremium.accent.blueDark },
 });

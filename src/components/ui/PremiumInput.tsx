@@ -7,6 +7,7 @@ import {
 import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { radius, spacing, typography } from '@/theme';
 
 type PremiumInputProps = TextInputProps & {
@@ -33,7 +34,9 @@ export function PremiumInput({
   ...props
 }: PremiumInputProps) {
   const { colors } = useLegacyTheme();
-  const text = onLightSurface
+  const portal = usePortalPremiumTheme();
+  const lightSurface = portal.active || onLightSurface;
+  const text = lightSurface
     ? lightSurfaceText
     : onDarkSurface
       ? darkGlassSurfaceText
@@ -57,11 +60,15 @@ export function PremiumInput({
           minHeight: 48,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: onLightSurface
-            ? colors.borderStrong
+          borderColor: lightSurface
+            ? portal.active
+              ? portalPremium.borderStrong
+              : colors.borderStrong
             : systemLiquidGlass.borderStrong,
-          backgroundColor: onLightSurface
-            ? colors.bgInput
+          backgroundColor: lightSurface
+            ? portal.active
+              ? portalPremium.surfaceRaised
+              : colors.bgInput
             : systemLiquidGlass.input,
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
@@ -84,7 +91,8 @@ export function PremiumInput({
       colors.danger,
       colors.borderStrong,
       colors.bgInput,
-      onLightSurface,
+      lightSurface,
+      portal.active,
       text.muted,
       text.primary,
     ],

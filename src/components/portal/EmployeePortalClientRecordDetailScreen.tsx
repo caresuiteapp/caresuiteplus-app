@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   scroll: {
     gap: careSpacing.md,
     paddingBottom: careSpacing.xxl,
-    maxWidth: 720,
+    maxWidth: 1180,
     alignSelf: 'center',
     width: '100%',
   },

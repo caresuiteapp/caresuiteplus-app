@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { colors, spacing, typography } from '@/theme';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 
 type Orientation = 'horizontal' | 'vertical';
 type Variant = 'subtle' | 'strong';
@@ -18,7 +19,14 @@ export function PremiumDivider({
   variant = 'subtle',
   style,
 }: Props) {
-  const lineColor = variant === 'strong' ? colors.borderStrong : colors.borderSoft;
+  const portal = usePortalPremiumTheme();
+  const lineColor = portal.active
+    ? variant === 'strong'
+      ? portalPremium.borderStrong
+      : portalPremium.borderSoft
+    : variant === 'strong'
+      ? colors.borderStrong
+      : colors.borderSoft;
 
   if (orientation === 'vertical') {
     return (
@@ -33,7 +41,7 @@ export function PremiumDivider({
     return (
       <View style={[styles.labeledRow, style]}>
         <View style={[styles.line, { backgroundColor: lineColor }]} />
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, portal.active && portalStyles.label]}>{label}</Text>
         <View style={[styles.line, { backgroundColor: lineColor }]} />
       </View>
     );
@@ -71,4 +79,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
+});
+
+const portalStyles = StyleSheet.create({
+  label: { color: portalPremium.text.muted },
 });

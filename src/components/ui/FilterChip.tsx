@@ -3,6 +3,7 @@ import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 
 type FilterChipProps = {
   label: string;
@@ -17,13 +18,18 @@ export function FilterChip({
   selected = false,
   onPress,
   style,
+  onLightSurface = false,
 }: FilterChipProps) {
+  const portal = usePortalPremiumTheme();
+  const lightSurface = portal.active || onLightSurface;
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
+        lightSurface && portalStyles.chip,
         selected && styles.chipSelected,
+        selected && lightSurface && portalStyles.chipSelected,
         pressed && styles.chipPressed,
         style,
       ]}
@@ -33,7 +39,14 @@ export function FilterChip({
         ? ({ dataSet: { csHealthosComponent: 'filter-chip' } } as object)
         : {})}
     >
-      <Text style={[styles.label, selected && styles.labelSelected]}>
+      <Text
+        style={[
+          styles.label,
+          lightSurface && portalStyles.label,
+          selected && styles.labelSelected,
+          selected && lightSurface && portalStyles.labelSelected,
+        ]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -90,6 +103,7 @@ export function FilterChipGroup<T extends string>({
   wrap = false,
   multiple = false,
   minSelected = 1,
+  onLightSurface = false,
 }: FilterChipGroupProps<T>) {
   const selected = value ?? selectedKey;
   const hasHandler = Boolean(onChange ?? onSelect);
@@ -126,6 +140,7 @@ export function FilterChipGroup<T extends string>({
               }
             : undefined
         }
+        onLightSurface={onLightSurface}
       />
     );
   });
@@ -178,4 +193,17 @@ const styles = StyleSheet.create({
     gap: careSpacing.sm,
     paddingVertical: careSpacing.xs,
   },
+});
+
+const portalStyles = StyleSheet.create({
+  chip: {
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceRaised,
+  },
+  chipSelected: {
+    borderColor: portalPremium.borderStrong,
+    backgroundColor: portalPremium.surfaceMuted,
+  },
+  label: { color: portalPremium.text.secondary },
+  labelSelected: { color: portalPremium.accent.blueDark },
 });

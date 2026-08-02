@@ -21,7 +21,8 @@ import {
 } from '@/types/modules/employeeMobility';
 import { formatGermanAddress } from '@/lib/maps/employeeRouteEndpointResolver';
 import { useEmployeeMobilitySettings } from '@/hooks/useEmployeeMobilitySettings';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 const TRANSPORT_OPTIONS = (Object.keys(EMPLOYEE_TRANSPORT_MODE_LABELS) as EmployeeTransportMode[]).map(
   (key) => ({
@@ -176,8 +177,8 @@ export function EmployeeMobilitySettingsForm({
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.md },
-  loading: { ...typography.body, color: colors.textSecondary },
-  fieldLabel: { ...typography.caption, color: colors.textSecondary, marginBottom: spacing.xs },
-  hint: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs },
-  preview: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.sm },
+  loading: { ...typography.body, color: portalPremium.text.secondary },
+  fieldLabel: { ...typography.caption, color: portalPremium.text.secondary, marginBottom: spacing.xs },
+  hint: { ...typography.caption, color: portalPremium.text.secondary, marginTop: spacing.xs },
+  preview: { ...typography.caption, color: portalPremium.text.secondary, marginTop: spacing.sm },
 });
