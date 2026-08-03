@@ -195,6 +195,8 @@ export type VisitDispositionDetail = VisitDispositionListItem & {
   employeeNotes: string | null;
   /** Dokumentation des ausgeführten Einsatzes; getrennt von Mitarbeitenden-Hinweisen. */
   documentationNotes?: string | null;
+  /** Interne Einsatznotiz der ausführenden Person an die Verwaltung. */
+  employeeInternalNotes?: string | null;
   clientVisibleNotes?: string | null;
   addressSnapshot?: string | null;
   locationNotes?: string | null;

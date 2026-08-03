@@ -28,6 +28,11 @@ import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTim
 import { resolveServiceEndedAt } from '@/lib/assist/assignmentLifecycleTimestamps';
 import { normalizePhotoReferenceList } from '@/lib/assist/visitInternalAttachmentService';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
+import {
+  mapSignatureRowToCapture,
+  resolveVisitSignatureImageUrl,
+} from '@/lib/assist/visitSignatureImageService';
+import type { VisitSignatureCapture } from '@/lib/assist/visitSignatureSessionStore';
 
 export type AssignmentExecutionSnapshot = {
   assignmentId: string;
@@ -40,7 +45,9 @@ export type AssignmentExecutionSnapshot = {
   serviceEnded?: boolean;
   hasDocumentation: boolean;
   documentationNotes: string | null;
+  employeeInternalNotes?: string | null;
   hasSignature: boolean;
+  persistedSignature?: VisitSignatureCapture | null;
   hasProof: boolean;
   tasks: VisitTaskItem[];
   openRequiredTasks: number;
@@ -76,8 +83,30 @@ type AssignmentTaskRow = {
 type VisitDocRow = {
   visit_id: string;
   short_description?: string | null;
+  special_notes?: string | null;
+  deviations?: string | null;
+  deviation_justification?: string | null;
+  referral_required?: boolean | null;
+  emergency_or_problem?: boolean | null;
   photo_references?: unknown;
 };
+
+function buildStructuredDocumentationText(row: VisitDocRow): string | null {
+  const parts: string[] = [];
+  const short = row.short_description?.trim();
+  if (short) parts.push(short);
+  const special = row.special_notes?.trim();
+  if (special) parts.push(`Besonderheiten: ${special}`);
+  const deviations = row.deviations?.trim();
+  if (deviations) {
+    parts.push(`Abweichungen: ${deviations}`);
+    const justification = row.deviation_justification?.trim();
+    if (justification) parts.push(`Begründung: ${justification}`);
+  }
+  if (row.referral_required) parts.push('Weiterleitung erforderlich.');
+  if (row.emergency_or_problem) parts.push('Notfall/Problem gemeldet.');
+  return parts.length > 0 ? parts.join('\n\n') : null;
+}
 
 type ExecutionStateRow = {
   visit_id: string;
@@ -208,11 +237,13 @@ function requiresSignatureFromStatus(assignmentStatus: AssignmentStatus): boolea
 
 async function fetchSnapshotBatchRows(
   tenantId: string,
+  assignmentIds: string[],
   visitIds: string[],
 ): Promise<{
   assignments: Map<string, AssignmentRow>;
   tasksByAssignment: Map<string, VisitTaskItem[]>;
   documentationByVisit: Map<string, string>;
+  employeeInternalNotesByVisit: Map<string, string>;
   photoReferencesByVisit: Map<string, string[]>;
   executionStateByVisit: Map<string, ExecutionStateRow>;
   timeEventsByVisit: Map<string, SnapshotTimeEvent[]>;
@@ -220,15 +251,16 @@ async function fetchSnapshotBatchRows(
   const assignments = new Map<string, AssignmentRow>();
   const tasksByAssignment = new Map<string, VisitTaskItem[]>();
   const documentationByVisit = new Map<string, string>();
+  const employeeInternalNotesByVisit = new Map<string, string>();
   const photoReferencesByVisit = new Map<string, string[]>();
   const executionStateByVisit = new Map<string, ExecutionStateRow>();
   const timeEventsByVisit = new Map<string, SnapshotTimeEvent[]>();
 
-  if (visitIds.length === 0) {
+  if (assignmentIds.length === 0 && visitIds.length === 0) {
     return {
       assignments,
-      tasksByAssignment,
       documentationByVisit,
+      employeeInternalNotesByVisit,
       photoReferencesByVisit,
       executionStateByVisit,
       timeEventsByVisit,
@@ -241,13 +273,17 @@ async function fetchSnapshotBatchRows(
       assignments,
       tasksByAssignment,
       documentationByVisit,
+      employeeInternalNotesByVisit,
       photoReferencesByVisit,
       executionStateByVisit,
       timeEventsByVisit,
     };
   }
 
-  const uniqueIds = [...new Set(visitIds.map((id) => resolveVisitMasterId(id)).filter(Boolean))];
+  const uniqueAssignmentIds = [...new Set(assignmentIds.filter(Boolean))];
+  const uniqueVisitIds = [
+    ...new Set(visitIds.map((id) => resolveVisitMasterId(id)).filter(Boolean)),
+  ];
 
   const [assignmentResult, taskResult, docResult, executionStateResult, timeEventResult] = await Promise.all([
     fromUnknownTable(supabase, 'assignments')
@@ -255,26 +291,28 @@ async function fetchSnapshotBatchRows(
         'id, status, documentation_notes, on_the_way_at, arrived_at, finished_at, actual_start_at, actual_end_at',
       )
       .eq('tenant_id', tenantId)
-      .in('id', uniqueIds),
+      .in('id', uniqueAssignmentIds),
     fromUnknownTable(supabase, 'assignment_tasks')
       .select('id, assignment_id, title, status, is_required, not_done_reason, sort_order')
       .eq('tenant_id', tenantId)
-      .in('assignment_id', uniqueIds)
+      .in('assignment_id', uniqueAssignmentIds)
       .order('sort_order', { ascending: true }),
     fromUnknownTable(supabase, 'assist_visit_documentation')
-      .select('visit_id, short_description, photo_references')
+      .select(
+        'visit_id, short_description, special_notes, deviations, deviation_justification, referral_required, emergency_or_problem, photo_references',
+      )
       .eq('tenant_id', tenantId)
-      .in('visit_id', uniqueIds),
+      .in('visit_id', uniqueVisitIds),
     fromUnknownTable(supabase, 'assist_visit_execution_state')
       .select(
         'visit_id, assignment_status, documentation_complete, signature_complete, service_ended_at, travel_started_at, travel_ended_at, service_started_at',
       )
       .eq('tenant_id', tenantId)
-      .in('visit_id', uniqueIds),
+      .in('visit_id', uniqueVisitIds),
     fromUnknownTable(supabase, 'assist_time_events')
       .select('visit_id, event_type, occurred_at')
       .eq('tenant_id', tenantId)
-      .in('visit_id', uniqueIds)
+      .in('visit_id', uniqueVisitIds)
       .order('occurred_at', { ascending: true }),
   ]);
 
@@ -295,8 +333,10 @@ async function fetchSnapshotBatchRows(
 
   if (!docResult.error || !isSupabaseMissingTableError(docResult.error)) {
     for (const row of (docResult.data ?? []) as VisitDocRow[]) {
-      const text = row.short_description?.trim();
+      const text = buildStructuredDocumentationText(row);
       if (text) documentationByVisit.set(row.visit_id, text);
+      const internalNote = row.special_notes?.trim();
+      if (internalNote) employeeInternalNotesByVisit.set(row.visit_id, internalNote);
       const photoReferences = normalizePhotoReferenceList(row.photo_references);
       if (photoReferences.length > 0) {
         photoReferencesByVisit.set(row.visit_id, photoReferences);
@@ -322,6 +362,7 @@ async function fetchSnapshotBatchRows(
     assignments,
     tasksByAssignment,
     documentationByVisit,
+    employeeInternalNotesByVisit,
     photoReferencesByVisit,
     executionStateByVisit,
     timeEventsByVisit,
@@ -335,7 +376,9 @@ function buildSnapshotFromRows(input: {
   executionState: ExecutionStateRow | null;
   tasks: VisitTaskItem[];
   documentationText: string | null;
+  employeeInternalNotes?: string | null;
   hasSignature: boolean;
+  persistedSignature?: VisitSignatureCapture | null;
   hasProof: boolean;
   proofStatus: VisitProofStatus | null;
   visitTimes: ReturnType<typeof calculateVisitTimes> | null;
@@ -377,7 +420,7 @@ function buildSnapshotFromRows(input: {
   const documentationMissing = resolveDocumentationMissing(assignmentStatus, hasDocumentation);
   const signatureMissing = resolveSignatureMissing(
     assignmentStatus,
-    input.hasSignature,
+    hasSignature,
     requiresSignature,
   );
 
@@ -388,7 +431,7 @@ function buildSnapshotFromRows(input: {
     signatureMissing ||
     isVisitIncomplete({
       documentationStatus: hasDocumentation ? 'complete' : dims.documentation,
-      proofStatus: input.hasSignature ? 'signed' : dims.proof,
+      proofStatus: hasSignature ? 'signed' : dims.proof,
       executionStatus: dims.execution,
     });
 
@@ -403,7 +446,9 @@ function buildSnapshotFromRows(input: {
     serviceEnded,
     hasDocumentation,
     documentationNotes,
+    employeeInternalNotes: input.employeeInternalNotes?.trim() || null,
     hasSignature,
+    persistedSignature: input.persistedSignature ?? null,
     hasProof: input.hasProof,
     tasks: input.tasks,
     openRequiredTasks,
@@ -466,6 +511,7 @@ async function loadPersistedArtifacts(
   assignmentStatus: AssignmentStatus,
 ): Promise<{
   hasSignature: boolean;
+  persistedSignature: VisitSignatureCapture | null;
   hasProof: boolean;
   proofStatus: string | null;
   visitTimes: ReturnType<typeof calculateVisitTimes> | null;
@@ -487,8 +533,15 @@ async function loadPersistedArtifacts(
         )
       : null;
 
+  let persistedSignature: VisitSignatureCapture | null = null;
+  if (sig.ok && sig.data) {
+    const imageUrl = await resolveVisitSignatureImageUrl(sig.data.storagePath);
+    persistedSignature = mapSignatureRowToCapture(visitId, sig.data, imageUrl);
+  }
+
   return {
     hasSignature: sig.ok && Boolean(sig.data),
+    persistedSignature,
     hasProof: proof.ok && Boolean(proof.data),
     proofStatus: proof.ok && proof.data ? proof.data.status : null,
     visitTimes,
@@ -504,15 +557,17 @@ export async function fetchAssignmentExecutionSnapshotBatch(
   const result = new Map<string, AssignmentExecutionSnapshot>();
   if (inputs.length === 0) return result;
 
+  const assignmentIds = inputs.map((input) => input.assignmentId);
   const visitIds = inputs.map((input) => input.visitId);
   const {
     assignments,
     tasksByAssignment,
     documentationByVisit,
+    employeeInternalNotesByVisit,
     photoReferencesByVisit,
     executionStateByVisit,
     timeEventsByVisit,
-  } = await fetchSnapshotBatchRows(tenantId, visitIds);
+  } = await fetchSnapshotBatchRows(tenantId, assignmentIds, visitIds);
 
   for (const input of inputs) {
     const assignmentRow = assignments.get(input.assignmentId) ?? null;
@@ -522,6 +577,7 @@ export async function fetchAssignmentExecutionSnapshotBatch(
       : input.fallbackStatus;
 
     let hasSignature = Boolean(executionState?.signature_complete);
+    let persistedSignature: VisitSignatureCapture | null = null;
     let hasProof = false;
     let proofStatus: VisitProofStatus | null = input.proofStatus ?? null;
     const persistedTimeEvents =
@@ -540,6 +596,7 @@ export async function fetchAssignmentExecutionSnapshotBatch(
         assignmentStatus,
       );
       hasSignature = hasSignature || artifacts.hasSignature;
+      persistedSignature = artifacts.persistedSignature;
       hasProof = artifacts.hasProof;
       proofStatus = (artifacts.proofStatus as VisitProofStatus | null) ?? proofStatus;
       visitTimes = artifacts.visitTimes;
@@ -561,7 +618,9 @@ export async function fetchAssignmentExecutionSnapshotBatch(
         executionState,
         tasks: tasksByAssignment.get(input.assignmentId) ?? input.fallbackTasks ?? [],
         documentationText: documentationByVisit.get(input.visitId) ?? null,
+        employeeInternalNotes: employeeInternalNotesByVisit.get(input.visitId) ?? null,
         hasSignature,
+        persistedSignature,
         hasProof,
         proofStatus,
         visitTimes,

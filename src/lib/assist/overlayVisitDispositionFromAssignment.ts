@@ -173,6 +173,9 @@ export function applySnapshotToDetail(
     allowedStatusTransitions: snapshotAllowedTransitions(assignmentStatus),
     tasks,
     documentationNotes: snapshot.documentationNotes ?? detail.documentationNotes,
+    employeeInternalNotes:
+      snapshot.employeeInternalNotes ?? detail.employeeInternalNotes ?? null,
+    persistedSignature: snapshot.persistedSignature ?? detail.persistedSignature ?? null,
     onTheWayAt,
     arrivedAt,
     actualStartAt,

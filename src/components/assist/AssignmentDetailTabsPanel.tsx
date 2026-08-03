@@ -376,7 +376,7 @@ export function AssignmentDetailTabsPanel({
     );
   };
 
-  const proofPreview = buildVisitProofPreview(visit, visit.employeeNotes ?? visit.notes);
+  const proofPreview = buildVisitProofPreview(visit, visit.documentationNotes);
 
   const visibleTabs = isPreview
     ? DETAIL_TABS.filter((t) => t.key === 'overview')
@@ -465,6 +465,12 @@ export function AssignmentDetailTabsPanel({
             <DetailInfoRow label="Beendet" value={formatDateTime(visit.actualEndAt)} />
             {visit.employeeNotes ? (
               <DetailInfoRow label="Hinweis für Mitarbeitende" value={visit.employeeNotes} />
+            ) : null}
+            {visit.employeeInternalNotes ? (
+              <DetailInfoRow
+                label="Interne Notiz des Mitarbeitenden an die Verwaltung"
+                value={visit.employeeInternalNotes}
+              />
             ) : null}
             {can('assist.execution.view') ? (
               <PremiumButton
@@ -576,6 +582,18 @@ export function AssignmentDetailTabsPanel({
                   {visit.budget.warning ? (
                     <Text style={styles.hint}>{visit.budget.warning}</Text>
                   ) : null}
+                </SectionPanel>
+              </View>
+            ) : null}
+
+            {visit.employeeInternalNotes ? (
+              <View style={styles.overviewCellFull}>
+                <SectionPanel
+                  {...FORM_CTX}
+                  title="Interne Mitarbeitenden-Notiz"
+                  subtitle="Nur Verwaltung"
+                >
+                  <Text style={styles.noteText}>{visit.employeeInternalNotes}</Text>
                 </SectionPanel>
               </View>
             ) : null}

@@ -27,6 +27,13 @@ describe('Assist Dokumentation und Leistungsnachweis bleiben getrennt von Hinwei
   const officeEnrichment = read(
     'src/lib/assist/visitDispositionExecutionEnrichment.ts',
   );
+  const executionSnapshot = read(
+    'src/lib/assist/resolveAssignmentExecutionSnapshot.ts',
+  );
+  const executionScreen = read('src/screens/assist/VisitExecutionScreen.tsx');
+  const assignmentDetail = read(
+    'src/components/assist/AssignmentDetailTabsPanel.tsx',
+  );
   const migration = read(
     'supabase/migrations/0268_repair_assist_documentation_proof_mapping.sql',
   );
@@ -72,6 +79,26 @@ describe('Assist Dokumentation und Leistungsnachweis bleiben getrennt von Hinwei
     expect(migration).toContain('pdf_storage_path = NULL');
     expect(migration).toContain(
       'btrim(visit.employee_notes) = btrim(source.documentation_text)',
+    );
+  });
+
+  it('loads the persisted signature image and internal employee note for administration', () => {
+    expect(executionSnapshot).toContain('resolveVisitSignatureImageUrl');
+    expect(executionSnapshot).toContain('persistedSignature');
+    expect(executionSnapshot).toContain('employeeInternalNotesByVisit');
+    expect(executionSnapshot).toContain('special_notes');
+    expect(executionSnapshot).toContain(
+      'fetchSnapshotBatchRows(tenantId, assignmentIds, visitIds)',
+    );
+    expect(executionScreen).toContain('visit.employeeInternalNotes');
+    expect(assignmentDetail).toContain('Interne Notiz des Mitarbeitenden an die Verwaltung');
+  });
+
+  it('uses execution documentation instead of employee instructions in proof previews', () => {
+    expect(executionScreen).toContain('visit?.documentationNotes?.trim()');
+    expect(executionScreen).not.toContain('visit?.employeeNotes?.trim()');
+    expect(assignmentDetail).toContain(
+      'buildVisitProofPreview(visit, visit.documentationNotes)',
     );
   });
 });

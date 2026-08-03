@@ -139,7 +139,7 @@ describe('visitDispositionExecutionEnrichment', () => {
 
     expect(merged.proofStatus).toBe('signed');
     expect(merged.isIncomplete).toBe(false);
-    const preview = buildVisitProofPreview(merged, merged.employeeNotes);
+    const preview = buildVisitProofPreview(merged, merged.documentationNotes);
     const signatureField = preview.fields.find((field) => field.label === 'Unterschrift');
     expect(signatureField?.missing).toBe(false);
     expect(signatureField?.value).toBe('Metadaten ohne Signaturbild');
@@ -193,7 +193,7 @@ describe('visitDispositionExecutionEnrichment', () => {
       assignmentFinishedAt: null,
     });
 
-    const preview = buildVisitProofPreview(merged, merged.employeeNotes);
+    const preview = buildVisitProofPreview(merged, merged.documentationNotes);
     expect(preview.signatureImageUrl).toBe('https://storage.example/signatures/sig.png');
     expect(preview.fields.find((field) => field.label === 'Unterschrift')?.value).toBe(
       'Gezeichnete Unterschrift vorhanden',

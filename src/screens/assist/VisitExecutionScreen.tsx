@@ -90,8 +90,8 @@ export function VisitExecutionScreen() {
   const [docLoading, setDocLoading] = useState(false);
 
   const docText = useMemo(
-    () => documentationNote.trim() || visit?.employeeNotes?.trim() || '',
-    [documentationNote, visit?.employeeNotes],
+    () => documentationNote.trim() || visit?.documentationNotes?.trim() || '',
+    [documentationNote, visit?.documentationNotes],
   );
 
   const proofPreview = useMemo(
@@ -255,6 +255,15 @@ export function VisitExecutionScreen() {
           <DetailInfoRow label="Ort" value={visit.location} />
         </SectionPanel>
 
+        {visit.employeeInternalNotes?.trim() ? (
+          <SectionPanel
+            title="Interne Mitarbeitenden-Notiz"
+            subtitle="Nur für Verwaltung und berechtigte interne Rollen"
+          >
+            <Text style={styles.internalNote}>{visit.employeeInternalNotes}</Text>
+          </SectionPanel>
+        ) : null}
+
         {canManage && tenantId ? <AdministrativeVisitFollowUpPanel visit={visit} tenantId={tenantId} onSaved={refresh} onMessage={(message, isError) => { if (isError) { setLocalSuccess(null); setLocalError(message); } else { setLocalError(null); setLocalSuccess(message); } }} /> : null}
 
         {!canManage ? (
@@ -332,7 +341,7 @@ export function VisitExecutionScreen() {
             </ScrollView>
             <PremiumInput
               label="Was wurde erledigt?"
-              value={documentationNote || visit.employeeNotes || ''}
+              value={documentationNote || visit.documentationNotes || ''}
               onChangeText={setDocumentationNote}
               multiline
               placeholder="Durchführungsnotiz für den Leistungsnachweis…"
@@ -342,7 +351,7 @@ export function VisitExecutionScreen() {
               variant="secondary"
               fullWidth
               loading={docLoading}
-              disabled={!(documentationNote.trim() || visit.employeeNotes?.trim())}
+              disabled={!(documentationNote.trim() || visit.documentationNotes?.trim())}
               onPress={handleSaveDocumentation}
             />
           </SectionPanel>
@@ -378,7 +387,7 @@ export function VisitExecutionScreen() {
                 taskId: task.id,
                 status: task.status,
               })),
-              documentationNote: docText || visit.employeeNotes,
+              documentationNote: docText || visit.documentationNotes,
             }}
             disabled={isLocked}
             onSigned={async ({ persisted, warning }) => {
@@ -412,4 +421,5 @@ const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xxl, gap: spacing.md },
   phase: { ...typography.body, marginBottom: spacing.sm },
   actions: { gap: spacing.sm },
+  internalNote: { ...typography.body, color: colors.textPrimary },
 });

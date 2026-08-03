@@ -64,7 +64,15 @@ function deferredSignatureSnapshot(): AssignmentExecutionSnapshot {
     serviceEnded: true,
     hasDocumentation: true,
     documentationNotes: 'Einsatz dokumentiert',
+    employeeInternalNotes: 'Bitte Verwaltung zurückrufen.',
     hasSignature: false,
+    persistedSignature: {
+      visitId: VISIT_ID,
+      signerName: 'Doris Niemeyer',
+      signerRole: 'client',
+      signedAt: '2026-07-07T10:16:00.000Z',
+      dataUrl: 'https://storage.example/signature.png',
+    },
     hasProof: true,
     tasks: [],
     openRequiredTasks: 0,
@@ -99,6 +107,10 @@ describe('assist execution overlay detail', () => {
     expect(merged.documentationStatus).toBe('complete');
     expect(merged.proofStatus).toBe('pending');
     expect(merged.documentationNotes).toBe('Einsatz dokumentiert');
+    expect(merged.employeeInternalNotes).toBe('Bitte Verwaltung zurückrufen.');
+    expect(merged.persistedSignature?.dataUrl).toBe(
+      'https://storage.example/signature.png',
+    );
     expect(merged.employeeNotes).toBe(
       'Bitte den Wohnungsschlüssel anschließend zurücklegen.',
     );
