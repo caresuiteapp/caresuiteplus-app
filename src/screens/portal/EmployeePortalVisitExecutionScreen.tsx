@@ -444,15 +444,24 @@ export function EmployeePortalVisitExecutionScreen() {
   );
 
   const proceedAfterDeviation = useCallback(
-    async (action: 'start_service' | 'end_service') => {
+    async (
+      action: 'start_service' | 'end_service',
+      options: { deviationApproved?: boolean } = {},
+    ) => {
       if (action === 'start_service') {
-        const r = await startService();
-        if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht gestartet werden.');
+        const r = await startService(options);
+        if (!r.ok && r.errorCode === 'WORKFLOW_DEVIATION_JUSTIFICATION_REQUIRED') {
+          setDeviationError(null);
+          setDeviationModal({ phase: 'start', pendingAction: 'start_service' });
+        } else if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht gestartet werden.');
         else setLocalSuccess('Einsatz gestartet.');
         return;
       }
-      const r = await endService();
-      if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht beendet werden.');
+      const r = await endService(options);
+      if (!r.ok && r.errorCode === 'WORKFLOW_DEVIATION_JUSTIFICATION_REQUIRED') {
+        setDeviationError(null);
+        setDeviationModal({ phase: 'end', pendingAction: 'end_service' });
+      } else if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht beendet werden.');
       else setLocalSuccess('Einsatz beendet — Dokumentation erforderlich.');
     },
     [startService, endService],
@@ -1191,7 +1200,7 @@ export function EmployeePortalVisitExecutionScreen() {
             }
             const pending = deviationModal.pendingAction;
             setDeviationModal(null);
-            await proceedAfterDeviation(pending);
+            await proceedAfterDeviation(pending, { deviationApproved: true });
           }}
         />
       ) : null}

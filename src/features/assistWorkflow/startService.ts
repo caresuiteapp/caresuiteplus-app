@@ -24,6 +24,11 @@ import {
 
 const MAX_REPAIR_DEPTH = 1;
 
+export type WorkflowDeviationApproval = {
+  /** The visible deviation dialog validated and persisted the justification for this action. */
+  deviationApproved?: boolean;
+};
+
 type WorkflowFail = { ok: false; error: string; errorCode?: string };
 
 function mapStartServiceFailureCode(failure: WorkflowFail): AssistWorkflowErrorCode {
@@ -336,6 +341,7 @@ async function transitionToServiceStart(
 
 export async function startService(
   ctx: AssistExecutionContext,
+  options: WorkflowDeviationApproval = {},
   depth = 0,
 ): Promise<ServiceResult<AssistExecutionContext>> {
   if (!ctx.tenantId || !ctx.assignmentId || !ctx.employeeId) {
@@ -377,7 +383,7 @@ export async function startService(
     if (ctx.consistencyStatus === 'repairable' && depth < MAX_REPAIR_DEPTH) {
       const repaired = await repairWorkflowState(ctx);
       if (repaired.ok && repaired.data.repaired) {
-        return startService(repaired.data.ctx, depth + 1);
+        return startService(repaired.data.ctx, options, depth + 1);
       }
     }
     return startServiceError(
@@ -414,9 +420,9 @@ export async function startService(
     workingCtx.detail.plannedStartAt,
     actualStart,
   );
-  if (deviationGate.blocked) {
+  if (deviationGate.blocked && !options.deviationApproved) {
     return startServiceError(
-      'START_SERVICE_INVALID_TRANSITION',
+      'WORKFLOW_DEVIATION_JUSTIFICATION_REQUIRED',
       workingCtx,
       'Abweichung zur geplanten Einsatzzeit — schriftliche Begründung erforderlich.',
     );

@@ -62,6 +62,7 @@ import {
   type AssistWorkflowStep,
   type MarkArrivedResult,
 } from '@/features/assistWorkflow';
+import type { WorkflowDeviationApproval } from '@/features/assistWorkflow/startService';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePortalActor } from '@/hooks/usePortalActor';
@@ -682,7 +683,15 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           } else {
             await refreshExecutionContext();
           }
-        } else if (isStaleWorkflowTransitionError(result.error)) {
+        } else if (
+          options?.recoveryAction ||
+          isStaleWorkflowTransitionError(result.error)
+        ) {
+          // A Supabase/RPC request can commit its primary write and still
+          // report a later mirror or network failure. Always read the workflow
+          // back before showing an error. If the requested postcondition is
+          // durable, treat the tap as successful and never make the employee
+          // repeat an already completed step.
           const refreshed = await refreshExecutionContext();
           if (refreshed) {
             await syncAfterWorkflow(refreshed);
@@ -884,7 +893,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   }, [runWorkflow, tenantId, assignmentId, tracking?.geofence]);
 
   const handleStartService = useCallback(
-    async () => {
+    async (options: WorkflowDeviationApproval = {}) => {
       if (tenantId && assignmentId && employeeId && !liveContext?.trackingSessionId) {
         const now = new Date().toISOString();
         const trackingAuthorization = {
@@ -923,7 +932,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         }
       }
 
-      return runWorkflow((ctx) => startService(ctx), {
+      return runWorkflow((ctx) => startService(ctx, options), {
         timeoutLabel: 'startService',
         loadingMode: 'start_service',
         recoveryAction: 'start_service',
@@ -950,8 +959,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     [runWorkflow],
   );
 
-  const handleEndService = useCallback(async () => {
-    const result = await runWorkflow((ctx) => endService(ctx), {
+  const handleEndService = useCallback(async (options: WorkflowDeviationApproval = {}) => {
+    const result = await runWorkflow((ctx) => endService(ctx, options), {
       timeoutLabel: 'endService',
       timeoutMs: WORKFLOW_END_SERVICE_TIMEOUT_MS,
       recoveryAction: 'end_service',
@@ -988,6 +997,11 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           'saveDocumentation',
         );
         if (result.ok) {
+          if (result.data.wfmSyncFailed) {
+            setRefetchWarning(
+              'Die Dokumentation ist gespeichert. Eine Übergabe an Verwaltung oder Arbeitszeiterfassung wird beim Abschluss erneut geprüft.',
+            );
+          }
           const synced = unwrapWorkflowContextPayload(result.data);
           if (synced) {
             await syncAfterWorkflow(synced);

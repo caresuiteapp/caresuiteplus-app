@@ -73,12 +73,13 @@ describe('resolveEffectiveWorkflowStatus (ASSIST.WORKFLOW.2/3)', () => {
     expect(r.effectiveStatus).toBe('angekommen');
   });
 
-  it('returns consistent when service started', () => {
+  it('keeps service running when the recorded end has no service_end timestamp', () => {
     const ctx = mockCtx({});
     ctx.visitTimes!.serviceStartedAt = '2026-06-29T09:05:00Z';
     const r = resolveEffectiveWorkflowStatus('beendet', ctx.visitTimes);
-    expect(r.inconsistent).toBe(false);
-    expect(r.effectiveStatus).toBe('beendet');
+    expect(r.inconsistent).toBe(true);
+    expect(r.effectiveStatus).toBe('gestartet');
+    expect(r.repairHint).toContain('Einsatz beenden');
   });
 });
 

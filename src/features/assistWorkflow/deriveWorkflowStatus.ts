@@ -10,7 +10,7 @@ import {
   type WorkflowInconsistency,
 } from './detectWorkflowInconsistencies';
 export type WorkflowRepairOption = {
-  action: 'reset_status' | 'backfill_service_start';
+  action: 'reset_status' | 'backfill_service_start' | 'backfill_service_end';
   targetStatus: AssignmentStatus;
   label: string;
 };
@@ -22,10 +22,14 @@ function buildRepairOptions(inconsistencies: WorkflowInconsistency[]): WorkflowR
       action:
         i.code === 'in_service_without_service_start' && i.recordedStatus === 'gestartet'
           ? 'backfill_service_start'
+          : i.code === 'post_service_without_service_end'
+            ? 'backfill_service_end'
           : 'reset_status',
       targetStatus: i.expectedStatus,
       label:
-        i.expectedStatus === 'angekommen'
+        i.code === 'post_service_without_service_end'
+          ? 'Einsatzende vollständig speichern'
+          : i.expectedStatus === 'angekommen'
           ? 'Status auf „Angekommen“ zurücksetzen'
           : 'Status korrigieren',
     }));
@@ -93,6 +97,12 @@ export function deriveWorkflowStatus(
   } else if (visitTimes?.serviceStartedAt) {
     if (derivedStatus === 'unterwegs' || derivedStatus === 'angekommen') {
       derivedStatus = 'gestartet';
+    } else if (POST_SERVICE_STATUSES.includes(derivedStatus)) {
+      // A status write can succeed before the service_end event or its WFM
+      // mirror. Until an actual end timestamp exists the visit is still
+      // running and must remain resumable instead of trapping the employee in
+      // a post-service screen.
+      derivedStatus = visitTimes.activeTimer === 'pause' ? 'pausiert' : 'gestartet';
     }
   }
 

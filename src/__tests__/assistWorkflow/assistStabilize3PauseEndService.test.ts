@@ -8,6 +8,7 @@ import { endPause } from '@/features/assistWorkflow/endPause';
 import { endService } from '@/features/assistWorkflow/endService';
 import type { AssistExecutionContext } from '@/features/assistWorkflow/types';
 import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
+import { resetWfmOfficeTimekeepingStore } from '@/lib/wfm/wfmOfficeTimekeepingStore';
 
 const transitionMock = vi.fn();
 const resolveMock = vi.fn();
@@ -160,6 +161,23 @@ describe('ASSIST.STABILIZE.3 calculateVisitTimes', () => {
     expect(workflow.derivedStatus).toBe('beendet');
     expect(workflow.canStartService).toBe(false);
   });
+
+  it('keeps a post-service status resumable until service_end is durable', () => {
+    const visitTimes = calculateVisitTimes(
+      [
+        { eventType: 'drive_start', occurredAt: '2026-06-29T08:00:00.000Z' },
+        { eventType: 'arrive', occurredAt: '2026-06-29T08:30:00.000Z' },
+        { eventType: 'service_start', occurredAt: '2026-06-29T08:35:00.000Z' },
+      ],
+      'beendet',
+    );
+
+    const workflow = deriveWorkflowStatus('beendet', visitTimes);
+
+    expect(workflow.derivedStatus).toBe('gestartet');
+    expect(workflow.consistencyStatus).toBe('repairable');
+    expect(workflow.nextActionHint).toContain('Einsatz beenden');
+  });
 });
 
 describe('ASSIST.STABILIZE.3 resolveAllowedActions', () => {
@@ -178,6 +196,26 @@ describe('ASSIST.STABILIZE.3 resolveAllowedActions', () => {
       derivedStatus: 'pausiert',
     });
     expect(actions).toContain('end_pause');
+    expect(actions).toContain('end_service');
+  });
+
+  it('offers end_service when assignment status is ahead but service_end is missing', () => {
+    const visitTimes = calculateVisitTimes(
+      [
+        { eventType: 'arrive', occurredAt: '2026-06-29T08:30:00.000Z' },
+        { eventType: 'service_start', occurredAt: '2026-06-29T08:35:00.000Z' },
+      ],
+      'beendet',
+    );
+    const workflow = deriveWorkflowStatus('beendet', visitTimes);
+    const actions = resolveAllowedActions({
+      assignmentStatus: 'beendet',
+      visitTimes,
+      detail: baseDetail('beendet'),
+      derivedStatus: workflow.derivedStatus,
+    });
+
+    expect(workflow.derivedStatus).toBe('gestartet');
     expect(actions).toContain('end_service');
   });
 });
@@ -203,6 +241,7 @@ describe('ASSIST.STABILIZE.3 hasOpenPauseSegment', () => {
 describe('ASSIST.STABILIZE.3 startPause', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetWfmOfficeTimekeepingStore();
     fetchEventsMock.mockResolvedValue({ ok: true, data: [] });
     ensureOpenPauseStartMock.mockResolvedValue({ ok: true, data: { id: 'p1', created: true } });
     upsertStateMock.mockResolvedValue({ ok: true, data: { visitId: 'v1', currentStep: 'paused' } });
@@ -287,6 +326,7 @@ describe('ASSIST.STABILIZE.3 endPause', () => {
 describe('ASSIST.STABILIZE.3 endService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetWfmOfficeTimekeepingStore();
     fetchEventsMock.mockResolvedValue({ ok: true, data: [{ eventType: 'service_start' }] });
     ensureOpenPauseEndMock.mockResolvedValue({ ok: true, data: { id: 'x', created: false } });
     ensureVisitTimeEventMock.mockResolvedValue({ ok: true, data: { id: 'se1', created: true } });
@@ -342,5 +382,62 @@ describe('ASSIST.STABILIZE.3 endService', () => {
         visitTimes: expect.objectContaining({ serviceEndedAt: expect.any(String) }),
       }),
     );
+  });
+
+  it('finishes service_end after an earlier transition was only partially persisted', async () => {
+    const input = ctx({
+      assignmentStatus: 'gestartet',
+      derivedStatus: 'gestartet',
+      detail: { ...baseDetail('gestartet'), plannedEndAt: new Date().toISOString() },
+    });
+    const partiallyEnded = ctx({
+      assignmentStatus: 'beendet',
+      derivedStatus: 'gestartet',
+      consistencyStatus: 'repairable',
+      detail: { ...baseDetail('beendet'), plannedEndAt: new Date().toISOString() },
+      visitTimes: input.visitTimes,
+      timeEvents: input.timeEvents,
+    });
+
+    transitionMock.mockResolvedValue({
+      ok: false,
+      error: 'Einsatzstatus wurde gespeichert, aber der Live-Monitor antwortete nicht.',
+    });
+    resolveMock.mockResolvedValue({ ok: true, data: partiallyEnded });
+
+    const result = await endService(input);
+
+    expect(result.ok).toBe(true);
+    expect(ensureVisitTimeEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: 'service_end' }),
+      expect.any(Array),
+    );
+    expect(upsertStateMock).toHaveBeenCalledWith(
+      input.tenantId,
+      input.assignmentId,
+      'beendet',
+      expect.objectContaining({
+        visitTimes: expect.objectContaining({ serviceEndedAt: expect.any(String) }),
+      }),
+    );
+  });
+
+  it('returns the explicit justification action instead of an inconsistent-status error', async () => {
+    const input = ctx({
+      assignmentStatus: 'gestartet',
+      derivedStatus: 'gestartet',
+      detail: { ...baseDetail('gestartet'), plannedEndAt: '2000-01-01T00:00:00.000Z' },
+    });
+
+    const result = await endService(input);
+
+    expect(result).toMatchObject({
+      ok: false,
+      errorCode: 'WORKFLOW_DEVIATION_JUSTIFICATION_REQUIRED',
+    });
+    if (!result.ok) {
+      expect(result.error).toContain('Begründung');
+    }
+    expect(transitionMock).not.toHaveBeenCalled();
   });
 });

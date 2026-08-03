@@ -42,6 +42,29 @@ export async function startEnRoute(
   });
 
   if (!started.ok) {
+    // The live session/status can already be durable when a later GPS or WFM
+    // mirror reports an error. Recover from the authoritative readback so the
+    // employee never has to start the same journey twice.
+    const recovered = await resolveAssistExecutionContext({
+      tenantId: input.tenantId,
+      assignmentId: input.assignmentId,
+      employeeId: input.employeeId,
+      profileId: input.profileId,
+      roleKey: input.roleKey,
+    });
+    if (
+      recovered.ok &&
+      (Boolean(recovered.data.visitTimes?.driveStartedAt) ||
+        Boolean(recovered.data.detail.onTheWayAt) ||
+        ['unterwegs', 'angekommen', 'gestartet', 'pausiert', 'beendet'].includes(
+          recovered.data.assignmentStatus,
+        ) ||
+        ['unterwegs', 'angekommen', 'gestartet', 'pausiert', 'beendet'].includes(
+          recovered.data.derivedStatus,
+        ))
+    ) {
+      return recovered;
+    }
     return { ok: false, error: started.error };
   }
 

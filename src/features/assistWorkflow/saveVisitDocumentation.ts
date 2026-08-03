@@ -28,6 +28,8 @@ export type SaveVisitDocumentationInput = {
 export type SaveVisitDocumentationResult = {
   ctx: AssistExecutionContext;
   nextStep: 'signature' | 'finalize';
+  /** Documentation is durable; a secondary status/administration mirror needs a retry. */
+  wfmSyncFailed?: boolean;
 };
 
 function buildDocumentationText(doc: EmployeePortalDocumentationInput): string {
@@ -65,7 +67,7 @@ async function persistDocumentationToAssistVisit(
   visitId: string,
   doc: EmployeePortalDocumentationInput,
   profileId: string | null,
-): Promise<ServiceResult<void>> {
+): Promise<ServiceResult<{ visitMirrorFailed: boolean }>> {
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase ist nicht verfügbar.' };
 
@@ -112,10 +114,10 @@ async function persistDocumentationToAssistVisit(
     .eq('id', visitId);
 
   if (visitUpdateError) {
-    return { ok: false, error: toGermanSupabaseError(visitUpdateError) };
+    return { ok: true, data: { visitMirrorFailed: true } };
   }
 
-  return { ok: true, data: undefined };
+  return { ok: true, data: { visitMirrorFailed: false } };
 }
 
 export async function saveVisitDocumentation(
@@ -197,6 +199,7 @@ export async function saveVisitDocumentation(
     ? 'gestartet'
     : 'dokumentation_offen';
   let documentationPersisted = false;
+  let wfmSyncFailed = false;
 
   if (getServiceMode() === 'supabase') {
     const visitId =
@@ -220,6 +223,7 @@ export async function saveVisitDocumentation(
       return { ok: false, error: visitDoc.error };
     }
     documentationPersisted = true;
+    if (visitDoc.data.visitMirrorFailed) wfmSyncFailed = true;
 
     const { error: notesError } = await fromUnknownTable(getSupabaseClient()!, 'assignments')
       .update({
@@ -230,7 +234,10 @@ export async function saveVisitDocumentation(
       .eq('id', masterAssignmentId);
 
     if (notesError) {
-      return { ok: false, error: toGermanSupabaseError(notesError) };
+      // The structured visit documentation is already the source of truth.
+      // Keep the workflow moving and surface the legacy assignment-note mirror
+      // as a non-blocking administration warning.
+      wfmSyncFailed = true;
     }
   }
 
@@ -280,12 +287,7 @@ export async function saveVisitDocumentation(
   );
 
   if (!executionState.ok) {
-    return {
-      ok: false,
-      error:
-        executionState.error ??
-        'Dokumentation wurde gespeichert, aber der Einsatzstatus konnte nicht bestätigt werden.',
-    };
+    wfmSyncFailed = true;
   }
 
   const detail = {
@@ -328,6 +330,6 @@ export async function saveVisitDocumentation(
 
   return {
     ok: true,
-    data: { ctx: optimisticCtx, nextStep },
+    data: { ctx: optimisticCtx, nextStep, wfmSyncFailed },
   };
 }

@@ -2,6 +2,7 @@
  * ASSIST.STABILIZE.3 — End service with service_end persistence + readback verification.
  */
 import type { ServiceResult } from '@/types';
+import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import type { AssistExecutionContext } from './types';
@@ -23,8 +24,23 @@ import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePort
 import { checkVisitDeviationGate } from '@/lib/wfm/wfmOfficeTimekeepingService';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from './resolveAllowedActions';
+import { repairWorkflowState } from './repairWorkflowState';
+import type { WorkflowDeviationApproval } from './startService';
 
 type WorkflowFail = { ok: false; error: string; errorCode?: string };
+
+export type EndServiceResult = AssistExecutionContext & {
+  /** The employee workflow finished; one ancillary administration mirror needs a later retry. */
+  wfmSyncFailed?: boolean;
+};
+
+const ACTIVE_SERVICE_STATUSES: AssignmentStatus[] = ['gestartet', 'pausiert'];
+const POST_SERVICE_STATUSES: AssignmentStatus[] = [
+  'beendet',
+  'dokumentation_offen',
+  'unterschrift_offen',
+  'abgeschlossen',
+];
 
 function endServiceError(
   code: AssistWorkflowErrorCode,
@@ -85,15 +101,16 @@ function mergeServiceEndedVisitTimes(
 function buildOptimisticEndedContext(
   ctx: AssistExecutionContext,
   visitTimes: VisitTimesSummary,
+  targetStatus: AssignmentStatus = 'beendet',
 ): AssistExecutionContext {
   const detail = {
     ...ctx.detail,
-    status: 'beendet' as const,
+    status: targetStatus,
     actualEndAt: visitTimes.serviceEndedAt ?? ctx.detail.actualEndAt,
   };
   const workflow = {
-    derivedStatus: 'beendet' as const,
-    recordedStatus: 'beendet' as const,
+    derivedStatus: targetStatus,
+    recordedStatus: targetStatus,
     consistencyStatus: ctx.consistencyStatus,
     inconsistencies: ctx.inconsistencies,
     repairOptions: ctx.repairOptions,
@@ -102,16 +119,16 @@ function buildOptimisticEndedContext(
   };
   return {
     ...ctx,
-    assignmentStatus: 'beendet',
-    derivedStatus: 'beendet',
+    assignmentStatus: targetStatus,
+    derivedStatus: targetStatus,
     detail,
     visitTimes,
-    diagnostics: resolveAssistExecutionDiagnostics('beendet', visitTimes, workflow),
+    diagnostics: resolveAssistExecutionDiagnostics(targetStatus, visitTimes, workflow),
     allowedActions: resolveAllowedActions({
-      assignmentStatus: 'beendet',
+      assignmentStatus: targetStatus,
       visitTimes,
       detail,
-      derivedStatus: 'beendet',
+      derivedStatus: targetStatus,
       canStartService: false,
     }),
   };
@@ -120,34 +137,87 @@ function buildOptimisticEndedContext(
 async function persistEndedExecutionMirrors(
   ctx: AssistExecutionContext,
   visitTimes: VisitTimesSummary,
-): Promise<ServiceResult<void>> {
+  targetStatus: AssignmentStatus,
+): Promise<{ wfmSyncFailed: boolean }> {
+  let wfmSyncFailed = false;
   const upserted = await upsertAssistVisitExecutionState(
     ctx.tenantId,
     ctx.assignmentId,
-    'beendet',
+    targetStatus,
     {
       employeeId: ctx.employeeId,
       visitTimes,
-      documentationComplete: false,
+      documentationComplete: ctx.detail.documentationStatus === 'submitted',
     },
   );
-  if (!upserted.ok) return upserted;
+  if (!upserted.ok) {
+    // service_end is the authoritative employee time event. A secondary
+    // execution snapshot must never force the employee to repeat a completed
+    // action; finalization retries the administration/WFM projection.
+    wfmSyncFailed = true;
+  }
 
   if (getServiceMode() === 'supabase') {
     const mirrored = await mirrorAssistVisitStatusFromAssignment(
       ctx.tenantId,
       ctx.assignmentId,
-      'beendet',
+      targetStatus,
       ctx.profileId ?? null,
     );
     if (!mirrored.ok) {
-      return {
-        ok: false,
-        error: mirrored.error ?? 'Einsatzende konnte nicht an Verwaltung und Budget übertragen werden.',
-      };
+      wfmSyncFailed = true;
     }
   }
-  return { ok: true, data: undefined };
+  return { wfmSyncFailed };
+}
+
+function resolvePostServiceTargetStatus(ctx: AssistExecutionContext): AssignmentStatus {
+  return POST_SERVICE_STATUSES.includes(ctx.assignmentStatus)
+    ? ctx.assignmentStatus
+    : 'beendet';
+}
+
+async function prepareEndServiceTransition(
+  ctx: AssistExecutionContext,
+): Promise<ServiceResult<AssistExecutionContext>> {
+  let workingCtx = ctx;
+
+  // The durable service_start event can be ahead of assignments.status after
+  // an earlier request lost its response. Repair that forward-only drift once
+  // before validating the end transition.
+  if (
+    ACTIVE_SERVICE_STATUSES.includes(ctx.derivedStatus) &&
+    !ACTIVE_SERVICE_STATUSES.includes(ctx.assignmentStatus) &&
+    !POST_SERVICE_STATUSES.includes(ctx.assignmentStatus)
+  ) {
+    const repaired = await repairWorkflowState(ctx);
+    if (!repaired.ok) return repaired;
+    if (repaired.data.repaired) workingCtx = repaired.data.ctx;
+  }
+
+  // A previous end attempt may already have advanced the assignment while the
+  // service_end event or another mirror failed. Continue idempotently from
+  // that durable state instead of trying an invalid backwards transition.
+  if (POST_SERVICE_STATUSES.includes(workingCtx.assignmentStatus)) {
+    return { ok: true, data: workingCtx };
+  }
+
+  const transitioned = await transitionAssistExecutionStatus(workingCtx, 'beendet', {
+    hasServiceStarted: true,
+    hasTravelEnded: Boolean(workingCtx.visitTimes?.arrivedAt),
+    skipStatusPersistence: true,
+  });
+  if (transitioned.ok) return transitioned;
+
+  // updateStatus can be committed before an ancillary mirror reports an
+  // error. Read the real state back and finish the missing time event when the
+  // requested transition already reached a post-service status.
+  const refreshed = await reloadContext(workingCtx);
+  if (refreshed.ok && POST_SERVICE_STATUSES.includes(refreshed.data.assignmentStatus)) {
+    return refreshed;
+  }
+
+  return transitioned;
 }
 
 async function verifyEndServiceReadback(
@@ -268,7 +338,8 @@ async function persistEndServiceEvents(
 
 export async function endService(
   ctx: AssistExecutionContext,
-): Promise<ServiceResult<AssistExecutionContext>> {
+  options: WorkflowDeviationApproval = {},
+): Promise<ServiceResult<EndServiceResult>> {
   const serviceStarted = Boolean(ctx.visitTimes?.serviceStartedAt);
 
   if (!serviceStarted) {
@@ -296,15 +367,24 @@ export async function endService(
   }
 
   if (ctx.visitTimes?.serviceEndedAt) {
+    const targetStatus = resolvePostServiceTargetStatus(ctx);
     const mirrors = await persistEndedExecutionMirrors(
       ctx,
       mergeServiceEndedVisitTimes(ctx, ctx.visitTimes),
+      targetStatus,
     );
-    if (!mirrors.ok) {
-      return endServiceError('WORKFLOW_TIME_EVENT_FAILED', ctx, mirrors.error);
-    }
     const refreshed = await reloadContext(ctx);
-    return refreshed.ok ? refreshed : endServiceError('WORKFLOW_TIME_EVENT_FAILED', ctx, refreshed.error);
+    const completedCtx = refreshed.ok
+      ? refreshed.data
+      : buildOptimisticEndedContext(
+          ctx,
+          mergeServiceEndedVisitTimes(ctx, ctx.visitTimes),
+          targetStatus,
+        );
+    return {
+      ok: true,
+      data: { ...completedCtx, wfmSyncFailed: mirrors.wfmSyncFailed },
+    };
   }
 
   const actualEnd = new Date().toISOString();
@@ -316,22 +396,18 @@ export async function endService(
     ctx.detail.plannedEndAt,
     actualEnd,
   );
-  if (deviationGate.blocked) {
+  if (deviationGate.blocked && !options.deviationApproved) {
     return endServiceError(
-      'WORKFLOW_INVALID_STATE',
+      'WORKFLOW_DEVIATION_JUSTIFICATION_REQUIRED',
       ctx,
       'Abweichung zur geplanten Einsatz-Endzeit — schriftliche Begründung erforderlich.',
     );
   }
 
-  const result = await transitionAssistExecutionStatus(ctx, 'beendet', {
-    hasServiceStarted: true,
-    hasTravelEnded: Boolean(ctx.visitTimes?.arrivedAt),
-    skipStatusPersistence: true,
-  });
+  const result = await prepareEndServiceTransition(ctx);
 
   if (!result.ok) {
-    return endServiceError('WORKFLOW_INVALID_STATE', ctx, result.error);
+    return result;
   }
 
   const eventsWritten = await persistEndServiceEvents(result.data);
@@ -340,10 +416,14 @@ export async function endService(
   const endedAt = new Date().toISOString();
   const mergedTimes = mergeServiceEndedVisitTimes(result.data, result.data.visitTimes, endedAt);
 
-  const mirrors = await persistEndedExecutionMirrors(ctx, mergedTimes);
-  if (!mirrors.ok) {
-    return endServiceError('WORKFLOW_TIME_EVENT_FAILED', ctx, mirrors.error);
-  }
+  const targetStatus = resolvePostServiceTargetStatus(result.data);
+  const mirrors = await persistEndedExecutionMirrors(result.data, mergedTimes, targetStatus);
 
-  return { ok: true, data: buildOptimisticEndedContext(result.data, mergedTimes) };
+  return {
+    ok: true,
+    data: {
+      ...buildOptimisticEndedContext(result.data, mergedTimes, targetStatus),
+      wfmSyncFailed: mirrors.wfmSyncFailed,
+    },
+  };
 }

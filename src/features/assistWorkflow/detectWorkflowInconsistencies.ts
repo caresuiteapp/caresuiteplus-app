@@ -8,7 +8,8 @@ export type WorkflowInconsistencyCode =
   | 'status_ahead_without_service_start'
   | 'status_ahead_without_travel_end'
   | 'in_service_without_service_start'
-  | 'post_service_without_service_start';
+  | 'post_service_without_service_start'
+  | 'post_service_without_service_end';
 
 export type WorkflowInconsistency = {
   code: WorkflowInconsistencyCode;
@@ -33,6 +34,7 @@ export function detectWorkflowInconsistencies(
   const inconsistencies: WorkflowInconsistency[] = [];
   const hasArrived = Boolean(visitTimes?.arrivedAt);
   const hasServiceStart = Boolean(visitTimes?.serviceStartedAt);
+  const hasServiceEnd = Boolean(visitTimes?.serviceEndedAt);
   const hasDriveStart = Boolean(visitTimes?.driveStartedAt);
 
   if (IN_SERVICE_STATUSES.includes(recordedStatus) && !hasServiceStart) {
@@ -52,6 +54,17 @@ export function detectWorkflowInconsistencies(
       expectedStatus: hasArrived ? 'angekommen' : hasDriveStart ? 'unterwegs' : 'angekommen',
       repairable: true,
       userHint: 'Einsatz wurde noch nicht gestartet — bitte „Einsatz starten“ bestätigen.',
+    });
+  }
+
+  if (POST_SERVICE_STATUSES.includes(recordedStatus) && hasServiceStart && !hasServiceEnd) {
+    inconsistencies.push({
+      code: 'post_service_without_service_end',
+      recordedStatus,
+      expectedStatus: visitTimes?.activeTimer === 'pause' ? 'pausiert' : 'gestartet',
+      repairable: true,
+      userHint:
+        'Das Einsatzende ist noch nicht vollständig gespeichert — bitte „Einsatz beenden“ erneut bestätigen.',
     });
   }
 
