@@ -167,10 +167,87 @@ describe('employee portal responsive visual gate', () => {
     expect(screen).not.toContain('style={styles.phaseCard}');
   });
 
-  it('keeps the mobile welcome guide in a bounded row', () => {
-    const home = read('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx');
-    expect(home).toContain("guideAreaCompact: {\n    flex: 0, minWidth: 0, maxWidth: '100%', width: '100%',\n    flexDirection: 'row'");
-    expect(home).toContain('guideMascotCompact: { width: 52, height: 61');
-    expect(home).toContain("guideBubbleCompact: { flex: 1, minWidth: 0, width: 'auto'");
+  it('keeps both mobile welcome heroes in intrinsic document flow', () => {
+    const employeeHome = read('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx');
+    const clientHome = read('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
+    const page = read('src/components/healthos/HealthOSPage.tsx');
+    const appointmentHero = read('src/components/portal/PortalAppointmentDetailHero.tsx');
+
+    expect(employeeHome).toMatch(
+      /welcomeCopyCompact:\s*\{[\s\S]*?flexGrow:\s*0,[\s\S]*?flexShrink:\s*0,[\s\S]*?flexBasis:\s*'auto'/,
+    );
+    expect(employeeHome).toMatch(
+      /guideAreaCompact:\s*\{[\s\S]*?flexGrow:\s*0,[\s\S]*?flexShrink:\s*0,[\s\S]*?flexBasis:\s*'auto'/,
+    );
+    expect(employeeHome).toContain('guideMascotCompact: { width: 52, height: 61');
+    expect(employeeHome).toContain("guideBubbleCompact: { flex: 1, minWidth: 0, width: 'auto', alignSelf: 'stretch'");
+
+    for (const styleName of ['welcomeCopyPhone', 'guideAreaPhone', 'guideBubblePhone']) {
+      const styleBlock = clientHome.match(
+        new RegExp(`${styleName}:\\s*\\{([\\s\\S]*?)\\n\\s*\\},`),
+      )?.[1];
+      expect(styleBlock, `${styleName} must have an intrinsic height`).toBeTruthy();
+      expect(styleBlock).toContain('flexGrow: 0');
+      expect(styleBlock).toContain('flexShrink: 0');
+      expect(styleBlock).toContain("flexBasis: 'auto'");
+      expect(styleBlock).not.toMatch(/flex:\s*0/);
+    }
+
+    expect(page).toMatch(
+      /scrollContent:\s*\{[\s\S]*?flexGrow:\s*0,[\s\S]*?flexShrink:\s*0,[\s\S]*?flexBasis:\s*'auto'/,
+    );
+    expect(page).not.toMatch(/scrollContent:\s*\{[\s\S]*?flex:\s*0/);
+    expect(appointmentHero).toMatch(
+      /kpiItemPhone:\s*\{[\s\S]*?flexGrow:\s*0,[\s\S]*?flexShrink:\s*0,[\s\S]*?flexBasis:\s*'auto'/,
+    );
+    expect(appointmentHero).not.toMatch(/kpiItemPhone:\s*\{[\s\S]*?flex:\s*0/);
+  });
+
+  it('keeps every execution modal on one readable portal surface', () => {
+    const modal = read('src/components/layout/platform/platformmodal.tsx');
+    const header = read('src/components/layout/platform/gradientmodalheader.tsx');
+    const documentation = read('src/components/portal/EmployeePortalVisitDocumentationPanel.tsx');
+    const tasks = read('src/components/portal/EmployeePortalVisitTasksPanel.tsx');
+    const photos = read('src/components/portal/EmployeePortalVisitPhotoModal.tsx');
+
+    expect(modal).toContain('usePortalPremiumRuntimeTheme');
+    expect(modal).toContain('portalPremium.surfaceRaised');
+    expect(header).toContain('usePortalPremiumRuntimeTheme');
+    expect(header).toContain('portalPremium.text.secondary');
+    expect(documentation).toContain('employee-visit-documentation-form');
+    expect(documentation).not.toContain('subtitle={statusLabel}');
+    for (const source of [documentation, tasks, photos]) {
+      expect(source).toContain('sheetStyle={styles.modalSheet}');
+      expect(source).toContain('bodyStyle={styles.modalBody}');
+      expect(source).not.toContain('<ScrollView');
+    }
+  });
+
+  it('protects large text and dark workflow chrome from clipping and low contrast', () => {
+    const button = read('src/components/ui/PremiumButton.tsx');
+    const banner = read('src/components/ui/InfoBanner.tsx');
+    const detail = read('src/components/detail/DetailInfoRow.tsx');
+    const bottomBar = read('src/components/portal/EmployeePortalVisitBottomBar.tsx');
+    const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
+    const summary = read('src/components/portal/EmployeePortalVisitSummaryPanel.tsx');
+    const live = read('src/components/portal/EmployeePortalVisitLiveDashboard.tsx');
+    const sticky = read('src/components/portal/EmployeePortalVisitStickyHeader.tsx');
+    const progress = read('src/components/portal/EmployeePortalVisitProgressSteps.tsx');
+
+    expect(button).toContain('minHeight: height');
+    expect(button).not.toMatch(/button:\s*\{\s*height,/);
+    expect(banner).toContain('onDarkSurface?: boolean');
+    expect(screen).toContain('onDarkSurface />');
+    expect(detail).toContain('portal.active ? portalPremium.text.primary : c.text');
+    expect(bottomBar).toContain("from '@expo/vector-icons'");
+    expect(bottomBar).toContain('employeePortalExecutionSurface.actionBarBackground');
+    expect(bottomBar).not.toMatch(/[☑📝📷]/u);
+    expect(screen).not.toContain('styles.dismissText');
+    expect(summary).toContain('<PremiumCard contentStyle={styles.wrap}>');
+    expect(summary).toContain('presentation="inline"');
+    expect(live).toContain('timerBlockCompact');
+    expect(live).toContain('cardCell: { flex: 1, minWidth: 0');
+    expect(sticky).toContain('numberOfLines={compact ? 2 : 1}');
+    expect(progress).toContain('numberOfLines={2}');
   });
 });

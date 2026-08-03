@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   type ViewStyle,
 } from 'react-native';
@@ -856,36 +855,31 @@ export function EmployeePortalVisitExecutionScreen() {
         onDismiss={() => setLocalSuccess(null)}
       />
       {localError ? (
-        <View style={styles.dismissibleError}>
-          <ErrorState message={localError} />
-          <TouchableOpacity onPress={() => setLocalError(null)} accessibilityRole="button">
-            <Text style={styles.dismissText}>Schließen</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorState message={localError} />
       ) : null}
       {taskSaveError ? (
-        <View style={styles.dismissibleError}>
-          <ErrorState message={taskSaveError} />
-        </View>
+        <ErrorState message={taskSaveError} />
       ) : null}
-      {localWarning ? <InfoBanner variant="warning" message={localWarning} /> : null}
+      {localWarning ? <InfoBanner variant="warning" message={localWarning} onDarkSurface /> : null}
       {syncWarning ? (
-        <InfoBanner variant="warning" message={formatExecutionSyncWarning(syncWarning)} />
+        <InfoBanner variant="warning" message={formatExecutionSyncWarning(syncWarning)} onDarkSurface />
       ) : null}
       {consistencyStatus === 'repairable' && nextActionHint ? (
-        <InfoBanner variant="info" message={nextActionHint} />
+        <InfoBanner variant="info" message={nextActionHint} onDarkSurface />
       ) : null}
       <CachedDataBanner
         visible={fromCache || readOnlyExecution}
         cachedAt={cachedAt}
         readOnly={readOnlyExecution}
         partialDetail={partialDetail}
+        onDarkSurface
       />
       {readOnlyExecution ? (
         <InfoBanner
           variant="warning"
           title="Nur Ansicht"
           message="Offline oder zwischengespeichert — Workflow-Aktionen sind deaktiviert."
+          onDarkSurface
         />
       ) : null}
 
@@ -916,7 +910,7 @@ export function EmployeePortalVisitExecutionScreen() {
         ) : null}
 
         {tracking?.warnings.map((w) => (
-          <InfoBanner key={w} variant="warning" message={w} />
+          <InfoBanner key={w} variant="warning" message={w} onDarkSurface />
         ))}
 
         {visit.notesForEmployee || visit.accessHints ? (
@@ -943,7 +937,7 @@ export function EmployeePortalVisitExecutionScreen() {
         {renderPhaseContent()}
 
         {documentationSubmitted && visit.requiresSignature && !signatureCaptured && !signatureDeferred ? (
-          <InfoBanner variant="info" message="Dokumentation gespeichert — bitte Unterschrift erfassen." />
+          <InfoBanner variant="info" message="Dokumentation gespeichert — bitte Unterschrift erfassen." onDarkSurface />
         ) : null}
 
         {showSignature && !isLocked ? (
@@ -1047,27 +1041,27 @@ export function EmployeePortalVisitExecutionScreen() {
             {
               key: 'tasks',
               label: 'Aufgaben',
-              icon: '☑',
+              icon: 'checkbox-outline',
               active: tasksOpen,
               onPress: () => setTasksOpen(true),
             },
             {
               key: 'documentation',
               label: 'Doku',
-              icon: '📝',
+              icon: 'document-text-outline',
               active: documentationOpen,
               onPress: () => setDocumentationOpen(true),
             },
             {
               key: 'photo',
               label: 'Foto',
-              icon: '📷',
+              icon: 'camera-outline',
               onPress: () => setPhotoModalOpen(true),
             },
             {
               key: 'more',
               label: 'Mehr',
-              icon: '⋯',
+              icon: 'ellipsis-horizontal',
               active: moreOpen,
               onPress: () => setMoreOpen(true),
             },
@@ -1241,11 +1235,4 @@ const styles = StyleSheet.create({
   phaseActions: { gap: spacing.sm, marginTop: spacing.sm },
   liveWrap: { gap: spacing.md },
   hiddenSetup: { gap: spacing.sm },
-  dismissibleError: { gap: spacing.xs, paddingHorizontal: spacing.md },
-  dismissText: {
-    ...typography.caption,
-    color: portalPremium.text.muted,
-    textAlign: 'center',
-    paddingVertical: spacing.xs,
-  },
 });

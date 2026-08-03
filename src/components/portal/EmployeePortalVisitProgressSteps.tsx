@@ -21,7 +21,7 @@ const PROGRESS_STEPS = [
   { key: 'start', label: 'Start', match: ['consent', 'en_route', 'arrived', 'in_service', 'paused'] },
   { key: 'tasks', label: 'Aufgaben', match: ['in_service', 'paused', 'tasks'] },
   { key: 'documentation', label: 'Doku', match: ['documentation'] },
-  { key: 'signature', label: 'Unterschrift', match: ['signature'] },
+  { key: 'signature', label: 'Signatur', match: ['signature'] },
   { key: 'finalize', label: 'Abschluss', match: ['finalize', 'completed'] },
 ] as const;
 
@@ -115,7 +115,7 @@ export function EmployeePortalVisitProgressSteps({
         dotDone: { backgroundColor: colors.success, borderColor: colors.success },
         dotActive: { borderColor: colors.amber, backgroundColor: 'rgba(255, 149, 0, 0.15)' },
         check: { ...typography.caption, color: '#fff', fontSize: 10, fontWeight: '700' },
-        label: { ...typography.caption, color: text.muted, fontSize: 11 },
+        label: { ...typography.caption, color: text.muted, fontSize: 11, minHeight: 28, textAlign: 'center' },
         labelActive: { color: text.primary, fontWeight: '600' },
         labelDone: { color: text.secondary },
         connector: { position: 'absolute', top: 14, left: '-50%', right: '50%', height: 2, backgroundColor: employeePortalExecutionSurface.borderStrong },
@@ -141,7 +141,7 @@ export function EmployeePortalVisitProgressSteps({
                 done ? styles.labelDone : null,
                 active ? styles.labelActive : null,
               ]}
-              numberOfLines={1}
+              numberOfLines={2}
             >
               {step.label}
             </Text>

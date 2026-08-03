@@ -8,6 +8,7 @@ type CachedDataBannerProps = {
   readOnly?: boolean;
   /** When true, only list-row basis data is available (no full detail prefetch). */
   partialDetail?: boolean;
+  onDarkSurface?: boolean;
 };
 
 export function CachedDataBanner({
@@ -15,6 +16,7 @@ export function CachedDataBanner({
   cachedAt = null,
   readOnly = false,
   partialDetail = false,
+  onDarkSurface = false,
 }: CachedDataBannerProps) {
   if (!visible || !cachedAt) return null;
 
@@ -31,6 +33,7 @@ export function CachedDataBanner({
       title="Zwischengespeicherte Daten"
       message={message}
       icon="💾"
+      onDarkSurface={onDarkSurface}
     />
   );
 }

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { CareLightCard } from '@/components/ui/CareLightCard';
+import { PremiumCard } from '@/components/ui/PremiumCard';
 import {
   employeePortalExecutionText,
 } from '@/lib/portal/employeePortalExecutionSurface';
@@ -32,7 +32,9 @@ export function EmployeePortalVisitCompactCard({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        card: { minHeight: 132, padding: spacing.md, gap: spacing.xs, justifyContent: 'space-between' },
+        root: { width: '100%', minWidth: 0 },
+        card: { minHeight: 132, width: '100%', minWidth: 0 },
+        cardContent: { gap: spacing.xs, justifyContent: 'space-between' },
         topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
         iconWrap: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(13, 148, 136, 0.09)' },
         icon: { fontSize: 21, color: '#0F8F8A', fontWeight: '700' },
@@ -46,7 +48,7 @@ export function EmployeePortalVisitCompactCard({
   );
 
   const content = (
-    <CareLightCard accentColor={accentColor} style={styles.card}>
+    <PremiumCard accentColor={accentColor} style={styles.card} contentStyle={styles.cardContent}>
       <View style={styles.topRow}>
         <View style={styles.iconWrap}><Text style={styles.icon}>{icon ?? '✓'}</Text></View>
         <Text style={styles.state}>{disabled ? '○' : '✓'}</Text>
@@ -55,7 +57,7 @@ export function EmployeePortalVisitCompactCard({
       <Text style={styles.status}>{status}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       {onPress ? <Text style={styles.action}>{disabled ? 'Nach Einsatzende' : 'Öffnen →'}</Text> : null}
-    </CareLightCard>
+    </PremiumCard>
   );
 
   if (!onPress || disabled) return content;
@@ -67,6 +69,7 @@ export function EmployeePortalVisitCompactCard({
       accessibilityRole="button"
       style={({ pressed }) =>
         [
+          styles.root,
           pressed ? { opacity: 0.92 } : null,
           Platform.OS === 'web' ? ({ cursor: 'pointer' } as ViewStyle) : null,
         ] as ViewStyle[]

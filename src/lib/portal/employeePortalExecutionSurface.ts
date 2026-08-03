@@ -8,6 +8,9 @@ export const employeePortalExecutionSurface = {
   border: portalPremium.borderSoft,
   borderStrong: portalPremium.borderStrong,
   inputBackground: portalPremium.surfaceRaised,
+  actionBarBackground: 'rgba(3,17,39,0.98)',
+  actionBarBorder: 'rgba(112,181,255,0.42)',
+  actionBarActive: 'rgba(53,151,255,0.20)',
 } as const;
 
 export const employeePortalExecutionText = portalPremium.text;

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { InfoBanner, PremiumButton } from '@/components/ui';
 import { sendAiTextMessage } from '@/ai/aiTextChatService';
@@ -84,6 +84,8 @@ export function EmployeePortalVisitDocumentationAiModal({
         error: { ...typography.caption, color: '#EF4444', marginTop: spacing.xs },
         actions: { gap: spacing.sm, marginTop: spacing.md },
         actionRow: { gap: spacing.sm },
+        modalSheet: { backgroundColor: employeePortalExecutionSurface.background },
+        modalBody: { backgroundColor: employeePortalExecutionSurface.background },
       }),
     [text],
   );
@@ -167,8 +169,10 @@ export function EmployeePortalVisitDocumentationAiModal({
       variant={isMobile ? 'bottomSheet' : 'center'}
       animationType={isMobile ? 'slide' : 'fade'}
       maxWidth={560}
+      sheetStyle={styles.modalSheet}
+      bodyStyle={styles.modalBody}
     >
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <View>
         {!aiAvailability.available && aiAvailability.reason ? (
           <InfoBanner variant="warning" message={aiAvailability.reason} />
         ) : null}
@@ -215,7 +219,7 @@ export function EmployeePortalVisitDocumentationAiModal({
             <PremiumButton title="Verwerfen" variant="ghost" onPress={() => setSuggestion(null)} />
           </View>
         ) : null}
-      </ScrollView>
+      </View>
     </PlatformModal>
   );
 }

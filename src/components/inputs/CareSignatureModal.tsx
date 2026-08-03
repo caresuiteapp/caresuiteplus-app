@@ -50,7 +50,7 @@ function PlainSignatureHeader({
           {title}
         </Text>
         {subtitle ? (
-          <Text style={plainHeaderStyles.subtitle} numberOfLines={2}>
+          <Text style={plainHeaderStyles.subtitle} numberOfLines={3}>
             {subtitle}
           </Text>
         ) : null}

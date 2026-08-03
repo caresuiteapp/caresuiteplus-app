@@ -545,6 +545,8 @@ const styles = StyleSheet.create({
   },
   welcomeHeroPhone: {
     minHeight: 0,
+    width: '100%',
+    alignSelf: 'stretch',
     padding: 16,
     borderRadius: 20,
     flexDirection: 'column',
@@ -566,7 +568,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   welcomeCopyPhone: {
-    flex: 0,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+    width: '100%',
   },
   portalPill: {
     alignSelf: 'flex-start',
@@ -605,7 +610,9 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   guideAreaPhone: {
-    flex: 0,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
     minWidth: 0,
     maxWidth: '100%',
     width: '100%',
@@ -634,7 +641,9 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   guideBubblePhone: {
-    flex: 0,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
     width: '100%',
     padding: 14,
   },

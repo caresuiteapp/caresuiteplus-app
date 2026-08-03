@@ -1,9 +1,12 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PremiumButton, PremiumInput } from '@/components/ui';
 import { EmployeePortalVisitDocumentationAiModal } from '@/components/portal/EmployeePortalVisitDocumentationAiModal';
-import { employeePortalExecutionText } from '@/lib/portal/employeePortalExecutionSurface';
+import {
+  employeePortalExecutionSurface,
+  employeePortalExecutionText,
+} from '@/lib/portal/employeePortalExecutionSurface';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import type { EmployeePortalDocumentationInput } from '@/types/modules/employeePortalExecution';
@@ -83,6 +86,9 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
     () =>
       StyleSheet.create({
         status: { ...typography.caption, color: text.muted, marginBottom: spacing.sm },
+        modalSheet: { backgroundColor: employeePortalExecutionSurface.background },
+        modalBody: { backgroundColor: employeePortalExecutionSurface.background },
+        form: { width: '100%', minWidth: 0 },
         fields: { gap: spacing.sm },
         toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
         quickBlocks: { gap: spacing.xs, marginTop: spacing.xs },
@@ -92,7 +98,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
     [text],
   );
 
-  const resolveShortDescription = () => {
+  const resolveShortDescription = useCallback(() => {
     const fromState = shortDescription.trim() || shortDescriptionRef.current.trim();
     if (fromState) return fromState;
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -102,7 +108,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
       return el?.value?.trim() ?? '';
     }
     return '';
-  };
+  }, [shortDescription]);
 
   const handleSubmit = useCallback(async () => {
     const effectiveShort = resolveShortDescription();
@@ -128,7 +134,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
     if (!result.ok) {
       setLocalError(result.error ?? 'Dokumentation konnte nicht gespeichert werden.');
     }
-  }, [deviationJustification, deviations, onSubmit, photoReferences, shortDescription, specialNotes]);
+  }, [deviationJustification, deviations, onSubmit, photoReferences, resolveShortDescription, specialNotes]);
 
   useImperativeHandle(
     ref,
@@ -145,7 +151,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
     : 'Offen';
 
   const form = (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <View style={styles.form} testID="employee-visit-documentation-form">
       <Text style={styles.status}>{statusLabel}</Text>
       <View style={styles.fields}>
         <PremiumInput
@@ -169,7 +175,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
             onPress={() => setShowQuickBlocks((v) => !v)}
           />
           <PremiumButton
-            title="✨ KI-Hilfe"
+            title="KI-Hilfe"
             variant="ghost"
             size="sm"
             onPress={() => setShowAiModal(true)}
@@ -233,7 +239,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
         ) : null}
         {localError ? <Text style={styles.error}>{localError}</Text> : null}
       </View>
-    </ScrollView>
+    </View>
   );
 
   const aiModal = (
@@ -264,11 +270,12 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
       <PlatformModal
         visible={visible}
         title="Dokumentation"
-        subtitle={statusLabel}
         onClose={onClose ?? (() => {})}
         variant={isMobile ? 'bottomSheet' : 'center'}
         animationType={isMobile ? 'slide' : 'fade'}
         maxWidth={600}
+        sheetStyle={styles.modalSheet}
+        bodyStyle={styles.modalBody}
       >
         {form}
       </PlatformModal>

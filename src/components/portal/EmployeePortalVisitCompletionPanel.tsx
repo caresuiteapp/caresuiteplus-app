@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { CareLightCard } from '@/components/ui/CareLightCard';
-import { PremiumButton } from '@/components/ui';
+import { PremiumButton, PremiumCard } from '@/components/ui';
 import { countDoneTasks } from '@/lib/portal/groupEmployeePortalTasks';
 import {
   employeePortalExecutionSurface,
@@ -94,7 +93,7 @@ export function EmployeePortalVisitCompletionPanel({
   );
 
   return (
-    <CareLightCard style={styles.card}>
+    <PremiumCard contentStyle={styles.card}>
       <Text style={styles.title}>Einsatz abschließen</Text>
       {serviceDurationLabel ? <Text style={styles.meta}>Dauer: {serviceDurationLabel}</Text> : null}
       {items.map((item) => (
@@ -124,6 +123,6 @@ export function EmployeePortalVisitCompletionPanel({
           onPress={onFinalizeDeferred}
         />
       ) : null}
-    </CareLightCard>
+    </PremiumCard>
   );
 }

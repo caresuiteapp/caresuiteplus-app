@@ -66,7 +66,7 @@ export function PremiumButton({
     () =>
       StyleSheet.create({
         button: {
-          height,
+          minHeight: height,
           minWidth: fullWidth ? undefined : size === 'sm' ? 96 : 120,
           width: fullWidth ? '100%' : undefined,
           borderRadius: radius.lg,
@@ -74,6 +74,7 @@ export function PremiumButton({
           alignItems: 'center',
           justifyContent: 'center',
           paddingHorizontal: size === 'sm' ? 16 : 20,
+          paddingVertical: size === 'sm' ? 8 : 10,
           borderWidth: 1,
           borderColor:
             portalTheme.active

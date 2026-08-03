@@ -39,8 +39,9 @@ export function HealthOSPage({
           gap: healthosDensity.page.gap,
         },
         scrollContent: {
-          flex: 0,
           flexGrow: 0,
+          flexShrink: 0,
+          flexBasis: 'auto',
           minHeight: 0,
         },
       }),

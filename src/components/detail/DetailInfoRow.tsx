@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { careTypography } from '@/design/tokens/typography';
 import { formatDateForDisplay } from '@/lib/formatters/dateTimeFormatters';
 import { spacing } from '@/theme';
@@ -21,6 +22,7 @@ function resolveDisplayValue(value: string): string {
 
 export function DetailInfoRow({ label, value }: DetailInfoRowProps) {
   const { c } = useCareLightPalette();
+  const portal = usePortalPremiumTheme();
 
   const styles = useMemo(
     () =>
@@ -28,19 +30,19 @@ export function DetailInfoRow({ label, value }: DetailInfoRowProps) {
         row: {
           paddingVertical: spacing.sm,
           borderBottomWidth: 1,
-          borderBottomColor: c.border,
+          borderBottomColor: portal.active ? portalPremium.borderSoft : c.border,
         },
         label: {
           ...careTypography.caption,
-          color: c.muted,
+          color: portal.active ? portalPremium.text.muted : c.muted,
           marginBottom: 2,
         },
         value: {
           ...careTypography.bodyStrong,
-          color: c.text,
+          color: portal.active ? portalPremium.text.primary : c.text,
         },
       }),
-    [c],
+    [c, portal.active],
   );
 
   if (!value) return null;

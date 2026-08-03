@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PremiumBadge } from '@/components/ui';
 import {
@@ -61,6 +61,8 @@ export function EmployeePortalVisitStickyHeader({
 }: EmployeePortalVisitStickyHeaderProps) {
   const text = employeePortalExecutionText;
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const compact = width < 520;
 
   const styles = useMemo(
     () =>
@@ -84,6 +86,7 @@ export function EmployeePortalVisitStickyHeader({
           justifyContent: 'space-between',
           gap: spacing.sm,
         },
+        topRowCompact: { flexDirection: 'column', alignItems: 'stretch' },
         clientName: { ...typography.h3, color: text.primary, flex: 1 },
         timeRange: { ...typography.caption, color: text.secondary },
         statusRow: {
@@ -111,11 +114,19 @@ export function EmployeePortalVisitStickyHeader({
     effectiveStatus === 'gestartet' ||
     effectiveStatus === 'pausiert' ||
     Boolean(timers?.activeTimer);
+  const badgeVariant =
+    effectiveStatus === 'nicht_erschienen' || effectiveStatus === 'storniert'
+      ? 'red'
+      : effectiveStatus === 'abgeschlossen'
+        ? 'green'
+        : isLive
+          ? 'orange'
+          : 'muted';
 
   return (
     <View style={styles.root}>
-      <View style={styles.topRow}>
-        <Text style={styles.clientName} numberOfLines={1}>
+      <View style={[styles.topRow, compact ? styles.topRowCompact : null]}>
+        <Text style={styles.clientName} numberOfLines={compact ? 2 : 1}>
           {clientName}
         </Text>
         <Text style={styles.timeRange}>{formatTimeRange(plannedStartAt, plannedEndAt)}</Text>
@@ -123,7 +134,7 @@ export function EmployeePortalVisitStickyHeader({
       <View style={styles.statusRow}>
         <PremiumBadge
           label={liveStatusLabel(effectiveStatus, timers)}
-          variant={isLive ? 'orange' : 'muted'}
+          variant={badgeVariant}
           dot
         />
         {liveTimer ? <Text style={styles.liveTimer}>· {liveTimer}</Text> : null}

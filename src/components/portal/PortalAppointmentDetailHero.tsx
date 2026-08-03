@@ -164,7 +164,9 @@ const styles = StyleSheet.create({
     minWidth: 180,
   },
   kpiItemPhone: {
-    flex: 0,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
     width: '100%',
     minWidth: 0,
   },

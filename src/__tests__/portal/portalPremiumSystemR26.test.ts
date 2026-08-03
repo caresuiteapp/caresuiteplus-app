@@ -58,9 +58,10 @@ describe('portal premium system R26', () => {
     const button = read('src/components/ui/PremiumButton.tsx');
     const premiumCard = read('src/components/ui/PremiumCard.tsx');
     const modal = read('src/components/layout/platform/platformmodal.tsx');
-    for (const source of [card, button, premiumCard, modal]) {
+    for (const source of [card, button, premiumCard]) {
       expect(source).toContain('usePortalPremiumTheme');
     }
+    expect(modal).toContain('usePortalPremiumRuntimeTheme');
     expect(button).toContain('portalPremium.accent.blue');
     expect(modal).toContain('portalTheme.active ||');
   });

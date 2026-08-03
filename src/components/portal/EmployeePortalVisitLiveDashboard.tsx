@@ -61,42 +61,50 @@ export function EmployeePortalVisitLiveDashboard({
   const text = employeePortalExecutionText;
   const done = countDoneTasks(tasks);
   const { width } = useWindowDimensions();
-  const compact = width < 720;
+  const compact = width < 900;
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.timerBlock}>
+      <View style={[styles.timerBlock, compact ? styles.timerBlockCompact : null]}>
         <View>
           <Text style={styles.liveBadge}>●  LIVE</Text>
           <Text style={[styles.timerLabel, { color: text.muted }]}>Einsatzzeit</Text>
         </View>
-        <Text style={[styles.timerValue, { color: text.primary }]}>{formatTimer(serviceSeconds)}</Text>
+        <Text style={[styles.timerValue, compact ? styles.timerValueCompact : null, { color: text.primary }]}>
+          {formatTimer(serviceSeconds)}
+        </Text>
       </View>
       <View style={[styles.cardGrid, compact ? styles.cardGridCompact : null]}>
-      <EmployeePortalVisitCompactCard
-        icon="✓"
-        title={`${done} von ${tasks.length}`}
-        status="Aufgaben erledigt"
-        onPress={onOpenTasks}
-        testID="portal-open-tasks"
-      />
-      <EmployeePortalVisitCompactCard
-        icon="▤"
-        title="Dokumentation"
-        status={documentationStatusLabel(documentationStatus, documentationLastSavedAt)}
-        onPress={onOpenDocumentation}
-        testID="portal-open-documentation"
-      />
-      {requiresSignature ? (
-        <EmployeePortalVisitCompactCard
-          icon="✎"
-          title="Unterschrift"
-          status={signatureCaptured ? 'Gespeichert' : signatureEnabled ? 'Noch offen' : 'Nach Einsatzende'}
-          onPress={onOpenSignature}
-          disabled={!signatureEnabled}
-          testID="portal-open-signature"
-        />
-      ) : null}
+        <View style={styles.cardCell}>
+          <EmployeePortalVisitCompactCard
+            icon="✓"
+            title={`${done} von ${tasks.length}`}
+            status="Aufgaben erledigt"
+            onPress={onOpenTasks}
+            testID="portal-open-tasks"
+          />
+        </View>
+        <View style={styles.cardCell}>
+          <EmployeePortalVisitCompactCard
+            icon="▤"
+            title="Dokumentation"
+            status={documentationStatusLabel(documentationStatus, documentationLastSavedAt)}
+            onPress={onOpenDocumentation}
+            testID="portal-open-documentation"
+          />
+        </View>
+        {requiresSignature ? (
+          <View style={styles.cardCell}>
+            <EmployeePortalVisitCompactCard
+              icon="✎"
+              title="Unterschrift"
+              status={signatureCaptured ? 'Gespeichert' : signatureEnabled ? 'Noch offen' : 'Nach Einsatzende'}
+              onPress={onOpenSignature}
+              disabled={!signatureEnabled}
+              testID="portal-open-signature"
+            />
+          </View>
+        ) : null}
       </View>
       {onOpenAttachments && attachmentCount > 0 ? (
         <EmployeePortalVisitCompactCard
@@ -119,9 +127,12 @@ const styles = StyleSheet.create({
     borderRadius: 22, borderWidth: 1, borderColor: employeePortalExecutionSurface.borderStrong,
     backgroundColor: employeePortalExecutionSurface.subtleBackground,
   },
+  timerBlockCompact: { flexDirection: 'column', alignItems: 'stretch' },
   liveBadge: { ...typography.bodyStrong, color: '#EF4444', marginBottom: spacing.xs },
   timerLabel: { ...typography.caption },
   timerValue: { fontSize: 46, fontWeight: '800', letterSpacing: 1.5, fontVariant: ['tabular-nums'] },
+  timerValueCompact: { width: '100%', fontSize: 38, lineHeight: 46 },
   cardGrid: { flexDirection: 'row', gap: spacing.sm },
   cardGridCompact: { flexDirection: 'column' },
+  cardCell: { flex: 1, minWidth: 0, width: '100%' },
 });

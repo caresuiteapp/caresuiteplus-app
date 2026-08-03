@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import {
   employeePortalExecutionShadow,
   employeePortalExecutionSurface,
@@ -11,7 +12,7 @@ import { spacing, typography } from '@/theme';
 export type VisitBottomBarAction = {
   key: string;
   label: string;
-  icon?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
   active?: boolean;
 };
@@ -21,7 +22,6 @@ type EmployeePortalVisitBottomBarProps = {
 };
 
 export function EmployeePortalVisitBottomBar({ actions }: EmployeePortalVisitBottomBarProps) {
-  const text = employeePortalExecutionText;
   const insets = useSafeAreaInsets();
   const visibleActions = actions.slice(0, 4);
 
@@ -39,9 +39,9 @@ export function EmployeePortalVisitBottomBar({ actions }: EmployeePortalVisitBot
           paddingHorizontal: spacing.sm,
           paddingTop: spacing.xs,
           paddingBottom: Math.max(insets.bottom, spacing.sm),
-          backgroundColor: employeePortalExecutionSurface.background,
+          backgroundColor: employeePortalExecutionSurface.actionBarBackground,
           borderTopWidth: 1,
-          borderTopColor: employeePortalExecutionSurface.border,
+          borderTopColor: employeePortalExecutionSurface.actionBarBorder,
           ...employeePortalExecutionShadow,
           ...Platform.select({
             web: { zIndex: 30 },
@@ -52,17 +52,16 @@ export function EmployeePortalVisitBottomBar({ actions }: EmployeePortalVisitBot
           flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: 58, paddingVertical: spacing.xs, borderRadius: 14,
+          minHeight: 64, paddingVertical: spacing.xs, borderRadius: 14,
           gap: 2,
         },
         actionActive: {
-          backgroundColor: 'rgba(13, 148, 136, 0.10)',
+          backgroundColor: employeePortalExecutionSurface.actionBarActive,
         },
-        icon: { fontSize: 16 },
-        label: { ...typography.caption, color: text.secondary, textAlign: 'center', fontSize: 11 },
-        labelActive: { color: '#0F766E', fontWeight: '700' },
+        label: { ...typography.caption, color: employeePortalExecutionText.onStrongMuted, textAlign: 'center', fontSize: 11 },
+        labelActive: { color: employeePortalExecutionText.onStrong, fontWeight: '800' },
       }),
-    [insets.bottom, text],
+    [insets.bottom],
   );
 
   return (
@@ -75,8 +74,14 @@ export function EmployeePortalVisitBottomBar({ actions }: EmployeePortalVisitBot
           accessibilityRole="button"
           accessibilityLabel={action.label}
         >
-          {action.icon ? <Text style={styles.icon}>{action.icon}</Text> : null}
-          <Text style={[styles.label, action.active ? styles.labelActive : null]} numberOfLines={1}>
+          {action.icon ? (
+            <Ionicons
+              name={action.icon}
+              size={21}
+              color={action.active ? '#69B5FF' : 'rgba(248,251,255,0.76)'}
+            />
+          ) : null}
+          <Text style={[styles.label, action.active ? styles.labelActive : null]} numberOfLines={2}>
             {action.label}
           </Text>
         </Pressable>

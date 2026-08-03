@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PremiumButton } from '@/components/ui';
-import { employeePortalExecutionText } from '@/lib/portal/employeePortalExecutionSurface';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
-import { spacing, typography } from '@/theme';
+import { spacing } from '@/theme';
 
-const FAB_SIZE = 52;
+const FAB_SIZE = 48;
 const BOTTOM_BAR_HEIGHT = 64;
 
 type FabAction = {
@@ -22,7 +22,6 @@ type EmployeePortalVisitFabMenuProps = {
 };
 
 export function EmployeePortalVisitFabMenu({ actions }: EmployeePortalVisitFabMenuProps) {
-  const text = employeePortalExecutionText;
   const deviceClass = useDeviceClass();
   const isMobile = !isDesktopClass(deviceClass);
   const insets = useSafeAreaInsets();
@@ -40,7 +39,9 @@ export function EmployeePortalVisitFabMenu({ actions }: EmployeePortalVisitFabMe
           width: FAB_SIZE,
           height: FAB_SIZE,
           borderRadius: FAB_SIZE / 2,
-          backgroundColor: '#8B5CF6',
+          backgroundColor: '#056CE8',
+          borderWidth: 1,
+          borderColor: 'rgba(185,220,255,0.72)',
           alignItems: 'center',
           justifyContent: 'center',
           ...Platform.select({
@@ -54,17 +55,20 @@ export function EmployeePortalVisitFabMenu({ actions }: EmployeePortalVisitFabMe
             },
           }),
         },
-        fabLabel: { color: '#fff', fontSize: 28, lineHeight: 30, fontWeight: '300' },
         menu: { gap: spacing.xs },
-        menuLabel: { ...typography.body, color: text.primary },
       }),
-    [fabBottom, text],
+    [fabBottom],
   );
 
   return (
     <>
-      <Pressable style={styles.fab} onPress={() => setOpen(true)} accessibilityRole="button">
-        <Text style={styles.fabLabel}>+</Text>
+      <Pressable
+        style={styles.fab}
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Schnellaktionen"
+      >
+        <Ionicons name="add" size={28} color="#FFFFFF" />
       </Pressable>
       <PlatformModal
         visible={open}

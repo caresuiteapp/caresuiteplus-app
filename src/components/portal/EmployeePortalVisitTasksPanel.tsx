@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PremiumButton, PremiumInput } from '@/components/ui';
 import {
@@ -116,6 +116,9 @@ export function EmployeePortalVisitTasksPanel({
         statusOptionActive: { borderColor: colors.amber, backgroundColor: 'rgba(255,149,0,0.08)' },
         statusOptionLabel: { ...typography.body, color: text.primary },
         noteBox: { gap: spacing.sm, marginTop: spacing.sm },
+        modalSheet: { backgroundColor: employeePortalExecutionSurface.background },
+        modalBody: { backgroundColor: employeePortalExecutionSurface.background },
+        body: { width: '100%', minWidth: 0 },
       }),
     [text],
   );
@@ -199,7 +202,7 @@ export function EmployeePortalVisitTasksPanel({
   };
 
   const body = (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <View style={styles.body}>
       <View style={styles.summary}>
         <Text style={styles.summaryText}>Aufgaben</Text>
         <Text style={styles.summaryMeta}>
@@ -207,7 +210,7 @@ export function EmployeePortalVisitTasksPanel({
         </Text>
       </View>
       {groups.map(renderGroup)}
-    </ScrollView>
+    </View>
   );
 
   const closeStatusPicker = useCallback(() => {
@@ -282,6 +285,8 @@ export function EmployeePortalVisitTasksPanel({
       variant={isMobile ? 'bottomSheet' : 'center'}
       animationType={isMobile ? 'slide' : 'fade'}
       maxWidth={statusPicker ? 480 : 560}
+      sheetStyle={styles.modalSheet}
+      bodyStyle={styles.modalBody}
     >
       {statusPicker ? statusPickerBody : body}
     </PlatformModal>

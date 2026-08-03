@@ -5,6 +5,7 @@ import { useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { userFriendlyLabel } from '@/lib/ui/uiVisibility';
 import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { colors } from '@/theme';
 
 type Variant = 'orange' | 'cyan' | 'green' | 'muted' | 'red' | 'purple' | 'pink' | 'warning' | 'yellow';
@@ -37,11 +38,26 @@ const CONFIG: Record<Variant, { text: string; bg: string; border: string }> = {
   },
 };
 
+const PORTAL_CONFIG: Record<Variant, { text: string; bg: string; border: string }> = {
+  orange: { text: portalPremium.accent.amber, bg: 'rgba(168,97,0,0.12)', border: 'rgba(168,97,0,0.30)' },
+  warning: { text: portalPremium.accent.amber, bg: 'rgba(168,97,0,0.12)', border: 'rgba(168,97,0,0.30)' },
+  yellow: { text: '#7A5900', bg: 'rgba(234,179,8,0.15)', border: 'rgba(122,89,0,0.28)' },
+  cyan: { text: portalPremium.accent.blueDark, bg: 'rgba(5,108,232,0.10)', border: portalPremium.borderStrong },
+  green: { text: portalPremium.accent.success, bg: 'rgba(8,127,109,0.10)', border: 'rgba(8,127,109,0.28)' },
+  muted: { text: portalPremium.text.secondary, bg: portalPremium.surfaceSoft, border: portalPremium.borderStrong },
+  red: { text: portalPremium.accent.danger, bg: 'rgba(197,58,82,0.10)', border: 'rgba(197,58,82,0.28)' },
+  purple: { text: '#5635D1', bg: 'rgba(109,74,255,0.10)', border: 'rgba(109,74,255,0.28)' },
+  pink: { text: portalPremium.accent.pink, bg: 'rgba(192,68,143,0.10)', border: 'rgba(192,68,143,0.28)' },
+};
+
 export function PremiumBadge({ label, variant = 'orange', style, dot = false, size = 'default' }: Props) {
   const { isLight } = useLegacyTheme();
+  const portal = usePortalPremiumTheme();
   const useLightShell = useLightLiquidGlassShell() || isLight;
-  const base = CONFIG[variant] ?? CONFIG.muted;
-  const chip = useLightShell || isLight ? resolveAccentTextChipStyle(base.text) : null;
+  const base = portal.active
+    ? PORTAL_CONFIG[variant] ?? PORTAL_CONFIG.muted
+    : CONFIG[variant] ?? CONFIG.muted;
+  const chip = !portal.active && (useLightShell || isLight) ? resolveAccentTextChipStyle(base.text) : null;
   const compact = size === 'compact';
   const displayLabel = userFriendlyLabel(label);
 

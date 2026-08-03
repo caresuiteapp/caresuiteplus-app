@@ -19,6 +19,8 @@ type Props = {
   onAction?: () => void;
   style?: ViewStyle;
   presentation?: BannerPresentation;
+  /** Ensures readable banner copy when the banner sits directly on a dark workflow surface. */
+  onDarkSurface?: boolean;
 };
 
 const CONFIG: Record<
@@ -68,6 +70,7 @@ export function InfoBanner({
   onAction,
   style,
   presentation = 'auto',
+  onDarkSurface = false,
 }: Props) {
   const feedback = useWorkflowFeedback();
   const onDismissRef = useRef(onDismiss);
@@ -77,6 +80,34 @@ export function InfoBanner({
   const hasAction = Boolean(onAction);
   const text = useAuroraAdaptiveText();
   const cfg = CONFIG[variant];
+  const surfaceColors = onDarkSurface
+    ? {
+        background:
+          variant === 'warning'
+            ? 'rgba(168,97,0,0.26)'
+            : variant === 'danger' || variant === 'error'
+              ? 'rgba(197,58,82,0.24)'
+              : variant === 'success'
+                ? 'rgba(8,127,109,0.24)'
+                : 'rgba(5,108,232,0.24)',
+        border:
+          variant === 'warning'
+            ? 'rgba(255,199,107,0.52)'
+            : variant === 'danger' || variant === 'error'
+              ? 'rgba(255,148,166,0.48)'
+              : variant === 'success'
+                ? 'rgba(112,231,198,0.48)'
+                : 'rgba(112,181,255,0.52)',
+        title:
+          variant === 'warning'
+            ? '#FFD493'
+            : variant === 'danger' || variant === 'error'
+              ? '#FFB3C1'
+              : variant === 'success'
+                ? '#9CEBD5'
+                : '#B9DCFF',
+      }
+    : null;
   const displayIcon = icon ?? cfg.icon;
   const safeTitle = title ? sanitizeUiText(title) : undefined;
   const safeMessage = sanitizeUiText(message);
@@ -114,7 +145,10 @@ export function InfoBanner({
     <View
       style={[
         styles.banner,
-        { backgroundColor: cfg.bg, borderColor: cfg.border },
+        {
+          backgroundColor: surfaceColors?.background ?? cfg.bg,
+          borderColor: surfaceColors?.border ?? cfg.border,
+        },
         style,
       ]}
       accessibilityRole="alert"
@@ -122,12 +156,12 @@ export function InfoBanner({
       <Text style={styles.icon}>{displayIcon}</Text>
       <View style={styles.content}>
         {safeTitle ? (
-          <Text style={[styles.title, { color: cfg.title }]}>{safeTitle}</Text>
+          <Text style={[styles.title, { color: surfaceColors?.title ?? cfg.title }]}>{safeTitle}</Text>
         ) : null}
-        <Text style={[styles.message, { color: text.primary }]}>{safeMessage}</Text>
+        <Text style={[styles.message, { color: onDarkSurface ? '#F8FBFF' : text.primary }]}>{safeMessage}</Text>
         {actionLabel && onAction ? (
           <Pressable onPress={onAction} hitSlop={8} accessibilityRole="button">
-            <Text style={[styles.action, { color: cfg.title }]}>{actionLabel}</Text>
+            <Text style={[styles.action, { color: surfaceColors?.title ?? cfg.title }]}>{actionLabel}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -138,7 +172,7 @@ export function InfoBanner({
           accessibilityRole="button"
           accessibilityLabel="Schließen"
         >
-          <Text style={[styles.dismiss, { color: text.muted }]}>✕</Text>
+          <Text style={[styles.dismiss, { color: onDarkSurface ? 'rgba(248,251,255,0.78)' : text.muted }]}>✕</Text>
         </Pressable>
       ) : null}
     </View>

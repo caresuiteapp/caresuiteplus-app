@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { PremiumButton, SuccessState } from '@/components/ui';
+import { StyleSheet, Text } from 'react-native';
+import { PremiumButton, PremiumCard, SuccessState } from '@/components/ui';
 import { countDoneTasks } from '@/lib/portal/groupEmployeePortalTasks';
 import { employeePortalExecutionText } from '@/lib/portal/employeePortalExecutionSurface';
 import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
@@ -50,8 +50,8 @@ export function EmployeePortalVisitSummaryPanel({
   );
 
   return (
-    <View style={styles.wrap}>
-      <SuccessState message="Einsatz abgeschlossen" />
+    <PremiumCard contentStyle={styles.wrap}>
+      <SuccessState message="Einsatz abgeschlossen" presentation="inline" />
       <Text style={styles.title}>{visit.clientName}</Text>
       <Text style={styles.label}>Datum & Zeit</Text>
       <Text style={styles.row}>
@@ -93,6 +93,6 @@ export function EmployeePortalVisitSummaryPanel({
             : 'Erstellt'}
       </Text>
       <PremiumButton title="Zurück zur Übersicht" fullWidth onPress={onBack} />
-    </View>
+    </PremiumCard>
   );
 }

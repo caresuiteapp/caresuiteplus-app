@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PremiumButton } from '@/components/ui';
@@ -69,6 +69,8 @@ export function EmployeePortalVisitPhotoModal({
         error: { ...typography.caption, color: '#EF4444' },
         list: { gap: spacing.xs },
         listItem: { ...typography.caption, color: text.secondary },
+        modalSheet: { backgroundColor: employeePortalExecutionSurface.background },
+        modalBody: { backgroundColor: employeePortalExecutionSurface.background },
       }),
     [text],
   );
@@ -139,9 +141,10 @@ export function EmployeePortalVisitPhotoModal({
       variant={isMobile ? 'bottomSheet' : 'center'}
       animationType={isMobile ? 'slide' : 'fade'}
       maxWidth={520}
+      sheetStyle={styles.modalSheet}
+      bodyStyle={styles.modalBody}
     >
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.body}>
+      <View style={styles.body}>
           {picked ? <Image source={{ uri: picked.previewUri }} style={styles.preview} resizeMode="cover" /> : null}
           <PremiumButton title="Foto auswählen" variant="secondary" onPress={() => void handlePick()} />
           {picked ? (
@@ -161,8 +164,7 @@ export function EmployeePortalVisitPhotoModal({
             </View>
           ) : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
-        </View>
-      </ScrollView>
+      </View>
     </PlatformModal>
   );
 }

@@ -24,7 +24,7 @@ import {
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
-import { usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { portalPremium, usePortalPremiumRuntimeTheme } from '@/design/tokens/portalPremium';
 import { resolvePlatformModalMaxHeight } from '@/lib/platform/platformModalLayout';
 import { GradientModalActionButton } from './gradientmodalactionbutton';
 import type { GradientModalActionButtonVariant } from './gradientmodalactionbutton';
@@ -91,7 +91,7 @@ export function PlatformModal({
   isDirty = false,
   dirtyCloseMessage = 'Ungespeicherte Änderungen verwerfen?',
 }: PlatformModalProps) {
-  const portalTheme = usePortalPremiumTheme();
+  const portalTheme = usePortalPremiumRuntimeTheme();
   const { isDark, c } = useCareLightPalette();
   const { isLight } = useLegacyTheme();
   const auroraActive = useAuroraGlassActive();
@@ -156,6 +156,9 @@ export function PlatformModal({
           maxHeight: sheetMaxHeight,
           flexDirection: 'column',
           overflow: 'hidden',
+          backgroundColor: portalTheme.active
+            ? portalPremium.surfaceRaised
+            : undefined,
         },
         bodyScroll: {
           flex: 1,
@@ -167,7 +170,11 @@ export function PlatformModal({
           flexGrow: 1,
           flexShrink: 1,
           minHeight: 0,
-          backgroundColor: lightModal ? shellColors.body.background : undefined,
+          backgroundColor: portalTheme.active
+            ? portalPremium.surfaceRaised
+            : lightModal
+              ? shellColors.body.background
+              : undefined,
           ...Platform.select({
             web: {
               overflowY: 'auto' as const,
@@ -191,12 +198,14 @@ export function PlatformModal({
             : isDark
               ? shellColors.footerBorder
               : 'rgba(0,0,0,0.06)',
-          backgroundColor: lightModal
-            ? shellColors.body.background
-            : 'rgba(1,8,23,0.98)',
+          backgroundColor: portalTheme.active
+            ? portalPremium.surfaceRaised
+            : lightModal
+              ? shellColors.body.background
+              : 'rgba(1,8,23,0.98)',
         },
       }),
-    [formGlass.shadow, isDark, lightModal, shellColors, sheetMaxHeight, sheetWidth, variant],
+    [formGlass.shadow, isDark, lightModal, portalTheme.active, shellColors, sheetMaxHeight, sheetWidth, variant],
   );
 
   useEffect(() => {

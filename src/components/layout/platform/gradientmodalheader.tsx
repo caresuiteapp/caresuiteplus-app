@@ -22,7 +22,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
-import { usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { portalPremium, usePortalPremiumRuntimeTheme } from '@/design/tokens/portalPremium';
 
 export type GradientModalHeaderProps = {
   title: string;
@@ -39,7 +39,7 @@ export function GradientModalHeader({
   onClose,
   actions,
 }: GradientModalHeaderProps) {
-  const portalTheme = usePortalPremiumTheme();
+  const portalTheme = usePortalPremiumRuntimeTheme();
   const { isLight } = useLegacyTheme();
   const auroraActive = useAuroraGlassActive();
   const shellHostsAurora = useShellHostsAurora();
@@ -59,6 +59,7 @@ export function GradientModalHeader({
       StyleSheet.create({
         wrapper: {
           overflow: 'hidden',
+          backgroundColor: portalTheme.active ? portalPremium.surfaceRaised : undefined,
           ...Platform.select({
             web: auroraHeader || !plainLightHeader
               ? (resolvePopupShellHeaderGlow(shellMode) as object)
@@ -116,12 +117,15 @@ export function GradientModalHeader({
           ...careTypography.caption,
         },
       }),
-    [auroraHeader, plainLightHeader, shellColors.subtitleBar.border, shellMode],
+    [auroraHeader, plainLightHeader, portalTheme.active, shellColors.subtitleBar.border, shellMode],
   );
 
   const titleStyle = auroraHeader || !plainLightHeader
     ? resolvePopupShellTitleStyle(shellMode)
-    : { ...resolvePopupShellTitleStyle('light'), color: text.primary };
+    : {
+        ...resolvePopupShellTitleStyle('light'),
+        color: portalTheme.active ? portalPremium.text.primary : text.primary,
+      };
 
   const closeButtonStyle: StyleProp<ViewStyle> = auroraHeader || !plainLightHeader
     ? resolvePopupShellCloseButtonStyle(shellMode)
@@ -131,12 +135,17 @@ export function GradientModalHeader({
   const iconColor: string =
     auroraHeader || !plainLightHeader
       ? String(resolvePopupShellCloseIconStyle(shellMode).color ?? '#FFFFFF')
-      : text.primary;
+      : portalTheme.active
+        ? portalPremium.text.primary
+        : text.primary;
 
   const closeIconStyle =
     auroraHeader || !plainLightHeader
       ? resolvePopupShellCloseIconStyle(shellMode)
-      : { ...resolvePopupShellCloseIconStyle('light'), color: text.primary };
+      : {
+          ...resolvePopupShellCloseIconStyle('light'),
+          color: portalTheme.active ? portalPremium.text.primary : text.primary,
+        };
 
   const gradientContent = (
     <>
@@ -196,13 +205,24 @@ export function GradientModalHeader({
           style={[
             styles.statusBar,
             {
-              backgroundColor: shellColors.subtitleBar.background,
-              borderBottomColor: shellColors.subtitleBar.border,
+              backgroundColor: portalTheme.active
+                ? portalPremium.surfaceSoft
+                : shellColors.subtitleBar.background,
+              borderBottomColor: portalTheme.active
+                ? portalPremium.borderSoft
+                : shellColors.subtitleBar.border,
             },
           ]}
         >
           <Text
-            style={[styles.statusText, { color: shellColors.subtitleBar.text }]}
+            style={[
+              styles.statusText,
+              {
+                color: portalTheme.active
+                  ? portalPremium.text.secondary
+                  : shellColors.subtitleBar.text,
+              },
+            ]}
             numberOfLines={2}
           >
             {subtitle}

@@ -472,6 +472,8 @@ const styles = StyleSheet.create({
   },
   welcomeHeroCompact: {
     minHeight: 0,
+    width: '100%',
+    alignSelf: 'stretch',
     padding: 16,
     borderRadius: 20,
     flexDirection: 'column',
@@ -488,7 +490,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(53,151,255,0.20)',
   },
   welcomeCopy: { flex: 1.25, minWidth: 0, gap: 8 },
-  welcomeCopyCompact: { flex: 0 },
+  welcomeCopyCompact: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+    width: '100%',
+  },
   portalPill: {
     alignSelf: 'flex-start',
     minHeight: 32,
@@ -506,7 +513,8 @@ const styles = StyleSheet.create({
   welcomeProvider: { color: portalPremium.text.secondary, fontWeight: '700' },
   guideArea: { flex: 1, minWidth: 330, maxWidth: 560, flexDirection: 'row', alignItems: 'center', gap: 9 },
   guideAreaCompact: {
-    flex: 0, minWidth: 0, maxWidth: '100%', width: '100%',
+    flexGrow: 0, flexShrink: 0, flexBasis: 'auto',
+    minWidth: 0, maxWidth: '100%', width: '100%',
     flexDirection: 'row', alignItems: 'flex-start',
   },
   guideMascot: { width: 102, height: 118, flexShrink: 0 },
@@ -522,7 +530,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.84)',
     gap: 5,
   },
-  guideBubbleCompact: { flex: 1, minWidth: 0, width: 'auto', padding: 14 },
+  guideBubbleCompact: { flex: 1, minWidth: 0, width: 'auto', alignSelf: 'stretch', padding: 14 },
   guideBubbleTail: {
     position: 'absolute', left: -7, bottom: 22, width: 14, height: 14,
     borderLeftWidth: 1, borderBottomWidth: 1, borderColor: portalPremium.borderSoft,
