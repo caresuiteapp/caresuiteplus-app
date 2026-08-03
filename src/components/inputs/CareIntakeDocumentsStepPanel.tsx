@@ -187,7 +187,10 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
     if (JSON.stringify(repaired.intakeDocuments) !== JSON.stringify(form.intakeDocuments)) {
       onChange(repaired);
     }
-  }, [templates]);
+  // Draft restoration is asynchronous. Re-run when its persisted documents
+  // arrive, otherwise legacy signatures loaded after the templates never reach
+  // the repair path and the contracts step remains marked as incomplete.
+  }, [templates, form.intakeDocuments]);
 
   const validation = useMemo(() => validateIntakeDocumentsStep(form, templates), [form, templates]);
 

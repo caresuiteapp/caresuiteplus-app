@@ -570,4 +570,10 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(document?.signatures.client?.dataUrl).toContain('legacy-signature');
     expect(document?.finalizedHtml).toContain('legacy-signature');
   });
+
+  it('42. Reparatur läuft erneut, sobald Entwurfsdokumente geladen wurden', () => {
+    const panel = readSrc('components/inputs/CareIntakeDocumentsStepPanel.tsx');
+    expect(panel).toContain('finalizeReadyIntakeDocuments');
+    expect(panel).toContain('[templates, form.intakeDocuments]');
+  });
 });
