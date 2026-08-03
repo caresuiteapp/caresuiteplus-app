@@ -112,9 +112,13 @@ export function ClientIntakeSectionContent({
   if (section === 'versorgung') {
     return (
       <SectionPanel {...panelCtx} title="Versorgung / Pflege / Betreuung">
-        <CareCatalogSelect catalogKey="care_level" label="Pflegegrad" value={form.careLevel} onChange={(v) => updateField('careLevel', v)} error={errors.careLevel} />
-        <CareCatalogSelect catalogKey="care_level_status" label="Pflegegrad-Status" value={form.careLevelStatus} onChange={(v) => updateField('careLevelStatus', v)} />
-        <CareDateInput label="Pflegegrad gültig ab" value={form.careLevelValidFrom} onChange={(v) => updateField('careLevelValidFrom', v)} />
+        {!showIntakeOnlyFields ? (
+          <>
+            <CareCatalogSelect catalogKey="care_level" label="Pflegegrad" value={form.careLevel} onChange={(v) => updateField('careLevel', v)} error={errors.careLevel} />
+            <CareCatalogSelect catalogKey="care_level_status" label="Pflegegrad-Status" value={form.careLevelStatus} onChange={(v) => updateField('careLevelStatus', v)} />
+            <CareDateInput label="Pflegegrad gültig ab" value={form.careLevelValidFrom} onChange={(v) => updateField('careLevelValidFrom', v)} />
+          </>
+        ) : null}
         <PremiumInput label="Hausarzt" value={form.familyDoctor} onChangeText={(v) => updateField('familyDoctor', v)} error={errors.familyDoctor} />
         {showIntakeOnlyFields ? (
           <>
@@ -138,6 +142,13 @@ export function ClientIntakeSectionContent({
 
     return (
       <SectionPanel {...panelCtx} title="Kostenträger / Abrechnung">
+        {showIntakeOnlyFields ? (
+          <>
+            <CareCatalogSelect catalogKey="care_level" label="Pflegegrad *" value={form.careLevel} onChange={(v) => updateField('careLevel', v)} error={errors.careLevel} />
+            <CareCatalogSelect catalogKey="care_level_status" label="Pflegegrad-Status" value={form.careLevelStatus} onChange={(v) => updateField('careLevelStatus', v)} />
+            <CareDateInput label="Pflegegrad gültig ab" value={form.careLevelValidFrom} onChange={(v) => updateField('careLevelValidFrom', v)} />
+          </>
+        ) : null}
         <CareMultiCatalogSelect
           catalogKey="billing_type"
           label="Abrechnungsart *"

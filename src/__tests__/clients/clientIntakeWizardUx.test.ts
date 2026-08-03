@@ -48,4 +48,18 @@ describe('Client intake wizard UX fixes', () => {
     expect(form).toContain('Neu beginnen');
     expect(form).toContain('Entwurf geladen');
   });
+
+  it('Neuaufnahme erhebt Pflegegrad im immer sichtbaren Abrechnungsschritt', () => {
+    const form = readSrc('components/office/clientintakewizardform.tsx');
+    const costBearerSection = form.slice(
+      form.indexOf("if (section === 'kostentraeger')"),
+      form.indexOf("if (section === 'angehoerige')"),
+    );
+
+    expect(costBearerSection).toContain('catalogKey="care_level"');
+    expect(costBearerSection).toContain('label="Pflegegrad *"');
+    expect(costBearerSection).toContain("updateField('careLevel', v)");
+    expect(costBearerSection).toContain('care_level_status');
+    expect(costBearerSection).toContain('Pflegegrad gültig ab');
+  });
 });

@@ -80,6 +80,7 @@ const BASE_REQUIRED = [
   'city',
   'phoneOrContact',
   'serviceStart',
+  'careLevel',
   'billingTypes',
   'emergencyContact',
   'consentDatenschutz',

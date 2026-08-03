@@ -57,8 +57,19 @@ describe('Client Intake & Record Rebuild', () => {
 
   it('Alltagsbegleitung ohne Pflegepflichtfelder', () => {
     const required = getRequiredFieldsForClientContext(['daily_assistance']);
+    expect(required).toContain('careLevel');
     expect(required).not.toContain('insuranceNumber');
     expect(required).not.toContain('familyDoctor');
+  });
+
+  it('Alltagsbegleitung verlangt bei Kostenträgern eine Pflegegrad-Erhebung', () => {
+    const errors = validateIntakeStep('kostentraeger', {
+      ...EMPTY_CLIENT_INTAKE_FORM,
+      careContexts: ['daily_assistance'],
+      billingTypes: ['private'],
+      careLevel: '',
+    });
+    expect(errors.careLevel).toBe('Pflegegrad ist erforderlich.');
   });
 
   it('Ambulante Pflege zeigt Wohnungszugang Pflicht', () => {
