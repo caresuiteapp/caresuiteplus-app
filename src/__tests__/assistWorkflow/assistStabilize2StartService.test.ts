@@ -162,7 +162,7 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     deviationGateMock.mockReturnValue({ blocked: false, needsJustification: false });
   });
 
-  it('success: angekommen → transition + readback verified', async () => {
+  it('success: angekommen → canonical transition + optimistic context', async () => {
     const started = successCtx({ assignmentStatus: 'gestartet', derivedStatus: 'gestartet' });
     transitionMock.mockResolvedValue({ ok: true, data: started });
     resolveMock.mockResolvedValue({ ok: true, data: started });
@@ -173,7 +173,7 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     expect(result.ok).toBe(true);
     expect(transitionMock).toHaveBeenCalled();
     expect(upsertStateMock).toHaveBeenCalled();
-    expect(resolveMock).toHaveBeenCalled();
+    expect(resolveMock).not.toHaveBeenCalled();
   });
 
   it('idempotent: already has serviceStartedAt returns refreshed context', async () => {
@@ -245,7 +245,7 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     expect(repairMock).toHaveBeenCalledTimes(1);
   });
 
-  it('readback failure: missing service_started_at after write', async () => {
+  it('does not wait for a redundant full readback after the time event is durable', async () => {
     fetchEventsMock.mockResolvedValue({ ok: true, data: [] });
     ensureEventMock.mockResolvedValue({ ok: true, data: { id: 'evt1', created: true } });
     resolveMock.mockResolvedValue({
@@ -256,10 +256,8 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     const ctx = mockCtx({ assignmentStatus: 'gestartet', derivedStatus: 'angekommen' });
     const result = await startService(ctx);
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect((result as { errorCode?: string }).errorCode).toBe('START_SERVICE_DB_ERROR');
-    }
+    expect(result.ok).toBe(true);
+    expect(resolveMock).not.toHaveBeenCalled();
   });
 
   it('RLS denied on time event maps to START_SERVICE_RLS_DENIED', async () => {
@@ -295,7 +293,7 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     }
   });
 
-  it('fails visibly when the production live-status mirror cannot be persisted', async () => {
+  it('delegates the production live-status projection to the fast transition', async () => {
     const started = successCtx({ assignmentStatus: 'gestartet', derivedStatus: 'gestartet' });
     transitionMock.mockResolvedValue({ ok: true, data: started });
     resolveMock.mockResolvedValue({ ok: true, data: started });
@@ -308,16 +306,41 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     const ctx = mockCtx({ assignmentStatus: 'angekommen', derivedStatus: 'angekommen' });
     const result = await startService(ctx);
 
-    expect(mirrorStatusMock).toHaveBeenCalledWith(
-      ctx.tenantId,
-      ctx.assignmentId,
+    expect(transitionMock).toHaveBeenCalledWith(
+      ctx,
       'gestartet',
-      ctx.profileId,
+      expect.objectContaining({ fastWorkflow: true }),
     );
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect((result as { errorCode?: string }).errorCode).toBe('START_SERVICE_DB_ERROR');
-    }
+    expect(mirrorStatusMock).not.toHaveBeenCalled();
+    expect(result.ok).toBe(true);
+  });
+
+  it('continues immediately after an exact deviation justification and persists its audit metadata', async () => {
+    deviationGateMock.mockReturnValue({ blocked: true, needsJustification: true });
+    const started = successCtx({ assignmentStatus: 'gestartet', derivedStatus: 'gestartet' });
+    transitionMock.mockResolvedValue({ ok: true, data: started });
+    const input = mockCtx({ assignmentStatus: 'angekommen', derivedStatus: 'angekommen' });
+
+    const result = await startService(input, {
+      deviationApproved: true,
+      deviationPhase: 'start',
+      deviationJustification: 'Verspätung wegen gesperrter Zufahrt.',
+      deviationVisitId: input.assistVisitId,
+      deviationActualAt: '2026-08-03T09:15:00.000Z',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(ensureEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: 'service_start',
+        metadata: expect.objectContaining({
+          deviation_approved: true,
+          deviation_phase: 'start',
+          deviation_justification: 'Verspätung wegen gesperrter Zufahrt.',
+        }),
+      }),
+      expect.any(Array),
+    );
   });
 });
 

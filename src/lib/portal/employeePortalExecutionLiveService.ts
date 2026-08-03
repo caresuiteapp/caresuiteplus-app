@@ -9,6 +9,7 @@ import type {
 } from '@/types/modules/employeePortalExecution';
 import {
   assignmentSupabaseRepository,
+  assignmentStatusToWorkflowFilter,
   type AssignmentDetail,
   type AssignmentTaskItem,
 } from '@/lib/assist/repositories/assignmentRepository.supabase';
@@ -50,6 +51,7 @@ import { resolveLiveAssignment } from '@/features/liveTracking/resolveLiveAssign
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
 import { resolveExecutableVisitId } from '@/lib/assist/visitService';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
+import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 import {
   resolveEmployeePortalDocumentationFlags,
 } from './resolveEmployeePortalSignatureRequirement';
@@ -76,6 +78,53 @@ function toPersistedTaskStatus(status: ExtendedAssignmentTaskStatus): Assignment
     return 'not_requested';
   }
   return 'not_done';
+}
+
+function mapPortalDetailToAssignmentDetail(
+  detail: EmployeePortalAssignmentDetail,
+  employeeId: string,
+): AssignmentDetail {
+  const now = new Date().toISOString();
+  return {
+    id: detail.assignmentId,
+    tenantId: detail.tenantId,
+    createdAt: now,
+    updatedAt: now,
+    visibility: 'own',
+    sensitivity: 'care',
+    clientId: detail.clientId,
+    employeeId,
+    appointmentId: null,
+    title: detail.title,
+    scheduledStart: detail.plannedStartAt,
+    scheduledEnd: detail.plannedEndAt,
+    status: assignmentStatusToWorkflowFilter(detail.status),
+    location: detail.locationAddress,
+    notes: detail.notesForEmployee || null,
+    clientName: detail.clientName,
+    employeeName: '',
+    allowedStatusActions: [],
+    allowedStatusTransitions: detail.allowedTransitions,
+    assignmentStatus: detail.status,
+    tasks: detail.tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      status: toPersistedTaskStatus(task.status),
+      isRequired: task.required,
+      notDoneReason: task.completionNote,
+      requiresNoteIfNotDone: task.requiresNote,
+      categoryKey: task.categoryKey ?? null,
+      categoryLabel: task.categoryLabel ?? null,
+    })),
+    onTheWayAt: detail.onTheWayAt,
+    arrivedAt: detail.arrivedAt,
+    finishedAt: detail.status === 'abgeschlossen' ? detail.actualEndAt : null,
+    documentationNotes: detail.documentationNotes ?? null,
+    plannedStartAt: detail.plannedStartAt,
+    plannedEndAt: detail.plannedEndAt,
+    actualStartAt: detail.actualStartAt,
+    actualEndAt: detail.actualEndAt,
+  };
 }
 
 function mapDetailToPortal(
@@ -618,20 +667,31 @@ export async function transitionLiveEmployeePortalAssignment(
       hasRequiredSignature?: boolean;
       signatureDeferredToClientPortal?: boolean;
     };
+    /** Employee tap: wait only for authoritative assignment persistence. */
+    fastWorkflow?: boolean;
+    /** RLS-scoped detail already loaded by the execution screen. */
+    knownDetail?: EmployeePortalAssignmentDetail;
   },
 ): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
 
-  const executable = await resolveExecutableVisitId(tenantId, assignmentId, roleKey);
+  const executable = options?.knownDetail
+    ? { ok: true as const, data: { visitId: options.knownDetail.assignmentId } }
+    : await resolveExecutableVisitId(tenantId, assignmentId, roleKey);
   if (!executable.ok) return executable;
   const executableAssignmentId = executable.data.visitId;
 
-  const existing = await loadEmployeePortalAssignmentDetail(
-    tenantId,
-    executableAssignmentId,
-    employeeId,
-  );
+  const existing = options?.knownDetail
+    ? {
+        ok: true as const,
+        data: mapPortalDetailToAssignmentDetail(options.knownDetail, employeeId),
+      }
+    : await loadEmployeePortalAssignmentDetail(
+        tenantId,
+        executableAssignmentId,
+        employeeId,
+      );
   if (!existing.ok) return existing;
   if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
@@ -641,6 +701,12 @@ export async function transitionLiveEmployeePortalAssignment(
 
   const fromStatus = existing.data.assignmentStatus;
   if (fromStatus === toStatus) {
+    if (options?.fastWorkflow) {
+      return {
+        ok: true,
+        data: mapDetailToPortal(existing.data, roleKey, employeeId),
+      };
+    }
     const [extras, docFlags] = await Promise.all([
       fetchAssignmentExtras(tenantId, executableAssignmentId, existing.data.clientId),
       resolveEmployeePortalDocumentationFlags(
@@ -667,16 +733,26 @@ export async function transitionLiveEmployeePortalAssignment(
   // snapshot and can be loaded concurrently. The documentation resolver already
   // verifies a persisted signature, so the former second signature lookup was
   // redundant on every mobile action.
-  const [extras, docFlagsForValidation] = await Promise.all([
-    fetchAssignmentExtras(tenantId, executableAssignmentId, existing.data.clientId),
-    resolveEmployeePortalDocumentationFlags(
-      tenantId,
-      executableAssignmentId,
-      existing.data.assignmentStatus,
-      existing.data.documentationNotes,
-      employeeId,
-    ),
-  ]);
+  const [extras, docFlagsForValidation] = options?.fastWorkflow
+    ? [
+        { notesForEmployee: null, accessHints: null, emergencyContact: null },
+        {
+          requiresSignature: false,
+          requiresDocumentation: true,
+          signatureStatus: 'none' as const,
+          signatureCapturedViaClientPortal: false,
+        },
+      ]
+    : await Promise.all([
+        fetchAssignmentExtras(tenantId, executableAssignmentId, existing.data.clientId),
+        resolveEmployeePortalDocumentationFlags(
+          tenantId,
+          executableAssignmentId,
+          existing.data.assignmentStatus,
+          existing.data.documentationNotes,
+          employeeId,
+        ),
+      ]);
   const hasPersistedSignature = docFlagsForValidation.signatureStatus === 'captured';
 
   const validation = validateExecutionTransition(existing.data.assignmentStatus, toStatus, {
@@ -704,6 +780,7 @@ export async function transitionLiveEmployeePortalAssignment(
       actorProfileId: options?.profileId ?? undefined,
       actorEmployeeId: employeeId,
       knownExistingDetail: existing.data,
+      fastWorkflow: options?.fastWorkflow,
     },
   );
   if (!updated.ok) return updated;
@@ -727,19 +804,34 @@ export async function transitionLiveEmployeePortalAssignment(
     );
   }
 
-  const mirrored = await mirrorAssistVisitStatusFromAssignment(
-    tenantId,
-    persistentAssignmentId,
-    toStatus,
-    options?.profileId ?? null,
-  );
-  if (!mirrored.ok) {
-    return {
-      ok: false,
-      error:
-        mirrored.error ??
-        'Einsatzstatus wurde gespeichert, aber nicht in den Live-Monitor übertragen.',
-    };
+  if (options?.fastWorkflow) {
+    scheduleDeferredTask(
+      `assist-status:${tenantId}:${persistentAssignmentId}`,
+      async () => {
+        const mirrored = await mirrorAssistVisitStatusFromAssignment(
+          tenantId,
+          persistentAssignmentId,
+          toStatus,
+          options?.profileId ?? null,
+        );
+        if (!mirrored.ok) throw new Error(mirrored.error);
+      },
+    );
+  } else {
+    const mirrored = await mirrorAssistVisitStatusFromAssignment(
+      tenantId,
+      persistentAssignmentId,
+      toStatus,
+      options?.profileId ?? null,
+    );
+    if (!mirrored.ok) {
+      return {
+        ok: false,
+        error:
+          mirrored.error ??
+          'Einsatzstatus wurde gespeichert, aber nicht in den Live-Monitor übertragen.',
+      };
+    }
   }
 
   // updateStatus already performs the authoritative post-write readback. Do not
@@ -826,11 +918,11 @@ export async function updateLiveEmployeePortalTasksBatch(
   assignmentId: string,
   employeeId: string,
   roleKey: RoleKey | null,
-  updates: Array<{
+  updates: {
     taskId: string;
     status: ExtendedAssignmentTaskStatus;
     completionNote?: string;
-  }>,
+  }[],
 ): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;

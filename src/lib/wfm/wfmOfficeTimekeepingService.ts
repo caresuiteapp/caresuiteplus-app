@@ -50,6 +50,7 @@ import {
   listPlannedVisitsForPeriod,
 } from './wfmOfficePlannedVisitRepository';
 import { listWfmAbsencesForTeam } from './wfmAbsenceService';
+import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 import { isWfmAbsenceCoveringDate } from './wfmDisplayHelpers';
 import {
   applyReviewToEntry,
@@ -1083,20 +1084,6 @@ export async function submitVisitDeviationJustification(
   }
   setEntryOverlay(entryId, patch);
 
-  if (evaluation.ampel === 'red' || evaluation.ampel === 'blue') {
-    const workDate = workDateFromIso(input.actualAt);
-    await upsertReview(tenantId, actorId, {
-      entryId,
-      employeeId,
-      workDate,
-      entryKind: 'visit',
-      nextStatus: 'pending_review',
-      reviewNote: input.justification.trim(),
-      actorId,
-      actionComment: 'Deviation justification submitted',
-    });
-  }
-
   let message: WfmOfficeMessage | undefined;
   if (evaluation.ampel === 'red' || evaluation.ampel === 'blue') {
     message = {
@@ -1121,22 +1108,46 @@ export async function submitVisitDeviationJustification(
     appendOfficeMessage(tenantId, message);
   }
 
-  await writeWfmOfficeAudit(tenantId, null, {
-    entityType: 'wfm_visit_deviation',
-    entityId: input.visitId,
-    action: `deviation_${input.phase}`,
-    actorId,
-    summary: `${input.phase === 'start' ? 'Start' : 'Ende'}-Abweichung: ${evaluation.deviationMinutes} Min. (${evaluation.ampel})`,
-    reason: input.justification.trim(),
-    source: 'portal',
-    metadata: {
-      plannedAt: input.plannedAt,
-      actualAt: input.actualAt,
-      deviationMinutes: evaluation.deviationMinutes,
-      direction: evaluation.direction,
-      ampel: evaluation.ampel,
+  // The validated justification immediately authorises the employee action.
+  // Administration review/audit are durable projections and must not keep the
+  // workflow button spinning. They are coalesced and retried by later events.
+  scheduleDeferredTask(
+    `wfm-deviation:${tenantId}:${input.visitId}:${input.phase}`,
+    async () => {
+      if (evaluation.ampel === 'red' || evaluation.ampel === 'blue') {
+        const workDate = workDateFromIso(input.actualAt);
+        const reviewed = await upsertReview(tenantId, actorId, {
+          entryId,
+          employeeId,
+          workDate,
+          entryKind: 'visit',
+          nextStatus: 'pending_review',
+          reviewNote: input.justification.trim(),
+          actorId,
+          actionComment: 'Deviation justification submitted',
+        });
+        if (!reviewed.ok) throw new Error(reviewed.error);
+      }
+
+      const audited = await writeWfmOfficeAudit(tenantId, null, {
+        entityType: 'wfm_visit_deviation',
+        entityId: input.visitId,
+        action: `deviation_${input.phase}`,
+        actorId,
+        summary: `${input.phase === 'start' ? 'Start' : 'Ende'}-Abweichung: ${evaluation.deviationMinutes} Min. (${evaluation.ampel})`,
+        reason: input.justification.trim(),
+        source: 'portal',
+        metadata: {
+          plannedAt: input.plannedAt,
+          actualAt: input.actualAt,
+          deviationMinutes: evaluation.deviationMinutes,
+          direction: evaluation.direction,
+          ampel: evaluation.ampel,
+        },
+      });
+      if (!audited.ok) throw new Error(audited.error);
     },
-  });
+  );
 
   return { ok: true, data: { allowed: true, message } };
 }

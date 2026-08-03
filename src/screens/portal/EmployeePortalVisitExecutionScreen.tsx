@@ -68,6 +68,7 @@ import {
   type AssistWorkflowAllowedAction,
 } from '@/features/assistWorkflow/resolveAllowedActions';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import type { WorkflowDeviationApproval } from '@/features/assistWorkflow/startService';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
 import { portalPremium } from '@/design/tokens/portalPremium';
@@ -445,7 +446,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const proceedAfterDeviation = useCallback(
     async (
       action: 'start_service' | 'end_service',
-      options: { deviationApproved?: boolean } = {},
+      options: WorkflowDeviationApproval = {},
     ) => {
       if (action === 'start_service') {
         const r = await startService(options);
@@ -1194,7 +1195,13 @@ export function EmployeePortalVisitExecutionScreen() {
             }
             const pending = deviationModal.pendingAction;
             setDeviationModal(null);
-            await proceedAfterDeviation(pending, { deviationApproved: true });
+            await proceedAfterDeviation(pending, {
+              deviationApproved: true,
+              deviationPhase: deviationModal.phase,
+              deviationJustification: justification.trim(),
+              deviationVisitId: executionContext.assistVisitId,
+              deviationActualAt: check.actual,
+            });
           }}
         />
       ) : null}

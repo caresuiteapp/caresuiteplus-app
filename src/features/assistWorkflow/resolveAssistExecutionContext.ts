@@ -10,6 +10,19 @@ import { resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignmen
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { getEmployeePortalLocationConsent } from '@/lib/portal/employeePortalVisitTrackingService';
 import { calculateVisitTimes, type VisitTimesSummary } from './calculateVisitTimes';
+import { deriveWorkflowStatus } from './deriveWorkflowStatus';
+import { repairWorkflowState } from './repairWorkflowState';
+import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
+import type { AssistExecutionContext } from './types';
+import {
+  assistWorkflowErrorToResult,
+  createAssistWorkflowError,
+} from './assistWorkflowErrors';
+import {
+  resolveAllowedActions,
+  resolveAssistExecutionDiagnostics,
+} from './resolveAllowedActions';
+
 type AssignmentTimingDetail = {
   onTheWayAt: string | null;
   arrivedAt: string | null;
@@ -51,18 +64,6 @@ function mergeVisitTimesFromAssignment(
     serviceEndedAt: base.serviceEndedAt ?? detail.actualEndAt ?? null,
   };
 }
-import { deriveWorkflowStatus } from './deriveWorkflowStatus';
-import { repairWorkflowState } from './repairWorkflowState';
-import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
-import type { AssistExecutionContext } from './types';
-import {
-  assistWorkflowErrorToResult,
-  createAssistWorkflowError,
-} from './assistWorkflowErrors';
-import {
-  resolveAllowedActions,
-  resolveAssistExecutionDiagnostics,
-} from './resolveAllowedActions';
 
 export type ResolveAssistExecutionContextInput = {
   tenantId: string;
@@ -123,7 +124,9 @@ export async function resolveAssistExecutionContext(
   let visitTimes = null;
   let timeEvents: AssistExecutionContext['timeEvents'] = [];
   if (assistVisitId) {
-    const events = await fetchTimeEventsForVisit(tenantId, assistVisitId, 100);
+    const events = liveResult.ok && liveResult.data.timeEventsLoaded
+      ? { ok: true as const, data: liveResult.data.timeEvents ?? [] }
+      : await fetchTimeEventsForVisit(tenantId, assistVisitId, 100);
     if (events.ok) {
       timeEvents = events.data.map((e) => ({ eventType: e.eventType, occurredAt: e.occurredAt }));
       const preliminaryTimes = calculateVisitTimes(timeEvents, detailResult.data.status);

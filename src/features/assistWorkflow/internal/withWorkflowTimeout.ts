@@ -1,9 +1,10 @@
 /** ASSIST.STABILIZE.2 — bounded wait for portal workflow mutations. */
-export const WORKFLOW_ACTION_TIMEOUT_MS = 20_000;
-export const WORKFLOW_MARK_ARRIVED_TIMEOUT_MS = 30_000;
-export const WORKFLOW_END_SERVICE_TIMEOUT_MS = 30_000;
-export const WORKFLOW_START_SERVICE_TIMEOUT_MS = 30_000;
-export const WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS = 30_000;
+/** Employee-facing latency contract: no workflow tap may spin beyond four seconds. */
+export const WORKFLOW_ACTION_TIMEOUT_MS = 4_000;
+export const WORKFLOW_MARK_ARRIVED_TIMEOUT_MS = 4_000;
+export const WORKFLOW_END_SERVICE_TIMEOUT_MS = 4_000;
+export const WORKFLOW_START_SERVICE_TIMEOUT_MS = 4_000;
+export const WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS = 4_000;
 
 export class WorkflowActionTimeoutError extends Error {
   constructor(label: string, ms: number) {

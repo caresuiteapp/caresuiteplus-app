@@ -36,6 +36,7 @@ vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({ rpc: mocks.supabaseRpc }),
 }));
 
+// eslint-disable-next-line import/first -- module must load after hoisted dependency mocks
 import { startEmployeeLiveTracking } from '@/features/liveTracking/startEmployeeLiveTracking';
 
 const liveContext = {
@@ -139,23 +140,24 @@ describe('startEmployeeLiveTracking critical persistence', () => {
     );
   });
 
-  it('fails visibly when WFM cannot confirm the drive event', async () => {
-    mocks.syncAssistTimeEventToWfmPortalSafe.mockResolvedValue({
-      ok: false,
-      error: 'WFM nicht erreichbar',
-    });
+  it('does not block the canonical drive start while WFM is unavailable', async () => {
+    mocks.syncAssistTimeEventToWfmPortalSafe.mockImplementation(() => new Promise(() => {}));
     mocks.recordTimeEvent.mockResolvedValue({ ok: true, data: { id: 'event-1' } });
 
-    const result = await startEmployeeLiveTracking({
-      tenantId: 'tenant-1',
-      employeeId: 'employee-1',
-      routeParamId: 'assignment-1',
-      withoutGps: true,
-      transitionToEnRoute: false,
-    });
+    const result = await Promise.race([
+      startEmployeeLiveTracking({
+        tenantId: 'tenant-1',
+        employeeId: 'employee-1',
+        routeParamId: 'assignment-1',
+        withoutGps: true,
+        transitionToEnRoute: false,
+      }),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('blocked by WFM')), 100)),
+    ]);
 
-    expect(result.ok).toBe(false);
-    expect(result.ok ? null : result.error).toContain('Zeiterfassung');
+    expect(result.ok).toBe(true);
+    expect(mocks.recordTimeEvent).toHaveBeenCalledTimes(1);
+    expect(mocks.syncAssistTimeEventToWfmPortalSafe).toHaveBeenCalledTimes(1);
   });
 
   it('does not create a second session when active-session readback fails', async () => {

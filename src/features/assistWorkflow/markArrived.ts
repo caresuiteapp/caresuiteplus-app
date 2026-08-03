@@ -21,6 +21,7 @@ import { logAssistWorkflowError, createAssistWorkflowError, assistWorkflowErrorT
 import { getServiceMode } from '@/lib/services/mode';
 import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
 import type { AssistExecutionContext } from './types';
+import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 
 export type ArrivalMode = 'gps' | 'without_gps' | 'manual';
 
@@ -46,28 +47,24 @@ async function persistArrivedExecutionMirrors(
   ctx: AssistExecutionContext,
   visitTimes: AssistExecutionContext['visitTimes'],
 ): Promise<ServiceResult<void>> {
-  const executionState = await upsertAssistVisitExecutionState(
-    ctx.tenantId,
-    ctx.assignmentId,
-    'angekommen',
-    { employeeId: ctx.employeeId, visitTimes },
-  );
-  if (!executionState.ok) return executionState;
-
-  if (getServiceMode() === 'supabase') {
-    const mirrored = await mirrorAssistVisitStatusFromAssignment(
+  scheduleDeferredTask(`assist-arrival-projection:${ctx.tenantId}:${ctx.assignmentId}`, async () => {
+    const executionState = await upsertAssistVisitExecutionState(
       ctx.tenantId,
       ctx.assignmentId,
       'angekommen',
-      ctx.profileId ?? null,
+      { employeeId: ctx.employeeId, visitTimes },
     );
-    if (!mirrored.ok) {
-      return {
-        ok: false,
-        error: mirrored.error ?? 'Ankunft konnte nicht in den Live-Monitor übertragen werden.',
-      };
+    if (!executionState.ok) throw new Error(executionState.error);
+    if (getServiceMode() === 'supabase') {
+      const mirrored = await mirrorAssistVisitStatusFromAssignment(
+        ctx.tenantId,
+        ctx.assignmentId,
+        'angekommen',
+        ctx.profileId ?? null,
+      );
+      if (!mirrored.ok) throw new Error(mirrored.error);
     }
-  }
+  });
   return { ok: true, data: undefined };
 }
 
@@ -175,6 +172,7 @@ export async function markArrived(input: MarkArrivedInput): Promise<MarkArrivedR
   const transition = await transitionAssistExecutionStatus(ctx, 'angekommen', {
     skipStatusPersistence: true,
     hasTravelEnded: true,
+    fastWorkflow: true,
   });
   if (!transition.ok) return transition;
 

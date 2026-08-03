@@ -6,26 +6,27 @@ const root = path.join(__dirname, '..', '..', '..');
 const source = (relativePath: string) => readFileSync(path.join(root, relativePath), 'utf8');
 
 describe('critical employee workflow persistence', () => {
-  it('awaits arrival execution-state and live-monitor mirrors', () => {
+  it('awaits arrival source records but defers live-monitor projections', () => {
     const file = source('src/features/assistWorkflow/markArrived.ts');
     expect(file).toContain('await upsertAssistVisitExecutionState');
     expect(file).toContain('await mirrorAssistVisitStatusFromAssignment');
-    expect(file).not.toContain('void upsertAssistVisitExecutionState');
-    expect(file).not.toContain('void mirrorAssistVisitStatusFromAssignment');
+    expect(file).toContain('scheduleDeferredTask');
+    expect(file).toContain('await persistEmployeePortalStatusTransition');
   });
 
-  it('awaits end-of-service mirrors and retries them on idempotent replay', () => {
+  it('persists service_end before scheduling derived administration mirrors', () => {
     const file = source('src/features/assistWorkflow/endService.ts');
     expect(file).toContain('persistEndedExecutionMirrors');
     expect(file).toMatch(/if \(ctx\.visitTimes\?\.serviceEndedAt\)[\s\S]*persistEndedExecutionMirrors/);
-    expect(file).not.toContain('void mirrorAssistVisitStatusFromAssignment');
+    expect(file).toContain('scheduleDeferredTask');
+    expect(file).toContain("eventType: 'service_end'");
   });
 
-  it('records the submitting profile and confirms documentation state', () => {
+  it('records the submitting profile canonically and defers duplicate snapshots', () => {
     const file = source('src/features/assistWorkflow/saveVisitDocumentation.ts');
     expect(file).toContain('submitted_by: profileId');
     expect(file).toContain('const executionState = await upsertAssistVisitExecutionState');
-    expect(file).not.toContain('void upsertAssistVisitExecutionState');
+    expect(file).toContain('scheduleDeferredTask');
   });
 
   it('does not silently accept database errors for no-show reporting', () => {
@@ -38,8 +39,33 @@ describe('critical employee workflow persistence', () => {
     const file = source('src/hooks/useEmployeePortalVisitExecution.ts');
     expect(file).toContain('didWorkflowActionReachPostcondition');
     expect(file).toContain('WORKFLOW_ACTION_TIMEOUT_UNCONFIRMED');
-    expect(file).toMatch(
-      /didWorkflowActionReachPostcondition\(options\.recoveryAction, ctx, recovered\)[\s\S]*return \{ ok: true, data: recovered as T \}/,
-    );
+    expect(file).toContain('didWorkflowActionReachPostcondition(options.recoveryAction, ctx, refreshed)');
+    expect(file).toContain('return { ok: true, data: refreshed as T };');
+    expect(file).toContain('workflowRecoveryReadback');
+    expect(file).toContain('void refreshExecutionContext().then');
+  });
+
+  it('enforces the four-second employee-facing latency budget', () => {
+    const file = source('src/features/assistWorkflow/internal/withWorkflowTimeout.ts');
+    expect(file).toContain('WORKFLOW_ACTION_TIMEOUT_MS = 4_000');
+    expect(file).toContain('WORKFLOW_START_SERVICE_TIMEOUT_MS = 4_000');
+    expect(file).toContain('WORKFLOW_END_SERVICE_TIMEOUT_MS = 4_000');
+  });
+
+  it('reuses the already-authorized screen detail instead of reloading the assignment before each transition', () => {
+    const transition = source('src/features/assistWorkflow/internal/transitionAssistExecutionStatus.ts');
+    const liveService = source('src/lib/portal/employeePortalExecutionLiveService.ts');
+    const repository = source('src/lib/assist/repositories/assignmentRepository.supabase.ts');
+    expect(transition).toContain('knownDetail: options.fastWorkflow ? ctx.detail : undefined');
+    expect(liveService).toContain('mapPortalDetailToAssignmentDetail(options.knownDetail, employeeId)');
+    expect(repository).toContain('Return after the authoritative status/timestamp write');
+  });
+
+  it('loads tracking and canonical time events together on the initial execution screen', () => {
+    const liveContext = source('src/features/liveTracking/resolveEmployeeLiveContext.ts');
+    const executionContext = source('src/features/assistWorkflow/resolveAssistExecutionContext.ts');
+    expect(liveContext).toContain('fetchTimeEventsForVisit(tenantId, resolution.visitId, 100)');
+    expect(liveContext).toContain('timeEventsLoaded: timeEventsResult.ok');
+    expect(executionContext).toContain('liveResult.data.timeEventsLoaded');
   });
 });

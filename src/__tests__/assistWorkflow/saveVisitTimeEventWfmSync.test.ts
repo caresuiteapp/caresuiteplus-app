@@ -3,6 +3,7 @@ import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { resetWfmDemoStore, listSessionsForDate, workDateFromIso } from '@/lib/wfm';
 import { resetWfmAssistAdapterState } from '@/lib/wfm/wfmAssistAdapter';
 import { saveVisitTimeEvent } from '@/features/assistWorkflow/saveVisitTimeEvent';
+import { flushDeferredTasks } from '@/lib/async/deferredTask';
 
 const TENANT = DEMO_TENANT_ID;
 const VISIT = 'visit-wfm-sync-1';
@@ -51,6 +52,7 @@ describe('saveVisitTimeEvent → WFM sync', () => {
     });
 
     expect(endResult.ok).toBe(true);
+    await flushDeferredTasks();
 
     const workDate = workDateFromIso('2026-07-01T09:30:00.000Z');
     const team = await listSessionsForDate(TENANT, workDate);

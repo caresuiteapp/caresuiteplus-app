@@ -2,21 +2,17 @@
  * ASSIST.STABILIZE.2 — Idempotent start service with readback verification.
  */
 import type { ServiceResult } from '@/types';
-import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
 import { isAssignmentLocked } from './assistVisitStateMachine';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import { repairWorkflowState } from './repairWorkflowState';
 import { ensureVisitTimeEvent } from './saveVisitTimeEvent';
-import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from './resolveAllowedActions';
-import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
 import { checkVisitDeviationGate } from '@/lib/wfm/wfmOfficeTimekeepingService';
-import { getServiceMode } from '@/lib/services/mode';
+import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 import type { AssistExecutionContext } from './types';
 import type { VisitTimesSummary } from './calculateVisitTimes';
 import {
-  assistWorkflowErrorFromSupabase,
   assistWorkflowErrorToResult,
   createAssistWorkflowError,
   type AssistWorkflowErrorCode,
@@ -25,9 +21,25 @@ import {
 const MAX_REPAIR_DEPTH = 1;
 
 export type WorkflowDeviationApproval = {
-  /** The visible deviation dialog validated and persisted the justification for this action. */
+  /** The visible deviation dialog validated the justification for this exact action. */
   deviationApproved?: boolean;
+  deviationPhase?: 'start' | 'end';
+  deviationJustification?: string;
+  deviationVisitId?: string;
+  deviationActualAt?: string;
 };
+
+export function isValidWorkflowDeviationApproval(
+  options: WorkflowDeviationApproval,
+  visitId: string,
+  phase: 'start' | 'end',
+): boolean {
+  return options.deviationApproved === true &&
+    options.deviationPhase === phase &&
+    options.deviationVisitId === visitId &&
+    Boolean(options.deviationActualAt) &&
+    (options.deviationJustification?.trim().length ?? 0) >= 10;
+}
 
 type WorkflowFail = { ok: false; error: string; errorCode?: string };
 
@@ -69,67 +81,6 @@ function canAttemptStartService(ctx: AssistExecutionContext): boolean {
   if (derived === 'angekommen') return true;
   if (ctx.assignmentStatus === 'pausiert') return false;
   return ctx.assignmentStatus === 'gestartet' && !ctx.visitTimes?.serviceStartedAt;
-}
-
-async function reloadContext(
-  ctx: AssistExecutionContext,
-): Promise<ServiceResult<AssistExecutionContext>> {
-  return resolveAssistExecutionContext({
-    tenantId: ctx.tenantId,
-    assignmentId: ctx.assignmentId,
-    employeeId: ctx.employeeId,
-    profileId: ctx.profileId,
-    roleKey: ctx.roleKey as import('@/types').RoleKey | null,
-    autoRepair: false,
-  });
-}
-
-async function verifyStartServiceReadback(
-  ctx: AssistExecutionContext,
-): Promise<ServiceResult<AssistExecutionContext>> {
-  const refreshed = await reloadContext(ctx);
-  if (!refreshed.ok) {
-    return startServiceError(
-      'START_SERVICE_CONTEXT_MISSING',
-      ctx,
-      refreshed.error ?? 'Kontext nach Start konnte nicht geladen werden.',
-    );
-  }
-
-  const data = refreshed.data;
-  if (!data.visitTimes?.serviceStartedAt) {
-    return startServiceError(
-      'START_SERVICE_DB_ERROR',
-      ctx,
-      'service_started_at fehlt nach Start — DB-Schreibvorgang unvollständig.',
-    );
-  }
-
-  if (data.derivedStatus !== 'gestartet') {
-    return startServiceError(
-      'START_SERVICE_INVALID_TRANSITION',
-      ctx,
-      `derivedStatus=${data.derivedStatus} erwartet gestartet`,
-    );
-  }
-
-  if (!data.diagnostics.canEndService) {
-    return startServiceError(
-      'START_SERVICE_INVALID_TRANSITION',
-      ctx,
-      'canEndService=false nach Start',
-    );
-  }
-
-  if (!data.allowedActions.includes('start_pause')) {
-    return startServiceError(
-      'START_SERVICE_INVALID_TRANSITION',
-      ctx,
-      'start_pause nicht in allowedActions',
-    );
-  }
-
-  return refreshed;
 }
 
 function mergeServiceStartedVisitTimes(
@@ -190,24 +141,9 @@ function buildOptimisticStartedContext(
 
 async function persistServiceStartEvent(
   ctx: AssistExecutionContext,
+  approval?: WorkflowDeviationApproval,
 ): Promise<ServiceResult<{ occurredAt: string }>> {
-  const events = await fetchTimeEventsForVisit(ctx.tenantId, ctx.assistVisitId, 50);
-  if (!events.ok) {
-    return assistWorkflowErrorToResult(
-      assistWorkflowErrorFromSupabase(
-        { message: events.error },
-        {
-          tenantId: ctx.tenantId,
-          assignmentId: ctx.assignmentId,
-          assistVisitId: ctx.assistVisitId,
-          employeeId: ctx.employeeId,
-          operation: 'startService.fetchTimeEvents',
-        },
-      ),
-    );
-  }
-
-  const existing = events.data.map((e) => ({
+  const existing = ctx.timeEvents.map((e) => ({
     eventType: e.eventType,
     occurredAt: e.occurredAt,
   }));
@@ -221,6 +157,14 @@ async function persistServiceStartEvent(
       recordedBy: ctx.profileId ?? ctx.employeeId,
       employeeId: ctx.employeeId,
       profileId: ctx.profileId,
+      metadata: isValidWorkflowDeviationApproval(approval ?? {}, ctx.assistVisitId, 'start')
+        ? {
+            deviation_approved: true,
+            deviation_phase: 'start',
+            deviation_justification: approval?.deviationJustification?.trim(),
+            deviation_actual_at: approval?.deviationActualAt,
+          }
+        : undefined,
     },
     existing,
   );
@@ -235,49 +179,22 @@ async function persistServiceStartEvent(
   };
 }
 
-async function applyExecutionStateAfterStart(
+function scheduleExecutionStateAfterStart(
   ctx: AssistExecutionContext,
   visitTimes: AssistExecutionContext['visitTimes'],
-): Promise<ServiceResult<void>> {
-  const upserted = await upsertAssistVisitExecutionState(
-    ctx.tenantId,
-    ctx.assignmentId,
-    'gestartet',
-    {
-      employeeId: ctx.employeeId,
-      visitTimes,
+): void {
+  scheduleDeferredTask(
+    `assist-execution-state:${ctx.tenantId}:${ctx.assignmentId}`,
+    async () => {
+      const upserted = await upsertAssistVisitExecutionState(
+        ctx.tenantId,
+        ctx.assignmentId,
+        'gestartet',
+        { employeeId: ctx.employeeId, visitTimes },
+      );
+      if (!upserted.ok) throw new Error(upserted.error);
     },
   );
-
-  if (!upserted.ok) {
-    return startServiceError(mapStartServiceFailureCode(upserted as WorkflowFail), ctx, upserted.error);
-  }
-
-  return { ok: true, data: undefined };
-}
-
-async function mirrorStartedStatus(
-  ctx: AssistExecutionContext,
-): Promise<ServiceResult<void>> {
-  if (getServiceMode() !== 'supabase') {
-    return { ok: true, data: undefined };
-  }
-
-  const mirrored = await mirrorAssistVisitStatusFromAssignment(
-    ctx.tenantId,
-    ctx.assignmentId,
-    'gestartet',
-    ctx.profileId ?? null,
-  );
-  if (!mirrored.ok) {
-    return startServiceError(
-      'START_SERVICE_DB_ERROR',
-      ctx,
-      mirrored.error ?? 'Einsatzstatus konnte nicht in den Live-Monitor gespiegelt werden.',
-    );
-  }
-
-  return { ok: true, data: undefined };
 }
 
 /** Backfill service_start when assignment already gestartet but event/timestamp missing. */
@@ -286,57 +203,40 @@ async function backfillServiceStart(
 ): Promise<ServiceResult<AssistExecutionContext>> {
   const saved = await persistServiceStartEvent(ctx);
   if (!saved.ok) return saved;
-
-  const refreshed = await reloadContext(ctx);
-  if (!refreshed.ok) {
-    return startServiceError('START_SERVICE_CONTEXT_MISSING', ctx, refreshed.error);
-  }
-
   const mergedTimes = mergeServiceStartedVisitTimes(
-    refreshed.data,
-    refreshed.data.visitTimes,
+    ctx,
+    ctx.visitTimes,
     saved.data.occurredAt,
   );
-  const stateWrite = await applyExecutionStateAfterStart(refreshed.data, mergedTimes);
-  if (!stateWrite.ok) return stateWrite;
-
-  const mirrored = await mirrorStartedStatus(refreshed.data);
-  if (!mirrored.ok) return mirrored;
-
-  return verifyStartServiceReadback(buildOptimisticStartedContext(refreshed.data, mergedTimes));
+  const optimistic = buildOptimisticStartedContext(ctx, mergedTimes);
+  scheduleExecutionStateAfterStart(optimistic, mergedTimes);
+  return { ok: true, data: optimistic };
 }
 async function transitionToServiceStart(
   ctx: AssistExecutionContext,
+  approval: WorkflowDeviationApproval,
 ): Promise<ServiceResult<AssistExecutionContext>> {
   const result = await transitionAssistExecutionStatus(ctx, 'gestartet', {
     hasTravelEnded: Boolean(ctx.visitTimes?.arrivedAt),
     skipStatusPersistence: true,
+    fastWorkflow: true,
   });
 
   if (!result.ok) {
     return startServiceError(mapStartServiceFailureCode(result as WorkflowFail), ctx, result.error);
   }
 
-  const eventSaved = await persistServiceStartEvent(result.data);
+  const eventSaved = await persistServiceStartEvent(result.data, approval);
   if (!eventSaved.ok) return eventSaved;
 
-  const reloaded = await reloadContext(result.data);
-  if (!reloaded.ok) {
-    return startServiceError('START_SERVICE_CONTEXT_MISSING', ctx, reloaded.error);
-  }
-
   const mergedTimes = mergeServiceStartedVisitTimes(
-    reloaded.data,
-    reloaded.data.visitTimes,
+    result.data,
+    result.data.visitTimes,
     eventSaved.data.occurredAt,
   );
-  const stateWrite = await applyExecutionStateAfterStart(reloaded.data, mergedTimes);
-  if (!stateWrite.ok) return stateWrite;
-
-  const mirrored = await mirrorStartedStatus(reloaded.data);
-  if (!mirrored.ok) return mirrored;
-
-  return verifyStartServiceReadback(buildOptimisticStartedContext(reloaded.data, mergedTimes));
+  const optimistic = buildOptimisticStartedContext(result.data, mergedTimes);
+  scheduleExecutionStateAfterStart(optimistic, mergedTimes);
+  return { ok: true, data: optimistic };
 }
 
 export async function startService(
@@ -370,12 +270,8 @@ export async function startService(
   }
 
   if (ctx.visitTimes?.serviceStartedAt) {
-    const refreshed = await reloadContext(ctx);
-    if (!refreshed.ok) {
-      return startServiceError('START_SERVICE_CONTEXT_MISSING', ctx, refreshed.error);
-    }
-    if (refreshed.data.derivedStatus === 'gestartet' && refreshed.data.diagnostics.canEndService) {
-      return refreshed;
+    if (ctx.derivedStatus === 'gestartet' && ctx.diagnostics.canEndService) {
+      return { ok: true, data: ctx };
     }
   }
 
@@ -420,7 +316,7 @@ export async function startService(
     workingCtx.detail.plannedStartAt,
     actualStart,
   );
-  if (deviationGate.blocked && !options.deviationApproved) {
+  if (deviationGate.blocked && !isValidWorkflowDeviationApproval(options, workingCtx.assistVisitId, 'start')) {
     return startServiceError(
       'WORKFLOW_DEVIATION_JUSTIFICATION_REQUIRED',
       workingCtx,
@@ -428,5 +324,5 @@ export async function startService(
     );
   }
 
-  return transitionToServiceStart(workingCtx);
+  return transitionToServiceStart(workingCtx, options);
 }

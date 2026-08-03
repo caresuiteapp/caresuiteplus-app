@@ -1,217 +1,95 @@
-/**
- * ASSIST.STABILIZE.3 — End pause with pause_end event + readback verification.
- */
+/** Fast, idempotent pause end. */
 import type { ServiceResult } from '@/types';
-import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
+import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 import { isAssignmentLocked } from './assistVisitStateMachine';
-import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
+import { calculateVisitTimes } from './calculateVisitTimes';
+import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import { ensureOpenPauseEndEvent, hasOpenPauseSegment } from './saveVisitTimeEvent';
-import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
-import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
+import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from './resolveAllowedActions';
 import type { AssistExecutionContext } from './types';
-import {
-  assistWorkflowErrorFromSupabase,
-  assistWorkflowErrorToResult,
-  createAssistWorkflowError,
-  type AssistWorkflowErrorCode,
-} from './assistWorkflowErrors';
+import { assistWorkflowErrorToResult, createAssistWorkflowError, type AssistWorkflowErrorCode } from './assistWorkflowErrors';
 
-function pauseError(
-  code: AssistWorkflowErrorCode,
-  ctx: AssistExecutionContext,
-  technicalMessage?: string,
-) {
-  return assistWorkflowErrorToResult(
-    createAssistWorkflowError(
-      code,
-      {
-        tenantId: ctx.tenantId,
-        assignmentId: ctx.assignmentId,
-        employeeId: ctx.employeeId,
-        assistVisitId: ctx.assistVisitId,
-        operation: 'endPause',
-      },
-      technicalMessage,
-    ),
-  );
-}
-
-async function reloadContext(
-  ctx: AssistExecutionContext,
-): Promise<ServiceResult<AssistExecutionContext>> {
-  return resolveAssistExecutionContext({
+function pauseError(code: AssistWorkflowErrorCode, ctx: AssistExecutionContext, technicalMessage?: string) {
+  return assistWorkflowErrorToResult(createAssistWorkflowError(code, {
     tenantId: ctx.tenantId,
     assignmentId: ctx.assignmentId,
     employeeId: ctx.employeeId,
-    profileId: ctx.profileId,
-    roleKey: ctx.roleKey as import('@/types').RoleKey | null,
-    autoRepair: false,
+    assistVisitId: ctx.assistVisitId,
+    operation: 'endPause',
+  }, technicalMessage));
+}
+
+function buildResumedContext(ctx: AssistExecutionContext, occurredAt: string): AssistExecutionContext {
+  const timeEvents = hasOpenPauseSegment(ctx.timeEvents)
+    ? [...ctx.timeEvents, { eventType: 'pause_end', occurredAt }]
+    : ctx.timeEvents;
+  const visitTimes = calculateVisitTimes(timeEvents, 'gestartet');
+  const detail = { ...ctx.detail, status: 'gestartet' as const };
+  const workflow = {
+    derivedStatus: 'gestartet' as const,
+    recordedStatus: 'gestartet' as const,
+    consistencyStatus: ctx.consistencyStatus,
+    inconsistencies: ctx.inconsistencies,
+    repairOptions: ctx.repairOptions,
+    canStartService: false,
+    nextActionHint: null,
+  };
+  return {
+    ...ctx,
+    assignmentStatus: 'gestartet',
+    derivedStatus: 'gestartet',
+    detail,
+    timeEvents,
+    visitTimes,
+    diagnostics: resolveAssistExecutionDiagnostics('gestartet', visitTimes, workflow),
+    allowedActions: resolveAllowedActions({ assignmentStatus: 'gestartet', visitTimes, detail, derivedStatus: 'gestartet', canStartService: false }),
+  };
+}
+
+function scheduleResumeProjection(ctx: AssistExecutionContext): void {
+  scheduleDeferredTask(`assist-execution-state:${ctx.tenantId}:${ctx.assignmentId}`, async () => {
+    const result = await upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'gestartet', {
+      employeeId: ctx.employeeId,
+      visitTimes: ctx.visitTimes,
+    });
+    if (!result.ok) throw new Error(result.error);
   });
 }
 
-async function verifyEndPauseReadback(
-  ctx: AssistExecutionContext,
-): Promise<ServiceResult<AssistExecutionContext>> {
-  const refreshed = await reloadContext(ctx);
-  if (!refreshed.ok) {
-    return pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, refreshed.error);
-  }
-
-  const data = refreshed.data;
-  if (data.derivedStatus !== 'gestartet' && data.assignmentStatus !== 'gestartet') {
-    return pauseError(
-      'WORKFLOW_INVALID_STATE',
-      ctx,
-      `Status nach Fortsetzen erwartet gestartet, ist ${data.derivedStatus}`,
-    );
-  }
-
-  if (hasOpenPauseSegment(data.timeEvents)) {
-    return pauseError(
-      'WORKFLOW_TIME_EVENT_FAILED',
-      ctx,
-      'pause_end fehlt nach Fortsetzen — offene Pause.',
-    );
-  }
-
-  if (data.visitTimes?.activeTimer !== 'service') {
-    return pauseError(
-      'WORKFLOW_INVALID_STATE',
-      ctx,
-      `activeTimer=${data.visitTimes?.activeTimer} erwartet service`,
-    );
-  }
-
-  if (!data.allowedActions.includes('start_pause')) {
-    return pauseError('WORKFLOW_INVALID_STATE', ctx, 'start_pause nicht in allowedActions');
-  }
-
-  return refreshed;
-}
-
-async function persistPauseEndEvent(
-  ctx: AssistExecutionContext,
-): Promise<ServiceResult<void>> {
-  const events = await fetchTimeEventsForVisit(ctx.tenantId, ctx.assistVisitId, 50);
-  if (!events.ok) {
-    return assistWorkflowErrorToResult(
-      assistWorkflowErrorFromSupabase(
-        { message: events.error },
-        {
-          tenantId: ctx.tenantId,
-          assignmentId: ctx.assignmentId,
-          assistVisitId: ctx.assistVisitId,
-          employeeId: ctx.employeeId,
-          operation: 'endPause.fetchTimeEvents',
-        },
-      ),
-    );
-  }
-
-  const existing = events.data.map((e) => ({ eventType: e.eventType }));
-  const saved = await ensureOpenPauseEndEvent(
-    {
-      tenantId: ctx.tenantId,
-      visitId: ctx.assistVisitId,
-      recordedBy: ctx.profileId ?? ctx.employeeId,
-      employeeId: ctx.employeeId,
-      profileId: ctx.profileId,
-    },
-    existing,
-  );
-
-  if (!saved.ok) {
-    return pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, saved.error);
-  }
-
-  return { ok: true, data: undefined };
-}
-
-async function applyExecutionStateAfterResume(
-  ctx: AssistExecutionContext,
-  visitTimes: AssistExecutionContext['visitTimes'],
-): Promise<ServiceResult<void>> {
-  const upserted = await upsertAssistVisitExecutionState(
-    ctx.tenantId,
-    ctx.assignmentId,
-    'gestartet',
-    {
-      employeeId: ctx.employeeId,
-      visitTimes,
-    },
-  );
-
-  if (!upserted.ok) {
-    return pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, upserted.error);
-  }
-
-  return { ok: true, data: undefined };
-}
-
-async function mirrorResumedStatus(ctx: AssistExecutionContext): Promise<ServiceResult<void>> {
-  const mirrored = await mirrorAssistVisitStatusFromAssignment(
-    ctx.tenantId,
-    ctx.assignmentId,
-    'gestartet',
-    ctx.profileId ?? null,
-  );
-  return mirrored.ok
-    ? { ok: true, data: undefined }
-    : pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, mirrored.error);
-}
-
-export async function endPause(
-  ctx: AssistExecutionContext,
-): Promise<ServiceResult<AssistExecutionContext>> {
-  if (!ctx.tenantId || !ctx.assignmentId || !ctx.employeeId) {
-    return pauseError('AWF_CONTEXT_MISSING', ctx);
-  }
-
-  if (isAssignmentLocked(ctx.assignmentStatus) || ctx.detail.isLocked) {
-    return pauseError('WORKFLOW_INVALID_STATE', ctx, 'Einsatz ist abgeschlossen oder gesperrt.');
-  }
-
-  if (!ctx.visitTimes?.serviceStartedAt) {
-    return pauseError('WORKFLOW_SERVICE_NOT_STARTED', ctx);
-  }
+export async function endPause(ctx: AssistExecutionContext): Promise<ServiceResult<AssistExecutionContext>> {
+  if (!ctx.tenantId || !ctx.assignmentId || !ctx.employeeId) return pauseError('AWF_CONTEXT_MISSING', ctx);
+  if (isAssignmentLocked(ctx.assignmentStatus) || ctx.detail.isLocked) return pauseError('WORKFLOW_INVALID_STATE', ctx, 'Einsatz ist abgeschlossen oder gesperrt.');
+  if (!ctx.visitTimes?.serviceStartedAt) return pauseError('WORKFLOW_SERVICE_NOT_STARTED', ctx);
 
   if (ctx.assignmentStatus === 'gestartet' && !hasOpenPauseSegment(ctx.timeEvents)) {
-    const refreshed = await reloadContext(ctx);
-    if (!refreshed.ok) return pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, refreshed.error);
-    const stateWrite = await applyExecutionStateAfterResume(ctx, refreshed.data.visitTimes);
-    if (!stateWrite.ok) return stateWrite;
-    const mirrored = await mirrorResumedStatus(ctx);
-    return mirrored.ok ? refreshed : mirrored;
+    scheduleResumeProjection(ctx);
+    return { ok: true, data: ctx };
   }
-
   if (ctx.assignmentStatus !== 'pausiert' && ctx.derivedStatus !== 'pausiert') {
     return pauseError('WORKFLOW_INVALID_STATE', ctx, 'Keine aktive Pause zum Beenden.');
   }
 
-  const result = await transitionAssistExecutionStatus(ctx, 'gestartet', {
+  const transitioned = await transitionAssistExecutionStatus(ctx, 'gestartet', {
     hasServiceStarted: true,
     hasTravelEnded: Boolean(ctx.visitTimes?.arrivedAt),
     skipStatusPersistence: true,
+    fastWorkflow: true,
   });
+  if (!transitioned.ok) return pauseError('WORKFLOW_INVALID_STATE', ctx, transitioned.error);
 
-  if (!result.ok) {
-    return pauseError('WORKFLOW_INVALID_STATE', ctx, result.error);
-  }
+  const occurredAt = new Date().toISOString();
+  const saved = await ensureOpenPauseEndEvent({
+    tenantId: ctx.tenantId,
+    visitId: ctx.assistVisitId,
+    occurredAt,
+    recordedBy: ctx.profileId ?? ctx.employeeId,
+    employeeId: ctx.employeeId,
+    profileId: ctx.profileId,
+  }, ctx.timeEvents);
+  if (!saved.ok) return pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, saved.error);
 
-  const backfill = await persistPauseEndEvent(ctx);
-  if (!backfill.ok) return backfill;
-
-  const refreshed = await reloadContext(ctx);
-  if (!refreshed.ok) {
-    return pauseError('WORKFLOW_TIME_EVENT_FAILED', ctx, refreshed.error);
-  }
-
-  const stateWrite = await applyExecutionStateAfterResume(ctx, refreshed.data.visitTimes);
-  if (!stateWrite.ok) return stateWrite;
-
-  const mirrored = await mirrorResumedStatus(ctx);
-  if (!mirrored.ok) return mirrored;
-
-  return verifyEndPauseReadback(ctx);
+  const optimistic = buildResumedContext(transitioned.data, occurredAt);
+  scheduleResumeProjection(optimistic);
+  return { ok: true, data: optimistic };
 }

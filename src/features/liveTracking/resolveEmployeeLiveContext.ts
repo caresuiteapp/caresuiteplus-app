@@ -8,6 +8,7 @@ import {
   fetchActiveTrackingSession,
   fetchLatestLocationPointForVisit,
   fetchLatestTrackingSessionWithConsent,
+  fetchTimeEventsForVisit,
 } from '@/lib/assist/assistTrackingPersistenceService';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { formatAddressFromSnapshotOrParts } from '@/lib/formatAddress';
@@ -58,6 +59,7 @@ export type EmployeeLiveContext = {
   resolution: LiveAssignmentResolution;
   detail: EmployeePortalAssignmentDetail | null;
   timeEventsLoaded: boolean;
+  timeEvents?: { eventType: string; occurredAt: string }[];
 };
 
 export type ResolveEmployeeLiveContextInput = {
@@ -188,12 +190,13 @@ export async function resolveEmployeeLiveContext(
   // resolveLiveAssignment already scopes the assignment to tenant + employee.
   // The former second assignment verification repeated the same RLS-protected
   // query on every page load and before every workflow action.
-  const [sessionResult, consentSessionResult, employeeConsent, latestLocation] =
+  const [sessionResult, consentSessionResult, employeeConsent, latestLocation, timeEventsResult] =
     await Promise.all([
       fetchActiveTrackingSession(tenantId, resolution.visitId),
       fetchLatestTrackingSessionWithConsent(tenantId, resolution.visitId),
       fetchEmployeeLocationConsentRecord(tenantId, employeeId),
       fetchLatestLocationPointForVisit(tenantId, resolution.visitId),
+      fetchTimeEventsForVisit(tenantId, resolution.visitId, 100),
     ]);
   if (!sessionResult.ok) {
     return { ok: false, error: sessionResult.error };
@@ -313,7 +316,13 @@ export async function resolveEmployeeLiveContext(
       reasonCode,
       resolution,
       detail: null,
-      timeEventsLoaded: false,
+      timeEventsLoaded: timeEventsResult.ok,
+      timeEvents: timeEventsResult.ok
+        ? timeEventsResult.data.map((event) => ({
+            eventType: event.eventType,
+            occurredAt: event.occurredAt,
+          }))
+        : undefined,
     },
   };
 }

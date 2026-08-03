@@ -440,4 +440,39 @@ describe('ASSIST.STABILIZE.3 endService', () => {
     }
     expect(transitionMock).not.toHaveBeenCalled();
   });
+
+  it('continues after an exact end deviation justification and stores it on service_end', async () => {
+    const input = ctx({
+      assignmentStatus: 'gestartet',
+      derivedStatus: 'gestartet',
+      detail: { ...baseDetail('gestartet'), plannedEndAt: '2000-01-01T00:00:00.000Z' },
+    });
+    const ended = ctx({
+      assignmentStatus: 'beendet',
+      derivedStatus: 'beendet',
+      detail: { ...baseDetail('beendet'), plannedEndAt: '2000-01-01T00:00:00.000Z' },
+    });
+    transitionMock.mockResolvedValue({ ok: true, data: ended });
+
+    const result = await endService(input, {
+      deviationApproved: true,
+      deviationPhase: 'end',
+      deviationJustification: 'Mehrbedarf beim Klienten fachlich dokumentiert.',
+      deviationVisitId: input.assistVisitId,
+      deviationActualAt: '2026-08-03T10:30:00.000Z',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(ensureVisitTimeEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: 'service_end',
+        metadata: expect.objectContaining({
+          deviation_approved: true,
+          deviation_phase: 'end',
+          deviation_justification: 'Mehrbedarf beim Klienten fachlich dokumentiert.',
+        }),
+      }),
+      expect.any(Array),
+    );
+  });
 });

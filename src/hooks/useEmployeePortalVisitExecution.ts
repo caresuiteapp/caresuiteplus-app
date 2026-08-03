@@ -69,7 +69,11 @@ import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
 import { useLiveVisitTimers } from '@/hooks/useLiveVisitTimers';
 import { useTaskResultDrafts } from '@/hooks/useTaskResultDrafts';
-import { LIVE_TRACKING_POLL_MS, useAsyncQuery, useMutation } from './core';
+import { LIVE_TRACKING_POLL_MS, useAsyncQuery } from './core';
+import { deriveWorkflowStatus } from '@/features/assistWorkflow/deriveWorkflowStatus';
+import { resolveAllowedActions } from '@/features/assistWorkflow/resolveAllowedActions';
+import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import type { VisitTimesSummary } from '@/features/assistWorkflow/calculateVisitTimes';
 import {
   withWorkflowTimeout,
   WorkflowActionTimeoutError,
@@ -155,7 +159,7 @@ const ASSIGNMENT_STATUS_PROGRESS: Partial<Record<AssignmentStatus, number>> = {
   abgeschlossen: 80,
 };
 
-const WORKFLOW_FOREGROUND_GPS_BUDGET_MS = 2_500;
+const WORKFLOW_FOREGROUND_GPS_BUDGET_MS = 1_000;
 
 async function captureGpsWithinBudget(
   capture: () => Promise<EmployeeGpsSnapshot | null>,
@@ -169,7 +173,7 @@ async function captureGpsWithinBudget(
 }
 
 function pickEffectiveAssignmentStatus(
-  ...candidates: Array<AssignmentStatus | null | undefined>
+  ...candidates: (AssignmentStatus | null | undefined)[]
 ): AssignmentStatus | null {
   const ranked = candidates.filter(Boolean) as AssignmentStatus[];
   if (!ranked.length) return null;
@@ -214,11 +218,6 @@ function mergeVisitTimesFromPortalDetail(
     serviceEndedAt: base.serviceEndedAt ?? detail.actualEndAt ?? null,
   };
 }
-import { deriveWorkflowStatus } from '@/features/assistWorkflow/deriveWorkflowStatus';
-import { resolveAllowedActions } from '@/features/assistWorkflow/resolveAllowedActions';
-import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
-import type { VisitTimesSummary } from '@/features/assistWorkflow/calculateVisitTimes';
-
 export function useEmployeePortalVisitExecution(assignmentId: string | undefined) {
   const { profile } = useAuth();
   const { tenantId: portalTenantId, employeeId: portalEmployeeId, roleKey: portalRoleKey, actorId } =
@@ -616,7 +615,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       };
       query.setData(syncedDetail);
       if (tenantId && employeeId) {
-        await writeExecutionDetailCache(tenantId, employeeId, syncedDetail);
+        void writeExecutionDetailCache(tenantId, employeeId, syncedDetail);
       }
       return synced;
     },
@@ -692,7 +691,11 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           // back before showing an error. If the requested postcondition is
           // durable, treat the tap as successful and never make the employee
           // repeat an already completed step.
-          const refreshed = await refreshExecutionContext();
+          const refreshed = await withWorkflowTimeout(
+            refreshExecutionContext(),
+            800,
+            'workflowRecoveryReadback',
+          ).catch(() => null);
           if (refreshed) {
             await syncAfterWorkflow(refreshed);
             if (
@@ -707,19 +710,16 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         return result;
       } catch (error) {
         if (error instanceof WorkflowActionTimeoutError) {
-          const recovered = await refreshExecutionContext();
-          if (recovered) {
-            await syncAfterWorkflow(recovered);
-            if (
-              options?.recoveryAction &&
-              didWorkflowActionReachPostcondition(options.recoveryAction, ctx, recovered)
-            ) {
-              return { ok: true, data: recovered as T };
-            }
-          }
+          // Never append another full four-second read to an already timed-out
+          // tap. The still-running canonical request and this readback reconcile
+          // the screen in the background; the employee can see the real state
+          // without a second minute-long spinner.
+          void refreshExecutionContext().then(async (recovered) => {
+            if (recovered) await syncAfterWorkflow(recovered);
+          });
           return {
             ok: false,
-            error: 'Zeitüberschreitung — der Server hat die Aktion nicht bestätigt. Bitte den angezeigten Einsatzstatus prüfen und die Aktion erneut ausführen.',
+            error: 'Die Bestätigung dauert länger als vier Sekunden. Der Einsatzstatus wird jetzt automatisch im Hintergrund abgeglichen.',
             errorCode: 'WORKFLOW_ACTION_TIMEOUT_UNCONFIRMED',
           };
         }
@@ -831,6 +831,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       gpsSnapshot: snapshot,
       withoutGps: !snapshot,
       localConsent: trackingAuthorization,
+      executionContext: executionContextRef.current,
     });
 
     if (!started.ok) {
@@ -861,7 +862,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         const pos = await Promise.race([
           captureEmployeePortalForegroundPosition(tenantId, assignmentId),
           new Promise<{ ok: false; error: string }>((resolve) => {
-            setTimeout(() => resolve({ ok: false, error: 'GPS timeout' }), 2_500);
+            setTimeout(() => resolve({ ok: false, error: 'GPS timeout' }), 1_000);
           }),
         ]);
         if (pos.ok) {
@@ -922,6 +923,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           transitionToEnRoute: false,
           recordDriveStart: false,
           localConsent: trackingAuthorization,
+          knownContext: executionContextRef.current?.liveContext ?? null,
+          knownTimeEvents: executionContextRef.current?.timeEvents,
         });
 
         if (trackingStarted.ok) {
@@ -1084,6 +1087,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   }, [tenantId, assignmentId, employeeId, roleKey, authProfileId]);
 
   const consent = useMemo(() => {
+    void consentRevision;
     if (!tenantId || !assignmentId) return null;
 
     const assignmentConsent = getEmployeePortalLocationConsent(tenantId, assignmentId);

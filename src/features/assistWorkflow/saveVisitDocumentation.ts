@@ -2,7 +2,6 @@
  * ASSIST.WORKFLOW.2 — Save visit documentation and chain to signature step.
  */
 import type { ServiceResult } from '@/types';
-import type { RoleKey } from '@/types';
 import type { EmployeePortalDocumentationInput } from '@/types/modules/employeePortalExecution';
 import { resolveAssistVisitIdForPersistence } from '@/lib/assist/assistExecutionVisitResolver';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
@@ -12,13 +11,15 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
-import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import { resolveAllowedActions } from './resolveAllowedActions';
+import { generateServiceRecord } from './generateServiceRecord';
+import { assistProofProjectionKey } from './internal/workflowProjectionKeys';
 import type { AssistExecutionContext } from './types';
 import {
   assistWorkflowErrorToResult,
   createAssistWorkflowError,
 } from './assistWorkflowErrors';
+import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 
 export type SaveVisitDocumentationInput = {
   ctx: AssistExecutionContext;
@@ -105,17 +106,13 @@ async function persistDocumentationToAssistVisit(
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 
-  const { error: visitUpdateError } = await fromUnknownTable(supabase, 'assist_visits')
-    .update({
-      documentation_status: 'complete',
-      updated_at: now,
-    })
-    .eq('tenant_id', tenantId)
-    .eq('id', visitId);
-
-  if (visitUpdateError) {
-    return { ok: true, data: { visitMirrorFailed: true } };
-  }
+  scheduleDeferredTask(`assist-documentation-visit:${tenantId}:${visitId}`, async () => {
+    const { error: visitUpdateError } = await fromUnknownTable(supabase, 'assist_visits')
+      .update({ documentation_status: 'complete', updated_at: now })
+      .eq('tenant_id', tenantId)
+      .eq('id', visitId);
+    if (visitUpdateError) throw new Error(toGermanSupabaseError(visitUpdateError));
+  });
 
   return { ok: true, data: { visitMirrorFailed: false } };
 }
@@ -225,20 +222,13 @@ export async function saveVisitDocumentation(
     documentationPersisted = true;
     if (visitDoc.data.visitMirrorFailed) wfmSyncFailed = true;
 
-    const { error: notesError } = await fromUnknownTable(getSupabaseClient()!, 'assignments')
-      .update({
-        documentation_notes: docText,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('tenant_id', ctx.tenantId)
-      .eq('id', masterAssignmentId);
-
-    if (notesError) {
-      // The structured visit documentation is already the source of truth.
-      // Keep the workflow moving and surface the legacy assignment-note mirror
-      // as a non-blocking administration warning.
-      wfmSyncFailed = true;
-    }
+    scheduleDeferredTask(`assignment-documentation:${ctx.tenantId}:${masterAssignmentId}`, async () => {
+      const { error: notesError } = await fromUnknownTable(getSupabaseClient()!, 'assignments')
+        .update({ documentation_notes: docText, updated_at: new Date().toISOString() })
+        .eq('tenant_id', ctx.tenantId)
+        .eq('id', masterAssignmentId);
+      if (notesError) throw new Error(toGermanSupabaseError(notesError));
+    });
   }
 
   let updatedCtx = ctx;
@@ -246,6 +236,7 @@ export async function saveVisitDocumentation(
     const transitioned = await transitionAssistExecutionStatus(ctx, 'dokumentation_offen', {
       hasServiceStarted: true,
       hasDocumentation: true,
+      fastWorkflow: true,
     });
     if (transitioned.ok) {
       updatedCtx = transitioned.data;
@@ -267,6 +258,7 @@ export async function saveVisitDocumentation(
     const transitioned = await transitionAssistExecutionStatus(ctx, 'dokumentation_offen', {
       hasServiceStarted: true,
       hasDocumentation: true,
+      fastWorkflow: true,
     });
     if (transitioned.ok) {
       updatedCtx = transitioned.data;
@@ -275,20 +267,19 @@ export async function saveVisitDocumentation(
     }
   }
 
-  const executionState = await upsertAssistVisitExecutionState(
-    ctx.tenantId,
-    masterAssignmentId,
-    persistedExecutionStatus,
-    {
-      employeeId: ctx.employeeId,
-      visitTimes: updatedCtx.visitTimes,
-      documentationComplete: true,
-    },
-  );
-
-  if (!executionState.ok) {
-    wfmSyncFailed = true;
-  }
+  scheduleDeferredTask(`assist-execution-state:${ctx.tenantId}:${masterAssignmentId}`, async () => {
+    const executionState = await upsertAssistVisitExecutionState(
+      ctx.tenantId,
+      masterAssignmentId,
+      persistedExecutionStatus,
+      {
+        employeeId: ctx.employeeId,
+        visitTimes: updatedCtx.visitTimes,
+        documentationComplete: true,
+      },
+    );
+    if (!executionState.ok) throw new Error(executionState.error);
+  });
 
   const detail = {
     ...updatedCtx.detail,
@@ -320,12 +311,12 @@ export async function saveVisitDocumentation(
   };
   const nextStep = detail.requiresSignature ? 'signature' : 'finalize';
 
-  void resolveAssistExecutionContext({
-    tenantId: ctx.tenantId,
-    assignmentId: ctx.assignmentId,
-    employeeId: ctx.employeeId,
-    profileId: ctx.profileId,
-    roleKey: ctx.roleKey as RoleKey | null,
+  // Start the proof projection as soon as the canonical documentation is
+  // durable. A later signature replaces this coalesced job with the signed
+  // proof, so finalization normally only needs one quick completeness read.
+  scheduleDeferredTask(assistProofProjectionKey(optimisticCtx), async () => {
+    const proof = await generateServiceRecord(optimisticCtx, docText);
+    if (!proof.ok) throw new Error(proof.error);
   });
 
   return {

@@ -52,7 +52,7 @@ describe('Assist Dokumentation und Leistungsnachweis bleiben getrennt von Hinwei
       'ctx.detail.documentationNotes?.trim()',
     );
     expect(saveSignature).toContain(
-      'refreshed.data.detail.documentationNotes?.trim()',
+      'updatedCtx.detail.documentationNotes?.trim()',
     );
     expect(saveSignature).not.toContain("? 'submitted'");
   });

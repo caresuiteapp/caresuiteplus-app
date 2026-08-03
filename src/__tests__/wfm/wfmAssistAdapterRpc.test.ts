@@ -10,6 +10,19 @@ const fetchTimeEventsMock = vi.fn();
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({
     rpc: (...args: unknown[]) => rpcMock(...args),
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          eq: () => ({
+            order: () => ({
+              limit: () => ({
+                maybeSingle: async () => ({ data: null, error: null }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    }),
   }),
 }));
 
@@ -131,7 +144,7 @@ describe('syncAssistVisitTimesToWfm — RPC path', () => {
 });
 
 describe('finalizeVisit WFM dual-scoring signal', () => {
-  it('sets wfmSyncFailed when the portal-safe RPC reports a real persistence error', async () => {
+  it('does not block finalization when the deferred WFM projection reports an error', async () => {
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
     vi.doMock('@/lib/portal/resolveEmployeePortalSignatureRequirement', () => ({
       hasPortalPersistedClientSignature: vi.fn(async () => true),
@@ -277,8 +290,6 @@ describe('finalizeVisit WFM dual-scoring signal', () => {
     );
 
     expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.wfmSyncFailed).toBe(true);
-    }
+    if (result.ok) expect(result.data.wfmSyncFailed).toBe(false);
   });
 });

@@ -27,6 +27,7 @@ import { resolveVisitLocation } from '@/lib/assist/resolveVisitLocation';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { isUuid } from '@/lib/validation/uuid';
 import { cancelCalendarEventBySourceAsync } from '@/lib/calendar/calendarSyncService';
+import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 
 export type AssignmentTaskRow = {
   id: string;
@@ -89,6 +90,8 @@ type AssignmentStatusMutationContext = AssignmentMutationContext & {
    * Avoids a second identical assignment read immediately before the status RPC.
    */
   knownExistingDetail?: AssignmentDetail;
+  /** Return after the authoritative status/timestamp write; audit/readback are projections. */
+  fastWorkflow?: boolean;
 };
 
 export type AssignmentTaskItem = {
@@ -159,7 +162,7 @@ function personName(
   return name || 'Unbekannt';
 }
 
-function assignmentStatusToWorkflowFilter(status: AssignmentStatus): WorkflowStatus {
+export function assignmentStatusToWorkflowFilter(status: AssignmentStatus): WorkflowStatus {
   const map: Partial<Record<AssignmentStatus, WorkflowStatus>> = {
     geplant: 'entwurf',
     bestaetigt: 'aktiv',
@@ -522,7 +525,7 @@ export const assignmentSupabaseRepository = {
       }
     }
 
-    await writeAssignmentAudit(supabase, {
+    const auditInput = {
       tenantId,
       assignmentId: masterAssignmentId,
       action: 'status_change',
@@ -530,7 +533,30 @@ export const assignmentSupabaseRepository = {
       toStatus,
       details: note,
       actor: context,
-    });
+    } as const;
+
+    if (context?.fastWorkflow) {
+      scheduleDeferredTask(
+        `assignment-audit:${tenantId}:${masterAssignmentId}`,
+        async () => writeAssignmentAudit(supabase, auditInput),
+      );
+      return {
+        ok: true,
+        data: {
+          ...existing.data,
+          assignmentStatus: toStatus,
+          status: assignmentStatusToWorkflowFilter(toStatus),
+          onTheWayAt: timestampPatch.on_the_way_at ?? existing.data.onTheWayAt,
+          arrivedAt: timestampPatch.arrived_at ?? existing.data.arrivedAt,
+          actualStartAt: timestampPatch.actual_start_at ?? existing.data.actualStartAt,
+          actualEndAt: timestampPatch.actual_end_at ?? existing.data.actualEndAt,
+          finishedAt: timestampPatch.finished_at ?? existing.data.finishedAt,
+          updatedAt: now,
+        },
+      };
+    }
+
+    await writeAssignmentAudit(supabase, auditInput);
 
     const refreshed = await this.getById(tenantId, masterAssignmentId);
     if (!refreshed.ok) return refreshed;
@@ -613,11 +639,11 @@ export const assignmentSupabaseRepository = {
   async updateTasksBatch(
     tenantId: string,
     assignmentId: string,
-    updates: Array<{
+    updates: {
       taskId: string;
       status: AssignmentTaskStatus;
       notDoneReason?: string;
-    }>,
+    }[],
     context?: AssignmentMutationContext,
   ): Promise<ServiceResult<AssignmentDetail>> {
     const supabase = getClient();

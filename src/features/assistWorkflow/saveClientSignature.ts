@@ -2,22 +2,21 @@
  * ASSIST.WORKFLOW.2 — Capture client signature and advance to proof/finalize step.
  */
 import type { ServiceResult } from '@/types';
-import type { RoleKey } from '@/types';
 import type { EmployeePortalSignatureCaptureInput } from '@/types/modules/employeePortalExecution';
 import { persistEmployeePortalSignature } from '@/lib/portal/employeePortalVisitTrackingPersistence';
 import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
-import { getServiceMode } from '@/lib/services/mode';
 import { generateServiceRecord } from './generateServiceRecord';
+import { assistProofProjectionKey } from './internal/workflowProjectionKeys';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import { repairWorkflowState } from './repairWorkflowState';
-import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import { resolveAllowedActions } from './resolveAllowedActions';
 import type { AssistExecutionContext } from './types';
 import {
   assistWorkflowErrorToResult,
   createAssistWorkflowError,
 } from './assistWorkflowErrors';
+import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 
 export type SaveClientSignatureInput = {
   ctx: AssistExecutionContext;
@@ -36,15 +35,7 @@ export async function saveClientSignature(
   const { ctx, signature } = input;
 
   if (signature.signatureImpossibleReason?.trim()) {
-    const refreshed = await resolveAssistExecutionContext({
-      tenantId: ctx.tenantId,
-      assignmentId: ctx.assignmentId,
-      employeeId: ctx.employeeId,
-      profileId: ctx.profileId,
-      roleKey: ctx.roleKey as RoleKey | null,
-    });
-    if (!refreshed.ok) return { ok: false, error: refreshed.error };
-    return { ok: true, data: { ctx: refreshed.data, readyToFinalize: false, proofGenerated: false } };
+    return { ok: true, data: { ctx, readyToFinalize: false, proofGenerated: false } };
   }
 
   if (!signature.signatureDataUrl?.trim() || !signature.signerName?.trim()) {
@@ -90,6 +81,7 @@ export async function saveClientSignature(
       const transitioned = await transitionAssistExecutionStatus(workingCtx, 'dokumentation_offen', {
         hasDocumentation: true,
         hasServiceStarted: Boolean(workingCtx.visitTimes?.serviceStartedAt),
+        fastWorkflow: true,
       });
       if (transitioned.ok) {
         workingCtx = transitioned.data;
@@ -138,62 +130,48 @@ export async function saveClientSignature(
     const transitioned = await transitionAssistExecutionStatus(workingCtx, 'unterschrift_offen', {
       hasDocumentation: true,
       hasRequiredSignature: true,
+      fastWorkflow: true,
     });
     if (!transitioned.ok) return { ok: false, error: transitioned.error };
     updatedCtx = transitioned.data;
   }
 
-  const refreshed = await resolveAssistExecutionContext({
-    tenantId: workingCtx.tenantId,
-    assignmentId: workingCtx.assignmentId,
-    employeeId: workingCtx.employeeId,
-    profileId: workingCtx.profileId,
-    roleKey: workingCtx.roleKey as RoleKey | null,
-  });
-
-  if (!refreshed.ok) return { ok: false, error: refreshed.error };
-
   const documentationText =
-    refreshed.data.detail.documentationStatus === 'submitted' ||
-    refreshed.data.detail.documentationStatus === 'locked'
-      ? refreshed.data.detail.documentationNotes?.trim() || null
+    updatedCtx.detail.documentationStatus === 'submitted' ||
+    updatedCtx.detail.documentationStatus === 'locked'
+      ? updatedCtx.detail.documentationNotes?.trim() || null
       : null;
-  const proof = await generateServiceRecord(refreshed.data, documentationText);
-  const proofGenerated = proof.ok ? proof.data.proofPersisted : false;
-
-  const executionState = await upsertAssistVisitExecutionState(
-    workingCtx.tenantId,
-    workingCtx.assignmentId,
-    'unterschrift_offen',
-    {
-      employeeId: workingCtx.employeeId,
-      visitTimes: refreshed.data.visitTimes,
-      documentationComplete: true,
-      signatureComplete: true,
-      proofGenerated,
-    },
-  );
-
-  if (!executionState.ok && getServiceMode() === 'supabase') {
-    return {
-      ok: false,
-      error: executionState.error ?? 'Signatur gespeichert, aber Einsatzstatus konnte nicht aktualisiert werden.',
-    };
-  }
+  scheduleDeferredTask(assistProofProjectionKey(updatedCtx), async () => {
+    const proof = await generateServiceRecord(updatedCtx, documentationText);
+    const executionState = await upsertAssistVisitExecutionState(
+      workingCtx.tenantId,
+      workingCtx.assignmentId,
+      'unterschrift_offen',
+      {
+        employeeId: workingCtx.employeeId,
+        visitTimes: updatedCtx.visitTimes,
+        documentationComplete: true,
+        signatureComplete: true,
+        proofGenerated: proof.ok ? proof.data.proofPersisted : false,
+      },
+    );
+    if (!executionState.ok) throw new Error(executionState.error);
+  });
+  const proofGenerated = false;
 
   const detail = {
-    ...refreshed.data.detail,
+    ...updatedCtx.detail,
     status: 'unterschrift_offen' as const,
     signatureStatus: 'captured' as const,
   };
   const optimisticCtx: AssistExecutionContext = {
-    ...refreshed.data,
+    ...updatedCtx,
     assignmentStatus: 'unterschrift_offen',
     derivedStatus: 'unterschrift_offen',
     detail,
     allowedActions: resolveAllowedActions({
       assignmentStatus: 'unterschrift_offen',
-      visitTimes: refreshed.data.visitTimes,
+      visitTimes: updatedCtx.visitTimes,
       detail,
       derivedStatus: 'unterschrift_offen',
       canStartService: false,

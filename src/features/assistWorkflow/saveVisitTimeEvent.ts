@@ -5,6 +5,7 @@ import type { ServiceResult } from '@/types';
 import { recordTimeEvent } from '@/lib/assist/assistTrackingPersistenceService';
 import { getServiceMode } from '@/lib/services/mode';
 import { syncAssistTimeEventToWfmPortalSafe } from '@/lib/wfm/wfmAssistAdapter';
+import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 import {
   assistWorkflowErrorFromSupabase,
   assistWorkflowErrorToResult,
@@ -59,12 +60,21 @@ async function mirrorAssistEventToWfm(input: SaveVisitTimeEventInput): Promise<S
   return { ok: true, data: undefined };
 }
 
+function scheduleWfmMirror(input: SaveVisitTimeEventInput): void {
+  scheduleDeferredTask(
+    `assist-time-wfm:${input.tenantId}:${input.visitId}`,
+    async () => {
+      const mirrored = await mirrorAssistEventToWfm(input);
+      if (!mirrored.ok) throw new Error(mirrored.error);
+    },
+  );
+}
+
 export async function saveVisitTimeEvent(
   input: SaveVisitTimeEventInput,
 ): Promise<ServiceResult<{ id: string }>> {
   if (getServiceMode() !== 'supabase') {
-    const mirrored = await mirrorAssistEventToWfm(input);
-    if (!mirrored.ok) return mirrored;
+    scheduleWfmMirror(input);
     return { ok: true, data: { id: 'demo' } };
   }
 
@@ -93,8 +103,11 @@ export async function saveVisitTimeEvent(
     );
   }
 
-  const mirrored = await mirrorAssistEventToWfm(input);
-  if (!mirrored.ok) return mirrored;
+  // assist_time_events is the authoritative employee record. WFM is a
+  // projection and must never hold a mobile button for tens of seconds.
+  // The full-visit RPC is idempotent and is scheduled again by every later
+  // event, so a temporary failure repairs itself automatically.
+  scheduleWfmMirror(input);
 
   return recorded;
 }
@@ -134,16 +147,7 @@ export async function ensureVisitTimeEvent(
             : existingEvents.some((event) => event.eventType === input.eventType);
 
   if (alreadyPersisted) {
-    const mirrored = await mirrorAssistEventToWfm(input);
-    if (!mirrored.ok) {
-      return assistWorkflowErrorToResult(
-        createAssistWorkflowError('WORKFLOW_TIME_EVENT_FAILED', {
-          tenantId: input.tenantId,
-          assistVisitId: input.visitId,
-          operation: `ensureVisitTimeEvent.${input.eventType}.wfm`,
-        }, mirrored.error),
-      );
-    }
+    scheduleWfmMirror(input);
     return { ok: true, data: { id: 'existing', created: false } };
   }
 

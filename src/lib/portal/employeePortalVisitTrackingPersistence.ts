@@ -15,7 +15,6 @@ import {
   endTrackingSession,
   recordGeofenceEvent,
   recordTimeEvent,
-  startTrackingSession,
 } from '@/lib/assist/assistTrackingPersistenceService';
 import {
   computeSignatureDataHash,
@@ -38,6 +37,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { syncAssistTimeEventToWfmPortalSafe } from '@/lib/wfm/wfmAssistAdapter';
 import { peekEmployeePortalTrackingEntry } from './employeePortalVisitTrackingService';
+import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 
 export type EmployeePortalPersistenceContext = {
   tenantId: string;
@@ -60,10 +60,10 @@ export function resetEmployeePortalPersistenceSessionStore(): void {
 function statusToTimeEventType(
   fromStatus: AssignmentStatus,
   toStatus: AssignmentStatus,
-): Array<'drive_start' | 'drive_end' | 'arrive' | 'service_start' | 'service_end' | 'pause_start' | 'pause_end' | 'depart'> {
-  const events: Array<
+): ('drive_start' | 'drive_end' | 'arrive' | 'service_start' | 'service_end' | 'pause_start' | 'pause_end' | 'depart')[] {
+  const events: (
     'drive_start' | 'drive_end' | 'arrive' | 'service_start' | 'service_end' | 'pause_start' | 'pause_end' | 'depart'
-  > = [];
+  )[] = [];
 
   if (toStatus === 'unterwegs') events.push('drive_start');
   if (toStatus === 'angekommen') {
@@ -164,110 +164,113 @@ export async function persistEmployeePortalStatusTransition(
   const entry = peekEmployeePortalTrackingEntry(ctx.tenantId, ctx.assignmentId);
 
   const eventTypes = statusToTimeEventType(fromStatus, toStatus);
-  let recordedCanonicalEvent = false;
-  for (const eventType of eventTypes) {
-    const recorded = await recordTimeEvent(
+  const recordedEvents = await Promise.all(eventTypes.map((eventType) =>
+    recordTimeEvent(
       ctx.tenantId,
       { visitId, sessionId, eventType, occurredAt: now },
       ctx.profileId ?? ctx.employeeId ?? null,
-    );
+    ),
+  ));
+  recordedEvents.forEach((recorded) => {
     if (!recorded.ok) warnings.push(recorded.error);
-    else recordedCanonicalEvent = true;
-  }
+  });
+  const recordedCanonicalEvent = recordedEvents.some((recorded) => recorded.ok);
 
   // The portal-safe RPC mirrors all events of a visit idempotently. Calling it
   // once per transition avoids duplicate full-visit scans (arrival previously
   // triggered it for both `arrive` and `drive_end`).
   const primaryEventType = eventTypes[0];
   if (recordedCanonicalEvent && primaryEventType && (ctx.employeeId || ctx.profileId)) {
-    const syncResult = await syncAssistTimeEventToWfmPortalSafe(
-      ctx.tenantId,
-      ctx.employeeId ?? null,
-      ctx.profileId ?? null,
-      visitId,
-      primaryEventType,
-      now,
-    );
-    if (!syncResult.ok) {
-      warnings.push(syncResult.error ?? 'WFM-Sync fehlgeschlagen.');
-    }
-  }
-
-  if (toStatus === 'unterwegs') {
-    if (!sessionId) {
-      const started = await persistEmployeePortalLocationConsent(ctx);
-      if (!started.ok) warnings.push(started.error ?? 'Tracking-Session konnte nicht gestartet werden.');
-    }
-    const drive = await appendDrivingLogEntry(ctx.tenantId, {
-      visitId,
-      sessionId: sessionByKey.get(key) ?? null,
-      employeeId: ctx.employeeId ?? null,
-      purpose: 'Anfahrt zum Einsatz',
-      startedAt: now,
-      startAddress: ctx.locationAddress ?? null,
-      status: 'open',
-    });
-    if (!drive.ok) warnings.push(drive.error);
-  }
-
-  if (toStatus === 'angekommen') {
-    const arrivalMode = arrivalOptions?.arrivalMode ?? 'gps';
-    if (arrivalMode === 'without_gps' || arrivalMode === 'manual') {
-      const auditType = arrivalMode === 'manual' ? 'arrived_manual' : 'arrived_without_gps';
-      const recorded = await recordTimeEvent(
+    scheduleDeferredTask(`assist-time-wfm:${ctx.tenantId}:${visitId}`, async () => {
+      const syncResult = await syncAssistTimeEventToWfmPortalSafe(
         ctx.tenantId,
-        {
+        ctx.employeeId ?? null,
+        ctx.profileId ?? null,
+        visitId,
+        primaryEventType,
+        now,
+      );
+      if (!syncResult.ok) throw new Error(syncResult.error);
+    });
+  }
+
+  scheduleDeferredTask(`assist-tracking:${ctx.tenantId}:${visitId}`, async () => {
+    if (toStatus === 'unterwegs') {
+      if (!sessionId) {
+        const started = await persistEmployeePortalLocationConsent(ctx);
+        if (!started.ok) throw new Error(started.error ?? 'Tracking-Session konnte nicht gestartet werden.');
+      }
+      const drive = await appendDrivingLogEntry(ctx.tenantId, {
+        visitId,
+        sessionId: sessionByKey.get(key) ?? null,
+        employeeId: ctx.employeeId ?? null,
+        purpose: 'Anfahrt zum Einsatz',
+        startedAt: now,
+        startAddress: ctx.locationAddress ?? null,
+        status: 'open',
+      });
+      if (!drive.ok) throw new Error(drive.error);
+    }
+
+    if (toStatus === 'angekommen') {
+      const arrivalMode = arrivalOptions?.arrivalMode ?? 'gps';
+      if (arrivalMode === 'without_gps' || arrivalMode === 'manual') {
+        const auditType = arrivalMode === 'manual' ? 'arrived_manual' : 'arrived_without_gps';
+        const recorded = await recordTimeEvent(
+          ctx.tenantId,
+          {
+            visitId,
+            sessionId,
+            eventType: auditType,
+            occurredAt: now,
+            metadata: {
+              arrival_mode: arrivalMode,
+              manual_reason: arrivalOptions?.manualReason ?? entry.geofenceOverrideReason ?? null,
+              gps_permission_denied: arrivalMode === 'without_gps',
+            },
+          },
+          ctx.profileId ?? ctx.employeeId ?? null,
+        );
+        if (!recorded.ok) throw new Error(recorded.error);
+      }
+
+      if (geofence?.checked) {
+        const pos = entry.lastPosition;
+        const target = entry.targetCoordinates;
+        const geo = await recordGeofenceEvent(ctx.tenantId, {
           visitId,
           sessionId,
-          eventType: auditType,
-          occurredAt: now,
-          metadata: {
-            arrival_mode: arrivalMode,
-            manual_reason: arrivalOptions?.manualReason ?? entry.geofenceOverrideReason ?? null,
-            gps_permission_denied: arrivalMode === 'without_gps',
-          },
-        },
-        ctx.profileId ?? ctx.employeeId ?? null,
-      );
-      if (!recorded.ok) warnings.push(recorded.error);
-    }
+          checkType: 'arrival',
+          latitude: pos?.latitude ?? null,
+          longitude: pos?.longitude ?? null,
+          targetLatitude: target?.latitude ?? null,
+          targetLongitude: target?.longitude ?? null,
+          distanceMeters: geofence.distanceMeters,
+          toleranceMeters: geofence.toleranceMeters,
+          insideTolerance: geofence.insideTolerance,
+          overridden: geofence.overridden,
+          overrideReason: entry.geofenceOverrideReason,
+          warningText: geofence.warning,
+          checkedAt: now,
+        });
+        if (!geo.ok) throw new Error(geo.error);
+      }
 
-    if (geofence?.checked) {
-      const pos = entry.lastPosition;
-      const target = entry.targetCoordinates;
-      const geo = await recordGeofenceEvent(ctx.tenantId, {
+      const driveEnd = await completeDrivingLogForVisit(
+        ctx.tenantId,
         visitId,
-        sessionId,
-        checkType: 'arrival',
-        latitude: pos?.latitude ?? null,
-        longitude: pos?.longitude ?? null,
-        targetLatitude: target?.latitude ?? null,
-        targetLongitude: target?.longitude ?? null,
-        distanceMeters: geofence.distanceMeters,
-        toleranceMeters: geofence.toleranceMeters,
-        insideTolerance: geofence.insideTolerance,
-        overridden: geofence.overridden,
-        overrideReason: entry.geofenceOverrideReason,
-        warningText: geofence.warning,
-        checkedAt: now,
-      });
-      if (!geo.ok) warnings.push(geo.error);
+        now,
+        ctx.locationAddress ?? null,
+      );
+      if (!driveEnd.ok) throw new Error(driveEnd.error);
     }
 
-    const driveEnd = await completeDrivingLogForVisit(
-      ctx.tenantId,
-      visitId,
-      now,
-      ctx.locationAddress ?? null,
-    );
-    if (!driveEnd.ok) warnings.push(driveEnd.error);
-  }
-
-  if (toStatus === 'beendet' || toStatus === 'abgeschlossen' || toStatus === 'storniert') {
-    const ended = await endTrackingSession(ctx.tenantId, visitId, 'status_change');
-    if (!ended.ok) warnings.push(ended.error);
-    sessionByKey.delete(key);
-  }
+    if (toStatus === 'beendet' || toStatus === 'abgeschlossen' || toStatus === 'storniert') {
+      const ended = await endTrackingSession(ctx.tenantId, visitId, 'status_change');
+      if (!ended.ok) throw new Error(ended.error);
+      sessionByKey.delete(key);
+    }
+  });
 
   // Callers classify time/WFM warnings as critical; geofence and driving-log
   // diagnostics remain recoverable ancillary warnings.

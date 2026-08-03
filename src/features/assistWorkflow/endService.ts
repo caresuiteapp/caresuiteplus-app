@@ -3,11 +3,10 @@
  */
 import type { ServiceResult } from '@/types';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
-import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
+import type { VisitTimesSummary } from './calculateVisitTimes';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import type { AssistExecutionContext } from './types';
 import {
-  assistWorkflowErrorFromSupabase,
   assistWorkflowErrorToResult,
   createAssistWorkflowError,
   type AssistWorkflowErrorCode,
@@ -18,16 +17,14 @@ import {
   ensureVisitTimeEvent,
   hasOpenPauseSegment,
 } from './saveVisitTimeEvent';
-import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { getServiceMode } from '@/lib/services/mode';
 import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
 import { checkVisitDeviationGate } from '@/lib/wfm/wfmOfficeTimekeepingService';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from './resolveAllowedActions';
 import { repairWorkflowState } from './repairWorkflowState';
-import type { WorkflowDeviationApproval } from './startService';
-
-type WorkflowFail = { ok: false; error: string; errorCode?: string };
+import { isValidWorkflowDeviationApproval, type WorkflowDeviationApproval } from './startService';
+import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 
 export type EndServiceResult = AssistExecutionContext & {
   /** The employee workflow finished; one ancillary administration mirror needs a later retry. */
@@ -74,8 +71,6 @@ async function reloadContext(
     autoRepair: false,
   });
 }
-
-import type { VisitTimesSummary } from './calculateVisitTimes';
 
 function mergeServiceEndedVisitTimes(
   ctx: AssistExecutionContext,
@@ -139,36 +134,29 @@ async function persistEndedExecutionMirrors(
   visitTimes: VisitTimesSummary,
   targetStatus: AssignmentStatus,
 ): Promise<{ wfmSyncFailed: boolean }> {
-  let wfmSyncFailed = false;
-  const upserted = await upsertAssistVisitExecutionState(
-    ctx.tenantId,
-    ctx.assignmentId,
-    targetStatus,
-    {
-      employeeId: ctx.employeeId,
-      visitTimes,
-      documentationComplete: ctx.detail.documentationStatus === 'submitted',
-    },
-  );
-  if (!upserted.ok) {
-    // service_end is the authoritative employee time event. A secondary
-    // execution snapshot must never force the employee to repeat a completed
-    // action; finalization retries the administration/WFM projection.
-    wfmSyncFailed = true;
-  }
-
-  if (getServiceMode() === 'supabase') {
-    const mirrored = await mirrorAssistVisitStatusFromAssignment(
+  scheduleDeferredTask(`assist-end-projection:${ctx.tenantId}:${ctx.assignmentId}`, async () => {
+    const upserted = await upsertAssistVisitExecutionState(
       ctx.tenantId,
       ctx.assignmentId,
       targetStatus,
-      ctx.profileId ?? null,
+      {
+        employeeId: ctx.employeeId,
+        visitTimes,
+        documentationComplete: ctx.detail.documentationStatus === 'submitted',
+      },
     );
-    if (!mirrored.ok) {
-      wfmSyncFailed = true;
+    if (!upserted.ok) throw new Error(upserted.error);
+    if (getServiceMode() === 'supabase') {
+      const mirrored = await mirrorAssistVisitStatusFromAssignment(
+        ctx.tenantId,
+        ctx.assignmentId,
+        targetStatus,
+        ctx.profileId ?? null,
+      );
+      if (!mirrored.ok) throw new Error(mirrored.error);
     }
-  }
-  return { wfmSyncFailed };
+  });
+  return { wfmSyncFailed: false };
 }
 
 function resolvePostServiceTargetStatus(ctx: AssistExecutionContext): AssignmentStatus {
@@ -206,6 +194,7 @@ async function prepareEndServiceTransition(
     hasServiceStarted: true,
     hasTravelEnded: Boolean(workingCtx.visitTimes?.arrivedAt),
     skipStatusPersistence: true,
+    fastWorkflow: true,
   });
   if (transitioned.ok) return transitioned;
 
@@ -220,84 +209,22 @@ async function prepareEndServiceTransition(
   return transitioned;
 }
 
-async function verifyEndServiceReadback(
-  ctx: AssistExecutionContext,
-): Promise<ServiceResult<AssistExecutionContext>> {
-  const refreshed = await reloadContext(ctx);
-  if (!refreshed.ok) {
-    return endServiceError('WORKFLOW_TIME_EVENT_FAILED', ctx, refreshed.error);
-  }
-
-  const data = refreshed.data;
-  if (!data.visitTimes?.serviceEndedAt) {
-    return endServiceError(
-      'WORKFLOW_TIME_EVENT_FAILED',
-      ctx,
-      'service_end fehlt nach Beenden — DB-Schreibvorgang unvollständig.',
-    );
-  }
-
-  if (data.visitTimes.serviceSeconds == null && data.visitTimes.serviceEndedAt) {
-    // Zero-length service is valid after immediate end.
-  } else if (data.visitTimes.serviceSeconds == null) {
-    return endServiceError(
-      'WORKFLOW_TIME_EVENT_FAILED',
-      ctx,
-      'serviceSeconds null nach Beenden — Zeit nicht lesbar.',
-    );
-  }
-
-  if (data.diagnostics.isServiceEnded !== true) {
-    return endServiceError(
-      'WORKFLOW_INVALID_STATE',
-      ctx,
-      'isServiceEnded=false nach Beenden',
-    );
-  }
-
-  if (
-    data.derivedStatus !== 'beendet' &&
-    !['beendet', 'dokumentation_offen'].includes(data.assignmentStatus)
-  ) {
-    return endServiceError(
-      'WORKFLOW_INVALID_STATE',
-      ctx,
-      `Status nach Beenden unerwartet: ${data.derivedStatus}`,
-    );
-  }
-
-  return refreshed;
-}
-
 async function persistEndServiceEvents(
   ctx: AssistExecutionContext,
+  approval: WorkflowDeviationApproval,
 ): Promise<ServiceResult<void>> {
-  const events = await fetchTimeEventsForVisit(ctx.tenantId, ctx.assistVisitId, 50);
-  if (!events.ok) {
-    return assistWorkflowErrorToResult(
-      assistWorkflowErrorFromSupabase(
-        { message: events.error },
-        {
-          tenantId: ctx.tenantId,
-          assignmentId: ctx.assignmentId,
-          assistVisitId: ctx.assistVisitId,
-          employeeId: ctx.employeeId,
-          operation: 'endService.fetchTimeEvents',
-        },
-      ),
-    );
-  }
-
-  const existing = events.data.map((e) => ({
+  let existing = ctx.timeEvents.map((e) => ({
     eventType: e.eventType,
     occurredAt: e.occurredAt,
   }));
 
   if (hasOpenPauseSegment(existing)) {
+    const pauseEndedAt = new Date().toISOString();
     const pauseClosed = await ensureOpenPauseEndEvent(
       {
         tenantId: ctx.tenantId,
         visitId: ctx.assistVisitId,
+        occurredAt: pauseEndedAt,
         recordedBy: ctx.profileId ?? ctx.employeeId,
         employeeId: ctx.employeeId,
         profileId: ctx.profileId,
@@ -307,15 +234,8 @@ async function persistEndServiceEvents(
     if (!pauseClosed.ok) {
       return endServiceError('WORKFLOW_TIME_EVENT_FAILED', ctx, pauseClosed.error);
     }
+    existing = [...existing, { eventType: 'pause_end', occurredAt: pauseEndedAt }];
   }
-
-  const refreshedEvents = await fetchTimeEventsForVisit(ctx.tenantId, ctx.assistVisitId, 50);
-  const eventList = refreshedEvents.ok
-    ? refreshedEvents.data.map((e) => ({
-        eventType: e.eventType,
-        occurredAt: e.occurredAt,
-      }))
-    : existing;
 
   const saved = await ensureVisitTimeEvent(
     {
@@ -325,8 +245,16 @@ async function persistEndServiceEvents(
       recordedBy: ctx.profileId ?? ctx.employeeId,
       employeeId: ctx.employeeId,
       profileId: ctx.profileId,
+      metadata: isValidWorkflowDeviationApproval(approval, ctx.assistVisitId, 'end')
+        ? {
+            deviation_approved: true,
+            deviation_phase: 'end',
+            deviation_justification: approval.deviationJustification?.trim(),
+            deviation_actual_at: approval.deviationActualAt,
+          }
+        : undefined,
     },
-    eventList,
+    existing,
   );
 
   if (!saved.ok) {
@@ -373,14 +301,11 @@ export async function endService(
       mergeServiceEndedVisitTimes(ctx, ctx.visitTimes),
       targetStatus,
     );
-    const refreshed = await reloadContext(ctx);
-    const completedCtx = refreshed.ok
-      ? refreshed.data
-      : buildOptimisticEndedContext(
-          ctx,
-          mergeServiceEndedVisitTimes(ctx, ctx.visitTimes),
-          targetStatus,
-        );
+    const completedCtx = buildOptimisticEndedContext(
+      ctx,
+      mergeServiceEndedVisitTimes(ctx, ctx.visitTimes),
+      targetStatus,
+    );
     return {
       ok: true,
       data: { ...completedCtx, wfmSyncFailed: mirrors.wfmSyncFailed },
@@ -396,7 +321,7 @@ export async function endService(
     ctx.detail.plannedEndAt,
     actualEnd,
   );
-  if (deviationGate.blocked && !options.deviationApproved) {
+  if (deviationGate.blocked && !isValidWorkflowDeviationApproval(options, ctx.assistVisitId, 'end')) {
     return endServiceError(
       'WORKFLOW_DEVIATION_JUSTIFICATION_REQUIRED',
       ctx,
@@ -410,7 +335,7 @@ export async function endService(
     return result;
   }
 
-  const eventsWritten = await persistEndServiceEvents(result.data);
+  const eventsWritten = await persistEndServiceEvents(result.data, options);
   if (!eventsWritten.ok) return eventsWritten;
 
   const endedAt = new Date().toISOString();

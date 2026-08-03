@@ -166,7 +166,7 @@ describe('finalizeVisit — proof + completion sync', () => {
     }
   });
 
-  it('completes with wfmSyncFailed flag when WFM sync fails after transition', async () => {
+  it('does not block or delay completion when deferred WFM sync fails', async () => {
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
     vi.doMock('@/lib/portal/resolveEmployeePortalSignatureRequirement', () => ({
       hasPortalPersistedClientSignature: vi.fn(async () => true),
@@ -197,7 +197,7 @@ describe('finalizeVisit — proof + completion sync', () => {
     const result = await finalizeVisit(buildCtx(), 'Erledigt');
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.data.wfmSyncFailed).toBe(true);
+      expect(result.data.wfmSyncFailed).toBe(false);
     }
   });
 

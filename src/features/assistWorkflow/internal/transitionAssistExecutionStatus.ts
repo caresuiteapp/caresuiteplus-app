@@ -9,6 +9,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import { validateWorkflowTransition } from '../assistVisitStateMachine';
 import { resolveAssistExecutionContext } from '../resolveAssistExecutionContext';
 import type { AssistExecutionContext } from '../types';
+import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from '../resolveAllowedActions';
 import {
   assistWorkflowErrorFromSupabase,
   assistWorkflowErrorToResult,
@@ -29,7 +30,81 @@ export type TransitionOptions = {
     arrivalMode?: 'gps' | 'without_gps' | 'manual';
     manualReason?: string | null;
   };
+  /** Avoid full context reload and wait only for the canonical status write. */
+  fastWorkflow?: boolean;
 };
+
+function buildFastTransitionContext(
+  ctx: AssistExecutionContext,
+  status: AssignmentStatus,
+  persisted: Awaited<ReturnType<typeof transitionLiveEmployeePortalAssignment>> extends ServiceResult<infer T>
+    ? T
+    : never,
+): AssistExecutionContext {
+  const detail = {
+    ...ctx.detail,
+    status,
+    onTheWayAt: persisted.onTheWayAt ?? ctx.detail.onTheWayAt,
+    arrivedAt: persisted.arrivedAt ?? ctx.detail.arrivedAt,
+    actualStartAt: persisted.actualStartAt ?? ctx.detail.actualStartAt,
+    actualEndAt: persisted.actualEndAt ?? ctx.detail.actualEndAt,
+  };
+  const visitTimes = ctx.visitTimes
+    ? {
+        ...ctx.visitTimes,
+        driveStartedAt:
+          status === 'unterwegs'
+            ? persisted.onTheWayAt ?? ctx.visitTimes.driveStartedAt
+            : ctx.visitTimes.driveStartedAt,
+        arrivedAt:
+          status === 'angekommen'
+            ? persisted.arrivedAt ?? ctx.visitTimes.arrivedAt
+            : ctx.visitTimes.arrivedAt,
+        serviceStartedAt:
+          status === 'gestartet' && ctx.assignmentStatus !== 'pausiert'
+            ? persisted.actualStartAt ?? ctx.visitTimes.serviceStartedAt
+            : ctx.visitTimes.serviceStartedAt,
+        serviceEndedAt:
+          status === 'beendet'
+            ? persisted.actualEndAt ?? ctx.visitTimes.serviceEndedAt
+            : ctx.visitTimes.serviceEndedAt,
+        activeTimer:
+          status === 'unterwegs'
+            ? 'drive' as const
+            : status === 'gestartet'
+              ? 'service' as const
+              : status === 'pausiert'
+                ? 'pause' as const
+                : status === 'beendet'
+                  ? null
+                  : ctx.visitTimes.activeTimer,
+      }
+    : ctx.visitTimes;
+  const workflow = {
+    derivedStatus: status,
+    recordedStatus: status,
+    consistencyStatus: ctx.consistencyStatus,
+    inconsistencies: ctx.inconsistencies,
+    repairOptions: ctx.repairOptions,
+    canStartService: status === 'angekommen',
+    nextActionHint: null,
+  };
+  return {
+    ...ctx,
+    assignmentStatus: status,
+    derivedStatus: status,
+    detail,
+    visitTimes,
+    diagnostics: resolveAssistExecutionDiagnostics(status, visitTimes, workflow),
+    allowedActions: resolveAllowedActions({
+      assignmentStatus: status,
+      visitTimes,
+      detail,
+      derivedStatus: status,
+      canStartService: status === 'angekommen',
+    }),
+  };
+}
 
 export async function transitionAssistExecutionStatus(
   ctx: AssistExecutionContext,
@@ -37,6 +112,7 @@ export async function transitionAssistExecutionStatus(
   options?: TransitionOptions,
 ): Promise<ServiceResult<AssistExecutionContext>> {
   if (ctx.assignmentStatus === toStatus) {
+    if (options?.fastWorkflow) return { ok: true, data: ctx };
     return resolveAssistExecutionContext({
       tenantId: ctx.tenantId,
       assignmentId: ctx.assignmentId,
@@ -98,6 +174,8 @@ export async function transitionAssistExecutionStatus(
             hasRequiredSignature: options.hasRequiredSignature,
             signatureDeferredToClientPortal: options.signatureDeferredToClientPortal,
           },
+          fastWorkflow: options.fastWorkflow,
+          knownDetail: options.fastWorkflow ? ctx.detail : undefined,
         }
       : {
           profileId: ctx.profileId,
@@ -106,6 +184,8 @@ export async function transitionAssistExecutionStatus(
             hasRequiredSignature: options?.hasRequiredSignature,
             signatureDeferredToClientPortal: options?.signatureDeferredToClientPortal,
           },
+          fastWorkflow: options?.fastWorkflow,
+          knownDetail: options?.fastWorkflow ? ctx.detail : undefined,
         },
   );
 
@@ -127,6 +207,10 @@ export async function transitionAssistExecutionStatus(
   }
 
   void note;
+
+  if (options?.fastWorkflow) {
+    return { ok: true, data: buildFastTransitionContext(ctx, toStatus, result.data) };
+  }
 
   return resolveAssistExecutionContext({
     tenantId: ctx.tenantId,

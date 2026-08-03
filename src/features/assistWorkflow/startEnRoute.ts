@@ -5,6 +5,8 @@ import type { RoleKey, ServiceResult } from '@/types';
 import { startEmployeeLiveTracking, type EmployeeGpsSnapshot } from '@/features/liveTracking/startEmployeeLiveTracking';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import type { AssistExecutionContext } from './types';
+import { calculateVisitTimes } from './calculateVisitTimes';
+import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from './resolveAllowedActions';
 
 export type StartEnRouteInput = {
   tenantId: string;
@@ -23,6 +25,8 @@ export type StartEnRouteInput = {
     grantedAt: string | null;
     explainedAt: string | null;
   };
+  /** Current screen context; avoids a second complete visit read after persistence. */
+  executionContext?: AssistExecutionContext | null;
 };
 
 export async function startEnRoute(
@@ -39,6 +43,8 @@ export async function startEnRoute(
     withoutGps: input.withoutGps ?? !input.gpsSnapshot,
     transitionToEnRoute: true,
     localConsent: input.localConsent,
+    knownContext: input.executionContext?.liveContext ?? null,
+    knownTimeEvents: input.executionContext?.timeEvents,
   });
 
   if (!started.ok) {
@@ -66,6 +72,43 @@ export async function startEnRoute(
       return recovered;
     }
     return { ok: false, error: started.error };
+  }
+
+  if (input.executionContext) {
+    const occurredAt = new Date().toISOString();
+    const hasDriveStart = input.executionContext.timeEvents.some((event) => event.eventType === 'drive_start');
+    const timeEvents = hasDriveStart
+      ? input.executionContext.timeEvents
+      : [...input.executionContext.timeEvents, { eventType: 'drive_start', occurredAt }];
+    const visitTimes = calculateVisitTimes(timeEvents, 'unterwegs');
+    const detail = {
+      ...input.executionContext.detail,
+      status: 'unterwegs' as const,
+      onTheWayAt: input.executionContext.detail.onTheWayAt ?? occurredAt,
+    };
+    const workflow = {
+      derivedStatus: 'unterwegs' as const,
+      recordedStatus: 'unterwegs' as const,
+      consistencyStatus: input.executionContext.consistencyStatus,
+      inconsistencies: input.executionContext.inconsistencies,
+      repairOptions: input.executionContext.repairOptions,
+      canStartService: false,
+      nextActionHint: null,
+    };
+    return {
+      ok: true,
+      data: {
+        ...input.executionContext,
+        assignmentStatus: 'unterwegs',
+        derivedStatus: 'unterwegs',
+        detail,
+        liveContext: started.data.context,
+        timeEvents,
+        visitTimes,
+        diagnostics: resolveAssistExecutionDiagnostics('unterwegs', visitTimes, workflow),
+        allowedActions: resolveAllowedActions({ assignmentStatus: 'unterwegs', visitTimes, detail, derivedStatus: 'unterwegs', canStartService: false }),
+      },
+    };
   }
 
   return resolveAssistExecutionContext({

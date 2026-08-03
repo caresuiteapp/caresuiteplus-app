@@ -25,6 +25,7 @@ import {
   resolveEmployeeLiveContext,
   type EmployeeLiveContext,
 } from './resolveEmployeeLiveContext';
+import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 
 export type EmployeeGpsSnapshot = {
   latitude: number;
@@ -53,6 +54,9 @@ export type StartEmployeeLiveTrackingInput = {
     grantedAt: string | null;
     explainedAt: string | null;
   };
+  /** Already loaded by the execution screen; avoids reloading the whole visit. */
+  knownContext?: EmployeeLiveContext | null;
+  knownTimeEvents?: { eventType: string; occurredAt: string }[];
 };
 
 export type StartEmployeeLiveTrackingResult = {
@@ -147,13 +151,15 @@ function latestEventTime(
 export async function startEmployeeLiveTracking(
   input: StartEmployeeLiveTrackingInput,
 ): Promise<ServiceResult<StartEmployeeLiveTrackingResult>> {
-  const ctxResult = await resolveEmployeeLiveContext({
-    tenantId: input.tenantId,
-    employeeId: input.employeeId,
-    routeParamId: input.routeParamId,
-    portalAccountId: input.profileId,
-    localConsent: input.localConsent,
-  });
+  const ctxResult: ServiceResult<EmployeeLiveContext> = input.knownContext
+    ? { ok: true, data: input.knownContext }
+    : await resolveEmployeeLiveContext({
+        tenantId: input.tenantId,
+        employeeId: input.employeeId,
+        routeParamId: input.routeParamId,
+        portalAccountId: input.profileId,
+        localConsent: input.localConsent,
+      });
 
   if (!ctxResult.ok) return ctxResult;
   const ctx = ctxResult.data;
@@ -215,7 +221,9 @@ export async function startEmployeeLiveTracking(
   }
 
   if (input.recordDriveStart !== false) {
-    const existingEvents = await fetchTimeEventsForVisit(input.tenantId, ctx.assistVisitId, 50);
+    const existingEvents: ServiceResult<{ eventType: string; occurredAt: string }[]> = input.knownTimeEvents
+      ? { ok: true, data: input.knownTimeEvents }
+      : await fetchTimeEventsForVisit(input.tenantId, ctx.assistVisitId, 50);
     if (!existingEvents.ok) {
       const err = createLiveTrackingError('LIVE_TIME_EVENT_INSERT_FAILED', {
         tenantId: input.tenantId,
@@ -262,26 +270,17 @@ export async function startEmployeeLiveTracking(
       }
     }
 
-    const wfmSync = await syncAssistTimeEventToWfmPortalSafe(
-      input.tenantId,
-      input.employeeId,
-      input.profileId ?? null,
-      ctx.assistVisitId,
-      'drive_start',
-      driveStartedAt,
-    );
-    if (!wfmSync.ok) {
-      const err = createLiveTrackingError('LIVE_TIME_EVENT_INSERT_FAILED', {
-        tenantId: input.tenantId,
-        employeeId: input.employeeId,
-        assignmentId: ctx.assignmentId,
-        assistVisitId: ctx.assistVisitId,
-        operation: 'startEmployeeLiveTracking.drive_start.wfm',
-        supabaseMessage: wfmSync.error,
-      });
-      logLiveTrackingError(err);
-      return liveTrackingErrorToServiceResult(err);
-    }
+    scheduleDeferredTask(`assist-time-wfm:${input.tenantId}:${ctx.assistVisitId}`, async () => {
+      const wfmSync = await syncAssistTimeEventToWfmPortalSafe(
+        input.tenantId,
+        input.employeeId,
+        input.profileId ?? null,
+        ctx.assistVisitId,
+        'drive_start',
+        driveStartedAt,
+      );
+      if (!wfmSync.ok) throw new Error(wfmSync.error);
+    });
   }
 
   const location = input.withoutGps || !input.gpsSnapshot
@@ -310,14 +309,14 @@ export async function startEmployeeLiveTracking(
   }
 
   if (!input.withoutGps && input.gpsSnapshot) {
-    const sessionUpdate = await updateSessionLastLocation(
-      input.tenantId,
-      sessionId,
-      input.gpsSnapshot.capturedAt,
-    );
-    if (!sessionUpdate.ok) {
-      return sessionUpdate as ServiceResult<never>;
-    }
+    scheduleDeferredTask(`tracking-session-location:${input.tenantId}:${sessionId}`, async () => {
+      const sessionUpdate = await updateSessionLastLocation(
+        input.tenantId,
+        sessionId!,
+        input.gpsSnapshot!.capturedAt,
+      );
+      if (!sessionUpdate.ok) throw new Error(sessionUpdate.error);
+    });
   }
 
   let statusUpdated = false;
@@ -332,24 +331,15 @@ export async function startEmployeeLiveTracking(
   }
 
   if (input.transitionToEnRoute !== false) {
-    const mirrored = await mirrorAssistVisitStatusFromAssignment(
-      input.tenantId,
-      ctx.assignmentId,
-      'unterwegs',
-      input.profileId ?? null,
-    );
-    if (!mirrored.ok) {
-      const err = createLiveTrackingError('LIVE_TIME_EVENT_INSERT_FAILED', {
-        tenantId: input.tenantId,
-        employeeId: input.employeeId,
-        assignmentId: ctx.assignmentId,
-        assistVisitId: ctx.assistVisitId,
-        operation: 'startEmployeeLiveTracking.status_mirror',
-        supabaseMessage: mirrored.error,
-      });
-      logLiveTrackingError(err);
-      return liveTrackingErrorToServiceResult(err);
-    }
+    scheduleDeferredTask(`assist-status:${input.tenantId}:${ctx.assignmentId}`, async () => {
+      const mirrored = await mirrorAssistVisitStatusFromAssignment(
+        input.tenantId,
+        ctx.assignmentId,
+        'unterwegs',
+        input.profileId ?? null,
+      );
+      if (!mirrored.ok) throw new Error(mirrored.error);
+    });
   }
 
   const nextAssignmentStatus =
