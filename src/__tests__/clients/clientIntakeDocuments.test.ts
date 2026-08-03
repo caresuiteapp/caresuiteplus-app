@@ -499,4 +499,47 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(panel).toContain('applySharedClientSignatureToDocuments');
     expect(panel).toContain('Dokumentenpaket');
   });
+
+  it('39. letzte erforderliche Unterschrift schließt den Vertrag automatisch ab', () => {
+    const form = baseForm();
+    const template = getSystemIntakeTemplateByKey('client_contract_ambulatory_care')!;
+    let doc = openDocumentPreview(form, template);
+    doc = applyDocumentSignature(doc, template, form, 'client', {
+      role: 'client',
+      dataUrl: 'data:image/png;base64,client',
+      signedAt: new Date().toISOString(),
+    });
+    expect(doc.status).toBe('pending_signature');
+
+    doc = applyDocumentSignature(doc, template, form, 'employee', {
+      role: 'employee',
+      dataUrl: 'data:image/png;base64,employee',
+      signedAt: new Date().toISOString(),
+    });
+
+    expect(doc.status).toBe('finalized');
+    expect(doc.finalizedHtml).toContain('data:image/png;base64,client');
+    expect(doc.finalizedHtml).toContain('data:image/png;base64,employee');
+  });
+
+  it('40. Ansehen erhält den Abschlussstatus und die vorhandene Unterschrift', () => {
+    const form = baseForm();
+    const template = getSystemIntakeTemplateByKey('privacy_consent_default')!;
+    let doc = openDocumentPreview(form, template);
+    doc = applyDocumentSignature(doc, template, form, 'client', {
+      role: 'client',
+      dataUrl: 'data:image/png;base64,signature',
+      signedAt: new Date().toISOString(),
+    });
+    expect(doc.status).toBe('finalized');
+
+    const reopened = openDocumentPreview(
+      { ...form, intakeDocuments: [doc] },
+      template,
+    );
+
+    expect(reopened.status).toBe('finalized');
+    expect(reopened.signatures.client?.dataUrl).toBe('data:image/png;base64,signature');
+    expect(reopened.previewHtml).toBe(doc.finalizedHtml);
+  });
 });

@@ -73,6 +73,18 @@ export function openDocumentPreview(
 ): IntakeDocumentState {
   const context = buildIntakePlaceholderContext(form, tenantDisplay);
   const existing = form.intakeDocuments.find((d) => d.templateKey === template.templateKey);
+
+  // Reading a locked document must not reopen it. Previously the "Dokument
+  // ansehen" action downgraded finalized documents to `preview_open`: their
+  // signatures were still visible, but intake validation marked the contracts
+  // step as erroneous and blocked the final client save.
+  if (existing?.status === 'finalized') {
+    return {
+      ...existing,
+      previewHtml: existing.finalizedHtml ?? existing.previewHtml,
+    };
+  }
+
   const signatures = existing?.signatures ?? {};
   const preview = renderIntakeDocumentHtml(template, context, signatures);
 
@@ -100,6 +112,26 @@ export function applyDocumentSignature(
   const allRequiredSigned = template.signatureSlots
     .filter((s) => s.required)
     .every((s) => signatures[s.role]?.dataUrl);
+
+  // Once the last required signature exists, there is no useful intermediate
+  // state left. Finalize and lock immediately so validation and persistence see
+  // the same state that the UI communicates to the user.
+  if (allRequiredSigned && preview.missingPlaceholders.length === 0) {
+    const finalized = finalizeIntakeDocumentHtml(template, context, signatures);
+    const finalizedAt = new Date().toISOString();
+
+    return {
+      ...doc,
+      signatures,
+      previewHtml: finalized.html,
+      finalizedHtml: finalized.html,
+      missingPlaceholders: preview.missingPlaceholders,
+      unresolvedKeys: preview.unresolvedKeys,
+      status: 'finalized',
+      finalizedAt,
+      renderedPdfPath: null,
+    };
+  }
 
   return {
     ...doc,
