@@ -260,8 +260,10 @@ export async function startEmployeeLiveTracking(
       }
     }
 
-    const { syncAssistTimeEventToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
-    const wfmSync = await syncAssistTimeEventToWfm(
+    const { syncAssistTimeEventToWfmPortalSafe } = await import(
+      '@/lib/wfm/wfmAssistAdapter'
+    );
+    const wfmSync = await syncAssistTimeEventToWfmPortalSafe(
       input.tenantId,
       input.employeeId,
       input.profileId ?? null,

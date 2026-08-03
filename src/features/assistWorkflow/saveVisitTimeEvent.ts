@@ -35,12 +35,14 @@ export type SaveVisitTimeEventInput = {
 async function mirrorAssistEventToWfm(input: SaveVisitTimeEventInput): Promise<ServiceResult<void>> {
   if (!input.employeeId && !input.profileId) return { ok: true, data: undefined };
 
-  const { syncAssistTimeEventToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
+  const { syncAssistTimeEventToWfmPortalSafe } = await import(
+    '@/lib/wfm/wfmAssistAdapter'
+  );
   const occurredAt = input.occurredAt ?? new Date().toISOString();
   const wfmUserId =
     input.profileId ??
     (input.recordedBy && input.recordedBy !== input.employeeId ? input.recordedBy : null);
-  const syncResult = await syncAssistTimeEventToWfm(
+  const syncResult = await syncAssistTimeEventToWfmPortalSafe(
     input.tenantId,
     input.employeeId ?? null,
     wfmUserId,

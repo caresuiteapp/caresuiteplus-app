@@ -33,6 +33,7 @@ vi.mock('@/lib/wfm/wfmWorkSessionRepository', () => ({
 
 beforeEach(() => {
   vi.resetModules();
+  vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
   vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
   vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
   rpcMock.mockReset();
@@ -58,7 +59,7 @@ describe('syncAssistVisitTimesToWfm — RPC path', () => {
     expect(fetchTimeEventsMock).not.toHaveBeenCalled();
   });
 
-  it('fails when RPC returns 0 but assist events are mappable', async () => {
+  it('treats RPC zero-insert as an idempotent already-synced success', async () => {
     rpcMock.mockResolvedValue({ data: 0, error: null });
     fetchTimeEventsMock.mockResolvedValue({
       ok: true,
@@ -71,10 +72,30 @@ describe('syncAssistVisitTimesToWfm — RPC path', () => {
     const { syncAssistVisitTimesToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
     const result = await syncAssistVisitTimesToWfm(TENANT, 'employee-1', 'auth-user-1', VISIT);
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toContain('keine Zeitereignisse gespiegelt');
-    }
+    expect(result.ok).toBe(true);
+    expect(fetchTimeEventsMock).not.toHaveBeenCalled();
+  });
+
+  it('uses the portal-safe RPC for a single employee portal time event', async () => {
+    rpcMock.mockResolvedValue({ data: 1, error: null });
+
+    const { syncAssistTimeEventToWfmPortalSafe } = await import(
+      '@/lib/wfm/wfmAssistAdapter'
+    );
+    const result = await syncAssistTimeEventToWfmPortalSafe(
+      TENANT,
+      'employee-1',
+      'auth-user-1',
+      VISIT,
+      'drive_start',
+      '2026-08-03T00:19:00.000Z',
+    );
+
+    expect(result.ok).toBe(true);
+    expect(rpcMock).toHaveBeenCalledWith('sync_assist_visit_times_to_wfm', {
+      p_tenant_id: TENANT,
+      p_visit_id: VISIT,
+    });
   });
 
   it('surfaces tenant access RPC errors without client fallback', async () => {
@@ -110,7 +131,7 @@ describe('syncAssistVisitTimesToWfm — RPC path', () => {
 });
 
 describe('finalizeVisit WFM dual-scoring signal', () => {
-  it('sets wfmSyncFailed when RPC returns zero-insert with assist proxy events', async () => {
+  it('sets wfmSyncFailed when the portal-safe RPC reports a real persistence error', async () => {
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
     vi.doMock('@/lib/portal/resolveEmployeePortalSignatureRequirement', () => ({
       hasPortalPersistedClientSignature: vi.fn(async () => true),
@@ -188,7 +209,7 @@ describe('finalizeVisit WFM dual-scoring signal', () => {
     vi.doMock('@/lib/wfm/wfmAssistAdapter', () => ({
       syncAssistVisitTimesToWfm: vi.fn(async () => ({
         ok: false,
-        error: 'WFM-Sync-RPC hat keine Zeitereignisse gespiegelt.',
+        error: 'sync_assist_visit_times_to_wfm: tenant access denied',
       })),
     }));
 

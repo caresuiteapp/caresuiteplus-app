@@ -7,7 +7,9 @@ const mocks = vi.hoisted(() => ({
   recordTimeEvent: vi.fn(),
   startTrackingSession: vi.fn(),
   resolveEmployeeLiveContext: vi.fn(),
-  syncAssistTimeEventToWfm: vi.fn(),
+  syncAssistTimeEventToWfmPortalSafe: vi.fn(),
+  mirrorAssistVisitStatusFromAssignment: vi.fn(),
+  supabaseRpc: vi.fn(),
 }));
 
 vi.mock('@/lib/assist/assistTrackingPersistenceService', () => ({
@@ -23,11 +25,15 @@ vi.mock('@/features/liveTracking/resolveEmployeeLiveContext', () => ({
 }));
 
 vi.mock('@/lib/wfm/wfmAssistAdapter', () => ({
-  syncAssistTimeEventToWfm: mocks.syncAssistTimeEventToWfm,
+  syncAssistTimeEventToWfmPortalSafe: mocks.syncAssistTimeEventToWfmPortalSafe,
+}));
+
+vi.mock('@/lib/portal/employeePortalExecutionLiveService', () => ({
+  mirrorAssistVisitStatusFromAssignment: mocks.mirrorAssistVisitStatusFromAssignment,
 }));
 
 vi.mock('@/lib/supabase/client', () => ({
-  getSupabaseClient: () => null,
+  getSupabaseClient: () => ({ rpc: mocks.supabaseRpc }),
 }));
 
 import { startEmployeeLiveTracking } from '@/features/liveTracking/startEmployeeLiveTracking';
@@ -47,8 +53,57 @@ describe('startEmployeeLiveTracking critical persistence', () => {
     vi.clearAllMocks();
     mocks.resolveEmployeeLiveContext.mockResolvedValue({ ok: true, data: liveContext });
     mocks.fetchTimeEventsForVisit.mockResolvedValue({ ok: true, data: [] });
-    mocks.syncAssistTimeEventToWfm.mockResolvedValue({ ok: true, data: undefined });
+    mocks.syncAssistTimeEventToWfmPortalSafe.mockResolvedValue({ ok: true, data: undefined });
     mocks.appendLocationPoint.mockResolvedValue({ ok: true, data: { id: 'location-1' } });
+    mocks.mirrorAssistVisitStatusFromAssignment.mockResolvedValue({
+      ok: true,
+      data: undefined,
+    });
+    mocks.supabaseRpc.mockResolvedValue({ data: null, error: null });
+  });
+
+  it('repairs a partial drive start and continues through status + live mirror', async () => {
+    mocks.fetchTimeEventsForVisit.mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: 'event-partial',
+          eventType: 'drive_start',
+          occurredAt: '2026-08-03T00:19:00.000Z',
+        },
+      ],
+    });
+
+    const result = await startEmployeeLiveTracking({
+      tenantId: 'tenant-1',
+      employeeId: 'employee-1',
+      routeParamId: 'assignment-1',
+      withoutGps: true,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(mocks.recordTimeEvent).not.toHaveBeenCalled();
+    expect(mocks.syncAssistTimeEventToWfmPortalSafe).toHaveBeenCalledWith(
+      'tenant-1',
+      'employee-1',
+      null,
+      'visit-1',
+      'drive_start',
+      '2026-08-03T00:19:00.000Z',
+    );
+    expect(mocks.supabaseRpc).toHaveBeenCalledWith(
+      'set_assignment_status',
+      expect.objectContaining({
+        input_assignment_id: 'assignment-1',
+        input_employee_id: 'employee-1',
+      }),
+    );
+    expect(mocks.mirrorAssistVisitStatusFromAssignment).toHaveBeenCalledWith(
+      'tenant-1',
+      'assignment-1',
+      'unterwegs',
+      null,
+    );
   });
 
   it('reuses an open drive event without writing a duplicate and re-confirms WFM', async () => {
@@ -73,7 +128,7 @@ describe('startEmployeeLiveTracking critical persistence', () => {
 
     expect(result.ok).toBe(true);
     expect(mocks.recordTimeEvent).not.toHaveBeenCalled();
-    expect(mocks.syncAssistTimeEventToWfm).toHaveBeenCalledWith(
+    expect(mocks.syncAssistTimeEventToWfmPortalSafe).toHaveBeenCalledWith(
       'tenant-1',
       'employee-1',
       null,
@@ -84,7 +139,7 @@ describe('startEmployeeLiveTracking critical persistence', () => {
   });
 
   it('fails visibly when WFM cannot confirm the drive event', async () => {
-    mocks.syncAssistTimeEventToWfm.mockResolvedValue({
+    mocks.syncAssistTimeEventToWfmPortalSafe.mockResolvedValue({
       ok: false,
       error: 'WFM nicht erreichbar',
     });

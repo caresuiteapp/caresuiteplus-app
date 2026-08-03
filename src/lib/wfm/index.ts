@@ -32,6 +32,7 @@ export { listTeamSessionsToday, listActiveTeamSessions } from './wfmSessionServi
 export {
   mapAssistEventToWfm,
   syncAssistTimeEventToWfm,
+  syncAssistTimeEventToWfmPortalSafe,
   syncAssistVisitTimesToWfm,
   applyAssistServiceEndToWfmSession,
   resetWfmAssistAdapterState,

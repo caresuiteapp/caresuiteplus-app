@@ -170,8 +170,10 @@ export async function persistEmployeePortalStatusTransition(
     );
     if (!recorded.ok) warnings.push(recorded.error);
     else if (ctx.employeeId || ctx.profileId) {
-      const { syncAssistTimeEventToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
-      const syncResult = await syncAssistTimeEventToWfm(
+      const { syncAssistTimeEventToWfmPortalSafe } = await import(
+        '@/lib/wfm/wfmAssistAdapter'
+      );
+      const syncResult = await syncAssistTimeEventToWfmPortalSafe(
         ctx.tenantId,
         ctx.employeeId ?? null,
         ctx.profileId ?? null,

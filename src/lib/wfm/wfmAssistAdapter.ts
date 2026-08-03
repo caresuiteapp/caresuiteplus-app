@@ -3,6 +3,7 @@ import type { ServiceResult } from '@/types';
 import type { WfmEventType, WfmSessionStatus, WfmDisplayStatus } from '@/types/modules/wfm';
 import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
 import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
+import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import {
@@ -172,6 +173,54 @@ export async function syncAssistTimeEventToWfm(
   return { ok: true, data: undefined };
 }
 
+/**
+ * Portal-safe Assist -> WFM mirror.
+ *
+ * Employee portal JWTs can intentionally resolve their tenant through
+ * employee_portal_accounts instead of current_tenant_id(). Direct writes to
+ * workforce_* are therefore rejected by the stricter table RLS even though
+ * the visit belongs to the signed-in employee. The SECURITY DEFINER RPC from
+ * migration 0225 performs the same assignment/employee checks without
+ * weakening table policies.
+ */
+export async function syncAssistTimeEventToWfmPortalSafe(
+  tenantId: string,
+  employeeId: string | null,
+  userId: string | null,
+  visitId: string,
+  assistEventType: AssistTimeEventType,
+  occurredAt?: string,
+): Promise<ServiceResult<void>> {
+  if (getServiceMode() !== 'supabase') {
+    return syncAssistTimeEventToWfm(
+      tenantId,
+      employeeId,
+      userId,
+      visitId,
+      assistEventType,
+      occurredAt,
+    );
+  }
+
+  const rpcSync = await syncAssistVisitTimesToWfmViaRpc(tenantId, visitId);
+  if (rpcSync.ok) return { ok: true, data: undefined };
+
+  // Backward-compatible fallback for installations that have not yet applied
+  // the portal-safe RPC migration. All other RPC errors must stay visible.
+  if (/Migration 0224/i.test(rpcSync.error ?? '')) {
+    return syncAssistTimeEventToWfm(
+      tenantId,
+      employeeId,
+      userId,
+      visitId,
+      assistEventType,
+      occurredAt,
+    );
+  }
+
+  return { ok: false, error: rpcSync.error };
+}
+
 /** Aktualisiert Session-Minuten nach service_end aus assist_time_events. */
 export async function applyAssistServiceEndToWfmSession(
   tenantId: string,
@@ -204,14 +253,6 @@ export async function applyAssistServiceEndToWfmSession(
   return { ok: true, data: undefined };
 }
 
-function hasMappableAssistTimeEvents(
-  events: Array<{ eventType: string }>,
-): boolean {
-  return events.some(
-    (event) => mapAssistEventToWfm(event.eventType as AssistTimeEventType) !== null,
-  );
-}
-
 async function syncAssistVisitTimesToWfmViaRpc(
   tenantId: string,
   visitId: string,
@@ -232,17 +273,10 @@ async function syncAssistVisitTimesToWfmViaRpc(
     return { ok: false, error: message };
   }
 
+  // The RPC is idempotent: zero inserted rows means all matching events were
+  // already mirrored. Authorization and assignment mismatches are raised as
+  // explicit RPC errors by migration 0225 and must not be inferred from zero.
   const inserted = typeof data === 'number' ? data : Number(data ?? 0);
-  if (inserted === 0) {
-    const eventsResult = await fetchTimeEventsForVisit(tenantId, visitId, 50);
-    if (eventsResult.ok && hasMappableAssistTimeEvents(eventsResult.data)) {
-      return {
-        ok: false,
-        error: 'WFM-Sync-RPC hat keine Zeitereignisse gespiegelt.',
-      };
-    }
-  }
-
   return { ok: true, data: inserted };
 }
 
