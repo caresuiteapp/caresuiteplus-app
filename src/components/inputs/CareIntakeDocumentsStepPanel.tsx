@@ -17,6 +17,7 @@ import {
 import {
   applySharedClientSignatureToDocuments,
   applyDocumentSignature,
+  finalizeReadyIntakeDocuments,
   finalizeDocument,
   getTemplateForDocument,
   loadIntakeDocumentTemplates,
@@ -178,8 +179,13 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
 
   useEffect(() => {
     const synced = syncIntakeDocumentsWithTemplates(form, templates);
-    if (JSON.stringify(synced) !== JSON.stringify(form.intakeDocuments)) {
-      onChange({ ...form, intakeDocuments: synced });
+    const repaired = finalizeReadyIntakeDocuments(
+      { ...form, intakeDocuments: synced },
+      templates,
+      tenantMeta,
+    );
+    if (JSON.stringify(repaired.intakeDocuments) !== JSON.stringify(form.intakeDocuments)) {
+      onChange(repaired);
     }
   }, [templates]);
 

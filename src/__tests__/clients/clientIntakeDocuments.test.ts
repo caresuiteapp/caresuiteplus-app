@@ -12,6 +12,7 @@ import {
 import {
   applySharedClientSignatureToDocuments,
   applyDocumentSignature,
+  finalizeReadyIntakeDocuments,
   finalizeDocument,
   openDocumentPreview,
   updateIntakeDocumentInForm,
@@ -541,5 +542,32 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(reopened.status).toBe('finalized');
     expect(reopened.signatures.client?.dataUrl).toBe('data:image/png;base64,signature');
     expect(reopened.previewHtml).toBe(doc.finalizedHtml);
+  });
+
+  it('41. alter vollständig unterschriebener Entwurf wird beim Laden repariert', () => {
+    const form = baseForm();
+    const template = getSystemIntakeTemplateByKey('privacy_consent_default')!;
+    const opened = openDocumentPreview(form, template);
+    const legacySigned = {
+      ...opened,
+      status: 'signed' as const,
+      signatures: {
+        client: {
+          role: 'client' as const,
+          dataUrl: 'data:image/png;base64,legacy-signature',
+          signedAt: '2026-08-03T12:00:00.000Z',
+        },
+      },
+    };
+
+    const repaired = finalizeReadyIntakeDocuments(
+      { ...form, intakeDocuments: [legacySigned] },
+      [template],
+    );
+    const document = repaired.intakeDocuments[0];
+
+    expect(document?.status).toBe('finalized');
+    expect(document?.signatures.client?.dataUrl).toContain('legacy-signature');
+    expect(document?.finalizedHtml).toContain('legacy-signature');
   });
 });

@@ -98,6 +98,48 @@ export function openDocumentPreview(
   };
 }
 
+/**
+ * Repairs legacy intake drafts that already contain every required signature
+ * but were left in `signed`, `pending_signature` or `preview_open` state.
+ */
+export function finalizeReadyIntakeDocuments(
+  form: ClientIntakeFormData,
+  templates: IntakeDocumentTemplate[],
+  tenantDisplay?: IntakeTenantDisplay,
+): ClientIntakeFormData {
+  let nextForm = form;
+
+  for (const template of templates) {
+    const doc = nextForm.intakeDocuments.find(
+      (item) => item.templateKey === template.templateKey,
+    );
+    if (!doc || doc.status === 'finalized' || doc.status === 'skipped_optional') continue;
+
+    const allRequiredSigned = template.signatureSlots
+      .filter((slot) => slot.required)
+      .every((slot) => Boolean(doc.signatures[slot.role]?.dataUrl));
+    if (!allRequiredSigned) continue;
+
+    const context = buildIntakePlaceholderContext(nextForm, tenantDisplay);
+    const preview = renderIntakeDocumentHtml(template, context, doc.signatures);
+    if (preview.missingPlaceholders.length > 0) continue;
+
+    const finalized = finalizeIntakeDocumentHtml(template, context, doc.signatures);
+    nextForm = updateIntakeDocumentInForm(nextForm, {
+      ...doc,
+      status: 'finalized',
+      previewHtml: finalized.html,
+      finalizedHtml: finalized.html,
+      missingPlaceholders: preview.missingPlaceholders,
+      unresolvedKeys: preview.unresolvedKeys,
+      finalizedAt: doc.finalizedAt ?? new Date().toISOString(),
+      renderedPdfPath: null,
+    });
+  }
+
+  return nextForm;
+}
+
 export function applyDocumentSignature(
   doc: IntakeDocumentState,
   template: IntakeDocumentTemplate,
