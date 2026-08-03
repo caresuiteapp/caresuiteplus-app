@@ -192,6 +192,7 @@ export async function endPause(
   const result = await transitionAssistExecutionStatus(ctx, 'gestartet', {
     hasServiceStarted: true,
     hasTravelEnded: Boolean(ctx.visitTimes?.arrivedAt),
+    skipStatusPersistence: true,
   });
 
   if (!result.ok) {

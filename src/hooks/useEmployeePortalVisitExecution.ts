@@ -1,9 +1,13 @@
 import { useEmployeeGpsTracking } from '@/features/liveTracking/useEmployeeGpsTracking';
-import { startEmployeeLiveTracking } from '@/features/liveTracking/startEmployeeLiveTracking';
+import {
+  startEmployeeLiveTracking,
+  type EmployeeGpsSnapshot,
+} from '@/features/liveTracking/startEmployeeLiveTracking';
 import type { EmployeeLiveContext } from '@/features/liveTracking/resolveEmployeeLiveContext';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   EmployeePortalDocumentationInput,
+  EmployeePortalAssignmentDetail,
   EmployeePortalSignatureCaptureInput,
 } from '@/types/modules/employeePortalExecution';
 import type {
@@ -149,6 +153,19 @@ const ASSIGNMENT_STATUS_PROGRESS: Partial<Record<AssignmentStatus, number>> = {
   unterschrift_offen: 70,
   abgeschlossen: 80,
 };
+
+const WORKFLOW_FOREGROUND_GPS_BUDGET_MS = 2_500;
+
+async function captureGpsWithinBudget(
+  capture: () => Promise<EmployeeGpsSnapshot | null>,
+): Promise<EmployeeGpsSnapshot | null> {
+  return Promise.race([
+    capture().catch(() => null),
+    new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), WORKFLOW_FOREGROUND_GPS_BUDGET_MS);
+    }),
+  ]);
+}
 
 function pickEffectiveAssignmentStatus(
   ...candidates: Array<AssignmentStatus | null | undefined>
@@ -304,7 +321,9 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     },
   );
 
-  const refreshExecutionContext = useCallback(async () => {
+  const refreshExecutionContext = useCallback(async (
+    preloadedDetail?: EmployeePortalAssignmentDetail,
+  ) => {
     if (!tenantId || !assignmentId || !employeeId) return null;
     try {
       const result = await withWorkflowTimeout(
@@ -314,6 +333,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           employeeId,
           profileId: authProfileId,
           roleKey,
+          preloadedDetail,
         }),
         WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS,
         'resolveAssistExecutionContext',
@@ -377,7 +397,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       skipContextRefreshRef.current = false;
       return;
     }
-    void refreshExecutionContext();
+    void refreshExecutionContext(query.data);
   }, [query.data, refreshExecutionContext]);
 
   const workflowDerived = useMemo(() => {
@@ -613,8 +633,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         recoveryAction?: RecoverableWorkflowAction;
       },
     ): Promise<{ ok: boolean; data?: T; error?: string; errorCode?: string }> => {
+      // Realtime and every successful mutation keep this ref current. Reloading
+      // the complete assignment before every button press added several network
+      // round trips and made mobile actions feel stalled. Server-side transition
+      // validation remains authoritative; stale states are refreshed on demand.
       let ctx =
-        options?.preferExistingContext && executionContextRef.current
+        options?.preferExistingContext !== false && executionContextRef.current
           ? executionContextRef.current
           : null;
       if (!ctx) {
@@ -690,12 +714,10 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
             errorCode: 'WORKFLOW_ACTION_TIMEOUT_UNCONFIRMED',
           };
         }
+        console.error('[employeePortalWorkflow] unexpected action error', error);
         return {
           ok: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : 'Aktion fehlgeschlagen — bitte erneut versuchen.',
+          error: 'Die Aktion konnte nicht vollständig bestätigt werden. Der Einsatzstatus wird automatisch geprüft.',
           errorCode: 'WORKFLOW_UNEXPECTED_ERROR',
         };
       } finally {
@@ -786,11 +808,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
     let snapshot = null;
     if (perm === 'granted') {
-      snapshot = await gpsTracking.captureOnce();
-      if (!snapshot) {
-        const captured = await captureEmployeePortalForegroundPosition(tenantId, assignmentId);
-        if (captured.ok) snapshot = captured.data;
-      }
+      snapshot = await captureGpsWithinBudget(gpsTracking.captureOnce);
     }
 
     const started = await startEnRoute({
@@ -815,9 +833,9 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     setExecutionContext(started.data);
     setLiveErrorCode(null);
     query.setData(started.data.detail);
-    if (snapshot) {
-      await gpsTracking.startWatching();
-    }
+    // Updating liveContext enables the guarded watch effect. GPS streaming is
+    // ancillary and must never turn an already-persisted workflow step into a
+    // visible failure.
     return { ok: true };
   }, [tenantId, assignmentId, employeeId, authProfileId, roleKey, gpsTracking, query]);
 
@@ -828,10 +846,13 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       let manualReason: string | null = null;
 
       if (tenantId && assignmentId) {
+        // Arrival must not wait for Safari's full geolocation timeout. The
+        // workflow records an explicit without-GPS proof when no quick fix is
+        // available and continues idempotently.
         const pos = await Promise.race([
           captureEmployeePortalForegroundPosition(tenantId, assignmentId),
           new Promise<{ ok: false; error: string }>((resolve) => {
-            setTimeout(() => resolve({ ok: false, error: 'GPS timeout' }), 4000);
+            setTimeout(() => resolve({ ok: false, error: 'GPS timeout' }), 2_500);
           }),
         ]);
         if (pos.ok) {
@@ -877,11 +898,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         setGpsPermission(permission);
         let snapshot = null;
         if (permission === 'granted') {
-          snapshot = await gpsTracking.captureOnce();
-          if (!snapshot) {
-            const captured = await captureEmployeePortalForegroundPosition(tenantId, assignmentId);
-            if (captured.ok) snapshot = captured.data;
-          }
+          snapshot = await captureGpsWithinBudget(gpsTracking.captureOnce);
         }
 
         const trackingStarted = await startEmployeeLiveTracking({
@@ -901,7 +918,6 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         if (trackingStarted.ok) {
           setLiveContext(trackingStarted.data.context);
           setLiveErrorCode(null);
-          if (snapshot) await gpsTracking.startWatching();
         } else {
           setLiveErrorCode('LIVE_SESSION_CREATE_FAILED');
         }

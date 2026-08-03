@@ -13,6 +13,8 @@ import {
 import { assignmentStatusToRemote } from '@/lib/assist/assignmentStatusBridge';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { syncAssistTimeEventToWfmPortalSafe } from '@/lib/wfm/wfmAssistAdapter';
+import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
 import {
   createLiveTrackingError,
   liveTrackingErrorFromSupabase,
@@ -260,9 +262,6 @@ export async function startEmployeeLiveTracking(
       }
     }
 
-    const { syncAssistTimeEventToWfmPortalSafe } = await import(
-      '@/lib/wfm/wfmAssistAdapter'
-    );
     const wfmSync = await syncAssistTimeEventToWfmPortalSafe(
       input.tenantId,
       input.employeeId,
@@ -333,9 +332,6 @@ export async function startEmployeeLiveTracking(
   }
 
   if (input.transitionToEnRoute !== false) {
-    const { mirrorAssistVisitStatusFromAssignment } = await import(
-      '@/lib/portal/employeePortalExecutionLiveService'
-    );
     const mirrored = await mirrorAssistVisitStatusFromAssignment(
       input.tenantId,
       ctx.assignmentId,
@@ -356,23 +352,29 @@ export async function startEmployeeLiveTracking(
     }
   }
 
-  const refreshed = await resolveEmployeeLiveContext({
-    tenantId: input.tenantId,
-    employeeId: input.employeeId,
-    routeParamId: input.routeParamId,
-    localConsent: {
+  const nextAssignmentStatus =
+    input.transitionToEnRoute !== false ? ('unterwegs' as AssignmentStatus) : ctx.assignmentStatus;
+  const nextContext: EmployeeLiveContext = {
+    ...ctx,
+    assignmentStatus: nextAssignmentStatus,
+    trackingSessionId: sessionId,
+    trackingSessionActive: true,
+    lastLocationAt: input.gpsSnapshot?.capturedAt ?? ctx.lastLocationAt,
+    lastLocationAccuracyMeters:
+      input.gpsSnapshot?.accuracyMeters ?? ctx.lastLocationAccuracyMeters,
+    locationPointCount:
+      (ctx.locationPointCount ?? 0) + (!input.withoutGps && input.gpsSnapshot ? 1 : 0),
+    consentStatus: {
       granted: true,
       grantedAt: trackingAuthorizedAt,
       explainedAt: input.consentExplainedAt ?? trackingAuthorizedAt,
     },
-  });
-
-  if (!refreshed.ok) return refreshed;
+  };
 
   return {
     ok: true,
     data: {
-      context: refreshed.data,
+      context: nextContext,
       sessionId,
       locationPointId: location.data.id,
       statusUpdated,

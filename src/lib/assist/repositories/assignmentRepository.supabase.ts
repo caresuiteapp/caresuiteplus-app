@@ -83,6 +83,14 @@ export type AssignmentDetail = AssignmentPlan & {
   actualEndAt: string | null;
 };
 
+type AssignmentStatusMutationContext = AssignmentMutationContext & {
+  /**
+   * Optional RLS-scoped detail already loaded by the execution orchestrator.
+   * Avoids a second identical assignment read immediately before the status RPC.
+   */
+  knownExistingDetail?: AssignmentDetail;
+};
+
 export type AssignmentTaskItem = {
   id: string;
   title: string;
@@ -438,14 +446,16 @@ export const assignmentSupabaseRepository = {
     tenantId: string,
     assignmentId: string,
     toStatus: AssignmentStatus,
-    context?: AssignmentMutationContext,
+    context?: AssignmentStatusMutationContext,
     note?: string,
   ): Promise<ServiceResult<AssignmentDetail>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
 
     const masterAssignmentId = resolveVisitMasterId(assignmentId);
-    const existing = await this.getById(tenantId, masterAssignmentId);
+    const existing = context?.knownExistingDetail
+      ? { ok: true as const, data: context.knownExistingDetail }
+      : await this.getById(tenantId, masterAssignmentId);
     if (!existing.ok) return existing;
     if (!existing.data) {
       return { ok: false, error: 'Einsatz nicht gefunden.' };

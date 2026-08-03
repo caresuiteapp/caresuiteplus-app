@@ -3,6 +3,7 @@
  */
 import type { RoleKey, ServiceResult } from '@/types';
 import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
+import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
 import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
 import { resolveEmployeeLiveContext } from '@/features/liveTracking/resolveEmployeeLiveContext';
 import { resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignment';
@@ -69,6 +70,8 @@ export type ResolveAssistExecutionContextInput = {
   employeeId: string;
   profileId?: string | null;
   roleKey?: RoleKey | null;
+  /** RLS-scoped detail already loaded by the execution screen. */
+  preloadedDetail?: EmployeePortalAssignmentDetail | null;
   /** When true (default), attempt auto-repair for unambiguous inconsistencies. */
   autoRepair?: boolean;
 };
@@ -89,12 +92,14 @@ export async function resolveAssistExecutionContext(
     );
   }
 
-  const detailResult = await fetchEmployeePortalAssignmentDetail(
-    tenantId,
-    assignmentId,
-    employeeId,
-    roleKey ?? null,
-  );
+  const detailResult = input.preloadedDetail
+    ? { ok: true as const, data: input.preloadedDetail }
+    : await fetchEmployeePortalAssignmentDetail(
+        tenantId,
+        assignmentId,
+        employeeId,
+        roleKey ?? null,
+      );
   if (!detailResult.ok) {
     return { ok: false, error: detailResult.error };
   }

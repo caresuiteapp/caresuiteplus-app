@@ -602,24 +602,27 @@ export async function loadExecutionDetailWithCache(
     roleKey,
   );
   if (online.ok) {
-    const wroteCanonical = await writeExecutionDetailCache(tenantId, employeeId, online.data);
-    const wroteRouteAlias =
+    // IndexedDB is a resilience layer, not part of the visible load gate.
+    // Safari can take noticeable time to commit IDB writes under memory or
+    // battery pressure, so publish live data first and persist in background.
+    void Promise.all([
+      writeExecutionDetailCache(tenantId, employeeId, online.data),
       assignmentKey && assignmentKey !== online.data.assignmentId
-        ? await writeExecutionDetailCacheForKey(
-            tenantId,
-            employeeId,
-            assignmentKey,
-            online.data,
-          )
-        : true;
-    if (!wroteCanonical || !wroteRouteAlias) {
-      console.warn('[CareSuite offline] writeExecutionDetailCache failed', {
-        tenantId,
-        employeeId,
-        assignmentId: assignmentKey,
-        resolvedAssignmentId: online.data.assignmentId,
+        ? writeExecutionDetailCacheForKey(tenantId, employeeId, assignmentKey, online.data)
+        : Promise.resolve(true),
+    ])
+      .then(([wroteCanonical, wroteRouteAlias]) => {
+        if (wroteCanonical && wroteRouteAlias) return;
+        console.warn('[CareSuite offline] writeExecutionDetailCache failed', {
+          tenantId,
+          employeeId,
+          assignmentId: assignmentKey,
+          resolvedAssignmentId: online.data.assignmentId,
+        });
+      })
+      .catch(() => {
+        console.warn('[CareSuite offline] background execution cache write failed');
       });
-    }
     return withCacheMeta(online, liveCacheMeta());
   }
 

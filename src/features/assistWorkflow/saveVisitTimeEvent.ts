@@ -4,6 +4,7 @@
 import type { ServiceResult } from '@/types';
 import { recordTimeEvent } from '@/lib/assist/assistTrackingPersistenceService';
 import { getServiceMode } from '@/lib/services/mode';
+import { syncAssistTimeEventToWfmPortalSafe } from '@/lib/wfm/wfmAssistAdapter';
 import {
   assistWorkflowErrorFromSupabase,
   assistWorkflowErrorToResult,
@@ -35,9 +36,6 @@ export type SaveVisitTimeEventInput = {
 async function mirrorAssistEventToWfm(input: SaveVisitTimeEventInput): Promise<ServiceResult<void>> {
   if (!input.employeeId && !input.profileId) return { ok: true, data: undefined };
 
-  const { syncAssistTimeEventToWfmPortalSafe } = await import(
-    '@/lib/wfm/wfmAssistAdapter'
-  );
   const occurredAt = input.occurredAt ?? new Date().toISOString();
   const wfmUserId =
     input.profileId ??

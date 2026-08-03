@@ -141,12 +141,18 @@ describe('resolveAllowedActions — documentation → signature → finalize', (
 });
 
 describe('employee portal execution screen wiring', () => {
-  it('normalizes recurring occurrence IDs before live assignment verification', () => {
+  it('normalizes recurring occurrence IDs in the canonical scoped live assignment resolver', () => {
     const liveContext = require('node:fs').readFileSync(
       require('node:path').join(process.cwd(), 'src/features/liveTracking/resolveEmployeeLiveContext.ts'),
       'utf8',
     );
-    expect(liveContext).toContain(".eq('id', resolveVisitMasterId(resolution.assignmentId))");
+    const liveAssignment = require('node:fs').readFileSync(
+      require('node:path').join(process.cwd(), 'src/features/liveTracking/resolveLiveAssignment.ts'),
+      'utf8',
+    );
+    expect(liveContext).toContain('rawId: routeParamId');
+    expect(liveContext).toContain('employeeId,');
+    expect(liveAssignment).toContain('const masterId = resolveVisitMasterId(rawId)');
   });
 
   it('normalizes recurring occurrence IDs before loading assignment extras', () => {
@@ -171,7 +177,15 @@ describe('employee portal execution screen wiring', () => {
       require('node:path').join(process.cwd(), 'src/lib/portal/employeePortalExecutionLiveService.ts'),
       'utf8',
     );
-    expect(live).toContain('hasPortalPersistedClientSignature');
+    const requirements = require('node:fs').readFileSync(
+      require('node:path').join(
+        process.cwd(),
+        'src/lib/portal/resolveEmployeePortalSignatureRequirement.ts',
+      ),
+      'utf8',
+    );
+    expect(requirements).toContain('fetchValidVisitSignature');
+    expect(live).toContain("docFlagsForValidation.signatureStatus === 'captured'");
     expect(live).not.toMatch(/hasRequiredSignature:\s*false/);
   });
 

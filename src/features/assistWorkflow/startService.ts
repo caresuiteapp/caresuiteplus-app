@@ -305,6 +305,7 @@ async function transitionToServiceStart(
 ): Promise<ServiceResult<AssistExecutionContext>> {
   const result = await transitionAssistExecutionStatus(ctx, 'gestartet', {
     hasTravelEnded: Boolean(ctx.visitTimes?.arrivedAt),
+    skipStatusPersistence: true,
   });
 
   if (!result.ok) {

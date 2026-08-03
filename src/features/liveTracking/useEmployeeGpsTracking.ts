@@ -299,6 +299,20 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
       }));
 
       return true;
+    } catch (error) {
+      const err = createLiveTrackingError('LIVE_GPS_POSITION_UNAVAILABLE', {
+        operation: 'useEmployeeGpsTracking.startWatching',
+        supabaseMessage: error instanceof Error ? error.message : String(error),
+      });
+      logLiveTrackingError(err);
+      setState((prev) => ({
+        ...prev,
+        watching: false,
+        trackingActive: prev.dbSessionActive,
+        errorCode: err.code,
+        errorMessage: err.userMessage,
+      }));
+      return false;
     } finally {
       startingWatchRef.current = false;
     }

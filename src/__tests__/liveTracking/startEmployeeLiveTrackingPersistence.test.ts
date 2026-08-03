@@ -104,6 +104,7 @@ describe('startEmployeeLiveTracking critical persistence', () => {
       'unterwegs',
       null,
     );
+    expect(mocks.resolveEmployeeLiveContext).toHaveBeenCalledTimes(1);
   });
 
   it('reuses an open drive event without writing a duplicate and re-confirms WFM', async () => {

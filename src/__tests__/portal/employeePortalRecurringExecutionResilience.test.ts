@@ -16,11 +16,17 @@ describe('employee portal recurring execution resilience', () => {
   });
 
   it('normalizes the affected virtual occurrence before assignment verification', () => {
-    const source = readFileSync(
+    const contextSource = readFileSync(
       join(process.cwd(), 'src/features/liveTracking/resolveEmployeeLiveContext.ts'),
       'utf8',
     );
+    const resolverSource = readFileSync(
+      join(process.cwd(), 'src/features/liveTracking/resolveLiveAssignment.ts'),
+      'utf8',
+    );
 
-    expect(source).toContain(".eq('id', resolveVisitMasterId(resolution.assignmentId))");
+    expect(contextSource).toContain('rawId: routeParamId');
+    expect(contextSource).toContain('employeeId,');
+    expect(resolverSource).toContain('const masterId = resolveVisitMasterId(rawId)');
   });
 });

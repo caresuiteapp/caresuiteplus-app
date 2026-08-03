@@ -327,6 +327,7 @@ export async function endService(
   const result = await transitionAssistExecutionStatus(ctx, 'beendet', {
     hasServiceStarted: true,
     hasTravelEnded: Boolean(ctx.visitTimes?.arrivedAt),
+    skipStatusPersistence: true,
   });
 
   if (!result.ok) {

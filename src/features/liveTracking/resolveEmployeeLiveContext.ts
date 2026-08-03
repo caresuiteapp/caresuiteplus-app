@@ -8,7 +8,6 @@ import {
   fetchActiveTrackingSession,
   fetchLatestLocationPointForVisit,
   fetchLatestTrackingSessionWithConsent,
-  fetchTimeEventsForVisit,
 } from '@/lib/assist/assistTrackingPersistenceService';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { formatAddressFromSnapshotOrParts } from '@/lib/formatAddress';
@@ -17,7 +16,6 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { getServiceMode } from '@/lib/services/mode';
 import {
   isResolvableVisitId,
-  resolveVisitMasterId,
 } from '@/lib/assist/visitRecurrenceExpansion';
 import {
   createLiveTrackingError,
@@ -126,22 +124,6 @@ function addressFromRow(row: PortalAssignmentRow): string {
   });
 }
 
-async function countLocationPoints(tenantId: string, visitId: string): Promise<number> {
-  const supabase = getSupabaseClient();
-  if (!supabase) return 0;
-
-  const { count, error } = await fromUnknownTable(supabase, 'assist_location_points')
-    .select('id', { count: 'exact', head: true })
-    .eq('tenant_id', tenantId)
-    .eq('visit_id', visitId);
-
-  if (error) {
-    console.warn('[resolveEmployeeLiveContext] location count:', error.message);
-    return 0;
-  }
-  return count ?? 0;
-}
-
 /** Resolve employee live context — single source before consent/tracking/time events. */
 export async function resolveEmployeeLiveContext(
   input: ResolveEmployeeLiveContextInput,
@@ -203,44 +185,29 @@ export async function resolveEmployeeLiveContext(
   const resolution = resolved.data;
   const assignmentStatus = resolution.detail.assignmentStatus;
 
-  const supabase = getSupabaseClient();
-  if (supabase) {
-    const { error: verifyError } = await fromUnknownTable(supabase, 'assignments')
-      .select('id')
-      .eq('tenant_id', tenantId)
-      .eq('id', resolveVisitMasterId(resolution.assignmentId))
-      .eq('employee_id', employeeId)
-      .maybeSingle();
-
-    if (verifyError) {
-      const err = liveTrackingErrorFromSupabase(verifyError, {
-        ...baseContext,
-        assignmentId: resolution.assignmentId,
-        assistVisitId: resolution.visitId,
-        clientId: resolution.clientId,
-        tableOrRpc: 'assignments',
-        operation: 'resolveEmployeeLiveContext.verify',
-      });
-      return liveTrackingErrorToServiceResult(err);
-    }
-  }
-
-  const sessionResult = await fetchActiveTrackingSession(tenantId, resolution.visitId);
+  // resolveLiveAssignment already scopes the assignment to tenant + employee.
+  // The former second assignment verification repeated the same RLS-protected
+  // query on every page load and before every workflow action.
+  const [sessionResult, consentSessionResult, employeeConsent, latestLocation] =
+    await Promise.all([
+      fetchActiveTrackingSession(tenantId, resolution.visitId),
+      fetchLatestTrackingSessionWithConsent(tenantId, resolution.visitId),
+      fetchEmployeeLocationConsentRecord(tenantId, employeeId),
+      fetchLatestLocationPointForVisit(tenantId, resolution.visitId),
+    ]);
   if (!sessionResult.ok) {
     return { ok: false, error: sessionResult.error };
   }
 
   const latestConsentSession = sessionResult.data?.consentGrantedAt
     ? sessionResult
-    : await fetchLatestTrackingSessionWithConsent(tenantId, resolution.visitId);
-  const employeeConsent = await fetchEmployeeLocationConsentRecord(tenantId, employeeId);
-  if (!employeeConsent.ok) {
-    return { ok: false, error: employeeConsent.error };
-  }
+    : consentSessionResult;
 
-  const latestLocation = await fetchLatestLocationPointForVisit(tenantId, resolution.visitId);
+  if (!employeeConsent.ok) {
+    console.warn('[resolveEmployeeLiveContext] employee consent unavailable:', employeeConsent.error);
+  }
   if (!latestLocation.ok) {
-    const err = logLiveTrackingRuntimeError(
+    logLiveTrackingRuntimeError(
       'resolveEmployeeLiveContext.latestLocation',
       normalizeSupabaseError({ message: latestLocation.error }),
       {
@@ -250,29 +217,12 @@ export async function resolveEmployeeLiveContext(
         tableOrRpc: 'assist_location_points',
       },
     );
-    return liveTrackingErrorToServiceResult(err);
-  }
-
-  const pointCount = await countLocationPoints(tenantId, resolution.visitId);
-  const timeEvents = await fetchTimeEventsForVisit(tenantId, resolution.visitId, 100);
-  if (!timeEvents.ok) {
-    const err = logLiveTrackingRuntimeError(
-      'resolveEmployeeLiveContext.timeEvents',
-      normalizeSupabaseError({ message: timeEvents.error }),
-      {
-        ...baseContext,
-        assignmentId: resolution.assignmentId,
-        assistVisitId: resolution.visitId,
-        tableOrRpc: 'assist_time_events',
-      },
-    );
-    return liveTrackingErrorToServiceResult(err);
   }
 
   const sessionRow = sessionResult.data;
   const visitConsentRow =
     latestConsentSession.ok && latestConsentSession.data ? latestConsentSession.data : null;
-  const employeeConsentRow = employeeConsent.data;
+  const employeeConsentRow = employeeConsent.ok ? employeeConsent.data : null;
 
   const dbConsentGranted = Boolean(
     sessionRow?.consentGrantedAt ||
@@ -329,8 +279,6 @@ export async function resolveEmployeeLiveContext(
     },
   });
 
-  void timeEvents;
-
   return {
     ok: true,
     data: {
@@ -355,14 +303,17 @@ export async function resolveEmployeeLiveContext(
       },
       trackingSessionId: sessionRow?.id ?? visitConsentRow?.id ?? null,
       trackingSessionActive: trackingActive,
-      lastLocationAt: latestLocation.data?.recordedAt ?? null,
-      lastLocationAccuracyMeters: latestLocation.data?.accuracyMeters ?? null,
-      locationPointCount: pointCount,
+      lastLocationAt: latestLocation.ok ? latestLocation.data?.recordedAt ?? null : null,
+      lastLocationAccuracyMeters:
+        latestLocation.ok ? latestLocation.data?.accuracyMeters ?? null : null,
+      // Exact historical point counts are diagnostic data and must not block
+      // the mobile execution path. A latest point is enough for live status.
+      locationPointCount: latestLocation.ok && latestLocation.data ? 1 : 0,
       canStartTracking,
       reasonCode,
       resolution,
       detail: null,
-      timeEventsLoaded: true,
+      timeEventsLoaded: false,
     },
   };
 }

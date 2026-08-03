@@ -36,6 +36,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { syncAssistTimeEventToWfmPortalSafe } from '@/lib/wfm/wfmAssistAdapter';
 import { peekEmployeePortalTrackingEntry } from './employeePortalVisitTrackingService';
 
 export type EmployeePortalPersistenceContext = {
@@ -162,28 +163,33 @@ export async function persistEmployeePortalStatusTransition(
   const now = new Date().toISOString();
   const entry = peekEmployeePortalTrackingEntry(ctx.tenantId, ctx.assignmentId);
 
-  for (const eventType of statusToTimeEventType(fromStatus, toStatus)) {
+  const eventTypes = statusToTimeEventType(fromStatus, toStatus);
+  let recordedCanonicalEvent = false;
+  for (const eventType of eventTypes) {
     const recorded = await recordTimeEvent(
       ctx.tenantId,
       { visitId, sessionId, eventType, occurredAt: now },
       ctx.profileId ?? ctx.employeeId ?? null,
     );
     if (!recorded.ok) warnings.push(recorded.error);
-    else if (ctx.employeeId || ctx.profileId) {
-      const { syncAssistTimeEventToWfmPortalSafe } = await import(
-        '@/lib/wfm/wfmAssistAdapter'
-      );
-      const syncResult = await syncAssistTimeEventToWfmPortalSafe(
-        ctx.tenantId,
-        ctx.employeeId ?? null,
-        ctx.profileId ?? null,
-        visitId,
-        eventType,
-        now,
-      );
-      if (!syncResult.ok) {
-        warnings.push(syncResult.error ?? 'WFM-Sync fehlgeschlagen.');
-      }
+    else recordedCanonicalEvent = true;
+  }
+
+  // The portal-safe RPC mirrors all events of a visit idempotently. Calling it
+  // once per transition avoids duplicate full-visit scans (arrival previously
+  // triggered it for both `arrive` and `drive_end`).
+  const primaryEventType = eventTypes[0];
+  if (recordedCanonicalEvent && primaryEventType && (ctx.employeeId || ctx.profileId)) {
+    const syncResult = await syncAssistTimeEventToWfmPortalSafe(
+      ctx.tenantId,
+      ctx.employeeId ?? null,
+      ctx.profileId ?? null,
+      visitId,
+      primaryEventType,
+      now,
+    );
+    if (!syncResult.ok) {
+      warnings.push(syncResult.error ?? 'WFM-Sync fehlgeschlagen.');
     }
   }
 

@@ -51,7 +51,6 @@ import { visitSupabaseRepository } from '@/lib/assist/repositories/visitReposito
 import { resolveExecutableVisitId } from '@/lib/assist/visitService';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import {
-  hasPortalPersistedClientSignature,
   resolveEmployeePortalDocumentationFlags,
 } from './resolveEmployeePortalSignatureRequirement';
 import { enrichPortalTaskCategory } from './enrichPortalTaskCategory';
@@ -384,17 +383,20 @@ export async function mirrorAssistVisitStatusFromAssignment(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: true };
 
-  const callRpc = supabase.rpc as unknown as (
-    name: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ error: { message: string } | null }>;
-  const { error } = await callRpc('repair_assist_visit_workflow_status', {
-    p_tenant_id: tenantId,
-    p_assignment_id: assignmentId,
-    p_target_status: targetStatus,
-    p_reason: 'portal_execution_status_mirror',
-    p_actor_employee_id: actorProfileId ?? null,
-  });
+  // Keep rpc attached to the Supabase client. Extracting `supabase.rpc` into a
+  // standalone function loses its `this` binding and crashes WebKit with
+  // "undefined is not an object (evaluating 'this.rest')" after the assignment
+  // status has already been persisted.
+  const { error } = await (supabase.rpc(
+    'repair_assist_visit_workflow_status' as never,
+    {
+      p_tenant_id: tenantId,
+      p_assignment_id: assignmentId,
+      p_target_status: targetStatus,
+      p_reason: 'portal_execution_status_mirror',
+      p_actor_employee_id: actorProfileId ?? null,
+    } as never,
+  ) as unknown as Promise<{ error: { message: string } | null }>);
 
   if (!error) {
     const budgetSync = await syncBudgetLifecycleAfterPortalStatus(
@@ -639,14 +641,16 @@ export async function transitionLiveEmployeePortalAssignment(
 
   const fromStatus = existing.data.assignmentStatus;
   if (fromStatus === toStatus) {
-    const extras = await fetchAssignmentExtras(tenantId, executableAssignmentId, existing.data.clientId);
-    const docFlags = await resolveEmployeePortalDocumentationFlags(
-      tenantId,
-      executableAssignmentId,
-      fromStatus,
-      existing.data.documentationNotes,
-      employeeId,
-    );
+    const [extras, docFlags] = await Promise.all([
+      fetchAssignmentExtras(tenantId, executableAssignmentId, existing.data.clientId),
+      resolveEmployeePortalDocumentationFlags(
+        tenantId,
+        executableAssignmentId,
+        fromStatus,
+        existing.data.documentationNotes,
+        employeeId,
+      ),
+    ]);
     return {
       ok: true,
       data: mapDetailToPortal(existing.data, roleKey, employeeId, undefined, {
@@ -659,18 +663,21 @@ export async function transitionLiveEmployeePortalAssignment(
     };
   }
 
-  const docFlagsForValidation = await resolveEmployeePortalDocumentationFlags(
-    tenantId,
-    executableAssignmentId,
-    existing.data.assignmentStatus,
-    existing.data.documentationNotes,
-    employeeId,
-  );
-  const hasPersistedSignature = await hasPortalPersistedClientSignature(
-    tenantId,
-    executableAssignmentId,
-    employeeId,
-  );
+  // Optional display data and workflow requirements share the same assignment
+  // snapshot and can be loaded concurrently. The documentation resolver already
+  // verifies a persisted signature, so the former second signature lookup was
+  // redundant on every mobile action.
+  const [extras, docFlagsForValidation] = await Promise.all([
+    fetchAssignmentExtras(tenantId, executableAssignmentId, existing.data.clientId),
+    resolveEmployeePortalDocumentationFlags(
+      tenantId,
+      executableAssignmentId,
+      existing.data.assignmentStatus,
+      existing.data.documentationNotes,
+      employeeId,
+    ),
+  ]);
+  const hasPersistedSignature = docFlagsForValidation.signatureStatus === 'captured';
 
   const validation = validateExecutionTransition(existing.data.assignmentStatus, toStatus, {
     requireArrivedBeforeStart: true,
@@ -696,10 +703,11 @@ export async function transitionLiveEmployeePortalAssignment(
     {
       actorProfileId: options?.profileId ?? undefined,
       actorEmployeeId: employeeId,
+      knownExistingDetail: existing.data,
     },
   );
   if (!updated.ok) return updated;
-  let detailAfterUpdate: AssignmentDetail = updated.data;
+  const detailAfterUpdate: AssignmentDetail = updated.data;
 
   applyEmployeePortalTrackingForStatus(tenantId, persistentAssignmentId, fromStatus, toStatus);
   if (!options?.skipStatusPersistence) {
@@ -734,36 +742,27 @@ export async function transitionLiveEmployeePortalAssignment(
     };
   }
 
-  const visitRow = await visitSupabaseRepository.getById(tenantId, executableAssignmentId);
-  if (visitRow.ok && visitRow.data) {
-    const reloaded = await loadEmployeePortalAssignmentDetail(
-      tenantId,
-      persistentAssignmentId,
-      employeeId,
-    );
-    if (reloaded.ok && reloaded.data) detailAfterUpdate = reloaded.data;
-  }
-
-  const extras = await fetchAssignmentExtras(
-    tenantId,
-    persistentAssignmentId,
-    detailAfterUpdate.clientId,
-  );
-  const docFlags = await resolveEmployeePortalDocumentationFlags(
-    tenantId,
-    persistentAssignmentId,
-    detailAfterUpdate.assignmentStatus,
-    detailAfterUpdate.documentationNotes,
-    employeeId,
-  );
+  // updateStatus already performs the authoritative post-write readback. Do not
+  // reload the visit, assignment, extras and proof metadata a second time here.
+  const requiresSignature =
+    docFlagsForValidation.requiresSignature || toStatus === 'unterschrift_offen';
+  const signatureStatus = !requiresSignature
+    ? ('none' as const)
+    : docFlagsForValidation.signatureStatus === 'captured' ||
+        docFlagsForValidation.signatureStatus === 'deferred_to_client_portal'
+      ? docFlagsForValidation.signatureStatus
+      : toStatus === 'unterschrift_offen'
+        ? ('pending' as const)
+        : docFlagsForValidation.signatureStatus;
   return {
     ok: true,
     data: mapDetailToPortal(detailAfterUpdate, roleKey, employeeId, undefined, {
       ...extras,
-      requiresSignature: docFlags.requiresSignature,
-      requiresDocumentation: docFlags.requiresDocumentation,
-      signatureStatus: docFlags.signatureStatus,
-      clientPortalSignatureCompleted: docFlags.signatureCapturedViaClientPortal === true,
+      requiresSignature,
+      requiresDocumentation: docFlagsForValidation.requiresDocumentation,
+      signatureStatus,
+      clientPortalSignatureCompleted:
+        docFlagsForValidation.signatureCapturedViaClientPortal === true,
     }),
   };
 }

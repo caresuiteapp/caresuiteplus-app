@@ -58,20 +58,19 @@ async function upsertDeferredSignatureClientPortalDocument(
     String(snapshot.title ?? snapshot.serviceName ?? 'Leistungsnachweis').trim() ||
     'Leistungsnachweis';
 
-  const callRpc = supabase.rpc as unknown as (
-    name: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ data: unknown; error: { message: string } | null }>;
-  const { data, error } = await callRpc(
-    'employee_portal_upsert_deferred_signature_client_document',
+  const { data, error } = await (supabase.rpc(
+    'employee_portal_upsert_deferred_signature_client_document' as never,
     {
       p_tenant_id: tenantId,
       p_proof_id: proof.id,
       p_client_id: clientId,
       p_title: title,
       p_actor_profile_id: options?.actorProfileId ?? null,
-    },
-  );
+    } as never,
+  ) as unknown as Promise<{
+    data: unknown;
+    error: { message: string } | null;
+  }>);
 
   if (error) {
     return { ok: false, error: error.message };
