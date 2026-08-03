@@ -34,8 +34,10 @@ describe('employee portal execution readability', () => {
   it('signature modal uses plain white header on mobile instead of gradient glass', () => {
     const modal = readSrc('src/components/inputs/CareSignatureModal.tsx');
     expect(modal).toContain('PlainSignatureHeader');
-    expect(modal).toContain('careLightColors.surface');
+    expect(modal).toContain('portalPremium.surfaceRaised');
+    expect(modal).toContain('portalPremium.text.primary');
     expect(modal).not.toContain('GlassSurface');
+    expect(modal).not.toContain('careLightColors');
   });
 
   it('signature canvas stacks bar actions and uses short confirm label', () => {

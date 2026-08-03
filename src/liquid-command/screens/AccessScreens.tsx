@@ -44,6 +44,7 @@ import {
 } from '../components/LiquidPrimitives';
 import { liquidColors, liquidRadius } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
+import { resolveAccessHeaderLogoWidth } from '@/lib/portal/portalResponsiveLayout';
 export { AccessHubScreen } from './AccessHubScreen';
 
 type AccessShellProps = {
@@ -78,7 +79,7 @@ function AccessShell({
       >
         {!compact ? (
           <View style={[styles.accessTopBar, { paddingTop: Math.max(insets.top, 14) }]}>
-            <LiquidLogo />
+            <LiquidLogo width={resolveAccessHeaderLogoWidth(layout.width)} />
             {backRoute ? (
               <LiquidButton
                 compact

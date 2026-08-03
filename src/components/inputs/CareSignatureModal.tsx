@@ -13,10 +13,8 @@ import { CareSignatureCanvas } from '@/components/inputs/CareSignatureCanvas';
 import { OrientationGate } from '@/components/layout/OrientationGate';
 import { GradientModalHeader } from '@/components/layout/platform';
 import { FullscreenOverlay } from '@/components/ui/FullscreenOverlay';
-import { careLightColors } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
-import { resolveCareTypography } from '@/design/tokens/typography';
-import { legacyColorsFromPalette, useLegacyTheme } from '@/design/tokens/themeBridge';
+import { portalPremium } from '@/design/tokens/portalPremium';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useOrientation } from '@/hooks/useOrientation';
 import { blockDocumentTouchScrollOutsideSignatureCapture } from '@/lib/dom/signatureCaptureScrollLock';
@@ -77,12 +75,12 @@ const plainHeaderStyles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: careLightColors.border,
-    backgroundColor: careLightColors.surface,
+    borderBottomColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceRaised,
   },
   leading: { flex: 1, minWidth: 0, gap: 2 },
-  title: { ...typography.h3, color: careLightColors.text },
-  subtitle: { ...typography.caption, color: careLightColors.muted },
+  title: { ...typography.h3, color: portalPremium.text.primary },
+  subtitle: { ...typography.caption, color: portalPremium.text.secondary },
   close: {
     width: 36,
     height: 36,
@@ -90,10 +88,10 @@ const plainHeaderStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: careLightColors.border,
-    backgroundColor: careLightColors.page,
+    borderColor: portalPremium.borderSoft,
+    backgroundColor: portalPremium.surfaceSoft,
   },
-  closeLabel: { fontSize: 22, lineHeight: 24, color: careLightColors.text },
+  closeLabel: { fontSize: 22, lineHeight: 24, color: portalPremium.text.primary },
 });
 
 export function CareSignatureModal({
@@ -104,9 +102,6 @@ export function CareSignatureModal({
   disabled,
   dismissScope = 'signature',
 }: Props) {
-  const { colors, typography: themeTypography, isLight } = useLegacyTheme();
-  const safeColors = colors ?? legacyColorsFromPalette('dark');
-  const safeTypography = themeTypography ?? resolveCareTypography('dark');
   const { isPhone, isTablet } = useDeviceClass();
   const orientation = useOrientation();
   const fullscreen = isPhone || isTablet;
@@ -131,7 +126,7 @@ export function CareSignatureModal({
           flex: 1,
           minHeight: 0,
           flexDirection: 'column',
-          backgroundColor: '#fff',
+          backgroundColor: portalPremium.surfaceRaised,
           ...Platform.select({
             web: {
               height: '100%',
@@ -149,18 +144,18 @@ export function CareSignatureModal({
         sheetHost: {
           overflow: 'hidden',
           borderRadius: careRadius.lg,
-          backgroundColor: careLightColors.surface,
+          backgroundColor: portalPremium.surfaceRaised,
           borderWidth: 1,
-          borderColor: careLightColors.border,
+          borderColor: portalPremium.borderStrong,
         },
         body: {
           padding: spacing.lg,
           gap: spacing.sm,
-          backgroundColor: careLightColors.surface,
+          backgroundColor: portalPremium.surfaceRaised,
         },
         subtitle: {
-          ...safeTypography.caption,
-          color: careLightColors.muted,
+          ...typography.caption,
+          color: portalPremium.text.secondary,
           marginBottom: spacing.xs,
         },
         canvasSlot: {
@@ -170,7 +165,7 @@ export function CareSignatureModal({
           minHeight: 0,
         },
       }),
-    [portraitMobile, safeTypography],
+    [portraitMobile],
   );
 
   const sheetWidth = useMemo(

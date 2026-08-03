@@ -126,7 +126,7 @@ export function EmployeePortalClientRecordsScreen() {
               colors={['#FFFFFF', '#F2F8FF', '#E5F2FF']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.card}
+              style={[styles.card, compact && styles.cardCompact]}
             >
               <View style={styles.cardGlow} pointerEvents="none" />
               <View style={[styles.cardHeader, compact && styles.cardHeaderCompact]}>
@@ -258,6 +258,11 @@ const styles = StyleSheet.create({
     minHeight: 250, height: '100%', gap: careSpacing.md, padding: careSpacing.lg,
     borderRadius: spatialCare.radius.card, borderWidth: 1, borderColor: portalPremium.border,
     overflow: 'hidden',
+  },
+  cardCompact: {
+    minHeight: 0,
+    height: 'auto',
+    padding: careSpacing.md,
   },
   cardGlow: { position: 'absolute', right: -48, top: -58, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(53,151,255,0.10)' },
   cardHeader: { flexDirection: 'row', gap: careSpacing.sm, alignItems: 'flex-start' },

@@ -28,7 +28,7 @@ export const portalPremium = {
   text: {
     primary: '#061B35',
     secondary: '#365672',
-    muted: '#647D94',
+    muted: '#566D83',
     onStrong: '#FFFFFF',
     onStrongMuted: '#C7E2FF',
   },

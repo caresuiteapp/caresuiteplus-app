@@ -1,17 +1,16 @@
 import { Platform, type ViewStyle } from 'react-native';
-import { lightSurfaceText } from '@/design/tokens/auroraGlass';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
 /** Opaque light surfaces for employee visit execution — readable on mobile portal. */
 export const employeePortalExecutionSurface = {
-  background: careLightColors.surface,
-  subtleBackground: careLightColors.page,
-  border: careLightColors.border,
-  borderStrong: careLightColors.borderStrong,
-  inputBackground: careLightColors.page,
+  background: portalPremium.surfaceRaised,
+  subtleBackground: portalPremium.surfaceSoft,
+  border: portalPremium.borderSoft,
+  borderStrong: portalPremium.borderStrong,
+  inputBackground: portalPremium.surfaceRaised,
 } as const;
 
-export const employeePortalExecutionText = lightSurfaceText;
+export const employeePortalExecutionText = portalPremium.text;
 
 export const employeePortalExecutionShadow: ViewStyle = Platform.select({
   web: { boxShadow: '0 2px 12px rgba(7,18,42,0.08)' } as ViewStyle,

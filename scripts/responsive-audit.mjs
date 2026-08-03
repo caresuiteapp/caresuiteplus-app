@@ -18,6 +18,7 @@ const requiredFiles = [
   'src/liquid-command/shell/LiquidCommandShell.tsx',
   'src/liquid-command/shell/LiquidModuleRouteLayout.tsx',
   'src/liquid-command/shell/LiquidPortalRouteLayout.tsx',
+  'src/lib/portal/portalResponsiveLayout.ts',
   'src/liquid-command/screens/AccessScreens.tsx',
   'src/liquid-command/screens/CommandCenterScreen.tsx',
   'src/liquid-command/components/ClientNetworkMap.tsx',
@@ -68,9 +69,12 @@ for (const marker of [
 }
 
 const portalShellSource = source('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
+const portalResponsiveSource = source('src/lib/portal/portalResponsiveLayout.ts');
 if (
-  !portalShellSource.includes('!layout.isDesktop ? (') ||
-  !portalShellSource.includes('compactNavigation.map')
+  !portalShellSource.includes('desktopChrome = resolvePortalDesktopChrome(layout.width)') ||
+  !portalShellSource.includes('!desktopChrome ? (') ||
+  !portalShellSource.includes('compactNavigation.map') ||
+  !portalResponsiveSource.includes('PORTAL_DESKTOP_CHROME_MIN_WIDTH = 1024')
 ) {
   failures.push('Portal-Shell besitzt keine eigene Smartphone-/Tablet-Navigation.');
 }

@@ -12,9 +12,9 @@ import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, SuccessState } from '@/components/ui';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 import { careSpacing } from '@/design/tokens/spacing';
-import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
+import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalContext } from '@/hooks/usePortalContext';
 import {
@@ -164,8 +164,8 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
       ) : (
         <GlassCard
           style={{
-            backgroundColor: careLightColors.surface,
-            borderColor: careLightColors.borderStrong,
+            backgroundColor: portalPremium.surfaceRaised,
+            borderColor: portalPremium.borderStrong,
           }}
         >
           <Text style={[type.caption, { color: text.muted }]}>KLIENT:INNENPORTAL</Text>
@@ -281,8 +281,8 @@ const styles = StyleSheet.create({
     paddingVertical: careSpacing.xs,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: careLightColors.borderStrong,
-    backgroundColor: careLightColors.surface,
+    borderColor: portalPremium.borderStrong,
+    backgroundColor: portalPremium.surfaceRaised,
   },
   moduleChipActive: {
     borderColor: 'rgba(255,149,0,0.45)',

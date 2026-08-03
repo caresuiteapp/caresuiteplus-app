@@ -87,7 +87,31 @@ export function useCareLightPalette(): { isDark: boolean; c: CareLightResolved }
   const { mode } = useThemeMode();
   const portal = usePortalPremiumTheme();
   const isDark = portal.active ? false : mode === 'dark';
-  return useMemo(() => ({ isDark, c: resolveCareLightPalette(isDark) }), [isDark]);
+  return useMemo(() => {
+    if (portal.active) {
+      return {
+        isDark: false,
+        c: {
+          isDark: false,
+          page: portalPremium.surfaceSoft,
+          surface: portalPremium.surfaceRaised,
+          surfaceAlt: portalPremium.surface,
+          text: portalPremium.text.primary,
+          muted: portalPremium.text.muted,
+          border: portalPremium.borderSoft,
+          shadow: portalPremium.backdropStrong,
+          violet: portalPremium.accent.violet,
+          cyan: portalPremium.accent.blue,
+          orange: portalPremium.accent.amber,
+          danger: portalPremium.accent.danger,
+          warning: portalPremium.accent.amber,
+          green: portalPremium.accent.success,
+          navy: portalPremium.backdropStrong,
+        },
+      };
+    }
+    return { isDark, c: resolveCareLightPalette(isDark) };
+  }, [isDark, portal.active]);
 }
 
 /**

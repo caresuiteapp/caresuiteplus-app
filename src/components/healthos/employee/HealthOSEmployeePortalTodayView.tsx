@@ -507,10 +507,10 @@ const styles = StyleSheet.create({
   guideArea: { flex: 1, minWidth: 330, maxWidth: 560, flexDirection: 'row', alignItems: 'center', gap: 9 },
   guideAreaCompact: {
     flex: 0, minWidth: 0, maxWidth: '100%', width: '100%',
-    flexDirection: 'column', alignItems: 'stretch',
+    flexDirection: 'row', alignItems: 'flex-start',
   },
   guideMascot: { width: 102, height: 118, flexShrink: 0 },
-  guideMascotCompact: { width: 58, height: 68, alignSelf: 'center' },
+  guideMascotCompact: { width: 52, height: 61, alignSelf: 'flex-start' },
   guideBubble: {
     flex: 1,
     minWidth: 0,
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.84)',
     gap: 5,
   },
-  guideBubbleCompact: { flex: 0, width: '100%', padding: 14 },
+  guideBubbleCompact: { flex: 1, minWidth: 0, width: 'auto', padding: 14 },
   guideBubbleTail: {
     position: 'absolute', left: -7, bottom: 22, width: 14, height: 14,
     borderLeftWidth: 1, borderBottomWidth: 1, borderColor: portalPremium.borderSoft,

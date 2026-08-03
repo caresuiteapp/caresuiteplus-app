@@ -179,10 +179,17 @@ export function LiquidText({
 export function LiquidLogo({
   compact = false,
   mini = false,
+  width,
 }: {
   compact?: boolean;
   mini?: boolean;
+  /** Responsive wordmark width. The intrinsic 8:1 ratio is preserved. */
+  width?: number;
 }) {
+  const responsiveSize = width
+    ? ({ width, height: width / 8 } as const)
+    : null;
+
   return (
     <View accessible accessibilityRole="header" accessibilityLabel="CareSuite HealthOS">
       <Image
@@ -192,6 +199,7 @@ export function LiquidLogo({
           styles.brandImage,
           compact && styles.brandImageCompact,
           mini && styles.brandImageMini,
+          responsiveSize,
         ]}
       />
     </View>
@@ -656,13 +664,16 @@ const styles = StyleSheet.create({
   status: {
     minHeight: 34,
     paddingHorizontal: 11,
+    paddingVertical: 7,
     borderRadius: liquidRadius.pill,
     borderWidth: 1,
     backgroundColor: liquidColors.white08,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 7,
     alignSelf: 'flex-start',
+    maxWidth: '100%',
   },
   statusDot: {
     width: 7,
@@ -670,11 +681,15 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   statusLabel: {
+    minWidth: 0,
+    flexShrink: 1,
     fontSize: 13,
     lineHeight: 17,
     fontWeight: '800',
   },
   statusDetail: {
+    minWidth: 0,
+    flexShrink: 1,
     color: liquidColors.white56,
     fontSize: 12,
     lineHeight: 16,

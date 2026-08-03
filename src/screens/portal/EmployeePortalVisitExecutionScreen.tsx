@@ -665,7 +665,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
     if (phase === 'preview') {
       return (
-        <PremiumCard style={styles.phaseCard}>
+        <PremiumCard contentStyle={styles.phaseCardContent}>
           <Text style={styles.phaseTitle}>Einsatzvorschau</Text>
           <DetailInfoRow label="Klient:in" value={visit.clientName} />
           <DetailInfoRow label="Adresse" value={visit.locationAddress} />
@@ -701,7 +701,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
     if (phase === 'en_route') {
       return (
-        <PremiumCard style={styles.phaseCard}>
+        <PremiumCard contentStyle={styles.phaseCardContent}>
           <Text style={styles.phaseTitle}>Unterwegs</Text>
           <DetailInfoRow label="Ziel" value={visit.locationAddress} />
           <DetailInfoRow label="Einsatzbeginn geplant" value={formatTime(visit.plannedStartAt)} />
@@ -726,7 +726,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
     if (phase === 'arrived') {
       return (
-        <PremiumCard style={styles.phaseCard}>
+        <PremiumCard contentStyle={styles.phaseCardContent}>
           <Text style={styles.phaseTitle}>Angekommen</Text>
           <Text style={styles.phaseHint}>
             Die Leistungszeit beginnt erst mit dem Einsatzstart.
@@ -814,7 +814,7 @@ export function EmployeePortalVisitExecutionScreen() {
     }
 
     return (
-      <PremiumCard style={styles.phaseCard}>
+      <PremiumCard contentStyle={styles.phaseCardContent}>
         <Text style={styles.phaseTitle}>{ASSIGNMENT_STATUS_LABELS[effectiveStatus]}</Text>
         {primaryButtonLabel && !isLocked ? (
           <PremiumButton
@@ -911,7 +911,10 @@ export function EmployeePortalVisitExecutionScreen() {
         ))}
 
         {visit.notesForEmployee || visit.accessHints ? (
-          <PremiumCard style={styles.criticalInfoCard}>
+          <PremiumCard
+            accentColor={colors.warning}
+            contentStyle={styles.criticalInfoCardContent}
+          >
             <View style={styles.criticalInfoHeader}>
               <Text style={styles.criticalInfoKicker}>VOR UND WÄHREND DES EINSATZES BEACHTEN</Text>
               <Text style={styles.phaseTitle}>Wichtige Einsatzhinweise</Text>
@@ -1213,12 +1216,9 @@ const styles = StyleSheet.create({
       : null),
   },
   scroll: { gap: spacing.md, paddingHorizontal: spacing.md, paddingTop: spacing.sm },
-  phaseCard: { padding: spacing.md, gap: spacing.sm },
-  criticalInfoCard: {
-    padding: spacing.md,
+  phaseCardContent: { gap: spacing.sm },
+  criticalInfoCardContent: {
     gap: spacing.sm,
-    borderColor: colors.warning,
-    borderWidth: 1,
   },
   criticalInfoHeader: { gap: spacing.xs },
   criticalInfoKicker: {

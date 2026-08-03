@@ -26,6 +26,7 @@ import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPrem
 type Props = {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
   onPress?: () => void;
   accentColor?: string;
   variant?: 'default' | 'elevated';
@@ -42,6 +43,7 @@ const webCursor =
 export function PremiumCard({
   children,
   style,
+  contentStyle,
   onPress,
   accentColor = spatialCareColors.cyanLight,
   variant = 'default',
@@ -120,7 +122,11 @@ export function PremiumCard({
   );
 
   const body = (
-    <LlganGlassShell kind="card" style={styles.host}>
+    <LlganGlassShell
+      kind="card"
+      style={styles.host}
+      dataSet={{ csHealthosComponent: onPress ? 'interactive-card' : 'card' }}
+    >
       <LinearGradient
         colors={portal.active
           ? variant === 'elevated'
@@ -137,17 +143,12 @@ export function PremiumCard({
       {sheen ? <View style={styles.glow} pointerEvents="none" /> : null}
       <View style={styles.innerBorder} pointerEvents="none" />
       <View style={styles.edge} pointerEvents="none" />
-      <View style={styles.content}>{children}</View>
+      <View style={[styles.content, contentStyle]}>{children}</View>
     </LlganGlassShell>
   );
 
   return (
-    <Animated.View
-      style={[animatedStyle, style]}
-      {...(Platform.OS === 'web'
-        ? ({ dataSet: { csHealthosComponent: onPress ? 'interactive-card' : 'card' } } as object)
-        : {})}
-    >
+    <Animated.View style={[animatedStyle, style]}>
       {onPress ? (
         <Pressable
           onPress={onPress}

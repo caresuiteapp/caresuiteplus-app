@@ -21,6 +21,10 @@ import {
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
 import { webScaledFontMetric } from '@/design/web/webFontSize';
 import { PortalPremiumProvider } from '@/design/tokens/portalPremium';
+import {
+  resolveCompactPortalLogoWidth,
+  resolvePortalDesktopChrome,
+} from '@/lib/portal/portalResponsiveLayout';
 
 const transparentContent = {
   flex: 1,
@@ -61,6 +65,8 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
         : null;
   const displayName =
     auth.profile?.displayName || auth.portalSession?.displayName || auth.user?.displayName || 'Portal';
+  const desktopChrome = resolvePortalDesktopChrome(layout.width);
+  const compactLogoWidth = resolveCompactPortalLogoWidth(layout.width);
 
   const activeId = useMemo(() => {
     const matching = [...navigation]
@@ -77,7 +83,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   return (
     <LiquidBackdrop>
       <View style={styles.shell}>
-        {layout.isDesktop ? (
+        {desktopChrome ? (
           <View style={[styles.rail, kind === 'client' && styles.clientRail]}>
             {kind === 'client' ? <LiquidLogo mini /> : <LiquidLogo compact />}
             <ScrollView contentContainerStyle={styles.railItems} showsVerticalScrollIndicator={false}>
@@ -115,8 +121,15 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
           </View>
         ) : null}
         <View style={styles.main}>
-          <View style={[styles.topbar, !layout.isDesktop && { paddingTop: Math.max(insets.top, 10) }]}>
-            {!layout.isDesktop ? <LiquidLogo compact /> : (
+          <View
+            style={[
+              styles.topbar,
+              !desktopChrome && styles.topbarCompact,
+              layout.isPhone && styles.topbarPhone,
+              !desktopChrome && { paddingTop: Math.max(insets.top, 10) },
+            ]}
+          >
+            {!desktopChrome ? <LiquidLogo compact width={compactLogoWidth} /> : (
               <View style={styles.portalBrand}>
                 <Text style={styles.portalKicker}>{kind === 'employee' ? 'MITARBEITENDENPORTAL' : kind === 'client' ? 'KLIENT:INNENPORTAL' : 'ANGEHÖRIGENPORTAL'}</Text>
                 <Text style={styles.portalTitle}>
@@ -124,8 +137,8 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 </Text>
               </View>
             )}
-            <View style={styles.identity}>
-              {layout.isDesktop ? (
+            <View style={[styles.identity, !desktopChrome && styles.identityCompact]}>
+              {desktopChrome ? (
                 <>
                   {kind === 'client' || kind === 'employee' ? <PortalTextSizeControls /> : null}
                   <View style={styles.identityCopy}>
@@ -162,22 +175,21 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
             </View>
           </View>
           <LiquidSurface
-            solid={layout.isDesktop}
+            solid={desktopChrome}
             style={[
               styles.contentFrame,
-              !layout.isDesktop && styles.contentFrameCompact,
-              !layout.isDesktop && { marginBottom: 84 + insets.bottom },
+              !desktopChrome && styles.contentFrameCompact,
             ]}
             contentStyle={[
               styles.content,
-              !layout.isDesktop && styles.contentCompact,
+              !desktopChrome && styles.contentCompact,
             ]}
           >
             <PortalStack />
           </LiquidSurface>
         </View>
       </View>
-      {!layout.isDesktop ? (
+      {!desktopChrome ? (
         <>
           <View style={[styles.bottomNav, { bottom: Math.max(insets.bottom, 12) }]}>
             {compactNavigation.map((item) => (
@@ -438,6 +450,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 14,
   },
+  topbarCompact: {
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  topbarPhone: {
+    minHeight: 68,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
   portalKicker: {
     color: liquidColors.blue200,
     fontSize: webScaledFontMetric(10),
@@ -460,6 +481,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  identityCompact: {
+    flexShrink: 0,
+    gap: 6,
   },
   identityCopy: {
     minWidth: 0,
@@ -486,10 +511,9 @@ const styles = StyleSheet.create({
   },
   contentFrameCompact: {
     margin: 0,
-    marginBottom: 84,
     borderWidth: 0,
     borderRadius: 0,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(7,28,56,0.96)',
   },
   content: {
     flex: 1,
@@ -499,7 +523,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(7,27,53,0.78)',
   },
   contentCompact: {
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(7,28,56,0.96)',
   },
   bottomNav: {
     position: 'absolute',

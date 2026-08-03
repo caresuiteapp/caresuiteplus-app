@@ -84,11 +84,12 @@ export function bindLlganGlassSurface(
 type LlganGlassShellProps = {
   kind: LlganGlassSurfaceKind;
   style?: StyleProp<ViewStyle>;
+  dataSet?: Record<string, string>;
   children: ReactNode;
 };
 
 /** Web milchglas host — inline RN backdrop-filter + data-cs-llgan-glass CSS backup. */
-export function LlganGlassShell({ kind, style, children }: LlganGlassShellProps) {
+export function LlganGlassShell({ kind, style, dataSet, children }: LlganGlassShellProps) {
   const shellRef = useRef<View | null>(null);
   const portal = usePortalPremiumTheme();
 
@@ -104,8 +105,13 @@ export function LlganGlassShell({ kind, style, children }: LlganGlassShellProps)
     return <View style={style}>{children}</View>;
   }
 
+  const glassDataSet = llganGlassDataSet(kind).dataSet;
   return (
-    <View ref={setShellRef} {...llganGlassDataSet(kind)} style={style}>
+    <View
+      ref={setShellRef}
+      {...({ dataSet: { ...glassDataSet, ...dataSet } } as object)}
+      style={style}
+    >
       {children}
     </View>
   );

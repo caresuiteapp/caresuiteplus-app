@@ -1,7 +1,7 @@
 import { Linking, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumButton } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     gap: careSpacing.sm,
     paddingVertical: careSpacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: careLightColors.border,
+    borderBottomColor: portalPremium.borderSoft,
   },
   iconWrap: {
     width: 36,

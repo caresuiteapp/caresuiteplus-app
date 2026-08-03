@@ -15,6 +15,7 @@ const testFiles = [
   'src/__tests__/portal/visitExecutionWhiteScreenFix.test.ts',
   'src/__tests__/portal/deferredSignatureWhiteScreenFix.test.ts',
   'src/__tests__/portal/employeePortalMobileAcceptance.test.ts',
+  'src/__tests__/portal/employeePortalResponsiveVisualGate.test.ts',
 ];
 
 const result = spawnSync(process.execPath, [vitestBin, 'run', ...testFiles], {

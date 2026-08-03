@@ -69,8 +69,8 @@ describe('portal premium system R26', () => {
     const execution = read('src/lib/portal/employeePortalExecutionSurface.ts');
     const live = read('src/components/portal/EmployeePortalVisitLiveDashboard.tsx');
     const signatures = read('src/screens/portal/EmployeeDocumentSignaturesScreen.tsx');
-    expect(execution).toContain('careLightColors.surface');
-    expect(execution).toContain('lightSurfaceText');
+    expect(execution).toContain('portalPremium.surfaceRaised');
+    expect(execution).toContain('portalPremium.text');
     expect(live).toContain('employeePortalExecutionSurface.subtleBackground');
     expect(signatures).toContain('portalPremium.surfaceSoft');
   });

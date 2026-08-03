@@ -19,12 +19,12 @@ describe('portal R24 scroll and messaging acceptance', () => {
     expect(calendar).toMatch(/wideCanvas:\s*\{[\s\S]*minWidth:\s*1040/);
   });
 
-  it('allows overflow to be reached on employee and client portal pages', () => {
+  it('keeps vertical page reachability without accidental horizontal portal drift', () => {
     const screen = read('src/screens/portal/PortalTabScreen.tsx');
 
     expect(screen.match(/overflowY:\s*'auto'/g)?.length).toBeGreaterThanOrEqual(2);
-    expect(screen.match(/overflowX:\s*'auto'/g)?.length).toBeGreaterThanOrEqual(2);
-    expect(screen).toContain("touchAction: 'pan-x pan-y'");
+    expect(screen.match(/overflowX:\s*'hidden'/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(screen).toContain("touchAction: 'pan-y'");
   });
 
   it('does not query the non-existent deleted_at thread column', () => {

@@ -13,8 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { PortalDocumentDetailHero } from '@/components/portal/PortalDocumentDetailHero';
 import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
-import { lightSurfaceText } from '@/design/tokens/auroraGlass';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { portalPremium } from '@/design/tokens/portalPremium';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useEmployeePortalClientDocument } from '@/hooks/useEmployeePortalClientDocument';
@@ -36,7 +35,7 @@ export function EmployeePortalClientDocumentPreviewSheet({
   onClose,
 }: EmployeePortalClientDocumentPreviewSheetProps) {
   const insets = useSafeAreaInsets();
-  const text = lightSurfaceText;
+  const text = portalPremium.text;
   const { data, loading, error, refresh, download, downloadLoading, downloadError } =
     useEmployeePortalClientDocument(clientId, visible ? documentId : null);
 
@@ -68,7 +67,7 @@ export function EmployeePortalClientDocumentPreviewSheet({
           style={[
             styles.sheet,
             panelStyle,
-            { backgroundColor: careLightColors.surface, borderColor: careLightColors.borderStrong },
+            { backgroundColor: portalPremium.surfaceRaised, borderColor: portalPremium.borderStrong },
           ]}
         >
           <View style={styles.handleRow}>
@@ -158,7 +157,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: careLightColors.borderStrong,
+    backgroundColor: portalPremium.borderStrong,
   },
   closeBtn: {
     position: 'absolute',

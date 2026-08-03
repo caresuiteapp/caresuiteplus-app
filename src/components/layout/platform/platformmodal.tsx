@@ -25,6 +25,7 @@ import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
 import { usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { resolvePlatformModalMaxHeight } from '@/lib/platform/platformModalLayout';
 import { GradientModalActionButton } from './gradientmodalactionbutton';
 import type { GradientModalActionButtonVariant } from './gradientmodalactionbutton';
 import { GradientModalHeader } from './gradientmodalheader';
@@ -113,10 +114,7 @@ export function PlatformModal({
   }, [maxWidth, minWidth, screenWidth, variant]);
 
   const sheetMaxHeight = useMemo(
-    () =>
-      variant === 'bottomSheet'
-        ? screenHeight * 0.78
-        : Math.min(screenHeight * maxHeightRatio, screenHeight - spacing.lg * 2),
+    () => resolvePlatformModalMaxHeight(screenHeight, variant, maxHeightRatio, spacing.lg * 2),
     [maxHeightRatio, screenHeight, variant],
   );
 

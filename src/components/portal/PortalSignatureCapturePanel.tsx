@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { SignatureDisplay } from '@/components/signatures';
@@ -39,6 +39,7 @@ export function PortalSignatureCapturePanel({
   loading = false,
   onSign,
 }: PortalSignatureCapturePanelProps) {
+  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
   const [modalVisible, setModalVisible] = useState(false);
   const [signerName, setSignerName] = useState(
     detail.nextSignerRole === 'client' ? detail.clientName ?? '' : '',
@@ -63,6 +64,10 @@ export function PortalSignatureCapturePanel({
   );
 
   const showPdfPreview = detail.documentSourceType === 'pdf_upload' && Platform.OS === 'web';
+  const previewHeight = Math.max(
+    280,
+    Math.min(560, Math.round(viewportHeight * (viewportWidth < 720 ? 0.46 : 0.56))),
+  );
 
   const openModal = useCallback(() => {
     setModalVisible(true);
@@ -103,14 +108,14 @@ export function PortalSignatureCapturePanel({
             {pdfError ? (
               <InfoBanner variant="warning" message={pdfError} />
             ) : sourcePdfUrl ? (
-              <View style={styles.pdfFrame}>
+              <View style={[styles.pdfFrame, { minHeight: previewHeight }]}>
                 {/* eslint-disable-next-line react/no-unknown-property */}
                 <iframe
                   title={detail.title}
                   src={sourcePdfUrl}
                   style={{
                     width: '100%',
-                    height: 480,
+                    height: previewHeight,
                     border: 'none',
                     backgroundColor: '#fff',
                   }}
@@ -232,7 +237,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: spacing.sm,
-    minHeight: 480,
   },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm },
   auditLine: { ...typography.caption, marginTop: spacing.xs },
