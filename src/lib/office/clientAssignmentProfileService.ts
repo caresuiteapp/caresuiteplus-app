@@ -10,6 +10,7 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 import type { AssistAssignmentTaskDraft } from '@/types/assistCatalog';
+import { assignmentProfileEndAt } from '@/lib/office/clientAssignmentProfileDuration';
 
 type ProfileRow = {
   id: string;
@@ -399,7 +400,7 @@ export async function scheduleClientAssignmentProfile(
     );
     if (!profile) return { ok: false, error: 'Einsatzprofil nicht gefunden.' };
     const startAt = new Date(`${assignmentDate}T${startTime}:00`).toISOString();
-    const endAt = new Date(new Date(startAt).getTime() + profile.durationMinutes * 60_000).toISOString();
+    const endAt = assignmentProfileEndAt(startAt, profile.durationMinutes);
     return {
       ok: true,
       data: {

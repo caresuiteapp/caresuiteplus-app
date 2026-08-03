@@ -25,6 +25,7 @@ import {
   saveClientAssignmentProfile,
   validateClientAssignmentProfileInput,
 } from '@/lib/office/clientAssignmentProfileService';
+import { applyTaskPackageTasksToAssignmentProfile } from '@/lib/office/clientAssignmentProfileDuration';
 import { confirmAction } from '@/lib/platform/confirmAction';
 import { loadTaskPackageItems, mergeTaskDrafts } from '@/lib/assistCatalog';
 import { fetchTenantServiceCatalog } from '@/lib/tenant/tenantServiceCatalogService';
@@ -319,15 +320,8 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
       setSaveError(result.error);
       return;
     }
-    const selectedPackage = options?.taskPackages.find((item) => item.id === packageId);
     const merged = mergeTaskDrafts(result.data, [], new Set());
-    setDraft((current) => ({
-      ...current,
-      taskPackageId: packageId,
-      taskDrafts: merged,
-      taskTitles: merged.map((task) => task.title),
-      durationMinutes: selectedPackage?.defaultDurationMinutes ?? current.durationMinutes,
-    }));
+    setDraft((current) => applyTaskPackageTasksToAssignmentProfile(current, packageId, merged));
     setTasksText(merged.map((task) => task.title).join('\n'));
   }
 
@@ -354,6 +348,8 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
       taskPackageId: normalizedDraft.taskPackageId,
       taskPackageLabel:
         options?.taskPackages.find((item) => item.id === normalizedDraft.taskPackageId)?.label ?? null,
+      plannedDurationMinutes: normalizedDraft.durationMinutes,
+      durationSource: 'assignment_profile',
       riskFlagKeys: normalizedDraft.riskFlagKeys,
       riskFlagLabels: normalizedDraft.riskFlagKeys.map(
         (key) => options?.riskFlags.find((item) => item.itemKey === key)?.label ?? key,
@@ -508,7 +504,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
             onChangeText={(value) =>
               setDraft((current) => ({ ...current, durationMinutes: Number(value.replace(/\D/g, '')) || 0 }))
             }
-            hint="Die Dauer wird gespeichert; Datum und Startzeit werden erst im Kalender gewählt."
+            hint="Verbindliche Gesamtdauer des Kalenderblocks. Aufgaben-Richtzeiten ändern diesen Wert nicht."
             onDarkSurface
           />
 
@@ -588,7 +584,8 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
           <View style={styles.catalogSection}>
             <Text style={styles.catalogTitle}>Aufgabenpaket & Aufgaben</Text>
             <Text style={styles.catalogHint}>
-              Ein Aufgabenpaket übernimmt alle Pflichtaufgaben, Eigenschaften und die Standarddauer.
+              Ein Aufgabenpaket übernimmt die Aufgaben und deren Richtzeiten. Die Einsatzdauer
+              bleibt unabhängig davon ausschließlich die oben festgelegte Gesamtdauer.
             </Text>
             <View style={styles.packageGrid}>
               {(options?.taskPackages ?? []).map((item) => (
@@ -603,7 +600,9 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
                 >
                   <Text style={styles.packageTitle}>{item.label}</Text>
                   {item.defaultDurationMinutes ? (
-                    <Text style={styles.catalogHint}>{item.defaultDurationMinutes} Min.</Text>
+                    <Text style={styles.catalogHint}>
+                      Aufgaben-Richtzeit: {item.defaultDurationMinutes} Min.
+                    </Text>
                   ) : null}
                 </TouchableOpacity>
               ))}
