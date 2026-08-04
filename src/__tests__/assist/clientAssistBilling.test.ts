@@ -28,25 +28,25 @@ const CATALOG_2026: BudgetTemplateCatalogEntry[] = [
   },
   {
     id: '2', catalogKey: 'umwandlung_pg2', budgetYear: 2026, label: 'Umw. PG2', description: null,
-    period: 'monthly', defaultAmountCents: 31800, careGradeMin: 'pg2', careGradeMax: 'pg2',
+    period: 'monthly', defaultAmountCents: 31840, careGradeMin: 'pg2', careGradeMax: 'pg2',
     billingPriority: 2, allowsIndividualOverride: true, autoGenerate: true, isStatutory: true,
     metadata: {}, isActive: true,
   },
   {
     id: '3', catalogKey: 'umwandlung_pg3', budgetYear: 2026, label: 'Umw. PG3', description: null,
-    period: 'monthly', defaultAmountCents: 59800, careGradeMin: 'pg3', careGradeMax: 'pg3',
+    period: 'monthly', defaultAmountCents: 59880, careGradeMin: 'pg3', careGradeMax: 'pg3',
     billingPriority: 2, allowsIndividualOverride: true, autoGenerate: true, isStatutory: true,
     metadata: {}, isActive: true,
   },
   {
     id: '4', catalogKey: 'umwandlung_pg4', budgetYear: 2026, label: 'Umw. PG4', description: null,
-    period: 'monthly', defaultAmountCents: 74300, careGradeMin: 'pg4', careGradeMax: 'pg4',
+    period: 'monthly', defaultAmountCents: 74360, careGradeMin: 'pg4', careGradeMax: 'pg4',
     billingPriority: 2, allowsIndividualOverride: true, autoGenerate: true, isStatutory: true,
     metadata: {}, isActive: true,
   },
   {
     id: '5', catalogKey: 'umwandlung_pg5', budgetYear: 2026, label: 'Umw. PG5', description: null,
-    period: 'monthly', defaultAmountCents: 91900, careGradeMin: 'pg5', careGradeMax: 'pg5',
+    period: 'monthly', defaultAmountCents: 91960, careGradeMin: 'pg5', careGradeMax: 'pg5',
     billingPriority: 2, allowsIndividualOverride: true, autoGenerate: true, isStatutory: true,
     metadata: {}, isActive: true,
   },
@@ -84,10 +84,10 @@ describe('Klient:innenakte Budget 2026 — catalog values (Tests 1–8)', () => 
   });
 
   it('2. Umwandlung PG2–5 cent values and monthly period', () => {
-    expect(CATALOG_2026.find((c) => c.catalogKey === 'umwandlung_pg2')?.defaultAmountCents).toBe(31800);
-    expect(CATALOG_2026.find((c) => c.catalogKey === 'umwandlung_pg3')?.defaultAmountCents).toBe(59800);
-    expect(CATALOG_2026.find((c) => c.catalogKey === 'umwandlung_pg4')?.defaultAmountCents).toBe(74300);
-    expect(CATALOG_2026.find((c) => c.catalogKey === 'umwandlung_pg5')?.defaultAmountCents).toBe(91900);
+    expect(CATALOG_2026.find((c) => c.catalogKey === 'umwandlung_pg2')?.defaultAmountCents).toBe(31840);
+    expect(CATALOG_2026.find((c) => c.catalogKey === 'umwandlung_pg3')?.defaultAmountCents).toBe(59880);
+    expect(CATALOG_2026.find((c) => c.catalogKey === 'umwandlung_pg4')?.defaultAmountCents).toBe(74360);
+    expect(CATALOG_2026.find((c) => c.catalogKey === 'umwandlung_pg5')?.defaultAmountCents).toBe(91960);
     for (const key of ['umwandlung_pg2', 'umwandlung_pg3', 'umwandlung_pg4', 'umwandlung_pg5']) {
       expect(CATALOG_2026.find((c) => c.catalogKey === key)?.period).toBe('monthly');
     }

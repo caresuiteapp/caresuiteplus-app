@@ -1,0 +1,249 @@
+import { useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import type { ClientBudgetVisualModel } from '@/lib/assist/clientBudgetVisuals';
+import { formatCurrency } from '@/lib/formatters/numberFormatters';
+import { spacing, typography } from '@/theme';
+
+function formatHours(value: number | null): string {
+  if (value == null) return 'Stundensatz fehlt';
+  return `${value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Std.`;
+}
+
+function visualColors(model: ClientBudgetVisualModel) {
+  return model.id === 'entlastung'
+    ? { accent: '#3BE7FF', glow: 'rgba(59,231,255,0.25)', reserved: '#8B7CFF' }
+    : { accent: '#65F2A7', glow: 'rgba(101,242,167,0.22)', reserved: '#F6C85F' };
+}
+
+function BudgetVisualCard({ model }: { model: ClientBudgetVisualModel }) {
+  const text = useAuroraAdaptiveText();
+  const palette = visualColors(model);
+  const [showInfo, setShowInfo] = useState(false);
+
+  return (
+    <>
+      <LinearGradient
+        colors={['rgba(5,20,52,0.96)', 'rgba(10,39,78,0.90)', 'rgba(8,24,56,0.96)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.card, { shadowColor: palette.accent }]}
+      >
+        <View style={[styles.glow, { backgroundColor: palette.glow }]} />
+        <View style={styles.headerRow}>
+          <View style={styles.headerCopy}>
+            <Text style={styles.legalLabel}>{model.legalLabel}</Text>
+            <Text style={styles.title}>{model.title}</Text>
+            <Text style={styles.status}>{model.statusLabel}</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${model.title} erklären`}
+            onPress={() => setShowInfo(true)}
+            style={({ pressed }) => [styles.infoButton, pressed && styles.infoButtonPressed]}
+          >
+            <Text style={styles.infoIcon}>💬</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.heroMetric}>
+          <Text style={styles.heroAmount}>{formatCurrency(model.availableCents, true)}</Text>
+          <Text style={styles.heroLabel}>noch verfügbar</Text>
+          <Text style={[styles.hours, { color: palette.accent }]}>{formatHours(model.availableHours)}</Text>
+          {model.hourlyRateCents ? (
+            <Text style={styles.rate}>bei {formatCurrency(model.hourlyRateCents, true)} je Stunde</Text>
+          ) : (
+            <Text style={styles.rate}>Für Reststunden bitte einen Stundensatz hinterlegen.</Text>
+          )}
+        </View>
+
+        <View
+          accessibilityLabel={`${model.usedPercent} Prozent verbraucht, ${model.reservedPercent} Prozent vorgemerkt, ${model.availablePercent} Prozent verfügbar`}
+          style={styles.progressTrack}
+        >
+          {model.usedPercent > 0 ? (
+            <View style={[styles.progressSegment, styles.usedSegment, { flexGrow: model.usedPercent }]} />
+          ) : null}
+          {model.reservedPercent > 0 ? (
+            <View
+              style={[
+                styles.progressSegment,
+                { backgroundColor: palette.reserved, flexGrow: model.reservedPercent },
+              ]}
+            />
+          ) : null}
+          {model.availablePercent > 0 ? (
+            <LinearGradient
+              colors={[palette.accent, 'rgba(255,255,255,0.92)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.progressSegment, { flexGrow: model.availablePercent }]}
+            />
+          ) : null}
+        </View>
+
+        <View style={styles.legendRow}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, styles.usedSegment]} />
+            <Text style={styles.legendText}>Verbraucht {formatCurrency(model.usedCents, true)}</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: palette.reserved }]} />
+            <Text style={styles.legendText}>Vorgemerkt {formatCurrency(model.reservedCents, true)}</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: palette.accent }]} />
+            <Text style={styles.legendText}>Gesamt {formatCurrency(model.totalCents, true)}</Text>
+          </View>
+        </View>
+
+        {model.id === 'umwandlung' && model.fullCareAllowanceCents != null ? (
+          <View style={styles.careAllowancePanel}>
+            <View>
+              <Text style={styles.careAllowanceLabel}>Voraussichtliches Pflegegeld</Text>
+              <Text style={styles.careAllowanceMeta}>nach bisher erfasstem Verbrauch</Text>
+            </View>
+            <Text style={styles.careAllowanceAmount}>
+              {formatCurrency(model.remainingCareAllowanceCents ?? 0, true)}
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={styles.footer}>
+          <Text style={styles.period}>{model.periodLabel}</Text>
+          <Text style={styles.expiry}>{model.expiryLabel}</Text>
+        </View>
+      </LinearGradient>
+
+      <AppGlassModal
+        visible={showInfo}
+        title={model.title}
+        subtitle={`${model.legalLabel} · verständlich erklärt`}
+        onClose={() => setShowInfo(false)}
+        footerActions={[{ title: 'Verstanden', variant: 'primary', onPress: () => setShowInfo(false) }]}
+      >
+        <View style={styles.modalBody}>
+          {model.explanation.map((paragraph) => (
+            <View key={paragraph} style={styles.explanationRow}>
+              <View style={[styles.explanationDot, { backgroundColor: palette.accent }]} />
+              <Text style={[styles.explanationText, { color: text.secondary }]}>{paragraph}</Text>
+            </View>
+          ))}
+          <View style={styles.modalNumbers}>
+            <Text style={[styles.modalNumberLabel, { color: text.secondary }]}>Gesamtpotenzial</Text>
+            <Text style={[styles.modalNumber, { color: text.primary }]}>{formatCurrency(model.totalCents, true)}</Text>
+            <Text style={[styles.modalNumberLabel, { color: text.secondary }]}>Noch mögliche Leistung</Text>
+            <Text style={[styles.modalNumber, { color: text.primary }]}>
+              {formatCurrency(model.availableCents, true)} · {formatHours(model.availableHours)}
+            </Text>
+          </View>
+        </View>
+      </AppGlassModal>
+    </>
+  );
+}
+
+export function ClientBudgetVisualCards({ models }: { models: ClientBudgetVisualModel[] }) {
+  const { width } = useWindowDimensions();
+  const compact = width < 980;
+  return (
+    <View style={[styles.grid, compact && styles.gridCompact]}>
+      {models.map((model) => (
+        <View key={model.id} style={[styles.cardSlot, compact && styles.cardSlotCompact]}>
+          <BudgetVisualCard model={model} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  grid: { flexDirection: 'row', gap: spacing.lg, width: '100%', alignItems: 'stretch' },
+  gridCompact: { flexDirection: 'column' },
+  cardSlot: { flex: 1, minWidth: 0 },
+  cardSlotCompact: { width: '100%' },
+  card: {
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(125,211,252,0.25)',
+    padding: spacing.xl,
+    minHeight: 430,
+    overflow: 'hidden',
+    shadowOpacity: 0.22,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 15 },
+    elevation: 8,
+  },
+  glow: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: 999,
+    right: -90,
+    top: -110,
+  },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md },
+  headerCopy: { flex: 1, gap: 4 },
+  legalLabel: { color: 'rgba(186,230,253,0.78)', fontSize: 11, fontWeight: '800', letterSpacing: 1.1, textTransform: 'uppercase' },
+  title: { color: '#FFFFFF', fontSize: 25, lineHeight: 31, fontWeight: '900', letterSpacing: -0.6 },
+  status: { color: 'rgba(226,242,255,0.72)', fontSize: 13, lineHeight: 18, fontWeight: '600' },
+  infoButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.20)',
+    backgroundColor: 'rgba(255,255,255,0.09)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoButtonPressed: { opacity: 0.72, transform: [{ scale: 0.97 }] },
+  infoIcon: { fontSize: 19 },
+  heroMetric: { alignItems: 'center', paddingVertical: spacing.xl, gap: 2 },
+  heroAmount: { color: '#FFFFFF', fontSize: 38, lineHeight: 46, fontWeight: '900', letterSpacing: -1.4 },
+  heroLabel: { color: 'rgba(226,242,255,0.70)', fontSize: 13, fontWeight: '700' },
+  hours: { fontSize: 20, lineHeight: 26, fontWeight: '900', marginTop: spacing.xs },
+  rate: { color: 'rgba(226,242,255,0.58)', fontSize: 11, lineHeight: 16, textAlign: 'center' },
+  progressTrack: {
+    height: 16,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  progressSegment: { minWidth: 1, flexBasis: 0 },
+  usedSegment: { backgroundColor: '#355070' },
+  legendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.sm },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 8, height: 8, borderRadius: 999 },
+  legendText: { color: 'rgba(226,242,255,0.68)', fontSize: 11, fontWeight: '650' },
+  careAllowancePanel: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: 18,
+    backgroundColor: 'rgba(101,242,167,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(101,242,167,0.20)',
+  },
+  careAllowanceLabel: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  careAllowanceMeta: { color: 'rgba(226,242,255,0.58)', fontSize: 10, marginTop: 3 },
+  careAllowanceAmount: { color: '#65F2A7', fontSize: 20, fontWeight: '900' },
+  footer: { marginTop: 'auto', paddingTop: spacing.lg, gap: 4 },
+  period: { color: 'rgba(226,242,255,0.76)', fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  expiry: { color: 'rgba(226,242,255,0.52)', fontSize: 11, lineHeight: 16 },
+  modalBody: { gap: spacing.md },
+  explanationRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
+  explanationDot: { width: 8, height: 8, borderRadius: 999, marginTop: 6 },
+  explanationText: { flex: 1, fontSize: typography.body.fontSize, lineHeight: 22 },
+  modalNumbers: { padding: spacing.lg, borderRadius: 20, backgroundColor: 'rgba(59,130,246,0.08)', gap: 4 },
+  modalNumberLabel: { fontSize: 11, fontWeight: '700', marginTop: spacing.xs },
+  modalNumber: { fontSize: 18, fontWeight: '900' },
+});

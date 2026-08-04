@@ -106,14 +106,23 @@ export async function getClientAssistBillingProfile(
       !!careEntitlement?.conversionEnabled && isConversionEligibleForGrade(careGrade);
 
     if (autoGenerateAccounts && careGrade) {
-      await ensureClientBudgetAccountsForDate(tenantId, clientId, careGrade, asOf);
+      await ensureClientBudgetAccountsForDate(
+        tenantId,
+        clientId,
+        careGrade,
+        asOf,
+        careEntitlement?.validFrom,
+      );
     }
 
-    const accountsResult = await listClientBudgetAccounts(tenantId, clientId, budgetYear);
+    const accountsResult = await listClientBudgetAccounts(tenantId, clientId);
     if (!accountsResult.ok) return accountsResult;
 
     const currentAccounts = selectCurrentBudgetAccounts(accountsResult.data, asOfDate);
     const sortedAccounts = sortAccountsByPriority(currentAccounts, priorityResult.data);
+    const budgetVisualAccounts = accountsResult.data.filter(
+      (account) => account.periodStart <= asOfDate && account.periodEnd >= asOfDate,
+    );
 
     await syncClientBillingWarnings(tenantId, clientId, {
       careEntitlement,
@@ -142,6 +151,7 @@ export async function getClientAssistBillingProfile(
         carePreventionMode,
         serviceEntitlements: servicesResult.data,
         budgetAccounts: sortedAccounts,
+        budgetVisualAccounts,
         priorityRules: priorityResult.data,
         warnings: warningsResult.data,
         templates: applicableTemplates,

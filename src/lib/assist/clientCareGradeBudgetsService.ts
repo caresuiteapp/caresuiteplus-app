@@ -360,6 +360,7 @@ export async function updateCareEntitlementValidFrom(
       clientId,
       entitlement.careGrade,
       new Date(`${input.validFrom}T12:00:00.000Z`),
+      input.validFrom,
     );
 
     return { ok: true, data: entitlement };

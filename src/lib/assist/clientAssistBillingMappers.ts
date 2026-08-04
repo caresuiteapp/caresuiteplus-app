@@ -83,6 +83,7 @@ export function mapBudgetAccountRow(
     allocatedCents: allocated,
     usedCents: used,
     reservedCents: reserved,
+    externalSachleistungCents: Number(row.external_sachleistung_cents ?? 0),
     isIndividualOverride: row.is_individual_override as boolean,
     individualAmountCents: row.individual_amount_cents != null ? Number(row.individual_amount_cents) : null,
     standardAmountCents: row.standard_amount_cents != null ? Number(row.standard_amount_cents) : null,

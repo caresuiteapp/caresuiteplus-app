@@ -2,7 +2,7 @@ import type { ServiceResult } from '@/types';
 import type { AssistDashboardData, PortalNextAppointment } from '@/types/portal/assist';
 import { fetchClientPortalLiveMetrics } from '@/lib/portal/clientPortalDashboardLive';
 import { listPortalActivities } from '@/lib/portal/assist/portalActivityService';
-import { fetchPortalBudgetSnapshot } from '@/lib/portal/assist/portalBudgetService';
+import { fetchPortalBudgetVisuals } from '@/lib/portal/assist/portalBudgetService';
 import { listPortalRequests } from '@/lib/portal/assist/portalRequestService';
 import { countOpenPortalServiceProofs } from '@/lib/portal/assist/portalServiceProofService';
 import {
@@ -13,17 +13,12 @@ import type { PortalContext } from '@/lib/portal/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
-import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { runService } from '@/lib/services/serviceRunner';
 
 import {
   PORTAL_UPCOMING_ASSIGNMENT_STATUSES,
 } from '@/lib/portal/portalAssignmentStatusFilters';
 import { isPortalBegleitungService } from '@/lib/portal/portalBegleitungenFilter';
-
-function unavailable<T>(): ServiceResult<T> {
-  return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
-}
 
 async function fetchUpcomingAppointments(
   tenantId: string,
@@ -198,11 +193,26 @@ export async function fetchAssistDashboardData(
         limit: 5,
       }),
       budgetReleased && applicableBudgetTypes.length > 0
-        ? fetchPortalBudgetSnapshot(tenantId, clientId, applicableBudgetTypes)
-        : Promise.resolve({ ok: true as const, data: null }),
+        ? fetchPortalBudgetVisuals(tenantId, clientId)
+        : Promise.resolve({ ok: true as const, data: [] }),
     ]);
 
-    const budget = budgetResult.ok ? budgetResult.data : null;
+    const budgetVisuals = budgetResult.ok ? budgetResult.data : [];
+    const entlastung = budgetVisuals.find((item) => item.id === 'entlastung') ?? null;
+    const budget = entlastung
+      ? {
+          id: 'visual-entlastung',
+          tenantId,
+          clientId,
+          budgetType: 'paragraph_45b' as const,
+          periodStart: `${new Date().getFullYear()}-01-01`,
+          periodEnd: `${new Date().getFullYear() + 1}-06-30`,
+          totalAmount: entlastung.totalCents / 100,
+          usedAmount: entlastung.usedCents / 100,
+          remainingAmount: entlastung.availableCents / 100,
+          currency: 'EUR',
+        }
+      : null;
     const nextAppointment = upcomingAppointments[0] ?? null;
 
     return {
@@ -224,6 +234,7 @@ export async function fetchAssistDashboardData(
         },
         activities: activitiesResult.ok ? activitiesResult.data : [],
         budget: budgetReleased ? budget : null,
+        budgetVisuals: budgetReleased ? budgetVisuals : [],
         openRequests: requestsResult.ok ? requestsResult.data : [],
       },
     };

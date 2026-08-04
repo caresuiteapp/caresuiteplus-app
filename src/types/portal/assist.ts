@@ -98,6 +98,8 @@ export type AssistDashboardData = {
   kpis: AssistDashboardKpis;
   activities: PortalActivity[];
   budget: PortalBudgetSnapshot | null;
+  /** Always contains Entlastungsbetrag and 40-%-Umwandlung when budget visibility is released. */
+  budgetVisuals: import('@/lib/assist/clientBudgetVisuals').ClientBudgetVisualModel[];
   openRequests: PortalRequest[];
 };
 

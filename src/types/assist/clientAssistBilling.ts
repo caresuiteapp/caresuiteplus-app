@@ -91,6 +91,8 @@ export type ClientBudgetAccount = {
   allocatedCents: number;
   usedCents: number;
   reservedCents: number;
+  /** Monthly §36 usage by other providers; required for a realistic care-allowance forecast. */
+  externalSachleistungCents?: number;
   isIndividualOverride: boolean;
   individualAmountCents: number | null;
   standardAmountCents: number | null;
@@ -175,6 +177,8 @@ export type ClientAssistBillingProfile = {
   carePreventionMode: ClientCarePreventionBudgetMode;
   serviceEntitlements: ClientServiceEntitlement[];
   budgetAccounts: ClientBudgetAccount[];
+  /** All still valid budget buckets used by the visual aggregate (including §45b carry-over). */
+  budgetVisualAccounts?: ClientBudgetAccount[];
   priorityRules: ClientBillingPriorityRule[];
   warnings: ClientBillingWarning[];
   templates: BudgetTemplateCatalogEntry[];

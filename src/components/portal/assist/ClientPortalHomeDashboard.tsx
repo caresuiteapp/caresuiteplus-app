@@ -3,6 +3,7 @@ import { Image, Platform, Pressable, StyleSheet, Text, View, type DimensionValue
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { ClientBudgetVisualCards } from '@/components/office/ClientBudgetVisualCards';
 import { PortalNextAppointmentHero } from '@/components/portal/assist/PortalNextAppointmentHero';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
@@ -453,6 +454,23 @@ export function ClientPortalHomeDashboard({
         </View>
       </View>
 
+      {budgetReleased && data.budgetVisuals.length > 0 ? (
+        <View style={styles.budgetExperience} testID="client-portal-budget-visuals">
+          <View style={styles.budgetHeading}>
+            <View style={styles.budgetHeadingIcon}>
+              <Ionicons name="wallet-outline" color={ink.blue} size={22} />
+            </View>
+            <View style={styles.budgetHeadingCopy}>
+              <Text style={[type.cardTitle, styles.sectionTitle]}>Ihre finanziellen Möglichkeiten</Text>
+              <Text style={[type.caption, styles.sectionSubtitle]}>
+                Entlastungsbetrag und 40-%-Umwandlung bleiben für Sie immer verständlich sichtbar.
+              </Text>
+            </View>
+          </View>
+          <ClientBudgetVisualCards models={data.budgetVisuals} />
+        </View>
+      ) : null}
+
       <View style={styles.sectionHeading}>
         <View>
           <Text style={[type.cardTitle, styles.sectionTitle]}>Ihre Bereiche</Text>
@@ -529,6 +547,30 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     gap: careSpacing.lg,
     paddingBottom: careSpacing.xl,
+  },
+  budgetExperience: {
+    width: '100%',
+    gap: careSpacing.md,
+  },
+  budgetHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  budgetHeadingIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(5,108,232,0.2)',
+    backgroundColor: 'rgba(5,108,232,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  budgetHeadingCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
   welcomeHero: {
     minHeight: 220,

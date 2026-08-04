@@ -6,6 +6,14 @@ import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { runService } from '@/lib/services/serviceRunner';
+import { buildClientBudgetVisualModels, type ClientBudgetVisualModel } from '@/lib/assist/clientBudgetVisuals';
+import {
+  mapBudgetAccountRow,
+  mapCareEntitlementRow,
+  mapCatalogRow,
+  mapServiceEntitlementRow,
+} from '@/lib/assist/clientAssistBillingMappers';
+import type { ClientAssistBillingProfile } from '@/types/assist/clientAssistBilling';
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -57,5 +65,86 @@ export async function fetchPortalBudgetSnapshot(
     }
 
     return { ok: true, data: null };
+  });
+}
+
+/**
+ * Portal read model for the rebuilt budget experience. It deliberately returns both cards,
+ * even when conversion is not activated, so clients can see their unused potential.
+ */
+export async function fetchPortalBudgetVisuals(
+  tenantId: string,
+  clientId: string,
+  asOfDate = new Date().toISOString().slice(0, 10),
+): Promise<ServiceResult<ClientBudgetVisualModel[]>> {
+  return runService(async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return unavailable();
+    const budgetYear = Number(asOfDate.slice(0, 4));
+
+    const [entitlementResult, accountResult, serviceResult, templateResult] = await Promise.all([
+      fromUnknownTable(supabase, 'client_care_entitlement')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .lte('valid_from', asOfDate)
+        .or(`valid_until.is.null,valid_until.gte.${asOfDate}`)
+        .order('valid_from', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      fromUnknownTable(supabase, 'client_budget_accounts')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .in('status', ['active', 'suspended'])
+        .lte('period_start', asOfDate)
+        .gte('period_end', asOfDate),
+      fromUnknownTable(supabase, 'client_service_entitlements')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .eq('is_active', true)
+        .lte('valid_from', asOfDate),
+      fromUnknownTable(supabase, 'budget_template_catalog')
+        .select('*')
+        .eq('budget_year', budgetYear)
+        .eq('is_active', true),
+    ]);
+
+    const firstError = entitlementResult.error ?? accountResult.error ?? serviceResult.error ?? templateResult.error;
+    if (firstError) {
+      if (isMissingTableError(firstError)) return { ok: true, data: [] };
+      return { ok: false, error: toGermanSupabaseError(firstError) };
+    }
+
+    const careEntitlement = entitlementResult.data
+      ? mapCareEntitlementRow(entitlementResult.data as Record<string, unknown>)
+      : null;
+    const careGrade = careEntitlement?.careGrade ?? null;
+    const templates = (templateResult.data ?? []).map((row) => mapCatalogRow(row as Record<string, unknown>));
+    const labelByKey = new Map(templates.map((template) => [template.catalogKey, template.label]));
+    const accounts = (accountResult.data ?? []).map((row) =>
+      mapBudgetAccountRow(row as Record<string, unknown>, labelByKey.get(String(row.catalog_key))),
+    );
+    const services = (serviceResult.data ?? []).map((row) =>
+      mapServiceEntitlementRow(row as Record<string, unknown>),
+    );
+    const profile: ClientAssistBillingProfile = {
+      asOfDate,
+      budgetYear,
+      careGrade,
+      careEntitlement,
+      conversionEligible: careEntitlement?.conversionEnabled === true,
+      carePreventionMode: 'separate_preventive_short_term',
+      serviceEntitlements: services,
+      budgetAccounts: accounts,
+      budgetVisualAccounts: accounts,
+      priorityRules: [],
+      warnings: [],
+      templates,
+      canUseBudgetByCatalogKey: {},
+    };
+
+    return { ok: true, data: buildClientBudgetVisualModels(profile) };
   });
 }

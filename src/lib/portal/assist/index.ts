@@ -6,7 +6,7 @@ export {
   validatePortalRequestPayload,
 } from './portalRequestFormOptions';
 export { listPortalActivities, logPortalActivity } from './portalActivityService';
-export { fetchPortalBudgetSnapshot } from './portalBudgetService';
+export { fetchPortalBudgetSnapshot, fetchPortalBudgetVisuals } from './portalBudgetService';
 export { fetchAssistDashboardData } from './portalAssistDashboardService';
 export {
   countOpenPortalServiceProofs,

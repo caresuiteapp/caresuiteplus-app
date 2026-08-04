@@ -94,9 +94,6 @@ export async function getClientBudgetAccounts(
     return {
       ok: true,
       data: (data ?? []).map((row) => {
-        const template = templates.ok
-          ? templates.data.find((t) => t.catalogKey === row.catalog_key)
-          : undefined;
         return mapBudgetAccountRow(
           row as Record<string, unknown>,
           labelMap.get(row.catalog_key as string),
@@ -125,6 +122,8 @@ export type UpdateClientBudgetAccountInput = {
   lockReason?: string | null;
   isEnabled?: boolean;
   status?: ClientBudgetAccount['status'];
+  externalSachleistungCents?: number;
+  auditReason?: string;
 };
 
 export async function updateClientBudgetAccount(
@@ -153,6 +152,9 @@ export async function updateClientBudgetAccount(
     if (input.lockReason !== undefined) patch.lock_reason = input.lockReason;
     if (input.isEnabled !== undefined) patch.is_enabled = input.isEnabled;
     if (input.status !== undefined) patch.status = input.status;
+    if (input.externalSachleistungCents !== undefined) {
+      patch.external_sachleistung_cents = Math.max(0, input.externalSachleistungCents);
+    }
 
     if (input.isIndividualOverride && input.individualAmountCents != null) {
       patch.allocated_cents = input.individualAmountCents;
@@ -166,7 +168,10 @@ export async function updateClientBudgetAccount(
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
 
-    await writeBillingAuditLog(tenantId, clientId, 'update_budget_account', 'client_budget_accounts', accountId, patch);
+    await writeBillingAuditLog(tenantId, clientId, 'update_budget_account', 'client_budget_accounts', accountId, {
+      ...patch,
+      auditReason: input.auditReason?.trim() || null,
+    });
     await recalculateClientBudgetAvailability(tenantId, clientId);
 
     const list = await getClientBudgetAccounts(tenantId, clientId);
@@ -354,7 +359,11 @@ async function ensureAccountForTemplate(
   const client = getSupabaseClient();
   if (!client) return { created: false, account: null };
 
-  const { periodStart, periodEnd } = periodBoundsForDate(template.period, asOfDate);
+  const standardBounds = periodBoundsForDate(template.period, asOfDate);
+  const periodStart = standardBounds.periodStart;
+  const periodEnd = template.catalogKey === 'paragraph_45b'
+    ? `${asOfDate.getFullYear() + 1}-06-30`
+    : standardBounds.periodEnd;
 
   const existing = existingAccounts.find(
     (a) =>
@@ -428,6 +437,7 @@ export async function ensureClientBudgetAccountsForDate(
   clientId: string,
   careGrade: ClientCareGrade | null,
   asOfDate: Date = new Date(),
+  entitlementValidFrom?: string | null,
 ): Promise<ServiceResult<ClientBudgetAccount[]>> {
   return runService(async () => {
     const denied = guardServiceTenant(tenantId);
@@ -443,7 +453,36 @@ export async function ensureClientBudgetAccountsForDate(
 
     let accounts = [...existingResult.data];
 
+    const entlastungTemplate = applicable.find((template) => template.catalogKey === 'paragraph_45b');
+    if (entlastungTemplate) {
+      const startOfCurrentMonth = new Date(asOfDate.getFullYear(), asOfDate.getMonth(), 1);
+      const entitlementStart = entitlementValidFrom
+        ? new Date(`${entitlementValidFrom.slice(0, 10)}T12:00:00.000Z`)
+        : startOfCurrentMonth;
+      const firstMonth = new Date(
+        asOfDate.getFullYear(),
+        Math.max(0, entitlementStart.getFullYear() === asOfDate.getFullYear() ? entitlementStart.getMonth() : 0),
+        1,
+      );
+
+      for (
+        let month = firstMonth;
+        month <= startOfCurrentMonth;
+        month = new Date(month.getFullYear(), month.getMonth() + 1, 1)
+      ) {
+        const { account } = await ensureAccountForTemplate(
+          tenantId,
+          clientId,
+          entlastungTemplate,
+          month,
+          accounts,
+        );
+        if (account && !accounts.some((existing) => existing.id === account.id)) accounts.push(account);
+      }
+    }
+
     for (const template of applicable) {
+      if (template.catalogKey === 'paragraph_45b') continue;
       if (template.catalogKey.startsWith('umwandlung_') && careGrade === 'pg1') continue;
 
       const { account } = await ensureAccountForTemplate(

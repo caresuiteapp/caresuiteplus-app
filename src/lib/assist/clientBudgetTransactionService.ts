@@ -41,13 +41,19 @@ export function selectAccountForReservation(
   amountCents: number,
   catalogKeyHint?: string | null,
 ): ClientBudgetAccount | null {
+  const ordered = [...accounts].sort((a, b) => {
+    const priority = a.billingPriority - b.billingPriority;
+    if (priority !== 0) return priority;
+    const expiry = a.periodEnd.localeCompare(b.periodEnd);
+    return expiry !== 0 ? expiry : a.periodStart.localeCompare(b.periodStart);
+  });
   if (catalogKeyHint) {
-    const hinted = accounts.find(
+    const hinted = ordered.find(
       (a) => a.catalogKey === catalogKeyHint && computeAvailableCents(a) >= amountCents,
     );
     if (hinted) return hinted;
   }
-  return accounts.find((a) => computeAvailableCents(a) >= amountCents) ?? null;
+  return ordered.find((a) => computeAvailableCents(a) >= amountCents) ?? null;
 }
 
 async function writeBillingAuditLog(
@@ -99,7 +105,7 @@ async function patchAccountBalances(
   const account = await loadAccountById(tenantId, accountId);
   if (!account) return { ok: false, error: 'Budgetkonto nicht gefunden.' };
 
-  const used = account.usedCents + (deltas.usedDelta ?? 0);
+  const used = Math.max(0, account.usedCents + (deltas.usedDelta ?? 0));
   const reserved = Math.max(0, account.reservedCents + (deltas.reservedDelta ?? 0));
 
   const { error } = await fromUnknownTable(client, 'client_budget_accounts')
@@ -205,14 +211,17 @@ async function resolveAccountForAmount(
   catalogKeyHint?: string | null,
   asOfDate?: Date,
 ): Promise<ServiceResult<ClientBudgetAccount>> {
-  const year = (asOfDate ?? new Date()).getFullYear();
-  const accountsResult = await listClientBudgetAccounts(tenantId, clientId, year);
+  const accountsResult = await listClientBudgetAccounts(tenantId, clientId);
   if (!accountsResult.ok) return accountsResult;
 
   const rulesResult = await listClientBillingPriorityRules(tenantId, clientId);
   if (!rulesResult.ok) return rulesResult;
 
-  const sorted = sortAccountsByPriority(accountsResult.data, rulesResult.data);
+  const dateKey = (asOfDate ?? new Date()).toISOString().slice(0, 10);
+  const eligibleAccounts = accountsResult.data.filter(
+    (account) => account.periodStart <= dateKey && account.periodEnd >= dateKey,
+  );
+  const sorted = sortAccountsByPriority(eligibleAccounts, rulesResult.data);
   const picked = selectAccountForReservation(sorted, amountCents, catalogKeyHint);
   if (!picked) {
     return { ok: false, error: 'Kein Budgetkonto mit ausreichend verfügbarem Betrag.' };
@@ -356,7 +365,7 @@ export async function markAssignmentExecuted(
     if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
     const rpcResult = await markAssignmentExecutedViaRpc(tenantId, visitId, createdBy);
-    if (rpcResult.ok && rpcResult.data > 0) {
+    if (rpcResult.ok) {
       for (const reservation of reservations) {
         await writeBillingAuditLog(
           tenantId,
@@ -364,7 +373,7 @@ export async function markAssignmentExecuted(
           'assignment_executed',
           'client_budget_transactions',
           reservation.id as string,
-          { visitId, lifecycleStatus: 'durchgefuehrt', via: 'rpc' },
+          { visitId, lifecycleStatus: 'durchgefuehrt', via: 'rpc', updatedRows: rpcResult.data },
           createdBy,
         );
       }
@@ -488,10 +497,17 @@ export async function consumeOnProofApproval(
     });
     if (!usageTx.ok) return usageTx;
 
-    const reservedRelease = reservations.reduce((sum, r) => sum + Number(r.amount_cents), 0);
+    const executedAmount = reservations
+      .filter((reservation) => reservation.lifecycle_status === 'durchgefuehrt')
+      .reduce((sum, reservation) => sum + Number(reservation.amount_cents), 0);
+    const plannedReservedAmount = reservations
+      .filter((reservation) => reservation.lifecycle_status !== 'durchgefuehrt')
+      .reduce((sum, reservation) => sum + Number(reservation.amount_cents), 0);
     await patchAccountBalances(tenantId, accountId, {
-      usedDelta: amountCents,
-      reservedDelta: reservedRelease > 0 ? -Math.min(reservedRelease, amountCents) : 0,
+      // A completed assignment is already visible as used. Proof approval only reconciles
+      // the final billable amount and must never double-consume the budget.
+      usedDelta: amountCents - executedAmount,
+      reservedDelta: plannedReservedAmount > 0 ? -plannedReservedAmount : 0,
     });
 
     for (const reservation of reservations) {

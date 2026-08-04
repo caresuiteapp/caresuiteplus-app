@@ -4,7 +4,6 @@ import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import {
   FilterChipGroup,
   InfoBanner,
-  PremiumButton,
   PremiumCard,
   PremiumInput,
 } from '@/components/ui';
@@ -28,6 +27,7 @@ import {
 } from '@/lib/assist/clientCareGradeBudgetsViewModel';
 import { formatCurrency } from '@/lib/formatters/numberFormatters';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
+import { updateClientBudgetAccount } from '@/lib/assist/clientBudgetAccountService';
 import type {
   ClientAssistBillingProfile,
   ClientBudgetAccount,
@@ -529,6 +529,118 @@ export function BudgetCorrectionModal({
           multiline
           editable={!isReadOnly}
         />
+        <ModalFeedback error={error} success={success} />
+      </View>
+    </AppGlassModal>
+  );
+}
+
+export function ExternalSachleistungModal({
+  visible,
+  onClose,
+  onSaved,
+  isReadOnly,
+  accounts,
+}: ModalBaseProps & { accounts: ClientBudgetAccount[] }) {
+  const tenantId = useServiceTenantId();
+  const conversionAccount = accounts.find((account) => account.catalogKey.startsWith('umwandlung_')) ?? null;
+  const [amountEuro, setAmountEuro] = useState('');
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    setAmountEuro(
+      conversionAccount?.externalSachleistungCents
+        ? String(conversionAccount.externalSachleistungCents / 100).replace('.', ',')
+        : '0',
+    );
+    setReason('');
+    setError(null);
+    setSuccess(null);
+  }, [conversionAccount?.externalSachleistungCents, visible]);
+
+  async function handleSave() {
+    if (isReadOnly || !tenantId || !conversionAccount) return;
+    const parsed = Number(amountEuro.trim().replace(',', '.'));
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setError('Bitte einen gültigen Betrag ab 0,00 € eingeben.');
+      return;
+    }
+    if (!reason.trim()) {
+      setError('Die Herkunft beziehungsweise Begründung ist Pflicht.');
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const result = await updateClientBudgetAccount(
+        tenantId,
+        conversionAccount.clientId,
+        conversionAccount.id,
+        {
+          externalSachleistungCents: Math.round(parsed * 100),
+          auditReason: reason.trim(),
+        },
+      );
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSuccess('Externe Pflegesachleistung wurde übernommen.');
+      onSaved();
+      setTimeout(onClose, 600);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <AppGlassModal
+      visible={visible}
+      title="Pflegedienstanteil eintragen"
+      subtitle="Für eine realistische Pflegegeldprognose im aktuellen Monat"
+      onClose={onClose}
+      footerActions={[
+        { title: 'Abbrechen', onPress: onClose, variant: 'secondary' },
+        {
+          title: saving ? 'Speichern…' : 'Übernehmen',
+          onPress: handleSave,
+          variant: 'primary',
+          disabled: isReadOnly || saving || !conversionAccount,
+        },
+      ]}
+    >
+      <View style={styles.body}>
+        {conversionAccount ? (
+          <>
+            <InfoBanner
+              message="Tragen Sie hier die im aktuellen Monat bereits genutzten Pflegesachleistungen anderer Anbieter ein. Dieser Betrag wird nicht von unserem Budget abgezogen, beeinflusst aber die Pflegegeldprognose."
+              variant="info"
+            />
+            <PremiumInput
+              {...FORM_CTX}
+              label="Pflegesachleistung anderer Anbieter (€)"
+              value={amountEuro}
+              onChangeText={setAmountEuro}
+              keyboardType="decimal-pad"
+              editable={!isReadOnly}
+            />
+            <PremiumInput
+              {...FORM_CTX}
+              label="Quelle / Begründung (Pflicht)"
+              value={reason}
+              onChangeText={setReason}
+              multiline
+              placeholder="z. B. Mitteilung der Pflegekasse vom …"
+              editable={!isReadOnly}
+            />
+          </>
+        ) : (
+          <InfoBanner message="Für diesen Pflegegrad ist kein Umwandlungskonto vorhanden." variant="warning" />
+        )}
         <ModalFeedback error={error} success={success} />
       </View>
     </AppGlassModal>
