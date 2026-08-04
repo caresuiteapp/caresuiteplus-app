@@ -35,6 +35,7 @@ import {
 import { getServiceIntakeSections, careContextsToServiceTypeKeys } from '@/lib/client/clientServiceTypeService';
 import { fetchClientIntakeEditData } from '@/lib/clients/clientIntakeEditService';
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
+import type { ClientFundingSourceKey } from '@/types/clients/clientFundingSource';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 
@@ -370,6 +371,32 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     });
   }, []);
 
+  const updateFundingSources = useCallback((fundingSources: ClientFundingSourceKey[]) => {
+    const selfPay = fundingSources.includes('selbstzahler');
+    const hasStatutory = fundingSources.some((source) => source !== 'selbstzahler');
+    const billingTypes = selfPay && hasStatutory
+      ? ['kombi']
+      : selfPay
+        ? ['selbstzahler']
+        : hasStatutory
+          ? ['pflegekasse']
+          : [];
+    setForm((prev) => ({
+      ...prev,
+      fundingSources,
+      selfPay,
+      billingTypes,
+      billingType: billingTypes[0] ?? '',
+    }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.fundingSources;
+      delete next.billingTypes;
+      delete next.billingType;
+      return next;
+    });
+  }, []);
+
   const updateCostBearerTypes = useCallback((nextTypes: string[]) => {
     setForm((prev) => ({
       ...clearDeselectedCostBearerTypes(prev, nextTypes),
@@ -603,6 +630,7 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     hasPersistedDraft: draftRestored || hasIntakeDraftContent({ form, stepIndex }),
     updateField,
     updateBillingTypes,
+    updateFundingSources,
     updateCostBearerTypes,
     commitCostBearer,
     removeCostBearer,

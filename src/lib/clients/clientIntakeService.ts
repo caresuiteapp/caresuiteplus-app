@@ -96,6 +96,9 @@ export function validateIntakeStep(
   const required = getRequiredFieldsForClientContext(form.careContexts);
 
   if (section === 'kostentraeger') {
+    if (form.fundingSources.length === 0) {
+      errors.fundingSources = 'Mindestens eine Finanzierungsart auswählen.';
+    }
     if (required.includes('billingTypes') && form.billingTypes.length === 0) {
       errors.billingTypes = 'Abrechnungsart ist erforderlich.';
     }

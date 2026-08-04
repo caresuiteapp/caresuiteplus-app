@@ -21,6 +21,8 @@ import {
   listClientServiceEntitlements,
 } from './clientBudgetAccountService';
 import { computeCanUseBudgetByCatalogKey } from './clientBudgetTransactionService';
+import { getClientFundingSelection } from '@/lib/clients/clientFundingSourceService';
+import { isCatalogKeySelected } from '@/types/clients/clientFundingSource';
 
 export type GetClientAssistBillingProfileInput = {
   tenantId: string;
@@ -86,12 +88,13 @@ export async function getClientAssistBillingProfile(
       regenerateAccounts: autoGenerateAccounts,
     });
 
-    const [entitlementsResult, servicesResult, templatesResult, priorityResult, modeResult] = await Promise.all([
+    const [entitlementsResult, servicesResult, templatesResult, priorityResult, modeResult, fundingResult] = await Promise.all([
       listClientCareEntitlements(tenantId, clientId, asOfDate),
       listClientServiceEntitlements(tenantId, clientId),
       listBudgetTemplatesByYear(budgetYear),
       listClientBillingPriorityRules(tenantId, clientId),
       getClientBudgetMode(tenantId, clientId, budgetYear),
+      getClientFundingSelection(tenantId, clientId),
     ]);
 
     if (!entitlementsResult.ok) return entitlementsResult;
@@ -99,6 +102,9 @@ export async function getClientAssistBillingProfile(
     if (!templatesResult.ok) return templatesResult;
     if (!priorityResult.ok) return priorityResult;
     if (!modeResult.ok) return modeResult;
+    if (!fundingResult.ok) return fundingResult;
+
+    const fundingSources = fundingResult.data?.sources ?? [];
 
     const careEntitlement = entitlementsResult.data[0] ?? null;
     const careGrade: ClientCareGrade | null = careEntitlement?.careGrade ?? null;
@@ -112,15 +118,19 @@ export async function getClientAssistBillingProfile(
         careGrade,
         asOf,
         careEntitlement?.validFrom,
+        fundingSources,
       );
     }
 
     const accountsResult = await listClientBudgetAccounts(tenantId, clientId);
     if (!accountsResult.ok) return accountsResult;
 
-    const currentAccounts = selectCurrentBudgetAccounts(accountsResult.data, asOfDate);
+    const selectedAccounts = accountsResult.data.filter((account) =>
+      isCatalogKeySelected(account.catalogKey, fundingSources),
+    );
+    const currentAccounts = selectCurrentBudgetAccounts(selectedAccounts, asOfDate);
     const sortedAccounts = sortAccountsByPriority(currentAccounts, priorityResult.data);
-    const budgetVisualAccounts = accountsResult.data.filter(
+    const budgetVisualAccounts = selectedAccounts.filter(
       (account) => account.periodStart <= asOfDate && account.periodEnd >= asOfDate,
     );
 
@@ -134,7 +144,8 @@ export async function getClientAssistBillingProfile(
     const warningsResult = await listClientBillingWarnings(tenantId, clientId, { unresolvedOnly: true });
     if (!warningsResult.ok) return warningsResult;
 
-    const applicableTemplates = filterTemplatesForCareGrade(templatesResult.data, careGrade);
+    const applicableTemplates = filterTemplatesForCareGrade(templatesResult.data, careGrade)
+      .filter((template) => isCatalogKeySelected(template.catalogKey, fundingSources));
     const canUseBudgetByCatalogKey = computeCanUseBudgetByCatalogKey(sortedAccounts, careGrade);
 
     const carePreventionMode =
@@ -148,6 +159,7 @@ export async function getClientAssistBillingProfile(
         careGrade,
         careEntitlement,
         conversionEligible,
+        fundingSources,
         carePreventionMode,
         serviceEntitlements: servicesResult.data,
         budgetAccounts: sortedAccounts,

@@ -34,13 +34,15 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Client intake step 5 — Kostenträger / Abrechnung', () => {
-  it('Wizard nutzt Mehrfachauswahl für Abrechnungsart und Kostenträgertyp', () => {
+  it('Wizard nutzt die verbindliche Finanzierungs-Mehrfachauswahl und Kostenträgertypen', () => {
     const form = readSrc('components/office/clientintakewizardform.tsx');
     expect(form).toContain('CareMultiCatalogSelect');
-    expect(form).toContain('values={form.billingTypes}');
+    expect(form).toContain('ClientFundingSourceSelector');
+    expect(form).toContain('values={form.fundingSources}');
     expect(form).toContain('values={form.costBearerTypes}');
-    expect(form).toContain('updateBillingTypes');
+    expect(form).toContain('updateFundingSources');
     expect(form).toContain('updateCostBearerTypes');
+    expect(form).not.toContain('values={form.billingTypes}');
     expect(form).not.toContain('value={form.billingType}');
     expect(form).not.toContain('value={form.costBearerType}');
   });

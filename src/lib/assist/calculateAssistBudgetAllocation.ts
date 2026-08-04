@@ -4,6 +4,7 @@
  */
 import type { RoleKey } from '@/types';
 import type { ClientAssistBillingProfile, ClientBudgetAccount } from '@/types/assist/clientAssistBilling';
+import type { ClientFundingSourceKey } from '@/types/clients/clientFundingSource';
 import {
   BUDGET_TEMPLATE_LABELS,
   isConversionEligibleForGrade,
@@ -19,8 +20,28 @@ import { computeAvailableCents } from './clientBudgetTransactionService';
 import { getClientAssistBillingProfile } from './clientAssistBillingProfileService';
 import { hasPermission } from '@/lib/permissions/check';
 
-const PREVENTIVE_KEYS = new Set(['verhinderungspflege', 'kurzzeitpflege', 'gemeinsames_jahresbudget']);
 const NON_RESERVABLE_KEYS = new Set(['kulanz', 'ungeklaert']);
+
+function hasFundingSource(
+  profile: ClientAssistBillingProfile,
+  source: ClientFundingSourceKey,
+): boolean {
+  if (Array.isArray(profile.fundingSources)) return profile.fundingSources.includes(source);
+  // Compatibility for old demo/test snapshots. Live profiles always provide the
+  // authoritative selection from client_funding_selections.
+  if (source === 'selbstzahler') {
+    return profile.serviceEntitlements.some(
+      (item) => item.isActive && (item.billingMode === 'self_payer' || item.billingMode === 'mixed'),
+    );
+  }
+  if (source === 'verhinderungspflege') {
+    return profile.serviceEntitlements.some(
+      (item) => item.isActive && item.serviceTypeKey?.includes('verhinderung') === true,
+    );
+  }
+  if (source === 'umwandlung') return profile.careEntitlement?.conversionEnabled === true;
+  return profile.budgetAccounts.some((account) => account.catalogKey === 'paragraph_45b');
+}
 
 /** Cent-accurate: plannedMinutes * hourlyRateCents / 60 */
 export function computeAssignmentAmountCents(
@@ -40,9 +61,7 @@ function accountLabel(account: ClientBudgetAccount): string {
 }
 
 function hasSelfPayerAgreement(profile: ClientAssistBillingProfile): boolean {
-  return profile.serviceEntitlements.some(
-    (s) => s.isActive && (s.billingMode === 'self_payer' || s.billingMode === 'mixed'),
-  );
+  return hasFundingSource(profile, 'selbstzahler');
 }
 
 function isPreventiveCareActivated(
@@ -55,14 +74,13 @@ function isPreventiveCareActivated(
     );
   }
   if (catalogKey === 'verhinderungspflege') {
-    return profile.serviceEntitlements.some(
-      (s) => s.isActive && s.serviceTypeKey?.includes('verhinderung') === true,
-    );
+    return hasFundingSource(profile, 'verhinderungspflege');
   }
   return false;
 }
 
 function isUmwandlungEligible(profile: ClientAssistBillingProfile): boolean {
+  if (!hasFundingSource(profile, 'umwandlung')) return false;
   if (!isConversionEligibleForGrade(profile.careGrade)) return false;
   if (!profile.careEntitlement?.conversionEnabled) return false;
   return true;
@@ -79,7 +97,9 @@ function buildPriorityOrderedAccounts(profile: ClientAssistBillingProfile): Clie
 
   const umwandlungKey = getUmwandlungTemplateKeyForGrade(profile.careGrade);
 
-  const orderedKeys: string[] = ['paragraph_45b'];
+  const orderedKeys: string[] = hasFundingSource(profile, 'entlastungsleistung')
+    ? ['paragraph_45b']
+    : [];
   if (umwandlungKey) {
     orderedKeys.push(umwandlungKey);
   }
@@ -88,7 +108,8 @@ function buildPriorityOrderedAccounts(profile: ClientAssistBillingProfile): Clie
   } else if (profile.budgetAccounts.some((a) => a.catalogKey === 'verhinderungspflege')) {
     orderedKeys.push('verhinderungspflege');
   }
-  orderedKeys.push('selbstzahler', 'kulanz', 'ungeklaert');
+  if (hasFundingSource(profile, 'selbstzahler')) orderedKeys.push('selbstzahler');
+  orderedKeys.push('kulanz', 'ungeklaert');
 
   const accountByKey = new Map(profile.budgetAccounts.map((a) => [a.catalogKey, a]));
   const result: ClientBudgetAccount[] = [];
@@ -272,7 +293,7 @@ export function calculateAssistBudgetAllocationFromProfile(
     });
   }
 
-  if (remaining > 0 && selfPayerAmountCents === 0) {
+  if (remaining > 0 && selfPayerAmountCents === 0 && selfPayerAgreement) {
     selfPayerAmountCents = remaining;
     proposal.push({
       priorityOrder: priorityCounter++,
@@ -289,6 +310,10 @@ export function calculateAssistBudgetAllocationFromProfile(
       warnings.push('Selbstzahlervereinbarung fehlt.');
     }
     remaining = 0;
+  }
+
+  if (remaining > 0 && !selfPayerAgreement) {
+    warnings.push('Budget reicht nicht aus und Selbstzahler ist nicht ausgewählt. Restbetrag bleibt ungeklärt.');
   }
 
   if (totalAmountCents > 0 && statutoryAmountCents + selfPayerAmountCents < totalAmountCents) {

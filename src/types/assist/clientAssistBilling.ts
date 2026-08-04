@@ -1,4 +1,5 @@
 import type { EntityId, ISODateTime } from '@/types/core/base';
+import type { ClientFundingSourceKey } from '@/types/clients/clientFundingSource';
 
 /** Pflegegrad keys aligned with client_care_entitlement. */
 export type ClientCareGrade = 'kein' | 'pg1' | 'pg2' | 'pg3' | 'pg4' | 'pg5' | 'hospiz';
@@ -174,6 +175,8 @@ export type ClientAssistBillingProfile = {
   careGrade: ClientCareGrade | null;
   careEntitlement: ClientCareEntitlement | null;
   conversionEligible: boolean;
+  /** Authoritative for live profiles; omitted only by legacy snapshots and loading fallbacks. */
+  fundingSources?: ClientFundingSourceKey[];
   carePreventionMode: ClientCarePreventionBudgetMode;
   serviceEntitlements: ClientServiceEntitlement[];
   budgetAccounts: ClientBudgetAccount[];

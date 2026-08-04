@@ -97,6 +97,7 @@ export function mapClientEditLoadToIntakeForm(input: {
     careFundName: edit.costCarrier || careLevel?.careFundName || intakeSnapshot?.careFundName || '',
     insuranceNumber: edit.insuranceNumber || intakeSnapshot?.insuranceNumber || '',
     billingTypes: inferBillingTypes(edit, billing?.notes),
+    fundingSources: intakeSnapshot?.fundingSources ?? [],
     billingType: edit.billingType,
     costBearerTypes,
     costBearerType: costBearerTypes[0] ?? '',

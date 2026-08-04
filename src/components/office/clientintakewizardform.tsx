@@ -1,4 +1,5 @@
 import { AssistCatalogMultiSelect } from '@/components/office/assistCatalog/AssistCatalogMultiSelect';
+import { ClientFundingSourceSelector } from '@/components/office/ClientFundingSourceSelector';
 import { DocumentModuleTemplatesPanel } from '@/components/documents/DocumentModuleTemplatesPanel';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -52,7 +53,7 @@ export function ClientIntakeSectionContent({
   /** Hides intake-only questions that are not part of the persisted client profile. */
   showIntakeOnlyFields?: boolean;
 }) {
-  const { form, errors, updateField, updateBillingTypes, updateCostBearerTypes, contextHint, tenantId, replaceForm, createdId } = wizard;
+  const { form, errors, updateField, updateFundingSources, updateCostBearerTypes, contextHint, tenantId, replaceForm, createdId } = wizard;
   const resolvedClientId = clientId ?? createdId ?? undefined;
   const panelCtx = panelViewContext ? { viewContext: panelViewContext } : {};
 
@@ -149,12 +150,10 @@ export function ClientIntakeSectionContent({
             <CareDateInput label="Pflegegrad gültig ab" value={form.careLevelValidFrom} onChange={(v) => updateField('careLevelValidFrom', v)} />
           </>
         ) : null}
-        <CareMultiCatalogSelect
-          catalogKey="billing_type"
-          label="Abrechnungsart *"
-          values={form.billingTypes}
-          onChange={updateBillingTypes}
-          error={errors.billingTypes}
+        <ClientFundingSourceSelector
+          values={form.fundingSources}
+          onChange={updateFundingSources}
+          error={errors.fundingSources}
         />
         <CareMultiCatalogSelect
           catalogKey="cost_bearer_type"

@@ -8,6 +8,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { parseHomeAccessStoredValue } from '@/lib/clients/clientIntakeHomeAccess';
 import { loadPersistedIntakeDocumentsForClient } from '@/features/intakeDocuments/intakeDocumentRepository';
+import { getClientFundingSelection } from '@/lib/clients/clientFundingSourceService';
 
 async function fetchIntakeSnapshot(
   tenantId: string,
@@ -16,7 +17,7 @@ async function fetchIntakeSnapshot(
   const supabase = getSupabaseClient();
   if (!supabase) return {};
 
-  const [clientResult, supportResult, ambulatoryResult, stationaryResult, insuranceResult] =
+  const [clientResult, supportResult, ambulatoryResult, stationaryResult, insuranceResult, fundingResult] =
     await Promise.all([
       fromUnknownTable(supabase, 'clients')
         .select('admission_date, service_start, birth_place, nationality, language, marital_status, housing_form, special_notes, preferred_contact')
@@ -44,6 +45,7 @@ async function fetchIntakeSnapshot(
         .eq('client_id', clientId)
         .eq('is_primary', true)
         .maybeSingle(),
+      getClientFundingSelection(tenantId, clientId),
     ]);
 
   const client = (clientResult.data ?? {}) as Record<string, unknown>;
@@ -110,6 +112,7 @@ async function fetchIntakeSnapshot(
     costBearerIk: text(insurance, 'cost_bearer_ik'),
     insuranceNumber: text(insurance, 'insurance_number'),
     selfPay: insurance.self_pay === true,
+    fundingSources: fundingResult.ok ? fundingResult.data?.sources ?? [] : [],
   };
 }
 

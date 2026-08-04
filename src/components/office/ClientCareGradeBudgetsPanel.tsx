@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
@@ -11,6 +11,7 @@ import {
   PremiumButton,
 } from '@/components/ui';
 import { ClientBudgetVisualCards } from '@/components/office/ClientBudgetVisualCards';
+import { ClientFundingSourceSelector } from '@/components/office/ClientFundingSourceSelector';
 import {
   BudgetCorrectionModal,
   BudgetRecalcModal,
@@ -37,6 +38,8 @@ import {
   type ClientBudgetTransaction,
 } from '@/types/assist/clientAssistBilling';
 import { colors, spacing, typography } from '@/theme';
+import type { ClientFundingSourceKey } from '@/types/clients/clientFundingSource';
+import { setClientFundingSources } from '@/lib/clients/clientFundingSourceService';
 
 function useBillingProfile(clientId: string) {
   const tenantId = useServiceTenantId();
@@ -138,6 +141,13 @@ export function ClientCareGradeBudgetsPanel({
   const profileQuery = useBillingProfile(clientId);
   const [typeFilter, setTypeFilter] = useState('all');
   const [modal, setModal] = useState<BudgetModal>(null);
+  const [fundingDraft, setFundingDraft] = useState<ClientFundingSourceKey[]>([]);
+  const [fundingSaving, setFundingSaving] = useState(false);
+  const [fundingError, setFundingError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (profileQuery.data) setFundingDraft(profileQuery.data.fundingSources ?? []);
+  }, [profileQuery.data]);
 
   const transactionsQuery = useAsyncQuery(
     () => {
@@ -162,6 +172,24 @@ export function ClientCareGradeBudgetsPanel({
   async function resolveWarning(warningId: string) {
     if (!tenantId || isReadOnly) return;
     await resolveClientBillingWarning(tenantId, clientId, warningId);
+    await refreshAll();
+  }
+
+  async function saveFundingSources() {
+    if (!tenantId || isReadOnly || fundingDraft.length === 0) return;
+    setFundingSaving(true);
+    setFundingError(null);
+    const result = await setClientFundingSources(
+      tenantId,
+      clientId,
+      fundingDraft,
+      profileQuery.data?.asOfDate ?? new Date().toISOString().slice(0, 10),
+    );
+    setFundingSaving(false);
+    if (!result.ok) {
+      setFundingError(result.error);
+      return;
+    }
     await refreshAll();
   }
 
@@ -212,6 +240,26 @@ export function ClientCareGradeBudgetsPanel({
           </View>
         </View>
       </LinearGradient>
+
+      <View style={styles.fundingPanel}>
+        <ClientFundingSourceSelector
+          values={fundingDraft}
+          onChange={setFundingDraft}
+          error={fundingError ?? undefined}
+          disabled={isReadOnly || fundingSaving}
+        />
+        {!isReadOnly ? (
+          <View style={styles.fundingActions}>
+            <Text style={[styles.fundingHint, { color: text.secondary }]}>Änderungen gelten ab heute; abgeschlossene Rechnungen bleiben unverändert.</Text>
+            <PremiumButton
+              title="Finanzierungsarten speichern"
+              onPress={saveFundingSources}
+              loading={fundingSaving}
+              disabled={fundingDraft.length === 0}
+            />
+          </View>
+        ) : null}
+      </View>
 
       <ClientBudgetVisualCards models={visuals} />
 
@@ -314,6 +362,9 @@ const styles = StyleSheet.create({
   heroFact: { minWidth: 165, flexGrow: 1, padding: spacing.md, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
   heroFactLabel: { color: 'rgba(226,242,255,0.55)', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 },
   heroFactValue: { color: '#FFFFFF', fontSize: 15, lineHeight: 21, fontWeight: '800', marginTop: 4, textTransform: 'capitalize' },
+  fundingPanel: { gap: spacing.md, padding: spacing.lg, borderRadius: 24, backgroundColor: 'rgba(8,30,65,0.56)', borderWidth: 1, borderColor: 'rgba(125,211,252,0.16)' },
+  fundingActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  fundingHint: { ...typography.caption, flex: 1, minWidth: 240 },
   actionBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, padding: spacing.lg, borderRadius: 24, backgroundColor: 'rgba(8,30,65,0.56)', borderWidth: 1, borderColor: 'rgba(125,211,252,0.14)' },
   actionCopy: { gap: 2 },
   actionTitle: { ...typography.label, fontSize: 16 },

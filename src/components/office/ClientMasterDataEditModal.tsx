@@ -71,6 +71,7 @@ const MASTER_SECTION_FIELDS: Partial<Record<
     'communication',
   ],
   kostentraeger: [
+    'fundingSources',
     'billingType',
     'billingTypes',
     'costBearerType',

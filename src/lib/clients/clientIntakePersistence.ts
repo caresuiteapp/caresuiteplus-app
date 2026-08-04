@@ -14,6 +14,7 @@ import { resolveIntakeBillingProfileType } from '@/lib/clients/clientIntakeBilli
 import { serializeHomeAccessValues } from '@/lib/clients/clientIntakeHomeAccess';
 import { syncClientCareEntitlementFromLegacy } from '@/lib/assist/clientCareEntitlementSyncService';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
+import { setClientFundingSources } from '@/lib/clients/clientFundingSourceService';
 
 function getClient() {
   return getSupabaseClient();
@@ -172,7 +173,7 @@ export async function persistIntakeClientExtendedData(
       cost_bearer_ik: form.costBearerIk.trim() || form.healthInsuranceIk.trim() || null,
       insurance_number: form.insuranceNumber.trim() || null,
       billing_type: billingType,
-      self_pay: form.selfPay,
+      self_pay: form.fundingSources.includes('selbstzahler'),
       is_primary: true,
     });
     if (insuranceError) return { ok: false, error: toGermanSupabaseError(insuranceError) };
@@ -271,6 +272,13 @@ export async function persistIntakeClientExtendedData(
   if (timelineError) return { ok: false, error: toGermanSupabaseError(timelineError) };
 
   await syncClientCareEntitlementFromLegacy(tenantId, clientId, { regenerateAccounts: true });
+  const fundingResult = await setClientFundingSources(
+    tenantId,
+    clientId,
+    form.fundingSources,
+    form.serviceStart.trim() || form.admissionDate || new Date().toISOString().slice(0, 10),
+  );
+  if (!fundingResult.ok) return fundingResult;
 
   return { ok: true, data: undefined };
 }
@@ -531,7 +539,7 @@ export async function syncIntakeClientExtendedData(
       cost_bearer_ik: form.costBearerIk.trim() || null,
       insurance_number: form.insuranceNumber.trim() || null,
       billing_type: billingType,
-      self_pay: form.selfPay,
+      self_pay: form.fundingSources.includes('selbstzahler'),
       is_primary: true,
     };
 
@@ -721,6 +729,16 @@ export async function syncIntakeClientExtendedData(
       // client intake or block profile changes; the next budget read can retry.
       console.warn('[clientIntakePersistence] care entitlement sync:', entitlementResult.error);
     }
+  }
+
+  if (shouldPersist('kostentraeger')) {
+    const fundingResult = await setClientFundingSources(
+      tenantId,
+      clientId,
+      form.fundingSources,
+      form.serviceStart.trim() || form.admissionDate || new Date().toISOString().slice(0, 10),
+    );
+    if (!fundingResult.ok) return fundingResult;
   }
 
   return { ok: true, data: undefined };

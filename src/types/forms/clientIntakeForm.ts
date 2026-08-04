@@ -1,5 +1,6 @@
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
 import type { IntakeDocumentState } from '@/features/intakeDocuments/intakeDocumentTypes';
+import type { ClientFundingSourceKey } from '@/types/clients/clientFundingSource';
 
 export type ClientIntakeFormData = {
   careContexts: ClientCareContext[];
@@ -77,6 +78,7 @@ export type ClientIntakeFormData = {
   insuranceNumber: string;
   billingType: string;
   billingTypes: string[];
+  fundingSources: ClientFundingSourceKey[];
   costBearerType: string;
   costBearerTypes: string[];
   activeCostBearerType: string;
@@ -212,6 +214,7 @@ export const EMPTY_CLIENT_INTAKE_FORM: ClientIntakeFormData = {
   insuranceNumber: '',
   billingType: '',
   billingTypes: [],
+  fundingSources: [],
   costBearerType: '',
   costBearerTypes: [],
   activeCostBearerType: '',

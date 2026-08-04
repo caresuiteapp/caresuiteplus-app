@@ -25,6 +25,8 @@ import {
   periodBoundsForDate,
 } from './clientAssistBillingMappers';
 import { refreshClientBillingWarningsAfterBudgetChange } from './clientBillingWarningsService';
+import type { ClientFundingSourceKey } from '@/types/clients/clientFundingSource';
+import { isCatalogKeySelected } from '@/types/clients/clientFundingSource';
 
 export {
   formatBudgetPeriodLabel,
@@ -438,6 +440,7 @@ export async function ensureClientBudgetAccountsForDate(
   careGrade: ClientCareGrade | null,
   asOfDate: Date = new Date(),
   entitlementValidFrom?: string | null,
+  fundingSources?: readonly ClientFundingSourceKey[],
 ): Promise<ServiceResult<ClientBudgetAccount[]>> {
   return runService(async () => {
     const denied = guardServiceTenant(tenantId);
@@ -447,7 +450,8 @@ export async function ensureClientBudgetAccountsForDate(
     const templatesResult = await listBudgetTemplatesByYear(budgetYear);
     if (!templatesResult.ok) return templatesResult;
 
-    const applicable = filterTemplatesForCareGrade(templatesResult.data, careGrade);
+    const applicable = filterTemplatesForCareGrade(templatesResult.data, careGrade)
+      .filter((template) => !fundingSources || isCatalogKeySelected(template.catalogKey, fundingSources));
     const existingResult = await listClientBudgetAccounts(tenantId, clientId, budgetYear);
     if (!existingResult.ok) return existingResult;
 

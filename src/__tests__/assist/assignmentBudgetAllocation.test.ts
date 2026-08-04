@@ -250,13 +250,14 @@ describe('Einsatz-Budget-Automatik (Tests 1–19)', () => {
     expect(r.selfPayerAmountCents).toBe(AMOUNT_6550);
   });
 
-  it('11. Selbstzahler ohne Vereinbarung erzeugt Warnung', () => {
+  it('11. Ohne ausgewählten Selbstzahler entsteht kein automatischer Eigenanteil', () => {
     const p = profile('pg1', [
       account({ id: 'a45', catalogKey: 'paragraph_45b', allocatedCents: 0, usedCents: 13100 }),
     ]);
     p.canUseBudgetByCatalogKey = { paragraph_45b: false };
     const r = allocate(p);
-    expect(r.warnings.some((w) => w.includes('Selbstzahlervereinbarung'))).toBe(true);
+    expect(r.selfPayerAmountCents).toBe(0);
+    expect(r.warnings.some((w) => w.includes('Selbstzahler ist nicht ausgewählt'))).toBe(true);
     expect(r.requiresManualApproval).toBe(true);
   });
 
