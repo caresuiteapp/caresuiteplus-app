@@ -1,85 +1,68 @@
-import { PortalEmptyState } from '@/product-workflows/components/portal/PortalEmptyState';
-import { PortalSectionGate } from '@/product-workflows/components/portal/PortalSectionGate';
+import { StyleSheet, Text, View } from 'react-native';
+import { ClientBudgetVisualCards } from '@/product-workflows/components/office/ClientBudgetVisualCards';
 import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScreen';
-import { LoadingState } from '@/product-workflows/components/ui';
+import { useAuroraAdaptiveText } from '@/product-workflows/design/tokens/auroraGlass';
+import { careSpacing } from '@/product-workflows/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { fetchClientPortalSettingsResolved } from '@/lib/client/clientPortalSettingsService';
-import { getClientPortalBudgetProjection } from '@/lib/portal/clientPortalProjectionService';
-import { GlassCard } from '@/product-workflows/design/components/GlassCard';
-import { StyleSheet, Text, View } from 'react-native';
-import { useAuroraAdaptiveText } from '@/product-workflows/design/tokens/auroraGlass';
-import { careSpacing } from '@/product-workflows/design/tokens/spacing';
-
-function formatEuro(cents: number): string {
-  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(cents / 100);
-}
+import { buildClientBudgetVisualPlaceholders } from '@/lib/assist/clientBudgetVisuals';
+import { fetchPortalBudgetVisuals } from '@/lib/portal/assist/portalBudgetService';
 
 export default function ClientPortalBudgetRoute() {
   const tenantId = useServiceTenantId();
   const { clientId, isReady } = usePortalActor();
   const text = useAuroraAdaptiveText();
 
-  const settingsQuery = useAsyncQuery(
-    () => {
-      if (!tenantId || !clientId) return Promise.resolve({ ok: false as const, error: 'Ihre Budgetdaten konnten gerade nicht zugeordnet werden.' });
-      return fetchClientPortalSettingsResolved(tenantId, clientId);
-    },
-    [tenantId, clientId],
-    { enabled: !!tenantId && !!clientId && isReady },
-  );
-
   const budgetQuery = useAsyncQuery(
     () => {
-      if (!tenantId || !clientId) return Promise.resolve({ ok: false as const, error: 'Ihre Budgetdaten konnten gerade nicht zugeordnet werden.' });
-      return getClientPortalBudgetProjection(tenantId, clientId);
+      if (!tenantId || !clientId) {
+        return Promise.resolve({
+          ok: false as const,
+          error: 'Ihre Budgetdaten konnten gerade nicht zugeordnet werden.',
+        });
+      }
+      return fetchPortalBudgetVisuals(tenantId, clientId);
     },
     [tenantId, clientId],
     { enabled: !!tenantId && !!clientId && isReady },
   );
 
-  if (!isReady || settingsQuery.loading) {
-    return (
-      <PortalTabScreen title="Budget">
-        <LoadingState message="Budget wird geladen…" />
-      </PortalTabScreen>
-    );
-  }
+  const visuals = budgetQuery.data ?? buildClientBudgetVisualPlaceholders();
 
   return (
     <PortalTabScreen title="Budget">
-      <PortalSectionGate settings={settingsQuery.data} feature="budget">
-        {!budgetQuery.data || budgetQuery.data.items.length === 0 ? (
-          <PortalEmptyState
-            icon="💶"
-            title="Kein Budget freigegeben"
-            message="Budgetinformationen erscheinen hier, sobald Ihr Pflegebüro sie freigibt."
-          />
+      <View style={styles.intro} testID="client-portal-budget-page-visuals">
+        <Text style={[styles.kicker, { color: text.muted }]}>MEINE FINANZIELLEN MÖGLICHKEITEN</Text>
+        <Text style={[styles.title, { color: text.primary }]}>Ihr Budget auf einen Blick</Text>
+        <Text style={[styles.subtitle, { color: text.secondary }]}>
+          Geld, mögliche Stunden und die Auswirkung auf Ihr Pflegegeld – automatisch aus Ihren aktuellen Angaben berechnet.
+        </Text>
+        {budgetQuery.loading || !isReady ? (
+          <Text style={[styles.liveStatus, { color: text.muted }]}>Persönliche Livewerte werden geladen …</Text>
+        ) : budgetQuery.error ? (
+          <Text style={[styles.liveStatus, { color: text.muted }]}>
+            Die persönlichen Buchungen werden gerade aktualisiert. Die Budgetkarten bleiben für Sie sichtbar.
+          </Text>
         ) : (
-          budgetQuery.data.items.map((item, index) => (
-            <GlassCard key={`${item.budgetTypeKey ?? index}`} style={styles.card}>
-              <Text style={[styles.title, { color: text.primary }]}>
-                {item.budgetTypeName ?? item.budgetTypeKey ?? 'Budget'}
-              </Text>
-              <View style={styles.row}>
-                <Text style={{ color: text.muted }}>Verfügbar</Text>
-                <Text style={{ color: text.primary }}>{formatEuro(item.remainingCents)}</Text>
-              </View>
-              <View style={styles.row}>
-                <Text style={{ color: text.muted }}>Verbraucht</Text>
-                <Text style={{ color: text.primary }}>{formatEuro(item.usedCents)}</Text>
-              </View>
-            </GlassCard>
-          ))
+          <Text style={[styles.liveStatus, { color: text.muted }]}>Persönliche Livewerte · automatisch aktuell</Text>
         )}
-      </PortalSectionGate>
+      </View>
+
+      <ClientBudgetVisualCards models={visuals} />
     </PortalTabScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { padding: careSpacing.md, marginBottom: careSpacing.sm },
-  title: { fontWeight: '700', marginBottom: careSpacing.sm },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginTop: careSpacing.xs },
+  intro: {
+    paddingHorizontal: careSpacing.sm,
+    paddingTop: careSpacing.sm,
+    paddingBottom: careSpacing.md,
+    gap: careSpacing.xs,
+  },
+  kicker: { fontSize: 11, lineHeight: 16, fontWeight: '800', letterSpacing: 1.1 },
+  title: { fontSize: 25, lineHeight: 31, fontWeight: '900', letterSpacing: -0.5 },
+  subtitle: { maxWidth: 760, fontSize: 14, lineHeight: 21 },
+  liveStatus: { marginTop: careSpacing.xs, fontSize: 12, lineHeight: 18, fontWeight: '700' },
 });

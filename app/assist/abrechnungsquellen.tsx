@@ -1,5 +1,5 @@
-import { OfficeModuleAssignmentListScreen } from '@/product-workflows/screens/business/office/OfficeModuleAssignmentListScreen';
+import { AssistBudgetOverviewScreen } from '@/product-workflows/screens/assist/AssistBudgetOverviewScreen';
 
 export default function Route() {
-  return <OfficeModuleAssignmentListScreen section="billing" />;
+  return <AssistBudgetOverviewScreen />;
 }
