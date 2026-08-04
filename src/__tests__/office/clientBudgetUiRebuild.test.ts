@@ -10,6 +10,7 @@ describe('client budget UI rebuild', () => {
   const office = source('src/components/office/ClientCareGradeBudgetsPanel.tsx');
   const visuals = source('src/components/office/ClientBudgetVisualCards.tsx');
   const portalDashboard = source('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
+  const portalDashboardService = source('src/lib/portal/assist/portalAssistDashboardService.ts');
 
   it('replaces the former technical section stack with one clear budget workspace', () => {
     expect(office).toContain('Budget auf einen Blick');
@@ -29,7 +30,13 @@ describe('client budget UI rebuild', () => {
 
   it('uses the same rebuilt visuals in the shared responsive client portal dashboard', () => {
     expect(portalDashboard).toContain('<ClientBudgetVisualCards models={data.budgetVisuals} />');
-    expect(portalDashboard).toContain('budgetReleased && data.budgetVisuals.length > 0');
+    expect(portalDashboard).not.toContain('data.budgetVisuals.length > 0');
+    expect(portalDashboard).not.toContain('budgetReleased && data.budgetVisuals.length > 0');
+    expect(visuals).toContain('buildClientBudgetVisualPlaceholders');
+    expect(visuals).toContain('models.length > 0 ? models : buildClientBudgetVisualPlaceholders()');
+    expect(portalDashboardService).toContain('fetchPortalBudgetVisuals(tenantId, clientId)');
+    expect(portalDashboardService).toContain('budgetVisuals,');
+    expect(portalDashboardService).not.toContain('budgetVisuals: budgetReleased ? budgetVisuals : []');
     expect(portalDashboard).toContain('Entlastungsbetrag und 40-%-Umwandlung');
   });
 });

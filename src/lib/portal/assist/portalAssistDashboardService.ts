@@ -5,10 +5,7 @@ import { listPortalActivities } from '@/lib/portal/assist/portalActivityService'
 import { fetchPortalBudgetVisuals } from '@/lib/portal/assist/portalBudgetService';
 import { listPortalRequests } from '@/lib/portal/assist/portalRequestService';
 import { countOpenPortalServiceProofs } from '@/lib/portal/assist/portalServiceProofService';
-import {
-  canAccessPortalFeature,
-  resolveApplicablePortalBudgetTypes,
-} from '@/lib/portal/engine/portalFeatureAccess';
+import { canAccessPortalFeature } from '@/lib/portal/engine/portalFeatureAccess';
 import type { PortalContext } from '@/lib/portal/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
@@ -164,10 +161,6 @@ export async function fetchAssistDashboardData(
     const tripsReleased = canAccessPortalFeature(context, 'assist', 'trips');
     const budgetReleased = canAccessPortalFeature(context, 'assist', 'budget');
     const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
-    const applicableBudgetTypes = budgetReleased
-      ? resolveApplicablePortalBudgetTypes(context.careProfile)
-      : [];
-
     const [
       metrics,
       upcomingAppointments,
@@ -192,9 +185,7 @@ export async function fetchAssistDashboardData(
         status: ['offen', 'in_bearbeitung'],
         limit: 5,
       }),
-      budgetReleased && applicableBudgetTypes.length > 0
-        ? fetchPortalBudgetVisuals(tenantId, clientId)
-        : Promise.resolve({ ok: true as const, data: [] }),
+      fetchPortalBudgetVisuals(tenantId, clientId),
     ]);
 
     const budgetVisuals = budgetResult.ok ? budgetResult.data : [];
@@ -234,7 +225,10 @@ export async function fetchAssistDashboardData(
         },
         activities: activitiesResult.ok ? activitiesResult.data : [],
         budget: budgetReleased ? budget : null,
-        budgetVisuals: budgetReleased ? budgetVisuals : [],
+        // The two explanatory budget cards are part of the portal home experience,
+        // not of the optional legacy budget section. Clients must always be able to
+        // see their §45b reserve and possible 40-% conversion potential.
+        budgetVisuals,
         openRequests: requestsResult.ok ? requestsResult.data : [],
       },
     };

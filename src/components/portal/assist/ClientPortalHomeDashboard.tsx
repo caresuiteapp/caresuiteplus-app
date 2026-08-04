@@ -454,22 +454,20 @@ export function ClientPortalHomeDashboard({
         </View>
       </View>
 
-      {budgetReleased && data.budgetVisuals.length > 0 ? (
-        <View style={styles.budgetExperience} testID="client-portal-budget-visuals">
-          <View style={styles.budgetHeading}>
-            <View style={styles.budgetHeadingIcon}>
-              <Ionicons name="wallet-outline" color={ink.blue} size={22} />
-            </View>
-            <View style={styles.budgetHeadingCopy}>
-              <Text style={[type.cardTitle, styles.sectionTitle]}>Ihre finanziellen Möglichkeiten</Text>
-              <Text style={[type.caption, styles.sectionSubtitle]}>
-                Entlastungsbetrag und 40-%-Umwandlung bleiben für Sie immer verständlich sichtbar.
-              </Text>
-            </View>
+      <View style={styles.budgetExperience} testID="client-portal-budget-visuals">
+        <View style={styles.budgetHeading}>
+          <View style={styles.budgetHeadingIcon}>
+            <Ionicons name="wallet-outline" color={ink.blue} size={22} />
           </View>
-          <ClientBudgetVisualCards models={data.budgetVisuals} />
+          <View style={styles.budgetHeadingCopy}>
+            <Text style={[type.cardTitle, styles.sectionTitle]}>Ihre finanziellen Möglichkeiten</Text>
+            <Text style={[type.caption, styles.sectionSubtitle]}>
+              Entlastungsbetrag und 40-%-Umwandlung bleiben für Sie immer verständlich sichtbar.
+            </Text>
+          </View>
         </View>
-      ) : null}
+        <ClientBudgetVisualCards models={data.budgetVisuals} />
+      </View>
 
       <View style={styles.sectionHeading}>
         <View>

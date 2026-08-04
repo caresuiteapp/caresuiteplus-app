@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildClientBudgetVisualModels,
+  buildClientBudgetVisualPlaceholders,
   calculateRemainingCareAllowanceCents,
   CARE_BUDGET_VALUES_2026,
 } from '@/lib/assist/clientBudgetVisuals';
@@ -102,6 +103,14 @@ describe('rebuilt client budget visuals', () => {
     expect(cards.map((card) => card.id)).toEqual(['entlastung', 'umwandlung']);
     expect(cards[1].enabled).toBe(false);
     expect(cards[1].statusLabel).toContain('Noch nicht aktiviert');
+  });
+
+  it('keeps both cards visible while personal live data is unavailable', () => {
+    const cards = buildClientBudgetVisualPlaceholders('2026-08-04');
+    expect(cards.map((card) => card.id)).toEqual(['entlastung', 'umwandlung']);
+    expect(cards[0].totalCents).toBe(13_100);
+    expect(cards[0].statusLabel).toContain('aktualisiert');
+    expect(cards[1].statusLabel).toContain('ermittelt');
   });
 
   it('converts remaining budget into hours using the actual hourly rate', () => {

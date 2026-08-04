@@ -224,3 +224,47 @@ export function buildClientBudgetVisualModels(
 
   return [entlastung, umwandlung];
 }
+
+/**
+ * Stable portal fallback: the budget experience must never disappear merely
+ * because live account data is temporarily unavailable.
+ */
+export function buildClientBudgetVisualPlaceholders(
+  asOfDate = new Date().toISOString().slice(0, 10),
+): [ClientBudgetVisualModel, ClientBudgetVisualModel] {
+  const budgetYear = Number(asOfDate.slice(0, 4));
+  const models = buildClientBudgetVisualModels({
+    asOfDate,
+    budgetYear: Number.isFinite(budgetYear) ? budgetYear : new Date().getFullYear(),
+    careGrade: null,
+    careEntitlement: null,
+    conversionEligible: false,
+    carePreventionMode: 'separate_preventive_short_term',
+    serviceEntitlements: [],
+    budgetAccounts: [],
+    budgetVisualAccounts: [],
+    priorityRules: [],
+    warnings: [],
+    templates: [],
+    canUseBudgetByCatalogKey: {},
+  });
+
+  return [
+    {
+      ...models[0],
+      statusLabel: 'Livebudget wird aktualisiert',
+      explanation: [
+        ...models[0].explanation,
+        'Die persönlichen Buchungen werden gerade geladen. Die Karte bleibt deshalb sichtbar und aktualisiert sich automatisch.',
+      ],
+    },
+    {
+      ...models[1],
+      statusLabel: 'Pflegegrad und Potenzial werden ermittelt',
+      explanation: [
+        ...models[1].explanation,
+        'Sobald der hinterlegte Pflegegrad geladen ist, erscheinen hier Monatsbetrag, mögliche Stunden und Pflegegeldprognose.',
+      ],
+    },
+  ];
+}

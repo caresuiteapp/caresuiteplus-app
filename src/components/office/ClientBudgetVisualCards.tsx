@@ -3,7 +3,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
-import type { ClientBudgetVisualModel } from '@/lib/assist/clientBudgetVisuals';
+import {
+  buildClientBudgetVisualPlaceholders,
+  type ClientBudgetVisualModel,
+} from '@/lib/assist/clientBudgetVisuals';
 import { formatCurrency } from '@/lib/formatters/numberFormatters';
 import { spacing, typography } from '@/theme';
 
@@ -148,9 +151,10 @@ function BudgetVisualCard({ model }: { model: ClientBudgetVisualModel }) {
 export function ClientBudgetVisualCards({ models }: { models: ClientBudgetVisualModel[] }) {
   const { width } = useWindowDimensions();
   const compact = width < 980;
+  const visibleModels = models.length > 0 ? models : buildClientBudgetVisualPlaceholders();
   return (
     <View style={[styles.grid, compact && styles.gridCompact]}>
-      {models.map((model) => (
+      {visibleModels.map((model) => (
         <View key={model.id} style={[styles.cardSlot, compact && styles.cardSlotCompact]}>
           <BudgetVisualCard model={model} />
         </View>
