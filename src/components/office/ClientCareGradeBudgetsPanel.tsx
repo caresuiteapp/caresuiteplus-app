@@ -236,7 +236,7 @@ export function ClientCareGradeBudgetsPanel({
               onPress={() => setModal('externalSachleistung')}
               disabled={!visuals[1].eligible}
             />
-            <PremiumButton title="Neu berechnen" variant="glass" onPress={() => setModal('recalc')} />
+            <PremiumButton title="Neu berechnen" variant="ghost" onPress={() => setModal('recalc')} />
           </View>
         </View>
       ) : null}
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
   heroFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   heroFact: { minWidth: 165, flexGrow: 1, padding: spacing.md, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
   heroFactLabel: { color: 'rgba(226,242,255,0.55)', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 },
-  heroFactValue: { color: '#FFFFFF', fontSize: 15, lineHeight: 21, fontWeight: '850', marginTop: 4, textTransform: 'capitalize' },
+  heroFactValue: { color: '#FFFFFF', fontSize: 15, lineHeight: 21, fontWeight: '800', marginTop: 4, textTransform: 'capitalize' },
   actionBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, padding: spacing.lg, borderRadius: 24, backgroundColor: 'rgba(8,30,65,0.56)', borderWidth: 1, borderColor: 'rgba(125,211,252,0.14)' },
   actionCopy: { gap: 2 },
   actionTitle: { ...typography.label, fontSize: 16 },

@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   legendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.sm },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 8, height: 8, borderRadius: 999 },
-  legendText: { color: 'rgba(226,242,255,0.68)', fontSize: 11, fontWeight: '650' },
+  legendText: { color: 'rgba(226,242,255,0.68)', fontSize: 11, fontWeight: '600' },
   careAllowancePanel: {
     flexDirection: 'row',
     justifyContent: 'space-between',

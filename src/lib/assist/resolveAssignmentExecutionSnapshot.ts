@@ -259,6 +259,7 @@ async function fetchSnapshotBatchRows(
   if (assignmentIds.length === 0 && visitIds.length === 0) {
     return {
       assignments,
+      tasksByAssignment,
       documentationByVisit,
       employeeInternalNotesByVisit,
       photoReferencesByVisit,

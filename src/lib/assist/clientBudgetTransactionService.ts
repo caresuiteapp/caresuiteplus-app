@@ -386,10 +386,7 @@ export async function markAssignmentExecuted(
           .eq('id', reservation.id as string);
 
         if (error) {
-          const message =
-            rpcResult.ok && rpcResult.data === 0
-              ? 'Budget-Reservierung konnte nicht auf „durchgeführt“ gesetzt werden.'
-              : rpcError ?? toGermanSupabaseError(error);
+          const message = rpcError ?? toGermanSupabaseError(error);
           return { ok: false, error: message };
         }
         directUpdated += 1;

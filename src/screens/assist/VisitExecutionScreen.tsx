@@ -387,7 +387,7 @@ export function VisitExecutionScreen() {
                 taskId: task.id,
                 status: task.status,
               })),
-              documentationNote: docText || visit.documentationNotes,
+              documentationNote: docText || visit.documentationNotes || null,
             }}
             disabled={isLocked}
             onSigned={async ({ persisted, warning }) => {
