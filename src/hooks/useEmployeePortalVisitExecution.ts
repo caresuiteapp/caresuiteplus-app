@@ -80,6 +80,7 @@ import {
   WORKFLOW_ACTION_TIMEOUT_MS,
   WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS,
   WORKFLOW_END_SERVICE_TIMEOUT_MS,
+  WORKFLOW_FINALIZE_TIMEOUT_MS,
   WORKFLOW_MARK_ARRIVED_TIMEOUT_MS,
   WORKFLOW_START_SERVICE_TIMEOUT_MS,
 } from '@/features/assistWorkflow/internal/withWorkflowTimeout';
@@ -1034,12 +1035,20 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   );
 
   const handleFinalize = useCallback(
-    () => runWorkflow((ctx) => finalizeVisit(ctx), { recoveryAction: 'finalize' }),
+    () => runWorkflow((ctx) => finalizeVisit(ctx), {
+      recoveryAction: 'finalize',
+      timeoutLabel: 'finalizeVisit',
+      timeoutMs: WORKFLOW_FINALIZE_TIMEOUT_MS,
+    }),
     [runWorkflow],
   );
 
   const handleFinalizeDeferred = useCallback(
-    () => runWorkflow((ctx) => finalizeVisitWithDeferredClientSignature(ctx), { recoveryAction: 'finalize_deferred' }),
+    () => runWorkflow((ctx) => finalizeVisitWithDeferredClientSignature(ctx), {
+      recoveryAction: 'finalize_deferred',
+      timeoutLabel: 'finalizeVisitDeferred',
+      timeoutMs: WORKFLOW_FINALIZE_TIMEOUT_MS,
+    }),
     [runWorkflow],
   );
 

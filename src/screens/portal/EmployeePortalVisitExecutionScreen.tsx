@@ -96,6 +96,10 @@ function formatExecutionSyncWarning(message: string): string {
   return message;
 }
 
+function isWorkflowConfirmationPending(errorCode?: string): boolean {
+  return errorCode === 'WORKFLOW_ACTION_TIMEOUT_UNCONFIRMED';
+}
+
 export function EmployeePortalVisitExecutionScreen() {
   const { id: rawId, step: rawStep } = useLocalSearchParams<{ id: string; step?: string }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
@@ -338,6 +342,10 @@ export function EmployeePortalVisitExecutionScreen() {
         setLocalSuccess(
           'Einsatz abgeschlossen — Unterschrift wurde ans Klient:innenportal gesendet.',
         );
+      } else if (isWorkflowConfirmationPending(r.errorCode)) {
+        setLocalWarning(
+          'Der Abschluss wird im Hintergrund bestätigt. Bitte nicht erneut tippen; der Status aktualisiert sich automatisch.',
+        );
       } else {
         setLocalError(r.error ?? 'Abschluss ohne Unterschrift fehlgeschlagen.');
       }
@@ -524,7 +532,11 @@ export function EmployeePortalVisitExecutionScreen() {
       if (action === 'finalize_visit') {
         const r = await finalizeVisit();
         if (r.ok) setLocalSuccess('Einsatz abgeschlossen — Leistungsnachweis erstellt.');
-        else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
+        else if (isWorkflowConfirmationPending(r.errorCode)) {
+          setLocalWarning(
+            'Der Abschluss wird im Hintergrund bestätigt. Bitte nicht erneut tippen; der Status aktualisiert sich automatisch.',
+          );
+        } else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
         return;
       }
       if (action === 'finalize_visit_deferred_signature') {
@@ -811,7 +823,11 @@ export function EmployeePortalVisitExecutionScreen() {
               onFinalize={async () => {
                 const r = await finalizeVisit();
                 if (r.ok) setLocalSuccess('Einsatz abgeschlossen — Leistungsnachweis erstellt.');
-                else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
+                else if (isWorkflowConfirmationPending(r.errorCode)) {
+                  setLocalWarning(
+                    'Der Abschluss wird im Hintergrund bestätigt. Bitte nicht erneut tippen; der Status aktualisiert sich automatisch.',
+                  );
+                } else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
               }}
               onFinalizeDeferred={() => {
                 void handleFinalizeDeferredSignature();
@@ -839,51 +855,12 @@ export function EmployeePortalVisitExecutionScreen() {
   };
 
   return (
-    <PortalTabScreen title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`} scroll={false}>
-      <EmployeePortalVisitStickyHeader
-        clientName={visit.clientName}
-        plannedStartAt={visit.plannedStartAt}
-        plannedEndAt={visit.plannedEndAt}
-        effectiveStatus={effectiveStatus}
-        timers={timers}
-        requiresSignature={visit.requiresSignature}
-        signatureCaptured={signatureCaptured || signatureDeferred}
-        showProgress={showCompactProgress(phase)}
-      />
-
-      <WorkflowToast
-        message={showSuccess ? localSuccess : null}
-        onDismiss={() => setLocalSuccess(null)}
-      />
-      {localError ? (
-        <ErrorState message={localError} />
-      ) : null}
-      {taskSaveError ? (
-        <ErrorState message={taskSaveError} />
-      ) : null}
-      {localWarning ? <InfoBanner variant="warning" message={localWarning} onDarkSurface /> : null}
-      {syncWarning ? (
-        <InfoBanner variant="warning" message={formatExecutionSyncWarning(syncWarning)} onDarkSurface />
-      ) : null}
-      {consistencyStatus === 'repairable' && nextActionHint ? (
-        <InfoBanner variant="info" message={nextActionHint} onDarkSurface />
-      ) : null}
-      <CachedDataBanner
-        visible={fromCache || readOnlyExecution}
-        cachedAt={cachedAt}
-        readOnly={readOnlyExecution}
-        partialDetail={partialDetail}
-        onDarkSurface
-      />
-      {readOnlyExecution ? (
-        <InfoBanner
-          variant="warning"
-          title="Nur Ansicht"
-          message="Offline oder zwischengespeichert — Workflow-Aktionen sind deaktiviert."
-          onDarkSurface
-        />
-      ) : null}
-
+    <PortalTabScreen
+      title={visit.title}
+      subtitle={`${visit.clientName} · Mitarbeiterportal`}
+      contentOwnsHero
+      scroll={false}
+    >
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={[styles.scroll, { paddingBottom: bottomPadding }]}
@@ -893,6 +870,52 @@ export function EmployeePortalVisitExecutionScreen() {
         style={styles.scrollViewport}
         testID="employee-visit-execution-scroll"
       >
+        <EmployeePortalVisitStickyHeader
+          clientName={visit.clientName}
+          plannedStartAt={visit.plannedStartAt}
+          plannedEndAt={visit.plannedEndAt}
+          effectiveStatus={effectiveStatus}
+          timers={timers}
+          requiresSignature={visit.requiresSignature}
+          signatureCaptured={signatureCaptured || signatureDeferred}
+          showProgress={showCompactProgress(phase)}
+        />
+
+        <WorkflowToast
+          message={showSuccess ? localSuccess : null}
+          onDismiss={() => setLocalSuccess(null)}
+        />
+        {localError ? <ErrorState message={localError} /> : null}
+        {taskSaveError ? <ErrorState message={taskSaveError} /> : null}
+        {localWarning ? (
+          <InfoBanner variant="warning" message={localWarning} onDarkSurface />
+        ) : null}
+        {syncWarning ? (
+          <InfoBanner
+            variant="warning"
+            message={formatExecutionSyncWarning(syncWarning)}
+            onDarkSurface
+          />
+        ) : null}
+        {consistencyStatus === 'repairable' && nextActionHint ? (
+          <InfoBanner variant="info" message={nextActionHint} onDarkSurface />
+        ) : null}
+        <CachedDataBanner
+          visible={fromCache || readOnlyExecution}
+          cachedAt={cachedAt}
+          readOnly={readOnlyExecution}
+          partialDetail={partialDetail}
+          onDarkSurface
+        />
+        {readOnlyExecution ? (
+          <InfoBanner
+            variant="warning"
+            title="Nur Ansicht"
+            message="Offline oder zwischengespeichert — Workflow-Aktionen sind deaktiviert."
+            onDarkSurface
+          />
+        ) : null}
+
         {!canExecute ? (
           <LockedActionBanner
             message={check('assist.execution.manage').reason ?? 'Statusänderungen gesperrt.'}

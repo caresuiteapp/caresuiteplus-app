@@ -22,6 +22,7 @@ import { PortalTextSizeControls } from '@/components/portal/accessibility/Portal
 import { webScaledFontMetric } from '@/design/web/webFontSize';
 import { PortalPremiumProvider } from '@/design/tokens/portalPremium';
 import {
+  isEmployeeVisitExecutionRoute,
   resolveCompactPortalLogoWidth,
   resolvePortalDesktopChrome,
 } from '@/lib/portal/portalResponsiveLayout';
@@ -67,6 +68,8 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
     auth.profile?.displayName || auth.portalSession?.displayName || auth.user?.displayName || 'Portal';
   const desktopChrome = resolvePortalDesktopChrome(layout.width);
   const compactLogoWidth = resolveCompactPortalLogoWidth(layout.width);
+  const visitExecutionFocus =
+    kind === 'employee' && isEmployeeVisitExecutionRoute(pathname);
 
   const activeId = useMemo(() => {
     const matching = [...navigation]
@@ -189,7 +192,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
           </LiquidSurface>
         </View>
       </View>
-      {!desktopChrome ? (
+      {!desktopChrome && !visitExecutionFocus ? (
         <>
           <View style={[styles.bottomNav, { bottom: Math.max(insets.bottom, 12) }]}>
             {compactNavigation.map((item) => (

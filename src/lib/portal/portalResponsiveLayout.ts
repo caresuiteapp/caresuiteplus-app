@@ -26,6 +26,15 @@ export function resolvePortalDesktopChrome(width: number): boolean {
   return width >= PORTAL_DESKTOP_CHROME_MIN_WIDTH;
 }
 
+/**
+ * The live visit workspace owns its own task bar. Rendering the regular portal
+ * navigation on top of it leaves only a narrow strip of usable content on
+ * phones and tablets.
+ */
+export function isEmployeeVisitExecutionRoute(pathname: string): boolean {
+  return /^\/portal\/employee\/assignments\/[^/]+\/execute\/?$/.test(pathname);
+}
+
 /** Keep the wordmark clear of text-size, messages and profile controls. */
 export function resolveCompactPortalLogoWidth(width: number): number {
   if (width >= 600) return 224;

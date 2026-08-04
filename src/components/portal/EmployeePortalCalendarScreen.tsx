@@ -169,7 +169,9 @@ const styles = StyleSheet.create({
       ? ({
           overflowX: 'auto',
           overflowY: 'hidden',
-          touchAction: 'pan-x',
+          // The grid may scroll horizontally, but a vertical swipe must keep
+          // moving the surrounding month page on touch devices.
+          touchAction: 'pan-x pan-y',
           WebkitOverflowScrolling: 'touch',
           overscrollBehaviorX: 'contain',
         } as unknown as ViewStyle)

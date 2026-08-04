@@ -15,6 +15,7 @@ import {
   webSafeAreaCalc,
 } from '@/lib/platform/webSafeArea';
 import { spacing } from '@/theme';
+import { isEmployeeVisitExecutionRoute } from '@/lib/portal/portalResponsiveLayout';
 
 type PortalTabScreenProps = {
   title: string;
@@ -51,18 +52,20 @@ export function PortalTabScreen({
   const isEmployeePortal = pathname.startsWith('/portal/employee');
   const isClientPortal = pathname.startsWith('/portal/client');
   const isPortalHome = pathname === '/portal/client' || pathname === '/portal/employee';
-  const contentProvidesHero = contentOwnsHero ?? hideHeaderOnPhone;
+  const contentProvidesHero = contentOwnsHero ?? (hideHeaderOnPhone && isPhone);
+  const routeOwnsBottomBar = isEmployeeVisitExecutionRoute(pathname);
+  const showPortalBottomTabs = showBottomTabs && !routeOwnsBottomBar;
 
   const bareBottomPadding = useMemo(() => {
-    if (messengerFocusActive || !showBottomTabs) return spacing.md;
+    if (messengerFocusActive || !showPortalBottomTabs) return spacing.md;
     return resolvePortalMobileContentPaddingBottom(insets.bottom);
-  }, [insets.bottom, messengerFocusActive, showBottomTabs]);
+  }, [insets.bottom, messengerFocusActive, showPortalBottomTabs]);
 
   const barePaddingStyle = useMemo((): ViewStyle => {
     if (messengerFocusActive) {
       return { flex: 1, minHeight: 0, paddingBottom: 0, gap: 0 };
     }
-    if (!showBottomTabs) return {};
+    if (!showPortalBottomTabs) return {};
     if (Platform.OS === 'web') {
       return {
         paddingBottom: webSafeAreaCalc(
@@ -72,7 +75,7 @@ export function PortalTabScreen({
       };
     }
     return { paddingBottom: bareBottomPadding };
-  }, [bareBottomPadding, messengerFocusActive, showBottomTabs]);
+  }, [bareBottomPadding, messengerFocusActive, showPortalBottomTabs]);
 
   if (isEmployeePortal && !messengerFocusActive) {
     const page = (

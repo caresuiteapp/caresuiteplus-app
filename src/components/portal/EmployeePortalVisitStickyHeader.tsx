@@ -77,7 +77,9 @@ export function EmployeePortalVisitStickyHeader({
           gap: spacing.xs,
           ...employeePortalExecutionShadow,
           ...(Platform.OS === 'web'
-            ? ({ position: 'sticky', top: 0, zIndex: 20 } as unknown as ViewStyle)
+            ? compact
+              ? ({ position: 'relative', zIndex: 1 } as unknown as ViewStyle)
+              : ({ position: 'sticky', top: 0, zIndex: 20 } as unknown as ViewStyle)
             : null),
         },
         topRow: {
@@ -97,7 +99,7 @@ export function EmployeePortalVisitStickyHeader({
         },
         liveTimer: { ...typography.bodyStrong, color: text.secondary, fontVariant: ['tabular-nums'] },
       }),
-    [insets.top, text],
+    [compact, insets.top, text],
   );
 
   const activeSeconds =

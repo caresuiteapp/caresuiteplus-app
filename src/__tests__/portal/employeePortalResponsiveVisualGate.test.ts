@@ -4,10 +4,12 @@ import path from 'node:path';
 import {
   EMPLOYEE_PORTAL_VISUAL_VIEWPORTS,
   EMPLOYEE_VISIT_VISUAL_STATES,
+  isEmployeeVisitExecutionRoute,
   resolveAccessHeaderLogoWidth,
   resolveCompactPortalLogoWidth,
   resolvePortalDesktopChrome,
 } from '@/lib/portal/portalResponsiveLayout';
+import { WORKFLOW_FINALIZE_TIMEOUT_MS } from '@/features/assistWorkflow/internal/withWorkflowTimeout';
 import { resolvePlatformModalMaxHeight } from '@/lib/platform/platformModalLayout';
 import {
   employeePortalExecutionSurface,
@@ -50,6 +52,36 @@ describe('employee portal responsive visual gate', () => {
     expect(resolvePortalDesktopChrome(1023)).toBe(false);
     expect(resolvePortalDesktopChrome(1024)).toBe(true);
     expect(resolvePortalDesktopChrome(1440)).toBe(true);
+  });
+
+  it('gives the live visit its full mobile workspace without a second bottom navigation', () => {
+    expect(isEmployeeVisitExecutionRoute('/portal/employee/assignments/visit-1/execute')).toBe(true);
+    expect(isEmployeeVisitExecutionRoute('/portal/employee/assignments/visit-1')).toBe(false);
+    expect(isEmployeeVisitExecutionRoute('/portal/employee/calendar')).toBe(false);
+
+    const shell = read('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
+    const tab = read('src/screens/portal/PortalTabScreen.tsx');
+    const execution = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
+
+    expect(shell).toContain('!desktopChrome && !visitExecutionFocus');
+    expect(tab).toContain('showBottomTabs && !routeOwnsBottomBar');
+    expect(execution).toContain('contentOwnsHero');
+    expect(execution.indexOf('<ScrollView')).toBeLessThan(
+      execution.indexOf('<EmployeePortalVisitStickyHeader'),
+    );
+  });
+
+  it('allows vertical page swipes from the wide month calendar', () => {
+    const calendar = read('src/components/portal/EmployeePortalCalendarScreen.tsx');
+    expect(calendar).toContain("touchAction: 'pan-x pan-y'");
+    expect(calendar).not.toContain("touchAction: 'pan-x',");
+  });
+
+  it('uses a realistic confirmation budget for proof-backed finalization', () => {
+    expect(WORKFLOW_FINALIZE_TIMEOUT_MS).toBe(12_000);
+    const hook = read('src/hooks/useEmployeePortalVisitExecution.ts');
+    expect(hook).toContain("timeoutLabel: 'finalizeVisit'");
+    expect(hook).toContain('timeoutMs: WORKFLOW_FINALIZE_TIMEOUT_MS');
   });
 
   it('keeps the compact wordmark clear of all top-bar actions', () => {
