@@ -208,6 +208,50 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(validation.errors.intakeAssignment).toBeTruthy();
   });
 
+  it('14b. nennt den konkreten fehlenden Wert statt einer pauschalen Fehlermeldung', () => {
+    const form = baseForm({ careLevel: '', intakeAssignmentEnabled: true });
+    const template = getSystemIntakeTemplateByKey('assignment_declaration_care_health_insurance')!;
+    let document = openDocumentPreview(form, template);
+    document = applyDocumentSignature(document, template, form, 'client', {
+      role: 'client',
+      dataUrl: 'data:image/png;base64,assignment',
+      signedAt: new Date().toISOString(),
+    });
+    const signedForm = updateIntakeDocumentInForm(form, document);
+
+    const validation = validateIntakeDocumentsStep(
+      signedForm,
+      listApplicableIntakeTemplates(signedForm),
+    );
+
+    expect(validation.errors.intakeAssignment).toContain('Pflegegrad');
+  });
+
+  it('14c. finalisiert eine vorhandene Unterschrift nach Ergänzung des Pflegegrades', () => {
+    const incompleteForm = baseForm({ careLevel: '', intakeAssignmentEnabled: true });
+    const template = getSystemIntakeTemplateByKey('assignment_declaration_care_health_insurance')!;
+    let document = openDocumentPreview(incompleteForm, template);
+    document = applyDocumentSignature(document, template, incompleteForm, 'client', {
+      role: 'client',
+      dataUrl: 'data:image/png;base64,assignment',
+      signedAt: new Date().toISOString(),
+    });
+    const signedForm = updateIntakeDocumentInForm(incompleteForm, document);
+    const completedForm = { ...signedForm, careLevel: 'pg2' };
+    const repaired = finalizeReadyIntakeDocuments(
+      completedForm,
+      listApplicableIntakeTemplates(completedForm),
+    );
+
+    expect(repaired.intakeDocuments.find(
+      (item) => item.templateKey === template.templateKey,
+    )?.status).toBe('finalized');
+    expect(canProceedFromIntakeDocuments(
+      repaired,
+      listApplicableIntakeTemplates(repaired),
+    )).toBe(true);
+  });
+
   it('15. fehlende Unterschrift erscheint nicht im Dokumententext', () => {
     const template = getSystemIntakeTemplateByKey('privacy_consent_default')!;
     const preview = renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(baseForm()));
@@ -574,6 +618,6 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
   it('42. Reparatur läuft erneut, sobald Entwurfsdokumente geladen wurden', () => {
     const panel = readSrc('components/inputs/CareIntakeDocumentsStepPanel.tsx');
     expect(panel).toContain('finalizeReadyIntakeDocuments');
-    expect(panel).toContain('[templates, form.intakeDocuments]');
+    expect(panel).toContain('[templates, form]');
   });
 });

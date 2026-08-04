@@ -346,6 +346,12 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
       for (const key of Object.keys(nextForm)) {
         delete next[key];
       }
+      // Intake-document errors are derived from the complete document package
+      // and do not share a direct form-field key. Clear stale validation after
+      // signatures, selections or automatic finalization change the package.
+      for (const key of Object.keys(next)) {
+        if (key.startsWith('intake')) delete next[key];
+      }
       return next;
     });
   }, []);

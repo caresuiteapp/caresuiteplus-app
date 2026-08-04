@@ -33,6 +33,27 @@ function isDocComplete(doc: IntakeDocumentState | undefined, template: IntakeDoc
   return true;
 }
 
+function describeIncompleteDocument(
+  doc: IntakeDocumentState | undefined,
+  template: IntakeDocumentTemplate | undefined,
+): string {
+  if (!doc || !template) return 'Dokument wurde noch nicht erstellt.';
+  if (doc.missingPlaceholders.length > 0) {
+    return `Noch fehlende Angaben: ${doc.missingPlaceholders.join(', ')}.`;
+  }
+  const missingSignatureRoles = template.signatureSlots
+    .filter((slot) => slot.required && !doc.signatures[slot.role]?.dataUrl)
+    .map((slot) => {
+      if (slot.role === 'client') return 'Klient:in';
+      if (slot.role === 'employee') return 'Mitarbeitende:r';
+      return 'Vertretung';
+    });
+  if (missingSignatureRoles.length > 0) {
+    return `Erforderliche Unterschrift fehlt: ${missingSignatureRoles.join(', ')}.`;
+  }
+  return 'Die vorhandene Unterschrift wird automatisch dem Dokument zugeordnet und finalisiert.';
+}
+
 export function validateIntakeDocumentsStep(
   form: ClientIntakeFormData,
   templates: IntakeDocumentTemplate[],
@@ -80,7 +101,10 @@ export function validateIntakeDocumentsStep(
       complete: assignmentOk,
     });
     if (!assignmentOk) {
-      errors.intakeAssignment = 'Abtretungserklärung ist aktiviert und muss abgeschlossen werden.';
+      errors.intakeAssignment = `Abtretungserklärung ist aktiviert. ${describeIncompleteDocument(
+        assignmentDoc,
+        assignmentTemplate,
+      )}`;
     }
   } else {
     checklist.push({

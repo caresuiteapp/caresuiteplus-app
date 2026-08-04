@@ -190,7 +190,11 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   // Draft restoration is asynchronous. Re-run when its persisted documents
   // arrive, otherwise legacy signatures loaded after the templates never reach
   // the repair path and the contracts step remains marked as incomplete.
-  }, [templates, form.intakeDocuments]);
+  // The generated document also depends on master data such as care level,
+  // insurance number and service start. Re-run after those fields change so a
+  // document that was already signed can be finalized as soon as the last
+  // missing value has been supplied.
+  }, [templates, form]);
 
   const validation = useMemo(() => validateIntakeDocumentsStep(form, templates), [form, templates]);
 
@@ -208,6 +212,9 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   );
   const optionalDocs = templates.filter((t) => t.documentType === 'additional_consent');
   const assignmentTemplate = templates.find((t) => t.documentType === 'assignment_declaration');
+  const assignmentDocument = form.intakeDocuments.find(
+    (document) => document.templateKey === assignmentTemplate?.templateKey,
+  );
   const selectedTemplates = useMemo(
     () => templates.filter((template) => (
       requiredDocs.some((required) => required.templateKey === template.templateKey)
@@ -379,8 +386,30 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
         </Pressable>
         {form.intakeAssignmentEnabled && assignmentTemplate ? (
           <PremiumCard style={styles.docCard}>
-            <Text style={styles.docTitle}>{assignmentTemplate.title}</Text>
-            <PremiumButton title="Vorschau öffnen" variant="secondary" onPress={() => handleOpenPreview(assignmentTemplate)} />
+            <View style={styles.docHeader}>
+              <View style={styles.docTitleWrap}>
+                <Text style={styles.docTitle}>{assignmentTemplate.title}</Text>
+                {assignmentDocument?.signatures.client?.dataUrl ? (
+                  <Text style={styles.docMeta}>Klienten-Unterschrift ist gespeichert.</Text>
+                ) : null}
+              </View>
+              <Text style={[
+                styles.badge,
+                statusBadgeStyle(assignmentDocument?.status ?? 'not_started', styles),
+              ]}>
+                {INTAKE_DOCUMENT_STATUS_LABELS[assignmentDocument?.status ?? 'not_started']}
+              </Text>
+            </View>
+            <PremiumButton
+              title={assignmentDocument?.status === 'finalized' ? 'Dokument ansehen' : 'Vorschau öffnen'}
+              variant="secondary"
+              onPress={() => handleOpenPreview(assignmentTemplate)}
+            />
+            {(assignmentDocument?.missingPlaceholders.length ?? 0) > 0 ? (
+              <Text style={styles.error}>
+                Noch fehlende Angaben: {assignmentDocument!.missingPlaceholders.join(', ')}
+              </Text>
+            ) : null}
             {errors.intakeAssignment ? <Text style={styles.error}>{errors.intakeAssignment}</Text> : null}
           </PremiumCard>
         ) : null}

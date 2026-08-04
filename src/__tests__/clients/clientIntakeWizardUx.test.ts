@@ -62,4 +62,14 @@ describe('Client intake wizard UX fixes', () => {
     expect(costBearerSection).toContain('care_level_status');
     expect(costBearerSection).toContain('Pflegegrad gültig ab');
   });
+
+  it('finalisiert unterschriebene Dokumente nach Änderungen ihrer Stammdaten erneut', () => {
+    const panel = readSrc('components/inputs/CareIntakeDocumentsStepPanel.tsx');
+    const hook = readSrc('hooks/useClientIntakeWizard.ts');
+
+    expect(panel).toContain('}, [templates, form]);');
+    expect(panel).toContain('Klienten-Unterschrift ist gespeichert.');
+    expect(panel).toContain('Noch fehlende Angaben:');
+    expect(hook).toContain("key.startsWith('intake')");
+  });
 });
