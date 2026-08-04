@@ -27,6 +27,7 @@ import {
 } from '../navigation/workflowRoutes';
 import { LiquidCommandShell } from '../shell/LiquidCommandShell';
 import type { LiquidModuleKey, LiquidPageType, LiquidWorkArea } from '../types';
+import { CompanyWorkspace } from './CompanyWorkspace';
 
 type WorkspaceItem = {
   id: string;
@@ -79,6 +80,7 @@ function useWorkspaceItems(
 ): WorkspaceItem[] {
   return useMemo(() => {
     if (moduleKey === 'office') {
+      if (areaId === 'company') return [];
       if (areaId === 'people') {
         return data.employees.map((employee) => ({
           id: employee.id,
@@ -745,6 +747,29 @@ export function ModuleWorkspaceScreen({ moduleKey }: { moduleKey: LiquidModuleKe
           message="Dieser Modulbereich ist nur im freigegebenen Unternehmenskontext verfügbar."
         />
       </LiquidBackdrop>
+    );
+  }
+
+  if (moduleKey === 'office' && activeArea.id === 'company') {
+    return (
+      <LiquidCommandShell
+        activeModule="office"
+        activeArea="company"
+        title="Unternehmen"
+        subtitle="Stammdaten, Recht, Steuer, Abrechnung und Organisation"
+        contextLabel="Office"
+        contextDetail="Unternehmenszentrale · Mandant aktiv"
+      >
+        {state.tenantId ? (
+          <CompanyWorkspace tenantId={state.tenantId} roleKey={auth.profile?.roleKey ?? null} />
+        ) : (
+          <LiquidState
+            kind="error"
+            title="Mandantenkontext fehlt"
+            message="Die Unternehmensdaten können erst nach erfolgreicher Mandantenzuordnung geladen werden."
+          />
+        )}
+      </LiquidCommandShell>
     );
   }
 
