@@ -48,6 +48,28 @@ export function buildTimeEventsFromVisitTimesSummary(summary: VisitTimesSummary)
   return events;
 }
 
+/**
+ * Fast workflow mutations return the persisted timestamp immediately, while
+ * the raw event subscription can still contain only the earlier arrival
+ * events for a few seconds. Keep the raw rows authoritative, but supplement a
+ * missing anchor from the verified visit summary so the visible timer starts
+ * without waiting for another realtime round trip.
+ */
+export function mergeTimeEventsWithVisitTimesFallback(
+  timeEvents: TimeEventLike[],
+  fallbackTimes: VisitTimesSummary | null,
+): TimeEventLike[] {
+  if (!fallbackTimes) return timeEvents;
+
+  const merged = [...timeEvents];
+  for (const anchor of buildTimeEventsFromVisitTimesSummary(fallbackTimes)) {
+    if (!merged.some((event) => event.eventType === anchor.eventType)) {
+      merged.push(anchor);
+    }
+  }
+  return merged;
+}
+
 export function computeLiveVisitTimers(
   timeEvents: TimeEventLike[],
   effectiveStatus: AssignmentStatus | null,
@@ -62,7 +84,13 @@ export function computeLiveVisitTimers(
   const tickNow = needsLiveTick ? now : new Date();
 
   if (timeEvents.length > 0) {
-    return toLiveTimers(calculateVisitTimes(timeEvents, effectiveStatus, tickNow));
+    return toLiveTimers(
+      calculateVisitTimes(
+        mergeTimeEventsWithVisitTimesFallback(timeEvents, fallbackTimes),
+        effectiveStatus,
+        tickNow,
+      ),
+    );
   }
 
   if (fallbackTimes) {

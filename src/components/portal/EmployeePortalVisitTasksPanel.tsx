@@ -17,7 +17,7 @@ import {
   employeePortalExecutionText,
 } from '@/lib/portal/employeePortalExecutionSurface';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
-import { isDesktopClass } from '@/lib/platform/breakpoints';
+import { isPhoneClass } from '@/lib/platform/breakpoints';
 import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
 import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
 import { colors, spacing, typography } from '@/theme';
@@ -52,7 +52,7 @@ export function EmployeePortalVisitTasksPanel({
 }: EmployeePortalVisitTasksPanelProps) {
   const text = employeePortalExecutionText;
   const deviceClass = useDeviceClass();
-  const isMobile = !isDesktopClass(deviceClass);
+  const isPhone = isPhoneClass(deviceClass);
   const groups = useMemo(() => groupEmployeePortalTasks(tasks), [tasks]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [statusPicker, setStatusPicker] = useState<StatusPickerState>(null);
@@ -282,9 +282,10 @@ export function EmployeePortalVisitTasksPanel({
       }
       onClose={statusPicker ? closeStatusPicker : (onClose ?? (() => {}))}
       onBack={statusPicker ? closeStatusPicker : undefined}
-      variant={isMobile ? 'bottomSheet' : 'center'}
-      animationType={isMobile ? 'slide' : 'fade'}
-      maxWidth={statusPicker ? 480 : 560}
+      variant={isPhone ? 'bottomSheet' : 'center'}
+      animationType={isPhone ? 'slide' : 'fade'}
+      maxWidth={statusPicker ? (isPhone ? 480 : 640) : isPhone ? 560 : 920}
+      maxHeightRatio={isPhone ? 0.94 : 0.92}
       sheetStyle={styles.modalSheet}
       bodyStyle={styles.modalBody}
     >

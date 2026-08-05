@@ -3,7 +3,8 @@
 export const WORKFLOW_ACTION_TIMEOUT_MS = 4_000;
 export const WORKFLOW_MARK_ARRIVED_TIMEOUT_MS = 4_000;
 export const WORKFLOW_END_SERVICE_TIMEOUT_MS = 4_000;
-export const WORKFLOW_START_SERVICE_TIMEOUT_MS = 4_000;
+/** Mobile start persists status plus the canonical service_start event. */
+export const WORKFLOW_START_SERVICE_TIMEOUT_MS = 12_000;
 export const WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS = 4_000;
 /** Proof lookup/generation needs a larger mobile-network budget than a status tap. */
 export const WORKFLOW_FINALIZE_TIMEOUT_MS = 12_000;

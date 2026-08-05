@@ -163,7 +163,14 @@ describe('ASSIST.STABILIZE.2 startService', () => {
   });
 
   it('success: angekommen → canonical transition + optimistic context', async () => {
-    const started = successCtx({ assignmentStatus: 'gestartet', derivedStatus: 'gestartet' });
+    const started = successCtx({
+      assignmentStatus: 'gestartet',
+      derivedStatus: 'gestartet',
+      timeEvents: [
+        { eventType: 'drive_start', occurredAt: '2026-06-29T08:00:00Z' },
+        { eventType: 'arrive', occurredAt: '2026-06-29T08:30:00Z' },
+      ],
+    });
     transitionMock.mockResolvedValue({ ok: true, data: started });
     resolveMock.mockResolvedValue({ ok: true, data: started });
 
@@ -174,6 +181,11 @@ describe('ASSIST.STABILIZE.2 startService', () => {
     expect(transitionMock).toHaveBeenCalled();
     expect(upsertStateMock).toHaveBeenCalled();
     expect(resolveMock).not.toHaveBeenCalled();
+    expect(result.ok && result.data.timeEvents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ eventType: 'service_start' }),
+      ]),
+    );
   });
 
   it('idempotent: already has serviceStartedAt returns refreshed context', async () => {

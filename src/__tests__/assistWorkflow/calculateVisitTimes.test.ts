@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
+import { computeLiveVisitTimers } from '@/features/assistWorkflow/computeLiveVisitTimers';
 
 describe('calculateVisitTimes', () => {
   it('computes drive duration until arrive', () => {
@@ -87,5 +88,32 @@ describe('calculateVisitTimes', () => {
     expect(times.serviceSeconds).toBe(4260);
     expect(times.serviceEndedAt).toBeNull();
     expect(times.activeTimer).toBe('service');
+  });
+
+  it('starts the live timer from the verified fallback while realtime still has only arrival rows', () => {
+    const timers = computeLiveVisitTimers(
+      [
+        { eventType: 'drive_start', occurredAt: '2026-08-05T08:00:00.000Z' },
+        { eventType: 'arrive', occurredAt: '2026-08-05T08:15:00.000Z' },
+      ],
+      'gestartet',
+      {
+        driveSeconds: 900,
+        serviceSeconds: 0,
+        pauseSeconds: null,
+        totalSeconds: 900,
+        driveStartedAt: '2026-08-05T08:00:00.000Z',
+        serviceStartedAt: '2026-08-05T08:20:00.000Z',
+        pauseStartedAt: null,
+        arrivedAt: '2026-08-05T08:15:00.000Z',
+        serviceEndedAt: null,
+        activeTimer: 'service',
+      },
+      new Date('2026-08-05T08:20:07.000Z'),
+    );
+
+    expect(timers?.activeTimer).toBe('service');
+    expect(timers?.serviceStartedAt).toBe('2026-08-05T08:20:00.000Z');
+    expect(timers?.serviceSeconds).toBe(7);
   });
 });

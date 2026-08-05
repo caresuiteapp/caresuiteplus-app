@@ -21,6 +21,11 @@ const actorFkRepair = readFileSync(
   'supabase/migrations/0267_assist_administrative_actor_fk_repair.sql',
   'utf8',
 );
+const runtimeRepair = readFileSync(
+  'supabase/migrations/0271_employee_runtime_and_follow_up_repair.sql',
+  'utf8',
+);
+const executionScreen = readFileSync('src/screens/assist/VisitExecutionScreen.tsx', 'utf8');
 const premiumButton = readFileSync('src/components/ui/PremiumButton.tsx', 'utf8');
 const careLightButton = readFileSync('src/components/ui/CareLightButton.tsx', 'utf8');
 
@@ -38,6 +43,13 @@ describe('administrative Sammelnachbearbeitung', () => {
     expect(panel).toContain('Aufgaben gemeinsam speichern');
     expect(panel).toContain('bulkUpdateAdministrativeTasks');
     expect(service).toContain("admin_bulk_update_assist_visit_tasks");
+    expect(panel).toMatch(/const completeFollowUp[\s\S]*changedTasks\.length > 0[\s\S]*bulkUpdateAdministrativeTasks[\s\S]*completeAdministrativeFollowUp/);
+  });
+
+  it('zeigt Aufgaben und Dokumentation in der Verwaltung nicht doppelt', () => {
+    expect(executionScreen).toContain('const showAdministrativeFollowUp');
+    expect(executionScreen).toContain('canManage && !showAdministrativeFollowUp');
+    expect(panel).toContain('Bereits gespeichert:');
   });
 
   it('speichert alle Aufgaben atomar, tenant-sicher und mit Einzelaudit', () => {
@@ -64,6 +76,16 @@ describe('administrative Sammelnachbearbeitung', () => {
     expect(actorFkRepair).toContain('p.auth_user_id = NEW.updated_by');
     expect(actorFkRepair).toContain('normalize_assist_visit_updated_by_trigger');
     expect(actorFkRepair).toContain('normalize_assist_time_event_recorded_by_trigger');
+  });
+
+  it('repariert Dokumentations-FK und erlaubt einen revisionssicheren Signaturaufschub', () => {
+    expect(runtimeRepair).toContain('resolve_current_profile_id()');
+    expect(runtimeRepair).toContain('submitted_by = v_actor');
+    expect(runtimeRepair).toContain("status = 'open'");
+    expect(runtimeRepair).toContain("billing_status = CASE WHEN v_signature_deferred THEN 'blocked' ELSE 'ready' END");
+    expect(runtimeRepair).toContain('sync_deferred_assist_signature_completion_trigger');
+    expect(runtimeRepair).toContain("status = 'signed'");
+    expect(runtimeRepair).toContain("NOTIFY pgrst, 'reload schema'");
   });
 
   it('respektiert gesperrte Aktionen auch in der hellen Desktop-Oberfläche', () => {

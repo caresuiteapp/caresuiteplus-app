@@ -252,6 +252,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const [refetchWarning, setRefetchWarning] = useState<string | null>(null);
   const executionContextRef = useRef<AssistExecutionContext | null>(null);
   const skipContextRefreshRef = useRef(false);
+  const serviceStartRepairRef = useRef<string | null>(null);
   executionContextRef.current = executionContext;
 
   useEffect(() => {
@@ -897,48 +898,56 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const handleStartService = useCallback(
     async (options: WorkflowDeviationApproval = {}) => {
       if (tenantId && assignmentId && employeeId && !liveContext?.trackingSessionId) {
-        const now = new Date().toISOString();
-        const trackingAuthorization = {
-          granted: true as const,
-          grantedAt: now,
-          explainedAt: now,
-        };
-        applyEmployeePortalLocationConsent(tenantId, assignmentId, trackingAuthorization);
+        // GPS is ancillary. A slow browser permission prompt or first position
+        // must never delay the canonical service_start event and its timer.
+        void (async () => {
+          const now = new Date().toISOString();
+          const trackingAuthorization = {
+            granted: true as const,
+            grantedAt: now,
+            explainedAt: now,
+          };
+          applyEmployeePortalLocationConsent(tenantId, assignmentId, trackingAuthorization);
 
-        const permission = await requestLocationPermissionOnce(tenantId, employeeId);
-        setGpsPermission(permission);
-        let snapshot = null;
-        if (permission === 'granted') {
-          snapshot = await captureGpsWithinBudget(gpsTracking.captureOnce);
-        }
+          const permission = await requestLocationPermissionOnce(tenantId, employeeId);
+          setGpsPermission(permission);
+          let snapshot = null;
+          if (permission === 'granted') {
+            snapshot = await captureGpsWithinBudget(gpsTracking.captureOnce);
+          }
 
-        const trackingStarted = await startEmployeeLiveTracking({
-          tenantId,
-          employeeId,
-          routeParamId: assignmentId,
-          profileId: authProfileId,
-          consentGrantedAt: now,
-          consentExplainedAt: now,
-          gpsSnapshot: snapshot,
-          withoutGps: !snapshot,
-          transitionToEnRoute: false,
-          recordDriveStart: false,
-          localConsent: trackingAuthorization,
-          knownContext: executionContextRef.current?.liveContext ?? null,
-          knownTimeEvents: executionContextRef.current?.timeEvents,
-        });
+          const trackingStarted = await startEmployeeLiveTracking({
+            tenantId,
+            employeeId,
+            routeParamId: assignmentId,
+            profileId: authProfileId,
+            consentGrantedAt: now,
+            consentExplainedAt: now,
+            gpsSnapshot: snapshot,
+            withoutGps: !snapshot,
+            transitionToEnRoute: false,
+            recordDriveStart: false,
+            localConsent: trackingAuthorization,
+            knownContext: executionContextRef.current?.liveContext ?? null,
+            knownTimeEvents: executionContextRef.current?.timeEvents,
+          });
 
-        if (trackingStarted.ok) {
-          setLiveContext(trackingStarted.data.context);
-          setLiveErrorCode(null);
-        } else {
+          if (trackingStarted.ok) {
+            setLiveContext(trackingStarted.data.context);
+            setLiveErrorCode(null);
+          } else {
+            setLiveErrorCode('LIVE_SESSION_CREATE_FAILED');
+          }
+        })().catch((error) => {
+          console.warn('[employeePortalWorkflow] ancillary live tracking failed', error);
           setLiveErrorCode('LIVE_SESSION_CREATE_FAILED');
-        }
+        });
       }
 
       return runWorkflow((ctx) => startService(ctx, options), {
         timeoutLabel: 'startService',
         loadingMode: 'start_service',
+        timeoutMs: WORKFLOW_START_SERVICE_TIMEOUT_MS,
         recoveryAction: 'start_service',
       });
     },
@@ -952,6 +961,35 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       runWorkflow,
     ],
   );
+
+  useEffect(() => {
+    const ctx = executionContextRef.current ?? executionContext;
+    if (
+      !assignmentId ||
+      !ctx ||
+      ctx.assignmentStatus !== 'gestartet' ||
+      ctx.visitTimes?.serviceStartedAt ||
+      ctx.detail.actualStartAt ||
+      serviceStartRepairRef.current === assignmentId
+    ) {
+      return;
+    }
+
+    // A previous start tap may have persisted the status while its canonical
+    // time event was interrupted. Repair that exact, already-started state
+    // once per mounted assignment so the timer and later documentation agree.
+    serviceStartRepairRef.current = assignmentId;
+    void runWorkflow((current) => startService(current), {
+      timeoutLabel: 'repairServiceStart',
+      loadingMode: 'start_service',
+      timeoutMs: WORKFLOW_START_SERVICE_TIMEOUT_MS,
+      recoveryAction: 'start_service',
+    });
+  }, [
+    assignmentId,
+    executionContext,
+    runWorkflow,
+  ]);
 
   const handleStartPause = useCallback(
     () => runWorkflow((ctx) => startPause(ctx), { recoveryAction: 'start_pause' }),

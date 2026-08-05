@@ -137,6 +137,13 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
 
       {events.length === 0 ? (
         <EmptyState title="Keine Ereignisse in diesem Zeitraum" message={emptyMessage} />
+      ) : needsWideCanvas && Platform.OS === 'web' ? (
+        <View
+          style={styles.horizontalViewport}
+          testID="employee-calendar-horizontal-scroll"
+        >
+          <View style={styles.wideCanvas}>{calendarGrid}</View>
+        </View>
       ) : needsWideCanvas ? (
         <ScrollView
           horizontal
@@ -168,7 +175,7 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web'
       ? ({
           overflowX: 'auto',
-          overflowY: 'hidden',
+          overflowY: 'visible',
           // The grid may scroll horizontally, but a vertical swipe must keep
           // moving the surrounding month page on touch devices.
           touchAction: 'pan-x pan-y',

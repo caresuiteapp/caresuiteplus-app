@@ -6,6 +6,8 @@ import type { ServiceResult } from '@/types';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 import { buildServiceRecordSnapshot } from '@/features/assistWorkflow/buildServiceRecordHtml';
 import type { AssistExecutionContext } from '@/features/assistWorkflow/types';
+import type { VisitDispositionDetail, VisitTaskStatus } from '@/lib/assist/visitTypes';
+import type { CanonicalAssignmentStatus, ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
 import {
   computeVisitProofPayloadHash,
   fetchLatestVisitProof,
@@ -22,6 +24,126 @@ export type DeferredClientSignatureReleaseResult = {
   proofId: string;
   clientDocumentId: string | null;
 };
+
+const ADMIN_CANONICAL_STATUS: Record<VisitDispositionDetail['assignmentStatus'], CanonicalAssignmentStatus> = {
+  geplant: 'planned',
+  bestaetigt: 'confirmed',
+  unterwegs: 'on_the_way',
+  angekommen: 'arrived',
+  gestartet: 'started',
+  pausiert: 'paused',
+  beendet: 'finished',
+  dokumentation_offen: 'documentation_pending',
+  unterschrift_offen: 'signature_pending',
+  abgeschlossen: 'completed',
+  storniert: 'cancelled',
+  nicht_erschienen: 'no_show',
+};
+
+function administrativeTaskStatus(status: VisitTaskStatus): ExtendedAssignmentTaskStatus {
+  if (status === 'done' || status === 'open') return status;
+  if (status === 'not_requested') return 'not_wanted';
+  if (status === 'not_possible') return 'not_possible';
+  if (status === 'cancelled') return 'skipped';
+  return 'requires_follow_up';
+}
+
+/** Build the same canonical deferred-signature proof from the Office follow-up view. */
+export async function releaseAdministrativeDeferredClientSignatureRequest(
+  tenantId: string,
+  visit: VisitDispositionDetail,
+  actorProfileId: string | null = null,
+): Promise<ServiceResult<DeferredClientSignatureReleaseResult>> {
+  const documentationText = visit.documentationNotes?.trim() || '';
+  if (!documentationText) {
+    return { ok: false, error: 'Dokumentation ist vor der Signaturanforderung erforderlich.' };
+  }
+
+  const serviceSeconds =
+    visit.actualStartAt && visit.actualEndAt
+      ? Math.max(0, Math.round((Date.parse(visit.actualEndAt) - Date.parse(visit.actualStartAt)) / 1000))
+      : null;
+  const detail: AssistExecutionContext['detail'] = {
+    assignmentId: visit.id,
+    tenantId,
+    title: visit.serviceName ?? visit.title,
+    clientId: visit.clientId,
+    clientName: visit.clientName,
+    locationAddress: visit.addressSnapshot ?? visit.location,
+    plannedStartAt: visit.scheduledStart,
+    plannedEndAt: visit.scheduledEnd,
+    actualStartAt: visit.actualStartAt,
+    actualEndAt: visit.actualEndAt,
+    onTheWayAt: visit.onTheWayAt,
+    arrivedAt: visit.arrivedAt,
+    status: visit.assignmentStatus,
+    canonicalStatus: ADMIN_CANONICAL_STATUS[visit.assignmentStatus],
+    notesForEmployee: visit.employeeNotes ?? '',
+    accessHints: null,
+    emergencyContact: null,
+    tasks: visit.tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      description: '',
+      required: task.isRequired,
+      status: administrativeTaskStatus(task.status),
+      completionNote: task.notDoneReason,
+      requiresNote: task.status !== 'done' && task.status !== 'open',
+    })),
+    statusHistory: [],
+    pauseEvents: [],
+    documentationStatus: 'submitted',
+    documentationNotes: documentationText,
+    signatureStatus: 'pending',
+    requiresSignature: true,
+    requiresDocumentation: true,
+    requiresRoute: false,
+    canStartExecution: false,
+    canOpenRoute: false,
+    canCaptureGps: false,
+    allowedTransitions: visit.allowedStatusTransitions,
+    isLocked: false,
+    enabledModules: [],
+  };
+  const visitTimes: AssistExecutionContext['visitTimes'] = {
+    driveSeconds: null,
+    serviceSeconds,
+    pauseSeconds: null,
+    totalSeconds: serviceSeconds,
+    driveStartedAt: visit.onTheWayAt,
+    arrivedAt: visit.arrivedAt,
+    serviceStartedAt: visit.actualStartAt,
+    pauseStartedAt: null,
+    serviceEndedAt: visit.actualEndAt,
+    activeTimer: null,
+  };
+  return releaseDeferredClientSignatureRequest({
+    tenantId,
+    assignmentId: visit.id,
+    employeeId: visit.employeeId ?? '',
+    profileId: actorProfileId,
+    roleKey: 'admin',
+    assistVisitId: visit.id,
+    assignmentStatus: visit.assignmentStatus,
+    derivedStatus: visit.assignmentStatus,
+    consistencyStatus: 'consistent',
+    inconsistencies: [],
+    repairOptions: [],
+    detail,
+    liveContext: null,
+    visitTimes,
+    timeEvents: [],
+    allowedActions: [],
+    diagnostics: {
+      isServiceStarted: Boolean(visit.actualStartAt),
+      isServiceEnded: Boolean(visit.actualEndAt),
+      isTravelEnded: Boolean(visit.arrivedAt),
+      canEndService: false,
+      inconsistentStatus: false,
+      repairHint: null,
+    },
+  }, documentationText);
+}
 
 /** True when visit has a portal-visible proof awaiting client signature. */
 export async function hasPortalDeferredClientSignature(
@@ -103,7 +225,11 @@ export async function releaseDeferredClientSignatureRequest(
 
   const docText =
     documentationText?.trim() ||
-    (ctx.detail.documentationStatus === 'submitted' ? 'submitted' : '');
+    ctx.detail.documentationNotes?.trim() ||
+    '';
+  if (!docText) {
+    return { ok: false, error: 'Dokumentation ist vor der Signaturanforderung erforderlich.' };
+  }
 
   const snapshot = {
     ...buildServiceRecordSnapshot({

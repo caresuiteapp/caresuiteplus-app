@@ -9,7 +9,10 @@ import {
   resolveCompactPortalLogoWidth,
   resolvePortalDesktopChrome,
 } from '@/lib/portal/portalResponsiveLayout';
-import { WORKFLOW_FINALIZE_TIMEOUT_MS } from '@/features/assistWorkflow/internal/withWorkflowTimeout';
+import {
+  WORKFLOW_FINALIZE_TIMEOUT_MS,
+  WORKFLOW_START_SERVICE_TIMEOUT_MS,
+} from '@/features/assistWorkflow/internal/withWorkflowTimeout';
 import { resolvePlatformModalMaxHeight } from '@/lib/platform/platformModalLayout';
 import {
   employeePortalExecutionSurface,
@@ -79,9 +82,30 @@ describe('employee portal responsive visual gate', () => {
 
   it('uses a realistic confirmation budget for proof-backed finalization', () => {
     expect(WORKFLOW_FINALIZE_TIMEOUT_MS).toBe(12_000);
+    expect(WORKFLOW_START_SERVICE_TIMEOUT_MS).toBe(12_000);
     const hook = read('src/hooks/useEmployeePortalVisitExecution.ts');
     expect(hook).toContain("timeoutLabel: 'finalizeVisit'");
     expect(hook).toContain('timeoutMs: WORKFLOW_FINALIZE_TIMEOUT_MS');
+  });
+
+  it('gives task work the full tablet workspace instead of a narrow desktop column', () => {
+    const tasks = read('src/components/portal/EmployeePortalVisitTasksPanel.tsx');
+    expect(tasks).toContain('isPhoneClass(deviceClass)');
+    expect(tasks).toContain("variant={isPhone ? 'bottomSheet' : 'center'}");
+    expect(tasks).toContain('isPhone ? 560 : 920');
+    expect(tasks).not.toContain('!isDesktopClass(deviceClass)');
+  });
+
+  it('shows a branded boot state and caches immutable production bundles', () => {
+    const html = read('app/+html.tsx');
+    const layout = read('app/_layout.tsx');
+    const vercel = read('vercel.json');
+    expect(html).toContain('id="caresuite-web-boot"');
+    expect(html).toContain('Die Verbindung dauert ungewöhnlich lange');
+    expect(html).toContain('window.location.reload()');
+    expect(layout).toContain("document.getElementById('caresuite-web-boot')?.remove()");
+    expect(vercel).toContain('max-age=31536000, immutable');
+    expect(vercel).toContain('/_expo/static/(.*)');
   });
 
   it('keeps the compact wordmark clear of all top-bar actions', () => {
@@ -197,6 +221,13 @@ describe('employee portal responsive visual gate', () => {
     expect(card).toContain("dataSet={{ csHealthosComponent: onPress ? 'interactive-card' : 'card' }}");
     expect(screen).toContain('contentStyle={styles.phaseCardContent}');
     expect(screen).not.toContain('style={styles.phaseCard}');
+  });
+
+  it('keeps vertical page gestures outside the wide web calendar scroller', () => {
+    const calendar = read('src/components/portal/EmployeePortalCalendarScreen.tsx');
+    expect(calendar).toContain("needsWideCanvas && Platform.OS === 'web'");
+    expect(calendar).toContain("overflowY: 'visible'");
+    expect(calendar).toContain("touchAction: 'pan-x pan-y'");
   });
 
   it('keeps both mobile welcome heroes in intrinsic document flow', () => {

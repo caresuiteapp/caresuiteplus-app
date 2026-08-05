@@ -52,7 +52,7 @@ export function PortalTabScreen({
   const isEmployeePortal = pathname.startsWith('/portal/employee');
   const isClientPortal = pathname.startsWith('/portal/client');
   const isPortalHome = pathname === '/portal/client' || pathname === '/portal/employee';
-  const contentProvidesHero = contentOwnsHero ?? (hideHeaderOnPhone && isPhone);
+  const contentProvidesHero = contentOwnsHero ?? hideHeaderOnPhone;
   const routeOwnsBottomBar = isEmployeeVisitExecutionRoute(pathname);
   const showPortalBottomTabs = showBottomTabs && !routeOwnsBottomBar;
 

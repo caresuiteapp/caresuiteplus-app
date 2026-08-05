@@ -44,6 +44,9 @@ function RootShell() {
 
   useEffect(() => {
     cleanupOrphanedFullscreenOverlays();
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.getElementById('caresuite-web-boot')?.remove();
+    }
   }, []);
 
   useEffect(() => {

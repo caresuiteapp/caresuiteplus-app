@@ -6,6 +6,12 @@ const root = path.join(__dirname, '..', '..', '..');
 const source = (relativePath: string) => readFileSync(path.join(root, relativePath), 'utf8');
 
 describe('critical employee workflow persistence', () => {
+  it('repairs an already-started assignment whose canonical timer event is missing', () => {
+    const file = source('src/hooks/useEmployeePortalVisitExecution.ts');
+    expect(file).toContain('serviceStartRepairRef');
+    expect(file).toContain("ctx.assignmentStatus !== 'gestartet'");
+    expect(file).toContain("timeoutLabel: 'repairServiceStart'");
+  });
   it('awaits arrival source records but defers live-monitor projections', () => {
     const file = source('src/features/assistWorkflow/markArrived.ts');
     expect(file).toContain('await upsertAssistVisitExecutionState');
@@ -45,11 +51,18 @@ describe('critical employee workflow persistence', () => {
     expect(file).toContain('void refreshExecutionContext().then');
   });
 
-  it('enforces the four-second employee-facing latency budget', () => {
+  it('keeps ordinary actions bounded but gives canonical service start a mobile-safe budget', () => {
     const file = source('src/features/assistWorkflow/internal/withWorkflowTimeout.ts');
     expect(file).toContain('WORKFLOW_ACTION_TIMEOUT_MS = 4_000');
-    expect(file).toContain('WORKFLOW_START_SERVICE_TIMEOUT_MS = 4_000');
+    expect(file).toContain('WORKFLOW_START_SERVICE_TIMEOUT_MS = 12_000');
     expect(file).toContain('WORKFLOW_END_SERVICE_TIMEOUT_MS = 4_000');
+  });
+
+  it('never blocks the canonical service start on GPS permission or position capture', () => {
+    const file = source('src/hooks/useEmployeePortalVisitExecution.ts');
+    expect(file).toContain('GPS is ancillary');
+    expect(file).toContain('void (async () =>');
+    expect(file).toContain('timeoutMs: WORKFLOW_START_SERVICE_TIMEOUT_MS');
   });
 
   it('reuses the already-authorized screen detail instead of reloading the assignment before each transition', () => {

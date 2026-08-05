@@ -40,6 +40,13 @@ describe('deferred signature white screen fix', () => {
     expect(screen).toContain("!allowedActions.includes('finalize_visit_deferred_signature')");
   });
 
+  it('never writes the technical submitted token into a client proof', () => {
+    const service = readSrc('src/lib/portal/deferredVisitClientSignatureService.ts');
+    expect(service).toContain('ctx.detail.documentationNotes?.trim()');
+    expect(service).not.toContain("? 'submitted' : ''");
+    expect(service).toContain('releaseAdministrativeDeferredClientSignatureRequest');
+  });
+
   it('signature modal disables browser requestFullscreen via OrientationGate', () => {
     const modal = readSrc('src/components/inputs/CareSignatureModal.tsx');
     expect(modal).toContain('tryFullscreenOnRequest: false');

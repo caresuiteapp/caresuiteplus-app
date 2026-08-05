@@ -215,6 +215,7 @@ export function VisitExecutionScreen() {
     visit.assignmentStatus === 'abgeschlossen' ||
     visit.assignmentStatus === 'storniert' ||
     visit.assignmentStatus === 'nicht_erschienen';
+  const showAdministrativeFollowUp = Boolean(canManage && tenantId);
 
   return (
     <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Durchführung`}>
@@ -264,7 +265,7 @@ export function VisitExecutionScreen() {
           </SectionPanel>
         ) : null}
 
-        {canManage && tenantId ? <AdministrativeVisitFollowUpPanel visit={visit} tenantId={tenantId} onSaved={refresh} onMessage={(message, isError) => { if (isError) { setLocalSuccess(null); setLocalError(message); } else { setLocalError(null); setLocalSuccess(message); } }} /> : null}
+        {showAdministrativeFollowUp && tenantId ? <AdministrativeVisitFollowUpPanel visit={visit} tenantId={tenantId} onSaved={refresh} onMessage={(message, isError) => { if (isError) { setLocalSuccess(null); setLocalError(message); } else { setLocalError(null); setLocalSuccess(message); } }} /> : null}
 
         {!canManage ? (
           <LockedActionBanner
@@ -274,7 +275,7 @@ export function VisitExecutionScreen() {
             }
             roleLabel={roleLabel}
           />
-        ) : (
+        ) : !showAdministrativeFollowUp ? (
           <View style={styles.actions}>
             {primaryNext && !isLocked ? (
               <PremiumButton
@@ -308,9 +309,9 @@ export function VisitExecutionScreen() {
               />
             ) : null}
           </View>
-        )}
+        ) : null}
 
-        {visit.tasks.length > 0 && canManage ? (
+        {visit.tasks.length > 0 && canManage && !showAdministrativeFollowUp ? (
           <VisitTasksPanel
             visit={visit}
             disabled={isLocked}
@@ -319,7 +320,7 @@ export function VisitExecutionScreen() {
           />
         ) : null}
 
-        {showDocumentation && canManage ? (
+        {showDocumentation && canManage && !showAdministrativeFollowUp ? (
           <SectionPanel title="Dokumentation" subtitle="Quick-Chips aus Office-Katalog">
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -371,7 +372,7 @@ export function VisitExecutionScreen() {
           />
         ) : null}
 
-        {showSignature && canManage ? (
+        {showSignature && canManage && !showAdministrativeFollowUp ? (
           <VisitSignatureSection
             visitId={visit.id}
             clientName={visit.clientName}

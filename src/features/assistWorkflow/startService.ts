@@ -139,6 +139,17 @@ function buildOptimisticStartedContext(
   };
 }
 
+function appendPersistedServiceStartEvent(
+  ctx: AssistExecutionContext,
+  occurredAt: string,
+): AssistExecutionContext {
+  if (ctx.timeEvents.some((event) => event.eventType === 'service_start')) return ctx;
+  return {
+    ...ctx,
+    timeEvents: [...ctx.timeEvents, { eventType: 'service_start', occurredAt }],
+  };
+}
+
 async function persistServiceStartEvent(
   ctx: AssistExecutionContext,
   approval?: WorkflowDeviationApproval,
@@ -208,7 +219,10 @@ async function backfillServiceStart(
     ctx.visitTimes,
     saved.data.occurredAt,
   );
-  const optimistic = buildOptimisticStartedContext(ctx, mergedTimes);
+  const optimistic = buildOptimisticStartedContext(
+    appendPersistedServiceStartEvent(ctx, saved.data.occurredAt),
+    mergedTimes,
+  );
   scheduleExecutionStateAfterStart(optimistic, mergedTimes);
   return { ok: true, data: optimistic };
 }
@@ -234,7 +248,10 @@ async function transitionToServiceStart(
     result.data.visitTimes,
     eventSaved.data.occurredAt,
   );
-  const optimistic = buildOptimisticStartedContext(result.data, mergedTimes);
+  const optimistic = buildOptimisticStartedContext(
+    appendPersistedServiceStartEvent(result.data, eventSaved.data.occurredAt),
+    mergedTimes,
+  );
   scheduleExecutionStateAfterStart(optimistic, mergedTimes);
   return { ok: true, data: optimistic };
 }

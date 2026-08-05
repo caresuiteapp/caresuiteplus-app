@@ -2,6 +2,8 @@ import type { ServiceResult } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import type { VisitTaskStatus } from './visitTypes';
+import type { VisitDispositionDetail } from './visitTypes';
+import { releaseAdministrativeDeferredClientSignatureRequest } from '@/lib/portal/deferredVisitClientSignatureService';
 
 export type AdministrativeTimes = {
   onTheWayAt?: string | null; arrivedAt?: string | null; startedAt: string; endedAt: string;
@@ -23,6 +25,7 @@ const ADMINISTRATIVE_ERROR_MESSAGES = [
   'Pflichtaufgaben sind noch offen',
   'Dokumentation ist nicht vollständig',
   'Signatur oder verifizierter Nachweis fehlt',
+  'Signaturanforderung ist im Klient:innenportal ausstehend',
   'Keine Aufgabenänderungen übergeben',
 ] as const;
 
@@ -62,11 +65,10 @@ export async function correctAdministrativeVisitTimes(visitId: string, input: Ad
   return { ok: true, data: { overlap: false, netMinutes: result.net_minutes } };
 }
 
-export async function requestClientVisitSignature(_tenantId: string, visit: { id: string; clientId: string; serviceName: string | null; scheduledStart: string; scheduledEnd: string; actualStartAt: string | null; actualEndAt: string | null }): Promise<ServiceResult<{ id: string }>> {
-  const supabase = getSupabaseClient(); if (!supabase) return { ok: false, error: 'Datenbank ist nicht verfügbar.' };
-  const { data, error } = await supabase.rpc('admin_request_assist_visit_signature' as never, { p_visit_id: visit.id, p_reason: AUTOMATIC_ADMIN_AUDIT_REASON } as never);
-  if (error || !data) return { ok: false, error: toAdministrativeError(error) };
-  return { ok: true, data: { id: String(data) } };
+export async function requestClientVisitSignature(tenantId: string, visit: VisitDispositionDetail): Promise<ServiceResult<{ id: string }>> {
+  const released = await releaseAdministrativeDeferredClientSignatureRequest(tenantId, visit);
+  if (!released.ok) return released;
+  return { ok: true, data: { id: released.data.proofId } };
 }
 
 async function runAdministrativeRpc(name: string, params: Record<string, unknown>): Promise<ServiceResult<void>> {

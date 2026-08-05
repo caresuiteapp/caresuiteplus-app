@@ -129,9 +129,11 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
   };
 
   const requestSignature = async () => {
+    setSaving(true);
     const result = await requestClientVisitSignature(tenantId, visit);
+    setSaving(false);
     if (!result.ok) return onMessage(result.error, true);
-    onMessage('Signaturanforderung wurde an das Klient:innenportal übertragen.');
+    onMessage('Signaturanforderung wurde übertragen. Der Einsatz kann abgeschlossen werden; die Abrechnung bleibt bis zur Unterschrift gesperrt.');
     await onSaved();
   };
 
@@ -159,6 +161,22 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
 
   const markAllTasks = (status: VisitTaskStatus) => {
     setTaskDrafts(Object.fromEntries(visit.tasks.map((task) => [task.id, status])));
+  };
+
+  const completeFollowUp = async () => {
+    setSaving(true);
+    if (changedTasks.length > 0) {
+      const tasks = await bulkUpdateAdministrativeTasks(visit.id, changedTasks);
+      if (!tasks.ok) {
+        setSaving(false);
+        return onMessage(tasks.error, true);
+      }
+    }
+    const result = await completeAdministrativeFollowUp(visit.id);
+    setSaving(false);
+    if (!result.ok) return onMessage(result.error, true);
+    onMessage('Einsatzakte wurde vollständig abgeschlossen.');
+    await onSaved();
   };
 
   return (
@@ -213,12 +231,15 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
         </SectionPanel>
 
         <SectionPanel title="Dokumentation & Signatur">
+          {visit.documentationNotes?.trim() ? (
+            <InfoBanner message={`Bereits gespeichert: ${visit.documentationNotes.trim()}`} />
+          ) : null}
           <PremiumInput label="Dokumentationstext" placeholder="Durchführung, Besonderheiten und Ergebnis vollständig dokumentieren" hint="Der Text wird revisionssicher an die vorhandene Einsatzdokumentation angehängt." value={documentation} onChangeText={setDocumentation} multiline style={{ minHeight: 120 }} />
           <PremiumButton title="Dokumentation dauerhaft speichern" variant="secondary" onPress={() => run(() => appendAdministrativeDocumentation(visit.id, documentation), 'Dokumentation wurde ergänzt und auditiert.').then((saved) => { if (saved) setDocumentation(''); })} disabled={saving || !documentation.trim()} fullWidth />
           <PremiumButton title="Signatur im Klient:innenportal anfordern" variant="secondary" onPress={requestSignature} disabled={saving} fullWidth />
         </SectionPanel>
 
-        <PremiumButton title="Nachbearbeitung abschließen" onPress={() => run(() => completeAdministrativeFollowUp(visit.id), 'Einsatzakte wurde vollständig abgeschlossen.')} disabled={saving} fullWidth />
+        <PremiumButton title="Nachbearbeitung abschließen" onPress={completeFollowUp} loading={saving} disabled={saving} fullWidth />
       </View>
     </SectionPanel>
   );
