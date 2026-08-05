@@ -75,7 +75,9 @@ function templateAmount(profile: ClientAssistBillingProfile, catalogKey: string)
 }
 
 function resolveHourlyRate(profile: ClientAssistBillingProfile): number | null {
-  return profile.serviceEntitlements.find((item) => (item.hourlyRateCents ?? 0) > 0)?.hourlyRateCents ?? null;
+  return profile.serviceEntitlements.find((item) => (item.hourlyRateCents ?? 0) > 0)?.hourlyRateCents
+    ?? profile.catalogHourlyRateCents
+    ?? null;
 }
 
 function accountTotal(account: ClientBudgetAccount | null, fallback: number): number {

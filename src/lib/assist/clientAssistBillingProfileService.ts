@@ -23,6 +23,7 @@ import {
 import { computeCanUseBudgetByCatalogKey } from './clientBudgetTransactionService';
 import { getClientFundingSelection } from '@/lib/clients/clientFundingSourceService';
 import { isCatalogKeySelected } from '@/types/clients/clientFundingSource';
+import { getTenantAssistHourlyRateCents } from './tenantAssistHourlyRateService';
 
 export type GetClientAssistBillingProfileInput = {
   tenantId: string;
@@ -88,13 +89,14 @@ export async function getClientAssistBillingProfile(
       regenerateAccounts: autoGenerateAccounts,
     });
 
-    const [entitlementsResult, servicesResult, templatesResult, priorityResult, modeResult, fundingResult] = await Promise.all([
+    const [entitlementsResult, servicesResult, templatesResult, priorityResult, modeResult, fundingResult, catalogRateResult] = await Promise.all([
       listClientCareEntitlements(tenantId, clientId, asOfDate),
       listClientServiceEntitlements(tenantId, clientId),
       listBudgetTemplatesByYear(budgetYear),
       listClientBillingPriorityRules(tenantId, clientId),
       getClientBudgetMode(tenantId, clientId, budgetYear),
       getClientFundingSelection(tenantId, clientId),
+      getTenantAssistHourlyRateCents(tenantId),
     ]);
 
     if (!entitlementsResult.ok) return entitlementsResult;
@@ -162,6 +164,7 @@ export async function getClientAssistBillingProfile(
         fundingSources,
         carePreventionMode,
         serviceEntitlements: servicesResult.data,
+        catalogHourlyRateCents: catalogRateResult.ok ? catalogRateResult.data : null,
         budgetAccounts: sortedAccounts,
         budgetVisualAccounts,
         priorityRules: priorityResult.data,

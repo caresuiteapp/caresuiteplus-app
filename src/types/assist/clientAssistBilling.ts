@@ -179,6 +179,8 @@ export type ClientAssistBillingProfile = {
   fundingSources?: ClientFundingSourceKey[];
   carePreventionMode: ClientCarePreventionBudgetMode;
   serviceEntitlements: ClientServiceEntitlement[];
+  /** Mandantenweiter Assist-Katalogpreis; klientenspezifische Sätze haben Vorrang. */
+  catalogHourlyRateCents?: number | null;
   budgetAccounts: ClientBudgetAccount[];
   /** All still valid budget buckets used by the visual aggregate (including §45b carry-over). */
   budgetVisualAccounts?: ClientBudgetAccount[];

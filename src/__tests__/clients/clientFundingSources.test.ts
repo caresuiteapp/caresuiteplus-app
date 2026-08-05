@@ -58,4 +58,16 @@ describe('verbindliche Klienten-Finanzierungsarten', () => {
     expect(migration).toContain('set_client_funding_sources');
     expect(migration).toContain('Finanzierungsart nicht ausgewählt');
   });
+
+  it('repairs production actor ids and executes the funding mutation with explicit authorization', () => {
+    const migration = readFileSync(
+      'supabase/migrations/0272_client_funding_runtime_and_catalog_rate.sql',
+      'utf8',
+    );
+    expect(migration).toContain('SECURITY DEFINER');
+    expect(migration).toContain('public.resolve_current_profile_id()');
+    expect(migration).not.toContain('v_sources, COALESCE(p_effective_from, CURRENT_DATE), auth.uid()');
+    expect(migration).toContain("public.has_permission('office.clients.edit')");
+    expect(migration).toContain("NOTIFY pgrst, 'reload schema'");
+  });
 });

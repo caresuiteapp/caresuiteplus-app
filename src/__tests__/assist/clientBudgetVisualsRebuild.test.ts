@@ -119,6 +119,20 @@ describe('rebuilt client budget visuals', () => {
     expect(entlastung.availableHours).toBe(4);
   });
 
+  it('uses the tenant catalog rate when no client-specific rate is stored', () => {
+    const [entlastung] = buildClientBudgetVisualModels(profile({
+      serviceEntitlements: [],
+      catalogHourlyRateCents: 3_275,
+    }));
+    expect(entlastung.hourlyRateCents).toBe(3_275);
+    expect(entlastung.availableHours).toBe(4);
+  });
+
+  it('keeps a client-specific rate ahead of the tenant catalog rate', () => {
+    const [entlastung] = buildClientBudgetVisualModels(profile({ catalogHourlyRateCents: 4_000 }));
+    expect(entlastung.hourlyRateCents).toBe(3_275);
+  });
+
   it('aggregates multiple still-valid §45b carry-over buckets', () => {
     const jan = account({ id: 'jan', catalogKey: 'paragraph_45b', periodStart: '2026-01-01', allocatedCents: 13_100, usedCents: 3_100 });
     const feb = account({ id: 'feb', catalogKey: 'paragraph_45b', periodStart: '2026-02-01', allocatedCents: 13_100, reservedCents: 3_275 });
