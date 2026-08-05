@@ -443,7 +443,14 @@ export function WfmZeitkontenScreen() {
       <View style={styles.collapsible}>
         <WfmOfficeSectionHeading title="Team heute" />
         {teamQuery.loading && !teamQuery.data ? <LoadingState message="Team wird geladen…" /> : null}
-        {teamRows.length === 0 ? (
+        {teamQuery.error ? (
+          <ErrorState
+            title="Arbeitszeitdaten konnten nicht geladen werden"
+            message={teamQuery.error}
+            onRetry={() => void teamQuery.refresh()}
+          />
+        ) : null}
+        {teamRows.length === 0 && !teamQuery.loading && !teamQuery.error ? (
           <EmptyState
             title="Keine Erfassungen"
             message="Heute wurden noch keine Arbeitszeiten erfasst und keine Abwesenheiten gemeldet."

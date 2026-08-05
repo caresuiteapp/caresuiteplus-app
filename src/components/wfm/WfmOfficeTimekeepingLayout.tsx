@@ -6,9 +6,9 @@ import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { typography } from '@/theme';
 
 const WORKTIME_TEXT = {
-  primary: systemLiquidGlass.text.primary,
-  secondary: systemLiquidGlass.text.secondary,
-  border: systemLiquidGlass.border,
+  primary: '#0B2342',
+  secondary: '#31597F',
+  border: '#B8D1EA',
 } as const;
 
 export type WfmCompactKpi = {

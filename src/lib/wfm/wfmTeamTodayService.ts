@@ -28,6 +28,7 @@ import {
   todayWorkDate,
 } from './wfmWorkSessionRepository';
 import { countOpenReviewsForPeriod } from './wfmTimeReviewService';
+import { fetchActiveEmployeeIds } from './wfmOfficePlannedVisitRepository';
 
 type EmployeeProfileRow = {
   id: string;
@@ -75,7 +76,6 @@ async function fetchEmployeeProfiles(
   }
   return map;
 }
-
 function computeKpis(
   rows: WfmTeamTodayRow[],
   pendingReviewCount: number,
@@ -142,11 +142,18 @@ export async function getWfmTeamTodayOverview(
 
   const workDate = todayWorkDate();
 
-  const [sessionsResult, absencesResult, approvalsResult, violationsResult] = await Promise.all([
+  const [
+    sessionsResult,
+    absencesResult,
+    approvalsResult,
+    violationsResult,
+    activeEmployeesResult,
+  ] = await Promise.all([
     listSessionsForDate(tenantId, workDate),
     listWfmAbsencesForTeam(tenantId, actorRoleKey),
     listPendingWfmApprovals(tenantId, actorRoleKey),
     listWfmTeamRuleViolationsToday(tenantId, actorRoleKey),
+    fetchActiveEmployeeIds(tenantId),
   ]);
 
   if (!sessionsResult.ok) return sessionsResult;
@@ -165,6 +172,7 @@ export async function getWfmTeamTodayOverview(
 
   const employeeIds = [
     ...new Set([
+      ...(activeEmployeesResult.ok ? activeEmployeesResult.data : []),
       ...sessionsResult.data.map((s) => s.employeeId),
       ...absencesToday.map((a) => a.employeeId),
     ]),

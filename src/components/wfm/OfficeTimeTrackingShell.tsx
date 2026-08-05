@@ -108,7 +108,14 @@ export function OfficeTimeTrackingShell() {
 
       <View style={styles.content}>
         <View style={styles.workspace}>
-          <Slot />
+          <ScrollView
+            style={styles.workspaceScroll}
+            contentContainerStyle={styles.workspaceScrollContent}
+            showsVerticalScrollIndicator
+            nestedScrollEnabled
+          >
+            <Slot />
+          </ScrollView>
         </View>
       </View>
     </View>
@@ -295,6 +302,15 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: 'transparent',
     padding: careSpacing.sm,
+  },
+  workspaceScroll: {
+    flex: 1,
+    minHeight: 0,
+    width: '100%',
+  },
+  workspaceScrollContent: {
+    flexGrow: 1,
+    paddingBottom: careSpacing.lg,
   },
   workspace: {
     flex: 1,

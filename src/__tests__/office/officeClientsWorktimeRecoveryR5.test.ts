@@ -29,6 +29,8 @@ describe('Office Klient:innen und Arbeitszeit R5', () => {
     expect(shell).toContain('OFFICE_TIME_TRACKING_TABS.map');
     expect(shell).toContain('Gehaltsstatistik und Monatsabschluss öffnen');
     expect(shell).toContain("overflow: 'hidden'");
+    expect(shell).toContain('showsVerticalScrollIndicator');
+    expect(shell).toContain('contentContainerStyle={styles.workspaceScrollContent}');
   });
 
   it('zeigt die vollständige monatliche Prüfkette und alle Hauptaktionen', () => {
@@ -39,6 +41,18 @@ describe('Office Klient:innen und Arbeitszeit R5', () => {
     expect(screen).toContain('Urlaub & Abwesenheiten');
     expect(screen).toContain('Offene Prüfungen');
     expect(screen).toContain('Gehaltsstatistik öffnen');
+  });
+
+  it('lädt alle aktiven Mitarbeitenden und zeigt Live-Fehler sichtbar an', () => {
+    const screen = read('src/components/wfm/TimeTrackingTeamScreen.tsx');
+    const service = read('src/lib/wfm/wfmTeamTodayService.ts');
+    const layout = read('src/components/wfm/WfmOfficeTimekeepingLayout.tsx');
+
+    expect(service).toContain('fetchActiveEmployeeIds(tenantId)');
+    expect(service).toContain('activeEmployeesResult.ok ? activeEmployeesResult.data : []');
+    expect(screen).toContain('Arbeitszeitdaten konnten nicht geladen werden');
+    expect(layout).toContain("primary: '#0B2342'");
+    expect(layout).toContain("secondary: '#31597F'");
   });
 
   it('priorisiert im Messenger Verlauf und mehrzeilige Texteingabe statt hoher Leisten', () => {
