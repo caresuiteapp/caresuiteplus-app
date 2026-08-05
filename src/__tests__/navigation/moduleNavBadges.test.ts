@@ -22,10 +22,10 @@ describe('Module nav badges', () => {
     expect(drawer).toContain('navBadges[item.key]');
   });
 
-  it('Office-Nav-Badges nutzen Realtime-Inbox und isNewChat', () => {
+  it('Office-Nav-Badges nutzen Realtime-Inbox und persistierte Ungelesen-Zähler', () => {
     expect(readSrc('src/hooks/useOfficeMessageNavBadges.ts')).toContain('subscribeToOfficeMessageInbox');
-    expect(readSrc('src/lib/office/officeMessageNavBadges.ts')).toContain('isNewChat');
+    expect(readSrc('src/lib/office/officeMessageNavBadges.ts')).toContain('thread.unreadCount > 0');
     expect(readSrc('src/lib/office/messagethreadservice.ts')).toContain('fetchOfficeMessageNavBadgeData');
-    expect(readSrc('src/hooks/useOfficeMessageNavBadges.ts')).toContain('resolveOfficeMessageNavBadgeContext');
+    expect(readSrc('src/hooks/useOfficeMessageNavBadges.ts')).not.toContain('markOfficeMessageNavThreadsSeen');
   });
 });

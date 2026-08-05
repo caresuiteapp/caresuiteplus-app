@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useOfficeMessageNavBadges } from '@/hooks/useOfficeMessageNavBadges';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
 import {
   LiquidBackdrop,
@@ -73,7 +74,13 @@ function RotateDeviceScreen() {
   );
 }
 
-function ModuleDock({ activeModule }: { activeModule: LiquidModuleKey }) {
+function ModuleDock({
+  activeModule,
+  messageBadge,
+}: {
+  activeModule: LiquidModuleKey;
+  messageBadge?: string;
+}) {
   const router = useRouter();
   const auth = useAuth();
 
@@ -102,7 +109,7 @@ function ModuleDock({ activeModule }: { activeModule: LiquidModuleKey }) {
             <Pressable
               key={module.key}
               accessibilityRole="tab"
-              accessibilityLabel={`${module.label}. ${module.description}`}
+              accessibilityLabel={`${module.label}. ${module.description}${module.key === 'office' && messageBadge ? `. ${messageBadge}` : ''}`}
               accessibilityState={{ selected }}
               onPress={() => router.push(module.route as never)}
               style={({ pressed }) => [
@@ -122,6 +129,11 @@ function ModuleDock({ activeModule }: { activeModule: LiquidModuleKey }) {
                   <Text numberOfLines={1} style={styles.dockItemDetail}>Aktiver Bereich</Text>
                 ) : null}
               </View>
+              {module.key === 'office' && messageBadge ? (
+                <View style={styles.navUnreadBadge}>
+                  <Text style={styles.navUnreadBadgeText}>{messageBadge}</Text>
+                </View>
+              ) : null}
             </Pressable>
           );
         })}
@@ -142,9 +154,11 @@ function ModuleDock({ activeModule }: { activeModule: LiquidModuleKey }) {
 function WorkAreaNavigation({
   moduleKey,
   activeArea,
+  messageBadge,
 }: {
   moduleKey: LiquidModuleKey;
   activeArea?: string | null;
+  messageBadge?: string;
 }) {
   const router = useRouter();
   const areas = liquidWorkAreas[moduleKey];
@@ -164,7 +178,7 @@ function WorkAreaNavigation({
           <Pressable
             key={area.id}
             accessibilityRole="tab"
-            accessibilityLabel={`${area.label}. ${area.description}`}
+            accessibilityLabel={`${area.label}. ${area.description}${area.id === 'communication' && messageBadge ? `. ${messageBadge}` : ''}`}
             accessibilityState={{ selected }}
             onPress={() => router.push(area.route as never)}
             style={({ pressed }) => [
@@ -177,6 +191,11 @@ function WorkAreaNavigation({
             <View style={styles.areaCopy}>
               <Text style={[styles.areaLabel, selected && styles.areaLabelActive]}>{area.label}</Text>
             </View>
+            {area.id === 'communication' && messageBadge ? (
+              <View style={styles.navUnreadBadge}>
+                <Text style={styles.navUnreadBadgeText}>{messageBadge}</Text>
+              </View>
+            ) : null}
           </Pressable>
         );
       })}
@@ -516,9 +535,11 @@ function CommandBar({
 function BottomNavigation({
   activeModule,
   onPrimaryAction,
+  messageBadge,
 }: {
   activeModule: LiquidModuleKey;
   onPrimaryAction: () => void;
+  messageBadge?: string;
 }) {
   const router = useRouter();
   const items = [
@@ -538,7 +559,7 @@ function BottomNavigation({
           <Pressable
             key={item.key}
             accessibilityRole="tab"
-            accessibilityLabel={item.label}
+            accessibilityLabel={`${item.label}${item.key === 'messages' && messageBadge ? `. ${messageBadge}` : ''}`}
             accessibilityState={{ selected }}
             onPress={() => item.route ? router.push(item.route as never) : onPrimaryAction()}
             style={({ pressed }) => [
@@ -552,6 +573,11 @@ function BottomNavigation({
               central && styles.bottomGlyphCentral,
             ]}>
               <LiquidGlyph active={selected || central} glyph={item.glyph} size={22} />
+              {item.key === 'messages' && messageBadge ? (
+                <View style={styles.bottomUnreadBadge}>
+                  <Text style={styles.bottomUnreadBadgeText}>{messageBadge}</Text>
+                </View>
+              ) : null}
             </View>
             <Text style={[styles.bottomLabel, selected && styles.bottomLabelActive]}>{item.label}</Text>
           </Pressable>
@@ -581,6 +607,8 @@ export function LiquidCommandShell({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const { badges: messageBadges } = useOfficeMessageNavBadges(true);
+  const messageBadge = messageBadges.messages;
   const module = getLiquidModule(activeModule);
   const actionLabel = primaryActionLabel ?? module.primaryAction;
   const action = onPrimaryAction ?? (() => setPaletteOpen(true));
@@ -661,7 +689,9 @@ export function LiquidCommandShell({
   return (
     <LiquidBackdrop>
       <View style={styles.shell}>
-        {layout.showDock ? <ModuleDock activeModule={activeModule} /> : null}
+        {layout.showDock ? (
+          <ModuleDock activeModule={activeModule} messageBadge={messageBadge} />
+        ) : null}
         <View style={styles.shellMain}>
           <CommandBar
             activeModule={activeModule}
@@ -682,6 +712,7 @@ export function LiquidCommandShell({
             <WorkAreaNavigation
               moduleKey={activeModule}
               activeArea={activeArea}
+              messageBadge={messageBadge}
             />
           ) : null}
           {layout.isDesktop ? (
@@ -692,7 +723,11 @@ export function LiquidCommandShell({
         </View>
       </View>
       {!layout.isDesktop ? (
-        <BottomNavigation activeModule={activeModule} onPrimaryAction={action} />
+        <BottomNavigation
+          activeModule={activeModule}
+          messageBadge={messageBadge}
+          onPrimaryAction={action}
+        />
       ) : null}
       <CommandPalette visible={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <NotificationCenter
@@ -873,6 +908,21 @@ const styles = StyleSheet.create({
     minWidth: 0,
     flex: 1,
     gap: 1,
+  },
+  navUnreadBadge: {
+    minWidth: 42,
+    height: 22,
+    paddingHorizontal: 6,
+    borderRadius: 11,
+    backgroundColor: liquidColors.blue500,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navUnreadBadgeText: {
+    color: liquidColors.white,
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: '900',
   },
   dockLabel: {
     color: liquidColors.white72,
@@ -1192,6 +1242,24 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  bottomUnreadBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -15,
+    minWidth: 36,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    backgroundColor: liquidColors.blue500,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomUnreadBadgeText: {
+    color: liquidColors.white,
+    fontSize: 8,
+    lineHeight: 10,
+    fontWeight: '900',
   },
   bottomGlyphActive: {
     backgroundColor: 'rgba(20,120,255,0.2)',

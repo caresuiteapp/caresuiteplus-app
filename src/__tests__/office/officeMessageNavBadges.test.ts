@@ -40,7 +40,7 @@ describe('Office message nav badges', () => {
     resetOfficeMessageNavBadgeSeenStore();
   });
 
-  it('zählt neue Chats gesamt und pro Zielgruppe', () => {
+  it('zählt ungelesene Nachrichten gesamt und pro Zielgruppe', () => {
     const threads = [
       thread({ id: 'client-new', threadType: 'client_office', status: 'received', unreadCount: 1 }),
       thread({ id: 'employee-new', threadType: 'employee_office', status: 'new', unreadCount: 0 }),
@@ -51,22 +51,21 @@ describe('Office message nav badges', () => {
     expect(computeOfficeMessageNavBadgeCounts(threads)).toEqual({
       total: 3,
       clients: 1,
-      employees: 1,
-      internal: 1,
+      employees: 0,
+      internal: 2,
     });
   });
 
-  it('ignoriert bereits gesehene Threads in der Session', () => {
+  it('löscht ein Badge nicht allein durch einen lokalen Session-Aufruf', () => {
     const threads = [
       thread({ id: 'client-new', threadType: 'client_office', status: 'received', unreadCount: 1 }),
       thread({ id: 'employee-new', threadType: 'employee_office', status: 'new', unreadCount: 0 }),
     ];
 
-    const seen = new Set(['client-new']);
-    expect(computeOfficeMessageNavBadgeCounts(threads, seen)).toEqual({
+    expect(computeOfficeMessageNavBadgeCounts(threads)).toEqual({
       total: 1,
-      clients: 0,
-      employees: 1,
+      clients: 1,
+      employees: 0,
       internal: 0,
     });
   });

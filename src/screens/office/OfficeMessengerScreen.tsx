@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { AuroraSegmentedControl } from '@/components/aurora';
 import { ScreenShell } from '@/components/layout';
@@ -13,7 +13,6 @@ import { OfficeNewChatModal, type NewChatMode } from '@/components/office/office
 import { OfficeNewGroupChatModal } from '@/components/office/officenewgroupchatmodal';
 import { PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { canViewOfficeInternalMessages } from '@/lib/communication/officeComposeRouting';
@@ -65,7 +64,6 @@ export function OfficeMessengerScreen() {
   const stackTopChrome = workspaceWidth > 0 && workspaceWidth < 1240;
   const { useMasterDetail } = usePlatformLayout();
   const { c } = useCareLightPalette();
-  const { typography } = useLegacyTheme();
   const { permissions, isReadOnly, roleKey } = usePermissions();
   const canBroadcast = canCreateBroadcast(roleKey, permissions);
   const canViewInternal = canViewOfficeInternalMessages(roleKey);
@@ -158,11 +156,13 @@ export function OfficeMessengerScreen() {
           flexDirection: stackTopChrome ? 'column' : 'row',
           alignItems: stackTopChrome ? 'stretch' : 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: spacing.sm,
-          marginBottom: spacing.sm,
-          padding: spacing.sm,
-          borderRadius: 18,
+          flexWrap: stackTopChrome ? 'wrap' : 'nowrap',
+          gap: spacing.xs,
+          marginBottom: spacing.xs,
+          paddingHorizontal: spacing.sm,
+          paddingVertical: spacing.xs,
+          minHeight: stackTopChrome ? undefined : 58,
+          borderRadius: 14,
           borderWidth: 1,
           borderColor: c.border,
           backgroundColor: c.surface,
@@ -171,22 +171,16 @@ export function OfficeMessengerScreen() {
         controls: {
           flexDirection: 'row',
           alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: spacing.sm,
-          flex: stackTopChrome ? undefined : 1,
+          flexWrap: stackTopChrome ? 'wrap' : 'nowrap',
+          gap: spacing.xs,
+          flexShrink: 1,
           minWidth: 0,
-        },
-        audienceHint: {
-          ...typography.caption,
-          color: c.muted,
-          paddingHorizontal: spacing.xs,
-          maxWidth: 280,
         },
         actions: {
           flexDirection: 'row',
-          justifyContent: stackTopChrome ? 'flex-end' : 'flex-start',
-          flexWrap: 'wrap',
-          gap: spacing.sm,
+          justifyContent: 'flex-end',
+          flexWrap: stackTopChrome ? 'wrap' : 'nowrap',
+          gap: spacing.xs,
           flexShrink: 0,
         },
         messengerBody: {
@@ -203,7 +197,7 @@ export function OfficeMessengerScreen() {
           backgroundColor: c.surface,
         },
       }),
-    [c, height, stackTopChrome, typography],
+    [c, height, stackTopChrome],
   );
 
   const screenTitle =
@@ -251,11 +245,6 @@ export function OfficeMessengerScreen() {
                 value={view}
                 onChange={(key) => changeView(key as OfficeMessengerView)}
               />
-              {!stackTopChrome ? (
-                <Text style={styles.audienceHint} numberOfLines={1}>
-                  {view === 'broadcasts' ? 'Mitteilungen und Ankündigungen' : 'Direkte Unterhaltungen'}
-                </Text>
-              ) : null}
             </View>
 
             {!isReadOnly ? (
@@ -277,11 +266,10 @@ export function OfficeMessengerScreen() {
                     ) : null}
                   </>
                 ) : null}
-                {canBroadcast ? (
+                {canBroadcast && view === 'broadcasts' ? (
                   <PremiumButton
                     title={BROADCAST_LABELS[audience]}
                     size="sm"
-                    variant={view === 'broadcasts' ? 'primary' : 'secondary'}
                     onPress={() => setShowBroadcastModal(true)}
                   />
                 ) : null}

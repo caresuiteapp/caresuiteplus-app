@@ -239,7 +239,10 @@ export function messengerScreenRootStyle(viewportHeight: number) {
   if (Platform.OS === 'web') {
     return {
       flex: 1,
-      minHeight: 'calc(100dvh - 200px)' as unknown as number,
+      minHeight: 0,
+      height: '100%' as unknown as number,
+      maxHeight: '100%' as unknown as number,
+      overflow: 'hidden' as const,
     };
   }
   return {

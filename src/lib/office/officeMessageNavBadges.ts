@@ -102,17 +102,17 @@ export function resolveOfficeMessageNavBadgeContext(
 
 export function computeOfficeMessageNavBadgeCounts(
   threads: OfficeMessageThread[],
-  seenThreadIds?: ReadonlySet<string>,
 ): OfficeMessageNavBadgeCounts {
-  const newThreads = threads
-    .filter(isNewChat)
-    .filter((thread) => !seenThreadIds?.has(thread.id));
+  const unreadThreads = threads.filter((thread) => thread.unreadCount > 0);
+  const unreadFor = (audience: OfficeMessageAudience) =>
+    filterThreadsByAudience(unreadThreads, audience)
+      .reduce((sum, thread) => sum + thread.unreadCount, 0);
 
   return {
-    total: newThreads.length,
-    clients: filterThreadsByAudience(newThreads, 'clients').length,
-    employees: filterThreadsByAudience(newThreads, 'employees').length,
-    internal: filterThreadsByAudience(newThreads, 'internal').length,
+    total: unreadThreads.reduce((sum, thread) => sum + thread.unreadCount, 0),
+    clients: unreadFor('clients'),
+    employees: unreadFor('employees'),
+    internal: unreadFor('internal'),
   };
 }
 

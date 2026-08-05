@@ -3,6 +3,8 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, RequireAuth, RequireEmployeePasswordSetup, RequireRole } from '@/lib/auth';
+import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
+import { formatNavBadgeLabel } from '@/lib/navigation/navBadgeLabel';
 import {
   LiquidBackdrop,
   LiquidButton,
@@ -70,6 +72,20 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const compactLogoWidth = resolveCompactPortalLogoWidth(layout.width);
   const visitExecutionFocus =
     kind === 'employee' && isEmployeeVisitExecutionRoute(pathname);
+  const messageInbox = usePortalOfficeMessages(
+    'open',
+    kind === 'client' || kind === 'employee',
+  );
+  const unreadMessageCount = useMemo(
+    () => messageInbox.threads.reduce((sum, thread) => sum + thread.unreadCount, 0),
+    [messageInbox.threads],
+  );
+  const messageBadge = formatNavBadgeLabel(unreadMessageCount);
+
+  const navigationLabel = (id: string, label: string) =>
+    id === 'messages' && unreadMessageCount > 0
+      ? `${label}, ${unreadMessageCount} ungelesene Nachrichten`
+      : label;
 
   const activeId = useMemo(() => {
     const matching = [...navigation]
@@ -94,6 +110,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 <Pressable
                   key={item.id}
                   accessibilityRole="tab"
+                  accessibilityLabel={navigationLabel(item.id, item.label)}
                   accessibilityState={{ selected: activeId === item.id }}
                   onPress={() => router.replace(item.route as never)}
                   style={({ pressed }) => [
@@ -109,6 +126,11 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                     size={19}
                   />
                   <Text numberOfLines={1} style={[styles.railLabel, kind === 'client' && styles.clientRailLabel]}>{item.label}</Text>
+                  {item.id === 'messages' && messageBadge ? (
+                    <View style={styles.unreadBadge}>
+                      <Text style={styles.unreadBadgeText}>{messageBadge}</Text>
+                    </View>
+                  ) : null}
                 </Pressable>
               ))}
             </ScrollView>
@@ -154,8 +176,9 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 <>
                   {kind === 'client' || kind === 'employee' ? <PortalTextSizeControls compact /> : null}
                   <LiquidIconButton
-                    label="Nachrichten"
+                    label={navigationLabel('messages', 'Nachrichten')}
                     glyph="♧"
+                    badge={messageBadge}
                     onPress={() => router.replace(
                       kind === 'employee'
                         ? '/portal/employee/messages'
@@ -199,6 +222,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
               <Pressable
                 key={item.id}
                 accessibilityRole="tab"
+                accessibilityLabel={navigationLabel(item.id, item.label)}
                 accessibilityState={{ selected: activeId === item.id }}
                 onPress={() => router.replace(item.route as never)}
                 style={({ pressed }) => [styles.bottomItem, pressed && styles.pressed]}
@@ -216,6 +240,11 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 >
                   {item.label}
                 </Text>
+                {item.id === 'messages' && messageBadge ? (
+                  <View style={styles.bottomUnreadBadge}>
+                    <Text style={styles.bottomUnreadBadgeText}>{messageBadge}</Text>
+                  </View>
+                ) : null}
               </Pressable>
             ))}
             <Pressable
@@ -429,6 +458,21 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'left',
   },
+  unreadBadge: {
+    minWidth: 42,
+    height: 24,
+    paddingHorizontal: 7,
+    borderRadius: 12,
+    backgroundColor: liquidColors.blue500,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unreadBadgeText: {
+    color: liquidColors.white,
+    fontSize: webScaledFontMetric(9),
+    lineHeight: webScaledFontMetric(12),
+    fontWeight: '900',
+  },
   clientRailLabel: {
     flexShrink: 1,
     fontSize: webScaledFontMetric(13),
@@ -555,6 +599,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
     overflow: 'hidden',
+  },
+  bottomUnreadBadge: {
+    position: 'absolute',
+    top: 1,
+    right: 4,
+    minWidth: 34,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    backgroundColor: liquidColors.blue500,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomUnreadBadgeText: {
+    color: liquidColors.white,
+    fontSize: webScaledFontMetric(8),
+    lineHeight: webScaledFontMetric(10),
+    fontWeight: '900',
   },
   bottomGlyph: {
     color: liquidColors.white56,

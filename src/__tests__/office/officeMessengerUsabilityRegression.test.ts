@@ -54,6 +54,20 @@ describe('Office messenger usability regression', () => {
     expect(screen).toContain('workspaceWidth < 1240');
   });
 
+  it('fits the real desktop height and keeps the composer inside the visible workspace', () => {
+    const shell = readSrc('src/components/messaging/MessengerShell.tsx');
+    const screen = readSrc('src/screens/office/OfficeMessengerScreen.tsx');
+    const thread = readSrc('src/components/office/officemessagethread.tsx');
+
+    expect(shell).not.toContain('calc(100dvh - 200px)');
+    expect(shell).toContain('maxHeight: \'100%\'');
+    expect(shell).toContain("overflow: 'hidden' as const");
+    expect(screen).toContain("flexWrap: stackTopChrome ? 'wrap' : 'nowrap'");
+    expect(screen).toContain('minHeight: stackTopChrome ? undefined : 58');
+    expect(screen).toContain("canBroadcast && view === 'broadcasts'");
+    expect(thread).toContain("conversation: { flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' }");
+  });
+
   it('moves opened chats automatically and exposes lifecycle actions visibly', () => {
     const thread = readSrc('src/components/office/officemessagethread.tsx');
     const actions = readSrc('src/components/office/officemessageactionsmenu.tsx');

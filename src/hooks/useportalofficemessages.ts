@@ -10,7 +10,10 @@ import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
-export function usePortalOfficeMessages(filter: PortalOfficeInboxFilter = 'open') {
+export function usePortalOfficeMessages(
+  filter: PortalOfficeInboxFilter = 'open',
+  enabled = true,
+) {
   const { portalSession } = useAuth();
   const {
     tenantId,
@@ -52,7 +55,7 @@ export function usePortalOfficeMessages(filter: PortalOfficeInboxFilter = 'open'
       clientId,
       employeeId,
     ],
-    { enabled: !!tenantId && isLinkedReady },
+    { enabled: enabled && !!tenantId && isLinkedReady },
   );
 
   const refresh = useCallback(async () => {
@@ -60,12 +63,12 @@ export function usePortalOfficeMessages(filter: PortalOfficeInboxFilter = 'open'
   }, [query]);
 
   useEffect(() => {
-    if (!tenantId) return;
+    if (!enabled || !tenantId) return;
     const unsubscribe = subscribeToOfficeMessageInbox(tenantId, () => {
       void refresh();
     });
     return unsubscribe;
-  }, [tenantId, refresh]);
+  }, [enabled, tenantId, refresh]);
 
   return {
     threads: query.data ?? [],
