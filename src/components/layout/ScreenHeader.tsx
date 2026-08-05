@@ -5,6 +5,7 @@ import type { BreadcrumbTrail as BreadcrumbTrailType } from '@/types/navigation/
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { MOBILE_MIN_TOUCH_TARGET } from '@/lib/platform/webSafeArea';
 import { spatialCare, spatialCareColors } from '@/design/tokens/spatialCareSuite';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, typography } from '@/theme';
 import { BreadcrumbTrail } from './BreadcrumbTrail';
 
@@ -30,6 +31,7 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   const router = useRouter();
   const { isPhone } = useDeviceClass();
+  const { colors, mode } = useLegacyTheme();
   const showBreadcrumbs = simplifyOnPhone ? !isPhone && breadcrumbTrail : breadcrumbTrail;
   const leftInsetWidth = showBack ? 88 : 0;
   const sideInsetWidth = isPhone
@@ -46,12 +48,12 @@ export function ScreenHeader({
           paddingVertical: spacing.md,
           minHeight: isPhone ? 68 : 82,
           borderBottomWidth: 1,
-          borderBottomColor: spatialCare.border,
-          backgroundColor: spatialCare.navigation,
+          borderBottomColor: colors.borderSoft,
+          backgroundColor: colors.bgPanel,
           ...(Platform.OS === 'web'
             ? ({
-                backdropFilter: `blur(${spatialCare.blur.navigation}px) saturate(1.25)`,
-                WebkitBackdropFilter: `blur(${spatialCare.blur.navigation}px) saturate(1.25)`,
+                backdropFilter: mode === 'light' ? 'none' : `blur(${spatialCare.blur.navigation}px) saturate(1.25)`,
+                WebkitBackdropFilter: mode === 'light' ? 'none' : `blur(${spatialCare.blur.navigation}px) saturate(1.25)`,
               } as unknown as ViewStyle)
             : null),
         },
@@ -79,23 +81,23 @@ export function ScreenHeader({
         },
         backText: {
           ...typography.caption,
-          color: spatialCareColors.cyanLight,
+          color: mode === 'light' ? colors.primary : spatialCareColors.cyanLight,
           fontWeight: '700',
         },
         title: {
           ...typography.h3,
-          color: spatialCare.textOnNight,
+          color: colors.textPrimary,
           textAlign: isPhone ? 'center' : 'left',
           flexShrink: 1,
         },
         subtitle: {
           ...typography.caption,
-          color: spatialCare.textOnNightMuted,
+          color: colors.textMuted,
           textAlign: isPhone ? 'center' : 'left',
           marginTop: 2,
         },
       }),
-    [isPhone, rightSlot, sideInsetWidth],
+    [colors, isPhone, mode, rightSlot, sideInsetWidth],
   );
 
   const handleBack = () => {

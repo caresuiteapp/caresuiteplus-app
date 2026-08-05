@@ -88,6 +88,30 @@ export const LLGAN_GLASS_SURFACE_CSS = `
     color: #061B35 !important;
   }
 
+  html[data-cs-portal-premium] [data-cs-llgan-glass="panel"] [style*="color: rgba(255, 255, 255"],
+  html[data-cs-portal-premium] [data-cs-llgan-glass="card"] [style*="color: rgba(255, 255, 255"],
+  html[data-cs-portal-premium] [data-cs-llgan-glass="modal"] [style*="color: rgba(255, 255, 255"] {
+    color: #566D83 !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-llgan-glass="panel"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-llgan-glass="card"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-llgan-glass="modal"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-llgan-glass="panel"] [style*="color: rgb(248, 246, 255)"],
+  html[data-cs-portal-premium] [data-cs-llgan-glass="card"] [style*="color: rgb(248, 246, 255)"],
+  html[data-cs-portal-premium] [data-cs-llgan-glass="modal"] [style*="color: rgb(248, 246, 255)"] {
+    color: #061B35 !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="button"][data-cs-healthos-variant="primary"] * {
+    color: #FFFFFF !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="button"][data-cs-healthos-variant="secondary"] *,
+  html[data-cs-portal-premium] [data-cs-healthos-component="button"][data-cs-healthos-variant="ghost"] * {
+    color: #075DC7 !important;
+  }
+
   [data-cs-llgan-glass="panel"] {
     background-color: var(--cs-glass-panel) !important;
     border-color: var(--cs-glass-border);

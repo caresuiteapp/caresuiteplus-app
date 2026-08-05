@@ -45,13 +45,17 @@ describe('desktop and portal chrome parity', () => {
     expect(shell).toContain('{displayName}');
     expect(shell).toContain('{role}');
     expect(shell).toContain('<PortalTextSizeControls />');
+    expect(shell).toContain('label="Suchen"');
+    expect(shell).not.toContain('styles.commandShortcutBar');
   });
 
-  it('places desktop content inside the same framed liquid surface model', () => {
+  it('keeps desktop content open and avoids a second nested glass frame', () => {
     expect(shell).toContain('layout.isDesktop ? (');
     expect(shell).toContain('style={styles.workspaceFrame}');
-    expect(shell).toContain('contentStyle={styles.workspaceFrameContent}');
-    expect(shell).toContain("backgroundColor: 'rgba(7,27,53,0.78)'");
+    expect(shell).not.toContain('contentStyle={styles.workspaceFrameContent}');
+    expect(shell).not.toContain('style={styles.areaRail}');
+    expect(shell).toContain('const showAreaNavigation =');
+    expect(shell).toContain('<WorkAreaNavigation');
   });
 
   it('activates the complete portal surface system for every internal workspace route', () => {

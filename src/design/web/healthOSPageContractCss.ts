@@ -330,6 +330,39 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
       inset 0 1px 0 rgba(255,255,255,.96) !important;
   }
 
+  /*
+   * Compatibility bridge for productive screens that still carry the former
+   * dark palette as React Native inline text colours. Only descendants of a
+   * surface that is repainted light above are corrected; the navy application
+   * shell and deliberately dark feature areas keep their inverse typography.
+   */
+  html[data-cs-portal-premium] [data-cs-healthos-component="screen-header"] [style*="color: rgba(255, 255, 255"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="list-overview"] [style*="color: rgba(255, 255, 255"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="section"] [style*="color: rgba(255, 255, 255"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="card"] [style*="color: rgba(255, 255, 255"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"] [style*="color: rgba(255, 255, 255"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"] [style*="color: rgba(255, 255, 255"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgba(255, 255, 255"] {
+    color: #566D83 !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="screen-header"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="list-overview"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="section"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="card"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="screen-header"] [style*="color: rgb(248, 246, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="list-overview"] [style*="color: rgb(248, 246, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="section"] [style*="color: rgb(248, 246, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="card"] [style*="color: rgb(248, 246, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"] [style*="color: rgb(248, 246, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"] [style*="color: rgb(248, 246, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgb(248, 246, 255)"] {
+    color: #061B35 !important;
+  }
+
   html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"]:focus-within,
   html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"]:hover,
   html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"]:hover {
@@ -346,6 +379,15 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
   html[data-cs-portal-premium] [data-cs-healthos-component="button"] {
     border-color: rgba(5,108,232,.30) !important;
     box-shadow: none !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="button"][data-cs-healthos-variant="primary"] * {
+    color: #FFFFFF !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="button"][data-cs-healthos-variant="secondary"] *,
+  html[data-cs-portal-premium] [data-cs-healthos-component="button"][data-cs-healthos-variant="ghost"] * {
+    color: #075DC7 !important;
   }
 
   html[data-cs-portal-premium] [data-cs-healthos-component="button"]:hover {

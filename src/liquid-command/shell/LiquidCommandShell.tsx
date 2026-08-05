@@ -142,11 +142,9 @@ function ModuleDock({ activeModule }: { activeModule: LiquidModuleKey }) {
 function WorkAreaNavigation({
   moduleKey,
   activeArea,
-  horizontal,
 }: {
   moduleKey: LiquidModuleKey;
   activeArea?: string | null;
-  horizontal?: boolean;
 }) {
   const router = useRouter();
   const areas = liquidWorkAreas[moduleKey];
@@ -154,11 +152,11 @@ function WorkAreaNavigation({
 
   return (
     <ScrollView
-      horizontal={horizontal}
+      horizontal
       showsHorizontalScrollIndicator={false}
       showsVerticalScrollIndicator={false}
-      style={horizontal ? styles.areaHorizontal : styles.areaVertical}
-      contentContainerStyle={horizontal ? styles.areaHorizontalContent : styles.areaVerticalContent}
+      style={styles.areaHorizontal}
+      contentContainerStyle={styles.areaHorizontalContent}
     >
       {areas.map((area, index) => {
         const selected = activeArea ? activeArea === area.id : index === 0;
@@ -170,7 +168,7 @@ function WorkAreaNavigation({
             accessibilityState={{ selected }}
             onPress={() => router.push(area.route as never)}
             style={({ pressed }) => [
-              horizontal ? styles.areaChip : styles.areaRow,
+              styles.areaChip,
               selected && styles.areaSelected,
               pressed && styles.pressed,
             ]}
@@ -178,7 +176,6 @@ function WorkAreaNavigation({
             <View style={[styles.areaMarker, selected && styles.areaMarkerActive]} />
             <View style={styles.areaCopy}>
               <Text style={[styles.areaLabel, selected && styles.areaLabelActive]}>{area.label}</Text>
-              {!horizontal ? <Text style={styles.areaDescription}>{area.description}</Text> : null}
             </View>
           </Pressable>
         );
@@ -470,11 +467,9 @@ function CommandBar({
 }) {
   const { isPhone } = useLiquidLayout();
   const { profile, user } = useAuth();
-  const router = useRouter();
   const displayName = profile?.displayName || user?.displayName || 'Profil';
   const role = profile?.roleKey ?? 'CareSuite';
   const module = getLiquidModule(activeModule);
-  const commandShortcuts = liquidGlobalShortcuts.slice(0, 6);
 
   return (
     <View style={[styles.commandBar, isPhone && styles.commandBarPhone]}>
@@ -484,38 +479,10 @@ function CommandBar({
           <Text numberOfLines={1} style={styles.commandTitle}>{module.description}</Text>
         </View>
       )}
-      {!isPhone ? (
-        <View accessibilityRole="tablist" style={styles.commandShortcutBar}>
-          {commandShortcuts.map((item) => (
-            <Pressable
-              key={item.id}
-              accessibilityRole="tab"
-              accessibilityLabel={`${item.label}. ${item.description}`}
-              accessibilityState={{ selected: item.id === 'today' && activeModule === 'home' }}
-              onPress={() => router.push(item.route as never)}
-              style={({ pressed }) => [
-                styles.commandShortcut,
-                item.id === 'today' && activeModule === 'home' && styles.commandShortcutActive,
-                pressed && styles.pressed,
-              ]}
-            >
-              <LiquidGlyph glyph={item.glyph} size={18} />
-              {item.id === 'today' && activeModule === 'home' ? (
-                <Text style={styles.commandShortcutLabel}>{item.label}</Text>
-              ) : null}
-            </Pressable>
-          ))}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Suchen"
-            onPress={onOpenSearch}
-            style={({ pressed }) => [styles.commandShortcut, pressed && styles.pressed]}
-          >
-            <LiquidGlyph glyph="⌕" size={18} />
-          </Pressable>
-        </View>
-      ) : null}
       <View style={styles.commandActions}>
+        {!isPhone ? (
+          <LiquidIconButton label="Suchen" glyph="⌕" onPress={onOpenSearch} />
+        ) : null}
         {!isPhone ? <PortalTextSizeControls /> : null}
         {!isPhone ? (
           <LiquidStatus label="Live" tone="live" />
@@ -622,20 +589,11 @@ export function LiquidCommandShell({
     return <RotateDeviceScreen />;
   }
 
-  const showAreaRail =
-    activeModule !== 'home' &&
-    !layout.isPhone &&
-    layout.formFactor !== 'tablet-portrait' &&
-    liquidWorkAreas[activeModule].length > 0;
+  const showAreaNavigation =
+    activeModule !== 'home' && liquidWorkAreas[activeModule].length > 0;
 
   const workspaceContent = (
     <View style={styles.workspace}>
-      {showAreaRail ? (
-        <LiquidSurface style={styles.areaRail} solid contentStyle={styles.areaRailContent}>
-          <LiquidText variant="kicker">ARBEITSBEREICHE</LiquidText>
-          <WorkAreaNavigation moduleKey={activeModule} activeArea={activeArea} />
-        </LiquidSurface>
-      ) : null}
       {contentMode === 'fill' ? (
         <View
           style={[
@@ -720,17 +678,16 @@ export function LiquidCommandShell({
               <LiquidStatus label="Aktuell" tone="live" detail="mandantenweit synchronisiert" />
             </View>
           ) : null}
-          {layout.isPhone || layout.formFactor === 'tablet-portrait' ? (
+          {showAreaNavigation ? (
             <WorkAreaNavigation
               moduleKey={activeModule}
               activeArea={activeArea}
-              horizontal
             />
           ) : null}
           {layout.isDesktop ? (
-            <LiquidSurface solid style={styles.workspaceFrame} contentStyle={styles.workspaceFrameContent}>
+            <View style={styles.workspaceFrame}>
               {workspaceContent}
-            </LiquidSurface>
+            </View>
           ) : workspaceContent}
         </View>
       </View>
@@ -850,7 +807,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   dock: {
-    width: 252,
+    width: 232,
     paddingHorizontal: 14,
     paddingVertical: 20,
     borderRightWidth: 1,
@@ -968,8 +925,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   commandContext: {
-    width: 270,
-    minWidth: 0,
+    minWidth: 220,
+    maxWidth: 480,
+    flex: 1,
     gap: 4,
   },
   commandEyebrow: {
@@ -990,46 +948,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 10,
-  },
-  commandShortcutBar: {
-    minWidth: 0,
-    flex: 1,
-    maxWidth: 590,
-    height: 48,
-    padding: 4,
-    borderRadius: liquidRadius.small,
-    borderWidth: 1,
-    borderColor: liquidColors.white12,
-    backgroundColor: 'rgba(4,20,42,0.52)',
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    justifyContent: 'space-between',
-  },
-  commandShortcut: {
-    minWidth: 46,
-    flex: 1,
-    paddingHorizontal: 8,
-    borderRadius: liquidRadius.control,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-  },
-  commandShortcutActive: {
-    borderWidth: 1,
-    borderColor: liquidColors.blue400,
-    backgroundColor: 'rgba(22,131,255,0.28)',
-  },
-  commandShortcutGlyph: {
-    color: liquidColors.blue200,
-    fontSize: 17,
-    lineHeight: 20,
-  },
-  commandShortcutLabel: {
-    color: liquidColors.white88,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
   },
   profile: {
     minHeight: 48,
@@ -1110,30 +1028,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     minHeight: 0,
-    margin: 14,
-    overflow: 'hidden',
-  },
-  workspaceFrameContent: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: 0,
-    overflow: 'hidden',
-    backgroundColor: 'rgba(7,27,53,0.78)',
-  },
-  areaRail: {
-    width: 226,
     margin: 12,
-    marginRight: 0,
-    alignSelf: 'stretch',
-  },
-  areaRailContent: {
-    paddingTop: 18,
-  },
-  areaVertical: {
-    marginTop: 12,
-  },
-  areaVerticalContent: {
-    paddingBottom: 18,
+    overflow: 'hidden',
   },
   areaRow: {
     minHeight: 64,
@@ -1181,15 +1077,16 @@ const styles = StyleSheet.create({
     flexGrow: 0,
     borderBottomWidth: 1,
     borderBottomColor: liquidColors.white08,
+    backgroundColor: 'rgba(4,20,42,0.54)',
   },
   areaHorizontalContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    gap: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 7,
+    gap: 7,
   },
   areaChip: {
-    minHeight: 42,
-    paddingHorizontal: 12,
+    minHeight: 36,
+    paddingHorizontal: 11,
     borderRadius: liquidRadius.pill,
     borderWidth: 1,
     borderColor: liquidColors.white12,

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import type { BreadcrumbTrail as BreadcrumbTrailType } from '@/types/navigation/breadcrumbs';
 import { typography } from '@/theme';
 import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 
 type BreadcrumbTrailProps = {
   trail: BreadcrumbTrailType;
@@ -11,6 +12,7 @@ type BreadcrumbTrailProps = {
 
 export function BreadcrumbTrail({ trail }: BreadcrumbTrailProps) {
   const router = useRouter();
+  const { colors, mode } = useLegacyTheme();
 
   const styles = useMemo(
     () =>
@@ -28,26 +30,26 @@ export function BreadcrumbTrail({ trail }: BreadcrumbTrailProps) {
         },
         link: {
           ...typography.caption,
-          color: spatialCareColors.cyanLight,
+          color: mode === 'light' ? colors.primary : spatialCareColors.cyanLight,
           fontWeight: '600',
         },
         text: {
           ...typography.caption,
-          color: spatialCareColors.inkMuted,
+          color: colors.textMuted,
           opacity: 1,
         },
         current: {
           opacity: 1,
           fontWeight: '600',
-          color: spatialCareColors.white,
+          color: colors.textPrimary,
         },
         sep: {
           ...typography.caption,
-          color: spatialCareColors.inkMuted,
+          color: colors.textMuted,
           opacity: 0.8,
         },
       }),
-    [],
+    [colors, mode],
   );
 
   if (trail.length <= 1) return null;

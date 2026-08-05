@@ -16,7 +16,8 @@ import {
 } from '@/lib/payroll';
 import { subscribeToWfmLiveChanges } from '@/lib/realtime/presets';
 import type { ExpenseClaimStatus, PayrollEmployeeMonth } from '@/types/modules/payrollMonth';
-import { colors, typography } from '@/theme';
+import { typography } from '@/theme';
+import { useLegacyTheme, type LegacyColors } from '@/design/tokens/themeBridge';
 
 const STATUS_LABEL: Record<string, string> = {
   published: 'Freigabe ausstehend', confirmed: 'Bestätigt', rejected: 'Abgelehnt',
@@ -28,6 +29,8 @@ function monthLabel(year: number, month: number): string {
 }
 
 export function PayrollMonthOverviewScreen() {
+  const { colors } = useLegacyTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -179,6 +182,6 @@ export function PayrollMonthOverviewScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: LegacyColors) => StyleSheet.create({
   page: { width: '100%', gap: careSpacing.lg }, monthBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: careSpacing.md }, monthCopy: { alignItems: 'center', flex: 1, minWidth: 240 }, monthTitle: { ...typography.h2, color: colors.textPrimary, textTransform: 'capitalize' }, muted: { ...typography.caption, color: colors.textMuted }, kpis: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.md }, kpi: { flex: 1, minWidth: 190, padding: careSpacing.md }, kpiLabel: { ...typography.caption, color: colors.textMuted }, kpiValue: { ...typography.h2, color: colors.textPrimary }, employeeCard: { padding: careSpacing.lg, gap: careSpacing.md }, heading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: careSpacing.md }, flex: { flex: 1, minWidth: 0 }, name: { ...typography.h3, color: colors.textPrimary }, metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, metric: { ...typography.caption, color: colors.textMuted, paddingVertical: 7, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, borderColor: colors.borderSoft }, strong: { fontWeight: '700', color: colors.textPrimary }, moneyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xl }, money: { ...typography.h3, color: colors.textPrimary }, moneyForecast: { ...typography.h3, color: '#7657C8' }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }, expenses: { gap: careSpacing.sm, borderTopWidth: 1, borderTopColor: colors.borderSoft, paddingTop: careSpacing.md }, subheading: { ...typography.h3, color: colors.textPrimary }, expenseRow: { gap: careSpacing.sm, borderRadius: 14, borderWidth: 1, borderColor: colors.borderSoft, padding: careSpacing.md }, reviewFields: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
 });
