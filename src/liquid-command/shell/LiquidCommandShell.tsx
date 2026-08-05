@@ -74,23 +74,66 @@ function RotateDeviceScreen() {
 
 function ModuleDock({ activeModule }: { activeModule: LiquidModuleKey }) {
   const router = useRouter();
+  const auth = useAuth();
+
+  const signOut = async () => {
+    await auth.signOut();
+    router.replace('/auth' as never);
+  };
+
   return (
-    <View accessibilityRole="tablist" style={styles.dock}>
+    <View style={styles.dock}>
+      <View style={styles.dockBrand}>
+        <LiquidLogo compact />
+        <View style={styles.dockBrandCopy}>
+          <Text style={styles.dockKicker}>HEALTHOS DESKTOP</Text>
+          <Text style={styles.dockTitle}>Arbeitsbereiche</Text>
+        </View>
+      </View>
       <ScrollView
+        accessibilityRole="tablist"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.dockItems}
       >
-        {liquidModules.map((module) => (
-          <View key={module.key} style={styles.dockItem}>
-            <LiquidIconButton
-              label={module.label}
-              glyph={module.glyph}
-              active={activeModule === module.key}
+        {liquidModules.map((module) => {
+          const selected = activeModule === module.key;
+          return (
+            <Pressable
+              key={module.key}
+              accessibilityRole="tab"
+              accessibilityLabel={`${module.label}. ${module.description}`}
+              accessibilityState={{ selected }}
               onPress={() => router.push(module.route as never)}
-            />
-          </View>
-        ))}
+              style={({ pressed }) => [
+                styles.dockItem,
+                selected && styles.dockItemActive,
+                pressed && styles.pressed,
+              ]}
+            >
+              <View style={[styles.dockGlyph, selected && styles.dockGlyphActive]}>
+                <LiquidGlyph active={selected} glyph={module.glyph} size={19} />
+              </View>
+              <View style={styles.dockItemCopy}>
+                <Text numberOfLines={1} style={[styles.dockLabel, selected && styles.dockLabelActive]}>
+                  {module.label}
+                </Text>
+                {selected ? (
+                  <Text numberOfLines={1} style={styles.dockItemDetail}>Aktiver Bereich</Text>
+                ) : null}
+              </View>
+            </Pressable>
+          );
+        })}
       </ScrollView>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Sicher abmelden"
+        onPress={() => void signOut()}
+        style={({ pressed }) => [styles.dockLogout, pressed && styles.pressed]}
+      >
+        <LiquidGlyph glyph="↪" size={19} />
+        <Text style={styles.dockLogoutLabel}>Abmelden</Text>
+      </Pressable>
     </View>
   );
 }
@@ -428,13 +471,16 @@ function CommandBar({
   const { profile, user } = useAuth();
   const router = useRouter();
   const displayName = profile?.displayName || user?.displayName || 'Profil';
+  const role = profile?.roleKey ?? 'CareSuite';
+  const module = getLiquidModule(activeModule);
   const commandShortcuts = liquidGlobalShortcuts.slice(0, 6);
 
   return (
     <View style={[styles.commandBar, isPhone && styles.commandBarPhone]}>
       {isPhone ? <LiquidLogo compact /> : (
         <View style={styles.commandContext}>
-          <LiquidLogo compact />
+          <Text style={styles.commandEyebrow}>{module.label.toUpperCase()}</Text>
+          <Text numberOfLines={1} style={styles.commandTitle}>{module.description}</Text>
         </View>
       )}
       {!isPhone ? (
@@ -484,6 +530,10 @@ function CommandBar({
             onPress={onOpenProfile}
             style={({ pressed }) => [styles.profile, pressed && styles.pressed]}
           >
+            <View style={styles.profileCopy}>
+              <Text numberOfLines={1} style={styles.profileName}>{displayName}</Text>
+              <Text numberOfLines={1} style={styles.profileRole}>{role}</Text>
+            </View>
             <View style={styles.avatar}>
               <LiquidGlyph glyph="♙" size={20} />
             </View>
@@ -576,6 +626,78 @@ export function LiquidCommandShell({
     layout.formFactor !== 'tablet-portrait' &&
     liquidWorkAreas[activeModule].length > 0;
 
+  const workspaceContent = (
+    <View style={styles.workspace}>
+      {showAreaRail ? (
+        <LiquidSurface style={styles.areaRail} solid contentStyle={styles.areaRailContent}>
+          <LiquidText variant="kicker">ARBEITSBEREICHE</LiquidText>
+          <WorkAreaNavigation moduleKey={activeModule} activeArea={activeArea} />
+        </LiquidSurface>
+      ) : null}
+      {contentMode === 'fill' ? (
+        <View
+          style={[
+            styles.contentFill,
+            { padding: layout.contentPadding },
+            !layout.isDesktop && styles.contentFillCompact,
+          ]}
+        >
+          {showPageHeader ? (
+            <View style={styles.pageHeader}>
+              <View style={styles.pageHeading}>
+                <LiquidText variant="kicker">{module.label.toUpperCase()}</LiquidText>
+                <LiquidText variant={layout.isPhone ? 'title' : 'display'} accessibilityRole="header">
+                  {title}
+                </LiquidText>
+                <LiquidText variant="body" style={styles.pageSubtitle}>{subtitle}</LiquidText>
+              </View>
+            </View>
+          ) : null}
+          <View style={styles.contentPrimaryFill}>{children}</View>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.contentScroll}
+          contentContainerStyle={[
+            styles.content,
+            { padding: layout.contentPadding },
+            !showPageHeader && styles.contentWithoutHeader,
+            layout.isPhone && styles.contentPhone,
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {showPageHeader ? (
+            <View style={styles.pageHeader}>
+              <View style={styles.pageHeading}>
+                <LiquidText variant="kicker">{module.label.toUpperCase()}</LiquidText>
+                <LiquidText
+                  variant={layout.isPhone ? 'title' : 'display'}
+                  accessibilityRole="header"
+                >
+                  {title}
+                </LiquidText>
+                <LiquidText variant="body" style={styles.pageSubtitle}>{subtitle}</LiquidText>
+              </View>
+              {!layout.isPhone ? (
+                <LiquidButton label={actionLabel} icon="+" onPress={action} />
+              ) : null}
+            </View>
+          ) : null}
+          <View
+            style={[
+              styles.contentColumns,
+              aside && layout.isDesktop ? styles.contentColumnsWithAside : null,
+            ]}
+          >
+            <View style={styles.contentPrimary}>{children}</View>
+            {aside && layout.isDesktop ? <View style={styles.contentAside}>{aside}</View> : null}
+          </View>
+        </ScrollView>
+      )}
+    </View>
+  );
+
   return (
     <LiquidBackdrop>
       <View style={styles.shell}>
@@ -603,75 +725,11 @@ export function LiquidCommandShell({
               horizontal
             />
           ) : null}
-          <View style={styles.workspace}>
-            {showAreaRail ? (
-              <LiquidSurface style={styles.areaRail} solid contentStyle={styles.areaRailContent}>
-                <LiquidText variant="kicker">ARBEITSBEREICHE</LiquidText>
-                <WorkAreaNavigation moduleKey={activeModule} activeArea={activeArea} />
-              </LiquidSurface>
-            ) : null}
-            {contentMode === 'fill' ? (
-              <View
-                style={[
-                  styles.contentFill,
-                  { padding: layout.contentPadding },
-                  !layout.isDesktop && styles.contentFillCompact,
-                ]}
-              >
-                {showPageHeader ? (
-                  <View style={styles.pageHeader}>
-                    <View style={styles.pageHeading}>
-                      <LiquidText variant="kicker">{module.label.toUpperCase()}</LiquidText>
-                      <LiquidText variant={layout.isPhone ? 'title' : 'display'} accessibilityRole="header">
-                        {title}
-                      </LiquidText>
-                      <LiquidText variant="body" style={styles.pageSubtitle}>{subtitle}</LiquidText>
-                    </View>
-                  </View>
-                ) : null}
-                <View style={styles.contentPrimaryFill}>{children}</View>
-              </View>
-            ) : (
-              <ScrollView
-                style={styles.contentScroll}
-                contentContainerStyle={[
-                  styles.content,
-                  { padding: layout.contentPadding },
-                  !showPageHeader && styles.contentWithoutHeader,
-                  layout.isPhone && styles.contentPhone,
-                ]}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
-                {showPageHeader ? (
-                  <View style={styles.pageHeader}>
-                    <View style={styles.pageHeading}>
-                      <LiquidText variant="kicker">{module.label.toUpperCase()}</LiquidText>
-                      <LiquidText
-                        variant={layout.isPhone ? 'title' : 'display'}
-                        accessibilityRole="header"
-                      >
-                        {title}
-                      </LiquidText>
-                      <LiquidText variant="body" style={styles.pageSubtitle}>{subtitle}</LiquidText>
-                    </View>
-                    {!layout.isPhone ? (
-                      <LiquidButton label={actionLabel} icon="+" onPress={action} />
-                    ) : null}
-                  </View>
-                ) : null}
-                <View
-                  style={[
-                    styles.contentColumns,
-                    aside && layout.isDesktop ? styles.contentColumnsWithAside : null,
-                  ]}
-                >
-                  <View style={styles.contentPrimary}>{children}</View>
-                  {aside && layout.isDesktop ? <View style={styles.contentAside}>{aside}</View> : null}
-                </View>
-              </ScrollView>
-            )}
-          </View>
+          {layout.isDesktop ? (
+            <LiquidSurface solid style={styles.workspaceFrame} contentStyle={styles.workspaceFrameContent}>
+              {workspaceContent}
+            </LiquidSurface>
+          ) : workspaceContent}
         </View>
       </View>
       {!layout.isDesktop ? (
@@ -783,49 +841,124 @@ const styles = StyleSheet.create({
   shellMain: {
     flex: 1,
     minWidth: 0,
+    minHeight: 0,
+    overflow: 'hidden',
   },
   contentWithoutHeader: {
     paddingTop: 0,
   },
   dock: {
-    width: 104,
-    paddingTop: 102,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    borderRightWidth: 0,
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    gap: 8,
+    width: 252,
+    paddingHorizontal: 14,
+    paddingVertical: 20,
+    borderRightWidth: 1,
+    borderRightColor: liquidColors.white12,
+    backgroundColor: 'rgba(6,21,43,0.9)',
+    alignItems: 'stretch',
+    gap: 18,
     zIndex: liquidLayers.dock,
   },
+  dockBrand: {
+    gap: 14,
+  },
+  dockBrandCopy: {
+    gap: 3,
+    paddingHorizontal: 4,
+  },
+  dockKicker: {
+    color: liquidColors.blue200,
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  dockTitle: {
+    color: liquidColors.white,
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '800',
+  },
   dockItems: {
-    width: 72,
-    minHeight: 720,
-    paddingTop: 9,
-    paddingBottom: 9,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(112,181,255,0.42)',
-    backgroundColor: 'rgba(5,23,47,0.9)',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
+    gap: 6,
+    paddingBottom: 20,
+    paddingTop: 2,
   },
   dockItem: {
-    width: 54,
+    width: '100%',
+    minHeight: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: liquidRadius.control,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 11,
+  },
+  dockItemActive: {
+    borderColor: liquidColors.blue400,
+    backgroundColor: 'rgba(20,120,255,0.2)',
+  },
+  dockGlyph: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    backgroundColor: liquidColors.white08,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dockGlyphActive: {
+    backgroundColor: 'rgba(22,131,255,0.24)',
+  },
+  dockItemCopy: {
+    minWidth: 0,
+    flex: 1,
+    gap: 1,
+  },
+  dockLabel: {
+    color: liquidColors.white72,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  dockLabelActive: {
+    color: liquidColors.white,
+  },
+  dockItemDetail: {
+    color: liquidColors.blue200,
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: '700',
+    letterSpacing: 0.35,
+  },
+  dockLogout: {
+    width: '100%',
+    minHeight: 50,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    borderTopWidth: 1,
+    borderTopColor: liquidColors.white12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  dockLogoutLabel: {
+    color: liquidColors.white72,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
   },
   commandBar: {
-    minHeight: 98,
-    paddingHorizontal: 10,
-    paddingRight: 24,
-    paddingVertical: 14,
-    borderBottomWidth: 0,
-    backgroundColor: 'rgba(1,8,23,0.72)',
+    minHeight: 74,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: liquidColors.white12,
+    backgroundColor: 'rgba(6,21,43,0.84)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 18,
+    gap: 14,
     zIndex: liquidLayers.dock,
   },
   commandBarPhone: {
@@ -833,8 +966,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   commandContext: {
-    width: 312,
-    paddingLeft: 0,
+    width: 270,
+    minWidth: 0,
+    gap: 4,
   },
   commandEyebrow: {
     color: liquidColors.blue200,
@@ -845,8 +979,8 @@ const styles = StyleSheet.create({
   },
   commandTitle: {
     color: liquidColors.white,
-    fontSize: 18,
-    lineHeight: 23,
+    fontSize: 15,
+    lineHeight: 20,
     fontWeight: '800',
   },
   commandActions: {
@@ -858,19 +992,19 @@ const styles = StyleSheet.create({
   commandShortcutBar: {
     minWidth: 0,
     flex: 1,
-    maxWidth: 690,
-    height: 60,
-    padding: 5,
+    maxWidth: 590,
+    height: 48,
+    padding: 4,
     borderRadius: liquidRadius.small,
     borderWidth: 1,
-    borderColor: 'rgba(112,181,255,0.36)',
-    backgroundColor: 'rgba(4,20,42,0.78)',
+    borderColor: liquidColors.white12,
+    backgroundColor: 'rgba(4,20,42,0.52)',
     flexDirection: 'row',
     alignItems: 'stretch',
     justifyContent: 'space-between',
   },
   commandShortcut: {
-    minWidth: 54,
+    minWidth: 46,
     flex: 1,
     paddingHorizontal: 8,
     borderRadius: liquidRadius.control,
@@ -897,12 +1031,18 @@ const styles = StyleSheet.create({
   },
   profile: {
     minHeight: 48,
-    width: 48,
-    paddingHorizontal: 5,
+    maxWidth: 210,
+    paddingLeft: 9,
+    paddingRight: 5,
     borderRadius: liquidRadius.small,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 9,
+  },
+  profileCopy: {
+    minWidth: 0,
+    alignItems: 'flex-end',
   },
   avatar: {
     width: 38,
@@ -932,7 +1072,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderBottomWidth: 1,
     borderBottomColor: liquidColors.white08,
-    backgroundColor: 'rgba(4,20,42,0.58)',
+    backgroundColor: 'rgba(4,20,42,0.64)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -960,12 +1100,27 @@ const styles = StyleSheet.create({
   },
   workspace: {
     flex: 1,
+    minWidth: 0,
     minHeight: 0,
     flexDirection: 'row',
   },
+  workspaceFrame: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    margin: 14,
+    overflow: 'hidden',
+  },
+  workspaceFrameContent: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(7,27,53,0.78)',
+  },
   areaRail: {
     width: 226,
-    margin: 16,
+    margin: 12,
     marginRight: 0,
     alignSelf: 'stretch',
   },
