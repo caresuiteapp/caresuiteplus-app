@@ -107,6 +107,16 @@ export async function bulkUpdateAdministrativeTasks(
   return { ok: true, data: { updated: result?.updated ?? updates.length } };
 }
 
-export function completeAdministrativeFollowUp(visitId: string) {
-  return runAdministrativeRpc('admin_complete_assist_visit_follow_up', { p_visit_id: visitId, p_reason: AUTOMATIC_ADMIN_AUDIT_REASON });
+export function completeAdministrativeFollowUp(
+  visitId: string,
+  taskStates: { taskId: string; status: VisitTaskStatus }[],
+) {
+  return runAdministrativeRpc('admin_reconcile_complete_assist_visit_follow_up', {
+    p_visit_id: visitId,
+    p_task_states: taskStates.map((task) => ({
+      task_id: task.taskId,
+      status: task.status,
+    })),
+    p_reason: AUTOMATIC_ADMIN_AUDIT_REASON,
+  });
 }

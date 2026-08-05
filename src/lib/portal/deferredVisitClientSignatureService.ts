@@ -25,6 +25,18 @@ export type DeferredClientSignatureReleaseResult = {
   clientDocumentId: string | null;
 };
 
+async function resolveAdministrativeActorProfileId(): Promise<ServiceResult<string>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { data, error } = await supabase.rpc('resolve_current_profile_id' as never);
+  if (error) return { ok: false, error: error.message };
+  if (typeof data !== 'string' || !data) {
+    return { ok: false, error: 'Angemeldetes Verwaltungsprofil konnte nicht zugeordnet werden.' };
+  }
+  return { ok: true, data };
+}
+
 const ADMIN_CANONICAL_STATUS: Record<VisitDispositionDetail['assignmentStatus'], CanonicalAssignmentStatus> = {
   geplant: 'planned',
   bestaetigt: 'confirmed',
@@ -58,6 +70,11 @@ export async function releaseAdministrativeDeferredClientSignatureRequest(
   if (!documentationText) {
     return { ok: false, error: 'Dokumentation ist vor der Signaturanforderung erforderlich.' };
   }
+
+  const actor = actorProfileId
+    ? ({ ok: true, data: actorProfileId } as const)
+    : await resolveAdministrativeActorProfileId();
+  if (!actor.ok) return actor;
 
   const serviceSeconds =
     visit.actualStartAt && visit.actualEndAt
@@ -121,7 +138,7 @@ export async function releaseAdministrativeDeferredClientSignatureRequest(
     tenantId,
     assignmentId: visit.id,
     employeeId: visit.employeeId ?? '',
-    profileId: actorProfileId,
+    profileId: actor.data,
     roleKey: 'admin',
     assistVisitId: visit.id,
     assignmentStatus: visit.assignmentStatus,
@@ -142,7 +159,7 @@ export async function releaseAdministrativeDeferredClientSignatureRequest(
       inconsistentStatus: false,
       repairHint: null,
     },
-  }, documentationText);
+  }, documentationText, { administrative: true });
 }
 
 /** True when visit has a portal-visible proof awaiting client signature. */
@@ -170,7 +187,7 @@ async function upsertDeferredSignatureClientPortalDocument(
   tenantId: string,
   proof: AssistVisitProofRow,
   clientId: string,
-  options?: { actorProfileId?: string | null },
+  options?: { actorProfileId?: string | null; administrative?: boolean },
 ): Promise<ServiceResult<{ clientDocumentId: string }>> {
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -180,8 +197,11 @@ async function upsertDeferredSignatureClientPortalDocument(
     String(snapshot.title ?? snapshot.serviceName ?? 'Leistungsnachweis').trim() ||
     'Leistungsnachweis';
 
+  const rpcName = options?.administrative
+    ? 'admin_upsert_deferred_signature_client_document'
+    : 'employee_portal_upsert_deferred_signature_client_document';
   const { data, error } = await (supabase.rpc(
-    'employee_portal_upsert_deferred_signature_client_document' as never,
+    rpcName as never,
     {
       p_tenant_id: tenantId,
       p_proof_id: proof.id,
@@ -209,6 +229,7 @@ async function upsertDeferredSignatureClientPortalDocument(
 export async function releaseDeferredClientSignatureRequest(
   ctx: AssistExecutionContext,
   documentationText?: string | null,
+  options?: { administrative?: boolean },
 ): Promise<ServiceResult<DeferredClientSignatureReleaseResult>> {
   if (getServiceMode() !== 'supabase') {
     return { ok: true, data: { proofId: 'demo-proof', clientDocumentId: null } };
@@ -292,7 +313,10 @@ export async function releaseDeferredClientSignatureRequest(
     ctx.tenantId,
     released.data,
     clientId,
-    { actorProfileId: ctx.profileId ?? null },
+    {
+      actorProfileId: ctx.profileId ?? null,
+      administrative: options?.administrative,
+    },
   );
   if (!documentSync.ok) {
     return { ok: false, error: documentSync.error ?? 'Klient:innenportal-Eintrag fehlgeschlagen.' };

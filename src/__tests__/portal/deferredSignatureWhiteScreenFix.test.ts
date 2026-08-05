@@ -45,6 +45,11 @@ describe('deferred signature white screen fix', () => {
     expect(service).toContain('ctx.detail.documentationNotes?.trim()');
     expect(service).not.toContain("? 'submitted' : ''");
     expect(service).toContain('releaseAdministrativeDeferredClientSignatureRequest');
+    expect(service).toContain('resolveAdministrativeActorProfileId');
+    expect(service).toContain("supabase.rpc('resolve_current_profile_id'");
+    expect(service).toContain('profileId: actor.data');
+    expect(service).toContain("'admin_upsert_deferred_signature_client_document'");
+    expect(service).toContain('administrative: true');
   });
 
   it('signature modal disables browser requestFullscreen via OrientationGate', () => {

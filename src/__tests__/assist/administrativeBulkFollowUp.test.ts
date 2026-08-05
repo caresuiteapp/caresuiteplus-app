@@ -25,6 +25,10 @@ const runtimeRepair = readFileSync(
   'supabase/migrations/0271_employee_runtime_and_follow_up_repair.sql',
   'utf8',
 );
+const reconciliationRepair = readFileSync(
+  'supabase/migrations/20260805160000_administrative_signature_and_task_reconciliation.sql',
+  'utf8',
+);
 const executionScreen = readFileSync('src/screens/assist/VisitExecutionScreen.tsx', 'utf8');
 const premiumButton = readFileSync('src/components/ui/PremiumButton.tsx', 'utf8');
 const careLightButton = readFileSync('src/components/ui/CareLightButton.tsx', 'utf8');
@@ -43,7 +47,15 @@ describe('administrative Sammelnachbearbeitung', () => {
     expect(panel).toContain('Aufgaben gemeinsam speichern');
     expect(panel).toContain('bulkUpdateAdministrativeTasks');
     expect(service).toContain("admin_bulk_update_assist_visit_tasks");
-    expect(panel).toMatch(/const completeFollowUp[\s\S]*changedTasks\.length > 0[\s\S]*bulkUpdateAdministrativeTasks[\s\S]*completeAdministrativeFollowUp/);
+    expect(panel).toMatch(/const completeFollowUp[\s\S]*visit\.tasks\.map[\s\S]*completeAdministrativeFollowUp/);
+  });
+
+  it('gleicht beim Abschluss die sichtbaren Assignment-Aufgaben atomar mit den Visit-Aufgaben ab', () => {
+    expect(service).toContain('admin_reconcile_complete_assist_visit_follow_up');
+    expect(reconciliationRepair).toContain('p_task_states JSONB');
+    expect(reconciliationRepair).toContain('public.assignment_tasks');
+    expect(reconciliationRepair).toContain('public.assist_visit_tasks');
+    expect(reconciliationRepair).toContain("RAISE EXCEPTION 'Pflichtaufgaben sind noch offen: %'");
   });
 
   it('zeigt Aufgaben und Dokumentation in der Verwaltung nicht doppelt', () => {

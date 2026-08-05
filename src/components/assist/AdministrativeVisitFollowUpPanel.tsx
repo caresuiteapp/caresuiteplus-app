@@ -165,14 +165,11 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
 
   const completeFollowUp = async () => {
     setSaving(true);
-    if (changedTasks.length > 0) {
-      const tasks = await bulkUpdateAdministrativeTasks(visit.id, changedTasks);
-      if (!tasks.ok) {
-        setSaving(false);
-        return onMessage(tasks.error, true);
-      }
-    }
-    const result = await completeAdministrativeFollowUp(visit.id);
+    const taskStates = visit.tasks.map((task) => ({
+      taskId: task.id,
+      status: taskDrafts[task.id] ?? task.status,
+    }));
+    const result = await completeAdministrativeFollowUp(visit.id, taskStates);
     setSaving(false);
     if (!result.ok) return onMessage(result.error, true);
     onMessage('Einsatzakte wurde vollständig abgeschlossen.');
