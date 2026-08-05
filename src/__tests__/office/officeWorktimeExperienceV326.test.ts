@@ -16,7 +16,7 @@ describe('Office Arbeitszeit V32.7 Design, Struktur und Funktionen', () => {
     expect(shell).toContain('contentContainerStyle={styles.tabRow}');
     expect(shell).not.toContain('contentContainerStyle={styles.contentContainer}');
     expect(shell).not.toContain('styles.tabRowDesktop');
-    expect(shell).not.toContain("overflow: 'hidden',\n  },\n});");
+    expect(shell).toContain("overflow: 'hidden'");
     expect(shell).toContain("backgroundColor: 'rgba(255,255,255,0.94)'");
     expect(shell).not.toContain('DarkLiquidGlassBackground');
   });

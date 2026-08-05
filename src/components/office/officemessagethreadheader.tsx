@@ -38,8 +38,8 @@ export function OfficeMessageThreadHeader({ detail }: OfficeMessageThreadHeaderP
           borderBottomWidth: 1,
           borderBottomColor: c.border,
           backgroundColor: c.surface,
-          paddingHorizontal: careSpacing.md,
-          paddingVertical: careSpacing.sm,
+          paddingHorizontal: 10,
+          paddingVertical: 5,
         },
         heroHeader: {
           overflow: 'hidden',
@@ -62,9 +62,9 @@ export function OfficeMessageThreadHeader({ detail }: OfficeMessageThreadHeaderP
           gap: careSpacing.sm,
         },
         avatar: {
-          width: 42,
-          height: 42,
-          borderRadius: 21,
+          width: 32,
+          height: 32,
+          borderRadius: 16,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: `${c.violet}16`,
@@ -75,6 +75,8 @@ export function OfficeMessageThreadHeader({ detail }: OfficeMessageThreadHeaderP
         titleCopy: { flex: 1, minWidth: 0 },
         title: {
           ...careTypography.h3,
+          fontSize: 16,
+          lineHeight: 20,
           color: c.text,
         },
         heroTitle: {
@@ -89,7 +91,8 @@ export function OfficeMessageThreadHeader({ detail }: OfficeMessageThreadHeaderP
         statusText: {
           ...careTypography.caption,
           color: c.muted,
-          lineHeight: 18,
+          fontSize: 11,
+          lineHeight: 14,
         },
         statusDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: c.green },
         heroStatusText: {

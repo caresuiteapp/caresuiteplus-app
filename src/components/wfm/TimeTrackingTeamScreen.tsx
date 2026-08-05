@@ -279,9 +279,26 @@ export function WfmZeitkontenScreen() {
   return (
     <View style={styles.root} testID="wfm-zeitkonten-screen">
       <WfmOfficeSectionHeading
-        title="Zeitkonten"
-        subtitle="Plan · Ist · Genehmigt · Export · Saldo je Mitarbeitende"
+        title="Arbeitszeit- und Gehaltsvorbereitung"
+        subtitle="Soll/Ist, Einsatzzeiten, Zeitkonto, Urlaub, Korrekturen und Freigaben vollständig prüfen"
       />
+
+      <View style={styles.payrollPreparation}>
+        <View style={styles.payrollPreparationCopy}>
+          <Text style={styles.payrollPreparationKicker}>MONATLICHE PRÜFKETTE</Text>
+          <Text style={styles.payrollPreparationTitle}>Vom Einsatz bis zur Gehaltsstatistik</Text>
+          <Text style={styles.payrollPreparationText}>
+            Erst Einsatzzeiten und Abwesenheiten kontrollieren, offene Abweichungen bearbeiten,
+            anschließend Zeitkonten prüfen und den freigegebenen Monat in der Gehaltsstatistik abschließen.
+          </Text>
+        </View>
+        <View style={styles.payrollPreparationActions}>
+          <PremiumButton title="Einsatzzeiten & Korrekturen" variant="secondary" onPress={() => router.push('/business/office/time-tracking/historie' as never)} />
+          <PremiumButton title="Urlaub & Abwesenheiten" variant="secondary" onPress={() => router.push('/business/office/time-tracking/abwesenheiten' as never)} />
+          <PremiumButton title="Offene Prüfungen" variant="secondary" onPress={() => router.push('/business/office/time-tracking/pruefqueue' as never)} />
+          <PremiumButton title="Gehaltsstatistik öffnen" onPress={() => router.push('/business/office/payroll' as never)} />
+        </View>
+      </View>
 
       <WfmOfficeFilterBar
         periodSlot={
@@ -468,6 +485,24 @@ export function TimeTrackingTeamScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, width: '100%', gap: careSpacing.md, paddingBottom: careSpacing.lg },
+  payrollPreparation: {
+    width: '100%',
+    padding: careSpacing.md,
+    borderWidth: 1,
+    borderColor: '#99C6F4',
+    borderRadius: 16,
+    backgroundColor: '#EAF4FF',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: careSpacing.md,
+  },
+  payrollPreparationCopy: { flex: 1, minWidth: 280, gap: 3 },
+  payrollPreparationKicker: { color: '#1567B8', fontSize: 10, lineHeight: 13, fontWeight: '900', letterSpacing: 0.9 },
+  payrollPreparationTitle: { color: '#0B2342', fontSize: 19, lineHeight: 24, fontWeight: '900' },
+  payrollPreparationText: { color: '#31597F', fontSize: 13, lineHeight: 18, fontWeight: '600' },
+  payrollPreparationActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: careSpacing.xs },
   teamSummary: { ...typography.caption, fontSize: 11, lineHeight: 16 },
   workArea: { width: '100%', gap: careSpacing.sm },
   detailBlock: {

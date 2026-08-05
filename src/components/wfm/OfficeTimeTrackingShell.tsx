@@ -41,20 +41,36 @@ export function OfficeTimeTrackingShell() {
             </Text>
           </View>
         </View>
-        <Pressable
-          onPress={() => router.push(OFFICE_TIME_TRACKING_OWN_HREF as never)}
-          style={({ pressed }) => [
-            styles.ownLink,
-            { borderColor: ownCaptureActive ? accent : SHELL_TEXT.border },
-            ownCaptureActive && { backgroundColor: `${accent}14` },
-            pressed && styles.ownLinkPressed,
-          ]}
-          accessibilityRole="link"
-          accessibilityLabel="Eigene Erfassung öffnen"
-        >
-          <Text style={[styles.ownLinkIcon, { color: accent }]}>＋</Text>
-          {!compact ? <View><Text style={styles.ownLinkKicker}>PERSÖNLICH</Text><Text style={[styles.ownLinkText, { color: ownCaptureActive ? accent : SHELL_TEXT.primary }]}>Eigene Erfassung</Text></View> : null}
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => router.push('/business/office/payroll' as never)}
+            style={({ pressed }) => [styles.payrollLink, pressed && styles.ownLinkPressed]}
+            accessibilityRole="link"
+            accessibilityLabel="Gehaltsstatistik und Monatsabschluss öffnen"
+          >
+            <Text style={styles.payrollLinkIcon}>€</Text>
+            {!compact ? (
+              <View>
+                <Text style={styles.payrollLinkKicker}>MONATSABSCHLUSS</Text>
+                <Text style={styles.payrollLinkText}>Gehaltsstatistik</Text>
+              </View>
+            ) : null}
+          </Pressable>
+          <Pressable
+            onPress={() => router.push(OFFICE_TIME_TRACKING_OWN_HREF as never)}
+            style={({ pressed }) => [
+              styles.ownLink,
+              { borderColor: ownCaptureActive ? accent : SHELL_TEXT.border },
+              ownCaptureActive && { backgroundColor: `${accent}14` },
+              pressed && styles.ownLinkPressed,
+            ]}
+            accessibilityRole="link"
+            accessibilityLabel="Eigene Erfassung öffnen"
+          >
+            <Text style={[styles.ownLinkIcon, { color: accent }]}>＋</Text>
+            {!compact ? <View><Text style={styles.ownLinkKicker}>PERSÖNLICH</Text><Text style={[styles.ownLinkText, { color: ownCaptureActive ? accent : SHELL_TEXT.primary }]}>Eigene Erfassung</Text></View> : null}
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.navigationSurface}>
@@ -102,6 +118,7 @@ export function OfficeTimeTrackingShell() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    minHeight: 0,
     backgroundColor: 'transparent',
   },
   header: {
@@ -172,6 +189,44 @@ const styles = StyleSheet.create({
     gap: careSpacing.sm,
     backgroundColor: 'rgba(255,255,255,0.74)',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+    gap: careSpacing.sm,
+  },
+  payrollLink: {
+    minHeight: 46,
+    paddingHorizontal: careSpacing.md,
+    paddingVertical: careSpacing.sm,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#86BFFF',
+    backgroundColor: '#0B68D8',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: careSpacing.sm,
+  },
+  payrollLinkIcon: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    lineHeight: 23,
+    fontWeight: '900',
+  },
+  payrollLinkKicker: {
+    color: 'rgba(255,255,255,0.76)',
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: '800',
+    letterSpacing: 0.7,
+  },
+  payrollLinkText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '800',
+  },
   ownLinkPressed: {
     opacity: 0.85,
   },
@@ -235,11 +290,15 @@ const styles = StyleSheet.create({
   tabLabelSelected: { fontWeight: '800' },
   activeMarker: { position: 'absolute', left: 12, right: 12, bottom: 2, height: 2, borderRadius: 2 },
   content: {
+    flex: 1,
+    minHeight: 0,
     width: '100%',
     backgroundColor: 'transparent',
     padding: careSpacing.sm,
   },
   workspace: {
+    flex: 1,
+    minHeight: 0,
     width: '100%',
     maxWidth: '100%',
     alignSelf: 'stretch',
@@ -248,6 +307,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.94)',
     padding: careSpacing.md,
-    overflow: 'visible',
+    overflow: 'hidden',
   },
 });

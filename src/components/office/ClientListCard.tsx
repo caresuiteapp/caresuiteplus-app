@@ -1,6 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
-import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import type { ClientListItem } from '@/types/modules/office';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
@@ -36,7 +35,6 @@ function statusVariant(status: ClientListItem['status']) {
 }
 
 export function ClientListCard({ client, onPress, selected = false }: ClientListCardProps) {
-  const tableText = useTableTextStyles();
   const location = [client.zip, client.city].filter(Boolean).join(' ');
   const fullAddress = [client.street, location].filter(Boolean).join(', ');
   const updatedAt = formatGermanDate(client.updatedAt);
@@ -54,7 +52,7 @@ export function ClientListCard({ client, onPress, selected = false }: ClientList
   const inner = (
     <View style={styles.cardContent}>
       <View style={styles.header}>
-        <Text style={tableText.name}>
+        <Text style={styles.clientName}>
           {client.lastName}, {client.firstName}
         </Text>
         <View style={styles.badges}>
@@ -71,7 +69,7 @@ export function ClientListCard({ client, onPress, selected = false }: ClientList
           {facts.map((fact) => (
             <View key={fact.label} style={styles.fact}>
               <Text style={styles.factLabel}>{fact.label}</Text>
-              <Text style={tableText.meta} numberOfLines={1}>{fact.value}</Text>
+              <Text style={styles.factValue} numberOfLines={1}>{fact.value}</Text>
             </View>
           ))}
         </View>
@@ -105,6 +103,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,149,0,0.08)',
   },
   cardContent: { gap: spacing.md },
+  clientName: {
+    flex: 1,
+    color: '#0B2342',
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '800',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -125,16 +130,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.055)',
+    backgroundColor: 'rgba(225,239,255,0.82)',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.13)',
+    borderColor: 'rgba(38,126,225,0.22)',
     gap: 2,
   },
   factLabel: {
-    color: 'rgba(248,246,255,0.72)',
+    color: '#31597F',
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
+  },
+  factValue: {
+    color: '#0B2342',
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '700',
   },
 });

@@ -18,6 +18,8 @@ type ScreenHeaderProps = {
   rightSlot?: React.ReactNode;
   /** Hide breadcrumb trail on phone for compact portal pages. */
   simplifyOnPhone?: boolean;
+  /** Dense header for full-height workspaces such as chat and planning. */
+  compact?: boolean;
 };
 
 export function ScreenHeader({
@@ -28,6 +30,7 @@ export function ScreenHeader({
   onBack,
   rightSlot,
   simplifyOnPhone = true,
+  compact = false,
 }: ScreenHeaderProps) {
   const router = useRouter();
   const { isPhone } = useDeviceClass();
@@ -45,8 +48,8 @@ export function ScreenHeader({
           flexDirection: 'row',
           alignItems: 'center',
           paddingHorizontal: spacing.md,
-          paddingVertical: spacing.md,
-          minHeight: isPhone ? 68 : 82,
+          paddingVertical: compact ? 6 : spacing.md,
+          minHeight: compact ? 54 : isPhone ? 68 : 82,
           borderBottomWidth: 1,
           borderBottomColor: colors.borderSoft,
           backgroundColor: colors.bgPanel,
@@ -86,6 +89,8 @@ export function ScreenHeader({
         },
         title: {
           ...typography.h3,
+          fontSize: compact ? 18 : typography.h3.fontSize,
+          lineHeight: compact ? 22 : typography.h3.lineHeight,
           color: colors.textPrimary,
           textAlign: isPhone ? 'center' : 'left',
           flexShrink: 1,
@@ -97,7 +102,7 @@ export function ScreenHeader({
           marginTop: 2,
         },
       }),
-    [colors, isPhone, mode, rightSlot, sideInsetWidth],
+    [colors, compact, isPhone, mode, rightSlot, sideInsetWidth],
   );
 
   const handleBack = () => {

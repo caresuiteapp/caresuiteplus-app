@@ -36,6 +36,7 @@ type ScreenShellProps = {
   a11yMeta?: DomainA11yMeta;
   hideMobileLogout?: boolean;
   mobileContentPaddingBottom?: number;
+  compactHeader?: boolean;
 };
 
 /** Verbindliche Seitenschale für alle Module und Portale. */
@@ -54,6 +55,7 @@ export function ScreenShell({
   a11yMeta,
   hideMobileLogout = false,
   mobileContentPaddingBottom,
+  compactHeader = false,
 }: ScreenShellProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -187,6 +189,7 @@ export function ScreenShell({
         showBack={showBack}
         onBack={onBack}
         rightSlot={effectiveRightSlot}
+        compact={compactHeader}
       />
       <HealthOSPageSurface
         padded={false}

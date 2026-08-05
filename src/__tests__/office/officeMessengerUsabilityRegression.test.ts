@@ -23,7 +23,7 @@ describe('Office messenger usability regression', () => {
 
     expect(source).toContain('office-message-history');
     expect(source).toContain('scrollToLatestMessage');
-    expect(source).toContain('messagesContent: { paddingVertical: spacing.lg, flexGrow: 1 }');
+    expect(source).toContain('messagesContent: { paddingVertical: spacing.sm, flexGrow: 1 }');
     expect(source).toContain('keyboardShouldPersistTaps="handled"');
   });
 
@@ -51,7 +51,7 @@ describe('Office messenger usability regression', () => {
 
     expect(screen).toContain('workspaceWidth');
     expect(screen).toContain('event.nativeEvent.layout.width');
-    expect(screen).toContain('workspaceWidth < 1240');
+    expect(screen).toContain('workspaceWidth < 920');
   });
 
   it('fits the real desktop height and keeps the composer inside the visible workspace', () => {
@@ -63,9 +63,22 @@ describe('Office messenger usability regression', () => {
     expect(shell).toContain('maxHeight: \'100%\'');
     expect(shell).toContain("overflow: 'hidden' as const");
     expect(screen).toContain("flexWrap: stackTopChrome ? 'wrap' : 'nowrap'");
-    expect(screen).toContain('minHeight: stackTopChrome ? undefined : 58');
+    expect(screen).toContain('minHeight: stackTopChrome ? undefined : 44');
     expect(screen).toContain("canBroadcast && view === 'broadcasts'");
     expect(thread).toContain("conversation: { flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' }");
+  });
+
+  it('gives the history priority and keeps a real multiline writing area', () => {
+    const composer = readSrc('src/components/communication/ChatComposer.tsx');
+    const header = readSrc('src/components/layout/ScreenHeader.tsx');
+    const threadHeader = readSrc('src/components/office/officemessagethreadheader.tsx');
+
+    expect(composer).toContain('minHeight: 82');
+    expect(composer).toContain('minHeight: 66');
+    expect(composer).toContain("textAlignVertical: 'top'");
+    expect(composer).toContain("flexWrap: 'nowrap'");
+    expect(header).toContain('minHeight: compact ? 54');
+    expect(threadHeader).toContain('width: 32');
   });
 
   it('moves opened chats automatically and exposes lifecycle actions visibly', () => {

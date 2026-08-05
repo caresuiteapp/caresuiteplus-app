@@ -57,8 +57,8 @@ function ThreadRow({
     () =>
       StyleSheet.create({
         row: {
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.md,
+          paddingHorizontal: 10,
+          paddingVertical: 9,
           borderBottomWidth: 1,
           borderBottomColor: c.border,
           backgroundColor: selected ? `${c.violet}14` : 'transparent',
@@ -67,9 +67,9 @@ function ThreadRow({
         },
         rowContent: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
         avatar: {
-          width: 42,
-          height: 42,
-          borderRadius: 21,
+          width: 36,
+          height: 36,
+          borderRadius: 18,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: selected ? c.violet : `${c.violet}12`,
@@ -202,12 +202,12 @@ export function OfficeMessagesInbox({
           color: c.muted,
           textTransform: 'uppercase',
           paddingHorizontal: spacing.sm,
-          paddingTop: spacing.sm,
+          paddingTop: 6,
         },
-        filters: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, padding: spacing.sm },
+        filters: { flexDirection: 'row', flexWrap: 'nowrap', gap: 4, paddingHorizontal: 8, paddingVertical: 5 },
         filterChip: {
           paddingHorizontal: spacing.sm,
-          paddingVertical: spacing.xs,
+          paddingVertical: 4,
           borderRadius: radius.capsule,
           borderWidth: 1,
           borderColor: c.border,
@@ -215,7 +215,7 @@ export function OfficeMessagesInbox({
         filterChipActive: { backgroundColor: `${c.violet}14`, borderColor: c.violet },
         filterText: { ...typography.caption, color: c.muted },
         filterTextActive: { color: c.violet, fontWeight: '700' },
-        search: { paddingHorizontal: spacing.sm, paddingBottom: spacing.xs },
+        search: { paddingHorizontal: 8, paddingBottom: 5 },
         list: { flex: 1, minHeight: 0 },
       }),
     [c, typography],

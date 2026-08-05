@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { AuroraSegmentedControl } from '@/components/aurora';
 import { ScreenShell } from '@/components/layout';
 import { MessengerShell, messengerScreenRootStyle } from '@/components/messaging';
 import { OfficeBroadcastDetailModal } from '@/components/office/officebroadcastdetailmodal';
@@ -11,7 +10,6 @@ import { OfficeMessageThread } from '@/components/office/officemessagethread';
 import { OfficeMessagesInbox } from '@/components/office/officemessagesinbox';
 import { OfficeNewChatModal, type NewChatMode } from '@/components/office/officenewchatmodal';
 import { OfficeNewGroupChatModal } from '@/components/office/officenewgroupchatmodal';
-import { PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
@@ -47,6 +45,55 @@ const BROADCAST_LABELS: Record<OfficeMessageAudience, string> = {
   internal: 'Broadcast an Leitung/Verwaltung',
 };
 
+function MessengerTabs({
+  options,
+  value,
+  onChange,
+}: {
+  options: readonly { key: string; label: string }[];
+  value: string;
+  onChange: (key: string) => void;
+}) {
+  const { c } = useCareLightPalette();
+  return (
+    <View style={compactStyles.segmented}>
+      {options.map((option) => {
+        const selected = option.key === value;
+        return (
+          <Pressable
+            key={option.key}
+            onPress={() => onChange(option.key)}
+            style={[
+              compactStyles.segment,
+              { borderColor: selected ? c.violet : c.border },
+              selected && { backgroundColor: c.violet },
+            ]}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+          >
+            <Text style={[compactStyles.segmentText, { color: selected ? '#FFFFFF' : c.text }]}>
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+const compactStyles = StyleSheet.create({
+  segmented: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  segment: {
+    minHeight: 32,
+    paddingHorizontal: 11,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentText: { fontSize: 13, lineHeight: 17, fontWeight: '700' },
+});
+
 export function OfficeMessengerScreen() {
   const params = useLocalSearchParams<{
     audience?: string;
@@ -61,7 +108,7 @@ export function OfficeMessengerScreen() {
   }>();
   const { height } = useWindowDimensions();
   const [workspaceWidth, setWorkspaceWidth] = useState(0);
-  const stackTopChrome = workspaceWidth > 0 && workspaceWidth < 1240;
+  const stackTopChrome = workspaceWidth > 0 && workspaceWidth < 920;
   const { useMasterDetail } = usePlatformLayout();
   const { c } = useCareLightPalette();
   const { permissions, isReadOnly, roleKey } = usePermissions();
@@ -157,12 +204,12 @@ export function OfficeMessengerScreen() {
           alignItems: stackTopChrome ? 'stretch' : 'center',
           justifyContent: 'space-between',
           flexWrap: stackTopChrome ? 'wrap' : 'nowrap',
-          gap: spacing.xs,
-          marginBottom: spacing.xs,
-          paddingHorizontal: spacing.sm,
-          paddingVertical: spacing.xs,
-          minHeight: stackTopChrome ? undefined : 58,
-          borderRadius: 14,
+          gap: 6,
+          marginBottom: 4,
+          paddingHorizontal: 8,
+          paddingVertical: 5,
+          minHeight: stackTopChrome ? undefined : 44,
+          borderRadius: 12,
           borderWidth: 1,
           borderColor: c.border,
           backgroundColor: c.surface,
@@ -183,6 +230,17 @@ export function OfficeMessengerScreen() {
           gap: spacing.xs,
           flexShrink: 0,
         },
+        createButton: {
+          minHeight: 32,
+          paddingHorizontal: 12,
+          borderRadius: 16,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: c.violet,
+        },
+        createButtonSecondary: { backgroundColor: c.surfaceAlt, borderWidth: 1, borderColor: c.border },
+        createButtonText: { color: '#FFFFFF', fontSize: 13, lineHeight: 17, fontWeight: '800' },
+        createButtonSecondaryText: { color: c.text },
         messengerBody: {
           flex: 1,
           minHeight: 0,
@@ -223,8 +281,10 @@ export function OfficeMessengerScreen() {
   return (
     <ScreenShell
       title={mobileChatActive ? selectedThreadTitle : screenTitle}
-      subtitle={mobileChatActive ? undefined : 'Office Kommunikation'}
+      subtitle={undefined}
       scroll={false}
+      showBreadcrumbs={false}
+      compactHeader
       showBack={mobileChatActive}
       onBack={mobileChatActive ? closeThread : undefined}
     >
@@ -235,12 +295,12 @@ export function OfficeMessengerScreen() {
         {!mobileChatActive ? (
           <View style={styles.topChrome}>
             <View style={styles.controls}>
-              <AuroraSegmentedControl
+              <MessengerTabs
                 options={audienceOptions}
                 value={audience}
                 onChange={(key) => changeAudience(key as OfficeMessageAudience)}
               />
-              <AuroraSegmentedControl
+              <MessengerTabs
                 options={OFFICE_MESSENGER_VIEWS}
                 value={view}
                 onChange={(key) => changeView(key as OfficeMessengerView)}
@@ -251,27 +311,29 @@ export function OfficeMessengerScreen() {
               <View style={styles.actions}>
                 {view === 'chats' ? (
                   <>
-                    <PremiumButton
-                      title={NEW_CHAT_LABELS[audience]}
-                      size="sm"
+                    <Pressable
+                      style={styles.createButton}
                       onPress={() => setNewChatMode(newChatModeForAudience(audience))}
-                    />
+                    >
+                      <Text style={styles.createButtonText}>＋ {NEW_CHAT_LABELS[audience]}</Text>
+                    </Pressable>
                     {audience === 'employees' ? (
-                      <PremiumButton
-                        title="Neuer Gruppen-Chat"
-                        size="sm"
-                        variant="secondary"
+                      <Pressable
+                        style={[styles.createButton, styles.createButtonSecondary]}
                         onPress={() => setShowGroupChatModal(true)}
-                      />
+                      >
+                        <Text style={[styles.createButtonText, styles.createButtonSecondaryText]}>＋ Gruppen-Chat</Text>
+                      </Pressable>
                     ) : null}
                   </>
                 ) : null}
                 {canBroadcast && view === 'broadcasts' ? (
-                  <PremiumButton
-                    title={BROADCAST_LABELS[audience]}
-                    size="sm"
+                  <Pressable
+                    style={styles.createButton}
                     onPress={() => setShowBroadcastModal(true)}
-                  />
+                  >
+                    <Text style={styles.createButtonText}>{BROADCAST_LABELS[audience]}</Text>
+                  </Pressable>
                 ) : null}
               </View>
             ) : null}

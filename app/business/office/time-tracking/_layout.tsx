@@ -1,13 +1,5 @@
-import { Stack } from 'expo-router';
+import { OfficeTimeTrackingShell } from '@/product-workflows/components/wfm/OfficeTimeTrackingShell';
 
 export default function OfficeTimeTrackingLayout() {
-  return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: 'transparent' },
-        animation: 'fade',
-      }}
-    />
-  );
+  return <OfficeTimeTrackingShell />;
 }

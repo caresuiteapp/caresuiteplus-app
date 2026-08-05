@@ -62,7 +62,7 @@ export function ClientsListTable({
           flex: 2,
           sortable: true,
           render: (item) => (
-            <Text style={tableText.name}>
+            <Text style={[tableText.name, styles.name]}>
               {item.lastName}, {item.firstName}
             </Text>
           ),
@@ -85,7 +85,7 @@ export function ClientsListTable({
           flex: 1.2,
           sortable: true,
           render: (item) => (
-            <Text style={tableText.cellText} numberOfLines={1}>
+            <Text style={[tableText.cellText, styles.cellText]} numberOfLines={1}>
               {item.city ?? '—'}
             </Text>
           ),
@@ -98,7 +98,7 @@ export function ClientsListTable({
             item.careLevel ? (
               <PremiumBadge label={formatCareLevel(item.careLevel)} variant="cyan" />
             ) : (
-              <Text style={tableText.meta}>—</Text>
+              <Text style={styles.meta}>—</Text>
             ),
         },
         {
@@ -125,3 +125,24 @@ export function ClientsListTable({
     />
   );
 }
+
+const styles = StyleSheet.create({
+  name: {
+    color: '#0B2342',
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '800',
+  },
+  cellText: {
+    color: '#173B61',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  meta: {
+    color: '#526F8C',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+});
