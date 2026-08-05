@@ -11,6 +11,8 @@ import { PlatformErrorBoundary } from './PlatformErrorBoundary';
 import { PlatformGlobalSearch } from './PlatformGlobalSearch';
 import { PLATFORM_COLORS } from './PlatformColors';
 import { HealthOSPageSurface } from '@/components/layout/HealthOSPageSurface';
+import { LiquidLogo } from '@/liquid-command/components/LiquidPrimitives';
+import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
 
 type PlatformShellLayoutProps = {
   children: ReactNode;
@@ -53,8 +55,8 @@ export function PlatformShellLayout({ children, title, subtitle }: PlatformShell
           paddingVertical: spacing.md,
         },
         brand: { paddingHorizontal: spacing.md, paddingBottom: spacing.md, gap: 3 },
-        brandTitle: { color: PLATFORM_COLORS.text, fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
-        brandSub: { color: PLATFORM_COLORS.muted, fontSize: 11 },
+        brandTitle: { color: PLATFORM_COLORS.sidebarText, fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
+        brandSub: { color: PLATFORM_COLORS.sidebarMuted, fontSize: 11 },
         navScroll: { flexGrow: 0 },
         navItem: {
           marginHorizontal: isWide ? spacing.sm : 0,
@@ -68,10 +70,10 @@ export function PlatformShellLayout({ children, title, subtitle }: PlatformShell
         navItemActive: { backgroundColor: PLATFORM_COLORS.accentSoft },
         navGroup: { marginTop: spacing.sm },
         navGroupHeader: { marginHorizontal: spacing.sm, paddingHorizontal: spacing.sm, paddingVertical: 7, flexDirection: 'row', justifyContent: 'space-between' },
-        navGroupLabel: { color: PLATFORM_COLORS.muted, fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 },
+        navGroupLabel: { color: PLATFORM_COLORS.sidebarMuted, fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 },
         navIcon: { color: PLATFORM_COLORS.accent, width: 18, textAlign: 'center' },
-        navLabel: { color: PLATFORM_COLORS.text, fontSize: 14 },
-        navLabelActive: { color: PLATFORM_COLORS.text, fontWeight: '600' },
+        navLabel: { color: PLATFORM_COLORS.sidebarText, fontSize: 14 },
+        navLabelActive: { color: PLATFORM_COLORS.sidebarText, fontWeight: '700' },
         userBox: {
           marginTop: spacing.sm,
           marginHorizontal: spacing.md,
@@ -82,7 +84,7 @@ export function PlatformShellLayout({ children, title, subtitle }: PlatformShell
           borderColor: PLATFORM_COLORS.border,
         },
         userRole: { color: PLATFORM_COLORS.accent, fontSize: 11, fontWeight: '600' },
-        userEmail: { color: PLATFORM_COLORS.muted, fontSize: 11, marginTop: 2 },
+        userEmail: { color: PLATFORM_COLORS.sidebarMuted, fontSize: 11, marginTop: 2 },
         main: { flex: 1, minWidth: 0 },
         header: {
           minHeight: 68,
@@ -113,6 +115,7 @@ export function PlatformShellLayout({ children, title, subtitle }: PlatformShell
     <View style={styles.root}>
       {!isWide || !leftCollapsed ? <View style={styles.sidebar} nativeID="desktop-module-navigation">
         <View style={styles.brand}>
+          <LiquidLogo compact />
           <Text style={styles.brandTitle}>{PLATFORM_CONSOLE_TITLE}</Text>
           <Text style={styles.brandSub}>Sicherer SaaS-Betrieb</Text>
         </View>
@@ -164,6 +167,7 @@ export function PlatformShellLayout({ children, title, subtitle }: PlatformShell
               {subtitle ? <Text style={styles.headerSub}>{subtitle}</Text> : null}
             </View>
             <View style={styles.headerTools}>
+              <PortalTextSizeControls />
               <PlatformGlobalSearch />
               <View style={styles.securityPill}><Text style={styles.securityText}>✓ Audit aktiv</Text></View>
               <View style={styles.contextPill}><Text style={styles.contextText}>{environment === 'production' ? 'Produktion' : environment}</Text></View>

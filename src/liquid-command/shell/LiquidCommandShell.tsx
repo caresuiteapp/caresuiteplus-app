@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
 import {
   LiquidBackdrop,
   LiquidButton,
@@ -515,6 +516,7 @@ function CommandBar({
         </View>
       ) : null}
       <View style={styles.commandActions}>
+        {!isPhone ? <PortalTextSizeControls /> : null}
         {!isPhone ? (
           <LiquidStatus label="Live" tone="live" />
         ) : null}

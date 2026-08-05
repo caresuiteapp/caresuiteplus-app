@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { RequireAuth, RequireRole } from '@/lib/auth';
+import { PortalPremiumProvider } from '@/design/tokens/portalPremium';
 import { LiquidProductAccessGuard } from '../guards/LiquidProductAccessGuard';
 import { LiquidCommandShell } from './LiquidCommandShell';
 import type { LiquidModuleKey } from '../types';
@@ -111,7 +112,11 @@ export function LiquidModuleRouteLayout({
   requireRole = true,
   requireProduct = true,
 }: LiquidModuleRouteLayoutProps) {
-  let content: ReactNode = <LiquidModuleContent />;
+  let content: ReactNode = (
+    <PortalPremiumProvider kind="workspace">
+      <LiquidModuleContent />
+    </PortalPremiumProvider>
+  );
 
   if (requireProduct) {
     content = <LiquidProductAccessGuard>{content}</LiquidProductAccessGuard>;

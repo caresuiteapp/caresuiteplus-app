@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
-export type PortalPremiumKind = 'client' | 'employee';
+export type PortalPremiumKind = 'client' | 'employee' | 'workspace';
 
 type PortalPremiumContextValue = {
   active: boolean;
@@ -90,7 +90,9 @@ export function usePortalPremiumTheme(): PortalPremiumContextValue {
 function readPortalPremiumRuntimeKind(): PortalPremiumKind | null {
   if (typeof document === 'undefined') return null;
   const value = document.documentElement.getAttribute('data-cs-portal-premium');
-  return value === 'client' || value === 'employee' ? value : null;
+  return value === 'client' || value === 'employee' || value === 'workspace'
+    ? value
+    : null;
 }
 
 /**

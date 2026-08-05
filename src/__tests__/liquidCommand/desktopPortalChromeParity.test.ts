@@ -8,6 +8,14 @@ const shell = readFileSync(
   join(root, 'src/liquid-command/shell/LiquidCommandShell.tsx'),
   'utf8',
 ).replace(/\r\n/g, '\n');
+const routeLayout = readFileSync(
+  join(root, 'src/liquid-command/shell/LiquidModuleRouteLayout.tsx'),
+  'utf8',
+).replace(/\r\n/g, '\n');
+const premiumTheme = readFileSync(
+  join(root, 'src/design/tokens/portalPremium.tsx'),
+  'utf8',
+).replace(/\r\n/g, '\n');
 
 describe('desktop and portal chrome parity', () => {
   it('uses one labelled desktop rail for every productive module', () => {
@@ -36,6 +44,7 @@ describe('desktop and portal chrome parity', () => {
     expect(shell).toContain('styles.profileCopy');
     expect(shell).toContain('{displayName}');
     expect(shell).toContain('{role}');
+    expect(shell).toContain('<PortalTextSizeControls />');
   });
 
   it('places desktop content inside the same framed liquid surface model', () => {
@@ -43,6 +52,14 @@ describe('desktop and portal chrome parity', () => {
     expect(shell).toContain('style={styles.workspaceFrame}');
     expect(shell).toContain('contentStyle={styles.workspaceFrameContent}');
     expect(shell).toContain("backgroundColor: 'rgba(7,27,53,0.78)'");
+  });
+
+  it('activates the complete portal surface system for every internal workspace route', () => {
+    expect(routeLayout).toContain('PortalPremiumProvider');
+    expect(routeLayout).toContain('<PortalPremiumProvider kind="workspace">');
+    expect(routeLayout).toContain('<LiquidModuleContent />');
+    expect(premiumTheme).toContain("'client' | 'employee' | 'workspace'");
+    expect(premiumTheme).toContain("value === 'workspace'");
   });
 
   it('keeps compact navigation separate from desktop chrome', () => {
