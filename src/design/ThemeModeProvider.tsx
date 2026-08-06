@@ -12,8 +12,8 @@ import { Dimensions, Platform } from 'react-native';
 import type { ColorMode } from '@/design/tokens/colors';
 
 const STORAGE_KEY = '@caresuite/theme-mode';
-/** Bumps when desktop stops auto-forcing dark into storage (2026 light-space default). */
-const THEME_PREF_MIGRATION_KEY = '@caresuite/theme-pref-migration-v2';
+/** Bumps when desktop permanently enforces the light workspace contract. */
+const THEME_PREF_MIGRATION_KEY = '@caresuite/theme-pref-migration-v3';
 
 /** PlatformShell desktop column starts at 960px — liquid glass shell from here up. */
 export const DESKTOP_AURORA_MIN_WIDTH = 960;
@@ -63,13 +63,18 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
       const migrated = await AsyncStorage.getItem(THEME_PREF_MIGRATION_KEY);
       let stored = await AsyncStorage.getItem(STORAGE_KEY);
 
-      // Legacy desktop shell wrote 'dark' on every resize — not a user choice.
+      // Desktop Office uses light work surfaces by contract. Old persisted
+      // dark preferences must never reintroduce white text on those surfaces.
+      if (isDesktopWeb()) {
+        stored = 'light';
+        setModeState('light');
+        await AsyncStorage.setItem(STORAGE_KEY, 'light');
+        await AsyncStorage.setItem(THEME_PREF_MIGRATION_KEY, '1');
+        return;
+      }
+
       if (migrated !== '1') {
         await AsyncStorage.setItem(THEME_PREF_MIGRATION_KEY, '1');
-        if (isDesktopWeb() && stored === 'dark') {
-          stored = 'light';
-          await AsyncStorage.setItem(STORAGE_KEY, 'light');
-        }
       }
 
       if (stored === 'light' || stored === 'dark') {
@@ -88,8 +93,9 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setMode = useCallback((next: ColorMode) => {
-    setModeState(next);
-    void AsyncStorage.setItem(STORAGE_KEY, next);
+    const resolved = isDesktopWeb() ? 'light' : next;
+    setModeState(resolved);
+    void AsyncStorage.setItem(STORAGE_KEY, resolved);
   }, []);
 
   const toggleMode = useCallback(() => {

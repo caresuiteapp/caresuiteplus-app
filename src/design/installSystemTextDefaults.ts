@@ -1,5 +1,5 @@
 import { Text, TextInput } from 'react-native';
-import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
+import { llgsTypography } from '@/design/tokens/lightLiquidGlassSpace';
 
 type ComponentWithDefaults = {
   defaultProps?: {
@@ -10,9 +10,9 @@ type ComponentWithDefaults = {
 };
 
 /**
- * React Native defaults to black text when a legacy component omits its color.
- * The production shell is dark, so a missing local style must remain readable.
- * Explicit component styles still win because they are merged afterwards.
+ * Productive workspaces use light surfaces. Legacy components without an
+ * explicit color therefore need dark fallback ink. Dark navigation and shell
+ * regions provide their own explicit systemLiquidGlass text tokens.
  */
 export function installSystemTextDefaults(): void {
   const text = Text as unknown as ComponentWithDefaults;
@@ -20,12 +20,12 @@ export function installSystemTextDefaults(): void {
 
   text.defaultProps = {
     ...text.defaultProps,
-    style: [text.defaultProps?.style, { color: systemLiquidGlass.text.primary }],
+    style: [text.defaultProps?.style, { color: llgsTypography.primary }],
   };
   input.defaultProps = {
     ...input.defaultProps,
     placeholderTextColor:
-      input.defaultProps?.placeholderTextColor ?? systemLiquidGlass.text.muted,
-    style: [input.defaultProps?.style, { color: systemLiquidGlass.text.primary }],
+      input.defaultProps?.placeholderTextColor ?? llgsTypography.muted,
+    style: [input.defaultProps?.style, { color: llgsTypography.primary }],
   };
 }
