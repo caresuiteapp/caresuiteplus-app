@@ -40,8 +40,9 @@ describe('employee visit signature confirmation R10.6', () => {
 
   it('polls automatically and advances only after authoritative confirmation', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
-    expect(screen).toContain('void refresh();');
-    expect(screen).toContain('}, 2_000);');
+    expect(screen).toContain('await signatureConfirmationRefreshRef.current()');
+    expect(screen).toContain('attempts < 3');
+    expect(screen).not.toContain('const poll = setInterval');
     expect(screen).toContain('Unterschrift geprüft und gespeichert');
     expect(screen).toContain("signatureConfirmationPending ? 'UNTERSCHRIFT WIRD GEPRÜFT'");
   });

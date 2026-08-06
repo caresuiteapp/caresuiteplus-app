@@ -36,7 +36,8 @@ export function EmployeePortalVisitSummaryPanel({
   onBack,
 }: EmployeePortalVisitSummaryPanelProps) {
   const text = employeePortalExecutionText;
-  const tasksDone = countDoneTasks(visit.tasks);
+  const tasks = Array.isArray(visit.tasks) ? visit.tasks : [];
+  const tasksDone = countDoneTasks(tasks);
 
   const styles = useMemo(
     () =>
@@ -64,7 +65,7 @@ export function EmployeePortalVisitSummaryPanel({
       </Text>
       <Text style={styles.label}>Aufgaben</Text>
       <Text style={styles.row}>
-        {tasksDone} / {visit.tasks.length} erledigt
+        {tasksDone} / {tasks.length} erledigt
       </Text>
       <Text style={styles.label}>Dokumentation</Text>
       <Text style={styles.row}>

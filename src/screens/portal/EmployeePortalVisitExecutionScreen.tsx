@@ -189,17 +189,22 @@ export function EmployeePortalVisitExecutionScreen() {
   const [aiHelpRequest, setAiHelpRequest] = useState(0);
   const [aiHelpStandaloneOpen, setAiHelpStandaloneOpen] = useState(false);
   const lastConfirmedStatusRef = useRef<AssignmentStatus | null>(null);
+  const signatureConfirmationRefreshRef = useRef(refresh);
 
   const assistVisitId = executionContext?.assistVisitId ?? null;
+  const visitTasks = useMemo(
+    () => (Array.isArray(visit?.tasks) ? visit.tasks : []),
+    [visit?.tasks],
+  );
 
   const documentationAiSourceText = useMemo(
     () =>
       resolveDocumentationAiSourceText(
         documentationDraftText,
         '',
-        visit ? buildDocumentationAiSourceFromTasks(visit.tasks) : '',
+        buildDocumentationAiSourceFromTasks(visitTasks),
       ),
-    [documentationDraftText, visit],
+    [documentationDraftText, visitTasks],
   );
 
   const appendDocumentationNote = useCallback((text: string) => {
@@ -309,6 +314,10 @@ export function EmployeePortalVisitExecutionScreen() {
   const canFinalizeDeferred = uiState?.canFinalizeDeferred ?? false;
 
   useEffect(() => {
+    signatureConfirmationRefreshRef.current = refresh;
+  }, [refresh]);
+
+  useEffect(() => {
     if (!signatureConfirmationPending) return;
     if (signatureCaptured || signatureDeferred) {
       setSignatureConfirmationPending(false);
@@ -316,25 +325,33 @@ export function EmployeePortalVisitExecutionScreen() {
       setLocalError(null);
       setLocalWarning(null);
       setLocalSuccess('Unterschrift geprüft und gespeichert — der Einsatz kann abgeschlossen werden.');
-      workflowPersistence.persist({
-        signatureConfirmationPending: false,
-        awaitingSignature: false,
-        signatureCaptured: true,
-      });
-      workflowPersistence.setStep(null);
       return;
     }
 
-    const poll = setInterval(() => {
-      void refresh();
-    }, 2_000);
-    return () => clearInterval(poll);
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+    const checkConfirmation = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      await signatureConfirmationRefreshRef.current();
+      if (!cancelled && attempts < 3) {
+        retryTimer = setTimeout(() => {
+          void checkConfirmation();
+        }, 2_500);
+      }
+    };
+    retryTimer = setTimeout(() => {
+      void checkConfirmation();
+    }, 1_200);
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+    };
   }, [
     signatureConfirmationPending,
     signatureCaptured,
     signatureDeferred,
-    refresh,
-    workflowPersistence,
   ]);
 
   useEffect(() => {
@@ -706,7 +723,7 @@ export function EmployeePortalVisitExecutionScreen() {
     );
   }
 
-  if (loading) {
+  if (loading && !visit) {
     return (
       <PortalTabScreen title={shellTitle} subtitle="Wird geladen…">
         <LoadingState message="Einsatz wird geladen…" />
@@ -736,10 +753,10 @@ export function EmployeePortalVisitExecutionScreen() {
   const syncWarning = !queryError && !signatureConfirmationPending
     ? liveContextError ?? refetchWarning
     : null;
-  const completedTaskCount = visit.tasks.filter((task) => task.status === 'done').length;
-  const allTasksComplete = visit.tasks.length === 0 || completedTaskCount === visit.tasks.length;
-  const requiredTaskCount = visit.tasks.filter((task) => task.required).length;
-  const completedRequiredTaskCount = visit.tasks.filter(
+  const completedTaskCount = visitTasks.filter((task) => task.status === 'done').length;
+  const allTasksComplete = visitTasks.length === 0 || completedTaskCount === visitTasks.length;
+  const requiredTaskCount = visitTasks.filter((task) => task.required).length;
+  const completedRequiredTaskCount = visitTasks.filter(
     (task) => task.required && task.status === 'done',
   ).length;
   const missingRequiredTasks = Math.max(0, requiredTaskCount - completedRequiredTaskCount);
@@ -807,8 +824,8 @@ export function EmployeePortalVisitExecutionScreen() {
       return {
         tone: 'success' as const,
         message: allTasksComplete
-          ? `Alle ${visit.tasks.length} Aufgaben sind erledigt. Weiter geht es jetzt mit der Dokumentation.`
-          : `${completedTaskCount} von ${visit.tasks.length} Aufgaben erledigt. Foto oder Video kannst du jederzeit intern hinzufügen.`,
+          ? `Alle ${visitTasks.length} Aufgaben sind erledigt. Weiter geht es jetzt mit der Dokumentation.`
+          : `${completedTaskCount} von ${visitTasks.length} Aufgaben erledigt. Foto oder Video kannst du jederzeit intern hinzufügen.`,
       };
     }
     if (phase === 'post_service') {
@@ -981,7 +998,7 @@ export function EmployeePortalVisitExecutionScreen() {
         <View style={styles.liveWrap}>
           {renderSafetyHints()}
           <EmployeePortalVisitLiveDashboard
-            tasks={visit.tasks}
+            tasks={visitTasks}
             documentationStatus={visit.documentationStatus}
             documentationLastSavedAt={docLastSavedAt}
             signatureCaptured={signatureCaptured || signatureDeferred}
@@ -1028,7 +1045,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
           {(showFinalize || canFinalizeDeferred) && !isLocked ? (
             <EmployeePortalVisitCompletionPanel
-              tasks={visit.tasks}
+              tasks={visitTasks}
               documentationSubmitted={documentationSubmitted}
               signatureCaptured={signatureCaptured}
               signatureDeferred={signatureDeferred}
@@ -1205,9 +1222,9 @@ export function EmployeePortalVisitExecutionScreen() {
         </ScrollView>
       </View>
 
-      {showTasks && visit.tasks.length > 0 ? (
+      {showTasks && visitTasks.length > 0 ? (
         <EmployeePortalVisitTasksPanel
-          tasks={visit.tasks}
+          tasks={visitTasks}
           disabled={isLocked}
           loading={taskSaving}
           visible={tasksOpen}
