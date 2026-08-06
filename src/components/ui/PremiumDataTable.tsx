@@ -109,7 +109,7 @@ export function PremiumDataTable<T>({
       style={[
         styles.table,
         resolvedMinWidth != null
-          ? { minWidth: resolvedMinWidth, width: fixedLayout ? resolvedMinWidth : undefined }
+          ? { minWidth: resolvedMinWidth, width: fixedLayout ? '100%' : undefined }
           : localStyles.fluidTable,
       ]}
       testID="table-container"

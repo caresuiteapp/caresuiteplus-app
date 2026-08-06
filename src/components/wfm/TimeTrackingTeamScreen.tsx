@@ -146,7 +146,7 @@ export function WfmZeitkontenScreen() {
       flex: 1.2,
       minWidth: 120,
       render: (account) => (
-        <Text style={{ color: text.primary, ...typography.caption }}>{account.employeeName}</Text>
+        <Text style={{ ...typography.caption, color: text.primary }}>{account.employeeName}</Text>
       ),
     },
     {
@@ -154,7 +154,7 @@ export function WfmZeitkontenScreen() {
       label: 'Soll',
       width: 72,
       render: (account) => (
-        <Text style={{ color: text.secondary, ...typography.caption }}>
+        <Text style={{ ...typography.caption, color: text.secondary }}>
           {formatWfmDurationMinutes(account.targetMinutes || account.plannedMinutes)}
         </Text>
       ),
@@ -164,7 +164,7 @@ export function WfmZeitkontenScreen() {
       label: 'Ist',
       width: 72,
       render: (account) => (
-        <Text style={{ color: text.secondary, ...typography.caption }}>
+        <Text style={{ ...typography.caption, color: text.secondary }}>
           {formatWfmDurationMinutes(account.actualMinutes)}
         </Text>
       ),
@@ -174,7 +174,7 @@ export function WfmZeitkontenScreen() {
       label: 'Fahrzeit',
       width: 88,
       render: (account) => (
-        <Text style={{ color: text.secondary, ...typography.caption }}>
+        <Text style={{ ...typography.caption, color: text.secondary }}>
           {formatWfmDurationMinutes(account.travelMinutes)}
         </Text>
       ),
@@ -184,7 +184,7 @@ export function WfmZeitkontenScreen() {
       label: 'Abwesend',
       width: 88,
       render: (account) => (
-        <Text style={{ color: text.secondary, ...typography.caption }}>
+        <Text style={{ ...typography.caption, color: text.secondary }}>
           {formatWfmDurationMinutes(account.absenceMinutes)}
         </Text>
       ),
@@ -194,7 +194,7 @@ export function WfmZeitkontenScreen() {
       label: 'Resturlaub',
       width: 88,
       render: (account) => (
-        <Text style={{ color: text.secondary, ...typography.caption }}>
+        <Text style={{ ...typography.caption, color: text.secondary }}>
           {formatDays(account.remainingVacationDays)}
         </Text>
       ),
@@ -207,7 +207,7 @@ export function WfmZeitkontenScreen() {
         account.openReviewCount > 0 ? (
           <PremiumBadge label={String(account.openReviewCount)} variant="orange" />
         ) : (
-          <Text style={{ color: text.muted, ...typography.caption }}>0</Text>
+          <Text style={{ ...typography.caption, color: text.muted }}>0</Text>
         )
       ),
     },
@@ -216,7 +216,7 @@ export function WfmZeitkontenScreen() {
       label: 'Saldo',
       width: 72,
       render: (account) => (
-        <Text style={{ color: text.primary, ...typography.caption, fontWeight: '600' }}>
+        <Text style={{ ...typography.caption, color: text.primary, fontWeight: '600' }}>
           {formatWfmDurationMinutes(account.saldoMinutes)}
         </Text>
       ),
@@ -364,7 +364,7 @@ export function WfmZeitkontenScreen() {
 
       {selectedAccount ? (
         <View style={[styles.detailBlock, { borderColor: text.border }]}>
-          <Text style={{ color: text.primary, ...typography.body, fontWeight: '700' }}>
+          <Text style={{ ...typography.body, color: text.primary, fontWeight: '700' }}>
             Zeitkonto — {selectedAccount.employeeName}
           </Text>
           <View style={styles.accountMetrics}>
@@ -393,9 +393,9 @@ export function WfmZeitkontenScreen() {
               Fahrzeit <Text style={{ color: text.primary }}>{formatWfmDurationMinutes(selectedAccount.travelMinutes)}</Text>
             </Text>
           </View>
-          <Text style={{ color: text.primary, ...typography.body, fontWeight: '700' }}>Zeitbuchungen</Text>
+          <Text style={{ ...typography.body, color: text.primary, fontWeight: '700' }}>Zeitbuchungen</Text>
           {selectedAccount.entries.slice(0, 14).map((entry) => (
-            <Text key={entry.id} style={{ color: text.secondary, ...typography.caption }}>
+            <Text key={entry.id} style={{ ...typography.caption, color: text.secondary }}>
               {entry.workDate} · {entry.clientLabel ?? entry.assignmentTitle ?? '—'} · {entry.reviewStatus}
               {entry.flags.includes('missing_booking') ? ' · Fehlende Buchung' : ''}
             </Text>
@@ -407,17 +407,17 @@ export function WfmZeitkontenScreen() {
               onPress={() => router.push('/business/office/time-tracking/pruefqueue' as never)}
             />
           ) : null}
-          <Text style={{ color: text.primary, ...typography.body, fontWeight: '700' }}>
+          <Text style={{ ...typography.body, color: text.primary, fontWeight: '700' }}>
             Gehaltsstatistiken & PDF-Archiv
           </Text>
           {selectedAccount.payrollStatements.length === 0 ? (
-            <Text style={{ color: text.muted, ...typography.caption }}>
+            <Text style={{ ...typography.caption, color: text.muted }}>
               Noch keine Gehaltsstatistik für diesen Mitarbeitenden gespeichert.
             </Text>
           ) : (
             selectedAccount.payrollStatements.map((statement) => (
               <View key={statement.id} style={styles.statementRow}>
-                <Text style={{ color: text.secondary, ...typography.caption }}>
+                <Text style={{ ...typography.caption, color: text.secondary }}>
                   {String(statement.periodMonth).padStart(2, '0')}/{statement.periodYear} · Version {statement.version} · {statement.status}
                 </Text>
                 <PremiumButton

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { PremiumButton, PremiumDataTable, type DataTableColumn } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -83,29 +84,27 @@ function ReadableStatusBadge({ label, tone }: { label: string; tone: BadgeTone }
         { backgroundColor: palette.background, borderColor: palette.border },
       ]}
     >
-      <Text style={[styles.statusBadgeText, { color: palette.text }]} numberOfLines={1}>
+      <Text style={[styles.statusBadgeText, { color: palette.text }]}>
         {label}
       </Text>
     </View>
   );
 }
 
-function rowStatusLabel(entry: WfmOfficeTimeEntry, compact: boolean): string {
+function rowStatusLabel(entry: WfmOfficeTimeEntry): string {
   if (entry.rowKind === 'planned_upcoming') {
     return 'Geplant';
   }
   if (entry.rowKind === 'planned_missing_actual' || entry.flags.includes('missing_booking')) {
-    return compact ? 'Fehlt' : 'Fehlende Buchung';
+    return 'Fehlende Buchung';
   }
   if (entry.rowKind === 'unplanned_actual' || entry.flags.includes('unplanned')) {
-    return compact ? 'Ungeplant' : 'Ungeplante Arbeitszeit';
+    return 'Ungeplante Arbeitszeit';
   }
   if (entry.rowKind === 'manual_entry') {
-    return compact ? 'Nachtrag' : 'Office-Nachtrag';
+    return 'Office-Nachtrag';
   }
-  const full = WFM_OFFICE_TIME_STATUS_LABELS[entry.reviewStatus];
-  if (compact && full.length > 14) return `${full.slice(0, 12)}…`;
-  return full;
+  return WFM_OFFICE_TIME_STATUS_LABELS[entry.reviewStatus];
 }
 
 function planCellLines(
@@ -187,7 +186,7 @@ function StackCell({
   );
 }
 
-function WfmReviewStatusBadge({ entry, compact }: { entry: WfmOfficeTimeEntry; compact: boolean }) {
+function WfmReviewStatusBadge({ entry }: { entry: WfmOfficeTimeEntry }) {
   const variant =
     entry.reviewStatus === 'approved'
       ? 'green'
@@ -197,7 +196,7 @@ function WfmReviewStatusBadge({ entry, compact }: { entry: WfmOfficeTimeEntry; c
 
   return (
     <View style={styles.statusBadgeWrap}>
-      <ReadableStatusBadge label={rowStatusLabel(entry, compact)} tone={variant} />
+      <ReadableStatusBadge label={rowStatusLabel(entry)} tone={variant} />
       {entry.overallAmpel ? (
         <ReadableStatusBadge
           label={WFM_DEVIATION_AMPEL_LABELS[entry.overallAmpel]}
@@ -256,15 +255,15 @@ function ReviewQueueMobileCard({
     >
       <View style={styles.mobileCardHeader}>
         <Text style={[styles.mobileCardDate, { color: TABLE_TEXT.primary }]}>{entry.workDate}</Text>
-        <WfmReviewStatusBadge entry={entry} compact />
+        <WfmReviewStatusBadge entry={entry} />
       </View>
-      <Text style={[styles.mobileCardPrimary, { color: TABLE_TEXT.primary }]} numberOfLines={1}>
+      <Text style={[styles.mobileCardPrimary, { color: TABLE_TEXT.primary }]}>
         {entry.employeeName}
       </Text>
-      <Text style={[styles.mobileCardSecondary, { color: TABLE_TEXT.secondary }]} numberOfLines={1}>
+      <Text style={[styles.mobileCardSecondary, { color: TABLE_TEXT.secondary }]}>
         {entry.clientLabel ?? entry.assignmentTitle ?? '—'}
       </Text>
-      <Text style={[styles.mobileCardSecondary, { color: TABLE_TEXT.secondary }]} numberOfLines={2}>
+      <Text style={[styles.mobileCardSecondary, { color: TABLE_TEXT.secondary }]}>
         {`Plan: ${planCell(entry)}`}
       </Text>
       {istStack ? (
@@ -299,11 +298,12 @@ export function WfmOfficeTimeEntryTable({
   reviewQueueMode = false,
 }: Props) {
   const { width } = useWindowDimensions();
-  // The office navigation consumes a substantial part of the browser width.
-  // Cards keep every value readable on regular desktop displays instead of
-  // forcing a 1,264 px table into the remaining workspace.
-  const mobileReview = reviewQueueMode && width < 1760;
-  const compactStatus = width < 960;
+  const [availableWidth, setAvailableWidth] = useState(0);
+  // Use the real work-area width instead of the complete browser width. The
+  // table expands across every available pixel and only changes to cards when
+  // its complete minimum layout genuinely no longer fits.
+  const reviewWidth = availableWidth || width;
+  const mobileReview = reviewQueueMode && reviewWidth < REVIEW_MIN_TABLE_WIDTH + 32;
 
   const defaultColumns: DataTableColumn<WfmOfficeTimeEntry>[] = [
     {
@@ -311,7 +311,7 @@ export function WfmOfficeTimeEntryTable({
       label: 'Datum',
       width: 96,
       render: (entry) => (
-        <Text style={{ color: TABLE_TEXT.primary, ...typography.body }}>{entry.workDate}</Text>
+        <Text style={{ ...typography.body, color: TABLE_TEXT.primary }}>{entry.workDate}</Text>
       ),
     },
     {
@@ -320,7 +320,7 @@ export function WfmOfficeTimeEntryTable({
       flex: 1,
       minWidth: 100,
       render: (entry) => (
-        <Text style={{ color: TABLE_TEXT.primary, ...typography.body }} numberOfLines={1}>
+        <Text style={{ ...typography.body, color: TABLE_TEXT.primary }} numberOfLines={1}>
           {entry.employeeName}
         </Text>
       ),
@@ -331,7 +331,7 @@ export function WfmOfficeTimeEntryTable({
       flex: 1,
       minWidth: 120,
       render: (entry) => (
-        <Text style={{ color: TABLE_TEXT.secondary, ...typography.body }} numberOfLines={2}>
+        <Text style={{ ...typography.body, color: TABLE_TEXT.secondary }} numberOfLines={2}>
           {planCell(entry)}
         </Text>
       ),
@@ -342,7 +342,7 @@ export function WfmOfficeTimeEntryTable({
       flex: 1,
       minWidth: 120,
       render: (entry) => (
-        <Text style={{ color: TABLE_TEXT.secondary, ...typography.body }} numberOfLines={2}>
+        <Text style={{ ...typography.body, color: TABLE_TEXT.secondary }} numberOfLines={2}>
           {formatWfmReviewQueueIstLine(entry)}
         </Text>
       ),
@@ -351,7 +351,7 @@ export function WfmOfficeTimeEntryTable({
       key: 'status',
       label: 'Status',
       width: 140,
-      render: (entry) => <WfmReviewStatusBadge entry={entry} compact={false} />,
+      render: (entry) => <WfmReviewStatusBadge entry={entry} />,
     },
     {
       key: 'action',
@@ -385,9 +385,10 @@ export function WfmOfficeTimeEntryTable({
     {
       key: 'employee',
       label: 'Mitarbeiter',
-      width: REVIEW_COL.employee,
+      minWidth: REVIEW_COL.employee,
+      flex: 1,
       render: (entry) => (
-        <CellText tone="primary" lines={1} tooltip={entry.employeeName}>
+        <CellText tone="primary" lines={2} tooltip={entry.employeeName}>
           {entry.employeeName}
         </CellText>
       ),
@@ -395,11 +396,12 @@ export function WfmOfficeTimeEntryTable({
     {
       key: 'client',
       label: 'Klient',
-      width: REVIEW_COL.client,
+      minWidth: REVIEW_COL.client,
+      flex: 1,
       render: (entry) => {
         const label = entry.clientLabel ?? entry.assignmentTitle ?? '—';
         return (
-          <CellText tone="secondary" lines={1} tooltip={label}>
+          <CellText tone="secondary" lines={2} tooltip={label}>
             {label}
           </CellText>
         );
@@ -408,13 +410,15 @@ export function WfmOfficeTimeEntryTable({
     {
       key: 'plan',
       label: 'Plan',
-      width: REVIEW_COL.plan,
+      minWidth: REVIEW_COL.plan,
+      flex: 1,
       render: (entry) => <StackCell lines={planCellLines(entry)} />,
     },
     {
       key: 'einsatz',
       label: 'Einsatz-Ist',
-      width: REVIEW_COL.einsatz,
+      minWidth: REVIEW_COL.einsatz,
+      flex: 1.2,
       render: (entry) => {
         const stack = formatWfmReviewQueueIstStack(entry);
         if (!stack) return <CellText tone="secondary">—</CellText>;
@@ -432,7 +436,8 @@ export function WfmOfficeTimeEntryTable({
     {
       key: 'buchung',
       label: 'Buchung',
-      width: REVIEW_COL.buchung,
+      minWidth: REVIEW_COL.buchung,
+      flex: 1,
       render: (entry) => {
         const value = formatWfmReviewQueueBuchungLabel(entry);
         return (
@@ -445,8 +450,9 @@ export function WfmOfficeTimeEntryTable({
     {
       key: 'status',
       label: 'Status',
-      width: REVIEW_COL.status,
-      render: (entry) => <WfmReviewStatusBadge entry={entry} compact={compactStatus} />,
+      minWidth: REVIEW_COL.status,
+      flex: 0.9,
+      render: (entry) => <WfmReviewStatusBadge entry={entry} />,
     },
     {
       key: 'action',
@@ -484,11 +490,15 @@ export function WfmOfficeTimeEntryTable({
   }
 
   return (
-    <View style={[styles.wrap, styles.wrapReview]} testID="wfm-office-time-entry-table">
+    <View
+      style={[styles.wrap, styles.wrapReview]}
+      testID="wfm-office-time-entry-table"
+      onLayout={(event) => setAvailableWidth(event.nativeEvent.layout.width)}
+    >
       {mobileReview ? (
         <View style={styles.mobileList} testID="wfm-review-queue-mobile">
           {entries.length === 0 ? (
-            <Text style={{ color: TABLE_TEXT.muted, ...typography.body }}>
+            <Text style={{ ...typography.body, color: TABLE_TEXT.muted }}>
               Keine Arbeitszeiteinträge im gewählten Zeitraum.
             </Text>
           ) : (

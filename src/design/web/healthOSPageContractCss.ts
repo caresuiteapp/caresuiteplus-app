@@ -342,7 +342,8 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
   html[data-cs-portal-premium] [data-cs-healthos-component="card"] [style*="color: rgba(255, 255, 255"],
   html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"] [style*="color: rgba(255, 255, 255"],
   html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"] [style*="color: rgba(255, 255, 255"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgba(255, 255, 255"] {
+  html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgba(255, 255, 255"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="table"] [style*="color: rgba(255, 255, 255"] {
     color: #566D83 !important;
   }
 
@@ -353,13 +354,15 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
   html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"] [style*="color: rgb(255, 255, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"] [style*="color: rgb(255, 255, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="table"] [style*="color: rgb(255, 255, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="screen-header"] [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="list-overview"] [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="section"] [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="card"] [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"] [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"] [style*="color: rgb(248, 246, 255)"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgb(248, 246, 255)"] {
+  html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgb(248, 246, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="table"] [style*="color: rgb(248, 246, 255)"] {
     color: #061B35 !important;
   }
 

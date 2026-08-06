@@ -223,13 +223,13 @@ export function WfmEmployeeRequestsOfficeScreen() {
             {selected.employeeName} · {WFM_APPROVAL_TYPE_LABELS[selected.approval.approvalType]}
           </Text>
           {selected.absence ? (
-            <Text style={{ color: text.secondary, ...typography.caption }}>
+            <Text style={{ ...typography.caption, color: text.secondary }}>
               {WFM_ABSENCE_TYPE_LABELS[selected.absence.absenceType]} ·{' '}
               {formatRange(selected.absence.startsAt, selected.absence.endsAt)}
             </Text>
           ) : null}
           {selected.absence?.employeeNote ? (
-            <Text style={{ color: text.secondary, ...typography.caption, marginTop: 4 }}>
+            <Text style={{ ...typography.caption, color: text.secondary, marginTop: 4 }}>
               Anmerkung: {selected.absence.employeeNote}
             </Text>
           ) : null}
@@ -309,7 +309,7 @@ function AbsenceOverviewRow({ detail }: { detail: WfmAbsenceOverviewDetail }) {
       <View style={styles.rowHeader}>
         <View style={styles.rowCopy}>
           <Text style={[styles.rowTitle, { color: text.primary }]}>{detail.employeeName}</Text>
-          <Text style={{ color: text.secondary, ...typography.caption }}>
+          <Text style={{ ...typography.caption, color: text.secondary }}>
             {WFM_ABSENCE_TYPE_LABELS[detail.absence.absenceType]} ·{' '}
             {formatRange(detail.absence.startsAt, detail.absence.endsAt)}
           </Text>
@@ -320,7 +320,7 @@ function AbsenceOverviewRow({ detail }: { detail: WfmAbsenceOverviewDetail }) {
         />
       </View>
       {detail.absence.employeeNote ? (
-        <Text style={{ color: text.secondary, ...typography.caption }}>
+        <Text style={{ ...typography.caption, color: text.secondary }}>
           {detail.absence.employeeNote}
         </Text>
       ) : null}
@@ -351,7 +351,7 @@ function RequestRow({
         <PremiumBadge label={WFM_APPROVAL_TYPE_LABELS[detail.approval.approvalType]} variant="orange" />
       </View>
       {detail.absence ? (
-        <Text style={{ color: textSecondary, ...typography.caption }}>
+        <Text style={{ ...typography.caption, color: textSecondary }}>
           {WFM_ABSENCE_TYPE_LABELS[detail.absence.absenceType]} ·{' '}
           {formatRange(detail.absence.startsAt, detail.absence.endsAt)}
         </Text>

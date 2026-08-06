@@ -111,7 +111,16 @@ export function OfficeTimeTrackingShell() {
             return (
               <Pressable
                 key={tab.key}
-                onPress={() => router.push(tab.href as never)}
+                onPress={() => {
+                  // Keep settings inside the WFM route tree. The explicit
+                  // canonical destination also prevents a clipped last tab
+                  // from falling through to the Office client navigation.
+                  if (tab.key === 'einstellungen') {
+                    router.replace('/business/office/time-tracking/einstellungen' as never);
+                    return;
+                  }
+                  router.push(tab.href as never);
+                }}
                 style={({ pressed }) => [
                   styles.tabChip,
                   { borderColor: selected ? `${accent}70` : 'transparent' },
@@ -120,6 +129,8 @@ export function OfficeTimeTrackingShell() {
                 ]}
                 accessibilityRole="tab"
                 accessibilityState={{ selected }}
+                accessibilityLabel={`${tab.label} öffnen`}
+                testID={`office-time-tab-${tab.key}`}
               >
                 <Text style={styles.tabIcon}>{tab.icon}</Text>
                 <Text
@@ -292,6 +303,7 @@ const styles = StyleSheet.create({
   tabScroll: {
     flexGrow: 0,
     flexShrink: 0,
+    width: '100%',
     ...(Platform.OS === 'web'
       ? {
           maxHeight: 54,
@@ -302,6 +314,7 @@ const styles = StyleSheet.create({
   },
   tabRow: {
     flexDirection: 'row',
+    flexGrow: 1,
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 6,
@@ -317,22 +330,24 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   tabChip: {
+    flexGrow: 1,
     flexShrink: 0,
     alignSelf: 'center',
     minHeight: 42,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 5,
+    justifyContent: 'center',
     position: 'relative',
   },
   tabPressed: { opacity: 0.76, transform: [{ scale: 0.985 }] },
   tabIcon: { fontSize: 14 },
   tabLabel: {
     ...typography.body,
-    fontSize: 13,
+    fontSize: 12,
     lineHeight: 17,
     fontWeight: '700',
   },
