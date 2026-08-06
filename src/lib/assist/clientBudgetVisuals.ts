@@ -5,6 +5,7 @@ import type {
 } from '@/types/assist/clientAssistBilling';
 
 export type ClientBudgetVisualKind = 'entlastung' | 'umwandlung';
+export type ClientBudgetBookingState = 'booked' | 'preview' | 'not_eligible' | 'loading';
 
 export type ClientBudgetVisualModel = {
   id: ClientBudgetVisualKind;
@@ -23,6 +24,7 @@ export type ClientBudgetVisualModel = {
   expiryLabel: string;
   eligible: boolean;
   enabled: boolean;
+  bookingState: ClientBudgetBookingState;
   statusLabel: string;
   careGrade: ClientCareGrade | null;
   fullCareAllowanceCents: number | null;
@@ -117,6 +119,13 @@ export function calculateRemainingCareAllowanceCents(input: {
 export function buildClientBudgetVisualModels(
   profile: ClientAssistBillingProfile,
 ): [ClientBudgetVisualModel, ClientBudgetVisualModel] {
+  const hasAuthoritativeFundingSelection = Array.isArray(profile.fundingSources);
+  const entlastungBooked = hasAuthoritativeFundingSelection
+    ? profile.fundingSources!.includes('entlastungsleistung')
+    : true;
+  const conversionBooked = hasAuthoritativeFundingSelection
+    ? profile.fundingSources!.includes('umwandlung')
+    : profile.careEntitlement?.conversionEnabled === true;
   const hourlyRateCents = resolveHourlyRate(profile);
   const entlastungAccounts = accountsFor(profile, 'paragraph_45b');
   const entlastungAccount = entlastungAccounts[0] ?? null;
@@ -174,14 +183,19 @@ export function buildClientBudgetVisualModels(
     expiryLabel: `Guthaben ${profile.budgetYear} nutzbar bis 30.06.${profile.budgetYear + 1}`,
     eligible: profile.careGrade !== 'kein' && profile.careGrade !== 'hospiz' && profile.careGrade !== null,
     enabled: entlastungAccount?.isEnabled !== false,
-    statusLabel: entlastungAccount?.isIndividualOverride ? 'Individueller Gesamtbetrag' : 'Automatisch aktiv',
+    bookingState: entlastungBooked ? 'booked' : 'preview',
+    statusLabel: entlastungBooked
+      ? entlastungAccount?.isIndividualOverride
+        ? 'Leistung gebucht · individueller Gesamtbetrag'
+        : 'Leistung gebucht · automatisch aktiv'
+      : 'Noch nicht gebucht · unverbindliche Vorschau',
     careGrade: profile.careGrade,
     fullCareAllowanceCents: null,
     remainingCareAllowanceCents: null,
     externalSachleistungCents: 0,
     explanation: [
       'Jeden Monat kommen 131,00 € hinzu. Der dargestellte Gesamtbetrag berücksichtigt einen individuell hinterlegten Übertrag.',
-      'Geplante Einsätze werden vorgemerkt. Nach Abschluss und Freigabe wird der abrechenbare Betrag als Verbrauch fortgeschrieben.',
+      'Der Betrag „Einsätze geplant“ wird automatisch aus der Einsatzplanung übernommen. Nach Abschluss und Freigabe wird der abrechenbare Betrag als Verbrauch fortgeschrieben.',
       `Nicht verbrauchtes Guthaben aus ${profile.budgetYear} kann grundsätzlich bis zum 30.06.${profile.budgetYear + 1} eingesetzt werden.`,
     ],
   };
@@ -208,11 +222,18 @@ export function buildClientBudgetVisualModels(
     expiryLabel: 'Nicht genutzter Monatsbetrag verfällt zum Monatsende',
     eligible: conversionEligible,
     enabled: conversionEnabled,
+    bookingState: !conversionEligible
+      ? 'not_eligible'
+      : conversionBooked
+        ? 'booked'
+        : 'preview',
     statusLabel: !conversionEligible
       ? 'Ab Pflegegrad 2 verfügbar'
-      : conversionEnabled
-        ? 'Für die Abrechnung aktiviert'
-        : 'Noch nicht aktiviert · Potenzial sichtbar',
+      : conversionBooked
+        ? conversionEnabled
+          ? 'Leistung gebucht · für die Abrechnung aktiviert'
+          : 'Leistung gebucht · Aktivierung noch offen'
+        : 'Noch nicht gebucht · unverbindliche Vorschau',
     careGrade: profile.careGrade,
     fullCareAllowanceCents: legalValues?.careAllowanceCents ?? null,
     remainingCareAllowanceCents: remainingCareAllowance,
@@ -254,6 +275,7 @@ export function buildClientBudgetVisualPlaceholders(
   return [
     {
       ...models[0],
+      bookingState: 'loading',
       statusLabel: 'Livebudget wird aktualisiert',
       explanation: [
         ...models[0].explanation,
@@ -262,6 +284,7 @@ export function buildClientBudgetVisualPlaceholders(
     },
     {
       ...models[1],
+      bookingState: 'loading',
       statusLabel: 'Pflegegrad und Potenzial werden ermittelt',
       explanation: [
         ...models[1].explanation,

@@ -101,14 +101,29 @@ describe('rebuilt client budget visuals', () => {
   it('always returns both Entlastungsbetrag and conversion cards', () => {
     const cards = buildClientBudgetVisualModels(profile());
     expect(cards.map((card) => card.id)).toEqual(['entlastung', 'umwandlung']);
+    expect(cards[0].bookingState).toBe('booked');
+    expect(cards[1].bookingState).toBe('preview');
     expect(cards[1].enabled).toBe(false);
-    expect(cards[1].statusLabel).toContain('Noch nicht aktiviert');
+    expect(cards[1].statusLabel).toContain('Noch nicht gebucht');
+  });
+
+  it('uses the authoritative funding selection for booked and preview states', () => {
+    const cards = buildClientBudgetVisualModels(profile({
+      fundingSources: ['umwandlung'],
+      careEntitlement: { ...profile().careEntitlement!, conversionEnabled: true },
+    }));
+    expect(cards[0].bookingState).toBe('preview');
+    expect(cards[0].statusLabel).toContain('Noch nicht gebucht');
+    expect(cards[1].bookingState).toBe('booked');
+    expect(cards[1].statusLabel).toContain('Leistung gebucht');
   });
 
   it('keeps both cards visible while personal live data is unavailable', () => {
     const cards = buildClientBudgetVisualPlaceholders('2026-08-04');
     expect(cards.map((card) => card.id)).toEqual(['entlastung', 'umwandlung']);
     expect(cards[0].totalCents).toBe(13_100);
+    expect(cards[0].bookingState).toBe('loading');
+    expect(cards[1].bookingState).toBe('loading');
     expect(cards[0].statusLabel).toContain('aktualisiert');
     expect(cards[1].statusLabel).toContain('ermittelt');
   });
@@ -165,6 +180,6 @@ describe('rebuilt client budget visuals', () => {
     });
     const [entlastung] = buildClientBudgetVisualModels(profile({ budgetAccounts: [custom], budgetVisualAccounts: [custom] }));
     expect(entlastung.totalCents).toBe(65_500);
-    expect(entlastung.statusLabel).toBe('Individueller Gesamtbetrag');
+    expect(entlastung.statusLabel).toBe('Leistung gebucht · individueller Gesamtbetrag');
   });
 });

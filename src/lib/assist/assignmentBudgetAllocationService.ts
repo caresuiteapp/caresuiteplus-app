@@ -203,7 +203,8 @@ export async function releaseAssignmentBudgetReservation(
     const denied = guardServiceTenant(tenantId);
     if (denied) return denied;
 
-    await releaseReservation(tenantId, visitId, createdBy, reason);
+    const released = await releaseReservation(tenantId, visitId, createdBy, reason);
+    if (!released.ok) return released;
 
     const client = getSupabaseClient();
     if (client) {

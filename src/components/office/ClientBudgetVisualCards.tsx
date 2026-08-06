@@ -21,9 +21,24 @@ function visualColors(model: ClientBudgetVisualModel) {
     : { accent: '#65F2A7', glow: 'rgba(101,242,167,0.22)', reserved: '#F6C85F' };
 }
 
+function bookingBadge(model: ClientBudgetVisualModel) {
+  if (model.bookingState === 'booked') {
+    return { label: '✓ LEISTUNG GEBUCHT', color: '#65F2A7', background: 'rgba(19,148,106,0.18)' };
+  }
+  if (model.bookingState === 'preview') {
+    return { label: 'VORSCHAU · NOCH NICHT GEBUCHT', color: '#FFD166', background: 'rgba(246,200,95,0.14)' };
+  }
+  if (model.bookingState === 'not_eligible') {
+    return { label: 'DERZEIT NICHT VERFÜGBAR', color: '#B8C7DB', background: 'rgba(184,199,219,0.12)' };
+  }
+  return { label: 'WIRD AKTUALISIERT', color: '#7DD3FC', background: 'rgba(125,211,252,0.12)' };
+}
+
 function BudgetVisualCard({ model }: { model: ClientBudgetVisualModel }) {
   const text = useAuroraAdaptiveText();
   const palette = visualColors(model);
+  const booking = bookingBadge(model);
+  const isPreview = model.bookingState === 'preview';
   const [showInfo, setShowInfo] = useState(false);
 
   return (
@@ -35,6 +50,9 @@ function BudgetVisualCard({ model }: { model: ClientBudgetVisualModel }) {
         style={[styles.card, { shadowColor: palette.accent }]}
       >
         <View style={[styles.glow, { backgroundColor: palette.glow }]} />
+        <View style={[styles.bookingBadge, { backgroundColor: booking.background, borderColor: booking.color }]}>
+          <Text style={[styles.bookingBadgeText, { color: booking.color }]}>{booking.label}</Text>
+        </View>
         <View style={styles.headerRow}>
           <View style={styles.headerCopy}>
             <Text style={styles.legalLabel}>{model.legalLabel}</Text>
@@ -53,7 +71,7 @@ function BudgetVisualCard({ model }: { model: ClientBudgetVisualModel }) {
 
         <View style={styles.heroMetric}>
           <Text style={styles.heroAmount}>{formatCurrency(model.availableCents, true)}</Text>
-          <Text style={styles.heroLabel}>noch verfügbar</Text>
+          <Text style={styles.heroLabel}>{isPreview ? 'mögliches Leistungsbudget' : 'noch verfügbar'}</Text>
           <Text style={[styles.hours, { color: palette.accent }]}>{formatHours(model.availableHours)}</Text>
           {model.hourlyRateCents ? (
             <Text style={styles.rate}>bei {formatCurrency(model.hourlyRateCents, true)} je Stunde</Text>
@@ -62,8 +80,17 @@ function BudgetVisualCard({ model }: { model: ClientBudgetVisualModel }) {
           )}
         </View>
 
+        {isPreview ? (
+          <View style={styles.previewNotice}>
+            <Text style={styles.previewNoticeTitle}>Diese Leistung ist noch nicht Bestandteil der Vereinbarung.</Text>
+            <Text style={styles.previewNoticeText}>
+              Die Werte zeigen unverbindlich, welche zusätzliche Leistung bei einer Erweiterung möglich wäre.
+            </Text>
+          </View>
+        ) : null}
+
         <View
-          accessibilityLabel={`${model.usedPercent} Prozent verbraucht, ${model.reservedPercent} Prozent vorgemerkt, ${model.availablePercent} Prozent verfügbar`}
+          accessibilityLabel={`${model.usedPercent} Prozent verbraucht, ${model.reservedPercent} Prozent für geplante Einsätze, ${model.availablePercent} Prozent verfügbar`}
           style={styles.progressTrack}
         >
           {model.usedPercent > 0 ? (
@@ -94,7 +121,7 @@ function BudgetVisualCard({ model }: { model: ClientBudgetVisualModel }) {
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: palette.reserved }]} />
-            <Text style={styles.legendText}>Vorgemerkt {formatCurrency(model.reservedCents, true)}</Text>
+            <Text style={styles.legendText}>Einsätze geplant {formatCurrency(model.reservedCents, true)}</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: palette.accent }]} />
@@ -152,18 +179,55 @@ export function ClientBudgetVisualCards({ models }: { models: ClientBudgetVisual
   const { width } = useWindowDimensions();
   const compact = width < 980;
   const visibleModels = models.length > 0 ? models : buildClientBudgetVisualPlaceholders();
+  const bookedModels = visibleModels.filter((model) => model.bookingState === 'booked');
+  const opportunityModels = visibleModels.filter((model) => model.bookingState !== 'booked');
   return (
-    <View style={[styles.grid, compact && styles.gridCompact]}>
-      {visibleModels.map((model) => (
-        <View key={model.id} style={[styles.cardSlot, compact && styles.cardSlotCompact]}>
-          <BudgetVisualCard model={model} />
+    <View style={styles.sections}>
+      {bookedModels.length > 0 ? (
+        <View style={styles.section}>
+          <View style={styles.sectionHeading}>
+            <Text style={styles.sectionKicker}>AKTUELL VEREINBART</Text>
+            <Text style={styles.sectionTitle}>Gebuchte Leistungen</Text>
+            <Text style={styles.sectionSubtitle}>Diese Leistungen sind für die Klient:in hinterlegt und können entsprechend der Vereinbarung genutzt werden.</Text>
+          </View>
+          <View style={[styles.grid, compact && styles.gridCompact]}>
+            {bookedModels.map((model) => (
+              <View key={model.id} style={[styles.cardSlot, compact && styles.cardSlotCompact]}>
+                <BudgetVisualCard model={model} />
+              </View>
+            ))}
+          </View>
         </View>
-      ))}
+      ) : null}
+      {opportunityModels.length > 0 ? (
+        <View style={[styles.section, styles.opportunitySection]}>
+          <View style={styles.sectionHeading}>
+            <Text style={[styles.sectionKicker, styles.opportunityKicker]}>ERWEITERUNGSMÖGLICHKEITEN</Text>
+            <Text style={styles.sectionTitle}>Noch nicht gebuchte Leistungen</Text>
+            <Text style={styles.sectionSubtitle}>Unverbindliche Vorschau: Diese zusätzlichen Möglichkeiten können im Beratungsgespräch erläutert und bei Zustimmung ergänzt werden.</Text>
+          </View>
+          <View style={[styles.grid, compact && styles.gridCompact]}>
+            {opportunityModels.map((model) => (
+              <View key={model.id} style={[styles.cardSlot, compact && styles.cardSlotCompact]}>
+                <BudgetVisualCard model={model} />
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  sections: { gap: spacing.xl },
+  section: { gap: spacing.md },
+  opportunitySection: { padding: spacing.lg, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(246,200,95,0.24)', backgroundColor: 'rgba(246,200,95,0.04)' },
+  sectionHeading: { gap: 3, maxWidth: 820 },
+  sectionKicker: { color: '#65F2A7', fontSize: 11, lineHeight: 16, fontWeight: '900', letterSpacing: 1.2 },
+  opportunityKicker: { color: '#FFD166' },
+  sectionTitle: { color: '#FFFFFF', fontSize: 24, lineHeight: 30, fontWeight: '900', letterSpacing: -0.4 },
+  sectionSubtitle: { color: 'rgba(226,242,255,0.70)', fontSize: 13, lineHeight: 19 },
   grid: { flexDirection: 'row', gap: spacing.lg, width: '100%', alignItems: 'stretch' },
   gridCompact: { flexDirection: 'column' },
   cardSlot: { flex: 1, minWidth: 0 },
@@ -188,6 +252,8 @@ const styles = StyleSheet.create({
     right: -90,
     top: -110,
   },
+  bookingBadge: { alignSelf: 'flex-start', borderRadius: 999, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 6, marginBottom: spacing.sm },
+  bookingBadgeText: { fontSize: 10, lineHeight: 14, fontWeight: '900', letterSpacing: 0.75 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md },
   headerCopy: { flex: 1, gap: 4 },
   legalLabel: { color: 'rgba(186,230,253,0.78)', fontSize: 11, fontWeight: '800', letterSpacing: 1.1, textTransform: 'uppercase' },
@@ -210,6 +276,9 @@ const styles = StyleSheet.create({
   heroLabel: { color: 'rgba(226,242,255,0.70)', fontSize: 13, fontWeight: '700' },
   hours: { fontSize: 20, lineHeight: 26, fontWeight: '900', marginTop: spacing.xs },
   rate: { color: 'rgba(226,242,255,0.58)', fontSize: 11, lineHeight: 16, textAlign: 'center' },
+  previewNotice: { marginBottom: spacing.md, padding: spacing.md, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(246,200,95,0.28)', backgroundColor: 'rgba(246,200,95,0.08)', gap: 4 },
+  previewNoticeTitle: { color: '#FFFFFF', fontSize: 12, lineHeight: 17, fontWeight: '900' },
+  previewNoticeText: { color: 'rgba(226,242,255,0.72)', fontSize: 11, lineHeight: 17 },
   progressTrack: {
     height: 16,
     borderRadius: 999,

@@ -59,6 +59,9 @@ export function ClientFundingSourceSelector({
                 <Text style={styles.checkLabel}>{selected ? '✓' : ''}</Text>
               </View>
               <View style={styles.cardCopy}>
+                <Text style={[styles.bookingState, selected ? styles.bookingStateSelected : styles.bookingStatePreview]}>
+                  {selected ? '✓ LEISTUNG GEBUCHT' : 'NOCH NICHT GEBUCHT'}
+                </Text>
                 <Text style={[styles.cardTitle, { color: text.primary }]}>{CLIENT_FUNDING_SOURCE_LABELS[key]}</Text>
                 <Text style={[styles.cardDescription, { color: text.secondary }]}>{CLIENT_FUNDING_SOURCE_DESCRIPTIONS[key]}</Text>
               </View>
@@ -86,6 +89,9 @@ const styles = StyleSheet.create({
   checkSelected: { borderColor: colors.cyan, backgroundColor: colors.blue },
   checkLabel: { color: '#FFFFFF', fontSize: 16, lineHeight: 19, fontWeight: '900' },
   cardCopy: { flex: 1, gap: 4 },
+  bookingState: { alignSelf: 'flex-start', fontSize: 9, lineHeight: 13, fontWeight: '900', letterSpacing: 0.7 },
+  bookingStateSelected: { color: '#65F2A7' },
+  bookingStatePreview: { color: '#FFD166' },
   cardTitle: { fontSize: 15, lineHeight: 20, fontWeight: '900' },
   cardDescription: { ...typography.caption, lineHeight: 18 },
   error: { color: colors.error, fontSize: 12, lineHeight: 17, fontWeight: '700' },

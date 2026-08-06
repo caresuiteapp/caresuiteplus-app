@@ -53,6 +53,7 @@ import {
   storno as stornoAssignmentReservation,
 } from '@/lib/assist/clientBudgetTransactionService';
 import {
+  releaseAssignmentBudgetReservation,
   persistAssignmentBudgetAllocations,
   reserveAssignmentBudget,
 } from '@/lib/assist/assignmentBudgetAllocationService';
@@ -1193,6 +1194,15 @@ export const visitSupabaseRepository = {
     const taskTitles = input.tasks.map((task) => task.trim()).filter(Boolean);
     const existingTaskTitles = existing.data.tasks.map((task) => task.title.trim());
     const tasksChanged = JSON.stringify(taskTitles) !== JSON.stringify(existingTaskTitles);
+    const budgetPlanChanged =
+      existing.data.clientId !== input.clientId
+      || existing.data.assignmentDate !== input.assignmentDate
+      || existing.data.scheduledStart !== input.plannedStartAt
+      || existing.data.scheduledEnd !== input.plannedEndAt
+      || (existing.data.budget?.budgetAmountCents ?? null) !== (input.budgetAmountCents ?? null)
+      || (existing.data.billingBudgetSourceKey ?? null) !== (input.billingBudgetSourceKey ?? null)
+      || JSON.stringify(existing.data.catalogSnapshotJson ?? {})
+        !== JSON.stringify(input.catalogSnapshotJson ?? {});
 
     if (
       tasksChanged
@@ -1336,6 +1346,64 @@ export const visitSupabaseRepository = {
         taskTitles,
       );
       if (!taskMirror.ok) return taskMirror;
+    }
+
+    // The budget card must be a projection of the current assignment plan.
+    // When date, duration, client or funding changes, release the old plan and
+    // reserve the newly calculated amount immediately. This prevents stale
+    // "Einsätze geplant" values after editing an appointment.
+    if (budgetPlanChanged) {
+      const released = await releaseAssignmentBudgetReservation(
+        tenantId,
+        visitId,
+        actorProfileId,
+        'Einsatzplanung geändert',
+      );
+      if (!released.ok) return released;
+
+      if (
+        !input.saveAsDraft
+        && input.budgetAllocation
+        && input.budgetAllocation.allocationProposal.some(
+          (line) =>
+            line.amountCents > 0
+            && line.budgetAccountId
+            && line.catalogKey !== 'kulanz'
+            && line.catalogKey !== 'ungeklaert',
+        )
+      ) {
+        const persisted = await persistAssignmentBudgetAllocations({
+          tenantId,
+          assignmentId: visitId,
+          clientId: input.clientId,
+          allocation: input.budgetAllocation,
+          manualOverride: input.budgetManualOverride ?? null,
+          actorProfileId,
+        });
+        if (!persisted.ok) return persisted;
+
+        const reserved = await reserveAssignmentBudget({
+          tenantId,
+          clientId: input.clientId,
+          visitId,
+          allocation: input.budgetAllocation,
+          assignmentDate: input.assignmentDate,
+          createdBy: actorProfileId,
+        });
+        if (!reserved.ok) return reserved;
+      } else if (!input.saveAsDraft && input.budgetAmountCents && input.budgetAmountCents > 0) {
+        const { reserveForAssignment } = await import('@/lib/assist/clientBudgetTransactionService');
+        const reserved = await reserveForAssignment({
+          tenantId,
+          clientId: input.clientId,
+          visitId,
+          amountCents: input.budgetAmountCents,
+          catalogKey: input.billingBudgetSourceKey,
+          assignmentDate: input.assignmentDate,
+          createdBy: actorProfileId,
+        });
+        if (!reserved.ok) return reserved;
+      }
     }
 
     syncCalendarEventAsync(
