@@ -712,16 +712,14 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         return result;
       } catch (error) {
         if (error instanceof WorkflowActionTimeoutError) {
-          // Never append another full four-second read to an already timed-out
-          // tap. The still-running canonical request and this readback reconcile
-          // the screen in the background; the employee can see the real state
-          // without a second minute-long spinner.
+          // A timeout means "confirmation pending", never "write failed". The
+          // canonical request keeps running and the readback reconciles the UI.
           void refreshExecutionContext().then(async (recovered) => {
             if (recovered) await syncAfterWorkflow(recovered);
           });
           return {
             ok: false,
-            error: 'Die Bestätigung dauert länger als vier Sekunden. Der Einsatzstatus wird jetzt automatisch im Hintergrund abgeglichen.',
+            error: 'Die Serverbestätigung läuft noch. Bitte nicht erneut tippen – der Einsatzstatus wird automatisch abgeglichen.',
             errorCode: 'WORKFLOW_ACTION_TIMEOUT_UNCONFIRMED',
           };
         }

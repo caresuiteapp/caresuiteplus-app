@@ -81,8 +81,8 @@ describe('employee portal responsive visual gate', () => {
   });
 
   it('uses a realistic confirmation budget for proof-backed finalization', () => {
-    expect(WORKFLOW_FINALIZE_TIMEOUT_MS).toBe(12_000);
-    expect(WORKFLOW_START_SERVICE_TIMEOUT_MS).toBe(12_000);
+    expect(WORKFLOW_FINALIZE_TIMEOUT_MS).toBe(25_000);
+    expect(WORKFLOW_START_SERVICE_TIMEOUT_MS).toBe(20_000);
     const hook = read('src/hooks/useEmployeePortalVisitExecution.ts');
     expect(hook).toContain("timeoutLabel: 'finalizeVisit'");
     expect(hook).toContain('timeoutMs: WORKFLOW_FINALIZE_TIMEOUT_MS');
@@ -219,7 +219,9 @@ describe('employee portal responsive visual gate', () => {
     expect(tab).toContain("touchAction: 'pan-y'");
     expect(card).toContain('contentStyle?: StyleProp<ViewStyle>');
     expect(card).toContain("dataSet={{ csHealthosComponent: onPress ? 'interactive-card' : 'card' }}");
-    expect(screen).toContain('contentStyle={styles.phaseCardContent}');
+    expect(screen).toContain('testID="employee-visit-fullscreen-workspace"');
+    expect(screen).toContain('style={styles.focusStageViewport}');
+    expect(screen).not.toContain('<PremiumCard');
     expect(screen).not.toContain('style={styles.phaseCard}');
   });
 
@@ -300,7 +302,7 @@ describe('employee portal responsive visual gate', () => {
     expect(button).toContain('minHeight: height');
     expect(button).not.toMatch(/button:\s*\{\s*height,/);
     expect(banner).toContain('onDarkSurface?: boolean');
-    expect(screen).toContain('onDarkSurface />');
+    expect(screen).toContain('employeePortalExecutionSurface.background');
     expect(detail).toContain('portal.active ? portalPremium.text.primary : c.text');
     expect(bottomBar).toContain("from '@expo/vector-icons'");
     expect(bottomBar).toContain('employeePortalExecutionSurface.actionBarBackground');

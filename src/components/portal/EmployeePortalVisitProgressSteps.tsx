@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import {
   assignmentStatusToWorkflowStep,
   isWorkflowStepComplete,
@@ -137,7 +138,6 @@ export function EmployeePortalVisitProgressSteps({
           borderWidth: 2,
           borderColor: '#FFFFFF',
         },
-        employeeIcon: { fontSize: 12 },
         dot: {
           width: 28,
           height: 28,
@@ -181,7 +181,7 @@ export function EmployeePortalVisitProgressSteps({
                   },
                 ]}
               >
-                <Text style={styles.employeeIcon}>👤</Text>
+                <Ionicons name="person" size={13} color="#FFFFFF" />
               </Animated.View>
             ) : null}
             <Animated.View

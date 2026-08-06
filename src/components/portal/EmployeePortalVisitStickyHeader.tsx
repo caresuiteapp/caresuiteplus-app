@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PremiumBadge } from '@/components/ui';
 import {
@@ -25,6 +26,8 @@ type EmployeePortalVisitStickyHeaderProps = {
   onExit?: () => void;
   guideMessage?: string;
   guideTone?: 'info' | 'warning' | 'error' | 'success';
+  guideActionLabel?: string;
+  onGuideAction?: () => void;
 };
 
 function formatTimeRange(startIso: string, endIso: string): string {
@@ -64,6 +67,8 @@ export function EmployeePortalVisitStickyHeader({
   onExit,
   guideMessage,
   guideTone = 'info',
+  guideActionLabel,
+  onGuideAction,
 }: EmployeePortalVisitStickyHeaderProps) {
   const text = employeePortalExecutionText;
   const insets = useSafeAreaInsets();
@@ -116,11 +121,11 @@ export function EmployeePortalVisitStickyHeader({
           justifyContent: 'space-between',
           gap: spacing.sm,
         },
-        topRowCompact: { flexDirection: 'column', alignItems: 'stretch' },
+        topRowCompact: { alignItems: 'center' },
         clientName: { ...typography.h3, color: text.primary, flex: 1 },
         exitButton: {
           minHeight: 42,
-          paddingHorizontal: spacing.md,
+          paddingHorizontal: compact ? spacing.sm : spacing.md,
           borderRadius: 999,
           borderWidth: 1,
           borderColor: employeePortalExecutionSurface.border,
@@ -144,16 +149,15 @@ export function EmployeePortalVisitStickyHeader({
           marginTop: spacing.xs,
         },
         guideAvatar: {
-          width: compact ? 42 : 48,
-          height: compact ? 42 : 48,
-          borderRadius: compact ? 21 : 24,
+          width: compact ? 48 : 54,
+          height: compact ? 48 : 54,
+          borderRadius: compact ? 24 : 27,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: '#056CE8',
           borderWidth: 2,
           borderColor: '#FFFFFF',
         },
-        guideAvatarText: { fontSize: compact ? 20 : 24 },
         guideBubble: {
           flex: 1,
           minWidth: 0,
@@ -170,6 +174,17 @@ export function EmployeePortalVisitStickyHeader({
         guideBubbleError: { backgroundColor: '#FFF0F1', borderColor: '#E15B64' },
         guideBubbleSuccess: { backgroundColor: '#EDFFF5', borderColor: '#42AF78' },
         guideText: { ...typography.bodyStrong, color: '#10233E' },
+        guideAction: {
+          alignSelf: 'flex-start',
+          marginTop: spacing.xs,
+          minHeight: 38,
+          paddingHorizontal: spacing.md,
+          borderRadius: 999,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#056CE8',
+        },
+        guideActionText: { ...typography.caption, color: '#FFFFFF', fontWeight: '800' },
       }),
     [compact, insets.top, text],
   );
@@ -213,7 +228,7 @@ export function EmployeePortalVisitStickyHeader({
             onPress={onExit}
             style={styles.exitButton}
           >
-            <Text style={styles.exitLabel}>← Übersicht</Text>
+            <Text style={styles.exitLabel}>{compact ? '← Zurück' : '← Übersicht'}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -246,7 +261,7 @@ export function EmployeePortalVisitStickyHeader({
               },
             ]}
           >
-            <Text style={styles.guideAvatarText}>👤</Text>
+            <Ionicons name="person" size={compact ? 27 : 31} color="#FFFFFF" />
           </Animated.View>
           <View
             style={[
@@ -257,6 +272,15 @@ export function EmployeePortalVisitStickyHeader({
             ]}
           >
             <Text style={styles.guideText}>{guideMessage}</Text>
+            {guideActionLabel && onGuideAction ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={onGuideAction}
+                style={styles.guideAction}
+              >
+                <Text style={styles.guideActionText}>{guideActionLabel}</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       ) : null}

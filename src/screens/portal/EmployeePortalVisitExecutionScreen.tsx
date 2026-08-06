@@ -33,13 +33,10 @@ import {
 import { buildDocumentationAiSourceFromTasks, resolveDocumentationAiSourceText } from '@/lib/portal/buildDocumentationAiSourceText';
 import {
   ErrorState,
-  InfoBanner,
   LoadingState,
   PremiumButton,
-  PremiumCard,
   PremiumInput,
   SectionPanel,
-  CachedDataBanner,
 } from '@/components/ui';
 import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
 import { usePortalActor } from '@/hooks/usePortalActor';
@@ -72,6 +69,7 @@ import type { WorkflowDeviationApproval } from '@/features/assistWorkflow/startS
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
 import { portalPremium } from '@/design/tokens/portalPremium';
+import { employeePortalExecutionSurface } from '@/lib/portal/employeePortalExecutionSurface';
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -96,7 +94,7 @@ function formatExecutionSyncWarning(message: string): string {
   return message;
 }
 
-function isWorkflowConfirmationPending(errorCode?: string): boolean {
+function isWorkflowConfirmationPending(errorCode: unknown): boolean {
   return errorCode === 'WORKFLOW_ACTION_TIMEOUT_UNCONFIRMED';
 }
 
@@ -147,9 +145,6 @@ export function EmployeePortalVisitExecutionScreen() {
     notFound,
     isServiceEnded,
     readOnlyExecution,
-    fromCache,
-    cachedAt,
-    partialDetail,
     executionContext,
   } = useEmployeePortalVisitExecution(id);
 
@@ -192,6 +187,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const [documentationSpecialNotes, setDocumentationSpecialNotes] = useState('');
   const [aiHelpRequest, setAiHelpRequest] = useState(0);
   const [aiHelpStandaloneOpen, setAiHelpStandaloneOpen] = useState(false);
+  const lastConfirmedStatusRef = useRef<AssignmentStatus | null>(null);
 
   const assistVisitId = executionContext?.assistVisitId ?? null;
 
@@ -288,6 +284,15 @@ export function EmployeePortalVisitExecutionScreen() {
       isLocked: Boolean(isLocked),
     });
   }, [visit, effectiveStatus, uiState, isLocked]);
+
+  useEffect(() => {
+    const previous = lastConfirmedStatusRef.current;
+    lastConfirmedStatusRef.current = effectiveStatus;
+    if (previous && previous !== effectiveStatus) {
+      setLocalError(null);
+      setLocalWarning(null);
+    }
+  }, [effectiveStatus]);
 
   const statusBlocksDoc = uiState?.statusBlocksDoc ?? false;
   const showTasks = uiState?.showTasks ?? false;
@@ -414,7 +419,11 @@ export function EmployeePortalVisitExecutionScreen() {
     setDriveLoading(true);
     setLocalError(null);
     const result = await startDriveTracking();
-    if (!result.ok) setLocalError(result.error ?? 'Tracking konnte nicht gestartet werden.');
+    if (!result.ok) {
+      if ('errorCode' in result && isWorkflowConfirmationPending(result.errorCode)) {
+        setLocalWarning(result.error ?? 'Die Anfahrt wird noch bestätigt. Bitte nicht erneut tippen.');
+      } else setLocalError(result.error ?? 'Tracking konnte nicht gestartet werden.');
+    }
     else setLocalSuccess('Anfahrt gestartet — Live-Verfolgung aktiv.');
     setDriveLoading(false);
   }, [startDriveTracking]);
@@ -429,7 +438,11 @@ export function EmployeePortalVisitExecutionScreen() {
     }
     if (geofenceOverride.trim()) setGeofenceOverride(geofenceOverride.trim());
     const result = await markArrived();
-    if (!result.ok) setLocalError(result.error ?? 'Ankunft konnte nicht gespeichert werden.');
+    if (!result.ok) {
+      if ('errorCode' in result && isWorkflowConfirmationPending(result.errorCode)) {
+        setLocalWarning(result.error ?? 'Die Ankunft wird noch bestätigt. Bitte nicht erneut tippen.');
+      } else setLocalError(result.error ?? 'Ankunft konnte nicht gespeichert werden.');
+    }
     else {
       setLocalSuccess('Angekommen — Anfahrt-Timer gestoppt.');
       if (result.arrivalWarning) setLocalWarning(result.arrivalWarning);
@@ -466,6 +479,8 @@ export function EmployeePortalVisitExecutionScreen() {
         if (!r.ok && r.errorCode === 'WORKFLOW_DEVIATION_JUSTIFICATION_REQUIRED') {
           setDeviationError(null);
           setDeviationModal({ phase: 'start', pendingAction: 'start_service' });
+        } else if (!r.ok && isWorkflowConfirmationPending(r.errorCode)) {
+          setLocalWarning(r.error ?? 'Der Einsatzstart wird noch bestätigt. Bitte nicht erneut tippen.');
         } else if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht gestartet werden.');
         else setLocalSuccess('Einsatz gestartet.');
         return;
@@ -474,6 +489,8 @@ export function EmployeePortalVisitExecutionScreen() {
       if (!r.ok && r.errorCode === 'WORKFLOW_DEVIATION_JUSTIFICATION_REQUIRED') {
         setDeviationError(null);
         setDeviationModal({ phase: 'end', pendingAction: 'end_service' });
+      } else if (!r.ok && isWorkflowConfirmationPending(r.errorCode)) {
+        setLocalWarning(r.error ?? 'Das Einsatzende wird noch bestätigt. Bitte nicht erneut tippen.');
       } else if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht beendet werden.');
       else setLocalSuccess('Einsatz beendet — Dokumentation erforderlich.');
     },
@@ -508,7 +525,9 @@ export function EmployeePortalVisitExecutionScreen() {
       }
       if (action === 'end_pause') {
         const r = await endPause();
-        if (!r.ok) setLocalError(r.error ?? 'Fortsetzen fehlgeschlagen.');
+        if (!r.ok && isWorkflowConfirmationPending(r.errorCode)) {
+          setLocalWarning(r.error ?? 'Das Fortsetzen wird noch bestätigt. Bitte nicht erneut tippen.');
+        } else if (!r.ok) setLocalError(r.error ?? 'Fortsetzen fehlgeschlagen.');
         else setLocalSuccess('Einsatz fortgesetzt.');
         return;
       }
@@ -635,6 +654,11 @@ export function EmployeePortalVisitExecutionScreen() {
         : undefined;
 
   const bottomBarVisible = showLiveBottomBar(phase) && !isLocked && canExecute;
+  const handleGuideRefresh = useCallback(async () => {
+    setLocalError(null);
+    setLocalWarning(null);
+    await refresh();
+  }, [refresh]);
 
   if (!can('portal.employee.appointments.view')) {
     return (
@@ -686,7 +710,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const guide = (() => {
     const blockingError = localError ?? taskSaveError;
     if (blockingError) {
-      return { tone: 'error' as const, message: `Da ist etwas schiefgelaufen: ${blockingError}` };
+      return { tone: 'error' as const, message: blockingError };
     }
     if (syncWarning) {
       return {
@@ -695,6 +719,12 @@ export function EmployeePortalVisitExecutionScreen() {
       };
     }
     if (localWarning) return { tone: 'warning' as const, message: localWarning };
+    if (tracking?.warnings[0]) {
+      return { tone: 'warning' as const, message: tracking.warnings[0] };
+    }
+    if (consistencyStatus === 'repairable' && nextActionHint) {
+      return { tone: 'warning' as const, message: nextActionHint };
+    }
     if (readOnlyExecution) {
       return {
         tone: 'warning' as const,
@@ -744,7 +774,23 @@ export function EmployeePortalVisitExecutionScreen() {
     }
     return { tone: 'info' as const, message: 'Prüfe Einsatzzeit, Adresse und Hinweise. Danach kannst du die Navigation starten.' };
   })();
+  const guideNeedsRefresh = Boolean(
+    localError || taskSaveError || syncWarning || localWarning || readOnlyExecution,
+  );
   const bottomPadding = bottomBarVisible ? spacing.xxl + 96 + insets.bottom : spacing.xxl + 32 + insets.bottom;
+
+  const renderSafetyHints = () =>
+    visit.notesForEmployee || visit.accessHints ? (
+      <View style={styles.focusNotice}>
+        <Text style={styles.focusNoticeKicker}>WICHTIG FÜR DIESEN EINSATZ</Text>
+        {visit.notesForEmployee ? (
+          <Text style={styles.focusNoticeText}>{visit.notesForEmployee}</Text>
+        ) : null}
+        {visit.accessHints ? (
+          <Text style={styles.focusNoticeText}>Zugang: {visit.accessHints}</Text>
+        ) : null}
+      </View>
+    ) : null;
 
   const renderPhaseContent = () => {
     if (phase === 'completed') {
@@ -758,8 +804,9 @@ export function EmployeePortalVisitExecutionScreen() {
 
     if (phase === 'preview') {
       return (
-        <PremiumCard contentStyle={styles.phaseCardContent}>
+        <View style={styles.phaseCardContent}>
           <Text style={styles.phaseTitle}>Einsatzvorschau</Text>
+          {renderSafetyHints()}
           <DetailInfoRow label="Klient:in" value={visit.clientName} />
           <DetailInfoRow label="Adresse" value={visit.locationAddress} />
           <DetailInfoRow
@@ -788,14 +835,15 @@ export function EmployeePortalVisitExecutionScreen() {
               />
             ) : null}
           </View>
-        </PremiumCard>
+        </View>
       );
     }
 
     if (phase === 'en_route') {
       return (
-        <PremiumCard contentStyle={styles.phaseCardContent}>
+        <View style={styles.phaseCardContent}>
           <Text style={styles.phaseTitle}>Unterwegs</Text>
+          {renderSafetyHints()}
           <DetailInfoRow label="Ziel" value={visit.locationAddress} />
           <DetailInfoRow label="Einsatzbeginn geplant" value={formatTime(visit.plannedStartAt)} />
           {visit.emergencyContact ? (
@@ -813,14 +861,15 @@ export function EmployeePortalVisitExecutionScreen() {
               />
             ) : null}
           </View>
-        </PremiumCard>
+        </View>
       );
     }
 
     if (phase === 'arrived') {
       return (
-        <PremiumCard contentStyle={styles.phaseCardContent}>
+        <View style={styles.phaseCardContent}>
           <Text style={styles.phaseTitle}>Angekommen</Text>
+          {renderSafetyHints()}
           <Text style={styles.phaseHint}>
             Die Leistungszeit beginnt erst mit dem Einsatzstart.
           </Text>
@@ -835,13 +884,14 @@ export function EmployeePortalVisitExecutionScreen() {
               onPress={handlePrimary}
             />
           ) : null}
-        </PremiumCard>
+        </View>
       );
     }
 
     if (phase === 'live' || phase === 'post_service') {
       return (
         <View style={styles.liveWrap}>
+          {renderSafetyHints()}
           <EmployeePortalVisitLiveDashboard
             tasks={visit.tasks}
             documentationStatus={visit.documentationStatus}
@@ -876,6 +926,12 @@ export function EmployeePortalVisitExecutionScreen() {
               onPress={async () => {
                 const r = await startPause();
                 if (r.ok) setLocalSuccess('Pause gestartet.');
+                else if (isWorkflowConfirmationPending(r.errorCode)) {
+                  setLocalWarning(
+                    r.error ??
+                      'Die Serverbestätigung läuft noch. Bitte nicht erneut tippen.',
+                  );
+                }
                 else setLocalError(r.error ?? 'Pause fehlgeschlagen.');
               }}
             />
@@ -911,7 +967,7 @@ export function EmployeePortalVisitExecutionScreen() {
     }
 
     return (
-      <PremiumCard contentStyle={styles.phaseCardContent}>
+      <View style={styles.phaseCardContent}>
         <Text style={styles.phaseTitle}>{ASSIGNMENT_STATUS_LABELS[effectiveStatus]}</Text>
         {primaryButtonLabel && !isLocked ? (
           <PremiumButton
@@ -922,7 +978,7 @@ export function EmployeePortalVisitExecutionScreen() {
             onPress={handlePrimary}
           />
         ) : null}
-      </PremiumCard>
+      </View>
     );
   };
 
@@ -933,15 +989,7 @@ export function EmployeePortalVisitExecutionScreen() {
       contentOwnsHero
       scroll={false}
     >
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={[styles.scroll, { paddingBottom: bottomPadding }]}
-        keyboardShouldPersistTaps="handled"
-        nestedScrollEnabled
-        showsVerticalScrollIndicator
-        style={styles.scrollViewport}
-        testID="employee-visit-execution-scroll"
-      >
+      <View style={styles.focusRoot} testID="employee-visit-fullscreen-workspace">
         <EmployeePortalVisitStickyHeader
           clientName={visit.clientName}
           plannedStartAt={visit.plannedStartAt}
@@ -954,128 +1002,78 @@ export function EmployeePortalVisitExecutionScreen() {
           onExit={() => router.back()}
           guideMessage={guide.message}
           guideTone={guide.tone}
+          guideActionLabel={guideNeedsRefresh ? 'Status erneut prüfen' : undefined}
+          onGuideAction={guideNeedsRefresh ? () => void handleGuideRefresh() : undefined}
         />
 
         <WorkflowToast
           message={showSuccess ? localSuccess : null}
           onDismiss={() => setLocalSuccess(null)}
         />
-        {localError ? <ErrorState message={localError} /> : null}
-        {taskSaveError ? <ErrorState message={taskSaveError} /> : null}
-        {localWarning ? (
-          <InfoBanner variant="warning" message={localWarning} onDarkSurface />
-        ) : null}
-        {syncWarning ? (
-          <InfoBanner
-            variant="warning"
-            message={formatExecutionSyncWarning(syncWarning)}
-            onDarkSurface
-          />
-        ) : null}
-        {consistencyStatus === 'repairable' && nextActionHint ? (
-          <InfoBanner variant="info" message={nextActionHint} onDarkSurface />
-        ) : null}
-        <CachedDataBanner
-          visible={fromCache || readOnlyExecution}
-          cachedAt={cachedAt}
-          readOnly={readOnlyExecution}
-          partialDetail={partialDetail}
-          onDarkSurface
-        />
-        {readOnlyExecution ? (
-          <InfoBanner
-            variant="warning"
-            title="Nur Ansicht"
-            message="Offline oder zwischengespeichert — Workflow-Aktionen sind deaktiviert."
-            onDarkSurface
-          />
-        ) : null}
-
-        {!canExecute ? (
-          <LockedActionBanner
-            message={check('assist.execution.manage').reason ?? 'Statusänderungen gesperrt.'}
-            roleLabel={roleLabel}
-          />
-        ) : null}
-
-        {showGeofenceOverride ? (
-          <SectionPanel title="Geofence-Hinweis">
-            <PremiumInput
-              label="Begründung (optional)"
-              value={geofenceOverride}
-              onChangeText={setGeofenceOverrideInput}
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={[styles.focusStageContent, { paddingBottom: bottomPadding }]}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+          style={styles.focusStageViewport}
+          testID="employee-visit-execution-scroll"
+        >
+          {!canExecute ? (
+            <LockedActionBanner
+              message={check('assist.execution.manage').reason ?? 'Statusänderungen gesperrt.'}
+              roleLabel={roleLabel}
             />
-          </SectionPanel>
-        ) : null}
+          ) : null}
 
-        {tracking?.warnings.map((w) => (
-          <InfoBanner key={w} variant="warning" message={w} onDarkSurface />
-        ))}
-
-        {visit.notesForEmployee || visit.accessHints ? (
-          <PremiumCard
-            accentColor={colors.warning}
-            contentStyle={styles.criticalInfoCardContent}
-          >
-            <View style={styles.criticalInfoHeader}>
-              <Text style={styles.criticalInfoKicker}>VOR UND WÄHREND DES EINSATZES BEACHTEN</Text>
-              <Text style={styles.phaseTitle}>Wichtige Einsatzhinweise</Text>
-            </View>
-            {visit.notesForEmployee ? (
-              <DetailInfoRow
-                label="Sicherheit, Risiken und Besonderheiten"
-                value={visit.notesForEmployee}
+          {showGeofenceOverride ? (
+            <SectionPanel title="Geofence-Hinweis">
+              <PremiumInput
+                label="Begründung (optional)"
+                value={geofenceOverride}
+                onChangeText={setGeofenceOverrideInput}
               />
-            ) : null}
-            {visit.accessHints ? (
-              <DetailInfoRow label="Schlüssel und Zugang" value={visit.accessHints} />
-            ) : null}
-          </PremiumCard>
-        ) : null}
+            </SectionPanel>
+          ) : null}
 
-        {renderPhaseContent()}
+          {renderPhaseContent()}
 
-        {documentationSubmitted && visit.requiresSignature && !signatureCaptured && !signatureDeferred ? (
-          <InfoBanner variant="info" message="Dokumentation gespeichert — bitte Unterschrift erfassen." onDarkSurface />
-        ) : null}
-
-        {showSignature && !isLocked ? (
-          <View
-            onLayout={(event) => {
-              signatureSectionY.current = event.nativeEvent.layout.y;
-            }}
-          >
-            <EmployeePortalVisitSignaturePanel
-              clientName={visit.clientName}
-              loading={actionLoading}
-              modalOnly={phase === 'live' || phase === 'post_service'}
-              compact={phase !== 'live' && phase !== 'post_service'}
-              openCaptureRequest={signatureCaptureRequest}
-              closeCaptureRequest={closeSignatureCaptureRequest}
-              visitId={id}
-              onModalOpenChange={handleSignatureModalOpenChange}
-              onCapture={async (sig) => {
-                const r = await saveSignature(sig);
-                if (r.ok) {
-                  setAwaitingSignature(false);
-                  workflowPersistence.setStep(null);
-                  const proofOk = r.data && 'proofGenerated' in r.data && r.data.proofGenerated;
-                  setLocalSuccess(
-                    proofOk
-                      ? 'Unterschrift gespeichert — Leistungsnachweis erstellt. Einsatz kann abgeschlossen werden.'
-                      : 'Unterschrift gespeichert — Einsatz kann abgeschlossen werden.',
-                  );
-                } else {
-                  setLocalError(r.error ?? 'Die Unterschrift konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.');
-                }
-                return r;
+          {showSignature && !isLocked ? (
+            <View
+              onLayout={(event) => {
+                signatureSectionY.current = event.nativeEvent.layout.y;
               }}
-            />
-          </View>
-        ) : null}
-
-        <PremiumButton title="Zurück zur Übersicht" variant="ghost" fullWidth onPress={() => router.back()} />
-      </ScrollView>
+            >
+              <EmployeePortalVisitSignaturePanel
+                clientName={visit.clientName}
+                loading={actionLoading}
+                modalOnly={phase === 'live' || phase === 'post_service'}
+                compact={phase !== 'live' && phase !== 'post_service'}
+                openCaptureRequest={signatureCaptureRequest}
+                closeCaptureRequest={closeSignatureCaptureRequest}
+                visitId={id}
+                onModalOpenChange={handleSignatureModalOpenChange}
+                onCapture={async (sig) => {
+                  const r = await saveSignature(sig);
+                  if (r.ok) {
+                    setAwaitingSignature(false);
+                    workflowPersistence.setStep(null);
+                    const proofOk = r.data && 'proofGenerated' in r.data && r.data.proofGenerated;
+                    setLocalSuccess(
+                      proofOk
+                        ? 'Unterschrift gespeichert — Leistungsnachweis erstellt. Einsatz kann abgeschlossen werden.'
+                        : 'Unterschrift gespeichert — Einsatz kann abgeschlossen werden.',
+                    );
+                  } else {
+                    setLocalError(r.error ?? 'Die Unterschrift konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.');
+                  }
+                  return r;
+                }}
+              />
+            </View>
+          ) : null}
+        </ScrollView>
+      </View>
 
       {showTasks && visit.tasks.length > 0 ? (
         <EmployeePortalVisitTasksPanel
@@ -1308,11 +1306,19 @@ export function EmployeePortalVisitExecutionScreen() {
 }
 
 const styles = StyleSheet.create({
-  scrollViewport: {
+  focusRoot: {
     flex: 1,
     minWidth: 0,
     minHeight: 0,
     width: '100%',
+    backgroundColor: employeePortalExecutionSurface.background,
+  },
+  focusStageViewport: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    width: '100%',
+    backgroundColor: employeePortalExecutionSurface.background,
     ...(Platform.OS === 'web'
       ? ({
           overflowY: 'auto',
@@ -1323,18 +1329,33 @@ const styles = StyleSheet.create({
         } as unknown as ViewStyle)
       : null),
   },
-  scroll: { gap: spacing.md, paddingHorizontal: spacing.md, paddingTop: spacing.sm },
-  phaseCardContent: { gap: spacing.sm },
-  criticalInfoCardContent: {
+  focusStageContent: {
+    flexGrow: 1,
+    width: '100%',
+    gap: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+  },
+  phaseCardContent: {
+    flexGrow: 1,
+    width: '100%',
     gap: spacing.sm,
   },
-  criticalInfoHeader: { gap: spacing.xs },
-  criticalInfoKicker: {
+  focusNotice: {
+    gap: spacing.xs,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: '#E4AD42',
+    borderRadius: 14,
+    backgroundColor: '#FFF8E8',
+  },
+  focusNoticeKicker: {
     ...typography.caption,
     color: colors.warning,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
+  focusNoticeText: { ...typography.bodyStrong, color: portalPremium.text.primary },
   phaseTitle: { ...typography.h3, color: portalPremium.text.primary },
   phaseHint: { ...typography.body, color: portalPremium.text.secondary },
   phaseActions: { gap: spacing.sm, marginTop: spacing.sm },

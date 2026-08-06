@@ -60,7 +60,9 @@ describe('final employee workflow R10', () => {
     const progress = read('src/components/portal/EmployeePortalVisitProgressSteps.tsx');
     expect(progress).toContain('Animated.loop');
     expect(progress).toContain('Aktueller Schritt:');
-    expect(progress).toContain('👤');
+    expect(progress).toContain("from '@expo/vector-icons'");
+    expect(progress).toContain('name="person"');
+    expect(progress).not.toContain('👤');
   });
 
   it('opens execution as a distraction-free full-viewport workspace', () => {
@@ -76,7 +78,8 @@ describe('final employee workflow R10', () => {
   it('guides employees through next steps, omissions and runtime errors', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     const header = read('src/components/portal/EmployeePortalVisitStickyHeader.tsx');
-    expect(screen).toContain('Da ist etwas schiefgelaufen:');
+    expect(screen).toContain('guideActionLabel');
+    expect(screen).toContain('Status erneut prüfen');
     expect(screen).toContain('Pflichtaufgabe');
     expect(screen).toContain('Bitte jetzt die Klient:innen-Unterschrift erfassen.');
     expect(header).toContain('accessibilityLiveRegion');

@@ -1,13 +1,12 @@
-/** ASSIST.STABILIZE.2 — bounded wait for portal workflow mutations. */
-/** Employee-facing latency contract: no workflow tap may spin beyond four seconds. */
-export const WORKFLOW_ACTION_TIMEOUT_MS = 4_000;
-export const WORKFLOW_MARK_ARRIVED_TIMEOUT_MS = 4_000;
-export const WORKFLOW_END_SERVICE_TIMEOUT_MS = 4_000;
+/** Bounded waits protect against truly stalled requests without misclassifying mobile latency. */
+export const WORKFLOW_ACTION_TIMEOUT_MS = 15_000;
+export const WORKFLOW_MARK_ARRIVED_TIMEOUT_MS = 15_000;
+export const WORKFLOW_END_SERVICE_TIMEOUT_MS = 15_000;
 /** Mobile start persists status plus the canonical service_start event. */
-export const WORKFLOW_START_SERVICE_TIMEOUT_MS = 12_000;
-export const WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS = 4_000;
-/** Proof lookup/generation needs a larger mobile-network budget than a status tap. */
-export const WORKFLOW_FINALIZE_TIMEOUT_MS = 12_000;
+export const WORKFLOW_START_SERVICE_TIMEOUT_MS = 20_000;
+export const WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS = 10_000;
+/** Proof lookup/generation needs the largest mobile-network budget. */
+export const WORKFLOW_FINALIZE_TIMEOUT_MS = 25_000;
 
 export class WorkflowActionTimeoutError extends Error {
   constructor(label: string, ms: number) {

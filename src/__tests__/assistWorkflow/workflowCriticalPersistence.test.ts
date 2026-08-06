@@ -53,9 +53,9 @@ describe('critical employee workflow persistence', () => {
 
   it('keeps ordinary actions bounded but gives canonical service start a mobile-safe budget', () => {
     const file = source('src/features/assistWorkflow/internal/withWorkflowTimeout.ts');
-    expect(file).toContain('WORKFLOW_ACTION_TIMEOUT_MS = 4_000');
-    expect(file).toContain('WORKFLOW_START_SERVICE_TIMEOUT_MS = 12_000');
-    expect(file).toContain('WORKFLOW_END_SERVICE_TIMEOUT_MS = 4_000');
+    expect(file).toContain('WORKFLOW_ACTION_TIMEOUT_MS = 15_000');
+    expect(file).toContain('WORKFLOW_START_SERVICE_TIMEOUT_MS = 20_000');
+    expect(file).toContain('WORKFLOW_END_SERVICE_TIMEOUT_MS = 15_000');
   });
 
   it('never blocks the canonical service start on GPS permission or position capture', () => {
