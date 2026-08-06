@@ -41,7 +41,8 @@ describe('employee visit signature confirmation R10.6', () => {
   it('polls automatically and advances only after authoritative confirmation', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     expect(screen).toContain('await signatureConfirmationRefreshRef.current()');
-    expect(screen).toContain('attempts < 3');
+    expect(screen).toContain('const retryDelayMs = attempts < 5');
+    expect(screen).toContain('attempts < 15 ? 3_000 : 5_000');
     expect(screen).not.toContain('const poll = setInterval');
     expect(screen).toContain('Unterschrift geprüft und gespeichert');
     expect(screen).toContain("signatureConfirmationPending ? 'UNTERSCHRIFT WIRD GEPRÜFT'");

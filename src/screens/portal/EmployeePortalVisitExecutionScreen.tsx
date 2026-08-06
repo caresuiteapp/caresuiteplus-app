@@ -334,16 +334,20 @@ export function EmployeePortalVisitExecutionScreen() {
     const checkConfirmation = async () => {
       if (cancelled) return;
       attempts += 1;
-      await signatureConfirmationRefreshRef.current();
-      if (!cancelled && attempts < 3) {
-        retryTimer = setTimeout(() => {
-          void checkConfirmation();
-        }, 2_500);
+      try {
+        await signatureConfirmationRefreshRef.current();
+      } finally {
+        if (!cancelled) {
+          const retryDelayMs = attempts < 5 ? 1_500 : attempts < 15 ? 3_000 : 5_000;
+          retryTimer = setTimeout(() => {
+            void checkConfirmation();
+          }, retryDelayMs);
+        }
       }
     };
     retryTimer = setTimeout(() => {
       void checkConfirmation();
-    }, 1_200);
+    }, 800);
     return () => {
       cancelled = true;
       if (retryTimer) clearTimeout(retryTimer);
@@ -440,6 +444,9 @@ export function EmployeePortalVisitExecutionScreen() {
     if (phase !== 'completed') return;
     releaseSignatureCaptureEnvironment();
     setCloseSignatureCaptureRequest((n) => n + 1);
+    setSignatureConfirmationPending(false);
+    setLocalError(null);
+    setLocalWarning(null);
   }, [phase]);
 
   useEffect(() => {
@@ -750,7 +757,7 @@ export function EmployeePortalVisitExecutionScreen() {
   }
 
   const showSuccess = localSuccess && !localError;
-  const syncWarning = !queryError && !signatureConfirmationPending
+  const syncWarning = !queryError && !signatureConfirmationPending && phase !== 'completed'
     ? liveContextError ?? refetchWarning
     : null;
   const completedTaskCount = visitTasks.filter((task) => task.status === 'done').length;
@@ -766,6 +773,9 @@ export function EmployeePortalVisitExecutionScreen() {
         tone: 'info' as const,
         message: 'Unterschrift wird gerade geprüft – bitte warten. Der Serverabgleich läuft automatisch; du musst nichts erneut eingeben.',
       };
+    }
+    if (phase === 'completed') {
+      return { tone: 'success' as const, message: 'Geschafft! Der Einsatz ist vollständig abgeschlossen.' };
     }
     const blockingError = localError ?? taskSaveError;
     if (blockingError) {
@@ -789,9 +799,6 @@ export function EmployeePortalVisitExecutionScreen() {
         tone: 'warning' as const,
         message: 'Der Einsatz ist gerade nur lesbar. Sobald die Verbindung wieder da ist, kannst du sicher weiterarbeiten.',
       };
-    }
-    if (phase === 'completed') {
-      return { tone: 'success' as const, message: 'Geschafft! Der Einsatz ist vollständig abgeschlossen.' };
     }
     if (isServiceEnded && showSignature && !signatureCaptured && !signatureDeferred) {
       return {
@@ -845,7 +852,8 @@ export function EmployeePortalVisitExecutionScreen() {
     return { tone: 'info' as const, message: 'Prüfe Einsatzzeit, Adresse und Hinweise. Danach kannst du die Navigation starten.' };
   })();
   const guideNeedsRefresh = Boolean(
-    !signatureConfirmationPending &&
+    phase !== 'completed' &&
+      !signatureConfirmationPending &&
       (localError || taskSaveError || syncWarning || localWarning || readOnlyExecution),
   );
   const guideCanOpenDocumentation = Boolean(
@@ -1192,20 +1200,11 @@ export function EmployeePortalVisitExecutionScreen() {
                   });
                   const r = await saveSignature(sig);
                   if (r.ok) {
-                    setSignatureConfirmationPending(false);
-                    setAwaitingSignature(false);
                     workflowPersistence.persist({
-                      signatureConfirmationPending: false,
-                      awaitingSignature: false,
+                      signatureConfirmationPending: true,
+                      awaitingSignature: true,
                       signatureCaptured: true,
                     });
-                    workflowPersistence.setStep(null);
-                    const proofOk = r.data && 'proofGenerated' in r.data && r.data.proofGenerated;
-                    setLocalSuccess(
-                      proofOk
-                        ? 'Unterschrift gespeichert — Leistungsnachweis erstellt. Einsatz kann abgeschlossen werden.'
-                        : 'Unterschrift gespeichert — Einsatz kann abgeschlossen werden.',
-                    );
                   } else if (isWorkflowConfirmationPending(r.errorCode)) {
                     setCloseSignatureCaptureRequest((n) => n + 1);
                     return { ok: true as const };

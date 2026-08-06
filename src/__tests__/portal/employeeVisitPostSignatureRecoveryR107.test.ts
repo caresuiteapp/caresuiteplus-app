@@ -6,10 +6,13 @@ const root = path.join(__dirname, '..', '..', '..');
 const read = (relativePath: string) => readFileSync(path.join(root, relativePath), 'utf8');
 
 describe('employee visit post-signature recovery R10.7', () => {
-  it('never uses an overlapping interval for signature confirmation', () => {
+  it('keeps polling without overlapping requests until the signature is confirmed', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     expect(screen).not.toContain('const poll = setInterval');
-    expect(screen).toContain('attempts < 3');
+    expect(screen).toContain('const retryDelayMs = attempts < 5');
+    expect(screen).toMatch(
+      /await signatureConfirmationRefreshRef\.current\(\);[\s\S]*finally \{[\s\S]*retryTimer = setTimeout/,
+    );
     expect(screen).toContain('await signatureConfirmationRefreshRef.current()');
     expect(screen).toContain('cancelled = true');
   });
