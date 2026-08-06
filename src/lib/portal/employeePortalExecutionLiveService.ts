@@ -923,6 +923,7 @@ export async function updateLiveEmployeePortalTasksBatch(
     status: ExtendedAssignmentTaskStatus;
     completionNote?: string;
   }[],
+  knownDetail?: EmployeePortalAssignmentDetail,
 ): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
@@ -960,6 +961,28 @@ export async function updateLiveEmployeePortalTasksBatch(
     { actorProfileId: employeeId, actorEmployeeId: employeeId },
   );
   if (!updated.ok) return updated;
+
+  if (knownDetail) {
+    const updatesById = new Map(updates.map((item) => [item.taskId, item]));
+    return {
+      ok: true,
+      // All non-task fields are unchanged by this command. Reusing the known,
+      // already authorized portal detail avoids extra reads for assignment
+      // extras and document flags after every task tap.
+      data: {
+        ...knownDetail,
+        tasks: knownDetail.tasks.map((task) => {
+          const taskUpdate = updatesById.get(task.id);
+          if (!taskUpdate) return task;
+          return {
+            ...task,
+            status: taskUpdate.status,
+            completionNote: taskUpdate.completionNote?.trim() || null,
+          };
+        }),
+      },
+    };
+  }
 
   const extras = await fetchAssignmentExtras(tenantId, assignmentId, updated.data.clientId);
   const docFlags = await resolveEmployeePortalDocumentationFlags(

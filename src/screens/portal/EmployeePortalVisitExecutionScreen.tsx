@@ -702,6 +702,7 @@ export function EmployeePortalVisitExecutionScreen() {
     ? liveContextError ?? refetchWarning
     : null;
   const completedTaskCount = visit.tasks.filter((task) => task.status === 'done').length;
+  const allTasksComplete = visit.tasks.length === 0 || completedTaskCount === visit.tasks.length;
   const requiredTaskCount = visit.tasks.filter((task) => task.required).length;
   const completedRequiredTaskCount = visit.tasks.filter(
     (task) => task.required && task.status === 'done',
@@ -755,7 +756,9 @@ export function EmployeePortalVisitExecutionScreen() {
     if (phase === 'live') {
       return {
         tone: 'success' as const,
-        message: `${completedTaskCount} von ${visit.tasks.length} Aufgaben erledigt. Foto oder Video kannst du jederzeit intern hinzufügen.`,
+        message: allTasksComplete
+          ? `Alle ${visit.tasks.length} Aufgaben sind erledigt. Weiter geht es jetzt mit der Dokumentation.`
+          : `${completedTaskCount} von ${visit.tasks.length} Aufgaben erledigt. Foto oder Video kannst du jederzeit intern hinzufügen.`,
       };
     }
     if (phase === 'post_service') {
@@ -776,6 +779,14 @@ export function EmployeePortalVisitExecutionScreen() {
   })();
   const guideNeedsRefresh = Boolean(
     localError || taskSaveError || syncWarning || localWarning || readOnlyExecution,
+  );
+  const guideCanOpenDocumentation = Boolean(
+    !guideNeedsRefresh &&
+    phase === 'live' &&
+    allTasksComplete &&
+    !documentationSubmitted &&
+    showDocumentationForm &&
+    !isLocked,
   );
   const bottomPadding = bottomBarVisible ? spacing.xxl + 96 + insets.bottom : spacing.xxl + 32 + insets.bottom;
 
@@ -1017,12 +1028,26 @@ export function EmployeePortalVisitExecutionScreen() {
           timers={timers}
           requiresSignature={visit.requiresSignature}
           signatureCaptured={signatureCaptured || signatureDeferred}
+          tasksComplete={allTasksComplete}
+          documentationComplete={documentationSubmitted}
           showProgress={showCompactProgress(phase)}
           onExit={() => router.back()}
           guideMessage={guide.message}
           guideTone={guide.tone}
-          guideActionLabel={guideNeedsRefresh ? 'Status erneut prüfen' : undefined}
-          onGuideAction={guideNeedsRefresh ? () => void handleGuideRefresh() : undefined}
+          guideActionLabel={
+            guideNeedsRefresh
+              ? 'Status erneut prüfen'
+              : guideCanOpenDocumentation
+                ? 'Jetzt Doku öffnen'
+                : undefined
+          }
+          onGuideAction={
+            guideNeedsRefresh
+              ? () => void handleGuideRefresh()
+              : guideCanOpenDocumentation
+                ? () => setDocumentationOpen(true)
+                : undefined
+          }
         />
 
         <WorkflowToast

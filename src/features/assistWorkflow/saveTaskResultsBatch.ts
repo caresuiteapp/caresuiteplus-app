@@ -8,7 +8,6 @@ import { updateLiveEmployeePortalTasksBatch } from '@/lib/portal/employeePortalE
 import { updateEmployeePortalTasksBatch } from '@/lib/portal/employeePortalExecutionService';
 import { getServiceMode } from '@/lib/services/mode';
 import { taskStatusRequiresNote } from '@/lib/assist/assignmentStatusMachine';
-import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import type { AssistExecutionContext } from './types';
 import {
   assistWorkflowErrorToResult,
@@ -47,26 +46,34 @@ export async function saveTaskResultsBatch(
   }
 
   const roleKey = ctx.roleKey as RoleKey | null;
-  const updateFn =
+  const result =
     getServiceMode() === 'supabase'
-      ? updateLiveEmployeePortalTasksBatch
-      : updateEmployeePortalTasksBatch;
-
-  const result = await updateFn(
-    ctx.tenantId,
-    ctx.assignmentId,
-    ctx.employeeId,
-    roleKey,
-    updates,
-  );
+      ? await updateLiveEmployeePortalTasksBatch(
+          ctx.tenantId,
+          ctx.assignmentId,
+          ctx.employeeId,
+          roleKey,
+          updates,
+          ctx.detail,
+        )
+      : await updateEmployeePortalTasksBatch(
+          ctx.tenantId,
+          ctx.assignmentId,
+          ctx.employeeId,
+          roleKey,
+          updates,
+        );
 
   if (!result.ok) return { ok: false, error: result.error };
 
-  return resolveAssistExecutionContext({
-    tenantId: ctx.tenantId,
-    assignmentId: ctx.assignmentId,
-    employeeId: ctx.employeeId,
-    profileId: ctx.profileId,
-    roleKey,
-  });
+  // The task write already returns the updated assignment detail. Re-resolving
+  // the entire execution context here added another full server read and made a
+  // simple checkmark appear blocked on mobile connections.
+  return {
+    ok: true,
+    data: {
+      ...ctx,
+      detail: result.data,
+    },
+  };
 }

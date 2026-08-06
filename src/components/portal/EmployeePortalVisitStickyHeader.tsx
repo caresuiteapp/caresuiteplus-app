@@ -22,6 +22,8 @@ type EmployeePortalVisitStickyHeaderProps = {
   timers: EmployeePortalLiveTimers | null;
   requiresSignature?: boolean;
   signatureCaptured?: boolean;
+  tasksComplete?: boolean;
+  documentationComplete?: boolean;
   showProgress?: boolean;
   onExit?: () => void;
   guideMessage?: string;
@@ -63,6 +65,8 @@ export function EmployeePortalVisitStickyHeader({
   timers,
   requiresSignature = true,
   signatureCaptured = false,
+  tasksComplete = false,
+  documentationComplete = false,
   showProgress = true,
   onExit,
   guideMessage,
@@ -242,6 +246,8 @@ export function EmployeePortalVisitStickyHeader({
           status={effectiveStatus}
           requiresSignature={requiresSignature}
           signatureCaptured={signatureCaptured}
+          tasksComplete={tasksComplete}
+          documentationComplete={documentationComplete}
         />
       ) : null}
       {guideMessage ? (

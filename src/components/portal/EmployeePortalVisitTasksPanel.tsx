@@ -57,7 +57,6 @@ export function EmployeePortalVisitTasksPanel({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [statusPicker, setStatusPicker] = useState<StatusPickerState>(null);
   const [note, setNote] = useState('');
-  const [pendingId, setPendingId] = useState<string | null>(null);
 
   useEffect(() => {
     const next: Record<string, boolean> = {};
@@ -136,9 +135,7 @@ export function EmployeePortalVisitTasksPanel({
         setNote('');
         return;
       }
-      setPendingId(taskId);
       await onUpdateTask(taskId, status, noteValue?.trim() || undefined);
-      setPendingId(null);
       setStatusPicker(null);
       setNote('');
     },
@@ -146,11 +143,11 @@ export function EmployeePortalVisitTasksPanel({
   );
 
   const completeCategory = async (group: VisitTaskCategoryGroup) => {
-    for (const task of group.tasks) {
-      if (task.status !== 'done') {
-        await onUpdateTask(task.id, 'done');
-      }
-    }
+    await Promise.all(
+      group.tasks
+        .filter((task) => task.status !== 'done')
+        .map((task) => onUpdateTask(task.id, 'done')),
+    );
   };
 
   const renderTask = (task: EmployeePortalTaskItem) => (
@@ -191,7 +188,6 @@ export function EmployeePortalVisitTasksPanel({
                 title="Alle in dieser Kategorie erledigt"
                 variant="secondary"
                 size="sm"
-                loading={loading}
                 onPress={() => void completeCategory(group)}
               />
             ) : null}
@@ -206,7 +202,7 @@ export function EmployeePortalVisitTasksPanel({
       <View style={styles.summary}>
         <Text style={styles.summaryText}>Aufgaben</Text>
         <Text style={styles.summaryMeta}>
-          {totalDone} / {tasks.length} erledigt
+          {loading ? 'Speicherung läuft im Hintergrund' : `${totalDone} / ${tasks.length} erledigt`}
         </Text>
       </View>
       {groups.map(renderGroup)}
@@ -261,7 +257,6 @@ export function EmployeePortalVisitTasksPanel({
           />
           <PremiumButton
             title="Speichern"
-            loading={loading && pendingId === statusPicker.taskId}
             onPress={() => void applyStatus(statusPicker.taskId, statusPicker.status, note)}
           />
         </View>

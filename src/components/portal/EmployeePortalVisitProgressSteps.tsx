@@ -16,6 +16,8 @@ type EmployeePortalVisitProgressStepsProps = {
   status: AssignmentStatus;
   requiresSignature?: boolean;
   signatureCaptured?: boolean;
+  tasksComplete?: boolean;
+  documentationComplete?: boolean;
 };
 
 const PROGRESS_STEPS = [
@@ -31,6 +33,8 @@ function stepDone(
   status: AssignmentStatus,
   requiresSignature: boolean,
   signatureCaptured: boolean,
+  tasksComplete: boolean,
+  documentationComplete: boolean,
 ): boolean {
   if (stepKey === 'start') {
     return ['angekommen', 'gestartet', 'pausiert', 'beendet', 'dokumentation_offen', 'unterschrift_offen', 'abgeschlossen'].includes(
@@ -38,10 +42,10 @@ function stepDone(
     );
   }
   if (stepKey === 'tasks') {
-    return ['beendet', 'dokumentation_offen', 'unterschrift_offen', 'abgeschlossen'].includes(status);
+    return tasksComplete || ['beendet', 'dokumentation_offen', 'unterschrift_offen', 'abgeschlossen'].includes(status);
   }
   if (stepKey === 'documentation') {
-    return ['dokumentation_offen', 'unterschrift_offen', 'abgeschlossen'].includes(status) ||
+    return documentationComplete || ['unterschrift_offen', 'abgeschlossen'].includes(status) ||
       isWorkflowStepComplete('documentation', status);
   }
   if (stepKey === 'signature') {
@@ -59,17 +63,23 @@ function stepActive(
   currentStep: ReturnType<typeof assignmentStatusToWorkflowStep>,
   status: AssignmentStatus,
   requiresSignature: boolean,
+  tasksComplete: boolean,
+  documentationComplete: boolean,
 ): boolean {
   if (stepKey === 'start') {
     return ['consent', 'en_route', 'arrived', 'in_service', 'paused'].includes(currentStep) ||
       ['geplant', 'bestaetigt', 'unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(status);
   }
   if (stepKey === 'tasks') {
-    return currentStep === 'in_service' || currentStep === 'paused' || currentStep === 'tasks' ||
-      status === 'gestartet' || status === 'pausiert';
+    return !tasksComplete && (
+      currentStep === 'in_service' || currentStep === 'paused' || currentStep === 'tasks' ||
+      status === 'gestartet' || status === 'pausiert'
+    );
   }
   if (stepKey === 'documentation') {
-    return currentStep === 'documentation' || status === 'beendet' || status === 'dokumentation_offen';
+    return !documentationComplete && (
+      tasksComplete || currentStep === 'documentation' || status === 'beendet' || status === 'dokumentation_offen'
+    );
   }
   if (stepKey === 'signature') {
     if (!requiresSignature) return false;
@@ -85,6 +95,8 @@ export function EmployeePortalVisitProgressSteps({
   status,
   requiresSignature = true,
   signatureCaptured = false,
+  tasksComplete = false,
+  documentationComplete = false,
 }: EmployeePortalVisitProgressStepsProps) {
   const text = employeePortalExecutionText;
   const current = assignmentStatusToWorkflowStep(status);
@@ -160,8 +172,22 @@ export function EmployeePortalVisitProgressSteps({
   return (
     <View style={styles.row}>
       {visibleSteps.map((step, index) => {
-        const done = stepDone(step.key, status, requiresSignature, signatureCaptured);
-        const active = !done && stepActive(step.key, current, status, requiresSignature);
+        const done = stepDone(
+          step.key,
+          status,
+          requiresSignature,
+          signatureCaptured,
+          tasksComplete,
+          documentationComplete,
+        );
+        const active = !done && stepActive(
+          step.key,
+          current,
+          status,
+          requiresSignature,
+          tasksComplete,
+          documentationComplete,
+        );
         return (
           <View key={step.key} style={styles.step}>
             {index > 0 ? <View style={[styles.connector, done ? styles.connectorDone : null]} /> : null}

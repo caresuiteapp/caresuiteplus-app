@@ -12,7 +12,13 @@ import type { AssistExecutionContext } from '@/features/assistWorkflow/types';
 
 const DEBOUNCE_MS = 450;
 
-type DraftMap = Record<string, { status: ExtendedAssignmentTaskStatus; note?: string }>;
+type DraftEntry = {
+  status: ExtendedAssignmentTaskStatus;
+  note?: string;
+  revision: number;
+};
+
+type DraftMap = Record<string, DraftEntry>;
 
 export function useTaskResultDrafts(
   serverTasks: EmployeePortalTaskItem[],
@@ -24,8 +30,17 @@ export function useTaskResultDrafts(
   const [saveError, setSaveError] = useState<string | null>(null);
   const pendingRef = useRef<DraftMap>({});
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revisionRef = useRef(0);
+  const flushingRef = useRef(false);
+  const flushAgainRef = useRef(false);
+  const flushRef = useRef<() => Promise<void>>(async () => {});
 
   const flush = useCallback(async () => {
+    if (flushingRef.current) {
+      flushAgainRef.current = true;
+      return;
+    }
+
     const ctx = executionContext;
     const pending = { ...pendingRef.current };
     if (!ctx || Object.keys(pending).length === 0) return;
@@ -36,36 +51,59 @@ export function useTaskResultDrafts(
       completionNote: d.note,
     }));
 
+    flushingRef.current = true;
     setSaving(true);
-    const result = await saveTaskResultsBatch({ ctx, updates });
-    setSaving(false);
+    try {
+      const result = await saveTaskResultsBatch({ ctx, updates });
 
-    if (!result.ok) {
-      setSaveError(result.error ?? 'Aufgaben konnten nicht gespeichert werden.');
-      return;
-    }
-
-    for (const taskId of Object.keys(pending)) {
-      delete pendingRef.current[taskId];
-    }
-    setDrafts((prev) => {
-      const next = { ...prev };
-      for (const taskId of Object.keys(pending)) {
-        delete next[taskId];
+      if (!result.ok) {
+        setSaveError(result.error ?? 'Aufgaben konnten nicht gespeichert werden.');
+      } else {
+        for (const [taskId, savedDraft] of Object.entries(pending)) {
+          if (pendingRef.current[taskId]?.revision === savedDraft.revision) {
+            delete pendingRef.current[taskId];
+          }
+        }
+        setDrafts((prev) => {
+          const next = { ...prev };
+          for (const [taskId, savedDraft] of Object.entries(pending)) {
+            if (next[taskId]?.revision === savedDraft.revision) {
+              delete next[taskId];
+            }
+          }
+          return next;
+        });
+        setSaveError(null);
+        onContextSynced(result.data);
       }
-      return next;
-    });
-    setSaveError(null);
-    onContextSynced(result.data);
+    } catch {
+      setSaveError('Aufgaben konnten nicht gespeichert werden. Die Auswahl bleibt erhalten.');
+    } finally {
+      flushingRef.current = false;
+      setSaving(false);
+
+      if (flushAgainRef.current) {
+        flushAgainRef.current = false;
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+          timerRef.current = null;
+          void flushRef.current();
+        }, DEBOUNCE_MS);
+      }
+    }
   }, [executionContext, onContextSynced]);
+
+  useEffect(() => {
+    flushRef.current = flush;
+  }, [flush]);
 
   const scheduleFlush = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
-      void flush();
+      void flushRef.current();
     }, DEBOUNCE_MS);
-  }, [flush]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -75,7 +113,11 @@ export function useTaskResultDrafts(
 
   const updateTask = useCallback(
     (taskId: string, status: ExtendedAssignmentTaskStatus, note?: string) => {
-      const entry = { status, note: note?.trim() || undefined };
+      const entry: DraftEntry = {
+        status,
+        note: note?.trim() || undefined,
+        revision: ++revisionRef.current,
+      };
       pendingRef.current[taskId] = entry;
       setDrafts((prev) => ({ ...prev, [taskId]: entry }));
       scheduleFlush();

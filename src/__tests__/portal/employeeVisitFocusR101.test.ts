@@ -38,7 +38,8 @@ describe('employee visit focus R10.1', () => {
     expect(screen).not.toContain('<ErrorState message={localError}');
     expect(screen).not.toContain('<ErrorState message={taskSaveError}');
     expect(screen).not.toContain('message={formatExecutionSyncWarning(syncWarning)}');
-    expect(screen).toContain("guideActionLabel={guideNeedsRefresh ? 'Status erneut prüfen' : undefined}");
+    expect(screen).toContain("? 'Status erneut prüfen'");
+    expect(screen).toContain("? 'Jetzt Doku öffnen'");
   });
 
   it('does not classify normal mobile latency as a four-second workflow failure', () => {
