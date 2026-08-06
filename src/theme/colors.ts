@@ -1,17 +1,18 @@
 /**
  * CareSuite HealthOS Liquid Command compatibility palette.
  *
- * Existing productive workflows may still import @/theme while their visual
- * primitives are migrated. They must resolve to the same three-colour dark
- * HealthOS language and may never reintroduce the former light ERP surface.
+ * Existing productive workflows still import @/theme from light Office
+ * working surfaces. The default compatibility palette therefore has to be
+ * dark ink on light surfaces. Explicit dark shell regions use darkColors or
+ * the systemLiquidGlass tokens.
  */
 import { legacyColorsFromPalette } from '@/design/tokens/themeBridge';
 
-/** Default export — canonical dark Liquid Command palette. */
-export const colors = legacyColorsFromPalette('dark');
+/** Default export — readable ink and surfaces for the light workspace. */
+export const colors = legacyColorsFromPalette('light');
 
 /** Dark palette for explicit legacy/dark-mode surfaces. */
 export const darkColors = legacyColorsFromPalette('dark');
 
-/** Compatibility alias — the system uses one visual language. */
-export const lightColors = legacyColorsFromPalette('dark');
+/** Explicit light compatibility palette. */
+export const lightColors = legacyColorsFromPalette('light');

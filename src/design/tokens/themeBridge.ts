@@ -199,9 +199,13 @@ export function resolveLegacyGradients(mode: ColorMode = 'dark') {
  * React hook — bridges ThemeModeProvider to legacy @/theme keys for Premium components.
  */
 export function useLegacyTheme() {
-  useThemeMode();
+  const { mode: themeMode } = useThemeMode();
   const portal = usePortalPremiumTheme();
-  const mode: ColorMode = portal.active ? 'light' : 'dark';
+  // The desktop Office shell defaults to light working surfaces. Legacy
+  // components must follow that actual mode instead of unconditionally
+  // resolving to the white-on-dark palette. Portal surfaces stay light by
+  // contract, regardless of a stored shell preference.
+  const mode: ColorMode = portal.active ? 'light' : themeMode;
 
   return useMemo(
     () => {
