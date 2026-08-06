@@ -13,6 +13,7 @@ type EmployeePortalVisitLiveDashboardProps = {
   documentationStatus: 'none' | 'draft' | 'submitted' | 'locked';
   documentationLastSavedAt?: string | null;
   signatureCaptured: boolean;
+  signatureConfirmationPending?: boolean;
   requiresSignature: boolean;
   signatureEnabled?: boolean;
   serviceSeconds: number | null;
@@ -49,6 +50,7 @@ export function EmployeePortalVisitLiveDashboard({
   documentationStatus,
   documentationLastSavedAt,
   signatureCaptured,
+  signatureConfirmationPending = false,
   requiresSignature,
   signatureEnabled = true,
   serviceSeconds,
@@ -98,9 +100,23 @@ export function EmployeePortalVisitLiveDashboard({
             <EmployeePortalVisitCompactCard
               icon="✎"
               title="Unterschrift"
-              status={signatureCaptured ? 'Gespeichert' : signatureEnabled ? 'Noch offen' : 'Nach Einsatzende'}
-              onPress={onOpenSignature}
-              disabled={!signatureEnabled}
+              status={
+                signatureConfirmationPending
+                  ? 'Unterschrift wird gerade geprüft – bitte warten'
+                  : signatureCaptured
+                    ? 'Gespeichert'
+                    : signatureEnabled
+                      ? 'Noch offen'
+                      : 'Nach Einsatzende'
+              }
+              subtitle={
+                signatureConfirmationPending
+                  ? 'Der Serverabgleich läuft automatisch. Bitte nicht erneut tippen.'
+                  : undefined
+              }
+              onPress={signatureConfirmationPending ? undefined : onOpenSignature}
+              disabled={signatureConfirmationPending || !signatureEnabled}
+              pending={signatureConfirmationPending}
               testID="portal-open-signature"
             />
           </View>

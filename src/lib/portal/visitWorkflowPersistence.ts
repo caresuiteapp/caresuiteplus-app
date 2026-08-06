@@ -1,6 +1,8 @@
 export type VisitWorkflowUiState = {
   step?: string | null;
   awaitingSignature?: boolean;
+  /** Signature was submitted and is awaiting authoritative server readback. */
+  signatureConfirmationPending?: boolean;
   signatureModalOpen?: boolean;
   showNoShowForm?: boolean;
   scrollY?: number;

@@ -164,6 +164,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const [noShowNote, setNoShowNote] = useState('');
   const [showNoShowForm, setShowNoShowForm] = useState(false);
   const [awaitingSignature, setAwaitingSignature] = useState(false);
+  const [signatureConfirmationPending, setSignatureConfirmationPending] = useState(false);
   const [deviationModal, setDeviationModal] = useState<{
     phase: WfmDeviationPhase;
     pendingAction: 'start_service' | 'end_service';
@@ -217,6 +218,9 @@ export function EmployeePortalVisitExecutionScreen() {
     const snapshotMatchesRoute = visitExecutionRouteMatchesSnapshot(pathname, snapshot?.route);
 
     if (snapshotMatchesRoute && snapshot?.awaitingSignature) setAwaitingSignature(true);
+    if (snapshotMatchesRoute && snapshot?.signatureConfirmationPending) {
+      setSignatureConfirmationPending(true);
+    }
     if (snapshotMatchesRoute && snapshot?.showNoShowForm) setShowNoShowForm(true);
     if (snapshotMatchesRoute && snapshot?.attachmentReferences?.length) {
       setPhotoReferences(snapshot.attachmentReferences);
@@ -303,6 +307,35 @@ export function EmployeePortalVisitExecutionScreen() {
   const showSignature = uiState?.showSignature ?? false;
   const showFinalize = uiState?.showFinalize ?? false;
   const canFinalizeDeferred = uiState?.canFinalizeDeferred ?? false;
+
+  useEffect(() => {
+    if (!signatureConfirmationPending) return;
+    if (signatureCaptured || signatureDeferred) {
+      setSignatureConfirmationPending(false);
+      setAwaitingSignature(false);
+      setLocalError(null);
+      setLocalWarning(null);
+      setLocalSuccess('Unterschrift geprüft und gespeichert — der Einsatz kann abgeschlossen werden.');
+      workflowPersistence.persist({
+        signatureConfirmationPending: false,
+        awaitingSignature: false,
+        signatureCaptured: true,
+      });
+      workflowPersistence.setStep(null);
+      return;
+    }
+
+    const poll = setInterval(() => {
+      void refresh();
+    }, 2_000);
+    return () => clearInterval(poll);
+  }, [
+    signatureConfirmationPending,
+    signatureCaptured,
+    signatureDeferred,
+    refresh,
+    workflowPersistence,
+  ]);
 
   useEffect(() => {
     if (
@@ -397,6 +430,7 @@ export function EmployeePortalVisitExecutionScreen() {
     workflowPersistence.persist({
       step: urlStep ?? null,
       awaitingSignature,
+      signatureConfirmationPending,
       signatureModalOpen: false,
       showNoShowForm,
       documentationSubmitted,
@@ -408,6 +442,7 @@ export function EmployeePortalVisitExecutionScreen() {
     visit,
     urlStep,
     awaitingSignature,
+    signatureConfirmationPending,
     showNoShowForm,
     documentationSubmitted,
     signatureCaptured,
@@ -698,7 +733,7 @@ export function EmployeePortalVisitExecutionScreen() {
   }
 
   const showSuccess = localSuccess && !localError;
-  const syncWarning = !queryError
+  const syncWarning = !queryError && !signatureConfirmationPending
     ? liveContextError ?? refetchWarning
     : null;
   const completedTaskCount = visit.tasks.filter((task) => task.status === 'done').length;
@@ -709,6 +744,12 @@ export function EmployeePortalVisitExecutionScreen() {
   ).length;
   const missingRequiredTasks = Math.max(0, requiredTaskCount - completedRequiredTaskCount);
   const guide = (() => {
+    if (signatureConfirmationPending) {
+      return {
+        tone: 'info' as const,
+        message: 'Unterschrift wird gerade geprüft – bitte warten. Der Serverabgleich läuft automatisch; du musst nichts erneut eingeben.',
+      };
+    }
     const blockingError = localError ?? taskSaveError;
     if (blockingError) {
       return { tone: 'error' as const, message: blockingError };
@@ -787,7 +828,8 @@ export function EmployeePortalVisitExecutionScreen() {
     return { tone: 'info' as const, message: 'Prüfe Einsatzzeit, Adresse und Hinweise. Danach kannst du die Navigation starten.' };
   })();
   const guideNeedsRefresh = Boolean(
-    localError || taskSaveError || syncWarning || localWarning || readOnlyExecution,
+    !signatureConfirmationPending &&
+      (localError || taskSaveError || syncWarning || localWarning || readOnlyExecution),
   );
   const guideCanOpenDocumentation = Boolean(
     !guideNeedsRefresh &&
@@ -943,6 +985,7 @@ export function EmployeePortalVisitExecutionScreen() {
             documentationStatus={visit.documentationStatus}
             documentationLastSavedAt={docLastSavedAt}
             signatureCaptured={signatureCaptured || signatureDeferred}
+            signatureConfirmationPending={signatureConfirmationPending}
             requiresSignature={visit.requiresSignature}
             signatureEnabled={isServiceEnded}
             serviceSeconds={timers?.serviceSeconds ?? null}
@@ -1041,6 +1084,9 @@ export function EmployeePortalVisitExecutionScreen() {
           plannedStartAt={visit.plannedStartAt}
           plannedEndAt={visit.plannedEndAt}
           effectiveStatus={effectiveStatus}
+          statusLabelOverride={
+            signatureConfirmationPending ? 'UNTERSCHRIFT WIRD GEPRÜFT' : undefined
+          }
           timers={timers}
           requiresSignature={visit.requiresSignature}
           signatureCaptured={signatureCaptured || signatureDeferred}
@@ -1119,9 +1165,23 @@ export function EmployeePortalVisitExecutionScreen() {
                 visitId={id}
                 onModalOpenChange={handleSignatureModalOpenChange}
                 onCapture={async (sig) => {
+                  setSignatureConfirmationPending(true);
+                  setLocalError(null);
+                  setLocalWarning(null);
+                  setLocalSuccess(null);
+                  workflowPersistence.persist({
+                    signatureConfirmationPending: true,
+                    awaitingSignature: true,
+                  });
                   const r = await saveSignature(sig);
                   if (r.ok) {
+                    setSignatureConfirmationPending(false);
                     setAwaitingSignature(false);
+                    workflowPersistence.persist({
+                      signatureConfirmationPending: false,
+                      awaitingSignature: false,
+                      signatureCaptured: true,
+                    });
                     workflowPersistence.setStep(null);
                     const proofOk = r.data && 'proofGenerated' in r.data && r.data.proofGenerated;
                     setLocalSuccess(
@@ -1129,7 +1189,12 @@ export function EmployeePortalVisitExecutionScreen() {
                         ? 'Unterschrift gespeichert — Leistungsnachweis erstellt. Einsatz kann abgeschlossen werden.'
                         : 'Unterschrift gespeichert — Einsatz kann abgeschlossen werden.',
                     );
+                  } else if (isWorkflowConfirmationPending(r.errorCode)) {
+                    setCloseSignatureCaptureRequest((n) => n + 1);
+                    return { ok: true as const };
                   } else {
+                    setSignatureConfirmationPending(false);
+                    workflowPersistence.persist({ signatureConfirmationPending: false });
                     setLocalError(r.error ?? 'Die Unterschrift konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.');
                   }
                   return r;

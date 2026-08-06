@@ -19,6 +19,7 @@ type EmployeePortalVisitStickyHeaderProps = {
   plannedStartAt: string;
   plannedEndAt: string;
   effectiveStatus: AssignmentStatus;
+  statusLabelOverride?: string;
   timers: EmployeePortalLiveTimers | null;
   requiresSignature?: boolean;
   signatureCaptured?: boolean;
@@ -63,6 +64,7 @@ export function EmployeePortalVisitStickyHeader({
   plannedStartAt,
   plannedEndAt,
   effectiveStatus,
+  statusLabelOverride,
   timers,
   requiresSignature = true,
   signatureCaptured = false,
@@ -237,7 +239,7 @@ export function EmployeePortalVisitStickyHeader({
       </View>
       <View style={styles.statusRow}>
         <PremiumBadge
-          label={liveStatusLabel(effectiveStatus, timers)}
+          label={statusLabelOverride ?? liveStatusLabel(effectiveStatus, timers)}
           variant={badgeVariant}
           dot
         />
