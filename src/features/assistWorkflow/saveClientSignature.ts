@@ -136,6 +136,41 @@ export async function saveClientSignature(
     updatedCtx = transitioned.data;
   }
 
+  // Persist the lightweight workflow projection before returning to the UI.
+  // The signature table remains authoritative, but list/card screens use this
+  // projection for fast reads. Previously it was only updated behind proof
+  // generation, so a failed/slow deferred task left a real signature displayed
+  // as "Unterschrift offen" and could send the visit down the portal fallback.
+  const signatureState = await upsertAssistVisitExecutionState(
+    workingCtx.tenantId,
+    workingCtx.assignmentId,
+    'unterschrift_offen',
+    {
+      employeeId: workingCtx.employeeId,
+      visitTimes: updatedCtx.visitTimes,
+      documentationComplete: true,
+      signatureComplete: true,
+      proofGenerated: false,
+    },
+  );
+  if (!signatureState.ok) {
+    scheduleDeferredTask(`assist-signature-state:${workingCtx.tenantId}:${workingCtx.assignmentId}`, async () => {
+      const retry = await upsertAssistVisitExecutionState(
+        workingCtx.tenantId,
+        workingCtx.assignmentId,
+        'unterschrift_offen',
+        {
+          employeeId: workingCtx.employeeId,
+          visitTimes: updatedCtx.visitTimes,
+          documentationComplete: true,
+          signatureComplete: true,
+          proofGenerated: false,
+        },
+      );
+      if (!retry.ok) throw new Error(retry.error);
+    });
+  }
+
   const documentationText =
     updatedCtx.detail.documentationStatus === 'submitted' ||
     updatedCtx.detail.documentationStatus === 'locked'

@@ -246,6 +246,7 @@ async function fetchSnapshotBatchRows(
   employeeInternalNotesByVisit: Map<string, string>;
   photoReferencesByVisit: Map<string, string[]>;
   executionStateByVisit: Map<string, ExecutionStateRow>;
+  validSignatureVisitIds: Set<string>;
   timeEventsByVisit: Map<string, SnapshotTimeEvent[]>;
 }> {
   const assignments = new Map<string, AssignmentRow>();
@@ -254,6 +255,7 @@ async function fetchSnapshotBatchRows(
   const employeeInternalNotesByVisit = new Map<string, string>();
   const photoReferencesByVisit = new Map<string, string[]>();
   const executionStateByVisit = new Map<string, ExecutionStateRow>();
+  const validSignatureVisitIds = new Set<string>();
   const timeEventsByVisit = new Map<string, SnapshotTimeEvent[]>();
 
   if (assignmentIds.length === 0 && visitIds.length === 0) {
@@ -264,6 +266,7 @@ async function fetchSnapshotBatchRows(
       employeeInternalNotesByVisit,
       photoReferencesByVisit,
       executionStateByVisit,
+      validSignatureVisitIds,
       timeEventsByVisit,
     };
   }
@@ -277,6 +280,7 @@ async function fetchSnapshotBatchRows(
       employeeInternalNotesByVisit,
       photoReferencesByVisit,
       executionStateByVisit,
+      validSignatureVisitIds,
       timeEventsByVisit,
     };
   }
@@ -286,7 +290,14 @@ async function fetchSnapshotBatchRows(
     ...new Set(visitIds.map((id) => resolveVisitMasterId(id)).filter(Boolean)),
   ];
 
-  const [assignmentResult, taskResult, docResult, executionStateResult, timeEventResult] = await Promise.all([
+  const [
+    assignmentResult,
+    taskResult,
+    docResult,
+    executionStateResult,
+    signatureResult,
+    timeEventResult,
+  ] = await Promise.all([
     fromUnknownTable(supabase, 'assignments')
       .select(
         'id, status, documentation_notes, on_the_way_at, arrived_at, finished_at, actual_start_at, actual_end_at',
@@ -309,6 +320,11 @@ async function fetchSnapshotBatchRows(
         'visit_id, assignment_status, documentation_complete, signature_complete, service_ended_at, travel_started_at, travel_ended_at, service_started_at',
       )
       .eq('tenant_id', tenantId)
+      .in('visit_id', uniqueVisitIds),
+    fromUnknownTable(supabase, 'assist_visit_signatures')
+      .select('visit_id')
+      .eq('tenant_id', tenantId)
+      .eq('is_valid', true)
       .in('visit_id', uniqueVisitIds),
     fromUnknownTable(supabase, 'assist_time_events')
       .select('visit_id, event_type, occurred_at')
@@ -351,6 +367,16 @@ async function fetchSnapshotBatchRows(
     }
   }
 
+  // The signature row is the canonical evidence. execution_state is only a
+  // projection and can lag when proof generation or a deferred sync fails.
+  // Reading valid signatures in the list batch repairs existing stale rows
+  // without an N+1 query and keeps cards/list/detail consistent.
+  if (!signatureResult.error || !isSupabaseMissingTableError(signatureResult.error)) {
+    for (const row of (signatureResult.data ?? []) as { visit_id: string }[]) {
+      if (row.visit_id) validSignatureVisitIds.add(row.visit_id);
+    }
+  }
+
   if (!timeEventResult.error || !isSupabaseMissingTableError(timeEventResult.error)) {
     for (const row of (timeEventResult.data ?? []) as TimeEventRow[]) {
       const events = timeEventsByVisit.get(row.visit_id) ?? [];
@@ -366,6 +392,7 @@ async function fetchSnapshotBatchRows(
     employeeInternalNotesByVisit,
     photoReferencesByVisit,
     executionStateByVisit,
+    validSignatureVisitIds,
     timeEventsByVisit,
   };
 }
@@ -567,6 +594,7 @@ export async function fetchAssignmentExecutionSnapshotBatch(
     employeeInternalNotesByVisit,
     photoReferencesByVisit,
     executionStateByVisit,
+    validSignatureVisitIds,
     timeEventsByVisit,
   } = await fetchSnapshotBatchRows(tenantId, assignmentIds, visitIds);
 
@@ -577,7 +605,10 @@ export async function fetchAssignmentExecutionSnapshotBatch(
       ? remoteStatusToAssignment(assignmentRow.status)
       : input.fallbackStatus;
 
-    let hasSignature = Boolean(executionState?.signature_complete);
+    let hasSignature =
+      Boolean(executionState?.signature_complete) ||
+      validSignatureVisitIds.has(input.visitId) ||
+      validSignatureVisitIds.has(resolveVisitMasterId(input.visitId));
     let persistedSignature: VisitSignatureCapture | null = null;
     let hasProof = false;
     let proofStatus: VisitProofStatus | null = input.proofStatus ?? null;
