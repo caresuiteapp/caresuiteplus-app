@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Animated, Easing, Image, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CARESUITE_VISIT_GUIDE_MASCOT } from '@/components/brand/brandassets';
 import { PremiumBadge } from '@/components/ui';
 import {
   employeePortalExecutionShadow,
@@ -149,15 +149,12 @@ export function EmployeePortalVisitStickyHeader({
           marginTop: spacing.xs,
         },
         guideAvatar: {
-          width: compact ? 48 : 54,
-          height: compact ? 48 : 54,
-          borderRadius: compact ? 24 : 27,
+          width: compact ? 66 : 76,
+          height: compact ? 66 : 76,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#056CE8',
-          borderWidth: 2,
-          borderColor: '#FFFFFF',
         },
+        guideAvatarImage: { width: '100%', height: '100%' },
         guideBubble: {
           flex: 1,
           minWidth: 0,
@@ -261,7 +258,11 @@ export function EmployeePortalVisitStickyHeader({
               },
             ]}
           >
-            <Ionicons name="person" size={compact ? 27 : 31} color="#FFFFFF" />
+            <Image
+              source={CARESUITE_VISIT_GUIDE_MASCOT}
+              resizeMode="contain"
+              style={styles.guideAvatarImage}
+            />
           </Animated.View>
           <View
             style={[

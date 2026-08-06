@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Animated, Easing, Image, StyleSheet, Text, View } from 'react-native';
+import { CARESUITE_VISIT_GUIDE_MASCOT } from '@/components/brand/brandassets';
 import {
   assignmentStatusToWorkflowStep,
   isWorkflowStepComplete,
@@ -127,17 +127,14 @@ export function EmployeePortalVisitProgressSteps({
         step: { alignItems: 'center', gap: 5, flex: 1, minWidth: 0 },
         employee: {
           position: 'absolute',
-          top: -20,
+          top: -28,
           zIndex: 3,
-          width: 24,
-          height: 24,
-          borderRadius: 12,
+          width: 34,
+          height: 34,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#056CE8',
-          borderWidth: 2,
-          borderColor: '#FFFFFF',
         },
+        employeeImage: { width: '100%', height: '100%' },
         dot: {
           width: 28,
           height: 28,
@@ -181,7 +178,11 @@ export function EmployeePortalVisitProgressSteps({
                   },
                 ]}
               >
-                <Ionicons name="person" size={13} color="#FFFFFF" />
+                <Image
+                  source={CARESUITE_VISIT_GUIDE_MASCOT}
+                  resizeMode="contain"
+                  style={styles.employeeImage}
+                />
               </Animated.View>
             ) : null}
             <Animated.View

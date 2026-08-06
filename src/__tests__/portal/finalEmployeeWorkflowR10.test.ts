@@ -60,8 +60,8 @@ describe('final employee workflow R10', () => {
     const progress = read('src/components/portal/EmployeePortalVisitProgressSteps.tsx');
     expect(progress).toContain('Animated.loop');
     expect(progress).toContain('Aktueller Schritt:');
-    expect(progress).toContain("from '@expo/vector-icons'");
-    expect(progress).toContain('name="person"');
+    expect(progress).toContain('CARESUITE_VISIT_GUIDE_MASCOT');
+    expect(progress).toContain('source={CARESUITE_VISIT_GUIDE_MASCOT}');
     expect(progress).not.toContain('👤');
   });
 

@@ -792,6 +792,20 @@ export function EmployeePortalVisitExecutionScreen() {
       </View>
     ) : null;
 
+  const renderAttachmentAction = () => (
+    <PremiumButton
+      title={
+        photoReferences.length > 0
+          ? `Foto/Video hinzufügen · ${photoReferences.length} vorhanden`
+          : 'Foto/Video hinzufügen'
+      }
+      variant="secondary"
+      fullWidth
+      onPress={() => setPhotoModalOpen(true)}
+      testID="employee-visit-attachment-action"
+    />
+  );
+
   const renderPhaseContent = () => {
     if (phase === 'completed') {
       return (
@@ -821,6 +835,7 @@ export function EmployeePortalVisitExecutionScreen() {
             <DetailInfoRow label="Telefon" value={visit.emergencyContact} />
           ) : null}
           <View style={styles.phaseActions}>
+            {renderAttachmentAction()}
             <PremiumButton title="Navigation starten" variant="secondary" fullWidth onPress={handleOpenMap} />
             {visit.emergencyContact ? (
               <PremiumButton title="Anrufen" variant="ghost" fullWidth onPress={handleCall} />
@@ -850,6 +865,7 @@ export function EmployeePortalVisitExecutionScreen() {
             <DetailInfoRow label="Telefon" value={visit.emergencyContact} />
           ) : null}
           <View style={styles.phaseActions}>
+            {renderAttachmentAction()}
             <PremiumButton title="Navigation" variant="secondary" fullWidth onPress={handleOpenMap} />
             {primaryButtonLabel && !isLocked ? (
               <PremiumButton
@@ -875,15 +891,18 @@ export function EmployeePortalVisitExecutionScreen() {
           </Text>
           <DetailInfoRow label="Klient:in" value={visit.clientName} />
           <DetailInfoRow label="Adresse" value={visit.locationAddress} />
-          {primaryButtonLabel && !isLocked ? (
-            <PremiumButton
-              title={primaryButtonLabel}
-              fullWidth
-              loading={primaryButtonLoading}
-              disabled={primaryButtonDisabled}
-              onPress={handlePrimary}
-            />
-          ) : null}
+          <View style={styles.phaseActions}>
+            {renderAttachmentAction()}
+            {primaryButtonLabel && !isLocked ? (
+              <PremiumButton
+                title={primaryButtonLabel}
+                fullWidth
+                loading={primaryButtonLoading}
+                disabled={primaryButtonDisabled}
+                onPress={handlePrimary}
+              />
+            ) : null}
+          </View>
         </View>
       );
     }

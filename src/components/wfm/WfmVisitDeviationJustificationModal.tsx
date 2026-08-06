@@ -1,5 +1,15 @@
 import { useState } from 'react';
-import { Modal, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { PremiumButton } from '@/components/ui';
 import {
   employeePortalExecutionSurface,
@@ -34,7 +44,6 @@ export function WfmVisitDeviationJustificationModal({
   onSubmit,
   onCancel,
 }: Props) {
-  const text = employeePortalExecutionText;
   const [justification, setJustification] = useState('');
 
   const title =
@@ -58,48 +67,77 @@ export function WfmVisitDeviationJustificationModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View style={styles.backdrop}>
-        <View style={styles.card}>
-          <Text style={[styles.title, { color: text.primary }]}>{title}</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.backdrop}
+      >
+        <View style={styles.card} testID="visit-deviation-readable-modal">
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.titleRow}>
+              <View style={styles.iconCircle}>
+                <Ionicons name="time-outline" size={25} color="#FFFFFF" />
+              </View>
+              <Text style={styles.title}>{title}</Text>
+            </View>
 
-          <Text style={{ color: text.secondary, ...typography.caption, marginBottom: careSpacing.sm }}>
-            Geplant: {formatWfmTime(evaluation.plannedAt)} · Tatsächlich:{' '}
-            {formatWfmTime(evaluation.actualAt)}
-          </Text>
-          <Text style={{ color: text.secondary, ...typography.caption, marginBottom: careSpacing.sm }}>
-            Abweichung: {evaluation.deviationMinutes} Min. ·{' '}
-            {formatDeviationDirectionLabel(evaluation.direction, phase)} · Ampel:{' '}
-            {WFM_DEVIATION_AMPEL_LABELS[evaluation.ampel]}
-          </Text>
+            <View style={styles.metrics}>
+              <View style={styles.metricCell}>
+                <Text style={styles.metricLabel}>GEPLANT</Text>
+                <Text style={styles.metricValue}>{formatWfmTime(evaluation.plannedAt)}</Text>
+              </View>
+              <View style={styles.metricCell}>
+                <Text style={styles.metricLabel}>TATSÄCHLICH</Text>
+                <Text style={styles.metricValue}>{formatWfmTime(evaluation.actualAt)}</Text>
+              </View>
+            </View>
 
-          <Text style={{ color: text.secondary, ...typography.body, marginBottom: careSpacing.md }}>
-            {hint}
-          </Text>
+            <View style={styles.deviationSummary}>
+              <Text style={styles.deviationValue}>{evaluation.deviationMinutes} Min. Abweichung</Text>
+              <Text style={styles.deviationDetail}>
+                {formatDeviationDirectionLabel(evaluation.direction, phase)} · Ampel:{' '}
+                {WFM_DEVIATION_AMPEL_LABELS[evaluation.ampel]}
+              </Text>
+            </View>
 
-          <Text style={{ color: text.primary, ...typography.caption, marginBottom: 4 }}>
-            Begründung (min. {WFM_DEVIATION_JUSTIFICATION_MIN_LENGTH} Zeichen)
-          </Text>
-          <TextInput
-            value={justification}
-            onChangeText={setJustification}
-            multiline
-            style={[styles.input, { color: text.primary, borderColor: employeePortalExecutionSurface.borderStrong }]}
-            placeholder="Bitte erklären Sie die Abweichung…"
-            placeholderTextColor={text.muted}
-          />
+            <Text style={styles.hint}>{hint}</Text>
 
-          {error ? (
-            <Text style={{ color: '#c0392b', ...typography.caption, marginTop: careSpacing.sm }}>
-              {error}
+            <Text style={styles.inputLabel}>
+              Begründung (mindestens {WFM_DEVIATION_JUSTIFICATION_MIN_LENGTH} Zeichen)
             </Text>
-          ) : null}
+            <TextInput
+              accessibilityLabel="Begründung der Einsatzzeitabweichung"
+              value={justification}
+              onChangeText={setJustification}
+              multiline
+              style={styles.input}
+              placeholder="Bitte erklären Sie die Abweichung…"
+              placeholderTextColor={employeePortalExecutionText.muted}
+            />
 
-          <View style={styles.actions}>
-            <PremiumButton title="Abbrechen" variant="ghost" onPress={onCancel} disabled={loading} />
-            <PremiumButton title={submitLabel} onPress={handleSubmit} loading={loading} />
-          </View>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <View style={styles.actions}>
+              <PremiumButton
+                title="Abbrechen"
+                variant="ghost"
+                onPress={onCancel}
+                disabled={loading}
+                fullWidth
+              />
+              <PremiumButton
+                title={submitLabel}
+                onPress={handleSubmit}
+                loading={loading}
+                fullWidth
+              />
+            </View>
+          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -112,30 +150,97 @@ const styles = StyleSheet.create({
     padding: careSpacing.lg,
   },
   card: {
-    borderRadius: 12,
-    padding: careSpacing.lg,
+    borderRadius: 24,
     maxWidth: 520,
+    maxHeight: '92%',
     alignSelf: 'center',
     width: '100%',
     backgroundColor: employeePortalExecutionSurface.background,
     borderWidth: 1,
-    borderColor: employeePortalExecutionSurface.border,
+    borderColor: employeePortalExecutionSurface.borderStrong,
+    overflow: 'hidden',
+  },
+  content: { padding: careSpacing.lg, gap: careSpacing.md },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: careSpacing.sm },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#056CE8',
   },
   title: {
     ...typography.h3,
-    marginBottom: careSpacing.md,
+    color: employeePortalExecutionText.primary,
+    flex: 1,
+  },
+  metrics: {
+    flexDirection: 'row',
+    gap: careSpacing.sm,
+  },
+  metricCell: {
+    flex: 1,
+    padding: careSpacing.sm,
+    borderRadius: 14,
+    backgroundColor: employeePortalExecutionSurface.subtleBackground,
+    borderWidth: 1,
+    borderColor: employeePortalExecutionSurface.border,
+  },
+  metricLabel: {
+    ...typography.caption,
+    color: employeePortalExecutionText.secondary,
+    fontWeight: '800',
+  },
+  metricValue: {
+    ...typography.bodyStrong,
+    color: employeePortalExecutionText.primary,
+    marginTop: 2,
+  },
+  deviationSummary: {
+    padding: careSpacing.md,
+    borderRadius: 14,
+    backgroundColor: '#EAF4FF',
+    borderWidth: 1,
+    borderColor: '#84BEFF',
+  },
+  deviationValue: {
+    ...typography.bodyStrong,
+    color: '#061B35',
+  },
+  deviationDetail: {
+    ...typography.caption,
+    color: '#365672',
+    marginTop: 2,
+  },
+  hint: {
+    ...typography.body,
+    color: employeePortalExecutionText.primary,
+    lineHeight: 24,
+  },
+  inputLabel: {
+    ...typography.caption,
+    color: employeePortalExecutionText.primary,
+    fontWeight: '800',
   },
   input: {
+    ...typography.body,
+    color: employeePortalExecutionText.primary,
     borderWidth: 1,
-    borderRadius: 8,
-    minHeight: 96,
-    padding: careSpacing.sm,
+    borderColor: employeePortalExecutionSurface.borderStrong,
+    borderRadius: 14,
+    minHeight: 128,
+    padding: careSpacing.md,
     textAlignVertical: 'top',
     backgroundColor: employeePortalExecutionSurface.inputBackground,
+  },
+  error: {
+    ...typography.caption,
+    color: '#B4233A',
+    fontWeight: '700',
   },
   actions: {
     flexDirection: 'column',
     gap: careSpacing.sm,
-    marginTop: careSpacing.md,
   },
 });

@@ -27,8 +27,8 @@ describe('employee visit focus R10.1', () => {
   it('uses a stable vector employee icon in progress and speech bubble', () => {
     const header = read('src/components/portal/EmployeePortalVisitStickyHeader.tsx');
     const progress = read('src/components/portal/EmployeePortalVisitProgressSteps.tsx');
-    expect(header).toContain('<Ionicons name="person"');
-    expect(progress).toContain('<Ionicons name="person"');
+    expect(header).toContain('source={CARESUITE_VISIT_GUIDE_MASCOT}');
+    expect(progress).toContain('source={CARESUITE_VISIT_GUIDE_MASCOT}');
     expect(header).not.toContain('>👤<');
     expect(progress).not.toContain('>👤<');
   });
