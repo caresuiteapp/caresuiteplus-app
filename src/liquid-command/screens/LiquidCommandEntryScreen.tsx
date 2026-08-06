@@ -1,3 +1,4 @@
+import { Redirect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { AccessHubScreen } from './AccessScreens';
 import { CommandCenterScreen } from './CommandCenterScreen';
@@ -22,7 +23,9 @@ export function LiquidCommandEntryScreen() {
   if (!isAuthenticated) return <AccessHubScreen />;
 
   const roleKey = portalSession?.roleKey ?? profile?.roleKey ?? null;
-  if (roleKey === 'employee_portal') return <PortalHomeScreen portal="employee" />;
+  if (roleKey === 'employee_portal') {
+    return <Redirect href="/portal/employee" />;
+  }
   if (roleKey === 'client_portal') return <PortalHomeScreen portal="client" />;
   if (roleKey === 'family_portal') return <PortalHomeScreen portal="family" />;
 

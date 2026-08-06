@@ -1,5 +1,5 @@
-import { PortalHomeScreen } from '@/liquid-command/screens/PortalHomeScreen';
+import { Redirect } from 'expo-router';
 
 export default function EmployeePortalRoute() {
-  return <PortalHomeScreen portal="employee" />;
+  return <Redirect href="/portal/employee" />;
 }
