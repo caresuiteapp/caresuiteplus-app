@@ -32,6 +32,8 @@ type Props = {
   disabled?: boolean;
   /** sessionStorage scope for landscape dismiss — typically visitId. */
   dismissScope?: string;
+  /** Use the entire viewport, including desktop and large tablets. */
+  forceFullscreen?: boolean;
 };
 
 function PlainSignatureHeader({
@@ -101,10 +103,11 @@ export function CareSignatureModal({
   onClose,
   disabled,
   dismissScope = 'signature',
+  forceFullscreen = false,
 }: Props) {
   const { isPhone, isTablet } = useDeviceClass();
   const orientation = useOrientation();
-  const fullscreen = isPhone || isTablet;
+  const fullscreen = forceFullscreen || isPhone || isTablet;
   const portraitMobile = fullscreen && !orientation.isLandscape;
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();

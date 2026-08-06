@@ -83,20 +83,8 @@ function buildDocumentationText(row: {
   referral_required?: boolean | null;
   emergency_or_problem?: boolean | null;
 }): string | null {
-  const parts: string[] = [];
   const short = row.short_description?.trim();
-  if (short) parts.push(short);
-  const special = row.special_notes?.trim();
-  if (special) parts.push(`Besonderheiten: ${special}`);
-  const deviations = row.deviations?.trim();
-  if (deviations) {
-    parts.push(`Abweichungen: ${deviations}`);
-    const justification = row.deviation_justification?.trim();
-    if (justification) parts.push(`Begründung: ${justification}`);
-  }
-  if (row.referral_required) parts.push('Weiterleitung erforderlich.');
-  if (row.emergency_or_problem) parts.push('Notfall/Problem gemeldet.');
-  return parts.length > 0 ? parts.join('\n\n') : null;
+  return short || null;
 }
 
 type WorkflowTaskContext = {

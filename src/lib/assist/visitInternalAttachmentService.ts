@@ -35,6 +35,10 @@ export function inferMimeTypeFromFileName(fileName: string): string {
       return 'text/plain';
     case 'webm':
       return 'audio/webm';
+    case 'mp4':
+      return 'video/mp4';
+    case 'mov':
+      return 'video/quicktime';
     case 'mp3':
       return 'audio/mpeg';
     default:
@@ -92,6 +96,7 @@ export async function resolveVisitInternalAttachmentUrl(
 
 export function visitInternalAttachmentIcon(mimeType: string): string {
   if (isImageMimeType(mimeType)) return '🖼️';
+  if (mimeType.startsWith('video/')) return '🎬';
   if (isPdfMimeType(mimeType)) return '📄';
   return '📎';
 }

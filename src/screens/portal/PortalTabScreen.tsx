@@ -77,6 +77,14 @@ export function PortalTabScreen({
     return { paddingBottom: bareBottomPadding };
   }, [bareBottomPadding, messengerFocusActive, showPortalBottomTabs]);
 
+  if (isEmployeePortal && routeOwnsBottomBar && !messengerFocusActive) {
+    return (
+      <View style={styles.employeeVisitFocus} testID="employee-visit-focus-screen">
+        {children}
+      </View>
+    );
+  }
+
   if (isEmployeePortal && !messengerFocusActive) {
     const page = (
       <EmployeePortalPageFrame
@@ -218,6 +226,13 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     minHeight: 0,
+  },
+  employeeVisitFocus: {
+    flex: 1,
+    width: '100%',
+    minWidth: 0,
+    minHeight: 0,
+    backgroundColor: 'transparent',
   },
   portalPage: {
     flex: 1,

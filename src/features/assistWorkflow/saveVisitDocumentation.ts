@@ -34,26 +34,17 @@ export type SaveVisitDocumentationResult = {
 };
 
 function buildDocumentationText(doc: EmployeePortalDocumentationInput): string {
-  const parts: string[] = [doc.shortDescription.trim()];
-  if (doc.specialNotes?.trim()) parts.push(`Besonderheiten: ${doc.specialNotes.trim()}`);
-  if (doc.deviations?.trim()) {
-    parts.push(`Abweichungen: ${doc.deviations.trim()}`);
-    if (doc.deviationJustification?.trim()) {
-      parts.push(`Begründung: ${doc.deviationJustification.trim()}`);
-    }
-  }
-  if (doc.referralRequired) parts.push('Weiterleitung erforderlich.');
-  if (doc.emergencyOrProblem) parts.push('Notfall/Problem gemeldet.');
-  return parts.join('\n\n');
+  // Public/client-visible documentation is deliberately limited to the
+  // explicit performance description. Internal messages, deviations and
+  // media remain structured administrative data and never enter the proof.
+  return doc.shortDescription.trim();
 }
 
 function normalizeDocumentationInput(
   documentation: EmployeePortalDocumentationInput,
 ): EmployeePortalDocumentationInput {
   const shortDescription =
-    documentation.shortDescription.trim() ||
-    documentation.specialNotes?.trim() ||
-    '';
+    documentation.shortDescription.trim();
   return {
     ...documentation,
     shortDescription,
@@ -135,7 +126,7 @@ export async function saveVisitDocumentation(
           assignmentId: ctx.assignmentId,
           operation: 'saveVisitDocumentation',
         },
-        'Kurzbeschreibung ist erforderlich.',
+        'Die Leistungsdokumentation ist erforderlich.',
       ),
     );
   }

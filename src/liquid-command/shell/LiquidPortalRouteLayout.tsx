@@ -102,7 +102,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   return (
     <LiquidBackdrop>
       <View style={styles.shell}>
-        {desktopChrome ? (
+        {desktopChrome && !visitExecutionFocus ? (
           <View style={[styles.rail, kind === 'client' && styles.clientRail]}>
             {kind === 'client' ? <LiquidLogo mini /> : <LiquidLogo compact />}
             <ScrollView contentContainerStyle={styles.railItems} showsVerticalScrollIndicator={false}>
@@ -146,7 +146,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
           </View>
         ) : null}
         <View style={styles.main}>
-          <View
+          {!visitExecutionFocus ? <View
             style={[
               styles.topbar,
               !desktopChrome && styles.topbarCompact,
@@ -199,16 +199,18 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 </>
               )}
             </View>
-          </View>
+          </View> : null}
           <LiquidSurface
-            solid={desktopChrome}
+            solid={desktopChrome && !visitExecutionFocus}
             style={[
               styles.contentFrame,
               !desktopChrome && styles.contentFrameCompact,
+              visitExecutionFocus && styles.contentFrameFocus,
             ]}
             contentStyle={[
               styles.content,
               !desktopChrome && styles.contentCompact,
+              visitExecutionFocus && styles.contentFocus,
             ]}
           >
             <PortalStack />
@@ -562,6 +564,11 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     backgroundColor: 'rgba(7,28,56,0.96)',
   },
+  contentFrameFocus: {
+    margin: 0,
+    borderWidth: 0,
+    borderRadius: 0,
+  },
   content: {
     flex: 1,
     minWidth: 0,
@@ -571,6 +578,9 @@ const styles = StyleSheet.create({
   },
   contentCompact: {
     backgroundColor: 'rgba(7,28,56,0.96)',
+  },
+  contentFocus: {
+    backgroundColor: 'rgba(7,28,56,0.98)',
   },
   bottomNav: {
     position: 'absolute',

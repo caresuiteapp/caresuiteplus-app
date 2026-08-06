@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Platform, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
+import { useEffect, useMemo, useRef } from 'react';
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PremiumBadge } from '@/components/ui';
 import {
@@ -22,6 +22,9 @@ type EmployeePortalVisitStickyHeaderProps = {
   requiresSignature?: boolean;
   signatureCaptured?: boolean;
   showProgress?: boolean;
+  onExit?: () => void;
+  guideMessage?: string;
+  guideTone?: 'info' | 'warning' | 'error' | 'success';
 };
 
 function formatTimeRange(startIso: string, endIso: string): string {
@@ -58,11 +61,36 @@ export function EmployeePortalVisitStickyHeader({
   requiresSignature = true,
   signatureCaptured = false,
   showProgress = true,
+  onExit,
+  guideMessage,
+  guideTone = 'info',
 }: EmployeePortalVisitStickyHeaderProps) {
   const text = employeePortalExecutionText;
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const compact = width < 520;
+  const guidePulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(guidePulse, {
+          toValue: 1,
+          duration: 1200,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(guidePulse, {
+          toValue: 0,
+          duration: 1200,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [guidePulse]);
 
   const styles = useMemo(
     () =>
@@ -90,6 +118,17 @@ export function EmployeePortalVisitStickyHeader({
         },
         topRowCompact: { flexDirection: 'column', alignItems: 'stretch' },
         clientName: { ...typography.h3, color: text.primary, flex: 1 },
+        exitButton: {
+          minHeight: 42,
+          paddingHorizontal: spacing.md,
+          borderRadius: 999,
+          borderWidth: 1,
+          borderColor: employeePortalExecutionSurface.border,
+          backgroundColor: employeePortalExecutionSurface.background,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        exitLabel: { ...typography.bodyStrong, color: text.primary },
         timeRange: { ...typography.caption, color: text.secondary },
         statusRow: {
           flexDirection: 'row',
@@ -98,6 +137,39 @@ export function EmployeePortalVisitStickyHeader({
           flexWrap: 'wrap',
         },
         liveTimer: { ...typography.bodyStrong, color: text.secondary, fontVariant: ['tabular-nums'] },
+        guideRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+          marginTop: spacing.xs,
+        },
+        guideAvatar: {
+          width: compact ? 42 : 48,
+          height: compact ? 42 : 48,
+          borderRadius: compact ? 21 : 24,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#056CE8',
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        },
+        guideAvatarText: { fontSize: compact ? 20 : 24 },
+        guideBubble: {
+          flex: 1,
+          minWidth: 0,
+          minHeight: 44,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+          borderWidth: 1,
+          borderRadius: 14,
+          justifyContent: 'center',
+          backgroundColor: '#EFF7FF',
+          borderColor: '#8BC2FF',
+        },
+        guideBubbleWarning: { backgroundColor: '#FFF8E8', borderColor: '#E4AD42' },
+        guideBubbleError: { backgroundColor: '#FFF0F1', borderColor: '#E15B64' },
+        guideBubbleSuccess: { backgroundColor: '#EDFFF5', borderColor: '#42AF78' },
+        guideText: { ...typography.bodyStrong, color: '#10233E' },
       }),
     [compact, insets.top, text],
   );
@@ -128,10 +200,22 @@ export function EmployeePortalVisitStickyHeader({
   return (
     <View style={styles.root}>
       <View style={[styles.topRow, compact ? styles.topRowCompact : null]}>
-        <Text style={styles.clientName} numberOfLines={compact ? 2 : 1}>
-          {clientName}
-        </Text>
-        <Text style={styles.timeRange}>{formatTimeRange(plannedStartAt, plannedEndAt)}</Text>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.clientName} numberOfLines={compact ? 2 : 1}>
+            {clientName}
+          </Text>
+          <Text style={styles.timeRange}>{formatTimeRange(plannedStartAt, plannedEndAt)}</Text>
+        </View>
+        {onExit ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Einsatz-Arbeitsfläche verlassen"
+            onPress={onExit}
+            style={styles.exitButton}
+          >
+            <Text style={styles.exitLabel}>← Übersicht</Text>
+          </Pressable>
+        ) : null}
       </View>
       <View style={styles.statusRow}>
         <PremiumBadge
@@ -147,6 +231,34 @@ export function EmployeePortalVisitStickyHeader({
           requiresSignature={requiresSignature}
           signatureCaptured={signatureCaptured}
         />
+      ) : null}
+      {guideMessage ? (
+        <View style={styles.guideRow} accessibilityLiveRegion={guideTone === 'error' ? 'assertive' : 'polite'}>
+          <Animated.View
+            accessibilityLabel="Animierter Einsatzbegleiter"
+            style={[
+              styles.guideAvatar,
+              {
+                transform: [
+                  { translateY: guidePulse.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) },
+                  { scale: guidePulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] }) },
+                ],
+              },
+            ]}
+          >
+            <Text style={styles.guideAvatarText}>👤</Text>
+          </Animated.View>
+          <View
+            style={[
+              styles.guideBubble,
+              guideTone === 'warning' ? styles.guideBubbleWarning : null,
+              guideTone === 'error' ? styles.guideBubbleError : null,
+              guideTone === 'success' ? styles.guideBubbleSuccess : null,
+            ]}
+          >
+            <Text style={styles.guideText}>{guideMessage}</Text>
+          </View>
+        </View>
       ) : null}
     </View>
   );

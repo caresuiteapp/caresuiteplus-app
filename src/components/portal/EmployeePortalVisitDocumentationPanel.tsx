@@ -17,7 +17,6 @@ const QUICK_BLOCKS = [
   'Haushaltliche Unterstützung wurde durchgeführt.',
   'Begleitung wurde wie geplant erbracht.',
   'Keine besonderen Vorkommnisse.',
-  'Besonderheiten siehe Notiz.',
 ];
 
 type EmployeePortalVisitDocumentationPanelProps = {
@@ -93,6 +92,16 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
         toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
         quickBlocks: { gap: spacing.xs, marginTop: spacing.xs },
         attachments: { ...typography.caption, color: text.muted },
+        privacyBox: {
+          gap: 3,
+          padding: spacing.sm,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: 'rgba(14, 165, 233, 0.32)',
+          backgroundColor: 'rgba(14, 165, 233, 0.08)',
+        },
+        privacyTitle: { ...typography.bodyStrong, color: text.primary },
+        privacyText: { ...typography.caption, color: text.secondary },
         error: { ...typography.caption, color: '#EF4444' },
       }),
     [text],
@@ -113,8 +122,8 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
   const handleSubmit = useCallback(async () => {
     const effectiveShort = resolveShortDescription();
     const effectiveNotes = specialNotes.trim();
-    if (!effectiveShort && !effectiveNotes) {
-      setLocalError('Kurzbeschreibung ist erforderlich.');
+    if (!effectiveShort) {
+      setLocalError('Die Leistungsdokumentation ist erforderlich.');
       return;
     }
     if (deviations.trim() && !deviationJustification.trim()) {
@@ -123,7 +132,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
     }
     setLocalError(null);
     const result = await onSubmit({
-      shortDescription: effectiveShort || effectiveNotes,
+      shortDescription: effectiveShort,
       specialNotes: effectiveNotes || undefined,
       deviations: deviations.trim() || undefined,
       deviationJustification: deviationJustification.trim() || undefined,
@@ -154,8 +163,14 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
     <View style={styles.form} testID="employee-visit-documentation-form">
       <Text style={styles.status}>{statusLabel}</Text>
       <View style={styles.fields}>
+        <View style={styles.privacyBox}>
+          <Text style={styles.privacyTitle}>Klientensichtbare Dokumentation</Text>
+          <Text style={styles.privacyText}>
+            Nur der Inhalt dieses Feldes erscheint im Leistungsnachweis und im Klient:innenportal.
+          </Text>
+        </View>
         <PremiumInput
-          label="Dokumentation *"
+          label="Leistungsdokumentation *"
           testID="portal-doc-short-description"
           accessibilityLabel="Kurzbeschreibung Eingabe"
           value={shortDescription}
@@ -163,7 +178,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
             shortDescriptionRef.current = value;
             setShortDescription(value);
           }}
-          placeholder="Was wurde geleistet?"
+          placeholder="Sachlich beschreiben, welche vereinbarten Leistungen durchgeführt wurden …"
           multiline
           editable={!disabled}
         />
@@ -201,12 +216,21 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
           </View>
         ) : null}
         {photoReferences.length > 0 ? (
-          <Text style={styles.attachments}>{photoReferences.length} Anhang/Anhänge werden mitgespeichert</Text>
+          <Text style={styles.attachments}>
+            {photoReferences.length} interne Datei(en) am Einsatz gespeichert – nicht im Leistungsnachweis.
+          </Text>
         ) : null}
+        <View style={styles.privacyBox}>
+          <Text style={styles.privacyTitle}>Nur intern</Text>
+          <Text style={styles.privacyText}>
+            Die folgenden Angaben sind ausschließlich für Verwaltung und Qualitätssicherung bestimmt.
+          </Text>
+        </View>
         <PremiumInput
-          label="Besonderheiten"
+          label="Interne Nachricht an die Verwaltung"
           value={specialNotes}
           onChangeText={setSpecialNotes}
+          placeholder="Interne Hinweise, Rückfragen oder Beobachtungen – niemals klientensichtbar"
           multiline
           editable={!disabled}
         />
@@ -219,7 +243,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
         />
         {deviations.trim() ? (
           <PremiumInput
-            label="Begründung Abweichung *"
+            label="Interne Begründung der Abweichung *"
             value={deviationJustification}
             onChangeText={setDeviationJustification}
             multiline
@@ -228,7 +252,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
         ) : null}
         {!disabled ? (
           <PremiumButton
-            title="Dokumentation speichern"
+            title="Dokumentation und interne Angaben sicher speichern"
             testID="portal-doc-save-button"
             fullWidth
             loading={loading}

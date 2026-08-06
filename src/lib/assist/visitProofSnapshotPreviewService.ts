@@ -116,20 +116,8 @@ function buildStructuredDocumentationText(row: {
   referral_required?: boolean | null;
   emergency_or_problem?: boolean | null;
 }): string | null {
-  const parts: string[] = [];
   const shortDescription = row.short_description?.trim();
-  if (shortDescription) parts.push(shortDescription);
-  const specialNotes = row.special_notes?.trim();
-  if (specialNotes) parts.push(`Besonderheiten: ${specialNotes}`);
-  const deviations = row.deviations?.trim();
-  if (deviations) {
-    parts.push(`Abweichungen: ${deviations}`);
-    const justification = row.deviation_justification?.trim();
-    if (justification) parts.push(`Begründung: ${justification}`);
-  }
-  if (row.referral_required) parts.push('Weiterleitung erforderlich.');
-  if (row.emergency_or_problem) parts.push('Notfall/Problem gemeldet.');
-  return parts.length > 0 ? parts.join('\n\n') : null;
+  return shortDescription || null;
 }
 
 function formatDateTime(iso: string | null | undefined): string {

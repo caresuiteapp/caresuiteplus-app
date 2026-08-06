@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef } from 'react';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import {
   assignmentStatusToWorkflowStep,
   isWorkflowStepComplete,
@@ -87,6 +87,28 @@ export function EmployeePortalVisitProgressSteps({
 }: EmployeePortalVisitProgressStepsProps) {
   const text = employeePortalExecutionText;
   const current = assignmentStatusToWorkflowStep(status);
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 850,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 850,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulse]);
 
   const visibleSteps = PROGRESS_STEPS.filter(
     (step) => step.key !== 'signature' || requiresSignature,
@@ -102,6 +124,20 @@ export function EmployeePortalVisitProgressSteps({
           borderTopWidth: 1, borderTopColor: employeePortalExecutionSurface.border,
         },
         step: { alignItems: 'center', gap: 5, flex: 1, minWidth: 0 },
+        employee: {
+          position: 'absolute',
+          top: -20,
+          zIndex: 3,
+          width: 24,
+          height: 24,
+          borderRadius: 12,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#056CE8',
+          borderWidth: 2,
+          borderColor: '#FFFFFF',
+        },
+        employeeIcon: { fontSize: 12 },
         dot: {
           width: 28,
           height: 28,
@@ -132,9 +168,34 @@ export function EmployeePortalVisitProgressSteps({
         return (
           <View key={step.key} style={styles.step}>
             {index > 0 ? <View style={[styles.connector, done ? styles.connectorDone : null]} /> : null}
-            <View style={[styles.dot, done ? styles.dotDone : null, active ? styles.dotActive : null]}>
+            {active ? (
+              <Animated.View
+                accessibilityLabel={`Aktueller Schritt: ${step.label}`}
+                style={[
+                  styles.employee,
+                  {
+                    transform: [
+                      { translateY: pulse.interpolate({ inputRange: [0, 1], outputRange: [0, -5] }) },
+                      { scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) },
+                    ],
+                  },
+                ]}
+              >
+                <Text style={styles.employeeIcon}>👤</Text>
+              </Animated.View>
+            ) : null}
+            <Animated.View
+              style={[
+                styles.dot,
+                done ? styles.dotDone : null,
+                active ? styles.dotActive : null,
+                active
+                  ? { transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }] }
+                  : null,
+              ]}
+            >
               {done ? <Text style={styles.check}>✓</Text> : null}
-            </View>
+            </Animated.View>
             <Text
               style={[
                 styles.label,

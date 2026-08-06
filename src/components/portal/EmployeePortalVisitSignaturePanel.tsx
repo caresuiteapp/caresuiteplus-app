@@ -108,6 +108,7 @@ export function EmployeePortalVisitSignaturePanel({
       <CareSignatureModal
         visible
         label="Klient:innen-Unterschrift"
+        forceFullscreen
         dismissScope={visitId ?? 'signature'}
         onClose={closeModal}
         onConfirm={(dataUrl) => {
@@ -144,6 +145,7 @@ export function EmployeePortalVisitSignaturePanel({
           <CareSignatureModal
             visible
             label="Klient:innen-Unterschrift"
+            forceFullscreen
             dismissScope={visitId ?? 'signature'}
             onClose={closeModal}
             onConfirm={(dataUrl) => {
@@ -181,6 +183,7 @@ export function EmployeePortalVisitSignaturePanel({
         <CareSignatureModal
           visible
           label="Klient:innen-Unterschrift"
+          forceFullscreen
           dismissScope={visitId ?? 'signature'}
           onClose={closeModal}
           onConfirm={(dataUrl) => {

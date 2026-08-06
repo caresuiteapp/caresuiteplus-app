@@ -105,16 +105,20 @@ export function EmployeePortalVisitLiveDashboard({
             />
           </View>
         ) : null}
+        {onOpenAttachments ? (
+          <View style={styles.cardCell}>
+            <EmployeePortalVisitCompactCard
+              icon="▣"
+              title="Foto & Video"
+              status={attachmentCount > 0 ? `${attachmentCount} intern gespeichert` : 'Jetzt hinzufügen'}
+              subtitle="Gut sichtbar im Einsatz – nicht im Leistungsnachweis"
+              accentColor="#8B5CF6"
+              onPress={onOpenAttachments}
+              testID="portal-open-attachments"
+            />
+          </View>
+        ) : null}
       </View>
-      {onOpenAttachments && attachmentCount > 0 ? (
-        <EmployeePortalVisitCompactCard
-          icon="◉"
-          title="Fotos / Anhänge"
-          status={attachmentCount > 0 ? `${attachmentCount} gespeichert` : 'Optional'}
-          onPress={onOpenAttachments}
-          testID="portal-open-attachments"
-        />
-      ) : null}
     </View>
   );
 }

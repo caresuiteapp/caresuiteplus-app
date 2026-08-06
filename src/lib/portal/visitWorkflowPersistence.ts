@@ -6,6 +6,8 @@ export type VisitWorkflowUiState = {
   scrollY?: number;
   documentationSubmitted?: boolean;
   signatureCaptured?: boolean;
+  /** Uploaded internal media waiting to be attached to the documentation row. */
+  attachmentReferences?: string[];
 };
 
 export type VisitWorkflowSnapshot = VisitWorkflowUiState & {

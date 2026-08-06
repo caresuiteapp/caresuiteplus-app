@@ -199,10 +199,10 @@ export function EmployeePortalVisitExecutionScreen() {
     () =>
       resolveDocumentationAiSourceText(
         documentationDraftText,
-        documentationSpecialNotes,
+        '',
         visit ? buildDocumentationAiSourceFromTasks(visit.tasks) : '',
       ),
-    [documentationDraftText, documentationSpecialNotes, visit],
+    [documentationDraftText, visit],
   );
 
   const appendDocumentationNote = useCallback((text: string) => {
@@ -222,6 +222,9 @@ export function EmployeePortalVisitExecutionScreen() {
 
     if (snapshotMatchesRoute && snapshot?.awaitingSignature) setAwaitingSignature(true);
     if (snapshotMatchesRoute && snapshot?.showNoShowForm) setShowNoShowForm(true);
+    if (snapshotMatchesRoute && snapshot?.attachmentReferences?.length) {
+      setPhotoReferences(snapshot.attachmentReferences);
+    }
 
     const step = urlStep ?? (snapshotMatchesRoute ? snapshot?.step : null);
     if (step === 'signature') {
@@ -393,6 +396,7 @@ export function EmployeePortalVisitExecutionScreen() {
       showNoShowForm,
       documentationSubmitted,
       signatureCaptured,
+      attachmentReferences: photoReferences,
     });
   }, [
     id,
@@ -402,6 +406,7 @@ export function EmployeePortalVisitExecutionScreen() {
     showNoShowForm,
     documentationSubmitted,
     signatureCaptured,
+    photoReferences,
     workflowPersistence,
   ]);
 
@@ -672,6 +677,73 @@ export function EmployeePortalVisitExecutionScreen() {
   const syncWarning = !queryError
     ? liveContextError ?? refetchWarning
     : null;
+  const completedTaskCount = visit.tasks.filter((task) => task.status === 'done').length;
+  const requiredTaskCount = visit.tasks.filter((task) => task.required).length;
+  const completedRequiredTaskCount = visit.tasks.filter(
+    (task) => task.required && task.status === 'done',
+  ).length;
+  const missingRequiredTasks = Math.max(0, requiredTaskCount - completedRequiredTaskCount);
+  const guide = (() => {
+    const blockingError = localError ?? taskSaveError;
+    if (blockingError) {
+      return { tone: 'error' as const, message: `Da ist etwas schiefgelaufen: ${blockingError}` };
+    }
+    if (syncWarning) {
+      return {
+        tone: 'warning' as const,
+        message: formatExecutionSyncWarning(syncWarning),
+      };
+    }
+    if (localWarning) return { tone: 'warning' as const, message: localWarning };
+    if (readOnlyExecution) {
+      return {
+        tone: 'warning' as const,
+        message: 'Der Einsatz ist gerade nur lesbar. Sobald die Verbindung wieder da ist, kannst du sicher weiterarbeiten.',
+      };
+    }
+    if (phase === 'completed') {
+      return { tone: 'success' as const, message: 'Geschafft! Der Einsatz ist vollständig abgeschlossen.' };
+    }
+    if (showSignature && !signatureCaptured && !signatureDeferred) {
+      return {
+        tone: 'warning' as const,
+        message: 'Fast fertig: Bitte jetzt die Klient:innen-Unterschrift erfassen.',
+      };
+    }
+    if (isServiceEnded && !documentationSubmitted) {
+      return {
+        tone: 'warning' as const,
+        message: 'Die Leistung ist beendet. Bitte jetzt die klientensichtbare Dokumentation ausfüllen.',
+      };
+    }
+    if (phase === 'live' && missingRequiredTasks > 0) {
+      return {
+        tone: 'info' as const,
+        message: `${missingRequiredTasks} Pflichtaufgabe${missingRequiredTasks === 1 ? '' : 'n'} noch offen. Ich führe dich danach zur Dokumentation.`,
+      };
+    }
+    if (phase === 'live') {
+      return {
+        tone: 'success' as const,
+        message: `${completedTaskCount} von ${visit.tasks.length} Aufgaben erledigt. Foto oder Video kannst du jederzeit intern hinzufügen.`,
+      };
+    }
+    if (phase === 'post_service') {
+      return {
+        tone: 'info' as const,
+        message: documentationSubmitted
+          ? 'Die Dokumentation ist gespeichert. Prüfe jetzt den nächsten Abschluss-Schritt.'
+          : 'Als Nächstes bitte die Leistungsdokumentation speichern.',
+      };
+    }
+    if (phase === 'en_route') {
+      return { tone: 'info' as const, message: 'Die Anfahrt läuft. Tippe am Ziel auf „Angekommen“.' };
+    }
+    if (phase === 'arrived') {
+      return { tone: 'info' as const, message: 'Du bist angekommen. Starte den Einsatz erst beim tatsächlichen Leistungsbeginn.' };
+    }
+    return { tone: 'info' as const, message: 'Prüfe Einsatzzeit, Adresse und Hinweise. Danach kannst du die Navigation starten.' };
+  })();
   const bottomPadding = bottomBarVisible ? spacing.xxl + 96 + insets.bottom : spacing.xxl + 32 + insets.bottom;
 
   const renderPhaseContent = () => {
@@ -879,6 +951,9 @@ export function EmployeePortalVisitExecutionScreen() {
           requiresSignature={visit.requiresSignature}
           signatureCaptured={signatureCaptured || signatureDeferred}
           showProgress={showCompactProgress(phase)}
+          onExit={() => router.back()}
+          guideMessage={guide.message}
+          guideTone={guide.tone}
         />
 
         <WorkflowToast
@@ -1078,8 +1153,8 @@ export function EmployeePortalVisitExecutionScreen() {
             },
             {
               key: 'photo',
-              label: 'Foto',
-              icon: 'camera-outline',
+              label: 'Foto/Video',
+              icon: 'images-outline',
               onPress: () => setPhotoModalOpen(true),
             },
             {
@@ -1096,9 +1171,9 @@ export function EmployeePortalVisitExecutionScreen() {
       {bottomBarVisible ? (
         <EmployeePortalVisitFabMenu
           actions={[
-            { key: 'note', label: 'Kurze Notiz', onPress: () => setDocumentationOpen(true) },
-            { key: 'photo', label: 'Foto aufnehmen', onPress: () => setPhotoModalOpen(true) },
-            { key: 'voice', label: 'Sprachnotiz', onPress: () => setVoiceModalOpen(true) },
+            { key: 'note', label: 'Interne Nachricht', onPress: () => setDocumentationOpen(true) },
+            { key: 'photo', label: 'Foto oder Video hinzufügen', onPress: () => setPhotoModalOpen(true) },
+            { key: 'voice', label: 'Interne Sprachnotiz', onPress: () => setVoiceModalOpen(true) },
             { key: 'doc', label: 'Dokument hinzufügen', onPress: () => setPhotoModalOpen(true) },
             {
               key: 'ai',
@@ -1124,7 +1199,7 @@ export function EmployeePortalVisitExecutionScreen() {
         onClose={() => setPhotoModalOpen(false)}
         onUploaded={(paths) => {
           setPhotoReferences(paths);
-          setLocalSuccess('Foto gespeichert — wird mit der Dokumentation übernommen.');
+          setLocalSuccess('Foto/Video intern am Einsatz gespeichert.');
         }}
       />
 

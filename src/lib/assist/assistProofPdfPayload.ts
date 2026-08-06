@@ -53,6 +53,16 @@ export const PORTAL_BLOCKED_SNAPSHOT_KEYS = new Set([
   'fahrtenbuch',
   'tripLog',
   'notesForEmployee',
+  'specialNotes',
+  'special_notes',
+  'deviations',
+  'deviationJustification',
+  'deviation_justification',
+  'employeeInternalNotes',
+  'photoReferences',
+  'photo_references',
+  'attachmentReferences',
+  'internalAttachments',
 ]);
 
 function formatDateTime(iso: string | null | undefined): string {
