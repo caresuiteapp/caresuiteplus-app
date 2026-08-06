@@ -47,7 +47,6 @@ export function resolveVisitExecutionUiState(
     effectiveStatus,
     consistencyStatus,
     allowedActions,
-    awaitingSignature,
     hasServiceEnded = false,
   } = input;
 
@@ -78,6 +77,7 @@ export function resolveVisitExecutionUiState(
   const showSignature =
     visit.requiresSignature &&
     !statusBlocksDoc &&
+    postServiceReady &&
     documentationSubmitted &&
     !signatureCaptured &&
     !signatureDeferred;

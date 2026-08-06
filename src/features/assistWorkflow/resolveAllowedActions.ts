@@ -101,6 +101,9 @@ export function resolveAllowedActions(input: {
   const docSubmitted = detail.documentationStatus === 'submitted';
   const signatureCaptured = detail.signatureStatus === 'captured';
   const signatureDeferred = detail.signatureStatus === 'deferred_to_client_portal';
+  const serviceEnded =
+    Boolean(detail.actualEndAt) ||
+    ['beendet', 'dokumentation_offen', 'unterschrift_offen', 'abgeschlossen'].includes(status);
 
   if (
     detail.requiresDocumentation &&
@@ -113,6 +116,7 @@ export function resolveAllowedActions(input: {
 
   if (
     detail.requiresSignature &&
+    serviceEnded &&
     (docSubmitted || !detail.requiresDocumentation) &&
     !signatureCaptured &&
     !signatureDeferred

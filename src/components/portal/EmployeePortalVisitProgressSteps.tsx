@@ -18,6 +18,7 @@ type EmployeePortalVisitProgressStepsProps = {
   signatureCaptured?: boolean;
   tasksComplete?: boolean;
   documentationComplete?: boolean;
+  serviceEnded?: boolean;
 };
 
 const PROGRESS_STEPS = [
@@ -63,8 +64,10 @@ function stepActive(
   currentStep: ReturnType<typeof assignmentStatusToWorkflowStep>,
   status: AssignmentStatus,
   requiresSignature: boolean,
+  signatureCaptured: boolean,
   tasksComplete: boolean,
   documentationComplete: boolean,
+  serviceEnded: boolean,
 ): boolean {
   if (stepKey === 'start') {
     return ['consent', 'en_route', 'arrived', 'in_service', 'paused'].includes(currentStep) ||
@@ -83,10 +86,18 @@ function stepActive(
   }
   if (stepKey === 'signature') {
     if (!requiresSignature) return false;
-    return currentStep === 'signature' || status === 'unterschrift_offen';
+    return !signatureCaptured && (
+      (serviceEnded && documentationComplete) ||
+      currentStep === 'signature' ||
+      status === 'unterschrift_offen'
+    );
   }
   if (stepKey === 'finalize') {
-    return currentStep === 'finalize';
+    return (
+      serviceEnded &&
+      documentationComplete &&
+      (!requiresSignature || signatureCaptured)
+    ) || currentStep === 'finalize';
   }
   return false;
 }
@@ -97,6 +108,7 @@ export function EmployeePortalVisitProgressSteps({
   signatureCaptured = false,
   tasksComplete = false,
   documentationComplete = false,
+  serviceEnded = false,
 }: EmployeePortalVisitProgressStepsProps) {
   const text = employeePortalExecutionText;
   const current = assignmentStatusToWorkflowStep(status);
@@ -185,13 +197,17 @@ export function EmployeePortalVisitProgressSteps({
           current,
           status,
           requiresSignature,
+          signatureCaptured,
           tasksComplete,
           documentationComplete,
+          serviceEnded,
         );
+        const guideActive =
+          active || (step.key === 'documentation' && documentationComplete && !serviceEnded);
         return (
           <View key={step.key} style={styles.step}>
             {index > 0 ? <View style={[styles.connector, done ? styles.connectorDone : null]} /> : null}
-            {active ? (
+            {guideActive ? (
               <Animated.View
                 accessibilityLabel={`Aktueller Schritt: ${step.label}`}
                 style={[
@@ -227,7 +243,7 @@ export function EmployeePortalVisitProgressSteps({
               style={[
                 styles.label,
                 done ? styles.labelDone : null,
-                active ? styles.labelActive : null,
+                guideActive ? styles.labelActive : null,
               ]}
               numberOfLines={2}
             >

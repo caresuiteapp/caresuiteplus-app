@@ -62,7 +62,7 @@ describe('resolveVisitExecutionUiState', () => {
     expect(state.showSignature).toBe(false);
   });
 
-  it('shows signature when proof required and documentation submitted on confirmed status', () => {
+  it('keeps signature locked when documentation is submitted but service has not ended', () => {
     const state = resolveVisitExecutionUiState({
       visit: baseVisit({
         status: 'bestaetigt',
@@ -75,7 +75,7 @@ describe('resolveVisitExecutionUiState', () => {
       hasServiceEnded: false,
     });
 
-    expect(state.showSignature).toBe(true);
+    expect(state.showSignature).toBe(false);
   });
 
   it('shows signature when service ended but DB status still confirmed', () => {

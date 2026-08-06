@@ -735,7 +735,7 @@ export function EmployeePortalVisitExecutionScreen() {
     if (phase === 'completed') {
       return { tone: 'success' as const, message: 'Geschafft! Der Einsatz ist vollständig abgeschlossen.' };
     }
-    if (showSignature && !signatureCaptured && !signatureDeferred) {
+    if (isServiceEnded && showSignature && !signatureCaptured && !signatureDeferred) {
       return {
         tone: 'warning' as const,
         message: 'Fast fertig: Bitte jetzt die Klient:innen-Unterschrift erfassen.',
@@ -745,6 +745,15 @@ export function EmployeePortalVisitExecutionScreen() {
       return {
         tone: 'warning' as const,
         message: 'Die Leistung ist beendet. Bitte jetzt die klientensichtbare Dokumentation ausfüllen.',
+      };
+    }
+    if (phase === 'live' && documentationSubmitted) {
+      return {
+        tone: 'info' as const,
+        message:
+          primaryActionResolved === 'end_service'
+            ? 'Die Dokumentation ist gespeichert. Wenn die Leistung jetzt beendet ist, tippe auf „Einsatz beenden“. Erst danach wird die Unterschrift freigeschaltet.'
+            : 'Die Dokumentation ist gespeichert. Die Unterschrift wird erst nach dem Einsatzende freigeschaltet.',
       };
     }
     if (phase === 'live' && missingRequiredTasks > 0) {
@@ -786,6 +795,13 @@ export function EmployeePortalVisitExecutionScreen() {
     allTasksComplete &&
     !documentationSubmitted &&
     showDocumentationForm &&
+    !isLocked,
+  );
+  const guideCanEndService = Boolean(
+    !guideNeedsRefresh &&
+    phase === 'live' &&
+    documentationSubmitted &&
+    primaryActionResolved === 'end_service' &&
     !isLocked,
   );
   const bottomPadding = bottomBarVisible ? spacing.xxl + 96 + insets.bottom : spacing.xxl + 32 + insets.bottom;
@@ -1030,6 +1046,7 @@ export function EmployeePortalVisitExecutionScreen() {
           signatureCaptured={signatureCaptured || signatureDeferred}
           tasksComplete={allTasksComplete}
           documentationComplete={documentationSubmitted}
+          serviceEnded={isServiceEnded}
           showProgress={showCompactProgress(phase)}
           onExit={() => router.back()}
           guideMessage={guide.message}
@@ -1037,16 +1054,20 @@ export function EmployeePortalVisitExecutionScreen() {
           guideActionLabel={
             guideNeedsRefresh
               ? 'Status erneut prüfen'
-              : guideCanOpenDocumentation
-                ? 'Jetzt Doku öffnen'
-                : undefined
+              : guideCanEndService
+                ? 'Einsatz beenden'
+                : guideCanOpenDocumentation
+                  ? 'Jetzt Doku öffnen'
+                  : undefined
           }
           onGuideAction={
             guideNeedsRefresh
               ? () => void handleGuideRefresh()
-              : guideCanOpenDocumentation
-                ? () => setDocumentationOpen(true)
-                : undefined
+              : guideCanEndService
+                ? () => void handlePrimary()
+                : guideCanOpenDocumentation
+                  ? () => setDocumentationOpen(true)
+                  : undefined
           }
         />
 
