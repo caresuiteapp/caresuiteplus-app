@@ -1,9 +1,18 @@
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
 
 type FilterChipProps = {
   label: string;
@@ -21,7 +30,8 @@ export function FilterChip({
   onLightSurface = false,
 }: FilterChipProps) {
   const portal = usePortalPremiumTheme();
-  const lightSurface = portal.active || onLightSurface;
+  const surfaceTone = useSurfaceContrastTone();
+  const lightSurface = portal.active || onLightSurface || surfaceTone === 'light';
   return (
     <Pressable
       onPress={onPress}
@@ -126,9 +136,7 @@ export function FilterChipGroup<T extends string>({
                   const current = Array.isArray(selected) ? selected : [];
                   const has = current.includes(optKey);
                   if (has && current.length <= minSelected) return;
-                  const next = has
-                    ? current.filter((key) => key !== optKey)
-                    : [...current, optKey];
+                  const next = has ? current.filter((key) => key !== optKey) : [...current, optKey];
                   (onChange as ((keys: T[]) => void) | undefined)?.(next);
                   return;
                 }

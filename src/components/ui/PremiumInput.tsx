@@ -1,13 +1,11 @@
 import { useMemo } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import {
-  darkGlassSurfaceText,
-  lightSurfaceText,
-} from '@/design/tokens/auroraGlass';
+import { darkGlassSurfaceText, lightSurfaceText } from '@/design/tokens/auroraGlass';
 import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
 import { radius, spacing, typography } from '@/theme';
 
 type PremiumInputProps = TextInputProps & {
@@ -35,7 +33,8 @@ export function PremiumInput({
 }: PremiumInputProps) {
   const { colors } = useLegacyTheme();
   const portal = usePortalPremiumTheme();
-  const lightSurface = portal.active || onLightSurface;
+  const surfaceTone = useSurfaceContrastTone();
+  const lightSurface = portal.active || onLightSurface || surfaceTone === 'light';
   const text = lightSurface
     ? lightSurfaceText
     : onDarkSurface

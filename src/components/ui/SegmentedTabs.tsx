@@ -1,9 +1,18 @@
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
 import { spacing } from '@/theme';
 
 export type TabOption = {
@@ -41,6 +50,8 @@ export function SegmentedTabs({
   rows,
 }: SegmentedTabsProps) {
   const portal = usePortalPremiumTheme();
+  const surfaceTone = useSurfaceContrastTone();
+  const lightSurface = portal.active || surfaceTone === 'light';
   const renderTab = (tab: TabOption) => {
     const active = tab.key === activeKey;
     return (
@@ -49,23 +60,21 @@ export function SegmentedTabs({
         onPress={() => onSelect(tab.key)}
         style={({ pressed }) => [
           localStyles.tab,
-          portal.active && portalStyles.tab,
+          lightSurface && portalStyles.tab,
           active && localStyles.tabActive,
-          active && portal.active && portalStyles.tabActive,
+          active && lightSurface && portalStyles.tabActive,
           pressed && localStyles.tabPressed,
         ]}
         accessibilityRole="tab"
         accessibilityState={{ selected: active }}
-        {...(Platform.OS === 'web'
-          ? ({ dataSet: { csHealthosComponent: 'tab' } } as object)
-          : {})}
+        {...(Platform.OS === 'web' ? ({ dataSet: { csHealthosComponent: 'tab' } } as object) : {})}
       >
         <Text
           style={[
             localStyles.label,
-            portal.active && portalStyles.label,
+            lightSurface && portalStyles.label,
             active && localStyles.activeLabel,
-            active && portal.active && portalStyles.activeLabel,
+            active && lightSurface && portalStyles.activeLabel,
           ]}
         >
           {tab.label}

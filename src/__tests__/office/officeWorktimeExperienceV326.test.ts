@@ -34,17 +34,19 @@ describe('Office Arbeitszeit V32.7 Design, Struktur und Funktionen', () => {
     expect(layout).toContain('width: 480');
     expect(layout).toContain('width >= 1760');
     expect(layout).toContain('styles.stackedDetail');
-    expect(layout).toContain('systemLiquidGlass.panelStrong');
-    expect(table).toContain("fontSize: 13");
-    expect(table).toContain('backgroundColor: systemLiquidGlass.table');
+    expect(shell).toContain('<SurfaceContrastProvider tone="light">');
+    expect(layout).toContain("primary: '#0B2342'");
+    expect(layout).toContain("panel: '#F4F9FF'");
+    expect(table).toContain('fontSize: 13');
+    expect(table).toContain('backgroundColor: WORKTIME_SURFACE.card');
     expect(table).toContain('TABLE_TEXT.secondary');
-    expect(detail).toContain('backgroundColor: systemLiquidGlass.panelStrong');
+    expect(detail).toContain('backgroundColor: WORKTIME_SURFACE.panel');
     expect(detail).not.toContain('maxHeight: 760');
-    expect(detail).toContain('backgroundColor: systemLiquidGlass.input');
+    expect(detail).toContain('backgroundColor: WORKTIME_SURFACE.input');
     expect(detail).not.toContain('onDarkSurface={false}');
     expect(dataTable).toContain('color: text.primary');
     expect(dataTable).toContain('backgroundColor: active');
-    expect(button).toContain("variant === 'primary' || !onDarkSurface");
+    expect(button).toContain("variant === 'primary' || lightSurface");
   });
 
   it('loads only the valid live employee enum and hides the form on load errors', () => {
@@ -61,6 +63,8 @@ describe('Office Arbeitszeit V32.7 Design, Struktur und Funktionen', () => {
     expect(manual).toContain('Das Ende muss nach dem Beginn liegen.');
     expect(manual).toContain('Eine Begründung für den Nachtrag ist erforderlich.');
     expect(meetings).toContain('Bitte mindestens eine teilnehmende Person auswählen.');
-    expect(meetings.indexOf('Number.isNaN(starts.getTime())')).toBeLessThan(meetings.indexOf('starts.toISOString()'));
+    expect(meetings.indexOf('Number.isNaN(starts.getTime())')).toBeLessThan(
+      meetings.indexOf('starts.toISOString()'),
+    );
   });
 });

@@ -1,7 +1,16 @@
 import { Slot, usePathname, useRouter } from 'expo-router';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import {
   isOfficeTimeTrackingOwnCaptureRoute,
   OFFICE_TIME_TRACKING_OWN_HREF,
@@ -30,7 +39,12 @@ export function OfficeTimeTrackingShell() {
     <View style={styles.root}>
       <View style={styles.header}>
         <View style={styles.headerLead}>
-          <View style={[styles.iconTile, { backgroundColor: `${accent}18`, borderColor: `${accent}45` }]}> 
+          <View
+            style={[
+              styles.iconTile,
+              { backgroundColor: `${accent}18`, borderColor: `${accent}45` },
+            ]}
+          >
             <Text style={styles.icon}>⏱</Text>
           </View>
           <View style={styles.headerText}>
@@ -68,7 +82,19 @@ export function OfficeTimeTrackingShell() {
             accessibilityLabel="Eigene Erfassung öffnen"
           >
             <Text style={[styles.ownLinkIcon, { color: accent }]}>＋</Text>
-            {!compact ? <View><Text style={styles.ownLinkKicker}>PERSÖNLICH</Text><Text style={[styles.ownLinkText, { color: ownCaptureActive ? accent : SHELL_TEXT.primary }]}>Eigene Erfassung</Text></View> : null}
+            {!compact ? (
+              <View>
+                <Text style={styles.ownLinkKicker}>PERSÖNLICH</Text>
+                <Text
+                  style={[
+                    styles.ownLinkText,
+                    { color: ownCaptureActive ? accent : SHELL_TEXT.primary },
+                  ]}
+                >
+                  Eigene Erfassung
+                </Text>
+              </View>
+            ) : null}
           </Pressable>
         </View>
       </View>
@@ -96,10 +122,19 @@ export function OfficeTimeTrackingShell() {
                 accessibilityState={{ selected }}
               >
                 <Text style={styles.tabIcon}>{tab.icon}</Text>
-                <Text style={[styles.tabLabel, { color: selected ? accent : SHELL_TEXT.secondary }, selected && styles.tabLabelSelected]} numberOfLines={1}>
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    { color: selected ? accent : SHELL_TEXT.secondary },
+                    selected && styles.tabLabelSelected,
+                  ]}
+                  numberOfLines={1}
+                >
                   {tab.label}
                 </Text>
-                {selected ? <View style={[styles.activeMarker, { backgroundColor: accent }]} /> : null}
+                {selected ? (
+                  <View style={[styles.activeMarker, { backgroundColor: accent }]} />
+                ) : null}
               </Pressable>
             );
           })}
@@ -114,7 +149,9 @@ export function OfficeTimeTrackingShell() {
             showsVerticalScrollIndicator
             nestedScrollEnabled
           >
-            <Slot />
+            <SurfaceContrastProvider tone="light">
+              <Slot />
+            </SurfaceContrastProvider>
           </ScrollView>
         </View>
       </View>
@@ -293,9 +330,21 @@ const styles = StyleSheet.create({
   },
   tabPressed: { opacity: 0.76, transform: [{ scale: 0.985 }] },
   tabIcon: { fontSize: 14 },
-  tabLabel: { ...typography.body, fontSize: 13, lineHeight: 17, fontWeight: '700' },
+  tabLabel: {
+    ...typography.body,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
   tabLabelSelected: { fontWeight: '800' },
-  activeMarker: { position: 'absolute', left: 12, right: 12, bottom: 2, height: 2, borderRadius: 2 },
+  activeMarker: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: 2,
+    height: 2,
+    borderRadius: 2,
+  },
   content: {
     flex: 1,
     minHeight: 0,

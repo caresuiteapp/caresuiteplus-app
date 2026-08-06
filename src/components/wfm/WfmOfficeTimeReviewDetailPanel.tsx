@@ -4,7 +4,7 @@ import { CareTimeInput } from '@/components/inputs';
 import { ListFilterSelect, PremiumButton } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
-import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
+import { WORKTIME_SURFACE, WORKTIME_TEXT } from './WfmOfficeTimekeepingLayout';
 import {
   formatWfmDurationMinutes,
   formatWfmPlanTimeRange,
@@ -46,20 +46,9 @@ type Props = {
   embedded?: boolean;
 };
 
-const REVIEW_TEXT = {
-  primary: systemLiquidGlass.text.primary,
-  secondary: systemLiquidGlass.text.secondary,
-  muted: systemLiquidGlass.text.muted,
-  border: systemLiquidGlass.border,
-} as const;
+const REVIEW_TEXT = WORKTIME_TEXT;
 
-function SectionBlock({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function SectionBlock({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -115,33 +104,33 @@ export function WfmOfficeTimeReviewDetailPanel({
 
   return (
     <View
-      style={[styles.panel, { borderColor: embedded ? REVIEW_TEXT.border : accent }, embedded ? styles.panelEmbedded : null]}
+      style={[
+        styles.panel,
+        { borderColor: embedded ? REVIEW_TEXT.border : accent },
+        embedded ? styles.panelEmbedded : null,
+      ]}
       testID="wfm-office-review-detail-panel"
     >
-      {!embedded ? <View style={styles.panelHeader}>
-        <View style={styles.panelHeaderText}>
-          <Text style={styles.panelTitle}>
-            {entry.employeeName}
-          </Text>
-          <Text style={styles.panelSubtitle}>
-            {entry.workDate} · {WFM_OFFICE_WORK_KIND_LABELS[entry.workKind]}
-          </Text>
+      {!embedded ? (
+        <View style={styles.panelHeader}>
+          <View style={styles.panelHeaderText}>
+            <Text style={styles.panelTitle}>{entry.employeeName}</Text>
+            <Text style={styles.panelSubtitle}>
+              {entry.workDate} · {WFM_OFFICE_WORK_KIND_LABELS[entry.workKind]}
+            </Text>
+          </View>
+          <PremiumButton title="Schließen" variant="ghost" onPress={onClose} onDarkSurface />
         </View>
-        <PremiumButton title="Schließen" variant="ghost" onPress={onClose} onDarkSurface />
-      </View> : null}
+      ) : null}
 
       <View style={styles.panelBody}>
         <SectionBlock title="Einsatz">
-          <Text style={styles.line}>
-            {entry.clientLabel ?? entry.assignmentTitle ?? '—'}
-          </Text>
+          <Text style={styles.line}>{entry.clientLabel ?? entry.assignmentTitle ?? '—'}</Text>
           <Text style={styles.line}>
             Status: {WFM_OFFICE_TIME_STATUS_LABELS[entry.reviewStatus]}
           </Text>
           {entry.flags.includes('missing_booking') ? (
-            <Text style={styles.line}>
-              Fehlende Buchung — geplanter Einsatz ohne Ist-Zeit.
-            </Text>
+            <Text style={styles.line}>Fehlende Buchung — geplanter Einsatz ohne Ist-Zeit.</Text>
           ) : null}
         </SectionBlock>
 
@@ -151,7 +140,12 @@ export function WfmOfficeTimeReviewDetailPanel({
             <Text style={styles.line}>{display.displaySecondaryTimeLabel}</Text>
           ) : null}
           <Text style={styles.line}>
-            Plan: {formatWfmPlanTimeRange(entry.plannedStartAt, entry.plannedEndAt, entry.planDisplayStatus)}
+            Plan:{' '}
+            {formatWfmPlanTimeRange(
+              entry.plannedStartAt,
+              entry.plannedEndAt,
+              entry.planDisplayStatus,
+            )}
             {display.isPlannedOnly ? ` · ${formatWfmReviewQueuePlannedDuration(entry)}` : ''}
           </Text>
           {display.hasAssignmentActual ? (
@@ -191,34 +185,41 @@ export function WfmOfficeTimeReviewDetailPanel({
         {canCorrect && entry.canEdit !== false ? (
           <SectionBlock title="Aktionen">
             <View style={styles.structuredRow}>
-              <View style={styles.structuredField}><CareTimeInput
-                label="Beginn"
-                value={startTime}
-                onChange={(value) => {
-                  setStartTime(value);
-                  if (!value) onEditStartAtChange('');
-                  const iso = isoAtWorkDate(entry.workDate, value);
-                  if (iso) onEditStartAtChange(iso);
-                }}
-                showFormatHint={false}
-              /></View>
-              <View style={styles.structuredField}><CareTimeInput
-                label="Ende"
-                value={endTime}
-                onChange={(value) => {
-                  setEndTime(value);
-                  if (!value) onEditEndAtChange('');
-                  const iso = isoAtWorkDate(entry.workDate, value);
-                  if (iso) onEditEndAtChange(iso);
-                }}
-                showFormatHint={false}
-              /></View>
+              <View style={styles.structuredField}>
+                <CareTimeInput
+                  label="Beginn"
+                  value={startTime}
+                  onChange={(value) => {
+                    setStartTime(value);
+                    if (!value) onEditStartAtChange('');
+                    const iso = isoAtWorkDate(entry.workDate, value);
+                    if (iso) onEditStartAtChange(iso);
+                  }}
+                  showFormatHint={false}
+                />
+              </View>
+              <View style={styles.structuredField}>
+                <CareTimeInput
+                  label="Ende"
+                  value={endTime}
+                  onChange={(value) => {
+                    setEndTime(value);
+                    if (!value) onEditEndAtChange('');
+                    const iso = isoAtWorkDate(entry.workDate, value);
+                    if (iso) onEditEndAtChange(iso);
+                  }}
+                  showFormatHint={false}
+                />
+              </View>
             </View>
             <ListFilterSelect
               label="Pause"
               value={editPauseMinutes}
               onChange={onEditPauseMinutesChange}
-              options={[0, 5, 10, 15, 20, 30, 45, 60, 90, 120].map((minutes) => ({ key: String(minutes), label: `${minutes} Minuten` }))}
+              options={[0, 5, 10, 15, 20, 30, 45, 60, 90, 120].map((minutes) => ({
+                key: String(minutes),
+                label: `${minutes} Minuten`,
+              }))}
             />
             <TextInput
               value={correctionReason}
@@ -230,16 +231,36 @@ export function WfmOfficeTimeReviewDetailPanel({
             />
             <View style={styles.actionRow}>
               {display.hasAssignmentActual ? (
-                <PremiumButton title="Aus Einsatz übernehmen" variant="secondary" onPress={onAdoptAssignment} onDarkSurface />
+                <PremiumButton
+                  title="Aus Einsatz übernehmen"
+                  variant="secondary"
+                  onPress={onAdoptAssignment}
+                  onDarkSurface
+                />
               ) : null}
-              <PremiumButton title="Speichern" variant="secondary" onPress={onSaveCorrection} onDarkSurface />
+              <PremiumButton
+                title="Speichern"
+                variant="secondary"
+                onPress={onSaveCorrection}
+                onDarkSurface
+              />
             </View>
             <View style={styles.actionRow}>
               {entry.canApprove !== false ? (
-                <PremiumButton title="Freigeben" variant="secondary" onPress={onApprove} onDarkSurface />
+                <PremiumButton
+                  title="Freigeben"
+                  variant="secondary"
+                  onPress={onApprove}
+                  onDarkSurface
+                />
               ) : null}
               {entry.canRequestClarification !== false ? (
-                <PremiumButton title="Rückfrage" variant="ghost" onPress={onClarification} onDarkSurface />
+                <PremiumButton
+                  title="Rückfrage"
+                  variant="ghost"
+                  onPress={onClarification}
+                  onDarkSurface
+                />
               ) : null}
               {entry.canReject !== false ? (
                 <PremiumButton title="Ablehnen" variant="ghost" onPress={onReject} onDarkSurface />
@@ -270,7 +291,6 @@ export function WfmOfficeTimeReviewDetailPanel({
             </View>
           ) : null}
         </SectionBlock>
-
       </View>
     </View>
   );
@@ -282,7 +302,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: systemLiquidGlass.panelStrong,
+    backgroundColor: WORKTIME_SURFACE.panel,
     shadowColor: '#173B70',
     shadowOpacity: 0.1,
     shadowRadius: 18,
@@ -301,11 +321,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.md,
     paddingVertical: careSpacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: systemLiquidGlass.border,
+    borderBottomColor: REVIEW_TEXT.border,
   },
   panelHeaderText: { flex: 1, gap: 2 },
-  panelTitle: { ...typography.h3, fontWeight: '800', color: REVIEW_TEXT.primary },
-  panelSubtitle: { ...typography.body, fontSize: 12, color: REVIEW_TEXT.secondary },
+  panelTitle: {
+    ...typography.h3,
+    fontWeight: '800',
+    color: REVIEW_TEXT.primary,
+  },
+  panelSubtitle: {
+    ...typography.body,
+    fontSize: 12,
+    color: REVIEW_TEXT.secondary,
+  },
   panelBody: { padding: careSpacing.md, gap: careSpacing.md },
   section: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -313,7 +341,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: careSpacing.md,
     gap: 6,
-    backgroundColor: systemLiquidGlass.card,
+    backgroundColor: WORKTIME_SURFACE.card,
   },
   sectionTitle: {
     ...typography.body,
@@ -325,7 +353,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     color: REVIEW_TEXT.primary,
   },
-  line: { ...typography.body, fontSize: 14, lineHeight: 21, color: REVIEW_TEXT.secondary },
+  line: {
+    ...typography.body,
+    fontSize: 14,
+    lineHeight: 21,
+    color: REVIEW_TEXT.secondary,
+  },
   warningText: {
     ...typography.body,
     fontSize: 14,
@@ -333,8 +366,17 @@ const styles = StyleSheet.create({
     color: '#9A3412',
     fontWeight: '700',
   },
-  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs, marginTop: 4 },
-  structuredRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
+  actionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: careSpacing.xs,
+    marginTop: 4,
+  },
+  structuredRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: careSpacing.xs,
+  },
   structuredField: { minWidth: 130, flex: 1 },
   input: {
     ...typography.body,
@@ -342,7 +384,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: careSpacing.sm,
     minHeight: 44,
-    backgroundColor: systemLiquidGlass.input,
+    backgroundColor: WORKTIME_SURFACE.input,
     borderColor: REVIEW_TEXT.border,
     fontSize: 14,
     lineHeight: 21,

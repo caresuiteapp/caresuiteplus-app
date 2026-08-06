@@ -5,6 +5,12 @@ import { withAlpha } from '@/design/tokens/motion';
 import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import {
+  lightLiquidGlass,
+  lightLiquidGlassWebFx,
+  lightSurfaceText,
+} from '@/design/tokens/auroraGlass';
+import { useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
 import { resolveUserFacingSubtitle } from '@/lib/ui/uiVisibility';
 import { radius, spacing } from '@/theme';
 
@@ -39,6 +45,8 @@ export function SectionPanel({
 }: SectionPanelProps) {
   const { colors, typography } = useLegacyTheme();
   const portal = usePortalPremiumTheme();
+  const surfaceTone = useSurfaceContrastTone();
+  const forceLightSurface = surfaceTone === 'light';
   const openSurface = surface === 'open';
   const moduleAccent = accentColor ?? colors.cyan;
   const userSubtitle = resolveUserFacingSubtitle(subtitle);
@@ -55,15 +63,23 @@ export function SectionPanel({
             ? 'transparent'
             : portal.active
               ? portalPremium.surface
-              : systemLiquidGlass.panel,
+              : forceLightSurface
+                ? lightLiquidGlass.panel
+                : systemLiquidGlass.panel,
           overflow: fillHeight ? 'visible' : 'hidden',
           position: 'relative',
           ...(openSurface || Platform.OS !== 'web'
             ? null
             : ({
-                backdropFilter: `blur(${systemLiquidGlass.blur.desktop}px) saturate(${systemLiquidGlass.saturate})`,
-                WebkitBackdropFilter: `blur(${systemLiquidGlass.blur.desktop}px) saturate(${systemLiquidGlass.saturate})`,
-                boxShadow: portal.active ? portalPremium.shadow.card : systemLiquidGlass.shadowSoft,
+                ...(forceLightSurface
+                  ? lightLiquidGlassWebFx()
+                  : {
+                      backdropFilter: `blur(${systemLiquidGlass.blur.desktop}px) saturate(${systemLiquidGlass.saturate})`,
+                      WebkitBackdropFilter: `blur(${systemLiquidGlass.blur.desktop}px) saturate(${systemLiquidGlass.saturate})`,
+                      boxShadow: portal.active
+                        ? portalPremium.shadow.card
+                        : systemLiquidGlass.shadowSoft,
+                    }),
               } as unknown as ViewStyle)),
           ...(fillHeight ? { flexGrow: 1, width: '100%' } : null),
         },
@@ -71,7 +87,11 @@ export function SectionPanel({
           ...StyleSheet.absoluteFillObject,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: portal.active ? portalPremium.innerBorder : systemLiquidGlass.innerBorder,
+          borderColor: portal.active
+            ? portalPremium.innerBorder
+            : forceLightSurface
+              ? lightLiquidGlass.innerBorder
+              : systemLiquidGlass.innerBorder,
         },
         header: {
           paddingHorizontal: spacing.md,
@@ -83,13 +103,21 @@ export function SectionPanel({
         },
         title: {
           ...(headerVariant === 'hero' ? typography.h1 : typography.h3),
-          color: portal.active ? portalPremium.text.primary : systemLiquidGlass.text.primary,
+          color: portal.active
+            ? portalPremium.text.primary
+            : forceLightSurface
+              ? lightSurfaceText.primary
+              : systemLiquidGlass.text.primary,
           textAlign: headerAlign === 'center' ? 'center' : 'left',
         },
         subtitle: {
           ...(headerVariant === 'hero' ? typography.body : typography.caption),
           marginTop: headerVariant === 'hero' ? spacing.xs : 4,
-          color: portal.active ? portalPremium.text.secondary : systemLiquidGlass.text.secondary,
+          color: portal.active
+            ? portalPremium.text.secondary
+            : forceLightSurface
+              ? lightSurfaceText.secondary
+              : systemLiquidGlass.text.secondary,
           textAlign: headerAlign === 'center' ? 'center' : 'left',
         },
         body: {
@@ -113,6 +141,7 @@ export function SectionPanel({
       headerVariant,
       moduleAccent,
       fillHeight,
+      forceLightSurface,
       portal.active,
     ],
   );

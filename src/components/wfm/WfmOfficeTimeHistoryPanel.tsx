@@ -5,7 +5,6 @@ import { PlatformModal } from '@/components/layout/platform';
 import { PremiumButton, useWorkflowFeedback } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
-import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import {
   applyWfmOfficeTimeCorrection,
@@ -32,6 +31,7 @@ import {
   WfmOfficeSectionHeading,
   WfmOfficeSplitWorkArea,
   WfmOfficeStatusChip,
+  WORKTIME_SURFACE,
 } from './WfmOfficeTimekeepingLayout';
 import { WfmOfficeTimeEntryTable } from './WfmOfficeTimeEntryTable';
 import { WfmOfficeTimeReviewDetailPanel } from './WfmOfficeTimeReviewDetailPanel';
@@ -66,7 +66,9 @@ export function WfmOfficeTimeHistoryPanel({
 }: Props) {
   const feedback = useWorkflowFeedback();
   const accent = moduleColor('office');
-  const [preset, setPreset] = useState<WfmOfficePeriodPreset>(reviewQueueMode ? 'last_30_days' : 'today');
+  const [preset, setPreset] = useState<WfmOfficePeriodPreset>(
+    reviewQueueMode ? 'last_30_days' : 'today',
+  );
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -191,18 +193,27 @@ export function WfmOfficeTimeHistoryPanel({
 
   const runCorrection = async () => {
     if (!selectedId || !correctionReason.trim()) {
-      feedback.showWarning('Bitte geben Sie eine Korrekturbegründung ein.', 'Begründung erforderlich');
+      feedback.showWarning(
+        'Bitte geben Sie eine Korrekturbegründung ein.',
+        'Begründung erforderlich',
+      );
       return;
     }
     const loadingId = feedback.showLoading('Arbeitszeitkorrektur wird gespeichert…');
     try {
-      const result = await applyWfmOfficeTimeCorrection(tenantId, reviewerId, roleKey, {
-        entryId: selectedId,
-        reason: correctionReason,
-        actualStartAt: editStartAt || null,
-        actualEndAt: editEndAt || null,
-        pauseMinutes: Number(editPauseMinutes) || 0,
-      }, selected);
+      const result = await applyWfmOfficeTimeCorrection(
+        tenantId,
+        reviewerId,
+        roleKey,
+        {
+          entryId: selectedId,
+          reason: correctionReason,
+          actualStartAt: editStartAt || null,
+          actualEndAt: editEndAt || null,
+          pauseMinutes: Number(editPauseMinutes) || 0,
+        },
+        selected,
+      );
       if (!result.ok) {
         feedback.showError(result.error, 'Korrektur nicht gespeichert');
         return;
@@ -226,7 +237,13 @@ export function WfmOfficeTimeHistoryPanel({
     const reason = correctionReason.trim() || reviewNote.trim() || 'Übernahme aus Einsatz-Ist';
     const loadingId = feedback.showLoading('Einsatz-Ist wird als Buchung übernommen…');
     try {
-      const result = await adoptWfmAssignmentActualToBooking(tenantId, reviewerId, roleKey, selectedId, reason);
+      const result = await adoptWfmAssignmentActualToBooking(
+        tenantId,
+        reviewerId,
+        roleKey,
+        selectedId,
+        reason,
+      );
       if (!result.ok) {
         feedback.showError(result.error, 'Übernahme nicht möglich');
         return;
@@ -246,24 +263,77 @@ export function WfmOfficeTimeHistoryPanel({
 
   const kpiItems = reviewQueueMode
     ? [
-        { key: 'pending', label: 'Offen', value: String(kpis?.pendingReviewCount ?? 0), accent },
-        { key: 'missing', label: 'Fehlende Buchung', value: String(kpis?.missingBookings ?? 0) },
-        { key: 'unplanned', label: 'Ungeplant', value: String(kpis?.unplannedBookings ?? 0) },
-        { key: 'deviation', label: 'Abweichungen', value: String(kpis?.planningDeviations ?? 0) },
-        { key: 'planned', label: 'Geplant', value: String(kpis?.plannedVisits ?? 0) },
-        { key: 'recorded', label: 'Erfasst', value: String(kpis?.recordedVisits ?? 0) },
+        {
+          key: 'pending',
+          label: 'Offen',
+          value: String(kpis?.pendingReviewCount ?? 0),
+          accent,
+        },
+        {
+          key: 'missing',
+          label: 'Fehlende Buchung',
+          value: String(kpis?.missingBookings ?? 0),
+        },
+        {
+          key: 'unplanned',
+          label: 'Ungeplant',
+          value: String(kpis?.unplannedBookings ?? 0),
+        },
+        {
+          key: 'deviation',
+          label: 'Abweichungen',
+          value: String(kpis?.planningDeviations ?? 0),
+        },
+        {
+          key: 'planned',
+          label: 'Geplant',
+          value: String(kpis?.plannedVisits ?? 0),
+        },
+        {
+          key: 'recorded',
+          label: 'Erfasst',
+          value: String(kpis?.recordedVisits ?? 0),
+        },
       ]
     : [
-        { key: 'planned', label: 'Geplant', value: String(kpis?.plannedVisits ?? 0), accent },
-        { key: 'recorded', label: 'Erfasst', value: String(kpis?.recordedVisits ?? 0) },
-        { key: 'missing', label: 'Fehlende Buchung', value: String(kpis?.missingBookings ?? 0) },
-        { key: 'hours', label: 'Std. gesamt', value: String(kpis?.totalHours ?? 0) },
-        { key: 'pending', label: 'Offen', value: String(kpis?.pendingReviewCount ?? 0) },
-        { key: 'exported', label: 'Exportiert', value: String(kpis?.exportedCount ?? 0) },
+        {
+          key: 'planned',
+          label: 'Geplant',
+          value: String(kpis?.plannedVisits ?? 0),
+          accent,
+        },
+        {
+          key: 'recorded',
+          label: 'Erfasst',
+          value: String(kpis?.recordedVisits ?? 0),
+        },
+        {
+          key: 'missing',
+          label: 'Fehlende Buchung',
+          value: String(kpis?.missingBookings ?? 0),
+        },
+        {
+          key: 'hours',
+          label: 'Std. gesamt',
+          value: String(kpis?.totalHours ?? 0),
+        },
+        {
+          key: 'pending',
+          label: 'Offen',
+          value: String(kpis?.pendingReviewCount ?? 0),
+        },
+        {
+          key: 'exported',
+          label: 'Exportiert',
+          value: String(kpis?.exportedCount ?? 0),
+        },
       ];
 
   const periodOptions = [
-    ...PRESETS.map((p) => ({ key: p, label: WFM_OFFICE_PERIOD_PRESET_LABELS[p] })),
+    ...PRESETS.map((p) => ({
+      key: p,
+      label: WFM_OFFICE_PERIOD_PRESET_LABELS[p],
+    })),
     { key: 'custom' as const, label: 'Freier Zeitraum' },
   ];
 
@@ -322,19 +392,28 @@ export function WfmOfficeTimeHistoryPanel({
 
       {preset === 'custom' ? (
         <View style={styles.customRow}>
-          <View style={styles.dateField}><CareDateInput
-            label="Von"
-            value={customFrom}
-            onChange={setCustomFrom}
-            showFormatHint={false}
-          /></View>
-          <View style={styles.dateField}><CareDateInput
-            label="Bis"
-            value={customTo}
-            onChange={setCustomTo}
-            showFormatHint={false}
-          /></View>
-          <PremiumButton title="Anwenden" variant="secondary" onPress={() => void historyQuery.refresh()} onDarkSurface />
+          <View style={styles.dateField}>
+            <CareDateInput
+              label="Von"
+              value={customFrom}
+              onChange={setCustomFrom}
+              showFormatHint={false}
+            />
+          </View>
+          <View style={styles.dateField}>
+            <CareDateInput
+              label="Bis"
+              value={customTo}
+              onChange={setCustomTo}
+              showFormatHint={false}
+            />
+          </View>
+          <PremiumButton
+            title="Anwenden"
+            variant="secondary"
+            onPress={() => void historyQuery.refresh()}
+            onDarkSurface
+          />
         </View>
       ) : null}
 
@@ -347,7 +426,12 @@ export function WfmOfficeTimeHistoryPanel({
         reviewQueueMode={reviewQueueMode}
       />
 
-      <PremiumButton title="Aktualisieren" variant="ghost" onPress={() => void historyQuery.refresh()} onDarkSurface />
+      <PremiumButton
+        title="Aktualisieren"
+        variant="ghost"
+        onPress={() => void historyQuery.refresh()}
+        onDarkSurface
+      />
     </>
   );
 
@@ -378,14 +462,23 @@ export function WfmOfficeTimeHistoryPanel({
   ) : null;
 
   return (
-    <View style={styles.root} testID={reviewQueueMode ? 'wfm-offene-pruefungen' : 'wfm-arbeitszeit-historie'}>
+    <View
+      style={styles.root}
+      testID={reviewQueueMode ? 'wfm-offene-pruefungen' : 'wfm-arbeitszeit-historie'}
+    >
       {reviewQueueMode ? (
         <>
           <View style={styles.reviewQueueMain}>{mainContent}</View>
           <PlatformModal
             visible={Boolean(selected)}
-            title={selected ? `Arbeitszeit prüfen · ${selected.employeeName}` : 'Arbeitszeit prüfen'}
-            subtitle={selected ? `${selected.workDate} · ${WFM_OFFICE_WORK_KIND_LABELS[selected.workKind]}` : undefined}
+            title={
+              selected ? `Arbeitszeit prüfen · ${selected.employeeName}` : 'Arbeitszeit prüfen'
+            }
+            subtitle={
+              selected
+                ? `${selected.workDate} · ${WFM_OFFICE_WORK_KIND_LABELS[selected.workKind]}`
+                : undefined
+            }
             onClose={closeReviewDetail}
             variant="center"
             maxWidth={920}
@@ -413,7 +506,15 @@ export function WfmOfficeTimeHistoryPanel({
 const styles = StyleSheet.create({
   root: { flex: 1, gap: careSpacing.sm },
   reviewQueueMain: { flex: 1, minWidth: 0, gap: careSpacing.sm },
-  reviewModalBody: { padding: careSpacing.sm, backgroundColor: systemLiquidGlass.panel },
-  customRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, marginBottom: careSpacing.sm },
+  reviewModalBody: {
+    padding: careSpacing.sm,
+    backgroundColor: WORKTIME_SURFACE.panel,
+  },
+  customRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: careSpacing.sm,
+    marginBottom: careSpacing.sm,
+  },
   dateField: { minWidth: 180, flex: 1 },
 });

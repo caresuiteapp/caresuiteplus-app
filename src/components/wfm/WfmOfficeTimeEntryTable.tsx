@@ -1,7 +1,7 @@
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { PremiumButton, PremiumDataTable, type DataTableColumn } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
-import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
+import { WORKTIME_SURFACE, WORKTIME_TEXT } from './WfmOfficeTimekeepingLayout';
 import {
   formatWfmPlanTimeRange,
   formatWfmReviewQueueBuchungLabel,
@@ -53,12 +53,7 @@ const COMPACT_ACTION_BUTTON = {
   paddingHorizontal: 10,
 } as const;
 
-const TABLE_TEXT = {
-  primary: systemLiquidGlass.text.primary,
-  secondary: systemLiquidGlass.text.secondary,
-  muted: systemLiquidGlass.text.muted,
-  border: systemLiquidGlass.border,
-} as const;
+const TABLE_TEXT = WORKTIME_TEXT;
 
 type BadgeTone = 'green' | 'yellow' | 'red' | 'blue' | 'warning' | 'muted';
 
@@ -82,7 +77,12 @@ function ampelVariant(ampel: string | null): BadgeTone {
 function ReadableStatusBadge({ label, tone }: { label: string; tone: BadgeTone }) {
   const palette = BADGE_COLORS[tone];
   return (
-    <View style={[styles.statusBadge, { backgroundColor: palette.background, borderColor: palette.border }]}>
+    <View
+      style={[
+        styles.statusBadge,
+        { backgroundColor: palette.background, borderColor: palette.border },
+      ]}
+    >
       <Text style={[styles.statusBadgeText, { color: palette.text }]} numberOfLines={1}>
         {label}
       </Text>
@@ -108,9 +108,15 @@ function rowStatusLabel(entry: WfmOfficeTimeEntry, compact: boolean): string {
   return full;
 }
 
-function planCellLines(entry: WfmOfficeTimeEntry): { text: string; tone?: 'primary' | 'secondary' | 'muted' }[] {
+function planCellLines(
+  entry: WfmOfficeTimeEntry,
+): { text: string; tone?: 'primary' | 'secondary' | 'muted' }[] {
   const display = resolveWfmOfficeTimeDisplay(entry);
-  const range = formatWfmPlanTimeRange(entry.plannedStartAt, entry.plannedEndAt, entry.planDisplayStatus);
+  const range = formatWfmPlanTimeRange(
+    entry.plannedStartAt,
+    entry.plannedEndAt,
+    entry.planDisplayStatus,
+  );
   const duration = formatWfmReviewQueuePlannedDuration(entry);
   if (display.isPlannedOnly && duration !== '—') {
     return [
@@ -122,7 +128,9 @@ function planCellLines(entry: WfmOfficeTimeEntry): { text: string; tone?: 'prima
 }
 
 function planCell(entry: WfmOfficeTimeEntry): string {
-  return planCellLines(entry).map((line) => line.text).join(' · ');
+  return planCellLines(entry)
+    .map((line) => line.text)
+    .join(' · ');
 }
 
 function webTitleProps(text: string) {
@@ -158,11 +166,20 @@ function CellText({
   );
 }
 
-function StackCell({ lines }: { lines: { text: string; tone?: 'primary' | 'secondary' | 'muted' }[] }) {
+function StackCell({
+  lines,
+}: {
+  lines: { text: string; tone?: 'primary' | 'secondary' | 'muted' }[];
+}) {
   return (
     <View style={styles.stackCell}>
       {lines.map((line, index) => (
-        <CellText key={`${index}-${line.text}`} tone={line.tone ?? 'secondary'} lines={1} tooltip={line.text}>
+        <CellText
+          key={`${index}-${line.text}`}
+          tone={line.tone ?? 'secondary'}
+          lines={1}
+          tooltip={line.text}
+        >
           {line.text}
         </CellText>
       ))}
@@ -229,7 +246,10 @@ function ReviewQueueMobileCard({
     <View
       style={[
         styles.mobileCard,
-        { borderColor: TABLE_TEXT.border, backgroundColor: systemLiquidGlass.card },
+        {
+          borderColor: TABLE_TEXT.border,
+          backgroundColor: WORKTIME_SURFACE.card,
+        },
         selected ? styles.mobileCardSelected : null,
       ]}
       testID={`wfm-review-card-${entry.id}`}
@@ -262,13 +282,22 @@ function ReviewQueueMobileCard({
         {`Buchung: ${formatWfmReviewQueueBuchungLabel(entry)}`}
       </CellText>
       <View style={styles.mobileCardAction}>
-        <ReviewActionButton selected={selected} reviewQueueMode onPress={() => onSelect(selected ? null : entry.id)} />
+        <ReviewActionButton
+          selected={selected}
+          reviewQueueMode
+          onPress={() => onSelect(selected ? null : entry.id)}
+        />
       </View>
     </View>
   );
 }
 
-export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQueueMode = false }: Props) {
+export function WfmOfficeTimeEntryTable({
+  entries,
+  selectedId,
+  onSelect,
+  reviewQueueMode = false,
+}: Props) {
   const { width } = useWindowDimensions();
   // The office navigation consumes a substantial part of the browser width.
   // Cards keep every value readable on regular desktop displays instead of
@@ -281,7 +310,9 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
       key: 'date',
       label: 'Datum',
       width: 96,
-      render: (entry) => <Text style={{ color: TABLE_TEXT.primary, ...typography.body }}>{entry.workDate}</Text>,
+      render: (entry) => (
+        <Text style={{ color: TABLE_TEXT.primary, ...typography.body }}>{entry.workDate}</Text>
+      ),
     },
     {
       key: 'employee',
@@ -345,7 +376,11 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
       key: 'date',
       label: 'Datum',
       width: REVIEW_COL.date,
-      render: (entry) => <CellText tone="primary" lines={1}>{entry.workDate}</CellText>,
+      render: (entry) => (
+        <CellText tone="primary" lines={1}>
+          {entry.workDate}
+        </CellText>
+      ),
     },
     {
       key: 'employee',
@@ -400,7 +435,11 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQ
       width: REVIEW_COL.buchung,
       render: (entry) => {
         const value = formatWfmReviewQueueBuchungLabel(entry);
-        return <CellText tone="primary" lines={2} tooltip={value}>{value}</CellText>;
+        return (
+          <CellText tone="primary" lines={2} tooltip={value}>
+            {value}
+          </CellText>
+        );
       },
     },
     {
@@ -493,8 +532,8 @@ const styles = StyleSheet.create({
   tableSurface: {
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: systemLiquidGlass.border,
-    backgroundColor: systemLiquidGlass.table,
+    borderColor: TABLE_TEXT.border,
+    backgroundColor: WORKTIME_SURFACE.card,
     maxWidth: '100%',
     shadowColor: '#173B70',
     shadowOpacity: 0.06,
@@ -510,7 +549,7 @@ const styles = StyleSheet.create({
   },
   stackCell: { gap: 1, width: '100%' },
   cellText: { ...typography.body, fontSize: 14, lineHeight: 20 },
-  cellTextStrong: { fontWeight: '600', color: systemLiquidGlass.text.primary },
+  cellTextStrong: { fontWeight: '600', color: TABLE_TEXT.primary },
   statusBadgeWrap: {
     width: '100%',
     flexDirection: 'column',
@@ -526,16 +565,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
-  statusBadgeText: { fontSize: 11, lineHeight: 15, fontWeight: '700', flexShrink: 1 },
-  actionCell: { width: '100%', alignItems: 'flex-end', justifyContent: 'center' },
-  footerHint: { ...typography.body, fontSize: 13, lineHeight: 18, marginTop: 6, paddingHorizontal: 4 },
+  statusBadgeText: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+  actionCell: {
+    width: '100%',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  footerHint: {
+    ...typography.body,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 6,
+    paddingHorizontal: 4,
+  },
   mobileList: { gap: careSpacing.md },
   mobileCard: {
     borderWidth: 1,
     borderRadius: 14,
     padding: careSpacing.md,
     gap: 8,
-    backgroundColor: systemLiquidGlass.card,
+    backgroundColor: WORKTIME_SURFACE.card,
   },
   mobileCardSelected: {
     borderColor: 'rgba(139, 92, 246, 0.45)',
@@ -547,8 +601,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: careSpacing.xs,
   },
-  mobileCardDate: { ...typography.body, fontWeight: '800', fontSize: 14, lineHeight: 20 },
-  mobileCardPrimary: { ...typography.body, fontWeight: '700', fontSize: 15, lineHeight: 21 },
+  mobileCardDate: {
+    ...typography.body,
+    fontWeight: '800',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  mobileCardPrimary: {
+    ...typography.body,
+    fontWeight: '700',
+    fontSize: 15,
+    lineHeight: 21,
+  },
   mobileCardSecondary: { ...typography.body, fontSize: 14, lineHeight: 20 },
   mobileCardAction: { marginTop: careSpacing.xs, alignItems: 'flex-end' },
 });

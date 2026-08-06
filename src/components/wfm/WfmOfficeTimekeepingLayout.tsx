@@ -2,13 +2,21 @@ import { type ReactNode } from 'react';
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { FilterChip, FilterChipGroup } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
-import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { typography } from '@/theme';
 
-const WORKTIME_TEXT = {
+export const WORKTIME_TEXT = {
   primary: '#0B2342',
   secondary: '#31597F',
+  muted: '#5B7290',
   border: '#B8D1EA',
+} as const;
+
+export const WORKTIME_SURFACE = {
+  panel: '#F4F9FF',
+  card: '#F8FBFF',
+  input: '#FFFFFF',
+  rowAlt: '#F2F7FD',
+  rowSelected: '#E3F0FF',
 } as const;
 
 export type WfmCompactKpi = {
@@ -30,7 +38,10 @@ export function WfmOfficeCompactKpiStrip({ items, maxVisible = 6 }: CompactKpiSt
     <View style={styles.kpiStrip} testID="wfm-office-kpi-strip">
       {visible.map((item) => (
         <View key={item.key} style={styles.kpiCell}>
-          <Text style={[styles.kpiValue, { color: item.accent ?? WORKTIME_TEXT.primary }]} numberOfLines={1}>
+          <Text
+            style={[styles.kpiValue, { color: item.accent ?? WORKTIME_TEXT.primary }]}
+            numberOfLines={1}
+          >
             {item.value}
           </Text>
           <Text style={styles.kpiLabel} numberOfLines={1}>
@@ -64,7 +75,11 @@ type PeriodChipGroupProps<T extends string> = {
   onChange: (key: T) => void;
 };
 
-export function WfmOfficePeriodChips<T extends string>({ options, value, onChange }: PeriodChipGroupProps<T>) {
+export function WfmOfficePeriodChips<T extends string>({
+  options,
+  value,
+  onChange,
+}: PeriodChipGroupProps<T>) {
   return (
     <FilterChipGroup
       options={options.map((o) => ({ key: o.key, label: o.label }))}
@@ -121,19 +136,11 @@ export function WfmOfficeSplitWorkArea({ main, detail, detailOpen }: SplitWorkAr
   );
 }
 
-export function WfmOfficeSectionHeading({
-  title,
-  subtitle,
-}: {
-  title: string;
-  subtitle?: string;
-}) {
+export function WfmOfficeSectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <View style={styles.sectionHeading}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      {subtitle ? (
-        <Text style={styles.sectionSubtitle}>{subtitle}</Text>
-      ) : null}
+      {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
     </View>
   );
 }
@@ -156,7 +163,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.md,
     paddingVertical: careSpacing.sm,
     gap: 4,
-    backgroundColor: systemLiquidGlass.card,
+    backgroundColor: WORKTIME_SURFACE.card,
     shadowColor: '#173B70',
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -181,9 +188,9 @@ const styles = StyleSheet.create({
     marginBottom: careSpacing.md,
     padding: careSpacing.sm,
     borderWidth: 1,
-    borderColor: systemLiquidGlass.border,
+    borderColor: WORKTIME_TEXT.border,
     borderRadius: 14,
-    backgroundColor: systemLiquidGlass.panelStrong,
+    backgroundColor: WORKTIME_SURFACE.panel,
   },
   filterPrimary: {
     flexDirection: 'row',
@@ -199,7 +206,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     paddingTop: careSpacing.xs,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: systemLiquidGlass.border,
+    borderTopColor: WORKTIME_TEXT.border,
   },
   filterStatus: {
     flexDirection: 'row',
