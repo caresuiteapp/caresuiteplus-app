@@ -90,7 +90,7 @@ export function updateAdministrativeTask(visitId: string, taskId: string, status
 export async function bulkUpdateAdministrativeTasks(
   visitId: string,
   updates: { taskId: string; status: VisitTaskStatus }[],
-): Promise<ServiceResult<{ updated: number }>> {
+): Promise<ServiceResult<{ updated: number; skipped: number }>> {
   if (updates.length === 0) return { ok: false, error: 'Keine Aufgabenänderungen übergeben.' };
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Datenbank ist nicht verfügbar.' };
@@ -103,8 +103,14 @@ export async function bulkUpdateAdministrativeTasks(
     p_reason: AUTOMATIC_ADMIN_AUDIT_REASON,
   } as never);
   if (error) return { ok: false, error: toAdministrativeError(error) };
-  const result = data as { updated?: number } | null;
-  return { ok: true, data: { updated: result?.updated ?? updates.length } };
+  const result = data as { updated?: number; skipped?: number } | null;
+  return {
+    ok: true,
+    data: {
+      updated: result?.updated ?? updates.length,
+      skipped: result?.skipped ?? 0,
+    },
+  };
 }
 
 export function completeAdministrativeFollowUp(

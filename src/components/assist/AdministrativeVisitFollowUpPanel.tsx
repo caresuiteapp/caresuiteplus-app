@@ -155,7 +155,12 @@ export function AdministrativeVisitFollowUpPanel({ visit, tenantId, onSaved, onM
     const result = await bulkUpdateAdministrativeTasks(visit.id, changedTasks);
     setSaving(false);
     if (!result.ok) return onMessage(result.error, true);
-    onMessage(`${result.data.updated} Aufgaben wurden gemeinsam gespeichert und auditiert.`);
+    onMessage(
+      `${result.data.updated} Aufgaben wurden gemeinsam gespeichert und auditiert.` +
+        (result.data.skipped > 0
+          ? ` ${result.data.skipped} nicht mehr vorhandene Aufgabe wurde entfernt.`
+          : ''),
+    );
     await onSaved();
   };
 
