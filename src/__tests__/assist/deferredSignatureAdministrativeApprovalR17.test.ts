@@ -42,4 +42,3 @@ describe('R17 deferred signature administrative approval gate', () => {
     expect(panel).toContain('mindestens 10 Zeichen');
   });
 });
-
