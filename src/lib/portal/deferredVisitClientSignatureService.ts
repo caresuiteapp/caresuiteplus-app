@@ -25,6 +25,43 @@ export type DeferredClientSignatureReleaseResult = {
   clientDocumentId: string | null;
 };
 
+export type DeferredSignatureApprovalRequestResult = {
+  requestId: string;
+};
+
+/** Employee-side gate: request administration approval without publishing anything to the client portal. */
+export async function requestDeferredSignatureAdministrativeApproval(
+  ctx: AssistExecutionContext,
+  reason: string,
+): Promise<ServiceResult<DeferredSignatureApprovalRequestResult>> {
+  if (reason.trim().length < 10) {
+    return { ok: false, error: 'Bitte begründen Sie die Weiterleitung mit mindestens 10 Zeichen.' };
+  }
+  if (getServiceMode() !== 'supabase') {
+    return { ok: true, data: { requestId: 'demo-signature-approval-request' } };
+  }
+  if (!ctx.employeeId) return { ok: false, error: 'Mitarbeitenden-Zuordnung fehlt.' };
+  const visitId = await resolvePortalSignatureVisitId(ctx.tenantId, ctx.assignmentId, ctx.employeeId);
+  if (!visitId) return { ok: false, error: 'Einsatzbesuch konnte nicht zugeordnet werden.' };
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+  const { data, error } = await (supabase.rpc(
+    'employee_request_deferred_signature_admin_approval' as never,
+    {
+      p_tenant_id: ctx.tenantId,
+      p_visit_id: visitId,
+      p_employee_id: ctx.employeeId,
+      p_reason: reason.trim(),
+    } as never,
+  ) as unknown as Promise<{ data: unknown; error: { message: string } | null }>);
+  if (error) return { ok: false, error: error.message };
+  if (typeof data !== 'string' || !data) {
+    return { ok: false, error: 'Freigabeanfrage konnte nicht gespeichert werden.' };
+  }
+  return { ok: true, data: { requestId: data } };
+}
+
 async function resolveAdministrativeActorProfileId(): Promise<ServiceResult<string>> {
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };

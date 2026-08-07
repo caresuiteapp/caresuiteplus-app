@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { PremiumButton, PremiumCard } from '@/components/ui';
+import { PremiumButton, PremiumCard, PremiumInput } from '@/components/ui';
 import { countDoneTasks } from '@/lib/portal/groupEmployeePortalTasks';
 import {
   employeePortalExecutionSurface,
@@ -14,13 +14,14 @@ type EmployeePortalVisitCompletionPanelProps = {
   documentationSubmitted: boolean;
   signatureCaptured: boolean;
   signatureDeferred?: boolean;
+  signatureApprovalPending?: boolean;
   requiresSignature: boolean;
   serviceDurationLabel?: string;
   loading?: boolean;
   deferredLoading?: boolean;
   canFinalizeDeferred?: boolean;
   onFinalize: () => void;
-  onFinalizeDeferred?: () => void;
+  onFinalizeDeferred?: (reason: string) => void;
 };
 
 type CheckItem = { label: string; done: boolean };
@@ -30,6 +31,7 @@ export function EmployeePortalVisitCompletionPanel({
   documentationSubmitted,
   signatureCaptured,
   signatureDeferred = false,
+  signatureApprovalPending = false,
   requiresSignature,
   serviceDurationLabel,
   loading = false,
@@ -40,13 +42,16 @@ export function EmployeePortalVisitCompletionPanel({
 }: EmployeePortalVisitCompletionPanelProps) {
   const text = employeePortalExecutionText;
   const tasksDone = tasks.length === 0 || countDoneTasks(tasks) === tasks.length;
+  const [approvalReason, setApprovalReason] = useState('');
 
   const items: CheckItem[] = [
     { label: 'Aufgaben geprüft', done: tasksDone },
     { label: 'Dokumentation gespeichert', done: documentationSubmitted },
     {
       label: requiresSignature
-        ? signatureDeferred
+        ? signatureApprovalPending
+          ? 'Freigabe durch Verwaltung wird geprüft'
+          : signatureDeferred
           ? 'Unterschrift ans Klient:innenportal gesendet'
           : 'Unterschrift erfasst'
         : 'Unterschrift nicht erforderlich',
@@ -113,15 +118,31 @@ export function EmployeePortalVisitCompletionPanel({
         onPress={onFinalize}
       />
       {canFinalizeDeferred && onFinalizeDeferred ? (
-        <PremiumButton
-          title="Ohne Unterschrift abschließen — ans Klient:innenportal senden"
-          testID="portal-finalize-deferred-button"
-          variant="secondary"
-          fullWidth
-          loading={deferredLoading}
-          disabled={!documentationSubmitted || !tasksDone || deferredLoading || loading}
-          onPress={onFinalizeDeferred}
-        />
+        <>
+          <PremiumInput
+            label="Warum kann die Unterschrift nicht vor Ort erfasst werden?"
+            hint="Pflichtfeld · mindestens 10 Zeichen · wird der Verwaltung angezeigt"
+            value={approvalReason}
+            onChangeText={setApprovalReason}
+            multiline
+            onLightSurface
+            placeholder="Begründung für die Weiterleitung"
+          />
+          <PremiumButton
+            title="Freigabe durch Verwaltung anfragen"
+            testID="portal-finalize-deferred-button"
+            variant="secondary"
+            fullWidth
+            loading={deferredLoading}
+            disabled={!documentationSubmitted || !tasksDone || approvalReason.trim().length < 10 || deferredLoading || loading}
+            onPress={() => onFinalizeDeferred(approvalReason.trim())}
+          />
+        </>
+      ) : null}
+      {signatureApprovalPending ? (
+        <Text style={styles.meta}>
+          Anfrage gesendet. Erst nach Genehmigung wird die Unterschrift im Klient:innenportal angefordert.
+        </Text>
       ) : null}
     </PremiumCard>
   );

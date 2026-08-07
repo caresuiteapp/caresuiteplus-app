@@ -101,6 +101,7 @@ export function resolveAllowedActions(input: {
   const docSubmitted = detail.documentationStatus === 'submitted';
   const signatureCaptured = detail.signatureStatus === 'captured';
   const signatureDeferred = detail.signatureStatus === 'deferred_to_client_portal';
+  const signatureApprovalPending = detail.signatureStatus === 'administrative_approval_pending';
   const serviceEnded =
     Boolean(detail.actualEndAt) ||
     ['beendet', 'dokumentation_offen', 'unterschrift_offen', 'abgeschlossen'].includes(status);
@@ -119,7 +120,8 @@ export function resolveAllowedActions(input: {
     serviceEnded &&
     (docSubmitted || !detail.requiresDocumentation) &&
     !signatureCaptured &&
-    !signatureDeferred
+    !signatureDeferred &&
+    !signatureApprovalPending
   ) {
     actions.push('capture_signature');
   }
@@ -129,6 +131,7 @@ export function resolveAllowedActions(input: {
     docSubmitted &&
     !signatureCaptured &&
     !signatureDeferred &&
+    !signatureApprovalPending &&
     (status === 'unterschrift_offen' ||
       status === 'dokumentation_offen' ||
       status === 'beendet')

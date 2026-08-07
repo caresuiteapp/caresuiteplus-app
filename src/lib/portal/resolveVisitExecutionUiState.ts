@@ -33,6 +33,7 @@ export type VisitExecutionUiState = {
   documentationSubmitted: boolean;
   signatureCaptured: boolean;
   signatureDeferred: boolean;
+  signatureApprovalPending: boolean;
   showDocumentationForm: boolean;
   showSignature: boolean;
   showFinalize: boolean;
@@ -53,6 +54,7 @@ export function resolveVisitExecutionUiState(
   const documentationSubmitted = visit.documentationStatus === 'submitted';
   const signatureCaptured = visit.signatureStatus === 'captured';
   const signatureDeferred = visit.signatureStatus === 'deferred_to_client_portal';
+  const signatureApprovalPending = visit.signatureStatus === 'administrative_approval_pending';
 
   const statusBlocksDoc =
     consistencyStatus === 'repairable' &&
@@ -80,7 +82,8 @@ export function resolveVisitExecutionUiState(
     postServiceReady &&
     documentationSubmitted &&
     !signatureCaptured &&
-    !signatureDeferred;
+    !signatureDeferred &&
+    !signatureApprovalPending;
 
   const showFinalize =
     !statusBlocksDoc &&
@@ -96,6 +99,7 @@ export function resolveVisitExecutionUiState(
     documentationSubmitted,
     signatureCaptured,
     signatureDeferred,
+    signatureApprovalPending,
     showDocumentationForm,
     showSignature,
     showFinalize,

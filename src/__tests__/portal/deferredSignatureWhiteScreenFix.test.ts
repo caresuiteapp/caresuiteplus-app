@@ -27,7 +27,7 @@ describe('deferred signature white screen fix', () => {
   it('deferred finalize catches errors and stays on execution screen', () => {
     const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     const match = screen.match(
-      /const handleFinalizeDeferredSignature = useCallback\(async \(\) => \{([\s\S]*?)\n  \}, \[finalizeVisitDeferred/,
+      /const handleFinalizeDeferredSignature = useCallback\(async \([^)]*\) => \{([\s\S]*?)\n  \}, \[finalizeVisitDeferred/,
     );
     expect(match).not.toBeNull();
     const handler = match![1];

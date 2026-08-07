@@ -1,14 +1,10 @@
 /**
- * ASSIST.WORKFLOW.1 — Finalize visit without on-device signature;
- * release signature request to Klient:innenportal (Phase 1 deferred signing).
+ * Employee requests administrative approval for a later client-portal signature.
+ * This step neither completes the visit nor publishes anything to the client portal.
  */
 import type { ServiceResult } from '@/types';
-import type { RoleKey } from '@/types';
 import { validateVisitCloseReadiness } from '@/lib/assist/visitExecutionService';
-import { releaseDeferredClientSignatureRequest } from '@/lib/portal/deferredVisitClientSignatureService';
-import { getServiceMode } from '@/lib/services/mode';
-import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
-import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
+import { requestDeferredSignatureAdministrativeApproval } from '@/lib/portal/deferredVisitClientSignatureService';
 import type { AssistExecutionContext } from './types';
 import {
   assistWorkflowErrorToResult,
@@ -19,12 +15,13 @@ export type FinalizeVisitDeferredResult = {
   ctx: AssistExecutionContext;
   proofId: string | null;
   clientDocumentId: string | null;
-  wfmSyncFailed?: boolean;
+  approvalRequestId?: string;
 };
 
 export async function finalizeVisitWithDeferredClientSignature(
   ctx: AssistExecutionContext,
   documentationText?: string | null,
+  approvalReason = '',
 ): Promise<ServiceResult<FinalizeVisitDeferredResult>> {
   if (!ctx.detail.requiresSignature) {
     return assistWorkflowErrorToResult(
@@ -88,81 +85,22 @@ export async function finalizeVisitWithDeferredClientSignature(
     );
   }
 
-  const release = await releaseDeferredClientSignatureRequest(ctx, docText);
-  if (!release.ok) {
+  const request = await requestDeferredSignatureAdministrativeApproval(ctx, approvalReason);
+  if (!request.ok) {
     return assistWorkflowErrorToResult(
-      createAssistWorkflowError('AWF_PROOF_GENERATION_FAILED', {
+      createAssistWorkflowError('AWF_ADMIN_APPROVAL_REQUEST_FAILED', {
         tenantId: ctx.tenantId,
         assignmentId: ctx.assignmentId,
         operation: 'finalizeVisitWithDeferredClientSignature',
-      }, release.error ?? 'Unterschriftsanfrage konnte nicht ans Klient:innenportal gesendet werden.'),
+      }, request.error ?? 'Freigabeanfrage konnte nicht an die Verwaltung gesendet werden.'),
     );
-  }
-
-  if (getServiceMode() === 'supabase' && !release.data.proofId) {
-    return assistWorkflowErrorToResult(
-      createAssistWorkflowError('AWF_PROOF_GENERATION_FAILED', {
-        tenantId: ctx.tenantId,
-        assignmentId: ctx.assignmentId,
-        operation: 'finalizeVisitWithDeferredClientSignature',
-      }, 'Unterschriftsanfrage konnte nicht gespeichert werden.'),
-    );
-  }
-
-  const transitioned = await transitionAssistExecutionStatus(ctx, 'abgeschlossen', {
-    hasDocumentation: Boolean(docText),
-    hasRequiredSignature: true,
-    signatureDeferredToClientPortal: true,
-  });
-
-  if (!transitioned.ok) {
-    return { ok: false, error: transitioned.error };
-  }
-
-  const executionState = await upsertAssistVisitExecutionState(
-    ctx.tenantId,
-    ctx.assignmentId,
-    'abgeschlossen',
-    {
-      employeeId: ctx.employeeId,
-      visitTimes: transitioned.data.visitTimes,
-      documentationComplete: true,
-      signatureComplete: false,
-      proofGenerated: false,
-      finalizedAt: new Date().toISOString(),
-    },
-  );
-
-  if (!executionState.ok) {
-    return { ok: false, error: executionState.error ?? 'Einsatzstatus konnte nicht gespeichert werden.' };
-  }
-
-  let wfmSyncFailed = false;
-  const wfmVisitId = ctx.assistVisitId ?? ctx.assignmentId;
-  if (getServiceMode() === 'supabase' && ctx.employeeId && wfmVisitId) {
-    const { syncAssistVisitTimesToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
-    const wfmSync = await syncAssistVisitTimesToWfm(
-      ctx.tenantId,
-      ctx.employeeId,
-      ctx.profileId ?? null,
-      wfmVisitId,
-    );
-    if (!wfmSync.ok) {
-      wfmSyncFailed = true;
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn(
-          '[finalizeVisitWithDeferredClientSignature] WFM sync failed (non-blocking):',
-          wfmSync.error,
-        );
-      }
-    }
   }
 
   const refreshed = {
-    ...transitioned.data,
+    ...ctx,
     detail: {
-      ...transitioned.data.detail,
-      signatureStatus: 'deferred_to_client_portal' as const,
+      ...ctx.detail,
+      signatureStatus: 'administrative_approval_pending' as const,
     },
   };
 
@@ -170,9 +108,9 @@ export async function finalizeVisitWithDeferredClientSignature(
     ok: true,
     data: {
       ctx: refreshed,
-      proofId: release.data.proofId,
-      clientDocumentId: release.data.clientDocumentId,
-      wfmSyncFailed,
+      proofId: null,
+      clientDocumentId: null,
+      approvalRequestId: request.data.requestId,
     },
   };
 }

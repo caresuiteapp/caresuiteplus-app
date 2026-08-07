@@ -32,11 +32,16 @@ function signatureStatusFromState(input: {
   status: AssignmentStatus;
   hasPersistedSignature: boolean;
   hasDeferredPortalSignature?: boolean;
+  administrativeApprovalStatus?: 'pending_admin_approval' | 'rejected' | null;
   hasSubmittedDocumentation?: boolean;
 }): EmployeePortalAssignmentDetail['signatureStatus'] {
   if (!input.requiresSignature) return 'none';
   if (input.hasPersistedSignature) return 'captured';
   if (input.hasDeferredPortalSignature) return 'deferred_to_client_portal';
+  if (input.administrativeApprovalStatus === 'pending_admin_approval') {
+    return 'administrative_approval_pending';
+  }
+  if (input.administrativeApprovalStatus === 'rejected') return 'administratively_rejected';
   if (SIGNATURE_WORKFLOW_STATUSES.includes(input.status)) return 'pending';
   if (input.hasSubmittedDocumentation) return 'pending';
   return 'none';
@@ -188,6 +193,7 @@ export async function resolveEmployeePortalDocumentationFlags(
   let hasPersistedSignature = false;
   let hasDeferredPortalSignature = false;
   let signatureCapturedViaClientPortal = false;
+  let administrativeApprovalStatus: 'pending_admin_approval' | 'rejected' | null = null;
   if (visitId) {
     try {
       const sig = await fetchValidVisitSignature(tenantId, visitId);
@@ -209,6 +215,19 @@ export async function resolveEmployeePortalDocumentationFlags(
           (proof.data.payloadSnapshot?.signedViaClientPortal === true ||
             persistedSignature?.metadata?.signedVia === 'client_portal');
       }
+      if (!hasPersistedSignature && !hasDeferredPortalSignature && supabase) {
+        const { data: approval } = await fromUnknownTable(supabase, 'assist_visit_signature_requests')
+          .select('status')
+          .eq('tenant_id', tenantId)
+          .eq('visit_id', visitId)
+          .in('status', ['pending_admin_approval', 'rejected'])
+          .order('requested_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (approval?.status === 'pending_admin_approval' || approval?.status === 'rejected') {
+          administrativeApprovalStatus = approval.status;
+        }
+      }
     } catch {
       // A transient proof lookup must not hide documentation or crash an active visit.
     }
@@ -222,6 +241,7 @@ export async function resolveEmployeePortalDocumentationFlags(
       status,
       hasPersistedSignature,
       hasDeferredPortalSignature,
+      administrativeApprovalStatus,
       hasSubmittedDocumentation,
     }),
     signatureCapturedViaClientPortal,

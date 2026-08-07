@@ -308,6 +308,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const documentationSubmitted = uiState?.documentationSubmitted ?? false;
   const signatureCaptured = uiState?.signatureCaptured ?? false;
   const signatureDeferred = uiState?.signatureDeferred ?? false;
+  const signatureApprovalPending = uiState?.signatureApprovalPending ?? false;
   const showDocumentationForm = uiState?.showDocumentationForm ?? false;
   const showSignature = uiState?.showSignature ?? false;
   const showFinalize = uiState?.showFinalize ?? false;
@@ -393,16 +394,16 @@ export function EmployeePortalVisitExecutionScreen() {
     workflowPersistence.setStep(null);
   }, [workflowPersistence]);
 
-  const handleFinalizeDeferredSignature = useCallback(async () => {
+  const handleFinalizeDeferredSignature = useCallback(async (approvalReason: string) => {
     try {
       releaseSignatureUi();
       setCloseSignatureCaptureRequest((n) => n + 1);
-      const r = await finalizeVisitDeferred();
+      const r = await finalizeVisitDeferred(approvalReason);
       if (r.ok) {
         releaseSignatureCaptureEnvironment();
         setCloseSignatureCaptureRequest((n) => n + 1);
         setLocalSuccess(
-          'Einsatz abgeschlossen — Unterschrift wurde ans Klient:innenportal gesendet.',
+          'Freigabe bei der Verwaltung angefragt. Erst nach Genehmigung wird die Unterschrift an das Klient:innenportal gesendet.',
         );
       } else if (isWorkflowConfirmationPending(r.errorCode)) {
         setLocalWarning(
@@ -623,7 +624,7 @@ export function EmployeePortalVisitExecutionScreen() {
         return;
       }
       if (action === 'finalize_visit_deferred_signature') {
-        await handleFinalizeDeferredSignature();
+        setLocalWarning('Bitte begründen Sie die Weiterleitung im Abschnitt „Einsatz abschließen“.');
       }
     },
     [
@@ -1051,12 +1052,13 @@ export function EmployeePortalVisitExecutionScreen() {
             />
           ) : null}
 
-          {(showFinalize || canFinalizeDeferred) && !isLocked ? (
+          {(showFinalize || canFinalizeDeferred || signatureApprovalPending) && !isLocked ? (
             <EmployeePortalVisitCompletionPanel
               tasks={visitTasks}
               documentationSubmitted={documentationSubmitted}
               signatureCaptured={signatureCaptured}
               signatureDeferred={signatureDeferred}
+              signatureApprovalPending={signatureApprovalPending}
               requiresSignature={visit.requiresSignature}
               serviceDurationLabel={serviceDurationLabel}
               loading={actionLoading}
@@ -1071,8 +1073,8 @@ export function EmployeePortalVisitExecutionScreen() {
                   );
                 } else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
               }}
-              onFinalizeDeferred={() => {
-                void handleFinalizeDeferredSignature();
+              onFinalizeDeferred={(reason) => {
+                void handleFinalizeDeferredSignature(reason);
               }}
             />
           ) : null}

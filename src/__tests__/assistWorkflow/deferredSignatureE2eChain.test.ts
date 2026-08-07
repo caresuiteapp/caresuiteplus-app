@@ -93,10 +93,10 @@ describe('deferred signature E2E chain', () => {
     vi.restoreAllMocks();
   });
 
-  it('employee defers signature then client signs the released proof', async () => {
-    const releaseDeferred = vi.fn(async () => ({
+  it('employee requests administration approval before any client portal release', async () => {
+    const requestApproval = vi.fn(async () => ({
       ok: true,
-      data: { proofId: PROOF, clientDocumentId: PROOF },
+      data: { requestId: 'approval-request-1' },
     }));
     const transition = vi.fn(async () => ({
       ok: true,
@@ -114,7 +114,7 @@ describe('deferred signature E2E chain', () => {
 
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
     vi.doMock('@/lib/portal/deferredVisitClientSignatureService', () => ({
-      releaseDeferredClientSignatureRequest: releaseDeferred,
+      requestDeferredSignatureAdministrativeApproval: requestApproval,
     }));
     vi.doMock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
       transitionAssistExecutionStatus: transition,
@@ -136,14 +136,10 @@ describe('deferred signature E2E chain', () => {
       '@/lib/portal/clientPortalAssistProofSignatureService'
     );
 
-    const phase1 = await finalizeVisitWithDeferredClientSignature(buildCtx(), 'Erledigt');
+    const phase1 = await finalizeVisitWithDeferredClientSignature(buildCtx(), 'Erledigt', 'Klient musste den Termin verlassen.');
     expect(phase1.ok).toBe(true);
-    expect(releaseDeferred).toHaveBeenCalledTimes(1);
-    expect(transition).toHaveBeenCalledWith(
-      expect.anything(),
-      'abgeschlossen',
-      expect.objectContaining({ signatureDeferredToClientPortal: true }),
-    );
+    expect(requestApproval).toHaveBeenCalledTimes(1);
+    expect(transition).not.toHaveBeenCalled();
 
     const phase2 = await saveClientPortalAssistProofSignature({
       tenantId: TENANT,

@@ -1107,7 +1107,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   );
 
   const handleFinalizeDeferred = useCallback(
-    () => runWorkflow((ctx) => finalizeVisitWithDeferredClientSignature(ctx), {
+    (approvalReason: string) => runWorkflow((ctx) => finalizeVisitWithDeferredClientSignature(ctx, null, approvalReason), {
       recoveryAction: 'finalize_deferred',
       timeoutLabel: 'finalizeVisitDeferred',
       timeoutMs: WORKFLOW_FINALIZE_TIMEOUT_MS,

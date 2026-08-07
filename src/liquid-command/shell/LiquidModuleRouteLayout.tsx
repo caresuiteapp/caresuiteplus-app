@@ -10,6 +10,7 @@ import {
   getLiquidPrimaryActionLabel,
   getLiquidPrimaryWorkflowRoute,
 } from '../navigation/workflowRoutes';
+import { DeferredSignatureApprovalPopup } from '@/components/assist/DeferredSignatureApprovalPopup';
 
 type LiquidModuleRouteLayoutProps = {
   children?: ReactNode;
@@ -75,7 +76,14 @@ function LiquidModuleContent() {
   const pathname = usePathname();
   const router = useRouter();
   const moduleKey = inferLiquidModule(pathname);
-  if (isModuleRoot(pathname, moduleKey)) return <LiquidModuleStack />;
+  if (isModuleRoot(pathname, moduleKey)) {
+    return (
+      <>
+        <LiquidModuleStack />
+        {moduleKey === 'assist' ? <DeferredSignatureApprovalPopup /> : null}
+      </>
+    );
+  }
   const routeContext = describeLiquidRoute(pathname, moduleKey);
   const primaryRoute = routeContext.areaId
     ? getLiquidPrimaryWorkflowRoute(moduleKey, routeContext.areaId)
@@ -85,7 +93,8 @@ function LiquidModuleContent() {
     : null;
 
   return (
-    <LiquidCommandShell
+    <>
+      <LiquidCommandShell
       activeModule={moduleKey}
       activeArea={routeContext.areaId}
       title="Facharbeitsbereich"
@@ -98,7 +107,9 @@ function LiquidModuleContent() {
       showPageHeader={false}
     >
       <LiquidModuleStack />
-    </LiquidCommandShell>
+      </LiquidCommandShell>
+      {moduleKey === 'assist' ? <DeferredSignatureApprovalPopup /> : null}
+    </>
   );
 }
 

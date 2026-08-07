@@ -117,12 +117,12 @@ describe('finalizeVisitWithDeferredClientSignature', () => {
     expect(result.ok).toBe(false);
   });
 
-  it('completes without on-device signature and releases portal request', async () => {
+  it('creates an administrative approval request without publishing or completing the visit', async () => {
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
     vi.doMock('@/lib/portal/deferredVisitClientSignatureService', () => ({
-      releaseDeferredClientSignatureRequest: vi.fn(async () => ({
+      requestDeferredSignatureAdministrativeApproval: vi.fn(async () => ({
         ok: true,
-        data: { proofId: 'proof-1', clientDocumentId: 'doc-1' },
+        data: { requestId: 'request-1' },
       })),
     }));
     vi.doMock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
@@ -141,19 +141,20 @@ describe('finalizeVisitWithDeferredClientSignature', () => {
     const { finalizeVisitWithDeferredClientSignature } = await import(
       '@/features/assistWorkflow/finalizeVisitWithDeferredClientSignature'
     );
-    const result = await finalizeVisitWithDeferredClientSignature(buildCtx(), 'Erledigt');
+    const result = await finalizeVisitWithDeferredClientSignature(buildCtx(), 'Erledigt', 'Klient ist nicht mehr vor Ort.');
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.data.proofId).toBe('proof-1');
-      expect(result.data.ctx.detail.signatureStatus).toBe('deferred_to_client_portal');
-      expect(result.data.ctx.assignmentStatus).toBe('abgeschlossen');
+      expect(result.data.approvalRequestId).toBe('request-1');
+      expect(result.data.proofId).toBeNull();
+      expect(result.data.ctx.detail.signatureStatus).toBe('administrative_approval_pending');
+      expect(result.data.ctx.assignmentStatus).toBe('unterschrift_offen');
     }
   });
 
-  it('blocks when portal release fails', async () => {
+  it('blocks when the administrative request fails', async () => {
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
     vi.doMock('@/lib/portal/deferredVisitClientSignatureService', () => ({
-      releaseDeferredClientSignatureRequest: vi.fn(async () => ({
+      requestDeferredSignatureAdministrativeApproval: vi.fn(async () => ({
         ok: false,
         error: 'Portal-Freigabe fehlgeschlagen.',
       })),
@@ -162,7 +163,7 @@ describe('finalizeVisitWithDeferredClientSignature', () => {
     const { finalizeVisitWithDeferredClientSignature } = await import(
       '@/features/assistWorkflow/finalizeVisitWithDeferredClientSignature'
     );
-    const result = await finalizeVisitWithDeferredClientSignature(buildCtx(), 'Erledigt');
+    const result = await finalizeVisitWithDeferredClientSignature(buildCtx(), 'Erledigt', 'Klient ist nicht mehr vor Ort.');
     expect(result.ok).toBe(false);
   });
 });

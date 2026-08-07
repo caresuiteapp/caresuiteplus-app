@@ -79,6 +79,8 @@ export type EmployeePortalAssignmentDetail = {
     | 'none'
     | 'pending'
     | 'captured'
+    | 'administrative_approval_pending'
+    | 'administratively_rejected'
     | 'deferred_to_client_portal'
     | 'impossible_justified'
     | 'locked';
