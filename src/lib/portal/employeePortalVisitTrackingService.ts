@@ -337,7 +337,15 @@ export function applyEmployeePortalTrackingForStatus(
     entry.trackingActive = entry.consent.granted;
   }
 
-  if (toStatus === 'beendet' || toStatus === 'abgeschlossen' || toStatus === 'storniert') {
+  if (
+    toStatus === 'beendet' ||
+    toStatus === 'dokumentation_offen' ||
+    toStatus === 'unterschrift_offen'
+  ) {
+    entry.trackingActive = entry.consent.granted;
+  }
+
+  if (toStatus === 'abgeschlossen' || toStatus === 'storniert' || toStatus === 'nicht_erschienen') {
     entry.trackingActive = false;
     entry.driveStartedAt = null;
     entry.serviceStartedAt = null;
@@ -379,7 +387,10 @@ export function buildEmployeePortalTrackingSnapshot(
     (status === 'unterwegs' ||
       status === 'angekommen' ||
       status === 'gestartet' ||
-      status === 'pausiert') &&
+      status === 'pausiert' ||
+      status === 'beendet' ||
+      status === 'dokumentation_offen' ||
+      status === 'unterschrift_offen') &&
     Boolean(entry.lastPosition);
 
   if (entry.arrivalProof === 'without_gps' && status === 'angekommen') {

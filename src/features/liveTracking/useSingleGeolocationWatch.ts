@@ -42,7 +42,12 @@ const watches = new Map<string, WatchEntry>();
 
 const MIN_CALLBACK_INTERVAL_MS = 5_000;
 const MIN_MOVE_METERS = 5;
-export const EMPLOYEE_LIVE_LOCATION_INTERVAL_MS = 30_000;
+/**
+ * Persist one fresh foreground position per minute for the complete visit
+ * workflow. The heartbeat in useEmployeeGpsTracking also uses this interval,
+ * so stationary employees remain visible in Assist Live-Status.
+ */
+export const EMPLOYEE_LIVE_LOCATION_INTERVAL_MS = 60_000;
 
 function loadExpoLocation(): typeof ExpoLocation {
   // Lazy loading keeps web bundles and source-only tests independent from the

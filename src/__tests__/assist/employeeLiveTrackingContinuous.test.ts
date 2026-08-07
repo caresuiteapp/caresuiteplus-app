@@ -6,10 +6,16 @@ import {
 import {
   EMPLOYEE_LIVE_LOCATION_INTERVAL_MS,
 } from '@/features/liveTracking/useSingleGeolocationWatch';
+import {
+  applyEmployeePortalTrackingForStatus,
+  grantEmployeePortalLocationConsent,
+  peekEmployeePortalTrackingEntry,
+  resetEmployeePortalVisitTrackingStore,
+} from '@/lib/portal/employeePortalVisitTrackingService';
 
 describe('kontinuierliche Mitarbeitenden-Liveverfolgung', () => {
-  it('sendet während eines aktiven Einsatzes alle 30 Sekunden einen Heartbeat', () => {
-    expect(EMPLOYEE_LIVE_LOCATION_INTERVAL_MS).toBe(30_000);
+  it('sendet während des vollständigen Einsatz-Workflows alle 60 Sekunden einen Heartbeat', () => {
+    expect(EMPLOYEE_LIVE_LOCATION_INTERVAL_MS).toBe(60_000);
 
     const heartbeat = buildLiveLocationHeartbeatSnapshot(
       {
@@ -40,20 +46,59 @@ describe('kontinuierliche Mitarbeitenden-Liveverfolgung', () => {
     expect(source).toContain('distanceInterval: 0');
   });
 
-  it('hält Anfahrt, Ankunft, Leistung und Pause im selben Tracking-Lebenszyklus', () => {
-    const source = readFileSync(
+  it('hält Tracking bis zum erstellten Leistungsnachweis aktiv', () => {
+    const hookSource = readFileSync(
       'src/hooks/useEmployeePortalVisitExecution.ts',
       'utf8',
     );
+    const trackingSource = readFileSync(
+      'src/lib/portal/employeePortalVisitTrackingPersistence.ts',
+      'utf8',
+    );
 
-    expect(source).toContain(
-      "['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes",
+    expect(hookSource).toContain("'dokumentation_offen'");
+    expect(hookSource).toContain("'unterschrift_offen'");
+    expect(hookSource).toContain('Boolean(liveContext?.trackingSessionId)');
+    expect(hookSource).not.toContain('Boolean(liveContext?.consentStatus.granted)');
+    expect(hookSource).toContain('isTerminalStatus && ctx.liveContext');
+    expect(trackingSource).not.toContain("toStatus === 'beendet' || toStatus === 'abgeschlossen'");
+    expect(trackingSource).toContain(
+      "toStatus === 'abgeschlossen' || toStatus === 'storniert' || toStatus === 'nicht_erschienen'",
     );
-    expect(source).toContain('Boolean(liveContext?.trackingSessionId)');
-    expect(source).not.toContain('Boolean(liveContext?.consentStatus.granted)');
-    expect(source).not.toContain(
-      "['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(effectiveStatus ?? '') &&\n      Boolean(liveContext?.trackingSessionActive)",
+  });
+
+  it('schaltet den Standort erst beim abgeschlossenen Workflow ab', () => {
+    const tenantId = 'tenant-live-60';
+    const assignmentId = 'assignment-live-60';
+    resetEmployeePortalVisitTrackingStore();
+    grantEmployeePortalLocationConsent(tenantId, assignmentId);
+
+    applyEmployeePortalTrackingForStatus(tenantId, assignmentId, 'gestartet', 'beendet');
+    expect(peekEmployeePortalTrackingEntry(tenantId, assignmentId).trackingActive).toBe(true);
+
+    applyEmployeePortalTrackingForStatus(
+      tenantId,
+      assignmentId,
+      'beendet',
+      'dokumentation_offen',
     );
+    expect(peekEmployeePortalTrackingEntry(tenantId, assignmentId).trackingActive).toBe(true);
+
+    applyEmployeePortalTrackingForStatus(
+      tenantId,
+      assignmentId,
+      'dokumentation_offen',
+      'unterschrift_offen',
+    );
+    expect(peekEmployeePortalTrackingEntry(tenantId, assignmentId).trackingActive).toBe(true);
+
+    applyEmployeePortalTrackingForStatus(
+      tenantId,
+      assignmentId,
+      'unterschrift_offen',
+      'abgeschlossen',
+    );
+    expect(peekEmployeePortalTrackingEntry(tenantId, assignmentId).trackingActive).toBe(false);
   });
 
   it('startet GPS ohne separaten CareSuite-Einwilligungsdialog bei Anfahrt oder Einsatz', () => {

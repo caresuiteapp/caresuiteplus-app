@@ -50,7 +50,13 @@ function formatPositionFreshness(capturedAt: string | null | undefined): string 
   if (!capturedAt) return 'Noch keine Position';
   const ageSeconds = Math.max(0, Math.round((Date.now() - new Date(capturedAt).getTime()) / 1000));
   if (ageSeconds < 15) return 'Live · gerade aktualisiert';
-  if (ageSeconds < 60) return `Live · vor ${ageSeconds} Sek.`;
+  // One position is expected every 60 seconds. Two complete missed heartbeats
+  // plus network tolerance are required before warning the dispatcher.
+  if (ageSeconds < 150) {
+    return ageSeconds < 60
+      ? `Live · vor ${ageSeconds} Sek.`
+      : `Live · vor ${Math.round(ageSeconds / 60)} Min.`;
+  }
   return `Signal veraltet · vor ${Math.round(ageSeconds / 60)} Min.`;
 }
 
@@ -173,7 +179,7 @@ export function AssistLiveStatusScreen() {
                       style={[
                         styles.trackingLine,
                         row.tracking.lastPosition &&
-                        Date.now() - new Date(row.tracking.lastPosition.capturedAt).getTime() > 60_000
+                        Date.now() - new Date(row.tracking.lastPosition.capturedAt).getTime() > 150_000
                           ? styles.warning
                           : styles.liveSignal,
                       ]}

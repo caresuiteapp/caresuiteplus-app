@@ -27,13 +27,14 @@ describe('Office, portals and live workspace finalization', () => {
     expect(service).toContain("upload.uploadContext === 'mitarbeiter'");
   });
 
-  it('keeps GPS tracking active from departure through active service', () => {
+  it('keeps GPS tracking active through proof preparation', () => {
     const execution = source('src/hooks/useEmployeePortalVisitExecution.ts');
     const tracking = source('src/lib/portal/employeePortalVisitTrackingService.ts');
     const gps = source('src/features/liveTracking/useEmployeeGpsTracking.ts');
 
-    expect(execution).toContain("['unterwegs', 'angekommen', 'gestartet', 'pausiert']");
-    expect(execution).toContain('ended && ctx.liveContext');
+    expect(execution).toContain("'dokumentation_offen'");
+    expect(execution).toContain("'unterschrift_offen'");
+    expect(execution).toContain('isTerminalStatus && ctx.liveContext');
     expect(tracking).toContain('entry.trackingActive = entry.consent.granted');
     expect(gps).toContain('if (!releaseWatchRef.current) void startWatching()');
   });

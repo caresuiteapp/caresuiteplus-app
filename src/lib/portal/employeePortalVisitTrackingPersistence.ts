@@ -265,7 +265,9 @@ export async function persistEmployeePortalStatusTransition(
       if (!driveEnd.ok) throw new Error(driveEnd.error);
     }
 
-    if (toStatus === 'beendet' || toStatus === 'abgeschlossen' || toStatus === 'storniert') {
+    // `beendet` only stops billable service time. Location tracking must remain
+    // active while documentation/signature/proof are still being completed.
+    if (toStatus === 'abgeschlossen' || toStatus === 'storniert' || toStatus === 'nicht_erschienen') {
       const ended = await endTrackingSession(ctx.tenantId, visitId, 'status_change');
       if (!ended.ok) throw new Error(ended.error);
       sessionByKey.delete(key);

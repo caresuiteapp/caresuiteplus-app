@@ -442,7 +442,15 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
   const liveTrackingEnabled = useMemo(
     () =>
-      ['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(effectiveStatus ?? '') &&
+      [
+        'unterwegs',
+        'angekommen',
+        'gestartet',
+        'pausiert',
+        'beendet',
+        'dokumentation_offen',
+        'unterschrift_offen',
+      ].includes(effectiveStatus ?? '') &&
       Boolean(liveContext?.trackingSessionId) &&
       Boolean(effectiveStatus),
     [
@@ -493,7 +501,15 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       : base.consent;
 
     const dbActive =
-      ['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(effectiveStatus) &&
+      [
+        'unterwegs',
+        'angekommen',
+        'gestartet',
+        'pausiert',
+        'beendet',
+        'dokumentation_offen',
+        'unterschrift_offen',
+      ].includes(effectiveStatus) &&
       (liveContext?.trackingSessionActive ||
         gpsTracking.state.trackingActive ||
         gpsTracking.state.dbSessionActive);
@@ -503,7 +519,15 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       consent: resolvedConsent,
       warnings: rebuildEmployeePortalTrackingWarnings(resolvedConsent, gpsPermission, base.warnings),
       trackingActive: dbActive ||
-        (['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(effectiveStatus) && base.trackingActive),
+        ([
+          'unterwegs',
+          'angekommen',
+          'gestartet',
+          'pausiert',
+          'beendet',
+          'dokumentation_offen',
+          'unterschrift_offen',
+        ].includes(effectiveStatus) && base.trackingActive),
       lastPosition: gpsTracking.state.lastSnapshot
         ? {
             latitude: gpsTracking.state.lastSnapshot.latitude,
@@ -585,8 +609,11 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
             };
       }
 
+      // Service end is not the end of the auditable visit workflow. Keep GPS
+      // alive through documentation and signature; only a terminal workflow
+      // state (after proof creation, cancellation or no-show) stops it.
       const liveContext =
-        ended && ctx.liveContext
+        isTerminalStatus && ctx.liveContext
           ? { ...ctx.liveContext, trackingSessionActive: false }
           : ctx.liveContext;
 
