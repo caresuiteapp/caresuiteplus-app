@@ -14,7 +14,6 @@ import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { runService } from '@/lib/services/serviceRunner';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { enforcePermission } from '@/lib/permissions';
-import { hasPermission } from '@/lib/permissions/check';
 import {
   calculateAssistBudgetAllocation,
   calculateAssistBudgetAllocationFromProfile,
@@ -145,13 +144,10 @@ export async function reserveAssignmentBudget(
     const denied = guardServiceTenant(input.tenantId);
     if (denied) return denied;
 
-    const permDenied = enforcePermission<void>(
-      input.actorRoleKey,
-      'assist.assignment.budget.auto_allocate',
-    );
-    if (permDenied && !hasPermission(input.actorRoleKey, 'assist.assignments.manage')) {
-      return permDenied;
-    }
+    // This function is an internal persistence step of an already-authorized
+    // assignment create/update operation. The former second role check received
+    // no role in the repository layer and silently rejected every new budget
+    // reservation after the visit itself had already been saved.
 
     const reservableLines = input.allocation.allocationProposal.filter(
       (l) =>

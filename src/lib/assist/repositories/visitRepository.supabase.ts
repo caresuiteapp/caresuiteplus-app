@@ -302,6 +302,48 @@ function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 }
 
+async function rollbackCreatedVisitAfterBudgetFailure(
+  tenantId: string,
+  visitId: string,
+  actorProfileId?: string | null,
+): Promise<void> {
+  const supabase = getClient();
+  if (!supabase) return;
+
+  const { data: visitRow } = await fromUnknownTable(supabase, 'assist_visits')
+    .select('legacy_assignment_id')
+    .eq('tenant_id', tenantId)
+    .eq('id', visitId)
+    .maybeSingle();
+  const legacyAssignmentId = (
+    visitRow as { legacy_assignment_id?: string | null } | null
+  )?.legacy_assignment_id ?? visitId;
+
+  await releaseAssignmentBudgetReservation(
+    tenantId,
+    visitId,
+    actorProfileId,
+    'Einsatzanlage wegen fehlgeschlagener Budgetreservierung zurückgerollt',
+  );
+  await fromUnknownTable(supabase, 'assignment_budget_allocations')
+    .delete()
+    .eq('tenant_id', tenantId)
+    .eq('assignment_id', visitId);
+  await fromUnknownTable(supabase, 'assignment_tasks')
+    .delete()
+    .eq('tenant_id', tenantId)
+    .eq('assignment_id', legacyAssignmentId);
+  await fromUnknownTable(supabase, 'assignments')
+    .delete()
+    .eq('tenant_id', tenantId)
+    .eq('id', legacyAssignmentId);
+  await fromUnknownTable(supabase, 'assist_visits')
+    .delete()
+    .eq('tenant_id', tenantId)
+    .eq('id', visitId);
+  cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', visitId);
+}
+
 function personName(
   row?: { first_name: string | null; last_name: string | null } | null,
 ): string {
@@ -907,7 +949,7 @@ export const visitSupabaseRepository = {
           && l.catalogKey !== 'ungeklaert',
       )
     ) {
-      await persistAssignmentBudgetAllocations({
+      const persisted = await persistAssignmentBudgetAllocations({
         tenantId,
         assignmentId: visitId,
         clientId: input.clientId,
@@ -915,7 +957,11 @@ export const visitSupabaseRepository = {
         manualOverride: input.budgetManualOverride ?? null,
         actorProfileId,
       });
-      await reserveAssignmentBudget({
+      if (!persisted.ok) {
+        await rollbackCreatedVisitAfterBudgetFailure(tenantId, visitId, actorProfileId);
+        return persisted;
+      }
+      const reserved = await reserveAssignmentBudget({
         tenantId,
         clientId: input.clientId,
         visitId,
@@ -923,9 +969,13 @@ export const visitSupabaseRepository = {
         assignmentDate: input.assignmentDate,
         createdBy: actorProfileId,
       });
+      if (!reserved.ok) {
+        await rollbackCreatedVisitAfterBudgetFailure(tenantId, visitId, actorProfileId);
+        return reserved;
+      }
     } else if (!input.saveAsDraft && input.budgetAmountCents && input.budgetAmountCents > 0) {
       const { reserveForAssignment } = await import('@/lib/assist/clientBudgetTransactionService');
-      await reserveForAssignment({
+      const reserved = await reserveForAssignment({
         tenantId,
         clientId: input.clientId,
         visitId,
@@ -934,6 +984,10 @@ export const visitSupabaseRepository = {
         assignmentDate: input.assignmentDate,
         createdBy: actorProfileId,
       });
+      if (!reserved.ok) {
+        await rollbackCreatedVisitAfterBudgetFailure(tenantId, visitId, actorProfileId);
+        return reserved;
+      }
     }
 
     return { ok: true, data: { id: visitId } };
