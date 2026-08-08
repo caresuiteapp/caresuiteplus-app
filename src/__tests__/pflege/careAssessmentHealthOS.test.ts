@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { CARE_ASSESSMENT_TOPIC_KEYS } from '@/types/modules/careAssessment';
 import { CARE_RISK_CATALOG, calculateCareAssessmentCompleteness, createEmptyTopics } from '@/lib/careAssessment/catalog';
 const complete = () => ({
@@ -36,5 +37,16 @@ describe('Care Assessment HealthOS', () => {
   });
   it('enthält ein breites Risikoinventar', () => {
     expect(CARE_RISK_CATALOG.length).toBeGreaterThanOrEqual(15);
+  });
+  it('gewährt Admin und Pflege-Manage das notwendige Leserecht', () => {
+    const migration = readFileSync(
+      'supabase/migrations/20260808173000_premium_sis_permission_runtime_repair.sql',
+      'utf8',
+    );
+    expect(migration).toContain("public.is_tenant_admin()");
+    expect(migration).toContain("public.has_permission('pflege.plans.view')");
+    expect(migration).toContain("public.has_permission('pflege.assessments.manage')");
+    expect(migration).toContain("a.module_key = 'pflege'");
+    expect(migration).toContain("c.status = 'active'::public.client_status");
   });
 });

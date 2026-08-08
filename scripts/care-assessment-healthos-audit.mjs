@@ -19,6 +19,8 @@ const checks = [
   ['Altbestand nur aus Pflege','supabase/migrations/20260726140000_care_assessment_healthos.sql',/client_module_assignments[\s\S]*module_key = 'pflege'/],
   ['Datenbankgrenze Pflege','supabase/migrations/20260808170000_premium_sis_pfleger_boundary.sql',/is_active_pfleger_client[\s\S]*module_key = 'pflege'/],
   ['Nur produktiv aktive Pflegefälle','supabase/migrations/20260808170000_premium_sis_pfleger_boundary.sql',/is_active_pfleger_client[\s\S]*c\.status = 'active'::public\.client_status[\s\S]*list_pfleger_clients[\s\S]*c\.status = 'active'::public\.client_status/],
+  ['Pflege-Leserecht produktiv verteilt','supabase/migrations/20260808173000_premium_sis_permission_runtime_repair.sql',/pflege\.plans\.view[\s\S]*role_permissions[\s\S]*business_admin[\s\S]*nurse/],
+  ['Admin und Manage dürfen Pflege lesen','supabase/migrations/20260808173000_premium_sis_permission_runtime_repair.sql',/list_pfleger_clients[\s\S]*is_tenant_admin\(\)[\s\S]*pflege\.plans\.view[\s\S]*pflege\.assessments\.manage/],
   ['Assist-Übernahme gesperrt','supabase/migrations/20260808170000_premium_sis_pfleger_boundary.sql',/Assist-Klient:innen werden nicht übernommen/],
   ['Pflege-RPC statt Sammelliste','src/lib/careAssessment/careAssessmentRepository.supabase.ts',/rpc\('list_pfleger_clients'\)/],
   ['Evaluation und Versionierung','src/lib/careAssessment/careAssessmentRepository.supabase.ts',/care_assessment_evaluations[\s\S]*care_assessment_versions/],
