@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   CLIENT_ANIMAL_AVATAR_VARIANT_COUNT,
@@ -29,6 +29,20 @@ describe('R16 automatische Comic-Tier-Profilbilder', () => {
     const component = source('src/components/clients/ClientAnimalAvatar.tsx');
     expect(generator).not.toMatch(/accessor|zubehör/i);
     expect(component).not.toMatch(/accessor|zubehör/i);
+  });
+
+  it('rendert 200 eigenständige Tiergrafiken statt einer gemeinsamen Gesichts-Schablone', () => {
+    const assets = readdirSync('assets/client-animals-r17')
+      .filter((name) => /^animal-\d{3}\.png$/.test(name));
+    const registry = source('src/lib/clients/clientAnimalAssets.ts');
+    const component = source('src/components/clients/ClientAnimalAvatar.tsx');
+
+    expect(assets).toHaveLength(200);
+    expect(new Set(assets).size).toBe(200);
+    expect(registry.match(/require\('\.\.\/\.\.\/\.\.\/assets\/client-animals-r17\/animal-\d{3}\.png'\)/g))
+      .toHaveLength(200);
+    expect(component).toContain('CLIENT_ANIMAL_IMAGES[profile.speciesIndex]');
+    expect(component).not.toMatch(/morphology|innerEar|foreheadPatch|muzzle|nose|mouth/i);
   });
 
   it('ordnet derselben Klienten-ID dauerhaft dieselbe Variante zu', () => {
