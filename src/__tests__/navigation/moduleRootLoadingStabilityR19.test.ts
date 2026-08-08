@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const root = path.join(__dirname, '..', '..', '..');
@@ -9,24 +9,22 @@ function read(relativePath: string): string {
 }
 
 describe('R19 stabile Modul-Startseiten und lesbare Popups', () => {
-  it('rendert unter /assist ausschließlich die produktive Assist-Startseite', () => {
+  it('rendert unter /assist ausschließlich den vollständigen Assist-Arbeitsbereich', () => {
     const direct = read('app/assist/index.tsx');
-    const tabs = read('app/assist/(tabs)/index.tsx');
 
-    expect(direct).toContain('AssistIndexScreen');
-    expect(direct).toContain('export default AssistIndexScreen');
-    expect(direct).not.toContain('ModuleWorkspaceScreen');
-    expect(tabs).toContain('AssistIndexScreen');
+    expect(direct).toContain('ModuleWorkspaceScreen');
+    expect(direct).toContain('moduleKey="assist"');
+    expect(direct).not.toContain('AssistIndexScreen');
+    expect(existsSync(path.join(root, 'app/assist/(tabs)/index.tsx'))).toBe(false);
   });
 
-  it('rendert unter /office ausschließlich das produktive Office Command Center', () => {
+  it('rendert unter /office ausschließlich den vollständigen Office-Arbeitsbereich', () => {
     const direct = read('app/office/index.tsx');
-    const tabs = read('app/office/(tabs)/index.tsx');
 
-    expect(direct).toContain('OfficeIndexScreen');
-    expect(direct).toContain('export default OfficeIndexScreen');
-    expect(direct).not.toContain('ModuleWorkspaceScreen');
-    expect(tabs).toContain('OfficeIndexScreen');
+    expect(direct).toContain('ModuleWorkspaceScreen');
+    expect(direct).toContain('moduleKey="office"');
+    expect(direct).not.toContain('OfficeIndexScreen');
+    expect(existsSync(path.join(root, 'app/office/(tabs)/index.tsx'))).toBe(false);
   });
 
   it('gibt dem gesamten PlatformModal den tatsächlichen Oberflächenkontrast vor', () => {

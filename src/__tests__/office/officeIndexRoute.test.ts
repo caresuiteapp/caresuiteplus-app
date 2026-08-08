@@ -8,25 +8,25 @@ function readSrc(relativePath: string): string {
   return readFileSync(path.join(root, relativePath), 'utf8');
 }
 
-describe('Office index route (H3 stack-level)', () => {
-  it('app/office/index.tsx exists and exports OfficeIndexScreen', () => {
+describe('Office index route (Liquid Command workspace)', () => {
+  it('app/office/index.tsx exists and renders the complete workspace', () => {
     const routePath = path.join(root, 'app/office/index.tsx');
     expect(existsSync(routePath)).toBe(true);
     const source = readSrc('app/office/index.tsx');
-    expect(source).toContain('OfficeIndexScreen');
-    expect(source).toContain('export default OfficeIndexScreen');
+    expect(source).toContain('ModuleWorkspaceScreen');
+    expect(source).toContain('moduleKey="office"');
   });
 
-  it('matches Assist stack-level index pattern', () => {
+  it('matches the Assist complete-workspace index pattern', () => {
     const assist = readSrc('app/assist/index.tsx');
     const office = readSrc('app/office/index.tsx');
-    expect(assist).toContain('export default AssistIndexScreen');
-    expect(office).toContain('export default OfficeIndexScreen');
+    expect(assist).toContain('ModuleWorkspaceScreen');
+    expect(office).toContain('ModuleWorkspaceScreen');
   });
 
-  it('(tabs)/index still exports OfficeIndexScreen for tab slot', () => {
-    const tabsIndex = readSrc('app/office/(tabs)/index.tsx');
-    expect(tabsIndex).toContain('export default OfficeIndexScreen');
+  it('has no competing tab index for the same /office URL', () => {
+    expect(existsSync(path.join(root, 'app/office/(tabs)/index.tsx'))).toBe(false);
+    expect(existsSync(path.join(root, 'app/assist/(tabs)/index.tsx'))).toBe(false);
   });
 
   it('business/office/dashboard alias exports OfficeIndexScreen', () => {
@@ -40,9 +40,9 @@ describe('Office index route (H3 stack-level)', () => {
     expect(upload).not.toContain('OfficeIndexScreen');
   });
 
-  it('OfficeIndexScreen renders HealthOS Office Command Center', () => {
+  it('the separate OfficeIndexScreen remains a valid HealthOS command-center component', () => {
     const screen = readSrc('src/screens/office/OfficeIndexScreen.tsx');
     expect(screen).toContain('HealthOSOfficeCommandCenterView');
-    expect(screen).toContain('HealthOSModuleShell');
+    expect(screen).toContain('ScreenShell');
   });
 });
