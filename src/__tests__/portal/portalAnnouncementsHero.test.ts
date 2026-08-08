@@ -36,6 +36,8 @@ describe('Portal Announcements Hero (Sprint 98)', () => {
     expect(broadcastService).toContain("segment === 'clients'");
     expect(broadcastService).toContain('show_in_client_portal');
     expect(migration).toContain('notification_broadcasts_client_portal_select');
+    expect(migration).toContain('FROM public.office_notifications notification');
+    expect(migration).not.toContain('FROM public.notifications notification');
     expect(migration).toContain('notification.recipient_user_id = auth.uid()');
   });
 

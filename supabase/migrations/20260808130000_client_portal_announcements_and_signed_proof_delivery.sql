@@ -1,5 +1,27 @@
 -- CareSuite+ — Client portal announcements and signed proof delivery
 
+BEGIN;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'office_notifications'
+      AND column_name = 'related_broadcast_id'
+  ) OR NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'office_notifications'
+      AND column_name = 'recipient_user_id'
+  ) THEN
+    RAISE EXCEPTION
+      'R21 requires public.office_notifications with related_broadcast_id and recipient_user_id.';
+  END IF;
+END $$;
+
 ALTER TABLE public.notification_broadcasts
   ADD COLUMN IF NOT EXISTS show_in_client_portal BOOLEAN NOT NULL DEFAULT FALSE;
 
@@ -51,7 +73,7 @@ CREATE POLICY notification_broadcasts_client_portal_select
     AND (expires_at IS NULL OR expires_at > NOW())
     AND EXISTS (
       SELECT 1
-      FROM public.notifications notification
+      FROM public.office_notifications notification
       WHERE notification.tenant_id = notification_broadcasts.tenant_id
         AND notification.related_broadcast_id = notification_broadcasts.id
         AND notification.recipient_user_id = auth.uid()
@@ -60,3 +82,5 @@ CREATE POLICY notification_broadcasts_client_portal_select
 
 COMMENT ON COLUMN public.notification_broadcasts.show_in_client_portal IS
   'Broadcast is visible only to explicitly addressed client portal accounts.';
+
+COMMIT;
