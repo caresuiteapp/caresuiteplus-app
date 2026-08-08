@@ -41,6 +41,7 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { useAuth } from '@/lib/auth/context';
 import { portalPremium } from '@/design/tokens/portalPremium';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 const CONTACT_ROLE_LABELS: Record<PortalClientContactSummary['role'], string> = {
   emergency: 'Notfall',
@@ -278,6 +279,7 @@ export function ClientPortalProfileScreen() {
   } = useClientPortalProfile();
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
   const [requestSuccess, setRequestSuccess] = useState(false);
 
   const isWide = isTablet || isDesktop;
@@ -295,7 +297,9 @@ export function ClientPortalProfileScreen() {
   const handleStammdatenRequest = useCallback(
     async (payload: PortalStructuredRequestPayload) => {
       if (!tenantId || !profile?.clientId || !actorId) return;
+      if (submitting) return;
       setSubmitting(true);
+      setRequestError(null);
       const result = await createPortalRequest({
         tenantId,
         clientId: profile.clientId,
@@ -311,9 +315,16 @@ export function ClientPortalProfileScreen() {
         setRequestModalOpen(false);
         setRequestSuccess(true);
         setTimeout(() => setRequestSuccess(false), 2500);
+      } else {
+        setRequestError(
+          toPortalUserFacingError(
+            result.error,
+            'Ihre Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.',
+          ),
+        );
       }
     },
-    [tenantId, profile?.clientId, actorId, context?.primaryModule],
+    [tenantId, profile?.clientId, actorId, context?.primaryModule, submitting],
   );
 
   if (!canViewProfile) {
@@ -448,7 +459,11 @@ export function ClientPortalProfileScreen() {
         visible={requestModalOpen}
         requestType="stammdaten"
         submitting={submitting}
-        onClose={() => setRequestModalOpen(false)}
+        submitError={requestError}
+        onClose={() => {
+          setRequestError(null);
+          setRequestModalOpen(false);
+        }}
         onSubmit={(payload) => {
           if (isPortalFormRequestType('stammdaten')) {
             void handleStammdatenRequest(payload);

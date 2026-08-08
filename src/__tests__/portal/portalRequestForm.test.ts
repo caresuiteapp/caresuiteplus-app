@@ -251,4 +251,37 @@ describe('PortalRequestFormModal UI', () => {
     expect(source).toContain('<PlatformModal');
     expect(source).toContain('visible={open}');
   });
+
+  it('keeps entered request values during realtime dashboard refreshes', () => {
+    const modal = readSrc('src/components/portal/assist/PortalRequestFormModal.tsx');
+    const overview = readSrc('src/components/portal/assist/AssistPortalOverview.tsx');
+    const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');
+
+    expect(modal).toContain('wasVisibleRef');
+    expect(modal).toContain('initializedRequestTypeRef');
+    expect(modal).toContain('if (!becameVisible && !requestTypeChanged) return');
+    expect(overview).toContain('usePortalAssistRealtime');
+    expect(mobile).toContain('usePortalAssistRealtime');
+  });
+
+  it('shows submission failures inside the still-open request form', () => {
+    const modal = readSrc('src/components/portal/assist/PortalRequestFormModal.tsx');
+    const overview = readSrc('src/components/portal/assist/AssistPortalOverview.tsx');
+    const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');
+    const profile = readSrc('src/screens/portal/ClientPortalProfileScreen.tsx');
+
+    expect(modal).toContain('submitError?: string | null');
+    for (const source of [overview, mobile, profile]) {
+      expect(source).toContain('requestError');
+      expect(source).toContain('submitError={requestError}');
+      expect(source).toContain('toPortalUserFacingError');
+    }
+  });
+
+  it('hydrates a new-chat draft only once per modal opening', () => {
+    const source = readSrc('src/components/portal/PortalNewChatModal.tsx');
+    expect(source).toContain('hydratedOpenRef');
+    expect(source).toContain('if (!tenantId || hydratedOpenRef.current) return');
+    expect(source).toContain('hydratedOpenRef.current = true');
+  });
 });

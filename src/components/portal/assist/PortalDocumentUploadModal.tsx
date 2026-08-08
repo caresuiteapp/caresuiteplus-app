@@ -9,6 +9,7 @@ import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { uploadPortalDocument } from '@/lib/portal/assist/portalDocumentUploadService';
 import { isDemoMode } from '@/lib/supabase/config';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 const ACCEPTED_MIME_TYPES = [
   'application/pdf',
@@ -152,7 +153,12 @@ export function PortalDocumentUploadModal({
     setProgressLabel(null);
 
     if (!result.ok) {
-      setError(result.error);
+      setError(
+        toPortalUserFacingError(
+          result.error,
+          'Das Dokument konnte gerade nicht hochgeladen werden. Bitte versuchen Sie es erneut.',
+        ),
+      );
       return;
     }
 

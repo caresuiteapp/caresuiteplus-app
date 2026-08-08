@@ -55,6 +55,7 @@ export function MobilePortalDashboard({
   const [openRequestsModalOpen, setOpenRequestsModalOpen] = useState(false);
   const [activitiesModalOpen, setActivitiesModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
   const [localSuccess, setLocalSuccess] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
@@ -148,7 +149,9 @@ export function MobilePortalDashboard({
     requestType: PortalRequestType,
     structuredPayload?: PortalStructuredRequestPayload,
   ) => {
+    if (submitting) return;
     setSubmitting(true);
+    setRequestError(null);
     const description =
       structuredPayload && isPortalFormRequestType(requestType)
         ? buildPortalRequestDescription(requestType, structuredPayload)
@@ -176,7 +179,7 @@ export function MobilePortalDashboard({
       setTimeout(() => setLocalSuccess(false), 2500);
       await loadDashboard();
     } else {
-      setError(
+      setRequestError(
         toPortalUserFacingError(
           result.error,
           'Ihre Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.',
@@ -280,7 +283,11 @@ export function MobilePortalDashboard({
           upcomingAppointments={data.upcomingAppointments}
           contactPhone={data.contactPhone}
           submitting={submitting}
-          onClose={() => setRequestModal(null)}
+          submitError={requestError}
+          onClose={() => {
+            setRequestError(null);
+            setRequestModal(null);
+          }}
           onSubmit={(payload) => void submitRequest(requestModal, payload)}
         />
       ) : null}

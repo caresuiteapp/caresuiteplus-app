@@ -17,6 +17,7 @@ import {
 import { subscribePortalProofCache } from '@/lib/portal/portalProofCacheSignal';
 import type { PortalServiceProof } from '@/types/portal/serviceProofs';
 import { LoadingState, PremiumButton } from '@/components/ui';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 type PortalServiceProofsModalProps = {
   visible: boolean;
@@ -57,7 +58,12 @@ export function PortalServiceProofsModal({
     if (result.ok) {
       setProofs(result.data);
     } else {
-      setError(result.error);
+      setError(
+        toPortalUserFacingError(
+          result.error,
+          'Ihre Nachweise konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+        ),
+      );
       setProofs([]);
     }
     setLoading(false);
@@ -109,7 +115,12 @@ export function PortalServiceProofsModal({
     });
     setActionProofId(null);
     if (!result.ok) {
-      setError(result.error);
+      setError(
+        toPortalUserFacingError(
+          result.error,
+          'Ihre Rückfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.',
+        ),
+      );
     }
   };
 

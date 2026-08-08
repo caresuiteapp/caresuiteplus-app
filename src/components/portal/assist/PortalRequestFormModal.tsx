@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
 import { ListFilterSelect, PremiumInput } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { resolvePortalRequestTypeLabel } from '@/lib/portal/assist';
@@ -47,6 +46,7 @@ type PortalRequestFormModalProps = {
   upcomingAppointments?: PortalNextAppointment[];
   contactPhone?: string | null;
   submitting?: boolean;
+  submitError?: string | null;
   onClose: () => void;
   onSubmit: (payload: PortalStructuredRequestPayload) => void;
 };
@@ -59,10 +59,10 @@ export function PortalRequestFormModal({
   upcomingAppointments = [],
   contactPhone,
   submitting = false,
+  submitError = null,
   onClose,
   onSubmit,
 }: PortalRequestFormModalProps) {
-  const text = useAuroraAdaptiveText();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
 
@@ -83,9 +83,16 @@ export function PortalRequestFormModal({
     }),
   );
   const [error, setError] = useState<string | null>(null);
+  const wasVisibleRef = useRef(visible);
+  const initializedRequestTypeRef = useRef(requestType);
 
   useEffect(() => {
-    if (!visible) return;
+    const becameVisible = visible && !wasVisibleRef.current;
+    const requestTypeChanged = visible && initializedRequestTypeRef.current !== requestType;
+    wasVisibleRef.current = visible;
+
+    if (!becameVisible && !requestTypeChanged) return;
+    initializedRequestTypeRef.current = requestType;
     setFormState(
       createDefaultFormState(requestType, {
         leistungsartOptions,
@@ -103,6 +110,7 @@ export function PortalRequestFormModal({
       return;
     }
     setError(null);
+    if (submitting) return;
     onSubmit(formState);
   };
 
@@ -382,8 +390,10 @@ export function PortalRequestFormModal({
       onPrimary={handleSubmit}
     >
       <View style={styles.fields}>{renderFields()}</View>
-      {error ? (
-        <Text style={[type.caption, styles.error, { color: text.secondary }]}>{error}</Text>
+      {error || submitError ? (
+        <Text style={[type.caption, styles.error]}>
+          {error ?? submitError}
+        </Text>
       ) : null}
     </PortalGlassModal>
   );

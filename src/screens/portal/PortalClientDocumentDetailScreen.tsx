@@ -25,6 +25,7 @@ import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { colors, spacing, typography } from '@/theme';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 export function PortalClientDocumentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -78,7 +79,12 @@ export function PortalClientDocumentDetailScreen() {
       });
       setSignLoading(false);
       if (!result.ok) {
-        setSignError(result.error ?? 'Unterschrift konnte nicht gespeichert werden.');
+        setSignError(
+          toPortalUserFacingError(
+            result.error,
+            'Unterschrift konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.',
+          ),
+        );
         return;
       }
       setSignatureOpen(false);

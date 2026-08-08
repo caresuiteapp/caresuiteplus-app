@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
 import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
@@ -23,6 +23,7 @@ import { spacing, radius } from '@/theme';
 import type { OfficeMessageCategory } from '@/types/office/messaging';
 import { PORTAL_EMERGENCY_DISCLAIMER } from '@/lib/office/messagecategoryconstants';
 import { portalAudienceForRole } from '@/lib/portal/portalAudience';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 type PortalNewChatModalProps = {
   visible: boolean;
@@ -59,6 +60,7 @@ export function PortalNewChatModal({
   const [categories, setCategories] = useState<OfficeMessageCategory[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hydratedOpenRef = useRef(false);
   const actorAudienceMatches = portalAudienceForRole(roleKey) === audience;
   const canSend = actorAudienceMatches && isLinkedReady && Boolean(categoryId) && !submitting;
 
@@ -84,7 +86,12 @@ export function PortalNewChatModal({
   );
 
   useEffect(() => {
-    if (!visible || !tenantId) return;
+    if (!visible) {
+      hydratedOpenRef.current = false;
+      return;
+    }
+    if (!tenantId || hydratedOpenRef.current) return;
+    hydratedOpenRef.current = true;
 
     const savedDraft = readPortalNewChatDraft(tenantId, audience, draftActorId);
     if (savedDraft) {
@@ -186,7 +193,12 @@ export function PortalNewChatModal({
     setSubmitting(false);
 
     if (!result.ok) {
-      setError(result.error);
+      setError(
+        toPortalUserFacingError(
+          result.error,
+          'Ihre Nachricht konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.',
+        ),
+      );
       return;
     }
     clearPortalNewChatDraft(tenantId, audience, draftActorId);
