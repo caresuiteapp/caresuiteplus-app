@@ -49,7 +49,7 @@ const DB_TO_CATALOG: Record<EmployeeDbStatus, string> = {
   inactive: 'archiviert',
   sick: 'krank',
   vacation: 'urlaub',
-  terminated: 'ausgeschieden',
+  terminated: 'archiviert',
   blocked: 'gesperrt',
   deleted: 'geloescht',
 };

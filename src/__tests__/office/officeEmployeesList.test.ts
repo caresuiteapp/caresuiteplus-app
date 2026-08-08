@@ -47,6 +47,7 @@ describe('Office Mitarbeitende list', () => {
 
   it('Status- und Sortierfilter sind vollständig definiert', () => {
     expect(EMPLOYEE_STATUS_FILTERS.some((f) => f.key === 'aktiv')).toBe(true);
+    expect(EMPLOYEE_STATUS_FILTERS.some((f) => f.key === 'archiviert')).toBe(true);
     expect(EMPLOYEE_SORT_OPTIONS.some((o) => o.key === 'name_asc')).toBe(true);
   });
 
@@ -73,9 +74,23 @@ describe('Office Mitarbeitende list', () => {
     const source = readSrc('src/components/office/EmployeeDetailSummaryPanel.tsx');
     expect(source).toContain('Personalakte öffnen');
     expect(source).toContain('Stammdaten bearbeiten');
-    expect(source).toContain('Offboarding');
+    expect(source).toContain('Kündigung / Offboarding');
+    expect(source).toContain("employee.status === 'entwurf'");
+    expect(source).toContain("color: '#09213F'");
     expect(source).toContain('useEmployeeDetail');
     expect(source).not.toContain('Coming Soon');
+  });
+
+  it('Offboarding-UI erfasst Kündigung und führt bis zur Archivierung', () => {
+    const source = readSrc('src/screens/office/EmployeeOffboardingScreen.tsx');
+    expect(source).toContain('Letzter Tag des Beschäftigungsverhältnisses');
+    expect(source).toContain('Art der Beendigung');
+    expect(source).toContain('lockOffboardingPortalAccess');
+    expect(source).toContain('generateOffboardingCompletionProtocol');
+    expect(source).toContain('completeOffboardingFinalClearance');
+    expect(source).toContain('archiveOffboardingPersonnelFile');
+    expect(source).toContain('Kein Löschen');
+    expect(source).not.toContain("exitDate: '2026-07-31'");
   });
 
   it('EmployeeListCard unterstützt Auswahlzustand für Master-Detail', () => {

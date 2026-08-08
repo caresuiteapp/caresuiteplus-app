@@ -9,6 +9,7 @@ import { getCompletionChainStatus, listCompletionMonitorItems } from '@/lib/assi
 import { listAssignmentWorkflows } from '@/lib/assist/assignmentWorkflowService';
 import { getConnectProviderPlaceholders } from '@/lib/connect/connectProviderService';
 import { getDemoEmployeePersonnelFile } from '@/data/demo/employeePersonnelFile';
+import { demoEmployees } from '@/data/demo/employees';
 import { checkOffboardingInventory } from '@/lib/inventory/inventoryOffboardingService';
 import { inventoryDemoRepository } from '@/lib/inventory/inventoryRepository.demo';
 import { ABSENCE_STORE } from '@/lib/office/absenceStore';
@@ -270,5 +271,10 @@ export function setEmployeeEmploymentStatusAfterOffboarding(
   file.employment.employmentStatus = status;
   file.masterData.exitDate = file.masterData.exitDate;
   file.masterData.status = status === 'archived' ? 'archiviert' : 'beendet';
+  const listItem = demoEmployees.find((employee) => employee.id === employeeId);
+  if (listItem) {
+    listItem.status = status === 'archived' ? 'archiviert' : 'gesperrt';
+    listItem.updatedAt = new Date().toISOString();
+  }
   return true;
 }

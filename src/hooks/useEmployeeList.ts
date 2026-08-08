@@ -15,6 +15,7 @@ export const EMPLOYEE_STATUS_FILTERS: { key: WorkflowStatus | 'all'; label: stri
   { key: 'in_bearbeitung', label: WORKFLOW_STATUS_LABELS.in_bearbeitung },
   { key: 'entwurf', label: WORKFLOW_STATUS_LABELS.entwurf },
   { key: 'gesperrt', label: WORKFLOW_STATUS_LABELS.gesperrt },
+  { key: 'archiviert', label: 'Ehemalige / Archiviert' },
 ];
 
 const PAGE_SIZE = 8;

@@ -16,6 +16,10 @@ import {
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
+import { employeeSupabaseRepository } from '@/lib/services/repositories/employeeRepository.supabase';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import {
   buildPersonnelAccessContext,
   canViewEmployeePersonnelFile,
@@ -568,6 +572,11 @@ export async function saveOffboardingExitDetails(
     if (file) {
       file.masterData.exitDate = input.exitDate.trim();
     }
+  } else {
+    const liveUpdate = await employeeSupabaseRepository.update(tenantId, employeeId, {
+      exit_date: input.exitDate.trim(),
+    });
+    if (!liveUpdate.ok) return liveUpdate;
   }
 
   const session = readOffboardingSession(tenantId, employeeId);
@@ -717,9 +726,32 @@ export async function lockOffboardingPortalAccess(
   const session = readOffboardingSession(tenantId, employeeId);
   ensureAccessRevocationRecords(session.id, tenantId, employeeId);
 
-  const locked = lockEmployeePortalAccess(tenantId, employeeId);
-  if (!locked) {
-    return { ok: false, error: 'Portalzugang konnte nicht gesperrt werden.' };
+  if (getServiceMode() === 'supabase') {
+    const supabase = getSupabaseClient();
+    if (!supabase) return { ok: false, error: 'Live-Datenbank ist nicht verfügbar.' };
+    const now = new Date().toISOString();
+    const { error: accountError } = await fromUnknownTable(supabase, 'employee_portal_accounts')
+      .update({
+        status: 'blocked',
+        blocked_at: now,
+        blocked_by: actorId ?? null,
+        blocked_reason: 'Beschäftigungsverhältnis beendet / Offboarding',
+        updated_at: now,
+      })
+      .eq('tenant_id', tenantId)
+      .eq('employee_id', employeeId);
+    if (accountError) return { ok: false, error: toGermanSupabaseError(accountError) };
+
+    const { error: profileError } = await fromUnknownTable(supabase, 'employee_profiles')
+      .update({ portal_active: false, updated_at: now })
+      .eq('tenant_id', tenantId)
+      .eq('employee_id', employeeId);
+    if (profileError) return { ok: false, error: toGermanSupabaseError(profileError) };
+  } else {
+    const locked = lockEmployeePortalAccess(tenantId, employeeId);
+    if (!locked) {
+      return { ok: false, error: 'Portalzugang konnte nicht gesperrt werden.' };
+    }
   }
 
   const now = new Date().toISOString();
@@ -952,7 +984,15 @@ export async function completeOffboardingFinalClearance(
     notes: null,
   });
 
-  setEmployeeEmploymentStatusAfterOffboarding(tenantId, employeeId, 'terminated');
+  if (getServiceMode() === 'supabase') {
+    const liveUpdate = await employeeSupabaseRepository.update(tenantId, employeeId, {
+      status: 'terminated',
+      exit_date: progress.session.exitDate,
+    });
+    if (!liveUpdate.ok) return liveUpdate;
+  } else {
+    setEmployeeEmploymentStatusAfterOffboarding(tenantId, employeeId, 'terminated');
+  }
   updateOffboardingStep(progress.session.id, 'final_clearance', 'completed');
 
   patchOffboardingSession(tenantId, employeeId, {
@@ -992,7 +1032,29 @@ export async function archiveOffboardingPersonnelFile(
   }
 
   const now = new Date().toISOString();
-  setEmployeeEmploymentStatusAfterOffboarding(tenantId, employeeId, 'archived');
+  if (getServiceMode() === 'supabase') {
+    const liveUpdate = await employeeSupabaseRepository.update(tenantId, employeeId, {
+      status: 'inactive',
+      exit_date: progress.session.exitDate,
+    });
+    if (!liveUpdate.ok) return liveUpdate;
+
+    const supabase = getSupabaseClient();
+    if (!supabase) return { ok: false, error: 'Live-Datenbank ist nicht verfügbar.' };
+    const { error } = await fromUnknownTable(supabase, 'employee_employment_details')
+      .upsert(
+        {
+          tenant_id: tenantId,
+          employee_id: employeeId,
+          employment_status: 'archived',
+          updated_at: now,
+        },
+        { onConflict: 'tenant_id,employee_id' },
+      );
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  } else {
+    setEmployeeEmploymentStatusAfterOffboarding(tenantId, employeeId, 'archived');
+  }
 
   writeFinalClearance({
     ...clearance,

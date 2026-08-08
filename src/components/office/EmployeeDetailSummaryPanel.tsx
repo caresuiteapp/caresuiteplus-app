@@ -99,6 +99,8 @@ export function EmployeeDetailSummaryPanel({
   }
 
   const fullName = `${employee.firstName} ${employee.lastName}`;
+  const isArchived = employee.status === 'archiviert';
+  const canDeleteDraft = employee.status === 'entwurf';
 
   const handleEditMasterData = () => {
     if (onEditMasterData) {
@@ -193,13 +195,13 @@ export function EmployeeDetailSummaryPanel({
         />
         {can('office.employees.edit') ? (
           <PremiumButton
-            title="Offboarding"
+            title={isArchived ? 'Archivierte Personalakte' : 'Kündigung / Offboarding'}
             variant="secondary"
             fullWidth
             onPress={handleOpenOffboarding}
           />
         ) : null}
-        {can('office.employees.delete') ? (
+        {can('office.employees.delete') && canDeleteDraft ? (
           <OfficeRecordDeleteButton
             recordLabel="Mitarbeitende:r"
             displayName={fullName}
@@ -241,6 +243,7 @@ const styles = StyleSheet.create({
   },
   name: {
     ...typography.h2,
+    color: '#09213F',
   },
   badgeRow: {
     flexDirection: 'row',
@@ -249,18 +252,22 @@ const styles = StyleSheet.create({
   },
   role: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: '#526A84',
+    fontWeight: '700',
   },
   row: {
     marginBottom: spacing.sm,
   },
   rowLabel: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: '#526A84',
+    fontWeight: '700',
     marginBottom: 2,
   },
   rowValue: {
     ...typography.body,
+    color: '#09213F',
+    fontWeight: '600',
   },
   hintLabel: {
     ...typography.label,
@@ -269,6 +276,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     ...typography.body,
+    color: '#09213F',
   },
   actions: {
     gap: spacing.sm,
