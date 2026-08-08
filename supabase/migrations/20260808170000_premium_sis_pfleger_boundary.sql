@@ -22,7 +22,9 @@ AS $$
      AND a.status NOT IN ('inactive', 'deactivated', 'archiviert')
     WHERE c.tenant_id = p_tenant_id
       AND c.id = p_client_id
-      AND c.status IN ('aktiv', 'in_bearbeitung')
+      -- Persisted client_status values are English. Only fully active Pflege
+      -- cases belong in the ambulant SIS; leads and paused/intake cases stay out.
+      AND c.status = 'active'::public.client_status
   )
 $$;
 
@@ -55,7 +57,9 @@ BEGIN
    AND a.is_active = TRUE
    AND a.status NOT IN ('inactive', 'deactivated', 'archiviert')
   WHERE c.tenant_id = public.current_tenant_id()
-    AND c.status IN ('aktiv', 'in_bearbeitung')
+    -- Do not map local German workflow labels into the database predicate.
+    -- The production enum stores the canonical value "active".
+    AND c.status = 'active'::public.client_status
   ORDER BY c.last_name, c.first_name;
 END;
 $$;

@@ -18,6 +18,7 @@ const checks = [
   ['Altbestand bleibt erhalten','supabase/migrations/20260726140000_care_assessment_healthos.sql',/assessment_runs[\s\S]*legacy_payload/],
   ['Altbestand nur aus Pflege','supabase/migrations/20260726140000_care_assessment_healthos.sql',/client_module_assignments[\s\S]*module_key = 'pflege'/],
   ['Datenbankgrenze Pflege','supabase/migrations/20260808170000_premium_sis_pfleger_boundary.sql',/is_active_pfleger_client[\s\S]*module_key = 'pflege'/],
+  ['Nur produktiv aktive Pflegefälle','supabase/migrations/20260808170000_premium_sis_pfleger_boundary.sql',/is_active_pfleger_client[\s\S]*c\.status = 'active'::public\.client_status[\s\S]*list_pfleger_clients[\s\S]*c\.status = 'active'::public\.client_status/],
   ['Assist-Übernahme gesperrt','supabase/migrations/20260808170000_premium_sis_pfleger_boundary.sql',/Assist-Klient:innen werden nicht übernommen/],
   ['Pflege-RPC statt Sammelliste','src/lib/careAssessment/careAssessmentRepository.supabase.ts',/rpc\('list_pfleger_clients'\)/],
   ['Evaluation und Versionierung','src/lib/careAssessment/careAssessmentRepository.supabase.ts',/care_assessment_evaluations[\s\S]*care_assessment_versions/],
