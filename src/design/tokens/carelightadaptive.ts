@@ -23,6 +23,7 @@ import {
 } from '@/design/tokens/accentContrast';
 import { useListHeroSurface } from '@/design/tokens/listHeroSurfaceContext';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
 
 export type CareLightResolved = {
   isDark: boolean;
@@ -86,7 +87,14 @@ export function resolveCareLightPalette(isDark: boolean): CareLightResolved {
 export function useCareLightPalette(): { isDark: boolean; c: CareLightResolved } {
   const { mode } = useThemeMode();
   const portal = usePortalPremiumTheme();
-  const isDark = portal.active ? false : mode === 'dark';
+  const surfaceTone = useSurfaceContrastTone();
+  const isDark = portal.active
+    ? false
+    : surfaceTone === 'light'
+      ? false
+      : surfaceTone === 'dark'
+        ? true
+        : mode === 'dark';
   return useMemo(() => {
     if (portal.active) {
       return {

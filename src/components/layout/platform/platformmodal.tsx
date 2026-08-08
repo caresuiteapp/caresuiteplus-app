@@ -26,6 +26,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
 import { portalPremium, usePortalPremiumRuntimeTheme } from '@/design/tokens/portalPremium';
 import { resolvePlatformModalMaxHeight } from '@/lib/platform/platformModalLayout';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { GradientModalActionButton } from './gradientmodalactionbutton';
 import type { GradientModalActionButtonVariant } from './gradientmodalactionbutton';
 import { GradientModalHeader } from './gradientmodalheader';
@@ -248,13 +249,14 @@ export function PlatformModal({
   const backdropStyle = variant === 'bottomSheet' ? styles.backdropBottom : styles.backdropCenter;
 
   const sheetContent = (
-    <GlassSurface
-      radius={variant === 'bottomSheet' ? careRadius.lg : shellRadius}
-      glowColor={accent}
-      glowOpacity={isDark ? 0.22 : 0.12}
-      elevated
-      style={StyleSheet.flatten([styles.sheetInner, sheetStyle])}
-    >
+    <SurfaceContrastProvider tone={lightModal ? 'light' : 'dark'}>
+      <GlassSurface
+        radius={variant === 'bottomSheet' ? careRadius.lg : shellRadius}
+        glowColor={accent}
+        glowOpacity={isDark ? 0.22 : 0.12}
+        elevated
+        style={StyleSheet.flatten([styles.sheetInner, sheetStyle])}
+      >
       <View style={{ flexShrink: 0 }}>
         <GradientModalHeader
           title={title}
@@ -288,7 +290,8 @@ export function PlatformModal({
           ))}
         </View>
       ) : null}
-    </GlassSurface>
+      </GlassSurface>
+    </SurfaceContrastProvider>
   );
 
   return (

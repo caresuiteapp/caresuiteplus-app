@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { IntegrationsHubHero } from '@/components/integrations';
@@ -24,6 +25,7 @@ import {
   INTEGRATION_STATUS_LABELS,
 } from '@/types/modules/integrations';
 import { colors, spacing, typography } from '@/theme';
+import { useCareLightPalette, type CareLightResolved } from '@/design/tokens/carelightadaptive';
 
 export function IntegrationsListScreen() {
   const router = useRouter();
@@ -31,6 +33,8 @@ export function IntegrationsListScreen() {
   const { can, check, roleLabel } = usePermissions();
   const roleKey = profile?.roleKey ?? 'business_admin';
   const { items, loading, error, refresh } = useIntegrationList();
+  const { c } = useCareLightPalette();
+  const styles = useMemo(() => makeStyles(c), [c]);
 
   if (!can('integrations.view')) {
     return (
@@ -102,9 +106,11 @@ export function IntegrationsListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm, marginBottom: spacing.xs },
-  title: { ...typography.bodyStrong, flex: 1 },
-  meta: { ...typography.caption, color: colors.textSecondary },
-});
+function makeStyles(c: CareLightResolved) {
+  return StyleSheet.create({
+    scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
+    row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm, marginBottom: spacing.xs },
+    title: { ...typography.bodyStrong, color: c.text, flex: 1 },
+    meta: { ...typography.caption, color: c.muted },
+  });
+}
