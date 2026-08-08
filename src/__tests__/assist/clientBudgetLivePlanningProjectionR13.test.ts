@@ -1,10 +1,46 @@
 import { describe, expect, it } from 'vitest';
 import {
   derivePlannedVisitAmountCents,
+  isActivePlannedVisit,
   projectPlannedReservations,
 } from '@/lib/assist/clientAssistBillingProfileService';
 
 describe('R13 live planning projection for client budgets', () => {
+  const plannedVisit = {
+    id: 'visit-1',
+    legacy_assignment_id: 'assignment-1',
+    assignment_date: '2026-08-08',
+    planned_start_at: '2026-08-08T09:00:00.000Z',
+    planned_end_at: '2026-08-08T10:00:00.000Z',
+    duration_minutes: 60,
+    budget_amount_cents: 3_275,
+    billing_budget_source_key: 'paragraph_45b',
+    planning_status: 'scheduled',
+    execution_status: 'pending',
+    canonical_status: 'planned',
+  };
+
+  it('counts scheduled, confirmed and at-risk visits while they remain active', () => {
+    expect(isActivePlannedVisit(plannedVisit)).toBe(true);
+    expect(isActivePlannedVisit({ ...plannedVisit, planning_status: 'confirmed' })).toBe(true);
+    expect(isActivePlannedVisit({ ...plannedVisit, planning_status: 'at_risk' })).toBe(true);
+  });
+
+  it('counts historical planned assignments that migration 0116 marked as drafts', () => {
+    expect(isActivePlannedVisit({ ...plannedVisit, planning_status: 'draft' })).toBe(true);
+    expect(isActivePlannedVisit({
+      ...plannedVisit,
+      planning_status: 'draft',
+      legacy_assignment_id: null,
+    })).toBe(false);
+  });
+
+  it('does not count completed, cancelled or no-show visits', () => {
+    expect(isActivePlannedVisit({ ...plannedVisit, execution_status: 'completed' })).toBe(false);
+    expect(isActivePlannedVisit({ ...plannedVisit, planning_status: 'cancelled' })).toBe(false);
+    expect(isActivePlannedVisit({ ...plannedVisit, canonical_status: 'no_show' })).toBe(false);
+  });
+
   it('uses the stored visit amount when the assignment already has one', () => {
     expect(
       derivePlannedVisitAmountCents(

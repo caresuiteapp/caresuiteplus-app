@@ -29,6 +29,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 
 type PlannedVisitBudgetRow = {
   id: string;
+  legacy_assignment_id: string | null;
   assignment_date: string;
   planned_start_at: string;
   planned_end_at: string;
@@ -48,9 +49,22 @@ type PlannedAllocationRow = {
   allocation_status: string;
 };
 
-function isActivePlannedVisit(row: PlannedVisitBudgetRow): boolean {
-  if (row.planning_status !== 'scheduled' || row.execution_status !== 'pending') return false;
-  return !['cancelled', 'no_show', 'completed'].includes(row.canonical_status);
+const ACTIVE_PLANNING_STATUSES = new Set(['scheduled', 'confirmed', 'at_risk']);
+const TERMINAL_EXECUTION_STATUSES = new Set(['cancelled', 'no_show', 'completed']);
+const TERMINAL_CANONICAL_STATUSES = new Set(['cancelled', 'no_show', 'completed']);
+
+export function isActivePlannedVisit(row: PlannedVisitBudgetRow): boolean {
+  if (TERMINAL_EXECUTION_STATUSES.has(row.execution_status)) return false;
+  if (TERMINAL_CANONICAL_STATUSES.has(row.canonical_status)) return false;
+
+  if (ACTIVE_PLANNING_STATUSES.has(row.planning_status)) return true;
+
+  // Migration 0116 mapped historical assignments with canonical_status=planned
+  // to planning_status=draft. Real drafts do not have a legacy assignment link,
+  // because the legacy mirror is intentionally skipped when saving a draft.
+  return row.planning_status === 'draft'
+    && row.canonical_status === 'planned'
+    && Boolean(row.legacy_assignment_id);
 }
 
 export function derivePlannedVisitAmountCents(
@@ -101,11 +115,9 @@ async function loadPlannedReservationTotals(
   if (!client) return null;
 
   const { data: visitData, error: visitError } = await fromUnknownTable(client, 'assist_visits')
-    .select('id, assignment_date, planned_start_at, planned_end_at, duration_minutes, budget_amount_cents, billing_budget_source_key, planning_status, execution_status, canonical_status')
+    .select('id, legacy_assignment_id, assignment_date, planned_start_at, planned_end_at, duration_minutes, budget_amount_cents, billing_budget_source_key, planning_status, execution_status, canonical_status')
     .eq('tenant_id', tenantId)
-    .eq('client_id', clientId)
-    .eq('planning_status', 'scheduled')
-    .eq('execution_status', 'pending');
+    .eq('client_id', clientId);
   if (visitError) return null;
 
   const visits = ((visitData ?? []) as unknown as PlannedVisitBudgetRow[]).filter(isActivePlannedVisit);

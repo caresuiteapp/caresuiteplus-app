@@ -40,6 +40,7 @@ import {
 import { colors, spacing, typography } from '@/theme';
 import type { ClientFundingSourceKey } from '@/types/clients/clientFundingSource';
 import { setClientFundingSources } from '@/lib/clients/clientFundingSourceService';
+import { subscribeToClientBudgetChanges } from '@/lib/realtime/presets';
 
 function useBillingProfile(clientId: string) {
   const tenantId = useServiceTenantId();
@@ -55,7 +56,16 @@ function useBillingProfile(clientId: string) {
       }) as Promise<{ ok: true; data: ClientAssistBillingProfile } | { ok: false; error: string }>;
     },
     [tenantId, clientId],
-    { enabled: !!tenantId && !!clientId },
+    {
+      enabled: !!tenantId && !!clientId,
+      live: {
+        tenantId,
+        subscribe: (liveTenantId, handler) =>
+          subscribeToClientBudgetChanges(liveTenantId, clientId, handler),
+        pollMs: 30_000,
+        refreshOnFocus: true,
+      },
+    },
   );
 }
 

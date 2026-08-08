@@ -157,6 +157,29 @@ export function subscribeToAssignmentChanges(
   );
 }
 
+/** Klientenbudget — Planung, Reservierungen und Kontostände bleiben synchron. */
+export function subscribeToClientBudgetChanges(
+  tenantId: string,
+  clientId: string,
+  handler: RealtimeHandler,
+): () => void {
+  const client = clientFilter(clientId);
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `client-budget:${tenantId}:${clientId}`,
+      channelName: `assist:client-budget:${tenantId}:${clientId}`,
+      specs: [
+        { table: 'assist_visits', filter: client },
+        { table: 'assignments', filter: client },
+        { table: 'assignment_budget_allocations', filter: client },
+        { table: 'client_budget_accounts', filter: client },
+        { table: 'client_budget_transactions', filter: client },
+      ],
+    },
+    handler,
+  );
+}
+
 /** Office Mitarbeitendenliste. */
 export function subscribeToEmployeeListChanges(
   tenantId: string,
