@@ -78,6 +78,8 @@
     "bodymap3d:mesh:verify-age-portable": "node scripts/verify-bodymap-age-reference-portable.mjs",
     "bodymap3d:mesh:verify-divers-portable": "node scripts/verify-bodymap-divers-reference-portable.mjs",
     "bodymap3d:clinical:verify-portable": "node scripts/verify-bodymap-clinical-interaction-portable.mjs",
+    "care-assessment:audit": "node scripts/care-assessment-healthos-audit.mjs",
+    "care-assessment:deploy:gitbash": "bash scripts/deploy-care-assessment-healthos-gitbash.sh",
     "bodymap3d:mesh:capture-workbench": "node scripts/capture-bodymap-mesh-workbench.mjs",
     "bodymap3d:mesh:render-reference-qa": "node scripts/render-bodymap-adult-male-reference-qa.mjs",
     "bodymap3d:mesh:render-female-reference-qa": "node scripts/render-bodymap-adult-female-reference-qa.mjs",

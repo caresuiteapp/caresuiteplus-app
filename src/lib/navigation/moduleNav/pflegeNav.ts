@@ -30,7 +30,7 @@ export const pflegeNav: ModuleNavConfig = {
     {
       title: 'Assessment & Berichte',
       items: [
-        { key: 'sis', label: 'SIS / Assessment', icon: '📊', href: '/pflege/sis' },
+        { key: 'sis', label: 'Pflegeverständnis & SIS', icon: '📊', href: '/pflege/sis' },
         { key: 'berichte', label: 'Berichte', icon: '📄', href: '/pflege/berichte' },
         { key: 'uebergaben', label: 'Übergaben', icon: '🔄', href: '/pflege/uebergaben' },
       ],

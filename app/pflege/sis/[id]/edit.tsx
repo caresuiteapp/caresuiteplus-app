@@ -1,5 +1,2 @@
-import { SisFormScreen } from '@/product-workflows/screens/pflege/SisFormScreen';
-
-export default function SisEditRoute() {
-  return <SisFormScreen mode="edit" />;
-}
+import { CareAssessmentWorkspaceScreen } from '@/screens/careAssessment';
+export default function Route() { return <CareAssessmentWorkspaceScreen subjectType="client" mode="workspace" />; }

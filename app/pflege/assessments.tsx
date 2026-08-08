@@ -1,3 +1,2 @@
-import { PflegeAssessmentsListScreen } from '@/product-workflows/screens/pflege/PflegeDedicatedScreens';
-
-export default PflegeAssessmentsListScreen;
+import { CareAssessmentListScreen } from '@/screens/careAssessment';
+export default function Route() { return <CareAssessmentListScreen subjectType="client" />; }
