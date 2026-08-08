@@ -206,4 +206,3 @@ export const CLIENT_ANIMAL_IMAGES: readonly ImageSourcePropType[] = [
   require('../../../assets/client-animals-r17/animal-198.png'),
   require('../../../assets/client-animals-r17/animal-199.png'),
 ];
-
