@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { ClientCareGradeBudgetsPanel } from '@/components/office/ClientCareGradeBudgetsPanel';
 import { EmptyState, ErrorState, LoadingState, PremiumInput } from '@/components/ui';
@@ -12,6 +13,7 @@ import { spacing } from '@/theme';
 
 /** Central Assist budget workspace using the same live profile as the client record. */
 export function AssistBudgetOverviewScreen() {
+  const params = useLocalSearchParams<{ clientId?: string }>();
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
   const text = useAuroraAdaptiveText();
@@ -39,9 +41,13 @@ export function AssistBudgetOverviewScreen() {
   }, [clients, search]);
 
   useEffect(() => {
+    if (params.clientId && clients.some((client) => client.id === params.clientId)) {
+      if (selectedClientId !== params.clientId) setSelectedClientId(params.clientId);
+      return;
+    }
     if (selectedClientId && clients.some((client) => client.id === selectedClientId)) return;
     setSelectedClientId(clients[0]?.id ?? null);
-  }, [clients, selectedClientId]);
+  }, [clients, params.clientId, selectedClientId]);
 
   const selectedClient = clients.find((client) => client.id === selectedClientId) ?? null;
 

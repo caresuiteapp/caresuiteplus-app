@@ -1,10 +1,5 @@
-import { ModuleAssignedClientsScreen } from '@/product-workflows/screens/modules/ModuleAssignedClientsScreen';
+import { Redirect } from 'expo-router';
 
 export default function AssistAssignedClientsRoute() {
-  return (
-    <ModuleAssignedClientsScreen
-      moduleKey="assist"
-      currentPath="/assist/zugeordnete-klienten"
-    />
-  );
+  return <Redirect href="/assist?area=clients" />;
 }

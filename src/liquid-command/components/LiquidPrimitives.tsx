@@ -295,7 +295,7 @@ export function LiquidIconButton({
   );
 }
 
-type LiquidFieldProps = Pick<
+type LiquidFieldProps = Partial<Pick<
   TextInputProps,
   | 'autoCapitalize'
   | 'autoComplete'
@@ -306,7 +306,7 @@ type LiquidFieldProps = Pick<
   | 'returnKeyType'
   | 'secureTextEntry'
   | 'textContentType'
-> & {
+>> & {
   label: string;
   value: string;
   onChangeText: (value: string) => void;

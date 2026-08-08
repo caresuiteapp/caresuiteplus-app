@@ -12,6 +12,7 @@ import type { EmployeeListItem } from '@/types/modules/employeeList';
 import type { InvoiceListItem } from '@/types/modules/billing';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import type { VisitDispositionListItem } from '@/lib/assist/visitTypes';
+import type { RoleKey } from '@/types';
 import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
 
 export type LiquidCurrentData = {
@@ -29,7 +30,7 @@ export type LiquidCurrentDataState = {
   loading: boolean;
   initialized: boolean;
   tenantId: string | null;
-  roleKey: string | null;
+  roleKey: RoleKey | null;
   errors: Partial<Record<LiquidDataSourceKey | 'session', string>>;
   reload: () => Promise<void>;
   lastSynchronizedAt: string | null;

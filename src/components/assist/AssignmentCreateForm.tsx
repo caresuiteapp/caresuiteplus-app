@@ -48,6 +48,7 @@ import { spacing, typography } from '@/theme';
 
 type AssignmentCreateFormProps = {
   visible: boolean;
+  initialClientId?: string | null;
   onClose: () => void;
   onCreated?: (id: string) => void;
 };
@@ -170,7 +171,12 @@ const chipStyles = StyleSheet.create({
   chipText: { ...typography.caption },
 });
 
-export function AssignmentCreateForm({ visible, onClose, onCreated }: AssignmentCreateFormProps) {
+export function AssignmentCreateForm({
+  visible,
+  initialClientId = null,
+  onClose,
+  onCreated,
+}: AssignmentCreateFormProps) {
   const assistAccent = moduleColor('assist');
   const text = useAuroraAdaptiveText();
   const tenantId = useServiceTenantId();
@@ -198,7 +204,7 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
   useEffect(() => {
     if (!visible || !tenantId) return;
     setSection('basis');
-    setForm(EMPTY_VISIT_WIZARD_DATA);
+    setForm({ ...EMPTY_VISIT_WIZARD_DATA, clientId: initialClientId ?? '' });
     setError(null);
     setRemovedTaskKeys(new Set());
     setBudgetAllocation(null);
@@ -236,7 +242,7 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
       }
       setListsLoading(false);
     })();
-  }, [visible, tenantId, profile?.roleKey]);
+  }, [initialClientId, visible, tenantId, profile?.roleKey]);
 
   const subjectOptions = useMemo(
     () => (options?.subjects ?? []).map((s) => ({ value: s.itemKey, label: s.label })),

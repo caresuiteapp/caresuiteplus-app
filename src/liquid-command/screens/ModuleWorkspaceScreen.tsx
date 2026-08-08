@@ -28,6 +28,7 @@ import {
 import { LiquidCommandShell } from '../shell/LiquidCommandShell';
 import type { LiquidModuleKey, LiquidPageType, LiquidWorkArea } from '../types';
 import { CompanyWorkspace } from './CompanyWorkspace';
+import { AssistClientsWorkspace } from './AssistClientsWorkspace';
 
 type WorkspaceItem = {
   id: string;
@@ -770,6 +771,20 @@ export function ModuleWorkspaceScreen({ moduleKey }: { moduleKey: LiquidModuleKe
           />
         )}
       </LiquidCommandShell>
+    );
+  }
+
+  if (moduleKey === 'assist' && activeArea.id === 'clients' && state.tenantId) {
+    return (
+      <AssistClientsWorkspace
+        tenantId={state.tenantId}
+        roleKey={state.roleKey}
+        clients={state.data.clients}
+        visits={state.data.visits}
+        loading={state.loading}
+        dataError={state.errors.clients ?? state.errors.visits ?? null}
+        onReload={state.reload}
+      />
     );
   }
 

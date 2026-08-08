@@ -19,21 +19,23 @@ export function AssignmentsListScreen({
   externalRefreshKey?: number;
 } = {}) {
   const router = useRouter();
-  const params = useLocalSearchParams<{ create?: string }>();
+  const params = useLocalSearchParams<{ create?: string; clientId?: string }>();
   const { can, isReadOnly, roleLabel } = usePermissions();
   const canManage = can('assist.assignments.manage') && !isReadOnly;
   const pageTitle = 'Einsatzplanung';
   const roleSubtitle = getServiceMode() === 'supabase' ? roleLabel ?? 'Assist' : roleLabel ?? 'Demo';
   const assistAccent = moduleColor('assist');
   const [createOpen, setCreateOpen] = useState(false);
+  const [initialCreateClientId, setInitialCreateClientId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (params.create === '1' && canManage) {
+      setInitialCreateClientId(params.clientId ?? null);
       setCreateOpen(true);
-      router.setParams({ create: undefined } as never);
+      router.setParams({ create: undefined, clientId: undefined } as never);
     }
-  }, [params.create, canManage, router]);
+  }, [params.clientId, params.create, canManage, router]);
 
   if (embedded) {
     return (
@@ -80,6 +82,7 @@ export function AssignmentsListScreen({
           selectedId={selectedId}
           externalRefreshKey={(externalRefreshKey ?? 0) + refreshKey}
           createOpen={createOpen}
+          initialCreateClientId={initialCreateClientId}
           onCreateOpenChange={setCreateOpen}
         />
       </View>

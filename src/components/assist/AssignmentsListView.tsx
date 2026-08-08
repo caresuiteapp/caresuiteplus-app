@@ -61,6 +61,8 @@ type AssignmentsListViewProps = {
   externalRefreshKey?: number;
   /** Controlled create-form visibility (e.g. shell action or ?create=1). */
   createOpen?: boolean;
+  /** Optionally preselect the client when opened from the client workspace. */
+  initialCreateClientId?: string | null;
   onCreateOpenChange?: (open: boolean) => void;
 };
 
@@ -70,6 +72,7 @@ export function AssignmentsListView({
   embedded = false,
   externalRefreshKey = 0,
   createOpen,
+  initialCreateClientId = null,
   onCreateOpenChange,
 }: AssignmentsListViewProps) {
   const router = useRouter();
@@ -377,6 +380,7 @@ export function AssignmentsListView({
 
       <AssignmentCreateForm
         visible={wizardVisible}
+        initialClientId={initialCreateClientId}
         onClose={() => setWizardVisible(false)}
         onCreated={(id) => {
           setWizardVisible(false);
