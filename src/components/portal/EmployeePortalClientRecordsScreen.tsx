@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumButton } from '@/components/ui';
+import { ClientAnimalAvatar } from '@/components/clients/ClientAnimalAvatar';
 import { dialPhoneNumber } from '@/components/portal/EmployeePortalClientRecordContactActions';
 import { useEmployeePortalClientRecords } from '@/hooks/useEmployeePortalClientRecords';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
@@ -130,11 +131,11 @@ export function EmployeePortalClientRecordsScreen() {
             >
               <View style={styles.cardGlow} pointerEvents="none" />
               <View style={[styles.cardHeader, compact && styles.cardHeaderCompact]}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {record.displayName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
-                  </Text>
-                </View>
+                <ClientAnimalAvatar
+                  clientId={record.clientId}
+                  clientName={record.displayName}
+                  size={48}
+                />
                 <View style={styles.titleCol}>
                   <Text style={[styles.title, { color: text.primary }]}>{record.displayName}</Text>
                   {location ? (
@@ -267,11 +268,6 @@ const styles = StyleSheet.create({
   cardGlow: { position: 'absolute', right: -48, top: -58, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(53,151,255,0.10)' },
   cardHeader: { flexDirection: 'row', gap: careSpacing.sm, alignItems: 'flex-start' },
   cardHeaderCompact: { flexWrap: 'wrap' },
-  avatar: {
-    width: 48, height: 48, borderRadius: 16, borderWidth: 1, borderColor: portalPremium.borderStrong,
-    backgroundColor: 'rgba(5,108,232,0.12)', alignItems: 'center', justifyContent: 'center',
-  },
-  avatarText: { color: portalPremium.accent.blueDark, fontSize: 15, lineHeight: 19, fontWeight: '900' },
   titleCol: { flex: 1, gap: 4, minWidth: 0 },
   title: { ...careTypography.h3 },
   subtitle: { ...careTypography.body },

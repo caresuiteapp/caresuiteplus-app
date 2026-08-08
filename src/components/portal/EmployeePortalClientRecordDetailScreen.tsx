@@ -4,6 +4,7 @@ import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { AdaptiveKpiGrid, type KpiGridItem } from '@/components/adaptive';
+import { ClientAnimalAvatar } from '@/components/clients/ClientAnimalAvatar';
 import {
   EmptyState,
   ErrorState,
@@ -116,6 +117,11 @@ function ClientRecordHero({ record }: { record: EmployeePortalClientRecordDetail
   return (
     <PremiumCard style={styles.heroCard}>
       <View style={styles.heroTop}>
+        <ClientAnimalAvatar
+          clientId={record.clientId}
+          clientName={record.displayName}
+          size={64}
+        />
         <View style={styles.heroTextCol}>
           <Text style={[styles.heroEyebrow, { color: text.muted }]}>Klientenakte</Text>
           <Text style={[styles.heroTitle, { color: text.primary }]}>{record.displayName}</Text>

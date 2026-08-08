@@ -17,6 +17,7 @@ export type AuroraPageHeaderProps = {
   description?: string;
   roleBadge?: string;
   avatarInitials?: string;
+  avatarNode?: ReactNode;
   primaryActionLabel?: string;
   onPrimaryAction?: () => void;
   badges?: { label: string; variant?: 'default' | 'cyan' | 'pink' | 'muted' | 'green' | 'red' }[];
@@ -31,6 +32,7 @@ export function AuroraPageHeader({
   description,
   roleBadge,
   avatarInitials,
+  avatarNode,
   primaryActionLabel,
   onPrimaryAction,
   badges = [],
@@ -94,11 +96,11 @@ export function AuroraPageHeader({
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
             {description ? <Text style={styles.description}>{description}</Text> : null}
           </View>
-          {avatarInitials ? (
+          {avatarNode ?? (avatarInitials ? (
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{avatarInitials.toUpperCase()}</Text>
             </View>
-          ) : null}
+          ) : null)}
         </View>
         <View style={styles.badgeRow}>
           {roleBadge ? <AuroraBadge label={roleBadge} variant="pink" dot /> : null}
@@ -134,6 +136,7 @@ export type AuroraDetailHeaderProps = {
   title: string;
   badges?: { label: string; variant?: 'default' | 'cyan' | 'pink' | 'muted' | 'green' | 'red' }[];
   avatarIcon?: string;
+  avatarNode?: ReactNode;
   primaryActionLabel?: string;
   onPrimaryAction?: () => void;
   secondaryActionLabel?: string;
@@ -146,6 +149,7 @@ export function AuroraDetailHeader({
   title,
   badges = [],
   avatarIcon = '👤',
+  avatarNode,
   primaryActionLabel,
   onPrimaryAction,
   secondaryActionLabel,
@@ -158,6 +162,7 @@ export function AuroraDetailHeader({
       title={title}
       badges={badges}
       avatarInitials={avatarIcon}
+      avatarNode={avatarNode}
       style={style}
     >
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm }}>

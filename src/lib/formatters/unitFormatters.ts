@@ -2,11 +2,11 @@ const CARE_LEVEL_LABELS: Record<string, string> = {
   kein: 'kein Pflegegrad',
   none: 'kein Pflegegrad',
   beantragt: 'beantragt',
-  pg1: 'PG1',
-  pg2: 'PG2',
-  pg3: 'PG3',
-  pg4: 'PG4',
-  pg5: 'PG5',
+  pg1: 'PG 1',
+  pg2: 'PG 2',
+  pg3: 'PG 3',
+  pg4: 'PG 4',
+  pg5: 'PG 5',
   abgelehnt: 'abgelehnt',
   unbekannt: 'unbekannt',
   unknown: 'unbekannt',
@@ -33,13 +33,13 @@ export function normalizeCareLevelKey(grade: string | number | null | undefined)
   return compact;
 }
 
-/** PG1–5, kein Pflegegrad, beantragt, … */
+/** Einheitliche Anzeige: PG 1–PG 5, kein Pflegegrad, beantragt, … */
 export function formatCareLevel(grade: string | number | null | undefined): string {
   if (grade == null || grade === '') return '';
   const raw = String(grade).trim();
   const key = normalizeCareLevelKey(raw);
   if (CARE_LEVEL_LABELS[key]) return CARE_LEVEL_LABELS[key];
-  if (/^pg\d$/.test(key)) return key.toUpperCase();
+  if (/^pg\d$/.test(key)) return `PG ${key.slice(2)}`;
   return raw;
 }
 

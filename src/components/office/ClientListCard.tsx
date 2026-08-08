@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
+import { ClientAnimalAvatar } from '@/components/clients/ClientAnimalAvatar';
 import type { ClientListItem } from '@/types/modules/office';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
@@ -52,9 +53,16 @@ export function ClientListCard({ client, onPress, selected = false }: ClientList
   const inner = (
     <View style={styles.cardContent}>
       <View style={styles.header}>
-        <Text style={styles.clientName}>
-          {client.lastName}, {client.firstName}
-        </Text>
+        <View style={styles.identity}>
+          <ClientAnimalAvatar
+            clientId={client.id}
+            clientName={`${client.firstName} ${client.lastName}`.trim()}
+            size={48}
+          />
+          <Text style={styles.clientName}>
+            {client.lastName}, {client.firstName}
+          </Text>
+        </View>
         <View style={styles.badges}>
           <PremiumBadge
             label={WORKFLOW_STATUS_LABELS[client.status]}
@@ -110,6 +118,7 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     fontWeight: '800',
   },
+  identity: { flex: 1, minWidth: 180, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

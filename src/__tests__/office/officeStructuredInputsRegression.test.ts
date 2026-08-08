@@ -48,8 +48,8 @@ describe('Office – systemgeführte Eingaben', () => {
 
   it('schreibt Pflegegrade in Systemauswahlen immer als PG groß', () => {
     const screen = read('src/screens/office/InvoiceCreateScreen.tsx');
-    expect(formatCareLevel('pg2')).toBe('PG2');
-    expect(formatCareLevel('PG 3')).toBe('PG3');
+    expect(formatCareLevel('pg2')).toBe('PG 2');
+    expect(formatCareLevel('PG 3')).toBe('PG 3');
     expect(screen).toContain('formatCareLevel(client.careLevel)');
     expect(screen).not.toContain('[client.city, client.careLevel]');
   });

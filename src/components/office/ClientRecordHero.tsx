@@ -1,4 +1,5 @@
 import { AuroraDetailHeader } from '@/components/aurora';
+import { ClientAnimalAvatar } from '@/components/clients/ClientAnimalAvatar';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
@@ -10,6 +11,7 @@ import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import { careTypography } from '@/design/tokens/typography';
 
 type ClientRecordHeroProps = {
+  clientId: string;
   firstName: string;
   lastName: string;
   careLevel: string | null;
@@ -38,6 +40,7 @@ function statusVariant(status: WorkflowStatus): 'green' | 'red' | 'pink' | 'mute
 }
 
 export function ClientRecordHero({
+  clientId,
   firstName,
   lastName,
   careLevel,
@@ -65,7 +68,7 @@ export function ClientRecordHero({
         recordLabel="Klient:innenakte"
         title={fullName}
         badges={badges}
-        avatarIcon="👤"
+        avatarNode={<ClientAnimalAvatar clientId={clientId} clientName={fullName} size={64} ringColor="#FFFFFF" />}
         primaryActionLabel={showEdit && onEdit ? 'Stammdaten bearbeiten' : undefined}
         onPrimaryAction={onEdit}
       />

@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge } from '@/components/ui';
+import { ClientAnimalAvatar } from '@/components/clients/ClientAnimalAvatar';
 import {
   formatClientListLocation,
   resolveClientListServiceLabel,
@@ -42,6 +43,7 @@ export function ClientCompactRow({ client, selected = false, onPress }: ClientCo
       accessibilityRole="button"
       accessibilityState={{ selected }}
     >
+      <ClientAnimalAvatar clientId={client.id} clientName={fullName} size={38} />
       <View style={styles.main}>
         <Text style={styles.name} numberOfLines={1}>
           {fullName}

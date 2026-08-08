@@ -1,6 +1,7 @@
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
+import { ClientAnimalAvatar } from '@/components/clients/ClientAnimalAvatar';
 import type { ClientListItem } from '@/types/modules/office';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
@@ -62,9 +63,16 @@ export function ClientsListTable({
           flex: 2,
           sortable: true,
           render: (item) => (
-            <Text style={[tableText.name, styles.name]}>
-              {item.lastName}, {item.firstName}
-            </Text>
+            <View style={styles.identity}>
+              <ClientAnimalAvatar
+                clientId={item.id}
+                clientName={`${item.firstName} ${item.lastName}`.trim()}
+                size={34}
+              />
+              <Text style={[tableText.name, styles.name]} numberOfLines={1}>
+                {item.lastName}, {item.firstName}
+              </Text>
+            </View>
           ),
         },
         {
@@ -127,6 +135,7 @@ export function ClientsListTable({
 }
 
 const styles = StyleSheet.create({
+  identity: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
   name: {
     color: '#0B2342',
     fontSize: 14,

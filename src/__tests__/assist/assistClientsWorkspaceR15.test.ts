@@ -19,6 +19,7 @@ describe('R15 fachliche Assist-Klientenansicht', () => {
     expect(workspace).toContain('Pflegegrad');
     expect(workspace).toContain('Kostenträger');
     expect(workspace).toContain('Zuständig');
+    expect(workspace).toContain('formatCareLevel(client?.careLevel)');
   });
 
   it('stellt direkte Assist-Fachaktionen bereit', () => {

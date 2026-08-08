@@ -337,6 +337,7 @@ export function ClientRecordScreen({
     <>
       {!embedded ? (
         <ClientRecordHero
+          clientId={detail.id}
           firstName={detail.firstName}
           lastName={detail.lastName}
           careLevel={detail.careLevel}

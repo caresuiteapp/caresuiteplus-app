@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { ClientAnimalAvatar } from '@/components/clients/ClientAnimalAvatar';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { fetchClientModuleAssignments } from '@/lib/officeModules/moduleAssignmentService';
 import type { ClientModuleAssignment } from '@/lib/officeCore/types';
 import type { ClientListItem } from '@/types/modules/office';
@@ -79,15 +81,6 @@ function formatDate(value: string | null | undefined, withTime = false): string 
   }).format(date);
 }
 
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('') || 'KL';
-}
-
 function isUpcomingVisit(visit: VisitDispositionListItem, now: number): boolean {
   const status = String(visit.assignmentStatus || visit.status).toLowerCase();
   return new Date(visit.scheduledEnd).getTime() >= now && !TERMINAL_VISIT_STATUSES.has(status);
@@ -149,13 +142,16 @@ function AssistClientDetail({ context }: { context: AssistClientContext | null }
   const { assignment, client, upcomingVisits } = context;
   const clientId = assignment.clientId;
   const nextVisits = upcomingVisits.slice(0, 3);
+  const careLevelLabel = formatCareLevel(client?.careLevel) || 'Nicht hinterlegt';
 
   return (
     <LiquidSurface active contentStyle={styles.detailCard}>
       <View style={styles.detailIdentity}>
-        <View style={styles.detailAvatar}>
-          <Text style={styles.detailAvatarText}>{initials(assignment.clientName)}</Text>
-        </View>
+        <ClientAnimalAvatar
+          clientId={assignment.clientId}
+          clientName={assignment.clientName}
+          size={58}
+        />
         <View style={styles.detailIdentityText}>
           <LiquidText variant="kicker">ASSIST-KLIENT:IN</LiquidText>
           <LiquidText variant="section">{assignment.clientName}</LiquidText>
@@ -175,7 +171,7 @@ function AssistClientDetail({ context }: { context: AssistClientContext | null }
       <View style={styles.factGrid}>
         <View style={styles.factBox}>
           <Text style={styles.factLabel}>Pflegegrad</Text>
-          <Text style={styles.factValue}>{client?.careLevel || 'Nicht hinterlegt'}</Text>
+          <Text style={styles.factValue}>{careLevelLabel}</Text>
         </View>
         <View style={styles.factBox}>
           <Text style={styles.factLabel}>Kostenträger</Text>
@@ -306,7 +302,7 @@ export function AssistClientsWorkspace({
     return [
       context.assignment.clientName,
       context.assignment.primaryEmployeeName,
-      client?.careLevel,
+      formatCareLevel(client?.careLevel),
       client?.costCarrier,
       client?.city,
       client?.primaryContactPhone,
@@ -389,11 +385,12 @@ export function AssistClientsWorkspace({
               const { assignment, client, upcomingVisits } = context;
               const nextVisit = upcomingVisits[0] ?? null;
               const selectedRow = selectedId === assignment.clientId;
+              const careLevelLabel = formatCareLevel(client?.careLevel) || 'Pflegegrad offen';
               return (
                 <Pressable
                   key={assignment.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`${assignment.clientName}, ${client?.careLevel || 'Pflegegrad offen'}`}
+                  accessibilityLabel={`${assignment.clientName}, ${careLevelLabel}`}
                   accessibilityState={{ selected: selectedRow }}
                   onPress={() => setSelectedId(assignment.clientId)}
                   style={({ pressed }) => [
@@ -402,16 +399,19 @@ export function AssistClientsWorkspace({
                     pressed && styles.pressed,
                   ]}
                 >
-                  <View style={[styles.avatar, context.needsAttention && styles.avatarAttention]}>
-                    <Text style={styles.avatarText}>{initials(assignment.clientName)}</Text>
-                  </View>
+                  <ClientAnimalAvatar
+                    clientId={assignment.clientId}
+                    clientName={assignment.clientName}
+                    size={50}
+                    ringColor={context.needsAttention ? liquidColors.warning : liquidColors.blue400}
+                  />
                   <View style={styles.clientMain}>
                     <View style={styles.clientTitleRow}>
                       <Text numberOfLines={1} style={styles.clientName}>{assignment.clientName}</Text>
                       <LiquidStatus label={normalizeStatus(assignment.status)} tone={statusTone(assignment.status)} />
                     </View>
                     <Text numberOfLines={1} style={styles.clientMeta}>
-                      {client?.careLevel || 'Pflegegrad offen'} · {client?.costCarrier || 'Kostenträger offen'}
+                      {careLevelLabel} · {client?.costCarrier || 'Kostenträger offen'}
                     </Text>
                     <Text numberOfLines={1} style={styles.clientAddress}>
                       {[client?.street, client?.zip, client?.city].filter(Boolean).join(' ') || 'Einsatzadresse unvollständig'}
@@ -466,9 +466,6 @@ const styles = StyleSheet.create({
   clientRows: { gap: liquidSpace.sm },
   clientRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: liquidSpace.md, padding: liquidSpace.md, borderRadius: liquidRadius.lg, borderWidth: 1, borderColor: liquidColors.white08, backgroundColor: liquidColors.white08 },
   clientRowSelected: { borderColor: liquidColors.blue400, backgroundColor: liquidColors.navy700 },
-  avatar: { width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: liquidColors.blue400, backgroundColor: liquidColors.navy700 },
-  avatarAttention: { borderColor: liquidColors.warning },
-  avatarText: { color: liquidColors.white, fontSize: 15, fontWeight: '900' },
   clientMain: { flex: 1, minWidth: 180, gap: 3 },
   clientTitleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: liquidSpace.sm },
   clientName: { color: liquidColors.white, fontSize: 16, lineHeight: 21, fontWeight: '900', flexShrink: 1 },
@@ -480,8 +477,6 @@ const styles = StyleSheet.create({
   planningEmployee: { color: liquidColors.white56, fontSize: 11 },
   detailCard: { gap: liquidSpace.lg },
   detailIdentity: { flexDirection: 'row', alignItems: 'center', gap: liquidSpace.md },
-  detailAvatar: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: liquidColors.navy700, borderWidth: 1, borderColor: liquidColors.blue400 },
-  detailAvatarText: { color: liquidColors.white, fontSize: 18, fontWeight: '900' },
   detailIdentityText: { flex: 1, alignItems: 'flex-start', gap: 5 },
   attentionBanner: { padding: liquidSpace.md, borderRadius: liquidRadius.md, borderWidth: 1, borderColor: liquidColors.warning, backgroundColor: 'rgba(245, 184, 65, 0.10)', gap: 3 },
   attentionTitle: { color: liquidColors.warning, fontSize: 13, fontWeight: '900' },
