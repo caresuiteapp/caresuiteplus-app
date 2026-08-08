@@ -3,10 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
-import {
-  buildClientBudgetVisualPlaceholders,
-  type ClientBudgetVisualModel,
-} from '@/lib/assist/clientBudgetVisuals';
+import type { ClientBudgetVisualModel } from '@/lib/assist/clientBudgetVisuals';
 import { formatCurrency } from '@/lib/formatters/numberFormatters';
 import { spacing, typography } from '@/theme';
 
@@ -178,9 +175,19 @@ function BudgetVisualCard({ model }: { model: ClientBudgetVisualModel }) {
 export function ClientBudgetVisualCards({ models }: { models: ClientBudgetVisualModel[] }) {
   const { width } = useWindowDimensions();
   const compact = width < 980;
-  const visibleModels = models.length > 0 ? models : buildClientBudgetVisualPlaceholders();
-  const bookedModels = visibleModels.filter((model) => model.bookingState === 'booked');
-  const opportunityModels = visibleModels.filter((model) => model.bookingState !== 'booked');
+  if (models.length === 0) {
+    return (
+      <View style={styles.unavailable} accessibilityRole="alert">
+        <Text style={styles.unavailableTitle}>Budgetdaten derzeit nicht verfügbar</Text>
+        <Text style={styles.unavailableText}>
+          Sobald geprüfte Budgetdaten vorliegen, werden sie hier angezeigt. Es werden keine
+          Ersatzbeträge oder Beispielwerte berechnet.
+        </Text>
+      </View>
+    );
+  }
+  const bookedModels = models.filter((model) => model.bookingState === 'booked');
+  const opportunityModels = models.filter((model) => model.bookingState !== 'booked');
   return (
     <View style={styles.sections}>
       {bookedModels.length > 0 ? (
@@ -221,6 +228,16 @@ export function ClientBudgetVisualCards({ models }: { models: ClientBudgetVisual
 
 const styles = StyleSheet.create({
   sections: { gap: spacing.xl },
+  unavailable: {
+    gap: spacing.xs,
+    padding: spacing.lg,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(125,211,252,0.26)',
+    backgroundColor: 'rgba(8,31,65,0.82)',
+  },
+  unavailableTitle: { color: '#FFFFFF', fontSize: 16, lineHeight: 22, fontWeight: '900' },
+  unavailableText: { color: 'rgba(226,242,255,0.74)', fontSize: 13, lineHeight: 19 },
   section: { gap: spacing.md },
   opportunitySection: { padding: spacing.lg, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(246,200,95,0.24)', backgroundColor: 'rgba(246,200,95,0.04)' },
   sectionHeading: { gap: 3, maxWidth: 820 },

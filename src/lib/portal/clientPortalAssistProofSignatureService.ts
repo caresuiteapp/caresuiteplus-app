@@ -7,7 +7,6 @@ import { upsertAssistVisitExecutionState } from '@/features/assistWorkflow/assis
 import {
   computeSignatureDataHash,
   computeVisitSignaturePayloadHash,
-  fetchValidVisitSignature,
   saveVisitSignaturePersistent,
   type VisitSignaturePayloadInput,
 } from '@/lib/assist/assistVisitSignaturePersistenceService';
@@ -102,7 +101,6 @@ async function regenerateProofAfterClientSignature(
   signerName: string,
   signedAt: string,
 ): Promise<ServiceResult<AssistVisitProofRow>> {
-  const sig = await fetchValidVisitSignature(tenantId, proof.visitId);
   const snapshot = {
     ...(proof.payloadSnapshot ?? {}),
     signatureDeferredToClientPortal: false,
@@ -130,8 +128,52 @@ async function regenerateProofAfterClientSignature(
   if (!updated.ok) return { ok: false, error: updated.error };
   if (!updated.data) return { ok: false, error: 'Leistungsnachweis konnte nicht aktualisiert werden.' };
 
-  void sig;
   return updated;
+}
+
+async function finishSignedProofDelivery(input: {
+  tenantId: string;
+  proof: AssistVisitProofRow;
+  signedAt: string;
+}): Promise<ServiceResult<void>> {
+  const title =
+    readSnapshotString(input.proof.payloadSnapshot ?? {}, 'title') ??
+    readSnapshotString(input.proof.payloadSnapshot ?? {}, 'serviceName') ??
+    'Leistungsnachweis';
+
+  const { generateAssistProofPdf } = await import('@/lib/assist/assistProofPdfService');
+  const pdfResult = await generateAssistProofPdf(input.tenantId, input.proof.id);
+  if (!pdfResult.ok || !pdfResult.data) {
+    return {
+      ok: false,
+      error:
+        pdfResult.error ??
+        'Die Unterschrift wurde gespeichert, der Leistungsnachweis konnte aber nicht fertiggestellt werden.',
+    };
+  }
+
+  const documentSync = await updateClientDocumentAfterSign(
+    input.tenantId,
+    input.proof.id,
+    input.signedAt,
+    title,
+  );
+  if (!documentSync.ok) {
+    return {
+      ok: false,
+      error: documentSync.error ?? 'Portal-Dokument konnte nicht aktualisiert werden.',
+    };
+  }
+
+  const assignmentId =
+    readSnapshotString(input.proof.payloadSnapshot ?? {}, 'assignmentId') ?? input.proof.visitId;
+  await upsertAssistVisitExecutionState(input.tenantId, assignmentId, 'abgeschlossen', {
+    signatureComplete: true,
+    proofGenerated: true,
+    finalizedAt: input.signedAt,
+  });
+
+  return { ok: true, data: undefined };
 }
 
 /**
@@ -170,15 +212,38 @@ export async function saveClientPortalAssistProofSignature(input: {
   if (!released.data) {
     return { ok: false, error: 'Nachweis nicht gefunden oder nicht freigegeben.' };
   }
-  if (!released.data.signatureRequired || released.data.portalReleaseStatus !== 'pending_client_signature') {
-    return { ok: false, error: 'Für diesen Nachweis ist keine Unterschrift mehr erforderlich.' };
-  }
-
   const loaded = await fetchVisitProofById(input.tenantId, input.proofId);
   if (!loaded.ok) return { ok: false, error: loaded.error };
   if (!loaded.data) return { ok: false, error: 'Leistungsnachweis nicht gefunden.' };
 
   const proof = loaded.data;
+
+  if (!released.data.signatureRequired || released.data.portalReleaseStatus !== 'pending_client_signature') {
+    const snapshot = proof.payloadSnapshot ?? {};
+    const existingSignedAt =
+      readSnapshotString(snapshot, 'clientPortalSignedAt') ??
+      readSnapshotString(snapshot, 'signedAt');
+    if (proof.signatureId && existingSignedAt && snapshot.signedViaClientPortal === true) {
+      const recovered = await finishSignedProofDelivery({
+        tenantId: input.tenantId,
+        proof,
+        signedAt: existingSignedAt,
+      });
+      if (!recovered.ok) return recovered;
+      invalidatePortalProofCache();
+      return {
+        ok: true,
+        data: {
+          proofId: proof.id,
+          signatureId: proof.signatureId,
+          signedAt: existingSignedAt,
+          proofPersisted: true,
+        },
+      };
+    }
+    return { ok: false, error: 'Für diesen Nachweis ist keine Unterschrift mehr erforderlich.' };
+  }
+
   const payload = buildSignaturePayloadFromProof(proof, input.clientId);
   const payloadHash = await computeVisitSignaturePayloadHash(payload);
   const signatureHash = await computeSignatureDataHash(input.signatureDataUrl);
@@ -214,44 +279,12 @@ export async function saveClientPortalAssistProofSignature(input: {
   if (!regenerated.ok) return { ok: false, error: regenerated.error };
   if (!regenerated.data) return { ok: false, error: 'Leistungsnachweis konnte nicht aktualisiert werden.' };
 
-  const title =
-    readSnapshotString(regenerated.data.payloadSnapshot ?? {}, 'title') ??
-    readSnapshotString(regenerated.data.payloadSnapshot ?? {}, 'serviceName') ??
-    'Leistungsnachweis';
-
-  const documentSync = await updateClientDocumentAfterSign(
-    input.tenantId,
-    proof.id,
+  const delivery = await finishSignedProofDelivery({
+    tenantId: input.tenantId,
+    proof: regenerated.data,
     signedAt,
-    title,
-  );
-  if (!documentSync.ok) {
-    return { ok: false, error: documentSync.error ?? 'Portal-Dokument konnte nicht aktualisiert werden.' };
-  }
-
-  try {
-    const { buildEnrichedAssistProofPdfPayload } = await import('@/lib/assist/assistProofPdfService');
-    const { upsertAssistProofClientPortalDocument } = await import(
-      '@/lib/assist/assistProofPortalDocumentService'
-    );
-    const enriched = await buildEnrichedAssistProofPdfPayload(input.tenantId, regenerated.data);
-    const mirror = await upsertAssistProofClientPortalDocument(input.tenantId, regenerated.data, {
-      actorProfileId: input.profileId ?? null,
-      signatureRequired: false,
-    });
-    void enriched;
-    void mirror;
-  } catch {
-    // PDF / mirror is best-effort — signature + proof snapshot are authoritative.
-  }
-
-  const assignmentId =
-    readSnapshotString(regenerated.data.payloadSnapshot ?? {}, 'assignmentId') ?? proof.visitId;
-  await upsertAssistVisitExecutionState(input.tenantId, assignmentId, 'abgeschlossen', {
-    signatureComplete: true,
-    proofGenerated: true,
-    finalizedAt: signedAt,
   });
+  if (!delivery.ok) return delivery;
 
   invalidatePortalProofCache();
 

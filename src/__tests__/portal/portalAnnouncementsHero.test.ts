@@ -23,6 +23,22 @@ describe('Portal Announcements Hero (Sprint 98)', () => {
     expect(readSrc('src/screens/portal/ClientPortalAnnouncementsScreen.tsx')).toContain('PortalGlassHero');
   });
 
+  it('Klient:innen-Mitteilungen werden live geladen und als gelesen bestätigt', () => {
+    const clientAnnouncements = readSrc('src/screens/portal/ClientPortalAnnouncementsScreen.tsx');
+    const broadcastService = readSrc('src/lib/office/broadcastservice.ts');
+    const migration = readSrc(
+      'supabase/migrations/20260808130000_client_portal_announcements_and_signed_proof_delivery.sql',
+    );
+
+    expect(clientAnnouncements).toContain("useNotifications('broadcasts')");
+    expect(clientAnnouncements).toContain('fetchBroadcastForNotification');
+    expect(clientAnnouncements).toContain('markNotificationRead');
+    expect(broadcastService).toContain("segment === 'clients'");
+    expect(broadcastService).toContain('show_in_client_portal');
+    expect(migration).toContain('notification_broadcasts_client_portal_select');
+    expect(migration).toContain('notification.recipient_user_id = auth.uid()');
+  });
+
   it('buildPortalAnnouncementsKpis zählt aktive Einträge', () => {
     const stats = readSrc('src/lib/portal/portalAnnouncementsStats.ts');
     expect(stats).toContain('buildPortalAnnouncementsKpis');

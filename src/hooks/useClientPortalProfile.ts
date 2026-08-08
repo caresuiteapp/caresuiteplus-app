@@ -7,7 +7,15 @@ import { useAsyncQuery } from './core';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 export function useClientPortalProfile() {
-  const { tenantId, clientId, actorId, roleKey, isReady } = usePortalActor();
+  const {
+    tenantId,
+    clientId,
+    actorId,
+    roleKey,
+    isReady,
+    isLinkedReady,
+    isResolvingClientLink,
+  } = usePortalActor();
 
   const queryParams = {
     profileId: actorId ?? '',
@@ -19,13 +27,13 @@ export function useClientPortalProfile() {
   const profileQuery = useAsyncQuery(
     () => fetchClientPortalProfile(queryParams),
     [actorId, tenantId, clientId, roleKey],
-    { enabled: isReady && !!actorId && !!roleKey },
+    { enabled: isLinkedReady && !!actorId && !!roleKey && !!clientId },
   );
 
   const carePlanQuery = useAsyncQuery(
     () => fetchClientCarePlanSummaries(queryParams),
     [actorId, tenantId, clientId, roleKey],
-    { enabled: isReady && !!actorId && !!roleKey },
+    { enabled: isLinkedReady && !!actorId && !!roleKey && !!clientId },
   );
 
   const refresh = useCallback(async () => {
@@ -40,7 +48,7 @@ export function useClientPortalProfile() {
     profile,
     portalAccess,
     carePlans: carePlanQuery.data ?? [],
-    loading: profileQuery.loading || carePlanQuery.loading,
+    loading: isResolvingClientLink || profileQuery.loading || carePlanQuery.loading,
     error:
       profileQuery.error || carePlanQuery.error
         ? toPortalUserFacingError(
@@ -50,6 +58,6 @@ export function useClientPortalProfile() {
         : null,
     refresh,
     isReady,
-    missingClientLink: isReady && !clientId,
+    missingClientLink: isReady && !isResolvingClientLink && !clientId,
   };
 }

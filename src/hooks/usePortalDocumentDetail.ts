@@ -8,12 +8,20 @@ import {
   isRoleAllowedForPortalAudience,
   type OperationalPortalAudience,
 } from '@/lib/portal/portalAudience';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 export function usePortalDocumentDetail(
   documentId: string | undefined,
   audience: OperationalPortalAudience,
 ) {
-  const { tenantId, clientId, actorId, roleKey, isReady } = usePortalActor();
+  const {
+    tenantId,
+    clientId,
+    actorId,
+    roleKey,
+    isLinkedReady,
+    isResolvingClientLink,
+  } = usePortalActor();
   const profileId = actorId ?? '';
   const roleMatchesAudience = isRoleAllowedForPortalAudience(roleKey, audience);
   const scopedRoleKey = roleMatchesAudience ? roleKey : null;
@@ -26,7 +34,13 @@ export function usePortalDocumentDetail(
         clientId: scopedClientId,
       }),
     [documentId, profileId, scopedRoleKey, tenantId, scopedClientId],
-    { enabled: !!documentId && isReady && roleMatchesAudience },
+    {
+      enabled:
+        !!documentId &&
+        isLinkedReady &&
+        roleMatchesAudience &&
+        (audience !== 'client' || Boolean(scopedClientId)),
+    },
   );
 
   const downloadMutation = useMutation(
@@ -55,15 +69,32 @@ export function usePortalDocumentDetail(
 
   return {
     data: query.data,
-    loading: query.loading,
+    loading: isResolvingClientLink || query.loading,
     error: !roleMatchesAudience && roleKey
       ? 'Diese Sitzung gehört zu einem anderen Portal.'
-      : query.error,
+      : audience === 'client' && !isResolvingClientLink && !scopedClientId
+        ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
+        : query.error
+          ? toPortalUserFacingError(
+              query.error,
+              'Das Dokument konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+            )
+          : null,
     refresh,
     download,
     downloadLoading: downloadMutation.loading,
-    downloadError: downloadMutation.error,
+    downloadError: downloadMutation.error
+      ? toPortalUserFacingError(
+          downloadMutation.error,
+          'Der Download konnte gerade nicht gestartet werden. Bitte versuchen Sie es erneut.',
+        )
+      : null,
     successMessage: downloadMutation.successMessage,
-    notFound: !query.loading && !query.error && !query.data && !!documentId,
+    notFound:
+      isLinkedReady &&
+      !query.loading &&
+      !query.error &&
+      !query.data &&
+      !!documentId,
   };
 }

@@ -32,6 +32,7 @@ import {
   isPortalModuleKey,
 } from '@/lib/portal/engine/portalModuleKeys';
 import type { PortalModuleKey } from '@/lib/portal/types';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 type AdaptivePortalOverviewProps = {
   showSuccess?: boolean;
@@ -78,7 +79,10 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
     return (
       <ErrorState
         title="Klient:innenportal nicht geladen"
-        message={error}
+        message={toPortalUserFacingError(
+          error,
+          'Ihre Übersicht konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+        )}
         onRetry={handleRefresh}
       />
     );

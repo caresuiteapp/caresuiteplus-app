@@ -33,6 +33,7 @@ import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import { usePortalActor } from '@/hooks/usePortalActor';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 type PortalMode = 'office' | 'employee' | 'client';
 
@@ -117,7 +118,7 @@ export function CsDocumentRequestDetailScreen({
       });
     },
     [tenantId, id, profile?.roleKey, mode, portalActor.roleKey, portalActor.employeeId, portalActor.clientId],
-    { enabled: !!tenantId && !!id },
+    { enabled: !!tenantId && !!id && (!isPortal || portalActor.isLinkedReady) },
   );
 
   const item = query.data;
@@ -177,7 +178,14 @@ export function CsDocumentRequestDetailScreen({
     setWorking(false);
     setSignModal(false);
     if (!result.ok) {
-      setActionError(result.error);
+      setActionError(
+        isPortal
+          ? toPortalUserFacingError(
+              result.error,
+              'Ihre Unterschrift konnte gerade nicht gespeichert werden. Bitte versuchen Sie es erneut.',
+            )
+          : result.error,
+      );
       return;
     }
     setSignSuccess(true);
@@ -185,6 +193,20 @@ export function CsDocumentRequestDetailScreen({
   };
 
   const accent = mode === 'office' ? moduleColor('office') : moduleColor('assist');
+
+  if (isPortal && !portalActor.isLinkedReady) {
+    const isResolving =
+      portalActor.isResolvingClientLink || portalActor.isResolvingEmployeeLink;
+    return (
+      <RequestDetailShell mode={mode} title="Dokument" accent={accent}>
+        {isResolving ? (
+          <LoadingState message="Ihr Portalprofil wird sicher verknüpft…" />
+        ) : (
+          <ErrorState message="Ihr Portalprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an." />
+        )}
+      </RequestDetailShell>
+    );
+  }
 
   if (query.loading && !item) {
     return (
@@ -197,7 +219,17 @@ export function CsDocumentRequestDetailScreen({
   if (query.error || !item) {
     return (
       <RequestDetailShell mode={mode} title="Dokument" accent={accent}>
-        <ErrorState message={query.error ?? 'Dieses Dokument kann gerade nicht angezeigt werden.'} onRetry={query.refresh} />
+        <ErrorState
+          message={
+            isPortal
+              ? toPortalUserFacingError(
+                  query.error,
+                  'Dieses Dokument kann gerade nicht angezeigt werden. Bitte versuchen Sie es erneut.',
+                )
+              : query.error ?? 'Dieses Dokument kann gerade nicht angezeigt werden.'
+          }
+          onRetry={query.refresh}
+        />
       </RequestDetailShell>
     );
   }

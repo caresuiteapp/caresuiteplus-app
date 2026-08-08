@@ -1,17 +1,17 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { ClientBudgetVisualCards } from '@/product-workflows/components/office/ClientBudgetVisualCards';
 import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScreen';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/product-workflows/design/tokens/auroraGlass';
 import { careSpacing } from '@/product-workflows/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { buildClientBudgetVisualPlaceholders } from '@/lib/assist/clientBudgetVisuals';
 import { fetchPortalBudgetVisuals } from '@/lib/portal/assist/portalBudgetService';
 
 export default function ClientPortalBudgetRoute() {
   const tenantId = useServiceTenantId();
-  const { clientId, isReady } = usePortalActor();
+  const { clientId, isLinkedReady, isResolvingClientLink } = usePortalActor();
   const text = useAuroraAdaptiveText();
 
   const budgetQuery = useAsyncQuery(
@@ -25,10 +25,11 @@ export default function ClientPortalBudgetRoute() {
       return fetchPortalBudgetVisuals(tenantId, clientId);
     },
     [tenantId, clientId],
-    { enabled: !!tenantId && !!clientId && isReady },
+    { enabled: !!tenantId && !!clientId && isLinkedReady },
   );
 
-  const visuals = budgetQuery.data ?? buildClientBudgetVisualPlaceholders();
+  const missingClientLink = !isResolvingClientLink && !clientId;
+  const visuals = budgetQuery.data ?? [];
 
   return (
     <PortalTabScreen title="Budget">
@@ -38,18 +39,41 @@ export default function ClientPortalBudgetRoute() {
         <Text style={[styles.subtitle, { color: text.secondary }]}>
           Geld, mögliche Stunden und die Auswirkung auf Ihr Pflegegeld – automatisch aus Ihren aktuellen Angaben berechnet.
         </Text>
-        {budgetQuery.loading || !isReady ? (
+        {budgetQuery.loading || isResolvingClientLink ? (
           <Text style={[styles.liveStatus, { color: text.muted }]}>Persönliche Livewerte werden geladen …</Text>
-        ) : budgetQuery.error ? (
+        ) : budgetQuery.error || missingClientLink ? (
           <Text style={[styles.liveStatus, { color: text.muted }]}>
-            Die persönlichen Buchungen werden gerade aktualisiert. Die Budgetkarten bleiben für Sie sichtbar.
+            Persönliche Budgetwerte sind derzeit nicht verfügbar.
           </Text>
         ) : (
           <Text style={[styles.liveStatus, { color: text.muted }]}>Persönliche Livewerte · automatisch aktuell</Text>
         )}
       </View>
 
-      <ClientBudgetVisualCards models={visuals} />
+      {isResolvingClientLink || budgetQuery.loading ? (
+        <LoadingState message="Ihre persönlichen Budgetwerte werden geladen…" />
+      ) : missingClientLink ? (
+        <ErrorState
+          title="Budget nicht verfügbar"
+          message="Ihr Klient:innenprofil konnte nicht sicher verknüpft werden. Bitte melden Sie sich erneut an oder wenden Sie sich an Ihr Pflegebüro."
+          onRetry={budgetQuery.refresh}
+        />
+      ) : budgetQuery.error ? (
+        <ErrorState
+          title="Budget konnte nicht geladen werden"
+          message="Ihre persönlichen Budgetwerte konnten gerade nicht geladen werden. Es werden keine Ersatzbeträge angezeigt."
+          onRetry={budgetQuery.refresh}
+        />
+      ) : visuals.length === 0 ? (
+        <EmptyState
+          title="Noch keine Budgetdaten"
+          message="Für Ihr Profil sind derzeit keine freigegebenen Budgetwerte hinterlegt. Es werden keine geschätzten Beträge angezeigt."
+          actionLabel="Erneut laden"
+          onAction={budgetQuery.refresh}
+        />
+      ) : (
+        <ClientBudgetVisualCards models={visuals} />
+      )}
     </PortalTabScreen>
   );
 }

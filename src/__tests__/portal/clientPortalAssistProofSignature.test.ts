@@ -94,15 +94,11 @@ describe('saveClientPortalAssistProofSignature', () => {
     vi.doMock('@/lib/portal/portalProofCacheSignal', () => ({
       invalidatePortalProofCache: vi.fn(),
     }));
-    vi.doMock('@/lib/assist/assistProofPdfService', () => ({
-      buildEnrichedAssistProofPdfPayload: vi.fn(async () => ({ html: '<p/>' })),
+    const generateAssistProofPdf = vi.fn(async () => ({
+      ok: true,
+      data: { id: PROOF, visitId: 'visit-1', portalVisible: true },
     }));
-    vi.doMock('@/lib/assist/assistProofPortalDocumentService', () => ({
-      upsertAssistProofClientPortalDocument: vi.fn(async () => ({
-        ok: true,
-        data: { clientDocumentId: PROOF },
-      })),
-    }));
+    vi.doMock('@/lib/assist/assistProofPdfService', () => ({ generateAssistProofPdf }));
     vi.doMock('@/features/assistWorkflow/assistVisitExecutionStatePersistence', () => ({
       upsertAssistVisitExecutionState: vi.fn(async () => ({ ok: true })),
     }));
@@ -147,5 +143,6 @@ describe('saveClientPortalAssistProofSignature', () => {
       expect(result.data.signatureId).toBe('sig-1');
       expect(result.data.proofPersisted).toBe(true);
     }
+    expect(generateAssistProofPdf).toHaveBeenCalledWith(TENANT, PROOF);
   });
 });

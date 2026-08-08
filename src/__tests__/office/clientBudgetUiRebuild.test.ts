@@ -22,7 +22,7 @@ describe('client budget UI rebuild', () => {
 
   it('contains understandable money, hours, reservation, consumption and care allowance states', () => {
     expect(visuals).toContain('noch verfügbar');
-    expect(visuals).toContain('Vorgemerkt');
+    expect(visuals).toContain('Einsätze geplant');
     expect(visuals).toContain('Verbraucht');
     expect(visuals).toContain('Voraussichtliches Pflegegeld');
     expect(visuals).toContain('Stundensatz fehlt');
@@ -32,8 +32,9 @@ describe('client budget UI rebuild', () => {
     expect(portalDashboard).toContain('<ClientBudgetVisualCards models={data.budgetVisuals} />');
     expect(portalDashboard).not.toContain('data.budgetVisuals.length > 0');
     expect(portalDashboard).not.toContain('budgetReleased && data.budgetVisuals.length > 0');
-    expect(visuals).toContain('buildClientBudgetVisualPlaceholders');
-    expect(visuals).toContain('models.length > 0 ? models : buildClientBudgetVisualPlaceholders()');
+    expect(visuals).not.toContain('buildClientBudgetVisualPlaceholders');
+    expect(visuals).toContain('Es werden keine');
+    expect(visuals).toContain('Ersatzbeträge oder Beispielwerte berechnet');
     expect(portalDashboardService).toContain('fetchPortalBudgetVisuals(tenantId, clientId)');
     expect(portalDashboardService).toContain('budgetVisuals,');
     expect(portalDashboardService).not.toContain('budgetVisuals: budgetReleased ? budgetVisuals : []');

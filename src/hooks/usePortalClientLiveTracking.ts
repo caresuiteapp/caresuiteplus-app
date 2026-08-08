@@ -11,6 +11,7 @@ import { subscribeToAssistLiveTrackingChanges } from '@/lib/realtime/presets';
 import { LIVE_TRACKING_POLL_MS, useAsyncQuery } from './core';
 import { useVisibilityAwarePolling } from '@/lib/polling/useVisibilityAwarePolling';
 import { useDevicePerformance, livePollIntervalMs } from '@/lib/performance';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 export type PortalClientLiveTrackingState = {
   assignmentId: string | null;
@@ -61,7 +62,12 @@ async function resolveActiveLiveTracking(
 }
 
 export function usePortalClientLiveTracking() {
-  const { tenantId, clientId, isReady } = usePortalActor();
+  const {
+    tenantId,
+    clientId,
+    isLinkedReady,
+    isResolvingClientLink,
+  } = usePortalActor();
   const perf = useDevicePerformance();
   const [tick, setTick] = useState(0);
 
@@ -96,7 +102,7 @@ export function usePortalClientLiveTracking() {
       }
     },
     [tenantId, clientId, tick],
-    { enabled: isReady && !!tenantId && !!clientId },
+    { enabled: isLinkedReady && !!tenantId && !!clientId },
   );
 
   const refresh = useCallback(async () => {
@@ -105,8 +111,16 @@ export function usePortalClientLiveTracking() {
 
   return {
     state: query.data as PortalClientLiveTrackingState | undefined,
-    loading: query.loading,
-    error: query.error,
+    loading: isResolvingClientLink || query.loading,
+    error:
+      !isResolvingClientLink && !clientId
+        ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
+        : query.error
+          ? toPortalUserFacingError(
+              query.error,
+              'Die Live-Anfahrt konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+            )
+          : null,
     refresh,
   };
 }

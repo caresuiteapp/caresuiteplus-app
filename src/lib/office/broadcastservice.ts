@@ -46,8 +46,7 @@ function audienceSegment(filter?: BroadcastRecipientFilter): BroadcastRecipientF
 }
 
 function dbAudienceValue(segment: BroadcastRecipientFilter['audience']): BroadcastRecipientFilter['audience'] {
-  if (segment === 'employees' || segment === 'selected_employees') return segment;
-  return 'employees';
+  return segment;
 }
 
 function enforceBroadcastCreate<T>(roleKey?: RoleKey | null): ServiceResult<T> | null {
@@ -332,7 +331,8 @@ export async function sendBroadcast(
       audience: dbAudienceValue(filter.audience),
       allow_replies: input.allowReplies,
       require_acknowledgement: input.requireAcknowledgement,
-      show_in_employee_portal: input.showInEmployeePortal,
+      show_in_employee_portal: segment === 'employees' && input.showInEmployeePortal,
+      show_in_client_portal: segment === 'clients' && input.showInEmployeePortal,
       status: 'sent',
       sent_at: now,
       expires_at: input.expiresAt ?? null,

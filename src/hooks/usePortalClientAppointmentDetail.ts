@@ -8,9 +8,17 @@ import { subscribeToPortalAssistChanges } from '@/lib/realtime';
 import { useVisibilityAwarePolling } from '@/lib/polling/useVisibilityAwarePolling';
 import { DEFAULT_LIVE_POLL_MS } from './core';
 import { useAsyncQuery, useMutation } from './core';
+import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 export function usePortalClientAppointmentDetail(appointmentId: string | undefined) {
-  const { tenantId, clientId, actorId, roleKey, isReady } = usePortalActor();
+  const {
+    tenantId,
+    clientId,
+    actorId,
+    roleKey,
+    isLinkedReady,
+    isResolvingClientLink,
+  } = usePortalActor();
   const profileId = actorId ?? '';
   const [tick, setTick] = useState(0);
 
@@ -35,7 +43,7 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
         clientId,
       }),
     [appointmentId, profileId, roleKey, tenantId, clientId, tick],
-    { enabled: !!appointmentId && isReady },
+    { enabled: !!appointmentId && isLinkedReady && !!tenantId && !!clientId },
   );
 
   const changeMutation = useMutation(
@@ -62,13 +70,31 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
 
   return {
     data: query.data,
-    loading: query.loading,
-    error: query.error,
+    loading: isResolvingClientLink || query.loading,
+    error:
+      !isResolvingClientLink && !clientId
+        ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
+        : query.error
+          ? toPortalUserFacingError(
+              query.error,
+              'Der Einsatz konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
+            )
+          : null,
     refresh,
     requestChange,
     changeLoading: changeMutation.loading,
-    changeError: changeMutation.error,
+    changeError: changeMutation.error
+      ? toPortalUserFacingError(
+          changeMutation.error,
+          'Ihr Änderungswunsch konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.',
+        )
+      : null,
     successMessage: changeMutation.successMessage,
-    notFound: !query.loading && !query.error && !query.data && !!appointmentId,
+    notFound:
+      isLinkedReady &&
+      !query.loading &&
+      !query.error &&
+      !query.data &&
+      !!appointmentId,
   };
 }

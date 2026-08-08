@@ -33,7 +33,13 @@ export function ClientPortalProofsScreen() {
   const text = useAuroraAdaptiveText();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
-  const { tenantId, clientId, actorId } = usePortalActor();
+  const {
+    tenantId,
+    clientId,
+    actorId,
+    isLinkedReady,
+    isResolvingClientLink,
+  } = usePortalActor();
 
   const [proofs, setProofs] = useState<PortalServiceProof[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,8 +47,12 @@ export function ClientPortalProofsScreen() {
   const [actionProofId, setActionProofId] = useState<string | null>(null);
 
   const loadProofs = useCallback(async () => {
-    if (!tenantId || !clientId) {
+    if (isResolvingClientLink) return;
+    if (!tenantId || !clientId || !isLinkedReady) {
       setProofs([]);
+      setError(
+        'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.',
+      );
       setLoading(false);
       return;
     }
@@ -61,7 +71,7 @@ export function ClientPortalProofsScreen() {
       setProofs([]);
     }
     setLoading(false);
-  }, [tenantId, clientId]);
+  }, [tenantId, clientId, isLinkedReady, isResolvingClientLink]);
 
   useEffect(() => {
     void loadProofs();
@@ -117,10 +127,10 @@ export function ClientPortalProofsScreen() {
           showStatusDot
         />
 
-        {loading ? <LoadingState message="Nachweise werden geladen…" /> : null}
+        {loading || isResolvingClientLink ? <LoadingState message="Nachweise werden geladen…" /> : null}
         {error ? <ErrorState title="Nachweise" message={error} onRetry={loadProofs} /> : null}
 
-        {!loading && !error && proofs.length === 0 ? (
+        {!loading && !isResolvingClientLink && !error && proofs.length === 0 ? (
           <ClientPortalGuide
             compact
             title="Noch keine Leistungsnachweise"
@@ -128,7 +138,7 @@ export function ClientPortalProofsScreen() {
           />
         ) : null}
 
-        {!loading && proofs.length > 0 ? (
+        {!loading && !isResolvingClientLink && proofs.length > 0 ? (
           <View style={styles.list}>
             {proofs.map((proof) => (
               <GlassCard key={proof.id} style={styles.item}>

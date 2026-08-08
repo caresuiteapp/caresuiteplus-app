@@ -88,7 +88,9 @@ export function PortalClientDocumentDetailScreen() {
         return;
       }
       setSignatureOpen(false);
-      setSignSuccess('Vielen Dank — Ihre Unterschrift wurde gespeichert.');
+      setSignSuccess(
+        'Vielen Dank — Ihre Unterschrift wurde gespeichert und im Leistungsnachweis übernommen.',
+      );
       await refresh();
     },
     [tenantId, clientId, id, actorId, data?.clientName, refresh],

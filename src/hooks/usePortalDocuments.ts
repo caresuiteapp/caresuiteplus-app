@@ -10,7 +10,14 @@ import {
 } from '@/lib/portal/portalAudience';
 
 export function usePortalDocuments(audience: OperationalPortalAudience) {
-  const { tenantId, clientId, actorId, roleKey, isReady } = usePortalActor();
+  const {
+    tenantId,
+    clientId,
+    actorId,
+    roleKey,
+    isLinkedReady,
+    isResolvingClientLink,
+  } = usePortalActor();
   const profileId = actorId ?? '';
   const [showSuccess, setShowSuccess] = useState(false);
   const roleMatchesAudience = isRoleAllowedForPortalAudience(roleKey, audience);
@@ -24,7 +31,12 @@ export function usePortalDocuments(audience: OperationalPortalAudience) {
         clientId: scopedClientId,
       }),
     [profileId, scopedRoleKey, tenantId, scopedClientId],
-    { enabled: isReady && roleMatchesAudience },
+    {
+      enabled:
+        isLinkedReady &&
+        roleMatchesAudience &&
+        (audience !== 'client' || Boolean(scopedClientId)),
+    },
   );
 
   const items = query.data ?? [];
@@ -37,9 +49,11 @@ export function usePortalDocuments(audience: OperationalPortalAudience) {
 
   return {
     items,
-    loading: query.loading,
+    loading: isResolvingClientLink || query.loading,
     error: !roleMatchesAudience && roleKey
       ? 'Diese Sitzung gehört zu einem anderen Portal.'
+      : audience === 'client' && !isResolvingClientLink && !scopedClientId
+      ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'
       : query.error
       ? toPortalUserFacingError(
           query.error,
@@ -49,7 +63,12 @@ export function usePortalDocuments(audience: OperationalPortalAudience) {
     refreshing: query.refreshing,
     showSuccess,
     refresh,
-    isEmpty: roleMatchesAudience && !query.loading && !query.error && items.length === 0,
+    isEmpty:
+      isLinkedReady &&
+      roleMatchesAudience &&
+      !query.loading &&
+      !query.error &&
+      items.length === 0,
   };
 }
 
