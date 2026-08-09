@@ -19,9 +19,13 @@ const TENANT = DEMO_TENANT_ID;
 
 function baseProof(overrides: Partial<ServiceProofRecord> = {}): ServiceProofRecord {
   const draft = createServiceProofDraft({ tenantId: TENANT, proofType: 'einzel_einsatznachweis' });
-  return patchServiceProofForTest({
+  const proof = patchServiceProofForTest({
     ...draft,
     proofNumber: 'LN-DM-001',
+    // Local ISO values keep the checked-in audit artifacts deterministic in every
+    // timezone while still exercising the real date/time formatter.
+    createdAt: '2026-08-09T13:43:00',
+    updatedAt: '2026-08-09T13:43:00',
     previewConfirmed: true,
     clientName: 'Erika Mustermann',
     employeeName: 'Anna Pflege',
@@ -39,6 +43,7 @@ function baseProof(overrides: Partial<ServiceProofRecord> = {}): ServiceProofRec
     },
     ...overrides,
   });
+  return { ...proof, updatedAt: '2026-08-09T13:43:00' };
 }
 
 describe('formatVisitProofDateTimeRange service proof parity', () => {
