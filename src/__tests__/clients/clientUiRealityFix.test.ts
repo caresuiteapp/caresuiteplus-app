@@ -125,7 +125,7 @@ describe('Client UI Reality Fix', () => {
       "Database['public']['Tables']['clients']['Update']",
     );
     expect(repository).toContain("shouldUpdate('stammdaten')");
-    expect(repository).not.toContain('service_start: form.serviceStart');
+    expect(repository).toContain('service_start: form.serviceStart');
     expect(repository).not.toContain('birth_place: form.birthPlace');
     expect(persistence).toContain('isMissingTableError(existingError)');
     expect(service).toContain(

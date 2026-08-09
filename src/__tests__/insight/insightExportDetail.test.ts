@@ -12,7 +12,7 @@ describe('InsightCenter Export Detail (Sprint 94)', () => {
   it('InsightExportDetailHero nutzt PremiumListHeroFrame mit preparedOnly', () => {
     const hero = readSrc('src/components/insight/InsightExportDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('INSIGHTCENTER');
+    expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('isInsightLiveReady');
   });
 

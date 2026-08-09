@@ -252,6 +252,14 @@ export async function executeInvoiceAccountingExport(
     }),
   );
   if (!featureGate.allowed) {
+    recordAccountingExportFailure({
+      invoiceId,
+      tenantId,
+      providerKey,
+      message: featureGate.message,
+      configured,
+      eventType: 'export_blocked',
+    });
     return { ok: false, error: featureGate.message };
   }
 

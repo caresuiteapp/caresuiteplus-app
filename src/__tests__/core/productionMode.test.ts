@@ -19,6 +19,10 @@ vi.mock('@/lib/modules/moduleAccessRepository.supabase', () => ({
   fetchTenantModulesFromSupabase: (...args: unknown[]) => fetchTenantModulesFromSupabase(...args),
 }));
 
+vi.mock('@/lib/modules/platformTenantModuleAccess', () => ({
+  hydratePlatformTenantModulesFromSupabase: vi.fn().mockResolvedValue({ ok: true }),
+}));
+
 vi.mock('react-native-url-polyfill/auto', () => ({}));
 vi.mock('@react-native-async-storage/async-storage', () => ({
   default: {

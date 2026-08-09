@@ -51,12 +51,12 @@ describe('C.14 seed creates assignments alongside assist_visits', () => {
   });
 
   it('assignment statuses match PORTAL_APPOINTMENT_STATUSES', () => {
-    const svc = readFileSync(
-      path.join(root, 'src/lib/portal/portalAppointmentsLiveService.ts'),
+    const statuses = readFileSync(
+      path.join(root, 'src/lib/portal/portalAssignmentStatusFilters.ts'),
       'utf8',
     );
-    expect(svc).toContain("'planned'");
-    expect(svc).toContain("'confirmed'");
+    expect(statuses).toContain("'planned'");
+    expect(statuses).toContain("'confirmed'");
     const seed = readFileSync(seedPath, 'utf8');
     expect(seed).toContain("status: 'confirmed'");
     expect(seed).toContain("status: 'planned'");
@@ -70,7 +70,7 @@ describe('C.14 employee portal uses assignments table', () => {
       'utf8',
     );
     expect(svc).toContain("fromUnknownTable(supabase, 'assignments')");
-    expect(svc).toContain('PORTAL_APPOINTMENT_STATUSES');
+    expect(svc).toContain('PORTAL_ACTIVE_LIVE_ASSIGNMENT_STATUSES');
   });
 
   it('employee portal tab uses PortalAppointmentsTab', () => {

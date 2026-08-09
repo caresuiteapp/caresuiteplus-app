@@ -19,7 +19,7 @@ describe('System scroll viewport V34.6', () => {
 
   it('gibt Rechnungsdashboard und Office-Slot einen begrenzten Inhalts-Viewport', () => {
     const billing = read('src/screens/office/OfficeBillingScreen.tsx');
-    const layout = read('app/office/_layout.tsx');
+    const layout = read('src/components/layout/HealthOSPageSurface.tsx');
 
     expect(billing).toContain('style={styles.dashboardScroll}');
     expect(billing).toContain('showsVerticalScrollIndicator');

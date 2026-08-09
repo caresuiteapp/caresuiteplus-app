@@ -8,7 +8,7 @@ const read = (file: string) => readFileSync(path.join(root, file), 'utf8');
 describe('Office Arbeitszeit V32.5 Systemprüfung', () => {
   it('keeps demo repositories usable without weakening the live tenant guard', () => {
     const guard = read('src/lib/services/liveServiceGuard.ts');
-    expect(guard).toContain("if (getServiceMode() !== 'supabase') return null");
+    expect(guard).toContain("if (getServiceMode() !== 'supabase')");
     expect(guard).toContain('assertTenantForMode(tenantId)');
     expect(guard.indexOf("getServiceMode() !== 'supabase'")).toBeLessThan(guard.indexOf('assertTenantForMode(tenantId)'));
   });
@@ -51,7 +51,7 @@ describe('Office Arbeitszeit V32.5 Systemprüfung', () => {
     const planning = read('src/lib/wfm/wfmPlanningService.ts');
     const exportScreen = read('src/components/wfm/WfmExportScreen.tsx');
     expect(planning).toContain('Arbeitszeit-Systemmigration 0262');
-    expect(planning).toContain("error?.code === 'PGRST202'");
+    expect(planning).toContain("record.code === 'PGRST202'");
     expect(exportScreen).toContain('export_version');
     expect(exportScreen).toContain('changed_after_export');
   });

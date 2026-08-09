@@ -156,10 +156,15 @@ export const CONNECT_CATALOG: ConnectCategory[] = [
     icon: '🩺',
     readiness: 'prepared',
     integrations: [
-      integration('icd10_gm', 'ICD-10-GM', 'Diagnoseschlüssel ICD-10-GM — Katalog vorbereitet', 'prepared'),
-      integration('ops', 'OPS', 'Operationen- und Prozedurenschlüssel OPS', 'coming_soon'),
-      integration('medikationsdb', 'Medikationsdatenbank', 'Arzneimittel- und Interaktionsdaten', 'coming_soon'),
-      integration('heilmittel', 'Heilmittel', 'Heilmittelverordnung und Kataloge', 'coming_soon'),
+      integration('icd10_gm', 'ICD-10-GM', 'Kodier- und Dokumentationshilfe für ärztliche Angaben', 'prepared', false, '/medical/icd'),
+      integration('snomed_ct', 'SNOMED CT', 'Klinische Terminologie — Lizenz erforderlich', 'disabled', true),
+      integration('loinc', 'LOINC', 'Labor- und Vitalwert-Codes — Lizenz erforderlich', 'disabled', true),
+      integration('ucum', 'UCUM', 'Öffentliche Referenz für medizinische Einheiten', 'prepared'),
+      integration('atc_ddd', 'ATC/DDD', 'Arzneimittelklassifikation — Lizenz erforderlich', 'disabled', true),
+      integration('pzn_ifa', 'PZN/IFA', 'Pharmazentralnummern — Anbieter und Lizenz erforderlich', 'disabled', true),
+      integration('rote_liste', 'Rote Liste', 'Geschützte Arzneimitteldatenbank — Lizenz erforderlich', 'disabled', true),
+      integration('abdata', 'ABDATA', 'Arzneimitteldaten — ohne Lizenz deaktiviert', 'disabled', true),
+      integration('bfarm_am', 'BfArM Arzneimitteldaten', 'Dokumentationshilfe für Stammdaten — keine Medikationsentscheidung', 'prepared'),
     ],
   },
   {
@@ -201,7 +206,7 @@ export const CONNECT_CATALOG: ConnectCategory[] = [
     readiness: 'coming_soon',
     integrations: [
       integration('partner_marketplace', 'Partner-Marktplatz', 'Pflegedienst-Partner: Hilfsmittel, Dienste, Beratung', 'coming_soon', false, '/business/connect/marketplace'),
-      integration('software_partner', 'Software-Partner', 'Zertifizierte Software-Erweiterungen', 'coming_soon'),
+      integration('software_partner', 'Software-Partner', 'Geplante Software-Erweiterungen', 'coming_soon'),
       integration('hardware_partner', 'Hardware-Partner', 'Geräte und Peripherie-Partner', 'coming_soon'),
       integration('dienstleister', 'Dienstleister', 'Implementierungs- und Beratungspartner', 'coming_soon'),
       integration('schnittstellen_partner', 'Schnittstellen-Partner', 'Individuelle API- und FHIR-Connectors', 'coming_soon'),

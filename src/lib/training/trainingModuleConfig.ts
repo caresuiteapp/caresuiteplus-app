@@ -1,6 +1,6 @@
 import { getServiceMode } from '@/lib/services/mode';
 
-export const TRAINING_LIVE_WIRING_MIGRATION = '0052_training_management_prepared.sql';
+export const TRAINING_LIVE_WIRING_MIGRATION = '0139_training_management_prepared.sql';
 
 export const TRAINING_PREPARED_MESSAGE =
   'Schulungen, Unterweisungen und Zertifikate sind vorbereitet. ' +

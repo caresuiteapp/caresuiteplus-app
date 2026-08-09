@@ -119,6 +119,7 @@ export function ScreenHeader({
 
   return (
     <View
+      accessibilityRole="header"
       style={styles.container}
       {...(Platform.OS === 'web'
         ? ({ dataSet: { csHealthosComponent: 'screen-header' } } as object)

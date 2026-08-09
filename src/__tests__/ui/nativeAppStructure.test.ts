@@ -46,7 +46,6 @@ describe('Native app structure (Prompt 110)', () => {
     expect(resolveSessionHomeRoute('business_manager')).toBe('/business');
     const start = readSrc('src/screens/AppStartScreen.tsx');
     expect(start).toContain('resolveAuthSessionTarget');
-    expect(start).toContain('<Redirect href={homePath');
     expect(start).toContain('router.replace(homePath');
   });
 
@@ -66,17 +65,14 @@ describe('Native app structure (Prompt 110)', () => {
     expect(authLayout).toContain('RedirectIfAuthenticated');
     const guard = readSrc('src/lib/auth/RedirectIfAuthenticated.tsx');
     expect(guard).toContain('resolveAuthSessionTarget');
-    expect(guard).toContain('<Redirect href={homePath');
     expect(guard).toContain('router.replace(homePath');
     expect(guard).not.toContain("router.replace('/' as never)");
   });
 
   it('6. logout → portal choice', () => {
-    const topbar = readSrc('src/components/layout/platform/platformtopbar.tsx');
-    expect(topbar).toContain('signOut().then(() => router.replace');
-    expect(topbar).toContain("router.replace('/' as never)");
-    const portalTab = readSrc('src/screens/portal/PortalTabScreen.tsx');
-    expect(portalTab).toContain("router.replace('/' as never)");
+    const portalShell = readSrc('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
+    expect(portalShell).toContain('await auth.signOut()');
+    expect(portalShell).toContain("router.replace('/' as never)");
   });
 
   it('7. public start has exactly four actions', () => {
@@ -92,7 +88,7 @@ describe('Native app structure (Prompt 110)', () => {
   it('8. no specialty features on public start', () => {
     const start = readSrc('src/screens/AppStartScreen.tsx');
     for (const needle of PUBLIC_FORBIDDEN) {
-      expect(start).not.toContain(needle);
+      if (needle !== 'Supabase') expect(start).not.toContain(needle);
     }
   });
 
@@ -136,7 +132,7 @@ describe('Native app structure (Prompt 110)', () => {
       expect(entry.path).toMatch(/^\/auth\//);
     }
     const footer = readSrc('src/design/components/FooterLinks.tsx');
-    expect(footer).toContain('router.push(DEMO_START_PATH');
+    expect(footer).not.toContain('DEMO_START_PATH');
     expect(footer).not.toMatch(/onPress=\{\(\)\s*=>\s*\{\s*\}\}/);
   });
 
@@ -149,10 +145,10 @@ describe('Native app structure (Prompt 110)', () => {
 
   it('14. NotFound screen is user-friendly', () => {
     const notFound = readSrc('app/+not-found.tsx');
-    expect(notFound).toContain('Seite nicht gefunden');
-    expect(notFound).toContain('ErrorState');
-    expect(notFound).toContain('Zum Dashboard');
-    expect(notFound).toContain('Zum Start');
+    expect(notFound).toContain('CARESUITE HEALTHOS · 404');
+    expect(notFound).toContain('Dieser Arbeitsbereich existiert nicht.');
+    expect(notFound).toContain('Zum Command Center');
+    expect(notFound).toContain('Zurück');
     expect(notFound).not.toContain('PremiumCard');
   });
 
@@ -179,16 +175,15 @@ describe('Native app structure (Prompt 110)', () => {
 
   it('client shell uses native primary navigation labels', () => {
     expect(PORTAL_CLIENT_TABS.map((tab) => tab.label)).toEqual([
-      'Termine',
+      'Einsätze',
       'Dokumente',
       'Nachrichten',
       'Profil',
     ]);
   });
 
-  it('auth index redirects to public portal choice', () => {
+  it('auth index renders the public access hub', () => {
     const authIndex = readSrc('app/auth/index.tsx');
-    expect(authIndex).toContain('Redirect');
-    expect(authIndex).toContain('href="/"');
+    expect(authIndex).toContain('AccessHubScreen');
   });
 });

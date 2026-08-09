@@ -165,24 +165,14 @@ describe('Connect Dashboard & Admin UI', () => {
     expect(decision.shouldRedirect).toBe(true);
   });
 
-  it('Anbieter-Detailseite hat 9 Tabs', () => {
+  it('Anbieter-Detailseite zeigt die zentralen Sicherheits- und Statusbereiche', () => {
     const detailSource = fs.readFileSync(
       path.join(process.cwd(), 'src/screens/connect/ConnectIntegrationDetailScreen.tsx'),
       'utf8',
     );
-    const tabs = [
-      'Übersicht',
-      'Funktionen',
-      'Konfiguration',
-      'Datenfreigaben',
-      'Webhooks',
-      'Synchronisation',
-      'Audit',
-      'Datenschutz',
-      'Kosten',
-    ];
-    for (const tab of tabs) {
-      expect(detailSource).toContain(tab);
+    for (const section of ['Status', 'Anbindungsstatus', 'Reifegrad', 'Audit vorbereitet', 'Datenschutz', 'Sicherheit']) {
+      expect(detailSource).toContain(section);
     }
+    expect(detailSource).toContain("can('connect.configure')");
   });
 });

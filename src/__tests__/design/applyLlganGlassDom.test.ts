@@ -26,7 +26,7 @@ describe('applyLlganGlassDom', () => {
     vi.unstubAllGlobals();
   });
 
-  it('uses production-safe glass without live blur or observer feedback loops', async () => {
+  it('uses production-safe glass without observer feedback loops', async () => {
     const { bindLlganGlassSurface } = await import('@/design/web/applyLlganGlassDom');
 
     const el = {
@@ -41,12 +41,12 @@ describe('applyLlganGlassDom', () => {
     expect(el.classList.add).toHaveBeenCalledWith('cs-llgan-glass', 'cs-llgan-glass-card');
     expect(el.style.setProperty).toHaveBeenCalledWith(
       'backdrop-filter',
-      'none',
+      'blur(26px) saturate(1.28)',
       'important',
     );
     expect(el.style.setProperty).toHaveBeenCalledWith(
       'background-color',
-      expect.stringContaining('rgba(255, 255, 255'),
+      expect.stringContaining('rgba(7,20,42'),
       'important',
     );
     expect(el.style.setProperty).toHaveBeenCalledWith(

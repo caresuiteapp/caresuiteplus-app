@@ -1,6 +1,8 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import { blockDemoOnlyInLiveMode, guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { qmSupabaseRepository } from './qmRepository.supabase';
+import { qmDemoRepository } from './qmRepository.demo';
+import { getServiceMode } from '@/lib/services/mode';
 import {
   enforceQmPermission,
   QM_APPROVE_DOCUMENT,
@@ -19,7 +21,9 @@ export async function fetchQmDocuments(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  return qmSupabaseRepository.listDocumentsMapped(tenantId);
+  return getServiceMode() === 'demo'
+    ? qmDemoRepository.listDocuments(tenantId)
+    : qmSupabaseRepository.listDocumentsMapped(tenantId);
 }
 
 export async function fetchQmDocument(
@@ -33,6 +37,10 @@ export async function fetchQmDocument(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
+  if (getServiceMode() === 'demo') {
+    const result = await qmDemoRepository.getDocument(tenantId, documentId);
+    return result.ok && !result.data ? { ok: false, error: 'Dokument nicht gefunden.' } : result as ServiceResult<QmDocument>;
+  }
   return qmSupabaseRepository.getDocumentMapped(tenantId, documentId);
 }
 
@@ -47,7 +55,9 @@ export async function fetchQmDocumentVersions(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  return qmSupabaseRepository.listDocumentVersionsMapped(tenantId, documentId);
+  return getServiceMode() === 'demo'
+    ? qmDemoRepository.listDocumentVersions(tenantId, documentId)
+    : qmSupabaseRepository.listDocumentVersionsMapped(tenantId, documentId);
 }
 
 export async function approveQmDocument(
@@ -60,6 +70,7 @@ export async function approveQmDocument(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
+  if (getServiceMode() === 'demo') return qmDemoRepository.approveDocument(tenantId, documentId, _approvedBy);
   const liveBlock = blockDemoOnlyInLiveMode<QmDocument>('QM-Dokumente');
   if (liveBlock) return liveBlock;
   return { ok: false, error: 'QM-Dokumente im Live-Modus noch nicht vollständig angebunden.' };
@@ -75,5 +86,7 @@ export async function fetchQmReadConfirmations(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  return qmSupabaseRepository.listReadConfirmationsMapped(tenantId, documentId);
+  return getServiceMode() === 'demo'
+    ? qmDemoRepository.listReadConfirmations(tenantId, documentId)
+    : qmSupabaseRepository.listReadConfirmationsMapped(tenantId, documentId);
 }

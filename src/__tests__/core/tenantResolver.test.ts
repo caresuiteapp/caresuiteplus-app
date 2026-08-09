@@ -28,11 +28,10 @@ describe('Tenant resolver', () => {
     vi.unstubAllEnvs();
   });
 
-  it('liefert DEMO_TENANT_ID im Demo-Modus unabhängig vom Profil', () => {
+  it('verlangt auch im Demo-Modus einen expliziten Mandantenkontext', () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
     const result = resolveTenantIdForService(null);
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.tenantId).toBe(DEMO_TENANT_ID);
+    expect(result.ok).toBe(false);
   });
 
   it('verlangt profile.tenant_id im Live-Modus', () => {

@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = join(process.cwd());
-const STABLE_BUNDLE_ID = 'de.caresuiteplus.app';
+const STABLE_IOS_BUNDLE_ID = 'de.caresuiteplus.app';
+const STABLE_ANDROID_PACKAGE = 'app.caresuiteplus';
 
 const ASSET_FILES = [
   'assets/icon.png',
@@ -20,8 +21,8 @@ describe('store config', () => {
     expect(appJson.expo.name).toBe('CareSuite+');
     expect(appJson.expo.slug).toBe('caresuite-plus');
     expect(appJson.expo.scheme).toBe('caresuiteplus');
-    expect(appJson.expo.ios.bundleIdentifier).toBe(STABLE_BUNDLE_ID);
-    expect(appJson.expo.android.package).toBe(STABLE_BUNDLE_ID);
+    expect(appJson.expo.ios.bundleIdentifier).toBe(STABLE_IOS_BUNDLE_ID);
+    expect(appJson.expo.android.package).toBe(STABLE_ANDROID_PACKAGE);
     expect(appJson.expo.ios.supportsTablet).toBe(true);
     expect(appJson.expo.ios.buildNumber).toBeDefined();
     expect(appJson.expo.android.versionCode).toBeGreaterThan(0);
@@ -29,7 +30,8 @@ describe('store config', () => {
 
   it('spiegelt Bundle-ID und supportsTablet in app.config.ts', () => {
     const appConfig = readFileSync(join(root, 'app.config.ts'), 'utf8');
-    expect(appConfig).toContain(STABLE_BUNDLE_ID);
+    expect(appConfig).toContain(STABLE_IOS_BUNDLE_ID);
+    expect(appConfig).toContain(STABLE_ANDROID_PACKAGE);
     expect(appConfig).toContain('supportsTablet: true');
     expect(appConfig).toContain("slug: 'caresuite-plus'");
     expect(appConfig).toContain('SUPPORT_LINKS');
@@ -60,7 +62,7 @@ describe('store config', () => {
     const appConfig = readFileSync(join(root, 'app.config.ts'), 'utf8');
     expect(appConfig).toContain('expo-location');
     expect(readFileSync(join(root, 'src/lib/assist/gpsTrackingConfig.ts'), 'utf8')).toContain(
-      'return false',
+      'isAssistTrackingPersistenceActive',
     );
   });
 

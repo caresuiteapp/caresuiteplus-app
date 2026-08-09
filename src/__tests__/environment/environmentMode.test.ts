@@ -123,11 +123,11 @@ describe('Environment mode separation', () => {
     expect(display.label).toContain('Sandbox');
   });
 
-  it('4 — Produktion: Demo-Fallback blockiert, simulierte PDF-Engine nicht produktiv', () => {
+  it('4 — Produktion: Demo-Fallback blockiert, produktive PDF-Engine verfügbar', () => {
     stubLiveProductionEnv();
 
     expect(assertDemoFallbackAllowed(true, LIVE_TENANT).ok).toBe(false);
-    expect(isPdfProductionAvailable(LIVE_TENANT)).toBe(false);
+    expect(isPdfProductionAvailable(LIVE_TENANT)).toBe(true);
   });
 
   it('5 — Pilot-Mandant: Kennzeichnung, Risiko-Hinweis und Feedback vorbereitet', () => {

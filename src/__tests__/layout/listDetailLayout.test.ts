@@ -23,22 +23,22 @@ describe('ListDetailLayout', () => {
     expect(source).toContain('styles.phone');
   });
 
-  it('MasterDetailLayout delegiert an ListDetailLayout', () => {
+  it('MasterDetailLayout owns the responsive split panes', () => {
     const source = readSrc('src/components/layout/MasterDetailLayout.tsx');
-    expect(source).toContain('ListDetailLayout');
-    expect(source).toContain('list={master}');
+    expect(source).toContain('useMasterDetail');
+    expect(source).toContain('{master}');
+    expect(source).toContain('showDetail ? detail : placeholder');
   });
 
-  it('AdaptiveListDetail nutzt ListDetailLayout', () => {
+  it('AdaptiveListDetail nutzt MasterDetailLayout', () => {
     const source = readSrc('src/components/adaptive/AdaptiveListDetail.tsx');
-    expect(source).toContain('ListDetailLayout');
+    expect(source).toContain('MasterDetailLayout');
     expect(source).not.toContain('flexDirection: \'row\'');
   });
 
-  it('OfficeMessagesAdaptiveScreen nutzt AdaptiveListDetail', () => {
+  it('OfficeMessagesAdaptiveScreen nutzt den kanonischen Messenger', () => {
     const source = readSrc('src/screens/office/OfficeMessagesAdaptiveScreen.tsx');
-    expect(source).toContain('AdaptiveListDetail');
-    expect(source).toContain('OfficeMessageDetailSummaryPanel');
+    expect(source).toContain('OfficeMessengerScreen');
   });
 });
 
@@ -50,9 +50,9 @@ describe('Office Nachrichten list layout', () => {
     expect(source).toContain('flex: 1');
   });
 
-  it('OfficeMessagesListView nutzt Kompaktzeilen im eingebetteten Modus', () => {
+  it('OfficeMessagesListView nutzt einen eigenen eingebetteten Kopf', () => {
     const source = readSrc('src/components/office/OfficeMessagesListView.tsx');
-    expect(source).toContain('OfficeMessageCompactRow');
+    expect(source).toContain('styles.embeddedHeader');
     expect(source).toContain('embedded ?');
     expect(source).toContain('&& !embedded');
   });
@@ -64,7 +64,7 @@ describe('Office Nachrichten list layout', () => {
 
   it('Standard-Ansicht für Nachrichten ist Karten statt Tabelle', () => {
     const source = readSrc('src/components/office/OfficeMessagesListView.tsx');
-    expect(source).toContain("useDesktopListViewPreference('office.messages', 'cards')");
+    expect(source).toContain("useDesktopListViewPreference('office.messages')");
   });
 });
 
@@ -74,7 +74,6 @@ describe('Office list views embedded table guard', () => {
     'EmployeesListView.tsx',
     'InvoicesListView.tsx',
     'AppointmentsListView.tsx',
-    'DocumentsListView.tsx',
   ];
 
   for (const file of listViews) {

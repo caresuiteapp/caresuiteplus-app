@@ -50,10 +50,10 @@ describe('User guidance — public auth surfaces', () => {
 
   it('employee login has no module activation or registration', () => {
     const source = readSrc('src/screens/auth/EmployeePortalLoginScreen.tsx');
-    expect(source).toContain('Hilfe bei Zugang');
+    expect(source).toContain('von Ihrer Verwaltung bereitgestellt');
     expect(source).not.toContain('Module aktivieren');
     expect(source).not.toMatch(/registrieren/i);
-    expect(source).not.toContain('AuthLoginHero');
+    expect(source).toContain('AuthLoginHero');
   });
 
   it('client login has no admin or employee guidance', () => {
@@ -66,10 +66,10 @@ describe('User guidance — public auth surfaces', () => {
 
   it('registration shows Office always included', () => {
     const source = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(source).toContain('RegisterLayout');
+    expect(source).toContain('ScreenShell');
     expect(source).toContain('Office ist immer enthalten');
     expect(source).toContain('immer enthalten');
-    expect(source).toContain('Prüfen und registrieren');
+    expect(source).toContain('Kostenlos registrieren');
   });
 
   it('public auth screens expose no raw preparedOnly strings', () => {
@@ -79,7 +79,7 @@ describe('User guidance — public auth surfaces', () => {
     }
     const notice = readSrc('src/components/billing/PremiumPreparedNotice.tsx');
     expect(notice).not.toContain('preparedOnly');
-    expect(notice).toContain('Demnächst verfügbar');
+    expect(notice).toContain('Noch nicht buchbar');
   });
 
   it('start page has no duplicate register CTAs', () => {
@@ -94,7 +94,7 @@ describe('User guidance — public auth surfaces', () => {
     const register = readSrc('src/design/components/RegisterLayout.tsx');
     expect(shell).toContain('isPhone');
     expect(shell).toContain('!isPhone');
-    expect(register).toContain('!isPhone');
+    expect(register).toContain('showBack={showBack}');
   });
 
   it('production public screens avoid prototype and debug hints', () => {
@@ -116,7 +116,6 @@ describe('User guidance — public auth surfaces', () => {
 
   it('footer links stay compact for public surfaces', () => {
     const footer = readSrc('src/design/components/FooterLinks.tsx');
-    expect(footer).toContain('Demo ansehen');
     expect(footer).toContain('Hilfe');
     expect(footer).toContain('Datenschutz');
     expect(footer).toContain('Impressum');

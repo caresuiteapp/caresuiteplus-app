@@ -70,7 +70,7 @@ describe('Portal Relative Conversation Hero (Sprint 104)', () => {
   it('PortalRelativeConversationHero nutzt PremiumListHeroFrame', () => {
     const hero = readSrc('src/components/portal/PortalRelativeConversationHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('ANGEHÖRIGENPORTAL');
+    expect(hero).toContain('Geteilte Sicht · nur freigegebene Inhalte');
   });
 
   it('ConversationScreen nutzt Hero für portal_family', () => {

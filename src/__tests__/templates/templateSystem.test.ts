@@ -31,7 +31,7 @@ describe('templateSystem — Paket F', () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
     resetTemplateDemoStore();
-    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', '');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', '');
   });
@@ -39,7 +39,7 @@ describe('templateSystem — Paket F', () => {
   it('lädt Systemvorlagen (50+)', async () => {
     expect(getAllSystemTemplates().length).toBeGreaterThanOrEqual(50);
     const result = await listTemplates(TENANT, { scope: 'system' }, 'business_admin');
-    expect(result.ok).toBe(true);
+    expect(result.ok, result.ok ? '' : result.error).toBe(true);
     if (result.ok) {
       expect(result.data.length).toBeGreaterThanOrEqual(50);
       expect(result.data.every((t) => t.scope === 'system')).toBe(true);
@@ -57,7 +57,7 @@ describe('templateSystem — Paket F', () => {
       },
       'business_admin',
     );
-    expect(created.ok).toBe(true);
+    expect(created.ok, created.ok ? '' : created.error).toBe(true);
     const list = await listTemplates(TENANT, { scope: 'tenant' }, 'business_admin');
     expect(list.ok).toBe(true);
     if (list.ok) {
@@ -76,7 +76,7 @@ describe('templateSystem — Paket F', () => {
   });
 
   it('Mandanten-Katalog ergänzt System-Katalog', async () => {
-    await createCatalogEntry(
+    const created = await createCatalogEntry(
       TENANT,
       {
         catalogType: 'task_category',
@@ -86,6 +86,7 @@ describe('templateSystem — Paket F', () => {
       },
       'business_admin',
     );
+    expect(created.ok, created.ok ? '' : created.error).toBe(true);
     const options = await getDropdownOptions(TENANT, 'task_category', 'business_admin');
     expect(options.ok).toBe(true);
     if (options.ok) {
@@ -106,7 +107,7 @@ describe('templateSystem — Paket F', () => {
       },
       'business_admin',
     );
-    expect(created.ok).toBe(true);
+    expect(created.ok, created.ok ? '' : created.error).toBe(true);
     if (!created.ok) return;
     const archived = await archiveTemplate(TENANT, created.data.id, 'business_admin');
     expect(archived.ok).toBe(true);

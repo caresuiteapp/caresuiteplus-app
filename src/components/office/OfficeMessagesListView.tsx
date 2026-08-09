@@ -45,7 +45,7 @@ export function OfficeMessagesListView({
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
   const { viewMode, setViewMode } = useDesktopListViewPreference('office.messages');
-  const useTableLayout = isDesktop && viewMode === 'table';
+  const useTableLayout = isDesktop && viewMode === 'table' && !embedded;
   const { mode } = useLegacyTheme();
   const canView = can('office.messages.view');
   const canCompose = can('office.access') && !isReadOnly;

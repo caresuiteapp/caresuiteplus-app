@@ -1,5 +1,6 @@
 import type { Profile } from '@/types';
 import type { PortalSessionRecord } from '@/lib/auth/portalSessionStore';
+import { assertTenantAllowedForMode } from '@/lib/environment';
 
 export type TenantResolveResult =
   | { ok: true; tenantId: string }
@@ -69,5 +70,6 @@ export function assertTenantForMode(tenantId: string): TenantResolveError | null
     return { ok: false, error: 'Mandant fehlt.' };
   }
 
-  return null;
+  const allowed = assertTenantAllowedForMode(tenantId);
+  return allowed.ok ? null : { ok: false, error: allowed.error };
 }

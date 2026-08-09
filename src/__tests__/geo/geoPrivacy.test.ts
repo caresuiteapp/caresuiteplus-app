@@ -26,7 +26,7 @@ import {
 } from '@/lib/geo';
 
 const root = path.join(__dirname, '..', '..', '..');
-const migrationPath = path.join(root, 'supabase/migrations/0046_geo_routes_prepared.sql');
+const migrationPath = path.join(root, 'supabase/migrations/0125_geo_routes_prepared.sql');
 
 function readMigration(): string {
   return readFileSync(migrationPath, 'utf8');
@@ -34,7 +34,7 @@ function readMigration(): string {
 
 const assignmentStart = '2026-06-16T10:00:00.000Z';
 
-describe('0046_geo_routes_prepared migration', () => {
+describe('0125_geo_routes_prepared migration', () => {
   const sql = readMigration();
 
   it('legt alle sieben Geo-Tabellen an', () => {
@@ -151,7 +151,7 @@ describe('geo privacy guards', () => {
         endAddress: 'Ziel',
         distanceKm: 12.4,
       },
-      'caregiver',
+      'business_admin',
     );
     expect(draft.ok).toBe(true);
     if (draft.ok) {

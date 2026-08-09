@@ -10,7 +10,7 @@ export const MEDICAL_DOCUMENTATION_NOTES_TABLE = 'medical_documentation_notes';
 export const MEDICAL_CATALOG_IMPORT_JOBS_TABLE = 'medical_catalog_import_jobs';
 export const MEDICAL_AUDIT_EVENTS_TABLE = 'medical_audit_events';
 
-export const MEDICAL_LIVE_REQUIRED_MIGRATION = '0047_medical_catalog_prepared.sql';
+export const MEDICAL_LIVE_REQUIRED_MIGRATION = '0128_medical_catalog_prepared.sql';
 
 export const ICD_CODE_SELECT_COLUMNS =
   'id, version_id, code, title, chapter, block_code, parent_code, search_text, is_terminal';

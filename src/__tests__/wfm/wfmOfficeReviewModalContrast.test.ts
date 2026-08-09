@@ -14,8 +14,7 @@ describe('WFM review popup and contrast contract', () => {
     expect(history).toContain('variant="center"');
     expect(history).toContain('maxHeightRatio={0.92}');
     expect(history).toContain('{reviewQueueMode ? (');
-    expect(table).toContain('const mobileReview = reviewQueueMode && width < 1760');
-    expect(table).not.toContain('width < 1760 || Boolean(selectedId)');
+    expect(table).toContain('const mobileReview = reviewQueueMode && reviewWidth < REVIEW_MIN_TABLE_WIDTH + 32');
   });
 
   it('uses explicit high-contrast colors on the light worktime surfaces', () => {
@@ -24,11 +23,9 @@ describe('WFM review popup and contrast contract', () => {
     const layout = read('src/components/wfm/WfmOfficeTimekeepingLayout.tsx');
     const shell = read('src/components/wfm/OfficeTimeTrackingShell.tsx');
 
-    expect(table).toContain('primary: systemLiquidGlass.text.primary');
-    expect(table).toContain('secondary: systemLiquidGlass.text.secondary');
+    expect(table).toContain('const TABLE_TEXT = WORKTIME_TEXT');
     expect(table).toContain('ReadableStatusBadge');
-    expect(detail).toContain('secondary: systemLiquidGlass.text.secondary');
-    expect(detail).toContain('border: systemLiquidGlass.border');
+    expect(detail).toContain('const REVIEW_TEXT = WORKTIME_TEXT');
     expect(layout).toContain('WORKTIME_TEXT');
     expect(shell).toContain('SHELL_TEXT');
   });

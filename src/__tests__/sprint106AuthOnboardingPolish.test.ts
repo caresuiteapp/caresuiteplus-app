@@ -12,7 +12,6 @@ const AUTH_ROUTE_PATHS = [
   '/auth/portal-code-login',
   '/auth/employee-first-login',
   '/auth/register-business',
-  '/auth/demo',
   '/settings/data-request',
   '/settings/account-deletion',
 ];
@@ -21,7 +20,7 @@ describe('Auth & Onboarding Premium Polish (Sprint 106)', () => {
   it('AuthLoginHero nutzt PremiumListHeroFrame', () => {
     const hero = readSrc('src/components/auth/AuthLoginHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('preparedOnly Auth');
+    expect(hero).toContain('PremiumBadge');
   });
 
   it('OnboardingWelcomeHero nutzt PremiumListHeroFrame', () => {
@@ -30,15 +29,16 @@ describe('Auth & Onboarding Premium Polish (Sprint 106)', () => {
     expect(hero).toContain('Demo-Prototyp');
   });
 
-  it('BusinessLoginScreen nutzt AuthLoginHero statt flachem PremiumCard-Header', () => {
+  it('BusinessLoginScreen nutzt die zentrale AuthLayout-Struktur', () => {
     const screen = readSrc('src/screens/auth/BusinessLoginScreen.tsx');
-    expect(screen).toContain('AuthLoginHero');
+    expect(screen).toContain('AuthLayout');
+    expect(screen).toContain('GlassCard');
     expect(screen).not.toContain('<PremiumCard accentColor={colors.orange}>');
   });
 
-  it('EmployeePortalLoginScreen und PortalCodeLoginScreen nutzen AuthLoginHero', () => {
+  it('Portal-Login-Screens nutzen die zentrale AuthLayout-Struktur', () => {
     expect(readSrc('src/screens/auth/EmployeePortalLoginScreen.tsx')).toContain('AuthLoginHero');
-    expect(readSrc('src/screens/auth/PortalCodeLoginScreen.tsx')).toContain('AuthLoginHero');
+    expect(readSrc('src/screens/auth/PortalCodeLoginScreen.tsx')).toContain('AuthLayout');
     expect(readSrc('src/screens/auth/ForgotPasswordScreen.tsx')).toContain('AuthLoginHero');
   });
 

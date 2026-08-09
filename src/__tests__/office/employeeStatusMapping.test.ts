@@ -31,7 +31,7 @@ describe('employeeStatusMapping', () => {
     expect(mapDbStatusToCatalogStatus('draft')).toBe('entwurf');
     expect(mapDbStatusToCatalogStatus('sick')).toBe('krank');
     expect(mapDbStatusToCatalogStatus('vacation')).toBe('urlaub');
-    expect(mapDbStatusToCatalogStatus('terminated')).toBe('ausgeschieden');
+    expect(mapDbStatusToCatalogStatus('terminated')).toBe('archiviert');
     expect(mapDbStatusToCatalogStatus('blocked')).toBe('gesperrt');
     expect(mapDbStatusToCatalogStatus('inactive')).toBe('archiviert');
   });

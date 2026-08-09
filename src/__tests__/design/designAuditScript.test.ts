@@ -19,7 +19,7 @@ describe('design-audit script', () => {
     expect(existsSync(scriptPath)).toBe(true);
     const content = readFileSync(scriptPath, 'utf8');
     expect(content).toContain('CareAdaptiveShell');
-    expect(content).toContain('AdaptiveKpiGrid');
-    expect(content).toContain('useResponsiveValue');
+    expect(content).toContain('LiquidModuleRouteLayout');
+    expect(content).toContain('LiquidPortalRouteLayout');
   });
 });

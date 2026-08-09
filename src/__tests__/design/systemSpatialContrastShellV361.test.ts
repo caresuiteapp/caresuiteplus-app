@@ -38,8 +38,8 @@ describe('System Spatial Contrast Shell V36.1', () => {
       'src/components/layout/platform/PlatformContextSearch.tsx',
     ].map(readSource).join('\n');
 
-    expect(portalSources).not.toContain('lightSurfaceText');
-    expect(portalSources).toContain('darkGlassSurfaceText');
+    expect(portalSources).not.toContain('darkGlassSurfaceText');
+    expect(portalSources).toContain('portalPremium.text');
     expect(platformSources).not.toContain("color: '#000000'");
     expect(platformSources).not.toContain('placeholderTextColor="#000000"');
   });

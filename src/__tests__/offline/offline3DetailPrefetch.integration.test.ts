@@ -143,6 +143,13 @@ function makeItem(id: string, startsAt: string): PortalAppointmentItem {
   };
 }
 
+function futureAt(offsetHours: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  date.setHours(8 + offsetHours, 0, 0, 0);
+  return date.toISOString();
+}
+
 vi.mock('@/lib/portal/appointmentService', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/portal/appointmentService')>();
   return {
@@ -174,9 +181,9 @@ describe('OFFLINE.3 detail prefetch integration', () => {
 
   it('prefetches portal and execution detail caches for three assignments', async () => {
     const items = [
-      makeItem('asg-a', '2026-07-04T08:00:00.000Z'),
-      makeItem('asg-b', '2026-07-04T10:00:00.000Z'),
-      makeItem('asg-c', '2026-07-04T12:00:00.000Z'),
+      makeItem('asg-a', futureAt(0)),
+      makeItem('asg-b', futureAt(2)),
+      makeItem('asg-c', futureAt(4)),
     ];
 
     vi.mocked(fetchLiveEmployeePortalAssignmentDetail).mockImplementation(async (_t, id) => ({
@@ -259,7 +266,7 @@ describe('OFFLINE.3 detail prefetch integration', () => {
 
   it('bounds prefetch to MAX_PREFETCH_DETAILS for 14 assignments', async () => {
     const items = Array.from({ length: 14 }, (_, index) =>
-      makeItem(`asg-${index}`, new Date(Date.UTC(2026, 6, 4 + index, 8, 0, 0)).toISOString()),
+      makeItem(`asg-${index}`, futureAt(index * 24)),
     );
 
     const candidates = selectPrefetchAssignmentCandidates(items);
@@ -286,9 +293,9 @@ describe('OFFLINE.3 detail prefetch integration', () => {
 
   it('tolerates prefetch failure for B while A and C succeed', async () => {
     const items = [
-      makeItem('asg-a', '2026-07-04T08:00:00.000Z'),
-      makeItem('asg-b', '2026-07-04T10:00:00.000Z'),
-      makeItem('asg-c', '2026-07-04T12:00:00.000Z'),
+      makeItem('asg-a', futureAt(0)),
+      makeItem('asg-b', futureAt(2)),
+      makeItem('asg-c', futureAt(4)),
     ];
 
     vi.mocked(fetchPortalAppointmentDetail).mockImplementation(async (id) => {
@@ -336,7 +343,7 @@ describe('OFFLINE.3 detail prefetch integration', () => {
   });
 
   it('prefetchEmployeeAssignmentCache writes list then schedules detail prefetch', async () => {
-    const items = [makeItem('asg-1', '2026-07-04T08:00:00.000Z')];
+    const items = [makeItem('asg-1', futureAt(0))];
     vi.mocked(fetchPortalAppointments).mockResolvedValue({ ok: true, data: items });
     vi.mocked(fetchPortalAppointmentDetail).mockResolvedValue({
       ok: true,

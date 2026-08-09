@@ -28,11 +28,13 @@ describe('Pflege Premium Heroes Batch (Sprint 75)', () => {
 
   it('PflegeIndexScreen nutzt Pflege workspace dashboard', () => {
     const screen = readSrc('src/screens/pflege/PflegeIndexScreen.tsx');
+    const workspace = readSrc('src/lib/pflege/pflegeDashboardWorkspace.ts');
     expect(screen).toContain('ModuleDashboardShell');
     expect(screen).toContain('PflegeDashboardView');
     expect(screen).not.toContain('CareLightModuleDashboard');
     expect(screen).not.toContain('Bewohner:innen');
-    expect(screen).toContain('/pflege/plans');
+    expect(screen).toContain('PFLEGE_HEADER_SECONDARY_ACTIONS');
+    expect(workspace).toContain("route: '/pflege/plans'");
   });
 
   it('buildPflegeDashboardKpis berechnet 12 Pflege-KPIs', () => {
@@ -60,12 +62,13 @@ describe('Pflege Premium Heroes Batch (Sprint 75)', () => {
     expect(kpis.some((k) => k.id === 'pflege-ws-kpi-reports')).toBe(true);
   });
 
-  it('SisOverviewHero und Screen nutzen PremiumListHeroFrame', () => {
+  it('SIS-Übersicht nutzt die zentrale Assessment-Liste', () => {
     const hero = readSrc('src/components/pflege/SisOverviewHero.tsx');
     const screen = readSrc('src/screens/pflege/SisOverviewScreen.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('Teilweise live');
-    expect(screen).toContain('SisOverviewHero');
+    expect(screen).toContain('CareAssessmentListScreen');
+    expect(readSrc('src/screens/careAssessment/CareAssessmentListScreen.tsx')).toContain('fetchCareAssessments');
     expect(screen).not.toContain('PremiumCard style={styles.header}');
   });
 

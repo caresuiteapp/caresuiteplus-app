@@ -28,3 +28,10 @@ export {
   type UiUserRole,
   type UiVisibility,
 } from './uiVisibility';
+export {
+  ACTION_DISABLED_REASONS,
+  getActionAvailability,
+  type ActionAvailability,
+  type ActionAvailabilityContext,
+  type ActionKey,
+} from './actionAvailability';

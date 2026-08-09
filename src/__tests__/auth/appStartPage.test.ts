@@ -68,11 +68,11 @@ describe('App start page', () => {
     expect(footer).not.toContain('/auth/demo');
   });
 
-  it('auth alias routes redirect to canonical paths', () => {
+  it('auth alias routes expose the canonical access screens', () => {
     const register = readSrc('app/auth/register.tsx');
     const clientLogin = readSrc('app/auth/client-login.tsx');
-    expect(register).toContain('/auth/register-business');
-    expect(clientLogin).toContain('/auth/portal-code-login');
+    expect(register).toContain('RegisterOrganizationScreen');
+    expect(clientLogin).toContain('PortalAccessScreen portal="client"');
   });
 
   it('developer tools moved to business admin routes', () => {
@@ -83,7 +83,7 @@ describe('App start page', () => {
   });
 
   it('public fundament and design-system routes are gated', () => {
-    expect(readSrc('app/fundament.tsx')).toContain('DevToolGate');
+    expect(readSrc('app/fundament.tsx')).toContain('Redirect href="/design-system"');
     expect(readSrc('app/design-system/_layout.tsx')).toContain('DevToolGate');
   });
 

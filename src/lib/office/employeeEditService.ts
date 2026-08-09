@@ -1,7 +1,10 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { EmployeeDetail } from '@/types/modules/employeeDetail';
 import type { EmployeeEditFormData } from '@/types/forms/employeeEditForm';
-import type { EmployeeProfilePhotoValue } from '@/types/forms/employeeForm';
+import {
+  EMPTY_EMPLOYEE_PROFILE_PHOTO,
+  type EmployeeProfilePhotoValue,
+} from '@/types/forms/employeeForm';
 import { updateDemoEmployeeDetail } from '@/data/demo/employeeDetails';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
@@ -82,7 +85,7 @@ export async function saveEmployeeEdit(
   const avatarResult = await resolveAvatarUrlForSave(
     tenantId,
     employeeId,
-    form.profilePhoto,
+    form.profilePhoto ?? EMPTY_EMPLOYEE_PROFILE_PHOTO,
     currentAvatarUrl,
   );
   if (!avatarResult.ok) return avatarResult;

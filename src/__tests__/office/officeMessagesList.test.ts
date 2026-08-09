@@ -149,8 +149,9 @@ describe('Office Nachrichten list', () => {
     }
   });
 
-  it('Compose-Route nutzt OfficeComposeMessageScreen', () => {
+  it('Compose-Route öffnet den produktiven Composer der Nachrichtenliste', () => {
     const source = readSrc('app/office/messages/compose.tsx');
-    expect(source).toContain('OfficeComposeMessageScreen');
+    expect(source).toContain('Redirect');
+    expect(source).toContain('/office/messages?compose=1');
   });
 });

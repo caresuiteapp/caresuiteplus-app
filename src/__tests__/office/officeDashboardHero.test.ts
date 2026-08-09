@@ -16,9 +16,10 @@ describe('Office Dashboard Hero + AdaptiveModuleDashboard (Sprint 96)', () => {
     expect(hero).toContain('AdaptiveKpiGrid');
   });
 
-  it('OfficeIndexScreen nutzt ModuleDashboardShell mit ActionToolbar', () => {
+  it('OfficeIndexScreen nutzt den HealthOS Command Center mit ActionToolbar', () => {
     const screen = readSrc('src/screens/office/OfficeIndexScreen.tsx');
-    expect(screen).toContain('ModuleDashboardShell');
+    expect(screen).toContain('HealthOSOfficeCommandCenterView');
+    expect(screen).toContain('ScreenShell');
     expect(screen).toContain('ActionToolbar');
     expect(screen).toContain('useOfficeDashboard');
     expect(screen).not.toContain('AdaptiveModuleDashboard');

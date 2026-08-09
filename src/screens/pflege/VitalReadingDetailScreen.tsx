@@ -8,7 +8,6 @@ import {
   ErrorState,
   InfoBanner,
   LoadingState,
-  PremiumButton,
   PremiumCard,
   SectionPanel,
 } from '@/components/ui';
@@ -86,29 +85,6 @@ export function VitalReadingDetailScreen() {
             roleLabel={roleLabel}
           />
         ) : null}
-
-        <SectionPanel title="Aktionen" subtitle="Erfassung und Schwellenwerte (vorbereitet)">
-          <PremiumButton
-            title="Messung korrigieren"
-            fullWidth
-            disabled={!writeReady || isReadOnly}
-            onPress={() => undefined}
-          />
-          <PremiumButton
-            title="Schwellenwert setzen"
-            variant="secondary"
-            fullWidth
-            disabled={!writeReady || isReadOnly}
-            onPress={() => undefined}
-          />
-          <PremiumButton
-            title="Pflegeplan verknüpfen"
-            variant="secondary"
-            fullWidth
-            disabled={!writeReady || isReadOnly}
-            onPress={() => undefined}
-          />
-        </SectionPanel>
 
         <SectionPanel title="Messung" subtitle="Zeitpunkt & Kontext">
           <SummaryRow label="Gemessen am" value={formatMeasuredAt(reading.measuredAt)} />

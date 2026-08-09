@@ -109,9 +109,9 @@ describe('HealthOS H5 Employee Portal Dashboard', () => {
     expect(source).not.toContain('title="Schnellzugriffe"');
   });
 
-  it('view uses HealthOSMetricCard, loading, error, empty states', () => {
+  it('view uses spatial portal metrics plus shared loading, error and empty states', () => {
     const source = readSrc('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx');
-    expect(source).toContain('HealthOSMetricCard');
+    expect(source).toContain('SpatialPortalMetric');
     expect(source).toContain('HealthOSLoadingState');
     expect(source).toContain('HealthOSErrorState');
     expect(source).toContain('HealthOSEmptyState');

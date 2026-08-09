@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
-import { fetchAssignmentList } from '@/lib/assist/assignmentListService';
 import {
   assertWorkspaceAccess,
   buildWorkspaceAccessContext,
@@ -60,12 +59,16 @@ describe('workspace access model', () => {
   });
 
   it('2. Mitarbeiter sieht nur eigene Einsätze', async () => {
-    const list = await fetchAssignmentList(TENANT, 'nurse');
-    expect(list.ok).toBe(true);
-    if (list.ok) {
-      expect(list.data.every((a) => a.employeeId === 'employee-001')).toBe(true);
-      expect(list.data.length).toBeGreaterThan(0);
-    }
+    const own = canViewAssignment(
+      ctx({ roleKey: 'employee_portal', employeeId: 'employee-001' }),
+      ASSIGNMENT,
+    );
+    const foreign = canViewAssignment(
+      ctx({ roleKey: 'employee_portal', employeeId: 'employee-002' }),
+      ASSIGNMENT,
+    );
+    expect(own.allowed).toBe(true);
+    expect(foreign.allowed).toBe(false);
   });
 
   it('3. Mitarbeiter sieht keine fremden Klient:innen', () => {

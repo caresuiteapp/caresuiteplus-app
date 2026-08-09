@@ -276,7 +276,9 @@ describe('Inventar — UI Wiring', () => {
   });
 
   it('Route registriert unter business/office/inventory', () => {
-    const routes = readSrc('src/lib/navigation/routes.ts');
-    expect(routes).toContain('/business/office/inventory');
+    const officeNav = readSrc('src/lib/navigation/moduleNav/officeNav.ts');
+    const route = readSrc('app/business/office/inventory/index.tsx');
+    expect(officeNav).toContain('/business/office/inventory');
+    expect(route).toContain('InventoryDashboardScreen');
   });
 });

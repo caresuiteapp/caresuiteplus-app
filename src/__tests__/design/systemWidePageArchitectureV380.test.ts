@@ -51,7 +51,7 @@ describe('HealthOS system-wide page architecture V38.0', () => {
     const history = read('src/components/wfm/WfmOfficeTimeHistoryPanel.tsx');
 
     for (const source of [layout, table, detail, history]) {
-      expect(source).toContain('systemLiquidGlass');
+      expect(source).toContain('WORKTIME_');
     }
     expect(layout).not.toContain("backgroundColor: 'rgba(255,255,255,0.96)'");
     expect(table).not.toContain("backgroundColor: '#FAFBFC'");

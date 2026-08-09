@@ -118,7 +118,7 @@ describe('Free Platform Strategy', () => {
 
   it('PremiumPreparedNotice component exists', () => {
     const notice = readSrc('src/components/billing/PremiumPreparedNotice.tsx');
-    expect(notice).toContain('preparedOnly');
+    expect(notice).toContain('IN_PREPARATION_LABEL');
     expect(notice).toContain('DATEV');
   });
 
@@ -132,14 +132,14 @@ describe('Free Platform Strategy', () => {
 
   it('ModuleCard uses Aktivieren/Deaktivieren not Kaufen', () => {
     const card = readSrc('src/components/modules/ModuleCard.tsx');
-    expect(card).toContain('Aktivieren');
+    expect(card).toContain('Kostenlos aktivieren');
     expect(card).toContain('Deaktivieren');
     expect(card).toContain('Modul öffnen');
     expect(card).not.toMatch(/Kaufen/i);
   });
 
-  it('AppStartScreen has free platform messaging', () => {
-    const screen = readSrc('src/screens/AppStartScreen.tsx');
+  it('Business registration has free platform messaging', () => {
+    const screen = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
     expect(screen.toLowerCase()).toContain('kostenlos');
   });
 

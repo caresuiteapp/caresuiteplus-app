@@ -25,9 +25,9 @@ describe('portal scroll ownership R13', () => {
   it('keeps long employee visit execution independently scrollable', () => {
     const execution = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     expect(execution).toContain('testID="employee-visit-execution-scroll"');
-    expect(execution).toContain('style={styles.scrollViewport}');
+    expect(execution).toContain('style={styles.focusStageViewport}');
     expect(execution).toContain('keyboardShouldPersistTaps="handled"');
-    expect(execution).toMatch(/scrollViewport:\s*\{[\s\S]*flex:\s*1[\s\S]*touchAction:\s*'pan-y'/);
+    expect(execution).toMatch(/focusStageViewport:\s*\{[\s\S]*flex:\s*1[\s\S]*touchAction:\s*'pan-y'/);
   });
 
   it('allows the employee page frame to shrink inside the portal viewport', () => {

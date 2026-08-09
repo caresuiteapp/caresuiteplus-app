@@ -203,10 +203,10 @@ describe('Office-Einsatzprofile → Assist-Kalender → freigegebener Einsatz', 
     expect(service).not.toContain(
       "notesForEmployee: assignmentRow?.client_visible_notes",
     );
-    expect(screen).toContain('VOR UND WÄHREND DES EINSATZES BEACHTEN');
-    expect(screen).toContain('Sicherheit, Risiken und Besonderheiten');
-    expect(screen).toContain('Schlüssel und Zugang');
-    expect(screen.indexOf('Wichtige Einsatzhinweise')).toBeLessThan(
+    expect(screen).toContain('WICHTIG FÜR DIESEN EINSATZ');
+    expect(screen).toContain('visit.notesForEmployee');
+    expect(screen).toContain('Zugang: {visit.accessHints}');
+    expect(screen.indexOf('const renderSafetyHints')).toBeLessThan(
       screen.indexOf('{renderPhaseContent()}'),
     );
     expect(flags).toContain("requirements?.signature");

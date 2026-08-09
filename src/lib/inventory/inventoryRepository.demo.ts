@@ -11,6 +11,7 @@ import type {
   InventoryReturnRecord,
   DeviceManagementProfile,
   EmployeeEquipmentSummary,
+  IssueInventoryItemInput,
 } from '@/types/inventory';
 import type { ServiceResult } from '@/types';
 import {
@@ -195,6 +196,52 @@ export const inventoryDemoRepository = {
       },
     });
     return { ok: true, data: assignment };
+  },
+
+  issueItem(tenantId: string, input: IssueInventoryItemInput): ServiceResult<InventoryAssignment> {
+    const item = items.find((entry) => entry.tenantId === tenantId && entry.id === input.itemId);
+    if (!item) return { ok: false, error: 'Inventarposten nicht gefunden.' };
+    if (item.status !== 'available') return { ok: false, error: 'Posten ist nicht verfügbar.' };
+    const timestamp = new Date().toISOString();
+    return this.createAssignment(
+      tenantId,
+      {
+        id: `inv-asg-${Date.now()}`,
+        tenantId,
+        itemId: input.itemId,
+        recipientEmployeeId: input.recipientEmployeeId,
+        responsibleEmployeeId: input.responsibleEmployeeId ?? input.recipientEmployeeId,
+        issuedByProfileId: input.issuedByProfileId ?? null,
+        issuedAt: timestamp,
+        expectedReturnAt: input.expectedReturnAt ?? null,
+        acknowledgedAt: null,
+        status: 'issued',
+        issueCondition: input.issueCondition ?? item.condition,
+        issueNotes: input.issueNotes ?? null,
+        returnRequired: item.requiresReturnOnExit,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      input.issuedByProfileId,
+    );
+  },
+
+  acknowledgeAssignment(tenantId: string, assignmentId: string): ServiceResult<InventoryAssignment> {
+    return this.updateAssignment(
+      tenantId,
+      assignmentId,
+      { status: 'acknowledged', acknowledgedAt: new Date().toISOString() },
+      'acknowledge_assignment',
+    );
+  },
+
+  requestReturn(tenantId: string, assignmentId: string): ServiceResult<InventoryAssignment> {
+    return this.updateAssignment(
+      tenantId,
+      assignmentId,
+      { status: 'return_requested' },
+      'request_return',
+    );
   },
 
   updateAssignment(

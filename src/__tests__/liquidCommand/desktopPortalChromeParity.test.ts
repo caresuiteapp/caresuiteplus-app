@@ -69,6 +69,7 @@ describe('desktop and portal chrome parity', () => {
   it('keeps compact navigation separate from desktop chrome', () => {
     expect(shell).toContain('!layout.isDesktop ? (');
     expect(shell).toContain('<BottomNavigation');
-    expect(shell).toContain('layout.showDock ? <ModuleDock');
+    expect(shell).toContain('layout.showDock ? (');
+    expect(shell).toContain('<ModuleDock');
   });
 });

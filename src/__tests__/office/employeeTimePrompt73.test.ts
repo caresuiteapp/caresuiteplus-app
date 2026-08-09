@@ -38,7 +38,7 @@ import {
 } from '@/lib/portal/employeePortalExecutionService';
 
 const TENANT = DEMO_TENANT_ID;
-const OTHER_TENANT = 'tenant-time-isolation';
+const OTHER_TENANT = '00000000-0000-4000-8000-000000000098';
 const ADMIN = 'business_admin' as const;
 const BILLING = 'billing' as const;
 const EMPLOYEE = 'employee_portal' as const;
@@ -126,9 +126,9 @@ async function executeAssignmentWithPause(assignmentId: string) {
   vi.useRealTimers();
 }
 
-describe('0051_employee_time_prepared migration', () => {
+describe('0133_employee_time_prepared migration', () => {
   const sql = readFileSync(
-    path.join(process.cwd(), 'supabase/migrations/0051_employee_time_prepared.sql'),
+    path.join(process.cwd(), 'supabase/migrations/0133_employee_time_prepared.sql'),
     'utf8',
   );
 

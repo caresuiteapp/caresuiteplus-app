@@ -1,6 +1,9 @@
-/** Demo mode removed — CareSuite+ runs live-only via Supabase. */
+/**
+ * Explicit local/test demo mode. Production remains live-only because the
+ * switch is disabled unless the environment opts in deliberately.
+ */
 export function isDemoMode(): boolean {
-  return false;
+  return typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_DEMO_MODE === 'true';
 }
 
 export function getSupabaseConfig() {

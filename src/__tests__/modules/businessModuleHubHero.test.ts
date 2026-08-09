@@ -54,8 +54,7 @@ describe('Business Module Hub Hero (Sprint 63)', () => {
 
   it('UserModulePermissionsScreen zeigt ehrliche Demo-Vorschau', () => {
     const screen = readSrc('src/screens/office/access/UserModulePermissionsScreen.tsx');
-    expect(screen).toContain('InfoBanner');
-    expect(screen).toContain('Demo-Vorschau');
+    expect(screen).toContain('OfficePermissionsScreen');
     expect(screen).not.toContain('service_role');
   });
 });

@@ -20,7 +20,7 @@ describe('portal premium complete R27', () => {
     const theme = read('src/design/tokens/themeBridge.ts');
     const domGlass = read('src/design/web/applyLlganGlassDom.tsx');
     expect(theme).toContain('usePortalPremiumTheme');
-    expect(theme).toContain("portal.active ? 'light' : 'dark'");
+    expect(theme).toContain("portal.active ? 'light' : themeMode");
     expect(theme).toContain('portalPremium.surfaceRaised');
     expect(domGlass).toContain('PORTAL_GLASS_DOM_PRESETS');
     expect(domGlass).toContain('bindLlganGlassSurface(node, kind, portal.active)');

@@ -37,9 +37,9 @@ const RED_ZONE_FILES = [
 ];
 
 describe('HealthOS H3 Office Command Center', () => {
-  it('OfficeIndexScreen uses HealthOSModuleShell and Command Center view', () => {
+  it('OfficeIndexScreen uses the canonical ScreenShell and Command Center view', () => {
     const source = readSrc('src/screens/office/OfficeIndexScreen.tsx');
-    expect(source).toContain('HealthOSModuleShell');
+    expect(source).toContain('ScreenShell');
     expect(source).toContain('HealthOSOfficeCommandCenterView');
     expect(source).toContain('useOfficeDashboard');
     expect(source).not.toContain('ModuleDashboardShell');

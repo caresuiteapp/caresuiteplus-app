@@ -37,16 +37,15 @@ describe('Module nav modal routing', () => {
   });
 
   it('Settings-Screens nutzen SettingsScreenFrame für PlatformShell', () => {
-    expect(readSrc('src/screens/settings/UserProfileScreen.tsx')).toContain('SettingsScreenFrame');
+    expect(readSrc('src/screens/settings/userprofilescreen.tsx')).toContain('SettingsScreenFrame');
     expect(readSrc('src/screens/settings/TenantSettingsScreen.tsx')).toContain('SettingsScreenFrame');
-    expect(readSrc('src/screens/settings/DataRequestScreen.tsx')).toContain('SettingsScreenFrame');
-    expect(readSrc('src/components/settings/SettingsScreenFrame.tsx')).toContain('showSideNavigation');
+    expect(readSrc('src/screens/settings/DataRequestScreen.tsx')).toContain('ScreenShell');
   });
 
-  it('business/office Layout nutzt ShellLayout', () => {
+  it('business/office Layout nutzt den zentralen Liquid-Command-Stack', () => {
     const layout = readSrc('app/business/office/_layout.tsx');
-    expect(layout).toContain('ShellLayout');
-    expect(layout).toContain('area="office"');
+    expect(layout).toContain("import { Stack } from 'expo-router'");
+    expect(layout).toContain('backgroundColor: \'transparent\'');
   });
 
   it('officeNav markiert Zugänge für Modal', () => {

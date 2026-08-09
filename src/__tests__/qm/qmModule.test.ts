@@ -74,7 +74,7 @@ describe('QM Dashboard', () => {
 
   it('QmDashboardScreen nutzt CareLightModuleDashboard', () => {
     const screen = readSrc('src/screens/qm/QmDashboardScreen.tsx');
-    expect(screen).toContain('CareLightScreen');
+    expect(screen).toContain('ScreenShell');
     expect(screen).toContain('CareLightModuleDashboard');
     expect(screen).toContain("moduleKey=\"qm\"");
     expect(screen).not.toContain('PreparedModeBanner');

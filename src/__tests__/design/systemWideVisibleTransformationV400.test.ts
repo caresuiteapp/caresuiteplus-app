@@ -41,10 +41,10 @@ describe('HealthOS system-wide visible transformation V40.0', () => {
     const liquid = read('src/design/tokens/systemLiquidGlass.ts');
     const spatial = read('src/design/tokens/spatialCareSuite.ts');
 
-    expect(liquid).toContain("navy: '#071225'");
-    expect(liquid).toContain("electricBlue: '#69E8FF'");
+    expect(liquid).toContain("navy: '#031127'");
+    expect(liquid).toContain("electricBlue: '#1683FF'");
     expect(liquid).toContain("white: '#FFFFFF'");
-    expect(spatial).toContain("office: '#69E8FF'");
+    expect(spatial).toContain("office: '#1683FF'");
     expect(spatial).not.toContain("office: '#FF9B52'");
   });
 

@@ -70,7 +70,7 @@ describe('Responsive Shell R.1 — mobile/tablet compact shell', () => {
 
   it('PortalLeftNav uses LLGAN liquid glass on light theme', () => {
     const nav = readSrc('src/components/layout/portal/PortalLeftNav.tsx');
-    expect(nav).toContain('lightLiquidGlass.sidebar');
+    expect(nav).toContain('spatialCare.navigation');
     expect(nav).toContain('lightLiquidGlassWebFx');
   });
 

@@ -43,7 +43,6 @@ describe('AnimatedLightPaperBackground component', () => {
     const source = readFileSync(path.join(__dirname, ...componentPath), 'utf8');
     expect(source).toContain('lightPaperBackgroundAnimatedSvg');
     expect(source).toContain('usePrefersReducedMotion');
-    expect(source).toContain('StaticLightPaperBackground');
     expect(source).toContain('WebDomHost');
     expect(source).toContain("createElement('div'");
     expect(source).toContain('pauseAnimations');
@@ -65,7 +64,7 @@ describe('GlobalAnimatedBackground animated light wiring', () => {
       path.join(__dirname, '..', '..', 'components', 'ui', 'effects', 'globalanimatedbackground.tsx'),
       'utf8',
     );
-    expect(source).toContain('StaticLightPaperBackground');
+    expect(source).toContain('SpatialCareBackground');
     expect(source).not.toContain('GlobalPersistentSpaceMotionBackground');
     expect(source).not.toContain('requestAnimationFrame');
     expect(source).not.toContain('<canvas');

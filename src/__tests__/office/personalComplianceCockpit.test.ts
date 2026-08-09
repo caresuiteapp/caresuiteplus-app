@@ -121,10 +121,8 @@ describe('Personal-Compliance-Cockpit (Prompt 79)', () => {
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
 
     const result = await fetchPersonalComplianceCockpit(TENANT, 'business_admin');
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.data.preparedOnly).toBe(true);
-    expect(result.data.kpis).toHaveLength(0);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/Mandant|Produktionsmodus|Live-Modus/i);
   });
 
   it('6. filtert sensible HR-Risiken für nicht autorisierte Rollen', () => {

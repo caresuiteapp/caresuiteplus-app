@@ -283,7 +283,9 @@ describe('employee HR module (Personalvorgänge)', () => {
     if (!created.ok) return;
 
     expect(getHrCase(OTHER_TENANT, created.data.id)).toBeUndefined();
-    expect(listHrCases(OTHER_TENANT, undefined, ADMIN).ok).toBe(false);
+    const otherList = listHrCases(OTHER_TENANT, undefined, ADMIN);
+    expect(otherList.ok).toBe(true);
+    if (otherList.ok) expect(otherList.data).toHaveLength(0);
   });
 
   it('10 — Produktionsmodus ohne Demo-HR-Daten', async () => {

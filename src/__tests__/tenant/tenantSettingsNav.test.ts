@@ -26,10 +26,10 @@ describe('Mandanten-Bereich Navigation', () => {
     expect(existsSync(path.join(root, 'src/screens/settings/TenantSettingsScreen.tsx'))).toBe(true);
   });
 
-  it('Settings-Index leitet auf Mandanten-Route weiter', () => {
+  it('Settings-Index öffnet den zentralen Settings-Arbeitsbereich', () => {
     const indexRoute = readSrc('app/settings/index.tsx');
-    expect(indexRoute).toContain('Redirect');
-    expect(indexRoute).toContain('TENANT_SETTINGS_ROUTE');
+    expect(indexRoute).toContain('ModuleWorkspaceScreen');
+    expect(indexRoute).toContain('moduleKey="settings"');
   });
 
   it('App-Route bindet TenantSettingsScreen', () => {
@@ -45,10 +45,8 @@ describe('Mandanten-Bereich Navigation', () => {
     );
   });
 
-  it('Shell-Footer verlinken Mandanten-Bereich', () => {
-    expect(readSrc('src/components/layout/DesktopShell.tsx')).toContain('TenantSettingsNavLink');
-    expect(readSrc('src/components/layout/CareLightDesktopShell.tsx')).toContain('TenantSettingsNavLink');
-    expect(readSrc('src/components/layout/TabletShell.tsx')).toContain('TenantSettingsNavLink');
+  it('Zentrale Navigation verlinkt den Mandanten-Bereich', () => {
+    expect(readSrc('src/components/layout/platform/platformtopbar.tsx')).toContain('TENANT_SETTINGS_ROUTE');
     expect(readSrc('src/components/layout/TenantSettingsNavLink.tsx')).toContain('TENANT_SETTINGS_ROUTE');
   });
 
@@ -74,7 +72,7 @@ describe('Mandanten-Bereich Berechtigungen', () => {
     const result = await fetchTenantSettings(DEMO_TENANT_ID, 'billing');
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toMatch(/Berechtigung|Keine/i);
+      expect(result.error).toMatch(/Berechtigung|Keine|dürfen nur/i);
     }
   });
 });

@@ -8,8 +8,8 @@ import {
 } from '@/lib/navigation/einzelseitenRouteMap';
 
 describe('einzelseitenRouteMap', () => {
-  it('enthält alle 174 Einzelseiten-Prompts', () => {
-    expect(EINZELSEITEN_ROUTE_MAP).toHaveLength(174);
+  it('enthält alle 177 Einzelseiten-Prompts', () => {
+    expect(EINZELSEITEN_ROUTE_MAP).toHaveLength(177);
   });
 
   it('mappt German Assist slugs auf canonical routes', () => {
@@ -30,14 +30,14 @@ describe('einzelseitenRouteMap', () => {
     expect(resolveEinzelseitenRoute('/business/insight').target).toBe('/insight');
   });
 
-  it('JSON-Map ist mit Prompt-Dateien synchron (174 Einträge)', () => {
+  it('JSON-Map ist mit Prompt-Dateien synchron (177 Einträge)', () => {
     const raw = JSON.parse(
       readFileSync(
         join(process.cwd(), 'src/lib/navigation/einzelseiten-route-map.json'),
         'utf8',
       ),
     );
-    expect(raw).toHaveLength(174);
+    expect(raw).toHaveLength(177);
     expect(getEinzelseitenEntry('0169')?.prompt).toBe('/business/insight');
   });
 });

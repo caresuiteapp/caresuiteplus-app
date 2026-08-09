@@ -74,8 +74,9 @@ describe('Pflege CarePlan Create Form Hero (Sprint 114)', () => {
     expect(screen).toContain('successRoute');
   });
 
-  it('CatalogDetailScreen verlinkt Workflow-Builder', () => {
+  it('CatalogDetailScreen öffnet die aktuelle Katalogbearbeitung', () => {
     const screen = readSrc('src/screens/catalog/CatalogDetailScreen.tsx');
-    expect(screen).toContain('/office/catalogs/workflow-builder');
+    expect(screen).toContain('TenantServiceCatalogModal');
+    expect(screen).toContain('Katalog bearbeiten');
   });
 });

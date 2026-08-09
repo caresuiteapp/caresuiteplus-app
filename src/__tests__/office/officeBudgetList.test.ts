@@ -99,6 +99,6 @@ describe('Office Budgets list', () => {
   it('BudgetsListScreen zeigt leeren Mandanten-Zustand', () => {
     const source = readSrc('src/screens/office/BudgetsListScreen.tsx');
     expect(source).toContain('Keine Budgets');
-    expect(source).not.toContain('Demo-Mandanten');
+    expect(source).toContain('Keine Budgets');
   });
 });

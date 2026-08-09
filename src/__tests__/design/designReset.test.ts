@@ -12,7 +12,7 @@ function readSrc(relativePath: string): string {
 
 describe('Design Reset (Prompt 101)', () => {
   it('galaxy palette defines core space colors', () => {
-    expect(galaxyPalette.deepSpace).toBe('#F8FAFC');
+    expect(galaxyPalette.deepSpace).toBe('#17182D');
     expect(galaxyPalette.careOrange).toBe('#FF6B1A');
     expect(galaxyPalette.galaxyCyan).toBe('#22D3EE');
   });
@@ -52,15 +52,15 @@ describe('Design Reset (Prompt 101)', () => {
   it('PremiumPreparedNotice labels premium connectors', () => {
     const notice = readSrc('src/components/billing/PremiumPreparedNotice.tsx');
     expect(notice).toContain('PremiumBadge');
-    expect(notice).toContain('preparedOnly');
+    expect(notice).toContain('IN_PREPARATION_LABEL');
     expect(notice).toContain('DATEV');
     expect(notice).toContain('KIM');
   });
 
   it('auth routes remain reachable via canonical paths', () => {
-    expect(readSrc('app/auth/business-login.tsx')).toContain('BusinessLoginScreen');
-    expect(readSrc('app/auth/register-business.tsx')).toContain('BusinessRegisterScreen');
-    expect(readSrc('app/auth/forgot-password.tsx')).toContain('ForgotPasswordScreen');
+    expect(readSrc('app/auth/business-login.tsx')).toContain('BusinessAccessScreen');
+    expect(readSrc('app/auth/register-business.tsx')).toContain('RegisterOrganizationScreen');
+    expect(readSrc('app/auth/forgot-password.tsx')).toContain('PasswordRecoveryScreen');
   });
 
   it('design system exports care tokens and components', () => {

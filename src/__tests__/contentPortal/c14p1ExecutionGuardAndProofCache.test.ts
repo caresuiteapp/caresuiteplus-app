@@ -22,7 +22,7 @@ describe('C.14P.1 Fix 1 — internal_test execution allowed, production guarded'
     const result = guardLiveDemoFeature(PRODUCTION_TENANT, 'Mitarbeiterportal-Einsatzdetail');
     expect(result).not.toBeNull();
     expect(result?.ok).toBe(false);
-    expect(result && !result.ok ? result.error : undefined).toContain('Live-Modus');
+    expect(result && !result.ok ? result.error : undefined).toMatch(/Live-Modus|Mandanten/);
   });
 
   it('isInternalTest returns true for Test Pflege GmbH tenant', async () => {
@@ -41,11 +41,13 @@ describe('C.14P.1 Fix 1 — internal_test execution allowed, production guarded'
     expect(result).toBeNull();
   });
 
-  it('blockDemoOnlyInLiveMode still blocks generically (supabase mode)', async () => {
+  it('blockDemoOnlyInLiveMode blocks generically in supabase mode', async () => {
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
     const { blockDemoOnlyInLiveMode } = await import('@/lib/services/liveServiceGuard');
     const result = blockDemoOnlyInLiveMode('TestFeature');
     expect(result).not.toBeNull();
     expect(result?.ok).toBe(false);
+    vi.unstubAllEnvs();
   });
 });
 
@@ -144,8 +146,8 @@ describe('C.14P.1 Fix 2 — proof revoke invalidates client portal cache', () =>
       'utf8',
     );
     const releaseBlock = source.slice(
+      source.indexOf('async function releaseApprovedProofToPortal'),
       source.indexOf('export async function releaseAssistProofToPortal'),
-      source.indexOf('export async function revokeAssistProofPortalRelease'),
     );
     expect(releaseBlock).toContain('invalidatePortalProofCache()');
   });

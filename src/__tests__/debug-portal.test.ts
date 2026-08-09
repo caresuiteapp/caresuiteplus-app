@@ -14,12 +14,12 @@ describe('debug portal assignment', () => {
     vi.unstubAllEnvs();
   });
 
-  it('creates assignment for employee-003', () => {
+  it('creates assignment for an eligible employee', () => {
     const result = createAssignmentWorkflow(
       {
         tenantId: DEMO_TENANT_ID,
         clientId: 'client-001',
-        employeeId: 'employee-003',
+        employeeId: 'employee-001',
         serviceType: 'Alltagsbegleitung',
         plannedStartAt: '2026-07-01T09:00:00.000Z',
         plannedEndAt: '2026-07-01T11:00:00.000Z',

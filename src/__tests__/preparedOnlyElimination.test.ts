@@ -109,7 +109,8 @@ describe('Prepared-only elimination sprint', () => {
 
   it('PflegeIndexScreen tiles no longer force preparedOnly on core modules', () => {
     const screen = readSrc('src/screens/pflege/PflegeIndexScreen.tsx');
-    expect(screen).toContain('isMedicationLiveReady');
+    expect(screen).toContain('PflegeDashboardView');
+    expect(screen).toContain('PFLEGE_HEADER_PRIMARY_ACTIONS');
     expect(screen).not.toContain('preparedOnly={true}');
   });
 });

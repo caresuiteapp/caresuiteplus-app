@@ -4,6 +4,7 @@ import path from 'node:path';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { fetchEmployeeDetail } from '@/lib/office/employeeDetailService';
 import { updateEmployee } from '@/lib/office/employeeFormService';
+import { mapEmployeeDetailToEditForm } from '@/lib/office/employeeEditFormMappers';
 import { fetchInvoiceDetail, updateInvoice } from '@/lib/office/invoiceDetailService';
 import { createInvoice } from '@/lib/office/invoiceCreateService';
 
@@ -19,8 +20,8 @@ describe('Office employee & invoice CRUD audit screens', () => {
 
     for (const file of ['EmployeeCreateScreen.tsx', 'EmployeeEditScreen.tsx']) {
       const source = readFileSync(path.join(root, 'src/screens/office', file), 'utf8');
-      expect(source).toMatch(/PremiumInput|CatalogValueSelect/);
-      expect(source).toMatch(/createEmployee|updateEmployee|fetchEmployeeDetail/);
+      expect(source).toMatch(/EmployeeCreateForm|PremiumInput|CatalogValueSelect/);
+      expect(source).toMatch(/EmployeeCreateForm|useEmployeeEditWizard|fetchEmployeeDetail/);
     }
   });
 
@@ -70,11 +71,9 @@ describe('Office employee & invoice services', () => {
         'employee-001',
         DEMO_TENANT_ID,
         {
-          roleKey: detail.data.jobTitle ?? 'Test',
-          phone: detail.data.phone ?? '',
-          departmentKey: detail.data.department ?? 'Allgemein',
+          ...mapEmployeeDetailToEditForm(detail.data),
           notes: 'Phase4 test',
-        } as import('@/types/forms/employeeEditForm').EmployeeEditFormData,
+        },
         'business_admin',
       );
       expect(updated.ok).toBe(true);

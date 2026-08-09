@@ -105,13 +105,15 @@ describe('Portal Profile Heroes (Sprint 87)', () => {
     const employee = readSrc('src/screens/portal/EmployeeProfileScreen.tsx');
     const client = readSrc('src/screens/portal/ClientPortalProfileScreen.tsx');
     expect(employee).toContain('PortalEmployeeProfileHero');
-    expect(client).toContain('PortalClientProfileHero');
+    expect(client).toContain('renderProfileSections');
+    expect(client).toContain('TopbarProfileAvatar');
   });
 
   it('portalModuleConfig exportiert ehrliches isPortalProfileLiveReady', () => {
     const config = readSrc('src/lib/portal/portalModuleConfig.ts');
     expect(config).toContain('isPortalProfileLiveReady');
-    expect(config).toContain('return false');
+    expect(config).toContain("getServiceMode() === 'supabase'");
+    expect(config).toContain('isSupabaseConfigured()');
     expect(config).toContain('PORTAL_PROFILE_PREPARED_MESSAGE');
   });
 });

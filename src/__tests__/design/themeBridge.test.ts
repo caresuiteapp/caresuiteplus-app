@@ -15,27 +15,27 @@ describe('design token bridge', () => {
     expect(dark.orange).toBe(careSuiteColors.dark.brand.orange);
     expect(dark.cyan).toBe(careSuiteColors.dark.brand.cyan);
     expect(darkColors.bgBase).toBe(dark.bgBase);
-    expect(colors.textPrimary).toBe('#000000');
+    expect(colors.textPrimary).toBe(lightColors.textPrimary);
     expect(colors.bgBase).toBe(lightColors.bgBase);
   });
 
   it('liefert light legacy colors', () => {
-    expect(lightColors.bgBase).toBe(careSuiteColors.light.background.app);
-    expect(lightColors.textPrimary).toBe(careSuiteColors.light.text.primary);
+    expect(lightColors.bgBase).toBe(legacyColorsFromPalette('light').bgBase);
+    expect(lightColors.textPrimary).toBe(legacyColorsFromPalette('light').textPrimary);
   });
 
   it('resolveCareTypography passt Textfarbe an Mode an', () => {
     const light = resolveCareTypography('light');
     const dark = resolveCareTypography('dark');
     expect(light.h1.color).toBe(careSuiteColors.light.text.primary);
-    expect(dark.h1.color).toBe('#000000');
+    expect(dark.h1.color).toBe(careSuiteColors.dark.text.primary);
   });
 
   it('resolveLegacyGradients liefert light und dark Varianten', () => {
     const light = resolveLegacyGradients('light');
     const dark = resolveLegacyGradients('dark');
-    expect(light.card.default[0]).toBe(careSuiteColors.light.background.elevated);
-    expect(dark.card.default[0]).toBe(careSuiteColors.dark.background.elevated);
+    expect(light.card.default[0]).toBe('#FFFFFF');
+    expect(dark.card.default[0]).toContain('rgba(6,27,53');
   });
 
   it('exportiert useLegacyTheme Hook', () => {

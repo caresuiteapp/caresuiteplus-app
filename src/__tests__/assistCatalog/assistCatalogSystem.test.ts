@@ -11,8 +11,9 @@ import {
 } from '@/lib/assistCatalog';
 import { loadTaskPackageItems } from '@/lib/assistCatalog/assistTaskPackageService';
 import { catalogItemsToTaskDrafts } from '@/lib/assistCatalog/assistAssignmentOptionsService';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
-const TENANT = 'tenant-assist-catalog-test';
+const TENANT = DEMO_TENANT_ID;
 const ADMIN = 'business_admin' as const;
 
 describe('assistCatalogSeeds', () => {
@@ -42,7 +43,7 @@ describe('assistCatalogService (demo)', () => {
 
   it('loads system catalogs for tenant', async () => {
     const defs = await loadCatalogs(TENANT, { moduleScope: 'assist' }, ADMIN);
-    expect(defs.ok).toBe(true);
+    expect(defs.ok, JSON.stringify(defs)).toBe(true);
     if (defs.ok) {
       expect(defs.data.some((d) => d.catalogKey === 'assist.assignment.subjects')).toBe(true);
     }
@@ -126,7 +127,7 @@ describe('tenant isolation', () => {
     assistCatalogDemoRepository.resetForTests();
   });
 
-  it('tenant-created items are scoped to tenant store', async () => {
+  it('tenant-created items stay in the demo tenant and other tenants are blocked', async () => {
     const defs = await loadCatalogs(TENANT, { catalogKey: 'assist.assignment.subjects' }, ADMIN);
     if (!defs.ok) throw new Error('defs failed');
     await assistCatalogDemoRepository.createItem(TENANT, {
@@ -135,9 +136,7 @@ describe('tenant isolation', () => {
       label: 'Nur Mandant A',
     });
     const other = await loadCatalogItems('tenant-other', 'assist.assignment.subjects', {}, ADMIN);
-    expect(other.ok).toBe(true);
-    if (other.ok) {
-      expect(other.data.some((i) => i.itemKey === 'tenant_only')).toBe(false);
-    }
+    expect(other.ok).toBe(false);
+    if (!other.ok) expect(other.error).toMatch(/Demo|Mandant/i);
   });
 });

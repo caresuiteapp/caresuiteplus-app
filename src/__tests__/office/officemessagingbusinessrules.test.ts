@@ -111,7 +111,7 @@ describe('Office Messaging Business Rules', () => {
     const result = await fetchOfficeMessageThreads(DEMO_TENANT_ID, 'business_admin', 'inbox');
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toMatch(/Supabase|Migration|0089/i);
+      expect(result.error).toMatch(/Supabase|Migration|0089|Produktionsmodus/i);
     }
   });
 
@@ -135,8 +135,8 @@ describe('Office Messaging Business Rules', () => {
   });
 
   it('Messenger-Komponenten nutzen ChatBubble und deutsche UI', () => {
-    expect(readSrc('src/components/office/OfficeMessageThread.tsx')).toContain('ChatBubble');
-    expect(readSrc('src/components/office/OfficeMessageThread.tsx')).toContain('Neuen Chat starten');
+    expect(readSrc('src/components/office/officemessagethread.tsx')).toContain('ChatBubble');
+    expect(readSrc('src/components/office/officemessagethread.tsx')).toContain('Neuen Chat starten');
     expect(readSrc('src/components/office/officemessagesinbox.tsx')).toContain('OFFICE_CHAT_AGE_FILTERS');
     expect(readSrc('src/components/office/officemessagesinbox.tsx')).toContain('OFFICE_AUDIENCE_LABELS');
     expect(readSrc('src/lib/navigation/moduleNav/officeNav.ts')).toContain("label: 'Nachrichten'");

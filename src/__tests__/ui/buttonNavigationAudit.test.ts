@@ -96,7 +96,8 @@ describe('Button & navigation audit (Prompt 109)', () => {
     expect(prepared.disabledReason).toBe(ACTION_DISABLED_REASONS.prepared);
 
     const moduleCard = readSrc('src/components/modules/ModuleCard.tsx');
-    expect(moduleCard).toContain('variant="prepared"');
+    expect(moduleCard).toContain('title="In Vorbereitung"');
+    expect(moduleCard).toMatch(/title="In Vorbereitung"[\s\S]*disabled/);
     expect(moduleCard).not.toContain('onPress={() => undefined}');
   });
 
@@ -116,7 +117,8 @@ describe('Button & navigation audit (Prompt 109)', () => {
     expect(blocked.disabledReason).toBe(ACTION_DISABLED_REASONS.provider);
 
     const shift = readSrc('src/screens/pflege/ShiftScheduleListScreen.tsx');
-    expect(shift).toContain("getActionAvailability('shift.import'");
+    expect(shift).toContain('SHIFT_SCHEDULE_IMPORT_PREPARED_MESSAGE');
+    expect(shift).not.toContain('title="Dienstplan importieren"');
     expect(shift).not.toContain('onPress={() => undefined}');
   });
 
@@ -177,11 +179,11 @@ describe('Button & navigation audit (Prompt 109)', () => {
     expect(buttonCount).toBeGreaterThan(40);
   });
 
-  it('connect activate uses prepared variant without dead handler', () => {
+  it('connect exposes no activation control without an executable provider', () => {
     const connect = readSrc('src/screens/connect/ConnectIntegrationDetailScreen.tsx');
-    expect(connect).toContain("getActionAvailability('connect.activate'");
+    expect(connect).toContain('isConnectIntegrationExecutable');
     expect(connect).not.toContain('onPress={() => undefined}');
-    expect(connect).toContain("variant={activateAvailability.isPreparedOnly ? 'prepared' : 'primary'}");
+    expect(connect).toContain('Diese Schnittstelle kann derzeit nicht aktiviert');
   });
 
   it('getActionAvailability is exported from ui barrel', () => {

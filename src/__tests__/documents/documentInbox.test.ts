@@ -277,7 +277,7 @@ describe('Dokumenteneingang (Document Inbox)', () => {
     const liveBlock = guardLiveDemoFeature(TENANT, 'Dokumenteneingang');
     expect(liveBlock?.ok).toBe(false);
     if (liveBlock && !liveBlock.ok) {
-      expect(liveBlock.error).toMatch(/Live-Modus|Dokumenteneingang/i);
+      expect(liveBlock.error).toMatch(/Live-Modus|Dokumenteneingang|Produktionsmodus/i);
     }
 
     const crossTenant = await fetchInboxItems(OTHER_TENANT, ROLE);

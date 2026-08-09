@@ -13,6 +13,6 @@ describe('auth redirect config', () => {
 
   it('nutzt EXPO_PUBLIC_AUTH_REDIRECT_URL für Passwort-Reset', () => {
     expect(getAuthRedirectBaseUrl()).toBe('http://localhost:8082');
-    expect(getPasswordResetRedirectUrl()).toBe('http://localhost:8082/auth/reset-password');
+    expect(getPasswordResetRedirectUrl()).toBe('http://localhost:8082/liquid-command/access/reset-password');
   });
 });

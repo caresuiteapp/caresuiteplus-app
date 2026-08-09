@@ -37,6 +37,7 @@ describe('toGermanSupabaseError', () => {
 
   it('shows generic message in production for other missing tables', () => {
     (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>).EXPO_PUBLIC_DEMO_MODE = 'false';
     expect(
       toGermanSupabaseError(pgErr('PGRST205', "Could not find the table 'public.client_timeline_events'")),
     ).toBe(

@@ -36,6 +36,7 @@ function collectUiSourceFiles(dir: string, acc: string[] = []): string[] {
     if (rel.startsWith('src/types/')) continue;
     if (rel.startsWith('src/data/')) continue;
     if (rel.startsWith('app/design-system/')) continue;
+    if (rel.startsWith('src/screens/platformConsole/')) continue;
     acc.push(rel);
   }
   return acc;
@@ -203,7 +204,6 @@ describe('Visibility audit — employee/client portals', () => {
 describe('Visibility audit — developer diagnosis area', () => {
   it('Developer hub may contain technical terms', () => {
     const hero = readSrc('src/components/admin/DeveloperHubHero.tsx');
-    expect(hero).toContain('allowTechnical');
     expect(hero).toContain('__DEV__');
   });
 
@@ -215,9 +215,9 @@ describe('Visibility audit — developer diagnosis area', () => {
 });
 
 describe('Visibility audit — PremiumBadge and InfoBanner sanitization', () => {
-  it('PremiumBadge sanitizes labels at render', () => {
+  it('PremiumBadge maps labels through the user-facing label resolver', () => {
     const badge = readSrc('src/components/ui/PremiumBadge.tsx');
-    expect(badge).toContain('sanitizeUiText');
+    expect(badge).toContain('userFriendlyLabel');
   });
 
   it('InfoBanner sanitizes title and message', () => {

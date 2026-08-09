@@ -54,7 +54,7 @@ export function ClientsListView({
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
   const { viewMode, setViewMode } = useDesktopListViewPreference('office.clients');
-  const useTableLayout = isDesktop && viewMode === 'table';
+  const useTableLayout = isDesktop && viewMode === 'table' && !embedded;
   const canCreate = can('office.clients.create');
   const canCsv = can('tenant.settings.csv.view');
   const roleKey = profile?.roleKey ?? 'business_admin';
@@ -406,4 +406,3 @@ export function ClientsListView({
     </View>
   );
 }
-

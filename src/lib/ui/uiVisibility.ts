@@ -68,6 +68,7 @@ export const FORBIDDEN_UI_TERMS = [
   'free platform',
   'INTAKE_NEW_ROUTE',
   'CLIENT_INTAKE_NEW_ROUTE',
+  '__DEV__',
 ] as const;
 
 const FRIENDLY_LABELS: Record<string, string> = {
@@ -123,6 +124,7 @@ const LABEL_REPLACEMENTS: [RegExp, string][] = [
   [/\bexport_status\s*:/gi, 'Exportstatus:'],
   [/\bexport_version\s*:/gi, 'Exportversion:'],
   [/\bchanged_after_export\s*:/gi, 'Nach Export geändert:'],
+  [/\bchanged_after_export\b/gi, 'nach Export geändert'],
   [/\b[a-z_]+_route\b is not (defined|a valid|supported)[^\n.]*/gi, 'Die Aktion konnte nicht ausgeführt werden.'],
   [/prototyp/gi, 'Vorschau'],
   [/__dev__/gi, 'Entwicklung'],
@@ -301,7 +303,6 @@ export function sanitizeUiText(text: string, options?: SanitizeOptions): string 
   result = result.replace(SNAKE_CASE_IDENTIFIER, '');
   result = result.replace(/\bWP\s*\d+\b/gi, '');
   result = result.replace(/\b[a-z]+_admin\b/gi, 'Geschäftsführung');
-  result = result.replace(/\bchanged_after_export\b/gi, 'nach Export geändert');
   result = result.replace(/\bexternal_transfer\s*=\s*true\b/gi, 'ohne externe Übertragung');
   result = result.replace(/\s*\/\s*/g, ' ');
   result = result.replace(/\s{2,}/g, ' ').trim();

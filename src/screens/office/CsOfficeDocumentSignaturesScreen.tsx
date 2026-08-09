@@ -187,7 +187,7 @@ export function CsOfficeDocumentSignaturesScreen() {
             {(templatesQuery.data ?? []).length === 0 ? (
               <EmptyState
                 title="Keine Vorlagen"
-                message="Migration 0226 ausführen oder Supabase-Verbindung prüfen."
+                message="Dokumentvorlagen sind derzeit nicht verfügbar. Bitte Verbindung prüfen oder die Ansicht aktualisieren."
               />
             ) : (
               <View style={styles.list}>

@@ -6,6 +6,10 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/__tests__/**/*.test.ts', 'src/__tests__/**/*.test.tsx'],
+    // Several suites exercise production and demo paths by stubbing Expo env
+    // variables. Restore those stubs after every test so one scenario cannot
+    // silently switch all subsequently executed service tests to live mode.
+    unstubEnvs: true,
     env: {
       EXPO_PUBLIC_DEMO_MODE: 'true',
     },

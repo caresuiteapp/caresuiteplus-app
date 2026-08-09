@@ -36,11 +36,11 @@ describe('Rollenmatrix (Prompt 68)', () => {
     resetRoleMatrixStore();
   });
 
-  it('1. liefert 20 Systemrollen mit konservativen Defaults', async () => {
+  it('1. liefert 21 Systemrollen mit konservativen Defaults', async () => {
     const result = await fetchRoleMatrixOverview(TENANT, 'business_admin');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.data).toHaveLength(20);
+    expect(result.data).toHaveLength(21);
     const caregiver = result.data.find((r) => r.roleKey === 'caregiver');
     expect(caregiver?.areaPermissions.billing.view).toBe(false);
   });

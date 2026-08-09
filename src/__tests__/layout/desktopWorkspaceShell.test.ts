@@ -43,12 +43,12 @@ describe('global desktop workspace shell', () => {
     expect(source).toContain('side="left"');
   });
 
-  it('removes only the shared desktop page description and retains mobile/tablet header UI', () => {
+  it('keeps the shared header responsive across phone and desktop', () => {
     const source = read('src/components/layout/ScreenHeader.tsx');
-    expect(source).toContain('hideDesktopPageDescription = isDesktopOrWide');
+    expect(source).toContain('useDeviceClass');
     expect(source).toContain('accessibilityRole="header"');
-    expect(source).toContain('visuallyHidden');
-    expect(source).toContain('!hideDesktopPageDescription ? <>');
+    expect(source).toContain('isPhone');
+    expect(source).toContain('subtitle');
     expect(source).not.toContain("h1");
   });
 
@@ -57,7 +57,7 @@ describe('global desktop workspace shell', () => {
     expect(source).toContain("showPageDescription = breakpoint !== 'desktop'");
     expect(source).toContain('showPageDescription ? topBar : null');
     expect(source).toContain('showPageDescription && breadcrumbs');
-    expect(read('src/screens/assist/AssistIndexScreen.tsx')).toContain('HealthOSModuleShell');
-    expect(read('src/screens/office/OfficeIndexScreen.tsx')).toContain('HealthOSModuleShell');
+    expect(read('src/screens/assist/AssistIndexScreen.tsx')).toContain('ScreenShell');
+    expect(read('src/screens/office/OfficeIndexScreen.tsx')).toContain('ScreenShell');
   });
 });

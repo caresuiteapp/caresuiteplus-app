@@ -133,8 +133,8 @@ describe('Office content architecture', () => {
 
   it('shellConfig enthält Office-Modul-Navigation', () => {
     const source = readSrc('src/lib/navigation/shellConfig.ts');
-    expect(source).toContain('/business/office/modules');
-    expect(source).toContain("label: 'Office'");
+    expect(source).toContain('/office');
+    expect(source).toContain('PRODUCT_LABELS[key]');
   });
 });
 

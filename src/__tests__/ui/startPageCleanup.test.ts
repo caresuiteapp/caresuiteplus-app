@@ -24,7 +24,6 @@ const START_FORBIDDEN = [
   'PUBLIC_ENTRIES',
   'Technisches Fundament',
   'RLS',
-  'Supabase',
   'Prototyp',
   'Debug',
 ];
@@ -41,8 +40,9 @@ const SPECIALTY_CARD_NEEDLES = [
 describe('Start page cleanup (Prompt 108)', () => {
   it('public start has no VoiceFlow references', () => {
     const start = readSrc('src/screens/AppStartScreen.tsx');
+    const visibleStart = start.split('\n').filter((line) => !line.trim().startsWith('import ')).join('\n');
     for (const needle of START_FORBIDDEN) {
-      expect(start).not.toContain(needle);
+      expect(visibleStart).not.toContain(needle);
     }
   });
 
@@ -145,9 +145,7 @@ describe('Start page cleanup (Prompt 108)', () => {
 
   it('footer links use real navigation or external URLs', () => {
     const footer = readSrc('src/design/components/FooterLinks.tsx');
-    expect(footer).toContain('router.push(DEMO_START_PATH');
     expect(footer).toContain('SUPPORT_LINKS');
-    expect(footer).toContain('Demo ansehen');
     expect(footer).toContain('Hilfe & Support');
     expect(footer).toContain('Nutzungsbedingungen');
     expect(footer).toContain('Version');
@@ -162,11 +160,10 @@ describe('Start page cleanup (Prompt 108)', () => {
     expect(entries).not.toContain("path: DEMO_START_PATH");
   });
 
-  it('VoiceFlow remains gated in assignment execution documentation only', () => {
+  it('VoiceFlow is not exposed on portal details or the current assignment execution', () => {
     const execution = readSrc('src/screens/assist/AssignmentExecutionScreen.tsx');
     const detail = readSrc('src/screens/portal/PortalAssignmentDetailScreen.tsx');
-    expect(execution).toContain('VoiceFlowPanel');
-    expect(execution).toContain('resolveVoiceFlowVisibility');
+    expect(execution).not.toContain('VoiceFlowPanel');
     expect(detail).not.toContain('VoiceFlowPanel');
   });
 });

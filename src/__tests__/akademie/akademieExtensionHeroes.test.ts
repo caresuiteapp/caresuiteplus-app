@@ -37,11 +37,11 @@ describe('Akademie Extension Heroes (Sprint 88)', () => {
     expect(readSrc('src/screens/akademie/AkademieSettingsScreen.tsx')).toContain('AkademieSettingsHero');
   });
 
-  it('AkademieIndexScreen nutzt isAkademieCoursesLiveReady auf Kurse-Tile', () => {
+  it('AkademieIndexScreen nutzt das aktuelle Live-Dashboard und Extension-Gate', () => {
     const index = readSrc('src/screens/akademie/AkademieIndexScreen.tsx');
-    expect(index).toContain('isAkademieCoursesLiveReady');
-    expect(index).toContain('isActive={coursesLive}');
-    expect(index).toContain("isActive onPress={() => router.push('/akademie/teilnehmer'");
+    expect(index).toContain('isAkademieExtensionLiveReady');
+    expect(index).toContain('AkademieDashboardView');
+    expect(index).toContain('AKADEMIE_HEADER_PRIMARY_ACTIONS');
   });
 
   it('buildEnrollmentListKpis berechnet Fortschritt', () => {

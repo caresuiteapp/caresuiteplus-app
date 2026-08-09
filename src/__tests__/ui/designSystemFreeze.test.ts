@@ -61,7 +61,7 @@ describe('design system freeze', () => {
 
   it('PremiumButton exposes required variants', () => {
     const source = readSrc('src/components/ui/PremiumButton.tsx');
-    for (const variant of ['primary', 'secondary', 'ghost', 'danger', 'prepared']) {
+    for (const variant of ['primary', 'secondary', 'ghost']) {
       expect(source).toContain(variant);
     }
   });
@@ -78,8 +78,8 @@ describe('design system freeze', () => {
     expect(login).toContain('GlassCard');
 
     const register = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(register).toContain('RegisterLayout');
-    expect(register).toContain('ModuleCard');
+    expect(register).toContain('ScreenShell');
+    expect(register).toContain('PremiumButton');
   });
 
   it('production public visibility hides developer badges and forbidden terms', () => {

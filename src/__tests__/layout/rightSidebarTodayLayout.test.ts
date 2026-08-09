@@ -85,8 +85,8 @@ describe('RightContextPanel today section layout', () => {
 describe('MobilePlatformContextPanel today section layout', () => {
   const mobile = readSrc('src/components/layout/platform/mobileplatformcontextpanel.tsx');
 
-  it('places SCHNELLAKTIONEN after HEUTE in DOM order', () => {
-    const heuteIdx = mobile.indexOf('HEUTE');
+  it('places SCHNELLAKTIONEN after the open-task list in DOM order', () => {
+    const heuteIdx = mobile.indexOf('openTasks.map');
     const quickIdx = mobile.indexOf('SCHNELLAKTIONEN');
     expect(heuteIdx).toBeGreaterThan(-1);
     expect(quickIdx).toBeGreaterThan(heuteIdx);

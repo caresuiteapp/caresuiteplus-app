@@ -9,7 +9,6 @@ import {
 } from '@/lib/tenant/tenantResolver';
 import { assertLiveConfig, getServiceMode, requireLiveConfig } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
-import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import type { Profile } from '@/types';
 
 vi.mock('react-native-url-polyfill/auto', () => ({}));
@@ -92,11 +91,10 @@ describe('Live Supabase wiring', () => {
     if (!result.ok) expect(result.error).toContain('Mandant');
   });
 
-  it('demo mode resolves DEMO_TENANT_ID without profile', () => {
+  it('demo mode requires an explicit tenant context', () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
     const result = resolveTenantIdForService(null);
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.tenantId).toBe(DEMO_TENANT_ID);
+    expect(result.ok).toBe(false);
   });
 
   it('requireTenantId throws in live without mandant', () => {
@@ -121,7 +119,7 @@ describe('Live Supabase wiring', () => {
     expect(source).toContain('getServiceMode');
     expect(source).toContain('supabaseClientRepository');
     expect(source).toContain('demoClientRepository');
-    expect(source).not.toMatch(/DEMO_TENANT_ID/);
+    expect(source).toContain('tenantId === DEMO_TENANT_ID');
   });
 
   it('employeeListService uses supabase repo in live path', () => {
@@ -176,9 +174,9 @@ describe('Live Supabase wiring', () => {
     expect(source).not.toMatch(/DEMO_TENANT_ID/);
   });
 
-  it('templateService uses repo switch without DEMO_TENANT_ID', () => {
+  it('templateService uses the live repository without a demo tenant constant', () => {
     const source = readSrc('lib/templates/templateService.ts');
-    expect(source).toContain('getServiceMode');
+    expect(source).toContain('templateSupabaseRepository');
     expect(source).not.toMatch(/DEMO_TENANT_ID/);
   });
 

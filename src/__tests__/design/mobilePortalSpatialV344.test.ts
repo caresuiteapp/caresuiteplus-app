@@ -15,9 +15,9 @@ describe('Mobile Portal Spatial V34.4', () => {
     expect(dashboard).not.toContain('<HealthOSMetricCard');
   });
 
-  it('defines a dark layered stage with cyan light and pearl sheets', () => {
+  it('defines a bright portal stage with blue light and pearl sheets', () => {
     const surface = read('src/components/portal/SpatialPortalSurface.tsx');
-    expect(surface).toContain("rgba(63,64,101,0.94)");
+    expect(surface).toContain("['#FFFFFF', '#F2F8FF', '#E2F0FF']");
     expect(surface).toContain('spatialObjectCore');
     expect(surface).toContain("rgba(244,241,249,0.98)");
     expect(surface).toContain('SpatialPortalPearlState');

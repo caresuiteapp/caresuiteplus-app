@@ -135,7 +135,8 @@ describe('Visible UI Reality Fix U.1', () => {
 
   it('U.1.2 PlatformModal uses flex scroll shell with 92vh cap', () => {
     const modal = readSrc('src/components/layout/platform/platformmodal.tsx');
-    expect(modal).toContain('DEFAULT_MAX_HEIGHT_RATIO = 0.92');
+    expect(modal).toContain('DEFAULT_MAX_HEIGHT_RATIO = popupShellLayout.maxHeightRatioDefault');
+    expect(readSrc('src/design/tokens/popupShellTokens.ts')).toContain('maxHeightRatioDefault: 0.92');
     expect(modal).toContain('overflowY');
     expect(modal).toContain('flexShrink: 0');
     expect(modal).toContain('lockBodyScroll');

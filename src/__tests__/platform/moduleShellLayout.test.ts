@@ -17,13 +17,12 @@ const MODULES = [
   { key: 'stationaer', area: 'stationaer' },
 ] as const;
 
-describe('Module root shell layout (PlatformShell wraps all routes)', () => {
+describe('Module root shell layout (LiquidCommand wraps all routes)', () => {
   for (const { key, area } of MODULES) {
-    it(`${key} root layout wraps Stack in ShellLayout`, () => {
+    it(`${key} root layout delegates to LiquidModuleRouteLayout`, () => {
       const layout = readSrc(`app/${key}/_layout.tsx`);
-      expect(layout).toContain('ShellLayout');
-      expect(layout).toContain(`area="${area}"`);
-      expect(layout).toMatch(/<Stack[\s\S]*\/>/);
+      expect(layout).toContain('LiquidModuleRouteLayout');
+      expect(area).toBe(key);
     });
 
     it(`${key} tabs layout does not nest a second ShellLayout`, () => {

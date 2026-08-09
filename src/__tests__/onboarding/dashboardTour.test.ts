@@ -28,8 +28,8 @@ describe('Business-Dashboard Tour', () => {
     vi.mocked(AsyncStorage.removeItem).mockResolvedValue();
   });
 
-  it('definiert sechs deutsche Tour-Schritte', () => {
-    expect(DASHBOARD_TOUR_STEPS).toHaveLength(6);
+  it('definiert acht deutsche Tour-Schritte', () => {
+    expect(DASHBOARD_TOUR_STEPS).toHaveLength(8);
     expect(DASHBOARD_TOUR_STEPS[0]?.title).toBe('Willkommen in CareSuite+');
     expect(DASHBOARD_TOUR_STEPS.at(-1)?.title).toBe('Erste Klient:in anlegen');
   });

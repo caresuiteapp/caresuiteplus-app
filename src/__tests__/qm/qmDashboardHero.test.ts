@@ -17,8 +17,8 @@ describe('QM Dashboard Hero (Sprint 97)', () => {
 
   it('QmDashboardScreen nutzt CareLightModuleDashboard statt PreparedModeBanner', () => {
     const screen = readSrc('src/screens/qm/QmDashboardScreen.tsx');
-    expect(screen).toContain('CareLightScreen');
     expect(screen).toContain('CareLightModuleDashboard');
+    expect(screen).toContain('ScreenShell');
     expect(screen).toContain('InfoBanner');
     expect(screen).not.toContain('PreparedModeBanner');
     expect(screen).not.toContain('AdaptiveModuleDashboard');

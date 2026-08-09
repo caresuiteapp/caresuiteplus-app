@@ -9,8 +9,10 @@ function readSrc(relativePath: string): string {
 describe('RequireEmployeePasswordSetup', () => {
   it('blocks employee portal layout until password is changed', () => {
     const layout = readSrc('app/portal/employee/_layout.tsx');
-    expect(layout).toContain('RequireEmployeePasswordSetup');
-    expect(layout).toContain('RequireAuth');
+    const portalLayout = readSrc('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
+    expect(layout).toContain('LiquidPortalRouteLayout kind="employee"');
+    expect(portalLayout).toContain('RequireEmployeePasswordSetup');
+    expect(portalLayout).toContain('RequireAuth');
   });
 
   it('redirects when mustChangePassword is set on portal session', () => {

@@ -84,22 +84,6 @@ export function CareDocumentationDetailScreen() {
           />
         ) : null}
 
-        <SectionPanel title="Aktionen" subtitle="Signatur und Export (vorbereitet)">
-          <PremiumButton
-            title="Nachweis signieren"
-            fullWidth
-            disabled={!signReady || isReadOnly}
-            onPress={() => undefined}
-          />
-          <PremiumButton
-            title="PDF exportieren"
-            variant="secondary"
-            fullWidth
-            disabled={!pdfReady || isReadOnly}
-            onPress={() => undefined}
-          />
-        </SectionPanel>
-
         <SectionPanel title="Inhalt" subtitle="Pflegenachweis">
           <Text style={styles.body}>{detail.content}</Text>
           {detail.location ? <DetailInfoRow label="Ort" value={detail.location} /> : null}

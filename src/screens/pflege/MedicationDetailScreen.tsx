@@ -76,29 +76,6 @@ export function MedicationDetailScreen() {
           />
         ) : null}
 
-        <SectionPanel title="Aktionen" subtitle="eMP und Verordnung (vorbereitet)">
-          <PremiumButton
-            title="eMP abgleichen"
-            fullWidth
-            disabled={!empReady || isReadOnly}
-            onPress={() => undefined}
-          />
-          <PremiumButton
-            title="Verordnung ändern"
-            variant="secondary"
-            fullWidth
-            disabled={!empReady || isReadOnly}
-            onPress={() => undefined}
-          />
-          <PremiumButton
-            title="Wechselwirkungen prüfen"
-            variant="secondary"
-            fullWidth
-            disabled={!empReady || isReadOnly}
-            onPress={() => undefined}
-          />
-        </SectionPanel>
-
         <SectionPanel title="Verordnung" subtitle="Dosierung und Einnahme">
           <DetailInfoRow label="Präparat" value={detail.medicationName} />
           <DetailInfoRow label="Dosierung" value={detail.dosage} />

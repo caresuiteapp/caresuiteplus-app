@@ -135,6 +135,7 @@ function createQueryChain(finalData: unknown = [], finalError: unknown = null) {
   const chain = {
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    neq: vi.fn().mockReturnThis(),
     in: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     then: (resolve: (value: { data: unknown; error: unknown }) => void) =>

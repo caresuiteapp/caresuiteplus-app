@@ -53,7 +53,6 @@ describe('Portal navigation ownership', () => {
     expect(liquidPortalLoginRoutes).toEqual({
       employee: '/auth/employee-login',
       client: '/auth/client-login',
-      relative: '/auth/client-login',
     });
   });
 });

@@ -59,14 +59,14 @@ describe('useIsOfficeRoute path resolution', () => {
 });
 
 describe('OfficePremiumGlassBackground component wiring', () => {
-  it('GlobalAnimatedBackground nutzt statischen Light-Paper-Hintergrund für alle Light-Routen', async () => {
+  it('GlobalAnimatedBackground nutzt die zentrale statische räumliche Bühne', async () => {
     const { readFileSync } = await import('node:fs');
     const { default: path } = await import('node:path');
     const source = readFileSync(
       path.join(__dirname, '..', '..', 'components', 'ui', 'effects', 'globalanimatedbackground.tsx'),
       'utf8',
     );
-    expect(source).toContain('StaticLightPaperBackground');
+    expect(source).toContain('SpatialCareBackground');
     expect(source).not.toContain('GlobalPersistentSpaceMotionBackground');
     expect(source).not.toContain('requestAnimationFrame');
     expect(source).not.toContain('<canvas');

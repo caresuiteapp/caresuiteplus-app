@@ -18,7 +18,6 @@ describe('AppStartScreen adaptive layout', () => {
 
   it('uses robot logo component and galaxy typography', () => {
     expect(source).toContain('CareSuiteLogo');
-    expect(source).toContain('resolveGalaxyTypography');
     expect(source).toContain('AdaptiveCardGrid');
   });
 

@@ -215,11 +215,11 @@ describe('tenant bootstrap role resolution', () => {
   });
 
   it('auth index never sends authenticated users to public start', () => {
-    const authIndex = readSrc('app/auth/index.tsx');
+    const authIndex = readSrc('src/liquid-command/screens/LiquidCommandEntryScreen.tsx');
     expect(authIndex).toContain('authReady');
-    expect(authIndex).toContain("isAuthenticated && canRedirectHome ? homePath : '/'");
-    expect(authIndex).toContain('router.replace(target as never)');
-    expect(authIndex).toContain('useHydrated');
+    expect(authIndex).toContain('Redirect href="/portal/employee"');
+    expect(authIndex).toContain('CommandCenterScreen');
+    expect(authIndex).not.toContain('Redirect href="/"');
   });
 
   it('RequireRole uses portal session roleKey for access checks', () => {

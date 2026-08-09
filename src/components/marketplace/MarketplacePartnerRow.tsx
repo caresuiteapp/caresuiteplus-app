@@ -5,11 +5,11 @@ import { colors, spacing, typography } from '@/theme';
 
 type MarketplacePartnerRowProps = {
   partner: MarketplacePartner;
-  onPress: () => void;
+  onPress?: () => void;
 };
 
 export function MarketplacePartnerRow({ partner, onPress }: MarketplacePartnerRowProps) {
-  const selectable = isPartnerSelectable(partner);
+  const selectable = isPartnerSelectable(partner) && Boolean(onPress);
 
   return (
     <Pressable

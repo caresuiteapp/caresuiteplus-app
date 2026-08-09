@@ -13,7 +13,7 @@ describe('Service mode switching', () => {
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', '');
 
     expect(getServiceMode()).toBe('demo');
-    expect(isDemoMode()).toBe(false);
+    expect(isDemoMode()).toBe(true);
     expect(isSupabaseConfigured()).toBe(false);
   });
 

@@ -9,9 +9,9 @@ import {
 } from '@/lib/payments/paymentGuard';
 
 const root = path.join(__dirname, '..', '..', '..');
-const migrationPath = path.join(root, 'supabase/migrations/0046_payment_providers.sql');
+const migrationPath = path.join(root, 'supabase/migrations/0126_payment_providers.sql');
 
-describe('0046_payment_providers migration', () => {
+describe('0126_payment_providers migration', () => {
   const sql = readFileSync(migrationPath, 'utf8');
 
   it('legt alle acht Zahlungstabellen an', () => {

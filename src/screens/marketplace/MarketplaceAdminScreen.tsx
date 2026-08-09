@@ -57,7 +57,7 @@ export function MarketplaceAdminScreen() {
         ) : (
           DEMO_MARKETPLACE_PARTNERS.map((partner) => (
             <ScrollView key={partner.id} contentContainerStyle={styles.partnerBlock}>
-              <MarketplacePartnerRow partner={partner} onPress={() => undefined} />
+              <MarketplacePartnerRow partner={partner} />
               <InfoBanner
                 title="Status"
                 message={MARKETPLACE_PARTNER_STATUS_LABELS[partner.status]}

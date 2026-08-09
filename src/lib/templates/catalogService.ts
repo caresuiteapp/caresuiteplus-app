@@ -105,5 +105,10 @@ export async function getDropdownOptions(
     if (defaults.length > 0) return { ok: true, data: defaults };
     return denied;
   }
-  return repo().getDropdownOptions(tenantId, catalogType);
+  const result = await repo().getDropdownOptions(tenantId, catalogType);
+  if (!result.ok) {
+    const defaults = getCatalogDefaults(catalogType);
+    if (defaults.length > 0) return { ok: true, data: defaults };
+  }
+  return result;
 }

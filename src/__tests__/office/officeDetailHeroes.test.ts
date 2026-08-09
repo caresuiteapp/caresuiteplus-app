@@ -18,7 +18,7 @@ describe('Office Detail Heroes (Sprint 85)', () => {
     const hero = readSrc('src/components/office/InvoiceDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('buildInvoiceDetailKpis');
-    expect(hero).toContain('DATEV preparedOnly');
+    expect(hero).toContain('DATEV in Vorbereitung');
   });
 
   it('BudgetDetailHero nutzt PremiumListHeroFrame mit Auslastungs-KPIs', () => {

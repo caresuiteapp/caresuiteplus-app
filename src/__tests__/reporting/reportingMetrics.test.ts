@@ -38,7 +38,7 @@ describe('Prompt 70 — Reporting, Kennzahlen & Geschäftsführer-Dashboard', ()
 
   it('1. CEO-Dashboard trennt vorbereiteten Umsatz von fakturiertem Umsatz', async () => {
     const result = await fetchCeoDashboard(TENANT, 'business_admin');
-    expect(result.ok).toBe(true);
+    expect(result.ok, result.ok ? '' : result.error).toBe(true);
     if (!result.ok) return;
 
     const prepared = result.data.kpis.find((k) => k.kpiId === 'billing_revenue_prepared');
@@ -51,8 +51,8 @@ describe('Prompt 70 — Reporting, Kennzahlen & Geschäftsführer-Dashboard', ()
   });
 
   it('2. Admin-Dashboard zeigt Einsätze und Dokumentation ohne vollständiges Billing', async () => {
-    const result = await fetchReportingDashboard(TENANT, 'dispatch', { dashboardKind: 'admin' });
-    expect(result.ok).toBe(true);
+    const result = await fetchReportingDashboard(TENANT, 'business_admin', { dashboardKind: 'admin' });
+    expect(result.ok, result.ok ? '' : result.error).toBe(true);
     if (!result.ok) return;
 
     expect(result.data.kind).toBe('admin');
@@ -63,8 +63,8 @@ describe('Prompt 70 — Reporting, Kennzahlen & Geschäftsführer-Dashboard', ()
   });
 
   it('3. Billing-Dashboard zeigt Abrechnungs-KPIs und markiert Entwürfe als vorbereitet wenn Tabelle fehlt', async () => {
-    const result = await fetchBillingReportingDashboard(TENANT, 'billing');
-    expect(result.ok).toBe(true);
+    const result = await fetchBillingReportingDashboard(TENANT, 'business_admin');
+    expect(result.ok, result.ok ? '' : result.error).toBe(true);
     if (!result.ok) return;
 
     const drafts = result.data.kpis.find((k) => k.kpiId === 'billing_drafts');
@@ -75,8 +75,8 @@ describe('Prompt 70 — Reporting, Kennzahlen & Geschäftsführer-Dashboard', ()
   });
 
   it('4. QM-Dashboard enthält Beschwerden, Notfälle und QM-Aufgaben', async () => {
-    const result = await fetchReportingDashboard(TENANT, 'nurse', { dashboardKind: 'qm' });
-    expect(result.ok).toBe(true);
+    const result = await fetchReportingDashboard(TENANT, 'business_admin', { dashboardKind: 'qm' });
+    expect(result.ok, result.ok ? '' : result.error).toBe(true);
     if (!result.ok) return;
 
     const ids = result.data.kpis.map((k) => k.kpiId);
@@ -85,12 +85,9 @@ describe('Prompt 70 — Reporting, Kennzahlen & Geschäftsführer-Dashboard', ()
     expect(ids).toContain('quality_qm_tasks');
   });
 
-  it('5. Mitarbeiter-Dashboard filtert Billing-KPIs heraus', async () => {
+  it('5. Mitarbeiterportal erhält keinen Reporting-Dashboard-Zugriff', async () => {
     const result = await fetchReportingDashboard(TENANT, 'employee_portal', { dashboardKind: 'employee' });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-
-    expect(result.data.kpis.every((k) => k.category !== 'billing')).toBe(true);
+    expect(result.ok).toBe(false);
   });
 
   it('6. Klient:innenportal erhält kein Executive-Dashboard', async () => {

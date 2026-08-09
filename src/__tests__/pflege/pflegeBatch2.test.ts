@@ -79,7 +79,7 @@ describe('Pflege Sprint Batch 2 (Sprint 76)', () => {
 
   it('Pflegedokumentation Route existiert', () => {
     expect(readSrc('app/pflege/dokumentation/index.tsx')).toContain('CareDocumentationListScreen');
-    expect(readSrc('src/screens/pflege/PflegeIndexScreen.tsx')).toContain('/pflege/dokumentation');
+    expect(readSrc('src/lib/pflege/pflegeDashboardWorkspace.ts')).toContain('/pflege/dokumentation');
   });
 
   it('MedicationDetailHero und Service sind preparedOnly', async () => {

@@ -76,11 +76,10 @@ const SAMPLE_ACTIVE_EXECUTIONS: ActiveExecutionItem[] = [
 const SAMPLE_TODAY_ASSIGNMENTS: AssignmentListItem[] = [];
 
 describe('HealthOS H4 Assist Operations Dashboard', () => {
-  it('AssistIndexScreen uses HealthOSModuleShell and HealthOSAssistOperationsView', () => {
+  it('AssistIndexScreen uses the canonical ScreenShell and HealthOS operations view', () => {
     const source = readSrc('src/screens/assist/AssistIndexScreen.tsx');
-    expect(source).toContain('HealthOSModuleShell');
+    expect(source).toContain('ScreenShell');
     expect(source).toContain('HealthOSAssistOperationsView');
-    expect(source).toContain('testID="healthos-assist-operations-shell"');
     expect(source).toContain('useAssistDashboard');
     expect(source).toContain('useActiveExecutions');
     expect(source).not.toContain('ModuleDashboardShell');
@@ -141,8 +140,8 @@ describe('HealthOS H4 Assist Operations Dashboard', () => {
     });
 
     expect(model.liveOperations.length).toBe(2);
-    expect(model.liveOperations[0]?.phaseLabel).toBe('Läuft');
-    expect(model.liveOperations[1]?.phaseLabel).toBe('Eingecheckt');
+    expect(model.liveOperations[0]?.phaseLabel).toBe('Zeitkorrektur erforderlich');
+    expect(model.liveOperations[1]?.phaseLabel).toBe('Dokumentation / Unterschrift offen');
     expect(model.liveOperations[0]?.phaseLabel).not.toBe('in_progress');
     expect(model.liveOperations[1]?.phaseLabel).not.toBe('checked_in');
   });

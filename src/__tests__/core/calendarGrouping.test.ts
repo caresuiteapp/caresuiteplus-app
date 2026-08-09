@@ -43,10 +43,9 @@ describe('Calendar Grouping', () => {
 
   it('AssistCalendarScreen nutzt vollen Kalender und Detail-Modal', () => {
     const source = readSrc('src/screens/assist/AssistCalendarScreen.tsx');
-    expect(source).toContain('ScreenShell');
-    expect(source).toContain('AssistCalendarView');
+    expect(source).toContain('CalendarShell');
+    expect(source).toContain('CalendarEventDrawer');
     expect(source).toContain('AssignmentDetailGlassModal');
-    expect(source).toContain('showBack={false}');
     expect(source).not.toContain('AssistCalendarListHero');
   });
 });

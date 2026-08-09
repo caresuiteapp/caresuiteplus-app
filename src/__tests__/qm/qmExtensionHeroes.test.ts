@@ -31,7 +31,7 @@ describe('QM Extension Heroes (Sprint 96)', () => {
 
   it('MdAuditCenterHero und MdShareViewHero nutzen PremiumListHeroFrame', () => {
     expect(readSrc('src/components/qm/MdAuditCenterHero.tsx')).toContain('MD-Prüfungszentrum');
-    expect(readSrc('src/components/qm/MdShareViewHero.tsx')).toContain('MD-FREIGABE');
+    expect(readSrc('src/components/qm/MdShareViewHero.tsx')).toContain('Externe Freigabe');
     expect(readSrc('src/screens/qm/MdAuditCenterScreen.tsx')).toContain('MdAuditCenterHero');
     expect(readSrc('src/screens/qm/MdShareViewScreen.tsx')).toContain('MdShareViewHero');
     expect(readSrc('src/screens/qm/MdAuditCenterScreen.tsx')).not.toContain('PreparedModeBanner');

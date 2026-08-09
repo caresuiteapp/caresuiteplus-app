@@ -32,13 +32,13 @@ describe('userProfileService', () => {
   });
 
   it('saveUserProfile nutzt buildUserProfileWritePayload statt full_name', () => {
-    const source = readSrc('src/lib/auth/userProfileService.ts');
+    const source = readSrc('src/lib/auth/userprofileservice.ts');
     expect(source).toContain('buildUserProfileWritePayload');
     expect(source).not.toMatch(/full_name:\s*displayName/);
   });
 
   it('UserProfileScreen aktualisiert Auth-Kontext nach Speichern', () => {
-    const source = readSrc('src/screens/settings/UserProfileScreen.tsx');
+    const source = readSrc('src/screens/settings/userprofilescreen.tsx');
     expect(source).toContain('updateProfile');
     expect(source).toContain('updateProfile(result.data)');
   });

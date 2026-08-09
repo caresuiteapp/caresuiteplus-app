@@ -9,12 +9,11 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Business-Dashboard Tour UI wiring', () => {
-  it('BusinessDashboardScreen integriert GuidedTourOverlay und Tour-Hook', () => {
+  it('BusinessDashboardScreen enthält keinen verwaisten Tour-Auslöser', () => {
     const screen = readSrc('src/screens/BusinessDashboardScreen.tsx');
-    expect(screen).toContain('useBusinessDashboardTour');
-    expect(screen).toContain('GuidedTourOverlay');
-    expect(screen).toContain('Tour starten');
-    expect(screen).toContain('onSkip');
+    expect(screen).not.toContain('useBusinessDashboardTour');
+    expect(screen).not.toContain('Tour starten');
+    expect(screen).toContain('ModuleOverviewDashboard');
   });
 
   it('GuidedTourOverlay bietet Weiter und Fertig Aktionen', () => {

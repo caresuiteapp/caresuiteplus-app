@@ -48,7 +48,7 @@ export function AppointmentsListView({
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
   const { viewMode, setViewMode } = useDesktopListViewPreference('office.appointments');
-  const useTableLayout = isDesktop && viewMode === 'table';
+  const useTableLayout = isDesktop && viewMode === 'table' && !embedded;
 
   useAiPageContext({
     pageTitle: 'Termine & Dienstplan',

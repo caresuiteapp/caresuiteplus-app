@@ -76,8 +76,8 @@ describe('Office dashboard workspace', () => {
     const source = readSrc('src/screens/office/OfficeIndexScreen.tsx');
     expect(source).toContain('HealthOSOfficeCommandCenterView');
     expect(source).toContain('useOfficeDashboard');
-    expect(source).toContain('HealthOSModuleShell');
-    expect(source).toContain('Command Center');
+    expect(source).toContain('ScreenShell');
+    expect(source).toContain('HealthOSOfficeCommandCenterView');
     expect(source).not.toContain('Coming Soon');
   });
 

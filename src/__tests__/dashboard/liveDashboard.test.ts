@@ -143,7 +143,7 @@ describe('live dashboard snapshots', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.tenantName).toBe('Helferhasen+');
-      const clientsKpi = result.data.kpis.find((kpi) => kpi.id === 'office-kpi-clients-active');
+      const clientsKpi = result.data.kpis.find((kpi) => kpi.id === 'office-ws-kpi-clients-active');
       expect(clientsKpi?.value).toBe(1);
       expect(result.data.kpis.some((kpi) => String(kpi.subValue).includes('Demo'))).toBe(false);
     }

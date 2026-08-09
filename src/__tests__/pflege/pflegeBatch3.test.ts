@@ -124,9 +124,11 @@ describe('Pflege Sprint Batch 3 (Sprint 77)', () => {
     expect(detail.ok).toBe(true);
   });
 
-  it('SIS Detail Hero, Screen und Route existieren', () => {
+  it('SIS Detail und Route verwenden den zentralen Assessment-Workspace', () => {
     expect(readSrc('src/components/pflege/SisDetailHero.tsx')).toContain('PremiumListHeroFrame');
-    expect(readSrc('app/pflege/sis/[id]/index.tsx')).toContain('SisDetailScreen');
+    expect(readSrc('app/pflege/sis/[id]/index.tsx')).toContain('CareAssessmentWorkspaceScreen');
+    expect(readSrc('app/pflege/sis/[id]/index.tsx')).toContain('subjectType="client"');
+    expect(readSrc('src/screens/careAssessment/CareAssessmentWorkspaceScreen.tsx')).toContain('saveCareAssessment');
     const demo = getDemoSisAssessments()[0];
     const kpis = buildSisDetailKpis(demo);
     expect(kpis.some((k) => k.id === 'score')).toBe(true);
@@ -146,7 +148,8 @@ describe('Pflege Sprint Batch 3 (Sprint 77)', () => {
   });
 
   it('Listen-Screens nutzen DesktopListViewPreference', () => {
-    expect(readSrc('src/screens/pflege/SisOverviewScreen.tsx')).toContain("useDesktopListViewPreference('pflege.sis')");
+    expect(readSrc('src/screens/pflege/SisOverviewScreen.tsx')).toContain('CareAssessmentListScreen');
+    expect(readSrc('src/screens/careAssessment/CareAssessmentListScreen.tsx')).toContain('fetchCareAssessments');
     expect(readSrc('src/screens/pflege/MedicationListScreen.tsx')).toContain(
       "useDesktopListViewPreference('pflege.medication')",
     );
@@ -163,10 +166,11 @@ describe('Pflege Sprint Batch 3 (Sprint 77)', () => {
 
   it('PflegeIndexScreen poliert Schnellzugriff und Bewohner-Link', () => {
     const screen = readSrc('src/screens/pflege/PflegeIndexScreen.tsx');
-    expect(screen).toContain('CareLightModuleDashboard');
-    expect(screen).toContain('/stationaer/bewohner');
-    expect(screen).toContain('isVitalReadingsLiveReady');
-    expect(screen).toContain('tilePreparedOnly');
+    const workspace = readSrc('src/lib/pflege/pflegeDashboardWorkspace.ts');
+    expect(screen).toContain('ModuleDashboardShell');
+    expect(screen).toContain('PflegeDashboardView');
+    expect(workspace).toContain("route: '/pflege/plans'");
+    expect(workspace).toContain("route: '/pflege/vitalwerte?filter=due'");
     expect(screen).toContain("moduleColor('pflege')");
   });
 

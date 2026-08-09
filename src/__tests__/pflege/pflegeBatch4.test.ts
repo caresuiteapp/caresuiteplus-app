@@ -35,12 +35,11 @@ describe('Pflege Sprint Batch 4 (Sprint 78)', () => {
     expect(isWoundBodyMapReady()).toBe(true);
   });
 
-  it('Medikation Detail hat InfoBanner und deaktivierte eMP-Aktionen', () => {
+  it('Medikation Detail erklärt eMP, ohne eine wirkungslose Aktion anzubieten', () => {
     const screen = readSrc('src/screens/pflege/MedicationDetailScreen.tsx');
     expect(screen).toContain('InfoBanner');
     expect(screen).toContain('MEDICATION_EMP_PREPARED_MESSAGE');
-    expect(screen).toContain('eMP abgleichen');
-    expect(screen).toContain('disabled={!empReady || isReadOnly}');
+    expect(screen).not.toContain('eMP abgleichen');
   });
 
   it('Wunddetail verlinkt BodyMap wenn demo-funktional', () => {
@@ -50,43 +49,43 @@ describe('Pflege Sprint Batch 4 (Sprint 78)', () => {
     expect(screen).toContain('bodyMapReady');
   });
 
-  it('Dienstpläne haben Import-InfoBanner und deaktivierten Import-Button', () => {
+  it('Dienstpläne erklären den ausstehenden Import, ohne wirkungslosen Button', () => {
     const screen = readSrc('src/screens/pflege/ShiftScheduleListScreen.tsx');
     expect(screen).toContain('SHIFT_SCHEDULE_IMPORT_PREPARED_MESSAGE');
-    expect(screen).toContain('Dienstplan importieren');
-    expect(screen).toContain('disabled={!importReady || isReadOnly}');
+    expect(screen).not.toContain('Dienstplan importieren');
+    expect(screen).toContain('isShiftScheduleImportReady');
   });
 
   it('SIS create/edit demo-funktionale Formulare und Routen', () => {
-    expect(readSrc('app/pflege/sis/create.tsx')).toContain('SisFormScreen');
-    expect(readSrc('app/pflege/sis/new.tsx')).toContain('SisFormScreen');
-    const form = readSrc('src/screens/pflege/SisFormScreen.tsx');
-    expect(form).toContain('SIS_TOPIC_FIELDS');
+    expect(readSrc('app/pflege/sis/create.tsx')).toContain('CareAssessmentWorkspaceScreen');
+    expect(readSrc('app/pflege/sis/new.tsx')).toContain('CareAssessmentWorkspaceScreen');
+    const form = readSrc('src/screens/careAssessment/CareAssessmentWorkspaceScreen.tsx');
+    expect(form).toContain('CARE_ASSESSMENT_TOPIC_LABELS');
     expect(form).toContain('Risikomatrix');
-    expect(form).toContain('saveSisFormAssessment');
-    expect(readSrc('src/screens/pflege/SisOverviewScreen.tsx')).toContain('/pflege/sis/create');
-    expect(readSrc('src/screens/pflege/SisDetailScreen.tsx')).toContain('/pflege/sis/${id}/edit');
+    expect(form).toContain('saveCareAssessment');
+    expect(readSrc('src/screens/careAssessment/CareAssessmentListScreen.tsx')).toContain('`${base}/new`');
+    expect(readSrc('app/pflege/sis/[id]/edit.tsx')).toContain('CareAssessmentWorkspaceScreen');
   });
 
-  it('Vital write paths: Create-Route, Speichern und Detail-Aktionen', () => {
+  it('Vital write paths: Create-Route und Speichern bleiben funktional', () => {
     expect(readSrc('app/pflege/vitalwerte/create.tsx')).toContain('VitalReadingCreateScreen');
     const create = readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx');
     expect(create).toContain('createVitalReading');
     expect(create).toContain('isVitalWriteReady');
     expect(readSrc('src/screens/pflege/VitalReadingsListScreen.tsx')).toContain('/pflege/vitalwerte/create');
     const detail = readSrc('src/screens/pflege/VitalReadingDetailScreen.tsx');
-    expect(detail).toContain('Schwellenwert setzen');
-    expect(detail).toContain('writeReady');
+    expect(detail).toContain('isVitalWriteReady');
+    expect(detail).not.toContain('Schwellenwert setzen');
   });
 
-  it('Pflegedokumentation Detail hat Sign/PDF InfoBanner und deaktivierte Aktionen', () => {
+  it('Pflegedokumentation Detail zeigt ehrliche Sign/PDF-Bereitschaft ohne leere Aktionen', () => {
     const screen = readSrc('src/screens/pflege/CareDocumentationDetailScreen.tsx');
     expect(screen).toContain('CARE_DOCUMENTATION_SIGN_PREPARED_MESSAGE');
     expect(screen).toContain('CARE_DOCUMENTATION_PDF_PREPARED_MESSAGE');
-    expect(screen).toContain('Nachweis signieren');
-    expect(screen).toContain('PDF exportieren');
-    expect(screen).toContain('disabled={!signReady || isReadOnly}');
-    expect(screen).toContain('disabled={!pdfReady || isReadOnly}');
+    expect(screen).not.toContain('Nachweis signieren');
+    expect(screen).not.toContain('PDF exportieren');
+    expect(screen).toContain('isCareDocumentationSignReady');
+    expect(screen).toContain('isCareDocumentationPdfReady');
   });
 
   it('Batch 3 Live-Wiring bleibt intakt (Regression)', async () => {

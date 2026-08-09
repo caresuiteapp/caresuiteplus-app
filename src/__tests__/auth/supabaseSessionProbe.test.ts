@@ -18,11 +18,12 @@ describe('useSupabaseSessionProbe', () => {
     expect(probe).toContain('SESSION_PROBE_MAX_MS');
   });
 
-  it('AppStartScreen and auth index never render landing while session is pending', () => {
+  it('AppStartScreen probes while the canonical liquid entry waits for auth', () => {
     const start = readSrc('src/screens/AppStartScreen.tsx');
-    const authIndex = readSrc('app/auth/index.tsx');
+    const authIndex = readSrc('src/liquid-command/screens/LiquidCommandEntryScreen.tsx');
     expect(start).toContain('sessionPending');
-    expect(authIndex).toContain('useSupabaseSessionProbe');
+    expect(authIndex).toContain('if (!authReady)');
+    expect(authIndex).toContain('System wird gestartet');
     expect(authIndex).not.toContain('<Redirect href="/" as never />');
   });
 });

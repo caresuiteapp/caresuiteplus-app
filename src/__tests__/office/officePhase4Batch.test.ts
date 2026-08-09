@@ -27,8 +27,17 @@ describe('Office Phase 4 batch routes', () => {
   });
 
   it('list screens expose audit states at screen level', () => {
-    for (const file of ['EmployeesListScreen.tsx', 'InvoicesListScreen.tsx']) {
-      const source = readFileSync(path.join(root, 'src/screens/office', file), 'utf8');
+    const screenSources = [
+      [
+        readFileSync(path.join(root, 'src/screens/office/EmployeesListScreen.tsx'), 'utf8'),
+        readFileSync(path.join(root, 'src/components/office/EmployeesListView.tsx'), 'utf8'),
+      ].join('\n'),
+      [
+        readFileSync(path.join(root, 'src/screens/office/InvoicesListScreen.tsx'), 'utf8'),
+        readFileSync(path.join(root, 'src/components/office/InvoicesListView.tsx'), 'utf8'),
+      ].join('\n'),
+    ];
+    for (const source of screenSources) {
       expect(source).toContain('LoadingState');
       expect(source).toContain('EmptyState');
       expect(source).toContain('ErrorState');

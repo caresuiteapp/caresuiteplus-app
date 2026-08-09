@@ -37,15 +37,13 @@ describe('Pflege Sprint Batch 5 (Sprint 79)', () => {
     }
   });
 
-  it('PflegeCrossModuleLinksPanel ist in allen Pflege-Detailscreens eingebunden', () => {
+  it('PflegeCrossModuleLinksPanel ist in den klassischen Pflege-Detailscreens eingebunden', () => {
     const screens = [
       'src/screens/pflege/CarePlanDetailScreen.tsx',
       'src/screens/pflege/VitalReadingDetailScreen.tsx',
-      'src/screens/pflege/SisDetailScreen.tsx',
       'src/screens/pflege/MedicationDetailScreen.tsx',
       'src/screens/pflege/WoundDocumentationDetailScreen.tsx',
       'src/screens/pflege/CareDocumentationDetailScreen.tsx',
-      'src/screens/pflege/SisPreparedFormScreen.tsx',
       'src/screens/pflege/VitalReadingCreateScreen.tsx',
     ];
 
@@ -54,12 +52,17 @@ describe('Pflege Sprint Batch 5 (Sprint 79)', () => {
       expect(src).toContain('PflegeCrossModuleLinksPanel');
       expect(src).toContain('context=');
     }
+
+    const sisWorkspace = readSrc('src/screens/careAssessment/CareAssessmentWorkspaceScreen.tsx');
+    expect(sisWorkspace).toContain('fetchCareAssessment');
+    expect(sisWorkspace).toContain('saveCareAssessment');
+    expect(sisWorkspace).toContain('transitionCareAssessment');
   });
 
   it('Prepared-Form-Screens nutzen PremiumListHeroFrame statt flacher PremiumCard', () => {
     expect(readSrc('src/components/pflege/SisPreparedFormHero.tsx')).toContain('PremiumListHeroFrame');
     expect(readSrc('src/components/pflege/VitalReadingCreateHero.tsx')).toContain('PremiumListHeroFrame');
-    expect(readSrc('src/screens/pflege/SisPreparedFormScreen.tsx')).toContain('SisPreparedFormHero');
+    expect(readSrc('src/screens/pflege/SisPreparedFormScreen.tsx')).toContain('CareAssessmentWorkspaceScreen');
     expect(readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx')).toContain('VitalReadingCreateHero');
     expect(readSrc('src/screens/pflege/SisPreparedFormScreen.tsx')).not.toContain('PremiumCard style={styles.header}');
     expect(readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx')).not.toContain('PremiumCard');
@@ -127,8 +130,9 @@ describe('Pflege Sprint Batch 5 (Sprint 79)', () => {
     expect(docHero).toMatch(/Signatur|PDF/i);
   });
 
-  it('SIS/Vital Form-Screens nutzen demo-funktional statt hartem preparedOnly', () => {
-    expect(readSrc('src/screens/pflege/SisFormScreen.tsx')).toContain('saveSisFormAssessment');
+  it('SIS/Vital Form-Screens nutzen funktionale Schreibservices statt hartem preparedOnly', () => {
+    expect(readSrc('src/screens/pflege/SisFormScreen.tsx')).toContain('CareAssessmentWorkspaceScreen');
+    expect(readSrc('src/screens/careAssessment/CareAssessmentWorkspaceScreen.tsx')).toContain('saveCareAssessment');
     expect(readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx')).toContain('isVitalWriteReady');
     expect(readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx')).toContain('createVitalReading');
     expect(readSrc('app/pflege/bodymap.tsx')).toContain('BodyMapScreen');

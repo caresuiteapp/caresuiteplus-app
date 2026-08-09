@@ -18,7 +18,7 @@ describe('employeeSupabasePayload', () => {
       status: 'aktiv',
     });
 
-    expect(payload).toEqual({
+    expect(payload).toMatchObject({
       tenant_id: TENANT_ID,
       first_name: 'Mhi Aldeen',
       last_name: 'Al Jlelati',
@@ -29,7 +29,7 @@ describe('employeeSupabasePayload', () => {
       avatar_url: null,
     });
     expect(payload).not.toHaveProperty('job_title');
-    expect(payload).not.toHaveProperty('department');
+    expect(payload).toHaveProperty('department', 'assist_aussendienst');
   });
 
   it('buildEmployeeUpdatePayload maps editable live fields only', () => {

@@ -24,10 +24,15 @@ describe('Office ClientRecord rebuild', () => {
   });
 
   it('ClientRecordTabPanels exposes service-driven document workflow', () => {
-    const source = readFileSync(
+    const panels = readFileSync(
       path.join(root, 'src/screens/business/office/ClientRecordTabPanels.tsx'),
       'utf8',
     );
+    const documents = readFileSync(
+      path.join(root, 'src/components/office/ClientRecordDocumentsPanel.tsx'),
+      'utf8',
+    );
+    const source = `${panels}\n${documents}`;
     expect(source).toContain('uploadClientDocument');
     expect(source).toContain('updateClientConsent');
     expect(source).toContain('addClientMedication');

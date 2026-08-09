@@ -29,14 +29,12 @@ describe('Employee avatar display', () => {
 });
 
 describe('EmployeesListView Filter-Chips', () => {
-  it('nutzt EmployeesFilterToolbar mit FilterChipGroup für Status und Sortierung', () => {
+  it('nutzt kontrollierte Auswahlfelder für Status und Sortierung', () => {
     const source = readSrc('src/components/office/EmployeesListView.tsx');
-    const filters = readSrc('src/components/office/EmployeesFilterToolbar.tsx');
-    expect(source).toContain('EmployeesFilterToolbar');
-    expect(filters).toContain('FilterChipGroup');
-    expect(filters).toContain('>Status</Text>');
+    expect(source).toContain('ListFilterSelect');
+    expect(source).toContain('label="Status"');
+    expect(source).toContain('label="Sortierung"');
     expect(source).toContain('setStatusFilter');
     expect(source).toContain('setSortKey');
-    expect(source).not.toContain('ListFilterSelect');
   });
 });

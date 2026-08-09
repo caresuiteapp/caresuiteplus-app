@@ -25,16 +25,17 @@ describe('Design token consolidation', () => {
     expect(designTokens.hero.eyebrowLetterSpacing).toBe(1);
   });
 
-  it('PremiumListHeroFrame nutzt Aurora Hero-Tokens', () => {
+  it('PremiumListHeroFrame nutzt die zentralen Spatial-Tokens', () => {
     const source = readSrc('src/components/ui/PremiumListHeroFrame.tsx');
-    expect(source).toContain('AURORA_HERO_COLORS');
-    expect(source).toContain('designTokens.hero');
-    expect(source).toContain('auroraSharedStyles');
+    expect(source).toContain('spatialCare');
+    expect(source).toContain('systemLiquidGlass');
+    expect(source).toContain('usePortalPremiumTheme');
   });
 
-  it('PremiumButton nutzt Aurora Primary-Gradient', () => {
+  it('PremiumButton nutzt den zentralen Spatial-Gradient', () => {
     const source = readSrc('src/components/ui/PremiumButton.tsx');
-    expect(source).toContain('AURORA_BUTTON_PRIMARY');
+    expect(source).toContain('spatialCareColors');
+    expect(source).toContain('LinearGradient');
     expect(source).not.toContain("colors={['#FF9500'");
   });
 

@@ -17,14 +17,12 @@ describe('office delete permissions', () => {
   });
 
   it('denies caregiver delete permissions', () => {
-    expect(enforcePermission('caregiver', 'office.clients.delete')).toEqual({
-      ok: false,
-      error: expect.stringContaining('Löschen'),
-    });
-    expect(enforcePermission('caregiver', 'office.employees.delete')).toEqual({
-      ok: false,
-      error: expect.stringContaining('Löschen'),
-    });
+    const clientResult = enforcePermission('caregiver', 'office.clients.delete');
+    const employeeResult = enforcePermission('caregiver', 'office.employees.delete');
+    expect(clientResult?.ok).toBe(false);
+    expect(employeeResult?.ok).toBe(false);
+    if (clientResult && !clientResult.ok) expect(clientResult.error).toMatch(/löschen/i);
+    if (employeeResult && !employeeResult.ok) expect(employeeResult.error).toMatch(/löschen/i);
   });
 });
 

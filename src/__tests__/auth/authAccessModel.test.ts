@@ -259,13 +259,13 @@ describe('authAccessModel', () => {
     });
   });
 
-  it('does not restrict tenant id in live service mode', () => {
+  it('blocks demo tenant ids in live service mode', () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
 
     expect(getServiceMode()).toBe('supabase');
-    expect(assertTenantForMode(DEMO_TENANT_ID)).toBeNull();
+    expect(assertTenantForMode(DEMO_TENANT_ID)?.error).toContain('Demo-Daten');
     expect(assertTenantForMode('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')).toBeNull();
   });
 });

@@ -2,7 +2,7 @@ import type { MedicalBlockedFunctionKey } from '@/types/medical';
 import { getServiceMode } from '@/lib/services/mode';
 import { isMedicalCatalogSourceUsable } from './medicalCatalogRegistry';
 
-export const MEDICAL_LIVE_WIRING_MIGRATION = '0047_medical_catalog_prepared.sql';
+export const MEDICAL_LIVE_WIRING_MIGRATION = '0128_medical_catalog_prepared.sql';
 
 export const MEDICAL_PREPARED_MESSAGE =
   'Medizinische Stammdaten und Dokumentationshilfen sind vorbereitet. ' +
@@ -69,7 +69,7 @@ export type MedicalLiveFlipBlocker = {
 export function getMedicalLiveFlipBlockers(): MedicalLiveFlipBlocker[] {
   return [
     {
-      id: 'migration-0047',
+      id: 'migration-0128',
       label: `Remote-Migration ${MEDICAL_LIVE_WIRING_MIGRATION} angewendet`,
       resolved: false,
     },

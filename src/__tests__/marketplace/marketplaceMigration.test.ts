@@ -3,13 +3,13 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const root = path.join(__dirname, '..', '..', '..');
-const migrationPath = path.join(root, 'supabase/migrations/0047_marketplace_prepared.sql');
+const migrationPath = path.join(root, 'supabase/migrations/0127_marketplace_prepared.sql');
 
 function readMigration(): string {
   return readFileSync(migrationPath, 'utf8');
 }
 
-describe('0047_marketplace_prepared migration', () => {
+describe('0127_marketplace_prepared migration', () => {
   const sql = readMigration();
 
   it('legt alle neun Marktplatz-Tabellen an', () => {

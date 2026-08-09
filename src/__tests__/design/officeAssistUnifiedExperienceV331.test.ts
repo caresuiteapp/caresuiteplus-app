@@ -15,7 +15,7 @@ describe('Office + Assist unified experience V33.1', () => {
     expect(background).not.toContain('DarkLiquidGlassBackground');
     expect(css).toContain('color-scheme: dark');
     expect(css).not.toContain('background: #030A18');
-    expect(html).toContain('content="#17182D"');
+    expect(html).toContain('content="#071225"');
   });
 
   it('setzt auf beiden Startseiten dieselbe Seitenschale ein', () => {
@@ -26,9 +26,9 @@ describe('Office + Assist unified experience V33.1', () => {
 
   it('hält Shell, Hintergrund und Seitentokens räumlich dunkel und lesbar', () => {
     const tokens = read('src/design/tokens/systemLiquidGlass.ts');
-    expect(tokens).toContain("page: '#17182D'");
+    expect(tokens).toContain("page: '#031127'");
     expect(tokens).toContain("primary: '#F8F6FF'");
-    expect(tokens).toContain("onAccent: '#17182D'");
+    expect(tokens).toContain("onAccent: '#FFFFFF'");
   });
 
   it('filtert unqualifizierte Vertretungsvorschläge aus', () => {

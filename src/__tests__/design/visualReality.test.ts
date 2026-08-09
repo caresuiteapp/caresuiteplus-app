@@ -59,17 +59,16 @@ describe('Visual Reality — light premium main screens', () => {
 
   it('OfficeIndexScreen uses platform dashboard shell', () => {
     const screen = readSrc('src/screens/office/OfficeIndexScreen.tsx');
-    expect(screen).toContain('ModuleDashboardShell');
+    expect(screen).toContain('ScreenShell');
+    expect(screen).toContain('HealthOSOfficeCommandCenterView');
     expect(screen).not.toContain('AdaptiveModuleDashboard');
   });
 
   it.each(moduleScreens)('%s has no legacy dark dashboard shell', (relPath) => {
     const screen = readSrc(relPath);
-    expect(screen).toContain('CareLightScreen');
-    expect(screen).toContain('CareLightModuleDashboard');
+    expect(screen.includes('ScreenShell') || screen.includes('ModuleDashboardShell')).toBe(true);
     expect(screen).not.toContain('AdaptiveModuleDashboard');
     expect(screen).not.toContain('PremiumListHeroFrame');
-    expect(screen).not.toContain('ScreenShell');
   });
 
   it('CareLightBottomNav uses light surface and navy text', () => {
@@ -78,16 +77,16 @@ describe('Visual Reality — light premium main screens', () => {
     expect(nav).toContain('careLightColors.navy');
   });
 
-  it('ScreenShell delegates to ScreenShell in light mode', () => {
+  it('ScreenShell owns the canonical HealthOS page surface', () => {
     const shell = readSrc('src/components/layout/ScreenShell.tsx');
-    expect(shell).toContain('ScreenShell');
-    expect(shell).toContain("mode === 'light'");
+    expect(shell).toContain('HealthOSPageSurface');
+    expect(shell).toContain('HealthOSPageZone');
   });
 
-  it('PremiumListHeroFrame delegates to PremiumListHeroFrame in light mode', () => {
+  it('PremiumListHeroFrame uses the canonical spatial and portal tokens', () => {
     const hero = readSrc('src/components/ui/PremiumListHeroFrame.tsx');
-    expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain("mode === 'light'");
+    expect(hero).toContain('systemLiquidGlass');
+    expect(hero).toContain('usePortalPremiumTheme');
   });
 
   it('visual-reality-audit script covers Phase 2 list/detail routes', () => {
@@ -111,7 +110,7 @@ describe('Visual Reality — light premium main screens', () => {
     ];
     for (const rel of layouts) {
       const src = readSrc(rel);
-      expect(src).toMatch(/routeLayoutContentStyle|careLightColors\.page/);
+      expect(src).toMatch(/routeLayoutContentStyle|careLightColors\.page|LiquidModuleRouteLayout|backgroundColor: 'transparent'/);
       expect(src).not.toContain('colors.bgBase');
     }
   });
@@ -137,12 +136,9 @@ describe('Visual Reality — Phase 2 list/detail screens', () => {
     'src/screens/akademie/CoursesListScreen.tsx',
   ];
 
-  it.each(phase2ListScreens)('%s uses ScreenShell or ScreenShell', (relPath) => {
+  it.each(phase2ListScreens)('%s uses a canonical list screen or shell', (relPath) => {
     const screen = readSrc(relPath);
-    const usesLightShell =
-      screen.includes('ScreenShell') ||
-      (screen.includes('ScreenShell') && readSrc('src/components/layout/ScreenShell.tsx').includes('ScreenShell'));
-    expect(usesLightShell).toBe(true);
+    expect(screen).toMatch(/ScreenShell|ListView|AdaptiveScreen/);
   });
 
   const phase2DetailScreens = [
@@ -235,8 +231,8 @@ describe('Visual Reality — Verification Round 2 design wiring', () => {
     expect(readSrc('src/theme/typography.ts')).toContain("resolveCareTypography('light')");
   });
 
-  it('officeDashboard Quick-Action nutzt CLIENT_INTAKE_NEW_ROUTE', () => {
-    const src = readSrc('src/data/demo/officeDashboard.ts');
+  it('Klientenliste nutzt CLIENT_INTAKE_NEW_ROUTE', () => {
+    const src = readSrc('src/screens/office/ClientsListScreen.tsx');
     expect(src).toContain('CLIENT_INTAKE_NEW_ROUTE');
     expect(src).not.toContain("'/office/clients/create'");
   });

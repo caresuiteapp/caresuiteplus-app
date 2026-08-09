@@ -68,7 +68,7 @@ describe('HealthOS H2 navigation config', () => {
     expect(keys).toContain('command-center');
     expect(keys).toContain('clients');
     expect(keys).toContain('employees');
-    expect(keys).toContain('documents');
+    expect(keys).toContain('documents-signatures');
     expect(keys).toContain('communication');
     expect(keys).toContain('settings');
   });
@@ -108,11 +108,11 @@ describe('HealthOS H2 navigation config', () => {
     expect(getVisibleNavItemsForRole('assist').some((i) => i.key === 'service-types')).toBe(true);
   });
 
-  it('employee times route stays hidden (P0 WFM)', () => {
+  it('employee times route is visible after WFM activation', () => {
     const times = HEALTHOS_EMPLOYEE_PORTAL_NAV.groups
       .flatMap((g) => g.items)
       .find((i) => i.key === 'times');
-    expect(resolveNavVisibility(times!)).toBe('hidden');
+    expect(resolveNavVisibility(times!)).toBe('visible');
   });
 
   it('client budget stays hidden', () => {

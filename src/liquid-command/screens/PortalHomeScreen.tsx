@@ -134,7 +134,7 @@ function PortalGuide({ message }: { message: string }) {
   );
 }
 
-function portalSections(kind: 'employee' | 'client' | 'relative'): PortalSection[] {
+function portalSections(kind: 'employee' | 'client'): PortalSection[] {
   return liquidPortalNavigation[kind].map((item) => ({
     id: item.id === 'home' ? 'today' : item.id,
     label: item.label,
@@ -168,7 +168,7 @@ const portalDefinitions: Record<
     title: 'Angehörigenportal',
     eyebrow: 'FREIGEGEBENE INFORMATIONEN',
     allowedRole: 'family_portal',
-    sections: portalSections('relative'),
+    sections: portalSections('client'),
   },
 };
 
@@ -748,7 +748,8 @@ export function PortalHomeScreen({
   const displayName =
     auth.profile?.displayName || auth.portalSession?.displayName || auth.user?.displayName || 'Portal';
   const mobileSections = definition.sections;
-  const loginRoute = liquidPortalLoginRoutes[portal === 'family' ? 'relative' : portal];
+  const clientFacingPortal = portal === 'family' ? 'client' : portal;
+  const loginRoute = liquidPortalLoginRoutes[clientFacingPortal];
 
   const navigateToSection = (sectionId: string) => {
     const section = definition.sections.find((item) => item.id === sectionId);
@@ -853,7 +854,7 @@ export function PortalHomeScreen({
       return (
         <MessageRows
           onOpen={(threadId) => router.push(
-            `/portal/${portal === 'family' ? 'relative' : portal}/messages/${threadId}` as never,
+            `/portal/${clientFacingPortal}/messages/${threadId}` as never,
           )}
           threads={officeMessages.threads}
         />

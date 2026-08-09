@@ -3,6 +3,8 @@ import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 import { blockDemoOnlyInLiveMode } from '@/lib/services/liveServiceGuard';
 import { enforceQmPermission, QM_CREATE_AUDIT, QM_VIEW } from './qmPermissions';
 import type { QmAudit } from './qm.types';
+import { qmDemoRepository } from './qmRepository.demo';
+import { getServiceMode } from '@/lib/services/mode';
 
 export async function fetchQmAudits(
   tenantId: string,
@@ -12,6 +14,7 @@ export async function fetchQmAudits(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
+  if (getServiceMode() === 'demo') return qmDemoRepository.listAudits(tenantId);
   const liveBlock = blockDemoOnlyInLiveMode<QmAudit[]>('QM-Audits');
   if (liveBlock) return liveBlock;
   return { ok: true, data: [] };
@@ -26,6 +29,14 @@ export async function createQmAudit(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
+  if (getServiceMode() === 'demo') {
+    return qmDemoRepository.createAudit(tenantId, {
+      ...input,
+      status: 'planned',
+      completedAt: null,
+      findingsCount: 0,
+    });
+  }
   const liveBlock = blockDemoOnlyInLiveMode<QmAudit>('QM-Audits');
   if (liveBlock) return liveBlock;
   return { ok: false, error: 'QM-Audits im Live-Modus noch nicht vollständig angebunden.' };

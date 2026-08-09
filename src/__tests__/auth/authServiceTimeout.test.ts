@@ -19,6 +19,7 @@ vi.mock('../../lib/supabase/client', () => ({
 
 describe('auth service request timeouts', () => {
   beforeEach(() => {
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
     vi.useFakeTimers();
     signInWithPasswordRequest.mockReset();
     getSessionRequest.mockReset();
@@ -27,6 +28,7 @@ describe('auth service request timeouts', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.useRealTimers();
   });
 

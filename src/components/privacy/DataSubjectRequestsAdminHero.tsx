@@ -112,7 +112,7 @@ export function DataSubjectRequestsAdminHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {!liveReady ? <PremiumBadge label="Live nach Migration 0031" variant="cyan" /> : null}
+        {!liveReady ? <PremiumBadge label="Technische Einrichtung ausstehend" variant="cyan" /> : null}
         {exportLiveReady ? (
           <PremiumBadge label="CSV-Export Live" variant="green" />
         ) : (

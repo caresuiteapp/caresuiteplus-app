@@ -40,7 +40,7 @@ describe('employee portal visit execution UX completion', () => {
 
   it('live dashboard exposes attachment compact card', () => {
     const dashboard = readSrc('src/components/portal/EmployeePortalVisitLiveDashboard.tsx');
-    expect(dashboard).toContain('Fotos / Anhänge');
+    expect(dashboard).toContain('Foto & Video');
     expect(dashboard).toContain('attachmentCount');
   });
 

@@ -11,7 +11,8 @@ describe('budget visuals are mounted on the routes users actually open', () => {
 
     expect(route).toContain('fetchPortalBudgetVisuals');
     expect(route).toContain('<ClientBudgetVisualCards models={visuals} />');
-    expect(route).toContain('buildClientBudgetVisualPlaceholders');
+    expect(route).not.toContain('buildClientBudgetVisualPlaceholders');
+    expect(route).toContain('Es werden keine Ersatzbeträge angezeigt');
     expect(route).not.toContain('PortalSectionGate');
     expect(route).not.toContain('Kein Budget freigegeben');
   });

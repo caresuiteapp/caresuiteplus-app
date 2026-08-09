@@ -16,6 +16,8 @@ import { invoiceSupabaseRepository } from '@/lib/services/repositories/invoiceRe
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import type { InvoiceRow } from '@/lib/services/repositories/invoiceRepository.supabase';
+import { getDemoInvoiceAccountingStatus } from '@/data/demo/accounting';
+import { assertInvoiceEditable } from '@/lib/accounting/gobdGuard';
 import {
   canTransitionInvoiceStatus,
   getAllowedInvoiceStatusActions,
@@ -263,6 +265,14 @@ export async function updateInvoice(
       return { ok: false, error: 'Rechnung wurde gespeichert, konnte aber nicht neu geladen werden.' };
     }
     return { ok: true, data: buildDetailFromSupabase(refreshed.data) };
+  }
+
+  const accountingGuard = assertInvoiceEditable(
+    getDemoInvoiceAccountingStatus(invoiceId).accountingStatus,
+    'direct_edit',
+  );
+  if (!accountingGuard.allowed) {
+    return { ok: false, error: accountingGuard.message };
   }
 
   await new Promise((r) => setTimeout(r, 280));

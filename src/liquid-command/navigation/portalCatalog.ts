@@ -9,18 +9,16 @@ export type LiquidPortalNavigationItem = {
   group: 'overview' | 'work' | 'communication' | 'account';
 };
 
-export type ProductPortalKind = Extract<LiquidPortalKey, 'employee' | 'client'> | 'relative';
+export type ProductPortalKind = Extract<LiquidPortalKey, 'employee' | 'client'>;
 
 export const liquidPortalRoots: Record<ProductPortalKind, string> = {
   employee: '/portal/employee',
   client: '/portal/client',
-  relative: '/portal/relative',
 };
 
 export const liquidPortalLoginRoutes: Record<ProductPortalKind, string> = {
   employee: '/auth/employee-login',
   client: '/auth/client-login',
-  relative: '/auth/client-login',
 };
 
 export const liquidPortalNavigation: Record<
@@ -53,9 +51,5 @@ export const liquidPortalNavigation: Record<
     { id: 'budget', label: 'Budget', glyph: '€', route: '/portal/client/budget', group: 'account' },
     { id: 'help', label: 'Hilfe', glyph: '?', route: '/portal/client/help', group: 'account' },
     { id: 'profile', label: 'Profil', glyph: '♙', route: '/portal/client/profile', group: 'account' },
-  ],
-  relative: [
-    { id: 'home', label: 'Übersicht', glyph: '⌂', route: '/portal/relative', compact: true, group: 'overview' },
-    { id: 'messages', label: 'Nachrichten', glyph: '▱', route: '/portal/relative/messages', compact: true, group: 'communication' },
   ],
 };

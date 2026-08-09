@@ -22,7 +22,7 @@ describe('System Spatial Unification V35', () => {
 
     expect(shell).not.toContain('CareLightPageShell');
     expect(shell).not.toContain('isLight');
-    expect(header).toContain('spatialCare.navigation');
+    expect(header).toContain('spatialCare.blur.navigation');
     expect(header).not.toContain('desktopA11yHeader');
   });
 
@@ -31,7 +31,7 @@ describe('System Spatial Unification V35', () => {
 
     expect(adapter).toContain("setProperty('backdrop-filter', `blur(");
     expect(adapter).not.toContain("backdropFilter: 'none'");
-    expect(adapter).toContain("surface: 'rgba(44,45,76,.78)'");
+    expect(adapter).toContain("surface: 'rgba(19,48,84,.84)'");
   });
 
   it('hält Assist-Karten und Breadcrumbs kompakt und kontrastreich', () => {
@@ -41,7 +41,7 @@ describe('System Spatial Unification V35', () => {
     expect(assignment).toContain('flexGrow: 0');
     expect(assignment).not.toContain('actionBtn: { flex: 1');
     expect(breadcrumb).toContain('spatialCareColors.cyanLight');
-    expect(breadcrumb).toContain('spatialCareColors.white');
+    expect(breadcrumb).toContain('colors.textPrimary');
   });
 
   it('leitet direkte CareLight-Altimporte auf dieselben Systembausteine um', () => {

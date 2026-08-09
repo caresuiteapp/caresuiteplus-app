@@ -216,9 +216,9 @@ describe('Communication Providers — registry', () => {
   });
 });
 
-describe('0046_communication_providers_prepared migration', () => {
+describe('0123_communication_providers_prepared migration', () => {
   const sql = readFileSync(
-    path.join(process.cwd(), 'supabase/migrations/0046_communication_providers_prepared.sql'),
+    path.join(process.cwd(), 'supabase/migrations/0123_communication_providers_prepared.sql'),
     'utf8',
   );
 

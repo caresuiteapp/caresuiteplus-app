@@ -885,6 +885,21 @@ export const APP_ROUTES: AppRoute[] = [
     ],
   },
   {
+    path: '/medical',
+    label: 'Medizinische Kataloge',
+    group: 'module',
+    requiresAuth: true,
+    allowedRoles: ['business_admin', 'business_manager', 'nurse', 'caregiver'],
+    children: ['/medical/icd'],
+  },
+  {
+    path: '/medical/icd',
+    label: 'ICD-Dokumentation',
+    group: 'module',
+    requiresAuth: true,
+    allowedRoles: ['business_admin', 'business_manager', 'nurse', 'caregiver'],
+  },
+  {
     path: '/pflege/calendar',
     label: 'Kalender',
     group: 'module',

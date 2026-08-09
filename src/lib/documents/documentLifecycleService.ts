@@ -341,6 +341,11 @@ export async function finalizeLifecycleDocument(
   });
 
   if (!pdfResult.ok) {
+    updateDocument({
+      ...doc,
+      htmlOutput: html,
+      status: 'render_failed',
+    });
     audit({
       tenantId: input.tenantId,
       documentId: input.documentId,

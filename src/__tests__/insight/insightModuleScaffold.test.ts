@@ -16,14 +16,14 @@ describe('InsightCenter Module Scaffold (Sprint 89)', () => {
   it('InsightDashboardHero nutzt PremiumListHeroFrame mit preparedOnly', () => {
     const hero = readSrc('src/components/insight/InsightDashboardHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('INSIGHTCENTER');
+    expect(hero).toContain('Mandanten-Analytics & KPIs');
     expect(hero).toContain('isInsightLiveReady');
     expect(hero).toContain('Demo / preparedOnly');
   });
 
   it('InsightIndexScreen nutzt CareLightModuleDashboard (light premium)', () => {
     const screen = readSrc('src/screens/insight/InsightIndexScreen.tsx');
-    expect(screen).toContain('CareLightScreen');
+    expect(screen).toContain('ScreenShell');
     expect(screen).toContain('CareLightModuleDashboard');
     expect(screen).toContain('moduleKey="insight"');
     expect(screen).toContain('isActive onPress');

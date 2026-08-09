@@ -27,15 +27,15 @@ function readSrc(relativePath: string): string {
   return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
 }
 
-describe('Medical Catalog Prepared (Migration 0047)', () => {
+describe('Medical Catalog Prepared', () => {
   beforeEach(() => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
   });
 
-  it('Migration 0047 existiert', () => {
+  it('die registrierte Medical-Migration existiert', () => {
     expect(
       fs.existsSync(
-        path.join(process.cwd(), 'supabase/migrations/0047_medical_catalog_prepared.sql'),
+        path.join(process.cwd(), 'supabase/migrations', MEDICAL_LIVE_REQUIRED_MIGRATION),
       ),
     ).toBe(true);
   });
@@ -185,7 +185,7 @@ describe('Medical Catalog Prepared (Migration 0047)', () => {
     expect(block?.ok).toBe(false);
   });
 
-  it('medicalLiveRepository referenziert Migration 0047', () => {
+  it('medicalLiveRepository referenziert die aktuelle Migration', () => {
     const repo = readSrc('src/lib/medicalCatalog/medicalLiveRepository.ts');
     expect(repo).toContain(MEDICAL_LIVE_REQUIRED_MIGRATION);
     expect(repo).toContain('medical_catalog_sources');

@@ -34,8 +34,8 @@ describe('Connect Medical Data Category', () => {
   });
 
   it('medical_data Connect-Kategorie verweist auf Dokumentationshilfe', () => {
-    const medikationsdb = getConnectIntegration('medical_data', 'medikationsdb');
-    expect(medikationsdb?.description).toContain('keine Medikationsentscheidung');
+    const bfarm = getConnectIntegration('medical_data', 'bfarm_am');
+    expect(bfarm?.description).toContain('keine Medikationsentscheidung');
   });
 
   it('Medical Hub Route ist registriert', () => {

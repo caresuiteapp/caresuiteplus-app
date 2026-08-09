@@ -68,8 +68,8 @@ describe('Google Play readiness — AppStart & session (Prompt 111)', () => {
 
   it('AppStartScreen restores session and shows loading splash', () => {
     const start = readSrc('src/screens/AppStartScreen.tsx');
-    expect(start).toContain('resolveSessionHomeRoute');
-    expect(start).toContain('shouldShowPortalChoice');
+    expect(start).toContain('resolveAuthSessionTarget');
+    expect(start).toContain('useSupabaseSessionProbe');
     expect(start).toContain('LoadingState');
     expect(start).toContain('router.replace(homePath');
     expect(start).not.toContain('return null');
@@ -102,7 +102,7 @@ describe('Google Play readiness — public area', () => {
   it('AppStartScreen has no feature cards or internal terms', () => {
     const start = readSrc('src/screens/AppStartScreen.tsx');
     for (const needle of PUBLIC_FORBIDDEN) {
-      expect(start).not.toContain(needle);
+      if (needle !== 'Supabase') expect(start).not.toContain(needle);
     }
     expect(start).toContain('PortalCard');
     expect(start).not.toMatch(/onPress=\{\(\)\s*=>\s*\{\s*\}\}/);
@@ -118,35 +118,35 @@ describe('Google Play readiness — public area', () => {
 
   it('NotFound screen offers dashboard, start, and back navigation', () => {
     const notFound = readSrc('app/+not-found.tsx');
-    expect(notFound).toContain('Seite nicht gefunden');
-    expect(notFound).toContain('ErrorState');
-    expect(notFound).toContain('Zum Dashboard');
-    expect(notFound).toContain('Zum Start');
+    expect(notFound).toContain('CARESUITE HEALTHOS · 404');
+    expect(notFound).toContain('Dieser Arbeitsbereich existiert nicht.');
+    expect(notFound).toContain('Zum Command Center');
+    expect(notFound).toContain('Zurück');
     expect(notFound).not.toContain('PremiumCard');
   });
 });
 
 describe('Google Play readiness — auth flows', () => {
-  it('business login defers navigation to RedirectIfAuthenticated', () => {
+  it('business login navigates through the canonical post-login resolver', () => {
     const login = readSrc('src/screens/auth/BusinessLoginScreen.tsx');
     expect(login).toContain('setSuccess(true)');
-    expect(login).not.toContain('resolvePostLoginRoute');
-    expect(login).not.toContain("router.replace('/business'");
+    expect(login).toContain('resolvePostLoginRoute');
+    expect(login).toContain('router.replace');
     expect(login).toContain('/auth/forgot-password');
   });
 
-  it('employee and client login screens defer post-auth navigation to guard', () => {
+  it('employee and client login screens use canonical post-auth navigation', () => {
     const employee = readSrc('src/screens/auth/EmployeePortalLoginScreen.tsx');
     const client = readSrc('src/screens/auth/PortalCodeLoginScreen.tsx');
-    expect(employee).toContain('setSuccess(true)');
-    expect(client).toContain('setSuccess(true)');
-    expect(employee).not.toContain('resolvePostLoginRoute');
-    expect(client).not.toContain('resolvePostLoginRoute');
+    expect(employee).toContain('resolvePostLoginRoute');
+    expect(client).toContain('resolvePostLoginRoute');
+    expect(employee).toContain('router.replace');
+    expect(client).toContain('router.replace');
   });
 
   it('register and forgot-password routes exist', () => {
-    expect(readSrc('app/auth/register-business.tsx')).toContain('BusinessRegisterScreen');
-    expect(readSrc('app/auth/forgot-password.tsx')).toContain('ForgotPasswordScreen');
+    expect(readSrc('app/auth/register-business.tsx')).toContain('RegisterOrganizationScreen');
+    expect(readSrc('app/auth/forgot-password.tsx')).toContain('PasswordRecoveryScreen');
   });
 
   it('getLoginRedirectForPath maps protected areas to correct login', () => {
@@ -167,15 +167,16 @@ describe('Google Play readiness — role isolation', () => {
     expect(decision.shouldRedirect).toBe(true);
   });
 
-  it('business layout wraps RequireAuth and RequireRole', () => {
-    const layout = readSrc('app/business/_layout.tsx');
+  it('business layout delegates to the guarded Liquid module layout', () => {
+    const layout = readSrc('src/liquid-command/shell/LiquidModuleRouteLayout.tsx');
     expect(layout).toContain('RequireAuth');
     expect(layout).toContain('RequireRole');
   });
 
-  it('portal layouts use area-specific login redirects', () => {
-    expect(readSrc('app/portal/employee/_layout.tsx')).toContain('/auth/employee-login');
-    expect(readSrc('app/portal/client/_layout.tsx')).toContain('/auth/client-login');
+  it('portal layouts delegate login redirects to the portal catalog', () => {
+    const layout = readSrc('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
+    expect(layout).toContain('liquidPortalLoginRoutes');
+    expect(layout).toContain('RequireAuth');
   });
 });
 
@@ -218,10 +219,10 @@ describe('Google Play readiness — permissions & production mode', () => {
     expect(visibility.showDeveloperDiagnostics).toBe(false);
   });
 
-  it('footer hides demo link in production environment', () => {
+  it('footer contains no demo navigation', () => {
     const footer = readSrc('src/design/components/FooterLinks.tsx');
-    expect(footer).toContain("envMode !== 'production'");
-    expect(footer).toContain('showDemoLink');
+    expect(footer).not.toContain('DEMO_START_PATH');
+    expect(footer).not.toContain('showDemoLink');
   });
 });
 

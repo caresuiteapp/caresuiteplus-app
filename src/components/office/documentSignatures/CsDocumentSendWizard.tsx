@@ -157,7 +157,7 @@ export function CsDocumentSendWizard({
             {templates.length === 0 ? (
               <InfoBanner
                 variant="warning"
-                message="Keine Vorlagen geladen. Migration 0226 prüfen oder Aktualisieren wählen."
+                message="Keine Vorlagen geladen. Bitte aktualisieren Sie die Ansicht oder wenden Sie sich an die Verwaltung."
               />
             ) : null}
             {templates.map((t) => (

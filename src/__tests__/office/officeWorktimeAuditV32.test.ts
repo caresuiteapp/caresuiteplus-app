@@ -67,7 +67,7 @@ describe('Office Arbeitszeit V32 Integritätsprüfung', () => {
 
   it('keeps review data readable when the detail pane opens', () => {
     const table = readSrc('src/components/wfm/WfmOfficeTimeEntryTable.tsx');
-    expect(table).toContain('width < 640 || Boolean(selectedId)');
+    expect(table).toContain('reviewQueueMode && reviewWidth < REVIEW_MIN_TABLE_WIDTH + 32');
     expect(table).toContain('wfm-review-queue-mobile');
   });
 

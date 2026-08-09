@@ -14,7 +14,7 @@ const root = path.join(__dirname, '..', '..');
 
 describe('popupShell tokens', () => {
   it('defines light header gradient stops from Benachrichtigungen spec', () => {
-    expect(popupShellHeaderGradientLight).toEqual(['#8a70f5', '#e85da2', '#b598f7']);
+    expect(popupShellHeaderGradientLight).toEqual(['#056CE8', '#1683FF', '#3597FF']);
     expect(resolvePopupShellHeaderGradient('light')).toEqual(popupShellHeaderGradientLight);
   });
 
@@ -29,19 +29,20 @@ describe('popupShell tokens', () => {
   });
 
   it('tab tokens use gray inactive and purple active states', () => {
-    expect(popupShellColors.light.tab.inactiveBackground).toBe('#F3F4F6');
-    expect(popupShellColors.light.tab.activeBorder).toBe('#8B5CF6');
-    expect(popupShellColors.light.tab.activeText).toBe('#8B5CF6');
+    expect(popupShellColors.light.tab.inactiveBackground).toContain('rgba');
+    expect(popupShellColors.light.tab.activeBorder).toContain('53, 151, 255');
+    expect(popupShellColors.light.tab.activeText).toBe('#F8F6FF');
   });
 
   it('close button tokens use semi-transparent fill', () => {
     expect(popupShellColors.light.closeButton.background).toContain('rgba');
-    expect(popupShellLayout.closeButtonSize).toBe(36);
+    expect(popupShellLayout.closeButtonSize).toBe(40);
   });
 
   it('resolvePopupShellColors returns mode-specific palette', () => {
-    expect(resolvePopupShellColors('light').body.background).toBe('#FFFFFF');
+    expect(resolvePopupShellColors('light').body.background).toContain('rgba');
     expect(resolvePopupShellColors('dark').body.background).toContain('rgba');
+    expect(resolvePopupShellColors('light')).toBe(resolvePopupShellColors('dark'));
   });
 });
 

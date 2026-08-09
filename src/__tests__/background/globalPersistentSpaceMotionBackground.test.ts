@@ -169,7 +169,6 @@ describe('GlobalPersistentSpaceMotionBackground component', () => {
     expect(source).toContain('cornerDiscs');
     expect(source).toContain('buttonDots');
     expect(source).toContain('usePrefersReducedMotion');
-    expect(source).toContain('StaticLightPaperBackground');
     expect(source).toContain('useLayoutEffect');
     expect(source).toContain('canUseWebCanvas');
     expect(source).not.toContain('canvasReady');
@@ -185,7 +184,7 @@ describe('GlobalAnimatedBackground wiring', () => {
       path.join(__dirname, '..', '..', 'components', 'ui', 'effects', 'globalanimatedbackground.tsx'),
       'utf8',
     );
-    expect(source).toContain('StaticLightPaperBackground');
+    expect(source).toContain('SpatialCareBackground');
     expect(source).not.toContain('GlobalPersistentSpaceMotionBackground');
     expect(source).not.toContain('requestAnimationFrame');
     expect(source).not.toContain('<canvas');

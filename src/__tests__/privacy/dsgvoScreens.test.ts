@@ -111,7 +111,7 @@ describe('Assist GPS preparedOnly polish (Sprint 50)', () => {
 
   it('TrackingListView zeigt GPS-Vorbereitung-Banner', () => {
     const view = readSrc('src/components/assist/TrackingListView.tsx');
-    expect(view).toContain('isGpsTrackingLiveReady');
+    expect(view).toContain('isAssistTrackingPersistenceActive');
     expect(view).toContain('GPS_TRACKING_PREPARED_MESSAGE');
     expect(view).toContain('InfoBanner');
   });

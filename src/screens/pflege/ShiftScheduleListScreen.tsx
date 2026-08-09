@@ -7,7 +7,7 @@ import {
 } from '@/components/pflege/ShiftScheduleListHero';
 import { ShiftScheduleListTable } from '@/components/pflege/ShiftScheduleListTable';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, InfoBanner, LoadingState, PremiumButton } from '@/components/ui';
+import { EmptyState, ErrorState, InfoBanner, LoadingState } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
@@ -79,13 +79,6 @@ export function ShiftScheduleListScreen() {
           message={SHIFT_SCHEDULE_IMPORT_PREPARED_MESSAGE}
         />
       ) : null}
-      <PremiumButton
-        title="Dienstplan importieren"
-        variant="secondary"
-        fullWidth
-        disabled={!importReady || isReadOnly}
-        onPress={() => undefined}
-      />
       <ModuleDocumentsSection
         targetModule="office"
         targetArea="shift"

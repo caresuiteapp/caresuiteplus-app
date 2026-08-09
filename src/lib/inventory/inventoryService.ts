@@ -18,6 +18,8 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { inventorySupabaseRepository } from './inventoryRepository.supabase';
+import { inventoryDemoRepository, peekInventoryAuditEvents } from './inventoryRepository.demo';
+import { getServiceMode } from '@/lib/services/mode';
 import {
   enforceInventoryPermission,
   INVENTORY_AUDIT_VIEW,
@@ -33,7 +35,8 @@ function inventoryNotReady<T>(): ServiceResult<T> {
   return { ok: false, error: INVENTORY_PREPARED_MESSAGE };
 }
 
-function requireLiveRepo(): typeof inventorySupabaseRepository | ServiceResult<never> {
+function requireLiveRepo(): typeof inventorySupabaseRepository | typeof inventoryDemoRepository | ServiceResult<never> {
+  if (getServiceMode() === 'demo') return inventoryDemoRepository;
   if (!isInventoryLiveReady()) {
     return inventoryNotReady();
   }
@@ -63,7 +66,7 @@ export async function fetchInventoryItems(
   if (tenantBlock) return tenantBlock;
   const repo = requireLiveRepo();
   if (!('listItems' in repo)) return repo;
-  return inventorySupabaseRepository.listItems(tenantId);
+  return repo.listItems(tenantId);
 }
 
 export async function fetchInventoryItem(
@@ -77,7 +80,7 @@ export async function fetchInventoryItem(
   if (tenantBlock) return tenantBlock;
   const repo = requireLiveRepo();
   if (!('getItem' in repo)) return repo;
-  return inventorySupabaseRepository.getItem(tenantId, itemId);
+  return repo.getItem(tenantId, itemId);
 }
 
 export async function fetchInventoryCategories(
@@ -90,7 +93,7 @@ export async function fetchInventoryCategories(
   if (tenantBlock) return tenantBlock;
   const repo = requireLiveRepo();
   if (!('listCategories' in repo)) return repo;
-  return inventorySupabaseRepository.listCategories(tenantId);
+  return repo.listCategories(tenantId);
 }
 
 export async function fetchInventoryLocations(
@@ -103,7 +106,7 @@ export async function fetchInventoryLocations(
   if (tenantBlock) return tenantBlock;
   const repo = requireLiveRepo();
   if (!('listLocations' in repo)) return repo;
-  return inventorySupabaseRepository.listLocations(tenantId);
+  return repo.listLocations(tenantId);
 }
 
 export async function fetchInventoryAssignments(
@@ -116,7 +119,7 @@ export async function fetchInventoryAssignments(
   if (tenantBlock) return tenantBlock;
   const repo = requireLiveRepo();
   if (!('listAssignments' in repo)) return repo;
-  return inventorySupabaseRepository.listAssignments(tenantId);
+  return repo.listAssignments(tenantId);
 }
 
 export async function fetchEmployeeIssuedItems(
@@ -145,11 +148,11 @@ export async function fetchEmployeeIssuedItems(
   const repo = requireLiveRepo();
   if (!('listAssignmentsForEmployee' in repo)) return repo;
 
-  const assignments = await inventorySupabaseRepository.listAssignmentsForEmployee(tenantId, employeeId);
+  const assignments = await repo.listAssignmentsForEmployee(tenantId, employeeId);
   if (!assignments.ok) return assignments;
 
   if (options?.portalSelf) {
-    const itemsResult = await inventorySupabaseRepository.listItems(tenantId);
+    const itemsResult = await repo.listItems(tenantId);
     if (!itemsResult.ok) return itemsResult;
     const visibleItemIds = new Set(
       itemsResult.data.filter((i) => i.portalVisibleToEmployee).map((i) => i.id),
@@ -174,7 +177,7 @@ export async function fetchEmployeeEquipmentSummary(
   if (tenantBlock) return tenantBlock;
   const repo = requireLiveRepo();
   if (!('buildEmployeeSummary' in repo)) return repo;
-  return inventorySupabaseRepository.buildEmployeeSummary(tenantId, employeeId);
+  return repo.buildEmployeeSummary(tenantId, employeeId);
 }
 
 export async function createInventoryItem(
@@ -196,7 +199,7 @@ export async function createInventoryItem(
 
   const repo = requireLiveRepo();
   if (!('createItem' in repo)) return repo;
-  return inventorySupabaseRepository.createItem(tenantId, input);
+  return repo.createItem(tenantId, input);
 }
 
 export async function issueInventoryItem(
@@ -222,7 +225,7 @@ export async function issueInventoryItem(
 
   const repo = requireLiveRepo();
   if (!('issueItem' in repo)) return repo;
-  return inventorySupabaseRepository.issueItem(tenantId, input);
+  return repo.issueItem(tenantId, input);
 }
 
 export async function acknowledgeInventoryAssignment(
@@ -237,7 +240,7 @@ export async function acknowledgeInventoryAssignment(
 
   const repo = requireLiveRepo();
   if (!('acknowledgeAssignment' in repo)) return repo;
-  return inventorySupabaseRepository.acknowledgeAssignment(tenantId, assignmentId);
+  return repo.acknowledgeAssignment(tenantId, assignmentId);
 }
 
 export async function requestInventoryReturn(
@@ -252,7 +255,7 @@ export async function requestInventoryReturn(
 
   const repo = requireLiveRepo();
   if (!('requestReturn' in repo)) return repo;
-  return inventorySupabaseRepository.requestReturn(tenantId, assignmentId);
+  return repo.requestReturn(tenantId, assignmentId);
 }
 
 export async function fetchInventoryAuditEvents(
@@ -263,6 +266,9 @@ export async function fetchInventoryAuditEvents(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
+  if (getServiceMode() === 'demo') {
+    return { ok: true, data: peekInventoryAuditEvents(tenantId) };
+  }
   if (!isInventoryLiveReady()) {
     return { ok: true, data: [] };
   }
@@ -303,7 +309,7 @@ export async function fetchDeviceManagementProfile(
   if (tenantBlock) return tenantBlock;
   const repo = requireLiveRepo();
   if (!('getDeviceProfileForItem' in repo)) return repo;
-  return inventorySupabaseRepository.getDeviceProfileForItem(tenantId, itemId);
+  return repo.getDeviceProfileForItem(tenantId, itemId);
 }
 
 export async function fetchInventoryDamageReports(
@@ -316,7 +322,7 @@ export async function fetchInventoryDamageReports(
   if (tenantBlock) return tenantBlock;
   const repo = requireLiveRepo();
   if (!('listDamageReports' in repo)) return repo;
-  return inventorySupabaseRepository.listDamageReports(tenantId);
+  return repo.listDamageReports(tenantId);
 }
 
 export async function fetchInventoryReturnRecords(
@@ -329,7 +335,7 @@ export async function fetchInventoryReturnRecords(
   if (tenantBlock) return tenantBlock;
   const repo = requireLiveRepo();
   if (!('listReturnRecords' in repo)) return repo;
-  return inventorySupabaseRepository.listReturnRecords(tenantId);
+  return repo.listReturnRecords(tenantId);
 }
 
 export { resetInventoryDemoStore } from './inventoryRepository.demo';

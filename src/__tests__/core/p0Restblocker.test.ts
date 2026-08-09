@@ -52,13 +52,10 @@ describe('P0 Restblocker Sprint', () => {
     }
   });
 
-  it('demo mode allows demo tenant resolution', () => {
+  it('demo mode still requires an explicit tenant context', () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
     const result = resolveTenantIdForService(null);
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.tenantId).toBe(DEMO_TENANT_ID);
-    }
+    expect(result.ok).toBe(false);
   });
 
   it('live profile resolves real tenant id without demo fallback', () => {

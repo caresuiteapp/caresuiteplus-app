@@ -71,10 +71,9 @@ describe('Office Termine list', () => {
     expect(source).not.toContain('Coming Soon');
   });
 
-  it('AppointmentsAdaptiveScreen nutzt MasterDetailLayout mit Summary-Panel', () => {
+  it('AppointmentsAdaptiveScreen delegiert an die produktive modale Terminliste', () => {
     const source = readSrc('src/screens/office/AppointmentsAdaptiveScreen.tsx');
-    expect(source).toContain('MasterDetailLayout');
-    expect(source).toContain('AppointmentDetailSummaryPanel');
+    expect(source).toContain('AppointmentsListScreen');
   });
 
   it('AppointmentListCard unterstützt Auswahlzustand für Master-Detail', () => {
@@ -122,12 +121,11 @@ describe('Office Termine list', () => {
     expect(source).not.toContain('DomainCreateScreen');
   });
 
-  it('FormScreenHero blendet Demo-KPIs im Live-Modus aus', () => {
+  it('FormScreenHero zeigt nur neutrale Speicher- und Mandanteninformationen', () => {
     const source = readSrc('src/components/forms/FormScreenHero.tsx');
     expect(source).toContain('useTenantDisplayName');
-    expect(source).toContain("getServiceMode() === 'supabase'");
-    expect(source).toContain('Live-Speicherung');
+    expect(source).not.toContain('Demo-Persistenz');
+    expect(source).toContain('Datenspeicherung aktiv');
     expect(source).toContain('Mandantengebunden');
-    expect(source).toContain('Demo-Persistenz');
   });
 });

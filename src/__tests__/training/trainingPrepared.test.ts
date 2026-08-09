@@ -46,9 +46,9 @@ describe('Training Management Prepared (Prompt 75)', () => {
     __resetTrainingServiceForTests();
   });
 
-  it('1 — Migration 0052 existiert mit allen Tabellen', () => {
+  it('1 — Migration 0139 existiert mit allen Tabellen', () => {
     const sql = fs.readFileSync(
-      path.join(process.cwd(), 'supabase/migrations/0052_training_management_prepared.sql'),
+      path.join(process.cwd(), 'supabase/migrations/0139_training_management_prepared.sql'),
       'utf8',
     );
     for (const table of [
@@ -71,7 +71,7 @@ describe('Training Management Prepared (Prompt 75)', () => {
   it('2 — isTrainingLiveReady bleibt ehrlich false', () => {
     expect(isTrainingLiveReady()).toBe(false);
     expect(isTrainingWiringPrepared()).toBe(true);
-    expect(TRAINING_LIVE_WIRING_MIGRATION).toBe('0052_training_management_prepared.sql');
+    expect(TRAINING_LIVE_WIRING_MIGRATION).toBe('0139_training_management_prepared.sql');
   });
 
   it('3 — Pflichtschulungen werden nach Rolle zugeordnet', () => {

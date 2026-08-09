@@ -25,21 +25,19 @@ describe('adaptive shell wiring', () => {
     expect(src).not.toContain('CareTabletShell');
   });
 
-  it('Insight-Layout nutzt CareAdaptiveShell via ShellLayout', () => {
+  it('Insight-Layout nutzt die zentrale Liquid-Modulschale', () => {
     const src = readFileSync(join(root, 'app/insight/_layout.tsx'), 'utf8');
-    expect(src).toContain('ShellLayout');
+    expect(src).toContain('LiquidModuleRouteLayout');
   });
 
-  it('Assist-Layout nutzt CareAdaptiveShell via ShellLayout', () => {
+  it('Assist-Layout nutzt die zentrale Liquid-Modulschale', () => {
     const src = readFileSync(join(root, 'app/assist/_layout.tsx'), 'utf8');
-    expect(src).toContain('ShellLayout');
-    expect(src).toContain('area="assist"');
+    expect(src).toContain('LiquidModuleRouteLayout');
   });
 
-  it('Akademie-Layout nutzt CareAdaptiveShell via ShellLayout', () => {
+  it('Akademie-Layout nutzt die zentrale Liquid-Modulschale', () => {
     const src = readFileSync(join(root, 'app/akademie/_layout.tsx'), 'utf8');
-    expect(src).toContain('ShellLayout');
-    expect(src).toContain('area="akademie"');
+    expect(src).toContain('LiquidModuleRouteLayout');
   });
 
   it('QM-Layout nutzt Auth-gated Stack ohne ShellLayout (Office-Unterroute)', () => {
@@ -94,7 +92,6 @@ describe('Premium theme bridge adoption', () => {
   const themedComponents = [
     'src/components/ui/SectionPanel.tsx',
     'src/components/ui/PremiumKpiCard.tsx',
-    'src/components/layout/ScreenShell.tsx',
     'src/components/adaptive/AdaptiveActionBar.tsx',
     'src/components/brand/PlanPilotPanel.tsx',
     'src/components/brand/CareBotCard.tsx',
@@ -107,4 +104,10 @@ describe('Premium theme bridge adoption', () => {
       expect(src).toContain('useLegacyTheme');
     });
   }
+
+  it('ScreenShell nutzt die aktuelle HealthOS-Seitenfläche', () => {
+    const src = readFileSync(join(root, 'src/components/layout/ScreenShell.tsx'), 'utf8');
+    expect(src).toContain('HealthOSPageSurface');
+    expect(src).toContain('HealthOSPageZone');
+  });
 });

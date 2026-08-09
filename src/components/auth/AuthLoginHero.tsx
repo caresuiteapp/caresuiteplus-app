@@ -2,8 +2,7 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
-import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { getServiceMode } from '@/lib/services/mode';
+import { PremiumBadge, PremiumListHeroFrame } from '@/components/ui';
 
 import { designTokens, spacing } from '@/theme';
 
@@ -28,7 +27,6 @@ export function AuthLoginHero({
 }: AuthLoginHeroProps) {
   const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
-  const isLive = getServiceMode() === 'supabase';
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -49,8 +47,6 @@ export function AuthLoginHero({
   },
   iconText: { fontSize: 22 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  kpiItem: { flex: 1, minWidth: 100 },
   hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
     [heroText.eyebrow, heroText.title, heroText.meta, colors.bgElevated, typography.caption],
@@ -61,6 +57,7 @@ export function AuthLoginHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
+          <Text style={styles.eyebrow}>{eyebrow}</Text>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.meta}>{subtitle}</Text>
         </View>
@@ -70,15 +67,7 @@ export function AuthLoginHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={portalLabel} variant={portalVariant} dot />
-        {!isLive ? <PremiumBadge label="preparedOnly Auth" variant="muted" /> : null}
       </View>
-      {!isLive ? (
-        <View style={styles.kpiRow}>
-          <PremiumKpiCard label="Zugang" value="Mandant" subValue="Demo / Pilot" icon="🏢" accentColor={colors.orange} style={styles.kpiItem} />
-          <PremiumKpiCard label="Sicherheit" value="RLS" subValue="Supabase Auth" icon="🛡️" accentColor={colors.cyan} style={styles.kpiItem} />
-          <PremiumKpiCard label="Status" value="Prototyp" subValue="Kein Store-Release" icon="📋" accentColor={colors.violet} style={styles.kpiItem} />
-        </View>
-      ) : null}
       {hint ? <Text style={styles.hint}>{hint}</Text> : null}
     </PremiumListHeroFrame>
   );

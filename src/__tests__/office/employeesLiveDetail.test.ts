@@ -48,18 +48,14 @@ describe('employees live detail mapping (Sprint 72)', () => {
     }
   });
 
-  it('mapEmployeeRowToDetail meldet fehlendes Schema ehrlich', () => {
+  it('mapEmployeeRowToDetail toleriert optionale Detailfelder', () => {
     const incomplete: EmployeeDetailLiveRow = {
       ...completeRow,
       notes: undefined,
     };
     const result = mapEmployeeRowToDetail(incomplete);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toContain('Schema unvollständig');
-      expect(result.error).toContain('notes');
-      expect(result.error).toContain('0033');
-    }
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.notes).toBeNull();
   });
 
   it('employeeRepository nutzt EMPLOYEE_DETAIL_SELECT_COLUMNS und getDetailMapped', () => {
