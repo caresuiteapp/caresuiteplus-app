@@ -1,6 +1,6 @@
 import { FollowUpsListView } from '@/components/beratung/FollowUpsListView';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumInput } from '@/components/ui';
+import { ErrorState, LoadingState } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';

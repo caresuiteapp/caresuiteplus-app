@@ -1,9 +1,8 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumDataTable } from '@/components/ui';
 import type { ShiftScheduleListItem } from '@/lib/pflege/shiftScheduleDemo';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { typography } from '@/theme';
 
 type ShiftScheduleListTableProps = {
   items: ShiftScheduleListItem[];
@@ -95,6 +94,3 @@ export function ShiftScheduleListTable({
     />
   );
 }
-
-const styles = StyleSheet.create({
-});

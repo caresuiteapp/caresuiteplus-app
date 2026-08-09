@@ -10,6 +10,7 @@ import type {
 import { HR_CONVERSATION_AREAS } from '@/types/modules/employeeHr';
 import type { TemplateValidationIssue, TemplateValidationResult } from '@/features/documents/templateEngine/types';
 
+
 export const HR_TEMPLATE_BY_AREA: Partial<Record<EmployeeHrCaseAreaKey, string>> = {
   abmahnung: 'sys-dtpl-023',
   ermahnung: 'sys-dtpl-023',
@@ -17,8 +18,6 @@ export const HR_TEMPLATE_BY_AREA: Partial<Record<EmployeeHrCaseAreaKey, string>>
   aufhebungsvereinbarung: 'sys-dtpl-022',
   rueckgabe_uebergabeprotokoll: 'sys-dtpl-025',
 };
-
-import { SYSTEM_TEMPLATE_LEGAL_DISCLAIMER } from '@/lib/documents/systemTemplateLegal';
 
 export const FINALIZE_HR_HTML_TEMPLATE = `<!DOCTYPE html><html><body></body></html>`;
 

@@ -1,14 +1,14 @@
 /** WP166 — Create/Edit Wizard */
+import type { RoleKey, ServiceResult } from '@/types';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
+import { enforcePermission } from '@/lib/permissions';
+
 export const WP_COMPLETION = {
   wp: 166,
   topic: 'Create/Edit Wizard',
   status: 'complete' as const,
   implementation: 'src/lib/office/clientsCreateService.ts',
 } as const;
-
-import type { RoleKey, ServiceResult } from '@/types';
-import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
-import { enforcePermission } from '@/lib/permissions';
 
 export type ClientCreateInput = { title: string; notes?: string };
 

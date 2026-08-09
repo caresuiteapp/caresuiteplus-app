@@ -9,7 +9,7 @@ export type PrefetchDetailResult = {
   attempted: number;
   portalWritten: number;
   executionWritten: number;
-  failures: Array<{ assignmentId: string; portalError?: string; executionError?: string }>;
+  failures: { assignmentId: string; portalError?: string; executionError?: string }[];
 };
 
 /** CONSOLE.1 — classify service-layer prefetch errors vs bootstrap REST noise. */

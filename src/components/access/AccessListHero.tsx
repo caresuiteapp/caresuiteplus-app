@@ -34,7 +34,7 @@ function resolveVariantLiveReady(variant: AccessListHeroVariant, liveReady?: boo
 }
 
 export function AccessListHero({ variant, itemCount, liveReady }: AccessListHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -59,7 +59,7 @@ export function AccessListHero({ variant, itemCount, liveReady }: AccessListHero
   kpiItem: { flex: 1, minWidth: 100 },
   preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.bgElevated, typography.caption],
   );
 
 

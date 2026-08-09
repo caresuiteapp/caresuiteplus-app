@@ -1,5 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { LockedActionBanner } from '@/components/permissions';
+import { StyleSheet, Text } from 'react-native';
 import { ScreenShell } from '@/components/layout';
 import { InfoBanner, SectionPanel } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';

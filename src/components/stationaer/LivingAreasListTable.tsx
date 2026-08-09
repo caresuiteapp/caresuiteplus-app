@@ -1,9 +1,8 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { LivingAreaListItem } from '@/types/modules/stationaer';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { colors, typography } from '@/theme';
 
 type LivingAreasListTableProps = {
   items: LivingAreaListItem[];
@@ -117,6 +116,3 @@ export function LivingAreasListTable({
     />
   );
 }
-
-const styles = StyleSheet.create({
-});

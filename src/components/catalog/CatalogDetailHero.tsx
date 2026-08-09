@@ -16,7 +16,7 @@ type CatalogDetailHeroProps = {
 };
 
 export function CatalogDetailHero({ catalog, itemCount }: CatalogDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -42,7 +42,7 @@ export function CatalogDetailHero({ catalog, itemCount }: CatalogDetailHeroProps
   kpiItem: { flex: 1, minWidth: 100 },
   desc: { ...typography.body, color: 'rgba(255,255,255,0.85)' },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.bgElevated, typography.body],
   );
 
 
@@ -84,4 +84,3 @@ export function CatalogDetailHero({ catalog, itemCount }: CatalogDetailHeroProps
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

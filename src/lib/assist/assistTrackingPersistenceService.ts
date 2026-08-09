@@ -14,7 +14,6 @@ import type {
   AssistDrivingLogInsert,
   AssistDrivingLogRow,
   AssistGeofenceEventInsert,
-  AssistGeofenceEventRow,
   AssistLocationPointInsert,
   AssistLocationPointRow,
   AssistTimeEventInsert,
@@ -72,25 +71,6 @@ type TimeEventDbRow = {
   created_at: string;
 };
 
-type GeofenceDbRow = {
-  id: string;
-  tenant_id: string;
-  visit_id: string;
-  session_id: string | null;
-  check_type: AssistGeofenceEventRow['checkType'];
-  latitude: number | null;
-  longitude: number | null;
-  target_latitude: number | null;
-  target_longitude: number | null;
-  distance_meters: number | null;
-  tolerance_meters: number;
-  inside_tolerance: boolean;
-  overridden: boolean;
-  override_reason: string | null;
-  warning_text: string | null;
-  checked_at: string;
-  created_at: string;
-};
 
 type DrivingLogDbRow = {
   id: string;
@@ -161,27 +141,6 @@ function mapTimeEventRow(row: TimeEventDbRow): AssistTimeEventRow {
   };
 }
 
-function mapGeofenceRow(row: GeofenceDbRow): AssistGeofenceEventRow {
-  return {
-    id: row.id,
-    tenantId: row.tenant_id,
-    visitId: row.visit_id,
-    sessionId: row.session_id,
-    checkType: row.check_type,
-    latitude: row.latitude,
-    longitude: row.longitude,
-    targetLatitude: row.target_latitude,
-    targetLongitude: row.target_longitude,
-    distanceMeters: row.distance_meters,
-    toleranceMeters: row.tolerance_meters,
-    insideTolerance: row.inside_tolerance,
-    overridden: row.overridden,
-    overrideReason: row.override_reason,
-    warningText: row.warning_text,
-    checkedAt: row.checked_at,
-    createdAt: row.created_at,
-  };
-}
 
 function mapDrivingLogRow(row: DrivingLogDbRow): AssistDrivingLogRow {
   return {

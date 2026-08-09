@@ -123,7 +123,6 @@ describe('Connect Gateway — execute & audit', () => {
   });
 
   it('erzeugt Audit-Eintrag bei blockierter Aktion', async () => {
-    const ctx = buildConnectExecutionContext(baseInput({ integrationId: null }))!;
     // build returns null for missing fields — use partial context for execute path
     const fullCtx = buildConnectExecutionContext(baseInput())!;
     const result = await executeConnectAction('payment_collection', {}, {

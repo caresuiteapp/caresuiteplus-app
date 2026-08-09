@@ -279,7 +279,7 @@ export function filterScheduleByView(
 
 export function groupCalendarEntriesByDate(
   entries: CalendarEntry[],
-): Array<{ dateKey: string; entries: CalendarEntry[] }> {
+): { dateKey: string; entries: CalendarEntry[] }[] {
   const map = new Map<string, CalendarEntry[]>();
   for (const entry of entries) {
     const key = entry.startsAt.slice(0, 10);

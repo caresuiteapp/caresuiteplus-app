@@ -81,7 +81,7 @@ export function fetchAuditDashboardSummary(
 export function buildEmployeeDashboardCards(
   workday: TimeWorkday | null,
   blockCount: number,
-): Array<{ id: string; label: string; value: string }> {
+): { id: string; label: string; value: string }[] {
   return [
     {
       id: 'status',

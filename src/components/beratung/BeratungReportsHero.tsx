@@ -21,7 +21,7 @@ type BeratungReportsHeroProps = {
 };
 
 export function BeratungReportsHero({ stats, roleKey }: BeratungReportsHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -47,7 +47,7 @@ export function BeratungReportsHero({ stats, roleKey }: BeratungReportsHeroProps
   kpiItem: { flex: 1, minWidth: 100 },
   preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.bgElevated, typography.caption],
   );
 
 
@@ -92,4 +92,3 @@ export function BeratungReportsHero({ stats, roleKey }: BeratungReportsHeroProps
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

@@ -10,10 +10,6 @@ import type {
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import {
-  countPortalSignatureDashboard,
-  filterPortalSignatureDocuments,
-} from '@/lib/portal/portalDocumentSignatureHelpers';
-import {
   createLiveOfficeSignatureDocument,
   fetchLiveOfficeSignatureDocuments,
   fetchLivePortalSignatureDashboardCounts,

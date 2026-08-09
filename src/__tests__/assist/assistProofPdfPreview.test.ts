@@ -3,6 +3,9 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 
+import { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
+import { resolveAssistProofPdfPreviewUrl } from '@/lib/assist/assistProofPdfService';
+
 const root = path.join(__dirname, '..', '..', '..');
 
 function readSrc(relativePath: string): string {
@@ -91,9 +94,6 @@ vi.mock('@/lib/assist/visitProofSnapshotPreviewService', async (importOriginal) 
     })),
   };
 });
-
-import { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
-import { resolveAssistProofPdfPreviewUrl } from '@/lib/assist/assistProofPdfService';
 
 describe('buildAssistProofPdfPayload enriched HTML', () => {
   it('includes tasks, times and signature without GPS/internal fields', () => {

@@ -14,7 +14,7 @@ import { withAlpha } from '@/design/tokens/motion';
 import { PLATFORM_MODULE_RAIL_WIDTH } from '@/lib/platform/shellLayoutMetrics';
 import { useWebFontScale } from '@/design/web/WebFontScaleProvider';
 import { formatWebFontScaleLabel } from '@/design/web/webFontScaleConfig';
-import { spacing, typography } from '@/theme';
+import { typography } from '@/theme';
 
 const RAIL_INNER_WIDTH = 56;
 const RAIL_HORIZONTAL_PADDING = (PLATFORM_MODULE_RAIL_WIDTH - RAIL_INNER_WIDTH) / 2;

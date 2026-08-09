@@ -8,7 +8,7 @@ import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { designTokens, spacing } from '@/theme';
 
 export function EmployeeFirstLoginHero() {
-  const { colors, typography, gradients } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const { isPhone } = useDeviceClass();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
@@ -41,7 +41,7 @@ export function EmployeeFirstLoginHero() {
           : { flex: 1, minWidth: 140 },
         hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
       }),
-    [colors, typography, gradients, heroText, isPhone],
+    [colors, typography, heroText, isPhone],
   );
 
   return (

@@ -88,7 +88,7 @@ export const QM_CHAPTERS: QmHandbookChapter[] = CHAPTER_TITLES.map((title, i) =>
   }, -90 + i),
 );
 
-const DOC_DEFS: Array<{
+const DOC_DEFS: {
   id: string;
   num: string;
   title: string;
@@ -96,7 +96,7 @@ const DOC_DEFS: Array<{
   status: QmDocument['status'];
   chapterIdx: number;
   tags: string[];
-}> = [
+}[] = [
   { id: 'qm-doc-001', num: 'VA-QM-001', title: 'Dokumentenlenkung', type: 'procedure', status: 'published', chapterIdx: 5, tags: ['QM', 'Dokumente'] },
   { id: 'qm-doc-002', num: 'VA-QM-002', title: 'Internes Auditverfahren', type: 'procedure', status: 'published', chapterIdx: 13, tags: ['Audit'] },
   { id: 'qm-doc-003', num: 'VA-QM-003', title: 'Maßnahmenmanagement', type: 'procedure', status: 'published', chapterIdx: 14, tags: ['Maßnahmen'] },

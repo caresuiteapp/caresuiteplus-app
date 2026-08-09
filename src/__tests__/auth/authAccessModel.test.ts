@@ -25,7 +25,7 @@ import {
   pdlCanViewCareDocumentation,
   roleHasPermission,
 } from '@/lib/auth/permissionService';
-import { activatePurchasedModule, resetModuleAccessStore } from '@/lib/modules';
+import { resetModuleAccessStore } from '@/lib/modules';
 import { getServiceMode } from '@/lib/services/mode';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 

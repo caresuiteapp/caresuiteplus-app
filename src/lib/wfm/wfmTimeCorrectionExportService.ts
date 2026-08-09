@@ -11,7 +11,6 @@ import {
   buildLogicalReferenceKey,
   calculateExportPayloadHash,
   normalizeExportMinutes,
-  type WfmCorrectionExportPayload,
   type WfmCorrectionPayloadDelta,
   type WfmTimeExportPayload,
 } from './wfmTimeExportPayloadBuilder';
@@ -75,7 +74,7 @@ export interface WfmCorrectionExportFinalizeResult {
   finalized: boolean;
 }
 
-function useDemoStore(): boolean {
+function shouldUseDemoStore(): boolean {
   return getServiceMode() !== 'supabase' || !getSupabaseClient();
 }
 
@@ -84,14 +83,7 @@ function resolveReviewMinutes(review: WfmTimeExportReviewRow): number {
   return normalizeExportMinutes(typeof raw === 'number' ? raw : Number(raw ?? 0));
 }
 
-function versionedReferenceKey(baseKey: string, sequence: number): string {
-  return `${baseKey}:v${sequence}`;
-}
 
-async function getDemoExportJob(jobId: string): Promise<WfmTimeExportJob | null> {
-  const { listDemoExportJobs } = await import('./wfmTimeExportService');
-  return listDemoExportJobs().find((job) => job.id === jobId) ?? null;
-}
 
 function permissionDenied<T>(
   denied: ReturnType<typeof canCreateReviewedTimeCorrectionExport>,
@@ -112,7 +104,7 @@ async function listAllReviewExportJobs(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     const { listDemoExportJobs } = await import('./wfmTimeExportService');
     return {
       ok: true,
@@ -151,7 +143,7 @@ async function listReviewRows(
   tenantId: string,
   filters?: { changedAfterExportOnly?: boolean; reviewId?: string },
 ): Promise<ServiceResult<WfmTimeExportReviewRow[]>> {
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     const { listReviewsForPeriod } = await import('./wfmTimeReviewService');
     const listed = await listReviewsForPeriod(tenantId, '2000-01-01', '2099-12-31');
     if (!listed.ok) return listed;
@@ -241,7 +233,7 @@ async function findActiveItemForReview(
   review: WfmTimeExportReviewRow,
 ): Promise<WfmTimeExportItem | null> {
   if (review.latestExportItemId) {
-    if (useDemoStore()) {
+    if (shouldUseDemoStore()) {
       const { listDemoExportItems } = await import('./wfmTimeExportService');
       return (
         listDemoExportItems().find(
@@ -431,7 +423,7 @@ export async function getExportItemTimeline(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     const { listDemoExportItems } = await import('./wfmTimeExportService');
     return {
       ok: true,
@@ -677,7 +669,7 @@ export async function draftReviewedTimeCorrectionExport(
     exportScope: 'delta_correction',
   };
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     registerDemoExportJob(job);
     for (const item of previewItems) {
       setDemoReviewExportState(tenantId, item.reviewId, { pendingReexportJobId: jobId });
@@ -758,7 +750,7 @@ export async function finalizeReviewedTimeCorrectionExport(
     return { ok: false, error: validation.data.reasonError ?? 'Korrekturexport ungültig.' };
   }
 
-  if (!useDemoStore()) {
+  if (!shouldUseDemoStore()) {
     const supabase = getSupabaseClient();
     if (!supabase) return { ok: false, error: 'Supabase-Client nicht verfügbar.' };
     await fromUnknownTable(supabase, EXPORT_JOBS_TABLE)

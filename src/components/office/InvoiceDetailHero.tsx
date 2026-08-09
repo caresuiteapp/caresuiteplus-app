@@ -35,7 +35,7 @@ function statusVariant(status: string) {
 }
 
 export function InvoiceDetailHero({ invoice, roleKey, isReadOnly }: InvoiceDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -86,7 +86,7 @@ export function InvoiceDetailHero({ invoice, roleKey, isReadOnly }: InvoiceDetai
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, typography.bodyStrong, typography.caption, colors.bgElevated],
   );
 
 

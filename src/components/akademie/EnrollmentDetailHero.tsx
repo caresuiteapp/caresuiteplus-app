@@ -18,7 +18,7 @@ type EnrollmentDetailHeroProps = {
 };
 
 export function EnrollmentDetailHero({ enrollment, roleKey }: EnrollmentDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -47,7 +47,7 @@ export function EnrollmentDetailHero({ enrollment, roleKey }: EnrollmentDetailHe
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 }),
-    [colors, typography, gradients],
+    [typography.caption, heroText.title, heroText.meta, colors.bgElevated],
   );
 
 
@@ -91,4 +91,3 @@ export function EnrollmentDetailHero({ enrollment, roleKey }: EnrollmentDetailHe
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

@@ -9,6 +9,8 @@ import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { isDemoMode, isSupabaseConfigured } from '@/lib/supabase/config';
 
+import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
+
 export type QualityProofItem = {
   id: string;
   tenantId: string;
@@ -23,8 +25,6 @@ export type QualityProofItem = {
 async function demoDelay(ms = 220): Promise<void> {
   await new Promise((r) => setTimeout(r, ms));
 }
-
-import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 
 function mapProofToQualityItem(proof: AssistVisitProofRow, index: number): QualityProofItem {
   const snapshot = proof.payloadSnapshot ?? {};

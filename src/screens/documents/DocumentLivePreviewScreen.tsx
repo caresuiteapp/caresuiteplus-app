@@ -18,7 +18,6 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import {
   PREVIEW_SAMPLE_OPTIONS,
-  getDocumentTemplateDetail,
   listDocumentTemplates,
   runLivePreview,
 } from '@/lib/documents';
@@ -53,14 +52,6 @@ export function DocumentLivePreviewScreen() {
     }
   }, [templatesQuery.data, templateId]);
 
-  if (!can('office.catalogs.view')) {
-    return (
-      <ScreenShell title="Live-Vorschau" subtitle={roleLabel ?? ''}>
-        <LockedActionBanner message={check('office.catalogs.view').reason ?? 'Keine Berechtigung.'} />
-      </ScreenShell>
-    );
-  }
-
   const templateOptions =
     templatesQuery.data?.map((t) => ({ key: t.id, label: t.title })) ?? [];
 
@@ -83,6 +74,14 @@ export function DocumentLivePreviewScreen() {
     if (!tenantId || !templateId || templatesQuery.loading) return;
     void handleRender();
   }, [tenantId, templateId, sampleId, viewMode, templatesQuery.loading, handleRender]);
+
+  if (!can('office.catalogs.view')) {
+    return (
+      <ScreenShell title="Live-Vorschau" subtitle={roleLabel ?? ''}>
+        <LockedActionBanner message={check('office.catalogs.view').reason ?? 'Keine Berechtigung.'} />
+      </ScreenShell>
+    );
+  }
 
   const previewOutput = preview
     ? {

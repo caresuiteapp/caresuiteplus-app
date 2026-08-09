@@ -8,6 +8,11 @@ import {
   proofHasClientSignature,
 } from '@/lib/assist/visitProofSnapshotPreviewService';
 
+import {
+  approveAndReleaseAssistProof,
+  releaseAssistProofToPortal,
+} from '@/lib/assist/assistProofApprovalService';
+
 const root = path.join(__dirname, '..', '..', '..');
 
 function readSrc(relativePath: string): string {
@@ -364,11 +369,6 @@ vi.mock('@/lib/assist/clientBudgetTransactionService', () => ({
 vi.mock('@/lib/portal/portalProofCacheSignal', () => ({
   invalidatePortalProofCache: vi.fn(),
 }));
-
-import {
-  approveAndReleaseAssistProof,
-  releaseAssistProofToPortal,
-} from '@/lib/assist/assistProofApprovalService';
 
 describe('assist proof release modes', () => {
   beforeEach(() => {

@@ -1,11 +1,10 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { fetchCareRecordDetail } from '@/lib/assist/careRecordService';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { CareRecordDetailHero } from '@/components/assist';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, InfoBanner, LoadingState, PremiumButton, PremiumCard, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';
+import { ErrorState, InfoBanner, LoadingState, PremiumButton, PremiumCard, SectionPanel, SuccessState } from '@/components/ui';
 import { useCareRecordDetail } from '@/hooks/useCareRecordDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';

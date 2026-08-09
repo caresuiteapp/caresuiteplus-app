@@ -30,7 +30,7 @@ export type ScheduleCalendarViewResult = {
   view: CalendarViewMode;
   anchorDateKey: string;
   entries: CalendarEntry[];
-  groups: Array<{ dateKey: string; entries: CalendarEntry[] }>;
+  groups: { dateKey: string; entries: CalendarEntry[] }[];
   mode: 'detail' | 'summary';
   totalCount: number;
 };

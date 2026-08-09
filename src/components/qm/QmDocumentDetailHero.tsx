@@ -29,7 +29,7 @@ export function QmDocumentDetailHero({
   roleKey,
   isReadOnly,
 }: QmDocumentDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -73,7 +73,7 @@ export function QmDocumentDetailHero({
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.bgElevated],
   );
 
 
@@ -122,4 +122,3 @@ export function QmDocumentDetailHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

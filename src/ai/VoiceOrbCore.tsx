@@ -70,7 +70,7 @@ export function VoiceOrbCore({
       return;
     }
     errorGlow.value = withTiming(0, { duration: 200 });
-  }, [allowMotion, errorGlow, status]);
+  }, [allowMotion, errorGlow, orbit, pulse, status]);
 
   useEffect(() => {
     if (!allowMotion) {

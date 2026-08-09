@@ -148,7 +148,7 @@ export type ProofBillingSourceSnapshot = {
   startTime: string | null;
   endTime: string | null;
   durationMinutes: number | null;
-  tasksSnapshot: Array<{ title: string; status?: string }>;
+  tasksSnapshot: { title: string; status?: string }[];
   documentationSnapshot: Record<string, unknown>;
   rateSource: 'tenant_rule' | 'visit_budget' | 'none';
   rateAmount: number | null;

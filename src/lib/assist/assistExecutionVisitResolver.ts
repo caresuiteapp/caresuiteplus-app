@@ -70,10 +70,10 @@ export async function batchResolveVisitAndAssignmentIds(
   const visitIdToPair = new Map<string, VisitAssignmentIdPair>();
   const legacyToVisitId = new Map<string, string>();
 
-  for (const row of (visitsById.data ?? []) as Array<{
+  for (const row of (visitsById.data ?? []) as {
     id: string;
     legacy_assignment_id?: string | null;
-  }>) {
+  }[]) {
     const legacy = row.legacy_assignment_id?.trim();
     visitIdToPair.set(row.id, {
       visitId: row.id,
@@ -81,10 +81,10 @@ export async function batchResolveVisitAndAssignmentIds(
     });
   }
 
-  for (const row of (visitsByLegacy.data ?? []) as Array<{
+  for (const row of (visitsByLegacy.data ?? []) as {
     id: string;
     legacy_assignment_id?: string | null;
-  }>) {
+  }[]) {
     const legacy = row.legacy_assignment_id?.trim();
     if (legacy) legacyToVisitId.set(legacy, row.id);
   }

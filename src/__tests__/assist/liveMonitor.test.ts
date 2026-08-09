@@ -1,9 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
-
-vi.mock('@/lib/assist/employeeAssignmentEligibilityService', () => ({
-  detectEmployeeEligibilityConflicts: () => [],
-}));
 import {
   createAssignmentWorkflow,
   resetAssignmentWorkflowStore,
@@ -21,6 +17,10 @@ import {
 import { reportEmergency, reportProblem } from '@/lib/assist/problemReportService';
 import { resetLiveMonitorStore } from '@/lib/assist/liveMonitorStore';
 import { usesFakeLiveDataGenerator } from '@/lib/assist/liveMonitorRealtime';
+
+vi.mock('@/lib/assist/employeeAssignmentEligibilityService', () => ({
+  detectEmployeeEligibilityConflicts: () => [],
+}));
 
 const TENANT = DEMO_TENANT_ID;
 const FOREIGN = '00000000-0000-4000-8000-000000000099';

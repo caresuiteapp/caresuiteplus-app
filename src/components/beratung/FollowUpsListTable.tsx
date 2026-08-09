@@ -1,8 +1,7 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { FollowUp } from '@/types/modules/beratung';
-import { typography } from '@/theme';
 
 type FollowUpsListTableProps = {
   items: FollowUp[];
@@ -62,6 +61,3 @@ export function FollowUpsListTable({ items, onItemPress }: FollowUpsListTablePro
     />
   );
 }
-
-const styles = StyleSheet.create({
-});

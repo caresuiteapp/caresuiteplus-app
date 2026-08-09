@@ -31,7 +31,7 @@ export function PortalRelativeConversationHero({
   thread,
   messageCount,
 }: PortalRelativeConversationHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -60,7 +60,7 @@ export function PortalRelativeConversationHero({
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 }),
-    [colors, typography, gradients],
+    [typography.caption, colors.violet, colors.bgElevated, heroText.title, heroText.meta],
   );
 
 
@@ -111,4 +111,3 @@ export function PortalRelativeConversationHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

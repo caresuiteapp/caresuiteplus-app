@@ -9,7 +9,6 @@ import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { getWfmLiveEmployeeOverview } from '@/lib/wfm/wfmLiveStatusService';
-import { formatWfmStatusLabel } from '@/lib/wfm/wfmClockService';
 
 type ActiveTrackingRow = {
   employee_id: string;
@@ -38,11 +37,11 @@ async function fetchActiveAssistTrackingRows(
   }
 
   const rows: ActiveTrackingRow[] = [];
-  for (const session of sessions as Array<{
+  for (const session of sessions as {
     employee_id: string | null;
     visit_id: string;
     started_at: string;
-  }>) {
+  }[]) {
     if (!session.employee_id) continue;
 
     const { data: point } = await supabase
@@ -83,7 +82,7 @@ async function fetchEmployeeNameMap(
     .eq('tenant_id', tenantId)
     .in('id', employeeIds);
 
-  for (const row of (data ?? []) as Array<{ id: string; first_name: string | null; last_name: string | null }>) {
+  for (const row of (data ?? []) as { id: string; first_name: string | null; last_name: string | null }[]) {
     const name = [row.first_name, row.last_name].filter(Boolean).join(' ').trim();
     map.set(row.id, name || `MA ${row.id.slice(0, 8)}`);
   }

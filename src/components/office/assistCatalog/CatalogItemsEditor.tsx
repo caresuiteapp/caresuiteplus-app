@@ -2,7 +2,6 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   EmptyState,
-  FilterChipGroup,
   LoadingState,
   PremiumButton,
   PremiumCard,

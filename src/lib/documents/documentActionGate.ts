@@ -15,7 +15,7 @@ import { validateContractRecord } from './contractValidation';
 import { validateDocumentationRecord } from './documentationValidation';
 import { calculateInvoiceTax } from './invoiceTaxLogic';
 import { validateInvoiceRecord } from './invoiceValidation';
-import { validateServiceProofForSignature, validateServiceProofRecord } from './serviceProofValidation';
+import { validateServiceProofRecord } from './serviceProofValidation';
 
 function deny(
   code: DocumentActionGateCode,
@@ -29,10 +29,6 @@ function allow(validation?: DocumentActionGateResult['validation']): DocumentAct
   return { allowed: true, validation: validation ?? undefined };
 }
 
-function isDocumentLocked(document: DocumentGateDocument | null): boolean {
-  if (!document) return false;
-  return Boolean(document.lockedAt) || document.status === 'finalized' || document.status === 'archived';
-}
 
 function isDocumentArchived(document: DocumentGateDocument | null): boolean {
   return document?.status === 'archived';

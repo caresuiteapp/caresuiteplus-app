@@ -56,10 +56,6 @@ export async function executeClientCsvImport(input: {
   const importErrors = [...input.preview.allIssues];
 
   for (const row of input.preview.rows) {
-    const shouldSkip =
-      row.isDuplicate ||
-      !row.isValid ||
-      (input.validRowsOnly && !row.isValid);
 
     if (row.isDuplicate || (!row.isValid && input.validRowsOnly)) {
       skipped += 1;

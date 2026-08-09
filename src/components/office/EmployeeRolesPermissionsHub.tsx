@@ -56,7 +56,6 @@ import {
 
   buildPermissionMatrix,
 
-  RBAC_TAB_MODULE_PREFIXES,
 
   RBAC_TAB_PRODUCT_KEYS,
 
@@ -100,7 +99,7 @@ import { spacing } from '@/theme';
 
 
 
-const HUB_TABS: Array<{ key: RbacHubTabKey; label: string }> = [
+const HUB_TABS: { key: RbacHubTabKey; label: string }[] = [
 
   { key: 'overview', label: 'Übersicht' },
 
@@ -426,7 +425,7 @@ export function EmployeeRolesPermissionsHub({
 
     };
 
-  }, [tenantId, employeeId, primaryRole, selectedRoles.join('|')]);
+  }, [tenantId, employeeId, primaryRole, selectedRoles]);
 
 
 
@@ -468,7 +467,7 @@ export function EmployeeRolesPermissionsHub({
 
       ),
 
-    [tenantId, employeeId, primaryRole, selectedRoles, draftOverrides.length, draftScopes.length, rbacLoaded],
+    [tenantId, employeeId, primaryRole, selectedRoles],
 
   );
 
@@ -504,7 +503,7 @@ export function EmployeeRolesPermissionsHub({
 
     setInitialEffectivePermissions(effective.permissions);
 
-  }, [rbacLoaded, effective.permissions.join('|'), primaryRole, selectedRoles.join('|')]);
+  }, [rbacLoaded, primaryRole, effective.permissions]);
 
 
 
@@ -1045,4 +1044,3 @@ export function EmployeeRolesPermissionsHub({
   );
 
 }
-

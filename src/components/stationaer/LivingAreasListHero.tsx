@@ -27,7 +27,7 @@ export function LivingAreasListHero({
   onViewModeChange,
   showViewToggle = false,
 }: LivingAreasListHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -79,7 +79,7 @@ export function LivingAreasListHero({
     color: 'rgba(255,255,255,0.75)',
   },
 }),
-    [colors, typography, gradients],
+    [typography.caption, colors.violet, colors.bgElevated, heroText.title, heroText.meta],
   );
 
 
@@ -128,4 +128,3 @@ export function LivingAreasListHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

@@ -1,5 +1,5 @@
 import { Link } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { GlassCard } from '@/product-workflows/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/product-workflows/design/tokens/auroraGlass';
 import { careSpacing } from '@/product-workflows/design/tokens/spacing';

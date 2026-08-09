@@ -15,7 +15,7 @@ type TemplateCenterHeroProps = {
 };
 
 export function TemplateCenterHero({ stats, roleKey }: TemplateCenterHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -60,7 +60,7 @@ export function TemplateCenterHero({ stats, roleKey }: TemplateCenterHeroProps) 
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.bgElevated],
   );
 
 
@@ -120,4 +120,3 @@ export function TemplateCenterHero({ stats, roleKey }: TemplateCenterHeroProps) 
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

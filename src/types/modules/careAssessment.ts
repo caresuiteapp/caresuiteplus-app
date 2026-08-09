@@ -152,8 +152,8 @@ export type CareAssessment = {
   risks: CareAssessmentRisk[];
   measures: CareAssessmentMeasure[];
   evaluations: CareAssessmentEvaluation[];
-  events: Array<Record<string, unknown>>;
-  links: Array<Record<string, unknown>>;
+  events: Record<string, unknown>[];
+  links: Record<string, unknown>[];
   versionHistory: CareAssessmentVersion[];
   createdAt: string;
   updatedAt: string;

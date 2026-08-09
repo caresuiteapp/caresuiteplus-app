@@ -9,7 +9,7 @@ import {
 } from '@/lib/admin/dataQualityService';
 import type { DataQualityOverview } from '@/types/admin/dataQuality';
 
-import { designTokens, spacing } from '@/theme';
+import { spacing } from '@/theme';
 
 const iconSize = 52;
 
@@ -44,7 +44,7 @@ export function DataQualityDashboardHero({ overview }: DataQualityDashboardHeroP
         kpiItem: { flex: 1, minWidth: 100 },
         preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
       }),
-    [colors, typography],
+    [colors.bgElevated, heroText.eyebrow, heroText.meta, heroText.title, typography.caption],
   );
 
   const kpis = [

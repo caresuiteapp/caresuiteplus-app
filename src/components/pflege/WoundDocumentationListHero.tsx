@@ -37,7 +37,7 @@ export function WoundDocumentationListHero({
   onViewModeChange,
   showViewToggle = false,
 }: WoundDocumentationListHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -83,7 +83,7 @@ export function WoundDocumentationListHero({
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.danger],
   );
 
 
@@ -135,4 +135,3 @@ export function WoundDocumentationListHero({
 export { WOUND_DOCUMENTATION_PREPARED_MESSAGE };
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

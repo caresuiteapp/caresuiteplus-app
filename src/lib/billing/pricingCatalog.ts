@@ -192,7 +192,6 @@ export function resolvePackageModules(key: PackageKey): ProductKey[] {
 }
 
 export function findMatchingPackage(selectedModules: ProductKey[]): ProductPackage | null {
-  const normalized = new Set(resolveIncludedModules(selectedModules));
   const billableKeys = selectedModules.filter((key) => key !== OFFICE_MODULE_KEY || !hasSpecialtySelection(selectedModules));
 
   for (const pkg of [...PACKAGE_CATALOG].reverse()) {

@@ -7,7 +7,6 @@ import {
   type DesktopListViewMode,
 } from '@/components/ui';
 import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
-import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
 import type { MedicationListItem } from '@/data/demo/medications';
@@ -106,4 +105,3 @@ const styles = StyleSheet.create({
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 });
-

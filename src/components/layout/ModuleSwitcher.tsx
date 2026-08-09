@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PlatformModal } from '@/components/layout/platform';
 import { ModuleTile } from '@/components/ui';

@@ -40,7 +40,7 @@ async function fetchClientNameMap(
   if (error || !data) return new Map();
 
   return new Map(
-    (data as Array<{ id: string; first_name?: string | null; last_name?: string | null }>).map(
+    (data as { id: string; first_name?: string | null; last_name?: string | null }[]).map(
       (row) => [
         row.id,
         formatOfficeClientName(row.first_name, row.last_name) ?? 'Unbekannt',
@@ -66,7 +66,7 @@ async function fetchEmployeeNameMap(
   if (error || !data) return new Map();
 
   return new Map(
-    (data as Array<{ id: string; first_name?: string | null; last_name?: string | null }>).map(
+    (data as { id: string; first_name?: string | null; last_name?: string | null }[]).map(
       (row) => [
         row.id,
         formatOfficeClientName(row.first_name, row.last_name) ?? 'Unbekannt',

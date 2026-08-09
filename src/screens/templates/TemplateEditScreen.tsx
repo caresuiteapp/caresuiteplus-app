@@ -28,7 +28,7 @@ export function TemplateEditScreen() {
       setContent(template.content);
       vars.setContent(template.content);
     }
-  }, [template?.id]);
+  }, [template, vars]);
 
   if (!can('office.catalogs.edit')) {
     return (

@@ -35,7 +35,7 @@ function statusVariant(status: string) {
 }
 
 export function MedicationDetailHero({ detail, roleKey, isReadOnly }: MedicationDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -61,7 +61,7 @@ export function MedicationDetailHero({ detail, roleKey, isReadOnly }: Medication
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, typography.caption, colors.cyan],
   );
 
 
@@ -113,4 +113,3 @@ export function MedicationDetailHero({ detail, roleKey, isReadOnly }: Medication
 export { MEDICATION_DETAIL_PREPARED_MESSAGE };
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

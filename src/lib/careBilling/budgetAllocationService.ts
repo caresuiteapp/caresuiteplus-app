@@ -2,7 +2,6 @@ import type {
   BudgetAllocationResult,
   BudgetStatus,
   CareBillingGrade,
-  CareBudgetType,
   ClientBudgetPeriod,
   TenantBudgetConfig,
 } from '@/types/careBilling';

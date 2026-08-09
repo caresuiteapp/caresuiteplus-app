@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { completeTrip, fetchTripDetail } from '@/lib/assist';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';

@@ -18,7 +18,7 @@ export function CommunicationComposeHero({
   roleKey,
   isReadOnly = false,
 }: CommunicationComposeHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -53,7 +53,7 @@ export function CommunicationComposeHero({
     gap: spacing.sm,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.cyan],
   );
 
 
@@ -79,4 +79,3 @@ export function CommunicationComposeHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

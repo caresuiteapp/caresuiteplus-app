@@ -15,7 +15,7 @@ type WorkflowBuilderHeroProps = {
 };
 
 export function WorkflowBuilderHero({ stepCount }: WorkflowBuilderHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -41,7 +41,7 @@ export function WorkflowBuilderHero({ stepCount }: WorkflowBuilderHeroProps) {
   kpiItem: { flex: 1, minWidth: 100 },
   hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.bgElevated, typography.caption],
   );
 
 
@@ -94,4 +94,3 @@ export function WorkflowBuilderHero({ stepCount }: WorkflowBuilderHeroProps) {
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

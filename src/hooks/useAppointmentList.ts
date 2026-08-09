@@ -38,7 +38,7 @@ export function useAppointmentList() {
   { enabled: !!tenantId },
   );
 
-  const allItems = query.data ?? [];
+  const allItems = useMemo(() => query.data ?? [], [query.data]);
 
   const list = useListState<AppointmentListItem, 'startsAt' | 'title'>({
     items: allItems,

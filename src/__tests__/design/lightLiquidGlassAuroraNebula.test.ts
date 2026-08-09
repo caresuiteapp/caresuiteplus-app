@@ -12,7 +12,6 @@ import {
 
   llganIntensityPresets,
 
-  llganModuleCardGlow,
 
   llganNebulaClouds,
 
@@ -20,9 +19,7 @@ import {
 
   llganStarDust,
 
-  resolveLlganGlassSurface,
   resolveLlganModalHeaderGradient,
-  resolveLlganModuleCardGlow,
   resolveLlganViewGlass,
   llganModalHeaderGradient,
 } from '@/design/tokens/lightLiquidGlassAuroraNebula';
@@ -165,4 +162,3 @@ describe('lightLiquidGlassAuroraNebula tokens', () => {
     expect(resolveLlganModalHeaderGradient()).toEqual(llganModalHeaderGradient);
   });
 });
-

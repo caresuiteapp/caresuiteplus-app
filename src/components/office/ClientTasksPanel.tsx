@@ -23,16 +23,16 @@ import {
   type ClientTaskInput,
 } from '@/lib/clients/clientTasksService';
 import { fetchEmployeeList } from '@/lib/office/employeeListService';
-
-function formatEmployeeLabel(firstName: string, lastName: string): string {
-  return `${firstName} ${lastName}`.trim();
-}
 import type { ClientTask, TaskCategory, TaskFrequency } from '@/types/modules/client';
 import {
   TASK_CATEGORY_LABELS,
   TASK_FREQUENCY_LABELS,
 } from '@/types/modules/client';
 import { colors, spacing, typography } from '@/theme';
+
+function formatEmployeeLabel(firstName: string, lastName: string): string {
+  return `${firstName} ${lastName}`.trim();
+}
 
 type ClientTasksPanelProps = {
   clientId: string;

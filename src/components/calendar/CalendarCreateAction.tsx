@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import { useActiveGlassTokens } from '@/design/tokens/auroraGlass';
 import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
 import { careRadius } from '@/design/tokens/radius';
@@ -18,6 +18,7 @@ export function CalendarCreateAction({
   floating = false,
 }: CalendarCreateActionProps) {
   const labelColor = useInteractiveTextColor(accentColor);
+  const glass = useActiveGlassTokens();
 
   if (floating) {
     return (
@@ -31,8 +32,6 @@ export function CalendarCreateAction({
       </Pressable>
     );
   }
-
-  const glass = useActiveGlassTokens();
 
   return (
     <Pressable

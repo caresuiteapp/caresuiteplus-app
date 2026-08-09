@@ -87,7 +87,7 @@ export function OfficeMessageDetailModal({
           flexGrow: 1,
         },
       }),
-    [isDark, sheetMaxHeight, sheetWidth],
+    [sheetMaxHeight, sheetWidth],
   );
 
   if (!messageId) return null;

@@ -6,7 +6,6 @@ import type {
   TenantCenterSnapshot,
   TenantCompanyProfile,
   TenantContactCommunication,
-  TenantCustomFieldDefinition,
   TenantLegalProfile,
   TenantModuleSettings,
   TenantPaymentTerms,

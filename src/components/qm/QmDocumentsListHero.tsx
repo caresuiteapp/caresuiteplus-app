@@ -5,7 +5,6 @@ import {
   PremiumBadge,
 } from '@/components/ui';
 import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
-import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
 import { buildQmDocumentsListKpis } from '@/lib/qm/qmDocumentsListStats';
@@ -85,4 +84,3 @@ const styles = StyleSheet.create({
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 });
-

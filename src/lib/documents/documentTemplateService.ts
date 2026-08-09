@@ -8,7 +8,6 @@ import type {
   LivePreviewResult,
   PreviewSampleOption,
 } from '@/types/documents/documentTemplate';
-import type { DocumentTemplateTypeKey } from '@/features/documents/templateEngine/types';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { buildDocumentPreview } from '@/features/documents/templateEngine/documentPreviewRenderer';
 import { buildDocumentContext } from '@/features/documents/templateEngine/documentContext';

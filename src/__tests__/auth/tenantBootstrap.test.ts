@@ -2,6 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import {
+  PROFILE_SELECT,
+  resolveProfileDisplayName,
+  resolveProfileRoleKey,
+} from '@/lib/supabase/tenantService';
+import { mapCanonicalRoleToRoleKey, mapLegacyRoleKeyToRoleKey } from '@/lib/permissions/workspaceRoles';
+
 vi.mock('react-native-url-polyfill/auto', () => ({}));
 vi.mock('@react-native-async-storage/async-storage', () => ({
   default: {
@@ -10,13 +17,6 @@ vi.mock('@react-native-async-storage/async-storage', () => ({
     removeItem: vi.fn(),
   },
 }));
-
-import {
-  PROFILE_SELECT,
-  resolveProfileDisplayName,
-  resolveProfileRoleKey,
-} from '@/lib/supabase/tenantService';
-import { mapCanonicalRoleToRoleKey, mapLegacyRoleKeyToRoleKey } from '@/lib/permissions/workspaceRoles';
 
 const root = path.join(__dirname, '..', '..', '..');
 

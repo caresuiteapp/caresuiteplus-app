@@ -1,9 +1,8 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { HandoverReportListItem } from '@/types/modules/stationaer';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { typography } from '@/theme';
 
 type HandoverReportListTableProps = {
   items: HandoverReportListItem[];
@@ -99,6 +98,3 @@ export function HandoverReportListTable({
     />
   );
 }
-
-const styles = StyleSheet.create({
-});

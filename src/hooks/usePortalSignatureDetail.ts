@@ -55,7 +55,7 @@ export function usePortalSignatureDetail(documentId: string) {
       if (result.ok) await query.refresh();
       return result;
     },
-    [tenantId, employeeId, documentId, profile?.roleKey, query],
+    [tenantId, employeeId, documentId, profile?.roleKey, profile?.id, query],
   );
 
   return {

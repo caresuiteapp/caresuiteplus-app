@@ -18,7 +18,7 @@ type HandoverDetailHeroProps = {
 };
 
 export function HandoverDetailHero({ handover, roleKey }: HandoverDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -47,7 +47,7 @@ export function HandoverDetailHero({ handover, roleKey }: HandoverDetailHeroProp
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 }),
-    [colors, typography, gradients],
+    [typography.caption, colors.amber, heroText.title, heroText.meta],
   );
 
 
@@ -91,4 +91,3 @@ export function HandoverDetailHero({ handover, roleKey }: HandoverDetailHeroProp
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

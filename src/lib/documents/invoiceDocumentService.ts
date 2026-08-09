@@ -3,7 +3,6 @@ import type {
   ElectronicInvoiceData,
   InvoiceAuditEvent,
   InvoiceAuditEventType,
-  InvoiceDocumentStatus,
   InvoiceRecord,
   InvoiceTaxMode,
 } from '@/types/documents/invoice';
@@ -32,7 +31,6 @@ import {
   createDocumentCorrection,
   createLifecycleDocument,
   finalizeLifecycleDocument,
-  getLifecycleDocument,
 } from './documentLifecycleService';
 
 type Store = {

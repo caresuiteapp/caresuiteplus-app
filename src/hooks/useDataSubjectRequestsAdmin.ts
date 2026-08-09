@@ -78,7 +78,7 @@ export function useDataSubjectRequestsAdmin() {
     [tenantId, profile?.roleKey],
   );
 
-  const items = query.data ?? [];
+  const items = useMemo(() => query.data ?? [], [query.data]);
   const kpis = useMemo(() => buildDataSubjectRequestAdminKpis(items), [items]);
 
   const updateStatus = useCallback(

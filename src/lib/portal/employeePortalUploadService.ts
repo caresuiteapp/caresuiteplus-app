@@ -189,7 +189,7 @@ export async function uploadEmployeePortalDocument(
 export async function listEmployeePortalUploads(
   tenantId: string,
   employeeId: string,
-): Promise<ServiceResult<Array<PortalUpload & { uploadContext?: EmployeePortalUploadContext }>>> {
+): Promise<ServiceResult<(PortalUpload & { uploadContext?: EmployeePortalUploadContext })[]>> {
   return runService(async () => {
     const supabase = getSupabaseClient();
     if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };

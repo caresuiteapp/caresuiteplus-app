@@ -41,7 +41,6 @@ export function buildDemoReportingMetricsBundle(
   const billableItems = getDemoBillableItems(tenantId);
   const preparedItems = billableItems.filter((b) => b.status === 'prepared');
   const blockedItems = billableItems.filter((b) => b.status === 'blocked');
-  const invoicedItems = billableItems.filter((b) => b.status === 'invoiced');
 
   const tenantInvoices = demoInvoices.filter((i) => i.tenantId === tenantId);
   const openInvoices = tenantInvoices.filter(

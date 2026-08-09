@@ -14,11 +14,10 @@ import type {
 import type { ClientBudgetSetting } from '@/types/clientCore';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 import { listClientBudgetSettings } from '@/lib/client/clientBudgetSettingsService';
-import { listClientServiceProfiles } from '@/lib/client/clientServiceTypeService';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { runService } from '@/lib/services/serviceRunner';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
-import { getProofBillingSourceSnapshot, validateProofForBilling } from './clientProofBillingMapper';
+import { validateProofForBilling } from './clientProofBillingMapper';
 
 export function neverFinalizeInvoice(): { allowed: false; reason: string } {
   return {

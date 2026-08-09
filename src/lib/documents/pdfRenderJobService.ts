@@ -1,6 +1,5 @@
 import type {
   DocumentRenderJob,
-  DocumentRenderJobStatus,
   DocumentRenderJobType,
   PdfEngineInfo,
 } from '@/types/documents/documentLifecycle';

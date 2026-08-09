@@ -16,7 +16,7 @@ type ReleaseHubHeroProps = {
 };
 
 export function ReleaseHubHero({ data, roleKey }: ReleaseHubHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -62,7 +62,7 @@ export function ReleaseHubHero({ data, roleKey }: ReleaseHubHeroProps) {
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.bgElevated],
   );
 
 
@@ -107,4 +107,3 @@ export function ReleaseHubHero({ data, roleKey }: ReleaseHubHeroProps) {
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { getConnectCategory, getConnectIntegration } from '@/lib/connect/connectCatalog';
-import { MEDICAL_DOCUMENTATION_DISCLAIMER } from '@/types/medical';
 
 function readSrc(relativePath: string): string {
   return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');

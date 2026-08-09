@@ -64,10 +64,10 @@ export async function fetchPermissionCatalog(): Promise<ServiceResult<Permission
 export type GroupedPermissionCatalog = {
   module: string;
   moduleLabel: string;
-  categories: Array<{
+  categories: {
     category: string;
     entries: PermissionCatalogEntry[];
-  }>;
+  }[];
 };
 
 export function groupPermissionCatalog(entries: PermissionCatalogEntry[]): GroupedPermissionCatalog[] {

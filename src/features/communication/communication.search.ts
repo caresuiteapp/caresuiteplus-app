@@ -1,5 +1,5 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import { getDemoMessages, getDemoThreads } from './communication.demoStore';
+import { getDemoMessages } from './communication.demoStore';
 import { enforceCommunicationPermission } from './communication.permissions';
 import type { CommunicationMessage, CommunicationThread, ThreadListItem } from './communication.types';
 import { listThreads, type ListThreadsOptions } from './communication.service';

@@ -34,7 +34,6 @@ export function DashboardHero({
 }: DashboardHeroProps) {
   const { colors, typography, gradients, isDark } = useLegacyTheme();
   const greeting = useClientGreeting(snapshot.greeting);
-  const moduleLabel = snapshot.moduleLabel ?? 'CareSuite+';
 
   const roleLabel = ROLE_LABELS[snapshot.roleKey] ?? snapshot.roleKey;
   const primaryAction = snapshot.primaryAction;
@@ -131,7 +130,7 @@ export function DashboardHero({
         avatarText: { fontSize: 24, fontWeight: '800', color: AURORA_SURFACE_TEXT },
         badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
       }),
-    [colors, typography, gradients, isDark],
+    [colors, typography, isDark],
   );
 
   return (

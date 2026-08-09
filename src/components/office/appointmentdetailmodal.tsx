@@ -15,7 +15,6 @@ import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careSuiteModalScrimStrong } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { moduleColor } from '@/design/tokens/modules';
-import { AppointmentDetailScreen } from '@/screens/office/AppointmentDetailScreen';
 import { spacing } from '@/theme';
 
 type AppointmentDetailModalProps = {
@@ -124,7 +123,7 @@ export function AppointmentDetailModal({
           minHeight: 0,
         },
       }),
-    [isDark, isFull, sheetMaxHeight, sheetWidth],
+    [isFull, sheetMaxHeight, sheetWidth],
   );
 
   if (!appointmentId) return null;

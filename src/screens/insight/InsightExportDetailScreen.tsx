@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { InsightExportDetailHero } from '@/components/insight';
 import { ScreenShell } from '@/components/layout';
 import {

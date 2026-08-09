@@ -8,7 +8,7 @@ export function buildDocumentationAiSourceFromTasks(tasks: EmployeePortalTaskIte
 }
 
 export function resolveDocumentationAiSourceText(
-  ...parts: Array<string | null | undefined>
+  ...parts: (string | null | undefined)[]
 ): string {
   for (const part of parts) {
     const trimmed = part?.trim();

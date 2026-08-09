@@ -175,7 +175,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
         setTemplates(listApplicableIntakeTemplates(form));
       }
     });
-  }, [tenantId, form.careContexts, form.intakeContractType, form.intakeAssignmentEnabled, form.intakeOptionalConsents]);
+  }, [tenantId, form.careContexts, form.intakeContractType, form.intakeAssignmentEnabled, form.intakeOptionalConsents, form]);
 
   useEffect(() => {
     const synced = syncIntakeDocumentsWithTemplates(form, templates);
@@ -194,7 +194,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
   // insurance number and service start. Re-run after those fields change so a
   // document that was already signed can be finalized as soon as the last
   // missing value has been supplied.
-  }, [templates, form]);
+  }, [templates, form, tenantMeta, onChange]);
 
   const validation = useMemo(() => validateIntakeDocumentsStep(form, templates), [form, templates]);
 
@@ -208,7 +208,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
       (t) => t.documentType === 'privacy_consent'
         || (t.documentType === 'client_contract' && t.templateKey === resolveContractTemplateKey(form)),
     ),
-    [templates, form.intakeContractType, form.careContexts],
+    [templates, form],
   );
   const optionalDocs = templates.filter((t) => t.documentType === 'additional_consent');
   const assignmentTemplate = templates.find((t) => t.documentType === 'assignment_declaration');

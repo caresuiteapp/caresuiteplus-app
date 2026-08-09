@@ -1,9 +1,8 @@
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { fetchActiveExecutions } from '@/lib/assist/executionService';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumButton, PremiumCard, PremiumInput, SuccessState } from '@/components/ui';
+import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumButton, PremiumCard, SuccessState } from '@/components/ui';
 import { useActiveExecutions } from '@/hooks/useActiveExecutions';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { ExecutionPhase } from '@/types/modules/assist';
@@ -25,7 +24,7 @@ export function ActiveExecutionsScreen() {
   const router = useRouter();
   const { can, check, roleLabel } = usePermissions();
   const canView = can('assist.execution.view');
-  const { items, loading, error, refreshing, showSuccess, refresh, isEmpty } = useActiveExecutions();
+  const { items, loading, error, refreshing, showSuccess, refresh } = useActiveExecutions();
 
   if (!canView) {
     return (

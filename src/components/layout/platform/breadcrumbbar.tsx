@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
-import { spacing, typography } from '@/theme';
+import { typography } from '@/theme';
 
 export type BreadcrumbSegment = {
   label: string;

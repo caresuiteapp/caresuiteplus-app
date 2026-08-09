@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { createAssignmentWorkflow } from '@/lib/assist/assignmentWorkflowService';
-import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 
-import { getGlobalEnvironmentMode } from '@/lib/environment';
 
 describe('debug guard', () => {
   beforeEach(() => {
@@ -18,7 +16,6 @@ describe('debug guard', () => {
   });
 
   it('logs guard state', () => {
-    const block = guardServiceTenant(DEMO_TENANT_ID);
     const result = createAssignmentWorkflow(
       {
         tenantId: DEMO_TENANT_ID,

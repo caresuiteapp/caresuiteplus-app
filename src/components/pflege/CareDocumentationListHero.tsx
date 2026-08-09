@@ -37,7 +37,7 @@ export function CareDocumentationListHero({
   onViewModeChange,
   showViewToggle = false,
 }: CareDocumentationListHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -63,7 +63,7 @@ export function CareDocumentationListHero({
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, typography.caption, colors.cyan],
   );
 
 
@@ -115,4 +115,3 @@ export function CareDocumentationListHero({
 export { CARE_DOCUMENTATION_PREPARED_MESSAGE };
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

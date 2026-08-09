@@ -29,7 +29,7 @@ export function useAssistCatalogItems(catalogKey: string, filters: CatalogListFi
     if (res.ok) setItems(res.data);
     else setError(res.error);
     setLoading(false);
-  }, [tenantId, catalogKey, profile?.roleKey, JSON.stringify(filters)]);
+  }, [tenantId, catalogKey, filters, profile?.roleKey]);
 
   useEffect(() => {
     void reload();
@@ -87,7 +87,7 @@ export function useAssistCatalogDefinitions(filters: CatalogListFilters = {}) {
       if (res.ok) setDefinitions(res.data);
       setLoading(false);
     });
-  }, [tenantId, profile?.roleKey, JSON.stringify(filters)]);
+  }, [tenantId, profile?.roleKey, filters]);
 
   return { definitions, loading };
 }

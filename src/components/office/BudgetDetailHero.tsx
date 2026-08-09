@@ -32,7 +32,7 @@ function statusVariant(status: string) {
 }
 
 export function BudgetDetailHero({ budget, roleKey }: BudgetDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -83,7 +83,7 @@ export function BudgetDetailHero({ budget, roleKey }: BudgetDetailHeroProps) {
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, typography.bodyStrong, typography.caption, colors.bgElevated],
   );
 
 
@@ -130,4 +130,3 @@ export function BudgetDetailHero({ budget, roleKey }: BudgetDetailHeroProps) {
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

@@ -7,6 +7,11 @@ import {
   hasVisitSignature,
 } from '@/lib/assist/visitSignatureSessionStore';
 
+import {
+  updateVisitTaskStatus,
+  validateVisitCloseReadiness,
+} from '@/lib/assist/visitExecutionService';
+
 const visitSupabaseRepository = vi.hoisted(() => ({
   resolveVisitId: vi.fn(),
   updateTask: vi.fn(),
@@ -48,11 +53,6 @@ vi.mock('@/lib/permissions', () => ({
 vi.mock('@/lib/services/liveServiceGuard', () => ({
   guardServiceTenant: vi.fn(() => null),
 }));
-
-import {
-  updateVisitTaskStatus,
-  validateVisitCloseReadiness,
-} from '@/lib/assist/visitExecutionService';
 
 const TENANT = DEMO_TENANT_ID;
 const VISIT_ID = '70f800b8-a04f-44ae-846f-dcc7f6f6497a';

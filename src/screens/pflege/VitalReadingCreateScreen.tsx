@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { PflegeCrossModuleLinksPanel } from '@/components/pflege/PflegeCrossModuleLinksPanel';
 import { VitalReadingCreateHero } from '@/components/pflege/VitalReadingCreateHero';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel, SegmentedTabs } from '@/components/ui';
+import { FilterChipGroup, InfoBanner, PremiumButton, PremiumInput, SectionPanel, SegmentedTabs } from '@/components/ui';
 import { demoClients } from '@/data/demo/clients';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -13,13 +13,6 @@ import { isVitalWriteReady } from '@/lib/pflege/pflegeModuleConfig';
 import { createVitalReading } from '@/lib/pflege/vitalService';
 import { colors, spacing, typography } from '@/theme';
 
-const TYPE_MAP: Record<string, 'blood_pressure' | 'pulse' | 'temperature' | 'weight' | 'oxygen'> = {
-  blutdruck: 'blood_pressure',
-  puls: 'pulse',
-  temperatur: 'temperature',
-  gewicht: 'weight',
-  sauerstoff: 'oxygen',
-};
 
 const VITAL_TYPE_OPTIONS = [
   { key: 'blood_pressure', label: 'Blutdruck', unit: 'mmHg', placeholder: '128/82', extraLabel: 'Lage', extraPlaceholder: 'sitzend' },
@@ -29,10 +22,6 @@ const VITAL_TYPE_OPTIONS = [
   { key: 'oxygen', label: 'Sauerstoff', unit: '%', placeholder: '96', extraLabel: 'Atemfrequenz', extraPlaceholder: '16/min' },
 ] as const;
 
-function resolveVitalTypeKey(label: string): (typeof VITAL_TYPE_OPTIONS)[number]['key'] {
-  const key = label.trim().toLowerCase();
-  return TYPE_MAP[key] ?? 'blood_pressure';
-}
 
 export function VitalReadingCreateScreen() {
   const router = useRouter();

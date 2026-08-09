@@ -1,11 +1,10 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { fetchCourseDetail } from '@/lib/akademie/courseDetailService';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CourseDetailHero } from '@/components/akademie';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumButton, SectionPanel } from '@/components/ui';
 import { useCourseDetail } from '@/hooks/useCourseDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';

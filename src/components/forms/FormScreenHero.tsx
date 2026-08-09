@@ -34,7 +34,7 @@ export function FormScreenHero({
   accentColor,
   compact = false,
 }: FormScreenHeroProps) {
-  const { colors, typography } = useLegacyTheme();
+  const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const tenantName = useTenantDisplayName();
   const accent = accentColor ?? careSuiteAuroraTheme.accent.pink;
@@ -63,7 +63,7 @@ export function FormScreenHero({
         kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
         kpiItem: { flex: 1, minWidth: 100 },
       }),
-    [colors, typography],
+    [heroText.eyebrow, heroText.iconBadge.backgroundColor, heroText.meta, heroText.title],
   );
 
   return (

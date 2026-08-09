@@ -23,7 +23,6 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
-import { toStorageUploadError } from '@/lib/storage/storagePaths';
 import { ASSIST_EXECUTION_TABLES } from '@/types/assistExecutionPersistence';
 
 type ProofDbRow = {

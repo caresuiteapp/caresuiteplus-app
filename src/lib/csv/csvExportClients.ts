@@ -10,7 +10,6 @@ import { createExportLog } from './csvImportLogs';
 import {
   careLevelToLabel,
   clientStatusToLabel,
-  formatBooleanGerman,
   formatDateGerman,
   leistungsartToLabel,
 } from './csvValueUtils';

@@ -1,6 +1,4 @@
 import type { ClientFullDetail } from '@/types/modules/client';
-import { helgaSchneiderFull } from './helga-schneider';
-import { wernerMuellerFull } from './werner-mueller';
 import { buildDemoConstellationClients } from './constellations';
 
 export { TASK_CATALOG, getTasksByCategory } from './taskCatalog';

@@ -1,6 +1,5 @@
 import type { WorkflowStatus } from '@/types';
 import { getDemoSisAssessments as getDemoSisAssessmentRecords } from '../sisAssessments';
-import { DEMO_TENANT_ID } from '../tenant';
 
 export type PflegeModuleSettings = {
   vitalRemindersEnabled: boolean;

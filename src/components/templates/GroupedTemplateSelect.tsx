@@ -20,7 +20,7 @@ import {
   type ComposeTemplateAudience,
 } from '@/lib/templates/composeTemplateAudiences';
 import { careSpacing } from '@/design/tokens/spacing';
-import { spacing, radius } from '@/theme';
+import { spacing } from '@/theme';
 import type { CareSuiteTemplate } from '@/types/templates';
 
 type GroupedTemplateSelectProps = {

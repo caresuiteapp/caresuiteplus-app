@@ -1,10 +1,9 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import { CATALOG_TYPE_LABELS } from '@/types/modules/catalog';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import type { CatalogListItem } from '@/types/modules/catalog';
-import { colors, typography } from '@/theme';
 
 type CatalogsListTableProps = {
   items: CatalogListItem[];
@@ -66,6 +65,3 @@ export function CatalogsListTable({ items, onItemPress }: CatalogsListTableProps
     />
   );
 }
-
-const styles = StyleSheet.create({
-});

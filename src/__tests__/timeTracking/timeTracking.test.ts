@@ -1,10 +1,5 @@
 import { afterEach, beforeEach, vi } from 'vitest';
 
-vi.hoisted(() => {
-  process.env.EXPO_PUBLIC_WFM_LEGACY_STORE = 'true';
-  process.env.EXPO_PUBLIC_DEMO_MODE = 'true';
-});
-
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import {
   closeWorkday,
@@ -39,6 +34,11 @@ import {
 } from '@/lib/timeTracking';
 import { fetchTimeTrackingCatalogs, updateTimeTrackingSettings } from '@/lib/timeTracking/timeTrackingSettingsService';
 import { listActivityTypes } from '@/lib/timeTracking/timeTrackingStore';
+
+vi.hoisted(() => {
+  process.env.EXPO_PUBLIC_WFM_LEGACY_STORE = 'true';
+  process.env.EXPO_PUBLIC_DEMO_MODE = 'true';
+});
 
 const TENANT_A = DEMO_TENANT_ID;
 const TENANT_B = 'tenant-b-isolated';

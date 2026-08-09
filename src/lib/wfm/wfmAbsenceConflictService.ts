@@ -1,13 +1,9 @@
 import type { WfmAbsence, WfmAbsenceType } from '@/types/modules/wfm';
 import type { AbsenceConflict } from '@/types/modules/employeeAbsence';
 import {
-  absenceTypeToConflictCode,
-  conflictCodeToMessage,
-  detectAbsenceAssignmentConflicts,
   findAssignmentsOverlappingAbsence,
 } from '@/lib/office/absenceConflictService';
 import type { AssignmentWorkflowRecord } from '@/types/modules/assignmentWorkflow';
-import type { AbsenceType } from '@/types/modules/employeeAbsence';
 
 export type WfmAbsenceConflictWarning = {
   code: string;
@@ -19,13 +15,6 @@ function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string): b
   return new Date(aStart) < new Date(bEnd) && new Date(bStart) < new Date(aEnd);
 }
 
-function mapWfmTypeToAbsenceType(type: WfmAbsenceType): AbsenceType {
-  if (type === 'vacation') return 'vacation';
-  if (type === 'sick_leave' || type === 'child_sick_leave') return 'sick_leave';
-  if (type === 'training') return 'training';
-  if (type === 'blocked_time') return 'blocked_time';
-  return 'other';
-}
 
 export function detectWfmAbsenceOverlapConflicts(
   candidate: Pick<WfmAbsence, 'id' | 'employeeId' | 'startsAt' | 'endsAt' | 'status'>,
@@ -58,8 +47,6 @@ export function detectWfmAssignmentConflicts(
   const overlapping = findAssignmentsOverlappingAbsence(absence, assignments);
   if (overlapping.length === 0) return [];
 
-  const absenceType = mapWfmTypeToAbsenceType(absence.absenceType);
-  const code = absenceTypeToConflictCode(absenceType);
   return overlapping.map((assignment) => ({
     code: 'assignment_needs_replacement',
     message: `Einsatz am ${assignment.plannedStartAt.slice(0, 10)} benötigt ggf. Vertretung.`,

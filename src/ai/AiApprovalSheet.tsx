@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -17,8 +17,7 @@ export function AiApprovalSheet({ pendingActions, tenantId }: AiApprovalSheetPro
   const [busy, setBusy] = useState(false);
   const current = pendingActions[0] ?? null;
 
-  const footerActions = useMemo(
-    () => [
+  const footerActions = [
       {
         title: 'Ablehnen',
         variant: 'glass' as const,
@@ -36,9 +35,7 @@ export function AiApprovalSheet({ pendingActions, tenantId }: AiApprovalSheetPro
           if (current) void approve(current.pending_action_id);
         },
       },
-    ],
-    [busy, current],
-  );
+    ];
 
   if (!current) return null;
 

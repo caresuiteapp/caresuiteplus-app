@@ -26,9 +26,6 @@ function fileContains(rel: string, needle: string): boolean {
   return readFileSync(join(ROOT, rel), 'utf8').includes(needle);
 }
 
-function fileNotContains(rel: string, needle: string): boolean {
-  return !fileContains(rel, needle);
-}
 
 // Phase 1 — preflight doc
 check(

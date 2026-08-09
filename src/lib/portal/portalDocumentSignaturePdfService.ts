@@ -36,7 +36,7 @@ async function resolveSignatureImageUrl(storagePath: string): Promise<string | n
 export function buildPortalSignatureFinalHtml(input: {
   document: PortalSignatureDocument;
   captures: PortalSignatureCapture[];
-  signatureImageUrls: Array<string | null>;
+  signatureImageUrls: (string | null)[];
 }): string {
   let bodyHtml = input.document.previewHtml ?? '<p>Dokumentinhalt</p>';
 

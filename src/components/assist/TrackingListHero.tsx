@@ -27,7 +27,7 @@ export function TrackingListHero({
   isReadOnly,
   compact = false,
 }: TrackingListHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -71,7 +71,7 @@ export function TrackingListHero({
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.amber],
   );
 
 
@@ -118,4 +118,3 @@ export function TrackingListHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

@@ -1,5 +1,5 @@
 import type { EmployeeAbsence } from '@/types/modules/employeeAbsence';
-import type { ManagementTask, ManagementTaskStatus, ManagementTaskType } from '@/types/modules/liveMonitor';
+import type { ManagementTaskStatus, ManagementTaskType } from '@/types/modules/liveMonitor';
 import type {
   PersonalComplianceEmployeeRow,
   PersonalComplianceKpiKey,

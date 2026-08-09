@@ -1,7 +1,7 @@
 import { StyleSheet, Text } from 'react-native';
 import { PremiumCard } from '@/components/ui';
 import type { GeofenceEvent } from '@/types/modules/assist';
-import { colors, spacing, typography } from '@/theme';
+import { colors, typography } from '@/theme';
 
 type TrackingEventCardProps = {
   event: GeofenceEvent;

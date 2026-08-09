@@ -92,7 +92,7 @@ export function detectRoutePlanningConflictsForAssignment(input: {
   >;
   existing: AssignmentWorkflowRecord[];
   employeeAbsences?: PlanningAbsenceBlock[];
-  employeeAvailability?: Array<{ employeeId: string; startsAt: string; endsAt: string }>;
+  employeeAvailability?: { employeeId: string; startsAt: string; endsAt: string }[];
   actorRoleKey?: string | null;
   requireProvider?: boolean;
   previousAssignmentAddress?: string | null;

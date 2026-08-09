@@ -69,7 +69,7 @@ export function PaymentSettingsScreen() {
       sepaEnabled: active.sepaEnabled,
       subscriptionBillingEnabled: active.subscriptionBillingEnabled,
     });
-  }, [active?.id, active?.providerKey, active?.environment, active?.sepaEnabled, active?.subscriptionBillingEnabled]);
+  }, [active]);
 
   const handleSave = async () => {
     if (!tenantId) return;

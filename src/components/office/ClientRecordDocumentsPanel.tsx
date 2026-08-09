@@ -315,7 +315,10 @@ export function ClientRecordDocumentsPanel({
     { enabled: !!tenantId && !!clientId },
   );
 
-  const documents = query.data ?? initialDocuments ?? [];
+  const documents = useMemo(
+    () => query.data ?? initialDocuments ?? [],
+    [initialDocuments, query.data],
+  );
   const categoryOverview = useMemo(
     () => buildClientDocumentCategoryOverview(documents),
     [documents],

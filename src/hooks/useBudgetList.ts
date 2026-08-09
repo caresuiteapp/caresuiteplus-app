@@ -37,7 +37,7 @@ export function useBudgetList() {
   { enabled: !!tenantId },
   );
 
-  const allItems = query.data ?? [];
+  const allItems = useMemo(() => query.data ?? [], [query.data]);
 
   const list = useListState<BudgetListItem, 'label' | 'usagePercent'>({
     items: allItems,

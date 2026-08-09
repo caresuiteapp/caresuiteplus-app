@@ -1,12 +1,11 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { fetchCarePlanDetail } from '@/lib/pflege/carePlanDetailService';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CarePlanDetailHero, VitalReadingListCard } from '@/components/pflege';
 import { PflegeCrossModuleLinksPanel } from '@/components/pflege/PflegeCrossModuleLinksPanel';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumButton, PremiumCard, PremiumInput, SectionPanel } from '@/components/ui';
+import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumButton, PremiumCard, SectionPanel } from '@/components/ui';
 import { useCarePlanDetail } from '@/hooks/useCarePlanDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';

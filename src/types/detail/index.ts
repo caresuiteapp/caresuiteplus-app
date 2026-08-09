@@ -1,5 +1,5 @@
 import type { WorkflowStatus } from '../core/base';
-import type { DataVisibilityScope, SensitivityLevel } from '../portal/visibility';
+import type { DataVisibilityScope } from '../portal/visibility';
 import type { Client } from '../modules/office';
 
 export type AuditEntry = {

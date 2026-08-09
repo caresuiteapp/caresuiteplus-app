@@ -336,7 +336,7 @@ const CURVES: PsmPaperCurve[] = [
   },
 ];
 
-const BUTTON_DOT_SPECS: Array<{
+const BUTTON_DOT_SPECS: {
   id: string;
   begin: number;
   ampX: number;
@@ -344,7 +344,7 @@ const BUTTON_DOT_SPECS: Array<{
   bx: number;
   by: number;
   r: number;
-}> = [
+}[] = [
   { id: 'dot-0', begin: -93, ampX: -20.31, ampY: 55.8, bx: 980, by: 420, r: 36.7 },
   { id: 'dot-1', begin: -88.56, ampX: 13, ampY: 57.91, bx: 1240, by: 760, r: 23.8 },
   { id: 'dot-2', begin: -84.12, ampX: 42.18, ampY: 41.73, bx: 4040, by: 540, r: 30.2 },

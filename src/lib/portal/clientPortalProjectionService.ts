@@ -15,7 +15,6 @@ import {
 } from '@/lib/client/clientPortalSettingsService';
 import { listClientBudgetSettings } from '@/lib/client/clientBudgetSettingsService';
 import {
-  getReleasedProofForClientPortal,
   listReleasedProofsForClientPortal,
 } from '@/lib/portal/assist/portalAssistVisitProofService';
 import { getPortalVisibilityMatrixForClient, sanitizeClientPortalPayload } from './portalVisibilityService';

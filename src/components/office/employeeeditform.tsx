@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useCallback, useEffect, useMemo } from 'react';
 import { CatalogValueSelect } from '@/components/templates';
 import { CareAddressSearch, CareDateInput } from '@/components/inputs';

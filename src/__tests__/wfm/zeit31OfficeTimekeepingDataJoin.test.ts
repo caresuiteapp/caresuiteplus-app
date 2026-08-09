@@ -1,6 +1,4 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-
-vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'demo' }));
 import {
   joinOfficeTimekeepingData,
   plannedVisitJoinKey,
@@ -15,6 +13,8 @@ import {
   saveManualEntry,
 } from '@/lib/wfm/wfmOfficeTimekeepingStore';
 import type { WfmOfficePlannedVisit, WfmOfficeTimeEntry } from '@/types/modules/wfmOfficeTimekeeping';
+
+vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'demo' }));
 
 const TENANT = 'tenant-zeit31';
 const EMP_A = 'emp-a';

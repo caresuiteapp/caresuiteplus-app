@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { APP_START_ENTRIES } from '@/data/landing/appStartEntries';
-import { isGpsTrackingLiveReady } from '@/lib/assist/gpsTrackingConfig';
 import {
   checkRoleAccess,
   getLoginRedirectForPath,

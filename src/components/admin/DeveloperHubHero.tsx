@@ -7,7 +7,7 @@ import { DEV_TOOL_ENTRIES } from '@/data/navigation/moduleNavConfig';
 import { designTokens, spacing } from '@/theme';
 
 export function DeveloperHubHero() {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -37,7 +37,7 @@ export function DeveloperHubHero() {
   kpiItem: { flex: 1, minWidth: 100 },
   hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [typography.caption, colors.violet, colors.bgElevated, heroText.title, heroText.meta],
   );
 
 
@@ -74,4 +74,3 @@ export function DeveloperHubHero() {
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

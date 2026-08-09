@@ -26,7 +26,6 @@ function contactChannelCount(employee: EmployeeDetail): number {
 }
 
 export function buildEmployeeDetailSubtitle(employee: EmployeeDetail, mode: ColorMode = 'dark'): string  {
-  const colors = legacyColorsFromPalette(mode);
   if (employee.notes) return employee.notes;
   if (employee.status === 'entwurf') return 'Onboarding noch nicht abgeschlossen.';
   if (employee.status === 'gesperrt') return 'Zugang vorübergehend gesperrt — HR kontaktieren.';

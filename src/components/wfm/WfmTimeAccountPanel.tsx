@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, SectionPanel } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -32,7 +32,7 @@ type WfmTimeAccountPanelProps = {
 export function WfmTimeAccountPanel({ tenantId, userId, roleKey, employeeId }: WfmTimeAccountPanelProps) {
   const text = useAuroraAdaptiveText();
   const accent = moduleColor('office');
-  const now = new Date();
+  const now = useMemo(() => new Date(), []);
 
   const todayQuery = useAsyncQuery(
     useCallback(
@@ -48,7 +48,7 @@ export function WfmTimeAccountPanel({ tenantId, userId, roleKey, employeeId }: W
         getWfmTimeAccountForMonth(tenantId, userId, roleKey, now.getFullYear(), now.getMonth() + 1, {
           employeeId,
         }),
-      [tenantId, userId, roleKey, employeeId, now.getFullYear(), now.getMonth()],
+      [tenantId, userId, roleKey, now, employeeId],
     ),
     [tenantId, userId, roleKey, employeeId],
   );

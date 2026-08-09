@@ -309,7 +309,7 @@ export type AssignmentWorkflowCreateInput = {
   requiresSignature?: boolean;
   requiresDocumentation?: boolean;
   requiresRoute?: boolean;
-  tasks: Array<{ title: string; description?: string; category?: string; required?: boolean }>;
+  tasks: { title: string; description?: string; category?: string; required?: boolean }[];
   createdBy?: string | null;
 };
 

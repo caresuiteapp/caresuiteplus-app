@@ -627,16 +627,7 @@ export function EmployeePortalVisitExecutionScreen() {
         setLocalWarning('Bitte begründen Sie die Weiterleitung im Abschnitt „Einsatz abschließen“.');
       }
     },
-    [
-      handleStartDrive,
-      handleArrived,
-      proceedAfterDeviation,
-      resolveDeviationCheck,
-      endPause,
-      openSignatureCapture,
-      finalizeVisit,
-      handleFinalizeDeferredSignature,
-    ],
+    [handleStartDrive, handleArrived, proceedAfterDeviation, resolveDeviationCheck, endPause, openSignatureCapture, finalizeVisit],
   );
 
   const handlePrimary = useCallback(async () => {

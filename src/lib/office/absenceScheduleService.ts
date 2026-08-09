@@ -51,13 +51,13 @@ export function listCombinedScheduleEntries(tenantId: string): CombinedScheduleE
 export function listAbsenceConflictsForMonth(
   tenantId: string,
   monthKey: string,
-): Array<{ absence: EmployeeAbsence; assignment: AssignmentWorkflowRecord }> {
+): { absence: EmployeeAbsence; assignment: AssignmentWorkflowRecord }[] {
   const absences = listAbsencesForTenant(tenantId).filter(
     (a) => ACTIVE_ABSENCE_STATUSES.has(a.status) && a.replacementRequired,
   );
   const assignments = listAssignmentWorkflows(tenantId);
 
-  const conflicts: Array<{ absence: EmployeeAbsence; assignment: AssignmentWorkflowRecord }> = [];
+  const conflicts: { absence: EmployeeAbsence; assignment: AssignmentWorkflowRecord }[] = [];
   for (const absence of absences) {
     if (!absence.startsAt.startsWith(monthKey.slice(0, 7))) continue;
     for (const assignment of assignments) {

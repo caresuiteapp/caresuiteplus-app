@@ -22,7 +22,7 @@ type AkademieDashboardHeroProps = {
 };
 
 export function AkademieDashboardHero({ stats, roleKey }: AkademieDashboardHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -61,7 +61,7 @@ export function AkademieDashboardHero({ stats, roleKey }: AkademieDashboardHeroP
     gap: spacing.sm,
   },
 }),
-    [colors, typography, gradients],
+    [typography.caption, heroText.title, heroText.meta, colors.bgElevated],
   );
 
 
@@ -93,4 +93,3 @@ export function AkademieDashboardHero({ stats, roleKey }: AkademieDashboardHeroP
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

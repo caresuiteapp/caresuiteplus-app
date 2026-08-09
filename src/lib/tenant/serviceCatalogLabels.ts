@@ -23,8 +23,8 @@ const SERVICE_TAX_MODE_LABELS: Record<ServiceTaxMode, string> = {
   none: 'Keine Umsatzsteuer',
 };
 
-export const SERVICE_TAX_MODE_OPTIONS: Array<{ key: ServiceTaxMode; label: string }> = (
-  Object.entries(SERVICE_TAX_MODE_LABELS) as Array<[ServiceTaxMode, string]>
+export const SERVICE_TAX_MODE_OPTIONS: { key: ServiceTaxMode; label: string }[] = (
+  Object.entries(SERVICE_TAX_MODE_LABELS) as [ServiceTaxMode, string][]
 ).map(([key, label]) => ({ key, label }));
 
 export function formatServicePriceUnit(unit: ServicePriceUnit): string {

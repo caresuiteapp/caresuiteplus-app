@@ -1,11 +1,11 @@
 import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
 import { ASSIGNMENT_TASK_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 
-export const VISIT_TASK_STATUS_OPTIONS: Array<{
+export const VISIT_TASK_STATUS_OPTIONS: {
   value: ExtendedAssignmentTaskStatus;
   label: string;
   requiresNote?: boolean;
-}> = [
+}[] = [
   { value: 'done', label: 'Erledigt' },
   { value: 'not_done', label: 'Nicht durchgeführt', requiresNote: true },
   { value: 'not_wanted', label: 'Abgelehnt', requiresNote: true },

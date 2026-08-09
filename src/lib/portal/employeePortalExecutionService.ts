@@ -70,6 +70,12 @@ import {
   resetEmployeePortalPersistenceSessionStore,
 } from './employeePortalVisitTrackingPersistence';
 
+import { enrichPortalTaskCategory } from './enrichPortalTaskCategory';
+import {
+  isEmployeePortalAssignmentLocked,
+  resolveEmployeePortalAssignmentPendingFlags,
+} from './employeePortalAssignmentCompletion';
+
 type ExecutionStore = {
   statusHistory: Map<string, EmployeePortalStatusHistoryEntry[]>;
   pauseEvents: Map<string, EmployeePortalPauseEvent[]>;
@@ -294,12 +300,6 @@ function updateWorkflowStatus(
   pushStatusHistory(tenantId, assignmentId, fromStatus, toStatus, actorId);
   return { ok: true, data: next };
 }
-
-import { enrichPortalTaskCategory } from './enrichPortalTaskCategory';
-import {
-  isEmployeePortalAssignmentLocked,
-  resolveEmployeePortalAssignmentPendingFlags,
-} from './employeePortalAssignmentCompletion';
 
 function mapTasks(record: NonNullable<ReturnType<typeof getAssignmentWorkflow>>): EmployeePortalTaskItem[] {
   return record.tasks.map((task) =>
@@ -665,11 +665,11 @@ export async function updateEmployeePortalTasksBatch(
   assignmentId: string,
   employeeId: string,
   roleKey: RoleKey | null,
-  updates: Array<{
+  updates: {
     taskId: string;
     status: ExtendedAssignmentTaskStatus;
     completionNote?: string;
-  }>,
+  }[],
 ): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;

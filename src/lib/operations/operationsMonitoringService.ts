@@ -34,7 +34,6 @@ import {
 import {
   OPERATIONS_AVAILABILITY_DISCLAIMER,
   OPERATIONS_MONITORING_ROUTE,
-  isOperationsMonitoringLiveReady,
 } from './operationsModuleConfig';
 import {
   OPERATIONS_MONITORING_STORE,

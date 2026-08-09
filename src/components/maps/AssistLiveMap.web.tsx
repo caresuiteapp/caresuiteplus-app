@@ -56,7 +56,7 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
   const embedUrl = useMemo(() => {
     if (mapsConfigured || !position) return null;
     return buildOsmEmbedUrl(position.latitude, position.longitude);
-  }, [mapsConfigured, position?.latitude, position?.longitude]);
+  }, [mapsConfigured, position]);
 
   const hasMapData = Boolean(position || (markers && markers.length > 0));
 

@@ -22,7 +22,7 @@ type InsightDashboardHeroProps = {
 };
 
 export function InsightDashboardHero({ stats, roleKey }: InsightDashboardHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -50,7 +50,7 @@ export function InsightDashboardHero({ stats, roleKey }: InsightDashboardHeroPro
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [typography.caption, heroText.title, heroText.meta, colors.bgElevated],
   );
 
 
@@ -84,4 +84,3 @@ export function InsightDashboardHero({ stats, roleKey }: InsightDashboardHeroPro
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

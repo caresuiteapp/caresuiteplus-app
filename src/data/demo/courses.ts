@@ -1,5 +1,4 @@
 import type { CourseListItem, Course, Enrollment } from '@/types/modules/akademie';
-import type { WorkflowStatus } from '@/types';
 import { demoEmployees } from './employees';
 import { DEMO_TENANT_ID } from './tenant';
 

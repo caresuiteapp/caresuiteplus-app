@@ -1,6 +1,3 @@
-function newConnectRequestId(): string {
-  return `conn-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-}
 import type { PermissionKey, RoleKey } from '@/types';
 import type {
   ConnectAdapterResult,
@@ -21,6 +18,9 @@ import {
 } from './connectFeatureGate';
 import { getConnectAdapterOrFallback } from './connectAdapterRegistry';
 import { recordConnectAuditDraft } from './connectAudit';
+function newConnectRequestId(): string {
+  return `conn-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
 
 export type ConnectGatewayInput = {
   tenantId: string | null | undefined;

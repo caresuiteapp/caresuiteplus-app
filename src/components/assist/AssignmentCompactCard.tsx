@@ -172,7 +172,7 @@ export function AssignmentCompactCard({
           maxWidth: 176,
         },
       }),
-    [accentModule, statusAccent.color, statusAccent.tint, text],
+    [accentModule, statusAccent.color, text],
   );
 
   const cardBody = (

@@ -5,7 +5,6 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { QmComplianceCard } from '@/components/qm';
 import { useQmCompliance } from '@/hooks/qm';
 import { usePermissions } from '@/hooks/usePermissions';
-import { fetchQmCompliance } from '@/lib/qm/qmComplianceService';
 import { colors, spacing } from '@/theme';
 
 export function QmComplianceScreen() {

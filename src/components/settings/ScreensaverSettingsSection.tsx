@@ -77,13 +77,13 @@ export function ScreensaverSettingsSection() {
     label: `${m} Min.`,
   }));
 
-  const logoSizeOptions: Array<{ key: ScreensaverLogoSize; label: string }> = [
+  const logoSizeOptions: { key: ScreensaverLogoSize; label: string }[] = [
     { key: 'small', label: 'Klein' },
     { key: 'medium', label: 'Mittel' },
     { key: 'large', label: 'Groß' },
   ];
 
-  const bounceOptions: Array<{ key: ScreensaverBounceSpeed; label: string }> = [
+  const bounceOptions: { key: ScreensaverBounceSpeed; label: string }[] = [
     { key: 'slow', label: 'Langsam' },
     { key: 'normal', label: 'Normal' },
     { key: 'fast', label: 'Schnell' },

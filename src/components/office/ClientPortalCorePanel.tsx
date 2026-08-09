@@ -43,10 +43,10 @@ const FEATURE_LABELS: Record<string, string> = {
   budget: 'Budget',
 };
 
-const FEATURE_TOGGLES: Array<{
+const FEATURE_TOGGLES: {
   key: 'showAppointments' | 'showMessages' | 'showDocuments' | 'showProofs';
   label: string;
-}> = [
+}[] = [
   { key: 'showAppointments', label: 'Einsätze' },
   { key: 'showMessages', label: 'Nachrichten' },
   { key: 'showDocuments', label: 'Dokumente' },

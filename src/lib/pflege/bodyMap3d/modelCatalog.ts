@@ -61,7 +61,7 @@ const AGE_RENDER_PROFILE: Record<
   hochbetagt: { nominalHeightMeters: 1.59, cameraDistance: 4, cameraTargetY: 0.79 },
 };
 
-const MODEL_ROWS: Array<[BodyMapAgeGroup, BodyMapSex]> = (
+const MODEL_ROWS: [BodyMapAgeGroup, BodyMapSex][] = (
   Object.keys(BODY_MAP_AGE_LABELS) as BodyMapAgeGroup[]
 ).flatMap((ageGroup) =>
   (Object.keys(BODY_MAP_SEX_LABELS) as BodyMapSex[]).map((sex): [BodyMapAgeGroup, BodyMapSex] => [ageGroup, sex]),

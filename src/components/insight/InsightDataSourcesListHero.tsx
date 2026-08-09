@@ -27,7 +27,7 @@ export function InsightDataSourcesListHero({
   onViewModeChange,
   showViewToggle = false,
 }: InsightDataSourcesListHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -57,7 +57,7 @@ export function InsightDataSourcesListHero({
   kpiItem: { flex: 1, minWidth: 100 },
   preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [typography.caption, heroText.title, heroText.meta, colors.bgElevated],
   );
 
 
@@ -100,4 +100,3 @@ export function InsightDataSourcesListHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

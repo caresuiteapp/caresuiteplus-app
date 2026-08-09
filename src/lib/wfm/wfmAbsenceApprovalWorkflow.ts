@@ -23,7 +23,6 @@ import {
   cancelWfmAbsenceCalendar,
   cancelWfmAbsenceCalendarAsync,
   syncWfmAbsenceToCalendar,
-  syncWfmAbsenceToCalendarAsync,
 } from './wfmAbsenceCalendarBridge';
 
 export type WfmAbsenceApprovalDetail = {

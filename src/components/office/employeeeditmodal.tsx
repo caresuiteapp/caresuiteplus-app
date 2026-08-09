@@ -95,7 +95,7 @@ export function EmployeeEditModal({
           minHeight: 0,
         },
       }),
-    [isBottomSheet, isDark, sheetMaxHeight, sheetWidth],
+    [isBottomSheet, sheetMaxHeight, sheetWidth],
   );
 
   if (!visible || !employeeId) return null;

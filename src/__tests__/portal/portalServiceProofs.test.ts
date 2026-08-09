@@ -12,7 +12,6 @@ function readSrc(relativePath: string): string {
   return readFileSync(path.join(root, relativePath), 'utf8');
 }
 
-const mockMaybeSingle = vi.fn();
 const mockOrder = vi.fn();
 const mockEqCategory = vi.fn();
 const mockEqStatus = vi.fn();

@@ -4,7 +4,6 @@ import {
   assignPlatformPlanModule,
   cancelPlatformTenantSubscription,
   createPlatformAddon,
-  createPlatformAddonVersion,
   createPlatformPlan,
   createPlatformPlanVersion,
   recalculatePlatformTenantEntitlements,

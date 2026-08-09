@@ -135,7 +135,7 @@ export function PlatformBodyMapReviewScreen() {
   useEffect(() => {
     setDraft(storedReview ? structuredClone(storedReview) : null);
     setSurfacePoint(null);
-  }, [selectedVariantId, storedReview?.id, storedReview?.updatedAt]);
+  }, [selectedVariantId, storedReview, storedReview.id, storedReview.updatedAt]);
 
   const rows = useMemo(
     () =>

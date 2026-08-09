@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { StationaerReportsHero } from '@/components/stationaer';
 import { ModuleExtensionNavStrip } from '@/components/navigation/ModuleExtensionNavStrip';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumCard, PremiumInput } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumCard } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';

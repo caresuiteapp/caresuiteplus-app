@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MarketplaceBetaBanner, MarketplaceCategoryCard } from '@/components/marketplace';
 import { LockedActionBanner } from '@/components/permissions';

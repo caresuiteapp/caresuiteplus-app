@@ -7,6 +7,17 @@ import {
   stripPortalBlockedKeysFromSnapshot,
 } from '@/lib/assist/assistProofPdfPayload';
 
+import {
+  approveAssistProof,
+  releaseAssistProofToPortal,
+  revokeAssistProofPortalRelease,
+  submitProofForReview,
+} from '@/lib/assist/assistProofApprovalService';
+import {
+  getReleasedProofForClientPortal,
+  listReleasedProofsForClientPortal,
+} from '@/lib/portal/assist/portalAssistVisitProofService';
+
 const root = path.join(__dirname, '..', '..', '..');
 
 function readSrc(relativePath: string): string {
@@ -96,17 +107,6 @@ vi.mock('@/lib/supabase/untypedTable', () => ({
   fromUnknownTable: (...args: unknown[]) => mockFromUnknown(...args),
 }));
 
-import {
-  approveAssistProof,
-  releaseAssistProofToPortal,
-  revokeAssistProofPortalRelease,
-  submitProofForReview,
-} from '@/lib/assist/assistProofApprovalService';
-import {
-  getReleasedProofForClientPortal,
-  listReleasedProofsForClientPortal,
-} from '@/lib/portal/assist/portalAssistVisitProofService';
-
 type ProofStore = Map<string, AssistVisitProofRow>;
 
 function installProofStore(store: ProofStore) {
@@ -183,7 +183,7 @@ function installPortalMocks(options: {
   tenantId: string;
   clientId: string;
   visitIds: string[];
-  proofs: Array<{
+  proofs: {
     id: string;
     visit_id: string;
     portal_visible: boolean;
@@ -192,7 +192,7 @@ function installPortalMocks(options: {
     proof_number?: string | null;
     pdf_storage_path?: string | null;
     released_to_portal_at?: string | null;
-  }>;
+  }[];
 }) {
   mockFromUnknown.mockImplementation((_client: unknown, table: string) => {
     if (table === 'assist_visits') {

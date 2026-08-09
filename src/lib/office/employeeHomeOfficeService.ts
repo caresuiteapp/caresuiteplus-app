@@ -184,10 +184,10 @@ export const EMPLOYEE_TIME_TRACKING_MODE_LABELS: Record<EmployeeTimeTrackingMode
   none: 'Keine Zeiterfassung',
 };
 
-export const EMPLOYEE_TIME_TRACKING_MODE_OPTIONS: Array<{
+export const EMPLOYEE_TIME_TRACKING_MODE_OPTIONS: {
   key: EmployeeTimeTrackingMode;
   label: string;
-}> = [
+}[] = [
   { key: 'none', label: EMPLOYEE_TIME_TRACKING_MODE_LABELS.none },
   { key: 'field', label: EMPLOYEE_TIME_TRACKING_MODE_LABELS.field },
   { key: 'homeoffice', label: EMPLOYEE_TIME_TRACKING_MODE_LABELS.homeoffice },
@@ -321,4 +321,3 @@ export const EMPLOYEE_ASSIGNABLE_ROLE_KEYS: RoleKey[] = [
   'employee_portal',
   'business_manager',
 ];
-

@@ -1,6 +1,6 @@
 import type { PortalEmployeeProfileTabKey } from '@/types/portal/employeePersonnel';
 
-export const PORTAL_EMPLOYEE_PROFILE_TABS: Array<{ key: PortalEmployeeProfileTabKey; label: string }> = [
+export const PORTAL_EMPLOYEE_PROFILE_TABS: { key: PortalEmployeeProfileTabKey; label: string }[] = [
   { key: 'overview', label: 'Übersicht' },
   { key: 'master_data', label: 'Stammdaten' },
   { key: 'contact', label: 'Kontakt' },

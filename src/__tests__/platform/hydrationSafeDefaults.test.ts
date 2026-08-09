@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('react-native', () => ({
-  Platform: { OS: 'web' },
-}));
-
 import {
   getTimeOfDayGreeting,
   HYDRATION_SAFE_GREETING,
@@ -15,6 +11,10 @@ import {
   SSR_LAYOUT_WIDTH,
 } from '@/lib/platform/ssrLayoutDefaults';
 import { readInitialConnectivityState } from '@/hooks/useConnectivity';
+
+vi.mock('react-native', () => ({
+  Platform: { OS: 'web' },
+}));
 
 describe('hydration SSR defaults', () => {
   it('uses stable layout width before hydration', () => {

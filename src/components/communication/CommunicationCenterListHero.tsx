@@ -26,7 +26,7 @@ export function CommunicationCenterListHero({
   isReadOnly,
   compact = false,
 }: CommunicationCenterListHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -70,7 +70,7 @@ export function CommunicationCenterListHero({
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.cyan],
   );
 
 
@@ -113,4 +113,3 @@ export function CommunicationCenterListHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

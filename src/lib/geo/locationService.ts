@@ -1,7 +1,6 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type {
   AssignmentLocationEvent,
-  AssignmentLocationEventType,
   GeoConsentContext,
   GeoPosition,
   LocationCaptureInput,

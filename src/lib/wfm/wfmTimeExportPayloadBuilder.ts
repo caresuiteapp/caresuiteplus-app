@@ -266,7 +266,7 @@ export function buildReviewVersionHash(input: WfmReviewVersionHashInput): string
 
 export const calculateReviewVersionHash = buildReviewVersionHash;
 
-const DELTA_FIELDS: Array<keyof WfmTimeExportPayload | 'logicalReferenceKey' | 'exportSequence'> = [
+const DELTA_FIELDS: (keyof WfmTimeExportPayload | 'logicalReferenceKey' | 'exportSequence')[] = [
   'minutesTotal',
   'periodDate',
   'employeeId',

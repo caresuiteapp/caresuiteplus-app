@@ -22,7 +22,6 @@ import { isAssistMapProviderConfigured } from '@/lib/assist/gpsTrackingConfig';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
 import { getWfmMapMarkers } from '@/lib/wfm';
-import { typography } from '@/theme';
 
 export function OfficeWfmLiveMapScreen() {
   const router = useRouter();

@@ -1,4 +1,4 @@
-import type { RoleKey, ServiceResult } from '@/types';
+import type { ServiceResult } from '@/types';
 import { appendDemoReaction, getDemoReactions } from './communication.demoStore';
 import { DEFAULT_EMOJIS } from './communication.constants';
 import type { MessageReaction } from './communication.types';

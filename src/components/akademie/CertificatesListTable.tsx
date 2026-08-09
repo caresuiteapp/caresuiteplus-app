@@ -1,9 +1,8 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { CertificateListItem } from '@/types/modules/akademie';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { typography } from '@/theme';
 
 type CertificatesListTableProps = {
   items: CertificateListItem[];
@@ -103,6 +102,3 @@ export function CertificatesListTable({
     />
   );
 }
-
-const styles = StyleSheet.create({
-});

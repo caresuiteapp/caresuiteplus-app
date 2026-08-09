@@ -311,7 +311,7 @@ export interface WfmOfficeTimeOverview {
   period: WfmOfficeTimePeriod;
   kpis: WfmOfficeTimeKpis;
   entries: WfmOfficeTimeEntry[];
-  employees: Array<{ id: string; name: string }>;
+  employees: { id: string; name: string }[];
 }
 
 export interface WfmOfficeCorrectionInput {

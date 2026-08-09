@@ -134,7 +134,6 @@ export function upsertActivityType(
   const denied = enforcePermission<ActivityType>(actorRoleKey, 'time.settings.manage');
   if (denied) return denied;
 
-  const now = new Date().toISOString();
   const item: ActivityType = {
     id: input.id ?? nextTimeTrackingId('at'),
     tenantId,

@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  batchResolveVisitAndAssignmentIds,
+  resolveVisitAndAssignmentIds,
+} from '@/lib/assist/assistExecutionVisitResolver';
+
 const resolveLiveAssignment = vi.hoisted(() => vi.fn());
 const visitResolveVisitId = vi.hoisted(() => vi.fn());
 
@@ -29,11 +34,6 @@ vi.mock('@/lib/supabase/client', () => ({
 vi.mock('@/lib/supabase/untypedTable', () => ({
   fromUnknownTable: (_client: unknown, table: string) => fromUnknownTable(table),
 }));
-
-import {
-  batchResolveVisitAndAssignmentIds,
-  resolveVisitAndAssignmentIds,
-} from '@/lib/assist/assistExecutionVisitResolver';
 
 const TENANT = '56180c22-b894-4fab-b55e-a563c94dd6e7';
 const VISIT_ID = '11111111-1111-4111-8111-111111111111';

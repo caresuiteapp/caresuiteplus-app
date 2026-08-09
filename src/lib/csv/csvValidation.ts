@@ -1,4 +1,4 @@
-import type { CsvFieldMapping, CsvImportPreview, CsvImportType, CsvValidatedRow, CsvValidationSummary } from '@/types/csv';
+import type { CsvImportPreview, CsvImportType, CsvValidatedRow, CsvValidationSummary } from '@/types/csv';
 import type { ClientImportRow } from '@/types/clientImport';
 import { CLIENT_IMPORT_REQUIRED_FIELDS } from '@/types/clientImport';
 import type { EmployeeImportRow } from '@/types/employeeImport';

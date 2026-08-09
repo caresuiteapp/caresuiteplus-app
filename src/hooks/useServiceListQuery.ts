@@ -23,7 +23,7 @@ export function useServiceListQuery<T>(
     { enabled: !!tenantId },
   );
 
-  const allItems = query.data ?? [];
+  const allItems = useMemo(() => query.data ?? [], [query.data]);
 
   const items = useMemo(() => {
     const q = search.trim().toLowerCase();

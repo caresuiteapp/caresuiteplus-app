@@ -23,7 +23,7 @@ type StationaerDashboardHeroProps = {
 };
 
 export function StationaerDashboardHero({ stats, roleKey, tenantName }: StationaerDashboardHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -66,7 +66,7 @@ export function StationaerDashboardHero({ stats, roleKey, tenantName }: Stationa
     gap: spacing.sm,
   },
 }),
-    [colors, typography, gradients],
+    [typography.caption, typography.bodyStrong, colors.violet, colors.bgElevated, heroText.title, heroText.meta],
   );
 
 
@@ -101,4 +101,3 @@ export function StationaerDashboardHero({ stats, roleKey, tenantName }: Stationa
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

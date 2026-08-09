@@ -190,7 +190,7 @@ async function main() {
   const token = loginResult.token;
   const employeeId = loginResult.employeeId ?? KEVIN_EMPLOYEE_ID;
 
-  const paths: Array<[string, string, string]> = [
+  const paths: [string, string, string][] = [
     ['G3-Q01', 'assignments nested clients/employees', `assignments?select=${ASSIGNMENT_SELECT}&tenant_id=eq.${TENANT_ID}&id=eq.${KEVIN_ASSIGNMENT_ID}`],
     ['G3-Q02', 'assignments scoped by employee_id', `assignments?select=id,status,employee_id&tenant_id=eq.${TENANT_ID}&id=eq.${KEVIN_ASSIGNMENT_ID}&employee_id=eq.${employeeId}`],
     ['G3-Q03', 'assignment_tasks', `assignment_tasks?select=*&tenant_id=eq.${TENANT_ID}&assignment_id=eq.${KEVIN_ASSIGNMENT_ID}`],

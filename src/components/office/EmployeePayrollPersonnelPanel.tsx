@@ -149,7 +149,7 @@ export function EmployeePayrollPersonnelPanel({
   const [socialSecurityNumber, setSocialSecurityNumber] = useState('');
   const [employerRelationship, setEmployerRelationship] = useState(false);
 
-  const [secondaryRows, setSecondaryRows] = useState<Array<{ employerName: string; grossMonthlyIncome: string }>>([]);
+  const [secondaryRows, setSecondaryRows] = useState<{ employerName: string; grossMonthlyIncome: string }[]>([]);
 
   useEffect(() => {
     const p = payroll.personalData;

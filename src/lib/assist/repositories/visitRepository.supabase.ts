@@ -196,8 +196,6 @@ const DETAIL_SELECT = `${VISIT_LIST_CORE_SELECT},
   employees(first_name, last_name),
   assist_visit_tasks(*)`;
 
-const DETAIL_FLAT_SELECT = `${VISIT_LIST_CORE_SELECT},
-  ${DETAIL_EXTRA_SELECT}`;
 
 function shouldFallbackVisitEmbeddedSelect(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
@@ -278,12 +276,12 @@ async function hydrateVisitRowRelationsBatch(
   ]);
 
   const clientsById = new Map<string, VisitRow['clients']>();
-  for (const row of (clientResult.data ?? []) as Array<{ id: string } & VisitRow['clients']>) {
+  for (const row of (clientResult.data ?? []) as ({ id: string } & VisitRow['clients'])[]) {
     clientsById.set(row.id, row);
   }
 
   const employeesById = new Map<string, VisitRow['employees']>();
-  for (const row of (employeeResult.data ?? []) as Array<{ id: string } & VisitRow['employees']>) {
+  for (const row of (employeeResult.data ?? []) as ({ id: string } & VisitRow['employees'])[]) {
     employeesById.set(row.id, row);
   }
 
@@ -523,18 +521,6 @@ function mapDetail(
     proofStatus: row.proof_status,
   });
   const allowed = dedupeStatusTransitionButtons(getVisitAllowedTransitions(assignmentStatus));
-  const atRisk = isVisitAtRisk({
-    planningStatus: row.planning_status,
-    executionStatus: row.execution_status,
-    isAtRisk: row.is_at_risk,
-    errorMessage: row.error_message,
-  });
-  const incomplete = isVisitIncomplete({
-    documentationStatus: row.documentation_status,
-    proofStatus: row.proof_status,
-    executionStatus: row.execution_status,
-    isIncomplete: row.is_incomplete,
-  });
 
   return {
     ...mapListItem(row),
@@ -1509,7 +1495,7 @@ export const visitSupabaseRepository = {
       .eq('recurrence_json->>parentSeriesId', masterVisitId);
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
 
-    const childIds = ((data ?? []) as unknown as Array<{ id: string }>).map((row) => row.id);
+    const childIds = ((data ?? []) as unknown as { id: string }[]).map((row) => row.id);
     const childResults = await Promise.all(childIds.map((id) => this.getById(tenantId, id)));
     const failed = childResults.find((result) => !result.ok);
     if (failed && !failed.ok) return failed;
@@ -1570,7 +1556,7 @@ export const visitSupabaseRepository = {
       materializedOccurrences,
     };
 
-    const rewritten: Array<{ id: string; recurrenceJson: unknown }> = [];
+    const rewritten: { id: string; recurrenceJson: unknown }[] = [];
     const rewrite = async (id: string, recurrenceJson: unknown) => {
       const { data, error } = await fromUnknownTable(supabase, 'assist_visits')
         .update({ recurrence_json: recurrenceJson })
@@ -1836,14 +1822,14 @@ export const visitSupabaseRepository = {
       return { ok: false, error: toGermanSupabaseError(error) };
     }
 
-    const rows = (data ?? []) as Array<{
+    const rows = (data ?? []) as {
       id: string;
       dimension: string;
       from_status: string | null;
       to_status: string;
       note: string | null;
       changed_at: string;
-    }>;
+    }[];
 
     return { ok: true, data: rows.map(mapStatusHistoryRow) };
   },
@@ -1897,14 +1883,14 @@ export const visitSupabaseRepository = {
       return { ok: false, error: toGermanSupabaseError(existingChildrenError) };
     }
 
-    const recoveredChild = ((existingChildren ?? []) as unknown as Array<{
+    const recoveredChild = ((existingChildren ?? []) as unknown as {
       id: string;
       actual_start_at: string | null;
       actual_end_at: string | null;
       proof_status: string | null;
       documentation_status: string | null;
       updated_at: string;
-    }>).sort((a, b) => {
+    }[]).sort((a, b) => {
       const evidence = (row: typeof a) =>
         Number(Boolean(row.actual_start_at))
         + Number(Boolean(row.actual_end_at))

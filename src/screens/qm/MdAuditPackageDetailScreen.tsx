@@ -12,7 +12,6 @@ import { useAuth } from '@/lib/auth/context';
 import {
   approveMdAuditPackage,
   confirmMdPackageDatenschutz,
-  fetchMdAuditPackage,
   generateMdShareToken,
   revokeMdShareToken,
   selectMdPackageDocuments,

@@ -142,7 +142,7 @@ export function getPlanningBlockAbsences(tenantId: string): PlanningAbsenceBlock
 
 export function getEmployeeAvailabilityBlocks(
   tenantId: string,
-): Array<{ employeeId: string; startsAt: string; endsAt: string }> {
+): { employeeId: string; startsAt: string; endsAt: string }[] {
   return filterByTenant(ABSENCE_STORE.availability, tenantId).map((slot) => ({
     employeeId: slot.employeeId,
     startsAt: slot.startsAt,

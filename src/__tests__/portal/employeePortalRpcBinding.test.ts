@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
+
 const mocks = vi.hoisted(() => ({
   rpcImpl: vi.fn(),
   visitStatusFallback: vi.fn(),
@@ -30,8 +32,6 @@ vi.mock('@/lib/assist/repositories/visitRepository.supabase', () => ({
 vi.mock('@/lib/assist/clientBudgetTransactionService', () => ({
   markAssignmentExecuted: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
 }));
-
-import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
 
 describe('employee portal RPC binding regression', () => {
   beforeEach(() => {

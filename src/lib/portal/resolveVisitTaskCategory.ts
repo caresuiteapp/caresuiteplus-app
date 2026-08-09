@@ -79,9 +79,7 @@ const CATEGORY_KEYWORDS: Record<Exclude<VisitTaskCategoryKey, 'sonstiges'>, stri
 
 function inferFromTitle(task: EmployeePortalTaskItem): { key: VisitTaskCategoryKey; label: string } {
   const haystack = `${task.title} ${task.description ?? ''}`.toLowerCase();
-  for (const [key, keywords] of Object.entries(CATEGORY_KEYWORDS) as Array<
-    [Exclude<VisitTaskCategoryKey, 'sonstiges'>, string[]]
-  >) {
+  for (const [key, keywords] of Object.entries(CATEGORY_KEYWORDS) as [Exclude<VisitTaskCategoryKey, 'sonstiges'>, string[]][]) {
     if (keywords.some((word) => haystack.includes(word))) {
       return { key, label: VISIT_TASK_CATEGORY_LABELS[key] };
     }

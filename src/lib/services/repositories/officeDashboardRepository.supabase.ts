@@ -6,7 +6,6 @@ import type {
   OfficeDashboardMetrics,
 } from '@/lib/office/officeDashboardMetrics';
 import {
-  emptyOfficeDashboardMetrics,
   getLocalDayBounds,
   getLocalWeekBounds,
   getThirtyDaysAgoIso,

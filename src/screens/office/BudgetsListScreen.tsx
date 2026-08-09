@@ -55,7 +55,6 @@ export function BudgetsListScreen({ embedded = false }: BudgetsListScreenProps) 
     loadMore,
     refresh,
     resetFilters,
-    hasActiveFilters,
     isEmpty,
     isFilterEmpty,
   } = useBudgetList();

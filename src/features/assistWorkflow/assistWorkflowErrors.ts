@@ -138,7 +138,7 @@ export function logAssistWorkflowError(error: AssistWorkflowError): void {
   }
 }
 
-export function assistWorkflowErrorToResult<T = void>(
+export function assistWorkflowErrorToResult(
   error: AssistWorkflowError,
 ): { ok: false; error: string; errorCode: string } {
   logAssistWorkflowError(error);

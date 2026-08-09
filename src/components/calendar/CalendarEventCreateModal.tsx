@@ -99,7 +99,7 @@ export function CalendarEventCreateModal({
 }: CalendarEventCreateModalProps) {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
-  const { isDark, c } = useCareLightPalette();
+  const { c } = useCareLightPalette();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const isEdit = !!editEvent;
@@ -148,7 +148,7 @@ export function CalendarEventCreateModal({
         error: { color: '#F87171', fontSize: 13, paddingHorizontal: spacing.lg },
         actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, padding: spacing.lg },
       }),
-    [c.muted, height, isDark, width],
+    [c.muted, height, width],
   );
 
   const handleSelectTemplate = (next: CalendarEventTemplate) => {

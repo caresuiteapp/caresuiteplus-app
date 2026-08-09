@@ -16,7 +16,6 @@ import {
   lgoonStarDust,
   type LgoonDeepStreak,
   type LgoonNebulaBlob,
-  type LgoonOrbitArc,
   type LgoonPlanet,
   type LgoonRedEnergyPoint,
   type LgoonSmallBody,

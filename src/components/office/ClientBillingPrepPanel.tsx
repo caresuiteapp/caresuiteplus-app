@@ -84,7 +84,6 @@ export function ClientBillingPrepPanel({ clientId, onRecordRefresh }: Props) {
     return <ErrorState message={previewQuery.error} onRetry={previewQuery.refresh} />;
   }
 
-  const draftable = preview?.lines.filter((l) => l.status === 'draftable') ?? [];
   const blocked = preview?.lines.filter((l) => l.status === 'blocked') ?? [];
 
   return (

@@ -15,7 +15,7 @@ type PlatformHubHeroProps = {
 };
 
 export function PlatformHubHero({ roleKey, ocrJobCount = 0, aiJobCount = 0 }: PlatformHubHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -44,7 +44,7 @@ export function PlatformHubHero({ roleKey, ocrJobCount = 0, aiJobCount = 0 }: Pl
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 }),
-    [colors, typography, gradients],
+    [typography.caption, heroText.title, heroText.meta, colors.bgElevated],
   );
 
 
@@ -73,4 +73,3 @@ export function PlatformHubHero({ roleKey, ocrJobCount = 0, aiJobCount = 0 }: Pl
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

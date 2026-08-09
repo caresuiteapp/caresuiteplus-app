@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PreparedModeBanner } from '@/components/modules/PreparedModeBanner';
 import { PflegeReportsHero, PFLEGE_REPORTS_PREPARED_MESSAGE } from '@/components/pflege/PflegeReportsHero';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumInput } from '@/components/ui';
+import { ErrorState, LoadingState } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';

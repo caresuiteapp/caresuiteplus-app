@@ -1,8 +1,7 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { InsightSnapshotItem } from '@/types/modules/insight';
-import { colors, typography } from '@/theme';
 
 type InsightSnapshotsListTableProps = {
   items: InsightSnapshotItem[];
@@ -64,6 +63,3 @@ export function InsightSnapshotsListTable({ items, onItemPress }: InsightSnapsho
     />
   );
 }
-
-const styles = StyleSheet.create({
-});

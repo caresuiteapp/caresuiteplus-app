@@ -545,7 +545,7 @@ export function buildCommunicationDemoData(): CommunicationDemoBundle {
   });
 
   // --- Spezial-Threads: assignment, document, invoice, consultation, course ---
-  const specialThreads: Array<Omit<CommunicationThread, 'tenantId' | 'createdAt' | 'updatedAt'>> = [
+  const specialThreads: Omit<CommunicationThread, 'tenantId' | 'createdAt' | 'updatedAt'>[] = [
     {
       id: 'thread-assignment-001',
       threadType: 'assignment',

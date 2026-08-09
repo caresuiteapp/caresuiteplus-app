@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { CareSuiteBrandHeader } from '@/components/brand/CareSuiteBrandHeader';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { type CareModuleKey } from '@/design/tokens/modules';

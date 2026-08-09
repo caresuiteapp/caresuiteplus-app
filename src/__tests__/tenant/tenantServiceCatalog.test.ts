@@ -5,7 +5,6 @@ import {
   formatCatalogSummary,
   resetTenantServiceCatalogStore,
   saveTenantServiceCatalogItem,
-  seedTenantServiceCatalogIfEmpty,
 } from '@/lib/tenant/tenantServiceCatalogService';
 
 describe('tenantServiceCatalogService', () => {

@@ -18,7 +18,7 @@ type ReleaseDetailHeroProps = {
 };
 
 export function ReleaseDetailHero({ detail, roleKey }: ReleaseDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -43,7 +43,7 @@ export function ReleaseDetailHero({ detail, roleKey }: ReleaseDetailHeroProps) {
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.bgElevated],
   );
 
 
@@ -85,4 +85,3 @@ export function ReleaseDetailHero({ detail, roleKey }: ReleaseDetailHeroProps) {
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

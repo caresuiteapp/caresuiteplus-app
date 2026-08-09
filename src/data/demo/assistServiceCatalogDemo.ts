@@ -6,7 +6,7 @@ import {
 
 const BASE = '2026-06-01T10:00:00.000Z';
 
-const DEMO_SERVICES: Array<Omit<AssistServiceCatalogItem, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>> = [
+const DEMO_SERVICES: Omit<AssistServiceCatalogItem, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>[] = [
   {
     serviceKey: 'AB-STD',
     title: 'Alltagsbegleitung (Standard)',
@@ -54,7 +54,7 @@ const DEMO_SERVICES: Array<Omit<AssistServiceCatalogItem, 'id' | 'tenantId' | 'c
   },
 ];
 
-const DEMO_TASKS: Record<string, Array<Omit<AssistServiceTaskTemplate, 'id' | 'tenantId' | 'serviceCatalogItemId' | 'createdAt' | 'updatedAt'>>> = {
+const DEMO_TASKS: Record<string, Omit<AssistServiceTaskTemplate, 'id' | 'tenantId' | 'serviceCatalogItemId' | 'createdAt' | 'updatedAt'>[]> = {
   'AB-STD': [
     { taskKey: 'anreise', title: 'Anreise und Begrüßung', description: 'Kontaktaufnahme', sortOrder: 0, isRequired: true, estimatedMinutes: 10 },
     { taskKey: 'begleitung', title: 'Begleitung im Alltag', description: 'Gespräch oder Spaziergang', sortOrder: 1, isRequired: true, estimatedMinutes: 40 },

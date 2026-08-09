@@ -87,7 +87,7 @@ export function OfficeDocumentDetailModal({
           flexGrow: 1,
         },
       }),
-    [isDark, sheetMaxHeight, sheetWidth],
+    [sheetMaxHeight, sheetWidth],
   );
 
   if (!documentId) return null;

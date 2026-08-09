@@ -1,4 +1,4 @@
-import type { InvoiceRecord, InvoiceTaxMode } from '@/types/documents/invoice';
+import type { InvoiceRecord } from '@/types/documents/invoice';
 import type { TemplateValidationIssue, TemplateValidationResult } from '@/features/documents/templateEngine/types';
 import { validateTaxLogicConsistency, type TaxCalculationResult } from './invoiceTaxLogic';
 

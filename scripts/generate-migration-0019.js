@@ -41,28 +41,6 @@ const views = [
   'v_tour_stop_overview','v_vital_sign_overview','v_wound_overview'
 ];
 
-const secdefFns = [
-  'add_ai_message','add_live_tracking_event','add_support_ticket_message',
-  'book_payment_for_invoice','calculate_assessment_score','check_release_readiness',
-  'complete_follow_up','complete_measure','copy_system_template_to_tenant',
-  'create_access_code_for_client','create_access_code_for_employee','create_ai_conversation',
-  'create_audit_log','create_care_report','create_dunning_case_for_invoice',
-  'create_invoice_from_service_record','create_service_record_from_assignment',
-  'create_support_ticket','current_profile_id','current_tenant_id',
-  'employee_portal_save_documentation','employee_portal_save_signature',
-  'employee_portal_set_assignment_status','enqueue_outbound_message',
-  'enqueue_pdf_generation_job','generate_invoice_number','generate_support_ticket_number',
-  'get_business_bootstrap','get_final_readiness_report','get_options_for_group',
-  'get_portal_bootstrap','get_tenant_subscription_status','handle_new_user',
-  'has_module_access','has_permission','has_product_access','has_role_permission',
-  'is_feature_enabled','is_tenant_admin','log_app_event','log_error','log_portal_event',
-  'mark_notification_read','portal_send_message','refresh_demo_health_checks',
-  'refresh_final_readiness','render_template_preview','rls_auto_enable',
-  'search_catalog_items','search_documentation_phrases','send_thread_message',
-  'set_assignment_status','start_portal_session_by_code','update_course_progress',
-  'update_health_check','validate_access_code','validate_portal_session'
-];
-
 let sql = `-- ==========================================================================
 -- CareSuite+ — Migration 0019: Security Advisor Remediation
 -- Behebt P0/P1: security_invoker Views, fehlende RLS-Policies, anon-Revokes,

@@ -67,7 +67,6 @@ export function VisitProofReviewPanel({
   const snapshotPreview = useMemo(() => buildVisitProofPreviewFromProof(proof), [proof]);
   const {
     preview: enrichedPreview,
-    loading: previewLoading,
     error: previewError,
     enrichmentReady,
   } = useVisitProofReviewPreview(tenantId, proof);

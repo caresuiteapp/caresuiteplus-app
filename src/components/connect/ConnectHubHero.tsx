@@ -15,7 +15,7 @@ type ConnectHubHeroProps = {
 };
 
 export function ConnectHubHero({ categories, roleKey }: ConnectHubHeroProps) {
-  const { colors } = useLegacyTheme();
+  useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const integrationCount = categories.reduce(
     (sum, category) => sum + category.integrations.filter((item) => item.readiness !== 'disabled').length,
@@ -44,7 +44,7 @@ export function ConnectHubHero({ categories, roleKey }: ConnectHubHeroProps) {
         iconText: { fontSize: 22 },
         badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
       }),
-    [colors, heroText],
+    [heroText],
   );
 
   return (

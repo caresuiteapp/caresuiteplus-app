@@ -1,5 +1,4 @@
 import { ASSIST_CATALOG_TASKS } from '@/data/assist/assistTaskCatalog';
-import { TASK_CATALOG } from '@/data/demo/clients/taskCatalog';
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
 import type { ListFilterOption } from '@/components/ui';
 import type { PortalNextAppointment, PortalRequestType } from '@/types/portal/assist';

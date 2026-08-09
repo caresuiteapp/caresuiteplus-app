@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-vi.mock('react-native', () => ({
-  Platform: { OS: 'web' },
-}));
-
 import {
   readInitialConnectivityState,
   type ConnectivityState,
 } from '@/hooks/useConnectivity';
+
+vi.mock('react-native', () => ({
+  Platform: { OS: 'web' },
+}));
 
 describe('readInitialConnectivityState', () => {
   beforeEach(() => {

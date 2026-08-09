@@ -26,7 +26,6 @@ export function VisitProofReviewScreen() {
     filteredCount,
     loading,
     error,
-    refreshing,
     showSuccess,
     search,
     setSearch,

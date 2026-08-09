@@ -3,10 +3,10 @@ import type { OfficeRecipientType } from '@/types/office/officeCompose';
 
 export type ComposeTemplateAudience = 'klient' | 'mitarbeiter' | 'team' | 'intern';
 
-export const COMPOSE_TEMPLATE_AUDIENCES: ReadonlyArray<{
+export const COMPOSE_TEMPLATE_AUDIENCES: readonly {
   key: ComposeTemplateAudience;
   label: string;
-}> = [
+}[] = [
   { key: 'klient', label: 'Klient' },
   { key: 'mitarbeiter', label: 'Mitarbeiter' },
   { key: 'team', label: 'Team' },

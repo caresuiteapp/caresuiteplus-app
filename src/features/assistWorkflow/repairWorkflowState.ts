@@ -6,7 +6,6 @@ import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignmentRepository.supabase';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import { deriveWorkflowStatus } from './deriveWorkflowStatus';
 import type { AssistExecutionContext } from './types';

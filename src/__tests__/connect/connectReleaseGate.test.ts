@@ -20,7 +20,6 @@ import { plausibilizeAssignmentStatusWithGps } from '@/lib/geo/locationService';
 import { sendReferralRequest } from '@/lib/marketplace/referralService';
 import { prepareInvoicePaymentLink } from '@/lib/payments/paymentTransactionService';
 import { checkRoleAccess } from '@/lib/navigation';
-import { CONNECT_PREPARED_BLOCK_TEXT, CONNECT_PREPARED_BLOCK_TITLE } from '@/types/connect/featureGate';
 
 const ADMIN = 'business_admin' as const;
 const NURSE = 'nurse' as const;

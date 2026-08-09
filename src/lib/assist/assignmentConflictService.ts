@@ -29,7 +29,7 @@ export function detectAssignmentConflicts(input: {
   >;
   existing: AssignmentWorkflowRecord[];
   employeeAbsences?: PlanningAbsenceBlock[];
-  employeeAvailability?: Array<{ employeeId: string; startsAt: string; endsAt: string }>;
+  employeeAvailability?: { employeeId: string; startsAt: string; endsAt: string }[];
   actorRoleKey?: RoleKey | null;
 }): AssignmentConflict[] {
   const conflicts: AssignmentConflict[] = [];

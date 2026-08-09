@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScreenShell } from '@/components/layout';
 import { LockedActionBanner } from '@/components/permissions';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
-import { moduleColor } from '@/design/tokens/modules';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
@@ -22,7 +21,6 @@ export function EmployeeHrCasesScreen() {
   const tenantId = useServiceTenantId();
   const canView = can('office.employees.hr.view');
   const canManage = can('office.employees.hr.manage');
-  const officeAccent = moduleColor('office');
   const [items, setItems] = useState<EmployeeHrCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -1,10 +1,9 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import { AuroraSegmentedControl } from '@/components/aurora';
 import {
-  ErrorState,
   LoadingState,
   PremiumButton,
   PremiumKpiCard,
@@ -19,7 +18,6 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import {
   fetchAuditDashboardSummary,
-  fetchTimeTrackingCatalogs,
   fetchTimeTrackingSettings,
   listTimeAuditLogs,
   listTimeCorrectionRequests,
@@ -38,7 +36,7 @@ type AuditTab =
   | 'exports'
   | 'settings';
 
-const TABS: Array<{ key: AuditTab; label: string }> = [
+const TABS: { key: AuditTab; label: string }[] = [
   { key: 'overview', label: 'Übersicht' },
   { key: 'employees', label: 'Mitarbeitende' },
   { key: 'daily', label: 'Tagesprotokolle' },

@@ -10,6 +10,9 @@ import {
   setActiveTrackingPerformanceMode,
 } from '@/lib/performance/devicePerformance';
 
+/** React hook wrapper. */
+import { useEffect, useRef } from 'react';
+
 export type GeolocationSnapshot = {
   latitude: number;
   longitude: number;
@@ -256,9 +259,6 @@ export function resetGeolocationWatchesForTests(): void {
 export function getActiveGeolocationWatchCount(): number {
   return watches.size;
 }
-
-/** React hook wrapper. */
-import { useEffect, useRef } from 'react';
 
 export function useSingleGeolocationWatch(options: SingleGeolocationWatchOptions): void {
   const onSnapshotRef = useRef(options.onSnapshot);

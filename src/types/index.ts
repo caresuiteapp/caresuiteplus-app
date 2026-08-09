@@ -1,7 +1,8 @@
 export * from './core/base';
 export * from './core/tenant';
 export * from './core/auth';
-export * from './workflow/status';
+export { DEFAULT_WORKFLOW_TRANSITIONS, WORKFLOW_STATUS_LABELS } from './workflow/status';
+export type { StatusTransition } from './workflow/status';
 export * from './portal';
 export * from './modules/office';
 export * from './modules/billing';

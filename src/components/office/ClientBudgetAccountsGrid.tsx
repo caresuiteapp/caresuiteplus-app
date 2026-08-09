@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, useWindowDimensions, View } from 'react-native';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import {
@@ -311,7 +311,7 @@ export function BudgetAccountsEditableGrid({
   const [editAccount, setEditAccount] = useState<ClientBudgetAccount | null>(null);
   const [deactivateAccount, setDeactivateAccount] = useState<ClientBudgetAccount | null>(null);
 
-  async function handleToggle(account: ClientBudgetAccount, enabled: boolean) {
+  const handleToggle = useCallback(async (account: ClientBudgetAccount, enabled: boolean) => {
     if (!tenantId || isReadOnly) return;
     if (!enabled) {
       setDeactivateAccount(account);
@@ -319,7 +319,7 @@ export function BudgetAccountsEditableGrid({
     }
     await setClientBudgetEnabled(tenantId, clientId, account.id, true);
     onChanged();
-  }
+  }, [clientId, isReadOnly, onChanged, tenantId]);
 
   const columns: DataTableColumn<ClientBudgetAccount>[] = useMemo(
     () => [
@@ -460,7 +460,7 @@ export function BudgetAccountsEditableGrid({
           ),
       },
     ],
-    [isReadOnly, profile.canUseBudgetByCatalogKey, text.primary, text.secondary],
+    [handleToggle, isReadOnly, profile.canUseBudgetByCatalogKey, text.primary, text.secondary],
   );
 
   function renderMobileCard(a: ClientBudgetAccount) {

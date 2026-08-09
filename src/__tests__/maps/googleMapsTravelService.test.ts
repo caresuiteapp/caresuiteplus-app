@@ -14,11 +14,11 @@ import {
 } from '@/lib/maps/googleMapsTravelService';
 import { buildDefaultMobilitySettings } from '@/lib/office/employeeMobilityService';
 
+import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
+
 vi.mock('@/lib/supabase/edgeFunctions', () => ({
   invokeEdgeFunction: vi.fn(),
 }));
-
-import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 
 describe('transportModeMapping', () => {
   it('maps standard modes to Google travel modes', () => {

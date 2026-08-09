@@ -18,13 +18,5 @@ export function useAiPageContext(context: Partial<AiPageContextSnapshot>): void 
     return () => {
       clearRegisteredPageContext(CONTEXT_KEYS);
     };
-  }, [
-    context.pageTitle,
-    context.entityType,
-    context.entityId,
-    context.entityLabel,
-    context.activeTab,
-    context.summary,
-    JSON.stringify(context.metadata ?? {}),
-  ]);
+  }, [context.pageTitle, context.entityType, context.entityId, context.entityLabel, context.activeTab, context.summary, context]);
 }

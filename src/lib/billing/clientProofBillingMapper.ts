@@ -33,7 +33,7 @@ function parseDurationMinutes(start: string | null, end: string | null, fallback
 
 export function mapProofTasksToBillingSnapshot(
   snapshot: Record<string, unknown>,
-): Array<{ title: string; status?: string }> {
+): { title: string; status?: string }[] {
   const raw = snapshot.tasks ?? snapshot.taskList ?? snapshot.completedTasks;
   if (!Array.isArray(raw)) return [];
   return raw

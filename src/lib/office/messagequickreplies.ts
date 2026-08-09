@@ -3,7 +3,6 @@ import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabase/errors';
-import { OFFICE_MESSAGING_SCHEMA_ERROR } from '@/lib/office/messagethreadservice';
 
 export type OfficeQuickReplyTemplate = {
   key: string;

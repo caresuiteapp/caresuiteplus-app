@@ -5,10 +5,10 @@ export type OfficeRecipientOption = {
   label: string;
 };
 
-export const OFFICE_RECIPIENT_TYPE_OPTIONS: ReadonlyArray<{
+export const OFFICE_RECIPIENT_TYPE_OPTIONS: readonly {
   key: OfficeRecipientType;
   label: string;
-}> = [
+}[] = [
   { key: 'client', label: 'Klient:in' },
   { key: 'employee', label: 'Mitarbeiter:in' },
   { key: 'team', label: 'Team' },

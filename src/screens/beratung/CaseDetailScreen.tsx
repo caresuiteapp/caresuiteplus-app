@@ -1,11 +1,10 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { fetchCounselingCaseDetail } from '@/lib/beratung/caseDetailService';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CaseDetailHero } from '@/components/beratung';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumButton, SectionPanel } from '@/components/ui';
 import { useCounselingCaseDetail } from '@/hooks/useCounselingCaseDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';

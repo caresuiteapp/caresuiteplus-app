@@ -136,7 +136,7 @@ export function TenantModuleSettingsForm({
 }) {
   const text = useAuroraAdaptiveText();
   const toggle = (key: keyof TenantModuleSettings) => onChange({ ...value, [key]: !value[key] });
-  const rows: Array<{ key: keyof TenantModuleSettings; label: string }> = [
+  const rows: { key: keyof TenantModuleSettings; label: string }[] = [
     { key: 'assistEnabled', label: 'Assist / Alltagsbegleitung' },
     { key: 'pflegeEnabled', label: 'Pflege ambulant' },
     { key: 'stationaerEnabled', label: 'Stationär' },

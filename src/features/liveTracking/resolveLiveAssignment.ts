@@ -329,7 +329,7 @@ export async function resolveLiveAssignmentViaRpc(
     return { ok: false, error: msg };
   }
 
-  const rows = data as Array<Record<string, unknown>> | null;
+  const rows = data as Record<string, unknown>[] | null;
   const row = rows?.[0] ?? null;
   if (!row?.assignment_id) {
     return resolveLiveAssignment({ tenantId, rawId });

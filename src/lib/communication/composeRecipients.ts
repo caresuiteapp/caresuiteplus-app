@@ -21,10 +21,10 @@ export type ComposeRecipientType =
 
 export type ComposeRecipientCategory = 'client_contacts' | 'staff' | 'organization';
 
-export const COMPOSE_RECIPIENT_CATEGORIES: ReadonlyArray<{
+export const COMPOSE_RECIPIENT_CATEGORIES: readonly {
   key: ComposeRecipientCategory;
   label: string;
-}> = [
+}[] = [
   { key: 'client_contacts', label: 'Klient & Kontakte' },
   { key: 'staff', label: 'Mitarbeitende & Teams' },
   { key: 'organization', label: 'Organisation' },
@@ -32,7 +32,7 @@ export const COMPOSE_RECIPIENT_CATEGORIES: ReadonlyArray<{
 
 export const COMPOSE_RECIPIENT_TYPES: Record<
   ComposeRecipientCategory,
-  ReadonlyArray<{ key: ComposeRecipientType; label: string }>
+  readonly { key: ComposeRecipientType; label: string }[]
 > = {
   client_contacts: [
     { key: 'client', label: 'Klient:in' },

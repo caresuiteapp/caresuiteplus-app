@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { PremiumButton, PremiumCard } from '@/components/ui';
 import type { QmDocument } from '@/lib/qm';
 import { colors, spacing, typography } from '@/theme';

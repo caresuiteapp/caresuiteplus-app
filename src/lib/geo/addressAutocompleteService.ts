@@ -84,7 +84,7 @@ async function searchGooglePlaces(
 
   const payload = (await response.json()) as {
     status?: string;
-    predictions?: Array<{ place_id: string; description: string }>;
+    predictions?: { place_id: string; description: string }[];
   };
 
   if (payload.status && payload.status !== 'OK' && payload.status !== 'ZERO_RESULTS') {

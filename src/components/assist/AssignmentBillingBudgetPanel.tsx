@@ -35,7 +35,7 @@ import {
   CARE_PREVENTION_MODE_LABELS,
   type ClientAssistBillingProfile,
 } from '@/types/assist/clientAssistBilling';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
 
 const FORM_CTX = { viewContext: 'form' as const };
 

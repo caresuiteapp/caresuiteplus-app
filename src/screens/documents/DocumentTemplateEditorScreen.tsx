@@ -66,7 +66,7 @@ export function DocumentTemplateEditorScreen() {
     setTitle(detail.title);
     setHtml(version.htmlTemplate);
     setCss(version.cssTemplate);
-  }, [detail?.id, version?.id, version?.updatedAt]);
+  }, [detail, version]);
 
   if (!can('office.catalogs.view')) {
     return (

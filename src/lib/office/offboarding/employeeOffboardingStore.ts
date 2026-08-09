@@ -1,6 +1,5 @@
 import type {
   AccessRevocationKind,
-  AccessRevocationStatus,
   EmployeeAccessRevocation,
   EmployeeFinalClearance,
   EmployeeOffboardingCheck,

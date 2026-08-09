@@ -109,8 +109,8 @@ export function labelEmploymentStatus(value: EmployeeEmploymentStatus | string):
 
 export function resolvePersonnelBlockerActions(
   deployability: EmployeeDeployabilityCheck,
-): Array<{ label: string; tab: EmployeePersonnelTabKey }> {
-  const actions: Array<{ label: string; tab: EmployeePersonnelTabKey }> = [];
+): { label: string; tab: EmployeePersonnelTabKey }[] {
+  const actions: { label: string; tab: EmployeePersonnelTabKey }[] = [];
   const seen = new Set<string>();
 
   for (const issue of [...deployability.blockers, ...deployability.warnings]) {

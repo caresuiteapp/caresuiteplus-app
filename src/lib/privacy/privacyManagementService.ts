@@ -22,7 +22,6 @@ import { createInternalTask } from '@/lib/tasks/internalTaskService';
 import { guardLiveDemoFeature, guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
 import {
-  DSGVO_ART12_RESPONSE_DAYS,
   computeDataSubjectRequestDeadline,
 } from './dataSubjectRequestSla';
 import {

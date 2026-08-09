@@ -87,7 +87,7 @@ export function AssistLiveStatusScreen() {
   const { overview, loading, error, refresh } = useAssistLiveMonitoring();
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
 
-  const rows = overview?.rows ?? [];
+  const rows = useMemo(() => overview?.rows ?? [], [overview?.rows]);
   const persistenceActive = isAssistTrackingPersistenceActive();
   const mapProviderReady = isAssistMapProviderConfigured();
   const demoMapPreview = getServiceMode() !== 'supabase' || isDemoMode();

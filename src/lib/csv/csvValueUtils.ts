@@ -214,7 +214,7 @@ export function issue(
 
 export function resolveLeistungsartKey(
   raw: string,
-  catalogLabels: Array<{ key: string; label: string }>,
+  catalogLabels: { key: string; label: string }[],
 ): string | null {
   const value = raw.trim().toLowerCase();
   if (!value) return null;
@@ -237,7 +237,7 @@ export function resolveLeistungsartKey(
 
 export function leistungsartToLabel(
   key: string | null | undefined,
-  catalogLabels: Array<{ key: string; label: string }>,
+  catalogLabels: { key: string; label: string }[],
 ): string {
   if (!key) return '';
   const found = catalogLabels.find((e) => e.key === key);

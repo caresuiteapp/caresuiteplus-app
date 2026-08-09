@@ -46,7 +46,7 @@ export function AssistServiceCatalogHero({
         previewLabel: { ...typography.body, color: colors.textPrimary, flex: 1 },
         previewCategory: { ...typography.caption, color: 'rgba(255,255,255,0.75)', maxWidth: 120 },
       }),
-    [colors, typography],
+    [colors.borderSoft, colors.orange, colors.textPrimary, heroText.meta, heroText.title, typography.body, typography.caption],
   );
 
   const activeCount = services.filter((service) => service.status === 'active').length;

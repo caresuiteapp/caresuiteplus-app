@@ -40,7 +40,7 @@ export function CareDocumentationDetailHero({
   roleKey,
   isReadOnly,
 }: CareDocumentationDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -66,7 +66,7 @@ export function CareDocumentationDetailHero({
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, typography.caption, colors.cyan],
   );
 
 
@@ -122,4 +122,3 @@ export function CareDocumentationDetailHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

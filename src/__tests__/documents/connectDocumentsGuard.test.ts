@@ -2,8 +2,6 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import {
   assertDocumentWritable,
   assertHealthDataOcrAllowed,
-  assertOcrAllowed,
-  assertSigningAllowed,
   assertTenantScope,
   containsDocumentSecretLiteral,
   createDocumentVersion,

@@ -15,6 +15,9 @@ import {
 } from '@/lib/offline/assignmentDetailPrefetch';
 import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
 
+import { fetchPortalAppointments, fetchPortalAppointmentDetail } from '@/lib/portal/appointmentService';
+import { fetchLiveEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionLiveService';
+
 type StoreRecord = Record<string, unknown>;
 
 class MemoryObjectStore {
@@ -157,9 +160,6 @@ vi.mock('@/lib/portal/employeePortalExecutionLiveService', async (importOriginal
     fetchLiveEmployeePortalAssignmentDetail: vi.fn(),
   };
 });
-
-import { fetchPortalAppointments, fetchPortalAppointmentDetail } from '@/lib/portal/appointmentService';
-import { fetchLiveEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionLiveService';
 
 describe('OFFLINE.3 detail prefetch integration', () => {
   beforeEach(() => {

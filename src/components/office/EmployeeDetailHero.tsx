@@ -38,7 +38,7 @@ function statusVariant(status: string) {
 }
 
 export function EmployeeDetailHero({ employee, roleKey, isReadOnly }: EmployeeDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -84,7 +84,7 @@ export function EmployeeDetailHero({ employee, roleKey, isReadOnly }: EmployeeDe
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.orange],
   );
 
 
@@ -139,4 +139,3 @@ export function EmployeeDetailHero({ employee, roleKey, isReadOnly }: EmployeeDe
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

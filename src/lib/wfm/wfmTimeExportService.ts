@@ -256,7 +256,7 @@ export function resetWfmTimeExportDemoStore(): void {
   demoFinalizedReferenceKeys.clear();
 }
 
-function useDemoStore(): boolean {
+function shouldUseDemoStore(): boolean {
   return getServiceMode() !== 'supabase' || !getSupabaseClient();
 }
 
@@ -498,7 +498,7 @@ async function loadReviewById(
   tenantId: string,
   reviewId: string,
 ): Promise<ServiceResult<WfmTimeExportReviewRow | null>> {
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     const { listReviewsForPeriod } = await import('./wfmTimeReviewService');
     const listed = await listReviewsForPeriod(tenantId, '1970-01-01', '2999-12-31');
     if (!listed.ok) return listed;
@@ -554,7 +554,7 @@ function resolveReviewMinutes(review: WfmTimeExportReviewRow): number {
 }
 
 async function loadFinalizedReferenceKeys(tenantId: string): Promise<Set<string>> {
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     return new Set(
       [...demoFinalizedReferenceKeys].filter((key) => key.startsWith(`${tenantId}:`)),
     );
@@ -587,7 +587,7 @@ async function listReviewsForExportPeriod(
   tenantId: string,
   period: WfmTimeExportPeriod,
 ): Promise<ServiceResult<WfmTimeExportReviewRow[]>> {
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     const { listReviewsForPeriod } = await import('./wfmTimeReviewService');
     const listed = await listReviewsForPeriod(tenantId, period.startDate, period.endDate);
     if (!listed.ok) return listed;
@@ -742,7 +742,7 @@ export async function createExportDraft(
     updatedAt: now,
   };
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     demoJobs.set(jobId, job);
     return {
       ok: true,
@@ -799,7 +799,7 @@ async function getExportJobById(
   tenantId: string,
   jobId: string,
 ): Promise<ServiceResult<WfmTimeExportJob | null>> {
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     const job = demoJobs.get(jobId);
     if (!job || job.tenantId !== tenantId) return { ok: true, data: null };
     return { ok: true, data: job };
@@ -860,7 +860,7 @@ export async function validateExportBatch(
 
   const valid = partitioned.data.blocked.length === 0 && partitioned.data.exportable.length > 0;
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     const job = demoJobs.get(batchId);
     if (job && valid) {
       demoJobs.set(batchId, { ...job, status: 'validated', updatedAt: new Date().toISOString() });
@@ -957,7 +957,7 @@ export async function finalizeExportBatch(
     });
   }
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     for (const item of items) {
       if (demoFinalizedReferenceKeys.has(demoReferenceKey(tenantId, item.referenceKey))) {
         return { ok: false, error: 'Doppel-Finalexport für reference_key blockiert.' };
@@ -1108,7 +1108,7 @@ export async function listExportBatches(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     let rows = [...demoJobs.values()].filter(
       (job) => job.tenantId === tenantId && job.exportType === 'reviewed_time',
     );
@@ -1154,7 +1154,7 @@ export async function listExportItems(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     return {
       ok: true,
       data: demoItems.filter((item) => item.tenantId === tenantId && item.exportJobId === exportJobId),
@@ -1198,7 +1198,7 @@ export async function cancelExportBatch(
 
   const now = new Date().toISOString();
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     const canceled: WfmTimeExportJob = {
       ...jobResult.data,
       status: 'canceled',
@@ -1246,7 +1246,7 @@ export async function detectChangedAfterExport(
     const listed = await listExportItems(tenantId, actorRoleKey, filters.exportJobId);
     if (!listed.ok) return listed;
     reviewIds = [...new Set(listed.data.map((item) => item.reviewId))];
-  } else if (useDemoStore()) {
+  } else if (shouldUseDemoStore()) {
     reviewIds = [...new Set(demoItems.filter((item) => item.tenantId === tenantId).map((item) => item.reviewId))];
   } else {
     const supabase = getSupabaseClient();
@@ -1287,14 +1287,14 @@ async function detectChangedAfterExportForReview(
     return { ok: true, data: null };
   }
 
-  const activeItem = useDemoStore()
+  const activeItem = shouldUseDemoStore()
     ? findActiveExportItemForReview(tenantId, review)
     : null;
 
   let previousHash: string | null = null;
   if (activeItem) {
     previousHash = activeItem.sourceReviewVersionHash ?? activeItem.payloadHash;
-  } else if (!useDemoStore()) {
+  } else if (!shouldUseDemoStore()) {
     const supabase = getSupabaseClient();
     if (supabase && review.latestExportItemId) {
       const { data } = await fromUnknownTable(supabase, EXPORT_ITEMS_TABLE)
@@ -1350,7 +1350,7 @@ export async function markChangedAfterExport(
   const alreadyMarked =
     reviewResult.data.exportStatus === 'changed_after_export' || reviewResult.data.changedAfterExport;
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     setDemoReviewExportState(tenantId, reviewId, {
       exportStatus: 'changed_after_export',
       changedAfterExport: true,
@@ -1423,7 +1423,7 @@ export async function listCorrectionCandidates(
     const listed = await listReviewsForExportPeriod(tenantId, period);
     if (!listed.ok) return listed;
     reviews = listed.data;
-  } else if (useDemoStore()) {
+  } else if (shouldUseDemoStore()) {
     const { listReviewsForPeriod } = await import('./wfmTimeReviewService');
     const listed = await listReviewsForPeriod(tenantId, '1970-01-01', '2999-12-31');
     if (!listed.ok) return listed;
@@ -1466,7 +1466,7 @@ export async function listCorrectionCandidates(
   }
 
   const candidates = reviews.filter((review) => {
-    const hasActive = useDemoStore()
+    const hasActive = shouldUseDemoStore()
       ? Boolean(findActiveExportItemForReview(tenantId, review))
       : Boolean(review.latestExportItemId);
     return isReviewCorrectionCandidate(
@@ -1500,7 +1500,7 @@ async function partitionReviewsForCorrection(
     }
 
     const review = reviewResult.data;
-    const hasActive = useDemoStore()
+    const hasActive = shouldUseDemoStore()
       ? Boolean(findActiveExportItemForReview(tenantId, review))
       : Boolean(review.latestExportItemId);
     const pendingReexportJobId =
@@ -1596,7 +1596,7 @@ export async function createCorrectionDraft(
     updatedAt: now,
   };
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     demoJobs.set(jobId, job);
     for (const review of partitioned.data.exportable) {
       setDemoReviewExportState(tenantId, review.id, { pendingReexportJobId: jobId });
@@ -1703,7 +1703,7 @@ export async function validateCorrectionDraft(
   if (!period) return { ok: false, error: 'Export-Zeitraum im Job ungültig.' };
 
   let reviewIds: string[] = [];
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     reviewIds = [...demoReviewExportState.entries()]
       .filter(([, state]) => state.pendingReexportJobId === jobId)
       .map(([key]) => key.split(':').slice(1).join(':'));
@@ -1728,7 +1728,7 @@ export async function validateCorrectionDraft(
 
   const valid = partitioned.data.blocked.length === 0 && partitioned.data.exportable.length > 0;
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     const job = demoJobs.get(jobId);
     if (job && valid) {
       demoJobs.set(jobId, { ...job, status: 'validated', updatedAt: new Date().toISOString() });
@@ -1785,7 +1785,7 @@ export async function finalizeCorrectionExport(
 
   for (const review of validation.data.exportableReviews) {
     let oldItem: WfmTimeExportItem | null = null;
-    if (useDemoStore()) {
+    if (shouldUseDemoStore()) {
       oldItem = findActiveExportItemForReview(tenantId, review);
     } else {
       const supabase = getSupabaseClient();
@@ -1816,7 +1816,7 @@ export async function finalizeCorrectionExport(
     supersededItemIds.push(oldItem.id);
   }
 
-  if (useDemoStore()) {
+  if (shouldUseDemoStore()) {
     for (const newItem of newItems) {
       const oldItem = demoItems.find((item) => item.id === newItem.supersedesExportItemId);
       if (!oldItem) {

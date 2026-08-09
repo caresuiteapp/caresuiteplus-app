@@ -3,7 +3,7 @@ import { LockedActionBanner } from '@/components/permissions';
 import { CareRecordsListView } from '@/components/assist/CareRecordsListView';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumButton, SuccessState } from '@/components/ui';
+import { EmptyState, ErrorState, LoadingState, SuccessState } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { useCareRecordList } from '@/hooks/useCareRecordList';
 import { usePermissions } from '@/hooks/usePermissions';

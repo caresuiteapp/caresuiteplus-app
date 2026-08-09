@@ -34,7 +34,7 @@ function statusVariant(status: string) {
 }
 
 export function CourseDetailHero({ course, roleKey, isReadOnly }: CourseDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -80,7 +80,7 @@ export function CourseDetailHero({ course, roleKey, isReadOnly }: CourseDetailHe
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle],
   );
 
 
@@ -133,4 +133,3 @@ export function CourseDetailHero({ course, roleKey, isReadOnly }: CourseDetailHe
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

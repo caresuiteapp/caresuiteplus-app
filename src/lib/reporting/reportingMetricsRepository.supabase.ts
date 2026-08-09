@@ -1,7 +1,6 @@
 import type { ServiceResult } from '@/types';
 import type { ReportingDateRange, ReportingMetricsRawBundle } from '@/types/reporting/metrics';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { invoiceSupabaseRepository } from '@/lib/services/repositories/invoiceRepository.supabase';

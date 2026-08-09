@@ -66,7 +66,7 @@ import { spacing } from '@/theme';
 
 export type EmployeePersonnelUiTabKey = PersonnelUiTabKey;
 
-export const OFFICE_PERSONNEL_UI_TABS: Array<{ key: EmployeePersonnelUiTabKey; label: string }> = [
+export const OFFICE_PERSONNEL_UI_TABS: { key: EmployeePersonnelUiTabKey; label: string }[] = [
   { key: 'overview', label: 'Übersicht' },
   { key: 'master_data', label: 'Stammdaten' },
   { key: 'contact', label: 'Kontakt' },
@@ -200,18 +200,16 @@ export function EmployeePersonnelFilePanel({
   }));
   const employmentStatusOptions = useMemo(
     () =>
-      (Object.entries(EMPLOYEE_EMPLOYMENT_STATUS_LABELS) as Array<[EmployeeEmploymentStatus, string]>).map(
+      (Object.entries(EMPLOYEE_EMPLOYMENT_STATUS_LABELS) as [EmployeeEmploymentStatus, string][]).map(
         ([key, label]) => ({ key, label }),
       ),
     [],
   );
 
-  function syncFormFromFile() {
+  useEffect(() => {
     if (!file) return;
-    const rowHasFirstAid = file.qualifications.some((q) => q.qualificationType === 'first_aid');
-    const rowHasDriver = file.qualifications.some((q) => q.qualificationType === 'driving_license');
-    setHasFirstAid(rowHasFirstAid);
-    setHasDriverLicense(rowHasDriver);
+    setHasFirstAid(file.qualifications.some((q) => q.qualificationType === 'first_aid'));
+    setHasDriverLicense(file.qualifications.some((q) => q.qualificationType === 'driving_license'));
     setHasPoliceClearance(file.backgroundCheck.present || file.backgroundCheck.status === 'verified');
     setPoliceClearanceDate(file.backgroundCheck.issueDate ?? '');
     setPoliceClearanceValidUntil(file.backgroundCheck.followUpDueAt ?? '');
@@ -220,10 +218,6 @@ export function EmployeePersonnelFilePanel({
     setWeeklyHours(file.employment.weeklyHours != null ? String(file.employment.weeklyHours) : '');
     setEntryDate(file.masterData.entryDate ?? '');
     setWeeklyHoursError(null);
-  }
-
-  useEffect(() => {
-    syncFormFromFile();
   }, [file]);
 
   useEffect(() => {

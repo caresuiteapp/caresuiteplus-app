@@ -62,7 +62,7 @@ export function splitStreetAndHouseNumber(line: string): Pick<GermanAddressField
   return { street: trimmed, houseNumber: '' };
 }
 
-function firstNonEmpty(...values: Array<string | undefined>): string {
+function firstNonEmpty(...values: (string | undefined)[]): string {
   for (const value of values) {
     const trimmed = value?.trim();
     if (trimmed) return trimmed;

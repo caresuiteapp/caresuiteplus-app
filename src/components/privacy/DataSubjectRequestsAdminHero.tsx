@@ -31,7 +31,7 @@ export function DataSubjectRequestsAdminHero({
   onExport,
   exporting = false,
 }: DataSubjectRequestsAdminHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -79,7 +79,7 @@ export function DataSubjectRequestsAdminHero({
     gap: spacing.sm,
   },
 }),
-    [colors, typography, gradients],
+    [typography.caption, heroText.title, heroText.meta, colors.warning],
   );
 
 
@@ -143,4 +143,3 @@ export function DataSubjectRequestsAdminHero({
     </PremiumListHeroFrame>
   );
 }
-

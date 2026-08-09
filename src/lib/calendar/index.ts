@@ -1,7 +1,6 @@
 export * from './calendarEventService';
 export * from './calendarEventRepository';
 export * from './calendarEventMapper';
-export * from './calendarEventSync';
 export * from './calendarSyncService';
 export * from './calendarFilters';
 export * from './calendarPermissions';

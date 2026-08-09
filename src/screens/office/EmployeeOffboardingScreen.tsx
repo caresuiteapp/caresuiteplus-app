@@ -38,11 +38,9 @@ import {
   type TerminationType,
 } from '@/types/modules/employeeOffboarding';
 import type { ServiceResult } from '@/types';
-import { colors, radius, spacing, typography } from '@/theme';
+import { radius, spacing, typography } from '@/theme';
 
-const TERMINATION_TYPES = Object.entries(TERMINATION_TYPE_LABELS) as Array<
-  [TerminationType, string]
->;
+const TERMINATION_TYPES = Object.entries(TERMINATION_TYPE_LABELS) as [TerminationType, string][];
 
 const OVERALL_STATUS_LABELS = {
   not_started: 'Noch nicht begonnen',
@@ -108,7 +106,7 @@ export function EmployeeOffboardingScreen({
     setExitDate(query.data.session.exitDate ?? '');
     setTerminationType(query.data.session.terminationType ?? 'voluntary');
     setInternalReason(query.data.session.internalReason ?? '');
-  }, [query.data?.session.updatedAt]);
+  }, [query.data]);
 
   const runAction = async <T,>(
     key: string,

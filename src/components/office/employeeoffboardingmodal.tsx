@@ -98,7 +98,7 @@ export function EmployeeOffboardingModal({
           flexGrow: 1,
         },
       }),
-    [isBottomSheet, isDark, sheetMaxHeight, sheetWidth],
+    [isBottomSheet, sheetMaxHeight, sheetWidth],
   );
 
   if (!visible || !employeeId) return null;

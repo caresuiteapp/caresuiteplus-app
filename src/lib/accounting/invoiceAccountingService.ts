@@ -42,7 +42,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** Migration 0046 prepared — Demo-Store bis Live-Repository angebunden ist. */
 const ACCOUNTING_LIVE_REPOSITORY = false;
 
-function useAccountingDemoStore(): boolean {
+function shouldUseAccountingDemoStore(): boolean {
   return !ACCOUNTING_LIVE_REPOSITORY;
 }
 
@@ -50,10 +50,6 @@ function newId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function resolveAccountingFeatureKey(providerKey: AccountingProviderKey): 'accounting.datev' | null {
-  if (providerKey === 'datev') return 'accounting.datev';
-  return null;
-}
 
 function recordAccountingExportFailure(input: {
   invoiceId: string;
@@ -63,7 +59,7 @@ function recordAccountingExportFailure(input: {
   configured: boolean;
   eventType: 'export_blocked' | 'export_failed';
 }): void {
-  if (!useAccountingDemoStore()) return;
+  if (!shouldUseAccountingDemoStore()) return;
 
   const exportRecord: AccountingExportRecord = {
     id: newId('exp'),
@@ -111,9 +107,9 @@ export async function fetchInvoiceAccountingSnapshot(
   if (tenantBlock) return tenantBlock;
 
   const liveBlock = guardLiveDemoFeature<InvoiceAccountingSnapshot>(tenantId, 'Buchhaltungsstatus');
-  if (liveBlock && !useAccountingDemoStore()) return liveBlock;
+  if (liveBlock && !shouldUseAccountingDemoStore()) return liveBlock;
 
-  if (!useAccountingDemoStore()) {
+  if (!shouldUseAccountingDemoStore()) {
     return {
       ok: true,
       data: {
@@ -205,7 +201,7 @@ export async function prepareInvoiceAccountingExport(
     finishedAt: null,
   };
 
-  if (useAccountingDemoStore()) {
+  if (shouldUseAccountingDemoStore()) {
     appendDemoAccountingExport(exportRecord);
     setDemoInvoiceAccountingStatus(invoiceId, {
       accountingStatus: 'export_bereit',
@@ -294,7 +290,7 @@ export async function executeInvoiceAccountingExport(
 
   const blocked = !isRealExternalTransfer;
 
-  if (useAccountingDemoStore()) {
+  if (shouldUseAccountingDemoStore()) {
     recordAccountingExportFailure({
       invoiceId,
       tenantId,
@@ -347,7 +343,7 @@ export async function createSteuerberaterPackage(
     finishedAt: null,
   };
 
-  if (useAccountingDemoStore()) {
+  if (shouldUseAccountingDemoStore()) {
     appendDemoAccountingExport(exportRecord);
     setDemoInvoiceAccountingStatus(invoiceId, {
       providerKey: 'steuerberater_export',
@@ -394,7 +390,7 @@ export async function applyInvoiceAccountingCorrection(
   const nextStatus = mapCorrectionToAccountingStatus(correctionType);
   const eventType = correctionType === 'storno' ? 'storno_created' : 'korrektur_created';
 
-  if (useAccountingDemoStore()) {
+  if (shouldUseAccountingDemoStore()) {
     setDemoInvoiceAccountingStatus(invoiceId, { accountingStatus: nextStatus });
     appendDemoGobdEvent(
       invoiceId,

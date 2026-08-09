@@ -18,7 +18,7 @@ type ProtocolDetailHeroProps = {
 };
 
 export function ProtocolDetailHero({ protocol, roleKey }: ProtocolDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -44,7 +44,7 @@ export function ProtocolDetailHero({ protocol, roleKey }: ProtocolDetailHeroProp
   kpiItem: { flex: 1, minWidth: 100 },
   preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.bgElevated, typography.caption],
   );
 
 
@@ -91,4 +91,3 @@ export function ProtocolDetailHero({ protocol, roleKey }: ProtocolDetailHeroProp
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

@@ -28,7 +28,6 @@ import {
 } from './absenceStore';
 import {
   countRequestedDays,
-  detectAbsenceAssignmentConflicts,
   findAssignmentsOverlappingAbsence,
 } from './absenceConflictService';
 import { createReplacementRequestsForAbsence } from './replacementPlanningService';

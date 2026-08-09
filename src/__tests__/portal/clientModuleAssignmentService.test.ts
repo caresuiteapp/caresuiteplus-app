@@ -9,16 +9,6 @@ const mockUpsert = vi.fn();
 const mockUpdate = vi.fn();
 const mockSelect = vi.fn();
 
-function chain(resolver: () => Promise<{ data?: unknown; error: unknown }>) {
-  const chainObj: Record<string, unknown> = {};
-  const self = () => chainObj;
-  for (const method of ['select', 'eq', 'order', 'in', 'insert', 'update', 'delete', 'upsert']) {
-    chainObj[method] = vi.fn(self);
-  }
-  chainObj.then = (resolve: (value: { data?: unknown; error: unknown }) => void) =>
-    resolver().then(resolve);
-  return chainObj;
-}
 
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({ from: vi.fn() }),

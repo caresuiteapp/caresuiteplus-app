@@ -22,7 +22,7 @@ type BeratungDashboardHeroProps = {
 };
 
 export function BeratungDashboardHero({ stats, roleKey }: BeratungDashboardHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -57,7 +57,7 @@ export function BeratungDashboardHero({ stats, roleKey }: BeratungDashboardHeroP
     gap: spacing.sm,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.bgElevated],
   );
 
 
@@ -89,4 +89,3 @@ export function BeratungDashboardHero({ stats, roleKey }: BeratungDashboardHeroP
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

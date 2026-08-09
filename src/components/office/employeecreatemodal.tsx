@@ -87,7 +87,7 @@ export function EmployeeCreateModal({ visible, onClose, onCreated }: EmployeeCre
           minHeight: 0,
         },
       }),
-    [isBottomSheet, isDark, sheetMaxHeight, sheetWidth],
+    [isBottomSheet, sheetMaxHeight, sheetWidth],
   );
 
   const handleCreated = (employeeId: string) => {

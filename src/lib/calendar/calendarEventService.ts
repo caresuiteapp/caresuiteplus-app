@@ -17,12 +17,10 @@ import { calendarEventRepository } from '@/lib/calendar/calendarEventRepository'
 import {
   syncCalendarEventFromSource,
   syncLegacySourcesBatch,
-  type CalendarSyncPayload,
-  syncCalendarEvent,
 } from '@/lib/calendar/calendarSyncService';
 import { resolveCalendarPermission } from '@/lib/calendar/calendarPermissions';
 import { isStationaerCalendarSourceType } from '@/lib/calendar/calendarSourceRegistry';
-import { mergeExpandedAssistVisitCalendarEvents, visitListItemToCalendarEvent } from '@/lib/calendar/assistVisitCalendarRecurrence';
+import { mergeExpandedAssistVisitCalendarEvents } from '@/lib/calendar/assistVisitCalendarRecurrence';
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
 import { fetchEmployeeNamesById } from '@/lib/office/employeeGroupChatService';
 import {
@@ -32,17 +30,16 @@ import {
 import {
   fetchCalendarEvents as fetchLegacyCalendarEvents,
   fetchAssistCalendarEvents as fetchLegacyAssistCalendarEvents,
-  filterEventsByVisibleTypes,
   type FetchCalendarEventsOptions,
 } from '@/lib/office/calendarEventService.legacy';
+
+import { MODULE_CALENDAR_COLORS, MODULE_EVENT_TYPES } from '@/lib/calendar/calendarColors';
+import { CALENDAR_MODULE_ROUTES } from '@/lib/calendar/calendarRouteRegistry';
 
 export type { FetchCalendarEventsOptions };
 
 let legacyBootstrapAttempted = false;
 let stationaerBootstrapAttempted = false;
-
-import { MODULE_CALENDAR_COLORS, MODULE_EVENT_TYPES } from '@/lib/calendar/calendarColors';
-import { CALENDAR_MODULE_ROUTES } from '@/lib/calendar/calendarRouteRegistry';
 
 const MODULE_SUBTITLES: Record<CalendarViewConfig['moduleKey'], string> = {
   all: 'Assist Einsatzkalender',
@@ -516,7 +513,6 @@ export async function createCalendarEventFromSource(
   return syncCalendarEventFromSource(tenantId, sourceType, sourceId);
 }
 
-export { syncCalendarEventFromSource };
 
 export async function archiveCalendarEvent(
   tenantId: string,
@@ -701,4 +697,4 @@ export async function fetchAssistCalendarEvents(
   return getModuleCalendarEvents('assist', tenantId, actorRoleKey, options);
 }
 
-export { portalEventsToAppointmentItems, syncCalendarEvent, type CalendarSyncPayload };
+export { portalEventsToAppointmentItems };

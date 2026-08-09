@@ -34,7 +34,7 @@ export function MobileShell({
     area === 'stationaer',
   tabsOverride,
 }: MobileShellProps) {
-  const { colors } = useLegacyTheme();
+  useLegacyTheme();
   const linkColor = useInteractiveTextColor();
   const { tabs, switcherOpen, openSwitcher, closeSwitcher } = useAppShell(area);
   const effectiveTabs = tabsOverride?.length ? tabsOverride : tabs;

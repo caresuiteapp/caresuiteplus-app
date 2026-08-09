@@ -38,7 +38,7 @@ export type VisitSignaturePayloadInput = {
   employeeId: string | null;
   plannedStartAt: string;
   plannedEndAt: string;
-  taskStatuses: Array<{ taskId: string; status: string }>;
+  taskStatuses: { taskId: string; status: string }[];
   documentationNote: string | null;
 };
 

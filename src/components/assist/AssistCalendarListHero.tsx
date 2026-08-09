@@ -20,7 +20,7 @@ type AssistCalendarListHeroProps = {
 };
 
 export function AssistCalendarListHero({ groups, roleKey }: AssistCalendarListHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -50,7 +50,7 @@ export function AssistCalendarListHero({ groups, roleKey }: AssistCalendarListHe
   kpiItem: { flex: 1, minWidth: 100 },
   preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [typography.caption, colors.amber, colors.bgElevated, heroText.title, heroText.meta],
   );
 
 
@@ -94,4 +94,3 @@ export function AssistCalendarListHero({ groups, roleKey }: AssistCalendarListHe
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

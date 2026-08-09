@@ -28,6 +28,10 @@ import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
 import type { PortalAppointmentDetail } from '@/types/portal/employee';
 import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
 
+import { fetchPortalAppointments, fetchPortalAppointmentDetail } from '@/lib/portal/appointmentService';
+import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
+import { fetchLiveEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionLiveService';
+
 type StoreRecord = Record<string, unknown>;
 
 class MemoryObjectStore {
@@ -300,10 +304,6 @@ vi.mock('@/lib/portal/employeePortalExecutionLiveService', async (importOriginal
     fetchLiveEmployeePortalAssignmentDetail: vi.fn(),
   };
 });
-
-import { fetchPortalAppointments, fetchPortalAppointmentDetail } from '@/lib/portal/appointmentService';
-import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
-import { fetchLiveEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionLiveService';
 
 describe('assignmentCacheService', () => {
   beforeEach(() => {

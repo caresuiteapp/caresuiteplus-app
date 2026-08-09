@@ -30,7 +30,7 @@ export function EnrollmentsListHero({
   onViewModeChange,
   showViewToggle = false,
 }: EnrollmentsListHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -60,7 +60,7 @@ export function EnrollmentsListHero({
   kpiItem: { flex: 1, minWidth: 100 },
   preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [typography.caption, heroText.title, heroText.meta, colors.bgElevated],
   );
 
 
@@ -107,4 +107,3 @@ export function EnrollmentsListHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

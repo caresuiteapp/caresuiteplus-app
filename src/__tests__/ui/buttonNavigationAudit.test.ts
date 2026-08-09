@@ -52,7 +52,6 @@ const CRITICAL_SCREENS = [
   'src/screens/office/PersonalComplianceCockpitScreen.tsx',
 ];
 
-const PRODUCTION_UI_GLOBS = ['src/screens', 'src/components'];
 const DEAD_HANDLER_PATTERNS = [
   'onPress={() => undefined}',
   'onPress={() => {}}',

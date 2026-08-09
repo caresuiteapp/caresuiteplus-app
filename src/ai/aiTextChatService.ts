@@ -79,7 +79,7 @@ export async function loadAiSessionMessages(sessionId: string, tenantId: string)
 
   if (messages) {
     useAiStore.getState().setMessages(
-      (messages as Array<{ id: string; role: string; content: string; created_at: string }>).map(
+      (messages as { id: string; role: string; content: string; created_at: string }[]).map(
         (row) => ({
           id: row.id,
           role: row.role as 'user' | 'assistant' | 'tool' | 'system',

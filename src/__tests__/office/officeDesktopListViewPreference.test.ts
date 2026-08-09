@@ -1,13 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@react-native-async-storage/async-storage', () => ({
-  default: {
-    getItem: vi.fn(),
-    setItem: vi.fn(),
-    removeItem: vi.fn(),
-  },
-}));
-
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,6 +8,14 @@ import {
   loadDesktopListViewPreference,
   saveDesktopListViewPreference,
 } from '@/lib/preferences/desktopListViewPreference';
+
+vi.mock('@react-native-async-storage/async-storage', () => ({
+  default: {
+    getItem: vi.fn(),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+  },
+}));
 
 const root = path.join(__dirname, '..', '..', '..');
 

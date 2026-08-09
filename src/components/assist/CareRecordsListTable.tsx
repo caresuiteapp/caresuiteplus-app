@@ -1,9 +1,8 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { CareRecordListItem } from '@/types/modules/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { colors, typography } from '@/theme';
 
 type CareRecordsListTableProps = {
   items: CareRecordListItem[];
@@ -89,6 +88,3 @@ export function CareRecordsListTable({ items, onItemPress }: CareRecordsListTabl
     />
   );
 }
-
-const styles = StyleSheet.create({
-});

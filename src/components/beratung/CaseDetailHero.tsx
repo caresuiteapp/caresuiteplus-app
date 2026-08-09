@@ -33,7 +33,7 @@ function statusVariant(status: string) {
 }
 
 export function CaseDetailHero({ counselingCase, roleKey, isReadOnly }: CaseDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -79,7 +79,7 @@ export function CaseDetailHero({ counselingCase, roleKey, isReadOnly }: CaseDeta
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.cyan],
   );
 
 
@@ -126,4 +126,3 @@ export function CaseDetailHero({ counselingCase, roleKey, isReadOnly }: CaseDeta
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

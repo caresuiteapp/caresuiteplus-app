@@ -2,12 +2,12 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { formatFreePlatformPrice } from '@/lib/billing/freePlatformService';
-import { designTokens, spacing, typography } from '@/theme';
+import { designTokens, spacing } from '@/theme';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 
 export function AuthRegisterHero() {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -33,7 +33,7 @@ export function AuthRegisterHero() {
   kpiItem: { flex: 1, minWidth: 100 },
   hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.bgElevated, typography.caption],
   );
 
 

@@ -34,7 +34,7 @@ function statusVariant(status: string) {
 }
 
 export function SisDetailHero({ assessment, roleKey, isReadOnly }: SisDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -80,7 +80,7 @@ export function SisDetailHero({ assessment, roleKey, isReadOnly }: SisDetailHero
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.violet],
   );
 
 
@@ -137,4 +137,3 @@ export function SisDetailHero({ assessment, roleKey, isReadOnly }: SisDetailHero
 export { SIS_DETAIL_PREPARED_MESSAGE };
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

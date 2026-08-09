@@ -1,7 +1,6 @@
 import { Slot } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { ResponsiveLayout } from '@/components/layout/ResponsiveLayout';
-import { colors } from '@/theme';
 
 type TabShellLayoutProps = {
   area: Parameters<typeof ResponsiveLayout>[0]['area'];

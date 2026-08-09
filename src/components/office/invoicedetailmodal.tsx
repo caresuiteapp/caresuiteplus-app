@@ -124,7 +124,7 @@ export function InvoiceDetailModal({
           minHeight: 0,
         },
       }),
-    [isDark, isFull, sheetMaxHeight, sheetWidth],
+    [isFull, sheetMaxHeight, sheetWidth],
   );
 
   if (!invoiceId) return null;
@@ -176,4 +176,3 @@ export function InvoiceDetailModal({
     </Modal>
   );
 }
-

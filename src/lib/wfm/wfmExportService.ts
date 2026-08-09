@@ -2,7 +2,6 @@ import type { RoleKey, ServiceResult } from '@/types';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
-import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -140,7 +139,7 @@ async function renderWfmPdfText(rows: WfmExportRow[], year: number, month: numbe
   }
 
   try {
-    const { renderWfmPdfDataUri, buildWfmPdfPlainText } = await import('./wfmPdfWeb');
+    const { renderWfmPdfDataUri } = await import('./wfmPdfWeb');
     return await renderWfmPdfDataUri(rows, year, month, tenantId);
   } catch {
     const { buildWfmPdfPlainText } = await import('./wfmPdfWeb');

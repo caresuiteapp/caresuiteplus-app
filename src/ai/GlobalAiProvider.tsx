@@ -19,9 +19,6 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
 import { AiApprovalSheet } from './AiApprovalSheet';
-const AiMiniPanel = lazy(() =>
-  import('./AiMiniPanel').then((m) => ({ default: m.AiMiniPanel })),
-);
 import { dispatchAiNavigation, useAiNavigationBridge } from './aiNavigationBridge';
 import { getRegisteredPageContext } from './registerAiPageContext';
 import type {
@@ -48,6 +45,9 @@ import {
   voiceDebugLog,
   waitForIceGatheringComplete,
 } from './voiceRealtimeUtils';
+const AiMiniPanel = lazy(() =>
+  import('./AiMiniPanel').then((m) => ({ default: m.AiMiniPanel })),
+);
 
 type AiContextValue = {
   startVoice: () => Promise<void>;

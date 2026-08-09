@@ -1,6 +1,5 @@
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import type { ReportingMetricsRawBundle } from '@/types/reporting/metrics';
-import type { ReportingDateRange } from '@/types/reporting/metrics';
 
 export type DemoServiceRecord = {
   id: string;

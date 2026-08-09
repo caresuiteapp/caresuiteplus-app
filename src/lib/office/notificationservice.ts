@@ -1,4 +1,4 @@
-import type { RoleKey, ServiceResult } from '@/types';
+import type { ServiceResult } from '@/types';
 import type { AppNotification, BroadcastPriority, NotificationCenterTab } from '@/types/office/broadcast';
 import { BROADCAST_CATEGORIES } from '@/types/office/broadcast';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';

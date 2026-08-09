@@ -1,6 +1,5 @@
 import { Platform } from 'react-native';
 import {
-  buildPlatformLayoutSnapshot,
   detectWebPlatformTarget,
   type PlatformTarget,
 } from './layoutSnapshot';

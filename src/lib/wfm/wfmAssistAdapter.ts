@@ -62,7 +62,7 @@ function newUuid(): string {
 }
 
 function serviceMinutesFromEvents(
-  events: Array<{ eventType: string; occurredAt: string }>,
+  events: { eventType: string; occurredAt: string }[],
 ): { grossMinutes: number; netMinutes: number; pauseMinutes: number } {
   const times = calculateVisitTimes(events, 'beendet');
   const serviceSeconds = times.serviceSeconds ?? 0;

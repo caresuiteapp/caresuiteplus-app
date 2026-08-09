@@ -68,7 +68,7 @@ export function TemplateListScreenBase({
     [baseFilters, search, moduleFilter],
   );
 
-  const { templates, loading, error, refresh, isEmpty, serviceMode } = useTemplates(filters);
+  const { templates, loading, error, refresh, serviceMode } = useTemplates(filters);
 
   if (!can('office.catalogs.view')) {
     return (

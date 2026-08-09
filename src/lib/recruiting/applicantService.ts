@@ -3,7 +3,6 @@ import type {
   ApplicantCommunication,
   ApplicantCommunicationType,
   ApplicantConversionResult,
-  ApplicantDocument,
   ApplicantDocumentType,
   ApplicantInterview,
   ApplicantListFilters,
@@ -190,8 +189,8 @@ export function listApplicants(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
   filters?: ApplicantListFilters,
-): ServiceResult<Array<ReturnType<typeof filterApplicantForViewer>>> {
-  const liveBlock = guardLiveDemoFeature<Array<ReturnType<typeof filterApplicantForViewer>>>(
+): ServiceResult<ReturnType<typeof filterApplicantForViewer>[]> {
+  const liveBlock = guardLiveDemoFeature<ReturnType<typeof filterApplicantForViewer>[]>(
     tenantId,
     'Bewerbermanagement',
   );

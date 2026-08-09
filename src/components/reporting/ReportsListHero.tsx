@@ -42,7 +42,7 @@ export function ReportsListHero({
   onViewModeChange,
   showViewToggle = false,
 }: ReportsListHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -90,7 +90,7 @@ export function ReportsListHero({
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.cyan, typography.caption],
   );
 
 
@@ -144,4 +144,3 @@ export function ReportsListHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

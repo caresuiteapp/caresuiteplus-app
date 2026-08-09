@@ -27,7 +27,7 @@ export function AiJobsListHero({
   onViewModeChange,
   showViewToggle = false,
 }: AiJobsListHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -57,7 +57,7 @@ export function AiJobsListHero({
   kpiItem: { flex: 1, minWidth: 100 },
   preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [typography.caption, colors.violet, colors.bgElevated, heroText.title, heroText.meta],
   );
 
 
@@ -104,4 +104,3 @@ export function AiJobsListHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

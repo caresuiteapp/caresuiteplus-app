@@ -1,4 +1,4 @@
-import type { RoleKey, ServiceResult } from '@/types';
+import type { ServiceResult } from '@/types';
 
 const USED_NUMBERS = new Map<string, Set<string>>();
 

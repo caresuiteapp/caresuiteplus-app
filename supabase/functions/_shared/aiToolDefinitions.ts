@@ -219,12 +219,12 @@ type RealtimeToolDefinition = (typeof AI_TOOL_DEFINITIONS)[number];
 /** Realtime API expects flat function tools with JSON Schema parameters. */
 export function normalizeRealtimeTools(
   tools: readonly RealtimeToolDefinition[],
-): Array<{
+): {
   type: 'function';
   name: string;
   description: string;
   parameters: Record<string, unknown>;
-}> {
+}[] {
   return tools.map((tool) => ({
     type: 'function' as const,
     name: tool.name,

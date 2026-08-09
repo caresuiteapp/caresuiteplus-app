@@ -3,7 +3,7 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 import { PreparedModeBanner } from '@/components/modules/PreparedModeBanner';
 import { PflegeSettingsHero, PFLEGE_SETTINGS_PREPARED_MESSAGE } from '@/components/pflege/PflegeSettingsHero';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';

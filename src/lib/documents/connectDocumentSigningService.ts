@@ -16,7 +16,7 @@ export type PrepareSigningInput = {
   documentId: string;
   documentVersionId: string;
   providerKey: SignatureProviderKey;
-  signers: Array<{ name: string; email: string }>;
+  signers: { name: string; email: string }[];
   context: DocumentExecutionContext;
 };
 

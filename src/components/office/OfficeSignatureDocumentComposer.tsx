@@ -207,7 +207,7 @@ export function OfficeSignatureDocumentComposer({ accentColor, onCancel, onSubmi
     if (sourceTab === 'template' && selectedTemplate && tenantId) {
       void loadTemplatePreview();
     }
-  }, [sourceTab, selectedTemplate?.id, tenantId, loadTemplatePreview]);
+  }, [sourceTab, selectedTemplate.id, tenantId, loadTemplatePreview, selectedTemplate]);
 
   const handlePickPdf = async () => {
     setError(null);

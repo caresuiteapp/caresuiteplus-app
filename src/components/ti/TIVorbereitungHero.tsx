@@ -24,7 +24,7 @@ export function TIVorbereitungHero({
   icon,
   accentColor,
 }: TIVorbereitungHeroProps) {
-  const { colors, typography, gradients } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const accent = accentColor ?? colors.cyan;
   const styles = useMemo(
@@ -51,7 +51,7 @@ export function TIVorbereitungHero({
   desc: { ...typography.body, color: 'rgba(255,255,255,0.85)' },
   hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.bgElevated, typography.body, typography.caption],
   );
 
 
@@ -105,4 +105,3 @@ export function TIVorbereitungHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

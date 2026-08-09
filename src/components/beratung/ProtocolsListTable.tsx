@@ -1,8 +1,7 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { Protocol } from '@/types/modules/beratung';
-import { typography } from '@/theme';
 
 type ProtocolRow = Protocol & { caseSubject: string };
 
@@ -60,6 +59,3 @@ export function ProtocolsListTable({ items, onItemPress }: ProtocolsListTablePro
     />
   );
 }
-
-const styles = StyleSheet.create({
-});

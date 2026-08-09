@@ -1,7 +1,6 @@
 import type { ServiceResult } from '@/types';
 import type {
   EmployeeBackgroundCheckRecord,
-  EmployeeDocumentRecord,
   EmployeePersonnelFile,
   EmployeeQualificationRecord,
 } from '@/types/modules/employeePersonnelFile';
@@ -15,7 +14,6 @@ import {
 } from './employeeDetailMapper';
 import {
   buildEmployeePersonnelFileFromLiveRows,
-  mapEmployeeDocumentsLiveRows,
   mapInventoryAssignmentToWorkMaterial,
   type EmployeeDocumentLiveRow,
   type EmployeePersonnelLiveRow,
@@ -118,7 +116,7 @@ async function loadEmployeeDocuments(
   const supabase = getSupabaseClient();
   if (!supabase) return [];
 
-  const tableAttempts: Array<{ table: string; select: string }> = [
+  const tableAttempts: { table: string; select: string }[] = [
     {
       table: 'employee_documents',
       select:
@@ -301,32 +299,6 @@ async function loadEmployeeWorkMaterials(
     .map(mapInventoryAssignmentToWorkMaterial);
 }
 
-function mapEmployeeDocumentsFromRows(rows: EmployeeDocumentLiveRow[]): EmployeeDocumentRecord[] {
-  if (rows.some((row) => 'storage_path' in row || 'category' in row)) {
-    return rows.map((row) => ({
-      id: row.id,
-      tenantId: row.tenant_id,
-      employeeId: row.employee_id ?? '',
-      category: ((row as { category?: string }).category ?? 'other') as EmployeeDocumentRecord['category'],
-      title: row.title?.trim() || row.file_name,
-      fileName: row.file_name,
-      storagePath: (row as { storage_path?: string | null }).storage_path ?? row.file_path ?? null,
-      sensitive:
-        (row as { sensitive?: boolean }).sensitive === true ||
-        row.visibility === 'confidential' ||
-        row.visibility === 'internal_only',
-      releasedToPortal:
-        (row as { released_to_portal?: boolean }).released_to_portal ??
-        row.released_to_employee_portal ??
-        false,
-      validUntil: (row as { valid_until?: string | null }).valid_until ?? null,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
-  }
-
-  return mapEmployeeDocumentsLiveRows(rows);
-}
 
 export async function loadEmployeePersonnelFileLive(
   tenantId: string,

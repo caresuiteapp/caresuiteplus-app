@@ -1,9 +1,6 @@
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import {
   listActivityTypes,
-  listCostCenters,
-  listOrganizations,
-  listProjects,
   nextTimeTrackingId,
   saveActivityType,
   saveCostCenter,
@@ -72,7 +69,7 @@ export function seedDemoTimeTrackingCatalog(tenantId: string): void {
     sortOrder: 0,
   });
 
-  const activities: Array<{ code: string; name: string; category: 'office' | 'care_planning' | 'administration' | 'training' | 'other' }> = [
+  const activities: { code: string; name: string; category: 'office' | 'care_planning' | 'administration' | 'training' | 'other' }[] = [
     { code: 'TELE', name: 'Telefonate & Abstimmung', category: 'office' },
     { code: 'PLAN', name: 'Einsatzplanung', category: 'care_planning' },
     { code: 'DOCS', name: 'Dokumentation', category: 'administration' },

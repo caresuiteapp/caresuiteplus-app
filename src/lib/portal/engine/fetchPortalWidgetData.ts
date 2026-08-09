@@ -3,12 +3,12 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 
-const UPCOMING_APPOINTMENT_STATUSES = ['aktiv', 'in_bearbeitung'] as const;
-
 import {
   PORTAL_PLANNED_ASSIGNMENT_STATUSES,
   PORTAL_UPCOMING_ASSIGNMENT_STATUSES,
 } from '@/lib/portal/portalAssignmentStatusFilters';
+
+const UPCOMING_APPOINTMENT_STATUSES = ['aktiv', 'in_bearbeitung'] as const;
 
 const ACTIVE_CASE_STATUSES = ['aktiv', 'in_bearbeitung', 'entwurf'] as const;
 

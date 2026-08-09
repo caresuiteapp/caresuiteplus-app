@@ -1,9 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-vi.mock('@/lib/services/mode', () => ({
-  getServiceMode: vi.fn(() => 'demo'),
-}));
-
 import {
   getEmployeeHomeOfficeOverride,
   persistEmployeeHomeOfficeOverride,
@@ -16,6 +12,10 @@ import {
   resetEmployeePersonnelAuditStore,
 } from '@/lib/office/employeePersonnelAuditService';
 import { mapInventoryAssignmentToWorkMaterial } from '@/lib/office/employeePersonnelFileMapper';
+
+vi.mock('@/lib/services/mode', () => ({
+  getServiceMode: vi.fn(() => 'demo'),
+}));
 
 const TENANT = '56180c22-b894-4fab-b55e-a563c94dd6e7';
 const EMPLOYEE = '1bf39e72-8ae1-480e-9dfb-bcb5aa7b6a4f';

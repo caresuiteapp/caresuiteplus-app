@@ -76,7 +76,7 @@ export function PortalOfficeThread({
     if (!threadId || !detail || markedThreadRef.current === threadId) return;
     markedThreadRef.current = threadId;
     void markAsRead();
-  }, [threadId, detail?.id, markAsRead]);
+  }, [threadId, detail, markAsRead]);
 
   useEffect(() => {
     if (!detail) return;

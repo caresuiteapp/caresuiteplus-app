@@ -20,7 +20,7 @@ type PflegeReportsHeroProps = {
 };
 
 export function PflegeReportsHero({ stats, roleKey }: PflegeReportsHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -66,7 +66,7 @@ export function PflegeReportsHero({ stats, roleKey }: PflegeReportsHeroProps) {
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.amber],
   );
 
 
@@ -112,4 +112,3 @@ export function PflegeReportsHero({ stats, roleKey }: PflegeReportsHeroProps) {
 export { PFLEGE_REPORTS_PREPARED_MESSAGE };
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

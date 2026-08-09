@@ -206,7 +206,7 @@ export type EmployeePersonnelOverview = {
   backgroundCheckStatus: EmployeeBackgroundCheckStatus;
   deployability: EmployeeDeployabilityResult;
   openTasks: string[];
-  nextExpiryDates: Array<{ label: string; date: string; type: 'qualification' | 'background_check' | 'document' }>;
+  nextExpiryDates: { label: string; date: string; type: 'qualification' | 'background_check' | 'document' }[];
 };
 
 export type EmployeePersonnelFile = {

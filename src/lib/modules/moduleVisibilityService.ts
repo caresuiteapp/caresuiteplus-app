@@ -1,4 +1,4 @@
-import type { ProductKey, RoleKey } from '@/types';
+import type { ProductKey } from '@/types';
 import type {
   ModuleNavState,
   ModuleScopeKey,

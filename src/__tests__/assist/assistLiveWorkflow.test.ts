@@ -58,7 +58,7 @@ describe('assistDashboardService', () => {
 
 describe('assistVisitStateMachine', () => {
   it('erlaubt linearen Übergang bis billing_handoff_ready', () => {
-    const chain: Array<[from: Parameters<typeof applyAssistVisitTransition>[0], to: Parameters<typeof applyAssistVisitTransition>[1]]> = [
+    const chain: [from: Parameters<typeof applyAssistVisitTransition>[0], to: Parameters<typeof applyAssistVisitTransition>[1]][] = [
       ['planned', 'published'],
       ['published', 'confirmed'],
       ['confirmed', 'on_way'],

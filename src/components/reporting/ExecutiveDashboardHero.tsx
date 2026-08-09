@@ -8,7 +8,7 @@ import { ROLE_LABELS } from '@/data/constants';
 
 import type { RoleKey } from '@/types';
 import type { ReportingDashboardSnapshot } from '@/types/reporting/metrics';
-import { designTokens, spacing, typography, colors } from '@/theme';
+import { designTokens, spacing, typography } from '@/theme';
 
 const DASHBOARD_TITLES: Record<ReportingDashboardSnapshot['kind'], string> = {
   ceo: 'Geschäftsführer-Dashboard',

@@ -3,7 +3,6 @@ import type {
   DashboardKpi,
   DashboardQuickAction,
   DashboardSnapshot,
-  DashboardStatusCard,
 } from '@/types/dashboard';
 import type { RoleKey } from '@/types';
 import { buildOfficeAreaShortcuts, type OfficeAreaShortcut } from '@/lib/office/officeAreaShortcuts';
@@ -62,31 +61,6 @@ const OFFICE_DEMO_METRICS = {
 
 const OFFICE_KPIS: DashboardKpi[] = buildOfficeWorkspaceKpis(OFFICE_DEMO_METRICS);
 
-const OFFICE_STATUS_CARDS: DashboardStatusCard[] = [
-  {
-    id: 'office-sc-billing-prep',
-    title: 'Abrechnung vorbereiten',
-    description: 'Entwürfe und Nachweise prüfen — keine finale Rechnung',
-    status: 'entwurf',
-    count: demoInvoices.filter((i) => i.status === 'entwurf').length,
-  },
-  {
-    id: 'office-sc-clients',
-    title: 'Klient:innen in Aufnahme',
-    description: 'Stammdaten und Modulzuordnung prüfen',
-    status: 'in_bearbeitung',
-    count: demoClients.filter((c) => c.status === 'in_bearbeitung').length,
-    sensitivity: 'care',
-  },
-  {
-    id: 'office-sc-modules',
-    title: 'Modulzuordnungen',
-    description: `${demoTenantProducts.filter((p) => p.isActive).length} Module aktiv — Zuordnungen prüfen`,
-    status: 'aktiv',
-    count: demoTenantProducts.filter((p) => p.isActive).length,
-    sensitivity: 'internal',
-  },
-];
 
 const OFFICE_ACTIVITIES: DashboardActivity[] = [
   {

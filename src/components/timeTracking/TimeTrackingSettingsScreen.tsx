@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Text } from 'react-native';
 import { usePathname } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
@@ -30,7 +30,7 @@ import { typography } from '@/theme';
 
 type SettingsTab = 'general' | 'activities' | 'organizations' | 'cost_centers' | 'projects';
 
-const TABS: Array<{ key: SettingsTab; label: string }> = [
+const TABS: { key: SettingsTab; label: string }[] = [
   { key: 'general', label: 'Allgemein' },
   { key: 'activities', label: 'Tätigkeiten' },
   { key: 'organizations', label: 'Organisation' },
@@ -215,5 +215,3 @@ export function TimeTrackingSettingsScreen() {
     </ScreenShell>
   );
 }
-
-const styles = StyleSheet.create({});

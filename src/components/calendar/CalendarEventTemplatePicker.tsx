@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { CalendarEventTemplate, CalendarModuleKey } from '@/types/calendar';
 import { SYSTEM_CALENDAR_TEMPLATES } from '@/data/calendar/defaultTemplates';
@@ -49,7 +49,7 @@ export function CalendarEventTemplatePicker({
   );
   const [error, setError] = useState<string | null>(null);
 
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     setLoading(true);
     setError(null);
     const result = await listTemplates(moduleKey, tenantId, profile?.roleKey);
@@ -59,11 +59,11 @@ export function CalendarEventTemplatePicker({
       setError(result.error);
     }
     setLoading(false);
-  };
+  }, [moduleKey, tenantId, profile?.roleKey]);
 
   useEffect(() => {
     void loadTemplates();
-  }, [moduleKey, tenantId, profile?.roleKey]);
+  }, [loadTemplates]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

@@ -5,7 +5,7 @@ import type {
   TenantCenterSnapshot,
 } from '@/types/tenant/tenantCenter';
 
-function scoreFilled(fields: Array<string | boolean | unknown[]>): SectionCompleteness {
+function scoreFilled(fields: (string | boolean | unknown[])[]): SectionCompleteness {
   const filled = fields.filter((value) => {
     if (Array.isArray(value)) return value.length > 0;
     if (typeof value === 'boolean') return value;

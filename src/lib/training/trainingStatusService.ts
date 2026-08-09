@@ -26,7 +26,7 @@ export function computeTrainingRecordStatus(input: {
   course: TrainingCourse;
   reference?: Date;
 }): TrainingRecordStatus {
-  const { record, course } = input;
+  const { record } = input;
   const reference = input.reference ?? new Date();
 
   if (record.status === 'waived' || record.status === 'rejected' || record.status === 'archived') {

@@ -3,7 +3,6 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 
-const TABLE = 'ti_providers';
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };

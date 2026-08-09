@@ -17,21 +17,6 @@ const PUBLIC_AUTH_SCREENS = [
   'src/screens/auth/BusinessRegisterScreen.tsx',
 ];
 
-const TECHNICAL_NEEDLES = [
-  'preparedOnly',
-  'AuthInfoCard',
-  'RLS',
-  'Supabase',
-  'Prototyp',
-  'Kein Store-Release',
-  'Module aktivieren',
-  'AuthLoginHero',
-  'CareBotCard',
-  'VoiceFlowPanel',
-  'Modul suchen',
-  'Demo-Modus aktiv',
-  'Demo-Dashboard',
-];
 
 describe('User guidance — public auth surfaces', () => {
   it('start page defines exactly four main actions', () => {

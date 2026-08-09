@@ -19,7 +19,7 @@ type PflegeSettingsHeroProps = {
 };
 
 export function PflegeSettingsHero({ settings, roleKey }: PflegeSettingsHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -56,7 +56,7 @@ export function PflegeSettingsHero({ settings, roleKey }: PflegeSettingsHeroProp
     alignItems: 'center',
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.bgElevated],
   );
 
 
@@ -91,4 +91,3 @@ export function PflegeSettingsHero({ settings, roleKey }: PflegeSettingsHeroProp
 export { PFLEGE_SETTINGS_PREPARED_MESSAGE };
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

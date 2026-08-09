@@ -17,7 +17,7 @@ type TIDashboardHeroProps = {
 };
 
 export function TIDashboardHero({ data, roleKey }: TIDashboardHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -63,7 +63,7 @@ export function TIDashboardHero({ data, roleKey }: TIDashboardHeroProps) {
     minWidth: 120,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.bgElevated],
   );
 
 
@@ -104,4 +104,3 @@ export function TIDashboardHero({ data, roleKey }: TIDashboardHeroProps) {
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

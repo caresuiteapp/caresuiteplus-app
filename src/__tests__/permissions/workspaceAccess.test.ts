@@ -18,7 +18,7 @@ import {
   resetWorkspaceAuditStore,
 } from '@/lib/permissions';
 import { checkRoleAccess } from '@/lib/navigation';
-import { guardServiceTenant, guardLiveDemoFeature } from '@/lib/services/liveServiceGuard';
+import { guardLiveDemoFeature } from '@/lib/services/liveServiceGuard';
 
 const TENANT = DEMO_TENANT_ID;
 const OTHER_TENANT = '00000000-0000-4000-8000-000000000099';

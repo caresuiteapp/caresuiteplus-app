@@ -157,7 +157,7 @@ export function ClientDetailModal({
           minHeight: 0,
         },
       }),
-    [isBottomSheet, isDark, isFull, sheetMaxHeight, sheetWidth],
+    [isBottomSheet, isFull, sheetMaxHeight, sheetWidth],
   );
 
   if (!clientId) return null;

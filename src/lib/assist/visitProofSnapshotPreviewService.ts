@@ -181,7 +181,7 @@ function snapshotTasksLookStale(snapshot: Record<string, unknown>): boolean {
 }
 
 function mapDbTasks(
-  rows: Array<{ id: string; title: string; status: string; note?: string | null }> | undefined,
+  rows: { id: string; title: string; status: string; note?: string | null }[] | undefined,
 ): VisitProofPreviewTaskItem[] {
   if (!rows?.length) return [];
   return rows.map((task) => ({
@@ -458,12 +458,12 @@ type VisitEnrichmentRow = {
   legacy_assignment_id?: string | null;
   employees?: { first_name: string | null; last_name: string | null } | null;
   clients?: ClientAddressRow | null;
-  assist_visit_tasks?: Array<{
+  assist_visit_tasks?: {
     id: string;
     title: string;
     status: string;
     note?: string | null;
-  }>;
+  }[];
 };
 
 type AssignmentEnrichmentRow = {
@@ -474,12 +474,12 @@ type AssignmentEnrichmentRow = {
   documentation_notes?: string | null;
   employees?: { first_name: string | null; last_name: string | null } | null;
   clients?: ClientAddressRow | null;
-  assignment_tasks?: Array<{
+  assignment_tasks?: {
     id: string;
     title: string;
     status: string;
     sort_order?: number;
-  }>;
+  }[];
 };
 
 const VISIT_ENRICHMENT_SELECT =

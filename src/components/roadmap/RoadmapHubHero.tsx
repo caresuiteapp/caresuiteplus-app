@@ -16,7 +16,7 @@ type RoadmapHubHeroProps = {
 };
 
 export function RoadmapHubHero({ data, roleKey }: RoadmapHubHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -62,7 +62,7 @@ export function RoadmapHubHero({ data, roleKey }: RoadmapHubHeroProps) {
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.bgElevated],
   );
 
 
@@ -104,4 +104,3 @@ export function RoadmapHubHero({ data, roleKey }: RoadmapHubHeroProps) {
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

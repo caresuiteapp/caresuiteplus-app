@@ -18,7 +18,7 @@ type LivingAreaDetailHeroProps = {
 };
 
 export function LivingAreaDetailHero({ area, roleKey }: LivingAreaDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -47,7 +47,7 @@ export function LivingAreaDetailHero({ area, roleKey }: LivingAreaDetailHeroProp
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 }),
-    [colors, typography, gradients],
+    [typography.caption, colors.violet, heroText.title, heroText.meta],
   );
 
 
@@ -91,4 +91,3 @@ export function LivingAreaDetailHero({ area, roleKey }: LivingAreaDetailHeroProp
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

@@ -1,4 +1,4 @@
-import type { RoleKey, ServiceResult } from '@/types';
+import type { RoleKey } from '@/types';
 import type { CanonicalAssignmentStatus } from '@/types/modules/assignmentWorkflow';
 import type {
   EmployeeWorkMaterialRecord,

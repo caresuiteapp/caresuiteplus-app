@@ -1,7 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { PremiumBadge } from '@/components/ui';
 import type { QmComplianceStatus, QmDocumentStatus, MdPackageStatus, QmExportJobStatus } from '@/lib/qm';
-import { colors, spacing, typography } from '@/theme';
+import { colors, typography } from '@/theme';
 
 const DOC_STATUS: Record<QmDocumentStatus, { label: string; variant: 'cyan' | 'orange' | 'green' | 'muted' }> = {
   draft: { label: 'Entwurf', variant: 'muted' },

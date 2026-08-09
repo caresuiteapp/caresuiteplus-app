@@ -30,7 +30,7 @@ export function OfficeDashboardHero({
   onPrimaryAction,
 }: OfficeDashboardHeroProps) {
   const greeting = useClientGreeting(snapshot.greeting);
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const text = useAuroraAdaptiveText();
   const styles = useMemo(
     () =>
@@ -58,7 +58,7 @@ export function OfficeDashboardHero({
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   preparedHint: { ...typography.caption, color: text.muted },
 }),
-    [colors, text.muted, text.primary, typography, gradients],
+    [colors, text.muted, text.primary, typography],
   );
 
 

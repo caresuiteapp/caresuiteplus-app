@@ -41,7 +41,7 @@ const CHRISTIAN_ID = '8bde1b04-b18f-40f1-88b7-0b619313f676';
 
 function setupSupabaseMocks(options: {
   portalEmployeeIds?: string[];
-  employees?: Array<{
+  employees?: {
     id: string;
     first_name: string;
     last_name: string;
@@ -49,7 +49,7 @@ function setupSupabaseMocks(options: {
     email?: string | null;
     role_title?: string | null;
     status?: string;
-  }>;
+  }[];
 }) {
   mockFromUnknownTable.mockReturnValue({
     select: () => ({

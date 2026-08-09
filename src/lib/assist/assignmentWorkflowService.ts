@@ -102,7 +102,7 @@ export function upsertAssignmentWorkflowRecord(record: AssignmentWorkflowRecord)
 
 function getEmployeeAvailabilityBlocks(
   _tenantId: string,
-): Array<{ employeeId: string; startsAt: string; endsAt: string }> {
+): { employeeId: string; startsAt: string; endsAt: string }[] {
   return [];
 }
 

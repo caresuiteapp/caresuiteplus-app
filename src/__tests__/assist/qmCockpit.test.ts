@@ -4,7 +4,7 @@ import {
   createAssignmentWorkflow,
   resetAssignmentWorkflowStore,
 } from '@/lib/assist/assignmentWorkflowService';
-import { createClientVisitRequest, resetClientVisitRequestStore } from '@/lib/assist/clientVisitRequestService';
+import { resetClientVisitRequestStore } from '@/lib/assist/clientVisitRequestService';
 import {
   createServiceRecord,
   listCorrectionRequests,

@@ -1,7 +1,6 @@
 import type { DunningLetter, DunningLetterLevel, PrepareDunningRunResult } from '@/types/careBilling/billingCycle';
 import {
   appendBillingAuditEvent,
-  getReceivable,
   listDunningLetters,
   listDunningRuns,
   nextBillingCycleId,

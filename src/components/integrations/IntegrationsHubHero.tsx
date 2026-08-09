@@ -17,7 +17,7 @@ type IntegrationsHubHeroProps = {
 };
 
 export function IntegrationsHubHero({ items, roleKey }: IntegrationsHubHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -63,7 +63,7 @@ export function IntegrationsHubHero({ items, roleKey }: IntegrationsHubHeroProps
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.bgElevated],
   );
 
 
@@ -109,4 +109,3 @@ export function IntegrationsHubHero({ items, roleKey }: IntegrationsHubHeroProps
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

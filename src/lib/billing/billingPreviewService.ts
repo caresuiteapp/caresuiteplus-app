@@ -43,7 +43,7 @@ export type CartOptions = {
   billingInterval?: BillingInterval;
   promoCode?: string | null;
   userCount?: number;
-  addOnKeys?: Array<'ti_ready'>;
+  addOnKeys?: 'ti_ready'[];
   packageKey?: PackageKey | null;
 };
 

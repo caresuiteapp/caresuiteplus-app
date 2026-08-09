@@ -7,7 +7,6 @@ import {
   listAvailableContractTypes,
   resolveBillingHourlyRate,
   resolveContractTemplateKey,
-  resolveIntakeContractType,
 } from '@/features/intakeDocuments/buildIntakeDocumentContext';
 import {
   applySharedClientSignatureToDocuments,
@@ -191,7 +190,6 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
   });
 
   it('12. Vertrag erfordert Klient:in- und Mitarbeitenden-Unterschrift', () => {
-    const form = baseForm();
     const contractTemplate = getSystemIntakeTemplateByKey('client_contract_ambulatory_care')!;
     expect(contractTemplate.signatureSlots.filter((s) => s.required)).toHaveLength(2);
   });

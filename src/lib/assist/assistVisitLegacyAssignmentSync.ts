@@ -141,7 +141,7 @@ export async function syncLegacyAssignmentTasksFromVisit(
   }
 
   const existingTitles = new Set(
-    ((existingTasks ?? []) as Array<{ title?: string | null }>).map((row) =>
+    ((existingTasks ?? []) as { title?: string | null }[]).map((row) =>
       String(row.title ?? '').trim(),
     ),
   );
@@ -156,7 +156,7 @@ export async function syncLegacyAssignmentTasksFromVisit(
   }
 
   const baseOrder =
-    ((existingTasks ?? []) as Array<{ sort_order?: number | null }>).reduce(
+    ((existingTasks ?? []) as { sort_order?: number | null }[]).reduce(
       (max, row) => Math.max(max, Number(row.sort_order ?? -1)),
       -1,
     ) + 1;

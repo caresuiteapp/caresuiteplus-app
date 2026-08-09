@@ -4,7 +4,6 @@ import { demoCarePlans } from './carePlans';
 import { demoClients } from './clients';
 import { getDemoClientDetail } from './clientDetails';
 import { demoPortalDocuments } from './documents';
-import { demoInvoices } from './invoices';
 import { buildClientPortalProfileProjection } from '@/lib/portal/clientPortalProfileProjection';
 import type { ClientPortalSettingsResolved } from '@/types/clientCore';
 
@@ -32,9 +31,6 @@ export function getDemoClientPortalProfile(
     .filter((a) => a.clientId === clientId && new Date(a.startsAt) > new Date())
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())[0];
 
-  const openInvoices = demoInvoices.filter(
-    (inv) => inv.clientId === clientId && inv.status !== 'abgeschlossen',
-  ).length;
 
   const sharedDocuments = profileId
     ? demoPortalDocuments.filter(
@@ -42,7 +38,6 @@ export function getDemoClientPortalProfile(
       ).length
     : 0;
 
-  const emergency = detail?.contacts.find((c) => c.isEmergency);
   const fullDetail = detail;
 
   return buildClientPortalProfileProjection({

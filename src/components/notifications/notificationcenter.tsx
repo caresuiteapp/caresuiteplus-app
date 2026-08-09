@@ -11,7 +11,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CarePopupShell } from '@/components/layout/platform/CarePopupShell';
 import { CarePopupTabPills } from '@/components/layout/platform/CarePopupTabPills';
-import { PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { SpaceBellIcon } from '@/components/icons/space';
 import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
@@ -26,7 +25,6 @@ import {
   markNotificationRead,
 } from '@/lib/office/notificationservice';
 import { startBroadcastReplyThread } from '@/lib/office/broadcastservice';
-import { glass as glassTokens } from '@/design/tokens/glass';
 import { spacing, radius } from '@/theme';
 import type { AppNotification, NotificationCenterTab } from '@/types/office/broadcast';
 import { BROADCAST_PRIORITIES } from '@/types/office/broadcast';
@@ -286,13 +284,6 @@ type NotificationBellButtonProps = {
   variant?: 'default' | 'glass';
 };
 
-const webGlassBlur =
-  Platform.OS === 'web'
-    ? ({
-        backdropFilter: `blur(${glassTokens.blur.medium}px)`,
-        WebkitBackdropFilter: `blur(${glassTokens.blur.medium}px)`,
-      } as unknown as ViewStyle)
-    : null;
 
 export function NotificationBellButton({
   onPress,

@@ -71,12 +71,12 @@ export const SYSTEM_ROLE_TEMPLATE_LEVELS: Record<RoleKey, number> = {
   family_portal: 5,
 };
 
-export function buildSystemRoleTemplateSeeds(): Array<{
+export function buildSystemRoleTemplateSeeds(): {
   roleKey: RoleKey;
   name: string;
   level: number;
   permissions: readonly PermissionKey[];
-}> {
+}[] {
   return (Object.keys(ROLE_PERMISSIONS) as RoleKey[]).map((roleKey) => ({
     roleKey,
     name: ROLE_LABELS[roleKey],

@@ -26,7 +26,7 @@ export function SisPreparedFormHero({
   roleKey,
   isReadOnly,
 }: SisPreparedFormHeroProps) {
-  const { colors, typography, gradients } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -50,7 +50,7 @@ export function SisPreparedFormHero({
   iconText: { fontSize: 22 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, typography.caption, colors.violet],
   );
 
 
@@ -87,4 +87,3 @@ export function SisPreparedFormHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

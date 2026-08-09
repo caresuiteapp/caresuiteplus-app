@@ -20,7 +20,6 @@ import {
   createLifecycleDocument,
   finalizeLifecycleDocument,
   getLifecycleAuditTrail,
-  getLifecycleDocument,
   listDocumentTemplates,
   resetDocumentTemplateStore,
   resetInvoiceDocumentStore,

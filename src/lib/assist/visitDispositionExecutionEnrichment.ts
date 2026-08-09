@@ -135,14 +135,14 @@ function applyWorkflowTaskOverrides(
 }
 
 function mapAssignmentTasks(
-  rows: Array<{
+  rows: {
     id: string;
     title: string;
     status: string;
     is_required?: boolean | null;
     not_done_reason?: string | null;
     sort_order?: number | null;
-  }>,
+  }[],
 ): VisitTaskItem[] {
   return [...rows]
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
@@ -343,14 +343,14 @@ export async function enrichVisitDispositionDetail(
     finished_at?: string | null;
     actual_start_at?: string | null;
     actual_end_at?: string | null;
-    assignment_tasks?: Array<{
+    assignment_tasks?: {
       id: string;
       title: string;
       status: string;
       is_required?: boolean | null;
       not_done_reason?: string | null;
       sort_order?: number | null;
-    }>;
+    }[];
   } | null;
 
   if (!assignmentRow) return detail;

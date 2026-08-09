@@ -1,9 +1,8 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import { AI_JOB_TYPE_LABELS, type AiJobListItem } from '@/types/modules/platform';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { colors, typography } from '@/theme';
 
 type AiJobsListTableProps = {
   items: AiJobListItem[];
@@ -80,6 +79,3 @@ export function AiJobsListTable({ items, onItemPress }: AiJobsListTableProps) {
     />
   );
 }
-
-const styles = StyleSheet.create({
-});

@@ -1,9 +1,8 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { OcrJobListItem } from '@/types/modules/platform';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { colors, typography } from '@/theme';
 
 type OcrJobsListTableProps = {
   items: OcrJobListItem[];
@@ -84,6 +83,3 @@ export function OcrJobsListTable({ items, onItemPress }: OcrJobsListTableProps) 
     />
   );
 }
-
-const styles = StyleSheet.create({
-});

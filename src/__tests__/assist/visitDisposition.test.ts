@@ -7,7 +7,6 @@ import {
   validateVisitStatusTransition,
 } from '@/lib/assist/visitWorkflow';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
-import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 
 const root = path.join(__dirname, '..', '..', '..');
 

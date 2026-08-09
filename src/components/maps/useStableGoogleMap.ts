@@ -83,12 +83,12 @@ export function useStableGoogleMap(options: StableMapOptions): StableMapResult {
     return () => {
       cancelled = true;
     };
-  }, [apiKey, enabled, containerRef, zoom]);
+  }, [apiKey, enabled, containerRef, zoom, center]);
 
   useEffect(() => {
     if (!ready || !mapRef.current || !center) return;
     mapRef.current.panTo(center);
-  }, [ready, center?.lat, center?.lng]);
+  }, [ready, center]);
 
   useEffect(() => {
     return () => {

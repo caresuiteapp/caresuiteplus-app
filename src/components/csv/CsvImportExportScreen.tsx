@@ -48,7 +48,7 @@ type TabKey =
   | 'templates'
   | 'logs';
 
-const TAB_OPTIONS: Array<{ key: TabKey; label: string }> = [
+const TAB_OPTIONS: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Übersicht' },
   { key: 'clients-import', label: 'Klient:innen Import' },
   { key: 'clients-export', label: 'Klient:innen Export' },

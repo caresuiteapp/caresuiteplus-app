@@ -70,7 +70,7 @@ export function suggestReplacementEmployees(
   tenantId: string,
   assignmentId: string,
   options?: { includeTravelTime?: boolean },
-): Array<{ employeeId: string; qualificationMatch: boolean; travelTimeMinutes: number | null }> {
+): { employeeId: string; qualificationMatch: boolean; travelTimeMinutes: number | null }[] {
   const assignment = listAssignmentWorkflows(tenantId).find((a) => a.id === assignmentId);
   if (!assignment) return [];
 

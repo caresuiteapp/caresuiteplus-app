@@ -5,7 +5,7 @@ import { PremiumPreparedNotice } from '@/components/billing/PremiumPreparedNotic
 import { AccessCredentialsPanel } from '@/components/auth/AccessCredentialsPanel';
 import { AuthRegisterHero } from '@/components/auth/AuthRegisterHero';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { ErrorState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import type { AccessCredentialsReveal, BusinessRegistrationInput } from '@/lib/auth/auth.types';
 import { registerBusinessTenant } from '@/lib/auth/businessAuthService';
 import { formatFreePlatformPrice } from '@/lib/billing/freePlatformService';

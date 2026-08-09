@@ -2,7 +2,6 @@ import type { RoleKey, ServiceResult } from '@/types';
 import type { CarePlanListItem, PflegeDashboardStats } from '@/types/modules/pflege';
 import { emptyPflegeDashboardStats } from '@/types/modules/pflege';
 import {
-  countActiveCarePlans,
   createDemoCarePlan,
   getDemoCarePlanListItems,
 } from '@/data/demo/carePlans';

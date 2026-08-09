@@ -4,7 +4,7 @@ import { DetailInfoRow } from '@/components/detail';
 import { ErrorState, LoadingState, PremiumCard, PremiumKpiCard } from '@/components/ui';
 import { useReportDetail } from '@/hooks/useReportDetail';
 import { wp501A11y } from '@/lib/a11y/wp501-reporting';
-import { spacing, typography } from '@/theme';
+import { typography } from '@/theme';
 
 type ReportDetailScreenProps = { reportId: string };
 

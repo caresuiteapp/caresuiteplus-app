@@ -61,7 +61,7 @@ const DEFAULT_CATEGORY_SEEDS: DefaultCategorySeed[] = [
   },
 ];
 
-export function buildDefaultCategoryRows(tenantId: string): Array<DefaultCategorySeed & { tenant_id: string }> {
+export function buildDefaultCategoryRows(tenantId: string): (DefaultCategorySeed & { tenant_id: string })[] {
   return DEFAULT_CATEGORY_SEEDS.map((seed) => ({
     ...seed,
     tenant_id: tenantId,

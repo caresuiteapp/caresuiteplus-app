@@ -24,7 +24,7 @@ import { colors, spacing, typography } from '@/theme';
 
 export function MedicationCreateScreen() {
   const router = useRouter();
-  const { profile } = useAuth();
+  useAuth();
   const { isReadOnly, roleLabel } = usePermissions();
   const writeReady = isMedicationLiveReady();
 

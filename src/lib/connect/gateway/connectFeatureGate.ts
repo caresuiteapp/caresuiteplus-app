@@ -4,9 +4,7 @@ import { isDemoMode } from '@/lib/supabase/config';
 import type { ConnectReadiness } from '@/types/modules/connect';
 import type {
   ConnectConnectorStatus,
-  ConnectEnvironment,
   ConnectExecutionContext,
-  ConnectIntegrationStatus,
 } from '@/types/connect/gateway';
 import type {
   ConnectFeatureActionKey,

@@ -44,7 +44,6 @@ import {
   isOffboardingLiveReady,
   listAccessRevocations,
   listOffboardingAuditEvents,
-  listOffboardingChecks,
   listOffboardingSteps,
   patchOffboardingSession,
   readFinalClearance,
@@ -686,7 +685,7 @@ function ensureAccessRevocationRecords(
   employeeId: string,
 ): EmployeeAccessRevocation[] {
   const providerConnected = isExternalAccessProviderConnected(tenantId);
-  const kinds: Array<{ kind: EmployeeAccessRevocation['kind']; providerConnected: boolean }> = [
+  const kinds: { kind: EmployeeAccessRevocation['kind']; providerConnected: boolean }[] = [
     { kind: 'portal', providerConnected: false },
     { kind: 'email', providerConnected },
     { kind: 'phone', providerConnected },

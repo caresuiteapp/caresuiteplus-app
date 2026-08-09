@@ -39,7 +39,7 @@ export function QmHandbookScreen() {
     { enabled: !!tenantId },
   );
 
-  const chapters = chaptersQuery.data ?? [];
+  const chapters = useMemo(() => chaptersQuery.data ?? [], [chaptersQuery.data]);
   const filteredChapters = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return chapters;

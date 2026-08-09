@@ -22,7 +22,7 @@ export function TemplateDetailScreen() {
   const { profile } = useAuth();
   const { can, check, roleLabel } = usePermissions();
   const { template, loading, error, refresh, tenantId } = useTemplateDetail(id);
-  const { duplicateFromSystem, archive, saving } = useTemplateEditor(id);
+  const { duplicateFromSystem, saving } = useTemplateEditor(id);
   const vars = useTemplateVariables(template?.content ?? '');
 
   if (!can('office.catalogs.view')) {

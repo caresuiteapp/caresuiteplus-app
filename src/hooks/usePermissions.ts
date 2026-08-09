@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { RoleKey } from '@/types';
 import type { PermissionDecision, PermissionKey } from '@/types/permissions';
 import { ROLE_LABELS } from '@/data/constants';
 import { checkPermissionWithList, getPermissionsForRole, hasAllPermissionsInList, hasAnyPermissionInList, hasPermissionInList } from '@/lib/permissions';

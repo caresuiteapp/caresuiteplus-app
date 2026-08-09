@@ -20,7 +20,7 @@ type AkademieSettingsHeroProps = {
 };
 
 export function AkademieSettingsHero({ settings, roleKey }: AkademieSettingsHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -50,7 +50,7 @@ export function AkademieSettingsHero({ settings, roleKey }: AkademieSettingsHero
   kpiItem: { flex: 1, minWidth: 100 },
   preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [typography.caption, heroText.title, heroText.meta, colors.bgElevated],
   );
 
 
@@ -94,4 +94,3 @@ export function AkademieSettingsHero({ settings, roleKey }: AkademieSettingsHero
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

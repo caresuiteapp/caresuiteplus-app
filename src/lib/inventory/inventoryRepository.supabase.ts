@@ -4,7 +4,6 @@ import type {
   DeviceManagementProfile,
   InventoryAssignment,
   InventoryCategory,
-  InventoryCategoryGroup,
   InventoryDamageReport,
   InventoryDashboardSnapshot,
   InventoryItem,
@@ -61,21 +60,6 @@ async function ensureDefaultCategories(tenantId: string): Promise<ServiceResult<
   return { ok: true, data: undefined };
 }
 
-async function categoryGroupMap(tenantId: string): Promise<Map<string, InventoryCategoryGroup>> {
-  const supabase = getSupabaseClient();
-  const map = new Map<string, InventoryCategoryGroup>();
-  if (!supabase) return map;
-
-  const { data } = await fromUnknownTable(supabase, 'inventory_categories')
-    .select('id, group_key')
-    .eq('tenant_id', tenantId);
-
-  for (const row of data ?? []) {
-    const r = row as { id: string; group_key: InventoryCategoryGroup };
-    map.set(r.id, r.group_key);
-  }
-  return map;
-}
 
 async function insertAudit(
   tenantId: string,

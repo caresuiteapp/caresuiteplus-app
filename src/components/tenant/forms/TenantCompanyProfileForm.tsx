@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { PremiumInput } from '@/components/ui';
 import type { TenantCompanyProfile } from '@/types/tenant/tenantCenter';
 

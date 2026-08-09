@@ -4,7 +4,6 @@ import { careTypography } from './typography';
 import {
   popupShellLayout,
   resolvePopupShellColors,
-  resolvePopupShellHeaderGradient,
   type PopupShellColorMode,
 } from './popupShellTokens';
 

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { ModuleTile, PremiumBadge, PremiumButton, SectionPanel } from '@/components/ui';
@@ -7,7 +7,7 @@ import { PRODUCT_LABELS } from '@/data/constants/productLabels';
 import { useAuth } from '@/lib/auth/context';
 import { ROLE_LABELS } from '@/data/constants';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
-import { colors, spacing, typography } from '@/theme';
+import { spacing } from '@/theme';
 
 export function BusinessHubScreen() {
   const router = useRouter();

@@ -116,7 +116,7 @@ export function EmployeeDetailModal({
 
     }
 
-  }, [visible]);
+  }, [sectionEdit, visible]);
 
 
 
@@ -128,7 +128,7 @@ export function EmployeeDetailModal({
 
     }
 
-  }, [visible, initialEditOpen]);
+  }, [visible, initialEditOpen, sectionEdit]);
 
 
 
@@ -158,7 +158,7 @@ export function EmployeeDetailModal({
 
     setOffboardingOpen(false);
 
-  }, [employeeId]);
+  }, [employeeId, sectionEdit]);
 
 
 
@@ -308,7 +308,7 @@ export function EmployeeDetailModal({
 
       }),
 
-    [isDark, isPersonnel, sheetMaxHeight, sheetWidth],
+    [isPersonnel, sheetMaxHeight, sheetWidth],
 
   );
 

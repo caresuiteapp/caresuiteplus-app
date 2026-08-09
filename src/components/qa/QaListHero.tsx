@@ -17,7 +17,7 @@ type QaListHeroProps = {
 };
 
 export function QaListHero({ items, roleKey }: QaListHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -44,7 +44,7 @@ export function QaListHero({ items, roleKey }: QaListHeroProps) {
   kpiItem: { flex: 1, minWidth: 100 },
   preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, typography.caption, colors.bgElevated],
   );
 
 
@@ -93,4 +93,3 @@ export function QaListHero({ items, roleKey }: QaListHeroProps) {
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

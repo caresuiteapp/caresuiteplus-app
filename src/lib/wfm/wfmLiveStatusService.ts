@@ -88,14 +88,14 @@ export async function getWfmMapMarkers(
   actorRoleKey: RoleKey | null,
 ): Promise<
   ServiceResult<
-    Array<{
+    {
       employeeId: string;
       employeeName: string;
       latitude: number;
       longitude: number;
       statusLabel: string;
       capturedAt: string | null;
-    }>
+    }[]
   >
 > {
   const overview = await getWfmLiveEmployeeOverview(tenantId, actorRoleKey);
@@ -120,14 +120,14 @@ export async function getWfmMapMarkers(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const markers: Array<{
+  const markers: {
     employeeId: string;
     employeeName: string;
     latitude: number;
     longitude: number;
     statusLabel: string;
     capturedAt: string | null;
-  }> = [];
+  }[] = [];
 
   for (const row of activeRows) {
     const visitId = row.session?.currentVisitId;

@@ -5,18 +5,12 @@ import { getPortalProfileLink } from '@/lib/portal/portalVisibility';
 import { runService } from '@/lib/services/serviceRunner';
 import { appendCommunicationAudit } from './communication.audit';
 import {
-  appendDemoAssignment,
-  appendDemoAttachment,
   appendDemoMessage,
-  appendDemoNotification,
-  appendDemoReaction,
   appendDemoThread,
   getDemoAssignments,
   getDemoAttachments,
   getDemoCommunicationSettings,
   getDemoMessages,
-  getDemoParticipants,
-  getDemoReactions,
   getDemoThreads,
 } from './communication.demoStore';
 import {

@@ -9,7 +9,6 @@ import {
   PORTAL_CLIENT_LABEL,
   PORTAL_EMPLOYEE_LABEL,
 } from '@/lib/portal/portalDisplayLabels';
-import type { PortalScope } from '@/types/portal';
 import { designTokens, spacing } from '@/theme';
 
 type PortalAnnouncementsHeroProps = {
@@ -41,7 +40,7 @@ export function PortalAnnouncementsHero({
   itemCount,
   activeCount,
 }: PortalAnnouncementsHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -68,7 +67,7 @@ export function PortalAnnouncementsHero({
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 }),
-    [colors, typography, gradients],
+    [typography.caption, heroText.title, heroText.meta, colors.bgElevated],
   );
 
 
@@ -110,4 +109,3 @@ export function PortalAnnouncementsHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

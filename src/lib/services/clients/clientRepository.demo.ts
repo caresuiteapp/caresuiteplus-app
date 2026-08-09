@@ -1,7 +1,5 @@
-import type { ServiceResult } from '@/types';
 import type { ClientDetail } from '@/types/detail';
 import type { ClientListItem } from '@/types/modules/office';
-import type { ClientFormData } from '@/types/forms/clientForm';
 import {
   addDemoClient,
   getDemoClientDetail,
@@ -18,7 +16,7 @@ import {
   CLIENT_STATUS_HINTS,
   getAllowedStatusActions,
 } from '../workflow/clientStatus';
-import type { ClientListOptions, ClientRepository, ClientUpdateInput } from './types';
+import type { ClientRepository } from './types';
 import { markDemoClientDeleted, isDemoClientDeleted } from '@/lib/office/demoDeleteStore';
 import { assertNoActiveAssignmentsForClient } from '@/lib/office/officeDeleteGuard';
 

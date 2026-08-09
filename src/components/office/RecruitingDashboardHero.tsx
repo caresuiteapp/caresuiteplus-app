@@ -9,7 +9,7 @@ import {
 } from '@/lib/recruiting/recruitingModuleConfig';
 import type { RecruitingDashboardSummary } from '@/types/modules/recruiting';
 
-import { designTokens, spacing } from '@/theme';
+import { spacing } from '@/theme';
 
 const iconSize = 52;
 
@@ -44,7 +44,7 @@ export function RecruitingDashboardHero({ summary }: RecruitingDashboardHeroProp
         kpiItem: { flex: 1, minWidth: 100 },
         preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
       }),
-    [colors, typography],
+    [colors.bgElevated, heroText.eyebrow, heroText.meta, heroText.title, typography.caption],
   );
 
   const kpis = [

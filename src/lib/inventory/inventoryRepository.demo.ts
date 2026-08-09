@@ -268,14 +268,6 @@ export const inventoryDemoRepository = {
   buildDashboard(tenantId: string): ServiceResult<InventoryDashboardSnapshot> {
     const tenantItems = tenantFilter(items, tenantId);
     const tenantAssignments = tenantFilter(assignments, tenantId);
-    const openStatuses: InventoryAssignment['status'][] = [
-      'issued',
-      'acknowledged',
-      'return_requested',
-      'partially_returned',
-      'overdue',
-      'disputed',
-    ];
     return {
       ok: true,
       data: {

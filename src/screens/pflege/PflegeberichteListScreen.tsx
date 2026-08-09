@@ -1,4 +1,4 @@
-import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CareDocumentationListCard } from '@/components/pflege/CareDocumentationListCard';
 import { CareDocumentationListTable } from '@/components/pflege/CareDocumentationListTable';

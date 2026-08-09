@@ -3,7 +3,6 @@ import type {
   CommunicationConsentGuardCode,
   CommunicationConsentGuardResult,
   CommunicationConsentRecord,
-  CommunicationProviderConfig,
   CommunicationUseCase,
   DevicePushTokenRecord,
   PrepareOutboundMessageInput,

@@ -3,6 +3,9 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 
+import { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
+import { buildEnrichedAssistProofPdfPayload } from '@/lib/assist/assistProofPdfService';
+
 vi.mock('react-native', () => ({
   Platform: { OS: 'web' },
 }));
@@ -66,9 +69,6 @@ vi.mock('@/lib/assist/visitProofBranding', async (importOriginal) => {
     loadVisitProofBrandingForTenant: (...args: unknown[]) => mockLoadVisitProofBrandingForTenant(...args),
   };
 });
-
-import { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
-import { buildEnrichedAssistProofPdfPayload } from '@/lib/assist/assistProofPdfService';
 
 describe('buildEnrichedAssistProofPdfPayload', () => {
   beforeEach(() => {

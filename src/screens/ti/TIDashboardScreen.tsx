@@ -1,10 +1,9 @@
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { fetchTIProviders } from '@/lib/ti/tiProviderService';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import { TIDashboardHero, TIConnectionStatusBadge, TISecurityNotice } from '@/components/ti';
-import { EmptyState, ErrorState, InfoBanner, LoadingState, PremiumButton, PremiumCard, PremiumInput } from '@/components/ui';
+import { ErrorState, InfoBanner, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
 import { useTIDashboard } from '@/hooks/ti';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';

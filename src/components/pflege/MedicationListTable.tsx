@@ -1,9 +1,8 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { MedicationListItem } from '@/data/demo/medications';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { typography } from '@/theme';
 
 type MedicationListTableProps = {
   items: MedicationListItem[];
@@ -102,6 +101,3 @@ export function MedicationListTable({
     />
   );
 }
-
-const styles = StyleSheet.create({
-});

@@ -15,7 +15,7 @@ export type ShiftScheduleListItem = {
   updatedAt: string;
 };
 
-const SHIFT_TIMES: Array<{ start: string; end: string }> = [
+const SHIFT_TIMES: { start: string; end: string }[] = [
   { start: '06:00', end: '14:00' },
   { start: '07:00', end: '15:00' },
   { start: '08:00', end: '16:00' },

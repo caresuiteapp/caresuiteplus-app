@@ -7,7 +7,6 @@ import type {
   LifecycleDocument,
   LifecycleDocumentVersion,
 } from '@/types/documents/documentLifecycle';
-import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { buildDocumentPreview } from '@/features/documents/templateEngine/documentPreviewRenderer';
 import { buildDocumentContext } from '@/features/documents/templateEngine/documentContext';
 import { assertCanActivateTemplateVersion } from '@/features/documents/templateEngine/validateTemplateActivation';
@@ -342,11 +341,6 @@ export async function finalizeLifecycleDocument(
   });
 
   if (!pdfResult.ok) {
-    const failed = updateDocument({
-      ...doc,
-      htmlOutput: html,
-      status: 'render_failed',
-    });
     audit({
       tenantId: input.tenantId,
       documentId: input.documentId,

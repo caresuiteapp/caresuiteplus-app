@@ -55,7 +55,7 @@ function clearAuditOutlines(): void {
   document.querySelectorAll(`[${OUTLINE_ATTR}]`).forEach((node) => node.remove());
 }
 
-function outlineOffenders(entries: Array<{ el: Element; index: number }>): void {
+function outlineOffenders(entries: { el: Element; index: number }[]): void {
   clearAuditOutlines();
 
   entries.forEach(({ el, index }) => {
@@ -94,7 +94,7 @@ export function auditVisibleBackgrounds(
   const shouldOutline =
     options.outline ?? (typeof __DEV__ !== 'undefined' && __DEV__);
 
-  const offenders: Array<BackgroundOffender & { el: Element }> = [];
+  const offenders: (BackgroundOffender & { el: Element })[] = [];
 
   for (const el of Array.from(document.querySelectorAll('*'))) {
     if (!(el instanceof Element)) continue;

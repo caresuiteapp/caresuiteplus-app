@@ -1,5 +1,4 @@
 import type {
-  DashboardActivity,
   DashboardKpi,
   DashboardQuickAction,
   DashboardSnapshot,

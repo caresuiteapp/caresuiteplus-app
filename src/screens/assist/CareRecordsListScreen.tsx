@@ -1,8 +1,7 @@
 import { LockedActionBanner } from '@/components/permissions';
-import { fetchCareRecordList } from '@/lib/assist/careRecordService';
 import { CareRecordsListView } from '@/components/assist/CareRecordsListView';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumInput, SuccessState } from '@/components/ui';
+import { ErrorState, LoadingState, SuccessState } from '@/components/ui';
 import { useCareRecordList } from '@/hooks/useCareRecordList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';

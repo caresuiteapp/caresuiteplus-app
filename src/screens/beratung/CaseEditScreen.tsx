@@ -21,7 +21,7 @@ import { colors, spacing } from '@/theme';
 export function CaseEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { profile } = useAuth();
+  useAuth();
   const { isReadOnly, roleLabel } = usePermissions();
 
   const [loading, setLoading] = useState(true);

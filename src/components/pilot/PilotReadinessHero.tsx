@@ -52,7 +52,7 @@ export function PilotReadinessHero({
         kpiItem: { flex: 1, minWidth: 100 },
         hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
       }),
-    [colors, typography],
+    [colors.bgElevated, colors.violet, heroText.meta, heroText.title, typography.caption],
   );
 
   return (

@@ -35,8 +35,8 @@ export type DocumentCatalogEntry = {
   targetRecordType: string;
   defaultStorageArea: string;
   builderKey: string;
-  requiredFields?: Array<{ fieldKey: string; label: string; dataPath: string }>;
-  manualFields?: Array<{ fieldKey: string; label: string; fieldType?: string }>;
+  requiredFields?: { fieldKey: string; label: string; dataPath: string }[];
+  manualFields?: { fieldKey: string; label: string; fieldType?: string }[];
 };
 
 export type BuiltDocumentCatalogTemplate = DocumentCatalogEntry & {

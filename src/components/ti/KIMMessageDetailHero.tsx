@@ -18,7 +18,7 @@ type KIMMessageDetailHeroProps = {
 };
 
 export function KIMMessageDetailHero({ message, roleKey }: KIMMessageDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -64,7 +64,7 @@ export function KIMMessageDetailHero({ message, roleKey }: KIMMessageDetailHeroP
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.bgElevated],
   );
 
 
@@ -111,4 +111,3 @@ export function KIMMessageDetailHero({ message, roleKey }: KIMMessageDetailHeroP
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

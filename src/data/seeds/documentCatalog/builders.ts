@@ -6,7 +6,7 @@ import {
   wrapPremiumDocument,
 } from './layoutBlocks';
 
-function manualTable(fields: Array<{ fieldKey: string; label: string }>): string {
+function manualTable(fields: { fieldKey: string; label: string }[]): string {
   const rows = fields
     .map(
       (f) =>
@@ -16,7 +16,7 @@ function manualTable(fields: Array<{ fieldKey: string; label: string }>): string
   return `<table class="cs-block-table"><thead><tr><th>Feld</th><th>Eintrag</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-function checklistRows(fields: Array<{ fieldKey: string; label: string }>): string {
+function checklistRows(fields: { fieldKey: string; label: string }[]): string {
   return (fields.length > 0 ? fields : [{ fieldKey: 'punkt', label: 'Prüfpunkt' }])
     .map((f) => `<tr><td>☐ ${f.label}</td><td class="cs-field-manual">{{manual.${f.fieldKey}}}</td></tr>`)
     .join('');

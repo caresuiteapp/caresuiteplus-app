@@ -41,7 +41,7 @@ export function isAdminNotifySendConfigured(config: AdminNotifyEnvConfig): boole
 }
 
 export function collectAdminRecipientEmails(input: {
-  profileEmails: Array<string | null | undefined>;
+  profileEmails: (string | null | undefined)[];
   tenantEmail?: string | null;
   overrideEmail?: string | null;
 }): string[] {

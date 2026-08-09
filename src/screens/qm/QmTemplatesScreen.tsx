@@ -1,5 +1,5 @@
 import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumCard } from '@/components/ui';
@@ -19,7 +19,7 @@ export function QmTemplatesScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!tenantId) return;
     setLoading(true);
     const result = await fetchQmTemplates(tenantId, profile?.roleKey);
@@ -30,11 +30,11 @@ export function QmTemplatesScreen() {
       setError(result.error);
     }
     setLoading(false);
-  };
+  }, [profile?.roleKey, tenantId]);
 
   useEffect(() => {
     load();
-  }, [tenantId, profile?.roleKey]);
+  }, [load]);
 
   if (!can('qm.view')) {
     return (

@@ -116,7 +116,7 @@ export function PortalDocumentDetailHero({ document, scope }: PortalDocumentDeta
           gap: spacing.sm,
         },
       }),
-    [colors, heroText.meta, heroText.subtitle, heroText.title],
+    [colors.bgElevated, heroText.eyebrow, heroText.meta, heroText.subtitle, heroText.title],
   );
 
   const kpiItems = useMemo((): KpiGridItem[] => {

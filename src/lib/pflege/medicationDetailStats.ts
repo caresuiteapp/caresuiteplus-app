@@ -51,7 +51,6 @@ const DETAIL_EXTRAS: Record<string, Omit<MedicationDetail, keyof MedicationListI
 };
 
 export function buildMedicationDetail(item: MedicationListItem, mode: ColorMode = 'dark'): MedicationDetail  {
-  const colors = legacyColorsFromPalette(mode);
   const extras = DETAIL_EXTRAS[item.id] ?? {
     instructions: 'Keine speziellen Hinweise hinterlegt.',
     interactions: [],

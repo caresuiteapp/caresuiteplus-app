@@ -1,5 +1,5 @@
 import type { ServiceResult } from '@/types';
-import type { ClientTask, TaskCategory } from '@/types/modules/client';
+import type { ClientTask } from '@/types/modules/client';
 import type { AssistLeistungsbereichKey } from '@/types/modules/assist/assistTaskCatalog';
 import {
   ASSIST_CATALOG_TASKS,

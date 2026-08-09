@@ -110,7 +110,7 @@ export type ClientPortalDashboard = {
   documentsToSign: number;
   visitRequestStatuses: ClientPortalVisitRequestSummary[];
   adminNotices: string[];
-  importantContacts: Array<{ label: string; phone: string | null }>;
+  importantContacts: { label: string; phone: string | null }[];
 };
 
 export type ClientPortalPlannedAssignment = {

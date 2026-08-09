@@ -8,7 +8,6 @@ import {
   APP_SURFACE_TEXT,
   RAIL_ICON_GLASS_LIGHT,
   accentDarkSoftBackdrop,
-  accentDarkSoftBorder,
   isLightAccentColor,
   relativeAccentLuminance,
   resolveAccentTextChipStyle,

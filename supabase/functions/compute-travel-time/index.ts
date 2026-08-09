@@ -44,13 +44,13 @@ type RequestBody = {
 
 type DistanceMatrixResponse = {
   status: string;
-  rows?: Array<{
-    elements?: Array<{
+  rows?: {
+    elements?: {
       status: string;
       duration?: { value: number };
       distance?: { value: number };
-    }>;
-  }>;
+    }[];
+  }[];
   error_message?: string;
 };
 

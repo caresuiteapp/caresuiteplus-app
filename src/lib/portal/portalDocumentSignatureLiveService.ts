@@ -1,7 +1,6 @@
 import type { ServiceResult } from '@/types';
 import type {
   OfficeCreateSignatureDocumentInput,
-  PortalSignatureAuditEvent,
   PortalSignatureCapture,
   PortalSignatureDashboardCounts,
   PortalSignatureDocument,

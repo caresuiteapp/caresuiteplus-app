@@ -27,7 +27,7 @@ export function useCareRecordList() {
   { enabled: !!tenantId },
   );
 
-  const allItems = query.data ?? [];
+  const allItems = useMemo(() => query.data ?? [], [query.data]);
 
   const list = useListState<CareRecordListItem, 'recordedAt'>({
     items: allItems,

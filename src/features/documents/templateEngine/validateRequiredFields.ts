@@ -1,7 +1,5 @@
-import { resolvePlaceholder } from './resolvePlaceholder';
 import type {
   DocumentContext,
-  TemplateRequiredFieldInput,
   TemplateValidationIssue,
   TemplateValidationResult,
   TemplateValidationStatus,

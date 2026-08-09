@@ -23,7 +23,7 @@ export function useVisitProofReviewList() {
     { enabled: !!tenantId },
   );
 
-  const allItems = query.data ?? [];
+  const allItems = useMemo(() => query.data ?? [], [query.data]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();

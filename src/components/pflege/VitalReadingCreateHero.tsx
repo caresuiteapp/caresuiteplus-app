@@ -15,7 +15,7 @@ type VitalReadingCreateHeroProps = {
 };
 
 export function VitalReadingCreateHero({ roleKey, isReadOnly }: VitalReadingCreateHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -39,7 +39,7 @@ export function VitalReadingCreateHero({ roleKey, isReadOnly }: VitalReadingCrea
   iconText: { fontSize: 22 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, typography.caption, colors.success],
   );
 
 
@@ -72,4 +72,3 @@ export function VitalReadingCreateHero({ roleKey, isReadOnly }: VitalReadingCrea
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

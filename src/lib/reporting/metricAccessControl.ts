@@ -15,7 +15,6 @@ import {
 import {
   isClientPortalRole,
   isEmployeePortalRole,
-  isPortalOnlyRole,
 } from '@/lib/permissions/workspaceRoles';
 import { getKpisForDashboard } from './kpiDefinitions';
 

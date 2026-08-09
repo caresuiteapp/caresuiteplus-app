@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import { useRouter } from 'expo-router';
 import { HealthOSEmployeePortalTodayView } from '@/components/healthos/employee';
 import { useEmployeePortalDashboard } from '@/hooks/useEmployeePortalDashboard';
 import { usePortalActor } from '@/hooks/usePortalActor';
@@ -14,7 +13,6 @@ export function EmployeePortalDashboardScreen({
 }: EmployeePortalDashboardScreenProps) {
   const { displayName } = usePortalActor();
   const { dashboard, loading, error, refresh, fromCache, cachedAt } = useEmployeePortalDashboard();
-  const router = useRouter();
 
   const handleRefresh = useCallback(async () => {
     await refresh();

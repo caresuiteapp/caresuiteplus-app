@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius, typography } from '@/theme';
+import { colors, typography } from '@/theme';
 
 type ParticipantAvatarProps = { name: string; size?: number };
 

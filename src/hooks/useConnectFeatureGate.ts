@@ -24,7 +24,10 @@ export function useConnectFeatureGate(
 } {
   const { profile, user } = useAuth();
   const roleKey = profile?.roleKey ?? null;
-  const permissions = roleKey ? getPermissionsForRole(roleKey) : [];
+  const permissions = useMemo(
+    () => roleKey ? getPermissionsForRole(roleKey) : [],
+    [roleKey],
+  );
 
   const context = useMemo(
     () =>
@@ -35,7 +38,7 @@ export function useConnectFeatureGate(
         permissions,
         ...overrides,
       }),
-    [featureKey, user?.id, profile?.id, profile?.tenantId, roleKey, overrides],
+    [featureKey, user?.id, profile?.id, profile?.tenantId, roleKey, permissions, overrides],
   );
 
   const result = useMemo(

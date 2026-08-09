@@ -31,7 +31,7 @@ export function isFakeTimestampPair(start: string | null, end: string | null): b
 }
 
 export function extractStatusTimesFromHistory(
-  history: Array<{ toStatus: string; createdAt: string }>,
+  history: { toStatus: string; createdAt: string }[],
   fallback?: { actualStartAt: string | null; actualEndAt: string | null },
 ): AssignmentStatusTimes {
   const times: AssignmentStatusTimes = {
@@ -76,7 +76,7 @@ export function extractStatusTimesFromHistory(
 export function normalizePauseEvents(
   tenantId: string,
   assignmentId: string,
-  pauses: Array<{ id: string; pausedAt: string; resumedAt: string | null; reason: string | null }>,
+  pauses: { id: string; pausedAt: string; resumedAt: string | null; reason: string | null }[],
 ): AssignmentPauseEvent[] {
   return pauses.map((pause) => ({
     id: pause.id,

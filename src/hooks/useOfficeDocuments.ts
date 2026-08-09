@@ -44,7 +44,7 @@ export function useOfficeDocuments() {
     { enabled: !!tenantId },
   );
 
-  const allItems = query.data ?? [];
+  const allItems = useMemo(() => query.data ?? [], [query.data]);
 
   const itemsForList = useMemo(
     () => filterOfficeDocumentsByCategory(allItems, categoryFilter),

@@ -56,7 +56,6 @@ const DETAIL_EXTRAS: Record<string, Omit<WoundDocumentationDetail, keyof WoundDo
 };
 
 export function buildWoundDocumentationDetail(item: WoundDocumentation, mode: ColorMode = 'dark'): WoundDocumentationDetail  {
-  const colors = legacyColorsFromPalette(mode);
   const extras = DETAIL_EXTRAS[item.id] ?? {
     clientName: '—',
     woundType: 'Unbekannt',

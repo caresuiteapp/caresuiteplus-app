@@ -34,7 +34,7 @@ function statusVariant(status: string) {
 }
 
 export function IntegrationDetailHero({ integration, roleKey }: IntegrationDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -80,7 +80,7 @@ export function IntegrationDetailHero({ integration, roleKey }: IntegrationDetai
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.bgElevated],
   );
 
 
@@ -129,4 +129,3 @@ export function IntegrationDetailHero({ integration, roleKey }: IntegrationDetai
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

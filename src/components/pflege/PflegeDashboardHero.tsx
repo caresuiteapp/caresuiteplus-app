@@ -30,7 +30,7 @@ export function PflegeDashboardHero({
   roleLabel,
   isReadOnly,
 }: PflegeDashboardHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -66,7 +66,7 @@ export function PflegeDashboardHero({
     gap: spacing.sm,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.success],
   );
 
 
@@ -105,4 +105,3 @@ export function PflegeDashboardHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

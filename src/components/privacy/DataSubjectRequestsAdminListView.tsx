@@ -7,7 +7,6 @@ import {
   InfoBanner,
   LoadingState,
   PremiumBadge,
-  PremiumButton,
   PremiumCard,
 } from '@/components/ui';
 import { DataSubjectRequestsAdminHero } from './DataSubjectRequestsAdminHero';

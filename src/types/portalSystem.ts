@@ -67,14 +67,14 @@ export type EmployeePortalVisitProjection = {
 /** Client portal budget slice — no internal billing notes. */
 export type ClientPortalBudgetProjection = {
   budgetYear: number | null;
-  items: Array<{
+  items: {
     budgetTypeKey: string | null;
     budgetTypeName: string | null;
     allocatedCents: number;
     usedCents: number;
     reservedCents: number;
     remainingCents: number;
-  }>;
+  }[];
 };
 
 /** Client portal dashboard projection. */

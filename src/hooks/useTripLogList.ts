@@ -19,7 +19,7 @@ export function useTripLogList() {
   { enabled: !!tenantId },
   );
 
-  const allItems = query.data ?? [];
+  const allItems = useMemo(() => query.data ?? [], [query.data]);
 
   const list = useListState<TripLogListItem, 'startedAt'>({
     items: allItems,

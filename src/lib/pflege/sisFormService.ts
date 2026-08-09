@@ -3,7 +3,6 @@ import type { SisFormDetail, SisRiskEntry, SisTopicKey } from '@/types/modules/s
 import {
   createDemoSisFormDetail,
   ensureDemoSisFormDetail,
-  getDemoSisFormDetail,
   saveDemoSisFormDetail,
 } from '@/data/demo/sisFormDetails';
 import { enforcePermission } from '@/lib/permissions';

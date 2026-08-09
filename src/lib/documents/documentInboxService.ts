@@ -365,7 +365,6 @@ export async function prepareInboxOcr(
     DOCUMENT_INBOX_STORE.ocrJobs.set(job.id, job);
 
     const oldStatus = found.data.status;
-    const updated = updateInboxItem({ ...found.data, status: 'ocr_pending' });
 
     appendInboxAudit({
       tenantId: input.tenantId,

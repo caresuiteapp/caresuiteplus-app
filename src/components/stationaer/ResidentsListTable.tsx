@@ -1,10 +1,9 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { ResidentListItem } from '@/types/modules/stationaer';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
-import { colors, typography } from '@/theme';
 
 type ResidentsListTableProps = {
   residents: ResidentListItem[];
@@ -151,10 +150,3 @@ export function ResidentsListTable({
     />
   );
 }
-
-const styles = StyleSheet.create({
-  time: {
-    ...typography.caption,
-    color: colors.cyan,
-  },
-});

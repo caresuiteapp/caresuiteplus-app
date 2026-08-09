@@ -41,7 +41,7 @@ export function PortalDashboardHero({
   displayName,
   onPrimaryAction,
 }: PortalDashboardHeroProps) {
-  const { colors, typography, gradients } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const greeting = useClientGreeting(snapshot.greeting);
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
@@ -83,7 +83,7 @@ export function PortalDashboardHero({
     gap: spacing.sm,
   },
 }),
-    [colors, typography, gradients, heroText.meta, heroText.title],
+    [colors, typography, heroText.meta, heroText.title],
   );
 
 
@@ -118,4 +118,3 @@ export function PortalDashboardHero({
     </PremiumListHeroFrame>
   );
 }
-

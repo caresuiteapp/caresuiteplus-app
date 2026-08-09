@@ -31,7 +31,7 @@ export function CareAddressSearch({
   const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<Array<{ id: string; label: string } & AddressFieldValues>>([]);
+  const [suggestions, setSuggestions] = useState<({ id: string; label: string } & AddressFieldValues)[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {

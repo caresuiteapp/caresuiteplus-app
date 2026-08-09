@@ -22,7 +22,7 @@ import {
   type PortalClientCareProfile,
 } from './portalFeatureAccess';
 import { filterVisibleFeatures, resolvePortalActorRole } from './portalVisibility';
-import { getWidgetsForModules, PORTAL_WIDGET_REGISTRY } from './portalWidgetRegistry';
+import { getWidgetsForModules } from './portalWidgetRegistry';
 import { isPortalModuleKey, sortPortalModules } from './portalModuleKeys';
 
 export type ResolvePortalContextInput = {
@@ -203,7 +203,7 @@ export async function resolvePortalContext(
 ): Promise<PortalContext> {
   const portalRole = resolvePortalActorRole(input.roleKey);
 
-  const [assignmentsResult, metrics, tenantName, visibilityRules, careProfile, dbFeatures, dbWidgets, clientDisplayName] =
+  const [assignmentsResult, metrics, tenantName, visibilityRules, careProfile, dbFeatures,, clientDisplayName] =
     await Promise.all([
       fetchClientModuleAssignments(input.tenantId, input.clientId),
       fetchClientPortalLiveMetrics(input.tenantId, input.clientId).catch(() => EMPTY_METRICS),
@@ -236,7 +236,6 @@ export async function resolvePortalContext(
     : metricsToWidgetMetrics(resolvedMetrics);
 
   const features = dbFeatures ?? PORTAL_FEATURE_MATRIX;
-  const widgets = dbWidgets ?? PORTAL_WIDGET_REGISTRY;
   const moduleFeatures = hasModuleAssignments
     ? getFeaturesForModules(activeModuleKeys)
     : [];

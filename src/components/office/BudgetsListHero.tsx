@@ -5,7 +5,6 @@ import {
   PremiumBadge,
 } from '@/components/ui';
 import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
-import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
 import { buildBudgetListKpis } from '@/lib/office/budgetListStats';

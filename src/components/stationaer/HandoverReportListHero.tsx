@@ -30,7 +30,7 @@ export function HandoverReportListHero({
   onViewModeChange,
   showViewToggle = false,
 }: HandoverReportListHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -60,7 +60,7 @@ export function HandoverReportListHero({
   kpiItem: { flex: 1, minWidth: 100 },
   preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [typography.caption, colors.violet, colors.bgElevated, heroText.title, heroText.meta],
   );
 
 
@@ -109,4 +109,3 @@ export function HandoverReportListHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

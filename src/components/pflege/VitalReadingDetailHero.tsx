@@ -34,7 +34,7 @@ function statusVariant(status: string) {
 }
 
 export function VitalReadingDetailHero({ reading, roleKey, isReadOnly }: VitalReadingDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -78,7 +78,7 @@ export function VitalReadingDetailHero({ reading, roleKey, isReadOnly }: VitalRe
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta],
   );
 
 
@@ -144,4 +144,3 @@ export function VitalReadingDetailHero({ reading, roleKey, isReadOnly }: VitalRe
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

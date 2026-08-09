@@ -3,7 +3,7 @@ import type {
   SystemDocumentTemplate,
   SystemTemplateCopyResult,
 } from '@/types/documents/systemDocumentTemplate';
-import type { DocumentTemplateDetail, DocumentTemplateRecord, DocumentTemplateVersionRecord } from '@/types/documents/documentTemplate';
+import type { DocumentTemplateDetail } from '@/types/documents/documentTemplate';
 import { createEmptyDocumentContext } from '@/features/documents/templateEngine/documentContext';
 import { extractPlaceholders } from '@/features/documents/templateEngine/extractPlaceholders';
 import { renderTemplate } from '@/features/documents/templateEngine/renderTemplate';

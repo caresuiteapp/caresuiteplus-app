@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { PreparedModeBanner } from '@/components/modules/PreparedModeBanner';
 import { WorkflowBuilderHero } from '@/components/catalog/WorkflowBuilderHero';
 import { ScreenShell } from '@/components/layout';

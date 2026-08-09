@@ -1,4 +1,4 @@
-import type { RoleKey, ServiceResult } from '@/types';
+import type { ServiceResult } from '@/types';
 import type { ClientConsentRecord, ClientContract } from '@/types/modules/client';
 import type { ClientDocumentRecord } from '@/types/modules/client';
 import { getDemoClientFullDetail, upsertDemoClientFullDetail } from '@/data/demo/clients';

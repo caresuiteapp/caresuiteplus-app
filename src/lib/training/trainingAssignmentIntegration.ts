@@ -68,9 +68,9 @@ export function filterEmployeesEligibleForAssignment(input: {
   moduleKeys?: ProductKey[];
   jobTitleByEmployee?: Record<string, string | null>;
   requiresQualification?: boolean;
-}): { eligible: string[]; blocked: Array<{ employeeId: string; issues: TrainingDeployabilityIssue[] }> } {
+}): { eligible: string[]; blocked: { employeeId: string; issues: TrainingDeployabilityIssue[] }[] } {
   const eligible: string[] = [];
-  const blocked: Array<{ employeeId: string; issues: TrainingDeployabilityIssue[] }> = [];
+  const blocked: { employeeId: string; issues: TrainingDeployabilityIssue[] }[] = [];
 
   for (const employeeId of input.employeeIds) {
     const check = checkAssignmentTrainingEligibility({

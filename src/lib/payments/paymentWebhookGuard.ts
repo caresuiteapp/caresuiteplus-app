@@ -1,6 +1,5 @@
 import type {
   PaymentGuardCode,
-  PaymentGuardResult,
   PaymentProviderKey,
   PaymentWebhookProcessingStatus,
 } from '@/types/payments';

@@ -1,8 +1,5 @@
 import type { ServiceResult } from '@/types';
-import type { WorkflowStatus } from '@/types/core/base';
 import type { ClientDetail } from '@/types/detail';
-import type { ClientListItem } from '@/types/modules/office';
-import type { ClientFormData } from '@/types/forms/clientForm';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { mapClientDetail, mapClientListItem } from '@/lib/supabase/mappers';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
@@ -12,14 +9,12 @@ import type { ClientContactRow, ClientDetailRow, ClientRow } from '@/lib/supabas
 import { SERVICE_ERRORS } from '../errors';
 import { writeClientAudit, writeClientHistory } from './clientAuditHelper';
 import { assertNoActiveAssignmentsForClient } from '@/lib/office/officeDeleteGuard';
-import { markDemoClientDeleted, isDemoClientDeleted } from '@/lib/office/demoDeleteStore';
 import {
   ACTIVE_CLIENT_LIFECYCLE_STATUSES,
   resolveClientListQueryOptions,
 } from './clientListQueryOptions';
 import { workflowStatusToRemote, REMOTE_CLIENT_DELETED_STATUS, isRemoteClientDeleted } from './clientStatusBridge';
 import type {
-  ClientListOptions,
   ClientMutationContext,
   ClientRepository,
   ClientUpdateInput,
@@ -42,7 +37,7 @@ function buildChangedFieldsSummary(
   patch: ClientUpdateInput,
 ): string | undefined {
   const changes: string[] = [];
-  const fields: Array<[keyof ClientUpdateInput, string]> = [
+  const fields: [keyof ClientUpdateInput, string][] = [
     ['firstName', 'Vorname'],
     ['lastName', 'Nachname'],
     ['dateOfBirth', 'Geburtsdatum'],

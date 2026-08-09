@@ -17,7 +17,7 @@ type OfficeBillingHeroProps = {
 };
 
 export function OfficeBillingHero({ stats, roleKey, compact = false }: OfficeBillingHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -43,7 +43,7 @@ export function OfficeBillingHero({ stats, roleKey, compact = false }: OfficeBil
   kpiItem: { flex: 1, minWidth: 100 },
   compactFrame: { marginBottom: spacing.sm },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.orange],
   );
 
 

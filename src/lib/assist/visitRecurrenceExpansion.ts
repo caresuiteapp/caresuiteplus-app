@@ -329,7 +329,7 @@ export function dedupeVisitDispositionListItems(
 }
 
 export function expandVisitDispositionListItems(
-  rows: Array<{ row: VisitRecurrenceSourceRow; item: VisitDispositionListItem }>,
+  rows: { row: VisitRecurrenceSourceRow; item: VisitDispositionListItem }[],
   options?: ExpandVisitRecurrenceOptions,
 ): VisitDispositionListItem[] {
   // Detached dates are durable tombstones. A missing materialized child can mean that the

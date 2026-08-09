@@ -8,7 +8,7 @@ import { colors, spacing, typography } from '@/theme';
 
 export function MessageAssignmentsScreen() {
   const perms = useCommunicationPermissions();
-  const { openAssignments, loading, refresh } = useMessageAssignments();
+  const { openAssignments, loading } = useMessageAssignments();
 
   if (!perms.canAssign) {
     return (

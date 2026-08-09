@@ -1,5 +1,4 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import type { CalendarViewMode } from '@/types/modules/calendarEvent';
 import { useActiveGlassTokens, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';

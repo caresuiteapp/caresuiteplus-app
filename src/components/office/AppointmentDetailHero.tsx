@@ -37,7 +37,7 @@ export function AppointmentDetailHero({
   roleKey,
   isReadOnly,
 }: AppointmentDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -92,7 +92,7 @@ export function AppointmentDetailHero({
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [typography.caption, typography.bodyStrong, colors.violet, colors.bgElevated, heroText.title],
   );
 
 
@@ -137,4 +137,3 @@ export function AppointmentDetailHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

@@ -26,7 +26,7 @@ export function AuthLoginHero({
   portalVariant = 'orange',
   hint,
 }: AuthLoginHeroProps) {
-  const { colors, typography, gradients } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const isLive = getServiceMode() === 'supabase';
   const styles = useMemo(
@@ -53,7 +53,7 @@ export function AuthLoginHero({
   kpiItem: { flex: 1, minWidth: 100 },
   hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, colors.bgElevated, typography.caption],
   );
 
 
@@ -85,4 +85,3 @@ export function AuthLoginHero({
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

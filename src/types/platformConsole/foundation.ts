@@ -97,14 +97,14 @@ export type PlatformEntitlementInput = {
   subscriptionStatus: PlatformSubscriptionStatus | null;
   planModules: PlatformPlanModule[];
   addonModules: PlatformPlanModule[];
-  manualOverrides: Array<{ moduleKey: string; accessState: PlatformModuleAccessState }>;
+  manualOverrides: { moduleKey: string; accessState: PlatformModuleAccessState }[];
   betaModules: string[];
-  moduleCatalog: Array<{
+  moduleCatalog: {
     moduleKey: string;
     status: string;
     isBeta?: boolean;
     isInternal?: boolean;
-  }>;
+  }[];
 };
 
 export type PlatformBillingPreviewInput = {
@@ -119,9 +119,9 @@ export type PlatformBillingPreviewResult = {
   discountCents: number;
   creditCents: number;
   totalCents: number;
-  lineItems: Array<{
+  lineItems: {
     lineType: 'plan' | 'addon' | 'discount' | 'credit';
     description: string;
     amountCents: number;
-  }>;
+  }[];
 };

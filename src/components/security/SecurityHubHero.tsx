@@ -16,7 +16,7 @@ type SecurityHubHeroProps = {
 };
 
 export function SecurityHubHero({ data, roleKey }: SecurityHubHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -62,7 +62,7 @@ export function SecurityHubHero({ data, roleKey }: SecurityHubHeroProps) {
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.bgElevated],
   );
 
 
@@ -107,4 +107,3 @@ export function SecurityHubHero({ data, roleKey }: SecurityHubHeroProps) {
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

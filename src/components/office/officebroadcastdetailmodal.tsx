@@ -88,7 +88,7 @@ export function OfficeBroadcastDetailModal({
         scroll: { flex: 1 },
         scrollContent: { flexGrow: 1 },
       }),
-    [isDark, sheetMaxHeight, sheetWidth],
+    [sheetMaxHeight, sheetWidth],
   );
 
   if (!broadcastId) return null;

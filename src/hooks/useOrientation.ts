@@ -42,7 +42,7 @@ const LOG_PREFIX = '[CareSuite orientation]';
 
 export function useOrientation(): OrientationSnapshot {
   const { width, height } = useWindowDimensions();
-  const [tick, setTick] = useState(0);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
@@ -66,7 +66,7 @@ export function useOrientation(): OrientationSnapshot {
     };
   }, []);
 
-  return useMemo(() => buildOrientationSnapshot(width, height), [width, height, tick]);
+  return useMemo(() => buildOrientationSnapshot(width, height), [width, height]);
 }
 
 export type UseLandscapeRequiredOptions = {

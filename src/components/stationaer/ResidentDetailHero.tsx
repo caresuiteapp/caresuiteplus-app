@@ -33,7 +33,7 @@ function statusVariant(status: string) {
 }
 
 export function ResidentDetailHero({ resident, roleKey }: ResidentDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -79,7 +79,7 @@ export function ResidentDetailHero({ resident, roleKey }: ResidentDetailHeroProp
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.violet],
   );
 
 
@@ -132,4 +132,3 @@ export function ResidentDetailHero({ resident, roleKey }: ResidentDetailHeroProp
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

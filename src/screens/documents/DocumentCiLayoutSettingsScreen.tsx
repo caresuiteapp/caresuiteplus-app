@@ -9,7 +9,6 @@ import {
   InfoBanner,
   LoadingState,
   PremiumButton,
-  PremiumCard,
   PremiumInput,
   SectionPanel,
   SuccessState,
@@ -50,7 +49,7 @@ export function DocumentCiLayoutSettingsScreen() {
     if (!query.data) return;
     const { id: _id, tenantId: _tid, updatedAt: _ua, ...rest } = query.data;
     setForm(rest);
-  }, [query.data?.updatedAt]);
+  }, [query.data]);
 
   if (!can('office.catalogs.view')) {
     return (

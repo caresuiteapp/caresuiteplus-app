@@ -16,12 +16,10 @@ import type {
   ServiceRecord,
   ServiceRecordReview,
   ServiceRecordReviewDecision,
-  ServiceRecordStatus,
   SignatureException,
 } from '@/types/modules/assignmentCompletion';
 import { enforcePermission } from '@/lib/permissions';
 import { guardLiveDemoFeature, guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { getServiceMode } from '@/lib/services/mode';
 import {
   getAssignmentWorkflow,
   listAssignmentWorkflows,

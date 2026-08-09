@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useShellGlassSurfaceStyle } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';

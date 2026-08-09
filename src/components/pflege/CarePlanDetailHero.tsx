@@ -33,7 +33,7 @@ function statusVariant(status: string) {
 }
 
 export function CarePlanDetailHero({ plan, roleKey, isReadOnly }: CarePlanDetailHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -79,7 +79,7 @@ export function CarePlanDetailHero({ plan, roleKey, isReadOnly }: CarePlanDetail
     minWidth: 100,
   },
 }),
-    [colors, typography, gradients],
+    [heroText.eyebrow, heroText.title, heroText.meta, heroText.subtitle, colors.success],
   );
 
 
@@ -127,4 +127,3 @@ export function CarePlanDetailHero({ plan, roleKey, isReadOnly }: CarePlanDetail
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

@@ -121,7 +121,7 @@ export type WfmRuleEvaluationInput = {
 };
 
 export type WfmRuleEvaluationResult = {
-  violations: Array<Omit<WfmRuleViolation, 'id' | 'tenantId' | 'employeeId' | 'acknowledgedAt' | 'createdAt'>>;
+  violations: Omit<WfmRuleViolation, 'id' | 'tenantId' | 'employeeId' | 'acknowledgedAt' | 'createdAt'>[];
   trafficLight: WfmTrafficLight;
 };
 

@@ -10,11 +10,9 @@ import {
   finalizeBillingRunInvoices,
   generateInvoiceDraftsFromRun,
   getBillableItem,
-  getReceivable,
   isBillableItemAlreadyInRun,
   listBillingAuditEvents,
   listBillingRuns,
-  listOpenDueReceivables,
   listReceivables,
   prepareBillingRun,
   prepareDunningRun,
@@ -234,8 +232,6 @@ describe('CareSuite+ Monatsabschluss / Rechnungslauf / Mahnwesen', () => {
     const { finalize } = runFullCycle();
     expect(finalize.invoicesFinalized).toBe(1);
 
-    const runs = listBillingRuns(TENANT_A);
-    const run = runs[0];
     const items = finalize.invoicesFinalized;
     expect(items).toBeGreaterThan(0);
 

@@ -1,10 +1,9 @@
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { listThreads } from '@/features/communication/communication.service';
 import { useRouter } from 'expo-router';
 import { ConversationListItem } from '@/components/communication';
 import { CommunicationArchivedHero } from '@/components/communication/CommunicationArchivedHero';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumCard, PremiumInput } from '@/components/ui';
+import { EmptyState, LoadingState, PremiumCard } from '@/components/ui';
 import { useThreads } from '@/hooks/communication';
 import { useAuth } from '@/lib/auth/context';
 import { colors, spacing } from '@/theme';

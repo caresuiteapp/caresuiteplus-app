@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { InfoBanner, PremiumButton, PremiumInput } from '@/components/ui';
-import type { PermissionKey, RoleKey } from '@/types';
+import type { RoleKey } from '@/types';
 import type { RoleTemplate } from '@/types/permissions/rbac';
 import {
   createTenantRoleTemplate,
@@ -53,14 +53,14 @@ export function RbacTenantRolesPanel({
     [content],
   );
 
-  async function refreshTemplates() {
+  const refreshTemplates = useCallback(async () => {
     const result = await listRoleTemplates(tenantId);
     if (result.ok) setTemplates(result.data);
-  }
+  }, [tenantId]);
 
   useEffect(() => {
     void refreshTemplates();
-  }, [tenantId]);
+  }, [refreshTemplates]);
 
   const customTemplates = templates.filter((template) => template.tenantId === tenantId);
   const selected = templates.find((template) => template.id === selectedId) ?? null;
