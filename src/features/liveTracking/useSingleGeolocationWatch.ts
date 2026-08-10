@@ -51,6 +51,9 @@ const MIN_MOVE_METERS = 5;
  * so stationary employees remain visible in Assist Live-Status.
  */
 export const EMPLOYEE_LIVE_LOCATION_INTERVAL_MS = 60_000;
+/** Moving route samples need a denser cadence than the stationary heartbeat. */
+export const EMPLOYEE_ROUTE_LOCATION_INTERVAL_MS = 15_000;
+export const EMPLOYEE_ROUTE_DISTANCE_INTERVAL_METERS = 10;
 
 function loadExpoLocation(): typeof ExpoLocation {
   // Lazy loading keeps web bundles and source-only tests independent from the
@@ -108,8 +111,8 @@ function startWatch(entry: WatchEntry, enableHighAccuracy: boolean): void {
     void Location.watchPositionAsync(
       {
         accuracy: enableHighAccuracy ? Location.Accuracy.High : Location.Accuracy.Balanced,
-        timeInterval: EMPLOYEE_LIVE_LOCATION_INTERVAL_MS,
-        distanceInterval: 0,
+        timeInterval: EMPLOYEE_ROUTE_LOCATION_INTERVAL_MS,
+        distanceInterval: EMPLOYEE_ROUTE_DISTANCE_INTERVAL_METERS,
       },
       (position) => {
         dispatchSnapshot(entry, {

@@ -117,6 +117,7 @@ export {
 export {
   fetchActiveTrackingSession,
   fetchLatestLocationPointForVisit,
+  fetchLocationPointsForVisit,
   fetchTimeEventsForVisit,
   startTrackingSession,
   appendLocationPoint,

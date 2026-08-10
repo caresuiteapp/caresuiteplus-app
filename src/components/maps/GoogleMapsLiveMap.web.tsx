@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useState, type Ref } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   formatMapLastUpdated,
+  type AssistLiveRoutePoint,
   type AssistMapPosition,
 } from '@/lib/assist/assistMapProvider';
 import { getGoogleMapsBrowserKey } from '@/lib/maps/getGoogleMapsBrowserKey';
@@ -24,6 +25,7 @@ export type GoogleMapsLiveMarker = {
 export type GoogleMapsLiveMapProps = {
   position?: AssistMapPosition | null;
   markers?: GoogleMapsLiveMarker[];
+  routePoints?: AssistLiveRoutePoint[];
   selectedMarkerId?: string | null;
   onMarkerSelect?: (markerId: string) => void;
   height?: number;
@@ -79,6 +81,7 @@ function resolveMarkers(
 function GoogleMapsLiveMapInner({
   position = null,
   markers,
+  routePoints = [],
   selectedMarkerId = null,
   onMarkerSelect,
   height = 280,
@@ -154,6 +157,23 @@ function GoogleMapsLiveMapInner({
     buildInfoContent: (m) => m.infoHtml ?? buildInfoContent(m as GoogleMapsLiveMarker, demoMode),
   });
 
+  useEffect(() => {
+    if (!map || !google || routePoints.length < 2) return;
+    const path = routePoints.map((point) => ({ lat: point.latitude, lng: point.longitude }));
+    const routeLine = new google.maps.Polyline({
+      map,
+      path,
+      geodesic: true,
+      strokeColor: '#0B63F3',
+      strokeOpacity: 0.94,
+      strokeWeight: 5,
+    });
+    const bounds = new google.maps.LatLngBounds();
+    for (const coordinate of path) bounds.extend(coordinate);
+    map.fitBounds(bounds);
+    return () => routeLine.setMap(null);
+  }, [map, google, routePoints]);
+
   if (resolvedMarkers.length === 0) {
     return (
       <View style={[styles.fallback, { minHeight: height }]}>
@@ -219,6 +239,9 @@ function GoogleMapsLiveMapInner({
             Genauigkeit ca.{' '}
             {Math.round(primaryMarker?.accuracyMeters ?? position?.accuracyMeters ?? 0)} m
           </Text>
+        ) : null}
+        {routePoints.length > 1 ? (
+          <Text style={styles.meta}>{routePoints.length} GPS-Punkte · Route live</Text>
         ) : null}
       </View>
     </View>

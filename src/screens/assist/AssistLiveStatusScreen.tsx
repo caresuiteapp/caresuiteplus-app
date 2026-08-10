@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -29,7 +29,6 @@ import { useAssistLiveMonitoring } from '@/features/assistLive/useAssistLiveMoni
 import type { AssistLiveMonitoringRow } from '@/features/assistLive/getAssistLiveMonitoring';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { formatTimerSeconds } from '@/lib/assist/assistLiveTrackingViewService';
 import { getAssistMapDemoPosition, isGoogleMapsConfigured } from '@/lib/assist/assistMapProvider';
 import {
   GPS_TRACKING_DEMO_MESSAGE,
@@ -44,6 +43,39 @@ import { colors, spacing, typography } from '@/theme';
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatPreciseDuration(seconds: number | null): string {
+  if (seconds == null) return '—';
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(safeSeconds / 3_600);
+  const minutes = Math.floor((safeSeconds % 3_600) / 60);
+  const remainingSeconds = safeSeconds % 60;
+  return `${hours} Std. ${String(minutes).padStart(2, '0')} Min. ${String(remainingSeconds).padStart(2, '0')} Sek.`;
+}
+
+function resolveLiveTimerSeconds(
+  seconds: number | null,
+  activeTimer: 'drive' | 'service' | 'pause' | null,
+  timer: 'drive' | 'service' | 'pause',
+  generatedAt: string | null | undefined,
+  nowMs: number,
+): number | null {
+  if (seconds == null || activeTimer !== timer || !generatedAt) return seconds;
+  const generatedMs = new Date(generatedAt).getTime();
+  if (!Number.isFinite(generatedMs)) return seconds;
+  return seconds + Math.max(0, Math.floor((nowMs - generatedMs) / 1000));
+}
+
+function formatDistance(kilometres: number): string {
+  return `${kilometres.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`;
+}
+
+function formatGpsPermission(value: string): string {
+  if (value === 'granted') return 'Freigegeben und verwendet';
+  if (value === 'denied') return 'Vom Mitarbeitendengerät blockiert';
+  if (value === 'unavailable') return 'Auf dem Mitarbeitendengerät nicht verfügbar';
+  return 'Noch nicht durch einen GPS-Punkt bestätigt';
 }
 
 function formatPositionFreshness(capturedAt: string | null | undefined): string {
@@ -86,6 +118,12 @@ export function AssistLiveStatusScreen() {
   const tenantId = useServiceTenantId();
   const { overview, loading, error, refresh } = useAssistLiveMonitoring();
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [clockMs, setClockMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setClockMs(Date.now()), 1_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const rows = useMemo(() => overview?.rows ?? [], [overview?.rows]);
   const persistenceActive = isAssistTrackingPersistenceActive();
@@ -171,10 +209,44 @@ export function AssistLiveStatusScreen() {
                 </Text>
                 {row.tracking ? (
                   <View style={styles.trackingBlock}>
-                    <Text style={styles.trackingLine}>
-                      Anfahrt: {formatTimerSeconds(row.tracking.timers.driveSeconds)} · Einsatz:{' '}
-                      {formatTimerSeconds(row.tracking.timers.serviceSeconds)}
-                    </Text>
+                    <View style={styles.timerGrid}>
+                      <View style={styles.timerCell}>
+                        <Text style={styles.timerLabel}>Anfahrt</Text>
+                        <Text style={styles.timerValue}>
+                          {formatPreciseDuration(resolveLiveTimerSeconds(
+                            row.tracking.timers.driveSeconds,
+                            row.tracking.timers.activeTimer,
+                            'drive',
+                            overview?.generatedAt,
+                            clockMs,
+                          ))}
+                        </Text>
+                      </View>
+                      <View style={styles.timerCell}>
+                        <Text style={styles.timerLabel}>Einsatz</Text>
+                        <Text style={styles.timerValue}>
+                          {formatPreciseDuration(resolveLiveTimerSeconds(
+                            row.tracking.timers.serviceSeconds,
+                            row.tracking.timers.activeTimer,
+                            'service',
+                            overview?.generatedAt,
+                            clockMs,
+                          ))}
+                        </Text>
+                      </View>
+                      <View style={styles.timerCell}>
+                        <Text style={styles.timerLabel}>Pause</Text>
+                        <Text style={styles.timerValue}>
+                          {formatPreciseDuration(resolveLiveTimerSeconds(
+                            row.tracking.timers.pauseSeconds,
+                            row.tracking.timers.activeTimer,
+                            'pause',
+                            overview?.generatedAt,
+                            clockMs,
+                          ))}
+                        </Text>
+                      </View>
+                    </View>
                     <Text
                       style={[
                         styles.trackingLine,
@@ -187,8 +259,13 @@ export function AssistLiveStatusScreen() {
                       {formatPositionFreshness(row.tracking.lastPosition?.capturedAt)}
                     </Text>
                     <Text style={styles.trackingLine}>
-                      GPS: {row.tracking.gpsPermission}
-                      {row.tracking.trackingActive ? ' · Live' : ''}
+                      GPS: {formatGpsPermission(row.tracking.gpsPermission)}
+                      {row.tracking.trackingActive
+                        ? row.tracking.lastPosition &&
+                          clockMs - new Date(row.tracking.lastPosition.capturedAt).getTime() < 150_000
+                          ? ' · Live'
+                          : ' · Sitzung aktiv, Signal nicht live'
+                        : ''}
                       {row.tracking.lastPosition
                         ? ` · ${row.tracking.lastPosition.latitude.toFixed(4)}, ${row.tracking.lastPosition.longitude.toFixed(4)}`
                         : ' · Keine Position'}
@@ -201,6 +278,32 @@ export function AssistLiveStatusScreen() {
                     {row.tracking.warnings[0] ? (
                       <Text style={styles.warning}>{row.tracking.warnings[0]}</Text>
                     ) : null}
+                    {row.route ? (
+                      <View style={styles.routeMetrics}>
+                        <View style={styles.routeMetricPrimary}>
+                          <Text style={styles.routeMetricLabel}>Route gesamt</Text>
+                          <Text style={styles.routeMetricValue}>{formatDistance(row.route.totalDistanceKm)}</Text>
+                        </View>
+                        <View style={styles.routeMetric}>
+                          <Text style={styles.routeMetricLabel}>Gefahren</Text>
+                          <Text style={styles.routeMetricSmall}>{formatDistance(row.route.drivingDistanceKm)}</Text>
+                        </View>
+                        <View style={styles.routeMetric}>
+                          <Text style={styles.routeMetricLabel}>Zu Fuß</Text>
+                          <Text style={styles.routeMetricSmall}>{formatDistance(row.route.walkingDistanceKm)}</Text>
+                        </View>
+                        <View style={styles.routeMetric}>
+                          <Text style={styles.routeMetricLabel}>Fahrrad/sonstig</Text>
+                          <Text style={styles.routeMetricSmall}>{formatDistance(row.route.cyclingDistanceKm)}</Text>
+                        </View>
+                        <Text style={styles.routeMeta}>
+                          {row.route.pointCount} GPS-Punkte · Ø {row.route.averageSpeedKmh?.toFixed(1) ?? '0,0'} km/h
+                          {row.route.currentSpeedKmh != null ? ` · zuletzt ${row.route.currentSpeedKmh.toFixed(1)} km/h` : ''}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.warning}>Noch keine GPS-Route aufgezeichnet.</Text>
+                    )}
                   </View>
                 ) : null}
                 <PremiumButton
@@ -230,6 +333,7 @@ export function AssistLiveStatusScreen() {
         <AssistLiveMap
           position={mapPosition}
           markers={mapMarkers}
+          routePoints={mapRow?.route?.points ?? []}
           selectedMarkerId={selectedAssignmentId ?? mapRow?.assignmentId ?? null}
           onMarkerSelect={setSelectedAssignmentId}
           markerLabel={mapRow?.title ?? undefined}
@@ -276,6 +380,7 @@ export function AssistLiveStatusScreen() {
             <PremiumBadge label={`${overview.todayCount} Einsätze`} variant="muted" />
             <PremiumBadge label={`${overview.runningCount} laufend`} variant="orange" />
             <PremiumBadge label={`${overview.activeTrackingCount} Tracking aktiv`} variant="cyan" />
+            <PremiumBadge label={`${overview.freshGpsCount} GPS-Signale live`} variant="green" />
             {mapProviderReady ? (
               <PremiumBadge
                 label={isGoogleMapsConfigured() ? 'Google Maps aktiv' : 'Kartenansicht aktiv'}
@@ -331,6 +436,17 @@ const styles = StyleSheet.create({
   meta: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
   trackingBlock: { marginTop: spacing.sm, gap: 2 },
   trackingLine: { ...typography.caption, color: colors.textSecondary },
+  timerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.xs },
+  timerCell: { minWidth: 150, flex: 1, padding: spacing.sm, borderRadius: 10, backgroundColor: 'rgba(15, 23, 42, 0.06)' },
+  timerLabel: { ...typography.caption, color: colors.textMuted, fontSize: 10, textTransform: 'uppercase', fontWeight: '800' },
+  timerValue: { ...typography.bodyStrong, color: colors.textPrimary, fontSize: 12, marginTop: 3, fontVariant: ['tabular-nums'] },
+  routeMetrics: { marginTop: spacing.sm, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  routeMetricPrimary: { minWidth: 150, flex: 1, padding: spacing.sm, borderRadius: 10, borderWidth: 1, borderColor: colors.cyan, backgroundColor: 'rgba(11, 99, 243, 0.08)' },
+  routeMetric: { minWidth: 105, flex: 1, padding: spacing.sm, borderRadius: 10, backgroundColor: 'rgba(15, 23, 42, 0.05)' },
+  routeMetricLabel: { ...typography.caption, color: colors.textMuted, fontSize: 10, fontWeight: '800' },
+  routeMetricValue: { ...typography.bodyStrong, color: colors.cyan, fontSize: 17, marginTop: 2, fontVariant: ['tabular-nums'] },
+  routeMetricSmall: { ...typography.bodyStrong, color: colors.textPrimary, fontSize: 13, marginTop: 2, fontVariant: ['tabular-nums'] },
+  routeMeta: { ...typography.caption, width: '100%', color: colors.textMuted, marginTop: 2 },
   warning: { ...typography.caption, color: colors.amber, marginTop: spacing.xs },
   liveSignal: { color: colors.success, fontWeight: '700' },
   gap: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },

@@ -5,6 +5,8 @@ import {
 } from '@/features/liveTracking/useEmployeeGpsTracking';
 import {
   EMPLOYEE_LIVE_LOCATION_INTERVAL_MS,
+  EMPLOYEE_ROUTE_DISTANCE_INTERVAL_METERS,
+  EMPLOYEE_ROUTE_LOCATION_INTERVAL_MS,
 } from '@/features/liveTracking/useSingleGeolocationWatch';
 import {
   applyEmployeePortalTrackingForStatus,
@@ -36,14 +38,16 @@ describe('kontinuierliche Mitarbeitenden-Liveverfolgung', () => {
   });
 
   it('nutzt im nativen Portal einen echten Expo-Standort-Stream', () => {
+    expect(EMPLOYEE_ROUTE_LOCATION_INTERVAL_MS).toBe(15_000);
+    expect(EMPLOYEE_ROUTE_DISTANCE_INTERVAL_METERS).toBe(10);
     const source = readFileSync(
       'src/features/liveTracking/useSingleGeolocationWatch.ts',
       'utf8',
     );
 
     expect(source).toContain('Location.watchPositionAsync');
-    expect(source).toContain('timeInterval: EMPLOYEE_LIVE_LOCATION_INTERVAL_MS');
-    expect(source).toContain('distanceInterval: 0');
+    expect(source).toContain('timeInterval: EMPLOYEE_ROUTE_LOCATION_INTERVAL_MS');
+    expect(source).toContain('distanceInterval: EMPLOYEE_ROUTE_DISTANCE_INTERVAL_METERS');
   });
 
   it('hält Tracking bis zum erstellten Leistungsnachweis aktiv', () => {

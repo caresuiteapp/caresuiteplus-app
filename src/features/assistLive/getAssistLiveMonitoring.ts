@@ -10,6 +10,7 @@ import type { AssistTrackingSessionRow } from '@/types/assistExecutionPersistenc
 import { isAssignmentToday } from '@/data/demo/assistAssignments';
 import {
   fetchActiveTrackingSession,
+  fetchLocationPointsForVisit,
   fetchLatestLocationPointForVisit,
   fetchLatestTrackingSessionWithConsent,
   fetchTimeEventsForVisit,
@@ -32,6 +33,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import { fetchAssignmentExecutionSnapshotBatch } from '@/lib/assist/resolveAssignmentExecutionSnapshot';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignment';
+import type { AssistLiveRoutePoint } from '@/lib/assist/assistMapProvider';
 
 function shouldUseLiveVisitList(): boolean {
   return getServiceMode() === 'supabase' && Boolean(getSupabaseClient());
@@ -42,6 +44,22 @@ export type AssistLiveMonitoringRow = DayMonitorAssignmentRow & {
   employeeName: string | null;
   clientName: string | null;
   tracking: EmployeePortalTrackingSnapshot | null;
+  route: AssistLiveRouteSummary | null;
+};
+
+export type AssistLiveRouteSummary = {
+  points: AssistLiveRoutePoint[];
+  pointCount: number;
+  totalDistanceKm: number;
+  walkingDistanceKm: number;
+  cyclingDistanceKm: number;
+  drivingDistanceKm: number;
+  durationSeconds: number;
+  currentSpeedKmh: number | null;
+  averageSpeedKmh: number | null;
+  startedAt: string | null;
+  updatedAt: string | null;
+  discardedPointCount: number;
 };
 
 export type AssistLiveMapMarker = {
@@ -59,14 +77,118 @@ export type AssistLiveMonitoringOverview = {
   todayCount: number;
   runningCount: number;
   activeTrackingCount: number;
+  freshGpsCount: number;
   consentPendingCount: number;
   gpsDeniedCount: number;
   mapMarkers: AssistLiveMapMarker[];
   readOnlyNotice: string;
+  generatedAt: string;
 };
 
 const READ_ONLY_NOTICE =
   'Live-Verfolgung läuft im Mitarbeiterportal während der gesamten aktiven Anfahrt und des Einsatzes. Assist/Office empfängt die Position fortlaufend — startet selbst kein GPS.';
+
+function haversineMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const radiusMeters = 6_371_000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return 2 * radiusMeters * Math.asin(Math.sqrt(a));
+}
+
+/**
+ * Builds auditable route metrics from device points. Accuracy outliers,
+ * implausible speeds and long signal gaps are excluded from kilometre totals.
+ * Movement categories are GPS estimates, not employee declarations.
+ */
+export function buildAssistLiveRouteSummary(
+  rawPoints: AssistLiveRoutePoint[],
+): AssistLiveRouteSummary {
+  const points = rawPoints
+    .filter((point) =>
+      Number.isFinite(point.latitude) &&
+      Number.isFinite(point.longitude) &&
+      Math.abs(point.latitude) <= 90 &&
+      Math.abs(point.longitude) <= 180 &&
+      (point.accuracyMeters == null || point.accuracyMeters <= 120) &&
+      Number.isFinite(new Date(point.capturedAt).getTime()),
+    )
+    .sort(
+      (left, right) =>
+        new Date(left.capturedAt).getTime() - new Date(right.capturedAt).getTime(),
+    );
+
+  let totalMeters = 0;
+  let walkingMeters = 0;
+  let cyclingMeters = 0;
+  let drivingMeters = 0;
+  let discardedPointCount = rawPoints.length - points.length;
+  let lastAcceptedSpeedKmh: number | null = null;
+
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const current = points[index];
+    const elapsedSeconds =
+      (new Date(current.capturedAt).getTime() - new Date(previous.capturedAt).getTime()) / 1000;
+    const distanceMeters = haversineMeters(
+      previous.latitude,
+      previous.longitude,
+      current.latitude,
+      current.longitude,
+    );
+
+    if (elapsedSeconds <= 0 || elapsedSeconds > 300 || distanceMeters < 4) continue;
+    const speedKmh = (distanceMeters / elapsedSeconds) * 3.6;
+    if (!Number.isFinite(speedKmh) || speedKmh > 180) {
+      discardedPointCount += 1;
+      continue;
+    }
+
+    totalMeters += distanceMeters;
+    lastAcceptedSpeedKmh = speedKmh;
+    if (speedKmh <= 8) walkingMeters += distanceMeters;
+    else if (speedKmh <= 25) cyclingMeters += distanceMeters;
+    else drivingMeters += distanceMeters;
+  }
+
+  const startedAt = points[0]?.capturedAt ?? null;
+  const updatedAt = points.at(-1)?.capturedAt ?? null;
+  const durationSeconds = startedAt && updatedAt
+    ? Math.max(0, Math.round((new Date(updatedAt).getTime() - new Date(startedAt).getTime()) / 1000))
+    : 0;
+  const averageSpeedKmh = durationSeconds > 0
+    ? (totalMeters / durationSeconds) * 3.6
+    : null;
+
+  return {
+    points,
+    pointCount: points.length,
+    totalDistanceKm: totalMeters / 1000,
+    walkingDistanceKm: walkingMeters / 1000,
+    cyclingDistanceKm: cyclingMeters / 1000,
+    drivingDistanceKm: drivingMeters / 1000,
+    durationSeconds,
+    currentSpeedKmh: lastAcceptedSpeedKmh,
+    averageSpeedKmh,
+    startedAt,
+    updatedAt,
+    discardedPointCount,
+  };
+}
+
+type PersistedTrackingEnrichment = {
+  tracking: EmployeePortalTrackingSnapshot;
+  route: AssistLiveRouteSummary | null;
+};
 
 function fallbackDisplayStatus(status: AssignmentStatus): DayMonitorAssignmentRow['displayStatus'] {
   const map: Partial<Record<AssignmentStatus, DayMonitorAssignmentRow['displayStatus']>> = {
@@ -166,8 +288,8 @@ async function enrichTrackingFromPersistence(
   status: AssignmentStatus,
   gpsPermission: EmployeePortalTrackingSnapshot['gpsPermission'],
   inMemory: EmployeePortalTrackingSnapshot,
-): Promise<EmployeePortalTrackingSnapshot> {
-  if (getServiceMode() !== 'supabase') return inMemory;
+): Promise<PersistedTrackingEnrichment> {
+  if (getServiceMode() !== 'supabase') return { tracking: inMemory, route: null };
 
   const resolvedVisitId = await resolveLiveVisitId(tenantId, visitId);
   const persistenceVisitId = resolvedVisitId ?? visitId;
@@ -183,7 +305,7 @@ async function enrichTrackingFromPersistence(
   ]);
 
   if (!sessionRes.ok || !visitConsentRes.ok || !pointRes.ok || !eventsRes.ok || !employeeConsentRes.ok) {
-    return inMemory;
+    return { tracking: inMemory, route: null };
   }
 
   const session = sessionRes.data;
@@ -191,15 +313,22 @@ async function enrichTrackingFromPersistence(
   const point = pointRes.data;
   const events = eventsRes.data;
   const employeeConsent = employeeConsentRes.data;
+  const routeRes = await fetchLocationPointsForVisit(
+    tenantId,
+    persistenceVisitId,
+    session?.id ?? visitConsent?.id ?? null,
+  );
+  const routePoint = routeRes.ok ? (routeRes.data.at(-1) ?? null) : null;
+  const persistedPoint = routePoint ?? point;
 
   const trackingActive = session?.isActive ?? inMemory.trackingActive;
   const lastPosition =
-    point != null
+    persistedPoint != null
       ? {
-          latitude: point.latitude,
-          longitude: point.longitude,
-          accuracyMeters: point.accuracyMeters,
-          capturedAt: point.recordedAt,
+          latitude: persistedPoint.latitude,
+          longitude: persistedPoint.longitude,
+          accuracyMeters: persistedPoint.accuracyMeters,
+          capturedAt: persistedPoint.recordedAt,
         }
       : inMemory.lastPosition;
 
@@ -234,26 +363,39 @@ async function enrichTrackingFromPersistence(
 
   const warnings = rebuildEmployeePortalTrackingWarnings(
     consent,
-    gpsPermission,
+    persistedPoint ? 'granted' : trackingActive ? 'undetermined' : gpsPermission,
     inMemory.warnings,
   );
 
   return {
-    ...inMemory,
-    consent,
-    trackingActive,
-    lastPosition,
-    assistVisible,
-    clientPortalVisible: false,
-    warnings,
-    timers: {
-      ...inMemory.timers,
-      driveSeconds: persistedTimers?.driveSeconds ?? inMemory.timers.driveSeconds,
-      serviceSeconds: persistedTimers?.serviceSeconds ?? inMemory.timers.serviceSeconds,
-      pauseSeconds: persistedTimers?.pauseSeconds ?? inMemory.timers.pauseSeconds,
-      driveStartedAt: persistedTimers?.driveStartedAt ?? inMemory.timers.driveStartedAt,
-      serviceStartedAt: persistedTimers?.serviceStartedAt ?? inMemory.timers.serviceStartedAt,
+    tracking: {
+      ...inMemory,
+      consent,
+      gpsPermission: persistedPoint ? 'granted' : trackingActive ? 'undetermined' : gpsPermission,
+      trackingActive,
+      lastPosition,
+      assistVisible,
+      clientPortalVisible: false,
+      warnings,
+      timers: {
+        ...inMemory.timers,
+        driveSeconds: persistedTimers?.driveSeconds ?? inMemory.timers.driveSeconds,
+        serviceSeconds: persistedTimers?.serviceSeconds ?? inMemory.timers.serviceSeconds,
+        pauseSeconds: persistedTimers?.pauseSeconds ?? inMemory.timers.pauseSeconds,
+        activeTimer: persistedTimers?.activeTimer ?? inMemory.timers.activeTimer,
+        driveStartedAt: persistedTimers?.driveStartedAt ?? inMemory.timers.driveStartedAt,
+        serviceStartedAt: persistedTimers?.serviceStartedAt ?? inMemory.timers.serviceStartedAt,
+        pauseStartedAt: persistedTimers?.pauseStartedAt ?? inMemory.timers.pauseStartedAt,
+      },
     },
+    route: routeRes.ok && routeRes.data.length > 0
+      ? buildAssistLiveRouteSummary(routeRes.data.map((routePoint) => ({
+          latitude: routePoint.latitude,
+          longitude: routePoint.longitude,
+          capturedAt: routePoint.recordedAt,
+          accuracyMeters: routePoint.accuracyMeters,
+        })))
+      : null,
   };
 }
 
@@ -262,6 +404,7 @@ function mapMonitorRowToMonitoringRow(
   employeeName: string | null,
   clientName: string | null,
   tracking: EmployeePortalTrackingSnapshot | null,
+  route: AssistLiveRouteSummary | null,
 ): AssistLiveMonitoringRow {
   return {
     ...row,
@@ -269,6 +412,7 @@ function mapMonitorRowToMonitoringRow(
     employeeName,
     clientName,
     tracking,
+    route,
   };
 }
 
@@ -337,7 +481,7 @@ async function buildRowsFromDayMonitor(
         row.status,
         gpsPermission,
       );
-      const tracking = await enrichTrackingFromPersistence(
+      const enrichment = await enrichTrackingFromPersistence(
         tenantId,
         row.assignmentId,
         row.assignmentId,
@@ -346,7 +490,7 @@ async function buildRowsFromDayMonitor(
         gpsPermission,
         inMemory,
       );
-      return mapMonitorRowToMonitoringRow(row, null, null, tracking);
+      return mapMonitorRowToMonitoringRow(row, null, null, enrichment.tracking, enrichment.route);
     }),
   );
 
@@ -492,7 +636,7 @@ export async function getAssistLiveMonitoring(
           assignmentStatus,
           gpsPermission,
         );
-        const tracking = await enrichTrackingFromPersistence(
+        const enrichment = await enrichTrackingFromPersistence(
           tenantId,
           item.id,
           item.id,
@@ -502,7 +646,13 @@ export async function getAssistLiveMonitoring(
           inMemory,
         );
 
-        return mapMonitorRowToMonitoringRow(baseRow, item.employeeName, item.clientName, tracking);
+        return mapMonitorRowToMonitoringRow(
+          baseRow,
+          item.employeeName,
+          item.clientName,
+          enrichment.tracking,
+          enrichment.route,
+        );
       }),
     );
 
@@ -517,6 +667,10 @@ export async function getAssistLiveMonitoring(
   const todayCount = rows.length;
   const runningCount = computeRunningCount(rows);
   const activeTrackingCount = rows.filter((r) => r.tracking?.trackingActive).length;
+  const freshGpsCount = rows.filter((row) => {
+    const capturedAt = row.tracking?.lastPosition?.capturedAt;
+    return capturedAt && Date.now() - new Date(capturedAt).getTime() < 150_000;
+  }).length;
   const consentPendingCount = rows.filter(isConsentPendingForMonitoring).length;
   const gpsDeniedCount = rows.filter((r) => r.tracking?.gpsPermission === 'denied').length;
   const mapMarkers = buildMapMarkers(rows);
@@ -528,10 +682,12 @@ export async function getAssistLiveMonitoring(
       todayCount,
       runningCount,
       activeTrackingCount,
+      freshGpsCount,
       consentPendingCount,
       gpsDeniedCount,
       mapMarkers,
       readOnlyNotice: READ_ONLY_NOTICE,
+      generatedAt: new Date().toISOString(),
     },
   };
 }

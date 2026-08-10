@@ -32,4 +32,20 @@ describe('getAssistLiveStatus', () => {
     expect(formatTimerSeconds(125)).toBe('2:05');
     expect(formatTimerSeconds(null)).toBe('—');
   });
+
+  it('berechnet eine GPS-Route mit Distanz und Bewegungsarten', async () => {
+    const { buildAssistLiveRouteSummary } = await import(
+      '@/features/assistLive/getAssistLiveMonitoring'
+    );
+    const route = buildAssistLiveRouteSummary([
+      { latitude: 51.5000, longitude: 7.4000, accuracyMeters: 8, capturedAt: '2026-08-10T08:00:00.000Z' },
+      { latitude: 51.5005, longitude: 7.4000, accuracyMeters: 7, capturedAt: '2026-08-10T08:01:00.000Z' },
+      { latitude: 51.5050, longitude: 7.4000, accuracyMeters: 9, capturedAt: '2026-08-10T08:02:00.000Z' },
+    ]);
+
+    expect(route.pointCount).toBe(3);
+    expect(route.totalDistanceKm).toBeGreaterThan(0.5);
+    expect(route.walkingDistanceKm).toBeGreaterThan(0);
+    expect(route.drivingDistanceKm).toBeGreaterThan(0);
+  });
 });

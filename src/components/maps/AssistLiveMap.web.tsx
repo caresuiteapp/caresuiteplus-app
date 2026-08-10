@@ -5,6 +5,7 @@ import {
   buildOsmEmbedUrl,
   formatMapLastUpdated,
   type AssistLiveMapMarker,
+  type AssistLiveRoutePoint,
   type AssistMapPosition,
 } from '@/lib/assist/assistMapProvider';
 import {
@@ -16,6 +17,7 @@ import { colors, spacing, typography } from '@/theme';
 export type AssistLiveMapProps = {
   position: AssistMapPosition | null;
   markers?: AssistLiveMapMarker[];
+  routePoints?: AssistLiveRoutePoint[];
   selectedMarkerId?: string | null;
   onMarkerSelect?: (markerId: string) => void;
   height?: number;
@@ -30,6 +32,7 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
   const {
     position,
     markers,
+    routePoints = [],
     selectedMarkerId,
     onMarkerSelect,
     height = 280,
@@ -74,6 +77,7 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
       <GoogleMapsLiveMap
         position={position}
         markers={markers}
+        routePoints={routePoints}
         selectedMarkerId={selectedMarkerId}
         onMarkerSelect={onMarkerSelect}
         height={height}

@@ -258,6 +258,47 @@ export async function fetchLatestLocationPointForVisit(
 }
 
 /**
+ * Chronological GPS trail for one visit/session. Assist and Office use this
+ * read-only history to draw the travelled route and calculate distance.
+ */
+export async function fetchLocationPointsForVisit(
+  tenantId: string,
+  visitId: string,
+  sessionId?: string | null,
+  limit = 1_500,
+): Promise<ServiceResult<AssistLocationPointRow[]>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return unavailable();
+
+  let query = fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.locationPoints)
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('visit_id', visitId);
+
+  if (sessionId) query = query.eq('session_id', sessionId);
+
+  const { data, error } = await query
+    .order('recorded_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) {
+      return { ok: true, data: [], tableMissing: true };
+    }
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  const rows = ((data ?? []) as LocationDbRow[])
+    .map(mapLocationRow)
+    .sort(
+      (left, right) =>
+        new Date(left.recordedAt).getTime() - new Date(right.recordedAt).getTime(),
+    );
+
+  return { ok: true, data: rows };
+}
+
+/**
  * Latest time events for a visit.
  *
  * Recurring assignments can reuse a visit id across many cycles. Limiting an

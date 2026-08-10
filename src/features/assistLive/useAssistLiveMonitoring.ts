@@ -77,6 +77,7 @@ export function useAssistLiveMonitoring(options?: UseAssistLiveMonitoringOptions
           todayCount: overview.todayCount,
           runningCount: overview.runningCount,
           activeTrackingCount: overview.activeTrackingCount,
+          freshGpsCount: overview.freshGpsCount,
           consentPendingCount: overview.consentPendingCount,
           gpsDeniedCount: overview.gpsDeniedCount,
         }

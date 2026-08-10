@@ -517,7 +517,10 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     return {
       ...base,
       consent: resolvedConsent,
-      warnings: rebuildEmployeePortalTrackingWarnings(resolvedConsent, gpsPermission, base.warnings),
+      warnings: [
+        ...rebuildEmployeePortalTrackingWarnings(resolvedConsent, gpsPermission, base.warnings),
+        ...(gpsTracking.state.errorMessage ? [gpsTracking.state.errorMessage] : []),
+      ].filter((warning, index, warnings) => warnings.indexOf(warning) === index),
       trackingActive: dbActive ||
         ([
           'unterwegs',

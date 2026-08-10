@@ -20,6 +20,13 @@ export type AssistLiveMapMarker = {
   accuracyMeters?: number | null;
 };
 
+export type AssistLiveRoutePoint = {
+  latitude: number;
+  longitude: number;
+  capturedAt: string;
+  accuracyMeters: number | null;
+};
+
 export type AssistMapTileSource = 'google' | 'osm' | 'mapbox';
 
 const DEMO_MAP_POSITION: AssistMapPosition = {
@@ -102,21 +109,29 @@ export function buildGoogleStaticMapUrl(
   longitude: number,
   apiKey: string,
   size: { width: number; height: number } = { width: 640, height: 360 },
+  routePoints: AssistLiveRoutePoint[] = [],
 ): string {
   const { width, height } = size;
   const center = `${latitude},${longitude}`;
   const marker = `color:red|${latitude},${longitude}`;
-  return `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(center)}&zoom=15&size=${width}x${height}&scale=2&markers=${encodeURIComponent(marker)}&key=${encodeURIComponent(apiKey)}`;
+  const sampledRoute = routePoints.length > 80
+    ? routePoints.filter((_, index) => index % Math.ceil(routePoints.length / 80) === 0)
+    : routePoints;
+  const path = sampledRoute.length > 1
+    ? `&path=${encodeURIComponent(`color:0x0B63F3FF|weight:5|${sampledRoute.map((point) => `${point.latitude},${point.longitude}`).join('|')}`)}`
+    : '';
+  return `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(center)}&zoom=15&size=${width}x${height}&scale=2&markers=${encodeURIComponent(marker)}${path}&key=${encodeURIComponent(apiKey)}`;
 }
 
 export function buildAssistMapImageUrl(
   latitude: number,
   longitude: number,
   size?: { width: number; height: number },
+  routePoints: AssistLiveRoutePoint[] = [],
 ): string {
   const googleKey = getGoogleMapsApiKey();
   if (googleKey) {
-    return buildGoogleStaticMapUrl(latitude, longitude, googleKey, size);
+    return buildGoogleStaticMapUrl(latitude, longitude, googleKey, size, routePoints);
   }
   const token = getMapboxAccessToken();
   if (token) {

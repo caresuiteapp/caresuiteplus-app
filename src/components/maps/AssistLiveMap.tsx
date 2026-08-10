@@ -4,6 +4,7 @@ import {
   formatMapLastUpdated,
   getGoogleMapsApiKey,
   type AssistLiveMapMarker,
+  type AssistLiveRoutePoint,
   type AssistMapPosition,
 } from '@/lib/assist/assistMapProvider';
 import { colors, spacing, typography } from '@/theme';
@@ -11,6 +12,7 @@ import { colors, spacing, typography } from '@/theme';
 export type AssistLiveMapProps = {
   position: AssistMapPosition | null;
   markers?: AssistLiveMapMarker[];
+  routePoints?: AssistLiveRoutePoint[];
   selectedMarkerId?: string | null;
   onMarkerSelect?: (markerId: string) => void;
   height?: number;
@@ -24,6 +26,7 @@ export type AssistLiveMapProps = {
 export function AssistLiveMap({
   position,
   markers,
+  routePoints = [],
   height = 280,
   markerLabel,
   fallbackMessage = 'Keine Standortdaten — Tracking startet im Mitarbeiterportal während der Einsatzdurchführung.',
@@ -76,7 +79,7 @@ export function AssistLiveMap({
     capturedAt: primary.capturedAt ?? null,
   };
 
-  const mapUrl = buildAssistMapImageUrl(mapPosition.latitude, mapPosition.longitude);
+  const mapUrl = buildAssistMapImageUrl(mapPosition.latitude, mapPosition.longitude, undefined, routePoints);
   const updated = formatMapLastUpdated(mapPosition.capturedAt);
 
   return (
@@ -105,6 +108,9 @@ export function AssistLiveMap({
         ) : null}
         {coordinateRows.length > 1 ? (
           <Text style={styles.meta}>{coordinateRows.length} Standorte auf der Karte</Text>
+        ) : null}
+        {routePoints.length > 1 ? (
+          <Text style={styles.meta}>{routePoints.length} GPS-Punkte in der Route</Text>
         ) : null}
       </View>
     </View>
