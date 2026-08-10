@@ -39,6 +39,7 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import {
+  archiveCalendarEventBySource,
   buildCalendarEventFromVisitDetail,
   cancelCalendarEventBySourceAsync,
   syncCalendarEventAsync,
@@ -1719,10 +1720,6 @@ export const visitSupabaseRepository = {
     );
     const legacyAssignmentIds = Array.from(legacyCandidates.keys());
 
-    for (const id of new Set([...visitIds, ...legacyAssignmentIds])) {
-      cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', id);
-    }
-
     // Delete the live visit and its optional legacy mirror in one database
     // transaction. Separate client-side deletes can leave half-deleted records
     // behind when RLS, a foreign key or a transient request error intervenes.
@@ -1741,6 +1738,24 @@ export const visitSupabaseRepository = {
     } | null;
     if (!payload?.deleted || payload.visitId !== visitId) {
       return { ok: false, error: 'Einsatz konnte nicht vollständig gelöscht werden.' };
+    }
+
+    // Deletion and cancellation are different domain operations. A physically
+    // deleted visit must archive its calendar mirror; marking it as cancelled
+    // would intentionally keep it visible in the audit calendar.
+    for (const id of new Set([...visitIds, ...legacyAssignmentIds])) {
+      const archived = await archiveCalendarEventBySource(
+        tenantId,
+        'assist_visit',
+        id,
+      );
+      if (!archived.ok) {
+        console.warn('[assistVisitDelete] Kalenderspiegel konnte nicht archiviert werden.', {
+          tenantId,
+          visitId: id,
+          error: archived.error,
+        });
+      }
     }
 
     return { ok: true, data: undefined };

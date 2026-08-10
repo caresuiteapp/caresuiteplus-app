@@ -1,5 +1,4 @@
 import type { VisitDispositionListItem } from '@/lib/assist/visitTypes';
-import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { resolveCalendarEventColor } from '@/lib/calendar/calendarColors';
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
 
@@ -40,14 +39,11 @@ export function mergeExpandedAssistVisitCalendarEvents(
   events: CalendarEvent[],
   expandedVisits: VisitDispositionListItem[],
 ): CalendarEvent[] {
-  if (expandedVisits.length === 0) return events;
-
-  const visitMasterIds = new Set(expandedVisits.map((item) => resolveVisitMasterId(item.id)));
-
-  const withoutAssistVisits = events.filter((event) => {
-    if (event.sourceType !== 'assist_visit' || !event.sourceId) return true;
-    return !visitMasterIds.has(resolveVisitMasterId(event.sourceId));
-  });
+  // The visit repository is the source of truth. Central assist_visit rows that
+  // no longer have a visit are deletion remnants and must not be rendered.
+  const withoutAssistVisits = events.filter(
+    (event) => event.sourceType !== 'assist_visit',
+  );
 
   const visitEvents = expandedVisits.map(visitListItemToCalendarEvent);
 

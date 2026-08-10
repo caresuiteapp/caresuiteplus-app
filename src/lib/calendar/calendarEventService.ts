@@ -167,7 +167,7 @@ async function enrichAssistCalendarEvents(
 ): Promise<CalendarEvent[]> {
   const visitResult = await loadExpandedAssistVisitsForCalendar(tenantId, rangeStart, rangeEnd);
   let enriched =
-    visitResult.ok && visitResult.data.length > 0
+    visitResult.ok
       ? mergeExpandedAssistVisitCalendarEvents(events, visitResult.data)
       : events;
 
@@ -368,7 +368,6 @@ async function mergePortalAssistRecurrenceEvents(
     dateTo: rangeEnd,
   });
   if (!visitResult.ok) return events;
-  if (visitResult.data.length === 0) return events;
 
   const hrefBase = filter.clientId ? '/portal/client/appointments' : '/portal/employee/assignments';
   const merged = mergeExpandedAssistVisitCalendarEvents(events, visitResult.data);

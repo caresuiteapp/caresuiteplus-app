@@ -49,6 +49,19 @@ describe('Einsatz-Löschung', () => {
     expect(assignmentRepository).toContain('if (!deletedAssignment)');
   });
 
+  it('archiviert gelöschte Kalenderspiegel statt sie als abgesagt zu markieren', () => {
+    const source = fs.readFileSync(
+      path.resolve(process.cwd(), 'src/lib/assist/repositories/visitRepository.supabase.ts'),
+      'utf8',
+    );
+    const deletionStart = source.indexOf('async delete(tenantId: string, visitId: string)');
+    const deletionEnd = source.indexOf('async deleteOccurrence', deletionStart);
+    const deletionSource = source.slice(deletionStart, deletionEnd);
+
+    expect(deletionSource).toContain('archiveCalendarEventBySource');
+    expect(deletionSource).not.toContain('cancelCalendarEventBySourceAsync');
+  });
+
   it('löscht getrennt geplante Einsätze niemals über unscharfe Zeitgleichheit gemeinsam', () => {
     const source = fs.readFileSync(
       path.resolve(process.cwd(), 'src/lib/assist/repositories/visitRepository.supabase.ts'),

@@ -116,6 +116,30 @@ describe('assistVisitCalendarRecurrence', () => {
     expect(merged.some((event) => event.id === 'cal-office')).toBe(true);
   });
 
+  it('entfernt verwaiste Kalenderreste bereits gelöschter Einsätze', () => {
+    const officeEvent: CalendarEvent = {
+      id: 'cal-office',
+      title: 'Team-Meeting',
+      start: '2026-07-07T10:00:00.000Z',
+      end: '2026-07-07T11:00:00.000Z',
+      type: 'team_meeting',
+      color: '#7C5CFF',
+      sourceType: 'office_appointment',
+      moduleKey: 'office',
+    };
+    const deletedVisitRemainder = {
+      ...masterCalendarEvent(),
+      status: 'cancelled',
+    };
+
+    const merged = mergeExpandedAssistVisitCalendarEvents(
+      [deletedVisitRemainder, officeEvent],
+      [],
+    );
+
+    expect(merged).toEqual([officeEvent]);
+  });
+
   it('lässt einmalige Kalenderereignisse unverändert', () => {
     const single = baseListItem({
       id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
