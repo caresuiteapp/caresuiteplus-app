@@ -108,9 +108,9 @@ function pulsingMarkerIcon(): string {
         <animate attributeName="r" values="15;29" dur="2.15s" repeatCount="indefinite"/>
         <animate attributeName="opacity" values=".72;0" dur="2.15s" repeatCount="indefinite"/>
       </circle>
-      <circle cx="32" cy="32" r="13" fill="#08284f" stroke="#55aaff" stroke-width="1.7" filter="url(#g)"/>
-      <circle cx="32" cy="32" r="5.3" fill="#eaf5ff"/>
-      <circle cx="32" cy="32" r="2.8" fill="#1683ff"/>
+      <circle cx="32" cy="32" r="13" fill="#ffffff" stroke="#1683ff" stroke-width="2" filter="url(#g)"/>
+      <circle cx="32" cy="32" r="5.3" fill="#1683ff"/>
+      <circle cx="32" cy="32" r="2.8" fill="#ffffff"/>
     </svg>
   `)}`;
 }
@@ -176,6 +176,7 @@ export function ClientNetworkMap({
       mapRef.current = new google.maps.Map(mapContainerRef.current, {
         center: { lat: markers[0].latitude, lng: markers[0].longitude },
         zoom: markers.length === 1 ? 15 : 12,
+        mapTypeId: 'roadmap',
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: true,
@@ -290,19 +291,22 @@ export function ClientNetworkMap({
 }
 
 const HEALTH_OS_CLIENT_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#04142b' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#91afd2' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#020b19' }] },
-  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#b6d8ff' }] },
-  { featureType: 'administrative.locality', elementType: 'labels.text.stroke', stylers: [{ color: '#031127' }] },
-  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#051a35' }] },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#0b315e' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#082348' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#7fa4cd' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#13549a' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#010918' }] },
+  { elementType: 'geometry', stylers: [{ color: '#eef5fc' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#334155' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#0f2744' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'administrative.neighborhood', elementType: 'labels', stylers: [{ visibility: 'on' }] },
+  { featureType: 'administrative.neighborhood', elementType: 'labels.text.fill', stylers: [{ color: '#52657a' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#f5f9fd' }] },
+  { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'simplified' }] },
+  { featureType: 'transit.station', elementType: 'labels', stylers: [{ visibility: 'simplified' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#d9e5f2' }] },
+  { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'on' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#d4e8ff' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#cde9f8' }] },
 ] as const;
 
 const styles = StyleSheet.create({
@@ -316,7 +320,7 @@ const styles = StyleSheet.create({
     borderRadius: liquidRadius.small,
     borderWidth: 1,
     borderColor: liquidColors.blue300Alpha32,
-    backgroundColor: 'rgba(2,14,32,0.88)',
+    backgroundColor: '#EEF6FF',
   },
   mapLoading: {
     ...StyleSheet.absoluteFillObject,
@@ -324,7 +328,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    backgroundColor: 'rgba(2,14,32,0.82)',
+    backgroundColor: 'rgba(247,251,255,0.94)',
   },
   progressBadge: {
     position: 'absolute',
@@ -336,16 +340,16 @@ const styles = StyleSheet.create({
     borderRadius: liquidRadius.control,
     borderWidth: 1,
     borderColor: liquidColors.blue300Alpha32,
-    backgroundColor: 'rgba(6,21,43,0.92)',
+    backgroundColor: 'rgba(255,255,255,0.94)',
   },
   progressCount: {
-    color: liquidColors.white,
+    color: '#0B1220',
     fontSize: 18,
     lineHeight: 22,
     fontWeight: '800',
   },
   progressLabel: {
-    color: liquidColors.white64,
+    color: '#475569',
     fontSize: 10,
     lineHeight: 14,
     fontWeight: '600',
@@ -357,7 +361,7 @@ const styles = StyleSheet.create({
     borderRadius: liquidRadius.small,
     borderWidth: 1,
     borderColor: liquidColors.blue300Alpha32,
-    backgroundColor: 'rgba(2,14,32,0.88)',
+    backgroundColor: '#F7FBFF',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,

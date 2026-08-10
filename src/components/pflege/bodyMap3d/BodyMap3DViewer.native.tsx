@@ -154,9 +154,9 @@ export function BodyMap3DViewer({
             far: 50,
           }}
         >
-          <color attach="background" args={['#071326']} />
+          <color attach="background" args={['#F4F9FF']} />
           <ambientLight intensity={1.55} />
-          <hemisphereLight args={['#dcecff', '#13233f', 1.35]} />
+          <hemisphereLight args={['#ffffff', '#cfe4f7', 1.35]} />
           <directionalLight position={[3, 5, 4]} intensity={2.1} />
           <directionalLight position={[-3, 2, -4]} intensity={0.85} color="#70a5ff" />
           <ClinicalBodyModel
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.borderSoft,
-    backgroundColor: '#071326',
+    backgroundColor: '#F4F9FF',
   },
   clinicalShell: {
     borderColor: 'rgba(65, 151, 255, 0.72)',
@@ -198,18 +198,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#08162b',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(112, 165, 255, 0.22)',
   },
-  modelLabel: { ...typography.label, color: '#f5f9ff' },
+  modelLabel: { ...typography.label, color: '#0B1220' },
   rendererStatus: {
     ...typography.caption,
     color: '#66a3ff',
     marginTop: 3,
     fontWeight: '700',
   },
-  help: { ...typography.caption, color: '#a9b9d2', marginTop: 4 },
+  help: { ...typography.caption, color: '#52657A', marginTop: 4 },
   badge: {
     minWidth: 42,
     height: 28,
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     flexDirection: 'row',
     gap: spacing.xs,
-    backgroundColor: '#071326',
+    backgroundColor: '#F8FBFF',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(112,165,255,0.16)',
   },
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     borderColor: '#2289ff',
     backgroundColor: '#1769e0',
   },
-  toolButtonText: { ...typography.caption, color: '#f5f9ff', fontWeight: '800' },
+  toolButtonText: { ...typography.caption, color: '#0B1220', fontWeight: '800' },
   viewPresets: {
     minHeight: 48,
     paddingHorizontal: spacing.sm,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.xs,
-    backgroundColor: '#071326',
+    backgroundColor: '#F8FBFF',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(112,165,255,0.16)',
   },
@@ -269,6 +269,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(23,105,224,0.18)',
   },
-  viewButtonText: { ...typography.caption, color: '#f5f9ff', fontWeight: '700' },
+  viewButtonText: { ...typography.caption, color: '#0B1220', fontWeight: '700' },
   canvas: { flex: 1, minHeight: 520 },
 });

@@ -16,6 +16,7 @@ import type {
   BodyMapSkinTone,
 } from '@/types/modules/bodyMap';
 import type { BodyMapSurfaceHit } from './BodyMap3DViewer.types';
+import { usePrefersReducedMotion } from '@/hooks/useprefersreducedmotion';
 
 export type BodyModelProps = {
   selection: BodyMapModelSelection;
@@ -277,6 +278,7 @@ export function PulsingFindingMarker({
   onPress?: (marker: BodyMap3DMarker) => void;
 }) {
   const pulseRef = useRef<Mesh>(null);
+  const reducedMotion = usePrefersReducedMotion();
   const position = marker.surfacePoint.modelPosition ?? marker.surfacePoint.worldPosition;
   const normal = marker.surfacePoint.modelNormal ?? marker.surfacePoint.normal;
   const quaternion = useMemo(() => {
@@ -285,8 +287,14 @@ export function PulsingFindingMarker({
   }, [normal.x, normal.y, normal.z]);
   useFrame(({ clock }) => {
     if (!pulseRef.current) return;
-    const phase = clock.elapsedTime * (selected ? 4.8 : 3.2);
-    const pulse = (selected ? 1.22 : 1) + Math.sin(phase) * (selected ? 0.2 : 0.13);
+    if (reducedMotion) {
+      pulseRef.current.scale.setScalar(selected ? 1.06 : 1);
+      return;
+    }
+    // A calm clinical "breathing" motion: visible enough to locate a finding,
+    // without competing with the anatomical model.
+    const phase = clock.elapsedTime * (selected ? 2.1 : 1.6);
+    const pulse = (selected ? 1.08 : 1) + Math.sin(phase) * (selected ? 0.075 : 0.045);
     pulseRef.current.scale.setScalar(pulse);
   });
 

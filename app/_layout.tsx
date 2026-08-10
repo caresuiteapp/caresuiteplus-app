@@ -53,9 +53,16 @@ function RootShell() {
     cleanupOrphanedFullscreenOverlays();
   }, [pathname]);
 
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const internalOrbit = isLiquidCommandRoute && !isPortalRoutePath(pathname);
+    document.documentElement.toggleAttribute('data-cs-orbit-internal', internalOrbit);
+    return () => document.documentElement.removeAttribute('data-cs-orbit-internal');
+  }, [isLiquidCommandRoute, pathname]);
+
   const backgroundAnimated =
     hydrated && hostsGlobalBackground && shouldUseHeavyEffects(perf);
-  const isDark = mode === 'dark';
+  const isDark = isPortalRoutePath(pathname) && mode === 'dark';
   const navigationTheme = isDark
     ? {
         ...DarkTheme,

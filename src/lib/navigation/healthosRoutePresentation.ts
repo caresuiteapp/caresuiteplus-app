@@ -9,8 +9,6 @@ const CONTEXT_ACTION_SEGMENTS = new Set([
   'request',
   'prepare',
   'upload',
-  'settings',
-  'einstellungen',
   'details',
   'detail',
 ]);
@@ -48,7 +46,8 @@ function normalizeRoutePattern(routePattern: string): string {
 /**
  * One interaction contract for every module:
  * module/list/dashboard navigation remains a page; records, details, creation,
- * editing, review and settings open as overlays. Portal execution workflows
+ * editing and review open as overlays. Settings remain full workspaces so a
+ * previously mounted record or employee modal can never sit below them.
  * remain full pages because they are sequential operating processes.
  */
 export function isHealthOSContextualPopupRoute(routePattern: string): boolean {

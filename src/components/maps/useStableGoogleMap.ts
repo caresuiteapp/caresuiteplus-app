@@ -17,19 +17,23 @@ export type StableMapResult = {
 };
 
 const HEALTH_OS_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#071b35' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#8bc1ff' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#06152b' }] },
-  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#0d315e' }] },
-  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#081f3d' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#09284c' }] },
-  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#6fa9ec' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#123d70' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#06152b' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#1764b8' }] },
-  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#0b2c52' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#031126' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3d91ff' }] },
+  { elementType: 'geometry', stylers: [{ color: '#eef5fc' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#334155' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#b7d1ea' }] },
+  { featureType: 'administrative.locality', elementType: 'labels', stylers: [{ visibility: 'on' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#0f2744' }] },
+  { featureType: 'administrative.neighborhood', elementType: 'labels', stylers: [{ visibility: 'on' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#f4f8fc' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#e4f1e8' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#52657a' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#d4e4f3' }] },
+  { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'on' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#d7ebff' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#e8eef5' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#cde9f8' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#1478e8' }] },
 ] as const;
 
 /**
@@ -63,6 +67,7 @@ export function useStableGoogleMap(options: StableMapOptions): StableMapResult {
           mapRef.current = new google.maps.Map(containerRef.current, {
             center,
             zoom,
+            mapTypeId: 'roadmap',
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: true,

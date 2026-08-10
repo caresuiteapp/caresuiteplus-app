@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { usePathname } from 'expo-router';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import {
@@ -8,6 +9,8 @@ import {
 } from '@/liquid-command/foundation/tokens';
 import type { ColorMode } from './colors';
 import { resolveCareTypography } from './typography';
+import { isLiquidCommandRoutePath } from '@/liquid-command/navigation/isLiquidCommandRoute';
+import { isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 
 export type { ColorMode };
 
@@ -201,12 +204,13 @@ export function resolveLegacyGradients(mode: ColorMode = 'dark') {
  */
 export function useLegacyTheme() {
   const { mode: themeMode } = useThemeMode();
+  const pathname = usePathname();
   const portal = usePortalPremiumTheme();
-  // The desktop Office shell defaults to light working surfaces. Legacy
-  // components must follow that actual mode instead of unconditionally
-  // resolving to the white-on-dark palette. Portal surfaces stay light by
-  // contract, regardless of a stored shell preference.
-  const mode: ColorMode = portal.active ? 'light' : themeMode;
+  const isInternalOrbitRoute =
+    isLiquidCommandRoutePath(pathname) && !isPortalRoutePath(pathname);
+  // Every internal ORBIT module uses the same light working contract on web,
+  // tablet and native. Portal routes intentionally keep their existing theme.
+  const mode: ColorMode = portal.active || isInternalOrbitRoute ? 'light' : themeMode;
 
   return useMemo(
     () => {

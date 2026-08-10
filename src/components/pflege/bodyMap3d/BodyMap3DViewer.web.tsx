@@ -296,9 +296,9 @@ export function BodyMap3DViewer({
           }}
         >
           <CameraZoomController baseDistance={cameraDistance} zoom={zoom} />
-          <color attach="background" args={['#071326']} />
+          <color attach="background" args={['#F4F9FF']} />
           <ambientLight intensity={clinicalMode ? 0.9 : 0.72} />
-          <hemisphereLight args={['#bde8ff', '#051b35', clinicalMode ? 1.35 : 1.05]} />
+          <hemisphereLight args={['#FFFFFF', '#CFE4F7', clinicalMode ? 1.35 : 1.05]} />
           <directionalLight
             castShadow
             position={[2.7, 4.5, 3.4]}
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: liquidSpace.md,
-    backgroundColor: 'rgba(3,17,39,0.96)',
+    backgroundColor: 'rgba(255,255,255,0.96)',
     borderBottomWidth: 1,
     borderBottomColor: liquidColors.blue300Alpha32,
   },
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: liquidSpace.sm,
-    backgroundColor: 'rgba(3,17,39,0.98)',
+    backgroundColor: 'rgba(248,251,255,0.98)',
     borderBottomWidth: 1,
     borderBottomColor: liquidColors.white12,
   },
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
     borderRadius: liquidRadius.card,
     borderWidth: 1,
     borderColor: liquidColors.blue300Alpha32,
-    backgroundColor: 'rgba(3,17,39,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.94)',
     gap: 5,
   },
   toolRailCompact: {
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     borderRadius: liquidRadius.card,
     borderWidth: 1,
     borderColor: liquidColors.blue300Alpha32,
-    backgroundColor: 'rgba(3,17,39,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.94)',
     gap: 5,
   },
   zoomRailCompact: {

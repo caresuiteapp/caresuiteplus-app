@@ -6,6 +6,7 @@ import { LLGAN_GLASS_SURFACE_CSS } from '@/product-workflows/design/web/lightLiq
 import { INVISIBLE_SCROLLBARS_CSS } from '@/product-workflows/design/web/invisibleScrollbarsCss';
 import { WEB_FONT_SCALE_CSS } from '@/product-workflows/design/web/webFontScaleCss';
 import { HEALTHOS_PAGE_CONTRACT_CSS } from '@/product-workflows/design/web/healthOSPageContractCss';
+import { ORBIT_INTERNAL_CONTRACT_CSS } from '@/product-workflows/design/web/orbitInternalContractCss';
 import { WEB_SAFE_AREA_GLOBAL_CSS } from '@/lib/platform/webSafeArea';
 
 export default function Root({ children }: PropsWithChildren) {
@@ -26,6 +27,7 @@ export default function Root({ children }: PropsWithChildren) {
               ${LLGAN_GLASS_SURFACE_CSS}
               ${WEB_FONT_SCALE_CSS}
               ${HEALTHOS_PAGE_CONTRACT_CSS}
+              ${ORBIT_INTERNAL_CONTRACT_CSS}
               ${WEB_SAFE_AREA_GLOBAL_CSS}
               ${DISABLE_HOVER_EFFECTS_CSS}
               ${INVISIBLE_SCROLLBARS_CSS}

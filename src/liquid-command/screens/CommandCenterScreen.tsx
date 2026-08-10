@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
     borderRadius: liquidRadius.small,
     borderWidth: 1,
     borderColor: liquidColors.white12,
-    backgroundColor: 'rgba(2,14,32,0.72)',
+    backgroundColor: '#EEF6FF',
   },
   mapLine: {
     position: 'absolute',
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   mapEmptyText: {
-    color: '#FFFFFF',
+    color: liquidColors.white,
     fontSize: 14,
     lineHeight: 19,
     fontWeight: '600',

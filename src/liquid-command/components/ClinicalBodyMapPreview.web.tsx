@@ -9,7 +9,7 @@ export function ClinicalBodyMapPreview() {
     >
       <Image
         resizeMode="contain"
-        source={require('../../../assets/brand/clinical-bodymap-preview.png')}
+        source={require('../../../assets/brand/clinical-bodymap-orbit-light-v1.png')}
         style={styles.image}
       />
     </View>
@@ -22,6 +22,9 @@ const styles = StyleSheet.create({
     aspectRatio: 327 / 418,
     overflow: 'hidden',
     borderRadius: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(37,99,235,0.16)',
+    backgroundColor: '#F7FBFF',
   },
   image: {
     width: '100%',

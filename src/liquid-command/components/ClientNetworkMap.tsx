@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     borderRadius: liquidRadius.small,
     borderWidth: 1,
     borderColor: liquidColors.blue300Alpha32,
-    backgroundColor: 'rgba(2,14,32,0.88)',
+    backgroundColor: '#EEF6FF',
   },
   node: {
     position: 'absolute',
@@ -160,16 +160,16 @@ const styles = StyleSheet.create({
     borderRadius: liquidRadius.control,
     borderWidth: 1,
     borderColor: liquidColors.white18,
-    backgroundColor: 'rgba(6,21,43,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.94)',
   },
   badgeCount: {
-    color: liquidColors.white,
+    color: '#0B1220',
     fontSize: 22,
     lineHeight: 26,
     fontWeight: '800',
   },
   badgeLabel: {
-    color: liquidColors.white64,
+    color: '#475569',
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '600',
