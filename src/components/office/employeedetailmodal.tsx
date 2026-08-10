@@ -96,7 +96,12 @@ export function EmployeeDetailModal({
 
   const [mode, setMode] = useState<ModalMode>('preview');
 
-  const sectionEdit = useSectionEditModal<EmployeeEditSectionKey>();
+  const {
+    activeSection,
+    isOpen: isSectionEditOpen,
+    openSection,
+    closeSection,
+  } = useSectionEditModal<EmployeeEditSectionKey>();
 
   const [offboardingOpen, setOffboardingOpen] = useState(false);
 
@@ -110,13 +115,13 @@ export function EmployeeDetailModal({
 
       setMode('preview');
 
-      sectionEdit.closeSection();
+      closeSection();
 
       setOffboardingOpen(false);
 
     }
 
-  }, [sectionEdit, visible]);
+  }, [closeSection, visible]);
 
 
 
@@ -124,11 +129,11 @@ export function EmployeeDetailModal({
 
     if (visible && initialEditOpen) {
 
-      sectionEdit.openSection('stammdaten');
+      openSection('stammdaten');
 
     }
 
-  }, [visible, initialEditOpen, sectionEdit]);
+  }, [visible, initialEditOpen, openSection]);
 
 
 
@@ -154,11 +159,11 @@ export function EmployeeDetailModal({
 
     setMode('preview');
 
-    sectionEdit.closeSection();
+    closeSection();
 
     setOffboardingOpen(false);
 
-  }, [employeeId, sectionEdit]);
+  }, [closeSection, employeeId]);
 
 
 
@@ -394,7 +399,7 @@ export function EmployeeDetailModal({
 
                     onDeleted={handleDeleted}
 
-                    onEditMasterData={() => sectionEdit.openSection('stammdaten')}
+                    onEditMasterData={() => openSection('stammdaten')}
 
                     onOpenOffboarding={() => setOffboardingOpen(true)}
 
@@ -424,7 +429,7 @@ export function EmployeeDetailModal({
 
                   onOpenFullRecord={handleOpenPersonnelRecord}
 
-                  onEditMasterData={() => sectionEdit.openSection('stammdaten')}
+                  onEditMasterData={() => openSection('stammdaten')}
 
                   onOpenOffboarding={() => setOffboardingOpen(true)}
 
@@ -446,21 +451,21 @@ export function EmployeeDetailModal({
 
 
 
-      {sectionEdit.activeSection ? (
+      {activeSection ? (
 
         <EmployeeSectionEditModal
 
-          visible={sectionEdit.isOpen}
+          visible={isSectionEditOpen}
 
           employeeId={employeeId}
 
-          section={sectionEdit.activeSection}
+          section={activeSection}
 
-          onClose={sectionEdit.closeSection}
+          onClose={closeSection}
 
           onUpdated={() => {
 
-            sectionEdit.closeSection();
+            closeSection();
 
             setDetailRevision((value) => value + 1);
 
@@ -468,7 +473,7 @@ export function EmployeeDetailModal({
 
           onOpenPersonnelRecord={() => {
 
-            sectionEdit.closeSection();
+            closeSection();
 
             handleOpenPersonnelRecord();
 
