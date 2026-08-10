@@ -82,7 +82,6 @@ const BASE_REQUIRED = [
   'serviceStart',
   'careLevel',
   'billingTypes',
-  'emergencyContact',
   'consentDatenschutz',
   'consentVertrag',
 ];
@@ -110,7 +109,6 @@ const STATIONARY_REQUIRED = [
   'roomNumber',
   'careLevel',
   'careFund',
-  'emergencyContact',
   'consentDatenschutz',
   'consentVertrag',
 ];

@@ -58,6 +58,7 @@ describe('Client Intake & Record Rebuild', () => {
   it('Alltagsbegleitung ohne Pflegepflichtfelder', () => {
     const required = getRequiredFieldsForClientContext(['daily_assistance']);
     expect(required).toContain('careLevel');
+    expect(required).not.toContain('emergencyContact');
     expect(required).not.toContain('insuranceNumber');
     expect(required).not.toContain('familyDoctor');
   });
@@ -76,12 +77,30 @@ describe('Client Intake & Record Rebuild', () => {
     const required = getRequiredFieldsForClientContext(['ambulatory_care']);
     expect(required).toContain('homeAccess');
     expect(required).toContain('insuranceNumber');
+    expect(required).not.toContain('emergencyContact');
   });
 
   it('Stationäre Pflege zeigt Zimmer Pflicht', () => {
     const required = getRequiredFieldsForClientContext(['stationary_care']);
     expect(required).toContain('roomNumber');
     expect(required).toContain('facility');
+    expect(required).not.toContain('emergencyContact');
+  });
+
+  it('Notfallkontakt ist bei keiner Klient:innenart ein Pflichtfeld', () => {
+    const contexts = [
+      'daily_assistance',
+      'support_care',
+      'companionship',
+      'ambulatory_care',
+      'stationary_care',
+      'consulting',
+      'academy_prepared',
+    ] as const;
+
+    for (const context of contexts) {
+      expect(getRequiredFieldsForClientContext([context])).not.toContain('emergencyContact');
+    }
   });
 
   it('Ambulant + Betreuung nutzt kompakte Aktennavigation mit Fachbereichen unter Mehr', () => {
