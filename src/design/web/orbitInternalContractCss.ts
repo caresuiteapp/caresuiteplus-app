@@ -161,149 +161,25 @@ export const ORBIT_INTERNAL_CONTRACT_CSS = `
   }
 
   /*
-   * ORBIT action controls
-   *
-   * Button surfaces must be styled only on the interactive root. Applying a
-   * background to every descendant produces the visible "button in button"
-   * defect on React Native Web because Text and icon wrappers become separate
-   * blue rectangles.
+   * Text-only bridge for the canonical ORBIT button component.
+   * All geometry, surfaces, borders, shadows and states live in
+   * PremiumButton.tsx; global CSS must never paint a button wrapper again.
    */
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"],
-  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"] {
-    box-sizing: border-box !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 8px !important;
-    height: 44px !important;
-    min-height: 44px !important;
-    max-height: 44px !important;
-    padding: 0 16px !important;
-    vertical-align: middle !important;
-    border: 1px solid rgba(5,108,232,.24) !important;
-    border-radius: 14px !important;
+  html[data-cs-orbit-internal] [data-cs-orbit-button="root"][data-cs-healthos-variant="primary"],
+  html[data-cs-orbit-internal] [data-cs-orbit-button="root"][data-cs-healthos-variant="primary"] *,
+  html[data-cs-orbit-internal] [data-cs-orbit-button="root"][data-cs-healthos-variant="danger"],
+  html[data-cs-orbit-internal] [data-cs-orbit-button="root"][data-cs-healthos-variant="danger"] * {
+    color: #FFFFFF !important;
+  }
+
+  html[data-cs-orbit-internal] [data-cs-orbit-button="root"][data-cs-healthos-variant="secondary"],
+  html[data-cs-orbit-internal] [data-cs-orbit-button="root"][data-cs-healthos-variant="secondary"] * {
     color: #075DBF !important;
-    background: linear-gradient(145deg, rgba(255,255,255,.99), rgba(237,246,255,.98)) !important;
-    box-shadow:
-      0 7px 18px rgba(37,78,128,.10),
-      inset 0 1px 0 rgba(255,255,255,.96) !important;
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    line-height: 20px !important;
-    letter-spacing: -.01em !important;
-    overflow: hidden !important;
-    transform: translateY(0);
-    transition:
-      transform 150ms ease,
-      border-color 150ms ease,
-      background 150ms ease,
-      box-shadow 150ms ease,
-      opacity 150ms ease !important;
   }
 
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"] *,
-  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"] * {
-    color: inherit !important;
-    background: transparent !important;
-    background-color: transparent !important;
-    box-shadow: none !important;
-    font-size: inherit !important;
-    font-weight: inherit !important;
-    line-height: inherit !important;
-    letter-spacing: inherit !important;
-  }
-
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"]:hover,
-  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"]:hover {
-    border-color: rgba(5,108,232,.42) !important;
-    background: linear-gradient(145deg, #FFFFFF, #E5F1FF) !important;
-    box-shadow:
-      0 10px 24px rgba(37,78,128,.14),
-      inset 0 1px 0 #FFFFFF !important;
-    transform: translateY(-1px);
-  }
-
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"]:active,
-  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"]:active {
-    box-shadow:
-      0 4px 12px rgba(37,78,128,.10),
-      inset 0 1px 0 rgba(255,255,255,.92) !important;
-    transform: translateY(0) scale(.99);
-  }
-
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"]:focus-visible,
-  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"]:focus-visible {
-    outline: 3px solid rgba(22,131,255,.24) !important;
-    outline-offset: 2px !important;
-  }
-
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"][data-cs-healthos-variant="primary"] {
-    color: #FFFFFF !important;
-    border-color: rgba(0,80,188,.42) !important;
-    background: linear-gradient(135deg, #0878EE 0%, #0566D6 56%, #045ABD 100%) !important;
-    box-shadow:
-      0 9px 22px rgba(5,102,214,.22),
-      inset 0 1px 0 rgba(255,255,255,.24) !important;
-  }
-
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"][data-cs-healthos-variant="primary"] * {
-    color: #FFFFFF !important;
-    background: transparent !important;
-    background-color: transparent !important;
-    box-shadow: none !important;
-  }
-
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"][data-cs-healthos-variant="primary"]:hover {
-    border-color: rgba(0,72,168,.52) !important;
-    background: linear-gradient(135deg, #1284F5 0%, #086DDE 58%, #055DC3 100%) !important;
-    box-shadow:
-      0 12px 28px rgba(5,102,214,.28),
-      inset 0 1px 0 rgba(255,255,255,.28) !important;
-  }
-
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"][aria-disabled="true"],
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"]:disabled,
-  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"][aria-disabled="true"],
-  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"]:disabled {
-    cursor: not-allowed !important;
-    opacity: .48 !important;
-    box-shadow: none !important;
-    transform: none !important;
-  }
-
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"] [data-cs-llgan-glass],
-  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"] [data-cs-healthos-component="button"] {
-    box-sizing: border-box !important;
-    width: auto !important;
-    height: auto !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    max-width: none !important;
-    max-height: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    color: inherit !important;
-    background: transparent !important;
-    background-color: transparent !important;
-    box-shadow: none !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-    overflow: visible !important;
-    transform: none !important;
-    transition: none !important;
-  }
-
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"] [data-cs-llgan-glass]:hover,
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"] [data-cs-llgan-glass]:active,
-  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"] [data-cs-healthos-component="button"]:hover,
-  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"] [data-cs-healthos-component="button"]:active {
-    border: 0 !important;
-    background: transparent !important;
-    background-color: transparent !important;
-    box-shadow: none !important;
-    transform: none !important;
+  html[data-cs-orbit-internal] [data-cs-orbit-button="root"][data-cs-healthos-variant="ghost"],
+  html[data-cs-orbit-internal] [data-cs-orbit-button="root"][data-cs-healthos-variant="ghost"] * {
+    color: #334155 !important;
   }
 
   html[data-cs-orbit-internal] [aria-selected="true"] {
