@@ -101,6 +101,19 @@ const liquidGlyphIcons: Record<string, IoniconName> = {
   '➤': 'navigate-outline',
 };
 
+const orbitModuleGlyphIcons: Record<string, { filled: IoniconName; outline: IoniconName }> = {
+  '⌂': { filled: 'home', outline: 'home-outline' },
+  '▣': { filled: 'grid', outline: 'grid-outline' },
+  '◇': { filled: 'navigate', outline: 'navigate-outline' },
+  '✚': { filled: 'medical', outline: 'medical-outline' },
+  '▦': { filled: 'business', outline: 'business-outline' },
+  '◎': { filled: 'people-circle', outline: 'people-circle-outline' },
+  '△': { filled: 'school', outline: 'school-outline' },
+  '⬡': { filled: 'hardware-chip', outline: 'hardware-chip-outline' },
+  '◈': { filled: 'layers', outline: 'layers-outline' },
+  '⚙': { filled: 'settings', outline: 'settings-outline' },
+};
+
 export function LiquidGlyph({
   glyph,
   active = false,
@@ -114,6 +127,32 @@ export function LiquidGlyph({
 }) {
   const iconName = liquidGlyphIcons[glyph];
   const orbit = useLiquidVisualMode() === 'orbit';
+  const orbitModuleIcon = orbitModuleGlyphIcons[glyph];
+  if (orbit && orbitModuleIcon) {
+    const frameSize = Math.max(28, size + 10);
+    const iconColor = color ?? (active ? '#0B63F3' : '#334155');
+    return (
+      <LinearGradient
+        colors={active ? ['#F7FBFF', '#DCEBFF'] : ['#FFFFFF', '#EEF3F8']}
+        start={{ x: 0.12, y: 0.08 }}
+        end={{ x: 0.9, y: 1 }}
+        style={[
+          styles.orbitGlyphFrame,
+          active && styles.orbitGlyphFrameActive,
+          { width: frameSize, height: frameSize, borderRadius: Math.round(frameSize * 0.34) },
+        ]}
+      >
+        <Ionicons
+          color={active ? 'rgba(11,99,243,0.18)' : 'rgba(51,65,85,0.12)'}
+          name={orbitModuleIcon.filled}
+          size={size + 3}
+          style={styles.orbitGlyphFill}
+        />
+        <Ionicons color={iconColor} name={orbitModuleIcon.outline} size={size} />
+        <View style={[styles.orbitGlyphNode, active && styles.orbitGlyphNodeActive]} />
+      </LinearGradient>
+    );
+  }
   if (iconName) {
     return (
       <Ionicons
@@ -526,6 +565,40 @@ export function LiquidBackdrop({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
+  orbitGlyphFrame: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(51,65,85,0.12)',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  orbitGlyphFrameActive: {
+    borderColor: 'rgba(37,99,235,0.35)',
+    shadowColor: '#2563EB',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  orbitGlyphFill: {
+    position: 'absolute',
+  },
+  orbitGlyphNode: {
+    position: 'absolute',
+    right: 3,
+    top: 3,
+    width: 3,
+    height: 3,
+    borderRadius: 999,
+    backgroundColor: '#94A3B8',
+  },
+  orbitGlyphNodeActive: {
+    backgroundColor: '#38BDF8',
+  },
   orbitSurfaceFrame: {
     borderColor: 'rgba(37,99,235,0.18)',
     backgroundColor: 'rgba(255,255,255,0.88)',
