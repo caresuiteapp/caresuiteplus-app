@@ -170,9 +170,16 @@ export const ORBIT_INTERNAL_CONTRACT_CSS = `
    */
   html[data-cs-orbit-internal] [data-cs-healthos-component="button"],
   html[data-cs-orbit-internal] [data-cs-llgan-glass="button"] {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    height: 44px !important;
     min-height: 44px !important;
-    max-height: 48px !important;
-    padding: 10px 18px !important;
+    max-height: 44px !important;
+    padding: 0 16px !important;
+    vertical-align: middle !important;
     border: 1px solid rgba(5,108,232,.24) !important;
     border-radius: 14px !important;
     color: #075DBF !important;
@@ -260,6 +267,41 @@ export const ORBIT_INTERNAL_CONTRACT_CSS = `
   html[data-cs-orbit-internal] [data-cs-llgan-glass="button"]:disabled {
     cursor: not-allowed !important;
     opacity: .48 !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  html[data-cs-orbit-internal] [data-cs-healthos-component="button"] [data-cs-llgan-glass],
+  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"] [data-cs-healthos-component="button"] {
+    box-sizing: border-box !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    color: inherit !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    overflow: visible !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  html[data-cs-orbit-internal] [data-cs-healthos-component="button"] [data-cs-llgan-glass]:hover,
+  html[data-cs-orbit-internal] [data-cs-healthos-component="button"] [data-cs-llgan-glass]:active,
+  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"] [data-cs-healthos-component="button"]:hover,
+  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"] [data-cs-healthos-component="button"]:active {
+    border: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
     box-shadow: none !important;
     transform: none !important;
   }
