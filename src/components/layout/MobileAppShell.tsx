@@ -1,22 +1,13 @@
-import { ReactNode, useState } from 'react';
-import { Platform, StyleSheet, View, useWindowDimensions, type ViewStyle } from 'react-native';
+import { ReactNode } from 'react';
+import { StyleSheet, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { AppShellArea } from '@/types/navigation/shell';
-import type { ShellTabConfig } from '@/types/navigation/shell';
+import type { AppShellArea, ShellTabConfig } from '@/types/navigation/shell';
 import { AutoScrollView } from '@/components/layout/AutoScrollView';
-import { AppTabBar } from '@/components/layout/AppTabBar';
-import { ShellAppBar } from '@/components/layout/ShellAppBar';
-import { ShellNavigationDrawer } from '@/components/layout/ShellNavigationDrawer';
-import { NotificationBellFab } from '@/components/notifications/notificationcenter';
-import { useAppShell } from '@/hooks/useAppShell';
+import { OrbitTopNavigation } from '@/components/layout/OrbitTopNavigation';
 import { resolveMainModuleFromPath } from '@/lib/navigation/resolvemainmodule';
 import { resolveMainModuleAccent } from '@/lib/navigation/mainModuleAccent';
-import { MAIN_MODULE_RAIL } from '@/lib/navigation/mainmodulerail';
-import {
-  MOBILE_BOTTOM_NAV_HEIGHT,
-  resolvePlatformContentPadding,
-} from '@/lib/platform/shellLayoutMetrics';
+import { resolvePlatformContentPadding } from '@/lib/platform/shellLayoutMetrics';
 import { webSafeAreaPadding } from '@/lib/platform/webSafeArea';
 import { spacing } from '@/theme';
 
@@ -27,15 +18,7 @@ type MobileAppShellProps = {
   tabsOverride?: ShellTabConfig[];
 };
 
-function resolveShellTitle(mainModule: ReturnType<typeof resolveMainModuleFromPath>): string {
-  const rail = MAIN_MODULE_RAIL.find((m) => m.key === mainModule);
-  return rail?.label ?? 'CareSuite+';
-}
-
-/**
- * Compact app shell for mobile (≤767) and tablet (768–1023):
- * fixed top app bar, bottom nav, drawer overlay menu — no desktop rail/sidebar.
- */
+/** Compact ORBIT shell for phone and tablet — top navigation only. */
 export function MobileAppShell({
   area,
   children,
@@ -47,55 +30,29 @@ export function MobileAppShell({
   const { width } = useWindowDimensions();
   const mainModule = resolveMainModuleFromPath(pathname);
   const accent = accentColor ?? resolveMainModuleAccent(mainModule);
-  const { tabs } = useAppShell(area);
-  const effectiveTabs = tabsOverride?.length ? tabsOverride : tabs;
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const contentPadding = resolvePlatformContentPadding(width);
-  const bottomNavOffset = MOBILE_BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, spacing.sm);
-
   const topInset = Math.max(insets.top, spacing.xs);
 
   return (
     <View
       style={[styles.root, { paddingTop: webSafeAreaPadding('top', topInset) } as ViewStyle]}
-      testID="mobile-app-shell"
+      testID="orbit-compact-shell"
     >
-      <ShellAppBar
-        title={resolveShellTitle(mainModule)}
-        subtitle="CareSuite+"
-        accentColor={accent}
-        onMenuPress={() => setDrawerOpen(true)}
-        menuOpen={drawerOpen}
-      />
-
-      <View style={styles.content}>
-        <AutoScrollView
-          style={styles.scroll}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { padding: contentPadding, paddingBottom: bottomNavOffset + spacing.lg },
-          ]}
-          fillViewport
-          testID="mobile-app-shell-content"
-        >
-          {children}
-        </AutoScrollView>
-      </View>
-
-      <View style={styles.bottomNav}>
-        <AppTabBar tabs={effectiveTabs} accentColor={accent} area={area} />
-      </View>
-
-      <ShellNavigationDrawer
-        visible={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        mainModule={mainModule}
-        accentColor={accent}
-      />
-
-      {Platform.OS !== 'web' ? (
-        <NotificationBellFab bottomOffset={bottomNavOffset} />
-      ) : null}
+      <OrbitTopNavigation area={area} accentColor={accent} tabsOverride={tabsOverride} />
+      <AutoScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            padding: contentPadding,
+            paddingBottom: Math.max(insets.bottom, spacing.sm) + spacing.xl,
+          },
+        ]}
+        fillViewport
+        testID="orbit-compact-shell-content"
+      >
+        {children}
+      </AutoScrollView>
     </View>
   );
 }
@@ -103,29 +60,13 @@ export function MobileAppShell({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: 'transparent',
     minHeight: 0,
     overflow: 'hidden',
+    backgroundColor: 'transparent',
   },
-  content: {
-    flex: 1,
-    minHeight: 0,
-    minWidth: 0,
-  },
-  scroll: {
-    flex: 1,
-    minHeight: 0,
-  },
+  scroll: { flex: 1, minHeight: 0 },
   scrollContent: {
     flexGrow: 1,
-    backgroundColor: 'transparent',
-  },
-  bottomNav: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 15,
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(255,255,255,0.74)',
   },
 });

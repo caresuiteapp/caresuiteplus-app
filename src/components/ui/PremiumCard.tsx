@@ -17,7 +17,6 @@ import { LlganGlassShell } from '@/design/web/applyLlganGlassDom';
 import {
   spatialCare,
   spatialCareColors,
-  spatialCareGradients,
 } from '@/design/tokens/spatialCareSuite';
 import { withAlpha } from '@/design/tokens/motion';
 import { motion, radius } from '@/theme';
@@ -76,10 +75,10 @@ export function PremiumCard({
                   variant === 'elevated'
                     ? portal.active
                       ? portalPremium.shadow.panel
-                      : `0 22px 48px ${withAlpha(spatialCareColors.nightDeep, 0.5)}, 0 0 30px ${withAlpha(accentColor, 0.16)}`
+                      : `0 22px 48px rgba(37,78,128,0.14), 0 0 30px ${withAlpha(accentColor, 0.10)}`
                     : portal.active
                       ? portalPremium.shadow.card
-                      : `0 15px 34px ${withAlpha(spatialCareColors.nightDeep, 0.4)}`,
+                      : '0 15px 34px rgba(37,78,128,0.11)',
               } as unknown as ViewStyle)
             : null),
         },
@@ -133,8 +132,8 @@ export function PremiumCard({
             ? ['#FFFFFF', '#EEF6FF', '#DDEEFF']
             : ['#FFFFFF', '#F5FAFF', '#E8F3FF']
           : variant === 'elevated'
-            ? [spatialCareColors.nightRaised, spatialCareColors.night, spatialCareColors.nightDeep]
-            : [...spatialCareGradients.nightGlass]}
+            ? ['#FFFFFF', '#F2F8FF', '#EAF4FF']
+            : ['#FFFFFF', '#F7FBFF', '#EEF7FF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
