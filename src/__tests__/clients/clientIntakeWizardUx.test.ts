@@ -49,6 +49,20 @@ describe('Client intake wizard UX fixes', () => {
     expect(form).toContain('Entwurf geladen');
   });
 
+  it('schützt Schlüsselnummer und Tresor-Code vor Browser-Passwortmanagern', () => {
+    const form = readSrc('components/office/clientintakewizardform.tsx');
+    const input = readSrc('components/ui/PremiumInput.tsx');
+
+    expect(form).toContain('nativeID="client-intake-key-number"');
+    expect(form).toContain('nativeID="client-intake-key-safe-code"');
+    expect(form.match(/sensitiveBusinessValue/g)).toHaveLength(2);
+    expect(form).toContain("secureTextEntry={Platform.OS !== 'web'}");
+    expect(input).toContain("autoComplete: 'off'");
+    expect(input).toContain("'data-1p-ignore': 'true'");
+    expect(input).toContain("'data-lpignore': 'true'");
+    expect(input).toContain("WebkitTextSecurity: 'disc'");
+  });
+
   it('Neuaufnahme erhebt Pflegegrad im immer sichtbaren Abrechnungsschritt', () => {
     const form = readSrc('components/office/clientintakewizardform.tsx');
     const costBearerSection = form.slice(

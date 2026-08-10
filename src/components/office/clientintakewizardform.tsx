@@ -2,7 +2,7 @@ import { AssistCatalogMultiSelect } from '@/components/office/assistCatalog/Assi
 import { ClientFundingSourceSelector } from '@/components/office/ClientFundingSourceSelector';
 import { DocumentModuleTemplatesPanel } from '@/components/documents/DocumentModuleTemplatesPanel';
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   CareCatalogSelect,
   CareAddressSearch,
@@ -204,8 +204,21 @@ export function ClientIntakeSectionContent({
           error={errors.homeAccess}
         />
         <CareCatalogSelect catalogKey="key_status" label="Schlüsselstatus" value={form.keyStatus} onChange={(v) => updateField('keyStatus', v)} />
-        <PremiumInput label="Schlüsselnummer" value={form.keyNumber} onChangeText={(v) => updateField('keyNumber', v)} />
-        <PremiumInput label="Schlüsseltresor-Code" value={form.keySafeCode} onChangeText={(v) => updateField('keySafeCode', v)} secureTextEntry />
+        <PremiumInput
+          label="Schlüsselnummer"
+          nativeID="client-intake-key-number"
+          value={form.keyNumber}
+          onChangeText={(v) => updateField('keyNumber', v)}
+          sensitiveBusinessValue
+        />
+        <PremiumInput
+          label="Schlüsseltresor-Code"
+          nativeID="client-intake-key-safe-code"
+          value={form.keySafeCode}
+          onChangeText={(v) => updateField('keySafeCode', v)}
+          secureTextEntry={Platform.OS !== 'web'}
+          sensitiveBusinessValue
+        />
         <PremiumInput label="Türcode" value={form.doorCode} onChangeText={(v) => updateField('doorCode', v)} />
         <PremiumInput label="Klingelname" value={form.bellName} onChangeText={(v) => updateField('bellName', v)} />
         <PremiumInput label="Etage" value={form.floor} onChangeText={(v) => updateField('floor', v)} />

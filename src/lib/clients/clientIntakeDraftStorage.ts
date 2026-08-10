@@ -4,6 +4,7 @@ import { parseHomeAccessStoredValue } from '@/lib/clients/clientIntakeHomeAccess
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 
 const STORAGE_PREFIX = 'caresuite:client-intake-draft';
+const CLIENT_INTAKE_DRAFT_SCHEMA_VERSION = 2;
 
 export type ClientIntakeDraft = {
   form: ClientIntakeFormData;
@@ -11,6 +12,7 @@ export type ClientIntakeDraft = {
   updatedAt: string;
   /** Live-Supabase-Klient:in mit status lead, falls Entwurf serverseitig persistiert wurde. */
   clientId?: string | null;
+  schemaVersion?: number;
 };
 
 function storageKey(userId: string, tenantId: string): string {
@@ -91,11 +93,20 @@ export async function loadClientIntakeDraft(
     const parsed = JSON.parse(raw) as Partial<ClientIntakeDraft>;
     if (!parsed.form || typeof parsed.stepIndex !== 'number') return null;
 
+    const mergedForm = mergeIntakeFormWithDefaults(parsed.form);
+    // Vor Version 2 konnten Browser-Passwortmanager Login-Daten in diese beiden
+    // Fachfelder schreiben. Einmalig nur alte, noch nicht aktivierte Entwürfe bereinigen.
+    if ((parsed.schemaVersion ?? 1) < CLIENT_INTAKE_DRAFT_SCHEMA_VERSION) {
+      mergedForm.keyNumber = '';
+      mergedForm.keySafeCode = '';
+    }
+
     const draft: ClientIntakeDraft = {
-      form: mergeIntakeFormWithDefaults(parsed.form),
+      form: mergedForm,
       stepIndex: Math.max(0, parsed.stepIndex),
       updatedAt: parsed.updatedAt ?? new Date().toISOString(),
       clientId: typeof parsed.clientId === 'string' ? parsed.clientId : null,
+      schemaVersion: CLIENT_INTAKE_DRAFT_SCHEMA_VERSION,
     };
 
     return hasIntakeDraftContent(draft) ? draft : null;
@@ -114,6 +125,7 @@ export async function saveClientIntakeDraft(
     stepIndex: draft.stepIndex,
     updatedAt: draft.updatedAt ?? new Date().toISOString(),
     clientId: draft.clientId ?? null,
+    schemaVersion: CLIENT_INTAKE_DRAFT_SCHEMA_VERSION,
   };
 
   if (!hasIntakeDraftContent(payload)) {

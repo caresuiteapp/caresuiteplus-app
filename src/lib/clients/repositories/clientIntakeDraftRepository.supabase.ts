@@ -8,6 +8,7 @@ import {
   resolvePrimaryCostBearerName,
 } from '@/lib/clients/clientIntakeCostBearerConfig';
 import { resolveIntakeBillingProfileType } from '@/lib/clients/clientIntakeBilling';
+import { isUuid } from '@/lib/validation/uuid';
 
 function getClient() {
   return getSupabaseClient();
@@ -67,7 +68,9 @@ export async function upsertClientIntakeDraft(
 
   const patch = buildIntakeClientPatch(tenantId, form, options?.actorProfileId ?? null, 'lead');
 
-  if (options?.clientId) {
+  // Lokale Entwurfsdaten können aus älteren Releases eine ungültige ID enthalten.
+  // Niemals ungeprüfte Werte in einen UUID-Filter geben; stattdessen einen neuen Lead anlegen.
+  if (isUuid(options?.clientId)) {
     const { data, error } = await supabase
       .from('clients')
       .update(patch)

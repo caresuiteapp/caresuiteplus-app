@@ -1,5 +1,13 @@
 import { useMemo } from 'react';
-import { Platform, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type TextInputProps,
+  type TextStyle,
+} from 'react-native';
 import { darkGlassSurfaceText, lightSurfaceText } from '@/design/tokens/auroraGlass';
 import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -18,6 +26,11 @@ type PremiumInputProps = TextInputProps & {
   onLightSurface?: boolean;
   /** LLGAN view — `form` in modal dialogs for visible borders on light glass. */
   viewContext?: LlganViewContext;
+  /**
+   * Verhindert, dass Passwortmanager fachliche Geheimwerte als Login-Daten behandeln.
+   * Auf Web bleibt das DOM-Feld ein normales Textfeld und wird nur visuell maskiert.
+   */
+  sensitiveBusinessValue?: boolean;
 };
 
 export function PremiumInput({
@@ -27,6 +40,7 @@ export function PremiumInput({
   onDarkSurface = false,
   onLightSurface = false,
   viewContext,
+  sensitiveBusinessValue = false,
   style,
   onChangeText,
   ...props
@@ -112,7 +126,14 @@ export function PremiumInput({
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         placeholderTextColor={text.muted}
-        style={[styles.input, error ? styles.inputError : null, style]}
+        style={[
+          styles.input,
+          error ? styles.inputError : null,
+          sensitiveBusinessValue && Platform.OS === 'web'
+            ? ({ WebkitTextSecurity: 'disc' } as unknown as TextStyle)
+            : null,
+          style,
+        ]}
         onChangeText={onChangeText}
         {...(Platform.OS === 'web'
           ? {
@@ -126,6 +147,21 @@ export function PremiumInput({
             }
           : {})}
         {...props}
+        {...(sensitiveBusinessValue
+          ? ({
+              autoComplete: 'off',
+              importantForAutofill: 'no',
+              textContentType: 'none',
+              ...(Platform.OS === 'web'
+                ? {
+                    name: `caresuite-business-value-${props.nativeID ?? 'input'}`,
+                    'data-1p-ignore': 'true',
+                    'data-lpignore': 'true',
+                    'data-form-type': 'other',
+                  }
+                : {}),
+            } as TextInputProps)
+          : {})}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {hint && !error ? <Text style={styles.hint}>{hint}</Text> : null}
