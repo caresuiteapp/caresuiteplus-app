@@ -11,6 +11,7 @@ import {
   getLiquidPrimaryWorkflowRoute,
 } from '../navigation/workflowRoutes';
 import { DeferredSignatureApprovalPopup } from '@/components/assist/DeferredSignatureApprovalPopup';
+import { LiquidVisualModeProvider } from '../components/LiquidPrimitives';
 
 type LiquidModuleRouteLayoutProps = {
   children?: ReactNode;
@@ -125,7 +126,9 @@ export function LiquidModuleRouteLayout({
 }: LiquidModuleRouteLayoutProps) {
   let content: ReactNode = (
     <PortalPremiumProvider kind="workspace">
-      <LiquidModuleContent />
+      <LiquidVisualModeProvider mode="orbit">
+        <LiquidModuleContent />
+      </LiquidVisualModeProvider>
     </PortalPremiumProvider>
   );
 

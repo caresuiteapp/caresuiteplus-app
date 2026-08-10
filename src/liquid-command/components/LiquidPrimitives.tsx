@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from 'react';
+import { createContext, useContext, type ComponentProps, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -26,6 +26,18 @@ import {
   toneColor,
   type LiquidSemanticTone,
 } from '../foundation/tokens';
+
+export type LiquidVisualMode = 'classic' | 'orbit';
+
+const LiquidVisualModeContext = createContext<LiquidVisualMode>('classic');
+
+export function LiquidVisualModeProvider({ mode, children }: { mode: LiquidVisualMode; children: ReactNode }) {
+  return <LiquidVisualModeContext.Provider value={mode}>{children}</LiquidVisualModeContext.Provider>;
+}
+
+export function useLiquidVisualMode() {
+  return useContext(LiquidVisualModeContext);
+}
 
 type LiquidSurfaceProps = {
   children: ReactNode;
@@ -98,17 +110,18 @@ export function LiquidGlyph({
   size?: number;
 }) {
   const iconName = liquidGlyphIcons[glyph];
+  const orbit = useLiquidVisualMode() === 'orbit';
   if (iconName) {
     return (
       <Ionicons
-        color={color ?? (active ? liquidColors.blue200 : liquidColors.white72)}
+        color={color ?? (active ? liquidColors.blue600 : orbit ? '#334155' : liquidColors.white72)}
         name={iconName}
         size={size}
       />
     );
   }
   return (
-    <Text style={[styles.iconGlyph, active && styles.iconGlyphActive, color ? { color } : null]}>
+    <Text style={[styles.iconGlyph, orbit && styles.orbitIconGlyph, active && styles.iconGlyphActive, color ? { color } : null]}>
       {glyph}
     </Text>
   );
@@ -122,14 +135,18 @@ export function LiquidSurface({
   solid = false,
   accessibilityLabel,
 }: LiquidSurfaceProps) {
+  const orbit = useLiquidVisualMode() === 'orbit';
   const content = (
     <View
       accessible={Boolean(accessibilityLabel)}
       accessibilityLabel={accessibilityLabel}
       style={[
         styles.surfaceContent,
+        orbit && styles.orbitSurfaceContent,
         solid && styles.surfaceSolid,
+        solid && orbit && styles.orbitSurfaceSolid,
         active && styles.surfaceActive,
+        active && orbit && styles.orbitSurfaceActive,
         contentStyle,
       ]}
     >
@@ -138,11 +155,11 @@ export function LiquidSurface({
   );
 
   return (
-    <View style={[styles.surfaceFrame, active && liquidShadows.focus, style]}>
+    <View style={[styles.surfaceFrame, orbit && styles.orbitSurfaceFrame, active && liquidShadows.focus, style]}>
       {solid ? (
         content
       ) : (
-        <BlurView intensity={Platform.OS === 'web' ? 28 : 38} tint="dark" style={styles.blur}>
+        <BlurView intensity={Platform.OS === 'web' ? 22 : 30} tint={orbit ? 'light' : 'dark'} style={styles.blur}>
           {content}
         </BlurView>
       )}
@@ -165,11 +182,12 @@ export function LiquidText({
   numberOfLines?: number;
   accessibilityRole?: 'header' | 'text';
 }) {
+  const orbit = useLiquidVisualMode() === 'orbit';
   return (
     <Text
       accessibilityRole={accessibilityRole}
       numberOfLines={numberOfLines}
-      style={[liquidTypography[variant], style]}
+      style={[liquidTypography[variant], orbit && styles.orbitText, variant === 'kicker' && orbit && styles.orbitKicker, style]}
     >
       {children}
     </Text>
@@ -229,6 +247,7 @@ export function LiquidButton({
   compact?: boolean;
   accessibilityHint?: string;
 }) {
+  const orbit = useLiquidVisualMode() === 'orbit';
   return (
     <Pressable
       accessibilityRole="button"
@@ -239,9 +258,11 @@ export function LiquidButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
+        orbit && styles.orbitButton,
         compact && styles.buttonCompact,
         fullWidth && styles.fullWidth,
         variant === 'secondary' && styles.buttonSecondary,
+        variant === 'secondary' && orbit && styles.orbitButtonSecondary,
         variant === 'ghost' && styles.buttonGhost,
         variant === 'danger' && styles.buttonDanger,
         pressed && styles.buttonPressed,
@@ -249,11 +270,15 @@ export function LiquidButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={liquidColors.white} />
+        <ActivityIndicator color={orbit ? '#0B1220' : liquidColors.white} />
       ) : (
         <>
-          {icon ? <LiquidGlyph active glyph={icon} size={18} /> : null}
-          <Text style={styles.buttonLabel}>{label}</Text>
+          {icon ? <LiquidGlyph active color={orbit && variant === 'primary' ? '#FFFFFF' : undefined} glyph={icon} size={18} /> : null}
+          <Text style={[
+            styles.buttonLabel,
+            orbit && styles.orbitButtonLabel,
+            orbit && (variant === 'secondary' || variant === 'ghost') && styles.orbitButtonSecondaryLabel,
+          ]}>{label}</Text>
         </>
       )}
     </Pressable>
@@ -273,6 +298,7 @@ export function LiquidIconButton({
   active?: boolean;
   badge?: string;
 }) {
+  const orbit = useLiquidVisualMode() === 'orbit';
   return (
     <Pressable
       accessibilityRole="button"
@@ -281,6 +307,7 @@ export function LiquidIconButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.iconButton,
+        orbit && styles.orbitIconButton,
         active && styles.iconButtonActive,
         pressed && styles.buttonPressed,
       ]}
@@ -329,9 +356,10 @@ export function LiquidField({
   multiline,
   ...inputProps
 }: LiquidFieldProps) {
+  const orbit = useLiquidVisualMode() === 'orbit';
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>
+      <Text style={[styles.fieldLabel, orbit && styles.orbitFieldLabel]}>
         {label}
         {required ? <Text style={styles.required}> *</Text> : null}
       </Text>
@@ -342,17 +370,18 @@ export function LiquidField({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={liquidColors.white32}
+        placeholderTextColor={orbit ? '#94A3B8' : liquidColors.white32}
         keyboardType={keyboardType}
         multiline={multiline}
         style={[
           styles.input,
+          orbit && styles.orbitInput,
           multiline && styles.inputMultiline,
           error && styles.inputError,
         ]}
       />
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      {!error && hint ? <Text style={styles.fieldHint}>{hint}</Text> : null}
+      {!error && hint ? <Text style={[styles.fieldHint, orbit && styles.orbitMutedText]}>{hint}</Text> : null}
     </View>
   );
 }
@@ -366,16 +395,17 @@ export function LiquidStatus({
   tone?: LiquidSemanticTone;
   detail?: string;
 }) {
-  const color = toneColor(tone);
+  const orbit = useLiquidVisualMode() === 'orbit';
+  const color = orbit && tone === 'neutral' ? '#475569' : toneColor(tone);
   return (
     <View
       accessible
       accessibilityLabel={detail ? `${label}. ${detail}` : label}
-      style={[styles.status, { borderColor: `${color}66` }]}
+      style={[styles.status, orbit && styles.orbitStatus, { borderColor: `${color}66` }]}
     >
       <View style={[styles.statusDot, { backgroundColor: color }]} />
       <Text style={[styles.statusLabel, { color }]}>{label}</Text>
-      {detail ? <Text style={styles.statusDetail}>{detail}</Text> : null}
+      {detail ? <Text style={[styles.statusDetail, orbit && styles.orbitMutedText]}>{detail}</Text> : null}
     </View>
   );
 }
@@ -393,15 +423,16 @@ export function LiquidMetric({
   tone?: LiquidSemanticTone;
   glyph?: string;
 }) {
-  const color = toneColor(tone);
+  const orbit = useLiquidVisualMode() === 'orbit';
+  const color = orbit && tone === 'neutral' ? '#475569' : toneColor(tone);
   return (
-    <View accessible accessibilityLabel={`${label}: ${value}${detail ? `. ${detail}` : ''}`} style={styles.metric}>
+    <View accessible accessibilityLabel={`${label}: ${value}${detail ? `. ${detail}` : ''}`} style={[styles.metric, orbit && styles.orbitMetric]}>
       <View style={styles.metricHeader}>
         {glyph ? <LiquidGlyph color={color} glyph={glyph} size={16} /> : null}
-        <Text style={styles.metricLabel}>{label}</Text>
+        <Text style={[styles.metricLabel, orbit && styles.orbitMutedText]}>{label}</Text>
       </View>
-      <Text style={styles.metricValue}>{value}</Text>
-      {detail ? <Text style={styles.metricDetail}>{detail}</Text> : null}
+      <Text style={[styles.metricValue, orbit && styles.orbitStrongText]}>{value}</Text>
+      {detail ? <Text style={[styles.metricDetail, orbit && styles.orbitMutedText]}>{detail}</Text> : null}
     </View>
   );
 }
@@ -438,10 +469,11 @@ export function LiquidState({
   actionLabel?: string;
   onAction?: () => void;
 }) {
+  const orbit = useLiquidVisualMode() === 'orbit';
   return (
     <LiquidSurface solid contentStyle={styles.state}>
       {kind === 'loading' ? (
-        <ActivityIndicator color={liquidColors.blue400} size="large" />
+        <ActivityIndicator color={orbit ? liquidColors.blue600 : liquidColors.blue400} size="large" />
       ) : (
         <View style={styles.stateGlyph}>
           <LiquidGlyph glyph={stateGlyph[kind]} size={24} />
@@ -460,26 +492,104 @@ export function LiquidState({
 }
 
 export function LiquidDivider() {
-  return <View accessibilityElementsHidden importantForAccessibility="no" style={styles.divider} />;
+  const orbit = useLiquidVisualMode() === 'orbit';
+  return <View accessibilityElementsHidden importantForAccessibility="no" style={[styles.divider, orbit && styles.orbitDivider]} />;
 }
 
 export function LiquidBackdrop({ children }: { children: ReactNode }) {
+  const orbit = useLiquidVisualMode() === 'orbit';
   return (
-    <View style={styles.backdrop}>
+    <View style={[styles.backdrop, orbit && styles.orbitBackdrop]}>
       <LinearGradient
         pointerEvents="none"
-        colors={['#010817', '#021126', '#010817']}
+        colors={orbit ? ['#F8FBFF', '#EFF6FF', '#FFFFFF'] : ['#010817', '#021126', '#010817']}
         locations={[0, 0.48, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <View pointerEvents="none" style={styles.glowTop} />
-      <View pointerEvents="none" style={styles.glowBottom} />
+      <View pointerEvents="none" style={[styles.glowTop, orbit && styles.orbitGlowTop]} />
+      <View pointerEvents="none" style={[styles.glowBottom, orbit && styles.orbitGlowBottom]} />
       {children}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  orbitSurfaceFrame: {
+    borderColor: 'rgba(37,99,235,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    shadowColor: '#2563EB',
+    shadowOpacity: 0.08,
+  },
+  orbitSurfaceContent: {
+    backgroundColor: 'rgba(255,255,255,0.72)',
+  },
+  orbitSurfaceSolid: {
+    backgroundColor: '#FFFFFF',
+  },
+  orbitSurfaceActive: {
+    borderColor: '#60A5FA',
+    backgroundColor: '#F8FBFF',
+  },
+  orbitText: {
+    color: '#0B1220',
+  },
+  orbitKicker: {
+    color: '#2563EB',
+  },
+  orbitIconGlyph: {
+    color: '#334155',
+  },
+  orbitButton: {
+    borderColor: '#2563EB',
+    backgroundColor: '#2563EB',
+  },
+  orbitButtonSecondary: {
+    borderColor: 'rgba(15,23,42,0.16)',
+    backgroundColor: '#FFFFFF',
+  },
+  orbitButtonLabel: {
+    color: '#FFFFFF',
+  },
+  orbitButtonSecondaryLabel: {
+    color: '#0B1220',
+  },
+  orbitIconButton: {
+    borderColor: 'rgba(15,23,42,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.72)',
+  },
+  orbitFieldLabel: {
+    color: '#172033',
+  },
+  orbitInput: {
+    borderColor: 'rgba(15,23,42,0.18)',
+    backgroundColor: '#FFFFFF',
+    color: '#0B1220',
+  },
+  orbitMutedText: {
+    color: '#64748B',
+  },
+  orbitStrongText: {
+    color: '#0B1220',
+  },
+  orbitStatus: {
+    backgroundColor: 'rgba(255,255,255,0.86)',
+  },
+  orbitMetric: {
+    borderColor: 'rgba(15,23,42,0.1)',
+    backgroundColor: '#F8FAFC',
+  },
+  orbitDivider: {
+    backgroundColor: 'rgba(15,23,42,0.1)',
+  },
+  orbitBackdrop: {
+    backgroundColor: '#F8FBFF',
+  },
+  orbitGlowTop: {
+    backgroundColor: 'rgba(59,130,246,0.12)',
+  },
+  orbitGlowBottom: {
+    backgroundColor: 'rgba(14,165,233,0.09)',
+  },
   surfaceFrame: {
     overflow: 'hidden',
     borderRadius: liquidRadius.card,

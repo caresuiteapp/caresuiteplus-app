@@ -203,6 +203,70 @@ function WorkAreaNavigation({
   );
 }
 
+function OrbitModuleNavigation({
+  activeModule,
+  messageBadge,
+}: {
+  activeModule: LiquidModuleKey;
+  messageBadge?: string;
+}) {
+  const router = useRouter();
+
+  return (
+    <View style={styles.orbitModuleBar}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="CareSuite HealthOS Startseite"
+        onPress={() => router.push('/' as never)}
+        style={({ pressed }) => [styles.orbitBrand, pressed && styles.pressed]}
+      >
+        <Text style={styles.orbitBrandCare}>CareSuite</Text>
+        <Text style={styles.orbitBrandHealth}>HealthOS</Text>
+        <View style={styles.orbitBrandBadge}>
+          <Text style={styles.orbitBrandBadgeText}>ORBIT</Text>
+        </View>
+      </Pressable>
+      <ScrollView
+        horizontal
+        accessibilityRole="tablist"
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.orbitModuleItems}
+      >
+        {liquidModules.map((module) => {
+          const selected = activeModule === module.key;
+          return (
+            <Pressable
+              key={module.key}
+              accessibilityRole="tab"
+              accessibilityLabel={`${module.label}. ${module.description}`}
+              accessibilityState={{ selected }}
+              onPress={() => router.push(module.route as never)}
+              style={({ pressed }) => [
+                styles.orbitModuleItem,
+                selected && styles.orbitModuleItemActive,
+                pressed && styles.pressed,
+              ]}
+            >
+              <LiquidGlyph active={selected} glyph={module.glyph} size={18} />
+              <Text numberOfLines={1} style={[
+                styles.orbitModuleLabel,
+                selected && styles.orbitModuleLabelActive,
+              ]}>
+                {module.label}
+              </Text>
+              {module.key === 'office' && messageBadge ? (
+                <View style={styles.navUnreadBadge}>
+                  <Text style={styles.navUnreadBadgeText}>{messageBadge}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
 function CommandPalette({
   visible,
   onClose,
@@ -689,15 +753,16 @@ export function LiquidCommandShell({
   return (
     <LiquidBackdrop>
       <View style={styles.shell}>
-        {layout.showDock ? (
-          <ModuleDock activeModule={activeModule} messageBadge={messageBadge} />
-        ) : null}
         <View style={styles.shellMain}>
           <CommandBar
             activeModule={activeModule}
             onOpenSearch={() => setPaletteOpen(true)}
             onOpenNotifications={() => setNotificationsOpen(true)}
             onOpenProfile={() => setProfileOpen(true)}
+          />
+          <OrbitModuleNavigation
+            activeModule={activeModule}
+            messageBadge={messageBadge}
           />
           {showContextBar ? (
             <View style={styles.contextBar}>
@@ -722,13 +787,6 @@ export function LiquidCommandShell({
           ) : workspaceContent}
         </View>
       </View>
-      {!layout.isDesktop ? (
-        <BottomNavigation
-          activeModule={activeModule}
-          messageBadge={messageBadge}
-          onPrimaryAction={action}
-        />
-      ) : null}
       <CommandPalette visible={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <NotificationCenter
         visible={notificationsOpen}
@@ -740,6 +798,84 @@ export function LiquidCommandShell({
 }
 
 const styles = StyleSheet.create({
+  orbitModuleBar: {
+    minHeight: 68,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(15,23,42,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    zIndex: liquidLayers.dock,
+  },
+  orbitBrand: {
+    flexShrink: 0,
+    minHeight: 46,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  orbitBrandCare: {
+    color: '#0B1220',
+    fontSize: 19,
+    lineHeight: 24,
+    fontWeight: '800',
+    letterSpacing: -0.6,
+  },
+  orbitBrandHealth: {
+    color: '#0284C7',
+    fontSize: 19,
+    lineHeight: 24,
+    fontWeight: '500',
+    letterSpacing: -0.5,
+  },
+  orbitBrandBadge: {
+    marginLeft: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#0B1220',
+  },
+  orbitBrandBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    lineHeight: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  orbitModuleItems: {
+    flexGrow: 1,
+    alignItems: 'center',
+    gap: 7,
+    paddingRight: 14,
+  },
+  orbitModuleItem: {
+    minHeight: 42,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  orbitModuleItemActive: {
+    borderColor: 'rgba(37,99,235,0.24)',
+    backgroundColor: 'rgba(37,99,235,0.1)',
+  },
+  orbitModuleLabel: {
+    color: '#475569',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
+  orbitModuleLabelActive: {
+    color: '#0B1220',
+  },
   shell: {
     flex: 1,
     flexDirection: 'row',
@@ -781,7 +917,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   profileMenuAvatarLabel: {
-    color: liquidColors.white,
+    color: '#0B1220',
     fontSize: 19,
     lineHeight: 24,
     fontWeight: '800',
@@ -791,13 +927,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileMenuName: {
-    color: liquidColors.white,
+    color: '#0B1220',
     fontSize: 16,
     lineHeight: 21,
     fontWeight: '800',
   },
   profileMenuRole: {
-    color: liquidColors.white56,
+    color: '#64748B',
     fontSize: 12,
     lineHeight: 17,
   },
@@ -822,13 +958,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   profileMenuLabel: {
-    color: liquidColors.white,
+    color: '#0B1220',
     fontSize: 14,
     lineHeight: 19,
     fontWeight: '700',
   },
   profileMenuDetail: {
-    color: liquidColors.white56,
+    color: '#64748B',
     fontSize: 11,
     lineHeight: 15,
   },
@@ -847,7 +983,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     borderRightWidth: 1,
     borderRightColor: liquidColors.white12,
-    backgroundColor: 'rgba(6,21,43,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.94)',
     alignItems: 'stretch',
     gap: 18,
     zIndex: liquidLayers.dock,
@@ -867,7 +1003,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   dockTitle: {
-    color: liquidColors.white,
+    color: '#0B1220',
     fontSize: 18,
     lineHeight: 23,
     fontWeight: '800',
@@ -891,13 +1027,13 @@ const styles = StyleSheet.create({
   },
   dockItemActive: {
     borderColor: liquidColors.blue400,
-    backgroundColor: 'rgba(20,120,255,0.2)',
+    backgroundColor: 'rgba(37,99,235,0.12)',
   },
   dockGlyph: {
     width: 30,
     height: 30,
     borderRadius: 10,
-    backgroundColor: liquidColors.white08,
+    backgroundColor: 'rgba(37,99,235,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -919,19 +1055,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   navUnreadBadgeText: {
-    color: liquidColors.white,
+    color: '#0B1220',
     fontSize: 9,
     lineHeight: 12,
     fontWeight: '900',
   },
   dockLabel: {
-    color: liquidColors.white72,
+    color: '#334155',
     fontSize: 13,
     lineHeight: 17,
     fontWeight: '700',
   },
   dockLabelActive: {
-    color: liquidColors.white,
+    color: '#0B1220',
   },
   dockItemDetail: {
     color: liquidColors.blue200,
@@ -952,7 +1088,7 @@ const styles = StyleSheet.create({
     gap: 11,
   },
   dockLogoutLabel: {
-    color: liquidColors.white72,
+    color: '#334155',
     fontSize: 13,
     lineHeight: 17,
     fontWeight: '700',
@@ -963,7 +1099,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: liquidColors.white12,
-    backgroundColor: 'rgba(6,21,43,0.84)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -988,7 +1124,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   commandTitle: {
-    color: liquidColors.white,
+    color: '#0B1220',
     fontSize: 15,
     lineHeight: 20,
     fontWeight: '800',
@@ -1020,19 +1156,19 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     borderWidth: 1,
     borderColor: liquidColors.blue400,
-    backgroundColor: 'rgba(20,120,255,0.18)',
+    backgroundColor: 'rgba(37,99,235,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   profileName: {
     maxWidth: 130,
-    color: liquidColors.white,
+    color: '#0B1220',
     fontSize: 13,
     lineHeight: 17,
     fontWeight: '700',
   },
   profileRole: {
-    color: liquidColors.white56,
+    color: '#64748B',
     fontSize: 11,
     lineHeight: 14,
   },
@@ -1042,7 +1178,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderBottomWidth: 1,
     borderBottomColor: liquidColors.white08,
-    backgroundColor: 'rgba(4,20,42,0.64)',
+    backgroundColor: 'rgba(248,251,255,0.92)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1056,7 +1192,7 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   contextLabel: {
-    color: liquidColors.white88,
+    color: '#172033',
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '800',
@@ -1064,7 +1200,7 @@ const styles = StyleSheet.create({
   contextDetail: {
     minWidth: 0,
     flex: 1,
-    color: liquidColors.white56,
+    color: '#64748B',
     fontSize: 13,
     lineHeight: 18,
   },
@@ -1110,16 +1246,16 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   areaLabel: {
-    color: liquidColors.white72,
+    color: '#334155',
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '700',
   },
   areaLabelActive: {
-    color: liquidColors.white,
+    color: '#0B1220',
   },
   areaDescription: {
-    color: liquidColors.white56,
+    color: '#64748B',
     fontSize: 11,
     lineHeight: 15,
   },
@@ -1127,7 +1263,7 @@ const styles = StyleSheet.create({
     flexGrow: 0,
     borderBottomWidth: 1,
     borderBottomColor: liquidColors.white08,
-    backgroundColor: 'rgba(4,20,42,0.54)',
+    backgroundColor: 'rgba(248,251,255,0.82)',
   },
   areaHorizontalContent: {
     paddingHorizontal: 18,
@@ -1139,8 +1275,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     borderRadius: liquidRadius.pill,
     borderWidth: 1,
-    borderColor: liquidColors.white12,
-    backgroundColor: liquidColors.white08,
+    borderColor: 'rgba(15,23,42,0.1)',
+    backgroundColor: 'rgba(37,99,235,0.06)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -1187,7 +1323,7 @@ const styles = StyleSheet.create({
   },
   pageSubtitle: {
     maxWidth: 760,
-    color: liquidColors.white72,
+    color: '#334155',
   },
   contentColumns: {
     width: '100%',
@@ -1216,8 +1352,8 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: liquidColors.white18,
-    backgroundColor: 'rgba(6,21,43,0.96)',
+    borderColor: 'rgba(15,23,42,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.96)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
@@ -1256,13 +1392,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bottomUnreadBadgeText: {
-    color: liquidColors.white,
+    color: '#0B1220',
     fontSize: 8,
     lineHeight: 10,
     fontWeight: '900',
   },
   bottomGlyphActive: {
-    backgroundColor: 'rgba(20,120,255,0.2)',
+    backgroundColor: 'rgba(37,99,235,0.12)',
   },
   bottomGlyphCentral: {
     width: 46,
@@ -1274,16 +1410,16 @@ const styles = StyleSheet.create({
     backgroundColor: liquidColors.blue600,
   },
   bottomGlyphText: {
-    color: liquidColors.white72,
+    color: '#334155',
     fontSize: 20,
     lineHeight: 24,
     fontWeight: '800',
   },
   bottomGlyphTextActive: {
-    color: liquidColors.white,
+    color: '#0B1220',
   },
   bottomLabel: {
-    color: liquidColors.white56,
+    color: '#64748B',
     fontSize: 10,
     lineHeight: 13,
     fontWeight: '600',
@@ -1294,7 +1430,7 @@ const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
     padding: 18,
-    backgroundColor: 'rgba(0,5,16,0.76)',
+    backgroundColor: 'rgba(15,23,42,0.34)',
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
@@ -1334,7 +1470,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: 'rgba(20,120,255,0.14)',
+    backgroundColor: 'rgba(37,99,235,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1349,13 +1485,13 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   paletteResultLabel: {
-    color: liquidColors.white,
+    color: '#0B1220',
     fontSize: 15,
     lineHeight: 20,
     fontWeight: '700',
   },
   paletteResultDescription: {
-    color: liquidColors.white56,
+    color: '#64748B',
     fontSize: 13,
     lineHeight: 18,
   },
