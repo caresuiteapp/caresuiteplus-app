@@ -313,6 +313,12 @@ export function deriveAssignmentStatusFromVisitDimensions(input: {
 }): AssignmentStatus {
   const { canonicalStatus, executionStatus, documentationStatus, proofStatus } = input;
 
+  // Cancellation is terminal. It must win over stale planning/execution columns
+  // instead of being discarded by progress-rank comparison.
+  if (canonicalStatus === 'storniert' || executionStatus === 'cancelled') {
+    return 'storniert';
+  }
+
   if (executionStatus === 'completed') {
     // Visit dimensions win over stale canonical_status (e.g. confirmed/completed in DB).
     return deriveCompletedExecutionStatus(documentationStatus, proofStatus);

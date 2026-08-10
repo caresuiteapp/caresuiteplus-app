@@ -44,6 +44,7 @@ function mapAssignment(entry: {
   clientName?: string;
   employeeName?: string;
   serviceName?: string | null;
+  status?: string;
 }): CalendarEvent {
   return {
     id: `einsatz-${entry.id}`,
@@ -58,6 +59,7 @@ function mapAssignment(entry: {
     clientName: entry.clientName,
     employeeName: entry.employeeName,
     serviceTitle: entry.serviceName ?? entry.title,
+    status: entry.status,
     href: `/assist/assignments/${entry.id}`,
   };
 }
@@ -71,6 +73,7 @@ function mapAssistAssignmentListItem(item: AssignmentListItem): CalendarEvent {
     clientName: item.clientName,
     employeeName: item.employeeName,
     serviceName: item.serviceName,
+    status: item.assignmentStatus,
   });
 }
 

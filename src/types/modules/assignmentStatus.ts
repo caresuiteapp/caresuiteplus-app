@@ -24,9 +24,14 @@ export const ASSIGNMENT_STATUS_LABELS: Record<AssignmentStatus, string> = {
   dokumentation_offen: 'Dokumentation offen',
   unterschrift_offen: 'Unterschrift offen',
   abgeschlossen: 'Abgeschlossen',
-  storniert: 'Storniert',
+  storniert: 'Abgesagt',
   nicht_erschienen: 'Nicht erschienen',
 };
+
+/** A cancelled assignment is historical and must never re-enter execution. */
+export function isCancelledAssignmentStatus(status: string | null | undefined): boolean {
+  return status === 'storniert' || status === 'cancelled' || status === 'canceled';
+}
 
 export type AssignmentTaskStatus =
   | 'open'

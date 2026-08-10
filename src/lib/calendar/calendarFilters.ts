@@ -23,7 +23,9 @@ export function filterCalendarRecords(
   let result = records.filter((record) => !record.archivedAt);
 
   if (!filters?.status) {
-    result = result.filter((record) => record.status !== 'cancelled' && record.status !== 'archiviert');
+    // Cancellation is part of the audit trail and remains visible at its original time.
+    // Only explicitly archived records disappear from the default calendar.
+    result = result.filter((record) => record.status !== 'archiviert');
   }
 
   if (config.calendarScope === 'office' || config.showAllModules) {
@@ -65,7 +67,12 @@ export function filterCalendarRecords(
     result = result.filter((record) => record.relatedEmployeeId === filters.employeeId);
   }
   if (filters?.onlyOpen) {
-    result = result.filter((record) => !['abgeschlossen', 'cancelled', 'archiviert'].includes(record.status));
+    result = result.filter(
+      (record) =>
+        !['abgeschlossen', 'storniert', 'cancelled', 'canceled', 'archiviert'].includes(
+          record.status,
+        ),
+    );
   }
 
   return result;

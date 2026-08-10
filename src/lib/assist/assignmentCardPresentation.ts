@@ -58,7 +58,7 @@ const ACCENT_BY_ASSIGNMENT_STATUS: Partial<Record<AssignmentStatus, AssignmentCa
     label: 'Unterschrift offen',
   },
   abgeschlossen: { color: '#22C55E', tint: 'rgba(34, 197, 94, 0.08)', label: 'Abgeschlossen' },
-  storniert: { color: '#EF4444', tint: 'rgba(239, 68, 68, 0.08)', label: 'Storniert' },
+  storniert: { color: '#D92D20', tint: 'rgba(217, 45, 32, 0.07)', label: 'Abgesagt' },
   nicht_erschienen: { color: '#EF4444', tint: 'rgba(239, 68, 68, 0.08)', label: 'Nicht erschienen' },
 };
 
@@ -138,12 +138,14 @@ export function enrichAssignmentListItem(item: AssignmentListItem): AssignmentLi
   const proofStatus = (item.proofStatus as VisitProofStatus | undefined) ?? dims.proof;
   const billingStatus = (item.billingStatus as VisitBillingStatus | undefined) ?? dims.billing;
   const isIncomplete =
-    item.isIncomplete ??
-    isVisitIncomplete({
-      documentationStatus,
-      proofStatus,
-      executionStatus,
-    });
+    assignmentStatus === 'storniert' || executionStatus === 'cancelled'
+      ? false
+      : item.isIncomplete ??
+        isVisitIncomplete({
+          documentationStatus,
+          proofStatus,
+          executionStatus,
+        });
 
   return {
     ...item,

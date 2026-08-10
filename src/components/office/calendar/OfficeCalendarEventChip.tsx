@@ -6,7 +6,10 @@ import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass'
 import { careRadius } from '@/design/tokens/radius';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { formatTime } from '@/lib/office/calendarDateUtils';
-import { isAssignmentCalendarEvent } from '@/lib/calendar/calendarEventDisplay';
+import {
+  isAssignmentCalendarEvent,
+  isCancelledCalendarEvent,
+} from '@/lib/calendar/calendarEventDisplay';
 
 type OfficeCalendarEventChipProps = {
   event: CalendarEvent;
@@ -25,6 +28,7 @@ export function OfficeCalendarEventChip({
   const portal = usePortalPremiumTheme();
   const router = useRouter();
   const isAssignment = isAssignmentCalendarEvent(event);
+  const isCancelled = isCancelledCalendarEvent(event);
   const timeLabel = event.allDay ? 'Ganztägig' : formatTime(event.start);
 
   const content = (
@@ -33,7 +37,8 @@ export function OfficeCalendarEventChip({
         styles.chip,
         portal.active && styles.portalChip,
         compact && styles.chipCompact,
-        { borderLeftColor: event.color },
+        isCancelled && styles.cancelledChip,
+        { borderLeftColor: isCancelled ? '#D92D20' : event.color },
       ]}
     >
       {!isAssignment && !event.allDay && showTime && !compact ? (
@@ -51,7 +56,11 @@ export function OfficeCalendarEventChip({
 
   if (onEventPress) {
     return (
-      <Pressable onPress={() => onEventPress(event)} accessibilityRole="button">
+      <Pressable
+        onPress={() => onEventPress(event)}
+        accessibilityRole="button"
+        accessibilityLabel={isCancelled ? `Abgesagter Einsatz: ${event.title}` : event.title}
+      >
         {content}
       </Pressable>
     );
@@ -85,6 +94,14 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderBottomWidth: 1,
     borderColor: portalPremium.borderSoft,
+  },
+  cancelledChip: {
+    backgroundColor: 'rgba(217, 45, 32, 0.07)',
+    borderTopWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(217, 45, 32, 0.24)',
+    opacity: 0.82,
   },
   time: {
     fontSize: 10,

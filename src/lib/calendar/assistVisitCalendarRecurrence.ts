@@ -17,7 +17,9 @@ export function visitListItemToCalendarEvent(item: VisitDispositionListItem): Ca
     sourceId: item.id,
     sourceType: 'assist_visit',
     moduleKey: 'assist',
-    status: item.status,
+    // The canonical assignment status drives calendar interaction and styling.
+    // Generic workflow status (for example "fehlerhaft") loses cancellation semantics.
+    status: item.assignmentStatus,
     clientName: item.clientName,
     employeeName: item.employeeName,
     serviceTitle,

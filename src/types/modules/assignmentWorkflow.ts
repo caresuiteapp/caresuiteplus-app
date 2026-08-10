@@ -38,7 +38,7 @@ export const CANONICAL_ASSIGNMENT_STATUS_LABELS: Record<CanonicalAssignmentStatu
   completed: 'Abgeschlossen',
   cancel_requested: 'Absage angefragt',
   reschedule_requested: 'Verschiebung angefragt',
-  cancelled: 'Storniert',
+  cancelled: 'Abgesagt',
   no_show: 'Nicht erschienen',
   missed: 'Verpasst',
   corrected: 'Korrigiert',

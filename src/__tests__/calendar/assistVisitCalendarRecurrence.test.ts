@@ -57,6 +57,13 @@ describe('assistVisitCalendarRecurrence', () => {
     expect(event.start).toBe('2026-07-07T07:00:00.000Z');
   });
 
+  it('übernimmt bei Absage den kanonischen Status statt des generischen Workflows', () => {
+    const event = visitListItemToCalendarEvent(
+      baseListItem({ status: 'fehlerhaft', assignmentStatus: 'storniert' }),
+    );
+    expect(event.status).toBe('storniert');
+  });
+
   it('ersetzt Master-Einsatz durch expandierte Serientermine', () => {
     const expanded = [
       baseListItem(),

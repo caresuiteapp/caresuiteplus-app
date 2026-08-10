@@ -3,6 +3,7 @@ import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import {
   formatCalendarEventCompactLabel,
+  isCancelledCalendarEvent,
   resolveCalendarEventDisplay,
 } from '@/lib/calendar/calendarEventDisplay';
 
@@ -25,6 +26,7 @@ export function CalendarEventLabel({
 }: CalendarEventLabelProps) {
   const text = useAuroraAdaptiveText();
   const display = resolveCalendarEventDisplay(event);
+  const isCancelled = isCancelledCalendarEvent(event);
 
   if (!display.isAssignment) {
     if (variant === 'compact' || variant === 'inline') {
@@ -52,16 +54,20 @@ export function CalendarEventLabel({
 
   if (variant === 'compact' || variant === 'inline') {
     return (
-      <Text
-        style={[
-          styles.compact,
-          { color: text.primary },
-          variant === 'inline' && styles.inline,
-        ]}
-        numberOfLines={numberOfLines ?? (variant === 'compact' ? 2 : 3)}
-      >
-        {formatCalendarEventCompactLabel(event, { includeTime: showTime })}
-      </Text>
+      <View style={styles.compactStack}>
+        {isCancelled ? <Text style={styles.cancelledFlag}>ABGESAGT</Text> : null}
+        <Text
+          style={[
+            styles.compact,
+            { color: isCancelled ? text.muted : text.primary },
+            isCancelled && styles.cancelledText,
+            variant === 'inline' && styles.inline,
+          ]}
+          numberOfLines={numberOfLines ?? (variant === 'compact' ? 2 : 3)}
+        >
+          {formatCalendarEventCompactLabel(event, { includeTime: showTime })}
+        </Text>
+      </View>
     );
   }
 
@@ -113,6 +119,19 @@ const styles = StyleSheet.create({
   compact: {
     fontSize: 11,
     fontWeight: '500',
+  },
+  compactStack: {
+    gap: 1,
+  },
+  cancelledFlag: {
+    color: '#B42318',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  cancelledText: {
+    textDecorationLine: 'line-through',
+    opacity: 0.78,
   },
   inline: {
     fontSize: 13,

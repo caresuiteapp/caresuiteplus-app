@@ -33,7 +33,7 @@ export const ASSIST_VISIT_LIFECYCLE_LABELS: Record<AssistVisitLifecycleStatus, s
   proof_ready: 'Nachweis bereit',
   portal_released: 'Im Klientenportal',
   billing_handoff_ready: 'Abrechnungsübergabe bereit',
-  cancelled: 'Storniert',
+  cancelled: 'Abgesagt',
   no_show: 'Nicht erschienen',
 };
 

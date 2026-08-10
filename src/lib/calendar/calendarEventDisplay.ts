@@ -32,6 +32,13 @@ export function isAssignmentCalendarEvent(event: CalendarEvent): boolean {
   return event.type === 'einsatz' || event.sourceType === 'assist_visit';
 }
 
+export function isCancelledCalendarEvent(event: CalendarEvent): boolean {
+  if (!isAssignmentCalendarEvent(event)) return false;
+  return ['storniert', 'cancelled', 'canceled', 'abgesagt'].includes(
+    event.status?.trim().toLowerCase() ?? '',
+  );
+}
+
 export function formatCalendarEventTimeRange(event: CalendarEvent): string | null {
   if (event.allDay) return 'Ganztägig';
   return `${formatTime(event.start)} – ${formatTime(event.end)}`;

@@ -57,6 +57,26 @@ describe('assignment status derivation', () => {
     ).toBe('unterschrift_offen');
   });
 
+  it('treats cancellation as terminal even when other visit dimensions are stale', () => {
+    expect(
+      deriveAssignmentStatusFromVisitDimensions({
+        canonicalStatus: 'storniert',
+        executionStatus: 'completed',
+        documentationStatus: 'open',
+        proofStatus: 'pending',
+      }),
+    ).toBe('storniert');
+
+    expect(
+      deriveAssignmentStatusFromVisitDimensions({
+        canonicalStatus: 'bestaetigt',
+        executionStatus: 'cancelled',
+        documentationStatus: 'none',
+        proofStatus: 'none',
+      }),
+    ).toBe('storniert');
+  });
+
   it('pickAdvancedAssignmentStatus keeps the more advanced status', () => {
     expect(pickAdvancedAssignmentStatus('bestaetigt', 'abgeschlossen')).toBe('abgeschlossen');
     expect(pickAdvancedAssignmentStatus('abgeschlossen', 'bestaetigt')).toBe('abgeschlossen');

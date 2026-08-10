@@ -68,6 +68,25 @@ import {
   type VisitEditFormData,
 } from '@/lib/assist/visitEditMappers';
 
+const CANCELLED_EXECUTION_ERROR =
+  'Dieser Einsatz wurde abgesagt und kann nicht mehr durchgeführt oder dokumentiert werden.';
+
+function isCancelledVisit(visit: VisitDispositionDetail): boolean {
+  return visit.assignmentStatus === 'storniert' || visit.executionStatus === 'cancelled';
+}
+
+async function rejectCancelledVisit(
+  tenantId: string,
+  visitId: string,
+): Promise<ServiceResult<null>> {
+  const visit = await visitSupabaseRepository.getById(tenantId, visitId);
+  if (!visit.ok) return visit;
+  if (visit.data && isCancelledVisit(visit.data)) {
+    return { ok: false, error: CANCELLED_EXECUTION_ERROR };
+  }
+  return { ok: true, data: null };
+}
+
 /**
  * Ensure a recurring-series occurrence has its own visit row before execution mutations.
  * Virtual occurrence ids (uuid::YYYY-MM-DD) are materialized; master ids pass through.
@@ -86,6 +105,13 @@ export async function resolveExecutableVisitId(
 
   const { visitId: routeMasterId, occurrenceDate } = parseVisitOccurrenceId(rawVisitId);
   if (!occurrenceDate) {
+    if (getServiceMode() === 'supabase') {
+      const resolvedVisitId =
+        (await visitSupabaseRepository.resolveVisitId(tenantId, routeMasterId)) ?? routeMasterId;
+      const active = await rejectCancelledVisit(tenantId, resolvedVisitId);
+      if (!active.ok) return active;
+      return { ok: true, data: { visitId: resolvedVisitId, materialized: false } };
+    }
     return { ok: true, data: { visitId: routeMasterId, materialized: false } };
   }
 
@@ -101,7 +127,13 @@ export async function resolveExecutableVisitId(
 
   const materializedId = getMaterializedOccurrenceId(master.data.recurrenceJson, occurrenceDate);
   if (materializedId) {
+    const active = await rejectCancelledVisit(tenantId, materializedId);
+    if (!active.ok) return active;
     return { ok: true, data: { visitId: materializedId, materialized: false } };
+  }
+
+  if (isCancelledVisit(master.data)) {
+    return { ok: false, error: CANCELLED_EXECUTION_ERROR };
   }
 
   const materialized = await visitSupabaseRepository.materializeOccurrence(

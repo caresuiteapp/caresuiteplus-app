@@ -35,7 +35,10 @@ import {
 import type { VisitSeriesMutationScope } from '@/lib/assist/visitService';
 import type { VisitDispositionDetail, VisitTaskStatus } from '@/lib/assist/visitTypes';
 import { VISIT_TASK_STATUS_LABELS } from '@/lib/assist/visitTypes';
-import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
+import {
+  ASSIGNMENT_STATUS_LABELS,
+  isCancelledAssignmentStatus,
+} from '@/types/modules/assignmentStatus';
 import {
   VISIT_BILLING_STATUS_LABELS,
   VISIT_EXECUTION_STATUS_LABELS,
@@ -135,13 +138,24 @@ function StatusBadgeRow({
   budgetLabel,
   isAtRisk,
   isIncomplete,
+  isCancelled,
 }: {
   planningLabel: string;
   proofLabel: string;
   budgetLabel: string;
   isAtRisk?: boolean;
   isIncomplete?: boolean;
+  isCancelled?: boolean;
 }) {
+  if (isCancelled) {
+    return (
+      <View style={statusBadgeStyles.row}>
+        <PremiumBadge label="Abgesagt" variant="red" dot />
+        <PremiumBadge label="Nicht aktiv" variant="muted" dot />
+      </View>
+    );
+  }
+
   return (
     <View style={statusBadgeStyles.row}>
       <PremiumBadge label={planningLabel} variant="cyan" dot />
@@ -260,6 +274,16 @@ export function AssignmentDetailTabsPanel({
         },
         errorTitle: { ...typography.bodyStrong, color: '#DC2626' },
         errorText: { ...typography.body, color: text.primary },
+        cancelledBanner: {
+          backgroundColor: 'rgba(217,45,32,0.07)',
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: 'rgba(217,45,32,0.24)',
+          padding: spacing.md,
+          gap: 3,
+        },
+        cancelledTitle: { ...typography.bodyStrong, color: '#B42318' },
+        cancelledText: { ...typography.body, color: text.secondary },
         actions: {
           flexDirection: useActionToolbar ? 'row' : 'column',
           flexWrap: useActionToolbar ? 'wrap' : 'nowrap',
@@ -273,7 +297,7 @@ export function AssignmentDetailTabsPanel({
           flexShrink: 0,
         },
         actionBtn: useActionToolbar
-          ? { flexGrow: 1, flexBasis: '30%', minWidth: 132, maxWidth: '100%' as const }
+          ? { flexGrow: 0, minWidth: 132, maxWidth: '100%' as const }
           : { width: '100%' as const },
         seriesDeleteWrap: {
           gap: spacing.xs,
@@ -347,12 +371,17 @@ export function AssignmentDetailTabsPanel({
 
   if (!visit) return null;
 
+  const isCancelled =
+    isCancelledAssignmentStatus(visit.assignmentStatus)
+    || visit.executionStatus === 'cancelled';
+
   const handleUpdateTask = async (
     taskId: string,
     status: VisitTaskStatus,
     notDoneReason?: string,
   ) => {
     if (!tenantId) return;
+    if (isCancelled) return;
     setTaskLoading(true);
     await updateVisitTaskStatus(
       assignmentId,
@@ -428,7 +457,7 @@ export function AssignmentDetailTabsPanel({
         return (
           <VisitTasksPanel
             visit={visit}
-            disabled={isReadOnly || !can('assist.execution.manage')}
+            disabled={isCancelled || isReadOnly || !can('assist.execution.manage')}
             actionLoading={taskLoading || actionLoading}
             onUpdateTask={handleUpdateTask}
           />
@@ -472,7 +501,7 @@ export function AssignmentDetailTabsPanel({
                 value={visit.employeeInternalNotes}
               />
             ) : null}
-            {can('assist.execution.view') ? (
+            {can('assist.execution.view') && !isCancelled ? (
               <PremiumButton
                 title="Einsatz durchführen"
                 fullWidth
@@ -537,7 +566,8 @@ export function AssignmentDetailTabsPanel({
                   proofLabel={VISIT_PROOF_STATUS_LABELS[visit.proofStatus]}
                   budgetLabel={VISIT_BILLING_STATUS_LABELS[visit.billingStatus]}
                   isAtRisk={visit.isAtRisk}
-                  isIncomplete={visit.isIncomplete}
+                  isIncomplete={!isCancelled && visit.isIncomplete}
+                  isCancelled={isCancelled}
                 />
                 <DetailInfoRow
                   label="Workflow"
@@ -653,6 +683,15 @@ export function AssignmentDetailTabsPanel({
     <>
       {successMessage ? <SuccessState message={successMessage} /> : null}
 
+      {isCancelled ? (
+        <View style={styles.cancelledBanner} accessibilityRole="alert">
+          <Text style={styles.cancelledTitle}>Einsatz abgesagt</Text>
+          <Text style={styles.cancelledText}>
+            Der Termin bleibt zur Nachvollziehbarkeit sichtbar. Durchführung, Aufgaben und Nachweis sind gesperrt.
+          </Text>
+        </View>
+      ) : null}
+
       {isReadOnly ? (
         <LockedActionBanner
           title="Lesemodus"
@@ -674,7 +713,7 @@ export function AssignmentDetailTabsPanel({
 
       {renderTabContent()}
 
-      {!isPreview && can('assist.assignments.manage') ? (
+      {!isPreview && can('assist.assignments.manage') && !isCancelled ? (
         <SectionPanel {...FORM_CTX} title="Status ändern" subtitle="Erlaubte Workflow-Übergänge">
           {(visit.allowedStatusTransitions?.length ?? 0) === 0 ? (
             <EmptyState
@@ -723,7 +762,7 @@ export function AssignmentDetailTabsPanel({
           style={useActionToolbar ? styles.actionBtn : undefined}
         />
       ) : null}
-      {can('assist.assignments.manage') &&
+      {!isCancelled && can('assist.assignments.manage') &&
       visit.allowedStatusTransitions.includes('bestaetigt') ? (
         <PremiumButton
           title="Freigeben"
@@ -735,7 +774,7 @@ export function AssignmentDetailTabsPanel({
           style={useActionToolbar ? styles.actionBtn : undefined}
         />
       ) : null}
-      {can('assist.execution.view') ? (
+      {!isCancelled && can('assist.execution.view') ? (
         <PremiumButton
           title="Durchführen"
           variant="secondary"
@@ -745,7 +784,7 @@ export function AssignmentDetailTabsPanel({
           style={useActionToolbar ? styles.actionBtn : undefined}
         />
       ) : null}
-      {can('assist.assignments.manage') &&
+      {!isCancelled && can('assist.assignments.manage') &&
       visit.allowedStatusTransitions.includes('storniert') ? (
         <PremiumButton
           title="Absagen"

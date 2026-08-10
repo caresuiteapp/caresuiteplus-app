@@ -261,7 +261,7 @@ describe('Unified calendar system', () => {
 
 
 
-  it('cancelled Status wird standardmäßig ausgeblendet', () => {
+  it('cancelled Status bleibt standardmäßig als historischer Termin sichtbar', () => {
 
     const config = buildOfficeCalendarConfig();
 
@@ -275,8 +275,20 @@ describe('Unified calendar system', () => {
 
     const filtered = filterCalendarRecords(records, config);
 
-    expect(filtered.map((r) => r.id)).toEqual(['a']);
+    expect(filtered.map((r) => r.id)).toEqual(['a', 'b']);
 
+  });
+
+  it('abgesagte Einsätze sind im Nur-offen-Filter nicht aktiv', () => {
+    const config = buildOfficeCalendarConfig();
+    const records = [
+      baseRecord({ id: 'a', status: 'aktiv' }),
+      baseRecord({ id: 'b', status: 'storniert' }),
+      baseRecord({ id: 'c', status: 'cancelled' }),
+    ];
+
+    const filtered = filterCalendarRecords(records, config, { onlyOpen: true });
+    expect(filtered.map((r) => r.id)).toEqual(['a']);
   });
 
 
@@ -588,4 +600,3 @@ describe('Unified calendar system', () => {
   });
 
 });
-
