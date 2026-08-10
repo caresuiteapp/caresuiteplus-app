@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
 
 import {
 
@@ -87,6 +88,8 @@ export function EmployeeDetailModal({
   initialEditOpen = false,
 
 }: EmployeeDetailModalProps) {
+
+  const router = useRouter();
 
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
@@ -215,9 +218,13 @@ export function EmployeeDetailModal({
 
   const handleOpenPersonnelRecord = useCallback(() => {
 
-    setMode('personnel');
+    if (!employeeId) return;
 
-  }, []);
+    onClose();
+
+    router.push(`/business/office/employees/${employeeId}/personnel` as never);
+
+  }, [employeeId, onClose, router]);
 
 
 

@@ -190,7 +190,7 @@ export function EmployeeDetailSummaryPanel({
           onPress={
             onOpenFullRecord
               ? onOpenFullRecord
-              : () => router.push(`/office/employees/${employee.id}` as never)
+              : () => router.push(`/business/office/employees/${employee.id}/personnel` as never)
           }
         />
         {can('office.employees.edit') ? (
