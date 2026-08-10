@@ -14,8 +14,8 @@ function formatHours(value: number | null): string {
 
 function visualColors(model: ClientBudgetVisualModel) {
   return model.id === 'entlastung'
-    ? { accent: '#3BE7FF', glow: 'rgba(59,231,255,0.25)', reserved: '#8B7CFF' }
-    : { accent: '#65F2A7', glow: 'rgba(101,242,167,0.22)', reserved: '#F6C85F' };
+    ? { accent: '#0B72C9', glow: 'rgba(22,131,255,0.16)', reserved: '#6D5CE7' }
+    : { accent: '#0F9F6E', glow: 'rgba(15,159,110,0.16)', reserved: '#A86600' };
 }
 
 function bookingBadge(model: ClientBudgetVisualModel) {
@@ -23,7 +23,7 @@ function bookingBadge(model: ClientBudgetVisualModel) {
     return { label: '✓ LEISTUNG GEBUCHT', color: '#65F2A7', background: 'rgba(19,148,106,0.18)' };
   }
   if (model.bookingState === 'preview') {
-    return { label: 'VORSCHAU · NOCH NICHT GEBUCHT', color: '#FFD166', background: 'rgba(246,200,95,0.14)' };
+    return { label: 'VORSCHAU · NOCH NICHT GEBUCHT', color: '#A86600', background: 'rgba(168,102,0,0.10)' };
   }
   if (model.bookingState === 'not_eligible') {
     return { label: 'DERZEIT NICHT VERFÜGBAR', color: '#B8C7DB', background: 'rgba(184,199,219,0.12)' };
@@ -41,7 +41,7 @@ function BudgetVisualCard({ model }: { model: ClientBudgetVisualModel }) {
   return (
     <>
       <LinearGradient
-        colors={['rgba(5,20,52,0.96)', 'rgba(10,39,78,0.90)', 'rgba(8,24,56,0.96)']}
+        colors={['rgba(255,255,255,0.98)', 'rgba(236,246,255,0.96)', 'rgba(255,255,255,0.98)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.card, { shadowColor: palette.accent }]}
@@ -234,17 +234,17 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(125,211,252,0.26)',
-    backgroundColor: 'rgba(8,31,65,0.82)',
+    backgroundColor: 'rgba(255,255,255,0.92)',
   },
-  unavailableTitle: { color: '#FFFFFF', fontSize: 16, lineHeight: 22, fontWeight: '900' },
-  unavailableText: { color: 'rgba(226,242,255,0.74)', fontSize: 13, lineHeight: 19 },
+  unavailableTitle: { color: '#0B1220', fontSize: 16, lineHeight: 22, fontWeight: '900' },
+  unavailableText: { color: 'rgba(30,41,59,0.74)', fontSize: 13, lineHeight: 19 },
   section: { gap: spacing.md },
   opportunitySection: { padding: spacing.lg, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(246,200,95,0.24)', backgroundColor: 'rgba(246,200,95,0.04)' },
   sectionHeading: { gap: 3, maxWidth: 820 },
   sectionKicker: { color: '#65F2A7', fontSize: 11, lineHeight: 16, fontWeight: '900', letterSpacing: 1.2 },
-  opportunityKicker: { color: '#FFD166' },
-  sectionTitle: { color: '#FFFFFF', fontSize: 24, lineHeight: 30, fontWeight: '900', letterSpacing: -0.4 },
-  sectionSubtitle: { color: 'rgba(226,242,255,0.70)', fontSize: 13, lineHeight: 19 },
+  opportunityKicker: { color: '#A86600' },
+  sectionTitle: { color: '#0B1220', fontSize: 24, lineHeight: 30, fontWeight: '900', letterSpacing: -0.4 },
+  sectionSubtitle: { color: 'rgba(30,41,59,0.74)', fontSize: 13, lineHeight: 19 },
   grid: { flexDirection: 'row', gap: spacing.lg, width: '100%', alignItems: 'stretch' },
   gridCompact: { flexDirection: 'column' },
   cardSlot: { flex: 1, minWidth: 0 },
@@ -273,44 +273,44 @@ const styles = StyleSheet.create({
   bookingBadgeText: { fontSize: 10, lineHeight: 14, fontWeight: '900', letterSpacing: 0.75 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md },
   headerCopy: { flex: 1, gap: 4 },
-  legalLabel: { color: 'rgba(186,230,253,0.78)', fontSize: 11, fontWeight: '800', letterSpacing: 1.1, textTransform: 'uppercase' },
-  title: { color: '#FFFFFF', fontSize: 25, lineHeight: 31, fontWeight: '900', letterSpacing: -0.6 },
-  status: { color: 'rgba(226,242,255,0.72)', fontSize: 13, lineHeight: 18, fontWeight: '600' },
+  legalLabel: { color: '#0B72C9', fontSize: 11, fontWeight: '800', letterSpacing: 1.1, textTransform: 'uppercase' },
+  title: { color: '#0B1220', fontSize: 25, lineHeight: 31, fontWeight: '900', letterSpacing: -0.6 },
+  status: { color: 'rgba(30,41,59,0.74)', fontSize: 13, lineHeight: 18, fontWeight: '600' },
   infoButton: {
     width: 44,
     height: 44,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.20)',
-    backgroundColor: 'rgba(255,255,255,0.09)',
+    borderColor: 'rgba(15,23,42,0.14)',
+    backgroundColor: 'rgba(15,23,42,0.04)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   infoButtonPressed: { opacity: 0.72, transform: [{ scale: 0.97 }] },
   infoIcon: { fontSize: 19 },
   heroMetric: { alignItems: 'center', paddingVertical: spacing.xl, gap: 2 },
-  heroAmount: { color: '#FFFFFF', fontSize: 38, lineHeight: 46, fontWeight: '900', letterSpacing: -1.4 },
-  heroLabel: { color: 'rgba(226,242,255,0.70)', fontSize: 13, fontWeight: '700' },
+  heroAmount: { color: '#0B1220', fontSize: 38, lineHeight: 46, fontWeight: '900', letterSpacing: -1.4 },
+  heroLabel: { color: 'rgba(30,41,59,0.74)', fontSize: 13, fontWeight: '700' },
   hours: { fontSize: 20, lineHeight: 26, fontWeight: '900', marginTop: spacing.xs },
-  rate: { color: 'rgba(226,242,255,0.58)', fontSize: 11, lineHeight: 16, textAlign: 'center' },
+  rate: { color: 'rgba(51,65,85,0.72)', fontSize: 11, lineHeight: 16, textAlign: 'center' },
   previewNotice: { marginBottom: spacing.md, padding: spacing.md, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(246,200,95,0.28)', backgroundColor: 'rgba(246,200,95,0.08)', gap: 4 },
-  previewNoticeTitle: { color: '#FFFFFF', fontSize: 12, lineHeight: 17, fontWeight: '900' },
-  previewNoticeText: { color: 'rgba(226,242,255,0.72)', fontSize: 11, lineHeight: 17 },
+  previewNoticeTitle: { color: '#0B1220', fontSize: 12, lineHeight: 17, fontWeight: '900' },
+  previewNoticeText: { color: 'rgba(30,41,59,0.74)', fontSize: 11, lineHeight: 17 },
   progressTrack: {
     height: 16,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(15,23,42,0.08)',
     overflow: 'hidden',
     flexDirection: 'row',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(15,23,42,0.10)',
   },
   progressSegment: { minWidth: 1, flexBasis: 0 },
   usedSegment: { backgroundColor: '#355070' },
   legendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.sm },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 8, height: 8, borderRadius: 999 },
-  legendText: { color: 'rgba(226,242,255,0.68)', fontSize: 11, fontWeight: '600' },
+  legendText: { color: 'rgba(51,65,85,0.76)', fontSize: 11, fontWeight: '600' },
   careAllowancePanel: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -323,12 +323,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(101,242,167,0.20)',
   },
-  careAllowanceLabel: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
-  careAllowanceMeta: { color: 'rgba(226,242,255,0.58)', fontSize: 10, marginTop: 3 },
+  careAllowanceLabel: { color: '#0B1220', fontSize: 13, fontWeight: '800' },
+  careAllowanceMeta: { color: 'rgba(51,65,85,0.72)', fontSize: 10, marginTop: 3 },
   careAllowanceAmount: { color: '#65F2A7', fontSize: 20, fontWeight: '900' },
   footer: { marginTop: 'auto', paddingTop: spacing.lg, gap: 4 },
-  period: { color: 'rgba(226,242,255,0.76)', fontSize: 12, lineHeight: 17, fontWeight: '700' },
-  expiry: { color: 'rgba(226,242,255,0.52)', fontSize: 11, lineHeight: 16 },
+  period: { color: 'rgba(30,41,59,0.78)', fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  expiry: { color: 'rgba(51,65,85,0.68)', fontSize: 11, lineHeight: 16 },
   modalBody: { gap: spacing.md },
   explanationRow: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
   explanationDot: { width: 8, height: 8, borderRadius: 999, marginTop: 6 },

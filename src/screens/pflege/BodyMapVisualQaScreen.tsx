@@ -129,7 +129,7 @@ export function BodyMapVisualQaScreen() {
 const styles = StyleSheet.create({
   page: {
     minHeight: 1400,
-    backgroundColor: '#04101f',
+    backgroundColor: '#F8FBFF',
     paddingHorizontal: 28,
     paddingVertical: 22,
   },
@@ -150,13 +150,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   title: {
-    color: '#f5f9ff',
+    color: '#0B1220',
     fontSize: 27,
     fontWeight: '800',
     marginTop: 5,
   },
   subtitle: {
-    color: '#a9b9d2',
+    color: '#475569',
     fontSize: 14,
     marginTop: 4,
   },
@@ -170,8 +170,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: 'rgba(23,105,224,0.14)',
   },
-  counterNumber: { color: '#ffffff', fontSize: 27, fontWeight: '900' },
-  counterTotal: { color: '#8fa6c8', fontSize: 15, marginLeft: 5 },
+  counterNumber: { color: '#0B1220', fontSize: 27, fontWeight: '900' },
+  counterTotal: { color: '#64748B', fontSize: 15, marginLeft: 5 },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

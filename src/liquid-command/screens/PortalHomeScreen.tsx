@@ -41,8 +41,9 @@ import {
   LiquidStatus,
   LiquidSurface,
   LiquidText,
+  LiquidVisualModeProvider,
 } from '../components/LiquidPrimitives';
-import { liquidColors, liquidRadius, liquidSpace } from '../foundation/tokens';
+import { liquidClassicColors as liquidColors, liquidRadius, liquidSpace } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import {
   liquidPortalLoginRoutes,
@@ -864,7 +865,8 @@ export function PortalHomeScreen({
   };
 
   return (
-    <LiquidBackdrop>
+    <LiquidVisualModeProvider mode="classic">
+      <LiquidBackdrop>
       <View style={styles.root}>
         <View style={styles.topBar}>
           <LiquidLogo compact />
@@ -960,7 +962,8 @@ export function PortalHomeScreen({
           </View>
         )}
       </View>
-    </LiquidBackdrop>
+      </LiquidBackdrop>
+    </LiquidVisualModeProvider>
   );
 }
 

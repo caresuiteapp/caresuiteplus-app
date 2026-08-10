@@ -1140,7 +1140,7 @@ const styles = StyleSheet.create({
     borderRadius: liquidRadius.small,
     borderWidth: 1,
     borderColor: liquidColors.white12,
-    backgroundColor: 'rgba(6,21,43,0.48)',
+    backgroundColor: 'rgba(255,255,255,0.82)',
     gap: 12,
   },
   analytics: {

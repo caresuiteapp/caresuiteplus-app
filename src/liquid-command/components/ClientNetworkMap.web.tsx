@@ -10,7 +10,7 @@ import {
 } from '@/lib/maps/googleMapsLoader';
 import type { ClientListItem } from '@/types/modules/office';
 import { LiquidGlyph } from './LiquidPrimitives';
-import { liquidColors, liquidRadius } from '../foundation/tokens';
+import { liquidClassicColors as liquidColors, liquidRadius } from '../foundation/tokens';
 
 export type ClientNetworkMapProps = {
   clients: ClientListItem[];

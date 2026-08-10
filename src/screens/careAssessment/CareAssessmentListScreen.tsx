@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSoft,
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(7,16,43,0.52)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,

@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     borderRadius: liquidRadius.panel,
     borderWidth: 1,
     borderColor: liquidColors.blue300Alpha32,
-    backgroundColor: 'rgba(10,35,66,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.92)',
   },
   eyebrow: {
     color: liquidColors.blue200,
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     opacity: 0.78,
   },
   primaryLabel: {
-    color: liquidColors.white,
+    color: liquidColors.onAccent,
     fontWeight: '800',
   },
   secondaryLabel: {

@@ -224,9 +224,9 @@ const localStyles = StyleSheet.create({
   fixedRow: { minHeight: 56, alignItems: 'center' },
   fixedCell: { overflow: 'hidden', justifyContent: 'center' },
   emptySolid: {
-    backgroundColor: 'rgba(39, 40, 70, 0.82)',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.13)',
+    borderColor: 'rgba(15, 23, 42, 0.13)',
   },
 });

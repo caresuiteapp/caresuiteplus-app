@@ -124,7 +124,7 @@ function AnimatedBackdrop({ reducedMotion }: { reducedMotion: boolean }) {
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <LinearGradient
-        colors={['#010817', '#02142e', '#010817']}
+        colors={['#F8FBFF', '#EAF4FF', '#FFFFFF']}
         locations={[0, 0.48, 1]}
         style={StyleSheet.absoluteFill}
       />
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(112,181,255,0.48)',
-    backgroundColor: 'rgba(5,27,57,0.78)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'flex-end',
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   },
   accessCardHovered: {
     borderColor: 'rgba(112,181,255,0.96)',
-    backgroundColor: 'rgba(8,39,79,0.92)',
+    backgroundColor: '#EFF6FF',
     shadowColor: liquidColors.blue400,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.38,
@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
   },
   accessCtaHovered: { borderColor: liquidColors.blue200, shadowOpacity: 0.48 },
   accessCtaLabel: {
-    color: liquidColors.white,
+    color: liquidColors.onAccent,
     fontSize: 15,
     lineHeight: 20,
     fontWeight: '900',
@@ -670,7 +670,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(112,181,255,0.40)',
-    backgroundColor: 'rgba(5,25,52,0.82)',
+    backgroundColor: 'rgba(255,255,255,0.92)',
     overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
   registrationCardStacked: { padding: 16, flexDirection: 'column', gap: 12 },
   registrationCardHovered: {
     borderColor: 'rgba(112,181,255,0.88)',
-    backgroundColor: 'rgba(8,36,72,0.94)',
+    backgroundColor: '#EFF6FF',
     shadowColor: liquidColors.blue500,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,

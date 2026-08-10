@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ClientListItem } from '@/types/modules/office';
-import { liquidColors, liquidRadius } from '../foundation/tokens';
+import { liquidClassicColors as liquidColors, liquidRadius } from '../foundation/tokens';
 
 export type ClientNetworkMapProps = {
   clients: ClientListItem[];

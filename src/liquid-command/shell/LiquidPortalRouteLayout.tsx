@@ -12,8 +12,9 @@ import {
   LiquidGlyph,
   LiquidLogo,
   LiquidSurface,
+  LiquidVisualModeProvider,
 } from '../components/LiquidPrimitives';
-import { liquidColors, liquidLayers, liquidRadius } from '../foundation/tokens';
+import { liquidClassicColors as liquidColors, liquidLayers, liquidRadius } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import {
   liquidPortalNavigation,
@@ -368,10 +369,11 @@ export function LiquidPortalRouteLayout({
       {content}
     </RequireAuth>
   );
+  const classic = <LiquidVisualModeProvider mode="classic">{guarded}</LiquidVisualModeProvider>;
   if (kind === 'client' || kind === 'employee') {
-    return <PortalPremiumProvider kind={kind}>{guarded}</PortalPremiumProvider>;
+    return <PortalPremiumProvider kind={kind}>{classic}</PortalPremiumProvider>;
   }
-  return guarded;
+  return classic;
 }
 
 const styles = StyleSheet.create({

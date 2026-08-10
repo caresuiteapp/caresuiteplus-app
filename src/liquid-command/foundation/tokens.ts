@@ -1,7 +1,11 @@
 import type { TextStyle, ViewStyle } from 'react-native';
 import { applyWebFontScaleToTextStyle } from '@/design/web/webFontSize';
 
-export const liquidColors = {
+/**
+ * Classic Liquid palette retained exclusively for the client and employee portals.
+ * Internal product routes must use `liquidColors`, the system-wide ORBIT contract.
+ */
+export const liquidClassicColors = {
   navy950: '#010817',
   navy900: '#031127',
   navy800: '#061B35',
@@ -27,6 +31,40 @@ export const liquidColors = {
   danger: '#FF5B6E',
   warning: '#FFC857',
   success: '#4DDBA8',
+} as const;
+
+/**
+ * ORBIT light semantic contract for every authenticated internal route.
+ * Legacy property names remain stable so thousands of existing consumers switch
+ * coherently without page-level overrides.
+ */
+export const liquidColors = {
+  navy950: '#F6FAFF',
+  navy900: '#F8FBFF',
+  navy800: '#FFFFFF',
+  navy700: '#EDF5FF',
+  blue600: '#056CE8',
+  blue500: '#1683FF',
+  blue400: '#1478E8',
+  blue300: '#2563EB',
+  blue200: '#1D4ED8',
+  blue500Alpha16: 'rgba(22,131,255,0.16)',
+  blue300Alpha32: 'rgba(37,99,235,0.32)',
+  white: '#0B1220',
+  white88: 'rgba(11,18,32,0.88)',
+  white72: 'rgba(30,41,59,0.72)',
+  white64: 'rgba(51,65,85,0.64)',
+  white56: 'rgba(71,85,105,0.72)',
+  white32: 'rgba(100,116,139,0.52)',
+  white22: 'rgba(15,23,42,0.22)',
+  white18: 'rgba(15,23,42,0.18)',
+  white12: 'rgba(15,23,42,0.12)',
+  white08: 'rgba(15,23,42,0.08)',
+  black24: 'rgba(15,23,42,0.14)',
+  onAccent: '#FFFFFF',
+  danger: '#D92D46',
+  warning: '#A86600',
+  success: '#0F9F6E',
 } as const;
 
 export const liquidSpace = {
@@ -108,6 +146,23 @@ export const liquidShadows = {
   } satisfies ViewStyle,
 } as const;
 
+export const liquidClassicShadows = {
+  panel: {
+    shadowColor: liquidClassicColors.blue500,
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 8,
+  } satisfies ViewStyle,
+  focus: {
+    shadowColor: liquidClassicColors.blue500,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.42,
+    shadowRadius: 14,
+    elevation: 8,
+  } satisfies ViewStyle,
+} as const;
+
 export const liquidTypography = {
   display: applyWebFontScaleToTextStyle({
     color: liquidColors.white,
@@ -143,6 +198,48 @@ export const liquidTypography = {
   } satisfies TextStyle),
   kicker: applyWebFontScaleToTextStyle({
     color: liquidColors.blue200,
+    fontSize: liquidType.kicker,
+    lineHeight: 16,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  } satisfies TextStyle),
+} as const;
+
+export const liquidClassicTypography = {
+  display: applyWebFontScaleToTextStyle({
+    color: liquidClassicColors.white,
+    fontSize: liquidType.displayDesktop,
+    lineHeight: 40,
+    fontWeight: '800',
+    letterSpacing: -1.1,
+  } satisfies TextStyle),
+  title: applyWebFontScaleToTextStyle({
+    color: liquidClassicColors.white,
+    fontSize: liquidType.titleDesktop,
+    lineHeight: 30,
+    fontWeight: '800',
+    letterSpacing: -0.45,
+  } satisfies TextStyle),
+  section: applyWebFontScaleToTextStyle({
+    color: liquidClassicColors.white,
+    fontSize: liquidType.section,
+    lineHeight: 23,
+    fontWeight: '700',
+  } satisfies TextStyle),
+  body: applyWebFontScaleToTextStyle({
+    color: liquidClassicColors.white88,
+    fontSize: liquidType.body,
+    lineHeight: 21,
+    fontWeight: '400',
+  } satisfies TextStyle),
+  meta: applyWebFontScaleToTextStyle({
+    color: liquidClassicColors.white72,
+    fontSize: liquidType.meta,
+    lineHeight: 17,
+    fontWeight: '500',
+  } satisfies TextStyle),
+  kicker: applyWebFontScaleToTextStyle({
+    color: liquidClassicColors.blue200,
     fontSize: liquidType.kicker,
     lineHeight: 16,
     fontWeight: '800',

@@ -18,9 +18,10 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
-  liquidColors,
+  liquidClassicColors,
+  liquidClassicShadows,
+  liquidClassicTypography,
   liquidRadius,
-  liquidShadows,
   liquidSpace,
   liquidTypography,
   toneColor,
@@ -29,7 +30,9 @@ import {
 
 export type LiquidVisualMode = 'classic' | 'orbit';
 
-const LiquidVisualModeContext = createContext<LiquidVisualMode>('classic');
+// ORBIT is the product default. The two official portals opt into classic
+// explicitly at their route boundary so new internal routes cannot regress.
+const LiquidVisualModeContext = createContext<LiquidVisualMode>('orbit');
 
 export function LiquidVisualModeProvider({ mode, children }: { mode: LiquidVisualMode; children: ReactNode }) {
   return <LiquidVisualModeContext.Provider value={mode}>{children}</LiquidVisualModeContext.Provider>;
@@ -114,7 +117,7 @@ export function LiquidGlyph({
   if (iconName) {
     return (
       <Ionicons
-        color={color ?? (active ? liquidColors.blue600 : orbit ? '#334155' : liquidColors.white72)}
+        color={color ?? (active ? liquidClassicColors.blue600 : orbit ? '#334155' : liquidClassicColors.white72)}
         name={iconName}
         size={size}
       />
@@ -155,7 +158,7 @@ export function LiquidSurface({
   );
 
   return (
-    <View style={[styles.surfaceFrame, orbit && styles.orbitSurfaceFrame, active && liquidShadows.focus, style]}>
+    <View style={[styles.surfaceFrame, orbit && styles.orbitSurfaceFrame, active && liquidClassicShadows.focus, style]}>
       {solid ? (
         content
       ) : (
@@ -187,7 +190,12 @@ export function LiquidText({
     <Text
       accessibilityRole={accessibilityRole}
       numberOfLines={numberOfLines}
-      style={[liquidTypography[variant], orbit && styles.orbitText, variant === 'kicker' && orbit && styles.orbitKicker, style]}
+      style={[
+        orbit ? liquidTypography[variant] : liquidClassicTypography[variant],
+        orbit && styles.orbitText,
+        variant === 'kicker' && orbit && styles.orbitKicker,
+        style,
+      ]}
     >
       {children}
     </Text>
@@ -270,7 +278,7 @@ export function LiquidButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={orbit ? '#0B1220' : liquidColors.white} />
+        <ActivityIndicator color={orbit ? '#0B1220' : liquidClassicColors.white} />
       ) : (
         <>
           {icon ? <LiquidGlyph active color={orbit && variant === 'primary' ? '#FFFFFF' : undefined} glyph={icon} size={18} /> : null}
@@ -370,7 +378,7 @@ export function LiquidField({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={orbit ? '#94A3B8' : liquidColors.white32}
+        placeholderTextColor={orbit ? '#94A3B8' : liquidClassicColors.white32}
         keyboardType={keyboardType}
         multiline={multiline}
         style={[
@@ -396,7 +404,9 @@ export function LiquidStatus({
   detail?: string;
 }) {
   const orbit = useLiquidVisualMode() === 'orbit';
-  const color = orbit && tone === 'neutral' ? '#475569' : toneColor(tone);
+  const color = tone === 'neutral'
+    ? orbit ? '#475569' : liquidClassicColors.white72
+    : toneColor(tone);
   return (
     <View
       accessible
@@ -424,7 +434,9 @@ export function LiquidMetric({
   glyph?: string;
 }) {
   const orbit = useLiquidVisualMode() === 'orbit';
-  const color = orbit && tone === 'neutral' ? '#475569' : toneColor(tone);
+  const color = tone === 'neutral'
+    ? orbit ? '#475569' : liquidClassicColors.white72
+    : toneColor(tone);
   return (
     <View accessible accessibilityLabel={`${label}: ${value}${detail ? `. ${detail}` : ''}`} style={[styles.metric, orbit && styles.orbitMetric]}>
       <View style={styles.metricHeader}>
@@ -473,7 +485,7 @@ export function LiquidState({
   return (
     <LiquidSurface solid contentStyle={styles.state}>
       {kind === 'loading' ? (
-        <ActivityIndicator color={orbit ? liquidColors.blue600 : liquidColors.blue400} size="large" />
+        <ActivityIndicator color={orbit ? liquidClassicColors.blue600 : liquidClassicColors.blue400} size="large" />
       ) : (
         <View style={styles.stateGlyph}>
           <LiquidGlyph glyph={stateGlyph[kind]} size={24} />
@@ -596,7 +608,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(112,181,255,0.34)',
     backgroundColor: 'rgba(5,23,47,0.78)',
-    ...liquidShadows.panel,
+    ...liquidClassicShadows.panel,
   },
   blur: {
     flex: 1,
@@ -610,7 +622,7 @@ const styles = StyleSheet.create({
   },
   surfaceActive: {
     borderWidth: 1,
-    borderColor: liquidColors.blue400,
+    borderColor: liquidClassicColors.blue400,
     backgroundColor: 'rgba(8,38,76,0.72)',
   },
   brandImage: {
@@ -631,13 +643,13 @@ const styles = StyleSheet.create({
     paddingVertical: liquidSpace[3],
     borderRadius: liquidRadius.control,
     borderWidth: 1,
-    borderColor: liquidColors.blue400,
-    backgroundColor: liquidColors.blue600,
+    borderColor: liquidClassicColors.blue400,
+    backgroundColor: liquidClassicColors.blue600,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: liquidSpace[2],
-    ...liquidShadows.focus,
+    ...liquidClassicShadows.focus,
   },
   buttonCompact: {
     minHeight: 38,
@@ -648,8 +660,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   buttonSecondary: {
-    borderColor: liquidColors.white22,
-    backgroundColor: liquidColors.white08,
+    borderColor: liquidClassicColors.white22,
+    backgroundColor: liquidClassicColors.white08,
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -660,9 +672,9 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   buttonDanger: {
-    borderColor: liquidColors.danger,
+    borderColor: liquidClassicColors.danger,
     backgroundColor: 'rgba(255,91,110,0.18)',
-    shadowColor: liquidColors.danger,
+    shadowColor: liquidClassicColors.danger,
   },
   buttonPressed: {
     opacity: 0.82,
@@ -670,18 +682,18 @@ const styles = StyleSheet.create({
   },
   buttonFocused: {
     borderWidth: 2,
-    borderColor: liquidColors.blue200,
+    borderColor: liquidClassicColors.blue200,
   },
   buttonDisabled: {
     opacity: 0.44,
   },
   buttonIcon: {
-    color: liquidColors.white,
+    color: liquidClassicColors.white,
     fontSize: 18,
     lineHeight: 22,
   },
   buttonLabel: {
-    color: liquidColors.white,
+    color: liquidClassicColors.white,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '700',
@@ -698,17 +710,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconButtonActive: {
-    borderColor: liquidColors.blue500,
+    borderColor: liquidClassicColors.blue500,
     backgroundColor: 'rgba(20,120,255,0.18)',
-    ...liquidShadows.focus,
+    ...liquidClassicShadows.focus,
   },
   iconGlyph: {
-    color: liquidColors.white72,
+    color: liquidClassicColors.white72,
     fontSize: 21,
     lineHeight: 25,
   },
   iconGlyphActive: {
-    color: liquidColors.blue200,
+    color: liquidClassicColors.blue200,
   },
   iconBadge: {
     position: 'absolute',
@@ -720,10 +732,10 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: liquidColors.blue500,
+    backgroundColor: liquidClassicColors.blue500,
   },
   iconBadgeLabel: {
-    color: liquidColors.white,
+    color: liquidClassicColors.white,
     fontSize: 10,
     lineHeight: 12,
     fontWeight: '800',
@@ -733,23 +745,23 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   fieldLabel: {
-    color: liquidColors.white88,
+    color: liquidClassicColors.white88,
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '700',
   },
   required: {
-    color: liquidColors.blue200,
+    color: liquidClassicColors.blue200,
   },
   input: {
     minHeight: 50,
     borderRadius: liquidRadius.control,
     borderWidth: 1,
-    borderColor: liquidColors.white22,
+    borderColor: liquidClassicColors.white22,
     backgroundColor: 'rgba(6,21,43,0.72)',
     paddingHorizontal: 15,
     paddingVertical: 12,
-    color: liquidColors.white,
+    color: liquidClassicColors.white,
     fontSize: 16,
     lineHeight: 22,
   },
@@ -758,15 +770,15 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   inputError: {
-    borderColor: liquidColors.danger,
+    borderColor: liquidClassicColors.danger,
   },
   fieldHint: {
-    color: liquidColors.white56,
+    color: liquidClassicColors.white56,
     fontSize: 13,
     lineHeight: 18,
   },
   errorText: {
-    color: liquidColors.danger,
+    color: liquidClassicColors.danger,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '600',
@@ -777,7 +789,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: liquidRadius.pill,
     borderWidth: 1,
-    backgroundColor: liquidColors.white08,
+    backgroundColor: liquidClassicColors.white08,
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
@@ -800,7 +812,7 @@ const styles = StyleSheet.create({
   statusDetail: {
     minWidth: 0,
     flexShrink: 1,
-    color: liquidColors.white56,
+    color: liquidClassicColors.white56,
     fontSize: 12,
     lineHeight: 16,
   },
@@ -811,7 +823,7 @@ const styles = StyleSheet.create({
     borderRadius: liquidRadius.small,
     backgroundColor: 'rgba(9,34,66,0.72)',
     borderWidth: 1,
-    borderColor: liquidColors.white12,
+    borderColor: liquidClassicColors.white12,
     gap: 5,
   },
   metricHeader: {
@@ -824,20 +836,20 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   metricLabel: {
-    color: liquidColors.white72,
+    color: liquidClassicColors.white72,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '700',
   },
   metricValue: {
-    color: liquidColors.white,
+    color: liquidClassicColors.white,
     fontSize: 25,
     lineHeight: 29,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
   metricDetail: {
-    color: liquidColors.white56,
+    color: liquidClassicColors.white56,
     fontSize: 12,
     lineHeight: 17,
   },
@@ -853,7 +865,7 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 23,
     borderWidth: 1,
-    borderColor: liquidColors.blue500,
+    borderColor: liquidClassicColors.blue500,
     backgroundColor: 'rgba(20,120,255,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -864,14 +876,14 @@ const styles = StyleSheet.create({
   },
   reference: {
     marginTop: 3,
-    color: liquidColors.white56,
+    color: liquidClassicColors.white56,
     fontSize: 12,
     lineHeight: 16,
     fontVariant: ['tabular-nums'],
   },
   divider: {
     height: 1,
-    backgroundColor: liquidColors.white12,
+    backgroundColor: liquidClassicColors.white12,
   },
   backdrop: {
     flex: 1,

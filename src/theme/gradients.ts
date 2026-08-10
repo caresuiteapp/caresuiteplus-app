@@ -7,8 +7,8 @@ import { liquidColors } from '@/liquid-command/foundation/tokens';
 
 export const gradients = {
   card: {
-    default: ['rgba(6,27,53,0.92)', 'rgba(3,17,39,0.96)'] as const,
-    elevated: ['rgba(10,42,82,0.90)', 'rgba(6,27,53,0.96)'] as const,
+    default: ['rgba(255,255,255,0.96)', 'rgba(238,247,255,0.96)'] as const,
+    elevated: ['#FFFFFF', '#E4F2FF'] as const,
   },
   primary: AURORA_BUTTON_PRIMARY,
   sheen: {
@@ -16,8 +16,8 @@ export const gradients = {
     strong: ['rgba(255,255,255,0.72)', 'rgba(255,255,255,0.28)', 'transparent'] as const,
   },
   glass: {
-    panel: ['rgba(6,27,53,0.90)', 'rgba(3,17,39,0.96)'] as const,
-    overlay: ['rgba(1,8,23,0.56)', 'rgba(1,8,23,0.88)'] as const,
+    panel: ['rgba(255,255,255,0.94)', 'rgba(234,244,255,0.97)'] as const,
+    overlay: ['rgba(247,251,255,0.94)', 'rgba(220,238,255,0.98)'] as const,
   },
   ambient: {
     violet: [liquidColors.blue500Alpha16, 'transparent'] as const,

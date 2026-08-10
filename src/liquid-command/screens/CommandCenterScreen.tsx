@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   mapEmptyText: {
-    color: liquidColors.white56,
+    color: '#FFFFFF',
     fontSize: 14,
     lineHeight: 19,
     fontWeight: '600',

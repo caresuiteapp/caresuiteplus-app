@@ -39,9 +39,9 @@ export default function Root({ children }: PropsWithChildren) {
                 justify-content: center;
                 padding: 24px;
                 background:
-                  radial-gradient(circle at 72% 18%, rgba(28, 142, 255, 0.25), transparent 38%),
-                  linear-gradient(145deg, #020a18 0%, #071a34 58%, #06274a 100%);
-                color: #f7fbff;
+                  radial-gradient(circle at 72% 18%, rgba(28, 142, 255, 0.16), transparent 38%),
+                  linear-gradient(145deg, #ffffff 0%, #f3f8ff 58%, #e9f4ff 100%);
+                color: #0b1220;
                 font-family: Arial, Helvetica, sans-serif;
                 text-align: center;
               }
@@ -50,12 +50,12 @@ export default function Root({ children }: PropsWithChildren) {
                 padding: 32px 24px;
                 border: 1px solid rgba(116, 194, 255, 0.42);
                 border-radius: 28px;
-                background: rgba(4, 20, 43, 0.82);
-                box-shadow: 0 24px 72px rgba(0, 0, 0, 0.34);
+                background: rgba(255, 255, 255, 0.92);
+                box-shadow: 0 24px 72px rgba(37, 78, 128, 0.15);
               }
               #caresuite-web-boot-brand {
                 margin-bottom: 20px;
-                color: #7fd5ff;
+                color: #056ce8;
                 font-size: 24px;
                 font-weight: 800;
                 letter-spacing: 0.02em;
@@ -76,7 +76,7 @@ export default function Root({ children }: PropsWithChildren) {
               }
               #caresuite-web-boot-message {
                 margin: 0;
-                color: rgba(231, 243, 255, 0.78);
+                color: rgba(30, 41, 59, 0.78);
                 font-size: 16px;
                 line-height: 1.5;
               }

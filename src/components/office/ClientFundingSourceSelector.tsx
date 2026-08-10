@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   title: { ...typography.label, fontSize: 15 },
   subtitle: { ...typography.caption, lineHeight: 18 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  card: { flexBasis: 250, flexGrow: 1, minHeight: 96, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, padding: spacing.md, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(125,211,252,0.18)', backgroundColor: 'rgba(8,30,65,0.44)' },
+  card: { flexBasis: 250, flexGrow: 1, minHeight: 96, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, padding: spacing.md, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(22,131,255,0.16)', backgroundColor: 'rgba(255,255,255,0.9)' },
   cardSelected: { borderColor: colors.cyan, backgroundColor: 'rgba(30,150,255,0.16)' },
   cardPressed: { opacity: 0.82 },
   cardDisabled: { opacity: 0.58 },

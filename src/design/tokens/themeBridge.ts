@@ -2,8 +2,9 @@ import { useMemo } from 'react';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import {
+  liquidClassicColors,
+  liquidClassicShadows,
   liquidColors,
-  liquidShadows,
 } from '@/liquid-command/foundation/tokens';
 import type { ColorMode } from './colors';
 import { resolveCareTypography } from './typography';
@@ -63,46 +64,46 @@ export function legacyColorsFromPalette(mode: ColorMode = 'dark') {
   }
 
   return {
-    bgDeep: liquidColors.navy950,
-    bgBase: liquidColors.navy900,
-    bgPremium: liquidColors.navy800,
+    bgDeep: liquidClassicColors.navy950,
+    bgBase: liquidClassicColors.navy900,
+    bgPremium: liquidClassicColors.navy800,
     bgSurface: 'rgba(6,27,53,0.88)',
     bgElevated: 'rgba(10,42,82,0.78)',
     bgPanel: 'rgba(6,27,53,0.76)',
     bgInput: 'rgba(1,8,23,0.74)',
 
-    textPrimary: liquidColors.white,
-    textSecondary: liquidColors.white88,
-    textMuted: liquidColors.white64,
-    textDisabled: liquidColors.white32,
+    textPrimary: liquidClassicColors.white,
+    textSecondary: liquidClassicColors.white88,
+    textMuted: liquidClassicColors.white64,
+    textDisabled: liquidClassicColors.white32,
 
     // Compatibility names intentionally resolve to the one Liquid Command accent.
-    orange: liquidColors.blue500,
-    amber: liquidColors.blue300,
-    deepOrange: liquidColors.blue600,
-    gold: liquidColors.blue200,
-    cyan: liquidColors.blue400,
-    cyanSoft: liquidColors.blue300,
-    blue: liquidColors.blue500,
-    violet: liquidColors.blue400,
+    orange: liquidClassicColors.blue500,
+    amber: liquidClassicColors.blue300,
+    deepOrange: liquidClassicColors.blue600,
+    gold: liquidClassicColors.blue200,
+    cyan: liquidClassicColors.blue400,
+    cyanSoft: liquidClassicColors.blue300,
+    blue: liquidClassicColors.blue500,
+    violet: liquidClassicColors.blue400,
 
-    success: liquidColors.success,
-    warning: liquidColors.warning,
-    danger: liquidColors.danger,
-    info: liquidColors.blue400,
+    success: liquidClassicColors.success,
+    warning: liquidClassicColors.warning,
+    danger: liquidClassicColors.danger,
+    info: liquidClassicColors.blue400,
 
-    borderSoft: liquidColors.white12,
-    borderStrong: liquidColors.blue300Alpha32,
-    borderOrange: liquidColors.blue400,
-    borderCyan: liquidColors.blue400,
+    borderSoft: liquidClassicColors.white12,
+    borderStrong: liquidClassicColors.blue300Alpha32,
+    borderOrange: liquidClassicColors.blue400,
+    borderCyan: liquidClassicColors.blue400,
 
-    glowOrange: liquidColors.blue300Alpha32,
-    glowAmber: liquidColors.blue300Alpha32,
-    glowCyan: liquidColors.blue300Alpha32,
-    glowDark: liquidColors.black24,
+    glowOrange: liquidClassicColors.blue300Alpha32,
+    glowAmber: liquidClassicColors.blue300Alpha32,
+    glowCyan: liquidClassicColors.blue300Alpha32,
+    glowDark: liquidClassicColors.black24,
 
-    primary: liquidColors.blue500,
-    error: liquidColors.danger,
+    primary: liquidClassicColors.blue500,
+    error: liquidClassicColors.danger,
   } as const;
 }
 
@@ -155,7 +156,7 @@ export function resolveLegacyGradients(mode: ColorMode = 'dark') {
       default: ['rgba(6,27,53,0.92)', 'rgba(3,17,39,0.96)'] as [string, string],
       elevated: ['rgba(10,42,82,0.90)', 'rgba(6,27,53,0.96)'] as [string, string],
     },
-    primary: [liquidColors.blue600, liquidColors.blue400] as [
+    primary: [liquidClassicColors.blue600, liquidClassicColors.blue400] as [
       string,
       string,
     ],
@@ -176,20 +177,20 @@ export function resolveLegacyGradients(mode: ColorMode = 'dark') {
       overlay: ['rgba(1,8,23,0.56)', 'rgba(1,8,23,0.88)'] as [string, string],
     },
     ambient: {
-      orange: [liquidColors.blue500Alpha16, 'transparent'] as [string, string],
-      cyan: [liquidColors.blue500Alpha16, 'transparent'] as [string, string],
+      orange: [liquidClassicColors.blue500Alpha16, 'transparent'] as [string, string],
+      cyan: [liquidClassicColors.blue500Alpha16, 'transparent'] as [string, string],
     },
     hero: {
-      list: [liquidColors.navy800, liquidColors.navy700, liquidColors.navy900] as [
+      list: [liquidClassicColors.navy800, liquidClassicColors.navy700, liquidClassicColors.navy900] as [
         string,
         string,
         string,
       ],
       aurora: [
-        liquidColors.navy950,
-        liquidColors.navy800,
-        liquidColors.navy700,
-        liquidColors.navy900,
+        liquidClassicColors.navy950,
+        liquidClassicColors.navy800,
+        liquidClassicColors.navy700,
+        liquidClassicColors.navy900,
       ] as [string, string, string, string],
     },
   };
@@ -217,30 +218,30 @@ export function useLegacyTheme() {
         gradients: resolveLegacyGradients(mode),
         palette: {
         background: {
-          app: isLight ? portalPremium.backdrop : liquidColors.navy900,
-          soft: isLight ? portalPremium.surfaceSoft : liquidColors.navy800,
-          elevated: isLight ? portalPremium.surfaceRaised : liquidColors.navy700,
-          dark: liquidColors.navy950,
-          darkElevated: isLight ? portalPremium.backdrop : liquidColors.navy800,
+          app: isLight ? portalPremium.backdrop : liquidClassicColors.navy900,
+          soft: isLight ? portalPremium.surfaceSoft : liquidClassicColors.navy800,
+          elevated: isLight ? portalPremium.surfaceRaised : liquidClassicColors.navy700,
+          dark: isLight ? '#0B1220' : liquidClassicColors.navy950,
+          darkElevated: isLight ? portalPremium.backdrop : liquidClassicColors.navy800,
         },
         brand: {
-          navy: liquidColors.navy900,
-          orange: isLight ? portalPremium.accent.blue : liquidColors.blue500,
-          gold: isLight ? portalPremium.accent.amber : liquidColors.blue200,
-          cyan: isLight ? portalPremium.accent.blue : liquidColors.blue400,
-          violet: isLight ? portalPremium.accent.violet : liquidColors.blue400,
+          navy: isLight ? '#0B1220' : liquidClassicColors.navy900,
+          orange: isLight ? portalPremium.accent.blue : liquidClassicColors.blue500,
+          gold: isLight ? portalPremium.accent.amber : liquidClassicColors.blue200,
+          cyan: isLight ? portalPremium.accent.blue : liquidClassicColors.blue400,
+          violet: isLight ? portalPremium.accent.violet : liquidClassicColors.blue400,
         },
         text: {
-          primary: isLight ? portalPremium.text.primary : liquidColors.white,
-          secondary: isLight ? portalPremium.text.secondary : liquidColors.white88,
-          muted: isLight ? portalPremium.text.muted : liquidColors.white64,
-          inverse: liquidColors.navy950,
+          primary: isLight ? portalPremium.text.primary : liquidClassicColors.white,
+          secondary: isLight ? portalPremium.text.secondary : liquidClassicColors.white88,
+          muted: isLight ? portalPremium.text.muted : liquidClassicColors.white64,
+          inverse: isLight ? '#FFFFFF' : liquidClassicColors.navy950,
         },
         status: {
-          success: isLight ? portalPremium.accent.success : liquidColors.success,
-          warning: isLight ? portalPremium.accent.amber : liquidColors.warning,
-          danger: isLight ? portalPremium.accent.danger : liquidColors.danger,
-          info: isLight ? portalPremium.accent.blue : liquidColors.blue400,
+          success: isLight ? portalPremium.accent.success : liquidClassicColors.success,
+          warning: isLight ? portalPremium.accent.amber : liquidClassicColors.warning,
+          danger: isLight ? portalPremium.accent.danger : liquidClassicColors.danger,
+          info: isLight ? portalPremium.accent.blue : liquidClassicColors.blue400,
         },
         module: {
           office: liquidColors.blue500,
@@ -248,14 +249,14 @@ export function useLegacyTheme() {
           pflege: liquidColors.blue300,
           beratung: liquidColors.blue400,
           stationaer: liquidColors.blue200,
-          akademie: liquidColors.white,
+          akademie: isLight ? liquidColors.blue600 : liquidClassicColors.white,
           qm: liquidColors.blue300,
           insight: liquidColors.blue400,
         },
       },
         isLight,
         isDark: !isLight,
-        shadow: isLight ? portalPremium.shadow.card : liquidShadows.panel,
+        shadow: isLight ? portalPremium.shadow.card : liquidClassicShadows.panel,
       };
     },
     [mode],

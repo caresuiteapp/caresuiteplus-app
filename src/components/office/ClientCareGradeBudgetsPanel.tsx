@@ -220,7 +220,7 @@ export function ClientCareGradeBudgetsPanel({
   return (
     <View style={styles.page}>
       <LinearGradient
-        colors={['rgba(4,18,48,0.98)', 'rgba(10,48,94,0.92)', 'rgba(5,23,55,0.98)']}
+        colors={['rgba(255,255,255,0.98)', 'rgba(236,246,255,0.96)', 'rgba(255,255,255,0.98)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.hero}
@@ -366,23 +366,23 @@ const styles = StyleSheet.create({
   heroGlow: { position: 'absolute', width: 330, height: 330, borderRadius: 999, right: -100, top: -190, backgroundColor: 'rgba(59,231,255,0.15)' },
   heroMain: { maxWidth: 760, gap: spacing.xs },
   kicker: { color: '#68E8FF', fontSize: 11, fontWeight: '900', letterSpacing: 1.4 },
-  heroTitle: { color: '#FFFFFF', fontSize: 34, lineHeight: 42, fontWeight: '900', letterSpacing: -1 },
-  heroSubtitle: { color: 'rgba(226,242,255,0.70)', fontSize: 15, lineHeight: 22, maxWidth: 680 },
+  heroTitle: { color: '#0B1220', fontSize: 34, lineHeight: 42, fontWeight: '900', letterSpacing: -1 },
+  heroSubtitle: { color: 'rgba(30,41,59,0.74)', fontSize: 15, lineHeight: 22, maxWidth: 680 },
   heroFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  heroFact: { minWidth: 165, flexGrow: 1, padding: spacing.md, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
-  heroFactLabel: { color: 'rgba(226,242,255,0.55)', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 },
-  heroFactValue: { color: '#FFFFFF', fontSize: 15, lineHeight: 21, fontWeight: '800', marginTop: 4, textTransform: 'capitalize' },
-  fundingPanel: { gap: spacing.md, padding: spacing.lg, borderRadius: 24, backgroundColor: 'rgba(8,30,65,0.56)', borderWidth: 1, borderColor: 'rgba(125,211,252,0.16)' },
+  heroFact: { minWidth: 165, flexGrow: 1, padding: spacing.md, borderRadius: 18, backgroundColor: 'rgba(22,131,255,0.06)', borderWidth: 1, borderColor: 'rgba(22,131,255,0.12)' },
+  heroFactLabel: { color: 'rgba(51,65,85,0.72)', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 },
+  heroFactValue: { color: '#0B1220', fontSize: 15, lineHeight: 21, fontWeight: '800', marginTop: 4, textTransform: 'capitalize' },
+  fundingPanel: { gap: spacing.md, padding: spacing.lg, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.9)', borderWidth: 1, borderColor: 'rgba(22,131,255,0.14)' },
   fundingActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   fundingHint: { ...typography.caption, flex: 1, minWidth: 240 },
-  actionBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, padding: spacing.lg, borderRadius: 24, backgroundColor: 'rgba(8,30,65,0.56)', borderWidth: 1, borderColor: 'rgba(125,211,252,0.14)' },
+  actionBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, padding: spacing.lg, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.9)', borderWidth: 1, borderColor: 'rgba(22,131,255,0.14)' },
   actionCopy: { gap: 2 },
   actionTitle: { ...typography.label, fontSize: 16 },
   actionSubtitle: { ...typography.caption },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   warningStack: { gap: spacing.sm },
   warningRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  historySection: { padding: spacing.xl, borderRadius: 28, backgroundColor: 'rgba(7,24,54,0.42)', borderWidth: 1, borderColor: 'rgba(125,211,252,0.12)', gap: spacing.lg },
+  historySection: { padding: spacing.xl, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.86)', borderWidth: 1, borderColor: 'rgba(22,131,255,0.12)', gap: spacing.lg },
   sectionHeading: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md },
   sectionTitle: { fontSize: 22, lineHeight: 29, fontWeight: '900', letterSpacing: -0.4 },
   sectionSubtitle: { ...typography.caption, marginTop: 3 },

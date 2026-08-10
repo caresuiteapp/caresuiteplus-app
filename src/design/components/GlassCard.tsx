@@ -8,6 +8,7 @@ import {
   liquidSpace,
 } from '@/liquid-command/foundation/tokens';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { useLiquidVisualMode } from '@/liquid-command/components/LiquidPrimitives';
 
 type GlassCardProps = {
   children: ReactNode;
@@ -21,14 +22,16 @@ type GlassCardProps = {
 /** One canonical spatial glass card for Office, Assist, portals and auth. */
 export function GlassCard({ children, onPress, glow = false, accentColor, selected = false, style }: GlassCardProps) {
   const portal = usePortalPremiumTheme();
+  const orbit = useLiquidVisualMode() === 'orbit';
+  const light = portal.active || orbit;
   const styles = useMemo(
-    () => createStyles(accentColor, glow || selected, portal.active),
-    [accentColor, glow, portal.active, selected],
+    () => createStyles(accentColor, glow || selected, light),
+    [accentColor, glow, light, selected],
   );
   const body = (
     <View style={[styles.card, style]}>
       <LinearGradient
-        colors={portal.active
+        colors={light
           ? ['#FFFFFF', '#F3F9FF', '#E4F1FF']
           : ['rgba(6,27,53,0.94)', 'rgba(3,17,39,0.98)']}
         start={{ x: 0, y: 0 }}
@@ -45,21 +48,21 @@ export function GlassCard({ children, onPress, glow = false, accentColor, select
   return <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => pressed ? styles.pressed : undefined}>{body}</Pressable>;
 }
 
-function createStyles(accentColor?: string, glow = false, portalActive = false) {
+function createStyles(accentColor?: string, glow = false, light = false) {
   return StyleSheet.create({
     card: {
       position: 'relative', overflow: 'hidden', padding: careSpacing.md,
       borderRadius: liquidRadius.card, borderWidth: 1,
       borderColor: accentColor
         ? `${accentColor}70`
-        : portalActive
+        : light
           ? portalPremium.border
           : liquidColors.white12,
-      backgroundColor: portalActive ? portalPremium.surface : liquidColors.navy800,
+      backgroundColor: light ? portalPremium.surface : liquidColors.navy800,
       ...(Platform.OS === 'web' ? ({
         boxShadow: glow && accentColor
           ? `0 18px 48px ${accentColor}32`
-          : portalActive
+          : light
             ? portalPremium.shadow.card
             : `0 18px 48px ${liquidColors.black24}`,
         backdropFilter: `blur(${liquidSpace.xxl}px)`,
@@ -69,7 +72,7 @@ function createStyles(accentColor?: string, glow = false, portalActive = false) 
     accentEdge: { position: 'absolute', left: 0, top: 18, bottom: 18, width: 4, borderRadius: 4, backgroundColor: accentColor },
     highlight: {
       position: 'absolute', left: 12, right: 12, top: 0, height: 1,
-      backgroundColor: portalActive ? portalPremium.innerBorder : 'rgba(255,255,255,0.24)',
+      backgroundColor: light ? portalPremium.innerBorder : 'rgba(255,255,255,0.24)',
     },
     content: { position: 'relative', gap: careSpacing.sm },
     pressed: { opacity: 0.94, transform: [{ scale: 0.988 }] },
