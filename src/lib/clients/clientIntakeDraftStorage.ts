@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createEmptyIntakeForm } from '@/lib/clients/clientIntakeService';
 import { parseHomeAccessStoredValue } from '@/lib/clients/clientIntakeHomeAccess';
+import { isUuid } from '@/lib/validation/uuid';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 
 const STORAGE_PREFIX = 'caresuite:client-intake-draft';
@@ -105,7 +106,9 @@ export async function loadClientIntakeDraft(
       form: mergedForm,
       stepIndex: Math.max(0, parsed.stepIndex),
       updatedAt: parsed.updatedAt ?? new Date().toISOString(),
-      clientId: typeof parsed.clientId === 'string' ? parsed.clientId : null,
+      // Older demo/browser drafts may contain a non-UUID client id. Keep the
+      // complete form, but never pass that legacy value into a UUID filter.
+      clientId: isUuid(parsed.clientId) ? parsed.clientId : null,
       schemaVersion: CLIENT_INTAKE_DRAFT_SCHEMA_VERSION,
     };
 
@@ -124,7 +127,7 @@ export async function saveClientIntakeDraft(
     form: draft.form,
     stepIndex: draft.stepIndex,
     updatedAt: draft.updatedAt ?? new Date().toISOString(),
-    clientId: draft.clientId ?? null,
+    clientId: isUuid(draft.clientId) ? draft.clientId : null,
     schemaVersion: CLIENT_INTAKE_DRAFT_SCHEMA_VERSION,
   };
 

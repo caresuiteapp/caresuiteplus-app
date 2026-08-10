@@ -12,6 +12,7 @@ import {
 import { resolveIntakeBillingProfileType } from '@/lib/clients/clientIntakeBilling';
 import { workflowStatusToRemote } from '@/lib/services/clients/clientStatusBridge';
 import type { WorkflowStatus } from '@/types/core/base';
+import { isUuid } from '@/lib/validation/uuid';
 
 function getClient() {
   return getSupabaseClient();
@@ -175,7 +176,9 @@ export async function createClientFromIntake(
   // every related record, document and signature has been persisted.
   const record = buildIntakeClientRecord(tenantId, form, actorProfileId, 'lead');
 
-  if (draftClientId) {
+  // A stale local/demo draft id must never reach the UUID column filter. When
+  // it is invalid, create a fresh recoverable lead with the preserved form.
+  if (isUuid(draftClientId)) {
     const { data, error } = await supabase
       .from('clients')
       .update(record)

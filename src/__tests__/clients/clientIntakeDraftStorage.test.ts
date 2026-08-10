@@ -103,6 +103,39 @@ describe('Client intake draft storage', () => {
     expect(draft?.schemaVersion).toBe(2);
   });
 
+  it('behält den Alt-Entwurf, entfernt aber eine ungültige Demo-clientId', async () => {
+    const stored = {
+      form: { firstName: 'Erika', lastName: 'Muster' },
+      stepIndex: 5,
+      updatedAt: '2026-08-10T08:00:00.000Z',
+      schemaVersion: 2,
+      clientId: 'client-intake-172324',
+    };
+    vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify(stored));
+
+    const draft = await loadClientIntakeDraft(userId, tenantId);
+
+    expect(draft?.form.firstName).toBe('Erika');
+    expect(draft?.stepIndex).toBe(5);
+    expect(draft?.clientId).toBeNull();
+  });
+
+  it('behält eine gültige serverseitige UUID im Entwurf', async () => {
+    const clientId = '99c34302-47b8-4f7c-9199-28240c9c1937';
+    const stored = {
+      form: { firstName: 'Erika', lastName: 'Muster' },
+      stepIndex: 5,
+      updatedAt: '2026-08-10T08:00:00.000Z',
+      schemaVersion: 2,
+      clientId,
+    };
+    vi.mocked(AsyncStorage.getItem).mockResolvedValue(JSON.stringify(stored));
+
+    const draft = await loadClientIntakeDraft(userId, tenantId);
+
+    expect(draft?.clientId).toBe(clientId);
+  });
+
   it('löscht Entwurf bei leerem Inhalt', async () => {
     const empty = createEmptyIntakeForm();
     await saveClientIntakeDraft(userId, tenantId, { form: empty, stepIndex: 0 });
