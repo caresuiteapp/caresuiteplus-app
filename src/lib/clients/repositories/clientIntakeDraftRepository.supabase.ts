@@ -1,5 +1,6 @@
 import type { ServiceResult } from '@/types';
 import type { Database } from '@/lib/supabase/database.types';
+import { normalizeIntakeCareLevelForDb } from '@/lib/clients/clientIntakeCareLevel';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
@@ -39,7 +40,7 @@ function buildIntakeClientPatch(
     first_name: firstName,
     last_name: lastName,
     date_of_birth: form.dateOfBirth || null,
-    care_level: (form.careLevel.trim() || null) as Database['public']['Enums']['care_level'] | null,
+    care_level: normalizeIntakeCareLevelForDb(form.careLevel),
     status,
     street: form.street.trim() || null,
     house_number: form.houseNumber.trim() || null,

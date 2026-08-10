@@ -1,5 +1,6 @@
 import type { ServiceResult } from '@/types';
 import type { Database } from '@/lib/supabase/database.types';
+import { normalizeIntakeCareLevelForDb } from '@/lib/clients/clientIntakeCareLevel';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -37,7 +38,7 @@ function buildIntakeClientRecord(
     last_name: form.lastName.trim(),
     salutation: form.salutation.trim() || null,
     date_of_birth: form.dateOfBirth || null,
-    care_level: (form.careLevel.trim() || null) as Database['public']['Enums']['care_level'] | null,
+    care_level: normalizeIntakeCareLevelForDb(form.careLevel),
     status,
     street: form.street.trim() || null,
     house_number: form.houseNumber.trim() || null,
@@ -111,9 +112,7 @@ export async function updateClientFromIntake(
     Object.assign(expectedReadback, contactPatch);
   }
   if (shouldUpdate('versorgung')) {
-    const careLevel = (
-      form.careLevel.trim() || null
-    ) as Database['public']['Enums']['care_level'] | null;
+    const careLevel = normalizeIntakeCareLevelForDb(form.careLevel);
     updateRecord.care_level = careLevel;
     expectedReadback.care_level = careLevel;
   }
