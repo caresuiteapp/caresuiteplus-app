@@ -169,21 +169,21 @@ function AssistClientDetail({ context }: { context: AssistClientContext | null }
       ) : null}
 
       <View style={styles.factGrid}>
-        <View style={styles.factBox}>
+        <View style={[styles.factBox, styles.factBoxCompact]}>
           <Text style={styles.factLabel}>Pflegegrad</Text>
           <Text style={styles.factValue}>{careLevelLabel}</Text>
         </View>
-        <View style={styles.factBox}>
+        <View style={[styles.factBox, styles.factBoxCompact]}>
+          <Text style={styles.factLabel}>Geburtsdatum</Text>
+          <Text style={styles.factValue}>{formatDate(client?.dateOfBirth)}</Text>
+        </View>
+        <View style={[styles.factBox, styles.factBoxWide]}>
           <Text style={styles.factLabel}>Kostenträger</Text>
           <Text style={styles.factValue}>{client?.costCarrier || 'Nicht hinterlegt'}</Text>
         </View>
-        <View style={styles.factBox}>
+        <View style={[styles.factBox, styles.factBoxWide]}>
           <Text style={styles.factLabel}>Zuständig</Text>
           <Text style={styles.factValue}>{assignment.primaryEmployeeName || 'Noch nicht festgelegt'}</Text>
-        </View>
-        <View style={styles.factBox}>
-          <Text style={styles.factLabel}>Geburtsdatum</Text>
-          <Text style={styles.factValue}>{formatDate(client?.dateOfBirth)}</Text>
         </View>
       </View>
 
@@ -218,7 +218,7 @@ function AssistClientDetail({ context }: { context: AssistClientContext | null }
               </Text>
             </View>
             <View style={styles.visitCopy}>
-              <Text numberOfLines={1} style={styles.visitTitle}>{visit.serviceName || visit.title}</Text>
+              <Text numberOfLines={2} style={styles.visitTitle}>{visit.serviceName || visit.title}</Text>
               <Text numberOfLines={1} style={styles.visitMeta}>{visit.employeeName || 'Noch nicht zugeordnet'}</Text>
             </View>
           </Pressable>
@@ -443,6 +443,7 @@ export function AssistClientsWorkspace({
       subtitle="Versorgung, Zuständigkeit, Einsatzplanung und Budget im direkten Überblick"
       contextLabel="Assist"
       contextDetail="Klient:innenversorgung · Mandant aktiv"
+      asideWidth={430}
       primaryActionLabel="Einsatz planen"
       onPrimaryAction={() => router.push('/assist/assignments?create=1' as never)}
       aside={<AssistClientDetail context={selected} />}
@@ -475,30 +476,32 @@ const styles = StyleSheet.create({
   planningLabel: { color: liquidColors.blue200, fontSize: 12, fontWeight: '900' },
   planningValue: { color: liquidColors.white, fontSize: 12, fontWeight: '800' },
   planningEmployee: { color: liquidColors.white56, fontSize: 11 },
-  detailCard: { gap: liquidSpace.lg },
-  detailIdentity: { flexDirection: 'row', alignItems: 'center', gap: liquidSpace.md },
-  detailIdentityText: { flex: 1, alignItems: 'flex-start', gap: 5 },
+  detailCard: { gap: 20, padding: 18 },
+  detailIdentity: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  detailIdentityText: { flex: 1, minWidth: 0, alignItems: 'flex-start', gap: 6 },
   attentionBanner: { padding: liquidSpace.md, borderRadius: liquidRadius.md, borderWidth: 1, borderColor: liquidColors.warning, backgroundColor: 'rgba(245, 184, 65, 0.10)', gap: 3 },
   attentionTitle: { color: liquidColors.warning, fontSize: 13, fontWeight: '900' },
   attentionText: { color: liquidColors.white72, fontSize: 12, lineHeight: 17 },
-  factGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: liquidSpace.sm },
-  factBox: { minWidth: 130, flex: 1, padding: liquidSpace.sm, borderRadius: liquidRadius.md, backgroundColor: liquidColors.white08, gap: 4 },
-  factLabel: { color: liquidColors.white56, fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6 },
-  factValue: { color: liquidColors.white, fontSize: 12, lineHeight: 17, fontWeight: '800' },
-  contactBlock: { gap: 5 },
+  factGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  factBox: { minWidth: 0, paddingHorizontal: 14, paddingVertical: 12, borderRadius: liquidRadius.md, backgroundColor: liquidColors.white08, gap: 5 },
+  factBoxCompact: { flexGrow: 1, flexBasis: '46%' },
+  factBoxWide: { flexGrow: 1, flexBasis: '100%' },
+  factLabel: { color: liquidColors.white56, fontSize: 10, lineHeight: 14, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 },
+  factValue: { color: liquidColors.white, fontSize: 13, lineHeight: 19, fontWeight: '800' },
+  contactBlock: { padding: 14, borderRadius: liquidRadius.md, borderWidth: 1, borderColor: liquidColors.white08, backgroundColor: 'rgba(148,163,184,0.07)', gap: 7 },
   blockHeadingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: liquidSpace.sm },
-  blockTitle: { color: liquidColors.white, fontSize: 13, fontWeight: '900' },
+  blockTitle: { color: liquidColors.white, fontSize: 14, lineHeight: 19, fontWeight: '900' },
   blockCount: { color: liquidColors.blue200, fontSize: 12, fontWeight: '900' },
-  contactLine: { color: liquidColors.white72, fontSize: 12, lineHeight: 18 },
-  contactMuted: { color: liquidColors.white56, fontSize: 11, lineHeight: 16 },
-  upcomingBlock: { gap: liquidSpace.sm },
-  visitRow: { flexDirection: 'row', gap: liquidSpace.sm, padding: liquidSpace.sm, borderRadius: liquidRadius.md, backgroundColor: liquidColors.white08 },
-  visitDateBox: { width: 88 },
-  visitDate: { color: liquidColors.white, fontSize: 11, fontWeight: '900' },
-  visitTime: { color: liquidColors.blue200, fontSize: 11, fontWeight: '800', marginTop: 2 },
-  visitCopy: { flex: 1 },
-  visitTitle: { color: liquidColors.white, fontSize: 12, fontWeight: '800' },
-  visitMeta: { color: liquidColors.white56, fontSize: 11, marginTop: 3 },
+  contactLine: { color: liquidColors.white72, fontSize: 13, lineHeight: 19 },
+  contactMuted: { color: liquidColors.white56, fontSize: 12, lineHeight: 17 },
+  upcomingBlock: { gap: 10 },
+  visitRow: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 11, borderRadius: liquidRadius.md, backgroundColor: liquidColors.white08 },
+  visitDateBox: { width: 96, flexShrink: 0 },
+  visitDate: { color: liquidColors.white, fontSize: 12, lineHeight: 17, fontWeight: '900' },
+  visitTime: { color: liquidColors.blue200, fontSize: 12, lineHeight: 17, fontWeight: '800', marginTop: 2 },
+  visitCopy: { minWidth: 0, flex: 1, gap: 3 },
+  visitTitle: { color: liquidColors.white, fontSize: 13, lineHeight: 18, fontWeight: '800' },
+  visitMeta: { color: liquidColors.white56, fontSize: 12, lineHeight: 16 },
   emptyCopy: { color: liquidColors.white56, fontSize: 12, lineHeight: 18 },
   detailActions: { gap: liquidSpace.sm },
   pressed: { opacity: 0.78 },

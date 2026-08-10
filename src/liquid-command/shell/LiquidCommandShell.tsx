@@ -49,6 +49,7 @@ type LiquidCommandShellProps = {
   contextDetail?: string;
   children: ReactNode;
   aside?: ReactNode;
+  asideWidth?: number;
   primaryActionLabel?: string;
   onPrimaryAction?: () => void;
   allowPhoneLandscape?: boolean;
@@ -660,6 +661,7 @@ export function LiquidCommandShell({
   contextDetail = 'Heute · alle Standorte',
   children,
   aside,
+  asideWidth = 336,
   primaryActionLabel,
   onPrimaryAction,
   allowPhoneLandscape = false,
@@ -743,7 +745,9 @@ export function LiquidCommandShell({
             ]}
           >
             <View style={styles.contentPrimary}>{children}</View>
-            {aside && layout.isDesktop ? <View style={styles.contentAside}>{aside}</View> : null}
+            {aside && layout.isDesktop ? (
+              <View style={[styles.contentAside, { width: asideWidth }]}>{aside}</View>
+            ) : null}
           </View>
         </ScrollView>
       )}
