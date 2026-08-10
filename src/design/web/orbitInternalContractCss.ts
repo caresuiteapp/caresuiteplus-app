@@ -126,7 +126,6 @@ export const ORBIT_INTERNAL_CONTRACT_CSS = `
 
   html[data-cs-orbit-internal] [data-cs-llgan-glass="chip"],
   html[data-cs-orbit-internal] [data-cs-llgan-glass="input"],
-  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"],
   html[data-cs-orbit-internal] [data-cs-healthos-component="filter-chip"],
   html[data-cs-orbit-internal] [data-cs-healthos-component="tab"],
   html[data-cs-orbit-internal] [data-cs-healthos-component="filter-select"] {
@@ -161,10 +160,108 @@ export const ORBIT_INTERNAL_CONTRACT_CSS = `
     color: var(--orbit-blue) !important;
   }
 
-  html[data-cs-orbit-internal] [data-cs-healthos-component="button"][data-cs-healthos-variant="primary"],
+  /*
+   * ORBIT action controls
+   *
+   * Button surfaces must be styled only on the interactive root. Applying a
+   * background to every descendant produces the visible "button in button"
+   * defect on React Native Web because Text and icon wrappers become separate
+   * blue rectangles.
+   */
+  html[data-cs-orbit-internal] [data-cs-healthos-component="button"],
+  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"] {
+    min-height: 44px !important;
+    max-height: 48px !important;
+    padding: 10px 18px !important;
+    border: 1px solid rgba(5,108,232,.24) !important;
+    border-radius: 14px !important;
+    color: #075DBF !important;
+    background: linear-gradient(145deg, rgba(255,255,255,.99), rgba(237,246,255,.98)) !important;
+    box-shadow:
+      0 7px 18px rgba(37,78,128,.10),
+      inset 0 1px 0 rgba(255,255,255,.96) !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    line-height: 20px !important;
+    letter-spacing: -.01em !important;
+    overflow: hidden !important;
+    transform: translateY(0);
+    transition:
+      transform 150ms ease,
+      border-color 150ms ease,
+      background 150ms ease,
+      box-shadow 150ms ease,
+      opacity 150ms ease !important;
+  }
+
+  html[data-cs-orbit-internal] [data-cs-healthos-component="button"] *,
+  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"] * {
+    color: inherit !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    line-height: inherit !important;
+    letter-spacing: inherit !important;
+  }
+
+  html[data-cs-orbit-internal] [data-cs-healthos-component="button"]:hover,
+  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"]:hover {
+    border-color: rgba(5,108,232,.42) !important;
+    background: linear-gradient(145deg, #FFFFFF, #E5F1FF) !important;
+    box-shadow:
+      0 10px 24px rgba(37,78,128,.14),
+      inset 0 1px 0 #FFFFFF !important;
+    transform: translateY(-1px);
+  }
+
+  html[data-cs-orbit-internal] [data-cs-healthos-component="button"]:active,
+  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"]:active {
+    box-shadow:
+      0 4px 12px rgba(37,78,128,.10),
+      inset 0 1px 0 rgba(255,255,255,.92) !important;
+    transform: translateY(0) scale(.99);
+  }
+
+  html[data-cs-orbit-internal] [data-cs-healthos-component="button"]:focus-visible,
+  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"]:focus-visible {
+    outline: 3px solid rgba(22,131,255,.24) !important;
+    outline-offset: 2px !important;
+  }
+
+  html[data-cs-orbit-internal] [data-cs-healthos-component="button"][data-cs-healthos-variant="primary"] {
+    color: #FFFFFF !important;
+    border-color: rgba(0,80,188,.42) !important;
+    background: linear-gradient(135deg, #0878EE 0%, #0566D6 56%, #045ABD 100%) !important;
+    box-shadow:
+      0 9px 22px rgba(5,102,214,.22),
+      inset 0 1px 0 rgba(255,255,255,.24) !important;
+  }
+
   html[data-cs-orbit-internal] [data-cs-healthos-component="button"][data-cs-healthos-variant="primary"] * {
     color: #FFFFFF !important;
-    background-color: var(--orbit-blue) !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  html[data-cs-orbit-internal] [data-cs-healthos-component="button"][data-cs-healthos-variant="primary"]:hover {
+    border-color: rgba(0,72,168,.52) !important;
+    background: linear-gradient(135deg, #1284F5 0%, #086DDE 58%, #055DC3 100%) !important;
+    box-shadow:
+      0 12px 28px rgba(5,102,214,.28),
+      inset 0 1px 0 rgba(255,255,255,.28) !important;
+  }
+
+  html[data-cs-orbit-internal] [data-cs-healthos-component="button"][aria-disabled="true"],
+  html[data-cs-orbit-internal] [data-cs-healthos-component="button"]:disabled,
+  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"][aria-disabled="true"],
+  html[data-cs-orbit-internal] [data-cs-llgan-glass="button"]:disabled {
+    cursor: not-allowed !important;
+    opacity: .48 !important;
+    box-shadow: none !important;
+    transform: none !important;
   }
 
   html[data-cs-orbit-internal] [aria-selected="true"] {
