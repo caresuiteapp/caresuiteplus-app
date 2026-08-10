@@ -305,6 +305,12 @@ export function EmployeeAccessScreen() {
           label="Passwort oder Einmalpasswort"
           value={password}
           onChangeText={setPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="current-password"
+          textContentType="password"
+          returnKeyType="go"
+          onSubmitEditing={() => void submit()}
           secureTextEntry
           required
         />
