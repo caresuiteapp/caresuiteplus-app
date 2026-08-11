@@ -29,9 +29,14 @@ describe('ORBIT responsive header layout', () => {
 
     expect(moduleNavigation).not.toContain('styles.orbitBrand');
     expect(moduleNavigation).toContain('styles.orbitModuleItems');
+    expect(moduleNavigation).toContain('const compactNavigation = layout.width < 1700');
+    expect(moduleNavigation).toContain('{compactNavigation ? module.shortLabel : module.label}');
+    expect(moduleNavigation).not.toContain('<Text numberOfLines={1} style={[');
     expect(shell).toContain("minWidth: '100%'");
     expect(shell).toContain('flexGrow: 1');
-    expect(shell).toContain('flexBasis: 0');
+    expect(shell).toContain('flexBasis: 174');
+    expect(shell).toContain('flexBasis: 112');
+    expect(shell).toContain('flexShrink: 0');
     expect(shell).toContain('size={24}');
   });
 

@@ -212,6 +212,8 @@ function OrbitModuleNavigation({
   messageBadge?: string;
 }) {
   const router = useRouter();
+  const layout = useLiquidLayout();
+  const compactNavigation = layout.width < 1700;
 
   return (
     <View style={styles.orbitModuleBar}>
@@ -232,6 +234,7 @@ function OrbitModuleNavigation({
               onPress={() => router.push(module.route as never)}
               style={({ pressed }) => [
                 styles.orbitModuleItem,
+                compactNavigation && styles.orbitModuleItemCompact,
                 selected && styles.orbitModuleItemActive,
                 pressed && styles.pressed,
               ]}
@@ -239,11 +242,11 @@ function OrbitModuleNavigation({
               <View style={[styles.orbitModuleGlyph, selected && styles.orbitModuleGlyphActive]}>
                 <LiquidGlyph active={selected} glyph={module.glyph} size={24} />
               </View>
-              <Text numberOfLines={1} style={[
+              <Text style={[
                 styles.orbitModuleLabel,
                 selected && styles.orbitModuleLabelActive,
               ]}>
-                {module.label}
+                {compactNavigation ? module.shortLabel : module.label}
               </Text>
               {module.key === 'office' && messageBadge ? (
                 <View style={styles.navUnreadBadge}>
@@ -957,18 +960,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   orbitModuleItem: {
-    minWidth: 104,
+    minWidth: 174,
     minHeight: 56,
     paddingHorizontal: 14,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: 'transparent',
     flexGrow: 1,
-    flexBasis: 0,
+    flexBasis: 174,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 9,
+  },
+  orbitModuleItemCompact: {
+    minWidth: 112,
+    flexBasis: 112,
+    paddingHorizontal: 10,
   },
   orbitModuleItemActive: {
     borderColor: 'rgba(37,99,235,0.24)',
@@ -976,6 +984,7 @@ const styles = StyleSheet.create({
   },
   orbitModuleLabel: {
     color: '#475569',
+    flexShrink: 0,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '800',
