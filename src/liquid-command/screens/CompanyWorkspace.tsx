@@ -48,6 +48,15 @@ const GROUPS: { title: string; keys: TenantCenterSectionKey[] }[] = [
   },
 ];
 
+function isRepresentativeText(value: string): boolean {
+  return /^vertreten\s+durch\b/i.test(value.trim());
+}
+
+function normalizeRepresentativeText(value: string): string {
+  const name = value.trim().replace(/^vertreten\s+durch\s*/i, '').trim();
+  return name ? `Vertreten durch ${name}` : '';
+}
+
 function statusTone(completeness: SectionCompleteness): 'success' | 'warning' | 'neutral' {
   if (completeness === 'complete') return 'success';
   if (completeness === 'partial') return 'warning';
@@ -139,7 +148,33 @@ export function CompanyWorkspace({
   const completed = realSections.filter((section) => section.completeness === 'complete').length;
   const attention = realSections.filter((section) => section.completeness !== 'complete').length;
   const activeModules = Object.values(snapshot.modules).filter(Boolean).length;
-  const companyName = snapshot.company.legalName || snapshot.company.name || 'Unternehmen';
+  const configuredCompanyName = snapshot.company.name.trim();
+  const configuredLegalName = snapshot.company.legalName.trim();
+  const misplacedRepresentative = isRepresentativeText(configuredLegalName)
+    ? configuredLegalName
+    : '';
+  const companyName =
+    configuredCompanyName ||
+    (!misplacedRepresentative ? configuredLegalName : '') ||
+    'Unternehmen';
+  const legalNameLabel =
+    configuredLegalName &&
+    !misplacedRepresentative &&
+    configuredLegalName !== companyName
+      ? configuredLegalName
+      : '';
+  const primaryRepresentative =
+    snapshot.representatives.find((representative) => representative.isPrimary) ??
+    snapshot.representatives[0];
+  const primaryRepresentativeName = primaryRepresentative
+    ? [primaryRepresentative.salutation, primaryRepresentative.firstName, primaryRepresentative.lastName]
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .join(' ')
+    : '';
+  const representativeLabel = primaryRepresentativeName
+    ? `Vertreten durch ${primaryRepresentativeName}`
+    : normalizeRepresentativeText(misplacedRepresentative);
   const address = [
     [snapshot.company.street, snapshot.company.houseNumber].filter(Boolean).join(' '),
     [snapshot.company.zip, snapshot.company.city].filter(Boolean).join(' '),
@@ -169,6 +204,8 @@ export function CompanyWorkspace({
         <View style={styles.heroCopy}>
           <LiquidText variant="kicker">IHR UNTERNEHMEN</LiquidText>
           <LiquidText variant="title" accessibilityRole="header">{companyName}</LiquidText>
+          {legalNameLabel ? <LiquidText variant="body">{legalNameLabel}</LiquidText> : null}
+          {representativeLabel ? <LiquidText variant="meta">{representativeLabel}</LiquidText> : null}
           <LiquidText variant="body">{address || 'Unternehmensanschrift noch nicht vollständig gepflegt'}</LiquidText>
           <View style={styles.heroContact}>
             {snapshot.company.email ? <LiquidStatus label={snapshot.company.email} tone="live" /> : null}

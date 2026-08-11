@@ -25,6 +25,15 @@ describe('office company workspace integrity', () => {
     expect(company).not.toContain('Arbeitsliste durchsuchen');
   });
 
+  it('shows the actual company name and keeps representation in a separate line', () => {
+    expect(company).toContain('const configuredCompanyName = snapshot.company.name.trim();');
+    expect(company).toContain('isRepresentativeText(configuredLegalName)');
+    expect(company).toContain('configuredCompanyName ||');
+    expect(company).toContain('Vertreten durch ${primaryRepresentativeName}');
+    expect(company).toContain('{representativeLabel ? <LiquidText variant="meta">{representativeLabel}</LiquidText> : null}');
+    expect(company).not.toContain('snapshot.company.legalName || snapshot.company.name');
+  });
+
   it('covers identity, compliance, finance and organisation', () => {
     expect(company).toContain('Identität & Erreichbarkeit');
     expect(company).toContain('Recht, Steuer & Zulassung');
