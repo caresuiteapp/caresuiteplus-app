@@ -27,13 +27,13 @@ function OrbitLightBackground({ animated, dimmed }: { animated: boolean; dimmed:
       Animated.sequence([
         Animated.timing(drift, {
           toValue: 1,
-          duration: 18000,
+          duration: 24000,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
         Animated.timing(drift, {
           toValue: 0,
-          duration: 18000,
+          duration: 24000,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
@@ -46,9 +46,20 @@ function OrbitLightBackground({ animated, dimmed }: { animated: boolean; dimmed:
   const motionStyle = useMemo(
     () => ({
       transform: [
-        { translateX: drift.interpolate({ inputRange: [0, 1], outputRange: [-28, 34] }) },
-        { translateY: drift.interpolate({ inputRange: [0, 1], outputRange: [18, -24] }) },
-        { scale: drift.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) },
+        { translateX: drift.interpolate({ inputRange: [0, 1], outputRange: [-12, 18] }) },
+        { translateY: drift.interpolate({ inputRange: [0, 1], outputRange: [8, -12] }) },
+        { scale: drift.interpolate({ inputRange: [0, 1], outputRange: [1, 1.025] }) },
+      ],
+    }),
+    [drift],
+  );
+
+  const counterMotionStyle = useMemo(
+    () => ({
+      opacity: drift.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.42, 0.7, 0.48] }),
+      transform: [
+        { translateX: drift.interpolate({ inputRange: [0, 1], outputRange: [16, -14] }) },
+        { translateY: drift.interpolate({ inputRange: [0, 1], outputRange: [-6, 10] }) },
       ],
     }),
     [drift],
@@ -57,17 +68,39 @@ function OrbitLightBackground({ animated, dimmed }: { animated: boolean; dimmed:
   return (
     <View style={StyleSheet.absoluteFill}>
       <LinearGradient
-        colors={['#FFFFFF', '#F5FAFF', '#EEF7FF', '#F7F3FF', '#FFFFFF']}
+        colors={['#FFFFFF', '#F8FBFF', '#F2F8FE', '#F7FBFF', '#FFFFFF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      <Animated.View style={[styles.orbitField, motionStyle]}>
-        <View style={[styles.orb, styles.orbBlue]} />
-        <View style={[styles.orb, styles.orbViolet]} />
-        <View style={[styles.orb, styles.orbCyan]} />
-        <View style={styles.orbitLineLarge} />
-        <View style={styles.orbitLineSmall} />
+      <Animated.View style={[styles.ambientField, motionStyle]}>
+        <LinearGradient
+          colors={['rgba(37,99,235,0)', 'rgba(37,99,235,0.055)', 'rgba(14,165,233,0.075)', 'rgba(37,99,235,0)']}
+          locations={[0, 0.34, 0.68, 1]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.lightStreamPrimary}
+        />
+        <View style={styles.orbitArcPrimary} />
+        <View style={styles.orbitArcSecondary} />
+        <View style={[styles.signalNode, styles.signalNodeOne]}>
+          <View style={styles.signalCore} />
+        </View>
+        <View style={[styles.signalNode, styles.signalNodeTwo]}>
+          <View style={styles.signalCore} />
+        </View>
+      </Animated.View>
+      <Animated.View style={[styles.counterField, counterMotionStyle]}>
+        <LinearGradient
+          colors={['rgba(14,165,233,0)', 'rgba(14,165,233,0.05)', 'rgba(59,130,246,0.06)', 'rgba(14,165,233,0)']}
+          locations={[0, 0.38, 0.66, 1]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.lightStreamSecondary}
+        />
+        <View style={[styles.signalNode, styles.signalNodeThree]}>
+          <View style={styles.signalCore} />
+        </View>
       </Animated.View>
       {dimmed ? <View style={styles.dim} /> : null}
     </View>
@@ -98,50 +131,76 @@ export function GlobalAnimatedBackground({
 
 const styles = StyleSheet.create({
   root: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', backgroundColor: '#FFFFFF' },
-  orbitField: { ...StyleSheet.absoluteFillObject },
-  orb: { position: 'absolute', borderRadius: 999 },
-  orbBlue: {
-    width: 520,
-    height: 520,
-    right: -150,
-    top: -210,
-    backgroundColor: 'rgba(22,131,255,0.12)',
-  },
-  orbViolet: {
-    width: 440,
-    height: 440,
-    left: -180,
-    bottom: -190,
-    backgroundColor: 'rgba(155,124,246,0.10)',
-  },
-  orbCyan: {
-    width: 320,
-    height: 320,
-    left: '38%',
-    top: '32%',
-    backgroundColor: 'rgba(85,221,246,0.08)',
-  },
-  orbitLineLarge: {
+  ambientField: { ...StyleSheet.absoluteFillObject },
+  counterField: { ...StyleSheet.absoluteFillObject },
+  lightStreamPrimary: {
     position: 'absolute',
-    width: 760,
-    height: 270,
-    right: -220,
-    top: 110,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: 'rgba(22,131,255,0.10)',
-    transform: [{ rotate: '-18deg' }],
-  },
-  orbitLineSmall: {
-    position: 'absolute',
-    width: 420,
+    width: 1180,
     height: 150,
-    left: -100,
-    bottom: 80,
+    right: -160,
+    top: '24%',
+    borderRadius: 999,
+    transform: [{ rotate: '-9deg' }],
+  },
+  lightStreamSecondary: {
+    position: 'absolute',
+    width: 900,
+    height: 110,
+    left: -170,
+    bottom: '15%',
+    borderRadius: 999,
+    transform: [{ rotate: '11deg' }],
+  },
+  orbitArcPrimary: {
+    position: 'absolute',
+    width: 980,
+    height: 250,
+    right: -270,
+    top: '10%',
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(155,124,246,0.12)',
-    transform: [{ rotate: '14deg' }],
+    borderColor: 'rgba(37,99,235,0.09)',
+    transform: [{ rotate: '-12deg' }],
+  },
+  orbitArcSecondary: {
+    position: 'absolute',
+    width: 720,
+    height: 190,
+    left: -190,
+    bottom: '7%',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(14,165,233,0.08)',
+    transform: [{ rotate: '10deg' }],
+  },
+  signalNode: {
+    position: 'absolute',
+    width: 22,
+    height: 22,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(56,189,248,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(37,99,235,0.14)',
+  },
+  signalCore: {
+    width: 5,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(37,99,235,0.42)',
+  },
+  signalNodeOne: {
+    right: '24%',
+    top: '28%',
+  },
+  signalNodeTwo: {
+    left: '31%',
+    bottom: '22%',
+  },
+  signalNodeThree: {
+    left: '62%',
+    top: '58%',
   },
   dim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16,35,63,0.16)' },
 });

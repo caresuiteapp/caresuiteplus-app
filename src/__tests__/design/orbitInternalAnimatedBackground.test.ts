@@ -22,13 +22,18 @@ describe('ORBIT internal animated background', () => {
     expect(primitives).not.toContain("colors={orbit ? ['#F8FBFF', '#EFF6FF', '#FFFFFF']");
   });
 
-  it('uses slow motion and respects the reduced-motion accessibility setting', () => {
+  it('uses restrained counter-motion and respects the reduced-motion accessibility setting', () => {
     const background = read('src/components/ui/effects/globalanimatedbackground.tsx');
 
     expect(background).toContain('usePrefersReducedMotion()');
     expect(background).toContain('if (!animated || reduceMotion)');
-    expect(background).toContain('duration: 18000');
-    expect(background).toContain('styles.orbitLineLarge');
-    expect(background).toContain('styles.orbitLineSmall');
+    expect(background).toContain('duration: 24000');
+    expect(background).toContain('counterMotionStyle');
+    expect(background).toContain('styles.lightStreamPrimary');
+    expect(background).toContain('styles.lightStreamSecondary');
+    expect(background).toContain('styles.orbitArcPrimary');
+    expect(background).toContain('styles.signalNodeThree');
+    expect(background).not.toContain('styles.orbViolet');
+    expect(background).not.toContain('width: 520');
   });
 });
