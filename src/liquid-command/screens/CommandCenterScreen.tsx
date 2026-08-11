@@ -125,7 +125,7 @@ function SummaryRail({
         <View style={styles.clientDonutRow}>
           <View style={styles.clientDonut}>
             <Text style={styles.clientDonutValue}>{clients.length}</Text>
-            <Text style={styles.clientDonutLabel}>Gesamt</Text>
+            <Text style={styles.clientDonutLabel}>Aktiv</Text>
           </View>
           <View style={styles.clientLegend}>
             <View style={styles.legendRow}>
@@ -334,6 +334,10 @@ export function CommandCenterScreen() {
   const layout = useLiquidLayout();
   const state = useCurrentSystemAdapter();
   const today = new Date().toDateString();
+  const activeClients = useMemo(
+    () => state.data.clients.filter((client) => client.status === 'aktiv'),
+    [state.data.clients],
+  );
   const todaysVisits = useMemo(
     () => state.data.visits.filter((visit) => new Date(visit.scheduledStart).toDateString() === today),
     [state.data.visits, today],
@@ -384,13 +388,13 @@ export function CommandCenterScreen() {
 
       <View style={[styles.dashboardLayout, !layout.isDesktop && styles.dashboardLayoutCompact]}>
         <SummaryRail
-          clients={state.data.clients}
+          clients={activeClients}
           employees={state.data.employees}
           stacked={!layout.isDesktop}
           visits={todaysVisits}
         />
         <View style={[styles.centerColumn, !layout.isDesktop && styles.compactFullWidth]}>
-          <ClientMap clients={state.data.clients} tenantId={state.tenantId} />
+          <ClientMap clients={activeClients} tenantId={state.tenantId} />
           <TodayTimeline visits={todaysVisits} />
         </View>
         <View style={[styles.rightRail, !layout.isDesktop && styles.compactFullWidth]}>{aside}</View>
