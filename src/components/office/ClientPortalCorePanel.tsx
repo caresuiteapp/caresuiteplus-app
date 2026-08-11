@@ -53,6 +53,31 @@ const FEATURE_TOGGLES: {
   { key: 'showProofs', label: 'Nachweise' },
 ];
 
+const ACCESS_REQUEST_STATUS_LABELS: Record<string, string> = {
+  pending: 'Ausstehend',
+  approved: 'Genehmigt',
+  rejected: 'Abgelehnt',
+  cancelled: 'Zurückgezogen',
+};
+
+const ACCESS_REQUEST_TYPE_LABELS: Record<string, string> = {
+  access: 'Portalzugang',
+  portal_access: 'Portalzugang',
+  client_access: 'Klient:innenzugang',
+  relative_access: 'Angehörigenzugang',
+  family_access: 'Angehörigenzugang',
+};
+
+const SWITCH_TRACK_COLORS = { false: '#94A3B8', true: '#087F6D' } as const;
+
+function requestStatusLabel(value: string): string {
+  return ACCESS_REQUEST_STATUS_LABELS[value] ?? 'Unbekannter Status';
+}
+
+function requestTypeLabel(value: string): string {
+  return ACCESS_REQUEST_TYPE_LABELS[value] ?? 'Sonstige Zugangsanfrage';
+}
+
 export function ClientPortalCorePanel({ clientId, fullClient, onRecordRefresh }: Props) {
   const tenantId = useServiceTenantId();
   const { isReadOnly } = usePermissions();
@@ -156,7 +181,14 @@ export function ClientPortalCorePanel({ clientId, fullClient, onRecordRefresh }:
         ) : (
           <PremiumCard style={styles.card}>
             <View style={styles.row}>
-              <Text style={styles.primary}>Portal {settings.portalEnabled ? 'aktiv' : 'inaktiv'}</Text>
+              <View style={styles.stateHeading}>
+                <Text style={styles.primary}>Klient:innenportal</Text>
+                <PremiumBadge
+                  label={settings.portalEnabled ? 'Aktiv' : 'Inaktiv'}
+                  variant={settings.portalEnabled ? 'green' : 'red'}
+                  dot
+                />
+              </View>
                 <PremiumBadge
                   label={settings.inheritTenantDefaults ? 'Mandanten-Defaults' : 'Individuell'}
                   variant="muted"
@@ -172,19 +204,48 @@ export function ClientPortalCorePanel({ clientId, fullClient, onRecordRefresh }:
             {!isReadOnly ? (
               <View style={styles.toggleGroup}>
                 <View style={styles.toggleRow}>
-                  <Text style={styles.toggleLabel}>Portal aktiv</Text>
+                  <View style={styles.toggleIdentity}>
+                    <Text style={styles.toggleLabel}>Portalzugang</Text>
+                    <PremiumBadge
+                      label={settings.portalEnabled ? 'Aktiv' : 'Inaktiv'}
+                      variant={settings.portalEnabled ? 'green' : 'red'}
+                      size="compact"
+                      dot
+                    />
+                  </View>
                   <Switch
                     value={settings.portalEnabled}
                     disabled={savingFlag === 'portalEnabled'}
+                    accessibilityLabel={`Portalzugang ${settings.portalEnabled ? 'aktiv' : 'inaktiv'}`}
+                    accessibilityState={{ checked: settings.portalEnabled, disabled: savingFlag === 'portalEnabled' }}
+                    trackColor={SWITCH_TRACK_COLORS}
+                    thumbColor="#FFFFFF"
+                    ios_backgroundColor={SWITCH_TRACK_COLORS.false}
                     onValueChange={(value) => handleToggle({ portalEnabled: value }, 'portalEnabled')}
                   />
                 </View>
                 {FEATURE_TOGGLES.map(({ key, label }) => (
                   <View key={key} style={styles.toggleRow}>
-                    <Text style={styles.toggleLabel}>{label}</Text>
+                    <View style={styles.toggleIdentity}>
+                      <Text style={styles.toggleLabel}>{label}</Text>
+                      <PremiumBadge
+                        label={settings[key] ? 'Sichtbar' : 'Ausgeblendet'}
+                        variant={settings[key] ? 'green' : 'muted'}
+                        size="compact"
+                        dot
+                      />
+                    </View>
                     <Switch
                       value={settings[key]}
                       disabled={!settings.portalEnabled || savingFlag === key}
+                      accessibilityLabel={`${label} ${settings[key] ? 'sichtbar' : 'ausgeblendet'}`}
+                      accessibilityState={{
+                        checked: settings[key],
+                        disabled: !settings.portalEnabled || savingFlag === key,
+                      }}
+                      trackColor={SWITCH_TRACK_COLORS}
+                      thumbColor="#FFFFFF"
+                      ios_backgroundColor={SWITCH_TRACK_COLORS.false}
                       onValueChange={(value) => handleToggle({ [key]: value }, key)}
                     />
                   </View>
@@ -222,7 +283,7 @@ export function ClientPortalCorePanel({ clientId, fullClient, onRecordRefresh }:
             <PremiumCard key={req.id} style={styles.card}>
               <Text style={styles.primary}>{req.requesterName}</Text>
               <Text style={styles.secondary}>
-                {req.status} · {req.requestType}
+                {requestStatusLabel(req.status)} · {requestTypeLabel(req.requestType)}
                 {req.requesterEmail ? ` · ${req.requesterEmail}` : ''}
               </Text>
               {req.status === 'pending' && !isReadOnly ? (
@@ -246,11 +307,14 @@ const styles = StyleSheet.create({
   primary: { ...typography.label },
   secondary: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
   toggleGroup: { marginTop: spacing.sm, gap: spacing.xs },
+  stateHeading: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,
+    minHeight: 44,
   },
+  toggleIdentity: { flex: 1, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm },
   toggleLabel: { ...typography.caption, color: colors.textPrimary },
 });

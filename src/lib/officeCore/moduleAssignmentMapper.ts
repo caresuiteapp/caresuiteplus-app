@@ -25,7 +25,23 @@ function asProductKey(value: unknown): ProductKey {
 
 function asWorkflowStatus(value: unknown): WorkflowStatus {
   const status = String(value ?? 'in_bearbeitung');
-  if (status === 'prepared') return 'in_bearbeitung';
+  const aliases: Record<string, WorkflowStatus> = {
+    active: 'aktiv',
+    enabled: 'aktiv',
+    assigned: 'aktiv',
+    draft: 'entwurf',
+    prepared: 'in_bearbeitung',
+    in_progress: 'in_bearbeitung',
+    completed: 'abgeschlossen',
+    archived: 'archiviert',
+    inactive: 'archiviert',
+    error: 'fehlerhaft',
+    blocked: 'gesperrt',
+    locked: 'gesperrt',
+    planned: 'geplant',
+    confirmed: 'bestaetigt',
+  };
+  if (aliases[status]) return aliases[status];
   if (
     status === 'entwurf' ||
     status === 'aktiv' ||

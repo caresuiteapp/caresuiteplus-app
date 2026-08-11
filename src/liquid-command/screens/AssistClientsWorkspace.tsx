@@ -69,6 +69,22 @@ function statusTone(value: string | null | undefined): LiquidSemanticTone {
   return 'neutral';
 }
 
+function resolveClientCareStatus(context: AssistClientContext): {
+  label: string;
+  tone: LiquidSemanticTone;
+} {
+  const technicalTone = statusTone(context.assignment.status);
+  if (technicalTone === 'danger') {
+    return {
+      label: normalizeStatus(context.assignment.status),
+      tone: technicalTone,
+    };
+  }
+  if (context.needsAttention) return { label: 'Klärungsbedarf', tone: 'warning' };
+  if (context.upcomingVisits.length === 0) return { label: 'Planung offen', tone: 'warning' };
+  return { label: 'Aktiv', tone: 'success' };
+}
+
 function formatDate(value: string | null | undefined, withTime = false): string {
   if (!value) return 'Nicht hinterlegt';
   const date = new Date(value);
@@ -140,6 +156,7 @@ function AssistClientDetail({ context }: { context: AssistClientContext | null }
   }
 
   const { assignment, client, upcomingVisits } = context;
+  const careStatus = resolveClientCareStatus(context);
   const clientId = assignment.clientId;
   const nextVisits = upcomingVisits.slice(0, 3);
   const careLevelLabel = formatCareLevel(client?.careLevel) || 'Nicht hinterlegt';
@@ -155,7 +172,7 @@ function AssistClientDetail({ context }: { context: AssistClientContext | null }
         <View style={styles.detailIdentityText}>
           <LiquidText variant="kicker">ASSIST-KLIENT:IN</LiquidText>
           <LiquidText variant="section">{assignment.clientName}</LiquidText>
-          <LiquidStatus label={normalizeStatus(assignment.status)} tone={statusTone(assignment.status)} />
+          <LiquidStatus label={careStatus.label} tone={careStatus.tone} />
         </View>
       </View>
 
@@ -384,6 +401,7 @@ export function AssistClientsWorkspace({
             {filtered.map((context) => {
               const { assignment, client, upcomingVisits } = context;
               const nextVisit = upcomingVisits[0] ?? null;
+              const careStatus = resolveClientCareStatus(context);
               const selectedRow = selectedId === assignment.clientId;
               const careLevelLabel = formatCareLevel(client?.careLevel) || 'Pflegegrad offen';
               return (
@@ -408,7 +426,7 @@ export function AssistClientsWorkspace({
                   <View style={styles.clientMain}>
                     <View style={styles.clientTitleRow}>
                       <Text numberOfLines={1} style={styles.clientName}>{assignment.clientName}</Text>
-                      <LiquidStatus label={normalizeStatus(assignment.status)} tone={statusTone(assignment.status)} />
+                      <LiquidStatus label={careStatus.label} tone={careStatus.tone} />
                     </View>
                     <Text numberOfLines={1} style={styles.clientMeta}>
                       {careLevelLabel} · {client?.costCarrier || 'Kostenträger offen'}
