@@ -6,18 +6,6 @@ export function normalizePortalUsername(value: string): string {
     .toLowerCase();
 }
 
-/**
- * Entfernt ausschließlich Zeichen, die beim Kopieren auf Mobilgeräten
- * unsichtbar ergänzt werden können. Die Groß-/Kleinschreibung des Passworts
- * und alle sichtbaren Sonderzeichen bleiben unverändert.
- */
-export function normalizePortalPassword(value: string): string {
-  return value
-    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
-    .replace(/^\u00A0+|\u00A0+$/g, '')
-    .trim();
-}
-
 export type EmployeePortalLoginFailureClass =
   | 'missing_credentials'
   | 'account_not_found'

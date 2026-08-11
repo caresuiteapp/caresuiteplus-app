@@ -38,15 +38,20 @@ const EMPLOYEE_PORTAL_LOGIN_PATH = '/auth/employee-portal-login';
 function resolveAccountStatus(account: EmployeePortalAccount | null, portalActive?: boolean): string {
   if (!account) return 'Noch nicht eingerichtet';
   if (account.blockedAt || account.status === 'blocked') return 'Gesperrt';
-  if (account.firstLoginCompleted) return 'Aktiv';
-  if (portalActive) return 'Aktiv';
-  if (account.status === 'pending_first_login') return 'Einladung ausstehend';
+  if (account.status === 'archived') return 'Archiviert';
+  if (account.status === 'password_reset_required') return 'Passwortänderung erforderlich';
+  if (account.status === 'pending_first_login' || !account.firstLoginCompleted) {
+    return 'Erstanmeldung offen';
+  }
+  if (account.status === 'active' && account.firstLoginCompleted) return 'Aktiv';
+  if (portalActive && account.firstLoginCompleted) return 'Aktiv';
   return 'Eingerichtet';
 }
 
 function statusVariant(account: EmployeePortalAccount | null): 'green' | 'muted' | 'orange' {
   if (account?.blockedAt || account?.status === 'blocked') return 'orange';
-  if (account?.firstLoginCompleted || account?.status === 'active') return 'green';
+  if (account?.status === 'active' && account?.firstLoginCompleted) return 'green';
+  if (account?.status === 'password_reset_required' || !account?.firstLoginCompleted) return 'orange';
   return 'muted';
 }
 

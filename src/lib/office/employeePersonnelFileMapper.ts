@@ -359,7 +359,12 @@ export function buildEmployeePersonnelFileFromLiveRows(input: {
 
   const portalAccess: EmployeePortalAccessRecord = {
     profileId: row.profile_id ?? null,
-    portalActive: row.portal_enabled === true && portalAccount?.status !== 'blocked',
+    // Das Portalkonto ist die einzige verlässliche Statusquelle. Das ältere
+    // employee.portal_enabled darf nur verwendet werden, solange noch kein
+    // Portalkonto existiert.
+    portalActive: portalAccount
+      ? portalAccount.status !== 'blocked' && portalAccount.status !== 'archived'
+      : row.portal_enabled === true,
     roleKey: input.profileRoleKey ?? null,
     lastLoginAt: portalAccount?.last_login_at ?? null,
     invitationSentAt: null,

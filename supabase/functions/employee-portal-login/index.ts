@@ -2,7 +2,6 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders, getServiceClient, jsonResponse, readClientMeta, tryInsert } from '../_shared/http.ts';
 import {
   classifyEmployeePortalLoginFailure,
-  normalizePortalPassword,
   normalizePortalUsername,
 } from '../_shared/portalUsername.ts';
 import { verifyEmployeePortalPassword } from '../_shared/verifyEmployeePortalPassword.ts';
@@ -51,7 +50,10 @@ serve(async (req) => {
   try {
     const body = (await req.json()) as LoginBody;
     const username = normalizePortalUsername(body.username ?? '');
-    const password = normalizePortalPassword(body.password ?? '');
+    // Passwörter sind exakte Geheimnisse. Niemals trimmen, normalisieren oder
+    // unsichtbare Zeichen entfernen: Der gespeicherte Hash wurde aus exakt
+    // denselben Zeichen gebildet.
+    const password = typeof body.password === 'string' ? body.password : '';
     if (!username || !password) {
       return jsonResponse({ ok: false, error: 'Benutzername und Passwort sind erforderlich.', errorClass: 'missing_credentials' }, 400);
     }
