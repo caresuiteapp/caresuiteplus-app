@@ -58,6 +58,21 @@ type LiquidCommandShellProps = {
   showContextBar?: boolean;
 };
 
+type WebScrollNode = {
+  scrollTop: number;
+  scrollHeight: number;
+  clientHeight: number;
+  parentElement: WebScrollNode | null;
+};
+
+type WebWheelCaptureEvent = {
+  currentTarget: WebScrollNode;
+  target: WebScrollNode | null;
+  deltaY: number;
+  preventDefault: () => void;
+  stopPropagation: () => void;
+};
+
 function RotateDeviceScreen() {
   return (
     <LiquidBackdrop>
@@ -673,11 +688,51 @@ export function LiquidCommandShell({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [pageScrollHeight, setPageScrollHeight] = useState(0);
+  const [fillContentOffset, setFillContentOffset] = useState(0);
   const { badges: messageBadges } = useOfficeMessageNavBadges(true);
   const messageBadge = messageBadges.messages;
   const module = getLiquidModule(activeModule);
   const actionLabel = primaryActionLabel ?? module.primaryAction;
   const action = onPrimaryAction ?? (() => setPaletteOpen(true));
+  const measuredFillHeight =
+    contentMode === 'fill' && pageScrollHeight > 0
+      ? Math.max(320, pageScrollHeight + fillContentOffset)
+      : null;
+
+  const handlePageWheelCapture = (event: WebWheelCaptureEvent) => {
+    if (Platform.OS !== 'web') return;
+
+    const outer = event.currentTarget;
+    const deltaY = Number(event.deltaY || 0);
+    const maxOuterScroll = Math.max(0, outer.scrollHeight - outer.clientHeight);
+    if (!deltaY || maxOuterScroll <= 1) return;
+
+    if (deltaY > 0 && outer.scrollTop < maxOuterScroll - 1) {
+      event.preventDefault();
+      event.stopPropagation();
+      outer.scrollTop = Math.min(maxOuterScroll, outer.scrollTop + deltaY);
+      return;
+    }
+
+    if (deltaY >= 0 || outer.scrollTop <= 1) return;
+
+    let node = event.target;
+    let innerHasScrollOffset = false;
+    while (node && node !== outer) {
+      if (node.scrollHeight > node.clientHeight + 1 && node.scrollTop > 1) {
+        innerHasScrollOffset = true;
+        break;
+      }
+      node = node.parentElement;
+    }
+
+    if (!innerHasScrollOffset) {
+      event.preventDefault();
+      event.stopPropagation();
+      outer.scrollTop = Math.max(0, outer.scrollTop + deltaY);
+    }
+  };
 
   if (layout.formFactor === 'phone-landscape-blocked' && !allowPhoneLandscape) {
     return <RotateDeviceScreen />;
@@ -687,7 +742,14 @@ export function LiquidCommandShell({
     activeModule !== 'home' && liquidWorkAreas[activeModule].length > 0;
 
   const workspaceContent = (
-    <View style={[styles.workspace, contentMode === 'fill' && styles.workspaceFill]}>
+    <View
+      style={[
+        styles.workspace,
+        contentMode === 'fill' && styles.workspaceFill,
+        measuredFillHeight ? styles.measuredFillSurface : null,
+        measuredFillHeight ? { height: measuredFillHeight, minHeight: measuredFillHeight } : null,
+      ]}
+    >
       {contentMode === 'fill' ? (
         <View
           style={[
@@ -707,7 +769,15 @@ export function LiquidCommandShell({
               </View>
             </View>
           ) : null}
-          <View style={styles.contentPrimaryFill}>{children}</View>
+          <View
+            style={styles.contentPrimaryFill}
+            onLayout={(event) => {
+              const nextOffset = Math.max(0, Math.round(event.nativeEvent.layout.y));
+              setFillContentOffset((current) => current === nextOffset ? current : nextOffset);
+            }}
+          >
+            {children}
+          </View>
         </View>
       ) : (
         <View
@@ -766,9 +836,14 @@ export function LiquidCommandShell({
             messageBadge={messageBadge}
           />
           <ScrollView
+            {...(Platform.OS === 'web' ? { onWheelCapture: handlePageWheelCapture } : {})}
             testID="liquid-command-page-scroll"
             style={styles.shellScroll}
             contentContainerStyle={styles.shellScrollContent}
+            onLayout={(event) => {
+              const nextHeight = Math.max(0, Math.round(event.nativeEvent.layout.height));
+              setPageScrollHeight((current) => current === nextHeight ? current : nextHeight);
+            }}
             keyboardShouldPersistTaps="handled"
             nestedScrollEnabled
             showsVerticalScrollIndicator={false}
@@ -794,6 +869,8 @@ export function LiquidCommandShell({
                 style={[
                   styles.workspaceFrame,
                   contentMode === 'fill' && styles.workspaceFrameFill,
+                  measuredFillHeight ? styles.measuredFillSurface : null,
+                  measuredFillHeight ? { height: measuredFillHeight, minHeight: measuredFillHeight } : null,
                 ]}
               >
                 {workspaceContent}
@@ -1246,6 +1323,11 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     overflow: 'hidden',
+  },
+  measuredFillSurface: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
   },
   areaRow: {
     minHeight: 64,
