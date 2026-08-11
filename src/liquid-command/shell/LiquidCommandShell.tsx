@@ -215,18 +215,6 @@ function OrbitModuleNavigation({
 
   return (
     <View style={styles.orbitModuleBar}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="CareSuite HealthOS Startseite"
-        onPress={() => router.push('/' as never)}
-        style={({ pressed }) => [styles.orbitBrand, pressed && styles.pressed]}
-      >
-        <Text style={styles.orbitBrandCare}>CareSuite</Text>
-        <Text style={styles.orbitBrandHealth}>HealthOS</Text>
-        <View style={styles.orbitBrandBadge}>
-          <Text style={styles.orbitBrandBadgeText}>ORBIT</Text>
-        </View>
-      </Pressable>
       <ScrollView
         horizontal
         accessibilityRole="tablist"
@@ -248,7 +236,9 @@ function OrbitModuleNavigation({
                 pressed && styles.pressed,
               ]}
             >
-              <LiquidGlyph active={selected} glyph={module.glyph} size={18} />
+              <View style={[styles.orbitModuleGlyph, selected && styles.orbitModuleGlyphActive]}>
+                <LiquidGlyph active={selected} glyph={module.glyph} size={24} />
+              </View>
               <Text numberOfLines={1} style={[
                 styles.orbitModuleLabel,
                 selected && styles.orbitModuleLabelActive,
@@ -549,7 +539,9 @@ function CommandBar({
   onOpenNotifications: () => void;
   onOpenProfile: () => void;
 }) {
-  const { isPhone } = useLiquidLayout();
+  const layout = useLiquidLayout();
+  const { isPhone } = layout;
+  const router = useRouter();
   const { profile, user } = useAuth();
   const displayName = profile?.displayName || user?.displayName || 'Profil';
   const role = profile?.roleKey ?? 'CareSuite';
@@ -557,19 +549,41 @@ function CommandBar({
 
   return (
     <View style={[styles.commandBar, isPhone && styles.commandBarPhone]}>
-      {isPhone ? <LiquidLogo compact /> : (
-        <View style={styles.commandContext}>
-          <Text style={styles.commandEyebrow}>{module.label.toUpperCase()}</Text>
-          <Text numberOfLines={1} style={styles.commandTitle}>{module.description}</Text>
-        </View>
-      )}
+      <View style={styles.commandIdentity}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="CareSuite HealthOS Startseite"
+          onPress={() => router.push('/' as never)}
+          style={({ pressed }) => [styles.orbitBrand, pressed && styles.pressed]}
+        >
+          <Text style={styles.orbitBrandCare}>CareSuite</Text>
+          <Text style={styles.orbitBrandHealth}>HealthOS</Text>
+          <View style={styles.orbitBrandBadge}>
+            <Text style={styles.orbitBrandBadgeText}>ORBIT</Text>
+          </View>
+        </Pressable>
+        {!isPhone ? <View style={styles.commandIdentityDivider} /> : null}
+        {!isPhone ? (
+          <View style={styles.commandContext}>
+            <Text style={styles.commandEyebrow}>{module.label.toUpperCase()}</Text>
+            <Text numberOfLines={1} style={styles.commandTitle}>{module.description}</Text>
+          </View>
+        ) : null}
+      </View>
       <View style={styles.commandActions}>
         {!isPhone ? (
           <LiquidIconButton label="Suchen" glyph="⌕" onPress={onOpenSearch} />
         ) : null}
-        {!isPhone ? <PortalTextSizeControls /> : null}
         {!isPhone ? (
-          <LiquidStatus label="Live" tone="live" />
+          layout.width < 1320
+            ? <PortalTextSizeControls compact />
+            : <PortalTextSizeControls />
+        ) : null}
+        {!isPhone ? (
+          <View accessible accessibilityLabel="Live" style={styles.commandLive}>
+            <View style={styles.commandLiveDot} />
+            <Text style={styles.commandLiveLabel}>Live</Text>
+          </View>
         ) : null}
         <LiquidIconButton
           label="Benachrichtigungen"
@@ -583,10 +597,12 @@ function CommandBar({
             onPress={onOpenProfile}
             style={({ pressed }) => [styles.profile, pressed && styles.pressed]}
           >
-            <View style={styles.profileCopy}>
-              <Text numberOfLines={1} style={styles.profileName}>{displayName}</Text>
-              <Text numberOfLines={1} style={styles.profileRole}>{role}</Text>
-            </View>
+            {layout.width >= 1320 ? (
+              <View style={styles.profileCopy}>
+                <Text numberOfLines={1} style={styles.profileName}>{displayName}</Text>
+                <Text numberOfLines={1} style={styles.profileRole}>{role}</Text>
+              </View>
+            ) : null}
             <View style={styles.avatar}>
               <LiquidGlyph glyph="♙" size={20} />
             </View>
@@ -886,15 +902,14 @@ export function LiquidCommandShell({
 
 const styles = StyleSheet.create({
   orbitModuleBar: {
-    minHeight: 68,
-    paddingHorizontal: 14,
+    minHeight: 76,
+    paddingHorizontal: 16,
     paddingVertical: 9,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(15,23,42,0.1)',
     backgroundColor: 'rgba(255,255,255,0.92)',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
     zIndex: liquidLayers.dock,
   },
   orbitBrand: {
@@ -935,20 +950,25 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   orbitModuleItems: {
+    minWidth: '100%',
     flexGrow: 1,
     alignItems: 'center',
-    gap: 7,
-    paddingRight: 14,
+    gap: 10,
+    paddingHorizontal: 4,
   },
   orbitModuleItem: {
-    minHeight: 42,
-    paddingHorizontal: 12,
-    borderRadius: 14,
+    minWidth: 104,
+    minHeight: 56,
+    paddingHorizontal: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'transparent',
+    flexGrow: 1,
+    flexBasis: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    justifyContent: 'center',
+    gap: 9,
   },
   orbitModuleItemActive: {
     borderColor: 'rgba(37,99,235,0.24)',
@@ -956,12 +976,26 @@ const styles = StyleSheet.create({
   },
   orbitModuleLabel: {
     color: '#475569',
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
   },
   orbitModuleLabelActive: {
     color: '#0B1220',
+  },
+  orbitModuleGlyph: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.08)',
+    backgroundColor: 'rgba(248,251,255,0.94)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orbitModuleGlyphActive: {
+    borderColor: 'rgba(37,99,235,0.32)',
+    backgroundColor: 'rgba(255,255,255,0.98)',
   },
   shell: {
     flex: 1,
@@ -1191,7 +1225,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   commandBar: {
-    minHeight: 74,
+    minHeight: 82,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderBottomWidth: 1,
@@ -1204,11 +1238,23 @@ const styles = StyleSheet.create({
     zIndex: liquidLayers.dock,
   },
   commandBarPhone: {
-    minHeight: 68,
+    minHeight: 72,
     paddingHorizontal: 16,
   },
+  commandIdentity: {
+    minWidth: 0,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  commandIdentityDivider: {
+    width: 1,
+    height: 38,
+    backgroundColor: 'rgba(15,23,42,0.12)',
+  },
   commandContext: {
-    minWidth: 220,
+    minWidth: 0,
     maxWidth: 480,
     flex: 1,
     gap: 4,
@@ -1227,10 +1273,36 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   commandActions: {
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 10,
+  },
+  commandLive: {
+    minWidth: 78,
+    height: 44,
+    paddingHorizontal: 13,
+    borderRadius: liquidRadius.small,
+    borderWidth: 1,
+    borderColor: 'rgba(37,99,235,0.42)',
+    backgroundColor: 'rgba(255,255,255,0.86)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  commandLiveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#1683FF',
+  },
+  commandLiveLabel: {
+    color: '#1683FF',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '900',
   },
   profile: {
     minHeight: 48,
