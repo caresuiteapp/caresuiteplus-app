@@ -687,7 +687,7 @@ export function LiquidCommandShell({
     activeModule !== 'home' && liquidWorkAreas[activeModule].length > 0;
 
   const workspaceContent = (
-    <View style={styles.workspace}>
+    <View style={[styles.workspace, contentMode === 'fill' && styles.workspaceFill]}>
       {contentMode === 'fill' ? (
         <View
           style={[
@@ -710,16 +710,13 @@ export function LiquidCommandShell({
           <View style={styles.contentPrimaryFill}>{children}</View>
         </View>
       ) : (
-        <ScrollView
-          style={styles.contentScroll}
-          contentContainerStyle={[
+        <View
+          style={[
             styles.content,
             { padding: layout.contentPadding },
             !showPageHeader && styles.contentWithoutHeader,
             layout.isPhone && styles.contentPhone,
           ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
         >
           {showPageHeader ? (
             <View style={styles.pageHeader}>
@@ -749,7 +746,7 @@ export function LiquidCommandShell({
               <View style={[styles.contentAside, { width: asideWidth }]}>{aside}</View>
             ) : null}
           </View>
-        </ScrollView>
+        </View>
       )}
     </View>
   );
@@ -758,37 +755,51 @@ export function LiquidCommandShell({
     <LiquidBackdrop>
       <View style={styles.shell}>
         <View style={styles.shellMain}>
-          <CommandBar
-            activeModule={activeModule}
-            onOpenSearch={() => setPaletteOpen(true)}
-            onOpenNotifications={() => setNotificationsOpen(true)}
-            onOpenProfile={() => setProfileOpen(true)}
-          />
-          <OrbitModuleNavigation
-            activeModule={activeModule}
-            messageBadge={messageBadge}
-          />
-          {showContextBar ? (
-            <View style={styles.contextBar}>
-              <View style={styles.contextCopy}>
-                <Text style={styles.contextLabel}>{contextLabel}</Text>
-                <Text numberOfLines={1} style={styles.contextDetail}>{contextDetail}</Text>
-              </View>
-              <LiquidStatus label="Aktuell" tone="live" detail="mandantenweit synchronisiert" />
-            </View>
-          ) : null}
-          {showAreaNavigation ? (
-            <WorkAreaNavigation
-              moduleKey={activeModule}
-              activeArea={activeArea}
+          <ScrollView
+            testID="liquid-command-page-scroll"
+            style={styles.shellScroll}
+            contentContainerStyle={styles.shellScrollContent}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+          >
+            <CommandBar
+              activeModule={activeModule}
+              onOpenSearch={() => setPaletteOpen(true)}
+              onOpenNotifications={() => setNotificationsOpen(true)}
+              onOpenProfile={() => setProfileOpen(true)}
+            />
+            <OrbitModuleNavigation
+              activeModule={activeModule}
               messageBadge={messageBadge}
             />
-          ) : null}
-          {layout.isDesktop ? (
-            <View style={styles.workspaceFrame}>
-              {workspaceContent}
-            </View>
-          ) : workspaceContent}
+            {showContextBar ? (
+              <View style={styles.contextBar}>
+                <View style={styles.contextCopy}>
+                  <Text style={styles.contextLabel}>{contextLabel}</Text>
+                  <Text numberOfLines={1} style={styles.contextDetail}>{contextDetail}</Text>
+                </View>
+                <LiquidStatus label="Aktuell" tone="live" detail="mandantenweit synchronisiert" />
+              </View>
+            ) : null}
+            {showAreaNavigation ? (
+              <WorkAreaNavigation
+                moduleKey={activeModule}
+                activeArea={activeArea}
+                messageBadge={messageBadge}
+              />
+            ) : null}
+            {layout.isDesktop ? (
+              <View
+                style={[
+                  styles.workspaceFrame,
+                  contentMode === 'fill' && styles.workspaceFrameFill,
+                ]}
+              >
+                {workspaceContent}
+              </View>
+            ) : workspaceContent}
+          </ScrollView>
         </View>
       </View>
       <CommandPalette visible={paletteOpen} onClose={() => setPaletteOpen(false)} />
@@ -977,6 +988,16 @@ const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: 0,
     overflow: 'hidden',
+  },
+  shellScroll: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+  },
+  shellScrollContent: {
+    width: '100%',
+    minHeight: '100%',
+    flexGrow: 1,
   },
   contentWithoutHeader: {
     paddingTop: 0,
@@ -1209,16 +1230,21 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   workspace: {
-    flex: 1,
+    width: '100%',
     minWidth: 0,
-    minHeight: 0,
     flexDirection: 'row',
   },
-  workspaceFrame: {
+  workspaceFill: {
     flex: 1,
-    minWidth: 0,
     minHeight: 0,
+  },
+  workspaceFrame: {
+    minWidth: 0,
     margin: 12,
+  },
+  workspaceFrameFill: {
+    flex: 1,
+    minHeight: 0,
     overflow: 'hidden',
   },
   areaRow: {
@@ -1284,10 +1310,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  contentScroll: {
-    flex: 1,
-    minWidth: 0,
   },
   contentFill: {
     flex: 1,
