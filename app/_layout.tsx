@@ -114,7 +114,6 @@ function RouteScopedLegacyOverlays() {
     <>
       <BusinessWelcomeGate />
       <PortalWelcomeGate />
-      <GlobalScreensaver />
     </>
   );
 }
@@ -130,6 +129,7 @@ export default function RootLayout() {
                 <ModalStackProvider>
                   <ScreensaverSettingsProvider>
                     <RouteScopedLegacyOverlays />
+                    <GlobalScreensaver />
                     <RootShell />
                   </ScreensaverSettingsProvider>
                 </ModalStackProvider>
