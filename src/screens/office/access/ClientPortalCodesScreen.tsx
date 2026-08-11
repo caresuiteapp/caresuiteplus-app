@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AccessCredentialsPanel } from '@/components/auth/AccessCredentialsPanel';
 import { AccessListHero } from '@/components/access';
 import { ScreenShell } from '@/components/layout';
@@ -61,6 +61,7 @@ function resolveStatusLabel(item: ClientPortalAccessListItem): string {
 
 export function ClientPortalCodesScreen() {
   const router = useRouter();
+  const { clientId: requestedClientId } = useLocalSearchParams<{ clientId?: string | string[] }>();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const isLive = isClientPortalAccessLiveReady();
@@ -101,8 +102,12 @@ export function ClientPortalCodesScreen() {
 
   useEffect(() => {
     if (selectedClientId || clientOptions.length === 0) return;
-    setSelectedClientId(clientOptions[0]!.key);
-  }, [clientOptions, selectedClientId]);
+    const routeClientId = Array.isArray(requestedClientId)
+      ? requestedClientId[0]
+      : requestedClientId;
+    const requestedClientExists = clientOptions.some((option) => option.key === routeClientId);
+    setSelectedClientId(requestedClientExists ? routeClientId! : clientOptions[0]!.key);
+  }, [clientOptions, requestedClientId, selectedClientId]);
 
   if (!tenantId) {
     return (

@@ -215,7 +215,7 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'live', label: 'Live-Status', description: 'GPS, Anfahrt und Abweichungen', pageType: 'command-center', route: '/assist/live-status' },
     { id: 'proofs', label: 'Nachweise', description: 'Leistungsnachweise, Prüfung und Freigabe', pageType: 'work-list', route: '/assist/nachweise' },
     { id: 'budgets', label: 'Budgets', description: 'Anspruch, Verbrauch und Prognose', pageType: 'analytics', route: '/assist/abrechnungsquellen' },
-    { id: 'portals', label: 'Portale', description: 'Zugänge und Freigaben', pageType: 'settings', route: '/assist/portal-preview' },
+    { id: 'portals', label: 'Portale', description: 'Klient:innenzugänge und Freigaben', pageType: 'settings', route: '/assist/portale' },
   ],
   pflege: [
     { id: 'sis', label: 'SIS', description: 'Strukturierte Informationssammlung', pageType: 'editor', route: '/pflege/sis' },

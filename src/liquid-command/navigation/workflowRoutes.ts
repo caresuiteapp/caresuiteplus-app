@@ -57,7 +57,7 @@ const primaryWorkflowRoutes: Partial<Record<LiquidModuleKey, Record<string, stri
     live: '/assist/live-status',
     proofs: '/assist/nachweise/review',
     budgets: '/assist/abrechnungsquellen',
-    portals: '/assist/portal-preview',
+    portals: '/assist/portale',
   },
   pflege: {
     sis: '/pflege/sis/new',

@@ -24,7 +24,7 @@ const routeAliases: Partial<Record<LiquidModuleKey, readonly RouteAlias[]>> = {
     { area: 'planning', pattern: /^\/assist\/(?:calendar|kalender|touren|touren-vertretung)(?:\/|$)/ },
     { area: 'proofs', pattern: /^\/assist\/(?:nachweise|signaturen)(?:\/|$)/ },
     { area: 'budgets', pattern: /^\/assist\/abrechnungsquellen(?:\/|$)/ },
-    { area: 'portals', pattern: /^\/assist\/portal-preview(?:\/|$)/ },
+    { area: 'portals', pattern: /^\/assist\/(?:portale|portal-preview)(?:\/|$)/ },
     { area: 'clients', pattern: /^\/assist\/zugeordnete-klienten(?:\/|$)/ },
     { area: 'assignments', pattern: /^\/assist\/(?:einsaetze|assignments|execution|durchfuehrung|aufgaben|fahrten)(?:\/|$)/ },
   ],

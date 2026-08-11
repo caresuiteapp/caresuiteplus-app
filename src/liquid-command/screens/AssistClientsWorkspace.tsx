@@ -246,7 +246,7 @@ function AssistClientDetail({ context }: { context: AssistClientContext | null }
         <LiquidButton
           label="Portal & Freigaben"
           variant="ghost"
-          onPress={() => router.push(`/assist/portal-preview?clientId=${clientId}` as never)}
+          onPress={() => router.push(`/assist/portale?clientId=${clientId}` as never)}
         />
       </View>
     </LiquidSurface>
