@@ -755,6 +755,16 @@ export function LiquidCommandShell({
     <LiquidBackdrop>
       <View style={styles.shell}>
         <View style={styles.shellMain}>
+          <CommandBar
+            activeModule={activeModule}
+            onOpenSearch={() => setPaletteOpen(true)}
+            onOpenNotifications={() => setNotificationsOpen(true)}
+            onOpenProfile={() => setProfileOpen(true)}
+          />
+          <OrbitModuleNavigation
+            activeModule={activeModule}
+            messageBadge={messageBadge}
+          />
           <ScrollView
             testID="liquid-command-page-scroll"
             style={styles.shellScroll}
@@ -763,16 +773,6 @@ export function LiquidCommandShell({
             nestedScrollEnabled
             showsVerticalScrollIndicator={false}
           >
-            <CommandBar
-              activeModule={activeModule}
-              onOpenSearch={() => setPaletteOpen(true)}
-              onOpenNotifications={() => setNotificationsOpen(true)}
-              onOpenProfile={() => setProfileOpen(true)}
-            />
-            <OrbitModuleNavigation
-              activeModule={activeModule}
-              messageBadge={messageBadge}
-            />
             {showContextBar ? (
               <View style={styles.contextBar}>
                 <View style={styles.contextCopy}>
