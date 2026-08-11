@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Modal,
   Platform,
@@ -56,21 +56,6 @@ type LiquidCommandShellProps = {
   contentMode?: 'scroll' | 'fill';
   showPageHeader?: boolean;
   showContextBar?: boolean;
-};
-
-type WebScrollNode = {
-  scrollTop: number;
-  scrollHeight: number;
-  clientHeight: number;
-  parentElement: WebScrollNode | null;
-};
-
-type WebWheelCaptureEvent = {
-  currentTarget: WebScrollNode;
-  target: WebScrollNode | null;
-  deltaY: number;
-  preventDefault: () => void;
-  stopPropagation: () => void;
 };
 
 function RotateDeviceScreen() {
@@ -700,39 +685,50 @@ export function LiquidCommandShell({
       ? Math.max(320, pageScrollHeight + fillContentOffset)
       : null;
 
-  const handlePageWheelCapture = (event: WebWheelCaptureEvent) => {
-    if (Platform.OS !== 'web') return;
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
 
-    const outer = event.currentTarget;
-    const deltaY = Number(event.deltaY || 0);
-    const maxOuterScroll = Math.max(0, outer.scrollHeight - outer.clientHeight);
-    if (!deltaY || maxOuterScroll <= 1) return;
+    const handleDocumentWheel = (event: WheelEvent) => {
+      const outer = document.querySelector<HTMLElement>(
+        '[data-testid="liquid-command-page-scroll"]',
+      );
+      const target = event.target instanceof HTMLElement ? event.target : null;
 
-    if (deltaY > 0 && outer.scrollTop < maxOuterScroll - 1) {
-      event.preventDefault();
-      event.stopPropagation();
-      outer.scrollTop = Math.min(maxOuterScroll, outer.scrollTop + deltaY);
-      return;
-    }
-
-    if (deltaY >= 0 || outer.scrollTop <= 1) return;
-
-    let node = event.target;
-    let innerHasScrollOffset = false;
-    while (node && node !== outer) {
-      if (node.scrollHeight > node.clientHeight + 1 && node.scrollTop > 1) {
-        innerHasScrollOffset = true;
-        break;
+      if (!outer || !target || !outer.contains(target)) {
+        return;
       }
-      node = node.parentElement;
-    }
 
-    if (!innerHasScrollOffset) {
-      event.preventDefault();
-      event.stopPropagation();
-      outer.scrollTop = Math.max(0, outer.scrollTop + deltaY);
-    }
-  };
+      const deltaY = Number(event.deltaY || 0);
+      const maxOuterScroll = Math.max(0, outer.scrollHeight - outer.clientHeight);
+      if (!deltaY || maxOuterScroll <= 1) return;
+
+      if (deltaY > 0 && outer.scrollTop < maxOuterScroll - 1) {
+        event.preventDefault();
+        outer.scrollTop = Math.min(maxOuterScroll, outer.scrollTop + deltaY);
+        return;
+      }
+
+      if (deltaY >= 0 || outer.scrollTop <= 1) return;
+
+      let node: HTMLElement | null = target;
+      let innerHasScrollOffset = false;
+      while (node && node !== outer) {
+        if (node.scrollHeight > node.clientHeight + 1 && node.scrollTop > 1) {
+          innerHasScrollOffset = true;
+          break;
+        }
+        node = node.parentElement;
+      }
+
+      if (!innerHasScrollOffset) {
+        event.preventDefault();
+        outer.scrollTop = Math.max(0, outer.scrollTop + deltaY);
+      }
+    };
+
+    document.addEventListener('wheel', handleDocumentWheel, { capture: true, passive: false });
+    return () => document.removeEventListener('wheel', handleDocumentWheel, { capture: true });
+  }, []);
 
   if (layout.formFactor === 'phone-landscape-blocked' && !allowPhoneLandscape) {
     return <RotateDeviceScreen />;
@@ -836,7 +832,6 @@ export function LiquidCommandShell({
             messageBadge={messageBadge}
           />
           <ScrollView
-            {...(Platform.OS === 'web' ? { onWheelCapture: handlePageWheelCapture } : {})}
             testID="liquid-command-page-scroll"
             style={styles.shellScroll}
             contentContainerStyle={styles.shellScrollContent}
