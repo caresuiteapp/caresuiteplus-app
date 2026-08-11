@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { useOfficeMessageNavBadges } from '@/hooks/useOfficeMessageNavBadges';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
+import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import {
   LiquidBackdrop,
   LiquidButton,
@@ -440,6 +441,8 @@ function ProfileMenu({
   const displayName =
     auth.profile?.displayName || auth.user?.displayName || 'CareSuite Profil';
   const role = auth.profile?.roleKey ?? 'CareSuite';
+  const avatarUrl = auth.profile?.avatarUrl?.trim() || undefined;
+  const avatarVersion = auth.profile?.updatedAt ?? auth.profile?.avatarUrl;
 
   const open = (route: string) => {
     onClose();
@@ -468,11 +471,13 @@ function ProfileMenu({
         >
           <LiquidSurface active contentStyle={styles.profileMenu}>
             <View style={styles.profileMenuHeader}>
-              <View style={styles.profileMenuAvatar}>
-                <Text style={styles.profileMenuAvatarLabel}>
-                  {displayName.slice(0, 1).toUpperCase()}
-                </Text>
-              </View>
+              <TopbarProfileAvatar
+                name={displayName}
+                avatarUrl={avatarUrl}
+                avatarVersion={avatarVersion}
+                accentColor={liquidColors.blue400}
+                size="lg"
+              />
               <View style={styles.profileMenuIdentity}>
                 <Text numberOfLines={1} style={styles.profileMenuName}>{displayName}</Text>
                 <Text numberOfLines={1} style={styles.profileMenuRole}>{role}</Text>
@@ -549,6 +554,8 @@ function CommandBar({
   const displayName = profile?.displayName || user?.displayName || 'Profil';
   const role = profile?.roleKey ?? 'CareSuite';
   const module = getLiquidModule(activeModule);
+  const avatarUrl = profile?.avatarUrl?.trim() || undefined;
+  const avatarVersion = profile?.updatedAt ?? profile?.avatarUrl;
 
   return (
     <View style={[styles.commandBar, isPhone && styles.commandBarPhone]}>
@@ -594,22 +601,26 @@ function CommandBar({
           onPress={onOpenNotifications}
         />
         {!isPhone ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Profil ${displayName} öffnen`}
-            onPress={onOpenProfile}
-            style={({ pressed }) => [styles.profile, pressed && styles.pressed]}
-          >
+          <View style={styles.profile}>
             {layout.width >= 1320 ? (
-              <View style={styles.profileCopy}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Profil ${displayName} öffnen`}
+                onPress={onOpenProfile}
+                style={({ pressed }) => [styles.profileCopy, pressed && styles.pressed]}
+              >
                 <Text numberOfLines={1} style={styles.profileName}>{displayName}</Text>
                 <Text numberOfLines={1} style={styles.profileRole}>{role}</Text>
-              </View>
+              </Pressable>
             ) : null}
-            <View style={styles.avatar}>
-              <LiquidGlyph glyph="♙" size={20} />
-            </View>
-          </Pressable>
+            <TopbarProfileAvatar
+              name={displayName}
+              avatarUrl={avatarUrl}
+              avatarVersion={avatarVersion}
+              accentColor={liquidColors.blue400}
+              size="lg"
+            />
+          </View>
         ) : null}
       </View>
     </View>
@@ -1314,15 +1325,15 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   profile: {
-    minHeight: 48,
-    maxWidth: 210,
-    paddingLeft: 9,
-    paddingRight: 5,
+    minHeight: 60,
+    maxWidth: 250,
+    paddingLeft: 11,
+    paddingRight: 3,
     borderRadius: liquidRadius.small,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 9,
+    gap: 12,
   },
   profileCopy: {
     minWidth: 0,
@@ -1339,16 +1350,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   profileName: {
-    maxWidth: 130,
+    maxWidth: 150,
     color: '#0B1220',
-    fontSize: 13,
-    lineHeight: 17,
-    fontWeight: '700',
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '800',
   },
   profileRole: {
     color: '#64748B',
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 16,
   },
   contextBar: {
     minHeight: 44,

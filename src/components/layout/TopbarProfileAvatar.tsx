@@ -20,7 +20,7 @@ type TopbarProfileAvatarProps = {
   avatarUrl?: string | null;
   avatarVersion?: string | null;
   accentColor?: string;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
   style?: ViewStyle;
 };
 
