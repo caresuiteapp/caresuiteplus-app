@@ -14,6 +14,7 @@ import { tripSupabaseRepository } from '@/lib/services/repositories/tripReposito
 import { trackingSupabaseRepository } from '@/lib/services/repositories/trackingRepository.supabase';
 import { isMissingTableServiceError } from '@/lib/supabase/errors';
 import { emptyTrackingDashboard } from '@/lib/assist/trackingDashboardMapper';
+import type { TravelRouteType } from '@/types/modules/travelCompensation';
 
 function tenantDenied<T>(tenantId: string): ServiceResult<T> | null {
   const block = guardServiceTenant(tenantId);
@@ -90,6 +91,13 @@ export async function fetchTripDetail(
     endedAt: trip.endedAt,
     distanceKm: trip.distanceKm,
     status: trip.status,
+    travelType: trip.travelType,
+    logbookEligible: trip.logbookEligible,
+    payrollEligible: trip.payrollEligible,
+    workTimeEligible: trip.workTimeEligible,
+    clientBillingEligible: trip.clientBillingEligible,
+    mileageRateCents: trip.mileageRateCents,
+    mileageAmountCents: trip.distanceKm == null ? 0 : Math.round(trip.distanceKm * (trip.mileageRateCents ?? 0)),
     updatedAt: trip.updatedAt,
     employeeName: trip.employeeName,
     routeSummary: `${trip.startAddress}${trip.endAddress ? ` → ${trip.endAddress}` : ' (läuft)'}`,
@@ -132,6 +140,7 @@ export async function completeTrip(
   tenantId: string,
   endAddress: string,
   distanceKm: number,
+  travelType?: TravelRouteType,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TripLogDetail>> {
   const denied = enforcePermission<TripLogDetail>(actorRoleKey, 'assist.trips.manage');
@@ -146,6 +155,7 @@ export async function completeTrip(
       tenantId,
       endAddress,
       distanceKm,
+      travelType,
     );
   }
 

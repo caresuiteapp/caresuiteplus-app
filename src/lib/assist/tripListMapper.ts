@@ -1,6 +1,8 @@
 import type { ServiceResult } from '@/types';
 import type { TripLogListItem, TripPurpose } from '@/types/modules/assist';
 import type { WorkflowStatus } from '@/types';
+import { inferTravelRouteType } from '@/lib/travel/travelCompensationPolicy';
+import type { TravelRouteType } from '@/types/modules/travelCompensation';
 
 /** Felder, die für vollständige Live-Listen-Mappings erforderlich sind. */
 export const TRIP_LIVE_REQUIRED_FIELDS = [
@@ -16,7 +18,7 @@ export const TRIP_BASE_SELECT_COLUMNS =
 
 /** Live-Spalten aus Migration 0021 — SELECT nur wenn Migration angewendet. */
 export const TRIP_LIVE_SELECT_COLUMNS =
-  `${TRIP_BASE_SELECT_COLUMNS}, employee_name, vehicle_label, purpose, started_at, ended_at`;
+  `${TRIP_BASE_SELECT_COLUMNS}, employee_id, employee_name, vehicle_label, purpose, started_at, ended_at, travel_type, logbook_eligible, payroll_eligible, work_time_eligible, client_billing_eligible, mileage_rate_cents, mileage_amount_cents`;
 
 export type TripLiveRow = {
   id: string;
@@ -24,11 +26,19 @@ export type TripLiveRow = {
   title: string;
   status: string;
   employee_name?: string | null;
+  employee_id?: string | null;
   vehicle_label?: string | null;
   purpose?: string | null;
   started_at?: string | null;
   ended_at?: string | null;
   distance_km?: number | null;
+  travel_type?: TravelRouteType | null;
+  logbook_eligible?: boolean | null;
+  payroll_eligible?: boolean | null;
+  work_time_eligible?: boolean | null;
+  client_billing_eligible?: boolean | null;
+  mileage_rate_cents?: number | null;
+  mileage_amount_cents?: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -65,7 +75,7 @@ export function mapCompleteTripRow(row: TripLiveRow): TripLogListItem {
   return {
     id: row.id,
     tenantId: row.tenant_id,
-    employeeId: '',
+    employeeId: row.employee_id ?? '',
     assignmentId: null,
     vehicleLabel: row.vehicle_label!.trim(),
     purpose: row.purpose as TripPurpose,
@@ -73,6 +83,13 @@ export function mapCompleteTripRow(row: TripLiveRow): TripLogListItem {
     endedAt: row.ended_at ?? null,
     distanceKm: row.distance_km != null ? Number(row.distance_km) : null,
     status: row.status as WorkflowStatus,
+    travelType: row.travel_type ?? inferTravelRouteType(row.purpose),
+    logbookEligible: row.logbook_eligible !== false,
+    payrollEligible: row.payroll_eligible === true,
+    workTimeEligible: row.work_time_eligible === true,
+    clientBillingEligible: row.client_billing_eligible === true,
+    mileageRateCents: row.mileage_rate_cents == null ? null : Number(row.mileage_rate_cents),
+    mileageAmountCents: Number(row.mileage_amount_cents ?? 0),
     updatedAt: row.updated_at,
     employeeName: row.employee_name!.trim(),
     routeSummary: row.title.trim(),

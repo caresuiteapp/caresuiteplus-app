@@ -1,10 +1,10 @@
 import { StyleSheet, Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
-import { PURPOSE_LABELS } from '@/lib/assist';
 import type { TripLogListItem } from '@/types/modules/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, typography } from '@/theme';
+import { TRAVEL_ROUTE_TYPE_LABELS } from '@/types/modules/travelCompensation';
 
 type TripsListTableProps = {
   trips: TripLogListItem[];
@@ -93,7 +93,7 @@ export function TripsListTable({
           flex: 1.2,
           render: (item) => (
             <Text style={tableText.cellText} numberOfLines={1}>
-              {PURPOSE_LABELS[item.purpose]}
+              {TRAVEL_ROUTE_TYPE_LABELS[item.travelType]}
             </Text>
           ),
         },
@@ -127,6 +127,17 @@ export function TripsListTable({
             <Text style={styles.distance}>
               {item.distanceKm != null ? `${item.distanceKm}` : '—'}
             </Text>
+          ),
+        },
+        {
+          key: 'payroll',
+          label: 'Vergütung',
+          width: 96,
+          render: (item) => (
+            <PremiumBadge
+              label={item.payrollEligible ? `${(item.mileageAmountCents / 100).toFixed(2).replace('.', ',')} €` : 'Nein'}
+              variant={item.payrollEligible ? 'green' : 'muted'}
+            />
           ),
         },
         {

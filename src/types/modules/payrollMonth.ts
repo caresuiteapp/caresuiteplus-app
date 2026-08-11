@@ -71,6 +71,9 @@ export type PayrollExpenseClaim = {
   origin: string | null;
   destination: string | null;
   vehicleLabel: string | null;
+  drivingLogId?: string | null;
+  travelType?: import('./travelCompensation').TravelRouteType | null;
+  automaticSource?: boolean;
   businessPurpose: string;
   taxTreatment: 'reimbursement' | 'taxable' | 'review';
   status: ExpenseClaimStatus;
@@ -214,6 +217,8 @@ export type CreateExpenseClaimInput = {
   origin?: string | null;
   destination?: string | null;
   vehicleLabel?: string | null;
+  drivingLogId?: string | null;
+  travelType?: import('./travelCompensation').TravelRouteType | null;
   assignmentId?: string | null;
   clientId?: string | null;
 };

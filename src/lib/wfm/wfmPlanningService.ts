@@ -1,5 +1,7 @@
 import type { ServiceResult } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import type { TravelCompensationPolicy } from '@/types/modules/travelCompensation';
+import { normalizeTravelCompensationPolicy } from '@/lib/travel/travelCompensationPolicy';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 
@@ -12,6 +14,7 @@ export type WfmTravelRule = {
   countsAsWorkTime: boolean;
   roundToMinutes: number;
   mileageRateCents: number;
+  travelPolicy: TravelCompensationPolicy;
   priority: number;
   isActive: boolean;
   notes: string;
@@ -60,7 +63,9 @@ function travelRule(row: Row): WfmTravelRule {
     minGapMinutes: Number(row.min_gap_minutes ?? 0),
     maxGapMinutes: row.max_gap_minutes == null ? null : Number(row.max_gap_minutes),
     countsAsWorkTime: Boolean(row.counts_as_work_time), roundToMinutes: Number(row.round_to_minutes ?? 1),
-    mileageRateCents: Number(row.mileage_rate_cents ?? 0), priority: Number(row.priority ?? 100),
+    mileageRateCents: Number(row.mileage_rate_cents ?? 0),
+    travelPolicy: normalizeTravelCompensationPolicy(row.travel_policy_json),
+    priority: Number(row.priority ?? 100),
     isActive: Boolean(row.is_active), notes: String(row.notes ?? ''),
   };
 }
@@ -95,7 +100,7 @@ export async function saveWfmTravelRule(input: Omit<WfmTravelRule, 'id' | 'tenan
   if (input.maxGapMinutes != null && (!Number.isFinite(input.maxGapMinutes) || input.maxGapMinutes < input.minGapMinutes)) return { ok: false, error: 'Die Maximallücke darf nicht kleiner als die Mindestlücke sein.' };
   if (![1, 5, 10, 15, 30].includes(input.roundToMinutes)) return { ok: false, error: 'Die Rundung muss 1, 5, 10, 15 oder 30 Minuten betragen.' };
   if (!Number.isFinite(input.mileageRateCents) || input.mileageRateCents < 0) return { ok: false, error: 'Die Kilometerpauschale darf nicht negativ sein.' };
-  const payload = { tenant_id: input.tenantId, name: input.name.trim(), min_gap_minutes: input.minGapMinutes, max_gap_minutes: input.maxGapMinutes, counts_as_work_time: input.countsAsWorkTime, round_to_minutes: input.roundToMinutes, mileage_rate_cents: input.mileageRateCents, priority: input.priority, is_active: input.isActive, notes: input.notes.trim(), created_by: input.actorId ?? null, updated_at: new Date().toISOString() };
+  const payload = { tenant_id: input.tenantId, name: input.name.trim(), min_gap_minutes: input.minGapMinutes, max_gap_minutes: input.maxGapMinutes, counts_as_work_time: input.countsAsWorkTime, round_to_minutes: input.roundToMinutes, mileage_rate_cents: input.mileageRateCents, travel_policy_json: normalizeTravelCompensationPolicy(input.travelPolicy), priority: input.priority, is_active: input.isActive, notes: input.notes.trim(), created_by: input.actorId ?? null, updated_at: new Date().toISOString() };
   const query = input.id
     ? fromUnknownTable(supabase, 'workforce_travel_rules').update(payload).eq('tenant_id', input.tenantId).eq('id', input.id)
     : fromUnknownTable(supabase, 'workforce_travel_rules').insert(payload);

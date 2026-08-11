@@ -19,6 +19,7 @@ import {
   calculateProRatedVacationDays,
   deriveBankNameFromIban,
 } from './employeePayrollValidation';
+import { normalizeTravelCompensationPolicy } from '@/lib/travel/travelCompensationPolicy';
 
 export type EmployeePayrollPersonalRow = {
   salutation?: string | null;
@@ -48,6 +49,7 @@ export type EmployeePayrollSettingsRow = {
   max_payout_hours_month?: number | null;
   overflow_to_time_account?: boolean | null;
   mileage_rate_cents?: number | null;
+  travel_policy_override?: unknown;
   payroll_notes?: string | null;
 };
 
@@ -149,6 +151,9 @@ export function mapPayrollSettingsRow(
     maxPayoutHoursMonth: row?.max_payout_hours_month ?? null,
     overflowToTimeAccount: row?.overflow_to_time_account !== false,
     mileageRateCents: row?.mileage_rate_cents ?? 30,
+    travelPolicyOverride: row?.travel_policy_override
+      ? normalizeTravelCompensationPolicy(row.travel_policy_override)
+      : null,
     payrollNotes: row?.payroll_notes?.trim() || null,
   };
 }
@@ -260,6 +265,9 @@ export function buildPayrollSettingsUpsertPayload(
   if (patch.maxPayoutHoursMonth !== undefined) payload.max_payout_hours_month = patch.maxPayoutHoursMonth;
   if (patch.overflowToTimeAccount !== undefined) payload.overflow_to_time_account = patch.overflowToTimeAccount;
   if (patch.mileageRateCents !== undefined) payload.mileage_rate_cents = patch.mileageRateCents;
+  if (patch.travelPolicyOverride !== undefined) {
+    payload.travel_policy_override = patch.travelPolicyOverride;
+  }
   if (patch.payrollNotes !== undefined) payload.payroll_notes = patch.payrollNotes?.trim() || null;
   return payload;
 }

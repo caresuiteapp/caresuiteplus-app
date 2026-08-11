@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { ScreenShell } from '@/components/layout';
@@ -10,15 +11,23 @@ import {
   PremiumCard,
   SectionPanel,
   SuccessState,
+  FilterChipGroup,
 } from '@/components/ui';
 import { useTripDetail } from '@/hooks/useTripDetail';
 import { PURPOSE_LABELS } from '@/lib/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
+import { TRAVEL_ROUTE_TYPE_LABELS, type TravelRouteType } from '@/types/modules/travelCompensation';
+
+const TRAVEL_TYPE_OPTIONS = Object.entries(TRAVEL_ROUTE_TYPE_LABELS).map(([key, label]) => ({
+  key: key as TravelRouteType,
+  label,
+}));
 
 export function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const [travelType, setTravelType] = useState<TravelRouteType>('office_to_client');
   const { data: trip, loading, error, actionLoading, successMessage, refresh, completeTrip, notFound } =
     useTripDetail(id);
 
@@ -75,14 +84,18 @@ export function TripDetailScreen() {
         ) : null}
 
         {isActive ? (
-          <PremiumButton
-            title="Fahrt abschließen (Demo)"
-            fullWidth
-            loading={actionLoading}
-            onPress={() =>
-              completeTrip({ endAddress: 'Ziel erreicht (Demo)', distanceKm: 6.5 })
-            }
-          />
+          <SectionPanel title="Fahrt abschließen">
+            <Text style={styles.purpose}>Fahrtart für Fahrtenbuch und Vergütungsregel</Text>
+            <FilterChipGroup options={TRAVEL_TYPE_OPTIONS} value={travelType} onChange={setTravelType} wrap />
+            <PremiumButton
+              title="Fahrt abschließen"
+              fullWidth
+              loading={actionLoading}
+              onPress={() =>
+                completeTrip({ endAddress: 'Ziel erreicht', distanceKm: 6.5, travelType })
+              }
+            />
+          </SectionPanel>
         ) : null}
       </ScrollView>
     </ScreenShell>

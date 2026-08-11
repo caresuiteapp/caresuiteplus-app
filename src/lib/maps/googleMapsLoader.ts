@@ -28,6 +28,19 @@ export type GoogleLatLngBoundsInstance = {
   extend: (latLng: { lat: number; lng: number }) => void;
 };
 
+/** Von der Maps JavaScript API unterstützte Basiskartentypen. */
+export type GoogleMapTypeId = 'roadmap' | 'satellite' | 'hybrid' | 'terrain';
+
+export type GoogleMapOptions = {
+  center?: { lat: number; lng: number };
+  zoom?: number;
+  mapTypeId?: GoogleMapTypeId;
+  mapTypeControl?: boolean;
+  streetViewControl?: boolean;
+  fullscreenControl?: boolean;
+  styles?: readonly unknown[];
+};
+
 export type GoogleGeocoderResult = {
   geometry: {
     location: {
@@ -49,14 +62,7 @@ export type GoogleMapsNamespace = {
   maps: {
     Map: new (
       el: HTMLElement,
-      opts: {
-        center?: { lat: number; lng: number };
-        zoom?: number;
-        mapTypeControl?: boolean;
-        streetViewControl?: boolean;
-        fullscreenControl?: boolean;
-        styles?: readonly unknown[];
-      },
+      opts: GoogleMapOptions,
     ) => GoogleMapInstance;
     Marker: new (opts: {
       map?: GoogleMapInstance;

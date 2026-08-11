@@ -10,7 +10,7 @@ import {
 
 /** Detail-Spalten aus Migration 0022 — SELECT nur wenn Migration angewendet. */
 export const TRIP_DETAIL_SELECT_COLUMNS =
-  `${TRIP_LIVE_SELECT_COLUMNS}, start_address, end_address, notes`;
+  `${TRIP_LIVE_SELECT_COLUMNS}, start_address, end_address, notes, policy_snapshot`;
 
 /** Für Detail zusätzlich erforderliche Schema-Spalte (Adresse). */
 export const TRIP_DETAIL_REQUIRED_FIELDS = ['start_address'] as const;

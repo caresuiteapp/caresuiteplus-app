@@ -23,6 +23,7 @@ import type {
   AssistTrackingSessionRow,
 } from '@/types/assistExecutionPersistence';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { inferTravelRouteType } from '@/lib/travel/travelCompensationPolicy';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
@@ -83,6 +84,13 @@ type DrivingLogDbRow = {
   started_at: string | null;
   ended_at: string | null;
   distance_km: number | null;
+  travel_type: AssistDrivingLogRow['travelType'] | null;
+  logbook_eligible: boolean;
+  payroll_eligible: boolean;
+  work_time_eligible: boolean;
+  client_billing_eligible: boolean;
+  mileage_rate_cents: number | null;
+  mileage_amount_cents: number | null;
   start_address: string | null;
   end_address: string | null;
   correction_reason: string | null;
@@ -154,6 +162,13 @@ function mapDrivingLogRow(row: DrivingLogDbRow): AssistDrivingLogRow {
     startedAt: row.started_at,
     endedAt: row.ended_at,
     distanceKm: row.distance_km,
+    travelType: row.travel_type ?? inferTravelRouteType(row.purpose),
+    logbookEligible: row.logbook_eligible,
+    payrollEligible: row.payroll_eligible,
+    workTimeEligible: row.work_time_eligible,
+    clientBillingEligible: row.client_billing_eligible,
+    mileageRateCents: row.mileage_rate_cents,
+    mileageAmountCents: row.mileage_amount_cents ?? 0,
     startAddress: row.start_address,
     endAddress: row.end_address,
     correctionReason: row.correction_reason,
@@ -526,6 +541,7 @@ export async function appendDrivingLogEntry(
       started_at: input.startedAt ?? null,
       ended_at: input.endedAt ?? null,
       distance_km: input.distanceKm ?? null,
+      travel_type: input.travelType ?? null,
       start_address: input.startAddress ?? null,
       end_address: input.endAddress ?? null,
       status: input.status ?? 'open',

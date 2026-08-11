@@ -9,8 +9,19 @@ function employeeName(id: string): string {
 
 type TripSeed = TripLog & { notes?: string | null };
 
+const DEMO_TRAVEL_FIELDS = {
+  travelType: 'office_to_client' as const,
+  logbookEligible: true,
+  payrollEligible: true,
+  workTimeEligible: true,
+  clientBillingEligible: false,
+  mileageRateCents: 30,
+  mileageAmountCents: 0,
+};
+
 const TRIP_SEEDS: TripSeed[] = [
   {
+    ...DEMO_TRAVEL_FIELDS,
     id: 'trip-001',
     tenantId: DEMO_TENANT_ID,
     employeeId: 'employee-001',
@@ -28,6 +39,7 @@ const TRIP_SEEDS: TripSeed[] = [
     notes: 'Anfahrt zum Einsatz Alltagsbegleitung',
   },
   {
+    ...DEMO_TRAVEL_FIELDS,
     id: 'trip-002',
     tenantId: DEMO_TENANT_ID,
     employeeId: 'employee-002',
@@ -45,6 +57,8 @@ const TRIP_SEEDS: TripSeed[] = [
     notes: 'Unterwegs zur Pflegevisit',
   },
   {
+    ...DEMO_TRAVEL_FIELDS,
+    travelType: 'other_business',
     id: 'trip-003',
     tenantId: DEMO_TENANT_ID,
     employeeId: 'employee-003',
@@ -61,6 +75,8 @@ const TRIP_SEEDS: TripSeed[] = [
     updatedAt: '2026-06-01T08:00:00.000Z',
   },
   {
+    ...DEMO_TRAVEL_FIELDS,
+    travelType: 'client_to_client',
     id: 'trip-004',
     tenantId: DEMO_TENANT_ID,
     employeeId: 'employee-001',
@@ -141,6 +157,13 @@ export function getDemoTripListItems(): TripLogListItem[] {
     endedAt: t.endedAt,
     distanceKm: t.distanceKm,
     status: t.status,
+    travelType: t.travelType,
+    logbookEligible: t.logbookEligible,
+    payrollEligible: t.payrollEligible,
+    workTimeEligible: t.workTimeEligible,
+    clientBillingEligible: t.clientBillingEligible,
+    mileageRateCents: t.mileageRateCents,
+    mileageAmountCents: t.distanceKm == null ? 0 : Math.round(t.distanceKm * (t.mileageRateCents ?? 0)),
     updatedAt: t.updatedAt,
     employeeName: employeeName(t.employeeId),
     routeSummary: `${t.startAddress}${t.endAddress ? ` → ${t.endAddress}` : ' (läuft)'}`,

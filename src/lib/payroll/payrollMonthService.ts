@@ -99,6 +99,9 @@ function mapExpense(row: Row): PayrollExpenseClaim {
     mileageRateCents: row.mileage_rate_cents == null ? null : asNumber(row.mileage_rate_cents),
     origin: asNullableString(row.origin), destination: asNullableString(row.destination),
     vehicleLabel: asNullableString(row.vehicle_label), businessPurpose: asString(row.business_purpose),
+    drivingLogId: asNullableString(row.driving_log_id),
+    travelType: asNullableString(row.travel_type) as PayrollExpenseClaim['travelType'],
+    automaticSource: row.automatic_source === true,
     taxTreatment: (asString(row.tax_treatment) || 'review') as PayrollExpenseClaim['taxTreatment'],
     status: (asString(row.status) || 'draft') as ExpenseClaimStatus,
     officeNote: asNullableString(row.office_note), rejectionReason: asNullableString(row.rejection_reason),
@@ -633,6 +636,7 @@ export async function createExpenseClaim(input: CreateExpenseClaimInput): Promis
     receipt_number: input.receiptNumber ?? null, receipt_path: input.receiptPath ?? null,
     mileage_km: input.mileageKm ?? null, mileage_rate_cents: input.mileageRateCents ?? null,
     origin: input.origin ?? null, destination: input.destination ?? null, vehicle_label: input.vehicleLabel ?? null,
+    driving_log_id: input.drivingLogId ?? null, travel_type: input.travelType ?? null,
     assignment_id: input.assignmentId ?? null, client_id: input.clientId ?? null,
     status: 'submitted', submitted_at: new Date().toISOString(), created_by: (await supabase.auth.getUser()).data.user?.id ?? null,
   }).select('*').single();

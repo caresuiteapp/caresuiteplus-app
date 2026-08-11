@@ -14,6 +14,7 @@ import {
   TRIP_LIVE_SELECT_COLUMNS,
   type TripLiveRow,
 } from '@/lib/assist/tripListMapper';
+import type { TravelRouteType } from '@/types/modules/travelCompensation';
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -105,6 +106,7 @@ export const tripSupabaseRepository = {
     tenantId: string,
     endAddress: string,
     distanceKm: number,
+    travelType?: TravelRouteType,
   ): Promise<ServiceResult<TripDetailLiveRow>> {
     const existing = await this.getByIdForTripLog(tripId, tenantId);
     if (!existing.ok) return existing;
@@ -131,6 +133,7 @@ export const tripSupabaseRepository = {
       .update({
         end_address: trimmedEnd,
         distance_km: distanceKm,
+        travel_type: travelType ?? existing.data.travel_type ?? null,
         ended_at: now,
         status: 'abgeschlossen',
         updated_at: now,
@@ -152,8 +155,9 @@ export const tripSupabaseRepository = {
     tenantId: string,
     endAddress: string,
     distanceKm: number,
+    travelType?: TravelRouteType,
   ) {
-    const result = await this.completeTrip(tripId, tenantId, endAddress, distanceKm);
+    const result = await this.completeTrip(tripId, tenantId, endAddress, distanceKm, travelType);
     if (!result.ok) return result;
     return mapTripRowToDetail(result.data);
   },

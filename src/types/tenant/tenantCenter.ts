@@ -129,6 +129,8 @@ export type TenantServiceCatalogItem = {
   sortOrder: number;
   defaultPriceNet: number | null;
   defaultTaxMode: ServiceTaxMode | null;
+  /** Fachregel für Fahrtkostenpositionen; bei anderen Kategorien null. */
+  travelPolicy?: import('@/types/modules/travelCompensation').TravelCompensationPolicy | null;
 };
 
 export type TenantServicePrice = {

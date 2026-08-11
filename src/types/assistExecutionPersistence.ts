@@ -263,6 +263,13 @@ export type AssistDrivingLogRow = {
   startedAt: string | null;
   endedAt: string | null;
   distanceKm: number | null;
+  travelType: import('./modules/travelCompensation').TravelRouteType;
+  logbookEligible: boolean;
+  payrollEligible: boolean;
+  workTimeEligible: boolean;
+  clientBillingEligible: boolean;
+  mileageRateCents: number | null;
+  mileageAmountCents: number;
   startAddress: string | null;
   endAddress: string | null;
   correctionReason: string | null;
@@ -281,6 +288,7 @@ export type AssistDrivingLogInsert = {
   startedAt?: string | null;
   endedAt?: string | null;
   distanceKm?: number | null;
+  travelType?: import('./modules/travelCompensation').TravelRouteType | null;
   startAddress?: string | null;
   endAddress?: string | null;
   status?: AssistDrivingLogStatus;

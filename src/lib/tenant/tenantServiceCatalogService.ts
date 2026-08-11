@@ -15,6 +15,11 @@ import { guardServiceTenant, isLiveServiceMode } from '@/lib/services/liveServic
 import { formatHourlyRateDocumentAmount } from '@/lib/formatters/numberFormatters';
 import { formatServicePriceUnitShort } from '@/lib/tenant/serviceCatalogLabels';
 import { TENANT_SETTINGS_PERMISSION } from './tenantSettingsRoute';
+import {
+  DEFAULT_TRAVEL_COMPENSATION_POLICY,
+  normalizeTravelCompensationPolicy,
+} from '@/lib/travel/travelCompensationPolicy';
+import type { TravelCompensationPolicy } from '@/types/modules/travelCompensation';
 
 export type TenantServiceCatalogSnapshot = {
   items: TenantServiceCatalogItem[];
@@ -83,6 +88,7 @@ const DEFAULT_CATALOG_ITEMS: Omit<TenantServiceCatalogItem, 'id'>[] = [
     sortOrder: 100,
     defaultPriceNet: 0.3,
     defaultTaxMode: 'exempt_4_16',
+    travelPolicy: DEFAULT_TRAVEL_COMPENSATION_POLICY,
   },
   {
     moduleKey: 'assist',
@@ -155,6 +161,7 @@ const DEFAULT_CATALOG_ITEMS: Omit<TenantServiceCatalogItem, 'id'>[] = [
     sortOrder: 100,
     defaultPriceNet: 0.3,
     defaultTaxMode: 'exempt_4_16',
+    travelPolicy: DEFAULT_TRAVEL_COMPENSATION_POLICY,
   },
   {
     moduleKey: 'pflege',
@@ -292,6 +299,9 @@ function mapCatalogRow(row: Record<string, unknown>, price?: Record<string, unkn
     sortOrder: Number(row.sort_order ?? 0),
     defaultPriceNet: price?.price_net != null ? Number(price.price_net) : null,
     defaultTaxMode: (price?.tax_mode as ServiceTaxMode | undefined) ?? null,
+    travelPolicy: row.category === 'travel'
+      ? normalizeTravelCompensationPolicy(row.travel_policy_json)
+      : null,
   };
 }
 
@@ -389,6 +399,7 @@ export type SaveCatalogItemInput = {
   taxMode?: ServiceTaxMode;
   taxRate?: number;
   validFrom?: string;
+  travelPolicy?: TravelCompensationPolicy | null;
 };
 
 export async function saveTenantServiceCatalogItem(
@@ -414,6 +425,9 @@ export async function saveTenantServiceCatalogItem(
       sortOrder: input.sortOrder ?? 0,
       defaultPriceNet: input.priceNet ?? null,
       defaultTaxMode: input.taxMode ?? 'exempt_4_16',
+      travelPolicy: input.category === 'travel'
+        ? normalizeTravelCompensationPolicy(input.travelPolicy)
+        : null,
     };
     if (existingIndex >= 0) catalog.items[existingIndex] = next;
     else catalog.items.push(next);
@@ -434,6 +448,9 @@ export async function saveTenantServiceCatalogItem(
     is_active: input.isActive ?? true,
     sort_order: input.sortOrder ?? 0,
     updated_at: new Date().toISOString(),
+    travel_policy_json: input.category === 'travel'
+      ? normalizeTravelCompensationPolicy(input.travelPolicy)
+      : null,
   };
 
   let catalogId = input.id;

@@ -29,6 +29,9 @@ import type { RoleKey } from '@/types/core/auth';
 import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
 import { formatDate, parseGermanDate } from '@/lib/formatters/dateTimeFormatters';
 import { spacing } from '@/theme';
+import { TravelPolicyEditor } from '@/components/travel/TravelPolicyEditor';
+import { DEFAULT_TRAVEL_COMPENSATION_POLICY } from '@/lib/travel/travelCompensationPolicy';
+import type { TravelCompensationPolicy } from '@/types/modules/travelCompensation';
 
 function toIsoDateOrNull(value: string): string | null {
   const trimmed = value.trim();
@@ -139,6 +142,10 @@ export function EmployeePayrollPersonnelPanel({
   const [maxPayoutHoursMonth, setMaxPayoutHoursMonth] = useState('');
   const [overflowToTimeAccount, setOverflowToTimeAccount] = useState(true);
   const [mileageRate, setMileageRate] = useState('0,30');
+  const [useTenantTravelPolicy, setUseTenantTravelPolicy] = useState(true);
+  const [travelPolicyOverride, setTravelPolicyOverride] = useState<TravelCompensationPolicy>(
+    DEFAULT_TRAVEL_COMPENSATION_POLICY,
+  );
   const [payrollNotes, setPayrollNotes] = useState('');
 
   const [taxCalculationType, setTaxCalculationType] = useState('');
@@ -190,6 +197,8 @@ export function EmployeePayrollPersonnelPanel({
     setMaxPayoutHoursMonth(pay.maxPayoutHoursMonth != null ? String(pay.maxPayoutHoursMonth) : '');
     setOverflowToTimeAccount(pay.overflowToTimeAccount);
     setMileageRate((pay.mileageRateCents / 100).toFixed(2).replace('.', ','));
+    setUseTenantTravelPolicy(pay.travelPolicyOverride == null);
+    setTravelPolicyOverride(pay.travelPolicyOverride ?? DEFAULT_TRAVEL_COMPENSATION_POLICY);
     setPayrollNotes(pay.payrollNotes ?? '');
 
     const t = payroll.tax;
@@ -550,6 +559,18 @@ export function EmployeePayrollPersonnelPanel({
               onChangeText={setMileageRate}
               keyboardType="decimal-pad"
             />
+            <View style={styles.formBlock}>
+              <Text style={styles.fieldLabel}>Individuelle Fahrtkostenregel</Text>
+              <PremiumButton
+                title={useTenantTravelPolicy ? '✓ Regel aus Preis- und Leistungskatalog' : 'Eigene Regel für diesen Mitarbeitenden'}
+                variant={useTenantTravelPolicy ? 'primary' : 'secondary'}
+                size="sm"
+                onPress={() => setUseTenantTravelPolicy((value) => !value)}
+              />
+              {!useTenantTravelPolicy ? (
+                <TravelPolicyEditor value={travelPolicyOverride} onChange={setTravelPolicyOverride} />
+              ) : null}
+            </View>
             <PremiumInput
               label="Interne Abrechnungshinweise"
               value={payrollNotes}
@@ -577,6 +598,7 @@ export function EmployeePayrollPersonnelPanel({
                         maxPayoutHoursMonth: parseAmount(maxPayoutHoursMonth),
                         overflowToTimeAccount,
                         mileageRateCents: Math.round((parseAmount(mileageRate) ?? 0.3) * 100),
+                        travelPolicyOverride: useTenantTravelPolicy ? null : travelPolicyOverride,
                         payrollNotes: payrollNotes.trim() || null,
                       },
                       actorRoleKey,
@@ -627,6 +649,10 @@ export function EmployeePayrollPersonnelPanel({
             <DetailInfoRow
               label="Kilometerpauschale"
               value={`${(payroll.payroll.mileageRateCents / 100).toFixed(2).replace('.', ',')} EUR/km`}
+            />
+            <DetailInfoRow
+              label="Fahrtkostenregel"
+              value={payroll.payroll.travelPolicyOverride ? 'Individuelle Mitarbeitendenregel' : 'Preis- und Leistungskatalog'}
             />
             <DetailInfoRow label="Abrechnungshinweis" value={payroll.payroll.payrollNotes ?? '—'} />
           </>

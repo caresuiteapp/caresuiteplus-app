@@ -22,6 +22,8 @@ import {
   TENANT_MODULE_LABELS,
 } from '@/lib/tenant/serviceCatalogLabels';
 import { usePermissions } from '@/hooks/usePermissions';
+import { TravelPolicyEditor } from '@/components/travel/TravelPolicyEditor';
+import { DEFAULT_TRAVEL_COMPENSATION_POLICY } from '@/lib/travel/travelCompensationPolicy';
 
 type TabKey = 'services' | 'travel' | 'surcharges' | 'versions';
 
@@ -159,6 +161,9 @@ export function TenantServiceCatalogModal({
         sortOrder: selected.sortOrder,
         priceNet: Number.isFinite(parsed) ? parsed : undefined,
         taxMode: selected.defaultTaxMode ?? 'exempt_4_16',
+        travelPolicy: selected.category === 'travel'
+          ? selected.travelPolicy ?? DEFAULT_TRAVEL_COMPENSATION_POLICY
+          : null,
       },
       roleKey,
     );
@@ -192,6 +197,7 @@ export function TenantServiceCatalogModal({
       sortOrder: filtered.length > 0 ? Math.max(...filtered.map((item) => item.sortOrder)) + 10 : 10,
       defaultPriceNet: null,
       defaultTaxMode: 'exempt_4_16',
+      travelPolicy: category === 'travel' ? DEFAULT_TRAVEL_COMPENSATION_POLICY : null,
     });
     setPriceNet('');
     setIsNew(true);
@@ -302,6 +308,19 @@ export function TenantServiceCatalogModal({
                 keyboardType="decimal-pad"
                 placeholder="z. B. 38,00"
               />
+              {selected.category === 'travel' ? (
+                <View style={styles.travelPolicy}>
+                  <Text style={[styles.fieldLabel, { color: text.secondary }]}>Fahrtkosten- und Kilometerregel</Text>
+                  <Text style={{ color: text.muted, fontSize: 12 }}>
+                    Legt getrennt fest, was im Fahrtenbuch, in der Gehaltsstatistik, als Arbeitszeit und in der Klientenabrechnung zählt.
+                  </Text>
+                  <TravelPolicyEditor
+                    compact
+                    value={selected.travelPolicy ?? DEFAULT_TRAVEL_COMPENSATION_POLICY}
+                    onChange={(travelPolicy) => setSelected({ ...selected, travelPolicy })}
+                  />
+                </View>
+              ) : null}
               <View style={styles.fieldBlock}>
                 <Text style={[styles.fieldLabel, { color: text.secondary }]}>Abrechnungseinheit</Text>
                 <FilterChipGroup
@@ -372,4 +391,5 @@ const styles = StyleSheet.create({
   },
   fieldBlock: { gap: careSpacing.xs },
   fieldLabel: { fontSize: 13, fontWeight: '600' },
+  travelPolicy: { gap: careSpacing.sm, paddingVertical: careSpacing.sm },
 });

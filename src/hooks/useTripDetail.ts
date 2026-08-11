@@ -2,6 +2,7 @@ import { completeTrip, fetchTripDetail } from '@/lib/assist';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery, useMutation } from './core';
+import type { TravelRouteType } from '@/types/modules/travelCompensation';
 
 export function useTripDetail(tripId: string | undefined) {
   const { profile } = useAuth();
@@ -21,12 +22,12 @@ export function useTripDetail(tripId: string | undefined) {
   );
 
   const completeMutation = useMutation(
-    (input: { endAddress: string; distanceKm: number }) => {
+    (input: { endAddress: string; distanceKm: number; travelType?: TravelRouteType }) => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       if (!tripId) {
         return Promise.resolve({ ok: false as const, error: 'Keine Fahrt-ID angegeben.' });
       }
-      return completeTrip(tripId, tenantId, input.endAddress, input.distanceKm, roleKey);
+      return completeTrip(tripId, tenantId, input.endAddress, input.distanceKm, input.travelType, roleKey);
     },
     {
       successMessage: 'Fahrt abgeschlossen.',

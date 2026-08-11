@@ -4,6 +4,7 @@ import { PURPOSE_LABELS } from '@/lib/assist';
 import type { TripLogListItem } from '@/types/modules/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
+import { TRAVEL_ROUTE_TYPE_LABELS } from '@/types/modules/travelCompensation';
 
 type TripListCardProps = {
   trip: TripLogListItem;
@@ -51,6 +52,9 @@ export function TripListCard({ trip, onPress, selected = false }: TripListCardPr
         />
       </View>
       <Text style={styles.meta}>{PURPOSE_LABELS[trip.purpose]} · {trip.vehicleLabel}</Text>
+      <Text style={styles.meta}>
+        {TRAVEL_ROUTE_TYPE_LABELS[trip.travelType]} · {trip.payrollEligible ? 'vergütet' : 'nur dokumentiert'}
+      </Text>
       <Text style={styles.route} numberOfLines={2}>
         {trip.routeSummary}
       </Text>

@@ -11,8 +11,10 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { listWfmTravelRules, saveWfmTravelRule, type WfmTravelRule } from '@/lib/wfm';
 import { careSpacing } from '@/design/tokens/spacing';
 import { typography } from '@/theme';
+import { TravelPolicyEditor } from '@/components/travel/TravelPolicyEditor';
+import { DEFAULT_TRAVEL_COMPENSATION_POLICY } from '@/lib/travel/travelCompensationPolicy';
 
-const initial = { name: '', minGap: '0', maxGap: '180', roundTo: '5', mileage: '0', priority: '100', notes: '', paid: true };
+const initial = { name: '', minGap: '0', maxGap: '180', roundTo: '5', mileage: '0', priority: '100', notes: '', paid: true, travelPolicy: DEFAULT_TRAVEL_COMPENSATION_POLICY };
 
 export function WfmTravelRulesScreen() {
   const tenantId = useServiceTenantId();
@@ -26,7 +28,7 @@ export function WfmTravelRulesScreen() {
 
   const edit = (rule: WfmTravelRule) => {
     setEditingId(rule.id);
-    setForm({ name: rule.name, minGap: String(rule.minGapMinutes), maxGap: rule.maxGapMinutes == null ? '' : String(rule.maxGapMinutes), roundTo: String(rule.roundToMinutes), mileage: (rule.mileageRateCents / 100).toFixed(2).replace('.', ','), priority: String(rule.priority), notes: rule.notes, paid: rule.countsAsWorkTime });
+    setForm({ name: rule.name, minGap: String(rule.minGapMinutes), maxGap: rule.maxGapMinutes == null ? '' : String(rule.maxGapMinutes), roundTo: String(rule.roundToMinutes), mileage: (rule.mileageRateCents / 100).toFixed(2).replace('.', ','), priority: String(rule.priority), notes: rule.notes, paid: rule.countsAsWorkTime, travelPolicy: rule.travelPolicy });
   };
 
   const persist = async (override?: WfmTravelRule) => {
@@ -43,6 +45,7 @@ export function WfmTravelRulesScreen() {
       countsAsWorkTime: form.paid,
       roundToMinutes: [1, 5, 10, 15, 30].includes(Number(form.roundTo)) ? Number(form.roundTo) : 5,
       mileageRateCents: Math.max(0, Math.round(Number(form.mileage.replace(',', '.')) * 100) || 0),
+      travelPolicy: form.travelPolicy,
       priority: Number(form.priority) || 100, isActive: true, notes: form.notes,
       actorId: user?.id ?? profile?.id,
     });
@@ -76,6 +79,7 @@ export function WfmTravelRulesScreen() {
           <Field label="Kilometerpauschale (€)" value={form.mileage} onChange={(mileage) => setForm((v) => ({ ...v, mileage }))} />
         </View>
         <Field label="Hinweise" value={form.notes} onChange={(notes) => setForm((v) => ({ ...v, notes }))} placeholder="Interne Erläuterung" />
+        <TravelPolicyEditor value={form.travelPolicy} onChange={(travelPolicy) => setForm((v) => ({ ...v, travelPolicy }))} />
         <View style={styles.actions}>
           <PremiumButton title={form.paid ? '✓ Als Arbeitszeit' : 'Nicht als Arbeitszeit'} variant="secondary" onPress={() => setForm((v) => ({ ...v, paid: !v.paid }))} />
           <PremiumButton title={editingId ? 'Änderungen speichern' : 'Regel anlegen'} onPress={() => void persist()} loading={saving} />

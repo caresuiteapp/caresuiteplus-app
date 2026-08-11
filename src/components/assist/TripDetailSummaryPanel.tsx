@@ -15,6 +15,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { PURPOSE_LABELS } from '@/lib/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
+import { TRAVEL_ROUTE_TYPE_LABELS } from '@/types/modules/travelCompensation';
 
 type TripDetailSummaryPanelProps = {
   tripId: string;
@@ -79,6 +80,11 @@ export function TripDetailSummaryPanel({
             dot
           />
           <PremiumBadge label={PURPOSE_LABELS[trip.purpose]} variant="muted" />
+          <PremiumBadge label={TRAVEL_ROUTE_TYPE_LABELS[trip.travelType]} variant="muted" />
+          <PremiumBadge
+            label={trip.payrollEligible ? 'Gehaltsstatistik: ja' : 'Keine Kilometervergütung'}
+            variant={trip.payrollEligible ? 'green' : 'muted'}
+          />
         </View>
       </PremiumCard>
 
@@ -97,6 +103,12 @@ export function TripDetailSummaryPanel({
           label="Distanz"
           value={trip.distanceKm != null ? `${trip.distanceKm} km` : '—'}
         />
+        <DetailInfoRow
+          label="Kilometervergütung"
+          value={trip.payrollEligible ? `${(trip.mileageAmountCents / 100).toFixed(2).replace('.', ',')} EUR` : 'Nicht vergütungsfähig'}
+        />
+        <DetailInfoRow label="Arbeitszeit" value={trip.workTimeEligible ? 'Wird berücksichtigt' : 'Wird nicht berücksichtigt'} />
+        <DetailInfoRow label="Klientenabrechnung" value={trip.clientBillingEligible ? 'Abrechenbar' : 'Nicht abrechenbar'} />
         {trip.notes ? <DetailInfoRow label="Notizen" value={trip.notes} /> : null}
       </SectionPanel>
 

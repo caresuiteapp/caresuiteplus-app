@@ -1,4 +1,5 @@
 import type { TenantScopedEntity } from '../core/base';
+import type { TravelCompensationPolicy } from './travelCompensation';
 
 export type EmployeeSalutation = 'herr' | 'frau' | 'divers';
 
@@ -53,6 +54,8 @@ export type EmployeePayrollSettings = {
   maxPayoutHoursMonth: number | null;
   overflowToTimeAccount: boolean;
   mileageRateCents: number;
+  /** null = Fahrtkostenregel aus dem Preis- und Leistungskatalog verwenden. */
+  travelPolicyOverride: TravelCompensationPolicy | null;
   payrollNotes: string | null;
 };
 

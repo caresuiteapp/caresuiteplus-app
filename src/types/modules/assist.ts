@@ -194,6 +194,13 @@ export type TripLog = TenantScopedEntity & {
   endAddress: string | null;
   distanceKm: number | null;
   status: WorkflowStatus;
+  travelType: import('./travelCompensation').TravelRouteType;
+  logbookEligible: boolean;
+  payrollEligible: boolean;
+  workTimeEligible: boolean;
+  clientBillingEligible: boolean;
+  mileageRateCents: number | null;
+  mileageAmountCents: number;
 };
 
 export type TripLogListItem = Pick<
@@ -208,6 +215,13 @@ export type TripLogListItem = Pick<
   | 'endedAt'
   | 'distanceKm'
   | 'status'
+  | 'travelType'
+  | 'logbookEligible'
+  | 'payrollEligible'
+  | 'workTimeEligible'
+  | 'clientBillingEligible'
+  | 'mileageRateCents'
+  | 'mileageAmountCents'
   | 'updatedAt'
 > & {
   employeeName: string;
