@@ -1235,14 +1235,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   workspaceFill: {
-    minHeight: '100%',
+    flex: 1,
+    minHeight: 0,
   },
   workspaceFrame: {
     minWidth: 0,
     margin: 12,
   },
   workspaceFrameFill: {
-    minHeight: '100%',
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
   },
   areaRow: {
     minHeight: 64,
@@ -1309,16 +1312,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   contentFill: {
+    flex: 1,
     minWidth: 0,
-    minHeight: '100%',
+    minHeight: 0,
     gap: 14,
   },
   contentFillCompact: {
     paddingBottom: 104,
   },
   contentPrimaryFill: {
+    flex: 1,
     minWidth: 0,
-    minHeight: '100%',
+    minHeight: 0,
     overflow: 'hidden',
   },
   content: {
