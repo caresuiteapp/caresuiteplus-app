@@ -28,7 +28,6 @@ describe('desktop and portal chrome parity', () => {
       'beratung',
       'akademie',
       'robotics',
-      'platform',
       'settings',
     ]);
     expect(shell).toContain('<LiquidLogo compact />');

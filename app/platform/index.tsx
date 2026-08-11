@@ -1,5 +1,10 @@
-import { ModuleWorkspaceScreen } from '@/liquid-command/screens/ModuleWorkspaceScreen';
+import { Redirect } from 'expo-router';
+import { PlatformAuthGate } from '@/product-workflows/components/platformConsole';
 
 export default function PlatformRoot() {
-  return <ModuleWorkspaceScreen moduleKey="platform" />;
+  return (
+    <PlatformAuthGate>
+      <Redirect href="/platform/dashboard" />
+    </PlatformAuthGate>
+  );
 }

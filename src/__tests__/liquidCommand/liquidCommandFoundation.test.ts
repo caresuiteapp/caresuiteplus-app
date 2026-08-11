@@ -58,7 +58,6 @@ describe('Liquid Command foundation', () => {
       'beratung',
       'akademie',
       'robotics',
-      'platform',
       'settings',
     ]);
 
@@ -97,7 +96,6 @@ describe('Liquid Command foundation', () => {
       '/beratung',
       '/akademie',
       '/robotics',
-      '/platform',
       '/settings',
     ]);
     expect(

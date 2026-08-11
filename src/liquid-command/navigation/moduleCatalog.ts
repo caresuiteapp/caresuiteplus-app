@@ -171,15 +171,6 @@ export const liquidModules: readonly LiquidModuleDefinition[] = [
     primaryAction: 'Gerät verbinden',
   },
   {
-    key: 'platform',
-    label: 'Platform Console',
-    shortLabel: 'Platform',
-    glyph: '◈',
-    route: '/platform',
-    description: 'Mandanten, Tarife, Flags, Support, Releases und Audit.',
-    primaryAction: 'Mandant öffnen',
-  },
-  {
     key: 'settings',
     label: 'Einstellungen',
     shortLabel: 'Mehr',
