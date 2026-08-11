@@ -40,7 +40,7 @@ function RootShell() {
   const hydrated = useHydrated();
   const perf = useDevicePerformance();
   const isLiquidCommandRoute = isLiquidCommandRoutePath(pathname);
-  const hostsGlobalBackground = !isLiquidCommandRoute && !isPortalRoutePath(pathname);
+  const hostsGlobalBackground = !isPortalRoutePath(pathname);
 
   useEffect(() => {
     cleanupOrphanedFullscreenOverlays();

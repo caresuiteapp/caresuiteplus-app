@@ -551,12 +551,14 @@ export function LiquidBackdrop({ children }: { children: ReactNode }) {
   const orbit = useLiquidVisualMode() === 'orbit';
   return (
     <View style={[styles.backdrop, orbit && styles.orbitBackdrop]}>
-      <LinearGradient
-        pointerEvents="none"
-        colors={orbit ? ['#F8FBFF', '#EFF6FF', '#FFFFFF'] : ['#010817', '#021126', '#010817']}
-        locations={[0, 0.48, 1]}
-        style={StyleSheet.absoluteFill}
-      />
+      {!orbit ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={['#010817', '#021126', '#010817']}
+          locations={[0, 0.48, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
       <View pointerEvents="none" style={[styles.glowTop, orbit && styles.orbitGlowTop]} />
       <View pointerEvents="none" style={[styles.glowBottom, orbit && styles.orbitGlowBottom]} />
       {children}
@@ -667,7 +669,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15,23,42,0.1)',
   },
   orbitBackdrop: {
-    backgroundColor: '#F8FBFF',
+    backgroundColor: 'transparent',
   },
   orbitGlowTop: {
     backgroundColor: 'rgba(59,130,246,0.12)',
