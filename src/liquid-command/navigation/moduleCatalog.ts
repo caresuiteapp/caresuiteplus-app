@@ -213,7 +213,7 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'assignments', label: 'Einsätze', description: 'Status, Bearbeitung und Abschluss', pageType: 'work-list', route: '/assist/einsaetze' },
     { id: 'planning', label: 'Kalender & Einsatzplanung', description: 'Einsatzprofile, Drag-and-drop, Ressourcen und Direktfreigabe', pageType: 'planning', route: '/assist/kalender' },
     { id: 'live', label: 'Live-Status', description: 'GPS, Anfahrt und Abweichungen', pageType: 'command-center', route: '/assist/live-status' },
-    { id: 'proofs', label: 'Nachweise', description: 'Prüfung, Unterschrift und Freigabe', pageType: 'review', route: '/assist/nachweise/review' },
+    { id: 'proofs', label: 'Nachweise', description: 'Leistungsnachweise, Prüfung und Freigabe', pageType: 'work-list', route: '/assist/nachweise' },
     { id: 'budgets', label: 'Budgets', description: 'Anspruch, Verbrauch und Prognose', pageType: 'analytics', route: '/assist/abrechnungsquellen' },
     { id: 'portals', label: 'Portale', description: 'Zugänge und Freigaben', pageType: 'settings', route: '/assist/portal-preview' },
   ],
