@@ -2,15 +2,13 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders, getServiceClient, jsonResponse, readClientMeta, tryInsert } from '../_shared/http.ts';
 import {
   classifyEmployeePortalLoginFailure,
+  normalizePortalPassword,
   normalizePortalUsername,
 } from '../_shared/portalUsername.ts';
 import { verifyEmployeePortalPassword } from '../_shared/verifyEmployeePortalPassword.ts';
 import { ensurePortalSupabaseAuth } from '../_shared/portalAuth.ts';
 
-type LoginBody = {
-  username: string;
-  password: string;
-};
+type LoginBody = { username: string; password: string };
 
 function mapAccount(row: Record<string, unknown>) {
   return {
@@ -34,70 +32,44 @@ function mapAccount(row: Record<string, unknown>) {
 }
 
 async function resolveEmployeeDisplayName(
-  supabase: ReturnType<typeof getServiceClient>,
-  employeeId: string,
-  fallbackUsername: string,
+  supabase: ReturnType<typeof getServiceClient>, employeeId: string, fallbackUsername: string,
 ): Promise<string> {
-  const { data: employeeRow } = await supabase
-    .from('employees')
-    .select('first_name, last_name')
-    .eq('id', employeeId)
-    .maybeSingle();
-
+  const { data: employeeRow } = await supabase.from('employees').select('first_name, last_name').eq('id', employeeId).maybeSingle();
   if (employeeRow) {
     const first = ((employeeRow.first_name as string | null) ?? '').trim();
     const last = ((employeeRow.last_name as string | null) ?? '').trim();
     const fullName = [first, last].filter(Boolean).join(' ').trim();
     if (fullName) return fullName;
   }
-
   return fallbackUsername;
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
-  if (req.method !== 'POST') {
-    return jsonResponse({ ok: false, error: 'Methode nicht erlaubt.', errorClass: 'unknown' }, 405);
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') return jsonResponse({ ok: false, error: 'Methode nicht erlaubt.', errorClass: 'unknown' }, 405);
 
   try {
     const body = (await req.json()) as LoginBody;
     const username = normalizePortalUsername(body.username ?? '');
-    if (!username || !body.password) {
-      return jsonResponse(
-        { ok: false, error: 'Benutzername und Passwort sind erforderlich.', errorClass: 'missing_credentials' },
-        400,
-      );
+    const password = normalizePortalPassword(body.password ?? '');
+    if (!username || !password) {
+      return jsonResponse({ ok: false, error: 'Benutzername und Passwort sind erforderlich.', errorClass: 'missing_credentials' }, 400);
     }
 
     const supabase = getServiceClient();
     const meta = readClientMeta(req);
-
-    const { data: matches, error } = await supabase
-      .from('employee_portal_accounts')
-      .select('*')
-      .ilike('username', username);
-
-    if (error) {
-      return jsonResponse({ ok: false, error: error.message, errorClass: 'unknown' }, 500);
-    }
+    const { data: matches, error } = await supabase.from('employee_portal_accounts').select('*').ilike('username', username);
+    if (error) return jsonResponse({ ok: false, error: error.message, errorClass: 'unknown' }, 500);
 
     const rows = matches ?? [];
     const activeCandidates = rows.filter((row) => row.status !== 'archived' && row.status !== 'blocked');
     const duplicateActive = activeCandidates.length > 1;
-
     let matched: Record<string, unknown> | null = null;
     let lastFailureClass = 'invalid_password';
 
     for (const row of activeCandidates) {
-      const check = await verifyEmployeePortalPassword(body.password, row as Record<string, unknown>);
-      if (check.ok) {
-        matched = row as Record<string, unknown>;
-        break;
-      }
+      const check = await verifyEmployeePortalPassword(password, row as Record<string, unknown>);
+      if (check.ok) { matched = row as Record<string, unknown>; break; }
       lastFailureClass = check.failureClass;
     }
 
@@ -110,119 +82,39 @@ serve(async (req) => {
         const expiresAt = row.temporary_password_expires_at as string | null;
         return Boolean(expiresAt && new Date(expiresAt).getTime() < Date.now());
       });
-
-      const errorClass = duplicateActive
-        ? 'duplicate_accounts'
-        : classifyEmployeePortalLoginFailure({
-            matches: rows.length,
-            blocked: Boolean(blocked),
-            archived: Boolean(archived) && !blocked,
-            duplicateActive,
-            passwordMissing,
-            passwordExpired,
-          });
-
-      const failureReason =
-        blocked
-          ? 'Zugang gesperrt. Bitte wenden Sie sich an die Verwaltung.'
-          : duplicateActive
-            ? 'Mehrere aktive Zugänge mit gleichem Benutzernamen. Bitte Verwaltung kontaktieren.'
-            : rows.length === 0
-              ? 'Benutzername oder Passwort ist falsch.'
-              : lastFailureClass === 'password_expired'
-                ? 'Einmalpasswort ist abgelaufen.'
-                : lastFailureClass === 'password_missing'
-                  ? 'Kein Passwort hinterlegt. Bitte Verwaltung kontaktieren.'
-                  : 'Benutzername oder Passwort ist falsch.';
-
-      await tryInsert(supabase, 'login_audit_events', {
-        tenant_id: blocked?.tenant_id ?? rows[0]?.tenant_id ?? null,
-        login_type: 'employee_portal',
-        account_id: blocked?.id ?? null,
-        username_or_code_hint: username,
-        success: false,
-        failure_reason: failureReason,
-        ip_address: meta.ipAddress,
-        user_agent: meta.userAgent,
-      });
-
+      const errorClass = duplicateActive ? 'duplicate_accounts' : classifyEmployeePortalLoginFailure({ matches: rows.length, blocked: Boolean(blocked), archived: Boolean(archived) && !blocked, duplicateActive, passwordMissing, passwordExpired });
+      const failureReason = blocked
+        ? 'Zugang gesperrt. Bitte wenden Sie sich an die Verwaltung.'
+        : duplicateActive
+          ? 'Mehrere aktive Zugänge mit gleichem Benutzernamen. Bitte Verwaltung kontaktieren.'
+          : rows.length === 0
+            ? 'Benutzername oder Passwort ist falsch.'
+            : lastFailureClass === 'password_expired'
+              ? 'Einmalpasswort ist abgelaufen.'
+              : lastFailureClass === 'password_missing'
+                ? 'Kein Passwort hinterlegt. Bitte Verwaltung kontaktieren.'
+                : 'Benutzername oder Passwort ist falsch.';
+      await tryInsert(supabase, 'login_audit_events', { tenant_id: blocked?.tenant_id ?? rows[0]?.tenant_id ?? null, login_type: 'employee_portal', account_id: blocked?.id ?? rows[0]?.id ?? null, username_or_code_hint: username, success: false, failure_reason: failureReason, ip_address: meta.ipAddress, user_agent: meta.userAgent });
       return jsonResponse({ ok: false, error: failureReason, errorClass }, 401);
     }
 
     const now = new Date().toISOString();
     const sessionToken = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+    const { error: updateError } = await supabase.from('employee_portal_accounts').update({ last_login_at: now }).eq('id', matched.id);
+    if (updateError) return jsonResponse({ ok: false, error: updateError.message, errorClass: 'unknown' }, 500);
 
-    const { error: updateError } = await supabase
-      .from('employee_portal_accounts')
-      .update({ last_login_at: now })
-      .eq('id', matched.id);
-
-    if (updateError) {
-      return jsonResponse({ ok: false, error: updateError.message, errorClass: 'unknown' }, 500);
-    }
-
-    const { error: sessionError } = await supabase.from('portal_sessions').insert({
-      tenant_id: matched.tenant_id,
-      portal_type: 'employee',
-      employee_id: matched.employee_id,
-      status: 'active',
-      session_token: sessionToken,
-      started_at: now,
-      last_seen_at: now,
-      expires_at: expiresAt,
-      ip_address: meta.ipAddress,
-      user_agent: meta.userAgent,
-      metadata: { account_id: matched.id },
-    });
-
-    if (sessionError) {
-      return jsonResponse({ ok: false, error: sessionError.message, errorClass: 'session_error' }, 500);
-    }
-
-    await tryInsert(supabase, 'login_audit_events', {
-      tenant_id: matched.tenant_id as string,
-      login_type: 'employee_portal',
-      account_id: matched.id as string,
-      username_or_code_hint: username,
-      success: true,
-      failure_reason: null,
-      ip_address: meta.ipAddress,
-      user_agent: meta.userAgent,
-    });
+    const { error: sessionError } = await supabase.from('portal_sessions').insert({ tenant_id: matched.tenant_id, portal_type: 'employee', employee_id: matched.employee_id, status: 'active', session_token: sessionToken, started_at: now, last_seen_at: now, expires_at: expiresAt, ip_address: meta.ipAddress, user_agent: meta.userAgent, metadata: { account_id: matched.id } });
+    if (sessionError) return jsonResponse({ ok: false, error: sessionError.message, errorClass: 'session_error' }, 500);
+    await tryInsert(supabase, 'login_audit_events', { tenant_id: matched.tenant_id as string, login_type: 'employee_portal', account_id: matched.id as string, username_or_code_hint: username, success: true, failure_reason: null, ip_address: meta.ipAddress, user_agent: meta.userAgent });
 
     const account = mapAccount(matched);
     const mustChangePassword = account.mustChangePassword || !account.firstLoginCompleted;
+    const displayName = await resolveEmployeeDisplayName(supabase, matched.employee_id as string, account.username);
+    const authResult = await ensurePortalSupabaseAuth(supabase, { portalType: 'employee', accountId: account.id, tenantId: account.tenantId, roleKey: 'employee_portal', displayName, linkTable: 'employee_portal_accounts', linkRowId: account.id });
+    if (!authResult.ok) return jsonResponse({ ok: false, error: authResult.error, errorClass: 'unknown' }, 500);
 
-    const displayName = await resolveEmployeeDisplayName(
-      supabase,
-      matched.employee_id as string,
-      account.username,
-    );
-
-    const authResult = await ensurePortalSupabaseAuth(supabase, {
-      portalType: 'employee',
-      accountId: account.id,
-      tenantId: account.tenantId,
-      roleKey: 'employee_portal',
-      displayName,
-      linkTable: 'employee_portal_accounts',
-      linkRowId: account.id,
-    });
-
-    if (!authResult.ok) {
-      return jsonResponse({ ok: false, error: authResult.error, errorClass: 'unknown' }, 500);
-    }
-
-    return jsonResponse({
-      ok: true,
-      account,
-      mustChangePassword,
-      sessionToken,
-      expiresAt,
-      supabaseAccessToken: authResult.accessToken,
-      supabaseRefreshToken: authResult.refreshToken,
-    });
+    return jsonResponse({ ok: true, account, mustChangePassword, sessionToken, expiresAt, supabaseAccessToken: authResult.accessToken, supabaseRefreshToken: authResult.refreshToken });
   } catch (err) {
     return jsonResponse({ ok: false, error: String(err), errorClass: 'unknown' }, 500);
   }
