@@ -1,6 +1,14 @@
 -- CareSuite HealthOS — PFLEGE CLINICAL DOCUMENTATION R2
 -- Live-Kern: Medikation, Behandlungspflege, Wunden, Berichte und Übergaben.
 
+-- Produktionshistorien besitzen unterschiedliche Profilgenerationen. Diese
+-- neutralen Kompatibilitätsfelder werden von Vitalwert- und Medikations-RPCs
+-- benötigt und verändern vorhandene Profilwerte nicht.
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS display_name TEXT,
+  ADD COLUMN IF NOT EXISTS email TEXT,
+  ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+
 INSERT INTO public.permission_catalog(key,module,category,label,description,risk_level,requires_audit)
 VALUES
  ('pflege.medications.view','pflege','medication','Medikationsplan ansehen','Verordnete Medikamente und Gaben einsehen.','high',TRUE),
@@ -139,7 +147,13 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.clinical_actor_name() RETURNS TEXT
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
- SELECT COALESCE(NULLIF(p.display_name,''),p.email,'Unbekannt')
+ SELECT COALESCE(
+   NULLIF(auth.jwt()->>'name',''),
+   NULLIF(auth.jwt()->>'email',''),
+   NULLIF(p.display_name,''),
+   p.email,
+   'Unbekannt'
+ )
  FROM public.profiles p WHERE p.id=public.clinical_actor_id() AND p.tenant_id=public.current_tenant_id()
 $$;
 

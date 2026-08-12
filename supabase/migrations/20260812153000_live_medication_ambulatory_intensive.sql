@@ -181,7 +181,12 @@ stable
 security definer
 set search_path = public, pg_temp
 as $$
-  select p.id, coalesce(nullif(p.display_name, ''), p.email, 'Pflegefachkraft')
+  select p.id, coalesce(
+    nullif(to_jsonb(p)->>'full_name', ''),
+    nullif(p.display_name, ''),
+    p.email,
+    'Pflegefachkraft'
+  )
   from public.profiles p
   where auth.uid() is not null
     and p.tenant_id = public.current_tenant_id()

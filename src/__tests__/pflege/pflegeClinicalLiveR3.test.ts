@@ -41,6 +41,7 @@ describe('Pflege Clinical Live R3 acceptance', () => {
     const clinical = read('supabase/migrations/20260812101500_pfleger_clinical_documentation_r2.sql');
     const medication = read('supabase/migrations/20260812153000_live_medication_ambulatory_intensive.sql');
     expect(`${vitals}${clinical}${medication}`).not.toMatch(/p\.(role_key|first_name|last_name|full_name|status)/);
+    expect(clinical).toContain('ADD COLUMN IF NOT EXISTS display_name TEXT');
     expect(vitals).toContain('public.resolve_current_profile_id()');
     expect(clinical).toContain('public.clinical_actor_id()');
     expect(medication.indexOf("if new.status <> 'scheduled'")).toBeGreaterThan(medication.indexOf('returns trigger'));
@@ -50,5 +51,11 @@ describe('Pflege Clinical Live R3 acceptance', () => {
     const vitals = read('supabase/migrations/20260812100000_vital_signs_live_final.sql');
     expect(vitals).toContain("to_regclass('public.vital_sign_records') IS NOT NULL");
     expect(vitals).toContain('EXECUTE $sql$');
+  });
+
+  it('creates neutral profile compatibility fields before clinical functions', () => {
+    const clinical = read('supabase/migrations/20260812101500_pfleger_clinical_documentation_r2.sql');
+    expect(clinical.indexOf('ADD COLUMN IF NOT EXISTS display_name TEXT')).toBeLessThan(clinical.indexOf('FUNCTION public.clinical_actor_name'));
+    expect(clinical).toContain("NULLIF(auth.jwt()->>'email','')");
   });
 });
