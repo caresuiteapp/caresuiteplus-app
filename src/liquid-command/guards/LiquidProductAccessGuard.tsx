@@ -1,4 +1,5 @@
-import { startTransition, useEffect, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { runAppTransition } from '@/lib/react/runAppTransition';
 import { usePathname, useRouter } from 'expo-router';
 import { useHydrated } from '@/hooks/useHydrated';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -20,7 +21,7 @@ export function LiquidProductAccessGuard({ children }: { children: ReactNode }) 
 
   useEffect(() => {
     if (!hydrated || !decision.shouldRedirect) return;
-    startTransition(() => router.replace(decision.target));
+    runAppTransition(() => router.replace(decision.target));
   }, [decision.shouldRedirect, decision.target, hydrated, router]);
 
   if (!hydrated) {

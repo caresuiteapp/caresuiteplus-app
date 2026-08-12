@@ -98,7 +98,7 @@ describe('post-login redirect routing', () => {
     const guard = readSrc('src/lib/auth/RedirectIfAuthenticated.tsx');
     expect(guard).toContain('isAuthSetupRoute');
     expect(guard).toContain('resolveAuthSessionTarget');
-    expect(guard).toContain('startTransition');
+    expect(guard).toContain('runAppTransition');
     expect(guard).toContain('router.replace(homePath as never)');
     expect(guard).not.toContain("router.replace('/' as never)");
   });

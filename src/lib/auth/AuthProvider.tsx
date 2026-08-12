@@ -1,12 +1,12 @@
 import {
   ReactNode,
-  startTransition,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
+import { runAppTransition } from '@/lib/react/runAppTransition';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { AuthSession, AuthUser, Profile } from '@/types';
 import {
@@ -303,7 +303,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       } finally {
         if (!cancelled) {
-          startTransition(() => {
+          runAppTransition(() => {
             setIsLoading(false);
             setIsInitialized(true);
           });

@@ -9,10 +9,10 @@ function source(relativePath: string): string {
 }
 
 describe('production access runtime regressions', () => {
-  it('marks hydration completion as a transition', () => {
+  it('uses the platform-safe transition wrapper for hydration completion', () => {
     const hydratedHook = source('src/hooks/useHydrated.ts');
 
-    expect(hydratedHook).toContain('startTransition');
+    expect(hydratedHook).toContain('runAppTransition');
     expect(hydratedHook).toContain('setHydrated(true)');
   });
 

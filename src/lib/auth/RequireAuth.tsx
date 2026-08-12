@@ -1,4 +1,5 @@
-import { ReactNode, startTransition, useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
+import { runAppTransition } from '@/lib/react/runAppTransition';
 import type { Href } from 'expo-router';
 import { usePathname, useRouter } from 'expo-router';
 import { LoadingState } from '@/components/ui';
@@ -40,7 +41,7 @@ export function RequireAuth({
       }
 
       const target = redirectTo ? String(redirectTo) : getLoginRedirectForPath(pathname);
-      startTransition(() => {
+      runAppTransition(() => {
         router.replace(target as never);
       });
     }

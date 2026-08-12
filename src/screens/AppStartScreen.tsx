@@ -1,4 +1,5 @@
-import { startTransition, useEffect } from 'react';
+import { useEffect } from 'react';
+import { runAppTransition } from '@/lib/react/runAppTransition';
 import { BackHandler, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AdaptiveCardGrid } from '@/components/adaptive';
@@ -45,7 +46,7 @@ export function AppStartScreen() {
 
   useEffect(() => {
     if (!hydrated || !authReady || sessionPending || !isAuthenticated || !canRedirectHome) return;
-    startTransition(() => {
+    runAppTransition(() => {
       router.replace(homePath as never);
     });
   }, [authReady, canRedirectHome, homePath, hydrated, isAuthenticated, router, sessionPending]);

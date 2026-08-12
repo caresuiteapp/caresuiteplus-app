@@ -1,4 +1,5 @@
-import { ReactNode, startTransition, useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
+import { runAppTransition } from '@/lib/react/runAppTransition';
 import { useRouter } from 'expo-router';
 import { LoadingState } from '@/components/ui';
 import { useHydrated } from '@/hooks/useHydrated';
@@ -22,7 +23,7 @@ export function RequireEmployeePasswordSetup({ children }: RequireEmployeePasswo
 
   useEffect(() => {
     if (!hydrated || !authReady || !needsSetup || !portalSession?.accountId) return;
-    startTransition(() => {
+    runAppTransition(() => {
       router.replace(resolveEmployeeFirstLoginHref(portalSession.accountId) as never);
     });
   }, [authReady, hydrated, needsSetup, portalSession?.accountId, router]);

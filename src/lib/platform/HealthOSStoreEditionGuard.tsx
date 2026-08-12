@@ -1,4 +1,5 @@
-import { startTransition, useEffect, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { runAppTransition } from '@/lib/react/runAppTransition';
 import { usePathname, useRouter } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import {
@@ -17,7 +18,7 @@ export function HealthOSStoreEditionGuard({ children }: { children: ReactNode })
 
   useEffect(() => {
     if (!isHealthOSCoreEdition || allowed) return;
-    startTransition(() => router.replace('/'));
+    runAppTransition(() => router.replace('/'));
   }, [allowed, router]);
 
   if (isHealthOSCoreEdition && !allowed) {

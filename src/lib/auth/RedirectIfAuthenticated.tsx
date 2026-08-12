@@ -1,4 +1,5 @@
-import { ReactNode, startTransition, useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
+import { runAppTransition } from '@/lib/react/runAppTransition';
 import { BackHandler } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { ErrorState, FullScreenLoader } from '@/components/ui';
@@ -46,7 +47,7 @@ export function RedirectIfAuthenticated({
     if (!hydrated || !authReady || !isAuthenticated || !canRedirectHome) return;
     if (isAuthSetupRoute(pathname)) return;
     if (matchesNavigationTarget(pathname, homePath)) return;
-    startTransition(() => {
+    runAppTransition(() => {
       router.replace(homePath as never);
     });
   }, [canRedirectHome, homePath, hydrated, isAuthenticated, authReady, pathname, router]);

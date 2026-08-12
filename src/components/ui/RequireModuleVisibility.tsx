@@ -1,4 +1,5 @@
-import { ReactNode, startTransition, useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
+import { runAppTransition } from '@/lib/react/runAppTransition';
 import { usePathname, useRouter } from 'expo-router';
 import { ErrorState, LoadingState } from '@/components/ui/StateViews';
 import { useHydrated } from '@/hooks/useHydrated';
@@ -37,7 +38,7 @@ export function RequireModuleVisibility({ children }: RequireModuleVisibilityPro
 
   useEffect(() => {
     if (!hydrated || !decision.shouldRedirect) return;
-    startTransition(() => {
+    runAppTransition(() => {
       router.replace(decision.target);
     });
   }, [decision, hydrated, router]);

@@ -1,4 +1,5 @@
-import { startTransition, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { runAppTransition } from '@/lib/react/runAppTransition';
 
 /**
  * True only after the component has mounted on the client.
@@ -8,7 +9,7 @@ export function useHydrated(): boolean {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    startTransition(() => {
+    runAppTransition(() => {
       setHydrated(true);
     });
   }, []);

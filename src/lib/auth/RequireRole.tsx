@@ -1,4 +1,5 @@
-import { ReactNode, startTransition, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
+import { runAppTransition } from '@/lib/react/runAppTransition';
 import { usePathname, useRouter } from 'expo-router';
 import { ErrorState, LoadingState } from '@/components/ui';
 import { useHydrated } from '@/hooks/useHydrated';
@@ -45,7 +46,7 @@ export function RequireRole({ children }: RequireRoleProps) {
   useEffect(() => {
     if (!hydrated || !authReady || !isAuthenticated || !roleKey || !decision.shouldRedirect) return;
     if (matchesNavigationTarget(pathname, redirectTarget)) return;
-    startTransition(() => {
+    runAppTransition(() => {
       router.replace(decision.target);
     });
   }, [
