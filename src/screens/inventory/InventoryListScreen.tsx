@@ -41,7 +41,13 @@ const TITLES: Record<InventoryListScreenProps['variant'], { title: string; subti
 type EditorMode = 'create' | 'issue' | 'return' | 'damage' | null;
 type InventoryData = { items: InventoryItem[]; assignments: InventoryAssignment[]; categories: InventoryCategory[]; locations: InventoryLocation[]; damage: InventoryDamageReport[]; returns: Record<string, unknown>[]; protocols: Record<string, unknown>[]; audit: Record<string, unknown>[] };
 
-export function InventoryListScreen({ variant }: InventoryListScreenProps) {
+export function InventoryListScreen({
+  variant,
+  categoryGroupFilter,
+  titleOverride,
+  subtitleOverride,
+  backRoute = '/business/office/inventory',
+}: InventoryListScreenProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const compact = width < 820;
@@ -91,10 +97,19 @@ export function InventoryListScreen({ variant }: InventoryListScreenProps) {
   const openAssignments = data.assignments.filter((entry) => !['returned', 'archived', 'lost'].includes(entry.status));
   const searchLower = search.trim().toLowerCase();
   const matches = (...values: unknown[]) => !searchLower || values.some((value) => String(value ?? '').toLowerCase().includes(searchLower));
-  const filteredItems = data.items.filter((item) => (statusFilter === 'all' || item.status === statusFilter) && matches(item.name, item.serialNumber, item.barcode, item.manufacturer, item.model, INVENTORY_CATEGORY_LABELS[item.categoryGroup]));
+  const visibleCategories = categoryGroupFilter
+    ? data.categories.filter((entry) => entry.group === categoryGroupFilter)
+    : data.categories;
+  const visibleItems = categoryGroupFilter
+    ? data.items.filter((item) => item.categoryGroup === categoryGroupFilter)
+    : data.items;
+  const filteredItems = visibleItems.filter((item) => (statusFilter === 'all' || item.status === statusFilter) && matches(item.name, item.serialNumber, item.barcode, item.manufacturer, item.model, INVENTORY_CATEGORY_LABELS[item.categoryGroup]));
   const filteredAssignments = openAssignments.filter((entry) => (statusFilter === 'all' || entry.status === statusFilter) && matches(itemMap.get(entry.itemId)?.name, employeeName(entry.recipientEmployeeId), entry.status));
   const filteredDamage = data.damage.filter((entry) => (statusFilter === 'all' || (statusFilter === 'open' ? !entry.resolvedAt : Boolean(entry.resolvedAt))) && matches(itemMap.get(entry.itemId)?.name, entry.description, entry.reportType));
-  const title = TITLES[variant];
+  const title = {
+    title: titleOverride ?? TITLES[variant].title,
+    subtitle: subtitleOverride ?? TITLES[variant].subtitle,
+  };
 
   function resetEditor() { setEditor(null); setSelectedItemId(''); setSelectedAssignmentId(''); setSelectedEmployeeId(''); setName(''); setCategoryId(''); setSerialNumber(''); setNotes(''); setCondition('good'); setReportType('damage'); }
   async function save() {
@@ -138,18 +153,18 @@ export function InventoryListScreen({ variant }: InventoryListScreenProps) {
 
       {variant === 'damage' ? <View style={styles.panel}>{filteredDamage.map((entry) => <View key={entry.id} style={[styles.row, compact && styles.rowCompact]}><View style={styles.assetCol}><Text style={styles.rowTitle}>{itemMap.get(entry.itemId)?.name ?? 'Unbekannter Posten'}</Text><Text style={styles.rowMeta}>{entry.reportType === 'loss' ? 'Verlust' : entry.reportType === 'missing_return' ? 'Fehlende Rückgabe' : 'Schaden'} · {new Date(entry.reportedAt).toLocaleDateString('de-DE')}</Text></View><View style={styles.ownerCol}><Text style={styles.rowText}>{entry.description}</Text></View><View style={styles.statusCol}><Status text={entry.resolvedAt ? 'Erledigt' : 'Offen'} tone={entry.resolvedAt ? 'ok' : 'danger'} styles={styles} /></View></View>)}{filteredDamage.length === 0 ? <Empty styles={styles} title="Keine Vorfälle" text="Es liegen keine passenden Schaden- oder Verlustmeldungen vor." /> : null}</View> : null}
 
-      {variant === 'categories' ? <CardGrid styles={styles} rows={data.categories.map((entry) => ({ id: entry.id, title: entry.label, meta: INVENTORY_CATEGORY_LABELS[entry.group], details: `${entry.requiresReturnOnExit ? 'Rückgabe bei Austritt' : 'Keine Pflicht-Rückgabe'} · ${entry.barcodeEnabled ? 'Barcode aktiv' : 'Ohne Barcode'}` }))} /> : null}
+      {variant === 'categories' ? <CardGrid styles={styles} rows={visibleCategories.map((entry) => ({ id: entry.id, title: entry.label, meta: INVENTORY_CATEGORY_LABELS[entry.group], details: `${entry.requiresReturnOnExit ? 'Rückgabe bei Austritt' : 'Keine Pflicht-Rückgabe'} · ${entry.barcodeEnabled ? 'Barcode aktiv' : 'Ohne Barcode'}` }))} /> : null}
       {variant === 'locations' ? <CardGrid styles={styles} rows={data.locations.map((entry) => ({ id: entry.id, title: entry.label, meta: [entry.building, entry.room].filter(Boolean).join(' · ') || 'Ohne Raumangabe', details: entry.notes || 'Keine Hinweise' }))} /> : null}
       {variant === 'employees' || variant === 'offboarding' ? <CardGrid styles={styles} rows={demoEmployees.map((employee) => { const assigned = openAssignments.filter((entry) => entry.recipientEmployeeId === employee.id || entry.responsibleEmployeeId === employee.id); return { id: employee.id, title: `${employee.firstName} ${employee.lastName}`, meta: employee.jobTitle || 'Mitarbeitende:r', details: assigned.length ? `${assigned.length} aktive Ausgabe${assigned.length === 1 ? '' : 'n'}` : 'Keine aktive Ausstattung' }; }).filter((row) => matches(row.title, row.meta, row.details))} /> : null}
       {variant === 'protocols' ? <GenericRows styles={styles} rows={data.protocols} empty="Noch keine Rückgabeprotokolle." /> : null}
       {variant === 'audit' ? <GenericRows styles={styles} rows={data.audit} empty="Noch keine protokollierten Änderungen." /> : null}
       {variant === 'mdm' || variant === 'barcode' || variant === 'settings' ? <View style={styles.panel}><Empty styles={styles} title="Dieser Bereich ist noch nicht produktiv freigeschaltet" text="Es werden keine Funktionen vorgetäuscht. Die Ansicht wird aktiviert, sobald die technische Anbindung vollständig verfügbar ist." /></View> : null}
-      <Pressable onPress={() => router.replace('/business/office/inventory' as never)} style={styles.backButton}><Text style={styles.secondaryButtonText}>← Zur Inventarzentrale</Text></Pressable>
+      <Pressable onPress={() => router.replace(backRoute as never)} style={styles.backButton}><Text style={styles.secondaryButtonText}>← Zur Inventarzentrale</Text></Pressable>
 
       <Modal visible={editor !== null} transparent animationType="fade" onRequestClose={resetEditor}>
         <View style={styles.scrim}><View style={styles.dialog}><ScrollView contentContainerStyle={styles.dialogContent}>
           <View style={styles.dialogHeader}><View><Text style={styles.dialogTitle}>{editor === 'create' ? 'Inventarposten anlegen' : editor === 'issue' ? 'Inventar ausgeben' : editor === 'return' ? 'Rücknahme dokumentieren' : 'Schaden oder Verlust melden'}</Text><Text style={styles.dialogSubtitle}>Pflichtangaben vollständig erfassen</Text></View><Pressable onPress={resetEditor} style={styles.close}><Text style={styles.closeText}>×</Text></Pressable></View>
-          {editor === 'create' ? <><Field label="Bezeichnung *" value={name} onChangeText={setName} styles={styles} /><Text style={styles.fieldLabel}>Kategorie *</Text><ChoiceList values={data.categories.map((entry) => ({ value: entry.id, label: entry.label }))} selected={categoryId} onSelect={setCategoryId} styles={styles} /><Field label="Seriennummer / Kennzeichnung" value={serialNumber} onChangeText={setSerialNumber} styles={styles} /></> : null}
+          {editor === 'create' ? <><Field label="Bezeichnung *" value={name} onChangeText={setName} styles={styles} /><Text style={styles.fieldLabel}>Kategorie *</Text><ChoiceList values={visibleCategories.map((entry) => ({ value: entry.id, label: entry.label }))} selected={categoryId} onSelect={setCategoryId} styles={styles} /><Field label="Seriennummer / Kennzeichnung" value={serialNumber} onChangeText={setSerialNumber} styles={styles} /></> : null}
           {editor === 'issue' ? <><Text style={styles.fieldLabel}>Verfügbarer Inventarposten *</Text><ChoiceList values={data.items.filter((item) => item.status === 'available').map((item) => ({ value: item.id, label: `${item.name}${item.serialNumber ? ` · ${item.serialNumber}` : ''}` }))} selected={selectedItemId} onSelect={setSelectedItemId} styles={styles} /><Text style={styles.fieldLabel}>Empfänger:in *</Text><ChoiceList values={demoEmployees.filter((entry) => entry.status === 'aktiv').map((entry) => ({ value: entry.id, label: `${entry.firstName} ${entry.lastName}` }))} selected={selectedEmployeeId} onSelect={setSelectedEmployeeId} styles={styles} /></> : null}
           {editor === 'return' ? <><Text style={styles.fieldLabel}>Zustand bei Rückgabe *</Text><ChoiceList values={['very_good', 'good', 'used', 'damaged', 'unusable'].map((value) => ({ value, label: CONDITION[value] }))} selected={condition} onSelect={(value) => setCondition(value as InventoryCondition)} styles={styles} /></> : null}
           {editor === 'damage' ? <><Text style={styles.fieldLabel}>Inventarposten *</Text><ChoiceList values={data.items.map((item) => ({ value: item.id, label: item.name }))} selected={selectedItemId} onSelect={setSelectedItemId} styles={styles} /><Text style={styles.fieldLabel}>Meldungsart *</Text><ChoiceList values={[{ value: 'damage', label: 'Schaden' }, { value: 'loss', label: 'Verlust' }, { value: 'missing_return', label: 'Fehlende Rückgabe' }]} selected={reportType} onSelect={(value) => setReportType(value as InventoryDamageReport['reportType'])} styles={styles} /></> : null}

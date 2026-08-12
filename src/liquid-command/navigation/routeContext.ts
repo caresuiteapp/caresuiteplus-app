@@ -29,6 +29,12 @@ const routeAliases: Partial<Record<LiquidModuleKey, readonly RouteAlias[]>> = {
     { area: 'assignments', pattern: /^\/assist\/(?:einsaetze|assignments|execution|durchfuehrung|aufgaben|fahrten)(?:\/|$)/ },
   ],
   pflege: [
+    { area: 'clients', pattern: /^\/pflege\/(?:klienten|zugeordnete-klienten)(?:\/|$)/ },
+    { area: 'staff', pattern: /^\/pflege\/(?:personal|pflegepersonal)(?:\/|$)/ },
+    { area: 'tour-planning', pattern: /^\/pflege\/(?:tourenplanung|calendar|kalender)(?:\/|$)/ },
+    { area: 'duty-roster', pattern: /^\/pflege\/dienstplaene(?:\/|$)/ },
+    { area: 'fleet', pattern: /^\/pflege\/fuhrpark(?:\/|$)/ },
+    { area: 'inventory', pattern: /^\/pflege\/inventar(?:\/|$)/ },
     { area: 'invoice-foundations', pattern: /^\/pflege\/rechnungsgrundlage(?:n|-new)?(?:\/|$)/ },
     { area: 'proofs', pattern: /^\/pflege\/leistungsnachweis(?:e|-new|-workflow)?(?:\/|$)/ },
     { area: 'billing', pattern: /^\/pflege\/(?:abrechnung|abrechnungsfall)(?:\/|$)/ },
@@ -43,7 +49,7 @@ const routeAliases: Partial<Record<LiquidModuleKey, readonly RouteAlias[]>> = {
     { area: 'quality', pattern: /^\/pflege\/(?:reports|auswertungen)(?:\/|$)/ },
     { area: 'settings', pattern: /^\/pflege\/(?:settings|einstellungen)(?:\/|$)/ },
     { area: 'sis', pattern: /^\/pflege\/(?:sis|informationssammlung)(?:\/|$)/ },
-    { area: 'measures', pattern: /^\/pflege\/(?:planung|plans|massnahmen|evaluation|dienstplaene)(?:\/|$)/ },
+    { area: 'measures', pattern: /^\/pflege\/(?:planung|plans|massnahmen|evaluation)(?:\/|$)/ },
     { area: 'medication', pattern: /^\/pflege\/medikation(?:\/|$)/ },
     { area: 'diagnoses', pattern: /^\/(?:pflege\/(?:diagnosen|verordnungen)|medical)(?:\/|$)/ },
     { area: 'wounds', pattern: /^\/pflege\/(?:bodymap|wund[^/]*)(?:\/|$)/ },
@@ -102,7 +108,7 @@ export function inferLiquidArea(pathname: string, moduleKey: LiquidModuleKey): s
     .sort((left, right) => routePath(right.route).length - routePath(left.route).length)
     .find((area) => {
       const areaPath = routePath(area.route.toLowerCase());
-      return normalized === areaPath || normalized.startsWith(`${areaPath}/`);
+      return normalized === areaPath || (area.id !== 'home' && normalized.startsWith(`${areaPath}/`));
     });
   if (canonical) return canonical.id;
   return routeAliases[moduleKey]?.find((alias) => alias.pattern.test(normalized))?.area ?? null;

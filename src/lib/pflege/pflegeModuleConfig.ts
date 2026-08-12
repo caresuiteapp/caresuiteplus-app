@@ -7,13 +7,13 @@ function isSupabaseLive(): boolean { return getServiceMode() === 'supabase'; }
 export function isPflegeDemoFunctional(): boolean { return false; }
 export function getMedicationFeatureStatus(): FeatureStatus { return resolveDemoOrLiveStatus(isSupabaseLive()); }
 export function getWoundDocumentationFeatureStatus(): FeatureStatus { return resolveDemoOrLiveStatus(isSupabaseLive()); }
-export function getShiftScheduleFeatureStatus(): FeatureStatus { return resolveDemoOrLiveStatus(false); }
+export function getShiftScheduleFeatureStatus(): FeatureStatus { return resolveDemoOrLiveStatus(isSupabaseLive()); }
 export function getEmpFeatureStatus(): FeatureStatus { return resolveExternalProviderStatus(); }
 export function getWoundBodyMapFeatureStatus(): FeatureStatus { return resolveDemoOrLiveStatus(isSupabaseLive()); }
 export function isCarePlansLiveReady(): boolean { return isSupabaseLive(); }
 export function isVitalReadingsLiveReady(): boolean { return isSupabaseLive(); }
 export function isCareDocumentationLiveReady(): boolean { return isSupabaseLive(); }
-export function isShiftScheduleLiveReady(): boolean { return false; }
+export function isShiftScheduleLiveReady(): boolean { return isSupabaseLive(); }
 export function isSisLiveReady(): boolean { return isSupabaseLive(); }
 export function isPflegeReportsLiveReady(): boolean { return isSupabaseLive(); }
 export function isPflegeSettingsLiveReady(): boolean { return isSupabaseLive(); }

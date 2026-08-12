@@ -5,6 +5,7 @@ import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 export type ShiftScheduleListItem = {
   id: string;
   tenantId: string;
+  employeeId?: string | null;
   employeeName: string;
   roleLabel: string;
   shiftDate: string;

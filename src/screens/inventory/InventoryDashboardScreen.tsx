@@ -23,16 +23,22 @@ const ITEM_STATUS: Record<string, string> = {
   decommissioned: 'Ausgemustert', archived: 'Archiviert',
 };
 
-const AREAS = [
-  { id: 'items', icon: '▦', title: 'Bestand', text: 'Posten anlegen, suchen und verwalten', route: '/business/office/inventory/items' },
-  { id: 'assignments', icon: '→', title: 'Ausgabe', text: 'Verfügbare Ausstattung zuordnen', route: '/business/office/inventory/assignments' },
-  { id: 'returns', icon: '↩', title: 'Rücknahme', text: 'Rückgaben vollständig dokumentieren', route: '/business/office/inventory/returns' },
-  { id: 'damage', icon: '!', title: 'Schaden & Verlust', text: 'Vorfälle aufnehmen und nachhalten', route: '/business/office/inventory/damage' },
-  { id: 'employees', icon: '◎', title: 'Personalausstattung', text: 'Ausgaben nach Mitarbeitenden', route: '/business/office/inventory/employees' },
-  { id: 'categories', icon: '#', title: 'Stammdaten', text: 'Kategorien und Lagerorte', route: '/business/office/inventory/categories' },
+const AREA_DEFS = [
+  { id: 'items', icon: '▦', title: 'Bestand', text: 'Posten anlegen, suchen und verwalten' },
+  { id: 'assignments', icon: '→', title: 'Ausgabe', text: 'Verfügbare Ausstattung zuordnen' },
+  { id: 'returns', icon: '↩', title: 'Rücknahme', text: 'Rückgaben vollständig dokumentieren' },
+  { id: 'damage', icon: '!', title: 'Schaden & Verlust', text: 'Vorfälle aufnehmen und nachhalten' },
+  { id: 'employees', icon: '◎', title: 'Personalausstattung', text: 'Ausgaben nach Mitarbeitenden' },
+  { id: 'categories', icon: '#', title: 'Stammdaten', text: 'Kategorien und Lagerorte' },
 ] as const;
 
-export function InventoryDashboardScreen() {
+export function InventoryDashboardScreen({
+  baseRoute = '/business/office/inventory',
+  contextLabel = 'Office · Personal',
+}: {
+  baseRoute?: string;
+  contextLabel?: string;
+} = {}) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const compact = width < 900;
@@ -41,6 +47,8 @@ export function InventoryDashboardScreen() {
   const tenantId = useServiceTenantId();
   const { can, check, roleLabel } = usePermissions();
   const roleKey = profile?.roleKey ?? null;
+  const route = (segment: string) => `${baseRoute}/${segment}`;
+  const areas = AREA_DEFS.map((area) => ({ ...area, route: route(area.id) }));
   const query = useAsyncQuery(async () => {
     if (!tenantId) return { ok: false as const, error: 'Kein Mandant.' };
     const [items, assignments, damage] = await Promise.all([
@@ -56,7 +64,7 @@ export function InventoryDashboardScreen() {
 
   const styles = useMemo(() => createStyles(c), [c]);
   if (!can('inventory.view')) {
-    return <ScreenShell title="Inventar & Rückgabe" subtitle="Office · Personal"><LockedActionBanner message={check('inventory.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} /></ScreenShell>;
+    return <ScreenShell title="Inventar & Rückgabe" subtitle={contextLabel}><LockedActionBanner message={check('inventory.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} /></ScreenShell>;
   }
   if (query.loading && !query.data) return <ScreenShell title="Inventar & Rückgabe" subtitle="Office · Personal"><LoadingState message="Inventar wird geladen…" /></ScreenShell>;
   if (query.error && !query.data) return <ScreenShell title="Inventar & Rückgabe" subtitle="Office · Personal"><ErrorState message={query.error} onRetry={query.refresh} /></ScreenShell>;
@@ -83,7 +91,7 @@ export function InventoryDashboardScreen() {
           <Text style={styles.lead}>Alle Arbeitsmittel im Blick – von der Erfassung bis zur dokumentierten Rückgabe.</Text>
         </View>
         <Pressable accessibilityRole="button" onPress={query.refresh} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>↻ Aktualisieren</Text></Pressable>
-        <Pressable accessibilityRole="button" onPress={() => router.push('/business/office/inventory/items' as never)} style={styles.primaryButton}><Text style={styles.primaryButtonText}>+ Inventarposten</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => router.push(route('items') as never)} style={styles.primaryButton}><Text style={styles.primaryButtonText}>+ Inventarposten</Text></Pressable>
       </View>
 
       <View style={styles.kpiGrid}>
@@ -92,11 +100,11 @@ export function InventoryDashboardScreen() {
 
       <View style={[styles.columns, compact && styles.columnsCompact]}>
         <View style={styles.mainColumn}>
-          <View style={styles.sectionHeader}><View><Text style={styles.sectionTitle}>Offene Vorgänge</Text><Text style={styles.sectionMeta}>{openAssignments.length + openDamage.length} Vorgänge benötigen Bearbeitung</Text></View><Pressable onPress={() => router.push('/business/office/inventory/returns' as never)}><Text style={styles.link}>Alle Vorgänge →</Text></Pressable></View>
+          <View style={styles.sectionHeader}><View><Text style={styles.sectionTitle}>Offene Vorgänge</Text><Text style={styles.sectionMeta}>{openAssignments.length + openDamage.length} Vorgänge benötigen Bearbeitung</Text></View><Pressable onPress={() => router.push(route('returns') as never)}><Text style={styles.link}>Alle Vorgänge →</Text></Pressable></View>
           <View style={styles.panel}>
             {overdue.slice(0, 4).map((entry) => {
               const item = itemMap.get(entry.itemId);
-              return <Pressable key={entry.id} onPress={() => router.push('/business/office/inventory/returns' as never)} style={styles.workRow}>
+              return <Pressable key={entry.id} onPress={() => router.push(route('returns') as never)} style={styles.workRow}>
                 <View style={[styles.marker, { backgroundColor: c.warning }]} />
                 <View style={styles.workCopy}><Text style={styles.workTitle}>{item?.name ?? 'Inventarposten'}</Text><Text style={styles.workMeta}>Rückgabe überfällig · {entry.recipientEmployeeId}</Text></View>
                 <Text style={styles.statusWarning}>Überfällig</Text><Text style={styles.chevron}>›</Text>
@@ -104,7 +112,7 @@ export function InventoryDashboardScreen() {
             })}
             {openDamage.slice(0, Math.max(0, 4 - overdue.length)).map((entry) => {
               const item = itemMap.get(entry.itemId);
-              return <Pressable key={entry.id} onPress={() => router.push('/business/office/inventory/damage' as never)} style={styles.workRow}>
+              return <Pressable key={entry.id} onPress={() => router.push(route('damage') as never)} style={styles.workRow}>
                 <View style={[styles.marker, { backgroundColor: c.danger }]} />
                 <View style={styles.workCopy}><Text style={styles.workTitle}>{item?.name ?? 'Inventarposten'}</Text><Text style={styles.workMeta}>{entry.reportType === 'loss' ? 'Verlust' : 'Schaden'} · {entry.description}</Text></View>
                 <Text style={styles.statusDanger}>Offen</Text><Text style={styles.chevron}>›</Text>
@@ -113,20 +121,20 @@ export function InventoryDashboardScreen() {
             {overdue.length === 0 && openDamage.length === 0 ? <View style={styles.empty}><Text style={styles.emptyIcon}>✓</Text><View><Text style={styles.workTitle}>Keine offenen Vorgänge</Text><Text style={styles.workMeta}>Rückgaben und Schäden sind vollständig bearbeitet.</Text></View></View> : null}
           </View>
 
-          <View style={styles.sectionHeader}><View><Text style={styles.sectionTitle}>Bestandsübersicht</Text><Text style={styles.sectionMeta}>Zuletzt gepflegte Inventarposten</Text></View><Pressable onPress={() => router.push('/business/office/inventory/items' as never)}><Text style={styles.link}>Bestand öffnen →</Text></Pressable></View>
+          <View style={styles.sectionHeader}><View><Text style={styles.sectionTitle}>Bestandsübersicht</Text><Text style={styles.sectionMeta}>Zuletzt gepflegte Inventarposten</Text></View><Pressable onPress={() => router.push(route('items') as never)}><Text style={styles.link}>Bestand öffnen →</Text></Pressable></View>
           <View style={styles.panel}>
-            {items.slice(0, 5).map((item) => <Pressable key={item.id} onPress={() => router.push('/business/office/inventory/items' as never)} style={styles.stockRow}>
+            {items.slice(0, 5).map((item) => <Pressable key={item.id} onPress={() => router.push(route('items') as never)} style={styles.stockRow}>
               <View style={styles.assetIcon}><Text style={styles.assetIconText}>▦</Text></View>
               <View style={styles.workCopy}><Text style={styles.workTitle}>{item.name}</Text><Text style={styles.workMeta}>{INVENTORY_CATEGORY_LABELS[item.categoryGroup]} · {item.serialNumber || item.barcode || 'Ohne Kennnummer'}</Text></View>
               <Text style={styles.stockStatus}>{ITEM_STATUS[item.status] ?? item.status}</Text><Text style={styles.chevron}>›</Text>
             </Pressable>)}
-            {items.length === 0 ? <View style={styles.empty}><Text style={styles.emptyIcon}>▦</Text><View style={styles.workCopy}><Text style={styles.workTitle}>Noch kein Inventar erfasst</Text><Text style={styles.workMeta}>Legen Sie den ersten Posten an. Danach sind Ausgabe und Rücknahme direkt nutzbar.</Text></View><Pressable onPress={() => router.push('/business/office/inventory/items' as never)}><Text style={styles.link}>Jetzt anlegen</Text></Pressable></View> : null}
+            {items.length === 0 ? <View style={styles.empty}><Text style={styles.emptyIcon}>▦</Text><View style={styles.workCopy}><Text style={styles.workTitle}>Noch kein Inventar erfasst</Text><Text style={styles.workMeta}>Legen Sie den ersten Posten an. Danach sind Ausgabe und Rücknahme direkt nutzbar.</Text></View><Pressable onPress={() => router.push(route('items') as never)}><Text style={styles.link}>Jetzt anlegen</Text></Pressable></View> : null}
           </View>
         </View>
 
         <View style={styles.sideColumn}>
           <Text style={styles.sectionTitle}>Arbeitsbereiche</Text>
-          <View style={styles.areaGrid}>{AREAS.map((area) => <Pressable key={area.id} accessibilityRole="button" onPress={() => router.push(area.route as never)} style={({ pressed }) => [styles.areaCard, pressed && styles.pressed]}>
+          <View style={styles.areaGrid}>{areas.map((area) => <Pressable key={area.id} accessibilityRole="button" onPress={() => router.push(area.route as never)} style={({ pressed }) => [styles.areaCard, pressed && styles.pressed]}>
             <View style={styles.areaIcon}><Text style={styles.areaIconText}>{area.icon}</Text></View><View style={styles.workCopy}><Text style={styles.areaTitle}>{area.title}</Text><Text style={styles.areaText}>{area.text}</Text></View><Text style={styles.chevron}>›</Text>
           </Pressable>)}</View>
         </View>

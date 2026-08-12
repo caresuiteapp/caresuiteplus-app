@@ -100,7 +100,7 @@ export function ShiftScheduleCreateScreen() {
           />
         </View>
 
-        <InfoBanner variant="info" title="Demo-funktional" message="Schicht wird im Demo-Dienstplan gespeichert." />
+        <InfoBanner variant="info" title="Live-Dienstplan" message="Die Schicht wird mandantengetrennt im Pflege-Dienstplan gespeichert." />
 
         <PremiumCard>
           {!employeeName ? (

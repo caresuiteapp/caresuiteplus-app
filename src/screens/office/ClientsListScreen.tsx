@@ -15,6 +15,8 @@ export function ClientsListScreen({
   embedded = false,
   refreshToken = 0,
   useModals = true,
+  moduleLabel = 'Office',
+  contextLabel = 'Klientenverwaltung',
 }: {
   onClientPress?: (id: string) => void;
   selectedId?: string | null;
@@ -22,12 +24,14 @@ export function ClientsListScreen({
   refreshToken?: number;
   /** When false, list actions navigate to full-page routes (master-detail embed). */
   useModals?: boolean;
+  moduleLabel?: string;
+  contextLabel?: string;
 } = {}) {
   const router = useRouter();
   const params = useLocalSearchParams<{ create?: string; client?: string; edit?: string }>();
   const { can, isReadOnly } = usePermissions();
   const canCreate = can('office.clients.create');
-  const officeAccent = moduleColor('office');
+  const accent = moduleColor(moduleLabel === 'Pflege' ? 'pflege' : 'office');
   const [createOpen, setCreateOpen] = useState(false);
   const [detailClientId, setDetailClientId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -132,11 +136,11 @@ export function ClientsListScreen({
     <>
       <C14vSubpageShell
         title="Klient:innen"
-        subtitle={`Klientenverwaltung${isReadOnly ? ' · Lesemodus' : ''}`}
-        moduleLabel="Office"
+        subtitle={`${contextLabel}${isReadOnly ? ' · Lesemodus' : ''}`}
+        moduleLabel={moduleLabel}
         showBack={false}
         scroll={false}
-        accentColor={officeAccent}
+        accentColor={accent}
         actions={[
           ...(canCreate
             ? [

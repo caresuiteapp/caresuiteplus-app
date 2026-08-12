@@ -873,6 +873,11 @@ export const APP_ROUTES: AppRoute[] = [
     ],
     children: [
       '/pflege/calendar',
+      '/pflege/klienten',
+      '/pflege/personal',
+      '/pflege/tourenplanung',
+      '/pflege/fuhrpark',
+      '/pflege/inventar',
       '/pflege/plans',
       '/pflege/diagnosen',
       '/pflege/verordnungen',

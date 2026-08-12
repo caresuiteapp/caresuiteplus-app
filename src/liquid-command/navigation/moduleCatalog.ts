@@ -209,6 +209,13 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'portals', label: 'Portale', description: 'Klient:innenzugänge und Freigaben', pageType: 'settings', route: '/assist/portale' },
   ],
   pflege: [
+    { id: 'home', label: 'Startseite', description: 'Pflegelage, Prioritäten und Schnellzugriffe', pageType: 'command-center', route: '/pflege' },
+    { id: 'clients', label: 'Klient:innen', description: 'Stammdaten und vollständige Pflegeakten', pageType: 'work-list', route: '/pflege/klienten' },
+    { id: 'staff', label: 'Pflegepersonal', description: 'Mitarbeitende und vollständige Personalakten', pageType: 'work-list', route: '/pflege/personal' },
+    { id: 'tour-planning', label: 'Tourenplanung', description: 'Pflegeeinsätze, Routen und Tagesplanung', pageType: 'planning', route: '/pflege/tourenplanung' },
+    { id: 'duty-roster', label: 'Dienstplan', description: 'Schichten, Besetzung und Einsatzorte', pageType: 'planning', route: '/pflege/dienstplaene' },
+    { id: 'fleet', label: 'Fuhrpark', description: 'Pflegefahrzeuge, Status und Zuordnung', pageType: 'work-list', route: '/pflege/fuhrpark' },
+    { id: 'inventory', label: 'Inventar', description: 'Pflegeausstattung, Ausgabe und Rücknahme', pageType: 'work-list', route: '/pflege/inventar' },
     { id: 'sis', label: 'SIS', description: 'Strukturierte Informationssammlung', pageType: 'editor', route: '/pflege/sis' },
     { id: 'measures', label: 'Maßnahmen', description: 'Planung und Evaluation', pageType: 'planning', route: '/pflege/planung' },
     { id: 'medication', label: 'Medikation', description: 'Plan, Gabe und Abweichung', pageType: 'review', route: '/pflege/medikation' },

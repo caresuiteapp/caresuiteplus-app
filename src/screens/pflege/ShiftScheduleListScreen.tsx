@@ -1,9 +1,7 @@
 import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { PreparedModeBanner } from '@/components/modules/PreparedModeBanner';
 import { ShiftScheduleListCard } from '@/components/pflege/ShiftScheduleListCard';
 import {
   ShiftScheduleListHero,
-  SHIFT_SCHEDULE_PREPARED_MESSAGE,
 } from '@/components/pflege/ShiftScheduleListHero';
 import { ShiftScheduleListTable } from '@/components/pflege/ShiftScheduleListTable';
 import { ScreenShell } from '@/components/layout';
@@ -71,7 +69,6 @@ export function ShiftScheduleListScreen() {
         onViewModeChange={setViewMode}
         showViewToggle={isDesktop}
       />
-      <PreparedModeBanner hint={SHIFT_SCHEDULE_PREPARED_MESSAGE} />
       {!importReady ? (
         <InfoBanner
           variant="warning"

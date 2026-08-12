@@ -16,6 +16,8 @@ export function EmployeesListScreen({
   embedded = false,
   refreshToken = 0,
   useModals = true,
+  moduleLabel = 'Office',
+  contextLabel = 'Teamverwaltung',
 }: {
   onEmployeePress?: (id: string) => void;
   selectedId?: string | null;
@@ -23,12 +25,14 @@ export function EmployeesListScreen({
   refreshToken?: number;
   /** When false, list actions navigate to full-page routes (master-detail embed). */
   useModals?: boolean;
+  moduleLabel?: string;
+  contextLabel?: string;
 } = {}) {
   const router = useRouter();
   const params = useLocalSearchParams<{ create?: string; employee?: string }>();
   const { can, isReadOnly } = usePermissions();
   const canCreate = can('office.employees.create');
-  const officeAccent = moduleColor('office');
+  const accent = moduleColor(moduleLabel === 'Pflege' ? 'pflege' : 'office');
   const [createOpen, setCreateOpen] = useState(false);
   const [detailEmployeeId, setDetailEmployeeId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -125,12 +129,12 @@ export function EmployeesListScreen({
     <>
       <C14vSubpageShell
         title="Mitarbeitende"
-        eyebrow="OFFICE · TEAM"
-        subtitle={`Teamverwaltung${isReadOnly ? ' · Lesemodus' : ''}`}
-        moduleLabel="Office"
+        eyebrow={`${moduleLabel.toUpperCase()} · TEAM`}
+        subtitle={`${contextLabel}${isReadOnly ? ' · Lesemodus' : ''}`}
+        moduleLabel={moduleLabel}
         showBack={false}
         scroll={false}
-        accentColor={officeAccent}
+        accentColor={accent}
         actions={[
           ...(canCreate
             ? [

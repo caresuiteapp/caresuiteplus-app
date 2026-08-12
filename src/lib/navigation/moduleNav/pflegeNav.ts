@@ -6,16 +6,28 @@ export const pflegeNav: ModuleNavConfig = {
   groups: [
     {
       title: 'Übersicht',
-      items: [{ key: 'dashboard', label: 'Dashboard', icon: '🏠', href: '/pflege' }],
+      items: [
+        { key: 'dashboard', label: 'Startseite', icon: '🏠', href: '/pflege' },
+        { key: 'clients', label: 'Klient:innenakten', icon: '👥', href: '/pflege/klienten' },
+        { key: 'staff', label: 'Pflegepersonalakten', icon: '🧑‍⚕️', href: '/pflege/personal' },
+      ],
     },
     {
       title: 'Pflegeplanung',
       items: [
         { key: 'calendar', label: 'Kalender', icon: '📅', href: '/pflege/calendar' },
+        { key: 'tours', label: 'Tourenplanung', icon: '🗺️', href: '/pflege/tourenplanung' },
         { key: 'plans', label: 'Pflegepläne', icon: '📋', href: '/pflege/plans' },
         { key: 'planung', label: 'Planung', icon: '🗓️', href: '/pflege/planung' },
         { key: 'dienstplaene', label: 'Dienstpläne', icon: '📅', href: '/pflege/dienstplaene' },
         { key: 'massnahmen', label: 'Maßnahmen', icon: '✅', href: '/pflege/massnahmen' },
+      ],
+    },
+    {
+      title: 'Betriebsorganisation',
+      items: [
+        { key: 'fleet', label: 'Fuhrpark', icon: '🚗', href: '/pflege/fuhrpark' },
+        { key: 'inventory', label: 'Inventar', icon: '📦', href: '/pflege/inventar' },
       ],
     },
     {

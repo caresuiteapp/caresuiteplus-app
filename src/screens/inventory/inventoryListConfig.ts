@@ -1,3 +1,5 @@
+import type { InventoryCategoryGroup } from '@/types/inventory';
+
 export type InventoryListVariant =
   | 'items'
   | 'assignments'
@@ -15,4 +17,8 @@ export type InventoryListVariant =
 
 export type InventoryListScreenProps = {
   variant: InventoryListVariant;
+  categoryGroupFilter?: InventoryCategoryGroup;
+  titleOverride?: string;
+  subtitleOverride?: string;
+  backRoute?: string;
 };

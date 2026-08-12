@@ -10,13 +10,15 @@ type ModuleCalendarScreenProps = {
 
   moduleKey: CalendarModuleScope;
 
+  title?: string;
+
   subtitle?: string;
 
 };
 
 
 
-export function ModuleCalendarScreen({ moduleKey, subtitle }: ModuleCalendarScreenProps) {
+export function ModuleCalendarScreen({ moduleKey, title, subtitle }: ModuleCalendarScreenProps) {
 
   const config = buildModuleCalendarConfig(moduleKey);
 
@@ -25,6 +27,8 @@ export function ModuleCalendarScreen({ moduleKey, subtitle }: ModuleCalendarScre
     <CalendarShell
 
       moduleKey={moduleKey}
+
+      title={title}
 
       subtitle={subtitle ?? config.subtitle}
 
@@ -37,4 +41,3 @@ export function ModuleCalendarScreen({ moduleKey, subtitle }: ModuleCalendarScre
   );
 
 }
-

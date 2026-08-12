@@ -28,7 +28,13 @@ export const ASSIST_TABS: ShellTabConfig[] = [
 ];
 
 export const PFLEGE_TABS: ShellTabConfig[] = [
-  { key: 'index', label: 'Übersicht', icon: '🏠', href: '/pflege' },
+  { key: 'index', label: 'Startseite', icon: '🏠', href: '/pflege' },
+  { key: 'clients', label: 'Klient:innen', icon: '👥', href: '/pflege/klienten' },
+  { key: 'staff', label: 'Pflegepersonal', icon: '🧑‍⚕️', href: '/pflege/personal' },
+  { key: 'tours', label: 'Tourenplanung', icon: '🗺️', href: '/pflege/tourenplanung' },
+  { key: 'roster', label: 'Dienstplan', icon: '📅', href: '/pflege/dienstplaene' },
+  { key: 'fleet', label: 'Fuhrpark', icon: '🚗', href: '/pflege/fuhrpark' },
+  { key: 'inventory', label: 'Inventar', icon: '📦', href: '/pflege/inventar' },
   { key: 'plans', label: 'Pflegepläne', icon: '📋', href: '/pflege/plans' },
   { key: 'vitalwerte', label: 'Vitalwerte', icon: '❤️', href: '/pflege/vitalwerte' },
   { key: 'qualitaet', label: 'Qualität', icon: '✓', href: '/pflege/abweichungen' },

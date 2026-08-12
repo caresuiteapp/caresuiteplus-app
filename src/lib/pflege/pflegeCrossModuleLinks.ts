@@ -71,20 +71,6 @@ const LINK_CATALOG: Record<string, LinkDef> = {
     href: '/pflege/dienstplaene',
     icon: '📅',
   },
-  residents: {
-    id: 'residents',
-    label: 'Bewohner:innen',
-    description: 'Stationär — Liste und Detail',
-    href: '/stationaer/bewohner',
-    icon: '🏠',
-  },
-  assist: {
-    id: 'assist',
-    label: 'Assist Einsätze',
-    description: 'Einsatzplanung und Durchführung',
-    href: '/assist/assignments',
-    icon: '🚗',
-  },
   reports: {
     id: 'reports',
     label: 'Auswertungen',
@@ -95,14 +81,14 @@ const LINK_CATALOG: Record<string, LinkDef> = {
 };
 
 const CONTEXT_ORDER: Record<PflegeCrossModuleContext, string[]> = {
-  'care-plan': ['vitals', 'sis', 'medication', 'wounds', 'documentation', 'residents', 'assist'],
-  'vital-reading': ['plans', 'sis', 'documentation', 'medication', 'residents'],
-  'vital-create': ['plans', 'vitals', 'sis', 'documentation', 'residents'],
-  'sis-assessment': ['plans', 'vitals', 'documentation', 'medication', 'residents'],
-  'sis-form': ['sis', 'plans', 'vitals', 'documentation', 'residents'],
-  medication: ['plans', 'vitals', 'wounds', 'documentation', 'residents'],
-  wound: ['plans', 'medication', 'vitals', 'documentation', 'residents'],
-  'care-documentation': ['plans', 'vitals', 'sis', 'medication', 'residents'],
+  'care-plan': ['vitals', 'sis', 'medication', 'wounds', 'documentation'],
+  'vital-reading': ['plans', 'sis', 'documentation', 'medication'],
+  'vital-create': ['plans', 'vitals', 'sis', 'documentation'],
+  'sis-assessment': ['plans', 'vitals', 'documentation', 'medication'],
+  'sis-form': ['sis', 'plans', 'vitals', 'documentation'],
+  medication: ['plans', 'vitals', 'wounds', 'documentation'],
+  wound: ['plans', 'medication', 'vitals', 'documentation'],
+  'care-documentation': ['plans', 'vitals', 'sis', 'medication'],
 };
 
 export function buildPflegeCrossModuleLinks(context: PflegeCrossModuleContext): PflegeCrossModuleLink[] {
