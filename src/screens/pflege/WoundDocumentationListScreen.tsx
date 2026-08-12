@@ -8,7 +8,6 @@ import {
 } from '@/components/pflege/WoundDocumentationListHero';
 import { WoundDocumentationListTable } from '@/components/pflege/WoundDocumentationListTable';
 import { ScreenShell } from '@/components/layout';
-import { demoClients } from '@/data/demo/clients';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -19,11 +18,6 @@ import { useAuth } from '@/lib/auth/context';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { fetchWoundDocumentationList } from '@/lib/pflege/woundDocumentationService';
 import { colors, spacing } from '@/theme';
-
-function resolveClientName(clientId: string): string | undefined {
-  const client = demoClients.find((c) => c.id === clientId);
-  return client ? `${client.firstName} ${client.lastName}` : undefined;
-}
 
 export function WoundDocumentationListScreen() {
   const router = useRouter();
@@ -116,7 +110,7 @@ export function WoundDocumentationListScreen() {
         renderItem={({ item }) => (
           <WoundDocumentationListCard
             item={item}
-            clientName={resolveClientName(item.clientId)}
+            clientName={item.clientName}
             onPress={() => openDetail(item.id)}
           />
         )}

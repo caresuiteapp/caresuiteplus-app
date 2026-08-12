@@ -1,10 +1,12 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import type { VitalReadingListItem } from '@/types/modules/pflege';
-import { getDemoVitalReadings, createDemoVitalReading } from '@/data/demo/vitalReadings';
+import type { VitalReadingListItem, VitalReadingType } from '@/types/modules/pflege';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { getServiceMode } from '@/lib/services/mode';
-import { vitalSignSupabaseRepository } from '@/lib/services/repositories/vitalSignRepository.supabase';
+import {
+  vitalSignSupabaseRepository,
+  type VitalClientConfiguration,
+  type RecordVitalMeasurementInput,
+} from '@/lib/services/repositories/vitalSignRepository.supabase';
 
 export async function fetchVitalReadings(
   tenantId: string,
@@ -12,21 +14,9 @@ export async function fetchVitalReadings(
 ): Promise<ServiceResult<VitalReadingListItem[]>> {
   const denied = enforcePermission<VitalReadingListItem[]>(actorRoleKey, 'pflege.vitals.view');
   if (denied) return denied;
-
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-
-  if (getServiceMode() === 'supabase') {
-    return vitalSignSupabaseRepository.listMapped(tenantId);
-  }
-
-  await new Promise((r) => setTimeout(r, 240));
-
-  const readings = getDemoVitalReadings().sort(
-    (a, b) => new Date(b.measuredAt).getTime() - new Date(a.measuredAt).getTime(),
-  );
-
-  return { ok: true, data: readings };
+  return vitalSignSupabaseRepository.listMapped(tenantId);
 }
 
 export async function fetchDueVitalReadings(
@@ -35,28 +25,46 @@ export async function fetchDueVitalReadings(
 ): Promise<ServiceResult<VitalReadingListItem[]>> {
   const result = await fetchVitalReadings(tenantId, actorRoleKey);
   if (!result.ok) return result;
+  return { ok: true, data: result.data.filter((reading) => reading.isDue || reading.isAlert) };
+}
 
-  const due = result.data.filter((reading) => reading.isDue || reading.isAlert);
-  return { ok: true, data: due };
+export async function fetchClientVitalConfiguration(
+  tenantId: string,
+  clientId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<VitalClientConfiguration[]>> {
+  const denied = enforcePermission<VitalClientConfiguration[]>(actorRoleKey, 'pflege.vitals.view');
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  return vitalSignSupabaseRepository.getClientConfiguration(clientId);
+}
+
+export async function setClientVitalConfiguration(
+  tenantId: string,
+  clientId: string,
+  type: VitalReadingType,
+  enabled: boolean,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<VitalClientConfiguration>> {
+  const denied = enforcePermission<VitalClientConfiguration>(actorRoleKey, 'pflege.vitals.view');
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  return vitalSignSupabaseRepository.setClientConfiguration(clientId, type, enabled);
 }
 
 export async function createVitalReading(
   tenantId: string,
-  input: {
-    clientId: string;
-    type: 'blood_pressure' | 'pulse' | 'temperature' | 'weight' | 'oxygen';
-    value: string;
-    carePlanId?: string;
-  },
+  input: RecordVitalMeasurementInput,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<VitalReadingListItem>> {
   const denied = enforcePermission<VitalReadingListItem>(actorRoleKey, 'pflege.vitals.view');
   if (denied) return denied;
-
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-
-  await new Promise((r) => setTimeout(r, 180));
-  const reading = createDemoVitalReading(input);
-  return { ok: true, data: reading };
+  if (!input.clientId || !input.type || (Object.keys(input.values ?? {}).length === 0 && !input.value?.trim())) {
+    return { ok: false, error: 'Klient:in, Messart und Messwert sind erforderlich.' };
+  }
+  return vitalSignSupabaseRepository.create(input);
 }

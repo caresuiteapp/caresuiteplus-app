@@ -3,7 +3,7 @@ import { generateExtraVitalReadings } from './generators/pflegeDemoGenerators';
 import { demoClients } from './clients';
 import { DEMO_TENANT_ID } from './tenant';
 
-export const VITAL_TYPE_LABELS: Record<VitalReading['type'], string> = {
+export const VITAL_TYPE_LABELS: Partial<Record<VitalReading['type'], string>> = {
   blood_pressure: 'Blutdruck',
   pulse: 'Puls',
   temperature: 'Temperatur',
@@ -22,7 +22,10 @@ function clientName(clientId: string): string {
   return client ? `${client.firstName} ${client.lastName}` : 'Unbekannt';
 }
 
-export const demoVitalReadings: VitalReading[] = [
+export const demoVitalReadings: VitalReading[] = [];
+
+/** Historische Fixture-Sammlung; nicht mehr an produktive Services angebunden. */
+export const legacyVitalReadingFixtures: VitalReading[] = [
   {
     id: 'vital-001',
     tenantId: DEMO_TENANT_ID,
@@ -176,9 +179,9 @@ export const demoVitalReadings: VitalReading[] = [
   ...generateExtraVitalReadings(11, 22),
 ];
 
-let vitalStore: VitalReading[] = demoVitalReadings.map((r) => ({ ...r }));
+let vitalStore: VitalReading[] = [];
 
-const VITAL_UNITS: Record<VitalReading['type'], string> = {
+const VITAL_UNITS: Partial<Record<VitalReading['type'], string>> = {
   blood_pressure: 'mmHg',
   pulse: 'bpm',
   temperature: '°C',
@@ -201,7 +204,7 @@ export function createDemoVitalReading(input: {
     carePlanId: input.carePlanId ?? 'plan-001',
     type: input.type,
     value: input.value,
-    unit: VITAL_UNITS[input.type],
+    unit: VITAL_UNITS[input.type] ?? '',
     measuredAt: now,
     status: 'aktiv',
     sensitivity: 'health',
@@ -213,7 +216,7 @@ export function createDemoVitalReading(input: {
   return {
     ...reading,
     clientName: clientName(reading.clientId),
-    typeLabel: VITAL_TYPE_LABELS[reading.type],
+    typeLabel: VITAL_TYPE_LABELS[reading.type] ?? reading.type,
     isDue: false,
     isAlert: false,
   };
@@ -232,7 +235,7 @@ export function getDemoVitalReadings(): VitalReadingListItem[] {
   return vitalStore.map((reading) => ({
     ...reading,
     clientName: clientName(reading.clientId),
-    typeLabel: VITAL_TYPE_LABELS[reading.type],
+    typeLabel: VITAL_TYPE_LABELS[reading.type] ?? reading.type,
     isDue: isVitalDue(reading.measuredAt),
     isAlert: isVitalAlert(reading.status),
   }));

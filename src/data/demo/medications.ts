@@ -1,21 +1,10 @@
 import type { WorkflowStatus } from '@/types/core/base';
+import type { MedicationListItem } from '@/types/modules/pflege';
 import { MEDICATION_NAMES } from './generators/pflegeDemoGenerators';
 import { demoClients } from './clients';
 import { DEMO_TENANT_ID } from './tenant';
 
-export type MedicationListItem = {
-  id: string;
-  tenantId: string;
-  clientId: string;
-  clientName: string;
-  medicationName: string;
-  dosage: string;
-  schedule: string;
-  route: string;
-  status: WorkflowStatus;
-  prescribedBy: string;
-  updatedAt: string;
-};
+export type { MedicationListItem };
 
 const SCHEDULES = ['Morgens', 'Abends', 'Morgens + Abends', 'Bei Bedarf', 'Vor Mahlzeiten'];
 const ROUTES = ['oral', 'subkutan', 'topisch', 'inhalativ'];

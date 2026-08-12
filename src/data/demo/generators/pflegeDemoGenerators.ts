@@ -14,7 +14,7 @@ const VITAL_TYPES: VitalReading['type'][] = [
   'oxygen',
 ];
 
-const VITAL_VALUES: Record<VitalReading['type'], string[]> = {
+const VITAL_VALUES: Partial<Record<VitalReading['type'], string[]>> = {
   blood_pressure: ['118/76', '128/82', '135/88', '142/90', '155/98'],
   pulse: ['68', '72', '78', '84', '92', '102'],
   temperature: ['36.4', '36.7', '37.0', '37.4', '37.8', '38.2'],
@@ -22,7 +22,7 @@ const VITAL_VALUES: Record<VitalReading['type'], string[]> = {
   oxygen: ['96', '94', '92', '98', '89'],
 };
 
-const VITAL_UNITS: Record<VitalReading['type'], string> = {
+const VITAL_UNITS: Partial<Record<VitalReading['type'], string>> = {
   blood_pressure: 'mmHg',
   pulse: 'bpm',
   temperature: '°C',
@@ -40,7 +40,7 @@ export function generateExtraVitalReadings(startIndex: number, count: number): V
     const idx = startIndex + i;
     const client = clients[i % clients.length]!;
     const type = VITAL_TYPES[i % VITAL_TYPES.length]!;
-    const values = VITAL_VALUES[type];
+    const values = VITAL_VALUES[type] ?? ['0'];
     const hoursBack = 2 + (i % 72);
     const measuredAt = new Date(Date.now() - hoursBack * 3_600_000).toISOString();
 
@@ -51,7 +51,7 @@ export function generateExtraVitalReadings(startIndex: number, count: number): V
       carePlanId: `plan-${String((i % 8) + 1).padStart(3, '0')}`,
       type,
       value: values[i % values.length]!,
-      unit: VITAL_UNITS[type],
+      unit: VITAL_UNITS[type] ?? '',
       measuredAt,
       status: STATUSES[i % STATUSES.length]!,
       sensitivity: i % 3 === 0 ? 'health' : 'care',

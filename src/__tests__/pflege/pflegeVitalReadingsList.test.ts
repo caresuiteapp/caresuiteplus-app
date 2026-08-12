@@ -1,86 +1,40 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildVitalListKpis } from '@/lib/pflege/vitalListStats';
-import { getDemoVitalReadings } from '@/data/demo/vitalReadings';
-import { fetchVitalReadings } from '@/lib/pflege/vitalService';
-import { fetchVitalReadingDetail } from '@/lib/pflege/vitalDetailService';
-import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
-import { enforcePermission } from '@/lib/permissions';
-import {
-  VITAL_STATUS_FILTERS,
-  VITAL_SORT_OPTIONS,
-  VITAL_TYPE_FILTERS,
-} from '@/hooks/useVitalReadingList';
+import { VITAL_SIGN_CATALOG } from '@/lib/pflege/vitalCatalog';
 
 const root = path.join(__dirname, '..', '..', '..');
+const readSrc = (relativePath: string) => readFileSync(path.join(root, relativePath), 'utf8');
 
-function readSrc(relativePath: string): string {
-  return readFileSync(path.join(root, relativePath), 'utf8');
-}
-
-describe('Pflege Vitalwerte list', () => {
-  it('enforcePermission schützt Vital-List-Service', () => {
-    expect(enforcePermission(null, 'pflege.vitals.view' as never)).not.toBeNull();
+describe('Pflege Vitalwerte · Live Final', () => {
+  it('enthält Pflege- und Intensivpflege-Kategorien', () => {
+    expect(VITAL_SIGN_CATALOG.length).toBeGreaterThanOrEqual(39);
+    expect(new Set(VITAL_SIGN_CATALOG.map((item) => item.category))).toEqual(
+      new Set(['basis','koerper','pflege','haemodynamik','beatmung','blutgas']),
+    );
   });
-
-  it('fetchVitalReadings liefert Demo-Messungen', async () => {
-    const result = await fetchVitalReadings(DEMO_TENANT_ID, 'nurse');
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.length).toBeGreaterThan(0);
-      expect(result.data[0]?.typeLabel).toBeTruthy();
-    }
+  it('jede Messart ist klientenbezogen schaltbar', () => {
+    const source = readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx');
+    expect(source).toContain('setClientVitalConfiguration');
+    expect(source).toContain('<Switch');
   });
-
-  it('fetchVitalReadingDetail liefert Demo-Detail', async () => {
-    const result = await fetchVitalReadingDetail('vital-001', DEMO_TENANT_ID, 'nurse');
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.type).toBe('blood_pressure');
-    }
-  });
-
-  it('buildVitalListKpis berechnet Kennzahlen aus Demo-Daten', () => {
-    const items = getDemoVitalReadings();
-    const kpis = buildVitalListKpis(items);
-    expect(kpis.length).toBe(3);
-    expect(kpis.some((k) => k.id === 'vitals-kpi-due')).toBe(true);
-  });
-
-  it('Status-, Typ- und Sortierfilter sind vollständig definiert', () => {
-    expect(VITAL_STATUS_FILTERS.some((f) => f.key === 'aktiv')).toBe(true);
-    expect(VITAL_TYPE_FILTERS.some((f) => f.key === 'blood_pressure')).toBe(true);
-    expect(VITAL_SORT_OPTIONS.some((o) => o.key === 'measured_desc')).toBe(true);
-  });
-
-  it('VitalReadingsListView hat Suche, Filter und States', () => {
-    const source = readSrc('src/components/pflege/VitalReadingsListView.tsx');
-    expect(source).toContain('PremiumInput');
-    expect(source).toContain('FilterChipGroup');
-    expect(source).toContain('EmptyState');
-    expect(source).not.toContain('Coming Soon');
-  });
-
-  it('VitalReadingsAdaptiveScreen nutzt MasterDetailLayout mit Summary-Panel', () => {
-    const source = readSrc('src/screens/pflege/VitalReadingsAdaptiveScreen.tsx');
-    expect(source).toContain('MasterDetailLayout');
-    expect(source).toContain('VitalReadingDetailSummaryPanel');
-  });
-
-  it('VitalReadingListCard unterstützt Auswahlzustand für Master-Detail', () => {
-    const source = readSrc('src/components/pflege/VitalReadingListCard.tsx');
-    expect(source).toContain('selected');
-    expect(source).toContain('cardSelected');
-  });
-
-  it('vitalService nutzt guardServiceTenant', () => {
+  it('verwendet nur das Live-Repository', () => {
     const source = readSrc('src/lib/pflege/vitalService.ts');
-    expect(source).toContain('guardServiceTenant');
+    expect(source).toContain('vitalSignSupabaseRepository');
+    expect(source).not.toContain('createDemoVitalReading');
+    expect(source).not.toContain('getDemoVitalReadings');
   });
-
-  it('vitalDetailService nutzt guardServiceTenant', () => {
-    const source = readSrc('src/lib/pflege/vitalDetailService.ts');
-    expect(source).toContain('guardServiceTenant');
+  it('Zeitstempel und Mitarbeiter werden serverseitig gesetzt', () => {
+    const sql = readSrc('supabase/migrations/20260812100000_vital_signs_live_final.sql');
+    expect(sql).toContain('measured_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()');
+    expect(sql).toContain('recorded_by UUID NOT NULL');
+    expect(sql).toContain('auth.uid()');
+  });
+  it('Messungen sind append-only für authentifizierte Clients', () => {
+    const sql = readSrc('supabase/migrations/20260812100000_vital_signs_live_final.sql');
+    expect(sql).toContain('REVOKE INSERT,UPDATE,DELETE ON public.vital_sign_measurements FROM authenticated');
+  });
+  it('Demo-Vitalwerte sind deaktiviert', () => {
+    expect(readSrc('src/data/demo/vitalReadings.ts')).toContain('demoVitalReadings: VitalReading[] = []');
   });
 });

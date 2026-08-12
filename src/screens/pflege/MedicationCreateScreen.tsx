@@ -1,138 +1,40 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareMedicationScheduleInput } from '@/components/inputs/CareMedicationScheduleInput';
 import { ScreenShell } from '@/components/layout';
-import {
-  EmptyState,
-  ErrorState,
-  FilterChipGroup,
-  InfoBanner,
-  LoadingState,
-  PremiumButton,
-  PremiumInput,
-  SectionPanel,
-  SuccessState,
-} from '@/components/ui';
-import { createDemoMedication } from '@/data/demo/medications';
-import { demoClients } from '@/data/demo/clients';
-import { usePermissions } from '@/hooks/usePermissions';
+import { ErrorState, FilterChipGroup, LoadingState, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';
+import { useAsyncQuery } from '@/hooks/core';
+import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { formatIntakeSchemaShort } from '@/lib/formatters/unitFormatters';
-import { isMedicationLiveReady } from '@/lib/pflege/pflegeModuleConfig';
-import { colors, spacing, typography } from '@/theme';
+import { fetchEligibleCareClients } from '@/lib/careAssessment';
+import { createMedicationOrder } from '@/lib/pflege/medicationListService';
+import { spacing, typography, colors } from '@/theme';
 
+const today = () => new Date().toISOString().slice(0, 10);
 export function MedicationCreateScreen() {
-  const router = useRouter();
-  useAuth();
-  const { isReadOnly, roleLabel } = usePermissions();
-  const writeReady = isMedicationLiveReady();
-
-  const [clientId, setClientId] = useState(demoClients[0]?.id ?? 'client-001');
-  const [medicationName, setMedicationName] = useState('');
-  const [dosage, setDosage] = useState('');
-  const [routeKey, setRouteKey] = useState('oral');
-  const [schedule, setSchedule] = useState({ morning: 1, noon: 0, evening: 1, night: 0 });
-  const [schemaKey, setSchemaKey] = useState('1-0-1-0');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [createdId, setCreatedId] = useState<string | null>(null);
-
-  const client = demoClients.find((c) => c.id === clientId);
-  const clientName = client ? `${client.firstName} ${client.lastName}` : 'Unbekannt';
-  const isFormEmpty = !medicationName.trim() && !dosage.trim();
-
-  async function handleSave() {
-    if (!writeReady || isReadOnly || !medicationName.trim() || !clientId) return;
-    setSaving(true);
-    setError(null);
-    const scheduleLabel = formatIntakeSchemaShort(
-      schedule.morning,
-      schedule.noon,
-      schedule.evening,
-      schedule.night,
-    );
-    const item = createDemoMedication({
-      clientId,
-      clientName,
-      medicationName: medicationName.trim(),
-      dosage: dosage.trim() || '—',
-      schedule: scheduleLabel,
-    });
-    setSaving(false);
-    setCreatedId(item.id);
-    setTimeout(() => router.replace(`/pflege/medikation/${item.id}` as never), 900);
-  }
-
-  if (saving) {
-    return (
-      <ScreenShell title="Medikation anlegen" subtitle="Speichern…">
-        <LoadingState message="Verordnung wird gespeichert…" />
-      </ScreenShell>
-    );
-  }
-
-  if (createdId) {
-    return (
-      <ScreenShell title="Verordnung angelegt" showBack={false}>
-        <SuccessState message="Medikationsplan gespeichert — Weiterleitung zum Detail…" />
-      </ScreenShell>
-    );
-  }
-
-  return (
-    <ScreenShell
-      title="Medikation anlegen"
-      subtitle={`Einnahmeschema morgens/mittags/abends/nachts · ${roleLabel ?? 'Demo'}`}
-      onBack={() => router.back()}
-    >
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <InfoBanner
-          variant="info"
-          title="Medikationsplan"
-          message="Verordnung mit Tageszeit-Schema — Demo-Persistenz im Mandanten."
-        />
-        {isFormEmpty ? (
-          <EmptyState
-            title="Neue Verordnung"
-            message="Klient:in und Präparat eingeben — Einnahmeschema optional anpassen."
-          />
-        ) : null}
-        {error ? <ErrorState message={error} /> : null}
-
-        <SectionPanel title="Verordnung" subtitle="Pflichtfelder">
-          <Text style={styles.fieldLabel}>Klient:in</Text>
-          <FilterChipGroup
-            options={demoClients.slice(0, 8).map((c) => ({
-              key: c.id,
-              label: `${c.firstName} ${c.lastName}`,
-            }))}
-            value={clientId}
-            onChange={setClientId}
-          />
-          <PremiumInput label="Präparat *" value={medicationName} onChangeText={setMedicationName} editable={!isReadOnly && writeReady} />
-          <PremiumInput label="Dosierung" placeholder="z. B. 5 mg" value={dosage} onChangeText={setDosage} editable={!isReadOnly && writeReady} />
-          <PremiumInput label="Applikationsweg" placeholder="oral" value={routeKey} onChangeText={setRouteKey} editable={!isReadOnly && writeReady} />
-          <CareMedicationScheduleInput
-            label="Einnahmeschema"
-            value={schedule}
-            onChange={setSchedule}
-            schemaKey={schemaKey}
-            onSchemaKeyChange={setSchemaKey}
-          />
-          <PremiumButton
-            title={saving ? 'Speichern…' : 'Verordnung speichern'}
-            disabled={!writeReady || isReadOnly || saving || !medicationName.trim() || !clientId}
-            onPress={handleSave}
-          />
-          <PremiumButton title="Abbrechen" variant="secondary" onPress={() => router.back()} />
-        </SectionPanel>
-      </ScrollView>
-    </ScreenShell>
-  );
+  const router = useRouter(); const tenantId = useServiceTenantId(); const { profile } = useAuth();
+  const clients = useAsyncQuery(() => tenantId ? fetchEligibleCareClients(tenantId, profile?.roleKey) : Promise.resolve({ ok: false as const, error: 'Kein Mandant.' }), [tenantId, profile?.roleKey], { enabled: Boolean(tenantId) });
+  const options = useMemo(() => (clients.data ?? []).map((c) => ({ key: c.id, label: `${c.lastName}, ${c.firstName}` })), [clients.data]);
+  const [clientId, setClientId] = useState(''); const [name, setName] = useState(''); const [ingredient, setIngredient] = useState('');
+  const [dosage, setDosage] = useState(''); const [route, setRoute] = useState('oral'); const [schedule, setSchedule] = useState('1-0-0-0');
+  const [physician, setPhysician] = useState(''); const [indication, setIndication] = useState(''); const [instructions, setInstructions] = useState('');
+  const [busy, setBusy] = useState(false); const [error, setError] = useState<string | null>(null); const [success, setSuccess] = useState(false);
+  const save = async () => {
+    if (!tenantId) return; setBusy(true); setError(null); setSuccess(false);
+    const result = await createMedicationOrder(tenantId, clientId, { medicationName: name, activeIngredient: ingredient, dosage, route,
+      schedule: { schema: schedule }, physician, prescribedAt: today(), validFrom: today(), indication, instructions }, profile?.roleKey);
+    setBusy(false); if (!result.ok) return setError(result.error); setSuccess(true); setTimeout(() => router.replace(`/pflege/medikation/${result.data.id}` as never), 700);
+  };
+  if (clients.loading) return <ScreenShell title="Medikation"><LoadingState message="Aktive Pflegefälle werden geladen…" /></ScreenShell>;
+  return <ScreenShell title="Medikation anlegen" subtitle="Ärztliche Verordnung · Vier-Zeiten-Schema · Live-Audit">
+    <ScrollView contentContainerStyle={styles.scroll}><SectionPanel title="Medikationsverordnung" subtitle="Nur nach vorliegender ärztlicher Anordnung dokumentieren">
+      <Text style={styles.label}>Aktiver Pflegefall *</Text><FilterChipGroup wrap options={options} value={clientId} onChange={setClientId} />
+      <PremiumInput label="Präparat *" value={name} onChangeText={setName} /><PremiumInput label="Wirkstoff" value={ingredient} onChangeText={setIngredient} />
+      <PremiumInput label="Dosierung *" value={dosage} onChangeText={setDosage} /><PremiumInput label="Applikationsweg *" value={route} onChangeText={setRoute} />
+      <PremiumInput label="Schema morgens-mittags-abends-nachts" value={schedule} onChangeText={setSchedule} /><PremiumInput label="Verordnende Ärztin/Arzt *" value={physician} onChangeText={setPhysician} />
+      <PremiumInput label="Indikation" value={indication} onChangeText={setIndication} multiline /><PremiumInput label="Durchführungshinweise" value={instructions} onChangeText={setInstructions} multiline />
+      {error ? <ErrorState message={error} /> : null}{success ? <SuccessState message="Medikationsverordnung wurde live gespeichert und zurückgelesen." /> : null}
+      <PremiumButton title="Verordnung live speichern" fullWidth loading={busy} disabled={busy || !clientId || !name || !dosage || !physician} onPress={save} />
+    </SectionPanel></ScrollView></ScreenShell>;
 }
-
-const styles = StyleSheet.create({
-  scroll: { paddingBottom: spacing.xxl },
-  fieldLabel: { ...typography.label, color: colors.textMuted },
-});
+const styles = StyleSheet.create({ scroll: { paddingBottom: spacing.xxl }, label: { ...typography.label, color: colors.textMuted } });

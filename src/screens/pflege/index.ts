@@ -19,3 +19,5 @@ export { BodyMapScreen } from './BodyMapScreen';
 export { SisFormScreen } from './SisFormScreen';
 export { MedicationCreateScreen } from './MedicationCreateScreen';
 export { WoundDocumentationDetailScreen } from './WoundDocumentationDetailScreen';
+export { ClinicalHandoverCreateScreen, TreatmentExecutionCreateScreen, TreatmentExecutionListScreen } from './ClinicalCreateScreens';
+export { MedicationAdministrationScreen, WoundAssessmentCreateScreen } from './ClinicalFollowUpScreens';

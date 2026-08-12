@@ -1,135 +1,41 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import { getDemoCareRecordById, getDemoCareRecordListItems } from '@/data/demo/careRecords';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
-import { careRecordSupabaseRepository } from '@/lib/services/repositories/careRecordRepository.supabase';
-import type {
-  CareDocumentationDetail,
-  CareDocumentationListItem,
-} from './careDocumentationTypes';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import type { CareDocumentationDetail, CareDocumentationListItem } from './careDocumentationTypes';
+type Row = Record<string, unknown>; const text = (v: unknown) => v == null ? '' : String(v);
+const map = (r: Row): CareDocumentationListItem => ({ id: text(r.id), tenantId: text(r.tenant_id), title: text(r.title), clientName: text(r.client_name) || '—', employeeName: text(r.recorded_by_name), recordedAt: text(r.recorded_at), status: text(r.signature_status) === 'signed' ? 'abgeschlossen' : 'entwurf', updatedAt: text(r.created_at), hasSignature: text(r.signature_status) === 'signed', pdfReady: text(r.signature_status) === 'signed', contentPreview: text(r.content).slice(0, 120) });
 
-function mapDemoListItem(): CareDocumentationListItem[] {
-  return getDemoCareRecordListItems().map((record) => ({
-    id: record.id,
-    tenantId: record.tenantId,
-    title: record.assignmentTitle,
-    clientName: record.clientName,
-    employeeName: record.employeeName,
-    recordedAt: record.recordedAt,
-    status: record.status,
-    updatedAt: record.updatedAt,
-    hasSignature: record.hasSignature,
-    pdfReady: record.pdfReady,
-    contentPreview: record.content.slice(0, 120),
-  }));
+export async function fetchCareDocumentationList(tenantId: string, role?: RoleKey | null): Promise<ServiceResult<CareDocumentationListItem[]>> {
+  const denied = enforcePermission<CareDocumentationListItem[]>(role, 'pflege.documentation.view'); if (denied) return denied;
+  const tenant = guardServiceTenant(tenantId); if (tenant) return tenant;
+  if (getServiceMode() !== 'supabase') return { ok: false, error: 'Pflegedokumentation ist ausschließlich live verfügbar.' };
+  const supabase = getSupabaseClient()!;
+  const { data, error } = await fromUnknownTable(supabase, 'clinical_documentation_entries').select('*').eq('tenant_id', tenantId).order('recorded_at', { ascending: false });
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  const rows = (data ?? []) as Row[];
+  const { data: clients } = await fromUnknownTable(supabase, 'clients').select('id,first_name,last_name').eq('tenant_id', tenantId).in('id', [...new Set(rows.map((r) => text(r.client_id)))]);
+  const names = new Map(((clients ?? []) as Row[]).map((r) => [text(r.id), `${text(r.first_name)} ${text(r.last_name)}`.trim()]));
+  return { ok: true, data: rows.map((r) => map({ ...r, client_name: names.get(text(r.client_id)) ?? '—' })) };
 }
-
-function mapLiveRow(row: {
-  id: string;
-  tenant_id: string;
-  title: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}): CareDocumentationListItem {
-  return {
-    id: row.id,
-    tenantId: row.tenant_id,
-    title: row.title,
-    clientName: '—',
-    employeeName: '—',
-    recordedAt: row.created_at,
-    status: (row.status === 'aktiv' ||
-    row.status === 'entwurf' ||
-    row.status === 'in_bearbeitung' ||
-    row.status === 'abgeschlossen' ||
-    row.status === 'archiviert'
-      ? row.status
-      : 'entwurf') as CareDocumentationListItem['status'],
-    updatedAt: row.updated_at,
-    hasSignature: row.status === 'abgeschlossen',
-    pdfReady: false,
-    contentPreview: row.title,
-  };
+export async function fetchCareDocumentationDetail(id: string, tenantId: string, role?: RoleKey | null): Promise<ServiceResult<CareDocumentationDetail>> {
+  const denied = enforcePermission<CareDocumentationDetail>(role, 'pflege.documentation.view'); if (denied) return denied;
+  const tenant = guardServiceTenant(tenantId); if (tenant) return tenant; const supabase = getSupabaseClient()!;
+  const { data, error } = await fromUnknownTable(supabase, 'clinical_documentation_entries').select('*').eq('tenant_id', tenantId).eq('id', id).maybeSingle();
+  if (error) return { ok: false, error: toGermanSupabaseError(error) }; if (!data) return { ok: false, error: 'Pflegedokumentation nicht gefunden.' };
+  const r = data as Row;
+  const { data: client } = await fromUnknownTable(supabase, 'clients').select('first_name,last_name').eq('tenant_id', tenantId).eq('id', text(r.client_id)).maybeSingle();
+  const c = (client ?? {}) as Row; const name = `${text(c.first_name)} ${text(c.last_name)}`.trim() || '—';
+  return { ok: true, data: { ...map({ ...r, client_name: name }), content: text(r.content), durationMinutes: null, location: null } };
 }
-
-/** WP377 — Pflegedokumentation Liste (Demo + Live care_records Basis) */
-export async function fetchCareDocumentationList(
-  tenantId: string,
-  actorRoleKey?: RoleKey | null,
-): Promise<ServiceResult<CareDocumentationListItem[]>> {
-  const denied = enforcePermission<CareDocumentationListItem[]>(
-    actorRoleKey,
-    'pflege.plans.view',
-  );
-  if (denied) return denied;
-
-  const tenantBlock = guardServiceTenant(tenantId);
-  if (tenantBlock) return tenantBlock;
-
-  if (getServiceMode() === 'supabase') {
-    const result = await careRecordSupabaseRepository.list(tenantId);
-    if (!result.ok) return result;
-    return { ok: true, data: result.data.map(mapLiveRow) };
-  }
-
-  await new Promise((r) => setTimeout(r, 240));
-  return { ok: true, data: mapDemoListItem() };
-}
-
-export async function fetchCareDocumentationDetail(
-  recordId: string,
-  tenantId: string,
-  actorRoleKey?: RoleKey | null,
-): Promise<ServiceResult<CareDocumentationDetail>> {
-  const denied = enforcePermission<CareDocumentationDetail>(actorRoleKey, 'pflege.plans.view');
-  if (denied) return denied;
-
-  const tenantBlock = guardServiceTenant(tenantId);
-  if (tenantBlock) return tenantBlock;
-
-  if (getServiceMode() === 'supabase') {
-    const result = await careRecordSupabaseRepository.getById(tenantId, recordId);
-    if (!result.ok) return result;
-    if (!result.data) {
-      return { ok: false, error: 'Pflegedokumentation nicht gefunden.' };
-    }
-    const row = result.data;
-    return {
-      ok: true,
-      data: {
-        ...mapLiveRow(row),
-        content: row.title,
-        durationMinutes: null,
-        location: null,
-      },
-    };
-  }
-
-  await new Promise((r) => setTimeout(r, 200));
-  const record = getDemoCareRecordById(recordId);
-  if (!record) {
-    return { ok: false, error: 'Pflegedokumentation nicht gefunden.' };
-  }
-
-  return {
-    ok: true,
-    data: {
-      id: record.id,
-      tenantId: record.tenantId,
-      title: record.assignmentTitle,
-      clientName: record.clientName,
-      employeeName: record.employeeName,
-      recordedAt: record.recordedAt,
-      status: record.status,
-      updatedAt: record.updatedAt,
-      hasSignature: record.hasSignature,
-      pdfReady: record.pdfReady,
-      contentPreview: record.content.slice(0, 120),
-      content: record.content,
-      durationMinutes: record.durationMinutes,
-      location: record.location,
-    },
-  };
+export async function createCareDocumentation(tenantId: string, clientId: string, entryType: string, title: string, content: string, role?: RoleKey | null): Promise<ServiceResult<{ id: string }>> {
+  const denied = enforcePermission<{ id: string }>(role, 'pflege.documentation.create'); if (denied) return denied;
+  const tenant = guardServiceTenant(tenantId); if (tenant) return tenant;
+  const supabase = getSupabaseClient()! as unknown as { rpc: (name: string, params: Record<string, unknown>) => Promise<{ data: Row | null; error: Parameters<typeof toGermanSupabaseError>[0] }> };
+  const { data, error } = await supabase.rpc('create_clinical_documentation', { p_client_id: clientId, p_entry_type: entryType, p_title: title, p_content: content, p_payload: {} });
+  if (error || !data) return { ok: false, error: toGermanSupabaseError(error) }; const id = text(data.id); const readback = await fetchCareDocumentationDetail(id, tenantId, role);
+  return readback.ok ? { ok: true, data: { id } } : readback;
 }

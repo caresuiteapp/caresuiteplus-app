@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { FormScreenHero } from '@/components/forms';
 import { ScreenShell } from '@/components/layout';
@@ -16,16 +15,18 @@ import {
   SectionPanel,
   SuccessState,
 } from '@/components/ui';
-import { demoClients } from '@/data/demo/clients';
-import { WOUND_LOCATIONS } from '@/data/demo/generators/pflegeDemoGenerators';
+import { useAsyncQuery } from '@/hooks/core';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
+import { fetchEligibleCareClients } from '@/lib/careAssessment';
 import { createBodyMapMarker } from '@/lib/pflege/bodyMapService';
 import { isWoundDocumentationLiveReady } from '@/lib/pflege/pflegeModuleConfig';
 import { createWoundDocumentation } from '@/lib/pflege/woundDocumentationService';
 import type { BodyMapRegion } from '@/types/modules/bodyMap';
 import { colors, spacing, typography } from '@/theme';
+
+const WOUND_LOCATIONS = ['Unterschenkel links', 'Sakrum', 'Großzehe rechts', 'Ferse links', 'Ellenbogen rechts', 'Oberarm links', 'Knie rechts', 'Steißbein', 'Handrücken links', 'Schulter rechts', 'Wade links', 'Brustwand'];
 
 const REGION_MAP: Record<string, BodyMapRegion> = {
   'Unterschenkel links': 'bein_links',
@@ -50,26 +51,20 @@ export function WoundCreateScreen() {
   const { isReadOnly, roleLabel } = usePermissions();
   const writeReady = isWoundDocumentationLiveReady();
 
-  const [clientId, setClientId] = useState(demoClients[0]?.id ?? 'client-001');
+  const clients = useAsyncQuery(
+    () => tenantId ? fetchEligibleCareClients(tenantId, profile?.roleKey) : Promise.resolve({ ok: false as const, error: 'Kein Mandant.' }),
+    [tenantId, profile?.roleKey], { enabled: Boolean(tenantId) },
+  );
+  const clientOptions = useMemo(() => (clients.data ?? []).map((client) => ({ key: client.id, label: `${client.lastName}, ${client.firstName}` })), [clients.data]);
+  const [clientId, setClientId] = useState('');
   const [bodyLocation, setBodyLocation] = useState(WOUND_LOCATIONS[0] ?? '');
   const [woundType, setWoundType] = useState('Ulcus cruris');
   const [woundSize, setWoundSize] = useState('');
   const [description, setDescription] = useState('');
   const [statusKey, setStatusKey] = useState('entwurf');
-  const [photoName, setPhotoName] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
-
-  async function handlePickPhoto() {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: ['image/*'],
-      copyToCacheDirectory: true,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setPhotoName(result.assets[0].name);
-    }
-  }
 
   async function handleSave() {
     if (!writeReady || isReadOnly || !tenantId || !description.trim()) return;
@@ -133,7 +128,7 @@ export function WoundCreateScreen() {
   return (
     <ScreenShell
       title="Wunde dokumentieren"
-      subtitle={`BodyMap, Lokalisation, Verlauf · ${roleLabel ?? 'Demo'}`}
+      subtitle={`BodyMap, Lokalisation, Verlauf · ${roleLabel ?? 'Pflege'}`}
       onBack={() => router.back()}
     >
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -141,7 +136,7 @@ export function WoundCreateScreen() {
           <FormScreenHero
             eyebrow="PFLEGE · WUNDE"
             title="Neue Wunddokumentation"
-            meta="Lokalisation, Typ, Größe — Demo-Persistenz mit BodyMap-Marker"
+            meta="Lokalisation, Typ, Größe — Live-Verlauf mit BodyMap-Verknüpfung"
             icon="🩹"
             formMode="create"
             accentColor={colors.cyan}
@@ -150,8 +145,8 @@ export function WoundCreateScreen() {
 
         <InfoBanner
           variant="info"
-          title="Demo-funktional"
-          message="Speichert Wunde, BodyMap-Marker und Verlauf im Demo-Mandanten."
+          title="Live-Dokumentation"
+          message="Speichert Wundfall und Erstassessment mit serverseitiger Mitarbeiter- und Zeitzuordnung."
         />
 
         {!description ? (
@@ -162,10 +157,7 @@ export function WoundCreateScreen() {
           <SectionPanel title="Klient:in & Lokalisation" subtitle="Pflichtfelder">
             <Text style={styles.fieldLabel}>Klient:in</Text>
             <FilterChipGroup
-              options={demoClients.slice(0, 8).map((c) => ({
-                key: c.id,
-                label: `${c.firstName} ${c.lastName}`,
-              }))}
+              options={clientOptions}
               value={clientId}
               onChange={setClientId}
             />
@@ -214,13 +206,8 @@ export function WoundCreateScreen() {
             />
           </SectionPanel>
 
-          <SectionPanel title="Verlaufsfoto" subtitle="Optional — Demo-Upload">
-            <PremiumButton
-              title={photoName ? `Foto: ${photoName}` : 'Foto auswählen'}
-              variant="secondary"
-              onPress={handlePickPhoto}
-              disabled={isReadOnly}
-            />
+          <SectionPanel title="BodyMap" subtitle="Räumliche Zuordnung des Wundfalls">
+            <InfoBanner variant="info" title="Verlaufsmedien" message="Fotos werden ausschließlich über die gesicherte BodyMap-Medienablage referenziert; die Neuanlage speichert keine lokale Dateireferenz." />
             <PremiumButton
               title="BodyMap öffnen"
               variant="secondary"
@@ -237,7 +224,7 @@ export function WoundCreateScreen() {
           <PremiumButton
             title="Wunddokumentation speichern"
             fullWidth
-            disabled={!writeReady || isReadOnly || !description.trim()}
+            disabled={!writeReady || isReadOnly || !clientId || !description.trim()}
             onPress={handleSave}
           />
           <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={() => router.back()} />

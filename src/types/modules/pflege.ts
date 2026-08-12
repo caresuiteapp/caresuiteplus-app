@@ -20,6 +20,7 @@ export type CarePlanTask = {
 export type CarePlan = TenantScopedEntity &
   PortalScopedEntity & {
     clientId: string;
+    clientName?: string;
     title: string;
     validFrom: string;
     validUntil: string | null;
@@ -116,7 +117,16 @@ export type CareMedicalOrder = {
   updatedAt: string;
 };
 
-export type VitalReadingType = 'blood_pressure' | 'pulse' | 'temperature' | 'weight' | 'oxygen';
+export type VitalReadingType =
+  | 'blood_pressure' | 'pulse' | 'respiratory_rate' | 'oxygen' | 'temperature'
+  | 'weight' | 'height' | 'bmi' | 'body_surface_area' | 'head_circumference'
+  | 'blood_glucose' | 'blood_ketones' | 'pain_score' | 'capillary_refill'
+  | 'urine_output' | 'fluid_balance' | 'gcs' | 'rass' | 'pupils'
+  | 'arterial_pressure' | 'map' | 'cvp' | 'cardiac_output' | 'cardiac_index'
+  | 'svv' | 'icp' | 'cpp' | 'etco2' | 'oxygen_flow' | 'fio2' | 'peep'
+  | 'tidal_volume' | 'minute_ventilation' | 'peak_airway_pressure'
+  | 'plateau_pressure' | 'ventilator_rate' | 'ph' | 'pco2' | 'po2'
+  | 'bicarbonate' | 'base_excess' | 'lactate';
 
 export type VitalReading = TenantScopedEntity &
   PortalScopedEntity & {
@@ -126,6 +136,12 @@ export type VitalReading = TenantScopedEntity &
     value: string;
     unit: string;
     measuredAt: string;
+    recordedById?: string | null;
+    recordedByName?: string | null;
+    source?: 'manual' | 'device' | 'import';
+    context?: Record<string, string>;
+    note?: string | null;
+    flagStatus?: 'unrated' | 'within_configured_range' | 'outside_configured_range';
     status: WorkflowStatus;
     sensitivity: SensitivityLevel;
   };
@@ -206,9 +222,24 @@ export type PflegeReportStats = {
 export type WoundDocumentation = TenantScopedEntity &
   PortalScopedEntity & {
     clientId: string;
+    clientName?: string;
     bodyLocation: string;
     description: string;
     documentedAt: string;
     status: WorkflowStatus;
     sensitivity: SensitivityLevel;
   };
+
+export type MedicationListItem = {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  clientName: string;
+  medicationName: string;
+  dosage: string;
+  schedule: string;
+  route: string;
+  status: WorkflowStatus;
+  prescribedBy: string;
+  updatedAt: string;
+};

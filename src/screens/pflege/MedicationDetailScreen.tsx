@@ -98,6 +98,8 @@ export function MedicationDetailScreen() {
 
         <PflegeCrossModuleLinksPanel context="medication" />
 
+        {!isReadOnly ? <PremiumButton title="Medikamentengabe dokumentieren" fullWidth onPress={() => router.push(`/pflege/medikation/${id}/gabe` as never)} /> : null}
+
         <PremiumButton title="Zurück zur Liste" variant="secondary" onPress={() => router.back()} />
       </ScrollView>
     </ScreenShell>

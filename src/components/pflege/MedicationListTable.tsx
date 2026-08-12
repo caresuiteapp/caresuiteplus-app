@@ -1,7 +1,7 @@
 import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
-import type { MedicationListItem } from '@/data/demo/medications';
+import type { MedicationListItem } from '@/types/modules/pflege';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 
 type MedicationListTableProps = {

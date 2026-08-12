@@ -9,7 +9,7 @@ import {
 import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
-import type { MedicationListItem } from '@/data/demo/medications';
+import type { MedicationListItem } from '@/types/modules/pflege';
 import { buildMedicationListKpis } from '@/lib/pflege/medicationListStats';
 import {
   isMedicationEmpReady,

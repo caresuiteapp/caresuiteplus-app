@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { MedicationListItem } from '@/data/demo/medications';
+import type { MedicationListItem } from '@/types/modules/pflege';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
 import { colors, spacing, typography } from '@/theme';
 

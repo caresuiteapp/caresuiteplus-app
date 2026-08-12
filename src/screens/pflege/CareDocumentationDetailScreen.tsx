@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CareDocumentationDetailHero } from '@/components/pflege/CareDocumentationDetailHero';
@@ -17,6 +18,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchCareDocumentationDetail } from '@/lib/pflege/careDocumentationListService';
+import { signClinicalDocumentation } from '@/lib/pflege/clinicalWorkflowService';
 import {
   CARE_DOCUMENTATION_PREPARED_MESSAGE,
   CARE_DOCUMENTATION_PDF_PREPARED_MESSAGE,
@@ -33,6 +35,8 @@ export function CareDocumentationDetailScreen() {
   const tenantId = useServiceTenantId();
   const { roleLabel, isReadOnly } = usePermissions();
   const roleKey = profile?.roleKey ?? 'nurse';
+  const [signing, setSigning] = useState(false);
+  const [signError, setSignError] = useState<string | null>(null);
 
   const query = useAsyncQuery(
     () => {
@@ -46,6 +50,15 @@ export function CareDocumentationDetailScreen() {
   const detail = query.data;
   const signReady = isCareDocumentationSignReady();
   const pdfReady = isCareDocumentationPdfReady();
+
+  async function sign() {
+    if (!tenantId || !id) return;
+    setSigning(true); setSignError(null);
+    const result = await signClinicalDocumentation(tenantId, id, profile?.roleKey);
+    setSigning(false);
+    if (!result.ok) return setSignError(result.error);
+    query.refresh();
+  }
 
   if (query.loading && !detail) {
     return (
@@ -72,14 +85,14 @@ export function CareDocumentationDetailScreen() {
         {!signReady ? (
           <InfoBanner
             variant="warning"
-            title="Signatur demo-funktional"
+            title="Signatur nicht verfügbar"
             message={CARE_DOCUMENTATION_SIGN_PREPARED_MESSAGE}
           />
         ) : null}
         {!pdfReady ? (
           <InfoBanner
             variant="warning"
-            title="PDF demo-funktional"
+            title="PDF-Export folgt"
             message={CARE_DOCUMENTATION_PDF_PREPARED_MESSAGE}
           />
         ) : null}
@@ -91,6 +104,13 @@ export function CareDocumentationDetailScreen() {
             <DetailInfoRow label="Dauer" value={`${detail.durationMinutes} Min.`} />
           ) : null}
         </SectionPanel>
+
+        {signError ? <ErrorState message={signError} /> : null}
+        {!detail.hasSignature && signReady && !isReadOnly ? (
+          <PremiumButton title="Dokumentation fachlich signieren" fullWidth loading={signing} disabled={signing} onPress={sign} />
+        ) : detail.hasSignature ? (
+          <InfoBanner variant="success" title="Fachlich signiert" message="Die Signatur wurde serverseitig mit Person und Zeitpunkt protokolliert." />
+        ) : null}
 
         <PflegeCrossModuleLinksPanel context="care-documentation" />
 

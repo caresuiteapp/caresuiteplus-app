@@ -1,6 +1,4 @@
-import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   WoundDocumentationDetailHero,
@@ -14,7 +12,6 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchWoundDocumentationDetail } from '@/lib/pflege/woundDocumentationDetailService';
-import { addDemoWoundPhoto } from '@/data/demo/woundDocumentations';
 import {
   isWoundBodyMapReady,
 } from '@/lib/pflege/pflegeModuleConfig';
@@ -39,24 +36,6 @@ export function WoundDocumentationDetailScreen() {
 
   const detail = query.data;
   const bodyMapReady = isWoundBodyMapReady();
-  const [photoUploading, setPhotoUploading] = useState(false);
-  const [photoMessage, setPhotoMessage] = useState<string | null>(null);
-
-  async function handlePhotoUpload() {
-    if (!id || isReadOnly || !bodyMapReady) return;
-    setPhotoUploading(true);
-    setPhotoMessage(null);
-    const result = await DocumentPicker.getDocumentAsync({
-      type: ['image/*'],
-      copyToCacheDirectory: true,
-    });
-    if (!result.canceled && result.assets[0]) {
-      const count = addDemoWoundPhoto(id, result.assets[0].name);
-      setPhotoMessage(`${count} Verlaufsfoto(s) gespeichert (Demo).`);
-      query.refresh();
-    }
-    setPhotoUploading(false);
-  }
 
   if (query.loading && !detail) {
     return (
@@ -94,16 +73,7 @@ export function WoundDocumentationDetailScreen() {
               )
             }
           />
-          <PremiumButton
-            title={photoUploading ? 'Upload…' : 'Verlaufsfoto hochladen'}
-            variant="secondary"
-            fullWidth
-            disabled={!bodyMapReady || isReadOnly || photoUploading}
-            onPress={handlePhotoUpload}
-          />
-          {photoMessage ? (
-            <InfoBanner variant="success" title="Foto" message={photoMessage} />
-          ) : null}
+          <InfoBanner variant="info" title="Verlaufsmedien" message="Fotos werden ausschließlich über die gesicherte BodyMap-Medienablage referenziert." />
         </SectionPanel>
 
         <SectionPanel title="Wundstatus" subtitle="Lokalisation und Behandlung">
@@ -125,6 +95,8 @@ export function WoundDocumentationDetailScreen() {
         </SectionPanel>
 
         <PflegeCrossModuleLinksPanel context="wound" />
+
+        {!isReadOnly ? <PremiumButton title="Wundverlauf dokumentieren" fullWidth onPress={() => router.push(`/pflege/wunden/${id}/assessment` as never)} /> : null}
 
         <PremiumButton title="Zurück zur Liste" variant="secondary" onPress={() => router.back()} />
       </ScrollView>

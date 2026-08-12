@@ -24,6 +24,7 @@ export const pflegeNav: ModuleNavConfig = {
         { key: 'dokumentation', label: 'Pflegedokumentation', icon: '📝', href: '/pflege/dokumentation' },
         { key: 'vitalwerte', label: 'Vitalwerte', icon: '❤️', href: '/pflege/vitalwerte' },
         { key: 'medikation', label: 'Medikation', icon: '💊', href: '/pflege/medikation' },
+        { key: 'behandlungspflege', label: 'Behandlungspflege', icon: '🩺', href: '/pflege/behandlungspflege' },
         { key: 'wunden', label: 'Wunddokumentation', icon: '🩹', href: '/pflege/wunddokumentation' },
       ],
     },

@@ -9,6 +9,7 @@ import {
   fetchInformationCollectionDetail,
   fetchInformationCollections,
 } from '@/lib/pflege/informationCollectionService';
+import { fetchClinicalHandovers } from '@/lib/pflege/clinicalWorkflowService';
 
 export {
   createInformationCollection,
@@ -81,8 +82,5 @@ export async function fetchPflegeHandoversList(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<CareDocumentationListItem[]>> {
-  return wrapList(
-    () => fetchCareDocumentationList(tenantId, actorRoleKey),
-    (items) => items.filter((_, index) => index % 2 === 1),
-  );
+  return fetchClinicalHandovers(tenantId, actorRoleKey);
 }

@@ -1,4 +1,4 @@
-import type { MedicationListItem } from '@/data/demo/medications';
+import type { MedicationListItem } from '@/types/modules/pflege';
 import { legacyColorsFromPalette, type ColorMode } from '@/design/tokens/themeBridge';
 
 export type MedicationListKpi = {

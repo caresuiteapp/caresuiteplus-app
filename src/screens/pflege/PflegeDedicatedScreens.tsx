@@ -142,7 +142,7 @@ export function PflegeHandoversListScreen() {
       title="Übergaben"
       eyebrow="PFLEGE · SCHICHTÜBERGABE"
       subtitle="Dokumentierte Übergaben"
-      createRoute="/pflege/dokumentation/new"
+      createRoute="/pflege/uebergaben/new"
       queryFn={fetchPflegeHandoversList}
       searchKeys={['title', 'clientName', 'employeeName']}
       getItemId={(item) => item.id}

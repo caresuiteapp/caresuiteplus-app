@@ -1,4 +1,4 @@
-import type { MedicationListItem } from '@/data/demo/medications';
+import type { MedicationListItem } from '@/types/modules/pflege';
 import { getDemoMedicationListItems } from '@/data/demo/medications';
 import { legacyColorsFromPalette, type ColorMode } from '@/design/tokens/themeBridge';
 

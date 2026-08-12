@@ -22,7 +22,7 @@ export type WoundDocumentationDetailKpi = {
   accentColor?: string;
 };
 
-const DETAIL_EXTRAS: Record<string, Omit<WoundDocumentationDetail, keyof WoundDocumentation>> = {
+const DETAIL_EXTRAS: Record<string, Omit<WoundDocumentationDetail, Exclude<keyof WoundDocumentation, 'clientName'>>> = {
   'wound-001': {
     clientName: 'Hans Weber',
     woundType: 'Ulcus cruris',
@@ -67,7 +67,7 @@ export function buildWoundDocumentationDetail(item: WoundDocumentation, mode: Co
     caregiverNotes: 'Demo-Wundfall — BodyMap extern.',
   };
   const photoCount = getDemoWoundPhotoCount(item.id) || extras.photoCount;
-  return { ...item, ...extras, photoCount };
+  return { ...item, ...extras, clientName: item.clientName ?? extras.clientName, photoCount };
 }
 
 export function getDemoWoundDocumentationDetail(id: string): WoundDocumentationDetail | null {
