@@ -30,6 +30,8 @@ describe('PFLEGE TEIL 3 · QUALITÄT, RISIKO & MD LIVE R2', () => {
     expect(migration).toContain("'care_plan_measure_review'");
     expect(migration).toContain("'care_risk'");
     expect(migration).toContain('Pflegemaßnahme fortgeschrieben.');
+    expect(migration).toContain('SELECT i.care_plan_id,p.client_id INTO care_plan_id,client_id');
+    expect(migration).not.toContain('INTO item_row,client_id');
   });
 
   it('calculates MD readiness from seven live evidence checks', () => {

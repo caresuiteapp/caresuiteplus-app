@@ -125,11 +125,11 @@ END $$;
 
 CREATE OR REPLACE FUNCTION public.review_care_plan_measure(p_item_id UUID,p_payload JSONB)
 RETURNS public.care_plan_measure_reviews LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE review_row public.care_plan_measure_reviews; item_row public.care_plan_items; client_id UUID; t UUID:=public.current_tenant_id();
+DECLARE review_row public.care_plan_measure_reviews; care_plan_id UUID; client_id UUID; t UUID:=public.current_tenant_id();
  decision_value TEXT:=COALESCE(NULLIF(p_payload->>'decision',''),'continue'); next_status TEXT;
 BEGIN
  IF NOT public.has_permission('pflege.measures.review') THEN RAISE EXCEPTION 'Keine Berechtigung.' USING ERRCODE='42501'; END IF;
- SELECT i,p.client_id INTO item_row,client_id FROM public.care_plan_items i JOIN public.care_plans p ON p.id=i.care_plan_id AND p.tenant_id=i.tenant_id
+ SELECT i.care_plan_id,p.client_id INTO care_plan_id,client_id FROM public.care_plan_items i JOIN public.care_plans p ON p.id=i.care_plan_id AND p.tenant_id=i.tenant_id
  WHERE i.id=p_item_id AND i.tenant_id=t FOR UPDATE OF i;
  IF client_id IS NULL OR NOT public.is_active_pfleger_client(client_id) THEN RAISE EXCEPTION 'Kein aktiver Pflegefall.' USING ERRCODE='23514'; END IF;
  IF decision_value NOT IN('continue','change','pause','complete') THEN RAISE EXCEPTION 'Ungültige Maßnahmenentscheidung.' USING ERRCODE='23514'; END IF;
@@ -139,7 +139,7 @@ BEGIN
  next_status:=CASE decision_value WHEN 'pause' THEN 'paused' WHEN 'complete' THEN 'completed' ELSE 'active' END;
  INSERT INTO public.care_plan_measure_reviews(tenant_id,client_id,care_plan_id,care_plan_item_id,decision,observed_effect,
   person_feedback,professional_rationale,changed_intervention,changed_frequency,next_evaluation_at,reviewer_profile_id,reviewer_name_snapshot)
- VALUES(t,client_id,item_row.care_plan_id,p_item_id,decision_value,trim(p_payload->>'observedEffect'),COALESCE(p_payload->>'personFeedback',''),
+ VALUES(t,client_id,care_plan_id,p_item_id,decision_value,trim(p_payload->>'observedEffect'),COALESCE(p_payload->>'personFeedback',''),
   trim(p_payload->>'professionalRationale'),COALESCE(p_payload->>'changedIntervention',''),COALESCE(p_payload->>'changedFrequency',''),
   NULLIF(p_payload->>'nextEvaluationAt','')::TIMESTAMPTZ,public.clinical_actor_id(),public.clinical_actor_name()) RETURNING * INTO review_row;
  UPDATE public.care_plan_items SET status=next_status,
@@ -148,7 +148,7 @@ BEGIN
   next_evaluation_date=NULLIF(p_payload->>'nextEvaluationAt','')::DATE,updated_by=auth.uid(),updated_at=clock_timestamp()
  WHERE id=p_item_id AND tenant_id=t;
  INSERT INTO public.care_audit_events(tenant_id,client_id,care_plan_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name)
- VALUES(t,client_id,item_row.care_plan_id,'care_plan_measure_review',review_row.id,decision_value,'Pflegemaßnahme fortgeschrieben.',to_jsonb(review_row),public.clinical_actor_id(),public.clinical_actor_name());
+ VALUES(t,client_id,care_plan_id,'care_plan_measure_review',review_row.id,decision_value,'Pflegemaßnahme fortgeschrieben.',to_jsonb(review_row),public.clinical_actor_id(),public.clinical_actor_name());
  RETURN review_row;
 END $$;
 
