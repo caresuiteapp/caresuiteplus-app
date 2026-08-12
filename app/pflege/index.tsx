@@ -1,1 +1,5 @@
-export { PflegeIndexScreen as default } from '@/product-workflows/screens/pflege/PflegeIndexScreen';
+import { ModuleWorkspaceScreen } from '@/liquid-command/screens/ModuleWorkspaceScreen';
+
+export default function PflegeIndexRoute() {
+  return <ModuleWorkspaceScreen moduleKey="pflege" />;
+}

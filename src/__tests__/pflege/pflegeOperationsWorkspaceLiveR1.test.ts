@@ -38,7 +38,9 @@ describe('Pflege Operations Workspace Live R1', () => {
     expect(getLiquidPrimaryWorkflowRoute('pflege', 'clients')).toBe('/pflege/klienten?create=1');
     expect(getLiquidPrimaryWorkflowRoute('pflege', 'staff')).toBe('/pflege/personal?create=1');
     expect(getLiquidPrimaryWorkflowRoute('pflege', 'duty-roster')).toBe('/pflege/dienstplaene/new');
-    expect(source('app/pflege/index.tsx')).toContain('PflegeIndexScreen');
+    expect(source('app/pflege/index.tsx')).toContain('ModuleWorkspaceScreen');
+    expect(source('src/liquid-command/screens/ModuleWorkspaceScreen.tsx')).toContain('PflegeHomeWorkspace');
+    expect(source('src/liquid-command/screens/PflegeHomeWorkspace.tsx')).toContain('activeModule="pflege"');
   });
 
   it('persists the Pflege duty roster with tenant RLS', () => {

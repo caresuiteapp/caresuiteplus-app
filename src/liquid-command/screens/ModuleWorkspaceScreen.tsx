@@ -29,6 +29,7 @@ import { LiquidCommandShell } from '../shell/LiquidCommandShell';
 import type { LiquidModuleKey, LiquidPageType, LiquidWorkArea } from '../types';
 import { CompanyWorkspace } from './CompanyWorkspace';
 import { AssistClientsWorkspace } from './AssistClientsWorkspace';
+import { PflegeHomeWorkspace } from './PflegeHomeWorkspace';
 
 type WorkspaceItem = {
   id: string;
@@ -786,6 +787,10 @@ export function ModuleWorkspaceScreen({ moduleKey }: { moduleKey: LiquidModuleKe
         onReload={state.reload}
       />
     );
+  }
+
+  if (moduleKey === 'pflege' && activeArea.id === 'home') {
+    return <PflegeHomeWorkspace tenantId={state.tenantId} />;
   }
 
   const list = (
