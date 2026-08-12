@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 async function loadEdition(value?: string) {
   vi.resetModules();
   if (value) vi.stubEnv('EXPO_PUBLIC_APP_EDITION', value);
-  else vi.unstubAllEnvs();
+  else vi.stubEnv('EXPO_PUBLIC_APP_EDITION', '');
   return import('@/lib/platform/healthOSStoreEdition');
 }
 
