@@ -4,6 +4,13 @@ export {
   fetchActiveCarePlans,
 } from './carePlanListService';
 export { fetchCarePlanDetail } from './carePlanDetailService';
+export { createCarePlan, updateCarePlan } from './carePlanListService';
+export {
+  createCareDiagnosis,
+  createCareMedicalOrder,
+  fetchCareDiagnoses,
+  fetchCareMedicalOrders,
+} from './careClinicalCoreService';
 export { fetchVitalReadings, fetchDueVitalReadings, createVitalReading } from './vitalService';
 export { fetchVitalReadingDetail } from './vitalDetailService';
 export { fetchSisAssessments, fetchSisAssessmentDetail } from './sisListService';

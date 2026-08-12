@@ -212,6 +212,8 @@ export const PFLEGE_QUICK_ACCESS: DashboardQuickAction[] = [
   { id: 'pflege-qa-medication', label: 'Medikation', icon: '💊', route: '/pflege/medikation' },
   { id: 'pflege-qa-wounds', label: 'Wunddoku', icon: '🩹', route: '/pflege/wunddokumentation' },
   { id: 'pflege-qa-sis', label: 'SIS / Assessment', icon: '📊', route: '/pflege/sis' },
+  { id: 'pflege-qa-diagnoses', label: 'Diagnosen', icon: '🩺', route: '/pflege/diagnosen' },
+  { id: 'pflege-qa-orders', label: 'Verordnungen', icon: '📃', route: '/pflege/verordnungen' },
   { id: 'pflege-qa-shifts', label: 'Dienstpläne', icon: '🗓️', route: '/pflege/dienstplaene' },
 ];
 

@@ -6,6 +6,15 @@ export type CarePlanTask = {
   label: string;
   frequency: string;
   status: WorkflowStatus;
+  category?: string;
+  goal?: string;
+  intervention?: string;
+  timing?: string;
+  responsibleRole?: string;
+  warningSigns?: string;
+  escalationPath?: string;
+  evaluationCriteria?: string;
+  nextEvaluationAt?: string | null;
 };
 
 export type CarePlan = TenantScopedEntity &
@@ -17,8 +26,16 @@ export type CarePlan = TenantScopedEntity &
     status: WorkflowStatus;
     sensitivity: SensitivityLevel;
     summary: string;
+    goals?: string;
+    resources?: string;
+    risks?: string;
     tasks: CarePlanTask[];
     primaryNurseId: string | null;
+    assessmentId?: string | null;
+    version?: number;
+    reviewDueAt?: string | null;
+    approvedAt?: string | null;
+    approvedByName?: string;
   };
 
 export type CarePlanListItem = Pick<
@@ -37,6 +54,66 @@ export type CarePlanDetail = CarePlan & {
   employeeName: string;
   nextActionHint: string;
   dueVitalsCount: number;
+  diagnosisCount: number;
+  activeOrderCount: number;
+};
+
+export type CareDiagnosisStatus = 'active' | 'resolved' | 'superseded' | 'archived';
+
+export type CareDiagnosis = {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  clientName: string;
+  carePlanId: string | null;
+  diagnosisType: 'physician_statement' | 'confirmed' | 'suspected' | 'nursing_relevant';
+  icdCode: string;
+  icdTitle: string;
+  physicianStatement: string;
+  diagnosedAt: string | null;
+  diagnosedBy: string;
+  sourceDocument: string;
+  relevanceForCare: string;
+  precautions: string;
+  status: CareDiagnosisStatus;
+  validFrom: string;
+  validUntil: string | null;
+  recordedByName: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CareMedicalOrderStatus =
+  | 'draft'
+  | 'active'
+  | 'paused'
+  | 'completed'
+  | 'expired'
+  | 'cancelled'
+  | 'archived';
+
+export type CareMedicalOrder = {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  clientName: string;
+  carePlanId: string | null;
+  orderType: string;
+  title: string;
+  description: string;
+  orderingPhysician: string;
+  orderedAt: string;
+  validFrom: string;
+  validUntil: string | null;
+  insurerApprovalRequired: boolean;
+  insurerApprovalStatus: 'not_required' | 'pending' | 'approved' | 'rejected' | 'expired';
+  frequency: string;
+  executionInstructions: string;
+  qualificationRequirement: string;
+  status: CareMedicalOrderStatus;
+  recordedByName: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type VitalReadingType = 'blood_pressure' | 'pulse' | 'temperature' | 'weight' | 'oxygen';

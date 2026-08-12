@@ -38,7 +38,13 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'assist.tracking.view': 'Live-Tracking ansehen',
   'pflege.access': 'Pflege-Modul öffnen',
   'pflege.plans.view': 'Pflegepläne ansehen',
+  'pflege.plans.manage': 'Pflegepläne und Maßnahmen verwalten',
   'pflege.assessments.manage': 'SIS und pflegefachliche Assessments bearbeiten und freigeben',
+  'pflege.diagnoses.view': 'Pflegerelevante Diagnosen ansehen',
+  'pflege.diagnoses.manage': 'Pflegerelevante Diagnosen dokumentieren und verwalten',
+  'pflege.orders.view': 'Ärztliche Verordnungen ansehen',
+  'pflege.orders.manage': 'Ärztliche Verordnungen dokumentieren und verwalten',
+  'pflege.audit.view': 'Pflegeversionen und Auditverlauf ansehen',
   'pflege.vitals.view': 'Vitalwerte ansehen',
   'beratung.access': 'Beratung-Modul öffnen',
   'beratung.cases.view': 'Beratungsfälle ansehen',
@@ -685,11 +691,20 @@ const ASSIST_MANAGE: PermissionKey[] = [
 const PFLEGE_VIEW: PermissionKey[] = [
   'pflege.access',
   'pflege.plans.view',
+  'pflege.diagnoses.view',
+  'pflege.orders.view',
   'pflege.vitals.view',
   'dashboard.view',
 ];
 
-const PFLEGE_MANAGE: PermissionKey[] = [...PFLEGE_VIEW, 'pflege.assessments.manage'];
+const PFLEGE_MANAGE: PermissionKey[] = [
+  ...PFLEGE_VIEW,
+  'pflege.plans.manage',
+  'pflege.assessments.manage',
+  'pflege.diagnoses.manage',
+  'pflege.orders.manage',
+  'pflege.audit.view',
+];
 
 const BERATUNG_VIEW: PermissionKey[] = [
   'beratung.access',

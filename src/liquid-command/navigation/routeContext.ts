@@ -32,7 +32,7 @@ const routeAliases: Partial<Record<LiquidModuleKey, readonly RouteAlias[]>> = {
     { area: 'sis', pattern: /^\/pflege\/(?:sis|informationssammlung)(?:\/|$)/ },
     { area: 'measures', pattern: /^\/pflege\/(?:planung|plans|massnahmen|evaluation|dienstplaene)(?:\/|$)/ },
     { area: 'medication', pattern: /^\/pflege\/medikation(?:\/|$)/ },
-    { area: 'diagnoses', pattern: /^\/(?:pflege\/(?:verordnungen|dokumentation)|medical)(?:\/|$)/ },
+    { area: 'diagnoses', pattern: /^\/(?:pflege\/(?:diagnosen|verordnungen)|medical)(?:\/|$)/ },
     { area: 'wounds', pattern: /^\/pflege\/(?:bodymap|wund[^/]*)(?:\/|$)/ },
     { area: 'vitals', pattern: /^\/pflege\/vitalwerte(?:\/|$)/ },
     { area: 'reports', pattern: /^\/pflege\/(?:berichte|reports|uebergaben|visiten|risiken)(?:\/|$)/ },

@@ -80,7 +80,12 @@ export function CarePlanDetailScreen() {
       title={plan.title}
       subtitle={`${plan.clientName} · ${roleLabel ?? 'Demo'}`}
       rightSlot={
-        <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
+        <View style={styles.headerActions}>
+          {!isReadOnly ? (
+            <PremiumButton title="Fortschreiben" size="sm" onPress={() => router.push(`/pflege/planung/${plan.id}/edit` as never)} />
+          ) : null}
+          <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
+        </View>
       }
     >
       <CarePlanDetailHero plan={plan} roleKey={roleKey} isReadOnly={isReadOnly} />
@@ -101,6 +106,11 @@ export function CarePlanDetailScreen() {
             value={plan.validUntil ? formatDate(plan.validUntil) : 'Unbefristet'}
           />
           <DetailInfoRow label="Zusammenfassung" value={plan.summary} />
+          <DetailInfoRow label="Pflegeziele" value={plan.goals || '—'} />
+          <DetailInfoRow label="Ressourcen" value={plan.resources || '—'} />
+          <DetailInfoRow label="Risiken" value={plan.risks || '—'} />
+          <DetailInfoRow label="Version" value={String(plan.version)} />
+          <DetailInfoRow label="SIS-Verknüpfung" value={plan.assessmentId ? 'Verknüpft' : 'Noch nicht verknüpft'} />
         </SectionPanel>
 
         <SectionPanel title="Klient:in">
@@ -108,6 +118,8 @@ export function CarePlanDetailScreen() {
           <DetailInfoRow label="Pflegegrad" value={plan.careLevel ? formatCareLevel(plan.careLevel) : '—'} />
           <DetailInfoRow label="Wohnort" value={plan.city} />
           <DetailInfoRow label="Zuständige Pflegekraft" value={plan.employeeName} />
+          <DetailInfoRow label="Aktive Diagnosen" value={String(plan.diagnosisCount)} />
+          <DetailInfoRow label="Aktive Verordnungen" value={String(plan.activeOrderCount)} />
         </SectionPanel>
 
         <SectionPanel title="Pflegeaufgaben" subtitle={`${plan.tasks.length} Aufgaben`}>
@@ -125,6 +137,10 @@ export function CarePlanDetailScreen() {
                   />
                 </View>
                 <Text style={styles.taskFreq}>{task.frequency}</Text>
+                {task.goal ? <Text style={styles.taskText}>Ziel: {task.goal}</Text> : null}
+                {task.intervention ? <Text style={styles.taskText}>Durchführung: {task.intervention}</Text> : null}
+                {task.warningSigns ? <Text style={styles.taskWarning}>Warnkriterien: {task.warningSigns}</Text> : null}
+                {task.escalationPath ? <Text style={styles.taskWarning}>Eskalation: {task.escalationPath}</Text> : null}
               </PremiumCard>
             ))
           )}
@@ -161,6 +177,7 @@ export function CarePlanDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   scroll: { paddingBottom: spacing.xxl, gap: spacing.md },
   taskCard: { marginBottom: spacing.sm },
   taskHeader: {
@@ -172,4 +189,6 @@ const styles = StyleSheet.create({
   },
   taskLabel: { ...typography.bodyStrong, flex: 1 },
   taskFreq: { ...typography.caption, color: colors.cyan },
+  taskText: { ...typography.body, color: colors.textSecondary, marginTop: 4 },
+  taskWarning: { ...typography.caption, color: colors.warning, marginTop: 4 },
 });

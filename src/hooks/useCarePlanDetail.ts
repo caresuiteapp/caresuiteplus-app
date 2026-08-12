@@ -1,6 +1,5 @@
-import type { CarePlanDetail } from '@/types/modules/pflege';
+import type { CarePlanDetail, VitalReadingListItem } from '@/types/modules/pflege';
 import { fetchCarePlanDetail } from '@/lib/pflege';
-import { getDemoVitalsForCarePlan } from '@/data/demo/vitalReadings';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery } from './core';
@@ -22,11 +21,9 @@ export function useCarePlanDetail(planId: string | undefined) {
     { enabled: Boolean(planId) && !!tenantId },
   );
 
-  const vitals = planId ? getDemoVitalsForCarePlan(planId) : [];
-
   return {
     data: query.data as CarePlanDetail | undefined,
-    vitals,
+    vitals: [] as VitalReadingListItem[],
     loading: query.loading,
     error: query.error,
     refresh: query.refresh,

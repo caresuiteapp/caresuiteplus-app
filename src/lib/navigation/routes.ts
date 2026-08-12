@@ -874,6 +874,8 @@ export const APP_ROUTES: AppRoute[] = [
     children: [
       '/pflege/calendar',
       '/pflege/plans',
+      '/pflege/diagnosen',
+      '/pflege/verordnungen',
       '/pflege/vitalwerte',
       '/pflege/medikation',
       '/pflege/wunddokumentation',
@@ -958,6 +960,22 @@ export const APP_ROUTES: AppRoute[] = [
       'caregiver',
       'counselor',
     ],
+  },
+  {
+    path: '/pflege/diagnosen',
+    label: 'Diagnosen',
+    group: 'module',
+    productKey: 'pflege',
+    requiresAuth: true,
+    allowedRoles: ['business_admin', 'business_manager', 'nurse', 'caregiver'],
+  },
+  {
+    path: '/pflege/verordnungen',
+    label: 'Ärztliche Verordnungen',
+    group: 'module',
+    productKey: 'pflege',
+    requiresAuth: true,
+    allowedRoles: ['business_admin', 'business_manager', 'nurse', 'caregiver'],
   },
   {
     path: '/beratung',
