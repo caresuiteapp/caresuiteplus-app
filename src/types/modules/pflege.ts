@@ -414,3 +414,35 @@ export type MedicationClientOption = {
 };
 
 export type MedicationWitnessOption = { id: string; label: string };
+
+export type PflegeServiceProofItem = {
+  id: string; clientId: string; clientName: string; serviceDate: string;
+  startedAt: string; endedAt: string; durationMinutes: number; serviceCode: string;
+  serviceLabel: string; legalBasis: 'sgb_v' | 'sgb_xi' | 'private' | 'mixed';
+  prescriptionReference: string; costCarrierName: string; grossAmountCents: number;
+  performanceNote: string; employeeName: string; clientSignatureName: string;
+  status: 'draft' | 'submitted' | 'signed' | 'approved' | 'rejected' | 'cancelled';
+  rejectionReason: string; createdAt: string;
+};
+
+export type PflegeBillingCaseItem = {
+  id: string; clientId: string; clientName: string; serviceProofId: string;
+  legalBasis: string; payerType: 'krankenkasse' | 'pflegekasse' | 'self_payer' | 'mixed';
+  costCarrierName: string; serviceCode: string; serviceDate: string; amountCents: number;
+  status: 'pending' | 'blocked' | 'ready' | 'released' | 'invoiced' | 'cancelled';
+  blockerReason: string; releasedByName: string; releasedAt: string | null;
+};
+
+export type PflegeInvoiceFoundationItem = {
+  id: string; clientId: string; clientName: string; foundationNumber: string;
+  periodFrom: string; periodTo: string; payerType: string; recipientName: string;
+  recipientIk: string; proofCount: number; totalAmountCents: number;
+  status: 'validated' | 'released' | 'transferred' | 'cancelled'; createdAt: string;
+};
+
+export type PflegePeriodAcceptanceItem = {
+  id: string; periodFrom: string; periodTo: string; proofCount: number;
+  approvedProofCount: number; releasedCaseCount: number; blockedCaseCount: number;
+  invoiceFoundationCount: number; totalAmountCents: number; status: 'accepted' | 'rejected';
+  acceptedByName: string; acceptedAt: string;
+};

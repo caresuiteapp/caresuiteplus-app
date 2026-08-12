@@ -48,6 +48,15 @@ export const pflegeNav: ModuleNavConfig = {
       ],
     },
     {
+      title: 'Leistung & Abrechnung',
+      items: [
+        { key: 'leistungsnachweise', label: 'Leistungsnachweise', icon: '§', href: '/pflege/leistungsnachweise' },
+        { key: 'abrechnung', label: 'Abrechnungsfreigabe', icon: '€', href: '/pflege/abrechnung' },
+        { key: 'rechnungsgrundlagen', label: 'Rechnungsgrundlagen', icon: '🧾', href: '/pflege/rechnungsgrundlagen' },
+        { key: 'gesamtabnahme', label: 'Gesamtabnahme', icon: '✓', href: '/pflege/gesamtabnahme' },
+      ],
+    },
+    {
       title: 'Einstellungen',
       items: [
         { key: 'settings', label: 'Pflege-Einstellungen', icon: '⚙️', href: '/pflege/settings' },

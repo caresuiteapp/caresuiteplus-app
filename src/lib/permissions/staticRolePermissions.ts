@@ -70,6 +70,14 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'pflege.deviations.view': 'Qualitätsabweichungen ansehen',
   'pflege.deviations.manage': 'Qualitätsabweichungen bearbeiten',
   'pflege.md.readiness': 'MD-Prüfbereitschaft ansehen',
+  'pflege.proofs.view': 'Pflege-Leistungsnachweise ansehen',
+  'pflege.proofs.create': 'Pflege-Leistungsnachweise erfassen',
+  'pflege.proofs.sign': 'Pflege-Leistungsnachweise signieren',
+  'pflege.proofs.review': 'Pflege-Leistungsnachweise prüfen',
+  'pflege.billing.view': 'Pflege-Abrechnung ansehen',
+  'pflege.billing.release': 'Pflege-Abrechnung freigeben',
+  'pflege.invoices.manage': 'Pflege-Rechnungsgrundlagen erstellen',
+  'pflege.acceptance.manage': 'Pflege-Gesamtabnahme durchführen',
   'beratung.access': 'Beratung-Modul öffnen',
   'beratung.cases.view': 'Beratungsfälle ansehen',
   'akademie.access': 'Akademie-Modul öffnen',
@@ -729,6 +737,8 @@ const PFLEGE_VIEW: PermissionKey[] = [
   'pflege.risks.view',
   'pflege.deviations.view',
   'pflege.md.readiness',
+  'pflege.proofs.view',
+  'pflege.billing.view',
   'dashboard.view',
 ];
 
@@ -752,6 +762,12 @@ const PFLEGE_MANAGE: PermissionKey[] = [
   'pflege.risks.manage',
   'pflege.measures.review',
   'pflege.deviations.manage',
+  'pflege.proofs.create',
+  'pflege.proofs.sign',
+  'pflege.proofs.review',
+  'pflege.billing.release',
+  'pflege.invoices.manage',
+  'pflege.acceptance.manage',
 ];
 
 const BERATUNG_VIEW: PermissionKey[] = [
