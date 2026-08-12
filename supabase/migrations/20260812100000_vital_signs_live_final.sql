@@ -134,20 +134,18 @@ CREATE INDEX IF NOT EXISTS idx_vital_events_tenant_time ON public.vital_sign_eve
 
 CREATE OR REPLACE FUNCTION public.vital_actor_can_record()
 RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.profiles p WHERE p.id=auth.uid()
-      AND p.tenant_id=public.current_tenant_id()
-      AND p.role_key IN ('business_admin','business_manager','nurse','caregiver')
-  ) AND public.has_permission('pflege.vitals.manage')
+  SELECT auth.uid() IS NOT NULL
+    AND public.current_tenant_id() IS NOT NULL
+    AND public.resolve_current_profile_id() IS NOT NULL
+    AND public.has_permission('pflege.vitals.manage')
 $$;
 
 CREATE OR REPLACE FUNCTION public.vital_actor_can_configure()
 RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.profiles p WHERE p.id=auth.uid()
-      AND p.tenant_id=public.current_tenant_id()
-      AND p.role_key IN ('business_admin','business_manager','nurse')
-  ) AND public.has_permission('pflege.vitals.manage')
+  SELECT auth.uid() IS NOT NULL
+    AND public.current_tenant_id() IS NOT NULL
+    AND public.resolve_current_profile_id() IS NOT NULL
+    AND public.has_permission('pflege.vitals.manage')
 $$;
 
 CREATE OR REPLACE FUNCTION public.get_client_vital_sign_configuration(p_client_id UUID)
@@ -167,14 +165,14 @@ CREATE OR REPLACE FUNCTION public.set_client_vital_sign_configuration(
   p_client_id UUID,p_vital_key TEXT,p_enabled BOOLEAN,p_limits JSONB DEFAULT '{}'::JSONB,p_schedule JSONB DEFAULT '{}'::JSONB
 ) RETURNS public.client_vital_sign_settings
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE v_tenant UUID := public.current_tenant_id(); v_result public.client_vital_sign_settings;
+DECLARE v_tenant UUID := public.current_tenant_id(); v_actor UUID := public.resolve_current_profile_id(); v_result public.client_vital_sign_settings;
 BEGIN
   IF NOT public.vital_actor_can_configure() THEN RAISE EXCEPTION 'Keine Berechtigung zur Vitalwert-Konfiguration.'; END IF;
   IF NOT EXISTS(SELECT 1 FROM public.clients c WHERE c.id=p_client_id AND c.tenant_id=v_tenant) THEN RAISE EXCEPTION 'Klient:in nicht gefunden.'; END IF;
   IF NOT EXISTS(SELECT 1 FROM public.vital_sign_catalog WHERE key=p_vital_key AND is_active) THEN RAISE EXCEPTION 'Unbekannte Messart.'; END IF;
   INSERT INTO public.client_vital_sign_settings(tenant_id,client_id,vital_key,enabled,limits,schedule,created_by,updated_by)
-  VALUES(v_tenant,p_client_id,p_vital_key,p_enabled,COALESCE(p_limits,'{}'),COALESCE(p_schedule,'{}'),auth.uid(),auth.uid())
-  ON CONFLICT(tenant_id,client_id,vital_key) DO UPDATE SET enabled=EXCLUDED.enabled,limits=EXCLUDED.limits,schedule=EXCLUDED.schedule,updated_by=auth.uid(),updated_at=clock_timestamp()
+  VALUES(v_tenant,p_client_id,p_vital_key,p_enabled,COALESCE(p_limits,'{}'),COALESCE(p_schedule,'{}'),v_actor,v_actor)
+  ON CONFLICT(tenant_id,client_id,vital_key) DO UPDATE SET enabled=EXCLUDED.enabled,limits=EXCLUDED.limits,schedule=EXCLUDED.schedule,updated_by=v_actor,updated_at=clock_timestamp()
   RETURNING * INTO v_result;
   RETURN v_result;
 END $$;
@@ -185,6 +183,7 @@ CREATE OR REPLACE FUNCTION public.record_vital_sign_measurement(
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE
   v_tenant UUID := public.current_tenant_id(); v_catalog public.vital_sign_catalog;
+  v_actor UUID := public.resolve_current_profile_id();
   v_setting public.client_vital_sign_settings; v_enabled BOOLEAN; v_name TEXT; v_display TEXT;
   v_flag TEXT := 'unrated'; v_item RECORD; v_limit JSONB; v_number NUMERIC;
   v_result public.vital_sign_measurements;
@@ -198,8 +197,8 @@ BEGIN
   SELECT * INTO v_setting FROM public.client_vital_sign_settings WHERE tenant_id=v_tenant AND client_id=p_client_id AND vital_key=p_vital_key;
   v_enabled := COALESCE(v_setting.enabled,v_catalog.default_enabled);
   IF NOT v_enabled THEN RAISE EXCEPTION 'Dieser Vitalwert ist für die Klient:in deaktiviert.'; END IF;
-  SELECT COALESCE(NULLIF(trim(concat_ws(' ',p.first_name,p.last_name)),''),NULLIF(p.display_name,''),p.email,'Unbekannt') INTO v_name
-    FROM public.profiles p WHERE p.id=auth.uid() AND p.tenant_id=v_tenant;
+  SELECT COALESCE(NULLIF(p.display_name,''),p.email,'Unbekannt') INTO v_name
+    FROM public.profiles p WHERE p.id=v_actor AND p.tenant_id=v_tenant;
   IF v_name IS NULL THEN RAISE EXCEPTION 'Mitarbeiterprofil konnte nicht zugeordnet werden.'; END IF;
 
   v_display := CASE
@@ -221,7 +220,7 @@ BEGIN
   END IF;
 
   INSERT INTO public.vital_sign_measurements(tenant_id,client_id,vital_key,values,display_value,unit,context,note,source,flag_status,recorded_by,recorded_by_name)
-  VALUES(v_tenant,p_client_id,p_vital_key,p_values,v_display,v_catalog.default_unit,COALESCE(p_context,'{}'),NULLIF(trim(p_note),''),p_source,v_flag,auth.uid(),v_name)
+  VALUES(v_tenant,p_client_id,p_vital_key,p_values,v_display,v_catalog.default_unit,COALESCE(p_context,'{}'),NULLIF(trim(p_note),''),p_source,v_flag,v_actor,v_name)
   RETURNING * INTO v_result;
 
   INSERT INTO public.client_timeline_events(tenant_id,client_id,event_type,icon,title,subtitle,status,actor_name,is_internal,metadata)
@@ -230,7 +229,7 @@ BEGIN
 
   IF v_flag='outside_configured_range' THEN
     INSERT INTO public.vital_sign_events(tenant_id,client_id,measurement_id,summary,payload,created_by)
-    VALUES(v_tenant,p_client_id,v_result.id,concat(v_catalog.label,': außerhalb des klientenbezogen konfigurierten Bereichs'),jsonb_build_object('values',p_values,'limits',v_setting.limits,'doctorContactSuggestion',TRUE),auth.uid());
+    VALUES(v_tenant,p_client_id,v_result.id,concat(v_catalog.label,': außerhalb des klientenbezogen konfigurierten Bereichs'),jsonb_build_object('values',p_values,'limits',v_setting.limits,'doctorContactSuggestion',TRUE),v_actor);
     IF to_regclass('public.internal_tasks') IS NOT NULL THEN
       INSERT INTO public.internal_tasks(tenant_id,task_type,status,priority,title,description,created_by_user_id,linked_entity_type,linked_entity_id,source,is_internal_only,employee_visible)
       VALUES(v_tenant,'vital.out_of_range','open','high',concat('Vitalwert prüfen: ',v_catalog.label),concat(v_display,' ',v_catalog.default_unit,' · Ärztlichen Kontakt nach fachlicher Einschätzung prüfen.'),auth.uid(),'client',p_client_id,'vital_signs',TRUE,FALSE);
@@ -249,7 +248,7 @@ JOIN public.vital_sign_catalog catalog ON catalog.key=m.vital_key;
 -- Vorhandene Dokumentationswerte übernehmen, ohne die Alt-Tabelle zu verändern.
 INSERT INTO public.vital_sign_measurements(id,tenant_id,client_id,vital_key,values,display_value,unit,context,note,source,flag_status,measured_at,recorded_by,recorded_by_name,created_at)
 SELECT r.id,r.tenant_id,r.client_id,r.sign_type,jsonb_build_object('legacyText',r.value_text),r.value_text,COALESCE(r.unit,''),'{}',r.documentation_hint,'import','unrated',r.measured_at,r.recorded_by,
-  COALESCE(NULLIF(trim(concat_ws(' ',p.first_name,p.last_name)),''),NULLIF(p.display_name,''),p.email,'Historische Erfassung'),r.created_at
+  COALESCE(NULLIF(p.display_name,''),p.email,'Historische Erfassung'),r.created_at
 FROM public.vital_sign_records r LEFT JOIN public.profiles p ON p.id=r.recorded_by
 WHERE r.recorded_by IS NOT NULL AND EXISTS(SELECT 1 FROM public.vital_sign_catalog c WHERE c.key=r.sign_type)
 ON CONFLICT(id) DO NOTHING;

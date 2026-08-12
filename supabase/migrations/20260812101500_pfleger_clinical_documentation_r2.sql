@@ -132,10 +132,15 @@ CREATE INDEX IF NOT EXISTS idx_clinical_doc_client ON public.clinical_documentat
 CREATE INDEX IF NOT EXISTS idx_clinical_treatment_client ON public.clinical_treatment_executions(tenant_id,client_id,performed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_clinical_handover_client ON public.clinical_handovers(tenant_id,client_id,status,created_at DESC);
 
+CREATE OR REPLACE FUNCTION public.clinical_actor_id() RETURNS UUID
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
+ SELECT public.resolve_current_profile_id()
+$$;
+
 CREATE OR REPLACE FUNCTION public.clinical_actor_name() RETURNS TEXT
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
- SELECT COALESCE(NULLIF(trim(concat_ws(' ',p.first_name,p.last_name)),''),NULLIF(p.display_name,''),p.email,'Unbekannt')
- FROM public.profiles p WHERE p.id=auth.uid() AND p.tenant_id=public.current_tenant_id()
+ SELECT COALESCE(NULLIF(p.display_name,''),p.email,'Unbekannt')
+ FROM public.profiles p WHERE p.id=public.clinical_actor_id() AND p.tenant_id=public.current_tenant_id()
 $$;
 
 CREATE OR REPLACE FUNCTION public.create_clinical_medication_order(p_client_id UUID,p_payload JSONB)
@@ -145,8 +150,8 @@ BEGIN
  IF NOT public.has_permission('pflege.medications.manage') THEN RAISE EXCEPTION 'Keine Berechtigung.'; END IF;
  IF NOT public.is_active_pfleger_client(p_client_id) THEN RAISE EXCEPTION 'Kein aktiver Pflegefall.'; END IF;
  INSERT INTO public.clinical_medication_orders(tenant_id,client_id,medication_name,active_ingredient,dosage,pharmaceutical_form,route,schedule,indication,instructions,prescribing_physician,prescribed_at,valid_from,valid_until,is_prn,prn_reason,prn_max_dose,interaction_notes,recorded_by,recorded_by_name)
- VALUES(t,p_client_id,trim(p_payload->>'medicationName'),COALESCE(p_payload->>'activeIngredient',''),trim(p_payload->>'dosage'),COALESCE(p_payload->>'form',''),trim(p_payload->>'route'),COALESCE(p_payload->'schedule','{}'),COALESCE(p_payload->>'indication',''),COALESCE(p_payload->>'instructions',''),trim(p_payload->>'physician'),COALESCE((p_payload->>'prescribedAt')::DATE,CURRENT_DATE),COALESCE((p_payload->>'validFrom')::DATE,CURRENT_DATE),NULLIF(p_payload->>'validUntil','')::DATE,COALESCE((p_payload->>'isPrn')::BOOLEAN,FALSE),COALESCE(p_payload->>'prnReason',''),COALESCE(p_payload->>'prnMaxDose',''),COALESCE(p_payload->>'interactionNotes',''),auth.uid(),n) RETURNING * INTO r;
- INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name) VALUES(t,p_client_id,'medication_order',r.id,'created','Medikationsverordnung angelegt',to_jsonb(r),auth.uid(),n);
+ VALUES(t,p_client_id,trim(p_payload->>'medicationName'),COALESCE(p_payload->>'activeIngredient',''),trim(p_payload->>'dosage'),COALESCE(p_payload->>'form',''),trim(p_payload->>'route'),COALESCE(p_payload->'schedule','{}'),COALESCE(p_payload->>'indication',''),COALESCE(p_payload->>'instructions',''),trim(p_payload->>'physician'),COALESCE((p_payload->>'prescribedAt')::DATE,CURRENT_DATE),COALESCE((p_payload->>'validFrom')::DATE,CURRENT_DATE),NULLIF(p_payload->>'validUntil','')::DATE,COALESCE((p_payload->>'isPrn')::BOOLEAN,FALSE),COALESCE(p_payload->>'prnReason',''),COALESCE(p_payload->>'prnMaxDose',''),COALESCE(p_payload->>'interactionNotes',''),public.clinical_actor_id(),n) RETURNING * INTO r;
+ INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name) VALUES(t,p_client_id,'medication_order',r.id,'created','Medikationsverordnung angelegt',to_jsonb(r),public.clinical_actor_id(),n);
  RETURN r;
 END $$;
 
@@ -157,10 +162,10 @@ BEGIN
  IF NOT public.has_permission('pflege.wounds.manage') THEN RAISE EXCEPTION 'Keine Berechtigung.'; END IF;
  IF NOT public.is_active_pfleger_client(p_client_id) THEN RAISE EXCEPTION 'Kein aktiver Pflegefall.'; END IF;
  INSERT INTO public.clinical_wound_cases(tenant_id,client_id,body_location,wound_type,etiology,onset_date,treatment_plan,physician_involved,ordering_physician,next_review_at,recorded_by,recorded_by_name)
- VALUES(t,p_client_id,trim(p_payload->>'bodyLocation'),trim(p_payload->>'woundType'),COALESCE(p_payload->>'etiology',''),NULLIF(p_payload->>'onsetDate','')::DATE,COALESCE(p_payload->>'treatmentPlan',''),COALESCE((p_payload->>'physicianInvolved')::BOOLEAN,FALSE),COALESCE(p_payload->>'physician',''),NULLIF(p_payload->>'nextReviewAt','')::TIMESTAMPTZ,auth.uid(),n) RETURNING * INTO r;
+ VALUES(t,p_client_id,trim(p_payload->>'bodyLocation'),trim(p_payload->>'woundType'),COALESCE(p_payload->>'etiology',''),NULLIF(p_payload->>'onsetDate','')::DATE,COALESCE(p_payload->>'treatmentPlan',''),COALESCE((p_payload->>'physicianInvolved')::BOOLEAN,FALSE),COALESCE(p_payload->>'physician',''),NULLIF(p_payload->>'nextReviewAt','')::TIMESTAMPTZ,public.clinical_actor_id(),n) RETURNING * INTO r;
  INSERT INTO public.clinical_wound_assessments(tenant_id,client_id,wound_case_id,wound_bed,intervention,response,recorded_by,recorded_by_name)
- VALUES(t,p_client_id,r.id,COALESCE(p_payload->>'description',''),COALESCE(p_payload->>'treatmentPlan',''),'Erstassessment',auth.uid(),n);
- INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name) VALUES(t,p_client_id,'wound_case',r.id,'created','Wundfall angelegt',to_jsonb(r),auth.uid(),n);
+ VALUES(t,p_client_id,r.id,COALESCE(p_payload->>'description',''),COALESCE(p_payload->>'treatmentPlan',''),'Erstassessment',public.clinical_actor_id(),n);
+ INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name) VALUES(t,p_client_id,'wound_case',r.id,'created','Wundfall angelegt',to_jsonb(r),public.clinical_actor_id(),n);
  RETURN r;
 END $$;
 
@@ -171,8 +176,8 @@ BEGIN
  IF NOT public.has_permission('pflege.documentation.create') THEN RAISE EXCEPTION 'Keine Berechtigung.'; END IF;
  IF NOT public.is_active_pfleger_client(p_client_id) THEN RAISE EXCEPTION 'Kein aktiver Pflegefall.'; END IF;
  INSERT INTO public.clinical_documentation_entries(tenant_id,client_id,entry_type,title,content,observations,interventions,result,deviation,escalation,recorded_by,recorded_by_name)
- VALUES(t,p_client_id,p_entry_type,trim(p_title),trim(p_content),COALESCE(p_payload->>'observations',''),COALESCE(p_payload->>'interventions',''),COALESCE(p_payload->>'result',''),COALESCE(p_payload->>'deviation',''),COALESCE(p_payload->>'escalation',''),auth.uid(),n) RETURNING * INTO r;
- INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name) VALUES(t,p_client_id,'clinical_documentation',r.id,'created','Pflegedokumentation angelegt',to_jsonb(r),auth.uid(),n);
+ VALUES(t,p_client_id,p_entry_type,trim(p_title),trim(p_content),COALESCE(p_payload->>'observations',''),COALESCE(p_payload->>'interventions',''),COALESCE(p_payload->>'result',''),COALESCE(p_payload->>'deviation',''),COALESCE(p_payload->>'escalation',''),public.clinical_actor_id(),n) RETURNING * INTO r;
+ INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name) VALUES(t,p_client_id,'clinical_documentation',r.id,'created','Pflegedokumentation angelegt',to_jsonb(r),public.clinical_actor_id(),n);
  RETURN r;
 END $$;
 
@@ -181,10 +186,10 @@ RETURNS public.clinical_documentation_entries LANGUAGE plpgsql SECURITY DEFINER 
 DECLARE r public.clinical_documentation_entries; t UUID:=public.current_tenant_id(); n TEXT:=public.clinical_actor_name();
 BEGIN
  IF NOT public.has_permission('pflege.documentation.sign') THEN RAISE EXCEPTION 'Keine Signaturberechtigung.'; END IF;
- UPDATE public.clinical_documentation_entries SET signature_status='signed',signed_at=clock_timestamp(),signed_by=auth.uid(),signed_by_name=n
+ UPDATE public.clinical_documentation_entries SET signature_status='signed',signed_at=clock_timestamp(),signed_by=public.clinical_actor_id(),signed_by_name=n
  WHERE id=p_entry_id AND tenant_id=t AND signature_status='unsigned' RETURNING * INTO r;
  IF r.id IS NULL THEN RAISE EXCEPTION 'Dokumentation nicht gefunden oder bereits signiert.'; END IF;
- INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name) VALUES(t,r.client_id,'clinical_documentation',r.id,'signed','Pflegedokumentation fachlich signiert',to_jsonb(r),auth.uid(),n);
+ INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name) VALUES(t,r.client_id,'clinical_documentation',r.id,'signed','Pflegedokumentation fachlich signiert',to_jsonb(r),public.clinical_actor_id(),n);
  RETURN r;
 END $$;
 
@@ -195,8 +200,8 @@ BEGIN
  IF NOT public.has_permission('pflege.handovers.manage') THEN RAISE EXCEPTION 'Keine Berechtigung.'; END IF;
  IF NOT public.is_active_pfleger_client(p_client_id) THEN RAISE EXCEPTION 'Kein aktiver Pflegefall.'; END IF;
  INSERT INTO public.clinical_handovers(tenant_id,client_id,priority,title,situation,background,assessment,recommendation,due_at,created_by,created_by_name)
- VALUES(t,p_client_id,COALESCE(p_payload->>'priority','normal'),trim(p_payload->>'title'),trim(p_payload->>'situation'),COALESCE(p_payload->>'background',''),COALESCE(p_payload->>'assessment',''),trim(p_payload->>'recommendation'),NULLIF(p_payload->>'dueAt','')::TIMESTAMPTZ,auth.uid(),n) RETURNING * INTO r;
- INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name) VALUES(t,p_client_id,'handover',r.id,'created','Pflegeübergabe angelegt',to_jsonb(r),auth.uid(),n);
+ VALUES(t,p_client_id,COALESCE(p_payload->>'priority','normal'),trim(p_payload->>'title'),trim(p_payload->>'situation'),COALESCE(p_payload->>'background',''),COALESCE(p_payload->>'assessment',''),trim(p_payload->>'recommendation'),NULLIF(p_payload->>'dueAt','')::TIMESTAMPTZ,public.clinical_actor_id(),n) RETURNING * INTO r;
+ INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name) VALUES(t,p_client_id,'handover',r.id,'created','Pflegeübergabe angelegt',to_jsonb(r),public.clinical_actor_id(),n);
  RETURN r;
 END $$;
 
@@ -209,9 +214,9 @@ BEGIN
  IF o.id IS NULL THEN RAISE EXCEPTION 'Aktive Medikationsverordnung nicht gefunden.'; END IF;
  IF COALESCE(p_payload->>'outcome','') NOT IN ('administered','omitted','refused','not_available','held','prn_administered') THEN RAISE EXCEPTION 'Ungültiges Ergebnis.'; END IF;
  INSERT INTO public.clinical_medication_administrations(tenant_id,client_id,medication_order_id,outcome,scheduled_at,dose_given,reason,effect_observation,anomaly,escalation,recorded_by,recorded_by_name)
- VALUES(t,o.client_id,o.id,p_payload->>'outcome',NULLIF(p_payload->>'scheduledAt','')::TIMESTAMPTZ,COALESCE(p_payload->>'doseGiven',o.dosage),COALESCE(p_payload->>'reason',''),COALESCE(p_payload->>'effectObservation',''),COALESCE((p_payload->>'anomaly')::BOOLEAN,FALSE),COALESCE(p_payload->>'escalation',''),auth.uid(),n) RETURNING * INTO r;
+ VALUES(t,o.client_id,o.id,p_payload->>'outcome',NULLIF(p_payload->>'scheduledAt','')::TIMESTAMPTZ,COALESCE(p_payload->>'doseGiven',o.dosage),COALESCE(p_payload->>'reason',''),COALESCE(p_payload->>'effectObservation',''),COALESCE((p_payload->>'anomaly')::BOOLEAN,FALSE),COALESCE(p_payload->>'escalation',''),public.clinical_actor_id(),n) RETURNING * INTO r;
  INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name)
- VALUES(t,o.client_id,'medication_administration',r.id,'created','Medikamentengabe dokumentiert',to_jsonb(r),auth.uid(),n);
+ VALUES(t,o.client_id,'medication_administration',r.id,'created','Medikamentengabe dokumentiert',to_jsonb(r),public.clinical_actor_id(),n);
  RETURN r;
 END $$;
 
@@ -223,10 +228,10 @@ BEGIN
  SELECT * INTO w FROM public.clinical_wound_cases WHERE id=p_wound_case_id AND tenant_id=t AND status<>'archived';
  IF w.id IS NULL THEN RAISE EXCEPTION 'Wundfall nicht gefunden.'; END IF;
  INSERT INTO public.clinical_wound_assessments(tenant_id,client_id,wound_case_id,length_cm,width_cm,depth_cm,wound_bed,exudate,odor,wound_edge,surrounding_skin,pain_score,infection_signs,intervention,response,photo_refs,recorded_by,recorded_by_name)
- VALUES(t,w.client_id,w.id,NULLIF(p_payload->>'lengthCm','')::NUMERIC,NULLIF(p_payload->>'widthCm','')::NUMERIC,NULLIF(p_payload->>'depthCm','')::NUMERIC,COALESCE(p_payload->>'woundBed',''),COALESCE(p_payload->>'exudate',''),COALESCE(p_payload->>'odor',''),COALESCE(p_payload->>'woundEdge',''),COALESCE(p_payload->>'surroundingSkin',''),NULLIF(p_payload->>'painScore','')::INTEGER,COALESCE(p_payload->>'infectionSigns',''),COALESCE(p_payload->>'intervention',''),COALESCE(p_payload->>'response',''),COALESCE(p_payload->'photoRefs','[]'::JSONB),auth.uid(),n) RETURNING * INTO r;
+ VALUES(t,w.client_id,w.id,NULLIF(p_payload->>'lengthCm','')::NUMERIC,NULLIF(p_payload->>'widthCm','')::NUMERIC,NULLIF(p_payload->>'depthCm','')::NUMERIC,COALESCE(p_payload->>'woundBed',''),COALESCE(p_payload->>'exudate',''),COALESCE(p_payload->>'odor',''),COALESCE(p_payload->>'woundEdge',''),COALESCE(p_payload->>'surroundingSkin',''),NULLIF(p_payload->>'painScore','')::INTEGER,COALESCE(p_payload->>'infectionSigns',''),COALESCE(p_payload->>'intervention',''),COALESCE(p_payload->>'response',''),COALESCE(p_payload->'photoRefs','[]'::JSONB),public.clinical_actor_id(),n) RETURNING * INTO r;
  UPDATE public.clinical_wound_cases SET updated_at=clock_timestamp(),status=COALESCE(NULLIF(p_payload->>'caseStatus',''),status),next_review_at=NULLIF(p_payload->>'nextReviewAt','')::TIMESTAMPTZ WHERE id=w.id;
  INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name)
- VALUES(t,w.client_id,'wound_assessment',r.id,'created','Wundassessment dokumentiert',to_jsonb(r),auth.uid(),n);
+ VALUES(t,w.client_id,'wound_assessment',r.id,'created','Wundassessment dokumentiert',to_jsonb(r),public.clinical_actor_id(),n);
  RETURN r;
 END $$;
 
@@ -238,9 +243,9 @@ BEGIN
  IF NOT public.is_active_pfleger_client(p_client_id) THEN RAISE EXCEPTION 'Kein aktiver Pflegefall.'; END IF;
  IF COALESCE(p_payload->>'outcome','') NOT IN ('performed','partial','omitted','refused','failed') THEN RAISE EXCEPTION 'Ungültiges Ergebnis.'; END IF;
  INSERT INTO public.clinical_treatment_executions(tenant_id,client_id,medical_order_id,treatment_type,title,outcome,details,deviation_reason,escalation,qualification_snapshot,recorded_by,recorded_by_name)
- VALUES(t,p_client_id,NULLIF(p_payload->>'medicalOrderId','')::UUID,trim(p_payload->>'treatmentType'),trim(p_payload->>'title'),p_payload->>'outcome',trim(p_payload->>'details'),COALESCE(p_payload->>'deviationReason',''),COALESCE(p_payload->>'escalation',''),COALESCE(p_payload->>'qualificationSnapshot',''),auth.uid(),n) RETURNING * INTO r;
+ VALUES(t,p_client_id,NULLIF(p_payload->>'medicalOrderId','')::UUID,trim(p_payload->>'treatmentType'),trim(p_payload->>'title'),p_payload->>'outcome',trim(p_payload->>'details'),COALESCE(p_payload->>'deviationReason',''),COALESCE(p_payload->>'escalation',''),COALESCE(p_payload->>'qualificationSnapshot',''),public.clinical_actor_id(),n) RETURNING * INTO r;
  INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name)
- VALUES(t,p_client_id,'treatment_execution',r.id,'created','Behandlungspflege dokumentiert',to_jsonb(r),auth.uid(),n);
+ VALUES(t,p_client_id,'treatment_execution',r.id,'created','Behandlungspflege dokumentiert',to_jsonb(r),public.clinical_actor_id(),n);
  RETURN r;
 END $$;
 
@@ -249,11 +254,11 @@ RETURNS public.clinical_handovers LANGUAGE plpgsql SECURITY DEFINER SET search_p
 DECLARE r public.clinical_handovers; t UUID:=public.current_tenant_id(); n TEXT:=public.clinical_actor_name();
 BEGIN
  IF NOT public.has_permission('pflege.handovers.manage') THEN RAISE EXCEPTION 'Keine Berechtigung.'; END IF;
- UPDATE public.clinical_handovers SET status=CASE WHEN p_close THEN 'closed' ELSE 'acknowledged' END,acknowledged_at=clock_timestamp(),acknowledged_by=auth.uid(),acknowledged_by_name=n
+ UPDATE public.clinical_handovers SET status=CASE WHEN p_close THEN 'closed' ELSE 'acknowledged' END,acknowledged_at=clock_timestamp(),acknowledged_by=public.clinical_actor_id(),acknowledged_by_name=n
  WHERE id=p_handover_id AND tenant_id=t AND status IN('open','acknowledged') RETURNING * INTO r;
  IF r.id IS NULL THEN RAISE EXCEPTION 'Offene Übergabe nicht gefunden.'; END IF;
  INSERT INTO public.care_audit_events(tenant_id,client_id,entity_type,entity_id,action,summary,after_data,actor_id,actor_name)
- VALUES(t,r.client_id,'handover',r.id,CASE WHEN p_close THEN 'closed' ELSE 'acknowledged' END,'Übergabe quittiert',to_jsonb(r),auth.uid(),n);
+ VALUES(t,r.client_id,'handover',r.id,CASE WHEN p_close THEN 'closed' ELSE 'acknowledged' END,'Übergabe quittiert',to_jsonb(r),public.clinical_actor_id(),n);
  RETURN r;
 END $$;
 
@@ -274,7 +279,7 @@ CREATE POLICY clinical_treatment_executions_read ON public.clinical_treatment_ex
 CREATE POLICY clinical_handovers_read ON public.clinical_handovers FOR SELECT TO authenticated USING(tenant_id=public.current_tenant_id() AND public.has_permission('pflege.handovers.view'));
 
 GRANT SELECT ON public.clinical_medication_orders,public.clinical_medication_administrations,public.clinical_wound_cases,public.clinical_wound_assessments,public.clinical_documentation_entries,public.clinical_treatment_executions,public.clinical_handovers TO authenticated;
-GRANT EXECUTE ON FUNCTION public.clinical_actor_name(),public.create_clinical_medication_order(UUID,JSONB),public.create_clinical_wound_case(UUID,JSONB),public.create_clinical_documentation(UUID,TEXT,TEXT,TEXT,JSONB),public.sign_clinical_documentation(UUID),public.create_clinical_handover(UUID,JSONB),public.record_clinical_medication_administration(UUID,JSONB),public.create_clinical_wound_assessment(UUID,JSONB),public.record_clinical_treatment_execution(UUID,JSONB),public.acknowledge_clinical_handover(UUID,BOOLEAN) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.clinical_actor_id(),public.clinical_actor_name(),public.create_clinical_medication_order(UUID,JSONB),public.create_clinical_wound_case(UUID,JSONB),public.create_clinical_documentation(UUID,TEXT,TEXT,TEXT,JSONB),public.sign_clinical_documentation(UUID),public.create_clinical_handover(UUID,JSONB),public.record_clinical_medication_administration(UUID,JSONB),public.create_clinical_wound_assessment(UUID,JSONB),public.record_clinical_treatment_execution(UUID,JSONB),public.acknowledge_clinical_handover(UUID,BOOLEAN) TO authenticated;
 REVOKE INSERT,UPDATE,DELETE ON public.clinical_medication_administrations,public.clinical_wound_assessments,public.clinical_documentation_entries,public.clinical_treatment_executions,public.clinical_handovers FROM authenticated;
 
 COMMENT ON TABLE public.clinical_documentation_entries IS 'Append-only Pflegeberichte mit separater fachlicher Signatur und Korrekturbezug.';

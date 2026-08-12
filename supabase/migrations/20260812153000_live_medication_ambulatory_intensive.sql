@@ -4,10 +4,6 @@ begin;
 
 do $$
 begin
-  if new.status <> 'scheduled' then
-    new.administered_at := clock_timestamp();
-  end if;
-
   if not exists (select 1 from pg_type where typname = 'medication_status') then
     create type public.medication_status as enum ('active','paused','stopped','archived');
   end if;
@@ -98,6 +94,10 @@ as $$
 declare
   medication_row public.medications%rowtype;
 begin
+  if new.status <> 'scheduled' then
+    new.administered_at := clock_timestamp();
+  end if;
+
   select * into medication_row
   from public.medications
   where id = new.medication_id;
@@ -181,14 +181,14 @@ stable
 security definer
 set search_path = public, pg_temp
 as $$
-  select p.id, coalesce(nullif(p.full_name, ''), concat_ws(' ', p.first_name, p.last_name), 'Pflegefachkraft')
+  select p.id, coalesce(nullif(p.display_name, ''), p.email, 'Pflegefachkraft')
   from public.profiles p
   where auth.uid() is not null
     and p.tenant_id = public.current_tenant_id()
-    and p.status = 'active'
+    and p.is_active is true
     and p.id <> public.resolve_current_profile_id()
     and public.has_permission('pflege.medications.administer')
-  order by p.last_name, p.first_name;
+  order by p.display_name, p.email;
 $$;
 
 revoke all on function public.medication_witness_options() from public, anon;
