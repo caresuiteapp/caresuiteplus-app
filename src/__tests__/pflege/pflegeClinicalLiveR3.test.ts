@@ -45,4 +45,10 @@ describe('Pflege Clinical Live R3 acceptance', () => {
     expect(clinical).toContain('public.clinical_actor_id()');
     expect(medication.indexOf("if new.status <> 'scheduled'")).toBeGreaterThan(medication.indexOf('returns trigger'));
   });
+
+  it('treats legacy vital records as an optional production source', () => {
+    const vitals = read('supabase/migrations/20260812100000_vital_signs_live_final.sql');
+    expect(vitals).toContain("to_regclass('public.vital_sign_records') IS NOT NULL");
+    expect(vitals).toContain('EXECUTE $sql$');
+  });
 });

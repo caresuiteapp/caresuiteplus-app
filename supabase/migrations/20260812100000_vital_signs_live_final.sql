@@ -245,13 +245,34 @@ SELECT m.id,m.tenant_id,m.client_id,trim(concat_ws(' ',c.first_name,c.last_name)
 FROM public.vital_sign_measurements m JOIN public.clients c ON c.id=m.client_id AND c.tenant_id=m.tenant_id
 JOIN public.vital_sign_catalog catalog ON catalog.key=m.vital_key;
 
--- Vorhandene Dokumentationswerte übernehmen, ohne die Alt-Tabelle zu verändern.
-INSERT INTO public.vital_sign_measurements(id,tenant_id,client_id,vital_key,values,display_value,unit,context,note,source,flag_status,measured_at,recorded_by,recorded_by_name,created_at)
-SELECT r.id,r.tenant_id,r.client_id,r.sign_type,jsonb_build_object('legacyText',r.value_text),r.value_text,COALESCE(r.unit,''),'{}',r.documentation_hint,'import','unrated',r.measured_at,r.recorded_by,
-  COALESCE(NULLIF(p.display_name,''),p.email,'Historische Erfassung'),r.created_at
-FROM public.vital_sign_records r LEFT JOIN public.profiles p ON p.id=r.recorded_by
-WHERE r.recorded_by IS NOT NULL AND EXISTS(SELECT 1 FROM public.vital_sign_catalog c WHERE c.key=r.sign_type)
-ON CONFLICT(id) DO NOTHING;
+-- Vorhandene Dokumentationswerte übernehmen, sofern die optionale Alt-Tabelle
+-- in der jeweiligen Produktionshistorie tatsächlich existiert.
+DO $legacy_import$
+BEGIN
+  IF to_regclass('public.vital_sign_records') IS NOT NULL THEN
+    EXECUTE $sql$
+      INSERT INTO public.vital_sign_measurements(
+        id,tenant_id,client_id,vital_key,values,display_value,unit,context,note,
+        source,flag_status,measured_at,recorded_by,recorded_by_name,created_at
+      )
+      SELECT
+        r.id,r.tenant_id,r.client_id,r.sign_type,
+        jsonb_build_object('legacyText',r.value_text),r.value_text,
+        COALESCE(r.unit,''),'{}',r.documentation_hint,'import','unrated',
+        r.measured_at,r.recorded_by,
+        COALESCE(NULLIF(p.display_name,''),p.email,'Historische Erfassung'),
+        r.created_at
+      FROM public.vital_sign_records r
+      LEFT JOIN public.profiles p ON p.id=r.recorded_by
+      WHERE r.recorded_by IS NOT NULL
+        AND EXISTS(
+          SELECT 1 FROM public.vital_sign_catalog c WHERE c.key=r.sign_type
+        )
+      ON CONFLICT(id) DO NOTHING
+    $sql$;
+  END IF;
+END
+$legacy_import$;
 
 ALTER TABLE public.vital_sign_catalog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.client_vital_sign_settings ENABLE ROW LEVEL SECURITY;
