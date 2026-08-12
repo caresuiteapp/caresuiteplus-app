@@ -10,9 +10,10 @@ const ANDROID_PROGUARD_RULES = readFileSync(
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const easProjectId = process.env.EAS_PROJECT_ID;
+  const isHealthOSCoreEdition = process.env.EXPO_PUBLIC_APP_EDITION === 'healthos-core';
   return {
   ...config,
-  name: 'CareSuite+',
+  name: isHealthOSCoreEdition ? 'CareSuite HealthOS' : 'CareSuite+',
   slug: 'caresuite-plus',
   version: '0.1.1',
   orientation: 'default',
@@ -53,7 +54,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       backgroundColor: '#F8FAFC',
     },
     package: 'app.caresuiteplus',
-    versionCode: 9,
+    versionCode: 10,
     permissions: ['INTERNET', 'RECORD_AUDIO'],
   },
   web: {

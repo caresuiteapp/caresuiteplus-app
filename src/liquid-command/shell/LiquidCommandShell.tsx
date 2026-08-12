@@ -40,6 +40,13 @@ import {
   liquidWorkAreas,
 } from '../navigation/moduleCatalog';
 import type { LiquidModuleKey } from '../types';
+import {
+  getEditionModules,
+  getEditionShortcuts,
+} from '@/lib/platform/healthOSStoreEdition';
+
+const editionModules = getEditionModules(liquidModules);
+const editionShortcuts = getEditionShortcuts(liquidGlobalShortcuts);
 
 type LiquidCommandShellProps = {
   activeModule: LiquidModuleKey;
@@ -105,7 +112,7 @@ function ModuleDock({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.dockItems}
       >
-        {liquidModules.map((module) => {
+        {editionModules.map((module) => {
           const selected = activeModule === module.key;
           return (
             <Pressable
@@ -221,7 +228,7 @@ function OrbitModuleNavigation({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.orbitModuleItems}
       >
-        {liquidModules.map((module) => {
+        {editionModules.map((module) => {
           const selected = activeModule === module.key;
           return (
             <Pressable
@@ -271,7 +278,7 @@ function CommandPalette({
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     const moduleResults = [
-      ...liquidGlobalShortcuts.map((shortcut) => ({
+      ...editionShortcuts.map((shortcut) => ({
         id: `shortcut-${shortcut.id}`,
         label: shortcut.label,
         description: shortcut.description,
@@ -279,7 +286,7 @@ function CommandPalette({
         glyph: shortcut.glyph,
         keywords: shortcut.keywords,
       })),
-      ...liquidModules.flatMap((module) => [
+      ...editionModules.flatMap((module) => [
       {
         id: `module-${module.key}`,
         label: module.label,

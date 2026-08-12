@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PLACEHOLDER_EAS_ID = '00000000-0000-0000-0000-000000000000';
-const STABLE_BUNDLE_ID = 'de.caresuiteplus.app';
+const STABLE_IOS_BUNDLE_ID = 'de.caresuiteplus.app';
+const STABLE_ANDROID_PACKAGE = 'app.caresuiteplus';
 
 const STORE_DOCS = [
   'docs/store/app-store-checklist.md',
@@ -71,11 +72,11 @@ if (expo.scheme !== 'caresuiteplus') fail(`app.json: scheme muss "caresuiteplus"
 
 const iosId = expo.ios?.bundleIdentifier;
 const androidPkg = expo.android?.package;
-if (iosId !== STABLE_BUNDLE_ID) {
-  fail(`app.json: iOS bundleIdentifier muss ${STABLE_BUNDLE_ID} sein, ist ${iosId}`);
+if (iosId !== STABLE_IOS_BUNDLE_ID) {
+  fail(`app.json: iOS bundleIdentifier muss ${STABLE_IOS_BUNDLE_ID} sein, ist ${iosId}`);
 }
-if (androidPkg !== STABLE_BUNDLE_ID) {
-  fail(`app.json: Android package muss ${STABLE_BUNDLE_ID} sein, ist ${androidPkg}`);
+if (androidPkg !== STABLE_ANDROID_PACKAGE) {
+  fail(`app.json: Android package muss ${STABLE_ANDROID_PACKAGE} sein, ist ${androidPkg}`);
 }
 if (expo.ios?.supportsTablet !== true) fail('app.json: ios.supportsTablet muss true sein');
 if (!expo.ios?.buildNumber) fail('app.json: ios.buildNumber fehlt');
@@ -83,7 +84,8 @@ if (!expo.android?.versionCode) fail('app.json: android.versionCode fehlt');
 
 const appConfig = readFileSync(join(root, 'app.config.ts'), 'utf8');
 if (!appConfig.includes('supportsTablet: true')) fail('app.config.ts: supportsTablet fehlt');
-if (!appConfig.includes(STABLE_BUNDLE_ID)) fail('app.config.ts: Bundle-ID fehlt');
+if (!appConfig.includes(STABLE_IOS_BUNDLE_ID)) fail('app.config.ts: iOS Bundle-ID fehlt');
+if (!appConfig.includes(STABLE_ANDROID_PACKAGE)) fail('app.config.ts: Android Package fehlt');
 if (!appConfig.includes('SUPPORT_LINKS') || !appConfig.includes('supportLinks: { ...SUPPORT_LINKS }')) {
   warn('app.config.ts: supportLinks nicht vollständig aus supportLinks.ts gespiegelt');
 } else {
@@ -97,7 +99,8 @@ if (!appConfig.includes('expo-location')) {
   console.log('✓ app.config.ts: expo-location Plugin (Foreground-only, preparedOnly)');
 }
 console.log('✓ App-Identität konsistent (CareSuite+, caresuite-plus, caresuiteplus)');
-console.log(`✓ Bundle-ID / Package: ${STABLE_BUNDLE_ID}`);
+console.log(`✓ iOS Bundle-ID: ${STABLE_IOS_BUNDLE_ID}`);
+console.log(`✓ Android Package: ${STABLE_ANDROID_PACKAGE}`);
 
 // --- EAS ---
 const eas = readJson('eas.json');

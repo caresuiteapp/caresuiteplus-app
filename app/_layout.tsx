@@ -23,6 +23,7 @@ import { installSystemTextDefaults } from '@/product-workflows/design/installSys
 import { GlobalWorkflowFeedbackProvider } from '@/product-workflows/components/ui';
 import { isHealthOSContextualPopupRoute } from '@/lib/navigation/healthosRoutePresentation';
 import { isLiquidCommandRoutePath } from '@/liquid-command/navigation/isLiquidCommandRoute';
+import { HealthOSStoreEditionGuard } from '@/lib/platform/HealthOSStoreEditionGuard';
 
 applyInvisibleScrollIndicators();
 installSystemTextDefaults();
@@ -128,9 +129,11 @@ export default function RootLayout() {
               <GlobalWorkflowFeedbackProvider>
                 <ModalStackProvider>
                   <ScreensaverSettingsProvider>
-                    <RouteScopedLegacyOverlays />
-                    <GlobalScreensaver />
-                    <RootShell />
+                    <HealthOSStoreEditionGuard>
+                      <RouteScopedLegacyOverlays />
+                      <GlobalScreensaver />
+                      <RootShell />
+                    </HealthOSStoreEditionGuard>
                   </ScreensaverSettingsProvider>
                 </ModalStackProvider>
               </GlobalWorkflowFeedbackProvider>

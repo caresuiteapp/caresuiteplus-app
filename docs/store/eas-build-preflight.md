@@ -15,7 +15,7 @@
 | Assets vorhanden | ⚠ Platzhalter | `node scripts/create-assets.mjs` erzeugt 1×1 PNGs — vor Store durch echte Grafiken ersetzen |
 | `.env` für Live-Pilot | ☐ | `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_DEMO_MODE=false` |
 | Apple Developer Program | ☐ | Team-ID, App-ID `de.caresuiteplus.app` registrieren |
-| Google Play Console | ☐ | App `de.caresuiteplus.app` anlegen |
+| Google Play Console | ☐ | App `app.caresuiteplus` verwenden |
 | Service-Account (Play) | ☐ | JSON unter `secrets/google-play-service-account.json` (nicht committen) |
 
 ---

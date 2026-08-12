@@ -64,6 +64,32 @@
       "env": {
         "APP_ENV": "production"
       }
+    },
+    "healthos-core-apk": {
+      "extends": "preview",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_APP_EDITION": "healthos-core"
+      }
+    },
+    "healthos-core-aab": {
+      "extends": "production",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle",
+        "buildArtifactPaths": [
+          "android/app/build/outputs/**/*.{aab,apk}",
+          "android/app/build/outputs/mapping/release/mapping.txt"
+        ]
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_APP_EDITION": "healthos-core"
+      }
     }
   },
   "submit": {

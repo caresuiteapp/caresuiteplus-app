@@ -1,7 +1,7 @@
 # Google Play Store — Submission Checklist
 
 **App:** CareSuite+  
-**Package:** `de.caresuiteplus.app`  
+**Package:** `app.caresuiteplus`
 **Stand:** 2026-06-13
 
 ---
