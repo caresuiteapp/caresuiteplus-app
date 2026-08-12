@@ -163,18 +163,11 @@ function WorkAreaNavigation({
   messageBadge?: string;
 }) {
   const router = useRouter();
+  const layout = useLiquidLayout();
   const areas = liquidWorkAreas[moduleKey];
   if (!areas.length) return null;
 
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      showsVerticalScrollIndicator={false}
-      style={styles.areaHorizontal}
-      contentContainerStyle={styles.areaHorizontalContent}
-    >
-      {areas.map((area, index) => {
+  const items = areas.map((area, index) => {
         const selected = activeArea ? activeArea === area.id : index === 0;
         return (
           <Pressable
@@ -200,9 +193,13 @@ function WorkAreaNavigation({
             ) : null}
           </Pressable>
         );
-      })}
-    </ScrollView>
-  );
+      });
+
+  if (layout.isDesktop || layout.isTablet) {
+    return <View style={[styles.areaHorizontal, styles.areaWrap]}>{items}</View>;
+  }
+
+  return <ScrollView horizontal showsHorizontalScrollIndicator style={styles.areaHorizontal} contentContainerStyle={styles.areaHorizontalContent}>{items}</ScrollView>;
 }
 
 function OrbitModuleNavigation({
@@ -1468,6 +1465,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 7,
     gap: 7,
+  },
+  areaWrap: {
+    paddingHorizontal: 18,
+    paddingVertical: 7,
+    gap: 7,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   areaChip: {
     minHeight: 36,

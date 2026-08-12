@@ -31,6 +31,10 @@ export const PFLEGE_TABS: ShellTabConfig[] = [
   { key: 'index', label: 'Übersicht', icon: '🏠', href: '/pflege' },
   { key: 'plans', label: 'Pflegepläne', icon: '📋', href: '/pflege/plans' },
   { key: 'vitalwerte', label: 'Vitalwerte', icon: '❤️', href: '/pflege/vitalwerte' },
+  { key: 'qualitaet', label: 'Qualität', icon: '✓', href: '/pflege/abweichungen' },
+  { key: 'nachweise', label: 'Leistungsnachweise', icon: '§', href: '/pflege/leistungsnachweise' },
+  { key: 'abrechnung', label: 'Abrechnung', icon: '€', href: '/pflege/abrechnung' },
+  { key: 'abnahme', label: 'Gesamtabnahme', icon: '🛡️', href: '/pflege/gesamtabnahme' },
 ];
 
 export const BERATUNG_TABS: ShellTabConfig[] = [
