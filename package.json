@@ -4,6 +4,7 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
+    "android:healthos:local": "bash scripts/build-healthos-core-local-android.sh",
     "audit:ui:contract": "node scripts/audit-healthos-ui-contract.mjs",
     "audit:ui:migration": "node scripts/audit-healthos-page-migration.mjs",
     "start": "expo start",
