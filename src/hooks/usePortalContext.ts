@@ -5,6 +5,7 @@ import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAuth } from '@/lib/auth/context';
 import { AsyncTimeoutError, withTimeout } from '@/lib/async/withTimeout';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import { SERVICE_QUERY_TIMEOUT_MS } from '@/lib/services/queryTimeout';
 
 export type PortalContextState = {
   context: PortalContext | null;
@@ -13,8 +14,6 @@ export type PortalContextState = {
   refresh: () => Promise<void>;
   isReady: boolean;
 };
-
-const PORTAL_CONTEXT_TIMEOUT_MS = 25_000;
 
 export function usePortalContext(): PortalContextState {
   const { tenantId, clientId, roleKey, displayName, isReady: actorReady, isResolvingClientLink } =
@@ -59,7 +58,7 @@ export function usePortalContext(): PortalContextState {
           displayName: displayNameRef.current,
           tenantNameHint: portalSession?.tenantName ?? null,
         }),
-        PORTAL_CONTEXT_TIMEOUT_MS,
+        SERVICE_QUERY_TIMEOUT_MS,
         'Portal-Kontext konnte nicht rechtzeitig geladen werden.',
       );
       setContext(resolved);

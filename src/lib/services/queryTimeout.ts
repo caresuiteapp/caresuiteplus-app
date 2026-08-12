@@ -1,13 +1,13 @@
-const DEFAULT_QUERY_TIMEOUT_MS = 25_000;
+export const SERVICE_QUERY_TIMEOUT_MS = 120_000;
 
 export function getServiceQueryTimeoutMs(): number {
-  return DEFAULT_QUERY_TIMEOUT_MS;
+  return SERVICE_QUERY_TIMEOUT_MS;
 }
 
 export async function withServiceQueryTimeout<T>(
   promise: Promise<T>,
   label = 'Datenabfrage',
-  timeoutMs = DEFAULT_QUERY_TIMEOUT_MS,
+  timeoutMs = SERVICE_QUERY_TIMEOUT_MS,
 ): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
