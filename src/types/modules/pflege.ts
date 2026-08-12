@@ -219,6 +219,40 @@ export type PflegeReportStats = {
   mdkReadyCount: number;
 };
 
+export type CarePlanEvaluationListItem = {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  clientName: string;
+  carePlanId: string;
+  planTitle: string;
+  outcome: 'effective' | 'partly_effective' | 'not_effective' | 'deteriorated' | 'not_assessable';
+  observedEffect: string;
+  professionalConclusion: string;
+  requiresPlanUpdate: boolean;
+  evaluatedAt: string;
+  nextEvaluationAt: string | null;
+  evaluatorName: string;
+};
+
+export type CareQualityVisitListItem = {
+  id: string;
+  tenantId: string;
+  clientId: string;
+  clientName: string;
+  carePlanId: string | null;
+  planTitle: string;
+  visitType: 'pdl' | 'professional' | 'intensive_care' | 'hygiene' | 'medication' | 'event_triggered';
+  status: 'planned' | 'completed' | 'cancelled';
+  scope: string;
+  findings: string;
+  deviations: string;
+  scheduledAt: string | null;
+  conductedAt: string | null;
+  nextVisitAt: string | null;
+  visitorName: string;
+};
+
 export type WoundDocumentation = TenantScopedEntity &
   PortalScopedEntity & {
     clientId: string;

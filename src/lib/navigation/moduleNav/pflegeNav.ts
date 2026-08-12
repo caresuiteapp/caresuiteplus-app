@@ -37,6 +37,14 @@ export const pflegeNav: ModuleNavConfig = {
       ],
     },
     {
+      title: 'Qualität',
+      items: [
+        { key: 'evaluation', label: 'Evaluationen', icon: '✓', href: '/pflege/evaluation' },
+        { key: 'visiten', label: 'Pflegevisiten', icon: '🔎', href: '/pflege/visiten' },
+        { key: 'reports', label: 'Qualitätskennzahlen', icon: '📈', href: '/pflege/reports' },
+      ],
+    },
+    {
       title: 'Einstellungen',
       items: [
         { key: 'settings', label: 'Pflege-Einstellungen', icon: '⚙️', href: '/pflege/settings' },

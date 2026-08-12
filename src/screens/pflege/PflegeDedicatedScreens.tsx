@@ -80,7 +80,7 @@ export function PflegeMeasuresListScreen() {
       title="Maßnahmen"
       eyebrow="PFLEGE · MASSNAHMENPLAN"
       subtitle="Aktive Pflegeplan-Maßnahmen"
-      createRoute="/pflege/plans/new"
+      createRoute="/pflege/plans/create"
       queryFn={fetchPflegeMeasuresList}
       searchKeys={['title', 'clientName']}
       getItemId={(item) => item.id}
@@ -101,14 +101,15 @@ export function PflegeEvaluationListScreen() {
       title="Evaluation"
       eyebrow="PFLEGE · EVALUATION"
       subtitle="Pläne mit anstehender Evaluation"
+      createRoute="/pflege/evaluation/new"
       queryFn={fetchPflegeEvaluationList}
-      searchKeys={['title', 'clientName']}
+      searchKeys={['planTitle', 'clientName', 'evaluatorName']}
       getItemId={(item) => item.id}
-      onOpen={(item) => router.push(`/pflege/plans/${item.id}` as never)}
+      onOpen={(item) => router.push(`/pflege/plans/${item.carePlanId}` as never)}
       renderMeta={(item) => ({
-        primary: item.title,
-        secondary: `${item.clientName} · Evaluation bis ${formatDate(item.validUntil)}`,
-        badge: item.status,
+        primary: item.planTitle,
+        secondary: `${item.clientName} · ${item.evaluatorName} · ${formatDate(item.evaluatedAt)}`,
+        badge: item.requiresPlanUpdate ? 'Fortschreibung nötig' : item.outcome,
       })}
     />
   );
@@ -121,14 +122,14 @@ export function PflegeVisitsListScreen() {
       title="Visiten"
       eyebrow="PFLEGE · VISITEN"
       subtitle="PDL- und Fachvisiten"
-      createRoute="/pflege/dokumentation/new"
+      createRoute="/pflege/visiten/new"
       queryFn={fetchPflegeVisitsList}
-      searchKeys={['title', 'clientName', 'employeeName']}
+      searchKeys={['scope', 'clientName', 'visitorName']}
       getItemId={(item) => item.id}
-      onOpen={(item) => router.push(`/pflege/dokumentation/${item.id}` as never)}
+      onOpen={(item) => item.carePlanId ? router.push(`/pflege/plans/${item.carePlanId}` as never) : undefined}
       renderMeta={(item) => ({
-        primary: item.title,
-        secondary: `${item.clientName} · ${item.employeeName} · ${formatDate(item.recordedAt)}`,
+        primary: item.scope,
+        secondary: `${item.clientName} · ${item.visitorName} · ${formatDate(item.conductedAt ?? item.scheduledAt ?? '')}`,
         badge: item.status,
       })}
     />

@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { PreparedModeBanner } from '@/components/modules/PreparedModeBanner';
-import { PflegeReportsHero, PFLEGE_REPORTS_PREPARED_MESSAGE } from '@/components/pflege/PflegeReportsHero';
+import { PflegeReportsHero } from '@/components/pflege/PflegeReportsHero';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, LoadingState } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -44,12 +43,12 @@ export function PflegeReportsScreen() {
   const stats = query.data!;
 
   return (
-    <ScreenShell title="Pflege-Auswertungen" subtitle={`Kennzahlen · ${roleLabel ?? 'Demo'}`}>
+    <ScreenShell title="Pflege-Auswertungen" subtitle={`Live-Qualitätskennzahlen · ${roleLabel ?? 'Pflege'}`}>
       <PflegeReportsHero stats={stats} roleKey={roleKey} />
-      <PreparedModeBanner hint={PFLEGE_REPORTS_PREPARED_MESSAGE} />
       <View style={styles.noteWrap}>
         <Text style={styles.note}>
-          Auswertungen basieren auf Demo-Daten. Export und MDK-Schnittstelle sind vorbereitet (P-READY).
+          Kennzahlen werden mandantenbezogen aus Pflegeplänen, SIS, Vitalwerten, Wundfällen,
+          Evaluationen und abgeschlossenen Pflegevisiten berechnet.
         </Text>
       </View>
     </ScreenShell>

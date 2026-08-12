@@ -1,6 +1,10 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import type { CarePlanListItem, SisAssessment } from '@/types/modules/pflege';
-import { fetchCareDocumentationList } from '@/lib/pflege/careDocumentationListService';
+import type {
+  CarePlanListItem,
+  CarePlanEvaluationListItem,
+  CareQualityVisitListItem,
+  SisAssessment,
+} from '@/types/modules/pflege';
 import type { CareDocumentationListItem } from '@/lib/pflege/careDocumentationTypes';
 import { fetchCarePlanList } from '@/lib/pflege/carePlanListService';
 import { fetchSisAssessments } from '@/lib/pflege/sisListService';
@@ -10,6 +14,10 @@ import {
   fetchInformationCollections,
 } from '@/lib/pflege/informationCollectionService';
 import { fetchClinicalHandovers } from '@/lib/pflege/clinicalWorkflowService';
+import {
+  fetchCarePlanEvaluations,
+  fetchCareQualityVisits,
+} from '@/lib/pflege/careQualityLiveService';
 
 export {
   createInformationCollection,
@@ -56,26 +64,15 @@ export async function fetchPflegeMeasuresList(
 export async function fetchPflegeEvaluationList(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
-): Promise<ServiceResult<CarePlanListItem[]>> {
-  return wrapList(
-    () => fetchCarePlanList(tenantId, actorRoleKey),
-    (items) =>
-      items.filter((item) => {
-        if (!item.validUntil) return false;
-        const until = new Date(item.validUntil).getTime();
-        return until - Date.now() < 30 * 86400000;
-      }),
-  );
+): Promise<ServiceResult<CarePlanEvaluationListItem[]>> {
+  return fetchCarePlanEvaluations(tenantId, actorRoleKey);
 }
 
 export async function fetchPflegeVisitsList(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
-): Promise<ServiceResult<CareDocumentationListItem[]>> {
-  return wrapList(
-    () => fetchCareDocumentationList(tenantId, actorRoleKey),
-    (items) => items.filter((_, index) => index % 2 === 0),
-  );
+): Promise<ServiceResult<CareQualityVisitListItem[]>> {
+  return fetchCareQualityVisits(tenantId, actorRoleKey);
 }
 
 export async function fetchPflegeHandoversList(

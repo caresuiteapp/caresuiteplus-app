@@ -59,6 +59,11 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'pflege.treatment.manage': 'Behandlungspflege durchführen und dokumentieren',
   'pflege.handovers.view': 'Übergaben ansehen',
   'pflege.handovers.manage': 'Übergaben erstellen und quittieren',
+  'pflege.evaluations.view': 'Pflegeplan-Evaluationen ansehen',
+  'pflege.evaluations.manage': 'Pflegeplan-Evaluationen dokumentieren',
+  'pflege.visits.view': 'Pflegevisiten ansehen',
+  'pflege.visits.manage': 'Pflegevisiten dokumentieren',
+  'pflege.quality.view': 'Pflege-Qualitätskennzahlen ansehen',
   'beratung.access': 'Beratung-Modul öffnen',
   'beratung.cases.view': 'Beratungsfälle ansehen',
   'akademie.access': 'Akademie-Modul öffnen',
@@ -712,6 +717,9 @@ const PFLEGE_VIEW: PermissionKey[] = [
   'pflege.documentation.view',
   'pflege.treatment.view',
   'pflege.handovers.view',
+  'pflege.evaluations.view',
+  'pflege.visits.view',
+  'pflege.quality.view',
   'dashboard.view',
 ];
 
@@ -730,6 +738,8 @@ const PFLEGE_MANAGE: PermissionKey[] = [
   'pflege.documentation.sign',
   'pflege.treatment.manage',
   'pflege.handovers.manage',
+  'pflege.evaluations.manage',
+  'pflege.visits.manage',
 ];
 
 const BERATUNG_VIEW: PermissionKey[] = [

@@ -4,12 +4,11 @@ import type {
   PflegeReportStats,
   SisAssessment,
 } from '@/types/modules/pflege';
-import { countDueSisReviews, getDemoSisAssessments } from '@/data/demo/sisAssessments';
-import { countActiveCarePlans, getDemoCarePlanListItems } from '@/data/demo/carePlans';
-import { countDueVitals } from '@/data/demo/vitalReadings';
+import { getDemoSisAssessments } from '@/data/demo/sisAssessments';
 import { enforcePermission } from '@/lib/permissions';
 import { guardLiveDemoFeature } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
+import { fetchLivePflegeQualityStats } from '@/lib/pflege/careQualityLiveService';
 
 let pflegeSettingsStore: PflegeModuleSettings = {
   sisEnabled: true,
@@ -80,19 +79,5 @@ export async function fetchPflegeReportStats(
 ): Promise<ServiceResult<PflegeReportStats>> {
   const denied = enforcePermission<PflegeReportStats>(actorRoleKey, 'pflege.access');
   if (denied) return denied;
-  const live = guardDemoOnlyFeature<PflegeReportStats>(tenantId, 'Pflege-Reporting');
-  if (live) return live;
-
-  await demoDelay();
-  const plans = getDemoCarePlanListItems();
-  return {
-    ok: true,
-    data: {
-      activePlans: countActiveCarePlans(),
-      sisAssessmentsDue: countDueSisReviews(),
-      vitalsDocumentedThisWeek: Math.max(0, plans.length * 2 - countDueVitals()),
-      woundCasesOpen: 2,
-      mdkReadyCount: 1,
-    },
-  };
+  return fetchLivePflegeQualityStats(tenantId, actorRoleKey);
 }
