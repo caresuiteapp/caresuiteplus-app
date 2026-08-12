@@ -253,6 +253,74 @@ export type CareQualityVisitListItem = {
   visitorName: string;
 };
 
+export type CareRiskLiveItem = {
+  id: string;
+  assessmentId: string;
+  clientId: string;
+  clientName: string;
+  riskKey: string;
+  state: 'none' | 'unclear' | 'present' | 'controlled';
+  urgency: 'routine' | 'timely' | 'urgent' | 'immediate';
+  evidence: string;
+  professionalRationale: string;
+  nextReviewAt: string | null;
+  assessorName: string;
+};
+
+export type CareMeasureLiveItem = {
+  id: string;
+  carePlanId: string;
+  clientId: string;
+  clientName: string;
+  planTitle: string;
+  title: string;
+  intervention: string;
+  frequency: string;
+  responsibleRole: string;
+  status: 'active' | 'paused' | 'completed' | 'cancelled';
+  nextEvaluationAt: string | null;
+  overdue: boolean;
+};
+
+export type CareQualityDeviationItem = {
+  id: string;
+  clientId: string | null;
+  clientName: string;
+  carePlanId: string | null;
+  sourceType: string;
+  category: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  title: string;
+  description: string;
+  immediateAction: string;
+  rootCause: string;
+  correctiveAction: string;
+  status: 'identified' | 'assessed' | 'in_progress' | 'effectiveness_check' | 'closed' | 'cancelled';
+  recurringProblem: boolean;
+  responsibleName: string;
+  effectivenessResult: string;
+  dueAt: string | null;
+  createdAt: string;
+};
+
+export type PflegeMdReadinessItem = {
+  clientId: string;
+  clientName: string;
+  carePlanId: string;
+  planTitle: string;
+  readinessPercent: number;
+  ready: boolean;
+  checks: {
+    approvedSis: boolean;
+    activeMeasures: boolean;
+    risksCurrent: boolean;
+    recentEvaluation: boolean;
+    recentVisit: boolean;
+    signedDocumentation: boolean;
+    deviationsClear: boolean;
+  };
+};
+
 export type WoundDocumentation = TenantScopedEntity &
   PortalScopedEntity & {
     clientId: string;

@@ -39,8 +39,11 @@ export const pflegeNav: ModuleNavConfig = {
     {
       title: 'Qualität',
       items: [
+        { key: 'risiken', label: 'Risikomanagement', icon: '⚠', href: '/pflege/risiken' },
         { key: 'evaluation', label: 'Evaluationen', icon: '✓', href: '/pflege/evaluation' },
         { key: 'visiten', label: 'Pflegevisiten', icon: '🔎', href: '/pflege/visiten' },
+        { key: 'abweichungen', label: 'Qualitätsabweichungen', icon: '!', href: '/pflege/abweichungen' },
+        { key: 'md-readiness', label: 'MD-Prüfbereitschaft', icon: '🛡️', href: '/pflege/md-pruefbereitschaft' },
         { key: 'reports', label: 'Qualitätskennzahlen', icon: '📈', href: '/pflege/reports' },
       ],
     },

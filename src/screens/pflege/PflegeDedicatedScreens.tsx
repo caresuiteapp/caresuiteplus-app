@@ -40,13 +40,13 @@ export function PflegeRisksListScreen() {
       eyebrow="PFLEGE · RISIKOMATRIX"
       subtitle="Erhöhte Risiken und fällige Reviews"
       queryFn={fetchPflegeRiskAssessments}
-      searchKeys={['clientName', 'assessorName']}
+      searchKeys={['clientName', 'riskKey', 'assessorName']}
       getItemId={(item) => item.id}
-      onOpen={(item) => router.push(`/pflege/sis/${item.id}` as never)}
+      onOpen={(item) => router.push(`/pflege/risiko-review?id=${item.id}` as never)}
       renderMeta={(item) => ({
-        primary: item.clientName,
-        secondary: `Score ${item.overallScore} · ${item.assessorName}`,
-        badge: item.nextReviewAt ? `Review ${formatDate(item.nextReviewAt)}` : 'Ohne Termin',
+        primary: `${item.clientName} · ${item.riskKey}`,
+        secondary: `${item.state} · ${item.urgency} · ${item.assessorName}`,
+        badge: item.nextReviewAt ? `Review ${formatDate(item.nextReviewAt)}` : 'Review fehlt',
       })}
     />
   );
@@ -84,11 +84,11 @@ export function PflegeMeasuresListScreen() {
       queryFn={fetchPflegeMeasuresList}
       searchKeys={['title', 'clientName']}
       getItemId={(item) => item.id}
-      onOpen={(item) => router.push(`/pflege/plans/${item.id}` as never)}
+      onOpen={(item) => router.push(`/pflege/massnahme-review?id=${item.id}` as never)}
       renderMeta={(item) => ({
         primary: item.title,
-        secondary: `${item.clientName} · gültig bis ${formatDate(item.validUntil)}`,
-        badge: item.alertCount > 0 ? `${item.alertCount} Hinweise` : item.status,
+        secondary: `${item.clientName} · ${item.frequency || 'individuell'} · ${item.responsibleRole || 'Pflegefachteam'}`,
+        badge: item.overdue ? 'Evaluation fällig' : item.status,
       })}
     />
   );

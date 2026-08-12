@@ -1,12 +1,12 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type {
-  CarePlanListItem,
   CarePlanEvaluationListItem,
   CareQualityVisitListItem,
+  CareMeasureLiveItem,
+  CareRiskLiveItem,
   SisAssessment,
 } from '@/types/modules/pflege';
 import type { CareDocumentationListItem } from '@/lib/pflege/careDocumentationTypes';
-import { fetchCarePlanList } from '@/lib/pflege/carePlanListService';
 import { fetchSisAssessments } from '@/lib/pflege/sisListService';
 import {
   createInformationCollection,
@@ -18,6 +18,7 @@ import {
   fetchCarePlanEvaluations,
   fetchCareQualityVisits,
 } from '@/lib/pflege/careQualityLiveService';
+import { fetchLiveCareMeasures, fetchLiveCareRisks } from '@/lib/pflege/careQualityR2LiveService';
 
 export {
   createInformationCollection,
@@ -25,23 +26,11 @@ export {
   fetchInformationCollections,
 };
 
-async function wrapList<T>(
-  fetcher: () => Promise<ServiceResult<T[]>>,
-  filter: (items: T[]) => T[],
-): Promise<ServiceResult<T[]>> {
-  const result = await fetcher();
-  if (!result.ok) return result;
-  return { ok: true, data: filter(result.data) };
-}
-
 export async function fetchPflegeRiskAssessments(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
-): Promise<ServiceResult<SisAssessment[]>> {
-  return wrapList(
-    () => fetchSisAssessments(tenantId, actorRoleKey),
-    (items) => items.filter((item) => item.overallScore < 75 || item.status === 'fehlerhaft'),
-  );
+): Promise<ServiceResult<CareRiskLiveItem[]>> {
+  return fetchLiveCareRisks(tenantId, actorRoleKey);
 }
 
 export async function fetchPflegeAssessmentsList(
@@ -54,11 +43,8 @@ export async function fetchPflegeAssessmentsList(
 export async function fetchPflegeMeasuresList(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
-): Promise<ServiceResult<CarePlanListItem[]>> {
-  return wrapList(
-    () => fetchCarePlanList(tenantId, actorRoleKey),
-    (items) => items.filter((item) => item.alertCount > 0 || item.title.toLowerCase().includes('pflege')),
-  );
+): Promise<ServiceResult<CareMeasureLiveItem[]>> {
+  return fetchLiveCareMeasures(tenantId, actorRoleKey);
 }
 
 export async function fetchPflegeEvaluationList(
