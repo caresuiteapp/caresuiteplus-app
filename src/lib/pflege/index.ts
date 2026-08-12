@@ -14,7 +14,7 @@ export {
 export { fetchVitalReadings, fetchDueVitalReadings, createVitalReading } from './vitalService';
 export { fetchVitalReadingDetail } from './vitalDetailService';
 export { fetchSisAssessments, fetchSisAssessmentDetail } from './sisListService';
-export { fetchMedicationList, createMedicationOrder } from './medicationListService';
+export { fetchMedicationList } from './medicationListService';
 export { fetchMedicationDetail } from './medicationDetailService';
 export { fetchWoundDocumentationList, createWoundDocumentation } from './woundDocumentationService';
 export { fetchWoundDocumentationDetail } from './woundDocumentationDetailService';

@@ -1,5 +1,4 @@
-import type { WorkflowStatus } from '@/types/core/base';
-import type { MedicationListItem } from '@/types/modules/pflege';
+import type { MedicationListItem, MedicationStatus } from '@/types/modules/pflege';
 import { MEDICATION_NAMES } from './generators/pflegeDemoGenerators';
 import { demoClients } from './clients';
 import { DEMO_TENANT_ID } from './tenant';
@@ -9,7 +8,7 @@ export type { MedicationListItem };
 const SCHEDULES = ['Morgens', 'Abends', 'Morgens + Abends', 'Bei Bedarf', 'Vor Mahlzeiten'];
 const ROUTES = ['oral', 'subkutan', 'topisch', 'inhalativ'];
 const DOCTORS = ['Dr. Schmidt', 'Dr. Bauer', 'Dr. Klein', 'Dr. Weber', 'Dr. Fischer'];
-const STATUSES: WorkflowStatus[] = ['aktiv', 'aktiv', 'aktiv', 'in_bearbeitung'];
+const STATUSES: MedicationStatus[] = ['active', 'active', 'active', 'paused'];
 
 function buildMedicationSeeds(): MedicationListItem[] {
   const clients = demoClients.slice(0, 15);
@@ -21,11 +20,20 @@ function buildMedicationSeeds(): MedicationListItem[] {
       clientId: client.id,
       clientName: `${client.firstName} ${client.lastName}`,
       medicationName,
+      activeIngredient: null,
+      strength: null,
+      form: null,
       dosage: `${(i % 5 + 1) * 5} mg`,
       schedule: SCHEDULES[i % SCHEDULES.length]!,
       route: ROUTES[i % ROUTES.length]!,
       status: STATUSES[i % STATUSES.length]!,
+      isPrn: SCHEDULES[i % SCHEDULES.length] === 'Bei Bedarf',
+      isHighAlert: false,
+      isControlledSubstance: false,
+      intensiveCareRelevant: false,
       prescribedBy: DOCTORS[i % DOCTORS.length]!,
+      startDate: null,
+      endDate: null,
       updatedAt: new Date(Date.now() - (i + 1) * 86_400_000).toISOString(),
     };
   });
@@ -57,11 +65,20 @@ export function createDemoMedication(input: {
     clientId: input.clientId,
     clientName: input.clientName,
     medicationName: input.medicationName,
+    activeIngredient: null,
+    strength: null,
+    form: null,
     dosage: input.dosage,
     schedule: input.schedule,
     route: 'oral',
-    status: 'entwurf',
+    status: 'active',
+    isPrn: false,
+    isHighAlert: false,
+    isControlledSubstance: false,
+    intensiveCareRelevant: false,
     prescribedBy: 'Dr. Demo',
+    startDate: null,
+    endDate: null,
     updatedAt: now,
   };
   medicationStore = [item, ...medicationStore];
@@ -69,5 +86,5 @@ export function createDemoMedication(input: {
 }
 
 export function countActiveMedications(): number {
-  return medicationStore.filter((item) => item.status === 'aktiv').length;
+  return medicationStore.filter((item) => item.status === 'active').length;
 }

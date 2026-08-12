@@ -90,17 +90,6 @@ export async function signClinicalDocumentation(
   return { ok: true, data: { id: text((data as Row).id) } };
 }
 
-export async function recordMedicationAdministration(
-  tenantId: string, medicationOrderId: string, payload: Record<string, unknown>, role?: RoleKey | null,
-): Promise<ServiceResult<{ id: string }>> {
-  const denied = enforcePermission<{ id: string }>(role, 'pflege.medications.administer'); if (denied) return denied;
-  const blocked = guardServiceTenant(tenantId); if (blocked) return blocked;
-  const supabase = getSupabaseClient(); if (!supabase) return { ok: false, error: 'Live-Datenbank ist nicht verfügbar.' };
-  const { data, error } = await supabase.rpc('record_clinical_medication_administration' as never, { p_medication_order_id: medicationOrderId, p_payload: payload } as never);
-  if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
-  return { ok: true, data: { id: text((data as Row).id) } };
-}
-
 export async function createWoundAssessment(
   tenantId: string, woundCaseId: string, payload: Record<string, unknown>, role?: RoleKey | null,
 ): Promise<ServiceResult<{ id: string }>> {

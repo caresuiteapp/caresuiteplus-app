@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
-import { getDemoMedicationListItems } from '@/data/demo/medications';
 import { getDemoSisAssessments } from '@/data/demo/sisAssessments';
 import { getDemoWoundDocumentations } from '@/data/demo/woundDocumentations';
 import { buildPflegeDashboardKpis } from '@/lib/pflege/pflegeDashboardStats';
@@ -11,7 +10,6 @@ import { buildSisListKpis } from '@/lib/pflege/sisListStats';
 import { buildPflegeReportKpis } from '@/lib/pflege/pflegeReportStats';
 import { buildMedicationListKpis } from '@/lib/pflege/medicationListStats';
 import { buildWoundDocumentationListKpis } from '@/lib/pflege/woundDocumentationListStats';
-import { fetchMedicationList } from '@/lib/pflege/medicationListService';
 import { fetchWoundDocumentationList } from '@/lib/pflege/woundDocumentationService';
 import { fetchPflegeReportStats } from '@/lib/pflege/moduleExtensionService';
 
@@ -97,28 +95,28 @@ describe('Pflege Premium Heroes Batch (Sprint 75)', () => {
     expect(kpis.some((k) => k.id === 'wounds')).toBe(true);
   });
 
-  it('Medikation und Wunddokumentation Services nutzen guardServiceTenant', async () => {
-    const medResult = await fetchMedicationList(DEMO_TENANT_ID, 'nurse');
+  it('Medikation nutzt ausschließlich den Live-Service und Wunddokumentation den Mandantenschutz', async () => {
     const woundResult = await fetchWoundDocumentationList(DEMO_TENANT_ID, 'nurse');
-    expect(medResult.ok).toBe(true);
     expect(woundResult.ok).toBe(true);
 
     const medService = readSrc('src/lib/pflege/medicationListService.ts');
     const woundService = readSrc('src/lib/pflege/woundDocumentationService.ts');
     expect(medService).toContain('guardServiceTenant');
+    expect(medService).toContain('fetchLiveMedicationList');
+    expect(medService).not.toContain('getDemoMedicationListItems');
     expect(woundService).toContain('guardServiceTenant');
     expect(medService).not.toContain('service_role');
   });
 
-  it('MedicationListHero und WoundDocumentationListHero haben externe Anbindungs-Badges', () => {
+  it('MedicationListHero kennzeichnet Live-Daten und Wunddokumentation die externe Anbindung', () => {
     const medHero = readSrc('src/components/pflege/MedicationListHero.tsx');
     const woundHero = readSrc('src/components/pflege/WoundDocumentationListHero.tsx');
-    expect(medHero).toContain('eMP extern');
+    expect(medHero).toContain('Live-Daten');
     expect(woundHero).toMatch(/BodyMap|extern/i);
   });
 
   it('buildMedicationListKpis und buildWoundDocumentationListKpis liefern Kennzahlen', () => {
-    const medKpis = buildMedicationListKpis(getDemoMedicationListItems());
+    const medKpis = buildMedicationListKpis([{ id: '1', tenantId: 't', clientId: 'c', clientName: 'Test', medicationName: 'Ramipril', activeIngredient: 'Ramipril', strength: '5 mg', form: 'Tablette', dosage: '1 Tablette', schedule: '1-0-0-0', route: 'oral', status: 'active', isPrn: false, isHighAlert: false, isControlledSubstance: false, intensiveCareRelevant: false, prescribedBy: 'Dr. Test', startDate: null, endDate: null, updatedAt: new Date().toISOString() }]);
     const woundKpis = buildWoundDocumentationListKpis(getDemoWoundDocumentations());
     expect(medKpis.some((k) => k.id === 'active')).toBe(true);
     expect(woundKpis.some((k) => k.id === 'open')).toBe(true);

@@ -12,9 +12,9 @@ export type MedicationListKpi = {
 
 export function buildMedicationListKpis(items: MedicationListItem[], mode: ColorMode = 'dark'): MedicationListKpi[]  {
   const colors = legacyColorsFromPalette(mode);
-  const active = items.filter((item) => item.status === 'aktiv').length;
+  const active = items.filter((item) => item.status === 'active').length;
   const clients = new Set(items.map((item) => item.clientId)).size;
-  const prn = items.filter((item) => item.schedule.toLowerCase().includes('bedarf')).length;
+  const prn = items.filter((item) => item.isPrn).length;
 
   return [
     {

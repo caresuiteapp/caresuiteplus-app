@@ -3,15 +3,12 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { getDemoShiftScheduleListItems } from '@/lib/pflege/shiftScheduleDemo';
-import { getDemoMedicationDetail } from '@/lib/pflege/medicationDetailStats';
 import { getDemoWoundDocumentationDetail } from '@/lib/pflege/woundDocumentationDetailStats';
 import { buildShiftScheduleListKpis } from '@/lib/pflege/shiftScheduleListStats';
 import { buildCareDocumentationListKpis } from '@/lib/pflege/careDocumentationListStats';
-import { buildMedicationDetailKpis } from '@/lib/pflege/medicationDetailStats';
 import { buildWoundDocumentationDetailKpis } from '@/lib/pflege/woundDocumentationDetailStats';
 import { fetchShiftScheduleList } from '@/lib/pflege/shiftScheduleService';
 import { fetchCareDocumentationList } from '@/lib/pflege/careDocumentationListService';
-import { fetchMedicationDetail } from '@/lib/pflege/medicationDetailService';
 import { fetchWoundDocumentationDetail } from '@/lib/pflege/woundDocumentationDetailService';
 
 function readSrc(relativePath: string): string {
@@ -82,18 +79,12 @@ describe('Pflege Sprint Batch 2 (Sprint 76)', () => {
     expect(readSrc('src/lib/pflege/pflegeDashboardWorkspace.ts')).toContain('/pflege/dokumentation');
   });
 
-  it('MedicationDetailHero und Service sind preparedOnly', async () => {
+  it('MedicationDetailHero und Service nutzen ausschließlich Live-Daten', () => {
     const hero = readSrc('src/components/pflege/MedicationDetailHero.tsx');
-    expect(hero).toContain('eMP extern');
+    expect(hero).toContain('Live-Daten');
     expect(readSrc('app/pflege/medikation/[id]/index.tsx')).toContain('MedicationDetailScreen');
-
-    const result = await fetchMedicationDetail('med-001', DEMO_TENANT_ID, 'nurse');
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      const kpis = buildMedicationDetailKpis(result.data);
-      expect(kpis.some((k) => k.id === 'dosage')).toBe(true);
-    }
-    expect(getDemoMedicationDetail('med-001')?.medicationName).toBe('Ramipril');
+    expect(readSrc('src/lib/pflege/medicationDetailService.ts')).toContain('fetchLiveMedicationDetail');
+    expect(readSrc('src/lib/pflege/medicationDetailService.ts')).not.toContain('getDemoMedicationDetail');
   });
 
   it('WoundDocumentationDetailHero und Service sind preparedOnly', async () => {

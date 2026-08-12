@@ -28,14 +28,15 @@ describe('Pflege Clinical Live R2 acceptance', () => {
     const service = read('src/lib/pflege/clinicalWorkflowService.ts');
     for (const rpc of [
       'create_clinical_handover', 'record_clinical_treatment_execution',
-      'record_clinical_medication_administration', 'create_clinical_wound_assessment',
-      'sign_clinical_documentation',
+      'create_clinical_wound_assessment', 'sign_clinical_documentation',
     ]) expect(service).toContain(rpc);
     for (const route of [
       'app/pflege/behandlungspflege/index.tsx', 'app/pflege/behandlungspflege/new.tsx',
       'app/pflege/uebergaben/new.tsx', 'app/pflege/medikation/[id]/gabe.tsx',
       'app/pflege/wunden/[id]/assessment.tsx',
     ]) expect(fs.existsSync(path.join(process.cwd(), route))).toBe(true);
+    expect(read('app/pflege/medikation/[id]/gabe.tsx')).toContain('/pflege/medikation/${id}');
+    expect(read('src/screens/pflege/MedicationDetailScreen.tsx')).toContain('recordMedicationAdministration');
   });
 
   it('keeps external eMP and unfinished file storage honestly gated', () => {

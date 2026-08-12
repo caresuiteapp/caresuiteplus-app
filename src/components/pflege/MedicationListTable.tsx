@@ -2,7 +2,6 @@ import { Text } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { MedicationListItem } from '@/types/modules/pflege';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 
 type MedicationListTableProps = {
   items: MedicationListItem[];
@@ -13,13 +12,9 @@ type MedicationListTableProps = {
 
 function statusVariant(status: MedicationListItem['status']) {
   switch (status) {
-    case 'aktiv':
+    case 'active':
       return 'green' as const;
-    case 'fehlerhaft':
-    case 'gesperrt':
-      return 'red' as const;
-    case 'in_bearbeitung':
-    case 'entwurf':
+    case 'paused':
       return 'orange' as const;
     default:
       return 'muted' as const;
@@ -71,7 +66,7 @@ export function MedicationListTable({
           flex: 1,
           render: (item) => (
             <PremiumBadge
-              label={WORKFLOW_STATUS_LABELS[item.status]}
+              label={{ active: 'Aktiv', paused: 'Pausiert', stopped: 'Beendet', archived: 'Archiviert' }[item.status]}
               variant={statusVariant(item.status)}
               dot
             />

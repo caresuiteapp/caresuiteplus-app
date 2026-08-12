@@ -1,11 +1,11 @@
 import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { PreparedModeBanner } from '@/components/modules/PreparedModeBanner';
 import { MedicationListCard } from '@/components/pflege/MedicationListCard';
-import { MedicationListHero, MEDICATION_PREPARED_MESSAGE } from '@/components/pflege/MedicationListHero';
+import { MedicationListHero } from '@/components/pflege/MedicationListHero';
 import { MedicationListTable } from '@/components/pflege/MedicationListTable';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
+import { EmptyState, ErrorState, FilterChipGroup, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
+import { useMemo, useState } from 'react';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
@@ -26,6 +26,8 @@ export function MedicationListScreen() {
   const isDesktop = isDesktopClass(deviceClass);
   const { viewMode, setViewMode } = useDesktopListViewPreference('pflege.medication');
   const useTableLayout = isDesktop && viewMode === 'table';
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('active');
 
   const query = useAsyncQuery(
     () => {
@@ -36,7 +38,12 @@ export function MedicationListScreen() {
     { enabled: !!tenantId },
   );
 
-  const items = query.data ?? [];
+  const items = useMemo(() => query.data ?? [], [query.data]);
+  const filteredItems = useMemo(() => {
+    const needle = search.trim().toLocaleLowerCase('de-DE');
+    return items.filter((item) => (statusFilter === 'all' || item.status === statusFilter)
+      && (!needle || `${item.clientName} ${item.medicationName} ${item.activeIngredient ?? ''}`.toLocaleLowerCase('de-DE').includes(needle)));
+  }, [items, search, statusFilter]);
   const openDetail = (id: string) => router.push(`/pflege/medikation/${id}` as never);
 
   if (query.loading && items.length === 0) {
@@ -65,13 +72,18 @@ export function MedicationListScreen() {
         onViewModeChange={setViewMode}
         showViewToggle={isDesktop}
       />
-      <PreparedModeBanner hint={MEDICATION_PREPARED_MESSAGE} />
+      <View style={styles.toolbar}>
+        <PremiumButton title="+ Verordnung anlegen" disabled={isReadOnly} onPress={() => router.push('/pflege/medikation/new' as never)} />
+        <PremiumButton title="Aktualisieren" variant="secondary" onPress={query.refresh} />
+      </View>
+      <PremiumInput label="Suche" placeholder="Klient:in, Präparat oder Wirkstoff" value={search} onChangeText={setSearch} />
+      <FilterChipGroup options={[{ key: 'active', label: 'Aktiv' }, { key: 'paused', label: 'Pausiert' }, { key: 'stopped', label: 'Beendet' }, { key: 'all', label: 'Alle' }]} value={statusFilter} onChange={setStatusFilter} />
     </View>
   );
 
   if (useTableLayout) {
     return (
-      <ScreenShell title="Medikationsplan" subtitle={`Medikation · ${roleLabel ?? 'Demo'}`} scroll={false}>
+      <ScreenShell title="Medikationsplan" subtitle={`Medikation · ${roleLabel ?? 'Pflegefachkraft'}`} scroll={false}>
         <ScrollView
           contentContainerStyle={styles.tableScroll}
           refreshControl={
@@ -79,13 +91,13 @@ export function MedicationListScreen() {
           }
         >
           {header}
-          {items.length === 0 ? (
+          {filteredItems.length === 0 ? (
             <EmptyState
               title="Keine Verordnungen"
               message="Für diesen Mandanten sind noch keine Medikationspläne hinterlegt."
             />
           ) : (
-            <MedicationListTable items={items} onOpenDetail={openDetail} />
+            <MedicationListTable items={filteredItems} onOpenDetail={openDetail} />
           )}
         </ScrollView>
       </ScreenShell>
@@ -93,9 +105,9 @@ export function MedicationListScreen() {
   }
 
   return (
-    <ScreenShell title="Medikationsplan" subtitle={`Medikation · ${roleLabel ?? 'Demo'}`} scroll={false}>
+    <ScreenShell title="Medikationsplan" subtitle={`Medikation · ${roleLabel ?? 'Pflegefachkraft'}`} scroll={false}>
       <FlatList
-        data={items}
+        data={filteredItems}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={header}
         ListEmptyComponent={
@@ -120,4 +132,5 @@ const styles = StyleSheet.create({
   header: { marginBottom: spacing.sm, gap: spacing.sm },
   list: { paddingBottom: spacing.xxl },
   tableScroll: { paddingBottom: spacing.xxl, gap: spacing.sm },
+  toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });

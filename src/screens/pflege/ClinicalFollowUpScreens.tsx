@@ -5,24 +5,8 @@ import { ScreenShell } from '@/components/layout';
 import { ErrorState, FilterChipGroup, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { createWoundAssessment, recordMedicationAdministration } from '@/lib/pflege/clinicalWorkflowService';
+import { createWoundAssessment } from '@/lib/pflege/clinicalWorkflowService';
 import { colors, spacing, typography } from '@/theme';
-
-export function MedicationAdministrationScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>(); const router = useRouter(); const tenantId = useServiceTenantId(); const { profile } = useAuth();
-  const [outcome, setOutcome] = useState('administered'); const [dose, setDose] = useState(''); const [reason, setReason] = useState('');
-  const [effect, setEffect] = useState(''); const [escalation, setEscalation] = useState(''); const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null); const [saved, setSaved] = useState(false);
-  async function save() { if (!tenantId || !id) return; setBusy(true); setError(null); const exceptional = outcome !== 'administered' && outcome !== 'prn_administered';
-    const result = await recordMedicationAdministration(tenantId, id, { outcome, doseGiven: dose, reason, effectObservation: effect, anomaly: exceptional, escalation }, profile?.roleKey);
-    setBusy(false); if (!result.ok) return setError(result.error); setSaved(true); setTimeout(() => router.back(), 700); }
-  return <ScreenShell title="Medikamentengabe" subtitle="Append-only · Zeit und Fachkraft serverseitig"><ScrollView contentContainerStyle={styles.content}><SectionPanel title="Gabe dokumentieren" subtitle="Ergebnis, Abweichung und Wirkung">
-    <Text style={styles.label}>Ergebnis *</Text><FilterChipGroup wrap options={[{ key: 'administered', label: 'Gegeben' }, { key: 'prn_administered', label: 'Bedarfsgabe' }, { key: 'omitted', label: 'Ausgelassen' }, { key: 'refused', label: 'Abgelehnt' }, { key: 'held', label: 'Zurückgestellt' }, { key: 'not_available', label: 'Nicht verfügbar' }]} value={outcome} onChange={setOutcome} />
-    <PremiumInput label="Verabreichte Dosis *" value={dose} onChangeText={setDose} /><PremiumInput label="Begründung / Indikation" value={reason} onChangeText={setReason} multiline /><PremiumInput label="Wirkungsbeobachtung" value={effect} onChangeText={setEffect} multiline /><PremiumInput label="Eskalation / ärztliche Rücksprache" value={escalation} onChangeText={setEscalation} multiline />
-    {error ? <ErrorState message={error} /> : null}{saved ? <SuccessState message="Medikamentengabe wurde unveränderbar dokumentiert." /> : null}
-    <PremiumButton title="Gabe verbindlich dokumentieren" fullWidth loading={busy} disabled={busy || !dose.trim() || ((outcome !== 'administered' && outcome !== 'prn_administered') && !reason.trim())} onPress={save} />
-  </SectionPanel></ScrollView></ScreenShell>;
-}
 
 export function WoundAssessmentCreateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>(); const router = useRouter(); const tenantId = useServiceTenantId(); const { profile } = useAuth();

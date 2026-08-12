@@ -11,10 +11,6 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
 import type { MedicationListItem } from '@/types/modules/pflege';
 import { buildMedicationListKpis } from '@/lib/pflege/medicationListStats';
-import {
-  isMedicationEmpReady,
-  MEDICATION_PREPARED_MESSAGE,
-} from '@/lib/pflege/pflegeModuleConfig';
 import { ROLE_LABELS } from '@/data/constants';
 
 import type { RoleKey } from '@/types';
@@ -52,7 +48,7 @@ export function MedicationListHero({
             {isReadOnly ? ' · Lesemodus' : ''}
           </Text>
           <Text style={heroText.meta}>
-            Verordnungen, Dosierungen und Einnahmezeiten — demo-funktional.
+            Live-Verordnungen, Gaben, Abweichungen und Bedarfsmedikation.
           </Text>
         </View>
         <View style={[styles.iconBadge, heroText.iconBorder, { backgroundColor: `${accent}18` }]}>
@@ -61,9 +57,8 @@ export function MedicationListHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {!isMedicationEmpReady() ? (
-          <PremiumBadge label="eMP extern" variant="muted" />
-        ) : null}
+        <PremiumBadge label="Live-Daten" variant="green" dot />
+        {items.some((item) => item.intensiveCareRelevant) ? <PremiumBadge label="Intensivpflege" variant="muted" /> : null}
       </View>
       {showViewToggle && onViewModeChange ? (
         <DesktopListViewToggle value={viewMode} onChange={onViewModeChange} />
@@ -84,8 +79,6 @@ export function MedicationListHero({
     </PremiumListHeroFrame>
   );
 }
-
-export { MEDICATION_PREPARED_MESSAGE };
 
 const iconSize = designTokens.hero.iconBadgeSize;
 

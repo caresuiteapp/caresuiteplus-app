@@ -230,6 +230,16 @@ export type WoundDocumentation = TenantScopedEntity &
     sensitivity: SensitivityLevel;
   };
 
+export type MedicationStatus = 'active' | 'paused' | 'stopped' | 'archived';
+export type MedicationAdministrationStatus =
+  | 'scheduled'
+  | 'administered'
+  | 'omitted'
+  | 'refused'
+  | 'held'
+  | 'late';
+
+/** Produktive, mandantengetrennte Verordnung für ambulante Pflege und Intensivpflege. */
 export type MedicationListItem = {
   id: string;
   tenantId: string;
@@ -239,7 +249,66 @@ export type MedicationListItem = {
   dosage: string;
   schedule: string;
   route: string;
-  status: WorkflowStatus;
+  activeIngredient: string | null;
+  strength: string | null;
+  form: string | null;
+  status: MedicationStatus;
+  isPrn: boolean;
+  isHighAlert: boolean;
+  isControlledSubstance: boolean;
+  intensiveCareRelevant: boolean;
   prescribedBy: string;
+  startDate: string | null;
+  endDate: string | null;
   updatedAt: string;
 };
+
+export type MedicationAdministration = {
+  id: string;
+  tenantId: string;
+  medicationId: string;
+  clientId: string;
+  scheduledAt: string | null;
+  administeredAt: string | null;
+  status: MedicationAdministrationStatus;
+  administeredDose: string | null;
+  route: string | null;
+  deviationReason: string | null;
+  prnReason: string | null;
+  effectEvaluation: string | null;
+  painScoreBefore: number | null;
+  painScoreAfter: number | null;
+  vitalContext: Record<string, unknown>;
+  notes: string | null;
+  administeredByName: string | null;
+  witnessName: string | null;
+  createdAt: string;
+};
+
+export type MedicationDetail = MedicationListItem & {
+  clientAllergies: string | null;
+  indication: string | null;
+  morningDose: string | null;
+  noonDose: string | null;
+  eveningDose: string | null;
+  nightDose: string | null;
+  prnReason: string | null;
+  instructions: string;
+  interactionNotes: string | null;
+  sideEffectNotes: string | null;
+  storageNotes: string | null;
+  infusionRate: string | null;
+  dilution: string | null;
+  pumpRequired: boolean;
+  lastAdministeredAt: string | null;
+  administrations: MedicationAdministration[];
+};
+
+export type MedicationClientOption = {
+  id: string;
+  label: string;
+  allergies: string | null;
+  specialNotes: string | null;
+};
+
+export type MedicationWitnessOption = { id: string; label: string };

@@ -5,16 +5,11 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import {
   buildMedicationDetailKpis,
-  type MedicationDetail,
 } from '@/lib/pflege/medicationDetailStats';
-import {
-  isMedicationLiveReady,
-  MEDICATION_DETAIL_PREPARED_MESSAGE,
-} from '@/lib/pflege/pflegeModuleConfig';
+import type { MedicationDetail } from '@/types/modules/pflege';
 import { ROLE_LABELS } from '@/data/constants';
 
 import type { RoleKey } from '@/types';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { designTokens, spacing } from '@/theme';
 
 type MedicationDetailHeroProps = {
@@ -25,9 +20,9 @@ type MedicationDetailHeroProps = {
 
 function statusVariant(status: string) {
   switch (status) {
-    case 'aktiv':
+    case 'active':
       return 'green' as const;
-    case 'in_bearbeitung':
+    case 'paused':
       return 'orange' as const;
     default:
       return 'muted' as const;
@@ -76,7 +71,7 @@ export function MedicationDetailHero({ detail, roleKey, isReadOnly }: Medication
             {detail.clientName} · {detail.dosage}
             {isReadOnly ? ' · Lesemodus' : ''}
           </Text>
-          <Text style={styles.subtitle}>{MEDICATION_DETAIL_PREPARED_MESSAGE}</Text>
+          <Text style={styles.subtitle}>Produktive Verordnung mit lückenloser Gaben- und Abweichungsdokumentation</Text>
         </View>
         <View style={styles.iconBadge}>
           <Text style={styles.iconText}>💊</Text>
@@ -84,14 +79,15 @@ export function MedicationDetailHero({ detail, roleKey, isReadOnly }: Medication
       </View>
       <View style={styles.badges}>
         <PremiumBadge
-          label={WORKFLOW_STATUS_LABELS[detail.status]}
+          label={{ active: 'Aktiv', paused: 'Pausiert', stopped: 'Beendet', archived: 'Archiviert' }[detail.status]}
           variant={statusVariant(detail.status)}
           dot
         />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {!isMedicationLiveReady() ? (
-          <PremiumBadge label="eMP extern" variant="orange" dot />
-        ) : null}
+        <PremiumBadge label="Live-Daten" variant="green" dot />
+        {detail.isHighAlert ? <PremiumBadge label="Hochrisiko" variant="red" dot /> : null}
+        {detail.isControlledSubstance ? <PremiumBadge label="BtM · Gegenkontrolle" variant="red" dot /> : null}
+        {detail.intensiveCareRelevant ? <PremiumBadge label="Intensivpflege" variant="muted" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (
@@ -109,7 +105,5 @@ export function MedicationDetailHero({ detail, roleKey, isReadOnly }: Medication
     </PremiumListHeroFrame>
   );
 }
-
-export { MEDICATION_DETAIL_PREPARED_MESSAGE };
 
 const iconSize = designTokens.hero.iconBadgeSize;
