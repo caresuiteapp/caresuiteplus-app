@@ -1,3 +1,3 @@
-import { LeistungsnachweiseListScreen } from '@/product-workflows/screens/assist/LeistungsnachweiseListScreen';
+import { VisitProofReviewScreen } from '@/product-workflows/screens/assist/VisitProofReviewScreen';
 
-export default LeistungsnachweiseListScreen;
+export default VisitProofReviewScreen;

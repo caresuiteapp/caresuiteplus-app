@@ -7,7 +7,7 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Assist Leistungsnachweis navigation', () => {
-  it('opens the Leistungsnachweis list instead of Live-Status', () => {
+  it('opens the live review workspace directly instead of an empty intermediate list', () => {
     const catalog = readSrc('src/liquid-command/navigation/moduleCatalog.ts');
     const route = readSrc('app/assist/(tabs)/nachweise.tsx');
 
@@ -17,15 +17,16 @@ describe('Assist Leistungsnachweis navigation', () => {
     expect(catalog).not.toMatch(
       /id: 'proofs',[\s\S]*?route: '\/assist\/live-status'/,
     );
-    expect(route).toContain('LeistungsnachweiseListScreen');
+    expect(route).toContain('VisitProofReviewScreen');
+    expect(route).not.toContain('LeistungsnachweiseListScreen');
     expect(route).not.toContain('AssistLiveStatusScreen');
   });
 
-  it('keeps the review popup behind an explicit action inside the list', () => {
-    const listScreen = readSrc('src/screens/assist/LeistungsnachweiseListScreen.tsx');
+  it('keeps the review route as a compatible direct entry without requiring it for the tab', () => {
+    const tabRoute = readSrc('app/assist/(tabs)/nachweise.tsx');
     const reviewRoute = readSrc('app/assist/nachweise/review.tsx');
 
-    expect(listScreen).toContain("router.push('/assist/nachweise/review'");
+    expect(tabRoute).toContain('VisitProofReviewScreen');
     expect(reviewRoute).toContain('VisitProofReviewScreen');
   });
 });
