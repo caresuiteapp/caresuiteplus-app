@@ -76,7 +76,9 @@ function RootShell() {
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    const internalOrbit = isLiquidCommandRoute && !isPortalRoutePath(pathname);
+    // The central popup owns its complete dark HealthOS theme. Leaving the
+    // former bright ORBIT attribute enabled here repainted every popup page.
+    const internalOrbit = isLiquidCommandRoute && !isPortalRoutePath(pathname) && !currentRouteIsPopup;
     document.documentElement.toggleAttribute('data-cs-orbit-internal', internalOrbit);
     document.documentElement.toggleAttribute('data-cs-central-home', pathname === '/');
     document.documentElement.toggleAttribute('data-cs-central-popup', currentRouteIsPopup);
