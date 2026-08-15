@@ -8,33 +8,49 @@ const source = readFileSync(
 );
 
 describe('HealthOS widget personalization', () => {
-  it('persists the user-scoped dock order and Top-10 slots', () => {
+  it('persists the user-scoped dock order, favorites and folders', () => {
     expect(source).toContain('caresuite.healthos.widget-order.v1');
     expect(source).toContain('caresuite.healthos.top-widgets.v1');
+    expect(source).toContain('caresuite.healthos.widget-folders.v1');
     expect(source).toContain('const preferenceOwner = auth.user?.id');
     expect(source).toContain('AsyncStorage.setItem(dockOrderStorageKey');
     expect(source).toContain('AsyncStorage.setItem(favoritesStorageKey');
+    expect(source).toContain('AsyncStorage.setItem(foldersStorageKey');
   });
 
-  it('renders a fixed two-by-five favorites raster', () => {
+  it('renders ten adaptive wide and square personal Dock slots', () => {
     expect(source).toContain('const FAVORITE_SLOT_COUNT = 10');
-    expect(source).toContain('favoriteSlots.map');
-    expect(source).toContain("flexWrap: 'wrap'");
-    expect(source).toContain("width: '19%'");
-    expect(source).toContain("height: '46%'");
+    expect(source).toContain('favoriteSlots.slice(rowIndex * 5');
+    expect(source).toContain("return widget ? (WIDE_FAVORITE_WIDGETS.has(widget.id) ? 'wide' : 'square')");
+    expect(source).toContain('favoriteSlotWide');
+    expect(source).toContain('favoriteSlotSquare');
   });
 
-  it('copies Dock widgets into favorites while keeping Dock order independent', () => {
-    expect(source).toContain("beginDrag({ widgetId: widget.id, source: 'dock' }");
-    expect(source).toContain('next[targetSlot] = payload.widgetId');
-    expect(source).toContain("if (payload?.source === 'dock'");
-    expect(source).toContain('setWidgetOrder((current) =>');
+  it('shows ten compact Dock entries per desktop page', () => {
+    expect(source).toContain('const pageSize = compact ? 3 : width < 1180 ? 5 : 10');
+    expect(source).toContain('maxWidth: 150');
+    expect(source).toContain('height: 136');
   });
 
-  it('supports drag reordering and swapping through native browser drag events', () => {
-    expect(source).toContain('draggable: true');
-    expect(source).toContain("setData?.('application/x-caresuite-widget'");
-    expect(source).toContain('onDrop={(event) => dropOnDockWidget');
-    expect(source).toContain('onDrop={(event) => dropOnFavoriteSlot');
+  it('copies Dock widgets into favorites while keeping the original Dock entry', () => {
+    expect(source).toContain("beginPointerDrag({ kind: 'widget', widgetId: entry.widget.id, source: 'dock' }");
+    expect(source).toContain('next[targetSlot] = widgetId');
+    expect(source).toContain("if (target.startsWith('favorite:'))");
+  });
+
+  it('uses pointer tracking instead of unreliable native browser drag events', () => {
+    expect(source).toContain("window.addEventListener('pointermove', onMove");
+    expect(source).toContain("window.addEventListener('pointerup', onUp)");
+    expect(source).toContain("closest<HTMLElement>('[data-healthos-drop]')");
+    expect(source).toContain('setDragVisual({ payload, x: pointerEvent.clientX, y: pointerEvent.clientY })');
+    expect(source).not.toContain('draggable: true');
+  });
+
+  it('supports persistent folders with a four-widget preview limit', () => {
+    expect(source).toContain('const MAX_FOLDER_WIDGETS = 4');
+    expect(source).toContain('function DockFolder');
+    expect(source).toContain('moveWidgetIntoFolder');
+    expect(source).toContain('dissolveFolder');
+    expect(source).toContain('Array.from({ length: MAX_FOLDER_WIDGETS }');
   });
 });

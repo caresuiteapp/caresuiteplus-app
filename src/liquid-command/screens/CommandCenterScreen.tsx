@@ -14,24 +14,37 @@ import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 type WidgetDefinition = { id: string; label: string; route: string; image: ImageSourcePropType };
 type WeatherLocation = { mode: 'auto' | 'manual' | 'fallback'; label: string; latitude: number; longitude: number };
 type LocationSearchResult = { id: number; name: string; admin1?: string; country?: string; latitude: number; longitude: number };
-type WidgetDragPayload = { widgetId: string; source: 'dock' | 'favorite'; slotIndex?: number };
-type WebDragEvent = {
+type WidgetFolder = { id: string; name: string; widgetIds: string[] };
+type DockEntry = { kind: 'widget'; id: string; widget: WidgetDefinition } | { kind: 'folder'; id: string; folder: WidgetFolder };
+type WidgetDragPayload =
+  | { kind: 'widget'; widgetId: string; source: 'dock' | 'favorite' | 'folder'; slotIndex?: number; folderId?: string }
+  | { kind: 'folder'; folderId: string; source: 'dock' };
+type PointerEventLike = {
   preventDefault?: () => void;
   stopPropagation?: () => void;
-  dataTransfer?: {
-    effectAllowed?: string;
-    dropEffect?: string;
-    setData?: (type: string, value: string) => void;
-    getData?: (type: string) => string;
+  button?: number;
+  clientX?: number;
+  clientY?: number;
+  pageX?: number;
+  pageY?: number;
+  nativeEvent?: {
+    button?: number;
+    clientX?: number;
+    clientY?: number;
+    pageX?: number;
+    pageY?: number;
   };
 };
+type DragVisual = { payload: WidgetDragPayload; x: number; y: number };
 
 const BACKGROUND = require('../../../assets/healthos/caresuite-alien-planet-no-logo.png');
 const BRAND = require('../../../assets/healthos/caresuite-healthos-logo.png');
 const LOCATION_STORAGE_KEY = 'caresuite.healthos.weather-location.v1';
 const DOCK_ORDER_STORAGE_KEY = 'caresuite.healthos.widget-order.v1';
 const FAVORITES_STORAGE_KEY = 'caresuite.healthos.top-widgets.v1';
+const FOLDERS_STORAGE_KEY = 'caresuite.healthos.widget-folders.v1';
 const FAVORITE_SLOT_COUNT = 10;
+const MAX_FOLDER_WIDGETS = 4;
 const DOCK_NATIVE_DRIVER = Platform.OS !== 'web';
 
 const WIDGETS: readonly WidgetDefinition[] = [
@@ -60,10 +73,34 @@ const WIDGETS: readonly WidgetDefinition[] = [
 const DEFAULT_WIDGET_ORDER = WIDGETS.map((widget) => widget.id);
 const WIDGET_BY_ID = new Map(WIDGETS.map((widget) => [widget.id, widget]));
 const WEB_GRAB_STYLE = Platform.OS === 'web' ? ({ cursor: 'grab', userSelect: 'none' } as unknown as ViewStyle) : undefined;
+const WIDE_FAVORITE_WIDGETS = new Set(['company', 'time', 'salary', 'billing', 'documents', 'access', 'assignments', 'calendar', 'proofs', 'budgets', 'command', 'office', 'assist']);
+const FAVORITE_WIDE_SLOTS = new Set([0, 3, 5, 8]);
 
-function normalizeWidgetOrder(value: unknown) {
-  const supplied = Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string' && WIDGET_BY_ID.has(id)) : [];
-  return [...new Set([...supplied, ...DEFAULT_WIDGET_ORDER])];
+function folderEntryId(folderId: string) { return `folder:${folderId}`; }
+
+function normalizeFolders(value: unknown) {
+  if (!Array.isArray(value)) return [] as WidgetFolder[];
+  const usedWidgets = new Set<string>();
+  return value.flatMap((item, index) => {
+    if (!item || typeof item !== 'object') return [];
+    const candidate = item as Partial<WidgetFolder>;
+    const widgetIds = Array.isArray(candidate.widgetIds)
+      ? candidate.widgetIds.filter((id): id is string => typeof id === 'string' && WIDGET_BY_ID.has(id) && !usedWidgets.has(id)).slice(0, MAX_FOLDER_WIDGETS)
+      : [];
+    widgetIds.forEach((id) => usedWidgets.add(id));
+    const id = typeof candidate.id === 'string' && candidate.id ? candidate.id : `restored-${index}`;
+    const name = typeof candidate.name === 'string' && candidate.name.trim() ? candidate.name.trim().slice(0, 28) : `Ordner ${index + 1}`;
+    return [{ id, name, widgetIds }];
+  });
+}
+
+function normalizeWidgetOrder(value: unknown, folders: WidgetFolder[] = []) {
+  const folderIds = new Set(folders.map((folder) => folderEntryId(folder.id)));
+  const groupedWidgets = new Set(folders.flatMap((folder) => folder.widgetIds));
+  const validEntry = (id: unknown): id is string => typeof id === 'string' && ((WIDGET_BY_ID.has(id) && !groupedWidgets.has(id)) || folderIds.has(id));
+  const supplied = Array.isArray(value) ? value.filter(validEntry) : [];
+  const missingWidgets = DEFAULT_WIDGET_ORDER.filter((id) => !groupedWidgets.has(id));
+  return [...new Set([...supplied, ...missingWidgets, ...folderIds])];
 }
 
 function normalizeFavoriteSlots(value: unknown) {
@@ -75,6 +112,10 @@ function normalizeFavoriteSlots(value: unknown) {
     seen.add(item);
     return item;
   });
+}
+
+function favoriteShape(slotIndex: number, widget: WidgetDefinition | null) {
+  return widget ? (WIDE_FAVORITE_WIDGETS.has(widget.id) ? 'wide' : 'square') : (FAVORITE_WIDE_SLOTS.has(slotIndex) ? 'wide' : 'square');
 }
 
 const WEATHER_LABELS: Record<number, string> = {
@@ -100,17 +141,15 @@ function locationLabel(address: Location.LocationGeocodedAddress | undefined) {
   return address?.city || address?.district || address?.subregion || address?.region || 'Aktueller Standort';
 }
 
-function DockWidget({ widget, index, compact, reducedMotion, dragging, onOpen, onDragStart, onDragEnd, onDragOver, onDrop }: {
+function DockWidget({ widget, index, compact, reducedMotion, dragging, dropTarget, onOpen, onPointerDown }: {
   widget: WidgetDefinition;
   index: number;
   compact: boolean;
   reducedMotion: boolean;
   dragging: boolean;
+  dropTarget: boolean;
   onOpen: () => void;
-  onDragStart: (event: WebDragEvent) => void;
-  onDragEnd: () => void;
-  onDragOver: (event: WebDragEvent) => void;
-  onDrop: (event: WebDragEvent) => void;
+  onPointerDown: (event: PointerEventLike) => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const entrance = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
@@ -138,13 +177,12 @@ function DockWidget({ widget, index, compact, reducedMotion, dragging, onOpen, o
   );
 
   return (
-    <Animated.View style={[styles.widgetMotion, { opacity: entrance, zIndex: hovered ? 20 : 1, transform: [{ translateY }, { scale: interaction.interpolate({ inputRange: [0, 1], outputRange: [1, compact ? 1.035 : 1.105] }) }] }]}>
+    <Animated.View {...(Platform.OS === 'web' ? ({ onPointerDown, dataSet: { healthosDrop: `dock:${widget.id}` } } as object) : {})} style={[styles.widgetMotion, { opacity: entrance, zIndex: hovered ? 20 : 1, transform: [{ translateY }, { scale: interaction.interpolate({ inputRange: [0, 1], outputRange: [1, compact ? 1.035 : 1.105] }) }] }]}>
       <Pressable
         accessibilityRole="button" accessibilityLabel={`${widget.label} öffnen`}
         onHoverIn={() => setHovered(true)} onHoverOut={() => setHovered(false)}
         onFocus={() => setHovered(true)} onBlur={() => setHovered(false)} onPress={onOpen}
-        {...(Platform.OS === 'web' ? ({ draggable: true, onDragStart, onDragEnd, onDragOver, onDrop } as object) : {})}
-        style={({ pressed }) => [styles.widget, WEB_GRAB_STYLE, hovered && styles.widgetHovered, dragging && styles.widgetDragging, pressed && styles.widgetPressed]}
+        style={({ pressed }) => [styles.widget, WEB_GRAB_STYLE, hovered && styles.widgetHovered, dropTarget && styles.widgetDropTarget, dragging && styles.widgetDragging, pressed && styles.widgetPressed]}
       >
         <Animated.View pointerEvents="none" style={[styles.widgetGlow, { opacity: interaction }]} />
         <Animated.View pointerEvents="none" style={[styles.widgetTooltip, { opacity: interaction, transform: [{ translateY: interaction.interpolate({ inputRange: [0, 1], outputRange: [7, 0] }) }] }]}>
@@ -156,53 +194,76 @@ function DockWidget({ widget, index, compact, reducedMotion, dragging, onOpen, o
   );
 }
 
-function FavoriteWidgetSlot({ slotIndex, widget, compact, dragging, dragOver, onOpen, onRemove, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop }: {
+function DockFolder({ folder, index, reducedMotion, dragging, dropTarget, onOpen, onPointerDown }: {
+  folder: WidgetFolder;
+  index: number;
+  reducedMotion: boolean;
+  dragging: boolean;
+  dropTarget: boolean;
+  onOpen: () => void;
+  onPointerDown: (event: PointerEventLike) => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const entrance = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
+  const interaction = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(entrance, { toValue: 1, delay: reducedMotion ? 0 : 60 + index * 45, duration: reducedMotion ? 0 : 360, easing: Easing.out(Easing.cubic), useNativeDriver: DOCK_NATIVE_DRIVER }).start();
+  }, [entrance, index, reducedMotion]);
+  useEffect(() => {
+    Animated.spring(interaction, { toValue: hovered ? 1 : 0, friction: 8, tension: 86, useNativeDriver: DOCK_NATIVE_DRIVER }).start();
+  }, [hovered, interaction]);
+
+  return (
+    <Animated.View {...(Platform.OS === 'web' ? ({ onPointerDown, dataSet: { healthosDrop: `folder:${folder.id}` } } as object) : {})} style={[styles.widgetMotion, { opacity: entrance, zIndex: hovered ? 20 : 1, transform: [{ scale: interaction.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) }] }] }>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Ordner ${folder.name} öffnen`} onHoverIn={() => setHovered(true)} onHoverOut={() => setHovered(false)} onPress={onOpen} style={({ pressed }) => [styles.widget, styles.folderTile, WEB_GRAB_STYLE, hovered && styles.widgetHovered, dropTarget && styles.folderDropTarget, dragging && styles.widgetDragging, pressed && styles.widgetPressed]}>
+        <View pointerEvents="none" style={styles.folderPreview}>
+          {Array.from({ length: MAX_FOLDER_WIDGETS }, (_, previewIndex) => {
+            const previewWidget = WIDGET_BY_ID.get(folder.widgetIds[previewIndex] ?? '');
+            return <View key={previewIndex} style={styles.folderPreviewCell}>{previewWidget ? <Image resizeMode="contain" source={previewWidget.image} style={styles.folderPreviewImage} /> : <Text style={styles.folderPreviewPlus}>＋</Text>}</View>;
+          })}
+        </View>
+        <Text numberOfLines={1} style={styles.folderName}>{folder.name}</Text>
+        <View pointerEvents="none" style={[styles.widgetTooltip, { opacity: hovered ? 1 : 0 }]}><Text numberOfLines={1} style={styles.widgetTooltipText}>{folder.name} · {folder.widgetIds.length}/{MAX_FOLDER_WIDGETS}</Text><View style={styles.tooltipArrow} /></View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function FavoriteWidgetSlot({ slotIndex, widget, compact, shape, dragging, dragOver, onOpen, onRemove, onPointerDown }: {
   slotIndex: number;
   widget: WidgetDefinition | null;
   compact: boolean;
+  shape: 'wide' | 'square';
   dragging: boolean;
   dragOver: boolean;
   onOpen: () => void;
   onRemove: () => void;
-  onDragStart: (event: WebDragEvent) => void;
-  onDragEnd: () => void;
-  onDragOver: (event: WebDragEvent) => void;
-  onDragLeave: () => void;
-  onDrop: (event: WebDragEvent) => void;
+  onPointerDown: (event: PointerEventLike) => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  const webDropProps = Platform.OS === 'web'
-    ? ({ draggable: Boolean(widget), onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop } as object)
-    : {};
 
   return (
-    <Pressable
-      accessibilityRole={widget ? 'button' : undefined}
-      accessibilityLabel={widget ? `${widget.label} aus Top 10 öffnen` : `Freier Top-10-Platz ${slotIndex + 1}`}
-      onHoverIn={() => setHovered(true)}
-      onHoverOut={() => setHovered(false)}
-      onPress={widget ? onOpen : undefined}
-      {...webDropProps}
-      style={({ pressed }) => [
+    <View
+      {...(Platform.OS === 'web' ? ({ onPointerDown: widget ? onPointerDown : undefined, dataSet: { healthosDrop: `favorite:${slotIndex}` } } as object) : {})}
+      style={[
         styles.favoriteSlot,
+        shape === 'wide' ? styles.favoriteSlotWide : styles.favoriteSlotSquare,
         compact && styles.favoriteSlotCompact,
         widget && styles.favoriteSlotFilled,
-        WEB_GRAB_STYLE,
+        widget && WEB_GRAB_STYLE,
         dragOver && styles.favoriteSlotDropTarget,
         dragging && styles.favoriteSlotDragging,
-        pressed && widget && styles.widgetPressed,
       ]}
     >
-      {widget ? (
-        <>
+      <Pressable accessibilityRole={widget ? 'button' : undefined} accessibilityLabel={widget ? `${widget.label} aus Top 10 öffnen` : `Freier Top-10-Platz ${slotIndex + 1}`} onHoverIn={() => setHovered(true)} onHoverOut={() => setHovered(false)} onPress={widget ? onOpen : undefined} style={({ pressed }) => [styles.favoritePressable, pressed && widget && styles.widgetPressed]}>
+        {widget ? <>
           <Image resizeMode="contain" source={widget.image} style={styles.favoriteImage} />
           <View pointerEvents="none" style={[styles.favoriteTooltip, hovered && styles.favoriteTooltipVisible]}><Text numberOfLines={1} style={styles.favoriteTooltipText}>{widget.label}</Text></View>
-          <Pressable accessibilityLabel={`${widget.label} aus Top 10 entfernen`} onPress={(event) => { event.stopPropagation(); onRemove(); }} style={styles.favoriteRemove}><Text style={styles.favoriteRemoveText}>×</Text></Pressable>
-        </>
-      ) : (
-        <View pointerEvents="none" style={styles.favoriteEmpty}><Text style={styles.favoriteEmptyPlus}>＋</Text><Text style={styles.favoriteEmptyText}>{slotIndex + 1}</Text></View>
-      )}
-    </Pressable>
+          <Pressable accessibilityLabel={`${widget.label} aus Top 10 entfernen`} onPressIn={(event) => event.stopPropagation()} onPress={(event) => { event.stopPropagation(); onRemove(); }} style={styles.favoriteRemove}><Text style={styles.favoriteRemoveText}>×</Text></Pressable>
+        </> : <View pointerEvents="none" style={styles.favoriteEmpty}><Text style={styles.favoriteEmptyPlus}>＋</Text><Text style={styles.favoriteEmptyText}>{slotIndex + 1}</Text></View>}
+      </Pressable>
+    </View>
   );
 }
 
@@ -211,16 +272,23 @@ export function CommandCenterScreen() {
   const auth = useAuth();
   const { width, height } = useWindowDimensions();
   const compact = width < 780;
-  const pageSize = compact ? 2 : width < 1180 ? 3 : 5;
+  const pageSize = compact ? 3 : width < 1180 ? 5 : 10;
   const preferenceOwner = auth.user?.id ?? 'local';
   const dockOrderStorageKey = `${DOCK_ORDER_STORAGE_KEY}.${preferenceOwner}`;
   const favoritesStorageKey = `${FAVORITES_STORAGE_KEY}.${preferenceOwner}`;
+  const foldersStorageKey = `${FOLDERS_STORAGE_KEY}.${preferenceOwner}`;
   const [page, setPage] = useState(0);
   const [widgetOrder, setWidgetOrder] = useState<string[]>(DEFAULT_WIDGET_ORDER);
   const [favoriteSlots, setFavoriteSlots] = useState<(string | null)[]>(() => Array(FAVORITE_SLOT_COUNT).fill(null));
+  const [folders, setFolders] = useState<WidgetFolder[]>([]);
+  const [folderCreateOpen, setFolderCreateOpen] = useState(false);
+  const [folderName, setFolderName] = useState('');
+  const [openFolderId, setOpenFolderId] = useState<string | null>(null);
+  const [folderMessage, setFolderMessage] = useState('');
   const [preferencesOwnerLoaded, setPreferencesOwnerLoaded] = useState<string | null>(null);
   const [dragPayload, setDragPayload] = useState<WidgetDragPayload | null>(null);
-  const [dragOverSlot, setDragOverSlot] = useState<number | null>(null);
+  const [dragTarget, setDragTarget] = useState<string | null>(null);
+  const [dragVisual, setDragVisual] = useState<DragVisual | null>(null);
   const [now, setNow] = useState(new Date());
   const [temperature, setTemperature] = useState<number | null>(null);
   const [weatherCode, setWeatherCode] = useState(0);
@@ -237,19 +305,32 @@ export function CommandCenterScreen() {
   const auroraY = useRef(new Animated.Value(0)).current;
   const auroraPulse = useRef(new Animated.Value(0)).current;
   const dragPayloadRef = useRef<WidgetDragPayload | null>(null);
+  const pointerCleanupRef = useRef<(() => void) | null>(null);
+  const lastPageSwitchRef = useRef({ target: '', at: 0 });
   const suppressOpenUntil = useRef(0);
   const auroraWidth = Math.min(Math.max(width * 0.36, 340), 760);
   const auroraHeight = Math.min(Math.max(height * 0.34, 220), 440);
   const auroraMaxX = Math.max(0, width - auroraWidth);
   const auroraMaxY = Math.max(0, height - auroraHeight);
 
-  const orderedWidgets = useMemo(() => widgetOrder.map((id) => WIDGET_BY_ID.get(id)).filter((widget): widget is WidgetDefinition => Boolean(widget)), [widgetOrder]);
-  const pageCount = Math.ceil(orderedWidgets.length / pageSize);
-  const dockHeight = height < 720 ? 184 : compact ? 196 : 226;
-  const dockBottom = height < 720 ? 8 : compact ? 12 : 26;
+  const folderById = useMemo(() => new Map(folders.map((folder) => [folder.id, folder])), [folders]);
+  const dockEntries = useMemo(() => widgetOrder.reduce<DockEntry[]>((entries, entryId) => {
+    if (entryId.startsWith('folder:')) {
+      const folder = folderById.get(entryId.slice(7));
+      if (folder) entries.push({ kind: 'folder', id: entryId, folder });
+      return entries;
+    }
+    const widget = WIDGET_BY_ID.get(entryId);
+    if (widget) entries.push({ kind: 'widget', id: entryId, widget });
+    return entries;
+  }, []), [folderById, widgetOrder]);
+  const orderedWidgets = useMemo(() => WIDGETS.slice().sort((a, b) => widgetOrder.indexOf(a.id) - widgetOrder.indexOf(b.id)), [widgetOrder]);
+  const pageCount = Math.max(1, Math.ceil(dockEntries.length / pageSize));
+  const dockHeight = height < 720 ? 112 : compact ? 124 : 136;
+  const dockBottom = height < 720 ? 6 : compact ? 8 : 18;
   const dockTop = height - dockBottom - dockHeight;
-  const favoritesWidth = Math.min(width - (compact ? 24 : 190), compact ? 720 : 980);
-  const favoritesHeight = compact ? 142 : Math.min(238, Math.max(188, height * 0.23));
+  const favoritesWidth = Math.min(width - (compact ? 24 : 220), compact ? 720 : 1260);
+  const favoritesHeight = compact ? 158 : Math.min(224, Math.max(190, height * 0.22));
   const favoritesMinimumTop = compact ? 112 : 218;
   const favoritesMaximumTop = Math.max(favoritesMinimumTop, dockTop - favoritesHeight - 18);
   const favoritesTop = Math.min(favoritesMaximumTop, Math.max(favoritesMinimumTop, favoritesMinimumTop + (favoritesMaximumTop - favoritesMinimumTop) * 0.48));
@@ -258,16 +339,21 @@ export function CommandCenterScreen() {
   useEffect(() => {
     let active = true;
     setPreferencesOwnerLoaded(null);
-    void Promise.all([AsyncStorage.getItem(dockOrderStorageKey), AsyncStorage.getItem(favoritesStorageKey)]).then(([storedOrder, storedFavorites]) => {
+    void Promise.all([AsyncStorage.getItem(dockOrderStorageKey), AsyncStorage.getItem(favoritesStorageKey), AsyncStorage.getItem(foldersStorageKey)]).then(([storedOrder, storedFavorites, storedFolders]) => {
       if (!active) return;
-      try { setWidgetOrder(normalizeWidgetOrder(storedOrder ? JSON.parse(storedOrder) : null)); } catch { setWidgetOrder(DEFAULT_WIDGET_ORDER); }
+      let restoredFolders: WidgetFolder[] = [];
+      try { restoredFolders = normalizeFolders(storedFolders ? JSON.parse(storedFolders) : null); } catch { restoredFolders = []; }
+      setFolders(restoredFolders);
+      try { setWidgetOrder(normalizeWidgetOrder(storedOrder ? JSON.parse(storedOrder) : null, restoredFolders)); } catch { setWidgetOrder(normalizeWidgetOrder(null, restoredFolders)); }
       try { setFavoriteSlots(normalizeFavoriteSlots(storedFavorites ? JSON.parse(storedFavorites) : null)); } catch { setFavoriteSlots(Array(FAVORITE_SLOT_COUNT).fill(null)); }
       setPreferencesOwnerLoaded(preferenceOwner);
     }).catch(() => { if (active) setPreferencesOwnerLoaded(preferenceOwner); });
     return () => { active = false; };
-  }, [dockOrderStorageKey, favoritesStorageKey, preferenceOwner]);
+  }, [dockOrderStorageKey, favoritesStorageKey, foldersStorageKey, preferenceOwner]);
   useEffect(() => { if (preferencesOwnerLoaded === preferenceOwner) void AsyncStorage.setItem(dockOrderStorageKey, JSON.stringify(widgetOrder)); }, [dockOrderStorageKey, preferenceOwner, preferencesOwnerLoaded, widgetOrder]);
   useEffect(() => { if (preferencesOwnerLoaded === preferenceOwner) void AsyncStorage.setItem(favoritesStorageKey, JSON.stringify(favoriteSlots)); }, [favoriteSlots, favoritesStorageKey, preferenceOwner, preferencesOwnerLoaded]);
+  useEffect(() => { if (preferencesOwnerLoaded === preferenceOwner) void AsyncStorage.setItem(foldersStorageKey, JSON.stringify(folders)); }, [folders, foldersStorageKey, preferenceOwner, preferencesOwnerLoaded]);
+  useEffect(() => () => pointerCleanupRef.current?.(), []);
   useEffect(() => {
     let mounted = true;
     void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => mounted && setReducedMotion(enabled));
@@ -381,7 +467,7 @@ export function CommandCenterScreen() {
   useEffect(() => { void loadWeather(); const timer = setInterval(() => void loadWeather(), 10 * 60 * 1000); return () => clearInterval(timer); }, [loadWeather]);
   useEffect(() => { setPage((current) => Math.min(current, Math.max(0, pageCount - 1))); }, [pageCount]);
 
-  const visibleWidgets = useMemo(() => orderedWidgets.slice(page * pageSize, page * pageSize + pageSize), [orderedWidgets, page, pageSize]);
+  const visibleDockEntries = useMemo(() => dockEntries.slice(page * pageSize, page * pageSize + pageSize), [dockEntries, page, pageSize]);
   const searchResults = useMemo(() => { const normalized = query.trim().toLocaleLowerCase('de-DE'); return normalized ? orderedWidgets.filter((widget) => widget.label.toLocaleLowerCase('de-DE').includes(normalized)) : orderedWidgets; }, [orderedWidgets, query]);
   const profile = auth.profile;
   const displayName = profile?.displayName || auth.user?.displayName || 'Profil';
@@ -390,76 +476,154 @@ export function CommandCenterScreen() {
     if (Date.now() < suppressOpenUntil.current) return;
     setSearchOpen(false); setQuery(''); router.push(widget.route as never);
   };
+  const openDockFolder = (folderId: string) => {
+    if (Date.now() < suppressOpenUntil.current) return;
+    setOpenFolderId(folderId);
+  };
 
-  const readDragPayload = (event: WebDragEvent) => {
-    if (dragPayloadRef.current) return dragPayloadRef.current;
-    try {
-      const serialized = event.dataTransfer?.getData?.('application/x-caresuite-widget');
-      if (!serialized) return null;
-      const parsed = JSON.parse(serialized) as WidgetDragPayload;
-      return WIDGET_BY_ID.has(parsed.widgetId) ? parsed : null;
-    } catch { return null; }
+  const reorderDockEntry = (sourceEntryId: string, targetEntryId: string) => {
+    if (sourceEntryId === targetEntryId) return;
+    setWidgetOrder((current) => {
+      const sourceIndex = current.indexOf(sourceEntryId);
+      const targetIndex = current.indexOf(targetEntryId);
+      if (sourceIndex < 0 || targetIndex < 0) return current;
+      const next = [...current];
+      next.splice(sourceIndex, 1);
+      next.splice(targetIndex, 0, sourceEntryId);
+      return next;
+    });
   };
-  const beginDrag = (payload: WidgetDragPayload, event: WebDragEvent) => {
-    dragPayloadRef.current = payload;
-    setDragPayload(payload);
-    suppressOpenUntil.current = Date.now() + 500;
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData?.('application/x-caresuite-widget', JSON.stringify(payload));
-      event.dataTransfer.setData?.('text/plain', payload.widgetId);
-    }
-  };
-  const finishDrag = () => {
-    suppressOpenUntil.current = Date.now() + 350;
-    dragPayloadRef.current = null;
-    setDragPayload(null);
-    setDragOverSlot(null);
-  };
-  const allowDrop = (event: WebDragEvent) => {
-    event.preventDefault?.();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-  };
-  const dropOnDockWidget = (targetWidgetId: string, event: WebDragEvent) => {
-    event.preventDefault?.(); event.stopPropagation?.();
-    const payload = readDragPayload(event);
-    if (payload?.source === 'dock' && payload.widgetId !== targetWidgetId) {
-      setWidgetOrder((current) => {
-        const sourceIndex = current.indexOf(payload.widgetId);
-        const targetIndex = current.indexOf(targetWidgetId);
-        if (sourceIndex < 0 || targetIndex < 0) return current;
-        const next = [...current];
-        next.splice(sourceIndex, 1);
-        next.splice(targetIndex, 0, payload.widgetId);
-        return next;
-      });
-    }
-    finishDrag();
-  };
-  const dropOnFavoriteSlot = (targetSlot: number, event: WebDragEvent) => {
-    event.preventDefault?.(); event.stopPropagation?.();
-    const payload = readDragPayload(event);
-    if (!payload) { finishDrag(); return; }
+  const copyWidgetToFavorite = (widgetId: string, targetSlot: number) => {
     setFavoriteSlots((current) => {
       const next = [...current];
-      const existingSlot = next.indexOf(payload.widgetId);
+      const existingSlot = next.indexOf(widgetId);
       if (existingSlot === targetSlot) return current;
       if (existingSlot >= 0) {
         const targetWidget = next[targetSlot];
-        next[targetSlot] = payload.widgetId;
+        next[targetSlot] = widgetId;
         next[existingSlot] = targetWidget;
       } else {
-        next[targetSlot] = payload.widgetId;
+        next[targetSlot] = widgetId;
       }
       return next;
     });
-    finishDrag();
+  };
+  const moveWidgetIntoFolder = (widgetId: string, folderId: string) => {
+    const targetFolder = folders.find((folder) => folder.id === folderId);
+    if (!targetFolder || targetFolder.widgetIds.includes(widgetId)) return;
+    if (targetFolder.widgetIds.length >= MAX_FOLDER_WIDGETS) {
+      setFolderMessage(`Der Ordner „${targetFolder.name}“ ist voll. Maximal vier Widgets sind möglich.`);
+      return;
+    }
+    setFolders((current) => current.map((folder) => folder.id === folderId ? { ...folder, widgetIds: [...folder.widgetIds, widgetId] } : folder));
+    setWidgetOrder((current) => current.filter((entryId) => entryId !== widgetId));
+    setFolderMessage(`${WIDGET_BY_ID.get(widgetId)?.label ?? 'Widget'} wurde in „${targetFolder.name}“ verschoben.`);
+  };
+  const releaseWidgetFromFolder = (widgetId: string, folderId: string, targetEntryId?: string) => {
+    setFolders((current) => current.map((folder) => folder.id === folderId ? { ...folder, widgetIds: folder.widgetIds.filter((id) => id !== widgetId) } : folder));
+    setWidgetOrder((current) => {
+      const next = current.filter((entryId) => entryId !== widgetId);
+      const targetIndex = targetEntryId ? next.indexOf(targetEntryId) : -1;
+      next.splice(targetIndex >= 0 ? targetIndex : next.length, 0, widgetId);
+      return next;
+    });
+  };
+  const applyPointerDrop = (payload: WidgetDragPayload, target: string | null) => {
+    if (!target) return;
+    if (target.startsWith('favorite:')) {
+      if (payload.kind === 'widget') copyWidgetToFavorite(payload.widgetId, Number(target.slice(9)));
+      return;
+    }
+    if (target.startsWith('folder:')) {
+      const targetFolderId = target.slice(7);
+      if (payload.kind === 'widget' && payload.source === 'dock') moveWidgetIntoFolder(payload.widgetId, targetFolderId);
+      else if (payload.kind === 'folder') reorderDockEntry(folderEntryId(payload.folderId), folderEntryId(targetFolderId));
+      return;
+    }
+    if (!target.startsWith('dock:')) return;
+    const targetEntryId = target.slice(5);
+    if (payload.kind === 'folder') reorderDockEntry(folderEntryId(payload.folderId), targetEntryId);
+    else if (payload.source === 'dock') reorderDockEntry(payload.widgetId, targetEntryId);
+    else if (payload.source === 'folder' && payload.folderId) releaseWidgetFromFolder(payload.widgetId, payload.folderId, targetEntryId);
+  };
+  const resolvePointerTarget = (x: number, y: number) => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return null;
+    const hit = document.elementFromPoint(x, y) as HTMLElement | null;
+    return hit?.closest<HTMLElement>('[data-healthos-drop]')?.dataset.healthosDrop ?? null;
+  };
+  const beginPointerDrag = (payload: WidgetDragPayload, event: PointerEventLike) => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined' || typeof document === 'undefined') return;
+    const native = event.nativeEvent ?? event;
+    if ((native.button ?? event.button ?? 0) !== 0) return;
+    const startX = native.clientX ?? native.pageX ?? 0;
+    const startY = native.clientY ?? native.pageY ?? 0;
+    let active = false;
+    const previousUserSelect = document.body.style.userSelect;
+    const previousCursor = document.body.style.cursor;
+    const cleanup = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      document.body.style.userSelect = previousUserSelect;
+      document.body.style.cursor = previousCursor;
+      pointerCleanupRef.current = null;
+    };
+    const onMove = (pointerEvent: PointerEvent) => {
+      const distance = Math.hypot(pointerEvent.clientX - startX, pointerEvent.clientY - startY);
+      if (!active && distance < 6) return;
+      if (!active) {
+        active = true;
+        dragPayloadRef.current = payload;
+        setDragPayload(payload);
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'grabbing';
+      }
+      pointerEvent.preventDefault();
+      const nextTarget = resolvePointerTarget(pointerEvent.clientX, pointerEvent.clientY);
+      setDragTarget(nextTarget);
+      setDragVisual({ payload, x: pointerEvent.clientX, y: pointerEvent.clientY });
+      if ((nextTarget === 'page:prev' || nextTarget === 'page:next') && Date.now() - lastPageSwitchRef.current.at > 650) {
+        const direction = nextTarget === 'page:prev' ? -1 : 1;
+        setPage((current) => Math.max(0, Math.min(pageCount - 1, current + direction)));
+        lastPageSwitchRef.current = { target: nextTarget, at: Date.now() };
+      }
+    };
+    const onUp = (pointerEvent: PointerEvent) => {
+      if (active) {
+        applyPointerDrop(payload, resolvePointerTarget(pointerEvent.clientX, pointerEvent.clientY));
+        suppressOpenUntil.current = Date.now() + 450;
+      }
+      cleanup();
+      dragPayloadRef.current = null;
+      setDragPayload(null);
+      setDragTarget(null);
+      setDragVisual(null);
+    };
+    pointerCleanupRef.current?.();
+    pointerCleanupRef.current = cleanup;
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   };
   const removeFavorite = (slotIndex: number) => setFavoriteSlots((current) => current.map((widgetId, index) => index === slotIndex ? null : widgetId));
-  const switchPageWhileDragging = (direction: -1 | 1, event: WebDragEvent) => {
-    if (!readDragPayload(event)) return;
-    allowDrop(event);
-    setPage((current) => Math.max(0, Math.min(pageCount - 1, current + direction)));
+  const createFolder = () => {
+    const name = folderName.trim() || `Ordner ${folders.length + 1}`;
+    const id = `folder-${Date.now().toString(36)}`;
+    setFolders((current) => [...current, { id, name: name.slice(0, 28), widgetIds: [] }]);
+    setWidgetOrder((current) => [...current, folderEntryId(id)]);
+    setFolderName(''); setFolderCreateOpen(false); setFolderMessage(`Ordner „${name.slice(0, 28)}“ wurde angelegt.`);
+  };
+  const dissolveFolder = (folderId: string) => {
+    const folder = folders.find((item) => item.id === folderId);
+    if (!folder) return;
+    setWidgetOrder((current) => {
+      const folderIndex = current.indexOf(folderEntryId(folderId));
+      const next = current.filter((entryId) => entryId !== folderEntryId(folderId) && !folder.widgetIds.includes(entryId));
+      next.splice(folderIndex >= 0 ? folderIndex : next.length, 0, ...folder.widgetIds);
+      return next;
+    });
+    setFolders((current) => current.filter((item) => item.id !== folderId));
+    setOpenFolderId(null); setFolderMessage(`Ordner „${folder.name}“ wurde aufgelöst.`);
   };
 
   const searchLocations = async () => {
@@ -475,6 +639,7 @@ export function CommandCenterScreen() {
     setWeatherLocation(selected); await AsyncStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(selected));
     setLocationOpen(false); setLocationQuery(''); setLocationResults([]);
   };
+  const openFolder = openFolderId ? folderById.get(openFolderId) ?? null : null;
 
   return (
     <ImageBackground source={BACKGROUND} resizeMode="cover" style={styles.background} imageStyle={styles.backgroundImage}>
@@ -515,26 +680,32 @@ export function CommandCenterScreen() {
       <View style={[styles.favoritesRegion, { top: favoritesTop, left: (width - favoritesWidth) / 2, width: favoritesWidth, height: favoritesHeight }]}>
         <View style={[styles.glass, styles.favoritesPanel, compact && styles.favoritesPanelCompact]}>
           <View pointerEvents="none" style={styles.favoritesHighlight} />
-          <View style={styles.favoritesHeader}><Text style={styles.favoritesTitle}>TOP 10</Text><Text numberOfLines={1} style={styles.favoritesHint}>Widgets aus dem Dock hierher ziehen</Text></View>
-          <View style={styles.favoritesGrid}>
-            {favoriteSlots.map((widgetId, slotIndex) => {
-              const widget = widgetId ? WIDGET_BY_ID.get(widgetId) ?? null : null;
-              return <FavoriteWidgetSlot key={slotIndex} slotIndex={slotIndex} widget={widget} compact={compact} dragging={Boolean(widget && dragPayload?.widgetId === widget.id)} dragOver={dragOverSlot === slotIndex} onOpen={() => widget && openWidget(widget)} onRemove={() => removeFavorite(slotIndex)} onDragStart={(event) => widget && beginDrag({ widgetId: widget.id, source: 'favorite', slotIndex }, event)} onDragEnd={finishDrag} onDragOver={(event) => { allowDrop(event); setDragOverSlot(slotIndex); }} onDragLeave={() => setDragOverSlot((current) => current === slotIndex ? null : current)} onDrop={(event) => dropOnFavoriteSlot(slotIndex, event)} />;
-            })}
-          </View>
+          <View style={styles.favoritesHeader}><Text style={styles.favoritesTitle}>PERSÖNLICHES DOCK</Text><Text numberOfLines={1} style={styles.favoritesHint}>Breite und quadratische Widgets · bis zu 10 Favoriten</Text></View>
+          <View style={styles.favoritesGrid}>{[0, 1].map((rowIndex) => <View key={rowIndex} style={styles.favoriteRow}>{favoriteSlots.slice(rowIndex * 5, rowIndex * 5 + 5).map((widgetId, localIndex) => {
+            const slotIndex = rowIndex * 5 + localIndex;
+            const widget = widgetId ? WIDGET_BY_ID.get(widgetId) ?? null : null;
+            return <FavoriteWidgetSlot key={slotIndex} slotIndex={slotIndex} widget={widget} compact={compact} shape={favoriteShape(slotIndex, widget)} dragging={Boolean(widget && dragPayload?.kind === 'widget' && dragPayload.widgetId === widget.id)} dragOver={dragTarget === `favorite:${slotIndex}`} onOpen={() => widget && openWidget(widget)} onRemove={() => removeFavorite(slotIndex)} onPointerDown={(event) => widget && beginPointerDrag({ kind: 'widget', widgetId: widget.id, source: 'favorite', slotIndex }, event)} />;
+          })}</View>)}</View>
         </View>
       </View>
       <View style={[styles.dockRegion, compact && styles.dockRegionCompact, height < 720 && styles.dockRegionShort]}>
-        <Pressable accessibilityLabel="Vorherige Widget-Seite" disabled={page === 0} onPress={() => setPage((value) => Math.max(0, value - 1))} {...(Platform.OS === 'web' ? ({ onDragEnter: (event: WebDragEvent) => switchPageWhileDragging(-1, event), onDragOver: allowDrop } as object) : {})} style={({ pressed }) => [styles.arrow, page === 0 && styles.arrowDisabled, pressed && styles.arrowPressed]}><Text style={styles.arrowText}>‹</Text></Pressable>
+        <Pressable accessibilityLabel="Vorherige Widget-Seite" disabled={page === 0} onPress={() => setPage((value) => Math.max(0, value - 1))} {...(Platform.OS === 'web' ? ({ dataSet: { healthosDrop: 'page:prev' } } as object) : {})} style={({ pressed }) => [styles.arrow, page === 0 && styles.arrowDisabled, pressed && styles.arrowPressed]}><Text style={styles.arrowText}>‹</Text></Pressable>
         <View style={[styles.glass, styles.dock, compact && styles.dockCompact]}>
           <View pointerEvents="none" style={styles.dockHighlight} />
+          <Pressable accessibilityLabel="Neuen Widget-Ordner anlegen" onPress={() => setFolderCreateOpen(true)} style={({ pressed }) => [styles.folderCreateButton, pressed && styles.controlPressed]}><Text style={styles.folderCreateIcon}>＋</Text><Text style={styles.folderCreateText}>Ordner</Text></Pressable>
           <Animated.View style={[styles.widgetRow, { opacity: pageMotion, transform: [{ translateX: pageMotion.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }] }]}>
-            {visibleWidgets.map((widget, index) => <DockWidget key={widget.id} widget={widget} index={index} compact={compact} reducedMotion={reducedMotion} dragging={dragPayload?.source === 'dock' && dragPayload.widgetId === widget.id} onOpen={() => openWidget(widget)} onDragStart={(event) => beginDrag({ widgetId: widget.id, source: 'dock' }, event)} onDragEnd={finishDrag} onDragOver={allowDrop} onDrop={(event) => dropOnDockWidget(widget.id, event)} />)}
+            {visibleDockEntries.map((entry, index) => entry.kind === 'widget'
+              ? <DockWidget key={entry.id} widget={entry.widget} index={index} compact={compact} reducedMotion={reducedMotion} dragging={dragPayload?.kind === 'widget' && dragPayload.source === 'dock' && dragPayload.widgetId === entry.widget.id} dropTarget={dragTarget === `dock:${entry.id}`} onOpen={() => openWidget(entry.widget)} onPointerDown={(event) => beginPointerDrag({ kind: 'widget', widgetId: entry.widget.id, source: 'dock' }, event)} />
+              : <DockFolder key={entry.id} folder={entry.folder} index={index} reducedMotion={reducedMotion} dragging={dragPayload?.kind === 'folder' && dragPayload.folderId === entry.folder.id} dropTarget={dragTarget === `folder:${entry.folder.id}`} onOpen={() => openDockFolder(entry.folder.id)} onPointerDown={(event) => beginPointerDrag({ kind: 'folder', folderId: entry.folder.id, source: 'dock' }, event)} />)}
           </Animated.View>
           <View style={styles.pageDots}>{Array.from({ length: pageCount }, (_, index) => <Pressable key={index} accessibilityLabel={`Widget-Seite ${index + 1}`} onPress={() => setPage(index)} style={[styles.pageDot, index === page && styles.pageDotActive]} />)}</View>
         </View>
-        <Pressable accessibilityLabel="Nächste Widget-Seite" disabled={page >= pageCount - 1} onPress={() => setPage((value) => Math.min(pageCount - 1, value + 1))} {...(Platform.OS === 'web' ? ({ onDragEnter: (event: WebDragEvent) => switchPageWhileDragging(1, event), onDragOver: allowDrop } as object) : {})} style={({ pressed }) => [styles.arrow, page >= pageCount - 1 && styles.arrowDisabled, pressed && styles.arrowPressed]}><Text style={styles.arrowText}>›</Text></Pressable>
+        <Pressable accessibilityLabel="Nächste Widget-Seite" disabled={page >= pageCount - 1} onPress={() => setPage((value) => Math.min(pageCount - 1, value + 1))} {...(Platform.OS === 'web' ? ({ dataSet: { healthosDrop: 'page:next' } } as object) : {})} style={({ pressed }) => [styles.arrow, page >= pageCount - 1 && styles.arrowDisabled, pressed && styles.arrowPressed]}><Text style={styles.arrowText}>›</Text></Pressable>
       </View>
+      {folderMessage ? <Pressable onPress={() => setFolderMessage('')} style={[styles.glass, styles.folderToast]}><Text numberOfLines={2} style={styles.folderToastText}>{folderMessage}</Text></Pressable> : null}
+      {dragVisual ? <View pointerEvents="none" style={[styles.dragGhost, { left: dragVisual.x - 56, top: dragVisual.y - 42 }]}>{dragVisual.payload.kind === 'widget' ? <Image resizeMode="contain" source={WIDGET_BY_ID.get(dragVisual.payload.widgetId)?.image} style={styles.dragGhostImage} /> : <View style={styles.dragGhostFolder}><Text style={styles.dragGhostFolderIcon}>▦</Text></View>}</View> : null}
+      <Modal animationType="fade" transparent visible={folderCreateOpen} onRequestClose={() => setFolderCreateOpen(false)}><Pressable onPress={() => setFolderCreateOpen(false)} style={styles.modalBackdrop}><Pressable onPress={(event) => event.stopPropagation()} style={[styles.glass, styles.folderCreatePanel]}><View style={styles.searchHeader}><View><Text style={styles.searchTitle}>Widget-Ordner anlegen</Text><Text style={styles.locationSubtitle}>Anschließend bis zu vier Widgets auf den Ordner ziehen.</Text></View><Pressable accessibilityLabel="Ordnerdialog schließen" onPress={() => setFolderCreateOpen(false)} style={styles.closeButton}><Text style={styles.closeText}>×</Text></Pressable></View><TextInput autoFocus maxLength={28} placeholder="Name des Ordners …" placeholderTextColor="#90A5BF" value={folderName} onChangeText={setFolderName} onSubmitEditing={createFolder} style={styles.searchInput} /><Pressable onPress={createFolder} style={styles.folderConfirmButton}><Text style={styles.folderConfirmButtonText}>Ordner anlegen</Text></Pressable></Pressable></Pressable></Modal>
+      <Modal animationType="fade" transparent visible={Boolean(openFolder)} onRequestClose={() => setOpenFolderId(null)}><Pressable onPress={() => setOpenFolderId(null)} style={styles.modalBackdrop}><Pressable onPress={(event) => event.stopPropagation()} style={[styles.glass, styles.folderPanel]}>{openFolder ? <><View style={styles.searchHeader}><View><Text style={styles.searchTitle}>{openFolder.name}</Text><Text style={styles.locationSubtitle}>{openFolder.widgetIds.length}/{MAX_FOLDER_WIDGETS} Widgets · Vorschau und Schnellzugriff</Text></View><Pressable accessibilityLabel="Ordner schließen" onPress={() => setOpenFolderId(null)} style={styles.closeButton}><Text style={styles.closeText}>×</Text></Pressable></View><View style={styles.folderContents}>{Array.from({ length: MAX_FOLDER_WIDGETS }, (_, index) => { const widget = WIDGET_BY_ID.get(openFolder.widgetIds[index] ?? ''); return widget ? <View key={widget.id} style={styles.folderContentCard}><Pressable onPress={() => openWidget(widget)} style={styles.folderContentOpen}><Image resizeMode="contain" source={widget.image} style={styles.folderContentImage} /><Text numberOfLines={1} style={styles.folderContentLabel}>{widget.label}</Text></Pressable><Pressable accessibilityLabel={`${widget.label} aus Ordner lösen`} onPress={() => releaseWidgetFromFolder(widget.id, openFolder.id)} style={styles.folderReleaseButton}><Text style={styles.folderReleaseButtonText}>↗</Text></Pressable></View> : <View key={index} style={[styles.folderContentCard, styles.folderContentEmpty]}><Text style={styles.favoriteEmptyPlus}>＋</Text><Text style={styles.favoriteEmptyText}>Freier Platz</Text></View>; })}</View><Pressable onPress={() => dissolveFolder(openFolder.id)} style={styles.folderDissolveButton}><Text style={styles.folderDissolveText}>Ordner auflösen</Text></Pressable></> : null}</Pressable></Pressable></Modal>
       <Modal animationType="fade" transparent visible={searchOpen} onRequestClose={() => setSearchOpen(false)}><Pressable onPress={() => setSearchOpen(false)} style={styles.modalBackdrop}><Pressable onPress={(event) => event.stopPropagation()} style={[styles.glass, styles.searchPanel]}><View style={styles.searchHeader}><Text style={styles.searchTitle}>Widgets durchsuchen</Text><Pressable accessibilityLabel="Suche schließen" onPress={() => setSearchOpen(false)} style={styles.closeButton}><Text style={styles.closeText}>×</Text></Pressable></View><TextInput autoFocus placeholder="Funktion suchen …" placeholderTextColor="#90A5BF" value={query} onChangeText={setQuery} style={styles.searchInput} /><ScrollView contentContainerStyle={styles.searchResults} keyboardShouldPersistTaps="handled">{searchResults.map((widget) => <Pressable key={widget.id} onPress={() => openWidget(widget)} style={styles.searchResult}><Image source={widget.image} resizeMode="contain" style={styles.searchThumb} /><Text style={styles.searchResultText}>{widget.label}</Text><Text style={styles.searchChevron}>›</Text></Pressable>)}</ScrollView></Pressable></Pressable></Modal>
       <Modal animationType="fade" transparent visible={locationOpen} onRequestClose={() => setLocationOpen(false)}><Pressable onPress={() => setLocationOpen(false)} style={styles.modalBackdrop}><Pressable onPress={(event) => event.stopPropagation()} style={[styles.glass, styles.locationPanel]}><View style={styles.searchHeader}><View><Text style={styles.searchTitle}>Wetterstandort</Text><Text style={styles.locationSubtitle}>Automatisch ermitteln oder Ort manuell festlegen</Text></View><Pressable accessibilityLabel="Standortdialog schließen" onPress={() => setLocationOpen(false)} style={styles.closeButton}><Text style={styles.closeText}>×</Text></Pressable></View><Pressable onPress={() => { setLocationOpen(false); void detectAutomaticLocation(); }} style={styles.autoLocationButton}><Text style={styles.autoLocationIcon}>⌖</Text><View style={styles.autoLocationCopy}><Text style={styles.autoLocationTitle}>Aktuellen Standort verwenden</Text><Text style={styles.autoLocationDetail}>GPS-/Browserfreigabe und automatische Ortsnamenermittlung</Text></View><Text style={styles.searchChevron}>›</Text></Pressable><View style={styles.locationSearchRow}><TextInput placeholder="Ort oder Postleitzahl eingeben …" placeholderTextColor="#90A5BF" value={locationQuery} onChangeText={setLocationQuery} onSubmitEditing={() => void searchLocations()} style={[styles.searchInput, styles.locationInput]} /><Pressable onPress={() => void searchLocations()} style={styles.locationSearchButton}><Text style={styles.locationSearchButtonText}>{locationSearching ? '…' : 'Suchen'}</Text></Pressable></View><ScrollView contentContainerStyle={styles.searchResults} keyboardShouldPersistTaps="handled">{locationResults.map((result) => <Pressable key={`${result.id}-${result.latitude}-${result.longitude}`} onPress={() => void chooseManualLocation(result)} style={styles.locationResult}><Text style={styles.locationResultTitle}>{result.name}</Text><Text style={styles.locationResultDetail}>{[result.admin1, result.country].filter(Boolean).join(' · ')}</Text></Pressable>)}</ScrollView></Pressable></Pressable></Modal>
     </ImageBackground>
@@ -547,10 +718,12 @@ const styles = StyleSheet.create({
   glass: { backgroundColor: 'rgba(2,15,35,0.72)', borderWidth: 1, borderColor: 'rgba(139,211,255,0.36)', shadowColor: '#2BB8FF', shadowOpacity: 0.23, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(24px) saturate(1.2)' } as const) : null) },
   timeWeather: { minWidth: 430, minHeight: 86, borderRadius: 28, paddingHorizontal: 22, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' }, timeWeatherCompact: { minWidth: 0, alignSelf: 'stretch', minHeight: 70, paddingHorizontal: 14, borderRadius: 22 }, timeBlock: { flex: 1, minWidth: 0 }, time: { color: '#FFF', fontSize: 36, lineHeight: 39, fontWeight: '900', letterSpacing: -1.4 }, timeCompact: { fontSize: 25, lineHeight: 28 }, date: { color: '#D8EAFF', fontSize: 12, lineHeight: 17, fontWeight: '600' }, glassDivider: { width: 1, height: 48, backgroundColor: 'rgba(149,210,255,0.24)', marginHorizontal: 18 }, weatherBlock: { flex: 1, minWidth: 0, minHeight: 56, borderRadius: 18, paddingHorizontal: 6, flexDirection: 'row', alignItems: 'center', gap: 10 }, weatherCopy: { flex: 1, minWidth: 0 }, weatherIcon: { color: '#8FE4FF', fontSize: 30 }, weatherLine: { color: '#FFF', fontSize: 22, lineHeight: 25, fontWeight: '900' }, weatherState: { fontSize: 13, fontWeight: '800' }, place: { color: '#BCD4EC', fontSize: 11, marginTop: 3 },
   actions: { minHeight: 88, borderRadius: 28, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }, actionsCompact: { minHeight: 60, padding: 7, borderRadius: 22, gap: 6 }, actionButton: { width: 48, height: 48, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(146,205,255,0.28)', backgroundColor: 'rgba(8,29,59,0.62)', alignItems: 'center', justifyContent: 'center' }, actionGlyph: { color: '#FFF', fontSize: 23, fontWeight: '700' }, controlPressed: { opacity: 0.72, transform: [{ scale: 0.97 }] }, livePill: { height: 48, borderRadius: 16, paddingHorizontal: 15, borderWidth: 1, borderColor: 'rgba(70,171,255,0.5)', flexDirection: 'row', alignItems: 'center', gap: 8 }, liveDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#58D8C1', shadowColor: '#58D8C1', shadowOpacity: 0.9, shadowRadius: 8 }, liveText: { color: '#FFF', fontSize: 15, fontWeight: '900' }, profileCopy: { maxWidth: 160, alignItems: 'flex-end', marginLeft: 4 }, profileName: { color: '#FFF', fontSize: 14, fontWeight: '900' }, profileRole: { color: '#AFC7DF', fontSize: 11, marginTop: 2 },
-  favoritesRegion: { position: 'absolute', zIndex: 4 }, favoritesPanel: { flex: 1, borderRadius: 30, paddingHorizontal: 15, paddingTop: 10, paddingBottom: 13, backgroundColor: 'rgba(2,15,35,0.52)', overflow: 'visible' }, favoritesPanelCompact: { borderRadius: 22, paddingHorizontal: 8, paddingTop: 6, paddingBottom: 8 }, favoritesHighlight: { position: 'absolute', top: 0, left: 42, right: 42, height: 1, backgroundColor: 'rgba(190,231,255,0.48)' }, favoritesHeader: { height: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, gap: 12 }, favoritesTitle: { color: '#92E5FF', fontSize: 11, fontWeight: '900', letterSpacing: 1.5 }, favoritesHint: { flex: 1, color: 'rgba(211,235,255,0.7)', fontSize: 10, textAlign: 'right' }, favoritesGrid: { flex: 1, minHeight: 0, flexDirection: 'row', flexWrap: 'wrap', alignContent: 'space-between', justifyContent: 'space-between' }, favoriteSlot: { width: '19%', height: '46%', minWidth: 0, borderRadius: 15, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(139,211,255,0.25)', backgroundColor: 'rgba(2,12,29,0.34)', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }, favoriteSlotCompact: { borderRadius: 10 }, favoriteSlotFilled: { borderStyle: 'solid', borderColor: 'rgba(130,214,255,0.3)', backgroundColor: 'rgba(2,11,27,0.7)' }, favoriteSlotDropTarget: { borderStyle: 'solid', borderColor: '#6FE0FF', backgroundColor: 'rgba(34,151,210,0.3)', shadowColor: '#5DDCFF', shadowOpacity: 0.8, shadowRadius: 16, transform: [{ scale: 1.035 }] }, favoriteSlotDragging: { opacity: 0.42, borderColor: '#72DEFF' }, favoriteImage: { width: '94%', height: '94%' }, favoriteEmpty: { alignItems: 'center', justifyContent: 'center' }, favoriteEmptyPlus: { color: 'rgba(129,214,255,0.42)', fontSize: 19, lineHeight: 20 }, favoriteEmptyText: { color: 'rgba(186,220,245,0.45)', fontSize: 9, fontWeight: '800' }, favoriteRemove: { position: 'absolute', top: 3, right: 3, width: 19, height: 19, borderRadius: 10, backgroundColor: 'rgba(1,10,24,0.88)', borderWidth: 1, borderColor: 'rgba(139,211,255,0.35)', alignItems: 'center', justifyContent: 'center', zIndex: 9 }, favoriteRemoveText: { color: '#DDF5FF', fontSize: 15, lineHeight: 16, marginTop: -1 }, favoriteTooltip: { position: 'absolute', top: -27, left: 3, right: 3, minHeight: 23, borderRadius: 8, paddingHorizontal: 6, backgroundColor: 'rgba(2,16,36,0.96)', borderWidth: 1, borderColor: 'rgba(113,211,255,0.5)', alignItems: 'center', justifyContent: 'center', opacity: 0, zIndex: 15 }, favoriteTooltipVisible: { opacity: 1 }, favoriteTooltipText: { color: '#FFF', fontSize: 10, fontWeight: '900', textAlign: 'center' },
-  dockRegion: { position: 'absolute', left: 42, right: 42, bottom: 26, height: 226, flexDirection: 'row', alignItems: 'center', gap: 16 }, dockRegionCompact: { left: 10, right: 10, bottom: 12, height: 196, gap: 7 }, dockRegionShort: { bottom: 8, height: 184 }, dock: { flex: 1, height: '100%', borderRadius: 38, paddingHorizontal: 25, paddingTop: 22, paddingBottom: 10, overflow: 'visible' }, dockCompact: { paddingHorizontal: 10, paddingTop: 15, borderRadius: 27 }, dockHighlight: { position: 'absolute', top: 0, left: 50, right: 50, height: 1, backgroundColor: 'rgba(190,231,255,0.52)' },
-  widgetRow: { flex: 1, minHeight: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 13 }, widgetMotion: { flex: 1, minWidth: 0, maxWidth: 315, height: '100%' }, widget: { flex: 1, minWidth: 0, borderRadius: 26, padding: 5, backgroundColor: 'rgba(2,11,27,0.5)', borderWidth: 1, borderColor: 'rgba(133,205,255,0.14)', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }, widgetHovered: { borderColor: 'rgba(111,218,255,0.72)', backgroundColor: 'rgba(6,28,58,0.88)', shadowColor: '#4FD7FF', shadowOpacity: 0.62, shadowRadius: 26, shadowOffset: { width: 0, height: 12 } }, widgetDragging: { opacity: 0.4, borderColor: '#72DEFF' }, widgetPressed: { opacity: 0.84 }, widgetImage: { width: '100%', height: '100%' }, widgetGlow: { position: 'absolute', top: -4, right: -4, bottom: -4, left: -4, borderRadius: 29, backgroundColor: 'rgba(76,207,255,0.12)', shadowColor: '#54D9FF', shadowOpacity: 0.72, shadowRadius: 30 }, widgetTooltip: { position: 'absolute', top: -42, left: 8, right: 8, minHeight: 33, zIndex: 40, borderRadius: 12, backgroundColor: 'rgba(2,16,36,0.96)', borderWidth: 1, borderColor: 'rgba(113,211,255,0.55)', paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', shadowColor: '#4ACDFF', shadowOpacity: 0.42, shadowRadius: 14 }, widgetTooltipText: { color: '#FFF', fontSize: 13, lineHeight: 17, fontWeight: '900', textAlign: 'center' }, tooltipArrow: { position: 'absolute', bottom: -5, width: 10, height: 10, backgroundColor: 'rgba(2,16,36,0.96)', borderRightWidth: 1, borderBottomWidth: 1, borderColor: 'rgba(113,211,255,0.55)', transform: [{ rotate: '45deg' }] },
-  arrow: { width: 58, height: 58, borderRadius: 29, borderWidth: 1, borderColor: 'rgba(142,210,255,0.42)', backgroundColor: 'rgba(3,18,39,0.78)', alignItems: 'center', justifyContent: 'center', shadowColor: '#3AC7FF', shadowOpacity: 0.22, shadowRadius: 16 }, arrowDisabled: { opacity: 0.28 }, arrowPressed: { transform: [{ scale: 0.92 }], borderColor: '#7DDCFF' }, arrowText: { color: '#FFF', fontSize: 45, lineHeight: 48, fontWeight: '300', marginTop: -4 }, pageDots: { height: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 5 }, pageDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(186,219,245,0.32)' }, pageDotActive: { width: 22, backgroundColor: '#68D4FF', shadowColor: '#68D4FF', shadowOpacity: 0.8, shadowRadius: 7 },
+  favoritesRegion: { position: 'absolute', zIndex: 4 }, favoritesPanel: { flex: 1, borderRadius: 27, paddingHorizontal: 14, paddingTop: 8, paddingBottom: 11, backgroundColor: 'rgba(0,8,20,0.78)', overflow: 'visible' }, favoritesPanelCompact: { borderRadius: 20, paddingHorizontal: 7, paddingTop: 5, paddingBottom: 7 }, favoritesHighlight: { position: 'absolute', top: 0, left: 58, right: 58, height: 1, backgroundColor: 'rgba(214,239,255,0.58)' }, favoritesHeader: { height: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 5, gap: 12 }, favoritesTitle: { color: '#A2EAFF', fontSize: 10, fontWeight: '900', letterSpacing: 1.6 }, favoritesHint: { flex: 1, color: 'rgba(211,235,255,0.65)', fontSize: 10, textAlign: 'right' }, favoritesGrid: { flex: 1, minHeight: 0, gap: 7 }, favoriteRow: { flex: 1, minHeight: 0, flexDirection: 'row', alignItems: 'stretch', justifyContent: 'center', gap: 8 }, favoriteSlot: { minWidth: 0, height: '100%', borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(139,211,255,0.22)', backgroundColor: 'rgba(8,13,23,0.62)', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }, favoriteSlotWide: { flexGrow: 1, flexShrink: 1, flexBasis: 176, maxWidth: 300 }, favoriteSlotSquare: { flexGrow: 0, flexShrink: 1, aspectRatio: 1 }, favoriteSlotCompact: { borderRadius: 9 }, favoriteSlotFilled: { borderStyle: 'solid', borderColor: 'rgba(130,214,255,0.34)', backgroundColor: 'rgba(5,11,22,0.9)' }, favoriteSlotDropTarget: { borderStyle: 'solid', borderColor: '#6FE0FF', backgroundColor: 'rgba(34,151,210,0.3)', shadowColor: '#5DDCFF', shadowOpacity: 0.8, shadowRadius: 16, transform: [{ scale: 1.035 }] }, favoriteSlotDragging: { opacity: 0.42, borderColor: '#72DEFF' }, favoriteImage: { width: '96%', height: '96%' }, favoriteEmpty: { alignItems: 'center', justifyContent: 'center' }, favoriteEmptyPlus: { color: 'rgba(129,214,255,0.42)', fontSize: 18, lineHeight: 19 }, favoriteEmptyText: { color: 'rgba(186,220,245,0.45)', fontSize: 9, fontWeight: '800' }, favoriteRemove: { position: 'absolute', top: 3, right: 3, width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(1,10,24,0.9)', borderWidth: 1, borderColor: 'rgba(139,211,255,0.35)', alignItems: 'center', justifyContent: 'center', zIndex: 9 }, favoriteRemoveText: { color: '#DDF5FF', fontSize: 14, lineHeight: 15, marginTop: -1 }, favoriteTooltip: { position: 'absolute', top: -27, left: 3, right: 3, minHeight: 23, borderRadius: 8, paddingHorizontal: 6, backgroundColor: 'rgba(2,16,36,0.96)', borderWidth: 1, borderColor: 'rgba(113,211,255,0.5)', alignItems: 'center', justifyContent: 'center', opacity: 0, zIndex: 15 }, favoriteTooltipVisible: { opacity: 1 }, favoriteTooltipText: { color: '#FFF', fontSize: 10, fontWeight: '900', textAlign: 'center' },
+  favoritePressable: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center', borderRadius: 13, overflow: 'visible' },
+  dockRegion: { position: 'absolute', left: 30, right: 30, bottom: 18, height: 136, flexDirection: 'row', alignItems: 'center', gap: 11 }, dockRegionCompact: { left: 8, right: 8, bottom: 8, height: 124, gap: 5 }, dockRegionShort: { bottom: 6, height: 112 }, dock: { flex: 1, height: '100%', borderRadius: 28, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, overflow: 'visible' }, dockCompact: { paddingHorizontal: 7, paddingTop: 13, borderRadius: 22 }, dockHighlight: { position: 'absolute', top: 0, left: 50, right: 50, height: 1, backgroundColor: 'rgba(190,231,255,0.52)' }, folderCreateButton: { position: 'absolute', top: 4, right: 13, zIndex: 35, height: 22, borderRadius: 11, paddingHorizontal: 8, borderWidth: 1, borderColor: 'rgba(116,210,255,0.34)', backgroundColor: 'rgba(4,25,51,0.9)', flexDirection: 'row', alignItems: 'center', gap: 3 }, folderCreateIcon: { color: '#81E0FF', fontSize: 13, lineHeight: 14, fontWeight: '800' }, folderCreateText: { color: '#DDF5FF', fontSize: 9, fontWeight: '800' },
+  widgetRow: { flex: 1, minHeight: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }, widgetMotion: { flex: 1, minWidth: 0, maxWidth: 150, height: '100%' }, widget: { flex: 1, minWidth: 0, borderRadius: 17, padding: 2, backgroundColor: 'rgba(2,11,27,0.58)', borderWidth: 1, borderColor: 'rgba(133,205,255,0.15)', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }, widgetHovered: { borderColor: 'rgba(111,218,255,0.72)', backgroundColor: 'rgba(6,28,58,0.9)', shadowColor: '#4FD7FF', shadowOpacity: 0.62, shadowRadius: 19, shadowOffset: { width: 0, height: 8 } }, widgetDropTarget: { borderColor: '#74E2FF', backgroundColor: 'rgba(32,147,205,0.34)', transform: [{ scale: 1.035 }] }, widgetDragging: { opacity: 0.4, borderColor: '#72DEFF' }, widgetPressed: { opacity: 0.84 }, widgetImage: { width: '100%', height: '100%' }, widgetGlow: { position: 'absolute', top: -3, right: -3, bottom: -3, left: -3, borderRadius: 20, backgroundColor: 'rgba(76,207,255,0.11)', shadowColor: '#54D9FF', shadowOpacity: 0.7, shadowRadius: 19 }, widgetTooltip: { position: 'absolute', top: -36, left: -5, right: -5, minHeight: 29, zIndex: 40, borderRadius: 10, backgroundColor: 'rgba(2,16,36,0.97)', borderWidth: 1, borderColor: 'rgba(113,211,255,0.55)', paddingHorizontal: 7, alignItems: 'center', justifyContent: 'center', shadowColor: '#4ACDFF', shadowOpacity: 0.42, shadowRadius: 12 }, widgetTooltipText: { color: '#FFF', fontSize: 10, lineHeight: 14, fontWeight: '900', textAlign: 'center' }, tooltipArrow: { position: 'absolute', bottom: -4, width: 8, height: 8, backgroundColor: 'rgba(2,16,36,0.96)', borderRightWidth: 1, borderBottomWidth: 1, borderColor: 'rgba(113,211,255,0.55)', transform: [{ rotate: '45deg' }] }, folderTile: { padding: 6 }, folderDropTarget: { borderColor: '#64E3B8', backgroundColor: 'rgba(21,127,107,0.38)', shadowColor: '#64E3B8', shadowOpacity: 0.7, shadowRadius: 18 }, folderPreview: { flex: 1, width: '88%', flexDirection: 'row', flexWrap: 'wrap', alignContent: 'center', justifyContent: 'center', gap: 3 }, folderPreviewCell: { width: '45%', height: '43%', borderRadius: 5, backgroundColor: 'rgba(115,191,238,0.12)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, folderPreviewImage: { width: '100%', height: '100%' }, folderPreviewPlus: { color: 'rgba(132,215,255,0.46)', fontSize: 12 }, folderName: { color: '#EAF7FF', fontSize: 9, fontWeight: '800', maxWidth: '96%', marginTop: 2 },
+  arrow: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(142,210,255,0.42)', backgroundColor: 'rgba(3,18,39,0.78)', alignItems: 'center', justifyContent: 'center', shadowColor: '#3AC7FF', shadowOpacity: 0.22, shadowRadius: 13 }, arrowDisabled: { opacity: 0.28 }, arrowPressed: { transform: [{ scale: 0.92 }], borderColor: '#7DDCFF' }, arrowText: { color: '#FFF', fontSize: 35, lineHeight: 38, fontWeight: '300', marginTop: -3 }, pageDots: { height: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 2 }, pageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(186,219,245,0.32)' }, pageDotActive: { width: 18, backgroundColor: '#68D4FF', shadowColor: '#68D4FF', shadowOpacity: 0.8, shadowRadius: 6 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,5,16,0.72)', alignItems: 'center', justifyContent: 'center', padding: 18 }, searchPanel: { width: '100%', maxWidth: 720, maxHeight: '82%', borderRadius: 30, padding: 20 }, searchHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 14 }, searchTitle: { color: '#FFF', fontSize: 23, fontWeight: '900' }, closeButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }, closeText: { color: '#FFF', fontSize: 29, lineHeight: 31 }, searchInput: { minHeight: 52, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(126,205,255,0.35)', backgroundColor: 'rgba(1,9,24,0.7)', color: '#FFF', fontSize: 16, paddingHorizontal: 17, marginBottom: 12 }, searchResults: { gap: 8, paddingBottom: 4 }, searchResult: { minHeight: 65, borderRadius: 17, backgroundColor: 'rgba(9,30,61,0.75)', borderWidth: 1, borderColor: 'rgba(116,190,242,0.18)', padding: 8, flexDirection: 'row', alignItems: 'center', gap: 12 }, searchThumb: { width: 86, height: 48 }, searchResultText: { flex: 1, color: '#FFF', fontSize: 15, fontWeight: '800' }, searchChevron: { color: '#88DFFF', fontSize: 28 },
+  folderToast: { position: 'absolute', left: '50%', bottom: 164, width: 420, minHeight: 42, marginLeft: -210, zIndex: 80, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' }, folderToastText: { color: '#EAF8FF', fontSize: 12, fontWeight: '800', textAlign: 'center' }, dragGhost: { position: 'absolute', zIndex: 9999, width: 112, height: 84, borderRadius: 18, borderWidth: 1, borderColor: '#77E2FF', backgroundColor: 'rgba(2,14,32,0.9)', shadowColor: '#4FD7FF', shadowOpacity: 0.85, shadowRadius: 24, alignItems: 'center', justifyContent: 'center', transform: [{ scale: 1.06 }] }, dragGhostImage: { width: '96%', height: '96%' }, dragGhostFolder: { width: 62, height: 55, borderRadius: 13, backgroundColor: 'rgba(74,196,244,0.18)', borderWidth: 1, borderColor: 'rgba(116,222,255,0.5)', alignItems: 'center', justifyContent: 'center' }, dragGhostFolderIcon: { color: '#8BE8FF', fontSize: 28 }, folderCreatePanel: { width: '100%', maxWidth: 520, borderRadius: 28, padding: 20 }, folderConfirmButton: { minHeight: 50, borderRadius: 16, backgroundColor: '#087DEA', alignItems: 'center', justifyContent: 'center' }, folderConfirmButtonText: { color: '#FFF', fontSize: 14, fontWeight: '900' }, folderPanel: { width: '100%', maxWidth: 760, borderRadius: 30, padding: 20 }, folderContents: { flexDirection: 'row', alignItems: 'stretch', gap: 10, marginBottom: 16 }, folderContentCard: { flex: 1, minWidth: 0, height: 150, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(121,207,255,0.28)', backgroundColor: 'rgba(4,20,44,0.72)', overflow: 'hidden' }, folderContentEmpty: { borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' }, folderContentOpen: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 6 }, folderContentImage: { width: '100%', height: 102 }, folderContentLabel: { color: '#F2FAFF', fontSize: 11, fontWeight: '900', maxWidth: '95%' }, folderReleaseButton: { position: 'absolute', top: 6, right: 6, width: 27, height: 27, zIndex: 5, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(124,216,255,0.4)', backgroundColor: 'rgba(1,11,27,0.92)', alignItems: 'center', justifyContent: 'center' }, folderReleaseButtonText: { color: '#8AE4FF', fontSize: 15, fontWeight: '900' }, folderDissolveButton: { alignSelf: 'flex-end', minHeight: 42, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,121,145,0.38)', backgroundColor: 'rgba(126,20,45,0.2)', paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' }, folderDissolveText: { color: '#FFB8C5', fontSize: 12, fontWeight: '900' },
   locationPanel: { width: '100%', maxWidth: 690, maxHeight: '78%', borderRadius: 30, padding: 20 }, locationSubtitle: { color: '#AFC7DF', fontSize: 13, marginTop: 4 }, autoLocationButton: { minHeight: 76, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(106,205,255,0.34)', backgroundColor: 'rgba(8,35,69,0.72)', padding: 13, flexDirection: 'row', alignItems: 'center', gap: 13, marginBottom: 13 }, autoLocationIcon: { color: '#76DAFF', fontSize: 29 }, autoLocationCopy: { flex: 1 }, autoLocationTitle: { color: '#FFF', fontSize: 15, fontWeight: '900' }, autoLocationDetail: { color: '#AFC7DF', fontSize: 12, lineHeight: 17, marginTop: 3 }, locationSearchRow: { flexDirection: 'row', alignItems: 'stretch', gap: 9 }, locationInput: { flex: 1, marginBottom: 0 }, locationSearchButton: { minWidth: 96, borderRadius: 17, backgroundColor: '#0B79E8', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 }, locationSearchButtonText: { color: '#FFF', fontSize: 14, fontWeight: '900' }, locationResult: { minHeight: 58, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(114,196,247,0.2)', backgroundColor: 'rgba(8,29,58,0.68)', paddingHorizontal: 15, paddingVertical: 10, justifyContent: 'center' }, locationResultTitle: { color: '#FFF', fontSize: 15, fontWeight: '900' }, locationResultDetail: { color: '#AFC7DF', fontSize: 12, marginTop: 3 },
 });
