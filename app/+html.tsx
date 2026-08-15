@@ -7,6 +7,7 @@ import { INVISIBLE_SCROLLBARS_CSS } from '@/product-workflows/design/web/invisib
 import { WEB_FONT_SCALE_CSS } from '@/product-workflows/design/web/webFontScaleCss';
 import { HEALTHOS_PAGE_CONTRACT_CSS } from '@/product-workflows/design/web/healthOSPageContractCss';
 import { ORBIT_INTERNAL_CONTRACT_CSS } from '@/product-workflows/design/web/orbitInternalContractCss';
+import { CENTRAL_HEALTHOS_POPUP_CONTRACT_CSS } from '@/product-workflows/design/web/centralHealthOSPopupContractCss';
 import { WEB_SAFE_AREA_GLOBAL_CSS } from '@/lib/platform/webSafeArea';
 
 export default function Root({ children }: PropsWithChildren) {
@@ -32,6 +33,7 @@ export default function Root({ children }: PropsWithChildren) {
               ${DISABLE_HOVER_EFFECTS_CSS}
               ${INVISIBLE_SCROLLBARS_CSS}
               ${GLASS_SCROLLBARS_CSS}
+              ${CENTRAL_HEALTHOS_POPUP_CONTRACT_CSS}
               html[data-cs-central-home],
               html[data-cs-central-home] body,
               html[data-cs-central-home] #root,

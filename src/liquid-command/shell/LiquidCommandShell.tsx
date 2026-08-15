@@ -854,7 +854,13 @@ export function LiquidCommandShell({
 
   if (pathname !== '/') {
     return (
-      <View accessibilityViewIsModal style={styles.centralPopupContent}>
+      <View
+        accessibilityViewIsModal
+        style={styles.centralPopupContent}
+        {...(Platform.OS === 'web'
+          ? ({ dataSet: { csCentralPopupWorkspace: 'true' } } as object)
+          : {})}
+      >
         <ScrollView
           testID="liquid-command-page-scroll"
           style={styles.centralPopupScroll}
@@ -942,7 +948,7 @@ export function LiquidCommandShell({
 const styles = StyleSheet.create({
   centralPopupContent: {
     flex: 1,
-    backgroundColor: 'rgba(241, 247, 255, 0.97)',
+    backgroundColor: 'rgba(4, 17, 37, 0.96)',
     overflow: 'hidden',
     borderRadius: 28,
     borderWidth: 1,
