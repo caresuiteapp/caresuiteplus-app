@@ -46,7 +46,9 @@ export function AssignmentsListTable({
       StyleSheet.create({
         primary: tableText.name,
         meta: { ...tableText.meta, fontSize: 13 },
-        actions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+        strongMeta: { ...tableText.meta, fontSize: 12, fontWeight: '700' },
+        cell: { gap: 3 },
+        actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
       }),
     [tableText],
   );
@@ -62,80 +64,48 @@ export function AssignmentsListTable({
       onRowPress={onAssignmentPress ? (item) => onAssignmentPress(item.id) : undefined}
       columns={[
         {
-          key: 'weekday',
-          label: 'Wochentag',
-          flex: 1,
-          minWidth: 92,
-          sortable: true,
-          render: (item) => (
-            <Text style={styles.primary}>{formatWeekday(item.scheduledStart)}</Text>
-          ),
-        },
-        {
           key: 'date',
-          label: 'Datum',
-          flex: 1,
-          minWidth: 96,
+          label: 'Termin',
+          flex: 1.25,
+          minWidth: 150,
           sortable: true,
           render: (item) => (
-            <Text style={styles.meta}>{formatDate(item.scheduledStart)}</Text>
-          ),
-        },
-        {
-          key: 'timeRange',
-          label: 'Uhrzeit von bis',
-          flex: 1.6,
-          minWidth: 128,
-          sortable: true,
-          render: (item) => (
-            <Text style={styles.meta}>
-              {formatAssignmentTimeRange(item.scheduledStart, item.scheduledEnd)}
-            </Text>
-          ),
-        },
-        {
-          key: 'duration',
-          label: 'Zeit insgesamt',
-          flex: 1,
-          minWidth: 112,
-          render: (item) => (
-            <Text style={styles.meta}>{formatDurationMinutes(item.durationMinutes) || '—'}</Text>
+            <View style={styles.cell}>
+              <Text style={styles.primary}>{formatWeekday(item.scheduledStart)}, {formatDate(item.scheduledStart)}</Text>
+              <Text style={styles.strongMeta}>{formatAssignmentTimeRange(item.scheduledStart, item.scheduledEnd)} · {formatDurationMinutes(item.durationMinutes) || '—'}</Text>
+            </View>
           ),
         },
         {
           key: 'client',
-          label: 'Klient:in',
-          flex: 1.3,
-          minWidth: 120,
+          label: 'Klient:in & Leistung',
+          flex: 1.6,
+          minWidth: 190,
           sortable: true,
-          render: (item) => <Text style={styles.primary}>{item.clientName}</Text>,
+          render: (item) => (
+            <View style={styles.cell}>
+              <Text style={styles.primary}>{item.clientName}</Text>
+              <Text style={styles.meta}>{item.serviceName ?? item.title}</Text>
+            </View>
+          ),
         },
         {
           key: 'employee',
-          label: 'Mitarbeiter:in',
-          flex: 1.3,
-          minWidth: 120,
-          render: (item) => <Text style={styles.meta}>{item.employeeName}</Text>,
-        },
-        {
-          key: 'service',
-          label: 'Leistung',
-          flex: 1.4,
-          minWidth: 140,
+          label: 'Zuständigkeit & Ort',
+          flex: 1.5,
+          minWidth: 180,
           render: (item) => (
-            <View>
-              <Text style={styles.meta}>{item.serviceName ?? item.title}</Text>
-              {item.serviceName && item.serviceName !== item.title ? (
-                <Text style={styles.meta}>{item.title}</Text>
-              ) : null}
+            <View style={styles.cell}>
+              <Text style={styles.primary}>{item.employeeName || 'Noch nicht zugewiesen'}</Text>
+              <Text style={styles.meta} numberOfLines={1}>{item.location || 'Kein Ort hinterlegt'}</Text>
             </View>
           ),
         },
         {
           key: 'status',
           label: 'Status',
-          flex: 1.2,
-          minWidth: 100,
+          flex: 1.15,
+          minWidth: 130,
           render: (item) => (
             <StatusBadgesDropdown badges={buildAssignmentStatusBadges(item)} />
           ),
@@ -143,13 +113,13 @@ export function AssignmentsListTable({
         {
           key: 'actions',
           label: 'Aktionen',
-          flex: 1.8,
-          minWidth: 190,
+          flex: 1.25,
+          minWidth: 150,
           render: (item) => (
             <View style={styles.actions}>
               {onOpenDetail ? (
                 <PremiumButton
-                  title="Öffnen"
+                  title="Details →"
                   variant="secondary"
                   size="sm"
                   onPress={() => onOpenDetail(item.id)}

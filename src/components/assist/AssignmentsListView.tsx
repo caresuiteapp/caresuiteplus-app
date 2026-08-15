@@ -208,7 +208,7 @@ export function AssignmentsListView({
           ...webGlassBlur,
         },
         flatListWeb: { minWidth: Platform.OS === 'web' ? 0 : undefined },
-        toolbar: { gap: spacing.sm, marginBottom: spacing.md, backgroundColor: 'transparent' },
+        toolbar: { gap: spacing.md, marginBottom: spacing.md, backgroundColor: 'transparent' },
         filterLabel: {
           ...typography.label,
           marginTop: spacing.xs,
@@ -248,9 +248,32 @@ export function AssignmentsListView({
         },
         viewToggleRow: {
           flexDirection: 'row',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: spacing.xs,
+          gap: spacing.sm,
+          flexWrap: 'wrap',
+        },
+        commandBar: {
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+          padding: spacing.sm,
+          borderWidth: 1,
+          borderColor: 'rgba(102, 199, 255, 0.22)',
+          borderRadius: 16,
+          backgroundColor: 'rgba(5, 24, 47, 0.72)',
+        },
+        searchHost: { flex: 1, minWidth: 260 },
+        commandActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.xs },
+        resultMeta: { ...typography.caption, color: colors.textMuted },
+        filtersPanel: {
+          gap: spacing.sm,
+          padding: spacing.md,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: 'rgba(102, 199, 255, 0.20)',
+          backgroundColor: 'rgba(7, 27, 50, 0.78)',
         },
     });
   }, [colors, typography]);
@@ -344,12 +367,6 @@ export function AssignmentsListView({
 
   const toolbar = (
     <View style={styles.toolbar}>
-      {isDesktop && !embedded ? (
-        <View style={styles.viewToggleRow}>
-          <DesktopListViewToggle value={viewMode} onChange={setViewMode} />
-        </View>
-      ) : null}
-
       {embedded ? (
         <View style={styles.embeddedHeader}>
           <Text style={styles.embeddedTitle}>Einsatzplanung</Text>
@@ -370,7 +387,7 @@ export function AssignmentsListView({
         />
       )}
 
-      {canManage ? (
+      {canManage && embedded ? (
         <PremiumButton
           title="Neuer Einsatz"
           onPress={openCreate}
@@ -391,36 +408,33 @@ export function AssignmentsListView({
 
       {showSuccess ? <SuccessState message="Liste erfolgreich aktualisiert." /> : null}
 
-      <PremiumInput
-        label="Suche"
-        placeholder="Klient, Mitarbeiter, Adresse, Einsatznummer…"
-        value={search}
-        onChangeText={setSearch}
-        autoCapitalize="words"
-        autoCorrect={false}
-        hint={`${filteredCount} von ${totalCount} Einsätzen`}
-      />
-
-      <View style={styles.filterToggleRow}>
-        <PremiumButton
-          title={filtersExpanded ? 'Filter ausblenden' : 'Filter anzeigen'}
-          variant="secondary"
-          size="sm"
-          onPress={() => setFiltersExpanded((current) => !current)}
-          style={styles.filterToggle}
-        />
-        {hasActiveFilters ? (
-          <PremiumButton
-            title="Filter zurücksetzen"
-            variant="ghost"
-            size="sm"
-            onPress={resetFilters}
-            style={styles.filterToggle}
+      <View style={styles.commandBar}>
+        <View style={styles.searchHost}>
+          <PremiumInput
+            label="Schnellsuche"
+            placeholder="Klient:in, Mitarbeitende, Ort oder Einsatznummer"
+            value={search}
+            onChangeText={setSearch}
+            autoCapitalize="words"
+            autoCorrect={false}
           />
-        ) : null}
+        </View>
+        <View style={styles.commandActions}>
+          <PremiumButton
+            title={filtersExpanded ? 'Filter schließen' : hasActiveFilters ? 'Filter aktiv' : 'Filtern'}
+            variant={hasActiveFilters ? 'primary' : 'secondary'}
+            size="sm"
+            onPress={() => setFiltersExpanded((current) => !current)}
+          />
+          {hasActiveFilters ? (
+            <PremiumButton title="Zurücksetzen" variant="ghost" size="sm" onPress={resetFilters} />
+          ) : null}
+          {isDesktop && !embedded ? <DesktopListViewToggle value={viewMode} onChange={setViewMode} /> : null}
+        </View>
       </View>
+      <Text style={styles.resultMeta}>{filteredCount} von {totalCount} Einsätzen · sortiert nach {sortOptions.find((option) => option.key === sortKey)?.label ?? 'Termin'}</Text>
 
-      {filtersExpanded ? <View style={styles.filterRows}>
+      {filtersExpanded ? <View style={[styles.filterRows, styles.filtersPanel]}>
         <Text style={styles.filterLabel}>Zeitraum</Text>
         <FilterChipGroup
           options={ASSIGNMENT_DATE_RANGE_FILTERS}

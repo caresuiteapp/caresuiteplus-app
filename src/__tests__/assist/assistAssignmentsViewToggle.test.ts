@@ -9,11 +9,12 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Desktop list view toggle Einsatzplanung (Sprint 92)', () => {
-  it('AssignmentsListHero integriert View-Toggle im PremiumListHeroFrame', () => {
+  it('AssignmentsListHero zeigt operative Lage, Live-Metadaten und Kalenderaktion', () => {
     const source = readSrc('src/components/assist/AssignmentsListHero.tsx');
-    expect(source).toContain('DesktopListViewToggle');
-    expect(source).toContain('showViewToggle');
-    expect(source).toContain('PremiumListHeroFrame');
+    expect(source).toContain('Operative Einsatzlage');
+    expect(source).toContain('LIVE-DISPOSITION');
+    expect(source).toContain('Kalender öffnen');
+    expect(source).toContain('kpis.slice(0, 4)');
   });
 
   it('AssignmentsListView schaltet Tabellenansicht per viewMode auf Desktop', () => {

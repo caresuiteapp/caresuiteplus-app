@@ -2,7 +2,6 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PlatformModal } from '@/components/layout/platform';
 import {
-  FilterChipGroup,
   InfoBanner,
   PremiumButton,
   PremiumInput,
@@ -30,10 +29,13 @@ import { fetchTenantServiceCatalog } from '@/lib/tenant/tenantServiceCatalogServ
 import { createVisitFromWizard } from '@/lib/assist/visitService';
 import { ClientBillingProfileSummary } from '@/components/office/ClientAssistBillingPanels';
 import { AssignmentBillingBudgetPanel } from '@/components/assist/AssignmentBillingBudgetPanel';
+import {
+  AssignmentStudioScaffold,
+  type AssignmentStudioStep,
+} from '@/components/assist/AssignmentStudioScaffold';
 import type { AssistBudgetAllocationResult, ManualBudgetAllocationOverride } from '@/types/assist/assignmentBudgetAllocation';
 import { loadTaskPackageItems, mergeTaskDrafts } from '@/lib/assistCatalog';
 import {
-  ASSIGNMENT_CREATE_SECTIONS,
   EMPTY_VISIT_WIZARD_DATA,
   VISIT_RECURRENCE_PATTERN_LABELS,
   VISIT_RECURRENCE_PATTERN_OPTIONS,
@@ -56,6 +58,18 @@ type AssignmentCreateFormProps = {
 type SelectOption = { value: string; label: string };
 
 const FORM_CTX = { viewContext: 'form' as const };
+
+const CREATE_STUDIO_STEPS: readonly AssignmentStudioStep<AssignmentCreateSectionKey>[] = [
+  { key: 'basis', label: 'Grunddaten', icon: 'document-text-outline' },
+  { key: 'people', label: 'Personen', icon: 'people-outline' },
+  { key: 'schedule', label: 'Termin & Serie', icon: 'calendar-outline' },
+  { key: 'type', label: 'Leistung', icon: 'briefcase-outline' },
+  { key: 'tasks', label: 'Aufgaben', icon: 'checkmark-done-outline' },
+  { key: 'hints', label: 'Hinweise', icon: 'shield-checkmark-outline', optional: true },
+  { key: 'billing', label: 'Budget', icon: 'wallet-outline' },
+  { key: 'documentation', label: 'Nachweis', icon: 'clipboard-outline', optional: true },
+  { key: 'review', label: 'Prüfen', icon: 'sparkles-outline' },
+];
 
 function normalizeMultiValue(value: string | string[]): string[] {
   if (Array.isArray(value)) return value;
@@ -276,6 +290,17 @@ export function AssignmentCreateForm({
 
   const showRecurrenceWeekdays =
     form.recurrencePattern === 'weekly' || form.recurrencePattern === 'biweekly';
+
+  const sectionIndex = CREATE_STUDIO_STEPS.findIndex((item) => item.key === section);
+  const selectedClient = clients.find((item) => item.value === form.clientId)?.label ?? '';
+  const selectedEmployee = employees.find((item) => item.value === form.employeeId)?.label ?? '';
+  const selectedService = services.find((item) => item.value === form.serviceKey)?.label
+    ?? subjectOptions.find((item) => item.value === form.subjectKey)?.label
+    ?? form.title;
+  const goToRelativeSection = (offset: number) => {
+    const next = CREATE_STUDIO_STEPS[sectionIndex + offset];
+    if (next) setSection(next.key);
+  };
 
   const handleSave = async (asDraft: boolean) => {
     if (!tenantId || !canManage) return;
@@ -763,34 +788,60 @@ export function AssignmentCreateForm({
       visible={visible}
       onClose={onClose}
       title="Neuer Einsatz"
-      maxWidth={960}
-      maxHeightRatio={0.92}
+      maxWidth={1240}
+      maxHeightRatio={0.95}
       glowColor={assistAccent}
-      footerActions={[{ title: 'Schließen', onPress: onClose, variant: 'glass' }]}
+      dismissOnBackdrop={false}
     >
       {error ? <InfoBanner message={error} variant="danger" /> : null}
-      <FilterChipGroup
-        options={[...ASSIGNMENT_CREATE_SECTIONS]}
-        value={section}
-        onChange={(v) => setSection(v as AssignmentCreateSectionKey)}
-        wrap
-        style={styles.tabBar}
-      />
       <ScrollView
         style={styles.sectionScroll}
         contentContainerStyle={styles.sectionBody}
         keyboardShouldPersistTaps="handled"
       >
-        {renderSection()}
+        <AssignmentStudioScaffold
+          steps={CREATE_STUDIO_STEPS}
+          activeStep={section}
+          onStepChange={setSection}
+          title="Einsatz strukturiert planen"
+          description="Alle Angaben bleiben in einem geführten Ablauf. Pflichtfelder, Zuständigkeit, Budget und Nachweis werden vor der Freigabe gemeinsam geprüft."
+          summary={[
+            { label: 'Klient:in', value: selectedClient, icon: 'person-outline' },
+            { label: 'Termin', value: form.assignmentDate ? `${form.assignmentDate} · ${form.plannedStartTime}–${form.plannedEndTime}` : '', icon: 'time-outline' },
+            { label: 'Mitarbeitende:r', value: selectedEmployee || 'Noch nicht zugewiesen', icon: 'person-add-outline', tone: selectedEmployee ? 'success' : 'warning' },
+            { label: 'Leistung', value: selectedService, icon: 'briefcase-outline' },
+          ]}
+          footer={
+            <>
+              <PremiumButton title="Abbrechen" variant="ghost" onPress={onClose} />
+              <View style={styles.footerActions}>
+                {sectionIndex > 0 ? (
+                  <PremiumButton title="Zurück" variant="secondary" onPress={() => goToRelativeSection(-1)} />
+                ) : null}
+                {sectionIndex < CREATE_STUDIO_STEPS.length - 1 ? (
+                  <PremiumButton title="Weiter" onPress={() => goToRelativeSection(1)} />
+                ) : (
+                  <PremiumButton
+                    title="Einsatz verbindlich anlegen"
+                    onPress={() => void handleSave(false)}
+                    loading={loading}
+                    disabled={loading || !form.clientId}
+                  />
+                )}
+              </View>
+            </>
+          }
+        >
+          {renderSection()}
+        </AssignmentStudioScaffold>
       </ScrollView>
     </PlatformModal>
   );
 }
 
 const styles = StyleSheet.create({
-  tabBar: { marginBottom: careSpacing.sm, flexGrow: 0 },
   sectionScroll: { flexGrow: 1, flexShrink: 1, maxWidth: '100%' },
-  sectionBody: { gap: careSpacing.md, paddingBottom: careSpacing.lg, minHeight: 120 },
+  sectionBody: { gap: careSpacing.md, paddingBottom: careSpacing.sm, minHeight: 120 },
   hint: { ...typography.caption, marginBottom: spacing.sm },
   packageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
   packageCard: {
@@ -811,4 +862,5 @@ const styles = StyleSheet.create({
   },
   taskTitle: { ...typography.body, flex: 1 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  footerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });

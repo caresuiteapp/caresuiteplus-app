@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AssignmentEditForm } from '@/components/assist/AssignmentEditForm';
-import { FormScreenHero } from '@/components/forms';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, LoadingState, SuccessState } from '@/components/ui';
 import { fetchVisitDispositionDetail } from '@/lib/assist/visitService';
@@ -9,7 +8,6 @@ import type { VisitDispositionDetail } from '@/lib/assist/visitTypes';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePermissions } from '@/hooks/usePermissions';
-import { colors } from '@/theme';
 
 /** /assist/einsaetze/[id]/edit */
 export function AssignmentEditScreen() {
@@ -64,15 +62,11 @@ export function AssignmentEditScreen() {
   }
 
   return (
-    <ScreenShell title="Einsatz bearbeiten" subtitle={roleLabel ?? 'Assist'} onBack={() => router.back()}>
-      <FormScreenHero
-        eyebrow="ASSIST · EINSATZ"
-        title="Einsatz bearbeiten"
-        meta="Bezeichnung, Termin, Ort, Status und Katalogfelder"
-        icon="✏️"
-        formMode="edit"
-        accentColor={colors.success}
-      />
+    <ScreenShell
+      title="Einsatz bearbeiten"
+      subtitle={`${visit.clientName} · ${roleLabel ?? 'Assist'}`}
+      onBack={() => router.back()}
+    >
       <AssignmentEditForm
         visitId={id}
         initialVisit={visit}

@@ -17,6 +17,10 @@ import {
 } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { moduleColor } from '@/design/tokens/modules';
+import {
+  AssignmentStudioScaffold,
+  type AssignmentStudioStep,
+} from '@/components/assist/AssignmentStudioScaffold';
 import { useAssistAssignmentOptions } from '@/hooks/assistCatalog/useAssistCatalog';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -57,6 +61,18 @@ const EDITABLE_STATUS_OPTIONS: AssignmentStatus[] = [
   'bestaetigt',
   'storniert',
   'abgeschlossen',
+];
+
+type EditSectionKey = 'overview' | 'people' | 'schedule' | 'tasks' | 'status' | 'catalog' | 'documentation';
+
+const EDIT_STUDIO_STEPS: readonly AssignmentStudioStep<EditSectionKey>[] = [
+  { key: 'overview', label: 'Übersicht', icon: 'grid-outline' },
+  { key: 'people', label: 'Personen', icon: 'people-outline' },
+  { key: 'schedule', label: 'Termin & Ort', icon: 'calendar-outline' },
+  { key: 'tasks', label: 'Aufgaben', icon: 'checkmark-done-outline' },
+  { key: 'status', label: 'Status', icon: 'pulse-outline' },
+  { key: 'catalog', label: 'Leistung', icon: 'briefcase-outline' },
+  { key: 'documentation', label: 'Nachweis', icon: 'clipboard-outline', optional: true },
 ];
 
 function ChipSelect({
@@ -150,6 +166,7 @@ export function AssignmentEditForm({
   const [saving, setSaving] = useState(false);
   const [seriesScope, setSeriesScope] = useState<VisitSeriesMutationScope>('this_only');
   const [error, setError] = useState<string | null>(null);
+  const [section, setSection] = useState<EditSectionKey>('overview');
 
   const patch = useCallback((partial: Partial<VisitEditFormData>) => {
     setForm((prev) => ({ ...prev, ...partial }));
@@ -212,6 +229,10 @@ export function AssignmentEditForm({
     }));
   }, [form.assignmentStatus, initialVisit.assignmentStatus]);
 
+  const selectedClient = clients.find((item) => item.value === form.clientId)?.label ?? initialVisit.clientName;
+  const selectedEmployee = employees.find((item) => item.value === form.employeeId)?.label ?? initialVisit.employeeName;
+  const completedTasks = initialVisit.tasks.filter((task) => task.status === 'done').length;
+
   const handleSave = async () => {
     if (!tenantId || !canManage) return;
     const validation = validateAssignmentCreateForm({
@@ -251,12 +272,35 @@ export function AssignmentEditForm({
   return (
     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
       {error ? <ErrorState message={error} /> : null}
-
+      <AssignmentStudioScaffold
+        steps={EDIT_STUDIO_STEPS}
+        activeStep={section}
+        onStepChange={setSection}
+        title={form.title || 'Einsatz bearbeiten'}
+        description="Termin, Zuständigkeit, Aufgaben und Nachweise werden als zusammenhängender Arbeitsablauf gepflegt. Änderungen bleiben bis zum Speichern lokal."
+        summary={[
+          { label: 'Klient:in', value: selectedClient, icon: 'person-outline' },
+          { label: 'Termin', value: `${form.assignmentDate} · ${form.plannedStartTime}–${form.plannedEndTime}`, icon: 'time-outline' },
+          { label: 'Zuständig', value: selectedEmployee || 'Nicht zugewiesen', icon: 'person-add-outline', tone: selectedEmployee ? 'success' : 'warning' },
+          { label: 'Aufgaben', value: `${completedTasks} von ${initialVisit.tasks.length} erledigt`, icon: 'checkmark-circle-outline', tone: completedTasks === initialVisit.tasks.length && initialVisit.tasks.length > 0 ? 'success' : 'info' },
+        ]}
+        footer={
+          <>
+            <PremiumButton title="Abbrechen" variant="ghost" onPress={onCancel} />
+            <PremiumButton
+              title="Änderungen speichern"
+              loading={saving}
+              disabled={saving || !form.title.trim() || !form.clientId}
+              onPress={() => void handleSave()}
+            />
+          </>
+        }
+      >
       {(() => {
         const recurrence = parseVisitRecurrenceJson(initialVisit.recurrenceJson);
         const isSeriesOccurrence =
           recurrence.pattern !== 'none' || Boolean(recurrence.parentSeriesId);
-        return isSeriesOccurrence ? (
+        return isSeriesOccurrence && section === 'schedule' ? (
           <SectionPanel {...FORM_CTX} title="Änderungsbereich">
             <InfoBanner
               message={
@@ -279,6 +323,7 @@ export function AssignmentEditForm({
         ) : null;
       })()}
 
+      {section === 'overview' ? (
       <SectionPanel {...FORM_CTX} title="Basisdaten">
         <PremiumInput
           {...FORM_CTX}
@@ -295,7 +340,9 @@ export function AssignmentEditForm({
           multiline
         />
       </SectionPanel>
+      ) : null}
 
+      {section === 'people' ? (
       <SectionPanel {...FORM_CTX} title="Klient:in & Mitarbeitende:r">
         {listsLoading ? (
           <Text style={[styles.hint, { color: text.primary }]}>Klient:innen und Mitarbeitende werden geladen…</Text>
@@ -313,8 +360,10 @@ export function AssignmentEditForm({
           onChange={(employeeId) => patch({ employeeId })}
         />
       </SectionPanel>
+      ) : null}
 
-      <SectionPanel {...FORM_CTX} title="Termin">
+      {section === 'schedule' ? <>
+      <SectionPanel {...FORM_CTX} title="Termin & Dauer">
         <CareDateInput
           {...FORM_CTX}
           label="Datum *"
@@ -337,7 +386,7 @@ export function AssignmentEditForm({
         />
       </SectionPanel>
 
-      <SectionPanel {...FORM_CTX} title="Ort & Notizen">
+      <SectionPanel {...FORM_CTX} title="Ort & zielgerichtete Hinweise">
         <PremiumInput
           {...FORM_CTX}
           label="Ort"
@@ -374,20 +423,36 @@ export function AssignmentEditForm({
           multiline
         />
       </SectionPanel>
+      </> : null}
 
+      {section === 'tasks' ? (
       <SectionPanel {...FORM_CTX} title="Aufgaben">
         {form.taskDrafts.map((task, index) => (
-          <PremiumInput
-            {...FORM_CTX}
-            key={`${task.itemKey}-${index}`}
-            label={`Aufgabe ${index + 1}${task.isRequired ? ' *' : ''}`}
-            value={task.title}
-            onChangeText={(title) => {
-              const taskDrafts = [...form.taskDrafts];
-              taskDrafts[index] = { ...task, title };
-              patch({ taskDrafts, tasks: taskDrafts.map((entry) => entry.title) });
-            }}
-          />
+          <View key={`${task.itemKey}-${index}`} style={styles.taskRow}>
+            <View style={styles.taskIndex}><Text style={styles.taskIndexText}>{index + 1}</Text></View>
+            <PremiumInput
+              {...FORM_CTX}
+              style={styles.taskInput}
+              label={task.isRequired ? 'Pflichtaufgabe' : 'Aufgabe'}
+              value={task.title}
+              onChangeText={(title) => {
+                const taskDrafts = [...form.taskDrafts];
+                taskDrafts[index] = { ...task, title };
+                patch({ taskDrafts, tasks: taskDrafts.map((entry) => entry.title) });
+              }}
+            />
+            {!task.isRequired ? (
+              <PremiumButton
+                title="Entfernen"
+                size="sm"
+                variant="ghost"
+                onPress={() => {
+                  const taskDrafts = form.taskDrafts.filter((_, taskIndex) => taskIndex !== index);
+                  patch({ taskDrafts, tasks: taskDrafts.map((entry) => entry.title) });
+                }}
+              />
+            ) : null}
+          </View>
         ))}
         <PremiumButton
           title="Aufgabe hinzufügen"
@@ -408,8 +473,14 @@ export function AssignmentEditForm({
           }}
         />
       </SectionPanel>
+      ) : null}
 
+      {section === 'status' ? (
       <SectionPanel {...FORM_CTX} title="Status">
+        <InfoBanner
+          message="Der Status steuert Sichtbarkeit, Durchführung, Dokumentationspflicht und Abrechnung. Bereits ausgeführte Schritte bleiben nachvollziehbar."
+          variant="info"
+        />
         <FilterChipGroup
           options={statusOptions}
           value={form.assignmentStatus}
@@ -419,7 +490,9 @@ export function AssignmentEditForm({
           wrap
         />
       </SectionPanel>
+      ) : null}
 
+      {section === 'catalog' ? (
       <SectionPanel {...FORM_CTX} title="Einsatzart & Katalog">
         {optionsLoading ? (
           <Text style={[styles.hint, { color: text.primary }]}>Kataloge werden geladen…</Text>
@@ -463,7 +536,9 @@ export function AssignmentEditForm({
           }}
         />
       </SectionPanel>
+      ) : null}
 
+      {section === 'documentation' ? (
       <SectionPanel {...FORM_CTX} title="Dokumentation & Portal">
         <PremiumInput
           {...FORM_CTX}
@@ -486,23 +561,17 @@ export function AssignmentEditForm({
           onChange={(value) => patch({ portalReleaseEnabled: value === 'visible' })}
         />
       </SectionPanel>
-
-      <View style={styles.actions}>
-        <PremiumButton
-          title="Speichern"
-          fullWidth
-          loading={saving}
-          disabled={saving || !form.title.trim() || !form.clientId}
-          onPress={() => void handleSave()}
-        />
-        <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={onCancel} />
-      </View>
+      ) : null}
+      </AssignmentStudioScaffold>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
+  scroll: { gap: spacing.md, paddingBottom: spacing.xxl, paddingHorizontal: spacing.xs },
   hint: { ...typography.caption, marginBottom: spacing.sm },
-  actions: { gap: spacing.sm },
+  taskRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, marginBottom: spacing.sm },
+  taskIndex: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 8, backgroundColor: 'rgba(47,168,255,0.16)', borderWidth: 1, borderColor: 'rgba(92,190,255,0.38)' },
+  taskIndexText: { color: '#8FD7FF', fontWeight: '800', fontSize: 12 },
+  taskInput: { minWidth: 180 },
 });
