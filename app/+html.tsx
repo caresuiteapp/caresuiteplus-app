@@ -32,6 +32,31 @@ export default function Root({ children }: PropsWithChildren) {
               ${DISABLE_HOVER_EFFECTS_CSS}
               ${INVISIBLE_SCROLLBARS_CSS}
               ${GLASS_SCROLLBARS_CSS}
+              html[data-cs-central-home],
+              html[data-cs-central-home] body,
+              html[data-cs-central-home] #root,
+              html[data-cs-central-home] [data-expo-root] {
+                width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+                border: 0 !important;
+                outline: 0 !important;
+                background: #03132b !important;
+                box-shadow: none !important;
+              }
+              html[data-cs-central-home] body::before,
+              html[data-cs-central-home] body::after {
+                display: none !important;
+                content: none !important;
+              }
+              html[data-cs-central-popup],
+              html[data-cs-central-popup] body,
+              html[data-cs-central-popup] #root,
+              html[data-cs-central-popup] [data-expo-root] {
+                background: #020b1b !important;
+              }
               #caresuite-web-boot {
                 position: fixed;
                 inset: 0;
