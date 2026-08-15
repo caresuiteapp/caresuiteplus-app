@@ -22,8 +22,10 @@ function normalizeRoutePattern(routePattern: string): string {
     .replace(/\\/g, '/')
     .replace(/^app\//, '/')
     .replace(/\.(tsx|ts|jsx|js)$/, '')
+    .replace(/^\/?index$/, '')
     .replace(/\/index$/, '')
     .replace(/\/+/g, '/');
+  if (!clean) return '/';
   return clean.startsWith('/') ? clean : `/${clean}`;
 }
 
