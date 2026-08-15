@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
-import { usePathname, useRouter, useSegments } from 'expo-router';
+import { Platform, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { usePathname, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getBreadcrumbs } from '@/lib/navigation';
 import { isAuthRoutePath, isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
@@ -14,11 +14,10 @@ import {
 import { spacing } from '@/theme';
 import {
   isHealthOSContextualPopupRoute,
-  resolveHealthOSPopupFallbackPath,
 } from '@/lib/navigation/healthosRoutePresentation';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { AutoScrollView } from './AutoScrollView';
 import { ScreenHeader } from './ScreenHeader';
-import { PlatformModal } from './platform/platformmodal';
 import { HealthOSPageSurface, HealthOSPageZone } from './HealthOSPageSurface';
 
 type ScreenShellProps = {
@@ -58,7 +57,6 @@ export function ScreenShell({
   compactHeader = false,
 }: ScreenShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const segments = useSegments();
   const insets = useSafeAreaInsets();
   const { isPhone } = useDeviceClass();
@@ -113,6 +111,58 @@ export function ScreenShell({
           width: '100%',
           gap: spacing.md,
         },
+        centralPopupWorkspace: {
+          flex: 1,
+          flexGrow: 1,
+          minHeight: 0,
+          width: '100%',
+          overflow: 'hidden',
+          backgroundColor: 'rgba(4,17,37,0.96)',
+        },
+        centralPopupPageHeader: {
+          minHeight: isPhone ? 66 : 84,
+          flexShrink: 0,
+          paddingHorizontal: isPhone ? spacing.md : spacing.lg,
+          paddingVertical: isPhone ? spacing.sm : spacing.md,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: spacing.md,
+          borderBottomWidth: 1,
+          borderBottomColor: 'rgba(117,211,255,0.28)',
+          backgroundColor: 'rgba(8,29,57,0.93)',
+        },
+        centralPopupTitleGroup: {
+          flex: 1,
+          minWidth: 0,
+        },
+        centralPopupEyebrow: {
+          color: '#78DCFF',
+          fontSize: 10,
+          lineHeight: 14,
+          fontWeight: '900',
+          letterSpacing: 1.4,
+          textTransform: 'uppercase',
+        },
+        centralPopupTitle: {
+          color: '#F5FAFF',
+          fontSize: isPhone ? 19 : 24,
+          lineHeight: isPhone ? 24 : 30,
+          fontWeight: '900',
+          letterSpacing: -0.4,
+          marginTop: 2,
+        },
+        centralPopupSubtitle: {
+          color: '#AFC9E0',
+          fontSize: 12,
+          lineHeight: 17,
+          fontWeight: '600',
+          marginTop: 2,
+        },
+        centralPopupActions: {
+          flexShrink: 0,
+          alignItems: 'flex-end',
+        },
       }),
     [bottomPad, isAuthRoute, isPhone],
   );
@@ -148,31 +198,32 @@ export function ScreenShell({
   const rootStyle: ViewStyle[] = [styles.root];
   if (useMobileTouchScroll && Platform.OS === 'web') rootStyle.push(webShellViewportLockStyle());
 
-  const closeContextualPopup = () => {
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-    router.replace(resolveHealthOSPopupFallbackPath(pathname) as never);
-  };
-
   if (contextualPopup) {
     return (
-      <View style={rootStyle} testID="screen-shell-contextual-popup">
-        <PlatformModal
-          visible
-          title={title}
-          subtitle={subtitle}
-          onClose={closeContextualPopup}
-          headerActions={effectiveRightSlot}
-          maxWidth={1180}
-          minWidth={320}
-          maxHeightRatio={0.94}
-          bodyStyle={styles.popupBody}
+      <SurfaceContrastProvider tone="dark">
+        <View
+          style={[rootStyle, styles.centralPopupWorkspace]}
+          testID="screen-shell-contextual-popup"
+          {...(Platform.OS === 'web'
+            ? ({ dataSet: { csCentralPopupWorkspace: 'true' } } as object)
+            : {})}
         >
-          {structuredContent}
-        </PlatformModal>
-      </View>
+          <View
+            style={styles.centralPopupPageHeader}
+            {...(Platform.OS === 'web'
+              ? ({ dataSet: { csCentralPopupPageHeader: 'true' } } as object)
+              : {})}
+          >
+            <View style={styles.centralPopupTitleGroup}>
+              <Text style={styles.centralPopupEyebrow}>CareSuite HealthOS</Text>
+              <Text numberOfLines={2} style={styles.centralPopupTitle}>{title}</Text>
+              {subtitle ? <Text numberOfLines={2} style={styles.centralPopupSubtitle}>{subtitle}</Text> : null}
+            </View>
+            {effectiveRightSlot ? <View style={styles.centralPopupActions}>{effectiveRightSlot}</View> : null}
+          </View>
+          <HealthOSPageSurface padded={false}>{body}</HealthOSPageSurface>
+        </View>
+      </SurfaceContrastProvider>
     );
   }
 
