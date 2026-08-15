@@ -35,6 +35,22 @@ if (__DEV__ && Platform.OS === 'web') {
 
 const SURFACE_COLOR = 'transparent';
 
+const POPUP_TITLES: Record<string, string> = {
+  company: 'Unternehmen', dashboard: 'Unternehmen', clients: 'Klient:innen', employees: 'Personal',
+  'time-tracking': 'Arbeitszeit', payroll: 'Gehaltsstatistik', invoices: 'Rechnungen',
+  documents: 'Dokumente', messages: 'Nachrichten', portals: 'Portale & Zugänge',
+  inventory: 'Inventar', audit: 'Audit', 'audit-log': 'Audit', assignments: 'Einsätze', einsaetze: 'Einsätze',
+  calendar: 'Kalender & Einsatzplanung', kalender: 'Kalender & Einsatzplanung',
+  'live-status': 'Live-Status', evidence: 'Nachweise', nachweise: 'Nachweise',
+  budgets: 'Budgets', abrechnungsquellen: 'Budgets', 'portal-access': 'Portale',
+  'command-center': 'Command Center', office: 'Office', assist: 'Assist', settings: 'Einstellungen', profile: 'Profil',
+};
+
+function popupTitle(pathname: string): string {
+  const segment = pathname.split('/').filter(Boolean).at(-1) ?? '';
+  return POPUP_TITLES[segment] ?? decodeURIComponent(segment).replace(/-/g, ' ');
+}
+
 function RootShell() {
   const { mode } = useThemeMode();
   const pathname = usePathname();
@@ -62,8 +78,14 @@ function RootShell() {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
     const internalOrbit = isLiquidCommandRoute && !isPortalRoutePath(pathname);
     document.documentElement.toggleAttribute('data-cs-orbit-internal', internalOrbit);
-    return () => document.documentElement.removeAttribute('data-cs-orbit-internal');
-  }, [isLiquidCommandRoute, pathname]);
+    document.documentElement.toggleAttribute('data-cs-central-home', pathname === '/');
+    document.documentElement.toggleAttribute('data-cs-central-popup', currentRouteIsPopup);
+    return () => {
+      document.documentElement.removeAttribute('data-cs-orbit-internal');
+      document.documentElement.removeAttribute('data-cs-central-home');
+      document.documentElement.removeAttribute('data-cs-central-popup');
+    };
+  }, [currentRouteIsPopup, isLiquidCommandRoute, pathname]);
 
   const backgroundAnimated =
     hydrated && hostsGlobalBackground && shouldUseHeavyEffects(perf);
@@ -100,8 +122,8 @@ function RootShell() {
                   headerShown: false,
                   contentStyle: contextualPopup
                     ? {
-                        backgroundColor: 'rgba(0, 7, 20, 0.68)',
-                        paddingTop: compactPopup ? 60 : 82,
+                        backgroundColor: 'rgba(0, 7, 20, 0.74)',
+                        paddingTop: compactPopup ? 62 : 86,
                         paddingBottom: compactPopup ? 8 : 24,
                         paddingHorizontal: compactPopup ? 8 : 24,
                       }
@@ -112,18 +134,28 @@ function RootShell() {
               }}
             />
             {currentRouteIsPopup ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Popup schließen und zur zentralen Startseite zurückkehren"
-                onPress={() => router.replace('/' as never)}
-                style={({ pressed }) => [
-                  styles.centralPopupGlobalClose,
-                  compactPopup && styles.centralPopupGlobalCloseCompact,
-                  pressed && styles.centralPopupGlobalClosePressed,
-                ]}
-              >
-                <Text style={styles.centralPopupGlobalCloseText}>×</Text>
-              </Pressable>
+              <>
+                <View pointerEvents="none" style={[styles.centralPopupFrame, compactPopup && styles.centralPopupFrameCompact]} />
+                <View style={[styles.centralPopupChrome, compactPopup && styles.centralPopupChromeCompact]}>
+                  <View style={styles.centralPopupChromeCopy}>
+                    <Text numberOfLines={1} style={styles.centralPopupBrand}>CareSuite <Text style={styles.centralPopupBrandAccent}>HealthOS</Text></Text>
+                    {!compactPopup ? <View style={styles.centralPopupDivider} /> : null}
+                    <Text numberOfLines={1} style={styles.centralPopupTitle}>{popupTitle(pathname)}</Text>
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Popup schließen und zur zentralen Startseite zurückkehren"
+                    onPress={() => router.replace('/' as never)}
+                    style={({ pressed }) => [
+                      styles.centralPopupGlobalClose,
+                      compactPopup && styles.centralPopupGlobalCloseCompact,
+                      pressed && styles.centralPopupGlobalClosePressed,
+                    ]}
+                  >
+                    <Text style={styles.centralPopupGlobalCloseText}>×</Text>
+                  </Pressable>
+                </View>
+              </>
             ) : null}
           </View>
         </View>
@@ -171,11 +203,49 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  centralPopupGlobalClose: {
+  centralPopupFrame: {
     position: 'absolute',
-    top: 24,
-    right: 34,
-    zIndex: 10000,
+    top: 78,
+    right: 18,
+    bottom: 18,
+    left: 18,
+    zIndex: 9998,
+    borderRadius: 34,
+    borderWidth: 1,
+    borderColor: 'rgba(124, 211, 255, 0.46)',
+    shadowColor: '#42C7FF',
+    shadowOpacity: 0.22,
+    shadowRadius: 28,
+  },
+  centralPopupFrameCompact: { top: 56, right: 4, bottom: 4, left: 4, borderRadius: 25 },
+  centralPopupChrome: {
+    position: 'absolute',
+    top: 15,
+    right: 24,
+    left: 24,
+    zIndex: 9999,
+    height: 58,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(132, 213, 255, 0.46)',
+    backgroundColor: 'rgba(3, 18, 41, 0.9)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 21,
+    paddingRight: 7,
+    shadowColor: '#1CB5FF',
+    shadowOpacity: 0.27,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+  },
+  centralPopupChromeCompact: { top: 7, right: 8, left: 8, height: 48, borderRadius: 20, paddingLeft: 14, paddingRight: 4 },
+  centralPopupChromeCopy: { minWidth: 0, flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  centralPopupBrand: { flexShrink: 0, color: '#FFFFFF', fontSize: 19, lineHeight: 23, fontWeight: '700' },
+  centralPopupBrandAccent: { color: '#80D9FF' },
+  centralPopupDivider: { width: 1, height: 24, backgroundColor: 'rgba(140, 207, 255, 0.26)' },
+  centralPopupTitle: { minWidth: 0, flex: 1, color: '#EAF7FF', fontSize: 15, lineHeight: 20, fontWeight: '800', textTransform: 'capitalize' },
+  centralPopupGlobalClose: {
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -189,7 +259,7 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
   },
-  centralPopupGlobalCloseCompact: { top: 8, right: 12, width: 44, height: 44, borderRadius: 22 },
+  centralPopupGlobalCloseCompact: { width: 40, height: 40, borderRadius: 20 },
   centralPopupGlobalClosePressed: { opacity: 0.76, transform: [{ scale: 0.96 }] },
   centralPopupGlobalCloseText: { color: '#FFFFFF', fontSize: 34, lineHeight: 36, fontWeight: '300', marginTop: -3 },
   root: {
