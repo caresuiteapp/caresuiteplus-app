@@ -125,17 +125,22 @@ export function WorkflowFeedbackOverlay({
     >
       <View style={[styles.backdrop, loading && styles.loadingBackdrop]} />
       <View
-        style={[styles.dialog, portal.active && styles.portalDialog, { borderColor: meta.color }]}
+        style={[
+          styles.dialog,
+          loading ? styles.loadingDialog : portal.active && styles.portalDialog,
+          { borderColor: loading ? 'rgba(85, 216, 255, 0.52)' : meta.color },
+        ]}
         {...(Platform.OS === 'web'
           ? ({ dataSet: { csHealthosComponent: 'modal' } } as object)
           : {})}
       >
         {loading ? (
           <View style={styles.loadingContent}>
+            <View style={styles.loadingGlowCyan} />
+            <View style={styles.loadingGlowViolet} />
             <CareSuiteLoadingIndicator width={240} />
-            <Text style={[styles.loadingTitle, portal.active && styles.portalTitle]}>CareSuite lädt</Text>
-            <Text style={[styles.message, portal.active && styles.portalMessage]}>{loadingMessage}</Text>
-            <Text style={[styles.wait, portal.active && styles.portalWait]}>
+            <Text style={styles.loadingMessage}>{loadingMessage}</Text>
+            <Text style={styles.loadingWait}>
               Bitte warten und diese Seite nicht schließen.
             </Text>
           </View>
@@ -230,6 +235,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 18 },
     elevation: 24,
   },
+  loadingDialog: {
+    overflow: 'hidden',
+    backgroundColor: 'rgba(7, 24, 45, 0.985)',
+    shadowColor: '#55D8FF',
+    shadowOpacity: 0.28,
+    shadowRadius: 38,
+    shadowOffset: { width: 0, height: 18 },
+  },
   portalDialog: {
     backgroundColor: portalPremium.surfaceRaised,
     shadowColor: '#002657',
@@ -280,9 +293,42 @@ const styles = StyleSheet.create({
   },
   actionPrimaryText: { ...typography.body, color: '#0D1022', fontWeight: '800' },
   actionText: { ...typography.body, color: spatialCare.textOnNight, fontWeight: '800' },
-  loadingContent: { alignItems: 'center', gap: careSpacing.sm, paddingVertical: careSpacing.md },
-  loadingTitle: { ...typography.h2, color: spatialCare.textOnNight, textAlign: 'center' },
-  wait: { ...typography.caption, color: spatialCare.textOnNightMuted, textAlign: 'center' },
+  loadingContent: {
+    position: 'relative',
+    alignItems: 'center',
+    gap: careSpacing.sm,
+    paddingVertical: careSpacing.md,
+  },
+  loadingGlowCyan: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    right: -150,
+    top: -180,
+    borderRadius: 130,
+    backgroundColor: 'rgba(38, 157, 255, 0.18)',
+  },
+  loadingGlowViolet: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    left: -150,
+    bottom: -175,
+    borderRadius: 110,
+    backgroundColor: 'rgba(139, 124, 255, 0.18)',
+  },
+  loadingMessage: {
+    ...typography.h3,
+    color: '#F4FAFF',
+    textAlign: 'center',
+    lineHeight: 28,
+  },
+  loadingWait: {
+    ...typography.caption,
+    color: '#A9BDD3',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
   portalTitle: { color: portalPremium.text.primary },
   portalMessage: { color: portalPremium.text.secondary },
   portalWait: { color: portalPremium.text.muted },

@@ -20,9 +20,11 @@ describe('WorkflowFeedbackOverlay', () => {
     expect(source).toContain('transparent');
   });
 
-  it('zeigt laufende Vorgänge mit dem CareSuite-Ladeindikator', () => {
+  it('zeigt laufende Vorgänge mit dem HealthOS-Orbit ohne doppelten Markentext', () => {
     expect(source).toContain('<CareSuiteLoadingIndicator');
-    expect(source).toContain('CareSuite lädt');
+    expect(source).not.toContain('CareSuite lädt');
+    expect(source).toContain('styles.loadingDialog');
+    expect(source).toContain("color: '#F4FAFF'");
     expect(source).toContain('Bitte warten und diese Seite nicht schließen.');
     expect(source).toContain('setMessageVisible(false)');
   });
