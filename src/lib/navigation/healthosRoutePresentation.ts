@@ -6,6 +6,7 @@ const FULL_PAGE_PREFIXES = [
   '/platform/login',
   '/impressum',
   '/datenschutz',
+  '/christianreinhardt',
   '/agb',
 ];
 
