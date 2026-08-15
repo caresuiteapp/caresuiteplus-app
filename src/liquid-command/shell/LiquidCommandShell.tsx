@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { useOfficeMessageNavBadges } from '@/hooks/useOfficeMessageNavBadges';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
@@ -703,6 +703,7 @@ export function LiquidCommandShell({
   showPageHeader = true,
   showContextBar = true,
 }: LiquidCommandShellProps) {
+  const pathname = usePathname();
   const layout = useLiquidLayout();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -851,6 +852,26 @@ export function LiquidCommandShell({
     </View>
   );
 
+  if (pathname !== '/') {
+    return (
+      <View accessibilityViewIsModal style={styles.centralPopupContent}>
+        <ScrollView
+          testID="liquid-command-page-scroll"
+          style={styles.centralPopupScroll}
+          contentContainerStyle={styles.centralPopupScrollContent}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+        >
+          {workspaceContent}
+        </ScrollView>
+        <CommandPalette visible={paletteOpen} onClose={() => setPaletteOpen(false)} />
+        <NotificationCenter visible={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+        <ProfileMenu visible={profileOpen} onClose={() => setProfileOpen(false)} />
+      </View>
+    );
+  }
+
   return (
     <LiquidBackdrop>
       <View style={styles.shell}>
@@ -919,6 +940,13 @@ export function LiquidCommandShell({
 }
 
 const styles = StyleSheet.create({
+  centralPopupContent: {
+    flex: 1,
+    backgroundColor: 'rgba(241, 247, 255, 0.97)',
+    overflow: 'hidden',
+  },
+  centralPopupScroll: { flex: 1 },
+  centralPopupScrollContent: { flexGrow: 1 },
   orbitModuleBar: {
     minHeight: 76,
     paddingHorizontal: 16,

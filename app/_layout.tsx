@@ -1,8 +1,8 @@
 import 'react-native-reanimated';
-import { Stack, usePathname } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View, StyleSheet, Platform, type ViewStyle } from 'react-native';
+import { Pressable, Text, View, StyleSheet, Platform, useWindowDimensions, type ViewStyle } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { applyInvisibleScrollIndicators } from '@/product-workflows/design/scroll/applyInvisibleScrollIndicators';
 import { ThemeModeProvider, useThemeMode } from '@/product-workflows/design/ThemeModeProvider';
@@ -38,6 +38,10 @@ const SURFACE_COLOR = 'transparent';
 function RootShell() {
   const { mode } = useThemeMode();
   const pathname = usePathname();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const compactPopup = width < 780;
+  const currentRouteIsPopup = isHealthOSContextualPopupRoute(pathname);
   const hydrated = useHydrated();
   const perf = useDevicePerformance();
   const isLiquidCommandRoute = isLiquidCommandRoutePath(pathname);
@@ -94,12 +98,33 @@ function RootShell() {
                 const contextualPopup = isHealthOSContextualPopupRoute(route.name);
                 return {
                   headerShown: false,
-                  contentStyle: { backgroundColor: SURFACE_COLOR },
+                  contentStyle: contextualPopup
+                    ? {
+                        backgroundColor: 'rgba(0, 7, 20, 0.68)',
+                        paddingTop: compactPopup ? 60 : 82,
+                        paddingBottom: compactPopup ? 8 : 24,
+                        paddingHorizontal: compactPopup ? 8 : 24,
+                      }
+                    : { backgroundColor: SURFACE_COLOR },
                   animation: contextualPopup ? 'fade' : 'slide_from_right',
                   presentation: contextualPopup ? 'transparentModal' : 'card',
                 };
               }}
             />
+            {currentRouteIsPopup ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Popup schließen und zur zentralen Startseite zurückkehren"
+                onPress={() => router.replace('/' as never)}
+                style={({ pressed }) => [
+                  styles.centralPopupGlobalClose,
+                  compactPopup && styles.centralPopupGlobalCloseCompact,
+                  pressed && styles.centralPopupGlobalClosePressed,
+                ]}
+              >
+                <Text style={styles.centralPopupGlobalCloseText}>×</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </View>
@@ -146,6 +171,27 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  centralPopupGlobalClose: {
+    position: 'absolute',
+    top: 24,
+    right: 34,
+    zIndex: 10000,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(126, 207, 255, 0.58)',
+    backgroundColor: 'rgba(4, 20, 45, 0.94)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1CB5FF',
+    shadowOpacity: 0.34,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  centralPopupGlobalCloseCompact: { top: 8, right: 12, width: 44, height: 44, borderRadius: 22 },
+  centralPopupGlobalClosePressed: { opacity: 0.76, transform: [{ scale: 0.96 }] },
+  centralPopupGlobalCloseText: { color: '#FFFFFF', fontSize: 34, lineHeight: 36, fontWeight: '300', marginTop: -3 },
   root: {
     flex: 1,
     backgroundColor: 'transparent',

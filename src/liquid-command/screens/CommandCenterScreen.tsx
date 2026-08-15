@@ -1,842 +1,233 @@
-import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useCurrentSystemAdapter } from '../adapters/currentSystemAdapter';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  LiquidButton,
-  LiquidGlyph,
-  LiquidMetric,
-  LiquidState,
-  LiquidStatus,
-  LiquidSurface,
-  LiquidText,
-} from '../components/LiquidPrimitives';
-import { liquidColors, liquidRadius } from '../foundation/tokens';
-import { useLiquidLayout } from '../foundation/useLiquidLayout';
-import { LiquidCommandShell } from '../shell/LiquidCommandShell';
-import { ClientNetworkMap } from '../components/ClientNetworkMap';
-import { ClinicalBodyMapPreview } from '../components/ClinicalBodyMapPreview';
+  Image,
+  ImageBackground,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/lib/auth';
+import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
+import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 
-function formatTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '–';
+type WidgetDefinition = {
+  id: string;
+  label: string;
+  route: string;
+  image: number;
+};
+
+const BACKGROUND = require('../../../assets/healthos/caresuite-alien-planet-no-logo.png');
+const BRAND = require('../../../assets/healthos/caresuite-healthos-logo.png');
+
+const WIDGETS: readonly WidgetDefinition[] = [
+  { id: 'company', label: 'Unternehmen', route: '/business/office/dashboard', image: require('../../../assets/healthos/widgets/01-unternehmen.png') },
+  { id: 'clients', label: 'Klient:innen', route: '/business/office/clients', image: require('../../../assets/healthos/widgets/02-klientinnen.png') },
+  { id: 'people', label: 'Personal', route: '/business/office/employees', image: require('../../../assets/healthos/widgets/03-personal.png') },
+  { id: 'time', label: 'Arbeitszeit', route: '/business/office/time-tracking', image: require('../../../assets/healthos/widgets/04-arbeitszeit.png') },
+  { id: 'salary', label: 'Gehaltsstatistik', route: '/business/office/payroll', image: require('../../../assets/healthos/widgets/05-gehaltsstatistik.png') },
+  { id: 'billing', label: 'Rechnungen', route: '/business/office/invoices', image: require('../../../assets/healthos/widgets/06-rechnungen.png') },
+  { id: 'documents', label: 'Dokumente', route: '/business/office/documents', image: require('../../../assets/healthos/widgets/07-dokumente.png') },
+  { id: 'messages', label: 'Nachrichten', route: '/business/messages', image: require('../../../assets/healthos/widgets/08-nachrichten.png') },
+  { id: 'access', label: 'Portale & Zugänge', route: '/business/office/portals', image: require('../../../assets/healthos/widgets/09-portale-zugaenge.png') },
+  { id: 'inventory', label: 'Inventar', route: '/business/office/inventory', image: require('../../../assets/healthos/widgets/10-inventar.png') },
+  { id: 'audit', label: 'Audit', route: '/business/office/audit-log', image: require('../../../assets/healthos/widgets/11-audit.png') },
+  { id: 'assignments', label: 'Einsätze', route: '/assist/einsaetze', image: require('../../../assets/healthos/widgets/12-einsaetze.png') },
+  { id: 'calendar', label: 'Kalender & Einsatzplanung', route: '/assist/kalender', image: require('../../../assets/healthos/widgets/13-kalender-einsatzplanung.png') },
+  { id: 'live', label: 'Live-Status', route: '/assist/live-status', image: require('../../../assets/healthos/widgets/14-live-status.png') },
+  { id: 'proofs', label: 'Nachweise', route: '/assist/nachweise', image: require('../../../assets/healthos/widgets/15-nachweise.png') },
+  { id: 'budgets', label: 'Budgets', route: '/assist/abrechnungsquellen', image: require('../../../assets/healthos/widgets/16-budgets.png') },
+  { id: 'portals', label: 'Portale', route: '/assist/portale', image: require('../../../assets/healthos/widgets/17-portale.png') },
+  { id: 'command', label: 'Command Center', route: '/command-center', image: require('../../../assets/healthos/widgets/18-command-center.png') },
+  { id: 'office', label: 'Office', route: '/office', image: require('../../../assets/healthos/widgets/19-office.png') },
+  { id: 'assist', label: 'Assist', route: '/assist', image: require('../../../assets/healthos/widgets/20-assist.png') },
+] as const;
+
+const WEATHER_LABELS: Record<number, string> = {
+  0: 'Klar', 1: 'Heiter', 2: 'Wolkig', 3: 'Bedeckt', 45: 'Nebel', 48: 'Nebel',
+  51: 'Niesel', 53: 'Niesel', 55: 'Niesel', 61: 'Regen', 63: 'Regen', 65: 'Regen',
+  71: 'Schnee', 73: 'Schnee', 75: 'Schnee', 80: 'Schauer', 81: 'Schauer',
+  82: 'Schauer', 95: 'Gewitter', 96: 'Gewitter', 99: 'Gewitter',
+};
+
+function formatDate(value: Date) {
   return new Intl.DateTimeFormat('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+  }).format(value);
 }
 
-function formatSync(value: string | null): string {
-  if (!value) return 'noch nicht synchronisiert';
-  const date = new Date(value);
-  return `synchronisiert ${new Intl.DateTimeFormat('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).format(date)}`;
-}
-
-function ClientMap({
-  clients,
-  tenantId,
-}: {
-  clients: ReturnType<typeof useCurrentSystemAdapter>['data']['clients'];
-  tenantId: string | null;
-}) {
-  const router = useRouter();
-  const layout = useLiquidLayout();
-  return (
-    <LiquidSurface active style={styles.mapCard} contentStyle={styles.mapContent}>
-      <ClientNetworkMap
-        clients={clients}
-        height={layout.isPhone ? 248 : layout.formFactor === 'tablet-portrait' ? 320 : 382}
-        tenantId={tenantId}
-        onClientSelect={(clientId) =>
-          router.push(`/business/office/clients/${clientId}` as never)
-        }
-      />
-    </LiquidSurface>
-  );
-}
-
-function SummaryRail({
-  visits,
-  clients,
-  employees,
-  stacked = false,
-}: {
-  visits: ReturnType<typeof useCurrentSystemAdapter>['data']['visits'];
-  clients: ReturnType<typeof useCurrentSystemAdapter>['data']['clients'];
-  employees: ReturnType<typeof useCurrentSystemAdapter>['data']['employees'];
-  stacked?: boolean;
-}) {
-  const router = useRouter();
-  const active = visits.filter((visit) =>
-    ['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(visit.assignmentStatus ?? ''),
-  ).length;
-  const completed = visits.filter((visit) => visit.assignmentStatus === 'abgeschlossen').length;
-  const open = visits.filter((visit) => visit.assignmentStatus !== 'abgeschlossen').length;
-  const critical = clients.filter((client) =>
-    client.status === 'gesperrt' || client.status === 'fehlerhaft',
-  ).length;
-  const stable = clients.filter((client) => client.status === 'aktiv').length;
-  const observation = Math.max(0, clients.length - stable - critical);
-  const assignedEmployeeIds = new Set(
-    visits.map((visit) => visit.employeeId).filter((value): value is string => Boolean(value)),
-  );
-  const availableEmployees = Math.max(0, employees.length - assignedEmployeeIds.size);
-  const availability = employees.length
-    ? Math.round((availableEmployees / employees.length) * 100)
-    : 0;
-
-  return (
-    <View style={[styles.summaryRail, stacked && styles.summaryRailStacked]}>
-      <LiquidSurface
-        style={[styles.assignmentSummary, stacked && styles.summaryPanelStacked]}
-        contentStyle={styles.summaryCard}
-      >
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/assist/einsaetze' as never)}
-          style={({ pressed }) => [styles.summaryHeader, pressed && styles.pressed]}
-        >
-          <LiquidText variant="section">Einsätze</LiquidText>
-          <LiquidGlyph glyph="→" size={18} />
-        </Pressable>
-        <View style={styles.summaryMetricGrid}>
-          <LiquidMetric label="Geplant" value={visits.length} glyph="▧" tone="live" />
-          <LiquidMetric label="Aktiv" value={active} glyph="▷" tone="live" />
-          <LiquidMetric label="Fertig" value={completed} glyph="✓" tone="success" />
-          <LiquidMetric label="Offen" value={open} glyph="◷" tone={open ? 'warning' : 'success'} />
-        </View>
-      </LiquidSurface>
-      <LiquidSurface
-        style={[styles.clientSummary, stacked && styles.summaryPanelStacked]}
-        contentStyle={styles.summaryCard}
-      >
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/business/office/clients' as never)}
-          style={({ pressed }) => [styles.summaryHeader, pressed && styles.pressed]}
-        >
-          <LiquidText variant="section">Klient:innen</LiquidText>
-          <LiquidGlyph glyph="→" size={18} />
-        </Pressable>
-        <View style={styles.clientDonutRow}>
-          <View style={styles.clientDonut}>
-            <Text style={styles.clientDonutValue}>{clients.length}</Text>
-            <Text style={styles.clientDonutLabel}>Aktiv</Text>
-          </View>
-          <View style={styles.clientLegend}>
-            <View style={styles.legendRow}>
-              <View style={[styles.legendDot, { backgroundColor: liquidColors.blue400 }]} />
-              <Text style={styles.legendLabel}>Stabil</Text>
-              <Text style={styles.legendValue}>{stable}</Text>
-            </View>
-            <View style={styles.legendRow}>
-              <View style={[styles.legendDot, { backgroundColor: liquidColors.blue600 }]} />
-              <Text style={styles.legendLabel}>Beobachtung</Text>
-              <Text style={styles.legendValue}>{observation}</Text>
-            </View>
-            <View style={styles.legendRow}>
-              <View style={[styles.legendDot, { backgroundColor: liquidColors.warning }]} />
-              <Text style={styles.legendLabel}>Kritisch</Text>
-              <Text style={styles.legendValue}>{critical}</Text>
-            </View>
-          </View>
-        </View>
-      </LiquidSurface>
-      <LiquidSurface
-        style={[styles.personnelSummary, stacked && styles.summaryPanelStacked]}
-        contentStyle={styles.summaryCard}
-      >
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/business/office/employees' as never)}
-          style={({ pressed }) => [styles.summaryHeader, pressed && styles.pressed]}
-        >
-          <LiquidText variant="section">Personal</LiquidText>
-          <LiquidGlyph glyph="→" size={18} />
-        </Pressable>
-        <Text style={styles.staffMeta}>Verfügbar</Text>
-        <View style={styles.availabilityRow}>
-          <Text style={styles.staffValue}>{availability}</Text>
-          <Text style={styles.staffPercent}>%</Text>
-        </View>
-        <View style={styles.staffDots}>
-          {employees.slice(0, 12).map((employee) => (
-            <View key={employee.id} style={styles.staffDot}>
-              <Text style={styles.staffDotLabel}>
-                {(employee.firstName || employee.lastName || 'M').slice(0, 1)}
-              </Text>
-            </View>
-          ))}
-        </View>
-        <View style={styles.staffStats}>
-          <View style={styles.staffStat}>
-            <Text style={styles.staffStatLabel}>Eingesetzt</Text>
-            <Text style={styles.staffStatValue}>{assignedEmployeeIds.size}</Text>
-          </View>
-          <View style={styles.staffStatDivider} />
-          <View style={styles.staffStat}>
-            <Text style={styles.staffStatLabel}>Geplant</Text>
-            <Text style={styles.staffStatValue}>{visits.length}</Text>
-          </View>
-        </View>
-      </LiquidSurface>
-    </View>
-  );
-}
-
-function TodayTimeline({
-  visits,
-}: {
-  visits: ReturnType<typeof useCurrentSystemAdapter>['data']['visits'];
-}) {
-  const router = useRouter();
-  const items = visits.slice(0, 7);
-  return (
-    <LiquidSurface contentStyle={styles.timelineCard}>
-      <View style={styles.sectionHeader}>
-        <View>
-          <LiquidText variant="kicker">EINSÄTZE · HEUTE</LiquidText>
-          <LiquidText variant="section">Operativer Verlauf</LiquidText>
-        </View>
-        <LiquidButton
-          compact
-          label="Alle Einsätze"
-          variant="ghost"
-          onPress={() => router.push('/assist/einsaetze' as never)}
-        />
-      </View>
-      <View style={styles.timelineScale}>
-        {['07', '09', '11', '13', '15', '17', '19'].map((hour) => (
-          <Text key={hour} style={styles.timelineHour}>{hour}:00</Text>
-        ))}
-      </View>
-      {items.length ? (
-        <View style={styles.timelineRows}>
-          {items.map((visit, index) => {
-            const active =
-              visit.assignmentStatus === 'unterwegs' ||
-              visit.assignmentStatus === 'angekommen' ||
-              visit.assignmentStatus === 'gestartet';
-            return (
-              <Pressable
-                key={visit.id}
-                accessibilityRole="button"
-                accessibilityLabel={`${visit.clientName}, ${formatTime(visit.scheduledStart)}, ${visit.title}`}
-                onPress={() => router.push(`/assist/einsaetze/${visit.id}` as never)}
-                style={({ pressed }) => [
-                  styles.timelineRow,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <View style={styles.timelinePerson}>
-                  <View style={[styles.personDot, active && styles.personDotActive]}>
-                    <Text style={styles.personDotLabel}>{index + 1}</Text>
-                  </View>
-                  <View style={styles.timelineNames}>
-                    <Text numberOfLines={1} style={styles.timelineName}>{visit.clientName}</Text>
-                    <Text numberOfLines={1} style={styles.timelineMeta}>{visit.employeeName}</Text>
-                  </View>
-                </View>
-                <View style={styles.timelineBarWrap}>
-                  <View style={[styles.timelineBar, active && styles.timelineBarActive]} />
-                </View>
-                <Text style={styles.timelineTime}>{formatTime(visit.scheduledStart)}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : (
-        <View style={styles.compactEmpty}>
-          <LiquidText variant="meta">
-            Für den aktuellen Kontext sind keine Einsätze vorhanden.
-          </LiquidText>
-        </View>
-      )}
-    </LiquidSurface>
-  );
-}
-
-function AlertsPanel({
-  errors,
-  incomplete,
-  documents,
-}: {
-  errors: string[];
-  incomplete: number;
-  documents: number;
-}) {
-  const entries = [
-    ...(errors.length ? [{
-      glyph: '!',
-      tone: 'danger' as const,
-      title: 'Datenquelle nicht erreichbar',
-      detail: `${errors.length} Bereich(e) prüfen`,
-    }] : []),
-    ...(incomplete ? [{
-      glyph: '▤',
-      tone: 'warning' as const,
-      title: 'Dokumentation unvollständig',
-      detail: `${incomplete} Einsatz/Einsätze`,
-    }] : []),
-    ...(!documents ? [{
-      glyph: '□',
-      tone: 'neutral' as const,
-      title: 'Keine Dokumente im Kontext',
-      detail: 'Ablage prüfen',
-    }] : []),
-  ];
-  return (
-    <LiquidSurface style={styles.alertsPanel} contentStyle={styles.asideCard}>
-      <View style={styles.sectionHeader}>
-        <LiquidText variant="section">Alerts</LiquidText>
-        <LiquidStatus label={`${entries.length}`} tone={entries.length ? 'warning' : 'success'} />
-      </View>
-      {entries.length ? entries.map((entry) => (
-        <View key={entry.title} style={styles.alertRow}>
-          <View style={styles.alertIcon}>
-            <LiquidGlyph glyph={entry.glyph} size={20} />
-          </View>
-          <View style={styles.alertCopy}>
-            <Text style={styles.alertTitle}>{entry.title}</Text>
-            <Text style={styles.alertDetail}>{entry.detail}</Text>
-          </View>
-          <LiquidGlyph glyph="→" size={16} />
-        </View>
-      )) : (
-        <View style={styles.compactEmpty}>
-          <LiquidStatus label="Keine kritischen Hinweise" tone="success" />
-        </View>
-      )}
-    </LiquidSurface>
-  );
-}
-
-function BodyMapPanel() {
-  const router = useRouter();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Klinische BodyMap mit Vorder- und Rückansicht öffnen"
-      onPress={() => router.push('/pflege/bodymap' as never)}
-      style={({ pressed }) => [styles.bodyMapPanel, pressed && styles.pressed]}
-    >
-      <ClinicalBodyMapPreview />
-    </Pressable>
-  );
+function weatherGlyph(code: number) {
+  if (code === 0) return '☀';
+  if ([1, 2, 3, 45, 48].includes(code)) return '☁';
+  if (code >= 71 && code <= 75) return '❄';
+  if (code >= 95) return '⚡';
+  return '☂';
 }
 
 export function CommandCenterScreen() {
   const router = useRouter();
-  const layout = useLiquidLayout();
-  const state = useCurrentSystemAdapter();
-  const today = new Date().toDateString();
-  const activeClients = useMemo(
-    () => state.data.clients.filter((client) => client.status === 'aktiv'),
-    [state.data.clients],
-  );
-  const todaysVisits = useMemo(
-    () => state.data.visits.filter((visit) => new Date(visit.scheduledStart).toDateString() === today),
-    [state.data.visits, today],
-  );
-  const incomplete = todaysVisits.filter((visit) => visit.isIncomplete);
-  const errorMessages = Object.values(state.errors).filter((value): value is string => Boolean(value));
+  const auth = useAuth();
+  const { width, height } = useWindowDimensions();
+  const compact = width < 780;
+  const pageSize = compact ? 2 : width < 1180 ? 3 : 5;
+  const pageCount = Math.ceil(WIDGETS.length / pageSize);
+  const [page, setPage] = useState(0);
+  const [now, setNow] = useState(new Date());
+  const [temperature, setTemperature] = useState<number | null>(null);
+  const [weatherCode, setWeatherCode] = useState(0);
+  const [place, setPlace] = useState('Berlin');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
 
-  const aside = (
-    <>
-      <AlertsPanel
-        errors={errorMessages}
-        incomplete={incomplete.length}
-        documents={state.data.documents.length}
-      />
-      <BodyMapPanel />
-    </>
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, Math.max(0, pageCount - 1)));
+  }, [pageCount]);
+
+  useEffect(() => {
+    let active = true;
+    const load = async (latitude: number, longitude: number, label: string) => {
+      try {
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&timezone=auto`);
+        const data = await response.json();
+        if (!active) return;
+        setTemperature(Math.round(Number(data?.current?.temperature_2m)));
+        setWeatherCode(Number(data?.current?.weather_code ?? 0));
+        setPlace(label);
+      } catch {
+        if (active) setPlace(label);
+      }
+    };
+    const fallback = () => void load(52.52, 13.405, 'Berlin');
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => void load(position.coords.latitude, position.coords.longitude, 'Standort'),
+        fallback,
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 600000 },
+      );
+    } else fallback();
+    return () => { active = false; };
+  }, []);
+
+  const visibleWidgets = useMemo(
+    () => WIDGETS.slice(page * pageSize, page * pageSize + pageSize),
+    [page, pageSize],
   );
+  const searchResults = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase('de-DE');
+    return normalized ? WIDGETS.filter((widget) => widget.label.toLocaleLowerCase('de-DE').includes(normalized)) : WIDGETS;
+  }, [query]);
+  const profile = auth.profile;
+  const displayName = profile?.displayName || auth.user?.displayName || 'Profil';
+  const role = profile?.roleKey ?? 'CareSuite';
+
+  const openWidget = (widget: WidgetDefinition) => {
+    setSearchOpen(false);
+    setQuery('');
+    router.push(widget.route as never);
+  };
 
   return (
-    <LiquidCommandShell
-      activeModule="home"
-      title="Versorgung heute."
-      subtitle="Alle Klient:innen, Einsätze, Prioritäten und nächsten Handlungen in einer gemeinsamen Arbeitsfläche."
-      contextLabel="Unternehmenslage"
-      contextDetail={formatSync(state.lastSynchronizedAt)}
-      primaryActionLabel="Neue Aktion"
-      onPrimaryAction={() => router.push('/assist/einsaetze/new' as never)}
-      showContextBar={false}
-      showPageHeader={false}
-    >
-      {state.loading && !state.initialized ? (
-        <LiquidState
-          kind="loading"
-          title="Unternehmenslage wird aufgebaut"
-          message="Produktive Daten werden mandantengetrennt geladen. Der Arbeitskontext bleibt erhalten."
-        />
-      ) : null}
-
-      {state.errors.session ? (
-        <LiquidState
-          kind="locked"
-          title="Mandantenkontext fehlt"
-          message={state.errors.session}
-          actionLabel="Erneut laden"
-          onAction={() => void state.reload()}
-        />
-      ) : null}
-
-      <View style={[styles.dashboardLayout, !layout.isDesktop && styles.dashboardLayoutCompact]}>
-        <SummaryRail
-          clients={activeClients}
-          employees={state.data.employees}
-          stacked={!layout.isDesktop}
-          visits={todaysVisits}
-        />
-        <View style={[styles.centerColumn, !layout.isDesktop && styles.compactFullWidth]}>
-          <ClientMap clients={activeClients} tenantId={state.tenantId} />
-          <TodayTimeline visits={todaysVisits} />
+    <ImageBackground source={BACKGROUND} resizeMode="cover" style={styles.background} imageStyle={styles.backgroundImage}>
+      <View style={styles.atmosphere} />
+      <View style={[styles.topLayer, compact && styles.topLayerCompact]}>
+        <View style={[styles.identityColumn, compact && styles.identityColumnCompact]}>
+          <Image accessibilityLabel="CareSuite HealthOS" resizeMode="contain" source={BRAND} style={[styles.logo, compact && styles.logoCompact]} />
+          <View style={[styles.glass, styles.timeWeather, compact && styles.timeWeatherCompact]}>
+            <View style={styles.timeBlock}>
+              <Text style={[styles.time, compact && styles.timeCompact]}>{now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</Text>
+              <Text numberOfLines={1} style={styles.date}>{formatDate(now)}</Text>
+            </View>
+            <View style={styles.glassDivider} />
+            <View style={styles.weatherBlock}>
+              <Text style={styles.weatherIcon}>{weatherGlyph(weatherCode)}</Text>
+              <View>
+                <Text style={styles.weatherLine}>{temperature === null ? '—°' : `${temperature}°`} <Text style={styles.weatherState}>{WEATHER_LABELS[weatherCode] ?? 'Aktuell'}</Text></Text>
+                <Text style={styles.place}>⌖ {place}</Text>
+              </View>
+            </View>
+          </View>
         </View>
-        <View style={[styles.rightRail, !layout.isDesktop && styles.compactFullWidth]}>{aside}</View>
+
+        <View style={[styles.glass, styles.actions, compact && styles.actionsCompact]}>
+          <Pressable accessibilityLabel="Widget suchen" onPress={() => setSearchOpen(true)} style={styles.actionButton}><Text style={styles.actionGlyph}>⌕</Text></Pressable>
+          {!compact ? <PortalTextSizeControls compact /> : null}
+          <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>Live</Text></View>
+          <Pressable accessibilityLabel="Einstellungen öffnen" onPress={() => router.push('/settings' as never)} style={styles.actionButton}><Text style={styles.actionGlyph}>☷</Text></Pressable>
+          {!compact ? <View style={styles.profileCopy}><Text numberOfLines={1} style={styles.profileName}>{displayName}</Text><Text numberOfLines={1} style={styles.profileRole}>{role}</Text></View> : null}
+          <Pressable accessibilityLabel={`Profil ${displayName} öffnen`} onPress={() => router.push('/settings/profile' as never)}>
+            <TopbarProfileAvatar name={displayName} avatarUrl={profile?.avatarUrl?.trim() || undefined} avatarVersion={profile?.updatedAt ?? profile?.avatarUrl} accentColor="#56C7FF" size="lg" />
+          </Pressable>
+        </View>
       </View>
 
-      {errorMessages.length && !state.errors.session ? (
-        <LiquidState
-          kind="error"
-          title="Einzelne Datenquellen konnten nicht geladen werden"
-          message={`${errorMessages.join(' · ')} Bereits geladene Bereiche bleiben verfügbar.`}
-          reference={`LC-${Date.now().toString(36).toUpperCase()}`}
-          actionLabel="Erneut versuchen"
-          onAction={() => void state.reload()}
-        />
-      ) : null}
-    </LiquidCommandShell>
+      <View style={[styles.dockRegion, compact && styles.dockRegionCompact, height < 720 && styles.dockRegionShort]}>
+        <Pressable accessibilityLabel="Vorherige Widget-Seite" disabled={page === 0} onPress={() => setPage((value) => Math.max(0, value - 1))} style={[styles.arrow, page === 0 && styles.arrowDisabled]}><Text style={styles.arrowText}>‹</Text></Pressable>
+        <View style={[styles.glass, styles.dock, compact && styles.dockCompact]}>
+          <View style={styles.widgetRow}>
+            {visibleWidgets.map((widget) => (
+              <Pressable key={widget.id} accessibilityRole="button" accessibilityLabel={`${widget.label} öffnen`} onPress={() => openWidget(widget)} style={({ pressed }) => [styles.widget, pressed && styles.widgetPressed]}>
+                <Image resizeMode="contain" source={widget.image} style={styles.widgetImage} />
+                <Text numberOfLines={1} style={styles.widgetLabel}>{widget.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <View style={styles.pageDots}>{Array.from({ length: pageCount }, (_, index) => <View key={index} style={[styles.pageDot, index === page && styles.pageDotActive]} />)}</View>
+        </View>
+        <Pressable accessibilityLabel="Nächste Widget-Seite" disabled={page >= pageCount - 1} onPress={() => setPage((value) => Math.min(pageCount - 1, value + 1))} style={[styles.arrow, page >= pageCount - 1 && styles.arrowDisabled]}><Text style={styles.arrowText}>›</Text></Pressable>
+      </View>
+
+      <Modal animationType="fade" transparent visible={searchOpen} onRequestClose={() => setSearchOpen(false)}>
+        <Pressable onPress={() => setSearchOpen(false)} style={styles.modalBackdrop}>
+          <Pressable onPress={(event) => event.stopPropagation()} style={[styles.glass, styles.searchPanel]}>
+            <View style={styles.searchHeader}><Text style={styles.searchTitle}>Widgets durchsuchen</Text><Pressable accessibilityLabel="Suche schließen" onPress={() => setSearchOpen(false)} style={styles.closeButton}><Text style={styles.closeText}>×</Text></Pressable></View>
+            <TextInput autoFocus placeholder="Funktion suchen …" placeholderTextColor="#90A5BF" value={query} onChangeText={setQuery} style={styles.searchInput} />
+            <ScrollView contentContainerStyle={styles.searchResults} keyboardShouldPersistTaps="handled">
+              {searchResults.map((widget) => <Pressable key={widget.id} onPress={() => openWidget(widget)} style={styles.searchResult}><Image source={widget.image} resizeMode="contain" style={styles.searchThumb} /><Text style={styles.searchResultText}>{widget.label}</Text><Text style={styles.searchChevron}>›</Text></Pressable>)}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  dashboardLayout: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 14,
-  },
-  dashboardLayoutCompact: {
-    flexDirection: 'column',
-  },
-  summaryRail: {
-    width: 310,
-    gap: 12,
-  },
-  summaryRailStacked: {
-    width: '100%',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  summaryPanelStacked: {
-    minWidth: 240,
-    flex: 1,
-  },
-  assignmentSummary: {
-    minHeight: 238,
-  },
-  clientSummary: {
-    minHeight: 206,
-  },
-  personnelSummary: {
-    minHeight: 274,
-  },
-  summaryCard: {
-    padding: 14,
-    gap: 10,
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  summaryMetricGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  clientDonutRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  clientDonut: {
-    width: 94,
-    height: 94,
-    borderRadius: 47,
-    borderWidth: 10,
-    borderColor: liquidColors.blue400,
-    backgroundColor: 'rgba(20,120,255,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: liquidColors.blue500,
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-  },
-  clientDonutValue: {
-    color: liquidColors.white,
-    fontSize: 23,
-    lineHeight: 27,
-    fontWeight: '800',
-  },
-  clientDonutLabel: {
-    color: liquidColors.white56,
-    fontSize: 10,
-    lineHeight: 13,
-  },
-  clientLegend: {
-    minWidth: 0,
-    flex: 1,
-    gap: 10,
-  },
-  legendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-  legendDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
-  legendLabel: {
-    minWidth: 0,
-    flex: 1,
-    color: liquidColors.white64,
-    fontSize: 11,
-    lineHeight: 15,
-  },
-  legendValue: {
-    color: liquidColors.white,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '800',
-  },
-  staffValue: {
-    color: liquidColors.white,
-    fontSize: 30,
-    lineHeight: 34,
-    fontWeight: '800',
-  },
-  availabilityRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-  },
-  staffPercent: {
-    color: liquidColors.white72,
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '700',
-  },
-  staffMeta: {
-    color: liquidColors.white56,
-    fontSize: 11,
-    lineHeight: 15,
-  },
-  staffDots: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 5,
-  },
-  staffDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(20,120,255,0.42)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  staffDotLabel: {
-    color: liquidColors.white,
-    fontSize: 8,
-    lineHeight: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  staffStats: {
-    marginTop: 'auto',
-    minHeight: 60,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: liquidColors.white08,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  staffStat: {
-    flex: 1,
-    gap: 2,
-  },
-  staffStatDivider: {
-    width: 1,
-    height: 40,
-    marginHorizontal: 14,
-    backgroundColor: liquidColors.white12,
-  },
-  staffStatLabel: {
-    color: liquidColors.white56,
-    fontSize: 10,
-    lineHeight: 14,
-  },
-  staffStatValue: {
-    color: liquidColors.white,
-    fontSize: 20,
-    lineHeight: 24,
-    fontWeight: '800',
-  },
-  centerColumn: {
-    minWidth: 0,
-    flex: 1,
-    gap: 14,
-  },
-  rightRail: {
-    width: 336,
-    gap: 14,
-  },
-  compactFullWidth: {
-    width: '100%',
-  },
-  mapCard: {
-    minHeight: 384,
-  },
-  mapContent: {
-    padding: 0,
-  },
-  map: {
-    position: 'relative',
-    minHeight: 230,
-    overflow: 'hidden',
-    borderRadius: liquidRadius.small,
-    borderWidth: 1,
-    borderColor: liquidColors.white12,
-    backgroundColor: '#EEF6FF',
-  },
-  mapLine: {
-    position: 'absolute',
-    height: 2,
-    backgroundColor: 'rgba(20,120,255,0.44)',
-    shadowColor: liquidColors.blue500,
-    shadowOpacity: 0.8,
-    shadowRadius: 7,
-  },
-  mapLineOne: {
-    width: '76%',
-    left: '10%',
-    top: '50%',
-    transform: [{ rotate: '-12deg' }],
-  },
-  mapLineTwo: {
-    width: '50%',
-    left: '21%',
-    top: '40%',
-    transform: [{ rotate: '18deg' }],
-  },
-  mapLineThree: {
-    width: '36%',
-    left: '52%',
-    top: '48%',
-    transform: [{ rotate: '-28deg' }],
-  },
-  mapNode: {
-    position: 'absolute',
-    width: 30,
-    height: 30,
-    marginLeft: -15,
-    marginTop: -15,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: liquidColors.blue500,
-    backgroundColor: 'rgba(20,120,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mapNodeCore: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: liquidColors.white32,
-  },
-  mapNodeLive: {
-    backgroundColor: liquidColors.blue200,
-    shadowColor: liquidColors.blue400,
-    shadowOpacity: 1,
-    shadowRadius: 8,
-  },
-  mapEmpty: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mapEmptyText: {
-    color: liquidColors.white,
-    fontSize: 14,
-    lineHeight: 19,
-    fontWeight: '600',
-  },
-  timelineCard: {
-    padding: 16,
-    gap: 11,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  timelineScale: {
-    paddingLeft: 190,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  timelineHour: {
-    color: liquidColors.white32,
-    fontSize: 10,
-    lineHeight: 14,
-    fontVariant: ['tabular-nums'],
-  },
-  timelineRows: {
-    gap: 6,
-  },
-  timelineRow: {
-    minHeight: 52,
-    borderRadius: liquidRadius.control,
-    backgroundColor: liquidColors.white08,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 10,
-  },
-  timelinePerson: {
-    width: 168,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
-  personDot: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: liquidColors.white22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  personDotActive: {
-    borderColor: liquidColors.blue400,
-    backgroundColor: 'rgba(20,120,255,0.17)',
-  },
-  personDotLabel: {
-    color: liquidColors.white72,
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '800',
-  },
-  timelineNames: {
-    minWidth: 0,
-    flex: 1,
-  },
-  timelineName: {
-    color: liquidColors.white,
-    fontSize: 13,
-    lineHeight: 17,
-    fontWeight: '700',
-  },
-  timelineMeta: {
-    color: liquidColors.white56,
-    fontSize: 11,
-    lineHeight: 15,
-  },
-  timelineBarWrap: {
-    flex: 1,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    overflow: 'hidden',
-  },
-  timelineBar: {
-    width: '38%',
-    height: '100%',
-    borderRadius: 6,
-    backgroundColor: 'rgba(139,193,255,0.36)',
-  },
-  timelineBarActive: {
-    width: '62%',
-    backgroundColor: liquidColors.blue500,
-  },
-  timelineTime: {
-    width: 48,
-    color: liquidColors.white72,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-    textAlign: 'right',
-  },
-  asideCard: {
-    padding: 14,
-    gap: 12,
-  },
-  alertsPanel: {
-    minHeight: 260,
-  },
-  alertRow: {
-    minHeight: 64,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-    borderWidth: 1,
-    borderColor: liquidColors.white12,
-    borderRadius: liquidRadius.small,
-    backgroundColor: 'rgba(255,255,255,0.035)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  alertIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 9,
-    borderWidth: 1,
-    borderColor: liquidColors.white12,
-    backgroundColor: 'rgba(20,120,255,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  alertCopy: {
-    minWidth: 0,
-    flex: 1,
-    gap: 2,
-  },
-  alertTitle: {
-    color: liquidColors.white,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
-  },
-  alertDetail: {
-    color: liquidColors.white56,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  compactEmpty: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  bodyMapPanel: {
-    width: '100%',
-    borderRadius: liquidRadius.card,
-    shadowColor: liquidColors.blue500,
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-  },
-  pressed: {
-    opacity: 0.8,
-  },
-  focused: {
-    borderWidth: 2,
-    borderColor: liquidColors.blue200,
-  },
+  background: { flex: 1, minHeight: '100%', backgroundColor: '#03132B', overflow: 'hidden' },
+  backgroundImage: { width: '100%', height: '100%' },
+  atmosphere: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,12,31,0.08)' },
+  topLayer: { position: 'absolute', top: 28, left: 32, right: 32, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24 },
+  topLayerCompact: { top: 16, left: 14, right: 14, gap: 10 },
+  identityColumn: { width: 420, alignItems: 'flex-start', gap: 10 },
+  identityColumnCompact: { width: 'auto', flex: 1 },
+  logo: { width: 370, height: 48 },
+  logoCompact: { width: 210, height: 30 },
+  glass: { backgroundColor: 'rgba(3,17,39,0.74)', borderWidth: 1, borderColor: 'rgba(139,211,255,0.36)', shadowColor: '#2BB8FF', shadowOpacity: 0.2, shadowRadius: 24, shadowOffset: { width: 0, height: 10 } },
+  timeWeather: { minWidth: 410, minHeight: 86, borderRadius: 28, paddingHorizontal: 22, paddingVertical: 12, flexDirection: 'row', alignItems: 'center' },
+  timeWeatherCompact: { minWidth: 0, alignSelf: 'stretch', minHeight: 70, paddingHorizontal: 14, borderRadius: 22 },
+  timeBlock: { flex: 1, minWidth: 0 }, time: { color: '#FFF', fontSize: 36, lineHeight: 39, fontWeight: '900', letterSpacing: -1.4 }, timeCompact: { fontSize: 25, lineHeight: 28 },
+  date: { color: '#D8EAFF', fontSize: 12, lineHeight: 17, fontWeight: '600' }, glassDivider: { width: 1, height: 48, backgroundColor: 'rgba(149,210,255,0.24)', marginHorizontal: 18 },
+  weatherBlock: { flexDirection: 'row', alignItems: 'center', gap: 10 }, weatherIcon: { color: '#8FE4FF', fontSize: 30 }, weatherLine: { color: '#FFF', fontSize: 22, lineHeight: 25, fontWeight: '900' }, weatherState: { fontSize: 13, fontWeight: '800' }, place: { color: '#BCD4EC', fontSize: 11, marginTop: 2 },
+  actions: { minHeight: 88, borderRadius: 28, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }, actionsCompact: { minHeight: 60, padding: 7, borderRadius: 22, gap: 6 },
+  actionButton: { width: 48, height: 48, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(146,205,255,0.28)', backgroundColor: 'rgba(8,29,59,0.62)', alignItems: 'center', justifyContent: 'center' }, actionGlyph: { color: '#FFF', fontSize: 23, fontWeight: '700' },
+  livePill: { height: 48, borderRadius: 16, paddingHorizontal: 15, borderWidth: 1, borderColor: 'rgba(70,171,255,0.5)', flexDirection: 'row', alignItems: 'center', gap: 8 }, liveDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#58D8C1', shadowColor: '#58D8C1', shadowOpacity: 0.9, shadowRadius: 8 }, liveText: { color: '#FFF', fontSize: 15, fontWeight: '900' },
+  profileCopy: { maxWidth: 160, alignItems: 'flex-end', marginLeft: 4 }, profileName: { color: '#FFF', fontSize: 14, fontWeight: '900' }, profileRole: { color: '#AFC7DF', fontSize: 11, marginTop: 2 },
+  dockRegion: { position: 'absolute', left: 42, right: 42, bottom: 26, height: 238, flexDirection: 'row', alignItems: 'center', gap: 16 }, dockRegionCompact: { left: 10, right: 10, bottom: 12, height: 205, gap: 7 }, dockRegionShort: { bottom: 8, height: 190 },
+  dock: { flex: 1, height: '100%', borderRadius: 34, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 10, overflow: 'hidden' }, dockCompact: { paddingHorizontal: 10, paddingTop: 12, borderRadius: 26 },
+  widgetRow: { flex: 1, minHeight: 0, flexDirection: 'row', alignItems: 'stretch', justifyContent: 'center', gap: 16 }, widget: { flex: 1, minWidth: 0, maxWidth: 330, borderRadius: 25, padding: 7, paddingBottom: 10, backgroundColor: 'rgba(3,10,24,0.74)', borderWidth: 1, borderColor: 'rgba(133,205,255,0.22)', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden' }, widgetPressed: { transform: [{ scale: 0.97 }], borderColor: '#69D5FF', backgroundColor: 'rgba(8,34,70,0.92)' }, widgetImage: { width: '100%', flex: 1, minHeight: 0 }, widgetLabel: { color: '#F5FAFF', fontSize: 13, lineHeight: 17, fontWeight: '800', marginTop: 4, paddingHorizontal: 4 },
+  arrow: { width: 58, height: 58, borderRadius: 29, borderWidth: 1, borderColor: 'rgba(142,210,255,0.42)', backgroundColor: 'rgba(3,18,39,0.78)', alignItems: 'center', justifyContent: 'center' }, arrowDisabled: { opacity: 0.28 }, arrowText: { color: '#FFF', fontSize: 45, lineHeight: 48, fontWeight: '300', marginTop: -4 },
+  pageDots: { height: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 5 }, pageDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(186,219,245,0.32)' }, pageDotActive: { width: 20, backgroundColor: '#68D4FF' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,5,16,0.7)', alignItems: 'center', justifyContent: 'center', padding: 18 }, searchPanel: { width: '100%', maxWidth: 720, maxHeight: '82%', borderRadius: 30, padding: 20 }, searchHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }, searchTitle: { color: '#FFF', fontSize: 23, fontWeight: '900' }, closeButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }, closeText: { color: '#FFF', fontSize: 29, lineHeight: 31 },
+  searchInput: { minHeight: 52, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(126,205,255,0.35)', backgroundColor: 'rgba(1,9,24,0.7)', color: '#FFF', fontSize: 16, paddingHorizontal: 17, marginBottom: 12 }, searchResults: { gap: 8, paddingBottom: 4 }, searchResult: { minHeight: 65, borderRadius: 17, backgroundColor: 'rgba(9,30,61,0.75)', borderWidth: 1, borderColor: 'rgba(116,190,242,0.18)', padding: 8, flexDirection: 'row', alignItems: 'center', gap: 12 }, searchThumb: { width: 86, height: 48 }, searchResultText: { flex: 1, color: '#FFF', fontSize: 15, fontWeight: '800' }, searchChevron: { color: '#88DFFF', fontSize: 28 },
 });
