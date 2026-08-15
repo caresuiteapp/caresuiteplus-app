@@ -34,7 +34,7 @@ describe('HealthOS widget personalization', () => {
 
   it('copies Dock widgets into favorites while keeping the original Dock entry', () => {
     expect(source).toContain("beginPointerDrag({ kind: 'widget', widgetId: entry.widget.id, source: 'dock' }");
-    expect(source).toContain('next[targetSlot] = widgetId');
+    expect(source).toContain('next[targetSlot] = entryId');
     expect(source).toContain("if (target.startsWith('favorite:'))");
   });
 
@@ -52,5 +52,25 @@ describe('HealthOS widget personalization', () => {
     expect(source).toContain('moveWidgetIntoFolder');
     expect(source).toContain('dissolveFolder');
     expect(source).toContain('Array.from({ length: MAX_FOLDER_WIDGETS }');
+  });
+
+  it('copies Dock folders into the personal Dock without removing the original', () => {
+    expect(source).toContain("else copyEntryToFavorite(folderEntryId(payload.folderId)");
+    expect(source).toContain("source: 'favorite', slotIndex");
+    expect(source).toContain('favoriteFolderPreview');
+  });
+
+  it('removes the large personal Dock background while keeping individual glass slots', () => {
+    expect(source).toContain("favoritesPanel: { flex: 1, paddingHorizontal: 4");
+    expect(source).toContain("backgroundColor: 'transparent'");
+    expect(source).toContain("backdropFilter: 'blur(13px) saturate(1.15)'");
+  });
+
+  it('provides a settings widget with persistent user-scoped wallpaper selection', () => {
+    expect(source).toContain("id: 'settings', label: 'Einstellungen'");
+    expect(source).toContain('caresuite.healthos.background.v1');
+    expect(source).toContain('const BACKGROUNDS: readonly BackgroundDefinition[]');
+    expect(source).toContain('AsyncStorage.setItem(backgroundStorageKey, selectedBackgroundId)');
+    expect(source).toContain('activeBackground.image');
   });
 });
