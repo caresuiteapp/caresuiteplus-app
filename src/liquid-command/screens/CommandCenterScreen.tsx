@@ -865,6 +865,7 @@ function FavoriteWidgetSlot({
   folder,
   compact,
   size,
+  unitSize,
   dragging,
   dragOver,
   onOpen,
@@ -877,6 +878,7 @@ function FavoriteWidgetSlot({
   folder: WidgetFolder | null;
   compact: boolean;
   size: FavoriteSize;
+  unitSize: number;
   dragging: boolean;
   dragOver: boolean;
   onOpen: () => void;
@@ -887,6 +889,7 @@ function FavoriteWidgetSlot({
   const [hovered, setHovered] = useState(false);
   const occupied = Boolean(widget || folder);
   const label = widget?.label ?? folder?.name ?? "";
+  const favoriteSizeRatio = size === "small" ? 1 : size === "medium" ? 2 : 3;
 
   return (
     <View
@@ -898,17 +901,12 @@ function FavoriteWidgetSlot({
         : {})}
       style={[
         styles.favoriteSlot,
-        size === "small"
-          ? styles.favoriteSlotSmall
-          : size === "medium"
-            ? styles.favoriteSlotMedium
-            : styles.favoriteSlotLarge,
-        compact &&
-          (size === "small"
-            ? styles.favoriteSlotSmallCompact
-            : size === "medium"
-              ? styles.favoriteSlotMediumCompact
-              : styles.favoriteSlotLargeCompact),
+        {
+          width: unitSize * favoriteSizeRatio,
+          height: unitSize,
+          flexShrink: 0,
+        },
+        compact && styles.favoriteSlotCompact,
         occupied && styles.favoriteSlotFilled,
         occupied && WEB_GRAB_STYLE,
         dragOver && styles.favoriteSlotDropTarget,
@@ -1105,9 +1103,10 @@ export function CommandCenterScreen() {
   const dockHeight = height < 720 ? 112 : compact ? 124 : 136;
   const dockBottom = height < 720 ? 6 : compact ? 8 : 18;
   const dockTop = height - dockBottom - dockHeight;
-  const favoritesWidth = Math.min(
-    width - (compact ? 18 : 90),
-    compact ? 760 : 1500,
+  const favoritesWidth = width - (compact ? 18 : 90);
+  const favoriteUnitSize = Math.max(
+    18,
+    Math.min(compact ? 72 : 112, (favoritesWidth - 48) / 15),
   );
   const favoritesHeight = compact
     ? 190
@@ -1845,85 +1844,88 @@ export function CommandCenterScreen() {
               Widget lange anklicken: Größe wählen · bis zu 10 Favoriten
             </Text>
           </View>
-          <ScrollView
-            nestedScrollEnabled
-            showsVerticalScrollIndicator={false}
-            style={styles.favoritesGrid}
-            contentContainerStyle={styles.favoriteFlowGrid}
-          >
-            {favoriteSlots.map((widgetId, slotIndex) => {
-              const widget =
-                widgetId && !widgetId.startsWith("folder:")
-                  ? (WIDGET_BY_ID.get(widgetId) ?? null)
-                  : null;
-              const favoriteFolder = widgetId?.startsWith("folder:")
-                ? (folderById.get(widgetId.slice(7)) ?? null)
-                : null;
-              const size = widgetId
-                ? (favoriteSizes[widgetId] ??
-                  defaultFavoriteSize(widget, favoriteFolder))
-                : "small";
-              const draggingFavorite = Boolean(
-                (widget &&
-                  dragPayload?.kind === "widget" &&
-                  dragPayload.widgetId === widget.id) ||
-                  (favoriteFolder &&
-                    dragPayload?.kind === "folder" &&
-                    dragPayload.folderId === favoriteFolder.id),
-              );
-              return (
-                <FavoriteWidgetSlot
-                  key={slotIndex}
-                  slotIndex={slotIndex}
-                  widget={widget}
-                  folder={favoriteFolder}
-                  compact={compact}
-                  size={size}
-                  dragging={draggingFavorite}
-                  dragOver={dragTarget === `favorite:${slotIndex}`}
-                  onOpen={() =>
-                    widget
-                      ? openWidget(widget)
-                      : favoriteFolder
-                        ? openDockFolder(favoriteFolder.id)
-                        : undefined
-                  }
-                  onRemove={() => removeFavorite(slotIndex)}
-                  onRequestSize={
-                    widget
-                      ? () => {
-                          suppressOpenUntil.current = Date.now() + 900;
-                          setSizePickerEntryId(widget.id);
+          <View style={styles.favoritesGrid}>
+            {[0, 1].map((rowIndex) => (
+              <View key={rowIndex} style={styles.favoriteRow}>
+                {favoriteSlots
+                  .slice(rowIndex * 5, rowIndex * 5 + 5)
+                  .map((widgetId, localIndex) => {
+                    const slotIndex = rowIndex * 5 + localIndex;
+                    const widget =
+                      widgetId && !widgetId.startsWith("folder:")
+                        ? (WIDGET_BY_ID.get(widgetId) ?? null)
+                        : null;
+                    const favoriteFolder = widgetId?.startsWith("folder:")
+                      ? (folderById.get(widgetId.slice(7)) ?? null)
+                      : null;
+                    const size = widgetId
+                      ? (favoriteSizes[widgetId] ??
+                        defaultFavoriteSize(widget, favoriteFolder))
+                      : "small";
+                    const draggingFavorite = Boolean(
+                      (widget &&
+                        dragPayload?.kind === "widget" &&
+                        dragPayload.widgetId === widget.id) ||
+                        (favoriteFolder &&
+                          dragPayload?.kind === "folder" &&
+                          dragPayload.folderId === favoriteFolder.id),
+                    );
+                    return (
+                      <FavoriteWidgetSlot
+                        key={slotIndex}
+                        slotIndex={slotIndex}
+                        widget={widget}
+                        folder={favoriteFolder}
+                        compact={compact}
+                        size={size}
+                        unitSize={favoriteUnitSize}
+                        dragging={draggingFavorite}
+                        dragOver={dragTarget === `favorite:${slotIndex}`}
+                        onOpen={() =>
+                          widget
+                            ? openWidget(widget)
+                            : favoriteFolder
+                              ? openDockFolder(favoriteFolder.id)
+                              : undefined
                         }
-                      : undefined
-                  }
-                  onPointerDown={(event) =>
-                    widget
-                      ? beginPointerDrag(
-                          {
-                            kind: "widget",
-                            widgetId: widget.id,
-                            source: "favorite",
-                            slotIndex,
-                          },
-                          event,
-                        )
-                      : favoriteFolder
-                        ? beginPointerDrag(
-                            {
-                              kind: "folder",
-                              folderId: favoriteFolder.id,
-                              source: "favorite",
-                              slotIndex,
-                            },
-                            event,
-                          )
-                        : undefined
-                  }
-                />
-              );
-            })}
-          </ScrollView>
+                        onRemove={() => removeFavorite(slotIndex)}
+                        onRequestSize={
+                          widget
+                            ? () => {
+                                suppressOpenUntil.current = Date.now() + 900;
+                                setSizePickerEntryId(widget.id);
+                              }
+                            : undefined
+                        }
+                        onPointerDown={(event) =>
+                          widget
+                            ? beginPointerDrag(
+                                {
+                                  kind: "widget",
+                                  widgetId: widget.id,
+                                  source: "favorite",
+                                  slotIndex,
+                                },
+                                event,
+                              )
+                            : favoriteFolder
+                              ? beginPointerDrag(
+                                  {
+                                    kind: "folder",
+                                    folderId: favoriteFolder.id,
+                                    source: "favorite",
+                                    slotIndex,
+                                  },
+                                  event,
+                                )
+                              : undefined
+                        }
+                      />
+                    );
+                  })}
+              </View>
+            ))}
+          </View>
         </View>
       </View>
       <View
@@ -2875,18 +2877,21 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,8,24,0.95)",
     textShadowRadius: 7,
   },
-  favoritesGrid: { flex: 1, minHeight: 0 },
-  favoriteFlowGrid: {
+  favoritesGrid: {
+    flex: 1,
+    minHeight: 0,
     width: "100%",
-    maxWidth: 700,
-    alignSelf: "center",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "flex-start",
-    justifyContent: "center",
     gap: 12,
-    paddingHorizontal: 3,
-    paddingBottom: 10,
+  },
+  favoriteRow: {
+    flex: 1,
+    minHeight: 0,
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-evenly",
+    gap: 12,
+    overflow: "visible",
   },
   favoriteSlot: {
     minWidth: 0,
@@ -2906,27 +2911,7 @@ const styles = StyleSheet.create({
       ? ({ backdropFilter: "blur(13px) saturate(1.15)" } as const)
       : null),
   },
-  favoriteSlotSmall: { width: 112, height: 112, flexShrink: 0 },
-  favoriteSlotMedium: { width: 260, height: 112, flexShrink: 0 },
-  favoriteSlotLarge: { width: 420, height: 112, flexShrink: 0 },
-  favoriteSlotSmallCompact: {
-    width: 72,
-    height: 72,
-    flexShrink: 0,
-    borderRadius: 13,
-  },
-  favoriteSlotMediumCompact: {
-    width: 160,
-    height: 72,
-    flexShrink: 0,
-    borderRadius: 13,
-  },
-  favoriteSlotLargeCompact: {
-    width: 250,
-    height: 72,
-    flexShrink: 0,
-    borderRadius: 13,
-  },
+  favoriteSlotCompact: { borderRadius: 13 },
   favoriteSlotFilled: {
     borderStyle: "solid",
     borderColor: "rgba(130,214,255,0.42)",
