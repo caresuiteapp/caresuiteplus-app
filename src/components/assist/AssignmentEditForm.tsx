@@ -504,20 +504,23 @@ export function AssignmentEditForm({
                 <View style={styles.taskIndex}>
                   <Text style={styles.taskIndexText}>{index + 1}</Text>
                 </View>
-                <PremiumInput
-                  {...FORM_CTX}
-                  style={styles.taskInput}
-                  label={task.isRequired ? "Pflichtaufgabe" : "Aufgabe"}
-                  value={task.title}
-                  onChangeText={(title) => {
-                    const taskDrafts = [...form.taskDrafts];
-                    taskDrafts[index] = { ...task, title };
-                    patch({
-                      taskDrafts,
-                      tasks: taskDrafts.map((entry) => entry.title),
-                    });
-                  }}
-                />
+                <View style={styles.taskField}>
+                  <PremiumInput
+                    {...FORM_CTX}
+                    style={styles.taskInput}
+                    label={task.isRequired ? "Pflichtaufgabe" : "Aufgabe"}
+                    value={task.title}
+                    placeholder="Aufgabe beschreiben"
+                    onChangeText={(title) => {
+                      const taskDrafts = [...form.taskDrafts];
+                      taskDrafts[index] = { ...task, title };
+                      patch({
+                        taskDrafts,
+                        tasks: taskDrafts.map((entry) => entry.title),
+                      });
+                    }}
+                  />
+                </View>
                 {!task.isRequired ? (
                   <PremiumButton
                     title="Entfernen"
@@ -680,9 +683,14 @@ const styles = StyleSheet.create({
   hint: { ...typography.caption, marginBottom: spacing.sm },
   taskRow: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     gap: spacing.sm,
     marginBottom: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(119, 207, 250, 0.24)",
+    backgroundColor: "rgba(6, 24, 47, 0.72)",
   },
   taskIndex: {
     width: 32,
@@ -690,11 +698,18 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
     backgroundColor: "rgba(47,168,255,0.16)",
     borderWidth: 1,
     borderColor: "rgba(92,190,255,0.38)",
   },
   taskIndexText: { color: "#8FD7FF", fontWeight: "800", fontSize: 12 },
-  taskInput: { minWidth: 180 },
+  taskField: { flex: 1, minWidth: 0 },
+  taskInput: {
+    width: "100%",
+    minWidth: 0,
+    color: "#FFFFFF",
+    backgroundColor: "#071A31",
+    borderColor: "rgba(119, 207, 250, 0.58)",
+    fontWeight: "700",
+  },
 });

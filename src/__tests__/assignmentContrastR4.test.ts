@@ -57,4 +57,32 @@ describe("assignment studio R4 contrast contract", () => {
       expect(source).toContain('color: "#FFFFFF"');
     }
   });
+
+  it("keeps task packages and review summaries readable", () => {
+    const create = read("src/components/assist/AssignmentCreateForm.tsx");
+    expect(create).toContain(
+      'packageTitle: { ...typography.body, color: "#FFFFFF"',
+    );
+    expect(create).toContain('color: "#BFD8EB"');
+    expect(create.match(/<InfoBanner\s+onDarkSurface/g)?.length).toBe(6);
+  });
+
+  it("keeps edit tasks bright, contained and consistently numbered", () => {
+    const edit = read("src/components/assist/AssignmentEditForm.tsx");
+    expect(edit).toContain("style={styles.taskField}");
+    expect(edit).toContain('color: "#FFFFFF"');
+    expect(edit).toContain('backgroundColor: "#071A31"');
+    expect(edit).toContain('width: "100%"');
+    expect(edit).toContain("minWidth: 0");
+  });
+
+  it("aligns every status overflow counter on one fixed axis", () => {
+    const dropdown = read(
+      "src/components/assist/StatusBadgesDropdown.tsx",
+    );
+    expect(dropdown).toContain('justifyContent: "space-between"');
+    expect(dropdown).toContain('flexWrap: "nowrap"');
+    expect(dropdown).toContain("width: 44");
+    expect(dropdown).toContain('marginLeft: "auto"');
+  });
 });

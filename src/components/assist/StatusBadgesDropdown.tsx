@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 import {
   Modal,
   Platform,
@@ -7,14 +7,14 @@ import {
   Text,
   View,
   type GestureResponderEvent,
-} from 'react-native';
-import { PremiumBadge } from '@/components/ui';
-import { VisitDispositionBadge } from '@/components/assist/VisitDispositionBadge';
-import type { AssignmentListItem } from '@/types/modules/assist';
+} from "react-native";
+import { PremiumBadge } from "@/components/ui";
+import { VisitDispositionBadge } from "@/components/assist/VisitDispositionBadge";
+import type { AssignmentListItem } from "@/types/modules/assist";
 import {
   resolveAssignmentCardBadge,
   resolveAssignmentExecutionBadge,
-} from '@/lib/assist/assignmentCardPresentation';
+} from "@/lib/assist/assignmentCardPresentation";
 import {
   VISIT_BILLING_STATUS_LABELS,
   VISIT_PLANNING_STATUS_LABELS,
@@ -22,23 +22,23 @@ import {
   type VisitBillingStatus,
   type VisitPlanningStatus,
   type VisitProofStatus,
-} from '@/lib/assist/visitTypes';
+} from "@/lib/assist/visitTypes";
 import {
   auroraGlass,
   useAuroraAdaptiveText,
   useAuroraGlassActive,
   useAuroraGlassChipStyles,
   useAuroraGlassModalStyle,
-} from '@/design/tokens/auroraGlass';
-import { spacing } from '@/theme';
+} from "@/design/tokens/auroraGlass";
+import { spacing } from "@/theme";
 
-type BadgeVariant = 'green' | 'orange' | 'red' | 'cyan' | 'muted' | 'purple';
+type BadgeVariant = "green" | "orange" | "red" | "cyan" | "muted" | "purple";
 
 export type StatusBadgeItem = {
   id: string;
   label: string;
   variant: BadgeVariant;
-  kind?: 'workflow' | 'disposition';
+  kind?: "workflow" | "disposition";
 };
 
 type StatusBadgesDropdownProps = {
@@ -46,13 +46,13 @@ type StatusBadgesDropdownProps = {
 };
 
 function stopRowPress(event: GestureResponderEvent) {
-  if (Platform.OS === 'web') {
+  if (Platform.OS === "web") {
     event.stopPropagation();
   }
 }
 
 function renderBadge(badge: StatusBadgeItem) {
-  if (badge.kind === 'disposition') {
+  if (badge.kind === "disposition") {
     return (
       <VisitDispositionBadge
         key={badge.id}
@@ -63,56 +63,88 @@ function renderBadge(badge: StatusBadgeItem) {
     );
   }
 
-  return <PremiumBadge key={badge.id} label={badge.label} variant={badge.variant} dot />;
+  return (
+    <PremiumBadge
+      key={badge.id}
+      label={badge.label}
+      variant={badge.variant}
+      dot
+    />
+  );
 }
 
 export function StatusBadgesDropdown({ badges }: StatusBadgesDropdownProps) {
   const text = useAuroraAdaptiveText();
   const auroraActive = useAuroraGlassActive();
-  const chipStyles = useAuroraGlassChipStyles({ viewContext: 'form' });
-  const modalGlass = useAuroraGlassModalStyle({ viewContext: 'form' });
+  const chipStyles = useAuroraGlassChipStyles({ viewContext: "form" });
+  const modalGlass = useAuroraGlassModalStyle({ viewContext: "form" });
   const [open, setOpen] = useState(false);
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        row: { flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' },
-        toggle: {
-          ...(auroraActive ? chipStyles.chip : {
-            borderRadius: 999,
-            borderWidth: 1,
-            paddingHorizontal: 6,
-            borderColor: auroraGlass.innerBorder,
-            backgroundColor: auroraGlass.chip,
-          }),
-          minWidth: 24,
-          height: 24,
-          alignItems: 'center',
-          justifyContent: 'center',
+        row: {
+          width: "100%",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+          flexWrap: "nowrap",
         },
-        toggleText: { color: text.secondary, fontSize: 12, fontWeight: '600' },
+        toggle: {
+          ...(auroraActive
+            ? chipStyles.chip
+            : {
+                borderRadius: 999,
+                borderWidth: 1,
+                paddingHorizontal: 6,
+                borderColor: auroraGlass.innerBorder,
+                backgroundColor: auroraGlass.chip,
+              }),
+          width: 44,
+          minWidth: 44,
+          height: 36,
+          marginLeft: "auto",
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        toggleText: { color: text.secondary, fontSize: 12, fontWeight: "700" },
         modalBackdrop: {
           flex: 1,
-          backgroundColor: 'rgba(15, 27, 51, 0.16)',
-          justifyContent: 'center',
-          alignItems: 'center',
+          backgroundColor: "rgba(15, 27, 51, 0.16)",
+          justifyContent: "center",
+          alignItems: "center",
           padding: spacing.lg,
         },
         modalSheet: {
-          width: '100%',
+          width: "100%",
           maxWidth: 360,
           borderRadius: 12,
           padding: spacing.md,
           gap: spacing.sm,
-          ...(auroraActive ? modalGlass : {
-            borderWidth: 1,
-            borderColor: auroraGlass.innerBorder,
-            backgroundColor: auroraGlass.modal,
-          }),
+          ...(auroraActive
+            ? modalGlass
+            : {
+                borderWidth: 1,
+                borderColor: auroraGlass.innerBorder,
+                backgroundColor: auroraGlass.modal,
+              }),
         },
-        modalTitle: { color: text.primary, fontWeight: '600', fontSize: 14 },
-        modalBadges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-        modalClose: { alignSelf: 'flex-end', paddingVertical: spacing.xs, paddingHorizontal: spacing.sm },
-        modalCloseText: { color: text.secondary, fontSize: 13, fontWeight: '600' },
+        modalTitle: { color: text.primary, fontWeight: "600", fontSize: 14 },
+        modalBadges: {
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: spacing.xs,
+        },
+        modalClose: {
+          alignSelf: "flex-end",
+          paddingVertical: spacing.xs,
+          paddingHorizontal: spacing.sm,
+        },
+        modalCloseText: {
+          color: text.secondary,
+          fontSize: 13,
+          fontWeight: "600",
+        },
       }),
     [auroraActive, chipStyles.chip, modalGlass, text],
   );
@@ -138,7 +170,12 @@ export function StatusBadgesDropdown({ badges }: StatusBadgesDropdownProps) {
         <Text style={styles.toggleText}>+{overflow.length}</Text>
       </Pressable>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+      >
         <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
           <Pressable
             style={styles.modalSheet}
@@ -161,67 +198,70 @@ export function StatusBadgesDropdown({ badges }: StatusBadgesDropdownProps) {
   );
 }
 
-export function buildAssignmentStatusBadges(assignment: AssignmentListItem): StatusBadgeItem[] {
-  const planning = (assignment.planningStatus as VisitPlanningStatus) ?? 'scheduled';
-  const proof = (assignment.proofStatus as VisitProofStatus) ?? 'none';
-  const billing = (assignment.billingStatus as VisitBillingStatus) ?? 'none';
+export function buildAssignmentStatusBadges(
+  assignment: AssignmentListItem,
+): StatusBadgeItem[] {
+  const planning =
+    (assignment.planningStatus as VisitPlanningStatus) ?? "scheduled";
+  const proof = (assignment.proofStatus as VisitProofStatus) ?? "none";
+  const billing = (assignment.billingStatus as VisitBillingStatus) ?? "none";
   const primaryBadge = resolveAssignmentCardBadge(assignment);
   const executionBadge = resolveAssignmentExecutionBadge(assignment);
 
   const badges: StatusBadgeItem[] = [
     {
-      id: 'assignment',
+      id: "assignment",
       label: primaryBadge.label,
       variant: primaryBadge.variant,
-      kind: 'workflow',
+      kind: "workflow",
     },
     {
-      id: 'planning',
+      id: "planning",
       label: VISIT_PLANNING_STATUS_LABELS[planning],
-      variant: planning === 'at_risk' || planning === 'cancelled' ? 'red' : 'cyan',
-      kind: 'disposition',
+      variant: planning === "at_risk" || planning === "cancelled" ? "red" : "cyan",
+      kind: "disposition",
     },
     {
-      id: 'execution',
+      id: "execution",
       label: executionBadge.label,
       variant: executionBadge.variant,
-      kind: 'workflow',
+      kind: "workflow",
     },
   ];
 
-  if (proof !== 'none') {
+  if (proof !== "none") {
     badges.push({
-      id: 'proof',
+      id: "proof",
       label: VISIT_PROOF_STATUS_LABELS[proof],
-      variant: proof === 'rejected' ? 'red' : 'purple',
-      kind: 'disposition',
+      variant: proof === "rejected" ? "red" : "purple",
+      kind: "disposition",
     });
   }
 
-  if (billing !== 'none') {
+  if (billing !== "none") {
     badges.push({
-      id: 'billing',
+      id: "billing",
       label: VISIT_BILLING_STATUS_LABELS[billing],
-      variant: billing === 'blocked' ? 'red' : 'orange',
-      kind: 'disposition',
+      variant: billing === "blocked" ? "red" : "orange",
+      kind: "disposition",
     });
   }
 
-  if (assignment.isAtRisk && planning !== 'at_risk') {
+  if (assignment.isAtRisk && planning !== "at_risk") {
     badges.push({
-      id: 'at_risk',
-      label: 'Gefährdet',
-      variant: 'red',
-      kind: 'disposition',
+      id: "at_risk",
+      label: "Gefährdet",
+      variant: "red",
+      kind: "disposition",
     });
   }
 
   if (assignment.isIncomplete) {
     badges.push({
-      id: 'incomplete',
-      label: 'Unvollständig',
-      variant: 'orange',
-      kind: 'disposition',
+      id: "incomplete",
+      label: "Unvollständig",
+      variant: "orange",
+      kind: "disposition",
     });
   }
 

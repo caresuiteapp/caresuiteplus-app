@@ -655,7 +655,7 @@ export function AssignmentCreateForm({
         return (
           <SectionPanel {...FORM_CTX} title="Aufgabenpaket & Aufgaben">
             {renderCatalogSectionHint()}
-            <Text style={[styles.hint, { color: text.primary }]}>
+            <Text style={styles.darkHint}>
               Aufgabenpaket wählen — enthaltene Aufgaben werden automatisch
               geladen.
             </Text>
@@ -671,18 +671,13 @@ export function AssignmentCreateForm({
                   key={pkg.id}
                   style={[
                     styles.packageCard,
-                    { borderColor: text.muted },
-                    form.taskPackageId === pkg.id && {
-                      borderColor: assistAccent,
-                    },
+                    form.taskPackageId === pkg.id && styles.packageCardSelected,
                   ]}
                   onPress={() => void handlePackageSelect(pkg.id)}
                 >
-                  <Text style={[styles.packageTitle, { color: text.primary }]}>
-                    {pkg.label}
-                  </Text>
+                  <Text style={styles.packageTitle}>{pkg.label}</Text>
                   {pkg.defaultDurationMinutes ? (
-                    <Text style={[styles.packageMeta, { color: text.primary }]}>
+                    <Text style={styles.packageMeta}>
                       {pkg.defaultDurationMinutes} Min.
                     </Text>
                   ) : null}
@@ -839,15 +834,19 @@ export function AssignmentCreateForm({
         return (
           <SectionPanel {...FORM_CTX} title="Prüfung & Speichern">
             <InfoBanner
+              onDarkSurface
               message={`Betreff: ${form.title || form.subjectKey || "—"}`}
             />
             <InfoBanner
+              onDarkSurface
               message={`Klient: ${clients.find((c) => c.value === form.clientId)?.label ?? "—"}`}
             />
             <InfoBanner
+              onDarkSurface
               message={`Termin: ${form.assignmentDate} ${form.plannedStartTime}–${form.plannedEndTime}`}
             />
             <InfoBanner
+              onDarkSurface
               message={`Wiederholung: ${VISIT_RECURRENCE_PATTERN_LABELS[form.recurrencePattern]}${
                 form.recurrenceWeekdays.length > 0
                   ? ` (${form.recurrenceWeekdays
@@ -867,9 +866,11 @@ export function AssignmentCreateForm({
               }`}
             />
             <InfoBanner
+              onDarkSurface
               message={`Aufgaben: ${form.taskDrafts.length || form.tasks.filter(Boolean).length}`}
             />
             <InfoBanner
+              onDarkSurface
               message={`Abrechnung: ${
                 budgetAllocation
                   ? `${
@@ -1007,6 +1008,12 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   hint: { ...typography.caption, marginBottom: spacing.sm },
+  darkHint: {
+    ...typography.caption,
+    marginBottom: spacing.sm,
+    color: "#C7DFF0",
+    fontWeight: "600",
+  },
   packageGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1015,13 +1022,24 @@ const styles = StyleSheet.create({
   },
   packageCard: {
     borderWidth: 1,
+    borderColor: "rgba(119, 207, 250, 0.48)",
     borderRadius: 12,
     padding: spacing.md,
     minWidth: 160,
     flexGrow: 1,
+    backgroundColor: "#0D2C4C",
   },
-  packageTitle: { ...typography.body, fontWeight: "600" },
-  packageMeta: { ...typography.caption, marginTop: 4 },
+  packageCardSelected: {
+    borderColor: "#39B8FF",
+    backgroundColor: "#11416C",
+  },
+  packageTitle: { ...typography.body, color: "#FFFFFF", fontWeight: "800" },
+  packageMeta: {
+    ...typography.caption,
+    color: "#BFD8EB",
+    marginTop: 4,
+    fontWeight: "700",
+  },
   taskRow: {
     flexDirection: "row",
     alignItems: "center",
