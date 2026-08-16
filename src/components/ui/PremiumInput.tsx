@@ -113,6 +113,14 @@ export function PremiumInput({
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         placeholderTextColor={text.muted}
+        {...(Platform.OS === "web"
+          ? ({
+              dataSet: {
+                csHealthosComponent: "input-control",
+                csHealthosSurface: onDarkSurface ? "dark" : "adaptive",
+              },
+            } as object)
+          : {})}
         style={[
           styles.input,
           error ? styles.inputError : null,

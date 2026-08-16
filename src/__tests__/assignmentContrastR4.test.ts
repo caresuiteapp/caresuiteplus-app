@@ -96,4 +96,18 @@ describe("assignment studio R4 contrast contract", () => {
     expect(input).toContain('csHealthosSurface: onDarkSurface ? "dark"');
     expect(banner).toContain("csHealthosSurface: onDarkSurface ? 'dark'");
   });
+
+  it("keeps assignment controls readable inside central contextual popups", () => {
+    const central = read("src/design/web/centralHealthOSPopupContractCss.ts");
+    const input = read("src/components/ui/PremiumInput.tsx");
+    expect(central).toContain("--central-contrast-release: R8");
+    expect(central).toContain(
+      'html[data-cs-central-popup] [data-cs-healthos-surface="dark"] input',
+    );
+    expect(central).toContain("-webkit-text-fill-color: #FFFFFF !important");
+    expect(central).toContain(
+      '[data-cs-healthos-component="info-banner"][data-cs-healthos-surface="dark"] *',
+    );
+    expect(input).toContain('csHealthosComponent: "input-control"');
+  });
 });

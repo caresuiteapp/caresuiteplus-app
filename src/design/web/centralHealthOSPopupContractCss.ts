@@ -6,6 +6,7 @@
 export const CENTRAL_HEALTHOS_POPUP_CONTRACT_CSS = `
   html[data-cs-central-popup] {
     color-scheme: dark;
+    --central-contrast-release: R8;
     --central-night: #020B1B;
     --central-panel: rgba(8, 25, 49, .91);
     --central-panel-strong: rgba(5, 18, 39, .97);
@@ -207,6 +208,45 @@ export const CENTRAL_HEALTHOS_POPUP_CONTRACT_CSS = `
   html[data-cs-central-popup] [data-cs-healthos-zone="content"] [style*="background-color: rgba(255, 255, 255"] {
     background-color: rgba(12, 35, 65, .84) !important;
     border-color: var(--central-line) !important;
+  }
+
+  /*
+   * R8: Assignment forms are contextual central popups, not ORBIT pages.
+   * Their explicit dark-surface controls therefore need their contrast
+   * contract here. WebKit text fill is set as well because Chromium may keep
+   * a stale dark fill even when the regular color property is already light.
+   */
+  html[data-cs-central-popup] [data-cs-healthos-component="input"][data-cs-healthos-surface="dark"],
+  html[data-cs-central-popup] [data-cs-healthos-component="input"][data-cs-healthos-surface="dark"] * {
+    color: #F8FBFF !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-healthos-surface="dark"] input,
+  html[data-cs-central-popup] [data-cs-healthos-surface="dark"] textarea,
+  html[data-cs-central-popup] [data-cs-healthos-surface="dark"] select,
+  html[data-cs-central-popup] input[data-cs-healthos-surface="dark"],
+  html[data-cs-central-popup] textarea[data-cs-healthos-surface="dark"],
+  html[data-cs-central-popup] select[data-cs-healthos-surface="dark"] {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    caret-color: #78DCFF !important;
+    background-color: #071A31 !important;
+    border-color: rgba(119, 207, 250, .64) !important;
+    opacity: 1 !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-healthos-surface="dark"] input::placeholder,
+  html[data-cs-central-popup] [data-cs-healthos-surface="dark"] textarea::placeholder,
+  html[data-cs-central-popup] input[data-cs-healthos-surface="dark"]::placeholder,
+  html[data-cs-central-popup] textarea[data-cs-healthos-surface="dark"]::placeholder {
+    color: #BFD8EB !important;
+    -webkit-text-fill-color: #BFD8EB !important;
+    opacity: 1 !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-healthos-component="info-banner"][data-cs-healthos-surface="dark"],
+  html[data-cs-central-popup] [data-cs-healthos-component="info-banner"][data-cs-healthos-surface="dark"] * {
+    color: #F8FBFF !important;
   }
 
   @media (max-width: 780px) {
