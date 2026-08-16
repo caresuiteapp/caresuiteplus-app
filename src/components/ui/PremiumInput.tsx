@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo } from "react";
 import {
   Platform,
   StyleSheet,
@@ -7,29 +7,25 @@ import {
   View,
   type TextInputProps,
   type TextStyle,
-} from 'react-native';
-import { darkGlassSurfaceText, lightSurfaceText } from '@/design/tokens/auroraGlass';
-import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
-import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
-import { useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
-import { radius, spacing, typography } from '@/theme';
+} from "react-native";
+import { lightSurfaceText } from "@/design/tokens/auroraGlass";
+import type { LlganViewContext } from "@/design/tokens/lightLiquidGlassAuroraNebula";
+import { useLegacyTheme } from "@/design/tokens/themeBridge";
+import { systemLiquidGlass } from "@/design/tokens/systemLiquidGlass";
+import {
+  portalPremium,
+  usePortalPremiumTheme,
+} from "@/design/tokens/portalPremium";
+import { useSurfaceContrastTone } from "@/design/tokens/surfaceContrast";
+import { radius, spacing, typography } from "@/theme";
 
 type PremiumInputProps = TextInputProps & {
   label?: string;
   hint?: string;
   error?: string;
-  /** Erzwingt helle Schrift auf dunklem Eingabefeld (auroraGlass.input). */
   onDarkSurface?: boolean;
-  /** Erzwingt dunkle, kontrastreiche Schrift auf einer hellen Arbeitsfläche. */
   onLightSurface?: boolean;
-  /** LLGAN view — `form` in modal dialogs for visible borders on light glass. */
   viewContext?: LlganViewContext;
-  /**
-   * Verhindert, dass Passwortmanager fachliche Geheimwerte als Login-Daten behandeln.
-   * Auf Web bleibt das DOM-Feld ein normales Textfeld und wird nur visuell maskiert.
-   */
   sensitiveBusinessValue?: boolean;
 };
 
@@ -48,11 +44,13 @@ export function PremiumInput({
   const { colors } = useLegacyTheme();
   const portal = usePortalPremiumTheme();
   const surfaceTone = useSurfaceContrastTone();
-  const lightSurface = portal.active || onLightSurface || surfaceTone === 'light';
-  const text = lightSurface
-    ? lightSurfaceText
-    : onDarkSurface
-      ? darkGlassSurfaceText
+  const lightSurface =
+    !onDarkSurface &&
+    (portal.active || onLightSurface || surfaceTone === "light");
+  const text = onDarkSurface
+    ? { primary: "#FFFFFF", secondary: "#D6E8F6", muted: "#91ACC3" }
+    : lightSurface
+      ? lightSurfaceText
       : {
           primary: systemLiquidGlass.text.primary,
           secondary: systemLiquidGlass.text.secondary,
@@ -62,63 +60,52 @@ export function PremiumInput({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        wrapper: {
-          gap: spacing.xs,
-        },
+        wrapper: { gap: spacing.xs },
         label: {
           ...typography.label,
           color: text.primary,
+          fontWeight: onDarkSurface ? "800" : typography.label.fontWeight,
         },
         input: {
           minHeight: 48,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: lightSurface
-            ? portal.active
-              ? portalPremium.borderStrong
-              : colors.borderStrong
-            : systemLiquidGlass.borderStrong,
-          backgroundColor: lightSurface
-            ? portal.active
-              ? portalPremium.surfaceRaised
-              : colors.bgInput
-            : systemLiquidGlass.input,
+          borderColor: onDarkSurface
+            ? "rgba(119, 207, 250, 0.48)"
+            : lightSurface
+              ? portal.active
+                ? portalPremium.borderStrong
+                : colors.borderStrong
+              : systemLiquidGlass.borderStrong,
+          backgroundColor: onDarkSurface
+            ? "#071A31"
+            : lightSurface
+              ? portal.active
+                ? portalPremium.surfaceRaised
+                : colors.bgInput
+              : systemLiquidGlass.input,
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
           color: text.primary,
           fontSize: 15,
+          fontWeight: onDarkSurface ? "600" : "400",
         },
-        inputError: {
-          borderColor: colors.danger,
-        },
-        hint: {
-          ...typography.caption,
-          color: text.muted,
-        },
-        error: {
-          ...typography.caption,
-          color: colors.danger,
-        },
+        inputError: { borderColor: colors.danger },
+        hint: { ...typography.caption, color: text.muted },
+        error: { ...typography.caption, color: colors.danger },
       }),
-    [
-      colors.danger,
-      colors.borderStrong,
-      colors.bgInput,
-      lightSurface,
-      portal.active,
-      text.muted,
-      text.primary,
-    ],
+    [colors, lightSurface, onDarkSurface, portal.active, text],
   );
 
   return (
     <View
       style={styles.wrapper}
-      {...(Platform.OS === 'web'
+      {...(Platform.OS === "web"
         ? ({
             dataSet: {
-              csHealthosComponent: 'input',
-              csHealthosContext: viewContext ?? 'default',
+              csHealthosComponent: "input",
+              csHealthosContext: viewContext ?? "default",
+              csHealthosSurface: onDarkSurface ? "dark" : "adaptive",
             },
           } as object)
         : {})}
@@ -129,19 +116,20 @@ export function PremiumInput({
         style={[
           styles.input,
           error ? styles.inputError : null,
-          sensitiveBusinessValue && Platform.OS === 'web'
-            ? ({ WebkitTextSecurity: 'disc' } as unknown as TextStyle)
+          sensitiveBusinessValue && Platform.OS === "web"
+            ? ({ WebkitTextSecurity: "disc" } as unknown as TextStyle)
             : null,
           style,
         ]}
         onChangeText={onChangeText}
-        {...(Platform.OS === 'web'
+        {...(Platform.OS === "web"
           ? {
               onChange: (event) => {
                 const value =
-                  typeof event?.nativeEvent?.text === 'string'
+                  typeof event?.nativeEvent?.text === "string"
                     ? event.nativeEvent.text
-                    : ((event as unknown as { target?: { value?: string } }).target?.value ?? '');
+                    : ((event as unknown as { target?: { value?: string } })
+                        .target?.value ?? "");
                 onChangeText?.(value);
               },
             }
@@ -149,15 +137,15 @@ export function PremiumInput({
         {...props}
         {...(sensitiveBusinessValue
           ? ({
-              autoComplete: 'off',
-              importantForAutofill: 'no',
-              textContentType: 'none',
-              ...(Platform.OS === 'web'
+              autoComplete: "off",
+              importantForAutofill: "no",
+              textContentType: "none",
+              ...(Platform.OS === "web"
                 ? {
-                    name: `caresuite-business-value-${props.nativeID ?? 'input'}`,
-                    'data-1p-ignore': 'true',
-                    'data-lpignore': 'true',
-                    'data-form-type': 'other',
+                    name: `caresuite-business-value-${props.nativeID ?? "input"}`,
+                    "data-1p-ignore": "true",
+                    "data-lpignore": "true",
+                    "data-form-type": "other",
                   }
                 : {}),
             } as TextInputProps)

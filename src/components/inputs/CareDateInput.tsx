@@ -1,9 +1,19 @@
-import { createElement, useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
-import { PremiumInput } from '@/components/ui/PremiumInput';
-import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
-import { formatDate, parseGermanDate } from '@/lib/formatters/dateTimeFormatters';
-import { colors, spacing, typography } from '@/theme';
+import {
+  createElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
+import { Platform, StyleSheet, Text, View } from "react-native";
+import { PremiumInput } from "@/components/ui/PremiumInput";
+import type { LlganViewContext } from "@/design/tokens/lightLiquidGlassAuroraNebula";
+import {
+  formatDate,
+  parseGermanDate,
+} from "@/lib/formatters/dateTimeFormatters";
+import { colors, spacing, typography } from "@/theme";
 
 type Props = {
   label?: string;
@@ -13,12 +23,13 @@ type Props = {
   placeholder?: string;
   viewContext?: LlganViewContext;
   showFormatHint?: boolean;
+  onDarkSurface?: boolean;
 };
 
 function toIsoDateValue(value: string): string {
   const trimmed = value.trim();
   if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.slice(0, 10);
-  return parseGermanDate(trimmed) ?? '';
+  return parseGermanDate(trimmed) ?? "";
 }
 
 function WebNativeDateInput({
@@ -30,25 +41,23 @@ function WebNativeDateInput({
   value: string;
   onChange: (iso: string) => void;
 }) {
-  if (Platform.OS !== 'web') return null;
-
-  return createElement('input', {
+  if (Platform.OS !== "web") return null;
+  return createElement("input", {
     ref: inputRef,
-    type: 'date',
-    value: value || '',
-    lang: 'de-DE',
-    'aria-hidden': true,
+    type: "date",
+    value: value || "",
+    lang: "de-DE",
+    "aria-hidden": true,
     tabIndex: -1,
-    onChange: (event: { target: { value: string } }) => {
-      onChange(event.target.value);
-    },
+    onChange: (event: { target: { value: string } }) =>
+      onChange(event.target.value),
     style: {
-      position: 'absolute',
+      position: "absolute",
       opacity: 0,
       width: 0,
       height: 0,
-      pointerEvents: 'none',
-      border: 'none',
+      pointerEvents: "none",
+      border: "none",
       padding: 0,
     },
   });
@@ -59,11 +68,12 @@ export function CareDateInput({
   value,
   onChange,
   error,
-  placeholder = 'TT.MM.JJJJ',
+  placeholder = "TT.MM.JJJJ",
   viewContext,
   showFormatHint = true,
+  onDarkSurface = false,
 }: Props) {
-  const formattedValue = value ? formatDate(value) : '';
+  const formattedValue = value ? formatDate(value) : "";
   const germanDisplay = formattedValue;
   const [draft, setDraft] = useState(formattedValue);
   const lastCommittedValue = useRef(value);
@@ -80,22 +90,22 @@ export function CareDateInput({
     (iso: string) => {
       lastCommittedValue.current = iso;
       onChange(iso);
-      setDraft(iso ? formatDate(iso) : '');
+      setDraft(iso ? formatDate(iso) : "");
     },
     [onChange],
   );
 
   const openWebDatePicker = useCallback(() => {
-    if (Platform.OS !== 'web') return;
+    if (Platform.OS !== "web") return;
     const el = webDateInputRef.current;
     if (!el) return;
     try {
-      if (typeof el.showPicker === 'function') {
+      if (typeof el.showPicker === "function") {
         el.showPicker();
         return;
       }
     } catch {
-      // showPicker can throw if not triggered by user gesture in some browsers
+      // Browser may reject showPicker without a direct user gesture.
     }
     el.click();
   }, []);
@@ -103,9 +113,10 @@ export function CareDateInput({
   return (
     <View style={styles.wrap}>
       <PremiumInput
-        label={label ?? 'Datum'}
+        label={label ?? "Datum"}
         value={draft}
         viewContext={viewContext}
+        onDarkSurface={onDarkSurface}
         onChangeText={(text) => {
           setDraft(text);
           const iso = parseGermanDate(text);
@@ -113,8 +124,8 @@ export function CareDateInput({
             lastCommittedValue.current = iso;
             onChange(iso);
           } else if (!text.trim()) {
-            lastCommittedValue.current = '';
-            onChange('');
+            lastCommittedValue.current = "";
+            onChange("");
           }
         }}
         onBlur={() => {
@@ -126,13 +137,13 @@ export function CareDateInput({
             return;
           }
           if (!draft.trim()) {
-            lastCommittedValue.current = '';
-            onChange('');
+            lastCommittedValue.current = "";
+            onChange("");
             return;
           }
           setDraft(formattedValue);
         }}
-        onFocus={Platform.OS === 'web' ? openWebDatePicker : undefined}
+        onFocus={Platform.OS === "web" ? openWebDatePicker : undefined}
         placeholder={placeholder}
         error={error}
         keyboardType="numbers-and-punctuation"
@@ -143,11 +154,13 @@ export function CareDateInput({
         onChange={commitIso}
       />
       {showFormatHint ? (
-        <Text style={styles.hint}>
-          {germanDisplay ? `${germanDisplay} · ` : ''}Format: TT.MM.JJJJ
+        <Text style={[styles.hint, onDarkSurface && styles.hintDark]}>
+          {germanDisplay ? `${germanDisplay} · ` : ""}Format: TT.MM.JJJJ
         </Text>
       ) : germanDisplay ? (
-        <Text style={styles.hint}>{germanDisplay}</Text>
+        <Text style={[styles.hint, onDarkSurface && styles.hintDark]}>
+          {germanDisplay}
+        </Text>
       ) : null}
     </View>
   );
@@ -155,5 +168,10 @@ export function CareDateInput({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: spacing.sm },
-  hint: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
+  hint: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
+  hintDark: { color: "#9EB8CE" },
 });

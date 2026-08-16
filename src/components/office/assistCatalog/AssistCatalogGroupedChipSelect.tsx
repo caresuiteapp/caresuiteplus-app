@@ -1,24 +1,15 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import {
-  useAuroraAdaptiveText,
-  useAuroraGlassActive,
-  useAuroraGlassChipStyles,
-} from '@/design/tokens/auroraGlass';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { moduleColor } from '@/design/tokens/modules';
-import { spacing, typography } from '@/theme';
-import type { CatalogItem } from '@/types/assistCatalog';
-
-const FORM_CTX = { viewContext: 'form' as const };
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { spacing, typography } from "@/theme";
+import type { CatalogItem } from "@/types/assistCatalog";
 
 const GROUP_LABELS: Record<string, string> = {
-  regelversorgung: 'Regelversorgung',
-  zusatzversorgung: 'Zusatzversorgung',
-  aufnahme: 'Aufnahme',
-  besonderheiten: 'Besonderheiten',
+  regelversorgung: "Regelversorgung",
+  zusatzversorgung: "Zusatzversorgung",
+  aufnahme: "Aufnahme",
+  besonderheiten: "Besonderheiten",
 };
 
-type AssistCatalogGroupedChipSelectProps = {
+type Props = {
   label: string;
   items: CatalogItem[];
   value: string;
@@ -26,20 +17,18 @@ type AssistCatalogGroupedChipSelectProps = {
   error?: string;
 };
 
-function groupItems(items: CatalogItem[]): { groupKey: string; label: string; items: CatalogItem[] }[] {
+function groupItems(items: CatalogItem[]) {
   const map = new Map<string, CatalogItem[]>();
   for (const item of items) {
-    const groupKey = String(item.payloadJson?.groupKey ?? 'sonstiges');
-    const list = map.get(groupKey) ?? [];
-    list.push(item);
-    map.set(groupKey, list);
+    const key = String(item.payloadJson?.groupKey ?? "sonstiges");
+    map.set(key, [...(map.get(key) ?? []), item]);
   }
   return [...map.entries()]
-    .sort(([a], [b]) => a.localeCompare(b, 'de'))
-    .map(([groupKey, groupItems]) => ({
+    .sort(([a], [b]) => a.localeCompare(b, "de"))
+    .map(([groupKey, entries]) => ({
       groupKey,
-      label: GROUP_LABELS[groupKey] ?? groupKey.replace(/_/g, ' '),
-      items: groupItems.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+      label: GROUP_LABELS[groupKey] ?? groupKey.replace(/_/g, " "),
+      items: entries.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
     }));
 }
 
@@ -49,43 +38,26 @@ export function AssistCatalogGroupedChipSelect({
   value,
   onChange,
   error,
-}: AssistCatalogGroupedChipSelectProps) {
-  const { isLight } = useLegacyTheme();
-  const auroraActive = useAuroraGlassActive();
-  const glassChips = useAuroraGlassChipStyles(FORM_CTX);
-  const text = useAuroraAdaptiveText();
-  const useGlass = isLight && auroraActive;
-  const assistAccent = moduleColor('assist');
-  const groups = groupItems(items);
-
+}: Props) {
   return (
     <View style={styles.wrap}>
-      <Text style={[styles.label, { color: text.primary }]}>{label}</Text>
-      {groups.map((group) => (
+      <Text style={styles.label}>{label}</Text>
+      {groupItems(items).map((group) => (
         <View key={group.groupKey} style={styles.group}>
-          <Text style={[styles.groupTitle, { color: text.primary }]}>{group.label}</Text>
+          <Text style={styles.groupTitle}>{group.label}</Text>
           <View style={styles.row}>
             {group.items.map((item) => {
               const selected = value === item.itemKey;
               return (
                 <TouchableOpacity
                   key={item.id}
-                  style={[
-                    useGlass ? glassChips.chip : styles.chip,
-                    selected &&
-                      (useGlass
-                        ? glassChips.chipSelected
-                        : { borderColor: assistAccent, backgroundColor: `${assistAccent}22` }),
-                  ]}
+                  style={[styles.chip, selected && styles.chipSelected]}
                   onPress={() => onChange(item.itemKey)}
                 >
                   <Text
                     style={[
-                      useGlass ? glassChips.label : [styles.chipText, { color: text.primary }],
-                      selected &&
-                        (useGlass
-                          ? glassChips.labelSelected
-                          : { fontWeight: '600', color: assistAccent }),
+                      styles.chipText,
+                      selected && styles.chipTextSelected,
                     ]}
                   >
                     {item.label}
@@ -103,16 +75,32 @@ export function AssistCatalogGroupedChipSelect({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: spacing.md },
-  label: { ...typography.caption, marginBottom: spacing.xs },
+  label: {
+    ...typography.caption,
+    color: "#EAF5FF",
+    fontWeight: "800",
+    marginBottom: spacing.xs,
+  },
   group: { marginBottom: spacing.sm },
-  groupTitle: { ...typography.caption, fontWeight: '600', marginBottom: spacing.xs },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  groupTitle: {
+    ...typography.caption,
+    color: "#BFD8EB",
+    fontWeight: "800",
+    marginBottom: spacing.xs,
+  },
+  row: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
   chip: {
+    minHeight: 36,
+    justifyContent: "center",
     borderWidth: 1,
+    borderColor: "rgba(105, 215, 255, 0.34)",
     borderRadius: 20,
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
+    backgroundColor: "#123452",
   },
-  chipText: { ...typography.caption },
-  error: { ...typography.caption, color: '#ef4444', marginTop: spacing.xs },
+  chipSelected: { borderColor: "#69D7FF", backgroundColor: "#155386" },
+  chipText: { ...typography.caption, color: "#D5E8F7", fontWeight: "700" },
+  chipTextSelected: { color: "#FFFFFF", fontWeight: "800" },
+  error: { ...typography.caption, color: "#FF8F9F", marginTop: spacing.xs },
 });

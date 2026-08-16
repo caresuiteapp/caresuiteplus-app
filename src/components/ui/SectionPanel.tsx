@@ -1,53 +1,53 @@
-import { useMemo } from 'react';
-import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { withAlpha } from '@/design/tokens/motion';
-import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
-import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
-import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { useMemo } from "react";
+import { Platform, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { useLegacyTheme } from "@/design/tokens/themeBridge";
+import { withAlpha } from "@/design/tokens/motion";
+import type { LlganViewContext } from "@/design/tokens/lightLiquidGlassAuroraNebula";
+import { systemLiquidGlass } from "@/design/tokens/systemLiquidGlass";
+import {
+  portalPremium,
+  usePortalPremiumTheme,
+} from "@/design/tokens/portalPremium";
 import {
   lightLiquidGlass,
   lightLiquidGlassWebFx,
   lightSurfaceText,
-} from '@/design/tokens/auroraGlass';
-import { useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
-import { resolveUserFacingSubtitle } from '@/lib/ui/uiVisibility';
-import { radius, spacing } from '@/theme';
+} from "@/design/tokens/auroraGlass";
+import { useSurfaceContrastTone } from "@/design/tokens/surfaceContrast";
+import { resolveUserFacingSubtitle } from "@/lib/ui/uiVisibility";
+import { radius, spacing } from "@/theme";
 
 type SectionPanelProps = {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
-  /** Center header title and subtitle (e.g. Zentrale dashboard). */
-  headerAlign?: 'left' | 'center';
-  /** Larger hero-style header typography. */
-  headerVariant?: 'default' | 'hero';
-  /** Module accent — tints panel border and header divider. */
+  headerAlign?: "left" | "center";
+  headerVariant?: "default" | "hero";
   accentColor?: string;
-  /** Stretch panel + body to fill parent height (Zentrale module grid). */
   fillHeight?: boolean;
-  /** `open` = kein Milchglas-Panel, Nebula bleibt sichtbar (Zentrale KPI-Grid). */
-  surface?: 'glass' | 'open';
-  /** LLGAN view — use `form` inside modal dialogs for readable nested panels. */
+  surface?: "glass" | "open";
   viewContext?: LlganViewContext;
+  /** Erzwingt einen konsistent dunklen, kontrastreichen Formularbereich. */
+  onDarkSurface?: boolean;
 };
 
 export function SectionPanel({
   title,
   subtitle,
   children,
-  headerAlign = 'left',
-  headerVariant = 'default',
+  headerAlign = "left",
+  headerVariant = "default",
   accentColor,
   fillHeight = false,
-  surface = 'glass',
+  surface = "glass",
   viewContext,
+  onDarkSurface = false,
 }: SectionPanelProps) {
   const { colors, typography } = useLegacyTheme();
   const portal = usePortalPremiumTheme();
   const surfaceTone = useSurfaceContrastTone();
-  const forceLightSurface = surfaceTone === 'light';
-  const openSurface = surface === 'open';
+  const forceLightSurface = !onDarkSurface && surfaceTone === "light";
+  const openSurface = surface === "open";
   const moduleAccent = accentColor ?? colors.cyan;
   const userSubtitle = resolveUserFacingSubtitle(subtitle);
 
@@ -55,20 +55,24 @@ export function SectionPanel({
     () =>
       StyleSheet.create({
         panel: {
-          width: '100%',
+          width: "100%",
           borderRadius: openSurface ? 0 : radius.lg,
           borderWidth: openSurface ? 0 : 1,
-          borderColor: withAlpha(moduleAccent, 0.44),
+          borderColor: onDarkSurface
+            ? "rgba(105, 215, 255, 0.48)"
+            : withAlpha(moduleAccent, 0.44),
           backgroundColor: openSurface
-            ? 'transparent'
-            : portal.active
-              ? portalPremium.surface
-              : forceLightSurface
-                ? lightLiquidGlass.panel
-                : systemLiquidGlass.panel,
-          overflow: fillHeight ? 'visible' : 'hidden',
-          position: 'relative',
-          ...(openSurface || Platform.OS !== 'web'
+            ? "transparent"
+            : onDarkSurface
+              ? "#0A2747"
+              : portal.active
+                ? portalPremium.surface
+                : forceLightSurface
+                  ? lightLiquidGlass.panel
+                  : systemLiquidGlass.panel,
+          overflow: fillHeight ? "visible" : "hidden",
+          position: "relative",
+          ...(openSurface || Platform.OS !== "web"
             ? null
             : ({
                 ...(forceLightSurface
@@ -76,87 +80,104 @@ export function SectionPanel({
                   : {
                       backdropFilter: `blur(${systemLiquidGlass.blur.desktop}px) saturate(${systemLiquidGlass.saturate})`,
                       WebkitBackdropFilter: `blur(${systemLiquidGlass.blur.desktop}px) saturate(${systemLiquidGlass.saturate})`,
-                      boxShadow: portal.active
-                        ? portalPremium.shadow.card
-                        : systemLiquidGlass.shadowSoft,
+                      boxShadow: onDarkSurface
+                        ? "0 12px 28px rgba(0, 8, 24, 0.28)"
+                        : portal.active
+                          ? portalPremium.shadow.card
+                          : systemLiquidGlass.shadowSoft,
                     }),
               } as unknown as ViewStyle)),
-          ...(fillHeight ? { flexGrow: 1, width: '100%' } : null),
+          ...(fillHeight ? { flexGrow: 1, width: "100%" } : null),
         },
         innerBorder: {
           ...StyleSheet.absoluteFillObject,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: portal.active
-            ? portalPremium.innerBorder
-            : forceLightSurface
-              ? lightLiquidGlass.innerBorder
-              : systemLiquidGlass.innerBorder,
+          borderColor: onDarkSurface
+            ? "rgba(196, 235, 255, 0.12)"
+            : portal.active
+              ? portalPremium.innerBorder
+              : forceLightSurface
+                ? lightLiquidGlass.innerBorder
+                : systemLiquidGlass.innerBorder,
         },
         header: {
           paddingHorizontal: spacing.md,
-          paddingTop: headerVariant === 'hero' ? spacing.lg : spacing.md,
-          paddingBottom: headerVariant === 'hero' ? spacing.md : spacing.sm,
+          paddingTop: headerVariant === "hero" ? spacing.lg : spacing.md,
+          paddingBottom: headerVariant === "hero" ? spacing.md : spacing.sm,
           borderBottomWidth: 1,
-          borderBottomColor: withAlpha(moduleAccent, 0.32),
-          alignItems: headerAlign === 'center' ? 'center' : 'flex-start',
+          borderBottomColor: onDarkSurface
+            ? "rgba(105, 215, 255, 0.34)"
+            : withAlpha(moduleAccent, 0.32),
+          alignItems: headerAlign === "center" ? "center" : "flex-start",
         },
         title: {
-          ...(headerVariant === 'hero' ? typography.h1 : typography.h3),
-          color: portal.active
-            ? portalPremium.text.primary
-            : forceLightSurface
-              ? lightSurfaceText.primary
-              : systemLiquidGlass.text.primary,
-          textAlign: headerAlign === 'center' ? 'center' : 'left',
+          ...(headerVariant === "hero" ? typography.h1 : typography.h3),
+          color: onDarkSurface
+            ? "#FFFFFF"
+            : portal.active
+              ? portalPremium.text.primary
+              : forceLightSurface
+                ? lightSurfaceText.primary
+                : systemLiquidGlass.text.primary,
+          textAlign: headerAlign === "center" ? "center" : "left",
         },
         subtitle: {
-          ...(headerVariant === 'hero' ? typography.body : typography.caption),
-          marginTop: headerVariant === 'hero' ? spacing.xs : 4,
-          color: portal.active
-            ? portalPremium.text.secondary
-            : forceLightSurface
-              ? lightSurfaceText.secondary
-              : systemLiquidGlass.text.secondary,
-          textAlign: headerAlign === 'center' ? 'center' : 'left',
+          ...(headerVariant === "hero" ? typography.body : typography.caption),
+          marginTop: headerVariant === "hero" ? spacing.xs : 4,
+          color: onDarkSurface
+            ? "#BED6E8"
+            : portal.active
+              ? portalPremium.text.secondary
+              : forceLightSurface
+                ? lightSurfaceText.secondary
+                : systemLiquidGlass.text.secondary,
+          textAlign: headerAlign === "center" ? "center" : "left",
         },
         body: {
           padding: fillHeight ? spacing.lg : spacing.md,
           gap: fillHeight ? spacing.md : spacing.sm,
-          width: '100%',
+          width: "100%",
           ...(fillHeight
-            ? { flexGrow: 1, alignItems: 'stretch' as const }
-            : headerAlign === 'center'
-              ? { alignItems: 'center' as const }
+            ? { flexGrow: 1, alignItems: "stretch" as const }
+            : headerAlign === "center"
+              ? { alignItems: "center" as const }
               : null),
         },
       }),
     [
       openSurface,
-      typography.caption,
-      typography.h3,
-      typography.h1,
-      typography.body,
+      typography,
       headerAlign,
       headerVariant,
       moduleAccent,
       fillHeight,
       forceLightSurface,
       portal.active,
+      onDarkSurface,
     ],
   );
 
   return (
     <View
       style={styles.panel}
-      {...(Platform.OS === 'web'
-        ? ({ dataSet: { csHealthosComponent: 'section' } } as object)
+      {...(Platform.OS === "web"
+        ? ({
+            dataSet: {
+              csHealthosComponent: "section",
+              csHealthosSurface: onDarkSurface ? "dark" : "adaptive",
+            },
+          } as object)
         : {})}
     >
-      {!openSurface ? <View style={styles.innerBorder} pointerEvents="none" /> : null}
+      {!openSurface ? (
+        <View style={styles.innerBorder} pointerEvents="none" />
+      ) : null}
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
-        {userSubtitle ? <Text style={styles.subtitle}>{userSubtitle}</Text> : null}
+        {userSubtitle ? (
+          <Text style={styles.subtitle}>{userSubtitle}</Text>
+        ) : null}
       </View>
       <View style={styles.body}>{children}</View>
     </View>
