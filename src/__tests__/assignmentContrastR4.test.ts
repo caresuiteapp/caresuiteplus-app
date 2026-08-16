@@ -57,4 +57,13 @@ describe("assignment studio R4 contrast contract", () => {
       expect(source).toContain('color: "#FFFFFF"');
     }
   });
+
+  it("keeps task packages and review summaries readable", () => {
+    const create = read("src/components/assist/AssignmentCreateForm.tsx");
+    expect(create).toContain(
+      'packageTitle: { ...typography.body, color: "#FFFFFF"',
+    );
+    expect(create).toContain('color: "#BFD8EB"');
+    expect(create.match(/<InfoBanner\s+onDarkSurface/g)?.length).toBe(6);
+  });
 });

@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const source = readFileSync(
-  new URL("../../liquid-command/screens/CommandCenterScreen.tsx", import.meta.url),
+  new URL(
+    "../../liquid-command/screens/CommandCenterScreen.tsx",
+    import.meta.url,
+  ),
   "utf8",
 );
 
@@ -21,7 +24,7 @@ describe("HealthOS command center chrome", () => {
   });
 
   it("aligns the wider brand mark with the information card", () => {
-    expect(source).toContain('logo: { width: 430, height: 54 }');
-    expect(source).toContain('timeWeather: {\n    minWidth: 430');
+    expect(source).toContain("logo: { width: 430, height: 54 }");
+    expect(source).toMatch(/timeWeather:\s*\{\s*minWidth:\s*430/);
   });
 });
