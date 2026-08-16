@@ -28,7 +28,11 @@ type WidgetDefinition = {
   id: string;
   label: string;
   route: string;
-  image: ImageSourcePropType;
+  images: {
+    small: ImageSourcePropType;
+    medium: ImageSourcePropType;
+    large: ImageSourcePropType;
+  };
 };
 type BackgroundDefinition = {
   id: string;
@@ -101,127 +105,211 @@ const WIDGETS: readonly WidgetDefinition[] = [
     id: "company",
     label: "Unternehmen",
     route: "/business/office/dashboard",
-    image: require("../../../assets/healthos/widgets/01-unternehmen.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/01-unternehmen.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/01-unternehmen.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/01-unternehmen.png"),
+    },
   },
   {
     id: "clients",
     label: "Klient:innen",
     route: "/business/office/clients",
-    image: require("../../../assets/healthos/widgets/02-klientinnen.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/02-klientinnen.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/02-klientinnen.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/02-klientinnen.png"),
+    },
   },
   {
     id: "people",
     label: "Personal",
     route: "/business/office/employees",
-    image: require("../../../assets/healthos/widgets/03-personal.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/03-personal.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/03-personal.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/03-personal.png"),
+    },
   },
   {
     id: "time",
     label: "Arbeitszeit",
     route: "/business/office/time-tracking",
-    image: require("../../../assets/healthos/widgets/04-arbeitszeit.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/04-arbeitszeit.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/04-arbeitszeit.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/04-arbeitszeit.png"),
+    },
   },
   {
     id: "salary",
     label: "Gehaltsstatistik",
     route: "/business/office/payroll",
-    image: require("../../../assets/healthos/widgets/05-gehaltsstatistik.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/05-gehaltsstatistik.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/05-gehaltsstatistik.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/05-gehaltsstatistik.png"),
+    },
   },
   {
     id: "billing",
     label: "Rechnungen",
     route: "/business/office/invoices",
-    image: require("../../../assets/healthos/widgets/06-rechnungen.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/06-rechnungen.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/06-rechnungen.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/06-rechnungen.png"),
+    },
   },
   {
     id: "documents",
     label: "Dokumente",
     route: "/business/office/documents",
-    image: require("../../../assets/healthos/widgets/07-dokumente.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/07-dokumente.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/07-dokumente.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/07-dokumente.png"),
+    },
   },
   {
     id: "messages",
     label: "Nachrichten",
     route: "/business/messages",
-    image: require("../../../assets/healthos/widgets/08-nachrichten.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/08-nachrichten.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/08-nachrichten.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/08-nachrichten.png"),
+    },
   },
   {
     id: "access",
     label: "Portale & Zugänge",
     route: "/business/office/portals",
-    image: require("../../../assets/healthos/widgets/09-portale-zugaenge.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/09-portale-zugaenge.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/09-portale-zugaenge.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/09-portale-zugaenge.png"),
+    },
   },
   {
     id: "inventory",
     label: "Inventar",
     route: "/business/office/inventory",
-    image: require("../../../assets/healthos/widgets/10-inventar.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/10-inventar.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/10-inventar.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/10-inventar.png"),
+    },
   },
   {
     id: "audit",
     label: "Audit",
     route: "/business/office/audit-log",
-    image: require("../../../assets/healthos/widgets/11-audit.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/11-audit.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/11-audit.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/11-audit.png"),
+    },
   },
   {
     id: "assignments",
     label: "Einsätze",
     route: "/assist/einsaetze",
-    image: require("../../../assets/healthos/widgets/12-einsaetze.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/12-einsaetze.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/12-einsaetze.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/12-einsaetze.png"),
+    },
   },
   {
     id: "calendar",
     label: "Kalender & Einsatzplanung",
     route: "/assist/kalender",
-    image: require("../../../assets/healthos/widgets/13-kalender-einsatzplanung.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/13-kalender-einsatzplanung.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/13-kalender-einsatzplanung.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/13-kalender-einsatzplanung.png"),
+    },
   },
   {
     id: "live",
     label: "Live-Status",
     route: "/assist/live-status",
-    image: require("../../../assets/healthos/widgets/14-live-status.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/14-live-status.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/14-live-status.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/14-live-status.png"),
+    },
   },
   {
     id: "proofs",
     label: "Nachweise",
     route: "/assist/nachweise",
-    image: require("../../../assets/healthos/widgets/15-nachweise.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/15-nachweise.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/15-nachweise.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/15-nachweise.png"),
+    },
   },
   {
     id: "budgets",
     label: "Budgets",
     route: "/assist/abrechnungsquellen",
-    image: require("../../../assets/healthos/widgets/16-budgets.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/16-budgets.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/16-budgets.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/16-budgets.png"),
+    },
   },
   {
     id: "portals",
     label: "Portale",
     route: "/assist/portale",
-    image: require("../../../assets/healthos/widgets/17-portale.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/17-portale.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/17-portale.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/17-portale.png"),
+    },
   },
   {
     id: "command",
     label: "Command Center",
     route: "/command-center",
-    image: require("../../../assets/healthos/widgets/18-command-center.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/18-command-center.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/18-command-center.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/18-command-center.png"),
+    },
   },
   {
     id: "office",
     label: "Office",
     route: "/office",
-    image: require("../../../assets/healthos/widgets/19-office.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/19-office.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/19-office.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/19-office.png"),
+    },
   },
   {
     id: "assist",
     label: "Assist",
     route: "/assist",
-    image: require("../../../assets/healthos/widgets/20-assist.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/20-assist.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/20-assist.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/20-assist.png"),
+    },
   },
   {
     id: "settings",
     label: "Einstellungen",
     route: "/settings",
-    image: require("../../../assets/healthos/widgets/21-einstellungen.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/21-einstellungen.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/21-einstellungen.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/21-einstellungen.png"),
+    },
   },
 ] as const;
 
@@ -642,7 +730,7 @@ function DockWidget({
         </Animated.View>
         <Image
           resizeMode="contain"
-          source={widget.image}
+          source={widget.images.small}
           style={styles.widgetImage}
         />
       </Pressable>
@@ -739,7 +827,7 @@ function DockFolder({
                 {previewWidget ? (
                   <Image
                     resizeMode="contain"
-                    source={previewWidget.image}
+                    source={previewWidget.images.small}
                     style={styles.folderPreviewImage}
                   />
                 ) : (
@@ -830,8 +918,8 @@ function FavoriteWidgetSlot({
           <>
             {widget ? (
               <Image
-                resizeMode="cover"
-                source={widget.image}
+                resizeMode="contain"
+                source={shape === "wide" ? widget.images.large : widget.images.medium}
                 style={styles.favoriteImage}
               />
             ) : (
@@ -850,7 +938,7 @@ function FavoriteWidgetSlot({
                         {previewWidget ? (
                           <Image
                             resizeMode="cover"
-                            source={previewWidget.image}
+                            source={previewWidget.images.small}
                             style={styles.favoriteFolderImage}
                           />
                         ) : (
@@ -1930,7 +2018,7 @@ export function CommandCenterScreen() {
           {dragVisual.payload.kind === "widget" ? (
             <Image
               resizeMode="contain"
-              source={WIDGET_BY_ID.get(dragVisual.payload.widgetId)?.image}
+              source={WIDGET_BY_ID.get(dragVisual.payload.widgetId)?.images.medium}
               style={styles.dragGhostImage}
             />
           ) : (
@@ -2033,7 +2121,7 @@ export function CommandCenterScreen() {
                         >
                           <Image
                             resizeMode="contain"
-                            source={widget.image}
+                            source={widget.images.large}
                             style={styles.folderContentImage}
                           />
                           <Text
@@ -2123,7 +2211,7 @@ export function CommandCenterScreen() {
                   style={styles.searchResult}
                 >
                   <Image
-                    source={widget.image}
+                    source={widget.images.medium}
                     resizeMode="contain"
                     style={styles.searchThumb}
                   />
