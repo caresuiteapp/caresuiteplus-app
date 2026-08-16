@@ -298,6 +298,7 @@ export function AssignmentEditForm({
   if (!canManage) {
     return (
       <InfoBanner
+        onDarkSurface
         message="Keine Berechtigung zum Bearbeiten von Einsätzen."
         variant="warning"
       />
@@ -365,6 +366,7 @@ export function AssignmentEditForm({
           return isSeriesOccurrence && section === "schedule" ? (
             <SectionPanel {...FORM_CTX} title="Änderungsbereich">
               <InfoBanner
+                onDarkSurface
                 message={
                   seriesScope === "this_only"
                     ? "Es wird ausschließlich dieser konkrete Termin geändert."
@@ -566,6 +568,7 @@ export function AssignmentEditForm({
         {section === "status" ? (
           <SectionPanel {...FORM_CTX} title="Status">
             <InfoBanner
+              onDarkSurface
               message="Der Status steuert Sichtbarkeit, Durchführung, Dokumentationspflicht und Abrechnung. Bereits ausgeführte Schritte bleiben nachvollziehbar."
               variant="info"
             />
@@ -591,7 +594,11 @@ export function AssignmentEditForm({
               </Text>
             ) : null}
             {optionsError ? (
-              <InfoBanner message={optionsError} variant="danger" />
+              <InfoBanner
+                onDarkSurface
+                message={optionsError}
+                variant="danger"
+              />
             ) : null}
             <ChipSelect
               label="Einsatz-Betreff"

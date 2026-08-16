@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { sanitizeUiText } from '@/lib/ui/uiVisibility';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -152,6 +152,14 @@ export function InfoBanner({
         style,
       ]}
       accessibilityRole="alert"
+      {...(Platform.OS === 'web'
+        ? ({
+            dataSet: {
+              csHealthosComponent: 'info-banner',
+              csHealthosSurface: onDarkSurface ? 'dark' : 'adaptive',
+            },
+          } as object)
+        : {})}
     >
       <Text style={styles.icon}>{displayIcon}</Text>
       <View style={styles.content}>

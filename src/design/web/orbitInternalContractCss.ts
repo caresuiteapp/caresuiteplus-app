@@ -187,6 +187,34 @@ export const ORBIT_INTERNAL_CONTRACT_CSS = `
     background-color: rgba(5,108,232,.10) !important;
   }
 
+  /*
+   * HealthOS Einsatzstudio and other deliberately dark workflow surfaces
+   * must win over ORBIT's generic light-workspace bridge. The previous
+   * universal ORBIT selector repainted every React-Native text descendant
+   * dark, including inputs that explicitly requested onDarkSurface.
+   */
+  html[data-cs-orbit-internal] [data-cs-healthos-surface="dark"],
+  html[data-cs-orbit-internal] [data-cs-healthos-surface="dark"] * {
+    color: #F8FBFF !important;
+  }
+
+  html[data-cs-orbit-internal] [data-cs-healthos-surface="dark"] input,
+  html[data-cs-orbit-internal] [data-cs-healthos-surface="dark"] textarea,
+  html[data-cs-orbit-internal] [data-cs-healthos-surface="dark"] select {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    caret-color: #69E8FF !important;
+    background-color: #071A31 !important;
+    border-color: rgba(119,207,250,.58) !important;
+  }
+
+  html[data-cs-orbit-internal] [data-cs-healthos-surface="dark"] input::placeholder,
+  html[data-cs-orbit-internal] [data-cs-healthos-surface="dark"] textarea::placeholder {
+    color: #AFC9DC !important;
+    -webkit-text-fill-color: #AFC9DC !important;
+    opacity: 1 !important;
+  }
+
   @media (max-width: 900px) {
     html[data-cs-orbit-internal] [data-cs-healthos-component="modal"] {
       width: calc(100vw - 16px) !important;

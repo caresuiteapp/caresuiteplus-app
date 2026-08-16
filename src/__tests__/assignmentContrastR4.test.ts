@@ -85,4 +85,15 @@ describe("assignment studio R4 contrast contract", () => {
     expect(dropdown).toContain("width: 44");
     expect(dropdown).toContain('marginLeft: "auto"');
   });
+
+  it("lets explicit dark HealthOS fields override the ORBIT light bridge", () => {
+    const orbit = read("src/design/web/orbitInternalContractCss.ts");
+    const input = read("src/components/ui/PremiumInput.tsx");
+    const banner = read("src/components/ui/InfoBanner.tsx");
+    expect(orbit).toContain('[data-cs-healthos-surface="dark"] *');
+    expect(orbit).toContain("-webkit-text-fill-color: #FFFFFF !important");
+    expect(orbit).toContain("background-color: #071A31 !important");
+    expect(input).toContain('csHealthosSurface: onDarkSurface ? "dark"');
+    expect(banner).toContain("csHealthosSurface: onDarkSurface ? 'dark'");
+  });
 });
