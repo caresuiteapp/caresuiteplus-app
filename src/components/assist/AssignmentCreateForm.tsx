@@ -1,40 +1,49 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { PlatformModal } from '@/components/layout/platform';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { PlatformModal } from "@/components/layout/platform";
 import {
   InfoBanner,
   PremiumButton,
   PremiumInput,
   SectionPanel,
-} from '@/components/ui';
-import { CareDateInput, CareTimeInput } from '@/components/inputs';
-import { DocumentModuleTemplatesPanel } from '@/components/documents/DocumentModuleTemplatesPanel';
-import { AssistCatalogGroupedChipSelect } from '@/components/office/assistCatalog/AssistCatalogGroupedChipSelect';
-import { AssistCatalogMultiSelect } from '@/components/office/assistCatalog/AssistCatalogMultiSelect';
+} from "@/components/ui";
+import { CareDateInput, CareTimeInput } from "@/components/inputs";
+import { DocumentModuleTemplatesPanel } from "@/components/documents/DocumentModuleTemplatesPanel";
+import { AssistCatalogGroupedChipSelect } from "@/components/office/assistCatalog/AssistCatalogGroupedChipSelect";
+import { AssistCatalogMultiSelect } from "@/components/office/assistCatalog/AssistCatalogMultiSelect";
 import {
   useAuroraAdaptiveText,
   useAuroraGlassActive,
   useAuroraGlassChipStyles,
-} from '@/design/tokens/auroraGlass';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { moduleColor } from '@/design/tokens/modules';
-import { careSpacing } from '@/design/tokens/spacing';
-import { useAssistAssignmentOptions } from '@/hooks/assistCatalog/useAssistCatalog';
-import { useAuth } from '@/lib/auth/context';
-import { useServiceTenantId } from '@/hooks/useTenantId';
-import { usePermissions } from '@/hooks/usePermissions';
-import { fetchClientList } from '@/lib/office/clientListService';
-import { fetchAssignmentEmployeeList } from '@/lib/assist/assignmentEmployeeListService';
-import { fetchTenantServiceCatalog } from '@/lib/tenant/tenantServiceCatalogService';
-import { createVisitFromWizard } from '@/lib/assist/visitService';
-import { ClientBillingProfileSummary } from '@/components/office/ClientAssistBillingPanels';
-import { AssignmentBillingBudgetPanel } from '@/components/assist/AssignmentBillingBudgetPanel';
+} from "@/design/tokens/auroraGlass";
+import { useLegacyTheme } from "@/design/tokens/themeBridge";
+import { moduleColor } from "@/design/tokens/modules";
+import { careSpacing } from "@/design/tokens/spacing";
+import { useAssistAssignmentOptions } from "@/hooks/assistCatalog/useAssistCatalog";
+import { useAuth } from "@/lib/auth/context";
+import { useServiceTenantId } from "@/hooks/useTenantId";
+import { usePermissions } from "@/hooks/usePermissions";
+import { fetchClientList } from "@/lib/office/clientListService";
+import { fetchAssignmentEmployeeList } from "@/lib/assist/assignmentEmployeeListService";
+import { fetchTenantServiceCatalog } from "@/lib/tenant/tenantServiceCatalogService";
+import { createVisitFromWizard } from "@/lib/assist/visitService";
+import { ClientBillingProfileSummary } from "@/components/office/ClientAssistBillingPanels";
+import { AssignmentBillingBudgetPanel } from "@/components/assist/AssignmentBillingBudgetPanel";
 import {
   AssignmentStudioScaffold,
   type AssignmentStudioStep,
-} from '@/components/assist/AssignmentStudioScaffold';
-import type { AssistBudgetAllocationResult, ManualBudgetAllocationOverride } from '@/types/assist/assignmentBudgetAllocation';
-import { loadTaskPackageItems, mergeTaskDrafts } from '@/lib/assistCatalog';
+} from "@/components/assist/AssignmentStudioScaffold";
+import type {
+  AssistBudgetAllocationResult,
+  ManualBudgetAllocationOverride,
+} from "@/types/assist/assignmentBudgetAllocation";
+import { loadTaskPackageItems, mergeTaskDrafts } from "@/lib/assistCatalog";
 import {
   EMPTY_VISIT_WIZARD_DATA,
   VISIT_RECURRENCE_PATTERN_LABELS,
@@ -44,9 +53,12 @@ import {
   type VisitCreateWizardData,
   type VisitRecurrencePattern,
   type VisitWeekdayKey,
-} from '@/lib/assist/visitTypes';
-import type { AssistAssignmentTaskDraft, CatalogItem } from '@/types/assistCatalog';
-import { spacing, typography } from '@/theme';
+} from "@/lib/assist/visitTypes";
+import type {
+  AssistAssignmentTaskDraft,
+  CatalogItem,
+} from "@/types/assistCatalog";
+import { spacing, typography } from "@/theme";
 
 type AssignmentCreateFormProps = {
   visible: boolean;
@@ -57,19 +69,30 @@ type AssignmentCreateFormProps = {
 
 type SelectOption = { value: string; label: string };
 
-const FORM_CTX = { viewContext: 'form' as const };
+const FORM_CTX = { viewContext: "form" as const };
 
-const CREATE_STUDIO_STEPS: readonly AssignmentStudioStep<AssignmentCreateSectionKey>[] = [
-  { key: 'basis', label: 'Grunddaten', icon: 'document-text-outline' },
-  { key: 'people', label: 'Personen', icon: 'people-outline' },
-  { key: 'schedule', label: 'Termin & Serie', icon: 'calendar-outline' },
-  { key: 'type', label: 'Leistung', icon: 'briefcase-outline' },
-  { key: 'tasks', label: 'Aufgaben', icon: 'checkmark-done-outline' },
-  { key: 'hints', label: 'Hinweise', icon: 'shield-checkmark-outline', optional: true },
-  { key: 'billing', label: 'Budget', icon: 'wallet-outline' },
-  { key: 'documentation', label: 'Nachweis', icon: 'clipboard-outline', optional: true },
-  { key: 'review', label: 'Prüfen', icon: 'sparkles-outline' },
-];
+const CREATE_STUDIO_STEPS: readonly AssignmentStudioStep<AssignmentCreateSectionKey>[] =
+  [
+    { key: "basis", label: "Grunddaten", icon: "document-text-outline" },
+    { key: "people", label: "Personen", icon: "people-outline" },
+    { key: "schedule", label: "Termin & Serie", icon: "calendar-outline" },
+    { key: "type", label: "Leistung", icon: "briefcase-outline" },
+    { key: "tasks", label: "Aufgaben", icon: "checkmark-done-outline" },
+    {
+      key: "hints",
+      label: "Hinweise",
+      icon: "shield-checkmark-outline",
+      optional: true,
+    },
+    { key: "billing", label: "Budget", icon: "wallet-outline" },
+    {
+      key: "documentation",
+      label: "Nachweis",
+      icon: "clipboard-outline",
+      optional: true,
+    },
+    { key: "review", label: "Prüfen", icon: "sparkles-outline" },
+  ];
 
 function normalizeMultiValue(value: string | string[]): string[] {
   if (Array.isArray(value)) return value;
@@ -83,7 +106,9 @@ function syncOptionalTaskDrafts(
   removedTaskKeys: Set<string>,
 ): AssistAssignmentTaskDraft[] {
   const optionalKeys = new Set(taskItems.map((t) => t.itemKey));
-  const packageDrafts = currentDrafts.filter((d) => !optionalKeys.has(d.itemKey));
+  const packageDrafts = currentDrafts.filter(
+    (d) => !optionalKeys.has(d.itemKey),
+  );
   const optionalDrafts = selectedKeys
     .filter((k) => optionalKeys.has(k))
     .map((k, index) => {
@@ -119,7 +144,7 @@ function ChipSelect({
   const glassChips = useAuroraGlassChipStyles(FORM_CTX);
   const text = useAuroraAdaptiveText();
   const useGlass = isLight && auroraActive;
-  const assistAccent = moduleColor('assist');
+  const assistAccent = moduleColor("assist");
   const selectedKeys = multi ? normalizeMultiValue(value) : null;
 
   return (
@@ -128,7 +153,9 @@ function ChipSelect({
       {options.length > 0 ? (
         <View style={chipStyles.row}>
           {options.map((opt) => {
-            const selected = multi ? selectedKeys!.includes(opt.value) : value === opt.value;
+            const selected = multi
+              ? selectedKeys!.includes(opt.value)
+              : value === opt.value;
             return (
               <TouchableOpacity
                 key={opt.value}
@@ -137,7 +164,10 @@ function ChipSelect({
                   selected &&
                     (useGlass
                       ? glassChips.chipSelected
-                      : { borderColor: assistAccent, backgroundColor: `${assistAccent}22` }),
+                      : {
+                          borderColor: assistAccent,
+                          backgroundColor: `${assistAccent}22`,
+                        }),
                 ]}
                 onPress={() => {
                   if (multi) {
@@ -154,11 +184,13 @@ function ChipSelect({
               >
                 <Text
                   style={[
-                    useGlass ? glassChips.label : [chipStyles.chipText, { color: text.primary }],
+                    useGlass
+                      ? glassChips.label
+                      : [chipStyles.chipText, { color: text.primary }],
                     selected &&
                       (useGlass
                         ? glassChips.labelSelected
-                        : { fontWeight: '600', color: assistAccent }),
+                        : { fontWeight: "600", color: assistAccent }),
                   ]}
                 >
                   {opt.label}
@@ -175,7 +207,7 @@ function ChipSelect({
 const chipStyles = StyleSheet.create({
   wrap: { marginBottom: spacing.md },
   label: { ...typography.caption, marginBottom: spacing.xs },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  row: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
   chip: {
     borderWidth: 1,
     borderRadius: 20,
@@ -191,25 +223,35 @@ export function AssignmentCreateForm({
   onClose,
   onCreated,
 }: AssignmentCreateFormProps) {
-  const assistAccent = moduleColor('assist');
+  const assistAccent = moduleColor("assist");
   const text = useAuroraAdaptiveText();
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
   const { can } = usePermissions();
-  const { options, loading: optionsLoading, error: optionsError } = useAssistAssignmentOptions();
-  const canManage = can('assist.assignments.manage');
+  const {
+    options,
+    loading: optionsLoading,
+    error: optionsError,
+  } = useAssistAssignmentOptions();
+  const canManage = can("assist.assignments.manage");
 
-  const [section, setSection] = useState<AssignmentCreateSectionKey>('basis');
-  const [form, setForm] = useState<VisitCreateWizardData>(EMPTY_VISIT_WIZARD_DATA);
+  const [section, setSection] = useState<AssignmentCreateSectionKey>("basis");
+  const [form, setForm] = useState<VisitCreateWizardData>(
+    EMPTY_VISIT_WIZARD_DATA,
+  );
   const [clients, setClients] = useState<SelectOption[]>([]);
   const [employees, setEmployees] = useState<SelectOption[]>([]);
   const [services, setServices] = useState<SelectOption[]>([]);
   const [listsLoading, setListsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [removedTaskKeys, setRemovedTaskKeys] = useState<Set<string>>(new Set());
-  const [budgetAllocation, setBudgetAllocation] = useState<AssistBudgetAllocationResult | null>(null);
-  const [budgetManualOverride, setBudgetManualOverride] = useState<ManualBudgetAllocationOverride | null>(null);
+  const [removedTaskKeys, setRemovedTaskKeys] = useState<Set<string>>(
+    new Set(),
+  );
+  const [budgetAllocation, setBudgetAllocation] =
+    useState<AssistBudgetAllocationResult | null>(null);
+  const [budgetManualOverride, setBudgetManualOverride] =
+    useState<ManualBudgetAllocationOverride | null>(null);
 
   const patch = useCallback((partial: Partial<VisitCreateWizardData>) => {
     setForm((prev) => ({ ...prev, ...partial }));
@@ -217,8 +259,8 @@ export function AssignmentCreateForm({
 
   useEffect(() => {
     if (!visible || !tenantId) return;
-    setSection('basis');
-    setForm({ ...EMPTY_VISIT_WIZARD_DATA, clientId: initialClientId ?? '' });
+    setSection("basis");
+    setForm({ ...EMPTY_VISIT_WIZARD_DATA, clientId: initialClientId ?? "" });
     setError(null);
     setRemovedTaskKeys(new Set());
     setBudgetAllocation(null);
@@ -227,7 +269,9 @@ export function AssignmentCreateForm({
 
     void (async () => {
       const [clientRes, employeeRes, catalogRes] = await Promise.all([
-        fetchClientList(tenantId, profile?.roleKey, { lifecycleFilter: 'active' }),
+        fetchClientList(tenantId, profile?.roleKey, {
+          lifecycleFilter: "active",
+        }),
         fetchAssignmentEmployeeList(tenantId, profile?.roleKey),
         fetchTenantServiceCatalog(tenantId, profile?.roleKey),
       ]);
@@ -250,7 +294,7 @@ export function AssignmentCreateForm({
       if (catalogRes.ok) {
         setServices(
           catalogRes.data.items
-            .filter((item) => item.isActive && item.moduleKey === 'assist')
+            .filter((item) => item.isActive && item.moduleKey === "assist")
             .map((item) => ({ value: item.serviceKey, label: item.name })),
         );
       }
@@ -259,7 +303,11 @@ export function AssignmentCreateForm({
   }, [initialClientId, visible, tenantId, profile?.roleKey]);
 
   const subjectOptions = useMemo(
-    () => (options?.subjects ?? []).map((s) => ({ value: s.itemKey, label: s.label })),
+    () =>
+      (options?.subjects ?? []).map((s) => ({
+        value: s.itemKey,
+        label: s.label,
+      })),
     [options],
   );
 
@@ -271,7 +319,9 @@ export function AssignmentCreateForm({
   }, [form.taskDrafts, options?.taskItems]);
 
   const durationMinutes = useMemo(() => {
-    const start = new Date(`${form.assignmentDate}T${form.plannedStartTime}:00`);
+    const start = new Date(
+      `${form.assignmentDate}T${form.plannedStartTime}:00`,
+    );
     const end = new Date(`${form.assignmentDate}T${form.plannedEndTime}:00`);
     const diff = end.getTime() - start.getTime();
     return diff > 0 ? Math.round(diff / 60000) : 0;
@@ -280,7 +330,11 @@ export function AssignmentCreateForm({
   const handlePackageSelect = async (packageId: string) => {
     if (!tenantId) return;
     patch({ taskPackageId: packageId });
-    const res = await loadTaskPackageItems(tenantId, packageId, profile?.roleKey);
+    const res = await loadTaskPackageItems(
+      tenantId,
+      packageId,
+      profile?.roleKey,
+    );
     if (res.ok) {
       const merged = mergeTaskDrafts(res.data, [], new Set());
       patch({ taskDrafts: merged, tasks: merged.map((t) => t.title) });
@@ -289,14 +343,20 @@ export function AssignmentCreateForm({
   };
 
   const showRecurrenceWeekdays =
-    form.recurrencePattern === 'weekly' || form.recurrencePattern === 'biweekly';
+    form.recurrencePattern === "weekly" ||
+    form.recurrencePattern === "biweekly";
 
-  const sectionIndex = CREATE_STUDIO_STEPS.findIndex((item) => item.key === section);
-  const selectedClient = clients.find((item) => item.value === form.clientId)?.label ?? '';
-  const selectedEmployee = employees.find((item) => item.value === form.employeeId)?.label ?? '';
-  const selectedService = services.find((item) => item.value === form.serviceKey)?.label
-    ?? subjectOptions.find((item) => item.value === form.subjectKey)?.label
-    ?? form.title;
+  const sectionIndex = CREATE_STUDIO_STEPS.findIndex(
+    (item) => item.key === section,
+  );
+  const selectedClient =
+    clients.find((item) => item.value === form.clientId)?.label ?? "";
+  const selectedEmployee =
+    employees.find((item) => item.value === form.employeeId)?.label ?? "";
+  const selectedService =
+    services.find((item) => item.value === form.serviceKey)?.label ??
+    subjectOptions.find((item) => item.value === form.subjectKey)?.label ??
+    form.title;
   const goToRelativeSection = (offset: number) => {
     const next = CREATE_STUDIO_STEPS[sectionIndex + offset];
     if (next) setSection(next.key);
@@ -305,23 +365,29 @@ export function AssignmentCreateForm({
   const handleSave = async (asDraft: boolean) => {
     if (!tenantId || !canManage) return;
     if (!form.clientId) {
-      setError('Bitte eine:n Klient:in auswählen.');
-      setSection('people');
+      setError("Bitte eine:n Klient:in auswählen.");
+      setSection("people");
       return;
     }
     if (!asDraft && !form.employeeId) {
-      setError('Für einen geplanten Einsatz ist eine mitarbeitende Person erforderlich.');
-      setSection('people');
+      setError(
+        "Für einen geplanten Einsatz ist eine mitarbeitende Person erforderlich.",
+      );
+      setSection("people");
       return;
     }
     if (!asDraft && !form.subjectKey && !form.title.trim()) {
-      setError('Bitte einen Einsatz-Betreff auswählen.');
-      setSection('type');
+      setError("Bitte einen Einsatz-Betreff auswählen.");
+      setSection("type");
       return;
     }
-    if (!asDraft && form.taskDrafts.length === 0 && !form.tasks.some((task) => task.trim())) {
-      setError('Bitte mindestens eine Aufgabe auswählen.');
-      setSection('tasks');
+    if (
+      !asDraft &&
+      form.taskDrafts.length === 0 &&
+      !form.tasks.some((task) => task.trim())
+    ) {
+      setError("Bitte mindestens eine Aufgabe auswählen.");
+      setSection("tasks");
       return;
     }
     setLoading(true);
@@ -329,24 +395,34 @@ export function AssignmentCreateForm({
     const payload: VisitCreateWizardData = {
       ...form,
       saveAsDraft: asDraft,
-      title: form.title || subjectOptions.find((s) => s.value === form.subjectKey)?.label || 'Neuer Einsatz',
+      title:
+        form.title ||
+        subjectOptions.find((s) => s.value === form.subjectKey)?.label ||
+        "Neuer Einsatz",
       catalogSnapshotJson: {
         subjectKey: form.subjectKey,
-        subjectLabel: subjectOptions.find((item) => item.value === form.subjectKey)?.label ?? null,
+        subjectLabel:
+          subjectOptions.find((item) => item.value === form.subjectKey)
+            ?.label ?? null,
         assignmentTypeKey: form.assignmentTypeKey,
         assignmentTypeLabel:
-          options?.assignmentTypes.find((item) => item.itemKey === form.assignmentTypeKey)?.label
-          ?? null,
+          options?.assignmentTypes.find(
+            (item) => item.itemKey === form.assignmentTypeKey,
+          )?.label ?? null,
         serviceCategoryKey: form.serviceCategoryKey,
         serviceCategoryLabel:
-          options?.serviceCategories.find((item) => item.itemKey === form.serviceCategoryKey)?.label
-          ?? null,
+          options?.serviceCategories.find(
+            (item) => item.itemKey === form.serviceCategoryKey,
+          )?.label ?? null,
         taskPackageId: form.taskPackageId,
         taskPackageLabel:
-          options?.taskPackages.find((item) => item.id === form.taskPackageId)?.label ?? null,
+          options?.taskPackages.find((item) => item.id === form.taskPackageId)
+            ?.label ?? null,
         riskFlagKeys: form.riskFlagKeys,
         riskFlagLabels: form.riskFlagKeys.map(
-          (key) => options?.riskFlags.find((item) => item.itemKey === key)?.label ?? key,
+          (key) =>
+            options?.riskFlags.find((item) => item.itemKey === key)?.label ??
+            key,
         ),
         documentationTemplateKey: form.documentationTemplate || null,
         proofTemplateKey: form.proofTemplateKey || null,
@@ -358,10 +434,16 @@ export function AssignmentCreateForm({
       },
       budgetAllocation,
       budgetManualOverride,
-      budgetAmountCents: budgetAllocation?.totalAmountCents ?? form.budgetAmountCents,
-      billingBudgetSourceKey: budgetAllocation?.primaryCatalogKey ?? form.billingBudgetSourceKey,
+      budgetAmountCents:
+        budgetAllocation?.totalAmountCents ?? form.budgetAmountCents,
+      billingBudgetSourceKey:
+        budgetAllocation?.primaryCatalogKey ?? form.billingBudgetSourceKey,
     };
-    const res = await createVisitFromWizard(tenantId, payload, profile?.roleKey);
+    const res = await createVisitFromWizard(
+      tenantId,
+      payload,
+      profile?.roleKey,
+    );
     setLoading(false);
     if (res.ok) {
       onCreated?.(res.data.id);
@@ -373,7 +455,11 @@ export function AssignmentCreateForm({
 
   const renderCatalogSectionHint = () => {
     if (optionsLoading) {
-      return <Text style={[styles.hint, { color: text.primary }]}>Kataloge werden geladen…</Text>;
+      return (
+        <Text style={[styles.hint, { color: text.primary }]}>
+          Kataloge werden geladen…
+        </Text>
+      );
     }
     if (optionsError) {
       return <InfoBanner message={optionsError} variant="danger" />;
@@ -383,7 +469,7 @@ export function AssignmentCreateForm({
 
   const renderSection = () => {
     switch (section) {
-      case 'basis':
+      case "basis":
         return (
           <SectionPanel {...FORM_CTX} title="Basisdaten">
             <PremiumInput
@@ -404,14 +490,19 @@ export function AssignmentCreateForm({
           </SectionPanel>
         );
 
-      case 'people':
+      case "people":
         return (
           <SectionPanel {...FORM_CTX} title="Klient:in & Mitarbeitende:r">
             {listsLoading ? (
-              <Text style={[styles.hint, { color: text.primary }]}>Klient:innen und Mitarbeitende werden geladen…</Text>
+              <Text style={[styles.hint, { color: text.primary }]}>
+                Klient:innen und Mitarbeitende werden geladen…
+              </Text>
             ) : null}
             {!listsLoading && clients.length === 0 ? (
-              <InfoBanner message="Keine aktiven Klient:innen gefunden." variant="warning" />
+              <InfoBanner
+                message="Keine aktiven Klient:innen gefunden."
+                variant="warning"
+              />
             ) : null}
             <ChipSelect
               label="Klient:in *"
@@ -419,7 +510,9 @@ export function AssignmentCreateForm({
               value={form.clientId}
               onChange={(v) => patch({ clientId: v as string })}
             />
-            {form.clientId ? <ClientBillingProfileSummary clientId={form.clientId} /> : null}
+            {form.clientId ? (
+              <ClientBillingProfileSummary clientId={form.clientId} />
+            ) : null}
             <ChipSelect
               label="Mitarbeitende:r"
               options={employees}
@@ -429,7 +522,7 @@ export function AssignmentCreateForm({
           </SectionPanel>
         );
 
-      case 'schedule':
+      case "schedule":
         return (
           <SectionPanel {...FORM_CTX} title="Termin & Wiederholung">
             <CareDateInput
@@ -437,6 +530,7 @@ export function AssignmentCreateForm({
               label="Datum *"
               value={form.assignmentDate}
               onChange={(assignmentDate) => patch({ assignmentDate })}
+              showFormatHint={false}
             />
             <CareTimeInput
               {...FORM_CTX}
@@ -453,7 +547,9 @@ export function AssignmentCreateForm({
               showFormatHint={false}
             />
             {durationMinutes > 0 ? (
-              <Text style={[styles.hint, { color: text.primary }]}>Dauer: {durationMinutes} Minuten</Text>
+              <Text style={[styles.hint, { color: text.primary }]}>
+                Dauer: {durationMinutes} Minuten
+              </Text>
             ) : null}
             <ChipSelect
               label="Wiederholung"
@@ -467,7 +563,9 @@ export function AssignmentCreateForm({
                 patch({
                   recurrencePattern: pattern,
                   recurrenceWeekdays:
-                    pattern === 'weekly' || pattern === 'biweekly' ? form.recurrenceWeekdays : [],
+                    pattern === "weekly" || pattern === "biweekly"
+                      ? form.recurrenceWeekdays
+                      : [],
                 });
               }}
             />
@@ -479,11 +577,13 @@ export function AssignmentCreateForm({
                   label: o.label,
                 }))}
                 value={form.recurrenceWeekdays}
-                onChange={(v) => patch({ recurrenceWeekdays: v as VisitWeekdayKey[] })}
+                onChange={(v) =>
+                  patch({ recurrenceWeekdays: v as VisitWeekdayKey[] })
+                }
                 multi
               />
             ) : null}
-            {form.recurrencePattern !== 'none' ? (
+            {form.recurrencePattern !== "none" ? (
               <>
                 <CareDateInput
                   {...FORM_CTX}
@@ -491,6 +591,7 @@ export function AssignmentCreateForm({
                   value={form.recurrenceEndDate}
                   onChange={(recurrenceEndDate) => patch({ recurrenceEndDate })}
                   placeholder="TT.MM.JJJJ — oder Anzahl angeben"
+                  showFormatHint={false}
                 />
                 <PremiumInput
                   {...FORM_CTX}
@@ -498,10 +599,10 @@ export function AssignmentCreateForm({
                   value={
                     form.recurrenceOccurrenceCount != null
                       ? String(form.recurrenceOccurrenceCount)
-                      : ''
+                      : ""
                   }
                   onChangeText={(v) => {
-                    const n = v.trim() ? Number(v.replace(/\D/g, '')) : null;
+                    const n = v.trim() ? Number(v.replace(/\D/g, "")) : null;
                     patch({
                       recurrenceOccurrenceCount:
                         n != null && Number.isFinite(n) && n > 0 ? n : null,
@@ -515,7 +616,7 @@ export function AssignmentCreateForm({
           </SectionPanel>
         );
 
-      case 'type':
+      case "type":
         return (
           <SectionPanel {...FORM_CTX} title="Einsatzart & Betreff">
             {renderCatalogSectionHint()}
@@ -525,7 +626,8 @@ export function AssignmentCreateForm({
               value={form.subjectKey}
               onChange={(v) => {
                 const key = v as string;
-                const label = subjectOptions.find((s) => s.value === key)?.label ?? '';
+                const label =
+                  subjectOptions.find((s) => s.value === key)?.label ?? "";
                 patch({ subjectKey: key, title: label });
               }}
             />
@@ -554,22 +656,27 @@ export function AssignmentCreateForm({
                 const key = v as string;
                 patch({
                   serviceKey: key,
-                  serviceName: services.find((s) => s.value === key)?.label ?? key,
+                  serviceName:
+                    services.find((s) => s.value === key)?.label ?? key,
                 });
               }}
             />
           </SectionPanel>
         );
 
-      case 'tasks':
+      case "tasks":
         return (
           <SectionPanel {...FORM_CTX} title="Aufgabenpaket & Aufgaben">
             {renderCatalogSectionHint()}
             <Text style={[styles.hint, { color: text.primary }]}>
-              Aufgabenpaket wählen — enthaltene Aufgaben werden automatisch geladen.
+              Aufgabenpaket wählen — enthaltene Aufgaben werden automatisch
+              geladen.
             </Text>
             {(options?.taskPackages?.length ?? 0) === 0 && !optionsLoading ? (
-              <InfoBanner message="Keine Aufgabenpakete verfügbar." variant="warning" />
+              <InfoBanner
+                message="Keine Aufgabenpakete verfügbar."
+                variant="warning"
+              />
             ) : null}
             <View style={styles.packageGrid}>
               {(options?.taskPackages ?? []).map((pkg) => (
@@ -578,11 +685,15 @@ export function AssignmentCreateForm({
                   style={[
                     styles.packageCard,
                     { borderColor: text.muted },
-                    form.taskPackageId === pkg.id && { borderColor: assistAccent },
+                    form.taskPackageId === pkg.id && {
+                      borderColor: assistAccent,
+                    },
                   ]}
                   onPress={() => void handlePackageSelect(pkg.id)}
                 >
-                  <Text style={[styles.packageTitle, { color: text.primary }]}>{pkg.label}</Text>
+                  <Text style={[styles.packageTitle, { color: text.primary }]}>
+                    {pkg.label}
+                  </Text>
                   {pkg.defaultDurationMinutes ? (
                     <Text style={[styles.packageMeta, { color: text.primary }]}>
                       {pkg.defaultDurationMinutes} Min.
@@ -603,13 +714,16 @@ export function AssignmentCreateForm({
                   options?.taskItems ?? [],
                   removedTaskKeys,
                 );
-                patch({ taskDrafts: merged, tasks: merged.map((t) => t.title) });
+                patch({
+                  taskDrafts: merged,
+                  tasks: merged.map((t) => t.title),
+                });
               }}
             />
             {form.taskDrafts.map((task, index) => (
               <View key={`${task.itemKey}-${index}`} style={styles.taskRow}>
                 <Text style={[styles.taskTitle, { color: text.primary }]}>
-                  {task.isRequired ? '★ ' : ''}
+                  {task.isRequired ? "★ " : ""}
                   {task.title}
                 </Text>
                 <PremiumButton
@@ -619,8 +733,15 @@ export function AssignmentCreateForm({
                     const nextRemoved = new Set(removedTaskKeys);
                     nextRemoved.add(task.itemKey);
                     setRemovedTaskKeys(nextRemoved);
-                    const merged = mergeTaskDrafts(form.taskDrafts, [], nextRemoved);
-                    patch({ taskDrafts: merged, tasks: merged.map((t) => t.title) });
+                    const merged = mergeTaskDrafts(
+                      form.taskDrafts,
+                      [],
+                      nextRemoved,
+                    );
+                    patch({
+                      taskDrafts: merged,
+                      tasks: merged.map((t) => t.title),
+                    });
                   }}
                 />
               </View>
@@ -628,7 +749,7 @@ export function AssignmentCreateForm({
           </SectionPanel>
         );
 
-      case 'hints':
+      case "hints":
         return (
           <SectionPanel {...FORM_CTX} title="Hinweise & Risiken">
             {renderCatalogSectionHint()}
@@ -657,19 +778,23 @@ export function AssignmentCreateForm({
               {...FORM_CTX}
               label="Hinweise für Klient:innen"
               value={form.clientVisibleNotes}
-              onChangeText={(clientVisibleNotes) => patch({ clientVisibleNotes })}
+              onChangeText={(clientVisibleNotes) =>
+                patch({ clientVisibleNotes })
+              }
               multiline
             />
           </SectionPanel>
         );
 
-      case 'billing':
+      case "billing":
         return (
           <SectionPanel {...FORM_CTX} title="Abrechnung & Budget">
             {form.clientId ? (
               <AssignmentBillingBudgetPanel
                 clientId={form.clientId}
-                clientName={clients.find((c) => c.value === form.clientId)?.label}
+                clientName={
+                  clients.find((c) => c.value === form.clientId)?.label
+                }
                 assignmentDate={form.assignmentDate}
                 plannedStartTime={form.plannedStartTime}
                 plannedEndTime={form.plannedEndTime}
@@ -681,12 +806,15 @@ export function AssignmentCreateForm({
                 onManualOverrideChange={setBudgetManualOverride}
               />
             ) : (
-              <InfoBanner message="Bitte zuerst eine:n Klient:in im Tab „Klient & Mitarbeitende“ auswählen." variant="warning" />
+              <InfoBanner
+                message="Bitte zuerst eine:n Klient:in im Tab „Klient & Mitarbeitende“ auswählen."
+                variant="warning"
+              />
             )}
           </SectionPanel>
         );
 
-      case 'documentation':
+      case "documentation":
         return (
           <>
             <SectionPanel {...FORM_CTX} title="Dokumentation & Nachweis">
@@ -694,13 +822,15 @@ export function AssignmentCreateForm({
                 {...FORM_CTX}
                 label="Dokumentationsvorlage"
                 value={form.documentationTemplate}
-                onChangeText={(documentationTemplate) => patch({ documentationTemplate })}
+                onChangeText={(documentationTemplate) =>
+                  patch({ documentationTemplate })
+                }
               />
               <ChipSelect
                 label="Leistungsnachweis-Vorlage"
                 options={[
-                  { value: 'einzel', label: 'Einzel-Einsatznachweis' },
-                  { value: 'monat', label: 'Monatsnachweis' },
+                  { value: "einzel", label: "Einzel-Einsatznachweis" },
+                  { value: "monat", label: "Monatsnachweis" },
                 ]}
                 value={form.proofTemplateKey}
                 onChange={(v) => patch({ proofTemplateKey: v as string })}
@@ -718,12 +848,14 @@ export function AssignmentCreateForm({
           </>
         );
 
-      case 'review':
+      case "review":
         return (
           <SectionPanel {...FORM_CTX} title="Prüfung & Speichern">
-            <InfoBanner message={`Betreff: ${form.title || form.subjectKey || '—'}`} />
             <InfoBanner
-              message={`Klient: ${clients.find((c) => c.value === form.clientId)?.label ?? '—'}`}
+              message={`Betreff: ${form.title || form.subjectKey || "—"}`}
+            />
+            <InfoBanner
+              message={`Klient: ${clients.find((c) => c.value === form.clientId)?.label ?? "—"}`}
             />
             <InfoBanner
               message={`Termin: ${form.assignmentDate} ${form.plannedStartTime}–${form.plannedEndTime}`}
@@ -732,13 +864,19 @@ export function AssignmentCreateForm({
               message={`Wiederholung: ${VISIT_RECURRENCE_PATTERN_LABELS[form.recurrencePattern]}${
                 form.recurrenceWeekdays.length > 0
                   ? ` (${form.recurrenceWeekdays
-                      .map((d) => VISIT_WEEKDAY_OPTIONS.find((o) => o.key === d)?.label ?? d)
-                      .join(', ')})`
-                  : ''
+                      .map(
+                        (d) =>
+                          VISIT_WEEKDAY_OPTIONS.find((o) => o.key === d)
+                            ?.label ?? d,
+                      )
+                      .join(", ")})`
+                  : ""
               }${
-                form.recurrenceEndDate ? ` bis ${form.recurrenceEndDate}` : ''
+                form.recurrenceEndDate ? ` bis ${form.recurrenceEndDate}` : ""
               }${
-                form.recurrenceOccurrenceCount ? ` · ${form.recurrenceOccurrenceCount}×` : ''
+                form.recurrenceOccurrenceCount
+                  ? ` · ${form.recurrenceOccurrenceCount}×`
+                  : ""
               }`}
             />
             <InfoBanner
@@ -747,11 +885,16 @@ export function AssignmentCreateForm({
             <InfoBanner
               message={`Abrechnung: ${
                 budgetAllocation
-                  ? `${budgetAllocation.allocationProposal
-                      .filter((l) => l.amountCents > 0)
-                      .map((l) => `${l.label} ${(l.amountCents / 100).toFixed(2)} €`)
-                      .join(' · ') || '—'}`
-                  : 'Automatisch nach Klient:innenprofil'
+                  ? `${
+                      budgetAllocation.allocationProposal
+                        .filter((l) => l.amountCents > 0)
+                        .map(
+                          (l) =>
+                            `${l.label} ${(l.amountCents / 100).toFixed(2)} €`,
+                        )
+                        .join(" · ") || "—"
+                    }`
+                  : "Automatisch nach Klient:innenprofil"
               }`}
             />
             <View style={styles.actions}>
@@ -806,20 +949,50 @@ export function AssignmentCreateForm({
           title="Einsatz strukturiert planen"
           description="Alle Angaben bleiben in einem geführten Ablauf. Pflichtfelder, Zuständigkeit, Budget und Nachweis werden vor der Freigabe gemeinsam geprüft."
           summary={[
-            { label: 'Klient:in', value: selectedClient, icon: 'person-outline' },
-            { label: 'Termin', value: form.assignmentDate ? `${form.assignmentDate} · ${form.plannedStartTime}–${form.plannedEndTime}` : '', icon: 'time-outline' },
-            { label: 'Mitarbeitende:r', value: selectedEmployee || 'Noch nicht zugewiesen', icon: 'person-add-outline', tone: selectedEmployee ? 'success' : 'warning' },
-            { label: 'Leistung', value: selectedService, icon: 'briefcase-outline' },
+            {
+              label: "Klient:in",
+              value: selectedClient,
+              icon: "person-outline",
+            },
+            {
+              label: "Termin",
+              value: form.assignmentDate
+                ? `${form.assignmentDate} · ${form.plannedStartTime}–${form.plannedEndTime}`
+                : "",
+              icon: "time-outline",
+            },
+            {
+              label: "Mitarbeitende:r",
+              value: selectedEmployee || "Noch nicht zugewiesen",
+              icon: "person-add-outline",
+              tone: selectedEmployee ? "success" : "warning",
+            },
+            {
+              label: "Leistung",
+              value: selectedService,
+              icon: "briefcase-outline",
+            },
           ]}
           footer={
             <>
-              <PremiumButton title="Abbrechen" variant="ghost" onPress={onClose} />
+              <PremiumButton
+                title="Abbrechen"
+                variant="ghost"
+                onPress={onClose}
+              />
               <View style={styles.footerActions}>
                 {sectionIndex > 0 ? (
-                  <PremiumButton title="Zurück" variant="secondary" onPress={() => goToRelativeSection(-1)} />
+                  <PremiumButton
+                    title="Zurück"
+                    variant="secondary"
+                    onPress={() => goToRelativeSection(-1)}
+                  />
                 ) : null}
                 {sectionIndex < CREATE_STUDIO_STEPS.length - 1 ? (
-                  <PremiumButton title="Weiter" onPress={() => goToRelativeSection(1)} />
+                  <PremiumButton
+                    title="Weiter"
+                    onPress={() => goToRelativeSection(1)}
+                  />
                 ) : (
                   <PremiumButton
                     title="Einsatz verbindlich anlegen"
@@ -840,10 +1013,19 @@ export function AssignmentCreateForm({
 }
 
 const styles = StyleSheet.create({
-  sectionScroll: { flexGrow: 1, flexShrink: 1, maxWidth: '100%' },
-  sectionBody: { gap: careSpacing.md, paddingBottom: careSpacing.sm, minHeight: 120 },
+  sectionScroll: { flexGrow: 1, flexShrink: 1, maxWidth: "100%" },
+  sectionBody: {
+    gap: careSpacing.md,
+    paddingBottom: careSpacing.sm,
+    minHeight: 120,
+  },
   hint: { ...typography.caption, marginBottom: spacing.sm },
-  packageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
+  packageGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
   packageCard: {
     borderWidth: 1,
     borderRadius: 12,
@@ -851,16 +1033,21 @@ const styles = StyleSheet.create({
     minWidth: 160,
     flexGrow: 1,
   },
-  packageTitle: { ...typography.body, fontWeight: '600' },
+  packageTitle: { ...typography.body, fontWeight: "600" },
   packageMeta: { ...typography.caption, marginTop: 4 },
   taskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: spacing.xs,
     gap: spacing.sm,
   },
   taskTitle: { ...typography.body, flex: 1 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
-  footerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  actions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  footerActions: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
 });

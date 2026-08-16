@@ -1,21 +1,20 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { useMemo } from 'react';
-import { PremiumButton, PremiumDataTable } from '@/components/ui';
-import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
+import { StyleSheet, Text, View } from "react-native";
+import { useMemo } from "react";
+import { PremiumButton, PremiumDataTable } from "@/components/ui";
+import { OfficeRecordDeleteButton } from "@/components/office/OfficeRecordDeleteButton";
 import {
   buildAssignmentStatusBadges,
   StatusBadgesDropdown,
-} from '@/components/assist/StatusBadgesDropdown';
-import type { AssignmentListItem } from '@/types/modules/assist';
+} from "@/components/assist/StatusBadgesDropdown";
+import type { AssignmentListItem } from "@/types/modules/assist";
 import {
   formatAssignmentTimeRange,
   formatDate,
   formatDurationMinutes,
   formatWeekday,
-} from '@/lib/formatters/dateTimeFormatters';
-import { useTableTextStyles } from '@/design/tokens/auroraGlass';
-import { isAssignmentListItemDeletable } from '@/lib/assist/assignmentCardPresentation';
-import type { ServiceResult } from '@/types';
+} from "@/lib/formatters/dateTimeFormatters";
+import { isAssignmentListItemDeletable } from "@/lib/assist/assignmentCardPresentation";
+import type { ServiceResult } from "@/types";
 
 type AssignmentsListTableProps = {
   assignments: AssignmentListItem[];
@@ -25,7 +24,7 @@ type AssignmentsListTableProps = {
   onDelete?: (id: string) => Promise<ServiceResult<void>>;
   onDeleted?: (id: string) => void;
   sortColumnKey?: string | null;
-  sortDirection?: 'asc' | 'desc';
+  sortDirection?: "asc" | "desc";
   onSortColumn?: (columnKey: string) => void;
 };
 
@@ -37,20 +36,24 @@ export function AssignmentsListTable({
   onDelete,
   onDeleted,
   sortColumnKey = null,
-  sortDirection = 'asc',
+  sortDirection = "asc",
   onSortColumn,
 }: AssignmentsListTableProps) {
-  const tableText = useTableTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        primary: tableText.name,
-        meta: { ...tableText.meta, fontSize: 13 },
-        strongMeta: { ...tableText.meta, fontSize: 12, fontWeight: '700' },
+        primary: { color: "#F7FBFF", fontSize: 14, fontWeight: "700" },
+        meta: { color: "#B8CEE0", fontSize: 13 },
+        strongMeta: { color: "#CBE1F1", fontSize: 12, fontWeight: "700" },
         cell: { gap: 3 },
-        actions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 6 },
+        actions: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: 6,
+        },
       }),
-    [tableText],
+    [],
   );
 
   return (
@@ -61,24 +64,35 @@ export function AssignmentsListTable({
       sortColumnKey={sortColumnKey}
       sortDirection={sortDirection}
       onSortColumn={onSortColumn}
-      onRowPress={onAssignmentPress ? (item) => onAssignmentPress(item.id) : undefined}
+      onRowPress={
+        onAssignmentPress ? (item) => onAssignmentPress(item.id) : undefined
+      }
       columns={[
         {
-          key: 'date',
-          label: 'Termin',
+          key: "date",
+          label: "Termin",
           flex: 1.25,
           minWidth: 150,
           sortable: true,
           render: (item) => (
             <View style={styles.cell}>
-              <Text style={styles.primary}>{formatWeekday(item.scheduledStart)}, {formatDate(item.scheduledStart)}</Text>
-              <Text style={styles.strongMeta}>{formatAssignmentTimeRange(item.scheduledStart, item.scheduledEnd)} · {formatDurationMinutes(item.durationMinutes) || '—'}</Text>
+              <Text style={styles.primary}>
+                {formatWeekday(item.scheduledStart)},{" "}
+                {formatDate(item.scheduledStart)}
+              </Text>
+              <Text style={styles.strongMeta}>
+                {formatAssignmentTimeRange(
+                  item.scheduledStart,
+                  item.scheduledEnd,
+                )}{" "}
+                · {formatDurationMinutes(item.durationMinutes) || "—"}
+              </Text>
             </View>
           ),
         },
         {
-          key: 'client',
-          label: 'Klient:in & Leistung',
+          key: "client",
+          label: "Klient:in & Leistung",
           flex: 1.6,
           minWidth: 190,
           sortable: true,
@@ -90,20 +104,24 @@ export function AssignmentsListTable({
           ),
         },
         {
-          key: 'employee',
-          label: 'Zuständigkeit & Ort',
+          key: "employee",
+          label: "Zuständigkeit & Ort",
           flex: 1.5,
           minWidth: 180,
           render: (item) => (
             <View style={styles.cell}>
-              <Text style={styles.primary}>{item.employeeName || 'Noch nicht zugewiesen'}</Text>
-              <Text style={styles.meta} numberOfLines={1}>{item.location || 'Kein Ort hinterlegt'}</Text>
+              <Text style={styles.primary}>
+                {item.employeeName || "Noch nicht zugewiesen"}
+              </Text>
+              <Text style={styles.meta} numberOfLines={1}>
+                {item.location || "Kein Ort hinterlegt"}
+              </Text>
             </View>
           ),
         },
         {
-          key: 'status',
-          label: 'Status',
+          key: "status",
+          label: "Status",
           flex: 1.15,
           minWidth: 130,
           render: (item) => (
@@ -111,8 +129,8 @@ export function AssignmentsListTable({
           ),
         },
         {
-          key: 'actions',
-          label: 'Aktionen',
+          key: "actions",
+          label: "Aktionen",
           flex: 1.25,
           minWidth: 150,
           render: (item) => (

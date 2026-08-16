@@ -7,19 +7,19 @@ import {
   Text,
   View,
   type ViewStyle,
-} from 'react-native';
-import { useMemo, useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'expo-router';
-import { AssignmentCreateForm } from './AssignmentCreateForm';
-import { AssignmentsListHero } from './AssignmentsListHero';
-import { AssignmentsListTable } from './AssignmentsListTable';
-import { AssignmentsCardGrid } from './AssignmentsCardGrid';
-import { ASSIGNMENT_DATE_RANGE_FILTERS } from '@/lib/assist/assignmentListFilters';
+} from "react-native";
+import { useMemo, useState, useEffect, useCallback } from "react";
+import { useRouter } from "expo-router";
+import { AssignmentCreateForm } from "./AssignmentCreateForm";
+import { AssignmentsListHero } from "./AssignmentsListHero";
+import { AssignmentsListTable } from "./AssignmentsListTable";
+import { AssignmentsCardGrid } from "./AssignmentsCardGrid";
+import { ASSIGNMENT_DATE_RANGE_FILTERS } from "@/lib/assist/assignmentListFilters";
 import {
   AssignmentMobileActionSheet,
   type AssignmentMobileAction,
-} from './AssignmentMobileActionSheet';
-import { LockedActionBanner } from '@/components/permissions';
+} from "./AssignmentMobileActionSheet";
+import { LockedActionBanner } from "@/components/permissions";
 import {
   EmptyState,
   ErrorState,
@@ -29,29 +29,36 @@ import {
   PremiumInput,
   SuccessState,
   DesktopListViewToggle,
-} from '@/components/ui';
-import { buildVisitDispositionKpis, deleteVisitDisposition } from '@/lib/assist/visitService';
-import { auroraGlass, useAuroraGlassPanelStyle } from '@/design/tokens/auroraGlass';
-import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
-import { useAssignmentList } from '@/hooks/useAssignmentList';
-import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
-import { useFinePointerHover } from '@/hooks/useFinePointerHover';
-import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
-import { isDesktopClass } from '@/lib/platform/breakpoints';
-import { useTableColumnSort } from '@/lib/table/tableColumnSort';
-import { useAuth } from '@/lib/auth/context';
-import { getServiceMode } from '@/lib/services/mode';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import type { AssignmentListItem } from '@/types/modules/assist';
-import { spacing } from '@/theme';
+} from "@/components/ui";
+import {
+  buildVisitDispositionKpis,
+  deleteVisitDisposition,
+} from "@/lib/assist/visitService";
+import {
+  auroraGlass,
+  useAuroraGlassPanelStyle,
+} from "@/design/tokens/auroraGlass";
+import { useShellHostsAurora } from "@/hooks/useshellhostsaurora";
+import { useAssignmentList } from "@/hooks/useAssignmentList";
+import { useDesktopListViewPreference } from "@/hooks/useDesktopListViewPreference";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useDeviceClass } from "@/hooks/platform/useDeviceClass";
+import { useFinePointerHover } from "@/hooks/useFinePointerHover";
+import { usePlatformLayout } from "@/hooks/platform/usePlatformLayout";
+import { isDesktopClass } from "@/lib/platform/breakpoints";
+import { useTableColumnSort } from "@/lib/table/tableColumnSort";
+import { useAuth } from "@/lib/auth/context";
+import { getServiceMode } from "@/lib/services/mode";
+import { useLegacyTheme } from "@/design/tokens/themeBridge";
+import { SurfaceContrastProvider } from "@/design/tokens/surfaceContrast";
+import type { AssignmentListItem } from "@/types/modules/assist";
+import { spacing } from "@/theme";
 import {
   isAssignmentListItemDeletable,
   resolveAssignmentExecutionBadge,
   resolveAssignmentListItemStatus,
-} from '@/lib/assist/assignmentCardPresentation';
-import { confirmAction } from '@/lib/platform/confirmAction';
+} from "@/lib/assist/assignmentCardPresentation";
+import { confirmAction } from "@/lib/platform/confirmAction";
 
 type AssignmentsListViewProps = {
   onAssignmentPress?: (id: string) => void;
@@ -66,7 +73,15 @@ type AssignmentsListViewProps = {
   onCreateOpenChange?: (open: boolean) => void;
 };
 
-export function AssignmentsListView({
+export function AssignmentsListView(props: AssignmentsListViewProps) {
+  return (
+    <SurfaceContrastProvider tone="dark">
+      <AssignmentsListViewContent {...props} />
+    </SurfaceContrastProvider>
+  );
+}
+
+function AssignmentsListViewContent({
   onAssignmentPress,
   selectedId = null,
   embedded = false,
@@ -78,9 +93,8 @@ export function AssignmentsListView({
   const router = useRouter();
   const [internalCreateOpen, setInternalCreateOpen] = useState(false);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
-  const [mobileSheetAssignment, setMobileSheetAssignment] = useState<AssignmentListItem | null>(
-    null,
-  );
+  const [mobileSheetAssignment, setMobileSheetAssignment] =
+    useState<AssignmentListItem | null>(null);
   const wizardVisible = createOpen ?? internalCreateOpen;
   const setWizardVisible = onCreateOpenChange ?? setInternalCreateOpen;
   const shellHostsAurora = useShellHostsAurora();
@@ -92,12 +106,15 @@ export function AssignmentsListView({
   const isDesktop = isDesktopClass(deviceClass);
   const canFinePointerHover = useFinePointerHover();
   const isMobile = !isDesktop;
-  const { viewMode, setViewMode } = useDesktopListViewPreference('assist.assignments.v2', 'cards');
-  const useTableLayout = isDesktop && viewMode === 'table';
-  const canView = can('assist.assignments.view');
-  const canManage = can('assist.assignments.manage') && !isReadOnly;
-  const roleKey = profile?.roleKey ?? 'dispatch';
-  const tenantId = profile?.tenantId ?? '';
+  const { viewMode, setViewMode } = useDesktopListViewPreference(
+    "assist.assignments.v2",
+    "cards",
+  );
+  const useTableLayout = isDesktop && viewMode === "table";
+  const canView = can("assist.assignments.view");
+  const canManage = can("assist.assignments.manage") && !isReadOnly;
+  const roleKey = profile?.roleKey ?? "dispatch";
+  const tenantId = profile?.tenantId ?? "";
   const openCreate = () => setWizardVisible(true);
 
   const navigateToAssignment = useCallback(
@@ -165,9 +182,9 @@ export function AssignmentsListView({
           durationMinutes: item.durationMinutes ?? null,
           status: item.status,
           assignmentStatus: resolveAssignmentListItemStatus(item),
-          planningStatus: (item.planningStatus as 'draft') ?? 'scheduled',
-          proofStatus: (item.proofStatus as 'none') ?? 'none',
-          billingStatus: (item.billingStatus as 'none') ?? 'none',
+          planningStatus: (item.planningStatus as "draft") ?? "scheduled",
+          proofStatus: (item.proofStatus as "none") ?? "none",
+          billingStatus: (item.billingStatus as "none") ?? "none",
           location: item.location,
           clientName: item.clientName,
           employeeId: item.employeeId,
@@ -179,19 +196,19 @@ export function AssignmentsListView({
       ),
     [allItems],
   );
-  const compactHero = embedded || shellVariant === 'desktop';
+  const compactHero = embedded || shellVariant === "desktop";
   const tableSort = useTableColumnSort(sortKey, setSortKey, sortOptions, {
-    weekday: 'scheduledStart',
-    date: 'scheduledStart',
-    timeRange: 'scheduledStart',
-    client: 'clientName',
+    weekday: "scheduledStart",
+    date: "scheduledStart",
+    timeRange: "scheduledStart",
+    client: "clientName",
   });
   const { colors, typography } = useLegacyTheme();
-  const isLive = getServiceMode() === 'supabase';
+  const isLive = getServiceMode() === "supabase";
 
   const styles = useMemo(() => {
     const webGlassBlur =
-      Platform.OS === 'web'
+      Platform.OS === "web"
         ? ({
             backdropFilter: `blur(${auroraGlass.blur.medium}px)`,
             WebkitBackdropFilter: `blur(${auroraGlass.blur.medium}px)`,
@@ -199,82 +216,95 @@ export function AssignmentsListView({
         : null;
 
     return StyleSheet.create({
-        container: { flex: 1, backgroundColor: 'transparent' },
-        flatList: { flex: 1, backgroundColor: 'transparent' },
-        listPanel: {
-          flex: 1,
-          borderRadius: 12,
-          minWidth: 0,
-          ...webGlassBlur,
-        },
-        flatListWeb: { minWidth: Platform.OS === 'web' ? 0 : undefined },
-        toolbar: { gap: spacing.md, marginBottom: spacing.md, backgroundColor: 'transparent' },
-        filterLabel: {
-          ...typography.label,
-          marginTop: spacing.xs,
-          color: colors.textSecondary,
-        },
-        list: { paddingBottom: spacing.xxl, backgroundColor: 'transparent' },
-        loadMore: { marginTop: spacing.sm, marginBottom: spacing.md },
-        footer: {
-          ...typography.caption,
-          textAlign: 'center',
-          marginVertical: spacing.md,
-          color: colors.textMuted,
-        },
-        embeddedHeader: {
-          marginBottom: spacing.xs,
-          paddingRight: spacing.xxl,
-        },
-        embeddedTitle: { ...typography.h3, color: colors.textPrimary },
-        embeddedMeta: { ...typography.caption, color: colors.textMuted },
-        filterRows: { gap: spacing.xs },
-        filterToggleRow: {
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          gap: spacing.xs,
-          alignItems: 'center',
-        },
-        filterToggle: { minWidth: 180 },
-        filterPairRow: {
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          gap: spacing.md,
-        },
-        filterHalf: {
-          flex: 1,
-          minWidth: 200,
-          gap: spacing.xs,
-        },
-        viewToggleRow: {
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: spacing.sm,
-          flexWrap: 'wrap',
-        },
-        commandBar: {
-          flexDirection: 'row',
-          alignItems: 'flex-end',
-          flexWrap: 'wrap',
-          gap: spacing.sm,
-          padding: spacing.sm,
-          borderWidth: 1,
-          borderColor: 'rgba(102, 199, 255, 0.22)',
-          borderRadius: 16,
-          backgroundColor: 'rgba(5, 24, 47, 0.72)',
-        },
-        searchHost: { flex: 1, minWidth: 260 },
-        commandActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.xs },
-        resultMeta: { ...typography.caption, color: colors.textMuted },
-        filtersPanel: {
-          gap: spacing.sm,
-          padding: spacing.md,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: 'rgba(102, 199, 255, 0.20)',
-          backgroundColor: 'rgba(7, 27, 50, 0.78)',
-        },
+      container: { flex: 1, backgroundColor: "transparent" },
+      flatList: { flex: 1, backgroundColor: "transparent" },
+      listPanel: {
+        flex: 1,
+        borderRadius: 12,
+        minWidth: 0,
+        ...webGlassBlur,
+      },
+      flatListWeb: { minWidth: Platform.OS === "web" ? 0 : undefined },
+      toolbar: {
+        gap: spacing.md,
+        marginBottom: spacing.md,
+        backgroundColor: "transparent",
+      },
+      filterLabel: {
+        ...typography.label,
+        marginTop: spacing.xs,
+        color: "#CBE2F4",
+      },
+      list: { paddingBottom: spacing.xxl, backgroundColor: "transparent" },
+      loadMore: { marginTop: spacing.sm, marginBottom: spacing.md },
+      footer: {
+        ...typography.caption,
+        textAlign: "center",
+        marginVertical: spacing.md,
+        color: "#9FBBD1",
+      },
+      embeddedHeader: {
+        marginBottom: spacing.xs,
+        paddingRight: spacing.xxl,
+      },
+      embeddedTitle: { ...typography.h3, color: "#F7FBFF" },
+      embeddedMeta: { ...typography.caption, color: "#AFC7DA" },
+      filterRows: { gap: spacing.xs },
+      filterToggleRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: spacing.xs,
+        alignItems: "center",
+      },
+      filterToggle: { minWidth: 180 },
+      filterPairRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: spacing.md,
+      },
+      filterHalf: {
+        flex: 1,
+        minWidth: 200,
+        gap: spacing.xs,
+      },
+      viewToggleRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: spacing.sm,
+        flexWrap: "wrap",
+      },
+      commandBar: {
+        flexDirection: "row",
+        alignItems: "flex-end",
+        flexWrap: "wrap",
+        gap: spacing.sm,
+        padding: spacing.sm,
+        borderWidth: 1,
+        borderColor: "rgba(102, 199, 255, 0.22)",
+        borderRadius: 16,
+        backgroundColor: "rgba(5, 24, 47, 0.72)",
+      },
+      searchHost: { flex: 1, minWidth: 260 },
+      commandActions: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: spacing.xs,
+      },
+      resultMeta: {
+        ...typography.caption,
+        color: "#AFC7DA",
+        fontWeight: "600",
+      },
+      filtersPanel: {
+        gap: spacing.sm,
+        padding: spacing.md,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "rgba(102, 199, 255, 0.20)",
+        backgroundColor: "rgba(7, 27, 50, 0.78)",
+      },
     });
   }, [colors, typography]);
 
@@ -282,50 +312,59 @@ export function AssignmentsListView({
     (assignment: AssignmentListItem): AssignmentMobileAction[] => {
       const execution = resolveAssignmentExecutionBadge(assignment);
       return [
-        ...(!['completed', 'cancelled', 'no_show'].includes(execution.status)
+        ...(!["completed", "cancelled", "no_show"].includes(execution.status)
           ? [
               {
-                key: 'start',
-                label: execution.running ? 'Einsatz fortsetzen' : 'Einsatz starten',
-                variant: 'primary' as const,
+                key: "start",
+                label: execution.running
+                  ? "Einsatz fortsetzen"
+                  : "Einsatz starten",
+                variant: "primary" as const,
                 onPress: () =>
-                  router.push(`/assist/assignments/${assignment.id}/execute` as never),
+                  router.push(
+                    `/assist/assignments/${assignment.id}/execute` as never,
+                  ),
               },
             ]
           : []),
         {
-          key: 'edit',
-          label: 'Bearbeiten',
-          onPress: () => router.push(`/assist/assignments/${assignment.id}/edit` as never),
+          key: "edit",
+          label: "Bearbeiten",
+          onPress: () =>
+            router.push(`/assist/assignments/${assignment.id}/edit` as never),
         },
         {
-          key: 'open',
-          label: 'Öffnen',
+          key: "open",
+          label: "Öffnen",
           onPress: () => navigateToAssignment(assignment.id),
         },
         {
-          key: 'docs',
-          label: 'Dokumentation',
+          key: "docs",
+          label: "Dokumentation",
           onPress: () =>
-            router.push(`/assist/assignments/${assignment.id}?tab=execution` as never),
+            router.push(
+              `/assist/assignments/${assignment.id}?tab=execution` as never,
+            ),
         },
         {
-          key: 'proof',
-          label: 'Nachweis',
+          key: "proof",
+          label: "Nachweis",
           onPress: () =>
-            router.push(`/assist/assignments/${assignment.id}?tab=proof` as never),
+            router.push(
+              `/assist/assignments/${assignment.id}?tab=proof` as never,
+            ),
         },
         ...(canManage && tenantId && isAssignmentListItemDeletable(assignment)
           ? [
               {
-                key: 'delete',
-                label: 'Einsatz löschen',
-                variant: 'secondary' as const,
+                key: "delete",
+                label: "Einsatz löschen",
+                variant: "secondary" as const,
                 onPress: async () => {
                   const confirmed = await confirmAction({
-                    title: 'Einsatz endgültig löschen?',
+                    title: "Einsatz endgültig löschen?",
                     message: `${assignment.clientName}\n\nDiese Aktion kann nicht rückgängig gemacht werden.`,
-                    confirmLabel: 'Löschen',
+                    confirmLabel: "Löschen",
                   });
                   if (!confirmed) return;
                   const result = await deleteVisitDisposition(
@@ -334,7 +373,7 @@ export function AssignmentsListView({
                     profile?.roleKey,
                   );
                   if (!result.ok) {
-                    Alert.alert('Löschen fehlgeschlagen', result.error);
+                    Alert.alert("Löschen fehlgeschlagen", result.error);
                     return;
                   }
                   dismissDeletedAssignment(assignment.id);
@@ -359,7 +398,9 @@ export function AssignmentsListView({
   if (!canView) {
     return (
       <LockedActionBanner
-        message={check('assist.assignments.view').reason ?? 'Keine Berechtigung.'}
+        message={
+          check("assist.assignments.view").reason ?? "Keine Berechtigung."
+        }
         roleLabel={roleLabel}
       />
     );
@@ -378,12 +419,12 @@ export function AssignmentsListView({
         <AssignmentsListHero
           kpis={kpis}
           roleKey={roleKey}
-          tenantLabel={isLive ? 'Live-Mandant' : undefined}
+          tenantLabel={isLive ? "Live-Mandant" : undefined}
           filteredCount={filteredCount}
           totalCount={totalCount}
           isReadOnly={isReadOnly}
           compact={compactHero}
-          onCalendarPress={() => router.push('/assist/kalender' as never)}
+          onCalendarPress={() => router.push("/assist/kalender" as never)}
         />
       )}
 
@@ -406,7 +447,9 @@ export function AssignmentsListView({
         }}
       />
 
-      {showSuccess ? <SuccessState message="Liste erfolgreich aktualisiert." /> : null}
+      {showSuccess ? (
+        <SuccessState message="Liste erfolgreich aktualisiert." />
+      ) : null}
 
       <View style={styles.commandBar}>
         <View style={styles.searchHost}>
@@ -421,65 +464,90 @@ export function AssignmentsListView({
         </View>
         <View style={styles.commandActions}>
           <PremiumButton
-            title={filtersExpanded ? 'Filter schließen' : hasActiveFilters ? 'Filter aktiv' : 'Filtern'}
-            variant={hasActiveFilters ? 'primary' : 'secondary'}
+            title={
+              filtersExpanded
+                ? "Filter schließen"
+                : hasActiveFilters
+                  ? "Filter aktiv"
+                  : "Filtern"
+            }
+            variant={hasActiveFilters ? "primary" : "secondary"}
             size="sm"
             onPress={() => setFiltersExpanded((current) => !current)}
           />
           {hasActiveFilters ? (
-            <PremiumButton title="Zurücksetzen" variant="ghost" size="sm" onPress={resetFilters} />
+            <PremiumButton
+              title="Zurücksetzen"
+              variant="ghost"
+              size="sm"
+              onPress={resetFilters}
+            />
           ) : null}
-          {isDesktop && !embedded ? <DesktopListViewToggle value={viewMode} onChange={setViewMode} /> : null}
+          {isDesktop && !embedded ? (
+            <DesktopListViewToggle value={viewMode} onChange={setViewMode} />
+          ) : null}
         </View>
       </View>
-      <Text style={styles.resultMeta}>{filteredCount} von {totalCount} Einsätzen · sortiert nach {sortOptions.find((option) => option.key === sortKey)?.label ?? 'Termin'}</Text>
+      <Text style={styles.resultMeta}>
+        {filteredCount} von {totalCount} Einsätzen · sortiert nach{" "}
+        {sortOptions.find((option) => option.key === sortKey)?.label ??
+          "Termin"}
+      </Text>
 
-      {filtersExpanded ? <View style={[styles.filterRows, styles.filtersPanel]}>
-        <Text style={styles.filterLabel}>Zeitraum</Text>
-        <FilterChipGroup
-          options={ASSIGNMENT_DATE_RANGE_FILTERS}
-          value={dateRange}
-          onChange={(value) => !Array.isArray(value) && setDateRange(value)}
-          wrap
-        />
+      {filtersExpanded ? (
+        <View style={[styles.filterRows, styles.filtersPanel]}>
+          <Text style={styles.filterLabel}>Zeitraum</Text>
+          <FilterChipGroup
+            options={ASSIGNMENT_DATE_RANGE_FILTERS}
+            value={dateRange}
+            onChange={(value) => !Array.isArray(value) && setDateRange(value)}
+            wrap
+          />
 
-        <Text style={styles.filterLabel}>Status</Text>
-        <FilterChipGroup
-          options={statusFilters}
-          value={statusFilter}
-          onChange={(value) => !Array.isArray(value) && setStatusFilter(value)}
-          wrap
-        />
+          <Text style={styles.filterLabel}>Status</Text>
+          <FilterChipGroup
+            options={statusFilters}
+            value={statusFilter}
+            onChange={(value) =>
+              !Array.isArray(value) && setStatusFilter(value)
+            }
+            wrap
+          />
 
-        <View style={styles.filterPairRow}>
-          <View style={styles.filterHalf}>
-            <Text style={styles.filterLabel}>Mitarbeiter:in</Text>
-            <FilterChipGroup
-              options={employeeOptions}
-              value={employeeFilter}
-              onChange={(value) => !Array.isArray(value) && setEmployeeFilter(value)}
-              wrap
-            />
+          <View style={styles.filterPairRow}>
+            <View style={styles.filterHalf}>
+              <Text style={styles.filterLabel}>Mitarbeiter:in</Text>
+              <FilterChipGroup
+                options={employeeOptions}
+                value={employeeFilter}
+                onChange={(value) =>
+                  !Array.isArray(value) && setEmployeeFilter(value)
+                }
+                wrap
+              />
+            </View>
+            <View style={styles.filterHalf}>
+              <Text style={styles.filterLabel}>Leistung</Text>
+              <FilterChipGroup
+                options={serviceOptions}
+                value={serviceFilter}
+                onChange={(value) =>
+                  !Array.isArray(value) && setServiceFilter(value)
+                }
+                wrap
+              />
+            </View>
           </View>
-          <View style={styles.filterHalf}>
-            <Text style={styles.filterLabel}>Leistung</Text>
-            <FilterChipGroup
-              options={serviceOptions}
-              value={serviceFilter}
-              onChange={(value) => !Array.isArray(value) && setServiceFilter(value)}
-              wrap
-            />
-          </View>
+
+          <Text style={styles.filterLabel}>Sortierung</Text>
+          <FilterChipGroup
+            options={sortOptions}
+            value={sortKey}
+            onChange={(value) => !Array.isArray(value) && setSortKey(value)}
+            wrap
+          />
         </View>
-
-        <Text style={styles.filterLabel}>Sortierung</Text>
-        <FilterChipGroup
-          options={sortOptions}
-          value={sortKey}
-          onChange={(value) => !Array.isArray(value) && setSortKey(value)}
-          wrap
-        />
-      </View> : null}
+      ) : null}
     </View>
   );
 
@@ -505,10 +573,10 @@ export function AssignmentsListView({
       title="Noch keine Einsätze"
       message={
         isLive
-          ? 'Für diesen Mandanten sind noch keine Einsätze geplant.'
-          : 'Es sind keine Einsätze im Demo-Mandanten hinterlegt.'
+          ? "Für diesen Mandanten sind noch keine Einsätze geplant."
+          : "Es sind keine Einsätze im Demo-Mandanten hinterlegt."
       }
-      actionLabel={canManage ? 'Einsatz planen' : undefined}
+      actionLabel={canManage ? "Einsatz planen" : undefined}
       onAction={canManage ? openCreate : undefined}
     />
   ) : isFilterEmpty ? (
@@ -520,21 +588,20 @@ export function AssignmentsListView({
     />
   ) : null;
 
-  const footerContent =
-    hasMore ? (
-      <PremiumButton
-        title="Weitere laden"
-        variant="secondary"
-        fullWidth
-        onPress={loadMore}
-        style={styles.loadMore}
-      />
-    ) : filteredCount > 0 ? (
-      <Text style={styles.footer}>
-        {filteredCount} Einsätze angezeigt
-        {hasActiveFilters ? ' (gefiltert)' : ''}
-      </Text>
-    ) : null;
+  const footerContent = hasMore ? (
+    <PremiumButton
+      title="Weitere laden"
+      variant="secondary"
+      fullWidth
+      onPress={loadMore}
+      style={styles.loadMore}
+    />
+  ) : filteredCount > 0 ? (
+    <Text style={styles.footer}>
+      {filteredCount} Einsätze angezeigt
+      {hasActiveFilters ? " (gefiltert)" : ""}
+    </Text>
+  ) : null;
 
   const cardGrid = (
     <AssignmentsCardGrid
@@ -543,7 +610,9 @@ export function AssignmentsListView({
       showHoverDetails={isDesktop && canFinePointerHover}
       showInlineActions={isDesktop}
       onOpen={navigateToAssignment}
-      onStart={(id) => router.push(`/assist/assignments/${id}/execute` as never)}
+      onStart={(id) =>
+        router.push(`/assist/assignments/${id}/execute` as never)
+      }
       onEdit={(id) => router.push(`/assist/assignments/${id}/edit` as never)}
       onDelete={
         canManage && tenantId
@@ -571,7 +640,11 @@ export function AssignmentsListView({
       contentContainerStyle={styles.list}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={refresh}
+          tintColor={colors.primary}
+        />
       }
     >
       {toolbar}
@@ -607,7 +680,11 @@ export function AssignmentsListView({
       contentContainerStyle={styles.list}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={refresh}
+          tintColor={colors.primary}
+        />
       }
     >
       {cardGrid}
@@ -627,7 +704,9 @@ export function AssignmentsListView({
         visible={mobileSheetAssignment != null}
         assignment={mobileSheetAssignment}
         onClose={() => setMobileSheetAssignment(null)}
-        actions={mobileSheetAssignment ? buildMobileActions(mobileSheetAssignment) : []}
+        actions={
+          mobileSheetAssignment ? buildMobileActions(mobileSheetAssignment) : []
+        }
       />
     </View>
   );

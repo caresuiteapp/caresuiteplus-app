@@ -1,7 +1,13 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CareDateInput, CareTimeInput } from '@/components/inputs';
-import { AssistCatalogGroupedChipSelect } from '@/components/office/assistCatalog/AssistCatalogGroupedChipSelect';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CareDateInput, CareTimeInput } from "@/components/inputs";
+import { AssistCatalogGroupedChipSelect } from "@/components/office/assistCatalog/AssistCatalogGroupedChipSelect";
 import {
   ErrorState,
   FilterChipGroup,
@@ -9,41 +15,44 @@ import {
   PremiumButton,
   PremiumInput,
   SectionPanel,
-} from '@/components/ui';
+} from "@/components/ui";
 import {
   useAuroraAdaptiveText,
   useAuroraGlassActive,
   useAuroraGlassChipStyles,
-} from '@/design/tokens/auroraGlass';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { moduleColor } from '@/design/tokens/modules';
+} from "@/design/tokens/auroraGlass";
+import { useLegacyTheme } from "@/design/tokens/themeBridge";
+import { moduleColor } from "@/design/tokens/modules";
 import {
   AssignmentStudioScaffold,
   type AssignmentStudioStep,
-} from '@/components/assist/AssignmentStudioScaffold';
-import { useAssistAssignmentOptions } from '@/hooks/assistCatalog/useAssistCatalog';
-import { useAuth } from '@/lib/auth/context';
-import { useServiceTenantId } from '@/hooks/useTenantId';
-import { usePermissions } from '@/hooks/usePermissions';
-import { fetchClientList } from '@/lib/office/clientListService';
-import { fetchAssignmentEmployeeList } from '@/lib/assist/assignmentEmployeeListService';
-import { fetchTenantServiceCatalog } from '@/lib/tenant/tenantServiceCatalogService';
+} from "@/components/assist/AssignmentStudioScaffold";
+import { useAssistAssignmentOptions } from "@/hooks/assistCatalog/useAssistCatalog";
+import { useAuth } from "@/lib/auth/context";
+import { useServiceTenantId } from "@/hooks/useTenantId";
+import { usePermissions } from "@/hooks/usePermissions";
+import { fetchClientList } from "@/lib/office/clientListService";
+import { fetchAssignmentEmployeeList } from "@/lib/assist/assignmentEmployeeListService";
+import { fetchTenantServiceCatalog } from "@/lib/tenant/tenantServiceCatalogService";
 import {
   mapVisitDetailToEditForm,
   type VisitEditFormData,
-} from '@/lib/assist/visitEditMappers';
+} from "@/lib/assist/visitEditMappers";
 import {
   updateVisitFromWizard,
   type VisitSeriesMutationScope,
-} from '@/lib/assist/visitService';
-import { parseVisitRecurrenceJson } from '@/lib/assist/visitRecurrenceExpansion';
+} from "@/lib/assist/visitService";
+import { parseVisitRecurrenceJson } from "@/lib/assist/visitRecurrenceExpansion";
 import {
   hasAssignmentProductionErrors,
   validateAssignmentCreateForm,
-} from '@/lib/assist/assignmentProductionValidation';
-import type { VisitDispositionDetail } from '@/lib/assist/visitTypes';
-import { ASSIGNMENT_STATUS_LABELS, type AssignmentStatus } from '@/types/modules/assignmentStatus';
-import { spacing, typography } from '@/theme';
+} from "@/lib/assist/assignmentProductionValidation";
+import type { VisitDispositionDetail } from "@/lib/assist/visitTypes";
+import {
+  ASSIGNMENT_STATUS_LABELS,
+  type AssignmentStatus,
+} from "@/types/modules/assignmentStatus";
+import { spacing, typography } from "@/theme";
 
 type AssignmentEditFormProps = {
   visitId: string;
@@ -54,25 +63,37 @@ type AssignmentEditFormProps = {
 
 type SelectOption = { value: string; label: string };
 
-const FORM_CTX = { viewContext: 'form' as const };
+const FORM_CTX = { viewContext: "form" as const };
 
 const EDITABLE_STATUS_OPTIONS: AssignmentStatus[] = [
-  'geplant',
-  'bestaetigt',
-  'storniert',
-  'abgeschlossen',
+  "geplant",
+  "bestaetigt",
+  "storniert",
+  "abgeschlossen",
 ];
 
-type EditSectionKey = 'overview' | 'people' | 'schedule' | 'tasks' | 'status' | 'catalog' | 'documentation';
+type EditSectionKey =
+  | "overview"
+  | "people"
+  | "schedule"
+  | "tasks"
+  | "status"
+  | "catalog"
+  | "documentation";
 
 const EDIT_STUDIO_STEPS: readonly AssignmentStudioStep<EditSectionKey>[] = [
-  { key: 'overview', label: 'Übersicht', icon: 'grid-outline' },
-  { key: 'people', label: 'Personen', icon: 'people-outline' },
-  { key: 'schedule', label: 'Termin & Ort', icon: 'calendar-outline' },
-  { key: 'tasks', label: 'Aufgaben', icon: 'checkmark-done-outline' },
-  { key: 'status', label: 'Status', icon: 'pulse-outline' },
-  { key: 'catalog', label: 'Leistung', icon: 'briefcase-outline' },
-  { key: 'documentation', label: 'Nachweis', icon: 'clipboard-outline', optional: true },
+  { key: "overview", label: "Übersicht", icon: "grid-outline" },
+  { key: "people", label: "Personen", icon: "people-outline" },
+  { key: "schedule", label: "Termin & Ort", icon: "calendar-outline" },
+  { key: "tasks", label: "Aufgaben", icon: "checkmark-done-outline" },
+  { key: "status", label: "Status", icon: "pulse-outline" },
+  { key: "catalog", label: "Leistung", icon: "briefcase-outline" },
+  {
+    key: "documentation",
+    label: "Nachweis",
+    icon: "clipboard-outline",
+    optional: true,
+  },
 ];
 
 function ChipSelect({
@@ -91,7 +112,7 @@ function ChipSelect({
   const glassChips = useAuroraGlassChipStyles(FORM_CTX);
   const text = useAuroraAdaptiveText();
   const useGlass = isLight && auroraActive;
-  const assistAccent = moduleColor('assist');
+  const assistAccent = moduleColor("assist");
 
   return (
     <View style={chipStyles.wrap}>
@@ -108,17 +129,22 @@ function ChipSelect({
                   selected &&
                     (useGlass
                       ? glassChips.chipSelected
-                      : { borderColor: assistAccent, backgroundColor: `${assistAccent}22` }),
+                      : {
+                          borderColor: assistAccent,
+                          backgroundColor: `${assistAccent}22`,
+                        }),
                 ]}
                 onPress={() => onChange(opt.value)}
               >
                 <Text
                   style={[
-                    useGlass ? glassChips.label : [chipStyles.chipText, { color: text.primary }],
+                    useGlass
+                      ? glassChips.label
+                      : [chipStyles.chipText, { color: text.primary }],
                     selected &&
                       (useGlass
                         ? glassChips.labelSelected
-                        : { fontWeight: '600', color: assistAccent }),
+                        : { fontWeight: "600", color: assistAccent }),
                   ]}
                 >
                   {opt.label}
@@ -135,7 +161,7 @@ function ChipSelect({
 const chipStyles = StyleSheet.create({
   wrap: { marginBottom: spacing.md },
   label: { ...typography.caption, marginBottom: spacing.xs },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  row: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
   chip: {
     borderWidth: 1,
     borderRadius: 20,
@@ -155,18 +181,25 @@ export function AssignmentEditForm({
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
   const { can, isReadOnly } = usePermissions();
-  const { options, loading: optionsLoading, error: optionsError } = useAssistAssignmentOptions();
-  const canManage = can('assist.assignments.manage') && !isReadOnly;
+  const {
+    options,
+    loading: optionsLoading,
+    error: optionsError,
+  } = useAssistAssignmentOptions();
+  const canManage = can("assist.assignments.manage") && !isReadOnly;
 
-  const [form, setForm] = useState<VisitEditFormData>(() => mapVisitDetailToEditForm(initialVisit));
+  const [form, setForm] = useState<VisitEditFormData>(() =>
+    mapVisitDetailToEditForm(initialVisit),
+  );
   const [clients, setClients] = useState<SelectOption[]>([]);
   const [employees, setEmployees] = useState<SelectOption[]>([]);
   const [services, setServices] = useState<SelectOption[]>([]);
   const [listsLoading, setListsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [seriesScope, setSeriesScope] = useState<VisitSeriesMutationScope>('this_only');
+  const [seriesScope, setSeriesScope] =
+    useState<VisitSeriesMutationScope>("this_only");
   const [error, setError] = useState<string | null>(null);
-  const [section, setSection] = useState<EditSectionKey>('overview');
+  const [section, setSection] = useState<EditSectionKey>("overview");
 
   const patch = useCallback((partial: Partial<VisitEditFormData>) => {
     setForm((prev) => ({ ...prev, ...partial }));
@@ -181,7 +214,9 @@ export function AssignmentEditForm({
     setListsLoading(true);
     void (async () => {
       const [clientRes, employeeRes, catalogRes] = await Promise.all([
-        fetchClientList(tenantId, profile?.roleKey, { lifecycleFilter: 'active' }),
+        fetchClientList(tenantId, profile?.roleKey, {
+          lifecycleFilter: "active",
+        }),
         fetchAssignmentEmployeeList(tenantId, profile?.roleKey),
         fetchTenantServiceCatalog(tenantId, profile?.roleKey),
       ]);
@@ -204,7 +239,7 @@ export function AssignmentEditForm({
       if (catalogRes.ok) {
         setServices(
           catalogRes.data.items
-            .filter((item) => item.isActive && item.moduleKey === 'assist')
+            .filter((item) => item.isActive && item.moduleKey === "assist")
             .map((item) => ({ value: item.serviceKey, label: item.name })),
         );
       }
@@ -213,7 +248,11 @@ export function AssignmentEditForm({
   }, [tenantId, profile?.roleKey]);
 
   const subjectOptions = useMemo(
-    () => (options?.subjects ?? []).map((subject) => ({ value: subject.itemKey, label: subject.label })),
+    () =>
+      (options?.subjects ?? []).map((subject) => ({
+        value: subject.itemKey,
+        label: subject.label,
+      })),
     [options],
   );
 
@@ -229,9 +268,15 @@ export function AssignmentEditForm({
     }));
   }, [form.assignmentStatus, initialVisit.assignmentStatus]);
 
-  const selectedClient = clients.find((item) => item.value === form.clientId)?.label ?? initialVisit.clientName;
-  const selectedEmployee = employees.find((item) => item.value === form.employeeId)?.label ?? initialVisit.employeeName;
-  const completedTasks = initialVisit.tasks.filter((task) => task.status === 'done').length;
+  const selectedClient =
+    clients.find((item) => item.value === form.clientId)?.label ??
+    initialVisit.clientName;
+  const selectedEmployee =
+    employees.find((item) => item.value === form.employeeId)?.label ??
+    initialVisit.employeeName;
+  const completedTasks = initialVisit.tasks.filter(
+    (task) => task.status === "done",
+  ).length;
 
   const handleSave = async () => {
     if (!tenantId || !canManage) return;
@@ -245,7 +290,7 @@ export function AssignmentEditForm({
       tasks: form.taskDrafts.map((task) => task.title),
     });
     if (hasAssignmentProductionErrors(validation)) {
-      setError(Object.values(validation)[0] ?? 'Bitte Pflichtfelder prüfen.');
+      setError(Object.values(validation)[0] ?? "Bitte Pflichtfelder prüfen.");
       return;
     }
     setSaving(true);
@@ -266,27 +311,57 @@ export function AssignmentEditForm({
   };
 
   if (!canManage) {
-    return <InfoBanner message="Keine Berechtigung zum Bearbeiten von Einsätzen." variant="warning" />;
+    return (
+      <InfoBanner
+        message="Keine Berechtigung zum Bearbeiten von Einsätzen."
+        variant="warning"
+      />
+    );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={styles.scroll}
+      keyboardShouldPersistTaps="handled"
+    >
       {error ? <ErrorState message={error} /> : null}
       <AssignmentStudioScaffold
         steps={EDIT_STUDIO_STEPS}
         activeStep={section}
         onStepChange={setSection}
-        title={form.title || 'Einsatz bearbeiten'}
+        title={form.title || "Einsatz bearbeiten"}
         description="Termin, Zuständigkeit, Aufgaben und Nachweise werden als zusammenhängender Arbeitsablauf gepflegt. Änderungen bleiben bis zum Speichern lokal."
         summary={[
-          { label: 'Klient:in', value: selectedClient, icon: 'person-outline' },
-          { label: 'Termin', value: `${form.assignmentDate} · ${form.plannedStartTime}–${form.plannedEndTime}`, icon: 'time-outline' },
-          { label: 'Zuständig', value: selectedEmployee || 'Nicht zugewiesen', icon: 'person-add-outline', tone: selectedEmployee ? 'success' : 'warning' },
-          { label: 'Aufgaben', value: `${completedTasks} von ${initialVisit.tasks.length} erledigt`, icon: 'checkmark-circle-outline', tone: completedTasks === initialVisit.tasks.length && initialVisit.tasks.length > 0 ? 'success' : 'info' },
+          { label: "Klient:in", value: selectedClient, icon: "person-outline" },
+          {
+            label: "Termin",
+            value: `${form.assignmentDate} · ${form.plannedStartTime}–${form.plannedEndTime}`,
+            icon: "time-outline",
+          },
+          {
+            label: "Zuständig",
+            value: selectedEmployee || "Nicht zugewiesen",
+            icon: "person-add-outline",
+            tone: selectedEmployee ? "success" : "warning",
+          },
+          {
+            label: "Aufgaben",
+            value: `${completedTasks} von ${initialVisit.tasks.length} erledigt`,
+            icon: "checkmark-circle-outline",
+            tone:
+              completedTasks === initialVisit.tasks.length &&
+              initialVisit.tasks.length > 0
+                ? "success"
+                : "info",
+          },
         ]}
         footer={
           <>
-            <PremiumButton title="Abbrechen" variant="ghost" onPress={onCancel} />
+            <PremiumButton
+              title="Abbrechen"
+              variant="ghost"
+              onPress={onCancel}
+            />
             <PremiumButton
               title="Änderungen speichern"
               loading={saving}
@@ -296,282 +371,342 @@ export function AssignmentEditForm({
           </>
         }
       >
-      {(() => {
-        const recurrence = parseVisitRecurrenceJson(initialVisit.recurrenceJson);
-        const isSeriesOccurrence =
-          recurrence.pattern !== 'none' || Boolean(recurrence.parentSeriesId);
-        return isSeriesOccurrence && section === 'schedule' ? (
-          <SectionPanel {...FORM_CTX} title="Änderungsbereich">
+        {(() => {
+          const recurrence = parseVisitRecurrenceJson(
+            initialVisit.recurrenceJson,
+          );
+          const isSeriesOccurrence =
+            recurrence.pattern !== "none" || Boolean(recurrence.parentSeriesId);
+          return isSeriesOccurrence && section === "schedule" ? (
+            <SectionPanel {...FORM_CTX} title="Änderungsbereich">
+              <InfoBanner
+                message={
+                  seriesScope === "this_only"
+                    ? "Es wird ausschließlich dieser konkrete Termin geändert."
+                    : "Dieser Termin und alle noch nicht begonnenen Folgetermine werden geändert. Vergangene oder bereits ausgeführte Termine bleiben unverändert."
+                }
+                variant="info"
+              />
+              <FilterChipGroup
+                options={[
+                  { key: "this_only", label: "Nur dieser Termin" },
+                  { key: "this_and_following", label: "Dieser und folgende" },
+                ]}
+                value={seriesScope}
+                onChange={(value) =>
+                  setSeriesScope(value as VisitSeriesMutationScope)
+                }
+                wrap
+              />
+            </SectionPanel>
+          ) : null;
+        })()}
+
+        {section === "overview" ? (
+          <SectionPanel {...FORM_CTX} title="Basisdaten">
+            <PremiumInput
+              {...FORM_CTX}
+              label="Bezeichnung *"
+              value={form.title}
+              onChangeText={(title) => patch({ title })}
+              placeholder="Einsatzbezeichnung"
+            />
+            <PremiumInput
+              {...FORM_CTX}
+              label="Beschreibung"
+              value={form.description}
+              onChangeText={(description) => patch({ description })}
+              multiline
+            />
+          </SectionPanel>
+        ) : null}
+
+        {section === "people" ? (
+          <SectionPanel {...FORM_CTX} title="Klient:in & Mitarbeitende:r">
+            {listsLoading ? (
+              <Text style={[styles.hint, { color: text.primary }]}>
+                Klient:innen und Mitarbeitende werden geladen…
+              </Text>
+            ) : null}
+            <ChipSelect
+              label="Klient:in *"
+              options={clients}
+              value={form.clientId}
+              onChange={(clientId) => patch({ clientId })}
+            />
+            <ChipSelect
+              label="Mitarbeitende:r"
+              options={employees}
+              value={form.employeeId}
+              onChange={(employeeId) => patch({ employeeId })}
+            />
+          </SectionPanel>
+        ) : null}
+
+        {section === "schedule" ? (
+          <>
+            <SectionPanel {...FORM_CTX} title="Termin & Dauer">
+              <CareDateInput
+                {...FORM_CTX}
+                label="Datum *"
+                value={form.assignmentDate}
+                onChange={(assignmentDate) => patch({ assignmentDate })}
+                showFormatHint={false}
+              />
+              <CareTimeInput
+                {...FORM_CTX}
+                label="Beginn *"
+                value={form.plannedStartTime}
+                onChange={(plannedStartTime) => patch({ plannedStartTime })}
+                showFormatHint={false}
+              />
+              <CareTimeInput
+                {...FORM_CTX}
+                label="Ende *"
+                value={form.plannedEndTime}
+                onChange={(plannedEndTime) => patch({ plannedEndTime })}
+                showFormatHint={false}
+              />
+            </SectionPanel>
+
+            <SectionPanel {...FORM_CTX} title="Ort & zielgerichtete Hinweise">
+              <PremiumInput
+                {...FORM_CTX}
+                label="Ort"
+                value={form.addressSnapshot}
+                onChangeText={(addressSnapshot) => patch({ addressSnapshot })}
+                placeholder="Adresse oder Treffpunkt"
+              />
+              <PremiumInput
+                {...FORM_CTX}
+                label="Ortshinweise"
+                value={form.locationNotes}
+                onChangeText={(locationNotes) => patch({ locationNotes })}
+                multiline
+              />
+              <PremiumInput
+                {...FORM_CTX}
+                label="Interne Notizen"
+                value={form.internalNotes}
+                onChangeText={(internalNotes) => patch({ internalNotes })}
+                multiline
+              />
+              <PremiumInput
+                {...FORM_CTX}
+                label="Hinweise für Mitarbeitende"
+                value={form.employeeNotes}
+                onChangeText={(employeeNotes) => patch({ employeeNotes })}
+                multiline
+              />
+              <PremiumInput
+                {...FORM_CTX}
+                label="Hinweise für Klient:innen"
+                value={form.clientVisibleNotes}
+                onChangeText={(clientVisibleNotes) =>
+                  patch({ clientVisibleNotes })
+                }
+                multiline
+              />
+            </SectionPanel>
+          </>
+        ) : null}
+
+        {section === "tasks" ? (
+          <SectionPanel {...FORM_CTX} title="Aufgaben">
+            {form.taskDrafts.map((task, index) => (
+              <View key={`${task.itemKey}-${index}`} style={styles.taskRow}>
+                <View style={styles.taskIndex}>
+                  <Text style={styles.taskIndexText}>{index + 1}</Text>
+                </View>
+                <PremiumInput
+                  {...FORM_CTX}
+                  style={styles.taskInput}
+                  label={task.isRequired ? "Pflichtaufgabe" : "Aufgabe"}
+                  value={task.title}
+                  onChangeText={(title) => {
+                    const taskDrafts = [...form.taskDrafts];
+                    taskDrafts[index] = { ...task, title };
+                    patch({
+                      taskDrafts,
+                      tasks: taskDrafts.map((entry) => entry.title),
+                    });
+                  }}
+                />
+                {!task.isRequired ? (
+                  <PremiumButton
+                    title="Entfernen"
+                    size="sm"
+                    variant="ghost"
+                    onPress={() => {
+                      const taskDrafts = form.taskDrafts.filter(
+                        (_, taskIndex) => taskIndex !== index,
+                      );
+                      patch({
+                        taskDrafts,
+                        tasks: taskDrafts.map((entry) => entry.title),
+                      });
+                    }}
+                  />
+                ) : null}
+              </View>
+            ))}
+            <PremiumButton
+              title="Aufgabe hinzufügen"
+              size="sm"
+              variant="secondary"
+              onPress={() => {
+                const taskDrafts = [
+                  ...form.taskDrafts,
+                  {
+                    itemKey: `manual-${Date.now()}`,
+                    title: "",
+                    isRequired: false,
+                    isOptional: true,
+                    sortOrder: form.taskDrafts.length,
+                  },
+                ];
+                patch({
+                  taskDrafts,
+                  tasks: taskDrafts.map((entry) => entry.title),
+                });
+              }}
+            />
+          </SectionPanel>
+        ) : null}
+
+        {section === "status" ? (
+          <SectionPanel {...FORM_CTX} title="Status">
             <InfoBanner
-              message={
-                seriesScope === 'this_only'
-                  ? 'Es wird ausschließlich dieser konkrete Termin geändert.'
-                  : 'Dieser Termin und alle noch nicht begonnenen Folgetermine werden geändert. Vergangene oder bereits ausgeführte Termine bleiben unverändert.'
-              }
+              message="Der Status steuert Sichtbarkeit, Durchführung, Dokumentationspflicht und Abrechnung. Bereits ausgeführte Schritte bleiben nachvollziehbar."
               variant="info"
             />
             <FilterChipGroup
-              options={[
-                { key: 'this_only', label: 'Nur dieser Termin' },
-                { key: 'this_and_following', label: 'Dieser und folgende' },
-              ]}
-              value={seriesScope}
-              onChange={(value) => setSeriesScope(value as VisitSeriesMutationScope)}
+              options={statusOptions}
+              value={form.assignmentStatus}
+              onChange={(assignmentStatus) =>
+                patch({
+                  assignmentStatus: assignmentStatus as AssignmentStatus,
+                })
+              }
               wrap
             />
           </SectionPanel>
-        ) : null;
-      })()}
-
-      {section === 'overview' ? (
-      <SectionPanel {...FORM_CTX} title="Basisdaten">
-        <PremiumInput
-          {...FORM_CTX}
-          label="Bezeichnung *"
-          value={form.title}
-          onChangeText={(title) => patch({ title })}
-          placeholder="Einsatzbezeichnung"
-        />
-        <PremiumInput
-          {...FORM_CTX}
-          label="Beschreibung"
-          value={form.description}
-          onChangeText={(description) => patch({ description })}
-          multiline
-        />
-      </SectionPanel>
-      ) : null}
-
-      {section === 'people' ? (
-      <SectionPanel {...FORM_CTX} title="Klient:in & Mitarbeitende:r">
-        {listsLoading ? (
-          <Text style={[styles.hint, { color: text.primary }]}>Klient:innen und Mitarbeitende werden geladen…</Text>
         ) : null}
-        <ChipSelect
-          label="Klient:in *"
-          options={clients}
-          value={form.clientId}
-          onChange={(clientId) => patch({ clientId })}
-        />
-        <ChipSelect
-          label="Mitarbeitende:r"
-          options={employees}
-          value={form.employeeId}
-          onChange={(employeeId) => patch({ employeeId })}
-        />
-      </SectionPanel>
-      ) : null}
 
-      {section === 'schedule' ? <>
-      <SectionPanel {...FORM_CTX} title="Termin & Dauer">
-        <CareDateInput
-          {...FORM_CTX}
-          label="Datum *"
-          value={form.assignmentDate}
-          onChange={(assignmentDate) => patch({ assignmentDate })}
-        />
-        <CareTimeInput
-          {...FORM_CTX}
-          label="Beginn *"
-          value={form.plannedStartTime}
-          onChange={(plannedStartTime) => patch({ plannedStartTime })}
-          showFormatHint={false}
-        />
-        <CareTimeInput
-          {...FORM_CTX}
-          label="Ende *"
-          value={form.plannedEndTime}
-          onChange={(plannedEndTime) => patch({ plannedEndTime })}
-          showFormatHint={false}
-        />
-      </SectionPanel>
-
-      <SectionPanel {...FORM_CTX} title="Ort & zielgerichtete Hinweise">
-        <PremiumInput
-          {...FORM_CTX}
-          label="Ort"
-          value={form.addressSnapshot}
-          onChangeText={(addressSnapshot) => patch({ addressSnapshot })}
-          placeholder="Adresse oder Treffpunkt"
-        />
-        <PremiumInput
-          {...FORM_CTX}
-          label="Ortshinweise"
-          value={form.locationNotes}
-          onChangeText={(locationNotes) => patch({ locationNotes })}
-          multiline
-        />
-        <PremiumInput
-          {...FORM_CTX}
-          label="Interne Notizen"
-          value={form.internalNotes}
-          onChangeText={(internalNotes) => patch({ internalNotes })}
-          multiline
-        />
-        <PremiumInput
-          {...FORM_CTX}
-          label="Hinweise für Mitarbeitende"
-          value={form.employeeNotes}
-          onChangeText={(employeeNotes) => patch({ employeeNotes })}
-          multiline
-        />
-        <PremiumInput
-          {...FORM_CTX}
-          label="Hinweise für Klient:innen"
-          value={form.clientVisibleNotes}
-          onChangeText={(clientVisibleNotes) => patch({ clientVisibleNotes })}
-          multiline
-        />
-      </SectionPanel>
-      </> : null}
-
-      {section === 'tasks' ? (
-      <SectionPanel {...FORM_CTX} title="Aufgaben">
-        {form.taskDrafts.map((task, index) => (
-          <View key={`${task.itemKey}-${index}`} style={styles.taskRow}>
-            <View style={styles.taskIndex}><Text style={styles.taskIndexText}>{index + 1}</Text></View>
-            <PremiumInput
-              {...FORM_CTX}
-              style={styles.taskInput}
-              label={task.isRequired ? 'Pflichtaufgabe' : 'Aufgabe'}
-              value={task.title}
-              onChangeText={(title) => {
-                const taskDrafts = [...form.taskDrafts];
-                taskDrafts[index] = { ...task, title };
-                patch({ taskDrafts, tasks: taskDrafts.map((entry) => entry.title) });
+        {section === "catalog" ? (
+          <SectionPanel {...FORM_CTX} title="Einsatzart & Katalog">
+            {optionsLoading ? (
+              <Text style={[styles.hint, { color: text.primary }]}>
+                Kataloge werden geladen…
+              </Text>
+            ) : null}
+            {optionsError ? (
+              <InfoBanner message={optionsError} variant="danger" />
+            ) : null}
+            <ChipSelect
+              label="Einsatz-Betreff"
+              options={subjectOptions}
+              value={form.subjectKey}
+              onChange={(subjectKey) => {
+                const label =
+                  subjectOptions.find((option) => option.value === subjectKey)
+                    ?.label ?? "";
+                patch({
+                  subjectKey,
+                  title: form.title.trim() ? form.title : label,
+                });
               }}
             />
-            {!task.isRequired ? (
-              <PremiumButton
-                title="Entfernen"
-                size="sm"
-                variant="ghost"
-                onPress={() => {
-                  const taskDrafts = form.taskDrafts.filter((_, taskIndex) => taskIndex !== index);
-                  patch({ taskDrafts, tasks: taskDrafts.map((entry) => entry.title) });
-                }}
+            {(options?.assignmentTypes?.length ?? 0) > 0 ? (
+              <AssistCatalogGroupedChipSelect
+                label="Einsatzart"
+                items={options?.assignmentTypes ?? []}
+                value={form.assignmentTypeKey}
+                onChange={(assignmentTypeKey) => patch({ assignmentTypeKey })}
               />
             ) : null}
-          </View>
-        ))}
-        <PremiumButton
-          title="Aufgabe hinzufügen"
-          size="sm"
-          variant="secondary"
-          onPress={() => {
-            const taskDrafts = [
-              ...form.taskDrafts,
-              {
-                itemKey: `manual-${Date.now()}`,
-                title: '',
-                isRequired: false,
-                isOptional: true,
-                sortOrder: form.taskDrafts.length,
-              },
-            ];
-            patch({ taskDrafts, tasks: taskDrafts.map((entry) => entry.title) });
-          }}
-        />
-      </SectionPanel>
-      ) : null}
-
-      {section === 'status' ? (
-      <SectionPanel {...FORM_CTX} title="Status">
-        <InfoBanner
-          message="Der Status steuert Sichtbarkeit, Durchführung, Dokumentationspflicht und Abrechnung. Bereits ausgeführte Schritte bleiben nachvollziehbar."
-          variant="info"
-        />
-        <FilterChipGroup
-          options={statusOptions}
-          value={form.assignmentStatus}
-          onChange={(assignmentStatus) =>
-            patch({ assignmentStatus: assignmentStatus as AssignmentStatus })
-          }
-          wrap
-        />
-      </SectionPanel>
-      ) : null}
-
-      {section === 'catalog' ? (
-      <SectionPanel {...FORM_CTX} title="Einsatzart & Katalog">
-        {optionsLoading ? (
-          <Text style={[styles.hint, { color: text.primary }]}>Kataloge werden geladen…</Text>
+            <ChipSelect
+              label="Leistungskategorie"
+              options={(options?.serviceCategories ?? []).map((category) => ({
+                value: category.itemKey,
+                label: category.label,
+              }))}
+              value={form.serviceCategoryKey}
+              onChange={(serviceCategoryKey) => patch({ serviceCategoryKey })}
+            />
+            <ChipSelect
+              label="Leistung (Abrechnung)"
+              options={services}
+              value={form.serviceKey}
+              onChange={(serviceKey) => {
+                patch({
+                  serviceKey,
+                  serviceName:
+                    services.find((service) => service.value === serviceKey)
+                      ?.label ?? serviceKey,
+                });
+              }}
+            />
+          </SectionPanel>
         ) : null}
-        {optionsError ? <InfoBanner message={optionsError} variant="danger" /> : null}
-        <ChipSelect
-          label="Einsatz-Betreff"
-          options={subjectOptions}
-          value={form.subjectKey}
-          onChange={(subjectKey) => {
-            const label = subjectOptions.find((option) => option.value === subjectKey)?.label ?? '';
-            patch({ subjectKey, title: form.title.trim() ? form.title : label });
-          }}
-        />
-        {(options?.assignmentTypes?.length ?? 0) > 0 ? (
-          <AssistCatalogGroupedChipSelect
-            label="Einsatzart"
-            items={options?.assignmentTypes ?? []}
-            value={form.assignmentTypeKey}
-            onChange={(assignmentTypeKey) => patch({ assignmentTypeKey })}
-          />
-        ) : null}
-        <ChipSelect
-          label="Leistungskategorie"
-          options={(options?.serviceCategories ?? []).map((category) => ({
-            value: category.itemKey,
-            label: category.label,
-          }))}
-          value={form.serviceCategoryKey}
-          onChange={(serviceCategoryKey) => patch({ serviceCategoryKey })}
-        />
-        <ChipSelect
-          label="Leistung (Abrechnung)"
-          options={services}
-          value={form.serviceKey}
-          onChange={(serviceKey) => {
-            patch({
-              serviceKey,
-              serviceName: services.find((service) => service.value === serviceKey)?.label ?? serviceKey,
-            });
-          }}
-        />
-      </SectionPanel>
-      ) : null}
 
-      {section === 'documentation' ? (
-      <SectionPanel {...FORM_CTX} title="Dokumentation & Portal">
-        <PremiumInput
-          {...FORM_CTX}
-          label="Dokumentationsvorlage"
-          value={form.documentationTemplate}
-          onChangeText={(documentationTemplate) => patch({ documentationTemplate })}
-        />
-        <PremiumInput
-          {...FORM_CTX}
-          label="Leistungsnachweis-Vorlage"
-          value={form.proofTemplateKey}
-          onChangeText={(proofTemplateKey) => patch({ proofTemplateKey })}
-        />
-        <FilterChipGroup
-          options={[
-            { key: 'hidden', label: 'Nicht im Klient:innenportal' },
-            { key: 'visible', label: 'Im Klient:innenportal anzeigen' },
-          ]}
-          value={form.portalReleaseEnabled ? 'visible' : 'hidden'}
-          onChange={(value) => patch({ portalReleaseEnabled: value === 'visible' })}
-        />
-      </SectionPanel>
-      ) : null}
+        {section === "documentation" ? (
+          <SectionPanel {...FORM_CTX} title="Dokumentation & Portal">
+            <PremiumInput
+              {...FORM_CTX}
+              label="Dokumentationsvorlage"
+              value={form.documentationTemplate}
+              onChangeText={(documentationTemplate) =>
+                patch({ documentationTemplate })
+              }
+            />
+            <PremiumInput
+              {...FORM_CTX}
+              label="Leistungsnachweis-Vorlage"
+              value={form.proofTemplateKey}
+              onChangeText={(proofTemplateKey) => patch({ proofTemplateKey })}
+            />
+            <FilterChipGroup
+              options={[
+                { key: "hidden", label: "Nicht im Klient:innenportal" },
+                { key: "visible", label: "Im Klient:innenportal anzeigen" },
+              ]}
+              value={form.portalReleaseEnabled ? "visible" : "hidden"}
+              onChange={(value) =>
+                patch({ portalReleaseEnabled: value === "visible" })
+              }
+            />
+          </SectionPanel>
+        ) : null}
       </AssignmentStudioScaffold>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { gap: spacing.md, paddingBottom: spacing.xxl, paddingHorizontal: spacing.xs },
+  scroll: {
+    gap: spacing.md,
+    paddingBottom: spacing.xxl,
+    paddingHorizontal: spacing.xs,
+  },
   hint: { ...typography.caption, marginBottom: spacing.sm },
-  taskRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, marginBottom: spacing.sm },
-  taskIndex: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 8, backgroundColor: 'rgba(47,168,255,0.16)', borderWidth: 1, borderColor: 'rgba(92,190,255,0.38)' },
-  taskIndexText: { color: '#8FD7FF', fontWeight: '800', fontSize: 12 },
+  taskRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  taskIndex: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+    backgroundColor: "rgba(47,168,255,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(92,190,255,0.38)",
+  },
+  taskIndexText: { color: "#8FD7FF", fontWeight: "800", fontSize: 12 },
   taskInput: { minWidth: 180 },
 });
