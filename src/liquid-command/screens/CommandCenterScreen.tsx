@@ -28,7 +28,11 @@ type WidgetDefinition = {
   id: string;
   label: string;
   route: string;
-  image: ImageSourcePropType;
+  images: {
+    small: ImageSourcePropType;
+    medium: ImageSourcePropType;
+    large: ImageSourcePropType;
+  };
 };
 type BackgroundDefinition = {
   id: string;
@@ -84,12 +88,14 @@ type PointerEventLike = {
   };
 };
 type DragVisual = { payload: WidgetDragPayload; x: number; y: number };
+type FavoriteSize = "small" | "medium" | "large";
 
 const DEFAULT_BACKGROUND = require("../../../assets/healthos/caresuite-alien-planet-no-logo.png");
 const BRAND = require("../../../assets/healthos/caresuite-healthos-logo.png");
 const LOCATION_STORAGE_KEY = "caresuite.healthos.weather-location.v1";
 const DOCK_ORDER_STORAGE_KEY = "caresuite.healthos.widget-order.v1";
 const FAVORITES_STORAGE_KEY = "caresuite.healthos.top-widgets.v1";
+const FAVORITE_SIZES_STORAGE_KEY = "caresuite.healthos.top-widget-sizes.v1";
 const FOLDERS_STORAGE_KEY = "caresuite.healthos.widget-folders.v1";
 const BACKGROUND_STORAGE_KEY = "caresuite.healthos.background.v1";
 const FAVORITE_SLOT_COUNT = 10;
@@ -101,127 +107,211 @@ const WIDGETS: readonly WidgetDefinition[] = [
     id: "company",
     label: "Unternehmen",
     route: "/business/office/dashboard",
-    image: require("../../../assets/healthos/widgets/01-unternehmen.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/01-unternehmen.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/01-unternehmen.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/01-unternehmen.png"),
+    },
   },
   {
     id: "clients",
     label: "Klient:innen",
     route: "/business/office/clients",
-    image: require("../../../assets/healthos/widgets/02-klientinnen.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/02-klientinnen.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/02-klientinnen.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/02-klientinnen.png"),
+    },
   },
   {
     id: "people",
     label: "Personal",
     route: "/business/office/employees",
-    image: require("../../../assets/healthos/widgets/03-personal.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/03-personal.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/03-personal.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/03-personal.png"),
+    },
   },
   {
     id: "time",
     label: "Arbeitszeit",
     route: "/business/office/time-tracking",
-    image: require("../../../assets/healthos/widgets/04-arbeitszeit.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/04-arbeitszeit.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/04-arbeitszeit.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/04-arbeitszeit.png"),
+    },
   },
   {
     id: "salary",
     label: "Gehaltsstatistik",
     route: "/business/office/payroll",
-    image: require("../../../assets/healthos/widgets/05-gehaltsstatistik.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/05-gehaltsstatistik.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/05-gehaltsstatistik.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/05-gehaltsstatistik.png"),
+    },
   },
   {
     id: "billing",
     label: "Rechnungen",
     route: "/business/office/invoices",
-    image: require("../../../assets/healthos/widgets/06-rechnungen.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/06-rechnungen.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/06-rechnungen.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/06-rechnungen.png"),
+    },
   },
   {
     id: "documents",
     label: "Dokumente",
     route: "/business/office/documents",
-    image: require("../../../assets/healthos/widgets/07-dokumente.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/07-dokumente.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/07-dokumente.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/07-dokumente.png"),
+    },
   },
   {
     id: "messages",
     label: "Nachrichten",
     route: "/business/messages",
-    image: require("../../../assets/healthos/widgets/08-nachrichten.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/08-nachrichten.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/08-nachrichten.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/08-nachrichten.png"),
+    },
   },
   {
     id: "access",
     label: "Portale & Zugänge",
     route: "/business/office/portals",
-    image: require("../../../assets/healthos/widgets/09-portale-zugaenge.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/09-portale-zugaenge.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/09-portale-zugaenge.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/09-portale-zugaenge.png"),
+    },
   },
   {
     id: "inventory",
     label: "Inventar",
     route: "/business/office/inventory",
-    image: require("../../../assets/healthos/widgets/10-inventar.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/10-inventar.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/10-inventar.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/10-inventar.png"),
+    },
   },
   {
     id: "audit",
     label: "Audit",
     route: "/business/office/audit-log",
-    image: require("../../../assets/healthos/widgets/11-audit.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/11-audit.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/11-audit.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/11-audit.png"),
+    },
   },
   {
     id: "assignments",
     label: "Einsätze",
     route: "/assist/einsaetze",
-    image: require("../../../assets/healthos/widgets/12-einsaetze.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/12-einsaetze.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/12-einsaetze.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/12-einsaetze.png"),
+    },
   },
   {
     id: "calendar",
     label: "Kalender & Einsatzplanung",
     route: "/assist/kalender",
-    image: require("../../../assets/healthos/widgets/13-kalender-einsatzplanung.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/13-kalender-einsatzplanung.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/13-kalender-einsatzplanung.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/13-kalender-einsatzplanung.png"),
+    },
   },
   {
     id: "live",
     label: "Live-Status",
     route: "/assist/live-status",
-    image: require("../../../assets/healthos/widgets/14-live-status.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/14-live-status.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/14-live-status.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/14-live-status.png"),
+    },
   },
   {
     id: "proofs",
     label: "Nachweise",
     route: "/assist/nachweise",
-    image: require("../../../assets/healthos/widgets/15-nachweise.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/15-nachweise.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/15-nachweise.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/15-nachweise.png"),
+    },
   },
   {
     id: "budgets",
     label: "Budgets",
     route: "/assist/abrechnungsquellen",
-    image: require("../../../assets/healthos/widgets/16-budgets.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/16-budgets.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/16-budgets.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/16-budgets.png"),
+    },
   },
   {
     id: "portals",
     label: "Portale",
     route: "/assist/portale",
-    image: require("../../../assets/healthos/widgets/17-portale.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/17-portale.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/17-portale.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/17-portale.png"),
+    },
   },
   {
     id: "command",
     label: "Command Center",
     route: "/command-center",
-    image: require("../../../assets/healthos/widgets/18-command-center.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/18-command-center.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/18-command-center.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/18-command-center.png"),
+    },
   },
   {
     id: "office",
     label: "Office",
     route: "/office",
-    image: require("../../../assets/healthos/widgets/19-office.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/19-office.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/19-office.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/19-office.png"),
+    },
   },
   {
     id: "assist",
     label: "Assist",
     route: "/assist",
-    image: require("../../../assets/healthos/widgets/20-assist.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/20-assist.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/20-assist.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/20-assist.png"),
+    },
   },
   {
     id: "settings",
     label: "Einstellungen",
     route: "/settings",
-    image: require("../../../assets/healthos/widgets/21-einstellungen.png"),
+    images: {
+      small: require("../../../assets/healthos/widgets-premium/compact/21-einstellungen.png"),
+      medium: require("../../../assets/healthos/widgets-premium/medium/21-einstellungen.png"),
+      large: require("../../../assets/healthos/widgets-premium/large/21-einstellungen.png"),
+    },
   },
 ] as const;
 
@@ -333,8 +423,6 @@ const WIDE_FAVORITE_WIDGETS = new Set([
   "assist",
   "settings",
 ]);
-const FAVORITE_WIDE_SLOTS = new Set([0, 3, 5, 8]);
-
 function folderEntryId(folderId: string) {
   return `folder:${folderId}`;
 }
@@ -403,19 +491,24 @@ function normalizeFavoriteSlots(value: unknown, folders: WidgetFolder[] = []) {
   });
 }
 
-function favoriteShape(
-  slotIndex: number,
+function normalizeFavoriteSizes(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return {} as Record<string, FavoriteSize>;
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      ([entryId, size]) =>
+        (WIDGET_BY_ID.has(entryId) || entryId.startsWith("folder:")) &&
+        (size === "small" || size === "medium" || size === "large"),
+    ),
+  ) as Record<string, FavoriteSize>;
+}
+
+function defaultFavoriteSize(
   widget: WidgetDefinition | null,
   folder: WidgetFolder | null = null,
-) {
-  if (folder) return "square";
-  return widget
-    ? WIDE_FAVORITE_WIDGETS.has(widget.id)
-      ? "wide"
-      : "square"
-    : FAVORITE_WIDE_SLOTS.has(slotIndex)
-      ? "wide"
-      : "square";
+): FavoriteSize {
+  if (folder || !widget) return "small";
+  return WIDE_FAVORITE_WIDGETS.has(widget.id) ? "medium" : "small";
 }
 
 const WEATHER_LABELS: Record<number, string> = {
@@ -642,7 +735,7 @@ function DockWidget({
         </Animated.View>
         <Image
           resizeMode="contain"
-          source={widget.image}
+          source={widget.images.small}
           style={styles.widgetImage}
         />
       </Pressable>
@@ -739,7 +832,7 @@ function DockFolder({
                 {previewWidget ? (
                   <Image
                     resizeMode="contain"
-                    source={previewWidget.image}
+                    source={previewWidget.images.small}
                     style={styles.folderPreviewImage}
                   />
                 ) : (
@@ -771,22 +864,24 @@ function FavoriteWidgetSlot({
   widget,
   folder,
   compact,
-  shape,
+  size,
   dragging,
   dragOver,
   onOpen,
   onRemove,
+  onRequestSize,
   onPointerDown,
 }: {
   slotIndex: number;
   widget: WidgetDefinition | null;
   folder: WidgetFolder | null;
   compact: boolean;
-  shape: "wide" | "square";
+  size: FavoriteSize;
   dragging: boolean;
   dragOver: boolean;
   onOpen: () => void;
   onRemove: () => void;
+  onRequestSize?: () => void;
   onPointerDown: (event: PointerEventLike) => void;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -803,8 +898,17 @@ function FavoriteWidgetSlot({
         : {})}
       style={[
         styles.favoriteSlot,
-        shape === "wide" ? styles.favoriteSlotWide : styles.favoriteSlotSquare,
-        compact && styles.favoriteSlotCompact,
+        size === "small"
+          ? styles.favoriteSlotSmall
+          : size === "medium"
+            ? styles.favoriteSlotMedium
+            : styles.favoriteSlotLarge,
+        compact &&
+          (size === "small"
+            ? styles.favoriteSlotSmallCompact
+            : size === "medium"
+              ? styles.favoriteSlotMediumCompact
+              : styles.favoriteSlotLargeCompact),
         occupied && styles.favoriteSlotFilled,
         occupied && WEB_GRAB_STYLE,
         dragOver && styles.favoriteSlotDropTarget,
@@ -818,6 +922,8 @@ function FavoriteWidgetSlot({
             ? `${label} aus persönlichem Dock öffnen`
             : `Freier persönlicher Platz ${slotIndex + 1}`
         }
+        delayLongPress={650}
+        onLongPress={occupied ? onRequestSize : undefined}
         onHoverIn={() => setHovered(true)}
         onHoverOut={() => setHovered(false)}
         onPress={occupied ? onOpen : undefined}
@@ -830,8 +936,8 @@ function FavoriteWidgetSlot({
           <>
             {widget ? (
               <Image
-                resizeMode="cover"
-                source={widget.image}
+                resizeMode="contain"
+                source={widget.images[size]}
                 style={styles.favoriteImage}
               />
             ) : (
@@ -850,7 +956,7 @@ function FavoriteWidgetSlot({
                         {previewWidget ? (
                           <Image
                             resizeMode="cover"
-                            source={previewWidget.image}
+                            source={previewWidget.images.small}
                             style={styles.favoriteFolderImage}
                           />
                         ) : (
@@ -908,6 +1014,7 @@ export function CommandCenterScreen() {
   const preferenceOwner = auth.user?.id ?? "local";
   const dockOrderStorageKey = `${DOCK_ORDER_STORAGE_KEY}.${preferenceOwner}`;
   const favoritesStorageKey = `${FAVORITES_STORAGE_KEY}.${preferenceOwner}`;
+  const favoriteSizesStorageKey = `${FAVORITE_SIZES_STORAGE_KEY}.${preferenceOwner}`;
   const foldersStorageKey = `${FOLDERS_STORAGE_KEY}.${preferenceOwner}`;
   const backgroundStorageKey = `${BACKGROUND_STORAGE_KEY}.${preferenceOwner}`;
   const [page, setPage] = useState(0);
@@ -915,6 +1022,12 @@ export function CommandCenterScreen() {
     useState<string[]>(DEFAULT_WIDGET_ORDER);
   const [favoriteSlots, setFavoriteSlots] = useState<(string | null)[]>(() =>
     Array(FAVORITE_SLOT_COUNT).fill(null),
+  );
+  const [favoriteSizes, setFavoriteSizes] = useState<
+    Record<string, FavoriteSize>
+  >({});
+  const [sizePickerEntryId, setSizePickerEntryId] = useState<string | null>(
+    null,
   );
   const [folders, setFolders] = useState<WidgetFolder[]>([]);
   const [folderCreateOpen, setFolderCreateOpen] = useState(false);
@@ -1022,9 +1135,12 @@ export function CommandCenterScreen() {
     void Promise.all([
       AsyncStorage.getItem(dockOrderStorageKey),
       AsyncStorage.getItem(favoritesStorageKey),
+      AsyncStorage.getItem(favoriteSizesStorageKey),
       AsyncStorage.getItem(foldersStorageKey),
     ])
-      .then(([storedOrder, storedFavorites, storedFolders]) => {
+      .then(
+        ([storedOrder, storedFavorites, storedFavoriteSizes, storedFolders]) => {
+
         if (!active) return;
         let restoredFolders: WidgetFolder[] = [];
         try {
@@ -1055,8 +1171,18 @@ export function CommandCenterScreen() {
         } catch {
           setFavoriteSlots(Array(FAVORITE_SLOT_COUNT).fill(null));
         }
+        try {
+          setFavoriteSizes(
+            normalizeFavoriteSizes(
+              storedFavoriteSizes ? JSON.parse(storedFavoriteSizes) : null,
+            ),
+          );
+        } catch {
+          setFavoriteSizes({});
+        }
         setPreferencesOwnerLoaded(preferenceOwner);
-      })
+        },
+      )
       .catch(() => {
         if (active) setPreferencesOwnerLoaded(preferenceOwner);
       });
@@ -1066,6 +1192,7 @@ export function CommandCenterScreen() {
   }, [
     dockOrderStorageKey,
     favoritesStorageKey,
+    favoriteSizesStorageKey,
     foldersStorageKey,
     preferenceOwner,
   ]);
@@ -1090,6 +1217,18 @@ export function CommandCenterScreen() {
   }, [
     favoriteSlots,
     favoritesStorageKey,
+    preferenceOwner,
+    preferencesOwnerLoaded,
+  ]);
+  useEffect(() => {
+    if (preferencesOwnerLoaded === preferenceOwner)
+      void AsyncStorage.setItem(
+        favoriteSizesStorageKey,
+        JSON.stringify(favoriteSizes),
+      );
+  }, [
+    favoriteSizes,
+    favoriteSizesStorageKey,
     preferenceOwner,
     preferencesOwnerLoaded,
   ]);
@@ -1703,78 +1842,88 @@ export function CommandCenterScreen() {
           <View style={styles.favoritesHeader}>
             <Text style={styles.favoritesTitle}>PERSÖNLICHES DOCK</Text>
             <Text numberOfLines={1} style={styles.favoritesHint}>
-              Breite und quadratische Widgets · bis zu 10 Favoriten
+              Widget lange anklicken: Größe wählen · bis zu 10 Favoriten
             </Text>
           </View>
-          <View style={styles.favoritesGrid}>
-            {[0, 1].map((rowIndex) => (
-              <View key={rowIndex} style={styles.favoriteRow}>
-                {favoriteSlots
-                  .slice(rowIndex * 5, rowIndex * 5 + 5)
-                  .map((widgetId, localIndex) => {
-                    const slotIndex = rowIndex * 5 + localIndex;
-                    const widget =
-                      widgetId && !widgetId.startsWith("folder:")
-                        ? (WIDGET_BY_ID.get(widgetId) ?? null)
-                        : null;
-                    const favoriteFolder = widgetId?.startsWith("folder:")
-                      ? (folderById.get(widgetId.slice(7)) ?? null)
-                      : null;
-                    const draggingFavorite = Boolean(
-                      (widget &&
-                        dragPayload?.kind === "widget" &&
-                        dragPayload.widgetId === widget.id) ||
-                        (favoriteFolder &&
-                          dragPayload?.kind === "folder" &&
-                          dragPayload.folderId === favoriteFolder.id),
-                    );
-                    return (
-                      <FavoriteWidgetSlot
-                        key={slotIndex}
-                        slotIndex={slotIndex}
-                        widget={widget}
-                        folder={favoriteFolder}
-                        compact={compact}
-                        shape={favoriteShape(slotIndex, widget, favoriteFolder)}
-                        dragging={draggingFavorite}
-                        dragOver={dragTarget === `favorite:${slotIndex}`}
-                        onOpen={() =>
-                          widget
-                            ? openWidget(widget)
-                            : favoriteFolder
-                              ? openDockFolder(favoriteFolder.id)
-                              : undefined
+          <ScrollView
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+            style={styles.favoritesGrid}
+            contentContainerStyle={styles.favoriteFlowGrid}
+          >
+            {favoriteSlots.map((widgetId, slotIndex) => {
+              const widget =
+                widgetId && !widgetId.startsWith("folder:")
+                  ? (WIDGET_BY_ID.get(widgetId) ?? null)
+                  : null;
+              const favoriteFolder = widgetId?.startsWith("folder:")
+                ? (folderById.get(widgetId.slice(7)) ?? null)
+                : null;
+              const size = widgetId
+                ? (favoriteSizes[widgetId] ??
+                  defaultFavoriteSize(widget, favoriteFolder))
+                : "small";
+              const draggingFavorite = Boolean(
+                (widget &&
+                  dragPayload?.kind === "widget" &&
+                  dragPayload.widgetId === widget.id) ||
+                  (favoriteFolder &&
+                    dragPayload?.kind === "folder" &&
+                    dragPayload.folderId === favoriteFolder.id),
+              );
+              return (
+                <FavoriteWidgetSlot
+                  key={slotIndex}
+                  slotIndex={slotIndex}
+                  widget={widget}
+                  folder={favoriteFolder}
+                  compact={compact}
+                  size={size}
+                  dragging={draggingFavorite}
+                  dragOver={dragTarget === `favorite:${slotIndex}`}
+                  onOpen={() =>
+                    widget
+                      ? openWidget(widget)
+                      : favoriteFolder
+                        ? openDockFolder(favoriteFolder.id)
+                        : undefined
+                  }
+                  onRemove={() => removeFavorite(slotIndex)}
+                  onRequestSize={
+                    widget
+                      ? () => {
+                          suppressOpenUntil.current = Date.now() + 900;
+                          setSizePickerEntryId(widget.id);
                         }
-                        onRemove={() => removeFavorite(slotIndex)}
-                        onPointerDown={(event) =>
-                          widget
-                            ? beginPointerDrag(
-                                {
-                                  kind: "widget",
-                                  widgetId: widget.id,
-                                  source: "favorite",
-                                  slotIndex,
-                                },
-                                event,
-                              )
-                            : favoriteFolder
-                              ? beginPointerDrag(
-                                  {
-                                    kind: "folder",
-                                    folderId: favoriteFolder.id,
-                                    source: "favorite",
-                                    slotIndex,
-                                  },
-                                  event,
-                                )
-                              : undefined
-                        }
-                      />
-                    );
-                  })}
-              </View>
-            ))}
-          </View>
+                      : undefined
+                  }
+                  onPointerDown={(event) =>
+                    widget
+                      ? beginPointerDrag(
+                          {
+                            kind: "widget",
+                            widgetId: widget.id,
+                            source: "favorite",
+                            slotIndex,
+                          },
+                          event,
+                        )
+                      : favoriteFolder
+                        ? beginPointerDrag(
+                            {
+                              kind: "folder",
+                              folderId: favoriteFolder.id,
+                              source: "favorite",
+                              slotIndex,
+                            },
+                            event,
+                          )
+                        : undefined
+                  }
+                />
+              );
+            })}
+          </ScrollView>
         </View>
       </View>
       <View
@@ -1930,7 +2079,7 @@ export function CommandCenterScreen() {
           {dragVisual.payload.kind === "widget" ? (
             <Image
               resizeMode="contain"
-              source={WIDGET_BY_ID.get(dragVisual.payload.widgetId)?.image}
+              source={WIDGET_BY_ID.get(dragVisual.payload.widgetId)?.images.medium}
               style={styles.dragGhostImage}
             />
           ) : (
@@ -1940,6 +2089,99 @@ export function CommandCenterScreen() {
           )}
         </View>
       ) : null}
+      <Modal
+        animationType="fade"
+        transparent
+        visible={Boolean(sizePickerEntryId)}
+        onRequestClose={() => setSizePickerEntryId(null)}
+      >
+        <Pressable
+          onPress={() => setSizePickerEntryId(null)}
+          style={styles.modalBackdrop}
+        >
+          <Pressable
+            onPress={(event) => event.stopPropagation()}
+            style={[styles.glass, styles.sizePickerPanel]}
+          >
+            <View style={styles.searchHeader}>
+              <View style={styles.sizePickerHeading}>
+                <Text style={styles.searchTitle}>Widgetgröße auswählen</Text>
+                <Text style={styles.locationSubtitle}>
+                  Die gewählte Größe bleibt für dieses Widget gespeichert.
+                </Text>
+              </View>
+              <Pressable
+                accessibilityLabel="Größenwahl schließen"
+                onPress={() => setSizePickerEntryId(null)}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeText}>×</Text>
+              </Pressable>
+            </View>
+            {sizePickerEntryId && WIDGET_BY_ID.get(sizePickerEntryId) ? (
+              <View style={styles.sizePickerOptions}>
+                {(["small", "medium", "large"] as FavoriteSize[]).map(
+                  (option) => {
+                    const pickerWidget = WIDGET_BY_ID.get(sizePickerEntryId);
+                    if (!pickerWidget) return null;
+                    const selected =
+                      (favoriteSizes[sizePickerEntryId] ??
+                        defaultFavoriteSize(pickerWidget)) === option;
+                    const label =
+                      option === "small"
+                        ? "Klein"
+                        : option === "medium"
+                          ? "Mittel"
+                          : "Groß";
+                    const ratio =
+                      option === "small" ? "1:1" : option === "medium" ? "2:1" : "3:1";
+                    return (
+                      <Pressable
+                        key={option}
+                        onPress={() => {
+                          setFavoriteSizes((current) => ({
+                            ...current,
+                            [sizePickerEntryId]: option,
+                          }));
+                          setSizePickerEntryId(null);
+                          setFolderMessage(
+                            `${pickerWidget.label}: Größe ${label} (${ratio}) gespeichert.`,
+                          );
+                        }}
+                        style={({ pressed }) => [
+                          styles.sizePickerOption,
+                          selected && styles.sizePickerOptionSelected,
+                          pressed && styles.controlPressed,
+                        ]}
+                      >
+                        <View style={styles.sizePickerPreview}>
+                          <Image
+                            resizeMode="contain"
+                            source={pickerWidget.images[option]}
+                            style={styles.sizePickerPreviewImage}
+                          />
+                        </View>
+                        <Text style={styles.sizePickerOptionTitle}>{label}</Text>
+                        <Text style={styles.sizePickerOptionRatio}>{ratio}</Text>
+                        <View
+                          style={[
+                            styles.sizePickerCheck,
+                            selected && styles.sizePickerCheckSelected,
+                          ]}
+                        >
+                          <Text style={styles.sizePickerCheckText}>
+                            {selected ? "✓" : ""}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    );
+                  },
+                )}
+              </View>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
       <Modal
         animationType="fade"
         transparent
@@ -2033,7 +2275,7 @@ export function CommandCenterScreen() {
                         >
                           <Image
                             resizeMode="contain"
-                            source={widget.image}
+                            source={widget.images.large}
                             style={styles.folderContentImage}
                           />
                           <Text
@@ -2123,7 +2365,7 @@ export function CommandCenterScreen() {
                   style={styles.searchResult}
                 >
                   <Image
-                    source={widget.image}
+                    source={widget.images.medium}
                     resizeMode="contain"
                     style={styles.searchThumb}
                   />
@@ -2633,18 +2875,21 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,8,24,0.95)",
     textShadowRadius: 7,
   },
-  favoritesGrid: { flex: 1, minHeight: 0, gap: 11 },
-  favoriteRow: {
-    flex: 1,
-    minHeight: 0,
+  favoritesGrid: { flex: 1, minHeight: 0 },
+  favoriteFlowGrid: {
+    width: "100%",
+    maxWidth: 700,
+    alignSelf: "center",
     flexDirection: "row",
-    alignItems: "stretch",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
     justifyContent: "center",
     gap: 12,
+    paddingHorizontal: 3,
+    paddingBottom: 10,
   },
   favoriteSlot: {
     minWidth: 0,
-    height: "100%",
     borderRadius: 19,
     borderWidth: 1,
     borderStyle: "dashed",
@@ -2661,14 +2906,27 @@ const styles = StyleSheet.create({
       ? ({ backdropFilter: "blur(13px) saturate(1.15)" } as const)
       : null),
   },
-  favoriteSlotWide: {
-    flexGrow: 1.65,
-    flexShrink: 1,
-    flexBasis: 235,
-    maxWidth: 420,
+  favoriteSlotSmall: { width: 112, height: 112, flexShrink: 0 },
+  favoriteSlotMedium: { width: 260, height: 112, flexShrink: 0 },
+  favoriteSlotLarge: { width: 420, height: 112, flexShrink: 0 },
+  favoriteSlotSmallCompact: {
+    width: 72,
+    height: 72,
+    flexShrink: 0,
+    borderRadius: 13,
   },
-  favoriteSlotSquare: { flexGrow: 0, flexShrink: 1, aspectRatio: 1 },
-  favoriteSlotCompact: { borderRadius: 13 },
+  favoriteSlotMediumCompact: {
+    width: 160,
+    height: 72,
+    flexShrink: 0,
+    borderRadius: 13,
+  },
+  favoriteSlotLargeCompact: {
+    width: 250,
+    height: 72,
+    flexShrink: 0,
+    borderRadius: 13,
+  },
   favoriteSlotFilled: {
     borderStyle: "solid",
     borderColor: "rgba(130,214,255,0.42)",
@@ -3000,6 +3258,79 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 18,
+  },
+  sizePickerPanel: {
+    width: "100%",
+    maxWidth: 920,
+    borderRadius: 30,
+    padding: 20,
+  },
+  sizePickerHeading: { flex: 1, minWidth: 0 },
+  sizePickerOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "stretch",
+    justifyContent: "center",
+    gap: 12,
+  },
+  sizePickerOption: {
+    width: "31%",
+    minWidth: 210,
+    minHeight: 190,
+    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: "rgba(126,205,255,0.28)",
+    backgroundColor: "rgba(3,18,40,0.76)",
+    padding: 10,
+    alignItems: "center",
+  },
+  sizePickerOptionSelected: {
+    borderColor: "#74E3FF",
+    backgroundColor: "rgba(15,71,108,0.9)",
+    shadowColor: "#57D7FF",
+    shadowOpacity: 0.58,
+    shadowRadius: 18,
+  },
+  sizePickerPreview: {
+    width: "100%",
+    height: 112,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sizePickerPreviewImage: { width: "100%", height: "100%" },
+  sizePickerOptionTitle: {
+    color: "#FFF",
+    fontSize: 17,
+    fontWeight: "900",
+    marginTop: 5,
+  },
+  sizePickerOptionRatio: {
+    color: "#9DDFFF",
+    fontSize: 11,
+    fontWeight: "800",
+    marginTop: 2,
+  },
+  sizePickerCheck: {
+    position: "absolute",
+    top: 9,
+    right: 9,
+    width: 23,
+    height: 23,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(129,208,255,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sizePickerCheckSelected: {
+    backgroundColor: "#6EE1FF",
+    borderColor: "#B4F2FF",
+  },
+  sizePickerCheckText: {
+    color: "#05172C",
+    fontSize: 14,
+    lineHeight: 16,
+    fontWeight: "900",
   },
   searchPanel: {
     width: "100%",
