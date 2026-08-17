@@ -54,9 +54,10 @@ describe('Office Klient:innen list', () => {
 
   it('ClientsListView hat Suche, Filter und States', () => {
     const source = readSrc('src/components/office/ClientsListView.tsx');
-    expect(source).toContain('PremiumInput');
-    expect(source).toContain('FilterChipGroup');
-    expect(source).toContain('Pflegegrad');
+    const filters = readSrc('src/components/office/ClientsFilterToolbar.tsx');
+    expect(filters).toContain('PremiumInput');
+    expect(filters).toContain('AuroraSegmentedControl');
+    expect(filters).toContain('Pflegegrad');
     expect(source).toContain('EmptyState');
     expect(source).toContain('ErrorState');
     expect(source).toContain('LoadingState');
@@ -106,12 +107,12 @@ describe('Office Klient:innen list', () => {
 
   it('ClientsListTable hat Spalten Name, Status, Ort, Pflegegrad, Aktionen', () => {
     const source = readSrc('src/components/office/ClientsListTable.tsx');
-    expect(source).toContain("label: 'Name'");
-    expect(source).toContain("label: 'Status'");
-    expect(source).toContain("label: 'Ort'");
-    expect(source).toContain("label: 'Pflegegrad'");
-    expect(source).toContain("label: 'Aktionen'");
-    expect(source).toContain('PremiumDataTable');
+    expect(source).toContain('label="Klient:in"');
+    expect(source).toContain('>Status</Text>');
+    expect(source).toContain('label="Kontakt & Ort"');
+    expect(source).toContain('>Versorgung</Text>');
+    expect(source).toContain('>Aktion</Text>');
+    expect(source).toContain('ClientWorkspacePanel');
   });
 
   it('PremiumDataTable ist wiederverwendbare Tabellen-Hülle', () => {
@@ -125,7 +126,7 @@ describe('Office Klient:innen list', () => {
 
   it('ClientsListTable nutzt sortierbare Spalten', () => {
     const source = readSrc('src/components/office/ClientsListTable.tsx');
-    expect(source).toContain('sortable: true');
+    expect(source).toContain('function SortLabel');
     expect(source).toContain('onSortColumn');
   });
 });

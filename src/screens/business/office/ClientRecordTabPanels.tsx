@@ -88,7 +88,7 @@ export function ClientRecordConsentsPanel({ clientId, fullClient, onRecordRefres
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Einwilligungen" onDarkSurface>
+      <SectionPanel title="Einwilligungen">
         {consents.length === 0 ? (
           <EmptyState title="Keine Einwilligungen" message="Einwilligungen werden bei der Aufnahme erfasst." />
         ) : (
@@ -133,7 +133,7 @@ export function ClientRecordMedicationPanel({ clientId, onRecordRefresh }: TabPa
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Medikation" onDarkSurface>
+      <SectionPanel title="Medikation">
         {(query.data ?? []).length === 0 ? (
           <EmptyState title="Keine Medikamente" message="Medikamente aus Pflegeplan oder manuell erfassen." />
         ) : (
@@ -148,7 +148,7 @@ export function ClientRecordMedicationPanel({ clientId, onRecordRefresh }: TabPa
         )}
       </SectionPanel>
       {!isReadOnly ? (
-        <SectionPanel title="Medikament hinzufügen" onDarkSurface>
+        <SectionPanel title="Medikament hinzufügen">
           <PremiumInput label="Name *" value={name} onChangeText={setName} />
           <PremiumInput label="Dosierung" value={dosage} onChangeText={setDosage} />
           <PremiumInput label="Schema (morgens-mittags-abends-nachts)" value={schedule} onChangeText={setSchedule} />
@@ -183,7 +183,7 @@ export function ClientRecordVitalsPanel({ clientId, onRecordRefresh }: TabPanelP
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Vitalwerte" onDarkSurface>
+      <SectionPanel title="Vitalwerte">
         {(query.data ?? []).length === 0 ? (
           <EmptyState title="Keine Vitalwerte" />
         ) : (
@@ -196,7 +196,7 @@ export function ClientRecordVitalsPanel({ clientId, onRecordRefresh }: TabPanelP
         )}
       </SectionPanel>
       {!isReadOnly ? (
-        <SectionPanel title="Messung erfassen" onDarkSurface>
+        <SectionPanel title="Messung erfassen">
           <FilterChipGroup
             options={[
               { key: 'puls', label: 'Puls' },
@@ -256,7 +256,7 @@ export function ClientRecordTimelinePanel({ clientId, fullClient }: TabPanelProp
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Verlauf / Timeline" onDarkSurface>
+      <SectionPanel title="Verlauf / Timeline">
         {items.length === 0 ? (
           <EmptyState
             title="Noch keine Einträge"
@@ -267,7 +267,7 @@ export function ClientRecordTimelinePanel({ clientId, fullClient }: TabPanelProp
         )}
       </SectionPanel>
       {internalNotes.length > 0 ? (
-        <SectionPanel title="Interne Notizen" subtitle="Nur Office — nicht im Portal" onDarkSurface>
+        <SectionPanel title="Interne Notizen" subtitle="Nur Office — nicht im Portal">
           {internalNotes.map((n) => (
             <PremiumCard key={n.id} accentColor={careSuiteAuroraTheme.accent.violet} style={styles.card}>
               <Text style={styles.secondary}>{n.category} · {n.createdBy}</Text>
@@ -277,7 +277,7 @@ export function ClientRecordTimelinePanel({ clientId, fullClient }: TabPanelProp
         </SectionPanel>
       ) : null}
       {!isReadOnly ? (
-        <SectionPanel title="Eintrag hinzufügen" onDarkSurface>
+        <SectionPanel title="Eintrag hinzufügen">
           <PremiumInput label="Notiz" value={note} onChangeText={setNote} multiline />
           <PremiumButton title="Eintrag speichern" onPress={handleAdd} />
         </SectionPanel>
@@ -305,7 +305,7 @@ export function ClientRecordModulesPanel({ clientId }: TabPanelProps) {
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Zugeordnete Module" onDarkSurface>
+      <SectionPanel title="Zugeordnete Module">
         {assignments.length === 0 ? (
           <EmptyState title="Keine Modulzuordnungen" message="Module werden in Office → Modulzuordnungen verwaltet." />
         ) : (
@@ -420,7 +420,7 @@ export function ClientRecordTabContent({
     case 'mehr':
       return (
         <View style={styles.panel}>
-          <SectionPanel title="Weitere Bereiche" subtitle="Kontextspezifische Akte-Tabs" onDarkSurface>
+          <SectionPanel title="Weitere Bereiche" subtitle="Kontextspezifische Akte-Tabs">
             <EmptyState
               title="Zusätzliche Bereiche"
               message="Pflege, Medikation, Risiken und weitere Fachbereiche sind über die Modulzuordnung erreichbar."
@@ -465,7 +465,7 @@ export function ClientRecordTabContent({
       return <ClientRecordShiftsTabPanel clientId={clientId} fullClient={fullClient} />;
     default:
       return (
-        <SectionPanel title="Bereich" onDarkSurface>
+        <SectionPanel title="Bereich">
           <EmptyState
             title="Keine Detailansicht"
             message="Für diesen Kontext sind noch keine spezifischen Akte-Daten hinterlegt."

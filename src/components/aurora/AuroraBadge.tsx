@@ -9,6 +9,7 @@ type Props = {
   label: string;
   variant?: Variant;
   dot?: boolean;
+  onDarkSurface?: boolean;
 };
 
 const VARIANT_BORDER: Record<Variant, string> = {
@@ -20,13 +21,13 @@ const VARIANT_BORDER: Record<Variant, string> = {
   red: '#EF4444',
 };
 
-export function AuroraBadge({ label, variant = 'default', dot = false }: Props) {
+export function AuroraBadge({ label, variant = 'default', dot = false, onDarkSurface = false }: Props) {
   const { typography } = useLegacyTheme();
 
   return (
     <View style={[styles.chip, { borderColor: VARIANT_BORDER[variant] }]}>
       {dot ? <View style={[styles.dot, { backgroundColor: VARIANT_BORDER[variant] }]} /> : null}
-      <Text style={[typography.caption, styles.label]}>{label}</Text>
+      <Text style={[typography.caption, styles.label, onDarkSurface && styles.labelInverse]}>{label}</Text>
     </View>
   );
 }
@@ -46,4 +47,5 @@ const styles = StyleSheet.create({
   },
   dot: { width: 6, height: 6, borderRadius: 3 },
   label: { color: careSuiteAuroraTheme.text.primary, fontWeight: '600' },
+  labelInverse: { color: '#FFFFFF' },
 });

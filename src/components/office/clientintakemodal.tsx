@@ -18,6 +18,7 @@ import { moduleColor } from '@/design/tokens/modules';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { spacing } from '@/theme';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 
 export type ClientIntakeModalProps = {
   visible: boolean;
@@ -133,26 +134,25 @@ export function ClientIntakeModal({
       <View style={styles.backdrop} accessibilityViewIsModal>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Schließen" />
         <View style={styles.sheetHost} pointerEvents="box-none">
-          <GlassSurface
-            radius={careRadius.lg}
-            glowColor={officeAccent}
-            glowOpacity={isDark ? 0.22 : 0.12}
-            elevated
-            style={styles.sheetInner}
-          >
-            <GradientModalHeader
-              title={isEditMode ? 'Stammdaten bearbeiten' : 'Klient:in anlegen'}
-              onClose={onClose}
-            />
-            <ClientIntakeWizardForm
-              mode={mode}
-              clientId={clientId}
-              onCancel={onClose}
-              onCreated={handleCreated}
-              onUpdated={handleUpdated}
-              showHero={false}
-            />
-          </GlassSurface>
+          <SurfaceContrastProvider tone="light">
+            <GlassSurface
+              radius={careRadius.lg}
+              glowColor={officeAccent}
+              glowOpacity={isDark ? 0.22 : 0.12}
+              elevated
+              style={styles.sheetInner}
+            >
+              <GradientModalHeader title={isEditMode ? 'Stammdaten bearbeiten' : 'Klient:in anlegen'} onClose={onClose} />
+              <ClientIntakeWizardForm
+                mode={mode}
+                clientId={clientId}
+                onCancel={onClose}
+                onCreated={handleCreated}
+                onUpdated={handleUpdated}
+                showHero={false}
+              />
+            </GlassSurface>
+          </SurfaceContrastProvider>
         </View>
       </View>
     </Modal>

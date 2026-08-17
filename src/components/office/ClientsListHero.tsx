@@ -1,18 +1,15 @@
 import { StyleSheet, Text, View } from 'react-native';
-import {
-  AuroraGradientButton,
-  AuroraPageHeader,
-  AuroraSecondaryButton,
-} from '@/components/aurora';
+import { AuroraPageHeader } from '@/components/aurora';
 import { DesktopListViewToggle, type DesktopListViewMode } from '@/components/ui';
 import {
   ClientWorkspaceKpiCard,
   ClientWorkspaceLiveBadge,
+  ClientWorkspaceButton,
+  ClientWorkspacePanel,
 } from './ClientWorkspacePrimitives';
 import type { ClientListKpi } from '@/lib/office/clientListStats';
 import { ROLE_LABELS } from '@/data/constants';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import type { RoleKey } from '@/types';
 
 type ClientsListHeroProps = {
@@ -62,23 +59,29 @@ export function ClientsListHero({
       : `${filteredCount} von ${totalCount} Datensätzen im aktuellen Fokus`;
 
   return (
-    <AuroraPageHeader
-      title="Klient:innen-Cockpit"
-      subtitle="Versorgung, Aufnahme und Aktenführung in einem intelligenten Arbeitsbereich"
-      description={resultText}
-      roleBadge={ROLE_LABELS[roleKey]}
-      badges={isReadOnly ? [{ label: 'Lesemodus', variant: 'muted' }] : []}
-      style={compact ? styles.compactFrame : undefined}
-    >
-      <View style={styles.statusRow}>
+    <View style={styles.root}>
+      <AuroraPageHeader
+        title="Klient:innen-Cockpit"
+        subtitle="Versorgung, Aufnahme und Aktenführung"
+        description={resultText}
+        roleBadge={ROLE_LABELS[roleKey]}
+        badges={isReadOnly ? [{ label: 'Lesemodus', variant: 'muted' }] : []}
+        style={compact ? styles.compactFrame : undefined}
+      >
         <ClientWorkspaceLiveBadge
           label={isLive ? (isLiveConnected ? 'Live synchronisiert' : 'Live-Verbindung wird aufgebaut') : 'Lokaler Datenmodus'}
           connected={!isLive || isLiveConnected}
+          inverse
         />
-        <Text style={styles.statusHint}>KPI auswählen, um die Liste sofort zu fokussieren</Text>
-      </View>
+      </AuroraPageHeader>
 
-      <View style={[styles.kpiRow, compact && styles.kpiRowCompact]}>
+      <ClientWorkspacePanel
+        eyebrow="Arbeitsüberblick"
+        title="Versorgungsstatus"
+        subtitle="Kennzahl auswählen, um die Ergebnisliste direkt zu fokussieren"
+        compact={compact}
+      >
+        <View style={[styles.kpiRow, compact && styles.kpiRowCompact]}>
         {kpis.map((kpi) => (
           <ClientWorkspaceKpiCard
             key={kpi.id}
@@ -93,45 +96,29 @@ export function ClientsListHero({
             style={compact ? styles.kpiItemCompact : styles.kpiItem}
           />
         ))}
-      </View>
+        </View>
 
-      <View style={styles.commandRow}>
-        <View style={styles.actions}>
-          {canCreate && onCreatePress ? (
-            <AuroraGradientButton label="+ Klient:in aufnehmen" onPress={onCreatePress} />
-          ) : null}
-          {canCsv && onCsvPress ? (
-            <AuroraSecondaryButton label="Import / Export" onPress={onCsvPress} />
-          ) : null}
-          {onRefresh ? (
-            <AuroraSecondaryButton label="Daten aktualisieren" variant="ghost" onPress={onRefresh} />
+        <View style={styles.commandRow}>
+          <View style={styles.actions}>
+            {canCreate && onCreatePress ? <ClientWorkspaceButton label="+ Klient:in aufnehmen" variant="primary" onPress={onCreatePress} /> : null}
+            {canCsv && onCsvPress ? <ClientWorkspaceButton label="Import / Export" onPress={onCsvPress} /> : null}
+            {onRefresh ? <ClientWorkspaceButton label="Daten aktualisieren" variant="ghost" onPress={onRefresh} /> : null}
+          </View>
+          {showViewToggle && onViewModeChange ? (
+            <View style={styles.viewToggle}>
+              <Text style={styles.viewToggleLabel}>Darstellung</Text>
+              <DesktopListViewToggle value={viewMode} onChange={onViewModeChange} />
+            </View>
           ) : null}
         </View>
-        {showViewToggle && onViewModeChange ? (
-          <View style={styles.viewToggle}>
-            <Text style={styles.viewToggleLabel}>Darstellung</Text>
-            <DesktopListViewToggle value={viewMode} onChange={onViewModeChange} />
-          </View>
-        ) : null}
-      </View>
-    </AuroraPageHeader>
+      </ClientWorkspacePanel>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { gap: careSpacing.md },
   compactFrame: { marginBottom: careSpacing.sm },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: careSpacing.sm,
-  },
-  statusHint: {
-    color: careSuiteAuroraTheme.text.secondary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
   kpiRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -155,7 +142,7 @@ const styles = StyleSheet.create({
   },
   viewToggle: { gap: 6, alignItems: 'flex-end' },
   viewToggleLabel: {
-    color: careSuiteAuroraTheme.text.muted,
+    color: '#34445A',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.8,

@@ -102,7 +102,7 @@ export function ClientServiceProfilesPanel({ clientId, onRecordRefresh }: Props)
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Leistungsbereiche" onDarkSurface>
+      <SectionPanel title="Leistungsbereiche">
         {activeProfiles.length === 0 ? (
           <EmptyState
             title="Keine Leistungsbereiche konfiguriert"
@@ -152,7 +152,7 @@ export function ClientServiceProfilesPanel({ clientId, onRecordRefresh }: Props)
       </SectionPanel>
 
       {profiles.some((p) => p.status === 'ended') ? (
-        <SectionPanel title="Beendete Leistungsbereiche" onDarkSurface>
+        <SectionPanel title="Beendete Leistungsbereiche">
           {profiles
             .filter((p) => p.status === 'ended')
             .map((profile) => (
@@ -164,7 +164,7 @@ export function ClientServiceProfilesPanel({ clientId, onRecordRefresh }: Props)
         </SectionPanel>
       ) : null}
 
-      <SectionPanel title="Mandanten-Leistungsarten (Vorlagen)" onDarkSurface>
+      <SectionPanel title="Mandanten-Leistungsarten (Vorlagen)">
         {tenantTypes.length === 0 ? (
           <EmptyState title="Keine Vorlagen" message="Leistungsart-Vorlagen werden beim ersten Zugriff automatisch angelegt." />
         ) : (
@@ -221,7 +221,7 @@ export function ClientServiceProfileAddModalScreen({
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Leistungsart wählen" onDarkSurface>
+      <SectionPanel title="Leistungsart wählen">
         {types.map((type) => (
           <PremiumButton
             key={type.id}

@@ -43,7 +43,7 @@ export function ClientProofBillingStatusPanel({ clientId }: Props) {
   const candidates = query.data ?? [];
 
   return (
-    <SectionPanel title="Nachweise — Abrechnungsstatus" onDarkSurface>
+    <SectionPanel title="Nachweise — Abrechnungsstatus">
       {candidates.length === 0 ? (
         <EmptyState
           title="Keine Abrechnungskandidaten"

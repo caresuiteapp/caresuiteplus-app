@@ -31,7 +31,7 @@ export function ClientModuleAssignmentPanel({
     <SectionPanel
       title="Portal-Module"
       subtitle="Legt fest, welche Bereiche im Klient:innenportal sichtbar sind"
-      onDarkSurface
+
     >
       <Text style={styles.hint}>
         Wählen Sie ein oder mehrere Module. Bei mehreren Modulen erscheinen im Portal zusätzliche

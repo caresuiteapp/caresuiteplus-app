@@ -14,7 +14,7 @@ describe('Client UI Reality Fix', () => {
   it('ClientsListTable uses the HealthOS workspace surface and readable contrast tokens', () => {
     const table = readSrc('components/office/ClientsListTable.tsx');
     expect(table).toContain('ClientWorkspacePanel');
-    expect(table).toContain('careSuiteAuroraTheme.text.primary');
+    expect(table).toContain('SYSTEM_LIQUID_COLORS.navy');
     expect(table).toContain('AuroraBadge');
     expect(table).toContain('Akte öffnen');
   });
@@ -25,7 +25,8 @@ describe('Client UI Reality Fix', () => {
     expect(hero).toContain('AuroraPageHeader');
     expect(hero).toContain('ClientWorkspaceKpiCard');
     expect(hero).toContain('ClientWorkspaceLiveBadge');
-    expect(hero).toContain('AuroraGradientButton');
+    expect(hero).toContain('ClientWorkspaceButton');
+    expect(hero).toContain('ClientWorkspacePanel');
   });
 
   it('buildClientListKpis includes Gesamt, Aktiv, Entwürfe', () => {
@@ -177,5 +178,16 @@ describe('Client UI Reality Fix', () => {
     const glass = readSrc('design/tokens/auroraGlass.ts');
     expect(glass).toContain('color: text.primary');
     expect(glass).toContain('useAuroraGlassTableStyles');
+  });
+
+  it('Client workspace enforces one light readable work surface below the brand hero', () => {
+    const view = readSrc('components/office/ClientsListView.tsx');
+    const record = readSrc('screens/business/office/ClientRecordScreen.tsx');
+    const intake = readSrc('components/office/clientintakewizardform.tsx');
+    const documents = readSrc('components/office/ClientRecordDocumentsPanel.tsx');
+    expect(view).toContain('<SurfaceContrastProvider tone="light">');
+    expect(record).toContain('<SurfaceContrastProvider tone="light">');
+    expect(intake).not.toContain('onDarkSurface');
+    expect(documents).not.toContain('onDarkSurface');
   });
 });

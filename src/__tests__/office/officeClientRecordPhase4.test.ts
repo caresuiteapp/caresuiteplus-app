@@ -19,8 +19,8 @@ describe('Office ClientRecord rebuild', () => {
     expect(source).toContain('ClientRecordTabContent');
     expect(source).toContain('LoadingState');
     expect(source).toContain('ErrorState');
-    expect(source).toContain('clientRecordKpiGridStyle');
-    expect(source).toContain('ContextCard');
+    expect(source).toContain('ClientWorkspaceKpiCard');
+    expect(source).toContain('ClientRecordOverviewPanel');
   });
 
   it('ClientRecordTabPanels exposes service-driven document workflow', () => {

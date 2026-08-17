@@ -103,9 +103,9 @@ export function AuroraPageHeader({
           ) : null)}
         </View>
         <View style={styles.badgeRow}>
-          {roleBadge ? <AuroraBadge label={roleBadge} variant="pink" dot /> : null}
+          {roleBadge ? <AuroraBadge label={roleBadge} variant="pink" dot onDarkSurface /> : null}
           {badges.map((b) => (
-            <AuroraBadge key={b.label} label={b.label} variant={b.variant ?? 'default'} />
+            <AuroraBadge key={b.label} label={b.label} variant={b.variant ?? 'default'} onDarkSurface />
           ))}
         </View>
         {primaryActionLabel && onPrimaryAction ? (

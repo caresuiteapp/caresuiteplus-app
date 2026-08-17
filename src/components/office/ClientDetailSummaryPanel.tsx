@@ -132,7 +132,7 @@ export function ClientDetailSummaryPanel({
         />
       ) : null}
 
-      <SectionPanel title="Kontakt" subtitle="Erreichbarkeit und Adresse" onDarkSurface>
+      <SectionPanel title="Kontakt" subtitle="Erreichbarkeit und Adresse">
         <SummaryRow label="Telefon" value={client.phone ?? client.primaryContactPhone} />
         <SummaryRow label="E-Mail" value={client.email} />
         <SummaryRow
@@ -149,7 +149,7 @@ export function ClientDetailSummaryPanel({
         )}
       </SectionPanel>
 
-      <SectionPanel title="Verknüpfte Bereiche" subtitle="Aktuelle Vorgänge" onDarkSurface>
+      <SectionPanel title="Verknüpfte Bereiche" subtitle="Aktuelle Vorgänge">
         <View style={contextGridStyle}>
           <ContextCard
             icon="📅"

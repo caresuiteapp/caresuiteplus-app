@@ -19,16 +19,12 @@ import {
   FormStepper,
   InfoBanner,
   LoadingState,
-  EmptyState,
   PremiumInput,
   SectionPanel,
   SuccessState,
 } from '@/components/ui';
 import {
-  AuroraGradientButton,
-  AuroraSecondaryButton,
-} from '@/components/aurora';
-import {
+  ClientWorkspaceButton,
   ClientWorkspaceLiveBadge,
   ClientWorkspacePanel,
 } from '@/components/office/ClientWorkspacePrimitives';
@@ -43,7 +39,6 @@ import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
 import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import { spacing } from '@/theme';
 
 function ClientIntakeJourneyHeader({
@@ -106,9 +101,7 @@ export function ClientIntakeSectionContent({
 }) {
   const { form, errors, updateField, updateFundingSources, updateCostBearerTypes, contextHint, tenantId, replaceForm, createdId } = wizard;
   const resolvedClientId = clientId ?? createdId ?? undefined;
-  const panelCtx = panelViewContext
-    ? { viewContext: panelViewContext, onDarkSurface: true }
-    : { onDarkSurface: true };
+  const panelCtx = panelViewContext ? { viewContext: panelViewContext } : {};
 
   if (section === 'leistungsart') {
     return (
@@ -372,17 +365,16 @@ export function ClientIntakeWizardForm({
         scrollContent: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
         journey: { paddingHorizontal: spacing.md, paddingTop: spacing.md },
         stepperScroll: { flexGrow: 0 },
-        stepperContent: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
+        stepperContent: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, flexGrow: 1 },
         footer: {
           borderTopWidth: 1,
-          borderTopColor: careSuiteAuroraTheme.glass.borderStrong,
+          borderTopColor: 'rgba(22, 131, 255, 0.24)',
           padding: spacing.md,
-          gap: spacing.sm,
-          backgroundColor: careSuiteAuroraTheme.glass.backgroundStrong,
+          backgroundColor: '#FFFFFF',
         },
-        footerRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-        actionBtn: { flex: 1, minWidth: 120 },
-        draftRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
+        footerRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, flexWrap: 'wrap' },
+        actionBtn: { minWidth: 148 },
+        footerSpacer: { flex: 1, minWidth: spacing.lg },
         successWrap: { padding: spacing.md },
       }),
     [],
@@ -462,7 +454,7 @@ export function ClientIntakeWizardForm({
         contentContainerStyle={styles.stepperContent}
         showsHorizontalScrollIndicator={false}
       >
-        <View style={{ width: Math.max(720, stepLabels.length * 118) }}>
+        <View style={{ flex: 1, minWidth: Math.max(320, stepLabels.length * 118) }}>
           <FormStepper
             steps={stepLabels}
             currentStep={stepIndex}
@@ -490,37 +482,30 @@ export function ClientIntakeWizardForm({
             Schritt {stepIndex + 1} von {steps.length} · {isEditMode ? 'Stammdaten bearbeiten' : 'Klient:in aufnehmen'}
           </Text>
         ) : null}
-        {currentSection === 'leistungsart' && wizard.form.careContexts.length === 0 ? (
-          <EmptyState
-            title="Leistungsart wählen"
-            message="Wählen Sie mindestens eine Leistungsart, um die Aufnahme zu starten."
-          />
-        ) : null}
         <ClientIntakeSectionContent section={currentSection} wizard={wizard} contentStyles={contentStyles} clientId={clientId} />
         {submitError ? <ErrorState message={submitError} /> : null}
       </ScrollView>
       <View style={styles.footer}>
-        {!isEditMode ? (
-          <View style={styles.draftRow}>
-            <AuroraSecondaryButton label="Als Entwurf speichern" variant="ghost" onPress={() => void saveDraft()} style={styles.actionBtn} />
-            <AuroraSecondaryButton label="Neu beginnen" variant="ghost" onPress={() => void discardDraft()} style={styles.actionBtn} />
-          </View>
-        ) : null}
         <View style={styles.footerRow}>
+          {!isEditMode ? <ClientWorkspaceButton label="Als Entwurf speichern" variant="ghost" compact onPress={() => void saveDraft()} style={styles.actionBtn} /> : null}
+          {!isEditMode ? <ClientWorkspaceButton label="Neu beginnen" variant="ghost" compact onPress={() => void discardDraft()} style={styles.actionBtn} /> : null}
+          <View style={styles.footerSpacer} />
           {!isFirstStep ? (
-            <AuroraSecondaryButton label="← Zurück" onPress={prevStep} style={styles.actionBtn} />
+            <ClientWorkspaceButton label="← Zurück" compact onPress={prevStep} style={styles.actionBtn} />
           ) : onCancel ? (
-            <AuroraSecondaryButton label="Abbrechen" variant="ghost" onPress={onCancel} style={styles.actionBtn} />
+            <ClientWorkspaceButton label="Abbrechen" variant="secondary" compact onPress={onCancel} style={styles.actionBtn} />
           ) : null}
           {isLastStep ? (
-            <AuroraGradientButton
+            <ClientWorkspaceButton
               label={isEditMode ? 'Änderungen speichern' : 'Klient:in aktivieren'}
+              variant="primary"
               loading={submitting}
               onPress={handleSubmit}
+              compact
               style={styles.actionBtn}
             />
           ) : (
-            <AuroraGradientButton label="Weiter →" onPress={nextStep} style={styles.actionBtn} />
+            <ClientWorkspaceButton label="Weiter →" variant="primary" compact onPress={nextStep} style={styles.actionBtn} />
           )}
         </View>
       </View>
@@ -533,14 +518,14 @@ const stylesStatic = StyleSheet.create({
     height: 8,
     overflow: 'hidden',
     borderRadius: careRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#E6F1FF',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: careSuiteAuroraTheme.glass.border,
+    borderColor: 'rgba(22, 131, 255, 0.24)',
   },
   progressFill: {
     height: '100%',
     borderRadius: careRadius.full,
-    backgroundColor: careSuiteAuroraTheme.accent.cyan,
+    backgroundColor: '#1683FF',
   },
   journeyMeta: {
     flexDirection: 'row',
@@ -550,13 +535,13 @@ const stylesStatic = StyleSheet.create({
   },
   journeyHint: {
     flex: 1,
-    color: careSuiteAuroraTheme.text.muted,
+    color: '#34445A',
     fontSize: 11,
     lineHeight: 16,
     fontWeight: '600',
   },
   journeyProgress: {
-    color: careSuiteAuroraTheme.accent.cyan,
+    color: '#1683FF',
     fontSize: 13,
     fontWeight: '900',
   },

@@ -38,6 +38,7 @@ import { AngehoerigeTab, KontaktAdresseTab } from '@/screens/office/ClientFullDe
 import { careSpacing } from '@/design/tokens/spacing';
 import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import { spacing } from '@/theme';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 
 function resolvePrimaryAddress(
   detail: NonNullable<ReturnType<typeof useClientRecord>['detail']>,
@@ -72,7 +73,7 @@ function StammdatenTab({
 
   return (
     <View style={styles.tabPanel}>
-      <SectionPanel title="Stammdaten" onDarkSurface>
+      <SectionPanel title="Stammdaten">
         <DetailInfoRow label="Name" value={`${detail.firstName} ${detail.lastName}`.trim()} />
         <DetailInfoRow
           label="Geburtsdatum"
@@ -91,7 +92,7 @@ function StammdatenTab({
         <DetailInfoRow label="Leistungsart" value={serviceTypes} />
       </SectionPanel>
       {fullClient ? (
-        <SectionPanel title="Weitere Stammdaten" onDarkSurface>
+        <SectionPanel title="Weitere Stammdaten">
           <DetailInfoRow label="Anrede" value={formatSalutation(fullClient.core.salutation) || '—'} />
           <DetailInfoRow label="Geschlecht" value={fullClient.core.gender} />
           <DetailInfoRow label="Status" value={detail.status} />
@@ -138,7 +139,23 @@ function StammdatenTab({
   );
 }
 
-export function ClientRecordScreen({
+export function ClientRecordScreen(props: {
+  initialTabOverride?: ClientRecordTabKey;
+  clientId?: string;
+  embedded?: boolean;
+  embeddedInModal?: boolean;
+  onDeleted?: () => void;
+  onEditMasterData?: () => void;
+  initialMasterDataEditOpen?: boolean;
+} = {}) {
+  return (
+    <SurfaceContrastProvider tone="light">
+      <ClientRecordScreenContent {...props} />
+    </SurfaceContrastProvider>
+  );
+}
+
+function ClientRecordScreenContent({
   initialTabOverride,
   clientId: clientIdProp,
   embedded = false,
@@ -390,7 +407,7 @@ export function ClientRecordScreen({
             <AngehoerigeTab client={fullQuery.data} />
           </View>
         ) : activeTab === 'kontakt' ? (
-          <SectionPanel title="Kontakt & Adresse" onDarkSurface>
+          <SectionPanel title="Kontakt & Adresse">
             <DetailInfoRow
               label="Adresse"
               value={formatClientAddressLine(detail.street, detail.zip, detail.city) || '—'}
@@ -420,7 +437,7 @@ export function ClientRecordScreen({
       </View>
 
       {canDelete ? (
-        <SectionPanel title="Gefahrenzone" subtitle="Irreversible Aktionen" onDarkSurface>
+        <SectionPanel title="Gefahrenzone" subtitle="Irreversible Aktionen">
           <OfficeRecordDeleteButton
             recordLabel="Klient:in"
             displayName={`${detail.firstName} ${detail.lastName}`}

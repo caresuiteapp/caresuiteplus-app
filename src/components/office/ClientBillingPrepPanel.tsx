@@ -91,7 +91,7 @@ export function ClientBillingPrepPanel({ clientId, onRecordRefresh }: Props) {
       <SectionPanel
         title="Abrechnungsvorschau"
         subtitle="Vorbereitung ohne finale Rechnung"
-        onDarkSurface
+
       >
         {preview?.warnings?.length ? (
           <PremiumCard style={styles.card}>
@@ -153,7 +153,7 @@ export function ClientBillingPrepPanel({ clientId, onRecordRefresh }: Props) {
       </SectionPanel>
 
       {blocked.length > 0 ? (
-        <SectionPanel title="Blockierte Nachweise" onDarkSurface>
+        <SectionPanel title="Blockierte Nachweise">
           {blocked.slice(0, 5).map((line) => (
             <PremiumCard key={line.candidateId} style={styles.card}>
               <Text style={styles.primary}>Nachweis {line.proofId.slice(0, 8)}…</Text>
@@ -166,7 +166,7 @@ export function ClientBillingPrepPanel({ clientId, onRecordRefresh }: Props) {
       ) : null}
 
       {preview?.budgetSummary ? (
-        <SectionPanel title="Budgetverbrauch (Vorschau)" onDarkSurface>
+        <SectionPanel title="Budgetverbrauch (Vorschau)">
           <Text style={styles.secondary}>
             Reserviert (Kandidaten): {formatCurrency(preview.budgetSummary.candidateReservedCents, true)}
             {' · '}

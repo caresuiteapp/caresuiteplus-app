@@ -140,7 +140,7 @@ export function ClientRecordShiftsPanel({ clientId, fullClient }: ClientRecordSh
             ? `${assignments.length} Einsatz${assignments.length === 1 ? '' : 'e'}${upcomingCount > 0 ? ` · ${upcomingCount} geplant` : ''}`
             : undefined
         }
-        onDarkSurface
+
       >
         {assignments.length === 0 ? (
           <EmptyState
@@ -153,7 +153,7 @@ export function ClientRecordShiftsPanel({ clientId, fullClient }: ClientRecordSh
       </SectionPanel>
 
       {fullClient?.preferences ? (
-        <SectionPanel title="Einsatzpräferenzen" onDarkSurface>
+        <SectionPanel title="Einsatzpräferenzen">
           <DetailInfoRow
             label="Bevorzugte Zeiten"
             value={fullClient.preferences.preferredShifts.join(', ') || null}
@@ -166,7 +166,7 @@ export function ClientRecordShiftsPanel({ clientId, fullClient }: ClientRecordSh
       <ClientProofBillingStatusPanel clientId={clientId} />
 
       {!isReadOnly ? (
-        <SectionPanel title="Planung in Assist" onDarkSurface>
+        <SectionPanel title="Planung in Assist">
           <Text style={styles.hint}>
             Einsatzprofile erscheinen automatisch im Assist-Kalender. Ziehen Sie das gewünschte Profil auf einen Tag
             und bestätigen Sie nur die Uhrzeit. Der Einsatz wird anschließend direkt freigegeben.

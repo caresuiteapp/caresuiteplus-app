@@ -92,7 +92,7 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
   return (
     <View style={styles.panel}>
       {fullClient?.billingProfile ? (
-        <SectionPanel title="Abrechnungsprofil" onDarkSurface>
+        <SectionPanel title="Abrechnungsprofil">
           <DetailInfoRow
             label="Abrechnungsart"
             value={BILLING_TYPE_LABELS[fullClient.billingProfile.billingType]}
@@ -106,7 +106,7 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
         </SectionPanel>
       ) : null}
 
-      <SectionPanel title="Verträge & Einwilligungen" subtitle="Aufnahme-Dokumente und Vertragsunterlagen" onDarkSurface>
+      <SectionPanel title="Verträge & Einwilligungen" subtitle="Aufnahme-Dokumente und Vertragsunterlagen">
         {structuredContracts.length === 0 && contractDocuments.length === 0 ? (
           <EmptyState
             title="Keine Verträge hinterlegt"
@@ -144,7 +144,7 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
         <SectionPanel
           title="Vorschau"
           subtitle={buildDocumentPreviewStatusSubtitle(selectedDoc) ?? selectedDoc.title}
-          onDarkSurface
+
         >
           <DocumentHtmlPreview
             title={selectedDoc.title}

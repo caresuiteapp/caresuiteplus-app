@@ -1,13 +1,13 @@
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { AuroraBadge, AuroraSecondaryButton } from '@/components/aurora';
-import { ClientWorkspacePanel } from './ClientWorkspacePrimitives';
+import { AuroraBadge } from '@/components/aurora';
+import { ClientWorkspaceButton, ClientWorkspacePanel } from './ClientWorkspacePrimitives';
 import { ClientAnimalAvatar } from '@/components/clients/ClientAnimalAvatar';
 import type { ClientListItem } from '@/types/modules/office';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
+import { systemLiquidGlass, SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
 
 type ClientsListTableProps = {
   clients: ClientListItem[];
@@ -143,9 +143,10 @@ export function ClientsListTable({
                 <Text style={styles.meta}>Aktenstand</Text>
               </View>
               <View style={[styles.cell, styles.actionColumn]}>
-                <AuroraSecondaryButton
+                <ClientWorkspaceButton
                   label="Akte öffnen"
-                  variant="ghost"
+                  variant="secondary"
+                  compact
                   onPress={() => (onOpenDetail ?? onClientPress)?.(item.id)}
                 />
               </View>
@@ -165,18 +166,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.sm,
     paddingBottom: careSpacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: careSuiteAuroraTheme.glass.borderStrong,
+    borderBottomColor: systemLiquidGlass.borderStrong,
     gap: careSpacing.xs,
   },
   headerCell: { justifyContent: 'center', minWidth: 0 },
   headerLabel: {
-    color: careSuiteAuroraTheme.text.muted,
+    color: '#34445A',
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
-  headerLabelActive: { color: careSuiteAuroraTheme.accent.cyan },
+  headerLabelActive: { color: SYSTEM_LIQUID_COLORS.electricBlue },
   rows: { gap: 7, paddingTop: careSpacing.sm },
   row: {
     flexDirection: 'row',
@@ -187,12 +188,12 @@ const styles = StyleSheet.create({
     gap: careSpacing.xs,
     borderRadius: careRadius.lg,
     borderWidth: 1,
-    borderColor: careSuiteAuroraTheme.glass.border,
-    backgroundColor: 'rgba(255,255,255,0.045)',
+    borderColor: systemLiquidGlass.border,
+    backgroundColor: '#FFFFFF',
   },
   rowSelected: {
-    borderColor: careSuiteAuroraTheme.accent.cyan,
-    backgroundColor: 'rgba(105,232,255,0.12)',
+    borderColor: SYSTEM_LIQUID_COLORS.electricBlue,
+    backgroundColor: systemLiquidGlass.rowSelected,
   },
   rowPressed: { opacity: 0.8 },
   cell: { justifyContent: 'center', minWidth: 0, gap: 3 },
@@ -205,19 +206,19 @@ const styles = StyleSheet.create({
   identity: { flexDirection: 'row', alignItems: 'center', gap: careSpacing.sm },
   identityText: { flex: 1, minWidth: 0, gap: 2 },
   name: {
-    color: careSuiteAuroraTheme.text.primary,
+    color: SYSTEM_LIQUID_COLORS.navy,
     fontSize: 15,
     lineHeight: 20,
     fontWeight: '900',
   },
   cellPrimary: {
-    color: careSuiteAuroraTheme.text.primary,
+    color: SYSTEM_LIQUID_COLORS.navy,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '800',
   },
   meta: {
-    color: careSuiteAuroraTheme.text.muted,
+    color: '#34445A',
     fontSize: 11,
     lineHeight: 15,
     fontWeight: '600',

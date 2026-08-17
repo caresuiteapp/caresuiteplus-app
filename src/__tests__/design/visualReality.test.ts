@@ -161,8 +161,8 @@ describe('Visual Reality — Phase 2 list/detail screens', () => {
 
   it('ClientsListHero uses list hero frame and KPI cards', () => {
     const hero = readSrc('src/components/office/ClientsListHero.tsx');
-    expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('PremiumKpiCard');
+    expect(hero).toContain('ClientWorkspacePanel');
+    expect(hero).toContain('ClientWorkspaceKpiCard');
   });
 
   it('auth login screens use AuthLayout or ScreenShell', () => {

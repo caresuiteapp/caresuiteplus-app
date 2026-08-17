@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { AuroraSecondaryButton, AuroraSegmentedControl } from '@/components/aurora';
+import { AuroraSegmentedControl } from '@/components/aurora';
 import { PremiumInput } from '@/components/ui';
-import { ClientWorkspacePanel } from './ClientWorkspacePrimitives';
+import { ClientWorkspaceButton, ClientWorkspacePanel } from './ClientWorkspacePrimitives';
 import type { ClientCareLevelFilterKey } from '@/lib/office/clientListStats';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
+import { systemLiquidGlass, SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
 
 type FilterOption = { key: string; label: string };
 
@@ -103,7 +103,6 @@ export function ClientsFilterToolbar({
             onChangeText={onSearchChange}
             autoCapitalize="words"
             autoCorrect={false}
-            onDarkSurface
             hint={search ? `${filteredCount} Treffer für „${search}“` : 'Die Ergebnisliste reagiert unmittelbar auf Ihre Eingabe.'}
           />
         </View>
@@ -151,7 +150,7 @@ export function ClientsFilterToolbar({
             <View style={styles.activeFilterDot} />
             <Text style={styles.activeFilterText}>Die Ergebnisliste ist gefiltert.</Text>
           </View>
-          <AuroraSecondaryButton label="Alle Filter zurücksetzen" variant="ghost" onPress={onResetFilters} />
+          <ClientWorkspaceButton label="Alle Filter zurücksetzen" variant="ghost" compact onPress={onResetFilters} />
         </View>
       ) : null}
     </ClientWorkspacePanel>
@@ -173,17 +172,17 @@ const styles = StyleSheet.create({
     borderRadius: careRadius.lg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: careSuiteAuroraTheme.glass.borderStrong,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: systemLiquidGlass.borderStrong,
+    backgroundColor: '#F5FAFF',
   },
   resultValue: {
-    color: careSuiteAuroraTheme.accent.cyan,
+    color: SYSTEM_LIQUID_COLORS.electricBlue,
     fontSize: 22,
     lineHeight: 25,
     fontWeight: '900',
   },
   resultLabel: {
-    color: careSuiteAuroraTheme.text.secondary,
+    color: '#34445A',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -192,28 +191,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.md,
     borderRadius: careRadius.lg,
     borderWidth: 1,
-    borderColor: careSuiteAuroraTheme.glass.border,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: systemLiquidGlass.borderStrong,
+    backgroundColor: '#F5FAFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: careSpacing.xs,
   },
-  expandButtonActive: { borderColor: careSuiteAuroraTheme.accent.cyan },
+  expandButtonActive: { borderColor: SYSTEM_LIQUID_COLORS.electricBlue },
   expandButtonIcon: {
-    color: careSuiteAuroraTheme.accent.cyan,
+    color: SYSTEM_LIQUID_COLORS.electricBlue,
     fontSize: 20,
     fontWeight: '900',
   },
   expandButtonText: {
-    color: careSuiteAuroraTheme.text.primary,
+    color: SYSTEM_LIQUID_COLORS.navy,
     fontSize: 13,
     fontWeight: '800',
   },
   filterGrid: { gap: careSpacing.md },
   group: { gap: 7 },
   groupLabel: {
-    color: careSuiteAuroraTheme.text.secondary,
+    color: '#34445A',
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 0.9,
@@ -227,17 +226,17 @@ const styles = StyleSheet.create({
     gap: careSpacing.sm,
     paddingTop: careSpacing.xs,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: careSuiteAuroraTheme.glass.border,
+    borderTopColor: systemLiquidGlass.border,
   },
   activeFilterInfo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeFilterDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: careSuiteAuroraTheme.accent.cyan,
+    backgroundColor: SYSTEM_LIQUID_COLORS.electricBlue,
   },
   activeFilterText: {
-    color: careSuiteAuroraTheme.text.secondary,
+    color: '#34445A',
     fontSize: 12,
     fontWeight: '700',
   },

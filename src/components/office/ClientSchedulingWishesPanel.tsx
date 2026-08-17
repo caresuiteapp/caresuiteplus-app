@@ -200,7 +200,7 @@ export function ClientSchedulingWishesPanel({
     <SectionPanel
       title="Wünsche"
       subtitle={summary ?? 'Termin- und Einsatzpräferenzen für die Planung'}
-      onDarkSurface
+
     >
       <Text style={styles.hint}>
         Allgemeine Planungswünsche — getrennt von einzelnen Assist-Aufgaben.

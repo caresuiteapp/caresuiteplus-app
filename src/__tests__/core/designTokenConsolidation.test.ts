@@ -50,9 +50,10 @@ describe('Design token consolidation', () => {
     expect(source).toContain('PremiumListHeroFrame');
   });
 
-  it('ClientsListHero nutzt PremiumListHeroFrame', () => {
+  it('ClientsListHero nutzt die kanonische Client-Workspace-Fläche', () => {
     const source = readSrc('src/components/office/ClientsListHero.tsx');
-    expect(source).toContain('PremiumListHeroFrame');
+    expect(source).toContain('ClientWorkspacePanel');
+    expect(source).toContain('ClientWorkspaceKpiCard');
     expect(source).not.toContain('CareLightListHeroFrame');
   });
 

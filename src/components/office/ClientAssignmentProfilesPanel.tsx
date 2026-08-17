@@ -401,7 +401,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
       <SectionPanel
         title="Einsatzprofile"
         subtitle="Wiederverwendbare Einsatzvorlagen ohne Tag und Uhrzeit"
-        onDarkSurface
+
       >
         {profiles.length === 0 ? (
           <EmptyState
@@ -483,20 +483,20 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
             value={draft.profileName}
             placeholder="z. B. Haushalt Montag"
             onChangeText={(profileName) => setDraft((current) => ({ ...current, profileName }))}
-            onDarkSurface
+
           />
           <PremiumInput
             label="Einsatzbezeichnung"
             value={draft.assignmentTitle}
             onChangeText={(assignmentTitle) => setDraft((current) => ({ ...current, assignmentTitle }))}
-            onDarkSurface
+
           />
           <PremiumInput
             label="Beschreibung"
             value={draft.description}
             onChangeText={(description) => setDraft((current) => ({ ...current, description }))}
             multiline
-            onDarkSurface
+
           />
           <PremiumInput
             label="Dauer in Minuten"
@@ -506,7 +506,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
               setDraft((current) => ({ ...current, durationMinutes: Number(value.replace(/\D/g, '')) || 0 }))
             }
             hint="Verbindliche Gesamtdauer des Kalenderblocks. Aufgaben-Richtzeiten ändern diesen Wert nicht."
-            onDarkSurface
+
           />
 
           <Text style={styles.fieldLabel}>Mitarbeitende Person</Text>
@@ -634,7 +634,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
             placeholder={'Eine Aufgabe pro Zeile\nEinkaufen\nWohnung reinigen'}
             multiline
             style={styles.multiline}
-            onDarkSurface
+
           />
           <AssistCatalogMultiSelect
             items={options?.riskFlags ?? []}
@@ -647,35 +647,35 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
             label="Einsatzort"
             value={draft.locationAddress}
             onChangeText={(locationAddress) => setDraft((current) => ({ ...current, locationAddress }))}
-            onDarkSurface
+
           />
           <PremiumInput
             label="Hinweis zum Einsatzort / Zugang"
             value={draft.locationNotes}
             onChangeText={(locationNotes) => setDraft((current) => ({ ...current, locationNotes }))}
             multiline
-            onDarkSurface
+
           />
           <PremiumInput
             label="Hinweis für Mitarbeitende"
             value={draft.notesForEmployee}
             onChangeText={(notesForEmployee) => setDraft((current) => ({ ...current, notesForEmployee }))}
             multiline
-            onDarkSurface
+
           />
           <PremiumInput
             label="Interne Notiz"
             value={draft.internalNotes}
             onChangeText={(internalNotes) => setDraft((current) => ({ ...current, internalNotes }))}
             multiline
-            onDarkSurface
+
           />
           <PremiumInput
             label="Hinweis für Klientenportal"
             value={draft.clientVisibleNotes}
             onChangeText={(clientVisibleNotes) => setDraft((current) => ({ ...current, clientVisibleNotes }))}
             multiline
-            onDarkSurface
+
           />
           <ChoiceChips
             label="Budget-/Abrechnungsquelle"
@@ -695,7 +695,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
               setDraft((current) => ({ ...current, documentationTemplateKey }))
             }
             placeholder="Vorlagen-Schlüssel"
-            onDarkSurface
+
           />
           <ChoiceChips
             label="Leistungsnachweis"

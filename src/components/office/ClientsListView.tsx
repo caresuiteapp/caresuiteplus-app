@@ -28,6 +28,7 @@ import { useTableColumnSort } from '@/lib/table/tableColumnSort';
 import { useAuth } from '@/lib/auth/context';
 import { CLIENT_INTAKE_NEW_ROUTE, clientRecordRoute } from '@/lib/navigation/clientRoutes';
 import { spacing } from '@/theme';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 
 type ClientsListViewProps = {
   onClientPress?: (id: string) => void;
@@ -38,7 +39,15 @@ type ClientsListViewProps = {
   refreshToken?: number;
 };
 
-export function ClientsListView({
+export function ClientsListView(props: ClientsListViewProps) {
+  return (
+    <SurfaceContrastProvider tone="light">
+      <ClientsListViewContent {...props} />
+    </SurfaceContrastProvider>
+  );
+}
+
+function ClientsListViewContent({
   onClientPress,
   onOpenDetail,
   onCreatePress,
