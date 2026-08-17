@@ -28,7 +28,7 @@ describe('Client intake wizard UX fixes', () => {
     expect(input).toContain('useState');
     expect(input).toContain('setDraft');
     expect(input).toContain('onBlur');
-    expect(input).toContain("type: 'date'");
+    expect(input).toMatch(/type:\s*["']date["']/);
     expect(input).toContain('showPicker');
   });
 
@@ -57,10 +57,10 @@ describe('Client intake wizard UX fixes', () => {
     expect(form).toContain('nativeID="client-intake-key-safe-code"');
     expect(form.match(/sensitiveBusinessValue/g)).toHaveLength(2);
     expect(form).toContain("secureTextEntry={Platform.OS !== 'web'}");
-    expect(input).toContain("autoComplete: 'off'");
-    expect(input).toContain("'data-1p-ignore': 'true'");
-    expect(input).toContain("'data-lpignore': 'true'");
-    expect(input).toContain("WebkitTextSecurity: 'disc'");
+    expect(input).toMatch(/autoComplete:\s*["']off["']/);
+    expect(input).toMatch(/["']data-1p-ignore["']:\s*["']true["']/);
+    expect(input).toMatch(/["']data-lpignore["']:\s*["']true["']/);
+    expect(input).toMatch(/WebkitTextSecurity:\s*["']disc["']/);
   });
 
   it('Neuaufnahme erhebt Pflegegrad im immer sichtbaren Abrechnungsschritt', () => {

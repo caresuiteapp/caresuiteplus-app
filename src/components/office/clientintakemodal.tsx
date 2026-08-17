@@ -11,10 +11,8 @@ import { ClientIntakeWizardForm } from './clientintakewizardform';
 import type { ClientIntakeWizardMode } from '@/hooks/useClientIntakeWizard';
 import { GradientModalHeader } from '@/components/layout/platform';
 import { GlassSurface } from '@/components/ui/effects';
-import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
-import { careSuiteModalScrim, careSuiteModalScrimStrong } from '@/design/tokens/lightTheme';
-import { resolveLlganViewGlass } from '@/design/tokens/lightLiquidGlassAuroraNebula';
+import { careSuiteModalScrimStrong } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { moduleColor } from '@/design/tokens/modules';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
@@ -43,10 +41,7 @@ export function ClientIntakeModal({
   onUpdated,
 }: ClientIntakeModalProps) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const { isDark, c } = useCareLightPalette();
-  const auroraActive = useAuroraGlassActive();
-  const lightModal = !isDark && auroraActive;
-  const formGlass = resolveLlganViewGlass('form', 'default');
+  const { isDark } = useCareLightPalette();
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
   const officeAccent = moduleColor('office');
@@ -91,11 +86,7 @@ export function ClientIntakeModal({
       StyleSheet.create({
         backdrop: {
           flex: 1,
-          backgroundColor: isBottomSheet
-            ? lightModal
-              ? careSuiteModalScrim
-              : careSuiteModalScrimStrong
-            : c.page,
+          backgroundColor: careSuiteModalScrimStrong,
           justifyContent: isBottomSheet ? 'flex-end' : 'center',
           alignItems: 'center',
           padding: isBottomSheet ? 0 : spacing.md,
@@ -105,9 +96,7 @@ export function ClientIntakeModal({
           maxHeight: sheetMaxHeight,
           flex: isBottomSheet ? undefined : 1,
           ...Platform.select({
-            web: lightModal
-              ? ({ boxShadow: `${formGlass.shadow}, 0 24px 64px rgba(70,110,170,0.18)` } as unknown as undefined)
-              : ({ boxShadow: '0 24px 64px rgba(0,0,0,0.35)' as unknown as undefined }),
+            web: ({ boxShadow: '0 28px 86px rgba(0,0,0,0.56)' } as unknown as undefined),
             default: {},
           }),
         },
@@ -116,7 +105,7 @@ export function ClientIntakeModal({
           minHeight: 0,
         },
       }),
-    [c.page, formGlass.shadow, isBottomSheet, lightModal, sheetMaxHeight, sheetWidth],
+    [isBottomSheet, sheetMaxHeight, sheetWidth],
   );
 
   const isEditMode = mode === 'edit' && !!clientId;
@@ -136,7 +125,7 @@ export function ClientIntakeModal({
   return (
     <Modal
       visible={visible}
-      transparent={isBottomSheet}
+      transparent
       animationType={isBottomSheet ? 'slide' : 'fade'}
       onRequestClose={onClose}
       statusBarTranslucent

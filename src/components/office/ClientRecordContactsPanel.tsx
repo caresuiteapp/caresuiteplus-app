@@ -40,7 +40,7 @@ function ContactCategorySection({
   const displayName = formatContactPersonName(contact);
 
   return (
-    <SectionPanel title={title}>
+    <SectionPanel title={title} onDarkSurface>
       <View style={styles.sectionHeader}>
         {canEdit && onEdit ? (
           <PremiumButton title="Bearbeiten" size="sm" variant="ghost" onPress={onEdit} />
@@ -141,7 +141,7 @@ export function ClientRecordContactsPanel({ client, onRefresh, onEditMasterData 
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Erreichbarkeit" subtitle="Klient:in direkt">
+      <SectionPanel title="Erreichbarkeit" subtitle="Klient:in direkt" onDarkSurface>
         <DetailInfoRow label="Telefon" value={client.phone} />
         <DetailInfoRow label="E-Mail" value={client.email} />
       </SectionPanel>
@@ -156,7 +156,7 @@ export function ClientRecordContactsPanel({ client, onRefresh, onEditMasterData 
         />
       ))}
 
-      <SectionPanel title="Sonstige Kontakte">
+      <SectionPanel title="Sonstige Kontakte" onDarkSurface>
         {otherContacts.length === 0 ? (
           <Text style={styles.empty}>Keine sonstigen Kontakte hinterlegt.</Text>
         ) : (

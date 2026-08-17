@@ -25,9 +25,10 @@ describe('Client Core K.4 — record UI wiring', () => {
     const modal = readSrc('src/components/office/clientintakemodal.tsx');
     expect(modal).toContain('const MODAL_MAX_WIDTH = 1680');
     expect(modal).toContain('const DESKTOP_MODAL_SIZE_RATIO = 0.96');
-    expect(modal).toContain('backgroundColor: isBottomSheet');
-    expect(modal).toContain(': c.page');
-    expect(modal).toContain('transparent={isBottomSheet}');
+    expect(modal).toContain('backgroundColor: careSuiteModalScrimStrong');
+    expect(modal).toContain('transparent');
+    expect(modal).toContain('GlassSurface');
+    expect(modal).toContain("animationType={isBottomSheet ? 'slide' : 'fade'}");
   });
 
   it('modal stack registers client record and edit modals', () => {

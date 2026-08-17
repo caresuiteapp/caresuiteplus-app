@@ -11,18 +11,21 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Client UI Reality Fix', () => {
-  it('ClientsListTable uses the shared readable glass-table text styles', () => {
+  it('ClientsListTable uses the HealthOS workspace surface and readable contrast tokens', () => {
     const table = readSrc('components/office/ClientsListTable.tsx');
-    expect(table).toContain('useTableTextStyles');
-    expect(table).toContain('tableText.name');
-    expect(table).toContain('tableText.cellText');
+    expect(table).toContain('ClientWorkspacePanel');
+    expect(table).toContain('careSuiteAuroraTheme.text.primary');
+    expect(table).toContain('AuroraBadge');
+    expect(table).toContain('Akte öffnen');
   });
 
-  it('ClientsListHero shows compact KPI row and smaller action buttons', () => {
+  it('ClientsListHero exposes the interactive HealthOS cockpit', () => {
     const hero = readSrc('components/office/ClientsListHero.tsx');
     expect(hero).toContain('kpiRowCompact');
-    expect(hero).toContain('size="sm"');
-    expect(hero).toContain('variant="light"');
+    expect(hero).toContain('AuroraPageHeader');
+    expect(hero).toContain('ClientWorkspaceKpiCard');
+    expect(hero).toContain('ClientWorkspaceLiveBadge');
+    expect(hero).toContain('AuroraGradientButton');
   });
 
   it('buildClientListKpis includes Gesamt, Aktiv, Entwürfe', () => {

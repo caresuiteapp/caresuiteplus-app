@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { FormScreenHero } from '@/components/forms';
+import { AuroraPageHeader } from '@/components/aurora';
+import { ClientWorkspaceLiveBadge } from '@/components/office/ClientWorkspacePrimitives';
 import { ClientIntakeWizardForm } from '@/components/office/clientintakewizardform';
 import { ScreenShell } from '@/components/layout';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
@@ -20,11 +21,13 @@ export function ClientIntakeWizardScreen() {
       onBack={() => router.back()}
     >
       <View style={styles.hero}>
-        <FormScreenHero
-          eyebrow="OFFICE · KLIENT:INNEN"
+        <AuroraPageHeader
           title="Klient:in aufnehmen"
-          meta="Schrittweise Aufnahme · Entwurf jederzeit speicherbar"
-        />
+          subtitle="Strukturierte, sichere und vollständig geführte Neuaufnahme"
+          description="Leistungsart wählen · Pflichtangaben intelligent prüfen · Entwurf jederzeit fortsetzen"
+        >
+          <ClientWorkspaceLiveBadge label="Mandantengebundene Datenspeicherung aktiv" />
+        </AuroraPageHeader>
       </View>
       <View style={styles.content}>
         <ClientIntakeWizardForm

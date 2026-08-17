@@ -29,9 +29,9 @@ import {
   SERVICE_TYPE_LABELS,
   type ClientDocumentRecord,
 } from '@/types/modules/client';
-import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
-import { colors, spacing, typography } from '@/theme';
+import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
+import { spacing, typography } from '@/theme';
 
 type ClientRecordContractsPanelProps = {
   clientId: string;
@@ -92,7 +92,7 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
   return (
     <View style={styles.panel}>
       {fullClient?.billingProfile ? (
-        <SectionPanel title="Abrechnungsprofil">
+        <SectionPanel title="Abrechnungsprofil" onDarkSurface>
           <DetailInfoRow
             label="Abrechnungsart"
             value={BILLING_TYPE_LABELS[fullClient.billingProfile.billingType]}
@@ -106,7 +106,7 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
         </SectionPanel>
       ) : null}
 
-      <SectionPanel title="Verträge & Einwilligungen" subtitle="Aufnahme-Dokumente und Vertragsunterlagen">
+      <SectionPanel title="Verträge & Einwilligungen" subtitle="Aufnahme-Dokumente und Vertragsunterlagen" onDarkSurface>
         {structuredContracts.length === 0 && contractDocuments.length === 0 ? (
           <EmptyState
             title="Keine Verträge hinterlegt"
@@ -144,6 +144,7 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
         <SectionPanel
           title="Vorschau"
           subtitle={buildDocumentPreviewStatusSubtitle(selectedDoc) ?? selectedDoc.title}
+          onDarkSurface
         >
           <DocumentHtmlPreview
             title={selectedDoc.title}
@@ -168,8 +169,8 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
 const styles = StyleSheet.create({
   panel: { gap: spacing.md, paddingBottom: spacing.lg },
   card: { marginBottom: spacing.sm },
-  cardSelected: { borderColor: careLightColors.orange, borderWidth: 1 },
+  cardSelected: { borderColor: careSuiteAuroraTheme.accent.cyan, borderWidth: 1 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: careSpacing.sm },
-  primary: { ...typography.label, flex: 1 },
-  secondary: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
+  primary: { ...typography.label, color: careSuiteAuroraTheme.text.primary, flex: 1 },
+  secondary: { ...typography.caption, color: careSuiteAuroraTheme.text.muted, marginTop: spacing.xs },
 });

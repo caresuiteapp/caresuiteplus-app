@@ -141,24 +141,6 @@ export function ClientsListScreen({
         showBack={false}
         scroll={false}
         accentColor={accent}
-        actions={[
-          ...(canCreate
-            ? [
-                {
-                  key: 'create',
-                  label: '+ Neue Klient:in',
-                  onPress: openCreate,
-                  variant: 'primary' as const,
-                },
-              ]
-            : []),
-          {
-            key: 'refresh',
-            label: 'Aktualisieren',
-            onPress: triggerRefresh,
-            variant: 'ghost' as const,
-          },
-        ]}
       >
         <View style={styles.content}>{listView}</View>
       </C14vSubpageShell>

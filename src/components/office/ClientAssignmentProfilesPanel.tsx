@@ -401,6 +401,7 @@ export function ClientAssignmentProfilesPanel({ clientId, fullClient }: Props) {
       <SectionPanel
         title="Einsatzprofile"
         subtitle="Wiederverwendbare Einsatzvorlagen ohne Tag und Uhrzeit"
+        onDarkSurface
       >
         {profiles.length === 0 ? (
           <EmptyState

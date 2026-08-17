@@ -6,13 +6,12 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { ClientListCard } from './ClientListCard';
 import { ClientsListHero } from './ClientsListHero';
 import { ClientsListTable } from './ClientsListTable';
+import { ClientsFilterToolbar } from './ClientsFilterToolbar';
 import {
   EmptyState,
   ErrorState,
-  FilterChipGroup,
   LoadingState,
   PremiumButton,
-  PremiumInput,
   SuccessState,
 } from '@/components/ui';
 import {
@@ -83,6 +82,10 @@ export function ClientsListView({
     setStatusFilter,
     careLevelFilter,
     setCareLevelFilter,
+    lifecycleFilter,
+    setLifecycleFilter,
+    costBearerFilter,
+    setCostBearerFilter,
     sortKey,
     setSortKey,
     sortOptions,
@@ -95,7 +98,11 @@ export function ClientsListView({
     hasActiveFilters,
     isEmpty,
     isFilterEmpty,
-    allItems,
+    kpiItems,
+    lifecycleFilters,
+    costBearerFilters,
+    isLive,
+    isLiveConnected,
   } = useClientList();
 
   useEffect(() => {
@@ -104,7 +111,15 @@ export function ClientsListView({
     }
   }, [refreshToken, refresh]);
 
-  const kpis = useMemo(() => buildClientListKpis(allItems), [allItems]);
+  const kpis = useMemo(() => buildClientListKpis(kpiItems), [kpiItems]);
+  const activeKpiId = useMemo(() => {
+    if (search || careLevelFilter !== 'all' || costBearerFilter !== 'all') return null;
+    if (lifecycleFilter === 'active' && statusFilter === 'aktiv') return 'clients-kpi-active';
+    if (lifecycleFilter === 'all' && statusFilter === 'in_bearbeitung') return 'clients-kpi-intake';
+    if (lifecycleFilter === 'all' && statusFilter === 'entwurf') return 'clients-kpi-drafts';
+    if (lifecycleFilter === 'all' && statusFilter === 'all') return 'clients-kpi-total';
+    return null;
+  }, [careLevelFilter, costBearerFilter, lifecycleFilter, search, statusFilter]);
   const compactHero = embedded || shellVariant === 'desktop';
   const tableSort = useTableColumnSort(sortKey, setSortKey, sortOptions, {
     name: 'lastName',
@@ -126,11 +141,6 @@ export function ClientsListView({
           gap: spacing.sm,
           marginBottom: spacing.md,
           backgroundColor: 'transparent',
-        },
-        filterLabel: {
-          ...typography.label,
-          marginTop: spacing.xs,
-          color: colors.textSecondary,
         },
         list: {
           paddingBottom: spacing.xxl,
@@ -172,6 +182,29 @@ export function ClientsListView({
     [colors, typography],
   );
 
+  const handleKpiPress = (kpiId: string) => {
+    setSearch('');
+    setCareLevelFilter('all');
+    setCostBearerFilter('all');
+    if (kpiId === 'clients-kpi-active') {
+      setLifecycleFilter('active');
+      setStatusFilter('aktiv');
+      return;
+    }
+    if (kpiId === 'clients-kpi-intake') {
+      setLifecycleFilter('all');
+      setStatusFilter('in_bearbeitung');
+      return;
+    }
+    if (kpiId === 'clients-kpi-drafts') {
+      setLifecycleFilter('all');
+      setStatusFilter('entwurf');
+      return;
+    }
+    setLifecycleFilter('all');
+    setStatusFilter('all');
+  };
+
   const toolbar = (
     <View style={styles.toolbar} testID="filter-bar">
       {embedded ? (
@@ -196,6 +229,11 @@ export function ClientsListView({
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           showViewToggle={isDesktop && !embedded}
+          onRefresh={refresh}
+          onKpiPress={handleKpiPress}
+          activeKpiId={activeKpiId}
+          isLive={isLive}
+          isLiveConnected={isLiveConnected}
         />
       )}
 
@@ -203,35 +241,29 @@ export function ClientsListView({
         <SuccessState message="Liste erfolgreich aktualisiert." />
       ) : null}
 
-      <PremiumInput
-        label="Suche"
-        placeholder="Name oder Ort suchen"
-        value={search}
-        onChangeText={setSearch}
-        autoCapitalize="words"
-        autoCorrect={false}
-        hint={`${filteredCount} von ${totalCount} Klient:innen`}
-      />
-
-      <Text style={styles.filterLabel}>Status</Text>
-      <FilterChipGroup
-        options={statusFilters}
-        value={statusFilter}
-        onChange={setStatusFilter}
-      />
-
-      <Text style={styles.filterLabel}>Pflegegrad</Text>
-      <FilterChipGroup
-        options={careLevelFilters}
-        value={careLevelFilter}
-        onChange={(value) => setCareLevelFilter(value as ClientCareLevelFilterKey)}
-      />
-
-      <Text style={styles.filterLabel}>Sortierung</Text>
-      <FilterChipGroup
-        options={sortOptions}
-        value={sortKey}
-        onChange={setSortKey}
+      <ClientsFilterToolbar
+        compact={!isDesktop || embedded}
+        search={search}
+        onSearchChange={setSearch}
+        filteredCount={filteredCount}
+        totalCount={totalCount}
+        lifecycleFilter={lifecycleFilter}
+        onLifecycleChange={(value) => setLifecycleFilter(value as typeof lifecycleFilter)}
+        lifecycleFilters={lifecycleFilters}
+        statusFilter={statusFilter}
+        onStatusChange={(value) => setStatusFilter(value as typeof statusFilter)}
+        statusFilters={statusFilters}
+        careLevelFilter={careLevelFilter}
+        onCareLevelChange={(value) => setCareLevelFilter(value as ClientCareLevelFilterKey)}
+        careLevelFilters={careLevelFilters}
+        costBearerFilter={costBearerFilter}
+        onCostBearerChange={setCostBearerFilter}
+        costBearerFilters={costBearerFilters}
+        sortKey={sortKey}
+        onSortChange={setSortKey}
+        sortOptions={sortOptions}
+        hasActiveFilters={hasActiveFilters}
+        onResetFilters={resetFilters}
       />
     </View>
   );

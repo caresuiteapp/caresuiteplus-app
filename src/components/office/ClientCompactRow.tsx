@@ -8,7 +8,9 @@ import {
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import type { ClientListItem } from '@/types/modules/office';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { colors, spacing, typography } from '@/theme';
+import { careRadius } from '@/design/tokens/radius';
+import { careSpacing } from '@/design/tokens/spacing';
+import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 
 type ClientCompactRowProps = {
   client: ClientListItem;
@@ -70,18 +72,19 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderSoft,
-    backgroundColor: colors.bgBase,
-    minHeight: 56,
+    gap: careSpacing.sm,
+    paddingVertical: careSpacing.sm,
+    paddingHorizontal: careSpacing.md,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: careSuiteAuroraTheme.glass.border,
+    borderRadius: careRadius.lg,
+    backgroundColor: careSuiteAuroraTheme.glass.background,
+    minHeight: 64,
   },
   rowSelected: {
-    backgroundColor: 'rgba(255,149,0,0.10)',
-    borderLeftWidth: 3,
-    borderLeftColor: colors.orange,
+    backgroundColor: 'rgba(105,232,255,0.12)',
+    borderColor: careSuiteAuroraTheme.accent.cyan,
   },
   main: {
     flex: 1,
@@ -89,17 +92,21 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   name: {
-    ...typography.bodyStrong,
-    color: colors.textPrimary,
+    color: careSuiteAuroraTheme.text.primary,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '900',
   },
   meta: {
-    ...typography.caption,
-    color: colors.textMuted,
+    color: careSuiteAuroraTheme.text.muted,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '600',
   },
   badges: {
     flexDirection: 'row',
     flexWrap: 'nowrap',
-    gap: spacing.xs,
+    gap: careSpacing.xs,
     flexShrink: 0,
     alignItems: 'center',
   },

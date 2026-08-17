@@ -226,6 +226,7 @@ export function ClientTasksPanel({
       <SectionPanel
         title="Aufgaben & Wünsche"
         subtitle={tasks.length > 0 ? `${tasks.length} Aufgabe${tasks.length === 1 ? '' : 'n'}` : undefined}
+        onDarkSurface
       >
         {tasks.length === 0 ? (
           <EmptyState
@@ -276,7 +277,7 @@ export function ClientTasksPanel({
       </SectionPanel>
 
       {!isReadOnly && showForm ? (
-        <SectionPanel title={editingId ? 'Aufgabe bearbeiten' : 'Neue Aufgabe'}>
+        <SectionPanel title={editingId ? 'Aufgabe bearbeiten' : 'Neue Aufgabe'} onDarkSurface>
           <PremiumInput
             label="Titel *"
             value={form.title}

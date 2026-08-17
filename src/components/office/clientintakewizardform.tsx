@@ -20,11 +20,18 @@ import {
   InfoBanner,
   LoadingState,
   EmptyState,
-  PremiumButton,
   PremiumInput,
   SectionPanel,
   SuccessState,
 } from '@/components/ui';
+import {
+  AuroraGradientButton,
+  AuroraSecondaryButton,
+} from '@/components/aurora';
+import {
+  ClientWorkspaceLiveBadge,
+  ClientWorkspacePanel,
+} from '@/components/office/ClientWorkspacePrimitives';
 import { useClientIntakeWizard, type ClientIntakeWizardMode } from '@/hooks/useClientIntakeWizard';
 import type { IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
 import {
@@ -34,7 +41,51 @@ import {
 } from '@/lib/clients/clientIntakeCostBearerConfig';
 import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
 import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
+import { careRadius } from '@/design/tokens/radius';
+import { careSpacing } from '@/design/tokens/spacing';
+import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import { spacing } from '@/theme';
+
+function ClientIntakeJourneyHeader({
+  stepIndex,
+  stepLabels,
+  stepStatuses,
+  isEditMode,
+}: {
+  stepIndex: number;
+  stepLabels: string[];
+  stepStatuses: ('pending' | 'active' | 'completed' | 'error')[];
+  isEditMode: boolean;
+}) {
+  const completedSteps = stepStatuses.filter((status) => status === 'completed').length;
+  const progress = Math.max(4, Math.round(((stepIndex + 1) / Math.max(stepLabels.length, 1)) * 100));
+  const hasErrors = stepStatuses.some((status) => status === 'error');
+
+  return (
+    <ClientWorkspacePanel
+      eyebrow={isEditMode ? 'Digitale Aktenpflege' : 'Geführte Neuaufnahme'}
+      title={stepLabels[stepIndex] ?? 'Klient:in aufnehmen'}
+      subtitle={`Schritt ${stepIndex + 1} von ${stepLabels.length} · ${completedSteps} Abschnitte vollständig`}
+      compact
+      accessory={
+        <ClientWorkspaceLiveBadge
+          label={hasErrors ? 'Angaben prüfen' : 'Automatisch gesichert'}
+          connected={!hasErrors}
+        />
+      }
+    >
+      <View style={stylesStatic.progressTrack}>
+        <View style={[stylesStatic.progressFill, { width: `${progress}%` }]} />
+      </View>
+      <View style={stylesStatic.journeyMeta}>
+        <Text style={stylesStatic.journeyHint}>
+          Sie können abgeschlossene Abschnitte direkt auswählen und später weiterbearbeiten.
+        </Text>
+        <Text style={stylesStatic.journeyProgress}>{progress}%</Text>
+      </View>
+    </ClientWorkspacePanel>
+  );
+}
 
 export function ClientIntakeSectionContent({
   section,
@@ -55,7 +106,9 @@ export function ClientIntakeSectionContent({
 }) {
   const { form, errors, updateField, updateFundingSources, updateCostBearerTypes, contextHint, tenantId, replaceForm, createdId } = wizard;
   const resolvedClientId = clientId ?? createdId ?? undefined;
-  const panelCtx = panelViewContext ? { viewContext: panelViewContext } : {};
+  const panelCtx = panelViewContext
+    ? { viewContext: panelViewContext, onDarkSurface: true }
+    : { onDarkSurface: true };
 
   if (section === 'leistungsart') {
     return (
@@ -316,13 +369,16 @@ export function ClientIntakeWizardForm({
       StyleSheet.create({
         root: { flex: 1 },
         scroll: { flex: 1 },
-        scrollContent: { padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.lg },
+        scrollContent: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
+        journey: { paddingHorizontal: spacing.md, paddingTop: spacing.md },
+        stepperScroll: { flexGrow: 0 },
+        stepperContent: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
         footer: {
-          borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: 'rgba(130,170,255,0.18)',
+          borderTopWidth: 1,
+          borderTopColor: careSuiteAuroraTheme.glass.borderStrong,
           padding: spacing.md,
           gap: spacing.sm,
-          backgroundColor: 'transparent',
+          backgroundColor: careSuiteAuroraTheme.glass.backgroundStrong,
         },
         footerRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
         actionBtn: { flex: 1, minWidth: 120 },
@@ -392,12 +448,29 @@ export function ClientIntakeWizardForm({
 
   return (
     <View style={styles.root}>
-      <FormStepper
-        steps={stepLabels}
-        currentStep={stepIndex}
-        onStepPress={goToStep}
-        stepStatuses={stepStatuses}
-      />
+      <View style={styles.journey}>
+        <ClientIntakeJourneyHeader
+          stepIndex={stepIndex}
+          stepLabels={stepLabels}
+          stepStatuses={stepStatuses}
+          isEditMode={isEditMode}
+        />
+      </View>
+      <ScrollView
+        horizontal
+        style={styles.stepperScroll}
+        contentContainerStyle={styles.stepperContent}
+        showsHorizontalScrollIndicator={false}
+      >
+        <View style={{ width: Math.max(720, stepLabels.length * 118) }}>
+          <FormStepper
+            steps={stepLabels}
+            currentStep={stepIndex}
+            onStepPress={goToStep}
+            stepStatuses={stepStatuses}
+          />
+        </View>
+      </ScrollView>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -429,29 +502,62 @@ export function ClientIntakeWizardForm({
       <View style={styles.footer}>
         {!isEditMode ? (
           <View style={styles.draftRow}>
-            <PremiumButton title="Als Entwurf speichern" variant="ghost" size="sm" onPress={() => void saveDraft()} />
-            <PremiumButton title="Neu beginnen" variant="ghost" size="sm" onPress={() => void discardDraft()} />
+            <AuroraSecondaryButton label="Als Entwurf speichern" variant="ghost" onPress={() => void saveDraft()} style={styles.actionBtn} />
+            <AuroraSecondaryButton label="Neu beginnen" variant="ghost" onPress={() => void discardDraft()} style={styles.actionBtn} />
           </View>
         ) : null}
         <View style={styles.footerRow}>
           {!isFirstStep ? (
-            <PremiumButton title="Zurück" variant="secondary" size="sm" onPress={prevStep} style={styles.actionBtn} />
+            <AuroraSecondaryButton label="← Zurück" onPress={prevStep} style={styles.actionBtn} />
           ) : onCancel ? (
-            <PremiumButton title="Abbrechen" variant="ghost" size="sm" onPress={onCancel} style={styles.actionBtn} />
+            <AuroraSecondaryButton label="Abbrechen" variant="ghost" onPress={onCancel} style={styles.actionBtn} />
           ) : null}
           {isLastStep ? (
-            <PremiumButton
-              title={isEditMode ? 'Änderungen speichern' : 'Klient:in aktivieren'}
+            <AuroraGradientButton
+              label={isEditMode ? 'Änderungen speichern' : 'Klient:in aktivieren'}
               loading={submitting}
               onPress={handleSubmit}
-              size="sm"
               style={styles.actionBtn}
             />
           ) : (
-            <PremiumButton title="Weiter" size="sm" onPress={nextStep} style={styles.actionBtn} />
+            <AuroraGradientButton label="Weiter →" onPress={nextStep} style={styles.actionBtn} />
           )}
         </View>
       </View>
     </View>
   );
 }
+
+const stylesStatic = StyleSheet.create({
+  progressTrack: {
+    height: 8,
+    overflow: 'hidden',
+    borderRadius: careRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: careSuiteAuroraTheme.glass.border,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: careRadius.full,
+    backgroundColor: careSuiteAuroraTheme.accent.cyan,
+  },
+  journeyMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: careSpacing.sm,
+  },
+  journeyHint: {
+    flex: 1,
+    color: careSuiteAuroraTheme.text.muted,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+  journeyProgress: {
+    color: careSuiteAuroraTheme.accent.cyan,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+});

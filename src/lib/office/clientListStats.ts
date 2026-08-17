@@ -38,7 +38,7 @@ export function buildClientListKpis(items: ClientListItem[]): ClientListKpi[] {
       value: intake,
       subValue: intake > 0 ? 'Stammdaten prüfen' : 'Keine offenen',
       icon: '📋',
-      accentColor: '#FF9500',
+      accentColor: '#9B8CFF',
     },
     {
       id: 'clients-kpi-drafts',
@@ -46,7 +46,7 @@ export function buildClientListKpis(items: ClientListItem[]): ClientListKpi[] {
       value: drafts,
       subValue: withoutCareLevel > 0 ? `${withoutCareLevel} ohne PG` : undefined,
       icon: '✏️',
-      accentColor: '#FFD166',
+      accentColor: '#4A9AFF',
     },
   ];
 }

@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAiPageContext } from '@/ai/useAiPageContext';
-import { ContextCard, clientRecordKpiGridStyle, DetailInfoRow } from '@/components/detail';
+import { DetailInfoRow } from '@/components/detail';
+import { AuroraSegmentedControl } from '@/components/aurora';
+import { ClientWorkspaceKpiCard } from '@/components/office/ClientWorkspacePrimitives';
 import { ClientRecordHero } from '@/components/office/ClientRecordHero';
 import { ClientSectionEditModal } from '@/components/office/ClientSectionEditModal';
 import { ClientMasterDataEditModal } from '@/components/office/ClientMasterDataEditModal';
@@ -16,7 +18,6 @@ import {
   LoadingState,
   PremiumButton,
   SectionPanel,
-  SegmentedTabs,
 } from '@/components/ui';
 import { useClientRecord } from '@/hooks/useClientRecord';
 import { useClientFullDetail } from '@/hooks/useClientFullDetail';
@@ -35,6 +36,7 @@ import { buildClientDetailKpis } from '@/lib/office/clientDetailStats';
 import { ClientRecordTabContent } from '@/screens/business/office/ClientRecordTabPanels';
 import { AngehoerigeTab, KontaktAdresseTab } from '@/screens/office/ClientFullDetailTabs';
 import { careSpacing } from '@/design/tokens/spacing';
+import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import { spacing } from '@/theme';
 
 function resolvePrimaryAddress(
@@ -70,7 +72,7 @@ function StammdatenTab({
 
   return (
     <View style={styles.tabPanel}>
-      <SectionPanel title="Stammdaten">
+      <SectionPanel title="Stammdaten" onDarkSurface>
         <DetailInfoRow label="Name" value={`${detail.firstName} ${detail.lastName}`.trim()} />
         <DetailInfoRow
           label="Geburtsdatum"
@@ -89,7 +91,7 @@ function StammdatenTab({
         <DetailInfoRow label="Leistungsart" value={serviceTypes} />
       </SectionPanel>
       {fullClient ? (
-        <SectionPanel title="Weitere Stammdaten">
+        <SectionPanel title="Weitere Stammdaten" onDarkSurface>
           <DetailInfoRow label="Anrede" value={formatSalutation(fullClient.core.salutation) || '—'} />
           <DetailInfoRow label="Geschlecht" value={fullClient.core.gender} />
           <DetailInfoRow label="Status" value={detail.status} />
@@ -335,39 +337,38 @@ export function ClientRecordScreen({
 
   const recordBody = (
     <>
-      {!embedded ? (
-        <ClientRecordHero
-          clientId={detail.id}
-          firstName={detail.firstName}
-          lastName={detail.lastName}
-          careLevel={detail.careLevel}
-          city={detail.city ?? null}
-          status={detail.status}
-          careContexts={careContexts}
-          archiveError={archiveError}
-          showEdit={canEdit}
-          onEdit={handleEditMasterData}
-        />
-      ) : null}
+      <ClientRecordHero
+        clientId={detail.id}
+        firstName={detail.firstName}
+        lastName={detail.lastName}
+        careLevel={detail.careLevel}
+        city={detail.city ?? null}
+        status={detail.status}
+        careContexts={careContexts}
+        archiveError={archiveError}
+        showEdit={canEdit}
+        onEdit={handleEditMasterData}
+      />
 
-      <View style={clientRecordKpiGridStyle}>
+      <View style={styles.kpiGrid}>
         {kpis.map((kpi) => (
-          <ContextCard
+          <ClientWorkspaceKpiCard
             key={kpi.id}
             icon={kpi.icon ?? '📊'}
             label={kpi.label}
-            count={Number(kpi.value) || 0}
-            accentColor={kpi.accentColor}
+            value={kpi.value}
+            hint={kpi.subValue}
+            accentColor={kpi.accentColor ?? careSuiteAuroraTheme.accent.cyan}
+            compact
+            style={styles.kpiCard}
           />
         ))}
       </View>
 
-      <SegmentedTabs
-        tabs={tabOptions}
-        activeKey={activeTab}
-        onSelect={(k) => setActiveTab(k as ClientRecordTabKey)}
-        layout="wrap"
-        rows={2}
+      <AuroraSegmentedControl
+        options={tabOptions}
+        value={activeTab}
+        onChange={(key) => setActiveTab(key as ClientRecordTabKey)}
       />
 
       <View style={styles.tabPanel}>
@@ -389,7 +390,7 @@ export function ClientRecordScreen({
             <AngehoerigeTab client={fullQuery.data} />
           </View>
         ) : activeTab === 'kontakt' ? (
-          <SectionPanel title="Kontakt & Adresse">
+          <SectionPanel title="Kontakt & Adresse" onDarkSurface>
             <DetailInfoRow
               label="Adresse"
               value={formatClientAddressLine(detail.street, detail.zip, detail.city) || '—'}
@@ -419,7 +420,7 @@ export function ClientRecordScreen({
       </View>
 
       {canDelete ? (
-        <SectionPanel title="Gefahrenzone" subtitle="Irreversible Aktionen">
+        <SectionPanel title="Gefahrenzone" subtitle="Irreversible Aktionen" onDarkSurface>
           <OfficeRecordDeleteButton
             recordLabel="Klient:in"
             displayName={`${detail.firstName} ${detail.lastName}`}
@@ -534,5 +535,14 @@ const styles = StyleSheet.create({
     gap: careSpacing.md,
     padding: careSpacing.md,
     paddingBottom: spacing.xxl,
+  },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: careSpacing.sm,
+  },
+  kpiCard: {
+    flex: 1,
+    minWidth: 142,
   },
 });

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { auroraGlass, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import { spacing } from '@/theme';
 
 export type FormStepStatus = 'pending' | 'active' | 'completed' | 'error';
@@ -52,7 +53,7 @@ export function FormStepper({
           justifyContent: 'center',
         },
         dotActive: {
-          borderColor: colors.orange,
+          borderColor: careSuiteAuroraTheme.accent.cyan,
           backgroundColor: auroraGlass.chipActive,
         },
         dotDone: {
@@ -78,7 +79,7 @@ export function FormStepper({
           color: colors.textSecondary,
         },
         labelActive: {
-          color: colors.orange,
+          color: careSuiteAuroraTheme.accent.cyan,
           fontWeight: '700',
         },
         labelError: {

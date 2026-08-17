@@ -37,7 +37,7 @@ import {
 } from '@/types/assist/clientAssistBilling';
 import { colors, spacing, typography } from '@/theme';
 
-const FORM_CTX = { viewContext: 'form' as const };
+const FORM_CTX = { viewContext: 'form' as const, onDarkSurface: true };
 
 function useBillingProfile(clientId: string, enabled = true) {
   const tenantId = useServiceTenantId();

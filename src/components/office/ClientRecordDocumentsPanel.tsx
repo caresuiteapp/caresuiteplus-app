@@ -456,7 +456,7 @@ export function ClientRecordDocumentsPanel({
       ) : null}
 
       {view === 'overview' ? (
-        <SectionPanel title="Dokumente" subtitle="Nach Kategorie filtern — Aufnahme, Uploads und finalisierte Unterlagen">
+        <SectionPanel title="Dokumente" subtitle="Nach Kategorie filtern — Aufnahme, Uploads und finalisierte Unterlagen" onDarkSurface>
           {documents.length === 0 ? (
             <EmptyState
               title="Keine Dokumente"
@@ -486,6 +486,7 @@ export function ClientRecordDocumentsPanel({
               ? 'Alle Dokumente in der Akte'
               : 'Dokumente in dieser Kategorie'
           }
+          onDarkSurface
         >
           {visibleDocuments.length === 0 ? (
             <EmptyState
@@ -509,6 +510,7 @@ export function ClientRecordDocumentsPanel({
         <SectionPanel
           title="Vorschau"
           subtitle={buildDocumentPreviewStatusSubtitle(selectedDoc) ?? selectedDoc.title}
+          onDarkSurface
         >
           <DocumentHtmlPreview
             title={selectedDoc.title}
@@ -537,6 +539,7 @@ export function ClientRecordDocumentsPanel({
               ? `Wird der Kategorie „${getClientDocumentCategoryLabel(activeCategory)}“ zugeordnet`
               : 'PDF, Bild oder Office-Datei'
           }
+          onDarkSurface
         >
           <PremiumInput label="Titel *" value={title} onChangeText={setTitle} />
           <CareCatalogSelect
@@ -559,7 +562,7 @@ export function ClientRecordDocumentsPanel({
       ) : null}
 
       {!isReadOnly && view === 'overview' && documents.length === 0 ? (
-        <SectionPanel title="Dokument hochladen" subtitle="PDF, Bild oder Office-Datei">
+        <SectionPanel title="Dokument hochladen" subtitle="PDF, Bild oder Office-Datei" onDarkSurface>
           <PremiumInput label="Titel *" value={title} onChangeText={setTitle} />
           <CareCatalogSelect
             catalogKey="document_category"

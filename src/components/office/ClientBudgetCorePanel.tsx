@@ -125,7 +125,7 @@ export function ClientBudgetCorePanel({ clientId, onRecordRefresh }: Props) {
   return (
     <View style={styles.panel}>
       {lowBudgetWarnings.length > 0 ? (
-        <SectionPanel title="Budget-Warnungen">
+        <SectionPanel title="Budget-Warnungen" onDarkSurface>
           {lowBudgetWarnings.map((s) => (
             <PremiumCard key={s.id} style={styles.card}>
               <Text style={styles.primary}>{s.budgetTypeName ?? s.budgetTypeKey}</Text>
@@ -134,7 +134,7 @@ export function ClientBudgetCorePanel({ clientId, onRecordRefresh }: Props) {
           ))}
         </SectionPanel>
       ) : null}
-      <SectionPanel title="Budget 2026">
+      <SectionPanel title="Budget 2026" onDarkSurface>
         {settings.length === 0 ? (
           <EmptyState
             title="Kein Klient:innen-Budget hinterlegt"

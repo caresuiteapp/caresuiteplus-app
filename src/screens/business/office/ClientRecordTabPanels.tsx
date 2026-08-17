@@ -41,7 +41,8 @@ import {
 } from '@/screens/office/ClientFullDetailTabs';
 import type { ClientFullDetail } from '@/types/modules/client';
 import { formatDate, formatDateTime } from '@/lib/formatters/dateTimeFormatters';
-import { colors, spacing, typography } from '@/theme';
+import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
+import { spacing, typography } from '@/theme';
 
 type TabPanelProps = {
   clientId: string;
@@ -87,7 +88,7 @@ export function ClientRecordConsentsPanel({ clientId, fullClient, onRecordRefres
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Einwilligungen">
+      <SectionPanel title="Einwilligungen" onDarkSurface>
         {consents.length === 0 ? (
           <EmptyState title="Keine Einwilligungen" message="Einwilligungen werden bei der Aufnahme erfasst." />
         ) : (
@@ -132,7 +133,7 @@ export function ClientRecordMedicationPanel({ clientId, onRecordRefresh }: TabPa
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Medikation">
+      <SectionPanel title="Medikation" onDarkSurface>
         {(query.data ?? []).length === 0 ? (
           <EmptyState title="Keine Medikamente" message="Medikamente aus Pflegeplan oder manuell erfassen." />
         ) : (
@@ -147,7 +148,7 @@ export function ClientRecordMedicationPanel({ clientId, onRecordRefresh }: TabPa
         )}
       </SectionPanel>
       {!isReadOnly ? (
-        <SectionPanel title="Medikament hinzufügen">
+        <SectionPanel title="Medikament hinzufügen" onDarkSurface>
           <PremiumInput label="Name *" value={name} onChangeText={setName} />
           <PremiumInput label="Dosierung" value={dosage} onChangeText={setDosage} />
           <PremiumInput label="Schema (morgens-mittags-abends-nachts)" value={schedule} onChangeText={setSchedule} />
@@ -182,7 +183,7 @@ export function ClientRecordVitalsPanel({ clientId, onRecordRefresh }: TabPanelP
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Vitalwerte">
+      <SectionPanel title="Vitalwerte" onDarkSurface>
         {(query.data ?? []).length === 0 ? (
           <EmptyState title="Keine Vitalwerte" />
         ) : (
@@ -195,7 +196,7 @@ export function ClientRecordVitalsPanel({ clientId, onRecordRefresh }: TabPanelP
         )}
       </SectionPanel>
       {!isReadOnly ? (
-        <SectionPanel title="Messung erfassen">
+        <SectionPanel title="Messung erfassen" onDarkSurface>
           <FilterChipGroup
             options={[
               { key: 'puls', label: 'Puls' },
@@ -255,7 +256,7 @@ export function ClientRecordTimelinePanel({ clientId, fullClient }: TabPanelProp
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Verlauf / Timeline">
+      <SectionPanel title="Verlauf / Timeline" onDarkSurface>
         {items.length === 0 ? (
           <EmptyState
             title="Noch keine Einträge"
@@ -266,9 +267,9 @@ export function ClientRecordTimelinePanel({ clientId, fullClient }: TabPanelProp
         )}
       </SectionPanel>
       {internalNotes.length > 0 ? (
-        <SectionPanel title="Interne Notizen" subtitle="Nur Office — nicht im Portal">
+        <SectionPanel title="Interne Notizen" subtitle="Nur Office — nicht im Portal" onDarkSurface>
           {internalNotes.map((n) => (
-            <PremiumCard key={n.id} accentColor={colors.violet} style={styles.card}>
+            <PremiumCard key={n.id} accentColor={careSuiteAuroraTheme.accent.violet} style={styles.card}>
               <Text style={styles.secondary}>{n.category} · {n.createdBy}</Text>
               <Text style={styles.primary}>{n.content}</Text>
             </PremiumCard>
@@ -276,7 +277,7 @@ export function ClientRecordTimelinePanel({ clientId, fullClient }: TabPanelProp
         </SectionPanel>
       ) : null}
       {!isReadOnly ? (
-        <SectionPanel title="Eintrag hinzufügen">
+        <SectionPanel title="Eintrag hinzufügen" onDarkSurface>
           <PremiumInput label="Notiz" value={note} onChangeText={setNote} multiline />
           <PremiumButton title="Eintrag speichern" onPress={handleAdd} />
         </SectionPanel>
@@ -304,7 +305,7 @@ export function ClientRecordModulesPanel({ clientId }: TabPanelProps) {
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Zugeordnete Module">
+      <SectionPanel title="Zugeordnete Module" onDarkSurface>
         {assignments.length === 0 ? (
           <EmptyState title="Keine Modulzuordnungen" message="Module werden in Office → Modulzuordnungen verwaltet." />
         ) : (
@@ -419,7 +420,7 @@ export function ClientRecordTabContent({
     case 'mehr':
       return (
         <View style={styles.panel}>
-          <SectionPanel title="Weitere Bereiche" subtitle="Kontextspezifische Akte-Tabs">
+          <SectionPanel title="Weitere Bereiche" subtitle="Kontextspezifische Akte-Tabs" onDarkSurface>
             <EmptyState
               title="Zusätzliche Bereiche"
               message="Pflege, Medikation, Risiken und weitere Fachbereiche sind über die Modulzuordnung erreichbar."
@@ -464,7 +465,7 @@ export function ClientRecordTabContent({
       return <ClientRecordShiftsTabPanel clientId={clientId} fullClient={fullClient} />;
     default:
       return (
-        <SectionPanel title="Bereich">
+        <SectionPanel title="Bereich" onDarkSurface>
           <EmptyState
             title="Keine Detailansicht"
             message="Für diesen Kontext sind noch keine spezifischen Akte-Daten hinterlegt."
@@ -477,6 +478,6 @@ export function ClientRecordTabContent({
 const styles = StyleSheet.create({
   panel: { gap: spacing.md, paddingBottom: spacing.lg },
   card: { marginBottom: spacing.sm },
-  primary: { ...typography.label },
-  secondary: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
+  primary: { ...typography.label, color: careSuiteAuroraTheme.text.primary },
+  secondary: { ...typography.caption, color: careSuiteAuroraTheme.text.muted, marginTop: spacing.xs },
 });

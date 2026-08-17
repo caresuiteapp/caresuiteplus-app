@@ -175,7 +175,7 @@ export function ClientPortalCorePanel({ clientId, fullClient, onRecordRefresh }:
 
   return (
     <View style={styles.panel}>
-      <SectionPanel title="Portal-Sichtbarkeit">
+      <SectionPanel title="Portal-Sichtbarkeit" onDarkSurface>
         {!settings ? (
           <EmptyState title="Keine Portal-Einstellungen" message="Mandanten-Defaults werden beim ersten Zugriff angelegt." />
         ) : (
@@ -270,12 +270,12 @@ export function ClientPortalCorePanel({ clientId, fullClient, onRecordRefresh }:
           onRefresh={onRecordRefresh}
         />
       ) : (
-        <SectionPanel title="Portal-Zugang">
+        <SectionPanel title="Portal-Zugang" onDarkSurface>
           <EmptyState title="Stammdaten laden" message="Portal-Zugang wird angezeigt, sobald die Klient:innen-Akte vollständig geladen ist." />
         </SectionPanel>
       )}
 
-      <SectionPanel title="Zugangsanfragen">
+      <SectionPanel title="Zugangsanfragen" onDarkSurface>
         {requests.length === 0 ? (
           <EmptyState title="Keine offenen Anfragen" message="Anfragen für Portal-Zugang erscheinen hier." />
         ) : (
