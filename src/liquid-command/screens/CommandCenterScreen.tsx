@@ -89,6 +89,12 @@ type PointerEventLike = {
 };
 type DragVisual = { payload: WidgetDragPayload; x: number; y: number };
 type FavoriteSize = "small" | "medium" | "large";
+type DesktopPage = {
+  id: string;
+  title: string;
+  favoriteSlots: (string | null)[];
+  favoriteSizes: Record<string, FavoriteSize>;
+};
 
 const DEFAULT_BACKGROUND = require("../../../assets/healthos/caresuite-alien-planet-no-logo.png");
 const BRAND = require("../../../assets/healthos/caresuite-healthos-logo.png");
@@ -96,9 +102,21 @@ const LOCATION_STORAGE_KEY = "caresuite.healthos.weather-location.v1";
 const DOCK_ORDER_STORAGE_KEY = "caresuite.healthos.widget-order.v1";
 const FAVORITES_STORAGE_KEY = "caresuite.healthos.top-widgets.v1";
 const FAVORITE_SIZES_STORAGE_KEY = "caresuite.healthos.top-widget-sizes.v1";
+const DESKTOP_PAGES_STORAGE_KEY = "caresuite.healthos.desktop-pages.v1";
+const ACTIVE_DESKTOP_PAGE_STORAGE_KEY =
+  "caresuite.healthos.active-desktop-page.v1";
 const FOLDERS_STORAGE_KEY = "caresuite.healthos.widget-folders.v1";
 const BACKGROUND_STORAGE_KEY = "caresuite.healthos.background.v1";
 const FAVORITE_SLOT_COUNT = 10;
+const DESKTOP_PAGE_TITLE_MAX_LENGTH = 40;
+const DESKTOP_PAGE_TITLE_OPTIONS = [
+  "Office",
+  "Assist",
+  "Rechnung",
+  "Büro",
+  "Einsätze",
+  "Planung",
+] as const;
 const MAX_FOLDER_WIDGETS = 4;
 const DOCK_NATIVE_DRIVER = Platform.OS !== "web";
 
@@ -501,6 +519,51 @@ function normalizeFavoriteSizes(value: unknown) {
         (size === "small" || size === "medium" || size === "large"),
     ),
   ) as Record<string, FavoriteSize>;
+}
+
+function emptyFavoriteSlots() {
+  return Array<string | null>(FAVORITE_SLOT_COUNT).fill(null);
+}
+
+function createDesktopPage(
+  title = "Office",
+  id = `desktop-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+  favoriteSlots: (string | null)[] = emptyFavoriteSlots(),
+  favoriteSizes: Record<string, FavoriteSize> = {},
+): DesktopPage {
+  return {
+    id,
+    title: title.trim().slice(0, DESKTOP_PAGE_TITLE_MAX_LENGTH) || "Neue Seite",
+    favoriteSlots,
+    favoriteSizes,
+  };
+}
+
+function normalizeDesktopPages(value: unknown, folders: WidgetFolder[]) {
+  if (!Array.isArray(value)) return [] as DesktopPage[];
+  const usedIds = new Set<string>();
+  return value.flatMap((item, index) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const candidate = item as Partial<DesktopPage>;
+    let id =
+      typeof candidate.id === "string" && candidate.id.trim()
+        ? candidate.id.trim()
+        : `desktop-restored-${index + 1}`;
+    if (usedIds.has(id)) id = `${id}-${index + 1}`;
+    usedIds.add(id);
+    const title =
+      typeof candidate.title === "string" && candidate.title.trim()
+        ? candidate.title.trim().slice(0, DESKTOP_PAGE_TITLE_MAX_LENGTH)
+        : `Seite ${index + 1}`;
+    return [
+      createDesktopPage(
+        title,
+        id,
+        normalizeFavoriteSlots(candidate.favoriteSlots, folders),
+        normalizeFavoriteSizes(candidate.favoriteSizes),
+      ),
+    ];
+  });
 }
 
 function defaultFavoriteSize(
@@ -1013,17 +1076,20 @@ export function CommandCenterScreen() {
   const dockOrderStorageKey = `${DOCK_ORDER_STORAGE_KEY}.${preferenceOwner}`;
   const favoritesStorageKey = `${FAVORITES_STORAGE_KEY}.${preferenceOwner}`;
   const favoriteSizesStorageKey = `${FAVORITE_SIZES_STORAGE_KEY}.${preferenceOwner}`;
+  const desktopPagesStorageKey = `${DESKTOP_PAGES_STORAGE_KEY}.${preferenceOwner}`;
+  const activeDesktopPageStorageKey = `${ACTIVE_DESKTOP_PAGE_STORAGE_KEY}.${preferenceOwner}`;
   const foldersStorageKey = `${FOLDERS_STORAGE_KEY}.${preferenceOwner}`;
   const backgroundStorageKey = `${BACKGROUND_STORAGE_KEY}.${preferenceOwner}`;
   const [page, setPage] = useState(0);
   const [widgetOrder, setWidgetOrder] =
     useState<string[]>(DEFAULT_WIDGET_ORDER);
-  const [favoriteSlots, setFavoriteSlots] = useState<(string | null)[]>(() =>
-    Array(FAVORITE_SLOT_COUNT).fill(null),
-  );
-  const [favoriteSizes, setFavoriteSizes] = useState<
-    Record<string, FavoriteSize>
-  >({});
+  const [desktopPages, setDesktopPages] = useState<DesktopPage[]>(() => [
+    createDesktopPage("Office", "desktop-1"),
+  ]);
+  const [desktopPageIndex, setDesktopPageIndex] = useState(0);
+  const [titleEditorOpen, setTitleEditorOpen] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("Office");
+  const [dockVisible, setDockVisible] = useState(Platform.OS !== "web");
   const [sizePickerEntryId, setSizePickerEntryId] = useState<string | null>(
     null,
   );
@@ -1067,10 +1133,90 @@ export function CommandCenterScreen() {
   const [query, setQuery] = useState("");
   const [reducedMotion, setReducedMotion] = useState(false);
   const pageMotion = useRef(new Animated.Value(1)).current;
+  const desktopPageMotion = useRef(new Animated.Value(1)).current;
+  const dockRevealMotion = useRef(
+    new Animated.Value(Platform.OS === "web" ? 0 : 1),
+  ).current;
   const dragPayloadRef = useRef<WidgetDragPayload | null>(null);
   const pointerCleanupRef = useRef<(() => void) | null>(null);
   const lastPageSwitchRef = useRef({ target: "", at: 0 });
   const suppressOpenUntil = useRef(0);
+  const dockHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dockHoveredRef = useRef(false);
+
+  const activeDesktopPage = desktopPages[desktopPageIndex] ?? desktopPages[0];
+  const favoriteSlots =
+    activeDesktopPage?.favoriteSlots ?? emptyFavoriteSlots();
+  const favoriteSizes = activeDesktopPage?.favoriteSizes ?? {};
+  const setFavoriteSlots = useCallback(
+    (
+      value:
+        | (string | null)[]
+        | ((current: (string | null)[]) => (string | null)[]),
+    ) => {
+      setDesktopPages((current) => {
+        const activeIndex = Math.min(
+          desktopPageIndex,
+          Math.max(0, current.length - 1),
+        );
+        return current.map((desktopPage, index) => {
+          if (index !== activeIndex) return desktopPage;
+          const nextSlots =
+            typeof value === "function"
+              ? value(desktopPage.favoriteSlots)
+              : value;
+          return {
+            ...desktopPage,
+            favoriteSlots: normalizeFavoriteSlots(nextSlots, folders),
+          };
+        });
+      });
+    },
+    [desktopPageIndex, folders],
+  );
+  const setFavoriteSizes = useCallback(
+    (
+      value:
+        | Record<string, FavoriteSize>
+        | ((
+            current: Record<string, FavoriteSize>,
+          ) => Record<string, FavoriteSize>),
+    ) => {
+      setDesktopPages((current) => {
+        const activeIndex = Math.min(
+          desktopPageIndex,
+          Math.max(0, current.length - 1),
+        );
+        return current.map((desktopPage, index) => {
+          if (index !== activeIndex) return desktopPage;
+          const nextSizes =
+            typeof value === "function"
+              ? value(desktopPage.favoriteSizes)
+              : value;
+          return {
+            ...desktopPage,
+            favoriteSizes: normalizeFavoriteSizes(nextSizes),
+          };
+        });
+      });
+    },
+    [desktopPageIndex],
+  );
+  const showDock = useCallback(() => {
+    if (dockHideTimerRef.current) {
+      clearTimeout(dockHideTimerRef.current);
+      dockHideTimerRef.current = null;
+    }
+    setDockVisible(true);
+  }, []);
+  const scheduleDockHide = useCallback(() => {
+    if (Platform.OS !== "web" || dockHideTimerRef.current) return;
+    dockHideTimerRef.current = setTimeout(() => {
+      if (!dockHoveredRef.current && !dragPayloadRef.current)
+        setDockVisible(false);
+      dockHideTimerRef.current = null;
+    }, 700);
+  }, []);
 
   const folderById = useMemo(
     () => new Map(folders.map((folder) => [folder.id, folder])),
@@ -1136,50 +1282,87 @@ export function CommandCenterScreen() {
       AsyncStorage.getItem(favoritesStorageKey),
       AsyncStorage.getItem(favoriteSizesStorageKey),
       AsyncStorage.getItem(foldersStorageKey),
+      AsyncStorage.getItem(desktopPagesStorageKey),
+      AsyncStorage.getItem(activeDesktopPageStorageKey),
     ])
       .then(
-        ([storedOrder, storedFavorites, storedFavoriteSizes, storedFolders]) => {
-
-        if (!active) return;
-        let restoredFolders: WidgetFolder[] = [];
-        try {
-          restoredFolders = normalizeFolders(
-            storedFolders ? JSON.parse(storedFolders) : null,
-          );
-        } catch {
-          restoredFolders = [];
-        }
-        setFolders(restoredFolders);
-        try {
-          setWidgetOrder(
-            normalizeWidgetOrder(
-              storedOrder ? JSON.parse(storedOrder) : null,
-              restoredFolders,
-            ),
-          );
-        } catch {
-          setWidgetOrder(normalizeWidgetOrder(null, restoredFolders));
-        }
-        try {
-          setFavoriteSlots(
-            normalizeFavoriteSlots(
+        ([
+          storedOrder,
+          storedFavorites,
+          storedFavoriteSizes,
+          storedFolders,
+          storedDesktopPages,
+          storedDesktopPageIndex,
+        ]) => {
+          if (!active) return;
+          let restoredFolders: WidgetFolder[] = [];
+          try {
+            restoredFolders = normalizeFolders(
+              storedFolders ? JSON.parse(storedFolders) : null,
+            );
+          } catch {
+            restoredFolders = [];
+          }
+          setFolders(restoredFolders);
+          try {
+            setWidgetOrder(
+              normalizeWidgetOrder(
+                storedOrder ? JSON.parse(storedOrder) : null,
+                restoredFolders,
+              ),
+            );
+          } catch {
+            setWidgetOrder(normalizeWidgetOrder(null, restoredFolders));
+          }
+          let legacyFavoriteSlots = emptyFavoriteSlots();
+          let legacyFavoriteSizes: Record<string, FavoriteSize> = {};
+          try {
+            legacyFavoriteSlots = normalizeFavoriteSlots(
               storedFavorites ? JSON.parse(storedFavorites) : null,
               restoredFolders,
-            ),
-          );
-        } catch {
-          setFavoriteSlots(Array(FAVORITE_SLOT_COUNT).fill(null));
-        }
-        try {
-          setFavoriteSizes(
-            normalizeFavoriteSizes(
+            );
+          } catch {
+            legacyFavoriteSlots = emptyFavoriteSlots();
+          }
+          try {
+            legacyFavoriteSizes = normalizeFavoriteSizes(
               storedFavoriteSizes ? JSON.parse(storedFavoriteSizes) : null,
-            ),
+            );
+          } catch {
+            legacyFavoriteSizes = {};
+          }
+          let restoredDesktopPages: DesktopPage[] = [];
+          try {
+            restoredDesktopPages = normalizeDesktopPages(
+              storedDesktopPages ? JSON.parse(storedDesktopPages) : null,
+              restoredFolders,
+            );
+          } catch {
+            restoredDesktopPages = [];
+          }
+          if (!restoredDesktopPages.length)
+            restoredDesktopPages = [
+              createDesktopPage(
+                "Office",
+                "desktop-1",
+                legacyFavoriteSlots,
+                legacyFavoriteSizes,
+              ),
+            ];
+          const restoredDesktopPageIndex = Number(storedDesktopPageIndex);
+          setDesktopPages(restoredDesktopPages);
+          setDesktopPageIndex(
+            Number.isInteger(restoredDesktopPageIndex)
+              ? Math.max(
+                  0,
+                  Math.min(
+                    restoredDesktopPages.length - 1,
+                    restoredDesktopPageIndex,
+                  ),
+                )
+              : 0,
           );
-        } catch {
-          setFavoriteSizes({});
-        }
-        setPreferencesOwnerLoaded(preferenceOwner);
+          setPreferencesOwnerLoaded(preferenceOwner);
         },
       )
       .catch(() => {
@@ -1193,6 +1376,8 @@ export function CommandCenterScreen() {
     favoritesStorageKey,
     favoriteSizesStorageKey,
     foldersStorageKey,
+    desktopPagesStorageKey,
+    activeDesktopPageStorageKey,
     preferenceOwner,
   ]);
   useEffect(() => {
@@ -1208,26 +1393,33 @@ export function CommandCenterScreen() {
     widgetOrder,
   ]);
   useEffect(() => {
-    if (preferencesOwnerLoaded === preferenceOwner)
-      void AsyncStorage.setItem(
+    if (preferencesOwnerLoaded !== preferenceOwner) return;
+    const firstDesktopPage = desktopPages[0];
+    void Promise.all([
+      AsyncStorage.setItem(
+        desktopPagesStorageKey,
+        JSON.stringify(desktopPages),
+      ),
+      AsyncStorage.setItem(
+        activeDesktopPageStorageKey,
+        String(desktopPageIndex),
+      ),
+      AsyncStorage.setItem(
         favoritesStorageKey,
-        JSON.stringify(favoriteSlots),
-      );
-  }, [
-    favoriteSlots,
-    favoritesStorageKey,
-    preferenceOwner,
-    preferencesOwnerLoaded,
-  ]);
-  useEffect(() => {
-    if (preferencesOwnerLoaded === preferenceOwner)
-      void AsyncStorage.setItem(
+        JSON.stringify(firstDesktopPage?.favoriteSlots ?? emptyFavoriteSlots()),
+      ),
+      AsyncStorage.setItem(
         favoriteSizesStorageKey,
-        JSON.stringify(favoriteSizes),
-      );
+        JSON.stringify(firstDesktopPage?.favoriteSizes ?? {}),
+      ),
+    ]);
   }, [
-    favoriteSizes,
+    activeDesktopPageStorageKey,
+    desktopPageIndex,
+    desktopPages,
+    desktopPagesStorageKey,
     favoriteSizesStorageKey,
+    favoritesStorageKey,
     preferenceOwner,
     preferencesOwnerLoaded,
   ]);
@@ -1264,7 +1456,13 @@ export function CommandCenterScreen() {
     preferenceOwner,
     selectedBackgroundId,
   ]);
-  useEffect(() => () => pointerCleanupRef.current?.(), []);
+  useEffect(
+    () => () => {
+      pointerCleanupRef.current?.();
+      if (dockHideTimerRef.current) clearTimeout(dockHideTimerRef.current);
+    },
+    [],
+  );
   useEffect(() => {
     let mounted = true;
     void AccessibilityInfo.isReduceMotionEnabled().then(
@@ -1288,6 +1486,35 @@ export function CommandCenterScreen() {
       useNativeDriver: DOCK_NATIVE_DRIVER,
     }).start();
   }, [page, pageMotion, reducedMotion]);
+  useEffect(() => {
+    desktopPageMotion.setValue(reducedMotion ? 1 : 0);
+    Animated.timing(desktopPageMotion, {
+      toValue: 1,
+      duration: 320,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: DOCK_NATIVE_DRIVER,
+    }).start();
+  }, [desktopPageIndex, desktopPageMotion, reducedMotion]);
+  useEffect(() => {
+    Animated.timing(dockRevealMotion, {
+      toValue: dockVisible ? 1 : 0,
+      duration: reducedMotion ? 0 : dockVisible ? 290 : 230,
+      easing: dockVisible ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
+      useNativeDriver: DOCK_NATIVE_DRIVER,
+    }).start();
+  }, [dockRevealMotion, dockVisible, reducedMotion]);
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") {
+      setDockVisible(true);
+      return;
+    }
+    const onPointerMove = (event: PointerEvent) => {
+      if (window.innerHeight - event.clientY <= 20) showDock();
+      else if (!dockHoveredRef.current) scheduleDockHide();
+    };
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+    return () => window.removeEventListener("pointermove", onPointerMove);
+  }, [scheduleDockHide, showDock]);
 
   const detectAutomaticLocation = useCallback(async () => {
     try {
@@ -1374,6 +1601,11 @@ export function CommandCenterScreen() {
   useEffect(() => {
     setPage((current) => Math.min(current, Math.max(0, pageCount - 1)));
   }, [pageCount]);
+  useEffect(() => {
+    setDesktopPageIndex((current) =>
+      Math.min(current, Math.max(0, desktopPages.length - 1)),
+    );
+  }, [desktopPages.length]);
 
   const visibleDockEntries = useMemo(
     () => dockEntries.slice(page * pageSize, page * pageSize + pageSize),
@@ -1410,6 +1642,38 @@ export function CommandCenterScreen() {
   const openDockFolder = (folderId: string) => {
     if (Date.now() < suppressOpenUntil.current) return;
     setOpenFolderId(folderId);
+  };
+  const openDesktopPageTitleEditor = () => {
+    setTitleDraft(activeDesktopPage?.title ?? "");
+    setTitleEditorOpen(true);
+  };
+  const saveDesktopPageTitle = (title: string) => {
+    const normalizedTitle =
+      title.trim().slice(0, DESKTOP_PAGE_TITLE_MAX_LENGTH) || "Neue Seite";
+    setDesktopPages((current) =>
+      current.map((desktopPage, index) =>
+        index === desktopPageIndex
+          ? { ...desktopPage, title: normalizedTitle }
+          : desktopPage,
+      ),
+    );
+    setTitleDraft(normalizedTitle);
+    setTitleEditorOpen(false);
+  };
+  const addDesktopPage = () => {
+    const nextPage = createDesktopPage("Neue Seite");
+    setDesktopPages((current) => [...current, nextPage]);
+    setDesktopPageIndex(desktopPages.length);
+    setTitleDraft("");
+    setTitleEditorOpen(true);
+    setSizePickerEntryId(null);
+  };
+  const changeDesktopPage = (direction: -1 | 1) => {
+    setDesktopPageIndex((current) =>
+      Math.max(0, Math.min(desktopPages.length - 1, current + direction)),
+    );
+    setTitleEditorOpen(false);
+    setSizePickerEntryId(null);
   };
 
   const reorderDockEntry = (sourceEntryId: string, targetEntryId: string) => {
@@ -1651,10 +1915,13 @@ export function CommandCenterScreen() {
       return next;
     });
     setFolders((current) => current.filter((item) => item.id !== folderId));
-    setFavoriteSlots((current) =>
-      current.map((entryId) =>
-        entryId === folderEntryId(folderId) ? null : entryId,
-      ),
+    setDesktopPages((current) =>
+      current.map((desktopPage) => ({
+        ...desktopPage,
+        favoriteSlots: desktopPage.favoriteSlots.map((entryId) =>
+          entryId === folderEntryId(folderId) ? null : entryId,
+        ),
+      })),
     );
     setOpenFolderId(null);
     setFolderMessage(`Ordner „${folder.name}“ wurde aufgelöst.`);
@@ -1839,12 +2106,85 @@ export function CommandCenterScreen() {
           ]}
         >
           <View style={styles.favoritesHeader}>
-            <Text style={styles.favoritesTitle}>PERSÖNLICHES DOCK</Text>
-            <Text numberOfLines={1} style={styles.favoritesHint}>
-              Widget lange anklicken: Größe wählen · bis zu 10 Favoriten
-            </Text>
+            <Pressable
+              accessibilityLabel="Seitenüberschrift bearbeiten"
+              onPress={openDesktopPageTitleEditor}
+              style={({ pressed }) => [
+                styles.desktopPageTitleButton,
+                pressed && styles.desktopPageTitleButtonPressed,
+              ]}
+            >
+              <Text numberOfLines={1} style={styles.desktopPageTitle}>
+                {activeDesktopPage?.title ?? "Neue Seite"}
+              </Text>
+              <Text style={styles.desktopPageTitleEdit}>✎</Text>
+            </Pressable>
           </View>
-          <View style={styles.favoritesGrid}>
+          {desktopPages.length > 1 ? (
+            <Pressable
+              accessibilityLabel="Vorherige Desktop-Seite"
+              disabled={desktopPageIndex === 0}
+              onPress={() => changeDesktopPage(-1)}
+              style={({ pressed }) => [
+                styles.desktopPageControl,
+                styles.desktopPagePrevious,
+                { left: compact ? 3 : -42 },
+                desktopPageIndex === 0 && styles.desktopPageControlDisabled,
+                pressed && styles.desktopPageControlPressed,
+              ]}
+            >
+              <Text style={styles.desktopPageControlText}>‹</Text>
+            </Pressable>
+          ) : null}
+          <View
+            style={[
+              styles.desktopPageRightControls,
+              { right: compact ? 3 : -42 },
+            ]}
+          >
+            {desktopPages.length > 1 ? (
+              <Pressable
+                accessibilityLabel="Nächste Desktop-Seite"
+                disabled={desktopPageIndex >= desktopPages.length - 1}
+                onPress={() => changeDesktopPage(1)}
+                style={({ pressed }) => [
+                  styles.desktopPageControl,
+                  desktopPageIndex >= desktopPages.length - 1 &&
+                    styles.desktopPageControlDisabled,
+                  pressed && styles.desktopPageControlPressed,
+                ]}
+              >
+                <Text style={styles.desktopPageControlText}>›</Text>
+              </Pressable>
+            ) : null}
+            <Pressable
+              accessibilityLabel="Weitere Desktop-Seite hinzufügen"
+              onPress={addDesktopPage}
+              style={({ pressed }) => [
+                styles.desktopPageControl,
+                styles.desktopPageAdd,
+                pressed && styles.desktopPageControlPressed,
+              ]}
+            >
+              <Text style={styles.desktopPageAddText}>＋</Text>
+            </Pressable>
+          </View>
+          <Animated.View
+            style={[
+              styles.favoritesGrid,
+              {
+                opacity: desktopPageMotion,
+                transform: [
+                  {
+                    translateX: desktopPageMotion.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [18, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             {[0, 1].map((rowIndex) => (
               <View key={rowIndex} style={styles.favoriteRow}>
                 {favoriteSlots
@@ -1925,14 +2265,39 @@ export function CommandCenterScreen() {
                   })}
               </View>
             ))}
-          </View>
+          </Animated.View>
         </View>
       </View>
-      <View
+      <Animated.View
+        {...(Platform.OS === "web"
+          ? ({
+              onPointerEnter: () => {
+                dockHoveredRef.current = true;
+                showDock();
+              },
+              onPointerLeave: () => {
+                dockHoveredRef.current = false;
+                scheduleDockHide();
+              },
+              onFocusCapture: showDock,
+              onBlurCapture: scheduleDockHide,
+            } as object)
+          : {})}
         style={[
           styles.dockRegion,
           compact && styles.dockRegionCompact,
           height < 720 && styles.dockRegionShort,
+          {
+            opacity: dockRevealMotion,
+            transform: [
+              {
+                translateY: dockRevealMotion.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [dockHeight + dockBottom + 30, 0],
+                }),
+              },
+            ],
+          },
         ]}
       >
         <Pressable
@@ -2059,7 +2424,7 @@ export function CommandCenterScreen() {
         >
           <Text style={styles.arrowText}>›</Text>
         </Pressable>
-      </View>
+      </Animated.View>
       {folderMessage ? (
         <Pressable
           onPress={() => setFolderMessage("")}
@@ -2081,7 +2446,9 @@ export function CommandCenterScreen() {
           {dragVisual.payload.kind === "widget" ? (
             <Image
               resizeMode="contain"
-              source={WIDGET_BY_ID.get(dragVisual.payload.widgetId)?.images.medium}
+              source={
+                WIDGET_BY_ID.get(dragVisual.payload.widgetId)?.images.medium
+              }
               style={styles.dragGhostImage}
             />
           ) : (
@@ -2091,6 +2458,81 @@ export function CommandCenterScreen() {
           )}
         </View>
       ) : null}
+      <Modal
+        animationType="fade"
+        transparent
+        visible={titleEditorOpen}
+        onRequestClose={() => setTitleEditorOpen(false)}
+      >
+        <Pressable
+          onPress={() => setTitleEditorOpen(false)}
+          style={styles.modalBackdrop}
+        >
+          <Pressable
+            onPress={(event) => event.stopPropagation()}
+            style={[styles.glass, styles.desktopPageTitlePanel]}
+          >
+            <View style={styles.searchHeader}>
+              <View style={styles.sizePickerHeading}>
+                <Text style={styles.searchTitle}>Seitenüberschrift</Text>
+                <Text style={styles.locationSubtitle}>
+                  Eigene Bezeichnung eingeben oder eine Vorlage auswählen.
+                </Text>
+              </View>
+              <Pressable
+                accessibilityLabel="Überschriften-Dialog schließen"
+                onPress={() => setTitleEditorOpen(false)}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeText}>×</Text>
+              </Pressable>
+            </View>
+            <View style={styles.desktopPageTitleOptions}>
+              {DESKTOP_PAGE_TITLE_OPTIONS.map((option) => {
+                const selected = activeDesktopPage?.title === option;
+                return (
+                  <Pressable
+                    key={option}
+                    onPress={() => saveDesktopPageTitle(option)}
+                    style={({ pressed }) => [
+                      styles.desktopPageTitleOption,
+                      selected && styles.desktopPageTitleOptionSelected,
+                      pressed && styles.controlPressed,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.desktopPageTitleOptionText,
+                        selected && styles.desktopPageTitleOptionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <TextInput
+              autoFocus
+              maxLength={DESKTOP_PAGE_TITLE_MAX_LENGTH}
+              placeholder="Eigene Überschrift …"
+              placeholderTextColor="#90A5BF"
+              value={titleDraft}
+              onChangeText={setTitleDraft}
+              onSubmitEditing={() => saveDesktopPageTitle(titleDraft)}
+              style={styles.searchInput}
+            />
+            <Pressable
+              onPress={() => saveDesktopPageTitle(titleDraft)}
+              style={styles.folderConfirmButton}
+            >
+              <Text style={styles.folderConfirmButtonText}>
+                Überschrift speichern
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
       <Modal
         animationType="fade"
         transparent
@@ -2136,7 +2578,11 @@ export function CommandCenterScreen() {
                           ? "Mittel"
                           : "Groß";
                     const ratio =
-                      option === "small" ? "1:1" : option === "medium" ? "2:1" : "3:1";
+                      option === "small"
+                        ? "1:1"
+                        : option === "medium"
+                          ? "2:1"
+                          : "3:1";
                     return (
                       <Pressable
                         key={option}
@@ -2163,8 +2609,12 @@ export function CommandCenterScreen() {
                             style={styles.sizePickerPreviewImage}
                           />
                         </View>
-                        <Text style={styles.sizePickerOptionTitle}>{label}</Text>
-                        <Text style={styles.sizePickerOptionRatio}>{ratio}</Text>
+                        <Text style={styles.sizePickerOptionTitle}>
+                          {label}
+                        </Text>
+                        <Text style={styles.sizePickerOptionRatio}>
+                          {ratio}
+                        </Text>
                         <View
                           style={[
                             styles.sizePickerCheck,
@@ -2854,28 +3304,84 @@ const styles = StyleSheet.create({
   },
   favoritesHighlight: { display: "none" },
   favoritesHeader: {
-    height: 27,
+    height: 38,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 8,
-    gap: 12,
+    justifyContent: "center",
+    paddingHorizontal: 54,
   },
-  favoritesTitle: {
-    color: "#A2EAFF",
-    fontSize: 10,
+  desktopPageTitleButton: {
+    maxWidth: "72%",
+    minHeight: 34,
+    borderRadius: 17,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  desktopPageTitleButtonPressed: {
+    backgroundColor: "rgba(94,207,255,0.13)",
+  },
+  desktopPageTitle: {
+    color: "#F5FCFF",
+    fontSize: 20,
     fontWeight: "900",
-    letterSpacing: 1.6,
+    letterSpacing: 0.35,
+    textAlign: "center",
     textShadowColor: "rgba(0,8,24,0.95)",
-    textShadowRadius: 7,
+    textShadowRadius: 9,
   },
-  favoritesHint: {
-    flex: 1,
-    color: "rgba(224,242,255,0.82)",
-    fontSize: 10,
-    textAlign: "right",
-    textShadowColor: "rgba(0,8,24,0.95)",
-    textShadowRadius: 7,
+  desktopPageTitleEdit: {
+    color: "#8DE4FF",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  desktopPagePrevious: {
+    position: "absolute",
+    top: "49%",
+    zIndex: 18,
+  },
+  desktopPageRightControls: {
+    position: "absolute",
+    top: "39%",
+    zIndex: 18,
+    gap: 8,
+  },
+  desktopPageControl: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(131,220,255,0.55)",
+    backgroundColor: "rgba(3,20,43,0.82)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#55D9FF",
+    shadowOpacity: 0.34,
+    shadowRadius: 12,
+  },
+  desktopPageControlDisabled: { opacity: 0.28 },
+  desktopPageControlPressed: {
+    transform: [{ scale: 0.92 }],
+    borderColor: "#B4F3FF",
+  },
+  desktopPageControlText: {
+    color: "#F7FDFF",
+    fontSize: 31,
+    lineHeight: 33,
+    fontWeight: "300",
+    marginTop: -2,
+  },
+  desktopPageAdd: {
+    borderColor: "rgba(114,228,255,0.78)",
+    backgroundColor: "rgba(7,64,97,0.88)",
+  },
+  desktopPageAddText: {
+    color: "#8DE9FF",
+    fontSize: 24,
+    lineHeight: 26,
+    fontWeight: "800",
   },
   favoritesGrid: {
     flex: 1,
@@ -3250,6 +3756,39 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     padding: 20,
   },
+  desktopPageTitlePanel: {
+    width: "100%",
+    maxWidth: 620,
+    borderRadius: 30,
+    padding: 20,
+  },
+  desktopPageTitleOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 9,
+    marginBottom: 15,
+  },
+  desktopPageTitleOption: {
+    minWidth: 112,
+    minHeight: 42,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(126,205,255,0.28)",
+    backgroundColor: "rgba(3,18,40,0.76)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+  },
+  desktopPageTitleOptionSelected: {
+    borderColor: "#74E3FF",
+    backgroundColor: "rgba(15,91,131,0.92)",
+  },
+  desktopPageTitleOptionText: {
+    color: "#D9F2FF",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  desktopPageTitleOptionTextSelected: { color: "#FFF" },
   sizePickerHeading: { flex: 1, minWidth: 0 },
   sizePickerOptions: {
     flexDirection: "row",
