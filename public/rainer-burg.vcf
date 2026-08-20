@@ -1,0 +1,13 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Burg;Rainer;;;
+FN:Rainer Burg
+ORG:Sachverständigenbüro Rainer Burg
+TITLE:Kfz-Sachverständiger
+TEL;TYPE=CELL:+4915563337003
+TEL;TYPE=WORK,VOICE:+4923239192366
+TEL;TYPE=WORK,FAX:+4923239192364
+EMAIL;TYPE=WORK:info@sachverstaendiger-herne.de
+ADR;TYPE=WORK:;;Castroper Straße 81a;Herne;;44628;Deutschland
+NOTE:Kfz-Schadengutachten, Wertgutachten, Oldtimerbewertung und Rechnungsprüfung.
+END:VCARD
