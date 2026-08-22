@@ -24,6 +24,7 @@ import { GlobalWorkflowFeedbackProvider } from '@/product-workflows/components/u
 import { isHealthOSContextualPopupRoute } from '@/lib/navigation/healthosRoutePresentation';
 import { isLiquidCommandRoutePath } from '@/liquid-command/navigation/isLiquidCommandRoute';
 import { HealthOSStoreEditionGuard } from '@/lib/platform/HealthOSStoreEditionGuard';
+import '@/lib/employeeLogbook/employeeLogbookTracking';
 
 applyInvisibleScrollIndicators();
 installSystemTextDefaults();
