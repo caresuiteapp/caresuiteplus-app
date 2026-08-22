@@ -574,6 +574,10 @@ function defaultFavoriteSize(
   return WIDE_FAVORITE_WIDGETS.has(widget.id) ? "medium" : "small";
 }
 
+function favoriteSizeRatio(size: FavoriteSize) {
+  return size === "small" ? 1 : size === "medium" ? 2 : 3;
+}
+
 const WEATHER_LABELS: Record<number, string> = {
   0: "Klar",
   1: "Heiter",
@@ -928,7 +932,8 @@ function FavoriteWidgetSlot({
   folder,
   compact,
   size,
-  unitSize,
+  unitWidth,
+  itemHeight,
   dragging,
   dragOver,
   onOpen,
@@ -941,7 +946,8 @@ function FavoriteWidgetSlot({
   folder: WidgetFolder | null;
   compact: boolean;
   size: FavoriteSize;
-  unitSize: number;
+  unitWidth: number;
+  itemHeight: number;
   dragging: boolean;
   dragOver: boolean;
   onOpen: () => void;
@@ -952,7 +958,7 @@ function FavoriteWidgetSlot({
   const [hovered, setHovered] = useState(false);
   const occupied = Boolean(widget || folder);
   const label = widget?.label ?? folder?.name ?? "";
-  const favoriteSizeRatio = size === "small" ? 1 : size === "medium" ? 2 : 3;
+  const sizeRatio = favoriteSizeRatio(size);
 
   return (
     <View
@@ -965,12 +971,13 @@ function FavoriteWidgetSlot({
       style={[
         styles.favoriteSlot,
         {
-          width: unitSize * favoriteSizeRatio,
-          height: unitSize,
+          width: unitWidth * sizeRatio,
+          height: itemHeight,
           flexShrink: 0,
         },
         compact && styles.favoriteSlotCompact,
         occupied && styles.favoriteSlotFilled,
+        occupied && hovered && styles.favoriteSlotHovered,
         occupied && WEB_GRAB_STYLE,
         dragOver && styles.favoriteSlotDropTarget,
         dragging && styles.favoriteSlotDragging,
@@ -1032,16 +1039,12 @@ function FavoriteWidgetSlot({
                 </Text>
               </View>
             )}
-            <View
-              pointerEvents="none"
-              style={[
-                styles.favoriteTooltip,
-                hovered && styles.favoriteTooltipVisible,
-              ]}
-            >
-              <Text numberOfLines={1} style={styles.favoriteTooltipText}>
+            <View pointerEvents="none" style={styles.favoriteLabelBar}>
+              <View style={styles.favoriteLabelDot} />
+              <Text numberOfLines={1} style={styles.favoriteLabelText}>
                 {label}
               </Text>
+              <Text style={styles.favoriteLabelArrow}>↗</Text>
             </View>
             <Pressable
               accessibilityLabel={`${label} aus persönlichem Dock entfernen`}
@@ -1058,7 +1061,7 @@ function FavoriteWidgetSlot({
         ) : (
           <View pointerEvents="none" style={styles.favoriteEmpty}>
             <Text style={styles.favoriteEmptyPlus}>＋</Text>
-            <Text style={styles.favoriteEmptyText}>{slotIndex + 1}</Text>
+            <Text style={styles.favoriteEmptyText}>Widget hinzufügen</Text>
           </View>
         )}
       </Pressable>
@@ -1246,27 +1249,26 @@ export function CommandCenterScreen() {
     [widgetOrder],
   );
   const pageCount = Math.max(1, Math.ceil(dockEntries.length / pageSize));
-  const dockHeight = height < 720 ? 112 : compact ? 124 : 136;
+  const dockHeight = height < 720 ? 104 : compact ? 116 : 118;
   const dockBottom = height < 720 ? 6 : compact ? 8 : 18;
   const dockTop = height - dockBottom - dockHeight;
-  const favoritesWidth = width - (compact ? 18 : 90);
-  const favoriteUnitSize = Math.max(
-    18,
-    Math.min(compact ? 72 : 112, (favoritesWidth - 48) / 15),
-  );
+  const favoritesWidth = width - (compact ? 18 : 132);
   const favoritesHeight = compact
-    ? 190
-    : Math.min(310, Math.max(250, height * 0.29));
-  const favoritesMinimumTop = compact ? 112 : 218;
+    ? 218
+    : Math.min(400, Math.max(330, height * 0.38));
+  const favoriteItemHeight = compact
+    ? 62
+    : Math.max(96, Math.min(126, (favoritesHeight - 140) / 2));
+  const favoritesMinimumTop = compact ? 112 : 206;
   const favoritesMaximumTop = Math.max(
     favoritesMinimumTop,
-    dockTop - favoritesHeight - 18,
+    dockTop - favoritesHeight - 24,
   );
   const favoritesTop = Math.min(
     favoritesMaximumTop,
     Math.max(
       favoritesMinimumTop,
-      favoritesMinimumTop + (favoritesMaximumTop - favoritesMinimumTop) * 0.48,
+      favoritesMinimumTop + (favoritesMaximumTop - favoritesMinimumTop) * 0.46,
     ),
   );
 
@@ -2105,20 +2107,44 @@ export function CommandCenterScreen() {
             compact && styles.favoritesPanelCompact,
           ]}
         >
+          <View pointerEvents="none" style={styles.favoritesAmbientGlow} />
+          <View pointerEvents="none" style={styles.favoritesTopLine} />
           <View style={styles.favoritesHeader}>
-            <Pressable
-              accessibilityLabel="Seitenüberschrift bearbeiten"
-              onPress={openDesktopPageTitleEditor}
-              style={({ pressed }) => [
-                styles.desktopPageTitleButton,
-                pressed && styles.desktopPageTitleButtonPressed,
-              ]}
-            >
-              <Text numberOfLines={1} style={styles.desktopPageTitle}>
-                {activeDesktopPage?.title ?? "Neue Seite"}
-              </Text>
-              <Text style={styles.desktopPageTitleEdit}>✎</Text>
-            </Pressable>
+            <View style={styles.desktopPageHeading}>
+              <Text style={styles.desktopPageEyebrow}>HEALTHOS WORKSPACE</Text>
+              <Pressable
+                accessibilityLabel="Seitenüberschrift bearbeiten"
+                onPress={openDesktopPageTitleEditor}
+                style={({ pressed }) => [
+                  styles.desktopPageTitleButton,
+                  pressed && styles.desktopPageTitleButtonPressed,
+                ]}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.desktopPageTitle,
+                    compact && styles.desktopPageTitleCompact,
+                  ]}
+                >
+                  {activeDesktopPage?.title ?? "Neue Seite"}
+                </Text>
+                <View style={styles.desktopPageTitleEditButton}>
+                  <Text style={styles.desktopPageTitleEdit}>✎</Text>
+                </View>
+              </Pressable>
+              {!compact ? (
+                <Text style={styles.desktopPageSubtitle}>
+                  Ihre wichtigsten Bereiche – klar geordnet und direkt erreichbar
+                </Text>
+              ) : null}
+            </View>
+            {!compact ? (
+              <View style={styles.desktopPageMeta}>
+                <View style={styles.desktopPageMetaDot} />
+                <Text style={styles.desktopPageMetaText}>PERSÖNLICHER DESKTOP</Text>
+              </View>
+            ) : null}
           </View>
           {desktopPages.length > 1 ? (
             <Pressable
@@ -2185,11 +2211,35 @@ export function CommandCenterScreen() {
               },
             ]}
           >
-            {[0, 1].map((rowIndex) => (
-              <View key={rowIndex} style={styles.favoriteRow}>
-                {favoriteSlots
-                  .slice(rowIndex * 5, rowIndex * 5 + 5)
-                  .map((widgetId, localIndex) => {
+            {[0, 1].map((rowIndex) => {
+              const rowSlots = favoriteSlots.slice(
+                rowIndex * 5,
+                rowIndex * 5 + 5,
+              );
+              const rowUnits = rowSlots.reduce((sum, entryId) => {
+                if (!entryId) return sum + 1;
+                const widget = entryId.startsWith("folder:")
+                  ? null
+                  : (WIDGET_BY_ID.get(entryId) ?? null);
+                const favoriteFolder = entryId.startsWith("folder:")
+                  ? (folderById.get(entryId.slice(7)) ?? null)
+                  : null;
+                const size =
+                  favoriteSizes[entryId] ??
+                  defaultFavoriteSize(widget, favoriteFolder);
+                return sum + favoriteSizeRatio(size);
+              }, 0);
+              const rowGap = compact ? 8 : 14;
+              const horizontalInset = compact ? 8 : 20;
+              const rowUnitWidth = Math.max(
+                compact ? 54 : 76,
+                (favoritesWidth - horizontalInset * 2 - rowGap * 4) /
+                  Math.max(1, rowUnits),
+              );
+
+              return (
+                <View key={rowIndex} style={styles.favoriteRow}>
+                  {rowSlots.map((widgetId, localIndex) => {
                     const slotIndex = rowIndex * 5 + localIndex;
                     const widget =
                       widgetId && !widgetId.startsWith("folder:")
@@ -2218,7 +2268,8 @@ export function CommandCenterScreen() {
                         folder={favoriteFolder}
                         compact={compact}
                         size={size}
-                        unitSize={favoriteUnitSize}
+                        unitWidth={rowUnitWidth}
+                        itemHeight={favoriteItemHeight}
                         dragging={draggingFavorite}
                         dragOver={dragTarget === `favorite:${slotIndex}`}
                         onOpen={() =>
@@ -2263,8 +2314,9 @@ export function CommandCenterScreen() {
                       />
                     );
                   })}
-              </View>
-            ))}
+                </View>
+              );
+            })}
           </Animated.View>
         </View>
       </View>
@@ -3291,51 +3343,143 @@ const styles = StyleSheet.create({
   favoritesRegion: { position: "absolute", zIndex: 4 },
   favoritesPanel: {
     flex: 1,
-    paddingHorizontal: 4,
-    paddingTop: 2,
-    paddingBottom: 5,
-    backgroundColor: "transparent",
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 18,
+    borderRadius: 34,
+    borderWidth: 1,
+    borderColor: "rgba(139,220,255,0.34)",
+    backgroundColor: "rgba(2,15,35,0.5)",
+    shadowColor: "#35C8FF",
+    shadowOpacity: 0.24,
+    shadowRadius: 34,
+    shadowOffset: { width: 0, height: 18 },
     overflow: "visible",
+    ...(Platform.OS === "web"
+      ? ({ backdropFilter: "blur(26px) saturate(1.22)" } as const)
+      : null),
   },
   favoritesPanelCompact: {
-    paddingHorizontal: 2,
-    paddingTop: 2,
-    paddingBottom: 3,
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderRadius: 24,
   },
   favoritesHighlight: { display: "none" },
+  favoritesAmbientGlow: {
+    position: "absolute",
+    top: -30,
+    left: "18%",
+    right: "18%",
+    height: 86,
+    borderRadius: 44,
+    backgroundColor: "rgba(74,205,255,0.1)",
+    shadowColor: "#65DFFF",
+    shadowOpacity: 0.46,
+    shadowRadius: 42,
+  },
+  favoritesTopLine: {
+    position: "absolute",
+    top: 0,
+    left: 42,
+    right: 42,
+    height: 1,
+    backgroundColor: "rgba(204,244,255,0.66)",
+  },
   favoritesHeader: {
-    height: 38,
+    minHeight: 82,
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 54,
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 18,
+    paddingHorizontal: 4,
+    paddingBottom: 12,
+  },
+  desktopPageHeading: { minWidth: 0, flex: 1, alignItems: "flex-start" },
+  desktopPageEyebrow: {
+    color: "#72DEFF",
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: "900",
+    letterSpacing: 2.1,
+    textShadowColor: "rgba(42,194,255,0.76)",
+    textShadowRadius: 10,
   },
   desktopPageTitleButton: {
-    maxWidth: "72%",
-    minHeight: 34,
-    borderRadius: 17,
+    maxWidth: "88%",
+    minHeight: 43,
+    borderRadius: 18,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingHorizontal: 16,
+    justifyContent: "flex-start",
+    gap: 10,
+    marginTop: 1,
+    marginLeft: -8,
+    paddingHorizontal: 8,
   },
   desktopPageTitleButtonPressed: {
     backgroundColor: "rgba(94,207,255,0.13)",
   },
   desktopPageTitle: {
     color: "#F5FCFF",
-    fontSize: 20,
+    fontSize: 35,
+    lineHeight: 41,
     fontWeight: "900",
-    letterSpacing: 0.35,
-    textAlign: "center",
+    letterSpacing: -0.7,
+    textAlign: "left",
     textShadowColor: "rgba(0,8,24,0.95)",
-    textShadowRadius: 9,
+    textShadowRadius: 14,
+  },
+  desktopPageTitleCompact: { fontSize: 27, lineHeight: 32 },
+  desktopPageTitleEditButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(126,224,255,0.42)",
+    backgroundColor: "rgba(9,44,76,0.72)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   desktopPageTitleEdit: {
     color: "#8DE4FF",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "900",
+  },
+  desktopPageSubtitle: {
+    color: "rgba(215,237,250,0.78)",
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: "700",
+    letterSpacing: 0.15,
+  },
+  desktopPageMeta: {
+    minHeight: 31,
+    marginTop: 14,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(111,211,255,0.28)",
+    backgroundColor: "rgba(5,27,54,0.68)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  desktopPageMetaDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#5FE0C5",
+    shadowColor: "#5FE0C5",
+    shadowOpacity: 0.86,
+    shadowRadius: 7,
+  },
+  desktopPageMetaText: {
+    color: "#C9E8F8",
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: "900",
+    letterSpacing: 1.1,
   },
   desktopPagePrevious: {
     position: "absolute",
@@ -3387,7 +3531,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     width: "100%",
-    gap: 12,
+    gap: 14,
   },
   favoriteRow: {
     flex: 1,
@@ -3395,24 +3539,24 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-evenly",
-    gap: 12,
+    justifyContent: "center",
+    gap: 14,
     overflow: "visible",
   },
   favoriteSlot: {
     minWidth: 0,
-    borderRadius: 19,
+    borderRadius: 22,
     borderWidth: 1,
     borderStyle: "dashed",
     borderColor: "rgba(139,211,255,0.36)",
-    backgroundColor: "rgba(2,12,29,0.38)",
+    backgroundColor: "rgba(2,12,29,0.42)",
     alignItems: "stretch",
     justifyContent: "center",
     overflow: "visible",
     shadowColor: "#07162D",
-    shadowOpacity: 0.42,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
     ...(Platform.OS === "web"
       ? ({ backdropFilter: "blur(13px) saturate(1.15)" } as const)
       : null),
@@ -3420,8 +3564,17 @@ const styles = StyleSheet.create({
   favoriteSlotCompact: { borderRadius: 13 },
   favoriteSlotFilled: {
     borderStyle: "solid",
-    borderColor: "rgba(130,214,255,0.42)",
-    backgroundColor: "rgba(3,12,27,0.76)",
+    borderColor: "rgba(143,220,255,0.48)",
+    backgroundColor: "rgba(3,14,31,0.86)",
+  },
+  favoriteSlotHovered: {
+    borderColor: "rgba(150,234,255,0.92)",
+    backgroundColor: "rgba(6,27,54,0.96)",
+    shadowColor: "#50D8FF",
+    shadowOpacity: 0.72,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    transform: [{ translateY: -5 }, { scale: 1.015 }],
   },
   favoriteSlotDropTarget: {
     borderStyle: "solid",
@@ -3433,7 +3586,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.035 }],
   },
   favoriteSlotDragging: { opacity: 0.42, borderColor: "#72DEFF" },
-  favoriteImage: { width: "100%", height: "100%", borderRadius: 18 },
+  favoriteImage: { width: "100%", height: "100%", borderRadius: 21 },
   favoriteFolderPreview: {
     width: "100%",
     height: "100%",
@@ -3466,16 +3619,22 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,8,24,0.95)",
     textShadowRadius: 6,
   },
-  favoriteEmpty: { flex: 1, alignItems: "center", justifyContent: "center" },
+  favoriteEmpty: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+  },
   favoriteEmptyPlus: {
     color: "rgba(129,214,255,0.52)",
-    fontSize: 21,
-    lineHeight: 23,
+    fontSize: 25,
+    lineHeight: 27,
   },
   favoriteEmptyText: {
     color: "rgba(186,220,245,0.58)",
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "800",
+    letterSpacing: 0.25,
   },
   favoriteRemove: {
     position: "absolute",
@@ -3520,6 +3679,48 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     textAlign: "center",
   },
+  favoriteLabelBar: {
+    position: "absolute",
+    left: 8,
+    right: 8,
+    bottom: 7,
+    minHeight: 26,
+    paddingHorizontal: 9,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: "rgba(141,220,255,0.28)",
+    backgroundColor: "rgba(1,12,28,0.88)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    ...(Platform.OS === "web"
+      ? ({ backdropFilter: "blur(12px) saturate(1.16)" } as const)
+      : null),
+  },
+  favoriteLabelDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#61DCC5",
+    shadowColor: "#61DCC5",
+    shadowOpacity: 0.8,
+    shadowRadius: 5,
+  },
+  favoriteLabelText: {
+    minWidth: 0,
+    flex: 1,
+    color: "#F2FBFF",
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: "900",
+    letterSpacing: 0.15,
+  },
+  favoriteLabelArrow: {
+    color: "#78DFFF",
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: "900",
+  },
   favoritePressable: {
     flex: 1,
     width: "100%",
@@ -3530,22 +3731,22 @@ const styles = StyleSheet.create({
   },
   dockRegion: {
     position: "absolute",
-    left: 30,
-    right: 30,
+    left: 78,
+    right: 78,
     bottom: 18,
-    height: 136,
+    height: 118,
     flexDirection: "row",
     alignItems: "center",
     gap: 11,
   },
-  dockRegionCompact: { left: 8, right: 8, bottom: 8, height: 124, gap: 5 },
-  dockRegionShort: { bottom: 6, height: 112 },
+  dockRegionCompact: { left: 8, right: 8, bottom: 8, height: 116, gap: 5 },
+  dockRegionShort: { bottom: 6, height: 104 },
   dock: {
     flex: 1,
     height: "100%",
-    borderRadius: 28,
+    borderRadius: 26,
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 12,
     paddingBottom: 6,
     overflow: "visible",
   },
