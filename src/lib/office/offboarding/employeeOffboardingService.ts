@@ -41,6 +41,7 @@ import {
 import {
   appendOffboardingAuditEvent,
   EMPLOYEE_OFFBOARDING_PREPARED_MESSAGE,
+  getOffboardingStoreSnapshot,
   isOffboardingLiveReady,
   listAccessRevocations,
   listOffboardingAuditEvents,
@@ -48,13 +49,42 @@ import {
   patchOffboardingSession,
   readFinalClearance,
   readOffboardingSession,
+  replaceOffboardingStoreSnapshot,
   replaceOffboardingChecks,
   updateOffboardingStep,
   upsertAccessRevocation,
   writeFinalClearance,
 } from './employeeOffboardingStore';
+import {
+  loadEmployeeOffboardingSnapshot,
+  OFFBOARDING_SCHEMA_ERROR,
+  persistEmployeeOffboardingSnapshot,
+} from './employeeOffboardingRepository.supabase';
 
 const EXTERNAL_ACCESS_KINDS = ['email', 'phone', 'cloud'] as const;
+type ServiceFailure = Extract<ServiceResult<void>, { ok: false }>;
+
+async function hydrateLiveOffboarding(
+  tenantId: string,
+  employeeId: string,
+): Promise<ServiceFailure | null> {
+  if (getServiceMode() !== 'supabase') return null;
+  const loaded = await loadEmployeeOffboardingSnapshot(tenantId, employeeId);
+  if (!loaded.ok) return loaded as ServiceFailure;
+  replaceOffboardingStoreSnapshot(loaded.data);
+  return null;
+}
+
+async function persistLiveOffboarding(
+  tenantId: string,
+  employeeId: string,
+): Promise<ServiceFailure | null> {
+  if (getServiceMode() !== 'supabase') return null;
+  const result = await persistEmployeeOffboardingSnapshot(
+    getOffboardingStoreSnapshot(tenantId, employeeId),
+  );
+  return result.ok ? null : (result as ServiceFailure);
+}
 
 async function assertOffboardingAccess(
   tenantId: string,
@@ -123,18 +153,15 @@ async function progressSummaryForEmployee(
   employeeId: string,
   resolved?: ResolvedOffboardingEmployee,
 ): Promise<ServiceResult<OffboardingProgressSummary>> {
-  if (resolved) {
-    return {
-      ok: true,
-      data: buildOffboardingProgressSummary(tenantId, employeeId, resolved),
-    };
-  }
-  const employee = await resolveOffboardingEmployee(tenantId, employeeId);
+  const employee = resolved
+    ? { ok: true as const, data: resolved }
+    : await resolveOffboardingEmployee(tenantId, employeeId);
   if (!employee.ok) return employee;
-  return {
-    ok: true,
-    data: buildOffboardingProgressSummary(tenantId, employeeId, employee.data),
-  };
+
+  const data = buildOffboardingProgressSummary(tenantId, employeeId, employee.data);
+  const persistenceBlock = await persistLiveOffboarding(tenantId, employeeId);
+  if (persistenceBlock) return persistenceBlock;
+  return { ok: true, data };
 }
 
 function stepStatusFromCheck(
@@ -494,10 +521,13 @@ export async function fetchOffboardingProgress(
   );
   if (accessBlock) return accessBlock;
 
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return hydrationBlock;
+
   const employee = await resolveOffboardingEmployee(tenantId, employeeId);
   if (!employee.ok) return employee;
 
-  return { ok: true, data: buildOffboardingProgressSummary(tenantId, employeeId, employee.data) };
+  return progressSummaryForEmployee(tenantId, employeeId, employee.data);
 }
 
 export async function startOffboardingSession(
@@ -517,6 +547,9 @@ export async function startOffboardingSession(
 
   const employee = await resolveOffboardingEmployee(tenantId, employeeId);
   if (!employee.ok) return employee;
+
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return hydrationBlock;
 
   const now = new Date().toISOString();
   const session = readOffboardingSession(tenantId, employeeId);
@@ -559,6 +592,9 @@ export async function saveOffboardingExitDetails(
   );
   if (accessBlock) return accessBlock;
 
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return hydrationBlock;
+
   if (!input.exitDate?.trim()) {
     return { ok: false, error: 'Austrittsdatum ist erforderlich.' };
   }
@@ -572,9 +608,12 @@ export async function saveOffboardingExitDetails(
       file.masterData.exitDate = input.exitDate.trim();
     }
   } else {
-    const liveUpdate = await employeeSupabaseRepository.update(tenantId, employeeId, {
-      exit_date: input.exitDate.trim(),
-    });
+    const liveUpdate = await employeeSupabaseRepository.update(
+      tenantId,
+      employeeId,
+      { exit_date: input.exitDate.trim() },
+      { schemaErrorMessage: OFFBOARDING_SCHEMA_ERROR },
+    );
     if (!liveUpdate.ok) return liveUpdate;
   }
 
@@ -609,6 +648,9 @@ export async function assignOffboardingResponsible(
   const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
 
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return hydrationBlock;
+
   const session = readOffboardingSession(tenantId, employeeId);
   patchOffboardingSession(tenantId, employeeId, { responsibleUserId });
 
@@ -637,6 +679,9 @@ export async function refreshOffboardingChecks(
   const accessBlock = await assertOffboardingViewAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
 
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return hydrationBlock;
+
   const session = readOffboardingSession(tenantId, employeeId);
   appendOffboardingAuditEvent({
     tenantId,
@@ -659,6 +704,9 @@ export async function recordOffboardingReturn(
 ): Promise<ServiceResult<OffboardingProgressSummary>> {
   const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
+
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return hydrationBlock;
 
   const material = recordWorkMaterialReturn(tenantId, employeeId, materialId, 'returned');
   if (!material) {
@@ -721,6 +769,9 @@ export async function lockOffboardingPortalAccess(
 ): Promise<ServiceResult<OffboardingProgressSummary>> {
   const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
+
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return hydrationBlock;
 
   const session = readOffboardingSession(tenantId, employeeId);
   ensureAccessRevocationRecords(session.id, tenantId, employeeId);
@@ -791,6 +842,9 @@ export async function prepareOffboardingExternalAccess(
   const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
 
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return hydrationBlock;
+
   const session = readOffboardingSession(tenantId, employeeId);
   ensureAccessRevocationRecords(session.id, tenantId, employeeId);
   const providerConnected = isExternalAccessProviderConnected(tenantId);
@@ -842,6 +896,9 @@ export async function markOffboardingManualStep(
   const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
 
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return hydrationBlock;
+
   const session = readOffboardingSession(tenantId, employeeId);
   updateOffboardingStep(session.id, stepKey, status, notes ?? null);
 
@@ -866,6 +923,9 @@ export async function generateOffboardingCompletionProtocol(
 ): Promise<ServiceResult<OffboardingCompletionProtocol>> {
   const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
+
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return hydrationBlock;
 
   const employee = await resolveOffboardingEmployee(tenantId, employeeId);
   if (!employee.ok) return employee;
@@ -925,6 +985,9 @@ export async function generateOffboardingCompletionProtocol(
     actorId: actorId ?? null,
   });
 
+  const persistenceBlock = await persistLiveOffboarding(tenantId, employeeId);
+  if (persistenceBlock) return persistenceBlock;
+
   return { ok: true, data: protocol };
 }
 
@@ -936,6 +999,9 @@ export async function completeOffboardingFinalClearance(
 ): Promise<ServiceResult<OffboardingProgressSummary>> {
   const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
+
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return hydrationBlock;
 
   const employee = await resolveOffboardingEmployee(tenantId, employeeId);
   if (!employee.ok) return employee;
@@ -984,10 +1050,12 @@ export async function completeOffboardingFinalClearance(
   });
 
   if (getServiceMode() === 'supabase') {
-    const liveUpdate = await employeeSupabaseRepository.update(tenantId, employeeId, {
-      status: 'terminated',
-      exit_date: progress.session.exitDate,
-    });
+    const liveUpdate = await employeeSupabaseRepository.update(
+      tenantId,
+      employeeId,
+      { status: 'terminated', exit_date: progress.session.exitDate },
+      { schemaErrorMessage: OFFBOARDING_SCHEMA_ERROR },
+    );
     if (!liveUpdate.ok) return liveUpdate;
   } else {
     setEmployeeEmploymentStatusAfterOffboarding(tenantId, employeeId, 'terminated');
@@ -1021,6 +1089,9 @@ export async function archiveOffboardingPersonnelFile(
   const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
 
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return hydrationBlock;
+
   const employee = await resolveOffboardingEmployee(tenantId, employeeId);
   if (!employee.ok) return employee;
 
@@ -1032,10 +1103,12 @@ export async function archiveOffboardingPersonnelFile(
 
   const now = new Date().toISOString();
   if (getServiceMode() === 'supabase') {
-    const liveUpdate = await employeeSupabaseRepository.update(tenantId, employeeId, {
-      status: 'inactive',
-      exit_date: progress.session.exitDate,
-    });
+    const liveUpdate = await employeeSupabaseRepository.update(
+      tenantId,
+      employeeId,
+      { status: 'inactive', exit_date: progress.session.exitDate },
+      { schemaErrorMessage: OFFBOARDING_SCHEMA_ERROR },
+    );
     if (!liveUpdate.ok) return liveUpdate;
 
     const supabase = getSupabaseClient();
@@ -1085,6 +1158,8 @@ export async function listOffboardingBlockers(
   tenantId: string,
   employeeId: string,
 ): Promise<OffboardingBlocker[]> {
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return [];
   const employee = await resolveOffboardingEmployee(tenantId, employeeId);
   if (!employee.ok) return [];
   return buildOffboardingProgressSummary(tenantId, employeeId, employee.data).blockers;
@@ -1097,6 +1172,9 @@ export async function fetchOffboardingAuditTrail(
 ): Promise<ServiceResult<ReturnType<typeof listOffboardingAuditEvents>>> {
   const accessBlock = await assertOffboardingViewAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
+
+  const hydrationBlock = await hydrateLiveOffboarding(tenantId, employeeId);
+  if (hydrationBlock) return hydrationBlock;
 
   const session = readOffboardingSession(tenantId, employeeId);
   return { ok: true, data: listOffboardingAuditEvents(tenantId, session.id) };

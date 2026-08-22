@@ -21,6 +21,8 @@ import {
 import { getDemoEmployeePersonnelFile } from '@/data/demo/employeePersonnelFile';
 import { savePeriod } from '@/lib/office/employeeTime/employeeTimeStore';
 import { employeeSupabaseRepository } from '@/lib/services/repositories/employeeRepository.supabase';
+import * as offboardingRepository from '@/lib/office/offboarding/employeeOffboardingRepository.supabase';
+import { getOffboardingStoreSnapshot } from '@/lib/office/offboarding/employeeOffboardingStore';
 import type { EmployeeTimePeriod } from '@/types/modules/employeeTime';
 
 const TENANT = DEMO_TENANT_ID;
@@ -247,6 +249,15 @@ describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
         updatedAt: '2026-06-01T00:00:00.000Z',
       },
     });
+    const loadSnapshot = vi
+      .spyOn(offboardingRepository, 'loadEmployeeOffboardingSnapshot')
+      .mockResolvedValue({
+        ok: true,
+        data: getOffboardingStoreSnapshot(LIVE_TENANT_ID, LIVE_EMPLOYEE_ID),
+      });
+    const persistSnapshot = vi
+      .spyOn(offboardingRepository, 'persistEmployeeOffboardingSnapshot')
+      .mockResolvedValue({ ok: true, data: undefined });
 
     const result = await fetchOffboardingProgress(LIVE_TENANT_ID, LIVE_EMPLOYEE_ID, ADMIN);
     expect(result.ok).toBe(true);
@@ -255,6 +266,8 @@ describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
     expect(result.data.steps.length).toBe(20);
     expect(getById).toHaveBeenCalledWith(LIVE_TENANT_ID, LIVE_EMPLOYEE_ID);
 
+    persistSnapshot.mockRestore();
+    loadSnapshot.mockRestore();
     getById.mockRestore();
   });
 

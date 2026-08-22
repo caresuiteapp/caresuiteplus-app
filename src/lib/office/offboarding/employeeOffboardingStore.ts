@@ -24,6 +24,15 @@ type Store = {
   auditEvents: OffboardingAuditEvent[];
 };
 
+export type EmployeeOffboardingStoreSnapshot = {
+  session: EmployeeOffboardingSession;
+  steps: EmployeeOffboardingStep[];
+  checks: EmployeeOffboardingCheck[];
+  revocations: EmployeeAccessRevocation[];
+  clearance: EmployeeFinalClearance | null;
+  auditEvents: OffboardingAuditEvent[];
+};
+
 const STORE: Store = {
   sessions: new Map(),
   steps: new Map(),
@@ -279,6 +288,44 @@ export function getOffboardingStoreSnapshot(tenantId: string, employeeId: string
   };
 }
 
+/** Replaces one employee workflow with its durable Supabase representation. */
+export function replaceOffboardingStoreSnapshot(
+  snapshot: EmployeeOffboardingStoreSnapshot,
+): void {
+  const key = sessionKey(snapshot.session.tenantId, snapshot.session.employeeId);
+  const previousSession = STORE.sessions.get(key);
+  const sessionIds = new Set(
+    [previousSession?.id, snapshot.session.id].filter((id): id is string => Boolean(id)),
+  );
+
+  for (const [keyName, step] of STORE.steps.entries()) {
+    if (sessionIds.has(step.sessionId)) STORE.steps.delete(keyName);
+  }
+  STORE.checks = STORE.checks.filter((check) => !sessionIds.has(check.sessionId));
+  for (const [keyName, revocation] of STORE.revocations.entries()) {
+    if (sessionIds.has(revocation.sessionId)) STORE.revocations.delete(keyName);
+  }
+  for (const sessionId of sessionIds) STORE.clearances.delete(sessionId);
+  STORE.auditEvents = STORE.auditEvents.filter(
+    (event) =>
+      event.tenantId !== snapshot.session.tenantId ||
+      event.employeeId !== snapshot.session.employeeId,
+  );
+
+  STORE.sessions.set(key, snapshot.session);
+  for (const step of snapshot.steps) {
+    STORE.steps.set(stepKey(snapshot.session.id, step.stepKey), step);
+  }
+  STORE.checks.push(...snapshot.checks);
+  for (const revocation of snapshot.revocations) {
+    STORE.revocations.set(revocationKey(snapshot.session.id, revocation.kind), revocation);
+  }
+  if (snapshot.clearance) {
+    STORE.clearances.set(snapshot.session.id, snapshot.clearance);
+  }
+  STORE.auditEvents.unshift(...snapshot.auditEvents);
+}
+
 export function resetEmployeeOffboardingStore(): void {
   STORE.sessions.clear();
   STORE.steps.clear();
@@ -295,10 +342,10 @@ export function resetEmployeeOffboardingStore(): void {
 }
 
 export function isOffboardingLiveReady(): boolean {
-  return false;
+  return true;
 }
 
 export const EMPLOYEE_OFFBOARDING_PREPARED_MESSAGE =
-  'Mitarbeiter-Offboarding ist vorbereitet — Persistenz über Migration 0052, noch nicht produktiv.';
+  'Mitarbeiter-Offboarding ist live — alle Schritte werden dauerhaft und revisionssicher gespeichert.';
 
 export type { OffboardingOverallStatus, TerminationType };

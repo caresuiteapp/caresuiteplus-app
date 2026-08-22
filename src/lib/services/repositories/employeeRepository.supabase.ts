@@ -1,6 +1,10 @@
 import type { ServiceResult } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import {
+  isSupabaseMissingTableError,
+  isSupabaseSchemaMismatchError,
+  toGermanSupabaseError,
+} from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import {
   buildEmployeeInsertPayload,
@@ -134,6 +138,7 @@ export const employeeSupabaseRepository = {
     tenantId: string,
     id: string,
     input: Record<string, unknown>,
+    options?: { schemaErrorMessage?: string },
   ): Promise<ServiceResult<{ id: string }>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
@@ -149,7 +154,15 @@ export const employeeSupabaseRepository = {
       .select('id')
       .single();
 
-    if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error || !data) {
+      if (
+        options?.schemaErrorMessage &&
+        (isSupabaseMissingTableError(error) || isSupabaseSchemaMismatchError(error))
+      ) {
+        return { ok: false, error: options.schemaErrorMessage };
+      }
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
     return { ok: true, data: { id: data.id } };
   },
 
