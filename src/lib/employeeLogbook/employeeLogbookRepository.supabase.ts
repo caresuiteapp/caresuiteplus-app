@@ -41,7 +41,7 @@ export async function saveLogbookVehicle(vehicle: Omit<LogbookVehicle, 'id'> & {
 }
 
 export async function createLogbookTrip(input: StartLogbookTripInput): Promise<LogbookTrip> {
-  if (!input.assignmentId && !input.manualReason?.trim()) throw new Error('Ohne Einsatzzuordnung ist eine Begründung erforderlich.');
+  if (!input.assignmentId && !input.clientId && !input.manualReason?.trim()) throw new Error('Ohne Einsatz- oder Klient:innenzuordnung ist eine Begründung erforderlich.');
   const { data, error } = await fromUnknownTable(db(), 'employee_logbook_trips').insert({ tenant_id: input.tenantId, employee_id: input.employeeId, vehicle_id: input.vehicleId, assignment_id: input.assignmentId ?? null, client_id: input.clientId ?? null, route_type: input.routeType, purpose: input.purpose.trim(), manual_reason: input.manualReason?.trim() || null, start_address: input.startAddress?.trim() || null, status: 'recording', started_at: new Date().toISOString(), source: 'employee_portal', gps_captured: true }).select('*').single();
   if (error) throw new Error(error.message); return mapTrip(data as Row);
 }

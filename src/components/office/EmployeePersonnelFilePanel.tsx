@@ -7,6 +7,7 @@ import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { EmployeePortalAccessPanel } from '@/components/office/EmployeePortalAccessPanel';
 import { EmployeeMobilityOfficePanel } from '@/components/office/EmployeeMobilityOfficePanel';
+import { EmployeeLogbookOfficePanel } from '@/components/office/EmployeeLogbookOfficePanel';
 import { EmployeePayrollPersonnelPanel } from '@/components/office/EmployeePayrollPersonnelPanel';
 import { EmployeeRolesPermissionsHub } from '@/components/office/EmployeeRolesPermissionsHub';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
@@ -78,6 +79,7 @@ export const OFFICE_PERSONNEL_UI_TABS: { key: EmployeePersonnelUiTabKey; label: 
   { key: 'qualifications', label: 'Qualifikationen' },
   { key: 'documents', label: 'Dokumente' },
   { key: 'portal', label: 'Portal' },
+  { key: 'logbook', label: 'Fahrtenbuch' },
   { key: 'deployability', label: 'Einsatzfähigkeit' },
   { key: 'work_materials', label: 'Arbeitsmaterial' },
   { key: 'audit', label: 'Verlauf' },
@@ -808,6 +810,15 @@ export function EmployeePersonnelFilePanel({
           onSave={async (patch) => {
             await handleSaveRoles(patch);
           }}
+        />
+      ) : null}
+
+      {activeTab === 'logbook' && tenantId ? (
+        <EmployeeLogbookOfficePanel
+          tenantId={tenantId}
+          employeeId={employeeId}
+          employeeName={`${file.masterData.firstName} ${file.masterData.lastName}`.trim()}
+          canEdit={canEdit}
         />
       ) : null}
 

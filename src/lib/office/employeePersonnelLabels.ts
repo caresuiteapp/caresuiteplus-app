@@ -29,6 +29,7 @@ export type PersonnelUiTabKey =
   | 'qualifications'
   | 'documents'
   | 'portal'
+  | 'logbook'
   | 'deployability'
   | 'work_materials'
   | 'audit';
@@ -141,6 +142,7 @@ export function resolvePersonnelUiTab(tab: EmployeePersonnelTabKey | string): Pe
     tab === 'qualifications' ||
     tab === 'documents' ||
     tab === 'portal' ||
+    tab === 'logbook' ||
     tab === 'deployability' ||
     tab === 'work_materials' ||
     tab === 'audit'
