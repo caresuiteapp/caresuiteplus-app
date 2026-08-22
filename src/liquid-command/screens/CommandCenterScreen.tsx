@@ -1002,43 +1002,45 @@ function FavoriteWidgetSlot({
       >
         {occupied ? (
           <>
-            {widget ? (
-              <Image
-                resizeMode="contain"
-                source={widget.images[size]}
-                style={styles.favoriteImage}
-              />
-            ) : (
-              <View pointerEvents="none" style={styles.favoriteFolderPreview}>
-                {Array.from(
-                  { length: MAX_FOLDER_WIDGETS },
-                  (_, previewIndex) => {
-                    const previewWidget = WIDGET_BY_ID.get(
-                      folder?.widgetIds[previewIndex] ?? "",
-                    );
-                    return (
-                      <View
-                        key={previewIndex}
-                        style={styles.favoriteFolderCell}
-                      >
-                        {previewWidget ? (
-                          <Image
-                            resizeMode="cover"
-                            source={previewWidget.images.small}
-                            style={styles.favoriteFolderImage}
-                          />
-                        ) : (
-                          <Text style={styles.folderPreviewPlus}>＋</Text>
-                        )}
-                      </View>
-                    );
-                  },
-                )}
-                <Text numberOfLines={1} style={styles.favoriteFolderName}>
-                  {folder?.name}
-                </Text>
-              </View>
-            )}
+            <View pointerEvents="none" style={styles.favoriteImageStage}>
+              {widget ? (
+                <Image
+                  resizeMode="contain"
+                  source={widget.images[size]}
+                  style={styles.favoriteImage}
+                />
+              ) : (
+                <View style={styles.favoriteFolderPreview}>
+                  {Array.from(
+                    { length: MAX_FOLDER_WIDGETS },
+                    (_, previewIndex) => {
+                      const previewWidget = WIDGET_BY_ID.get(
+                        folder?.widgetIds[previewIndex] ?? "",
+                      );
+                      return (
+                        <View
+                          key={previewIndex}
+                          style={styles.favoriteFolderCell}
+                        >
+                          {previewWidget ? (
+                            <Image
+                              resizeMode="cover"
+                              source={previewWidget.images.small}
+                              style={styles.favoriteFolderImage}
+                            />
+                          ) : (
+                            <Text style={styles.folderPreviewPlus}>＋</Text>
+                          )}
+                        </View>
+                      );
+                    },
+                  )}
+                  <Text numberOfLines={1} style={styles.favoriteFolderName}>
+                    {folder?.name}
+                  </Text>
+                </View>
+              )}
+            </View>
             <View pointerEvents="none" style={styles.favoriteLabelBar}>
               <View style={styles.favoriteLabelDot} />
               <Text numberOfLines={1} style={styles.favoriteLabelText}>
@@ -1253,13 +1255,38 @@ export function CommandCenterScreen() {
   const dockBottom = height < 720 ? 6 : compact ? 8 : 18;
   const dockTop = height - dockBottom - dockHeight;
   const favoritesWidth = width - (compact ? 18 : 132);
+  const favoriteRowUnitCounts = [0, 1].map((rowIndex) =>
+    favoriteSlots
+      .slice(rowIndex * 5, rowIndex * 5 + 5)
+      .reduce((sum, entryId) => {
+        if (!entryId) return sum + 1;
+        const widget = entryId.startsWith("folder:")
+          ? null
+          : (WIDGET_BY_ID.get(entryId) ?? null);
+        const favoriteFolder = entryId.startsWith("folder:")
+          ? (folderById.get(entryId.slice(7)) ?? null)
+          : null;
+        const size =
+          favoriteSizes[entryId] ??
+          defaultFavoriteSize(widget, favoriteFolder);
+        return sum + favoriteSizeRatio(size);
+      }, 0),
+  );
+  const favoriteGridUnitCount = Math.max(1, ...favoriteRowUnitCounts);
+  const favoriteGridGap = compact ? 8 : 14;
+  const favoriteGridInset = compact ? 8 : 20;
+  const favoriteGridUnitWidth = Math.max(
+    compact ? 54 : 76,
+    (favoritesWidth - favoriteGridInset * 2 - favoriteGridGap * 4) /
+      favoriteGridUnitCount,
+  );
   const favoritesHeight = compact
-    ? 218
-    : Math.min(400, Math.max(330, height * 0.38));
+    ? 240
+    : Math.min(440, Math.max(360, height * 0.42));
   const favoriteItemHeight = compact
-    ? 62
-    : Math.max(96, Math.min(126, (favoritesHeight - 140) / 2));
-  const favoritesMinimumTop = compact ? 112 : 206;
+    ? 70
+    : Math.max(108, Math.min(142, (favoritesHeight - 140) / 2));
+  const favoritesMinimumTop = compact ? 108 : 198;
   const favoritesMaximumTop = Math.max(
     favoritesMinimumTop,
     dockTop - favoritesHeight - 24,
@@ -1268,7 +1295,7 @@ export function CommandCenterScreen() {
     favoritesMaximumTop,
     Math.max(
       favoritesMinimumTop,
-      favoritesMinimumTop + (favoritesMaximumTop - favoritesMinimumTop) * 0.46,
+      favoritesMinimumTop + (favoritesMaximumTop - favoritesMinimumTop) * 0.3,
     ),
   );
 
@@ -2102,12 +2129,16 @@ export function CommandCenterScreen() {
         ]}
       >
         <View
+          {...(Platform.OS === "web"
+            ? ({
+                dataSet: { healthosWorkspaceRevision: "r5-1" },
+              } as object)
+            : {})}
           style={[
             styles.favoritesPanel,
             compact && styles.favoritesPanelCompact,
           ]}
         >
-          <View pointerEvents="none" style={styles.favoritesAmbientGlow} />
           <View pointerEvents="none" style={styles.favoritesTopLine} />
           <View style={styles.favoritesHeader}>
             <View style={styles.desktopPageHeading}>
@@ -2216,26 +2247,6 @@ export function CommandCenterScreen() {
                 rowIndex * 5,
                 rowIndex * 5 + 5,
               );
-              const rowUnits = rowSlots.reduce((sum, entryId) => {
-                if (!entryId) return sum + 1;
-                const widget = entryId.startsWith("folder:")
-                  ? null
-                  : (WIDGET_BY_ID.get(entryId) ?? null);
-                const favoriteFolder = entryId.startsWith("folder:")
-                  ? (folderById.get(entryId.slice(7)) ?? null)
-                  : null;
-                const size =
-                  favoriteSizes[entryId] ??
-                  defaultFavoriteSize(widget, favoriteFolder);
-                return sum + favoriteSizeRatio(size);
-              }, 0);
-              const rowGap = compact ? 8 : 14;
-              const horizontalInset = compact ? 8 : 20;
-              const rowUnitWidth = Math.max(
-                compact ? 54 : 76,
-                (favoritesWidth - horizontalInset * 2 - rowGap * 4) /
-                  Math.max(1, rowUnits),
-              );
 
               return (
                 <View key={rowIndex} style={styles.favoriteRow}>
@@ -2268,7 +2279,7 @@ export function CommandCenterScreen() {
                         folder={favoriteFolder}
                         compact={compact}
                         size={size}
-                        unitWidth={rowUnitWidth}
+                        unitWidth={favoriteGridUnitWidth}
                         itemHeight={favoriteItemHeight}
                         dragging={draggingFavorite}
                         dragOver={dragTarget === `favorite:${slotIndex}`}
@@ -3366,18 +3377,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   favoritesHighlight: { display: "none" },
-  favoritesAmbientGlow: {
-    position: "absolute",
-    top: -30,
-    left: "18%",
-    right: "18%",
-    height: 86,
-    borderRadius: 44,
-    backgroundColor: "rgba(74,205,255,0.1)",
-    shadowColor: "#65DFFF",
-    shadowOpacity: 0.46,
-    shadowRadius: 42,
-  },
   favoritesTopLine: {
     position: "absolute",
     top: 0,
@@ -3422,15 +3421,15 @@ const styles = StyleSheet.create({
   },
   desktopPageTitle: {
     color: "#F5FCFF",
-    fontSize: 35,
-    lineHeight: 41,
+    fontSize: 48,
+    lineHeight: 55,
     fontWeight: "900",
     letterSpacing: -0.7,
     textAlign: "left",
     textShadowColor: "rgba(0,8,24,0.95)",
     textShadowRadius: 14,
   },
-  desktopPageTitleCompact: { fontSize: 27, lineHeight: 32 },
+  desktopPageTitleCompact: { fontSize: 32, lineHeight: 38 },
   desktopPageTitleEditButton: {
     width: 28,
     height: 28,
@@ -3586,7 +3585,17 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.035 }],
   },
   favoriteSlotDragging: { opacity: 0.42, borderColor: "#72DEFF" },
-  favoriteImage: { width: "100%", height: "100%", borderRadius: 21 },
+  favoriteImageStage: {
+    position: "absolute",
+    top: 5,
+    left: 6,
+    right: 6,
+    bottom: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  favoriteImage: { width: "100%", height: "100%", borderRadius: 18 },
   favoriteFolderPreview: {
     width: "100%",
     height: "100%",
@@ -3683,10 +3692,10 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 8,
     right: 8,
-    bottom: 7,
-    minHeight: 26,
-    paddingHorizontal: 9,
-    borderRadius: 13,
+    bottom: 8,
+    minHeight: 32,
+    paddingHorizontal: 11,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: "rgba(141,220,255,0.28)",
     backgroundColor: "rgba(1,12,28,0.88)",
@@ -3698,9 +3707,9 @@ const styles = StyleSheet.create({
       : null),
   },
   favoriteLabelDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
     backgroundColor: "#61DCC5",
     shadowColor: "#61DCC5",
     shadowOpacity: 0.8,
@@ -3710,15 +3719,15 @@ const styles = StyleSheet.create({
     minWidth: 0,
     flex: 1,
     color: "#F2FBFF",
-    fontSize: 10,
-    lineHeight: 13,
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: "900",
     letterSpacing: 0.15,
   },
   favoriteLabelArrow: {
     color: "#78DFFF",
-    fontSize: 10,
-    lineHeight: 12,
+    fontSize: 11,
+    lineHeight: 14,
     fontWeight: "900",
   },
   favoritePressable: {
