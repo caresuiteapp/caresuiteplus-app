@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { EmployeeCreateModal } from '@/components/office/employeecreatemodal';
 import { EmployeeDetailModal } from '@/components/office/employeedetailmodal';
 import { EmployeesListView } from '@/components/office/EmployeesListView';
+import { PersonalWorkspaceSurface } from '@/components/office/PersonalWorkspaceSurface';
 import { moduleColor } from '@/design/tokens/modules';
-import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { usePermissions } from '@/hooks/usePermissions';
 
 const EMPLOYEE_CREATE_ROUTE = '/office/employees/create';
@@ -119,10 +119,10 @@ export function EmployeesListScreen({
 
   if (embedded) {
     return (
-      <SurfaceContrastProvider tone="light">
+      <PersonalWorkspaceSurface>
         {listView}
         {modals}
-      </SurfaceContrastProvider>
+      </PersonalWorkspaceSurface>
     );
   }
 
@@ -155,15 +155,14 @@ export function EmployeesListScreen({
           },
         ]}
       >
-        <SurfaceContrastProvider tone="light">
-          <View style={styles.content}>{listView}</View>
-        </SurfaceContrastProvider>
+        <PersonalWorkspaceSurface style={styles.content}>{listView}</PersonalWorkspaceSurface>
       </C14vSubpageShell>
-      <SurfaceContrastProvider tone="light">{modals}</SurfaceContrastProvider>
+      <PersonalWorkspaceSurface style={styles.modalHost}>{modals}</PersonalWorkspaceSurface>
     </>
   );
 }
 
 const styles = StyleSheet.create({
   content: { flex: 1, minWidth: 0, minHeight: 0 },
+  modalHost: { position: 'absolute', width: 0, height: 0, overflow: 'visible' },
 });

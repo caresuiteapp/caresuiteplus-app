@@ -13,10 +13,12 @@ describe('Personalbereich Lesbarkeit und Struktur R1', () => {
     const list = readSrc('src/screens/office/EmployeesListScreen.tsx');
     const personnel = readSrc('src/screens/office/EmployeePersonnelRecordScreen.tsx');
     const create = readSrc('src/screens/office/EmployeeCreateScreen.tsx');
+    const surface = readSrc('src/components/office/PersonalWorkspaceSurface.tsx');
 
-    expect(list).toContain('SurfaceContrastProvider tone="light"');
-    expect(personnel).toContain('SurfaceContrastProvider tone="light"');
-    expect(create).toContain('SurfaceContrastProvider tone="light"');
+    expect(list).toContain('PersonalWorkspaceSurface');
+    expect(personnel).toContain('PersonalWorkspaceSurface');
+    expect(create).toContain('PersonalWorkspaceSurface');
+    expect(surface).toContain('SurfaceContrastProvider tone="light"');
   });
 
   it('zeigt eine informative Personaltabelle mit eindeutiger Aktion', () => {

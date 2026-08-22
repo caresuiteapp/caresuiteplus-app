@@ -3,6 +3,7 @@ import { Platform, View, type StyleProp, type ViewStyle } from 'react-native';
 import { llganGlassDataSet, type LlganGlassSurfaceKind } from '@/design/tokens/auroraGlass';
 import { ensureLightLiquidGlassSurfaceCss } from '@/design/web/ensureLightLiquidGlassSurfaceCss';
 import { usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
 
 type GlassDomPreset = {
   surface: string;
@@ -46,6 +47,7 @@ export function bindLlganGlassSurface(
   node: View | HTMLElement | null,
   kind: LlganGlassSurfaceKind,
   portalActive = false,
+  forceLight = false,
 ): void {
   if (Platform.OS !== 'web' || !node) return;
 
@@ -54,7 +56,8 @@ export function bindLlganGlassSurface(
   const el = resolveGlassElement(node);
   if (!el?.style) return;
 
-  const preset = portalActive ? PORTAL_GLASS_DOM_PRESETS[kind] : GLASS_DOM_PRESETS[kind];
+  const lightSurface = portalActive || forceLight;
+  const preset = lightSurface ? PORTAL_GLASS_DOM_PRESETS[kind] : GLASS_DOM_PRESETS[kind];
 
   el.setAttribute('data-cs-llgan-glass', kind);
   el.classList.add('cs-llgan-glass', `cs-llgan-glass-${kind}`);
@@ -63,7 +66,7 @@ export function bindLlganGlassSurface(
   el.style.setProperty('background-color', preset.surfaceEnd, 'important');
   el.style.setProperty(
     'background-image',
-    portalActive
+    lightSurface
       ? `radial-gradient(circle at 82% -18%, rgba(112,181,255,.30), transparent 42%), linear-gradient(145deg, ${preset.surface} 0%, ${preset.surfaceEnd} 100%)`
       : `radial-gradient(circle at 82% -18%, rgba(105,232,255,.24), transparent 40%), linear-gradient(145deg, ${preset.surface} 0%, ${preset.surfaceEnd} 100%)`,
     'important',
@@ -71,12 +74,12 @@ export function bindLlganGlassSurface(
   el.style.setProperty('border', `1px solid ${preset.border}`, 'important');
   el.style.setProperty(
     'box-shadow',
-    portalActive
+    lightSurface
       ? '0 14px 34px rgba(0,38,82,.16), inset 0 1px 0 rgba(255,255,255,.94), inset 0 -1px 0 rgba(112,181,255,.15)'
       : '0 26px 68px rgba(0,7,22,.48), 0 0 32px rgba(105,232,255,.08), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(105,232,255,.10)',
     'important',
   );
-  if (portalActive) {
+  if (lightSurface) {
     el.style.setProperty('color', '#061B35', 'important');
   }
 }
@@ -92,13 +95,14 @@ type LlganGlassShellProps = {
 export function LlganGlassShell({ kind, style, dataSet, children }: LlganGlassShellProps) {
   const shellRef = useRef<View | null>(null);
   const portal = usePortalPremiumTheme();
+  const surfaceTone = useSurfaceContrastTone();
 
   const setShellRef = useCallback(
     (node: View | null) => {
       shellRef.current = node;
-      bindLlganGlassSurface(node, kind, portal.active);
+      bindLlganGlassSurface(node, kind, portal.active, surfaceTone === 'light');
     },
-    [kind, portal.active],
+    [kind, portal.active, surfaceTone],
   );
 
   if (Platform.OS !== 'web') {

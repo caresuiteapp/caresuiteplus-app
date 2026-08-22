@@ -2,12 +2,12 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FormScreenHero } from '@/components/forms';
 import { EmployeeCreateForm } from '@/components/office/employeecreateform';
+import { PersonalWorkspaceSurface } from '@/components/office/PersonalWorkspaceSurface';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { spacing } from '@/theme';
-import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 
 export function EmployeeCreateScreen() {
   const router = useRouter();
@@ -27,7 +27,7 @@ export function EmployeeCreateScreen() {
 
   return (
     <ScreenShell title="Mitarbeitende anlegen" subtitle="Office · Personalverwaltung">
-      <SurfaceContrastProvider tone="light">
+      <PersonalWorkspaceSurface padded>
         <FormScreenHero
           eyebrow="OFFICE · MITARBEITENDE"
           title="Mitarbeitende anlegen"
@@ -51,7 +51,7 @@ export function EmployeeCreateScreen() {
             onCreated={() => router.replace('/business/office/employees' as never)}
           />
         </View>
-      </SurfaceContrastProvider>
+      </PersonalWorkspaceSurface>
     </ScreenShell>
   );
 }

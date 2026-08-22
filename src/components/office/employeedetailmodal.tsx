@@ -42,6 +42,7 @@ import { moduleColor } from '@/design/tokens/modules';
 import { EmployeePersonnelFilePanel } from '@/components/office/EmployeePersonnelFilePanel';
 
 import { spacing } from '@/theme';
+import { PERSONAL_SURFACE_DATASET } from './PersonalWorkspaceSurface';
 
 
 
@@ -67,11 +68,11 @@ type ModalMode = 'preview' | 'personnel';
 
 
 
-const PREVIEW_MAX_WIDTH = 920;
+const PREVIEW_MAX_WIDTH = 1280;
 
-const PREVIEW_MIN_WIDTH = 560;
+const PREVIEW_MIN_WIDTH = 760;
 
-const FULL_MAX_WIDTH = 1280;
+const FULL_MAX_WIDTH = 1640;
 
 
 
@@ -182,7 +183,7 @@ export function EmployeeDetailModal({
 
         screenWidth - spacing.md * 2,
 
-        Math.max(PREVIEW_MIN_WIDTH, Math.min(FULL_MAX_WIDTH, screenWidth * 0.96)),
+        Math.max(PREVIEW_MIN_WIDTH, Math.min(FULL_MAX_WIDTH, screenWidth * 0.975)),
 
       );
 
@@ -192,7 +193,7 @@ export function EmployeeDetailModal({
 
       screenWidth - spacing.lg * 2,
 
-      Math.max(PREVIEW_MIN_WIDTH, Math.min(PREVIEW_MAX_WIDTH, screenWidth * 0.92)),
+      Math.max(PREVIEW_MIN_WIDTH, Math.min(PREVIEW_MAX_WIDTH, screenWidth * 0.95)),
 
     );
 
@@ -208,7 +209,7 @@ export function EmployeeDetailModal({
 
         ? Math.min(screenHeight * 0.94, screenHeight - spacing.md * 2)
 
-        : Math.min(screenHeight * 0.9, screenHeight - spacing.lg * 2),
+        : Math.min(screenHeight * 0.94, screenHeight - spacing.md * 2),
 
     [isPersonnel, screenHeight],
 
@@ -269,6 +270,8 @@ export function EmployeeDetailModal({
         sheetHost: {
 
           width: sheetWidth,
+
+          height: sheetMaxHeight,
 
           maxHeight: sheetMaxHeight,
 
@@ -352,7 +355,11 @@ export function EmployeeDetailModal({
 
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Schließen" />
 
-        <View style={styles.sheetHost} pointerEvents="box-none">
+        <View
+          style={styles.sheetHost}
+          pointerEvents="box-none"
+          {...(Platform.OS === 'web' ? ({ dataSet: PERSONAL_SURFACE_DATASET } as object) : {})}
+        >
 
           <GlassSurface
 

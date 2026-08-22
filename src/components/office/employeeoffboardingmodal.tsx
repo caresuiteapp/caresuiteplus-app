@@ -18,6 +18,7 @@ import { moduleColor } from '@/design/tokens/modules';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { spacing } from '@/theme';
+import { PERSONAL_SURFACE_DATASET } from './PersonalWorkspaceSurface';
 
 export type EmployeeOffboardingModalProps = {
   visible: boolean;
@@ -25,8 +26,8 @@ export type EmployeeOffboardingModalProps = {
   onClose: () => void;
 };
 
-const MODAL_MAX_WIDTH = 920;
-const MODAL_MIN_WIDTH = 560;
+const MODAL_MAX_WIDTH = 1440;
+const MODAL_MIN_WIDTH = 760;
 
 export function EmployeeOffboardingModal({
   visible,
@@ -55,7 +56,7 @@ export function EmployeeOffboardingModal({
         ? undefined
         : Math.min(
             screenWidth - spacing.lg * 2,
-            Math.max(MODAL_MIN_WIDTH, Math.min(MODAL_MAX_WIDTH, screenWidth * 0.92)),
+            Math.max(MODAL_MIN_WIDTH, Math.min(MODAL_MAX_WIDTH, screenWidth * 0.96)),
           ),
     [isBottomSheet, screenWidth],
   );
@@ -64,7 +65,7 @@ export function EmployeeOffboardingModal({
     () =>
       isBottomSheet
         ? screenHeight * 0.92
-        : Math.min(screenHeight * 0.9, screenHeight - spacing.lg * 2),
+        : Math.min(screenHeight * 0.95, screenHeight - spacing.md * 2),
     [isBottomSheet, screenHeight],
   );
 
@@ -80,6 +81,7 @@ export function EmployeeOffboardingModal({
         },
         sheetHost: {
           width: isBottomSheet ? ('100%' as const) : sheetWidth,
+          height: isBottomSheet ? undefined : sheetMaxHeight,
           maxHeight: sheetMaxHeight,
           flex: isBottomSheet ? undefined : 1,
           ...Platform.select({
@@ -113,7 +115,11 @@ export function EmployeeOffboardingModal({
     >
       <View style={styles.backdrop} accessibilityViewIsModal>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Schließen" />
-        <View style={styles.sheetHost} pointerEvents="box-none">
+        <View
+          style={styles.sheetHost}
+          pointerEvents="box-none"
+          {...(Platform.OS === 'web' ? ({ dataSet: PERSONAL_SURFACE_DATASET } as object) : {})}
+        >
           <GlassSurface
             radius={careRadius.lg}
             glowColor={officeAccent}

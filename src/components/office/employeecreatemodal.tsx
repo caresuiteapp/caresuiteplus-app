@@ -17,6 +17,7 @@ import { moduleColor } from '@/design/tokens/modules';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { spacing } from '@/theme';
+import { PERSONAL_SURFACE_DATASET } from './PersonalWorkspaceSurface';
 
 export type EmployeeCreateModalProps = {
   visible: boolean;
@@ -24,8 +25,8 @@ export type EmployeeCreateModalProps = {
   onCreated?: (employeeId: string) => void;
 };
 
-const MODAL_MAX_WIDTH = 720;
-const MODAL_MIN_WIDTH = 320;
+const MODAL_MAX_WIDTH = 1180;
+const MODAL_MIN_WIDTH = 720;
 
 export function EmployeeCreateModal({ visible, onClose, onCreated }: EmployeeCreateModalProps) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -50,7 +51,7 @@ export function EmployeeCreateModal({ visible, onClose, onCreated }: EmployeeCre
         ? undefined
         : Math.min(
             screenWidth - spacing.lg * 2,
-            Math.max(MODAL_MIN_WIDTH, Math.min(MODAL_MAX_WIDTH, screenWidth * 0.92)),
+            Math.max(MODAL_MIN_WIDTH, Math.min(MODAL_MAX_WIDTH, screenWidth * 0.95)),
           ),
     [isBottomSheet, screenWidth],
   );
@@ -59,7 +60,7 @@ export function EmployeeCreateModal({ visible, onClose, onCreated }: EmployeeCre
     () =>
       isBottomSheet
         ? screenHeight * 0.92
-        : Math.min(screenHeight * 0.9, screenHeight - spacing.lg * 2),
+        : Math.min(screenHeight * 0.95, screenHeight - spacing.md * 2),
     [isBottomSheet, screenHeight],
   );
 
@@ -75,6 +76,7 @@ export function EmployeeCreateModal({ visible, onClose, onCreated }: EmployeeCre
         },
         sheetHost: {
           width: isBottomSheet ? ('100%' as const) : sheetWidth,
+          height: isBottomSheet ? undefined : sheetMaxHeight,
           maxHeight: sheetMaxHeight,
           flex: isBottomSheet ? undefined : 1,
           ...Platform.select({
@@ -107,7 +109,11 @@ export function EmployeeCreateModal({ visible, onClose, onCreated }: EmployeeCre
     >
       <View style={styles.backdrop} accessibilityViewIsModal>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Schließen" />
-        <View style={styles.sheetHost} pointerEvents="box-none">
+        <View
+          style={styles.sheetHost}
+          pointerEvents="box-none"
+          {...(Platform.OS === 'web' ? ({ dataSet: PERSONAL_SURFACE_DATASET } as object) : {})}
+        >
           <GlassSurface
             radius={careRadius.lg}
             glowColor={officeAccent}

@@ -249,6 +249,169 @@ export const CENTRAL_HEALTHOS_POPUP_CONTRACT_CSS = `
     color: #F8FBFF !important;
   }
 
+  /*
+   * Personal R2: Personalverwaltung ist eine helle, kontraststarke
+   * Arbeitsumgebung innerhalb des dunklen HealthOS-Rahmens. Die Markierung
+   * sitzt sowohl auf den Seiten als auch auf den Portal-Hosts der Modale.
+   * Dadurch darf der allgemeine Central-Popup-Dark-Contract diese Flächen
+   * nicht wieder dunkel einfärben.
+   */
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] {
+    color-scheme: light;
+    --personal-ink: #0B213D;
+    --personal-copy: #294966;
+    --personal-muted: #60778E;
+    --personal-line: #C9DCEB;
+    --personal-line-strong: #8FBFE7;
+    --personal-surface: #FFFFFF;
+    --personal-surface-soft: #F3F8FC;
+    --personal-surface-alt: #EAF3FA;
+    color: var(--personal-ink) !important;
+    background-color: var(--personal-surface-soft) !important;
+    background-image:
+      radial-gradient(circle at 92% -18%, rgba(28, 132, 224, .10), transparent 38%),
+      linear-gradient(145deg, #F8FBFE, #EDF5FB) !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-page="surface"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="list-overview"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="section"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="table"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="modal"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] .cs-llgan-glass,
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-llgan-glass] {
+    --cs-glass-panel: var(--personal-surface);
+    --cs-glass-card: var(--personal-surface);
+    --cs-glass-control: var(--personal-surface);
+    --cs-glass-border: var(--personal-line);
+    --cs-glass-border-strong: var(--personal-line-strong);
+    color: var(--personal-ink) !important;
+    background-color: var(--personal-surface) !important;
+    background-image: linear-gradient(145deg, #FFFFFF, #F2F8FD) !important;
+    border-color: var(--personal-line) !important;
+    box-shadow: 0 14px 34px rgba(31, 72, 112, .12), inset 0 1px 0 #FFFFFF !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="card"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="interactive-card"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="kpi-card"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="module-tile"] {
+    color: var(--personal-ink) !important;
+    background-color: var(--personal-surface) !important;
+    background-image: linear-gradient(145deg, #FFFFFF, #F1F7FC) !important;
+    border-color: var(--personal-line) !important;
+    box-shadow: 0 12px 30px rgba(31, 72, 112, .10), inset 0 1px 0 #FFFFFF !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="card"] > div:first-child,
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="interactive-card"] > div:first-child {
+    background-color: transparent !important;
+    background-image: linear-gradient(145deg, #FFFFFF, #EEF6FC) !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="list-row"] {
+    color: var(--personal-ink) !important;
+    background-color: #FFFFFF !important;
+    background-image: none !important;
+    border-color: var(--personal-line) !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="list-row"]:nth-child(even) {
+    background-color: var(--personal-surface-soft) !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="list-row"]:hover {
+    background-color: #E5F2FC !important;
+    border-color: var(--personal-line-strong) !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="filter-chip"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="tab"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="filter-select"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="input"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-llgan-glass="chip"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-llgan-glass="input"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-llgan-glass="button"] {
+    color: var(--personal-copy) !important;
+    background-color: #FFFFFF !important;
+    background-image: linear-gradient(145deg, #FFFFFF, #ECF5FC) !important;
+    border-color: var(--personal-line) !important;
+    box-shadow: inset 0 1px 0 #FFFFFF !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] input,
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] textarea,
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] select {
+    color: var(--personal-ink) !important;
+    -webkit-text-fill-color: var(--personal-ink) !important;
+    caret-color: #056CE8 !important;
+    background-color: #FFFFFF !important;
+    border-color: var(--personal-line-strong) !important;
+    opacity: 1 !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] input::placeholder,
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] textarea::placeholder {
+    color: var(--personal-muted) !important;
+    -webkit-text-fill-color: var(--personal-muted) !important;
+    opacity: 1 !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-healthos-zone="content"] [data-cs-personal-surface="light"] [style*="background-color: rgb(255, 255, 255)"],
+  html[data-cs-central-popup] [data-cs-healthos-zone="content"] [data-cs-personal-surface="light"] [style*="background-color: rgba(255, 255, 255"] {
+    background-color: #FFFFFF !important;
+    border-color: var(--personal-line) !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [style*="color: rgb(11, 18, 32)"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [style*="color: rgb(15, 23, 42)"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [style*="color: rgb(30, 41, 59)"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [style*="color: rgb(51, 65, 85)"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [style*="color: rgb(8, 33, 61)"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [style*="color: rgb(9, 33, 63)"] {
+    color: var(--personal-ink) !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [style*="color: rgb(100, 116, 139)"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [style*="color: rgb(122, 141, 163)"] {
+    color: var(--personal-muted) !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="info-banner"][data-cs-healthos-surface="dark"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="info-banner"][data-cs-healthos-surface="dark"] * {
+    color: var(--personal-ink) !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="info-banner"][data-cs-healthos-surface="dark"] {
+    background-color: #EAF5FD !important;
+    border-color: #8FC5EB !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [aria-selected="true"] {
+    color: #075CBF !important;
+    background-color: #E3F1FC !important;
+    border-color: #6CAFE7 !important;
+    box-shadow: none !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="primary"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="danger"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="primary"] *,
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="danger"] * {
+    color: #FFFFFF !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="secondary"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="ghost"],
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="secondary"] *,
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="ghost"] *,
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] a,
+  html[data-cs-central-popup] [data-cs-personal-surface="light"] [role="link"] {
+    color: #075CBF !important;
+  }
+
   @media (max-width: 780px) {
     html[data-cs-central-popup] [data-cs-central-popup-page-header="true"] {
       min-height: 66px !important;

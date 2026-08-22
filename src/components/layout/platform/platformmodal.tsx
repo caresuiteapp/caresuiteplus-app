@@ -63,6 +63,7 @@ export type PlatformModalProps = {
   lockBodyScroll?: boolean;
   isDirty?: boolean;
   dirtyCloseMessage?: string;
+  surfaceScope?: 'personal';
 };
 
 const DEFAULT_MAX_WIDTH = popupShellLayout.maxWidthDefault;
@@ -91,17 +92,18 @@ export function PlatformModal({
   lockBodyScroll = true,
   isDirty = false,
   dirtyCloseMessage = 'Ungespeicherte Änderungen verwerfen?',
+  surfaceScope,
 }: PlatformModalProps) {
   const portalTheme = usePortalPremiumRuntimeTheme();
   const { isDark, c } = useCareLightPalette();
   const { isLight } = useLegacyTheme();
   const auroraActive = useAuroraGlassActive();
-  const lightModal = portalTheme.active || (isLight && auroraActive);
+  const lightModal = surfaceScope === 'personal' || portalTheme.active || (isLight && auroraActive);
   const formGlass = resolveLlganViewGlass('form', 'default');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const resolvedAnimation = animationType ?? (variant === 'bottomSheet' ? 'slide' : 'fade');
   const accent = glowColor ?? c.violet;
-  const shellMode = portalTheme.active || !isDark ? 'light' : 'dark';
+  const shellMode = lightModal ? 'light' : 'dark';
   const shellColors = resolvePopupShellColors(shellMode);
   const shellRadius = popupShellLayout.borderRadius;
 
@@ -314,7 +316,12 @@ export function PlatformModal({
           style={styles.sheetHost}
           pointerEvents="box-none"
           {...(Platform.OS === 'web'
-            ? ({ dataSet: { csHealthosComponent: 'modal' } } as object)
+            ? ({
+                dataSet: {
+                  csHealthosComponent: 'modal',
+                  ...(surfaceScope === 'personal' ? { csPersonalSurface: 'light' } : {}),
+                },
+              } as object)
             : {})}
           {...(variant === 'bottomSheet'
             ? {}

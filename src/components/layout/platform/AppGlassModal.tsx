@@ -20,6 +20,7 @@ export type AppGlassModalProps = {
   headerActions?: ReactNode;
   isDirty?: boolean;
   dirtyCloseMessage?: string;
+  surfaceScope?: 'personal';
 };
 
 /** Unified glass modal shell for record section edits and Office dialogs. */
@@ -37,6 +38,7 @@ export function AppGlassModal({
   headerActions,
   isDirty = false,
   dirtyCloseMessage,
+  surfaceScope,
 }: AppGlassModalProps) {
   return (
     <PlatformModal
@@ -53,6 +55,7 @@ export function AppGlassModal({
       glowColor={moduleColor(moduleKey as import('@/design/tokens/modules').CareModuleKey)}
       isDirty={isDirty}
       dirtyCloseMessage={dirtyCloseMessage}
+      surfaceScope={surfaceScope}
     >
       {children}
     </PlatformModal>

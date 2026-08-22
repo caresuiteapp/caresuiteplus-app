@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { EmployeePersonnelFilePanel } from '@/components/office/EmployeePersonnelFilePanel';
+import { PersonalWorkspaceSurface } from '@/components/office/PersonalWorkspaceSurface';
 import { PremiumButton } from '@/components/ui';
-import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 
 export function EmployeePersonnelRecordScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,9 +24,9 @@ export function EmployeePersonnelRecordScreen() {
         <PremiumButton title="Zur Liste" size="sm" variant="ghost" onPress={() => router.back()} />
       }
     >
-      <SurfaceContrastProvider tone="light">
+      <PersonalWorkspaceSurface padded>
         <EmployeePersonnelFilePanel employeeId={id} />
-      </SurfaceContrastProvider>
+      </PersonalWorkspaceSurface>
     </ScreenShell>
   );
 }

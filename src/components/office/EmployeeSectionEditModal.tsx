@@ -37,7 +37,8 @@ export function EmployeeSectionEditModal({
       visible={visible}
       title={employeeSectionEditTitle(section)}
       onClose={onClose}
-      maxWidth={680}
+      maxWidth={1120}
+      surfaceScope="personal"
       footerActions={[
         { title: 'Abbrechen', onPress: onClose, variant: 'secondary' },
         {
