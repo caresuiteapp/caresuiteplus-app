@@ -7,6 +7,7 @@ import { ScreenShell } from '@/components/layout';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { spacing } from '@/theme';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 
 export function EmployeeCreateScreen() {
   const router = useRouter();
@@ -25,30 +26,32 @@ export function EmployeeCreateScreen() {
   }
 
   return (
-    <ScreenShell title="Mitarbeitende anlegen" subtitle="Office · HR">
-      <FormScreenHero
-        eyebrow="OFFICE · MITARBEITENDE"
-        title="Mitarbeitende anlegen"
-        meta={
-          isProduction
-            ? 'Stammdaten, Rolle und Abteilung im Mandanten erfassen'
-            : 'Stammdaten und Rolle erfassen'
-        }
-        icon="🧑‍⚕️"
-        formMode="create"
-        wpNumber={186}
-        preparedMessage={
-          isProduction
-            ? 'Mitarbeitende werden mandantenbezogen angelegt.'
-            : 'Mitarbeitende werden im Demo-Mandanten angelegt.'
-        }
-      />
-      <View style={styles.formHost}>
-        <EmployeeCreateForm
-          onCancel={() => router.back()}
-          onCreated={() => router.replace('/business/office/employees' as never)}
+    <ScreenShell title="Mitarbeitende anlegen" subtitle="Office · Personalverwaltung">
+      <SurfaceContrastProvider tone="light">
+        <FormScreenHero
+          eyebrow="OFFICE · MITARBEITENDE"
+          title="Mitarbeitende anlegen"
+          meta={
+            isProduction
+              ? 'Stammdaten, Rolle und Abteilung im Mandanten erfassen'
+              : 'Stammdaten und Rolle erfassen'
+          }
+          icon="🧑‍⚕️"
+          formMode="create"
+          wpNumber={186}
+          preparedMessage={
+            isProduction
+              ? 'Mitarbeitende werden mandantenbezogen angelegt.'
+              : 'Mitarbeitende werden im Demo-Mandanten angelegt.'
+          }
         />
-      </View>
+        <View style={styles.formHost}>
+          <EmployeeCreateForm
+            onCancel={() => router.back()}
+            onCreated={() => router.replace('/business/office/employees' as never)}
+          />
+        </View>
+      </SurfaceContrastProvider>
     </ScreenShell>
   );
 }

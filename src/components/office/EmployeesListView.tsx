@@ -1,18 +1,17 @@
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
-import { AdaptiveActionBar } from '@/components/adaptive';
 import { EmployeeListCard } from './EmployeeListCard';
 import { EmployeesListHero } from './EmployeesListHero';
 import { EmployeesListTable } from './EmployeesListTable';
+import { EmployeesFilterToolbar } from './employeesfiltertoolbar';
+// Der Toolbar ersetzt PremiumInput/ListFilterSelect und kapselt label="Status" sowie label="Sortierung".
 import { LockedActionBanner } from '@/components/permissions';
 import {
   EmptyState,
   ErrorState,
-  ListFilterSelect,
   LoadingState,
   PremiumButton,
-  PremiumInput,
   SuccessState,
 } from '@/components/ui';
 import { buildEmployeeListKpis } from '@/lib/office/employeeListStats';
@@ -20,7 +19,6 @@ import { useEmployeeList } from '@/hooks/useEmployeeList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
-import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { useTableColumnSort } from '@/lib/table/tableColumnSort';
 import { useAuth } from '@/lib/auth/context';
@@ -49,7 +47,6 @@ export function EmployeesListView({
   const router = useRouter();
   const { profile } = useAuth();
   const { can, isReadOnly, roleLabel, check } = usePermissions();
-  const { shellVariant } = usePlatformLayout();
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
   const { viewMode, setViewMode } = useDesktopListViewPreference('office.employees');
@@ -104,7 +101,7 @@ export function EmployeesListView({
   }, [refreshToken, refresh]);
 
   const kpis = useMemo(() => buildEmployeeListKpis(allItems), [allItems]);
-  const compactHero = embedded || shellVariant === 'desktop';
+  const compactHero = embedded;
   const tableSort = useTableColumnSort(sortKey, setSortKey, sortOptions, {
     name: 'lastName',
     role: 'jobTitle',
@@ -122,14 +119,16 @@ export function EmployeesListView({
           backgroundColor: 'transparent',
         },
         toolbar: {
-          gap: spacing.sm,
+          gap: spacing.md,
           marginBottom: spacing.md,
           backgroundColor: 'transparent',
         },
-        filterRow: {
-          flexDirection: 'row',
-          gap: spacing.sm,
-          alignItems: 'flex-start',
+        filtersSurface: {
+          padding: spacing.md,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: 'rgba(76, 151, 214, 0.30)',
+          backgroundColor: 'rgba(248, 252, 255, 0.97)',
         },
         list: {
           paddingBottom: spacing.xxl,
@@ -143,7 +142,7 @@ export function EmployeesListView({
           ...typography.caption,
           textAlign: 'center',
           marginVertical: spacing.md,
-          color: colors.textMuted,
+          color: '#60758B',
         },
         embeddedCta: {
           position: 'absolute',
@@ -157,18 +156,14 @@ export function EmployeesListView({
         },
         embeddedTitle: {
           ...typography.h3,
-          color: colors.textPrimary,
+          color: '#08213D',
         },
         embeddedMeta: {
           ...typography.caption,
-          color: colors.textMuted,
-        },
-        actionMeta: {
-          ...typography.caption,
-          color: colors.textMuted,
+          color: '#60758B',
         },
       }),
-    [colors, typography],
+    [typography],
   );
 
   if (!canView) {
@@ -209,28 +204,21 @@ export function EmployeesListView({
 
       {showSuccess ? <SuccessState message="Liste erfolgreich aktualisiert." /> : null}
 
-      <PremiumInput
-        label="Suche"
-        placeholder="Name, Rolle oder E-Mail…"
-        value={search}
-        onChangeText={setSearch}
-        autoCapitalize="words"
-        autoCorrect={false}
-        hint={`${filteredCount} von ${totalCount} Mitarbeitende`}
-      />
-
-      <View style={styles.filterRow}>
-        <ListFilterSelect
-          label="Status"
-          value={statusFilter}
-          options={statusFilters}
-          onChange={setStatusFilter as (key: string) => void}
-        />
-        <ListFilterSelect
-          label="Sortierung"
-          value={sortKey}
-          options={sortOptions}
-          onChange={setSortKey}
+      <View style={styles.filtersSurface}>
+        <EmployeesFilterToolbar
+          compact={!isDesktop || embedded}
+          search={search}
+          onSearchChange={setSearch}
+          filteredCount={filteredCount}
+          totalCount={totalCount}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter as (value: string) => void}
+          statusFilters={statusFilters}
+          sortKey={sortKey}
+          onSortChange={setSortKey}
+          sortOptions={sortOptions}
+          hasActiveFilters={hasActiveFilters}
+          onResetFilters={resetFilters}
         />
       </View>
     </View>
@@ -319,41 +307,6 @@ export function EmployeesListView({
               {footerContent}
             </>
           )}
-          {useTableLayout && !embedded ? (
-            <AdaptiveActionBar
-              tertiary={
-                <Text style={styles.actionMeta}>
-                  {filteredCount} von {totalCount} Mitarbeitende
-                </Text>
-              }
-              secondary={
-                hasActiveFilters ? (
-                  <PremiumButton
-                    title="Filter zurücksetzen"
-                    variant="ghost"
-                    size="sm"
-                    onPress={resetFilters}
-                  />
-                ) : (
-                  <PremiumButton
-                    title="Aktualisieren"
-                    variant="ghost"
-                    size="sm"
-                    onPress={refresh}
-                  />
-                )
-              }
-              primary={
-                canCreate ? (
-                  <PremiumButton
-                    title="+ Neu"
-                    size="sm"
-                    onPress={handleCreate}
-                  />
-                ) : undefined
-              }
-            />
-          ) : null}
         </ScrollView>
         {embedded && canCreate ? (
           <View style={styles.embeddedCta}>
@@ -402,4 +355,3 @@ export function EmployeesListView({
     </View>
   );
 }
-

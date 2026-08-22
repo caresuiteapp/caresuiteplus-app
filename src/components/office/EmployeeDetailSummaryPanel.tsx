@@ -158,7 +158,7 @@ export function EmployeeDetailSummaryPanel({
         />
       ) : null}
 
-      <SectionPanel title="Kontakt" subtitle="Erreichbarkeit">
+      <SectionPanel title="Kontakt & Beschäftigung" subtitle="Direkte Erreichbarkeit und Eintrittsdaten">
         <SummaryRow label="E-Mail" value={employee.email} />
         <SummaryRow label="Telefon" value={employee.phone} />
         <SummaryRow label="Eintritt" value={employee.startDate} />
@@ -179,14 +179,14 @@ export function EmployeeDetailSummaryPanel({
           <PremiumButton
             title="Stammdaten bearbeiten"
             variant="primary"
-            fullWidth
+            style={styles.actionButton}
             onPress={handleEditMasterData}
           />
         ) : null}
         <PremiumButton
           title="Personalakte öffnen"
           variant="secondary"
-          fullWidth
+          style={styles.actionButton}
           onPress={
             onOpenFullRecord
               ? onOpenFullRecord
@@ -197,7 +197,7 @@ export function EmployeeDetailSummaryPanel({
           <PremiumButton
             title={isArchived ? 'Archivierte Personalakte' : 'Kündigung / Offboarding'}
             variant="secondary"
-            fullWidth
+            style={styles.actionButton}
             onPress={handleOpenOffboarding}
           />
         ) : null}
@@ -230,6 +230,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.md,
     gap: spacing.md,
+    backgroundColor: '#F4F9FD',
   },
   headerRow: {
     flexDirection: 'row',
@@ -279,7 +280,11 @@ const styles = StyleSheet.create({
     color: '#09213F',
   },
   actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
     gap: spacing.sm,
     paddingBottom: spacing.xl,
   },
+  actionButton: { flexGrow: 1, minWidth: 210 },
 });

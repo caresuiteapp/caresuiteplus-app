@@ -115,7 +115,11 @@ export function EmployeeCreateModal({ visible, onClose, onCreated }: EmployeeCre
             elevated
             style={styles.sheetInner}
           >
-            <GradientModalHeader title="Mitarbeitende anlegen" onClose={onClose} />
+            <GradientModalHeader
+              title="Mitarbeitende anlegen"
+              subtitle="Neues Personalprofil · Stammdaten und Organisation"
+              onClose={onClose}
+            />
             <EmployeeCreateForm onCancel={onClose} onCreated={handleCreated} />
           </GlassSurface>
         </View>

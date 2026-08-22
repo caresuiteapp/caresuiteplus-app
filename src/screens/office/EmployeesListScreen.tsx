@@ -6,6 +6,7 @@ import { EmployeeCreateModal } from '@/components/office/employeecreatemodal';
 import { EmployeeDetailModal } from '@/components/office/employeedetailmodal';
 import { EmployeesListView } from '@/components/office/EmployeesListView';
 import { moduleColor } from '@/design/tokens/modules';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { usePermissions } from '@/hooks/usePermissions';
 
 const EMPLOYEE_CREATE_ROUTE = '/office/employees/create';
@@ -118,10 +119,10 @@ export function EmployeesListScreen({
 
   if (embedded) {
     return (
-      <>
+      <SurfaceContrastProvider tone="light">
         {listView}
         {modals}
-      </>
+      </SurfaceContrastProvider>
     );
   }
 
@@ -140,7 +141,7 @@ export function EmployeesListScreen({
             ? [
                 {
                   key: 'create',
-                  label: '+ Neue:r Mitarbeiter:in',
+                  label: '+ Mitarbeitende anlegen',
                   onPress: openCreate,
                   variant: 'primary' as const,
                 },
@@ -154,9 +155,11 @@ export function EmployeesListScreen({
           },
         ]}
       >
-        <View style={styles.content}>{listView}</View>
+        <SurfaceContrastProvider tone="light">
+          <View style={styles.content}>{listView}</View>
+        </SurfaceContrastProvider>
       </C14vSubpageShell>
-      {modals}
+      <SurfaceContrastProvider tone="light">{modals}</SurfaceContrastProvider>
     </>
   );
 }

@@ -3,7 +3,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { FilterChipGroup } from '@/components/ui/FilterChip';
 import { useDropdownOptions } from '@/hooks/templates/useDropdownOptions';
 import type { CatalogType } from '@/types/templates';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { careTypography } from '@/design/tokens/typography';
 import { spacing } from '@/theme';
 
 type CatalogValueSelectProps = {
@@ -25,18 +26,18 @@ export function CatalogValueSelect({
   error,
   wrap = false,
 }: CatalogValueSelectProps) {
-  const { colors, typography } = useLegacyTheme();
+  const { c } = useCareLightPalette();
   const { options, loading, error: loadError } = useDropdownOptions(catalogType);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         wrap: { marginBottom: spacing.sm },
-        label: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.xs },
-        hint: { ...typography.caption, color: colors.textMuted, opacity: 0.85 },
-        error: { ...typography.caption, color: colors.danger, marginTop: 4 },
+        label: { ...careTypography.caption, color: c.muted, marginBottom: spacing.xs, fontWeight: '700' },
+        hint: { ...careTypography.caption, color: c.muted, opacity: 0.85 },
+        error: { ...careTypography.caption, color: c.danger, marginTop: 4 },
       }),
-    [colors.danger, colors.textMuted, typography.caption],
+    [c.danger, c.muted],
   );
 
   useEffect(() => {

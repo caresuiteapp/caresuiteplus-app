@@ -156,6 +156,48 @@ export function EmployeePersonnelFilePanel({
           flexWrap: 'wrap',
           justifyContent: 'flex-end',
         },
+        employeeHeader: {
+          padding: spacing.lg,
+          borderRadius: 18,
+          borderWidth: 1,
+          borderColor: 'rgba(76, 151, 214, 0.34)',
+          backgroundColor: '#F8FCFF',
+          gap: spacing.md,
+        },
+        employeeHeaderMain: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: spacing.md,
+          flexWrap: 'wrap',
+        },
+        employeeIdentity: { flex: 1, minWidth: 230, gap: 4 },
+        employeeEyebrow: { ...content.caption, color: '#0872D9', fontWeight: '800', letterSpacing: 0.8 },
+        employeeName: { fontSize: 24, lineHeight: 30, color: '#08213D', fontWeight: '900' },
+        employeeMeta: { ...content.body, color: '#526A84' },
+        tabSurface: {
+          padding: spacing.md,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: '#D4E4F2',
+          backgroundColor: '#F8FCFF',
+          gap: spacing.xs,
+        },
+        tabTitle: { ...content.bodyStrong, color: '#08213D' },
+        overviewGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+        overviewCell: {
+          flexGrow: 1,
+          flexBasis: 210,
+          minWidth: 180,
+          padding: spacing.md,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: '#D9E7F2',
+          backgroundColor: '#FFFFFF',
+          gap: 3,
+        },
+        overviewLabel: { ...content.caption, color: '#60758B', fontWeight: '700' },
+        overviewValue: { ...content.bodyStrong, color: '#08213D' },
         tasksBlock: { marginTop: spacing.sm, gap: spacing.xs },
         tasksTitle: { ...content.bodyStrong },
         taskItem: { ...content.body, opacity: 0.85 },
@@ -449,56 +491,55 @@ export function EmployeePersonnelFilePanel({
 
   const body = (
     <>
-      {!embedded ? (
-        <View style={styles.headerActions}>
-          {canEdit ? (
-            <PremiumButton
-              title="Stammdaten bearbeiten"
-              size="sm"
-              variant="secondary"
-              onPress={handleEditMasterData}
+      <View style={styles.employeeHeader}>
+        <View style={styles.employeeHeaderMain}>
+          <View style={styles.employeeIdentity}>
+            <Text style={styles.employeeEyebrow}>DIGITALE PERSONALAKTE</Text>
+            <Text style={styles.employeeName}>{overview.fullName}</Text>
+            <Text style={styles.employeeMeta}>
+              {overview.roleTitle} · Personalnummer {file.masterData.employeeNumber || 'nicht vergeben'}
+            </Text>
+          </View>
+          <View style={styles.badges}>
+            <PremiumBadge
+              label={labelEmploymentStatus(overview.employmentStatus)}
+              variant={overview.employmentStatus === 'active' ? 'green' : 'muted'}
+              dot
             />
-          ) : null}
-          {canDelete ? (
-            <OfficeRecordDeleteButton
-              recordLabel="Mitarbeitende:r"
-              displayName={overview.fullName}
-              fullWidth={false}
-              onDelete={() => {
-                if (!tenantId) {
-                  return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-                }
-                return deleteEmployee(
-                  employeeId,
-                  tenantId,
-                  profile?.roleKey,
-                  profile?.id,
-                  profile?.displayName,
-                );
-              }}
-              onDeleted={() => {
-                if (onDeleted) {
-                  onDeleted();
-                  return;
-                }
-                router.replace('/business/office/employees' as never);
-              }}
+            <PremiumBadge
+              label={labelEmployeeDeployability(overview.deployability)}
+              variant={
+                overview.deployability === 'assignable'
+                  ? 'green'
+                  : overview.deployability === 'warning'
+                    ? 'orange'
+                    : 'red'
+              }
             />
-          ) : null}
+          </View>
         </View>
-      ) : null}
-
-      <View style={styles.badges}>
-        <PremiumBadge
-          label={labelEmployeeDeployability(overview.deployability)}
-          variant={
-            overview.deployability === 'assignable'
-              ? 'green'
-              : overview.deployability === 'warning'
-                ? 'orange'
-                : 'red'
-          }
-        />
+        {!embedded ? (
+          <View style={styles.headerActions}>
+            {canEdit ? (
+              <PremiumButton title="Stammdaten bearbeiten" size="sm" variant="secondary" onPress={handleEditMasterData} />
+            ) : null}
+            {canDelete ? (
+              <OfficeRecordDeleteButton
+                recordLabel="Mitarbeitende:r"
+                displayName={overview.fullName}
+                fullWidth={false}
+                onDelete={() => {
+                  if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+                  return deleteEmployee(employeeId, tenantId, profile?.roleKey, profile?.id, profile?.displayName);
+                }}
+                onDeleted={() => {
+                  if (onDeleted) { onDeleted(); return; }
+                  router.replace('/business/office/employees' as never);
+                }}
+              />
+            ) : null}
+          </View>
+        ) : null}
       </View>
 
       {deployabilityHints.length > 0 ? (
@@ -520,31 +561,36 @@ export function EmployeePersonnelFilePanel({
         />
       ) : null}
 
-      <SegmentedTabs
-        tabs={OFFICE_PERSONNEL_UI_TABS}
-        activeKey={activeTab}
-        onSelect={(key) => setActiveTab(key as EmployeePersonnelUiTabKey)}
-        layout="wrap"
-      />
+      <View style={styles.tabSurface}>
+        <Text style={styles.tabTitle}>Bereiche der Personalakte</Text>
+        <SegmentedTabs
+          tabs={OFFICE_PERSONNEL_UI_TABS}
+          activeKey={activeTab}
+          onSelect={(key) => setActiveTab(key as EmployeePersonnelUiTabKey)}
+          layout="wrap"
+          rows={2}
+        />
+      </View>
 
       {activeTab === 'overview' ? (
         <SectionPanel title="Übersicht">
-          <DetailInfoRow label="Rolle" value={overview.roleTitle} />
-          <DetailInfoRow label="Status" value={labelEmploymentStatus(overview.employmentStatus)} />
-          <DetailInfoRow label="Portal aktiv" value={overview.portalActive ? 'Ja' : 'Nein'} />
-          <DetailInfoRow
-            label="Einsatzfähigkeit"
-            value={labelEmployeeDeployability(overview.deployability)}
-          />
-          <DetailInfoRow
-            label="Zeiterfassung"
-            value={describeEmployeeTimeTrackingMode(
-              resolveEmployeeTimeTrackingMode(
+          <View style={styles.overviewGrid}>
+            {[
+              ['Rolle', overview.roleTitle],
+              ['Status', labelEmploymentStatus(overview.employmentStatus)],
+              ['Portal', overview.portalActive ? 'Aktiv' : 'Nicht aktiv'],
+              ['Einsatzfähigkeit', labelEmployeeDeployability(overview.deployability)],
+              ['Zeiterfassung', describeEmployeeTimeTrackingMode(resolveEmployeeTimeTrackingMode(
                 file.portalAccess.roleKey,
                 getEmployeeHomeOfficeOverride(employeeId),
-              ),
-            )}
-          />
+              ))],
+            ].map(([label, value]) => (
+              <View key={label} style={styles.overviewCell}>
+                <Text style={styles.overviewLabel}>{label}</Text>
+                <Text style={styles.overviewValue}>{value}</Text>
+              </View>
+            ))}
+          </View>
           {overview.openTasks.length > 0 ? (
             <View style={styles.tasksBlock}>
               <Text style={styles.tasksTitle}>Offene Hinweise</Text>

@@ -35,6 +35,7 @@ import {
 } from '@/lib/office/employeeCatalogLabels';
 import type { EmployeeEditSectionKey } from '@/lib/office/employeeSectionEditLabels';
 import { careSpacing } from '@/design/tokens/spacing';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { spacing } from '@/theme';
 
 export function EmployeeDetailScreen({
@@ -346,10 +347,10 @@ export function EmployeeDetailScreen({
 
   if (embedded) {
     return (
-      <>
+      <SurfaceContrastProvider tone="light">
         <View style={styles.embeddedRoot}>{detailBody}</View>
         {sectionEditModal}
-      </>
+      </SurfaceContrastProvider>
     );
   }
 
@@ -398,10 +399,12 @@ export function EmployeeDetailScreen({
         ) : undefined
       }
     >
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {detailBody}
-      </ScrollView>
-      {sectionEditModal}
+      <SurfaceContrastProvider tone="light">
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+          {detailBody}
+        </ScrollView>
+        {sectionEditModal}
+      </SurfaceContrastProvider>
     </ScreenShell>
   );
 }

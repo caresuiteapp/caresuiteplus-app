@@ -1,9 +1,8 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { CatalogValueSelect } from '@/components/templates';
 import { EmployeeProfilePhotoPicker } from '@/components/office/EmployeeProfilePhotoPicker';
 import {
-  EmptyState,
   ErrorState,
   LoadingState,
   PremiumButton,
@@ -21,6 +20,8 @@ export type EmployeeCreateFormProps = {
 };
 
 export function EmployeeCreateForm({ onCancel, onCreated }: EmployeeCreateFormProps) {
+  const { width } = useWindowDimensions();
+  const useTwoColumns = width >= 680;
   const { form, errors, submitting, submitError, createdId, updateField, submit, cancel, isSuccess } =
     useEmployeeWizard();
   const { options: roleOptions } = useDropdownOptions('employee_role');
@@ -68,13 +69,6 @@ export function EmployeeCreateForm({ onCancel, onCreated }: EmployeeCreateFormPr
     return <SuccessState message="Mitarbeitende:r wurde angelegt." />;
   }
 
-  const isFormEmpty =
-    !form.firstName.trim() &&
-    !form.lastName.trim() &&
-    !form.email.trim() &&
-    !roleKey &&
-    !departmentKey;
-
   return (
     <ScrollView
       style={styles.scroll}
@@ -82,65 +76,80 @@ export function EmployeeCreateForm({ onCancel, onCreated }: EmployeeCreateFormPr
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      {isFormEmpty ? (
-        <EmptyState title="Neues Profil" message="Profilbild wählen und Pflichtfelder ausfüllen." />
-      ) : null}
       <PremiumCard style={styles.card}>
-        <View style={styles.profileSection}>
-          <EmployeeProfilePhotoPicker
-            firstName={form.firstName}
-            lastName={form.lastName}
-            value={form.profilePhoto ?? { displayUri: null, pending: null, removed: false }}
-            onChange={(profilePhoto) => updateField('profilePhoto', profilePhoto)}
-            disabled={submitting}
-          />
+        <View style={styles.intro}>
+          <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
+          <View style={styles.introCopy}>
+            <Text style={styles.title}>Persönliche Angaben</Text>
+            <Text style={styles.subtitle}>Pflichtfelder sind mit einem Sternchen gekennzeichnet.</Text>
+          </View>
         </View>
-        <PremiumInput
-          label="Vorname"
-          value={form.firstName}
-          onChangeText={(value) => updateField('firstName', value)}
-          error={errors.firstName}
-        />
-        <PremiumInput
-          label="Nachname"
-          value={form.lastName}
-          onChangeText={(value) => updateField('lastName', value)}
-          error={errors.lastName}
-        />
-        <PremiumInput
-          label="E-Mail"
-          value={form.email}
-          onChangeText={(value) => updateField('email', value)}
-          error={errors.email}
-        />
-        <PremiumInput
-          label="Telefon"
-          value={form.phone}
-          onChangeText={(value) => updateField('phone', value)}
-        />
-        <CatalogValueSelect
-          catalogType="employee_role"
-          label="Rolle / Titel"
-          required
-          value={roleKey}
-          onChange={handleRoleChange}
-          error={errors.jobTitle}
-        />
-        <CatalogValueSelect
-          catalogType="employee_department"
-          label="Abteilung"
-          value={departmentKey}
-          onChange={handleDepartmentChange}
-        />
-        <CatalogValueSelect
-          catalogType="employee_status"
-          label="Status"
-          value={form.status ?? ''}
-          onChange={(value) => updateField('status', value)}
-        />
+
+        <View style={[styles.primaryGrid, useTwoColumns ? styles.primaryGridWide : null]}>
+          <View style={styles.profileSection}>
+            <EmployeeProfilePhotoPicker
+              firstName={form.firstName}
+              lastName={form.lastName}
+              value={form.profilePhoto ?? { displayUri: null, pending: null, removed: false }}
+              onChange={(profilePhoto) => updateField('profilePhoto', profilePhoto)}
+              disabled={submitting}
+            />
+          </View>
+          <View style={styles.fieldsColumn}>
+            <View style={[styles.inputRow, useTwoColumns ? styles.inputRowWide : null]}>
+              <View style={styles.inputCell}>
+                <PremiumInput
+                  label="Vorname *"
+                  value={form.firstName}
+                  onChangeText={(value) => updateField('firstName', value)}
+                  error={errors.firstName}
+                />
+              </View>
+              <View style={styles.inputCell}>
+                <PremiumInput
+                  label="Nachname *"
+                  value={form.lastName}
+                  onChangeText={(value) => updateField('lastName', value)}
+                  error={errors.lastName}
+                />
+              </View>
+            </View>
+            <PremiumInput
+              label="E-Mail *"
+              value={form.email}
+              onChangeText={(value) => updateField('email', value)}
+              error={errors.email}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <PremiumInput
+              label="Telefon"
+              value={form.phone}
+              onChangeText={(value) => updateField('phone', value)}
+              keyboardType="phone-pad"
+            />
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+        <View style={styles.intro}>
+          <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
+          <View style={styles.introCopy}>
+            <Text style={styles.title}>Organisation</Text>
+            <Text style={styles.subtitle}>Rolle, Abteilung und aktuellen Beschäftigungsstatus zuordnen.</Text>
+          </View>
+        </View>
+        <CatalogValueSelect catalogType="employee_role" label="Rolle / Titel" required value={roleKey}
+          onChange={handleRoleChange} error={errors.jobTitle} wrap />
+        <CatalogValueSelect catalogType="employee_department" label="Abteilung" value={departmentKey}
+          onChange={handleDepartmentChange} wrap />
+        <CatalogValueSelect catalogType="employee_status" label="Status" value={form.status ?? ''}
+          onChange={(value) => updateField('status', value)} wrap />
         {submitError ? <ErrorState title="Speichern" message={submitError} /> : null}
-        <PremiumButton title="Anlegen" fullWidth onPress={submit} />
-        <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={handleCancel} />
+        <View style={styles.actions}>
+          <PremiumButton title="Abbrechen" variant="secondary" onPress={handleCancel} style={styles.actionButton} />
+          <PremiumButton title="Mitarbeitende anlegen" onPress={submit} style={styles.actionButton} />
+        </View>
       </PremiumCard>
     </ScrollView>
   );
@@ -155,10 +164,25 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
     gap: spacing.sm,
   },
-  card: { gap: spacing.sm },
+  card: { gap: spacing.md },
+  intro: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  introCopy: { flex: 1, minWidth: 0, gap: 2 },
+  stepBadge: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#0872D9', alignItems: 'center', justifyContent: 'center' },
+  stepBadgeText: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
+  title: { color: '#08213D', fontSize: 18, lineHeight: 23, fontWeight: '900' },
+  subtitle: { color: '#60758B', fontSize: 13, lineHeight: 18 },
+  primaryGrid: { gap: spacing.md },
+  primaryGridWide: { flexDirection: 'row', alignItems: 'flex-start' },
   profileSection: {
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.xs,
+    paddingVertical: spacing.xs,
+    minWidth: 180,
   },
+  fieldsColumn: { flex: 1, minWidth: 0, gap: spacing.sm },
+  inputRow: { gap: spacing.sm },
+  inputRowWide: { flexDirection: 'row' },
+  inputCell: { flex: 1, minWidth: 0 },
+  divider: { height: 1, backgroundColor: '#D6E5F2', marginVertical: spacing.xs },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.sm },
+  actionButton: { flexGrow: 1, minWidth: 190 },
 });

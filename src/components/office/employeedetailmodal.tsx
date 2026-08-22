@@ -372,6 +372,8 @@ export function EmployeeDetailModal({
 
               title={isPersonnel ? 'Personalakte' : 'Mitarbeitendenakte'}
 
+              subtitle={isPersonnel ? 'Vollständige Personalverwaltung' : 'Kurzprofil und Schnellaktionen'}
+
               onBack={isPersonnel ? handleBackToPreview : undefined}
 
               onClose={onClose}

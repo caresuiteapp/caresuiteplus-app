@@ -10,7 +10,7 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PremiumButton } from '@/components/ui';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careLightColors, careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import {
   EMPLOYEE_AVATAR_ALLOWED_MIME_TYPES,
@@ -92,7 +92,7 @@ export function EmployeeProfilePhotoPicker({
   style,
   error,
 }: Props) {
-  const { colors } = useLegacyTheme();
+  const { c } = useCareLightPalette();
   const [pickError, setPickError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
 
@@ -103,15 +103,15 @@ export function EmployeeProfilePhotoPicker({
     () =>
       StyleSheet.create({
         wrap: { alignItems: 'center', gap: spacing.sm },
-        label: { ...typography.label, color: colors.textPrimary },
-        hint: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
+        label: { ...typography.label, color: c.text },
+        hint: { ...typography.caption, color: c.muted, textAlign: 'center' },
         pressable: { borderRadius: AVATAR_SIZE / 2 },
         ring: {
           width: AVATAR_SIZE,
           height: AVATAR_SIZE,
           borderRadius: AVATAR_SIZE / 2,
           borderWidth: 3,
-          borderColor: `${colors.orange}80`,
+          borderColor: `${c.cyan}80`,
           overflow: 'hidden',
           alignItems: 'center',
           justifyContent: 'center',
@@ -130,7 +130,7 @@ export function EmployeeProfilePhotoPicker({
         },
         initials: {
           ...typography.h2,
-          color: colors.textPrimary,
+          color: c.text,
           fontSize: 40,
         },
         overlayHint: {
@@ -147,10 +147,10 @@ export function EmployeeProfilePhotoPicker({
           color: '#fff',
           fontSize: 11,
         },
-        error: { ...typography.caption, color: colors.error, textAlign: 'center' },
+        error: { ...typography.caption, color: c.danger, textAlign: 'center' },
         removeBtn: { marginTop: spacing.xs },
       }),
-    [colors],
+    [c],
   );
 
   const handlePick = async () => {

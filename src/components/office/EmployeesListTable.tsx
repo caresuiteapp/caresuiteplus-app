@@ -49,6 +49,9 @@ export function EmployeesListTable({
       sortColumnKey={sortColumnKey}
       sortDirection={sortDirection}
       onSortColumn={onSortColumn}
+      solidSurface
+      fixedLayout
+      minTableWidth={920}
       onRowPress={
         onEmployeePress
           ? (item) => onEmployeePress(item.id)
@@ -58,7 +61,8 @@ export function EmployeesListTable({
         {
           key: 'name',
           label: 'Name',
-          flex: 2,
+          flex: 2.2,
+          minWidth: 270,
           sortable: true,
           render: (item) => (
             <View style={styles.nameCell}>
@@ -68,16 +72,21 @@ export function EmployeesListTable({
                 avatarUrl={item.avatarUrl}
                 size="lg"
               />
-              <Text style={[tableText.name, styles.nameFlex]} numberOfLines={1}>
-                {item.lastName}, {item.firstName}
-              </Text>
+              <View style={styles.nameText}>
+                <Text style={[tableText.name, styles.name, styles.nameFlex]} numberOfLines={1}>
+                  {item.lastName}, {item.firstName}
+                </Text>
+                <Text style={styles.email} numberOfLines={1}>
+                  {item.email || 'Keine E-Mail hinterlegt'}
+                </Text>
+              </View>
             </View>
           ),
         },
         {
           key: 'status',
           label: 'Status',
-          flex: 1.2,
+          width: 145,
           render: (item) => (
             <PremiumBadge
               label={WORKFLOW_STATUS_LABELS[item.status]}
@@ -90,21 +99,32 @@ export function EmployeesListTable({
           key: 'role',
           label: 'Rolle',
           flex: 1.8,
+          minWidth: 220,
           sortable: true,
           render: (item) => (
-            <Text style={tableText.cellText} numberOfLines={1}>
+            <Text style={[tableText.cellText, styles.cellText]} numberOfLines={1}>
               {resolveEmployeeRoleLabel(item.jobTitle)}
+            </Text>
+          ),
+        },
+        {
+          key: 'phone',
+          label: 'Kontakt',
+          width: 190,
+          render: (item) => (
+            <Text style={styles.cellText} numberOfLines={1}>
+              {item.phone || 'Nicht hinterlegt'}
             </Text>
           ),
         },
         {
           key: 'actions',
           label: 'Aktionen',
-          width: 100,
+          width: 140,
           align: 'right',
           render: (item) => (
             <PremiumButton
-              title="Profil"
+              title="Akte öffnen"
               size="sm"
               variant="ghost"
               onPress={() => {
@@ -133,4 +153,8 @@ const styles = StyleSheet.create({
   nameFlex: {
     flex: 1,
   },
+  nameText: { flex: 1, minWidth: 0, gap: 2 },
+  name: { color: '#08213D', fontWeight: '800' },
+  email: { color: '#60758B', fontSize: 12, lineHeight: 16 },
+  cellText: { color: '#17324E', fontSize: 14, fontWeight: '600' },
 });
