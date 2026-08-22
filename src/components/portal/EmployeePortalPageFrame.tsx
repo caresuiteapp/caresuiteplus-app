@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { careSpacing } from '@/design/tokens/spacing';
 import { HealthOSPageSurface, HealthOSPageZone } from '@/components/layout/HealthOSPageSurface';
 import { PortalPremiumPageHero } from '@/components/portal/PortalPremiumPageHero';
+import { portalPremium } from '@/design/tokens/portalPremium';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 
 type Props = {
   title: string;
@@ -38,14 +40,22 @@ export function EmployeePortalPageFrame({
           compact={compact}
         />
       ) : null}
-      <HealthOSPageSurface padded testID="employee-portal-page-surface">
-        <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone>
-        <HealthOSPageZone kind="filters">{filtersSlot}</HealthOSPageZone>
-        <HealthOSPageZone kind="tabs">{tabsSlot}</HealthOSPageZone>
-        <HealthOSPageZone kind="content">
-          <View style={styles.content}>{children}</View>
-        </HealthOSPageZone>
-      </HealthOSPageSurface>
+      <SurfaceContrastProvider tone="light">
+        <HealthOSPageSurface
+          padded
+          contentStyle={styles.workspace}
+          testID="employee-portal-page-surface"
+        >
+          <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone>
+          <HealthOSPageZone kind="filters">{filtersSlot}</HealthOSPageZone>
+          <HealthOSPageZone kind="tabs">{tabsSlot}</HealthOSPageZone>
+          <HealthOSPageZone kind="content">
+            <View style={styles.content} testID="employee-portal-contrast-r4-workspace">
+              {children}
+            </View>
+          </HealthOSPageZone>
+        </HealthOSPageSurface>
+      </SurfaceContrastProvider>
     </View>
   );
 }
@@ -66,5 +76,20 @@ const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: 0,
     gap: careSpacing.md,
+  },
+  workspace: {
+    backgroundColor: portalPremium.surface,
+    borderWidth: 1,
+    borderColor: portalPremium.borderStrong,
+    borderRadius: portalPremium.radius.panel,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: portalPremium.shadow.panel } as ViewStyle)
+      : {
+          shadowColor: '#001B3D',
+          shadowOpacity: 0.18,
+          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 12 },
+          elevation: 8,
+        }),
   },
 });

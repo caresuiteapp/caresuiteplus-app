@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
 import { sanitizeUiText } from '@/lib/ui/uiVisibility';
 import { colors, radius, spacing, typography } from '@/theme';
 import { useWorkflowFeedback } from './GlobalWorkflowFeedback';
@@ -79,8 +81,11 @@ export function InfoBanner({
   onActionRef.current = onAction;
   const hasAction = Boolean(onAction);
   const text = useAuroraAdaptiveText();
+  const portal = usePortalPremiumTheme();
+  const surfaceTone = useSurfaceContrastTone();
+  const darkSurface = onDarkSurface || surfaceTone === 'dark';
   const cfg = CONFIG[variant];
-  const surfaceColors = onDarkSurface
+  const surfaceColors = darkSurface
     ? {
         background:
           variant === 'warning'
@@ -105,8 +110,35 @@ export function InfoBanner({
               ? '#FFB3C1'
               : variant === 'success'
                 ? '#9CEBD5'
-                : '#B9DCFF',
+              : '#B9DCFF',
       }
+    : portal.active
+      ? {
+          background:
+            variant === 'warning'
+              ? '#FFF3D6'
+              : variant === 'danger' || variant === 'error'
+                ? '#FFE8ED'
+                : variant === 'success'
+                  ? '#E4F7F1'
+                  : portalPremium.surfaceSoft,
+          border:
+            variant === 'warning'
+              ? 'rgba(168,97,0,0.42)'
+              : variant === 'danger' || variant === 'error'
+                ? 'rgba(197,58,82,0.38)'
+                : variant === 'success'
+                  ? 'rgba(15,159,137,0.38)'
+                  : portalPremium.borderStrong,
+          title:
+            variant === 'warning'
+              ? '#8B5000'
+              : variant === 'danger' || variant === 'error'
+                ? '#A92842'
+                : variant === 'success'
+                  ? portalPremium.accent.success
+                  : portalPremium.accent.blueDark,
+        }
     : null;
   const displayIcon = icon ?? cfg.icon;
   const safeTitle = title ? sanitizeUiText(title) : undefined;
@@ -156,7 +188,7 @@ export function InfoBanner({
         ? ({
             dataSet: {
               csHealthosComponent: 'info-banner',
-              csHealthosSurface: onDarkSurface ? 'dark' : 'adaptive',
+              csHealthosSurface: darkSurface ? 'dark' : 'adaptive',
             },
           } as object)
         : {})}
@@ -166,7 +198,7 @@ export function InfoBanner({
         {safeTitle ? (
           <Text style={[styles.title, { color: surfaceColors?.title ?? cfg.title }]}>{safeTitle}</Text>
         ) : null}
-        <Text style={[styles.message, { color: onDarkSurface ? '#F8FBFF' : text.primary }]}>{safeMessage}</Text>
+        <Text style={[styles.message, { color: darkSurface ? '#F8FBFF' : text.primary }]}>{safeMessage}</Text>
         {actionLabel && onAction ? (
           <Pressable onPress={onAction} hitSlop={8} accessibilityRole="button">
             <Text style={[styles.action, { color: surfaceColors?.title ?? cfg.title }]}>{actionLabel}</Text>
@@ -180,7 +212,7 @@ export function InfoBanner({
           accessibilityRole="button"
           accessibilityLabel="Schließen"
         >
-          <Text style={[styles.dismiss, { color: onDarkSurface ? 'rgba(248,251,255,0.78)' : text.muted }]}>✕</Text>
+          <Text style={[styles.dismiss, { color: darkSurface ? 'rgba(248,251,255,0.78)' : text.muted }]}>✕</Text>
         </Pressable>
       ) : null}
     </View>
