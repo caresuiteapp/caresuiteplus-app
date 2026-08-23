@@ -7,7 +7,15 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import { CareTimeInput } from '@/components/inputs/CareTimeInput';
@@ -57,6 +65,12 @@ type AssignmentDropElement = HTMLElement & {
     csAssignmentDropDate?: string;
     csAssignmentDropTime?: string;
   };
+};
+
+type EmployeeProfileGroup = {
+  employeeName: string;
+  profiles: ClientAssignmentProfile[];
+  totalMinutes: number;
 };
 
 function durationLabel(minutes: number): string {
@@ -169,14 +183,49 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }
   const [startTime, setStartTime] = useState(suggestedStartTime);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profileSearch, setProfileSearch] = useState('');
+  const [expandedEmployees, setExpandedEmployees] = useState<Set<string>>(() => new Set());
   const activeDragProfileId = useRef<string | null>(null);
   const dragPointer = useRef({ x: 0, y: 0 });
   const dragScrollFrame = useRef<number | null>(null);
   const profiles = useMemo(() => query.data ?? [], [query.data]);
+  const employeeGroups = useMemo<EmployeeProfileGroup[]>(() => {
+    const normalizedSearch = profileSearch.trim().toLocaleLowerCase('de-DE');
+    const grouped = new Map<string, ClientAssignmentProfile[]>();
+    profiles.forEach((profile) => {
+      const employeeName = profile.employeeName?.trim() || 'Nicht zugeordnet';
+      const searchable = [
+        employeeName,
+        profile.profileName,
+        profile.clientName,
+        profile.assignmentTitle,
+      ].join(' ').toLocaleLowerCase('de-DE');
+      if (normalizedSearch && !searchable.includes(normalizedSearch)) return;
+      const current = grouped.get(employeeName) ?? [];
+      current.push(profile);
+      grouped.set(employeeName, current);
+    });
+    return Array.from(grouped.entries())
+      .map(([employeeName, employeeProfiles]) => ({
+        employeeName,
+        profiles: employeeProfiles.sort((a, b) => a.clientName.localeCompare(b.clientName, 'de')),
+        totalMinutes: employeeProfiles.reduce((sum, profile) => sum + profile.durationMinutes, 0),
+      }))
+      .sort((a, b) => a.employeeName.localeCompare(b.employeeName, 'de'));
+  }, [profileSearch, profiles]);
   const pendingProfile = useMemo(
     () => profiles.find((profile) => profile.id === pendingProfileId) ?? null,
     [pendingProfileId, profiles],
   );
+
+  const toggleEmployee = useCallback((employeeName: string) => {
+    setExpandedEmployees((current) => {
+      const next = new Set(current);
+      if (next.has(employeeName)) next.delete(employeeName);
+      else next.add(employeeName);
+      return next;
+    });
+  }, []);
 
   const handleDrop = useCallback((profileId: string, date: Date, time?: string) => {
     if (!profiles.some((profile) => profile.id === profileId)) return;
@@ -313,15 +362,35 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }
         <PremiumCard style={[styles.palette, compact && styles.paletteCompact]}>
           <View style={styles.paletteHeader}>
             <View style={styles.paletteTitleWrap}>
+              <Text style={styles.paletteEyebrow}>SCHNELLPLANUNG</Text>
               <Text style={styles.paletteTitle}>Einsatzprofile</Text>
               <Text style={styles.paletteHint}>
                 {Platform.OS === 'web'
-                  ? 'Profil auf einen Kalendertag ziehen'
-                  : 'Profil wählen und danach einen Tag antippen'}
+                  ? 'Mitarbeitende öffnen und Profil in den Kalender ziehen'
+                  : 'Mitarbeitende öffnen, Profil wählen und Tag antippen'}
               </Text>
             </View>
             <PremiumBadge label={String(profiles.length)} variant="cyan" />
           </View>
+          <View style={styles.paletteStats}>
+            <View style={styles.paletteStat}>
+              <Text style={styles.paletteStatValue}>{employeeGroups.length}</Text>
+              <Text style={styles.paletteStatLabel}>Mitarbeitende</Text>
+            </View>
+            <View style={styles.paletteStatDivider} />
+            <View style={styles.paletteStat}>
+              <Text style={styles.paletteStatValue}>{profiles.length}</Text>
+              <Text style={styles.paletteStatLabel}>Profile gesamt</Text>
+            </View>
+          </View>
+          <TextInput
+            value={profileSearch}
+            onChangeText={setProfileSearch}
+            placeholder="Mitarbeitende, Klient:in oder Profil suchen"
+            placeholderTextColor="#7591AA"
+            style={styles.profileSearch}
+            accessibilityLabel="Einsatzprofile durchsuchen"
+          />
           {query.loading && !query.data ? <LoadingState message="Profile werden geladen…" /> : null}
           {query.error && !query.data ? <ErrorState message={query.error} onRetry={query.refresh} /> : null}
           {!query.loading && !query.error && profiles.length === 0 ? (
@@ -333,18 +402,62 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }
             />
           ) : (
             <View style={[styles.profileList, compact && styles.profileListCompact]}>
-              {profiles.map((profile) => (
-                <DraggableProfileCard
-                  key={profile.id}
-                  profile={profile}
-                  selected={selectedProfileId === profile.id}
-                  onSelect={() =>
-                    setSelectedProfileId((current) => (current === profile.id ? null : profile.id))
-                  }
-                  onBrowserDragStart={beginBrowserDrag}
-                  onBrowserDragEnd={stopBrowserDrag}
-                />
-              ))}
+              {employeeGroups.map((group) => {
+                const expanded = expandedEmployees.has(group.employeeName) || Boolean(profileSearch.trim());
+                return (
+                  <View key={group.employeeName} style={styles.employeeGroup}>
+                    <Pressable
+                      onPress={() => toggleEmployee(group.employeeName)}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded }}
+                      accessibilityLabel={`${group.employeeName}, ${group.profiles.length} Einsatzprofile`}
+                      style={({ pressed }) => [
+                        styles.employeeHeader,
+                        expanded && styles.employeeHeaderExpanded,
+                        pressed && styles.profilePressed,
+                      ]}
+                    >
+                      <View style={styles.employeeAvatar}>
+                        <Text style={styles.employeeAvatarText}>
+                          {group.employeeName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.employeeCopy}>
+                        <Text style={styles.employeeName} numberOfLines={1}>{group.employeeName}</Text>
+                        <Text style={styles.employeeMeta}>
+                          {group.profiles.length} Profil{group.profiles.length === 1 ? '' : 'e'} · {durationLabel(group.totalMinutes)}
+                        </Text>
+                      </View>
+                      <View style={styles.employeeCount}>
+                        <Text style={styles.employeeCountText}>{group.profiles.length}</Text>
+                      </View>
+                      <Text style={styles.employeeChevron}>{expanded ? '⌃' : '⌄'}</Text>
+                    </Pressable>
+                    {expanded ? (
+                      <View style={styles.employeeProfiles}>
+                        {group.profiles.map((profile) => (
+                          <DraggableProfileCard
+                            key={profile.id}
+                            profile={profile}
+                            selected={selectedProfileId === profile.id}
+                            onSelect={() =>
+                              setSelectedProfileId((current) => (current === profile.id ? null : profile.id))
+                            }
+                            onBrowserDragStart={beginBrowserDrag}
+                            onBrowserDragEnd={stopBrowserDrag}
+                          />
+                        ))}
+                      </View>
+                    ) : null}
+                  </View>
+                );
+              })}
+              {!query.loading && employeeGroups.length === 0 && profileSearch.trim() ? (
+                <View style={styles.noSearchResult}>
+                  <Text style={styles.noSearchResultTitle}>Keine passenden Profile</Text>
+                  <Text style={styles.noSearchResultText}>Suchbegriff ändern oder Suche leeren.</Text>
+                </View>
+              ) : null}
             </View>
           )}
         </PremiumCard>
@@ -421,9 +534,13 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   palette: {
-    width: 284,
+    width: 336,
     flexShrink: 0,
-    padding: spacing.md,
+    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(127,218,255,0.34)',
+    backgroundColor: 'rgba(4,24,48,0.92)',
   },
   workspaceCompact: {
     flexDirection: 'column',
@@ -438,17 +555,87 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  paletteTitleWrap: { flex: 1 },
-  paletteTitle: { ...typography.h3 },
-  paletteHint: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
-  profileList: { gap: spacing.sm },
+  paletteTitleWrap: { flex: 1, minWidth: 0 },
+  paletteEyebrow: { color: '#72DEFF', fontSize: 9, fontWeight: '900', letterSpacing: 1.6 },
+  paletteTitle: { ...typography.h3, color: '#FFFFFF', fontSize: 23, lineHeight: 28, marginTop: 3 },
+  paletteHint: { ...typography.caption, color: '#9EB9CE', marginTop: 4, lineHeight: 17 },
+  paletteStats: {
+    minHeight: 58,
+    marginBottom: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(126,215,255,0.2)',
+    backgroundColor: 'rgba(9,43,76,0.66)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 10,
+  },
+  paletteStat: { flex: 1, alignItems: 'center' },
+  paletteStatValue: { color: '#FFFFFF', fontSize: 19, lineHeight: 23, fontWeight: '900' },
+  paletteStatLabel: { color: '#91ADC3', fontSize: 9, lineHeight: 12, fontWeight: '700', marginTop: 2 },
+  paletteStatDivider: { width: 1, height: 30, backgroundColor: 'rgba(133,215,255,0.2)' },
+  profileSearch: {
+    minHeight: 44,
+    marginBottom: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(128,210,255,0.28)',
+    backgroundColor: 'rgba(2,15,34,0.82)',
+    color: '#FFFFFF',
+    fontSize: 12,
+    paddingHorizontal: 13,
+  },
+  profileList: { gap: 9 },
   profileListCompact: { flexDirection: 'row', flexWrap: 'wrap' },
+  employeeGroup: {
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: 'rgba(120,204,248,0.2)',
+    backgroundColor: 'rgba(2,15,34,0.62)',
+    overflow: 'hidden',
+  },
+  employeeHeader: {
+    minHeight: 62,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  employeeHeaderExpanded: { backgroundColor: 'rgba(14,65,105,0.72)' },
+  employeeAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(128,226,255,0.46)',
+    backgroundColor: 'rgba(28,124,183,0.32)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  employeeAvatarText: { color: '#EAFBFF', fontSize: 12, fontWeight: '900' },
+  employeeCopy: { flex: 1, minWidth: 0 },
+  employeeName: { color: '#FFFFFF', fontSize: 13, lineHeight: 17, fontWeight: '900' },
+  employeeMeta: { color: '#9EB9CE', fontSize: 10, lineHeight: 14, fontWeight: '600', marginTop: 2 },
+  employeeCount: {
+    minWidth: 25,
+    height: 25,
+    paddingHorizontal: 6,
+    borderRadius: 13,
+    backgroundColor: 'rgba(40,157,222,0.24)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  employeeCountText: { color: '#7FE4FF', fontSize: 10, fontWeight: '900' },
+  employeeChevron: { color: '#88DFFF', fontSize: 17, width: 16, textAlign: 'center' },
+  employeeProfiles: { gap: 8, padding: 9, paddingTop: 4 },
   profilePressable: {
     borderWidth: 1,
-    borderColor: colors.borderSoft,
-    borderRadius: 12,
-    padding: spacing.sm,
-    backgroundColor: colors.bgSurface,
+    borderColor: 'rgba(132,213,255,0.3)',
+    borderRadius: 14,
+    padding: 11,
+    backgroundColor: '#F6FAFF',
   },
   profileSelected: {
     borderColor: colors.primary,
@@ -457,9 +644,12 @@ const styles = StyleSheet.create({
   profilePressed: { opacity: 0.82 },
   profileHeader: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
   profileText: { flex: 1 },
-  profileName: { ...typography.label },
-  profileClient: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
-  profileMeta: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
+  profileName: { ...typography.label, color: '#0B223D', fontSize: 12, lineHeight: 16 },
+  profileClient: { ...typography.caption, color: '#49647D', marginTop: 2 },
+  profileMeta: { ...typography.caption, color: '#587089', marginTop: spacing.xs },
+  noSearchResult: { padding: 18, alignItems: 'center' },
+  noSearchResultTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+  noSearchResultText: { color: '#91ADC3', fontSize: 11, marginTop: 4, textAlign: 'center' },
   calendar: { flex: 1, minWidth: 0 },
   timeForm: { gap: spacing.md },
   summary: { gap: spacing.xs },

@@ -69,6 +69,12 @@ function birthdayInYear(dateOfBirth: string, year: number): string {
   return `${year}-${monthDay}`;
 }
 
+export function birthdayAgeInYear(dateOfBirth: string, year: number): number {
+  const birthYear = Number.parseInt(dateOfBirth.slice(0, 4), 10);
+  if (!Number.isFinite(birthYear) || birthYear > year) return 0;
+  return year - birthYear;
+}
+
 function yearsInRange(rangeStart?: string, rangeEnd?: string): number[] {
   const start = rangeStart ? new Date(rangeStart).getUTCFullYear() : new Date().getUTCFullYear();
   const end = rangeEnd ? new Date(rangeEnd).getUTCFullYear() : start;
@@ -89,11 +95,12 @@ export function buildBirthdayEvents(
     if (!row.date_of_birth || !nameOf(row)) return [];
     return yearsInRange(rangeStart, rangeEnd).flatMap((year) => {
       const day = birthdayInYear(row.date_of_birth!, year);
+      const age = birthdayAgeInYear(row.date_of_birth!, year);
       if (rangeStartKey && day < rangeStartKey) return [];
       if (rangeEndKey && day > rangeEndKey) return [];
       return [{
         id: `birthday:${kind}:${row.id}:${year}`,
-        title: `${kind === 'employee' ? 'Mitarbeitenden' : 'Klient:innen'}-Geburtstag · ${nameOf(row)}`,
+        title: `${nameOf(row)} · ${age}. Geburtstag · ${kind === 'employee' ? 'Mitarbeitende:r' : 'Klient:in'}`,
         start: `${day}T00:00:00.000Z`,
         end: `${day}T23:59:59.999Z`,
         type: 'geburtstag' as const,

@@ -17,13 +17,11 @@ import type {
   CalendarFormStep,
 } from '@/types/calendar/calendarEventForm';
 import {
-  CALENDAR_FORM_STEPS,
   createDefaultFormState,
 } from '@/types/calendar/calendarEventForm';
 import { GradientModalHeader } from '@/components/layout/platform';
 import { PremiumButton } from '@/components/ui';
 import { GlassSurface } from '@/components/ui/effects';
-import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careSuiteModalScrimStrong } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { spacing } from '@/theme';
@@ -48,11 +46,8 @@ export type CalendarEventCreateModalProps = {
 };
 
 function resolveSteps(moduleKey: CalendarModuleKey, isEdit: boolean): CalendarFormStep[] {
-  const steps = [...CALENDAR_FORM_STEPS];
-  if (moduleKey !== 'assist' || isEdit) {
-    return steps.filter((s) => s !== 'type');
-  }
-  return steps;
+  const planningSteps: CalendarFormStep[] = ['template', 'basics', 'datetime', 'visibility', 'preview'];
+  return moduleKey === 'assist' && !isEdit ? ['type', ...planningSteps] : planningSteps;
 }
 
 function eventToForm(event: CalendarEvent): ReturnType<typeof createDefaultFormState> {
@@ -99,7 +94,6 @@ export function CalendarEventCreateModal({
 }: CalendarEventCreateModalProps) {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
-  const { c } = useCareLightPalette();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const isEdit = !!editEvent;
@@ -138,17 +132,54 @@ export function CalendarEventCreateModal({
         backdrop: {
           flex: 1,
           backgroundColor: careSuiteModalScrimStrong,
-          justifyContent: 'flex-end',
+          justifyContent: 'center',
           alignItems: 'center',
+          padding: width < 720 ? 10 : 24,
         },
-        sheetHost: { width: Math.min(width, 680), maxHeight: height * 0.9, marginBottom: spacing.md },
-        sheetInner: { flex: 1, minHeight: 0 },
-        body: { padding: spacing.lg, gap: spacing.md },
-        progress: { color: c.muted, fontSize: 11, fontWeight: '700', paddingHorizontal: spacing.lg },
-        error: { color: '#F87171', fontSize: 13, paddingHorizontal: spacing.lg },
-        actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, padding: spacing.lg },
+        sheetHost: {
+          width: Math.min(width - (width < 720 ? 20 : 48), 980),
+          maxHeight: height * 0.94,
+        },
+        sheetInner: { flex: 1, minHeight: 0, backgroundColor: '#F8FBFF' },
+        progressArea: {
+          paddingHorizontal: width < 720 ? 16 : 24,
+          paddingTop: 14,
+          paddingBottom: 12,
+          gap: 9,
+          borderBottomWidth: 1,
+          borderBottomColor: '#D8E9FA',
+          backgroundColor: '#EDF6FF',
+        },
+        progressTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+        progress: { color: '#425C7B', fontSize: 12, fontWeight: '800' },
+        progressName: { color: '#0B1F3A', fontSize: 12, fontWeight: '900' },
+        progressTrack: { height: 6, borderRadius: 99, overflow: 'hidden', backgroundColor: '#D1E4F7' },
+        progressFill: { height: '100%', borderRadius: 99, backgroundColor: '#0878F9' },
+        body: { padding: width < 720 ? 16 : 24, gap: spacing.md },
+        errorBanner: {
+          marginHorizontal: width < 720 ? 16 : 24,
+          marginTop: 8,
+          paddingHorizontal: 14,
+          paddingVertical: 11,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: '#FCA5A5',
+          backgroundColor: '#FEF2F2',
+        },
+        error: { color: '#B42318', fontSize: 13, fontWeight: '700' },
+        actions: {
+          flexDirection: 'row',
+          justifyContent: 'flex-end',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+          paddingHorizontal: width < 720 ? 16 : 24,
+          paddingVertical: 16,
+          borderTopWidth: 1,
+          borderTopColor: '#D8E9FA',
+          backgroundColor: '#FFFFFF',
+        },
       }),
-    [c.muted, height, width],
+    [height, width],
   );
 
   const handleSelectTemplate = (next: CalendarEventTemplate) => {
@@ -243,11 +274,7 @@ export function CalendarEventCreateModal({
     onClose();
   };
 
-  const modalTitle = isEdit
-    ? 'Termin bearbeiten'
-    : step === 'template'
-      ? 'Neuer Kalendereintrag'
-      : template?.label ?? 'Kalendereintrag anlegen';
+  const modalTitle = isEdit ? 'Kalendereintrag bearbeiten' : 'Neuen Kalendereintrag planen';
 
   if (!visible) return null;
 
@@ -258,9 +285,15 @@ export function CalendarEventCreateModal({
         <View style={styles.sheetHost}>
           <GlassSurface radius={careRadius.lg} glowColor={accentColor} elevated style={styles.sheetInner}>
             <GradientModalHeader title={modalTitle} onClose={onClose} />
-            <Text style={styles.progress}>
-              Schritt {stepIndex + 1} von {steps.length}
-            </Text>
+            <View style={styles.progressArea}>
+              <View style={styles.progressTop}>
+                <Text style={styles.progress}>Schritt {stepIndex + 1} von {steps.length}</Text>
+                <Text style={styles.progressName}>{template?.label ?? 'Individuelle Planung'}</Text>
+              </View>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${((stepIndex + 1) / steps.length) * 100}%` }]} />
+              </View>
+            </View>
             <ScrollView contentContainerStyle={styles.body}>
               <CalendarEventForm
                 step={step}
@@ -271,13 +304,14 @@ export function CalendarEventCreateModal({
                 onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
                 onSelectTemplate={handleSelectTemplate}
                 onContinueWithoutTemplate={handleContinueWithoutTemplate}
+                onChooseCalendarEntry={goNext}
                 onAssistEinsatzLink={() => {
                   onClose();
                   router.push('/assist/einsaetze/new' as never);
                 }}
               />
             </ScrollView>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <View style={styles.errorBanner}><Text style={styles.error}>{error}</Text></View> : null}
             <View style={styles.actions}>
               {stepIndex > 0 ? (
                 <PremiumButton title="Zurück" variant="secondary" onPress={goBack} />
@@ -290,7 +324,7 @@ export function CalendarEventCreateModal({
                   onPress={handleSave}
                   disabled={saving}
                 />
-              ) : step === 'template' ? null : (
+              ) : step === 'template' || step === 'type' ? null : (
                 <PremiumButton title="Weiter" onPress={goNext} />
               )}
             </View>

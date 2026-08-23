@@ -52,7 +52,7 @@ describe('Assist Kalender – operative Ereignisse', () => {
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({
       type: 'geburtstag',
-      title: 'Klient:innen-Geburtstag · Iris Jäger',
+      title: 'Iris Jäger · 71. Geburtstag · Klient:in',
       start: '2026-08-18T00:00:00.000Z',
     });
   });
@@ -80,4 +80,3 @@ describe('Assist Kalender – operative Ereignisse', () => {
     expect(mergeOperationalCalendarEvents(base, operational)).toHaveLength(1);
   });
 });
-

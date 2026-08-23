@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import type { CalendarEvent, WeekStartDay } from '@/types/modules/calendarEvent';
 import { GlassCard } from '@/design/components/GlassCard';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { auroraGlass } from '@/design/tokens/auroraGlass';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
@@ -39,7 +39,6 @@ export function OfficeCalendarMonthView({
   selectedAssignmentProfileId,
   onAssignmentProfileDrop,
 }: OfficeCalendarMonthViewProps) {
-  const text = useAuroraAdaptiveText();
   const portal = usePortalPremiumTheme();
   const today = new Date();
   const [expandedDays, setExpandedDays] = useState<Set<string>>(() => new Set());
@@ -61,10 +60,10 @@ export function OfficeCalendarMonthView({
 
   return (
     <GlassCard style={styles.card}>
-      <Text style={[styles.monthTitle, { color: text.primary }]}>{formatMonthYear(anchor)}</Text>
+      <Text style={styles.monthTitle}>{formatMonthYear(anchor)}</Text>
       <View style={styles.weekHeader}>
         {weekdayLabels.map((label) => (
-          <Text key={label} style={[styles.weekday, { color: text.muted }]}>
+          <Text key={label} style={styles.weekday}>
             {label}
           </Text>
         ))}
@@ -96,7 +95,7 @@ export function OfficeCalendarMonthView({
                 selectedAssignmentProfileId && styles.cellDropReady,
               ]}
             >
-              <Text style={[styles.dayNum, { color: !inMonth ? text.muted : text.primary }]}>{date.getDate()}</Text>
+              <Text style={[styles.dayNum, !inMonth && styles.dayNumOutside]}>{date.getDate()}</Text>
               <View style={styles.events}>
                 {visible.map((event) => (
                   <OfficeCalendarEventChip
@@ -109,12 +108,12 @@ export function OfficeCalendarMonthView({
               </View>
               {hiddenCount > 0 ? (
                 <Pressable onPress={() => toggleDay(key)} style={styles.moreBtn}>
-                  <Text style={[styles.moreLabel, { color: text.secondary }]}>+{hiddenCount} mehr</Text>
+                  <Text style={styles.moreLabel}>+{hiddenCount} mehr</Text>
                 </Pressable>
               ) : null}
               {expanded && dayEvents.length > maxCollapsedEvents ? (
                 <Pressable onPress={() => toggleDay(key)} style={styles.moreBtn}>
-                  <Text style={[styles.moreLabel, { color: text.secondary }]}>− weniger</Text>
+                  <Text style={styles.moreLabel}>− weniger</Text>
                 </Pressable>
               ) : null}
             </Pressable>
@@ -130,8 +129,10 @@ const styles = StyleSheet.create({
     padding: careSpacing.md,
   },
   monthTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    color: '#0B1F3A',
+    fontSize: 19,
+    lineHeight: 24,
+    fontWeight: '900',
     marginBottom: careSpacing.sm,
   },
   weekHeader: {
@@ -141,6 +142,7 @@ const styles = StyleSheet.create({
       : { flexDirection: 'row' as const }),
   },
   weekday: {
+    color: '#526987',
     flex: 1,
     textAlign: 'center',
     fontSize: 11,
@@ -176,10 +178,12 @@ const styles = StyleSheet.create({
     borderColor: '#2388FF',
   },
   dayNum: {
+    color: '#0B1F3A',
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 2,
   },
+  dayNumOutside: { color: '#8395AA' },
   events: {
     flex: 1,
   },
@@ -187,6 +191,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   moreLabel: {
+    color: '#315B82',
     fontSize: 10,
     fontWeight: '600',
   },

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import type { CalendarEvent, CalendarViewMode } from '@/types/modules/calendarEvent';
 import type { CalendarViewConfig } from '@/types/calendar';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
@@ -131,7 +131,12 @@ export function CalendarPageShell({
   const emptyMessage = config.emptyStateMessage ?? 'Für diesen Zeitraum sind keine Kalendereinträge sichtbar.';
 
   const renderCalendar = ({ selectedProfileId, onProfileDrop }: CalendarGridContentProps) => (
-    <View style={styles.wrap}>
+    <View
+      style={styles.wrap}
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { healthosCalendarRevision: 'r6' } } as object)
+        : {})}
+    >
       <CalendarToolbar
         viewMode={viewMode}
         onViewModeChange={setViewMode}
@@ -143,13 +148,17 @@ export function CalendarPageShell({
         accentColor={accent}
       />
 
-      {showCreateAction ? (
-        <CalendarCreateAction onPress={() => setCreateOpen(true)} accentColor={accent} />
-      ) : null}
-
-      {visibleTypes ? (
-        <View style={styles.legend}>
-          <CalendarFilterBar visibleTypes={visibleTypes} />
+      {showCreateAction || visibleTypes ? (
+        <View style={styles.commandBar}>
+          {showCreateAction ? (
+            <CalendarCreateAction onPress={() => setCreateOpen(true)} accentColor={accent} />
+          ) : null}
+          {visibleTypes ? (
+            <View style={styles.legend}>
+              <Text style={styles.legendTitle}>SICHTBARE EREIGNISSE</Text>
+              <CalendarFilterBar visibleTypes={visibleTypes} />
+            </View>
+          ) : null}
         </View>
       ) : null}
 
@@ -221,5 +230,18 @@ export function CalendarPageShell({
 
 const styles = StyleSheet.create({
   wrap: { flexGrow: 1, minHeight: 0, minWidth: 0 },
-  legend: { marginBottom: careSpacing.md },
+  commandBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: careSpacing.md,
+    marginBottom: careSpacing.md,
+    padding: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(118,211,255,0.24)',
+    backgroundColor: 'rgba(4,25,50,0.72)',
+  },
+  legend: { flex: 1, minWidth: 280, gap: 8 },
+  legendTitle: { color: '#7FDFFF', fontSize: 9, fontWeight: '900', letterSpacing: 1.4 },
 });
