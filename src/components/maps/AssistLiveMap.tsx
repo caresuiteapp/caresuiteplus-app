@@ -7,7 +7,7 @@ import {
   type AssistLiveRoutePoint,
   type AssistMapPosition,
 } from '@/lib/assist/assistMapProvider';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
 
 export type AssistLiveMapProps = {
   position: AssistMapPosition | null;
@@ -52,7 +52,15 @@ export function AssistLiveMap({
   if (coordinateRows.length === 0) {
     return (
       <View style={[styles.fallback, { minHeight: height }]}>
-        <Text style={styles.fallbackIcon}>🗺️</Text>
+        <View style={styles.radarVisual}>
+          <View style={styles.radarRingLarge} />
+          <View style={styles.radarRingMedium} />
+          <View style={styles.radarRingSmall} />
+          <View style={styles.radarPoint} />
+          <Text style={styles.fallbackIcon}>⌖</Text>
+        </View>
+        <Text style={styles.fallbackEyebrow}>WARTET AUF STANDORT</Text>
+        <Text style={styles.fallbackTitle}>Positionsmonitor ist bereit</Text>
         <Text style={styles.fallbackText}>{fallbackMessage}</Text>
       </View>
     );
@@ -120,11 +128,11 @@ export function AssistLiveMap({
 const styles = StyleSheet.create({
   container: { gap: spacing.xs },
   mapFrame: {
-    borderRadius: 12,
+    borderRadius: 18,
     overflow: 'hidden',
-    backgroundColor: colors.bgPanel,
+    backgroundColor: '#071A31',
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: 'rgba(103,216,255,0.34)',
   },
   mapImage: {
     width: '100%',
@@ -132,31 +140,40 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   metaRow: { gap: 2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  meta: { ...typography.caption, color: '#9BB7CD' },
   fallback: {
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.bgSurface,
+    borderColor: 'rgba(103,216,255,0.25)',
+    backgroundColor: '#06192F',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.lg,
-    gap: spacing.sm,
+    padding: 24,
+    gap: 6,
   },
-  fallbackIcon: { fontSize: 28 },
+  radarVisual: { width: 112, height: 112, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  radarRingLarge: { position: 'absolute', width: 112, height: 112, borderRadius: 56, borderWidth: 1, borderColor: 'rgba(82,218,255,0.14)' },
+  radarRingMedium: { position: 'absolute', width: 78, height: 78, borderRadius: 39, borderWidth: 1, borderColor: 'rgba(82,218,255,0.23)' },
+  radarRingSmall: { position: 'absolute', width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(82,218,255,0.34)' },
+  radarPoint: { position: 'absolute', width: 8, height: 8, borderRadius: 4, right: 23, top: 32, backgroundColor: '#52E3B1' },
+  fallbackIcon: { color: '#70E4FF', fontSize: 28, lineHeight: 32, fontWeight: '500' },
+  fallbackEyebrow: { color: '#65DCF8', fontSize: 9, lineHeight: 12, fontWeight: '900', letterSpacing: 1.5 },
+  fallbackTitle: { color: '#FFFFFF', fontSize: 17, lineHeight: 22, fontWeight: '900', textAlign: 'center', marginTop: 2 },
   fallbackText: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: '#9DB6CA',
     textAlign: 'center',
+    maxWidth: 480,
+    lineHeight: 18,
   },
   nativeHint: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: '#D7E8F5',
     marginBottom: spacing.xs,
   },
   coordLine: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: '#9DB6CA',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
 });

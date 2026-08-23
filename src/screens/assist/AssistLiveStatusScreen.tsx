@@ -16,14 +16,10 @@ import { AssistLiveMap } from '@/components/maps/AssistLiveMap';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import {
-  EmptyState,
   ErrorState,
-  InfoBanner,
   LoadingState,
-  PremiumBadge,
   PremiumButton,
   PremiumCard,
-  SectionPanel,
 } from '@/components/ui';
 import { useAssistLiveMonitoring } from '@/features/assistLive/useAssistLiveMonitoring';
 import type { AssistLiveMonitoringRow } from '@/features/assistLive/getAssistLiveMonitoring';
@@ -39,7 +35,39 @@ import {
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
 import { HealthOSStatusBadge } from '@/components/healthos';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
+
+type MetricTone = 'neutral' | 'blue' | 'cyan' | 'green' | 'orange';
+
+const METRIC_TONES: Record<MetricTone, { border: string; surface: string; accent: string }> = {
+  neutral: { border: 'rgba(166,205,236,0.26)', surface: 'rgba(10,39,70,0.76)', accent: '#D9EEFF' },
+  blue: { border: 'rgba(38,144,255,0.42)', surface: 'rgba(7,67,128,0.54)', accent: '#62B8FF' },
+  cyan: { border: 'rgba(70,220,255,0.42)', surface: 'rgba(4,83,107,0.46)', accent: '#71E8FF' },
+  green: { border: 'rgba(53,224,174,0.4)', surface: 'rgba(2,91,73,0.42)', accent: '#5CE6B8' },
+  orange: { border: 'rgba(255,178,68,0.42)', surface: 'rgba(111,63,2,0.42)', accent: '#FFBC59' },
+};
+
+function LiveMetric({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: number | string;
+  detail: string;
+  tone: MetricTone;
+}) {
+  const palette = METRIC_TONES[tone];
+  return (
+    <View style={[styles.metricCard, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+      <View style={[styles.metricDot, { backgroundColor: palette.accent }]} />
+      <Text style={[styles.metricValue, { color: palette.accent }]}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricDetail}>{detail}</Text>
+    </View>
+  );
+}
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -181,14 +209,36 @@ export function AssistLiveStatusScreen() {
   }
 
   const listPanel = (
-    <>
+    <View style={styles.commandPanel}>
+      <View style={styles.panelHeader}>
+        <View style={styles.panelTitleBlock}>
+          <Text style={styles.panelEyebrow}>EINSATZSTEUERUNG</Text>
+          <Text style={styles.panelTitle}>Heutige Einsätze</Text>
+          <Text style={styles.panelSubtitle}>Status, Zeit und Route der laufenden Tagesplanung</Text>
+        </View>
+        <View style={styles.panelCount}><Text style={styles.panelCountText}>{rows.length}</Text></View>
+      </View>
       {rows.length === 0 ? (
-        <EmptyState
-          title="Keine Einsätze heute"
-          message="Für heute sind keine Einsätze im Live-Monitor — Tracking startet im Mitarbeiterportal."
-        />
+        <View style={styles.emptyOperation}>
+          <View style={styles.radarStage}>
+            <View style={styles.radarRingLarge} />
+            <View style={styles.radarRingMedium} />
+            <View style={styles.radarRingSmall} />
+            <View style={styles.radarCore}><Text style={styles.radarCoreText}>✓</Text></View>
+          </View>
+          <View style={styles.emptyCopy}>
+            <Text style={styles.emptyTitle}>Heute ist noch kein Einsatz geplant</Text>
+            <Text style={styles.emptyMessage}>
+              Sobald ein Einsatz beginnt, erscheinen hier Mitarbeitende, Live-Zeiten, GPS-Status und Routenfortschritt.
+            </Text>
+          </View>
+          <Pressable onPress={refresh} style={({ pressed }) => [styles.refreshAction, pressed && styles.actionPressed]}>
+            <Text style={styles.refreshActionText}>Tagesplanung aktualisieren</Text>
+            <Text style={styles.refreshActionIcon}>↻</Text>
+          </Pressable>
+        </View>
       ) : (
-        rows.map((row) => {
+        <View style={styles.assignmentList}>{rows.map((row) => {
           const isSelected = row.assignmentId === (selectedAssignmentId ?? mapRow?.assignmentId);
           return (
             <Pressable
@@ -196,7 +246,10 @@ export function AssistLiveStatusScreen() {
               onPress={() => setSelectedAssignmentId(row.assignmentId)}
               accessibilityRole="button"
             >
-              <PremiumCard accentColor={row.statusColor} style={isSelected ? styles.selectedCard : undefined}>
+              <PremiumCard
+                accentColor={row.statusColor}
+                style={[styles.assignmentCard, isSelected && styles.selectedCard]}
+              >
                 <View style={styles.cardHeader}>
                   <Text style={styles.title}>{row.title}</Text>
                   <HealthOSStatusBadge domain="assignment" technicalValue={row.status} dot />
@@ -315,20 +368,31 @@ export function AssistLiveStatusScreen() {
               </PremiumCard>
             </Pressable>
           );
-        })
+        })}</View>
       )}
-    </>
+    </View>
   );
 
   const mapPanel = (
-    <SectionPanel
-      title="Kartenansicht"
-      subtitle={mapProviderReady ? 'Live-Standort während aktiver Einsätze' : 'Liste als Fallback'}
-    >
+    <View style={styles.commandPanel}>
+      <View style={styles.panelHeader}>
+        <View style={styles.panelTitleBlock}>
+          <Text style={styles.panelEyebrow}>POSITIONSMONITOR</Text>
+          <Text style={styles.panelTitle}>Live-Karte</Text>
+          <Text style={styles.panelSubtitle}>
+            {mapProviderReady ? 'Standorte und Routen aktiver Einsätze' : 'Kartendienst derzeit nicht verfügbar'}
+          </Text>
+        </View>
+        <View style={[styles.mapState, mapPosition ? styles.mapStateLive : styles.mapStateWaiting]}>
+          <View style={[styles.mapStateDot, mapPosition ? styles.mapStateDotLive : styles.mapStateDotWaiting]} />
+          <Text style={styles.mapStateText}>{mapPosition ? 'LIVE' : 'BEREIT'}</Text>
+        </View>
+      </View>
       {!mapProviderReady ? (
-        <Text style={styles.gap}>
-          Kartenansicht nicht verfügbar — Standorte werden als Liste angezeigt.
-        </Text>
+        <View style={styles.mapUnavailable}>
+          <Text style={styles.mapUnavailableIcon}>!</Text>
+          <Text style={styles.mapUnavailableText}>Standorte bleiben in der Einsatzliste sichtbar.</Text>
+        </View>
       ) : (
         <AssistLiveMap
           position={mapPosition}
@@ -339,14 +403,14 @@ export function AssistLiveStatusScreen() {
           markerLabel={mapRow?.title ?? undefined}
           demoMode={demoMapPreview && !mapRow?.tracking?.lastPosition}
           fallbackMessage={GPS_TRACKING_BACKEND_EMPTY_MESSAGE}
-          height={splitLayout ? 420 : 280}
+          height={splitLayout ? 360 : 300}
           tenantId={tenantId}
         />
       )}
       {persistenceActive && rows.length > 0 && !mapRow?.tracking?.lastPosition && !demoMapPreview ? (
         <Text style={styles.gap}>{GPS_TRACKING_BACKEND_EMPTY_MESSAGE}</Text>
       ) : null}
-    </SectionPanel>
+    </View>
   );
 
   return (
@@ -365,28 +429,67 @@ export function AssistLiveStatusScreen() {
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}
         testID="assist-live-status-scroll"
       >
-        <InfoBanner variant="info" title="Nur Anzeige" message={overview?.readOnlyNotice ?? ''} />
+        <View
+          style={styles.operationsHero}
+          {...(Platform.OS === 'web'
+            ? ({ dataSet: { healthosLiveStatusRevision: 'r7' } } as object)
+            : {})}
+        >
+          <View style={styles.operationsHeroGlow} />
+          <View style={styles.operationsHeroMain}>
+            <View style={styles.operationsIcon}><Text style={styles.operationsIconText}>◎</Text></View>
+            <View style={styles.operationsHeroCopy}>
+              <Text style={styles.operationsEyebrow}>ASSIST · OPERATIVER LEITSTAND</Text>
+              <Text style={styles.operationsTitle}>Einsätze in Echtzeit im Blick</Text>
+              <Text style={styles.operationsDescription}>
+                {overview?.readOnlyNotice ?? 'Status, Live-Zeiten und Standorte werden aus dem Mitarbeiterportal übernommen.'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.heroActions}>
+            <View style={styles.syncStatus}>
+              <View style={styles.syncDot} />
+              <View>
+                <Text style={styles.syncLabel}>MONITOR AKTIV</Text>
+                <Text style={styles.syncTime}>
+                  {overview?.generatedAt ? `Stand ${formatTime(overview.generatedAt)} Uhr` : 'Wartet auf Tagesdaten'}
+                </Text>
+              </View>
+            </View>
+            <Pressable
+              onPress={refresh}
+              accessibilityRole="button"
+              accessibilityLabel="Live-Status aktualisieren"
+              style={({ pressed }) => [styles.heroRefresh, pressed && styles.actionPressed]}
+            >
+              <Text style={styles.heroRefreshIcon}>↻</Text>
+              <Text style={styles.heroRefreshText}>Aktualisieren</Text>
+            </Pressable>
+          </View>
+        </View>
 
-        {!persistenceActive ? (
-          <InfoBanner variant="warning" title="Tracking-Persistenz" message={GPS_TRACKING_DEMO_MESSAGE} />
-        ) : null}
-
-        {error ? (
-          <InfoBanner variant="warning" title="Daten teilweise nicht verfügbar" message={error} />
+        {!persistenceActive || error ? (
+          <View style={[styles.systemNotice, error && styles.systemNoticeError]}>
+            <View style={styles.systemNoticeIcon}><Text style={styles.systemNoticeIconText}>!</Text></View>
+            <View style={styles.systemNoticeCopy}>
+              <Text style={styles.systemNoticeTitle}>{error ? 'Daten teilweise nicht verfügbar' : 'Tracking-Persistenz'}</Text>
+              <Text style={styles.systemNoticeText}>{error ?? GPS_TRACKING_DEMO_MESSAGE}</Text>
+            </View>
+          </View>
         ) : null}
 
         {overview ? (
           <View style={styles.kpiRow}>
-            <PremiumBadge label={`${overview.todayCount} Einsätze`} variant="muted" />
-            <PremiumBadge label={`${overview.runningCount} laufend`} variant="orange" />
-            <PremiumBadge label={`${overview.activeTrackingCount} Tracking aktiv`} variant="cyan" />
-            <PremiumBadge label={`${overview.freshGpsCount} GPS-Signale live`} variant="green" />
-            {mapProviderReady ? (
-              <PremiumBadge
-                label={isGoogleMapsConfigured() ? 'Google Maps aktiv' : 'Kartenansicht aktiv'}
-                variant="green"
-              />
-            ) : null}
+            <LiveMetric label="Einsätze heute" value={overview.todayCount} detail="gesamte Tagesplanung" tone="neutral" />
+            <LiveMetric label="Aktuell laufend" value={overview.runningCount} detail="Anfahrt oder Durchführung" tone="orange" />
+            <LiveMetric label="Tracking aktiv" value={overview.activeTrackingCount} detail="Mitarbeiterportal verbunden" tone="cyan" />
+            <LiveMetric label="GPS-Signale live" value={overview.freshGpsCount} detail="innerhalb des Live-Fensters" tone="green" />
+            <LiveMetric
+              label="Kartendienst"
+              value={mapProviderReady ? 'Bereit' : 'Offline'}
+              detail={isGoogleMapsConfigured() ? 'Google Maps verbunden' : 'Kartenansicht vorbereitet'}
+              tone={mapProviderReady ? 'blue' : 'neutral'}
+            />
           </View>
         ) : null}
 
@@ -425,29 +528,185 @@ const styles = StyleSheet.create({
         } as unknown as ViewStyle)
       : null),
   },
-  scroll: { paddingBottom: spacing.xxl, gap: spacing.md },
-  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  splitRow: { flexDirection: 'row', gap: spacing.lg, alignItems: 'flex-start' },
-  listColumn: { flex: 1, minWidth: 320, gap: spacing.md },
-  mapColumn: { flex: 1, minWidth: 320 },
-  selectedCard: { borderWidth: 1, borderColor: colors.cyan },
+  scroll: { paddingBottom: spacing.xxl, gap: 16 },
+  operationsHero: {
+    position: 'relative',
+    overflow: 'hidden',
+    minHeight: 134,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(102,216,255,0.4)',
+    backgroundColor: '#071F3D',
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 18,
+    shadowColor: '#31C9FF',
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+  },
+  operationsHeroGlow: {
+    position: 'absolute',
+    width: 360,
+    height: 190,
+    borderRadius: 190,
+    right: -90,
+    top: -90,
+    backgroundColor: 'rgba(35,153,226,0.16)',
+  },
+  operationsHeroMain: { flex: 1, minWidth: 320, flexDirection: 'row', alignItems: 'center', gap: 16 },
+  operationsIcon: {
+    width: 62,
+    height: 62,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(107,231,255,0.5)',
+    backgroundColor: 'rgba(25,137,197,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  operationsIconText: { color: '#79E7FF', fontSize: 34, lineHeight: 38, fontWeight: '500' },
+  operationsHeroCopy: { flex: 1, minWidth: 0, gap: 4 },
+  operationsEyebrow: { color: '#75E4FF', fontSize: 9, lineHeight: 12, fontWeight: '900', letterSpacing: 1.8 },
+  operationsTitle: { color: '#FFFFFF', fontSize: 24, lineHeight: 30, fontWeight: '900', letterSpacing: -0.3 },
+  operationsDescription: { color: '#B6CCE0', fontSize: 12, lineHeight: 18, maxWidth: 720 },
+  heroActions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
+  syncStatus: {
+    minHeight: 52,
+    paddingHorizontal: 13,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(68,225,179,0.35)',
+    backgroundColor: 'rgba(7,84,68,0.34)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  syncDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#4DE2B0', shadowColor: '#4DE2B0', shadowOpacity: 0.8, shadowRadius: 8 },
+  syncLabel: { color: '#BDF9E6', fontSize: 9, lineHeight: 12, fontWeight: '900', letterSpacing: 1.1 },
+  syncTime: { color: '#8EB7AD', fontSize: 10, lineHeight: 14, marginTop: 2 },
+  heroRefresh: {
+    minHeight: 52,
+    paddingHorizontal: 15,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(117,220,255,0.44)',
+    backgroundColor: 'rgba(12,71,116,0.7)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  heroRefreshIcon: { color: '#7BE5FF', fontSize: 20, lineHeight: 22 },
+  heroRefreshText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  actionPressed: { opacity: 0.78, transform: [{ scale: 0.985 }] },
+  systemNotice: {
+    minHeight: 68,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,185,77,0.38)',
+    backgroundColor: 'rgba(87,52,4,0.34)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  systemNoticeError: { borderColor: 'rgba(255,105,113,0.4)', backgroundColor: 'rgba(105,24,33,0.34)' },
+  systemNoticeIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: 'rgba(255,184,70,0.18)', alignItems: 'center', justifyContent: 'center' },
+  systemNoticeIconText: { color: '#FFC468', fontSize: 16, fontWeight: '900' },
+  systemNoticeCopy: { flex: 1, minWidth: 0 },
+  systemNoticeTitle: { color: '#FFFFFF', fontSize: 13, lineHeight: 17, fontWeight: '900' },
+  systemNoticeText: { color: '#C9D7E5', fontSize: 11, lineHeight: 17, marginTop: 2 },
+  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  metricCard: {
+    flex: 1,
+    minWidth: 165,
+    minHeight: 106,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    position: 'relative',
+  },
+  metricDot: { position: 'absolute', top: 14, right: 14, width: 8, height: 8, borderRadius: 4 },
+  metricValue: { fontSize: 23, lineHeight: 28, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  metricLabel: { color: '#FFFFFF', fontSize: 12, lineHeight: 16, fontWeight: '900', marginTop: 4 },
+  metricDetail: { color: '#93ADC4', fontSize: 9, lineHeight: 13, marginTop: 3 },
+  splitRow: { flexDirection: 'row', gap: 16, alignItems: 'stretch' },
+  listColumn: { flex: 1, minWidth: 360 },
+  mapColumn: { flex: 1, minWidth: 360 },
+  commandPanel: {
+    flex: 1,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(121,213,255,0.34)',
+    backgroundColor: 'rgba(5,28,55,0.94)',
+    padding: 16,
+    gap: 14,
+    overflow: 'hidden',
+  },
+  panelHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 57 },
+  panelTitleBlock: { flex: 1, minWidth: 0 },
+  panelEyebrow: { color: '#6DDFFF', fontSize: 9, lineHeight: 12, fontWeight: '900', letterSpacing: 1.5 },
+  panelTitle: { color: '#FFFFFF', fontSize: 19, lineHeight: 24, fontWeight: '900', marginTop: 2 },
+  panelSubtitle: { color: '#91ADC5', fontSize: 10, lineHeight: 14, marginTop: 2 },
+  panelCount: { minWidth: 34, height: 34, borderRadius: 12, backgroundColor: 'rgba(44,164,224,0.18)', borderWidth: 1, borderColor: 'rgba(102,220,255,0.34)', alignItems: 'center', justifyContent: 'center' },
+  panelCountText: { color: '#7DE6FF', fontSize: 13, fontWeight: '900' },
+  assignmentList: { gap: 10 },
+  assignmentCard: { backgroundColor: '#F7FBFF', borderColor: '#C9E2F6' },
+  selectedCard: { borderWidth: 2, borderColor: '#1DA7EA', backgroundColor: '#EFF9FF' },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-  title: { ...typography.bodyStrong, flex: 1 },
-  meta: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
-  trackingBlock: { marginTop: spacing.sm, gap: 2 },
-  trackingLine: { ...typography.caption, color: colors.textSecondary },
+  title: { ...typography.bodyStrong, color: '#0A223D', flex: 1, fontSize: 15, lineHeight: 20 },
+  meta: { ...typography.caption, color: '#526B83', marginTop: spacing.xs },
+  trackingBlock: { marginTop: spacing.sm, gap: 3 },
+  trackingLine: { ...typography.caption, color: '#39546D' },
   timerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.xs },
-  timerCell: { minWidth: 150, flex: 1, padding: spacing.sm, borderRadius: 10, backgroundColor: 'rgba(15, 23, 42, 0.06)' },
-  timerLabel: { ...typography.caption, color: colors.textMuted, fontSize: 10, textTransform: 'uppercase', fontWeight: '800' },
-  timerValue: { ...typography.bodyStrong, color: colors.textPrimary, fontSize: 12, marginTop: 3, fontVariant: ['tabular-nums'] },
+  timerCell: { minWidth: 145, flex: 1, padding: spacing.sm, borderRadius: 12, borderWidth: 1, borderColor: '#D8E8F5', backgroundColor: '#EDF5FC' },
+  timerLabel: { ...typography.caption, color: '#607A92', fontSize: 9, textTransform: 'uppercase', fontWeight: '900', letterSpacing: 0.7 },
+  timerValue: { ...typography.bodyStrong, color: '#0A223D', fontSize: 12, marginTop: 3, fontVariant: ['tabular-nums'] },
   routeMetrics: { marginTop: spacing.sm, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  routeMetricPrimary: { minWidth: 150, flex: 1, padding: spacing.sm, borderRadius: 10, borderWidth: 1, borderColor: colors.cyan, backgroundColor: 'rgba(11, 99, 243, 0.08)' },
-  routeMetric: { minWidth: 105, flex: 1, padding: spacing.sm, borderRadius: 10, backgroundColor: 'rgba(15, 23, 42, 0.05)' },
-  routeMetricLabel: { ...typography.caption, color: colors.textMuted, fontSize: 10, fontWeight: '800' },
-  routeMetricValue: { ...typography.bodyStrong, color: colors.cyan, fontSize: 17, marginTop: 2, fontVariant: ['tabular-nums'] },
-  routeMetricSmall: { ...typography.bodyStrong, color: colors.textPrimary, fontSize: 13, marginTop: 2, fontVariant: ['tabular-nums'] },
-  routeMeta: { ...typography.caption, width: '100%', color: colors.textMuted, marginTop: 2 },
-  warning: { ...typography.caption, color: colors.amber, marginTop: spacing.xs },
-  liveSignal: { color: colors.success, fontWeight: '700' },
-  gap: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
+  routeMetricPrimary: { minWidth: 145, flex: 1, padding: spacing.sm, borderRadius: 12, borderWidth: 1, borderColor: '#4BB9ED', backgroundColor: '#E5F6FF' },
+  routeMetric: { minWidth: 105, flex: 1, padding: spacing.sm, borderRadius: 12, backgroundColor: '#EDF5FC' },
+  routeMetricLabel: { ...typography.caption, color: '#607A92', fontSize: 9, fontWeight: '900' },
+  routeMetricValue: { ...typography.bodyStrong, color: '#087DC1', fontSize: 17, marginTop: 2, fontVariant: ['tabular-nums'] },
+  routeMetricSmall: { ...typography.bodyStrong, color: '#0A223D', fontSize: 13, marginTop: 2, fontVariant: ['tabular-nums'] },
+  routeMeta: { ...typography.caption, width: '100%', color: '#607A92', marginTop: 2 },
+  warning: { ...typography.caption, color: '#B76500', marginTop: spacing.xs, fontWeight: '700' },
+  liveSignal: { color: '#008B68', fontWeight: '900' },
+  emptyOperation: {
+    flex: 1,
+    minHeight: 360,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: 'rgba(112,202,244,0.18)',
+    backgroundColor: 'rgba(2,17,36,0.62)',
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  radarStage: { width: 112, height: 112, alignItems: 'center', justifyContent: 'center' },
+  radarRingLarge: { position: 'absolute', width: 112, height: 112, borderRadius: 56, borderWidth: 1, borderColor: 'rgba(93,221,255,0.15)' },
+  radarRingMedium: { position: 'absolute', width: 80, height: 80, borderRadius: 40, borderWidth: 1, borderColor: 'rgba(93,221,255,0.23)' },
+  radarRingSmall: { position: 'absolute', width: 50, height: 50, borderRadius: 25, borderWidth: 1, borderColor: 'rgba(93,221,255,0.34)' },
+  radarCore: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#117EC1', borderWidth: 1, borderColor: '#73E2FF', alignItems: 'center', justifyContent: 'center', shadowColor: '#4FD9FF', shadowOpacity: 0.55, shadowRadius: 13 },
+  radarCoreText: { color: '#FFFFFF', fontSize: 18, fontWeight: '900' },
+  emptyCopy: { alignItems: 'center', maxWidth: 500, gap: 6 },
+  emptyTitle: { color: '#FFFFFF', fontSize: 18, lineHeight: 23, fontWeight: '900', textAlign: 'center' },
+  emptyMessage: { color: '#9EB7CB', fontSize: 12, lineHeight: 18, textAlign: 'center' },
+  refreshAction: { minHeight: 44, paddingHorizontal: 16, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(100,219,255,0.42)', backgroundColor: 'rgba(13,91,145,0.64)', flexDirection: 'row', alignItems: 'center', gap: 9 },
+  refreshActionText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  refreshActionIcon: { color: '#83E8FF', fontSize: 17 },
+  mapState: { height: 32, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  mapStateLive: { borderColor: 'rgba(67,225,179,0.38)', backgroundColor: 'rgba(5,100,77,0.36)' },
+  mapStateWaiting: { borderColor: 'rgba(104,211,255,0.32)', backgroundColor: 'rgba(9,71,108,0.42)' },
+  mapStateDot: { width: 7, height: 7, borderRadius: 4 },
+  mapStateDotLive: { backgroundColor: '#4BE1AE' },
+  mapStateDotWaiting: { backgroundColor: '#72DFFF' },
+  mapStateText: { color: '#DDF8FF', fontSize: 9, fontWeight: '900', letterSpacing: 0.9 },
+  mapUnavailable: { minHeight: 300, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,185,77,0.3)', backgroundColor: 'rgba(83,52,8,0.28)', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 20 },
+  mapUnavailableIcon: { color: '#FFC15B', fontSize: 22, fontWeight: '900' },
+  mapUnavailableText: { color: '#CBD8E4', fontSize: 12, textAlign: 'center' },
+  gap: { ...typography.caption, color: '#9BB4C9', marginTop: spacing.sm },
 });

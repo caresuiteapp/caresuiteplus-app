@@ -12,7 +12,7 @@ import {
   getGoogleMapsBrowserKey,
   isGoogleMapsBrowserKeyConfiguredSync,
 } from '@/lib/maps/getGoogleMapsBrowserKey';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
 
 export type AssistLiveMapProps = {
   position: AssistMapPosition | null;
@@ -66,7 +66,16 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
   if (!hasMapData) {
     return (
       <View style={[styles.fallback, { minHeight: height }]}>
-        <Text style={styles.fallbackIcon}>🗺️</Text>
+        <View style={styles.radarVisual}>
+          <View style={styles.radarRingLarge} />
+          <View style={styles.radarRingMedium} />
+          <View style={styles.radarRingSmall} />
+          <View style={styles.radarSweep} />
+          <View style={styles.radarPoint} />
+          <Text style={styles.fallbackIcon}>⌖</Text>
+        </View>
+        <Text style={styles.fallbackEyebrow}>WARTET AUF STANDORT</Text>
+        <Text style={styles.fallbackTitle}>Positionsmonitor ist bereit</Text>
         <Text style={styles.fallbackText}>{fallbackMessage}</Text>
       </View>
     );
@@ -93,7 +102,15 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
   if (!position || !embedUrl) {
     return (
       <View style={[styles.fallback, { minHeight: height }]}>
-        <Text style={styles.fallbackIcon}>🗺️</Text>
+        <View style={styles.radarVisual}>
+          <View style={styles.radarRingLarge} />
+          <View style={styles.radarRingMedium} />
+          <View style={styles.radarRingSmall} />
+          <View style={styles.radarPoint} />
+          <Text style={styles.fallbackIcon}>⌖</Text>
+        </View>
+        <Text style={styles.fallbackEyebrow}>KARTENANSICHT</Text>
+        <Text style={styles.fallbackTitle}>Noch kein Live-Signal</Text>
         <Text style={styles.fallbackText}>
           {mapsConfigured
             ? 'Interaktive Karte nur im Browser verfügbar.'
@@ -136,28 +153,40 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
 const styles = StyleSheet.create({
   container: { gap: spacing.xs },
   mapFrame: {
-    borderRadius: 12,
+    borderRadius: 18,
     overflow: 'hidden',
-    backgroundColor: colors.bgPanel,
+    backgroundColor: '#071A31',
     borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderColor: 'rgba(103,216,255,0.34)',
   },
   metaRow: { gap: 2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  meta: { ...typography.caption, color: '#9BB7CD' },
   fallback: {
-    borderRadius: 12,
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.bgSurface,
+    borderColor: 'rgba(103,216,255,0.25)',
+    backgroundColor: '#06192F',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.lg,
-    gap: spacing.sm,
+    padding: 24,
+    gap: 6,
   },
-  fallbackIcon: { fontSize: 28 },
+  radarVisual: { width: 118, height: 118, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  radarRingLarge: { position: 'absolute', width: 118, height: 118, borderRadius: 59, borderWidth: 1, borderColor: 'rgba(82,218,255,0.14)' },
+  radarRingMedium: { position: 'absolute', width: 82, height: 82, borderRadius: 41, borderWidth: 1, borderColor: 'rgba(82,218,255,0.23)' },
+  radarRingSmall: { position: 'absolute', width: 46, height: 46, borderRadius: 23, borderWidth: 1, borderColor: 'rgba(82,218,255,0.34)' },
+  radarSweep: { position: 'absolute', width: 56, height: 1, left: 59, top: 59, backgroundColor: 'rgba(92,225,255,0.55)', transform: [{ rotate: '-28deg' }] },
+  radarPoint: { position: 'absolute', width: 8, height: 8, borderRadius: 4, right: 24, top: 34, backgroundColor: '#52E3B1', shadowColor: '#52E3B1', shadowOpacity: 0.9, shadowRadius: 9 },
+  fallbackIcon: { color: '#70E4FF', fontSize: 28, lineHeight: 32, fontWeight: '500' },
+  fallbackEyebrow: { color: '#65DCF8', fontSize: 9, lineHeight: 12, fontWeight: '900', letterSpacing: 1.5 },
+  fallbackTitle: { color: '#FFFFFF', fontSize: 17, lineHeight: 22, fontWeight: '900', textAlign: 'center', marginTop: 2 },
   fallbackText: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: '#9DB6CA',
     textAlign: 'center',
+    maxWidth: 480,
+    lineHeight: 18,
   },
 });
