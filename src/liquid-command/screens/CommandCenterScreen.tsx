@@ -1281,11 +1281,11 @@ export function CommandCenterScreen() {
       favoriteGridUnitCount,
   );
   const favoritesHeight = compact
-    ? 240
-    : Math.min(440, Math.max(360, height * 0.42));
+    ? 252
+    : Math.min(470, Math.max(390, height * 0.45));
   const favoriteItemHeight = compact
-    ? 70
-    : Math.max(108, Math.min(142, (favoritesHeight - 140) / 2));
+    ? 76
+    : Math.max(124, Math.min(158, (favoritesHeight - 128) / 2));
   const favoritesMinimumTop = compact ? 108 : 198;
   const favoritesMaximumTop = Math.max(
     favoritesMinimumTop,
@@ -2131,7 +2131,10 @@ export function CommandCenterScreen() {
         <View
           {...(Platform.OS === "web"
             ? ({
-                dataSet: { healthosWorkspaceRevision: "r5-1" },
+                dataSet: {
+                  healthosWorkspaceRevision: "r5-1",
+                  healthosResponsiveArtworkRevision: "r9",
+                },
               } as object)
             : {})}
           style={[
@@ -3587,10 +3590,10 @@ const styles = StyleSheet.create({
   favoriteSlotDragging: { opacity: 0.42, borderColor: "#72DEFF" },
   favoriteImageStage: {
     position: "absolute",
-    top: 5,
-    left: 6,
-    right: 6,
-    bottom: 42,
+    top: 0,
+    left: 2,
+    right: 2,
+    bottom: 34,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
