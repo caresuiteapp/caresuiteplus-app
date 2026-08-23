@@ -142,7 +142,9 @@ describe('Payroll und WFM verwenden einen gemeinsamen aktuellen Datenstand', () 
 
   it('queues a new refresh when a realtime event arrives during an active request', () => {
     expect(asyncQueryHook).toContain('refreshQueuedRef.current = true');
-    expect(asyncQueryHook).toContain('while (refreshQueuedRef.current)');
+    expect(asyncQueryHook).toContain('const runTrailingRefresh = refreshQueuedRef.current');
+    expect(asyncQueryHook).toContain('queueMicrotask');
+    expect(asyncQueryHook).not.toContain('while (refreshQueuedRef.current)');
   });
 
   it('ignores stale pending reviews that were created for future assignments', () => {

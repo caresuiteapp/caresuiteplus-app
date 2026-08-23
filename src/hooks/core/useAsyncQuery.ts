@@ -42,28 +42,26 @@ export function useAsyncQuery<T>(
       }
 
       try {
-        do {
-          refreshQueuedRef.current = false;
-          const result = await withServiceQueryTimeout(fetcher());
-          if (result.ok) {
-            dataRef.current = result.data;
-            setDataState(result.data);
-            const previewResult = result as {
-              previewData?: boolean;
-              usedDemoFallback?: boolean;
-              tableMissing?: boolean;
-            };
-            setPreviewData(Boolean(previewResult.previewData || previewResult.usedDemoFallback));
-            setTableMissing(Boolean(previewResult.tableMissing));
-            setError(null);
-            options?.onSuccess?.();
-          } else if (dataRef.current === null) {
-            setDataState(null);
-            setPreviewData(false);
-            setTableMissing(false);
-            setError(result.error);
-          }
-        } while (refreshQueuedRef.current);
+        refreshQueuedRef.current = false;
+        const result = await withServiceQueryTimeout(fetcher());
+        if (result.ok) {
+          dataRef.current = result.data;
+          setDataState(result.data);
+          const previewResult = result as {
+            previewData?: boolean;
+            usedDemoFallback?: boolean;
+            tableMissing?: boolean;
+          };
+          setPreviewData(Boolean(previewResult.previewData || previewResult.usedDemoFallback));
+          setTableMissing(Boolean(previewResult.tableMissing));
+          setError(null);
+          options?.onSuccess?.();
+        } else if (dataRef.current === null) {
+          setDataState(null);
+          setPreviewData(false);
+          setTableMissing(false);
+          setError(result.error);
+        }
       } catch (cause) {
         if (dataRef.current === null) {
           setDataState(null);
@@ -74,9 +72,16 @@ export function useAsyncQuery<T>(
           );
         }
       } finally {
+        const runTrailingRefresh = refreshQueuedRef.current;
+        refreshQueuedRef.current = false;
         requestInFlightRef.current = false;
         if (!silent && isInitialLoad) {
           setLoading(false);
+        }
+        if (runTrailingRefresh) {
+          queueMicrotask(() => {
+            void load(true);
+          });
         }
       }
     },

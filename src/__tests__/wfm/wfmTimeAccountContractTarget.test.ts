@@ -64,7 +64,9 @@ describe('WFM contract-backed time accounts', () => {
     const screen = readFileSync('src/screens/office/PayrollMonthOverviewScreen.tsx', 'utf8');
     expect(screen).toContain('formatPayrollBalanceMinutes(employee.timeAccountBalanceMinutes)');
     expect(screen).not.toContain('Zeitkonto + <Text');
-    expect(screen).toContain("feedback.showLoading('Arbeitszeit, Zeitkonto und Abrechnung werden aktualisiert…')");
+    expect(screen).not.toContain("feedback.showLoading('Arbeitszeit, Zeitkonto und Abrechnung werden aktualisiert…')");
+    expect(screen).toContain("healthosPayrollRevision: 'r8'");
+    expect(screen).toContain('QUERY_TIMEOUT_MS = 30_000');
     expect(screen).toContain('query.refreshing');
     expect(screen).toContain("feedback.showLoading(`${employee.employeeName}: Abrechnung und PDF werden erstellt…`)");
   });
