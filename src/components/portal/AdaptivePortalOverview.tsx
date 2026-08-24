@@ -99,6 +99,21 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
     );
   }
 
+  // The canonical client home must never depend on module-assignment timing.
+  // Direct post-login navigation always lands here without a section. Render
+  // the current personal premium dashboard before evaluating legacy module
+  // branches so a delayed or non-Assist primary module cannot expose the old
+  // generic card dashboard immediately after authentication.
+  if (!routeSection) {
+    return (
+      <AssistPortalOverview
+        context={context}
+        showSuccess={showSuccess}
+        onRefresh={handleRefresh}
+      />
+    );
+  }
+
   if (context.primaryModule === 'assist') {
     if (routeSection) {
       const featureKey = ASSIST_PORTAL_SECTIONS[routeSection];

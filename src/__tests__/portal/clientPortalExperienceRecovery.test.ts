@@ -12,9 +12,20 @@ function readSrc(relativePath: string): string {
 describe('client portal experience recovery', () => {
   it('uses the personal client overview instead of the generic route card dashboard', () => {
     const route = readSrc('app/portal/client/(tabs)/index.tsx');
+    const overview = readSrc('src/components/portal/AdaptivePortalOverview.tsx');
     expect(route).toContain('AdaptivePortalOverview');
     expect(route).toContain('hideHeaderOnPhone');
     expect(route).not.toContain('PortalHomeScreen');
+    expect(overview).toContain('if (!routeSection)');
+    expect(overview.indexOf('if (!routeSection)')).toBeLessThan(
+      overview.indexOf("if (context.primaryModule === 'assist')"),
+    );
+    expect(
+      overview.slice(
+        overview.indexOf('if (!routeSection)'),
+        overview.indexOf("if (context.primaryModule === 'assist')"),
+      ),
+    ).toContain('<AssistPortalOverview');
   });
 
   it('opens the complete document list from the mobile dashboard', () => {
