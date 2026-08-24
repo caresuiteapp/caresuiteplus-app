@@ -30,7 +30,10 @@ describe('Office Klient:innen und Arbeitszeit R5', () => {
     expect(shell).toContain('Gehaltsstatistik und Monatsabschluss öffnen');
     expect(shell).toContain("overflow: 'hidden'");
     expect(shell).toContain("csWfmSurface: 'light'");
-    expect(shell).not.toContain('nestedScrollEnabled');
+    expect(shell).toContain('testID="office-time-workspace-scroll"');
+    expect(shell).toContain('contentContainerStyle={styles.workspaceScrollContent}');
+    expect(shell).toContain('nestedScrollEnabled');
+    expect(shell).toContain("overflowY: 'auto'");
   });
 
   it('zeigt die vollständige monatliche Prüfkette und alle Hauptaktionen', () => {

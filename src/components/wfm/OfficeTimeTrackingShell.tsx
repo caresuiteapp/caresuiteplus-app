@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type ViewStyle,
   useWindowDimensions,
 } from 'react-native';
 import { moduleColor } from '@/design/tokens/modules';
@@ -159,9 +160,18 @@ export function OfficeTimeTrackingShell() {
 
       <View style={styles.content}>
         <View style={styles.workspace}>
-          <SurfaceContrastProvider tone="light">
-            <Slot />
-          </SurfaceContrastProvider>
+          <ScrollView
+            testID="office-time-workspace-scroll"
+            style={styles.workspaceScroll}
+            contentContainerStyle={styles.workspaceScrollContent}
+            showsVerticalScrollIndicator
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+          >
+            <SurfaceContrastProvider tone="light">
+              <Slot />
+            </SurfaceContrastProvider>
+          </ScrollView>
         </View>
       </View>
     </View>
@@ -364,6 +374,23 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: 'transparent',
     padding: careSpacing.sm,
+  },
+  workspaceScroll: {
+    flex: 1,
+    minHeight: 0,
+    width: '100%',
+    ...(Platform.OS === 'web'
+      ? ({
+          overflowY: 'auto' as const,
+          overflowX: 'hidden' as const,
+          overscrollBehavior: 'contain' as const,
+          scrollbarGutter: 'stable' as const,
+        } as unknown as ViewStyle)
+      : null),
+  },
+  workspaceScrollContent: {
+    flexGrow: 1,
+    paddingBottom: careSpacing.lg,
   },
   workspace: {
     flex: 1,
