@@ -44,8 +44,9 @@ describe('Command Center responsive Widget-Artworks R9', () => {
 
   it('zeigt die Artworks ohne Cover-Cropping und mit vergrößerter Bühne', () => {
     expect(screenSource).toContain('healthosResponsiveArtworkRevision: "r9"');
+    expect(screenSource).toContain('healthosVisualDensityRevision: "r10-calm"');
     expect(screenSource).toContain('resizeMode="contain"');
     expect(screenSource).toContain('Math.max(124, Math.min(158');
-    expect(screenSource).toContain('bottom: 34');
+    expect(screenSource).toContain('bottom: 38');
   });
 });

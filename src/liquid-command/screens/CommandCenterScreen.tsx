@@ -724,7 +724,7 @@ function DockWidget({
   const translateY = Animated.add(
     entrance.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }),
     Animated.add(
-      float.interpolate({ inputRange: [0, 1], outputRange: [1, -3] }),
+      float.interpolate({ inputRange: [0, 1], outputRange: [0, 0] }),
       interaction.interpolate({
         inputRange: [0, 1],
         outputRange: [0, compact ? -7 : -18],
@@ -803,7 +803,10 @@ function DockWidget({
         <Image
           resizeMode="contain"
           source={widget.images.small}
-          style={styles.widgetImage}
+          style={[
+            styles.widgetImage,
+            !compact && !hovered && styles.widgetImageIdle,
+          ]}
         />
       </Pressable>
     </Animated.View>
@@ -1042,7 +1045,6 @@ function FavoriteWidgetSlot({
               )}
             </View>
             <View pointerEvents="none" style={styles.favoriteLabelBar}>
-              <View style={styles.favoriteLabelDot} />
               <Text numberOfLines={1} style={styles.favoriteLabelText}>
                 {label}
               </Text>
@@ -1055,7 +1057,10 @@ function FavoriteWidgetSlot({
                 event.stopPropagation();
                 onRemove();
               }}
-              style={styles.favoriteRemove}
+              style={[
+                styles.favoriteRemove,
+                !compact && !hovered && styles.favoriteRemoveIdle,
+              ]}
             >
               <Text style={styles.favoriteRemoveText}>×</Text>
             </Pressable>
@@ -1273,8 +1278,8 @@ export function CommandCenterScreen() {
       }, 0),
   );
   const favoriteGridUnitCount = Math.max(1, ...favoriteRowUnitCounts);
-  const favoriteGridGap = compact ? 8 : 14;
-  const favoriteGridInset = compact ? 8 : 20;
+  const favoriteGridGap = compact ? 8 : 16;
+  const favoriteGridInset = compact ? 8 : 24;
   const favoriteGridUnitWidth = Math.max(
     compact ? 54 : 76,
     (favoritesWidth - favoriteGridInset * 2 - favoriteGridGap * 4) /
@@ -2134,6 +2139,7 @@ export function CommandCenterScreen() {
                 dataSet: {
                   healthosWorkspaceRevision: "r5-1",
                   healthosResponsiveArtworkRevision: "r9",
+                  healthosVisualDensityRevision: "r10-calm",
                 },
               } as object)
             : {})}
@@ -3362,15 +3368,15 @@ const styles = StyleSheet.create({
     paddingBottom: 18,
     borderRadius: 34,
     borderWidth: 1,
-    borderColor: "rgba(139,220,255,0.34)",
-    backgroundColor: "rgba(2,15,35,0.5)",
+    borderColor: "rgba(139,220,255,0.26)",
+    backgroundColor: "rgba(2,15,35,0.58)",
     shadowColor: "#35C8FF",
-    shadowOpacity: 0.24,
-    shadowRadius: 34,
+    shadowOpacity: 0.16,
+    shadowRadius: 26,
     shadowOffset: { width: 0, height: 18 },
     overflow: "visible",
     ...(Platform.OS === "web"
-      ? ({ backdropFilter: "blur(26px) saturate(1.22)" } as const)
+      ? ({ backdropFilter: "blur(26px) saturate(1.08)" } as const)
       : null),
   },
   favoritesPanelCompact: {
@@ -3533,7 +3539,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     width: "100%",
-    gap: 14,
+    gap: 16,
   },
   favoriteRow: {
     flex: 1,
@@ -3542,7 +3548,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 14,
+    gap: 16,
     overflow: "visible",
   },
   favoriteSlot: {
@@ -3566,17 +3572,17 @@ const styles = StyleSheet.create({
   favoriteSlotCompact: { borderRadius: 13 },
   favoriteSlotFilled: {
     borderStyle: "solid",
-    borderColor: "rgba(143,220,255,0.48)",
-    backgroundColor: "rgba(3,14,31,0.86)",
+    borderColor: "rgba(143,220,255,0.3)",
+    backgroundColor: "rgba(3,14,31,0.8)",
   },
   favoriteSlotHovered: {
-    borderColor: "rgba(150,234,255,0.92)",
-    backgroundColor: "rgba(6,27,54,0.96)",
+    borderColor: "rgba(150,234,255,0.72)",
+    backgroundColor: "rgba(6,27,54,0.92)",
     shadowColor: "#50D8FF",
-    shadowOpacity: 0.72,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 14 },
-    transform: [{ translateY: -5 }, { scale: 1.015 }],
+    shadowOpacity: 0.38,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 9 },
+    transform: [{ translateY: -2 }, { scale: 1.006 }],
   },
   favoriteSlotDropTarget: {
     borderStyle: "solid",
@@ -3590,15 +3596,20 @@ const styles = StyleSheet.create({
   favoriteSlotDragging: { opacity: 0.42, borderColor: "#72DEFF" },
   favoriteImageStage: {
     position: "absolute",
-    top: 0,
-    left: 2,
-    right: 2,
-    bottom: 34,
+    top: 6,
+    left: 12,
+    right: 12,
+    bottom: 38,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
-  favoriteImage: { width: "100%", height: "100%", borderRadius: 18 },
+  favoriteImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 18,
+    opacity: 0.94,
+  },
   favoriteFolderPreview: {
     width: "100%",
     height: "100%",
@@ -3662,6 +3673,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 9,
   },
+  favoriteRemoveIdle: { opacity: 0.16 },
   favoriteRemoveText: {
     color: "#DDF5FF",
     fontSize: 15,
@@ -3693,42 +3705,33 @@ const styles = StyleSheet.create({
   },
   favoriteLabelBar: {
     position: "absolute",
-    left: 8,
-    right: 8,
-    bottom: 8,
-    minHeight: 32,
-    paddingHorizontal: 11,
-    borderRadius: 16,
+    left: 10,
+    right: 10,
+    bottom: 7,
+    minHeight: 28,
+    paddingHorizontal: 9,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(141,220,255,0.28)",
-    backgroundColor: "rgba(1,12,28,0.88)",
+    borderColor: "rgba(141,220,255,0.18)",
+    backgroundColor: "rgba(1,12,28,0.76)",
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
+    gap: 5,
     ...(Platform.OS === "web"
       ? ({ backdropFilter: "blur(12px) saturate(1.16)" } as const)
       : null),
-  },
-  favoriteLabelDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: "#61DCC5",
-    shadowColor: "#61DCC5",
-    shadowOpacity: 0.8,
-    shadowRadius: 5,
   },
   favoriteLabelText: {
     minWidth: 0,
     flex: 1,
     color: "#F2FBFF",
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 15,
     fontWeight: "900",
     letterSpacing: 0.15,
   },
   favoriteLabelArrow: {
-    color: "#78DFFF",
+    color: "rgba(120,223,255,0.68)",
     fontSize: 11,
     lineHeight: 14,
     fontWeight: "900",
@@ -3829,7 +3832,8 @@ const styles = StyleSheet.create({
   },
   widgetDragging: { opacity: 0.4, borderColor: "#72DEFF" },
   widgetPressed: { opacity: 0.84 },
-  widgetImage: { width: "100%", height: "100%" },
+  widgetImage: { width: "92%", height: "92%" },
+  widgetImageIdle: { opacity: 0.76 },
   widgetGlow: {
     position: "absolute",
     top: -3,

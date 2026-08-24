@@ -9,7 +9,7 @@ const source = readFileSync(
   "utf8",
 ).replace(/\r\n/g, "\n");
 
-describe("HealthOS command center workspace harmony R5.1", () => {
+describe("HealthOS command center workspace harmony R5.1 bis R10", () => {
   it("gives the desktop page a clear premium heading hierarchy", () => {
     expect(source).toContain('healthosWorkspaceRevision: "r5-1"');
     expect(source).toContain("HEALTHOS WORKSPACE");
@@ -30,16 +30,16 @@ describe("HealthOS command center workspace harmony R5.1", () => {
     expect(source).not.toContain('justifyContent: "space-evenly"');
   });
 
-  it("separates every image surface from a permanently readable label", () => {
+  it("separates every image surface from a calm permanently readable label", () => {
     expect(source).toContain("styles.favoriteImageStage");
     expect(source).toContain("styles.favoriteLabelBar");
-    expect(source).toContain("styles.favoriteLabelDot");
+    expect(source).not.toContain("styles.favoriteLabelDot");
     expect(source).toContain("styles.favoriteLabelArrow");
-    expect(source).toMatch(/favoriteLabelBar:\s*\{[\s\S]*?minHeight:\s*32/);
-    expect(source).toMatch(/favoriteLabelText:\s*\{[\s\S]*?fontSize:\s*12/);
+    expect(source).toMatch(/favoriteLabelBar:\s*\{[\s\S]*?minHeight:\s*28/);
+    expect(source).toMatch(/favoriteLabelText:\s*\{[\s\S]*?fontSize:\s*11/);
     expect(source).toContain("occupied && hovered && styles.favoriteSlotHovered");
     expect(source).toContain("Widget hinzufügen");
-    expect(source).toMatch(/favoriteSlotHovered:\s*\{[\s\S]*?translateY:\s*-5/);
+    expect(source).toMatch(/favoriteSlotHovered:\s*\{[\s\S]*?translateY:\s*-2/);
   });
 
   it("reduces the dock dominance so it supports the workspace", () => {
