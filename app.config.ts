@@ -59,7 +59,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     package: 'app.caresuiteplus',
     versionCode: 10,
-    permissions: ['INTERNET', 'CAMERA', 'RECORD_AUDIO'],
+    permissions: [
+      'INTERNET',
+      'CAMERA',
+      'RECORD_AUDIO',
+      'ACCESS_COARSE_LOCATION',
+      'ACCESS_FINE_LOCATION',
+      'ACCESS_BACKGROUND_LOCATION',
+      'FOREGROUND_SERVICE',
+      'FOREGROUND_SERVICE_LOCATION',
+    ],
   },
   web: {
     bundler: 'metro',
@@ -93,7 +102,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       'expo-location',
       {
         locationWhenInUsePermission:
-          'CareSuite+ benötigt Ihren Standort für Einsatz- und Fahrtenverfolgung (Funktion in Vorbereitung).',
+          'CareSuite benötigt Ihren Standort für aktive Einsatz- und Fahrtenbuchaufzeichnungen.',
+        locationAlwaysAndWhenInUsePermission:
+          'CareSuite benötigt den Standort, um eine von Ihnen gestartete dienstliche Fahrt auch im Hintergrund vollständig zu erfassen.',
+        isAndroidBackgroundLocationEnabled: true,
+        isAndroidForegroundServiceEnabled: true,
         isIosBackgroundLocationEnabled: false,
       },
     ],

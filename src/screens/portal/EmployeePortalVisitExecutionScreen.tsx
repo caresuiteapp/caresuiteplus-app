@@ -17,6 +17,7 @@ import { WorkflowToast } from '@/components/ui/WorkflowToast';
 import {
   EmployeePortalVisitBottomBar,
   EmployeePortalVisitCompletionPanel,
+  EmployeePortalReturnTripModal,
   EmployeePortalVisitDocumentationPanel,
   type EmployeePortalVisitDocumentationPanelHandle,
   EmployeePortalVisitDocumentationAiModal,
@@ -70,6 +71,8 @@ import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { employeePortalExecutionSurface } from '@/lib/portal/employeePortalExecutionSurface';
+import { fetchPortalAppointments } from '@/lib/portal/appointmentService';
+import { isLastScheduledEmployeeAssignmentOfDay } from '@/lib/portal/employeePortalReturnTrip';
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -190,6 +193,9 @@ export function EmployeePortalVisitExecutionScreen() {
   const [aiHelpStandaloneOpen, setAiHelpStandaloneOpen] = useState(false);
   const lastConfirmedStatusRef = useRef<AssignmentStatus | null>(null);
   const signatureConfirmationRefreshRef = useRef(refresh);
+  const sawIncompleteExecutionRef = useRef(false);
+  const returnTripPromptHandledRef = useRef(false);
+  const [returnTripModalOpen, setReturnTripModalOpen] = useState(false);
 
   const assistVisitId = executionContext?.assistVisitId ?? null;
   const visitTasks = useMemo(
@@ -293,6 +299,61 @@ export function EmployeePortalVisitExecutionScreen() {
       isLocked: Boolean(isLocked),
     });
   }, [visit, effectiveStatus, uiState, isLocked]);
+
+  useEffect(() => {
+    if (!visit) return;
+    if (phase !== 'completed' || effectiveStatus !== 'abgeschlossen') {
+      sawIncompleteExecutionRef.current = true;
+      return;
+    }
+    if (!sawIncompleteExecutionRef.current || returnTripPromptHandledRef.current) return;
+    if (!portalTenantId || !portalEmployeeId) return;
+
+    returnTripPromptHandledRef.current = true;
+    let cancelled = false;
+    const profileId = profile?.id ?? user?.id ?? portalEmployeeId;
+    const roleKey = profile?.roleKey ?? 'employee_portal';
+    void fetchPortalAppointments(profileId, roleKey, {
+      tenantId: portalTenantId,
+      employeeId: portalEmployeeId,
+    })
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.ok) {
+          setLocalWarning(
+            'Der Einsatz ist abgeschlossen. Die Rückfahrtfrage konnte wegen einer Verbindungsstörung nicht geöffnet werden; die Fahrt kann weiterhin direkt im Fahrtenbuch gestartet werden.',
+          );
+          return;
+        }
+        if (
+          isLastScheduledEmployeeAssignmentOfDay({
+            assignmentId: visit.assignmentId,
+            plannedStartAt: visit.plannedStartAt,
+            appointments: result.data,
+          })
+        ) {
+          setReturnTripModalOpen(true);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLocalWarning(
+          'Der Einsatz ist abgeschlossen. Die Rückfahrtfrage konnte wegen einer Verbindungsstörung nicht geöffnet werden; die Fahrt kann weiterhin direkt im Fahrtenbuch gestartet werden.',
+        );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    visit,
+    phase,
+    effectiveStatus,
+    portalTenantId,
+    portalEmployeeId,
+    profile?.id,
+    profile?.roleKey,
+    user?.id,
+  ]);
 
   useEffect(() => {
     const previous = lastConfirmedStatusRef.current;
@@ -1362,6 +1423,19 @@ export function EmployeePortalVisitExecutionScreen() {
           setDocumentationOpen(true);
         }}
       />
+
+      {portalTenantId && portalEmployeeId ? (
+        <EmployeePortalReturnTripModal
+          visible={returnTripModalOpen}
+          tenantId={portalTenantId}
+          employeeId={portalEmployeeId}
+          assignmentId={visit.assignmentId}
+          clientId={visit.clientId}
+          clientName={visit.clientName}
+          startAddress={visit.locationAddress}
+          onClose={() => setReturnTripModalOpen(false)}
+        />
+      ) : null}
 
       {moreOpen ? (
         <EmployeePortalVisitMoreMenu

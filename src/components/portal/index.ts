@@ -37,6 +37,7 @@ export { EmployeePortalVisitBottomBar } from './EmployeePortalVisitBottomBar';
 export { EmployeePortalVisitFabMenu } from './EmployeePortalVisitFabMenu';
 export { EmployeePortalVisitCompletionPanel } from './EmployeePortalVisitCompletionPanel';
 export { EmployeePortalVisitSummaryPanel } from './EmployeePortalVisitSummaryPanel';
+export { EmployeePortalReturnTripModal } from './EmployeePortalReturnTripModal';
 export { EmployeePortalVisitDocumentationAiModal } from './EmployeePortalVisitDocumentationAiModal';
 export { EmployeePortalVisitPhotoModal } from './EmployeePortalVisitPhotoModal';
 export { EmployeePortalVisitVoiceNoteModal } from './EmployeePortalVisitVoiceNoteModal';
