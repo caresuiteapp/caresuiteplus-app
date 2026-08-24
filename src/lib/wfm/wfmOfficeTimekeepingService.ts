@@ -55,8 +55,6 @@ import { isWfmAbsenceCoveringDate } from './wfmDisplayHelpers';
 import {
   applyReviewToEntry,
   buildReferenceKeyFromEntry,
-  ensurePendingReviewForEntry,
-  getReviewByReferenceKey,
   isOpenReviewStatus,
   listReviewActionsForReviews,
   listReviewsForPeriod,
@@ -67,7 +65,6 @@ import {
   resolveReferenceRawId,
   transitionReviewStatus,
   upsertReview,
-  WFM_REVIEW_SYSTEM_ACTOR,
   type WfmTimeEntryReview,
   type WfmTimeReviewStatus,
 } from './wfmTimeReviewService';
@@ -568,29 +565,6 @@ export async function getWfmOfficeTimeOverview(
   }));
 
   const joined = joinOfficeTimekeepingData(plannedVisits, enrichedActual, employeeNames);
-
-  for (const entry of joined) {
-    if (entry.flags.includes('auto_booked_from_assignment_actual')) {
-      const referenceKey = buildReferenceKeyFromEntry(tenantId, entry);
-      const existing = await getReviewByReferenceKey(tenantId, referenceKey);
-      if (!existing.ok || existing.data?.reviewStatus !== 'approved') {
-        await transitionReviewStatus(tenantId, WFM_REVIEW_SYSTEM_ACTOR, {
-          entryId: entry.id,
-          employeeId: entry.employeeId,
-          workDate: entry.workDate,
-          entryKind: resolveEntryKindFromOfficeEntry(entry),
-          rawReferenceId: resolveReferenceRawId(entry) ?? entry.id,
-          nextStatus: 'approved',
-          reviewNote: 'Automatisch aus vollständigem Einsatz-Ist innerhalb der 5-Minuten-Toleranz gebucht.',
-          officeComment: 'Automatische Arbeitszeitbuchung aus Einsatz-Ist.',
-          actorId: WFM_REVIEW_SYSTEM_ACTOR,
-          actionComment: 'Automatische Freigabe: vollständige grüne Einsatz-Ist-Zeiten.',
-        });
-      }
-      continue;
-    }
-    await ensurePendingReviewForEntry(tenantId, WFM_REVIEW_SYSTEM_ACTOR, entry);
-  }
 
   const reviewsResult = await listReviewsForPeriod(tenantId, period.fromDate, period.toDate);
   const reviewMap = new Map<string, WfmTimeEntryReview>();

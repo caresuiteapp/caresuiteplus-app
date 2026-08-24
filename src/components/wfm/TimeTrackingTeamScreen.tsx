@@ -46,6 +46,10 @@ function formatDays(days: number | null): string {
   return `${days.toLocaleString('de-DE', { maximumFractionDigits: 1 })} T.`;
 }
 
+function formatDecimal(value: number): string {
+  return value.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+}
+
 export function WfmZeitkontenScreen() {
   const tenantId = useServiceTenantId();
   const router = useRouter();
@@ -263,10 +267,10 @@ export function WfmZeitkontenScreen() {
 
   const kpiItems = [
     { key: 'employees', label: 'MA', value: String(accountKpis.employees), accent },
-    { key: 'plan', label: 'Plan (Std.)', value: String(accountKpis.plannedHours) },
-    { key: 'ist', label: 'Ist (Std.)', value: String(accountKpis.actualHours) },
-    { key: 'approved', label: 'Genehmigt', value: String(accountKpis.approvedHours) },
-    { key: 'exported', label: 'Exportiert', value: String(accountKpis.exportedHours) },
+    { key: 'plan', label: 'Geplant (Std.)', value: formatDecimal(accountKpis.plannedHours) },
+    { key: 'ist', label: 'Ist (Std.)', value: formatDecimal(accountKpis.actualHours) },
+    { key: 'approved', label: 'Genehmigt (Std.)', value: formatDecimal(accountKpis.approvedHours) },
+    { key: 'exported', label: 'Exportiert (Std.)', value: formatDecimal(accountKpis.exportedHours) },
     { key: 'open', label: 'Offene Prüfungen', value: String(accountKpis.openReviews) },
   ];
 

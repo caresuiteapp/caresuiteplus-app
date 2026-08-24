@@ -139,7 +139,7 @@ describe('ZEIT.2 TimeTrackingTeamScreen UI contract', () => {
     const nav = readSrc('src/lib/navigation/officeTimeTrackingNav.ts');
     expect(nav).toContain("key: 'export'");
     const exportScreen = readSrc('src/components/wfm/WfmExportScreen.tsx');
-    expect(exportScreen).toContain('createWfmExportJob');
+    expect(exportScreen).toContain('Alt-Export gesperrt');
     expect(exportScreen).toContain('testID="wfm-export-screen"');
     expect(exportScreen).not.toContain('buildWfmPdfStub');
   });
@@ -147,9 +147,9 @@ describe('ZEIT.2 TimeTrackingTeamScreen UI contract', () => {
   it('export tab renders stable shell and disables actions without session context', () => {
     const exportScreen = readSrc('src/components/wfm/WfmExportScreen.tsx');
     expect(exportScreen).toContain('Arbeitszeit-Export');
-    expect(exportScreen).toContain('CSV exportieren');
+    expect(exportScreen).toContain('Export vorbereiten');
     expect(exportScreen).toContain('exportReady');
-    expect(exportScreen).toContain('disabled={loading || !exportReady}');
+    expect(exportScreen).toContain('!exportReady');
     expect(exportScreen).toContain('Sitzung wird geladen');
   });
 
@@ -175,8 +175,8 @@ describe('ZEIT.2 TimeTrackingTeamScreen UI contract', () => {
     expect(exportScreen).toContain('Blockierte Einträge');
     expect(exportScreen).toContain('Export-Historie');
     expect(exportScreen).toContain('Kein Export-Entwurf');
-    expect(exportScreen).toContain('Legacy-Export');
-    expect(exportScreen).toContain('createWfmExportJob');
+    expect(exportScreen).toContain('Alt-Export gesperrt');
+    expect(exportScreen).not.toContain('createWfmExportJob');
   });
 
   it('export service produces CSV without crashing on empty month', async () => {

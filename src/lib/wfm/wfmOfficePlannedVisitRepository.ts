@@ -7,7 +7,6 @@ import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supaba
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
 import type { VisitDispositionListItem } from '@/lib/assist/visitTypes';
-import { isPayrollRelevantEmployee } from '@/lib/payroll/payrollEmployeeStatus';
 import { resolveAssignmentActualTimes } from './wfmAssignmentActualResolver';
 
 const CANCELLED_STATUSES = new Set(['cancelled', 'storniert', 'no_show', 'nicht_erschienen']);
@@ -217,7 +216,7 @@ export async function fetchActiveEmployeeIds(tenantId: string): Promise<ServiceR
   return {
     ok: true,
     data: (data ?? [])
-      .filter((row) => isPayrollRelevantEmployee(row as { status?: unknown }))
+      .filter((row) => String((row as { status?: unknown }).status ?? '').trim().toLowerCase() === 'active')
       .map((row) => (row as { id: string }).id),
   };
 }

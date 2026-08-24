@@ -19,6 +19,14 @@ type ActiveTrackingRow = {
   recorded_at: string | null;
 };
 
+const LIVE_TRACKING_FRESHNESS_MS = 15 * 60 * 1000;
+
+function isFreshLiveTimestamp(value: string | null | undefined, now = Date.now()): boolean {
+  if (!value) return false;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && now - timestamp >= 0 && now - timestamp <= LIVE_TRACKING_FRESHNESS_MS;
+}
+
 async function fetchActiveAssistTrackingRows(
   tenantId: string,
 ): Promise<ActiveTrackingRow[]> {
@@ -36,22 +44,45 @@ async function fetchActiveAssistTrackingRows(
     return [];
   }
 
-  const rows: ActiveTrackingRow[] = [];
-  for (const session of sessions as {
+  const typedSessions = sessions as {
     employee_id: string | null;
     visit_id: string;
     started_at: string;
-  }[]) {
-    if (!session.employee_id) continue;
-
-    const { data: point } = await supabase
+  }[];
+  const visitIds = [...new Set(typedSessions.map((session) => session.visit_id))];
+  const cutoff = new Date(Date.now() - LIVE_TRACKING_FRESHNESS_MS).toISOString();
+  const { data: points, error: pointsError } = await supabase
       .from('assist_location_points')
-      .select('latitude, longitude, recorded_at')
+      .select('visit_id, latitude, longitude, recorded_at')
       .eq('tenant_id', tenantId)
-      .eq('visit_id', session.visit_id)
-      .order('recorded_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .in('visit_id', visitIds)
+      .gte('recorded_at', cutoff)
+      .order('recorded_at', { ascending: false });
+
+  if (pointsError) {
+    console.warn('[getOfficeLiveEmployees] points:', toGermanSupabaseError(pointsError));
+  }
+
+  const latestPointByVisit = new Map<string, {
+    latitude: number | null;
+    longitude: number | null;
+    recorded_at: string | null;
+  }>();
+  for (const point of (points ?? []) as {
+    visit_id: string;
+    latitude: number | null;
+    longitude: number | null;
+    recorded_at: string | null;
+  }[]) {
+    if (!latestPointByVisit.has(point.visit_id)) latestPointByVisit.set(point.visit_id, point);
+  }
+
+  const rows: ActiveTrackingRow[] = [];
+  for (const session of typedSessions) {
+    if (!session.employee_id) continue;
+    const point = latestPointByVisit.get(session.visit_id);
+    const liveAt = point?.recorded_at ?? session.started_at;
+    if (!isFreshLiveTimestamp(liveAt)) continue;
 
     rows.push({
       employee_id: session.employee_id,

@@ -46,7 +46,9 @@ describe('Office Arbeitszeit V32.7 Design, Struktur und Funktionen', () => {
     expect(detail).not.toContain('onDarkSurface={false}');
     expect(dataTable).toContain('color: text.primary');
     expect(dataTable).toContain('backgroundColor: active');
-    expect(button).toContain("variant === 'primary' || lightSurface");
+    expect(button).toContain('const ORBIT_VARIANT');
+    expect(button).toContain("secondary: {");
+    expect(button).toContain("label: '#075DBF'");
   });
 
   it('loads only the valid live employee enum and hides the form on load errors', () => {

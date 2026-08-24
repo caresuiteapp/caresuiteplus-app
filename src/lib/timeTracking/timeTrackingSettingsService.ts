@@ -8,6 +8,7 @@ import type {
 } from '@/types/modules/timeTracking';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { getServiceMode } from '@/lib/services/mode';
 import {
   getSettings,
   listActivityTypes,
@@ -84,6 +85,9 @@ export function updateTimeTrackingSettings(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
+  if (getServiceMode() === 'supabase') {
+    return { ok: false, error: 'Produktive Arbeitszeit-Einstellungen sind bis zur serverseitigen Persistenz schreibgeschützt.' };
+  }
 
   const base = ensureTimeTrackingSettings(tenantId, actorRoleKey);
   if (!base.ok) return base;
@@ -133,6 +137,9 @@ export function upsertActivityType(
 ): ServiceResult<ActivityType> {
   const denied = enforcePermission<ActivityType>(actorRoleKey, 'time.settings.manage');
   if (denied) return denied;
+  if (getServiceMode() === 'supabase') {
+    return { ok: false, error: 'Produktive Tätigkeitsarten sind bis zur serverseitigen Persistenz schreibgeschützt.' };
+  }
 
   const item: ActivityType = {
     id: input.id ?? nextTimeTrackingId('at'),
@@ -154,6 +161,9 @@ export function upsertWorkOrganization(
 ): ServiceResult<WorkOrganization> {
   const denied = enforcePermission<WorkOrganization>(actorRoleKey, 'time.settings.manage');
   if (denied) return denied;
+  if (getServiceMode() === 'supabase') {
+    return { ok: false, error: 'Produktive Organisationseinheiten sind bis zur serverseitigen Persistenz schreibgeschützt.' };
+  }
 
   const item: WorkOrganization = {
     id: input.id ?? nextTimeTrackingId('org'),
@@ -174,6 +184,9 @@ export function upsertCostCenter(
 ): ServiceResult<CostCenter> {
   const denied = enforcePermission<CostCenter>(actorRoleKey, 'time.settings.manage');
   if (denied) return denied;
+  if (getServiceMode() === 'supabase') {
+    return { ok: false, error: 'Produktive Kostenstellen sind bis zur serverseitigen Persistenz schreibgeschützt.' };
+  }
 
   const item: CostCenter = {
     id: input.id ?? nextTimeTrackingId('cc'),
@@ -195,6 +208,9 @@ export function upsertProject(
 ): ServiceResult<WorkProject> {
   const denied = enforcePermission<WorkProject>(actorRoleKey, 'time.settings.manage');
   if (denied) return denied;
+  if (getServiceMode() === 'supabase') {
+    return { ok: false, error: 'Produktive Projekte sind bis zur serverseitigen Persistenz schreibgeschützt.' };
+  }
 
   const item: WorkProject = {
     id: input.id ?? nextTimeTrackingId('prj'),

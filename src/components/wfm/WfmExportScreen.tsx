@@ -16,8 +16,6 @@ import { triggerCsvDownload } from '@/lib/csv/csvDownload';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { createWfmExportJob, type WfmExportFormat } from '@/lib/wfm/wfmExportService';
-import { getWfmOfficeExportWarnings } from '@/lib/wfm/wfmOfficeTimekeepingService';
 import {
   buildInternalCsv,
   createExportDraft,
@@ -140,13 +138,6 @@ export function WfmExportScreen() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
 
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [lastPreview, setLastPreview] = useState<string | null>(null);
-  const [lastFormat, setLastFormat] = useState<WfmExportFormat>('csv');
-  const [exportWarnings, setExportWarnings] = useState<string[]>([]);
-
   const [p22Loading, setP22Loading] = useState(false);
   const [p22Error, setP22Error] = useState<string | null>(null);
   const [p22Message, setP22Message] = useState<string | null>(null);
@@ -255,40 +246,6 @@ export function WfmExportScreen() {
     setP22Error(null);
     setP22Message(null);
   }, [year, month]);
-
-  const runExport = async (format: WfmExportFormat) => {
-    if (!exportReady || !tenantId) return;
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-    setExportWarnings([]);
-
-    const warnResult = await getWfmOfficeExportWarnings(tenantId, roleKey, 'this_month');
-    if (warnResult.ok && warnResult.data.warnings.length) {
-      setExportWarnings(warnResult.data.warnings);
-    }
-
-    const result = await createWfmExportJob(tenantId, userId, roleKey, year, month, format);
-    setLoading(false);
-
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-
-    setLastPreview(result.data.content);
-    setLastFormat(format);
-    triggerWebFileDownload(result.data.content, result.data.mimeType, result.data.fileName);
-
-    const formatLabels: Record<WfmExportFormat, string> = {
-      csv: 'CSV',
-      pdf: 'PDF',
-      datev: 'DATEV',
-    };
-    setMessage(
-      `${formatLabels[format]}-Export erstellt: ${result.data.rowCount} Datensätze (Prüfsumme ${result.data.checksum}).`,
-    );
-  };
 
   const handlePrepareExport = async () => {
     if (!exportReady || !tenantId) return;
@@ -844,73 +801,11 @@ export function WfmExportScreen() {
         </SectionPanel>
         </View>
 
-        <SectionPanel title="Legacy-Export" subtitle="CSV, PDF und DATEV für Lohnbuchhaltung">
-          <SectionPanel title="Zeitraum">
-            <View style={styles.periodRow}>
-              <PremiumButton
-                title="◀ Monat"
-                variant="ghost"
-                onPress={() => {
-                  if (month === 1) {
-                    setMonth(12);
-                    setYear((y) => y - 1);
-                  } else {
-                    setMonth((m) => m - 1);
-                  }
-                }}
-              />
-              <PremiumButton
-                title="Monat ▶"
-                variant="ghost"
-                onPress={() => {
-                  if (month === 12) {
-                    setMonth(1);
-                    setYear((y) => y + 1);
-                  } else {
-                    setMonth((m) => m + 1);
-                  }
-                }}
-              />
-            </View>
-          </SectionPanel>
-
-          <SectionPanel title="Export starten">
-            {loading ? <LoadingState message="Export wird erstellt…" /> : null}
-            {exportWarnings.map((w) => (
-              <InfoBanner key={w} variant="warning" message={w} />
-            ))}
-            <PremiumButton
-              title="CSV exportieren"
-              testID="wfm-export-csv"
-              onPress={() => void runExport('csv')}
-              disabled={loading || !exportReady}
-            />
-            <PremiumButton
-              title="PDF exportieren"
-              variant="secondary"
-              onPress={() => void runExport('pdf')}
-              disabled={loading || !exportReady}
-            />
-            <PremiumButton
-              title="DATEV LOHN exportieren"
-              variant="secondary"
-              onPress={() => void runExport('datev')}
-              disabled={loading || !exportReady}
-            />
-          </SectionPanel>
-
-          {lastPreview ? (
-            <SectionPanel title="Export-Vorschau" subtitle={`Format: ${lastFormat.toUpperCase()}`}>
-              <Text style={styles.preview} numberOfLines={12}>
-                {lastFormat === 'pdf' && lastPreview.startsWith('data:')
-                  ? '[PDF-Datei erzeugt — Download im Browser verfügbar]'
-                  : lastPreview.split('\n').slice(0, 8).join('\n')}
-              </Text>
-            </SectionPanel>
-          ) : null}
-
-          {message ? <SuccessState title="Erfolg" message={message} /> : null}
-          {error ? <ErrorState title="Fehler" message={error} onRetry={() => setError(null)} /> : null}
+        <SectionPanel title="Alt-Export gesperrt" subtitle="Keine ungeprüften Rohdaten an die Lohnbuchhaltung">
+          <InfoBanner
+            variant="warning"
+            message="Der frühere CSV/PDF/DATEV-Sitzungsexport ist aus Sicherheitsgründen deaktiviert. Verwenden Sie ausschließlich den geprüften und finalisierten P2.2/P2.3-Export oberhalb."
+          />
         </SectionPanel>
       </View>
     </ScreenShell>

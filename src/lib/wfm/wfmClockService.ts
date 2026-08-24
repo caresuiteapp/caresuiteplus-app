@@ -7,8 +7,10 @@ import type {
 } from '@/types/modules/wfm';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { getServiceMode } from '@/lib/services/mode';
 import { getWfmWorkType } from './wfmWorkTypes';
 import {
+  applyWfmClockActionRpc,
   fetchSessionEvents,
   fetchTodaySession,
   insertTimeEvent,
@@ -17,6 +19,7 @@ import {
   todayWorkDate,
   updateWorkSession,
 } from './wfmWorkSessionRepository';
+import { deriveWfmTimelineTotals } from './wfmTimeline';
 
 const DISPLAY_STATUS_LABELS: Record<string, string> = {
   im_einsatz: 'Im Einsatz',
@@ -113,13 +116,25 @@ export async function getWfmTodayStatus(
     events = eventsResult.data;
   }
 
+  const totals = session
+    ? deriveWfmTimelineTotals(events, { session })
+    : { grossMinutes: 0, pauseMinutes: 0, netMinutes: 0, blockCount: 0 };
+  const liveSession = session
+    ? {
+        ...session,
+        grossMinutes: totals.grossMinutes,
+        pauseMinutes: totals.pauseMinutes,
+        netMinutes: totals.netMinutes,
+      }
+    : null;
+
   return {
     ok: true,
     data: {
-      session,
+      session: liveSession,
       events,
-      statusLabel: formatWfmStatusLabel(session),
-      blockCount: events.length,
+      statusLabel: formatWfmStatusLabel(liveSession),
+      blockCount: totals.blockCount,
     },
   };
 }
@@ -157,12 +172,28 @@ export async function wfmClockIn(
   const existing = existingResult.data;
   const sessionId = existing?.id ?? newUuid();
 
+  if (getServiceMode() === 'supabase') {
+    const applied = await applyWfmClockActionRpc({
+      tenantId,
+      employeeId,
+      action: 'clock_in',
+      workMode: workType.workMode,
+      sessionStatus: workType.sessionStatus,
+      displayStatus: workType.displayStatus,
+      eventType: workType.startEventType,
+      source,
+      occurredAt: now,
+    });
+    if (!applied.ok) return applied;
+    return getWfmTodayStatus(tenantId, userId, actorRoleKey, { employeeId, source });
+  }
+
   if (existing) {
     const updateResult = await updateWorkSession(existing.id, {
       status: workType.sessionStatus,
       workMode: workType.workMode,
       displayStatus: workType.displayStatus,
-      startedAt: now,
+      startedAt: existing.startedAt ?? now,
       endedAt: null,
       lastEventAt: now,
       isOnline: true,
@@ -225,6 +256,25 @@ export async function wfmPause(
   const now = new Date().toISOString();
   const source = options?.source ?? 'portal';
 
+  if (getServiceMode() === 'supabase') {
+    const applied = await applyWfmClockActionRpc({
+      tenantId,
+      employeeId: employeeResult.data,
+      action: 'pause',
+      workMode: session.workMode,
+      sessionStatus: 'paused',
+      displayStatus: 'pause',
+      eventType: 'pause_start',
+      source,
+      occurredAt: now,
+    });
+    if (!applied.ok) return applied;
+    return getWfmTodayStatus(tenantId, userId, actorRoleKey, {
+      employeeId: employeeResult.data,
+      source,
+    });
+  }
+
   const updateResult = await updateWorkSession(session.id, {
     status: 'paused',
     displayStatus: 'pause',
@@ -273,9 +323,36 @@ export async function wfmResume(
 
   const now = new Date().toISOString();
   const source = options?.source ?? 'portal';
+  const resumedStatus = workModeToSessionStatus(session.workMode);
+  const resumedDisplay = session.workMode === 'homeoffice'
+    ? 'homeoffice'
+    : session.workMode === 'field'
+      ? 'im_einsatz'
+      : session.workMode === 'travel'
+        ? 'unterwegs'
+        : 'buero';
+
+  if (getServiceMode() === 'supabase') {
+    const applied = await applyWfmClockActionRpc({
+      tenantId,
+      employeeId: employeeResult.data,
+      action: 'resume',
+      workMode: session.workMode,
+      sessionStatus: resumedStatus,
+      displayStatus: resumedDisplay,
+      eventType: 'pause_end',
+      source,
+      occurredAt: now,
+    });
+    if (!applied.ok) return applied;
+    return getWfmTodayStatus(tenantId, userId, actorRoleKey, {
+      employeeId: employeeResult.data,
+      source,
+    });
+  }
   const updateResult = await updateWorkSession(session.id, {
-    status: workModeToSessionStatus(session.workMode),
-    displayStatus: session.displayStatus === 'pause' ? 'buero' : session.displayStatus,
+    status: resumedStatus,
+    displayStatus: resumedDisplay,
     lastEventAt: now,
   });
   if (!updateResult.ok) return updateResult;
@@ -328,6 +405,25 @@ export async function wfmSwitchWorkType(
   const now = new Date().toISOString();
   const source = options?.source ?? 'portal';
 
+  if (getServiceMode() === 'supabase') {
+    const applied = await applyWfmClockActionRpc({
+      tenantId,
+      employeeId: employeeResult.data,
+      action: 'switch',
+      workMode: workType.workMode,
+      sessionStatus: workType.sessionStatus,
+      displayStatus: workType.displayStatus,
+      eventType: workType.startEventType,
+      source,
+      occurredAt: now,
+    });
+    if (!applied.ok) return applied;
+    return getWfmTodayStatus(tenantId, userId, actorRoleKey, {
+      employeeId: employeeResult.data,
+      source,
+    });
+  }
+
   const updateResult = await updateWorkSession(session.id, {
     status: workType.sessionStatus,
     workMode: workType.workMode,
@@ -377,19 +473,25 @@ export async function wfmClockOut(
 
   const now = new Date().toISOString();
   const source = options?.source ?? 'portal';
-  const startedAt = session.startedAt ? Date.parse(session.startedAt) : Date.parse(now);
-  const grossMinutes = Math.max(0, Math.round((Date.parse(now) - startedAt) / 60000));
 
-  const updateResult = await updateWorkSession(session.id, {
-    status: 'ended',
-    displayStatus: 'feierabend',
-    endedAt: now,
-    lastEventAt: now,
-    isOnline: false,
-    grossMinutes,
-    netMinutes: Math.max(0, grossMinutes - session.pauseMinutes),
-  });
-  if (!updateResult.ok) return updateResult;
+  if (getServiceMode() === 'supabase') {
+    const applied = await applyWfmClockActionRpc({
+      tenantId,
+      employeeId: employeeResult.data,
+      action: 'clock_out',
+      workMode: session.workMode,
+      sessionStatus: 'ended',
+      displayStatus: 'feierabend',
+      eventType: 'clock_out',
+      source,
+      occurredAt: now,
+    });
+    if (!applied.ok) return applied;
+    return getWfmTodayStatus(tenantId, userId, actorRoleKey, {
+      employeeId: employeeResult.data,
+      source,
+    });
+  }
 
   const eventResult = await insertTimeEvent({
     id: newUuid(),
@@ -404,6 +506,25 @@ export async function wfmClockOut(
     occurredAt: now,
   });
   if (!eventResult.ok) return eventResult;
+
+  const eventsResult = await fetchSessionEvents(tenantId, session.id);
+  if (!eventsResult.ok) return eventsResult;
+  const totals = deriveWfmTimelineTotals(eventsResult.data, {
+    nowIso: now,
+    session: { ...session, status: 'ended', endedAt: now },
+  });
+
+  const updateResult = await updateWorkSession(session.id, {
+    status: 'ended',
+    displayStatus: 'feierabend',
+    endedAt: now,
+    lastEventAt: now,
+    isOnline: false,
+    grossMinutes: totals.grossMinutes,
+    pauseMinutes: totals.pauseMinutes,
+    netMinutes: totals.netMinutes,
+  });
+  if (!updateResult.ok) return updateResult;
 
   return getWfmTodayStatus(tenantId, userId, actorRoleKey, {
     employeeId: employeeResult.data,
