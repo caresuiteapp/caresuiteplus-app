@@ -78,7 +78,7 @@ describe('WFM Offene Prüfungen table hotfix contract', () => {
     expect(dataTableSrc).toContain('fixedLayout');
     expect(dataTableSrc).toContain('solidSurface');
     expect(dataTableSrc).toContain('flexShrink: 0');
-    expect(dataTableSrc).toContain('overflow: \'hidden\'');
+    expect(dataTableSrc).toContain('overflow: "hidden"');
   });
 
   it('stacked Einsatz-Ist lines avoid truncated Dauer Einsat labels', () => {

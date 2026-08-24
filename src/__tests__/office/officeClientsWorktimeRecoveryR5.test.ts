@@ -8,11 +8,11 @@ describe('Office Klient:innen und Arbeitszeit R5', () => {
     const card = read('src/components/office/ClientListCard.tsx');
     const table = read('src/components/office/ClientsListTable.tsx');
 
-    expect(card).toContain("color: '#0B2342'");
-    expect(card).toContain("color: '#31597F'");
+    expect(card).toContain('color: careSuiteAuroraTheme.text.primary');
+    expect(card).toContain('color: careSuiteAuroraTheme.text.secondary');
     expect(card).toContain('styles.factValue');
     expect(card).not.toContain('useTableTextStyles');
-    expect(table).toContain("color: '#173B61'");
+    expect(table).toContain('color: SYSTEM_LIQUID_COLORS.navy');
   });
 
   it('öffnet Arbeitszeit standardmäßig als Zeitkonto- und Gehaltsvorbereitung', () => {
@@ -29,8 +29,8 @@ describe('Office Klient:innen und Arbeitszeit R5', () => {
     expect(shell).toContain('OFFICE_TIME_TRACKING_TABS.map');
     expect(shell).toContain('Gehaltsstatistik und Monatsabschluss öffnen');
     expect(shell).toContain("overflow: 'hidden'");
-    expect(shell).toContain('showsVerticalScrollIndicator');
-    expect(shell).toContain('contentContainerStyle={styles.workspaceScrollContent}');
+    expect(shell).toContain("csWfmSurface: 'light'");
+    expect(shell).not.toContain('nestedScrollEnabled');
   });
 
   it('zeigt die vollständige monatliche Prüfkette und alle Hauptaktionen', () => {

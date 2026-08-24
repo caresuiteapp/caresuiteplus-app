@@ -361,6 +361,40 @@ export async function insertTimeEvent(
   return { ok: true, data: mapEventRow(data as EventRow) };
 }
 
+export type WfmClockAction = 'clock_in' | 'pause' | 'resume' | 'switch' | 'clock_out';
+
+export async function applyWfmClockActionRpc(input: {
+  tenantId: string;
+  employeeId: string;
+  action: WfmClockAction;
+  workMode: WfmWorkMode;
+  sessionStatus: WfmSessionStatus;
+  displayStatus: WfmDisplayStatus;
+  eventType: WfmEventType;
+  source: WfmEventSource;
+  occurredAt: string;
+}): Promise<ServiceResult<true>> {
+  if (getServiceMode() !== 'supabase') return { ok: true, data: true };
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { error } = await supabase.rpc('wfm_apply_clock_action' as never, {
+    p_tenant_id: input.tenantId,
+    p_employee_id: input.employeeId,
+    p_action: input.action,
+    p_work_mode: input.workMode,
+    p_session_status: input.sessionStatus,
+    p_display_status: input.displayStatus,
+    p_event_type: input.eventType,
+    p_source: input.source,
+    p_occurred_at: input.occurredAt,
+  } as never);
+
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  return { ok: true, data: true };
+}
+
 /**
  * Resolve auth.users.id for workforce_work_sessions.user_id.
  * Never returns employees.id — FK targets auth.users only.

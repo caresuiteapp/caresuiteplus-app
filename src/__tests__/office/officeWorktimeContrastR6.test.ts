@@ -29,12 +29,13 @@ describe('Office Arbeitszeit Kontrast R6', () => {
     const tabs = read('src/components/ui/SegmentedTabs.tsx');
     const button = read('src/components/ui/PremiumButton.tsx');
 
-    expect(section).toContain("const forceLightSurface = surfaceTone === 'light'");
+    expect(section).toContain('const forceLightSurface = !onDarkSurface && surfaceTone === "light"');
     expect(section).toContain('lightSurfaceText.primary');
-    expect(input).toContain("surfaceTone === 'light'");
-    expect(filter).toContain("surfaceTone === 'light'");
+    expect(input).toContain('surfaceTone === "light"');
+    expect(filter).toContain('surfaceTone === "light"');
     expect(tabs).toContain("surfaceTone === 'light'");
-    expect(button).toContain("surfaceTone === 'light' || !onDarkSurface");
+    expect(button).toContain("label: '#075DBF'");
+    expect(button).toContain("label: '#334155'");
   });
 
   it('verwendet für Zeit-, Prüf- und Detailtabellen ausschließlich die lesbare Office-Palette', () => {

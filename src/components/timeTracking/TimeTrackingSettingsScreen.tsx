@@ -6,6 +6,7 @@ import { ScreenShell } from '@/components/layout';
 import { AuroraSegmentedControl } from '@/components/aurora';
 import {
   ErrorState,
+  InfoBanner,
   LoadingState,
   PremiumButton,
   SectionPanel,
@@ -27,6 +28,7 @@ import {
 } from '@/lib/timeTracking';
 import { WfmCheckinQrPanel } from '@/components/wfm/WfmCheckinQrPanel';
 import { typography } from '@/theme';
+import { getServiceMode } from '@/lib/services/mode';
 
 type SettingsTab = 'general' | 'activities' | 'organizations' | 'cost_centers' | 'projects';
 
@@ -51,6 +53,7 @@ export function TimeTrackingSettingsScreen() {
   const [message, setMessage] = useState<string | null>(null);
 
   const canManage = can('time.settings.manage');
+  const productiveSettingsLocked = getServiceMode() === 'supabase';
 
   const settingsQuery = useAsyncQuery(
     useCallback(async () => {
@@ -107,6 +110,13 @@ export function TimeTrackingSettingsScreen() {
         </Text>
       </SectionPanel>
 
+      {productiveSettingsLocked ? (
+        <InfoBanner
+          variant="warning"
+          message="Die älteren Katalog- und Integrationsschalter werden noch nicht serverseitig gespeichert und sind deshalb in Produktion schreibgeschützt. QR-Check-in und die geprüften WFM-Funktionen bleiben verfügbar."
+        />
+      ) : null}
+
       <AuroraSegmentedControl options={TABS} value={tab} onChange={(key) => setTab(key as SettingsTab)} />
 
       {tab === 'general' ? (
@@ -124,6 +134,7 @@ export function TimeTrackingSettingsScreen() {
           <PremiumButton
             title="Microsoft-Metadaten aktivieren"
             variant="secondary"
+            disabled={productiveSettingsLocked}
             onPress={() => {
               updateTimeTrackingSettings(tenantId!, roleKey, { integrationMicrosoft: true });
               setMessage('Microsoft-Integration (Metadaten) aktiviert.');
@@ -147,6 +158,7 @@ export function TimeTrackingSettingsScreen() {
           <PremiumButton
             title="Beispiel-Tätigkeit hinzufügen"
             variant="secondary"
+            disabled={productiveSettingsLocked}
             onPress={() => {
               upsertActivityType(tenantId!, roleKey, {
                 code: `TA${Date.now() % 1000}`,
@@ -169,6 +181,7 @@ export function TimeTrackingSettingsScreen() {
           <PremiumButton
             title="Organisation hinzufügen"
             variant="secondary"
+            disabled={productiveSettingsLocked}
             onPress={() => {
               upsertWorkOrganization(tenantId!, roleKey, {
                 code: `ORG${Date.now() % 100}`,
@@ -190,6 +203,7 @@ export function TimeTrackingSettingsScreen() {
           <PremiumButton
             title="Kostenstelle hinzufügen"
             variant="secondary"
+            disabled={productiveSettingsLocked}
             onPress={() => {
               upsertCostCenter(tenantId!, roleKey, {
                 code: `KS${Date.now() % 100}`,

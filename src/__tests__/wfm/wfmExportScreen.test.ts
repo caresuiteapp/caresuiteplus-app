@@ -53,12 +53,12 @@ describe('WfmExportScreen P2.2 UI contract', () => {
     expect(exportScreen).toContain('handleDownloadInternalCsv');
   });
 
-  it('keeps legacy csv pdf datev export section visible', () => {
-    expect(exportScreen).toContain('Legacy-Export');
-    expect(exportScreen).toContain('createWfmExportJob');
-    expect(exportScreen).toContain('testID="wfm-export-csv"');
-    expect(exportScreen).toContain('PDF exportieren');
-    expect(exportScreen).toContain('DATEV LOHN exportieren');
+  it('blocks the unsafe legacy csv pdf datev export section', () => {
+    expect(exportScreen).toContain('Alt-Export gesperrt');
+    expect(exportScreen).not.toContain('createWfmExportJob');
+    expect(exportScreen).not.toContain('testID="wfm-export-csv"');
+    expect(exportScreen).not.toContain('PDF exportieren');
+    expect(exportScreen).not.toContain('DATEV LOHN exportieren');
   });
 
   it('handles errors without white screens', () => {

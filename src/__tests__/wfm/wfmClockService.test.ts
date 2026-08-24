@@ -63,12 +63,12 @@ describe('wfmClockService', () => {
     expect(resumed.data.session?.status).not.toBe('paused');
   });
 
-  it('wechselt Tätigkeit und erhöht Blockanzahl', async () => {
+  it('wechselt Tätigkeit ohne einen zweiten Arbeitsblock zu erfinden', async () => {
     await wfmClockIn(TENANT, USER, ROLE, 'buero');
     const switched = await wfmSwitchWorkType(TENANT, USER, ROLE, 'homeoffice');
     expect(switched.ok).toBe(true);
     if (!switched.ok) return;
-    expect(switched.data.blockCount).toBe(2);
+    expect(switched.data.blockCount).toBe(1);
     expect(switched.data.statusLabel).toBe('Home Office');
   });
 
@@ -79,6 +79,42 @@ describe('wfmClockService', () => {
     if (!closed.ok) return;
     expect(closed.data.session?.status).toBe('ended');
     expect(formatWfmStatusLabel(closed.data.session)).toBe('Feierabend');
+  });
+
+  it('berechnet Pause und mehrere getrennte Arbeitsblöcke desselben Tages korrekt', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-08-24T06:00:00.000Z'));
+      await wfmClockIn(TENANT, USER, ROLE, 'buero');
+
+      vi.setSystemTime(new Date('2026-08-24T07:30:00.000Z'));
+      await wfmPause(TENANT, USER, ROLE);
+      vi.setSystemTime(new Date('2026-08-24T08:00:00.000Z'));
+      await wfmResume(TENANT, USER, ROLE);
+      vi.setSystemTime(new Date('2026-08-24T09:00:00.000Z'));
+      const firstBlock = await wfmClockOut(TENANT, USER, ROLE);
+
+      expect(firstBlock.ok).toBe(true);
+      if (!firstBlock.ok) return;
+      expect(firstBlock.data.session?.grossMinutes).toBe(180);
+      expect(firstBlock.data.session?.pauseMinutes).toBe(30);
+      expect(firstBlock.data.session?.netMinutes).toBe(150);
+      expect(firstBlock.data.blockCount).toBe(1);
+
+      vi.setSystemTime(new Date('2026-08-24T10:00:00.000Z'));
+      await wfmClockIn(TENANT, USER, ROLE, 'homeoffice');
+      vi.setSystemTime(new Date('2026-08-24T11:00:00.000Z'));
+      const secondBlock = await wfmClockOut(TENANT, USER, ROLE);
+
+      expect(secondBlock.ok).toBe(true);
+      if (!secondBlock.ok) return;
+      expect(secondBlock.data.session?.grossMinutes).toBe(240);
+      expect(secondBlock.data.session?.pauseMinutes).toBe(30);
+      expect(secondBlock.data.session?.netMinutes).toBe(210);
+      expect(secondBlock.data.blockCount).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('liest heutigen Status aus Demo-Store', async () => {

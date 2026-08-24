@@ -231,7 +231,7 @@ export async function getWfmOfficeEmployeeTimeAccounts(
       remainingVacationDays:
         account.annualVacationDays == null
           ? null
-          : Math.max(0, account.annualVacationDays - account.vacationDaysUsed),
+          : account.annualVacationDays - account.vacationDaysUsed,
       entries: account.entries.sort((a, b) => b.workDate.localeCompare(a.workDate)),
     };
   });

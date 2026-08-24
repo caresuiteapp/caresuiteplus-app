@@ -42,6 +42,34 @@ describe('wfmRuleEngine', () => {
     expect(result.violations.some((v) => v.ruleKey === 'break_requirement_6h')).toBe(true);
   });
 
+  it('bewertet eine laufende Session aus Ereignissen statt aus veralteten Nullsummen', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-06-28T13:00:00.000Z'));
+      const session = { ...baseSession, grossMinutes: 0, netMinutes: 0, pauseMinutes: 0 };
+      const result = evaluateArbzgRules({
+        session,
+        events: [
+          {
+            id: 'start',
+            tenantId: 'tenant-1',
+            employeeId: 'emp-1',
+            userId: 'user-1',
+            eventType: 'office_check_in',
+            workMode: 'office',
+            source: 'portal',
+            occurredAt: '2026-06-28T06:00:00.000Z',
+            sessionId: 'sess-1',
+            note: null,
+          },
+        ],
+      });
+      expect(result.violations.some((violation) => violation.ruleKey === 'break_requirement_6h')).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('warnt bei Ruhezeit unter 11 Stunden', () => {
     const session = { ...baseSession, grossMinutes: 480, netMinutes: 480, startedAt: '2026-06-28T07:00:00.000Z' };
     const result = evaluateArbzgRules({

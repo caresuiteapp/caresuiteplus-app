@@ -36,7 +36,12 @@ export function OfficeTimeTrackingShell() {
   const ownCaptureActive = isOfficeTimeTrackingOwnCaptureRoute(pathname);
 
   return (
-    <View style={styles.root}>
+    <View
+      style={styles.root}
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { csWfmSurface: 'light', csPersonalSurface: 'light' } } as object)
+        : {})}
+    >
       <View style={styles.header}>
         <View style={styles.headerLead}>
           <View
@@ -154,16 +159,9 @@ export function OfficeTimeTrackingShell() {
 
       <View style={styles.content}>
         <View style={styles.workspace}>
-          <ScrollView
-            style={styles.workspaceScroll}
-            contentContainerStyle={styles.workspaceScrollContent}
-            showsVerticalScrollIndicator
-            nestedScrollEnabled
-          >
-            <SurfaceContrastProvider tone="light">
-              <Slot />
-            </SurfaceContrastProvider>
-          </ScrollView>
+          <SurfaceContrastProvider tone="light">
+            <Slot />
+          </SurfaceContrastProvider>
         </View>
       </View>
     </View>
@@ -366,15 +364,6 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: 'transparent',
     padding: careSpacing.sm,
-  },
-  workspaceScroll: {
-    flex: 1,
-    minHeight: 0,
-    width: '100%',
-  },
-  workspaceScrollContent: {
-    flexGrow: 1,
-    paddingBottom: careSpacing.lg,
   },
   workspace: {
     flex: 1,

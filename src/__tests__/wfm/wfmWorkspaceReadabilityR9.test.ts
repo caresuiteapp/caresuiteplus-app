@@ -30,7 +30,7 @@ describe('WFM workspace navigation, readability and width use R9', () => {
     expect(table).toContain('onLayout={(event) => setAvailableWidth');
     expect(table).toContain('reviewWidth < REVIEW_MIN_TABLE_WIDTH + 32');
     expect(table).not.toContain('width < 1760');
-    expect(dataTable).toContain("width: fixedLayout ? '100%' : undefined");
+    expect(dataTable).toContain('width: fixedLayout ? "100%" : undefined');
   });
 
   it('corrects legacy white table ink on bright workspace tables', () => {

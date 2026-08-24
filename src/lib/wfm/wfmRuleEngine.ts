@@ -15,6 +15,7 @@ import {
   resolveEmployeeIdForUser,
   todayWorkDate,
 } from './wfmWorkSessionRepository';
+import { deriveWfmTimelineTotals } from './wfmTimeline';
 
 export type WfmRuleKey =
   | 'max_daily_hours'
@@ -96,24 +97,6 @@ function newUuid(): string {
   );
 }
 
-function computePauseMinutesFromEvents(events: WfmTimeEvent[]): number {
-  let total = 0;
-  let pauseStart: number | null = null;
-  for (const event of events) {
-    const ts = Date.parse(event.occurredAt);
-    if (event.eventType === 'pause_start') {
-      pauseStart = ts;
-    } else if (event.eventType === 'pause_end' && pauseStart != null) {
-      total += Math.max(0, Math.round((ts - pauseStart) / 60000));
-      pauseStart = null;
-    }
-  }
-  if (pauseStart != null) {
-    total += Math.max(0, Math.round((Date.now() - pauseStart) / 60000));
-  }
-  return total;
-}
-
 export type WfmRuleEvaluationInput = {
   session: WfmWorkSession | null;
   events: WfmTimeEvent[];
@@ -130,27 +113,17 @@ export function evaluateArbzgRules(input: WfmRuleEvaluationInput): WfmRuleEvalua
   const session = input.session;
   const workDate = session?.workDate ?? todayWorkDate();
 
-  const grossMinutes = session?.grossMinutes ?? 0;
-  const pauseFromSession = session?.pauseMinutes ?? 0;
-  const pauseFromEvents = computePauseMinutesFromEvents(input.events);
-  const pauseMinutes = Math.max(pauseFromSession, pauseFromEvents);
-  const netMinutes = session?.netMinutes ?? Math.max(0, grossMinutes - pauseMinutes);
+  const timeline = deriveWfmTimelineTotals(input.events, { session });
+  const hasTimeline = timeline.blockCount > 0;
+  const grossMinutes = hasTimeline ? timeline.grossMinutes : session?.grossMinutes ?? 0;
+  const pauseMinutes = hasTimeline ? timeline.pauseMinutes : session?.pauseMinutes ?? 0;
+  const netMinutes = hasTimeline ? timeline.netMinutes : session?.netMinutes ?? Math.max(0, grossMinutes - pauseMinutes);
 
   if (netMinutes > MAX_DAILY_MINUTES) {
     violations.push({
       ruleKey: 'max_daily_hours',
-      severity: netMinutes > MAX_DAILY_MINUTES + 60 ? 'violation' : 'warning',
+      severity: 'violation',
       message: RULE_MESSAGES.max_daily_hours,
-      workDate,
-      sessionId: session?.id ?? null,
-    });
-  }
-
-  if (netMinutes > BREAK_6H_MINUTES && pauseMinutes < BREAK_6H_REQUIRED) {
-    violations.push({
-      ruleKey: 'break_requirement_6h',
-      severity: 'warning',
-      message: RULE_MESSAGES.break_requirement_6h,
       workDate,
       sessionId: session?.id ?? null,
     });
@@ -161,6 +134,14 @@ export function evaluateArbzgRules(input: WfmRuleEvaluationInput): WfmRuleEvalua
       ruleKey: 'break_requirement_9h',
       severity: 'violation',
       message: RULE_MESSAGES.break_requirement_9h,
+      workDate,
+      sessionId: session?.id ?? null,
+    });
+  } else if (netMinutes > BREAK_6H_MINUTES && pauseMinutes < BREAK_6H_REQUIRED) {
+    violations.push({
+      ruleKey: 'break_requirement_6h',
+      severity: 'warning',
+      message: RULE_MESSAGES.break_requirement_6h,
       workDate,
       sessionId: session?.id ?? null,
     });
@@ -227,7 +208,8 @@ async function persistViolations(
         acknowledgedAt: null,
         createdAt: new Date().toISOString(),
       };
-      demoViolations.set(violation.id, violation);
+      const key = `${tenantId}:${employeeId}:${violation.workDate}:${violation.sessionId ?? 'day'}:${violation.ruleKey}`;
+      demoViolations.set(key, violation);
     }
     return;
   }
@@ -235,7 +217,29 @@ async function persistViolations(
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
-  const { error } = await fromUnknownTable(supabase, VIOLATIONS_TABLE).insert(rows);
+  const { data: existing, error: existingError } = await fromUnknownTable(supabase, VIOLATIONS_TABLE)
+    .select('rule_key, session_id')
+    .eq('tenant_id', tenantId)
+    .eq('employee_id', employeeId)
+    .eq('work_date', violations[0]!.workDate)
+    .in('rule_key', violations.map((violation) => violation.ruleKey));
+
+  if (existingError && !isSupabaseMissingTableError(existingError)) {
+    console.warn('[wfmRuleEngine] Existing violations lookup failed:', existingError.message);
+    return;
+  }
+
+  const existingKeys = new Set(
+    ((existing ?? []) as { rule_key: WfmRuleKey; session_id: string | null }[]).map(
+      (row) => `${row.rule_key}:${row.session_id ?? 'day'}`,
+    ),
+  );
+  const newRows = rows.filter(
+    (row) => !existingKeys.has(`${row.rule_key}:${row.session_id ?? 'day'}`),
+  );
+  if (newRows.length === 0) return;
+
+  const { error } = await fromUnknownTable(supabase, VIOLATIONS_TABLE).insert(newRows);
   if (error && !isSupabaseMissingTableError(error)) {
     console.warn('[wfmRuleEngine] Violations persist failed:', error.message);
   }
