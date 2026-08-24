@@ -181,16 +181,21 @@ describe('Google Play readiness — role isolation', () => {
 });
 
 describe('Google Play readiness — permissions & production mode', () => {
-  it('declares only INTERNET in android permissions', () => {
+  it('declares network, camera and microphone permissions for productive media capture', () => {
     const appJson = JSON.parse(readSrc('app.json'));
-    expect(appJson.expo.android?.permissions).toEqual(['INTERNET']);
+    expect(appJson.expo.android?.permissions).toEqual(
+      expect.arrayContaining(['INTERNET', 'CAMERA', 'RECORD_AUDIO']),
+    );
   });
 
-  it('declares INTERNET and RECORD_AUDIO in android permissions via app.config', () => {
+  it('declares camera and audio permissions in the effective Expo config', () => {
     const appConfig = readSrc('app.config.ts');
     expect(appConfig).toContain("'INTERNET'");
+    expect(appConfig).toContain("'CAMERA'");
     expect(appConfig).toContain("'RECORD_AUDIO'");
+    expect(appConfig).toContain('NSCameraUsageDescription');
     expect(appConfig).toContain('NSMicrophoneUsageDescription');
+    expect(appConfig).toContain('expo-image-picker');
     expect(appConfig).toContain('expo-av');
   });
 

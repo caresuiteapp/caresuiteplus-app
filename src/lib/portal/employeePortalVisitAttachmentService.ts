@@ -6,6 +6,10 @@ import {
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toStorageUploadError } from '@/lib/storage/storagePaths';
 import { isDemoMode } from '@/lib/supabase/config';
+import {
+  normalizeEmployeePortalPickedMedia,
+  validateEmployeePortalPickedMedia,
+} from '@/lib/portal/employeePortalMediaValidation';
 
 export type VisitAttachmentUploadInput = {
   tenantId: string;
@@ -21,6 +25,15 @@ export async function uploadEmployeePortalVisitAttachment(
   if (!input.visitId?.trim()) {
     return { ok: false, error: 'Einsatz konnte nicht zugeordnet werden.' };
   }
+
+  const media = normalizeEmployeePortalPickedMedia({
+    uri: 'memory://employee-portal-upload',
+    fileName: input.fileName,
+    mimeType: input.mimeType,
+    sizeBytes: input.bytes.length,
+  });
+  const validation = validateEmployeePortalPickedMedia(media, 'visit');
+  if (!validation.ok) return validation;
 
   if (isDemoMode()) {
     const demoPath = buildAssistVisitAttachmentStoragePath(

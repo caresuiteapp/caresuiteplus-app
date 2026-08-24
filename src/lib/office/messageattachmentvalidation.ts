@@ -15,14 +15,23 @@ export const MESSAGE_ATTACHMENT_ALLOWED_MIME_TYPES = [
   'image/png',
   'image/webp',
   'image/gif',
+  'image/heic',
+  'image/heif',
+  'image/avif',
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'text/plain',
+  'video/mp4',
+  'video/quicktime',
+  'video/webm',
+  'video/mpeg',
+  'video/3gpp',
   ...MESSAGE_ATTACHMENT_AUDIO_MIME_TYPES,
 ] as const;
 
 export const MESSAGE_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+export const MESSAGE_VIDEO_ATTACHMENT_MAX_BYTES = 50 * 1024 * 1024;
 
 export type PendingMessageAttachment = {
   id: string;
@@ -47,17 +56,23 @@ export function validateMessageAttachment(input: {
   if (input.fileSizeBytes <= 0) {
     return { ok: false, error: 'Datei ist leer.' };
   }
-  if (input.fileSizeBytes > MESSAGE_ATTACHMENT_MAX_BYTES) {
-    return { ok: false, error: 'Anhang darf maximal 10 MB groß sein.' };
-  }
   const mime = normalizeAttachmentMimeType(input.mimeType);
+  const maxBytes = mime.startsWith('video/')
+    ? MESSAGE_VIDEO_ATTACHMENT_MAX_BYTES
+    : MESSAGE_ATTACHMENT_MAX_BYTES;
+  if (input.fileSizeBytes > maxBytes) {
+    return {
+      ok: false,
+      error: `Anhang darf maximal ${Math.round(maxBytes / 1024 / 1024)} MB groß sein.`,
+    };
+  }
   const allowed = MESSAGE_ATTACHMENT_ALLOWED_MIME_TYPES.some(
     (type) => mime === type || (type.endsWith('/*') && mime.startsWith(type.replace('/*', ''))),
   );
   if (!allowed) {
     return {
       ok: false,
-      error: 'Dateityp nicht erlaubt. Erlaubt: Bilder, PDF, Word, Text, Sprachnachrichten.',
+      error: 'Dateityp nicht erlaubt. Erlaubt: Bilder, Videos, PDF, Word, Text und Sprachnachrichten.',
     };
   }
   return { ok: true };
@@ -74,4 +89,8 @@ export function isPdfMimeType(mimeType: string | null | undefined): boolean {
 export function isAudioMimeType(mimeType: string | null | undefined): boolean {
   const mime = normalizeAttachmentMimeType(mimeType ?? '');
   return MESSAGE_ATTACHMENT_AUDIO_MIME_TYPES.some((type) => mime === type);
+}
+
+export function isVideoMimeType(mimeType: string | null | undefined): boolean {
+  return normalizeAttachmentMimeType(mimeType ?? '').startsWith('video/');
 }

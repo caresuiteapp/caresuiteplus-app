@@ -31,8 +31,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     bundleIdentifier: 'de.caresuiteplus.app',
     buildNumber: '1',
     infoPlist: {
+      NSCameraUsageDescription:
+        'CareSuite benötigt Zugriff auf die Kamera, damit dienstliche Fotos und Videos direkt aufgenommen werden können.',
+      NSPhotoLibraryUsageDescription:
+        'CareSuite benötigt Zugriff auf Fotos und Videos, damit dienstliche Medien sicher hinzugefügt werden können.',
       NSMicrophoneUsageDescription:
-        'CareSuite+ benötigt Mikrofonzugriff für den VoiceCore-Sprachassistenten.',
+        'CareSuite benötigt Mikrofonzugriff für Videos mit Ton und den VoiceCore-Sprachassistenten.',
       UISupportedInterfaceOrientations: [
         'UIInterfaceOrientationPortrait',
         'UIInterfaceOrientationLandscapeLeft',
@@ -55,7 +59,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     package: 'app.caresuiteplus',
     versionCode: 10,
-    permissions: ['INTERNET', 'RECORD_AUDIO'],
+    permissions: ['INTERNET', 'CAMERA', 'RECORD_AUDIO'],
   },
   web: {
     bundler: 'metro',
@@ -91,6 +95,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         locationWhenInUsePermission:
           'CareSuite+ benötigt Ihren Standort für Einsatz- und Fahrtenverfolgung (Funktion in Vorbereitung).',
         isIosBackgroundLocationEnabled: false,
+      },
+    ],
+    [
+      'expo-image-picker',
+      {
+        photosPermission:
+          'CareSuite benötigt Zugriff auf Fotos und Videos, damit dienstliche Medien und Dokumentationen sicher hinzugefügt werden können.',
+        cameraPermission:
+          'CareSuite benötigt Zugriff auf die Kamera, damit dienstliche Fotos und Videos direkt aufgenommen werden können.',
+        microphonePermission:
+          'CareSuite benötigt Zugriff auf das Mikrofon, damit Videos mit Ton aufgenommen werden können.',
       },
     ],
   ],

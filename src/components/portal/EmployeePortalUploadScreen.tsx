@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
+import { Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import {
@@ -22,22 +21,19 @@ import {
   uploadEmployeePortalDocument,
   type EmployeePortalUploadContext,
 } from '@/lib/portal/employeePortalUploadService';
-import { isDemoMode } from '@/lib/supabase/config';
 import { portalPremium } from '@/design/tokens/portalPremium';
-
-async function readPickedFile(asset: DocumentPicker.DocumentPickerAsset) {
-  const fileName = asset.name ?? 'dokument';
-  const mimeType = asset.mimeType ?? 'application/octet-stream';
-  if (isDemoMode()) {
-    return { name: fileName, mimeType, sizeBytes: asset.size ?? 0, contentBase64: 'demo' };
-  }
-  const response = await fetch(asset.uri);
-  const buffer = await response.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i] ?? 0);
-  return { name: fileName, mimeType, sizeBytes: asset.size ?? bytes.length, contentBase64: btoa(binary) };
-}
+import {
+  openEmployeePortalCamera,
+  openEmployeePortalDocumentPicker,
+  openEmployeePortalMediaLibrary,
+  readEmployeePortalMediaBytes,
+  type EmployeePortalMediaPickerResult,
+} from '@/lib/portal/employeePortalMediaPicker';
+import {
+  formatEmployeePortalMediaSize,
+  validateEmployeePortalPickedMedia,
+  type EmployeePortalPickedMedia,
+} from '@/lib/portal/employeePortalMediaValidation';
 
 function formatCategoryLabel(value: string): string {
   const label = value.replace(/_/g, ' ').trim();
@@ -54,7 +50,9 @@ export function EmployeePortalUploadScreen() {
   const [clientId, setClientId] = useState<string | null>(null);
   const [category, setCategory] = useState<string>('sonstiges');
   const [comment, setComment] = useState('');
-  const [pickedFile, setPickedFile] = useState<Awaited<ReturnType<typeof readPickedFile>> | null>(null);
+  const [pickedFile, setPickedFile] = useState<EmployeePortalPickedMedia | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [settingsRequired, setSettingsRequired] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -64,15 +62,35 @@ export function EmployeePortalUploadScreen() {
     [uploadContext],
   );
 
-  const pickFile = useCallback(async () => {
-    const result = await DocumentPicker.getDocumentAsync({
-      copyToCacheDirectory: true,
-      multiple: false,
-    });
-    if (result.canceled || !result.assets?.[0]) return;
-    const file = await readPickedFile(result.assets[0]);
-    if (file) setPickedFile(file);
+  const acceptPickerResult = useCallback((result: EmployeePortalMediaPickerResult) => {
+    setPicking(false);
+    if (!result.ok) {
+      setSubmitError(result.error);
+      setSettingsRequired(Boolean(result.settingsRequired));
+      return;
+    }
+    if (!result.media) return;
+    const validation = validateEmployeePortalPickedMedia(result.media, 'portal-upload');
+    if (!validation.ok) {
+      setSubmitError(validation.error);
+      return;
+    }
+    setSettingsRequired(false);
+    setSubmitError(null);
+    setPickedFile(result.media);
   }, []);
+
+  const pickFrom = useCallback(async (source: 'camera' | 'library' | 'document') => {
+    setPicking(true);
+    setSubmitError(null);
+    const result =
+      source === 'camera'
+        ? await openEmployeePortalCamera()
+        : source === 'library'
+          ? await openEmployeePortalMediaLibrary()
+          : await openEmployeePortalDocumentPicker({ includeMediaFallback: true });
+    acceptPickerResult(result);
+  }, [acceptPickerResult]);
 
   const canSubmit = Boolean(pickedFile) && (uploadContext === 'mitarbeiter' || clientId);
 
@@ -80,15 +98,32 @@ export function EmployeePortalUploadScreen() {
     if (!tenantId || !employeeId || !pickedFile || !canSubmit) return;
     setSubmitting(true);
     setSubmitError(null);
+    let bytes: Uint8Array;
+    try {
+      bytes = await readEmployeePortalMediaBytes(pickedFile.uri);
+    } catch {
+      setSubmitting(false);
+      setSubmitError('Die ausgewählte Datei konnte nicht gelesen werden. Bitte wählen Sie sie erneut aus.');
+      return;
+    }
+    const validated = validateEmployeePortalPickedMedia(
+      { ...pickedFile, sizeBytes: bytes.length },
+      'portal-upload',
+    );
+    if (!validated.ok) {
+      setSubmitting(false);
+      setSubmitError(validated.error);
+      return;
+    }
     const result = await uploadEmployeePortalDocument({
       tenantId,
       employeeId,
       uploadContext,
       clientId: uploadContext === 'klient' ? clientId : null,
-      fileName: pickedFile.name,
+      fileName: pickedFile.fileName,
       mimeType: pickedFile.mimeType,
-      sizeBytes: pickedFile.sizeBytes,
-      contentBase64: pickedFile.contentBase64,
+      sizeBytes: bytes.length,
+      bytes,
       category,
       message: comment.trim() || null,
     });
@@ -161,11 +196,53 @@ export function EmployeePortalUploadScreen() {
           rows={2}
         />
 
-        <PremiumButton
-          title={pickedFile ? `Datei: ${pickedFile.name}` : 'Datei auswählen / Foto'}
-          variant="secondary"
-          onPress={() => void pickFile()}
-        />
+        <View style={styles.mediaPicker}>
+          <Text style={[styles.label, { color: text.secondary }]}>Foto, Video oder Dokument hinzufügen</Text>
+          <View style={styles.mediaPickerActions}>
+            <View style={styles.mediaPickerAction}>
+              <PremiumButton
+                title="📷 Kamera"
+                variant="secondary"
+                onPress={() => void pickFrom('camera')}
+                disabled={picking || submitting}
+              />
+            </View>
+            <View style={styles.mediaPickerAction}>
+              <PremiumButton
+                title="🖼️ Galerie"
+                variant="secondary"
+                onPress={() => void pickFrom('library')}
+                disabled={picking || submitting}
+              />
+            </View>
+            <View style={styles.mediaPickerAction}>
+              <PremiumButton
+                title="📎 Datei"
+                variant="secondary"
+                onPress={() => void pickFrom('document')}
+                disabled={picking || submitting}
+              />
+            </View>
+          </View>
+          {pickedFile ? (
+            <View style={styles.pickedCard}>
+              <Text style={[styles.pickedName, { color: text.primary }]} numberOfLines={2}>
+                {pickedFile.fileName}
+              </Text>
+              <Text style={[styles.meta, { color: text.muted }]}>
+                {pickedFile.kind === 'image' ? 'Foto' : pickedFile.kind === 'video' ? 'Video' : 'Dokument'} · {formatEmployeePortalMediaSize(pickedFile.sizeBytes)}
+              </Text>
+            </View>
+          ) : null}
+          {settingsRequired && Platform.OS !== 'web' ? (
+            <PremiumButton
+              title="Geräteeinstellungen öffnen"
+              size="sm"
+              variant="secondary"
+              onPress={() => void Linking.openSettings()}
+            />
+          ) : null}
+        </View>
 
         <PremiumInput
           label="Kommentar (optional)"
@@ -227,6 +304,18 @@ const styles = StyleSheet.create({
   label: { ...careTypography.caption, fontWeight: '600' },
   meta: { ...careTypography.caption },
   clientPicker: { gap: careSpacing.xs },
+  mediaPicker: { gap: careSpacing.sm },
+  mediaPickerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
+  mediaPickerAction: { flexGrow: 1, minWidth: 140 },
+  pickedCard: {
+    gap: 3,
+    padding: careSpacing.sm,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: portalPremium.borderStrong,
+    backgroundColor: portalPremium.surfaceSoft,
+  },
+  pickedName: { ...careTypography.bodyStrong },
   error: { ...careTypography.caption },
   success: { ...careTypography.caption },
 });

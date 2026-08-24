@@ -70,9 +70,11 @@ describe('store config', () => {
     expect(existsSync(join(root, rel))).toBe(true);
   });
 
-  it('deklariert nur INTERNET als Android-Permission', () => {
+  it('deklariert Netzwerk, Kamera und Mikrofon für produktive Medienaufnahme', () => {
     const appJson = JSON.parse(readFileSync(join(root, 'app.json'), 'utf8'));
-    expect(appJson.expo.android?.permissions).toEqual(['INTERNET']);
+    expect(appJson.expo.android?.permissions).toEqual(
+      expect.arrayContaining(['INTERNET', 'CAMERA', 'RECORD_AUDIO']),
+    );
   });
 });
 

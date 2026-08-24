@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
 import { PremiumButton } from '@/components/ui';
 import { auroraGlass, darkGlassSurfaceText, surfaceContrastText } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
@@ -10,10 +9,19 @@ import {
   isImageMimeType,
   isPdfMimeType,
   isAudioMimeType,
+  isVideoMimeType,
   validateMessageAttachment,
   type PendingMessageAttachment,
 } from '@/lib/office/messageattachmentvalidation';
 import { VoicePendingPreview } from '@/components/office/voicependingpreview';
+import {
+  openEmployeePortalCamera,
+  openEmployeePortalDocumentPicker,
+  openEmployeePortalMediaLibrary,
+  readEmployeePortalMediaBytes,
+  type EmployeePortalMediaPickerResult,
+} from '@/lib/portal/employeePortalMediaPicker';
+import type { EmployeePortalPickedMedia } from '@/lib/portal/employeePortalMediaValidation';
 
 type OfficeMessageAttachmentPickerProps = {
   attachments: PendingMessageAttachment[];
@@ -31,16 +39,11 @@ function createAttachmentId(): string {
     : `att-pending-${Date.now()}`;
 }
 
-async function readFileBytes(uri: string): Promise<Uint8Array> {
-  const response = await fetch(uri);
-  const buffer = await response.arrayBuffer();
-  return new Uint8Array(buffer);
-}
-
 function attachmentIcon(mimeType: string): string {
   if (isImageMimeType(mimeType)) return '🖼️';
   if (isPdfMimeType(mimeType)) return '📄';
   if (isAudioMimeType(mimeType)) return '🎤';
+  if (isVideoMimeType(mimeType)) return '🎬';
   return '📎';
 }
 
@@ -61,6 +64,7 @@ export function OfficeMessageAttachmentPicker({
     () =>
       StyleSheet.create({
         root: { gap: spacing.xs, alignSelf: 'flex-start', maxWidth: '100%' },
+        pickerRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.xs },
         compactButton: {
           minHeight: 36,
           width: 36,
@@ -98,37 +102,22 @@ export function OfficeMessageAttachmentPicker({
     [c, ink, onDarkSurface, typography],
   );
 
-  const pickAttachment = async () => {
+  const appendPickedMedia = async (media: EmployeePortalPickedMedia) => {
     onError?.(null);
-    const result = await DocumentPicker.getDocumentAsync({
-      copyToCacheDirectory: true,
-      multiple: false,
-      type: [
-        'image/jpeg',
-        'image/png',
-        'image/webp',
-        'image/gif',
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain',
-      ],
-    });
-    if (result.canceled || !result.assets?.[0]) return;
+    const fileName = media.fileName;
+    const mimeType = media.mimeType;
+    const fileSizeBytes = media.sizeBytes ?? 0;
 
-    const asset = result.assets[0];
-    const fileName = asset.name ?? 'anhang';
-    const mimeType = asset.mimeType ?? 'application/octet-stream';
-    const fileSizeBytes = asset.size ?? 0;
-
-    const validation = validateMessageAttachment({ fileName, mimeType, fileSizeBytes });
-    if (!validation.ok) {
-      onError?.(validation.error);
-      return;
+    if (fileSizeBytes > 0) {
+      const validation = validateMessageAttachment({ fileName, mimeType, fileSizeBytes });
+      if (!validation.ok) {
+        onError?.(validation.error);
+        return;
+      }
     }
 
     try {
-      const fileData = await readFileBytes(asset.uri);
+      const fileData = await readEmployeePortalMediaBytes(media.uri);
       const validated = validateMessageAttachment({
         fileName,
         mimeType,
@@ -152,6 +141,25 @@ export function OfficeMessageAttachmentPicker({
     } catch {
       onError?.('Datei konnte nicht gelesen werden.');
     }
+  };
+
+  const handlePickerResult = async (result: EmployeePortalMediaPickerResult) => {
+    if (!result.ok) {
+      onError?.(result.error);
+      return;
+    }
+    if (result.media) await appendPickedMedia(result.media);
+  };
+
+  const pickAttachment = async (source: 'camera' | 'library' | 'document') => {
+    onError?.(null);
+    const result =
+      source === 'camera'
+        ? await openEmployeePortalCamera()
+        : source === 'library'
+          ? await openEmployeePortalMediaLibrary()
+          : await openEmployeePortalDocumentPicker({ includeMediaFallback: true });
+    await handlePickerResult(result);
   };
 
   const removeAttachment = (id: string) => {
@@ -181,24 +189,62 @@ export function OfficeMessageAttachmentPicker({
         </View>
       ))}
       {compact ? (
-        <Pressable
-          style={styles.compactButton}
-          onPress={() => void pickAttachment()}
-          disabled={disabled}
-          accessibilityRole="button"
-          accessibilityLabel="Anhang hinzufügen"
-        >
-          <Text style={styles.compactButtonText}>📎</Text>
-        </Pressable>
+        <View style={styles.pickerRow}>
+          <Pressable
+            style={styles.compactButton}
+            onPress={() => void pickAttachment('camera')}
+            disabled={disabled}
+            accessibilityRole="button"
+            accessibilityLabel="Kamera öffnen"
+          >
+            <Text style={styles.compactButtonText}>📷</Text>
+          </Pressable>
+          <Pressable
+            style={styles.compactButton}
+            onPress={() => void pickAttachment('library')}
+            disabled={disabled}
+            accessibilityRole="button"
+            accessibilityLabel="Foto oder Video aus Galerie hinzufügen"
+          >
+            <Text style={styles.compactButtonText}>🖼️</Text>
+          </Pressable>
+          <Pressable
+            style={styles.compactButton}
+            onPress={() => void pickAttachment('document')}
+            disabled={disabled}
+            accessibilityRole="button"
+            accessibilityLabel="Anhang hinzufügen"
+          >
+            <Text style={styles.compactButtonText}>📎</Text>
+          </Pressable>
+        </View>
       ) : (
-        <PremiumButton
-          title="Anhang hinzufügen"
-          size="sm"
-          variant="secondary"
-          onPress={() => void pickAttachment()}
-          disabled={disabled}
-          onDarkSurface={onDarkSurface}
-        />
+        <View style={styles.pickerRow}>
+          <PremiumButton
+            title="Kamera"
+            size="sm"
+            variant="secondary"
+            onPress={() => void pickAttachment('camera')}
+            disabled={disabled}
+            onDarkSurface={onDarkSurface}
+          />
+          <PremiumButton
+            title="Galerie"
+            size="sm"
+            variant="secondary"
+            onPress={() => void pickAttachment('library')}
+            disabled={disabled}
+            onDarkSurface={onDarkSurface}
+          />
+          <PremiumButton
+            title="Datei"
+            size="sm"
+            variant="secondary"
+            onPress={() => void pickAttachment('document')}
+            disabled={disabled}
+            onDarkSurface={onDarkSurface}
+          />
+        </View>
       )}
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>

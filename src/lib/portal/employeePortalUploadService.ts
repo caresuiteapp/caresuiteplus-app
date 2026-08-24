@@ -25,7 +25,8 @@ export type EmployeePortalUploadInput = {
   fileName: string;
   mimeType: string;
   sizeBytes?: number;
-  contentBase64: string;
+  contentBase64?: string;
+  bytes?: Uint8Array;
   category?: string | null;
   message?: string | null;
 };
@@ -107,7 +108,7 @@ export async function uploadEmployeePortalDocument(
     const supabase = getSupabaseClient();
     if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-    if (!input.contentBase64?.trim()) {
+    if ((!input.bytes || input.bytes.length === 0) && !input.contentBase64?.trim()) {
       return { ok: false, error: 'Dateiinhalt fehlt — bitte Dokument erneut auswählen.' };
     }
 
@@ -123,7 +124,9 @@ export async function uploadEmployeePortalDocument(
       input.fileName,
       input.uploadContext === 'klient' ? input.clientId : null,
     );
-    const payload = decodeBase64(input.contentBase64);
+    const payload = input.bytes?.length
+      ? input.bytes
+      : decodeBase64(input.contentBase64 ?? '');
 
     const { error: uploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(storagePath, payload, {
       contentType: input.mimeType,
@@ -152,7 +155,10 @@ export async function uploadEmployeePortalDocument(
           category: input.category ?? null,
         },
       });
-      if (!requestResult.ok) return requestResult;
+      if (!requestResult.ok) {
+        await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
+        return requestResult;
+      }
       portalRequestId = requestResult.data.id;
     }
 
@@ -176,6 +182,7 @@ export async function uploadEmployeePortalDocument(
       .single();
 
     if (error) {
+      await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
       if (isMissingTableError(error)) {
         return { ok: false, error: 'Uploads sind noch nicht verfügbar (Migration ausstehend).' };
       }

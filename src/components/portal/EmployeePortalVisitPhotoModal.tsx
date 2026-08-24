@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
+import { Image, Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PremiumButton } from '@/components/ui';
@@ -12,28 +11,18 @@ import {
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { spacing, typography } from '@/theme';
-
-type PickedMedia = {
-  uri: string;
-  fileName: string;
-  mimeType: string;
-  size: number | null;
-  kind: 'image' | 'video' | 'document';
-};
-
-const IMAGE_LIMIT_BYTES = 15 * 1024 * 1024;
-const VIDEO_LIMIT_BYTES = 50 * 1024 * 1024;
-
-function resolveMediaKind(mimeType: string): PickedMedia['kind'] {
-  if (mimeType.startsWith('video/')) return 'video';
-  if (mimeType.startsWith('image/')) return 'image';
-  return 'document';
-}
-
-function formatFileSize(size: number | null): string {
-  if (!size) return 'Größe unbekannt';
-  return `${(size / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
-}
+import {
+  openEmployeePortalCamera,
+  openEmployeePortalDocumentPicker,
+  openEmployeePortalMediaLibrary,
+  readEmployeePortalMediaBytes,
+  type EmployeePortalMediaPickerResult,
+} from '@/lib/portal/employeePortalMediaPicker';
+import {
+  formatEmployeePortalMediaSize,
+  validateEmployeePortalPickedMedia,
+  type EmployeePortalPickedMedia,
+} from '@/lib/portal/employeePortalMediaValidation';
 
 type EmployeePortalVisitPhotoModalProps = {
   visible: boolean;
@@ -43,16 +32,6 @@ type EmployeePortalVisitPhotoModalProps = {
   onClose: () => void;
   onUploaded: (storagePaths: string[]) => void;
 };
-
-async function readPhotoBytes(uri: string): Promise<Uint8Array | null> {
-  try {
-    const response = await fetch(uri);
-    const buffer = await response.arrayBuffer();
-    return new Uint8Array(buffer);
-  } catch {
-    return null;
-  }
-}
 
 export function EmployeePortalVisitPhotoModal({
   visible,
@@ -65,7 +44,9 @@ export function EmployeePortalVisitPhotoModal({
   const text = employeePortalExecutionText;
   const deviceClass = useDeviceClass();
   const isMobile = !isDesktopClass(deviceClass);
-  const [picked, setPicked] = useState<PickedMedia | null>(null);
+  const [picked, setPicked] = useState<EmployeePortalPickedMedia | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [settingsRequired, setSettingsRequired] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,6 +73,8 @@ export function EmployeePortalVisitPhotoModal({
         },
         heroTitle: { ...typography.bodyStrong, color: text.primary },
         heroText: { ...typography.caption, color: text.secondary },
+        pickerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+        pickerAction: { flexGrow: 1, minWidth: 190 },
         preview: {
           width: '100%',
           height: 180,
@@ -122,6 +105,8 @@ export function EmployeePortalVisitPhotoModal({
     setPicked(null);
     setError(null);
     setUploading(false);
+    setPicking(false);
+    setSettingsRequired(false);
   }, []);
 
   const handleClose = () => {
@@ -129,34 +114,34 @@ export function EmployeePortalVisitPhotoModal({
     onClose();
   };
 
-  const handlePick = async () => {
-    setError(null);
-    const result = await DocumentPicker.getDocumentAsync({
-      copyToCacheDirectory: true,
-      multiple: false,
-      type: ['image/*', 'video/*', 'application/pdf'],
-    });
-    if (result.canceled || !result.assets?.[0]) return;
-    const asset = result.assets[0];
-    const mimeType = asset.mimeType ?? 'application/octet-stream';
-    const kind = resolveMediaKind(mimeType);
-    const size = asset.size ?? null;
-    const limit = kind === 'video' ? VIDEO_LIMIT_BYTES : IMAGE_LIMIT_BYTES;
-    if (size && size > limit) {
-      setError(
-        kind === 'video'
-          ? 'Das Video ist größer als 50 MB. Bitte kürzen oder komprimieren.'
-          : 'Die Datei ist größer als 15 MB. Bitte verkleinern.',
-      );
+  const acceptPickerResult = (result: EmployeePortalMediaPickerResult) => {
+    setPicking(false);
+    if (!result.ok) {
+      setError(result.error);
+      setSettingsRequired(Boolean(result.settingsRequired));
       return;
     }
-    setPicked({
-      uri: asset.uri,
-      fileName: asset.name ?? `einsatz-medium-${Date.now()}`,
-      mimeType,
-      size,
-      kind,
-    });
+    if (!result.media) return;
+    const validation = validateEmployeePortalPickedMedia(result.media, 'visit');
+    if (!validation.ok) {
+      setError(validation.error);
+      return;
+    }
+    setError(null);
+    setSettingsRequired(false);
+    setPicked(result.media);
+  };
+
+  const handlePick = async (source: 'camera' | 'library' | 'document') => {
+    setError(null);
+    setPicking(true);
+    const result =
+      source === 'camera'
+        ? await openEmployeePortalCamera()
+        : source === 'library'
+          ? await openEmployeePortalMediaLibrary()
+          : await openEmployeePortalDocumentPicker();
+    acceptPickerResult(result);
   };
 
   const handleUpload = async () => {
@@ -166,10 +151,21 @@ export function EmployeePortalVisitPhotoModal({
     }
     setUploading(true);
     setError(null);
-    const bytes = await readPhotoBytes(picked.uri);
-    if (!bytes) {
+    let bytes: Uint8Array;
+    try {
+      bytes = await readEmployeePortalMediaBytes(picked.uri);
+    } catch {
       setUploading(false);
-      setError('Foto konnte nicht gelesen werden.');
+      setError('Die ausgewählte Datei konnte nicht gelesen werden. Bitte wählen Sie sie erneut aus.');
+      return;
+    }
+    const validation = validateEmployeePortalPickedMedia(
+      { ...picked, sizeBytes: bytes.length },
+      'visit',
+    );
+    if (!validation.ok) {
+      setUploading(false);
+      setError(validation.error);
       return;
     }
     const result = await uploadEmployeePortalVisitAttachment({
@@ -218,17 +214,47 @@ export function EmployeePortalVisitPhotoModal({
           {picked?.kind === 'image' ? (
             <Image source={{ uri: picked.uri }} style={styles.preview} resizeMode="cover" />
           ) : null}
-          <PremiumButton title="Foto, Video oder PDF auswählen" onPress={() => void handlePick()} />
+          <View style={styles.pickerActions}>
+            <View style={styles.pickerAction}>
+              <PremiumButton
+                title="📷 Kamera öffnen"
+                onPress={() => void handlePick('camera')}
+                disabled={picking || uploading}
+              />
+            </View>
+            <View style={styles.pickerAction}>
+              <PremiumButton
+                title="🖼️ Galerie öffnen"
+                variant="secondary"
+                onPress={() => void handlePick('library')}
+                disabled={picking || uploading}
+              />
+            </View>
+          </View>
+          <PremiumButton
+            title="📎 PDF auswählen"
+            variant="secondary"
+            onPress={() => void handlePick('document')}
+            disabled={picking || uploading}
+          />
           {picked ? (
             <>
               <View style={styles.pickedCard}>
                 <Text style={styles.heroTitle} numberOfLines={2}>{picked.fileName}</Text>
                 <Text style={styles.meta}>
-                  {picked.kind === 'image' ? 'Foto' : picked.kind === 'video' ? 'Video' : 'PDF/Dokument'} · {formatFileSize(picked.size)}
+                  {picked.kind === 'image' ? 'Foto' : picked.kind === 'video' ? 'Video' : 'PDF/Dokument'} · {formatEmployeePortalMediaSize(picked.sizeBytes)}
                 </Text>
               </View>
               <PremiumButton title="Intern am Einsatz speichern" loading={uploading} onPress={() => void handleUpload()} />
             </>
+          ) : null}
+          {settingsRequired && Platform.OS !== 'web' ? (
+            <PremiumButton
+              title="Geräteeinstellungen öffnen"
+              size="sm"
+              variant="secondary"
+              onPress={() => void Linking.openSettings()}
+            />
           ) : null}
           {existingReferences.length > 0 ? (
             <View style={styles.list}>

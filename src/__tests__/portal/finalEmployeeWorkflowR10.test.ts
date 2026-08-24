@@ -50,9 +50,13 @@ describe('final employee workflow R10', () => {
   it('makes photo and video a permanent workflow action', () => {
     const dashboard = read('src/components/portal/EmployeePortalVisitLiveDashboard.tsx');
     const modal = read('src/components/portal/EmployeePortalVisitPhotoModal.tsx');
+    const picker = read('src/lib/portal/employeePortalMediaPicker.ts');
     expect(dashboard).toContain('title="Foto & Video"');
     expect(dashboard).toContain("status={attachmentCount > 0 ? `${attachmentCount} intern gespeichert` : 'Jetzt hinzufügen'}");
-    expect(modal).toContain("type: ['image/*', 'video/*', 'application/pdf']");
+    expect(modal).toContain('openEmployeePortalCamera');
+    expect(modal).toContain('openEmployeePortalMediaLibrary');
+    expect(picker).toContain('launchCameraAsync');
+    expect(picker).toContain("mediaTypes: ['images', 'videos']");
     expect(inferMimeTypeFromFileName('einsatz.mp4')).toBe('video/mp4');
   });
 

@@ -29,6 +29,8 @@
       "versionCode": 10,
       "permissions": [
         "INTERNET",
+        "CAMERA",
+        "RECORD_AUDIO",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
@@ -51,6 +53,14 @@
           "locationAlwaysAndWhenInUsePermission": "CareSuite benötigt den Standort, um dienstliche Fahrten auch im Hintergrund vollständig zu erfassen.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "CareSuite benötigt Zugriff auf Fotos und Videos, damit dienstliche Medien und Dokumentationen sicher hinzugefügt werden können.",
+          "cameraPermission": "CareSuite benötigt Zugriff auf die Kamera, damit dienstliche Fotos und Videos direkt aufgenommen werden können.",
+          "microphonePermission": "CareSuite benötigt Zugriff auf das Mikrofon, damit Videos mit Ton aufgenommen werden können."
         }
       ]
     ],
