@@ -57,12 +57,15 @@ describe('WFM Arbeitszeit-Integrität R1', () => {
     });
   });
 
-  it('markiert den gesamten WFM-Arbeitsbereich als helle Oberfläche und vermeidet doppeltes Scrollen', () => {
+  it('markiert den gesamten WFM-Arbeitsbereich als helle Oberfläche und hält alle Register scrollbar', () => {
     const shell = read('src/components/wfm/OfficeTimeTrackingShell.tsx');
     expect(shell).toContain("csWfmSurface: 'light'");
     expect(shell).toContain("csPersonalSurface: 'light'");
-    expect(shell).not.toContain('nestedScrollEnabled');
-    expect(shell).not.toContain('workspaceScrollContent');
+    expect(shell).toContain('testID="office-time-workspace-scroll"');
+    expect(shell).toContain('nestedScrollEnabled');
+    expect(shell).toContain('contentContainerStyle={styles.workspaceScrollContent}');
+    expect(shell).toContain("overflowY: 'auto'");
+    expect(shell).toContain("scrollbarGutter: 'stable'");
   });
 
   it('deaktiviert den ungeprüften Alt-Export vollständig', () => {
