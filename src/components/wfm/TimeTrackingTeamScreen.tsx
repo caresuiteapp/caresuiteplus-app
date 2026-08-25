@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import {
   EmptyState,
@@ -22,7 +22,6 @@ import { useAuth } from '@/lib/auth/context';
 import { useRouter } from 'expo-router';
 import {
   getWfmOfficeEmployeeTimeAccounts,
-  listOpenReviewEntriesForEmployee,
   summarizeOfficeTimeAccountKpis,
 } from '@/lib/wfm/wfmOfficeZeitkontenService';
 import type { WfmOfficeEmployeeTimeAccount } from '@/types/modules/wfmOfficeTimekeeping';
@@ -39,7 +38,7 @@ import {
   WfmOfficeSectionHeading,
 } from '@/components/wfm/WfmOfficeTimekeepingLayout';
 import { typography } from '@/theme';
-import { getPayrollPdfUrl } from '@/lib/payroll';
+import { WfmEmployeeTimeAccountWorkspace } from '@/components/wfm/WfmEmployeeTimeAccountWorkspace';
 
 function formatDays(days: number | null): string {
   if (days == null) return '—';
@@ -65,6 +64,8 @@ export function WfmZeitkontenScreen() {
 
   const canView = can('time.tracking.team.view');
   const canApprove = can('office.employees.absences.approve');
+  const canCorrect = can('time.tracking.admin.correct');
+  const canManage = can('office.employee_time.manage');
 
   const teamQuery = useAsyncQuery(
     useCallback(async () => {
@@ -274,12 +275,6 @@ export function WfmZeitkontenScreen() {
     { key: 'open', label: 'Offene Prüfungen', value: String(accountKpis.openReviews) },
   ];
 
-  const openPayrollPdf = async (path: string | null) => {
-    if (!path) return;
-    const result = await getPayrollPdfUrl(path);
-    if (result.ok) await Linking.openURL(result.data);
-  };
-
   return (
     <View style={styles.root} testID="wfm-zeitkonten-screen">
       <WfmOfficeSectionHeading
@@ -366,75 +361,17 @@ export function WfmZeitkontenScreen() {
         )}
       </View>
 
-      {selectedAccount ? (
-        <View style={[styles.detailBlock, { borderColor: text.border }]}>
-          <Text style={{ ...typography.body, color: text.primary, fontWeight: '700' }}>
-            Zeitkonto — {selectedAccount.employeeName}
-          </Text>
-          <View style={styles.accountMetrics}>
-            <Text style={[styles.accountMetric, { color: text.secondary }]}>
-              Soll <Text style={{ color: text.primary }}>{formatWfmDurationMinutes(selectedAccount.targetMinutes || selectedAccount.plannedMinutes)}</Text>
-            </Text>
-            <Text style={[styles.accountMetric, { color: text.secondary }]}>
-              Ist <Text style={{ color: text.primary }}>{formatWfmDurationMinutes(selectedAccount.actualMinutes)}</Text>
-            </Text>
-            <Text style={[styles.accountMetric, { color: text.secondary }]}>
-              Überstunden <Text style={{ color: text.primary }}>{formatWfmDurationMinutes(selectedAccount.overtimeMinutes)}</Text>
-            </Text>
-            <Text style={[styles.accountMetric, { color: text.secondary }]}>
-              Minderstunden <Text style={{ color: text.primary }}>{formatWfmDurationMinutes(selectedAccount.undertimeMinutes)}</Text>
-            </Text>
-            <Text style={[styles.accountMetric, { color: text.secondary }]}>
-              Urlaub <Text style={{ color: text.primary }}>{formatDays(selectedAccount.vacationDaysUsed)} / {formatDays(selectedAccount.annualVacationDays)}</Text>
-            </Text>
-            <Text style={[styles.accountMetric, { color: text.secondary }]}>
-              Resturlaub <Text style={{ color: text.primary }}>{formatDays(selectedAccount.remainingVacationDays)}</Text>
-            </Text>
-            <Text style={[styles.accountMetric, { color: text.secondary }]}>
-              Krankheit <Text style={{ color: text.primary }}>{formatDays(selectedAccount.sickDays)}</Text>
-            </Text>
-            <Text style={[styles.accountMetric, { color: text.secondary }]}>
-              Fahrzeit <Text style={{ color: text.primary }}>{formatWfmDurationMinutes(selectedAccount.travelMinutes)}</Text>
-            </Text>
-          </View>
-          <Text style={{ ...typography.body, color: text.primary, fontWeight: '700' }}>Zeitbuchungen</Text>
-          {selectedAccount.entries.slice(0, 14).map((entry) => (
-            <Text key={entry.id} style={{ ...typography.caption, color: text.secondary }}>
-              {entry.workDate} · {entry.clientLabel ?? entry.assignmentTitle ?? '—'} · {entry.reviewStatus}
-              {entry.flags.includes('missing_booking') ? ' · Fehlende Buchung' : ''}
-            </Text>
-          ))}
-          {listOpenReviewEntriesForEmployee(selectedAccount).length > 0 ? (
-            <PremiumButton
-              title="Zur Prüfung öffnen"
-              variant="secondary"
-              onPress={() => router.push('/business/office/time-tracking/pruefqueue' as never)}
-            />
-          ) : null}
-          <Text style={{ ...typography.body, color: text.primary, fontWeight: '700' }}>
-            Gehaltsstatistiken & PDF-Archiv
-          </Text>
-          {selectedAccount.payrollStatements.length === 0 ? (
-            <Text style={{ ...typography.caption, color: text.muted }}>
-              Noch keine Gehaltsstatistik für diesen Mitarbeitenden gespeichert.
-            </Text>
-          ) : (
-            selectedAccount.payrollStatements.map((statement) => (
-              <View key={statement.id} style={styles.statementRow}>
-                <Text style={{ ...typography.caption, color: text.secondary }}>
-                  {String(statement.periodMonth).padStart(2, '0')}/{statement.periodYear} · Version {statement.version} · {statement.status}
-                </Text>
-                <PremiumButton
-                  title={statement.pdfPath ? 'PDF öffnen' : 'PDF fehlt'}
-                  size="sm"
-                  variant="ghost"
-                  disabled={!statement.pdfPath}
-                  onPress={() => void openPayrollPdf(statement.pdfPath)}
-                />
-              </View>
-            ))
-          )}
-        </View>
+      {selectedAccount && tenantId && reviewerId ? (
+        <WfmEmployeeTimeAccountWorkspace
+          account={selectedAccount}
+          tenantId={tenantId}
+          reviewerId={reviewerId}
+          roleKey={roleKey}
+          canCorrect={canCorrect}
+          canManage={canManage}
+          periodLabel={periodPreset === 'today' ? 'Heute' : periodPreset === 'this_week' ? 'Diese Woche' : 'Aktueller Monat'}
+          onClose={() => setSelectedEmployeeId(null)}
+        />
       ) : null}
 
       <View style={styles.collapsible}>

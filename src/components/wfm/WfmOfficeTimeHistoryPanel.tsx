@@ -43,6 +43,10 @@ type Props = {
   canCorrect: boolean;
   initialFilterAmpel?: string | null;
   reviewQueueMode?: boolean;
+  initialEmployeeId?: string | null;
+  initialEmployeeName?: string | null;
+  initialPreset?: WfmOfficePeriodPreset;
+  lockEmployeeFilter?: boolean;
 };
 
 const PRESETS: WfmOfficePeriodPreset[] = [
@@ -63,17 +67,21 @@ export function WfmOfficeTimeHistoryPanel({
   canCorrect,
   initialFilterAmpel = null,
   reviewQueueMode = false,
+  initialEmployeeId = null,
+  initialEmployeeName = null,
+  initialPreset,
+  lockEmployeeFilter = false,
 }: Props) {
   const feedback = useWorkflowFeedback();
   const accent = moduleColor('office');
   const [preset, setPreset] = useState<WfmOfficePeriodPreset>(
-    reviewQueueMode ? 'last_30_days' : 'today',
+    initialPreset ?? (reviewQueueMode ? 'last_30_days' : 'today'),
   );
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterAmpel, setFilterAmpel] = useState<string | null>(initialFilterAmpel);
-  const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
+  const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(initialEmployeeId);
   const [employeeOptions, setEmployeeOptions] = useState<{ id: string; name: string }[]>([]);
   const [correctionReason, setCorrectionReason] = useState('');
   const [reviewNote, setReviewNote] = useState('');
@@ -353,7 +361,13 @@ export function WfmOfficeTimeHistoryPanel({
           />
         }
         secondarySlot={
-          <>
+          lockEmployeeFilter ? (
+            <WfmOfficeStatusChip
+              label={initialEmployeeName ?? 'Ausgewählte Person'}
+              selected
+              onPress={() => undefined}
+            />
+          ) : <>
             <WfmOfficeStatusChip
               label="Alle MA"
               selected={!filterEmployeeId}

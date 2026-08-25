@@ -50,3 +50,10 @@ export type StartLogbookTripInput = {
   assignmentId?: string | null; clientId?: string | null; purpose: string;
   manualReason?: string | null; startAddress?: string | null;
 };
+
+export type CreateManualLogbookTripInput = {
+  tenantId: string; employeeId: string; vehicleId: string | null;
+  routeType: TravelRouteType; purpose: string; manualReason: string;
+  startedAt: string; endedAt: string; startAddress: string; endAddress: string;
+  distanceKm: number; notes?: string | null;
+};

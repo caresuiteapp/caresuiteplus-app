@@ -1,6 +1,6 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
-import type { EmployeeLogbookBundle, LogbookDailyConfirmation, LogbookPoint, LogbookProfile, LogbookTrip, LogbookVehicle, StartLogbookTripInput } from '@/types/modules/employeeLogbook';
+import type { CreateManualLogbookTripInput, EmployeeLogbookBundle, LogbookDailyConfirmation, LogbookPoint, LogbookProfile, LogbookTrip, LogbookVehicle, StartLogbookTripInput } from '@/types/modules/employeeLogbook';
 
 type Row = Record<string, unknown>;
 const s = (value: unknown) => typeof value === 'string' ? value : '';
@@ -16,17 +16,34 @@ function mapConfirmation(row: Row): LogbookDailyConfirmation { return { id: s(ro
 
 function db() { const client = getSupabaseClient(); if (!client) throw new Error('Keine sichere Datenbankverbindung.'); return client; }
 
+async function loadAllEmployeeTripRows(tenantId: string, employeeId: string): Promise<Row[]> {
+  const pageSize = 500;
+  const rows: Row[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const result = await fromUnknownTable(db(), 'employee_logbook_trips')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .eq('employee_id', employeeId)
+      .order('started_at', { ascending: false })
+      .range(offset, offset + pageSize - 1);
+    if (result.error) throw new Error(result.error.message);
+    const page = (result.data ?? []) as Row[];
+    rows.push(...page);
+    if (page.length < pageSize) return rows;
+  }
+}
+
 export async function loadEmployeeLogbook(tenantId: string, employeeId: string): Promise<EmployeeLogbookBundle> {
   const client = db();
   const [profile, vehicles, trips, confirmations] = await Promise.all([
     fromUnknownTable(client, 'employee_logbook_profiles').select('*').eq('tenant_id', tenantId).eq('employee_id', employeeId).maybeSingle(),
     fromUnknownTable(client, 'employee_logbook_vehicles').select('*').eq('tenant_id', tenantId).eq('employee_id', employeeId).order('active', { ascending: false }),
-    fromUnknownTable(client, 'employee_logbook_trips').select('*').eq('tenant_id', tenantId).eq('employee_id', employeeId).order('started_at', { ascending: false }).limit(250),
+    loadAllEmployeeTripRows(tenantId, employeeId),
     fromUnknownTable(client, 'employee_logbook_daily_confirmations').select('*').eq('tenant_id', tenantId).eq('employee_id', employeeId).order('work_date', { ascending: false }).limit(90),
   ]);
-  const error = profile.error || vehicles.error || trips.error || confirmations.error;
+  const error = profile.error || vehicles.error || confirmations.error;
   if (error) throw new Error(error.message);
-  return { profile: mapProfile(profile.data as Row | null, tenantId, employeeId), vehicles: ((vehicles.data ?? []) as Row[]).map(mapVehicle), trips: ((trips.data ?? []) as Row[]).map(mapTrip), confirmations: ((confirmations.data ?? []) as Row[]).map(mapConfirmation) };
+  return { profile: mapProfile(profile.data as Row | null, tenantId, employeeId), vehicles: ((vehicles.data ?? []) as Row[]).map(mapVehicle), trips: trips.map(mapTrip), confirmations: ((confirmations.data ?? []) as Row[]).map(mapConfirmation) };
 }
 
 export async function saveLogbookProfile(profile: LogbookProfile) {
@@ -44,6 +61,39 @@ export async function createLogbookTrip(input: StartLogbookTripInput): Promise<L
   if (!input.assignmentId && !input.clientId && !input.manualReason?.trim()) throw new Error('Ohne Einsatz- oder Klient:innenzuordnung ist eine Begründung erforderlich.');
   const { data, error } = await fromUnknownTable(db(), 'employee_logbook_trips').insert({ tenant_id: input.tenantId, employee_id: input.employeeId, vehicle_id: input.vehicleId, assignment_id: input.assignmentId ?? null, client_id: input.clientId ?? null, route_type: input.routeType, purpose: input.purpose.trim(), manual_reason: input.manualReason?.trim() || null, start_address: input.startAddress?.trim() || null, status: 'recording', started_at: new Date().toISOString(), source: 'employee_portal', gps_captured: true }).select('*').single();
   if (error) throw new Error(error.message); return mapTrip(data as Row);
+}
+
+export async function createManualLogbookTrip(input: CreateManualLogbookTripInput): Promise<LogbookTrip> {
+  if (input.purpose.trim().length < 3) throw new Error('Bitte einen aussagekräftigen Fahrtzweck eintragen.');
+  if (input.manualReason.trim().length < 3) throw new Error('Für die manuelle Erfassung ist eine Begründung erforderlich.');
+  if (!Number.isFinite(input.distanceKm) || input.distanceKm < 0) throw new Error('Bitte gültige Kilometer eintragen.');
+  const startedAt = new Date(input.startedAt);
+  const endedAt = new Date(input.endedAt);
+  if (Number.isNaN(startedAt.getTime()) || Number.isNaN(endedAt.getTime()) || endedAt <= startedAt) {
+    throw new Error('Start- und Endzeit sind ungültig. Das Ende muss nach dem Start liegen.');
+  }
+  const { data, error } = await fromUnknownTable(db(), 'employee_logbook_trips').insert({
+    tenant_id: input.tenantId,
+    employee_id: input.employeeId,
+    vehicle_id: input.vehicleId,
+    assignment_id: null,
+    client_id: null,
+    route_type: input.routeType,
+    purpose: input.purpose.trim(),
+    manual_reason: input.manualReason.trim(),
+    status: 'completed',
+    started_at: startedAt.toISOString(),
+    ended_at: endedAt.toISOString(),
+    start_address: input.startAddress.trim() || null,
+    end_address: input.endAddress.trim() || null,
+    distance_gps_km: 0,
+    distance_final_km: input.distanceKm,
+    gps_captured: false,
+    source: 'office_manual',
+    notes: input.notes?.trim() || null,
+  }).select('*').single();
+  if (error) throw new Error(error.message);
+  return mapTrip(data as Row);
 }
 
 export async function appendLogbookPoints(tripId: string, tenantId: string, employeeId: string, points: LogbookPoint[]) {

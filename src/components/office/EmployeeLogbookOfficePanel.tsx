@@ -13,11 +13,14 @@ import {
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import {
   buildLogbookPdf,
+  correctLogbookTrip,
+  createManualLogbookTrip,
   loadEmployeeLogbook,
   saveLogbookProfile,
   saveLogbookVehicle,
 } from '@/lib/employeeLogbook';
-import type { LogbookVehicleOwnership } from '@/types/modules/employeeLogbook';
+import type { LogbookTrip, LogbookVehicleOwnership } from '@/types/modules/employeeLogbook';
+import { TRAVEL_ROUTE_TYPE_LABELS, type TravelRouteType } from '@/types/modules/travelCompensation';
 import { careSpacing } from '@/design/tokens/spacing';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { typography } from '@/theme';
@@ -54,6 +57,20 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   const [to, setTo] = useState(today());
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [correctedDistance, setCorrectedDistance] = useState('');
+  const [correctionReason, setCorrectionReason] = useState('');
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualDate, setManualDate] = useState(today());
+  const [manualStartTime, setManualStartTime] = useState('08:00');
+  const [manualEndTime, setManualEndTime] = useState('08:30');
+  const [manualRouteType, setManualRouteType] = useState<TravelRouteType>('other_business');
+  const [manualPurpose, setManualPurpose] = useState('');
+  const [manualStartAddress, setManualStartAddress] = useState('');
+  const [manualEndAddress, setManualEndAddress] = useState('');
+  const [manualDistance, setManualDistance] = useState('');
+  const [manualReason, setManualReason] = useState('');
+  const [manualVehicleId, setManualVehicleId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!query.data) return;
@@ -63,16 +80,96 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
     setModel(vehicle?.model ?? '');
     setOwnership(vehicle?.ownership ?? 'private');
     setRate((query.data.profile.mileageRateCents / 100).toFixed(2).replace('.', ','));
+    setManualVehicleId((current) => current ?? vehicle?.id ?? null);
   }, [query.data]);
 
+  const visibleTrips = useMemo(
+    () => (query.data?.trips ?? []).filter((trip) => {
+      const date = trip.startedAt.slice(0, 10);
+      return (!from || date >= from) && (!to || date <= to);
+    }),
+    [from, query.data?.trips, to],
+  );
+
   const totals = useMemo(() => {
-    const completed = (query.data?.trips ?? []).filter((trip) => trip.status !== 'recording');
+    const completed = visibleTrips.filter((trip) => trip.status !== 'recording');
     return {
       count: completed.length,
       distance: completed.reduce((sum, trip) => sum + trip.distanceFinalKm, 0),
       amount: completed.reduce((sum, trip) => sum + trip.mileageAmountCents, 0),
     };
-  }, [query.data?.trips]);
+  }, [visibleTrips]);
+
+  function beginTripCorrection(trip: LogbookTrip) {
+    setSelectedTripId(trip.id);
+    setCorrectedDistance(trip.distanceFinalKm.toFixed(2).replace('.', ','));
+    setCorrectionReason('');
+    setFeedback(null);
+  }
+
+  async function saveTripCorrection() {
+    const trip = query.data?.trips.find((item) => item.id === selectedTripId);
+    if (!trip) return;
+    const distance = Number(correctedDistance.replace(',', '.'));
+    if (!Number.isFinite(distance) || distance < 0) {
+      setFeedback('Bitte eine gültige Kilometerzahl eintragen.');
+      return;
+    }
+    if (!correctionReason.trim()) {
+      setFeedback('Für eine Fahrtenbuchkorrektur ist eine Begründung erforderlich.');
+      return;
+    }
+    setSaving(true);
+    setFeedback(null);
+    try {
+      await correctLogbookTrip(trip, distance, correctionReason);
+      setSelectedTripId(null);
+      setCorrectionReason('');
+      await query.refresh();
+      setFeedback('Die Kilometerkorrektur wurde gespeichert und revisionssicher protokolliert.');
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Korrektur fehlgeschlagen.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveManualTrip() {
+    const distance = Number(manualDistance.replace(',', '.'));
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(manualDate) || !/^\d{2}:\d{2}$/.test(manualStartTime) || !/^\d{2}:\d{2}$/.test(manualEndTime)) {
+      setFeedback('Bitte Datum und Uhrzeiten vollständig im angegebenen Format eintragen.');
+      return;
+    }
+    setSaving(true);
+    setFeedback(null);
+    try {
+      await createManualLogbookTrip({
+        tenantId,
+        employeeId,
+        vehicleId: manualVehicleId,
+        routeType: manualRouteType,
+        purpose: manualPurpose,
+        manualReason,
+        startedAt: `${manualDate}T${manualStartTime}:00`,
+        endedAt: `${manualDate}T${manualEndTime}:00`,
+        startAddress: manualStartAddress,
+        endAddress: manualEndAddress,
+        distanceKm: distance,
+      });
+      setManualOpen(false);
+      setManualPurpose('');
+      setManualStartAddress('');
+      setManualEndAddress('');
+      setManualDistance('');
+      setManualReason('');
+      await query.refresh();
+      setFeedback('Die Fahrt wurde manuell erfasst, abgerechnet und im Audit protokolliert.');
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Manuelle Fahrt konnte nicht gespeichert werden.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function saveVehicleSettings() {
     if (!query.data) return;
@@ -130,6 +227,102 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
         <PremiumCard style={styles.metricCard}><Text style={styles.metricLabel}>Kilometererstattung</Text><Text style={styles.metricValue}>{(totals.amount / 100).toFixed(2).replace('.', ',')} EUR</Text></PremiumCard>
       </View>
 
+      <SectionPanel title="Fahrt manuell erfassen" subtitle="Für fehlgeschlagene GPS-Aufzeichnungen oder nachträglich gemeldete Dienstfahrten">
+        <View style={styles.manualIntro}>
+          <Text style={styles.manualText}>Jede manuelle Fahrt erhält eine Herkunftskennzeichnung und eine Pflichtbegründung. Kilometer, Fahrzeit, Arbeitszeitbezug und Erstattung werden anschließend automatisch berechnet.</Text>
+          <PremiumButton title={manualOpen ? 'Eingabe schließen' : 'Neue Fahrt erfassen'} disabled={!canEdit} onPress={() => setManualOpen((value) => !value)} />
+        </View>
+        {manualOpen ? (
+          <View style={styles.manualForm}>
+            <Text style={styles.formLabel}>Fahrtart</Text>
+            <View style={styles.routeTypes}>
+              {(Object.keys(TRAVEL_ROUTE_TYPE_LABELS) as TravelRouteType[]).map((routeType) => (
+                <PremiumButton key={routeType} title={TRAVEL_ROUTE_TYPE_LABELS[routeType]} size="sm" variant={manualRouteType === routeType ? 'primary' : 'secondary'} onPress={() => setManualRouteType(routeType)} />
+              ))}
+            </View>
+            <View style={styles.cols}>
+              <PremiumInput label="Datum (JJJJ-MM-TT)" value={manualDate} onChangeText={setManualDate} style={styles.manualSmall} />
+              <PremiumInput label="Startzeit (HH:MM)" value={manualStartTime} onChangeText={setManualStartTime} style={styles.manualSmall} />
+              <PremiumInput label="Endzeit (HH:MM)" value={manualEndTime} onChangeText={setManualEndTime} style={styles.manualSmall} />
+              <PremiumInput label="Kilometer" value={manualDistance} onChangeText={setManualDistance} keyboardType="decimal-pad" style={styles.manualSmall} />
+            </View>
+            <View style={styles.cols}>
+              <PremiumInput label="Fahrtzweck" value={manualPurpose} onChangeText={setManualPurpose} placeholder="z. B. Dienstfahrt zur Klientin" style={styles.grow} />
+              <PremiumInput label="Startadresse" value={manualStartAddress} onChangeText={setManualStartAddress} style={styles.grow} />
+              <PremiumInput label="Zieladresse" value={manualEndAddress} onChangeText={setManualEndAddress} style={styles.grow} />
+            </View>
+            {query.data.vehicles.length ? (
+              <View style={styles.vehicleSelect}>
+                <Text style={styles.formLabel}>Fahrzeug</Text>
+                <View style={styles.routeTypes}>
+                  {query.data.vehicles.map((vehicle) => <PremiumButton key={vehicle.id} title={`${vehicle.plate}${vehicle.make ? ` · ${vehicle.make}` : ''}`} size="sm" variant={manualVehicleId === vehicle.id ? 'primary' : 'secondary'} onPress={() => setManualVehicleId(vehicle.id)} />)}
+                </View>
+              </View>
+            ) : <InfoBanner message="Es ist noch kein Fahrzeug hinterlegt. Die Fahrt kann gespeichert werden; ergänzen Sie das Fahrzeug anschließend im Bereich ‚Fahrzeug & Kilometersatz‘." variant="warning" />}
+            <PremiumInput label="Pflichtbegründung für manuelle Erfassung" value={manualReason} onChangeText={setManualReason} placeholder="z. B. GPS-Berechtigung war deaktiviert" />
+            <View style={styles.correctionActions}>
+              <PremiumButton title="Abbrechen" variant="ghost" onPress={() => setManualOpen(false)} />
+              <PremiumButton title="Manuelle Fahrt speichern" loading={saving} onPress={() => void saveManualTrip()} />
+            </View>
+          </View>
+        ) : null}
+      </SectionPanel>
+
+      <SectionPanel title="Fahrten im Zeitraum" subtitle="Route, GPS-Distanz, Arbeitszeitbezug, Erstattung und Prüfstatus vollständig einsehen">
+        <View style={styles.tripHeader}>
+          <Text style={[styles.tripHeaderText, styles.tripDate]}>DATUM</Text>
+          <Text style={[styles.tripHeaderText, styles.tripRoute]}>FAHRT & ROUTE</Text>
+          <Text style={[styles.tripHeaderText, styles.tripNumber]}>DAUER</Text>
+          <Text style={[styles.tripHeaderText, styles.tripNumber]}>KM</Text>
+          <Text style={[styles.tripHeaderText, styles.tripNumber]}>ERSTATTUNG</Text>
+          <Text style={[styles.tripHeaderText, styles.tripAction]}>AKTION</Text>
+        </View>
+        {visibleTrips.length === 0 ? (
+          <InfoBanner message="Im gewählten Zeitraum liegen keine Fahrten vor." variant="info" />
+        ) : visibleTrips.map((trip) => {
+          const selected = selectedTripId === trip.id;
+          const durationMinutes = Math.max(0, Math.round(trip.durationSeconds / 60));
+          return (
+            <View key={trip.id} style={[styles.tripBlock, selected && styles.tripBlockSelected]}>
+              <View style={styles.tripRow}>
+                <View style={styles.tripDate}>
+                  <Text style={styles.tripPrimary}>{new Date(trip.startedAt).toLocaleDateString('de-DE')}</Text>
+                  <Text style={styles.tripSecondary}>{new Date(trip.startedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}{trip.endedAt ? ` – ${new Date(trip.endedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}` : ' · läuft'}</Text>
+                </View>
+                <View style={styles.tripRoute}>
+                  <Text style={styles.tripPrimary}>{TRAVEL_ROUTE_TYPE_LABELS[trip.routeType] ?? trip.routeType}</Text>
+                  <Text style={styles.tripSecondary}>{trip.purpose || 'Ohne Zweckangabe'}</Text>
+                  <Text style={styles.tripSecondary}>{trip.startAddress ?? 'GPS-Start'} → {trip.endAddress ?? (trip.status === 'recording' ? 'Fahrt läuft' : 'GPS-Ziel')}</Text>
+                  <View style={styles.tripBadges}>
+                    <PremiumBadge label={trip.status === 'recording' ? 'AUFZEICHNUNG LÄUFT' : trip.status === 'corrected' ? 'KORRIGIERT' : trip.status === 'confirmed' ? 'BESTÄTIGT' : 'ABGESCHLOSSEN'} variant={trip.status === 'recording' ? 'orange' : trip.status === 'corrected' ? 'cyan' : 'green'} />
+                    <PremiumBadge label={trip.countsAsWorkTime ? 'ARBEITSZEIT' : `${trip.worktimeDeductionMinutes} MIN. ABZUG`} variant={trip.countsAsWorkTime ? 'green' : 'muted'} />
+                    <PremiumBadge label={trip.gpsCaptured ? 'GPS' : 'MANUELL'} variant={trip.gpsCaptured ? 'cyan' : 'muted'} />
+                  </View>
+                </View>
+                <Text style={[styles.tripPrimary, styles.tripNumber]}>{durationMinutes ? `${Math.floor(durationMinutes / 60)}:${String(durationMinutes % 60).padStart(2, '0')} h` : '—'}</Text>
+                <Text style={[styles.tripPrimary, styles.tripNumber]}>{trip.distanceFinalKm.toFixed(2).replace('.', ',')}</Text>
+                <Text style={[styles.tripPrimary, styles.tripNumber]}>{(trip.mileageAmountCents / 100).toFixed(2).replace('.', ',')} €</Text>
+                <View style={styles.tripAction}>
+                  <PremiumButton title={selected ? 'Schließen' : 'Korrigieren'} size="sm" variant="secondary" disabled={!canEdit || trip.status === 'recording'} onPress={() => selected ? setSelectedTripId(null) : beginTripCorrection(trip)} />
+                </View>
+              </View>
+              {selected ? (
+                <View style={styles.correctionPanel}>
+                  <View style={styles.cols}>
+                    <PremiumInput label="Korrigierte Kilometer" value={correctedDistance} onChangeText={setCorrectedDistance} keyboardType="decimal-pad" style={styles.grow} />
+                    <PremiumInput label="Pflichtbegründung" value={correctionReason} onChangeText={setCorrectionReason} placeholder="Warum weicht die Strecke von der GPS-Aufzeichnung ab?" style={styles.correctionReason} />
+                  </View>
+                  <View style={styles.correctionActions}>
+                    <PremiumButton title="Abbrechen" variant="ghost" onPress={() => setSelectedTripId(null)} />
+                    <PremiumButton title="Korrektur speichern" loading={saving} onPress={() => void saveTripCorrection()} />
+                  </View>
+                </View>
+              ) : null}
+            </View>
+          );
+        })}
+      </SectionPanel>
+
       <SectionPanel title="Fahrzeug & Kilometersatz" subtitle="Ausschließlich durch die Verwaltung bearbeitbar">
         <View style={styles.chips}>
           {(['private', 'company'] as const).map((key) => (
@@ -176,4 +369,26 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, alignItems: 'center' },
   cols: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   grow: { flex: 1, minWidth: 220 },
+  tripHeader: { flexDirection: 'row', alignItems: 'center', gap: careSpacing.sm, paddingHorizontal: careSpacing.sm, paddingVertical: careSpacing.xs, borderRadius: 10, backgroundColor: '#E7F1FB' },
+  tripHeaderText: { ...typography.caption, color: '#31597F', fontSize: 10, fontWeight: '900', letterSpacing: 0.4 },
+  tripBlock: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#C8DBED', backgroundColor: '#FFFFFF' },
+  tripBlockSelected: { borderWidth: 1, borderColor: '#68AEF4', borderRadius: 12, overflow: 'hidden' },
+  tripRow: { flexDirection: 'row', alignItems: 'center', gap: careSpacing.sm, padding: careSpacing.sm },
+  tripDate: { width: 132 },
+  tripRoute: { flex: 1, minWidth: 260, gap: 2 },
+  tripNumber: { width: 92, textAlign: 'right' },
+  tripAction: { width: 112, alignItems: 'flex-end' },
+  tripPrimary: { ...typography.caption, color: '#0B2342', fontWeight: '800' },
+  tripSecondary: { ...typography.caption, color: '#4C6885', fontSize: 11, lineHeight: 15 },
+  tripBadges: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
+  correctionPanel: { gap: careSpacing.sm, padding: careSpacing.md, borderTopWidth: 1, borderTopColor: '#B7D8F7', backgroundColor: '#EEF7FF' },
+  correctionReason: { flex: 2, minWidth: 320 },
+  correctionActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: careSpacing.sm },
+  manualIntro: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: careSpacing.md },
+  manualText: { ...typography.body, flex: 1, minWidth: 280, color: '#31597F', fontSize: 12, lineHeight: 18 },
+  manualForm: { gap: careSpacing.md, paddingTop: careSpacing.sm, borderTopWidth: 1, borderTopColor: '#C8DBED' },
+  formLabel: { ...typography.caption, color: '#0B2342', fontWeight: '900' },
+  routeTypes: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
+  manualSmall: { flex: 1, minWidth: 160 },
+  vehicleSelect: { gap: careSpacing.xs },
 });
