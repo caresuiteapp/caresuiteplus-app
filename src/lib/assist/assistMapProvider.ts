@@ -110,17 +110,20 @@ export function buildGoogleStaticMapUrl(
   apiKey: string,
   size: { width: number; height: number } = { width: 640, height: 360 },
   routePoints: AssistLiveRoutePoint[] = [],
+  routeSegments?: AssistLiveRoutePoint[][],
 ): string {
   const { width, height } = size;
   const center = `${latitude},${longitude}`;
   const marker = `color:red|${latitude},${longitude}`;
-  const sampledRoute = routePoints.length > 80
-    ? routePoints.filter((_, index) => index % Math.ceil(routePoints.length / 80) === 0)
-    : routePoints;
-  const path = sampledRoute.length > 1
-    ? `&path=${encodeURIComponent(`color:0x0B63F3FF|weight:5|${sampledRoute.map((point) => `${point.latitude},${point.longitude}`).join('|')}`)}`
-    : '';
-  return `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(center)}&zoom=15&size=${width}x${height}&scale=2&markers=${encodeURIComponent(marker)}${path}&key=${encodeURIComponent(apiKey)}`;
+  const sourceSegments = routeSegments?.filter((segment) => segment.length > 1) ??
+    (routePoints.length > 1 ? [routePoints] : []);
+  const paths = sourceSegments.map((segment) => {
+    const sampledRoute = segment.length > 80
+      ? segment.filter((_, index) => index % Math.ceil(segment.length / 80) === 0)
+      : segment;
+    return `&path=${encodeURIComponent(`color:0x0B63F3FF|weight:5|${sampledRoute.map((point) => `${point.latitude},${point.longitude}`).join('|')}`)}`;
+  }).join('');
+  return `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(center)}&zoom=15&size=${width}x${height}&scale=2&markers=${encodeURIComponent(marker)}${paths}&key=${encodeURIComponent(apiKey)}`;
 }
 
 export function buildAssistMapImageUrl(
@@ -128,10 +131,11 @@ export function buildAssistMapImageUrl(
   longitude: number,
   size?: { width: number; height: number },
   routePoints: AssistLiveRoutePoint[] = [],
+  routeSegments?: AssistLiveRoutePoint[][],
 ): string {
   const googleKey = getGoogleMapsApiKey();
   if (googleKey) {
-    return buildGoogleStaticMapUrl(latitude, longitude, googleKey, size, routePoints);
+    return buildGoogleStaticMapUrl(latitude, longitude, googleKey, size, routePoints, routeSegments);
   }
   const token = getMapboxAccessToken();
   if (token) {

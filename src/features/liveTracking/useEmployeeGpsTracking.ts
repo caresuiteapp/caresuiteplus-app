@@ -2,6 +2,7 @@
  * LT.GMAPS.2 + PERF.1 — Foreground GPS watch with throttled DB writes (singleton watch).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import {
   appendLocationPoint,
 } from '@/lib/assist/assistTrackingPersistenceService';
@@ -16,6 +17,7 @@ import {
   acquireGeolocationWatch,
   captureGeolocationOnce,
   EMPLOYEE_LIVE_LOCATION_INTERVAL_MS,
+  EMPLOYEE_ROUTE_LOCATION_INTERVAL_MS,
   type GeolocationSnapshot,
 } from './useSingleGeolocationWatch';
 import {
@@ -110,6 +112,7 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
 } {
   const releaseWatchRef = useRef<(() => void) | null>(null);
   const heartbeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const routeSamplingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startingWatchRef = useRef(false);
   const writeInFlightRef = useRef(false);
   const lastWriteRef = useRef<number>(0);
@@ -235,6 +238,10 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
       clearInterval(heartbeatTimerRef.current);
       heartbeatTimerRef.current = null;
     }
+    if (routeSamplingTimerRef.current) {
+      clearInterval(routeSamplingTimerRef.current);
+      routeSamplingTimerRef.current = null;
+    }
     setState((prev) => ({
       ...prev,
       watching: false,
@@ -275,6 +282,22 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
           }));
         },
       });
+
+      // Some mobile browsers deliver watchPosition updates too sparsely even
+      // while the route is moving. A foreground sample every 15 seconds keeps
+      // the recorded path detailed; persistence throttling still suppresses
+      // unchanged or cached coordinates.
+      if (Platform.OS === 'web') {
+        routeSamplingTimerRef.current = setInterval(() => {
+          if (writeInFlightRef.current) return;
+          writeInFlightRef.current = true;
+          void captureOnce()
+            .then((snapshot) => snapshot ? persistSnapshot(snapshot) : false)
+            .finally(() => {
+              writeInFlightRef.current = false;
+            });
+        }, EMPLOYEE_ROUTE_LOCATION_INTERVAL_MS);
+      }
 
       // watchPosition is movement/provider driven. A separate heartbeat keeps
       // Office genuinely live even while the employee stands still.

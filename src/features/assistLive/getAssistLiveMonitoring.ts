@@ -49,12 +49,20 @@ export type AssistLiveMonitoringRow = DayMonitorAssignmentRow & {
 
 export type AssistLiveRouteSummary = {
   points: AssistLiveRoutePoint[];
+  /** Separate, continuous GPS traces. Signal gaps are never bridged visually. */
+  segments: AssistLiveRoutePoint[][];
   pointCount: number;
+  acceptedPointCount: number;
+  acceptedMovementCount: number;
+  stationaryPointCount: number;
+  gapCount: number;
+  maxGapSeconds: number;
   totalDistanceKm: number;
   walkingDistanceKm: number;
   cyclingDistanceKm: number;
   drivingDistanceKm: number;
   durationSeconds: number;
+  movementDurationSeconds: number;
   currentSpeedKmh: number | null;
   averageSpeedKmh: number | null;
   startedAt: string | null;
@@ -113,7 +121,7 @@ function haversineMeters(
 export function buildAssistLiveRouteSummary(
   rawPoints: AssistLiveRoutePoint[],
 ): AssistLiveRouteSummary {
-  const points = rawPoints
+  const candidatePoints = rawPoints
     .filter((point) =>
       Number.isFinite(point.latitude) &&
       Number.isFinite(point.longitude) &&
@@ -131,12 +139,32 @@ export function buildAssistLiveRouteSummary(
   let walkingMeters = 0;
   let cyclingMeters = 0;
   let drivingMeters = 0;
-  let discardedPointCount = rawPoints.length - points.length;
+  let discardedPointCount = rawPoints.length - candidatePoints.length;
+  let acceptedMovementCount = 0;
+  let stationaryPointCount = 0;
+  let gapCount = 0;
+  let maxGapSeconds = 0;
+  let movementDurationSeconds = 0;
   let lastAcceptedSpeedKmh: number | null = null;
+  const acceptedPoints: AssistLiveRoutePoint[] = [];
+  const segments: AssistLiveRoutePoint[][] = [];
+  let currentSegment: AssistLiveRoutePoint[] = [];
+  let previousAccepted: AssistLiveRoutePoint | null = null;
 
-  for (let index = 1; index < points.length; index += 1) {
-    const previous = points[index - 1];
-    const current = points[index];
+  const finishSegment = () => {
+    if (currentSegment.length >= 2) segments.push(currentSegment);
+    currentSegment = [];
+  };
+
+  for (const current of candidatePoints) {
+    if (!previousAccepted) {
+      acceptedPoints.push(current);
+      currentSegment = [current];
+      previousAccepted = current;
+      continue;
+    }
+
+    const previous = previousAccepted;
     const elapsedSeconds =
       (new Date(current.capturedAt).getTime() - new Date(previous.capturedAt).getTime()) / 1000;
     const distanceMeters = haversineMeters(
@@ -146,13 +174,40 @@ export function buildAssistLiveRouteSummary(
       current.longitude,
     );
 
-    if (elapsedSeconds <= 0 || elapsedSeconds > 300 || distanceMeters < 4) continue;
+    if (elapsedSeconds <= 0) {
+      discardedPointCount += 1;
+      continue;
+    }
+
+    if (elapsedSeconds > 300) {
+      gapCount += 1;
+      maxGapSeconds = Math.max(maxGapSeconds, Math.round(elapsedSeconds));
+      finishSegment();
+      acceptedPoints.push(current);
+      currentSegment = [current];
+      previousAccepted = current;
+      continue;
+    }
+
+    if (distanceMeters < 4) {
+      stationaryPointCount += 1;
+      acceptedPoints.push(current);
+      currentSegment.push(current);
+      previousAccepted = current;
+      continue;
+    }
+
     const speedKmh = (distanceMeters / elapsedSeconds) * 3.6;
     if (!Number.isFinite(speedKmh) || speedKmh > 180) {
       discardedPointCount += 1;
       continue;
     }
 
+    acceptedPoints.push(current);
+    currentSegment.push(current);
+    previousAccepted = current;
+    acceptedMovementCount += 1;
+    movementDurationSeconds += elapsedSeconds;
     totalMeters += distanceMeters;
     lastAcceptedSpeedKmh = speedKmh;
     if (speedKmh <= 8) walkingMeters += distanceMeters;
@@ -160,23 +215,32 @@ export function buildAssistLiveRouteSummary(
     else drivingMeters += distanceMeters;
   }
 
-  const startedAt = points[0]?.capturedAt ?? null;
-  const updatedAt = points.at(-1)?.capturedAt ?? null;
+  finishSegment();
+
+  const startedAt = candidatePoints[0]?.capturedAt ?? null;
+  const updatedAt = candidatePoints.at(-1)?.capturedAt ?? null;
   const durationSeconds = startedAt && updatedAt
     ? Math.max(0, Math.round((new Date(updatedAt).getTime() - new Date(startedAt).getTime()) / 1000))
     : 0;
-  const averageSpeedKmh = durationSeconds > 0
-    ? (totalMeters / durationSeconds) * 3.6
+  const averageSpeedKmh = movementDurationSeconds > 0
+    ? (totalMeters / movementDurationSeconds) * 3.6
     : null;
 
   return {
-    points,
-    pointCount: points.length,
+    points: acceptedPoints,
+    segments,
+    pointCount: candidatePoints.length,
+    acceptedPointCount: acceptedPoints.length,
+    acceptedMovementCount,
+    stationaryPointCount,
+    gapCount,
+    maxGapSeconds,
     totalDistanceKm: totalMeters / 1000,
     walkingDistanceKm: walkingMeters / 1000,
     cyclingDistanceKm: cyclingMeters / 1000,
     drivingDistanceKm: drivingMeters / 1000,
     durationSeconds,
+    movementDurationSeconds: Math.round(movementDurationSeconds),
     currentSpeedKmh: lastAcceptedSpeedKmh,
     averageSpeedKmh,
     startedAt,

@@ -100,6 +100,26 @@ function formatDistance(kilometres: number): string {
   return `${kilometres.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`;
 }
 
+function formatRouteDuration(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.round(seconds));
+  const hours = Math.floor(safeSeconds / 3_600);
+  const minutes = Math.floor((safeSeconds % 3_600) / 60);
+  if (hours > 0) return `${hours} Std. ${minutes} Min.`;
+  return `${minutes} Min.`;
+}
+
+function formatRouteDateTime(iso: string | null): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
 function formatGpsPermission(value: string): string {
   if (value === 'granted') return 'Freigegeben und verwendet';
   if (value === 'denied') return 'Vom Mitarbeitendengerät blockiert';
@@ -346,7 +366,7 @@ export function AssistLiveStatusScreen() {
                           <Text style={styles.routeMetricValue}>{formatDistance(row.route.totalDistanceKm)}</Text>
                         </View>
                         <View style={styles.routeMetric}>
-                          <Text style={styles.routeMetricLabel}>Gefahren</Text>
+                          <Text style={styles.routeMetricLabel}>Gefahrene Strecke</Text>
                           <Text style={styles.routeMetricSmall}>{formatDistance(row.route.drivingDistanceKm)}</Text>
                         </View>
                         <View style={styles.routeMetric}>
@@ -388,14 +408,22 @@ export function AssistLiveStatusScreen() {
       <View style={styles.panelHeader}>
         <View style={styles.panelTitleBlock}>
           <Text style={styles.panelEyebrow}>POSITIONSMONITOR</Text>
-          <Text style={styles.panelTitle}>Live-Karte</Text>
+          <Text style={styles.panelTitle}>
+            {mapRow?.tracking?.trackingActive ? 'Live-Karte' : mapRow?.route ? 'Streckenkarte & GPS-Verlauf' : 'Live-Karte'}
+          </Text>
           <Text style={styles.panelSubtitle}>
-            {mapProviderReady ? 'Standorte und Routen aktiver Einsätze' : 'Kartendienst derzeit nicht verfügbar'}
+            {mapProviderReady
+              ? mapRow?.route
+                ? 'Aufgezeichnete GPS-Spur mit Qualitäts- und Lückenprüfung'
+                : 'Standorte und Routen aktiver Einsätze'
+              : 'Kartendienst derzeit nicht verfügbar'}
           </Text>
         </View>
         <View style={[styles.mapState, mapPosition ? styles.mapStateLive : styles.mapStateWaiting]}>
           <View style={[styles.mapStateDot, mapPosition ? styles.mapStateDotLive : styles.mapStateDotWaiting]} />
-          <Text style={styles.mapStateText}>{mapPosition ? 'LIVE' : 'BEREIT'}</Text>
+          <Text style={styles.mapStateText}>
+            {mapRow?.tracking?.trackingActive ? 'LIVE' : mapRow?.route ? 'VERLAUF' : 'BEREIT'}
+          </Text>
         </View>
       </View>
       {!mapProviderReady ? (
@@ -408,6 +436,8 @@ export function AssistLiveStatusScreen() {
           position={mapPosition}
           markers={mapMarkers}
           routePoints={mapRow?.route?.points ?? []}
+          routeSegments={mapRow?.route?.segments ?? []}
+          routeIdentity={mapRow?.assignmentId ?? null}
           selectedMarkerId={selectedAssignmentId ?? mapRow?.assignmentId ?? null}
           onMarkerSelect={setSelectedAssignmentId}
           markerLabel={mapRow?.title ?? undefined}
@@ -417,6 +447,67 @@ export function AssistLiveStatusScreen() {
           tenantId={tenantId}
         />
       )}
+      {mapRow?.route ? (
+        <View style={styles.routeAuditPanel}>
+          <View style={styles.routeAuditHeader}>
+            <View style={styles.routeAuditTitleBlock}>
+              <Text style={styles.routeAuditEyebrow}>GPS-STRECKENPRÜFUNG</Text>
+              <Text style={styles.routeAuditTitle}>Aufzeichnung im Detail</Text>
+              <Text style={styles.routeAuditSubtitle}>
+                {mapRow.employeeName ?? 'Mitarbeitende'} · {mapRow.title}
+              </Text>
+            </View>
+            <View style={[styles.routeQualityBadge, mapRow.route.gapCount > 0 && styles.routeQualityBadgeWarning]}>
+              <Text style={[styles.routeQualityText, mapRow.route.gapCount > 0 && styles.routeQualityTextWarning]}>
+                {mapRow.route.gapCount > 0 ? `${mapRow.route.gapCount} GPS-Lücke${mapRow.route.gapCount === 1 ? '' : 'n'}` : 'Spur durchgängig'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.routeAuditGrid}>
+            <View style={styles.routeAuditCell}>
+              <Text style={styles.routeAuditLabel}>Beginn</Text>
+              <Text style={styles.routeAuditValue}>{formatRouteDateTime(mapRow.route.startedAt)}</Text>
+            </View>
+            <View style={styles.routeAuditCell}>
+              <Text style={styles.routeAuditLabel}>Letzter GPS-Punkt</Text>
+              <Text style={styles.routeAuditValue}>{formatRouteDateTime(mapRow.route.updatedAt)}</Text>
+            </View>
+            <View style={styles.routeAuditCell}>
+              <Text style={styles.routeAuditLabel}>Messdauer / Bewegung</Text>
+              <Text style={styles.routeAuditValue}>
+                {formatRouteDuration(mapRow.route.durationSeconds)} / {formatRouteDuration(mapRow.route.movementDurationSeconds)}
+              </Text>
+            </View>
+            <View style={styles.routeAuditCell}>
+              <Text style={styles.routeAuditLabel}>GPS-Punkte</Text>
+              <Text style={styles.routeAuditValue}>
+                {mapRow.route.acceptedPointCount} verwendbar · {mapRow.route.discardedPointCount} verworfen
+              </Text>
+            </View>
+            <View style={styles.routeAuditCell}>
+              <Text style={styles.routeAuditLabel}>Bewegung / Stillstand</Text>
+              <Text style={styles.routeAuditValue}>
+                {mapRow.route.acceptedMovementCount} Abschnitte · {mapRow.route.stationaryPointCount} Stillstandspunkte
+              </Text>
+            </View>
+            <View style={styles.routeAuditCell}>
+              <Text style={styles.routeAuditLabel}>GPS-Spuren / längste Lücke</Text>
+              <Text style={styles.routeAuditValue}>
+                {mapRow.route.segments.length} Spuren · {mapRow.route.maxGapSeconds > 0 ? formatRouteDuration(mapRow.route.maxGapSeconds) : 'keine Lücke'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.routeAuditNotice, mapRow.route.gapCount > 0 && styles.routeAuditNoticeWarning]}>
+            <Text style={[styles.routeAuditNoticeText, mapRow.route.gapCount > 0 && styles.routeAuditNoticeTextWarning]}>
+              {mapRow.route.gapCount > 0
+                ? 'GPS-Unterbrechungen werden auf der Karte bewusst nicht mehr durch Luftlinien verbunden. Die Kilometer enthalten nur plausible, zeitlich zusammenhängende Messabschnitte.'
+                : 'Die blaue Linie zeigt die zeitlich zusammenhängende GPS-Spur. Manuelles Zoomen und Verschieben bleiben bei Live-Aktualisierungen erhalten.'}
+            </Text>
+          </View>
+        </View>
+      ) : null}
       {persistenceActive && rows.length > 0 && !mapRow?.tracking?.lastPosition && !demoMapPreview ? (
         <Text style={styles.gap}>{GPS_TRACKING_BACKEND_EMPTY_MESSAGE}</Text>
       ) : null}
@@ -718,5 +809,30 @@ const styles = StyleSheet.create({
   mapUnavailable: { minHeight: 300, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,185,77,0.3)', backgroundColor: 'rgba(83,52,8,0.28)', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 20 },
   mapUnavailableIcon: { color: '#FFC15B', fontSize: 22, fontWeight: '900' },
   mapUnavailableText: { color: '#CBD8E4', fontSize: 12, textAlign: 'center' },
+  routeAuditPanel: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#B8D7EE',
+    backgroundColor: '#F7FBFF',
+    padding: 14,
+    gap: 12,
+  },
+  routeAuditHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 },
+  routeAuditTitleBlock: { flex: 1, minWidth: 220 },
+  routeAuditEyebrow: { color: '#0879BD', fontSize: 9, lineHeight: 12, fontWeight: '900', letterSpacing: 1.2 },
+  routeAuditTitle: { color: '#071F3D', fontSize: 17, lineHeight: 22, fontWeight: '900', marginTop: 2 },
+  routeAuditSubtitle: { color: '#4B6680', fontSize: 11, lineHeight: 16, marginTop: 2 },
+  routeQualityBadge: { borderRadius: 999, borderWidth: 1, borderColor: '#8DD9C1', backgroundColor: '#E6F8F2', paddingHorizontal: 10, paddingVertical: 6 },
+  routeQualityBadgeWarning: { borderColor: '#E9B86E', backgroundColor: '#FFF5E5' },
+  routeQualityText: { color: '#08775C', fontSize: 10, lineHeight: 13, fontWeight: '900' },
+  routeQualityTextWarning: { color: '#945000' },
+  routeAuditGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  routeAuditCell: { flex: 1, minWidth: 175, borderRadius: 11, borderWidth: 1, borderColor: '#D4E5F2', backgroundColor: '#FFFFFF', padding: 10 },
+  routeAuditLabel: { color: '#5A7187', fontSize: 9, lineHeight: 12, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 },
+  routeAuditValue: { color: '#102A43', fontSize: 11, lineHeight: 16, fontWeight: '800', marginTop: 3, fontVariant: ['tabular-nums'] },
+  routeAuditNotice: { borderRadius: 10, backgroundColor: '#EAF8F4', borderWidth: 1, borderColor: '#B7E3D5', padding: 10 },
+  routeAuditNoticeWarning: { backgroundColor: '#FFF6E8', borderColor: '#EDC98E' },
+  routeAuditNoticeText: { color: '#225B4C', fontSize: 10, lineHeight: 16, fontWeight: '700' },
+  routeAuditNoticeTextWarning: { color: '#7B4A09' },
   gap: { ...typography.caption, color: '#9BB4C9', marginTop: spacing.sm },
 });

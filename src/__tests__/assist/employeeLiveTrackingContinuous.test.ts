@@ -50,6 +50,17 @@ describe('kontinuierliche Mitarbeitenden-Liveverfolgung', () => {
     expect(source).toContain('distanceInterval: EMPLOYEE_ROUTE_DISTANCE_INTERVAL_METERS');
   });
 
+  it('erzwingt im geöffneten Web-Portal ebenfalls eine dichte Routenerfassung', () => {
+    const source = readFileSync(
+      'src/features/liveTracking/useEmployeeGpsTracking.ts',
+      'utf8',
+    );
+
+    expect(source).toContain("Platform.OS === 'web'");
+    expect(source).toContain('routeSamplingTimerRef.current = setInterval');
+    expect(source).toContain('EMPLOYEE_ROUTE_LOCATION_INTERVAL_MS');
+  });
+
   it('hält Tracking bis zum erstellten Leistungsnachweis aktiv', () => {
     const hookSource = readFileSync(
       'src/hooks/useEmployeePortalVisitExecution.ts',

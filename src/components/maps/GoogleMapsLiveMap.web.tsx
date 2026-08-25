@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState, type Ref } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type Ref } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   formatMapLastUpdated,
@@ -26,6 +26,8 @@ export type GoogleMapsLiveMapProps = {
   position?: AssistMapPosition | null;
   markers?: GoogleMapsLiveMarker[];
   routePoints?: AssistLiveRoutePoint[];
+  routeSegments?: AssistLiveRoutePoint[][];
+  routeIdentity?: string | null;
   selectedMarkerId?: string | null;
   onMarkerSelect?: (markerId: string) => void;
   height?: number;
@@ -48,7 +50,8 @@ function buildInfoContent(marker: GoogleMapsLiveMarker, demoMode: boolean): stri
       ? `Genauigkeit ca. ${Math.round(marker.accuracyMeters)} m`
       : null,
   ].filter(Boolean);
-  return `<div style="font-family:system-ui,sans-serif;font-size:13px;line-height:1.4">${parts.join('<br/>')}</div>`;
+  const coordinates = `${marker.latitude.toFixed(5)}, ${marker.longitude.toFixed(5)}`;
+  return `<div style="box-sizing:border-box;min-width:240px;max-width:320px;padding:12px 14px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.55;color:#102A43;background:#FFFFFF"><div style="margin-bottom:6px;font-size:14px;font-weight:800;color:#071F3D">${parts[0] ?? ''}</div><div style="color:#334E68">${parts.slice(1).join('<br/>')}</div><div style="margin-top:8px;padding-top:7px;border-top:1px solid #D7E6F2;color:#486581;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px">GPS ${escapeHtml(coordinates)}</div></div>`;
 }
 
 function escapeHtml(value: string): string {
@@ -82,6 +85,8 @@ function GoogleMapsLiveMapInner({
   position = null,
   markers,
   routePoints = [],
+  routeSegments,
+  routeIdentity = null,
   selectedMarkerId = null,
   onMarkerSelect,
   height = 280,
@@ -93,6 +98,7 @@ function GoogleMapsLiveMapInner({
   onVisiblePoll,
 }: GoogleMapsLiveMapProps) {
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const fittedRouteRef = useRef<string | null>(null);
 
   const resolvedMarkers = useMemo(
     () => resolveMarkers(markers, position, markerLabel),
@@ -157,22 +163,36 @@ function GoogleMapsLiveMapInner({
     buildInfoContent: (m) => m.infoHtml ?? buildInfoContent(m as GoogleMapsLiveMarker, demoMode),
   });
 
+  const resolvedRouteSegments = useMemo(
+    () => routeSegments?.filter((segment) => segment.length >= 2) ?? (routePoints.length >= 2 ? [routePoints] : []),
+    [routePoints, routeSegments],
+  );
+
   useEffect(() => {
-    if (!map || !google || routePoints.length < 2) return;
-    const path = routePoints.map((point) => ({ lat: point.latitude, lng: point.longitude }));
-    const routeLine = new google.maps.Polyline({
+    if (!map || !google || resolvedRouteSegments.length === 0) return;
+    const paths = resolvedRouteSegments.map((segment) =>
+      segment.map((point) => ({ lat: point.latitude, lng: point.longitude })),
+    );
+    const routeLines = paths.map((path) => new google.maps.Polyline({
       map,
       path,
-      geodesic: true,
+      geodesic: false,
       strokeColor: '#0B63F3',
       strokeOpacity: 0.94,
       strokeWeight: 5,
-    });
+    }));
     const bounds = new google.maps.LatLngBounds();
-    for (const coordinate of path) bounds.extend(coordinate);
-    map.fitBounds(bounds);
-    return () => routeLine.setMap(null);
-  }, [map, google, routePoints]);
+    for (const path of paths) {
+      for (const coordinate of path) bounds.extend(coordinate);
+    }
+    const firstCapturedAt = resolvedRouteSegments[0]?.[0]?.capturedAt ?? 'route';
+    const fitKey = `${routeIdentity ?? 'route'}:${firstCapturedAt}`;
+    if (fittedRouteRef.current !== fitKey) {
+      map.fitBounds(bounds);
+      fittedRouteRef.current = fitKey;
+    }
+    return () => routeLines.forEach((line) => line.setMap(null));
+  }, [map, google, resolvedRouteSegments, routeIdentity]);
 
   if (resolvedMarkers.length === 0) {
     return (
@@ -241,7 +261,10 @@ function GoogleMapsLiveMapInner({
           </Text>
         ) : null}
         {routePoints.length > 1 ? (
-          <Text style={styles.meta}>{routePoints.length} GPS-Punkte · Route live</Text>
+          <Text style={styles.meta}>
+            {routePoints.length} GPS-Punkte · {resolvedRouteSegments.length}{' '}
+            {resolvedRouteSegments.length === 1 ? 'zusammenhängende GPS-Spur' : 'zusammenhängende GPS-Spuren'}
+          </Text>
         ) : null}
       </View>
     </View>
@@ -277,8 +300,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   pausedText: { ...typography.caption, color: colors.textPrimary, fontSize: 10 },
-  metaRow: { gap: 2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  metaRow: { gap: 3, paddingTop: 4 },
+  meta: { ...typography.caption, color: '#C3D8E9', lineHeight: 17 },
   fallback: {
     borderRadius: 12,
     borderWidth: 1,

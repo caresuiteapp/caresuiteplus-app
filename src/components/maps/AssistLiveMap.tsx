@@ -13,6 +13,8 @@ export type AssistLiveMapProps = {
   position: AssistMapPosition | null;
   markers?: AssistLiveMapMarker[];
   routePoints?: AssistLiveRoutePoint[];
+  routeSegments?: AssistLiveRoutePoint[][];
+  routeIdentity?: string | null;
   selectedMarkerId?: string | null;
   onMarkerSelect?: (markerId: string) => void;
   height?: number;
@@ -27,6 +29,7 @@ export function AssistLiveMap({
   position,
   markers,
   routePoints = [],
+  routeSegments,
   height = 280,
   markerLabel,
   fallbackMessage = 'Keine Standortdaten — Tracking startet im Mitarbeiterportal während der Einsatzdurchführung.',
@@ -87,7 +90,13 @@ export function AssistLiveMap({
     capturedAt: primary.capturedAt ?? null,
   };
 
-  const mapUrl = buildAssistMapImageUrl(mapPosition.latitude, mapPosition.longitude, undefined, routePoints);
+  const mapUrl = buildAssistMapImageUrl(
+    mapPosition.latitude,
+    mapPosition.longitude,
+    undefined,
+    routePoints,
+    routeSegments,
+  );
   const updated = formatMapLastUpdated(mapPosition.capturedAt);
 
   return (

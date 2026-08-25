@@ -41,6 +41,8 @@ export function useStableMapMarkers(options: StableMapMarkersOptions): void {
   const markerRefs = useRef<Map<string, GoogleMarkerInstance>>(new Map());
   const infoWindowRef = useRef<GoogleInfoWindowInstance | null>(null);
   const onSelectRef = useRef(onMarkerSelect);
+  const fittedMarkerSetRef = useRef<string | null>(null);
+  const lastSelectedMarkerRef = useRef<string | null>(null);
   onSelectRef.current = onMarkerSelect;
 
   useEffect(() => {
@@ -84,15 +86,18 @@ export function useStableMapMarkers(options: StableMapMarkersOptions): void {
       }
     });
 
-    if (markers.length === 1) {
+    const markerSetKey = markers.map((marker) => marker.id).sort().join('|');
+    if (markers.length === 1 && fittedMarkerSetRef.current !== markerSetKey) {
       map.setCenter({ lat: markers[0].latitude, lng: markers[0].longitude });
-    } else if (markers.length > 1) {
+      fittedMarkerSetRef.current = markerSetKey;
+    } else if (markers.length > 1 && fittedMarkerSetRef.current !== markerSetKey) {
       const bounds = new google.maps.LatLngBounds();
       markers.forEach((m) => bounds.extend({ lat: m.latitude, lng: m.longitude }));
       map.fitBounds(bounds);
+      fittedMarkerSetRef.current = markerSetKey;
     }
 
-    if (selectedMarkerId) {
+    if (selectedMarkerId && lastSelectedMarkerRef.current !== selectedMarkerId) {
       const selected = markers.find((m) => m.id === selectedMarkerId);
       const marker = existing.get(selectedMarkerId);
       if (selected && marker) {
@@ -105,6 +110,7 @@ export function useStableMapMarkers(options: StableMapMarkersOptions): void {
         info.setContent(html);
         info.open({ map, anchor: marker });
       }
+      lastSelectedMarkerRef.current = selectedMarkerId;
     }
   }, [map, google, markers, selectedMarkerId, demoMode, buildInfoContent]);
 }
