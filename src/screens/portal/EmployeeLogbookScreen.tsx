@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Location from 'expo-location';
 import { CareSignatureCanvas } from '@/components/inputs/CareSignatureCanvas';
@@ -12,15 +12,15 @@ import { portalPremium } from '@/design/tokens/portalPremium';
 import { careSpacing } from '@/design/tokens/spacing';
 import { typography } from '@/theme';
 import { TRAVEL_ROUTE_TYPE_LABELS, type TravelRouteType } from '@/types/modules/travelCompensation';
-import type { LogbookPoint, LogbookTrip, LogbookVehicle } from '@/types/modules/employeeLogbook';
-import { addLogbookStop, appendLogbookPoints, confirmLogbookDay, correctLogbookTrip, createLogbookReceipt, createLogbookTrip, finishLogbookTrip, getCurrentLogbookPoint, loadEmployeeLogbook, requestLogbookLocationPermission, saveLogbookProfile, startNativeBackgroundTracking, stopNativeBackgroundTracking, uploadLogbookFile } from '@/lib/employeeLogbook';
+import type { LogbookPoint, LogbookTrip } from '@/types/modules/employeeLogbook';
+import { addLogbookStop, appendLogbookPoints, berlinToday, confirmLogbookDay, createLogbookReceipt, createLogbookTrip, finishLogbookTrip, getCurrentLogbookPoint, loadEmployeeLogbook, requestLogbookLocationPermission, resolveEmployeeLogbookEligibility, saveLogbookProfile, startNativeBackgroundTracking, stopAutomaticLogbookTracking, uploadLogbookFile } from '@/lib/employeeLogbook';
 import { fetchLivePortalAppointmentsForEmployee } from '@/lib/portal/portalAppointmentsLiveService';
 import { fetchEmployeePortalClientRecords } from '@/lib/portal/employeePortalClientRecordsService';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 
 type Tab = 'record' | 'trips' | 'receipts' | 'profile';
 const routes = Object.keys(TRAVEL_ROUTE_TYPE_LABELS).filter((key) => key !== 'private_non_business') as TravelRouteType[];
-const today = () => new Date().toISOString().slice(0, 10);
+const today = berlinToday;
 
 export function EmployeeLogbookScreen() {
   const actor = usePortalActor(); const [tab, setTab] = useState<Tab>('record');
@@ -43,15 +43,37 @@ export function EmployeeLogbookScreen() {
     if (!clients.ok) return clients;
     return { ok: true as const, data: { assignments: assignments.data, clients: clients.data } };
   }, [actor.tenantId, actor.employeeId]), [actor.tenantId, actor.employeeId], { enabled: !!actor.tenantId && !!actor.employeeId });
+  const eligibilityQuery = useAsyncQuery(useCallback(async () => {
+    if (!actor.tenantId || !actor.employeeId) throw new Error('Mitarbeitendenkonto ist nicht vollständig verknüpft.');
+    return { ok: true as const, data: await resolveEmployeeLogbookEligibility(actor.tenantId, actor.employeeId) };
+  }, [actor.tenantId, actor.employeeId]), [actor.tenantId, actor.employeeId], { enabled: !!actor.tenantId && !!actor.employeeId });
 
   const active = query.data?.trips.find((trip) => trip.status === 'recording') ?? null;
   const [routeType, setRouteType] = useState<TravelRouteType>('home_to_client'); const [purpose, setPurpose] = useState('Anfahrt zum Einsatz');
   const [linkMode, setLinkMode] = useState<'assignment' | 'client' | 'none'>('assignment');
   const [assignmentId, setAssignmentId] = useState(''); const [clientId, setClientId] = useState(''); const [manualReason, setManualReason] = useState(''); const [startAddress, setStartAddress] = useState(''); const [endAddress, setEndAddress] = useState(''); const [notes, setNotes] = useState('');
   const [points, setPoints] = useState<LogbookPoint[]>([]); const [watcher, setWatcher] = useState<Location.LocationSubscription | null>(null);
-  const selectedVehicle = query.data?.profile.defaultVehicleId ?? query.data?.vehicles.find((v) => v.active)?.id ?? null;
+  const finishingTripIdRef = useRef<string | null>(null);
+  const selectedVehicle = query.data?.vehicles.find(
+    (vehicle) => vehicle.id === query.data?.profile.defaultVehicleId && vehicle.active,
+  )?.id ?? query.data?.vehicles.find((vehicle) => vehicle.active)?.id ?? null;
 
   useEffect(() => () => watcher?.remove(), [watcher]);
+  useEffect(() => {
+    if (!active || watcher || finishingTripIdRef.current === active.id || !actor.tenantId || !actor.employeeId) return;
+    let cancelled = false;
+    void (async () => {
+      await startNativeBackgroundTracking({ tripId: active.id, tenantId: actor.tenantId!, employeeId: actor.employeeId! });
+      const subscription = await Location.watchPositionAsync({ accuracy: Location.Accuracy.High, distanceInterval: 20, timeInterval: 15000 }, (location) => {
+        const point = { latitude: location.coords.latitude, longitude: location.coords.longitude, accuracy: location.coords.accuracy, altitude: location.coords.altitude, speed: location.coords.speed, heading: location.coords.heading, recordedAt: new Date(location.timestamp).toISOString() };
+        setPoints((current) => [...current.slice(-20), point]);
+        void appendLogbookPoints(active.id, actor.tenantId!, actor.employeeId!, [point]).catch((error) => console.warn('[employeeLogbook] Resumed point could not be persisted', error));
+      });
+      if (cancelled) subscription.remove();
+      else setWatcher(subscription);
+    })().catch((error) => setFeedback(error instanceof Error ? error.message : 'Die laufende GPS-Fahrt konnte nicht wieder aufgenommen werden.'));
+    return () => { cancelled = true; };
+  }, [active, watcher, actor.tenantId, actor.employeeId]);
   async function begin() {
     if (!actor.tenantId || !actor.employeeId) return;
     if (linkMode === 'assignment' && !assignmentId) { setFeedback('Bitte einen Einsatz auswählen.'); return; }
@@ -63,19 +85,29 @@ export function EmployeeLogbookScreen() {
       const trip = await createLogbookTrip({ tenantId: actor.tenantId, employeeId: actor.employeeId, vehicleId: selectedVehicle, routeType, purpose, assignmentId: linkMode === 'assignment' ? resolveVisitMasterId(assignmentId) : null, clientId: linkMode === 'none' ? null : clientId || null, manualReason: linkMode === 'none' ? manualReason.trim() : null, startAddress });
       setPoints([first]); await appendLogbookPoints(trip.id, actor.tenantId, actor.employeeId, [first]);
       await startNativeBackgroundTracking({ tripId: trip.id, tenantId: actor.tenantId, employeeId: actor.employeeId });
-      const subscription = await Location.watchPositionAsync({ accuracy: Location.Accuracy.High, distanceInterval: 20, timeInterval: 15000 }, (location) => setPoints((current) => [...current, { latitude: location.coords.latitude, longitude: location.coords.longitude, accuracy: location.coords.accuracy, altitude: location.coords.altitude, speed: location.coords.speed, heading: location.coords.heading, recordedAt: new Date(location.timestamp).toISOString() }]));
+      const subscription = await Location.watchPositionAsync({ accuracy: Location.Accuracy.High, distanceInterval: 20, timeInterval: 15000 }, (location) => {
+        const point = { latitude: location.coords.latitude, longitude: location.coords.longitude, accuracy: location.coords.accuracy, altitude: location.coords.altitude, speed: location.coords.speed, heading: location.coords.heading, recordedAt: new Date(location.timestamp).toISOString() };
+        setPoints((current) => [...current.slice(-20), point]);
+        void appendLogbookPoints(trip.id, actor.tenantId!, actor.employeeId!, [point]).catch((error) => {
+          console.warn('[employeeLogbook] Foreground point could not be persisted', error);
+        });
+      });
       setWatcher(subscription); await query.refresh(); setFeedback('Fahrt läuft. GPS-Aufzeichnung und Android-Hintergrunddienst sind aktiv.');
-    } catch (error) { setFeedback(error instanceof Error ? error.message : 'Fahrt konnte nicht gestartet werden.'); } finally { setBusy(false); }
+    } catch (error) {
+      await query.refresh();
+      setFeedback(error instanceof Error ? error.message : 'Fahrt konnte nicht gestartet werden.');
+    } finally { setBusy(false); }
   }
   async function finish() {
     if (!active || !actor.tenantId || !actor.employeeId) return;
+    finishingTripIdRef.current = active.id;
     setBusy(true); setFeedback(null);
     try {
-      watcher?.remove(); setWatcher(null); await stopNativeBackgroundTracking();
-      const last = await getCurrentLogbookPoint(); const finalPoints = [...points, last];
-      await finishLogbookTrip(active.id, { tenantId: actor.tenantId, employeeId: actor.employeeId, endAddress, notes, points: finalPoints });
+      const last = await getCurrentLogbookPoint();
+      await finishLogbookTrip(active.id, { tenantId: actor.tenantId, employeeId: actor.employeeId, endAddress, notes, points: [last] });
+      watcher?.remove(); setWatcher(null); await stopAutomaticLogbookTracking(active.id);
       setPoints([]); setEndAddress(''); setNotes(''); await query.refresh(); setFeedback('Fahrt abgeschlossen. Kilometer, Vergütung und Fahrzeitabzug wurden berechnet.');
-    } catch (error) { setFeedback(error instanceof Error ? error.message : 'Fahrt konnte nicht abgeschlossen werden.'); } finally { setBusy(false); }
+    } catch (error) { setFeedback(error instanceof Error ? error.message : 'Fahrt konnte nicht abgeschlossen werden.'); } finally { finishingTripIdRef.current = null; setBusy(false); }
   }
   async function openMaps() {
     const origin = encodeURIComponent(startAddress || `${points[0]?.latitude ?? ''},${points[0]?.longitude ?? ''}`); const destination = encodeURIComponent(endAddress);
@@ -83,8 +115,18 @@ export function EmployeeLogbookScreen() {
     await Linking.openURL(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`);
   }
 
-  if (!actor.isReady || query.loading && !query.data) return <PortalTabScreen title="Fahrtenbuch"><LoadingState message="Fahrtenbuch wird sicher geladen…" /></PortalTabScreen>;
+  if (!actor.isReady || query.loading && !query.data || eligibilityQuery.loading && !eligibilityQuery.data) return <PortalTabScreen title="Fahrtenbuch"><LoadingState message="Fahrtenbuch wird sicher geladen…" /></PortalTabScreen>;
   if (query.error && !query.data) return <PortalTabScreen title="Fahrtenbuch"><ErrorState title="Fahrtenbuch nicht verfügbar" message={query.error} onRetry={() => void query.refresh()} /></PortalTabScreen>;
+  if (eligibilityQuery.data && !eligibilityQuery.data.eligible) {
+    return <PortalTabScreen title="Arbeitszeit" subtitle="Mobilität und Fahrten">
+      <InfoBanner
+        variant="info"
+        message={eligibilityQuery.data.reason === 'no_car_mode'
+          ? 'Für dieses Mitarbeitendenkonto ist kein PKW als Verkehrsmittel hinterlegt. Das digitale PKW-Fahrtenbuch wird daher nicht angezeigt.'
+          : 'Für dieses Mitarbeitendenkonto ist kein aktiver PKW zugeordnet. Das digitale PKW-Fahrtenbuch wird daher nicht angezeigt.'}
+      />
+    </PortalTabScreen>;
+  }
   const bundle = query.data!;
   return <PortalTabScreen title="Fahrtenbuch" subtitle="GPS-Fahrten, Kilometervergütung, Belege und Tagesbestätigung" scroll>
     <View style={styles.page} testID="employee-logbook-screen">
@@ -137,7 +179,7 @@ function RecordPanel(p: any) {
 
   async function addStop() {
     try {
-      await addLogbookStop({ tenantId: p.tenantId, employeeId: p.employeeId, tripId: p.active.id, stopKind, label: stopLabel });
+      await addLogbookStop({ tenantId: p.tenantId, employeeId: p.employeeId, tripId: p.active.id, assignmentId: p.active.assignmentId, clientId: p.active.clientId, stopKind, label: stopLabel, address: p.endAddress });
       setStopLabel('');
       p.setFeedback('Zwischenstopp mit genauer Uhrzeit gespeichert.');
     } catch (error) {
@@ -173,11 +215,9 @@ function RecordPanel(p: any) {
 }
 
 function TripsPanel({ employeeName, trips, confirmations, tenantId, employeeId, refresh, setFeedback }: { employeeName:string; trips:LogbookTrip[]; confirmations:string[]; tenantId:string; employeeId:string; refresh:()=>Promise<unknown>; setFeedback:(v:string|null)=>void }) {
-  const [signDate,setSignDate]=useState(today()); const [signer,setSigner]=useState(employeeName); const [signature,setSignature]=useState(''); const [edit,setEdit]=useState<LogbookTrip|null>(null); const [km,setKm]=useState(''); const [reason,setReason]=useState('');
+  const [signDate,setSignDate]=useState(today()); const [signer,setSigner]=useState(employeeName); const [signature,setSignature]=useState('');
   async function confirm(){ try { await confirmLogbookDay({tenantId,employeeId,workDate:signDate,signerName:signer,signatureData:signature,trips}); await refresh(); setFeedback('Tagesfahrten wurden verbindlich unterschrieben.'); } catch(e){setFeedback(e instanceof Error?e.message:'Bestätigung fehlgeschlagen.');} }
-  async function correct(){ if(!edit)return; try{await correctLogbookTrip(edit,Number(km.replace(',','.')),reason);setEdit(null);await refresh();setFeedback('Korrektur gespeichert. Die Änderung ist revisionssicher protokolliert.');}catch(e){setFeedback(e instanceof Error?e.message:'Korrektur fehlgeschlagen.');}}
-  return <View style={styles.stack}><SectionPanel title="Meine Fahrten" subtitle="Vollständige PDF-Nachweise erstellt ausschließlich die Verwaltung">{!trips.length?<EmptyState title="Noch keine Fahrten" message="Starten Sie die erste Fahrt im Reiter Aufzeichnen."/>:trips.map(t=><PremiumCard key={t.id} style={styles.trip}><View style={styles.tripHead}><View style={styles.grow}><Text style={styles.tripTitle}>{TRAVEL_ROUTE_TYPE_LABELS[t.routeType]}</Text><Text style={styles.muted}>{new Date(t.startedAt).toLocaleString('de-DE')} · {t.purpose}</Text></View><PremiumBadge label={t.status==='recording'?'LÄUFT':t.correctedAt?'KORRIGIERT':'ERFASST'} variant={t.status==='recording'?'green':'cyan'}/></View><View style={styles.metrics}><Text style={styles.metric}>{t.distanceFinalKm.toFixed(2)} km</Text><Text style={styles.metric}>{(t.mileageAmountCents/100).toFixed(2)} EUR</Text><Text style={styles.metric}>{t.countsAsWorkTime?'Arbeitszeit':'Fahrzeitabzug '+t.worktimeDeductionMinutes+' Min.'}</Text></View>{t.status!=='recording'?<PremiumButton title="Eintrag korrigieren" size="sm" variant="ghost" onPress={()=>{setEdit(t);setKm(String(t.distanceFinalKm).replace('.',','));}}/>:null}</PremiumCard>)}</SectionPanel>
-  {edit?<SectionPanel title="Fahrt korrigieren" subtitle="Die ursprünglichen Werte bleiben unsichtbar für Mitarbeitende, aber revisionssicher für Office erhalten"><PremiumInput label="Korrigierte Kilometer" value={km} onChangeText={setKm}/><PremiumInput label="Korrekturgrund (Pflicht)" value={reason} onChangeText={setReason}/><View style={styles.actions}><PremiumButton title="Abbrechen" variant="secondary" onPress={()=>setEdit(null)}/><PremiumButton title="Korrektur speichern" onPress={()=>void correct()}/></View></SectionPanel>:null}
+  return <View style={styles.stack}><SectionPanel title="Meine Fahrten" subtitle="Fahrten werden durch Mitarbeitende gestartet und beendet; nachträgliche Änderungen erfolgen revisionssicher durch die Verwaltung"><InfoBanner message="Stimmt eine abgeschlossene Fahrt nicht, melden Sie Datum und Grund an die Verwaltung. Die Originalwerte bleiben dabei erhalten." variant="info" />{!trips.length?<EmptyState title="Noch keine Fahrten" message="Starten Sie die erste Fahrt im Reiter Aufzeichnen."/>:trips.map(t=><PremiumCard key={t.id} style={styles.trip}><View style={styles.tripHead}><View style={styles.grow}><Text style={styles.tripTitle}>{TRAVEL_ROUTE_TYPE_LABELS[t.routeType]}</Text><Text style={styles.muted}>{new Date(t.startedAt).toLocaleString('de-DE')} · {t.purpose}</Text></View><PremiumBadge label={t.status==='recording'?'LÄUFT':t.correctedAt?'KORRIGIERT':'ERFASST'} variant={t.status==='recording'?'green':'cyan'}/></View><View style={styles.metrics}><Text style={styles.metric}>{t.distanceFinalKm.toFixed(2)} km</Text><Text style={styles.metric}>{(t.mileageAmountCents/100).toFixed(2)} EUR</Text><Text style={styles.metric}>{t.countsAsWorkTime?'Arbeitszeit':'Fahrzeitabzug '+t.worktimeDeductionMinutes+' Min.'}</Text></View></PremiumCard>)}</SectionPanel>
   <SectionPanel title="Tagesabschluss unterschreiben" subtitle="Alle abgeschlossenen Fahrten des Tages verbindlich bestätigen"><PremiumInput label="Datum" value={signDate} onChangeText={setSignDate}/><PremiumInput label="Name" value={signer} onChangeText={setSigner}/>{confirmations.includes(signDate)?<InfoBanner message="Dieser Tag wurde bereits unterschrieben."/>:<><CareSignatureCanvas label="Unterschrift" onConfirm={setSignature}/><PremiumButton title="Tagesfahrten verbindlich bestätigen" disabled={!signature||!signer.trim()} onPress={()=>void confirm()}/></>}</SectionPanel></View>;
 }
 

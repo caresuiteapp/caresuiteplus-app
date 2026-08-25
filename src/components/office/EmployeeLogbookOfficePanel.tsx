@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { CareEntitySelect } from '@/components/inputs/CareEntitySelect';
 import {
   ErrorState,
   InfoBanner,
@@ -13,9 +14,12 @@ import {
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import {
   buildLogbookPdf,
-  correctLogbookTrip,
+  berlinToday,
+  berlinDateTimeInput,
+  correctLogbookTripDetails,
   createManualLogbookTrip,
   loadEmployeeLogbook,
+  isLogbookTripInBerlinRange,
   saveLogbookProfile,
   saveLogbookVehicle,
 } from '@/lib/employeeLogbook';
@@ -24,6 +28,9 @@ import { TRAVEL_ROUTE_TYPE_LABELS, type TravelRouteType } from '@/types/modules/
 import { careSpacing } from '@/design/tokens/spacing';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { typography } from '@/theme';
+import { fetchLivePortalAppointmentsForEmployee } from '@/lib/portal/portalAppointmentsLiveService';
+import { fetchEmployeePortalClientRecords } from '@/lib/portal/employeePortalClientRecordsService';
+import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 
 type Props = {
   tenantId: string;
@@ -32,7 +39,7 @@ type Props = {
   canEdit: boolean;
 };
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = berlinToday;
 
 export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName, canEdit }: Props) {
   const query = useAsyncQuery(
@@ -48,6 +55,15 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
     }, [tenantId, employeeId]),
     [tenantId, employeeId],
   );
+  const linkOptionsQuery = useAsyncQuery(useCallback(async () => {
+    const [assignments, clients] = await Promise.all([
+      fetchLivePortalAppointmentsForEmployee(tenantId, employeeId),
+      fetchEmployeePortalClientRecords(tenantId, employeeId),
+    ]);
+    if (!assignments.ok) return assignments;
+    if (!clients.ok) return clients;
+    return { ok: true as const, data: { assignments: assignments.data, clients: clients.data } };
+  }, [tenantId, employeeId]), [tenantId, employeeId]);
   const [plate, setPlate] = useState('');
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
@@ -60,6 +76,15 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [correctedDistance, setCorrectedDistance] = useState('');
   const [correctionReason, setCorrectionReason] = useState('');
+  const [correctionRouteType, setCorrectionRouteType] = useState<TravelRouteType>('other_business');
+  const [correctionPurpose, setCorrectionPurpose] = useState('');
+  const [correctionStartedAt, setCorrectionStartedAt] = useState('');
+  const [correctionEndedAt, setCorrectionEndedAt] = useState('');
+  const [correctionStartAddress, setCorrectionStartAddress] = useState('');
+  const [correctionEndAddress, setCorrectionEndAddress] = useState('');
+  const [correctionVehicleId, setCorrectionVehicleId] = useState('');
+  const [correctionAssignmentId, setCorrectionAssignmentId] = useState('');
+  const [correctionClientId, setCorrectionClientId] = useState('');
   const [manualOpen, setManualOpen] = useState(false);
   const [manualDate, setManualDate] = useState(today());
   const [manualStartTime, setManualStartTime] = useState('08:00');
@@ -71,10 +96,13 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   const [manualDistance, setManualDistance] = useState('');
   const [manualReason, setManualReason] = useState('');
   const [manualVehicleId, setManualVehicleId] = useState<string | null>(null);
+  const [manualLinkMode, setManualLinkMode] = useState<'assignment' | 'client' | 'reason'>('assignment');
+  const [manualAssignmentId, setManualAssignmentId] = useState('');
+  const [manualClientId, setManualClientId] = useState('');
 
   useEffect(() => {
     if (!query.data) return;
-    const vehicle = query.data.vehicles.find((item) => item.active) ?? query.data.vehicles[0];
+    const vehicle = query.data.vehicles.find((item) => item.active);
     setPlate(vehicle?.plate ?? '');
     setMake(vehicle?.make ?? '');
     setModel(vehicle?.model ?? '');
@@ -85,14 +113,13 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
 
   const visibleTrips = useMemo(
     () => (query.data?.trips ?? []).filter((trip) => {
-      const date = trip.startedAt.slice(0, 10);
-      return (!from || date >= from) && (!to || date <= to);
+      return isLogbookTripInBerlinRange(trip.startedAt, from, to);
     }),
     [from, query.data?.trips, to],
   );
 
   const totals = useMemo(() => {
-    const completed = visibleTrips.filter((trip) => trip.status !== 'recording');
+    const completed = visibleTrips.filter((trip) => ['completed', 'corrected', 'confirmed'].includes(trip.status));
     return {
       count: completed.length,
       distance: completed.reduce((sum, trip) => sum + trip.distanceFinalKm, 0),
@@ -104,6 +131,15 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
     setSelectedTripId(trip.id);
     setCorrectedDistance(trip.distanceFinalKm.toFixed(2).replace('.', ','));
     setCorrectionReason('');
+    setCorrectionRouteType(trip.routeType);
+    setCorrectionPurpose(trip.purpose);
+    setCorrectionStartedAt(berlinDateTimeInput(trip.startedAt));
+    setCorrectionEndedAt(trip.endedAt ? berlinDateTimeInput(trip.endedAt) : '');
+    setCorrectionStartAddress(trip.startAddress ?? '');
+    setCorrectionEndAddress(trip.endAddress ?? '');
+    setCorrectionVehicleId(trip.vehicleId ?? '');
+    setCorrectionAssignmentId(trip.assignmentId ?? '');
+    setCorrectionClientId(trip.clientId ?? '');
     setFeedback(null);
   }
 
@@ -122,7 +158,20 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
     setSaving(true);
     setFeedback(null);
     try {
-      await correctLogbookTrip(trip, distance, correctionReason);
+      await correctLogbookTripDetails({
+        trip,
+        vehicleId: correctionVehicleId,
+        routeType: correctionRouteType,
+        purpose: correctionPurpose,
+        assignmentId: correctionAssignmentId || null,
+        clientId: correctionClientId || null,
+        startedAt: correctionStartedAt,
+        endedAt: correctionEndedAt,
+        startAddress: correctionStartAddress,
+        endAddress: correctionEndAddress,
+        distanceKm: distance,
+        reason: correctionReason,
+      });
       setSelectedTripId(null);
       setCorrectionReason('');
       await query.refresh();
@@ -136,6 +185,18 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
 
   async function saveManualTrip() {
     const distance = Number(manualDistance.replace(',', '.'));
+    if (!manualVehicleId) {
+      setFeedback('Bitte zuerst einen aktiven PKW zuordnen und auswählen.');
+      return;
+    }
+    if (manualLinkMode === 'assignment' && !manualAssignmentId) {
+      setFeedback('Bitte den zugehörigen Einsatz auswählen.');
+      return;
+    }
+    if (manualLinkMode === 'client' && !manualClientId) {
+      setFeedback('Bitte die zugehörige Klientin oder den zugehörigen Klienten auswählen.');
+      return;
+    }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(manualDate) || !/^\d{2}:\d{2}$/.test(manualStartTime) || !/^\d{2}:\d{2}$/.test(manualEndTime)) {
       setFeedback('Bitte Datum und Uhrzeiten vollständig im angegebenen Format eintragen.');
       return;
@@ -147,6 +208,8 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
         tenantId,
         employeeId,
         vehicleId: manualVehicleId,
+        assignmentId: manualLinkMode === 'assignment' ? resolveVisitMasterId(manualAssignmentId) : null,
+        clientId: manualLinkMode === 'reason' ? null : manualClientId || null,
         routeType: manualRouteType,
         purpose: manualPurpose,
         manualReason,
@@ -162,6 +225,8 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
       setManualEndAddress('');
       setManualDistance('');
       setManualReason('');
+      setManualAssignmentId('');
+      setManualClientId('');
       await query.refresh();
       setFeedback('Die Fahrt wurde manuell erfasst, abgerechnet und im Audit protokolliert.');
     } catch (error) {
@@ -246,6 +311,41 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
               <PremiumInput label="Endzeit (HH:MM)" value={manualEndTime} onChangeText={setManualEndTime} style={styles.manualSmall} />
               <PremiumInput label="Kilometer" value={manualDistance} onChangeText={setManualDistance} keyboardType="decimal-pad" style={styles.manualSmall} />
             </View>
+            <Text style={styles.formLabel}>Verbindliche Zuordnung</Text>
+            <View style={styles.routeTypes}>
+              <PremiumButton title="Geplanter Einsatz" size="sm" variant={manualLinkMode === 'assignment' ? 'primary' : 'secondary'} onPress={() => setManualLinkMode('assignment')} />
+              <PremiumButton title="Klient:in" size="sm" variant={manualLinkMode === 'client' ? 'primary' : 'secondary'} onPress={() => setManualLinkMode('client')} />
+              <PremiumButton title="Nur Begründung" size="sm" variant={manualLinkMode === 'reason' ? 'primary' : 'secondary'} onPress={() => setManualLinkMode('reason')} />
+            </View>
+            {manualLinkMode === 'assignment' ? (
+              <CareEntitySelect
+                label="Einsatz auswählen"
+                value={manualAssignmentId}
+                onChange={(value) => {
+                  setManualAssignmentId(value);
+                  const assignment = linkOptionsQuery.data?.assignments.find((item) => item.id === value);
+                  setManualClientId(assignment?.clientId ?? '');
+                  if (assignment?.clientName && !manualPurpose.trim()) setManualPurpose(`Dienstfahrt zu ${assignment.clientName}`);
+                }}
+                required
+                loading={linkOptionsQuery.loading}
+                options={(linkOptionsQuery.data?.assignments ?? []).map((item) => ({ value: item.id, label: `${new Date(item.startsAt).toLocaleDateString('de-DE')} · ${item.clientName || item.title}`, description: `${new Date(item.startsAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr · ${item.title}` }))}
+                searchPlaceholder="Einsatz suchen…"
+                emptyMessage="Keine zugeordneten Einsätze gefunden."
+              />
+            ) : null}
+            {manualLinkMode === 'client' ? (
+              <CareEntitySelect
+                label="Klient:in auswählen"
+                value={manualClientId}
+                onChange={setManualClientId}
+                required
+                loading={linkOptionsQuery.loading}
+                options={(linkOptionsQuery.data?.clients ?? []).map((item) => ({ value: item.clientId, label: item.displayName, description: [item.street, item.zip, item.city].filter(Boolean).join(', ') }))}
+                searchPlaceholder="Klient:in suchen…"
+                emptyMessage="Keine Klient:innen gefunden."
+              />
+            ) : null}
             <View style={styles.cols}>
               <PremiumInput label="Fahrtzweck" value={manualPurpose} onChangeText={setManualPurpose} placeholder="z. B. Dienstfahrt zur Klientin" style={styles.grow} />
               <PremiumInput label="Startadresse" value={manualStartAddress} onChangeText={setManualStartAddress} style={styles.grow} />
@@ -255,14 +355,14 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
               <View style={styles.vehicleSelect}>
                 <Text style={styles.formLabel}>Fahrzeug</Text>
                 <View style={styles.routeTypes}>
-                  {query.data.vehicles.map((vehicle) => <PremiumButton key={vehicle.id} title={`${vehicle.plate}${vehicle.make ? ` · ${vehicle.make}` : ''}`} size="sm" variant={manualVehicleId === vehicle.id ? 'primary' : 'secondary'} onPress={() => setManualVehicleId(vehicle.id)} />)}
+                  {query.data.vehicles.filter((vehicle) => vehicle.active).map((vehicle) => <PremiumButton key={vehicle.id} title={`${vehicle.plate}${vehicle.make ? ` · ${vehicle.make}` : ''}`} size="sm" variant={manualVehicleId === vehicle.id ? 'primary' : 'secondary'} onPress={() => setManualVehicleId(vehicle.id)} />)}
                 </View>
               </View>
-            ) : <InfoBanner message="Es ist noch kein Fahrzeug hinterlegt. Die Fahrt kann gespeichert werden; ergänzen Sie das Fahrzeug anschließend im Bereich ‚Fahrzeug & Kilometersatz‘." variant="warning" />}
+            ) : <InfoBanner message="Es ist kein aktiver PKW hinterlegt. Eine manuelle Fahrtenbucherfassung ist erst nach der Fahrzeugzuordnung möglich." variant="warning" />}
             <PremiumInput label="Pflichtbegründung für manuelle Erfassung" value={manualReason} onChangeText={setManualReason} placeholder="z. B. GPS-Berechtigung war deaktiviert" />
             <View style={styles.correctionActions}>
               <PremiumButton title="Abbrechen" variant="ghost" onPress={() => setManualOpen(false)} />
-              <PremiumButton title="Manuelle Fahrt speichern" loading={saving} onPress={() => void saveManualTrip()} />
+              <PremiumButton title="Manuelle Fahrt speichern" loading={saving} disabled={!manualVehicleId} onPress={() => void saveManualTrip()} />
             </View>
           </View>
         ) : null}
@@ -282,6 +382,8 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
         ) : visibleTrips.map((trip) => {
           const selected = selectedTripId === trip.id;
           const durationMinutes = Math.max(0, Math.round(trip.durationSeconds / 60));
+          const segments = query.data!.segments.filter((segment) => segment.tripId === trip.id).sort((a, b) => a.sequenceNo - b.sequenceNo);
+          const receipts = query.data!.receipts.filter((receipt) => receipt.tripId === trip.id);
           return (
             <View key={trip.id} style={[styles.tripBlock, selected && styles.tripBlockSelected]}>
               <View style={styles.tripRow}>
@@ -293,10 +395,13 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
                   <Text style={styles.tripPrimary}>{TRAVEL_ROUTE_TYPE_LABELS[trip.routeType] ?? trip.routeType}</Text>
                   <Text style={styles.tripSecondary}>{trip.purpose || 'Ohne Zweckangabe'}</Text>
                   <Text style={styles.tripSecondary}>{trip.startAddress ?? 'GPS-Start'} → {trip.endAddress ?? (trip.status === 'recording' ? 'Fahrt läuft' : 'GPS-Ziel')}</Text>
+                  {segments.length ? <Text style={styles.tripSecondary}>Stopps: {segments.map((segment) => segment.label).join(' → ')}</Text> : null}
                   <View style={styles.tripBadges}>
                     <PremiumBadge label={trip.status === 'recording' ? 'AUFZEICHNUNG LÄUFT' : trip.status === 'corrected' ? 'KORRIGIERT' : trip.status === 'confirmed' ? 'BESTÄTIGT' : 'ABGESCHLOSSEN'} variant={trip.status === 'recording' ? 'orange' : trip.status === 'corrected' ? 'cyan' : 'green'} />
                     <PremiumBadge label={trip.countsAsWorkTime ? 'ARBEITSZEIT' : `${trip.worktimeDeductionMinutes} MIN. ABZUG`} variant={trip.countsAsWorkTime ? 'green' : 'muted'} />
                     <PremiumBadge label={trip.gpsCaptured ? 'GPS' : 'MANUELL'} variant={trip.gpsCaptured ? 'cyan' : 'muted'} />
+                    {segments.length ? <PremiumBadge label={`${segments.length} STOPPS`} variant="cyan" /> : null}
+                    {receipts.length ? <PremiumBadge label={`${receipts.length} BELEGE`} variant="muted" /> : null}
                   </View>
                 </View>
                 <Text style={[styles.tripPrimary, styles.tripNumber]}>{durationMinutes ? `${Math.floor(durationMinutes / 60)}:${String(durationMinutes % 60).padStart(2, '0')} h` : '—'}</Text>
@@ -308,6 +413,44 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
               </View>
               {selected ? (
                 <View style={styles.correctionPanel}>
+                  <Text style={styles.formLabel}>Fahrtart und Fahrzeug</Text>
+                  <View style={styles.routeTypes}>
+                    {(Object.keys(TRAVEL_ROUTE_TYPE_LABELS) as TravelRouteType[]).map((routeType) => <PremiumButton key={routeType} title={TRAVEL_ROUTE_TYPE_LABELS[routeType]} size="sm" variant={correctionRouteType === routeType ? 'primary' : 'secondary'} onPress={() => setCorrectionRouteType(routeType)} />)}
+                  </View>
+                  <View style={styles.routeTypes}>
+                    {query.data!.vehicles.filter((vehicle) => vehicle.active).map((vehicle) => <PremiumButton key={vehicle.id} title={`${vehicle.plate}${vehicle.make ? ` · ${vehicle.make}` : ''}`} size="sm" variant={correctionVehicleId === vehicle.id ? 'primary' : 'secondary'} onPress={() => setCorrectionVehicleId(vehicle.id)} />)}
+                  </View>
+                  <View style={styles.cols}>
+                    <PremiumInput label="Fahrtzweck" value={correctionPurpose} onChangeText={setCorrectionPurpose} style={styles.grow} />
+                    <PremiumInput label="Start (JJJJ-MM-TTTHH:MM)" value={correctionStartedAt} onChangeText={setCorrectionStartedAt} style={styles.grow} />
+                    <PremiumInput label="Ende (JJJJ-MM-TTTHH:MM)" value={correctionEndedAt} onChangeText={setCorrectionEndedAt} style={styles.grow} />
+                  </View>
+                  <View style={styles.cols}>
+                    <PremiumInput label="Startadresse" value={correctionStartAddress} onChangeText={setCorrectionStartAddress} style={styles.grow} />
+                    <PremiumInput label="Zieladresse" value={correctionEndAddress} onChangeText={setCorrectionEndAddress} style={styles.grow} />
+                  </View>
+                  <View style={styles.cols}>
+                    <CareEntitySelect
+                      label="Einsatzzuordnung"
+                      value={correctionAssignmentId}
+                      onChange={(value) => {
+                        setCorrectionAssignmentId(value);
+                        const assignment = linkOptionsQuery.data?.assignments.find((item) => resolveVisitMasterId(item.id) === value || item.id === value);
+                        if (assignment?.clientId) setCorrectionClientId(assignment.clientId);
+                      }}
+                      options={(linkOptionsQuery.data?.assignments ?? []).map((item) => ({ value: resolveVisitMasterId(item.id), label: `${new Date(item.startsAt).toLocaleDateString('de-DE')} · ${item.clientName || item.title}`, description: item.title }))}
+                      searchPlaceholder="Einsatz suchen…"
+                      emptyMessage="Keine Einsätze gefunden."
+                    />
+                    <CareEntitySelect
+                      label="Klient:innenzuordnung"
+                      value={correctionClientId}
+                      onChange={setCorrectionClientId}
+                      options={(linkOptionsQuery.data?.clients ?? []).map((item) => ({ value: item.clientId, label: item.displayName, description: [item.street, item.zip, item.city].filter(Boolean).join(', ') }))}
+                      searchPlaceholder="Klient:in suchen…"
+                      emptyMessage="Keine Klient:innen gefunden."
+                    />
+                  </View>
                   <View style={styles.cols}>
                     <PremiumInput label="Korrigierte Kilometer" value={correctedDistance} onChangeText={setCorrectedDistance} keyboardType="decimal-pad" style={styles.grow} />
                     <PremiumInput label="Pflichtbegründung" value={correctionReason} onChangeText={setCorrectionReason} placeholder="Warum weicht die Strecke von der GPS-Aufzeichnung ab?" style={styles.correctionReason} />
@@ -353,7 +496,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
         </View>
         <PremiumButton
           title="Fahrtenbuch als PDF erstellen"
-          onPress={() => buildLogbookPdf({ employeeName, from, to, trips: query.data!.trips, vehicles: query.data!.vehicles })}
+          onPress={() => buildLogbookPdf({ employeeName, from, to, trips: query.data!.trips, vehicles: query.data!.vehicles, segments: query.data!.segments, receipts: query.data!.receipts, confirmations: query.data!.confirmations })}
         />
       </SectionPanel>
     </View>

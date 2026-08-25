@@ -60,6 +60,8 @@ import {
 } from '@/lib/portal/employeePortalAssignmentCompletion';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { usePortalActor } from '@/hooks/usePortalActor';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { resolveEmployeeLogbookEligibility } from '@/lib/employeeLogbook';
 
 type PortalSection = {
   id: string;
@@ -745,15 +747,23 @@ export function PortalHomeScreen({
   const definition = portalDefinitions[portal];
   const [active, setActive] = useState('today');
   const { context, data, errors, loading, profileId, reload, roleKey } = usePortalData(portal);
+  const logbookEligibility = useAsyncQuery(async () => {
+    if (!context.tenantId || !context.employeeId) throw new Error('Mitarbeitendenkonto ist nicht verknüpft.');
+    return { ok: true as const, data: await resolveEmployeeLogbookEligibility(context.tenantId, context.employeeId) };
+  }, [context.tenantId, context.employeeId], { enabled: portal === 'employee' && !!context.tenantId && !!context.employeeId });
+  const visibleSections = useMemo(
+    () => definition.sections.filter((section) => section.id !== 'logbook' || Boolean(logbookEligibility.data?.eligible)),
+    [definition.sections, logbookEligibility.data?.eligible],
+  );
   const officeMessages = usePortalOfficeMessages('open');
   const displayName =
     auth.profile?.displayName || auth.portalSession?.displayName || auth.user?.displayName || 'Portal';
-  const mobileSections = definition.sections;
+  const mobileSections = visibleSections;
   const clientFacingPortal = portal === 'family' ? 'client' : portal;
   const loginRoute = liquidPortalLoginRoutes[clientFacingPortal];
 
   const navigateToSection = (sectionId: string) => {
-    const section = definition.sections.find((item) => item.id === sectionId);
+    const section = visibleSections.find((item) => item.id === sectionId);
     if (!section || section.id === 'today') {
       setActive('today');
       return;
@@ -908,7 +918,7 @@ export function PortalHomeScreen({
                 active={active}
                 onSelect={navigateToSection}
                 onSignOut={() => void signOut()}
-                sections={definition.sections}
+                sections={visibleSections}
               />
               <View style={styles.sideFooter}>
                 <LiquidDivider />
@@ -924,7 +934,7 @@ export function PortalHomeScreen({
               <View style={styles.pageHeading}>
                 <LiquidText variant="kicker">{definition.eyebrow}</LiquidText>
                 <LiquidText variant="display" accessibilityRole="header">
-                  {definition.sections.find((section) => section.id === active)?.label}
+                  {visibleSections.find((section) => section.id === active)?.label}
                 </LiquidText>
                 <LiquidText variant="body">Guten Tag, {displayName}.</LiquidText>
               </View>
@@ -943,7 +953,7 @@ export function PortalHomeScreen({
               <View style={[styles.pageHeading, active === 'today' && styles.pageHeadingToday]}>
                 <LiquidText variant="kicker">{definition.eyebrow}</LiquidText>
                 <LiquidText variant={layout.isPhone ? 'title' : 'display'} accessibilityRole="header">
-                  {definition.sections.find((section) => section.id === active)?.label}
+                  {visibleSections.find((section) => section.id === active)?.label}
                 </LiquidText>
                 <LiquidText variant="body">Guten Tag, {displayName}.</LiquidText>
               </View>

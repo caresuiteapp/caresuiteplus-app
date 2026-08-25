@@ -38,6 +38,7 @@ describe('Portal messaging and navigation R8', () => {
       'clients',
       'calendar',
       'time',
+      'logbook',
       'leave',
       'absence',
       'documents',

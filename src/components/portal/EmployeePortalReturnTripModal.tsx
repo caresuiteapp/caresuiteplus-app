@@ -22,6 +22,7 @@ import {
 } from '@/lib/portal/employeePortalReturnTrip';
 import type { LogbookTrip } from '@/types/modules/employeeLogbook';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
+import { saveLogbookPromptDecision } from '@/lib/employeeLogbook';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { spacing, typography } from '@/theme';
 
@@ -147,6 +148,7 @@ export function EmployeePortalReturnTripModal({
         destination: selectedDestination,
       });
       const actualDestination = returnTripDestinationFromTrip(result.trip) ?? selectedDestination;
+      await saveLogbookPromptDecision({ tenantId, employeeId, assignmentId: resolveVisitMasterId(assignmentId), promptType: 'return_trip', decision: actualDestination });
       setTrip(result.trip);
       setDestination(actualDestination);
       setClock(new Date());
@@ -165,6 +167,7 @@ export function EmployeePortalReturnTripModal({
     stopWebWatcher();
     try {
       const completed = await finishEmployeeReturnTrip({ trip, tenantId, employeeId, destination });
+      await saveLogbookPromptDecision({ tenantId, employeeId, assignmentId: resolveVisitMasterId(assignmentId), promptType: 'return_trip', decision: 'completed' });
       setCompletedTrip(completed);
       setMode('complete');
     } catch (cause) {
@@ -272,7 +275,10 @@ export function EmployeePortalReturnTripModal({
                     title="Nein – nicht aufzeichnen"
                     variant="ghost"
                     fullWidth
-                    onPress={close}
+                    onPress={() => {
+                      void saveLogbookPromptDecision({ tenantId, employeeId, assignmentId: resolveVisitMasterId(assignmentId), promptType: 'return_trip', decision: 'declined' })
+                        .finally(close);
+                    }}
                     testID="employee-return-trip-decline"
                   />
                 </View>

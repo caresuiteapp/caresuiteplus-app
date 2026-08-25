@@ -18,6 +18,7 @@ import {
   EmployeePortalVisitBottomBar,
   EmployeePortalVisitCompletionPanel,
   EmployeePortalReturnTripModal,
+  EmployeePortalVisitLogbookCard,
   EmployeePortalVisitDocumentationPanel,
   type EmployeePortalVisitDocumentationPanelHandle,
   EmployeePortalVisitDocumentationAiModal,
@@ -73,6 +74,13 @@ import { portalPremium } from '@/design/tokens/portalPremium';
 import { employeePortalExecutionSurface } from '@/lib/portal/employeePortalExecutionSurface';
 import { fetchPortalAppointments } from '@/lib/portal/appointmentService';
 import { isLastScheduledEmployeeAssignmentOfDay } from '@/lib/portal/employeePortalReturnTrip';
+import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
+import {
+  finishVisitApproachLogbook,
+  loadLogbookPromptDecision,
+  resolveEmployeeLogbookEligibility,
+  startVisitApproachLogbook,
+} from '@/lib/employeeLogbook';
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -193,8 +201,8 @@ export function EmployeePortalVisitExecutionScreen() {
   const [aiHelpStandaloneOpen, setAiHelpStandaloneOpen] = useState(false);
   const lastConfirmedStatusRef = useRef<AssignmentStatus | null>(null);
   const signatureConfirmationRefreshRef = useRef(refresh);
-  const sawIncompleteExecutionRef = useRef(false);
   const returnTripPromptHandledRef = useRef(false);
+  const [returnTripPromptRetry, setReturnTripPromptRetry] = useState(0);
   const [returnTripModalOpen, setReturnTripModalOpen] = useState(false);
 
   const assistVisitId = executionContext?.assistVisitId ?? null;
@@ -302,28 +310,39 @@ export function EmployeePortalVisitExecutionScreen() {
 
   useEffect(() => {
     if (!visit) return;
-    if (phase !== 'completed' || effectiveStatus !== 'abgeschlossen') {
-      sawIncompleteExecutionRef.current = true;
-      return;
-    }
-    if (!sawIncompleteExecutionRef.current || returnTripPromptHandledRef.current) return;
+    if (phase !== 'completed' || effectiveStatus !== 'abgeschlossen') return;
+    if (returnTripPromptHandledRef.current) return;
     if (!portalTenantId || !portalEmployeeId) return;
 
-    returnTripPromptHandledRef.current = true;
     let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
     const profileId = profile?.id ?? user?.id ?? portalEmployeeId;
     const roleKey = profile?.roleKey ?? 'employee_portal';
-    void fetchPortalAppointments(profileId, roleKey, {
-      tenantId: portalTenantId,
-      employeeId: portalEmployeeId,
-    })
-      .then((result) => {
+    void resolveEmployeeLogbookEligibility(portalTenantId, portalEmployeeId)
+      .then(async (eligibility) => {
+        if (cancelled) return;
+        if (!eligibility.eligible) {
+          returnTripPromptHandledRef.current = true;
+          return;
+        }
+        const promptDecision = await loadLogbookPromptDecision({
+          tenantId: portalTenantId,
+          employeeId: portalEmployeeId,
+          assignmentId: resolveVisitMasterId(visit.assignmentId),
+          promptType: 'return_trip',
+        });
+        if (cancelled) return;
+        if (promptDecision) {
+          returnTripPromptHandledRef.current = true;
+          return;
+        }
+        const result = await fetchPortalAppointments(profileId, roleKey, {
+          tenantId: portalTenantId,
+          employeeId: portalEmployeeId,
+        });
         if (cancelled) return;
         if (!result.ok) {
-          setLocalWarning(
-            'Der Einsatz ist abgeschlossen. Die Rückfahrtfrage konnte wegen einer Verbindungsstörung nicht geöffnet werden; die Fahrt kann weiterhin direkt im Fahrtenbuch gestartet werden.',
-          );
-          return;
+          throw new Error(result.error);
         }
         if (
           isLastScheduledEmployeeAssignmentOfDay({
@@ -334,15 +353,18 @@ export function EmployeePortalVisitExecutionScreen() {
         ) {
           setReturnTripModalOpen(true);
         }
+        returnTripPromptHandledRef.current = true;
       })
       .catch(() => {
         if (cancelled) return;
         setLocalWarning(
-          'Der Einsatz ist abgeschlossen. Die Rückfahrtfrage konnte wegen einer Verbindungsstörung nicht geöffnet werden; die Fahrt kann weiterhin direkt im Fahrtenbuch gestartet werden.',
+          'Der Einsatz ist abgeschlossen. Die Rückfahrtfrage wird wegen einer Verbindungsstörung automatisch erneut geprüft.',
         );
+        retryTimer = setTimeout(() => setReturnTripPromptRetry((attempt) => attempt + 1), 3_000);
       });
     return () => {
       cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
     };
   }, [
     visit,
@@ -353,6 +375,7 @@ export function EmployeePortalVisitExecutionScreen() {
     profile?.id,
     profile?.roleKey,
     user?.id,
+    returnTripPromptRetry,
   ]);
 
   useEffect(() => {
@@ -545,9 +568,32 @@ export function EmployeePortalVisitExecutionScreen() {
         setLocalWarning(result.error ?? 'Die Anfahrt wird noch bestätigt. Bitte nicht erneut tippen.');
       } else setLocalError(result.error ?? 'Tracking konnte nicht gestartet werden.');
     }
-    else setLocalSuccess('Anfahrt gestartet — Live-Verfolgung aktiv.');
+    else {
+      setLocalSuccess('Anfahrt gestartet — Live-Verfolgung aktiv.');
+      if (portalTenantId && portalEmployeeId && visit) {
+        try {
+          const logbook = await startVisitApproachLogbook({
+            tenantId: portalTenantId,
+            employeeId: portalEmployeeId,
+            assignmentId: visit.assignmentId,
+            clientId: visit.clientId,
+            clientName: visit.clientName,
+            startAddress: null,
+          });
+          if (logbook.started) {
+            setLocalSuccess('Anfahrt und digitales PKW-Fahrtenbuch wurden automatisch gestartet.');
+          }
+        } catch (error) {
+          setLocalWarning(
+            error instanceof Error
+              ? `Der Einsatzstatus wurde gespeichert, aber das PKW-Fahrtenbuch benötigt Aufmerksamkeit: ${error.message}`
+              : 'Der Einsatzstatus wurde gespeichert, aber das PKW-Fahrtenbuch konnte nicht gestartet werden.',
+          );
+        }
+      }
+    }
     setDriveLoading(false);
-  }, [startDriveTracking]);
+  }, [startDriveTracking, portalTenantId, portalEmployeeId, visit]);
 
   const handleArrived = useCallback(async () => {
     setLocalError(null);
@@ -566,9 +612,35 @@ export function EmployeePortalVisitExecutionScreen() {
     }
     else {
       setLocalSuccess('Angekommen — Anfahrt-Timer gestoppt.');
+      if (portalTenantId && portalEmployeeId && visit) {
+        try {
+          const completedTrip = await finishVisitApproachLogbook({
+            tenantId: portalTenantId,
+            employeeId: portalEmployeeId,
+            assignmentId: visit.assignmentId,
+            endAddress: visit.locationAddress,
+          });
+          if (completedTrip) {
+            setLocalSuccess(
+              `Angekommen — PKW-Anfahrt mit ${completedTrip.distanceFinalKm.toFixed(2).replace('.', ',')} km im Fahrtenbuch gespeichert.`,
+            );
+          } else {
+            const eligibility = await resolveEmployeeLogbookEligibility(portalTenantId, portalEmployeeId);
+            if (eligibility.eligible) {
+              setLocalWarning('Die Ankunft wurde gespeichert, aber es wurde keine laufende PKW-Anfahrt gefunden. Bitte die Fahrt im Fahrtenbuch prüfen oder manuell ergänzen.');
+            }
+          }
+        } catch (error) {
+          setLocalWarning(
+            error instanceof Error
+              ? `Die Ankunft wurde gespeichert, der Fahrtenbuchabschluss muss jedoch geprüft werden: ${error.message}`
+              : 'Die Ankunft wurde gespeichert, der Fahrtenbuchabschluss muss jedoch geprüft werden.',
+          );
+        }
+      }
       if (result.arrivalWarning) setLocalWarning(result.arrivalWarning);
     }
-  }, [markArrived, tracking, geofenceOverride, setGeofenceOverride]);
+  }, [markArrived, tracking, geofenceOverride, setGeofenceOverride, portalTenantId, portalEmployeeId, visit]);
 
   const resolveDeviationCheck = useCallback(
     (phaseKey: WfmDeviationPhase) => {
@@ -1073,6 +1145,18 @@ export function EmployeePortalVisitExecutionScreen() {
             onOpenSignature={openSignatureCapture}
             onOpenAttachments={() => setPhotoModalOpen(true)}
           />
+
+          {portalTenantId && portalEmployeeId ? (
+            <EmployeePortalVisitLogbookCard
+              tenantId={portalTenantId}
+              employeeId={portalEmployeeId}
+              assignmentId={visit.assignmentId}
+              clientId={visit.clientId}
+              clientName={visit.clientName}
+              startAddress={visit.locationAddress}
+              plannedEndAt={visit.plannedEndAt}
+            />
+          ) : null}
 
           {phase === 'live' && primaryButtonLabel && !isLocked && !statusBlocksDoc ? (
             <PremiumButton

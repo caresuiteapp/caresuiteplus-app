@@ -12,6 +12,7 @@ import {
   startNativeBackgroundTracking,
   stopNativeBackgroundTracking,
 } from '@/lib/employeeLogbook';
+import { resolveEmployeeLogbookEligibility } from '@/lib/employeeLogbook/employeeLogbookAutomation';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import type { LogbookPoint, LogbookTrip } from '@/types/modules/employeeLogbook';
 import {
@@ -47,6 +48,14 @@ export async function startEmployeeReturnTrip(input: {
   startAddress: string;
   destination: EmployeeReturnTripDestination;
 }): Promise<{ trip: LogbookTrip; resumed: boolean }> {
+  const eligibility = await resolveEmployeeLogbookEligibility(input.tenantId, input.employeeId);
+  if (!eligibility.eligible) {
+    throw new Error(
+      eligibility.reason === 'no_car_mode'
+        ? 'Für dieses Mitarbeitendenkonto ist kein PKW-Verkehrsmittel hinterlegt.'
+        : 'Für dieses Mitarbeitendenkonto ist kein aktiver PKW zugeordnet.',
+    );
+  }
   const bundle = await loadEmployeeLogbook(input.tenantId, input.employeeId);
   const existing = bundle.trips.find((trip) => trip.status === 'recording') ?? null;
   if (existing) {
@@ -71,8 +80,7 @@ export async function startEmployeeReturnTrip(input: {
     await saveLogbookProfile({ ...bundle.profile, gpsConsent: true });
   }
 
-  const vehicleId =
-    bundle.profile.defaultVehicleId ?? bundle.vehicles.find((vehicle) => vehicle.active)?.id ?? null;
+  const vehicleId = eligibility.vehicleId;
   const destinationLabel = returnTripDestinationLabel(input.destination);
   const trip = await createLogbookTrip({
     tenantId: input.tenantId,
@@ -142,7 +150,6 @@ export async function finishEmployeeReturnTrip(input: {
   employeeId: string;
   destination: EmployeeReturnTripDestination;
 }): Promise<LogbookTrip> {
-  await stopNativeBackgroundTracking();
   const lastPoint = await getCurrentLogbookPoint();
   await finishLogbookTrip(input.trip.id, {
     tenantId: input.tenantId,
@@ -151,6 +158,7 @@ export async function finishEmployeeReturnTrip(input: {
     notes: 'Automatisch nach dem letzten Tageseinsatz im Mitarbeiterportal erfasst.',
     points: [lastPoint],
   });
+  await stopNativeBackgroundTracking();
 
   const bundle = await loadEmployeeLogbook(input.tenantId, input.employeeId);
   const completed = bundle.trips.find((trip) => trip.id === input.trip.id);

@@ -30,6 +30,13 @@ export type LogbookPoint = {
   speed?: number | null; heading?: number | null; recordedAt: string;
 };
 
+export type LogbookSegment = {
+  id: string; tripId: string; sequenceNo: number; assignmentId: string | null;
+  clientId: string | null; stopKind: 'client' | 'doctor' | 'pharmacy' | 'shopping' | 'office' | 'home' | 'other';
+  label: string; startAddress: string | null; endAddress: string | null;
+  startedAt: string | null; endedAt: string | null; distanceKm: number;
+};
+
 export type LogbookReceipt = {
   id: string; tripId: string | null; category: 'parking' | 'toll' | 'fuel' | 'other';
   amountCents: number; fileName: string; storagePath: string; expenseDate: string;
@@ -42,7 +49,7 @@ export type LogbookDailyConfirmation = {
 
 export type EmployeeLogbookBundle = {
   profile: LogbookProfile; vehicles: LogbookVehicle[]; trips: LogbookTrip[];
-  confirmations: LogbookDailyConfirmation[];
+  confirmations: LogbookDailyConfirmation[]; segments: LogbookSegment[]; receipts: LogbookReceipt[];
 };
 
 export type StartLogbookTripInput = {
@@ -53,7 +60,14 @@ export type StartLogbookTripInput = {
 
 export type CreateManualLogbookTripInput = {
   tenantId: string; employeeId: string; vehicleId: string | null;
+  assignmentId?: string | null; clientId?: string | null;
   routeType: TravelRouteType; purpose: string; manualReason: string;
   startedAt: string; endedAt: string; startAddress: string; endAddress: string;
   distanceKm: number; notes?: string | null;
+};
+
+export type CorrectLogbookTripInput = {
+  trip: LogbookTrip; vehicleId: string; routeType: TravelRouteType; purpose: string;
+  assignmentId?: string | null; clientId?: string | null; startedAt: string; endedAt: string;
+  startAddress: string; endAddress: string; distanceKm: number; reason: string;
 };
