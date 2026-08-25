@@ -412,6 +412,78 @@ export const CENTRAL_HEALTHOS_POPUP_CONTRACT_CSS = `
     color: #075CBF !important;
   }
 
+  /*
+   * Assist readability R1: Live-Status cards and assignment details are
+   * deliberately bright work surfaces. The central popup contract used to
+   * repaint their card/section backgrounds navy while React Native retained
+   * the dark typography calculated for the original light surface. Keeping
+   * the override behind an explicit marker prevents broad colour rewrites and
+   * preserves badges, warnings and the surrounding HealthOS night shell.
+   */
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] {
+    color-scheme: light;
+    --assist-readable-ink: #0B213D;
+    --assist-readable-copy: #294966;
+    --assist-readable-muted: #526B83;
+    --assist-readable-line: #C9DCEB;
+    --assist-readable-line-strong: #8FBFE7;
+    --assist-readable-surface: #FFFFFF;
+    --assist-readable-surface-soft: #F3F8FC;
+    color: var(--assist-readable-ink) !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="section"],
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="card"],
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="interactive-card"] {
+    color: var(--assist-readable-ink) !important;
+    background-color: var(--assist-readable-surface) !important;
+    background-image:
+      radial-gradient(circle at 92% -18%, rgba(28, 132, 224, .11), transparent 40%),
+      linear-gradient(145deg, #FFFFFF, #EEF6FC) !important;
+    border-color: var(--assist-readable-line) !important;
+    box-shadow:
+      0 14px 34px rgba(31, 72, 112, .12),
+      inset 0 1px 0 #FFFFFF !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="card"] > div:first-child,
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="interactive-card"] > div:first-child {
+    background-color: transparent !important;
+    background-image: linear-gradient(145deg, #FFFFFF, #EEF6FC) !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="tab"],
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="filter-chip"],
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="filter-select"] {
+    color: var(--assist-readable-copy) !important;
+    background-color: #FFFFFF !important;
+    background-image: linear-gradient(145deg, #FFFFFF, #ECF5FC) !important;
+    border-color: var(--assist-readable-line) !important;
+    box-shadow: inset 0 1px 0 #FFFFFF !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [aria-selected="true"] {
+    color: #075CBF !important;
+    background-color: #E3F1FC !important;
+    border-color: #6CAFE7 !important;
+    box-shadow: none !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="secondary"],
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="ghost"] {
+    background-color: #F7FBFF !important;
+    border-color: #A8CDEB !important;
+  }
+
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="secondary"],
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="ghost"],
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="secondary"] *,
+  html[data-cs-central-popup] [data-cs-assist-readable-surface="light"] [data-cs-healthos-component="button"][data-cs-healthos-variant="ghost"] * {
+    color: #075CBF !important;
+  }
+
   @media (max-width: 780px) {
     html[data-cs-central-popup] [data-cs-central-popup-page-header="true"] {
       min-height: 66px !important;

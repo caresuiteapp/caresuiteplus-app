@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
@@ -47,6 +47,7 @@ import {
   VISIT_PROOF_STATUS_LABELS,
 } from '@/lib/assist/visitTypes';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing, typography } from '@/theme';
@@ -188,7 +189,15 @@ function formatHistoryEntry(
   return `${dimensionLabel}: ${toLabel} · ${when}`;
 }
 
-export function AssignmentDetailTabsPanel({
+export function AssignmentDetailTabsPanel(props: AssignmentDetailTabsPanelProps) {
+  return (
+    <SurfaceContrastProvider tone="light">
+      <AssignmentDetailTabsPanelContent {...props} />
+    </SurfaceContrastProvider>
+  );
+}
+
+function AssignmentDetailTabsPanelContent({
   assignmentId,
   mode = 'full',
   layout = 'page',
@@ -860,7 +869,12 @@ export function AssignmentDetailTabsPanel({
 
   if (isModalLayout) {
     return (
-      <View style={styles.panel}>
+      <View
+        style={styles.panel}
+        {...(Platform.OS === 'web'
+          ? ({ dataSet: { csAssistReadableSurface: 'light' } } as object)
+          : {})}
+      >
         <ScrollView
           style={styles.contentScroll}
           contentContainerStyle={styles.contentInner}
@@ -876,7 +890,12 @@ export function AssignmentDetailTabsPanel({
   }
 
   return (
-    <View style={styles.panel}>
+    <View
+      style={styles.panel}
+      {...(Platform.OS === 'web'
+        ? ({ dataSet: { csAssistReadableSurface: 'light' } } as object)
+        : {})}
+    >
       {renderMainContent()}
       {renderActions()}
     </View>

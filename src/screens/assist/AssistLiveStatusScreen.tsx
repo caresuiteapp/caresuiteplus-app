@@ -35,6 +35,7 @@ import {
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
 import { HealthOSStatusBadge } from '@/components/healthos';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { spacing, typography } from '@/theme';
 
 type MetricTone = 'neutral' | 'blue' | 'cyan' | 'green' | 'orange';
@@ -238,18 +239,25 @@ export function AssistLiveStatusScreen() {
           </Pressable>
         </View>
       ) : (
-        <View style={styles.assignmentList}>{rows.map((row) => {
-          const isSelected = row.assignmentId === (selectedAssignmentId ?? mapRow?.assignmentId);
-          return (
-            <Pressable
-              key={row.assignmentId}
-              onPress={() => setSelectedAssignmentId(row.assignmentId)}
-              accessibilityRole="button"
-            >
-              <PremiumCard
-                accentColor={row.statusColor}
-                style={[styles.assignmentCard, isSelected && styles.selectedCard]}
-              >
+        <SurfaceContrastProvider tone="light">
+          <View
+            style={styles.assignmentList}
+            {...(Platform.OS === 'web'
+              ? ({ dataSet: { csAssistReadableSurface: 'light' } } as object)
+              : {})}
+          >
+            {rows.map((row) => {
+              const isSelected = row.assignmentId === (selectedAssignmentId ?? mapRow?.assignmentId);
+              return (
+                <Pressable
+                  key={row.assignmentId}
+                  onPress={() => setSelectedAssignmentId(row.assignmentId)}
+                  accessibilityRole="button"
+                >
+                  <PremiumCard
+                    accentColor={row.statusColor}
+                    style={[styles.assignmentCard, isSelected && styles.selectedCard]}
+                  >
                 <View style={styles.cardHeader}>
                   <Text style={styles.title}>{row.title}</Text>
                   <HealthOSStatusBadge domain="assignment" technicalValue={row.status} dot />
@@ -365,10 +373,12 @@ export function AssistLiveStatusScreen() {
                   size="sm"
                   onPress={() => router.push(`/assist/assignments/${row.assignmentId}` as never)}
                 />
-              </PremiumCard>
-            </Pressable>
-          );
-        })}</View>
+                  </PremiumCard>
+                </Pressable>
+              );
+            })}
+          </View>
+        </SurfaceContrastProvider>
       )}
     </View>
   );
