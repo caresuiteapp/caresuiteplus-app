@@ -16,6 +16,7 @@ import {
   buildAssignmentProfileDropTargetProps,
   type AssignmentProfileDropHandler,
 } from '@/components/calendar/OfficeAssignmentProfileCalendarPlanner';
+import { resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarStatus';
 
 type OfficeCalendarDayViewProps = {
   anchor: Date;
@@ -96,10 +97,15 @@ export function OfficeCalendarDayView({
                 <Text style={[styles.hour, { color: text.muted }]}>{String(h).padStart(2, '0')}:00</Text>
                 <View style={styles.slot}>
                   {slotEvents.map((event) => {
+                    const assignmentVisual = resolveAssignmentCalendarVisual(event);
                     const blockStyle = [
                       styles.eventBlock,
                       portal.active && styles.portalSoftSurface,
-                      { borderLeftColor: event.color },
+                      {
+                        backgroundColor: assignmentVisual?.tint ?? auroraGlass.chip,
+                        borderColor: assignmentVisual?.outline ?? 'transparent',
+                        borderLeftColor: assignmentVisual?.color ?? event.color,
+                      },
                     ];
                     const inner = (
                       <CalendarEventLabel event={event} variant="stacked" showService />
@@ -161,7 +167,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   eventBlock: {
-    borderLeftWidth: 3,
+    borderWidth: 1,
+    borderLeftWidth: 4,
     backgroundColor: auroraGlass.chip,
     borderRadius: 6,
     padding: careSpacing.sm,

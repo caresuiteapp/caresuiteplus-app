@@ -19,6 +19,8 @@ export function visitListItemToCalendarEvent(item: VisitDispositionListItem): Ca
     // The canonical assignment status drives calendar interaction and styling.
     // Generic workflow status (for example "fehlerhaft") loses cancellation semantics.
     status: item.assignmentStatus,
+    isAtRisk: item.isAtRisk,
+    isIncomplete: item.isIncomplete,
     clientName: item.clientName,
     employeeName: item.employeeName,
     serviceTitle,

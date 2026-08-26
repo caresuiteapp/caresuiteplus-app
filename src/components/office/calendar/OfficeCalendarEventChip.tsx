@@ -10,6 +10,7 @@ import {
   isAssignmentCalendarEvent,
   isCancelledCalendarEvent,
 } from '@/lib/calendar/calendarEventDisplay';
+import { resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarStatus';
 
 type OfficeCalendarEventChipProps = {
   event: CalendarEvent;
@@ -29,6 +30,7 @@ export function OfficeCalendarEventChip({
   const router = useRouter();
   const isAssignment = isAssignmentCalendarEvent(event);
   const isCancelled = isCancelledCalendarEvent(event);
+  const assignmentVisual = resolveAssignmentCalendarVisual(event);
   const timeLabel = event.allDay ? 'Ganztägig' : formatTime(event.start);
 
   const content = (
@@ -38,7 +40,14 @@ export function OfficeCalendarEventChip({
         portal.active && styles.portalChip,
         compact && styles.chipCompact,
         isCancelled && styles.cancelledChip,
-        { borderLeftColor: isCancelled ? '#D92D20' : event.color },
+        assignmentVisual && styles.assignmentChip,
+        assignmentVisual
+          ? {
+              backgroundColor: assignmentVisual.tint,
+              borderColor: assignmentVisual.outline,
+              borderLeftColor: assignmentVisual.color,
+            }
+          : { borderLeftColor: event.color },
       ]}
     >
       {!isAssignment && !event.allDay && showTime && !compact ? (
@@ -87,6 +96,12 @@ const styles = StyleSheet.create({
   chipCompact: {
     paddingVertical: 2,
     paddingHorizontal: 4,
+  },
+  assignmentChip: {
+    borderTopWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 4,
   },
   portalChip: {
     backgroundColor: portalPremium.surfaceSoft,

@@ -18,6 +18,7 @@ import {
   buildAssignmentProfileDropTargetProps,
   type AssignmentProfileDropHandler,
 } from '@/components/calendar/OfficeAssignmentProfileCalendarPlanner';
+import { resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarStatus';
 
 type OfficeCalendarWeekViewProps = {
   anchor: Date;
@@ -183,13 +184,16 @@ export function OfficeCalendarWeekView({
                     {dayEvents.map((event) => {
                       const pos = eventTopAndHeight(event, day, hours);
                       if (!pos) return null;
+                      const assignmentVisual = resolveAssignmentCalendarVisual(event);
                       const eventStyle = [
                         styles.timedEvent,
                         portal.active && styles.portalEvent,
                         {
                           top: pos.top,
                           height: pos.height,
-                          borderLeftColor: event.color,
+                          backgroundColor: assignmentVisual?.tint ?? auroraGlass.chip,
+                          borderColor: assignmentVisual?.outline ?? 'transparent',
+                          borderLeftColor: assignmentVisual?.color ?? event.color,
                         },
                       ];
                       const inner = (
@@ -257,7 +261,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 2,
     right: 2,
-    borderLeftWidth: 3,
+    borderWidth: 1,
+    borderLeftWidth: 4,
     backgroundColor: auroraGlass.chip,
     borderRadius: 4,
     padding: 4,

@@ -101,6 +101,9 @@ export function enrichCalendarEventWithAssignment(
     employeeName: string;
     title: string;
     serviceName?: string | null;
+    assignmentStatus?: string | null;
+    isAtRisk?: boolean;
+    isIncomplete?: boolean;
   },
 ): CalendarEvent {
   if (!isAssignmentCalendarEvent(event)) return event;
@@ -109,6 +112,9 @@ export function enrichCalendarEventWithAssignment(
 
   return {
     ...event,
+    status: assignment.assignmentStatus ?? event.status,
+    isAtRisk: assignment.isAtRisk ?? event.isAtRisk,
+    isIncomplete: assignment.isIncomplete ?? event.isIncomplete,
     clientName: event.clientName?.trim() || assignment.clientName,
     employeeName: event.employeeName?.trim() || assignment.employeeName,
     serviceTitle:

@@ -7,6 +7,7 @@ import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { formatTime } from '@/lib/office/calendarDateUtils';
 import { CalendarEventLabel } from '@/components/calendar/CalendarEventLabel';
+import { resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarStatus';
 
 type CalendarListViewProps = {
   events: CalendarEvent[];
@@ -34,11 +35,18 @@ export function CalendarListView({ events, onEventPress }: CalendarListViewProps
             month: '2-digit',
           });
           const typeLabel = CALENDAR_EVENT_TYPE_LABELS[event.type] ?? event.type;
+          const assignmentVisual = resolveAssignmentCalendarVisual(event);
           return (
             <Pressable
               key={event.id}
               onPress={() => onEventPress?.(event)}
-              style={[styles.dataRow, { borderBottomColor: auroraGlass.border }]}
+              style={[
+                styles.dataRow,
+                {
+                  borderBottomColor: auroraGlass.border,
+                  backgroundColor: assignmentVisual?.tint ?? 'transparent',
+                },
+              ]}
               accessibilityRole="button"
             >
               <Text style={[styles.cell, styles.colDate, { color: text.secondary }]}>{dateLabel}</Text>
@@ -46,7 +54,12 @@ export function CalendarListView({ events, onEventPress }: CalendarListViewProps
                 {event.allDay ? '—' : `${formatTime(event.start)} – ${formatTime(event.end)}`}
               </Text>
               <View style={styles.colTitle}>
-                <View style={[styles.accent, { backgroundColor: event.color }]} />
+                <View
+                  style={[
+                    styles.accent,
+                    { backgroundColor: assignmentVisual?.color ?? event.color },
+                  ]}
+                />
                 <CalendarEventLabel event={event} variant="inline" showTime={false} numberOfLines={2} />
               </View>
               <Text style={[styles.cell, styles.colType, { color: text.muted }]}>{typeLabel}</Text>

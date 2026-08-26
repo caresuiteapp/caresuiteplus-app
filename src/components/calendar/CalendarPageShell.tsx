@@ -21,6 +21,7 @@ import { CalendarFilterBar } from './CalendarFilterBar';
 import { CalendarCreateAction } from './CalendarCreateAction';
 import { CalendarEventGrid, startOfMonth } from './CalendarEventGrid';
 import { CalendarCreateModal } from './CalendarCreateModal';
+import { CalendarAssignmentStatusLegend } from './CalendarAssignmentStatusLegend';
 import {
   OfficeAssignmentProfileCalendarPlanner,
   type AssignmentProfileDropHandler,
@@ -158,6 +159,9 @@ export function CalendarPageShell({
               <Text style={styles.legendTitle}>SICHTBARE EREIGNISSE</Text>
               <CalendarFilterBar visibleTypes={visibleTypes} />
             </View>
+          ) : null}
+          {config.moduleKey === 'all' || config.moduleKey === 'assist' ? (
+            <CalendarAssignmentStatusLegend />
           ) : null}
         </View>
       ) : null}

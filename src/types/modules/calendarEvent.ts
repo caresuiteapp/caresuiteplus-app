@@ -29,6 +29,10 @@ export type CalendarEvent = {
   sourceType?: string;
   moduleKey?: string;
   status?: string;
+  /** Operativer Warnzustand aus der Einsatzdisposition. */
+  isAtRisk?: boolean;
+  /** Einsatz ist beendet, aber Dokumentation/Nachweis ist noch nicht vollständig. */
+  isIncomplete?: boolean;
   href?: string;
   /** Klient:innenname — primär für Einsätze. */
   clientName?: string;

@@ -6,6 +6,7 @@ import {
   isCancelledCalendarEvent,
   resolveCalendarEventDisplay,
 } from '@/lib/calendar/calendarEventDisplay';
+import { resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarStatus';
 
 export type CalendarEventLabelVariant = 'stacked' | 'compact' | 'inline';
 
@@ -27,6 +28,26 @@ export function CalendarEventLabel({
   const text = useAuroraAdaptiveText();
   const display = resolveCalendarEventDisplay(event);
   const isCancelled = isCancelledCalendarEvent(event);
+  const assignmentVisual = resolveAssignmentCalendarVisual(event);
+
+  const statusFlag = assignmentVisual ? (
+    <View
+      style={[
+        styles.statusFlag,
+        {
+          backgroundColor: assignmentVisual.tint,
+          borderColor: assignmentVisual.outline,
+        },
+      ]}
+    >
+      <Text style={[styles.statusSymbol, { color: assignmentVisual.color }]}>
+        {assignmentVisual.symbol}
+      </Text>
+      <Text style={[styles.statusText, { color: assignmentVisual.color }]}>
+        {assignmentVisual.label.toUpperCase()}
+      </Text>
+    </View>
+  ) : null;
 
   if (!display.isAssignment) {
     if (variant === 'compact' || variant === 'inline') {
@@ -55,7 +76,7 @@ export function CalendarEventLabel({
   if (variant === 'compact' || variant === 'inline') {
     return (
       <View style={styles.compactStack}>
-        {isCancelled ? <Text style={styles.cancelledFlag}>ABGESAGT</Text> : null}
+        {statusFlag}
         <Text
           style={[
             styles.compact,
@@ -73,6 +94,7 @@ export function CalendarEventLabel({
 
   return (
     <View style={styles.stack}>
+      {statusFlag}
       <Text style={[styles.primary, styles.bold, { color: text.primary }]} numberOfLines={1}>
         {display.clientName ?? display.primaryLine}
       </Text>
@@ -123,11 +145,29 @@ const styles = StyleSheet.create({
   compactStack: {
     gap: 1,
   },
-  cancelledFlag: {
-    color: '#B42318',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+  statusFlag: {
+    alignSelf: 'flex-start',
+    minHeight: 16,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  statusSymbol: {
+    width: 9,
+    textAlign: 'center',
+    fontSize: 8,
+    lineHeight: 10,
+    fontWeight: '900',
+  },
+  statusText: {
+    fontSize: 8,
+    lineHeight: 10,
+    fontWeight: '900',
+    letterSpacing: 0.35,
   },
   cancelledText: {
     textDecorationLine: 'line-through',
