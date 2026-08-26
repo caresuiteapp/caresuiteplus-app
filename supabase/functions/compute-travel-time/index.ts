@@ -40,6 +40,7 @@ type RequestBody = {
   origin?: string;
   destination?: string;
   transportMode?: TransportMode;
+  includeRouteGeometry?: boolean;
 };
 
 type DistanceMatrixResponse = {
@@ -53,6 +54,51 @@ type DistanceMatrixResponse = {
   }[];
   error_message?: string;
 };
+
+type DirectionsResponse = {
+  status: string;
+  routes?: {
+    overview_polyline?: { points?: string };
+    legs?: {
+      duration?: { value?: number };
+      distance?: { value?: number };
+    }[];
+  }[];
+};
+
+async function queryDirections(
+  origin: string,
+  destination: string,
+  googleMode: GoogleTravelMode,
+  apiKey: string,
+): Promise<{
+  durationMinutes: number | null;
+  distanceMeters: number | null;
+  encodedPolyline: string | null;
+  status: string;
+}> {
+  const params = new URLSearchParams({
+    origin,
+    destination,
+    mode: googleMode,
+    language: 'de',
+    alternatives: 'false',
+    key: apiKey,
+  });
+  const response = await fetch(`https://maps.googleapis.com/maps/api/directions/json?${params}`);
+  const payload = await response.json() as DirectionsResponse;
+  const route = payload.routes?.[0];
+  const leg = route?.legs?.[0];
+  if (payload.status !== 'OK' || !route || !leg) {
+    return { durationMinutes: null, distanceMeters: null, encodedPolyline: null, status: payload.status };
+  }
+  return {
+    durationMinutes: leg.duration?.value != null ? Math.max(1, Math.round(leg.duration.value / 60)) : null,
+    distanceMeters: leg.distance?.value ?? null,
+    encodedPolyline: route.overview_polyline?.points ?? null,
+    status: 'OK',
+  };
+}
 
 async function queryDistanceMatrix(
   origin: string,
@@ -122,9 +168,20 @@ serve(async (req) => {
     }
 
     const mapped = mapTransportModeToGoogle(transportMode);
-    let result = await queryDistanceMatrix(origin, destination, mapped.googleMode, apiKey);
+    const includeRouteGeometry = body.includeRouteGeometry === true;
+    let result = includeRouteGeometry
+      ? await queryDirections(origin, destination, mapped.googleMode, apiKey)
+      : await queryDistanceMatrix(origin, destination, mapped.googleMode, apiKey);
     let googleMode = mapped.googleMode;
     let note = mapped.note ?? null;
+
+    if (result.status !== 'OK' && includeRouteGeometry) {
+      const matrixFallback = await queryDistanceMatrix(origin, destination, mapped.googleMode, apiKey);
+      if (matrixFallback.status === 'OK') {
+        result = { ...matrixFallback, encodedPolyline: null };
+        note = 'Google-Streckenlänge verfügbar; Routengeometrie ist für diesen API-Schlüssel nicht freigeschaltet.';
+      }
+    }
 
     if (result.status !== 'OK') {
       return jsonResponse({
@@ -140,7 +197,9 @@ serve(async (req) => {
     if (transportMode === 'escooter' && result.distanceMeters != null) {
       const refined = mapTransportModeToGoogle('escooter', result.distanceMeters / 1000);
       if (refined.googleMode !== mapped.googleMode) {
-        const retry = await queryDistanceMatrix(origin, destination, refined.googleMode, apiKey);
+        const retry = includeRouteGeometry
+          ? await queryDirections(origin, destination, refined.googleMode, apiKey)
+          : await queryDistanceMatrix(origin, destination, refined.googleMode, apiKey);
         if (retry.status === 'OK') {
           result = retry;
           googleMode = refined.googleMode;
@@ -156,6 +215,7 @@ serve(async (req) => {
       googleMode,
       note,
       source: 'google',
+      encodedPolyline: 'encodedPolyline' in result ? result.encodedPolyline : null,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unbekannter Fehler';

@@ -12,7 +12,7 @@ function mapProfile(row: Row | null, tenantId: string, employeeId: string): Logb
   return { tenantId, employeeId, defaultVehicleId: nullable(row?.default_vehicle_id), mileageRateCents: n(row?.mileage_rate_cents) || 30, gpsConsent: Boolean(row?.gps_consent), licenseFrontPath: nullable(row?.license_front_path), licenseBackPath: nullable(row?.license_back_path) };
 }
 function mapVehicle(row: Row): LogbookVehicle { return { id: s(row.id), tenantId: s(row.tenant_id), employeeId: s(row.employee_id), ownership: row.ownership === 'company' ? 'company' : 'private', plate: s(row.plate), make: nullable(row.make), model: nullable(row.model), active: row.active !== false }; }
-function mapTrip(row: Row): LogbookTrip { return { id: s(row.id), tenantId: s(row.tenant_id), employeeId: s(row.employee_id), assignmentId: nullable(row.assignment_id), clientId: nullable(row.client_id), vehicleId: nullable(row.vehicle_id), routeType: s(row.route_type) as LogbookTrip['routeType'], purpose: s(row.purpose), manualReason: nullable(row.manual_reason), status: s(row.status) as LogbookTrip['status'], startedAt: s(row.started_at), endedAt: nullable(row.ended_at), startAddress: nullable(row.start_address), endAddress: nullable(row.end_address), distanceGpsKm: n(row.distance_gps_km), distanceFinalKm: n(row.distance_final_km), durationSeconds: n(row.duration_seconds), countsAsWorkTime: Boolean(row.counts_as_work_time), worktimeDeductionMinutes: n(row.worktime_deduction_minutes), mileageRateCents: n(row.mileage_rate_cents), mileageAmountCents: n(row.mileage_amount_cents), gpsCaptured: Boolean(row.gps_captured), correctedAt: nullable(row.corrected_at), notes: nullable(row.notes) }; }
+function mapTrip(row: Row): LogbookTrip { return { id: s(row.id), tenantId: s(row.tenant_id), employeeId: s(row.employee_id), assignmentId: nullable(row.assignment_id), clientId: nullable(row.client_id), vehicleId: nullable(row.vehicle_id), routeType: s(row.route_type) as LogbookTrip['routeType'], purpose: s(row.purpose), manualReason: nullable(row.manual_reason), status: s(row.status) as LogbookTrip['status'], startedAt: s(row.started_at), endedAt: nullable(row.ended_at), startAddress: nullable(row.start_address), endAddress: nullable(row.end_address), distanceGpsKm: n(row.distance_gps_km), distanceFinalKm: n(row.distance_final_km), durationSeconds: n(row.duration_seconds), countsAsWorkTime: Boolean(row.counts_as_work_time), worktimeDeductionMinutes: n(row.worktime_deduction_minutes), mileageRateCents: n(row.mileage_rate_cents), mileageAmountCents: n(row.mileage_amount_cents), gpsCaptured: Boolean(row.gps_captured), distanceSource: (s(row.distance_source) || 'gps') as LogbookTrip['distanceSource'], googleRouteDistanceKm: row.google_route_distance_km == null ? null : n(row.google_route_distance_km), googleRouteDurationMinutes: row.google_route_duration_minutes == null ? null : n(row.google_route_duration_minutes), routeQualityStatus: (s(row.route_quality_status) || 'measured') as LogbookTrip['routeQualityStatus'], correctedAt: nullable(row.corrected_at), notes: nullable(row.notes) }; }
 function mapConfirmation(row: Row): LogbookDailyConfirmation { return { id: s(row.id), workDate: s(row.work_date), tripCount: n(row.trip_count), distanceKm: n(row.distance_km), signatureData: s(row.signature_data), signerName: s(row.signer_name), confirmedAt: s(row.confirmed_at) }; }
 function mapSegment(row: Row): LogbookSegment { return { id: s(row.id), tripId: s(row.trip_id), sequenceNo: n(row.sequence_no), assignmentId: nullable(row.assignment_id), clientId: nullable(row.client_id), stopKind: s(row.stop_kind) as LogbookSegment['stopKind'], label: s(row.label), startAddress: nullable(row.start_address), endAddress: nullable(row.end_address), startedAt: nullable(row.started_at), endedAt: nullable(row.ended_at), distanceKm: n(row.distance_km) }; }
 function mapReceipt(row: Row): LogbookReceipt { return { id: s(row.id), tripId: nullable(row.trip_id), category: s(row.category) as LogbookReceipt['category'], amountCents: n(row.amount_cents), fileName: s(row.file_name), storagePath: s(row.storage_path), expenseDate: s(row.expense_date) }; }
@@ -95,6 +95,8 @@ export async function createManualLogbookTrip(input: CreateManualLogbookTripInpu
     distance_gps_km: 0,
     distance_final_km: input.distanceKm,
     gps_captured: false,
+    distance_source: 'manual',
+    route_quality_status: 'manual',
     source: 'office_manual',
     notes: input.notes?.trim() || null,
   }).select('*').single();
@@ -115,8 +117,30 @@ export async function finishLogbookTrip(tripId: string, input: { tenantId: strin
   if (pointsError) throw new Error(pointsError.message);
   const allPoints = ((stored ?? []) as Row[]).map((row): LogbookPoint => ({ latitude: n(row.latitude), longitude: n(row.longitude), accuracy: row.accuracy == null ? null : n(row.accuracy), altitude: row.altitude == null ? null : n(row.altitude), speed: row.speed == null ? null : n(row.speed), heading: row.heading == null ? null : n(row.heading), recordedAt: s(row.recorded_at) }));
   const distanceKm = calculateTrackDistanceKm(allPoints);
+  const { data: tripData, error: tripError } = await fromUnknownTable(db(), 'employee_logbook_trips')
+    .select('google_route_distance_km,notes')
+    .eq('id', tripId)
+    .single();
+  if (tripError) throw new Error(tripError.message);
+  const tripRow = tripData as Row;
+  const googleDistanceKm = tripRow.google_route_distance_km == null ? null : n(tripRow.google_route_distance_km);
+  const usablePoints = allPoints.filter((point) => point.accuracy == null || point.accuracy <= 120);
+  let maxGapSeconds = 0;
+  for (let index = 1; index < usablePoints.length; index += 1) {
+    const gap = (new Date(usablePoints[index].recordedAt).getTime() - new Date(usablePoints[index - 1].recordedAt).getTime()) / 1000;
+    if (Number.isFinite(gap)) maxGapSeconds = Math.max(maxGapSeconds, gap);
+  }
+  const gpsIncomplete = usablePoints.length < 3 || maxGapSeconds > 90 ||
+    (googleDistanceKm != null && googleDistanceKm > 0.2 && distanceKm < googleDistanceKm * 0.5);
+  const useGoogleFallback = gpsIncomplete && googleDistanceKm != null && googleDistanceKm > 0;
+  const finalDistanceKm = useGoogleFallback ? googleDistanceKm : distanceKm;
+  const existingNotes = input.notes?.trim() || nullable(tripRow.notes);
+  const qualityNote = useGoogleFallback
+    ? `GPS-Aufzeichnung unvollständig; ${googleDistanceKm.toFixed(2)} km aus der beim Navigationsstart gespeicherten Google-Sollroute übernommen.`
+    : null;
+  const notes = [existingNotes, qualityNote].filter(Boolean).join('\n') || null;
   const endedAt = new Date().toISOString();
-  const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({ ended_at: endedAt, end_address: input.endAddress?.trim() || null, notes: input.notes?.trim() || null, distance_gps_km: distanceKm, distance_final_km: distanceKm, status: 'completed', gps_captured: allPoints.length > 1, updated_at: endedAt }).eq('id', tripId);
+  const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({ ended_at: endedAt, end_address: input.endAddress?.trim() || null, notes, distance_gps_km: distanceKm, distance_final_km: finalDistanceKm, distance_source: useGoogleFallback ? 'google_fallback' : 'gps', route_quality_status: useGoogleFallback ? 'estimated_due_to_gps_gap' : 'measured', status: 'completed', gps_captured: allPoints.length > 1, updated_at: endedAt }).eq('id', tripId);
   if (error) throw new Error(error.message);
   const { error: segmentError } = await fromUnknownTable(db(), 'employee_logbook_segments')
     .update({ ended_at: endedAt, end_address: input.endAddress?.trim() || null })
@@ -127,7 +151,7 @@ export async function finishLogbookTrip(tripId: string, input: { tenantId: strin
 
 export async function correctLogbookTrip(trip: LogbookTrip, distanceKm: number, reason: string) {
   if (!reason.trim()) throw new Error('Für jede Korrektur ist eine Begründung erforderlich.');
-  const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({ distance_final_km: distanceKm, status: 'corrected', corrected_at: new Date().toISOString(), correction_reason: reason.trim(), previous_values: { distance_final_km: trip.distanceFinalKm, status: trip.status }, updated_at: new Date().toISOString() }).eq('id', trip.id);
+  const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({ distance_final_km: distanceKm, distance_source: 'office_corrected', route_quality_status: 'corrected', status: 'corrected', corrected_at: new Date().toISOString(), correction_reason: reason.trim(), previous_values: { distance_final_km: trip.distanceFinalKm, status: trip.status }, updated_at: new Date().toISOString() }).eq('id', trip.id);
   if (error) throw new Error(error.message);
 }
 
@@ -153,6 +177,8 @@ export async function correctLogbookTripDetails(input: CorrectLogbookTripInput) 
     start_address: input.startAddress.trim() || null,
     end_address: input.endAddress.trim() || null,
     distance_final_km: input.distanceKm,
+    distance_source: 'office_corrected',
+    route_quality_status: 'corrected',
     status: 'corrected',
     corrected_at: new Date().toISOString(),
     corrected_by: authUser?.id ?? null,

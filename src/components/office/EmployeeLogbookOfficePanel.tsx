@@ -399,7 +399,10 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
                   <View style={styles.tripBadges}>
                     <PremiumBadge label={trip.status === 'recording' ? 'AUFZEICHNUNG LÄUFT' : trip.status === 'corrected' ? 'KORRIGIERT' : trip.status === 'confirmed' ? 'BESTÄTIGT' : 'ABGESCHLOSSEN'} variant={trip.status === 'recording' ? 'orange' : trip.status === 'corrected' ? 'cyan' : 'green'} />
                     <PremiumBadge label={trip.countsAsWorkTime ? 'ARBEITSZEIT' : `${trip.worktimeDeductionMinutes} MIN. ABZUG`} variant={trip.countsAsWorkTime ? 'green' : 'muted'} />
-                    <PremiumBadge label={trip.gpsCaptured ? 'GPS' : 'MANUELL'} variant={trip.gpsCaptured ? 'cyan' : 'muted'} />
+                    <PremiumBadge
+                      label={trip.distanceSource === 'google_fallback' ? 'GOOGLE-ERSATZROUTE' : trip.distanceSource === 'office_corrected' ? 'VERWALTUNGSKORREKTUR' : trip.distanceSource === 'manual' ? 'MANUELL' : 'GPS GEMESSEN'}
+                      variant={trip.distanceSource === 'google_fallback' ? 'orange' : trip.distanceSource === 'gps' ? 'cyan' : 'muted'}
+                    />
                     {segments.length ? <PremiumBadge label={`${segments.length} STOPPS`} variant="cyan" /> : null}
                     {receipts.length ? <PremiumBadge label={`${receipts.length} BELEGE`} variant="muted" /> : null}
                   </View>

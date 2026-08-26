@@ -121,7 +121,7 @@ export function getDevicePerformanceProfile(options?: {
 export function gpsWatchMaxAgeMs(profile: DevicePerformanceProfile): number {
   switch (profile) {
     case 'activeTrackingSaver':
-      return 30_000;
+      return 5_000;
     case 'mobileBatterySaver':
       return 25_000;
     case 'mobileBalanced':
@@ -135,12 +135,13 @@ export function gpsWatchMaxAgeMs(profile: DevicePerformanceProfile): number {
 export function gpsMinMoveMeters(profile: DevicePerformanceProfile): number {
   switch (profile) {
     case 'activeTrackingSaver':
+      return 5;
     case 'mobileBatterySaver':
-      return 30;
+      return 10;
     case 'mobileBalanced':
-      return 25;
+      return 7;
     default:
-      return 20;
+      return 5;
   }
 }
 
@@ -148,13 +149,13 @@ export function gpsMinMoveMeters(profile: DevicePerformanceProfile): number {
 export function gpsMinWriteIntervalMs(profile: DevicePerformanceProfile): number {
   switch (profile) {
     case 'activeTrackingSaver':
-      return 30_000;
+      return 10_000;
     case 'mobileBatterySaver':
-      return 25_000;
-    case 'mobileBalanced':
-      return 20_000;
-    default:
       return 15_000;
+    case 'mobileBalanced':
+      return 10_000;
+    default:
+      return 10_000;
   }
 }
 

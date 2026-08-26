@@ -1,4 +1,3 @@
-import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import {
@@ -20,6 +19,14 @@ import {
   startNativeBackgroundTracking,
   stopNativeBackgroundTracking,
 } from './employeeLogbookTracking';
+import {
+  acquireGeolocationWatch,
+  type GeolocationSnapshot,
+} from '@/features/liveTracking/useSingleGeolocationWatch';
+import {
+  flushLogbookPointQueue,
+  persistLogbookPointDurably,
+} from './employeeLogbookPointQueue';
 
 export type EmployeeLogbookEligibility = {
   eligible: boolean;
@@ -36,18 +43,40 @@ export type AutomaticLogbookResult = {
   reason: EmployeeLogbookEligibility['reason'];
 };
 
-const foregroundWatchers = new Map<string, Location.LocationSubscription>();
+export type EmployeeGpsWatchHandle = { remove: () => void };
 
-function pointFromLocation(location: Location.LocationObject): LogbookPoint {
+const foregroundWatchers = new Map<string, EmployeeGpsWatchHandle>();
+
+function pointFromSnapshot(location: GeolocationSnapshot): LogbookPoint {
   return {
-    latitude: location.coords.latitude,
-    longitude: location.coords.longitude,
-    accuracy: location.coords.accuracy,
-    altitude: location.coords.altitude,
-    speed: location.coords.speed,
-    heading: location.coords.heading,
-    recordedAt: new Date(location.timestamp).toISOString(),
+    latitude: location.latitude,
+    longitude: location.longitude,
+    accuracy: location.accuracyMeters,
+    altitude: null,
+    speed: null,
+    heading: null,
+    recordedAt: location.capturedAt,
   };
+}
+
+export function acquireEmployeeLogbookForegroundTracking(input: {
+  tripId: string;
+  tenantId: string;
+  employeeId: string;
+  onPoint?: (point: LogbookPoint) => void;
+}): EmployeeGpsWatchHandle {
+  void flushLogbookPointQueue();
+  const release = acquireGeolocationWatch({
+    sessionKey: `${input.tenantId}:employee:${input.employeeId}`,
+    enabled: true,
+    enableHighAccuracy: true,
+    onSnapshot: (snapshot) => {
+      const point = pointFromSnapshot(snapshot);
+      input.onPoint?.(point);
+      void persistLogbookPointDurably({ ...input, point });
+    },
+  });
+  return { remove: release };
 }
 
 async function startForegroundPersistence(
@@ -56,15 +85,21 @@ async function startForegroundPersistence(
   employeeId: string,
 ): Promise<void> {
   if (Platform.OS !== 'web' || foregroundWatchers.has(tripId)) return;
-  const watcher = await Location.watchPositionAsync(
-    { accuracy: Location.Accuracy.High, distanceInterval: 20, timeInterval: 15_000 },
-    (location) => {
-      void appendLogbookPoints(tripId, tenantId, employeeId, [pointFromLocation(location)]).catch(
-        (error) => console.warn('[employeeLogbook] GPS point could not be persisted', error),
-      );
-    },
-  );
+  const watcher = acquireEmployeeLogbookForegroundTracking({ tripId, tenantId, employeeId });
   foregroundWatchers.set(tripId, watcher);
+}
+
+/** Restores an interrupted/reloaded portal without requiring the logbook page. */
+export async function resumeActiveEmployeeLogbookTracking(
+  tenantId: string,
+  employeeId: string,
+): Promise<LogbookTrip | null> {
+  const bundle = await loadEmployeeLogbook(tenantId, employeeId);
+  const active = bundle.trips.find((trip) => trip.status === 'recording') ?? null;
+  if (!active) return null;
+  await startNativeBackgroundTracking({ tripId: active.id, tenantId, employeeId });
+  await startForegroundPersistence(active.id, tenantId, employeeId);
+  return active;
 }
 
 function stopForegroundPersistence(tripId: string): void {
@@ -221,6 +256,7 @@ export async function finishActiveVisitLogbookTrip(input: {
   if (!active) return null;
 
   const lastPoint = await getCurrentLogbookPoint();
+  await flushLogbookPointQueue();
   await finishLogbookTrip(active.id, {
     tenantId: input.tenantId,
     employeeId: input.employeeId,

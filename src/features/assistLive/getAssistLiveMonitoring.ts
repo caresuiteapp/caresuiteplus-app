@@ -34,6 +34,7 @@ import { fetchAssignmentExecutionSnapshotBatch } from '@/lib/assist/resolveAssig
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignment';
 import type { AssistLiveRoutePoint } from '@/lib/assist/assistMapProvider';
+import { parseGoogleRouteReference } from '@/features/liveTracking/googleRouteReference';
 
 function shouldUseLiveVisitList(): boolean {
   return getServiceMode() === 'supabase' && Boolean(getSupabaseClient());
@@ -437,7 +438,9 @@ async function enrichTrackingFromPersistence(
       consent,
       gpsPermission: persistedPoint ? 'granted' : trackingActive ? 'undetermined' : gpsPermission,
       trackingActive,
+      deviceHeartbeatAt: session?.updatedAt ?? null,
       lastPosition,
+      googleRouteReference: parseGoogleRouteReference((session ?? visitConsent)?.metadata),
       assistVisible,
       clientPortalVisible: false,
       warnings,

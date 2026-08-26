@@ -1,4 +1,5 @@
 import { useEmployeeGpsTracking } from '@/features/liveTracking/useEmployeeGpsTracking';
+import { captureGoogleRouteReference } from '@/features/liveTracking/googleRouteReference';
 import {
   startEmployeeLiveTracking,
   type EmployeeGpsSnapshot,
@@ -461,6 +462,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
   const gpsTracking = useEmployeeGpsTracking({
     tenantId,
+    employeeId,
     assistVisitId: liveContext?.assistVisitId ?? null,
     sessionId: liveContext?.trackingSessionId ?? null,
     enabled: liveTrackingEnabled,
@@ -531,6 +533,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           'dokumentation_offen',
           'unterschrift_offen',
         ].includes(effectiveStatus) && base.trackingActive),
+      deviceHeartbeatAt: gpsTracking.state.watching ? new Date().toISOString() : null,
       lastPosition: gpsTracking.state.lastSnapshot
         ? {
             latitude: gpsTracking.state.lastSnapshot.latitude,
@@ -1152,14 +1155,31 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     if (!tenantId || !assignmentId || !employeeId) {
       return { ok: false as const, error: 'Keine Einsatz-ID.' };
     }
-    return buildEmployeePortalLiveRoute({
+    const route = await buildEmployeePortalLiveRoute({
       tenantId,
       employeeId,
       routeParamId: assignmentId,
       roleKey,
       portalAccountId: authProfileId,
     });
-  }, [tenantId, assignmentId, employeeId, roleKey, authProfileId]);
+    if (
+      route.ok &&
+      route.data.clientAddress &&
+      liveContext?.trackingSessionId
+    ) {
+      const snapshot = gpsTracking.state.lastSnapshot ?? await gpsTracking.captureOnce();
+      if (snapshot) {
+        await captureGoogleRouteReference({
+          tenantId,
+          sessionId: liveContext.trackingSessionId,
+          employeeId,
+          origin: { latitude: snapshot.latitude, longitude: snapshot.longitude },
+          destinationAddress: route.data.clientAddress,
+        }).catch(() => undefined);
+      }
+    }
+    return route;
+  }, [tenantId, assignmentId, employeeId, roleKey, authProfileId, liveContext?.trackingSessionId, gpsTracking]);
 
   const consent = useMemo(() => {
     void consentRevision;

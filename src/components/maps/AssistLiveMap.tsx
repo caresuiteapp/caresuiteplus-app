@@ -14,6 +14,7 @@ export type AssistLiveMapProps = {
   markers?: AssistLiveMapMarker[];
   routePoints?: AssistLiveRoutePoint[];
   routeSegments?: AssistLiveRoutePoint[][];
+  plannedRoutePoints?: AssistLiveRoutePoint[];
   routeIdentity?: string | null;
   selectedMarkerId?: string | null;
   onMarkerSelect?: (markerId: string) => void;

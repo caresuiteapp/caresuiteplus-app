@@ -245,6 +245,29 @@ export async function fetchActiveTrackingSession(
   return { ok: true, data: mapSessionRow(data as SessionDbRow) };
 }
 
+/** Merge producer-owned metadata without discarding consent/audit fields. */
+export async function mergeTrackingSessionMetadata(
+  tenantId: string,
+  sessionId: string,
+  patch: Record<string, unknown>,
+): Promise<ServiceResult<void>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return unavailable();
+  const current = await fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.trackingSessions)
+    .select('metadata')
+    .eq('tenant_id', tenantId)
+    .eq('id', sessionId)
+    .maybeSingle();
+  if (current.error) return { ok: false, error: toGermanSupabaseError(current.error) };
+  const metadata = (current.data as { metadata?: Record<string, unknown> } | null)?.metadata ?? {};
+  const { error } = await fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.trackingSessions)
+    .update({ metadata: { ...metadata, ...patch }, updated_at: new Date().toISOString() })
+    .eq('tenant_id', tenantId)
+    .eq('id', sessionId);
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  return { ok: true, data: undefined };
+}
+
 /** Latest location point for visit — read-only (Assist live status). No full trail. */
 export async function fetchLatestLocationPointForVisit(
   tenantId: string,

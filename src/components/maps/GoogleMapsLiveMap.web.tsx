@@ -27,6 +27,7 @@ export type GoogleMapsLiveMapProps = {
   markers?: GoogleMapsLiveMarker[];
   routePoints?: AssistLiveRoutePoint[];
   routeSegments?: AssistLiveRoutePoint[][];
+  plannedRoutePoints?: AssistLiveRoutePoint[];
   routeIdentity?: string | null;
   selectedMarkerId?: string | null;
   onMarkerSelect?: (markerId: string) => void;
@@ -86,6 +87,7 @@ function GoogleMapsLiveMapInner({
   markers,
   routePoints = [],
   routeSegments,
+  plannedRoutePoints = [],
   routeIdentity = null,
   selectedMarkerId = null,
   onMarkerSelect,
@@ -193,6 +195,24 @@ function GoogleMapsLiveMapInner({
     }
     return () => routeLines.forEach((line) => line.setMap(null));
   }, [map, google, resolvedRouteSegments, routeIdentity]);
+
+  useEffect(() => {
+    if (!map || !google || plannedRoutePoints.length < 2) return;
+    const line = new google.maps.Polyline({
+      map,
+      path: plannedRoutePoints.map((point) => ({ lat: point.latitude, lng: point.longitude })),
+      geodesic: false,
+      strokeColor: '#F59E0B',
+      strokeOpacity: 0,
+      strokeWeight: 4,
+      icons: [{
+        icon: { path: 'M 0,-1 0,1', scale: 3, strokeColor: '#F59E0B', strokeOpacity: 0.95 },
+        offset: '0',
+        repeat: '14px',
+      }],
+    });
+    return () => line.setMap(null);
+  }, [map, google, plannedRoutePoints]);
 
   if (resolvedMarkers.length === 0) {
     return (

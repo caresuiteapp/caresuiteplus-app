@@ -43,17 +43,17 @@ type WatchEntry = {
 
 const watches = new Map<string, WatchEntry>();
 
-const MIN_CALLBACK_INTERVAL_MS = 5_000;
-const MIN_MOVE_METERS = 5;
+const MIN_CALLBACK_INTERVAL_MS = 3_000;
+const MIN_MOVE_METERS = 3;
 /**
  * Persist one fresh foreground position per minute for the complete visit
  * workflow. The heartbeat in useEmployeeGpsTracking also uses this interval,
  * so stationary employees remain visible in Assist Live-Status.
  */
-export const EMPLOYEE_LIVE_LOCATION_INTERVAL_MS = 60_000;
+export const EMPLOYEE_LIVE_LOCATION_INTERVAL_MS = 20_000;
 /** Moving route samples need a denser cadence than the stationary heartbeat. */
-export const EMPLOYEE_ROUTE_LOCATION_INTERVAL_MS = 15_000;
-export const EMPLOYEE_ROUTE_DISTANCE_INTERVAL_METERS = 10;
+export const EMPLOYEE_ROUTE_LOCATION_INTERVAL_MS = 10_000;
+export const EMPLOYEE_ROUTE_DISTANCE_INTERVAL_METERS = 5;
 
 function loadExpoLocation(): typeof ExpoLocation {
   // Lazy loading keeps web bundles and source-only tests independent from the
@@ -152,7 +152,7 @@ function startWatch(entry: WatchEntry, enableHighAccuracy: boolean): void {
     {
       enableHighAccuracy: enableHighAccuracy ?? profile.profile !== 'mobileBatterySaver',
       timeout: 15_000,
-      maximumAge: Math.max(maxAge, 10_000),
+      maximumAge: Math.min(maxAge, 5_000),
     },
   );
 }

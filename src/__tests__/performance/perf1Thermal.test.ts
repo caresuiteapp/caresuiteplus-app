@@ -39,9 +39,9 @@ describe('devicePerformance (pure)', () => {
     expect(shouldUseHeavyEffects(iosSafari)).toBe(false);
   });
 
-  it('uses longer GPS write interval on active tracking saver', async () => {
+  it('keeps active trip sampling dense enough for road matching', async () => {
     const { gpsMinWriteIntervalMs } = await import('@/lib/performance/devicePerformance');
-    expect(gpsMinWriteIntervalMs('activeTrackingSaver')).toBe(30_000);
+    expect(gpsMinWriteIntervalMs('activeTrackingSaver')).toBe(10_000);
   });
 });
 

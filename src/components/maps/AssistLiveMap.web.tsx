@@ -19,6 +19,7 @@ export type AssistLiveMapProps = {
   markers?: AssistLiveMapMarker[];
   routePoints?: AssistLiveRoutePoint[];
   routeSegments?: AssistLiveRoutePoint[][];
+  plannedRoutePoints?: AssistLiveRoutePoint[];
   routeIdentity?: string | null;
   selectedMarkerId?: string | null;
   onMarkerSelect?: (markerId: string) => void;
@@ -36,6 +37,7 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
     markers,
     routePoints = [],
     routeSegments,
+    plannedRoutePoints = [],
     routeIdentity,
     selectedMarkerId,
     onMarkerSelect,
@@ -92,6 +94,7 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
         markers={markers}
         routePoints={routePoints}
         routeSegments={routeSegments}
+        plannedRoutePoints={plannedRoutePoints}
         routeIdentity={routeIdentity}
         selectedMarkerId={selectedMarkerId}
         onMarkerSelect={onMarkerSelect}

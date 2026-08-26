@@ -88,4 +88,5 @@ export type TravelTimeResult = {
   transportMode: EmployeeTransportMode;
   note: string | null;
   disclaimer: string | null;
+  encodedPolyline?: string | null;
 };

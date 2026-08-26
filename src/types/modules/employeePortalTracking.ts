@@ -28,6 +28,17 @@ export type EmployeePortalLiveTimers = {
 
 export type EmployeePortalArrivalProof = 'gps' | 'without_gps' | 'manual' | null;
 
+export type EmployeePortalGoogleRouteReference = {
+  provider: 'google';
+  requestedAt: string;
+  origin: { latitude: number; longitude: number };
+  destinationAddress: string;
+  distanceMeters: number | null;
+  durationMinutes: number | null;
+  encodedPolyline: string | null;
+  source: 'google' | 'unavailable';
+};
+
 export type EmployeePortalTrackingSnapshot = {
   assignmentId: string;
   tenantId: string;
@@ -35,7 +46,10 @@ export type EmployeePortalTrackingSnapshot = {
   consent: EmployeePortalLocationConsent;
   gpsPermission: EmployeePortalGpsPermissionStatus;
   trackingActive: boolean;
+  /** Producer heartbeat. This must never be substituted for the GPS fix timestamp. */
+  deviceHeartbeatAt?: string | null;
   lastPosition: EmployeePortalGpsSnapshot | null;
+  googleRouteReference?: EmployeePortalGoogleRouteReference | null;
   timers: EmployeePortalLiveTimers;
   geofence: GeofenceSoftCheckResult | null;
   warnings: string[];

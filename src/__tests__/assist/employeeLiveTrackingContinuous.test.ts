@@ -16,8 +16,8 @@ import {
 } from '@/lib/portal/employeePortalVisitTrackingService';
 
 describe('kontinuierliche Mitarbeitenden-Liveverfolgung', () => {
-  it('sendet während des vollständigen Einsatz-Workflows alle 60 Sekunden einen Heartbeat', () => {
-    expect(EMPLOYEE_LIVE_LOCATION_INTERVAL_MS).toBe(60_000);
+  it('sendet einen Verbindungs-Heartbeat, ohne eine alte GPS-Messung frisch zu datieren', () => {
+    expect(EMPLOYEE_LIVE_LOCATION_INTERVAL_MS).toBe(20_000);
 
     const heartbeat = buildLiveLocationHeartbeatSnapshot(
       {
@@ -33,13 +33,13 @@ describe('kontinuierliche Mitarbeitenden-Liveverfolgung', () => {
       latitude: 51.5,
       longitude: 7.4,
       accuracyMeters: 8,
-      capturedAt: '2026-07-23T08:00:30.000Z',
+      capturedAt: '2026-07-23T08:00:00.000Z',
     });
   });
 
   it('nutzt im nativen Portal einen echten Expo-Standort-Stream', () => {
-    expect(EMPLOYEE_ROUTE_LOCATION_INTERVAL_MS).toBe(15_000);
-    expect(EMPLOYEE_ROUTE_DISTANCE_INTERVAL_METERS).toBe(10);
+    expect(EMPLOYEE_ROUTE_LOCATION_INTERVAL_MS).toBe(10_000);
+    expect(EMPLOYEE_ROUTE_DISTANCE_INTERVAL_METERS).toBe(5);
     const source = readFileSync(
       'src/features/liveTracking/useSingleGeolocationWatch.ts',
       'utf8',

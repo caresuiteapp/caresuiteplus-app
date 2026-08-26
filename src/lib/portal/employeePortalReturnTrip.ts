@@ -1,10 +1,9 @@
-import type { LocationSubscription } from 'expo-location';
-import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import {
   appendLogbookPoints,
   createLogbookTrip,
   finishLogbookTrip,
+  flushLogbookPointQueue,
   getCurrentLogbookPoint,
   loadEmployeeLogbook,
   requestLogbookLocationPermission,
@@ -13,8 +12,12 @@ import {
   stopNativeBackgroundTracking,
 } from '@/lib/employeeLogbook';
 import { resolveEmployeeLogbookEligibility } from '@/lib/employeeLogbook/employeeLogbookAutomation';
+import {
+  acquireEmployeeLogbookForegroundTracking,
+  type EmployeeGpsWatchHandle,
+} from '@/lib/employeeLogbook/employeeLogbookAutomation';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
-import type { LogbookPoint, LogbookTrip } from '@/types/modules/employeeLogbook';
+import type { LogbookTrip } from '@/types/modules/employeeLogbook';
 import {
   returnTripDestinationFromTrip,
   returnTripDestinationLabel,
@@ -109,39 +112,14 @@ export async function startEmployeeReturnTrip(input: {
   };
 }
 
-function locationToLogbookPoint(location: Location.LocationObject): LogbookPoint {
-  return {
-    latitude: location.coords.latitude,
-    longitude: location.coords.longitude,
-    accuracy: location.coords.accuracy,
-    altitude: location.coords.altitude,
-    speed: location.coords.speed,
-    heading: location.coords.heading,
-    recordedAt: new Date(location.timestamp).toISOString(),
-  };
-}
-
 /** Web/PWA has no native background task, so every foreground point is stored immediately. */
 export async function startEmployeeReturnTripForegroundTracking(input: {
   tripId: string;
   tenantId: string;
   employeeId: string;
-}): Promise<LocationSubscription | null> {
+}): Promise<EmployeeGpsWatchHandle | null> {
   if (Platform.OS !== 'web') return null;
-  return Location.watchPositionAsync(
-    {
-      accuracy: Location.Accuracy.High,
-      distanceInterval: 20,
-      timeInterval: 15_000,
-    },
-    (location) => {
-      void appendLogbookPoints(input.tripId, input.tenantId, input.employeeId, [
-        locationToLogbookPoint(location),
-      ]).catch((error) => {
-        console.warn('[employeeReturnTrip] GPS point could not be persisted', error);
-      });
-    },
-  );
+  return acquireEmployeeLogbookForegroundTracking(input);
 }
 
 export async function finishEmployeeReturnTrip(input: {
@@ -151,6 +129,7 @@ export async function finishEmployeeReturnTrip(input: {
   destination: EmployeeReturnTripDestination;
 }): Promise<LogbookTrip> {
   const lastPoint = await getCurrentLogbookPoint();
+  await flushLogbookPointQueue();
   await finishLogbookTrip(input.trip.id, {
     tenantId: input.tenantId,
     employeeId: input.employeeId,

@@ -8,7 +8,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import type { LocationSubscription } from 'expo-location';
 import { InfoBanner, PremiumBadge, PremiumButton, PremiumCard } from '@/components/ui';
 import {
   finishEmployeeReturnTrip,
@@ -23,6 +22,7 @@ import {
 import type { LogbookTrip } from '@/types/modules/employeeLogbook';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { saveLogbookPromptDecision } from '@/lib/employeeLogbook';
+import type { EmployeeGpsWatchHandle } from '@/lib/employeeLogbook';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { spacing, typography } from '@/theme';
 
@@ -55,7 +55,7 @@ export function EmployeePortalReturnTripModal({
   const [error, setError] = useState<string | null>(null);
   const [completedTrip, setCompletedTrip] = useState<LogbookTrip | null>(null);
   const [clock, setClock] = useState(() => new Date());
-  const webWatcherRef = useRef<LocationSubscription | null>(null);
+  const webWatcherRef = useRef<EmployeeGpsWatchHandle | null>(null);
 
   const stopWebWatcher = useCallback(() => {
     webWatcherRef.current?.remove();

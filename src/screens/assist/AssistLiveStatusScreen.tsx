@@ -37,6 +37,7 @@ import { isDemoMode } from '@/lib/supabase/config';
 import { HealthOSStatusBadge } from '@/components/healthos';
 import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { spacing, typography } from '@/theme';
+import { decodeGooglePolyline } from '@/features/liveTracking/googleRouteReference';
 
 type MetricTone = 'neutral' | 'blue' | 'cyan' | 'green' | 'orange';
 
@@ -131,14 +132,15 @@ function formatPositionFreshness(capturedAt: string | null | undefined): string 
   if (!capturedAt) return 'Noch keine Position';
   const ageSeconds = Math.max(0, Math.round((Date.now() - new Date(capturedAt).getTime()) / 1000));
   if (ageSeconds < 15) return 'Live · gerade aktualisiert';
-  // One position is expected every 60 seconds. Two complete missed heartbeats
-  // plus network tolerance are required before warning the dispatcher.
-  if (ageSeconds < 150) {
-    return ageSeconds < 60
-      ? `Live · vor ${ageSeconds} Sek.`
-      : `Live · vor ${Math.round(ageSeconds / 60)} Min.`;
-  }
-  return `Signal veraltet · vor ${Math.round(ageSeconds / 60)} Min.`;
+  if (ageSeconds < 45) return `Live · vor ${ageSeconds} Sek.`;
+  if (ageSeconds < 90) return `Signal verzögert · vor ${ageSeconds} Sek.`;
+  return `GPS unterbrochen · vor ${Math.max(1, Math.round(ageSeconds / 60))} Min.`;
+}
+
+function isFresh(iso: string | null | undefined, nowMs: number, maxAgeMs = 45_000): boolean {
+  if (!iso) return false;
+  const timestamp = new Date(iso).getTime();
+  return Number.isFinite(timestamp) && nowMs - timestamp < maxAgeMs;
 }
 
 function pickMapRow(
@@ -201,6 +203,21 @@ export function AssistLiveStatusScreen() {
     }
     return null;
   }, [mapRow, demoMapPreview, mapProviderReady, rows.length]);
+
+  const mapSignalLive = Boolean(
+    mapRow?.tracking?.trackingActive &&
+    isFresh(mapRow.tracking.lastPosition?.capturedAt, clockMs) &&
+    isFresh(mapRow.tracking.deviceHeartbeatAt, clockMs),
+  );
+
+  const plannedRoutePoints = useMemo(() => {
+    const reference = mapRow?.tracking?.googleRouteReference;
+    return decodeGooglePolyline(reference?.encodedPolyline).map((point) => ({
+      ...point,
+      capturedAt: reference?.requestedAt ?? '',
+      accuracyMeters: null,
+    }));
+  }, [mapRow?.tracking?.googleRouteReference]);
 
   if (!canView) {
     return (
@@ -332,7 +349,7 @@ export function AssistLiveStatusScreen() {
                       style={[
                         styles.trackingLine,
                         row.tracking.lastPosition &&
-                        Date.now() - new Date(row.tracking.lastPosition.capturedAt).getTime() > 150_000
+                        clockMs - new Date(row.tracking.lastPosition.capturedAt).getTime() > 45_000
                           ? styles.warning
                           : styles.liveSignal,
                       ]}
@@ -343,9 +360,10 @@ export function AssistLiveStatusScreen() {
                       GPS: {formatGpsPermission(row.tracking.gpsPermission)}
                       {row.tracking.trackingActive
                         ? row.tracking.lastPosition &&
-                          clockMs - new Date(row.tracking.lastPosition.capturedAt).getTime() < 150_000
-                          ? ' · Live'
-                          : ' · Sitzung aktiv, Signal nicht live'
+                          isFresh(row.tracking.lastPosition.capturedAt, clockMs) &&
+                          isFresh(row.tracking.deviceHeartbeatAt, clockMs)
+                          ? ' · GPS und Gerät live'
+                          : ' · Aufzeichnung unterbrochen'
                         : ''}
                       {row.tracking.lastPosition
                         ? ` · ${row.tracking.lastPosition.latitude.toFixed(4)}, ${row.tracking.lastPosition.longitude.toFixed(4)}`
@@ -409,7 +427,7 @@ export function AssistLiveStatusScreen() {
         <View style={styles.panelTitleBlock}>
           <Text style={styles.panelEyebrow}>POSITIONSMONITOR</Text>
           <Text style={styles.panelTitle}>
-            {mapRow?.tracking?.trackingActive ? 'Live-Karte' : mapRow?.route ? 'Streckenkarte & GPS-Verlauf' : 'Live-Karte'}
+            {mapSignalLive ? 'Live-Karte' : mapRow?.route ? 'Streckenkarte & GPS-Verlauf' : 'Live-Karte'}
           </Text>
           <Text style={styles.panelSubtitle}>
             {mapProviderReady
@@ -419,10 +437,10 @@ export function AssistLiveStatusScreen() {
               : 'Kartendienst derzeit nicht verfügbar'}
           </Text>
         </View>
-        <View style={[styles.mapState, mapPosition ? styles.mapStateLive : styles.mapStateWaiting]}>
-          <View style={[styles.mapStateDot, mapPosition ? styles.mapStateDotLive : styles.mapStateDotWaiting]} />
+        <View style={[styles.mapState, mapSignalLive ? styles.mapStateLive : styles.mapStateWaiting]}>
+          <View style={[styles.mapStateDot, mapSignalLive ? styles.mapStateDotLive : styles.mapStateDotWaiting]} />
           <Text style={styles.mapStateText}>
-            {mapRow?.tracking?.trackingActive ? 'LIVE' : mapRow?.route ? 'VERLAUF' : 'BEREIT'}
+            {mapSignalLive ? 'LIVE' : mapRow?.tracking?.trackingActive ? 'UNTERBROCHEN' : mapRow?.route ? 'VERLAUF' : 'BEREIT'}
           </Text>
         </View>
       </View>
@@ -437,6 +455,7 @@ export function AssistLiveStatusScreen() {
           markers={mapMarkers}
           routePoints={mapRow?.route?.points ?? []}
           routeSegments={mapRow?.route?.segments ?? []}
+          plannedRoutePoints={plannedRoutePoints}
           routeIdentity={mapRow?.assignmentId ?? null}
           selectedMarkerId={selectedAssignmentId ?? mapRow?.assignmentId ?? null}
           onMarkerSelect={setSelectedAssignmentId}
@@ -469,6 +488,19 @@ export function AssistLiveStatusScreen() {
               <Text style={styles.routeAuditLabel}>Beginn</Text>
               <Text style={styles.routeAuditValue}>{formatRouteDateTime(mapRow.route.startedAt)}</Text>
             </View>
+            {mapRow.tracking?.googleRouteReference ? (
+              <View style={styles.routeAuditCell}>
+                <Text style={styles.routeAuditLabel}>Google-Sollroute</Text>
+                <Text style={styles.routeAuditValue}>
+                  {mapRow.tracking.googleRouteReference.distanceMeters != null
+                    ? formatDistance(mapRow.tracking.googleRouteReference.distanceMeters / 1000)
+                    : 'nicht verfügbar'}
+                  {mapRow.tracking.googleRouteReference.durationMinutes != null
+                    ? ` · ca. ${mapRow.tracking.googleRouteReference.durationMinutes} Min.`
+                    : ''}
+                </Text>
+              </View>
+            ) : null}
             <View style={styles.routeAuditCell}>
               <Text style={styles.routeAuditLabel}>Letzter GPS-Punkt</Text>
               <Text style={styles.routeAuditValue}>{formatRouteDateTime(mapRow.route.updatedAt)}</Text>
@@ -502,7 +534,9 @@ export function AssistLiveStatusScreen() {
           <View style={[styles.routeAuditNotice, mapRow.route.gapCount > 0 && styles.routeAuditNoticeWarning]}>
             <Text style={[styles.routeAuditNoticeText, mapRow.route.gapCount > 0 && styles.routeAuditNoticeTextWarning]}>
               {mapRow.route.gapCount > 0
-                ? 'GPS-Unterbrechungen werden auf der Karte bewusst nicht mehr durch Luftlinien verbunden. Die Kilometer enthalten nur plausible, zeitlich zusammenhängende Messabschnitte.'
+                ? mapRow.tracking?.googleRouteReference?.source === 'google'
+                  ? 'GPS-Unterbrechungen werden nicht mehr durch Luftlinien verbunden. Blau zeigt gemessene GPS-Abschnitte; die orange gestrichelte Google-Sollroute dient als klar gekennzeichneter Kilometer-Abgleich.'
+                  : 'GPS-Unterbrechungen werden nicht mehr durch Luftlinien verbunden. Es liegt noch keine Google-Sollroute für einen automatischen Kilometer-Abgleich vor.'
                 : 'Die blaue Linie zeigt die zeitlich zusammenhängende GPS-Spur. Manuelles Zoomen und Verschieben bleiben bei Live-Aktualisierungen erhalten.'}
             </Text>
           </View>

@@ -19,8 +19,13 @@ export function resetTravelTimeCache(): void {
   travelCache.clear();
 }
 
-function cacheKey(origin: string, destination: string, mode: EmployeeTransportMode): string {
-  return `${origin.trim().toLowerCase()}|${destination.trim().toLowerCase()}|${mode}`;
+function cacheKey(
+  origin: string,
+  destination: string,
+  mode: EmployeeTransportMode,
+  includeRouteGeometry: boolean,
+): string {
+  return `${origin.trim().toLowerCase()}|${destination.trim().toLowerCase()}|${mode}|${includeRouteGeometry ? 'route' : 'matrix'}`;
 }
 
 function readCache(key: string): TravelTimeResult | null {
@@ -44,6 +49,7 @@ type ComputeTravelTimeResponse = {
   googleMode: string | null;
   note: string | null;
   source: 'google' | 'heuristic' | 'unavailable';
+  encodedPolyline?: string | null;
 };
 
 function buildHeuristicResult(input: {
@@ -71,6 +77,7 @@ export async function fetchTravelTime(input: {
   destination: string;
   transportMode: EmployeeTransportMode;
   allowHeuristicFallback?: boolean;
+  includeRouteGeometry?: boolean;
 }): Promise<TravelTimeResult> {
   const origin = input.origin.trim();
   const destination = input.destination.trim();
@@ -88,7 +95,7 @@ export async function fetchTravelTime(input: {
     };
   }
 
-  const key = cacheKey(origin, destination, transportMode);
+  const key = cacheKey(origin, destination, transportMode, Boolean(input.includeRouteGeometry));
   const cached = readCache(key);
   if (cached) return cached;
 
@@ -97,6 +104,7 @@ export async function fetchTravelTime(input: {
     origin,
     destination,
     transportMode,
+    includeRouteGeometry: Boolean(input.includeRouteGeometry),
   });
 
   if (edge.ok && edge.data?.durationMinutes != null) {
@@ -112,6 +120,7 @@ export async function fetchTravelTime(input: {
       transportMode,
       note: edge.data.note ?? mapped.note ?? null,
       disclaimer: edge.data.source === 'google' ? null : TRAVEL_TIME_DISCLAIMER,
+      encodedPolyline: edge.data.encodedPolyline ?? null,
     };
     writeCache(key, result);
     return result;
