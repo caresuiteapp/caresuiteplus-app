@@ -28,6 +28,7 @@ type EmployeePortalVisitPhotoModalProps = {
   visible: boolean;
   tenantId: string | null;
   visitId: string | null;
+  employeeId: string | null;
   existingReferences: string[];
   onClose: () => void;
   onUploaded: (storagePaths: string[]) => void;
@@ -37,6 +38,7 @@ export function EmployeePortalVisitPhotoModal({
   visible,
   tenantId,
   visitId,
+  employeeId,
   existingReferences,
   onClose,
   onUploaded,
@@ -47,6 +49,7 @@ export function EmployeePortalVisitPhotoModal({
   const [picked, setPicked] = useState<EmployeePortalPickedMedia | null>(null);
   const [picking, setPicking] = useState(false);
   const [settingsRequired, setSettingsRequired] = useState(false);
+  const [permissionHelp, setPermissionHelp] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,6 +96,16 @@ export function EmployeePortalVisitPhotoModal({
           backgroundColor: employeePortalExecutionSurface.subtleBackground,
         },
         error: { ...typography.caption, color: '#EF4444' },
+        permissionHelp: {
+          ...typography.caption,
+          color: '#7C2D12',
+          backgroundColor: '#FFF7ED',
+          borderColor: '#FDBA74',
+          borderWidth: 1,
+          borderRadius: 10,
+          padding: spacing.sm,
+          lineHeight: 18,
+        },
         list: { gap: spacing.xs },
         listItem: { ...typography.caption, color: text.secondary },
         modalSheet: { backgroundColor: employeePortalExecutionSurface.background },
@@ -107,6 +120,7 @@ export function EmployeePortalVisitPhotoModal({
     setUploading(false);
     setPicking(false);
     setSettingsRequired(false);
+    setPermissionHelp(null);
   }, []);
 
   const handleClose = () => {
@@ -114,22 +128,67 @@ export function EmployeePortalVisitPhotoModal({
     onClose();
   };
 
-  const acceptPickerResult = (result: EmployeePortalMediaPickerResult) => {
+  const acceptPickerResult = (result: EmployeePortalMediaPickerResult): EmployeePortalPickedMedia | null => {
     setPicking(false);
     if (!result.ok) {
       setError(result.error);
       setSettingsRequired(Boolean(result.settingsRequired));
-      return;
+      setPermissionHelp(result.permissionHelp ?? null);
+      return null;
     }
-    if (!result.media) return;
+    if (!result.media) return null;
     const validation = validateEmployeePortalPickedMedia(result.media, 'visit');
     if (!validation.ok) {
       setError(validation.error);
-      return;
+      return null;
     }
     setError(null);
     setSettingsRequired(false);
+    setPermissionHelp(null);
     setPicked(result.media);
+    return result.media;
+  };
+
+  const handleUpload = async (selectedMedia?: EmployeePortalPickedMedia) => {
+    const media = selectedMedia ?? picked;
+    if (!media || !tenantId || !visitId || !employeeId) {
+      setError('Foto konnte nicht zugeordnet werden.');
+      return;
+    }
+    setUploading(true);
+    setError(null);
+    let bytes: Uint8Array;
+    try {
+      bytes = await readEmployeePortalMediaBytes(media.uri);
+    } catch {
+      setUploading(false);
+      setError('Die ausgewählte Datei konnte nicht gelesen werden. Bitte wählen Sie sie erneut aus.');
+      return;
+    }
+    const validation = validateEmployeePortalPickedMedia(
+      { ...media, sizeBytes: bytes.length },
+      'visit',
+    );
+    if (!validation.ok) {
+      setUploading(false);
+      setError(validation.error);
+      return;
+    }
+    const result = await uploadEmployeePortalVisitAttachment({
+      tenantId,
+      visitId,
+      employeeId,
+      fileName: media.fileName,
+      mimeType: media.mimeType,
+      bytes,
+    });
+    setUploading(false);
+    if (!result.ok) {
+      setError(result.error ?? 'Foto konnte nicht gespeichert werden.');
+      return;
+    }
+    onUploaded([...existingReferences, result.data.storagePath]);
+    handleClose();
   };
 
   const handlePick = async (source: 'camera' | 'library' | 'document') => {
@@ -141,47 +200,8 @@ export function EmployeePortalVisitPhotoModal({
         : source === 'library'
           ? await openEmployeePortalMediaLibrary()
           : await openEmployeePortalDocumentPicker();
-    acceptPickerResult(result);
-  };
-
-  const handleUpload = async () => {
-    if (!picked || !tenantId || !visitId) {
-      setError('Foto konnte nicht zugeordnet werden.');
-      return;
-    }
-    setUploading(true);
-    setError(null);
-    let bytes: Uint8Array;
-    try {
-      bytes = await readEmployeePortalMediaBytes(picked.uri);
-    } catch {
-      setUploading(false);
-      setError('Die ausgewählte Datei konnte nicht gelesen werden. Bitte wählen Sie sie erneut aus.');
-      return;
-    }
-    const validation = validateEmployeePortalPickedMedia(
-      { ...picked, sizeBytes: bytes.length },
-      'visit',
-    );
-    if (!validation.ok) {
-      setUploading(false);
-      setError(validation.error);
-      return;
-    }
-    const result = await uploadEmployeePortalVisitAttachment({
-      tenantId,
-      visitId,
-      fileName: picked.fileName,
-      mimeType: picked.mimeType,
-      bytes,
-    });
-    setUploading(false);
-    if (!result.ok) {
-      setError(result.error ?? 'Foto konnte nicht gespeichert werden.');
-      return;
-    }
-    onUploaded([...existingReferences, result.data.storagePath]);
-    handleClose();
+    const acceptedMedia = acceptPickerResult(result);
+    if (acceptedMedia) await handleUpload(acceptedMedia);
   };
 
   return (
@@ -245,7 +265,11 @@ export function EmployeePortalVisitPhotoModal({
                   {picked.kind === 'image' ? 'Foto' : picked.kind === 'video' ? 'Video' : 'PDF/Dokument'} · {formatEmployeePortalMediaSize(picked.sizeBytes)}
                 </Text>
               </View>
-              <PremiumButton title="Intern am Einsatz speichern" loading={uploading} onPress={() => void handleUpload()} />
+              {error ? (
+                <PremiumButton title="Speichern erneut versuchen" loading={uploading} onPress={() => void handleUpload()} />
+              ) : (
+                <Text style={styles.meta}>Die Datei wird sofort dauerhaft gespeichert…</Text>
+              )}
             </>
           ) : null}
           {settingsRequired && Platform.OS !== 'web' ? (
@@ -254,6 +278,15 @@ export function EmployeePortalVisitPhotoModal({
               size="sm"
               variant="secondary"
               onPress={() => void Linking.openSettings()}
+            />
+          ) : null}
+          {permissionHelp ? <Text style={styles.permissionHelp}>{permissionHelp}</Text> : null}
+          {settingsRequired && Platform.OS === 'web' ? (
+            <PremiumButton
+              title="Seite nach Freigabe neu laden"
+              size="sm"
+              variant="secondary"
+              onPress={() => globalThis.location?.reload()}
             />
           ) : null}
           {existingReferences.length > 0 ? (

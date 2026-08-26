@@ -22,6 +22,7 @@ type EmployeePortalVisitVoiceNoteModalProps = {
   visible: boolean;
   tenantId: string | null;
   visitId: string | null;
+  employeeId: string | null;
   onClose: () => void;
   onAppendText: (text: string) => void;
   onAudioUploaded?: (storagePath: string) => void;
@@ -31,6 +32,7 @@ export function EmployeePortalVisitVoiceNoteModal({
   visible,
   tenantId,
   visitId,
+  employeeId,
   onClose,
   onAppendText,
   onAudioUploaded,
@@ -89,7 +91,7 @@ export function EmployeePortalVisitVoiceNoteModal({
     const capture = result.data;
     const transcriptHint = `Sprachnotiz (${capture.durationSeconds}s)`;
 
-    if (!tenantId || !visitId) {
+    if (!tenantId || !visitId || !employeeId) {
       onAppendText(transcriptHint);
       onClose();
       return;
@@ -99,6 +101,7 @@ export function EmployeePortalVisitVoiceNoteModal({
     const upload = await uploadEmployeePortalVisitAttachment({
       tenantId,
       visitId,
+      employeeId,
       fileName: capture.fileName,
       mimeType: capture.mimeType,
       bytes: capture.bytes,

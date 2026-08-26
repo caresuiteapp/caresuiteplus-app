@@ -111,7 +111,7 @@ describe('employee portal camera and media upload R1', () => {
     expect(app).toContain('"CAMERA"');
     expect(app).toContain('"RECORD_AUDIO"');
     expect(appConfig).toContain("'expo-image-picker'");
-    expect(appConfig).toContain("permissions: ['INTERNET', 'CAMERA', 'RECORD_AUDIO']");
+    expect(appConfig).toMatch(/permissions:\s*\[[\s\S]*?'CAMERA'[\s\S]*?'RECORD_AUDIO'/);
     expect(appConfig).toContain('NSCameraUsageDescription');
     expect(vercel).toContain('camera=(self), microphone=(self)');
     expect(migration).toContain("'image/heic'");

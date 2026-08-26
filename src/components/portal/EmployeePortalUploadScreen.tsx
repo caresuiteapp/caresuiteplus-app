@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -27,6 +27,7 @@ import {
   openEmployeePortalDocumentPicker,
   openEmployeePortalMediaLibrary,
   readEmployeePortalMediaBytes,
+  recoverEmployeePortalPendingCameraMedia,
   type EmployeePortalMediaPickerResult,
 } from '@/lib/portal/employeePortalMediaPicker';
 import {
@@ -53,6 +54,7 @@ export function EmployeePortalUploadScreen() {
   const [pickedFile, setPickedFile] = useState<EmployeePortalPickedMedia | null>(null);
   const [picking, setPicking] = useState(false);
   const [settingsRequired, setSettingsRequired] = useState(false);
+  const [permissionHelp, setPermissionHelp] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -67,6 +69,7 @@ export function EmployeePortalUploadScreen() {
     if (!result.ok) {
       setSubmitError(result.error);
       setSettingsRequired(Boolean(result.settingsRequired));
+      setPermissionHelp(result.permissionHelp ?? null);
       return;
     }
     if (!result.media) return;
@@ -76,6 +79,7 @@ export function EmployeePortalUploadScreen() {
       return;
     }
     setSettingsRequired(false);
+    setPermissionHelp(null);
     setSubmitError(null);
     setPickedFile(result.media);
   }, []);
@@ -90,6 +94,16 @@ export function EmployeePortalUploadScreen() {
           ? await openEmployeePortalMediaLibrary()
           : await openEmployeePortalDocumentPicker({ includeMediaFallback: true });
     acceptPickerResult(result);
+  }, [acceptPickerResult]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void recoverEmployeePortalPendingCameraMedia().then((result) => {
+      if (!cancelled && (result.ok ? Boolean(result.media) : true)) acceptPickerResult(result);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [acceptPickerResult]);
 
   const canSubmit = Boolean(pickedFile) && (uploadContext === 'mitarbeiter' || clientId);
@@ -232,6 +246,7 @@ export function EmployeePortalUploadScreen() {
               <Text style={[styles.meta, { color: text.muted }]}>
                 {pickedFile.kind === 'image' ? 'Foto' : pickedFile.kind === 'video' ? 'Video' : 'Dokument'} · {formatEmployeePortalMediaSize(pickedFile.sizeBytes)}
               </Text>
+              <Text style={styles.notSavedYet}>Ausgewählt – noch nicht hochgeladen</Text>
             </View>
           ) : null}
           {settingsRequired && Platform.OS !== 'web' ? (
@@ -240,6 +255,15 @@ export function EmployeePortalUploadScreen() {
               size="sm"
               variant="secondary"
               onPress={() => void Linking.openSettings()}
+            />
+          ) : null}
+          {permissionHelp ? <Text style={styles.permissionHelp}>{permissionHelp}</Text> : null}
+          {settingsRequired && Platform.OS === 'web' ? (
+            <PremiumButton
+              title="Seite nach Freigabe neu laden"
+              size="sm"
+              variant="secondary"
+              onPress={() => globalThis.location?.reload()}
             />
           ) : null}
         </View>
@@ -257,7 +281,7 @@ export function EmployeePortalUploadScreen() {
         ) : null}
 
         <PremiumButton
-          title={submitting ? 'Wird gesendet…' : 'Absenden'}
+          title={submitting ? 'Wird dauerhaft gespeichert…' : 'Jetzt dauerhaft hochladen'}
           onPress={() => void submit()}
           disabled={!canSubmit || submitting}
         />
@@ -316,6 +340,17 @@ const styles = StyleSheet.create({
     backgroundColor: portalPremium.surfaceSoft,
   },
   pickedName: { ...careTypography.bodyStrong },
+  notSavedYet: { ...careTypography.caption, color: '#B45309', fontWeight: '800' },
+  permissionHelp: {
+    ...careTypography.caption,
+    color: '#7C2D12',
+    backgroundColor: '#FFF7ED',
+    borderColor: '#FDBA74',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: careSpacing.sm,
+    lineHeight: 18,
+  },
   error: { ...careTypography.caption },
   success: { ...careTypography.caption },
 });

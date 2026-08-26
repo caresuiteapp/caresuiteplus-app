@@ -81,6 +81,15 @@ import {
   resolveEmployeeLogbookEligibility,
   startVisitApproachLogbook,
 } from '@/lib/employeeLogbook';
+import {
+  listEmployeePortalVisitAttachments,
+  uploadEmployeePortalVisitAttachment,
+} from '@/lib/portal/employeePortalVisitAttachmentService';
+import {
+  readEmployeePortalMediaBytes,
+  recoverEmployeePortalPendingCameraMedia,
+} from '@/lib/portal/employeePortalMediaPicker';
+import { validateEmployeePortalPickedMedia } from '@/lib/portal/employeePortalMediaValidation';
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -202,6 +211,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const lastConfirmedStatusRef = useRef<AssignmentStatus | null>(null);
   const signatureConfirmationRefreshRef = useRef(refresh);
   const returnTripPromptHandledRef = useRef(false);
+  const pendingCameraRecoveryVisitRef = useRef<string | null>(null);
   const [returnTripPromptRetry, setReturnTripPromptRetry] = useState(0);
   const [returnTripModalOpen, setReturnTripModalOpen] = useState(false);
 
@@ -227,6 +237,76 @@ export function EmployeePortalVisitExecutionScreen() {
     setDocumentationSpecialNotes((prev) => (prev.trim() ? `${prev.trim()}\n${trimmed}` : trimmed));
     setDocumentationOpen(true);
   }, []);
+
+  useEffect(() => {
+    if (!portalTenantId || !assistVisitId) return;
+    let cancelled = false;
+    void listEmployeePortalVisitAttachments(portalTenantId, assistVisitId, portalEmployeeId).then((result) => {
+      if (cancelled) return;
+      if (!result.ok) {
+        setLocalWarning(result.error ?? 'Gespeicherte Einsatzmedien konnten nicht geladen werden.');
+        return;
+      }
+      const durablePaths = result.data.map((attachment) => attachment.storagePath);
+      setPhotoReferences((current) => [...new Set([...durablePaths, ...current])]);
+      if (result.data.some((attachment) => attachment.recovered)) {
+        setLocalSuccess('Bereits vorhandene Einsatzmedien wurden wiederhergestellt.');
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [portalTenantId, portalEmployeeId, assistVisitId]);
+
+  useEffect(() => {
+    if (
+      Platform.OS !== 'android' ||
+      !portalTenantId ||
+      !portalEmployeeId ||
+      !assistVisitId ||
+      pendingCameraRecoveryVisitRef.current === assistVisitId
+    ) return;
+
+    pendingCameraRecoveryVisitRef.current = assistVisitId;
+    let cancelled = false;
+    void recoverEmployeePortalPendingCameraMedia().then(async (pending) => {
+      if (cancelled || !pending.ok || !pending.media) {
+        if (!cancelled && !pending.ok) setLocalWarning(pending.error);
+        return;
+      }
+      try {
+        const bytes = await readEmployeePortalMediaBytes(pending.media.uri);
+        const validation = validateEmployeePortalPickedMedia(
+          { ...pending.media, sizeBytes: bytes.length },
+          'visit',
+        );
+        if (!validation.ok) {
+          if (!cancelled) setLocalWarning(validation.error);
+          return;
+        }
+        const saved = await uploadEmployeePortalVisitAttachment({
+          tenantId: portalTenantId,
+          visitId: assistVisitId,
+          employeeId: portalEmployeeId,
+          fileName: pending.media.fileName,
+          mimeType: pending.media.mimeType,
+          bytes,
+        });
+        if (cancelled) return;
+        if (!saved.ok) {
+          setLocalWarning(saved.error ?? 'Die wiederhergestellte Kameraaufnahme konnte nicht gespeichert werden.');
+          return;
+        }
+        setPhotoReferences((current) => [...new Set([...current, saved.data.storagePath])]);
+        setLocalSuccess('Kameraaufnahme wiederhergestellt und dauerhaft gespeichert.');
+      } catch {
+        if (!cancelled) setLocalWarning('Die vorherige Kameraaufnahme konnte nicht gelesen werden.');
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [portalTenantId, portalEmployeeId, assistVisitId]);
 
   useEffect(() => {
     if (!id || !visit || restoredRef.current || !isVisitExecutionRoute(pathname)) return;
@@ -1477,11 +1557,12 @@ export function EmployeePortalVisitExecutionScreen() {
         visible={photoModalOpen}
         tenantId={portalTenantId}
         visitId={assistVisitId}
+        employeeId={portalEmployeeId}
         existingReferences={photoReferences}
         onClose={() => setPhotoModalOpen(false)}
         onUploaded={(paths) => {
           setPhotoReferences(paths);
-          setLocalSuccess('Foto/Video intern am Einsatz gespeichert.');
+          setLocalSuccess('Foto/Video dauerhaft am Einsatz gespeichert.');
         }}
       />
 
@@ -1489,6 +1570,7 @@ export function EmployeePortalVisitExecutionScreen() {
         visible={voiceModalOpen}
         tenantId={portalTenantId}
         visitId={assistVisitId}
+        employeeId={portalEmployeeId}
         onClose={() => setVoiceModalOpen(false)}
         onAppendText={appendDocumentationNote}
         onAudioUploaded={(storagePath) => {
