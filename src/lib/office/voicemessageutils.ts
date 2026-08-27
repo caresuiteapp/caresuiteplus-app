@@ -88,6 +88,6 @@ export function isTechnicalErrorText(text: string | null | undefined): boolean {
 
 export function createVoicePreviewUrl(fileData: Uint8Array, mimeType: string): string | null {
   if (typeof Blob === 'undefined' || typeof URL === 'undefined') return null;
-  const blob = new Blob([fileData], { type: mimeType });
+  const blob = new Blob([new Uint8Array(fileData)], { type: mimeType });
   return URL.createObjectURL(blob);
 }

@@ -62,7 +62,7 @@ function base64ToBytes(base64: string): Uint8Array {
 
 function triggerBrowserDownload(bytes: Uint8Array, fileName: string, mimeType: string): void {
   if (typeof document === 'undefined') return;
-  const blob = new Blob([bytes], { type: mimeType });
+  const blob = new Blob([new Uint8Array(bytes)], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -178,7 +178,7 @@ async function imageBytesToPdfBytes(imageBytes: Uint8Array, mimeType: string): P
     throw new Error('PDF-Erzeugung ist nur im Web-Browser verfügbar.');
   }
 
-  const blob = new Blob([imageBytes], { type: mimeType });
+  const blob = new Blob([new Uint8Array(imageBytes)], { type: mimeType });
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? ''));

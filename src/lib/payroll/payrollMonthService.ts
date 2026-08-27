@@ -537,9 +537,10 @@ function bytesToBase64(bytes: Uint8Array): string {
 
 async function sha256(bytes: Uint8Array): Promise<string> {
   if (globalThis.crypto?.subtle) {
+    const digestInput = new Uint8Array(bytes);
     const hash = await globalThis.crypto.subtle.digest(
       'SHA-256',
-      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+      digestInput,
     );
     return Array.from(new Uint8Array(hash)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
   }

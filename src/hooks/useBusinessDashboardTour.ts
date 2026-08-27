@@ -15,11 +15,11 @@ import {
 } from '@/lib/onboarding/dashboardTourStorage';
 
 export type BusinessDashboardTourRefs = {
-  welcome: RefObject<View>;
-  kpis: RefObject<View>;
-  quickActions: RefObject<View>;
-  modules: RefObject<View>;
-  firstClient: RefObject<View>;
+  welcome: RefObject<View | null>;
+  kpis: RefObject<View | null>;
+  quickActions: RefObject<View | null>;
+  modules: RefObject<View | null>;
+  firstClient: RefObject<View | null>;
 };
 
 type UseBusinessDashboardTourOptions = {
@@ -56,7 +56,7 @@ export function useBusinessDashboardTour({ ready, isEmptyTenant }: UseBusinessDa
   const currentStep = DASHBOARD_TOUR_STEPS[stepIndex];
 
   const measureAnchor = useCallback((anchor: DashboardTourAnchorKey) => {
-    const refMap: Record<DashboardTourAnchorKey, RefObject<View>> = {
+    const refMap: Record<DashboardTourAnchorKey, RefObject<View | null>> = {
       welcome: welcomeRef,
       kpis: kpisRef,
       quickActions: quickActionsRef,

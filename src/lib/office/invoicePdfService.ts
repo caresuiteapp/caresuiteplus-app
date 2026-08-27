@@ -576,7 +576,7 @@ export async function renderInvoicePdfDocument(data: InvoicePdfData): Promise<Pr
 }
 
 function createPdfUrl(bytes: Uint8Array): string {
-  return URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+  return URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }));
 }
 
 export function previewPreparedInvoicePdf(payload: PreparedInvoicePdf, target?: Window | null): void {

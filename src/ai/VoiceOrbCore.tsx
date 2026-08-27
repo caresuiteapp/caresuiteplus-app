@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     overflow: 'visible',
     ...(Platform.OS === 'web'
-      ? ({ cursor: 'pointer', outlineStyle: 'none' } as ViewStyle)
+      ? ({ cursor: 'pointer', outlineStyle: 'none' } as unknown as ViewStyle)
       : null),
   },
   stateHalo: {

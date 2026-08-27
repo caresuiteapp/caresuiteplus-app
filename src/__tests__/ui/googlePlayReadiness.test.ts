@@ -259,7 +259,8 @@ describe('Google Play readiness — store sight', () => {
     const appConfig = readSrc('app.config.ts');
     expect(appConfig).toContain('enableProguardInReleaseBuilds: true');
     expect(appConfig).toContain('android-proguard-rules.pro');
-    expect(appConfig).toContain('versionCode: 10');
+    expect(appConfig).toContain('versionCode: 14');
+    expect(appConfig).toContain('targetSdkVersion: 36');
     expect(readFileSync(path.join(root, 'android-proguard-rules.pro'), 'utf8')).toContain(
       'app.caresuiteplus',
     );

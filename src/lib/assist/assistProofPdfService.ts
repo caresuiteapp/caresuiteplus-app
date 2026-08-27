@@ -225,7 +225,7 @@ export async function resolveAssistProofPdfPreviewUrl(
 
   try {
     const pdfBytes = await renderAssistProofPdfBytes(proof, enrichment);
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     return { ok: true, data: { url, fileName: payload.fileName, kind: 'blob' } };
   } catch (error) {
@@ -338,7 +338,7 @@ export async function downloadAssistProofPdfInBrowser(
   try {
     const payload = await buildEnrichedAssistProofPdfPayload(tenantId, proof, enrichment);
     const pdfBytes = await renderHtmlToPdfBytes(payload.html);
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;

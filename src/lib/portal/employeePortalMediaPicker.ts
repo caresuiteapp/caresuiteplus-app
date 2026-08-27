@@ -273,8 +273,7 @@ export async function openEmployeePortalCamera(): Promise<EmployeePortalMediaPic
 export async function recoverEmployeePortalPendingCameraMedia(): Promise<EmployeePortalMediaPickerResult> {
   if (Platform.OS !== 'android') return { ok: true, media: null };
   try {
-    const pendingResults = await ImagePicker.getPendingResultAsync();
-    const pending = pendingResults.at(-1);
+    const pending = await ImagePicker.getPendingResultAsync();
     if (!pending) return { ok: true, media: null };
     if ('code' in pending) {
       return {

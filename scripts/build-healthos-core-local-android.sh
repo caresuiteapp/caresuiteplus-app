@@ -66,7 +66,7 @@ SOURCE_APK="android/app/build/outputs/apk/debug/app-debug.apk"
 
 OUTPUT_DIR="$ROOT_DIR/release/android"
 mkdir -p "$OUTPUT_DIR"
-OUTPUT_APK="$OUTPUT_DIR/CareSuite-HealthOS-Portale-v0.1.1-code10-debug.apk"
+OUTPUT_APK="$OUTPUT_DIR/CareSuite-HealthOS-Portale-v0.2.0-code14-debug.apk"
 cp "$SOURCE_APK" "$OUTPUT_APK"
 
 echo

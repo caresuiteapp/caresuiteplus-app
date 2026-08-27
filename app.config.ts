@@ -16,7 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   ...config,
   name: isHealthOSCoreEdition || isPortalOnlyEdition ? 'CareSuite HealthOS' : 'CareSuite+',
   slug: 'caresuite-plus',
-  version: '0.1.1',
+  version: '0.2.0',
   orientation: 'default',
   icon: './assets/icon.png',
   scheme: 'caresuiteplus',
@@ -30,7 +30,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'de.caresuiteplus.app',
-    buildNumber: '1',
+    buildNumber: '2',
     infoPlist: {
       NSCameraUsageDescription:
         'CareSuite benötigt Zugriff auf die Kamera, damit dienstliche Fotos und Videos direkt aufgenommen werden können.',
@@ -59,7 +59,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       backgroundColor: '#F8FAFC',
     },
     package: 'app.caresuiteplus',
-    versionCode: 10,
+    versionCode: 14,
+    predictiveBackGestureEnabled: false,
     permissions: [
       'INTERNET',
       'CAMERA',
@@ -77,15 +78,21 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     favicon: './assets/favicon.png',
   },
   plugins: [
-    'expo-router',
+    [
+      'expo-router',
+      {
+        root: isPortalOnlyEdition ? 'app-portal' : 'app',
+      },
+    ],
     'expo-asset',
     'expo-font',
     [
       'expo-build-properties',
       {
         android: {
-          compileSdkVersion: 35,
-          targetSdkVersion: 35,
+          compileSdkVersion: 36,
+          targetSdkVersion: 36,
+          minSdkVersion: 24,
           enableProguardInReleaseBuilds: true,
           enableShrinkResourcesInReleaseBuilds: true,
           extraProguardRules: ANDROID_PROGUARD_RULES,
