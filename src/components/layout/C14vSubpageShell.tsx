@@ -1,7 +1,7 @@
 import { ReactNode, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { usePathname } from 'expo-router';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { PremiumButton } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';

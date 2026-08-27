@@ -10,7 +10,7 @@ import {
   SectionPanel,
 } from '@/components/ui';
 import { CareMultiCatalogSelect } from '@/components/inputs';
-import { GradientModalHeader } from '@/components/layout/platform';
+import { GradientModalHeader } from '@/components/layout/platform/gradientmodalheader';
 import { GlassSurface } from '@/components/ui/effects';
 import { useAuth } from '@/lib/auth/context';
 import { fetchClientIntakeEditData } from '@/lib/clients/clientIntakeEditService';

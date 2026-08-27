@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
 import type { PermissionKey } from '@/types/permissions';
 import { ErrorState, PremiumButton } from '@/components/ui';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { usePermissions } from '@/hooks/usePermissions';
 
 type RequirePermissionProps = {

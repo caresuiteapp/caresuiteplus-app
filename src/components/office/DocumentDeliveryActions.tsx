@@ -14,7 +14,7 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { GradientModalHeader } from '@/components/layout/platform';
+import { GradientModalHeader } from '@/components/layout/platform/gradientmodalheader';
 import { GlassSurface } from '@/components/ui/effects';
 import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';

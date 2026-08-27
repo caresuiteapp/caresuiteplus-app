@@ -10,7 +10,10 @@ function readSrc(relativePath: string): string {
 }
 
 describe('CareSuite access hub redesign', () => {
-  const hub = readSrc('src/liquid-command/screens/AccessHubScreen.tsx');
+  const hub = [
+    readSrc('src/liquid-command/screens/AccessHubBaseScreen.tsx'),
+    readSrc('src/liquid-command/screens/AccessHubScreen.tsx'),
+  ].join('\n');
   const accessScreens = readSrc('src/liquid-command/screens/AccessScreens.tsx');
 
   it('uses the approved centered copy and larger CareSuite logo', () => {

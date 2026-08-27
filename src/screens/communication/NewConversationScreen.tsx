@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { CommunicationComposeHero } from '@/components/communication/CommunicationComposeHero';
 import { CatalogValueSelect, TemplateDropdownSelect } from '@/components/templates';
 import { LockedActionBanner } from '@/components/permissions';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { PremiumButton, PremiumCard, PremiumInput, SuccessState } from '@/components/ui';
 import { createThread } from '@/features/communication/communication.service';
 import { useCommunicationPermissions } from '@/hooks/communication';

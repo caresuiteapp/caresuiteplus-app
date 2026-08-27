@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { PlatformModal } from '@/components/layout/platform';
+import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
 import { PremiumInput } from '@/components/ui';
 import {

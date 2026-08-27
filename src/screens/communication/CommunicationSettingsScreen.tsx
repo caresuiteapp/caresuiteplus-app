@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import {
   getCommunicationSettings,

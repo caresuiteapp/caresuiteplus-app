@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { CommunicationCenterListView } from '@/components/communication/CommunicationCenterListView';
 import { MessengerShell, messengerScreenRootStyle } from '@/components/messaging';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { LockedActionBanner } from '@/components/permissions';
 import { ErrorState, LoadingState } from '@/components/ui';
 import { useCommunicationCenter, useCommunicationPermissions } from '@/hooks/communication';

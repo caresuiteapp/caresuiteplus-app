@@ -5,6 +5,10 @@
   "main": "expo-router/entry",
   "scripts": {
     "android:healthos:local": "bash scripts/build-healthos-core-local-android.sh",
+    "android:portal-only:local": "bash scripts/build-healthos-core-local-android.sh",
+    "portal-only:audit": "vitest run src/__tests__/platform/portalOnlyEdition.test.ts",
+    "portal-only:export": "EXPO_PUBLIC_APP_EDITION=portal-only EXPO_PUBLIC_FOLDER=public-portal expo export --platform android --output-dir dist-portal-only --source-maps",
+    "portal-only:export:audit": "node scripts/audit-portal-only-export.mjs dist-portal-only",
     "audit:ui:contract": "node scripts/audit-healthos-ui-contract.mjs",
     "audit:ui:migration": "node scripts/audit-healthos-page-migration.mjs",
     "start": "expo start",

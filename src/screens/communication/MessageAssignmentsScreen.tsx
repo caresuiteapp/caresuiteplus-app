@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MessageAssignmentPanel } from '@/components/communication';
 import { LockedActionBanner } from '@/components/permissions';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { LoadingState, PremiumBadge } from '@/components/ui';
 import { useMessageAssignments, useCommunicationPermissions } from '@/hooks/communication';
 import { colors, spacing, typography } from '@/theme';

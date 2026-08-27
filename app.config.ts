@@ -11,9 +11,10 @@ const ANDROID_PROGUARD_RULES = readFileSync(
 export default ({ config }: ConfigContext): ExpoConfig => {
   const easProjectId = process.env.EAS_PROJECT_ID;
   const isHealthOSCoreEdition = process.env.EXPO_PUBLIC_APP_EDITION === 'healthos-core';
+  const isPortalOnlyEdition = process.env.EXPO_PUBLIC_APP_EDITION === 'portal-only';
   return {
   ...config,
-  name: isHealthOSCoreEdition ? 'CareSuite HealthOS' : 'CareSuite+',
+  name: isHealthOSCoreEdition || isPortalOnlyEdition ? 'CareSuite HealthOS' : 'CareSuite+',
   slug: 'caresuite-plus',
   version: '0.1.1',
   orientation: 'default',
@@ -128,6 +129,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   },
   extra: {
     ...config.extra,
+    router: {
+      ...config.extra?.router,
+      root: isPortalOnlyEdition ? 'app-portal' : 'app',
+    },
     ...(easProjectId
       ? { eas: { projectId: easProjectId } }
       : {}),

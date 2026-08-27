@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { BreadcrumbSegment } from '@/components/layout/platform/breadcrumbbar';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 
 type ModuleDashboardShellProps = {
   moduleLabel: string;

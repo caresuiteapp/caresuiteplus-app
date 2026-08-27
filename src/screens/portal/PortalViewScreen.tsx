@@ -7,7 +7,7 @@ import {
   PortalMessagesTab,
   PortalOverviewTab,
 } from '@/components/portal';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { PremiumButton, SegmentedTabs, type TabOption } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
 import type { DashboardScope } from '@/types/dashboard';

@@ -8,7 +8,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
 import { withAlpha } from '@/design/tokens/motion';
 import { LockedActionBanner } from '@/components/permissions';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { EmptyState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCommunicationPermissions, usePortalMessages } from '@/hooks/communication';

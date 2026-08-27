@@ -1,6 +1,9 @@
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { PlatformModal, type PlatformModalAction } from '@/components/layout/platform';
+import {
+  PlatformModal,
+  type PlatformModalAction,
+} from '@/components/layout/platform/platformmodal';
 import { PremiumButton, LoadingState, ErrorState } from '@/components/ui';
 import { HealthOSStatusBadge } from '@/components/healthos';
 import { useDeviceClass } from '@/hooks/useDeviceClass';

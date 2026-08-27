@@ -2,7 +2,7 @@ import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ConversationListItem } from '@/components/communication';
 import { CommunicationArchivedHero } from '@/components/communication/CommunicationArchivedHero';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { EmptyState, LoadingState, PremiumCard } from '@/components/ui';
 import { useThreads } from '@/hooks/communication';
 import { useAuth } from '@/lib/auth/context';

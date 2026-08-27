@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { ScreenShell } from '@/components/layout';
-import { PageHeader } from '@/components/layout/platform';
+import { ScreenShell } from '@/components/layout/ScreenShell';
+import { PageHeader } from '@/components/layout/platform/pageheader';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { spacing } from '@/theme';
 

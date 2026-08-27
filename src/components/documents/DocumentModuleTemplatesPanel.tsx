@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
-import { PlatformModal } from '@/components/layout/platform';
+import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { EmptyState, ErrorState, InfoBanner, LoadingState, PremiumButton, SectionPanel } from '@/components/ui';
 import { SYSTEM_DOCUMENT_CATALOG_TEMPLATES } from '@/data/seeds/documentCatalog';
 import { buildDocumentPreview } from '@/features/documents/templateEngine';

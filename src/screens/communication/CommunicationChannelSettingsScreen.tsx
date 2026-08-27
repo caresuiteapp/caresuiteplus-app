@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { InfoBanner, PremiumCard } from '@/components/ui';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePermissions } from '@/hooks/usePermissions';

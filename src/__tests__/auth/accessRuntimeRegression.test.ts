@@ -24,7 +24,7 @@ describe('production access runtime regressions', () => {
   });
 
   it('does not request the unavailable native animation driver on web', () => {
-    const accessHub = source('src/liquid-command/screens/AccessHubScreen.tsx');
+    const accessHub = source('src/liquid-command/screens/AccessHubBaseScreen.tsx');
 
     expect(accessHub).toContain(
       "const ACCESS_ANIMATION_USES_NATIVE_DRIVER = Platform.OS !== 'web'",

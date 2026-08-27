@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { PlatformModal } from '@/components/layout/platform';
+import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PremiumButton } from '@/components/ui';
 import { useAuroraGlassModalStyle } from '@/design/tokens/auroraGlass';
 import { careRadius } from '@/design/tokens/radius';

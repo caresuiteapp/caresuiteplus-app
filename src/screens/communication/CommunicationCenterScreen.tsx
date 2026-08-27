@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { CommunicationCenterListView } from '@/components/communication/CommunicationCenterListView';
 import { ErrorState, LoadingState } from '@/components/ui';
 import { useOfficeMessages } from '@/hooks/useOfficeMessages';

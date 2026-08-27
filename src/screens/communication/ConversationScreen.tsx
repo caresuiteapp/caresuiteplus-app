@@ -12,7 +12,7 @@ import {
 } from '@/components/communication';
 import { PortalRelativeConversationHero } from '@/components/portal/PortalRelativeConversationHero';
 import { LockedActionBanner } from '@/components/permissions';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { assignThread } from '@/features/communication/communication.assignments';
 import { useServiceTenantId } from '@/hooks/useTenantId';

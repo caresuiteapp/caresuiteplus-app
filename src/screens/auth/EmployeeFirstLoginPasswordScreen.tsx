@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { EmployeeFirstLoginHero } from '@/components/auth/EmployeeFirstLoginHero';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { ErrorState, PremiumButton, SuccessState } from '@/components/ui';
 import { InputField } from '@/design/components';
 import { completeFirstLogin } from '@/lib/auth/employeePortalAuthService';

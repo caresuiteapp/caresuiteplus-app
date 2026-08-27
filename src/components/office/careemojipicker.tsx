@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { PlatformModal } from '@/components/layout/platform';
+import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { auroraGlass, useAuroraGlassChipStyles } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { spacing, radius } from '@/theme';

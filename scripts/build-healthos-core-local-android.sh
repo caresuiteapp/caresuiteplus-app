@@ -4,7 +4,8 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-export EXPO_PUBLIC_APP_EDITION="healthos-core"
+export EXPO_PUBLIC_APP_EDITION="portal-only"
+export EXPO_PUBLIC_FOLDER="public-portal"
 export EXPO_NO_TELEMETRY=1
 
 fail() {
@@ -39,7 +40,7 @@ echo "1/5 Abhängigkeiten installieren ..."
 npm ci
 
 echo
-echo "2/5 HealthOS-Kernedition prüfen ..."
+echo "2/5 Portal-only-Edition prüfen ..."
 npm run typecheck
 npx vitest run \
   src/__tests__/platform/healthOSStoreEdition.test.ts \
@@ -65,7 +66,7 @@ SOURCE_APK="android/app/build/outputs/apk/debug/app-debug.apk"
 
 OUTPUT_DIR="$ROOT_DIR/release/android"
 mkdir -p "$OUTPUT_DIR"
-OUTPUT_APK="$OUTPUT_DIR/CareSuite-HealthOS-Core-v0.1.1-code10-debug.apk"
+OUTPUT_APK="$OUTPUT_DIR/CareSuite-HealthOS-Portale-v0.1.1-code10-debug.apk"
 cp "$SOURCE_APK" "$OUTPUT_APK"
 
 echo

@@ -1,7 +1,10 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AssistLiveMap } from '@/components/maps/AssistLiveMap';
-import { PlatformModal, type PlatformModalAction } from '@/components/layout/platform';
+import {
+  PlatformModal,
+  type PlatformModalAction,
+} from '@/components/layout/platform/platformmodal';
 import { ErrorState, LoadingState } from '@/components/ui';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalClientAppointmentDetail } from '@/hooks/usePortalClientAppointmentDetail';

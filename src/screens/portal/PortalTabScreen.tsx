@@ -2,7 +2,7 @@ import { ReactNode, useMemo } from 'react';
 import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PortalMobileTabHeader } from '@/components/portal/PortalMobileTabHeader';
-import { ScreenShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout/ScreenShell';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';

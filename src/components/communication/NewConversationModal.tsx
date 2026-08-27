@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { PlatformModal } from '@/components/layout/platform';
+import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { GroupedTemplateSelect } from '@/components/templates';
 import { ListFilterSelect, PremiumInput } from '@/components/ui';
 import { PRIORITY_LABELS } from '@/features/communication/communication.constants';
