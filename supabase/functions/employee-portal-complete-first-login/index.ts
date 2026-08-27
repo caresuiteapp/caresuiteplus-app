@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { hashSecret, verifySecret } from '../_shared/crypto.ts';
+import { hashOpaqueToken, hashSecret, verifySecret } from '../_shared/crypto.ts';
 import { corsHeaders, getServiceClient, jsonResponse, readClientMeta, tryInsert } from '../_shared/http.ts';
 
 type CompleteFirstLoginBody = {
@@ -71,16 +71,18 @@ serve(async (req) => {
     }
 
     const supabase = getServiceClient();
+    const sessionTokenHash = await hashOpaqueToken(sessionToken);
 
     const { data: sessionRow, error: sessionError } = await supabase
       .from('portal_sessions')
-      .select('id, tenant_id, status, expires_at, metadata')
-      .eq('session_token', sessionToken)
+      .select('id, tenant_id, status, expires_at, metadata, session_token')
+      .in('session_token', [sessionTokenHash, sessionToken])
       .eq('portal_type', 'employee')
       .maybeSingle();
 
     if (sessionError) {
-      return jsonResponse({ ok: false, error: sessionError.message }, 500);
+      console.error(`[employee-portal-complete-first-login] session lookup failed: ${sessionError.message}`);
+      return jsonResponse({ ok: false, error: 'Sitzung konnte nicht geprüft werden.' }, 500);
     }
 
     if (!sessionRow || sessionRow.status !== 'active') {
@@ -97,6 +99,21 @@ serve(async (req) => {
       return jsonResponse({ ok: false, error: 'Sitzung passt nicht zum Zugang.' }, 403);
     }
 
+    if (sessionRow.session_token === sessionToken) {
+      const { error: tokenMigrationError } = await supabase
+        .from('portal_sessions')
+        .update({
+          session_token: sessionTokenHash,
+          last_seen_at: new Date().toISOString(),
+          metadata: { ...metadata, token_format: 'sha256' },
+        })
+        .eq('id', sessionRow.id);
+      if (tokenMigrationError) {
+        console.error(`[employee-portal-complete-first-login] token migration failed: ${tokenMigrationError.message}`);
+        return jsonResponse({ ok: false, error: 'Sitzung konnte nicht abgesichert werden.' }, 500);
+      }
+    }
+
     const { data: accountRow, error: accountError } = await supabase
       .from('employee_portal_accounts')
       .select('*')
@@ -105,7 +122,8 @@ serve(async (req) => {
       .maybeSingle();
 
     if (accountError) {
-      return jsonResponse({ ok: false, error: accountError.message }, 500);
+      console.error(`[employee-portal-complete-first-login] account lookup failed: ${accountError.message}`);
+      return jsonResponse({ ok: false, error: 'Zugang konnte nicht geprüft werden.' }, 500);
     }
 
     if (!accountRow) {
@@ -149,7 +167,8 @@ serve(async (req) => {
       .eq('id', accountId);
 
     if (updateError) {
-      return jsonResponse({ ok: false, error: updateError.message }, 500);
+      console.error(`[employee-portal-complete-first-login] account update failed: ${updateError.message}`);
+      return jsonResponse({ ok: false, error: 'Passwort konnte nicht gespeichert werden.' }, 500);
     }
 
     const { data: refreshed, error: refreshError } = await supabase
@@ -159,7 +178,10 @@ serve(async (req) => {
       .single();
 
     if (refreshError || !refreshed) {
-      return jsonResponse({ ok: false, error: refreshError?.message ?? 'Zugang nicht gefunden.' }, 500);
+      if (refreshError) {
+        console.error(`[employee-portal-complete-first-login] refresh failed: ${refreshError.message}`);
+      }
+      return jsonResponse({ ok: false, error: 'Zugang konnte nach der Änderung nicht geladen werden.' }, 500);
     }
 
     const meta = readClientMeta(req);
@@ -179,6 +201,7 @@ serve(async (req) => {
       account: mapAccount(refreshed as Record<string, unknown>),
     });
   } catch (err) {
-    return jsonResponse({ ok: false, error: String(err) }, 500);
+    console.error('[employee-portal-complete-first-login] unexpected error', err);
+    return jsonResponse({ ok: false, error: 'Passwortänderung ist vorübergehend nicht verfügbar.' }, 500);
   }
 });

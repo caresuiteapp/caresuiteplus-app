@@ -3,6 +3,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { LockedActionBanner } from '@/components/permissions';
+import { PortalBiometricSettingsCard } from '@/components/auth/PortalBiometricSettingsCard';
 import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequestFormModal';
 import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
@@ -391,6 +392,8 @@ export function ClientPortalProfileScreen() {
             />
           }
         />
+
+        <PortalBiometricSettingsCard />
 
         {requestSuccess ? (
           <GlassCard>

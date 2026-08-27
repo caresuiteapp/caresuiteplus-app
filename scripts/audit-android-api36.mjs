@@ -31,8 +31,8 @@ const manifest = JSON.stringify(androidMods?.manifest ?? {});
 
 const checks = {
   portalRouterRoot: config.extra?.router?.root === 'app-portal',
-  appVersion: config.version === '0.2.0',
-  versionCode: config.android?.versionCode === 14,
+  appVersion: config.version === '0.2.1',
+  versionCode: config.android?.versionCode === 15,
   minSdk24: properties.get('android.minSdkVersion') === '24',
   compileSdk36: properties.get('android.compileSdkVersion') === '36',
   targetSdk36: properties.get('android.targetSdkVersion') === '36',

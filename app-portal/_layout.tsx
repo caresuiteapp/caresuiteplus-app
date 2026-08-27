@@ -9,6 +9,7 @@ import { WebFontScaleProvider } from '@/design/web/WebFontScaleProvider';
 import { PerformanceProvider } from '@/lib/performance';
 import { GlobalWorkflowFeedbackProvider } from '@/components/ui/GlobalWorkflowFeedback';
 import { PortalWelcomeGate } from '@/components/auth/PortalWelcomeGate';
+import { PortalBiometricGate } from '@/components/auth/PortalBiometricGate';
 import { PortalOnlyRouteGuard } from '@/portal-app/PortalOnlyRouteGuard';
 import { applyInvisibleScrollIndicators } from '@/design/scroll/applyInvisibleScrollIndicators';
 import { installSystemTextDefaults } from '@/design/installSystemTextDefaults';
@@ -31,16 +32,18 @@ function PortalOnlyRouter() {
     <ThemeProvider value={portalNavigationTheme}>
       <View style={styles.root}>
         <StatusBar style="auto" />
-        <PortalOnlyRouteGuard>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: styles.content,
-              animation: 'fade',
-            }}
-          />
-          <PortalWelcomeGate />
-        </PortalOnlyRouteGuard>
+        <PortalBiometricGate>
+          <PortalOnlyRouteGuard>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: styles.content,
+                animation: 'fade',
+              }}
+            />
+            <PortalWelcomeGate />
+          </PortalOnlyRouteGuard>
+        </PortalBiometricGate>
       </View>
     </ThemeProvider>
   );

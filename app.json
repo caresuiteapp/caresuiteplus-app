@@ -2,7 +2,7 @@
   "expo": {
     "name": "CareSuite+",
     "slug": "caresuite-plus",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "caresuiteplus",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "de.caresuiteplus.app",
-      "buildNumber": "2"
+      "buildNumber": "3"
     },
     "android": {
       "adaptiveIcon": {
@@ -26,7 +26,7 @@
         "backgroundColor": "#070B12"
       },
       "package": "app.caresuiteplus",
-      "versionCode": 14,
+      "versionCode": 15,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "INTERNET",
@@ -53,6 +53,18 @@
       ],
       "expo-asset",
       "expo-font",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "CareSuite verwendet Face ID ausschließlich zum lokalen Entsperren Ihrer Portal-Sitzung. Biometrische Daten bleiben auf dem Gerät."
+        }
+      ],
       [
         "expo-build-properties",
         {

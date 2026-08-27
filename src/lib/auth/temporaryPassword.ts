@@ -1,4 +1,5 @@
 import type { ISODateTime } from '@/types/core/base';
+import { secureRandomInt } from '@/lib/security/secureRandom';
 import { hashSecret, verifySecret } from './passwordHash';
 
 const UPPER = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -27,7 +28,7 @@ export const DEFAULT_TEMP_PASSWORD_POLICY: TemporaryPasswordPolicy = {
 };
 
 function randomChar(pool: string): string {
-  const index = Math.floor(Math.random() * pool.length);
+  const index = secureRandomInt(pool.length);
   return pool[index] ?? 'a';
 }
 
@@ -46,7 +47,7 @@ export function generateTemporaryPassword(
   }
 
   for (let index = required.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
+    const swapIndex = secureRandomInt(index + 1);
     [required[index], required[swapIndex]] = [required[swapIndex], required[index]];
   }
 

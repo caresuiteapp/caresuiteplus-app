@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LockedActionBanner } from '@/components/permissions';
+import { PortalBiometricSettingsCard } from '@/components/auth/PortalBiometricSettingsCard';
 import {
   OFFICE_PROFILE_HINT,
   PortalEmployeeProfileTabContent,
@@ -132,6 +133,8 @@ export function EmployeeProfileScreen() {
         contentContainerStyle={[styles.scroll, contentPadding]}
       >
         <PortalEmployeeProfileHero profile={profile} />
+
+        <PortalBiometricSettingsCard />
 
         <View style={styles.officeHint}>
           <HealthOSAlert variant="info" title="Stammdaten" message={OFFICE_PROFILE_HINT} />

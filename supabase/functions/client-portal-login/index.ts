@@ -1,34 +1,24 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { maskCodeHint, normalizePortalCode, verifyPortalCode } from '../_shared/crypto.ts';
+import {
+  createOpaqueToken,
+  hashOpaqueToken,
+  hashPortalCode,
+  needsSecretRehash,
+  normalizePortalCode,
+  verifyPortalCode,
+} from '../_shared/crypto.ts';
 import { corsHeaders, getServiceClient, jsonResponse, readClientMeta, tryInsert } from '../_shared/http.ts';
 import { ensurePortalSupabaseAuth } from '../_shared/portalAuth.ts';
+import {
+  INVALID_PORTAL_CREDENTIALS_MESSAGE,
+  isLoginRateLimited,
+  RATE_LIMIT_MESSAGE,
+} from '../_shared/loginSecurity.ts';
 
 type LoginBody = {
   username: string;
   code: string;
 };
-
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
-const RATE_LIMIT_MAX_FAILURES = 10;
-
-async function isRateLimited(
-  supabase: ReturnType<typeof getServiceClient>,
-  ipAddress: string | null,
-): Promise<boolean> {
-  if (!ipAddress) return false;
-
-  const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
-  const { count, error } = await supabase
-    .from('login_audit_events')
-    .select('*', { count: 'exact', head: true })
-    .eq('login_type', 'client_portal')
-    .eq('success', false)
-    .eq('ip_address', ipAddress)
-    .gte('created_at', since);
-
-  if (error) return false;
-  return (count ?? 0) >= RATE_LIMIT_MAX_FAILURES;
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -53,12 +43,16 @@ serve(async (req) => {
 
     const supabase = getServiceClient();
     const meta = readClientMeta(req);
-    const hint = `${username} / ${maskCodeHint(normalized)}`;
+    const hint = username;
 
-    if (await isRateLimited(supabase, meta.ipAddress)) {
+    if (await isLoginRateLimited(supabase, {
+      loginType: 'client_portal',
+      ipAddress: meta.ipAddress,
+      accountHint: hint,
+    })) {
       return jsonResponse({
         ok: false,
-        error: 'Zu viele Anmeldeversuche. Bitte warten Sie einige Minuten.',
+        error: RATE_LIMIT_MESSAGE,
       }, 429);
     }
 
@@ -69,10 +63,11 @@ serve(async (req) => {
       .ilike('portal_username', username);
 
     if (error) {
-      return jsonResponse({ ok: false, error: error.message }, 500);
+      console.error(`[client-portal-login] account lookup failed: ${error.message}`);
+      return jsonResponse({ ok: false, error: 'Anmeldung ist vorübergehend nicht verfügbar.' }, 500);
     }
 
-    const candidates = (matches ?? []).filter((row) => row.status !== 'gesperrt' && row.status !== 'deaktiviert');
+    const candidates = (matches ?? []).filter((row) => row.status === 'aktiv');
 
     let matched: Record<string, unknown> | null = null;
     for (const row of candidates) {
@@ -86,9 +81,9 @@ serve(async (req) => {
     if (!matched) {
       const blocked = (matches ?? []).find((row) => row.status === 'gesperrt');
       await tryInsert(supabase, 'login_audit_events', {
-        tenant_id: blocked?.tenant_id ?? null,
+        tenant_id: blocked?.tenant_id ?? matches?.[0]?.tenant_id ?? null,
         login_type: 'client_portal',
-        account_id: blocked?.id ?? null,
+        account_id: blocked?.id ?? matches?.[0]?.id ?? null,
         username_or_code_hint: hint,
         success: false,
         failure_reason: blocked ? 'Zugang gesperrt.' : 'Benutzername oder Zugangscode ist falsch.',
@@ -98,23 +93,28 @@ serve(async (req) => {
 
       return jsonResponse({
         ok: false,
-        error: blocked
-          ? 'Zugang gesperrt. Bitte wenden Sie sich an die Verwaltung.'
-          : 'Benutzername oder Zugangscode ist falsch.',
+        error: INVALID_PORTAL_CREDENTIALS_MESSAGE,
       }, 401);
     }
 
     const now = new Date().toISOString();
-    const sessionToken = crypto.randomUUID();
+    const sessionToken = createOpaqueToken();
+    const sessionTokenHash = await hashOpaqueToken(sessionToken);
     const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
+    const storedCodeHash = matched.portal_access_code_hash as string;
+    const accountUpdate: Record<string, unknown> = { last_login_at: now, updated_at: now };
+    if (needsSecretRehash(storedCodeHash)) {
+      accountUpdate.portal_access_code_hash = await hashPortalCode(normalized);
+    }
 
     const { error: updateError } = await supabase
       .from('client_portal_access')
-      .update({ last_login_at: now, updated_at: now })
+      .update(accountUpdate)
       .eq('id', matched.id);
 
     if (updateError) {
-      return jsonResponse({ ok: false, error: updateError.message }, 500);
+      console.error(`[client-portal-login] account update failed: ${updateError.message}`);
+      return jsonResponse({ ok: false, error: 'Anmeldung ist vorübergehend nicht verfügbar.' }, 500);
     }
 
     const { error: sessionError } = await supabase.from('portal_sessions').insert({
@@ -123,17 +123,18 @@ serve(async (req) => {
       client_id: matched.client_id,
       relative_contact_id: null,
       status: 'active',
-      session_token: sessionToken,
+      session_token: sessionTokenHash,
       started_at: now,
       last_seen_at: now,
       expires_at: expiresAt,
       ip_address: meta.ipAddress,
       user_agent: meta.userAgent,
-      metadata: { portal_access_id: matched.id },
+      metadata: { portal_access_id: matched.id, portal_account_id: matched.id, token_format: 'sha256' },
     });
 
     if (sessionError) {
-      return jsonResponse({ ok: false, error: sessionError.message }, 500);
+      console.error(`[client-portal-login] session insert failed: ${sessionError.message}`);
+      return jsonResponse({ ok: false, error: 'Sitzung konnte nicht erstellt werden.' }, 500);
     }
 
     await tryInsert(supabase, 'login_audit_events', {
@@ -204,7 +205,8 @@ serve(async (req) => {
     });
 
     if (!authResult.ok) {
-      return jsonResponse({ ok: false, error: authResult.error }, 500);
+      console.error(`[client-portal-login] auth session creation failed: ${authResult.error}`);
+      return jsonResponse({ ok: false, error: 'Sitzung konnte nicht erstellt werden.' }, 500);
     }
 
     return jsonResponse({
@@ -221,6 +223,7 @@ serve(async (req) => {
       supabaseRefreshToken: authResult.refreshToken,
     });
   } catch (err) {
-    return jsonResponse({ ok: false, error: String(err) }, 500);
+    console.error('[client-portal-login] unexpected error', err);
+    return jsonResponse({ ok: false, error: 'Anmeldung ist vorübergehend nicht verfügbar.' }, 500);
   }
 });

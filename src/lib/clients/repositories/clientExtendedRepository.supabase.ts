@@ -54,6 +54,12 @@ function castRow(row: unknown): Record<string, unknown> {
   return row as Record<string, unknown>;
 }
 
+const CLIENT_PORTAL_ACCESS_SAFE_SELECT = `
+  id, tenant_id, client_id, contact_id, email, portal_username, portal_enabled,
+  status, last_login_at, invited_at, code_created_at, code_rotated_at,
+  modules_enabled, two_factor_enabled, created_at, updated_at, auth_user_id
+` as const;
+
 function getClient() {
   return getSupabaseClient();
 }
@@ -121,7 +127,7 @@ async function loadFullDetailParts(
     fromUnknownTable(supabase, 'client_intake_documents').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'client_notes').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'client_risks').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
-    fromUnknownTable(supabase, 'client_portal_access').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
+    fromUnknownTable(supabase, 'client_portal_access').select(CLIENT_PORTAL_ACCESS_SAFE_SELECT).eq('client_id', clientId).eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'client_tasks').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
 fromUnknownTable(supabase, 'client_timeline_events')
       .select('*')
@@ -789,7 +795,7 @@ export const supabaseClientExtendedRepository = {
     if (!supabase) return unavailable();
 
     const { data, error } = await fromUnknownTable(supabase, 'client_portal_access')
-      .select('*')
+      .select(CLIENT_PORTAL_ACCESS_SAFE_SELECT)
       .eq('tenant_id', tenantId)
       .order('updated_at', { ascending: false });
 
@@ -839,7 +845,7 @@ export const supabaseClientExtendedRepository = {
     if (!exists.ok) return exists;
 
     const { data, error } = await fromUnknownTable(supabase, 'client_portal_access')
-      .select('*')
+      .select(CLIENT_PORTAL_ACCESS_SAFE_SELECT)
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
       .order('created_at', { ascending: false });
@@ -876,7 +882,7 @@ export const supabaseClientExtendedRepository = {
         modules_enabled: ['appointments', 'messages', 'documents'],
         two_factor_enabled: false,
       })
-      .select('*')
+      .select(CLIENT_PORTAL_ACCESS_SAFE_SELECT)
       .single();
 
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
@@ -912,7 +918,7 @@ export const supabaseClientExtendedRepository = {
 
     const now = new Date().toISOString();
     const { data: existingRows } = await fromUnknownTable(supabase, 'client_portal_access')
-      .select('*')
+      .select(CLIENT_PORTAL_ACCESS_SAFE_SELECT)
       .eq('tenant_id', input.tenantId)
       .eq('client_id', input.clientId)
       .limit(1);
@@ -944,7 +950,7 @@ export const supabaseClientExtendedRepository = {
           ...payload,
         });
 
-    const { data, error } = await query.select('*').single();
+    const { data, error } = await query.select(CLIENT_PORTAL_ACCESS_SAFE_SELECT).single();
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
 
     const access = mapClientPortalAccess(castRow(data) as Parameters<typeof mapClientPortalAccess>[0]);
@@ -981,7 +987,7 @@ export const supabaseClientExtendedRepository = {
       .eq('tenant_id', input.tenantId)
       .eq('client_id', input.clientId)
       .eq('id', input.accessId)
-      .select('*')
+      .select(CLIENT_PORTAL_ACCESS_SAFE_SELECT)
       .single();
 
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };

@@ -23,16 +23,16 @@ describe('R14-B Android API 36 and Expo SDK 54 baseline', () => {
     const config = readFileSync(join(root, 'app.config.ts'), 'utf8');
     const staticConfig = readJson('app.json').expo;
 
-    expect(config).toContain("version: '0.2.0'");
-    expect(config).toContain('versionCode: 14');
+    expect(config).toContain("version: '0.2.1'");
+    expect(config).toContain('versionCode: 15');
     expect(config).toContain('compileSdkVersion: 36');
     expect(config).toContain('targetSdkVersion: 36');
     expect(config).toContain('minSdkVersion: 24');
     expect(config).toContain('predictiveBackGestureEnabled: false');
     expect(config).not.toContain('edgeToEdgeEnabled: false');
 
-    expect(staticConfig.version).toBe('0.2.0');
-    expect(staticConfig.android.versionCode).toBe(14);
+    expect(staticConfig.version).toBe('0.2.1');
+    expect(staticConfig.android.versionCode).toBe(15);
     expect(staticConfig.android.predictiveBackGestureEnabled).toBe(false);
   });
 

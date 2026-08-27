@@ -26,6 +26,7 @@ import {
   savePortalSession,
   type PortalSessionRecord,
 } from './portalSessionStore';
+import { revokePortalSession } from './portalSessionSecurityService';
 import { clearBusinessWelcomePending } from './businessWelcomeSession';
 import { shouldClearAuthOnNullSessionEvent } from './authStateEvents';
 import { clearOfflineDb } from '@/lib/offline/idb';
@@ -500,6 +501,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signOutRequestedRef.current = true;
     setIsLoading(true);
     try {
+      if (portalSession?.sessionToken) {
+        await revokePortalSession(portalSession.sessionToken);
+      }
       await supabaseSignOut();
       await clearPortalSession();
       void clearOfflineDb();
@@ -513,7 +517,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       signOutRequestedRef.current = false;
       setIsLoading(false);
     }
-  }, []);
+  }, [portalSession]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

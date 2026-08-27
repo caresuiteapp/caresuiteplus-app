@@ -16,7 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   ...config,
   name: isHealthOSCoreEdition || isPortalOnlyEdition ? 'CareSuite HealthOS' : 'CareSuite+',
   slug: 'caresuite-plus',
-  version: '0.2.0',
+  version: '0.2.1',
   orientation: 'default',
   icon: './assets/icon.png',
   scheme: 'caresuiteplus',
@@ -30,7 +30,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'de.caresuiteplus.app',
-    buildNumber: '2',
+    buildNumber: '3',
     infoPlist: {
       NSCameraUsageDescription:
         'CareSuite benötigt Zugriff auf die Kamera, damit dienstliche Fotos und Videos direkt aufgenommen werden können.',
@@ -59,7 +59,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       backgroundColor: '#F8FAFC',
     },
     package: 'app.caresuiteplus',
-    versionCode: 14,
+    versionCode: 15,
     predictiveBackGestureEnabled: false,
     permissions: [
       'INTERNET',
@@ -86,6 +86,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ],
     'expo-asset',
     'expo-font',
+    [
+      'expo-secure-store',
+      {
+        configureAndroidBackup: true,
+      },
+    ],
+    [
+      'expo-local-authentication',
+      {
+        faceIDPermission:
+          'CareSuite verwendet Face ID ausschließlich zum lokalen Entsperren Ihrer Portal-Sitzung. Biometrische Daten bleiben auf dem Gerät.',
+      },
+    ],
     [
       'expo-build-properties',
       {

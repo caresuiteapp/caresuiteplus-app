@@ -1,10 +1,11 @@
 import { PORTAL_CODE_CHARSET, PORTAL_CODE_LENGTH } from './auth.types';
 import { hashSecret, verifySecret } from './passwordHash';
+import { secureRandomInt } from '@/lib/security/secureRandom';
 
 export function generatePortalCode(length = PORTAL_CODE_LENGTH): string {
   let code = '';
   for (let index = 0; index < length; index += 1) {
-    const charIndex = Math.floor(Math.random() * PORTAL_CODE_CHARSET.length);
+    const charIndex = secureRandomInt(PORTAL_CODE_CHARSET.length);
     code += PORTAL_CODE_CHARSET[charIndex] ?? 'A';
   }
   return code;
@@ -26,7 +27,7 @@ export function validatePortalCodeFormat(value: string): string | null {
 }
 
 export async function hashPortalCode(code: string): Promise<string> {
-  return hashSecret(normalizePortalCodeInput(code), 'portal-code');
+  return hashSecret(normalizePortalCodeInput(code));
 }
 
 export async function verifyPortalCode(code: string, storedHash: string): Promise<boolean> {
