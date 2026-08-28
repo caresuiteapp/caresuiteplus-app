@@ -5,6 +5,7 @@ import type {
   BroadcastDetail,
   BroadcastRecipientFilter,
   BroadcastRecipientStat,
+  BroadcastPushSummary,
   CreateBroadcastInput,
   NotificationBroadcast,
 } from '@/types/office/broadcast';
@@ -22,6 +23,7 @@ import {
 import { logBroadcastAuditEvent } from '@/lib/office/broadcastauditservice';
 import { createOfficeMessageThread } from '@/lib/office/messageservice';
 import { OFFICE_NOTIFICATIONS_TABLE } from '@/lib/office/notificationtable';
+import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 
 export const BROADCAST_SCHEMA_ERROR =
   'Broadcast-System: Supabase-Tabellen fehlen. Migration 0094_office_broadcast_notifications anwenden.';
@@ -294,8 +296,16 @@ export async function sendBroadcast(
   input: CreateBroadcastInput,
   actorRoleKey?: RoleKey | null,
   actorUserId?: string | null,
-): Promise<ServiceResult<{ broadcastId: string; recipientCount: number }>> {
-  const denied = enforceBroadcastCreate<{ broadcastId: string; recipientCount: number }>(actorRoleKey);
+): Promise<ServiceResult<{
+  broadcastId: string;
+  recipientCount: number;
+  push: BroadcastPushSummary;
+}>> {
+  const denied = enforceBroadcastCreate<{
+    broadcastId: string;
+    recipientCount: number;
+    push: BroadcastPushSummary;
+  }>(actorRoleKey);
   if (denied) return denied;
 
   const tenantBlock = guardServiceTenant(tenantId);
@@ -429,9 +439,32 @@ export async function sendBroadcast(
     metadata: { count: recipients.length, audienceSegment: segment },
   });
 
+  let push: BroadcastPushSummary = {
+    requested: false,
+    eligibleDevices: 0,
+    accepted: 0,
+    failed: 0,
+  };
+  if (input.sendPushNotification === true && (segment === 'employees' || segment === 'clients')) {
+    const pushResult = await invokeEdgeFunction<{
+      eligibleDevices: number;
+      accepted: number;
+      failed: number;
+    }>('office-push-send', { broadcastId });
+    push = pushResult.ok
+      ? { requested: true, ...pushResult.data }
+      : {
+          requested: true,
+          eligibleDevices: 0,
+          accepted: 0,
+          failed: 0,
+          error: pushResult.error,
+        };
+  }
+
   return {
     ok: true,
-    data: { broadcastId, recipientCount: recipients.length },
+    data: { broadcastId, recipientCount: recipients.length, push },
   };
 }
 
@@ -447,6 +480,9 @@ export async function listBroadcasts(
 
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  // Receipt reconciliation is intentionally best-effort and does not delay the inbox query.
+  void invokeEdgeFunction('office-push-receipts', {});
 
   const { data, error } = await fromUnknownTable(supabase, 'notification_broadcasts')
     .select('*')

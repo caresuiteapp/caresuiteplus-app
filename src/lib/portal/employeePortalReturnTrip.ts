@@ -128,8 +128,11 @@ export async function finishEmployeeReturnTrip(input: {
   employeeId: string;
   destination: EmployeeReturnTripDestination;
 }): Promise<LogbookTrip> {
-  const lastPoint = await getCurrentLogbookPoint();
+  // Stop only the logbook consumer. A still-active Assist context keeps the
+  // shared native provider alive until the assignment workflow ends.
+  await stopNativeBackgroundTracking();
   await flushLogbookPointQueue();
+  const lastPoint = await getCurrentLogbookPoint();
   await finishLogbookTrip(input.trip.id, {
     tenantId: input.tenantId,
     employeeId: input.employeeId,
@@ -137,7 +140,6 @@ export async function finishEmployeeReturnTrip(input: {
     notes: 'Automatisch nach dem letzten Tageseinsatz im Mitarbeiterportal erfasst.',
     points: [lastPoint],
   });
-  await stopNativeBackgroundTracking();
 
   const bundle = await loadEmployeeLogbook(input.tenantId, input.employeeId);
   const completed = bundle.trips.find((trip) => trip.id === input.trip.id);

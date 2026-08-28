@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { Platform } from 'react-native';
 import { loadPortalAppointmentDetailWithCache } from '@/lib/offline/assignmentCacheService';
 import type { AssignmentCacheMeta } from '@/lib/offline/types';
 import { useConnectivity } from '@/hooks/useConnectivity';
@@ -38,6 +39,29 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
     [appointmentId, profileId, roleKey, tenantId, employeeId, isOffline],
     {
       enabled: !!appointmentId && isReady && !!profileId && !!roleKey,
+      initialCache:
+        Platform.OS !== 'web' && appointmentId && tenantId && employeeId
+          ? async () => {
+              const cached = await loadPortalAppointmentDetailWithCache(
+                appointmentId,
+                profileId,
+                roleKey,
+                tenantId,
+                employeeId,
+                { preferCache: true },
+              );
+              if (cached.ok && cached.fromCache) {
+                setCacheMeta({
+                  fromCache: true,
+                  cachedAt: cached.cachedAt,
+                  partialDetail: cached.partialDetail,
+                  cacheSource: cached.cacheSource,
+                });
+                return cached;
+              }
+              return null;
+            }
+          : undefined,
       live:
         tenantId && employeeId
           ? {
@@ -55,7 +79,7 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
 
   return {
     data: query.data,
-    loading: query.loading,
+    loading: query.loading && !query.data,
     error: query.error,
     refresh,
     notFound: !query.loading && !query.error && !query.data && !!appointmentId,

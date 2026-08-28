@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import { PremiumButton } from '@/components/ui';
 import {
   clampCanvasPointToSafeArea,
@@ -88,10 +89,6 @@ function useSignatureCanvasStyles(fillAvailable: boolean, actionLayout: 'default
           flex: 1,
           minWidth: 0,
         },
-        dot: {
-          position: 'absolute',
-          backgroundColor: '#111',
-        },
       }),
     [actionLayout, fillAvailable],
   );
@@ -139,6 +136,14 @@ function pointsToSvgDataUrl(strokes: Point[][], width: number, height: number): 
     .join('');
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${paths}</svg>`;
   return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+}
+
+function pointsToPath(stroke: Point[]): string {
+  return stroke
+    .map((point, index) =>
+      `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`,
+    )
+    .join(' ');
 }
 
 function SignatureActions({
@@ -654,9 +659,10 @@ function NativeSignatureCanvas({
   const nativeStrokesRef = useRef<Point[][]>([]);
   const nativeCurrentRef = useRef<Point[]>([]);
   const nativeFrameRef = useRef<number | null>(null);
+  const nativeSpaceRef = useRef<CanvasCoordinateSpace | null>(null);
   const [measured, setMeasured] = useState<{ width: number; height: number } | null>(null);
   const dims = resolveDimensions(size, widthProp, heightProp, measured ?? undefined);
-  const dotSize = size === 'large' ? 3 : 2;
+  const nativeStrokeWidth = size === 'large' ? STROKE_WIDTH_LARGE : STROKE_WIDTH_COMPACT;
 
   const normalizeNativePoint = useCallback(
     (x: number, y: number) =>
@@ -673,11 +679,34 @@ function NativeSignatureCanvas({
       if (!fillAvailable) return;
       const { width, height } = event.nativeEvent.layout;
       if (width < 1 || height < 1) return;
-      setMeasured((prev) => {
-        const next = { width: Math.floor(width), height: Math.floor(height) };
-        if (prev?.width === next.width && prev?.height === next.height) return prev;
-        return next;
-      });
+      const next = { width: Math.floor(width), height: Math.floor(height) };
+      const previousSpace = nativeSpaceRef.current;
+      const nextSpace: CanvasCoordinateSpace = {
+        displayWidth: next.width,
+        displayHeight: next.height,
+        drawWidth: next.width,
+        drawHeight: next.height,
+      };
+      if (
+        previousSpace &&
+        (previousSpace.drawWidth !== nextSpace.drawWidth ||
+          previousSpace.drawHeight !== nextSpace.drawHeight)
+      ) {
+        nativeStrokesRef.current = nativeStrokesRef.current.map((stroke) =>
+          scaleCanvasPoints(stroke, previousSpace, nextSpace),
+        );
+        nativeCurrentRef.current = scaleCanvasPoints(
+          nativeCurrentRef.current,
+          previousSpace,
+          nextSpace,
+        );
+        setStrokes([...nativeStrokesRef.current]);
+        setCurrent([...nativeCurrentRef.current]);
+      }
+      nativeSpaceRef.current = nextSpace;
+      setMeasured((prev) =>
+        prev?.width === next.width && prev?.height === next.height ? prev : next,
+      );
     },
     [fillAvailable],
   );
@@ -752,25 +781,27 @@ function NativeSignatureCanvas({
         onLayout={handleCanvasLayout}
         {...pan.panHandlers}
       >
-        {allPoints.map((stroke, si) =>
-          stroke.map((p, pi) =>
-            pi > 0 ? (
-              <View
-                key={`${si}-${pi}`}
-                style={[
-                  styles.dot,
-                  {
-                    left: p.x - dotSize / 2,
-                    top: p.y - dotSize / 2,
-                    width: dotSize,
-                    height: dotSize,
-                    borderRadius: dotSize / 2,
-                  },
-                ]}
+        <Svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${dims.width} ${dims.height}`}
+          pointerEvents="none"
+          testID="portal-signature-native-svg"
+        >
+          {allPoints.map((stroke, index) =>
+            stroke.length > 1 ? (
+              <Path
+                key={index}
+                d={pointsToPath(stroke)}
+                fill="none"
+                stroke="#111111"
+                strokeWidth={nativeStrokeWidth}
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
             ) : null,
-          ),
-        )}
+          )}
+        </Svg>
       </View>
       <SignatureActions
         actionLayout={actionLayout}

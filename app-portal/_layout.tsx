@@ -11,6 +11,7 @@ import { GlobalWorkflowFeedbackProvider } from '@/components/ui/GlobalWorkflowFe
 import { PortalWelcomeGate } from '@/components/auth/PortalWelcomeGate';
 import { PortalBiometricGate } from '@/components/auth/PortalBiometricGate';
 import { PortalOnlyRouteGuard } from '@/portal-app/PortalOnlyRouteGuard';
+import { PortalPushRegistrationGate } from '@/components/portal/PortalPushRegistrationGate';
 import { applyInvisibleScrollIndicators } from '@/design/scroll/applyInvisibleScrollIndicators';
 import { installSystemTextDefaults } from '@/design/installSystemTextDefaults';
 import '@/lib/employeeLogbook/employeeLogbookTracking';
@@ -42,6 +43,7 @@ function PortalOnlyRouter() {
               }}
             />
             <PortalWelcomeGate />
+            <PortalPushRegistrationGate />
           </PortalOnlyRouteGuard>
         </PortalBiometricGate>
       </View>

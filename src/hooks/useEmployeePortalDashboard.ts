@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { Platform } from 'react-native';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from '@/hooks/core';
 import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
@@ -34,6 +35,23 @@ export function useEmployeePortalDashboard() {
     [tenantId, employeeId, roleKey, actorId],
     {
       enabled: isReady && Boolean(tenantId && employeeId),
+      initialCache:
+        Platform.OS !== 'web' && tenantId && employeeId
+          ? async () => {
+              const cached = await loadDashboardProjectionWithCache(
+                tenantId,
+                employeeId,
+                roleKey,
+                actorId ?? '',
+                { preferCache: true },
+              );
+              if (cached.ok && cached.fromCache) {
+                setCacheMeta({ fromCache: true, cachedAt: cached.cachedAt });
+                return cached;
+              }
+              return null;
+            }
+          : undefined,
       live:
         tenantId && employeeId
           ? {
@@ -50,7 +68,7 @@ export function useEmployeePortalDashboard() {
 
   return {
     dashboard: query.data ?? null,
-    loading: query.loading,
+    loading: query.loading && !query.data,
     error: query.error,
     refreshing: query.refreshing,
     refresh,

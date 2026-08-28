@@ -31,6 +31,7 @@ import { clearBusinessWelcomePending } from './businessWelcomeSession';
 import { shouldClearAuthOnNullSessionEvent } from './authStateEvents';
 import { clearOfflineDb } from '@/lib/offline/idb';
 import { withAuthBootstrapTimeout } from './authBootstrapTimeout';
+import { unregisterPortalPushDeviceBeforeLogout } from '@/lib/portal/portalPushNotifications';
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -501,6 +502,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signOutRequestedRef.current = true;
     setIsLoading(true);
     try {
+      await unregisterPortalPushDeviceBeforeLogout();
       if (portalSession?.sessionToken) {
         await revokePortalSession(portalSession.sessionToken);
       }

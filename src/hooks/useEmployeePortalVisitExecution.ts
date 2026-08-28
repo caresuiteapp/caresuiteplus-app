@@ -6,6 +6,7 @@ import {
 } from '@/features/liveTracking/startEmployeeLiveTracking';
 import type { EmployeeLiveContext } from '@/features/liveTracking/resolveEmployeeLiveContext';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import type {
   EmployeePortalDocumentationInput,
   EmployeePortalAssignmentDetail,
@@ -313,6 +314,28 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     [tenantId, assignmentId, employeeId, roleKey, isOffline],
     {
       enabled: Boolean(tenantId && assignmentId && employeeId),
+      initialCache:
+        Platform.OS !== 'web' && tenantId && assignmentId && employeeId
+          ? async () => {
+              const cached = await loadExecutionDetailWithCache(
+                tenantId,
+                assignmentId,
+                employeeId,
+                roleKey,
+                { preferCache: true },
+              );
+              if (cached.ok && cached.fromCache) {
+                setCacheMeta({
+                  fromCache: true,
+                  cachedAt: cached.cachedAt,
+                  partialDetail: cached.partialDetail,
+                  cacheSource: cached.cacheSource,
+                });
+                return cached;
+              }
+              return null;
+            }
+          : undefined,
       live:
         tenantId && employeeId
           ? {

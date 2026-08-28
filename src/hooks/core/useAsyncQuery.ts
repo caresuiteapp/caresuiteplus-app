@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, Platform } from 'react-native';
 import type { ServiceResult } from '@/types';
-import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
+import {
+  NATIVE_SERVICE_QUERY_TIMEOUT_MS,
+  withServiceQueryTimeout,
+} from '@/lib/services/queryTimeout';
 import type { LiveRefreshQueryConfig } from './liveRefreshTypes';
 import { DEFAULT_LIVE_POLL_MS, useLiveRefresh } from './useLiveRefresh';
 
@@ -8,7 +12,42 @@ type UseAsyncQueryOptions = {
   enabled?: boolean;
   onSuccess?: () => void;
   live?: LiveRefreshQueryConfig;
+  /** Native stale-while-revalidate bootstrap. Cached data is painted before the live request. */
+  initialCache?: () => Promise<ServiceResult<unknown> | null>;
+  retryCount?: number;
+  refreshOnAppFocus?: boolean;
 };
+
+function isTransientQueryError(message: string): boolean {
+  return /(network|netzwerk|fetch|timeout|zeit|verbindung|relay|temporar|vorübergehend)/i.test(message);
+}
+
+async function runQueryWithRetry<T>(
+  fetcher: () => Promise<ServiceResult<T>>,
+  retryCount: number,
+): Promise<ServiceResult<T>> {
+  let lastResult: ServiceResult<T> | null = null;
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retryCount; attempt += 1) {
+    try {
+      const result = Platform.OS === 'web'
+        ? await withServiceQueryTimeout(fetcher())
+        : await withServiceQueryTimeout(
+            fetcher(),
+            'Datenabfrage',
+            NATIVE_SERVICE_QUERY_TIMEOUT_MS,
+          );
+      lastResult = result;
+      if (result.ok || !isTransientQueryError(result.error) || attempt === retryCount) return result;
+    } catch (error) {
+      lastError = error;
+      if (attempt === retryCount) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 350 * (attempt + 1)));
+  }
+  if (lastResult) return lastResult;
+  throw lastError instanceof Error ? lastError : new Error('Datenabfrage fehlgeschlagen.');
+}
 
 export function useAsyncQuery<T>(
   fetcher: () => Promise<ServiceResult<T>>,
@@ -43,7 +82,7 @@ export function useAsyncQuery<T>(
 
       try {
         refreshQueuedRef.current = false;
-        const result = await withServiceQueryTimeout(fetcher());
+        const result = await runQueryWithRetry(fetcher, options?.retryCount ?? 1);
         if (result.ok) {
           dataRef.current = result.data;
           setDataState(result.data);
@@ -94,12 +133,45 @@ export function useAsyncQuery<T>(
       setLoading(false);
       return;
     }
-    load();
+    let cancelled = false;
+    void (async () => {
+      let cacheShown = false;
+      if (options?.initialCache && dataRef.current === null) {
+        try {
+          const cached = (await options.initialCache()) as ServiceResult<T> | null;
+          if (!cancelled && cached?.ok) {
+            dataRef.current = cached.data;
+            setDataState(cached.data);
+            setError(null);
+            setLoading(false);
+            cacheShown = true;
+          }
+        } catch {
+          // Cache is an acceleration layer; the live request remains authoritative.
+        }
+      }
+      if (!cancelled) await load(cacheShown);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // initialCache intentionally follows the fetcher deps captured by `load`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load, options?.enabled]);
 
   const silentRefresh = useCallback(async () => {
     await load(true);
   }, [load]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' || options?.refreshOnAppFocus === false || options?.enabled === false) {
+      return;
+    }
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && dataRef.current !== null) void load(true);
+    });
+    return () => subscription.remove();
+  }, [load, options?.enabled, options?.refreshOnAppFocus]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -136,10 +208,12 @@ export function useAsyncQuery<T>(
       const next = (value as (prev: T | null) => T | null)(dataRef.current);
       dataRef.current = next;
       setDataState(next);
+      if (next !== null) setLoading(false);
       return;
     }
     dataRef.current = value;
     setDataState(value);
+    if (value !== null) setLoading(false);
   }, []);
 
   return {

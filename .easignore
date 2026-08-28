@@ -1,0 +1,55 @@
+# CareSuite EAS build archive — source and required runtime assets only.
+.git/
+.github/
+.cursor/
+.expo/
+.expo-*/
+node_modules/
+
+# Desktop-Office-only documentation and heavy 3D/HealthOS assets are not part
+# of the employee/client portal Android edition. Vercel is unaffected because
+# .easignore is read only when EAS prepares a native build archive.
+docs/
+public/bodymap3d/
+assets/healthos/
+
+# Generated web/native exports and local build artifacts.
+dist/
+dist-*/
+web-build/
+android/app/build/
+android/.gradle/
+coverage/
+
+# Local tests, reports, screenshots and disposable audit payloads.
+.audit-*/
+.audit-screenshots-*/
+test-out.txt
+test-output.txt
+vitest-output.txt
+tsc-output.txt
+tmp-*.txt
+tmp-*.json
+*.log
+*.tsbuildinfo
+
+# Local IDE and operating-system files.
+.idea/
+.vscode/
+.DS_Store
+*.orig.*
+
+# Credentials and machine-local environment files are supplied by EAS.
+.env
+.env.*
+.env.local
+.env.*.local
+.vercel/
+secrets/
+*.jks
+*.keystore
+*.p8
+*.p12
+*.pem
+*.key
+*.mobileprovision

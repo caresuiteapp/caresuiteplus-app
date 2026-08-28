@@ -255,16 +255,29 @@ export async function finishActiveVisitLogbookTrip(input: {
   );
   if (!active) return null;
 
-  const lastPoint = await getCurrentLogbookPoint();
-  await flushLogbookPointQueue();
-  await finishLogbookTrip(active.id, {
-    tenantId: input.tenantId,
-    employeeId: input.employeeId,
-    endAddress: input.endAddress?.trim() || undefined,
-    notes: input.notes?.trim() || undefined,
-    points: [lastPoint],
-  });
-  await stopAutomaticLogbookTracking(active.id);
+  // Freeze the trip producer before flushing so no late background callback
+  // can arrive between distance calculation and the completed status write.
+  stopForegroundPersistence(active.id);
+  await stopNativeBackgroundTracking();
+  try {
+    await flushLogbookPointQueue();
+    const lastPoint = await getCurrentLogbookPoint();
+    await finishLogbookTrip(active.id, {
+      tenantId: input.tenantId,
+      employeeId: input.employeeId,
+      endAddress: input.endAddress?.trim() || undefined,
+      notes: input.notes?.trim() || undefined,
+      points: [lastPoint],
+    });
+  } catch (error) {
+    await startNativeBackgroundTracking({
+      tripId: active.id,
+      tenantId: input.tenantId,
+      employeeId: input.employeeId,
+    }).catch(() => undefined);
+    await startForegroundPersistence(active.id, input.tenantId, input.employeeId);
+    throw error;
+  }
   const refreshed = await loadEmployeeLogbook(input.tenantId, input.employeeId);
   return refreshed.trips.find((trip) => trip.id === active.id) ?? null;
 }

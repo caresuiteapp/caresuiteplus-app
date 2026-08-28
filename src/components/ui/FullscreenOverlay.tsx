@@ -140,6 +140,7 @@ export function FullscreenOverlay({
       animationType="fade"
       onRequestClose={onRequestClose}
       statusBarTranslucent
+      navigationBarTranslucent
       presentationStyle="fullScreen"
     >
       {content}

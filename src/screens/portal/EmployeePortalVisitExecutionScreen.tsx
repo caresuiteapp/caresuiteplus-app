@@ -73,7 +73,11 @@ import { colors, spacing, typography } from '@/theme';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { employeePortalExecutionSurface } from '@/lib/portal/employeePortalExecutionSurface';
 import { fetchPortalAppointments } from '@/lib/portal/appointmentService';
-import { isLastScheduledEmployeeAssignmentOfDay } from '@/lib/portal/employeePortalReturnTrip';
+import {
+  isLastScheduledEmployeeAssignmentOfDay,
+  loadActiveEmployeeReturnTrip,
+  returnTripDestinationFromTrip,
+} from '@/lib/portal/employeePortalReturnTrip';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import {
   finishVisitApproachLogbook,
@@ -402,6 +406,23 @@ export function EmployeePortalVisitExecutionScreen() {
       .then(async (eligibility) => {
         if (cancelled) return;
         if (!eligibility.eligible) {
+          returnTripPromptHandledRef.current = true;
+          return;
+        }
+        const activeReturnTrip = await loadActiveEmployeeReturnTrip(
+          portalTenantId,
+          portalEmployeeId,
+        );
+        if (cancelled) return;
+        if (
+          activeReturnTrip &&
+          activeReturnTrip.assignmentId === resolveVisitMasterId(visit.assignmentId) &&
+          returnTripDestinationFromTrip(activeReturnTrip)
+        ) {
+          // A decision row already exists after the employee selected home or
+          // office. Reopen the active trip before checking that row so app
+          // restarts and route changes never strand an unfinished return trip.
+          setReturnTripModalOpen(true);
           returnTripPromptHandledRef.current = true;
           return;
         }

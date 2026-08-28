@@ -9,7 +9,8 @@ const ANDROID_PROGUARD_RULES = readFileSync(
 );
 
 export default ({ config }: ConfigContext): ExpoConfig => {
-  const easProjectId = process.env.EAS_PROJECT_ID;
+  const easProjectId =
+    process.env.EAS_PROJECT_ID ?? '567bda34-8356-4de8-9349-a0de3143567e';
   const isHealthOSCoreEdition = process.env.EXPO_PUBLIC_APP_EDITION === 'healthos-core';
   const isPortalOnlyEdition = process.env.EXPO_PUBLIC_APP_EDITION === 'portal-only';
   return {
@@ -63,6 +64,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     predictiveBackGestureEnabled: false,
     permissions: [
       'INTERNET',
+      'POST_NOTIFICATIONS',
       'CAMERA',
       'RECORD_AUDIO',
       'ACCESS_COARSE_LOCATION',
@@ -97,6 +99,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       {
         faceIDPermission:
           'CareSuite verwendet Face ID ausschließlich zum lokalen Entsperren Ihrer Portal-Sitzung. Biometrische Daten bleiben auf dem Gerät.',
+      },
+    ],
+    [
+      'expo-notifications',
+      {
+        icon: './assets/android-icon-monochrome.png',
+        color: '#6246EA',
+        defaultChannel: 'caresuite-important',
       },
     ],
     [

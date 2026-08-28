@@ -37,6 +37,27 @@ type NetInfoModule = {
   ) => () => void;
 };
 
+let netInfoModule: NetInfoModule | null | undefined;
+
+function loadNetInfoModule(): NetInfoModule | null {
+  if (netInfoModule !== undefined) return netInfoModule;
+  if (Platform.OS === 'web') {
+    netInfoModule = null;
+    return null;
+  }
+  try {
+    // Installed native dependency; lazy loading keeps SSR and web tests isolated.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('@react-native-community/netinfo') as {
+      default?: NetInfoModule;
+    } & NetInfoModule;
+    netInfoModule = mod.default ?? mod;
+  } catch {
+    netInfoModule = null;
+  }
+  return netInfoModule;
+}
+
 function readWebConnected(): boolean {
   if (typeof navigator === 'undefined') return true;
   return navigator.onLine !== false;
@@ -88,28 +109,6 @@ export function readInitialConnectivityState(): ConnectivityState {
 
   // Native without NetInfo — assume online until listener updates.
   return buildState(true, null, 'unknown', 'unknown');
-}
-
-let netInfoModule: NetInfoModule | null | undefined;
-
-function loadNetInfoModule(): NetInfoModule | null {
-  if (netInfoModule !== undefined) return netInfoModule;
-  if (Platform.OS === 'web') {
-    netInfoModule = null;
-    return null;
-  }
-
-  try {
-    // Optional dependency — not installed in this repo; web/unknown fallback only.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require('@react-native-community/netinfo') as {
-      default?: NetInfoModule;
-    } & NetInfoModule;
-    netInfoModule = mod.default ?? mod;
-  } catch {
-    netInfoModule = null;
-  }
-  return netInfoModule;
 }
 
 /**

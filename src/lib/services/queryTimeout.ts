@@ -1,4 +1,6 @@
 export const SERVICE_QUERY_TIMEOUT_MS = 120_000;
+/** Native app queries fail visibly and retry instead of leaving a two-minute spinner. */
+export const NATIVE_SERVICE_QUERY_TIMEOUT_MS = 15_000;
 
 export function getServiceQueryTimeoutMs(): number {
   return SERVICE_QUERY_TIMEOUT_MS;

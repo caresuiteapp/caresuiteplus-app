@@ -284,6 +284,13 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
     }));
   }, []);
 
+  const stopAssistBackgroundTracking = useCallback(() => {
+    if (Platform.OS === 'web') return;
+    void import('@/lib/employeeLogbook/employeeLogbookTracking')
+      .then(({ stopNativeAssistBackgroundTracking }) => stopNativeAssistBackgroundTracking())
+      .catch(() => undefined);
+  }, []);
+
   const startWatching = useCallback(async (): Promise<boolean> => {
     if (!options.enabled || !options.sessionId) return false;
     if (startingWatchRef.current) return true;
@@ -414,9 +421,19 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
       return;
     }
     stopWatching();
-  }, [options.enabled, options.sessionId, startWatching, stopWatching]);
+    stopAssistBackgroundTracking();
+  }, [
+    options.enabled,
+    options.sessionId,
+    startWatching,
+    stopWatching,
+    stopAssistBackgroundTracking,
+  ]);
 
   useEffect(() => {
+    // Leaving the execution screen must not stop a still-active assignment.
+    // The disabled-state effect above removes the native Assist context only
+    // after the workflow has actually ended.
     return () => stopWatching();
   }, [stopWatching]);
 

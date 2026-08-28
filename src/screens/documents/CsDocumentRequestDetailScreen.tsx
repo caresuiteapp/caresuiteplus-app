@@ -176,7 +176,6 @@ export function CsDocumentRequestDetailScreen({
         : undefined,
     });
     setWorking(false);
-    setSignModal(false);
     if (!result.ok) {
       setActionError(
         isPortal
@@ -188,6 +187,7 @@ export function CsDocumentRequestDetailScreen({
       );
       return;
     }
+    setSignModal(false);
     setSignSuccess(true);
     await query.refresh();
   };

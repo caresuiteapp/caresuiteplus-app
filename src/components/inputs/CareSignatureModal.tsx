@@ -107,7 +107,7 @@ export function CareSignatureModal({
 }: Props) {
   const { isPhone, isTablet } = useDeviceClass();
   const orientation = useOrientation();
-  const fullscreen = forceFullscreen || isPhone || isTablet;
+  const fullscreen = forceFullscreen || Platform.OS !== 'web' || isPhone || isTablet;
   const portraitMobile = fullscreen && !orientation.isLandscape;
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -206,9 +206,8 @@ export function CareSignatureModal({
   const handleConfirm = useCallback(
     (dataUrl: string) => {
       onConfirm(dataUrl);
-      onClose();
     },
-    [onClose, onConfirm],
+    [onConfirm],
   );
 
   const canvas = (

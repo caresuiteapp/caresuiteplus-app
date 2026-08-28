@@ -14,6 +14,7 @@ import type { OfficeMessageAudience } from '@/types/office/messaging';
 import type {
   BroadcastCategoryKey,
   BroadcastPriority,
+  BroadcastPushSummary,
   CreateBroadcastInput,
 } from '@/types/office/broadcast';
 import { BROADCAST_CATEGORIES, BROADCAST_PRIORITIES } from '@/types/office/broadcast';
@@ -78,6 +79,11 @@ export function OfficeBroadcastModal({ visible, audience, onClose, onSent }: Off
   const [requireAck, setRequireAck] = useState(false);
   const [allowReplies, setAllowReplies] = useState(true);
   const [showInPortal, setShowInPortal] = useState(audience === 'employees');
+  const [sendPush, setSendPush] = useState(audience !== 'internal');
+  const [deliverySummary, setDeliverySummary] = useState<{
+    recipients: number;
+    push: BroadcastPushSummary;
+  } | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,6 +133,8 @@ export function OfficeBroadcastModal({ visible, audience, onClose, onSent }: Off
     setRequireAck(false);
     setAllowReplies(true);
     setShowInPortal(audience === 'employees');
+    setSendPush(audience !== 'internal');
+    setDeliverySummary(null);
     setConfirmOpen(false);
     setError(null);
   }, [audience]);
@@ -139,6 +147,7 @@ export function OfficeBroadcastModal({ visible, audience, onClose, onSent }: Off
     allowReplies,
     requireAcknowledgement: requireAck,
     showInEmployeePortal: showInPortal,
+    sendPushNotification: sendPush && audience !== 'internal',
     recipientFilter: broadcastAudienceForSegment(audience),
   };
 
@@ -158,8 +167,8 @@ export function OfficeBroadcastModal({ visible, audience, onClose, onSent }: Off
       setConfirmOpen(false);
       return;
     }
-    reset();
-    onClose();
+    setConfirmOpen(false);
+    setDeliverySummary({ recipients: result.data.recipientCount, push: result.data.push });
     onSent(result.data.recipientCount);
   };
 
@@ -173,6 +182,51 @@ export function OfficeBroadcastModal({ visible, audience, onClose, onSent }: Off
       : audience === 'employees'
         ? 'Zusätzlich im Mitarbeiter:innenportal anzeigen'
         : null;
+
+  if (deliverySummary) {
+    const push = deliverySummary.push;
+    return (
+      <PlatformModal
+        visible={visible}
+        title="Broadcast versendet"
+        onClose={() => {
+          reset();
+          onClose();
+        }}
+        footerActions={[
+          {
+            title: 'Schließen',
+            onPress: () => {
+              reset();
+              onClose();
+            },
+          },
+        ]}
+      >
+        <View style={styles.section}>
+          <Text style={styles.previewTitle}>
+            {deliverySummary.recipients} Portal-Empfänger:innen wurden angelegt.
+          </Text>
+          {push.requested ? (
+            <>
+              <Text style={styles.optionText}>
+                System-Push: {push.accepted} angenommen · {push.failed} fehlgeschlagen ·{' '}
+                {push.eligibleDevices} registrierte Geräte
+              </Text>
+              {push.error ? <Text style={styles.error}>{push.error}</Text> : null}
+              {push.eligibleDevices === 0 && !push.error ? (
+                <Text style={styles.recipientNote}>
+                  Noch kein Empfängergerät hat sich für Push registriert. Die Mitteilung bleibt im Portal verfügbar.
+                </Text>
+              ) : null}
+            </>
+          ) : (
+            <Text style={styles.recipientNote}>System-Push war für diesen Broadcast nicht aktiviert.</Text>
+          )}
+        </View>
+      </PlatformModal>
+    );
+  }
 
   if (confirmOpen) {
     return (
@@ -288,6 +342,9 @@ export function OfficeBroadcastModal({ visible, audience, onClose, onSent }: Off
                 ...(portalOptionLabel
                   ? [{ key: 'portal', label: portalOptionLabel, value: showInPortal, set: setShowInPortal }]
                   : []),
+                ...(audience !== 'internal'
+                  ? [{ key: 'push', label: 'Zusätzlich als App-Push senden', value: sendPush, set: setSendPush }]
+                  : []),
               ].map((opt) => (
                 <Pressable
                   key={opt.key}
@@ -311,6 +368,11 @@ export function OfficeBroadcastModal({ visible, audience, onClose, onSent }: Off
                 {body.trim() || 'Nachrichtentext …'}
               </Text>
               <Text style={styles.previewBody}>🔔 Broadcast · {recipientLabel}</Text>
+              {sendPush && audience !== 'internal' ? (
+                <Text style={styles.previewBody}>
+                  📲 System-Push: neutraler Sperrbildschirmhinweis; vollständiger Text erst in CareSuite
+                </Text>
+              ) : null}
             </View>
           </View>
         </View>

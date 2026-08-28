@@ -65,8 +65,18 @@ export type CreateBroadcastInput = {
   allowReplies: boolean;
   requireAcknowledgement: boolean;
   showInEmployeePortal: boolean;
+  /** Native System-Push an registrierte Mitarbeiter-/Klienten-App-Geräte senden. */
+  sendPushNotification?: boolean;
   expiresAt?: string | null;
   recipientFilter?: BroadcastRecipientFilter;
+};
+
+export type BroadcastPushSummary = {
+  requested: boolean;
+  eligibleDevices: number;
+  accepted: number;
+  failed: number;
+  error?: string;
 };
 
 export type NotificationBroadcast = {

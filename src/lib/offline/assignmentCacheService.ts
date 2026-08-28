@@ -421,10 +421,11 @@ export async function loadPortalAppointmentsWithCache(
   options?: AssignmentCacheLoadOptions,
 ): Promise<ServiceResult<CachedPortalAppointmentItem[]> & AssignmentCacheMeta> {
   await openOfflineDb();
-  const scoped = hasScopedEmployeeCache(tenantId, employeeId);
+  const cacheActorId = employeeId ?? clientId;
+  const scoped = hasScopedEmployeeCache(tenantId, cacheActorId);
 
   if (scoped && isBrowserOffline(options?.preferCache)) {
-    const cached = await readSortedAssignmentListCache(tenantId!, employeeId!);
+    const cached = await readSortedAssignmentListCache(tenantId!, cacheActorId!);
     if (cached) {
       return withCacheMeta(
         { ok: true, data: cached.items },
@@ -440,15 +441,17 @@ export async function loadPortalAppointmentsWithCache(
     clientId,
   });
   if (online.ok && scoped) {
-    const merged = await mergeAssignmentListCache(tenantId!, employeeId!, online.data);
-    void import('./assignmentDetailPrefetch').then((mod) =>
-      mod.scheduleAssignmentDetailPrefetch(profileId, roleKey, tenantId!, employeeId!, merged),
-    );
+    const merged = await mergeAssignmentListCache(tenantId!, cacheActorId!, online.data);
+    if (employeeId) {
+      void import('./assignmentDetailPrefetch').then((mod) =>
+        mod.scheduleAssignmentDetailPrefetch(profileId, roleKey, tenantId!, employeeId, merged),
+      );
+    }
     return withCacheMeta({ ok: true, data: merged }, liveCacheMeta());
   }
 
   if (scoped) {
-    const cached = await readSortedAssignmentListCache(tenantId!, employeeId!);
+    const cached = await readSortedAssignmentListCache(tenantId!, cacheActorId!);
     if (cached) {
       return withCacheMeta(
         { ok: true, data: cached.items },
@@ -665,8 +668,16 @@ export async function loadDashboardProjectionWithCache(
   employeeId: string,
   roleKey: RoleKey | null,
   profileId: string,
+  options?: AssignmentCacheLoadOptions,
 ): Promise<ServiceResult<EmployeePortalDashboardProjection> & AssignmentCacheMeta> {
-  const list = await loadPortalAppointmentsWithCache(profileId, roleKey, tenantId, employeeId);
+  const list = await loadPortalAppointmentsWithCache(
+    profileId,
+    roleKey,
+    tenantId,
+    employeeId,
+    null,
+    options,
+  );
   if (!list.ok) {
     return withCacheMeta(
       { ok: false, error: list.error },

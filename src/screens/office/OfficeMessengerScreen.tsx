@@ -423,7 +423,7 @@ export function OfficeMessengerScreen() {
           audience={audience}
           onClose={() => setShowBroadcastModal(false)}
           onSent={() => {
-            setShowBroadcastModal(false);
+            setInboxRefreshToken((value) => value + 1);
           }}
         />
       ) : null}

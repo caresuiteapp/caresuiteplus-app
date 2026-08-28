@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import type { PortalAppointmentItem } from '@/lib/portal';
 import { loadPortalAppointmentsWithCache } from '@/lib/offline/assignmentCacheService';
 import type { AssignmentCacheMeta } from '@/lib/offline/types';
@@ -79,7 +80,28 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
       return result;
     },
     [profileId, scopedRoleKey, tenantId, scopedClientId, scopedEmployeeId, isOffline],
-    { enabled: queryEnabled, live: liveConfig },
+    {
+      enabled: queryEnabled,
+      live: liveConfig,
+      initialCache:
+        Platform.OS !== 'web' && queryEnabled
+          ? async () => {
+              const cached = await loadPortalAppointmentsWithCache(
+                profileId,
+                scopedRoleKey,
+                tenantId,
+                scopedEmployeeId,
+                scopedClientId,
+                { preferCache: true },
+              );
+              if (cached.ok && cached.fromCache) {
+                setCacheMeta({ fromCache: true, cachedAt: cached.cachedAt });
+                return cached;
+              }
+              return null;
+            }
+          : undefined,
+    },
   );
 
   const items = useMemo(() => {
