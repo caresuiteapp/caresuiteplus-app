@@ -236,7 +236,7 @@ describe('Google Play readiness — store sight', () => {
     const appJson = JSON.parse(readSrc('app.json'));
     expect(appJson.expo.name).toBe('CareSuite+');
     expect(appJson.expo.scheme).toBe('caresuiteplus');
-    expect(appJson.expo.android?.package).toBe('app.caresuiteplus');
+    expect(appJson.expo.android?.package).toBe('app.caresuitehealthos');
     expect(appJson.expo.android?.versionCode).toBeGreaterThan(0);
     expect(appJson.expo.splash?.image).toBe('./assets/splash-icon.png');
     expect(appJson.expo.android?.adaptiveIcon?.foregroundImage).toBeDefined();
@@ -259,10 +259,13 @@ describe('Google Play readiness — store sight', () => {
     const appConfig = readSrc('app.config.ts');
     expect(appConfig).toContain('enableProguardInReleaseBuilds: true');
     expect(appConfig).toContain('android-proguard-rules.pro');
-    expect(appConfig).toContain('versionCode: 14');
+    const appJson = JSON.parse(readSrc('app.json'));
+    expect(appConfig).toContain(
+      `versionCode: ${appJson.expo.android.versionCode}`,
+    );
     expect(appConfig).toContain('targetSdkVersion: 36');
     expect(readFileSync(path.join(root, 'android-proguard-rules.pro'), 'utf8')).toContain(
-      'app.caresuiteplus',
+      'app.caresuitehealthos',
     );
   });
 

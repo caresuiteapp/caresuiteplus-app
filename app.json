@@ -25,7 +25,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png",
         "backgroundColor": "#070B12"
       },
-      "package": "app.caresuiteplus",
+      "package": "app.caresuitehealthos",
       "versionCode": 15,
       "predictiveBackGestureEnabled": false,
       "permissions": [

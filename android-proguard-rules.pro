@@ -26,7 +26,7 @@
 -keep public class com.horcrux.svg.** { *; }
 
 # App package
--keep class app.caresuiteplus.** { *; }
+-keep class app.caresuitehealthos.** { *; }
 
 # Networking
 -dontwarn okhttp3.**

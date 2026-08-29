@@ -59,7 +59,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       monochromeImage: './assets/android-icon-monochrome.png',
       backgroundColor: '#F8FAFC',
     },
-    package: 'app.caresuiteplus',
+    package: 'app.caresuitehealthos',
     versionCode: 15,
     predictiveBackGestureEnabled: false,
     permissions: [

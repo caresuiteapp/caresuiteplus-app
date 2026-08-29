@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:429399114957:android:00c254b09ec5c839d91584",
+        "android_client_info": {
+          "package_name": "app.caresuitehealthos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZIlwnvVxJIp52pxy7q4bTm-ADtFVWBrQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:429399114957:android:43bd6cc444252a92d91584",
         "android_client_info": {
           "package_name": "app.caresuiteplus"
