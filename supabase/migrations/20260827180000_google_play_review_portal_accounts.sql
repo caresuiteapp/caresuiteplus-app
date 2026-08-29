@@ -52,11 +52,11 @@ INSERT INTO public.employees (
 VALUES (
   'c5000000-0000-4000-8000-000000000010',
   'c5000000-0000-4000-8000-000000000001',
-  'Anna', 'Beispiel', 'aktiv'
+  'Anna', 'Beispiel', 'active'
 )
 ON CONFLICT (id) DO UPDATE SET
   first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name,
-  status = 'aktiv', updated_at = NOW();
+  status = 'active', updated_at = NOW();
 
 -- Production has historically divergent employee columns. Populate every
 -- extended portal field only when that exact column exists.
@@ -64,7 +64,7 @@ DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'role_title') THEN
     EXECUTE 'UPDATE public.employees SET role_title = $1 WHERE id = $2'
-      USING 'Alltagsbegleiterin', 'c5000000-0000-4000-8000-000000000010'::uuid;
+      USING 'alltagsbegleiter', 'c5000000-0000-4000-8000-000000000010'::uuid;
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'email') THEN
     EXECUTE 'UPDATE public.employees SET email = $1 WHERE id = $2'
@@ -80,7 +80,7 @@ BEGIN
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'department') THEN
     EXECUTE 'UPDATE public.employees SET department = $1 WHERE id = $2'
-      USING 'Ambulante Betreuung', 'c5000000-0000-4000-8000-000000000010'::uuid;
+      USING 'assist_aussendienst', 'c5000000-0000-4000-8000-000000000010'::uuid;
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'entry_date') THEN
     EXECUTE 'UPDATE public.employees SET entry_date = CURRENT_DATE - 730 WHERE id = $1'
@@ -91,8 +91,8 @@ BEGIN
       USING 'GP-1001', 'c5000000-0000-4000-8000-000000000010'::uuid;
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'employment_type') THEN
-    EXECUTE 'UPDATE public.employees SET employment_type = $1 WHERE id = $2'
-      USING 'Teilzeit', 'c5000000-0000-4000-8000-000000000010'::uuid;
+    EXECUTE 'UPDATE public.employees SET employment_type = $1::public.employee_employment_type WHERE id = $2'
+      USING 'part_time', 'c5000000-0000-4000-8000-000000000010'::uuid;
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'weekly_hours') THEN
     EXECUTE 'UPDATE public.employees SET weekly_hours = $1 WHERE id = $2'
@@ -104,17 +104,10 @@ BEGIN
   END IF;
 END $$;
 
-INSERT INTO public.employee_profiles (
-  id, tenant_id, employee_id, portal_active, role_key, password_configured, two_factor_prepared
-)
-VALUES (
-  'c5000000-0000-4000-8000-000000000011',
-  'c5000000-0000-4000-8000-000000000001',
-  'c5000000-0000-4000-8000-000000000010', TRUE, 'employee_portal', TRUE, FALSE
-)
-ON CONFLICT (tenant_id, employee_id) DO UPDATE SET
-  portal_active = TRUE, role_key = 'employee_portal', password_configured = TRUE,
-  two_factor_prepared = FALSE, updated_at = NOW();
+
+-- employee_profiles ist auf Produktion nicht vorhanden und für den Portal-Login nicht erforderlich.
+-- Maßgebliche Kontotabelle: public.employee_portal_accounts.
+
 
 INSERT INTO public.employee_portal_accounts (
   id, tenant_id, employee_id, username, status, must_change_password,
@@ -138,34 +131,36 @@ ON CONFLICT (tenant_id, username) DO UPDATE SET
 -- Three synthetic clients provide a realistic employee schedule; Maria owns the client login.
 INSERT INTO public.clients (
   id, tenant_id, first_name, last_name, date_of_birth, care_level, status,
-  street, city, zip, phone, email, notes, primary_contact_phone,
-  sensitivity, visibility, client_number, admission_date, service_start,
-  language, special_notes
+  street, city, postal_code, phone, email, internal_notes,
+  client_number, admission_date, service_start, special_notes
 )
 VALUES
   ('c5000000-0000-4000-8000-000000000020', 'c5000000-0000-4000-8000-000000000001',
-   'Maria', 'Muster', DATE '1948-04-18', 'pg3', 'aktiv', 'Rosenweg 24', 'Berlin', '10119',
+   'Maria', 'Muster', DATE '1948-04-18', 'pg3', 'active', 'Rosenweg 24', 'Berlin', '10119',
    '+49 30 555 0120', 'maria.muster@caresuite.invalid',
-   'Synthetische Prüfakte. Bevorzugt Termine am Vormittag.', '+49 170 555 0121',
-   'care', 'team', 'GP-K-2001', CURRENT_DATE - 540, CURRENT_DATE - 520, 'de',
+   'Synthetische Prüfakte. Bevorzugt Termine am Vormittag.',
+   'GP-K-2001', CURRENT_DATE - 540, CURRENT_DATE - 520,
    'Bitte klingeln und einen Moment warten.'),
   ('c5000000-0000-4000-8000-000000000021', 'c5000000-0000-4000-8000-000000000001',
-   'Karl', 'Testmann', DATE '1952-09-03', 'pg2', 'aktiv', 'Parkstraße 7', 'Berlin', '10178',
+   'Karl', 'Testmann', DATE '1952-09-03', 'pg2', 'active', 'Parkstraße 7', 'Berlin', '10178',
    '+49 30 555 0122', 'karl.testmann@caresuite.invalid',
-   'Synthetische Prüfakte für den Tourenplan.', '+49 170 555 0123',
-   'care', 'team', 'GP-K-2002', CURRENT_DATE - 380, CURRENT_DATE - 360, 'de',
+   'Synthetische Prüfakte für den Tourenplan.',
+   'GP-K-2002', CURRENT_DATE - 380, CURRENT_DATE - 360,
    'Zugang über den Innenhof.'),
   ('c5000000-0000-4000-8000-000000000022', 'c5000000-0000-4000-8000-000000000001',
-   'Elisabeth', 'Demo', DATE '1944-12-12', 'pg4', 'aktiv', 'Lindenallee 31', 'Berlin', '10557',
+   'Elisabeth', 'Demo', DATE '1944-12-12', 'pg4', 'active', 'Lindenallee 31', 'Berlin', '10557',
    '+49 30 555 0124', 'elisabeth.demo@caresuite.invalid',
-   'Synthetische Prüfakte für Einsatz- und Fahrtenbuchdaten.', '+49 170 555 0125',
-   'care', 'team', 'GP-K-2003', CURRENT_DATE - 280, CURRENT_DATE - 260, 'de',
+   'Synthetische Prüfakte für Einsatz- und Fahrtenbuchdaten.',
+   'GP-K-2003', CURRENT_DATE - 280, CURRENT_DATE - 260,
    'Aufzug bis zur dritten Etage.')
 ON CONFLICT (id) DO UPDATE SET
   first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name,
-  care_level = EXCLUDED.care_level, status = 'aktiv', street = EXCLUDED.street,
-  city = EXCLUDED.city, zip = EXCLUDED.zip, phone = EXCLUDED.phone,
-  notes = EXCLUDED.notes, updated_at = NOW();
+  care_level = EXCLUDED.care_level, status = 'active', street = EXCLUDED.street,
+  city = EXCLUDED.city, postal_code = EXCLUDED.postal_code, phone = EXCLUDED.phone,
+  email = EXCLUDED.email, internal_notes = EXCLUDED.internal_notes,
+  client_number = EXCLUDED.client_number, admission_date = EXCLUDED.admission_date,
+  service_start = EXCLUDED.service_start, special_notes = EXCLUDED.special_notes,
+  updated_at = NOW();
 
 INSERT INTO public.client_portal_access (
   id, tenant_id, client_id, email, status, modules_enabled, two_factor_enabled,
@@ -472,29 +467,7 @@ VALUES
    'c5000000-0000-4000-8000-000000000020', NULL, NOW() - INTERVAL '3 hours', NULL, 'sent')
 ON CONFLICT (id) DO UPDATE SET body = EXCLUDED.body, sent_at = EXCLUDED.sent_at, updated_at = NOW();
 
--- Employee time, absence and payroll.
-INSERT INTO public.employee_time_entries (
-  id, tenant_id, employee_id, entry_type, period_date, started_at, ended_at,
-  gross_minutes, pause_minutes, net_minutes, travel_minutes, paid_minutes,
-  unpaid_minutes, planned_minutes, deviation_minutes, status,
-  plausibility_flags, trace_reference
-)
-VALUES
-  ('c5000000-0000-4000-8000-000000000110', 'c5000000-0000-4000-8000-000000000001',
-   'c5000000-0000-4000-8000-000000000010', 'assignment_time', CURRENT_DATE - 3,
-   (CURRENT_DATE - 3) + TIME '09:02', (CURRENT_DATE - 3) + TIME '10:28',
-   86, 0, 86, 0, 86, 0, 90, -4, 'approved', '[]'::jsonb, 'GP-ASSIGNMENT-001'),
-  ('c5000000-0000-4000-8000-000000000111', 'c5000000-0000-4000-8000-000000000001',
-   'c5000000-0000-4000-8000-000000000010', 'travel_time', CURRENT_DATE - 3,
-   (CURRENT_DATE - 3) + TIME '08:35', (CURRENT_DATE - 3) + TIME '08:58',
-   23, 0, 23, 23, 23, 0, 25, -2, 'approved', '[]'::jsonb, 'GP-TRAVEL-001'),
-  ('c5000000-0000-4000-8000-000000000112', 'c5000000-0000-4000-8000-000000000001',
-   'c5000000-0000-4000-8000-000000000010', 'admin_time', CURRENT_DATE - 2,
-   (CURRENT_DATE - 2) + TIME '15:00', (CURRENT_DATE - 2) + TIME '16:00',
-   60, 0, 60, 0, 60, 0, 60, 0, 'approved', '[]'::jsonb, 'GP-ADMIN-001')
-ON CONFLICT (id) DO UPDATE SET
-  period_date = EXCLUDED.period_date, started_at = EXCLUDED.started_at,
-  ended_at = EXCLUDED.ended_at, status = 'approved', updated_at = NOW();
+-- employee_time_entries intentionally omitted: current timekeeping uses Assist/Workforce events.
 
 INSERT INTO public.workforce_absences (
   id, tenant_id, employee_id, absence_type, status, starts_at, ends_at,
@@ -635,21 +608,23 @@ VALUES
    'Google-Play-Prüffahrt', 'confirmed', (CURRENT_DATE - 3) + TIME '08:25',
    (CURRENT_DATE - 3) + TIME '08:55', 'Beispielstraße 8, 10117 Berlin',
    'Rosenweg 24, 10119 Berlin', 52.5201000, 13.3889000, 52.5296000, 13.4012000,
-   6.20, 6.20, 1800, TRUE, 30, 186, TRUE, 'google', 'Vollständig synthetische GPS-Prüffahrt.'),
+   6.20, 6.20, 1800, TRUE, 30, 186, TRUE, 'google', 'review_seed',
+   'Vollständig synthetische GPS-Prüffahrt.'),
   ('c5000000-0000-4000-8000-000000000041', 'c5000000-0000-4000-8000-000000000001',
    'c5000000-0000-4000-8000-000000000010', 'c5000000-0000-4000-8000-000000000020',
    'c5000000-0000-4000-8000-000000000030', 'with_client', 'Begleitfahrt zum Einkauf',
    'Google-Play-Prüffahrt', 'confirmed', (CURRENT_DATE - 3) + TIME '09:35',
    (CURRENT_DATE - 3) + TIME '09:52', 'Rosenweg 24, 10119 Berlin',
    'Marktplatz 2, 10119 Berlin', 52.5296000, 13.4012000, 52.5320000, 13.4070000,
-   2.80, 2.80, 1020, TRUE, 30, 84, TRUE, 'google', 'Begleitfahrt während des Einsatzes.'),
+   2.80, 2.80, 1020, TRUE, 30, 84, TRUE, 'google', 'review_seed',
+   'Begleitfahrt während des Einsatzes.'),
   ('c5000000-0000-4000-8000-000000000042', 'c5000000-0000-4000-8000-000000000001',
    'c5000000-0000-4000-8000-000000000010', 'c5000000-0000-4000-8000-000000000020',
    'c5000000-0000-4000-8000-000000000030', 'client_to_home', 'Rückfahrt nach Einsatzende',
    'Google-Play-Prüffahrt', 'confirmed', (CURRENT_DATE - 3) + TIME '10:32',
    (CURRENT_DATE - 3) + TIME '11:04', 'Rosenweg 24, 10119 Berlin',
    'Beispielstraße 8, 10117 Berlin', 52.5296000, 13.4012000, 52.5201000, 13.3889000,
-   6.40, 6.40, 1920, TRUE, 30, 192, TRUE, 'google',
+   6.40, 6.40, 1920, TRUE, 30, 192, TRUE, 'google', 'review_seed',
    'Rückfahrt läuft bewusst nach dem Einsatzende weiter.')
 ON CONFLICT (id) DO UPDATE SET
   started_at = EXCLUDED.started_at, ended_at = EXCLUDED.ended_at,
