@@ -4,9 +4,13 @@ export const DEMO_SUPABASE_UUID = 'a0000000-0000-4000-8000-000000000001';
 /** E2E / QA tenants — internal_test, not production demo leak. */
 export const E2E_TEST_TENANT_ID = 'a4ba83bd-65db-46cf-8cf7-61492cc78315';
 
+/** Synthetic, isolated tenant used only for Google Play app review. */
+export const GOOGLE_PLAY_REVIEW_TENANT_ID = 'c5000000-0000-4000-8000-000000000001';
+
 export const INTERNAL_TEST_TENANT_IDS = [
   E2E_TEST_TENANT_ID,
   '6e8a5c3b-03fd-423d-acd9-00edf9b24f99',
+  GOOGLE_PLAY_REVIEW_TENANT_ID,
 ] as const;
 
 /** Prefix match for pilot-verify tenants (e.g. 3d6220dd-…). */
