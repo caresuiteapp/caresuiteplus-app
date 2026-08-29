@@ -47,24 +47,62 @@ ON CONFLICT (id) DO UPDATE SET street = EXCLUDED.street, zip = EXCLUDED.zip, cit
 
 -- Review employee.
 INSERT INTO public.employees (
-  id, tenant_id, first_name, last_name, role_title, email, phone, mobile,
-  department, start_date, entry_date, employee_number, employment_type, weekly_hours,
-  street, house_number, postal_code, city, country, status, notes
+  id, tenant_id, first_name, last_name, status
 )
 VALUES (
   'c5000000-0000-4000-8000-000000000010',
   'c5000000-0000-4000-8000-000000000001',
-  'Anna', 'Beispiel', 'Alltagsbegleiterin',
-  'anna.beispiel@caresuite.invalid', '+49 30 555 0110', '+49 170 555 0110',
-  'Ambulante Betreuung', CURRENT_DATE - 730, CURRENT_DATE - 730, 'GP-1001',
-  'Teilzeit', 30.00, 'Beispielstraße', '8', '10117', 'Berlin', 'DE', 'aktiv',
-  'Vollständig synthetische Google-Play-Prüfperson.'
+  'Anna', 'Beispiel', 'aktiv'
 )
 ON CONFLICT (id) DO UPDATE SET
   first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name,
-  role_title = EXCLUDED.role_title,
-  email = EXCLUDED.email, mobile = EXCLUDED.mobile, department = EXCLUDED.department,
-  weekly_hours = EXCLUDED.weekly_hours, status = 'aktiv', updated_at = NOW();
+  status = 'aktiv', updated_at = NOW();
+
+-- Production has historically divergent employee columns. Populate every
+-- extended portal field only when that exact column exists.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'role_title') THEN
+    EXECUTE 'UPDATE public.employees SET role_title = $1 WHERE id = $2'
+      USING 'Alltagsbegleiterin', 'c5000000-0000-4000-8000-000000000010'::uuid;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'email') THEN
+    EXECUTE 'UPDATE public.employees SET email = $1 WHERE id = $2'
+      USING 'anna.beispiel@caresuite.invalid', 'c5000000-0000-4000-8000-000000000010'::uuid;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'phone') THEN
+    EXECUTE 'UPDATE public.employees SET phone = $1 WHERE id = $2'
+      USING '+49 30 555 0110', 'c5000000-0000-4000-8000-000000000010'::uuid;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'mobile') THEN
+    EXECUTE 'UPDATE public.employees SET mobile = $1 WHERE id = $2'
+      USING '+49 170 555 0110', 'c5000000-0000-4000-8000-000000000010'::uuid;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'department') THEN
+    EXECUTE 'UPDATE public.employees SET department = $1 WHERE id = $2'
+      USING 'Ambulante Betreuung', 'c5000000-0000-4000-8000-000000000010'::uuid;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'entry_date') THEN
+    EXECUTE 'UPDATE public.employees SET entry_date = CURRENT_DATE - 730 WHERE id = $1'
+      USING 'c5000000-0000-4000-8000-000000000010'::uuid;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'employee_number') THEN
+    EXECUTE 'UPDATE public.employees SET employee_number = $1 WHERE id = $2'
+      USING 'GP-1001', 'c5000000-0000-4000-8000-000000000010'::uuid;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'employment_type') THEN
+    EXECUTE 'UPDATE public.employees SET employment_type = $1 WHERE id = $2'
+      USING 'Teilzeit', 'c5000000-0000-4000-8000-000000000010'::uuid;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'weekly_hours') THEN
+    EXECUTE 'UPDATE public.employees SET weekly_hours = $1 WHERE id = $2'
+      USING 30.00, 'c5000000-0000-4000-8000-000000000010'::uuid;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'employees' AND column_name = 'city') THEN
+    EXECUTE 'UPDATE public.employees SET city = $1 WHERE id = $2'
+      USING 'Berlin', 'c5000000-0000-4000-8000-000000000010'::uuid;
+  END IF;
+END $$;
 
 INSERT INTO public.employee_profiles (
   id, tenant_id, employee_id, portal_active, role_key, password_configured, two_factor_prepared
