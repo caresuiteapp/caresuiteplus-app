@@ -3,7 +3,8 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const root = resolve(__dirname, '../../..');
-const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
+const read = (path: string) =>
+  readFileSync(resolve(root, path), 'utf8').replace(/\r\n/g, '\n');
 
 describe('R14-D native fullscreen signatures', () => {
   it('always uses fullscreen presentation in the installed app', () => {
