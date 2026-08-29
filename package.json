@@ -12,7 +12,7 @@
     "portal-only:audit": "vitest run src/__tests__/platform/portalOnlyEdition.test.ts",
     "android:api36:audit": "vitest run src/__tests__/platform/androidApi36R14B.test.ts && node scripts/audit-android-api36.mjs",
     "android:security:audit": "vitest run src/__tests__/platform/portalAppSecurityR14C.test.ts src/__tests__/auth/p0EmployeePortalLogin.test.ts src/__tests__/auth/liveSupabaseAuth.test.ts",
-    "portal-only:export": "EXPO_PUBLIC_APP_EDITION=portal-only EXPO_PUBLIC_FOLDER=public-portal expo export --platform android --output-dir dist-portal-only --source-maps",
+    "portal-only:export": "node scripts/export-portal-only.mjs",
     "portal-only:export:audit": "node scripts/audit-portal-only-export.mjs dist-portal-only",
     "audit:ui:contract": "node scripts/audit-healthos-ui-contract.mjs",
     "audit:ui:migration": "node scripts/audit-healthos-page-migration.mjs",

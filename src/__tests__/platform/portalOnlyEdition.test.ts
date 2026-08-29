@@ -104,10 +104,13 @@ describe('R14-A portal-only native edition', () => {
 
   it('ships a repeatable bundle audit for the portal-only edition', () => {
     const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    const exporter = readFileSync(join(root, 'scripts/export-portal-only.mjs'), 'utf8');
     const audit = readFileSync(join(root, 'scripts/audit-portal-only-export.mjs'), 'utf8');
 
-    expect(packageJson.scripts['portal-only:export']).toContain('EXPO_PUBLIC_APP_EDITION=portal-only');
-    expect(packageJson.scripts['portal-only:export']).toContain('EXPO_PUBLIC_FOLDER=public-portal');
+    expect(packageJson.scripts['portal-only:export']).toContain('export-portal-only.mjs');
+    expect(exporter).toContain("EXPO_PUBLIC_APP_EDITION: 'portal-only'");
+    expect(exporter).toContain("EXPO_PUBLIC_FOLDER: 'public-portal'");
+    expect(exporter).toContain('process.execPath');
     expect(packageJson.scripts['portal-only:export:audit']).toContain('audit-portal-only-export.mjs');
     expect(audit).toContain('forbiddenSourcePatterns');
     expect(audit).toContain('excludedAdministrationSources');
