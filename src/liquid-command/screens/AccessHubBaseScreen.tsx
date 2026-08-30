@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LiquidLogo } from '../components/LiquidPrimitives';
 import { liquidColors, liquidShadows } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 
@@ -435,12 +436,9 @@ export function AccessHubBaseScreen({
       >
         <View style={[styles.content, stacked && styles.contentStacked]}>
           <View style={[styles.header, stacked && styles.headerStacked]}>
-            <Image
-              accessibilityLabel="CareSuite HealthOS"
-              resizeMode="contain"
-              source={require('../../../assets/brand/caresuite-healthos-logo.png')}
-              style={[styles.logo, stacked && styles.logoStacked]}
-            />
+            <View style={[styles.logo, stacked && styles.logoStacked]}>
+              <LiquidLogo width={stacked ? 286 : 560} />
+            </View>
             <Text style={styles.eyebrow}>IHR ZUGANG</Text>
             <Text
               accessibilityRole="header"
@@ -492,16 +490,16 @@ const styles = StyleSheet.create({
     paddingVertical: 38,
   },
   scrollContentStacked: {
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 24,
   },
   content: { width: '100%', maxWidth: 1180, gap: 20 },
-  contentStacked: { maxWidth: 560, gap: 14 },
+  contentStacked: { maxWidth: 560, gap: 14, alignSelf: 'center' },
   header: { alignItems: 'center', gap: 7, marginBottom: 6 },
   headerStacked: { gap: 6, marginBottom: 4 },
-  logo: { width: 560, maxWidth: '90%', height: 72, marginBottom: 4 },
-  logoStacked: { width: 310, height: 46, marginBottom: 6 },
+  logo: { width: 560, maxWidth: '90%', minHeight: 56, marginBottom: 4, alignItems: 'center', justifyContent: 'center' },
+  logoStacked: { width: 310, minHeight: 40, marginBottom: 6 },
   eyebrow: {
     color: liquidColors.blue200,
     fontSize: 12,

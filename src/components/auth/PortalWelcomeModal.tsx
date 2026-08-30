@@ -21,8 +21,8 @@ type PortalWelcomeModalProps = {
 };
 
 const PORTAL_SUBTITLE: Record<PortalWelcomeKind, string> = {
-  employee: 'Mitarbeiterportal · CareSuite+',
-  client: 'Klient:innenportal · CareSuite+',
+  employee: 'Mitarbeiterportal · CareSuite HealthOS',
+  client: 'Klient:innenportal · CareSuite HealthOS',
 };
 
 /** Welcome dialog after employee or client portal login — real name, tenant, role. */
@@ -44,7 +44,12 @@ export function PortalWelcomeModal({
         body: {
           alignItems: 'center',
           gap: careSpacing.md,
-          paddingVertical: careSpacing.sm,
+          paddingVertical: careSpacing.lg,
+          minHeight: 260,
+          justifyContent: 'center',
+        },
+        sheet: {
+          minHeight: 430,
         },
         avatarWrap: {
           marginBottom: careSpacing.xs,
@@ -88,10 +93,12 @@ export function PortalWelcomeModal({
       onClose={onClose}
       dismissOnBackdrop
       maxWidth={480}
+      maxHeightRatio={0.82}
       glowColor={accent}
+      sheetStyle={styles.sheet}
       footerActions={[
         {
-          title: 'Weiter zur Übersicht',
+          title: 'Zur Übersicht',
           onPress: onClose,
           variant: 'primary',
         },

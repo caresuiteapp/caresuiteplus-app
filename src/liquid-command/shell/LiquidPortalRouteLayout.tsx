@@ -93,6 +93,8 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
     [messageInbox.threads],
   );
   const messageBadge = formatNavBadgeLabel(unreadMessageCount);
+  const bottomNavigationOffset = Math.max(insets.bottom, 12) + (layout.isPhone ? 16 : 12);
+  const menuBottomPadding = Math.max(insets.bottom + 18, 30);
 
   const navigationLabel = (id: string, label: string) =>
     id === 'messages' && unreadMessageCount > 0
@@ -231,7 +233,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
       </View>
       {!desktopChrome && !visitExecutionFocus ? (
         <>
-          <View style={[styles.bottomNav, { bottom: Math.max(insets.bottom, 12) }]}>
+          <View style={[styles.bottomNav, { bottom: bottomNavigationOffset }]}>
             {compactNavigation.map((item) => (
               <Pressable
                 key={item.id}
@@ -296,7 +298,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
               accessibilityRole="button"
               accessibilityLabel="Menü schließen"
               onPress={() => setMoreOpen(false)}
-              style={styles.moreBackdrop}
+              style={[styles.moreBackdrop, { paddingBottom: menuBottomPadding }]}
             >
               <Pressable
                 accessibilityRole="menu"
@@ -304,9 +306,9 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 style={styles.morePanel}
               >
                 <View style={styles.moreHeader}>
-                  <View>
+                  <View style={styles.moreHeaderCopy}>
                     <Text style={styles.moreKicker}>PORTALNAVIGATION</Text>
-                    <Text style={styles.moreTitle}>Alle Bereiche</Text>
+                    <Text numberOfLines={1} style={styles.moreTitle}>Alle Bereiche</Text>
                   </View>
                   <LiquidIconButton label="Schließen" glyph="×" onPress={() => setMoreOpen(false)} />
                 </View>
@@ -675,7 +677,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15,23,42,0.38)',
   },
   morePanel: {
-    maxHeight: '78%',
+    maxHeight: '72%',
     padding: 16,
     paddingBottom: 22,
     borderWidth: 1,
@@ -693,6 +695,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
+  },
+  moreHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   moreKicker: {
     color: liquidColors.blue200,

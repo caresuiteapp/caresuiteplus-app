@@ -37,7 +37,17 @@ describe('R14-D native portal push', () => {
     expect(service).toContain('toPortalPushUserMessage');
     expect(service).toContain("normalized.includes('firebaseapp')");
     expect(gate).not.toContain('Push-Verbindung wird wiederhergestellt');
-    expect(gate).toContain('Benachrichtigungen werden eingerichtet');
+    expect(gate).not.toContain('retryBanner');
+    expect(gate).toContain('void register(false)');
+    expect(gate).toContain('setTimeout(() => void register(false), 30_000)');
+  });
+
+  it('times out native permission and backend calls instead of blocking the app', () => {
+    const service = read('src/lib/portal/portalPushNotifications.ts');
+    expect(service).toContain('PERMISSION_TIMEOUT_MS');
+    expect(service).toContain('SERVER_TIMEOUT_MS');
+    expect(service).toContain('Notifications.requestPermissionsAsync()');
+    expect(service).toContain("invokeEdgeFunction<RegisterResponse>('portal-push-register'");
   });
 
   it('registers tokens only after validating the active portal identity', () => {

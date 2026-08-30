@@ -30,8 +30,8 @@ import {
 
 export type LiquidVisualMode = 'classic' | 'orbit';
 
-// ORBIT is the product default. The two official portals opt into classic
-// explicitly at their route boundary so new internal routes cannot regress.
+// ORBIT is the product default and the light native contract shared by the
+// employee and client portals. Classic remains available for legacy surfaces.
 const LiquidVisualModeContext = createContext<LiquidVisualMode>('orbit');
 
 export function LiquidVisualModeProvider({ mode, children }: { mode: LiquidVisualMode; children: ReactNode }) {
@@ -251,9 +251,38 @@ export function LiquidLogo({
   /** Responsive wordmark width. The intrinsic 8:1 ratio is preserved. */
   width?: number;
 }) {
+  const orbit = useLiquidVisualMode() === 'orbit';
+  const wordmarkWidth = width ?? (mini ? 116 : compact ? 224 : 320);
+  const wordmarkFontSize = Math.max(14, Math.min(38, wordmarkWidth / 12));
   const responsiveSize = width
     ? ({ width, height: width / 8 } as const)
     : null;
+
+  if (orbit) {
+    return (
+      <View
+        accessible
+        accessibilityRole="header"
+        accessibilityLabel="CareSuite HealthOS"
+        style={[
+          styles.orbitWordmark,
+          {
+            width: wordmarkWidth,
+            minHeight: Math.ceil(wordmarkFontSize * 1.3),
+          },
+        ]}
+      >
+        <Text
+          adjustsFontSizeToFit
+          minimumFontScale={0.82}
+          numberOfLines={1}
+          style={[styles.orbitWordmarkText, { fontSize: wordmarkFontSize }]}
+        >
+          CareSuite<Text style={styles.orbitWordmarkAccent}> HealthOS</Text>
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View accessible accessibilityRole="header" accessibilityLabel="CareSuite HealthOS">
@@ -567,6 +596,18 @@ export function LiquidBackdrop({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
+  orbitWordmark: {
+    justifyContent: 'center',
+  },
+  orbitWordmarkText: {
+    color: '#0B2A4A',
+    fontWeight: '700',
+    letterSpacing: -0.65,
+  },
+  orbitWordmarkAccent: {
+    color: '#1683FF',
+    fontWeight: '700',
+  },
   orbitGlyphFrame: {
     position: 'relative',
     alignItems: 'center',

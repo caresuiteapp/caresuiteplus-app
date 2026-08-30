@@ -6,6 +6,8 @@ import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 
 const TOKEN_STORAGE_KEY = 'caresuite.portal.push-token.v1';
 const TOKEN_TIMEOUT_MS = 15_000;
+const PERMISSION_TIMEOUT_MS = 12_000;
+const SERVER_TIMEOUT_MS = 15_000;
 
 export type PortalPushPermissionStatus = 'granted' | 'denied' | 'undetermined';
 
@@ -128,10 +130,16 @@ export async function ensurePortalPushRegistration(
   }
 
   try {
-    await configureAndroidChannels();
-    let permission = await Notifications.getPermissionsAsync();
+    await withTimeout(configureAndroidChannels(), PERMISSION_TIMEOUT_MS);
+    let permission = await withTimeout(
+      Notifications.getPermissionsAsync(),
+      PERMISSION_TIMEOUT_MS,
+    );
     if (!permission.granted && requestPermission && permission.canAskAgain) {
-      permission = await Notifications.requestPermissionsAsync();
+      permission = await withTimeout(
+        Notifications.requestPermissionsAsync(),
+        PERMISSION_TIMEOUT_MS,
+      );
     }
 
     const permissionStatus = normalizePermissionStatus(permission.status);
@@ -161,13 +169,20 @@ export async function ensurePortalPushRegistration(
       )
     ).data;
 
-    const response = await invokeEdgeFunction<RegisterResponse>('portal-push-register', {
-      action: 'register',
-      expoPushToken: token,
-      platform: Platform.OS,
-      appVersion: Constants.expoConfig?.version ?? null,
-      permissionStatus: 'granted',
-    });
+    // Persist the native token independently of the backend round-trip. This
+    // allows safe logout cleanup and later background registration retries.
+    await sensitiveAuthStorage.setItem(TOKEN_STORAGE_KEY, token);
+
+    const response = await withTimeout(
+      invokeEdgeFunction<RegisterResponse>('portal-push-register', {
+        action: 'register',
+        expoPushToken: token,
+        platform: Platform.OS,
+        appVersion: Constants.expoConfig?.version ?? null,
+        permissionStatus: 'granted',
+      }),
+      SERVER_TIMEOUT_MS,
+    );
     if (!response.ok) {
       return {
         ok: false,
@@ -177,7 +192,6 @@ export async function ensurePortalPushRegistration(
       };
     }
 
-    await sensitiveAuthStorage.setItem(TOKEN_STORAGE_KEY, token);
     return { ok: true, permissionStatus: 'granted', expoPushToken: token };
   } catch (error) {
     return {

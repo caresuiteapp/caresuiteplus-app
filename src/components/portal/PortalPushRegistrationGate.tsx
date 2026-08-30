@@ -37,14 +37,12 @@ export function PortalPushRegistrationGate() {
   const router = useRouter();
   const { authReady, isAuthenticated, portalSession } = useAuth();
   const [state, setState] = useState<GateState>(INITIAL_STATE);
-  const [statusDismissed, setStatusDismissed] = useState(false);
   const requestRunning = useRef(false);
   const portalActive = authReady && isAuthenticated && Boolean(portalSession);
 
   const register = useCallback(async (requestPermission: boolean) => {
     if (Platform.OS === 'web' || requestRunning.current) return;
     requestRunning.current = true;
-    setStatusDismissed(false);
     setState((current) => ({ ...current, checking: true, error: null }));
     const result = await ensurePortalPushRegistration(requestPermission);
     requestRunning.current = false;
@@ -72,8 +70,28 @@ export function PortalPushRegistrationGate() {
       setState(INITIAL_STATE);
       return;
     }
-    void register(true);
+    // Inspect first. The system permission dialog is only opened after a
+    // deliberate user action, never automatically while the portal hydrates.
+    void register(false);
   }, [portalActive, register]);
+
+  useEffect(() => {
+    if (
+      !portalActive ||
+      Platform.OS === 'web' ||
+      state.registered ||
+      state.checking ||
+      state.permissionStatus !== 'granted' ||
+      !state.error
+    ) {
+      return;
+    }
+
+    // Token/server failures must not block or cover the portal. Retry quietly
+    // after the app has become usable.
+    const retryTimer = setTimeout(() => void register(false), 30_000);
+    return () => clearTimeout(retryTimer);
+  }, [portalActive, register, state.checking, state.error, state.permissionStatus, state.registered]);
 
   useEffect(() => {
     if (!portalActive || Platform.OS === 'web') return;
@@ -97,32 +115,12 @@ export function PortalPushRegistrationGate() {
   const styles = useMemo(() => createStyles(), []);
   if (!portalActive || Platform.OS === 'web' || state.registered) return null;
 
-  const permissionMissing = state.permissionStatus !== 'granted';
-  if (!permissionMissing && state.error && !statusDismissed) {
-    return (
-      <View style={styles.retryBanner} accessibilityRole="alert">
-        <View style={styles.retryIcon}>
-          <Text style={styles.retryIconText}>i</Text>
-        </View>
-        <View style={styles.retryCopy}>
-          <Text style={styles.retryTitle}>Benachrichtigungen werden eingerichtet</Text>
-          <Text numberOfLines={2} style={styles.retryText}>{state.error}</Text>
-        </View>
-        <Pressable style={styles.retryButton} onPress={() => void register(false)}>
-          <Text style={styles.retryButtonText}>{state.checking ? 'Prüfe …' : 'Erneut prüfen'}</Text>
-        </Pressable>
-        <Pressable
-          accessibilityLabel="Hinweis schließen"
-          accessibilityRole="button"
-          hitSlop={10}
-          onPress={() => setStatusDismissed(true)}
-          style={styles.retryClose}
-        >
-          <Text style={styles.retryCloseText}>×</Text>
-        </Pressable>
-      </View>
-    );
+  if (state.checking && state.permissionStatus === 'undetermined' && !state.error) {
+    return null;
   }
+
+  const permissionMissing = state.permissionStatus !== 'granted';
+  if (!permissionMissing) return null;
 
   return (
     <View style={styles.overlay} accessibilityViewIsModal accessibilityRole="alert">
@@ -135,7 +133,9 @@ export function PortalPushRegistrationGate() {
           CareSuite benötigt Benachrichtigungen, damit wichtige Einsatzänderungen und Mitteilungen
           aus Office auch bei geschlossener App zuverlässig ankommen.
         </Text>
-        {state.error ? <Text style={styles.error}>{state.error}</Text> : null}
+        {state.error && state.permissionStatus === 'denied' ? (
+          <Text style={styles.error}>{state.error}</Text>
+        ) : null}
         <Pressable
           style={styles.primaryButton}
           onPress={() => {
@@ -203,53 +203,5 @@ function createStyles() {
     },
     primaryButtonText: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
     privacy: { fontSize: 12, lineHeight: 17, color: '#6B7280', textAlign: 'center' },
-    retryBanner: {
-      position: 'absolute',
-      zIndex: 9000,
-      bottom: 92,
-      left: 12,
-      right: 12,
-      minHeight: 70,
-      padding: 11,
-      paddingRight: 42,
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: 'rgba(5,108,232,0.28)',
-      backgroundColor: '#FFFFFF',
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      shadowColor: '#12355B',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.16,
-      shadowRadius: 18,
-      elevation: 12,
-    },
-    retryIcon: {
-      width: 34,
-      height: 34,
-      borderRadius: 11,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#E7F1FE',
-    },
-    retryIconText: { fontSize: 17, lineHeight: 21, fontWeight: '900', color: '#056CE8' },
-    retryCopy: { flex: 1, minWidth: 0 },
-    retryTitle: { fontSize: 13, lineHeight: 17, fontWeight: '800', color: '#061B35' },
-    retryText: { marginTop: 2, fontSize: 11, lineHeight: 15, color: '#566D83' },
-    retryButton: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, backgroundColor: '#056CE8' },
-    retryButtonText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
-    retryClose: {
-      position: 'absolute',
-      right: 9,
-      top: 9,
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#F1F5F9',
-    },
-    retryCloseText: { color: '#365672', fontSize: 20, lineHeight: 22, fontWeight: '700' },
   });
 }
