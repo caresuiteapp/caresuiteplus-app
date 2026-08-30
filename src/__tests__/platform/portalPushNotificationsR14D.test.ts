@@ -12,6 +12,7 @@ describe('R14-D native portal push', () => {
     expect(config).toContain("'expo-notifications'");
     expect(config).toContain("icon: './assets/android-icon-monochrome.png'");
     expect(config).toContain("defaultChannel: 'caresuite-important'");
+    expect(config).toContain("googleServicesFile: './google-services.json'");
   });
 
   it('uses the immutable EAS project id to obtain an Expo token', () => {
@@ -28,6 +29,15 @@ describe('R14-D native portal push', () => {
     expect(gate).toContain('App-Einstellungen öffnen');
     expect(sender).toContain('Öffnen Sie CareSuite, um die geschützte Nachricht anzuzeigen.');
     expect(sender).not.toContain('body: broadcast.');
+  });
+
+  it('never exposes raw Firebase or Expo diagnostics in the portal UI', () => {
+    const service = read('src/lib/portal/portalPushNotifications.ts');
+    const gate = read('src/components/portal/PortalPushRegistrationGate.tsx');
+    expect(service).toContain('toPortalPushUserMessage');
+    expect(service).toContain("normalized.includes('firebaseapp')");
+    expect(gate).not.toContain('Push-Verbindung wird wiederhergestellt');
+    expect(gate).toContain('Benachrichtigungen werden eingerichtet');
   });
 
   it('registers tokens only after validating the active portal identity', () => {

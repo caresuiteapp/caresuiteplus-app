@@ -86,6 +86,29 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
   }
 }
 
+/** Never expose native Firebase, Expo or transport diagnostics in a portal UI. */
+export function toPortalPushUserMessage(error: unknown): string {
+  const raw = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  const normalized = raw.toLowerCase();
+
+  if (
+    normalized.includes('firebaseapp') ||
+    normalized.includes('firebase app') ||
+    normalized.includes('fcm-credentials') ||
+    normalized.includes('fcm credentials') ||
+    normalized.includes('getexpopushtoken')
+  ) {
+    return 'Benachrichtigungen werden mit dem nächsten App-Start erneut eingerichtet.';
+  }
+  if (normalized.includes('zeitüberschreitung') || normalized.includes('timeout')) {
+    return 'Die Push-Verbindung antwortet gerade nicht. CareSuite versucht es automatisch erneut.';
+  }
+  if (normalized.includes('network') || normalized.includes('netzwerk') || normalized.includes('fetch')) {
+    return 'Die Push-Verbindung ist momentan offline und wird automatisch erneut geprüft.';
+  }
+  return 'Benachrichtigungen konnten noch nicht verbunden werden. CareSuite versucht es automatisch erneut.';
+}
+
 export async function readPortalPushPermission(): Promise<PortalPushPermissionStatus> {
   if (Platform.OS === 'web') return 'denied';
   const permission = await Notifications.getPermissionsAsync();
@@ -149,7 +172,7 @@ export async function ensurePortalPushRegistration(
       return {
         ok: false,
         permissionStatus: 'granted',
-        error: response.error,
+        error: toPortalPushUserMessage(response.error),
         canOpenSettings: false,
       };
     }
@@ -160,7 +183,7 @@ export async function ensurePortalPushRegistration(
     return {
       ok: false,
       permissionStatus: 'granted',
-      error: error instanceof Error ? error.message : 'Push-Registrierung fehlgeschlagen.',
+      error: toPortalPushUserMessage(error),
       canOpenSettings: false,
     };
   }

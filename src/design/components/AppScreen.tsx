@@ -8,6 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GlobalAnimatedBackground } from '@/components/ui/effects';
@@ -28,6 +29,8 @@ type AppScreenProps = {
   keyboardAvoiding?: boolean;
   /** Skip aurora backdrop when an outer shell already provides the background. */
   bare?: boolean;
+  /** Calm light native surface for portal sign-in and onboarding flows. */
+  appearance?: 'default' | 'light';
 };
 
 const DEFAULT_MAX_WIDTH = 720;
@@ -40,10 +43,12 @@ export function AppScreen({
   contentStyle,
   keyboardAvoiding = false,
   bare = false,
+  appearance = 'default',
 }: AppScreenProps) {
   const { isPhone, isTablet, isDesktopOrWide } = useDeviceClass();
   const shellHostsAurora = useShellHostsAurora();
   const insets = useSafeAreaInsets();
+  const lightAppearance = appearance === 'light';
   const skipBackdrop = bare || shellHostsAurora;
 
   const horizontalPadding = isPhone
@@ -87,6 +92,14 @@ export function AppScreen({
           gap: careSpacing.md,
         },
         auroraRoot: { flex: 1, overflow: 'hidden' },
+        lightRoot: { backgroundColor: '#F4F8FD' },
+        lightOrb: {
+          position: 'absolute',
+          borderRadius: 999,
+          backgroundColor: 'rgba(22,131,255,0.10)',
+        },
+        lightOrbTop: { width: 360, height: 360, right: -180, top: -190 },
+        lightOrbBottom: { width: 300, height: 300, left: -170, bottom: -170 },
         contentLayer: { flex: 1, zIndex: 1 },
       }),
     [horizontalPadding, maxWidth, scrollBottomPad],
@@ -127,8 +140,25 @@ export function AppScreen({
     </SafeAreaView>
   );
 
-  if (skipBackdrop) {
+  if (skipBackdrop && !lightAppearance) {
     return screenBody;
+  }
+
+  if (lightAppearance) {
+    return (
+      <View style={[styles.auroraRoot, styles.lightRoot]} pointerEvents="box-none">
+        <StatusBar style="dark" />
+        <LinearGradient
+          colors={['#F8FBFF', '#EDF5FF', '#FFFFFF']}
+          locations={[0, 0.55, 1]}
+          style={StyleSheet.absoluteFillObject}
+          pointerEvents="none"
+        />
+        <View pointerEvents="none" style={[styles.lightOrb, styles.lightOrbTop]} />
+        <View pointerEvents="none" style={[styles.lightOrb, styles.lightOrbBottom]} />
+        {screenBody}
+      </View>
+    );
   }
 
   return (

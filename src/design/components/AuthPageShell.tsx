@@ -5,6 +5,7 @@ import { AppScreen } from './AppScreen';
 import { AuthScreenHeader } from './AuthHero';
 import { SpatialCareScene } from './SpatialCareScene';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
+import { portalPremium, PortalPremiumProvider } from '@/design/tokens/portalPremium';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 type AuthPageShellProps = {
@@ -32,20 +33,28 @@ export function AuthPageShell({
   const handleBack = onBack ?? (() => router.back());
 
   return (
-    <AppScreen scroll={scroll} keyboardAvoiding={keyboardAvoiding} maxWidth={1180} contentStyle={styles.screen}>
-      <View style={[styles.layout, (isPhone || isTablet) && styles.layoutCompact]}>
-        {!isPhone ? <View style={[styles.visual, isTablet && styles.visualCompact]}><SpatialCareScene /></View> : null}
-        <View style={[styles.formPanel, (isPhone || isTablet) && styles.formPanelCompact]}>
-          <AuthScreenHeader
-            title={title}
-            subtitle={subtitle}
-            showBack={showBack}
-            onBack={handleBack}
-          />
-          {children}
+    <PortalPremiumProvider kind="workspace">
+      <AppScreen
+        appearance="light"
+        scroll={scroll}
+        keyboardAvoiding={keyboardAvoiding}
+        maxWidth={1180}
+        contentStyle={styles.screen}
+      >
+        <View style={[styles.layout, (isPhone || isTablet) && styles.layoutCompact]}>
+          {!isPhone ? <View style={[styles.visual, isTablet && styles.visualCompact]}><SpatialCareScene /></View> : null}
+          <View style={[styles.formPanel, (isPhone || isTablet) && styles.formPanelCompact]}>
+            <AuthScreenHeader
+              title={title}
+              subtitle={subtitle}
+              showBack={showBack}
+              onBack={handleBack}
+            />
+            {children}
+          </View>
         </View>
-      </View>
-    </AppScreen>
+      </AppScreen>
+    </PortalPremiumProvider>
   );
 }
 
@@ -55,6 +64,24 @@ const styles = StyleSheet.create({
   layoutCompact: { flexDirection: 'column' },
   visual: { flex: 1.05, minWidth: 0, ...(Platform.OS === 'web' ? ({ minHeight: 560 } as const) : null) },
   visualCompact: { flex: 0, minHeight: 300 },
-  formPanel: { flex: 0.95, minWidth: 320, padding: 28, borderRadius: spatialCare.radius.stage, backgroundColor: spatialCare.stageStrong, borderWidth: 1, borderColor: spatialCare.border, gap: 14, ...(Platform.OS === 'web' ? ({ boxShadow: spatialCare.shadow, backdropFilter: `blur(${spatialCare.blur.stage}px)` } as const) : null) },
-  formPanelCompact: { flex: 0, minWidth: 0, padding: 20 },
+  formPanel: {
+    flex: 0.95,
+    minWidth: 320,
+    padding: 28,
+    borderRadius: spatialCare.radius.stage,
+    backgroundColor: portalPremium.surfaceRaised,
+    borderWidth: 1,
+    borderColor: portalPremium.borderStrong,
+    gap: 14,
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: portalPremium.shadow.panel, backdropFilter: 'blur(24px)' } as const)
+      : ({
+          shadowColor: '#12355B',
+          shadowOffset: { width: 0, height: 14 },
+          shadowOpacity: 0.14,
+          shadowRadius: 24,
+          elevation: 8,
+        } as const)),
+  },
+  formPanelCompact: { flex: 0, minWidth: 0, padding: 20, borderRadius: 24 },
 });

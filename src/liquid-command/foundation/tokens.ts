@@ -2,8 +2,8 @@ import type { TextStyle, ViewStyle } from 'react-native';
 import { applyWebFontScaleToTextStyle } from '@/design/web/webFontSize';
 
 /**
- * Classic Liquid palette retained exclusively for the client and employee portals.
- * Internal product routes must use `liquidColors`, the system-wide ORBIT contract.
+ * Classic Liquid palette retained for legacy surfaces that have not yet moved to
+ * the shared ORBIT light contract. New portal and internal routes use `liquidColors`.
  */
 export const liquidClassicColors = {
   navy950: '#010817',

@@ -159,7 +159,7 @@ function EmployeePremiumWelcome({
 
       <View style={styles.quickPanel} testID="employee-portal-premium-quick-actions">
         <LinearGradient
-          colors={['#0B5CC9', '#073E8D', '#052B68']}
+          colors={['#FFFFFF', '#F1F7FF', '#E2EFFF']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFillObject}
@@ -179,10 +179,10 @@ function EmployeePremiumWelcome({
               style={({ pressed }) => [styles.quickTask, compact && styles.quickTaskCompact, pressed && styles.quickTaskPressed]}
             >
               <View style={styles.quickTaskIcon}>
-                <Ionicons name={item.icon} color="#FFFFFF" size={19} />
+                <Ionicons name={item.icon} color={portalPremium.accent.blue} size={19} />
               </View>
               <Text style={[type.bodyStrong, styles.quickTaskLabel]}>{item.label}</Text>
-              <Ionicons name="chevron-forward" color="rgba(255,255,255,0.72)" size={18} />
+              <Ionicons name="chevron-forward" color={portalPremium.accent.blueDark} size={18} />
             </Pressable>
           ))}
         </View>
@@ -551,25 +551,25 @@ const styles = StyleSheet.create({
   },
   quickPanelGlow: {
     position: 'absolute', right: -70, top: -90, width: 230, height: 230,
-    borderRadius: 999, backgroundColor: 'rgba(53,151,255,0.22)',
+    borderRadius: 999, backgroundColor: 'rgba(53,151,255,0.16)',
   },
   quickHeading: { gap: 2 },
-  quickEyebrow: { color: '#9ACBFF', fontWeight: '900', letterSpacing: 0.9 },
-  quickTitle: { color: '#FFFFFF', fontWeight: '900' },
+  quickEyebrow: { color: portalPremium.accent.blueDark, fontWeight: '900', letterSpacing: 0.9 },
+  quickTitle: { color: portalPremium.text.primary, fontWeight: '900' },
   quickTasks: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   quickTasksCompact: { flexDirection: 'column' },
   quickTask: {
     flex: 1, minWidth: 210, minHeight: 48, paddingHorizontal: 10, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)', borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.08)', flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderColor: portalPremium.borderSoft, borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.82)', flexDirection: 'row', alignItems: 'center', gap: 10,
   },
   quickTaskCompact: { width: '100%', minWidth: 0 },
-  quickTaskPressed: { backgroundColor: 'rgba(255,255,255,0.16)' },
+  quickTaskPressed: { backgroundColor: '#DDEBFC' },
   quickTaskIcon: {
-    width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.12)',
+    width: 34, height: 34, borderRadius: 10, backgroundColor: '#E7F1FE',
     alignItems: 'center', justifyContent: 'center',
   },
-  quickTaskLabel: { flex: 1, color: '#FFFFFF', fontWeight: '700' },
+  quickTaskLabel: { flex: 1, color: portalPremium.text.primary, fontWeight: '700' },
   pressed: { opacity: 0.8, transform: [{ scale: 0.988 }] },
   listContainer: {
     gap: spacing.xs,

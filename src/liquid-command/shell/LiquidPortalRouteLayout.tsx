@@ -14,7 +14,7 @@ import {
   LiquidSurface,
   LiquidVisualModeProvider,
 } from '../components/LiquidPrimitives';
-import { liquidClassicColors as liquidColors, liquidLayers, liquidRadius } from '../foundation/tokens';
+import { liquidColors, liquidLayers, liquidRadius } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import {
   liquidPortalNavigation,
@@ -380,11 +380,11 @@ export function LiquidPortalRouteLayout({
       {content}
     </RequireAuth>
   );
-  const classic = <LiquidVisualModeProvider mode="classic">{guarded}</LiquidVisualModeProvider>;
+  const portalSurface = <LiquidVisualModeProvider mode="orbit">{guarded}</LiquidVisualModeProvider>;
   if (kind === 'client' || kind === 'employee') {
-    return <PortalPremiumProvider kind={kind}>{classic}</PortalPremiumProvider>;
+    return <PortalPremiumProvider kind={kind}>{portalSurface}</PortalPremiumProvider>;
   }
-  return classic;
+  return portalSurface;
 }
 
 const styles = StyleSheet.create({
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     borderRightWidth: 1,
     borderRightColor: liquidColors.white12,
-    backgroundColor: 'rgba(6,21,43,0.9)',
+    backgroundColor: 'rgba(248,251,255,0.98)',
     alignItems: 'stretch',
     gap: 18,
     zIndex: liquidLayers.dock,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   railItemActive: {
     borderWidth: 1,
     borderColor: liquidColors.blue400,
-    backgroundColor: 'rgba(20,120,255,0.2)',
+    backgroundColor: '#E8F2FF',
   },
   railLogout: {
     width: '100%',
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   unreadBadgeText: {
-    color: liquidColors.white,
+    color: liquidColors.onAccent,
     fontSize: webScaledFontMetric(9),
     lineHeight: webScaledFontMetric(12),
     fontWeight: '900',
@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: liquidColors.white12,
-    backgroundColor: 'rgba(6,21,43,0.84)',
+    backgroundColor: 'rgba(255,255,255,0.96)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
     margin: 0,
     borderWidth: 0,
     borderRadius: 0,
-    backgroundColor: 'rgba(7,28,56,0.96)',
+    backgroundColor: '#F4F8FD',
   },
   contentFrameFocus: {
     margin: 0,
@@ -587,13 +587,13 @@ const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: 0,
     overflow: 'hidden',
-    backgroundColor: 'rgba(7,27,53,0.78)',
+    backgroundColor: '#F7FAFE',
   },
   contentCompact: {
-    backgroundColor: 'rgba(7,28,56,0.96)',
+    backgroundColor: '#F4F8FD',
   },
   contentFocus: {
-    backgroundColor: 'rgba(7,28,56,0.98)',
+    backgroundColor: '#F7FAFE',
   },
   bottomNav: {
     position: 'absolute',
@@ -605,11 +605,16 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: liquidColors.blue600,
-    backgroundColor: 'rgba(2,13,31,0.98)',
+    borderColor: 'rgba(5,108,232,0.24)',
+    backgroundColor: 'rgba(255,255,255,0.98)',
     flexDirection: 'row',
     alignItems: 'center',
     zIndex: liquidLayers.overlay,
+    shadowColor: '#12355B',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
+    elevation: 14,
   },
   bottomItem: {
     flex: 1,
@@ -636,7 +641,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bottomUnreadBadgeText: {
-    color: liquidColors.white,
+    color: liquidColors.onAccent,
     fontSize: webScaledFontMetric(8),
     lineHeight: webScaledFontMetric(10),
     fontWeight: '900',
@@ -667,16 +672,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     padding: 12,
-    backgroundColor: 'rgba(0,6,18,0.72)',
+    backgroundColor: 'rgba(15,23,42,0.38)',
   },
   morePanel: {
     maxHeight: '78%',
     padding: 16,
     paddingBottom: 22,
     borderWidth: 1,
-    borderColor: liquidColors.blue600,
+    borderColor: 'rgba(5,108,232,0.24)',
     borderRadius: 22,
-    backgroundColor: 'rgba(4,20,43,0.99)',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#12355B',
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 28,
+    elevation: 18,
   },
   moreHeader: {
     marginBottom: 12,
@@ -722,14 +732,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: liquidColors.white12,
     borderRadius: liquidRadius.control,
-    backgroundColor: 'rgba(20,54,91,0.45)',
+    backgroundColor: '#F5F9FE',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 11,
   },
   moreItemActive: {
     borderColor: liquidColors.blue400,
-    backgroundColor: 'rgba(20,120,255,0.2)',
+    backgroundColor: '#E8F2FF',
   },
   moreLogout: {
     marginTop: 7,

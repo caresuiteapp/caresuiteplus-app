@@ -37,12 +37,14 @@ export function PortalPushRegistrationGate() {
   const router = useRouter();
   const { authReady, isAuthenticated, portalSession } = useAuth();
   const [state, setState] = useState<GateState>(INITIAL_STATE);
+  const [statusDismissed, setStatusDismissed] = useState(false);
   const requestRunning = useRef(false);
   const portalActive = authReady && isAuthenticated && Boolean(portalSession);
 
   const register = useCallback(async (requestPermission: boolean) => {
     if (Platform.OS === 'web' || requestRunning.current) return;
     requestRunning.current = true;
+    setStatusDismissed(false);
     setState((current) => ({ ...current, checking: true, error: null }));
     const result = await ensurePortalPushRegistration(requestPermission);
     requestRunning.current = false;
@@ -96,15 +98,27 @@ export function PortalPushRegistrationGate() {
   if (!portalActive || Platform.OS === 'web' || state.registered) return null;
 
   const permissionMissing = state.permissionStatus !== 'granted';
-  if (!permissionMissing && state.error) {
+  if (!permissionMissing && state.error && !statusDismissed) {
     return (
       <View style={styles.retryBanner} accessibilityRole="alert">
+        <View style={styles.retryIcon}>
+          <Text style={styles.retryIconText}>i</Text>
+        </View>
         <View style={styles.retryCopy}>
-          <Text style={styles.retryTitle}>Push-Verbindung wird wiederhergestellt</Text>
-          <Text style={styles.retryText}>{state.error}</Text>
+          <Text style={styles.retryTitle}>Benachrichtigungen werden eingerichtet</Text>
+          <Text numberOfLines={2} style={styles.retryText}>{state.error}</Text>
         </View>
         <Pressable style={styles.retryButton} onPress={() => void register(false)}>
-          <Text style={styles.retryButtonText}>{state.checking ? 'Prüfe …' : 'Erneut versuchen'}</Text>
+          <Text style={styles.retryButtonText}>{state.checking ? 'Prüfe …' : 'Erneut prüfen'}</Text>
+        </Pressable>
+        <Pressable
+          accessibilityLabel="Hinweis schließen"
+          accessibilityRole="button"
+          hitSlop={10}
+          onPress={() => setStatusDismissed(true)}
+          style={styles.retryClose}
+        >
+          <Text style={styles.retryCloseText}>×</Text>
         </Pressable>
       </View>
     );
@@ -192,23 +206,50 @@ function createStyles() {
     retryBanner: {
       position: 'absolute',
       zIndex: 9000,
-      top: 12,
+      bottom: 92,
       left: 12,
       right: 12,
-      minHeight: 62,
-      padding: 12,
-      borderRadius: 14,
+      minHeight: 70,
+      padding: 11,
+      paddingRight: 42,
+      borderRadius: 18,
       borderWidth: 1,
-      borderColor: '#F4C95D',
-      backgroundColor: '#FFF8E6',
+      borderColor: 'rgba(5,108,232,0.28)',
+      backgroundColor: '#FFFFFF',
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
+      gap: 10,
+      shadowColor: '#12355B',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.16,
+      shadowRadius: 18,
+      elevation: 12,
     },
+    retryIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 11,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#E7F1FE',
+    },
+    retryIconText: { fontSize: 17, lineHeight: 21, fontWeight: '900', color: '#056CE8' },
     retryCopy: { flex: 1, minWidth: 0 },
-    retryTitle: { fontSize: 14, fontWeight: '800', color: '#6B4F00' },
-    retryText: { marginTop: 2, fontSize: 12, color: '#7A5C0B' },
-    retryButton: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, backgroundColor: '#6B4F00' },
+    retryTitle: { fontSize: 13, lineHeight: 17, fontWeight: '800', color: '#061B35' },
+    retryText: { marginTop: 2, fontSize: 11, lineHeight: 15, color: '#566D83' },
+    retryButton: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 10, backgroundColor: '#056CE8' },
     retryButtonText: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
+    retryClose: {
+      position: 'absolute',
+      right: 9,
+      top: 9,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#F1F5F9',
+    },
+    retryCloseText: { color: '#365672', fontSize: 20, lineHeight: 22, fontWeight: '700' },
   });
 }

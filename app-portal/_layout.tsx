@@ -32,7 +32,7 @@ function PortalOnlyRouter() {
   return (
     <ThemeProvider value={portalNavigationTheme}>
       <View style={styles.root}>
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
         <PortalBiometricGate>
           <PortalOnlyRouteGuard>
             <Stack

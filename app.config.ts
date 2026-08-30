@@ -21,7 +21,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   orientation: 'default',
   icon: './assets/icon.png',
   scheme: 'caresuiteplus',
-  userInterfaceStyle: 'dark',
+  userInterfaceStyle: isPortalOnlyEdition ? 'light' : 'dark',
   newArchEnabled: true,
   splash: {
     image: './assets/splash-icon.png',
@@ -60,6 +60,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       backgroundColor: '#F8FAFC',
     },
     package: 'app.caresuitehealthos',
+    googleServicesFile: './google-services.json',
     versionCode: 15,
     predictiveBackGestureEnabled: false,
     permissions: [

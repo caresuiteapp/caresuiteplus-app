@@ -1,6 +1,7 @@
 ﻿node_modules/
 .expo/
 dist/
+dist-portal-only/
 dist-bodymap3d/
 web-build/
 expo-env.d.ts
