@@ -17,7 +17,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   ...config,
   name: isHealthOSCoreEdition || isPortalOnlyEdition ? 'CareSuite HealthOS' : 'CareSuite+',
   slug: 'caresuite-plus',
-  version: '0.2.1',
+  version: '0.2.2',
   orientation: 'default',
   icon: './assets/icon.png',
   scheme: 'caresuiteplus',

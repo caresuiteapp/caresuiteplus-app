@@ -20,6 +20,7 @@ export type GradientModalActionButtonProps = {
   loading?: boolean;
   disabled?: boolean;
   variant?: GradientModalActionButtonVariant;
+  fullWidth?: boolean;
 };
 
 export function GradientModalActionButton({
@@ -28,6 +29,7 @@ export function GradientModalActionButton({
   loading = false,
   disabled = false,
   variant = 'glass',
+  fullWidth = false,
 }: GradientModalActionButtonProps) {
   const portalTheme = usePortalPremiumTheme();
   const { isLight } = useLegacyTheme();
@@ -62,6 +64,7 @@ export function GradientModalActionButton({
         !lightModal && isDanger && styles.dangerDark,
         pressed && styles.pressed,
         (loading || disabled) && styles.loading,
+        fullWidth && styles.fullWidth,
       ]}
       accessibilityRole="button"
     >
@@ -113,6 +116,10 @@ const styles = StyleSheet.create({
   },
   loading: {
     opacity: 0.7,
+  },
+  fullWidth: {
+    width: '100%',
+    minHeight: 46,
   },
   label: {
     ...careTypography.caption,

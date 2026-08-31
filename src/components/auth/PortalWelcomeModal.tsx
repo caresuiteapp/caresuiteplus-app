@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { CareSuiteWordmark } from '@/components/brand/CareSuiteWordmark';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -43,46 +42,54 @@ export function PortalWelcomeModal({
       StyleSheet.create({
         body: {
           alignItems: 'center',
-          gap: careSpacing.md,
-          paddingVertical: careSpacing.lg,
-          minHeight: 260,
+          gap: careSpacing.sm,
+          paddingVertical: careSpacing.md,
           justifyContent: 'center',
-        },
-        sheet: {
-          minHeight: 430,
         },
         avatarWrap: {
-          marginBottom: careSpacing.xs,
+          marginVertical: careSpacing.xs,
         },
-        wordmark: {
-          justifyContent: 'center',
+        brand: {
+          ...careTypography.caption,
+          color: text.secondary,
+          fontWeight: '800',
+          letterSpacing: 1.2,
+          textAlign: 'center',
+          textTransform: 'uppercase',
         },
         greeting: {
           ...careTypography.h2,
-          fontSize: 26,
-          fontWeight: '700',
+          fontSize: 23,
+          lineHeight: 29,
+          fontWeight: '800',
           color: text.primary,
           textAlign: 'center',
         },
         tenant: {
           ...careTypography.bodyStrong,
-          fontSize: 17,
+          fontSize: 16,
+          lineHeight: 22,
           fontWeight: '700',
           color: text.primary,
           textAlign: 'center',
         },
-        role: {
-          ...careTypography.body,
-          color: text.secondary,
-          textAlign: 'center',
+        rolePill: {
+          marginTop: careSpacing.xs,
+          paddingHorizontal: careSpacing.md,
+          paddingVertical: careSpacing.xs,
+          borderRadius: 999,
+          borderWidth: 1,
+          borderColor: `${accent}40`,
+          backgroundColor: `${accent}12`,
         },
-        tenantHint: {
+        role: {
           ...careTypography.caption,
-          color: text.secondary,
+          color: text.primary,
+          fontWeight: '700',
           textAlign: 'center',
         },
       }),
-    [text.primary, text.secondary],
+    [accent, text.primary, text.secondary],
   );
 
   return (
@@ -92,10 +99,10 @@ export function PortalWelcomeModal({
       subtitle={PORTAL_SUBTITLE[kind]}
       onClose={onClose}
       dismissOnBackdrop
-      maxWidth={480}
-      maxHeightRatio={0.82}
+      maxWidth={440}
+      minWidth={0}
+      maxHeightRatio={0.88}
       glowColor={accent}
-      sheetStyle={styles.sheet}
       footerActions={[
         {
           title: 'Zur Übersicht',
@@ -113,12 +120,14 @@ export function PortalWelcomeModal({
             size="md"
           />
         </View>
-        <CareSuiteWordmark size="lg" variant="aurora" style={styles.wordmark} />
+        <Text style={styles.brand}>CareSuite HealthOS</Text>
         <Text style={styles.greeting} accessibilityRole="header">
           {greeting}, {displayName}
         </Text>
         <Text style={styles.tenant}>{tenantName}</Text>
-        <Text style={styles.role}>{roleLabel}</Text>
+        <View style={styles.rolePill}>
+          <Text style={styles.role}>{roleLabel}</Text>
+        </View>
       </View>
     </PlatformModal>
   );

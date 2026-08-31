@@ -1014,8 +1014,11 @@ export function EmployeePortalVisitExecutionScreen() {
       };
     }
     if (localWarning) return { tone: 'warning' as const, message: localWarning };
-    if (tracking?.warnings[0]) {
-      return { tone: 'warning' as const, message: tracking.warnings[0] };
+    const firstTrackingWarning = Array.isArray(tracking?.warnings)
+      ? tracking.warnings[0]
+      : null;
+    if (firstTrackingWarning) {
+      return { tone: 'warning' as const, message: firstTrackingWarning };
     }
     if (consistencyStatus === 'repairable' && nextActionHint) {
       return { tone: 'warning' as const, message: nextActionHint };

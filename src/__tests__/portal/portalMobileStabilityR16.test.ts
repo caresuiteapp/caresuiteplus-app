@@ -27,10 +27,10 @@ describe('R16 portal mobile stability and layout recovery', () => {
     expect(shell).toContain("maxHeight: '72%'");
   });
 
-  it('renders a complete welcome card instead of a collapsed empty dialog', () => {
+  it('renders a complete welcome card without a forced phone height', () => {
     const welcome = read('src/components/auth/PortalWelcomeModal.tsx');
-    expect(welcome).toContain('minHeight: 430');
-    expect(welcome).toContain('sheetStyle={styles.sheet}');
+    expect(welcome).not.toContain('minHeight: 430');
+    expect(welcome).toContain('maxHeightRatio={0.88}');
     expect(welcome).toContain("title: 'Zur Übersicht'");
     expect(welcome).toContain('CareSuite HealthOS');
   });

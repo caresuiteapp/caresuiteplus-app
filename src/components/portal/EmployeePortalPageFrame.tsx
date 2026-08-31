@@ -5,6 +5,7 @@ import { HealthOSPageSurface, HealthOSPageZone } from '@/components/layout/Healt
 import { PortalPremiumPageHero } from '@/components/portal/PortalPremiumPageHero';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 type Props = {
   title: string;
@@ -29,8 +30,10 @@ export function EmployeePortalPageFrame({
   filtersSlot,
   tabsSlot,
 }: Props) {
+  const { isPhone } = useDeviceClass();
+
   return (
-    <View style={styles.page} testID="employee-portal-page-frame">
+    <View style={[styles.page, isPhone && styles.pagePhone]} testID="employee-portal-page-frame">
       {showHero ? (
         <PortalPremiumPageHero
           kind="employee"
@@ -42,8 +45,8 @@ export function EmployeePortalPageFrame({
       ) : null}
       <SurfaceContrastProvider tone="light">
         <HealthOSPageSurface
-          padded
-          contentStyle={styles.workspace}
+          padded={!isPhone}
+          contentStyle={isPhone ? styles.workspacePhone : styles.workspace}
           testID="employee-portal-page-surface"
         >
           <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone>
@@ -76,6 +79,14 @@ const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: 0,
     gap: careSpacing.md,
+  },
+  pagePhone: {
+    gap: careSpacing.sm,
+  },
+  workspacePhone: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderRadius: 0,
   },
   workspace: {
     backgroundColor: portalPremium.surface,

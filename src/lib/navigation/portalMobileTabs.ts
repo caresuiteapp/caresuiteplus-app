@@ -175,4 +175,5 @@ export function splitPortalTabsForMobile(
 }
 
 /** Fixed bottom nav height (icon + label + top padding, excluding safe area). */
-export const PORTAL_MOBILE_NAV_HEIGHT = 56;
+/** Actual floating mobile nav height; keep content and system gestures clear. */
+export const PORTAL_MOBILE_NAV_HEIGHT = 76;

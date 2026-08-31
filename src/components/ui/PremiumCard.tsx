@@ -21,6 +21,7 @@ import {
 import { withAlpha } from '@/design/tokens/motion';
 import { motion, radius } from '@/theme';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 type Props = {
   children: React.ReactNode;
@@ -49,6 +50,7 @@ export function PremiumCard({
   sheen = true,
 }: Props) {
   const portal = usePortalPremiumTheme();
+  const { isPhone } = useDeviceClass();
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -58,7 +60,7 @@ export function PremiumCard({
     () =>
       StyleSheet.create({
         host: {
-          borderRadius: radius.card,
+          borderRadius: portal.active && isPhone ? 16 : radius.card,
           overflow: 'hidden',
           borderWidth: 1,
           borderColor: portal.active
@@ -66,9 +68,9 @@ export function PremiumCard({
             : withAlpha(accentColor, variant === 'elevated' ? 0.58 : 0.34),
           shadowColor: accentColor,
           shadowOffset: { width: 0, height: 14 },
-          shadowOpacity: variant === 'elevated' ? 0.24 : 0.14,
-          shadowRadius: variant === 'elevated' ? 24 : 18,
-          elevation: variant === 'elevated' ? 12 : 8,
+          shadowOpacity: portal.active && isPhone ? 0.1 : variant === 'elevated' ? 0.24 : 0.14,
+          shadowRadius: portal.active && isPhone ? 12 : variant === 'elevated' ? 24 : 18,
+          elevation: portal.active && isPhone ? 3 : variant === 'elevated' ? 12 : 8,
           ...(Platform.OS === 'web'
             ? ({
                 boxShadow:
@@ -113,11 +115,11 @@ export function PremiumCard({
           borderColor: portal.active ? portalPremium.innerBorder : spatialCare.borderGlow,
         },
         content: {
-          padding: 20,
+          padding: portal.active && isPhone ? 14 : 20,
           zIndex: 2,
         },
       }),
-    [accentColor, portal.active, variant],
+    [accentColor, isPhone, portal.active, variant],
   );
 
   const body = (

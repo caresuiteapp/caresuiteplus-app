@@ -27,6 +27,7 @@ import { spacing } from '@/theme';
 import { portalPremium, usePortalPremiumRuntimeTheme } from '@/design/tokens/portalPremium';
 import { resolvePlatformModalMaxHeight } from '@/lib/platform/platformModalLayout';
 import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GradientModalActionButton } from './gradientmodalactionbutton';
 import type { GradientModalActionButtonVariant } from './gradientmodalactionbutton';
 import { GradientModalHeader } from './gradientmodalheader';
@@ -101,6 +102,8 @@ export function PlatformModal({
   const lightModal = surfaceScope === 'personal' || portalTheme.active || (isLight && auroraActive);
   const formGlass = resolveLlganViewGlass('form', 'default');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const compact = screenWidth < 600;
   const resolvedAnimation = animationType ?? (variant === 'bottomSheet' ? 'slide' : 'fade');
   const accent = glowColor ?? c.violet;
   const shellMode = lightModal ? 'light' : 'dark';
@@ -129,7 +132,9 @@ export function PlatformModal({
           backgroundColor: lightModal ? shellColors.backdrop : careSuiteModalScrim,
           justifyContent: 'center',
           alignItems: 'center',
-          padding: spacing.lg,
+          paddingHorizontal: compact ? careSpacing.sm : spacing.lg,
+          paddingTop: Math.max(insets.top, compact ? careSpacing.sm : spacing.lg),
+          paddingBottom: Math.max(insets.bottom, compact ? careSpacing.sm : spacing.lg),
         },
         backdropBottom: {
           flex: 1,
@@ -168,7 +173,7 @@ export function PlatformModal({
           minHeight: 0,
         },
         body: {
-          padding: careSpacing.lg,
+          padding: compact ? careSpacing.md : careSpacing.lg,
           gap: careSpacing.sm,
           flexGrow: 1,
           flexShrink: 1,
@@ -188,12 +193,13 @@ export function PlatformModal({
         },
         footer: {
           flexShrink: 0,
-          flexDirection: 'row',
+          flexDirection: compact ? 'column' : 'row',
+          alignItems: compact ? 'stretch' : 'center',
           justifyContent: 'flex-end',
           flexWrap: 'wrap',
           gap: careSpacing.sm,
           paddingHorizontal: careSpacing.lg,
-          paddingBottom: careSpacing.lg,
+          paddingBottom: Math.max(insets.bottom + careSpacing.sm, careSpacing.lg),
           paddingTop: careSpacing.md,
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: lightModal
@@ -208,7 +214,7 @@ export function PlatformModal({
               : 'rgba(1,8,23,0.98)',
         },
       }),
-    [formGlass.shadow, isDark, lightModal, portalTheme.active, shellColors, sheetMaxHeight, sheetWidth, variant],
+    [compact, formGlass.shadow, insets.bottom, insets.top, isDark, lightModal, portalTheme.active, shellColors, sheetMaxHeight, sheetWidth, variant],
   );
 
   useEffect(() => {
@@ -288,6 +294,7 @@ export function PlatformModal({
               loading={action.loading}
               disabled={action.disabled}
               variant={action.variant ?? 'glass'}
+              fullWidth={compact}
             />
           ))}
         </View>

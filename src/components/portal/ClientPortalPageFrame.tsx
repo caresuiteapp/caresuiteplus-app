@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { HealthOSPageSurface, HealthOSPageZone } from '@/components/layout/HealthOSPageSurface';
 import { careSpacing } from '@/design/tokens/spacing';
 import { PortalPremiumPageHero } from '@/components/portal/PortalPremiumPageHero';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 type Props = {
   title: string;
@@ -27,8 +28,10 @@ export function ClientPortalPageFrame({
   filtersSlot,
   tabsSlot,
 }: Props) {
+  const { isPhone } = useDeviceClass();
+
   return (
-    <View style={styles.page} testID="client-portal-page-frame">
+    <View style={[styles.page, isPhone && styles.pagePhone]} testID="client-portal-page-frame">
       {showHero ? (
         <PortalPremiumPageHero
           kind="client"
@@ -38,7 +41,7 @@ export function ClientPortalPageFrame({
           compact={compact}
         />
       ) : null}
-      <HealthOSPageSurface padded testID="client-portal-page-surface">
+      <HealthOSPageSurface padded={!isPhone} testID="client-portal-page-surface">
         <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone>
         <HealthOSPageZone kind="filters">{filtersSlot}</HealthOSPageZone>
         <HealthOSPageZone kind="tabs">{tabsSlot}</HealthOSPageZone>
@@ -66,5 +69,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: 0,
     gap: careSpacing.md,
+  },
+  pagePhone: {
+    gap: careSpacing.sm,
   },
 });

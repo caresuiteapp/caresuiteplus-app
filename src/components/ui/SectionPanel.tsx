@@ -16,6 +16,7 @@ import {
 import { useSurfaceContrastTone } from "@/design/tokens/surfaceContrast";
 import { resolveUserFacingSubtitle } from "@/lib/ui/uiVisibility";
 import { radius, spacing } from "@/theme";
+import { useDeviceClass } from "@/hooks/useDeviceClass";
 
 type SectionPanelProps = {
   title: string;
@@ -45,9 +46,12 @@ export function SectionPanel({
 }: SectionPanelProps) {
   const { colors, typography } = useLegacyTheme();
   const portal = usePortalPremiumTheme();
+  const { isPhone } = useDeviceClass();
   const surfaceTone = useSurfaceContrastTone();
   const forceLightSurface = !onDarkSurface && surfaceTone === "light";
   const openSurface = surface === "open";
+  const nativePortalSection = portal.active && isPhone;
+  const effectiveOpenSurface = openSurface || nativePortalSection;
   const moduleAccent = accentColor ?? colors.cyan;
   const userSubtitle = resolveUserFacingSubtitle(subtitle);
 
@@ -56,12 +60,12 @@ export function SectionPanel({
       StyleSheet.create({
         panel: {
           width: "100%",
-          borderRadius: openSurface ? 0 : radius.lg,
-          borderWidth: openSurface ? 0 : 1,
+          borderRadius: effectiveOpenSurface ? 0 : radius.lg,
+          borderWidth: effectiveOpenSurface ? 0 : 1,
           borderColor: onDarkSurface
             ? "rgba(105, 215, 255, 0.48)"
             : withAlpha(moduleAccent, 0.44),
-          backgroundColor: openSurface
+          backgroundColor: effectiveOpenSurface
             ? "transparent"
             : onDarkSurface
               ? "#0A2747"
@@ -72,7 +76,7 @@ export function SectionPanel({
                   : systemLiquidGlass.panel,
           overflow: fillHeight ? "visible" : "hidden",
           position: "relative",
-          ...(openSurface || Platform.OS !== "web"
+          ...(effectiveOpenSurface || Platform.OS !== "web"
             ? null
             : ({
                 ...(forceLightSurface
@@ -102,7 +106,7 @@ export function SectionPanel({
                 : systemLiquidGlass.innerBorder,
         },
         header: {
-          paddingHorizontal: spacing.md,
+          paddingHorizontal: nativePortalSection ? spacing.xs : spacing.md,
           paddingTop: headerVariant === "hero" ? spacing.lg : spacing.md,
           paddingBottom: headerVariant === "hero" ? spacing.md : spacing.sm,
           borderBottomWidth: 1,
@@ -135,7 +139,11 @@ export function SectionPanel({
           textAlign: headerAlign === "center" ? "center" : "left",
         },
         body: {
-          padding: fillHeight ? spacing.lg : spacing.md,
+          padding: nativePortalSection
+            ? spacing.xs
+            : fillHeight
+              ? spacing.lg
+              : spacing.md,
           gap: fillHeight ? spacing.md : spacing.sm,
           width: "100%",
           ...(fillHeight
@@ -146,7 +154,8 @@ export function SectionPanel({
         },
       }),
     [
-      openSurface,
+      effectiveOpenSurface,
+      nativePortalSection,
       typography,
       headerAlign,
       headerVariant,
@@ -170,7 +179,7 @@ export function SectionPanel({
           } as object)
         : {})}
     >
-      {!openSurface ? (
+      {!effectiveOpenSurface ? (
         <View style={styles.innerBorder} pointerEvents="none" />
       ) : null}
       <View style={styles.header}>

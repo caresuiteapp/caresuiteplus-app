@@ -17,6 +17,7 @@ import {
   formatMonthYear,
   formatWeekRange,
 } from '@/lib/office/calendarDateUtils';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 type EmployeePortalCalendarScreenProps = {
   onEventPress?: (event: CalendarEvent) => void;
@@ -24,6 +25,7 @@ type EmployeePortalCalendarScreenProps = {
 
 export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCalendarScreenProps) {
   const router = useRouter();
+  const { isPhone } = useDeviceClass();
   const [viewMode, setViewMode] = useState<CalendarViewMode>('agenda');
   const [anchor, setAnchor] = useState(() => new Date());
 
@@ -124,7 +126,7 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
   );
 
   return (
-    <View style={styles.wrap} testID="employee-portal-calendar">
+    <View style={[styles.wrap, isPhone && styles.wrapPhone]} testID="employee-portal-calendar">
       <CalendarToolbar
         viewMode={viewMode}
         onViewModeChange={setViewMode}
@@ -168,6 +170,15 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: portalPremium.border,
     backgroundColor: portalPremium.surface,
     ...(Platform.OS === 'web' ? ({ boxShadow: portalPremium.shadow.card } as unknown as ViewStyle) : null),
+  },
+  wrapPhone: {
+    gap: careSpacing.md,
+    padding: 0,
+    borderWidth: 0,
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   horizontalViewport: {
     width: '100%',
