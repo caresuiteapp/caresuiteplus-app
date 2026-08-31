@@ -881,11 +881,12 @@ export async function updateLiveEmployeePortalTask(
 
   const accessDenied = assertLiveEmployeeAssignmentAccess(tenantId, employeeId, roleKey, existing.data);
   if (accessDenied) return accessDenied;
+  const persistentAssignmentId = existing.data.id;
 
   const taskStatus = toPersistedTaskStatus(status);
   const updated = await assignmentSupabaseRepository.updateTask(
     tenantId,
-    assignmentId,
+    persistentAssignmentId,
     taskId,
     taskStatus,
     completionNote,
@@ -893,10 +894,10 @@ export async function updateLiveEmployeePortalTask(
   );
   if (!updated.ok) return updated;
 
-  const extras = await fetchAssignmentExtras(tenantId, assignmentId, updated.data.clientId);
+  const extras = await fetchAssignmentExtras(tenantId, persistentAssignmentId, updated.data.clientId);
   const docFlags = await resolveEmployeePortalDocumentationFlags(
     tenantId,
-    assignmentId,
+    persistentAssignmentId,
     updated.data.assignmentStatus,
     updated.data.documentationNotes,
     employeeId,
@@ -937,6 +938,7 @@ export async function updateLiveEmployeePortalTasksBatch(
 
   const accessDenied = assertLiveEmployeeAssignmentAccess(tenantId, employeeId, roleKey, existing.data);
   if (accessDenied) return accessDenied;
+  const persistentAssignmentId = existing.data.id;
 
   for (const item of updates) {
     if (taskStatusRequiresNote(item.status as AssignmentStatus) && !item.completionNote?.trim()) {
@@ -956,7 +958,7 @@ export async function updateLiveEmployeePortalTasksBatch(
 
   const updated = await assignmentSupabaseRepository.updateTasksBatch(
     tenantId,
-    assignmentId,
+    persistentAssignmentId,
     mapped,
     { actorProfileId: employeeId, actorEmployeeId: employeeId },
   );
@@ -984,10 +986,10 @@ export async function updateLiveEmployeePortalTasksBatch(
     };
   }
 
-  const extras = await fetchAssignmentExtras(tenantId, assignmentId, updated.data.clientId);
+  const extras = await fetchAssignmentExtras(tenantId, persistentAssignmentId, updated.data.clientId);
   const docFlags = await resolveEmployeePortalDocumentationFlags(
     tenantId,
-    assignmentId,
+    persistentAssignmentId,
     updated.data.assignmentStatus,
     updated.data.documentationNotes,
     employeeId,

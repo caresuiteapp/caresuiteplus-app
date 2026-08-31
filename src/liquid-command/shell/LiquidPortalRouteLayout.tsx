@@ -23,9 +23,6 @@ import {
 } from '../navigation/portalCatalog';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
 import { webScaledFontMetric } from '@/design/web/webFontSize';
-import { usePortalActor } from '@/hooks/usePortalActor';
-import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import { resolveEmployeeLogbookEligibility } from '@/lib/employeeLogbook';
 import { PortalPremiumProvider } from '@/design/tokens/portalPremium';
 import {
   isEmployeeVisitExecutionRoute,
@@ -60,16 +57,8 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const layout = useLiquidLayout();
   const insets = useSafeAreaInsets();
   const auth = useAuth();
-  const portalActor = usePortalActor();
   const [moreOpen, setMoreOpen] = useState(false);
-  const logbookEligibility = useAsyncQuery(async () => {
-    if (!portalActor.tenantId || !portalActor.employeeId) throw new Error('Mitarbeitendenkonto ist nicht verknüpft.');
-    return { ok: true as const, data: await resolveEmployeeLogbookEligibility(portalActor.tenantId, portalActor.employeeId) };
-  }, [portalActor.tenantId, portalActor.employeeId], { enabled: kind === 'employee' && !!portalActor.tenantId && !!portalActor.employeeId });
-  const navigation = useMemo(
-    () => liquidPortalNavigation[kind].filter((item) => item.id !== 'logbook' || Boolean(logbookEligibility.data?.eligible)),
-    [kind, logbookEligibility.data?.eligible],
-  );
+  const navigation = liquidPortalNavigation[kind];
   const compactNavigation = navigation.filter((item) => item.compact);
   const moreNavigation = navigation.filter((item) => !item.compact);
   const profileRoute =

@@ -10,12 +10,13 @@ describe('Digitales Fahrtenbuch R11 · automatischer PKW-Workflow', () => {
     expect(isLogbookTripInBerlinRange('2026-08-24T22:30:00.000Z', '2026-08-25', '2026-08-25')).toBe(true);
   });
 
-  it('erlaubt das Fahrtenbuch nur bei PKW-Modus und aktiv zugeordnetem Fahrzeug', () => {
+  it('aktiviert Aufzeichnung nur bei PKW/Fahrzeug, hält das eigenständige Modul aber erreichbar', () => {
     const automation = read('src/lib/employeeLogbook/employeeLogbookAutomation.ts');
     const shell = read('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
     expect(automation).toContain("mobility.transportModes.includes('car')");
     expect(automation).toContain("bundle.vehicles.find((vehicle) => vehicle.active)");
-    expect(shell).toContain("item.id !== 'logbook' || Boolean(logbookEligibility.data?.eligible)");
+    expect(shell).toContain('const navigation = liquidPortalNavigation[kind]');
+    expect(shell).not.toContain("item.id !== 'logbook'");
   });
 
   it('bindet Anfahrt und Ankunft an dieselbe Fahrtenbuchkette', () => {

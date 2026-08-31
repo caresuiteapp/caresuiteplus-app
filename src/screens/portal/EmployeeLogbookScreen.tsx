@@ -12,17 +12,17 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { typography } from '@/theme';
 import { TRAVEL_ROUTE_TYPE_LABELS, type TravelRouteType } from '@/types/modules/travelCompensation';
 import type { LogbookPoint, LogbookTrip } from '@/types/modules/employeeLogbook';
-import { acquireEmployeeLogbookForegroundTracking, addLogbookStop, appendLogbookPoints, berlinToday, confirmLogbookDay, createLogbookReceipt, createLogbookTrip, finishLogbookTrip, flushLogbookPointQueue, getCurrentLogbookPoint, loadEmployeeLogbook, requestLogbookLocationPermission, resolveEmployeeLogbookEligibility, saveLogbookProfile, startNativeBackgroundTracking, stopAutomaticLogbookTracking, uploadLogbookFile, type EmployeeGpsWatchHandle } from '@/lib/employeeLogbook';
+import { acquireEmployeeLogbookForegroundTracking, addLogbookStop, appendLogbookPoints, berlinDateKey, berlinToday, confirmLogbookDay, createLogbookReceipt, createLogbookTrip, finishLogbookTrip, flushLogbookPointQueue, getCurrentLogbookPoint, loadEmployeeLogbook, requestLogbookLocationPermission, resolveEmployeeLogbookEligibility, saveLogbookProfile, startNativeBackgroundTracking, stopAutomaticLogbookTracking, uploadLogbookFile, type EmployeeGpsWatchHandle } from '@/lib/employeeLogbook';
 import { fetchLivePortalAppointmentsForEmployee } from '@/lib/portal/portalAppointmentsLiveService';
 import { fetchEmployeePortalClientRecords } from '@/lib/portal/employeePortalClientRecordsService';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 
-type Tab = 'record' | 'trips' | 'receipts' | 'profile';
+type Tab = 'overview' | 'record' | 'trips' | 'receipts' | 'profile';
 const routes = Object.keys(TRAVEL_ROUTE_TYPE_LABELS).filter((key) => key !== 'private_non_business') as TravelRouteType[];
 const today = berlinToday;
 
 export function EmployeeLogbookScreen() {
-  const actor = usePortalActor(); const [tab, setTab] = useState<Tab>('record');
+  const actor = usePortalActor(); const [tab, setTab] = useState<Tab>('overview');
   const [feedback, setFeedback] = useState<string | null>(null); const [busy, setBusy] = useState(false);
   const query = useAsyncQuery(useCallback(async () => {
     if (!actor.tenantId || !actor.employeeId) throw new Error('Mitarbeitendenkonto ist nicht vollständig verknüpft.');
@@ -112,7 +112,7 @@ export function EmployeeLogbookScreen() {
   if (!actor.isReady || query.loading && !query.data || eligibilityQuery.loading && !eligibilityQuery.data) return <PortalTabScreen title="Fahrtenbuch"><LoadingState message="Fahrtenbuch wird sicher geladen…" /></PortalTabScreen>;
   if (query.error && !query.data) return <PortalTabScreen title="Fahrtenbuch"><ErrorState title="Fahrtenbuch nicht verfügbar" message={query.error} onRetry={() => void query.refresh()} /></PortalTabScreen>;
   if (eligibilityQuery.data && !eligibilityQuery.data.eligible) {
-    return <PortalTabScreen title="Arbeitszeit" subtitle="Mobilität und Fahrten">
+    return <PortalTabScreen title="Fahrtenbuch" subtitle="Eigenständiges Mobilitätsmodul">
       <InfoBanner
         variant="info"
         message={eligibilityQuery.data.reason === 'no_car_mode'
@@ -131,14 +131,45 @@ export function EmployeeLogbookScreen() {
       <InfoBanner variant="warning" message="Während der Fahrt: Gerät eingeschaltet lassen. Im Browser/PWA CareSuite nicht schließen und den Bildschirm nicht sperren. Standort und mobile Daten müssen aktiv sein. In der Android-App läuft die Aufzeichnung mit sichtbarer Dauerbenachrichtigung im Hintergrund weiter." />
       {feedback ? <InfoBanner variant={feedback.includes('nicht') || feedback.includes('Bitte') ? 'warning' : 'info'} message={feedback} /> : null}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
-        {([['record','Aufzeichnen'],['trips','Meine Fahrten'],['receipts','Belege'],['profile','Führerschein']] as [Tab,string][]).map(([key,label]) => <Pressable key={key} onPress={() => setTab(key)} style={[styles.tab, tab === key && styles.tabActive]}><Text style={[styles.tabText, tab === key && styles.tabTextActive]}>{label}</Text></Pressable>)}
+        {([['overview','Übersicht'],['record','Aufzeichnen'],['trips','Meine Fahrten'],['receipts','Belege'],['profile','Führerschein']] as [Tab,string][]).map(([key,label]) => <Pressable key={key} onPress={() => setTab(key)} style={[styles.tab, tab === key && styles.tabActive]}><Text style={[styles.tabText, tab === key && styles.tabTextActive]}>{label}</Text></Pressable>)}
       </ScrollView>
+      {tab === 'overview' ? <LogbookOverviewPanel bundle={bundle} active={active} setTab={setTab} /> : null}
       {tab === 'record' ? <RecordPanel active={active} tenantId={actor.tenantId} employeeId={actor.employeeId} routeType={routeType} setRouteType={setRouteType} purpose={purpose} setPurpose={setPurpose} linkMode={linkMode} setLinkMode={setLinkMode} assignmentId={assignmentId} setAssignmentId={setAssignmentId} clientId={clientId} setClientId={setClientId} linkOptions={linkOptionsQuery.data} linkOptionsLoading={linkOptionsQuery.loading} linkOptionsError={linkOptionsQuery.error} manualReason={manualReason} setManualReason={setManualReason} startAddress={startAddress} setStartAddress={setStartAddress} endAddress={endAddress} setEndAddress={setEndAddress} notes={notes} setNotes={setNotes} busy={busy} begin={begin} finish={finish} openMaps={openMaps} setFeedback={setFeedback} /> : null}
       {tab === 'trips' ? <TripsPanel employeeName={actor.displayName} trips={bundle.trips} confirmations={bundle.confirmations.map((c) => c.workDate)} tenantId={actor.tenantId!} employeeId={actor.employeeId!} refresh={query.refresh} setFeedback={setFeedback} /> : null}
       {tab === 'receipts' ? <ReceiptsPanel tenantId={actor.tenantId!} employeeId={actor.employeeId!} trips={bundle.trips} setFeedback={setFeedback} /> : null}
       {tab === 'profile' ? <ProfilePanel tenantId={actor.tenantId!} employeeId={actor.employeeId!} profile={bundle.profile} refresh={query.refresh} setFeedback={setFeedback} /> : null}
     </View>
   </PortalTabScreen>;
+}
+
+function LogbookOverviewPanel({ bundle, active, setTab }: { bundle: import('@/types/modules/employeeLogbook').EmployeeLogbookBundle; active: LogbookTrip | null; setTab: (tab: Tab) => void }) {
+  const currentMonth = today().slice(0, 7);
+  const monthTrips = bundle.trips.filter((trip) => trip.status !== 'cancelled' && berlinDateKey(trip.startedAt).startsWith(currentMonth));
+  const distanceKm = monthTrips.reduce((sum, trip) => sum + trip.distanceFinalKm, 0);
+  const mileageCents = monthTrips.reduce((sum, trip) => sum + trip.mileageAmountCents, 0);
+  const completedDates = new Set(monthTrips.filter((trip) => trip.status !== 'recording').map((trip) => berlinDateKey(trip.startedAt)));
+  const confirmedDates = new Set(bundle.confirmations.map((item) => item.workDate));
+  const unsignedDays = [...completedDates].filter((date) => !confirmedDates.has(date)).length;
+
+  return <View style={styles.stack} testID="employee-logbook-overview">
+    <SectionPanel title="Monatsübersicht" subtitle="Fahrten, Kilometer, Vergütung und offene Tagesabschlüsse auf einen Blick">
+      <View style={styles.summaryGrid}>
+        <PremiumCard contentStyle={styles.summaryCard}><Text style={styles.summaryValue}>{monthTrips.length}</Text><Text style={styles.muted}>Fahrten im Monat</Text></PremiumCard>
+        <PremiumCard contentStyle={styles.summaryCard}><Text style={styles.summaryValue}>{distanceKm.toFixed(1).replace('.', ',')} km</Text><Text style={styles.muted}>dienstliche Kilometer</Text></PremiumCard>
+        <PremiumCard contentStyle={styles.summaryCard}><Text style={styles.summaryValue}>{(mileageCents / 100).toFixed(2).replace('.', ',')} €</Text><Text style={styles.muted}>Kilometervergütung</Text></PremiumCard>
+        <PremiumCard contentStyle={styles.summaryCard}><Text style={styles.summaryValue}>{unsignedDays}</Text><Text style={styles.muted}>Tagesabschlüsse offen</Text></PremiumCard>
+      </View>
+    </SectionPanel>
+    <SectionPanel title={active ? 'Laufende Aufzeichnung' : 'Schnellzugriff'} subtitle={active ? `${TRAVEL_ROUTE_TYPE_LABELS[active.routeType]} · ${active.purpose}` : 'Alle Fahrtenbuchfunktionen zentral an einem Ort'}>
+      <View style={styles.actions}>
+        <PremiumButton title={active ? 'Laufende Fahrt öffnen' : 'Neue Fahrt aufzeichnen'} onPress={() => setTab('record')} />
+        <PremiumButton title="Fahrten und Tagesabschluss" variant="secondary" onPress={() => setTab('trips')} />
+        <PremiumButton title="Beleg hochladen" variant="secondary" onPress={() => setTab('receipts')} />
+        <PremiumButton title="Führerschein verwalten" variant="secondary" onPress={() => setTab('profile')} />
+      </View>
+    </SectionPanel>
+    <InfoBanner variant="info" message="Das Fahrtenbuch ist ein eigenständiges Modul. Einsatzbezogene Automatiken verknüpfen Fahrten hierher; Verwaltung, Belege und Bestätigung erfolgen zentral auf dieser Seite." />
+  </View>;
 }
 
 function RecordPanel(p: any) {
@@ -219,4 +250,4 @@ function ReceiptsPanel({tenantId,employeeId,trips,setFeedback}:{tenantId:string;
 
 function ProfilePanel({tenantId,employeeId,profile,refresh,setFeedback}:{tenantId:string;employeeId:string;profile:any;refresh:()=>Promise<unknown>;setFeedback:(v:string|null)=>void}){async function license(side:'front'|'back'){const r=await DocumentPicker.getDocumentAsync({type:['image/*','application/pdf'],copyToCacheDirectory:true});if(r.canceled)return;try{const a=r.assets[0];const path=await uploadLogbookFile({tenantId,employeeId,area:'license',uri:a.uri,fileName:a.name,mimeType:a.mimeType});await saveLogbookProfile({...profile,[side==='front'?'licenseFrontPath':'licenseBackPath']:path});await refresh();setFeedback(`Führerschein-${side==='front'?'Vorderseite':'Rückseite'} sicher gespeichert.`);}catch(e){setFeedback(e instanceof Error?e.message:'Upload fehlgeschlagen.');}}return <SectionPanel title="Führerschein" subtitle="Vorder- und Rückseite geschützt in der Personalakte hinterlegen"><View style={styles.actions}><PremiumButton title={profile.licenseFrontPath?'Vorderseite ersetzen':'Vorderseite hochladen'} variant="secondary" onPress={()=>void license('front')}/><PremiumButton title={profile.licenseBackPath?'Rückseite ersetzen':'Rückseite hochladen'} variant="secondary" onPress={()=>void license('back')}/></View></SectionPanel>}
 
-const styles=StyleSheet.create({page:{width:'100%',gap:careSpacing.md},stack:{gap:careSpacing.md},hero:{minHeight:150,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:careSpacing.lg},heroCopy:{flex:1,gap:6},eyebrow:{...typography.caption,color:portalPremium.accent.blue,fontWeight:'800',letterSpacing:1.4},heroTitle:{...typography.h1,color:portalPremium.text.primary},heroText:{...typography.body,color:portalPremium.text.secondary,maxWidth:760},tabs:{gap:8,paddingVertical:4},tab:{minHeight:44,justifyContent:'center',paddingHorizontal:18,borderRadius:14,borderWidth:1,borderColor:portalPremium.borderSoft,backgroundColor:portalPremium.surfaceRaised},tabActive:{borderColor:portalPremium.accent.blue,backgroundColor:portalPremium.surfaceMuted},tabText:{...typography.body,color:portalPremium.text.secondary,fontWeight:'700'},tabTextActive:{color:portalPremium.accent.blueDark},form:{gap:careSpacing.md},label:{...typography.label,color:portalPremium.text.primary},chips:{flexDirection:'row',flexWrap:'wrap',gap:8},chip:{minHeight:38,justifyContent:'center',paddingHorizontal:13,borderRadius:999,borderWidth:1,borderColor:portalPremium.borderSoft,backgroundColor:portalPremium.surfaceRaised},chipActive:{borderColor:portalPremium.accent.blue,backgroundColor:portalPremium.surfaceMuted},chipText:{...typography.caption,color:portalPremium.text.secondary,fontWeight:'700'},chipTextActive:{color:portalPremium.accent.blueDark},cols:{flexDirection:'row',flexWrap:'wrap',gap:careSpacing.sm},grow:{flex:1,minWidth:220},actions:{flexDirection:'row',flexWrap:'wrap',gap:careSpacing.sm,alignItems:'center'},privacy:{...typography.caption,color:portalPremium.text.muted},trip:{marginBottom:careSpacing.sm},tripHead:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:careSpacing.sm},tripTitle:{...typography.h3,color:portalPremium.text.primary},muted:{...typography.caption,color:portalPremium.text.muted},metrics:{flexDirection:'row',flexWrap:'wrap',gap:8,marginVertical:10},metric:{...typography.caption,color:portalPremium.text.primary,backgroundColor:portalPremium.surfaceSoft,borderRadius:999,paddingHorizontal:10,paddingVertical:6},signaturePreview:{width:'100%',height:140,borderRadius:12,backgroundColor:'#FFFFFF'}});
+const styles=StyleSheet.create({page:{width:'100%',gap:careSpacing.md},stack:{gap:careSpacing.md},hero:{minHeight:150,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:careSpacing.lg},heroCopy:{flex:1,gap:6},eyebrow:{...typography.caption,color:portalPremium.accent.blue,fontWeight:'800',letterSpacing:1.4},heroTitle:{...typography.h1,color:portalPremium.text.primary},heroText:{...typography.body,color:portalPremium.text.secondary,maxWidth:760},tabs:{gap:8,paddingVertical:4},tab:{minHeight:44,justifyContent:'center',paddingHorizontal:18,borderRadius:14,borderWidth:1,borderColor:portalPremium.borderSoft,backgroundColor:portalPremium.surfaceRaised},tabActive:{borderColor:portalPremium.accent.blue,backgroundColor:portalPremium.surfaceMuted},tabText:{...typography.body,color:portalPremium.text.secondary,fontWeight:'700'},tabTextActive:{color:portalPremium.accent.blueDark},form:{gap:careSpacing.md},label:{...typography.label,color:portalPremium.text.primary},chips:{flexDirection:'row',flexWrap:'wrap',gap:8},chip:{minHeight:38,justifyContent:'center',paddingHorizontal:13,borderRadius:999,borderWidth:1,borderColor:portalPremium.borderSoft,backgroundColor:portalPremium.surfaceRaised},chipActive:{borderColor:portalPremium.accent.blue,backgroundColor:portalPremium.surfaceMuted},chipText:{...typography.caption,color:portalPremium.text.secondary,fontWeight:'700'},chipTextActive:{color:portalPremium.accent.blueDark},cols:{flexDirection:'row',flexWrap:'wrap',gap:careSpacing.sm},grow:{flex:1,minWidth:220},actions:{flexDirection:'row',flexWrap:'wrap',gap:careSpacing.sm,alignItems:'center'},privacy:{...typography.caption,color:portalPremium.text.muted},trip:{marginBottom:careSpacing.sm},tripHead:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:careSpacing.sm},tripTitle:{...typography.h3,color:portalPremium.text.primary},muted:{...typography.caption,color:portalPremium.text.muted},metrics:{flexDirection:'row',flexWrap:'wrap',gap:8,marginVertical:10},metric:{...typography.caption,color:portalPremium.text.primary,backgroundColor:portalPremium.surfaceSoft,borderRadius:999,paddingHorizontal:10,paddingVertical:6},summaryGrid:{flexDirection:'row',flexWrap:'wrap',gap:careSpacing.sm},summaryCard:{minWidth:150,flex:1,gap:4},summaryValue:{...typography.h2,color:portalPremium.text.primary},signaturePreview:{width:'100%',height:140,borderRadius:12,backgroundColor:'#FFFFFF'}});

@@ -115,6 +115,8 @@ export function PortalAppointmentsTab({
     const pending = resolveEmployeePortalAssignmentPendingFlags({
       status,
       assignmentIncomplete: appt.assignmentIncomplete,
+      documentationPending: appt.documentationPending,
+      signaturePending: appt.signaturePending,
     });
     if (
       detailBasePath &&

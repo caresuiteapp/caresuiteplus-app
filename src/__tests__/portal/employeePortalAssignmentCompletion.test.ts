@@ -65,7 +65,7 @@ describe('employeePortalAssignmentCompletion', () => {
     ).toBe(true);
   });
 
-  it('maps incomplete abgeschlossen list items as unlocked with open signature', () => {
+  it('keeps aggregate-incomplete assignments unlocked without inventing a signature task', () => {
     const item = mapPortalAppointmentToListItem({
       ...BASE,
       assignmentStatus: 'abgeschlossen',
@@ -73,7 +73,30 @@ describe('employeePortalAssignmentCompletion', () => {
     });
     expect(item.status).toBe('abgeschlossen');
     expect(item.isLocked).toBe(false);
-    expect(item.documentationPending || item.signaturePending).toBe(true);
+    expect(item.documentationPending).toBe(false);
+    expect(item.signaturePending).toBe(false);
+  });
+
+  it('maps explicit visit dimensions to exactly the pending category', () => {
+    const documentation = mapPortalAppointmentToListItem({
+      ...BASE,
+      assignmentStatus: 'abgeschlossen',
+      assignmentIncomplete: true,
+      documentationPending: true,
+      signaturePending: false,
+    });
+    const signature = mapPortalAppointmentToListItem({
+      ...BASE,
+      assignmentStatus: 'abgeschlossen',
+      assignmentIncomplete: true,
+      documentationPending: false,
+      signaturePending: true,
+    });
+
+    expect(documentation.documentationPending).toBe(true);
+    expect(documentation.signaturePending).toBe(false);
+    expect(signature.documentationPending).toBe(false);
+    expect(signature.signaturePending).toBe(true);
   });
 
   it('hides only past fully complete abgeschlossen assignments from portal lists', () => {

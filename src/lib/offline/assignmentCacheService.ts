@@ -117,9 +117,11 @@ export function buildPortalDetailFromListItem(
   const assignmentId = item.id;
   const assignmentStatus = item.assignmentStatus;
   const pending = assignmentStatus
-    ? resolveEmployeePortalAssignmentPendingFlags({
+      ? resolveEmployeePortalAssignmentPendingFlags({
         status: assignmentStatus,
         assignmentIncomplete: item.assignmentIncomplete,
+        documentationPending: item.documentationPending,
+        signaturePending: item.signaturePending,
       })
     : { documentationPending: false, signaturePending: false };
   const canStart =

@@ -133,7 +133,38 @@ describe('employeePortalLiveOverviewService', () => {
     });
     expect(item.status).toBe('abgeschlossen');
     expect(item.isLocked).toBe(false);
-    expect(item.documentationPending || item.signaturePending).toBe(true);
+    expect(item.documentationPending).toBe(false);
+    expect(item.signaturePending).toBe(false);
+  });
+
+  it('counts explicit documentation and proof dimensions independently', () => {
+    const start = new Date();
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    const overview = buildEmployeePortalOverviewFromAppointments([
+      {
+        ...BASE,
+        id: 'doc-explicit',
+        startsAt: start.toISOString(),
+        endsAt: end.toISOString(),
+        assignmentStatus: 'abgeschlossen',
+        assignmentIncomplete: true,
+        documentationPending: true,
+        signaturePending: false,
+      },
+      {
+        ...BASE,
+        id: 'signature-explicit',
+        startsAt: start.toISOString(),
+        endsAt: end.toISOString(),
+        assignmentStatus: 'abgeschlossen',
+        assignmentIncomplete: true,
+        documentationPending: false,
+        signaturePending: true,
+      },
+    ]);
+
+    expect(overview.openDocumentations).toBe(1);
+    expect(overview.missingSignatures).toBe(1);
   });
 
   it('maps finished/beendet workflow slice back to gestartet without assignmentStatus (legacy)', () => {

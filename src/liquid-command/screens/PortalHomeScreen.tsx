@@ -60,8 +60,7 @@ import {
 } from '@/lib/portal/employeePortalAssignmentCompletion';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { usePortalActor } from '@/hooks/usePortalActor';
-import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import { resolveEmployeeLogbookEligibility } from '@/lib/employeeLogbook';
+import { EmployeeLogbookWidget } from '../components/EmployeeLogbookWidget';
 
 type PortalSection = {
   id: string;
@@ -573,6 +572,7 @@ function Overview({
           }
         />
       ) : null}
+      {portal === 'employee' ? <EmployeeLogbookWidget /> : null}
       {!layout.isPhone ? (
         <View style={styles.quickGrid}>
           {quickItems.map((item, index) => (
@@ -747,14 +747,7 @@ export function PortalHomeScreen({
   const definition = portalDefinitions[portal];
   const [active, setActive] = useState('today');
   const { context, data, errors, loading, profileId, reload, roleKey } = usePortalData(portal);
-  const logbookEligibility = useAsyncQuery(async () => {
-    if (!context.tenantId || !context.employeeId) throw new Error('Mitarbeitendenkonto ist nicht verknüpft.');
-    return { ok: true as const, data: await resolveEmployeeLogbookEligibility(context.tenantId, context.employeeId) };
-  }, [context.tenantId, context.employeeId], { enabled: portal === 'employee' && !!context.tenantId && !!context.employeeId });
-  const visibleSections = useMemo(
-    () => definition.sections.filter((section) => section.id !== 'logbook' || Boolean(logbookEligibility.data?.eligible)),
-    [definition.sections, logbookEligibility.data?.eligible],
-  );
+  const visibleSections = definition.sections;
   const officeMessages = usePortalOfficeMessages('open');
   const displayName =
     auth.profile?.displayName || auth.portalSession?.displayName || auth.user?.displayName || 'Portal';
@@ -778,6 +771,8 @@ export function PortalHomeScreen({
       const pending = resolveEmployeePortalAssignmentPendingFlags({
         status,
         assignmentIncomplete: appointment.assignmentIncomplete,
+        documentationPending: appointment.documentationPending,
+        signaturePending: appointment.signaturePending,
       });
       router.push(
         resolveEmployeePortalAssignmentNavigationRoute({

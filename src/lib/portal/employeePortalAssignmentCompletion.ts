@@ -3,6 +3,10 @@ import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePor
 
 export type EmployeePortalAssignmentPendingInput = {
   status: AssignmentStatus;
+  /** Explicit visit dimension; unlike assignmentIncomplete this identifies the open category. */
+  documentationPending?: boolean;
+  /** Explicit visit dimension; unlike assignmentIncomplete this identifies the open category. */
+  signaturePending?: boolean;
   requiresDocumentation?: boolean;
   requiresSignature?: boolean;
   documentationStatus?: EmployeePortalAssignmentDetail['documentationStatus'];
@@ -85,6 +89,7 @@ export function isEmployeePortalAssignmentFullyComplete(
   input: EmployeePortalAssignmentPendingInput,
 ): boolean {
   if (TERMINAL_STATUSES.has(input.status)) return true;
+  if (input.documentationPending || input.signaturePending) return false;
   return isDocumentationSatisfied(input) && isSignatureSatisfied(input);
 }
 
@@ -95,14 +100,14 @@ export function resolveEmployeePortalAssignmentPendingFlags(
   const sigSatisfied = isSignatureSatisfied(input);
 
   const documentationPending =
+    input.documentationPending === true ||
     input.status === 'beendet' ||
     input.status === 'dokumentation_offen' ||
-    (input.status === 'abgeschlossen' && input.assignmentIncomplete === true) ||
     (input.requiresDocumentation === true && !docSatisfied);
 
   const signaturePending =
+    input.signaturePending === true ||
     input.status === 'unterschrift_offen' ||
-    (input.status === 'abgeschlossen' && input.assignmentIncomplete === true) ||
     (input.requiresSignature === true && !sigSatisfied);
 
   return { documentationPending, signaturePending };
@@ -131,6 +136,8 @@ export function shouldShowAssignmentInEmployeePortalList(input: {
   status: AssignmentStatus;
   plannedStartAt: string;
   assignmentIncomplete?: boolean;
+  documentationPending?: boolean;
+  signaturePending?: boolean;
   requiresDocumentation?: boolean;
   requiresSignature?: boolean;
   documentationStatus?: EmployeePortalAssignmentDetail['documentationStatus'];
@@ -147,6 +154,8 @@ export function shouldShowAssignmentInEmployeePortalList(input: {
     documentationStatus: input.documentationStatus,
     signatureStatus: input.signatureStatus,
     assignmentIncomplete: input.assignmentIncomplete,
+    documentationPending: input.documentationPending,
+    signaturePending: input.signaturePending,
   };
 
   if (!isEmployeePortalAssignmentFullyComplete(pendingInput)) return true;

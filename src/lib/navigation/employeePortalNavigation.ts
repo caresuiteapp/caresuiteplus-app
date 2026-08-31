@@ -19,6 +19,12 @@ export const EMPLOYEE_PORTAL_NAV_TABS: ShellTabConfig[] = [
     href: '/portal/employee/times',
   },
   {
+    key: 'logbook',
+    label: 'Fahrtenbuch',
+    icon: '🚗',
+    href: '/portal/employee/fahrtenbuch',
+  },
+  {
     key: 'payroll',
     label: 'Gehalt & Auslagen',
     icon: '💶',
@@ -54,6 +60,7 @@ export const EMPLOYEE_PORTAL_DRAWER_TAB_KEYS = [
   'uploads',
   'clients',
   'time-tracking',
+  'logbook',
   'payroll',
   'vacation-request',
   'absence-request',

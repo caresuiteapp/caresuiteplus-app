@@ -55,6 +55,10 @@ export type PortalAppointmentItem = Pick<
   assignmentStatus?: AssignmentStatus;
   /** Visit overlay: open documentation/signature/tasks despite terminal-looking status. */
   assignmentIncomplete?: boolean;
+  /** Explicit assist_visits.documentation_status projection. */
+  documentationPending?: boolean;
+  /** Explicit assist_visits.proof_status projection. */
+  signaturePending?: boolean;
   seriesMasterId?: string | null;
   seriesOccurrenceDate?: string | null;
 };

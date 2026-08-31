@@ -46,6 +46,7 @@ describe('employee portal M.1 refactor', () => {
       'Uploads',
       'Klientenakten',
       'Arbeitszeiten',
+      'Fahrtenbuch',
       'Gehalt & Auslagen',
       'Urlaubsantrag',
       'Abwesenheiten',
@@ -54,12 +55,13 @@ describe('employee portal M.1 refactor', () => {
       'Uploads',
       'Klientenakten',
       'Arbeitszeiten',
+      'Fahrtenbuch',
       'Gehalt & Auslagen',
       'Urlaubsantrag',
       'Abwesenheiten',
     ]);
     const all = resolveEmployeePortalNavigationTabs(PORTAL_EMPLOYEE_TABS);
-    expect(all).toHaveLength(11);
+    expect(all).toHaveLength(12);
     expect(all.map((tab) => tab.label)).not.toContain('Meine Zeiten');
     expect(all.map((tab) => tab.label)).not.toContain('Dokumente');
     expect(all.map((tab) => tab.label)).not.toContain('Offene Aufgaben');

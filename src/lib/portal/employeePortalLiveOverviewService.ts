@@ -79,6 +79,8 @@ export function mapPortalAppointmentToListItem(
   const pending = resolveEmployeePortalAssignmentPendingFlags({
     status,
     assignmentIncomplete: item.assignmentIncomplete,
+    documentationPending: item.documentationPending,
+    signaturePending: item.signaturePending,
   });
   return {
     assignmentId: item.id,
@@ -95,6 +97,8 @@ export function mapPortalAppointmentToListItem(
     isLocked: isEmployeePortalAssignmentLocked({
       status,
       assignmentIncomplete: item.assignmentIncomplete,
+      documentationPending: item.documentationPending,
+      signaturePending: item.signaturePending,
     }),
   };
 }
@@ -108,6 +112,8 @@ export function filterEmployeePortalAppointments(
       status,
       plannedStartAt: item.startsAt,
       assignmentIncomplete: item.assignmentIncomplete,
+      documentationPending: item.documentationPending,
+      signaturePending: item.signaturePending,
     });
   });
 }
