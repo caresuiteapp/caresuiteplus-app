@@ -60,6 +60,10 @@ import {
   OFFBOARDING_SCHEMA_ERROR,
   persistEmployeeOffboardingSnapshot,
 } from './employeeOffboardingRepository.supabase';
+import {
+  fetchEmployeeOffboardingProductionGate,
+  invalidateEmployeeOffboardingPushDevices,
+} from './employeeOffboardingProductionGate';
 
 const EXTERNAL_ACCESS_KINDS = ['email', 'phone', 'cloud'] as const;
 type ServiceFailure = Extract<ServiceResult<void>, { ok: false }>;
@@ -294,7 +298,7 @@ function evaluateOffboardingChecks(
     EXTERNAL_ACCESS_KINDS.includes(r.kind as (typeof EXTERNAL_ACCESS_KINDS)[number]),
   );
   const externalOk =
-    externalPrepared.length === 0 ||
+    externalPrepared.length === EXTERNAL_ACCESS_KINDS.length &&
     externalPrepared.every((r) => r.status === 'prepared' || r.status === 'locked');
   push(
     'external_access_not_prepared',
@@ -307,7 +311,7 @@ function evaluateOffboardingChecks(
   );
   push(
     'documents_incomplete',
-    completionDocs?.status === 'completed' ? 'passed' : 'warning',
+    completionDocs?.status === 'completed' ? 'passed' : 'failed',
     completionDocs?.status === 'completed'
       ? 'Abschlussdokumente vollständig.'
       : 'Abschlussdokumente ausstehend.',
@@ -318,7 +322,7 @@ function evaluateOffboardingChecks(
   );
   push(
     'reference_missing',
-    referenceStep?.status === 'completed' ? 'passed' : 'warning',
+    referenceStep?.status === 'completed' ? 'passed' : 'failed',
     referenceStep?.status === 'completed' ? 'Zeugnis vorbereitet.' : 'Zeugnis ausstehend.',
   );
 
@@ -327,7 +331,7 @@ function evaluateOffboardingChecks(
   );
   push(
     'return_protocol_missing',
-    returnProtocol?.status === 'completed' ? 'passed' : 'warning',
+    returnProtocol?.status === 'completed' ? 'passed' : 'failed',
     returnProtocol?.status === 'completed'
       ? 'Rückgabeprotokoll vorhanden.'
       : 'Rückgabeprotokoll ausstehend.',
@@ -797,6 +801,13 @@ export async function lockOffboardingPortalAccess(
       .eq('tenant_id', tenantId)
       .eq('employee_id', employeeId);
     if (profileError) return { ok: false, error: toGermanSupabaseError(profileError) };
+
+    const deviceResult = await invalidateEmployeeOffboardingPushDevices(
+      tenantId,
+      employeeId,
+      actorId,
+    );
+    if (!deviceResult.ok) return deviceResult;
   } else {
     const locked = lockEmployeePortalAccess(tenantId, employeeId);
     if (!locked) {
@@ -931,16 +942,41 @@ export async function generateOffboardingCompletionProtocol(
   if (!employee.ok) return employee;
 
   const progress = buildOffboardingProgressSummary(tenantId, employeeId, employee.data);
-  if (progress.blockers.some((b) => b.checkKey !== 'reference_missing' && b.checkKey !== 'return_protocol_missing')) {
-    const hardBlockers = progress.blockers.filter(
-      (b) => !['reference_missing', 'return_protocol_missing', 'documents_incomplete'].includes(b.checkKey),
+  if (getServiceMode() === 'supabase') {
+    const productionGate = await fetchEmployeeOffboardingProductionGate(
+      tenantId,
+      employeeId,
+      progress.session.exitDate,
     );
-    if (hardBlockers.length > 0) {
+    if (!productionGate.ok) return productionGate;
+    const failedLiveChecks = productionGate.data.checks.filter((entry) => !entry.passed);
+    if (failedLiveChecks.length > 0) {
       return {
         ok: false,
-        error: `Abschlussprotokoll blockiert: ${hardBlockers.map((b) => b.message).join('; ')}`,
+        error: `Abschlussprotokoll durch Live-Daten blockiert: ${failedLiveChecks.map((entry) => entry.message).join('; ')}`,
       };
     }
+  }
+
+  const protocolBlockerKeys = getServiceMode() === 'supabase'
+    ? new Set([
+        'missing_exit_date',
+        'missing_termination_type',
+        'payroll_not_prepared',
+        'external_access_not_prepared',
+        'documents_incomplete',
+        'reference_missing',
+        'portal_not_locked',
+      ])
+    : new Set(progress.blockers.map((blocker) => blocker.checkKey).filter(
+        (key) => !['reference_missing', 'return_protocol_missing', 'documents_incomplete'].includes(key),
+      ));
+  const protocolBlockers = progress.blockers.filter((blocker) => protocolBlockerKeys.has(blocker.checkKey));
+  if (protocolBlockers.length > 0) {
+    return {
+      ok: false,
+      error: `Abschlussprotokoll blockiert: ${protocolBlockers.map((blocker) => blocker.message).join('; ')}`,
+    };
   }
 
   const now = new Date().toISOString();
@@ -1009,15 +1045,25 @@ export async function completeOffboardingFinalClearance(
   const progress = buildOffboardingProgressSummary(tenantId, employeeId, employee.data);
 
   const hardBlockerKeys = new Set([
-    'open_assignments',
-    'open_returns',
-    'open_documentation',
-    'open_corrections',
-    'open_signatures',
     'portal_not_locked',
     'missing_exit_date',
     'missing_termination_type',
+    'payroll_not_prepared',
+    'external_access_not_prepared',
+    'documents_incomplete',
+    'reference_missing',
+    'return_protocol_missing',
   ]);
+  if (getServiceMode() !== 'supabase') {
+    for (const key of [
+      'open_assignments',
+      'open_returns',
+      'open_documentation',
+      'open_corrections',
+      'open_signatures',
+      'work_time_open',
+    ]) hardBlockerKeys.add(key);
+  }
 
   const hardBlockers = progress.blockers.filter((b) => hardBlockerKeys.has(b.checkKey));
   if (hardBlockers.length > 0) {
@@ -1032,6 +1078,22 @@ export async function completeOffboardingFinalClearance(
   );
   if (!portalLocked && buildOffboardingIntegrationSnapshot(tenantId, employeeId).portalActive) {
     return { ok: false, error: 'Portalzugang muss vor Abschluss gesperrt sein.' };
+  }
+
+  if (getServiceMode() === 'supabase') {
+    const productionGate = await fetchEmployeeOffboardingProductionGate(
+      tenantId,
+      employeeId,
+      progress.session.exitDate,
+    );
+    if (!productionGate.ok) return productionGate;
+    const failedChecks = productionGate.data.checks.filter((entry) => !entry.passed);
+    if (failedChecks.length > 0) {
+      return {
+        ok: false,
+        error: `Endfreigabe durch Live-Daten blockiert: ${failedChecks.map((entry) => entry.message).join('; ')}`,
+      };
+    }
   }
 
   const now = new Date().toISOString();
@@ -1099,6 +1161,22 @@ export async function archiveOffboardingPersonnelFile(
   const clearance = readFinalClearance(progress.session.id);
   if (!clearance?.clearedAt) {
     return { ok: false, error: 'Archivierung erst nach Endfreigabe möglich.' };
+  }
+
+  if (getServiceMode() === 'supabase') {
+    const productionGate = await fetchEmployeeOffboardingProductionGate(
+      tenantId,
+      employeeId,
+      progress.session.exitDate,
+    );
+    if (!productionGate.ok) return productionGate;
+    const failedChecks = productionGate.data.checks.filter((entry) => !entry.passed);
+    if (failedChecks.length > 0) {
+      return {
+        ok: false,
+        error: `Archivierung durch Live-Daten blockiert: ${failedChecks.map((entry) => entry.message).join('; ')}`,
+      };
+    }
   }
 
   const now = new Date().toISOString();

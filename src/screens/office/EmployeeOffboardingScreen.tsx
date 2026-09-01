@@ -22,6 +22,7 @@ import {
   buildOffboardingIntegrationSnapshot,
   completeOffboardingFinalClearance,
   fetchOffboardingProgress,
+  fetchEmployeeOffboardingProductionGate,
   generateOffboardingCompletionProtocol,
   lockOffboardingPortalAccess,
   markOffboardingManualStep,
@@ -31,6 +32,7 @@ import {
   saveOffboardingExitDetails,
   startOffboardingSession,
 } from '@/lib/office/offboarding';
+import { getServiceMode } from '@/lib/services/mode';
 import {
   OFFBOARDING_STEP_LABELS,
   TERMINATION_TYPE_LABELS,
@@ -90,6 +92,7 @@ export function EmployeeOffboardingScreen({
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const liveMode = getServiceMode() === 'supabase';
 
   const query = useAsyncQuery(
     async () => {
@@ -99,6 +102,15 @@ export function EmployeeOffboardingScreen({
     },
     [tenantId, id, profile?.roleKey],
     { enabled: !!tenantId && !!id && canView },
+  );
+
+  const productionQuery = useAsyncQuery(
+    async () => {
+      if (!tenantId || !id) return { ok: false as const, error: 'Produktionsprüfung nicht möglich.' };
+      return fetchEmployeeOffboardingProductionGate(tenantId, id, exitDate || null);
+    },
+    [tenantId, id, exitDate],
+    { enabled: liveMode && !!tenantId && !!id && canView },
   );
 
   useEffect(() => {
@@ -124,6 +136,7 @@ export function EmployeeOffboardingScreen({
       }
       setActionSuccess(successMessage);
       await query.refresh();
+      if (liveMode) await productionQuery.refresh();
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Aktion konnte nicht ausgeführt werden.');
     } finally {
@@ -160,7 +173,7 @@ export function EmployeeOffboardingScreen({
   const integration = tenantId && id
     ? buildOffboardingIntegrationSnapshot(tenantId, id)
     : null;
-  const openMaterials = integration?.workMaterials.filter((item) =>
+  const openMaterials = liveMode ? [] : integration?.workMaterials.filter((item) =>
     ['issued', 'return_pending', 'damaged', 'lost'].includes(item.status),
   ) ?? [];
   const portalLocked = progress.accessRevocations.some(
@@ -289,6 +302,38 @@ export function EmployeeOffboardingScreen({
                 refreshOffboardingChecks(tenantId, id, profile?.roleKey, profile?.id),
               )
             }
+          />
+        </SectionPanel>
+      ) : null}
+
+      {liveMode && !archived ? (
+        <SectionPanel title="Produktionsfreigabe" subtitle="Live-Prüfung ohne Demo-Fallback">
+          {productionQuery.loading && !productionQuery.data ? (
+            <LoadingState message="GPS, Fahrtenbuch, Arbeitszeit und Portalgeräte werden geprüft…" />
+          ) : productionQuery.error ? (
+            <InfoBanner
+              title="Endfreigabe sicher gesperrt"
+              message={productionQuery.error}
+              variant="danger"
+              presentation="inline"
+            />
+          ) : (
+            productionQuery.data?.checks.map((entry) => (
+              <StatusLine key={entry.key} label={`${entry.label}: ${entry.message}`} done={entry.passed} />
+            ))
+          )}
+          {productionQuery.data?.checks.some((entry) => entry.key === 'open_inventory' && !entry.passed) ? (
+            <PremiumButton
+              title="Inventar-Rückgaben öffnen"
+              variant="secondary"
+              onPress={() => router.push('/business/office/inventory' as never)}
+            />
+          ) : null}
+          <PremiumButton
+            title="Live-Daten erneut prüfen"
+            variant="secondary"
+            loading={productionQuery.loading}
+            onPress={() => productionQuery.refresh()}
           />
         </SectionPanel>
       ) : null}

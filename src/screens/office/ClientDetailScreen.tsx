@@ -60,6 +60,7 @@ function ActionsTab({
   canChangeStatus,
   canEdit,
   onEdit,
+  onOffboarding,
   statusDeniedMessage,
   editDeniedMessage,
   roleLabel,
@@ -70,10 +71,12 @@ function ActionsTab({
   canChangeStatus: boolean;
   canEdit: boolean;
   onEdit: () => void;
+  onOffboarding: () => void;
   statusDeniedMessage?: string;
   editDeniedMessage?: string;
   roleLabel: string | null;
 }) {
+  const directStatusActions = client.allowedStatusActions.filter((status) => status !== 'archiviert');
   return (
     <View style={styles.tab}>
       <PremiumCard accentColor={colors.orange}>
@@ -91,11 +94,11 @@ function ActionsTab({
       <SectionPanel title="Status ändern">
         {!canChangeStatus ? (
           <LockedActionBanner message={statusDeniedMessage ?? 'Statusänderungen sind gesperrt.'} roleLabel={roleLabel} />
-        ) : client.allowedStatusActions.length === 0 ? (
+        ) : directStatusActions.length === 0 ? (
           <EmptyState title="Keine Aktionen" message="Für diesen Status sind keine Wechsel möglich." />
         ) : (
           <View style={styles.actionGrid}>
-            {client.allowedStatusActions.map((status) => (
+            {directStatusActions.map((status) => (
               <PremiumButton key={status} title={WORKFLOW_STATUS_LABELS[status]} variant="secondary" size="sm" loading={loading} onPress={() => onStatusChange(status)} />
             ))}
           </View>
@@ -104,6 +107,13 @@ function ActionsTab({
       <PermissionGate permission="office.clients.edit" showLockedHint lockedTitle="Bearbeitung gesperrt">
         <PremiumButton title="Stammdaten bearbeiten" variant="primary" fullWidth onPress={onEdit} disabled={!canEdit} />
       </PermissionGate>
+      <SectionPanel title="Vertragsende" subtitle="Kündigung, Abschlusskontrollen und revisionssichere Archivierung">
+        {canChangeStatus ? (
+          <PremiumButton title="Kündigung & Offboarding öffnen" variant="secondary" fullWidth onPress={onOffboarding} />
+        ) : (
+          <LockedActionBanner message={statusDeniedMessage ?? 'Kündigung und Offboarding sind gesperrt.'} roleLabel={roleLabel} />
+        )}
+      </SectionPanel>
       {!canEdit && editDeniedMessage ? <Text style={styles.audit}>{editDeniedMessage}</Text> : null}
     </View>
   );
@@ -233,6 +243,7 @@ export function ClientDetailScreen({ clientId, embedded = false }: { clientId?: 
             canChangeStatus={can('office.clients.status_change')}
             canEdit={can('office.clients.edit')}
             onEdit={openEditMasterData}
+            onOffboarding={() => router.push(`/office/clients/${client.id}/offboarding` as never)}
             statusDeniedMessage={check('office.clients.status_change').reason}
             editDeniedMessage={check('office.clients.edit').reason}
             roleLabel={roleLabel}
