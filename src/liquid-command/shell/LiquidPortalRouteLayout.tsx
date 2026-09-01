@@ -83,7 +83,6 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   );
   const messageBadge = formatNavBadgeLabel(unreadMessageCount);
   const bottomNavigationOffset = Math.max(insets.bottom, 12) + (layout.isPhone ? 16 : 12);
-  const compactContentBottomReserve = bottomNavigationOffset + 76;
   const menuBottomPadding = Math.max(insets.bottom + 18, 30);
 
   const navigationLabel = (id: string, label: string) =>
@@ -209,7 +208,6 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
             style={[
               styles.contentFrame,
               !desktopChrome && styles.contentFrameCompact,
-              !desktopChrome && !visitExecutionFocus && { marginBottom: compactContentBottomReserve },
               visitExecutionFocus && styles.contentFrameFocus,
             ]}
             contentStyle={[
