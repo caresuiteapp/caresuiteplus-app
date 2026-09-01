@@ -17,18 +17,16 @@ describe("HealthOS command center chrome", () => {
     expect(source).toContain("await auth.signOut()");
   });
 
-  it("removes the moving aurora overlay and keeps favorite artwork uncropped", () => {
+  it("removes ambient loops and keeps widget artwork uncropped", () => {
     expect(source).not.toContain("healthos-ping-pong-aurora");
     expect(source).not.toContain("styles.aurora");
     expect(source).toContain('resizeMode="cover"');
     expect(source).toContain('resizeMode="contain"');
-    expect(source).toMatch(
-      /favoriteImage:\s*\{[\s\S]*?width:\s*"100%",[\s\S]*?height:\s*"100%"/,
-    );
+    expect(source).toMatch(/widgetImage:\s*\{\s*width:\s*"100%",\s*height:\s*"100%"/);
   });
 
   it("aligns the wider brand mark with the information card", () => {
     expect(source).toContain("logo: { width: 430, height: 54 }");
-    expect(source).toMatch(/timeWeather:\s*\{\s*minWidth:\s*430/);
+    expect(source).toMatch(/infoCard:\s*\{\s*minWidth:\s*430/);
   });
 });

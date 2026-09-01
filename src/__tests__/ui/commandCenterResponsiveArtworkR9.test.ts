@@ -42,11 +42,11 @@ describe('Command Center responsive Widget-Artworks R9', () => {
     expect(screenSource.match(/widgets-premium\/large\//g)).toHaveLength(21);
   });
 
-  it('zeigt die Artworks ohne Cover-Cropping und mit vergrößerter Bühne', () => {
+  it('zeigt die Artworks ohne Cover-Cropping in der neuen 4×3-Bühne', () => {
     expect(screenSource).toContain('healthosResponsiveArtworkRevision: "r9"');
-    expect(screenSource).toContain('healthosVisualDensityRevision: "r10-calm"');
+    expect(screenSource).toContain('healthosVisualDensityRevision: "r11-calm"');
     expect(screenSource).toContain('resizeMode="contain"');
-    expect(screenSource).toContain('Math.max(124, Math.min(158');
-    expect(screenSource).toContain('bottom: 38');
+    expect(screenSource).toContain('const DESKTOP_COLUMN_COUNT = 4');
+    expect(screenSource).toContain('gridRow: { flex: 1, maxHeight: 194');
   });
 });
