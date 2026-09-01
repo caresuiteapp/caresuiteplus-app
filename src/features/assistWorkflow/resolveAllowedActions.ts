@@ -183,5 +183,5 @@ export const ASSIST_WORKFLOW_ACTION_LABELS: Record<AssistWorkflowAllowedAction, 
   save_documentation: 'Dokumentation speichern',
   capture_signature: 'Unterschrift erfassen',
   finalize_visit: 'Einsatz abschließen',
-  finalize_visit_deferred_signature: 'Ohne Unterschrift abschließen',
+  finalize_visit_deferred_signature: 'Unterschrift ans Klient:innenportal senden',
 };

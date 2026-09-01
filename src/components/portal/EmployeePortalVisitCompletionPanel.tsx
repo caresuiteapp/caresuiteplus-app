@@ -41,11 +41,10 @@ export function EmployeePortalVisitCompletionPanel({
   onFinalizeDeferred,
 }: EmployeePortalVisitCompletionPanelProps) {
   const text = employeePortalExecutionText;
-  const tasksDone = tasks.length === 0 || countDoneTasks(tasks) === tasks.length;
   const [approvalReason, setApprovalReason] = useState('');
 
   const items: CheckItem[] = [
-    { label: 'Aufgaben geprüft', done: tasksDone },
+    { label: `Aufgaben optional · ${countDoneTasks(tasks)} von ${tasks.length} markiert`, done: true },
     { label: 'Dokumentation gespeichert', done: documentationSubmitted },
     {
       label: requiresSignature
@@ -121,7 +120,7 @@ export function EmployeePortalVisitCompletionPanel({
         <>
           <PremiumInput
             label="Warum kann die Unterschrift nicht vor Ort erfasst werden?"
-            hint="Pflichtfeld · mindestens 10 Zeichen · wird der Verwaltung angezeigt"
+            hint="Pflichtfeld · mindestens 10 Zeichen · wird mit der Portal-Anfrage dokumentiert"
             value={approvalReason}
             onChangeText={setApprovalReason}
             multiline
@@ -129,19 +128,19 @@ export function EmployeePortalVisitCompletionPanel({
             placeholder="Begründung für die Weiterleitung"
           />
           <PremiumButton
-            title="Freigabe durch Verwaltung anfragen"
+            title="Direkt ans Klient:innenportal senden"
             testID="portal-finalize-deferred-button"
             variant="secondary"
             fullWidth
             loading={deferredLoading}
-            disabled={!documentationSubmitted || !tasksDone || approvalReason.trim().length < 10 || deferredLoading || loading}
+            disabled={!documentationSubmitted || approvalReason.trim().length < 10 || deferredLoading || loading}
             onPress={() => onFinalizeDeferred(approvalReason.trim())}
           />
         </>
       ) : null}
       {signatureApprovalPending ? (
         <Text style={styles.meta}>
-          Anfrage gesendet. Erst nach Genehmigung wird die Unterschrift im Klient:innenportal angefordert.
+          Die Anfrage wurde direkt an das Klient:innenportal gesendet und bleibt bis zur Unterschrift offen.
         </Text>
       ) : null}
     </PremiumCard>

@@ -32,6 +32,8 @@ type EmployeePortalVisitStickyHeaderProps = {
   guideTone?: 'info' | 'warning' | 'error' | 'success';
   guideActionLabel?: string;
   onGuideAction?: () => void;
+  onOpenMedia?: () => void;
+  dayGpsActive?: boolean;
 };
 
 function formatTimeRange(startIso: string, endIso: string): string {
@@ -77,6 +79,8 @@ export function EmployeePortalVisitStickyHeader({
   guideTone = 'info',
   guideActionLabel,
   onGuideAction,
+  onOpenMedia,
+  dayGpsActive = false,
 }: EmployeePortalVisitStickyHeaderProps) {
   const text = employeePortalExecutionText;
   const insets = useSafeAreaInsets();
@@ -150,15 +154,30 @@ export function EmployeePortalVisitStickyHeader({
           flexWrap: 'wrap',
         },
         liveTimer: { ...typography.bodyStrong, color: text.secondary, fontVariant: ['tabular-nums'] },
+        mediaButton: {
+          marginLeft: 'auto',
+          minHeight: 38,
+          paddingHorizontal: spacing.md,
+          borderRadius: 999,
+          borderWidth: 1,
+          borderColor: '#8B5CF6',
+          backgroundColor: 'rgba(139, 92, 246, 0.10)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        mediaButtonText: { ...typography.caption, color: '#6D28D9', fontWeight: '800' },
         guideRow: {
           flexDirection: 'row',
           alignItems: 'center',
           gap: spacing.sm,
-          marginTop: spacing.xs,
+          marginTop: spacing.sm,
+          padding: compact ? spacing.xs : spacing.sm,
+          borderRadius: 20,
+          backgroundColor: 'rgba(5, 108, 232, 0.06)',
         },
         guideAvatar: {
-          width: compact ? 66 : 76,
-          height: compact ? 66 : 76,
+          width: compact ? 88 : 108,
+          height: compact ? 88 : 108,
           alignItems: 'center',
           justifyContent: 'center',
         },
@@ -166,7 +185,7 @@ export function EmployeePortalVisitStickyHeader({
         guideBubble: {
           flex: 1,
           minWidth: 0,
-          minHeight: 44,
+          minHeight: compact ? 72 : 88,
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
           borderWidth: 1,
@@ -179,6 +198,13 @@ export function EmployeePortalVisitStickyHeader({
         guideBubbleError: { backgroundColor: '#FFF0F1', borderColor: '#E15B64' },
         guideBubbleSuccess: { backgroundColor: '#EDFFF5', borderColor: '#42AF78' },
         guideText: { ...typography.bodyStrong, color: '#10233E' },
+        guideKicker: {
+          ...typography.caption,
+          color: '#056CE8',
+          fontWeight: '900',
+          letterSpacing: 0.6,
+          marginBottom: 3,
+        },
         guideAction: {
           alignSelf: 'flex-start',
           marginTop: spacing.xs,
@@ -243,7 +269,19 @@ export function EmployeePortalVisitStickyHeader({
           variant={badgeVariant}
           dot
         />
+        {dayGpsActive ? <PremiumBadge label="GPS · TAG AKTIV" variant="green" dot /> : null}
         {liveTimer ? <Text style={styles.liveTimer}>· {liveTimer}</Text> : null}
+        {onOpenMedia ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Foto, Video oder Datei hinzufügen"
+            onPress={onOpenMedia}
+            style={styles.mediaButton}
+            testID="employee-visit-media-always-available"
+          >
+            <Text style={styles.mediaButtonText}>📷 Medien</Text>
+          </Pressable>
+        ) : null}
       </View>
       {showProgress ? (
         <EmployeePortalVisitProgressSteps
@@ -283,6 +321,7 @@ export function EmployeePortalVisitStickyHeader({
               guideTone === 'success' ? styles.guideBubbleSuccess : null,
             ]}
           >
+            <Text style={styles.guideKicker}>CARESUITE EINSATZBEGLEITER</Text>
             <Text style={styles.guideText}>{guideMessage}</Text>
             {guideActionLabel && onGuideAction ? (
               <Pressable

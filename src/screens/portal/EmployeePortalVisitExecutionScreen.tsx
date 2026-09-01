@@ -16,6 +16,7 @@ import { LockedActionBanner } from '@/components/permissions';
 import { WorkflowToast } from '@/components/ui/WorkflowToast';
 import {
   EmployeePortalVisitBottomBar,
+  EmployeePortalMobilityPicker,
   EmployeePortalVisitCompletionPanel,
   EmployeePortalReturnTripModal,
   EmployeePortalVisitLogbookCard,
@@ -84,6 +85,7 @@ import {
   loadLogbookPromptDecision,
   resolveEmployeeLogbookEligibility,
   startVisitApproachLogbook,
+  stopNativeAssistBackgroundTracking,
 } from '@/lib/employeeLogbook';
 import {
   listEmployeePortalVisitAttachments,
@@ -94,6 +96,12 @@ import {
   recoverEmployeePortalPendingCameraMedia,
 } from '@/lib/portal/employeePortalMediaPicker';
 import { validateEmployeePortalPickedMedia } from '@/lib/portal/employeePortalMediaValidation';
+import {
+  loadEmployeePortalMobilitySelection,
+  mobilityActivatesEmployeeLogbook,
+  saveEmployeePortalMobilitySelection,
+} from '@/lib/portal/employeePortalMobilitySelection';
+import type { EmployeeTransportMode } from '@/types/modules/employeeMobility';
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -218,8 +226,43 @@ export function EmployeePortalVisitExecutionScreen() {
   const pendingCameraRecoveryVisitRef = useRef<string | null>(null);
   const [returnTripPromptRetry, setReturnTripPromptRetry] = useState(0);
   const [returnTripModalOpen, setReturnTripModalOpen] = useState(false);
+  const [mobilityMode, setMobilityMode] = useState<EmployeeTransportMode | null>(null);
+  const [mobilityHydrated, setMobilityHydrated] = useState(false);
 
   const assistVisitId = executionContext?.assistVisitId ?? null;
+
+  useEffect(() => {
+    if (!portalTenantId || !portalEmployeeId || !visit?.assignmentId) return;
+    let cancelled = false;
+    setMobilityHydrated(false);
+    void loadEmployeePortalMobilitySelection(
+      portalTenantId,
+      portalEmployeeId,
+      resolveVisitMasterId(visit.assignmentId),
+    ).then((saved) => {
+      if (cancelled) return;
+      setMobilityMode(saved?.mode ?? null);
+      setMobilityHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [portalTenantId, portalEmployeeId, visit?.assignmentId]);
+
+  const selectMobilityMode = useCallback((mode: EmployeeTransportMode) => {
+    setMobilityMode(mode);
+    setLocalError(null);
+    setLocalWarning(null);
+    if (!portalTenantId || !portalEmployeeId || !visit?.assignmentId) return;
+    void saveEmployeePortalMobilitySelection({
+      tenantId: portalTenantId,
+      employeeId: portalEmployeeId,
+      assignmentId: resolveVisitMasterId(visit.assignmentId),
+      mode,
+    }).catch(() => {
+      setLocalWarning('Die Mobilitätsauswahl bleibt für diesen Bildschirm aktiv, konnte aber noch nicht dauerhaft gespeichert werden.');
+    });
+  }, [portalTenantId, portalEmployeeId, visit?.assignmentId]);
   const visitTasks = useMemo(
     () => (Array.isArray(visit?.tasks) ? visit.tasks : []),
     [visit?.tasks],
@@ -392,17 +435,36 @@ export function EmployeePortalVisitExecutionScreen() {
     });
   }, [visit, effectiveStatus, uiState, isLocked]);
 
+  const statusBlocksDoc = uiState?.statusBlocksDoc ?? false;
+  const showTasks = uiState?.showTasks ?? false;
+  const documentationSubmitted = uiState?.documentationSubmitted ?? false;
+  const signatureCaptured = uiState?.signatureCaptured ?? false;
+  const signatureDeferred = uiState?.signatureDeferred ?? false;
+  const signatureApprovalPending = uiState?.signatureApprovalPending ?? false;
+  const showDocumentationForm = uiState?.showDocumentationForm ?? false;
+  const showSignature = uiState?.showSignature ?? false;
+  const showFinalize = uiState?.showFinalize ?? false;
+  const canFinalizeDeferred = uiState?.canFinalizeDeferred ?? false;
+
   useEffect(() => {
     if (!visit) return;
-    if (phase !== 'completed' || effectiveStatus !== 'abgeschlossen') return;
+    const travelClosureReady =
+      phase === 'completed' ||
+      (isServiceEnded && documentationSubmitted && signatureDeferred);
+    if (!travelClosureReady) return;
     if (returnTripPromptHandledRef.current) return;
     if (!portalTenantId || !portalEmployeeId) return;
+    if (!mobilityHydrated) return;
+    if (!mobilityActivatesEmployeeLogbook(mobilityMode)) {
+      returnTripPromptHandledRef.current = true;
+      return;
+    }
 
     let cancelled = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     const profileId = profile?.id ?? user?.id ?? portalEmployeeId;
     const roleKey = profile?.roleKey ?? 'employee_portal';
-    void resolveEmployeeLogbookEligibility(portalTenantId, portalEmployeeId)
+    void resolveEmployeeLogbookEligibility(portalTenantId, portalEmployeeId, mobilityMode)
       .then(async (eligibility) => {
         if (cancelled) return;
         if (!eligibility.eligible) {
@@ -471,12 +533,17 @@ export function EmployeePortalVisitExecutionScreen() {
     visit,
     phase,
     effectiveStatus,
+    isServiceEnded,
+    documentationSubmitted,
+    signatureDeferred,
     portalTenantId,
     portalEmployeeId,
     profile?.id,
     profile?.roleKey,
     user?.id,
     returnTripPromptRetry,
+    mobilityHydrated,
+    mobilityMode,
   ]);
 
   useEffect(() => {
@@ -487,17 +554,6 @@ export function EmployeePortalVisitExecutionScreen() {
       setLocalWarning(null);
     }
   }, [effectiveStatus]);
-
-  const statusBlocksDoc = uiState?.statusBlocksDoc ?? false;
-  const showTasks = uiState?.showTasks ?? false;
-  const documentationSubmitted = uiState?.documentationSubmitted ?? false;
-  const signatureCaptured = uiState?.signatureCaptured ?? false;
-  const signatureDeferred = uiState?.signatureDeferred ?? false;
-  const signatureApprovalPending = uiState?.signatureApprovalPending ?? false;
-  const showDocumentationForm = uiState?.showDocumentationForm ?? false;
-  const showSignature = uiState?.showSignature ?? false;
-  const showFinalize = uiState?.showFinalize ?? false;
-  const canFinalizeDeferred = uiState?.canFinalizeDeferred ?? false;
 
   useEffect(() => {
     signatureConfirmationRefreshRef.current = refresh;
@@ -588,8 +644,11 @@ export function EmployeePortalVisitExecutionScreen() {
         releaseSignatureCaptureEnvironment();
         setCloseSignatureCaptureRequest((n) => n + 1);
         setLocalSuccess(
-          'Freigabe bei der Verwaltung angefragt. Erst nach Genehmigung wird die Unterschrift an das Klient:innenportal gesendet.',
+          'Unterschriftsanfrage direkt an das Klient:innenportal gesendet. Der Einsatz bleibt bis zur Unterschrift nachvollziehbar offen.',
         );
+        if (!mobilityActivatesEmployeeLogbook(mobilityMode)) {
+          await stopNativeAssistBackgroundTracking().catch(() => undefined);
+        }
       } else if (isWorkflowConfirmationPending(r.errorCode)) {
         setLocalWarning(
           'Der Abschluss wird im Hintergrund bestätigt. Bitte nicht erneut tippen; der Status aktualisiert sich automatisch.',
@@ -606,7 +665,7 @@ export function EmployeePortalVisitExecutionScreen() {
           : 'Abschluss ohne Unterschrift fehlgeschlagen — bitte erneut versuchen.',
       );
     }
-  }, [finalizeVisitDeferred, releaseSignatureUi]);
+  }, [finalizeVisitDeferred, releaseSignatureUi, mobilityMode]);
 
   useEffect(() => {
     if (signatureDeferred) {
@@ -661,6 +720,10 @@ export function EmployeePortalVisitExecutionScreen() {
   ]);
 
   const handleStartDrive = useCallback(async () => {
+    if (!mobilityMode) {
+      setLocalError('Bitte wähle zuerst deine Mobilität für diese Fahrt aus.');
+      return;
+    }
     setDriveLoading(true);
     setLocalError(null);
     const result = await startDriveTracking();
@@ -680,9 +743,12 @@ export function EmployeePortalVisitExecutionScreen() {
             clientId: visit.clientId,
             clientName: visit.clientName,
             startAddress: null,
+            transportMode: mobilityMode,
           });
           if (logbook.started) {
             setLocalSuccess('Anfahrt und digitales PKW-Fahrtenbuch wurden automatisch gestartet.');
+          } else if (logbook.reason === 'non_car_selected') {
+            setLocalSuccess('Anfahrt gestartet. Für diese Mobilität ist kein PKW-Fahrtenbucheintrag erforderlich.');
           }
         } catch (error) {
           setLocalWarning(
@@ -694,7 +760,7 @@ export function EmployeePortalVisitExecutionScreen() {
       }
     }
     setDriveLoading(false);
-  }, [startDriveTracking, portalTenantId, portalEmployeeId, visit]);
+  }, [startDriveTracking, portalTenantId, portalEmployeeId, visit, mobilityMode]);
 
   const handleArrived = useCallback(async () => {
     setLocalError(null);
@@ -726,7 +792,11 @@ export function EmployeePortalVisitExecutionScreen() {
               `Angekommen — PKW-Anfahrt mit ${completedTrip.distanceFinalKm.toFixed(2).replace('.', ',')} km im Fahrtenbuch gespeichert.`,
             );
           } else {
-            const eligibility = await resolveEmployeeLogbookEligibility(portalTenantId, portalEmployeeId);
+            const eligibility = await resolveEmployeeLogbookEligibility(
+              portalTenantId,
+              portalEmployeeId,
+              mobilityMode,
+            );
             if (eligibility.eligible) {
               setLocalWarning('Die Ankunft wurde gespeichert, aber es wurde keine laufende PKW-Anfahrt gefunden. Bitte die Fahrt im Fahrtenbuch prüfen oder manuell ergänzen.');
             }
@@ -741,7 +811,7 @@ export function EmployeePortalVisitExecutionScreen() {
       }
       if (result.arrivalWarning) setLocalWarning(result.arrivalWarning);
     }
-  }, [markArrived, tracking, geofenceOverride, setGeofenceOverride, portalTenantId, portalEmployeeId, visit]);
+  }, [markArrived, tracking, geofenceOverride, setGeofenceOverride, portalTenantId, portalEmployeeId, visit, mobilityMode]);
 
   const resolveDeviationCheck = useCallback(
     (phaseKey: WfmDeviationPhase) => {
@@ -920,6 +990,7 @@ export function EmployeePortalVisitExecutionScreen() {
       : actionLoading || driveLoading;
   const primaryButtonDisabled =
     readOnlyExecution ||
+    (primaryActionResolved === 'start_en_route' && (!mobilityHydrated || !mobilityMode)) ||
     (primaryActionResolved === 'start_service'
       ? startServiceLoading || driveLoading
       : actionLoading || driveLoading);
@@ -988,11 +1059,6 @@ export function EmployeePortalVisitExecutionScreen() {
     : null;
   const completedTaskCount = visitTasks.filter((task) => task.status === 'done').length;
   const allTasksComplete = visitTasks.length === 0 || completedTaskCount === visitTasks.length;
-  const requiredTaskCount = visitTasks.filter((task) => task.required).length;
-  const completedRequiredTaskCount = visitTasks.filter(
-    (task) => task.required && task.status === 'done',
-  ).length;
-  const missingRequiredTasks = Math.max(0, requiredTaskCount - completedRequiredTaskCount);
   const guide = (() => {
     if (signatureConfirmationPending) {
       return {
@@ -1001,7 +1067,12 @@ export function EmployeePortalVisitExecutionScreen() {
       };
     }
     if (phase === 'completed') {
-      return { tone: 'success' as const, message: 'Geschafft! Der Einsatz ist vollständig abgeschlossen.' };
+      return {
+        tone: 'success' as const,
+        message: mobilityMode === 'car'
+          ? 'Einsatz abgeschlossen. Die GPS-Tageserfassung endet erst nach der Fahrt zum nächsten Einsatz oder nach der Heim-/Bürofahrt.'
+          : 'Einsatz abgeschlossen. Foto, Video und Nachweise bleiben weiterhin erreichbar.',
+      };
     }
     const blockingError = localError ?? taskSaveError;
     if (blockingError) {
@@ -1029,6 +1100,14 @@ export function EmployeePortalVisitExecutionScreen() {
         message: 'Der Einsatz ist gerade nur lesbar. Sobald die Verbindung wieder da ist, kannst du sicher weiterarbeiten.',
       };
     }
+    if (signatureDeferred) {
+      return {
+        tone: 'success' as const,
+        message: mobilityMode === 'car'
+          ? 'Die Unterschrift liegt jetzt im Klient:innenportal. Schließe anschließend die Fahrt zum nächsten Einsatz oder die Heim-/Bürofahrt ab.'
+          : 'Die Unterschrift liegt jetzt im Klient:innenportal. Der Einsatz bleibt bis zur Signatur nachvollziehbar offen.',
+      };
+    }
     if (isServiceEnded && showSignature && !signatureCaptured && !signatureDeferred) {
       return {
         tone: 'warning' as const,
@@ -1050,18 +1129,12 @@ export function EmployeePortalVisitExecutionScreen() {
             : 'Die Dokumentation ist gespeichert. Die Unterschrift wird erst nach dem Einsatzende freigeschaltet.',
       };
     }
-    if (phase === 'live' && missingRequiredTasks > 0) {
-      return {
-        tone: 'info' as const,
-        message: `${missingRequiredTasks} Pflichtaufgabe${missingRequiredTasks === 1 ? '' : 'n'} noch offen. Ich führe dich danach zur Dokumentation.`,
-      };
-    }
     if (phase === 'live') {
       return {
-        tone: 'success' as const,
-        message: allTasksComplete
-          ? `Alle ${visitTasks.length} Aufgaben sind erledigt. Weiter geht es jetzt mit der Dokumentation.`
-          : `${completedTaskCount} von ${visitTasks.length} Aufgaben erledigt. Foto oder Video kannst du jederzeit intern hinzufügen.`,
+        tone: 'info' as const,
+        message: documentationSubmitted
+          ? 'Die Dokumentation ist gespeichert. Optionale Aufgaben, Fotos und Videos kannst du weiterhin jederzeit ergänzen.'
+          : `Aufgaben sind optional (${completedTaskCount} von ${visitTasks.length} markiert). Dokumentation und Unterschrift bleiben für den Abschluss verpflichtend.`,
       };
     }
     if (phase === 'post_service') {
@@ -1078,7 +1151,10 @@ export function EmployeePortalVisitExecutionScreen() {
     if (phase === 'arrived') {
       return { tone: 'info' as const, message: 'Du bist angekommen. Starte den Einsatz erst beim tatsächlichen Leistungsbeginn.' };
     }
-    return { tone: 'info' as const, message: 'Prüfe Einsatzzeit, Adresse und Hinweise. Danach kannst du die Navigation starten.' };
+    if (!mobilityMode) {
+      return { tone: 'warning' as const, message: 'Wähle jetzt deine Mobilität. Bei PKW starte ich Fahrtenbuch und GPS automatisch mit der Anfahrt.' };
+    }
+    return { tone: 'info' as const, message: 'Mobilität gewählt. Prüfe Adresse und Hinweise – anschließend kannst du Navigation und Anfahrt starten.' };
   })();
   const guideNeedsRefresh = Boolean(
     phase !== 'completed' &&
@@ -1088,7 +1164,6 @@ export function EmployeePortalVisitExecutionScreen() {
   const guideCanOpenDocumentation = Boolean(
     !guideNeedsRefresh &&
     phase === 'live' &&
-    allTasksComplete &&
     !documentationSubmitted &&
     showDocumentationForm &&
     !isLocked,
@@ -1153,6 +1228,11 @@ export function EmployeePortalVisitExecutionScreen() {
           <DetailInfoRow
             label="Geplante Dauer"
             value={formatDurationMinutes(visit.plannedStartAt, visit.plannedEndAt)}
+          />
+          <EmployeePortalMobilityPicker
+            value={mobilityMode}
+            onChange={selectMobilityMode}
+            disabled={driveLoading || actionLoading}
           />
           {visit.emergencyContact ? (
             <DetailInfoRow label="Telefon" value={visit.emergencyContact} />
@@ -1250,7 +1330,15 @@ export function EmployeePortalVisitExecutionScreen() {
             onOpenAttachments={() => setPhotoModalOpen(true)}
           />
 
-          {portalTenantId && portalEmployeeId ? (
+          <EmployeePortalMobilityPicker
+            value={mobilityMode}
+            onChange={selectMobilityMode}
+            compact
+            disabled={actionLoading}
+            title="Mobilität für die nächste Fahrt"
+          />
+
+          {portalTenantId && portalEmployeeId && mobilityMode === 'car' ? (
             <EmployeePortalVisitLogbookCard
               tenantId={portalTenantId}
               employeeId={portalEmployeeId}
@@ -1259,6 +1347,7 @@ export function EmployeePortalVisitExecutionScreen() {
               clientName={visit.clientName}
               startAddress={visit.locationAddress}
               plannedEndAt={visit.plannedEndAt}
+              transportMode={mobilityMode}
             />
           ) : null}
 
@@ -1382,6 +1471,8 @@ export function EmployeePortalVisitExecutionScreen() {
                   ? () => setDocumentationOpen(true)
                   : undefined
           }
+          onOpenMedia={() => setPhotoModalOpen(true)}
+          dayGpsActive={Boolean(tracking?.trackingActive || liveContext?.trackingSessionActive)}
         />
 
         <WorkflowToast

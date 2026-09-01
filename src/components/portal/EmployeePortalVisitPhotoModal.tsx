@@ -16,6 +16,7 @@ import {
   openEmployeePortalDocumentPicker,
   openEmployeePortalMediaLibrary,
   readEmployeePortalMediaBytes,
+  releaseEmployeePortalMediaUri,
   type EmployeePortalMediaPickerResult,
 } from '@/lib/portal/employeePortalMediaPicker';
 import {
@@ -124,6 +125,7 @@ export function EmployeePortalVisitPhotoModal({
   }, []);
 
   const handleClose = () => {
+    releaseEmployeePortalMediaUri(picked?.uri);
     reset();
     onClose();
   };
@@ -145,6 +147,7 @@ export function EmployeePortalVisitPhotoModal({
     setError(null);
     setSettingsRequired(false);
     setPermissionHelp(null);
+    if (picked?.uri && picked.uri !== result.media.uri) releaseEmployeePortalMediaUri(picked.uri);
     setPicked(result.media);
     return result.media;
   };
@@ -187,6 +190,7 @@ export function EmployeePortalVisitPhotoModal({
       setError(result.error ?? 'Foto konnte nicht gespeichert werden.');
       return;
     }
+    releaseEmployeePortalMediaUri(media.uri);
     onUploaded([...existingReferences, result.data.storagePath]);
     handleClose();
   };
@@ -199,7 +203,7 @@ export function EmployeePortalVisitPhotoModal({
         ? await openEmployeePortalCamera()
         : source === 'library'
           ? await openEmployeePortalMediaLibrary()
-          : await openEmployeePortalDocumentPicker();
+          : await openEmployeePortalDocumentPicker({ includeMediaFallback: true });
     const acceptedMedia = acceptPickerResult(result);
     if (acceptedMedia) await handleUpload(acceptedMedia);
   };
@@ -252,7 +256,7 @@ export function EmployeePortalVisitPhotoModal({
             </View>
           </View>
           <PremiumButton
-            title="📎 PDF auswählen"
+            title="📎 Datei, Foto oder Video vom Gerät auswählen"
             variant="secondary"
             onPress={() => void handlePick('document')}
             disabled={picking || uploading}
@@ -281,6 +285,11 @@ export function EmployeePortalVisitPhotoModal({
             />
           ) : null}
           {permissionHelp ? <Text style={styles.permissionHelp}>{permissionHelp}</Text> : null}
+          {settingsRequired ? (
+            <Text style={styles.meta}>
+              Du kannst sofort weiterarbeiten: Nutze „Datei, Foto oder Video vom Gerät auswählen“ – dafür ist kein direkter Kamerazugriff nötig.
+            </Text>
+          ) : null}
           {settingsRequired && Platform.OS === 'web' ? (
             <PremiumButton
               title="Seite nach Freigabe neu laden"

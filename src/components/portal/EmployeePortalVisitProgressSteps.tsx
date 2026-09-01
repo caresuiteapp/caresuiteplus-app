@@ -23,7 +23,7 @@ type EmployeePortalVisitProgressStepsProps = {
 
 const PROGRESS_STEPS = [
   { key: 'start', label: 'Start', match: ['consent', 'en_route', 'arrived', 'in_service', 'paused'] },
-  { key: 'tasks', label: 'Aufgaben', match: ['in_service', 'paused', 'tasks'] },
+  { key: 'tasks', label: 'Optional', match: ['in_service', 'paused', 'tasks'] },
   { key: 'documentation', label: 'Doku', match: ['documentation'] },
   { key: 'signature', label: 'Signatur', match: ['signature'] },
   { key: 'finalize', label: 'Abschluss', match: ['finalize', 'completed'] },
@@ -43,7 +43,7 @@ function stepDone(
     );
   }
   if (stepKey === 'tasks') {
-    return tasksComplete || ['beendet', 'dokumentation_offen', 'unterschrift_offen', 'abgeschlossen'].includes(status);
+    return true;
   }
   if (stepKey === 'documentation') {
     return documentationComplete || ['unterschrift_offen', 'abgeschlossen'].includes(status) ||
@@ -74,14 +74,11 @@ function stepActive(
       ['geplant', 'bestaetigt', 'unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(status);
   }
   if (stepKey === 'tasks') {
-    return !tasksComplete && (
-      currentStep === 'in_service' || currentStep === 'paused' || currentStep === 'tasks' ||
-      status === 'gestartet' || status === 'pausiert'
-    );
+    return false;
   }
   if (stepKey === 'documentation') {
     return !documentationComplete && (
-      tasksComplete || currentStep === 'documentation' || status === 'beendet' || status === 'dokumentation_offen'
+      currentStep === 'documentation' || status === 'gestartet' || status === 'pausiert' || status === 'beendet' || status === 'dokumentation_offen'
     );
   }
   if (stepKey === 'signature') {

@@ -93,14 +93,18 @@ describe('deferred signature E2E chain', () => {
     vi.restoreAllMocks();
   });
 
-  it('employee requests administration approval before any client portal release', async () => {
-    const requestApproval = vi.fn(async () => ({
+  it('employee releases directly to the client portal before the client signs', async () => {
+    const releaseToPortal = vi.fn(async () => ({
       ok: true,
-      data: { requestId: 'approval-request-1' },
+      data: { proofId: PROOF, clientDocumentId: 'client-document-1' },
     }));
     const transition = vi.fn(async () => ({
       ok: true,
-      data: buildCtx(),
+      data: {
+        ...buildCtx(),
+        assignmentStatus: 'abgeschlossen' as const,
+        derivedStatus: 'abgeschlossen' as const,
+      },
     }));
     const saveClientSign = vi.fn(async () => ({
       ok: true,
@@ -114,7 +118,7 @@ describe('deferred signature E2E chain', () => {
 
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
     vi.doMock('@/lib/portal/deferredVisitClientSignatureService', () => ({
-      requestDeferredSignatureAdministrativeApproval: requestApproval,
+      releaseDeferredClientSignatureRequest: releaseToPortal,
     }));
     vi.doMock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
       transitionAssistExecutionStatus: transition,
@@ -138,8 +142,12 @@ describe('deferred signature E2E chain', () => {
 
     const phase1 = await finalizeVisitWithDeferredClientSignature(buildCtx(), 'Erledigt', 'Klient musste den Termin verlassen.');
     expect(phase1.ok).toBe(true);
-    expect(requestApproval).toHaveBeenCalledTimes(1);
-    expect(transition).not.toHaveBeenCalled();
+    expect(releaseToPortal).toHaveBeenCalledTimes(1);
+    expect(transition).toHaveBeenCalledWith(
+      expect.any(Object),
+      'abgeschlossen',
+      expect.objectContaining({ signatureDeferredToClientPortal: true }),
+    );
 
     const phase2 = await saveClientPortalAssistProofSignature({
       tenantId: TENANT,

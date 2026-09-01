@@ -5,6 +5,7 @@ import {
   fetchEmployeeMobilitySettings,
 } from '@/lib/office/employeeMobilityService';
 import type { TravelRouteType } from '@/types/modules/travelCompensation';
+import type { EmployeeTransportMode } from '@/types/modules/employeeMobility';
 import type { LogbookPoint, LogbookTrip } from '@/types/modules/employeeLogbook';
 import {
   appendLogbookPoints,
@@ -37,10 +38,12 @@ export type EmployeeLogbookEligibility = {
 
 export type AutomaticLogbookResult = {
   eligible: boolean;
+  hasCarMode: boolean;
+  vehicleId: string | null;
   started: boolean;
   resumed: boolean;
   trip: LogbookTrip | null;
-  reason: EmployeeLogbookEligibility['reason'];
+  reason: EmployeeLogbookEligibility['reason'] | 'non_car_selected';
 };
 
 export type EmployeeGpsWatchHandle = { remove: () => void };
@@ -115,6 +118,7 @@ export async function stopAutomaticLogbookTracking(tripId: string): Promise<void
 export async function resolveEmployeeLogbookEligibility(
   tenantId: string,
   employeeId: string,
+  selectedTransportMode?: EmployeeTransportMode | null,
 ): Promise<EmployeeLogbookEligibility> {
   const [bundle, mobilityResult] = await Promise.all([
     loadEmployeeLogbook(tenantId, employeeId),
@@ -123,7 +127,9 @@ export async function resolveEmployeeLogbookEligibility(
   const mobility = mobilityResult.ok
     ? mobilityResult.data
     : buildDefaultMobilitySettings(tenantId, employeeId);
-  const hasCarMode = mobility.transportModes.includes('car');
+  const hasCarMode = selectedTransportMode
+    ? selectedTransportMode === 'car'
+    : mobility.transportModes.includes('car');
   const defaultVehicle = bundle.vehicles.find(
     (vehicle) => vehicle.id === bundle.profile.defaultVehicleId && vehicle.active,
   );
@@ -148,8 +154,24 @@ async function startAutomaticTrip(input: {
   routeType: TravelRouteType;
   purpose: string;
   startAddress?: string | null;
+  transportMode?: EmployeeTransportMode | null;
 }): Promise<AutomaticLogbookResult> {
-  const eligibility = await resolveEmployeeLogbookEligibility(input.tenantId, input.employeeId);
+  if (input.transportMode && input.transportMode !== 'car') {
+    return {
+      eligible: false,
+      hasCarMode: false,
+      vehicleId: null,
+      started: false,
+      resumed: false,
+      trip: null,
+      reason: 'non_car_selected',
+    };
+  }
+  const eligibility = await resolveEmployeeLogbookEligibility(
+    input.tenantId,
+    input.employeeId,
+    input.transportMode,
+  );
   if (!eligibility.eligible) {
     return { ...eligibility, started: false, resumed: false, trip: null };
   }
@@ -202,6 +224,7 @@ export async function startVisitApproachLogbook(input: {
   clientId: string;
   clientName: string;
   startAddress?: string | null;
+  transportMode?: EmployeeTransportMode | null;
 }): Promise<AutomaticLogbookResult> {
   const mobilityResult = await fetchEmployeeMobilitySettings(input.tenantId, input.employeeId);
   const mobility = mobilityResult.ok
@@ -223,6 +246,7 @@ export async function startVisitServiceLogbookTrip(input: {
   kind: 'with_client' | 'client_errand' | 'next_client';
   purpose: string;
   startAddress?: string | null;
+  transportMode?: EmployeeTransportMode | null;
 }): Promise<AutomaticLogbookResult> {
   const routeType: TravelRouteType =
     input.kind === 'with_client'

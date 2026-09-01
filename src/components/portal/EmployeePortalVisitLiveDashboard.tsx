@@ -81,7 +81,7 @@ export function EmployeePortalVisitLiveDashboard({
           <EmployeePortalVisitCompactCard
             icon="✓"
             title={`${done} von ${tasks.length}`}
-            status="Aufgaben erledigt"
+            status="Optionale Aufgaben"
             onPress={onOpenTasks}
             testID="portal-open-tasks"
           />

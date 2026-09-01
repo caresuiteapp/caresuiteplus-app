@@ -117,12 +117,12 @@ describe('finalizeVisitWithDeferredClientSignature', () => {
     expect(result.ok).toBe(false);
   });
 
-  it('creates an administrative approval request without publishing or completing the visit', async () => {
+  it('publishes directly to the client portal and completes the employee visit', async () => {
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
     vi.doMock('@/lib/portal/deferredVisitClientSignatureService', () => ({
-      requestDeferredSignatureAdministrativeApproval: vi.fn(async () => ({
+      releaseDeferredClientSignatureRequest: vi.fn(async () => ({
         ok: true,
-        data: { requestId: 'request-1' },
+        data: { proofId: 'proof-1', clientDocumentId: 'document-1' },
       })),
     }));
     vi.doMock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
@@ -144,17 +144,18 @@ describe('finalizeVisitWithDeferredClientSignature', () => {
     const result = await finalizeVisitWithDeferredClientSignature(buildCtx(), 'Erledigt', 'Klient ist nicht mehr vor Ort.');
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.data.approvalRequestId).toBe('request-1');
-      expect(result.data.proofId).toBeNull();
-      expect(result.data.ctx.detail.signatureStatus).toBe('administrative_approval_pending');
-      expect(result.data.ctx.assignmentStatus).toBe('unterschrift_offen');
+      expect(result.data.sentDirectlyToClientPortal).toBe(true);
+      expect(result.data.proofId).toBe('proof-1');
+      expect(result.data.clientDocumentId).toBe('document-1');
+      expect(result.data.ctx.detail.signatureStatus).toBe('deferred_to_client_portal');
+      expect(result.data.ctx.assignmentStatus).toBe('abgeschlossen');
     }
   });
 
-  it('blocks when the administrative request fails', async () => {
+  it('blocks when the direct client portal release fails', async () => {
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
     vi.doMock('@/lib/portal/deferredVisitClientSignatureService', () => ({
-      requestDeferredSignatureAdministrativeApproval: vi.fn(async () => ({
+      releaseDeferredClientSignatureRequest: vi.fn(async () => ({
         ok: false,
         error: 'Portal-Freigabe fehlgeschlagen.',
       })),

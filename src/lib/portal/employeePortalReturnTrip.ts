@@ -10,6 +10,7 @@ import {
   saveLogbookProfile,
   startNativeBackgroundTracking,
   stopNativeBackgroundTracking,
+  stopNativeAssistBackgroundTracking,
 } from '@/lib/employeeLogbook';
 import { resolveEmployeeLogbookEligibility } from '@/lib/employeeLogbook/employeeLogbookAutomation';
 import {
@@ -51,7 +52,7 @@ export async function startEmployeeReturnTrip(input: {
   startAddress: string;
   destination: EmployeeReturnTripDestination;
 }): Promise<{ trip: LogbookTrip; resumed: boolean }> {
-  const eligibility = await resolveEmployeeLogbookEligibility(input.tenantId, input.employeeId);
+  const eligibility = await resolveEmployeeLogbookEligibility(input.tenantId, input.employeeId, 'car');
   if (!eligibility.eligible) {
     throw new Error(
       eligibility.reason === 'no_car_mode'
@@ -144,5 +145,9 @@ export async function finishEmployeeReturnTrip(input: {
   const bundle = await loadEmployeeLogbook(input.tenantId, input.employeeId);
   const completed = bundle.trips.find((trip) => trip.id === input.trip.id);
   if (!completed) throw new Error('Die abgeschlossene Rückfahrt konnte nicht erneut geladen werden.');
+  // Return/home/office is the explicit end of the recorded workday. The
+  // assignment consumer is released only here so GPS stays active through the
+  // complete final leg but cannot continue after the employee finished it.
+  await stopNativeAssistBackgroundTracking();
   return completed;
 }

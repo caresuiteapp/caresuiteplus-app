@@ -14,6 +14,7 @@ import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { TRAVEL_ROUTE_TYPE_LABELS } from '@/types/modules/travelCompensation';
 import type { EmployeeLogbookBundle } from '@/types/modules/employeeLogbook';
 import type { EmployeeLogbookEligibility } from '@/lib/employeeLogbook';
+import type { EmployeeTransportMode } from '@/types/modules/employeeMobility';
 import { fetchLivePortalAppointmentsForEmployee } from '@/lib/portal/portalAppointmentsLiveService';
 import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
 import { portalPremium } from '@/design/tokens/portalPremium';
@@ -30,6 +31,7 @@ type Props = {
   clientName: string;
   startAddress: string;
   plannedEndAt: string;
+  transportMode: EmployeeTransportMode;
 };
 
 const KIND_OPTIONS: { key: TripKind; label: string; purpose: string }[] = [
@@ -57,7 +59,11 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const query = useAsyncQuery<{ eligibility: EmployeeLogbookEligibility; bundle: EmployeeLogbookBundle | null; appointments: PortalAppointmentItem[] }>(useCallback(async () => {
-    const eligibility = await resolveEmployeeLogbookEligibility(props.tenantId, props.employeeId);
+    const eligibility = await resolveEmployeeLogbookEligibility(
+      props.tenantId,
+      props.employeeId,
+      props.transportMode,
+    );
     if (!eligibility.eligible) return { ok: true as const, data: { eligibility, bundle: null, appointments: [] } };
     const [bundle, appointmentsResult] = await Promise.all([
       loadEmployeeLogbook(props.tenantId, props.employeeId),
@@ -67,7 +73,7 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
       ok: true as const,
       data: { eligibility, bundle, appointments: appointmentsResult.ok ? appointmentsResult.data : [] },
     };
-  }, [props.tenantId, props.employeeId]), [props.tenantId, props.employeeId]);
+  }, [props.tenantId, props.employeeId, props.transportMode]), [props.tenantId, props.employeeId, props.transportMode]);
 
   const assignmentId = resolveVisitMasterId(props.assignmentId);
   const nextAssignments = useMemo(
@@ -116,6 +122,7 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
         kind,
         purpose,
         startAddress: target.startAddress,
+        transportMode: props.transportMode,
       });
       await query.refresh();
       setFeedback(result.resumed ? 'Die laufende Fahrt wurde wieder aufgenommen.' : 'PKW-Fahrt und GPS-Aufzeichnung wurden gestartet.');

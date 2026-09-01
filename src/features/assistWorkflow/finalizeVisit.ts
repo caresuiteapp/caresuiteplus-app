@@ -30,19 +30,6 @@ export async function finalizeVisit(
   ctx: AssistExecutionContext,
   documentationText?: string | null,
 ): Promise<ServiceResult<FinalizeVisitResult>> {
-  const openRequired = ctx.detail.tasks.filter(
-    (t) => t.required && t.status !== 'done' && t.status !== 'requires_follow_up',
-  );
-  if (openRequired.length > 0) {
-    return assistWorkflowErrorToResult(
-      createAssistWorkflowError('AWF_TASKS_INCOMPLETE', {
-        tenantId: ctx.tenantId,
-        assignmentId: ctx.assignmentId,
-        operation: 'finalizeVisit',
-      }, `${openRequired.length} Pflichtaufgabe(n) noch offen.`),
-    );
-  }
-
   const proofProjection = waitForDeferredTask(assistProofProjectionKey(ctx), 1_000);
 
   const hasSignature =
@@ -63,7 +50,8 @@ export async function finalizeVisit(
     tasks: ctx.detail.tasks.map((t) => ({
       id: t.id,
       title: t.title,
-      isRequired: t.required,
+      // Tasks guide the employee but never block documentation, signature or close.
+      isRequired: false,
       status:
         t.status === 'done'
           ? 'done'
@@ -84,7 +72,7 @@ export async function finalizeVisit(
         ? 'AWF_SIGNATURE_REQUIRED'
         : readiness.error.includes('Dokumentation')
           ? 'AWF_DOCUMENTATION_REQUIRED'
-          : 'AWF_TASKS_INCOMPLETE';
+          : 'AWF_DOCUMENTATION_REQUIRED';
     return assistWorkflowErrorToResult(
       createAssistWorkflowError(code, {
         tenantId: ctx.tenantId,

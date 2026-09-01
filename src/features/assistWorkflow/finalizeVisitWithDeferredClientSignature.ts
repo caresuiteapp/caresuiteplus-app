@@ -1,11 +1,12 @@
 /**
- * Employee requests administrative approval for a later client-portal signature.
- * This step neither completes the visit nor publishes anything to the client portal.
+ * Employee sends the required signature directly to the client portal when
+ * on-site signing is not possible. Documentation remains mandatory.
  */
 import type { ServiceResult } from '@/types';
 import { validateVisitCloseReadiness } from '@/lib/assist/visitExecutionService';
-import { requestDeferredSignatureAdministrativeApproval } from '@/lib/portal/deferredVisitClientSignatureService';
+import { releaseDeferredClientSignatureRequest } from '@/lib/portal/deferredVisitClientSignatureService';
 import type { AssistExecutionContext } from './types';
+import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import {
   assistWorkflowErrorToResult,
   createAssistWorkflowError,
@@ -15,7 +16,7 @@ export type FinalizeVisitDeferredResult = {
   ctx: AssistExecutionContext;
   proofId: string | null;
   clientDocumentId: string | null;
-  approvalRequestId?: string;
+  sentDirectlyToClientPortal: boolean;
 };
 
 export async function finalizeVisitWithDeferredClientSignature(
@@ -33,19 +34,6 @@ export async function finalizeVisitWithDeferredClientSignature(
     );
   }
 
-  const openRequired = ctx.detail.tasks.filter(
-    (t) => t.required && t.status !== 'done' && t.status !== 'requires_follow_up',
-  );
-  if (openRequired.length > 0) {
-    return assistWorkflowErrorToResult(
-      createAssistWorkflowError('AWF_TASKS_INCOMPLETE', {
-        tenantId: ctx.tenantId,
-        assignmentId: ctx.assignmentId,
-        operation: 'finalizeVisitWithDeferredClientSignature',
-      }, `${openRequired.length} Pflichtaufgabe(n) noch offen.`),
-    );
-  }
-
   const docText =
     documentationText?.trim() ||
     ctx.detail.documentationNotes?.trim() ||
@@ -55,7 +43,7 @@ export async function finalizeVisitWithDeferredClientSignature(
     tasks: ctx.detail.tasks.map((t) => ({
       id: t.id,
       title: t.title,
-      isRequired: t.required,
+      isRequired: false,
       status:
         t.status === 'done'
           ? 'done'
@@ -72,12 +60,8 @@ export async function finalizeVisitWithDeferredClientSignature(
   });
 
   if (!readiness.valid) {
-    const code =
-      readiness.error.includes('Dokumentation')
-        ? 'AWF_DOCUMENTATION_REQUIRED'
-        : 'AWF_TASKS_INCOMPLETE';
     return assistWorkflowErrorToResult(
-      createAssistWorkflowError(code, {
+      createAssistWorkflowError('AWF_DOCUMENTATION_REQUIRED', {
         tenantId: ctx.tenantId,
         assignmentId: ctx.assignmentId,
         operation: 'finalizeVisitWithDeferredClientSignature',
@@ -85,22 +69,40 @@ export async function finalizeVisitWithDeferredClientSignature(
     );
   }
 
-  const request = await requestDeferredSignatureAdministrativeApproval(ctx, approvalReason);
+  if (approvalReason.trim().length < 10) {
+    return assistWorkflowErrorToResult(
+      createAssistWorkflowError('AWF_SIGNATURE_REQUIRED', {
+        tenantId: ctx.tenantId,
+        assignmentId: ctx.assignmentId,
+        operation: 'finalizeVisitWithDeferredClientSignature',
+      }, 'Bitte kurz begründen, warum vor Ort keine Unterschrift möglich ist.'),
+    );
+  }
+
+  const request = await releaseDeferredClientSignatureRequest(ctx, docText);
   if (!request.ok) {
     return assistWorkflowErrorToResult(
       createAssistWorkflowError('AWF_ADMIN_APPROVAL_REQUEST_FAILED', {
         tenantId: ctx.tenantId,
         assignmentId: ctx.assignmentId,
         operation: 'finalizeVisitWithDeferredClientSignature',
-      }, request.error ?? 'Freigabeanfrage konnte nicht an die Verwaltung gesendet werden.'),
+      }, request.error ?? 'Die Unterschriftsanfrage konnte nicht an das Klient:innenportal gesendet werden.'),
     );
   }
 
+  const transitioned = await transitionAssistExecutionStatus(ctx, 'abgeschlossen', {
+    hasDocumentation: true,
+    hasRequiredSignature: false,
+    signatureDeferredToClientPortal: true,
+    fastWorkflow: true,
+  });
+  if (!transitioned.ok) return transitioned;
+
   const refreshed = {
-    ...ctx,
+    ...transitioned.data,
     detail: {
-      ...ctx.detail,
-      signatureStatus: 'administrative_approval_pending' as const,
+      ...transitioned.data.detail,
+      signatureStatus: 'deferred_to_client_portal' as const,
     },
   };
 
@@ -108,9 +110,9 @@ export async function finalizeVisitWithDeferredClientSignature(
     ok: true,
     data: {
       ctx: refreshed,
-      proofId: null,
-      clientDocumentId: null,
-      approvalRequestId: request.data.requestId,
+      proofId: request.data.proofId,
+      clientDocumentId: request.data.clientDocumentId,
+      sentDirectlyToClientPortal: true,
     },
   };
 }

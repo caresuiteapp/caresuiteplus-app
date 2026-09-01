@@ -336,15 +336,17 @@ export async function openEmployeePortalDocumentPicker(options?: {
 }
 
 export async function readEmployeePortalMediaBytes(uri: string): Promise<Uint8Array> {
-  try {
-    const response = await fetch(uri);
-    if (!response.ok && response.status !== 0) {
-      throw new Error(`Datei konnte nicht gelesen werden (${response.status}).`);
-    }
-    const buffer = await response.arrayBuffer();
-    if (buffer.byteLength <= 0) throw new Error('Die ausgewählte Datei ist leer.');
-    return new Uint8Array(buffer);
-  } finally {
-    if (Platform.OS === 'web' && uri.startsWith('blob:')) URL.revokeObjectURL(uri);
+  // Do not revoke a web blob here. Upload may fail temporarily and the exact
+  // same selection must remain retryable without reopening camera/gallery.
+  const response = await fetch(uri);
+  if (!response.ok && response.status !== 0) {
+    throw new Error(`Datei konnte nicht gelesen werden (${response.status}).`);
   }
+  const buffer = await response.arrayBuffer();
+  if (buffer.byteLength <= 0) throw new Error('Die ausgewählte Datei ist leer.');
+  return new Uint8Array(buffer);
+}
+
+export function releaseEmployeePortalMediaUri(uri: string | null | undefined): void {
+  if (Platform.OS === 'web' && uri?.startsWith('blob:')) URL.revokeObjectURL(uri);
 }

@@ -200,7 +200,7 @@ export function EmployeePortalVisitTasksPanel({
   const body = (
     <View style={styles.body}>
       <View style={styles.summary}>
-        <Text style={styles.summaryText}>Aufgaben</Text>
+        <Text style={styles.summaryText}>Optionale Aufgaben</Text>
         <Text style={styles.summaryMeta}>
           {loading ? 'Speicherung läuft im Hintergrund' : `${totalDone} / ${tasks.length} erledigt`}
         </Text>
@@ -271,7 +271,7 @@ export function EmployeePortalVisitTasksPanel({
   return (
     <PlatformModal
       visible={visible}
-      title={statusPicker ? 'Aufgabenstatus' : 'Aufgaben'}
+      title={statusPicker ? 'Aufgabenstatus' : 'Optionale Aufgaben'}
       subtitle={
         statusPicker ? 'Status für diese Aufgabe wählen' : `${totalDone} / ${tasks.length} erledigt`
       }
