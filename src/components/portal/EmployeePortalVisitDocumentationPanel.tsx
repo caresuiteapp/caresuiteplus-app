@@ -61,6 +61,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
   const text = employeePortalExecutionText;
   const deviceClass = useDeviceClass();
   const isMobile = !isDesktopClass(deviceClass);
+  const useBottomSheet = Platform.OS !== 'web' && isMobile;
   const [shortDescription, setShortDescription] = useState(initialShortDescription);
   const [specialNotes, setSpecialNotes] = useState(initialSpecialNotes);
   const [deviations, setDeviations] = useState('');
@@ -295,9 +296,11 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
         visible={visible}
         title="Dokumentation"
         onClose={onClose ?? (() => {})}
-        variant={isMobile ? 'bottomSheet' : 'center'}
-        animationType={isMobile ? 'slide' : 'fade'}
+        variant={useBottomSheet ? 'bottomSheet' : 'center'}
+        animationType={useBottomSheet ? 'slide' : 'fade'}
         maxWidth={600}
+        dismissOnBackdrop={false}
+        surfaceScope="personal"
         sheetStyle={styles.modalSheet}
         bodyStyle={styles.modalBody}
       >

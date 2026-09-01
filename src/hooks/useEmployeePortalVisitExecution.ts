@@ -73,7 +73,11 @@ import { useLiveVisitTimers } from '@/hooks/useLiveVisitTimers';
 import { useTaskResultDrafts } from '@/hooks/useTaskResultDrafts';
 import { LIVE_TRACKING_POLL_MS, useAsyncQuery } from './core';
 import { deriveWorkflowStatus } from '@/features/assistWorkflow/deriveWorkflowStatus';
-import { resolveAllowedActions } from '@/features/assistWorkflow/resolveAllowedActions';
+import {
+  resolveAllowedActions,
+  resolveAssistExecutionDiagnostics,
+} from '@/features/assistWorkflow/resolveAllowedActions';
+import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import type { VisitTimesSummary } from '@/features/assistWorkflow/calculateVisitTimes';
 import {
@@ -347,6 +351,50 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     },
   );
 
+  const buildFallbackExecutionContext = useCallback((
+    detail: EmployeePortalAssignmentDetail,
+  ): AssistExecutionContext | null => {
+    if (!tenantId || !assignmentId || !employeeId) return null;
+
+    const visitTimes = mergeVisitTimesFromPortalDetail(null, detail);
+    const assignmentStatus = resolveRecordedAssignmentStatus(detail);
+    const workflow = deriveWorkflowStatus(assignmentStatus, visitTimes);
+    const diagnostics = resolveAssistExecutionDiagnostics(
+      assignmentStatus,
+      visitTimes,
+      workflow,
+    );
+    const allowedActions = resolveAllowedActions({
+      assignmentStatus,
+      visitTimes,
+      detail,
+      derivedStatus: workflow.derivedStatus,
+      canStartService: workflow.canStartService,
+    });
+
+    return {
+      tenantId,
+      assignmentId,
+      employeeId,
+      profileId: authProfileId,
+      roleKey,
+      assistVisitId:
+        executionContextRef.current?.assistVisitId ??
+        resolveVisitMasterId(detail.assignmentId || assignmentId),
+      assignmentStatus,
+      derivedStatus: workflow.derivedStatus,
+      consistencyStatus: workflow.consistencyStatus,
+      inconsistencies: workflow.inconsistencies,
+      repairOptions: workflow.repairOptions,
+      detail,
+      liveContext: executionContextRef.current?.liveContext ?? liveContext,
+      visitTimes,
+      timeEvents: executionContextRef.current?.timeEvents ?? [],
+      allowedActions,
+      diagnostics,
+    };
+  }, [tenantId, assignmentId, employeeId, authProfileId, roleKey, liveContext]);
+
   const refreshExecutionContext = useCallback(async (
     preloadedDetail?: EmployeePortalAssignmentDetail,
   ) => {
@@ -365,6 +413,16 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         'resolveAssistExecutionContext',
       );
       if (!result.ok) {
+        const fallbackDetail = preloadedDetail ?? query.data ?? null;
+        const fallback = fallbackDetail
+          ? buildFallbackExecutionContext(fallbackDetail)
+          : null;
+        if (fallback) {
+          setExecutionContext(fallback);
+          setLiveContextError(null);
+          setRefetchWarning(null);
+          return fallback;
+        }
         setLiveContextError(result.error);
         setRefetchWarning(result.error);
         return executionContextRef.current;
@@ -407,6 +465,16 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
       return result.data;
     } catch (error) {
+      const fallbackDetail = preloadedDetail ?? query.data ?? null;
+      const fallback = fallbackDetail
+        ? buildFallbackExecutionContext(fallbackDetail)
+        : null;
+      if (fallback) {
+        setExecutionContext(fallback);
+        setLiveContextError(null);
+        setRefetchWarning(null);
+        return fallback;
+      }
       const message =
         error instanceof WorkflowActionTimeoutError
           ? 'Einsatzdaten konnten nicht rechtzeitig geladen werden — bitte erneut versuchen.'
@@ -415,7 +483,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       setLiveContextError(message);
       return null;
     }
-  }, [tenantId, assignmentId, employeeId, authProfileId, roleKey]);
+  }, [tenantId, assignmentId, employeeId, authProfileId, roleKey, query.data, buildFallbackExecutionContext]);
 
   useEffect(() => {
     if (!query.data) return;
@@ -700,7 +768,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           ? executionContextRef.current
           : null;
       if (!ctx) {
-        ctx = await refreshExecutionContext();
+        ctx = await refreshExecutionContext(query.data ?? undefined);
       }
       if (!ctx) {
         ctx = executionContext;
@@ -790,7 +858,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         else setWorkflowLoading(false);
       }
     },
-    [executionContext, refreshExecutionContext, syncAfterWorkflow],
+    [executionContext, query.data, refreshExecutionContext, syncAfterWorkflow],
   );
 
   const taskDrafts = useTaskResultDrafts(
@@ -1079,45 +1147,13 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   );
 
   const handleSaveDocumentation = useCallback(
-    async (documentation: EmployeePortalDocumentationInput) => {
-      const ctx = executionContextRef.current ?? executionContext;
-      if (!ctx) {
-        return { ok: false, error: 'Einsatzkontext fehlt.' };
-      }
-
-      setWorkflowLoading(true);
-      try {
-        const result = await withWorkflowTimeout(
-          saveVisitDocumentation({ ctx, documentation }),
-          WORKFLOW_END_SERVICE_TIMEOUT_MS,
-          'saveDocumentation',
-        );
-        if (result.ok) {
-          if (result.data.wfmSyncFailed) {
-            setRefetchWarning(
-              'Die Dokumentation ist gespeichert. Eine Übergabe an Verwaltung oder Arbeitszeiterfassung wird beim Abschluss erneut geprüft.',
-            );
-          }
-          const synced = unwrapWorkflowContextPayload(result.data);
-          if (synced) {
-            await syncAfterWorkflow(synced);
-          }
-        }
-        return result;
-      } catch (error) {
-        if (error instanceof WorkflowActionTimeoutError) {
-          return {
-            ok: false,
-            error: 'Zeitüberschreitung — bitte erneut versuchen.',
-            errorCode: 'START_SERVICE_TIMEOUT',
-          };
-        }
-        throw error;
-      } finally {
-        setWorkflowLoading(false);
-      }
-    },
-    [executionContext, syncAfterWorkflow],
+    (documentation: EmployeePortalDocumentationInput) =>
+      runWorkflow((ctx) => saveVisitDocumentation({ ctx, documentation }), {
+        timeoutLabel: 'saveDocumentation',
+        timeoutMs: WORKFLOW_END_SERVICE_TIMEOUT_MS,
+        recoveryAction: 'save_documentation',
+      }),
+    [runWorkflow],
   );
 
   const handleSaveSignature = useCallback(

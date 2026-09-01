@@ -268,6 +268,12 @@ export function EmployeePortalVisitExecutionScreen() {
     [visit?.tasks],
   );
 
+  useEffect(() => {
+    const storedDocumentation = visit?.documentationNotes?.trim() ?? '';
+    if (!storedDocumentation) return;
+    setDocumentationDraftText((current) => current.trim() ? current : storedDocumentation);
+  }, [visit?.assignmentId, visit?.documentationNotes]);
+
   const documentationAiSourceText = useMemo(
     () =>
       resolveDocumentationAiSourceText(
@@ -445,6 +451,9 @@ export function EmployeePortalVisitExecutionScreen() {
   const showSignature = uiState?.showSignature ?? false;
   const showFinalize = uiState?.showFinalize ?? false;
   const canFinalizeDeferred = uiState?.canFinalizeDeferred ?? false;
+  const documentationAccessible = Boolean(
+    !isLocked && (showDocumentationForm || documentationSubmitted),
+  );
 
   useEffect(() => {
     if (!visit) return;
@@ -1533,9 +1542,12 @@ export function EmployeePortalVisitExecutionScreen() {
                   });
                   const r = await saveSignature(sig);
                   if (r.ok) {
+                    setSignatureConfirmationPending(false);
+                    setAwaitingSignature(false);
+                    setLocalSuccess('Unterschrift geprüft und gespeichert — der Einsatz kann abgeschlossen werden.');
                     workflowPersistence.persist({
-                      signatureConfirmationPending: true,
-                      awaitingSignature: true,
+                      signatureConfirmationPending: false,
+                      awaitingSignature: false,
                       signatureCaptured: true,
                     });
                   } else if (isWorkflowConfirmationPending(r.errorCode)) {
@@ -1543,7 +1555,12 @@ export function EmployeePortalVisitExecutionScreen() {
                     return { ok: true as const };
                   } else {
                     setSignatureConfirmationPending(false);
-                    workflowPersistence.persist({ signatureConfirmationPending: false });
+                    setAwaitingSignature(true);
+                    workflowPersistence.persist({
+                      signatureConfirmationPending: false,
+                      awaitingSignature: true,
+                      signatureCaptured: false,
+                    });
                     setLocalError(r.error ?? 'Die Unterschrift konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.');
                   }
                   return r;
@@ -1565,9 +1582,10 @@ export function EmployeePortalVisitExecutionScreen() {
         />
       ) : null}
 
-      {showDocumentationForm && !isLocked ? (
+      {documentationAccessible ? (
         <EmployeePortalVisitDocumentationPanel
           ref={docPanelRef}
+          disabled={documentationSubmitted && (signatureCaptured || signatureDeferred)}
           loading={actionLoading}
           tenantId={portalTenantId}
           visible={documentationOpen}
@@ -1581,6 +1599,8 @@ export function EmployeePortalVisitExecutionScreen() {
             setLocalError(null);
             const r = await saveDocumentation(doc);
             if (r.ok) {
+              setDocumentationDraftText(doc.shortDescription);
+              setDocumentationSpecialNotes(doc.specialNotes ?? '');
               setDocLastSavedAt(new Date().toISOString());
               const savedDocumentation = 'data' in r ? r.data : undefined;
               const needsSignature =

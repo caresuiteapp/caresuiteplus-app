@@ -7,6 +7,7 @@ export type RecoverableWorkflowAction =
   | 'start_pause'
   | 'end_pause'
   | 'end_service'
+  | 'save_documentation'
   | 'save_signature'
   | 'finalize'
   | 'finalize_deferred'
@@ -57,6 +58,11 @@ export function didWorkflowActionReachPostcondition(
       );
     case 'end_service':
       return Boolean(after.visitTimes?.serviceEndedAt || after.detail.actualEndAt) && statusAtLeast(after, 'beendet');
+    case 'save_documentation':
+      return (
+        after.detail.documentationStatus === 'submitted' ||
+        after.detail.documentationStatus === 'locked'
+      );
     case 'save_signature':
       return after.detail.signatureStatus === 'captured';
     case 'finalize':
