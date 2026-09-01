@@ -536,7 +536,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
                   <Text style={styles.tripSecondary}>{trip.startAddress ?? 'GPS-Start'} → {trip.endAddress ?? (trip.status === 'recording' ? 'Fahrt läuft' : 'GPS-Ziel')}</Text>
                   {segments.length ? <Text style={styles.tripSecondary}>Stopps: {segments.map((segment) => segment.label).join(' → ')}</Text> : null}
                   <View style={styles.tripBadges}>
-                    <PremiumBadge label={trip.status === 'recording' ? 'AUFZEICHNUNG LÄUFT' : trip.status === 'review_required' ? 'PRÜFUNG ERFORDERLICH' : trip.status === 'corrected' ? 'KORRIGIERT' : trip.status === 'confirmed' ? 'BESTÄTIGT' : 'ABGESCHLOSSEN'} variant={trip.status === 'recording' || trip.status === 'review_required' ? 'orange' : trip.status === 'corrected' ? 'cyan' : 'green'} />
+                    <PremiumBadge label={trip.status === 'recording' ? 'AUFZEICHNUNG LÄUFT' : trip.status === 'confirmation_required' ? 'BESTÄTIGUNG AUSSTEHEND' : trip.status === 'review_required' ? 'PRÜFUNG ERFORDERLICH' : trip.status === 'corrected' ? 'KORRIGIERT' : trip.status === 'confirmed' ? 'BESTÄTIGT' : 'ABGESCHLOSSEN'} variant={trip.status === 'recording' || trip.status === 'review_required' || trip.status === 'confirmation_required' ? 'orange' : trip.status === 'corrected' ? 'cyan' : 'green'} />
                     <PremiumBadge label={trip.countsAsWorkTime ? 'ARBEITSZEIT' : `${trip.worktimeDeductionMinutes} MIN. ABZUG`} variant={trip.countsAsWorkTime ? 'green' : 'muted'} />
                     <PremiumBadge
                       label={trip.distanceSource === 'google_fallback' ? 'GOOGLE-ERSATZROUTE' : trip.distanceSource === 'office_corrected' ? 'VERWALTUNGSKORREKTUR' : trip.distanceSource === 'manual' ? 'MANUELL' : 'GPS GEMESSEN'}
@@ -547,8 +547,8 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
                   </View>
                 </View>
                 <Text style={[styles.tripPrimary, styles.tripNumber]}>{durationMinutes ? `${Math.floor(durationMinutes / 60)}:${String(durationMinutes % 60).padStart(2, '0')} h` : '—'}</Text>
-                <Text style={[styles.tripPrimary, styles.tripNumber]}>{trip.status === 'review_required' ? '—' : trip.distanceFinalKm.toFixed(2).replace('.', ',')}</Text>
-                <Text style={[styles.tripPrimary, styles.tripNumber]}>{trip.status === 'review_required' ? 'gesperrt' : `${(trip.mileageAmountCents / 100).toFixed(2).replace('.', ',')} €`}</Text>
+                <Text style={[styles.tripPrimary, styles.tripNumber]}>{trip.status === 'review_required' ? '—' : trip.status === 'confirmation_required' ? '—' : trip.distanceFinalKm.toFixed(2).replace('.', ',')}</Text>
+                <Text style={[styles.tripPrimary, styles.tripNumber]}>{trip.status === 'review_required' ? 'gesperrt' : trip.status === 'confirmation_required' ? 'gesperrt' : `${(trip.mileageAmountCents / 100).toFixed(2).replace('.', ',')} €`}</Text>
                 <View style={styles.tripAction}>
                   <PremiumButton title={selected ? 'Schließen' : 'Korrigieren'} size="sm" variant="secondary" disabled={!canEdit || trip.status === 'recording'} onPress={() => selected ? setSelectedTripId(null) : beginTripCorrection(trip)} />
                 </View>

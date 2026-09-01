@@ -228,6 +228,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const [returnTripModalOpen, setReturnTripModalOpen] = useState(false);
   const [mobilityMode, setMobilityMode] = useState<EmployeeTransportMode | null>(null);
   const [mobilityHydrated, setMobilityHydrated] = useState(false);
+  const [mobilityPersisted, setMobilityPersisted] = useState(false);
 
   const assistVisitId = executionContext?.assistVisitId ?? null;
 
@@ -242,6 +243,7 @@ export function EmployeePortalVisitExecutionScreen() {
     ).then((saved) => {
       if (cancelled) return;
       setMobilityMode(saved?.mode ?? null);
+      setMobilityPersisted(Boolean(saved));
       setMobilityHydrated(true);
     });
     return () => {
@@ -251,6 +253,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const selectMobilityMode = useCallback((mode: EmployeeTransportMode) => {
     setMobilityMode(mode);
+    setMobilityPersisted(false);
     setLocalError(null);
     setLocalWarning(null);
     if (!portalTenantId || !portalEmployeeId || !visit?.assignmentId) return;
@@ -259,7 +262,7 @@ export function EmployeePortalVisitExecutionScreen() {
       employeeId: portalEmployeeId,
       assignmentId: resolveVisitMasterId(visit.assignmentId),
       mode,
-    }).catch(() => {
+    }).then(() => setMobilityPersisted(true)).catch(() => {
       setLocalWarning('Die Mobilitätsauswahl bleibt für diesen Bildschirm aktiv, konnte aber noch nicht dauerhaft gespeichert werden.');
     });
   }, [portalTenantId, portalEmployeeId, visit?.assignmentId]);
@@ -733,6 +736,10 @@ export function EmployeePortalVisitExecutionScreen() {
       setLocalError('Bitte wähle zuerst deine Mobilität für diese Fahrt aus.');
       return;
     }
+    if (!mobilityPersisted) {
+      setLocalError('Die Mobilitätsauswahl muss zuerst dauerhaft gespeichert sein. Bitte erneut auswählen.');
+      return;
+    }
     setDriveLoading(true);
     setLocalError(null);
     const result = await startDriveTracking();
@@ -773,7 +780,7 @@ export function EmployeePortalVisitExecutionScreen() {
       }
     }
     setDriveLoading(false);
-  }, [startDriveTracking, portalTenantId, portalEmployeeId, visit, mobilityMode]);
+  }, [startDriveTracking, portalTenantId, portalEmployeeId, visit, mobilityMode, mobilityPersisted]);
 
   const handleArrived = useCallback(async () => {
     setLocalError(null);
@@ -802,7 +809,7 @@ export function EmployeePortalVisitExecutionScreen() {
           });
           if (completedTrip) {
             setLocalSuccess(
-              `Angekommen — PKW-Anfahrt mit ${completedTrip.distanceFinalKm.toFixed(2).replace('.', ',')} km im Fahrtenbuch gespeichert.`,
+              `Angekommen — bitte jetzt ${completedTrip.distanceFinalKm.toFixed(2).replace('.', ',')} km für die PKW-Anfahrt bestätigen.`,
             );
           } else {
             const eligibility = await resolveEmployeeLogbookEligibility(
@@ -1220,10 +1227,24 @@ export function EmployeePortalVisitExecutionScreen() {
   const renderPhaseContent = () => {
     if (phase === 'completed') {
       return (
-        <EmployeePortalVisitSummaryPanel
-          visit={visit}
-          onBack={() => router.replace('/portal/employee/assignments' as never)}
-        />
+        <View style={styles.liveWrap}>
+          <EmployeePortalVisitSummaryPanel
+            visit={visit}
+            onBack={() => router.replace('/portal/employee/assignments' as never)}
+          />
+          {portalTenantId && portalEmployeeId && mobilityMode === 'car' ? (
+            <EmployeePortalVisitLogbookCard
+              tenantId={portalTenantId}
+              employeeId={portalEmployeeId}
+              assignmentId={visit.assignmentId}
+              clientId={visit.clientId}
+              clientName={visit.clientName}
+              startAddress={visit.locationAddress}
+              plannedEndAt={visit.plannedEndAt}
+              transportMode={mobilityMode}
+            />
+          ) : null}
+        </View>
       );
     }
 
@@ -1319,6 +1340,18 @@ export function EmployeePortalVisitExecutionScreen() {
               />
             ) : null}
           </View>
+          {portalTenantId && portalEmployeeId && mobilityMode === 'car' ? (
+            <EmployeePortalVisitLogbookCard
+              tenantId={portalTenantId}
+              employeeId={portalEmployeeId}
+              assignmentId={visit.assignmentId}
+              clientId={visit.clientId}
+              clientName={visit.clientName}
+              startAddress={visit.locationAddress}
+              plannedEndAt={visit.plannedEndAt}
+              transportMode={mobilityMode}
+            />
+          ) : null}
         </View>
       );
     }

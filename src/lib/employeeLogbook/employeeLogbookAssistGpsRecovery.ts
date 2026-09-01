@@ -60,6 +60,8 @@ export type EmployeeLogbookGpsRecoveryCandidate = {
   source: string;
   points: AssistGpsRecoveryPoint[];
   legs: EmployeeLogbookGpsRecoveryLeg[];
+  transportMode: string | null;
+  carSelectionProven: boolean;
 };
 
 export type EmployeeLogbookGpsRecoveryResult = {
@@ -110,7 +112,7 @@ export async function loadEmployeeLogbookGpsRecoveryCandidates(
   const sessionIds = sessions.map((row) => stringValue(row.id)).filter(Boolean);
   const visitIds = [...new Set(sessions.map((row) => stringValue(row.visit_id)).filter(Boolean))];
 
-  const [visitsResult, pointsResult, eventsResult, importedResult] = await Promise.all([
+  const [visitsResult, pointsResult, eventsResult, importedResult, mobilityResult] = await Promise.all([
     fromUnknownTable(supabase, 'assist_visits')
       .select('id,legacy_assignment_id,client_id,title,address_snapshot,actual_end_at,finished_at,execution_status')
       .eq('tenant_id', tenantId)
@@ -131,12 +133,16 @@ export async function loadEmployeeLogbookGpsRecoveryCandidates(
       .eq('tenant_id', tenantId)
       .eq('employee_id', employeeId)
       .like('source', 'assist_gps_recovery%'),
+    fromUnknownTable(supabase, 'employee_visit_mobility_selections')
+      .select('assignment_id,transport_mode')
+      .eq('tenant_id', tenantId).eq('employee_id', employeeId),
   ]);
-  const error = visitsResult.error || pointsResult.error || eventsResult.error || importedResult.error;
+  const error = visitsResult.error || pointsResult.error || eventsResult.error || importedResult.error || mobilityResult.error;
   if (error) throw new Error(error.message);
 
   const visits = new Map(((visitsResult.data ?? []) as Row[]).map((row) => [stringValue(row.id), row]));
   const importedSources = new Set(((importedResult.data ?? []) as Row[]).map((row) => stringValue(row.source)));
+  const mobilityByAssignment = new Map(((mobilityResult.data ?? []) as Row[]).map((row) => [stringValue(row.assignment_id), stringValue(row.transport_mode)]));
   const pointsBySession = new Map<string, Row[]>();
   for (const row of (pointsResult.data ?? []) as Row[]) {
     const sessionId = stringValue(row.session_id);
@@ -156,6 +162,8 @@ export async function loadEmployeeLogbookGpsRecoveryCandidates(
     const sessionId = stringValue(session.id);
     const visitId = stringValue(session.visit_id);
     const visit = visits.get(visitId) ?? {};
+    const assignmentId = nullableString(visit.legacy_assignment_id) ?? visitId;
+    const transportMode = mobilityByAssignment.get(assignmentId) ?? null;
     const points = (pointsBySession.get(sessionId) ?? []).map((row) => ({
       latitude: numberValue(row.latitude),
       longitude: numberValue(row.longitude),
@@ -231,7 +239,7 @@ export async function loadEmployeeLogbookGpsRecoveryCandidates(
     return {
       sessionId,
       visitId,
-      assignmentId: nullableString(visit.legacy_assignment_id) ?? visitId,
+      assignmentId,
       clientId: nullableString(visit.client_id),
       title: nullableString(visit.title) ?? 'Automatisch aufgezeichnete Einsatzfahrt',
       startedAt: route.startedAt ?? stringValue(session.started_at),
@@ -253,6 +261,8 @@ export async function loadEmployeeLogbookGpsRecoveryCandidates(
       source,
       points,
       legs,
+      transportMode,
+      carSelectionProven: transportMode === 'car',
     };
   }));
 }
@@ -272,7 +282,7 @@ export async function synchronizeEmployeeLogbookFromAssistGps(input: {
   if (!supabase) throw new Error('Keine sichere Datenbankverbindung.');
   const candidates = input.candidates ?? await loadEmployeeLogbookGpsRecoveryCandidates(input.tenantId, input.employeeId);
   const ready = candidates.flatMap((candidate) =>
-    candidate.active || !candidate.endedAt
+    candidate.active || !candidate.endedAt || !candidate.carSelectionProven
       ? []
       : candidate.legs.filter((leg) =>
           !leg.imported &&

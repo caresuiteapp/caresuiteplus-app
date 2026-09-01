@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Modal, StyleSheet, Text, View } from 'react-native';
 import { CareEntitySelect } from '@/components/inputs/CareEntitySelect';
 import { InfoBanner, PremiumBadge, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import {
   addLogbookStop,
+  confirmEmployeeLogbookTrip,
   finishActiveVisitLogbookTrip,
   loadEmployeeLogbook,
   resolveEmployeeLogbookEligibility,
@@ -57,6 +58,8 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
   const [nextAssignmentId, setNextAssignmentId] = useState('');
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [confirmationKm, setConfirmationKm] = useState('');
+  const [confirmationReason, setConfirmationReason] = useState('');
 
   const query = useAsyncQuery<{ eligibility: EmployeeLogbookEligibility; bundle: EmployeeLogbookBundle | null; appointments: PortalAppointmentItem[] }>(useCallback(async () => {
     const eligibility = await resolveEmployeeLogbookEligibility(
@@ -93,6 +96,27 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
     [assignmentId, nextAssignments],
   );
   const activeForVisit = active?.assignmentId && relatedAssignmentIds.has(active.assignmentId) ? active : null;
+  const pendingConfirmation = useMemo(
+    () => query.data?.bundle?.trips.find((trip) => trip.status === 'confirmation_required' && Boolean(trip.assignmentId) && relatedAssignmentIds.has(trip.assignmentId!)) ?? null,
+    [query.data?.bundle?.trips, relatedAssignmentIds],
+  );
+  useEffect(() => {
+    if (pendingConfirmation) setConfirmationKm(pendingConfirmation.distanceFinalKm.toFixed(2).replace('.', ','));
+  }, [pendingConfirmation?.id]);
+
+  async function confirmDistance() {
+    if (!pendingConfirmation) return;
+    const distanceKm = Number(confirmationKm.replace(',', '.'));
+    setBusy(true); setFeedback(null);
+    try {
+      await confirmEmployeeLogbookTrip({ trip: pendingConfirmation, distanceKm, reason: confirmationReason });
+      setConfirmationReason('');
+      await query.refresh();
+      setFeedback('Kilometer bestätigt. Die Fahrt wurde endgültig gespeichert.');
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Kilometer konnten nicht bestätigt werden.');
+    } finally { setBusy(false); }
+  }
 
   if (query.loading && !query.data) return null;
   if (!query.data?.eligibility.eligible) {
@@ -189,7 +213,7 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
       await query.refresh();
       setFeedback(
         trip
-          ? `Fahrt abgeschlossen: ${trip.distanceFinalKm.toFixed(2).replace('.', ',')} km wurden gespeichert.`
+          ? `Fahrt beendet: ${trip.distanceFinalKm.toFixed(2).replace('.', ',')} km warten auf deine Bestätigung.`
           : 'Es wurde keine passende laufende Fahrt gefunden.',
       );
       setDestination('');
@@ -205,6 +229,20 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
       title="PKW-Fahrten im Einsatz"
       subtitle="Begleitfahrt, Besorgung und mehrere Ziele direkt dem Einsatz und der Klientin bzw. dem Klienten zuordnen"
     >
+      <Modal visible={Boolean(pendingConfirmation)} transparent animationType="fade" onRequestClose={() => undefined}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.confirmationCard}>
+            <Text style={styles.activeTitle}>Gefahrene Kilometer bestätigen</Text>
+            <Text style={styles.copy}>{pendingConfirmation?.purpose}</Text>
+            <PremiumInput label="Gefahrene Kilometer" value={confirmationKm} onChangeText={setConfirmationKm} keyboardType="decimal-pad" />
+            {pendingConfirmation && Math.abs(Number(confirmationKm.replace(',', '.')) - pendingConfirmation.distanceFinalKm) >= 0.005 ? (
+              <PremiumInput label="Begründung der Korrektur" value={confirmationReason} onChangeText={setConfirmationReason} placeholder="Warum weicht der Wert ab?" />
+            ) : null}
+            <Text style={styles.copy}>Erst nach deiner Bestätigung wird diese PKW-Fahrt endgültig gespeichert und abrechenbar.</Text>
+            <PremiumButton title="Kilometer bestätigen" fullWidth loading={busy} onPress={() => void confirmDistance()} />
+          </View>
+        </View>
+      </Modal>
       <View style={styles.header}>
         <Text style={styles.copy}>Nur sichtbar, weil für dieses Mitarbeitendenkonto ein aktiver PKW zugeordnet ist.</Text>
         <PremiumBadge label={activeForVisit ? 'GPS AKTIV' : 'PKW ZUGEORDNET'} variant={activeForVisit ? 'green' : 'cyan'} />
@@ -286,4 +324,6 @@ const styles = StyleSheet.create({
   copy: { ...typography.caption, color: portalPremium.text.secondary, flex: 1 },
   activeCard: { gap: 4, borderWidth: 1, borderColor: portalPremium.borderSoft, borderRadius: 14, padding: spacing.md, backgroundColor: portalPremium.surfaceSoft },
   activeTitle: { ...typography.h3, color: portalPremium.text.primary },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(2,16,34,0.72)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  confirmationCard: { width: '100%', maxWidth: 520, gap: spacing.md, borderRadius: 20, padding: spacing.lg, backgroundColor: '#FFFFFF' },
 });

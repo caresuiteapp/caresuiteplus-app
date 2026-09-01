@@ -17,6 +17,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import type { EmployeeListItem } from '@/types/modules/employeeList';
 import { spacing, typography } from '@/theme';
+import { fetchEmployeeMobilitySettings } from '@/lib/office/employeeMobilityService';
+import { loadEmployeeLogbook } from '@/lib/employeeLogbook';
 
 function employeeName(employee: EmployeeListItem) {
   return `${employee.firstName} ${employee.lastName}`.trim();
@@ -29,19 +31,42 @@ export function EmployeeLogbookHubScreen() {
   const { allItems, loading, error, refresh } = useEmployeeList();
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [eligibleEmployeeIds, setEligibleEmployeeIds] = useState<Set<string>>(new Set());
+  const [eligibilityLoading, setEligibilityLoading] = useState(true);
   const stacked = width < 1040;
+
+  useEffect(() => {
+    if (!tenantId) return;
+    let cancelled = false;
+    setEligibilityLoading(true);
+    void Promise.all(allItems.filter((employee) => employee.status !== 'archiviert').map(async (employee) => {
+      try {
+        const [mobility, logbook] = await Promise.all([
+          fetchEmployeeMobilitySettings(tenantId, employee.id),
+          loadEmployeeLogbook(tenantId, employee.id),
+        ]);
+        const explicitlyAllowsCar = mobility.ok && Boolean(mobility.data.id) && mobility.data.transportModes.includes('car');
+        const hasActiveVehicle = logbook.vehicles.some((vehicle) => vehicle.active);
+        return explicitlyAllowsCar && hasActiveVehicle ? employee.id : null;
+      } catch { return null; }
+    })).then((ids) => {
+      if (!cancelled) setEligibleEmployeeIds(new Set(ids.filter((id): id is string => Boolean(id))));
+    }).finally(() => { if (!cancelled) setEligibilityLoading(false); });
+    return () => { cancelled = true; };
+  }, [tenantId, allItems]);
 
   const employees = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase('de-DE');
     return allItems
       .filter((employee) => employee.status !== 'archiviert')
+      .filter((employee) => eligibleEmployeeIds.has(employee.id))
       .filter((employee) => {
         if (!needle) return true;
         return `${employee.firstName} ${employee.lastName} ${employee.jobTitle ?? ''} ${employee.department ?? ''}`
           .toLocaleLowerCase('de-DE')
           .includes(needle);
       });
-  }, [allItems, search]);
+  }, [allItems, eligibleEmployeeIds, search]);
 
   useEffect(() => {
     if (selectedId && employees.some((employee) => employee.id === selectedId)) return;
@@ -67,7 +92,7 @@ export function EmployeeLogbookHubScreen() {
               <View style={styles.directoryHeading}>
                 <Text style={styles.kicker}>MITARBEITENDENAUSWAHL</Text>
                 <Text style={styles.directoryTitle}>Fahrtenbücher</Text>
-                <Text style={styles.directoryMeta}>{employees.length} aktive Mitarbeitende</Text>
+                <Text style={styles.directoryMeta}>{employees.length} Mitarbeitende mit aktivem PKW</Text>
               </View>
               <PremiumBadge label="EIGENES MODUL" variant="cyan" />
             </View>
@@ -85,10 +110,10 @@ export function EmployeeLogbookHubScreen() {
               showsHorizontalScrollIndicator={false}
               showsVerticalScrollIndicator={false}
             >
-              {loading && !allItems.length ? <LoadingState message="Mitarbeitende werden geladen …" /> : null}
+              {(loading || eligibilityLoading) && !employees.length ? <LoadingState message="PKW-Fahrtenbücher werden geprüft …" /> : null}
               {error && !allItems.length ? <ErrorState message={error} onRetry={refresh} /> : null}
-              {!loading && !error && !employees.length ? (
-                <EmptyState title="Keine Mitarbeitenden gefunden" message="Passen Sie die Suche an oder prüfen Sie die Personalstammdaten." />
+              {!loading && !eligibilityLoading && !error && !employees.length ? (
+                <EmptyState title="Keine PKW-Fahrtenbücher gefunden" message="Es werden ausschließlich Mitarbeitende mit ausdrücklich freigeschaltetem PKW und aktivem Fahrzeug angezeigt." />
               ) : null}
               {employees.map((employee) => {
                 const selected = employee.id === selectedId;

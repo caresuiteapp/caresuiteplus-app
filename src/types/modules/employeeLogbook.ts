@@ -1,6 +1,6 @@
 import type { TravelRouteType } from './travelCompensation';
 
-export type LogbookTripStatus = 'recording' | 'review_required' | 'completed' | 'corrected' | 'confirmed' | 'cancelled';
+export type LogbookTripStatus = 'recording' | 'confirmation_required' | 'review_required' | 'completed' | 'corrected' | 'confirmed' | 'cancelled';
 export type LogbookDistanceSource = 'gps' | 'google_fallback' | 'manual' | 'office_corrected';
 export type LogbookVehicleOwnership = 'private' | 'company';
 

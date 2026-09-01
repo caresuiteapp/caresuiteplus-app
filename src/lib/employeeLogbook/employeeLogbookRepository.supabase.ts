@@ -140,13 +140,31 @@ export async function finishLogbookTrip(tripId: string, input: { tenantId: strin
     : null;
   const notes = [existingNotes, qualityNote].filter(Boolean).join('\n') || null;
   const endedAt = new Date().toISOString();
-  const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({ ended_at: endedAt, end_address: input.endAddress?.trim() || null, notes, distance_gps_km: distanceKm, distance_final_km: finalDistanceKm, distance_source: useGoogleFallback ? 'google_fallback' : 'gps', route_quality_status: useGoogleFallback ? 'estimated_due_to_gps_gap' : 'measured', status: 'completed', gps_captured: allPoints.length > 1, updated_at: endedAt }).eq('id', tripId);
+  const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({ ended_at: endedAt, end_address: input.endAddress?.trim() || null, notes, distance_gps_km: distanceKm, distance_final_km: finalDistanceKm, distance_source: useGoogleFallback ? 'google_fallback' : 'gps', route_quality_status: useGoogleFallback ? 'estimated_due_to_gps_gap' : 'measured', status: 'confirmation_required', gps_captured: allPoints.length > 1, updated_at: endedAt }).eq('id', tripId);
   if (error) throw new Error(error.message);
   const { error: segmentError } = await fromUnknownTable(db(), 'employee_logbook_segments')
     .update({ ended_at: endedAt, end_address: input.endAddress?.trim() || null })
     .eq('trip_id', tripId)
     .is('ended_at', null);
   if (segmentError) throw new Error(segmentError.message);
+}
+
+export async function confirmEmployeeLogbookTrip(input: { trip: LogbookTrip; distanceKm: number; reason?: string | null }) {
+  if (!Number.isFinite(input.distanceKm) || input.distanceKm < 0) throw new Error('Bitte gültige Kilometer eintragen.');
+  const corrected = Math.abs(input.distanceKm - input.trip.distanceFinalKm) >= 0.005;
+  if (corrected && (input.reason?.trim().length ?? 0) < 3) throw new Error('Bitte die Kilometerkorrektur kurz begründen.');
+  const now = new Date().toISOString();
+  const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({
+    distance_final_km: input.distanceKm,
+    distance_source: corrected ? 'manual' : input.trip.distanceSource,
+    route_quality_status: corrected ? 'corrected' : input.trip.routeQualityStatus,
+    status: 'confirmed',
+    employee_confirmed_at: now,
+    employee_confirmation_reason: corrected ? input.reason!.trim() : null,
+    previous_values: corrected ? { distance_final_km: input.trip.distanceFinalKm, status: input.trip.status } : null,
+    updated_at: now,
+  }).eq('id', input.trip.id).eq('status', 'confirmation_required');
+  if (error) throw new Error(error.message);
 }
 
 export async function correctLogbookTrip(trip: LogbookTrip, distanceKm: number, reason: string) {
