@@ -758,6 +758,10 @@ export function EmployeePortalVisitExecutionScreen() {
             setLocalSuccess('Anfahrt und digitales PKW-Fahrtenbuch wurden automatisch gestartet.');
           } else if (logbook.reason === 'non_car_selected') {
             setLocalSuccess('Anfahrt gestartet. Für diese Mobilität ist kein PKW-Fahrtenbucheintrag erforderlich.');
+          } else if (logbook.reason === 'no_active_vehicle') {
+            setLocalWarning('Live-GPS läuft und bleibt gespeichert. Für die automatische Fahrtenbuchübernahme muss die Verwaltung diesem Mitarbeitendenkonto noch einen aktiven PKW zuordnen.');
+          } else if (logbook.reason === 'no_car_mode') {
+            setLocalWarning('PKW wurde für diesen Einsatz gewählt, ist in den Mobilitätseinstellungen aber noch nicht als zulässiges Verkehrsmittel freigeschaltet. Live-GPS läuft weiter; die Verwaltung muss die PKW-Zuordnung prüfen.');
           }
         } catch (error) {
           setLocalWarning(

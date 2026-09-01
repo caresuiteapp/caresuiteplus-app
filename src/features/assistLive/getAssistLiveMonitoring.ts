@@ -35,6 +35,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignment';
 import type { AssistLiveRoutePoint } from '@/lib/assist/assistMapProvider';
 import { parseGoogleRouteReference } from '@/features/liveTracking/googleRouteReference';
+import { reconcileAssistLiveRouteGaps } from '@/features/liveTracking/reconcileAssistLiveRouteGaps';
 
 function shouldUseLiveVisitList(): boolean {
   return getServiceMode() === 'supabase' && Boolean(getSupabaseClient());
@@ -59,6 +60,11 @@ export type AssistLiveRouteSummary = {
   gapCount: number;
   maxGapSeconds: number;
   totalDistanceKm: number;
+  measuredDistanceKm: number;
+  googleGapDistanceKm: number;
+  resolvedGapCount: number;
+  unresolvedGapCount: number;
+  distanceStatus: 'measured' | 'google_reconciled' | 'incomplete';
   walkingDistanceKm: number;
   cyclingDistanceKm: number;
   drivingDistanceKm: number;
@@ -237,6 +243,11 @@ export function buildAssistLiveRouteSummary(
     gapCount,
     maxGapSeconds,
     totalDistanceKm: totalMeters / 1000,
+    measuredDistanceKm: totalMeters / 1000,
+    googleGapDistanceKm: 0,
+    resolvedGapCount: 0,
+    unresolvedGapCount: gapCount,
+    distanceStatus: gapCount > 0 ? 'incomplete' : 'measured',
     walkingDistanceKm: walkingMeters / 1000,
     cyclingDistanceKm: cyclingMeters / 1000,
     drivingDistanceKm: drivingMeters / 1000,
@@ -432,6 +443,39 @@ async function enrichTrackingFromPersistence(
     inMemory.warnings,
   );
 
+  let route: AssistLiveRouteSummary | null = null;
+  if (routeRes.ok && routeRes.data.length > 0) {
+    const measured = buildAssistLiveRouteSummary(routeRes.data.map((routePoint) => ({
+      latitude: routePoint.latitude,
+      longitude: routePoint.longitude,
+      capturedAt: routePoint.recordedAt,
+      accuracyMeters: routePoint.accuracyMeters,
+    })));
+    const gapRecovery = measured.gapCount > 0
+      ? await reconcileAssistLiveRouteGaps(tenantId, measured.segments)
+      : null;
+    const googleGapDistanceKm = gapRecovery?.googleGapDistanceKm ?? 0;
+    const resolvedGapCount = gapRecovery?.resolvedGapCount ?? 0;
+    const unresolvedGapCount = Math.max(
+      measured.gapCount - resolvedGapCount,
+      gapRecovery?.unresolvedGapCount ?? measured.gapCount,
+    );
+    route = {
+      ...measured,
+      measuredDistanceKm: measured.totalDistanceKm,
+      googleGapDistanceKm,
+      resolvedGapCount,
+      unresolvedGapCount,
+      totalDistanceKm: measured.totalDistanceKm + googleGapDistanceKm,
+      distanceStatus:
+        unresolvedGapCount > 0
+          ? 'incomplete'
+          : googleGapDistanceKm > 0
+            ? 'google_reconciled'
+            : 'measured',
+    };
+  }
+
   return {
     tracking: {
       ...inMemory,
@@ -455,14 +499,7 @@ async function enrichTrackingFromPersistence(
         pauseStartedAt: persistedTimers?.pauseStartedAt ?? inMemory.timers.pauseStartedAt,
       },
     },
-    route: routeRes.ok && routeRes.data.length > 0
-      ? buildAssistLiveRouteSummary(routeRes.data.map((routePoint) => ({
-          latitude: routePoint.latitude,
-          longitude: routePoint.longitude,
-          capturedAt: routePoint.recordedAt,
-          accuracyMeters: routePoint.accuracyMeters,
-        })))
-      : null,
+    route,
   };
 }
 

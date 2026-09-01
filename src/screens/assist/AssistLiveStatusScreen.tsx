@@ -380,25 +380,32 @@ export function AssistLiveStatusScreen() {
                     {row.route ? (
                       <View style={styles.routeMetrics}>
                         <View style={styles.routeMetricPrimary}>
-                          <Text style={styles.routeMetricLabel}>Route gesamt</Text>
+                          <Text style={styles.routeMetricLabel}>
+                            {row.route.distanceStatus === 'incomplete' ? 'GPS-Teilstrecke' : 'Geprüfte Straßenstrecke'}
+                          </Text>
                           <Text style={styles.routeMetricValue}>{formatDistance(row.route.totalDistanceKm)}</Text>
                         </View>
                         <View style={styles.routeMetric}>
-                          <Text style={styles.routeMetricLabel}>Gefahrene Strecke</Text>
+                          <Text style={styles.routeMetricLabel}>PKW-Anteil (GPS-Schätzung)</Text>
                           <Text style={styles.routeMetricSmall}>{formatDistance(row.route.drivingDistanceKm)}</Text>
                         </View>
                         <View style={styles.routeMetric}>
-                          <Text style={styles.routeMetricLabel}>Zu Fuß</Text>
+                          <Text style={styles.routeMetricLabel}>Zu Fuß (GPS-Schätzung)</Text>
                           <Text style={styles.routeMetricSmall}>{formatDistance(row.route.walkingDistanceKm)}</Text>
                         </View>
                         <View style={styles.routeMetric}>
-                          <Text style={styles.routeMetricLabel}>Fahrrad/sonstig</Text>
+                          <Text style={styles.routeMetricLabel}>Fahrrad/sonstig (Schätzung)</Text>
                           <Text style={styles.routeMetricSmall}>{formatDistance(row.route.cyclingDistanceKm)}</Text>
                         </View>
                         <Text style={styles.routeMeta}>
                           {row.route.pointCount} GPS-Punkte · Ø {row.route.averageSpeedKmh?.toFixed(1) ?? '0,0'} km/h
                           {row.route.currentSpeedKmh != null ? ` · zuletzt ${row.route.currentSpeedKmh.toFixed(1)} km/h` : ''}
                         </Text>
+                        {row.route.distanceStatus === 'incomplete' ? (
+                          <Text style={styles.warning}>
+                            Kilometer unvollständig: {row.route.unresolvedGapCount} GPS-Lücke{row.route.unresolvedGapCount === 1 ? '' : 'n'} konnten noch nicht über eine Google-Straßenroute ergänzt werden.
+                          </Text>
+                        ) : null}
                       </View>
                     ) : (
                       <Text style={styles.warning}>Noch keine GPS-Route aufgezeichnet.</Text>
@@ -476,9 +483,13 @@ export function AssistLiveStatusScreen() {
                 {mapRow.employeeName ?? 'Mitarbeitende'} · {mapRow.title}
               </Text>
             </View>
-            <View style={[styles.routeQualityBadge, mapRow.route.gapCount > 0 && styles.routeQualityBadgeWarning]}>
-              <Text style={[styles.routeQualityText, mapRow.route.gapCount > 0 && styles.routeQualityTextWarning]}>
-                {mapRow.route.gapCount > 0 ? `${mapRow.route.gapCount} GPS-Lücke${mapRow.route.gapCount === 1 ? '' : 'n'}` : 'Spur durchgängig'}
+            <View style={[styles.routeQualityBadge, mapRow.route.unresolvedGapCount > 0 && styles.routeQualityBadgeWarning]}>
+              <Text style={[styles.routeQualityText, mapRow.route.unresolvedGapCount > 0 && styles.routeQualityTextWarning]}>
+                {mapRow.route.unresolvedGapCount > 0
+                  ? `${mapRow.route.unresolvedGapCount} Lücke${mapRow.route.unresolvedGapCount === 1 ? '' : 'n'} ungeklärt`
+                  : mapRow.route.resolvedGapCount > 0
+                    ? `${mapRow.route.resolvedGapCount} Lücke${mapRow.route.resolvedGapCount === 1 ? '' : 'n'} per Google ergänzt`
+                    : 'Spur durchgängig'}
               </Text>
             </View>
           </View>
@@ -529,14 +540,30 @@ export function AssistLiveStatusScreen() {
                 {mapRow.route.segments.length} Spuren · {mapRow.route.maxGapSeconds > 0 ? formatRouteDuration(mapRow.route.maxGapSeconds) : 'keine Lücke'}
               </Text>
             </View>
+            <View style={styles.routeAuditCell}>
+              <Text style={styles.routeAuditLabel}>Direkt per GPS gemessen</Text>
+              <Text style={styles.routeAuditValue}>{formatDistance(mapRow.route.measuredDistanceKm)}</Text>
+            </View>
+            <View style={styles.routeAuditCell}>
+              <Text style={styles.routeAuditLabel}>Google-Straßenrouten für GPS-Lücken</Text>
+              <Text style={styles.routeAuditValue}>
+                {formatDistance(mapRow.route.googleGapDistanceKm)} · {mapRow.route.resolvedGapCount} ergänzt
+              </Text>
+            </View>
+            <View style={styles.routeAuditCell}>
+              <Text style={styles.routeAuditLabel}>Prüfbarer Kilometerstand</Text>
+              <Text style={styles.routeAuditValue}>
+                {mapRow.route.distanceStatus === 'incomplete' ? 'noch unvollständig' : formatDistance(mapRow.route.totalDistanceKm)}
+              </Text>
+            </View>
           </View>
 
-          <View style={[styles.routeAuditNotice, mapRow.route.gapCount > 0 && styles.routeAuditNoticeWarning]}>
-            <Text style={[styles.routeAuditNoticeText, mapRow.route.gapCount > 0 && styles.routeAuditNoticeTextWarning]}>
+          <View style={[styles.routeAuditNotice, mapRow.route.unresolvedGapCount > 0 && styles.routeAuditNoticeWarning]}>
+            <Text style={[styles.routeAuditNoticeText, mapRow.route.unresolvedGapCount > 0 && styles.routeAuditNoticeTextWarning]}>
               {mapRow.route.gapCount > 0
-                ? mapRow.tracking?.googleRouteReference?.source === 'google'
-                  ? 'GPS-Unterbrechungen werden nicht mehr durch Luftlinien verbunden. Blau zeigt gemessene GPS-Abschnitte; die orange gestrichelte Google-Sollroute dient als klar gekennzeichneter Kilometer-Abgleich.'
-                  : 'GPS-Unterbrechungen werden nicht mehr durch Luftlinien verbunden. Es liegt noch keine Google-Sollroute für einen automatischen Kilometer-Abgleich vor.'
+                ? mapRow.route.unresolvedGapCount > 0
+                  ? 'Der angezeigte GPS-Wert ist ausdrücklich keine Gesamtstrecke. GPS-Unterbrechungen werden nicht mehr durch Luftlinien verbunden. Fehlende Intervalle werden ausschließlich über eine echte orange gestrichelte Google-Sollroute ergänzt; ungeklärte Lücken bleiben offen und dürfen nicht abgerechnet werden.'
+                  : 'Alle GPS-Unterbrechungen wurden über echte Google-Straßenrouten zwischen den jeweiligen letzten und nächsten GPS-Punkten ergänzt. GPS-Unterbrechungen werden nicht mehr durch Luftlinien verbunden; die orange gestrichelte Google-Sollroute bleibt als prüfbarer Straßennachweis sichtbar.'
                 : 'Die blaue Linie zeigt die zeitlich zusammenhängende GPS-Spur. Manuelles Zoomen und Verschieben bleiben bei Live-Aktualisierungen erhalten.'}
             </Text>
           </View>

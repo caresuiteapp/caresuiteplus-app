@@ -95,7 +95,22 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
   const activeForVisit = active?.assignmentId && relatedAssignmentIds.has(active.assignmentId) ? active : null;
 
   if (query.loading && !query.data) return null;
-  if (!query.data?.eligibility.eligible) return null;
+  if (!query.data?.eligibility.eligible) {
+    const reason = query.data?.eligibility.reason;
+    return (
+      <SectionPanel
+        title="PKW-Fahrten im Einsatz"
+        subtitle="Die Live-GPS-Aufzeichnung bleibt erhalten, auch wenn das formale Fahrtenbuch noch nicht freigeschaltet ist"
+      >
+        <InfoBanner
+          message={reason === 'no_active_vehicle'
+            ? 'Kein aktiver PKW zugeordnet. Die Verwaltung muss einmalig Kennzeichen und Fahrzeug hinterlegen; danach werden vollständig prüfbare GPS-Bestandsdaten seit dem 24.08.2026 automatisch übernommen.'
+            : 'PKW ist für dieses Mitarbeitendenkonto noch nicht freigeschaltet. Bitte die Mobilitätseinstellungen durch die Verwaltung prüfen lassen.'}
+          variant="warning"
+        />
+      </SectionPanel>
+    );
+  }
 
   async function start() {
     if (kind === 'next_client' && !selectedNextAssignment) {

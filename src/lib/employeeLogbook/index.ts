@@ -3,5 +3,6 @@ export * from './employeeLogbookRepository.supabase';
 export * from './employeeLogbookTracking';
 export * from './employeeLogbookPdf';
 export * from './employeeLogbookAutomation';
+export * from './employeeLogbookAssistGpsRecovery';
 export * from './employeeLogbookDate';
 export * from './employeeLogbookPointQueue';

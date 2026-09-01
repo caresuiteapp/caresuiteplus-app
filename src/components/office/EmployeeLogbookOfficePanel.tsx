@@ -22,6 +22,9 @@ import {
   isLogbookTripInBerlinRange,
   saveLogbookProfile,
   saveLogbookVehicle,
+  EMPLOYEE_LOGBOOK_RECOVERY_SINCE,
+  loadEmployeeLogbookGpsRecoveryCandidates,
+  synchronizeEmployeeLogbookFromAssistGps,
 } from '@/lib/employeeLogbook';
 import type { LogbookTrip, LogbookVehicleOwnership } from '@/types/modules/employeeLogbook';
 import { TRAVEL_ROUTE_TYPE_LABELS, type TravelRouteType } from '@/types/modules/travelCompensation';
@@ -45,7 +48,32 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   const query = useAsyncQuery(
     useCallback(async () => {
       try {
-        return { ok: true as const, data: await loadEmployeeLogbook(tenantId, employeeId) };
+        let bundle = await loadEmployeeLogbook(tenantId, employeeId);
+        let gpsRecoveryCandidates = [] as Awaited<ReturnType<typeof loadEmployeeLogbookGpsRecoveryCandidates>>;
+        let gpsRecoveryError: string | null = null;
+        try {
+          gpsRecoveryCandidates = await loadEmployeeLogbookGpsRecoveryCandidates(tenantId, employeeId);
+          const activeVehicle = bundle.vehicles.find((vehicle) => vehicle.active) ?? null;
+          if (activeVehicle) {
+            const synchronized = await synchronizeEmployeeLogbookFromAssistGps({
+              tenantId,
+              employeeId,
+              vehicleId: activeVehicle.id,
+              candidates: gpsRecoveryCandidates,
+            });
+            if (synchronized.importedCount > 0) {
+              [bundle, gpsRecoveryCandidates] = await Promise.all([
+                loadEmployeeLogbook(tenantId, employeeId),
+                loadEmployeeLogbookGpsRecoveryCandidates(tenantId, employeeId),
+              ]);
+            }
+          }
+        } catch (recoveryError) {
+          gpsRecoveryError = recoveryError instanceof Error
+            ? recoveryError.message
+            : 'GPS-Bestandsdaten konnten nicht geprüft werden.';
+        }
+        return { ok: true as const, data: { ...bundle, gpsRecoveryCandidates, gpsRecoveryError } };
       } catch (error) {
         return {
           ok: false as const,
@@ -69,7 +97,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   const [model, setModel] = useState('');
   const [ownership, setOwnership] = useState<LogbookVehicleOwnership>('private');
   const [rate, setRate] = useState('0,30');
-  const [from, setFrom] = useState(`${today().slice(0, 8)}01`);
+  const [from, setFrom] = useState(EMPLOYEE_LOGBOOK_RECOVERY_SINCE.slice(0, 10));
   const [to, setTo] = useState(today());
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -126,6 +154,21 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
       amount: completed.reduce((sum, trip) => sum + trip.mileageAmountCents, 0),
     };
   }, [visibleTrips]);
+
+  const gpsRecovery = useMemo(() => {
+    const candidates = query.data?.gpsRecoveryCandidates ?? [];
+    const pending = candidates.filter((candidate) => !candidate.imported);
+    return {
+      pending,
+      pendingDistanceKm: pending.reduce((sum, candidate) => sum + candidate.finalDistanceKm, 0),
+      unresolvedCount: pending.filter((candidate) => candidate.unresolvedGapCount > 0).length,
+      activeCount: pending.filter((candidate) => candidate.active).length,
+      readyCount: pending.filter((candidate) =>
+        !candidate.active && candidate.unresolvedGapCount === 0 && candidate.finalDistanceKm >= 0.05,
+      ).length,
+    };
+  }, [query.data?.gpsRecoveryCandidates]);
+  const activeVehicleForRecovery = query.data?.vehicles.find((vehicle) => vehicle.active) ?? null;
 
   function beginTripCorrection(trip: LogbookTrip) {
     setSelectedTripId(trip.id);
@@ -285,6 +328,43 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
         variant="info"
       />
       {feedback ? <InfoBanner message={feedback} variant={feedback.includes('gültig') || feedback.includes('fehl') ? 'warning' : 'info'} /> : null}
+      {query.data.gpsRecoveryError ? (
+        <InfoBanner
+          message={`GPS-Bestandsprüfung derzeit nicht vollständig möglich: ${query.data.gpsRecoveryError}`}
+          variant="warning"
+        />
+      ) : null}
+      {gpsRecovery.pending.length > 0 ? (
+        <SectionPanel
+          title="Automatische GPS-Aufzeichnungen seit 24.08.2026"
+          subtitle="Vorhandene Live-GPS-Daten werden geprüft und erst nach vollständiger Straßenrouten-Abstimmung in das Fahrtenbuch übernommen"
+        >
+          <View style={styles.manualIntro}>
+            <View style={styles.grow}>
+              <Text style={styles.formLabel}>
+                {gpsRecovery.pending.length} Aufzeichnung{gpsRecovery.pending.length === 1 ? '' : 'en'} noch nicht endgültig im Fahrtenbuch
+              </Text>
+              <Text style={styles.manualText}>
+                Aktuell messbar bzw. über Google-Straßenrouten ergänzt: {gpsRecovery.pendingDistanceKm.toFixed(2).replace('.', ',')} km.
+                {gpsRecovery.unresolvedCount > 0 ? ` ${gpsRecovery.unresolvedCount} Aufzeichnung(en) enthalten noch ungeklärte GPS-Lücken und werden ausdrücklich nicht als endgültige Kilometer abgerechnet.` : ''}
+                {gpsRecovery.activeCount > 0 ? ` ${gpsRecovery.activeCount} Aufzeichnung(en) laufen noch.` : ''}
+              </Text>
+            </View>
+            <PremiumButton title="GPS-Bestandsdaten erneut prüfen" variant="secondary" onPress={() => void query.refresh()} />
+          </View>
+          {!activeVehicleForRecovery ? (
+            <InfoBanner
+              message="Für diese Mitarbeiterin bzw. diesen Mitarbeiter ist noch kein aktiver PKW hinterlegt. Die GPS-Daten bleiben erhalten, können aber erst nach der Fahrzeugzuordnung revisionssicher in das Fahrtenbuch übernommen werden."
+              variant="warning"
+            />
+          ) : gpsRecovery.readyCount > 0 ? (
+            <InfoBanner
+              message={`${gpsRecovery.readyCount} vollständig prüfbare GPS-Aufzeichnung(en) werden beim Aktualisieren automatisch dem aktiven Fahrzeug ${activeVehicleForRecovery.plate} zugeordnet.`}
+              variant="info"
+            />
+          ) : null}
+        </SectionPanel>
+      ) : null}
 
       <View style={styles.metrics}>
         <PremiumCard style={styles.metricCard}><Text style={styles.metricLabel}>Fahrten</Text><Text style={styles.metricValue}>{totals.count}</Text></PremiumCard>
