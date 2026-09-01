@@ -15,7 +15,6 @@ import { liquidColors, liquidRadius } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 import { LiquidCommandShell } from '../shell/LiquidCommandShell';
 import { ClientNetworkMap } from '../components/ClientNetworkMap';
-import { ClinicalBodyMapPreview } from '../components/ClinicalBodyMapPreview';
 
 function formatTime(value: string): string {
   const date = new Date(value);
@@ -269,34 +268,47 @@ function AlertsPanel({
   incomplete: number;
   documents: number;
 }) {
+  const router = useRouter();
   const entries = [
     ...(errors.length ? [{
       glyph: '!',
       tone: 'danger' as const,
       title: 'Datenquelle nicht erreichbar',
       detail: `${errors.length} Bereich(e) prüfen`,
+      route: '/business/office/admin/operations-monitoring',
     }] : []),
     ...(incomplete ? [{
       glyph: '▤',
       tone: 'warning' as const,
       title: 'Dokumentation unvollständig',
       detail: `${incomplete} Einsatz/Einsätze`,
+      route: '/assist/nachweise/review',
     }] : []),
     ...(!documents ? [{
       glyph: '□',
       tone: 'neutral' as const,
       title: 'Keine Dokumente im Kontext',
       detail: 'Ablage prüfen',
+      route: '/business/office/documents',
     }] : []),
   ];
   return (
     <LiquidSurface style={styles.alertsPanel} contentStyle={styles.asideCard}>
       <View style={styles.sectionHeader}>
-        <LiquidText variant="section">Alerts</LiquidText>
+        <View>
+          <LiquidText variant="kicker">PRIORITÄTEN</LiquidText>
+          <LiquidText variant="section">Handlungsbedarf</LiquidText>
+        </View>
         <LiquidStatus label={`${entries.length}`} tone={entries.length ? 'warning' : 'success'} />
       </View>
       {entries.length ? entries.map((entry) => (
-        <View key={entry.title} style={styles.alertRow}>
+        <Pressable
+          key={entry.title}
+          accessibilityRole="button"
+          accessibilityLabel={`${entry.title}: ${entry.detail}`}
+          onPress={() => router.push(entry.route as never)}
+          style={({ pressed }) => [styles.alertRow, pressed && styles.actionRowPressed]}
+        >
           <View style={styles.alertIcon}>
             <LiquidGlyph glyph={entry.glyph} size={20} />
           </View>
@@ -305,27 +317,114 @@ function AlertsPanel({
             <Text style={styles.alertDetail}>{entry.detail}</Text>
           </View>
           <LiquidGlyph glyph="→" size={16} />
-        </View>
+        </Pressable>
       )) : (
-        <View style={styles.compactEmpty}>
-          <LiquidStatus label="Keine kritischen Hinweise" tone="success" />
+        <View style={styles.alertsClear}>
+          <View style={styles.clearIcon}><LiquidGlyph glyph="✓" size={22} /></View>
+          <View style={styles.alertCopy}>
+            <Text style={styles.alertTitle}>Keine kritischen Hinweise</Text>
+            <Text style={styles.alertDetail}>Alle überwachten Bereiche sind aktuell unauffällig.</Text>
+          </View>
         </View>
       )}
     </LiquidSurface>
   );
 }
 
-function BodyMapPanel() {
+function DailyOperationsPanel({
+  visits,
+  employees,
+  incomplete,
+}: {
+  visits: ReturnType<typeof useCurrentSystemAdapter>['data']['visits'];
+  employees: ReturnType<typeof useCurrentSystemAdapter>['data']['employees'];
+  incomplete: number;
+}) {
   const router = useRouter();
+  const active = visits.filter((visit) =>
+    ['unterwegs', 'angekommen', 'gestartet', 'pausiert'].includes(visit.assignmentStatus ?? ''),
+  ).length;
+  const completed = visits.filter((visit) => visit.assignmentStatus === 'abgeschlossen').length;
+  const open = Math.max(0, visits.length - completed);
+  const assignedEmployeeIds = new Set(
+    visits.map((visit) => visit.employeeId).filter((value): value is string => Boolean(value)),
+  );
+  const available = Math.max(0, employees.length - assignedEmployeeIds.size);
+  const actions = [
+    {
+      glyph: '＋',
+      title: 'Einsatz planen',
+      detail: 'Neue Versorgung strukturiert anlegen',
+      route: '/assist/einsaetze/new',
+    },
+    {
+      glyph: '✓',
+      title: 'Nachweise prüfen',
+      detail: incomplete ? `${incomplete} Dokumentation(en) offen` : 'Aktuell keine offenen Dokumentationen',
+      route: '/assist/nachweise/review',
+    },
+    {
+      glyph: '↗',
+      title: 'Personal disponieren',
+      detail: `${available} Mitarbeitende verfügbar`,
+      route: '/business/office/employees',
+    },
+  ] as const;
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Klinische BodyMap mit Vorder- und Rückansicht öffnen"
-      onPress={() => router.push('/pflege/bodymap' as never)}
-      style={({ pressed }) => [styles.bodyMapPanel, pressed && styles.pressed]}
-    >
-      <ClinicalBodyMapPreview />
-    </Pressable>
+    <LiquidSurface style={styles.operationsPanel} contentStyle={styles.operationsCard}>
+      <View style={styles.sectionHeader}>
+        <View>
+          <LiquidText variant="kicker">HEUTE · OPERATIVE STEUERUNG</LiquidText>
+          <LiquidText variant="section">Tageslage</LiquidText>
+        </View>
+        <LiquidStatus label={active ? `${active} live` : 'Ruhig'} tone={active ? 'live' : 'success'} />
+      </View>
+
+      <View style={styles.operationsMetrics}>
+        <View style={styles.operationMetric}>
+          <Text style={styles.operationMetricLabel}>Offene Einsätze</Text>
+          <Text style={styles.operationMetricValue}>{open}</Text>
+        </View>
+        <View style={styles.operationMetric}>
+          <Text style={styles.operationMetricLabel}>Aktiv</Text>
+          <Text style={styles.operationMetricValue}>{active}</Text>
+        </View>
+        <View style={styles.operationMetric}>
+          <Text style={styles.operationMetricLabel}>Dokumentation</Text>
+          <Text style={styles.operationMetricValue}>{incomplete}</Text>
+        </View>
+        <View style={styles.operationMetric}>
+          <Text style={styles.operationMetricLabel}>Verfügbar</Text>
+          <Text style={styles.operationMetricValue}>{available}</Text>
+        </View>
+      </View>
+
+      <View style={styles.quickActionsHeader}>
+        <Text style={styles.quickActionsTitle}>Schnellaktionen</Text>
+        <Text style={styles.quickActionsHint}>Direkt ausführen</Text>
+      </View>
+      <View style={styles.quickActions}>
+        {actions.map((action) => (
+          <Pressable
+            key={action.title}
+            accessibilityRole="button"
+            accessibilityLabel={`${action.title}: ${action.detail}`}
+            onPress={() => router.push(action.route as never)}
+            style={({ pressed }) => [styles.quickActionRow, pressed && styles.actionRowPressed]}
+          >
+            <View style={styles.quickActionIcon}>
+              <LiquidGlyph glyph={action.glyph} size={18} />
+            </View>
+            <View style={styles.alertCopy}>
+              <Text style={styles.quickActionTitle}>{action.title}</Text>
+              <Text numberOfLines={1} style={styles.quickActionDetail}>{action.detail}</Text>
+            </View>
+            <LiquidGlyph glyph="→" size={16} />
+          </Pressable>
+        ))}
+      </View>
+    </LiquidSurface>
   );
 }
 
@@ -352,7 +451,11 @@ export function CommandCenterScreen() {
         incomplete={incomplete.length}
         documents={state.data.documents.length}
       />
-      <BodyMapPanel />
+      <DailyOperationsPanel
+        employees={state.data.employees}
+        incomplete={incomplete.length}
+        visits={todaysVisits}
+      />
     </>
   );
 
@@ -417,7 +520,7 @@ export function CommandCenterScreen() {
 const styles = StyleSheet.create({
   dashboardLayout: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'stretch',
     gap: 14,
   },
   dashboardLayoutCompact: {
@@ -596,6 +699,7 @@ const styles = StyleSheet.create({
   rightRail: {
     width: 336,
     gap: 14,
+    alignSelf: 'stretch',
   },
   compactFullWidth: {
     width: '100%',
@@ -781,7 +885,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   alertsPanel: {
-    minHeight: 260,
+    minHeight: 238,
   },
   alertRow: {
     minHeight: 64,
@@ -825,12 +929,119 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     alignItems: 'center',
   },
-  bodyMapPanel: {
-    width: '100%',
-    borderRadius: liquidRadius.card,
-    shadowColor: liquidColors.blue500,
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
+  alertsClear: {
+    minHeight: 72,
+    paddingHorizontal: 10,
+    paddingVertical: 11,
+    borderWidth: 1,
+    borderColor: 'rgba(44,190,151,0.24)',
+    borderRadius: liquidRadius.small,
+    backgroundColor: 'rgba(44,190,151,0.07)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  clearIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: 'rgba(44,190,151,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  operationsPanel: {
+    flex: 1,
+    minHeight: 424,
+  },
+  operationsCard: {
+    flex: 1,
+    padding: 14,
+    gap: 14,
+  },
+  operationsMetrics: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  operationMetric: {
+    width: '48%',
+    minHeight: 76,
+    paddingHorizontal: 11,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: liquidColors.white12,
+    borderRadius: liquidRadius.small,
+    backgroundColor: 'rgba(20,120,255,0.055)',
+    justifyContent: 'space-between',
+  },
+  operationMetricLabel: {
+    color: liquidColors.white56,
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: '600',
+  },
+  operationMetricValue: {
+    color: liquidColors.white,
+    fontSize: 25,
+    lineHeight: 29,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
+  quickActionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  quickActionsTitle: {
+    color: liquidColors.white,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '800',
+  },
+  quickActionsHint: {
+    color: liquidColors.white32,
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  quickActions: {
+    gap: 7,
+  },
+  quickActionRow: {
+    minHeight: 61,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: liquidColors.white12,
+    borderRadius: liquidRadius.control,
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  quickActionIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(79,183,255,0.25)',
+    backgroundColor: 'rgba(20,120,255,0.11)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionTitle: {
+    color: liquidColors.white,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
+  quickActionDetail: {
+    color: liquidColors.white56,
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  actionRowPressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.99 }],
   },
   pressed: {
     opacity: 0.8,
