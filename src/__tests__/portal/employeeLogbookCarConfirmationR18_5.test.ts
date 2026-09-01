@@ -32,4 +32,15 @@ describe('Fahrtenbuch P0 R18.5', () => {
     expect(migration).not.toContain('UPDATE public.employee_expense_claims');
     expect(migration).toContain("trip.source LIKE 'assist_gps_recovery_r18:%'");
   });
+
+  it('allows auditable deletion while protecting billed trips', () => {
+    const repository = read('src/lib/employeeLogbook/employeeLogbookRepository.supabase.ts');
+    const panel = read('src/components/office/EmployeeLogbookOfficePanel.tsx');
+    expect(repository).toContain('deleteEmployeeLogbookTrip');
+    expect(repository).toContain("status: 'cancelled'");
+    expect(repository).toContain("'employee_expense_claims'");
+    expect(panel).toContain('title="Löschen"');
+    expect(panel).toContain('Löschgrund');
+    expect(panel).toContain("trip.status !== 'cancelled'");
+  });
 });

@@ -17,6 +17,7 @@ import {
   berlinToday,
   berlinDateTimeInput,
   correctLogbookTripDetails,
+  deleteEmployeeLogbookTrip,
   createManualLogbookTrip,
   loadEmployeeLogbook,
   isLogbookTripInBerlinRange,
@@ -104,6 +105,8 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [deleteTripId, setDeleteTripId] = useState<string | null>(null);
+  const [deleteReason, setDeleteReason] = useState('');
   const [correctedDistance, setCorrectedDistance] = useState('');
   const [correctionReason, setCorrectionReason] = useState('');
   const [correctionRouteType, setCorrectionRouteType] = useState<TravelRouteType>('other_business');
@@ -142,7 +145,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   }, [query.data]);
 
   const visibleTrips = useMemo(
-    () => (query.data?.trips ?? []).filter((trip) => {
+    () => (query.data?.trips ?? []).filter((trip) => trip.status !== 'cancelled').filter((trip) => {
       return isLogbookTripInBerlinRange(trip.startedAt, from, to);
     }),
     [from, query.data?.trips, to],
@@ -233,6 +236,20 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
     } finally {
       setSaving(false);
     }
+  }
+
+  async function deleteTrip() {
+    const trip = query.data?.trips.find((item) => item.id === deleteTripId);
+    if (!trip) return;
+    setSaving(true); setFeedback(null);
+    try {
+      await deleteEmployeeLogbookTrip({ trip, reason: deleteReason });
+      setDeleteTripId(null); setDeleteReason(''); setSelectedTripId(null);
+      await query.refresh();
+      setFeedback('Die Fahrt wurde aus dem aktiven Fahrtenbuch entfernt und revisionssicher protokolliert.');
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Die Fahrt konnte nicht gelöscht werden.');
+    } finally { setSaving(false); }
   }
 
   async function saveManualTrip() {
@@ -551,6 +568,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
                 <Text style={[styles.tripPrimary, styles.tripNumber]}>{trip.status === 'review_required' ? 'gesperrt' : trip.status === 'confirmation_required' ? 'gesperrt' : `${(trip.mileageAmountCents / 100).toFixed(2).replace('.', ',')} €`}</Text>
                 <View style={styles.tripAction}>
                   <PremiumButton title={selected ? 'Schließen' : 'Korrigieren'} size="sm" variant="secondary" disabled={!canEdit || trip.status === 'recording'} onPress={() => selected ? setSelectedTripId(null) : beginTripCorrection(trip)} />
+                  <PremiumButton title="Löschen" size="sm" variant="ghost" disabled={!canEdit || trip.status === 'recording'} onPress={() => { setDeleteTripId(trip.id); setDeleteReason(''); setFeedback(null); }} />
                 </View>
               </View>
               {selected ? (
@@ -600,6 +618,16 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
                   <View style={styles.correctionActions}>
                     <PremiumButton title="Abbrechen" variant="ghost" onPress={() => setSelectedTripId(null)} />
                     <PremiumButton title="Korrektur speichern" loading={saving} onPress={() => void saveTripCorrection()} />
+                  </View>
+                </View>
+              ) : null}
+              {deleteTripId === trip.id ? (
+                <View style={styles.correctionPanel}>
+                  <InfoBanner message="Die Fahrt wird aus dem aktiven Fahrtenbuch entfernt. Der Löschvorgang bleibt revisionssicher protokolliert. Bereits abgerechnete Fahrten sind geschützt." variant="warning" />
+                  <PremiumInput label="Löschgrund" value={deleteReason} onChangeText={setDeleteReason} placeholder="Warum soll diese Fahrt gelöscht werden?" />
+                  <View style={styles.correctionActions}>
+                    <PremiumButton title="Abbrechen" variant="ghost" onPress={() => { setDeleteTripId(null); setDeleteReason(''); }} />
+                    <PremiumButton title="Fahrt löschen" loading={saving} disabled={deleteReason.trim().length < 3} onPress={() => void deleteTrip()} />
                   </View>
                 </View>
               ) : null}

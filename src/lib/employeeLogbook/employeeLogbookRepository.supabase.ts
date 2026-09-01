@@ -167,6 +167,33 @@ export async function confirmEmployeeLogbookTrip(input: { trip: LogbookTrip; dis
   if (error) throw new Error(error.message);
 }
 
+export async function deleteEmployeeLogbookTrip(input: { trip: LogbookTrip; reason: string }) {
+  if (input.reason.trim().length < 3) throw new Error('Bitte den Löschgrund angeben.');
+  if (input.trip.status === 'recording') throw new Error('Eine laufende Fahrt muss zuerst beendet werden.');
+  const driving = await fromUnknownTable(db(), 'assist_driving_log')
+    .select('id').eq('tenant_id', input.trip.tenantId).eq('employee_id', input.trip.employeeId)
+    .eq('notes', `employee_logbook_trip:${input.trip.id}`);
+  if (driving.error) throw new Error(driving.error.message);
+  const drivingIds = ((driving.data ?? []) as Row[]).map((row) => s(row.id)).filter(Boolean);
+  if (drivingIds.length) {
+    const claims = await fromUnknownTable(db(), 'employee_expense_claims')
+      .select('id').eq('tenant_id', input.trip.tenantId).eq('employee_id', input.trip.employeeId)
+      .in('driving_log_id', drivingIds).limit(1);
+    if (claims.error) throw new Error(claims.error.message);
+    if ((claims.data ?? []).length) throw new Error('Diese Fahrt ist bereits mit einer Auslage oder Abrechnung verknüpft und kann nicht gelöscht werden.');
+  }
+  const now = new Date().toISOString();
+  const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({
+    status: 'cancelled',
+    correction_reason: `Gelöscht: ${input.reason.trim()}`,
+    corrected_at: now,
+    previous_values: { status: input.trip.status, distance_final_km: input.trip.distanceFinalKm, purpose: input.trip.purpose },
+    notes: [input.trip.notes, `Durch die Verwaltung gelöscht: ${input.reason.trim()}`].filter(Boolean).join('\n'),
+    updated_at: now,
+  }).eq('id', input.trip.id).neq('status', 'recording');
+  if (error) throw new Error(error.message);
+}
+
 export async function correctLogbookTrip(trip: LogbookTrip, distanceKm: number, reason: string) {
   if (!reason.trim()) throw new Error('Für jede Korrektur ist eine Begründung erforderlich.');
   const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({ distance_final_km: distanceKm, distance_source: 'office_corrected', route_quality_status: 'corrected', status: 'corrected', corrected_at: new Date().toISOString(), correction_reason: reason.trim(), previous_values: { distance_final_km: trip.distanceFinalKm, status: trip.status }, updated_at: new Date().toISOString() }).eq('id', trip.id);
