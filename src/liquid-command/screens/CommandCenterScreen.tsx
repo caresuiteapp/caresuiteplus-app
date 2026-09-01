@@ -34,7 +34,9 @@ type WidgetDefinition = {
   route: string;
   images: { small: ImageSourcePropType; medium: ImageSourcePropType; large: ImageSourcePropType };
 };
-type BackgroundDefinition = { id: string; label: string; image: ImageSourcePropType };
+type BackgroundDefinition = { id: string; label: string; image: ImageSourcePropType 
+  thumbnail?: ImageSourcePropType;
+};
 
 const BRAND = require("../../../assets/healthos/caresuite-healthos-logo.png");
 const DESKTOP_WIDGETS_STORAGE_KEY = "caresuite.healthos.desktop-widgets.v3";
@@ -63,6 +65,186 @@ const BACKGROUNDS: readonly BackgroundDefinition[] = [
   { id: "schwebende-inseln", label: "Schwebende Inseln", image: require("../../../assets/healthos/backgrounds/13-schwebende-inseln.png") },
   { id: "nachtwald", label: "Nachtwald", image: require("../../../assets/healthos/backgrounds/14-nachtwald.png") },
   { id: "eislicht", label: "Eislicht", image: require("../../../assets/healthos/backgrounds/15-eislicht.png") },
+  {
+    id: "premium-alpengold-spiegelsee",
+    label: "Alpengold am Spiegelsee",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/01-alpengold-spiegelsee.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/01-alpengold-spiegelsee.jpg"),
+  },
+  {
+    id: "premium-nordischer-fjord",
+    label: "Nordischer Fjord",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/02-nordischer-fjord.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/02-nordischer-fjord.jpg"),
+  },
+  {
+    id: "premium-alabasterduenen",
+    label: "Alabasterdünen",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/03-alabasterduenen.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/03-alabasterduenen.jpg"),
+  },
+  {
+    id: "premium-perlmuttwellen",
+    label: "Perlmuttwellen",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/04-perlmuttwellen.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/04-perlmuttwellen.jpg"),
+  },
+  {
+    id: "premium-schwarze-kueste",
+    label: "Schwarze Küste",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/05-schwarze-kueste.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/05-schwarze-kueste.jpg"),
+  },
+  {
+    id: "premium-rotfelsenschlucht",
+    label: "Rotfelsenschlucht",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/06-rotfelsenschlucht.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/06-rotfelsenschlucht.jpg"),
+  },
+  {
+    id: "premium-winterwald",
+    label: "Winterwald am See",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/07-winterwald.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/07-winterwald.jpg"),
+  },
+  {
+    id: "premium-smaragdtal",
+    label: "Smaragdtal mit Wasserfällen",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/08-smaragdtal-wasserfaelle.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/08-smaragdtal-wasserfaelle.jpg"),
+  },
+  {
+    id: "premium-aquamarin-kueste",
+    label: "Aquamarin-Küste",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/09-aquamarin-kueste.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/09-aquamarin-kueste.jpg"),
+  },
+  {
+    id: "premium-marmor-kupfer-petrol",
+    label: "Marmor · Kupfer · Petrol",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/10-marmor-kupfer-petrol.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/10-marmor-kupfer-petrol.jpg"),
+  },
+  {
+    id: "premium-patagonien",
+    label: "Patagonien im Morgenlicht",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/11-patagonien-morgen.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/11-patagonien-morgen.jpg"),
+  },
+  {
+    id: "premium-toskana-nebel",
+    label: "Toskana im Morgennebel",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/12-toskana-nebel.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/12-toskana-nebel.jpg"),
+  },
+  {
+    id: "premium-island-gletscherlagune",
+    label: "Isländische Gletscherlagune",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/13-island-gletscherlagune.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/13-island-gletscherlagune.jpg"),
+  },
+  {
+    id: "premium-japanischer-herbstwald",
+    label: "Japanischer Herbstwald",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/14-japanischer-herbstwald.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/14-japanischer-herbstwald.jpg"),
+  },
+  {
+    id: "premium-lavendelhuegel",
+    label: "Lavendelhügel",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/15-lavendelhuegel.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/15-lavendelhuegel.jpg"),
+  },
+  {
+    id: "premium-namib-duenen",
+    label: "Namib-Dünen",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/16-namib-duenen.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/16-namib-duenen.jpg"),
+  },
+  {
+    id: "premium-dolomiten-sturmlicht",
+    label: "Dolomiten im Sturmlicht",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/17-dolomiten-sturmlicht.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/17-dolomiten-sturmlicht.jpg"),
+  },
+  {
+    id: "premium-schottisches-hochland",
+    label: "Schottisches Hochland",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/18-schottisches-hochland.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/18-schottisches-hochland.jpg"),
+  },
+  {
+    id: "premium-korallenriff",
+    label: "Korallenriff im Sonnenlicht",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/19-korallenriff.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/19-korallenriff.jpg"),
+  },
+  {
+    id: "premium-regenwald",
+    label: "Regenwald im Morgennebel",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/20-regenwald.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/20-regenwald.jpg"),
+  },
+  {
+    id: "premium-gletscher-tuerkissee",
+    label: "Gletscher am Türkissee",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/21-gletscher-tuerkissee.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/21-gletscher-tuerkissee.jpg"),
+  },
+  {
+    id: "premium-kanadischer-herbstsee",
+    label: "Kanadischer Herbstsee",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/22-kanadischer-herbstsee.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/22-kanadischer-herbstsee.jpg"),
+  },
+  {
+    id: "premium-goldene-savanne",
+    label: "Goldene Savanne",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/23-goldene-savanne.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/23-goldene-savanne.jpg"),
+  },
+  {
+    id: "premium-praerie-gewitterlicht",
+    label: "Prärie im Gewitterlicht",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/24-praerie-gewitterlicht.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/24-praerie-gewitterlicht.jpg"),
+  },
+  {
+    id: "premium-verborgene-cenote",
+    label: "Verborgene Cenote",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/25-verborgene-cenote.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/25-verborgene-cenote.jpg"),
+  },
+  {
+    id: "premium-kalksteinschlucht",
+    label: "Weiße Kalksteinschlucht",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/26-kalksteinschlucht.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/26-kalksteinschlucht.jpg"),
+  },
+  {
+    id: "premium-schwarzer-marmor",
+    label: "Schwarzer Marmor",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/27-schwarzer-marmor.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/27-schwarzer-marmor.jpg"),
+  },
+  {
+    id: "premium-papier-nebelhuegel",
+    label: "Nebelhügel auf Papier",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/28-papier-nebelhuegel.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/28-papier-nebelhuegel.jpg"),
+  },
+  {
+    id: "premium-kohle-rost",
+    label: "Kohle und Rost",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/29-kohle-rost.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/29-kohle-rost.jpg"),
+  },
+  {
+    id: "premium-achat-quarz",
+    label: "Achat und Quarz",
+    image: require("../../../assets/healthos/backgrounds/premium-2026/30-achat-quarz.png"),
+    thumbnail: require("../../../assets/healthos/backgrounds/premium-2026-thumbs/30-achat-quarz.jpg"),
+  },
 ] as const;
 
 const WIDGETS: readonly WidgetDefinition[] = [
@@ -352,7 +534,7 @@ export function CommandCenterScreen() {
           <View style={styles.centerToolbar}><View style={styles.tabs}>{(["apps", "widgets", "workflows", "backgrounds"] as const).map((tab) => <Pressable key={tab} accessibilityRole="tab" accessibilityState={{ selected: tab === centerTab }} onPress={() => setCenterTab(tab)} style={[styles.tab, tab === centerTab && styles.tabActive]}><Text style={[styles.tabText, tab === centerTab && styles.tabTextActive]}>{tab === "apps" ? "Apps" : tab === "widgets" ? "Widgets" : tab === "workflows" ? "Workflows" : "Hintergründe"}</Text></Pressable>)}</View>{centerTab === "apps" || centerTab === "widgets" ? <View style={styles.search}><Text style={styles.searchGlyph}>⌕</Text><TextInput accessibilityLabel="Apps und Widgets durchsuchen" placeholder="Suchen …" placeholderTextColor="#8FA9C2" value={query} onChangeText={setQuery} style={styles.searchInput} /></View> : null}</View>
           {centerTab === "apps" || centerTab === "widgets" ? <View style={styles.chips}>{CATEGORIES.map((item) => <Pressable key={item} onPress={() => setCategory(item)} style={[styles.chip, item === category && styles.chipActive]}><Text style={[styles.chipText, item === category && styles.chipTextActive]}>{item}</Text></Pressable>)}</View> : null}
           <ScrollView style={styles.centerScroll} contentContainerStyle={styles.centerContent}>
-            {centerTab === "workflows" ? <View style={styles.workflowGrid}>{WORKFLOWS.map((workflow) => <Pressable key={workflow.id} onPress={() => { setCenterOpen(false); router.push(workflow.route as never); }} style={({ pressed }) => [styles.workflowCard, pressed && styles.widgetPressed]}><View style={styles.workflowIcon}><Text style={styles.workflowGlyph}>{workflow.glyph}</Text></View><Text style={styles.workflowTitle}>{workflow.label}</Text><Text style={styles.workflowCopy}>{workflow.text}</Text><View style={styles.workflowFooter}><Text style={styles.workflowLink}>Workflow starten</Text><Text style={styles.arrow}>↗</Text></View></Pressable>)}</View> : centerTab === "backgrounds" ? <View style={styles.backgroundGrid}>{BACKGROUNDS.map((background) => { const selected = background.id === backgroundId; return <Pressable key={background.id} accessibilityLabel={`${background.label} als Desktop-Hintergrund verwenden`} accessibilityState={{ selected }} onPress={() => setBackgroundId(background.id)} style={({ pressed }) => [styles.backgroundCard, selected && styles.backgroundCardSelected, pressed && styles.widgetPressed]}><Image source={background.image} resizeMode="cover" style={styles.backgroundPreview} /><View style={styles.backgroundFooter}><View><Text style={styles.backgroundTitle}>{background.label}</Text><Text style={styles.backgroundCopy}>{selected ? "Aktiver Hintergrund" : "Auswählen"}</Text></View><View style={[styles.backgroundCheck, selected && styles.backgroundCheckSelected]}><Text style={styles.backgroundCheckText}>{selected ? "✓" : ""}</Text></View></View></Pressable>; })}</View> : <View style={styles.centerGrid}>{filteredWidgets.map((widget) => { const pinned = desktopIds.includes(widget.id); const full = desktopIds.length >= DESKTOP_SLOT_COUNT; return <View key={widget.id} style={styles.centerCell}><Pressable onPress={() => openWidget(widget)} style={({ pressed }) => [styles.centerCard, pressed && styles.widgetPressed]}><View style={styles.centerImageStage}><Image source={centerTab === "widgets" ? widget.images.small : widget.images.medium} resizeMode="contain" style={styles.centerImage} /><Text style={styles.centerCategory}>{widget.category}</Text></View><View style={styles.centerBody}><Text style={styles.centerCardTitle}>{widget.label}</Text><Text numberOfLines={2} style={styles.centerCardCopy}>{widget.description}</Text><View style={styles.centerFooter}><Pressable disabled={!pinned && full} onPress={(event) => { event.stopPropagation(); togglePinned(widget.id); }} style={[styles.pinButton, pinned && styles.pinActive, !pinned && full && styles.pinDisabled]}><Text style={styles.pinText}>{pinned ? "✓ Auf Desktop" : full ? "Desktop voll" : "+ Zum Desktop"}</Text></Pressable><Text style={styles.openText}>Öffnen ↗</Text></View></View></Pressable></View>; })}</View>}
+            {centerTab === "workflows" ? <View style={styles.workflowGrid}>{WORKFLOWS.map((workflow) => <Pressable key={workflow.id} onPress={() => { setCenterOpen(false); router.push(workflow.route as never); }} style={({ pressed }) => [styles.workflowCard, pressed && styles.widgetPressed]}><View style={styles.workflowIcon}><Text style={styles.workflowGlyph}>{workflow.glyph}</Text></View><Text style={styles.workflowTitle}>{workflow.label}</Text><Text style={styles.workflowCopy}>{workflow.text}</Text><View style={styles.workflowFooter}><Text style={styles.workflowLink}>Workflow starten</Text><Text style={styles.arrow}>↗</Text></View></Pressable>)}</View> : centerTab === "backgrounds" ? <View style={styles.backgroundGrid}>{BACKGROUNDS.map((background) => { const selected = background.id === backgroundId; return <Pressable key={background.id} accessibilityLabel={`${background.label} als Desktop-Hintergrund verwenden`} accessibilityState={{ selected }} onPress={() => setBackgroundId(background.id)} style={({ pressed }) => [styles.backgroundCard, selected && styles.backgroundCardSelected, pressed && styles.widgetPressed]}><Image source={background.thumbnail ?? background.image} resizeMode="cover" style={styles.backgroundPreview} /><View style={styles.backgroundFooter}><View><Text style={styles.backgroundTitle}>{background.label}</Text><Text style={styles.backgroundCopy}>{selected ? "Aktiver Hintergrund" : "Auswählen"}</Text></View><View style={[styles.backgroundCheck, selected && styles.backgroundCheckSelected]}><Text style={styles.backgroundCheckText}>{selected ? "✓" : ""}</Text></View></View></Pressable>; })}</View> : <View style={styles.centerGrid}>{filteredWidgets.map((widget) => { const pinned = desktopIds.includes(widget.id); const full = desktopIds.length >= DESKTOP_SLOT_COUNT; return <View key={widget.id} style={styles.centerCell}><Pressable onPress={() => openWidget(widget)} style={({ pressed }) => [styles.centerCard, pressed && styles.widgetPressed]}><View style={styles.centerImageStage}><Image source={centerTab === "widgets" ? widget.images.small : widget.images.medium} resizeMode="contain" style={styles.centerImage} /><Text style={styles.centerCategory}>{widget.category}</Text></View><View style={styles.centerBody}><Text style={styles.centerCardTitle}>{widget.label}</Text><Text numberOfLines={2} style={styles.centerCardCopy}>{widget.description}</Text><View style={styles.centerFooter}><Pressable disabled={!pinned && full} onPress={(event) => { event.stopPropagation(); togglePinned(widget.id); }} style={[styles.pinButton, pinned && styles.pinActive, !pinned && full && styles.pinDisabled]}><Text style={styles.pinText}>{pinned ? "✓ Auf Desktop" : full ? "Desktop voll" : "+ Zum Desktop"}</Text></Pressable><Text style={styles.openText}>Öffnen ↗</Text></View></View></Pressable></View>; })}</View>}
           </ScrollView>
         </Pressable></Pressable>
       </Modal>
