@@ -4,5 +4,7 @@ export * from './employeeLogbookTracking';
 export * from './employeeLogbookPdf';
 export * from './employeeLogbookAutomation';
 export * from './employeeLogbookAssistGpsRecovery';
+export * from './employeeLogbookGpsSegmentation';
+export * from './employeeLogbookStaleRecovery';
 export * from './employeeLogbookDate';
 export * from './employeeLogbookPointQueue';

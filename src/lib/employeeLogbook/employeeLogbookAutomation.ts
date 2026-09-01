@@ -28,6 +28,7 @@ import {
   flushLogbookPointQueue,
   persistLogbookPointDurably,
 } from './employeeLogbookPointQueue';
+import { berlinDateKey, berlinToday } from './employeeLogbookDate';
 
 export type EmployeeLogbookEligibility = {
   eligible: boolean;
@@ -100,6 +101,14 @@ export async function resumeActiveEmployeeLogbookTracking(
   const bundle = await loadEmployeeLogbook(tenantId, employeeId);
   const active = bundle.trips.find((trip) => trip.status === 'recording') ?? null;
   if (!active) return null;
+  // Never revive an orphaned recording from an earlier Berlin calendar day.
+  // The Office repair keeps its raw points and moves it to review_required;
+  // the portal must meanwhile stop presenting or feeding it as a live trip.
+  if (berlinDateKey(active.startedAt) < berlinToday()) {
+    stopForegroundPersistence(active.id);
+    await stopNativeBackgroundTracking();
+    return null;
+  }
   await startNativeBackgroundTracking({ tripId: active.id, tenantId, employeeId });
   await startForegroundPersistence(active.id, tenantId, employeeId);
   return active;

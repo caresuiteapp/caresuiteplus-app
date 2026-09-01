@@ -25,6 +25,7 @@ import {
   EMPLOYEE_LOGBOOK_RECOVERY_SINCE,
   loadEmployeeLogbookGpsRecoveryCandidates,
   synchronizeEmployeeLogbookFromAssistGps,
+  repairStaleEmployeeLogbookState,
 } from '@/lib/employeeLogbook';
 import type { LogbookTrip, LogbookVehicleOwnership } from '@/types/modules/employeeLogbook';
 import { TRAVEL_ROUTE_TYPE_LABELS, type TravelRouteType } from '@/types/modules/travelCompensation';
@@ -48,6 +49,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   const query = useAsyncQuery(
     useCallback(async () => {
       try {
+        const staleRepair = await repairStaleEmployeeLogbookState(tenantId, employeeId);
         let bundle = await loadEmployeeLogbook(tenantId, employeeId);
         let gpsRecoveryCandidates = [] as Awaited<ReturnType<typeof loadEmployeeLogbookGpsRecoveryCandidates>>;
         let gpsRecoveryError: string | null = null;
@@ -73,7 +75,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
             ? recoveryError.message
             : 'GPS-Bestandsdaten konnten nicht geprüft werden.';
         }
-        return { ok: true as const, data: { ...bundle, gpsRecoveryCandidates, gpsRecoveryError } };
+        return { ok: true as const, data: { ...bundle, gpsRecoveryCandidates, gpsRecoveryError, staleRepair } };
       } catch (error) {
         return {
           ok: false as const,
@@ -161,11 +163,18 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
     return {
       pending,
       pendingDistanceKm: pending.reduce((sum, candidate) => sum + candidate.finalDistanceKm, 0),
+      legCount: pending.reduce((sum, candidate) => sum + candidate.legs.filter((leg) => !leg.imported).length, 0),
       unresolvedCount: pending.filter((candidate) => candidate.unresolvedGapCount > 0).length,
       activeCount: pending.filter((candidate) => candidate.active).length,
+      staleCount: pending.filter((candidate) => candidate.stale).length,
+      legacyReviewCount: pending.filter((candidate) => candidate.legacyImportRequiresReview).length,
       readyCount: pending.filter((candidate) =>
-        !candidate.active && candidate.unresolvedGapCount === 0 && candidate.finalDistanceKm >= 0.05,
-      ).length,
+        !candidate.active && candidate.legs.some((leg) =>
+          !leg.imported && leg.unresolvedGapCount === 0 && leg.finalDistanceKm >= 0.05,
+        ),
+      ).reduce((sum, candidate) => sum + candidate.legs.filter((leg) =>
+        !leg.imported && leg.unresolvedGapCount === 0 && leg.finalDistanceKm >= 0.05,
+      ).length, 0),
     };
   }, [query.data?.gpsRecoveryCandidates]);
   const activeVehicleForRecovery = query.data?.vehicles.find((vehicle) => vehicle.active) ?? null;
@@ -334,20 +343,28 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
           variant="warning"
         />
       ) : null}
+      {query.data.staleRepair.sessionsClosed > 0 || query.data.staleRepair.tripsQuarantined > 0 || query.data.staleRepair.legacyTripsQuarantined > 0 ? (
+        <InfoBanner
+          message={`Fahrtenbuchbereinigung ausgeführt: ${query.data.staleRepair.sessionsClosed} veraltete GPS-Sitzung(en) beendet, ${query.data.staleRepair.tripsQuarantined} über Nacht offene Fahrt(en) in die Prüfung verschoben und ${query.data.staleRepair.legacyTripsQuarantined} fehlerhafte R16-Gesamtimport(e) für Abrechnung und Erstattung gesperrt.`}
+          variant="warning"
+        />
+      ) : null}
       {gpsRecovery.pending.length > 0 ? (
         <SectionPanel
           title="Automatische GPS-Aufzeichnungen seit 24.08.2026"
-          subtitle="Vorhandene Live-GPS-Daten werden geprüft und erst nach vollständiger Straßenrouten-Abstimmung in das Fahrtenbuch übernommen"
+          subtitle="Jede Sitzung wird in einzelne Anfahrt-, Dienst- und Zwischenfahrten zerlegt; Einsatzstillstand zählt nicht als Fahrt"
         >
           <View style={styles.manualIntro}>
             <View style={styles.grow}>
               <Text style={styles.formLabel}>
-                {gpsRecovery.pending.length} Aufzeichnung{gpsRecovery.pending.length === 1 ? '' : 'en'} noch nicht endgültig im Fahrtenbuch
+                {gpsRecovery.pending.length} GPS-Sitzung{gpsRecovery.pending.length === 1 ? '' : 'en'} · {gpsRecovery.legCount} erkannte Fahrtabschnitte
               </Text>
               <Text style={styles.manualText}>
                 Aktuell messbar bzw. über Google-Straßenrouten ergänzt: {gpsRecovery.pendingDistanceKm.toFixed(2).replace('.', ',')} km.
                 {gpsRecovery.unresolvedCount > 0 ? ` ${gpsRecovery.unresolvedCount} Aufzeichnung(en) enthalten noch ungeklärte GPS-Lücken und werden ausdrücklich nicht als endgültige Kilometer abgerechnet.` : ''}
                 {gpsRecovery.activeCount > 0 ? ` ${gpsRecovery.activeCount} Aufzeichnung(en) laufen noch.` : ''}
+                {gpsRecovery.staleCount > 0 ? ` ${gpsRecovery.staleCount} veraltete Aufzeichnung(en) wurden als beendet erkannt und laufen nicht weiter.` : ''}
+                {gpsRecovery.legacyReviewCount > 0 ? ` ${gpsRecovery.legacyReviewCount} frühere R16-Gesamtimport(e) bleiben bis zur Abschnittsprüfung gesperrt.` : ''}
               </Text>
             </View>
             <PremiumButton title="GPS-Bestandsdaten erneut prüfen" variant="secondary" onPress={() => void query.refresh()} />
@@ -359,10 +376,52 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
             />
           ) : gpsRecovery.readyCount > 0 ? (
             <InfoBanner
-              message={`${gpsRecovery.readyCount} vollständig prüfbare GPS-Aufzeichnung(en) werden beim Aktualisieren automatisch dem aktiven Fahrzeug ${activeVehicleForRecovery.plate} zugeordnet.`}
+              message={`${gpsRecovery.readyCount} belastbare GPS-Fahrtabschnitt(e) werden dem aktiven Fahrzeug ${activeVehicleForRecovery.plate} zugeordnet. Nicht eindeutig klassifizierbare Dienst- und Zwischenfahrten bleiben bis zur Verwaltungskorrektur gesperrt.`}
               variant="info"
             />
           ) : null}
+          <View style={styles.recoveryList}>
+            {gpsRecovery.pending.map((candidate) => (
+              <View key={candidate.sessionId} style={styles.recoverySession}>
+                <View style={styles.recoveryHeader}>
+                  <View style={styles.grow}>
+                    <Text style={styles.tripPrimary}>{new Date(candidate.startedAt).toLocaleDateString('de-DE')} · {candidate.title}</Text>
+                    <Text style={styles.tripSecondary}>
+                      {new Date(candidate.startedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                      {' – '}
+                      {candidate.endedAt ? new Date(candidate.endedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : 'aktuell aktiv'}
+                      {' · '}{candidate.pointCount} GPS-Punkte
+                    </Text>
+                  </View>
+                  <PremiumBadge
+                    label={candidate.active ? 'LIVE' : candidate.stale ? 'VERALTET · BEENDET' : candidate.unresolvedGapCount > 0 ? 'LÜCKEN OFFEN' : 'GEPRÜFT'}
+                    variant={candidate.active ? 'green' : candidate.stale || candidate.unresolvedGapCount > 0 ? 'orange' : 'cyan'}
+                  />
+                </View>
+                {candidate.legs.length === 0 ? (
+                  <InfoBanner message="Keine belastbare PKW-Fahrt erkannt. Stationäre Einsatzzeit und GPS-Jitter werden nicht als Kilometer übernommen." variant="warning" />
+                ) : candidate.legs.map((leg) => (
+                  <View key={leg.id} style={styles.recoveryLeg}>
+                    <View style={styles.grow}>
+                      <Text style={styles.tripPrimary}>{TRAVEL_ROUTE_TYPE_LABELS[leg.routeType]} · {leg.purpose}</Text>
+                      <Text style={styles.tripSecondary}>
+                        {new Date(leg.startedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} – {new Date(leg.endedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                        {' · '}{leg.pointCount} Punkte · GPS {leg.measuredDistanceKm.toFixed(2).replace('.', ',')} km
+                        {leg.googleGapDistanceKm > 0 ? ` + Google ${leg.googleGapDistanceKm.toFixed(2).replace('.', ',')} km` : ''}
+                      </Text>
+                    </View>
+                    <Text style={styles.recoveryDistance}>
+                      {leg.unresolvedGapCount > 0 ? 'nicht abrechenbar' : `${leg.finalDistanceKm.toFixed(2).replace('.', ',')} km`}
+                    </Text>
+                    <PremiumBadge
+                      label={leg.imported ? (leg.reviewRequired ? 'IN PRÜFUNG' : 'ÜBERNOMMEN') : leg.unresolvedGapCount > 0 ? `${leg.unresolvedGapCount} LÜCKE(N)` : leg.reviewRequired ? 'PRÜFUNG NÖTIG' : 'BEREIT'}
+                      variant={leg.imported && !leg.reviewRequired ? 'green' : leg.unresolvedGapCount > 0 || leg.reviewRequired ? 'orange' : 'cyan'}
+                    />
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
         </SectionPanel>
       ) : null}
 
@@ -477,7 +536,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
                   <Text style={styles.tripSecondary}>{trip.startAddress ?? 'GPS-Start'} → {trip.endAddress ?? (trip.status === 'recording' ? 'Fahrt läuft' : 'GPS-Ziel')}</Text>
                   {segments.length ? <Text style={styles.tripSecondary}>Stopps: {segments.map((segment) => segment.label).join(' → ')}</Text> : null}
                   <View style={styles.tripBadges}>
-                    <PremiumBadge label={trip.status === 'recording' ? 'AUFZEICHNUNG LÄUFT' : trip.status === 'corrected' ? 'KORRIGIERT' : trip.status === 'confirmed' ? 'BESTÄTIGT' : 'ABGESCHLOSSEN'} variant={trip.status === 'recording' ? 'orange' : trip.status === 'corrected' ? 'cyan' : 'green'} />
+                    <PremiumBadge label={trip.status === 'recording' ? 'AUFZEICHNUNG LÄUFT' : trip.status === 'review_required' ? 'PRÜFUNG ERFORDERLICH' : trip.status === 'corrected' ? 'KORRIGIERT' : trip.status === 'confirmed' ? 'BESTÄTIGT' : 'ABGESCHLOSSEN'} variant={trip.status === 'recording' || trip.status === 'review_required' ? 'orange' : trip.status === 'corrected' ? 'cyan' : 'green'} />
                     <PremiumBadge label={trip.countsAsWorkTime ? 'ARBEITSZEIT' : `${trip.worktimeDeductionMinutes} MIN. ABZUG`} variant={trip.countsAsWorkTime ? 'green' : 'muted'} />
                     <PremiumBadge
                       label={trip.distanceSource === 'google_fallback' ? 'GOOGLE-ERSATZROUTE' : trip.distanceSource === 'office_corrected' ? 'VERWALTUNGSKORREKTUR' : trip.distanceSource === 'manual' ? 'MANUELL' : 'GPS GEMESSEN'}
@@ -488,8 +547,8 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
                   </View>
                 </View>
                 <Text style={[styles.tripPrimary, styles.tripNumber]}>{durationMinutes ? `${Math.floor(durationMinutes / 60)}:${String(durationMinutes % 60).padStart(2, '0')} h` : '—'}</Text>
-                <Text style={[styles.tripPrimary, styles.tripNumber]}>{trip.distanceFinalKm.toFixed(2).replace('.', ',')}</Text>
-                <Text style={[styles.tripPrimary, styles.tripNumber]}>{(trip.mileageAmountCents / 100).toFixed(2).replace('.', ',')} €</Text>
+                <Text style={[styles.tripPrimary, styles.tripNumber]}>{trip.status === 'review_required' ? '—' : trip.distanceFinalKm.toFixed(2).replace('.', ',')}</Text>
+                <Text style={[styles.tripPrimary, styles.tripNumber]}>{trip.status === 'review_required' ? 'gesperrt' : `${(trip.mileageAmountCents / 100).toFixed(2).replace('.', ',')} €`}</Text>
                 <View style={styles.tripAction}>
                   <PremiumButton title={selected ? 'Schließen' : 'Korrigieren'} size="sm" variant="secondary" disabled={!canEdit || trip.status === 'recording'} onPress={() => selected ? setSelectedTripId(null) : beginTripCorrection(trip)} />
                 </View>
@@ -617,4 +676,9 @@ const styles = StyleSheet.create({
   routeTypes: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
   manualSmall: { flex: 1, minWidth: 160 },
   vehicleSelect: { gap: careSpacing.xs },
+  recoveryList: { gap: careSpacing.sm },
+  recoverySession: { gap: careSpacing.sm, padding: careSpacing.sm, borderWidth: 1, borderColor: '#B7D8F7', borderRadius: 14, backgroundColor: '#F6FBFF' },
+  recoveryHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: careSpacing.sm },
+  recoveryLeg: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: careSpacing.sm, padding: careSpacing.sm, borderRadius: 10, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D8E8F5' },
+  recoveryDistance: { ...typography.bodyStrong, color: '#0878C7', minWidth: 105, textAlign: 'right', fontVariant: ['tabular-nums'] },
 });

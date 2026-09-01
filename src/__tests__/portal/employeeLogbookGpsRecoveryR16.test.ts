@@ -34,12 +34,12 @@ describe('Fahrtenbuch R16 · GPS-Wahrheit und Bestandsnachholung', () => {
     expect(recovery).toContain('assist_gps_recovery:');
   });
 
-  it('übernimmt nur abgeschlossene, vollständige und noch nicht importierte Fahrten', () => {
+  it('übernimmt nur abgeschlossene, vollständige und noch nicht importierte Fahrtabschnitte', () => {
     const recovery = read('src/lib/employeeLogbook/employeeLogbookAssistGpsRecovery.ts');
-    expect(recovery).toContain('!candidate.imported');
-    expect(recovery).toContain('!candidate.active');
-    expect(recovery).toContain('candidate.unresolvedGapCount === 0');
-    expect(recovery).toContain("status: 'completed'");
+    expect(recovery).toContain('!leg.imported');
+    expect(recovery).toContain('candidate.active || !candidate.endedAt');
+    expect(recovery).toContain('leg.unresolvedGapCount === 0');
+    expect(recovery).toContain("leg.reviewRequired ? 'review_required' : 'completed'");
   });
 
   it('zeigt fehlende Fahrzeugzuordnung offen an und verliert die GPS-Daten nicht', () => {
