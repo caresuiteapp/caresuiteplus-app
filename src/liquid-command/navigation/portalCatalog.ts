@@ -31,7 +31,7 @@ export const liquidPortalNavigation: Record<
     { id: 'clients', label: 'Klient:innen', glyph: '○', route: '/portal/employee/clients', group: 'work' },
     { id: 'calendar', label: 'Kalender', glyph: '□', route: '/portal/employee/calendar', group: 'work' },
     { id: 'time', label: 'Arbeitszeit', glyph: '◷', route: '/portal/employee/arbeitszeit', group: 'work' },
-    { id: 'logbook', label: 'Fahrtenbuch', glyph: '⌖', route: '/portal/employee/fahrtenbuch', group: 'work' },
+    { id: 'logbook', label: 'Fahrtenbuch', glyph: '⌖', route: '/portal/employee/fahrtenbuch', compact: true, group: 'work' },
     { id: 'leave', label: 'Urlaub', glyph: '☼', route: '/portal/employee/arbeitszeit/urlaub', group: 'work' },
     { id: 'absence', label: 'Abwesenheit', glyph: '◌', route: '/portal/employee/arbeitszeit/abwesenheiten', group: 'work' },
     { id: 'documents', label: 'Dokumente', glyph: '▤', route: '/portal/employee/documents', compact: true, group: 'communication' },

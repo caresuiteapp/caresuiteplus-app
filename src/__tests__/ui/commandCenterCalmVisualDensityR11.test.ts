@@ -18,9 +18,10 @@ describe('Command Center ruhige visuelle Dichte R11', () => {
     ['compact', 512, 512],
     ['medium', 1024, 512],
     ['large', 1536, 512],
-  ] as const)('bewahrt 21 echte %s-Artworks', (folder, width, height) => {
+  ] as const)('bewahrt 22 echte %s-Artworks', (folder, width, height) => {
     const files = fs.readdirSync(path.join(root, 'assets/healthos/widgets-premium', folder)).filter((file) => file.endsWith('.png'));
-    expect(files).toHaveLength(21);
+    expect(files).toHaveLength(22);
+    expect(files).toContain('22-fahrtenbuch.png');
     for (const file of files) expect(pngSize(path.join(root, 'assets/healthos/widgets-premium', folder, file))).toEqual({ width, height });
   });
 

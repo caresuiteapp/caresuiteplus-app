@@ -37,7 +37,8 @@ type WidgetDefinition = {
 type BackgroundDefinition = { id: string; label: string; image: ImageSourcePropType };
 
 const BRAND = require("../../../assets/healthos/caresuite-healthos-logo.png");
-const DESKTOP_WIDGETS_STORAGE_KEY = "caresuite.healthos.desktop-widgets.v2";
+const DESKTOP_WIDGETS_STORAGE_KEY = "caresuite.healthos.desktop-widgets.v3";
+const PREVIOUS_DESKTOP_WIDGETS_STORAGE_KEY = "caresuite.healthos.desktop-widgets.v2";
 const LEGACY_FAVORITES_STORAGE_KEY = "caresuite.healthos.top-widgets.v1";
 const SIDEBAR_STORAGE_KEY = "caresuite.healthos.sidebar-open.v2";
 const BACKGROUND_STORAGE_KEY = "caresuite.healthos.desktop-background.v1";
@@ -77,6 +78,10 @@ const WIDGETS: readonly WidgetDefinition[] = [
     small: require("../../../assets/healthos/widgets-premium/compact/03-personal.png"),
     medium: require("../../../assets/healthos/widgets-premium/medium/03-personal.png"),
     large: require("../../../assets/healthos/widgets-premium/large/03-personal.png") } },
+  { id: "logbook", label: "Fahrtenbuch", description: "Fahrten, Kilometer, Fahrzeuge und Nachweise zentral verwalten", category: "Team", route: "/business/office/fahrtenbuch", images: {
+    small: require("../../../assets/healthos/widgets-premium/compact/22-fahrtenbuch.png"),
+    medium: require("../../../assets/healthos/widgets-premium/medium/22-fahrtenbuch.png"),
+    large: require("../../../assets/healthos/widgets-premium/large/22-fahrtenbuch.png") } },
   { id: "time", label: "Arbeitszeit", description: "Zeiten, Konten und Freigaben zentral steuern", category: "Team", route: "/business/office/time-tracking", images: {
     small: require("../../../assets/healthos/widgets-premium/compact/04-arbeitszeit.png"),
     medium: require("../../../assets/healthos/widgets-premium/medium/04-arbeitszeit.png"),
@@ -154,14 +159,14 @@ const WIDGETS: readonly WidgetDefinition[] = [
 const DEFAULT_DESKTOP_IDS = [
   "clients", "messages", "live", "proofs",
   "office", "people", "calendar", "assignments",
-  "salary", "assist", "documents", "billing",
+  "salary", "logbook", "documents", "billing",
 ] as const;
 const WIDGET_BY_ID = new Map(WIDGETS.map((widget) => [widget.id, widget]));
 const CATEGORIES = ["Alle", "Übersicht", "Versorgung", "Team", "Verwaltung"] as const;
 const NAVIGATION = [
   { group: "Arbeitsplatz", items: [["Mein Desktop", "⌂", ""], ["Command Center", "◎", "command"], ["Live-Status", "●", "live"]] },
   { group: "Versorgung", items: [["Klient:innen", "◇", "clients"], ["Einsätze", "↗", "assignments"], ["Planung", "□", "calendar"], ["Nachweise", "✓", "proofs"]] },
-  { group: "Organisation", items: [["Personal", "♙", "people"], ["Nachrichten", "✦", "messages"], ["Rechnungen", "€", "billing"], ["Dokumente", "▤", "documents"]] },
+  { group: "Organisation", items: [["Personal", "♙", "people"], ["Fahrtenbuch", "⌖", "logbook"], ["Nachrichten", "✦", "messages"], ["Rechnungen", "€", "billing"], ["Dokumente", "▤", "documents"]] },
 ] as const;
 const WORKFLOWS = [
   { id: "client", glyph: "＋", label: "Klient:in aufnehmen", text: "Stammdaten, Einwilligungen und Versorgung in einem geführten Ablauf", route: "/business/office/clients/new" },
@@ -174,6 +179,16 @@ function normalizeDesktopIds(value: unknown) {
   const valid = Array.isArray(value) ? value.filter((id): id is string => typeof id === "string" && WIDGET_BY_ID.has(id)) : [];
   const ids = [...new Set(valid)].slice(0, DESKTOP_SLOT_COUNT);
   for (const id of DEFAULT_DESKTOP_IDS) if (ids.length < DESKTOP_SLOT_COUNT && !ids.includes(id)) ids.push(id);
+  return ids;
+}
+
+function migrateDesktopIdsToR13(value: unknown, migrationRequired: boolean) {
+  const ids = normalizeDesktopIds(value);
+  if (!migrationRequired || ids.includes("logbook")) return ids;
+  const replaceIndex = ids.indexOf("assist");
+  if (replaceIndex >= 0) ids[replaceIndex] = "logbook";
+  else if (ids.length < DESKTOP_SLOT_COUNT) ids.push("logbook");
+  else ids[ids.length - 1] = "logbook";
   return ids;
 }
 
@@ -200,6 +215,7 @@ export function CommandCenterScreen() {
   const narrow = width < 1240;
   const owner = auth.user?.id ?? "local";
   const desktopKey = `${DESKTOP_WIDGETS_STORAGE_KEY}.${owner}`;
+  const previousDesktopKey = `${PREVIOUS_DESKTOP_WIDGETS_STORAGE_KEY}.${owner}`;
   const sidebarKey = `${SIDEBAR_STORAGE_KEY}.${owner}`;
   const backgroundKey = `${BACKGROUND_STORAGE_KEY}.${owner}`;
   const legacyKey = `${LEGACY_FAVORITES_STORAGE_KEY}.${owner}`;
@@ -247,17 +263,17 @@ export function CommandCenterScreen() {
   useEffect(() => {
     let active = true;
     setLoadedOwner(null);
-    void Promise.all([AsyncStorage.getItem(desktopKey), AsyncStorage.getItem(legacyKey), AsyncStorage.getItem(sidebarKey), AsyncStorage.getItem(backgroundKey)]).then(([desktop, legacy, sidebar, storedBackground]) => {
+    void Promise.all([AsyncStorage.getItem(desktopKey), AsyncStorage.getItem(previousDesktopKey), AsyncStorage.getItem(legacyKey), AsyncStorage.getItem(sidebarKey), AsyncStorage.getItem(backgroundKey)]).then(([desktop, previousDesktop, legacy, sidebar, storedBackground]) => {
       if (!active) return;
       let stored: unknown = null;
-      try { stored = JSON.parse(desktop ?? legacy ?? "null"); } catch { stored = null; }
-      setDesktopIds(normalizeDesktopIds(stored));
+      try { stored = JSON.parse(desktop ?? previousDesktop ?? legacy ?? "null"); } catch { stored = null; }
+      setDesktopIds(migrateDesktopIdsToR13(stored, !desktop && Boolean(previousDesktop)));
       if (sidebar === "true" || sidebar === "false") setSidebarOpen(sidebar === "true");
       if (storedBackground && BACKGROUNDS.some((item) => item.id === storedBackground)) setBackgroundId(storedBackground);
       setLoadedOwner(owner);
     }).catch(() => active && setLoadedOwner(owner));
     return () => { active = false; };
-  }, [backgroundKey, desktopKey, legacyKey, owner, sidebarKey]);
+  }, [backgroundKey, desktopKey, legacyKey, owner, previousDesktopKey, sidebarKey]);
   useEffect(() => {
     if (loadedOwner === owner) void AsyncStorage.multiSet([[desktopKey, JSON.stringify(desktopIds)], [sidebarKey, String(sidebarOpen)], [backgroundKey, backgroundId]]);
   }, [backgroundId, backgroundKey, desktopIds, desktopKey, loadedOwner, owner, sidebarKey, sidebarOpen]);

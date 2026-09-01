@@ -547,6 +547,7 @@ function Overview({
     portal === 'employee'
       ? [
           { id: 'assignments', label: 'Einsätze', glyph: '□' },
+          { id: 'logbook', label: 'Fahrtenbuch', glyph: '⌖' },
           { id: 'documents', label: 'Dokumente', glyph: '▤' },
           { id: 'messages', label: 'Nachrichten', glyph: '▱' },
         ]
