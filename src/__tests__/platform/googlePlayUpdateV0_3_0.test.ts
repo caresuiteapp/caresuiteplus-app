@@ -6,12 +6,12 @@ const root = process.cwd();
 const read = (path: string) => readFileSync(join(root, path), 'utf8');
 const readJson = (path: string) => JSON.parse(read(path)) as Record<string, any>;
 
-describe('Google Play portal-only update 0.3.0', () => {
+describe('Google Play portal-only update 0.3.1', () => {
   it('preserves the existing Android identity and raises the release baseline', () => {
     const app = readJson('app.json').expo;
     expect(app.android.package).toBe('app.caresuitehealthos');
-    expect(app.version).toBe('0.3.0');
-    expect(app.android.versionCode).toBe(16);
+    expect(app.version).toBe('0.3.1');
+    expect(app.android.versionCode).toBeGreaterThanOrEqual(24);
   });
 
   it('targets API 36 and declares only the productive portal permissions', () => {

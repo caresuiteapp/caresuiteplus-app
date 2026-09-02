@@ -11,7 +11,7 @@ function readSrc(relativePath: string): string {
 describe('employee portal tablet touch fixes', () => {
   it('tasks panel uses single PlatformModal for status picker instead of nested modals', () => {
     const panel = readSrc('src/components/portal/EmployeePortalVisitTasksPanel.tsx');
-    expect(panel).toContain("title={statusPicker ? 'Aufgabenstatus' : 'Aufgaben'}");
+    expect(panel).toContain("title={statusPicker ? 'Aufgabenstatus' : 'Optionale Aufgaben'}");
     expect(panel).toContain('onBack={statusPicker ? closeStatusPicker : undefined}');
     expect(panel).toContain('{statusPicker ? statusPickerBody : body}');
     expect(panel).not.toMatch(/statusModal\s*=\s*statusPicker[\s\S]*<PlatformModal/);

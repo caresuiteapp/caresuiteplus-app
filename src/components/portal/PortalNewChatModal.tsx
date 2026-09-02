@@ -52,6 +52,7 @@ export function PortalNewChatModal({
     displayName,
     isLinkedReady,
     isResolvingClientLink,
+    isResolvingEmployeeLink,
   } = usePortalActor();
   const draftActorId = actorId ?? portalSession?.accountId ?? null;
   const [subject, setSubject] = useState('');
@@ -64,7 +65,9 @@ export function PortalNewChatModal({
   const [error, setError] = useState<string | null>(null);
   const hydratedOpenRef = useRef(false);
   const actorAudienceMatches = portalAudienceForRole(roleKey) === audience;
-  const canSend = actorAudienceMatches && isLinkedReady && !submitting;
+  // Keep the action tappable so a missing account link produces an actionable
+  // explanation instead of a permanently disabled, apparently broken button.
+  const canSend = actorAudienceMatches && !submitting;
 
   const styles = useMemo(
     () =>
@@ -196,10 +199,14 @@ export function PortalNewChatModal({
       return;
     }
     if (!isLinkedReady) {
+      const resolvingLink =
+        audience === 'employee' ? isResolvingEmployeeLink : isResolvingClientLink;
       setError(
-        isResolvingClientLink
-          ? 'Klient:innen-Konto wird geladen… bitte kurz warten und erneut senden.'
-          : 'Kein Klient:innen-Konto verknüpft. Bitte wenden Sie sich an die Verwaltung.',
+        resolvingLink
+          ? 'Ihre Kontoverknüpfung wird geladen… bitte kurz warten und erneut senden.'
+          : audience === 'employee'
+            ? 'Kein Mitarbeitendenkonto verknüpft. Bitte melden Sie sich erneut an oder wenden Sie sich an die Verwaltung.'
+            : 'Kein Klient:innen-Konto verknüpft. Bitte wenden Sie sich an die Verwaltung.',
       );
       return;
     }

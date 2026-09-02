@@ -198,13 +198,21 @@ export async function resolveEmployeeLiveContext(
       fetchLatestLocationPointForVisit(tenantId, resolution.visitId),
       fetchTimeEventsForVisit(tenantId, resolution.visitId, 100),
     ]);
+  // Tracking metadata enriches the execution screen, but it must never make
+  // the visit itself unusable. Older production tenants can temporarily lack
+  // a tracking policy/table while status transitions remain fully available.
   if (!sessionResult.ok) {
-    return { ok: false, error: sessionResult.error };
+    logLiveTrackingRuntimeError(
+      'resolveEmployeeLiveContext.activeSession',
+      normalizeSupabaseError({ message: sessionResult.error }),
+      {
+        ...baseContext,
+        assignmentId: resolution.assignmentId,
+        assistVisitId: resolution.visitId,
+        tableOrRpc: 'assist_tracking_sessions',
+      },
+    );
   }
-
-  const latestConsentSession = sessionResult.data?.consentGrantedAt
-    ? sessionResult
-    : consentSessionResult;
 
   if (!employeeConsent.ok) {
     console.warn('[resolveEmployeeLiveContext] employee consent unavailable:', employeeConsent.error);
@@ -222,9 +230,12 @@ export async function resolveEmployeeLiveContext(
     );
   }
 
-  const sessionRow = sessionResult.data;
-  const visitConsentRow =
-    latestConsentSession.ok && latestConsentSession.data ? latestConsentSession.data : null;
+  const sessionRow = sessionResult.ok ? sessionResult.data : null;
+  const visitConsentRow = sessionRow?.consentGrantedAt
+    ? sessionRow
+    : consentSessionResult.ok
+      ? consentSessionResult.data
+      : null;
   const employeeConsentRow = employeeConsent.ok ? employeeConsent.data : null;
 
   const dbConsentGranted = Boolean(

@@ -34,6 +34,19 @@ export type PortalActor = {
   isLinkedReady: boolean;
 };
 
+export function selectPortalEmployeeId(
+  sessionEmployeeId: string | null | undefined,
+  profileEmployeeId: string | null | undefined,
+  resolvedEmployeeId: string | null | undefined,
+): string | null {
+  return (
+    sessionEmployeeId?.trim() ||
+    profileEmployeeId?.trim() ||
+    resolvedEmployeeId?.trim() ||
+    null
+  );
+}
+
 export function usePortalActor(): PortalActor {
   const { profile, portalSession, user, updatePortalSession } = useAuth();
   const [clientDisplayName, setClientDisplayName] = useState<string | null>(null);
@@ -60,7 +73,15 @@ export function usePortalActor(): PortalActor {
   const sessionClientId = portalSession?.clientId ?? null;
   const clientId = sessionClientId ?? resolvedClientId ?? null;
   const sessionEmployeeId = portalSession?.employeeId ?? null;
-  const employeeId = sessionEmployeeId ?? resolvedEmployeeId ?? null;
+  // AuthProvider already resolves the canonical employee link on login. Use
+  // it immediately instead of disabling messages while a second RLS-protected
+  // account lookup is still pending (or unavailable on an older tenant).
+  const profileEmployeeId = profile?.employeeId?.trim() || null;
+  const employeeId = selectPortalEmployeeId(
+    sessionEmployeeId,
+    profileEmployeeId,
+    resolvedEmployeeId,
+  );
 
   const isClientPortalActor = roleKey === 'client_portal' || roleKey === 'family_portal';
 
@@ -127,7 +148,7 @@ export function usePortalActor(): PortalActor {
   }, [isClientPortalActor, sessionClientId, tenantId, portalSession, updatePortalSession]);
 
   useEffect(() => {
-    if (roleKey !== 'employee_portal' || sessionEmployeeId || !tenantId) {
+    if (roleKey !== 'employee_portal' || sessionEmployeeId || profileEmployeeId || !tenantId) {
       setIsResolvingEmployeeLink(false);
       return;
     }
@@ -156,7 +177,7 @@ export function usePortalActor(): PortalActor {
       cancelled = true;
       setIsResolvingEmployeeLink(false);
     };
-  }, [roleKey, sessionEmployeeId, tenantId, portalSession, updatePortalSession]);
+  }, [roleKey, sessionEmployeeId, profileEmployeeId, tenantId, portalSession, updatePortalSession]);
 
   const fallbackDisplayName = useMemo(() => {
     const isClientPortal = roleKey === 'client_portal' || roleKey === 'family_portal';

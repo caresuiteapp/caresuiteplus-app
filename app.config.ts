@@ -17,7 +17,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   ...config,
   name: isHealthOSCoreEdition || isPortalOnlyEdition ? 'CareSuite HealthOS' : 'CareSuite+',
   slug: 'caresuite-plus',
-  version: '0.3.0',
+  version: '0.3.1',
   orientation: 'default',
   icon: './assets/icon.png',
   scheme: 'caresuiteplus',
@@ -31,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'de.caresuiteplus.app',
-    buildNumber: '3',
+    buildNumber: '4',
     infoPlist: {
       NSCameraUsageDescription:
         'CareSuite benötigt Zugriff auf die Kamera, damit dienstliche Fotos und Videos direkt aufgenommen werden können.',
@@ -61,7 +61,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     package: 'app.caresuitehealthos',
     googleServicesFile: './google-services.json',
-    versionCode: 16,
+    versionCode: 24,
     predictiveBackGestureEnabled: false,
     permissions: [
       'INTERNET',

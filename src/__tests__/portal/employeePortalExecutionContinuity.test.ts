@@ -7,16 +7,16 @@ const readSource = (relativePath: string) =>
   readFileSync(path.join(root, relativePath), 'utf8').replace(/\r\n/g, '\n');
 
 describe('employee portal execution continuity', () => {
-  it('bridges portal visit ids to their linked legacy assignment before writes', () => {
+  it('routes every portal id to the table that owns its execution status', () => {
     const resolver = readSource('src/features/liveTracking/resolveLiveAssignment.ts');
     const liveService = readSource('src/lib/portal/employeePortalExecutionLiveService.ts');
 
     expect(resolver).toContain('findLegacyAssignmentIdByVisit');
     expect(resolver).toContain("source: 'legacy_bridge'");
-    expect(liveService).toContain('const persistentAssignmentId = existing.data.id');
-    expect(liveService).toContain(
-      'assignmentSupabaseRepository.updateStatus(\n    tenantId,\n    persistentAssignmentId,',
-    );
+    expect(resolver).toContain("persistenceSource: 'assist_visits'");
+    expect(resolver).toContain("persistenceSource: 'assignments'");
+    expect(liveService).toContain('persistResolvedAssignmentStatus({');
+    expect(liveService).toContain("resolution.persistenceSource === 'assist_visits'");
   });
 
   it('writes documentation to the linked assignment and awaits the status transition', () => {

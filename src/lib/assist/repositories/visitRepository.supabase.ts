@@ -1066,6 +1066,12 @@ export const visitSupabaseRepository = {
     const refreshed = await this.getById(tenantId, visitId);
     if (!refreshed.ok) return refreshed;
     if (!refreshed.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+    if (refreshed.data.assignmentStatus !== toStatus) {
+      return {
+        ok: false,
+        error: 'Der Einsatzstatus wurde vom Server nicht übernommen. Bitte Berechtigung und Datenstand prüfen.',
+      };
+    }
 
     if (toStatus === 'storniert') {
       cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', visitId);

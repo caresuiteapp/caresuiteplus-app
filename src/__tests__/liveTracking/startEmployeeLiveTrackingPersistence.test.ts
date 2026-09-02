@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   resolveEmployeeLiveContext: vi.fn(),
   syncAssistTimeEventToWfmPortalSafe: vi.fn(),
   mirrorAssistVisitStatusFromAssignment: vi.fn(),
+  persistResolvedAssignmentStatus: vi.fn(),
   supabaseRpc: vi.fn(),
 }));
 
@@ -32,6 +33,10 @@ vi.mock('@/lib/portal/employeePortalExecutionLiveService', () => ({
   mirrorAssistVisitStatusFromAssignment: mocks.mirrorAssistVisitStatusFromAssignment,
 }));
 
+vi.mock('@/features/liveTracking/persistResolvedAssignmentStatus', () => ({
+  persistResolvedAssignmentStatus: mocks.persistResolvedAssignmentStatus,
+}));
+
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({ rpc: mocks.supabaseRpc }),
 }));
@@ -47,6 +52,15 @@ const liveContext = {
   assignmentStatus: 'geplant',
   trackingSessionId: 'session-1',
   trackingSessionActive: true,
+  resolution: {
+    assignmentId: 'assignment-1',
+    visitId: 'visit-1',
+    clientId: 'client-1',
+    employeeId: 'employee-1',
+    detail: { id: 'assignment-1', assignmentStatus: 'geplant' },
+    source: 'assignments',
+    persistenceSource: 'assignments',
+  },
 };
 
 describe('startEmployeeLiveTracking critical persistence', () => {
@@ -59,6 +73,10 @@ describe('startEmployeeLiveTracking critical persistence', () => {
     mocks.mirrorAssistVisitStatusFromAssignment.mockResolvedValue({
       ok: true,
       data: undefined,
+    });
+    mocks.persistResolvedAssignmentStatus.mockResolvedValue({
+      ok: true,
+      data: liveContext.resolution.detail,
     });
     mocks.supabaseRpc.mockResolvedValue({ data: null, error: null });
   });
@@ -92,11 +110,15 @@ describe('startEmployeeLiveTracking critical persistence', () => {
       'drive_start',
       '2026-08-03T00:19:00.000Z',
     );
-    expect(mocks.supabaseRpc).toHaveBeenCalledWith(
-      'set_assignment_status',
+    expect(mocks.persistResolvedAssignmentStatus).toHaveBeenCalledWith(
       expect.objectContaining({
-        input_assignment_id: 'assignment-1',
-        input_employee_id: 'employee-1',
+        tenantId: 'tenant-1',
+        employeeId: 'employee-1',
+        toStatus: 'unterwegs',
+        resolution: expect.objectContaining({
+          assignmentId: 'assignment-1',
+          persistenceSource: 'assignments',
+        }),
       }),
     );
     expect(mocks.mirrorAssistVisitStatusFromAssignment).toHaveBeenCalledWith(

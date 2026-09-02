@@ -10,7 +10,6 @@ import {
   recordTimeEvent,
   startTrackingSession,
 } from '@/lib/assist/assistTrackingPersistenceService';
-import { assignmentStatusToRemote } from '@/lib/assist/assignmentStatusBridge';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { syncAssistTimeEventToWfmPortalSafe } from '@/lib/wfm/wfmAssistAdapter';
@@ -26,6 +25,7 @@ import {
   type EmployeeLiveContext,
 } from './resolveEmployeeLiveContext';
 import { scheduleDeferredTask } from '@/lib/async/deferredTask';
+import { persistResolvedAssignmentStatus } from './persistResolvedAssignmentStatus';
 
 export type EmployeeGpsSnapshot = {
   latitude: number;
@@ -90,50 +90,6 @@ async function updateSessionLastLocation(
     });
     return liveTrackingErrorToServiceResult(err);
   }
-  return { ok: true, data: undefined };
-}
-
-async function transitionAssignmentToEnRoute(
-  tenantId: string,
-  assignmentId: string,
-  employeeId: string,
-): Promise<ServiceResult<void>> {
-  const supabase = getSupabaseClient();
-  if (!supabase) return { ok: false, error: 'Supabase ist nicht verfügbar.' };
-
-  const now = new Date().toISOString();
-  const remoteStatus = assignmentStatusToRemote('unterwegs' as AssignmentStatus);
-
-  const { error: rpcError } = await supabase.rpc('set_assignment_status', {
-    input_assignment_id: assignmentId,
-    input_status: remoteStatus,
-    input_note: undefined,
-    input_employee_id: employeeId,
-  });
-
-  if (rpcError) {
-    const { error: updateError } = await fromUnknownTable(supabase, 'assignments')
-      .update({
-        status: remoteStatus,
-        on_the_way_at: now,
-        updated_at: now,
-      })
-      .eq('tenant_id', tenantId)
-      .eq('id', assignmentId)
-      .eq('employee_id', employeeId);
-
-    if (updateError) {
-      const err = liveTrackingErrorFromSupabase(updateError, {
-        tenantId,
-        employeeId,
-        assignmentId,
-        tableOrRpc: 'assignments',
-        operation: 'transitionAssignmentToEnRoute',
-      });
-      return liveTrackingErrorToServiceResult(err);
-    }
-  }
-
   return { ok: true, data: undefined };
 }
 
@@ -320,17 +276,25 @@ export async function startEmployeeLiveTracking(
   }
 
   let statusUpdated = false;
+  let detailAfterStatus = ctx.resolution.detail;
   if (input.transitionToEnRoute !== false && ctx.assignmentStatus !== 'unterwegs') {
-    const statusResult = await transitionAssignmentToEnRoute(
-      input.tenantId,
-      ctx.assignmentId,
-      input.employeeId,
-    );
+    const statusResult = await persistResolvedAssignmentStatus({
+      tenantId: input.tenantId,
+      employeeId: input.employeeId,
+      profileId: input.profileId,
+      resolution: ctx.resolution,
+      toStatus: 'unterwegs',
+      fastWorkflow: true,
+    });
     if (!statusResult.ok) return statusResult as ServiceResult<never>;
+    detailAfterStatus = statusResult.data;
     statusUpdated = true;
   }
 
-  if (input.transitionToEnRoute !== false) {
+  if (
+    input.transitionToEnRoute !== false &&
+    ctx.resolution.persistenceSource === 'assignments'
+  ) {
     scheduleDeferredTask(`assist-status:${input.tenantId}:${ctx.assignmentId}`, async () => {
       const mirrored = await mirrorAssistVisitStatusFromAssignment(
         input.tenantId,
@@ -347,6 +311,10 @@ export async function startEmployeeLiveTracking(
   const nextContext: EmployeeLiveContext = {
     ...ctx,
     assignmentStatus: nextAssignmentStatus,
+    resolution: {
+      ...ctx.resolution,
+      detail: detailAfterStatus,
+    },
     trackingSessionId: sessionId,
     trackingSessionActive: true,
     lastLocationAt: input.gpsSnapshot?.capturedAt ?? ctx.lastLocationAt,

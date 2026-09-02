@@ -28,6 +28,8 @@ export type LiveAssignmentResolution = {
   employeeId: string | null;
   detail: AssignmentDetail;
   source: 'assignments' | 'assist_visits' | 'legacy_bridge';
+  /** Table that owns the authoritative execution status for this record. */
+  persistenceSource: 'assignments' | 'assist_visits';
 };
 
 export type ResolveLiveAssignmentInput = {
@@ -77,7 +79,7 @@ async function findLegacyAssignmentIdByVisit(
 }
 
 function assertScope(
-  resolution: Omit<LiveAssignmentResolution, 'detail' | 'source'> & { detail: AssignmentDetail },
+  resolution: Omit<LiveAssignmentResolution, 'detail' | 'source' | 'persistenceSource'> & { detail: AssignmentDetail },
   input: ResolveLiveAssignmentInput,
 ): ServiceResult<never> | null {
   if (input.employeeId && resolution.employeeId && resolution.employeeId !== input.employeeId) {
@@ -145,6 +147,7 @@ export async function resolveLiveAssignment(
           employeeId: detail.employeeId || null,
           detail,
           source: 'assignments',
+          persistenceSource: 'assignments',
         },
       };
     }
@@ -179,6 +182,7 @@ export async function resolveLiveAssignment(
         employeeId: detail.employeeId || null,
         detail,
         source: 'assignments',
+        persistenceSource: 'assignments',
       },
     };
   }
@@ -232,6 +236,7 @@ export async function resolveLiveAssignment(
             employeeId: detail.employeeId || null,
             detail,
             source: 'legacy_bridge',
+            persistenceSource: 'assignments',
           },
         };
       }
@@ -247,6 +252,7 @@ export async function resolveLiveAssignment(
         employeeId: fromVisit.data.employeeId ?? null,
         detail,
         source: 'assist_visits',
+        persistenceSource: 'assist_visits',
       },
     };
   }
@@ -279,6 +285,7 @@ export async function resolveLiveAssignment(
           employeeId: legacyVisit.data.employeeId ?? null,
           detail,
           source: 'legacy_bridge',
+          persistenceSource: 'assist_visits',
         },
       };
     }
@@ -348,6 +355,7 @@ export async function resolveLiveAssignmentViaRpc(
         employeeId: row.employee_id ? String(row.employee_id) : detailResult.data.employeeId || null,
         detail: detailResult.data,
         source: 'assignments',
+        persistenceSource: 'assignments',
       },
     };
   }
@@ -363,6 +371,7 @@ export async function resolveLiveAssignmentViaRpc(
         employeeId: visitResult.data.employeeId ?? null,
         detail: mapVisitDetailToAssignmentDetail(visitResult.data),
         source: 'legacy_bridge',
+        persistenceSource: 'assist_visits',
       },
     };
   }

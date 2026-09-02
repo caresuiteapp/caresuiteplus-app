@@ -1,4 +1,4 @@
-# Google Play – Reviewer Notes 0.3.0
+# Google Play – Reviewer Notes 0.3.1
 
 **App:** CareSuite HealthOS
 

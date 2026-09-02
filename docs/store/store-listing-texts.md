@@ -1,4 +1,4 @@
-# Google Play Store-Texte – CareSuite HealthOS 0.3.0
+# Google Play Store-Texte – CareSuite HealthOS 0.3.1
 
 **Paket-ID:** `app.caresuitehealthos`
 
@@ -26,7 +26,7 @@ Klient:innen können ihre freigegebenen Informationen, Dokumente und offenen Unt
 
 CareSuite HealthOS ist eine geschlossene B2B-Anwendung. Ein Zugang wird durch den jeweiligen Pflegedienst oder Träger bereitgestellt. Es gibt keine öffentliche Selbstregistrierung. Rollen, Mandantentrennung und geschützte Sitzungen begrenzen den Zugriff auf die jeweils freigegebenen Inhalte.
 
-## Was ist neu – Version 0.3.0
+## Was ist neu – Version 0.3.1
 
 - Neuer geführter mobiler Einsatztag mit Mobilitätsauswahl
 - Fahrtenbuch für Anfahrt, Zwischenfahrten und Rückfahrt verbessert

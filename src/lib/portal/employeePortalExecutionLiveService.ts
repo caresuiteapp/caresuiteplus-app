@@ -2,6 +2,7 @@ import type { RoleKey, ServiceResult } from '@/types';
 import type { AssignmentStatus, AssignmentTaskStatus } from '@/types/modules/assignmentStatus';
 import type { CanonicalAssignmentStatus } from '@/types/modules/assignmentWorkflow';
 import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
+import type { VisitTaskStatus } from '@/lib/assist/visitTypes';
 import type {
   EmployeePortalAssignmentDetail,
   EmployeePortalOverview,
@@ -48,9 +49,11 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { resolveLiveAssignment } from '@/features/liveTracking/resolveLiveAssignment';
+import { persistResolvedAssignmentStatus } from '@/features/liveTracking/persistResolvedAssignmentStatus';
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
 import { resolveExecutableVisitId } from '@/lib/assist/visitService';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
+import { mapVisitDetailToAssignmentDetail } from './employeePortalAssignmentBridge';
 import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 import {
   resolveEmployeePortalDocumentationFlags,
@@ -78,6 +81,13 @@ function toPersistedTaskStatus(status: ExtendedAssignmentTaskStatus): Assignment
     return 'not_requested';
   }
   return 'not_done';
+}
+
+function toVisitTaskStatus(status: ExtendedAssignmentTaskStatus): VisitTaskStatus {
+  if (status === 'open' || status === 'done' || status === 'cancelled') return status;
+  if (status === 'not_requested' || status === 'not_wanted') return 'not_requested';
+  if (status === 'skipped' || status === 'requires_follow_up') return 'deferred';
+  return 'not_possible';
 }
 
 function mapPortalDetailToAssignmentDetail(
@@ -676,50 +686,65 @@ export async function transitionLiveEmployeePortalAssignment(
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
 
-  const executable = options?.knownDetail
-    ? { ok: true as const, data: { visitId: options.knownDetail.assignmentId } }
-    : await resolveExecutableVisitId(tenantId, assignmentId, roleKey);
+  // Always materialize a recurring occurrence and resolve its canonical
+  // persistence owner. A portal route can represent either an assignments row
+  // or an assist_visits-only row; their UUIDs are not interchangeable.
+  const executable = await resolveExecutableVisitId(tenantId, assignmentId, roleKey);
   if (!executable.ok) return executable;
   const executableAssignmentId = executable.data.visitId;
 
-  const existing = options?.knownDetail
-    ? {
-        ok: true as const,
-        data: mapPortalDetailToAssignmentDetail(options.knownDetail, employeeId),
-      }
-    : await loadEmployeePortalAssignmentDetail(
-        tenantId,
-        executableAssignmentId,
-        employeeId,
-      );
-  if (!existing.ok) return existing;
-  if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+  const resolved = await resolveLiveAssignment({
+    tenantId,
+    rawId: executableAssignmentId,
+    employeeId,
+  });
+  if (!resolved.ok) return resolved;
+  if (!resolved.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
-  const accessDenied = assertLiveEmployeeAssignmentAccess(tenantId, employeeId, roleKey, existing.data);
+  const resolution = resolved.data;
+  const canReuseKnownDetail =
+    options?.knownDetail &&
+    resolveVisitMasterId(options.knownDetail.assignmentId) ===
+      resolveVisitMasterId(executableAssignmentId) &&
+    !executable.data.materialized;
+  const existingDetail =
+    canReuseKnownDetail && options?.knownDetail
+      ? mapPortalDetailToAssignmentDetail(options.knownDetail, employeeId)
+      : resolution.detail;
+
+  const accessDenied = assertLiveEmployeeAssignmentAccess(
+    tenantId,
+    employeeId,
+    roleKey,
+    existingDetail,
+  );
   if (accessDenied) return accessDenied;
-  const persistentAssignmentId = existing.data.id;
+  const persistentAssignmentId =
+    resolution.persistenceSource === 'assist_visits'
+      ? resolution.visitId
+      : resolution.assignmentId;
 
-  const fromStatus = existing.data.assignmentStatus;
+  const fromStatus = existingDetail.assignmentStatus;
   if (fromStatus === toStatus) {
     if (options?.fastWorkflow) {
       return {
         ok: true,
-        data: mapDetailToPortal(existing.data, roleKey, employeeId),
+        data: mapDetailToPortal(existingDetail, roleKey, employeeId),
       };
     }
     const [extras, docFlags] = await Promise.all([
-      fetchAssignmentExtras(tenantId, executableAssignmentId, existing.data.clientId),
+      fetchAssignmentExtras(tenantId, executableAssignmentId, existingDetail.clientId),
       resolveEmployeePortalDocumentationFlags(
         tenantId,
         executableAssignmentId,
         fromStatus,
-        existing.data.documentationNotes,
+        existingDetail.documentationNotes,
         employeeId,
       ),
     ]);
     return {
       ok: true,
-      data: mapDetailToPortal(existing.data, roleKey, employeeId, undefined, {
+      data: mapDetailToPortal(existingDetail, roleKey, employeeId, undefined, {
         ...extras,
         requiresSignature: docFlags.requiresSignature,
         requiresDocumentation: docFlags.requiresDocumentation,
@@ -744,22 +769,22 @@ export async function transitionLiveEmployeePortalAssignment(
         },
       ]
     : await Promise.all([
-        fetchAssignmentExtras(tenantId, executableAssignmentId, existing.data.clientId),
+        fetchAssignmentExtras(tenantId, executableAssignmentId, existingDetail.clientId),
         resolveEmployeePortalDocumentationFlags(
           tenantId,
           executableAssignmentId,
-          existing.data.assignmentStatus,
-          existing.data.documentationNotes,
+          existingDetail.assignmentStatus,
+          existingDetail.documentationNotes,
           employeeId,
         ),
       ]);
   const hasPersistedSignature = docFlagsForValidation.signatureStatus === 'captured';
 
-  const validation = validateExecutionTransition(existing.data.assignmentStatus, toStatus, {
+  const validation = validateExecutionTransition(existingDetail.assignmentStatus, toStatus, {
     requireArrivedBeforeStart: true,
     hasDocumentation:
       options?.executionTransition?.hasDocumentation ??
-      Boolean(existing.data.documentationNotes?.trim()),
+      Boolean(existingDetail.documentationNotes?.trim()),
     hasRequiredSignature:
       options?.executionTransition?.signatureDeferredToClientPortal === true
         ? true
@@ -771,18 +796,17 @@ export async function transitionLiveEmployeePortalAssignment(
   });
   if (!validation.valid) return { ok: false, error: validation.error };
 
-  // Assignments table is source of truth for portal execution (RLS + set_assignment_status RPC).
-  const updated = await assignmentSupabaseRepository.updateStatus(
+  const updated = await persistResolvedAssignmentStatus({
     tenantId,
-    persistentAssignmentId,
-    toStatus,
-    {
-      actorProfileId: options?.profileId ?? undefined,
-      actorEmployeeId: employeeId,
-      knownExistingDetail: existing.data,
-      fastWorkflow: options?.fastWorkflow,
+    employeeId,
+    profileId: options?.profileId,
+    resolution: {
+      ...resolution,
+      detail: existingDetail,
     },
-  );
+    toStatus,
+    fastWorkflow: options?.fastWorkflow,
+  });
   if (!updated.ok) return updated;
   const detailAfterUpdate: AssignmentDetail = updated.data;
 
@@ -804,33 +828,36 @@ export async function transitionLiveEmployeePortalAssignment(
     );
   }
 
-  if (options?.fastWorkflow) {
-    scheduleDeferredTask(
-      `assist-status:${tenantId}:${persistentAssignmentId}`,
-      async () => {
-        const mirrored = await mirrorAssistVisitStatusFromAssignment(
-          tenantId,
-          persistentAssignmentId,
-          toStatus,
-          options?.profileId ?? null,
-        );
-        if (!mirrored.ok) throw new Error(mirrored.error);
-      },
-    );
-  } else {
-    const mirrored = await mirrorAssistVisitStatusFromAssignment(
-      tenantId,
-      persistentAssignmentId,
-      toStatus,
-      options?.profileId ?? null,
-    );
-    if (!mirrored.ok) {
-      return {
-        ok: false,
-        error:
-          mirrored.error ??
-          'Einsatzstatus wurde gespeichert, aber nicht in den Live-Monitor übertragen.',
-      };
+  // Visit-owned writes already synchronize a linked legacy assignment.
+  if (resolution.persistenceSource === 'assignments') {
+    if (options?.fastWorkflow) {
+      scheduleDeferredTask(
+        `assist-status:${tenantId}:${persistentAssignmentId}`,
+        async () => {
+          const mirrored = await mirrorAssistVisitStatusFromAssignment(
+            tenantId,
+            persistentAssignmentId,
+            toStatus,
+            options?.profileId ?? null,
+          );
+          if (!mirrored.ok) throw new Error(mirrored.error);
+        },
+      );
+    } else {
+      const mirrored = await mirrorAssistVisitStatusFromAssignment(
+        tenantId,
+        persistentAssignmentId,
+        toStatus,
+        options?.profileId ?? null,
+      );
+      if (!mirrored.ok) {
+        return {
+          ok: false,
+          error:
+            mirrored.error ??
+            'Einsatzstatus wurde gespeichert, aber nicht in den Live-Monitor übertragen.',
+        };
+      }
     }
   }
 
@@ -875,36 +902,63 @@ export async function updateLiveEmployeePortalTask(
     return { ok: false, error: 'Abweichung erfordert eine Begründung.' };
   }
 
-  const existing = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
-  if (!existing.ok) return existing;
-  if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+  const resolved = await resolveLiveAssignment({ tenantId, rawId: assignmentId, employeeId });
+  if (!resolved.ok) return resolved;
+  if (!resolved.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+  const existingDetail = resolved.data.detail;
 
-  const accessDenied = assertLiveEmployeeAssignmentAccess(tenantId, employeeId, roleKey, existing.data);
+  const accessDenied = assertLiveEmployeeAssignmentAccess(
+    tenantId,
+    employeeId,
+    roleKey,
+    existingDetail,
+  );
   if (accessDenied) return accessDenied;
-  const persistentAssignmentId = existing.data.id;
+  const persistentAssignmentId =
+    resolved.data.persistenceSource === 'assist_visits'
+      ? resolved.data.visitId
+      : resolved.data.assignmentId;
 
-  const taskStatus = toPersistedTaskStatus(status);
-  const updated = await assignmentSupabaseRepository.updateTask(
+  let updatedDetail: AssignmentDetail;
+  if (resolved.data.persistenceSource === 'assist_visits') {
+    const updatedVisit = await visitSupabaseRepository.updateTask(
+      tenantId,
+      resolved.data.visitId,
+      taskId,
+      toVisitTaskStatus(status),
+      completionNote,
+      employeeId,
+    );
+    if (!updatedVisit.ok) return updatedVisit;
+    updatedDetail = mapVisitDetailToAssignmentDetail(updatedVisit.data);
+  } else {
+    const updatedAssignment = await assignmentSupabaseRepository.updateTask(
+      tenantId,
+      resolved.data.assignmentId,
+      taskId,
+      toPersistedTaskStatus(status),
+      completionNote,
+      { actorProfileId: employeeId, actorEmployeeId: employeeId },
+    );
+    if (!updatedAssignment.ok) return updatedAssignment;
+    updatedDetail = updatedAssignment.data;
+  }
+
+  const extras = await fetchAssignmentExtras(
     tenantId,
     persistentAssignmentId,
-    taskId,
-    taskStatus,
-    completionNote,
-    { actorProfileId: employeeId, actorEmployeeId: employeeId },
+    updatedDetail.clientId,
   );
-  if (!updated.ok) return updated;
-
-  const extras = await fetchAssignmentExtras(tenantId, persistentAssignmentId, updated.data.clientId);
   const docFlags = await resolveEmployeePortalDocumentationFlags(
     tenantId,
     persistentAssignmentId,
-    updated.data.assignmentStatus,
-    updated.data.documentationNotes,
+    updatedDetail.assignmentStatus,
+    updatedDetail.documentationNotes,
     employeeId,
   );
   return {
     ok: true,
-    data: mapDetailToPortal(updated.data, roleKey, employeeId, undefined, {
+    data: mapDetailToPortal(updatedDetail, roleKey, employeeId, undefined, {
       ...extras,
       requiresSignature: docFlags.requiresSignature,
       requiresDocumentation: docFlags.requiresDocumentation,
@@ -932,13 +986,22 @@ export async function updateLiveEmployeePortalTasksBatch(
     return fetchLiveEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
   }
 
-  const existing = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
-  if (!existing.ok) return existing;
-  if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+  const resolved = await resolveLiveAssignment({ tenantId, rawId: assignmentId, employeeId });
+  if (!resolved.ok) return resolved;
+  if (!resolved.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+  const existingDetail = resolved.data.detail;
 
-  const accessDenied = assertLiveEmployeeAssignmentAccess(tenantId, employeeId, roleKey, existing.data);
+  const accessDenied = assertLiveEmployeeAssignmentAccess(
+    tenantId,
+    employeeId,
+    roleKey,
+    existingDetail,
+  );
   if (accessDenied) return accessDenied;
-  const persistentAssignmentId = existing.data.id;
+  const persistentAssignmentId =
+    resolved.data.persistenceSource === 'assist_visits'
+      ? resolved.data.visitId
+      : resolved.data.assignmentId;
 
   for (const item of updates) {
     if (taskStatusRequiresNote(item.status as AssignmentStatus) && !item.completionNote?.trim()) {
@@ -956,13 +1019,32 @@ export async function updateLiveEmployeePortalTasksBatch(
     notDoneReason: item.completionNote,
   }));
 
-  const updated = await assignmentSupabaseRepository.updateTasksBatch(
-    tenantId,
-    persistentAssignmentId,
-    mapped,
-    { actorProfileId: employeeId, actorEmployeeId: employeeId },
-  );
-  if (!updated.ok) return updated;
+  let updatedDetail: AssignmentDetail;
+  if (resolved.data.persistenceSource === 'assist_visits') {
+    let current = existingDetail;
+    for (const item of updates) {
+      const updatedVisit = await visitSupabaseRepository.updateTask(
+        tenantId,
+        resolved.data.visitId,
+        item.taskId,
+        toVisitTaskStatus(item.status),
+        item.completionNote,
+        employeeId,
+      );
+      if (!updatedVisit.ok) return updatedVisit;
+      current = mapVisitDetailToAssignmentDetail(updatedVisit.data);
+    }
+    updatedDetail = current;
+  } else {
+    const updated = await assignmentSupabaseRepository.updateTasksBatch(
+      tenantId,
+      resolved.data.assignmentId,
+      mapped,
+      { actorProfileId: employeeId, actorEmployeeId: employeeId },
+    );
+    if (!updated.ok) return updated;
+    updatedDetail = updated.data;
+  }
 
   if (knownDetail) {
     const updatesById = new Map(updates.map((item) => [item.taskId, item]));
@@ -986,17 +1068,21 @@ export async function updateLiveEmployeePortalTasksBatch(
     };
   }
 
-  const extras = await fetchAssignmentExtras(tenantId, persistentAssignmentId, updated.data.clientId);
+  const extras = await fetchAssignmentExtras(
+    tenantId,
+    persistentAssignmentId,
+    updatedDetail.clientId,
+  );
   const docFlags = await resolveEmployeePortalDocumentationFlags(
     tenantId,
     persistentAssignmentId,
-    updated.data.assignmentStatus,
-    updated.data.documentationNotes,
+    updatedDetail.assignmentStatus,
+    updatedDetail.documentationNotes,
     employeeId,
   );
   return {
     ok: true,
-    data: mapDetailToPortal(updated.data, roleKey, employeeId, undefined, {
+    data: mapDetailToPortal(updatedDetail, roleKey, employeeId, undefined, {
       ...extras,
       requiresSignature: docFlags.requiresSignature,
       requiresDocumentation: docFlags.requiresDocumentation,

@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 EXPECTED_PACKAGE='app.caresuitehealthos'
-EXPECTED_VERSION='0.3.0'
+EXPECTED_VERSION='0.3.1'
 EAS_CLI_VERSION='21.8.0'
 
 die() {
@@ -24,8 +24,8 @@ import { readFileSync } from 'node:fs';
 const app = JSON.parse(readFileSync('app.json', 'utf8')).expo;
 const eas = JSON.parse(readFileSync('eas.json', 'utf8'));
 if (app.android?.package !== 'app.caresuitehealthos') throw new Error('Falsche Paket-ID.');
-if (app.version !== '0.3.0') throw new Error('Falsche Nutzer-Version.');
-if (app.android?.versionCode !== 16) throw new Error('Falsche lokale versionCode-Baseline.');
+if (app.version !== '0.3.1') throw new Error('Falsche Nutzer-Version.');
+if (app.android?.versionCode < 24) throw new Error('Falsche lokale versionCode-Baseline.');
 if (eas.cli?.appVersionSource !== 'remote') throw new Error('EAS Remote-Versionierung fehlt.');
 if (eas.build?.['portal-only-aab']?.env?.EXPO_PUBLIC_APP_EDITION !== 'portal-only') {
   throw new Error('Portal-only Build-Profil fehlt.');
@@ -83,5 +83,5 @@ npx --yes "eas-cli@${EAS_CLI_VERSION}" submit \
   --non-interactive \
   --wait
 
-printf '\nGoogle-Play-Update 0.3.0 wurde in den internen Track übertragen.\n'
+printf '\nGoogle-Play-Update 0.3.1 wurde in den internen Track übertragen.\n'
 printf 'Es wurde bewusst noch kein Produktions-Rollout gestartet.\n'

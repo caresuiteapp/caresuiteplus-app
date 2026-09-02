@@ -1,4 +1,4 @@
-# Google Play – Update 0.3.0
+# Google Play – Update 0.3.1
 
 **App:** CareSuite HealthOS
 
@@ -15,7 +15,7 @@
 - [ ] Der bestehende Play-Eintrag verwendet exakt `app.caresuitehealthos`.
 - [ ] App-Signierung und Upload-Key gehören zum bestehenden Play-Eintrag.
 - [ ] EAS-Projekt: `567bda34-8356-4de8-9349-a0de3143567e`.
-- [ ] Nutzer-Version: `0.3.0`.
+- [ ] Nutzer-Version: `0.3.1`.
 - [ ] EAS `appVersionSource` bleibt `remote`; der Remote-`versionCode` wird durch `autoIncrement` erhöht.
 - [ ] Niemals einen zweiten Play-Eintrag mit `app.caresuiteplus` anlegen.
 
