@@ -7,6 +7,7 @@ import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import type { AssistExecutionContext } from './types';
 import { calculateVisitTimes } from './calculateVisitTimes';
 import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from './resolveAllowedActions';
+import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 
 export type StartEnRouteInput = {
   tenantId: string;
@@ -71,15 +72,30 @@ export async function startEnRoute(
     ) {
       return recovered;
     }
+    // GPS-/Trackingtabellen sind Zusatzsysteme und dürfen die kanonische
+    // Einsatzkette nicht blockieren. Wenn der bereits geladene Kontext
+    // vorliegt, wird die Anfahrt serverseitig als Workflowstatus gestartet;
+    // das Tracking kann anschließend unabhängig wiederverbinden.
+    if (input.executionContext) {
+      const transitioned = await transitionAssistExecutionStatus(
+        input.executionContext,
+        'unterwegs',
+        { fastWorkflow: true },
+      );
+      if (transitioned.ok) return transitioned;
+    }
     return { ok: false, error: started.error };
   }
 
   if (input.executionContext) {
     const occurredAt = new Date().toISOString();
-    const hasDriveStart = input.executionContext.timeEvents.some((event) => event.eventType === 'drive_start');
-    const timeEvents = hasDriveStart
+    const existingTimeEvents = Array.isArray(input.executionContext.timeEvents)
       ? input.executionContext.timeEvents
-      : [...input.executionContext.timeEvents, { eventType: 'drive_start', occurredAt }];
+      : [];
+    const hasDriveStart = existingTimeEvents.some((event) => event.eventType === 'drive_start');
+    const timeEvents = hasDriveStart
+      ? existingTimeEvents
+      : [...existingTimeEvents, { eventType: 'drive_start', occurredAt }];
     const visitTimes = calculateVisitTimes(timeEvents, 'unterwegs');
     const detail = {
       ...input.executionContext.detail,

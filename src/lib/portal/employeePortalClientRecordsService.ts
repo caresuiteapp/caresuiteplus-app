@@ -194,7 +194,10 @@ async function loadAllTenantClients(
   const { data, error } = await fromUnknownTable(supabase, 'clients')
     .select(detail ? CLIENT_DETAIL_SELECT : CLIENT_LIST_SELECT)
     .eq('tenant_id', tenantId)
-    .or('status.is.null,status.neq.deleted')
+    // Die Mitarbeitendenakte ist ein operatives Verzeichnis. Intake-Entwürfe,
+    // pausierte, beendete, archivierte und gesperrte Datensätze gehören nicht
+    // hierhin und waren die Ursache für scheinbare Dubletten.
+    .eq('status', 'active')
     .is('deleted_at', null)
     .order('last_name', { ascending: true })
     .order('first_name', { ascending: true })
@@ -222,6 +225,8 @@ async function loadClientsByIds(
   const { data, error } = await fromUnknownTable(supabase, 'clients')
     .select(detail ? CLIENT_DETAIL_SELECT : CLIENT_LIST_SELECT)
     .eq('tenant_id', tenantId)
+    .eq('status', 'active')
+    .is('deleted_at', null)
     .in('id', clientIds);
 
   if (error) {

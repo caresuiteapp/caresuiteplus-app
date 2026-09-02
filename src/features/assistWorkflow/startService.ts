@@ -143,10 +143,11 @@ function appendPersistedServiceStartEvent(
   ctx: AssistExecutionContext,
   occurredAt: string,
 ): AssistExecutionContext {
-  if (ctx.timeEvents.some((event) => event.eventType === 'service_start')) return ctx;
+  const timeEvents = Array.isArray(ctx.timeEvents) ? ctx.timeEvents : [];
+  if (timeEvents.some((event) => event.eventType === 'service_start')) return ctx;
   return {
     ...ctx,
-    timeEvents: [...ctx.timeEvents, { eventType: 'service_start', occurredAt }],
+    timeEvents: [...timeEvents, { eventType: 'service_start', occurredAt }],
   };
 }
 
@@ -154,7 +155,7 @@ async function persistServiceStartEvent(
   ctx: AssistExecutionContext,
   approval?: WorkflowDeviationApproval,
 ): Promise<ServiceResult<{ occurredAt: string }>> {
-  const existing = ctx.timeEvents.map((e) => ({
+  const existing = (Array.isArray(ctx.timeEvents) ? ctx.timeEvents : []).map((e) => ({
     eventType: e.eventType,
     occurredAt: e.occurredAt,
   }));

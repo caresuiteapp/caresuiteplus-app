@@ -355,7 +355,7 @@ export async function createPortalOfficeThread(
       status: 'new',
       priority: 'normal',
       subject,
-      category_id: input.categoryId,
+      category_id: input.categoryId ?? null,
       client_id: actor.clientId,
       employee_id: actor.employeeId,
       created_by_client_id: actor.audience === 'client' ? actor.clientId : null,
@@ -381,13 +381,19 @@ export async function createPortalOfficeThread(
       status: 'sent',
     });
     if (messageResult.error) {
+      // Kein leerer/orphaned Chat, falls die erste Nachricht scheitert.
+      await fromUnknownTable(supabase, 'message_threads')
+        .delete()
+        .eq('tenant_id', tenantId)
+        .eq('id', createdThreadId);
       return officeMessagingError(toGermanSupabaseError(messageResult.error));
     }
   }
 
-  const refreshed = await fetchPortalThreadsLive(tenantId, actor);
-  if (!refreshed.ok) return { ok: false, error: 'Chat konnte nicht erstellt werden.' };
-  const created = refreshed.data.find((item) => item.id === createdThreadId);
+  // Direkt aus dem bestätigten INSERT abbilden. Ein nachgelagerter Inbox-Read
+  // darf einen bereits erfolgreich angelegten Chat nicht fälschlich als
+  // fehlgeschlagen melden (z. B. bei verzögerter RLS-/Realtime-Sichtbarkeit).
+  const created = mapThreadRow(data as Record<string, unknown>);
   if (!created) return { ok: false, error: 'Chat konnte nicht erstellt werden.' };
 
   void logOfficeMessageAuditEvent({

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import type { CalendarEvent, CalendarViewMode } from '@/types/modules/calendarEvent';
 import { CalendarToolbar } from '@/components/calendar/CalendarToolbar';
 import { CalendarEventGrid, startOfMonth } from '@/components/calendar/CalendarEventGrid';
+import { CalendarAgendaList } from '@/components/calendar/CalendarAgendaList';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
 import { portalPremium } from '@/design/tokens/portalPremium';
@@ -16,6 +17,7 @@ import {
   formatDayHeader,
   formatMonthYear,
   formatWeekRange,
+  startOfWeek,
 } from '@/lib/office/calendarDateUtils';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 
@@ -97,6 +99,32 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
     [onEventPress, router],
   );
 
+  const phoneEvents = useMemo(() => {
+    if (!isPhone) return events;
+    let start: Date;
+    let end: Date;
+    if (viewMode === 'day') {
+      start = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
+      end = addDays(start, 1);
+    } else if (viewMode === 'week' || viewMode === 'agenda') {
+      start = startOfWeek(anchor, weekStartDay);
+      end = addDays(start, 7);
+    } else if (viewMode === 'month' || viewMode === 'list') {
+      start = startOfMonth(anchor);
+      end = addMonths(start, 1);
+    } else {
+      start = new Date(anchor.getFullYear(), 0, 1);
+      end = new Date(anchor.getFullYear() + 1, 0, 1);
+    }
+    const startMs = start.getTime();
+    const endMs = end.getTime();
+    return events.filter((event) => {
+      const eventStart = new Date(event.start).getTime();
+      const eventEnd = new Date(event.end).getTime();
+      return eventStart < endMs && eventEnd >= startMs;
+    });
+  }, [anchor, events, isPhone, viewMode]);
+
   if (loading && events.length === 0) {
     return <LoadingState message="Kalender wird geladen…" />;
   }
@@ -109,7 +137,7 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
     config?.emptyStateMessage ??
     'Im gewählten Zeitraum sind keine Einträge sichtbar. Wechseln Sie die Ansicht oder den Zeitraum.';
 
-  const needsWideCanvas = viewMode === 'month' || viewMode === 'week' || viewMode === 'year';
+  const needsWideCanvas = !isPhone && (viewMode === 'month' || viewMode === 'week' || viewMode === 'year');
 
   const calendarGrid = (
     <CalendarEventGrid
@@ -135,10 +163,14 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
         onNext={() => navigate(1)}
         onToday={() => setAnchor(new Date())}
         accentColor={accent}
+        compact={isPhone}
+        includeYear={!isPhone}
       />
 
-      {events.length === 0 ? (
+      {(isPhone ? phoneEvents : events).length === 0 ? (
         <EmptyState title="Keine Ereignisse in diesem Zeitraum" message={emptyMessage} />
+      ) : isPhone ? (
+        <CalendarAgendaList events={phoneEvents} onEventPress={handleEventPress} />
       ) : needsWideCanvas && Platform.OS === 'web' ? (
         <View
           style={styles.horizontalViewport}

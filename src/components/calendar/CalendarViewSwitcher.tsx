@@ -18,6 +18,7 @@ type CalendarViewSwitcherProps = {
   onViewModeChange: (mode: CalendarViewMode) => void;
   accentColor?: string;
   includeYear?: boolean;
+  compact?: boolean;
 };
 
 export function CalendarViewSwitcher({
@@ -25,13 +26,17 @@ export function CalendarViewSwitcher({
   onViewModeChange,
   accentColor = '#62F3FF',
   includeYear = true,
+  compact = false,
 }: CalendarViewSwitcherProps) {
   const text = useAuroraAdaptiveText();
   const glass = useActiveGlassTokens();
   const activeLabelColor = useInteractiveTextColor(accentColor);
-  const modes = includeYear
-    ? [...CALENDAR_VIEW_MODES, { key: 'year' as CalendarViewMode, label: 'Jahr' }]
+  const baseModes = compact
+    ? CALENDAR_VIEW_MODES.filter((mode) => mode.key !== 'list')
     : CALENDAR_VIEW_MODES;
+  const modes = includeYear
+    ? [...baseModes, { key: 'year' as CalendarViewMode, label: 'Jahr' }]
+    : baseModes;
 
   return (
     <View style={styles.chips}>

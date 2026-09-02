@@ -12,6 +12,7 @@ type CalendarToolbarProps = {
   onOpenSettings?: () => void;
   accentColor?: string;
   includeYear?: boolean;
+  compact?: boolean;
 };
 
 function ToolbarButton({
@@ -51,12 +52,13 @@ export function CalendarToolbar({
   onOpenSettings,
   accentColor = '#62F3FF',
   includeYear = true,
+  compact: compactOverride,
 }: CalendarToolbarProps) {
   const { width } = useWindowDimensions();
-  const compact = width < 980;
+  const compact = compactOverride ?? width < 980;
 
   return (
-    <View style={styles.shell}>
+    <View style={[styles.shell, compact && styles.shellCompact]}>
       <View style={[styles.topRow, compact && styles.topRowCompact]}>
         <View style={styles.navigationBlock}>
           <View style={styles.navButtons}>
@@ -64,12 +66,12 @@ export function CalendarToolbar({
             <ToolbarButton label="›" onPress={onNext} accessibilityLabel="Nächster Zeitraum" />
             <ToolbarButton label="Heute" onPress={onToday} accessibilityLabel="Zum heutigen Tag" primary />
           </View>
-          <Text style={styles.navigationHint}>Zeitraum navigieren</Text>
+          {!compact ? <Text style={styles.navigationHint}>Zeitraum navigieren</Text> : null}
         </View>
 
-        <View style={styles.periodBlock}>
-          <Text style={styles.periodEyebrow}>AKTUELLER ZEITRAUM</Text>
-          <Text style={styles.periodTitle} numberOfLines={1}>{title}</Text>
+        <View style={[styles.periodBlock, compact && styles.periodBlockCompact]}>
+          {!compact ? <Text style={styles.periodEyebrow}>AKTUELLER ZEITRAUM</Text> : null}
+          <Text style={[styles.periodTitle, compact && styles.periodTitleCompact]} numberOfLines={2}>{title}</Text>
         </View>
 
         {onOpenSettings ? (
@@ -85,16 +87,17 @@ export function CalendarToolbar({
               <Text style={styles.settingsHint}>Ansicht & Filter</Text>
             </View>
           </Pressable>
-        ) : <View style={styles.settingsPlaceholder} />}
+        ) : compact ? null : <View style={styles.settingsPlaceholder} />}
       </View>
 
       <View style={styles.switcherRow}>
-        <Text style={styles.switcherLabel}>ANSICHT</Text>
+        {!compact ? <Text style={styles.switcherLabel}>ANSICHT</Text> : null}
         <CalendarViewSwitcher
           viewMode={viewMode}
           onViewModeChange={onViewModeChange}
           accentColor={accentColor}
           includeYear={includeYear}
+          compact={compact}
         />
       </View>
     </View>
@@ -114,6 +117,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 26,
     shadowOffset: { width: 0, height: 14 },
+  },
+  shellCompact: {
+    borderRadius: 18,
+    padding: 12,
+    gap: 12,
+    marginBottom: 0,
   },
   topRow: {
     flexDirection: 'row',
@@ -145,6 +154,7 @@ const styles = StyleSheet.create({
   controlText: { color: '#EAF8FF', fontSize: 21, lineHeight: 23, fontWeight: '900' },
   controlPrimaryText: { color: '#FFFFFF', fontSize: 14, lineHeight: 18 },
   periodBlock: { flex: 1, minWidth: 240, alignItems: 'center' },
+  periodBlockCompact: { minWidth: 130, alignItems: 'flex-start' },
   periodEyebrow: {
     color: '#74DCFF',
     fontSize: 10,
@@ -161,6 +171,11 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(45,202,255,0.45)',
     textShadowRadius: 14,
     textAlign: 'center',
+  },
+  periodTitleCompact: {
+    fontSize: 18,
+    lineHeight: 22,
+    textAlign: 'left',
   },
   settingsButton: {
     minWidth: 176,

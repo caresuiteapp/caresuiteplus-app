@@ -240,7 +240,10 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     partialDetail: false,
     cacheSource: 'live',
   });
-  const readOnlyExecution = isOffline || cacheMeta.fromCache;
+  // Ein initial aus dem Gerätespeicher aufgebauter Einsatz ist bei bestehender
+  // Verbindung nicht automatisch schreibgeschützt. Die Mutation selbst wird
+  // weiterhin serverseitig autorisiert und validiert.
+  const readOnlyExecution = isOffline;
 
   const [gpsPermission, setGpsPermission] = useState<EmployeePortalGpsPermissionStatus>('undetermined');
   const [liveContext, setLiveContext] = useState<EmployeeLiveContext | null>(null);
@@ -387,18 +390,28 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       inconsistencies: workflow.inconsistencies,
       repairOptions: workflow.repairOptions,
       detail,
-      liveContext: executionContextRef.current?.liveContext ?? liveContext,
+      liveContext: executionContextRef.current?.liveContext ?? null,
       visitTimes,
       timeEvents: executionContextRef.current?.timeEvents ?? [],
       allowedActions,
       diagnostics,
     };
-  }, [tenantId, assignmentId, employeeId, authProfileId, roleKey, liveContext]);
+  }, [tenantId, assignmentId, employeeId, authProfileId, roleKey]);
 
   const refreshExecutionContext = useCallback(async (
     preloadedDetail?: EmployeePortalAssignmentDetail,
   ) => {
     if (!tenantId || !assignmentId || !employeeId) return null;
+    const actionablePreloaded =
+      preloadedDetail && cacheMeta.fromCache && cacheMeta.partialDetail && !isOffline
+        ? {
+            ...preloadedDetail,
+            isLocked: false,
+            canStartExecution: true,
+            canOpenRoute: Boolean(preloadedDetail.locationAddress?.trim()),
+            requiresRoute: Boolean(preloadedDetail.locationAddress?.trim()),
+          }
+        : preloadedDetail;
     try {
       const result = await withWorkflowTimeout(
         resolveAssistExecutionContext({
@@ -407,15 +420,17 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           employeeId,
           profileId: authProfileId,
           roleKey,
-          preloadedDetail,
+          preloadedDetail: actionablePreloaded,
         }),
         WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS,
         'resolveAssistExecutionContext',
       );
       if (!result.ok) {
         const fallbackDetail = preloadedDetail ?? query.data ?? null;
-        const fallback = fallbackDetail
-          ? buildFallbackExecutionContext(fallbackDetail)
+        const actionableFallbackDetail =
+          fallbackDetail === preloadedDetail ? actionablePreloaded : fallbackDetail;
+        const fallback = actionableFallbackDetail
+          ? buildFallbackExecutionContext(actionableFallbackDetail)
           : null;
         if (fallback) {
           setExecutionContext(fallback);
@@ -466,8 +481,10 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       return result.data;
     } catch (error) {
       const fallbackDetail = preloadedDetail ?? query.data ?? null;
-      const fallback = fallbackDetail
-        ? buildFallbackExecutionContext(fallbackDetail)
+      const actionableFallbackDetail =
+        fallbackDetail === preloadedDetail ? actionablePreloaded : fallbackDetail;
+      const fallback = actionableFallbackDetail
+        ? buildFallbackExecutionContext(actionableFallbackDetail)
         : null;
       if (fallback) {
         setExecutionContext(fallback);
@@ -483,7 +500,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       setLiveContextError(message);
       return null;
     }
-  }, [tenantId, assignmentId, employeeId, authProfileId, roleKey, query.data, buildFallbackExecutionContext]);
+  }, [tenantId, assignmentId, employeeId, authProfileId, roleKey, query.data, buildFallbackExecutionContext, cacheMeta.fromCache, cacheMeta.partialDetail, isOffline]);
 
   useEffect(() => {
     if (!query.data) return;
@@ -936,7 +953,9 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         };
     applyEmployeePortalLocationConsent(tenantId, assignmentId, trackingAuthorization);
 
-    const perm = await requestLocationPermissionOnce(tenantId, employeeId);
+    const perm = await requestLocationPermissionOnce(tenantId, employeeId).catch(
+      () => 'denied' as EmployeePortalGpsPermissionStatus,
+    );
     setGpsPermission(perm);
 
     let snapshot = null;
@@ -965,7 +984,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
     setLiveContext(started.data.liveContext);
     setExecutionContext(started.data);
-    setLiveErrorCode(null);
+    setLiveErrorCode(started.data.liveContext?.trackingSessionId ? null : 'LIVE_SESSION_CREATE_FAILED');
     query.setData(started.data.detail);
     // Updating liveContext enables the guarded watch effect. GPS streaming is
     // ancillary and must never turn an already-persisted workflow step into a

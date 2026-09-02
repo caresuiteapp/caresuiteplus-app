@@ -54,8 +54,8 @@ export function EmployeePortalClientRecordsScreen() {
   if (records.length === 0) {
     return (
       <EmptyState
-        title="Keine Klient:innen"
-        message="Aktuell sind keine Klient:innenakten vorhanden."
+        title="Keine aktiven Klient:innen"
+        message="Aktuell sind keine aktiven Klientenakten für das Team vorhanden."
         actionLabel="Erneut laden"
         onAction={() => void refresh()}
       />
@@ -78,9 +78,9 @@ export function EmployeePortalClientRecordsScreen() {
       >
         <View style={styles.directoryCopy}>
           <Text style={styles.directoryEyebrow}>VERSORGUNGSVERZEICHNIS</Text>
-          <Text style={[styles.directoryTitle, compact && styles.directoryTitleCompact]}>Alle Klient:innen</Text>
+          <Text style={[styles.directoryTitle, compact && styles.directoryTitleCompact]}>Aktive Klient:innen</Text>
           <Text style={styles.directoryText}>
-            {records.length} Akten in CareSuite · zum Nachschlagen und Öffnen
+            {records.length} aktive Akten · Entwürfe und beendete Akten sind ausgeblendet
           </Text>
         </View>
         <View style={[styles.directoryMetric, compact && styles.directoryMetricCompact]}>

@@ -67,6 +67,15 @@ function eventTypeLabel(eventType: string): string {
   return map[eventType] ?? eventType;
 }
 
+function formatDuration(minutes: number): string {
+  const safeMinutes = Math.max(0, Math.round(minutes));
+  const hours = Math.floor(safeMinutes / 60);
+  const remainder = safeMinutes % 60;
+  if (hours === 0) return `${remainder} Min.`;
+  if (remainder === 0) return `${hours} Std.`;
+  return `${hours} Std. ${remainder} Min.`;
+}
+
 export function TimeTrackingEmployeeScreen() {
   const router = useRouter();
   const pathname = usePathname();
@@ -284,92 +293,22 @@ export function TimeTrackingEmployeeScreen() {
 
   return (
     <PortalTabScreen title="Arbeitszeit" subtitle={subtitle} scroll>
-      <SectionPanel title="Status heute">
+      <SectionPanel title="Heute" subtitle="Status und erfasste Nettozeit auf einen Blick">
         <View style={styles.kpiRow}>
           <PremiumKpiCard label="Status" value={statusLabel} accentColor={accent} />
           <PremiumKpiCard label="Blöcke" value={String(events.length)} accentColor={accent} />
           <PremiumKpiCard
             label="Netto"
-            value={session ? `${session.netMinutes || session.grossMinutes} Min.` : '—'}
+            value={session ? formatDuration(session.netMinutes || session.grossMinutes) : '—'}
             accentColor={accent}
           />
         </View>
       </SectionPanel>
 
-      {tenantId && userId ? (
-        <WfmCheckinScanPanel
-          tenantId={tenantId}
-          userId={userId}
-          roleKey={roleKey}
-          employeeId={employeeId}
-          session={session}
-          onSuccess={() => void refresh()}
-        />
-      ) : null}
-
-      {tenantId && userId ? (
-        <WfmRuleWarningsPanel
-          tenantId={tenantId}
-          userId={userId}
-          roleKey={roleKey}
-          employeeId={employeeId}
-        />
-      ) : null}
-
-      {tenantId && userId ? (
-        <WfmTimeAccountPanel
-          tenantId={tenantId}
-          userId={userId}
-          roleKey={roleKey}
-          employeeId={employeeId}
-        />
-      ) : null}
-
-      {tenantId && userId && can('time.tracking.admin.correct') && !pathname.startsWith('/portal/') ? (
-        <WfmOfficeManualEntryPanel
-          tenantId={tenantId}
-          actorId={userId}
-          roleKey={roleKey}
-          employees={employeeId ? [{ id: employeeId, name: profile?.displayName ?? profile?.email ?? 'Aktueller MA' }] : []}
-        />
-      ) : null}
-
-      {pathname.startsWith('/portal/') ? (
-        <SectionPanel title="Weitere Bereiche">
-          <PremiumButton
-            title="Fahrten & Zeiten"
-            variant="secondary"
-            onPress={() => router.push('/portal/employee/times' as never)}
-          />
-          <PremiumButton
-            title="Urlaub"
-            variant="secondary"
-            onPress={() => router.push('/portal/employee/arbeitszeit/urlaub' as never)}
-          />
-          <PremiumButton
-            title="Abwesenheiten"
-            variant="secondary"
-            onPress={() => router.push('/portal/employee/arbeitszeit/abwesenheiten' as never)}
-          />
-        </SectionPanel>
-      ) : null}
-
-      {!pathname.startsWith('/portal/') && can('time.tracking.team.view') ? (
-        <SectionPanel title="Team & Live">
-          <PremiumButton
-            title="Team-Übersicht"
-            variant="secondary"
-            onPress={() => router.push('/business/office/time-tracking/zeitkonten' as never)}
-          />
-          <PremiumButton
-            title="Live-Mitarbeiter"
-            variant="secondary"
-            onPress={() => router.push('/business/office/time-tracking/live' as never)}
-          />
-        </SectionPanel>
-      ) : null}
-
-      <SectionPanel title="Tätigkeit wählen">
+      <SectionPanel
+        title={sessionActive ? 'Aktuelle Tätigkeit' : 'Tätigkeit vor dem Start'}
+        subtitle="Die Auswahl wird mit dem nächsten Start oder Wechsel gespeichert"
+      >
         <AuroraSegmentedControl
           options={WORK_TYPES.map((t) => ({ key: t.key, label: t.label }))}
           value={selectedWorkType}
@@ -377,7 +316,7 @@ export function TimeTrackingEmployeeScreen() {
         />
       </SectionPanel>
 
-      <SectionPanel title="Aktionen">
+      <SectionPanel title={sessionActive ? 'Arbeitstag steuern' : 'Arbeitstag starten'}>
         {!sessionActive ? (
           <PremiumButton
             title="Arbeitstag starten"
@@ -426,6 +365,79 @@ export function TimeTrackingEmployeeScreen() {
           ))
         )}
       </SectionPanel>
+
+      {tenantId && userId ? (
+        <WfmCheckinScanPanel
+          tenantId={tenantId}
+          userId={userId}
+          roleKey={roleKey}
+          employeeId={employeeId}
+          session={session}
+          onSuccess={() => void refresh()}
+        />
+      ) : null}
+
+      {tenantId && userId ? (
+        <WfmRuleWarningsPanel
+          tenantId={tenantId}
+          userId={userId}
+          roleKey={roleKey}
+          employeeId={employeeId}
+        />
+      ) : null}
+
+      {tenantId && userId ? (
+        <WfmTimeAccountPanel
+          tenantId={tenantId}
+          userId={userId}
+          roleKey={roleKey}
+          employeeId={employeeId}
+        />
+      ) : null}
+
+      {tenantId && userId && can('time.tracking.admin.correct') && !pathname.startsWith('/portal/') ? (
+        <WfmOfficeManualEntryPanel
+          tenantId={tenantId}
+          actorId={userId}
+          roleKey={roleKey}
+          employees={employeeId ? [{ id: employeeId, name: profile?.displayName ?? profile?.email ?? 'Aktueller MA' }] : []}
+        />
+      ) : null}
+
+      {pathname.startsWith('/portal/') ? (
+        <SectionPanel title="Weitere Bereiche" subtitle="Auswertungen, Urlaub und Abwesenheiten">
+          <PremiumButton
+            title="Fahrten & Zeiten"
+            variant="secondary"
+            onPress={() => router.push('/portal/employee/times' as never)}
+          />
+          <PremiumButton
+            title="Urlaub"
+            variant="secondary"
+            onPress={() => router.push('/portal/employee/arbeitszeit/urlaub' as never)}
+          />
+          <PremiumButton
+            title="Abwesenheiten"
+            variant="secondary"
+            onPress={() => router.push('/portal/employee/arbeitszeit/abwesenheiten' as never)}
+          />
+        </SectionPanel>
+      ) : null}
+
+      {!pathname.startsWith('/portal/') && can('time.tracking.team.view') ? (
+        <SectionPanel title="Team & Live">
+          <PremiumButton
+            title="Team-Übersicht"
+            variant="secondary"
+            onPress={() => router.push('/business/office/time-tracking/zeitkonten' as never)}
+          />
+          <PremiumButton
+            title="Live-Mitarbeiter"
+            variant="secondary"
+            onPress={() => router.push('/business/office/time-tracking/live' as never)}
+          />
+        </SectionPanel>
+      ) : null}
 
       {message ? <SuccessState title="Erfolg" message={message} /> : null}
       {error ? <ErrorState title="Fehler" message={error} onRetry={() => setError(null)} /> : null}

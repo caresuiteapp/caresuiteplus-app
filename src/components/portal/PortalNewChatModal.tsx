@@ -58,11 +58,13 @@ export function PortalNewChatModal({
   const [initialMessage, setInitialMessage] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [categories, setCategories] = useState<OfficeMessageCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoryWarning, setCategoryWarning] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hydratedOpenRef = useRef(false);
   const actorAudienceMatches = portalAudienceForRole(roleKey) === audience;
-  const canSend = actorAudienceMatches && isLinkedReady && Boolean(categoryId) && !submitting;
+  const canSend = actorAudienceMatches && isLinkedReady && !submitting;
 
   const styles = useMemo(
     () =>
@@ -81,6 +83,16 @@ export function PortalNewChatModal({
         chipText: { ...typography.caption, color: c.muted },
         chipTextActive: { color: c.violet, fontWeight: '700' },
         error: { ...typography.caption, color: c.danger },
+        warning: { ...typography.caption, color: c.muted },
+        fallbackChip: {
+          alignSelf: 'flex-start',
+          paddingHorizontal: spacing.sm,
+          paddingVertical: spacing.xs,
+          borderRadius: radius.capsule,
+          borderWidth: 1,
+          borderColor: c.border,
+          backgroundColor: `${c.violet}12`,
+        },
       }),
     [c, typography],
   );
@@ -119,7 +131,10 @@ export function PortalNewChatModal({
 
   useEffect(() => {
     if (!visible || !tenantId || !isLinkedReady || !actorAudienceMatches) return;
+    let active = true;
     void (async () => {
+      setCategoriesLoading(true);
+      setCategoryWarning(null);
       const actorResult = resolvePortalActor(
         roleKey,
         portalSession,
@@ -127,8 +142,14 @@ export function PortalNewChatModal({
         displayName,
         { clientId, employeeId },
       );
-      if (!actorResult.ok) return;
+      if (!actorResult.ok) {
+        if (!active) return;
+        setCategoriesLoading(false);
+        setCategoryWarning(actorResult.error);
+        return;
+      }
       const result = await fetchPortalOfficeCategories(tenantId, actorResult.data);
+      if (!active) return;
       if (result.ok) {
         setCategories(result.data);
         setCategoryId((current) => {
@@ -137,8 +158,21 @@ export function PortalNewChatModal({
           }
           return result.data[0]?.id ?? null;
         });
+        if (result.data.length === 0) {
+          setCategoryWarning('Es sind noch keine Themen hinterlegt. Die Nachricht wird als allgemeines Anliegen gesendet.');
+        }
+      } else {
+        // Kategorien verbessern die Sortierung im Büro, dürfen das Schreiben
+        // einer Nachricht aber niemals vollständig blockieren.
+        setCategories([]);
+        setCategoryId(null);
+        setCategoryWarning('Die Themen konnten nicht geladen werden. Sie können trotzdem eine allgemeine Nachricht senden.');
       }
+      setCategoriesLoading(false);
     })();
+    return () => {
+      active = false;
+    };
   }, [
     visible,
     tenantId,
@@ -153,7 +187,10 @@ export function PortalNewChatModal({
   ]);
 
   const handleCreate = async () => {
-    if (!tenantId || !categoryId) return;
+    if (!tenantId) {
+      setError('Der Mandant konnte nicht geladen werden. Bitte melden Sie sich erneut an.');
+      return;
+    }
     if (!actorAudienceMatches) {
       setError('Diese Sitzung gehört zu einem anderen Portal.');
       return;
@@ -186,7 +223,7 @@ export function PortalNewChatModal({
     setSubmitting(true);
     setError(null);
     const result = await createPortalOfficeThread(tenantId, actorResult.data, {
-      categoryId,
+      categoryId: categoryId ?? null,
       subject: subject.trim(),
       initialMessage: initialMessage.trim() || undefined,
     });
@@ -227,7 +264,14 @@ export function PortalNewChatModal({
               </Pressable>
             );
           })}
+          {!categoriesLoading && categories.length === 0 ? (
+            <View style={styles.fallbackChip}>
+              <Text style={styles.chipTextActive}>Allgemeines Anliegen</Text>
+            </View>
+          ) : null}
         </View>
+        {categoriesLoading ? <Text style={styles.warning}>Themen werden geladen…</Text> : null}
+        {categoryWarning ? <Text style={styles.warning}>{categoryWarning}</Text> : null}
       </View>
 
       <PremiumInput label="Betreff *" value={subject} onChangeText={setSubject} />

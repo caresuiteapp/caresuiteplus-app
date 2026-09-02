@@ -180,6 +180,8 @@ export function EmployeePortalVisitExecutionScreen() {
     notFound,
     isServiceEnded,
     readOnlyExecution,
+    fromCache,
+    partialDetail,
     executionContext,
   } = useEmployeePortalVisitExecution(id);
 
@@ -268,8 +270,13 @@ export function EmployeePortalVisitExecutionScreen() {
       employeeId: portalEmployeeId,
       assignmentId: resolveVisitMasterId(visit.assignmentId),
       mode,
-    }).then(() => setMobilityPersisted(true)).catch(() => {
-      setLocalWarning('Die Mobilitätsauswahl bleibt für diesen Bildschirm aktiv, konnte aber noch nicht dauerhaft gespeichert werden.');
+    }).then((saved) => {
+      setMobilityPersisted(true);
+      if (!saved.serverSynced) {
+        setLocalWarning('Mobilität ist sicher auf diesem Gerät gespeichert. Der Serverabgleich wird beim nächsten Kontakt erneut versucht.');
+      }
+    }).catch(() => {
+      setLocalWarning('Die Mobilitätsauswahl konnte auf diesem Gerät nicht gespeichert werden. Bitte freien Gerätespeicher prüfen.');
     });
   }, [portalTenantId, portalEmployeeId, visit?.assignmentId]);
   const visitTasks = useMemo(
@@ -404,8 +411,8 @@ export function EmployeePortalVisitExecutionScreen() {
     () =>
       visit?.status === 'storniert' ||
       visit?.status === 'nicht_erschienen' ||
-      Boolean(visit?.isLocked),
-    [visit],
+      Boolean(visit?.isLocked && !(fromCache && partialDetail && !readOnlyExecution)),
+    [visit, fromCache, partialDetail, readOnlyExecution],
   );
 
   const primaryAction = primaryAllowedAction(allowedActions, effectiveStatus);
@@ -742,19 +749,34 @@ export function EmployeePortalVisitExecutionScreen() {
       setLocalError('Bitte wähle zuerst deine Mobilität für diese Fahrt aus.');
       return;
     }
-    if (!mobilityPersisted) {
-      setLocalError('Die Mobilitätsauswahl muss zuerst dauerhaft gespeichert sein. Bitte erneut auswählen.');
-      return;
-    }
     setDriveLoading(true);
     setLocalError(null);
-    const result = await startDriveTracking();
-    if (!result.ok) {
-      if ('errorCode' in result && isWorkflowConfirmationPending(result.errorCode)) {
-        setLocalWarning(result.error ?? 'Die Anfahrt wird noch bestätigt. Bitte nicht erneut tippen.');
-      } else setLocalError(result.error ?? 'Tracking konnte nicht gestartet werden.');
+    if (!mobilityPersisted && portalTenantId && portalEmployeeId && visit) {
+      try {
+        const saved = await saveEmployeePortalMobilitySelection({
+          tenantId: portalTenantId,
+          employeeId: portalEmployeeId,
+          assignmentId: resolveVisitMasterId(visit.assignmentId),
+          mode: mobilityMode,
+        });
+        setMobilityPersisted(true);
+        if (!saved.serverSynced) {
+          setLocalWarning('Mobilität ist lokal gespeichert; der Serverabgleich läuft später weiter. Die Anfahrt kann beginnen.');
+        }
+      } catch {
+        setDriveLoading(false);
+        setLocalError('Die Mobilitätsauswahl konnte auf diesem Gerät nicht gesichert werden. Bitte erneut versuchen.');
+        return;
+      }
     }
-    else {
+    try {
+      const result = await startDriveTracking();
+      if (!result.ok) {
+        if ('errorCode' in result && isWorkflowConfirmationPending(result.errorCode)) {
+          setLocalWarning(result.error ?? 'Die Anfahrt wird noch bestätigt. Bitte nicht erneut tippen.');
+        } else setLocalError(result.error ?? 'Anfahrt konnte nicht gestartet werden.');
+        return;
+      }
       setLocalSuccess('Anfahrt gestartet — Live-Verfolgung aktiv.');
       if (portalTenantId && portalEmployeeId && visit) {
         try {
@@ -784,8 +806,15 @@ export function EmployeePortalVisitExecutionScreen() {
           );
         }
       }
+    } catch (error) {
+      setLocalError(
+        error instanceof Error
+          ? `Anfahrt konnte nicht gestartet werden: ${error.message}`
+          : 'Anfahrt konnte nicht gestartet werden. Bitte erneut versuchen.',
+      );
+    } finally {
+      setDriveLoading(false);
     }
-    setDriveLoading(false);
   }, [startDriveTracking, portalTenantId, portalEmployeeId, visit, mobilityMode, mobilityPersisted]);
 
   const handleStartDrive = useCallback(async () => {

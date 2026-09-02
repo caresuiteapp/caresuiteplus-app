@@ -92,7 +92,7 @@ describe('R14-C portal app security', () => {
     expect(migration).not.toMatch(/GRANT SELECT \([^;]*portal_access_code_hash/s);
   });
 
-  it('uses strong OS facial biometrics without collecting face images', () => {
+  it('uses the secure OS biometric/device prompt without collecting biometric data', () => {
     const service = read('src/lib/auth/portalBiometricService.ts');
     const gate = read('src/components/auth/PortalBiometricGate.tsx');
     const settings = read('src/components/auth/PortalBiometricSettingsCard.tsx');
@@ -103,14 +103,15 @@ describe('R14-C portal app security', () => {
 
     expect(service).toContain('AuthenticationType.FACIAL_RECOGNITION');
     expect(service).toContain('SecurityLevel.BIOMETRIC_STRONG');
-    expect(service).toContain("biometricsSecurityLevel: 'strong'");
-    expect(service).toContain('disableDeviceFallback: true');
+    expect(service).toContain("Platform.OS === 'android' ? 'weak' : 'strong'");
+    expect(service).toContain('disableDeviceFallback: false');
+    expect(service).toContain("fallbackLabel: 'Gerätecode verwenden'");
     expect(service).toContain('sensitiveAuthStorage');
     expect(service).not.toContain('expo-camera');
     expect(service).not.toContain('upload');
     expect(gate).toContain('AppState.addEventListener');
     expect(gate).toContain('Abmelden und normal anmelden');
-    expect(settings).toContain('Gesichtsdaten bleiben ausschließlich');
+    expect(settings).toContain('Biometrische Daten bleiben ausschließlich');
     expect(portalRoot).toContain('<PortalBiometricGate>');
     expect(employeeProfile).toContain('<PortalBiometricSettingsCard />');
     expect(clientProfile).toContain('<PortalBiometricSettingsCard />');

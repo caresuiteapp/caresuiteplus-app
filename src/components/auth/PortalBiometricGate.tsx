@@ -144,7 +144,7 @@ export function PortalBiometricGate({ children }: PortalBiometricGateProps) {
             <View style={styles.copy}>
               <Text style={[typography.display, styles.center, { color: colors.textPrimary }]}>CareSuite gesperrt</Text>
               <Text style={[typography.body, styles.center, { color: colors.textSecondary }]}>
-                Bestätigen Sie Ihr Gesicht mit dem sicheren Systemdialog, um persönliche Portal- und Gesundheitsdaten anzuzeigen.
+                Bestätigen Sie Ihre Identität mit Gesicht, Fingerabdruck oder Gerätecode, um persönliche Portal- und Gesundheitsdaten anzuzeigen.
               </Text>
               {error ? (
                 <Text
@@ -156,7 +156,7 @@ export function PortalBiometricGate({ children }: PortalBiometricGateProps) {
               ) : null}
             </View>
             <PremiumButton
-              title="Mit Gesicht entsperren"
+              title="Sicher entsperren"
               onPress={() => void unlock()}
               loading={authenticating}
               fullWidth

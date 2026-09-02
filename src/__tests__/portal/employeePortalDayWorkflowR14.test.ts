@@ -58,7 +58,7 @@ describe('Mitarbeitendenportal Einsatz-Tagesworkflow R14', () => {
     expect(automaticResultContract).toContain("| 'non_car_selected'");
     expect(automaticResultContract).toContain('hasCarMode: boolean');
     expect(automaticResultContract).toContain('vehicleId: string | null');
-    expect(automation).toContain("selectedTransportMode\n    ? selectedTransportMode === 'car'");
+    expect(automation).toMatch(/selectedTransportMode\s*\? selectedTransportMode === 'car'/);
   });
 
   it('berechnet Dokumentations- und Signaturstatus vor dem Rückfahrt-Effekt', () => {

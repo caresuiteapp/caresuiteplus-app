@@ -9,6 +9,8 @@ export type EmployeePortalMobilitySelection = {
   assignmentId: string;
   mode: EmployeeTransportMode;
   selectedAt: string;
+  serverSynced?: boolean;
+  syncError?: string | null;
 };
 
 const KEY_PREFIX = 'caresuite:employee-portal:mobility-selection:v1';
@@ -29,7 +31,7 @@ export async function loadEmployeePortalMobilitySelection(
       .eq('tenant_id', tenantId).eq('employee_id', employeeId).eq('assignment_id', assignmentId).maybeSingle();
     if (!error && data) {
       const row = data as Record<string, unknown>;
-      return { tenantId, employeeId, assignmentId, mode: row.transport_mode as EmployeeTransportMode, selectedAt: String(row.selected_at) };
+      return { tenantId, employeeId, assignmentId, mode: row.transport_mode as EmployeeTransportMode, selectedAt: String(row.selected_at), serverSynced: true, syncError: null };
     }
   }
   const raw = await AsyncStorage.getItem(key(tenantId, employeeId, assignmentId));
@@ -71,9 +73,17 @@ export async function saveEmployeePortalMobilitySelection(input: {
       transport_mode: input.mode,
       selected_at: saved.selectedAt,
     }, { onConflict: 'tenant_id,employee_id,assignment_id' });
-    if (error) throw new Error(`Mobilitätsauswahl konnte nicht revisionssicher gespeichert werden: ${error.message}`);
+    if (error) {
+      // Die lokale Auswahl ist bereits dauerhaft gespeichert und muss den
+      // operativen Einsatzstart auch bei fehlender Tabelle/RLS/Netzwerk tragen.
+      return {
+        ...saved,
+        serverSynced: false,
+        syncError: `Serverabgleich ausstehend: ${error.message}`,
+      };
+    }
   }
-  return saved;
+  return { ...saved, serverSynced: Boolean(supabase), syncError: null };
 }
 
 export function mobilityActivatesEmployeeLogbook(mode: EmployeeTransportMode | null): boolean {

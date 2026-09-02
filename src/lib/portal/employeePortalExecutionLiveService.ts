@@ -106,7 +106,7 @@ function mapPortalDetailToAssignmentDetail(
     allowedStatusActions: [],
     allowedStatusTransitions: detail.allowedTransitions,
     assignmentStatus: detail.status,
-    tasks: detail.tasks.map((task) => ({
+    tasks: (Array.isArray(detail.tasks) ? detail.tasks : []).map((task) => ({
       id: task.id,
       title: task.title,
       status: toPersistedTaskStatus(task.status),
@@ -186,7 +186,7 @@ function mapDetailToPortal(
     notesForEmployee: extras?.notesForEmployee?.trim() ?? '',
     accessHints: canViewAccessHints(roleKey) ? extras?.accessHints ?? null : null,
     emergencyContact: canViewEmergencyContact(roleKey) ? extras?.emergencyContact ?? null : null,
-    tasks: detail.tasks.map(mapTask),
+    tasks: (Array.isArray(detail.tasks) ? detail.tasks : []).map(mapTask),
     statusHistory: [],
     pauseEvents: [],
     documentationStatus,
@@ -973,7 +973,7 @@ export async function updateLiveEmployeePortalTasksBatch(
       // extras and document flags after every task tap.
       data: {
         ...knownDetail,
-        tasks: knownDetail.tasks.map((task) => {
+        tasks: (Array.isArray(knownDetail.tasks) ? knownDetail.tasks : []).map((task) => {
           const taskUpdate = updatesById.get(task.id);
           if (!taskUpdate) return task;
           return {

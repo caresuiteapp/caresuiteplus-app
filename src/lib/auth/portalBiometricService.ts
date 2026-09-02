@@ -8,7 +8,9 @@ export type PortalFaceAvailability = {
   hardwareAvailable: boolean;
   enrolled: boolean;
   faceSupported: boolean;
+  fingerprintSupported: boolean;
   strongBiometricEnrolled: boolean;
+  methodLabel: string;
   reason: string | null;
 };
 
@@ -40,7 +42,9 @@ export async function getPortalFaceAvailability(): Promise<PortalFaceAvailabilit
       hardwareAvailable: false,
       enrolled: false,
       faceSupported: false,
+      fingerprintSupported: false,
       strongBiometricEnrolled: false,
+      methodLabel: 'Gerätebiometrie',
       reason: 'Die Gesichtsentsperrung ist nur in der installierten CareSuite-App verfügbar.',
     };
   }
@@ -56,28 +60,39 @@ export async function getPortalFaceAvailability(): Promise<PortalFaceAvailabilit
     const faceSupported = supportedTypes.includes(
       localAuthentication.AuthenticationType.FACIAL_RECOGNITION,
     );
+    const fingerprintSupported = supportedTypes.includes(
+      localAuthentication.AuthenticationType.FINGERPRINT,
+    );
+    const biometricSupported = faceSupported || fingerprintSupported;
     const strongBiometricEnrolled =
       enrolledLevel === localAuthentication.SecurityLevel.BIOMETRIC_STRONG;
 
     let reason: string | null = null;
     if (!hardwareAvailable) {
       reason = 'Dieses Gerät besitzt keine unterstützte biometrische Hardware.';
-    } else if (!faceSupported) {
-      reason = 'Dieses Gerät bietet CareSuite keine Gesichtserkennung an.';
+    } else if (!biometricSupported) {
+      reason = 'Dieses Gerät bietet CareSuite keine unterstützte biometrische Entsperrung an.';
     } else if (!enrolled) {
-      reason = 'Richten Sie zuerst die Gesichtserkennung in den Geräteeinstellungen ein.';
-    } else if (!strongBiometricEnrolled) {
-      reason =
-        'Die eingerichtete Gesichtserkennung erfüllt nicht die erforderliche starke Android-Sicherheitsklasse.';
+      reason = 'Richten Sie zuerst Gesicht oder Fingerabdruck in den Geräteeinstellungen ein.';
     }
+
+    const methodLabel = faceSupported && fingerprintSupported
+      ? 'Gesicht oder Fingerabdruck'
+      : faceSupported
+        ? 'Gesichtserkennung'
+        : fingerprintSupported
+          ? 'Fingerabdruck'
+          : 'Gerätebiometrie';
 
     return {
       available:
-        hardwareAvailable && enrolled && faceSupported && strongBiometricEnrolled,
+        hardwareAvailable && enrolled && biometricSupported,
       hardwareAvailable,
       enrolled,
       faceSupported,
+      fingerprintSupported,
       strongBiometricEnrolled,
+      methodLabel,
       reason,
     };
   } catch {
@@ -86,7 +101,9 @@ export async function getPortalFaceAvailability(): Promise<PortalFaceAvailabilit
       hardwareAvailable: false,
       enrolled: false,
       faceSupported: false,
+      fingerprintSupported: false,
       strongBiometricEnrolled: false,
+      methodLabel: 'Gerätebiometrie',
       reason: 'Die Gerätebiometrie konnte gerade nicht geprüft werden.',
     };
   }
@@ -98,7 +115,7 @@ export async function authenticatePortalFace(): Promise<PortalFaceAuthentication
     return {
       ok: false,
       cancelled: false,
-      error: availability.reason ?? 'Gesichtserkennung ist nicht verfügbar.',
+      error: availability.reason ?? 'Biometrische Entsperrung ist nicht verfügbar.',
     };
   }
 
@@ -106,13 +123,13 @@ export async function authenticatePortalFace(): Promise<PortalFaceAuthentication
     const localAuthentication = await getLocalAuthentication();
     const result = await localAuthentication.authenticateAsync({
       promptMessage: 'CareSuite entsperren',
-      promptSubtitle: 'Sichere Gesichtserkennung',
+      promptSubtitle: availability.methodLabel,
       promptDescription:
         'Bestätigen Sie Ihre Identität, um persönliche Portal- und Gesundheitsdaten anzuzeigen.',
       cancelLabel: 'Abbrechen',
-      fallbackLabel: '',
-      disableDeviceFallback: true,
-      biometricsSecurityLevel: 'strong',
+      fallbackLabel: 'Gerätecode verwenden',
+      disableDeviceFallback: false,
+      biometricsSecurityLevel: Platform.OS === 'android' ? 'weak' : 'strong',
       requireConfirmation: true,
     });
 
@@ -122,10 +139,10 @@ export async function authenticatePortalFace(): Promise<PortalFaceAuthentication
       ok: false,
       cancelled,
       error: cancelled
-        ? 'Gesichtserkennung wurde abgebrochen.'
+        ? 'Geräteentsperrung wurde abgebrochen.'
         : result.error === 'lockout'
           ? 'Die Gerätebiometrie ist vorübergehend gesperrt. Bitte warten Sie oder melden Sie sich normal an.'
-          : 'Das Gesicht wurde nicht bestätigt. Bitte versuchen Sie es erneut.',
+          : 'Ihre Identität wurde nicht bestätigt. Bitte versuchen Sie es erneut.',
     };
   } catch {
     return {

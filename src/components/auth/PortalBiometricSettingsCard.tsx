@@ -47,7 +47,7 @@ export function PortalBiometricSettingsCard() {
     if (enabled) {
       await setPortalFaceUnlockEnabled(accountId, false);
       setEnabled(false);
-      setFeedback('Gesichtsentsperrung wurde auf diesem Gerät deaktiviert.');
+      setFeedback('Biometrische Entsperrung wurde auf diesem Gerät deaktiviert.');
       setLoading(false);
       return;
     }
@@ -69,7 +69,7 @@ export function PortalBiometricSettingsCard() {
 
     await setPortalFaceUnlockEnabled(accountId, true);
     setEnabled(true);
-    setFeedback('Gesichtsentsperrung ist für dieses Gerät aktiviert.');
+    setFeedback('Biometrische Entsperrung ist für dieses Gerät aktiviert.');
     setLoading(false);
   }, [accountId, enabled, loading]);
 
@@ -85,10 +85,11 @@ export function PortalBiometricSettingsCard() {
     <GlassCard accentColor={enabled ? portalPremium.accent.success : portalPremium.accent.blue}>
       <View style={styles.header}>
         <View style={styles.heading}>
-          <Text style={[typography.h3, { color: colors.textPrimary }]}>Gesichtsentsperrung</Text>
+          <Text style={[typography.h3, { color: colors.textPrimary }]}>Biometrische Entsperrung</Text>
           <Text style={[typography.body, { color: colors.textSecondary }]}>
             Entsperrt die installierte CareSuite-App beim Start und nach längerer Unterbrechung.
-            Gesichtsdaten bleiben ausschließlich im geschützten Systembereich Ihres Geräts.
+            Die App nutzt den sicheren Systemdialog für Gesicht, Fingerabdruck oder Gerätecode.
+            Biometrische Daten bleiben ausschließlich im geschützten Systembereich Ihres Geräts.
           </Text>
         </View>
         <View
@@ -122,7 +123,7 @@ export function PortalBiometricSettingsCard() {
       ) : null}
 
       <PremiumButton
-        title={enabled ? 'Gesichtsentsperrung deaktivieren' : 'Gesichtsentsperrung aktivieren'}
+        title={enabled ? 'Biometrie deaktivieren' : 'Biometrie aktivieren'}
         variant={enabled ? 'secondary' : 'primary'}
         size="sm"
         loading={loading}
