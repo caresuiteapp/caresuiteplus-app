@@ -17,7 +17,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   ...config,
   name: isHealthOSCoreEdition || isPortalOnlyEdition ? 'CareSuite HealthOS' : 'CareSuite+',
   slug: 'caresuite-plus',
-  version: '0.2.2',
+  version: '0.3.0',
   orientation: 'default',
   icon: './assets/icon.png',
   scheme: 'caresuiteplus',
@@ -61,7 +61,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     package: 'app.caresuitehealthos',
     googleServicesFile: './google-services.json',
-    versionCode: 15,
+    versionCode: 16,
     predictiveBackGestureEnabled: false,
     permissions: [
       'INTERNET',

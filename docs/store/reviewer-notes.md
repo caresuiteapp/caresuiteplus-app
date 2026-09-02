@@ -1,67 +1,51 @@
-# App Store / Play Store — Reviewer Notes
+# Google Play – Reviewer Notes 0.3.0
 
-**App:** CareSuite+  
-**Stand:** 2026-06-13
+**App:** CareSuite HealthOS
 
----
+**Paket-ID:** `app.caresuitehealthos`
 
-## App-Typ
+**Edition:** Portal-only
 
-B2B SaaS — Zugang nur mit Mandanten-Zugangsdaten. Kein öffentlicher Self-Service ohne Registrierung durch Pflegedienst.
+**Stand:** 2026-09-02
 
----
+## App-Zugriff
 
-## Demo-Zugang für Reviewer
+CareSuite HealthOS ist eine geschlossene B2B-Portal-App. Konten werden durch einen Pflegedienst oder Versorgungsträger bereitgestellt. Es gibt in dieser Store-Edition keine öffentliche Registrierung und keine Business-/Office-/Admin-Oberfläche.
 
-> **Hinweis:** Vor Submission echte Demo-Credentials in App Store Connect / Play Console eintragen.
+Vor Einreichung müssen in der Play Console funktionierende, nicht ablaufende Reviewer-Zugangsdaten hinterlegt werden:
 
-| Rolle | Login-Typ | Pfad |
-|-------|-----------|------|
-| Business Admin | Business Login | `/auth/business-login` |
-| Office User | Business Login (Rolle office) | `/office` |
-| Mitarbeiter-Portal | Mitarbeiter-Login | `/auth/employee-login` |
-| Klient:innen-Portal | Portal-Code | `/auth/client-login` |
+| Rolle | Zugang | Review-Zweck |
+|---|---|---|
+| Mitarbeitendenportal | `[REVIEW-EMAIL]` / `[REVIEW-PASSWORT]` | Einsatzliste, Mobilität, Fahrt, Dokumentation, Medien, Signatur |
+| Klient:innenportal | `[REVIEW-CODE]` | Dokumente und nachzuholende Unterschrift |
 
-**Empfohlener Review-Flow:**
+## Empfohlener Review-Ablauf
 
-1. App starten → Startseite
-2. Business Login → Demo-Mandant
-3. Modul **Office** → Klient:innen-Liste öffnen
-4. Modul **Business** → Kommunikationszentrum
-5. Modul-Wechsler (🧩) für weitere Module
+1. App starten und „Mitarbeitende“ wählen.
+2. Mit dem bereitgestellten Review-Konto anmelden.
+3. Einen freigegebenen Demo-Einsatz öffnen.
+4. Mobilität wählen. Bei PKW wird das Fahrtenbuch aktiviert; andere Mobilitätsarten bleiben ohne PKW-Fahrtenbuch nutzbar.
+5. „Fahrt starten“ wählen und die Standorterklärung sowie Android-Berechtigungen bestätigen.
+6. Die dauerhafte Android-Mitteilung zur aktiven GPS-Aufzeichnung prüfen.
+7. Dokumentation öffnen und ein Demo-Foto, -Video oder Dokument hinzufügen.
+8. Einsatzabschluss mit direkter Demo-Unterschrift prüfen oder „Unterschrift im Klient:innenportal nachholen“ verwenden.
+9. Fahrt/Tag vollständig beenden; danach darf keine dienstliche Hintergrundaufzeichnung weiterlaufen.
+10. Mit dem Klient:innen-Review-Code anmelden und die bereitgestellte offene Unterschrift prüfen.
 
----
+## Warum Hintergrundstandort benötigt wird
 
-## Tablet-Test
+Ein Mitarbeitender kann einen dienstlichen Einsatztag mit Anfahrt, mehreren Zwischenfahrten zu Klient:innen oder Terminen sowie Heim-/Weiterfahrt durchführen. Diese Route muss für Fahrtenbuch und Leistungsnachweis auch bei gesperrtem Display vollständig bleiben. Die Aufzeichnung ist nutzerinitiiert, zeigt eine laufende Systemmitteilung und endet, sobald kein aktiver Fahrt-/Einsatzkontext mehr besteht.
 
-- iPad / Android Tablet: Side-Rail-Navigation (keine Bottom-Tabs)
-- Klient:innen: Split-Ansicht Liste + Detail ab 768px Breite
+## Medienberechtigungen
 
----
+Kamera, Galerie, Dateien und Mikrofon werden nur beim Aufruf der jeweiligen Dokumentationsfunktion angefragt. Eine verweigerte Berechtigung führt zu einer verständlichen Hilfestellung; alternative Datei-/Galerieauswahl bleibt, soweit technisch verfügbar, möglich.
 
-## Desktop / Web
+## Push-Mitteilungen
 
-- Web-Build optional für Review: URL bereitstellen wenn verfügbar
-- Sidebar-Navigation ab 1200px
+Die Systemabfrage erscheint erst nach einer bewussten Nutzeraktion. Push-Mitteilungen informieren über dienstliche Einsatzänderungen und Mitteilungen. Auf dem Sperrbildschirm wird nur ein neutraler Hinweis angezeigt; geschützte Inhalte erscheinen erst nach Öffnen und Entsperren der App.
 
----
+## Datenschutz und Support
 
-## Bekannte Einschränkungen (ehrlich kommunizieren)
-
-- TI-Modul (KIM, eGK, ePA): **Demo-Daten**, keine echte gematik-Anbindung
-- Push Notifications: **nicht implementiert**
-- Sprachnachrichten: UI-Vorbereitung, kein `expo-av`
-- Einige Module nur mit Demo-Mandant (`DEMO_TENANT_ID`)
-
----
-
-## Keine Placebo-Features
-
-Alle sichtbaren Buttons in Review-Builds führen zu echten Screens oder zeigen Permission-Banner bei fehlender Rolle.
-
----
-
-## Kontakt für Review-Fragen
-
-support@caresuiteplus.de  
-Antwort innerhalb 24h (WERKTAGS)
+- Datenschutz: https://caresuiteplus.de/datenschutz
+- Hilfe: https://caresuiteplus.de/hilfe
+- Review-Kontakt: support@caresuiteplus.de

@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PLACEHOLDER_EAS_ID = '00000000-0000-0000-0000-000000000000';
 const STABLE_IOS_BUNDLE_ID = 'de.caresuiteplus.app';
-const STABLE_ANDROID_PACKAGE = 'app.caresuiteplus';
+const STABLE_ANDROID_PACKAGE = 'app.caresuitehealthos';
 
 const STORE_DOCS = [
   'docs/store/app-store-checklist.md',
@@ -92,11 +92,14 @@ if (!appConfig.includes('SUPPORT_LINKS') || !appConfig.includes('supportLinks: {
   console.log('✓ app.config.ts spiegelt supportLinks (Hilfe, Datenschutz, Impressum, AGB, Support-E-Mail)');
 }
 if (!appConfig.includes('expo-location')) {
-  warn('app.config.ts: expo-location Plugin fehlt (GPS preparedOnly Sprint 74)');
-} else if (!appConfig.includes('isIosBackgroundLocationEnabled: false')) {
-  warn('app.config.ts: Background-GPS sollte deaktiviert bleiben bis Live-Ready');
+  fail('app.config.ts: expo-location Plugin fehlt');
+} else if (!appConfig.includes('isAndroidBackgroundLocationEnabled: true')) {
+  fail('app.config.ts: Android-Hintergrund-GPS muss für die gestartete Tagesaufzeichnung aktiv sein');
 } else {
-  console.log('✓ app.config.ts: expo-location Plugin (Foreground-only, preparedOnly)');
+  console.log('✓ app.config.ts: nutzerinitiierte Android-Hintergrundaufzeichnung aktiv');
+}
+if (!appConfig.includes("root: isPortalOnlyEdition ? 'app-portal' : 'app'")) {
+  fail('app.config.ts: Portal-only Router-Isolation fehlt');
 }
 console.log('✓ App-Identität konsistent (CareSuite+, caresuite-plus, caresuiteplus)');
 console.log(`✓ iOS Bundle-ID: ${STABLE_IOS_BUNDLE_ID}`);
@@ -128,10 +131,10 @@ if (!existsSync(easPreflightPath)) {
 const gpsConfigPath = join(root, 'src/lib/assist/gpsTrackingConfig.ts');
 if (existsSync(gpsConfigPath)) {
   const gpsConfig = readFileSync(gpsConfigPath, 'utf8');
-  if (gpsConfig.includes('isGpsTrackingLiveReady') && gpsConfig.includes('return false')) {
-    console.log('✓ GPS Tracking preparedOnly (isGpsTrackingLiveReady: false)');
+  if (gpsConfig.includes('isGpsTrackingLiveReady') && gpsConfig.includes('isAssistTrackingPersistenceActive')) {
+    console.log('✓ GPS-Tracking ist an die produktive Persistenzbereitschaft gekoppelt');
   } else {
-    warn('gpsTrackingConfig: Live-Ready-Guard unklar — kein Fake-GPS');
+    fail('gpsTrackingConfig: Live-Ready-Guard unklar');
   }
 }
 
@@ -168,17 +171,34 @@ if (placeholderCount > 0) {
 
 // --- Permissions (only declared vs used) ---
 const declaredPerms = expo.android?.permissions ?? [];
-const allowedPerms = ['INTERNET'];
-const unexpected = declaredPerms.filter((p) => !allowedPerms.includes(p));
+const requiredPerms = [
+  'INTERNET',
+  'POST_NOTIFICATIONS',
+  'CAMERA',
+  'RECORD_AUDIO',
+  'ACCESS_COARSE_LOCATION',
+  'ACCESS_FINE_LOCATION',
+  'ACCESS_BACKGROUND_LOCATION',
+  'FOREGROUND_SERVICE',
+  'FOREGROUND_SERVICE_LOCATION',
+];
+const missingPermissions = requiredPerms.filter((permission) => !declaredPerms.includes(permission));
+const unexpected = declaredPerms.filter((permission) => !requiredPerms.includes(permission));
+if (missingPermissions.length > 0) {
+  fail(`Android permissions fehlen: ${missingPermissions.join(', ')}`);
+}
 if (unexpected.length > 0) {
   fail(`Android permissions enthalten unerwartete Einträge: ${unexpected.join(', ')}`);
 }
-console.log('✓ Android permissions: nur INTERNET (keine preparedOnly-Features)');
+console.log('✓ Android permissions entsprechen GPS, Push sowie Foto-/Video-Dokumentation');
 
 // --- Privacy map ---
 const privacyMap = readFileSync(join(root, 'docs/store/privacy-data-map.md'), 'utf8');
 if (!privacyMap.includes('Supabase') || !privacyMap.includes('Datenschutz')) {
   fail('privacy-data-map.md: Mindestinhalt fehlt');
+}
+for (const marker of ['Präziser Standort', 'Fotos und Videos', 'Push-Token', 'app.caresuitehealthos']) {
+  if (!privacyMap.includes(marker)) fail(`privacy-data-map.md: ${marker} fehlt`);
 }
 console.log('✓ privacy-data-map.md vorhanden');
 

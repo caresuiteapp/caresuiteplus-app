@@ -31,14 +31,18 @@ const manifest = JSON.stringify(androidMods?.manifest ?? {});
 
 const checks = {
   portalRouterRoot: config.extra?.router?.root === 'app-portal',
-  appVersion: config.version === '0.2.2',
-  versionCode: config.android?.versionCode === 15,
+  androidPackage: config.android?.package === 'app.caresuitehealthos',
+  appVersion: config.version === '0.3.0',
+  versionCodeBaseline: config.android?.versionCode === 16,
   minSdk24: properties.get('android.minSdkVersion') === '24',
   compileSdk36: properties.get('android.compileSdkVersion') === '36',
   targetSdk36: properties.get('android.targetSdkVersion') === '36',
   edgeToEdge: properties.get('edgeToEdgeEnabled') === 'true',
   backgroundLocation: manifest.includes('android.permission.ACCESS_BACKGROUND_LOCATION'),
   locationForegroundService: manifest.includes('android.permission.FOREGROUND_SERVICE_LOCATION'),
+  notifications: manifest.includes('android.permission.POST_NOTIFICATIONS'),
+  camera: manifest.includes('android.permission.CAMERA'),
+  microphone: manifest.includes('android.permission.RECORD_AUDIO'),
   predictiveBackDisabled: manifest.includes('android:enableOnBackInvokedCallback'),
 };
 

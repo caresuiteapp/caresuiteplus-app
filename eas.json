@@ -136,6 +136,13 @@
         "serviceAccountKeyPath": "./secrets/google-play-service-account.json",
         "track": "internal"
       }
+    },
+    "portal-only-internal": {
+      "android": {
+        "applicationId": "app.caresuitehealthos",
+        "track": "internal",
+        "releaseStatus": "completed"
+      }
     }
   }
 }

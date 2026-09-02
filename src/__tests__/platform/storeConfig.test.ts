@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 const root = join(process.cwd());
 const STABLE_IOS_BUNDLE_ID = 'de.caresuiteplus.app';
-const STABLE_ANDROID_PACKAGE = 'app.caresuiteplus';
+const STABLE_ANDROID_PACKAGE = 'app.caresuitehealthos';
 
 const ASSET_FILES = [
   'assets/icon.png',
@@ -73,7 +73,17 @@ describe('store config', () => {
   it('deklariert Netzwerk, Kamera und Mikrofon für produktive Medienaufnahme', () => {
     const appJson = JSON.parse(readFileSync(join(root, 'app.json'), 'utf8'));
     expect(appJson.expo.android?.permissions).toEqual(
-      expect.arrayContaining(['INTERNET', 'CAMERA', 'RECORD_AUDIO']),
+      expect.arrayContaining([
+        'INTERNET',
+        'POST_NOTIFICATIONS',
+        'CAMERA',
+        'RECORD_AUDIO',
+        'ACCESS_COARSE_LOCATION',
+        'ACCESS_FINE_LOCATION',
+        'ACCESS_BACKGROUND_LOCATION',
+        'FOREGROUND_SERVICE',
+        'FOREGROUND_SERVICE_LOCATION',
+      ]),
     );
   });
 });

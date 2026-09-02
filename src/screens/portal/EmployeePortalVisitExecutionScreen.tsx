@@ -33,6 +33,7 @@ import {
   EmployeePortalVisitSummaryPanel,
   EmployeePortalVisitTasksPanel,
 } from '@/components/portal';
+import { EmployeePortalLocationConsentBanner } from '@/components/portal/EmployeePortalLocationConsentBanner';
 import { buildDocumentationAiSourceFromTasks, resolveDocumentationAiSourceText } from '@/lib/portal/buildDocumentationAiSourceText';
 import {
   ErrorState,
@@ -157,6 +158,8 @@ export function EmployeePortalVisitExecutionScreen() {
     taskSaving,
     taskSaveError,
     refresh,
+    consent,
+    grantConsent,
     startDriveTracking,
     markArrived,
     startService,
@@ -229,6 +232,9 @@ export function EmployeePortalVisitExecutionScreen() {
   const [mobilityMode, setMobilityMode] = useState<EmployeeTransportMode | null>(null);
   const [mobilityHydrated, setMobilityHydrated] = useState(false);
   const [mobilityPersisted, setMobilityPersisted] = useState(false);
+  const [locationDisclosureOpen, setLocationDisclosureOpen] = useState(false);
+  const [locationDisclosureLoading, setLocationDisclosureLoading] = useState(false);
+  const [locationDisclosureAccepted, setLocationDisclosureAccepted] = useState(false);
 
   const assistVisitId = executionContext?.assistVisitId ?? null;
 
@@ -731,7 +737,7 @@ export function EmployeePortalVisitExecutionScreen() {
     workflowPersistence,
   ]);
 
-  const handleStartDrive = useCallback(async () => {
+  const executeStartDrive = useCallback(async () => {
     if (!mobilityMode) {
       setLocalError('Bitte wähle zuerst deine Mobilität für diese Fahrt aus.');
       return;
@@ -781,6 +787,27 @@ export function EmployeePortalVisitExecutionScreen() {
     }
     setDriveLoading(false);
   }, [startDriveTracking, portalTenantId, portalEmployeeId, visit, mobilityMode, mobilityPersisted]);
+
+  const handleStartDrive = useCallback(async () => {
+    if (!locationDisclosureAccepted) {
+      setLocationDisclosureOpen(true);
+      return;
+    }
+    await executeStartDrive();
+  }, [executeStartDrive, locationDisclosureAccepted]);
+
+  const handleAcceptLocationDisclosure = useCallback(async () => {
+    setLocationDisclosureLoading(true);
+    setLocalError(null);
+    const result = await grantConsent();
+    if (!result.ok) {
+      setLocalWarning(result.error ?? 'Die Standorterklärung wurde lokal bestätigt und wird später synchronisiert.');
+    }
+    setLocationDisclosureAccepted(true);
+    setLocationDisclosureOpen(false);
+    setLocationDisclosureLoading(false);
+    await executeStartDrive();
+  }, [executeStartDrive, grantConsent]);
 
   const handleArrived = useCallback(async () => {
     setLocalError(null);
@@ -1722,6 +1749,15 @@ export function EmployeePortalVisitExecutionScreen() {
               },
             },
           ]}
+        />
+      ) : null}
+
+      {locationDisclosureOpen ? (
+        <EmployeePortalLocationConsentBanner
+          consent={consent}
+          loading={locationDisclosureLoading}
+          onAccept={() => void handleAcceptLocationDisclosure()}
+          onCancel={() => setLocationDisclosureOpen(false)}
         />
       ) : null}
 
