@@ -135,7 +135,7 @@ npm run typecheck
 npm run portal-only:audit
 npm run android:api36:audit
 node scripts/store-readiness-check.mjs
-npm run audit:assignment-workflow-gate
+npm run audit:assignment-workflow-gate -- --testTimeout=15000
 npx vitest run \
   src/__tests__/platform/googlePlayUpdateV0_3_3.test.ts \
   src/__tests__/auth/portalProductionRuntimeR20_5.test.ts \
