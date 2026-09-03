@@ -160,33 +160,15 @@ export async function ensurePortalWriteSession(
       session = refreshed.data;
     }
 
-    if (capability !== 'session') {
-      const runtimeClient = client as unknown as {
-        rpc: (
-          name: string,
-          args: Record<string, unknown>,
-        ) => PromiseLike<{
-          data: unknown;
-          error: { message?: string } | null;
-        }>;
-      };
-      const probe = await withPortalSessionTimeout(
-        runtimeClient.rpc('portal_runtime_write_probe', { p_capability: capability }),
-      );
-      if (probe.error) {
-        return {
-          ok: false,
-          error: `Produktionsprüfung fehlgeschlagen: ${probe.error.message?.trim() || 'Datenbankfunktion nicht verfügbar.'}`,
-        };
-      }
-      const payload = probe.data as { ok?: boolean; error?: string } | null;
-      if (!payload?.ok) {
-        return {
-          ok: false,
-          error: payload?.error?.trim() || 'Die produktive Schreibberechtigung fehlt.',
-        };
-      }
-    }
+    // `capability` remains part of the API so callers can describe the pending
+    // action in diagnostics. It must not trigger a synthetic database write.
+    // R20.5 called `portal_runtime_write_probe` before every message and every
+    // visit transition. A missing migration, a stale PostgREST schema cache or
+    // simply no unrelated visit suitable for that probe then blocked the real
+    // action even though the authenticated RLS session was valid. The actual
+    // message/workflow mutation is already the authoritative permission check
+    // and returns its precise RLS/business error without this false gate.
+    void capability;
 
     return { ok: true, data: session };
   } catch {

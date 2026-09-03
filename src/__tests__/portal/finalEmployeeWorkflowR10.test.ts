@@ -84,7 +84,8 @@ describe('final employee workflow R10', () => {
     const header = read('src/components/portal/EmployeePortalVisitStickyHeader.tsx');
     expect(screen).toContain('guideActionLabel');
     expect(screen).toContain('Status erneut prüfen');
-    expect(screen).toContain('Pflichtaufgabe');
+    expect(screen).toContain('Aufgaben sind optional');
+    expect(screen).toContain('Dokumentation und Unterschrift bleiben für den Abschluss verpflichtend');
     expect(screen).toContain('Bitte jetzt die Klient:innen-Unterschrift erfassen.');
     expect(header).toContain('accessibilityLiveRegion');
     expect(header).toContain('Animierter Einsatzbegleiter');

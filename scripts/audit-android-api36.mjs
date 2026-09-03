@@ -32,7 +32,7 @@ const manifest = JSON.stringify(androidMods?.manifest ?? {});
 const checks = {
   portalRouterRoot: config.extra?.router?.root === 'app-portal',
   androidPackage: config.android?.package === 'app.caresuitehealthos',
-  appVersion: config.version === '0.3.4',
+  appVersion: config.version === '0.3.5',
   versionCodeBaseline: Number(config.android?.versionCode) >= 26,
   minSdk24: properties.get('android.minSdkVersion') === '24',
   compileSdk36: properties.get('android.compileSdkVersion') === '36',

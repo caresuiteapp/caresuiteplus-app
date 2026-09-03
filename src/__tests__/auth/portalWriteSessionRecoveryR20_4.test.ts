@@ -1,14 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 
-const { getSession, setSession, invokeEdgeFunction } = vi.hoisted(() => ({
+const { getSession, setSession, invokeEdgeFunction, runtimeProbe } = vi.hoisted(() => ({
   getSession: vi.fn(),
   setSession: vi.fn(),
   invokeEdgeFunction: vi.fn(),
+  runtimeProbe: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/client', () => ({
-  getSupabaseClient: () => ({ auth: { getSession, setSession } }),
+  getSupabaseClient: () => ({ auth: { getSession, setSession }, rpc: runtimeProbe }),
 }));
 
 vi.mock('@/lib/supabase/config', () => ({
@@ -60,6 +61,7 @@ describe('portal write-session recovery R20.4', () => {
     getSession.mockReset();
     setSession.mockReset();
     invokeEdgeFunction.mockReset();
+    runtimeProbe.mockReset();
   });
 
   it('accepts only a JWT aligned with tenant, role, portal type and account', () => {
@@ -97,6 +99,15 @@ describe('portal write-session recovery R20.4', () => {
       access_token: 'new-access',
       refresh_token: 'new-refresh',
     });
+  });
+
+  it('does not block a real write behind a synthetic runtime probe', async () => {
+    getSession.mockResolvedValue({ data: { session: alignedSession }, error: null });
+
+    const result = await ensurePortalWriteSession(portalSession, 'messages');
+
+    expect(result.ok).toBe(true);
+    expect(runtimeProbe).not.toHaveBeenCalled();
   });
 
   it('repairs bootstrap, messaging and visit actions instead of trusting visible login state', () => {

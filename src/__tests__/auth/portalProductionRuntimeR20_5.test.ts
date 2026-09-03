@@ -36,20 +36,16 @@ describe('portal production runtime R20.5', () => {
     }
   });
 
-  it('uses a rollback-only live database probe before messages and workflow writes', () => {
-    const migration = read(
-      'supabase/migrations/20260903090000_portal_runtime_write_probe_r20_5.sql',
-    );
+  it('does not let a synthetic database probe block real messages or workflow writes', () => {
     const chat = read('src/components/portal/PortalNewChatModal.tsx');
     const reply = read('src/hooks/useportalofficethreaddetail.ts');
     const workflow = read('src/hooks/useEmployeePortalVisitExecution.ts');
+    const auth = read('src/lib/auth/portalSupabaseAuth.ts');
 
-    expect(migration).toContain('portal_runtime_write_probe');
-    expect(migration.match(/__CARESUITE_ROLLBACK_PROBE__/g)).toHaveLength(4);
-    expect(migration).toContain('GRANT EXECUTE');
     expect(chat).toContain("ensurePortalWriteSession(portalSession, 'messages')");
     expect(reply).toContain("ensurePortalWriteSession(portalSession, 'messages')");
     expect(workflow.match(/ensurePortalWriteSession\(portalSession, 'workflow'\)/g)).toHaveLength(2);
+    expect(auth).not.toContain("rpc('portal_runtime_write_probe'");
   });
 
   it('shows loading and catches failures during the session probe', () => {
@@ -68,6 +64,6 @@ describe('portal production runtime R20.5', () => {
       workflow.indexOf("ensurePortalWriteSession(portalSession, 'workflow')"),
     );
     expect(auth).toContain('PORTAL_SESSION_CHECK_TIMEOUT_MS');
-    expect(auth).toContain('Produktionsprüfung fehlgeschlagen');
+    expect(auth).not.toContain('Produktionsprüfung fehlgeschlagen');
   });
 });

@@ -33,6 +33,7 @@
     },
     "production": {
       "node": "20.19.4",
+      "environment": "production",
       "autoIncrement": true,
       "ios": {
         "simulator": false
@@ -115,6 +116,7 @@
     },
     "portal-only-aab": {
       "extends": "production",
+      "environment": "production",
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle",

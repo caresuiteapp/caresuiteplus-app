@@ -1,4 +1,5 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
+import Constants from 'expo-constants';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { employeePortalExecutionSurface } from '@/lib/portal/employeePortalExecutionSurface';
 import { copyTextToClipboard } from '@/lib/platform/clipboard';
@@ -14,6 +15,7 @@ type Props = {
 type State = {
   failed: boolean;
   reference: string | null;
+  technicalMessage: string | null;
   copied: boolean;
 };
 
@@ -21,11 +23,26 @@ function createReference(): string {
   return `EINSATZ-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
-export class EmployeePortalExecutionErrorBoundary extends Component<Props, State> {
-  state: State = { failed: false, reference: null, copied: false };
+function runtimeLabel(): string {
+  const runtime = Constants.expoConfig?.extra?.runtime as
+    | { releaseId?: unknown; liveConfigured?: unknown }
+    | undefined;
+  const version = Constants.expoConfig?.version ?? 'unbekannt';
+  const releaseId = typeof runtime?.releaseId === 'string' ? runtime.releaseId : 'unbekannt';
+  const live = runtime?.liveConfigured === true ? 'Live-Konfiguration: aktiv' : 'Live-Konfiguration: fehlt';
+  return `App ${version} · Build ${releaseId} · ${live}`;
+}
 
-  static getDerivedStateFromError(): State {
-    return { failed: true, reference: createReference(), copied: false };
+export class EmployeePortalExecutionErrorBoundary extends Component<Props, State> {
+  state: State = { failed: false, reference: null, technicalMessage: null, copied: false };
+
+  static getDerivedStateFromError(error: Error): State {
+    return {
+      failed: true,
+      reference: createReference(),
+      technicalMessage: error.message?.trim() || 'Unbekannter Darstellungsfehler',
+      copied: false,
+    };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
@@ -43,7 +60,14 @@ export class EmployeePortalExecutionErrorBoundary extends Component<Props, State
 
   private copyReference = async () => {
     if (!this.state.reference) return;
-    const copied = await copyTextToClipboard(this.state.reference);
+    const copied = await copyTextToClipboard(
+      [
+        this.state.reference,
+        runtimeLabel(),
+        this.props.assignmentId ? `Einsatz: ${this.props.assignmentId}` : null,
+        this.state.technicalMessage ? `Fehler: ${this.state.technicalMessage}` : null,
+      ].filter(Boolean).join('\n'),
+    );
     this.setState({ copied });
   };
 
@@ -58,6 +82,7 @@ export class EmployeePortalExecutionErrorBoundary extends Component<Props, State
             Unterschrift und Dokumentation gehen dadurch nicht verloren.
           </Text>
           <Text style={styles.reference}>Fehlerreferenz: {this.state.reference}</Text>
+          <Text style={styles.reference}>{runtimeLabel()}</Text>
           <Pressable
             accessibilityRole="button"
             style={styles.referenceButton}
@@ -70,7 +95,7 @@ export class EmployeePortalExecutionErrorBoundary extends Component<Props, State
           <Pressable
             accessibilityRole="button"
             style={styles.primaryButton}
-            onPress={() => this.setState({ failed: false, reference: null, copied: false })}
+            onPress={() => this.setState({ failed: false, reference: null, technicalMessage: null, copied: false })}
           >
             <Text style={styles.primaryButtonText}>Einsatzansicht erneut aufbauen</Text>
           </Pressable>

@@ -6,11 +6,11 @@ const root = process.cwd();
 const read = (path: string) => readFileSync(join(root, path), 'utf8');
 const readJson = (path: string) => JSON.parse(read(path)) as Record<string, any>;
 
-describe('Google Play portal-only update 0.3.4', () => {
+describe('Google Play portal-only update 0.3.5', () => {
   it('preserves the existing Android identity and raises the release baseline', () => {
     const app = readJson('app.json').expo;
     expect(app.android.package).toBe('app.caresuitehealthos');
-    expect(app.version).toBe('0.3.4');
+    expect(app.version).toBe('0.3.5');
     expect(app.android.versionCode).toBeGreaterThanOrEqual(27);
   });
 
@@ -40,6 +40,7 @@ describe('Google Play portal-only update 0.3.4', () => {
     expect(eas.cli.appVersionSource).toBe('remote');
     expect(eas.build['portal-only-aab']).toMatchObject({
       extends: 'production',
+      environment: 'production',
       autoIncrement: true,
       android: { buildType: 'app-bundle' },
       env: {

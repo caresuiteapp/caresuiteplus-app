@@ -475,7 +475,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       setLiveErrorCode(null);
       setRefetchWarning(null);
 
-      if (result.data.liveContext?.consentStatus.granted) {
+      if (result.data.liveContext?.consentStatus?.granted) {
         grantEmployeePortalLocationConsent(tenantId, assignmentId);
       }
 
@@ -526,7 +526,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
             executionContext.visitTimes?.arrivedAt ||
               executionContext.assignmentStatus === 'angekommen',
           ),
-        nextActionHint: executionContext.diagnostics.repairHint,
+        nextActionHint: executionContext.diagnostics?.repairHint ?? null,
       };
     }
     if (!query.data) return null;
@@ -603,11 +603,11 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       gpsPermission,
     );
 
-    const resolvedConsent = liveContext?.consentStatus.granted
+    const resolvedConsent = liveContext?.consentStatus?.granted
       ? {
           granted: true as const,
-          grantedAt: liveContext.consentStatus.grantedAt,
-          explainedAt: liveContext.consentStatus.explainedAt,
+          grantedAt: liveContext.consentStatus?.grantedAt ?? null,
+          explainedAt: liveContext.consentStatus?.explainedAt ?? null,
         }
       : base.consent;
 
@@ -1283,7 +1283,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
     const assignmentConsent = getEmployeePortalLocationConsent(tenantId, assignmentId);
     const granted =
-      liveContext?.consentStatus.granted ||
+      liveContext?.consentStatus?.granted ||
       assignmentConsent.granted ||
       employeeLevelConsent?.granted;
 
@@ -1294,12 +1294,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     return {
       granted: true as const,
       grantedAt:
-        liveContext?.consentStatus.grantedAt ??
+        liveContext?.consentStatus?.grantedAt ??
         assignmentConsent.grantedAt ??
         employeeLevelConsent?.grantedAt ??
         null,
       explainedAt:
-        liveContext?.consentStatus.explainedAt ??
+        liveContext?.consentStatus?.explainedAt ??
         assignmentConsent.explainedAt ??
         employeeLevelConsent?.explainedAt ??
         null,
@@ -1309,9 +1309,9 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     assignmentId,
     consentRevision,
     employeeLevelConsent,
-    liveContext?.consentStatus.granted,
-    liveContext?.consentStatus.grantedAt,
-    liveContext?.consentStatus.explainedAt,
+    liveContext?.consentStatus?.granted,
+    liveContext?.consentStatus?.grantedAt,
+    liveContext?.consentStatus?.explainedAt,
   ]);
 
   const refresh = useCallback(async () => {

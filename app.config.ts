@@ -13,11 +13,27 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     process.env.EAS_PROJECT_ID ?? '567bda34-8356-4de8-9349-a0de3143567e';
   const isHealthOSCoreEdition = process.env.EXPO_PUBLIC_APP_EDITION === 'healthos-core';
   const isPortalOnlyEdition = process.env.EXPO_PUBLIC_APP_EDITION === 'portal-only';
+  const liveConfigPresent = Boolean(
+    process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() &&
+      (
+        process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim()
+      ),
+  );
+  if (process.env.EAS_BUILD === 'true' && isPortalOnlyEdition && !liveConfigPresent) {
+    throw new Error(
+      'Portal-only AAB abgebrochen: EXPO_PUBLIC_SUPABASE_URL und Publishable-/Anon-Key fehlen im EAS-Environment production.',
+    );
+  }
+  const releaseId =
+    process.env.EAS_BUILD_GIT_COMMIT_HASH?.slice(0, 12) ||
+    process.env.CARESUITE_RELEASE_ID?.trim() ||
+    'local';
   return {
   ...config,
   name: isHealthOSCoreEdition || isPortalOnlyEdition ? 'CareSuite HealthOS' : 'CareSuite+',
   slug: 'caresuite-plus',
-  version: '0.3.4',
+  version: '0.3.5',
   orientation: 'default',
   icon: './assets/icon.png',
   scheme: 'caresuiteplus',
@@ -168,6 +184,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ? { eas: { projectId: easProjectId } }
       : {}),
     supportLinks: { ...SUPPORT_LINKS },
+    runtime: {
+      releaseId,
+      appEdition: isPortalOnlyEdition ? 'portal-only' : isHealthOSCoreEdition ? 'healthos-core' : 'full',
+      liveConfigured: liveConfigPresent,
+    },
   },
   owner: 'kevin-caresuite',
   };

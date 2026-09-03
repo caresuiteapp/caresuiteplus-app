@@ -116,7 +116,7 @@ describe('kontinuierliche Mitarbeitenden-Liveverfolgung', () => {
     expect(peekEmployeePortalTrackingEntry(tenantId, assignmentId).trackingActive).toBe(false);
   });
 
-  it('startet GPS ohne separaten CareSuite-Einwilligungsdialog bei Anfahrt oder Einsatz', () => {
+  it('startet GPS nach der einmaligen Android-Pflichtinformation ohne fachlichen Consent-Blocker', () => {
     const hook = readFileSync(
       'src/hooks/useEmployeePortalVisitExecution.ts',
       'utf8',
@@ -140,6 +140,9 @@ describe('kontinuierliche Mitarbeitenden-Liveverfolgung', () => {
     expect(startEnRoute).not.toContain("createAssistWorkflowError('AWF_CONSENT_REQUIRED'");
     expect(startTracking).not.toContain("createLiveTrackingError('LIVE_CONSENT_SAVE_FAILED'");
     expect(screen).not.toContain('Bitte zuerst Standort-Einwilligung bestätigen.');
-    expect(screen).not.toContain('<EmployeePortalLocationConsentBanner');
+    expect(screen).toContain('<EmployeePortalLocationConsentBanner');
+    expect(screen).toMatch(
+      /const handleAcceptLocationDisclosure[\s\S]*await grantConsent\(\)[\s\S]*await executeStartDrive\(\)/,
+    );
   });
 });
