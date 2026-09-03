@@ -31,6 +31,7 @@ import type {
   AssignmentPortalDetailCacheRecord,
   CachedPortalAppointmentItem,
 } from './types';
+import { normalizeEmployeePortalAssignmentDetail } from '@/lib/portal/normalizeEmployeePortalAssignmentDetail';
 
 const ASSIGNMENTS_STORE = 'assignments' as const;
 export const MAX_PREFETCH_DETAILS = 6;
@@ -367,11 +368,15 @@ export async function writeExecutionDetailCache(
   employeeId: string,
   payload: EmployeePortalAssignmentDetail,
 ): Promise<boolean> {
+  const normalized = normalizeEmployeePortalAssignmentDetail(payload, {
+    assignmentId: payload.assignmentId,
+    tenantId,
+  });
   return writeExecutionDetailCacheForKey(
     tenantId,
     employeeId,
     payload.assignmentId,
-    payload,
+    normalized,
   );
 }
 
@@ -382,14 +387,18 @@ async function writeExecutionDetailCacheForKey(
   payload: EmployeePortalAssignmentDetail,
 ): Promise<boolean> {
   await openOfflineDb();
-  if (!cacheAssignmentId?.trim() || !payload.assignmentId?.trim()) return false;
+  const normalized = normalizeEmployeePortalAssignmentDetail(payload, {
+    assignmentId: cacheAssignmentId,
+    tenantId,
+  });
+  if (!cacheAssignmentId?.trim() || !normalized.assignmentId?.trim()) return false;
   return putStoreRecord<AssignmentExecutionDetailCacheRecord>(ASSIGNMENTS_STORE, {
     key: executionDetailCacheKey(tenantId, employeeId, cacheAssignmentId),
     tenantId,
     employeeId,
     assignmentId: cacheAssignmentId,
     kind: 'execution_detail',
-    payload,
+    payload: normalized,
     cachedAt: new Date().toISOString(),
   });
 }
@@ -574,7 +583,13 @@ export async function loadExecutionDetailWithCache(
     const cached = await readExecutionDetailCache(tenantId, employeeId, assignmentKey);
     if (cached) {
       return withCacheMeta(
-        { ok: true, data: cached.payload },
+        {
+          ok: true,
+          data: normalizeEmployeePortalAssignmentDetail(cached.payload, {
+            assignmentId: assignmentKey,
+            tenantId,
+          }),
+        },
         {
           fromCache: true,
           cachedAt: cached.cachedAt,
@@ -587,7 +602,7 @@ export async function loadExecutionDetailWithCache(
     const listItem = listCached?.items.find((item) => item.id === assignmentKey);
     if (listItem) {
       return withCacheMeta(
-        { ok: true, data: buildExecutionDetailFromListItem(listItem, tenantId) },
+        { ok: true, data: normalizeEmployeePortalAssignmentDetail(buildExecutionDetailFromListItem(listItem, tenantId), { assignmentId: assignmentKey, tenantId }) },
         {
           fromCache: true,
           cachedAt: listCached!.cachedAt,
@@ -607,13 +622,17 @@ export async function loadExecutionDetailWithCache(
     roleKey,
   );
   if (online.ok) {
+    const normalizedOnline = normalizeEmployeePortalAssignmentDetail(online.data, {
+      assignmentId: assignmentKey,
+      tenantId,
+    });
     // IndexedDB is a resilience layer, not part of the visible load gate.
     // Safari can take noticeable time to commit IDB writes under memory or
     // battery pressure, so publish live data first and persist in background.
     void Promise.all([
-      writeExecutionDetailCache(tenantId, employeeId, online.data),
-      assignmentKey && assignmentKey !== online.data.assignmentId
-        ? writeExecutionDetailCacheForKey(tenantId, employeeId, assignmentKey, online.data)
+      writeExecutionDetailCache(tenantId, employeeId, normalizedOnline),
+      assignmentKey && assignmentKey !== normalizedOnline.assignmentId
+        ? writeExecutionDetailCacheForKey(tenantId, employeeId, assignmentKey, normalizedOnline)
         : Promise.resolve(true),
     ])
       .then(([wroteCanonical, wroteRouteAlias]) => {
@@ -622,20 +641,20 @@ export async function loadExecutionDetailWithCache(
           tenantId,
           employeeId,
           assignmentId: assignmentKey,
-          resolvedAssignmentId: online.data.assignmentId,
+          resolvedAssignmentId: normalizedOnline.assignmentId,
         });
       })
       .catch(() => {
         console.warn('[CareSuite offline] background execution cache write failed');
       });
-    return withCacheMeta(online, liveCacheMeta());
+    return withCacheMeta({ ok: true, data: normalizedOnline }, liveCacheMeta());
   }
 
   if (assignmentKey) {
     const cached = await readExecutionDetailCache(tenantId, employeeId, assignmentKey);
     if (cached) {
       return withCacheMeta(
-        { ok: true, data: cached.payload },
+        { ok: true, data: normalizeEmployeePortalAssignmentDetail(cached.payload, { assignmentId: assignmentKey, tenantId }) },
         {
           fromCache: true,
           cachedAt: cached.cachedAt,
@@ -648,7 +667,7 @@ export async function loadExecutionDetailWithCache(
     const listItem = listCached?.items.find((item) => item.id === assignmentKey);
     if (listItem) {
       return withCacheMeta(
-        { ok: true, data: buildExecutionDetailFromListItem(listItem, tenantId) },
+        { ok: true, data: normalizeEmployeePortalAssignmentDetail(buildExecutionDetailFromListItem(listItem, tenantId), { assignmentId: assignmentKey, tenantId }) },
         {
           fromCache: true,
           cachedAt: listCached!.cachedAt,

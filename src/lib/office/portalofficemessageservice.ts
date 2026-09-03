@@ -62,6 +62,17 @@ function officeMessagingError(error: string): ServiceResult<never> {
   return { ok: false, error };
 }
 
+function isMissingPortalCreateRpc(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { code?: string; message?: string };
+  return (
+    candidate.code === 'PGRST202' ||
+    candidate.code === '42883' ||
+    candidate.message?.includes('portal_create_office_thread') === true &&
+      candidate.message?.toLowerCase().includes('not find') === true
+  );
+}
+
 export type PortalActorLinkOverrides = {
   clientId?: string | null;
   employeeId?: string | null;
@@ -348,6 +359,52 @@ export async function createPortalOfficeThread(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
+  const rpc = supabase as unknown as {
+    rpc: (
+      name: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: unknown }>;
+  };
+  const atomicResult = await rpc.rpc('portal_create_office_thread', {
+    p_tenant_id: tenantId,
+    p_audience: actor.audience,
+    p_subject: subject,
+    p_category_id: input.categoryId ?? null,
+    p_initial_message: input.initialMessage?.trim() || null,
+  });
+
+  if (!atomicResult.error) {
+    const atomicRow = Array.isArray(atomicResult.data)
+      ? atomicResult.data[0]
+      : atomicResult.data;
+    const created = mapThreadRow((atomicRow ?? {}) as Record<string, unknown>);
+    if (!created) return { ok: false, error: 'Chat wurde gespeichert, konnte aber nicht angezeigt werden.' };
+
+    void logOfficeMessageAuditEvent({
+      tenantId,
+      action: 'office_message_thread_created',
+      summary: `Portal-Chat „${subject}" erstellt.`,
+      actorName: actor.displayName,
+      ...auditFromThread(created),
+    });
+
+    const notif = buildNewMessageNotification();
+    void notifyOfficeMessageEvent({
+      tenantId,
+      type: 'office_message_new',
+      threadId: created.id,
+      ...notif,
+    });
+
+    return { ok: true, data: created };
+  }
+
+  if (!isMissingPortalCreateRpc(atomicResult.error)) {
+    return officeMessagingError(toGermanSupabaseError(atomicResult.error));
+  }
+
+  // Compatibility only while a tenant is still receiving the migration. New
+  // production releases use the atomic RPC above.
   const { data, error } = await fromUnknownTable(supabase, 'message_threads')
     .insert({
       tenant_id: tenantId,

@@ -32,6 +32,7 @@ import { shouldClearAuthOnNullSessionEvent } from './authStateEvents';
 import { clearOfflineDb } from '@/lib/offline/idb';
 import { withAuthBootstrapTimeout } from './authBootstrapTimeout';
 import { unregisterPortalPushDeviceBeforeLogout } from '@/lib/portal/portalPushNotifications';
+import { refreshPortalSupabaseSession } from './portalSupabaseAuth';
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -215,7 +216,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     async function restoreSupabaseSession(restoredPortal: PortalSessionRecord | null) {
       try {
-        const sessionResult = await getSession();
+        let sessionResult = await getSession();
+        if (
+          (!sessionResult.ok || !sessionResult.data) &&
+          restoredPortal &&
+          (restoredPortal.loginType === 'employee_portal' || restoredPortal.loginType === 'client_portal')
+        ) {
+          const repaired = await refreshPortalSupabaseSession(restoredPortal);
+          if (repaired.ok) {
+            sessionResult = { ok: true, data: repaired.data };
+          }
+        }
         if (cancelled) return;
 
         if (sessionResult.ok && sessionResult.data) {

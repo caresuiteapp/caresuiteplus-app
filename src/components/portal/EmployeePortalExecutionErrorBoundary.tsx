@@ -1,32 +1,51 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { employeePortalExecutionSurface } from '@/lib/portal/employeePortalExecutionSurface';
+import { copyTextToClipboard } from '@/lib/platform/clipboard';
+import { persistEmployeePortalExecutionIncident } from '@/lib/portal/employeePortalExecutionIncidentStore';
 import { spacing, typography } from '@/theme';
 
 type Props = {
   children: ReactNode;
   onExit: () => void;
+  assignmentId?: string | null;
 };
 
 type State = {
   failed: boolean;
   reference: string | null;
+  copied: boolean;
 };
 
 function createReference(): string {
-  return `EINSATZ-${Date.now().toString(36).toUpperCase()}`;
+  return `EINSATZ-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
 export class EmployeePortalExecutionErrorBoundary extends Component<Props, State> {
-  state: State = { failed: false, reference: null };
+  state: State = { failed: false, reference: null, copied: false };
 
   static getDerivedStateFromError(): State {
-    return { failed: true, reference: createReference() };
+    return { failed: true, reference: createReference(), copied: false };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[EmployeePortalExecution]', this.state.reference, error, info.componentStack);
+    if (!this.state.reference) return;
+    void persistEmployeePortalExecutionIncident({
+      reference: this.state.reference,
+      assignmentId: this.props.assignmentId?.trim() || null,
+      message: error.message || 'Unbekannter Darstellungsfehler',
+      stack: error.stack ?? null,
+      componentStack: info.componentStack ?? null,
+      createdAt: new Date().toISOString(),
+    });
   }
+
+  private copyReference = async () => {
+    if (!this.state.reference) return;
+    const copied = await copyTextToClipboard(this.state.reference);
+    this.setState({ copied });
+  };
 
   render() {
     if (!this.state.failed) return this.props.children;
@@ -41,8 +60,17 @@ export class EmployeePortalExecutionErrorBoundary extends Component<Props, State
           <Text style={styles.reference}>Fehlerreferenz: {this.state.reference}</Text>
           <Pressable
             accessibilityRole="button"
+            style={styles.referenceButton}
+            onPress={() => void this.copyReference()}
+          >
+            <Text style={styles.referenceButtonText}>
+              {this.state.copied ? 'Fehlerreferenz kopiert' : 'Fehlerreferenz kopieren'}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
             style={styles.primaryButton}
-            onPress={() => this.setState({ failed: false, reference: null })}
+            onPress={() => this.setState({ failed: false, reference: null, copied: false })}
           >
             <Text style={styles.primaryButtonText}>Einsatzansicht erneut aufbauen</Text>
           </Pressable>
@@ -77,6 +105,8 @@ const styles = StyleSheet.create({
   title: { ...typography.h3, color: '#10233E' },
   message: { ...typography.body, color: '#334E68' },
   reference: { ...typography.caption, color: '#64748B' },
+  referenceButton: { alignSelf: 'flex-start', paddingVertical: spacing.xs },
+  referenceButtonText: { ...typography.bodyStrong, color: '#075DC7' },
   primaryButton: {
     minHeight: 52,
     paddingHorizontal: spacing.lg,

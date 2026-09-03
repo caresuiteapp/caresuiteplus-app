@@ -67,7 +67,7 @@ export function PortalNewChatModal({
   const actorAudienceMatches = portalAudienceForRole(roleKey) === audience;
   // Keep the action tappable so a missing account link produces an actionable
   // explanation instead of a permanently disabled, apparently broken button.
-  const canSend = actorAudienceMatches && !submitting;
+  const canSend = !submitting;
 
   const styles = useMemo(
     () =>

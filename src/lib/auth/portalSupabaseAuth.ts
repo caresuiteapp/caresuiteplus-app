@@ -3,6 +3,8 @@ import type { AuthServiceResult } from '@/lib/supabase/authService';
 import { toGermanAuthError } from '@/lib/supabase/authService';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isDemoMode } from '@/lib/supabase/config';
+import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
+import type { PortalSessionRecord } from './portalSessionStore';
 
 export type PortalSupabaseTokens = {
   accessToken: string;
@@ -55,4 +57,20 @@ export function mapPortalSupabaseTokensFromEdge(data: {
     accessToken: data.supabaseAccessToken,
     refreshToken: data.supabaseRefreshToken,
   };
+}
+
+/** Repairs the authenticated RLS session for an already valid portal session. */
+export async function refreshPortalSupabaseSession(
+  portalSession: PortalSessionRecord,
+): Promise<AuthServiceResult<Session>> {
+  const refreshed = await invokeEdgeFunction<{
+    supabaseAccessToken?: string;
+    supabaseRefreshToken?: string;
+  }>('portal-session-refresh', { sessionToken: portalSession.sessionToken });
+  if (!refreshed.ok) return refreshed;
+  const tokens = mapPortalSupabaseTokensFromEdge(refreshed.data);
+  if (!tokens) {
+    return { ok: false, error: 'Die erneuerte Portalsitzung enthält keine Schreibberechtigung.' };
+  }
+  return signInWithPortalSupabaseTokens(tokens);
 }

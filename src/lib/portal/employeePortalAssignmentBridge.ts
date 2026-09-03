@@ -48,7 +48,7 @@ function visitTaskStatusToAssignmentStatus(
 }
 
 function mapVisitTasks(tasks: VisitDispositionDetail['tasks']): AssignmentTaskItem[] {
-  return tasks.map((task) => ({
+  return (Array.isArray(tasks) ? tasks : []).map((task) => ({
     id: task.id,
     title: task.title,
     status: visitTaskStatusToAssignmentStatus(task.status),
@@ -120,7 +120,7 @@ export function resetVirtualOccurrenceAssignmentDetail(
     allowedStatusActions: allowed.map(assignmentStatusToWorkflowFilter),
     allowedStatusTransitions: allowed,
     nextActionHint: ASSIGNMENT_STATUS_LABELS[assignmentStatus],
-    tasks: detail.tasks.map((task) =>
+    tasks: (Array.isArray(detail.tasks) ? detail.tasks : []).map((task) =>
       task.status === 'open'
         ? task
         : {
@@ -139,13 +139,14 @@ export function resetVirtualOccurrenceAssignmentDetail(
 }
 
 export function visitMirrorInputFromDetail(visit: VisitDispositionDetail) {
+  const scheduledStart = typeof visit.scheduledStart === 'string' ? visit.scheduledStart : '';
   return {
     visitId: visit.id,
     tenantId: visit.tenantId,
     clientId: visit.clientId,
     employeeId: visit.employeeId,
-    assignmentDate: visit.scheduledStart.slice(0, 10),
-    plannedStartAt: visit.scheduledStart,
+    assignmentDate: scheduledStart.slice(0, 10),
+    plannedStartAt: scheduledStart,
     plannedEndAt: visit.scheduledEnd,
     title: visit.title,
     description: visit.description,

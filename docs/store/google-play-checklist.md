@@ -1,4 +1,4 @@
-# Google Play – Update 0.3.1
+# Google Play – Update 0.3.2
 
 **App:** CareSuite HealthOS
 
@@ -15,7 +15,7 @@
 - [ ] Der bestehende Play-Eintrag verwendet exakt `app.caresuitehealthos`.
 - [ ] App-Signierung und Upload-Key gehören zum bestehenden Play-Eintrag.
 - [ ] EAS-Projekt: `567bda34-8356-4de8-9349-a0de3143567e`.
-- [ ] Nutzer-Version: `0.3.1`.
+- [ ] Nutzer-Version: `0.3.2`.
 - [ ] EAS `appVersionSource` bleibt `remote`; der Remote-`versionCode` wird durch `autoIncrement` erhöht.
 - [ ] Niemals einen zweiten Play-Eintrag mit `app.caresuiteplus` anlegen.
 
@@ -30,6 +30,7 @@
 - [ ] Foto-, Video- und Datei-Upload inklusive direkter Kameraaufnahme und Android-Wiederherstellung.
 - [ ] Push-Mitteilungen mit neutralem Sperrbildschirmtext.
 - [ ] Sicherheits-, Stabilitäts- und Portal-Isolationsprüfungen bestanden.
+- [ ] Atomare Nachrichten-Migration und `portal-session-refresh` Edge Function produktiv ausgerollt.
 
 ## Berechtigungen und Play-Erklärungen
 

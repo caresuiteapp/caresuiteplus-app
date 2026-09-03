@@ -5,6 +5,7 @@ import {
   signInWithPortalSupabaseTokens,
   type PortalSupabaseTokens,
 } from './portalSupabaseAuth';
+import { getServiceMode } from '@/lib/services/mode';
 
 export type PortalLoginResult = {
   portalSession: PortalSessionRecord;
@@ -17,6 +18,13 @@ export async function completePortalLogin(
   edgeData?: { supabaseAccessToken?: string; supabaseRefreshToken?: string },
 ): Promise<ServiceResult<PortalLoginResult>> {
   const supabaseTokens = edgeData ? mapPortalSupabaseTokensFromEdge(edgeData) : null;
+
+  if (getServiceMode() === 'supabase' && !supabaseTokens) {
+    return {
+      ok: false,
+      error: 'Die sichere App-Sitzung wurde nicht vollständig erstellt. Bitte erneut anmelden.',
+    };
+  }
 
   if (supabaseTokens) {
     const sessionResult = await signInWithPortalSupabaseTokens(supabaseTokens);

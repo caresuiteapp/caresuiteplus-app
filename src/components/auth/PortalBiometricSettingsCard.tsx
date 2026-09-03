@@ -24,15 +24,26 @@ export function PortalBiometricSettingsCard() {
   const accountId = portalSession?.accountId ?? null;
 
   const refresh = useCallback(async () => {
-    if (!accountId || Platform.OS === 'web') return;
+    if (!accountId || Platform.OS === 'web') {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const [nextAvailability, nextEnabled] = await Promise.all([
-      getPortalFaceAvailability(),
-      isPortalFaceUnlockEnabled(accountId),
-    ]);
-    setAvailability(nextAvailability);
-    setEnabled(nextEnabled);
-    setLoading(false);
+    setFeedback(null);
+    try {
+      const [nextAvailability, nextEnabled] = await Promise.all([
+        getPortalFaceAvailability(),
+        isPortalFaceUnlockEnabled(accountId),
+      ]);
+      setAvailability(nextAvailability);
+      setEnabled(nextEnabled);
+    } catch {
+      setAvailability(null);
+      setEnabled(false);
+      setFeedback('Der geschützte Gerätespeicher konnte nicht geöffnet werden. Bitte entsperren Sie das Gerät vollständig und versuchen Sie es erneut.');
+    } finally {
+      setLoading(false);
+    }
   }, [accountId]);
 
   useEffect(() => {
@@ -43,34 +54,35 @@ export function PortalBiometricSettingsCard() {
     if (!accountId || loading) return;
     setLoading(true);
     setFeedback(null);
+    try {
+      if (enabled) {
+        await setPortalFaceUnlockEnabled(accountId, false);
+        setEnabled(false);
+        setFeedback('Biometrische Entsperrung wurde auf diesem Gerät deaktiviert.');
+        return;
+      }
 
-    if (enabled) {
-      await setPortalFaceUnlockEnabled(accountId, false);
-      setEnabled(false);
-      setFeedback('Biometrische Entsperrung wurde auf diesem Gerät deaktiviert.');
+      const nextAvailability = await getPortalFaceAvailability();
+      setAvailability(nextAvailability);
+      if (!nextAvailability.available) {
+        setFeedback(nextAvailability.reason);
+        return;
+      }
+
+      const result = await authenticatePortalFace();
+      if (!result.ok) {
+        setFeedback(result.error);
+        return;
+      }
+
+      await setPortalFaceUnlockEnabled(accountId, true);
+      setEnabled(true);
+      setFeedback('Biometrische Entsperrung ist für dieses Gerät aktiviert.');
+    } catch {
+      setFeedback('Biometrie konnte auf diesem Gerät nicht gespeichert werden. Bitte versuchen Sie es erneut.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const nextAvailability = await getPortalFaceAvailability();
-    setAvailability(nextAvailability);
-    if (!nextAvailability.available) {
-      setFeedback(nextAvailability.reason);
-      setLoading(false);
-      return;
-    }
-
-    const result = await authenticatePortalFace();
-    if (!result.ok) {
-      setFeedback(result.error);
-      setLoading(false);
-      return;
-    }
-
-    await setPortalFaceUnlockEnabled(accountId, true);
-    setEnabled(true);
-    setFeedback('Biometrische Entsperrung ist für dieses Gerät aktiviert.');
-    setLoading(false);
   }, [accountId, enabled, loading]);
 
   if (Platform.OS === 'web' || !accountId) return null;

@@ -99,6 +99,10 @@ const liquidGlyphIcons: Record<string, IoniconName> = {
   '›': 'chevron-forward-outline',
   '⌖': 'location-outline',
   '➤': 'navigate-outline',
+  '☼': 'airplane-outline',
+  '↑': 'cloud-upload-outline',
+  '?': 'help-circle-outline',
+  '•••': 'ellipsis-horizontal-circle-outline',
 };
 
 const orbitModuleGlyphIcons: Record<string, { filled: IoniconName; outline: IoniconName }> = {
@@ -119,15 +123,39 @@ export function LiquidGlyph({
   active = false,
   color,
   size = 21,
+  presentation = 'plain',
 }: {
   glyph: string;
   active?: boolean;
   color?: string;
   size?: number;
+  presentation?: 'plain' | 'navigation';
 }) {
   const iconName = liquidGlyphIcons[glyph];
   const orbit = useLiquidVisualMode() === 'orbit';
   const orbitModuleIcon = orbitModuleGlyphIcons[glyph];
+  if (orbit && presentation === 'navigation' && iconName) {
+    const frameSize = Math.max(28, size + 10);
+    return (
+      <LinearGradient
+        colors={active ? ['#F7FBFF', '#DCEBFF'] : ['#FFFFFF', '#EEF3F8']}
+        start={{ x: 0.12, y: 0.08 }}
+        end={{ x: 0.9, y: 1 }}
+        style={[
+          styles.orbitGlyphFrame,
+          active && styles.orbitGlyphFrameActive,
+          { width: frameSize, height: frameSize, borderRadius: Math.round(frameSize * 0.34) },
+        ]}
+      >
+        <Ionicons
+          color={color ?? (active ? '#0B63F3' : '#334155')}
+          name={iconName}
+          size={size}
+        />
+        <View style={[styles.orbitGlyphNode, active && styles.orbitGlyphNodeActive]} />
+      </LinearGradient>
+    );
+  }
   if (orbit && orbitModuleIcon) {
     const frameSize = Math.max(28, size + 10);
     const iconColor = color ?? (active ? '#0B63F3' : '#334155');

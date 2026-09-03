@@ -72,15 +72,38 @@ export function EmployeeFirstLoginPasswordScreen() {
           label="Einmalpasswort"
           value={currentPassword}
           onChangeText={setCurrentPassword}
+          autoCapitalize="none"
+          autoComplete="current-password"
+          autoCorrect={false}
+          importantForAutofill="yes"
           secureTextEntry
+          spellCheck={false}
+          textContentType="password"
         />
       ) : null}
-      <InputField label="Neues Passwort" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
+      <InputField
+        label="Neues Passwort"
+        value={newPassword}
+        onChangeText={setNewPassword}
+        autoCapitalize="none"
+        autoComplete="new-password"
+        autoCorrect={false}
+        importantForAutofill="yes"
+        secureTextEntry
+        spellCheck={false}
+        textContentType="newPassword"
+      />
       <InputField
         label="Passwort bestätigen"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
+        autoCapitalize="none"
+        autoComplete="new-password"
+        autoCorrect={false}
+        importantForAutofill="yes"
         secureTextEntry
+        spellCheck={false}
+        textContentType="newPassword"
       />
       <PremiumButton
         title={acceptedTerms ? 'Datenschutz bestätigt ✓' : 'Datenschutz / Nutzungsbedingungen bestätigen'}

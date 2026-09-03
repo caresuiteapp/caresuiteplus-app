@@ -60,6 +60,7 @@ import {
 } from './resolveEmployeePortalSignatureRequirement';
 import { enrichPortalTaskCategory } from './enrichPortalTaskCategory';
 import { isEmployeePortalAssignmentLocked } from './employeePortalAssignmentCompletion';
+import { normalizeEmployeePortalAssignmentDetail } from './normalizeEmployeePortalAssignmentDetail';
 
 function mapTask(task: AssignmentTaskItem): EmployeePortalTaskItem {
   return enrichPortalTaskCategory({
@@ -178,7 +179,7 @@ function mapDetailToPortal(
         : 'none'
       : 'none');
 
-  return {
+  return normalizeEmployeePortalAssignmentDetail({
     assignmentId: detail.id,
     tenantId: detail.tenantId,
     title: detail.title,
@@ -218,7 +219,7 @@ function mapDetailToPortal(
       signatureStatus,
     }),
     enabledModules: resolveEnabledExecutionModules(roleKey, tenantModules),
-  };
+  }, { assignmentId: detail.id, tenantId: detail.tenantId });
 }
 
 async function fetchAssignmentExtras(

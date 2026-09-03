@@ -79,8 +79,32 @@ export function EmployeePortalLoginScreen() {
         icon="👤"
       />
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
-      <PremiumInput label="Benutzername" value={username} onChangeText={setUsername} autoCapitalize="none" />
-      <PremiumInput label="Passwort / Einmalpasswort" value={password} onChangeText={setPassword} secureTextEntry />
+      <PremiumInput
+        label="Benutzername"
+        value={username}
+        onChangeText={setUsername}
+        autoCapitalize="none"
+        autoComplete="username"
+        autoCorrect={false}
+        importantForAutofill="yes"
+        returnKeyType="next"
+        spellCheck={false}
+        textContentType="username"
+      />
+      <PremiumInput
+        label="Passwort / Einmalpasswort"
+        value={password}
+        onChangeText={setPassword}
+        autoCapitalize="none"
+        autoComplete="current-password"
+        autoCorrect={false}
+        importantForAutofill="yes"
+        onSubmitEditing={() => void handleSubmit()}
+        returnKeyType="go"
+        secureTextEntry
+        spellCheck={false}
+        textContentType="password"
+      />
       <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
     </AuthLayout>
   );

@@ -32,19 +32,22 @@ describe('employee visit task speed R10.4', () => {
     expect(drafts).toContain('setSaving(false)');
   });
 
-  it('moves the animated robot from tasks to documentation immediately', () => {
+  it('keeps optional tasks out of the blocking step and guides directly to documentation', () => {
     const progress = read('src/components/portal/EmployeePortalVisitProgressSteps.tsx');
     const header = read('src/components/portal/EmployeePortalVisitStickyHeader.tsx');
     expect(progress).toContain('tasksComplete?: boolean');
     expect(progress).toContain('documentationComplete?: boolean');
-    expect(progress).toContain('tasksComplete || currentStep');
+    expect(progress).toContain("if (stepKey === 'tasks')");
+    expect(progress).toContain('return false;');
+    expect(progress).toContain("currentStep === 'documentation'");
     expect(header).toContain('tasksComplete={tasksComplete}');
   });
 
   it('offers documentation as the explicit next action after the final task', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     expect(screen).toContain('const allTasksComplete');
-    expect(screen).toContain('Weiter geht es jetzt mit der Dokumentation.');
+    expect(screen).toContain('Aufgaben sind optional');
+    expect(screen).toContain('guideCanOpenDocumentation');
     expect(screen).toContain("? 'Jetzt Doku öffnen'");
     expect(screen).toContain('? () => setDocumentationOpen(true)');
   });

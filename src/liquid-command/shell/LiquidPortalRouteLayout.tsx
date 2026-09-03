@@ -126,6 +126,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   <LiquidGlyph
                     active={activeId === item.id}
                     glyph={item.glyph}
+                    presentation="navigation"
                     size={19}
                   />
                   <Text numberOfLines={1} style={[styles.railLabel, kind === 'client' && styles.clientRailLabel]}>{item.label}</Text>
@@ -235,6 +236,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                 <LiquidGlyph
                   active={activeId === item.id}
                   glyph={item.glyph}
+                  presentation="navigation"
                   size={20}
                 />
                 <Text
@@ -262,6 +264,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
               <LiquidGlyph
                 active={moreNavigation.some((item) => item.id === activeId)}
                 glyph="•••"
+                presentation="navigation"
                 size={20}
               />
               <Text
@@ -325,7 +328,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                         pressed && styles.pressed,
                       ]}
                     >
-                      <LiquidGlyph active={activeId === item.id} glyph={item.glyph} size={21} />
+                      <LiquidGlyph active={activeId === item.id} glyph={item.glyph} presentation="navigation" size={21} />
                       <Text style={styles.moreLabel}>{item.label}</Text>
                       <Text style={styles.moreArrow}>›</Text>
                     </Pressable>

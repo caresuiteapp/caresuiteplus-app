@@ -1,4 +1,4 @@
-# Privacy & Data Map – CareSuite HealthOS Android 0.3.1
+# Privacy & Data Map – CareSuite HealthOS Android 0.3.2
 
 **Paket-ID:** `app.caresuitehealthos`
 

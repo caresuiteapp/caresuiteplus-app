@@ -67,14 +67,28 @@ export function PortalBiometricGate({ children }: PortalBiometricGateProps) {
 
     let cancelled = false;
     setChecking(true);
-    void isPortalFaceUnlockEnabled(accountId).then((preferenceEnabled) => {
-      if (cancelled) return;
-      setChecking(false);
-      setCheckedAccountId(accountId);
-      setEnabled(preferenceEnabled);
-      setLocked(preferenceEnabled);
-      if (preferenceEnabled) void unlock();
-    });
+    void (async () => {
+      try {
+        const preferenceEnabled = await isPortalFaceUnlockEnabled(accountId);
+        if (cancelled) return;
+        setEnabled(preferenceEnabled);
+        setLocked(preferenceEnabled);
+        setError(null);
+        if (preferenceEnabled) void unlock();
+      } catch {
+        if (cancelled) return;
+        // A keystore/keychain read failure must never leave the complete app
+        // behind an endless loading screen.
+        setEnabled(false);
+        setLocked(false);
+        setError(null);
+      } finally {
+        if (!cancelled) {
+          setChecking(false);
+          setCheckedAccountId(accountId);
+        }
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -118,9 +132,14 @@ export function PortalBiometricGate({ children }: PortalBiometricGateProps) {
   useEffect(() => {
     if (!enabled || !accountId) return;
     void (async () => {
-      const stillEnabled = await isPortalFaceUnlockEnabled(accountId);
-      if (!stillEnabled) {
-        await setPortalFaceUnlockEnabled(accountId, false);
+      try {
+        const stillEnabled = await isPortalFaceUnlockEnabled(accountId);
+        if (!stillEnabled) {
+          await setPortalFaceUnlockEnabled(accountId, false);
+          setEnabled(false);
+          setLocked(false);
+        }
+      } catch {
         setEnabled(false);
         setLocked(false);
       }
