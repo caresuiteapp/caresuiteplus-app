@@ -84,8 +84,7 @@ npx --yes "eas-cli@${EAS_CLI_VERSION}" whoami
 npx --yes "eas-cli@${EAS_CLI_VERSION}" project:info
 
 printf 'Produktive AAB-Live-Konfiguration wird im echten EAS-Environment geprüft ...\n'
-npx --yes "eas-cli@${EAS_CLI_VERSION}" env:exec \
-  --environment production \
+npx --yes "eas-cli@${EAS_CLI_VERSION}" env:exec production \
   --non-interactive \
   'node scripts/verify-portal-production-env.mjs'
 
