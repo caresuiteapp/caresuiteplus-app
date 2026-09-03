@@ -17,6 +17,7 @@ import {
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useAuth } from '@/lib/auth/context';
+import { ensurePortalWriteSession } from '@/lib/auth/portalSupabaseAuth';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { spacing, radius } from '@/theme';
@@ -224,6 +225,12 @@ export function PortalNewChatModal({
     );
     if (!actorResult.ok) {
       setError(actorResult.error);
+      return;
+    }
+
+    const writableSession = await ensurePortalWriteSession(portalSession);
+    if (!writableSession.ok) {
+      setError(writableSession.error);
       return;
     }
 

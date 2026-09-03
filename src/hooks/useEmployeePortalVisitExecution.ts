@@ -66,6 +66,7 @@ import {
 } from '@/features/assistWorkflow';
 import type { WorkflowDeviationApproval } from '@/features/assistWorkflow/startService';
 import { useAuth } from '@/lib/auth/context';
+import { ensurePortalWriteSession } from '@/lib/auth/portalSupabaseAuth';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
@@ -226,7 +227,7 @@ function mergeVisitTimesFromPortalDetail(
   };
 }
 export function useEmployeePortalVisitExecution(assignmentId: string | undefined) {
-  const { profile } = useAuth();
+  const { profile, portalSession } = useAuth();
   const { tenantId: portalTenantId, employeeId: portalEmployeeId, roleKey: portalRoleKey, actorId } =
     usePortalActor();
   const tenantId = useServiceTenantId() ?? portalTenantId;
@@ -794,6 +795,15 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         return { ok: false, error: 'Einsatzkontext fehlt.', errorCode: 'START_SERVICE_CONTEXT_MISSING' };
       }
 
+      const writableSession = await ensurePortalWriteSession(portalSession);
+      if (!writableSession.ok) {
+        return {
+          ok: false,
+          error: writableSession.error,
+          errorCode: 'PORTAL_WRITE_SESSION_INVALID',
+        };
+      }
+
       const loadingMode = options?.loadingMode ?? 'generic';
       if (loadingMode === 'start_service') setStartServiceLoading(true);
       else setWorkflowLoading(true);
@@ -875,7 +885,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         else setWorkflowLoading(false);
       }
     },
-    [executionContext, query.data, refreshExecutionContext, syncAfterWorkflow],
+    [executionContext, query.data, refreshExecutionContext, syncAfterWorkflow, portalSession],
   );
 
   const taskDrafts = useTaskResultDrafts(
@@ -939,6 +949,15 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       return { ok: false, error: 'Keine Einsatz-ID.' };
     }
 
+    const writableSession = await ensurePortalWriteSession(portalSession);
+    if (!writableSession.ok) {
+      return {
+        ok: false,
+        error: writableSession.error,
+        errorCode: 'LIVE_SESSION_CREATE_FAILED',
+      };
+    }
+
     const storedAuthorization = getEmployeePortalLocationConsent(tenantId, assignmentId);
     const now = new Date().toISOString();
     // The employment/tenant policy is the processing basis. These legacy DB
@@ -990,7 +1009,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     // ancillary and must never turn an already-persisted workflow step into a
     // visible failure.
     return { ok: true };
-  }, [tenantId, assignmentId, employeeId, authProfileId, roleKey, gpsTracking, query]);
+  }, [tenantId, assignmentId, employeeId, authProfileId, roleKey, gpsTracking, query, portalSession]);
 
   const handleMarkArrived = useCallback(async (): Promise<MarkArrivedResult> => {
     const result = (await runWorkflow(async (ctx) => {

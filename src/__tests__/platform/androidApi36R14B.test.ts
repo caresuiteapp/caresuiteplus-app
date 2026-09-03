@@ -23,7 +23,10 @@ describe('R14-B Android API 36 and Expo SDK 54 baseline', () => {
     const config = readFileSync(join(root, 'app.config.ts'), 'utf8');
     const staticConfig = readJson('app.json').expo;
 
-    expect(config).toContain("version: '0.3.2'");
+    const configuredVersion = config.match(/version:\s*'([^']+)'/)?.[1] ?? '0.0.0';
+    expect(
+      configuredVersion.localeCompare('0.3.2', undefined, { numeric: true, sensitivity: 'base' }),
+    ).toBeGreaterThanOrEqual(0);
     const configuredVersionCode = Number(
       config.match(/versionCode:\s*(\d+)/)?.[1] ?? 0,
     );
@@ -34,7 +37,12 @@ describe('R14-B Android API 36 and Expo SDK 54 baseline', () => {
     expect(config).toContain('predictiveBackGestureEnabled: false');
     expect(config).not.toContain('edgeToEdgeEnabled: false');
 
-    expect(staticConfig.version).toBe('0.3.2');
+    expect(
+      staticConfig.version.localeCompare('0.3.2', undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      }),
+    ).toBeGreaterThanOrEqual(0);
     expect(staticConfig.android.versionCode).toBeGreaterThanOrEqual(25);
     expect(staticConfig.android.predictiveBackGestureEnabled).toBe(false);
   });

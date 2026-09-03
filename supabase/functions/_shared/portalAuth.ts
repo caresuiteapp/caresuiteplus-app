@@ -87,7 +87,24 @@ async function resolveAuthUserId(
   }
 
   if (linkRow?.auth_user_id) {
-    return { authUserId: linkRow.auth_user_id as string, error: null };
+    const linkedAuthUserId = linkRow.auth_user_id as string;
+    const { data: linkedUser, error: linkedUserError } =
+      await supabase.auth.admin.getUserById(linkedAuthUserId);
+    const linkedEmail = linkedUser?.user?.email?.trim().toLowerCase() ?? '';
+
+    if (!linkedUserError && linkedEmail === email.toLowerCase()) {
+      return { authUserId: linkedAuthUserId, error: null };
+    }
+
+    // Altbestände konnten ein Portal-Konto mit einem normalen Business-Auth-
+    // Benutzer verknüpfen. Anschließend wurde zwar für die synthetische Portal-
+    // E-Mail eine Sitzung erzeugt, die RLS-Verknüpfung zeigte aber weiterhin auf
+    // den anderen Benutzer. Dadurch waren Lesen aus Cache möglich, alle echten
+    // Einsatz- und Nachrichten-Schreibvorgänge jedoch gesperrt. Ein Portal erhält
+    // deshalb immer seine eigene, eindeutig zur Portal-E-Mail gehörende Auth-ID.
+    console.warn(
+      `[portalAuth] replacing mismatched auth link for ${input.portalType}/${input.accountId}`,
+    );
   }
 
   const { data: created, error: createError } = await supabase.auth.admin.createUser({

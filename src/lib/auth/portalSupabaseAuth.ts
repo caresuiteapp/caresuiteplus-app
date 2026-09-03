@@ -11,6 +11,31 @@ export type PortalSupabaseTokens = {
   refreshToken: string;
 };
 
+function expectedPortalType(portalSession: PortalSessionRecord): string {
+  if (portalSession.loginType === 'employee_portal') return 'employee';
+  if (portalSession.loginType === 'client_portal') return 'client';
+  return 'relative';
+}
+
+export function isPortalSupabaseSessionAligned(
+  session: Session | null | undefined,
+  portalSession: PortalSessionRecord,
+  nowMs = Date.now(),
+): boolean {
+  if (!session) return false;
+  const metadata = session.user.app_metadata ?? {};
+  const expiresAtMs = session.expires_at ? session.expires_at * 1_000 : null;
+  const expectedRole = portalSession.roleKey;
+
+  return (
+    metadata.tenant_id === portalSession.tenantId &&
+    metadata.role_key === expectedRole &&
+    metadata.portal_type === expectedPortalType(portalSession) &&
+    metadata.portal_account_id === portalSession.accountId &&
+    (expiresAtMs === null || expiresAtMs > nowMs + 60_000)
+  );
+}
+
 /** Establishes authenticated Supabase session after portal edge login (required for RLS). */
 export async function signInWithPortalSupabaseTokens(
   tokens: PortalSupabaseTokens,
@@ -73,4 +98,29 @@ export async function refreshPortalSupabaseSession(
     return { ok: false, error: 'Die erneuerte Portalsitzung enthält keine Schreibberechtigung.' };
   }
   return signInWithPortalSupabaseTokens(tokens);
+}
+
+/**
+ * Verifies the real Supabase/RLS identity immediately before a portal write.
+ * Existing portal UI state is not evidence of a writable database session:
+ * after an app update the opaque portal session can outlive an old Supabase JWT.
+ */
+export async function ensurePortalWriteSession(
+  portalSession: PortalSessionRecord | null | undefined,
+): Promise<AuthServiceResult<Session>> {
+  if (!portalSession) {
+    return { ok: false, error: 'Keine aktive Portalsitzung gefunden. Bitte erneut anmelden.' };
+  }
+
+  const client = getSupabaseClient();
+  if (!client) {
+    return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
+  }
+
+  const current = await client.auth.getSession();
+  if (!current.error && isPortalSupabaseSessionAligned(current.data.session, portalSession)) {
+    return { ok: true, data: current.data.session! };
+  }
+
+  return refreshPortalSupabaseSession(portalSession);
 }

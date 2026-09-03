@@ -32,7 +32,7 @@ import { shouldClearAuthOnNullSessionEvent } from './authStateEvents';
 import { clearOfflineDb } from '@/lib/offline/idb';
 import { withAuthBootstrapTimeout } from './authBootstrapTimeout';
 import { unregisterPortalPushDeviceBeforeLogout } from '@/lib/portal/portalPushNotifications';
-import { refreshPortalSupabaseSession } from './portalSupabaseAuth';
+import { ensurePortalWriteSession } from './portalSupabaseAuth';
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -216,17 +216,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     async function restoreSupabaseSession(restoredPortal: PortalSessionRecord | null) {
       try {
-        let sessionResult = await getSession();
-        if (
-          (!sessionResult.ok || !sessionResult.data) &&
-          restoredPortal &&
-          (restoredPortal.loginType === 'employee_portal' || restoredPortal.loginType === 'client_portal')
-        ) {
-          const repaired = await refreshPortalSupabaseSession(restoredPortal);
-          if (repaired.ok) {
-            sessionResult = { ok: true, data: repaired.data };
-          }
-        }
+        // A persisted Supabase session can still carry the pre-update JWT or a
+        // different auth-user link. Validate the full RLS identity on every
+        // portal bootstrap instead of refreshing only when no session exists.
+        const repaired = restoredPortal
+          ? await ensurePortalWriteSession(restoredPortal)
+          : null;
+        const sessionResult = repaired?.ok
+          ? { ok: true as const, data: repaired.data }
+          : await getSession();
         if (cancelled) return;
 
         if (sessionResult.ok && sessionResult.data) {

@@ -11,6 +11,7 @@ import { markPortalThreadMessagesRead } from '@/lib/office/messagereadservice';
 import { subscribeToOfficeMessageThread } from '@/lib/office/officemessagerealtime';
 import { toUserFacingSendError, VOICE_SEND_TIMEOUT_MS, withMessagingTimeout } from '@/lib/office/voicemessageutils';
 import { useAuth } from '@/lib/auth/context';
+import { ensurePortalWriteSession } from '@/lib/auth/portalSupabaseAuth';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
@@ -97,6 +98,12 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
         { clientId: actorClientId, employeeId: actorEmployeeId },
       );
       if (!actorResult.ok) return actorResult;
+
+      const writableSession = await ensurePortalWriteSession(portalSession);
+      if (!writableSession.ok) {
+        setSendError(toUserFacingSendError(writableSession.error));
+        return writableSession;
+      }
 
       setSending(true);
       setSendError(null);
