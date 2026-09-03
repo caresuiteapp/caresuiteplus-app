@@ -795,20 +795,19 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         return { ok: false, error: 'Einsatzkontext fehlt.', errorCode: 'START_SERVICE_CONTEXT_MISSING' };
       }
 
-      const writableSession = await ensurePortalWriteSession(portalSession);
-      if (!writableSession.ok) {
-        return {
-          ok: false,
-          error: writableSession.error,
-          errorCode: 'PORTAL_WRITE_SESSION_INVALID',
-        };
-      }
-
       const loadingMode = options?.loadingMode ?? 'generic';
       if (loadingMode === 'start_service') setStartServiceLoading(true);
       else setWorkflowLoading(true);
 
       try {
+        const writableSession = await ensurePortalWriteSession(portalSession, 'workflow');
+        if (!writableSession.ok) {
+          return {
+            ok: false,
+            error: writableSession.error,
+            errorCode: 'PORTAL_WRITE_SESSION_INVALID',
+          };
+        }
         const result = await withWorkflowTimeout(
           fn(ctx),
           options?.timeoutMs ??
@@ -949,7 +948,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       return { ok: false, error: 'Keine Einsatz-ID.' };
     }
 
-    const writableSession = await ensurePortalWriteSession(portalSession);
+    const writableSession = await ensurePortalWriteSession(portalSession, 'workflow');
     if (!writableSession.ok) {
       return {
         ok: false,

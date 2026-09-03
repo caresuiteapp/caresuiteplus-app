@@ -228,20 +228,27 @@ export function PortalNewChatModal({
       return;
     }
 
-    const writableSession = await ensurePortalWriteSession(portalSession);
-    if (!writableSession.ok) {
-      setError(writableSession.error);
-      return;
-    }
-
     setSubmitting(true);
     setError(null);
-    const result = await createPortalOfficeThread(tenantId, actorResult.data, {
-      categoryId: categoryId ?? null,
-      subject: subject.trim(),
-      initialMessage: initialMessage.trim() || undefined,
-    });
-    setSubmitting(false);
+    let result: Awaited<ReturnType<typeof createPortalOfficeThread>>;
+    try {
+      const writableSession = await ensurePortalWriteSession(portalSession, 'messages');
+      if (!writableSession.ok) {
+        setError(writableSession.error);
+        return;
+      }
+
+      result = await createPortalOfficeThread(tenantId, actorResult.data, {
+        categoryId: categoryId ?? null,
+        subject: subject.trim(),
+        initialMessage: initialMessage.trim() || undefined,
+      });
+    } catch {
+      setError('Die Nachricht konnte nicht gesendet werden. Bitte Verbindung prüfen und erneut versuchen.');
+      return;
+    } finally {
+      setSubmitting(false);
+    }
 
     if (!result.ok) {
       setError(

@@ -11,6 +11,27 @@ export type PortalSupabaseTokens = {
   refreshToken: string;
 };
 
+export type PortalWriteCapability = 'session' | 'messages' | 'workflow';
+
+const PORTAL_SESSION_CHECK_TIMEOUT_MS = 12_000;
+
+async function withPortalSessionTimeout<T>(operation: PromiseLike<T>): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error('Zeitüberschreitung bei der sicheren Sitzungsprüfung.')),
+          PORTAL_SESSION_CHECK_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 function expectedPortalType(portalSession: PortalSessionRecord): string {
   if (portalSession.loginType === 'employee_portal') return 'employee';
   if (portalSession.loginType === 'client_portal') return 'client';
@@ -88,16 +109,26 @@ export function mapPortalSupabaseTokensFromEdge(data: {
 export async function refreshPortalSupabaseSession(
   portalSession: PortalSessionRecord,
 ): Promise<AuthServiceResult<Session>> {
-  const refreshed = await invokeEdgeFunction<{
-    supabaseAccessToken?: string;
-    supabaseRefreshToken?: string;
-  }>('portal-session-refresh', { sessionToken: portalSession.sessionToken });
-  if (!refreshed.ok) return refreshed;
-  const tokens = mapPortalSupabaseTokensFromEdge(refreshed.data);
-  if (!tokens) {
-    return { ok: false, error: 'Die erneuerte Portalsitzung enthält keine Schreibberechtigung.' };
+  try {
+    const refreshed = await withPortalSessionTimeout(invokeEdgeFunction<{
+      supabaseAccessToken?: string;
+      supabaseRefreshToken?: string;
+    }>('portal-session-refresh', { sessionToken: portalSession.sessionToken }));
+    if (!refreshed.ok) return refreshed;
+    const tokens = mapPortalSupabaseTokensFromEdge(refreshed.data);
+    if (!tokens) {
+      return { ok: false, error: 'Die erneuerte Portalsitzung enthält keine Schreibberechtigung.' };
+    }
+    return await withPortalSessionTimeout(signInWithPortalSupabaseTokens(tokens));
+  } catch (cause) {
+    return {
+      ok: false,
+      error:
+        cause instanceof Error && cause.message.includes('Zeitüberschreitung')
+          ? 'Die sichere Sitzung antwortet nicht. Bitte Verbindung prüfen und erneut versuchen.'
+          : 'Die sichere Sitzung konnte nicht erneuert werden. Bitte erneut anmelden.',
+    };
   }
-  return signInWithPortalSupabaseTokens(tokens);
 }
 
 /**
@@ -107,6 +138,7 @@ export async function refreshPortalSupabaseSession(
  */
 export async function ensurePortalWriteSession(
   portalSession: PortalSessionRecord | null | undefined,
+  capability: PortalWriteCapability = 'session',
 ): Promise<AuthServiceResult<Session>> {
   if (!portalSession) {
     return { ok: false, error: 'Keine aktive Portalsitzung gefunden. Bitte erneut anmelden.' };
@@ -117,10 +149,50 @@ export async function ensurePortalWriteSession(
     return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
   }
 
-  const current = await client.auth.getSession();
-  if (!current.error && isPortalSupabaseSessionAligned(current.data.session, portalSession)) {
-    return { ok: true, data: current.data.session! };
-  }
+  try {
+    const current = await withPortalSessionTimeout(client.auth.getSession());
+    let session: Session;
+    if (!current.error && isPortalSupabaseSessionAligned(current.data.session, portalSession)) {
+      session = current.data.session!;
+    } else {
+      const refreshed = await refreshPortalSupabaseSession(portalSession);
+      if (!refreshed.ok) return refreshed;
+      session = refreshed.data;
+    }
 
-  return refreshPortalSupabaseSession(portalSession);
+    if (capability !== 'session') {
+      const runtimeClient = client as unknown as {
+        rpc: (
+          name: string,
+          args: Record<string, unknown>,
+        ) => PromiseLike<{
+          data: unknown;
+          error: { message?: string } | null;
+        }>;
+      };
+      const probe = await withPortalSessionTimeout(
+        runtimeClient.rpc('portal_runtime_write_probe', { p_capability: capability }),
+      );
+      if (probe.error) {
+        return {
+          ok: false,
+          error: `Produktionsprüfung fehlgeschlagen: ${probe.error.message?.trim() || 'Datenbankfunktion nicht verfügbar.'}`,
+        };
+      }
+      const payload = probe.data as { ok?: boolean; error?: string } | null;
+      if (!payload?.ok) {
+        return {
+          ok: false,
+          error: payload?.error?.trim() || 'Die produktive Schreibberechtigung fehlt.',
+        };
+      }
+    }
+
+    return { ok: true, data: session };
+  } catch {
+    return {
+      ok: false,
+      error: 'Die sichere Sitzung antwortet nicht. Bitte Verbindung prüfen und erneut versuchen.',
+    };
+  }
 }

@@ -1,4 +1,4 @@
-import { getSupabaseConfig, isSupabaseConfigured } from '@/lib/supabase/config';
+import { getSupabaseConfig, isDemoMode, isSupabaseConfigured } from '@/lib/supabase/config';
 
 export type ServiceMode = 'demo' | 'supabase';
 
@@ -9,8 +9,7 @@ export type LiveConfigIssue = {
 
 /** Live Supabase when configured; demo in-memory path when EXPO_PUBLIC_DEMO_MODE=true. */
 export function getServiceMode(): ServiceMode {
-  const demoEnv = typeof process !== 'undefined' ? process.env?.EXPO_PUBLIC_DEMO_MODE : undefined;
-  if (demoEnv === 'true') {
+  if (isDemoMode()) {
     return 'demo';
   }
   return 'supabase';
@@ -37,8 +36,7 @@ export function assertLiveConfig(): { ok: true } | { ok: false; issues: LiveConf
     });
   }
 
-  const demoEnv = typeof process !== 'undefined' ? process.env?.EXPO_PUBLIC_DEMO_MODE : undefined;
-  if (demoEnv === 'true') {
+  if (isDemoMode()) {
     issues.push({
       code: 'demo_mode',
       message: 'Demo-Modus ist aktiv — kein Live-Zugriff.',

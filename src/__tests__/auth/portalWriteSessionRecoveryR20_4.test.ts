@@ -107,9 +107,9 @@ describe('portal write-session recovery R20.4', () => {
     const portalAuth = readFileSync('supabase/functions/_shared/portalAuth.ts', 'utf8');
 
     expect(authProvider).toContain('await ensurePortalWriteSession(restoredPortal)');
-    expect(chat).toContain('await ensurePortalWriteSession(portalSession)');
-    expect(thread).toContain('await ensurePortalWriteSession(portalSession)');
-    expect(visit.match(/await ensurePortalWriteSession\(portalSession\)/g)).toHaveLength(2);
+    expect(chat).toContain("await ensurePortalWriteSession(portalSession, 'messages')");
+    expect(thread).toContain("await ensurePortalWriteSession(portalSession, 'messages')");
+    expect(visit.match(/await ensurePortalWriteSession\(portalSession, 'workflow'\)/g)).toHaveLength(2);
     expect(portalAuth).toContain('linkedEmail === email.toLowerCase()');
     expect(portalAuth).toContain('replacing mismatched auth link');
   });

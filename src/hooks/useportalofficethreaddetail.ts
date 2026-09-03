@@ -99,16 +99,15 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
       );
       if (!actorResult.ok) return actorResult;
 
-      const writableSession = await ensurePortalWriteSession(portalSession);
-      if (!writableSession.ok) {
-        setSendError(toUserFacingSendError(writableSession.error));
-        return writableSession;
-      }
-
       setSending(true);
       setSendError(null);
       let result: Awaited<ReturnType<typeof sendPortalOfficeMessage>>;
       try {
+        const writableSession = await ensurePortalWriteSession(portalSession, 'messages');
+        if (!writableSession.ok) {
+          setSendError(toUserFacingSendError(writableSession.error));
+          return writableSession;
+        }
         result = await withMessagingTimeout(
           sendPortalOfficeMessage(tenantId, threadId, actorResult.data, body, attachments),
           VOICE_SEND_TIMEOUT_MS,
