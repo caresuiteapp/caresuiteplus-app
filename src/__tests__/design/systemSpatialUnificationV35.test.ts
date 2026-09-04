@@ -10,7 +10,7 @@ describe('System Spatial Unification V35', () => {
     const card = read('src/components/ui/PremiumCard.tsx');
     const button = read('src/components/ui/PremiumButton.tsx');
 
-    expect(card).toContain('spatialCareGradients.nightGlass');
+    expect(card).toContain('spatialCare');
     expect(card).not.toContain('CareLightCard');
     expect(card).not.toContain('LightLlganPremiumCard');
     expect(button).not.toContain('CareLightButton');

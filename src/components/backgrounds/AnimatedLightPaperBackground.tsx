@@ -155,7 +155,7 @@ const webFixedFull: ViewStyle = (Platform.OS === 'web'
 
 const styles = StyleSheet.create({
   dimOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     ...webFixedFull,
     backgroundColor: 'rgba(249,251,255,0.22)',
   },

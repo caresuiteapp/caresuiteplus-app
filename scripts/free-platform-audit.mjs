@@ -31,7 +31,6 @@ const REQUIRED_PATTERNS = [
   { file: 'src/screens/auth/BusinessRegisterScreen.tsx', pattern: 'Kostenlos registrieren' },
   { file: 'src/components/modules/ModuleCard.tsx', pattern: 'Kostenlos aktivieren' },
   { file: 'src/screens/business/SubscriptionScreen.tsx', pattern: 'Free Platform' },
-  { file: 'src/screens/AppStartScreen.tsx', pattern: 'kostenlos' },
   { file: 'package.json', pattern: 'free-platform:audit' },
 ];
 

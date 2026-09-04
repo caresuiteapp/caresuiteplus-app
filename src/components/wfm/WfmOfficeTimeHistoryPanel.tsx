@@ -365,7 +365,6 @@ export function WfmOfficeTimeHistoryPanel({
             <WfmOfficeStatusChip
               label={initialEmployeeName ?? 'Ausgewählte Person'}
               selected
-              onPress={() => undefined}
             />
           ) : <>
             <WfmOfficeStatusChip

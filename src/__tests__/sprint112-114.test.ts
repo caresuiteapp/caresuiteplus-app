@@ -68,10 +68,10 @@ describe('Create/Edit Form Headers (Sprint 113)', () => {
 });
 
 describe('Pflege CarePlan Create Form Hero (Sprint 114)', () => {
-  it('CarePlanCreateScreen nutzt formHero via DomainCreateScreen', () => {
+  it('CarePlanCreateScreen speichert live und navigiert zum neuen Pflegeplan', () => {
     const screen = readSrc('src/screens/pflege/CarePlanCreateScreen.tsx');
-    expect(screen).toContain('formHero');
-    expect(screen).toContain('successRoute');
+    expect(screen).toContain('createCarePlan');
+    expect(screen).toContain('router.replace(`/pflege/plans/${createdId}`');
   });
 
   it('CatalogDetailScreen öffnet die aktuelle Katalogbearbeitung', () => {

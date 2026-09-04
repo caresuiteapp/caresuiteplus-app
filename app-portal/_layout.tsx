@@ -1,7 +1,6 @@
 import 'react-native-reanimated';
-import { Stack } from 'expo-router';
+import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { StyleSheet, View } from 'react-native';
 import { AuthProvider } from '@/lib/auth/AuthProvider';
 import { ThemeModeProvider } from '@/design/ThemeModeProvider';

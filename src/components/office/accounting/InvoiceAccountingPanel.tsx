@@ -138,7 +138,7 @@ export function InvoiceAccountingPanel({ invoiceId, invoiceNumber }: InvoiceAcco
 
   return (
     <>
-      <SectionPanel title="Buchhaltung" subtitle="Connect in Vorbereitung">
+      <SectionPanel title="Buchhaltung" subtitle="Connect nicht konfiguriert">
         <View style={styles.badgeRow}>
           <PremiumBadge label={statusLabel} variant="orange" dot />
           {snapshot.status.providerKey ? (
@@ -150,7 +150,7 @@ export function InvoiceAccountingPanel({ invoiceId, invoiceNumber }: InvoiceAcco
           {snapshot.isGobdArchived ? (
             <PremiumBadge label="GoBD geschützt" variant="red" dot />
           ) : (
-            <PremiumBadge label="In Vorbereitung" variant="muted" />
+            <PremiumBadge label="Nicht konfiguriert" variant="muted" />
           )}
         </View>
 

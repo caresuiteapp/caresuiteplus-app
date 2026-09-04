@@ -212,14 +212,6 @@ const sections: PolicySection[] = [
     ],
   },
   {
-    number: '22',
-    title: 'Zoom und Videokommunikation',
-    paragraphs: [
-      'Wenn Zoom verbunden wird, können Kontokennung, Anzeigename, E-Mail-Adresse, Meeting-ID, Thema, Teilnehmerinformationen, Zeitangaben, Einladungen, Chat- oder Verbindungsdaten verarbeitet werden. Audio, Video, Transkripte oder Aufzeichnungen werden nur im Rahmen der aktivierten Funktionen und erforderlichen Freigaben verarbeitet.',
-      'Besprechungen mit Pflege- oder Gesundheitsbezug sind besonders zu schützen. Der verantwortliche Mandant muss Teilnehmer:innen informieren, geeignete Meeting- und Aufzeichnungseinstellungen wählen und vor Aufzeichnungen eine tragfähige Rechtsgrundlage sicherstellen. Zoom verarbeitet Daten nach seinen eigenen Datenschutz- und Vertragsbedingungen und kann Unterauftragsverarbeiter einsetzen.',
-    ],
-  },
-  {
     number: '23',
     title: 'KI-, Sprach- und Dokumentenanalysefunktionen',
     paragraphs: [
@@ -396,7 +388,6 @@ const providerLinks = [
   ['OpenAI Datenschutz', 'https://openai.com/policies/privacy-policy/'],
   ['OpenAI API-Datenkontrollen', 'https://platform.openai.com/docs/models/default-usage-policies-by-endpoint'],
   ['Google Datenschutz', 'https://policies.google.com/privacy?hl=de'],
-  ['Zoom Datenschutz', 'https://www.zoom.com/en/trust/privacy/privacy-statement/'],
 ] as const;
 
 function openUrl(url: string) {

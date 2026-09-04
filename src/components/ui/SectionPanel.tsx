@@ -94,7 +94,7 @@ export function SectionPanel({
           ...(fillHeight ? { flexGrow: 1, width: "100%" } : null),
         },
         innerBorder: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           borderRadius: radius.lg,
           borderWidth: 1,
           borderColor: onDarkSurface

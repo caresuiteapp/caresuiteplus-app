@@ -47,6 +47,6 @@ describe('R15 fachliche Assist-Klientenansicht', () => {
     const screen = source('src/screens/assist/AssignmentsListScreen.tsx');
     const form = source('src/components/assist/AssignmentCreateForm.tsx');
     expect(screen).toContain('initialCreateClientId={initialCreateClientId}');
-    expect(form).toContain("clientId: initialClientId ?? ''");
+    expect(form).toContain('clientId: initialClientId ?? ""');
   });
 });

@@ -5,7 +5,7 @@ function PlaceholderScreen({ title }: { title: string }) {
   return (
     <ScreenShell title={title} subtitle="Office · Abrechnung">
       <EmptyState
-        title={`${title} in Vorbereitung`}
+        title={`${title} nicht konfiguriert`}
         message="Für diesen Bereich liegen noch keine freigegebenen Vorgänge vor."
       />
     </ScreenShell>

@@ -27,13 +27,10 @@ describe('global desktop workspace shell', () => {
   it.each([
     ['PlatformShell', 'src/components/layout/platform/platformshell.tsx'],
     ['PortalShell', 'src/components/layout/portal/PortalShellLayout.tsx'],
-  ])('%s releases both sidebar widths completely', (_name, file) => {
+  ])('%s keeps its workspace width responsive', (_name, file) => {
     const source = read(file);
-    expect(source).toContain('!leftCollapsed ?');
-    expect(source).toContain('!rightCollapsed ?');
-    expect(source).toContain('side="left"');
-    expect(source).toContain('side="right"');
-    expect(source).toContain('minWidth: 0');
+    expect(source).toContain("width: '100%'");
+    expect(source).toContain('minHeight: 0');
   });
 
   it('adapts the isolated platform console shell without affecting its compact navigation', () => {

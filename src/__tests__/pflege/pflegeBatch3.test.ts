@@ -79,14 +79,13 @@ describe('Pflege Sprint Batch 3 (Sprint 77)', () => {
     expect(readSrc('src/lib/pflege/vitalService.ts')).toContain('vitalSignSupabaseRepository');
     expect(readSrc('src/lib/pflege/vitalDetailService.ts')).toContain('vitalSignSupabaseRepository');
     expect(readSrc('src/lib/services/repositories/vitalSignRepository.supabase.ts')).toContain(
-      'v_vital_sign_overview',
+      'v_vital_measurement_overview',
     );
   });
 
-  it('fetchVitalReadings liefert Demo-Daten mit guardServiceTenant', async () => {
+  it('fetchVitalReadings rejects retired demo persistence', async () => {
     const result = await fetchVitalReadings(DEMO_TENANT_ID, 'nurse');
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.data.length).toBe(getDemoVitalReadings().length);
+    expect(result.ok).toBe(false);
   });
 
   it('sisListMapper mappt assessment_runs auf SisAssessment', () => {
@@ -174,19 +173,19 @@ describe('Pflege Sprint Batch 3 (Sprint 77)', () => {
     expect(screen).toContain("moduleColor('pflege')");
   });
 
-  it('pflegeModuleConfig markiert Vitalwerte und SIS als demo-funktional', () => {
+  it('pflegeModuleConfig binds Vitalwerte und SIS to the live backend', () => {
     const config = readSrc('src/lib/pflege/pflegeModuleConfig.ts');
     expect(config).toContain('isVitalReadingsLiveReady');
     expect(config).toContain('isSisLiveReady');
     expect(config).toContain('VITAL_READINGS_PREPARED_MESSAGE');
-    expect(isVitalReadingsLiveReady()).toBe(true);
-    expect(isSisLiveReady()).toBe(true);
+    expect(isVitalReadingsLiveReady()).toBe(false);
+    expect(isSisLiveReady()).toBe(false);
   });
 
-  it('fetchVitalReadingDetail liefert Demo-Detail', async () => {
+  it('fetchVitalReadingDetail rejects retired demo persistence', async () => {
     const demoId = getDemoVitalReadings()[0]?.id;
-    expect(demoId).toBeTruthy();
-    const result = await fetchVitalReadingDetail(demoId!, DEMO_TENANT_ID, 'nurse');
-    expect(result.ok).toBe(true);
+    expect(demoId).toBeUndefined();
+    const result = await fetchVitalReadingDetail('vital-001', DEMO_TENANT_ID, 'nurse');
+    expect(result.ok).toBe(false);
   });
 });

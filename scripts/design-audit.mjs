@@ -45,27 +45,27 @@ const WP_FORBIDDEN_ON_START = ['WP ', 'WP-', 'Arbeitspaket', 'work package'];
 const CRITICAL_SCREENS = [
   {
     path: 'src/screens/office/OfficeIndexScreen.tsx',
-    markers: ['CareLightModuleDashboard'],
+    markers: ['ScreenShell', 'HealthOSOfficeCommandCenterView'],
   },
   {
     path: 'src/screens/pflege/PflegeIndexScreen.tsx',
-    markers: ['CareLightModuleDashboard'],
+    markers: ['ModuleDashboardShell', 'PflegeDashboardView'],
   },
   {
     path: 'src/screens/assist/AssistIndexScreen.tsx',
-    markers: ['CareLightModuleDashboard'],
+    markers: ['ScreenShell', 'HealthOSAssistOperationsView'],
   },
   {
     path: 'src/screens/beratung/BeratungIndexScreen.tsx',
-    markers: ['CareLightModuleDashboard'],
+    markers: ['ModuleDashboardShell', 'BeratungDashboardView'],
   },
   {
     path: 'src/screens/stationaer/StationaerIndexScreen.tsx',
-    markers: ['CareLightModuleDashboard'],
+    markers: ['ModuleDashboardShell', 'StationaerDashboardView'],
   },
   {
     path: 'src/screens/akademie/AkademieIndexScreen.tsx',
-    markers: ['CareLightModuleDashboard'],
+    markers: ['ModuleDashboardShell', 'AkademieDashboardView'],
   },
   {
     path: 'src/screens/qm/QmDashboardScreen.tsx',
@@ -95,12 +95,12 @@ const OFFICE_LIST_VIEWS = [
 ];
 
 const MODULE_SHELL_LAYOUTS = [
-  'app/assist/(tabs)/_layout.tsx',
-  'app/pflege/(tabs)/_layout.tsx',
-  'app/beratung/(tabs)/_layout.tsx',
-  'app/stationaer/(tabs)/_layout.tsx',
-  'app/akademie/(tabs)/_layout.tsx',
-  'app/office/(tabs)/_layout.tsx',
+  'app/assist/_layout.tsx',
+  'app/pflege/_layout.tsx',
+  'app/beratung/_layout.tsx',
+  'app/stationaer/_layout.tsx',
+  'app/akademie/_layout.tsx',
+  'app/office/_layout.tsx',
   'app/insight/_layout.tsx',
   'app/business/office/qm/_layout.tsx',
 ];
@@ -143,7 +143,7 @@ for (const forbidden of WP_FORBIDDEN_ON_START) {
     fail(`AppStartScreen enthält WP-Text: "${forbidden}"`);
   }
 }
-if (!startScreen.includes('CareSuiteWordmark') && !startScreen.includes('CareSuiteLightBackground')) {
+if (!startScreen.includes('CareSuiteWordmark') && !startScreen.includes('CareSuiteLogo')) {
   fail('AppStartScreen nutzt keine Care-Brand-Komponenten');
 }
 if (!startScreen.includes('CareAdaptiveShell') && !startScreen.includes('CareSuiteLogo')) {
@@ -198,8 +198,8 @@ for (const rel of OFFICE_LIST_VIEWS) {
     fail(`Office-Listenansicht fehlt: ${rel}`);
   }
   const src = readFileSync(filePath, 'utf8');
-  if (!src.includes('AdaptiveActionBar')) {
-    fail(`${rel} nutzt AdaptiveActionBar nicht`);
+  if (!src.includes('AdaptiveActionBar') && !src.includes('EmployeesFilterToolbar')) {
+    fail(`${rel} nutzt keine adaptive Aktions- oder Filterleiste`);
   }
 }
 
@@ -209,8 +209,8 @@ for (const rel of MODULE_SHELL_LAYOUTS) {
     fail(`Modul-Shell-Layout fehlt: ${rel}`);
   }
   const src = readFileSync(filePath, 'utf8');
-  if (!src.includes('ShellLayout')) {
-    fail(`${rel} nutzt ShellLayout nicht`);
+  if (!src.includes('LiquidModuleRouteLayout') && !src.includes('RequireAuth')) {
+    fail(`${rel} nutzt weder die Modul-Shell noch die geschützte Office-Shell`);
   }
 }
 
@@ -227,8 +227,8 @@ const premiumBtn = readFileSync(join(root, 'src/components/ui/PremiumButton.tsx'
 if (premiumBtn.includes("colors={['#FF9500'")) {
   fail('PremiumButton nutzt noch Orange-Primary-Gradient');
 }
-if (!premiumBtn.includes('AURORA_BUTTON_PRIMARY')) {
-  fail('PremiumButton: AURORA_BUTTON_PRIMARY fehlt');
+if (!premiumBtn.includes('ORBIT_VARIANT')) {
+  fail('PremiumButton: ORBIT_VARIANT fehlt');
 }
 const auroraIndex = join(root, 'src/components/aurora/index.ts');
 if (!existsSync(auroraIndex)) {
@@ -245,4 +245,4 @@ console.log(`✓ ${CRITICAL_SCREENS.length} kritische Screens mit Care-Komponent
 console.log('✓ themeBridge: useLegacyTheme + resolveLegacyGradients + planPilotRoutes');
 console.log(`✓ ${OFFICE_LIST_VIEWS.length} Office-Listen mit AdaptiveActionBar`);
 console.log(`✓ ${MODULE_SHELL_LAYOUTS.length} Modul-Routen mit CareAdaptiveShell`);
-console.log('✓ Aurora: careSuiteAurora + PremiumButton Gradient');
+console.log('✓ ORBIT: zentrale PremiumButton-Varianten aktiv');

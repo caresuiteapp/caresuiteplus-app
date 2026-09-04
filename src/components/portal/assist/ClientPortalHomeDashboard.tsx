@@ -158,7 +158,7 @@ function HomeActionCard({
         colors={['#FFFFFF', '#F4F9FF', '#EAF3FF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
       <View style={[styles.actionIcon, { backgroundColor: `${accentColor}14`, borderColor: `${accentColor}42` }]}>
@@ -222,7 +222,7 @@ function WelcomeHero({
         locations={[0, 0.56, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
       <View style={styles.welcomeGlow} pointerEvents="none" />
@@ -435,7 +435,7 @@ export function ClientPortalHomeDashboard({
             colors={['#0B5CC9', '#073E8D', '#052B68']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
           <View style={styles.quickPanelGlow} pointerEvents="none" />

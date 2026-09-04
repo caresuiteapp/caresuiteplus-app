@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   mapEmpty: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

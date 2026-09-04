@@ -83,7 +83,7 @@ export function TopbarProfileAvatar({
           position: 'relative',
         },
         overlay: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: 999,

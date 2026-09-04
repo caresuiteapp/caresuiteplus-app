@@ -42,7 +42,7 @@ export function PremiumListHeroFrame({
           colors={['#FFFFFF', '#F3F9FF', '#E4F1FF']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
       ) : null}
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
       : { shadowColor: '#00265A', shadowOpacity: 0.16, shadowRadius: 18, elevation: 7 }),
   },
   innerBorder: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: spatialCare.radius.card,
     borderWidth: 1,
     borderColor: systemLiquidGlass.innerBorder,

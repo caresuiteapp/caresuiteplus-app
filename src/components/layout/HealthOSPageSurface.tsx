@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   innerBorder: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: spatialCare.radius.stage,
     borderWidth: 1,
     borderColor: systemLiquidGlass.innerBorder,

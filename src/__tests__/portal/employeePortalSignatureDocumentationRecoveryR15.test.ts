@@ -27,16 +27,15 @@ describe('Mitarbeitendenportal Signatur- und Dokumentationswiederherstellung R15
     expect(recovery).toContain("after.detail.documentationStatus === 'submitted'");
   });
 
-  it('beendet die Prüfschleife unmittelbar nach bestätigter Signaturspeicherung', () => {
+  it('hält die Prüfschleife bis zum bestätigten Server-Readback aktiv', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     const successBranch = screen.slice(
       screen.indexOf('if (r.ok) {', screen.indexOf('const r = await saveSignature(sig);')),
       screen.indexOf('} else if (isWorkflowConfirmationPending', screen.indexOf('const r = await saveSignature(sig);')),
     );
-    expect(successBranch).toContain('setSignatureConfirmationPending(false)');
-    expect(successBranch).toContain('setAwaitingSignature(false)');
-    expect(successBranch).toContain('signatureConfirmationPending: false');
-    expect(successBranch).toContain('signatureCaptured: true');
+    expect(successBranch).toContain('setSignatureConfirmationPending(true)');
+    expect(successBranch).toContain('setAwaitingSignature(true)');
+    expect(successBranch).toContain('signatureConfirmationPending: true');
   });
 
   it('öffnet die Dokumentation auf Web-Tablets ohne kollabierendes Bottom-Sheet', () => {

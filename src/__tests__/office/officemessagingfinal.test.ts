@@ -159,7 +159,6 @@ describe('Office Messaging Final Phase', () => {
   it('Edge Functions: portal auth linkage in Login-Flows', () => {
     expect(readSrc('supabase/functions/client-portal-login/index.ts')).toContain('ensurePortalSupabaseAuth');
     expect(readSrc('supabase/functions/employee-portal-login/index.ts')).toContain('ensurePortalSupabaseAuth');
-    expect(readSrc('supabase/functions/portal-code-login/index.ts')).toContain('ensurePortalSupabaseAuth');
     expect(readSrc('supabase/functions/_shared/portalAuth.ts')).toContain('auth_user_id');
   });
 

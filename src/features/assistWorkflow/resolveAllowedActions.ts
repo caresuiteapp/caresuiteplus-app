@@ -94,7 +94,10 @@ export function resolveAllowedActions(input: {
     actions.push('end_pause');
     actions.push('end_service');
   }
-  if (detail.allowedTransitions.includes('nicht_erschienen')) {
+  const allowedTransitions = Array.isArray(detail.allowedTransitions)
+    ? detail.allowedTransitions
+    : [];
+  if (allowedTransitions.includes('nicht_erschienen')) {
     actions.push('report_no_show');
   }
 

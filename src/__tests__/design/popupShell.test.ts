@@ -31,7 +31,7 @@ describe('popupShell tokens', () => {
   it('tab tokens use gray inactive and purple active states', () => {
     expect(popupShellColors.light.tab.inactiveBackground).toContain('rgba');
     expect(popupShellColors.light.tab.activeBorder).toContain('53, 151, 255');
-    expect(popupShellColors.light.tab.activeText).toBe('#F8F6FF');
+    expect(popupShellColors.light.tab.activeText).toBe('#000000');
   });
 
   it('close button tokens use semi-transparent fill', () => {

@@ -1,5 +1,5 @@
 import type { ModuleNavItem } from '@/types/navigation/platform';
-import type { Router } from 'expo-router';
+import type { ImperativeRouter } from 'expo-router';
 import { MODULE_NAV_MODAL_SCREENS } from '@/lib/navigation/moduleNav/modalScreens';
 import type { OpenModalOptions } from '@/types/modalNavigation';
 
@@ -23,7 +23,7 @@ export function buildModalOpenOptions(item: ModuleNavItem): OpenModalOptions {
 
 export function navigateModuleNavItem(
   item: ModuleNavItem,
-  router: Router,
+  router: ImperativeRouter,
   openModal: (options: OpenModalOptions) => void,
   adaptiveShell: string,
 ): void {

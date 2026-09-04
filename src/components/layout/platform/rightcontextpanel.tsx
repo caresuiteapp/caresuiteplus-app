@@ -310,7 +310,7 @@ function createStyles(
       position: 'relative',
     },
     tenantCardTint: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: 'rgba(210,235,255,0.10)',
       borderRadius: radius.lg,
     },

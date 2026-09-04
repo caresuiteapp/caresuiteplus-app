@@ -151,7 +151,7 @@ export function AppScreen({
         <LinearGradient
           colors={['#F8FBFF', '#EDF5FF', '#FFFFFF']}
           locations={[0, 0.55, 1]}
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
         <View pointerEvents="none" style={[styles.lightOrb, styles.lightOrbTop]} />

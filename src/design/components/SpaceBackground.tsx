@@ -16,7 +16,7 @@ export function SpaceBackground({ children, style }: SpaceBackgroundProps) {
         colors={[...galaxyGradients.screen]}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
       />
       <View style={styles.orbCyan} />
       <View style={styles.orbViolet} />

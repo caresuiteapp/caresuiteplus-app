@@ -234,11 +234,14 @@ describe('Google Play readiness — permissions & production mode', () => {
 describe('Google Play readiness — store sight', () => {
   it('has app identity, splash, scheme, and package configured', () => {
     const appJson = JSON.parse(readSrc('app.json'));
+    const splashPlugin = appJson.expo.plugins.find(
+      (plugin: unknown) => Array.isArray(plugin) && plugin[0] === 'expo-splash-screen',
+    );
     expect(appJson.expo.name).toBe('CareSuite+');
     expect(appJson.expo.scheme).toBe('caresuiteplus');
     expect(appJson.expo.android?.package).toBe('app.caresuitehealthos');
     expect(appJson.expo.android?.versionCode).toBeGreaterThan(0);
-    expect(appJson.expo.splash?.image).toBe('./assets/splash-icon.png');
+    expect(splashPlugin?.[1]?.image).toBe('./assets/splash-icon.png');
     expect(appJson.expo.android?.adaptiveIcon?.foregroundImage).toBeDefined();
   });
 

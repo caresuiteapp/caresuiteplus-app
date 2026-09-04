@@ -101,8 +101,8 @@ export function CareDocumentationDetailHero({
         ) : (
           <PremiumBadge label="Teilweise live" variant="orange" dot />
         )}
-        {!signReady ? <PremiumBadge label="Signatur demo-funktional" variant="orange" /> : null}
-        {!pdfReady ? <PremiumBadge label="PDF demo-funktional" variant="orange" /> : null}
+        {!signReady ? <PremiumBadge label="Signatur nicht konfiguriert" variant="orange" /> : null}
+        {!pdfReady ? <PremiumBadge label="PDF-Export nicht konfiguriert" variant="orange" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

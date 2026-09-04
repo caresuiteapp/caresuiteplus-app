@@ -42,13 +42,13 @@ describe('Google Play review accounts', () => {
       'client_documents',
       'client_budget_accounts',
       'message_threads',
-      'employee_time_entries',
       'workforce_absences',
       'payroll_month_statements',
       'employee_logbook_trips',
     ]) {
       expect(migration).toContain(`public.${table}`);
     }
+    expect(migration).toContain('employee_time_entries intentionally omitted');
     expect(migration).toContain('Rückfahrt läuft bewusst nach dem Einsatzende weiter.');
   });
 });

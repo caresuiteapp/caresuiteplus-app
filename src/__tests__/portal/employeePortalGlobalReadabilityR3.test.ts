@@ -13,7 +13,7 @@ describe('Mitarbeitendenportal globale Lesbarkeit R3', () => {
     const frame = readSrc('src/components/portal/EmployeePortalPageFrame.tsx');
 
     expect(frame).toContain('<SurfaceContrastProvider tone="light">');
-    expect(frame).toContain('contentStyle={styles.workspace}');
+    expect(frame).toContain('contentStyle={isPhone ? styles.workspacePhone : styles.workspace}');
     expect(frame).toContain('backgroundColor: portalPremium.surface');
     expect(frame).toContain('borderColor: portalPremium.borderStrong');
     expect(frame).toContain('boxShadow: portalPremium.shadow.panel');

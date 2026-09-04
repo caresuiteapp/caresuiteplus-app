@@ -14,7 +14,7 @@ const REQUIRED_FILES = [
   'package.json',
   'tsconfig.json',
   'app/_layout.tsx',
-  'app/office/(tabs)/index.tsx',
+  'app/office/index.tsx',
   'app/office/(tabs)/clients.tsx',
   'app/office/(tabs)/employees.tsx',
   'app/office/(tabs)/appointments.tsx',
@@ -104,7 +104,7 @@ const REQUIRED_FILES = [
   'app/portal/employee/(tabs)/assignments.tsx',
   'app/portal/employee/(tabs)/profile.tsx',
   'app/portal/employee/assignments/[id]/index.tsx',
-  'app/portal/employee/messages/[id]/index.tsx',
+  'app/portal/employee/messages/[threadId].tsx',
   'app/portal/employee/documents/[id]/index.tsx',
   'app/assist/(tabs)/nachweise.tsx',
   'app/assist/(tabs)/fahrten.tsx',
@@ -114,9 +114,9 @@ const REQUIRED_FILES = [
   'app/portal/client/(tabs)/appointments.tsx',
   'app/portal/client/(tabs)/profile.tsx',
   'app/portal/client/appointments/[id]/index.tsx',
-  'app/portal/client/messages/[id]/index.tsx',
+  'app/portal/client/messages/[threadId].tsx',
   'app/portal/client/documents/[id]/index.tsx',
-  'app/assist/(tabs)/index.tsx',
+  'app/assist/index.tsx',
   'app/assist/(tabs)/assignments.tsx',
   'app/assist/assignments/[id]/index.tsx',
   'app/+not-found.tsx',
@@ -287,7 +287,6 @@ console.log(`✓ ${REQUIRED_FILES.length} Kern-Dateien vorhanden`);
 const regenerateTypes = spawnSync('npm', ['run', 'regenerate-router-types'], {
   cwd: root,
   stdio: 'inherit',
-  shell: true,
 });
 
 if (regenerateTypes.status !== 0) {
@@ -299,7 +298,6 @@ console.log('✓ Expo Router Types regeneriert');
 const typecheck = spawnSync('npm', ['run', 'typecheck'], {
   cwd: root,
   stdio: 'inherit',
-  shell: true,
 });
 
 if (typecheck.status !== 0) {

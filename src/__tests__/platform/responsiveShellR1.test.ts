@@ -16,12 +16,11 @@ describe('Responsive Shell R.1 — mobile/tablet compact shell', () => {
     expect(shell).toContain('CareDesktopShell');
   });
 
-  it('MobileAppShell exposes hamburger app bar and bottom nav', () => {
-    const mobile = readSrc('src/components/layout/MobileAppShell.tsx');
-    expect(mobile).toContain('ShellAppBar');
-    expect(mobile).toContain('AppTabBar');
-    expect(mobile).toContain('ShellNavigationDrawer');
-    expect(mobile).toContain('testID="mobile-app-shell"');
+  it('PlatformShell exposes the responsive ORBIT top navigation', () => {
+    const mobile = readSrc('src/components/layout/platform/platformshell.tsx');
+    expect(mobile).toContain('OrbitTopNavigation');
+    expect(mobile).toContain('useHydrationSafeWindowDimensions');
+    expect(mobile).toContain('testID="orbit-platform-shell"');
   });
 
   it('ShellAppBar renders hamburger control', () => {
@@ -46,11 +45,11 @@ describe('Responsive Shell R.1 — mobile/tablet compact shell', () => {
     expect(hook).toContain("adaptiveShell = isCompactShell ? 'compact' : 'desktop'");
   });
 
-  it('PlatformShell desktop file unchanged for rail rendering at tablet+', () => {
+  it('PlatformShell uses one top-navigation workspace at every width', () => {
     const platform = readSrc('src/components/layout/platform/platformshell.tsx');
-    expect(platform).toContain('MainModuleRail');
-    expect(platform).toContain('ModuleNavSidebar');
-    expect(platform).not.toContain('MobileAppShell');
+    expect(platform).toContain('OrbitTopNavigation');
+    expect(platform).not.toContain('MainModuleRail');
+    expect(platform).not.toContain('ModuleNavSidebar');
   });
 
   it('PortalShellLayout hides left nav and shows drawer on compact widths', () => {

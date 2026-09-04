@@ -55,7 +55,7 @@ export function PortalPremiumPageHero({ kind, title, subtitle, eyebrow, compact 
         locations={[0, 0.58, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
       <View style={styles.glowLarge} pointerEvents="none" />

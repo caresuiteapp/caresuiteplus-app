@@ -524,7 +524,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
         pointerEvents: 'box-none',
       } as unknown as ViewStyle;
     }
-    return { ...StyleSheet.absoluteFillObject, zIndex: 150, pointerEvents: 'box-none' };
+    return { ...StyleSheet.absoluteFill, zIndex: 150, pointerEvents: 'box-none' };
   }, []);
 
   return (

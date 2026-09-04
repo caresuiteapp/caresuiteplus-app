@@ -47,7 +47,8 @@ describe('employee portal visit execution UX completion', () => {
   it('shows live duration unambiguously as hours, minutes and seconds', () => {
     const dashboard = readSrc('src/components/portal/EmployeePortalVisitLiveDashboard.tsx');
     const header = readSrc('src/components/portal/EmployeePortalVisitStickyHeader.tsx');
-    expect(dashboard).toContain("String(h).padStart(2, '0')");
+    expect(dashboard).toContain('const twoDigits =');
+    expect(dashboard).not.toContain('.padStart(');
     expect(header).toContain('(Std:Min:Sek)');
     expect(header).not.toContain('`${m}:${String(s)');
   });

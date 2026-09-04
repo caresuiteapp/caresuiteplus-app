@@ -14,11 +14,11 @@ describe('Office Detail Heroes (Sprint 85)', () => {
     expect(hero).toContain('PremiumKpiCard');
   });
 
-  it('InvoiceDetailHero nutzt PremiumListHeroFrame mit DATEV preparedOnly', () => {
+  it('InvoiceDetailHero kennzeichnet DATEV als extern und nicht konfiguriert', () => {
     const hero = readSrc('src/components/office/InvoiceDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('buildInvoiceDetailKpis');
-    expect(hero).toContain('DATEV in Vorbereitung');
+    expect(hero).toContain('DATEV extern · nicht konfiguriert');
   });
 
   it('BudgetDetailHero nutzt PremiumListHeroFrame mit Auslastungs-KPIs', () => {

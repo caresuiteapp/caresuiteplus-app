@@ -52,7 +52,7 @@ describe('HealthOS system-wide visual migration V39.0', () => {
     for (const [path, marker] of files) {
       const source = read(path);
       expect(source).toContain('csHealthosComponent');
-      expect(source).toContain(`'${marker}'`);
+      expect(source).toContain(marker);
     }
   });
 

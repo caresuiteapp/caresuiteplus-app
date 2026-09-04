@@ -455,7 +455,7 @@ export function GlobalPersistentSpaceMotionBackground({
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: 'hidden',
     backgroundColor: 'transparent',
   },

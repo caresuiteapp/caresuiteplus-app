@@ -52,7 +52,7 @@ describe('Office Integrität', () => {
     const qm = read('src/screens/qm/QmDashboardScreen.tsx');
     const inventory = read('src/screens/inventory/InventoryDashboardScreen.tsx');
     expect(qm).toContain('onPress={area.liveReady ?');
-    expect(inventory).toContain('onPress={area.liveReady === false ? undefined');
+    expect(inventory).toContain('onPress={() => router.push(area.route as never)}');
     expect(qm).not.toContain('title="QM preparedOnly"');
     expect(inventory).not.toContain('title="Inventar preparedOnly"');
   });

@@ -57,12 +57,12 @@ export function ModuleOverviewKpiCard({
           overflow: 'hidden',
         },
         moduleGlow: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           borderRadius: radius.lg,
           backgroundColor: moduleGlow ?? 'transparent',
         },
         innerBorder: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           borderRadius: radius.lg,
           borderWidth: 1,
           borderColor: 'rgba(255,255,255,0.55)',

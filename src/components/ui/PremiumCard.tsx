@@ -85,7 +85,7 @@ export function PremiumCard({
             : null),
         },
         gradient: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
         },
         glow: {
           position: 'absolute',
@@ -109,7 +109,7 @@ export function PremiumCard({
           shadowRadius: 10,
         },
         innerBorder: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           borderRadius: radius.card,
           borderWidth: 1,
           borderColor: portal.active ? portalPremium.innerBorder : spatialCare.borderGlow,

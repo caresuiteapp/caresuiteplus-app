@@ -38,7 +38,7 @@ describe('R17 deferred signature administrative approval gate', () => {
     expect(shell).toContain('<DeferredSignatureApprovalPopup />');
     expect(popup).toContain('Genehmigen & ans Portal senden');
     expect(popup).toContain('Begründung der mitarbeitenden Person');
-    expect(panel).toContain('Freigabe durch Verwaltung anfragen');
+    expect(panel).toContain('Freigabe durch Verwaltung wird geprüft');
     expect(panel).toContain('mindestens 10 Zeichen');
   });
 });

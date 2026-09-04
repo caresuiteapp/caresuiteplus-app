@@ -3,19 +3,44 @@
   "compilerOptions": {
     "strict": true,
     "module": "ESNext",
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@/product-workflows/screens": ["src/screens/index.ts"],
-      "@/product-workflows/screens/*": ["src/screens/*"],
-      "@/product-workflows/components": ["src/components/index.ts"],
-      "@/product-workflows/components/*": ["src/components/*"],
-      "@/product-workflows/design/*": ["src/design/*"],
-      "@/product-workflows/theme": ["src/theme/index.ts"],
-      "@/product-workflows/theme/*": ["src/theme/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@/product-workflows/screens": [
+        "./src/screens/index.ts"
+      ],
+      "@/product-workflows/screens/*": [
+        "./src/screens/*"
+      ],
+      "@/product-workflows/components": [
+        "./src/components/index.ts"
+      ],
+      "@/product-workflows/components/*": [
+        "./src/components/*"
+      ],
+      "@/product-workflows/design/*": [
+        "./src/design/*"
+      ],
+      "@/product-workflows/theme": [
+        "./src/theme/index.ts"
+      ],
+      "@/product-workflows/theme/*": [
+        "./src/theme/*"
+      ]
     },
-    "types": ["vitest/globals"]
+    "types": [
+      "vitest/globals"
+    ]
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
-  "exclude": ["supabase/functions/**/*", "node_modules"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": [
+    "supabase/functions/**/*",
+    "node_modules"
+  ]
 }

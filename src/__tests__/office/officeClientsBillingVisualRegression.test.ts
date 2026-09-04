@@ -26,7 +26,7 @@ describe('Office Klient:innen und Abrechnung – visuelle Regression', () => {
   });
 
   it('lässt Tabellen die verfügbare Breite ausfüllen', () => {
-    expect(read('src/components/ui/PremiumDataTable.tsx')).toContain("fluidTable: { width: '100%' }");
+    expect(read('src/components/ui/PremiumDataTable.tsx')).toContain('fluidTable: { width: "100%" }');
   });
 
   it('zeigt das Rechnungsformular kompakt und vollständig systemgeführt', () => {

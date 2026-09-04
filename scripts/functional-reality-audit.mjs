@@ -36,25 +36,25 @@ const CORE_CHECKS = [
   {
     label: 'Wunddokumentation Detail',
     files: ['src/screens/pflege/WoundDocumentationDetailScreen.tsx'],
-    must: ['handlePhotoUpload', 'DocumentPicker', 'router.push'],
+    must: ['Wundverlauf dokumentieren', 'photoCount', 'router.push'],
     mustNot: ['onPress={() => undefined}', 'PreparedModeBanner'],
   },
   {
     label: 'SIS Form',
-    files: ['src/screens/pflege/SisFormScreen.tsx', 'app/pflege/sis/new.tsx'],
-    must: ['SIS_TOPIC_FIELDS', 'upsertSisRisk', 'createSisFormAssessment'],
+    files: ['src/screens/pflege/SisFormScreen.tsx', 'app/pflege/sis/new.tsx', 'src/screens/careAssessment/CareAssessmentWorkspaceScreen.tsx', 'src/lib/careAssessment/careAssessmentService.ts'],
+    must: ['CareAssessmentWorkspaceScreen', 'createCareAssessment', 'saveCareAssessment'],
     mustNot: ['SisPreparedFormScreen'],
   },
   {
     label: 'Vitalwerte Create',
     files: ['src/screens/pflege/VitalReadingCreateScreen.tsx'],
-    must: ['createVitalReading', 'SegmentedTabs', 'handleSave'],
+    must: ['createVitalReading', 'FilterChipGroup', 'handleSave'],
     mustNot: ['onPress={() => undefined}'],
   },
   {
     label: 'Medikation Create',
     files: ['src/screens/pflege/MedicationCreateScreen.tsx'],
-    must: ['createDemoMedication', 'CareMedicationScheduleInput', 'handleSave'],
+    must: ['createLiveMedication', 'CareMedicationScheduleInput', 'handleSave'],
     mustNot: ['onPress={() => undefined}'],
   },
   {
@@ -107,7 +107,7 @@ if (sisNew.includes('SisPreparedFormScreen')) {
   console.log('✗ SIS /new route nutzt SisPreparedFormScreen');
   issues += 1;
 } else {
-  console.log('✓ SIS /new → SisFormScreen');
+  console.log('✓ SIS /new → CareAssessmentWorkspaceScreen');
 }
 
 if (issues > 0) fail(`${issues} Kernfunktionen nicht demo-funktional`);

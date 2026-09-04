@@ -10,15 +10,14 @@ import {
 } from '@/lib/pflege/pflegeReportListService';
 
 describe('Arbeitsplan dedicated screen services', () => {
-  it('Pflegeberichte list returns demo items', async () => {
+  it('Pflegeberichte list rejects retired demo persistence', async () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
     const list = await fetchPflegeBerichteList(DEMO_TENANT_ID, 'nurse');
-    expect(list.ok).toBe(true);
-    if (list.ok) expect(list.data.length).toBeGreaterThan(0);
+    expect(list.ok).toBe(false);
     vi.unstubAllEnvs();
   });
 
-  it('Pflegebericht can be created with validation', async () => {
+  it('Pflegebericht requires tenant and client for live persistence', async () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
     const empty = await createPflegeBericht('nurse', {
       title: '',
@@ -34,7 +33,7 @@ describe('Arbeitsplan dedicated screen services', () => {
       clientName: 'Test Klient',
       content: 'Verlauf stabil.',
     });
-    expect(created.ok).toBe(true);
+    expect(created.ok).toBe(false);
     vi.unstubAllEnvs();
   });
 

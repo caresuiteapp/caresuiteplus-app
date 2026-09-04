@@ -20,21 +20,14 @@ describe('Pflege Pflegepläne list', () => {
     expect(enforcePermission(null, 'pflege.plans.view' as never)).not.toBeNull();
   });
 
-  it('fetchCarePlanList liefert Demo-Pflegepläne', async () => {
+  it('fetchCarePlanList rejects retired demo persistence', async () => {
     const result = await fetchCarePlanList(DEMO_TENANT_ID, 'nurse');
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.length).toBeGreaterThan(0);
-      expect(result.data[0]?.title).toBeTruthy();
-    }
+    expect(result.ok).toBe(false);
   });
 
-  it('fetchCarePlanDetail liefert Demo-Detail', async () => {
+  it('fetchCarePlanDetail rejects retired demo persistence', async () => {
     const result = await fetchCarePlanDetail('plan-001', DEMO_TENANT_ID, 'nurse');
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.title).toContain('Grundpflege');
-    }
+    expect(result.ok).toBe(false);
   });
 
   it('buildCarePlanListKpis berechnet Kennzahlen aus Demo-Daten', () => {

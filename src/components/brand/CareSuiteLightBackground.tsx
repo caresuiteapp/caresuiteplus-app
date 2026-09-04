@@ -25,7 +25,7 @@ export function CareSuiteLightBackground({ children, style }: CareSuiteLightBack
     <View style={[styles.root, style]}>
       <LinearGradient
         colors={[careLightColors.page, careLightColors.surface, careLightColors.page]}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
       />
       <View style={styles.glow} />
       {children}

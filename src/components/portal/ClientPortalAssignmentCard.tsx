@@ -82,7 +82,7 @@ export function ClientPortalAssignmentCard({
         colors={['#FFFFFF', '#F2F8FF', '#E3F1FF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
       <View style={[styles.statusBar, { backgroundColor: accent }]} pointerEvents="none" />

@@ -17,8 +17,8 @@ describe('Einsatzstudio redesign', () => {
     expect(create).toContain('CREATE_STUDIO_STEPS');
     expect(create).toContain('Einsatz verbindlich anlegen');
     expect(edit).toContain('EDIT_STUDIO_STEPS');
-    expect(edit).toContain("section === 'tasks'");
-    expect(edit).toContain("section === 'status'");
+    expect(edit).toContain('section === "tasks"');
+    expect(edit).toContain('section === "status"');
     expect(edit).toContain('Änderungen speichern');
   });
 
@@ -31,8 +31,8 @@ describe('Einsatzstudio redesign', () => {
     expect(list).toContain('Schnellsuche');
     expect(list).toContain('commandBar');
     expect(list).toContain('canManage && embedded');
-    expect(table).toContain("label: 'Klient:in & Leistung'");
-    expect(table).toContain("label: 'Zuständigkeit & Ort'");
+    expect(table).toContain('label: "Klient:in & Leistung"');
+    expect(table).toContain('label: "Zuständigkeit & Ort"');
     expect(table).toContain('Details →');
   });
 });

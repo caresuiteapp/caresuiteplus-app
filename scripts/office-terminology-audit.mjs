@@ -35,6 +35,7 @@ const EXCLUDED_DIR_NAMES = new Set([
 const EXCLUDED_PATH_PREFIXES = [
   'src/lib/officeCore',
   'supabase/migrations',
+  'docs/audit',
 ];
 
 const EXCLUDED_FILES = new Set([

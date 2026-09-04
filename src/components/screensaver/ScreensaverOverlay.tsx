@@ -75,7 +75,7 @@ export function ScreensaverOverlay({ visible, settings, onDismiss }: Screensaver
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 2500,
     backgroundColor: 'rgba(248,250,252,0.14)',
     ...(Platform.OS === 'web'

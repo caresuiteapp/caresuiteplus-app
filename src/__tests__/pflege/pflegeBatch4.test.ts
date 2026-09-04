@@ -26,19 +26,19 @@ describe('Pflege Sprint Batch 4 (Sprint 78)', () => {
     expect(config).toContain('isCareDocumentationSignReady');
     expect(config).toContain('isShiftScheduleImportReady');
     expect(config).toContain('MEDICATION_EMP_PREPARED_MESSAGE');
-    expect(isVitalWriteReady()).toBe(true);
-    expect(isSisWriteReady()).toBe(true);
-    expect(isCareDocumentationSignReady()).toBe(true);
-    expect(isCareDocumentationPdfReady()).toBe(true);
+    expect(isVitalWriteReady()).toBe(false);
+    expect(isSisWriteReady()).toBe(false);
+    expect(isCareDocumentationSignReady()).toBe(false);
+    expect(isCareDocumentationPdfReady()).toBe(false);
     expect(isShiftScheduleImportReady()).toBe(false);
     expect(isMedicationEmpReady()).toBe(false);
-    expect(isWoundBodyMapReady()).toBe(true);
+    expect(isWoundBodyMapReady()).toBe(false);
   });
 
   it('Medikation Detail erklärt eMP, ohne eine wirkungslose Aktion anzubieten', () => {
     const screen = readSrc('src/screens/pflege/MedicationDetailScreen.tsx');
     expect(screen).toContain('InfoBanner');
-    expect(screen).toContain('MEDICATION_EMP_PREPARED_MESSAGE');
+    expect(readSrc('src/components/pflege/MedicationDetailHero.tsx')).toContain('eMP/TI extern');
     expect(screen).not.toContain('eMP abgleichen');
   });
 
@@ -71,10 +71,10 @@ describe('Pflege Sprint Batch 4 (Sprint 78)', () => {
     expect(readSrc('app/pflege/vitalwerte/create.tsx')).toContain('VitalReadingCreateScreen');
     const create = readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx');
     expect(create).toContain('createVitalReading');
-    expect(create).toContain('isVitalWriteReady');
+    expect(create).toContain('vitalSignSupabaseRepository');
     expect(readSrc('src/screens/pflege/VitalReadingsListScreen.tsx')).toContain('/pflege/vitalwerte/create');
     const detail = readSrc('src/screens/pflege/VitalReadingDetailScreen.tsx');
-    expect(detail).toContain('isVitalWriteReady');
+    expect(detail).toContain('useVitalReadingDetail');
     expect(detail).not.toContain('Schwellenwert setzen');
   });
 
@@ -93,15 +93,15 @@ describe('Pflege Sprint Batch 4 (Sprint 78)', () => {
     expect(readSrc('src/lib/pflege/sisListService.ts')).toContain('sisAssessmentSupabaseRepository');
 
     const vital = await fetchVitalReadingDetail('vital-001', DEMO_TENANT_ID, 'nurse');
-    expect(vital.ok).toBe(true);
+    expect(vital.ok).toBe(false);
 
     const sis = await fetchSisAssessmentDetail('sis-001', DEMO_TENANT_ID, 'nurse');
     expect(sis.ok).toBe(true);
   });
 
-  it('preparedOnly Formulare simulieren keinen Erfolg', () => {
+  it('live Formulare zeigen Erfolg ausschließlich nach Serviceantwort', () => {
     expect(readSrc('src/screens/pflege/SisPreparedFormScreen.tsx')).not.toContain('SuccessState');
-    expect(readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx')).not.toContain('SuccessState');
-    expect(readSrc('src/screens/pflege/MedicationDetailScreen.tsx')).not.toContain('SuccessState');
+    expect(readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx')).toContain('setSuccess');
+    expect(readSrc('src/screens/pflege/MedicationDetailScreen.tsx')).toContain('if (!result.ok)');
   });
 });

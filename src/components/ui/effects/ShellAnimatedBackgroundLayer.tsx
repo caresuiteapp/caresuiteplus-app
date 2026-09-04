@@ -42,7 +42,7 @@ const webFixedLayer: ViewStyle =
 
 const styles = StyleSheet.create({
   layer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: 'hidden',
     zIndex: 0,
     ...webFixedLayer,

@@ -233,7 +233,7 @@ export function LightLiquidGlassSpaceBackground({
 
   return (
     <View style={styles.root} pointerEvents="none" aria-hidden={true} testID="light-liquid-glass-space-background">
-      <LinearGradient colors={[...llgsBaseGradient]} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={[...llgsBaseGradient]} style={StyleSheet.absoluteFill} />
       {dimmed ? <View style={styles.dimOverlay} pointerEvents="none" /> : null}
     </View>
   );
@@ -245,14 +245,14 @@ const webFixedFull: ViewStyle = (Platform.OS === 'web'
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: 'hidden',
     zIndex: 0,
     backgroundColor: '#EAF4FF',
     ...webFixedFull,
   },
   dimOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(247,250,255,0.32)',
   },
 });

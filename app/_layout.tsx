@@ -1,9 +1,8 @@
 import 'react-native-reanimated';
-import { Stack, usePathname, useRouter } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Pressable, Text, View, StyleSheet, Platform, useWindowDimensions, type ViewStyle } from 'react-native';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { applyInvisibleScrollIndicators } from '@/product-workflows/design/scroll/applyInvisibleScrollIndicators';
 import { ThemeModeProvider, useThemeMode } from '@/product-workflows/design/ThemeModeProvider';
 import { WebFontScaleProvider } from '@/product-workflows/design/web/WebFontScaleProvider';
@@ -286,7 +285,7 @@ const styles = StyleSheet.create({
         zIndex: 0,
       } as unknown as ViewStyle)
     : ({
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         zIndex: 0,
       } as ViewStyle),
   foregroundLayer: {

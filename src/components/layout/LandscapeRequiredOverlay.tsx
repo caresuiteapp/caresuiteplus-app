@@ -98,7 +98,7 @@ export function LandscapeRequiredOverlay({
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 100,
     backgroundColor: 'rgba(7, 11, 18, 0.88)',
     justifyContent: 'center',

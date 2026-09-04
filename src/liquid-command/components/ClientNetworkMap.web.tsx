@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEF6FF',
   },
   mapLoading: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',

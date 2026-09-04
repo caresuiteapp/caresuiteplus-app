@@ -51,8 +51,8 @@ describe('Prepared-only elimination sprint', () => {
     expect(resolveExternalProviderStatus()).toBe('requires_external_provider');
   });
 
-  it('Pflege demo data meets sprint minimums', () => {
-    expect(getDemoVitalReadings().length).toBeGreaterThanOrEqual(30);
+  it('retired Vital fixture data is no longer exposed to productive services', () => {
+    expect(getDemoVitalReadings()).toEqual([]);
     expect(getDemoMedicationListItems().length).toBeGreaterThanOrEqual(12);
     expect(getDemoWoundDocumentations().length).toBeGreaterThanOrEqual(10);
     expect(getDemoCareRecordListItems().length).toBeGreaterThanOrEqual(25);
@@ -60,30 +60,29 @@ describe('Prepared-only elimination sprint', () => {
     expect(getDemoSisAssessments().length).toBeGreaterThanOrEqual(10);
   });
 
-  it('core Pflege modules are demo-functional (not preparedOnly)', () => {
-    expect(isMedicationLiveReady()).toBe(true);
-    expect(isWoundDocumentationLiveReady()).toBe(true);
-    expect(isShiftScheduleLiveReady()).toBe(true);
+  it('core Pflege modules require the productive backend', () => {
+    expect(isMedicationLiveReady()).toBe(false);
+    expect(isWoundDocumentationLiveReady()).toBe(false);
+    expect(isShiftScheduleLiveReady()).toBe(false);
     expect(isAssistExtensionLiveReady()).toBe(true);
     expect(isBeratungExtensionLiveReady()).toBe(true);
     expect(isStationaerExtensionLiveReady()).toBe(true);
     expect(isAkademieExtensionLiveReady()).toBe(true);
   });
 
-  it('BodyMap is demo-functional when demo mode active', () => {
-    expect(isWoundBodyMapReady()).toBe(true);
+  it('BodyMap persistence requires the productive backend', () => {
+    expect(isWoundBodyMapReady()).toBe(false);
   });
 
   it('external-provider gates remain honestly blocked for eMP only', () => {
     expect(isMedicationEmpReady()).toBe(false);
   });
 
-  it('Pflege CRUD services return demo data', async () => {
+  it('Pflege CRUD services reject retired demo persistence', async () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
 
     const meds = await fetchMedicationList(DEMO_TENANT_ID, 'nurse');
-    expect(meds.ok).toBe(true);
-    if (meds.ok) expect(meds.data.length).toBeGreaterThanOrEqual(12);
+    expect(meds.ok).toBe(false);
 
     const shifts = await fetchShiftScheduleList(DEMO_TENANT_ID, 'nurse');
     expect(shifts.ok).toBe(true);
@@ -94,8 +93,8 @@ describe('Prepared-only elimination sprint', () => {
       { clientId: 'client-001', type: 'pulse', value: '70' },
       'nurse',
     );
-    expect(vitalWrite.ok).toBe(true);
-    expect(isVitalWriteReady()).toBe(true);
+    expect(vitalWrite.ok).toBe(false);
+    expect(isVitalWriteReady()).toBe(false);
 
     vi.unstubAllEnvs();
   });

@@ -28,7 +28,7 @@ describe('Desktop Light-Mode Persistenz R8', () => {
     const bridge = read('src/design/tokens/themeBridge.ts');
     const colors = read('src/theme/colors.ts');
 
-    expect(bridge).toContain("portal.active ? 'light' : themeMode");
+    expect(bridge).toContain("portal.active || isInternalOrbitRoute ? 'light' : themeMode");
     expect(colors).toContain("colors = legacyColorsFromPalette('light')");
   });
 });

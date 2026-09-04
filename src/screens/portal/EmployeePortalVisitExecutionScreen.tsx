@@ -1635,13 +1635,13 @@ export function EmployeePortalVisitExecutionScreen() {
                   });
                   const r = await saveSignature(sig);
                   if (r.ok) {
-                    setSignatureConfirmationPending(false);
-                    setAwaitingSignature(false);
-                    setLocalSuccess('Unterschrift geprüft und gespeichert — der Einsatz kann abgeschlossen werden.');
+                    setSignatureConfirmationPending(true);
+                    setAwaitingSignature(true);
+                    setCloseSignatureCaptureRequest((n) => n + 1);
+                    setLocalSuccess('Unterschrift gespeichert — die Serverbestätigung wird geprüft.');
                     workflowPersistence.persist({
-                      signatureConfirmationPending: false,
-                      awaitingSignature: false,
-                      signatureCaptured: true,
+                      signatureConfirmationPending: true,
+                      awaitingSignature: true,
                     });
                   } else if (isWorkflowConfirmationPending(r.errorCode)) {
                     setCloseSignatureCaptureRequest((n) => n + 1);

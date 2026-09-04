@@ -10,7 +10,7 @@ describe('RequireEmployeePasswordSetup', () => {
   it('blocks employee portal layout until password is changed', () => {
     const layout = readSrc('app/portal/employee/_layout.tsx');
     const portalLayout = readSrc('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
-    expect(layout).toContain('LiquidPortalRouteLayout kind="employee"');
+    expect(layout).toContain('kind="employee"');
     expect(portalLayout).toContain('RequireEmployeePasswordSetup');
     expect(portalLayout).toContain('RequireAuth');
   });

@@ -37,7 +37,7 @@ export function ModalStackRenderer() {
 
 const styles = StyleSheet.create({
   host: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 2000,
   },
 });

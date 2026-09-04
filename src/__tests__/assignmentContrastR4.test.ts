@@ -93,8 +93,8 @@ describe("assignment studio R4 contrast contract", () => {
     expect(orbit).toContain('[data-cs-healthos-surface="dark"] *');
     expect(orbit).toContain("-webkit-text-fill-color: #FFFFFF !important");
     expect(orbit).toContain("background-color: #071A31 !important");
-    expect(input).toContain('csHealthosSurface: onDarkSurface ? "dark"');
-    expect(banner).toContain("csHealthosSurface: onDarkSurface ? 'dark'");
+    expect(input).toContain('csHealthosSurface: onDarkSurface ? "dark" : "adaptive"');
+    expect(banner).toContain("csHealthosSurface: darkSurface ? 'dark' : 'adaptive'");
   });
 
   it("keeps assignment controls readable inside central contextual popups", () => {

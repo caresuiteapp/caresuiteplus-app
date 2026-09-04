@@ -22,7 +22,7 @@ export function ClientWorkspaceKpiCard({ label, value, hint, icon, accentColor, 
   const { typography } = useLegacyTheme();
   const card = (
     <View style={[styles.kpiCard, compact && styles.kpiCardCompact, active && styles.kpiCardActive, { borderColor: active ? accentColor : systemLiquidGlass.border }, onPress ? styles.kpiPressableCard : style]}>
-      <LinearGradient colors={['#FFFFFF', '#F7FBFF', '#EEF6FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} pointerEvents="none" />
+      <LinearGradient colors={['#FFFFFF', '#F7FBFF', '#EEF6FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <View style={[styles.kpiAccent, { backgroundColor: accentColor }]} pointerEvents="none" />
       <View style={styles.kpiTopRow}>
         <View style={[styles.kpiIcon, { borderColor: accentColor, backgroundColor: `${accentColor}12` }]}><Text style={styles.kpiIconText}>{icon}</Text></View>
@@ -53,7 +53,7 @@ export function ClientWorkspacePanel({ eyebrow, title, subtitle, accessory, chil
   const showHeader = Boolean(eyebrow || title || subtitle || accessory);
   return (
     <View style={[styles.panel, compact && styles.panelCompact, style]}>
-      <LinearGradient colors={['#FFFFFF', '#F8FBFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} pointerEvents="none" />
+      <LinearGradient colors={['#FFFFFF', '#F8FBFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
       {showHeader ? (
         <View style={styles.panelHeader}>
           <View style={styles.panelTitleColumn}>
@@ -93,7 +93,7 @@ export function ClientWorkspaceButton({ label, onPress, variant = 'secondary', d
   return (
     <Pressable accessibilityRole="button" accessibilityState={{ disabled: isDisabled }} disabled={isDisabled} onPress={onPress} style={({ pressed }) => [styles.buttonHost, style, pressed && !isDisabled && styles.buttonPressed]}>
       <View style={[styles.button, compact && styles.buttonCompact, variant === 'secondary' && styles.buttonSecondary, variant === 'ghost' && styles.buttonGhost, variant === 'danger' && styles.buttonDanger, isDisabled && styles.buttonDisabled]}>
-        {primary ? <LinearGradient colors={[...SYSTEM_BLUE_GRADIENT]} style={StyleSheet.absoluteFillObject} pointerEvents="none" /> : null}
+        {primary ? <LinearGradient colors={[...SYSTEM_BLUE_GRADIENT]} style={StyleSheet.absoluteFill} pointerEvents="none" /> : null}
         {loading ? <ActivityIndicator color={primary ? '#FFFFFF' : SYSTEM_LIQUID_COLORS.electricBlue} /> : (
           <Text style={[styles.buttonLabel, primary && styles.buttonLabelPrimary, variant === 'danger' && styles.buttonLabelDanger]}>{label}</Text>
         )}

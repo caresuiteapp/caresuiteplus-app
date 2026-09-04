@@ -6,17 +6,17 @@ const root = process.cwd();
 const readJson = (fileName: string) =>
   JSON.parse(readFileSync(join(root, fileName), 'utf8')) as Record<string, any>;
 
-describe('R14-B Android API 36 and Expo SDK 54 baseline', () => {
-  it('uses the supported Expo SDK 54 dependency set', () => {
+describe('R14-B Android API 36 and Expo SDK 57 baseline', () => {
+  it('uses the supported Expo SDK 57 dependency set', () => {
     const packageJson = readJson('package.json');
 
     expect(packageJson.engines.node).toBe('>=20.19.4');
-    expect(packageJson.dependencies.expo).toMatch(/^~54\./);
-    expect(packageJson.dependencies['expo-router']).toMatch(/^~6\./);
-    expect(packageJson.dependencies.react).toBe('19.1.0');
-    expect(packageJson.dependencies['react-native']).toBe('0.81.5');
+    expect(packageJson.dependencies.expo).toMatch(/^~57\./);
+    expect(packageJson.dependencies['expo-router']).toMatch(/^~57\./);
+    expect(packageJson.dependencies.react).toBe('19.2.3');
+    expect(packageJson.dependencies['react-native']).toBe('0.86.3');
     expect(packageJson.dependencies['react-native-worklets']).toBeTruthy();
-    expect(packageJson.dependencies['expo-system-ui']).toMatch(/^~6\./);
+    expect(packageJson.dependencies['expo-system-ui']).toMatch(/^~57\./);
   });
 
   it('targets Android 16/API 36 with a monotonic app version', () => {
@@ -64,7 +64,7 @@ describe('R14-B Android API 36 and Expo SDK 54 baseline', () => {
     });
   });
 
-  it('uses the SDK 54 single pending-camera-result contract', () => {
+  it('uses the single pending-camera-result contract', () => {
     const picker = readFileSync(
       join(root, 'src/lib/portal/employeePortalMediaPicker.ts'),
       'utf8',

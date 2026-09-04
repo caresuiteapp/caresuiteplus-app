@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     padding: careSpacing.md,
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(5, 7, 22, 0.54)',
   },
   loadingBackdrop: { backgroundColor: 'rgba(5, 7, 22, 0.72)' },

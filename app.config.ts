@@ -38,12 +38,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   icon: './assets/icon.png',
   scheme: 'caresuiteplus',
   userInterfaceStyle: isPortalOnlyEdition ? 'light' : 'dark',
-  newArchEnabled: true,
-  splash: {
-    image: './assets/splash-icon.png',
-    resizeMode: 'contain',
-    backgroundColor: '#F8FAFC',
-  },
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'de.caresuiteplus.app',
@@ -105,6 +99,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ],
     'expo-asset',
     'expo-font',
+    [
+      'expo-splash-screen',
+      {
+        image: './assets/splash-icon.png',
+        resizeMode: 'contain',
+        backgroundColor: '#F8FAFC',
+      },
+    ],
+    'expo-sharing',
+    'expo-status-bar',
     [
       'expo-secure-store',
       {

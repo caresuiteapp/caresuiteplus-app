@@ -7,12 +7,6 @@
     "icon": "./assets/icon.png",
     "scheme": "caresuiteplus",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F8FAFC"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "de.caresuiteplus.app",
@@ -55,6 +49,14 @@
       ],
       "expo-asset",
       "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#F8FAFC"
+        }
+      ],
       [
         "expo-secure-store",
         {

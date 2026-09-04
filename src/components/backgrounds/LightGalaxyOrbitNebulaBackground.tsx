@@ -741,7 +741,7 @@ function LayerABaseAtmosphere() {
     );
   }
   return (
-    <LinearGradient colors={[...lgoonBaseGradient]} style={StyleSheet.absoluteFillObject} />
+    <LinearGradient colors={[...lgoonBaseGradient]} style={StyleSheet.absoluteFill} />
   );
 }
 
@@ -828,29 +828,29 @@ const webRootStyle: ViewStyle = (Platform.OS === 'web'
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: 'hidden',
     zIndex: 0,
     backgroundColor: '#B0B6BE',
     ...webRootStyle,
   },
   layerA: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     ...(Platform.OS === 'web' ? { backgroundImage:
       'linear-gradient(135deg, #A8AEB6 0%, #B8BEC6 28%, #C4CAD2 52%, #B0B6BE 78%, #9CA2AC 100%)' } : null) as unknown as ViewStyle,
   },
   layerJ: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     ...(Platform.OS === 'web' ? { backgroundImage:
       'radial-gradient(ellipse 96% 88% at 50% 44%, rgba(196,200,206,0.038) 0%, rgba(188,192,198,0.014) 42%, transparent 72%)' } : null) as unknown as ViewStyle,
     pointerEvents: 'none',
   },
   layerJNative: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(196,200,206,0.02)',
   },
   dimOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(196,200,206,0.24)',
   },
 });

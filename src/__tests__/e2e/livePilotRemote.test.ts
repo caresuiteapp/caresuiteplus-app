@@ -19,10 +19,12 @@ const REMOTE_KEY =
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
   '';
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 const PILOT_TENANT = '11111111-1111-1111-1111-111111111101';
-const runRemote = REMOTE_URL.includes('supabase.co') && REMOTE_KEY.length > 20;
+const runAnonRemote = REMOTE_URL.includes('supabase.co') && REMOTE_KEY.length > 20;
+const runServiceRemote = runAnonRemote && SERVICE_ROLE_KEY.length > 20;
 
-describe.skipIf(!runRemote)('Live-Pilot Remote E2E (anon, unauthenticated)', () => {
+describe.skipIf(!runAnonRemote)('Live-Pilot Remote E2E (anon, unauthenticated)', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -39,18 +41,20 @@ describe.skipIf(!runRemote)('Live-Pilot Remote E2E (anon, unauthenticated)', () 
     expect(error === null || error?.code === 'PGRST301' || error?.message?.includes('permission')).toBe(true);
   });
 
+});
+
+describe.skipIf(!runServiceRemote)('Live-Pilot Remote E2E (service-role, read-only)', () => {
   it('pilot tenants seeded', async () => {
-    const supabase = createClient(REMOTE_URL, REMOTE_KEY);
+    const supabase = createClient(REMOTE_URL, SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
     const { data, error } = await supabase
       .from('tenants')
       .select('id, name')
       .eq('id', PILOT_TENANT)
       .maybeSingle();
-    if (!error && data) {
-      expect(data.name).toContain('SonnenPflege');
-    } else {
-      expect(true).toBe(true);
-    }
+    expect(error).toBeNull();
+    expect(data?.name).toContain('SonnenPflege');
   });
 });
 

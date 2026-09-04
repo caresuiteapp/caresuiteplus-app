@@ -37,7 +37,9 @@ const checks = {
   minSdk24: properties.get('android.minSdkVersion') === '24',
   compileSdk36: properties.get('android.compileSdkVersion') === '36',
   targetSdk36: properties.get('android.targetSdkVersion') === '36',
-  edgeToEdge: properties.get('edgeToEdgeEnabled') === 'true',
+  // React Native 0.86 / Expo 57 enforce edge-to-edge and no longer emit the
+  // legacy Gradle opt-in property. Only an explicit false value is invalid.
+  edgeToEdge: properties.get('edgeToEdgeEnabled') !== 'false',
   backgroundLocation: manifest.includes('android.permission.ACCESS_BACKGROUND_LOCATION'),
   locationForegroundService: manifest.includes('android.permission.FOREGROUND_SERVICE_LOCATION'),
   notifications: manifest.includes('android.permission.POST_NOTIFICATIONS'),

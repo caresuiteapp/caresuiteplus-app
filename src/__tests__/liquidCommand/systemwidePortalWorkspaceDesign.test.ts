@@ -60,7 +60,7 @@ describe('systemwide portal workspace design', () => {
 
     const themeBridge = read('src/design/tokens/themeBridge.ts');
     const glass = read('src/design/tokens/auroraGlass.ts');
-    expect(themeBridge).toContain("const mode: ColorMode = portal.active ? 'light' : themeMode");
+    expect(themeBridge).toContain("portal.active || isInternalOrbitRoute ? 'light' : themeMode");
     expect(glass).toContain('portalPremiumGlass');
   });
 });

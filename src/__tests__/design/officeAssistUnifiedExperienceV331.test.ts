@@ -24,10 +24,10 @@ describe('Office + Assist unified experience V33.1', () => {
     expect(read('src/components/layout/C14vSubpageShell.tsx')).toContain('<ScreenShell');
   });
 
-  it('hält Shell, Hintergrund und Seitentokens räumlich dunkel und lesbar', () => {
+  it('hält die zentrale ORBIT-Arbeitsfläche hell und lesbar', () => {
     const tokens = read('src/design/tokens/systemLiquidGlass.ts');
-    expect(tokens).toContain("page: '#031127'");
-    expect(tokens).toContain("primary: '#F8F6FF'");
+    expect(tokens).toContain("page: '#FFFFFF'");
+    expect(tokens).toContain("primary: '#000000'");
     expect(tokens).toContain("onAccent: '#FFFFFF'");
   });
 

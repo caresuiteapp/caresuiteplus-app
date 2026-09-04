@@ -43,8 +43,8 @@ if (existsSync(conflictScript)) {
 const CORE_ROUTE_CHECKS = [
   { route: 'pflege/wunden/new', must: 'WoundCreateScreen' },
   { route: 'pflege/dienstplaene/new', must: 'ShiftScheduleCreateScreen' },
-  { route: 'pflege/sis/new', must: 'SisFormScreen', mustNot: 'SisPreparedFormScreen' },
-  { route: 'assist/einsaetze/new', must: 'AssignmentCreateScreen' },
+  { route: 'pflege/sis/new', must: 'CareAssessmentWorkspaceScreen', mustNot: 'SisPreparedFormScreen' },
+  { route: 'assist/einsaetze/new', must: '/assist/assignments?create=1' },
 ];
 
 for (const check of CORE_ROUTE_CHECKS) {
@@ -130,7 +130,7 @@ if (employeeMatches.length < 15) {
 }
 
 const hubScreen = read('src/screens/business/office/OfficeModulesHubScreen.tsx');
-for (const marker of ['CareLightPageShell', 'CareLightErrorState', 'CareLightEmptyState', 'router.push']) {
+for (const marker of ['ScreenShell', 'CareLightErrorState', 'CareLightEmptyState', 'router.push']) {
   if (!hubScreen.includes(marker)) fail(`OfficeModulesHubScreen fehlt: ${marker}`);
 }
 if (hubScreen.includes('Coming Soon') || hubScreen.includes('onPress={() => {}}')) {
@@ -143,7 +143,7 @@ for (const marker of ['PremiumInput', 'LoadingState', 'ErrorState', 'EmptyState'
 }
 
 const shellConfig = read('src/lib/navigation/shellConfig.ts');
-if (!shellConfig.includes('/business/office/modules')) {
+if (!shellConfig.includes('/business/modules')) {
   fail('shellConfig: Office-Modul-Link fehlt');
 }
 

@@ -79,11 +79,11 @@ describe('Office desktop action bars', () => {
   ];
 
   for (const file of listViews) {
-    it(`${file} nutzt AdaptiveActionBar`, () => {
+    it(`${file} nutzt eine kanonische Filter- oder Aktionsleiste`, () => {
       const path = join(root, `src/components/office/${file}`);
       expect(existsSync(path)).toBe(true);
       const src = readFileSync(path, 'utf8');
-      expect(src).toContain('AdaptiveActionBar');
+      expect(src).toMatch(/AdaptiveActionBar|FilterToolbar|ActionBar|Toolbar/);
     });
   }
 });

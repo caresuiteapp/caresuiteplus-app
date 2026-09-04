@@ -50,8 +50,8 @@ describe('Assist module shell layout', () => {
 
   it('PlatformShell main content slot stretches for nested route stacks', () => {
     const shell = readSrc('src/components/layout/platform/platformshell.tsx');
-    expect(shell).toContain('mainContentStretch');
-    expect(shell).toMatch(/mainContentStretch:[\s\S]*flex: 1/);
+    expect(shell).toContain('styles.content');
+    expect(shell).toMatch(/content:\s*\{\s*flex:\s*1/);
   });
 
   it('ScreenShell provides a flex-filling content host', () => {

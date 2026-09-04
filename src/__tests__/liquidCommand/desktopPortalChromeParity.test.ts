@@ -50,7 +50,7 @@ describe('desktop and portal chrome parity', () => {
 
   it('keeps desktop content open and avoids a second nested glass frame', () => {
     expect(shell).toContain('layout.isDesktop ? (');
-    expect(shell).toContain('style={styles.workspaceFrame}');
+    expect(shell).toContain('styles.workspaceFrame,');
     expect(shell).not.toContain('contentStyle={styles.workspaceFrameContent}');
     expect(shell).not.toContain('style={styles.areaRail}');
     expect(shell).toContain('const showAreaNavigation =');
@@ -66,9 +66,7 @@ describe('desktop and portal chrome parity', () => {
   });
 
   it('keeps compact navigation separate from desktop chrome', () => {
-    expect(shell).toContain('!layout.isDesktop ? (');
-    expect(shell).toContain('<BottomNavigation');
-    expect(shell).toContain('layout.showDock ? (');
-    expect(shell).toContain('<ModuleDock');
+    expect(shell).toContain('if (layout.isDesktop || layout.isTablet)');
+    expect(shell).toContain('<OrbitModuleNavigation');
   });
 });

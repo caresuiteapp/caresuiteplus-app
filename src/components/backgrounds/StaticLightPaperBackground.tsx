@@ -92,13 +92,13 @@ export function StaticLightPaperBackground({
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     ...(Platform.OS === 'web' ? webFixedViewportCoverStyle() : null),
     overflow: 'hidden',
     zIndex: 0,
   },
   image: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%' as ViewStyle['width'],
     height: '100%' as ViewStyle['height'],
     ...(Platform.OS === 'web'
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
       : null) as unknown as ViewStyle,
   },
   dimOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(249,251,255,0.22)',
   },
 });

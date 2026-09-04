@@ -11,7 +11,7 @@ import { colors, darkColors, lightColors } from '@/theme/colors';
 describe('design token bridge', () => {
   it('mappt dark legacy colors aus careSuiteColors', () => {
     const dark = legacyColorsFromPalette('dark');
-    expect(dark.bgBase).toBe(careSuiteColors.dark.background.app);
+    expect(dark.bgBase).toBe('#031127');
     expect(dark.orange).toBe(careSuiteColors.dark.brand.orange);
     expect(dark.cyan).toBe(careSuiteColors.dark.brand.cyan);
     expect(darkColors.bgBase).toBe(dark.bgBase);

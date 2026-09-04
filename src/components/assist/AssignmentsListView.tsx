@@ -306,7 +306,7 @@ function AssignmentsListViewContent({
         backgroundColor: "rgba(7, 27, 50, 0.78)",
       },
     });
-  }, [colors, typography]);
+  }, [typography]);
 
   const buildMobileActions = useCallback(
     (assignment: AssignmentListItem): AssignmentMobileAction[] => {

@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   empty: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     padding: 28,
     alignItems: 'center',
     justifyContent: 'center',

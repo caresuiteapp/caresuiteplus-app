@@ -72,7 +72,7 @@ describe('Assist disposition list UI contracts', () => {
   it('AssignmentsListTable nutzt PremiumDataTable mit flex-Spalten (kein Scroll-Wrapper)', () => {
     const source = readSrc('src/components/assist/AssignmentsListTable.tsx');
     expect(source).toContain('PremiumDataTable');
-    expect(source).toContain('Wochentag');
+    expect(source).toContain('Termin');
     expect(source).toContain('Klient:in');
     expect(source).not.toContain('GlassScrollView');
     expect(source).not.toContain('ScrollView');

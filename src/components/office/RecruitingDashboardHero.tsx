@@ -70,7 +70,7 @@ export function RecruitingDashboardHero({ summary }: RecruitingDashboardHeroProp
 
       <View style={styles.badges}>
         <PremiumBadge
-          label={isRecruitingLiveReady() ? 'Live' : 'In Vorbereitung'}
+          label={isRecruitingLiveReady() ? 'Live' : 'Nicht konfiguriert'}
           variant={isRecruitingLiveReady() ? 'green' : 'muted'}
         />
       </View>

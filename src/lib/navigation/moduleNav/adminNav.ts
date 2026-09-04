@@ -76,7 +76,6 @@ export const adminNav: ModuleNavConfig = {
           icon: '☁️',
           href: '/business/connect/google-workspace',
         },
-        { key: 'zoom', label: 'Zoom', icon: '🎥', href: '/business/connect/zoom' },
         { key: 'connect', label: 'Schnittstellen', icon: '🔌', href: '/business/connect' },
         { key: 'integrations', label: 'Integrationen', icon: '🔗', href: '/business/integrations' },
         { key: 'ops', label: 'System & Monitoring', icon: '🛰️', href: '/business/ops' },

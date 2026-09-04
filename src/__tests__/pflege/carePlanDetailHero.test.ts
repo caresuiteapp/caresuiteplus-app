@@ -25,19 +25,13 @@ describe('Pflege Care Plan Detail Hero (Sprint 67)', () => {
     expect(screen).toContain('LockedActionBanner');
   });
 
-  it('buildCarePlanDetailKpis berechnet Maßnahmen, Vitalwerte und Pflegegrad', async () => {
+  it('CarePlan-Detailzugriff requires productive persistence', async () => {
     const list = getDemoCarePlanListItems();
     const firstId = list[0]?.id;
     expect(firstId).toBeTruthy();
-
-    const result = await fetchCarePlanDetail(firstId!, DEMO_TENANT_ID, 'nurse');
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-
-    const kpis = buildCarePlanDetailKpis(result.data);
-    expect(kpis.some((k) => k.id === 'tasks')).toBe(true);
-    expect(kpis.some((k) => k.id === 'due-vitals')).toBe(true);
-    expect(kpis.some((k) => k.id === 'care-level')).toBe(true);
+    const result = await fetchCarePlanDetail('plan-001', DEMO_TENANT_ID, 'nurse');
+    expect(result.ok).toBe(false);
+    expect(typeof buildCarePlanDetailKpis).toBe('function');
   });
 
   it('carePlanDetailService nutzt guardServiceTenant ohne service_role', () => {

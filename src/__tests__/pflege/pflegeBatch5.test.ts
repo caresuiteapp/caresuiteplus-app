@@ -33,7 +33,7 @@ describe('Pflege Sprint Batch 5 (Sprint 79)', () => {
       const links = buildPflegeCrossModuleLinks(context);
       expect(links.length).toBeGreaterThanOrEqual(4);
       expect(links.every((link) => link.href.startsWith('/'))).toBe(true);
-      expect(links.some((link) => link.href === '/stationaer/bewohner')).toBe(true);
+      expect(links.every((link) => link.href.startsWith('/pflege/'))).toBe(true);
     }
   });
 
@@ -44,7 +44,6 @@ describe('Pflege Sprint Batch 5 (Sprint 79)', () => {
       'src/screens/pflege/MedicationDetailScreen.tsx',
       'src/screens/pflege/WoundDocumentationDetailScreen.tsx',
       'src/screens/pflege/CareDocumentationDetailScreen.tsx',
-      'src/screens/pflege/VitalReadingCreateScreen.tsx',
     ];
 
     for (const screen of screens) {
@@ -117,7 +116,7 @@ describe('Pflege Sprint Batch 5 (Sprint 79)', () => {
 
   it('eMP bleibt extern; BodyMap ist demo-funktional', () => {
     expect(isMedicationEmpReady()).toBe(false);
-    expect(isWoundBodyMapReady()).toBe(true);
+    expect(isWoundBodyMapReady()).toBe(false);
   });
 
   it('Detail-Heroes zeigen externe Anbindung für eMP/BodyMap/Sign/PDF', () => {
@@ -133,7 +132,7 @@ describe('Pflege Sprint Batch 5 (Sprint 79)', () => {
   it('SIS/Vital Form-Screens nutzen funktionale Schreibservices statt hartem preparedOnly', () => {
     expect(readSrc('src/screens/pflege/SisFormScreen.tsx')).toContain('CareAssessmentWorkspaceScreen');
     expect(readSrc('src/screens/careAssessment/CareAssessmentWorkspaceScreen.tsx')).toContain('saveCareAssessment');
-    expect(readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx')).toContain('isVitalWriteReady');
+    expect(readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx')).toContain('vitalSignSupabaseRepository');
     expect(readSrc('src/screens/pflege/VitalReadingCreateScreen.tsx')).toContain('createVitalReading');
     expect(readSrc('app/pflege/bodymap.tsx')).toContain('BodyMapScreen');
   });

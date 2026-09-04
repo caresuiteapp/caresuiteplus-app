@@ -11,7 +11,7 @@ type SurfaceProps = { children: ReactNode; style?: StyleProp<ViewStyle>; accentC
 export function SpatialPortalSurface({ children, style, accentColor = portalPremium.accent.blue, compact = false }: SurfaceProps) {
   return (
     <View style={[styles.surface, compact && styles.surfaceCompact, style]}>
-      <LinearGradient colors={['#FFFFFF', '#F2F8FF', '#E2F0FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} pointerEvents="none" />
+      <LinearGradient colors={['#FFFFFF', '#F2F8FF', '#E2F0FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <View style={[styles.edgeGlow, { backgroundColor: accentColor }]} pointerEvents="none" />
       <View style={styles.sheen} pointerEvents="none" />
       <View style={styles.orbLarge} pointerEvents="none" />
@@ -45,7 +45,7 @@ type MetricProps = { label: string; value: string | number; subValue?: string; i
 export function SpatialPortalMetric({ label, value, subValue, icon, accentColor = portalPremium.accent.blue }: MetricProps) {
   return (
     <View style={styles.metric}>
-      <LinearGradient colors={['#FFFFFF', '#EAF4FF']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['#FFFFFF', '#EAF4FF']} style={StyleSheet.absoluteFill} />
       <View style={[styles.metricRim, { backgroundColor: accentColor }]} />
       {icon ? (
         <View style={[styles.iconStage, { borderColor: `${accentColor}8A` }]}>
@@ -63,7 +63,7 @@ export function SpatialPortalMetric({ label, value, subValue, icon, accentColor 
 export function SpatialPortalPearlState({ title, message }: { title: string; message: string }) {
   return (
     <View style={styles.pearlState}>
-      <LinearGradient colors={['rgba(244,241,249,0.98)', 'rgba(211,205,225,0.96)']} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={['rgba(244,241,249,0.98)', 'rgba(211,205,225,0.96)']} style={StyleSheet.absoluteFill} />
       <Text style={styles.pearlTitle}>{title}</Text>
       <Text style={styles.pearlMessage}>{message}</Text>
     </View>
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   metric: { minHeight: 146, flex: 1, minWidth: '46%', padding: 14, borderRadius: 20, borderWidth: 1, borderColor: portalPremium.borderSoft, overflow: 'hidden', gap: 4 },
   metricRim: { position: 'absolute', top: 0, left: 32, right: 32, height: 2, opacity: 0.88 },
   iconStage: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1, marginBottom: 4, backgroundColor: 'rgba(5,108,232,0.08)', overflow: 'hidden' },
-  iconGlow: { ...StyleSheet.absoluteFillObject },
+  iconGlow: { ...StyleSheet.absoluteFill },
   metricLabel: { color: portalPremium.text.secondary, fontSize: 11, lineHeight: 14, fontWeight: '700', letterSpacing: 0.7, textTransform: 'uppercase' },
   metricValue: { fontSize: 25, lineHeight: 30, fontWeight: '800', letterSpacing: -0.6 },
   metricMeta: { color: portalPremium.text.muted, fontSize: 12, lineHeight: 17, fontWeight: '500' },

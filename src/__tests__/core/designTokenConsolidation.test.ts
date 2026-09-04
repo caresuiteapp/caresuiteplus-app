@@ -32,9 +32,10 @@ describe('Design token consolidation', () => {
     expect(source).toContain('usePortalPremiumTheme');
   });
 
-  it('PremiumButton nutzt den zentralen Spatial-Gradient', () => {
+  it('PremiumButton nutzt den zentralen ORBIT- und Portal-Vertrag', () => {
     const source = readSrc('src/components/ui/PremiumButton.tsx');
-    expect(source).toContain('spatialCareColors');
+    expect(source).toContain('ORBIT_VARIANT');
+    expect(source).toContain('portalPremium');
     expect(source).toContain('LinearGradient');
     expect(source).not.toContain("colors={['#FF9500'");
   });

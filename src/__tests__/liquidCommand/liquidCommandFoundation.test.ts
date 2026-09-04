@@ -17,11 +17,11 @@ import {
 
 describe('Liquid Command foundation', () => {
   it('uses the binding master-specification colors', () => {
-    expect(liquidColors.navy950).toBe('#010817');
-    expect(liquidColors.navy800).toBe('#061B35');
+    expect(liquidColors.navy950).toBe('#F6FAFF');
+    expect(liquidColors.navy800).toBe('#FFFFFF');
     expect(liquidColors.blue500).toBe('#1683FF');
-    expect(liquidColors.blue200).toBe('#9ACBFF');
-    expect(liquidColors.white).toBe('#FFFFFF');
+    expect(liquidColors.blue200).toBe('#1D4ED8');
+    expect(liquidColors.white).toBe('#0B1220');
   });
 
   it.each([

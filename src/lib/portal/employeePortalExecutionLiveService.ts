@@ -115,7 +115,9 @@ function mapPortalDetailToAssignmentDetail(
     clientName: detail.clientName,
     employeeName: '',
     allowedStatusActions: [],
-    allowedStatusTransitions: detail.allowedTransitions,
+    allowedStatusTransitions: Array.isArray(detail.allowedTransitions)
+      ? detail.allowedTransitions
+      : [],
     assignmentStatus: detail.status,
     tasks: (Array.isArray(detail.tasks) ? detail.tasks : []).map((task) => ({
       id: task.id,

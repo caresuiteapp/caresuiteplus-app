@@ -97,7 +97,7 @@ export function WfmOfficeStatusChip({
 }: {
   label: string;
   selected: boolean;
-  onPress: () => void;
+  onPress?: () => void;
 }) {
   return <FilterChip label={label} selected={selected} onPress={onPress} />;
 }

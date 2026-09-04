@@ -8,11 +8,10 @@ const root = process.cwd();
 const read = (relative: string) => readFileSync(path.join(root, relative), 'utf8');
 
 describe('System Spatial Experience V34.2', () => {
-  it('verwendet eine durchgängige dunkle Bühne ohne riesige weiße Arbeitsfläche', () => {
-    expect(spatialCare.page).toBe('#031127');
+  it('verwendet die durchgängige helle ORBIT-Arbeitsfläche', () => {
+    expect(systemLiquidGlass.page).toBe('#FFFFFF');
     expect(spatialCare.stage).toContain('6, 27, 53');
-    expect(systemLiquidGlass.page).toBe(spatialCare.page);
-    expect(systemLiquidGlass.panel).not.toContain('255, 255, 255, 0.82');
+    expect(systemLiquidGlass.panel).toContain('255, 255, 255');
   });
 
   it('behält die Modulidentitäten und kollabiert nicht in eine reine Blauwelt', () => {
@@ -22,9 +21,9 @@ describe('System Spatial Experience V34.2', () => {
   });
 
   it('verbindet Office, Assist, Portale und Anmeldung mit derselben Designbasis', () => {
-    expect(read('src/components/layout/platform/platformshell.tsx')).toContain('spatialCare.stage');
-    expect(read('src/components/layout/portal/PortalShellLayout.tsx')).toContain('spatialCare.stage');
-    expect(read('src/design/components/AuthPageShell.tsx')).toContain('spatialCare.stageStrong');
+    expect(read('src/components/layout/platform/platformshell.tsx')).toContain('OrbitTopNavigation');
+    expect(read('src/components/layout/portal/PortalShellLayout.tsx')).toContain('PORTAL_MOBILE_NAV_HEIGHT');
+    expect(read('src/design/components/AuthPageShell.tsx')).toContain('portalPremium');
     expect(read('src/design/components/GlassCard.tsx')).toContain("'rgba(6,27,53,0.94)'");
   });
 

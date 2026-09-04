@@ -85,7 +85,7 @@ export function PortalNavigationDrawer({
             colors={['rgba(38,42,72,0.99)', 'rgba(12,15,34,0.995)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 0.85, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
           <View style={[styles.ambientOrb, { backgroundColor: withAlpha(accentColor, 0.13) }]} pointerEvents="none" />

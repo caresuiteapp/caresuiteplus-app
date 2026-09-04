@@ -64,7 +64,7 @@ export function PremiumKpiCard({
             : null),
         },
         innerBorder: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           borderRadius: radius.lg,
           borderWidth: 1,
           borderColor: portal.active ? portalPremium.innerBorder : systemLiquidGlass.innerBorder,

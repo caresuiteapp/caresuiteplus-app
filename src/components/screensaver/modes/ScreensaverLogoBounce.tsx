@@ -121,7 +121,7 @@ export function ScreensaverLogoBounce({
 
 const styles = StyleSheet.create({
   host: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   logoWrap: {
     position: 'absolute',

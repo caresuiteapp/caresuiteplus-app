@@ -96,7 +96,7 @@ const WRONG_NEW_ROUTES = [
   },
   {
     route: '/assist/assignments/new',
-    mustInclude: ['AssignmentCreateScreen'],
+    mustInclude: ['Redirect', '/assist/assignments?create=1'],
     mustNotInclude: ['EinsaetzeListScreen', 'AssignmentDetailScreen'],
   },
   {
@@ -124,7 +124,7 @@ const WRONG_EDIT_ROUTES = [
   },
   {
     route: '/pflege/planung/plan-001/edit',
-    mustInclude: ['CarePlanEditScreen', 'updateDemoCarePlan'],
+    mustInclude: ['CarePlanEditScreen', 'updateCarePlan'],
     mustNotInclude: ['CarePlanDetailScreen'],
   },
   {

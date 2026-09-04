@@ -156,7 +156,7 @@ describe('AssignmentEditForm UI contract', () => {
   it('renders visible form inputs with visit data and form viewContext', () => {
     const form = readSrc('src/components/assist/AssignmentEditForm.tsx');
     expect(form).toContain('PremiumInput');
-    expect(form).toContain("viewContext: 'form'");
+    expect(form).toContain('viewContext: "form"');
     expect(form).toContain('CareDateInput');
     expect(form).toContain('CareTimeInput');
     expect(form).toContain('mapVisitDetailToEditForm');

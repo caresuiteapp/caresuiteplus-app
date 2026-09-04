@@ -140,7 +140,7 @@ export function GlassSlidePanel({
           opacity: open ? 1 : 0,
         },
         innerBorder: {
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           borderRadius: careRadius.md,
           borderWidth: 1,
           borderColor: auroraActive

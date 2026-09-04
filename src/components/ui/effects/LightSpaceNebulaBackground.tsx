@@ -136,7 +136,7 @@ function NativeStarLayer({ animate }: { animate: boolean }) {
   const layerStyle = useAnimatedStyle(() => ({ opacity: 0.45 + twinkle.value * 0.35 }));
 
   return (
-    <AnimatedView style={[StyleSheet.absoluteFillObject, layerStyle]} pointerEvents="none">
+    <AnimatedView style={[StyleSheet.absoluteFill, layerStyle]} pointerEvents="none">
       {lightSpaceNebulaStarField.map(([x, y, intensity], index) => (
         <View
           key={`star-${index}`}
@@ -243,7 +243,7 @@ function CenterCalmLayer() {
       : null;
 
   return (
-    <View style={[StyleSheet.absoluteFillObject, styles.centerCalmNative, webRadial]} pointerEvents="none">
+    <View style={[StyleSheet.absoluteFill, styles.centerCalmNative, webRadial]} pointerEvents="none">
       {Platform.OS !== 'web' ? (
         <View style={styles.centerCalmOrb} pointerEvents="none" />
       ) : null}
@@ -258,28 +258,28 @@ function EdgeGlowLayer() {
         colors={['rgba(124,157,255,0.14)', 'transparent']}
         start={{ x: 0, y: 0.5 }}
         end={{ x: 0.22, y: 0.5 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
       <LinearGradient
         colors={['transparent', 'rgba(99,211,255,0.12)']}
         start={{ x: 0.78, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
       <LinearGradient
         colors={['rgba(182,156,255,0.11)', 'transparent']}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 0.18 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
       <LinearGradient
         colors={['transparent', 'rgba(168,230,255,0.10)']}
         start={{ x: 0.5, y: 0.82 }}
         end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
     </>
@@ -309,8 +309,8 @@ export function LightSpaceNebulaBackground({
   );
 
   return (
-    <View style={[StyleSheet.absoluteFillObject, styles.root, style]} pointerEvents="none">
-      <LinearGradient colors={[...lightSpaceNebulaFx.base]} style={StyleSheet.absoluteFillObject} />
+    <View style={[StyleSheet.absoluteFill, styles.root, style]} pointerEvents="none">
+      <LinearGradient colors={[...lightSpaceNebulaFx.base]} style={StyleSheet.absoluteFill} />
       {lightSpaceNebulaFx.orbs.map((orb, index) => (
         <NebulaOrb key={`${orb.color}-${index}`} orb={orb} animate={shouldAnimate} />
       ))}
@@ -318,7 +318,7 @@ export function LightSpaceNebulaBackground({
         colors={[...lightSpaceNebulaFx.mesh]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
       {starLayer}
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     backgroundColor: lightSpaceNebulaFx.centerCalm,
   },
   dimOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(247,250,255,0.35)',
   },
 });

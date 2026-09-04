@@ -88,7 +88,7 @@ describe('Assignment compact cards UI', () => {
     ).toBe('#F97316');
     expect(
       resolveAssignmentCardAccent({ ...sampleAssignment, assignmentStatus: 'storniert', status: 'fehlerhaft' }).color,
-    ).toBe('#EF4444');
+    ).toBe('#D92D20');
   });
 
   it('resolveSgbReference extracts SGB reference from service name', () => {
@@ -223,7 +223,7 @@ describe('Assignment compact cards UI', () => {
     const source = readSrc('src/components/assist/AssignmentsListView.tsx');
     expect(source).toContain('AssignmentsCardGrid');
     expect(source).toContain('AssignmentsListTable');
-    expect(source).toContain("useDesktopListViewPreference('assist.assignments.v2', 'cards')");
+    expect(source).toContain('"assist.assignments.v2"');
     expect(source).toContain('AssignmentMobileActionSheet');
     expect(source).toContain('ASSIGNMENT_DATE_RANGE_FILTERS');
     expect(source).toContain('employeeFilter');
@@ -231,8 +231,8 @@ describe('Assignment compact cards UI', () => {
     expect(source).not.toContain('AssignmentsFilterSidebar');
     expect(source).not.toContain('layoutRow');
     expect(source).toContain('filtersExpanded');
-    expect(source).toContain('Filter anzeigen');
-    expect(source).toContain('Filter ausblenden');
+    expect(source).toContain('Filtern');
+    expect(source).toContain('Filter schließen');
     expect(source).toMatch(/onChange=.*setDateRange/s);
     expect((source.match(/\bwrap\b/g) ?? []).length).toBeGreaterThanOrEqual(5);
   });

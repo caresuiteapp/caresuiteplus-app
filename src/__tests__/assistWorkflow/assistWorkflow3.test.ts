@@ -63,6 +63,21 @@ describe('resolveAllowedActions (ASSIST.WORKFLOW.3)', () => {
     expect(actions).toContain('end_service');
     expect(primaryAllowedAction(actions, 'gestartet')).toBe('end_service');
   });
+
+  it('does not crash when a legacy cache record has no allowedTransitions array', () => {
+    const legacyDetail = {
+      ...baseDetail(),
+      allowedTransitions: undefined,
+    } as unknown as AssistExecutionContext['detail'];
+
+    expect(() =>
+      resolveAllowedActions({
+        assignmentStatus: 'geplant',
+        visitTimes: null,
+        detail: legacyDetail,
+      }),
+    ).not.toThrow();
+  });
 });
 
 describe('resolveAssistExecutionDiagnostics (ASSIST.WORKFLOW.3)', () => {

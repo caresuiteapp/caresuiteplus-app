@@ -10,7 +10,7 @@
 import { chromium } from 'playwright';
 
 const AUDIT_FN = `(() => {
-  const MIN_BRIGHTNESS = 205;
+  const MAX_DARK_BRIGHTNESS = 35;
   const MIN_AREA = 5000;
   const MIN_ALPHA = 0.4;
   const TOP_N = 20;
@@ -38,7 +38,7 @@ const AUDIT_FN = `(() => {
     const parsed = parseBackgroundColor(bg);
     if (!parsed || parsed.a < MIN_ALPHA) continue;
     const brightness = luminance(parsed.r, parsed.g, parsed.b);
-    if (brightness <= MIN_BRIGHTNESS) continue;
+    if (brightness >= MAX_DARK_BRIGHTNESS) continue;
     offenders.push({
       tag: el.tagName.toLowerCase(),
       className: typeof el.className === 'string' ? el.className : '',
@@ -103,7 +103,7 @@ async function main() {
   const args = parseArgs(process.argv);
   const url = `${args.base.replace(/\/$/, '')}${args.route}`;
 
-  const browser = await chromium.launch({ channel: 'msedge', headless: true });
+  const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: args.width, height: args.height } });
 
   let navError = null;
@@ -140,7 +140,7 @@ async function main() {
   }
   console.log(`Route: ${result.route}`);
   console.log(`Viewport: ${result.viewport.width}x${result.viewport.height}`);
-  console.log(`Offenders (brightness>205, area>5000, alpha>0.4): ${result.offenderCount}`);
+  console.log(`Unexpected dark surfaces (brightness<35, area>5000, alpha>0.4): ${result.offenderCount}`);
   console.log('Top offenders:');
   console.log(formatTable(result.top));
 }

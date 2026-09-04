@@ -7,10 +7,10 @@ const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
 
 describe('R17 native mobile quality gate', () => {
   it('reserves the complete floating-nav area outside route content', () => {
-    const shell = read('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
+    const shell = read('src/components/layout/portal/PortalShellLayout.tsx');
     const tabs = read('src/lib/navigation/portalMobileTabs.ts');
-    expect(shell).toContain('compactContentBottomReserve');
-    expect(shell).toContain('marginBottom: compactContentBottomReserve');
+    expect(shell).toContain('bottomNavOffset = PORTAL_MOBILE_NAV_HEIGHT');
+    expect(shell).toContain('paddingBottom: mobileContentPaddingBottom');
     expect(tabs).toContain('PORTAL_MOBILE_NAV_HEIGHT = 76');
   });
 

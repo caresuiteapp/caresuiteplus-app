@@ -10,8 +10,8 @@ describe('System Spatial Contrast Shell V36.1', () => {
   it('uses readable light ink on every canonical dark surface', () => {
     expect(darkGlassSurfaceText.primary).toBe(systemLiquidGlass.text.primary);
     expect(auroraGlass.text.primary).toBe(systemLiquidGlass.text.primary);
-    expect(galaxyPalette.textPrimary).toBe(systemLiquidGlass.text.primary);
-    expect(auroraGlass.text.primary).not.toBe('#000000');
+    expect(galaxyPalette.textPrimary).toBe('#F8F6FF');
+    expect(auroraGlass.text.primary).toBe('#000000');
   });
 
   it('keeps dark and light glass token sets separate', () => {

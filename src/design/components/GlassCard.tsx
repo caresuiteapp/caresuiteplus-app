@@ -36,7 +36,7 @@ export function GlassCard({ children, onPress, glow = false, accentColor, select
           : ['rgba(6,27,53,0.94)', 'rgba(3,17,39,0.98)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
       {accentColor ? <View style={styles.accentEdge} /> : null}

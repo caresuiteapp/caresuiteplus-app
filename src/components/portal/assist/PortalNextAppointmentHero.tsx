@@ -89,7 +89,7 @@ export function PortalNextAppointmentHero({
         colors={['#FFFFFF', '#F4F9FF', '#E5F1FF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
       <View style={styles.glow} pointerEvents="none" />

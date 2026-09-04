@@ -12,7 +12,7 @@ export function SpatialCareBackground({ dimmed = false }: SpatialCareBackgroundP
         colors={[...spatialCareGradients.background]}
         start={{ x: 0.05, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
       />
       <View style={[styles.glow, styles.glowCyan]} />
       <View style={[styles.glow, styles.glowWarm]} />
@@ -29,7 +29,7 @@ const blurFx = Platform.OS === 'web'
   : null;
 
 const styles = StyleSheet.create({
-  root: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', backgroundColor: spatialCareColors.night },
+  root: { ...StyleSheet.absoluteFill, overflow: 'hidden', backgroundColor: spatialCareColors.night },
   glow: { position: 'absolute', borderRadius: 999, opacity: 0.38, ...blurFx },
   glowCyan: { width: 520, height: 520, right: '-8%', top: '-18%', backgroundColor: '#207A94' },
   glowWarm: { width: 420, height: 420, left: '18%', bottom: '-24%', backgroundColor: '#9B7B85', opacity: 0.24 },
@@ -37,5 +37,5 @@ const styles = StyleSheet.create({
   orbitLarge: { width: '76%', height: '82%', right: '-22%', top: '8%', borderRadius: 260 },
   orbitSmall: { width: 320, height: 320, left: '8%', top: '14%', borderRadius: 96 },
   horizon: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '34%', backgroundColor: 'rgba(235,226,239,0.07)', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.09)' },
-  dim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(8,10,24,0.34)' },
+  dim: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(8,10,24,0.34)' },
 });

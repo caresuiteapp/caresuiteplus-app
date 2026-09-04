@@ -69,8 +69,8 @@ export function DashboardHero({
           marginBottom: spacing.sm,
           ...(isDark ? neonGlow('#EC4899', 0.35, 28, 16) : null),
         },
-        gradient: { ...StyleSheet.absoluteFillObject },
-        overlay: { ...StyleSheet.absoluteFillObject },
+        gradient: { ...StyleSheet.absoluteFill },
+        overlay: { ...StyleSheet.absoluteFill },
         sheen: {
           position: 'absolute',
           top: 0,

@@ -47,15 +47,19 @@ export function PremiumInput({
   const lightSurface =
     !onDarkSurface &&
     (portal.active || onLightSurface || surfaceTone === "light");
-  const text = onDarkSurface
-    ? { primary: "#FFFFFF", secondary: "#D6E8F6", muted: "#91ACC3" }
-    : lightSurface
-      ? lightSurfaceText
-      : {
-          primary: systemLiquidGlass.text.primary,
-          secondary: systemLiquidGlass.text.secondary,
-          muted: systemLiquidGlass.text.muted,
-        };
+  const text = useMemo(
+    () =>
+      onDarkSurface
+        ? { primary: "#FFFFFF", secondary: "#D6E8F6", muted: "#91ACC3" }
+        : lightSurface
+          ? lightSurfaceText
+          : {
+              primary: systemLiquidGlass.text.primary,
+              secondary: systemLiquidGlass.text.secondary,
+              muted: systemLiquidGlass.text.muted,
+            },
+    [lightSurface, onDarkSurface],
+  );
 
   const styles = useMemo(
     () =>

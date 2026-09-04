@@ -160,7 +160,7 @@ export function GuidedTourOverlay({
             />
           </>
         ) : (
-          <View style={[styles.overlay, StyleSheet.absoluteFillObject]} />
+          <View style={[styles.overlay, StyleSheet.absoluteFill]} />
         )}
 
         <GlassSurface

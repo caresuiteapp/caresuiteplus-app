@@ -102,7 +102,7 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
   );
   useEffect(() => {
     if (pendingConfirmation) setConfirmationKm(pendingConfirmation.distanceFinalKm.toFixed(2).replace('.', ','));
-  }, [pendingConfirmation?.id]);
+  }, [pendingConfirmation]);
 
   async function confirmDistance() {
     if (!pendingConfirmation) return;

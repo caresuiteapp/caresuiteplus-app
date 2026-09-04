@@ -268,11 +268,11 @@ describe('Inventar — Kernlogik (14 Szenarien)', () => {
 });
 
 describe('Inventar — UI Wiring', () => {
-  it('Dashboard-Screen nutzt CareLightModuleDashboard', () => {
+  it('Dashboard-Screen nutzt die kanonische ScreenShell', () => {
     const screen = readSrc('src/screens/inventory/InventoryDashboardScreen.tsx');
-    expect(screen).toContain('CareLightModuleDashboard');
+    expect(screen).toContain('ScreenShell');
     expect(screen).toContain('Inventar');
-    expect(screen).toContain('INVENTORY_PREPARED_MESSAGE');
+    expect(screen).toContain('fetchInventoryItems');
   });
 
   it('Route registriert unter business/office/inventory', () => {

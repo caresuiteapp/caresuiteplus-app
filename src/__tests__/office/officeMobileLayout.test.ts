@@ -9,12 +9,10 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Office mobile platform layout', () => {
-  it('PlatformShell hides ModuleNavSidebar below 768px', () => {
+  it('PlatformShell uses one responsive ORBIT top navigation', () => {
     const shell = readSrc('src/components/layout/platform/platformshell.tsx');
-    expect(shell).toContain('breakpoints.tablet');
-    expect(shell).toContain('isPhoneLayout');
-    expect(shell).toContain("mainModule !== 'zentrale'");
-    expect(shell).toMatch(/showModuleNav\s*=\s*!isPhoneLayout\s*&&\s*mainModule\s*!==\s*'zentrale'/);
+    expect(shell).toContain('OrbitTopNavigation');
+    expect(shell).toContain('resolvePlatformContentPadding(width)');
   });
 
   it('PlatformShell shows ModuleNavSidebar from tablet width up', () => {
@@ -23,10 +21,10 @@ describe('Office mobile platform layout', () => {
     expect(metrics).toMatch(/showModuleNav\s*=\s*!isPhoneLayout/);
   });
 
-  it('PlatformShell hides ModuleNavSidebar for Zentrale module', () => {
+  it('PlatformShell resolves every module through the common context', () => {
     const shell = readSrc('src/components/layout/platform/platformshell.tsx');
-    expect(shell).toContain("mainModule !== 'zentrale'");
-    expect(shell).toContain('RightContextPanel');
+    expect(shell).toContain('resolveMainModuleFromPath(pathname)');
+    expect(shell).toContain('MobilePlatformContextPanel');
   });
 
   it('MobilePlatformContextPanel places nav groups below Schnellaktionen without Zentrale block', () => {

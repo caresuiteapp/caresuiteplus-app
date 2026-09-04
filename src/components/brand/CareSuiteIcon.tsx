@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   auroraSheen: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   auroraIcon: {
     textShadowColor: withAlpha('#FFFFFF', 0.35),

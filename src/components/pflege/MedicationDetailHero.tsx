@@ -85,6 +85,7 @@ export function MedicationDetailHero({ detail, roleKey, isReadOnly }: Medication
         />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         <PremiumBadge label="Live-Daten" variant="green" dot />
+        <PremiumBadge label="eMP/TI extern · nicht konfiguriert" variant="orange" dot />
         {detail.isHighAlert ? <PremiumBadge label="Hochrisiko" variant="red" dot /> : null}
         {detail.isControlledSubstance ? <PremiumBadge label="BtM · Gegenkontrolle" variant="red" dot /> : null}
         {detail.intensiveCareRelevant ? <PremiumBadge label="Intensivpflege" variant="muted" /> : null}

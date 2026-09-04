@@ -112,7 +112,7 @@ function EmployeePremiumWelcome({
           locations={[0, 0.58, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
         <View style={styles.welcomeGlow} pointerEvents="none" />
@@ -162,7 +162,7 @@ function EmployeePremiumWelcome({
           colors={['#FFFFFF', '#F1F7FF', '#E2EFFF']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
         <View style={styles.quickPanelGlow} pointerEvents="none" />

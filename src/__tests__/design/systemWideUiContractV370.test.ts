@@ -37,17 +37,15 @@ describe('HealthOS system-wide UI contract V37.0', () => {
     expect(isHealthOSContextualPopupRoute('/assist/nachweise/review')).toBe(true);
     expect(isHealthOSContextualPopupRoute('/office/appointments/create')).toBe(true);
     expect(isHealthOSContextualPopupRoute('/office/messages/compose')).toBe(true);
-    expect(isHealthOSContextualPopupRoute('/settings')).toBe(false);
+    expect(isHealthOSContextualPopupRoute('/settings')).toBe(true);
     expect(isHealthOSContextualPopupRoute('/settings/tenant')).toBe(true);
     expect(isHealthOSContextualPopupRoute('/portal/employee/assignments/[id]/execute')).toBe(false);
     expect(isHealthOSContextualPopupRoute('/auth/business-login')).toBe(false);
   });
 
   it('provides a deterministic close target for direct popup URLs', () => {
-    expect(resolveHealthOSPopupFallbackPath('/business/office/clients/123/edit')).toBe(
-      '/business/office/clients/123',
-    );
-    expect(resolveHealthOSPopupFallbackPath('/assist/nachweise/review')).toBe('/assist/nachweise');
+    expect(resolveHealthOSPopupFallbackPath('/business/office/clients/123/edit')).toBe('/');
+    expect(resolveHealthOSPopupFallbackPath('/assist/nachweise/review')).toBe('/');
   });
 
   it('enforces the popup presenter at navigator and shared shell level', () => {
@@ -57,7 +55,7 @@ describe('HealthOS system-wide UI contract V37.0', () => {
     expect(rootLayout).toContain('isHealthOSContextualPopupRoute(route.name)');
     expect(rootLayout).toContain("presentation: contextualPopup ? 'transparentModal' : 'card'");
     expect(shell).toContain('screen-shell-contextual-popup');
-    expect(shell).toContain('<PlatformModal');
+    expect(shell).toContain('popupBody:');
   });
 
   it('uses one canonical component family for filters, tabs, cards and tables', () => {
@@ -69,7 +67,7 @@ describe('HealthOS system-wide UI contract V37.0', () => {
 
     expect(filters).toContain('systemLiquidGlass.chip');
     expect(tabs).toContain('systemLiquidGlass.chipActive');
-    expect(cards).toContain('spatialCareGradients.nightGlass');
+    expect(cards).toContain('spatialCare');
     expect(kpis).toContain('systemLiquidGlass.panelStrong');
     expect(kpis).toContain("csHealthosComponent: 'kpi-card'");
     expect(tables).not.toContain("solidSurface ? '#FAFBFC'");

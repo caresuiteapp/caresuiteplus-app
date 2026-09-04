@@ -78,8 +78,8 @@ export function AuroraBackground({ animated = true, style }: AuroraBackgroundPro
   const shouldAnimate = animated && !prefersReducedMotion;
 
   return (
-    <View style={[StyleSheet.absoluteFillObject, style]} pointerEvents="none">
-      <LinearGradient colors={[...auroraFx.base]} style={StyleSheet.absoluteFillObject} />
+    <View style={[StyleSheet.absoluteFill, style]} pointerEvents="none">
+      <LinearGradient colors={[...auroraFx.base]} style={StyleSheet.absoluteFill} />
       {auroraFx.orbs.map((orb, index) => (
         <AuroraOrb key={`${orb.color}-${index}`} orb={orb} animate={shouldAnimate} />
       ))}
@@ -87,10 +87,10 @@ export function AuroraBackground({ animated = true, style }: AuroraBackgroundPro
         colors={[...auroraFx.mesh]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      <View style={[StyleSheet.absoluteFillObject, styles.vignette]} pointerEvents="none" />
+      <View style={[StyleSheet.absoluteFill, styles.vignette]} pointerEvents="none" />
     </View>
   );
 }

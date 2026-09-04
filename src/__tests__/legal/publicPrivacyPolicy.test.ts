@@ -29,7 +29,6 @@ describe('public CareSuite privacy policy', () => {
       'Automatisierte Entscheidungen und Profiling',
       'Google Maps',
       'Google Workspace',
-      'Zoom',
       'Supabase',
       'Vercel',
       'OpenAI',

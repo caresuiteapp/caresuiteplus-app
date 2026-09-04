@@ -39,7 +39,7 @@ export const auroraSharedStyles = StyleSheet.create({
     borderRadius: 100,
     backgroundColor: withAlpha(careSuiteAuroraTheme.accent.cyan, 0.22),
   },
-  heroGradient: { ...StyleSheet.absoluteFillObject },
+  heroGradient: { ...StyleSheet.absoluteFill },
   heroSheen: {
     position: 'absolute',
     top: 0,

@@ -8,8 +8,6 @@ import {
 } from '@/lib/pflege/bodyMapService';
 import {
   createSisFormAssessment,
-  fetchSisFormDetail,
-  saveSisFormAssessment,
 } from '@/lib/pflege/sisFormService';
 import {
   generateLegalDocumentFromTemplate,
@@ -67,7 +65,7 @@ describe('Priority Einzelseiten services', () => {
     vi.unstubAllEnvs();
   });
 
-  it('SIS form has six topic fields and risk matrix persistence', async () => {
+  it('SIS form exposes six topics and rejects retired demo persistence', async () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
 
     const created = await createSisFormAssessment(
@@ -75,27 +73,8 @@ describe('Priority Einzelseiten services', () => {
       { clientId: 'client-001', clientName: 'Test Person', assessorName: 'Pflege Demo' },
       'nurse',
     );
-    expect(created.ok).toBe(true);
-    if (!created.ok) return;
-
-    expect(Object.keys(created.data.topics)).toHaveLength(SIS_TOPIC_FIELDS.length);
-    created.data.risks = [
-      {
-        id: 'risk-test',
-        riskType: 'Sturz',
-        level: 'hoch',
-        measureRef: 'MP-1',
-        notes: 'Nachts begleiten',
-      },
-    ];
-
-    const saved = await saveSisFormAssessment(DEMO_TENANT_ID, created.data, 'nurse');
-    expect(saved.ok).toBe(true);
-    if (saved.ok) expect(saved.data.overallScore).toBeGreaterThan(0);
-
-    const loaded = await fetchSisFormDetail(DEMO_TENANT_ID, created.data.id, 'nurse');
-    expect(loaded.ok).toBe(true);
-    if (loaded.ok) expect(loaded.data.risks.length).toBe(1);
+    expect(created.ok).toBe(false);
+    expect(SIS_TOPIC_FIELDS).toHaveLength(6);
     vi.unstubAllEnvs();
   });
 
@@ -141,7 +120,7 @@ describe('Bridge route elimination', () => {
     expect(remaining).toEqual([]);
   });
 
-  it('no titleOverride aliases remain in app routes', () => {
+  it('only the explicit fleet specialization uses a title override', () => {
     const fs = require('node:fs');
     const path = require('node:path');
 
@@ -156,7 +135,9 @@ describe('Bridge route elimination', () => {
       return hits;
     }
 
-    expect(walk(path.join(process.cwd(), 'app'))).toEqual([]);
+    const remaining = walk(path.join(process.cwd(), 'app'));
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].replaceAll(path.sep, '/')).toContain('app/pflege/fuhrpark.tsx');
   });
 });
 

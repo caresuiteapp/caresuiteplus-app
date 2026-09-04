@@ -40,9 +40,12 @@ describe('store config', () => {
 
   it('referenziert Icon- und Favicon-Pfade', () => {
     const appJson = JSON.parse(readFileSync(join(root, 'app.json'), 'utf8'));
+    const splashPlugin = appJson.expo.plugins.find(
+      (plugin: unknown) => Array.isArray(plugin) && plugin[0] === 'expo-splash-screen',
+    );
     expect(appJson.expo.icon).toBe('./assets/icon.png');
     expect(appJson.expo.web.favicon).toBe('./assets/favicon.png');
-    expect(appJson.expo.splash?.image).toBe('./assets/splash-icon.png');
+    expect(splashPlugin?.[1]?.image).toBe('./assets/splash-icon.png');
     expect(appJson.expo.android?.adaptiveIcon?.foregroundImage).toBe(
       './assets/android-icon-foreground.png',
     );

@@ -130,9 +130,9 @@ export function GlobalAnimatedBackground({
 }
 
 const styles = StyleSheet.create({
-  root: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', backgroundColor: '#FFFFFF' },
-  ambientField: { ...StyleSheet.absoluteFillObject },
-  counterField: { ...StyleSheet.absoluteFillObject },
+  root: { ...StyleSheet.absoluteFill, overflow: 'hidden', backgroundColor: '#FFFFFF' },
+  ambientField: { ...StyleSheet.absoluteFill },
+  counterField: { ...StyleSheet.absoluteFill },
   lightStreamPrimary: {
     position: 'absolute',
     width: 1180,
@@ -202,5 +202,5 @@ const styles = StyleSheet.create({
     left: '62%',
     top: '58%',
   },
-  dim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16,35,63,0.16)' },
+  dim: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(16,35,63,0.16)' },
 });

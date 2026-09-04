@@ -23,9 +23,9 @@ describe('System Liquid Glass V33', () => {
     expect(new Set(Object.values(careSuiteColors.dark.module)).size).toBeGreaterThanOrEqual(5);
   });
 
-  it('stellt lesbare dunkle räumliche Glasschichten bereit', () => {
-    expect(systemLiquidGlass.page).toBe(SYSTEM_LIQUID_COLORS.navy);
-    expect(systemLiquidGlass.text.primary).toBe('#F8F6FF');
+  it('stellt lesbare helle ORBIT-Glasschichten bereit', () => {
+    expect(systemLiquidGlass.page).toBe(SYSTEM_LIQUID_COLORS.white);
+    expect(systemLiquidGlass.text.primary).toBe('#000000');
     expect(systemLiquidGlass.borderActive).toContain('53, 151, 255');
     expect(systemLiquidGlass.blur.desktop).toBeGreaterThanOrEqual(24);
   });

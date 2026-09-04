@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
     left: '30%',
   },
   backdropVignette: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,5,15,0.10)',
   },
 });

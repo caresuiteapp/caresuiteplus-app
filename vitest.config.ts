@@ -17,6 +17,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^expo-router$/,
+        replacement: path.resolve(__dirname, 'src/__tests__/mocks/expoRouter.ts'),
+      },
+      {
         find: '@/lib/supabase/client',
         replacement: path.resolve(__dirname, 'src/__tests__/mocks/supabaseClient.ts'),
       },

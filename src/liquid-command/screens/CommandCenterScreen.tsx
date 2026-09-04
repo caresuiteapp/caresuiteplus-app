@@ -551,7 +551,7 @@ const glassNativeShadow = Platform.OS !== "web" ? ({ shadowColor: "#2BB8FF", sha
 const transitionWeb = Platform.OS === "web" ? ({ transition: "transform 300ms cubic-bezier(.2,.8,.2,1), border-color 240ms ease" } as const) : null;
 const styles = StyleSheet.create({
   background: { flex: 1, width: "100%", height: "100%", backgroundColor: "#03132B", overflow: "hidden" },
-  atmosphere: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,10,27,0.2)" },
+  atmosphere: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,10,27,0.2)" },
   glass: { backgroundColor: "rgba(2,15,35,0.76)", borderWidth: 1, borderColor: "rgba(139,211,255,0.3)", ...glassNativeShadow, ...glassWeb },
   topbar: { position: "absolute", zIndex: 20, top: 22, left: 28, right: 28, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 20 },
   topbarCompact: { top: 11, left: 11, right: 11, gap: 7 },

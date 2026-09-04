@@ -17,8 +17,17 @@ function walk(directory, extension = '.tsx') {
 }
 
 function resolveLocalImport(fromFile, specifier) {
-  const base = specifier.startsWith('@/')
-    ? join(srcRoot, specifier.slice(2))
+  const productWorkflowAliases = [
+    ['@/product-workflows/screens/', 'screens/'],
+    ['@/product-workflows/components/', 'components/'],
+    ['@/product-workflows/design/', 'design/'],
+    ['@/product-workflows/theme/', 'theme/'],
+  ];
+  const productAlias = productWorkflowAliases.find(([prefix]) => specifier.startsWith(prefix));
+  const base = productAlias
+    ? join(srcRoot, productAlias[1], specifier.slice(productAlias[0].length))
+    : specifier.startsWith('@/')
+      ? join(srcRoot, specifier.slice(2))
     : specifier.startsWith('.')
       ? resolve(dirname(fromFile), specifier)
       : null;
@@ -59,6 +68,18 @@ function dependencyClosure(entry) {
   return [...visited];
 }
 
+function routeContextFiles(entry) {
+  const files = [entry];
+  let directory = dirname(entry);
+  while (directory.startsWith(appRoot)) {
+    const layout = join(directory, '_layout.tsx');
+    if (existsSync(layout)) files.push(layout);
+    if (directory === appRoot) break;
+    directory = dirname(directory);
+  }
+  return [...new Set(files.flatMap((file) => dependencyClosure(file)))];
+}
+
 const shellMarkers = [
   '<ScreenShell',
   '<C14vSubpageShell',
@@ -71,6 +92,10 @@ const shellMarkers = [
   '<LiquidBackdrop',
   '<LiquidPortalRouteLayout',
   '<LiquidModuleRouteLayout',
+  '<ModuleWorkspaceScreen',
+  '<AppScreen',
+  '<CareWebShell',
+  '<MobileAppShell',
 ];
 
 function routeLabel(file) {
@@ -100,7 +125,7 @@ const auditedRoutes = routeFiles
   .map((file) => ({ file, route: routeLabel(file) }))
   .filter(({ file, route }) => isAuditedProductRoute(route, file));
 
-const missingShell = auditedRoutes.filter(({ file }) => !usesCanonicalShell(dependencyClosure(file)));
+const missingShell = auditedRoutes.filter(({ file }) => !usesCanonicalShell(routeContextFiles(file)));
 
 const forbiddenParallelWorlds = [
   {

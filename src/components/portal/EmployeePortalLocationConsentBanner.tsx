@@ -74,7 +74,7 @@ export function EmployeePortalLocationConsentBanner({
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 20_000,
     padding: 20,
     alignItems: 'center',

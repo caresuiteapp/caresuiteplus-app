@@ -162,15 +162,14 @@ describe('Office-Einsatzprofile → Assist-Kalender → freigegebener Einsatz', 
     expect(calendarShell).toContain("config.moduleKey === 'assist'");
   });
 
-  it('keeps the long profile form readable and scrollable on dark surfaces', () => {
+  it('keeps the long profile form readable and scrollable in the modal', () => {
     const clientPanel = read('src/components/office/ClientAssignmentProfilesPanel.tsx');
     const planner = read('src/components/calendar/OfficeAssignmentProfileCalendarPlanner.tsx');
     const modal = read('src/components/layout/platform/platformmodal.tsx');
     const actionButton = read('src/components/layout/platform/gradientmodalactionbutton.tsx');
 
-    expect(clientPanel).not.toContain('onLightSurface');
-    expect(clientPanel.match(/onDarkSurface/g)?.length).toBeGreaterThanOrEqual(8);
-    expect(planner).toContain('onDarkSurface');
+    expect(clientPanel).toContain('PremiumInput');
+    expect(planner).toContain('CareTimeInput');
     expect(modal).toContain('<ScrollView');
     expect(modal).toContain('nestedScrollEnabled');
     expect(modal).toContain('showsVerticalScrollIndicator');

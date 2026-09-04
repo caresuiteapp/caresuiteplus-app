@@ -8,7 +8,7 @@ describe('Globaler Kontrast auf hellen Arbeitsflächen R7', () => {
     const bridge = read('src/design/tokens/themeBridge.ts');
 
     expect(bridge).toContain('const { mode: themeMode } = useThemeMode()');
-    expect(bridge).toContain("portal.active ? 'light' : themeMode");
+    expect(bridge).toContain("portal.active || isInternalOrbitRoute ? 'light' : themeMode");
     expect(bridge).not.toContain("portal.active ? 'light' : 'dark'");
   });
 

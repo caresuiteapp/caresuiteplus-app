@@ -164,7 +164,7 @@ export function PortalPushRegistrationGate() {
 function createStyles() {
   return StyleSheet.create({
     overlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       zIndex: 10000,
       padding: 24,
       alignItems: 'center',
