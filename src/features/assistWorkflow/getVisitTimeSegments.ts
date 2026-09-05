@@ -2,6 +2,7 @@
  * ASSIST.WORKFLOW.2 — Derive drive / service / pause segments from assist_time_events.
  */
 import type { TimeEventLike } from './calculateVisitTimes';
+import { lastItem } from '@/lib/runtime/runtimeSafeCollections';
 
 export type VisitTimeSegment = {
   kind: 'drive' | 'service' | 'pause';
@@ -35,7 +36,7 @@ export function getVisitTimeSegments(
   const nowIso = now.toISOString();
   const segments: VisitTimeSegment[] = [];
 
-  const driveStart = byType(events, 'drive_start').at(-1) ?? null;
+  const driveStart = lastItem(byType(events, 'drive_start')) ?? null;
   const driveEndCandidates = [
     ...byType(events, 'drive_end'),
     ...byType(events, 'arrive'),
@@ -51,7 +52,7 @@ export function getVisitTimeSegments(
     });
   }
 
-  const serviceStart = byType(events, 'service_start').at(-1) ?? null;
+  const serviceStart = lastItem(byType(events, 'service_start')) ?? null;
   const serviceEnd = firstAfter(byType(events, 'service_end'), serviceStart);
   if (serviceStart) {
     segments.push({
@@ -83,12 +84,12 @@ export function getVisitTimeSegments(
 }
 
 export function hasServiceStarted(events: TimeEventLike[]): boolean {
-  const latestStart = byType(events, 'service_start').at(-1) ?? null;
+  const latestStart = lastItem(byType(events, 'service_start')) ?? null;
   return Boolean(latestStart && !firstAfter(byType(events, 'service_end'), latestStart));
 }
 
 export function hasTravelEnded(events: TimeEventLike[]): boolean {
-  const latestStart = byType(events, 'drive_start').at(-1) ?? null;
+  const latestStart = lastItem(byType(events, 'drive_start')) ?? null;
   if (!latestStart) return false;
   const endCandidates = [
     ...byType(events, 'drive_end'),

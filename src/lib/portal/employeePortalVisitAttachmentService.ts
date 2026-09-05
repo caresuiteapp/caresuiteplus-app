@@ -246,7 +246,8 @@ export async function listEmployeePortalVisitAttachments(
     for (const reference of references) {
       const storagePath = String(reference ?? '').trim();
       if (!storagePath || attachments.has(storagePath)) continue;
-      const fileName = storagePath.split('/').at(-1) ?? 'Einsatzdatei';
+      const pathParts = storagePath.split('/');
+      const fileName = pathParts.length > 0 ? pathParts[pathParts.length - 1] : 'Einsatzdatei';
       attachments.set(storagePath, {
         id: `documentation-${fileName}`,
         tenantId,

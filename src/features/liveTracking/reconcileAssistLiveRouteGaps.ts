@@ -1,4 +1,5 @@
 import { fetchTravelTime } from '@/lib/maps/googleMapsTravelService';
+import { lastItem } from '@/lib/runtime/runtimeSafeCollections';
 
 export type AssistRouteGapPoint = {
   latitude: number;
@@ -41,7 +42,8 @@ export async function reconcileAssistLiveRouteGaps(
     .slice(0, MAX_GAPS_PER_ROUTE + 1)
     .map((segment, index, all) => {
       if (index === 0) return null;
-      const previous = all[index - 1]?.at(-1) ?? null;
+      const previousSegment = all[index - 1] ?? [];
+      const previous = lastItem(previousSegment) ?? null;
       const current = segment[0] ?? null;
       if (!previous || !current) return null;
       const gapSeconds = Math.max(

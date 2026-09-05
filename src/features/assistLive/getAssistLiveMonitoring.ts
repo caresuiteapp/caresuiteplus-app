@@ -36,6 +36,7 @@ import { resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignmen
 import type { AssistLiveRoutePoint } from '@/lib/assist/assistMapProvider';
 import { parseGoogleRouteReference } from '@/features/liveTracking/googleRouteReference';
 import { reconcileAssistLiveRouteGaps } from '@/features/liveTracking/reconcileAssistLiveRouteGaps';
+import { lastItem, leftPad } from '@/lib/runtime/runtimeSafeCollections';
 
 function shouldUseLiveVisitList(): boolean {
   return getServiceMode() === 'supabase' && Boolean(getSupabaseClient());
@@ -225,7 +226,7 @@ export function buildAssistLiveRouteSummary(
   finishSegment();
 
   const startedAt = candidatePoints[0]?.capturedAt ?? null;
-  const updatedAt = candidatePoints.at(-1)?.capturedAt ?? null;
+  const updatedAt = lastItem(candidatePoints)?.capturedAt ?? null;
   const durationSeconds = startedAt && updatedAt
     ? Math.max(0, Math.round((new Date(updatedAt).getTime() - new Date(startedAt).getTime()) / 1000))
     : 0;
@@ -290,17 +291,15 @@ function latestEventAt(
   after?: string | null,
 ): string | null {
   const afterMs = after ? new Date(after).getTime() : Number.NEGATIVE_INFINITY;
-  return (
-    events
+  const matchingEvents = events
       .filter(
         (event) =>
           types.includes(event.eventType) &&
           new Date(event.occurredAt).getTime() >= afterMs,
       )
       .map((event) => event.occurredAt)
-      .sort((left, right) => new Date(left).getTime() - new Date(right).getTime())
-      .at(-1) ?? null
-  );
+      .sort((left, right) => new Date(left).getTime() - new Date(right).getTime());
+  return lastItem(matchingEvents) ?? null;
 }
 
 function resolveTrackingStatusFromEvents(
@@ -394,7 +393,7 @@ async function enrichTrackingFromPersistence(
     persistenceVisitId,
     session?.id ?? visitConsent?.id ?? null,
   );
-  const routePoint = routeRes.ok ? (routeRes.data.at(-1) ?? null) : null;
+  const routePoint = routeRes.ok ? (lastItem(routeRes.data) ?? null) : null;
   const persistedPoint = routePoint ?? point;
 
   const trackingActive = session?.isActive ?? inMemory.trackingActive;
@@ -800,5 +799,5 @@ export function formatTimerSeconds(seconds: number | null): string {
   if (seconds == null) return '—';
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
+  return `${m}:${leftPad(s, 2)}`;
 }

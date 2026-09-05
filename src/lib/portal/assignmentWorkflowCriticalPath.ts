@@ -4,14 +4,20 @@
  */
 export const ASSIGNMENT_WORKFLOW_PHASES = [
   'consent',
-  'travel',
+  'travel_selection',
+  'travel_recording',
+  'travel_confirmation',
   'arrive',
   'start_service',
+  'service_trips',
   'tasks',
   'end_service',
   'documentation',
   'signature',
-  'finalize',
+  'completion_destination',
+  'completion_travel',
+  'completion_confirmation',
+  'completed',
 ] as const;
 
 export type AssignmentWorkflowPhase = (typeof ASSIGNMENT_WORKFLOW_PHASES)[number];
@@ -22,6 +28,12 @@ export const ASSIGNMENT_WORKFLOW_CRITICAL_FILES = [
   'app/assist/assignments/[id]/execute.tsx',
   'src/screens/portal/EmployeePortalVisitExecutionScreen.tsx',
   'src/hooks/useEmployeePortalVisitExecution.ts',
+  'src/features/employeeExecutionCore/model.ts',
+  'src/features/employeeExecutionCore/reducer.ts',
+  'src/lib/runtime/runtimeSafeCollections.ts',
+  'src/components/portal/EmployeePortalVisitLogbookCard.tsx',
+  'src/components/portal/EmployeePortalReturnTripModal.tsx',
+  'src/components/portal/EmployeePortalExecutionSectionBoundary.tsx',
   'src/components/portal/EmployeePortalVisitTasksPanel.tsx',
   'src/components/portal/EmployeePortalVisitDocumentationPanel.tsx',
   'src/components/portal/EmployeePortalVisitSignaturePanel.tsx',
@@ -46,6 +58,8 @@ export const ASSIGNMENT_WORKFLOW_CRITICAL_FILES = [
   'src/lib/dom/releaseSignatureCaptureEnvironment.ts',
   'src/features/liveTracking/startEmployeeLiveTracking.ts',
   'src/features/assistWorkflow/workflowRecoveryVerification.ts',
+  'src/features/assistWorkflow/calculateVisitTimes.ts',
+  'src/features/assistWorkflow/getVisitTimeSegments.ts',
   'src/features/assistWorkflow/markArrived.ts',
   'src/features/assistWorkflow/startPause.ts',
   'src/features/assistWorkflow/endPause.ts',
@@ -76,6 +90,23 @@ export type AssignmentWorkflowInvariant = {
 
 /** Structural invariants that prevent known production breakages (tablet, modal, signature). */
 export const ASSIGNMENT_WORKFLOW_INVARIANTS: AssignmentWorkflowInvariant[] = [
+  {
+    id: 'logbook-failure-isolation',
+    files: ['src/screens/portal/EmployeePortalVisitExecutionScreen.tsx'],
+    mustContain: '<EmployeePortalExecutionSectionBoundary assignmentId={visit.assignmentId} section="Fahrtenbuch">',
+    reason: 'A Fahrtenbuch render failure must not take the complete assignment workflow offline.',
+  },
+  {
+    id: 'runtime-neutral-execution-time-calculation',
+    files: [
+      'src/features/assistWorkflow/calculateVisitTimes.ts',
+      'src/features/assistWorkflow/getVisitTimeSegments.ts',
+    ],
+    mustContain: 'lastItem(',
+    matchAllFiles: true,
+    mustNotContain: '.at(',
+    reason: 'Node-only prototype support must not crash the Android execution context after sync.',
+  },
   {
     id: 'tasks-single-modal',
     files: ['src/components/portal/EmployeePortalVisitTasksPanel.tsx'],

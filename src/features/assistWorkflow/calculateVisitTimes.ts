@@ -3,6 +3,7 @@
  * Supabase assist_time_events is source of truth; travel stops at arrive/drive_end.
  */
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import { lastItem } from '@/lib/runtime/runtimeSafeCollections';
 import { getVisitTimeSegments } from './getVisitTimeSegments';
 
 export type TimeEventLike = {
@@ -59,13 +60,13 @@ export function calculateVisitTimes(
   const nowIso = now.toISOString();
   const segments = getVisitTimeSegments(events, now);
 
-  const driveStart = byType(events, 'drive_start').at(-1) ?? null;
+  const driveStart = lastItem(byType(events, 'drive_start')) ?? null;
   const driveEndCandidates = [
     ...byType(events, 'drive_end'),
     ...byType(events, 'arrive'),
   ].sort((left, right) => new Date(left).getTime() - new Date(right).getTime());
   const driveEnd = firstAfter(driveEndCandidates, driveStart);
-  const serviceStart = byType(events, 'service_start').at(-1) ?? null;
+  const serviceStart = lastItem(byType(events, 'service_start')) ?? null;
   const serviceEnd = firstAfter(byType(events, 'service_end'), serviceStart);
   const arrivedAt = firstAfter(byType(events, 'arrive'), driveStart);
 
@@ -108,7 +109,7 @@ export function calculateVisitTimes(
   let serviceSeconds: number | null = null;
   if (serviceStart) {
     const openPauseStart =
-      pauseStarts.length > pauseEnds.length ? (pauseStarts.at(-1) ?? null) : null;
+      pauseStarts.length > pauseEnds.length ? (lastItem(pauseStarts) ?? null) : null;
     const end =
       serviceEnd ??
       (currentStatus === 'gestartet'
@@ -145,7 +146,7 @@ export function calculateVisitTimes(
     totalSeconds,
     driveStartedAt: driveStart,
     serviceStartedAt: serviceStart,
-    pauseStartedAt: currentStatus === 'pausiert' ? (pauseStarts.at(-1) ?? null) : null,
+    pauseStartedAt: currentStatus === 'pausiert' ? (lastItem(pauseStarts) ?? null) : null,
     arrivedAt,
     serviceEndedAt: serviceEnd,
     activeTimer,

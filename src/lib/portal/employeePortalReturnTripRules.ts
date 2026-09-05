@@ -1,5 +1,6 @@
 import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
 import type { LogbookTrip } from '@/types/modules/employeeLogbook';
+import { leftPad } from '@/lib/runtime/runtimeSafeCollections';
 
 export type EmployeeReturnTripDestination = 'home' | 'office';
 
@@ -62,6 +63,6 @@ export function formatReturnTripDuration(startedAt: string, now = new Date()): s
   const minutes = Math.floor((seconds % 3600) / 60);
   const rest = seconds % 60;
   return hours > 0
-    ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`
-    : `${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`;
+    ? `${leftPad(hours, 2)}:${leftPad(minutes, 2)}:${leftPad(rest, 2)}`
+    : `${leftPad(minutes, 2)}:${leftPad(rest, 2)}`;
 }

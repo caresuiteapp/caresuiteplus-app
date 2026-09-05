@@ -16,6 +16,7 @@ type State = {
   failed: boolean;
   reference: string | null;
   technicalMessage: string | null;
+  technicalStack: string | null;
   copied: boolean;
 };
 
@@ -34,13 +35,14 @@ function runtimeLabel(): string {
 }
 
 export class EmployeePortalExecutionErrorBoundary extends Component<Props, State> {
-  state: State = { failed: false, reference: null, technicalMessage: null, copied: false };
+  state: State = { failed: false, reference: null, technicalMessage: null, technicalStack: null, copied: false };
 
   static getDerivedStateFromError(error: Error): State {
     return {
       failed: true,
       reference: createReference(),
       technicalMessage: error.message?.trim() || 'Unbekannter Darstellungsfehler',
+      technicalStack: error.stack ?? null,
       copied: false,
     };
   }
@@ -66,6 +68,7 @@ export class EmployeePortalExecutionErrorBoundary extends Component<Props, State
         runtimeLabel(),
         this.props.assignmentId ? `Einsatz: ${this.props.assignmentId}` : null,
         this.state.technicalMessage ? `Fehler: ${this.state.technicalMessage}` : null,
+        this.state.technicalStack ? `Stack:\n${this.state.technicalStack}` : null,
       ].filter(Boolean).join('\n'),
     );
     this.setState({ copied });
@@ -95,7 +98,7 @@ export class EmployeePortalExecutionErrorBoundary extends Component<Props, State
           <Pressable
             accessibilityRole="button"
             style={styles.primaryButton}
-            onPress={() => this.setState({ failed: false, reference: null, technicalMessage: null, copied: false })}
+            onPress={() => this.setState({ failed: false, reference: null, technicalMessage: null, technicalStack: null, copied: false })}
           >
             <Text style={styles.primaryButtonText}>Einsatzansicht erneut aufbauen</Text>
           </Pressable>

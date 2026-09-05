@@ -33,6 +33,7 @@ export { EmployeePortalVisitStickyHeader } from './EmployeePortalVisitStickyHead
 export { EmployeePortalVisitProgressSteps } from './EmployeePortalVisitProgressSteps';
 export { EmployeePortalVisitCompactCard } from './EmployeePortalVisitCompactCard';
 export { EmployeePortalVisitLiveDashboard } from './EmployeePortalVisitLiveDashboard';
+export { EmployeePortalExecutionSectionBoundary } from './EmployeePortalExecutionSectionBoundary';
 export { EmployeePortalVisitBottomBar } from './EmployeePortalVisitBottomBar';
 export { EmployeePortalVisitFabMenu } from './EmployeePortalVisitFabMenu';
 export { EmployeePortalVisitCompletionPanel } from './EmployeePortalVisitCompletionPanel';

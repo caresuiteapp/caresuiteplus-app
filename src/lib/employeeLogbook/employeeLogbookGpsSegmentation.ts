@@ -1,4 +1,5 @@
 import type { TravelRouteType } from '@/types/modules/travelCompensation';
+import { lastItem } from '@/lib/runtime/runtimeSafeCollections';
 
 export type AssistGpsRecoveryPoint = {
   latitude: number;
@@ -111,7 +112,7 @@ export function detectCarMovementWindows(
   const groups: typeof moving[] = [];
   let group: typeof moving = [];
   for (const edge of moving) {
-    const previous = group.at(-1);
+    const previous = lastItem(group);
     if (
       previous &&
       (edge.startedAtMs - previous.endedAtMs) / 1_000 > MAX_STATIONARY_BRIDGE_SECONDS
@@ -127,7 +128,7 @@ export function detectCarMovementWindows(
     const distanceMeters = edges.reduce((sum, edge) => sum + edge.distanceMeters, 0);
     if (distanceMeters < MIN_LEG_DISTANCE_METERS) return [];
     const startIndex = edges[0].startIndex;
-    const endIndex = edges.at(-1)!.endIndex;
+    const endIndex = lastItem(edges)!.endIndex;
     const leg = sorted.slice(startIndex, endIndex + 1);
     return leg.length >= 2 ? [leg] : [];
   });
@@ -179,20 +180,20 @@ export function buildAssistGpsRecoveryLegWindows(input: {
         routeType: 'home_to_client',
         purposePrefix: 'Automatisch rekonstruierte Anfahrt',
         startedAt: approachPoints[0].recordedAt,
-        endedAt: approachPoints.at(-1)!.recordedAt,
+        endedAt: lastItem(approachPoints)!.recordedAt,
         points: approachPoints,
       });
     }
   }
 
   const serviceStart = eventAt(events, 'service_start') ?? driveEnd ?? points[0].recordedAt;
-  const serviceEnd = eventAt(events, 'service_end', time(serviceStart)) ?? input.fallbackEndedAt ?? points.at(-1)!.recordedAt;
+  const serviceEnd = eventAt(events, 'service_end', time(serviceStart)) ?? input.fallbackEndedAt ?? lastItem(points)!.recordedAt;
   const servicePoints = pointsInWindow(points, serviceStart, serviceEnd);
   const approachStartMs = driveStart ? time(driveStart) : -1;
   const approachEndMs = driveEnd ? time(driveEnd) : -1;
   detectCarMovementWindows(servicePoints).forEach((legPoints, index) => {
     const startedAtMs = time(legPoints[0].recordedAt);
-    const endedAtMs = time(legPoints.at(-1)!.recordedAt);
+    const endedAtMs = time(lastItem(legPoints)!.recordedAt);
     if (approachStartMs >= 0 && startedAtMs <= approachEndMs && endedAtMs >= approachStartMs) return;
     result.push({
       id: `service-${startedAtMs}-${index + 1}`,
@@ -200,13 +201,13 @@ export function buildAssistGpsRecoveryLegWindows(input: {
       routeType: 'other_business',
       purposePrefix: 'Automatisch erkannte Dienstfahrt während des Einsatzes',
       startedAt: legPoints[0].recordedAt,
-      endedAt: legPoints.at(-1)!.recordedAt,
+      endedAt: lastItem(legPoints)!.recordedAt,
       points: legPoints,
     });
   });
   detectGpsGapWindows(servicePoints).forEach((legPoints, index) => {
     const startedAtMs = time(legPoints[0].recordedAt);
-    const endedAtMs = time(legPoints.at(-1)!.recordedAt);
+    const endedAtMs = time(lastItem(legPoints)!.recordedAt);
     if (approachStartMs >= 0 && startedAtMs <= approachEndMs && endedAtMs >= approachStartMs) return;
     result.push({
       id: `gps-gap-${startedAtMs}-${index + 1}`,
@@ -214,7 +215,7 @@ export function buildAssistGpsRecoveryLegWindows(input: {
       routeType: 'other_business',
       purposePrefix: 'GPS-Lücke mit Ortswechsel – Zuordnung erforderlich',
       startedAt: legPoints[0].recordedAt,
-      endedAt: legPoints.at(-1)!.recordedAt,
+      endedAt: lastItem(legPoints)!.recordedAt,
       points: legPoints,
     });
   });
@@ -222,7 +223,7 @@ export function buildAssistGpsRecoveryLegWindows(input: {
   const departAt = serviceEnd
     ? eventAt(events, 'depart', time(serviceEnd)) ?? serviceEnd
     : eventAt(events, 'depart');
-  const postServiceEnd = input.fallbackEndedAt ?? points.at(-1)!.recordedAt;
+  const postServiceEnd = input.fallbackEndedAt ?? lastItem(points)!.recordedAt;
   if (departAt && time(postServiceEnd) > time(departAt)) {
     const postServicePoints = pointsInWindow(points, departAt, postServiceEnd);
     detectCarMovementWindows(postServicePoints).forEach((legPoints, index) => {
@@ -232,7 +233,7 @@ export function buildAssistGpsRecoveryLegWindows(input: {
         routeType: 'other_business',
         purposePrefix: 'Rück- oder Weiterfahrt nach dem Einsatz – Zielzuordnung erforderlich',
         startedAt: legPoints[0].recordedAt,
-        endedAt: legPoints.at(-1)!.recordedAt,
+        endedAt: lastItem(legPoints)!.recordedAt,
         points: legPoints,
       });
     });
@@ -243,7 +244,7 @@ export function buildAssistGpsRecoveryLegWindows(input: {
         routeType: 'other_business',
         purposePrefix: 'GPS-Lücke auf Rück- oder Weiterfahrt – Zielzuordnung erforderlich',
         startedAt: legPoints[0].recordedAt,
-        endedAt: legPoints.at(-1)!.recordedAt,
+        endedAt: lastItem(legPoints)!.recordedAt,
         points: legPoints,
       });
     });
@@ -257,7 +258,7 @@ export function buildAssistGpsRecoveryLegWindows(input: {
         routeType: 'other_business',
         purposePrefix: 'Automatisch erkannte Dienstfahrt',
         startedAt: legPoints[0].recordedAt,
-        endedAt: legPoints.at(-1)!.recordedAt,
+        endedAt: lastItem(legPoints)!.recordedAt,
         points: legPoints,
       });
     });
@@ -268,7 +269,7 @@ export function buildAssistGpsRecoveryLegWindows(input: {
         routeType: 'other_business',
         purposePrefix: 'GPS-Lücke mit Ortswechsel – Zuordnung erforderlich',
         startedAt: legPoints[0].recordedAt,
-        endedAt: legPoints.at(-1)!.recordedAt,
+        endedAt: lastItem(legPoints)!.recordedAt,
         points: legPoints,
       });
     });

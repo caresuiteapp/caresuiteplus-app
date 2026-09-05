@@ -21,14 +21,20 @@ describe('assignment workflow regression gate', () => {
   it('documents the full execution phases end-to-end', () => {
     expect(ASSIGNMENT_WORKFLOW_PHASES).toEqual([
       'consent',
-      'travel',
+      'travel_selection',
+      'travel_recording',
+      'travel_confirmation',
       'arrive',
       'start_service',
+      'service_trips',
       'tasks',
       'end_service',
       'documentation',
       'signature',
-      'finalize',
+      'completion_destination',
+      'completion_travel',
+      'completion_confirmation',
+      'completed',
     ]);
   });
 

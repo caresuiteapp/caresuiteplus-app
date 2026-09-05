@@ -16,6 +16,7 @@ import { LockedActionBanner } from '@/components/permissions';
 import { WorkflowToast } from '@/components/ui/WorkflowToast';
 import {
   EmployeePortalVisitBottomBar,
+  EmployeePortalExecutionSectionBoundary,
   EmployeePortalMobilityPicker,
   EmployeePortalVisitCompletionPanel,
   EmployeePortalReturnTripModal,
@@ -1289,16 +1290,18 @@ export function EmployeePortalVisitExecutionScreen() {
             onBack={() => router.replace('/portal/employee/assignments' as never)}
           />
           {portalTenantId && portalEmployeeId && mobilityMode === 'car' ? (
-            <EmployeePortalVisitLogbookCard
-              tenantId={portalTenantId}
-              employeeId={portalEmployeeId}
-              assignmentId={visit.assignmentId}
-              clientId={visit.clientId}
-              clientName={visit.clientName}
-              startAddress={visit.locationAddress}
-              plannedEndAt={visit.plannedEndAt}
-              transportMode={mobilityMode}
-            />
+            <EmployeePortalExecutionSectionBoundary assignmentId={visit.assignmentId} section="Fahrtenbuch">
+              <EmployeePortalVisitLogbookCard
+                tenantId={portalTenantId}
+                employeeId={portalEmployeeId}
+                assignmentId={visit.assignmentId}
+                clientId={visit.clientId}
+                clientName={visit.clientName}
+                startAddress={visit.locationAddress}
+                plannedEndAt={visit.plannedEndAt}
+                transportMode={mobilityMode}
+              />
+            </EmployeePortalExecutionSectionBoundary>
           ) : null}
         </View>
       );
@@ -1397,16 +1400,18 @@ export function EmployeePortalVisitExecutionScreen() {
             ) : null}
           </View>
           {portalTenantId && portalEmployeeId && mobilityMode === 'car' ? (
-            <EmployeePortalVisitLogbookCard
-              tenantId={portalTenantId}
-              employeeId={portalEmployeeId}
-              assignmentId={visit.assignmentId}
-              clientId={visit.clientId}
-              clientName={visit.clientName}
-              startAddress={visit.locationAddress}
-              plannedEndAt={visit.plannedEndAt}
-              transportMode={mobilityMode}
-            />
+            <EmployeePortalExecutionSectionBoundary assignmentId={visit.assignmentId} section="Fahrtenbuch">
+              <EmployeePortalVisitLogbookCard
+                tenantId={portalTenantId}
+                employeeId={portalEmployeeId}
+                assignmentId={visit.assignmentId}
+                clientId={visit.clientId}
+                clientName={visit.clientName}
+                startAddress={visit.locationAddress}
+                plannedEndAt={visit.plannedEndAt}
+                transportMode={mobilityMode}
+              />
+            </EmployeePortalExecutionSectionBoundary>
           ) : null}
         </View>
       );
@@ -1441,16 +1446,18 @@ export function EmployeePortalVisitExecutionScreen() {
           />
 
           {portalTenantId && portalEmployeeId && mobilityMode === 'car' ? (
-            <EmployeePortalVisitLogbookCard
-              tenantId={portalTenantId}
-              employeeId={portalEmployeeId}
-              assignmentId={visit.assignmentId}
-              clientId={visit.clientId}
-              clientName={visit.clientName}
-              startAddress={visit.locationAddress}
-              plannedEndAt={visit.plannedEndAt}
-              transportMode={mobilityMode}
-            />
+            <EmployeePortalExecutionSectionBoundary assignmentId={visit.assignmentId} section="Fahrtenbuch">
+              <EmployeePortalVisitLogbookCard
+                tenantId={portalTenantId}
+                employeeId={portalEmployeeId}
+                assignmentId={visit.assignmentId}
+                clientId={visit.clientId}
+                clientName={visit.clientName}
+                startAddress={visit.locationAddress}
+                plannedEndAt={visit.plannedEndAt}
+                transportMode={mobilityMode}
+              />
+            </EmployeePortalExecutionSectionBoundary>
           ) : null}
 
           {phase === 'live' && primaryButtonLabel && !isLocked && !statusBlocksDoc ? (

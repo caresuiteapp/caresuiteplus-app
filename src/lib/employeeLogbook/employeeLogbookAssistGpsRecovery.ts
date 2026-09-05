@@ -9,6 +9,7 @@ import {
   type AssistGpsRecoveryTimeEvent,
 } from './employeeLogbookGpsSegmentation';
 import type { TravelRouteType } from '@/types/modules/travelCompensation';
+import { lastItem } from '@/lib/runtime/runtimeSafeCollections';
 
 type Row = Record<string, unknown>;
 
@@ -309,8 +310,8 @@ export async function synchronizeEmployeeLogbookFromAssistGps(input: {
       ended_at: leg.endedAt,
       start_latitude: leg.points[0]?.latitude ?? null,
       start_longitude: leg.points[0]?.longitude ?? null,
-      end_latitude: leg.points.at(-1)?.latitude ?? null,
-      end_longitude: leg.points.at(-1)?.longitude ?? null,
+      end_latitude: lastItem(leg.points)?.latitude ?? null,
+      end_longitude: lastItem(leg.points)?.longitude ?? null,
       end_address: candidate.endAddress,
       distance_gps_km: leg.measuredDistanceKm,
       google_route_distance_km: leg.googleGapDistanceKm || null,
