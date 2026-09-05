@@ -48,18 +48,18 @@ function getUnsupportedMessage(): string {
   return 'Mikrofon-Zugriff konnte auf diesem Gerät nicht angefordert werden.';
 }
 
-function loadExpoAv(): typeof import('expo-av') {
+function loadExpoAudio(): typeof import('expo-audio') {
   // Lazy load — vermeidet react-native Pull in Vitest bei reinen Source-Tests.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  return require('expo-av') as typeof import('expo-av');
+  return require('expo-audio') as typeof import('expo-audio');
 }
 
 async function requestNativeMicrophonePermission(): Promise<MicrophoneAccessResult> {
   try {
-    const { Audio } = loadExpoAv();
-    const existing = await Audio.getPermissionsAsync();
+    const { getRecordingPermissionsAsync, requestRecordingPermissionsAsync } = loadExpoAudio();
+    const existing = await getRecordingPermissionsAsync();
     const permission =
-      existing.status === 'granted' ? existing : await Audio.requestPermissionsAsync();
+      existing.status === 'granted' ? existing : await requestRecordingPermissionsAsync();
 
     if (permission.status !== 'granted') {
       return { ok: false, error: getMicrophoneDeniedMessage(), reason: 'denied' };

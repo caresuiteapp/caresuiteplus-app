@@ -144,7 +144,7 @@ describe('VoiceCore AI foundation', () => {
   it('microphone permission utility covers web and native', () => {
     const source = readSource('src/lib/platform/microphonePermission.ts');
     expect(source).toContain('getUserMedia({ audio: true })');
-    expect(source).toContain('Audio.requestPermissionsAsync');
+    expect(source).toContain('requestRecordingPermissionsAsync');
     expect(source).toContain('getMicrophoneDeniedMessage');
     expect(source).toContain('Safari (iOS)');
     expect(source).toContain('Einstellungen → CareSuite+ → Mikrofon');

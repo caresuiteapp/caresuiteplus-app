@@ -144,7 +144,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
     ],
     [
-      'expo-av',
+      'expo-audio',
       {
         microphonePermission:
           'CareSuite+ benötigt Mikrofonzugriff für den VoiceCore-Sprachassistenten.',

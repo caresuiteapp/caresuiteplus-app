@@ -196,7 +196,7 @@ describe('Google Play readiness — permissions & production mode', () => {
     expect(appConfig).toContain('NSCameraUsageDescription');
     expect(appConfig).toContain('NSMicrophoneUsageDescription');
     expect(appConfig).toContain('expo-image-picker');
-    expect(appConfig).toContain('expo-av');
+    expect(appConfig).toContain('expo-audio');
   });
 
   it('VoiceFlow hidden for public and client roles', () => {

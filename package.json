@@ -115,7 +115,7 @@
     "@supabase/supabase-js": "^2.49.0",
     "expo": "~57.0.20",
     "expo-asset": "~57.0.16",
-    "expo-av": "~16.0.8",
+    "expo-audio": "~57.0.4",
     "expo-blur": "~57.0.2",
     "expo-build-properties": "~57.0.17",
     "expo-clipboard": "~57.0.1",
@@ -171,7 +171,6 @@
     "doctor": {
       "reactNativeDirectoryCheck": {
         "exclude": [
-          "expo-av",
           "@opentelemetry/api",
           "html2canvas",
           "jspdf"
