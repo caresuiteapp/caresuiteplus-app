@@ -31,7 +31,7 @@ describe('R17 deferred signature administrative approval gate', () => {
     expect(migration).toContain('Portal-Veröffentlichung wurde noch nicht bestätigt');
   });
 
-  it('mounts the automatic popup and changes the employee copy to an approval request', () => {
+  it('keeps the historic administration popup but exposes the current direct employee choice', () => {
     const shell = read('src/liquid-command/shell/LiquidModuleRouteLayout.tsx');
     const popup = read('src/components/assist/DeferredSignatureApprovalPopup.tsx');
     const panel = read('src/components/portal/EmployeePortalVisitCompletionPanel.tsx');
@@ -39,6 +39,6 @@ describe('R17 deferred signature administrative approval gate', () => {
     expect(popup).toContain('Genehmigen & ans Portal senden');
     expect(popup).toContain('Begründung der mitarbeitenden Person');
     expect(panel).toContain('Freigabe durch Verwaltung wird geprüft');
-    expect(panel).toContain('mindestens 10 Zeichen');
+    expect(panel).toContain('Hinweis zur Weiterleitung (optional)');
   });
 });

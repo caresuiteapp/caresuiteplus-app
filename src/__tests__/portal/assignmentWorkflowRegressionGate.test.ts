@@ -155,4 +155,25 @@ describe('assignment workflow regression gate', () => {
     expect(completion).not.toContain('approvalReason.trim().length < 10');
     expect(release).toContain('signatureDeferredReason:');
   });
+
+  it('releases deferred signatures through an assignment-scoped atomic RPC', () => {
+    const service = readSrc('src/lib/portal/deferredVisitClientSignatureService.ts');
+    const migration = readSrc(
+      'supabase/migrations/20260905170000_employee_direct_deferred_signature_release.sql',
+    );
+    expect(service).toContain("'employee_portal_release_deferred_signature'");
+    expect(service).toContain('Vorhandener Leistungsnachweis konnte nicht geprüft werden.');
+    expect(migration).toContain('SECURITY DEFINER');
+    expect(migration).toContain('public.is_employee_portal_rls_context(p_tenant_id)');
+    expect(migration).toContain('a.employee_id = v_employee_id');
+    expect(migration).toContain('v_actor_profile_id := public.resolve_current_profile_id()');
+    expect(migration).toContain('proof already signed');
+    expect(migration).toContain('FOR UPDATE');
+    expect(migration).toContain('AND signature_id IS NULL');
+    expect(migration).toContain("portal_release_status = 'pending_client_signature'");
+    expect(migration).toContain('ON CONFLICT (id) DO UPDATE');
+    expect(migration).toContain("client_documents.source = 'assist_visit_proof'");
+    expect(migration).not.toContain('p_actor_profile_id');
+    expect(migration).not.toContain('CREATE POLICY assist_visit_proofs_portal_employee_update');
+  });
 });

@@ -29,6 +29,34 @@ export type DeferredSignatureApprovalRequestResult = {
   requestId: string;
 };
 
+async function releaseEmployeeDeferredSignatureAtomically(input: {
+  tenantId: string;
+  proofId: string;
+  clientId: string;
+  title: string;
+  payloadSnapshot: Record<string, unknown>;
+  payloadHash: string;
+}): Promise<ServiceResult<{ clientDocumentId: string }>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+  const { data, error } = await (supabase.rpc(
+    'employee_portal_release_deferred_signature' as never,
+    {
+      p_tenant_id: input.tenantId,
+      p_proof_id: input.proofId,
+      p_client_id: input.clientId,
+      p_title: input.title,
+      p_payload_snapshot: input.payloadSnapshot,
+      p_payload_hash: input.payloadHash,
+    } as never,
+  ) as unknown as Promise<{ data: unknown; error: { message: string } | null }>);
+  if (error) return { ok: false, error: error.message };
+  if (typeof data !== 'string' || !data) {
+    return { ok: false, error: 'Klient:innenportal-Freigabe wurde nicht bestätigt.' };
+  }
+  return { ok: true, data: { clientDocumentId: data } };
+}
+
 /** Employee-side gate: request administration approval without publishing anything to the client portal. */
 export async function requestDeferredSignatureAdministrativeApproval(
   ctx: AssistExecutionContext,
@@ -304,19 +332,17 @@ export async function releaseDeferredClientSignatureRequest(
     signatureDeferredReason: options?.reason?.trim() || null,
   };
 
+  const payloadHash = await computeVisitProofPayloadHash(snapshot);
   let proofId: string;
   const existing = await fetchLatestVisitProof(ctx.tenantId, visitId);
+  if (!existing.ok) {
+    return {
+      ok: false,
+      error: existing.error ?? 'Vorhandener Leistungsnachweis konnte nicht geprüft werden.',
+    };
+  }
   if (existing.ok && existing.data) {
     proofId = existing.data.id;
-    const payloadHash = await computeVisitProofPayloadHash(snapshot);
-    const updated = await updateVisitProofRow(ctx.tenantId, proofId, {
-      payload_snapshot: snapshot,
-      payload_hash: payloadHash,
-      signature_id: null,
-    });
-    if (!updated.ok) {
-      return { ok: false, error: updated.error ?? 'Unterschriftsanfrage konnte nicht gespeichert werden.' };
-    }
   } else {
     const created = await persistVisitProof(
       ctx.tenantId,
@@ -332,20 +358,45 @@ export async function releaseDeferredClientSignatureRequest(
     proofId = created.data.id;
   }
 
-  const now = new Date().toISOString();
-  const released = await updateVisitProofRow(ctx.tenantId, proofId, {
-    portal_visible: true,
-    portal_release_status: 'pending_client_signature',
-    released_to_portal_at: now,
-    updated_by: ctx.profileId ?? null,
-  });
-  if (!released.ok) return { ok: false, error: released.error };
-  if (!released.data) return { ok: false, error: 'Portal-Freigabe fehlgeschlagen.' };
-
   const clientId = ctx.detail.clientId;
   if (!clientId) {
     return { ok: false, error: 'Klient:in konnte dem Einsatz nicht zugeordnet werden.' };
   }
+
+  if (!options?.administrative) {
+    const directRelease = await releaseEmployeeDeferredSignatureAtomically({
+      tenantId: ctx.tenantId,
+      proofId,
+      clientId,
+      title: ctx.detail.title,
+      payloadSnapshot: snapshot,
+      payloadHash,
+    });
+    if (!directRelease.ok) return directRelease;
+    invalidatePortalProofCache();
+    return {
+      ok: true,
+      data: { proofId, clientDocumentId: directRelease.data.clientDocumentId },
+    };
+  }
+
+  const payloadUpdated = await updateVisitProofRow(ctx.tenantId, proofId, {
+    payload_snapshot: snapshot,
+    payload_hash: payloadHash,
+    signature_id: null,
+  });
+  if (!payloadUpdated.ok) {
+    return { ok: false, error: payloadUpdated.error ?? 'Unterschriftsanfrage konnte nicht gespeichert werden.' };
+  }
+
+  const released = await updateVisitProofRow(ctx.tenantId, proofId, {
+    portal_visible: true,
+    portal_release_status: 'pending_client_signature',
+    released_to_portal_at: new Date().toISOString(),
+    updated_by: ctx.profileId ?? null,
+  });
+  if (!released.ok) return { ok: false, error: released.error };
+  if (!released.data) return { ok: false, error: 'Portal-Freigabe fehlgeschlagen.' };
 
   const documentSync = await upsertDeferredSignatureClientPortalDocument(
     ctx.tenantId,
