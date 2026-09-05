@@ -3,6 +3,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
+import { useConnectivity } from '@/hooks/useConnectivity';
 import {
   appendLocationPoint,
 } from '@/lib/assist/assistTrackingPersistenceService';
@@ -133,6 +134,8 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
   stopWatching: () => void;
   captureOnce: () => Promise<EmployeeGpsSnapshot | null>;
 } {
+  const { isOffline, isInternetReachable } = useConnectivity();
+  const canSyncQueue = !isOffline && isInternetReachable !== false;
   const releaseWatchRef = useRef<(() => void) | null>(null);
   const heartbeatTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const routeSamplingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -438,7 +441,12 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
   }, [stopWatching]);
 
   useEffect(() => {
-    if (typeof document === 'undefined') return;
+    if (
+      Platform.OS !== 'web' ||
+      typeof document === 'undefined' ||
+      typeof document.addEventListener !== 'function' ||
+      typeof document.removeEventListener !== 'function'
+    ) return;
     const onVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || !options.enabled || !options.sessionId) return;
       // Browsers throttle hidden tabs. On resume, immediately obtain a fresh
@@ -461,15 +469,34 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
   }, [options.enabled, options.sessionId, captureOnce, persistSnapshot, startWatching]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const onOnline = () => {
-      void flushAssistLocationPointQueue().then((flush) => {
-        setState((prev) => ({ ...prev, queuedPointCount: flush.remaining }));
+    // React Native defines `window`, but not browser online/offline listeners.
+    // The shared hook uses NetInfo on native and browser events only on web.
+    // Retry retained points on mount/resume and when internet access returns.
+    if (!canSyncQueue) return;
+    let active = true;
+    void flushAssistLocationPointQueue()
+      .then((flush) => {
+        if (!active) return;
+        setState((prev) => ({
+          ...prev,
+          queuedPointCount: flush.remaining,
+          ...(flush.remaining === 0 && prev.errorCode === 'LIVE_LOCATION_INSERT_FAILED'
+            ? { errorCode: null, errorMessage: null }
+            : {}),
+        }));
+      })
+      .catch(() => {
+        if (!active) return;
+        setState((prev) => ({
+          ...prev,
+          errorCode: 'LIVE_LOCATION_INSERT_FAILED',
+          errorMessage: 'GPS-Punkte konnten noch nicht synchronisiert werden. Die Übertragung wird erneut versucht.',
+        }));
       });
+    return () => {
+      active = false;
     };
-    window.addEventListener('online', onOnline);
-    return () => window.removeEventListener('online', onOnline);
-  }, []);
+  }, [canSyncQueue]);
 
   return { state, startWatching, stopWatching, captureOnce };
 }

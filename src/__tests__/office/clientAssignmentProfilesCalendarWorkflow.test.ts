@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { toClientAssignmentScheduleError } from '@/lib/office/clientAssignmentProfileService';
+import { resolveEmployeePortalDocumentationFlags } from '@/lib/portal/resolveEmployeePortalSignatureRequirement';
 
 const root = path.join(__dirname, '..', '..', '..');
 const read = (relativePath: string) => readFileSync(path.join(root, relativePath), 'utf8');
@@ -193,7 +194,6 @@ describe('Office-Einsatzprofile → Assist-Kalender → freigegebener Einsatz', 
 
   it('shows safety and access hints throughout employee execution, but not client-visible notes', () => {
     const service = read('src/lib/portal/employeePortalExecutionLiveService.ts');
-    const flags = read('src/lib/portal/resolveEmployeePortalSignatureRequirement.ts');
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
 
     expect(service).toContain('operational_context');
@@ -208,7 +208,20 @@ describe('Office-Einsatzprofile → Assist-Kalender → freigegebener Einsatz', 
     expect(screen.indexOf('const renderSafetyHints')).toBeLessThan(
       screen.indexOf('{renderPhaseContent()}'),
     );
-    expect(flags).toContain("requirements?.signature");
-    expect(flags).toContain("requirements?.documentation");
+  });
+
+  it('keeps documentation and signature mandatory when the catalog is unavailable', async () => {
+    // Vitest's Supabase boundary is offline. Catalog availability must not
+    // relax the mandatory documentation/signature workflow introduced in P0.
+    const flags = await resolveEmployeePortalDocumentationFlags(
+      'synthetic-tenant',
+      '00000000-0000-4000-8000-000000000001',
+      'dokumentation_offen',
+    );
+    expect(flags).toMatchObject({
+      requiresSignature: true,
+      requiresDocumentation: true,
+      signatureStatus: 'pending',
+    });
   });
 });
