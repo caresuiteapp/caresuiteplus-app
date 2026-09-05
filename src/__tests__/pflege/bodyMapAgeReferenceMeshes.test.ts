@@ -43,11 +43,14 @@ describe('14 altersabhängige technische 3D-Referenzkörper', () => {
     expect(new Set(AGE_REFERENCE_VARIANTS.map((entry) => entry.ageGroup)).size).toBe(7);
   });
 
-  it('erzeugt für alle 14 Varianten deterministische GLB-Bytes', () => {
-    for (const configuration of AGE_REFERENCE_VARIANTS) {
+  it.each(AGE_REFERENCE_VARIANTS)(
+    'erzeugt für $id deterministische GLB-Bytes',
+    async (configuration) => {
+      await new Promise<void>((resolveReady) => setTimeout(resolveReady, 0));
       expect(generated(configuration.id).bytes.length).toBeGreaterThan(100_000);
-    }
-  }, 120_000);
+    },
+    20_000,
+  );
 
   it('besteht für jede Variante Höhen-, Zonen-, UV- und Freigabevertrag', () => {
     for (const configuration of AGE_REFERENCE_VARIANTS) {

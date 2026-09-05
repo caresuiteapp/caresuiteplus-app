@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import type { ServiceProofRecord } from '@/types/documents/serviceProof';
 import {
@@ -205,10 +203,7 @@ describe('serviceProofDocumentService layout v2', () => {
     expect(tasks[0]?.title).toBe('Wäsche sortieren');
   });
 
-  it('writes dokumentenmodul audit HTML artifacts', () => {
-    const outDir = path.join(process.cwd(), 'docs/audit/leistungsnachweis-v2');
-    mkdirSync(outDir, { recursive: true });
-
+  it('builds dokumentenmodul audit HTML artifacts without mutating the repository', () => {
     const allDone = buildServiceProofDocumentHtml(
       baseProof({
         taskItems: [
@@ -237,7 +232,7 @@ describe('serviceProofDocumentService layout v2', () => {
       }),
     );
 
-    writeFileSync(path.join(outDir, 'dokumentenmodul-alle-aufgaben-erledigt.html'), allDone, 'utf8');
-    writeFileSync(path.join(outDir, 'dokumentenmodul-abweichung.html'), deviation, 'utf8');
+    expect(allDone).toContain('Alle geplanten Aufgaben wurden vollständig erledigt.');
+    expect(deviation).toContain('Abweichung dokumentiert.');
   });
 });

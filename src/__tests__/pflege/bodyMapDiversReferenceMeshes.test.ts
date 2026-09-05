@@ -52,8 +52,10 @@ describe('14 modulare technische Divers-Referenzkörper', () => {
     );
   });
 
-  it('erzeugt alle 14 GLBs deterministisch und mit gesperrter Freigabe', () => {
-    for (const configuration of DIVERS_REFERENCE_VARIANTS) {
+  it.each(DIVERS_REFERENCE_VARIANTS)(
+    'erzeugt $id deterministisch und mit gesperrter Freigabe',
+    async (configuration) => {
+      await new Promise<void>((resolveReady) => setTimeout(resolveReady, 0));
       const first = generated(configuration.id);
       expect(first.bytes.length).toBeGreaterThan(100_000);
       const variant = manifest.variants.find((entry) => entry.id === configuration.id)!;
@@ -70,8 +72,9 @@ describe('14 modulare technische Divers-Referenzkörper', () => {
       expect(report.metadata?.genitalAnatomy).toBe(configuration.genitalAnatomy);
       expect(report.metadata?.chestAnatomy).toBe(configuration.chestAnatomy);
       expect(report.metadata?.safeForClinicalRelease).toBe(false);
-    }
-  }, 120_000);
+    },
+    20_000,
+  );
 
   it('verwendet für unbekannte Genitalanatomie keine Penis- oder Vulva-Zonen', () => {
     for (const configuration of DIVERS_REFERENCE_VARIANTS.filter(

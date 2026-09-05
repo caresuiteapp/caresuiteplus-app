@@ -1,6 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 import {
   buildVisitProofTasksPresentation,
@@ -338,10 +336,7 @@ describe('resolveVisitProofEmployeeName', () => {
 });
 
 describe('audit artifacts', () => {
-  it('writes sample HTML proofs for visual acceptance', () => {
-    const outDir = path.join(process.cwd(), 'docs/audit/leistungsnachweis-v2');
-    mkdirSync(outDir, { recursive: true });
-
+  it('builds sample HTML proofs for visual acceptance without repository writes', () => {
     const allDone = buildAssistProofPdfPayload(sampleProof(), {
       tasks: [
         { id: '1', title: 'Küche aufräumen', status: 'done', statusLabel: 'Erledigt' },
@@ -371,7 +366,7 @@ describe('audit artifacts', () => {
       documentationNote: 'Einsatz ruhig verlaufen.',
     });
 
-    writeFileSync(path.join(outDir, 'beispiel-alle-aufgaben-erledigt.html'), allDone.html, 'utf8');
-    writeFileSync(path.join(outDir, 'beispiel-abweichung.html'), deviation.html, 'utf8');
+    expect(allDone.html).toContain('Alle geplanten Aufgaben wurden vollständig erledigt.');
+    expect(deviation.html).toContain('Einsatz ruhig verlaufen.');
   });
 });
