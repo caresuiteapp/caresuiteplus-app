@@ -32,14 +32,13 @@ export async function finalizeVisit(
 ): Promise<ServiceResult<FinalizeVisitResult>> {
   const proofProjection = waitForDeferredTask(assistProofProjectionKey(ctx), 1_000);
 
-  const hasSignature =
-    ctx.detail.requiresSignature
-      ? await hasPortalPersistedClientSignature(
-          ctx.tenantId,
-          ctx.assignmentId,
-          ctx.employeeId,
-        )
-      : true;
+  // Employee visits always require a persisted signature. A stale cached
+  // requiresSignature=false value must never bypass the close contract.
+  const hasSignature = await hasPortalPersistedClientSignature(
+    ctx.tenantId,
+    ctx.assignmentId,
+    ctx.employeeId,
+  );
 
   const docText =
     documentationText?.trim() ||
@@ -91,7 +90,7 @@ export async function finalizeVisit(
     existingProof.ok &&
     existingProof.data &&
     isStoredVisitProofComplete(existingProof.data, {
-      requireSignature: ctx.detail.requiresSignature,
+      requireSignature: true,
     });
   const record = reusableProof
     ? {

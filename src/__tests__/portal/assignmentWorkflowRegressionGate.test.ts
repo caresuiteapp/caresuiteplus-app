@@ -154,6 +154,15 @@ describe('assignment workflow regression gate', () => {
     expect(completion).toContain('Hinweis zur Weiterleitung (optional)');
     expect(completion).not.toContain('approvalReason.trim().length < 10');
     expect(release).toContain('signatureDeferredReason:');
+    expect(readSrc('src/features/assistWorkflow/finalizeVisit.ts')).toContain(
+      'requireSignature: true',
+    );
+    expect(readSrc('src/lib/portal/employeePortalExecutionLiveService.ts')).toContain(
+      'const fallbackRequiresSignature = true',
+    );
+    expect(readSrc('src/lib/portal/resolveEmployeePortalSignatureRequirement.ts')).not.toContain(
+      'requiresSignature = Boolean(catalogRow.requires_signature)',
+    );
   });
 
   it('releases deferred signatures through an assignment-scoped atomic RPC', () => {

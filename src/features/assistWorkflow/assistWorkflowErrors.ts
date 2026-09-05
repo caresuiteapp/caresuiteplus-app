@@ -15,6 +15,7 @@ export type AssistWorkflowErrorCode =
   | 'AWF_TASKS_INCOMPLETE'
   | 'AWF_PROOF_GENERATION_FAILED'
   | 'AWF_ADMIN_APPROVAL_REQUEST_FAILED'
+  | 'AWF_PORTAL_SIGNATURE_RELEASE_FAILED'
   | 'AWF_NO_SHOW_NOTE_REQUIRED'
   | 'AWF_RLS_DENIED'
   | 'AWF_SCHEMA_MISMATCH'
@@ -63,6 +64,8 @@ const USER_MESSAGES: Record<AssistWorkflowErrorCode, string> = {
   AWF_TASKS_INCOMPLETE: 'Pflichtaufgaben sind noch offen.',
   AWF_PROOF_GENERATION_FAILED: 'Leistungsnachweis konnte nicht erstellt werden.',
   AWF_ADMIN_APPROVAL_REQUEST_FAILED: 'Freigabeanfrage konnte nicht an die Verwaltung gesendet werden.',
+  AWF_PORTAL_SIGNATURE_RELEASE_FAILED:
+    'Unterschriftsanfrage konnte nicht an das Klient:innenportal gesendet werden.',
   AWF_NO_SHOW_NOTE_REQUIRED: 'Begründung für „Nicht angetroffen“ ist erforderlich.',
   AWF_RLS_DENIED: 'Kein Zugriff — Berechtigung prüfen.',
   AWF_SCHEMA_MISMATCH: 'Datenbankschema passt nicht — Support informieren.',

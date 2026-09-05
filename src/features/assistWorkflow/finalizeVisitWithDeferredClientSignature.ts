@@ -24,16 +24,6 @@ export async function finalizeVisitWithDeferredClientSignature(
   documentationText?: string | null,
   approvalReason = '',
 ): Promise<ServiceResult<FinalizeVisitDeferredResult>> {
-  if (!ctx.detail.requiresSignature) {
-    return assistWorkflowErrorToResult(
-      createAssistWorkflowError('AWF_SIGNATURE_REQUIRED', {
-        tenantId: ctx.tenantId,
-        assignmentId: ctx.assignmentId,
-        operation: 'finalizeVisitWithDeferredClientSignature',
-      }, 'Für diesen Einsatz ist keine Unterschrift erforderlich — bitte normal abschließen.'),
-    );
-  }
-
   const docText =
     documentationText?.trim() ||
     ctx.detail.documentationNotes?.trim() ||
@@ -74,7 +64,7 @@ export async function finalizeVisitWithDeferredClientSignature(
   });
   if (!request.ok) {
     return assistWorkflowErrorToResult(
-      createAssistWorkflowError('AWF_ADMIN_APPROVAL_REQUEST_FAILED', {
+      createAssistWorkflowError('AWF_PORTAL_SIGNATURE_RELEASE_FAILED', {
         tenantId: ctx.tenantId,
         assignmentId: ctx.assignmentId,
         operation: 'finalizeVisitWithDeferredClientSignature',

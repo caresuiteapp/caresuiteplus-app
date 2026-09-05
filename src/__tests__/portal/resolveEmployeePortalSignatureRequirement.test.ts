@@ -34,7 +34,7 @@ describe('resolveEmployeePortalDocumentationFlags', () => {
     resolveLiveAssignment.mockResolvedValue({ ok: true, data: { visitId } });
   });
 
-  it('requires signature when catalog item requires_signature is true', async () => {
+  it('keeps documentation and signature mandatory even when legacy catalog flags are false', async () => {
     fromUnknownTable.mockImplementation((_supabase: unknown, table: string) => {
       if (table === 'assist_visits') {
         return {
@@ -56,7 +56,7 @@ describe('resolveEmployeePortalDocumentationFlags', () => {
             eq: () => ({
               eq: () => ({
                 maybeSingle: async () => ({
-                  data: { requires_signature: true, requires_documentation: true },
+                  data: { requires_signature: false, requires_documentation: false },
                   error: null,
                 }),
               }),
@@ -79,6 +79,7 @@ describe('resolveEmployeePortalDocumentationFlags', () => {
     );
 
     expect(flags.requiresSignature).toBe(true);
+    expect(flags.requiresDocumentation).toBe(true);
     expect(flags.signatureStatus).toBe('pending');
   });
 

@@ -8,7 +8,6 @@ import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersi
 import { fetchLatestVisitProof } from '@/lib/assist/assistVisitProofPersistenceService';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { isUuid } from '@/lib/validation/uuid';
 import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
@@ -92,8 +91,8 @@ export async function resolveEmployeePortalDocumentationFlags(
   documentationNotes?: string | null,
   employeeId?: string | null,
 ): Promise<EmployeePortalDocumentationFlags> {
-  let requiresSignature = status === 'unterschrift_offen';
-  let requiresDocumentation = true;
+  const requiresSignature = true;
+  const requiresDocumentation = true;
 
   const supabase = getSupabaseClient();
   const visitId = supabase
@@ -104,91 +103,22 @@ export async function resolveEmployeePortalDocumentationFlags(
 
   if (supabase && visitId) {
     try {
-      const { data: assignmentRow, error: assignmentError } = await fromUnknownTable(
-        supabase,
-        'assignments',
-      )
-        .select('operational_context')
-        .eq('tenant_id', tenantId)
-        .eq('id', resolveVisitMasterId(assignmentId))
-        .maybeSingle();
-
-      if (!assignmentError && assignmentRow?.operational_context) {
-        const context =
-          typeof assignmentRow.operational_context === 'object'
-          && !Array.isArray(assignmentRow.operational_context)
-            ? assignmentRow.operational_context as Record<string, unknown>
-            : null;
-        const requirements =
-          context?.requirements
-          && typeof context.requirements === 'object'
-          && !Array.isArray(context.requirements)
-            ? context.requirements as Record<string, unknown>
-            : null;
-        if (typeof requirements?.signature === 'boolean') {
-          requiresSignature = requirements.signature;
-        }
-        if (typeof requirements?.documentation === 'boolean') {
-          requiresDocumentation = requirements.documentation;
-        }
-      }
-    } catch {
-      // Older deployments and offline/test adapters may not expose operational_context.
-      // The visit and catalog fallbacks below remain authoritative in that case.
-    }
-
-    try {
       const { data: visitRow, error: visitError } = await fromUnknownTable(supabase, 'assist_visits')
-        .select('service_key, proof_status, proof_template_key, documentation_status')
+        .select('documentation_status')
         .eq('tenant_id', tenantId)
         .eq('id', visitId)
         .maybeSingle();
 
       if (!visitError && visitRow) {
-        const proofStatus = String(visitRow.proof_status ?? '');
-        if (proofStatus === 'pending' || proofStatus === 'signed') {
-          requiresSignature = true;
-        }
-
-        const proofTemplateKey = String(visitRow.proof_template_key ?? '').trim();
-        if (proofTemplateKey) {
-          requiresSignature = true;
-        }
-
         visitDocumentationComplete = String(visitRow.documentation_status ?? '') === 'complete';
-
-        const serviceKey = String(visitRow.service_key ?? '').trim();
-        if (serviceKey) {
-          const { data: catalogRow, error: catalogError } = await fromUnknownTable(
-            supabase,
-            'assist_service_catalog_items',
-          )
-            .select('requires_signature, requires_documentation')
-            .eq('tenant_id', tenantId)
-            .eq('service_key', serviceKey)
-            .maybeSingle();
-
-          if (catalogError && isMissingTableError(catalogError)) {
-            // catalog table not deployed — proof_template_key / heuristics below
-          } else if (!catalogError && catalogRow) {
-            requiresSignature = Boolean(catalogRow.requires_signature);
-            requiresDocumentation = catalogRow.requires_documentation !== false;
-          }
-        }
       }
     } catch {
-      // Do not block the execution workflow when optional catalog metadata is unavailable.
+      // A transient visit lookup must not crash the active execution view.
     }
   }
 
   const hasSubmittedDocumentation =
     Boolean(documentationNotes?.trim()) || visitDocumentationComplete;
-  if (
-    hasSubmittedDocumentation &&
-    (SIGNATURE_WORKFLOW_STATUSES.includes(status) || requiresSignature)
-  ) {
-    requiresSignature = true;
-  }
 
   let hasPersistedSignature = false;
   let hasDeferredPortalSignature = false;

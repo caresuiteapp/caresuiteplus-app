@@ -639,7 +639,7 @@ export async function fetchLiveEmployeePortalAssignmentDetail(
       extrasResult.status === 'fulfilled'
         ? extrasResult.value
         : { notesForEmployee: null, accessHints: null, emergencyContact: null };
-    const fallbackRequiresSignature = loaded.data.assignmentStatus === 'unterschrift_offen';
+    const fallbackRequiresSignature = true;
     const docFlags =
       docFlagsResult.status === 'fulfilled'
         ? docFlagsResult.value
@@ -765,7 +765,7 @@ export async function transitionLiveEmployeePortalAssignment(
     ? [
         { notesForEmployee: null, accessHints: null, emergencyContact: null },
         {
-          requiresSignature: false,
+          requiresSignature: true,
           requiresDocumentation: true,
           signatureStatus: 'none' as const,
           signatureCapturedViaClientPortal: false,

@@ -101,7 +101,19 @@ describe('finalizeVisitWithDeferredClientSignature', () => {
     vi.restoreAllMocks();
   });
 
-  it('blocks when signature is not required', async () => {
+  it('does not let a stale requiresSignature=false bypass the portal signature path', async () => {
+    vi.doMock('@/lib/portal/deferredVisitClientSignatureService', () => ({
+      releaseDeferredClientSignatureRequest: vi.fn(async () => ({
+        ok: true,
+        data: { proofId: 'proof-stale', clientDocumentId: 'document-stale' },
+      })),
+    }));
+    vi.doMock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
+      transitionAssistExecutionStatus: vi.fn(async () => ({
+        ok: true,
+        data: buildCtx({ assignmentStatus: 'abgeschlossen', derivedStatus: 'abgeschlossen' }),
+      })),
+    }));
     const { finalizeVisitWithDeferredClientSignature } = await import(
       '@/features/assistWorkflow/finalizeVisitWithDeferredClientSignature'
     );
@@ -114,7 +126,11 @@ describe('finalizeVisitWithDeferredClientSignature', () => {
       }),
       'Erledigt',
     );
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.proofId).toBe('proof-stale');
+      expect(result.data.sentDirectlyToClientPortal).toBe(true);
+    }
   });
 
   it('publishes directly to the client portal and completes the employee visit', async () => {
@@ -165,7 +181,11 @@ describe('finalizeVisitWithDeferredClientSignature', () => {
       '@/features/assistWorkflow/finalizeVisitWithDeferredClientSignature'
     );
     const result = await finalizeVisitWithDeferredClientSignature(buildCtx(), 'Erledigt', 'Klient ist nicht mehr vor Ort.');
-    expect(result.ok).toBe(false);
+    expect(result).toMatchObject({
+      ok: false,
+      errorCode: 'AWF_PORTAL_SIGNATURE_RELEASE_FAILED',
+      error: expect.stringContaining('Klient:innenportal'),
+    });
   });
 });
 
