@@ -112,7 +112,8 @@
         "EXPO_PUBLIC_DEMO_MODE": "false",
         "EXPO_PUBLIC_APP_EDITION": "portal-only",
         "EXPO_PUBLIC_FOLDER": "public-portal"
-      }
+      },
+      "environment": "production"
     },
     "portal-only-aab": {
       "extends": "production",
