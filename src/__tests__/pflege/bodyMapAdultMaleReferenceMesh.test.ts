@@ -23,14 +23,20 @@ function inspect(bytes: Buffer) {
   });
 }
 
+async function yieldToTestWorker(): Promise<void> {
+  await new Promise<void>((resolveReady) => setTimeout(resolveReady, 0));
+}
+
 describe('selbst entwickelter Erwachsenen-Referenzkörper männlich', () => {
-  it('erzeugt deterministische GLB-Bytes', () => {
+  it('erzeugt deterministische GLB-Bytes', async () => {
+    await yieldToTestWorker();
     const first = buildAdultMaleReferenceGlb();
     const second = buildAdultMaleReferenceGlb();
     expect(first.bytes.equals(second.bytes)).toBe(true);
   }, 20_000);
 
-  it('besteht den GLB-Vertrag mit detaillierten Oberflächenzonen', () => {
+  it('besteht den GLB-Vertrag mit detaillierten Oberflächenzonen', async () => {
+    await yieldToTestWorker();
     const generated = buildAdultMaleReferenceGlb();
     const report = inspect(generated.bytes);
     expect(report.valid).toBe(true);
@@ -40,7 +46,8 @@ describe('selbst entwickelter Erwachsenen-Referenzkörper männlich', () => {
     expect(report.zones.missing).toEqual([]);
   });
 
-  it('enthält Gesicht, Hände, Füße, Dekubituszonen und männliche äußere Genitalanatomie', () => {
+  it('enthält Gesicht, Hände, Füße, Dekubituszonen und männliche äußere Genitalanatomie', async () => {
+    await yieldToTestWorker();
     const report = inspect(buildAdultMaleReferenceGlb().bytes);
     expect(report.zones.found).toEqual(
       expect.arrayContaining([
@@ -66,7 +73,8 @@ describe('selbst entwickelter Erwachsenen-Referenzkörper männlich', () => {
     );
   });
 
-  it('trägt eine unverwechselbare medizinische Freigabesperre', () => {
+  it('trägt eine unverwechselbare medizinische Freigabesperre', async () => {
+    await yieldToTestWorker();
     const report = inspect(buildAdultMaleReferenceGlb().bytes);
     expect(report.metadata).toMatchObject({
       referenceModel: true,
@@ -78,7 +86,8 @@ describe('selbst entwickelter Erwachsenen-Referenzkörper männlich', () => {
     });
   });
 
-  it('entspricht bytegenau dem eingecheckten öffentlichen Asset', () => {
+  it('entspricht bytegenau dem eingecheckten öffentlichen Asset', async () => {
+    await yieldToTestWorker();
     const committed = readFileSync(
       resolve(process.cwd(), 'public/bodymap3d/v2/body-erwachsener-maennlich-v2.glb'),
     );
@@ -86,6 +95,7 @@ describe('selbst entwickelter Erwachsenen-Referenzkörper männlich', () => {
   });
 
   it('wird vom produktiv verwendeten Three.js-GLTFLoader als echte Szene geladen', async () => {
+    await yieldToTestWorker();
     const bytes = buildAdultMaleReferenceGlb().bytes;
     const arrayBuffer = bytes.buffer.slice(
       bytes.byteOffset,

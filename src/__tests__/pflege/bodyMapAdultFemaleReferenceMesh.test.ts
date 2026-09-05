@@ -24,14 +24,20 @@ function inspect(bytes: Buffer) {
   });
 }
 
+async function yieldToTestWorker(): Promise<void> {
+  await new Promise<void>((resolveReady) => setTimeout(resolveReady, 0));
+}
+
 describe('selbst entwickelter Erwachsenen-Referenzkörper weiblich', () => {
-  it('erzeugt deterministische weibliche GLB-Bytes', () => {
+  it('erzeugt deterministische weibliche GLB-Bytes', async () => {
+    await yieldToTestWorker();
     const first = buildAdultFemaleReferenceGlb();
     const second = buildAdultFemaleReferenceGlb();
     expect(first.bytes.equals(second.bytes)).toBe(true);
   }, 20_000);
 
-  it('besteht den GLB-Vertrag mit mehr als 100 einzeln anklickbaren Zonen', () => {
+  it('besteht den GLB-Vertrag mit mehr als 100 einzeln anklickbaren Zonen', async () => {
+    await yieldToTestWorker();
     const report = inspect(buildAdultFemaleReferenceGlb().bytes);
     expect(report.valid).toBe(true);
     expect(report.stats?.vertices).toBeGreaterThan(25_000);
@@ -40,7 +46,8 @@ describe('selbst entwickelter Erwachsenen-Referenzkörper weiblich', () => {
     expect(report.zones.missing).toEqual([]);
   });
 
-  it('enthält Brüste, Vulva, Dekubituszonen, Gesicht, Hände und Füße', () => {
+  it('enthält Brüste, Vulva, Dekubituszonen, Gesicht, Hände und Füße', async () => {
+    await yieldToTestWorker();
     const report = inspect(buildAdultFemaleReferenceGlb().bytes);
     expect(report.zones.found).toEqual(
       expect.arrayContaining([
@@ -69,7 +76,8 @@ describe('selbst entwickelter Erwachsenen-Referenzkörper weiblich', () => {
     );
   });
 
-  it('trägt die vollständige medizinische und sensible Freigabesperre', () => {
+  it('trägt die vollständige medizinische und sensible Freigabesperre', async () => {
+    await yieldToTestWorker();
     const report = inspect(buildAdultFemaleReferenceGlb().bytes);
     expect(report.metadata).toMatchObject({
       variantId,
@@ -85,7 +93,8 @@ describe('selbst entwickelter Erwachsenen-Referenzkörper weiblich', () => {
     );
   });
 
-  it('entspricht bytegenau dem eingecheckten öffentlichen weiblichen Asset', () => {
+  it('entspricht bytegenau dem eingecheckten öffentlichen weiblichen Asset', async () => {
+    await yieldToTestWorker();
     const committed = readFileSync(
       resolve(process.cwd(), 'public/bodymap3d/v2/body-erwachsener-weiblich-v2.glb'),
     );
@@ -93,6 +102,7 @@ describe('selbst entwickelter Erwachsenen-Referenzkörper weiblich', () => {
   });
 
   it('wird vom produktiven Three.js-GLTFLoader als echte Szene mit 119 Zonen geladen', async () => {
+    await yieldToTestWorker();
     const bytes = buildAdultFemaleReferenceGlb().bytes;
     const arrayBuffer = bytes.buffer.slice(
       bytes.byteOffset,
