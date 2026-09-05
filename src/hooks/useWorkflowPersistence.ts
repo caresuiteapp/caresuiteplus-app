@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import {
-  clearVisitWorkflowSnapshot,
-  mergeVisitWorkflowSnapshot,
+  clearVisitWorkflowSnapshotAsync,
+  mergeVisitWorkflowSnapshotWithExisting,
   readVisitWorkflowSnapshot,
-  writeVisitWorkflowSnapshot,
+  readVisitWorkflowSnapshotAsync,
+  writeVisitWorkflowSnapshotAsync,
   type VisitWorkflowUiState,
 } from '@/lib/portal/visitWorkflowPersistence';
 import { isVisitExecutionRoute, visitExecutionRouteMatchesSnapshot } from '@/lib/portal/visitExecutionRoute';
@@ -32,12 +33,19 @@ export function useWorkflowPersistence(visitId: string | undefined, options: Opt
   const { step: urlStepRaw } = useLocalSearchParams<{ step?: string }>();
   const urlStep = Array.isArray(urlStepRaw) ? urlStepRaw[0] : urlStepRaw;
   const hydratedRef = useRef(false);
+  const snapshotRef = useRef<ReturnType<typeof readVisitWorkflowSnapshot>>(null);
 
   const persist = useCallback(
     (partial: VisitWorkflowUiState) => {
       if (!enabled || !visitId) return;
-      const next = mergeVisitWorkflowSnapshot(visitId, pathname, partial);
-      writeVisitWorkflowSnapshot(next);
+      const next = mergeVisitWorkflowSnapshotWithExisting(
+        snapshotRef.current ?? readVisitWorkflowSnapshot(visitId),
+        visitId,
+        pathname,
+        partial,
+      );
+      snapshotRef.current = next;
+      void writeVisitWorkflowSnapshotAsync(next);
     },
     [enabled, visitId, pathname],
   );
@@ -56,9 +64,17 @@ export function useWorkflowPersistence(visitId: string | undefined, options: Opt
     return readVisitWorkflowSnapshot(visitId);
   }, [enabled, visitId]);
 
+  const restoreAsync = useCallback(async () => {
+    if (!enabled || !visitId) return null;
+    const snapshot = await readVisitWorkflowSnapshotAsync(visitId);
+    snapshotRef.current = snapshot;
+    return snapshot;
+  }, [enabled, visitId]);
+
   const clear = useCallback(() => {
     if (!visitId) return;
-    clearVisitWorkflowSnapshot(visitId);
+    snapshotRef.current = null;
+    void clearVisitWorkflowSnapshotAsync(visitId);
     router.setParams({ step: undefined } as Record<string, string | undefined>);
   }, [visitId, router]);
 
@@ -83,6 +99,7 @@ export function useWorkflowPersistence(visitId: string | undefined, options: Opt
     setStep,
     persist,
     restore,
+    restoreAsync,
     clear,
     hydratedRef,
     markHydrated,

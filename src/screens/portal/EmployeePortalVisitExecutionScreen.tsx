@@ -214,7 +214,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const signatureSectionY = useRef(0);
   const [signatureCaptureRequest, setSignatureCaptureRequest] = useState(0);
   const [closeSignatureCaptureRequest, setCloseSignatureCaptureRequest] = useState(0);
-  const restoredRef = useRef(false);
+  const restoredAssignmentRef = useRef<string | null>(null);
   const [tasksOpen, setTasksOpen] = useState(false);
   const [documentationOpen, setDocumentationOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -379,33 +379,43 @@ export function EmployeePortalVisitExecutionScreen() {
   }, [portalTenantId, portalEmployeeId, assistVisitId]);
 
   useEffect(() => {
-    if (!id || !visit || restoredRef.current || !isVisitExecutionRoute(pathname)) return;
-    const snapshot = workflowPersistence.restore();
-    restoredRef.current = true;
-    workflowPersistence.markHydrated();
+    if (
+      !id ||
+      !visit ||
+      restoredAssignmentRef.current === id ||
+      !isVisitExecutionRoute(pathname)
+    ) return;
+    restoredAssignmentRef.current = id;
+    let cancelled = false;
+    void workflowPersistence.restoreAsync().then((snapshot) => {
+      if (cancelled) return;
+      workflowPersistence.markHydrated();
+      const snapshotMatchesRoute = visitExecutionRouteMatchesSnapshot(pathname, snapshot?.route);
 
-    const snapshotMatchesRoute = visitExecutionRouteMatchesSnapshot(pathname, snapshot?.route);
+      if (snapshotMatchesRoute && snapshot?.awaitingSignature) setAwaitingSignature(true);
+      if (snapshotMatchesRoute && snapshot?.signatureConfirmationPending) {
+        setSignatureConfirmationPending(true);
+      }
+      if (snapshotMatchesRoute && snapshot?.showNoShowForm) setShowNoShowForm(true);
+      if (snapshotMatchesRoute && snapshot?.attachmentReferences?.length) {
+        setPhotoReferences(snapshot.attachmentReferences);
+      }
 
-    if (snapshotMatchesRoute && snapshot?.awaitingSignature) setAwaitingSignature(true);
-    if (snapshotMatchesRoute && snapshot?.signatureConfirmationPending) {
-      setSignatureConfirmationPending(true);
-    }
-    if (snapshotMatchesRoute && snapshot?.showNoShowForm) setShowNoShowForm(true);
-    if (snapshotMatchesRoute && snapshot?.attachmentReferences?.length) {
-      setPhotoReferences(snapshot.attachmentReferences);
-    }
+      const step = urlStep ?? (snapshotMatchesRoute ? snapshot?.step : null);
+      if (step === 'signature') {
+        setAwaitingSignature(true);
+        setSignatureCaptureRequest((n) => n + 1);
+      } else if (step) {
+        workflowPersistence.setStep(step);
+      }
 
-    const step = urlStep ?? (snapshotMatchesRoute ? snapshot?.step : null);
-    if (step === 'signature') {
-      setAwaitingSignature(true);
-      setSignatureCaptureRequest((n) => n + 1);
-    } else if (step) {
-      workflowPersistence.setStep(step);
-    }
-
-    if (snapshot?.signatureModalOpen) {
-      workflowPersistence.persist({ signatureModalOpen: false });
-    }
+      if (snapshot?.signatureModalOpen) {
+        workflowPersistence.persist({ signatureModalOpen: false });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [id, visit, urlStep, pathname, workflowPersistence]);
 
   const isLocked = useMemo(
