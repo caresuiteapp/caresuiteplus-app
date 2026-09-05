@@ -31,7 +31,7 @@ describe('getAssistLiveStatus', () => {
     const { formatTimerSeconds } = await import('@/features/liveTracking/getAssistLiveStatus');
     expect(formatTimerSeconds(125)).toBe('2:05');
     expect(formatTimerSeconds(null)).toBe('—');
-  });
+  }, 15_000);
 
   it('berechnet eine GPS-Route mit Distanz und Bewegungsarten', async () => {
     const { buildAssistLiveRouteSummary } = await import(

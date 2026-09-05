@@ -2,9 +2,9 @@
 set -Eeuo pipefail
 
 EXPECTED_PACKAGE='app.caresuitehealthos'
-EXPECTED_VERSION='0.3.5'
+EXPECTED_VERSION='0.3.6'
 EAS_CLI_VERSION='21.8.0'
-OUTPUT_PATH="${1:-CareSuite-HealthOS-0.3.5.aab}"
+OUTPUT_PATH="${1:-CareSuite-HealthOS-0.3.6.aab}"
 
 die() {
   printf 'FEHLER: %s\n' "$*" >&2
@@ -26,7 +26,7 @@ import { readFileSync } from 'node:fs';
 const app = JSON.parse(readFileSync('app.json', 'utf8')).expo;
 const eas = JSON.parse(readFileSync('eas.json', 'utf8'));
 if (app.android?.package !== 'app.caresuitehealthos') throw new Error('Falsche Paket-ID.');
-if (app.version !== '0.3.5') throw new Error('Falsche Nutzer-Version.');
+if (app.version !== '0.3.6') throw new Error('Falsche Nutzer-Version.');
 if (app.android?.versionCode < 27) throw new Error('Falsche lokale versionCode-Baseline.');
 if (eas.cli?.appVersionSource !== 'remote') throw new Error('EAS Remote-Versionierung fehlt.');
 if (eas.build?.['portal-only-aab']?.env?.EXPO_PUBLIC_APP_EDITION !== 'portal-only') {
@@ -53,7 +53,7 @@ npm run android:api36:audit
 node scripts/store-readiness-check.mjs
 npm run audit:assignment-workflow-gate -- --testTimeout=15000
 npx vitest run \
-  src/__tests__/platform/googlePlayUpdateV0_3_3.test.ts \
+  src/__tests__/platform/googlePlayUpdateV0_3_6.test.ts \
   src/__tests__/auth/portalProductionRuntimeR20_5.test.ts \
   src/__tests__/auth/portalWriteSessionRecoveryR20_4.test.ts \
   src/__tests__/portal/employeePortalRuntimeUnblockR20_6.test.ts \
@@ -123,5 +123,5 @@ AAB_URL="$({ npx --yes "eas-cli@${EAS_CLI_VERSION}" build:list \
 curl --fail --location --output "$OUTPUT_PATH" "$AAB_URL"
 sha256sum "$OUTPUT_PATH"
 
-printf '\nGoogle-Play-Update 0.3.5 wurde vollständig gebaut und heruntergeladen:\n%s\n' "$OUTPUT_PATH"
+printf '\nGoogle-Play-Update 0.3.6 wurde vollständig gebaut und heruntergeladen:\n%s\n' "$OUTPUT_PATH"
 printf 'Es wurde nichts automatisch zu Google Play hochgeladen. Sie können diesen AAB selbst hochladen.\n'
