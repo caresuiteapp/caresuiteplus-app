@@ -29,8 +29,16 @@ type EmployeePortalVisitDocumentationPanelProps = {
   lastSavedAt?: string | null;
   initialShortDescription?: string;
   initialSpecialNotes?: string;
+  initialDeviations?: string;
+  initialDeviationJustification?: string;
   photoReferences?: string[];
   openAiRequest?: number;
+  onDraftChange?: (draft: {
+    shortDescription: string;
+    specialNotes: string;
+    deviations: string;
+    deviationJustification: string;
+  }) => void;
   onSubmit: (doc: EmployeePortalDocumentationInput) => Promise<{ ok: boolean; error?: string }>;
 };
 
@@ -52,8 +60,11 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
     lastSavedAt = null,
     initialShortDescription = '',
     initialSpecialNotes = '',
+    initialDeviations = '',
+    initialDeviationJustification = '',
     photoReferences = [],
     openAiRequest = 0,
+    onDraftChange,
     onSubmit,
   },
   ref,
@@ -64,8 +75,10 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
   const useBottomSheet = Platform.OS !== 'web' && isMobile;
   const [shortDescription, setShortDescription] = useState(initialShortDescription);
   const [specialNotes, setSpecialNotes] = useState(initialSpecialNotes);
-  const [deviations, setDeviations] = useState('');
-  const [deviationJustification, setDeviationJustification] = useState('');
+  const [deviations, setDeviations] = useState(initialDeviations);
+  const [deviationJustification, setDeviationJustification] = useState(
+    initialDeviationJustification,
+  );
   const [localError, setLocalError] = useState<string | null>(null);
   const [showQuickBlocks, setShowQuickBlocks] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
@@ -73,8 +86,30 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
   const shortDescriptionRef = useRef(initialShortDescription);
 
   useEffect(() => {
+    shortDescriptionRef.current = initialShortDescription;
+    setShortDescription(initialShortDescription);
+  }, [initialShortDescription]);
+
+  useEffect(() => {
     setSpecialNotes(initialSpecialNotes);
   }, [initialSpecialNotes]);
+
+  useEffect(() => {
+    setDeviations(initialDeviations);
+  }, [initialDeviations]);
+
+  useEffect(() => {
+    setDeviationJustification(initialDeviationJustification);
+  }, [initialDeviationJustification]);
+
+  useEffect(() => {
+    onDraftChange?.({
+      shortDescription,
+      specialNotes,
+      deviations,
+      deviationJustification,
+    });
+  }, [deviationJustification, deviations, onDraftChange, shortDescription, specialNotes]);
 
   useEffect(() => {
     if (openAiRequest <= lastAiRequest.current) return;

@@ -9,6 +9,10 @@ export type VisitWorkflowUiState = {
   showNoShowForm?: boolean;
   scrollY?: number;
   documentationSubmitted?: boolean;
+  documentationDraftText?: string | null;
+  documentationSpecialNotes?: string | null;
+  documentationDeviations?: string | null;
+  documentationDeviationJustification?: string | null;
   signatureCaptured?: boolean;
   /** Uploaded internal media waiting to be attached to the documentation row. */
   attachmentReferences?: string[];

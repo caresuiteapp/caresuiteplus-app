@@ -116,4 +116,22 @@ describe('assignment workflow regression gate', () => {
     expect(legacyCompletion).not.toContain("error: 'Pflichtaufgaben sind noch offen.'");
     expect(tasksPanel).not.toContain("task.required ? '★ '");
   });
+
+  it('restores the complete documentation draft before allowing Android persistence writes', () => {
+    const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
+    const panel = readSrc('src/components/portal/EmployeePortalVisitDocumentationPanel.tsx');
+    const persistence = readSrc('src/lib/portal/visitWorkflowPersistence.ts');
+    for (const field of [
+      'documentationDraftText',
+      'documentationSpecialNotes',
+      'documentationDeviations',
+      'documentationDeviationJustification',
+    ]) {
+      expect(screen).toContain(field);
+      expect(persistence).toContain(field);
+    }
+    expect(panel).toContain('onDraftChange?.({');
+    expect(screen).toContain('workflowHydratedAssignmentId !== id');
+    expect(screen).toContain('setWorkflowHydratedAssignmentId(id)');
+  });
 });

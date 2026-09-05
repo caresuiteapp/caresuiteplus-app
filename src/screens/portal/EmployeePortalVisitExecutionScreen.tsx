@@ -226,6 +226,12 @@ export function EmployeePortalVisitExecutionScreen() {
   const [photoReferences, setPhotoReferences] = useState<string[]>([]);
   const [documentationDraftText, setDocumentationDraftText] = useState('');
   const [documentationSpecialNotes, setDocumentationSpecialNotes] = useState('');
+  const [documentationDeviations, setDocumentationDeviations] = useState('');
+  const [documentationDeviationJustification, setDocumentationDeviationJustification] =
+    useState('');
+  const [workflowHydratedAssignmentId, setWorkflowHydratedAssignmentId] = useState<string | null>(
+    null,
+  );
   const [aiHelpRequest, setAiHelpRequest] = useState(0);
   const [aiHelpStandaloneOpen, setAiHelpStandaloneOpen] = useState(false);
   const lastConfirmedStatusRef = useRef<AssignmentStatus | null>(null);
@@ -404,6 +410,21 @@ export function EmployeePortalVisitExecutionScreen() {
       if (snapshotMatchesRoute && snapshot?.attachmentReferences?.length) {
         setPhotoReferences(snapshot.attachmentReferences);
       }
+      if (snapshotMatchesRoute && typeof snapshot?.documentationDraftText === 'string') {
+        setDocumentationDraftText(snapshot.documentationDraftText);
+      }
+      if (snapshotMatchesRoute && typeof snapshot?.documentationSpecialNotes === 'string') {
+        setDocumentationSpecialNotes(snapshot.documentationSpecialNotes);
+      }
+      if (snapshotMatchesRoute && typeof snapshot?.documentationDeviations === 'string') {
+        setDocumentationDeviations(snapshot.documentationDeviations);
+      }
+      if (
+        snapshotMatchesRoute &&
+        typeof snapshot?.documentationDeviationJustification === 'string'
+      ) {
+        setDocumentationDeviationJustification(snapshot.documentationDeviationJustification);
+      }
 
       const step = urlStep ?? (snapshotMatchesRoute ? snapshot?.step : null);
       if (step === 'signature') {
@@ -416,6 +437,7 @@ export function EmployeePortalVisitExecutionScreen() {
       if (snapshot?.signatureModalOpen) {
         workflowPersistence.persist({ signatureModalOpen: false });
       }
+      setWorkflowHydratedAssignmentId(id);
     });
     return () => {
       cancelled = true;
@@ -735,7 +757,7 @@ export function EmployeePortalVisitExecutionScreen() {
   }, [phase]);
 
   useEffect(() => {
-    if (!id || !visit) return;
+    if (!id || !visit || workflowHydratedAssignmentId !== id) return;
     workflowPersistence.persist({
       step: urlStep ?? null,
       awaitingSignature,
@@ -743,6 +765,12 @@ export function EmployeePortalVisitExecutionScreen() {
       signatureModalOpen: false,
       showNoShowForm,
       documentationSubmitted,
+      documentationDraftText: documentationSubmitted ? null : documentationDraftText,
+      documentationSpecialNotes: documentationSubmitted ? null : documentationSpecialNotes,
+      documentationDeviations: documentationSubmitted ? null : documentationDeviations,
+      documentationDeviationJustification: documentationSubmitted
+        ? null
+        : documentationDeviationJustification,
       signatureCaptured,
       attachmentReferences: photoReferences,
     });
@@ -754,8 +782,13 @@ export function EmployeePortalVisitExecutionScreen() {
     signatureConfirmationPending,
     showNoShowForm,
     documentationSubmitted,
+    documentationDraftText,
+    documentationSpecialNotes,
+    documentationDeviations,
+    documentationDeviationJustification,
     signatureCaptured,
     photoReferences,
+    workflowHydratedAssignmentId,
     workflowPersistence,
   ]);
 
@@ -1716,6 +1749,14 @@ export function EmployeePortalVisitExecutionScreen() {
           lastSavedAt={docLastSavedAt}
           initialShortDescription={documentationDraftText}
           initialSpecialNotes={documentationSpecialNotes}
+          initialDeviations={documentationDeviations}
+          initialDeviationJustification={documentationDeviationJustification}
+          onDraftChange={(draft) => {
+            setDocumentationDraftText(draft.shortDescription);
+            setDocumentationSpecialNotes(draft.specialNotes);
+            setDocumentationDeviations(draft.deviations);
+            setDocumentationDeviationJustification(draft.deviationJustification);
+          }}
           photoReferences={photoReferences}
           openAiRequest={aiHelpRequest}
           onSubmit={async (doc) => {
