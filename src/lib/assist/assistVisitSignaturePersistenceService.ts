@@ -28,6 +28,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { toStorageUploadError } from '@/lib/storage/storagePaths';
 import { ASSIST_EXECUTION_TABLES } from '@/types/assistExecutionPersistence';
+import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 
 export { fetchValidVisitSignature, isAssistExecutionPersistenceReady };
 
@@ -112,6 +113,20 @@ export async function saveVisitSignaturePersistent(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
+  const existing = await fetchValidVisitSignature(tenantId, input.visitId);
+  if (!existing.ok) {
+    return { ok: false, error: existing.error ?? 'Vorhandene Unterschrift konnte nicht geprüft werden.' };
+  }
+  if (
+    existing.data &&
+    existing.data.payloadHash === input.payloadHash &&
+    existing.data.signatureHash === input.signatureHash &&
+    existing.data.signerName === input.signerName.trim() &&
+    existing.data.signerRole === input.signerRole.trim()
+  ) {
+    return { ok: true, data: existing.data };
+  }
+
   const signatureId = crypto.randomUUID?.() ?? `sig-${Date.now()}`;
   let storagePath = input.storagePath;
 
@@ -155,10 +170,31 @@ export async function saveVisitSignaturePersistent(
     .single();
 
   if (error) {
+    if (input.signatureDataUrl?.trim() && storagePath) {
+      await supabase.storage.from(ASSIST_EXECUTION_STORAGE_BUCKET).remove([storagePath]);
+    }
     if (isSupabaseMissingTableError(error)) {
       return { ok: false, error: 'assist_visit_signatures (0156) nicht verfügbar.' };
     }
     return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  if (existing.data && existing.data.id !== (data as SignatureDbRow).id) {
+    const invalidated = await invalidateVisitSignature(
+      tenantId,
+      existing.data.id,
+      'Durch eine neu erfasste Unterschrift ersetzt.',
+    );
+    if (!invalidated.ok) {
+      scheduleDeferredTask(`invalidate-replaced-signature:${tenantId}:${existing.data.id}`, async () => {
+        const retry = await invalidateVisitSignature(
+          tenantId,
+          existing.data!.id,
+          'Durch eine neu erfasste Unterschrift ersetzt.',
+        );
+        if (!retry.ok) throw new Error(retry.error);
+      });
+    }
   }
 
   return { ok: true, data: mapSignatureRow(data as SignatureDbRow) };

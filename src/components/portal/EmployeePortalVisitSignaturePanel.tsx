@@ -45,6 +45,7 @@ export function EmployeePortalVisitSignaturePanel({
   const [captureError, setCaptureError] = useState<string | null>(null);
   const lastCaptureRequest = useRef(0);
   const lastCloseCaptureRequest = useRef(0);
+  const captureSubmittingRef = useRef(false);
   const onModalOpenChangeRef = useRef(onModalOpenChange);
 
   useEffect(() => {
@@ -87,19 +88,25 @@ export function EmployeePortalVisitSignaturePanel({
   );
 
   const handleConfirm = async (dataUrl: string) => {
+    if (captureSubmittingRef.current) return;
+    captureSubmittingRef.current = true;
     setCaptureError(null);
-    const result = await onCapture({
-      signatureType: 'service_proof',
-      signerName: signerName.trim(),
-      signatureDataUrl: dataUrl,
-    });
-    if (result.ok) {
-      setPreview(dataUrl);
-      closeModal();
-    } else {
-      setCaptureError(
-        result.error ?? 'Die Unterschrift konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.',
-      );
+    try {
+      const result = await onCapture({
+        signatureType: 'service_proof',
+        signerName: signerName.trim(),
+        signatureDataUrl: dataUrl,
+      });
+      if (result.ok) {
+        setPreview(dataUrl);
+        closeModal();
+      } else {
+        setCaptureError(
+          result.error ?? 'Die Unterschrift konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.',
+        );
+      }
+    } finally {
+      captureSubmittingRef.current = false;
     }
   };
 

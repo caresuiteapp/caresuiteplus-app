@@ -119,8 +119,8 @@ export function EmployeePortalVisitCompletionPanel({
       {canFinalizeDeferred && onFinalizeDeferred ? (
         <>
           <PremiumInput
-            label="Warum kann die Unterschrift nicht vor Ort erfasst werden?"
-            hint="Pflichtfeld · mindestens 10 Zeichen · wird mit der Portal-Anfrage dokumentiert"
+            label="Hinweis zur Weiterleitung (optional)"
+            hint="Falls ausgefüllt, wird der Hinweis mit der Portal-Anfrage dokumentiert."
             value={approvalReason}
             onChangeText={setApprovalReason}
             multiline
@@ -133,7 +133,7 @@ export function EmployeePortalVisitCompletionPanel({
             variant="secondary"
             fullWidth
             loading={deferredLoading}
-            disabled={!documentationSubmitted || approvalReason.trim().length < 10 || deferredLoading || loading}
+            disabled={!documentationSubmitted || deferredLoading || loading}
             onPress={() => onFinalizeDeferred(approvalReason.trim())}
           />
         </>

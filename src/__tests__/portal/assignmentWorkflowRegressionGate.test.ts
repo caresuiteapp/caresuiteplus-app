@@ -134,4 +134,25 @@ describe('assignment workflow regression gate', () => {
     expect(screen).toContain('workflowHydratedAssignmentId !== id');
     expect(screen).toContain('setWorkflowHydratedAssignmentId(id)');
   });
+
+  it('makes on-site signature persistence idempotent and prevents parallel capture submits', () => {
+    const persistence = readSrc('src/lib/assist/assistVisitSignaturePersistenceService.ts');
+    const panel = readSrc('src/components/portal/EmployeePortalVisitSignaturePanel.tsx');
+    expect(persistence).toContain('existing.data.signatureHash === input.signatureHash');
+    expect(persistence).toContain('return { ok: true, data: existing.data }');
+    expect(persistence).toContain('.remove([storagePath])');
+    expect(persistence).toContain('Durch eine neu erfasste Unterschrift ersetzt.');
+    expect(panel).toContain('if (captureSubmittingRef.current) return');
+    expect(panel).toContain('captureSubmittingRef.current = false');
+  });
+
+  it('requires only documentation plus either on-site or client-portal signature', () => {
+    const deferred = readSrc('src/features/assistWorkflow/finalizeVisitWithDeferredClientSignature.ts');
+    const completion = readSrc('src/components/portal/EmployeePortalVisitCompletionPanel.tsx');
+    const release = readSrc('src/lib/portal/deferredVisitClientSignatureService.ts');
+    expect(deferred).not.toContain('approvalReason.trim().length < 10');
+    expect(completion).toContain('Hinweis zur Weiterleitung (optional)');
+    expect(completion).not.toContain('approvalReason.trim().length < 10');
+    expect(release).toContain('signatureDeferredReason:');
+  });
 });

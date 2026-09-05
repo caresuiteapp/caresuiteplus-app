@@ -69,17 +69,9 @@ export async function finalizeVisitWithDeferredClientSignature(
     );
   }
 
-  if (approvalReason.trim().length < 10) {
-    return assistWorkflowErrorToResult(
-      createAssistWorkflowError('AWF_SIGNATURE_REQUIRED', {
-        tenantId: ctx.tenantId,
-        assignmentId: ctx.assignmentId,
-        operation: 'finalizeVisitWithDeferredClientSignature',
-      }, 'Bitte kurz begründen, warum vor Ort keine Unterschrift möglich ist.'),
-    );
-  }
-
-  const request = await releaseDeferredClientSignatureRequest(ctx, docText);
+  const request = await releaseDeferredClientSignatureRequest(ctx, docText, {
+    reason: approvalReason.trim() || null,
+  });
   if (!request.ok) {
     return assistWorkflowErrorToResult(
       createAssistWorkflowError('AWF_ADMIN_APPROVAL_REQUEST_FAILED', {

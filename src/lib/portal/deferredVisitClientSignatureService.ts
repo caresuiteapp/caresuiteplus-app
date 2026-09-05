@@ -266,7 +266,7 @@ async function upsertDeferredSignatureClientPortalDocument(
 export async function releaseDeferredClientSignatureRequest(
   ctx: AssistExecutionContext,
   documentationText?: string | null,
-  options?: { administrative?: boolean },
+  options?: { administrative?: boolean; reason?: string | null },
 ): Promise<ServiceResult<DeferredClientSignatureReleaseResult>> {
   if (getServiceMode() !== 'supabase') {
     return { ok: true, data: { proofId: 'demo-proof', clientDocumentId: null } };
@@ -301,6 +301,7 @@ export async function releaseDeferredClientSignatureRequest(
     signatureDeferredToClientPortal: true,
     signatureDeferredAt: new Date().toISOString(),
     signatureDeferredBy: ctx.profileId ?? ctx.employeeId ?? null,
+    signatureDeferredReason: options?.reason?.trim() || null,
   };
 
   let proofId: string;
