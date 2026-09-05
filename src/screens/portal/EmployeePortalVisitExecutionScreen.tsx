@@ -235,6 +235,8 @@ export function EmployeePortalVisitExecutionScreen() {
   const [mobilityMode, setMobilityMode] = useState<EmployeeTransportMode | null>(null);
   const [mobilityHydrated, setMobilityHydrated] = useState(false);
   const [mobilityPersisted, setMobilityPersisted] = useState(false);
+  const [logbookRefreshToken, setLogbookRefreshToken] = useState(0);
+  const [logbookConfirmationRequired, setLogbookConfirmationRequired] = useState(false);
   const [locationDisclosureOpen, setLocationDisclosureOpen] = useState(false);
   const [locationDisclosureLoading, setLocationDisclosureLoading] = useState(false);
   const [locationDisclosureAccepted, setLocationDisclosureAccepted] = useState(false);
@@ -875,6 +877,8 @@ export function EmployeePortalVisitExecutionScreen() {
             endAddress: visit.locationAddress,
           });
           if (completedTrip) {
+            setLogbookRefreshToken((current) => current + 1);
+            setLogbookConfirmationRequired(true);
             setLocalSuccess(
               `Angekommen — bitte jetzt ${completedTrip.distanceFinalKm.toFixed(2).replace('.', ',')} km für die PKW-Anfahrt bestätigen.`,
             );
@@ -1078,6 +1082,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const primaryButtonDisabled =
     readOnlyExecution ||
     (primaryActionResolved === 'start_en_route' && (!mobilityHydrated || !mobilityMode)) ||
+    (primaryActionResolved === 'start_service' && logbookConfirmationRequired) ||
     (primaryActionResolved === 'start_service'
       ? startServiceLoading || driveLoading
       : actionLoading || driveLoading);
@@ -1310,6 +1315,8 @@ export function EmployeePortalVisitExecutionScreen() {
                 startAddress={visit.locationAddress}
                 plannedEndAt={visit.plannedEndAt}
                 transportMode={mobilityMode}
+                refreshToken={logbookRefreshToken}
+                onConfirmationRequiredChange={setLogbookConfirmationRequired}
               />
             </EmployeePortalExecutionSectionBoundary>
           ) : null}
@@ -1420,6 +1427,8 @@ export function EmployeePortalVisitExecutionScreen() {
                 startAddress={visit.locationAddress}
                 plannedEndAt={visit.plannedEndAt}
                 transportMode={mobilityMode}
+                refreshToken={logbookRefreshToken}
+                onConfirmationRequiredChange={setLogbookConfirmationRequired}
               />
             </EmployeePortalExecutionSectionBoundary>
           ) : null}
@@ -1466,6 +1475,8 @@ export function EmployeePortalVisitExecutionScreen() {
                 startAddress={visit.locationAddress}
                 plannedEndAt={visit.plannedEndAt}
                 transportMode={mobilityMode}
+                refreshToken={logbookRefreshToken}
+                onConfirmationRequiredChange={setLogbookConfirmationRequired}
               />
             </EmployeePortalExecutionSectionBoundary>
           ) : null}

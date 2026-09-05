@@ -33,6 +33,8 @@ type Props = {
   startAddress: string;
   plannedEndAt: string;
   transportMode: EmployeeTransportMode;
+  refreshToken?: number;
+  onConfirmationRequiredChange?: (required: boolean) => void;
 };
 
 const KIND_OPTIONS: { key: TripKind; label: string; purpose: string }[] = [
@@ -50,6 +52,7 @@ const STOP_OPTIONS: { key: StopKind; label: string }[] = [
 ];
 
 export function EmployeePortalVisitLogbookCard(props: Props) {
+  const onConfirmationRequiredChange = props.onConfirmationRequiredChange;
   const [kind, setKind] = useState<TripKind>('with_client');
   const [purpose, setPurpose] = useState(`Begleitfahrt mit ${props.clientName}`);
   const [destination, setDestination] = useState('');
@@ -76,7 +79,7 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
       ok: true as const,
       data: { eligibility, bundle, appointments: appointmentsResult.ok ? appointmentsResult.data : [] },
     };
-  }, [props.tenantId, props.employeeId, props.transportMode]), [props.tenantId, props.employeeId, props.transportMode]);
+  }, [props.tenantId, props.employeeId, props.transportMode]), [props.tenantId, props.employeeId, props.transportMode, props.refreshToken]);
 
   const assignmentId = resolveVisitMasterId(props.assignmentId);
   const nextAssignments = useMemo(
@@ -95,11 +98,23 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
     () => new Set([assignmentId, ...nextAssignments.map((item) => resolveVisitMasterId(item.id))]),
     [assignmentId, nextAssignments],
   );
-  const activeForVisit = active?.assignmentId && relatedAssignmentIds.has(active.assignmentId) ? active : null;
+  const activeForVisit =
+    active?.assignmentId && relatedAssignmentIds.has(resolveVisitMasterId(active.assignmentId))
+      ? active
+      : null;
   const pendingConfirmation = useMemo(
-    () => query.data?.bundle?.trips.find((trip) => trip.status === 'confirmation_required' && Boolean(trip.assignmentId) && relatedAssignmentIds.has(trip.assignmentId!)) ?? null,
+    () => query.data?.bundle?.trips.find(
+      (trip) =>
+        trip.status === 'confirmation_required' &&
+        Boolean(trip.assignmentId) &&
+        relatedAssignmentIds.has(resolveVisitMasterId(trip.assignmentId!)),
+    ) ?? null,
     [query.data?.bundle?.trips, relatedAssignmentIds],
   );
+  useEffect(() => {
+    onConfirmationRequiredChange?.(Boolean(pendingConfirmation));
+    return () => onConfirmationRequiredChange?.(false);
+  }, [pendingConfirmation, onConfirmationRequiredChange]);
   useEffect(() => {
     if (pendingConfirmation) setConfirmationKm(pendingConfirmation.distanceFinalKm.toFixed(2).replace('.', ','));
   }, [pendingConfirmation]);
