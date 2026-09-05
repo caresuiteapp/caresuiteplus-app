@@ -8,11 +8,11 @@ import {
   Text,
   View,
 } from 'react-native';
-import { InfoBanner, PremiumBadge, PremiumButton, PremiumCard } from '@/components/ui';
+import { InfoBanner, PremiumBadge, PremiumButton, PremiumCard, PremiumInput } from '@/components/ui';
 import {
   finishEmployeeReturnTrip,
   formatReturnTripDuration,
-  loadActiveEmployeeReturnTrip,
+  loadUnfinishedEmployeeReturnTrip,
   returnTripDestinationFromTrip,
   returnTripDestinationLabel,
   startEmployeeReturnTrip,
@@ -21,12 +21,21 @@ import {
 } from '@/lib/portal/employeePortalReturnTrip';
 import type { LogbookTrip } from '@/types/modules/employeeLogbook';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
-import { saveLogbookPromptDecision } from '@/lib/employeeLogbook';
+import { confirmEmployeeLogbookTrip, saveLogbookPromptDecision } from '@/lib/employeeLogbook';
 import type { EmployeeGpsWatchHandle } from '@/lib/employeeLogbook';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { spacing, typography } from '@/theme';
 
-type ModalMode = 'loading' | 'prompt' | 'starting' | 'tracking' | 'finishing' | 'complete' | 'error';
+type ModalMode =
+  | 'loading'
+  | 'prompt'
+  | 'starting'
+  | 'tracking'
+  | 'finishing'
+  | 'confirmation'
+  | 'confirming'
+  | 'complete'
+  | 'error';
 
 type EmployeePortalReturnTripModalProps = {
   visible: boolean;
@@ -54,6 +63,8 @@ export function EmployeePortalReturnTripModal({
   const [destination, setDestination] = useState<EmployeeReturnTripDestination | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [completedTrip, setCompletedTrip] = useState<LogbookTrip | null>(null);
+  const [confirmationKm, setConfirmationKm] = useState('');
+  const [confirmationReason, setConfirmationReason] = useState('');
   const [clock, setClock] = useState(() => new Date());
   const webWatcherRef = useRef<EmployeeGpsWatchHandle | null>(null);
 
@@ -79,7 +90,7 @@ export function EmployeePortalReturnTripModal({
     setMode('loading');
     setError(null);
     setCompletedTrip(null);
-    void loadActiveEmployeeReturnTrip(tenantId, employeeId)
+    void loadUnfinishedEmployeeReturnTrip(tenantId, employeeId)
       .then(async (active) => {
         if (cancelled) return;
         if (!active) {
@@ -92,6 +103,15 @@ export function EmployeePortalReturnTripModal({
         if (!activeDestination || active.assignmentId !== resolveVisitMasterId(assignmentId)) {
           setError('Es läuft bereits eine andere Fahrt. Bitte diese zuerst im Fahrtenbuch abschließen.');
           setMode('error');
+          return;
+        }
+        if (active.status === 'confirmation_required') {
+          setTrip(active);
+          setDestination(activeDestination);
+          setCompletedTrip(active);
+          setConfirmationKm(active.distanceFinalKm.toFixed(2).replace('.', ','));
+          setConfirmationReason('');
+          setMode('confirmation');
           return;
         }
         const resumed = await startEmployeeReturnTrip({
@@ -167,9 +187,10 @@ export function EmployeePortalReturnTripModal({
     stopWebWatcher();
     try {
       const completed = await finishEmployeeReturnTrip({ trip, tenantId, employeeId, destination });
-      await saveLogbookPromptDecision({ tenantId, employeeId, assignmentId: resolveVisitMasterId(assignmentId), promptType: 'return_trip', decision: 'completed' });
       setCompletedTrip(completed);
-      setMode('complete');
+      setConfirmationKm(completed.distanceFinalKm.toFixed(2).replace('.', ','));
+      setConfirmationReason('');
+      setMode('confirmation');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Rückfahrt konnte nicht abgeschlossen werden.');
       try {
@@ -203,6 +224,32 @@ export function EmployeePortalReturnTripModal({
     attachWebWatcher,
   ]);
 
+  const confirmDistance = useCallback(async () => {
+    if (!completedTrip) return;
+    const distanceKm = Number(confirmationKm.replace(',', '.'));
+    setMode('confirming');
+    setError(null);
+    try {
+      await confirmEmployeeLogbookTrip({
+        trip: completedTrip,
+        distanceKm,
+        reason: confirmationReason,
+      });
+      await saveLogbookPromptDecision({
+        tenantId,
+        employeeId,
+        assignmentId: resolveVisitMasterId(assignmentId),
+        promptType: 'return_trip',
+        decision: 'completed',
+      });
+      setCompletedTrip({ ...completedTrip, distanceFinalKm: distanceKm, status: 'confirmed' });
+      setMode('complete');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Kilometer konnten nicht bestätigt werden.');
+      setMode('confirmation');
+    }
+  }, [completedTrip, confirmationKm, confirmationReason, tenantId, employeeId, assignmentId]);
+
   const canClose = mode === 'prompt' || mode === 'complete' || (mode === 'error' && !trip);
   const close = () => {
     if (!canClose) return;
@@ -230,6 +277,8 @@ export function EmployeePortalReturnTripModal({
                 <Text style={styles.title}>
                   {mode === 'tracking' || mode === 'finishing'
                     ? 'Rückfahrt wird aufgezeichnet'
+                    : mode === 'confirmation' || mode === 'confirming'
+                      ? 'Rückfahrt bestätigen'
                     : mode === 'complete'
                       ? 'Rückfahrt abgeschlossen'
                       : 'Wie geht es jetzt weiter?'}
@@ -320,6 +369,41 @@ export function EmployeePortalReturnTripModal({
               </>
             ) : null}
 
+            {(mode === 'confirmation' || mode === 'confirming') && completedTrip ? (
+              <>
+                <InfoBanner
+                  variant="warning"
+                  message="GPS ist beendet. Prüfe jetzt die gefahrenen Kilometer; erst danach wird der Tagesabschluss endgültig gespeichert."
+                />
+                {error ? <InfoBanner variant="warning" message={error} /> : null}
+                <PremiumInput
+                  label="Gefahrene Kilometer"
+                  value={confirmationKm}
+                  onChangeText={setConfirmationKm}
+                  keyboardType="decimal-pad"
+                />
+                {Math.abs(
+                  Number(confirmationKm.replace(',', '.')) - completedTrip.distanceFinalKm,
+                ) >= 0.005 ? (
+                  <PremiumInput
+                    label="Begründung der Korrektur"
+                    value={confirmationReason}
+                    onChangeText={setConfirmationReason}
+                    placeholder="Warum weicht der Wert von GPS ab?"
+                  />
+                ) : null}
+                <PremiumButton
+                  title="Kilometer bestätigen und Tag abschließen"
+                  size="lg"
+                  fullWidth
+                  loading={mode === 'confirming'}
+                  disabled={mode === 'confirming'}
+                  onPress={() => void confirmDistance()}
+                  testID="employee-return-trip-confirm"
+                />
+              </>
+            ) : null}
+
             {mode === 'complete' && completedTrip ? (
               <>
                 <View style={styles.successCard}>
@@ -350,13 +434,22 @@ export function EmployeePortalReturnTripModal({
                       onPress={() => {
                         setMode('loading');
                         setError(null);
-                        void loadActiveEmployeeReturnTrip(tenantId, employeeId)
+                        void loadUnfinishedEmployeeReturnTrip(tenantId, employeeId)
                           .then(async (active) => {
                             if (!active) setMode('prompt');
                             else {
                               const activeDestination = returnTripDestinationFromTrip(active);
                               if (!activeDestination || active.assignmentId !== resolveVisitMasterId(assignmentId)) {
                                 throw new Error('Es läuft bereits eine andere Fahrt. Bitte diese zuerst im Fahrtenbuch abschließen.');
+                              }
+                              if (active.status === 'confirmation_required') {
+                                setTrip(active);
+                                setDestination(activeDestination);
+                                setCompletedTrip(active);
+                                setConfirmationKm(active.distanceFinalKm.toFixed(2).replace('.', ','));
+                                setConfirmationReason('');
+                                setMode('confirmation');
+                                return;
                               }
                               const resumed = await startEmployeeReturnTrip({
                                 tenantId,

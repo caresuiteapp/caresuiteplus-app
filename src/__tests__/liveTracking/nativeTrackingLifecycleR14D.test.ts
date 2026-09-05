@@ -38,7 +38,7 @@ describe('R14-D native GPS and logbook lifecycle', () => {
 
   it('reopens a selected but unfinished return trip before evaluating the prompt decision', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
-    const activeTripCheck = screen.indexOf('const activeReturnTrip = await loadActiveEmployeeReturnTrip');
+    const activeTripCheck = screen.indexOf('const activeReturnTrip = await loadUnfinishedEmployeeReturnTrip');
     const promptDecisionCheck = screen.indexOf('const promptDecision = await loadLogbookPromptDecision');
 
     expect(activeTripCheck).toBeGreaterThan(-1);

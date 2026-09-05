@@ -82,6 +82,10 @@ describe('Mitarbeiterportal Rückfahrt nach letztem Tageseinsatz', () => {
     expect(modal).toContain('Ja – zum Büro aufzeichnen');
     expect(modal).toContain('Nein – nicht aufzeichnen');
     expect(modal).toContain('ANGEKOMMEN – Rückfahrt abschließen');
+    expect(modal).toContain('Kilometer bestätigen und Tag abschließen');
+    expect(modal).toContain('confirmEmployeeLogbookTrip');
+    expect(modal).toContain("setMode('confirmation')");
+    expect(modal).toContain("active.status === 'confirmation_required'");
   });
 
   it('aktiviert die tatsächlich wirksame Android-Hintergrundortung', () => {

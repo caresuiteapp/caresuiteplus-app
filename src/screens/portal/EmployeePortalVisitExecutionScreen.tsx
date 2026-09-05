@@ -78,7 +78,7 @@ import { employeePortalExecutionSurface } from '@/lib/portal/employeePortalExecu
 import { fetchPortalAppointments } from '@/lib/portal/appointmentService';
 import {
   isLastScheduledEmployeeAssignmentOfDay,
-  loadActiveEmployeeReturnTrip,
+  loadUnfinishedEmployeeReturnTrip,
   returnTripDestinationFromTrip,
 } from '@/lib/portal/employeePortalReturnTrip';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
@@ -509,7 +509,7 @@ export function EmployeePortalVisitExecutionScreen() {
           returnTripPromptHandledRef.current = true;
           return;
         }
-        const activeReturnTrip = await loadActiveEmployeeReturnTrip(
+        const activeReturnTrip = await loadUnfinishedEmployeeReturnTrip(
           portalTenantId,
           portalEmployeeId,
         );

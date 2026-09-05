@@ -43,6 +43,18 @@ export async function loadActiveEmployeeReturnTrip(
   return bundle.trips.find((trip) => trip.status === 'recording') ?? null;
 }
 
+export async function loadUnfinishedEmployeeReturnTrip(
+  tenantId: string,
+  employeeId: string,
+): Promise<LogbookTrip | null> {
+  const bundle = await loadEmployeeLogbook(tenantId, employeeId);
+  return bundle.trips.find(
+    (trip) =>
+      (trip.status === 'recording' || trip.status === 'confirmation_required') &&
+      Boolean(returnTripDestinationFromTrip(trip)),
+  ) ?? null;
+}
+
 export async function startEmployeeReturnTrip(input: {
   tenantId: string;
   employeeId: string;
