@@ -35,6 +35,7 @@ import {
   EmployeePortalVisitTasksPanel,
 } from '@/components/portal';
 import { EmployeePortalLocationConsentBanner } from '@/components/portal/EmployeePortalLocationConsentBanner';
+import { PortalNewChatModal } from '@/components/portal/PortalNewChatModal';
 import { buildDocumentationAiSourceFromTasks, resolveDocumentationAiSourceText } from '@/lib/portal/buildDocumentationAiSourceText';
 import {
   ErrorState,
@@ -221,6 +222,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const [docLastSavedAt, setDocLastSavedAt] = useState<string | null>(null);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [messageModalOpen, setMessageModalOpen] = useState(false);
   const [photoReferences, setPhotoReferences] = useState<string[]>([]);
   const [documentationDraftText, setDocumentationDraftText] = useState('');
   const [documentationSpecialNotes, setDocumentationSpecialNotes] = useState('');
@@ -1789,7 +1791,11 @@ export function EmployeePortalVisitExecutionScreen() {
       {bottomBarVisible ? (
         <EmployeePortalVisitFabMenu
           actions={[
-            { key: 'note', label: 'Interne Nachricht', onPress: () => setDocumentationOpen(true) },
+            {
+              key: 'note',
+              label: 'Interne Nachricht',
+              onPress: () => setMessageModalOpen(true),
+            },
             { key: 'photo', label: 'Foto oder Video hinzufügen', onPress: () => setPhotoModalOpen(true) },
             { key: 'voice', label: 'Interne Sprachnotiz', onPress: () => setVoiceModalOpen(true) },
             { key: 'doc', label: 'Dokument hinzufügen', onPress: () => setPhotoModalOpen(true) },
@@ -1840,6 +1846,19 @@ export function EmployeePortalVisitExecutionScreen() {
         onAppendText={appendDocumentationNote}
         onAudioUploaded={(storagePath) => {
           setPhotoReferences((prev) => [...prev, storagePath]);
+        }}
+      />
+
+      <PortalNewChatModal
+        visible={messageModalOpen}
+        audience="employee"
+        variant="glass"
+        initialSubject={`Einsatz: ${visit.clientName}`}
+        initialMessage={`Rückfrage zum Einsatz ${visit.assignmentId}:\n`}
+        onClose={() => setMessageModalOpen(false)}
+        onCreated={(threadId) => {
+          setMessageModalOpen(false);
+          router.push(`/portal/employee/messages/${threadId}` as never);
         }}
       />
 

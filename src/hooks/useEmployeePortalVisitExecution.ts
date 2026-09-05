@@ -892,6 +892,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     executionContext,
     syncAfterWorkflow,
   );
+  const updateTaskDraft = taskDrafts.updateTask;
+  const flushTaskDrafts = taskDrafts.flush;
 
   const grantConsent = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
     if (!tenantId || !assignmentId || !employeeId) {
@@ -1177,10 +1179,10 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
   const handleSaveTask = useCallback(
     (taskId: string, status: ExtendedAssignmentTaskStatus, note?: string) => {
-      taskDrafts.updateTask(taskId, status, note);
+      updateTaskDraft(taskId, status, note);
       return Promise.resolve({ ok: true as const });
     },
-    [taskDrafts],
+    [updateTaskDraft],
   );
 
   const handleSaveDocumentation = useCallback(
@@ -1200,21 +1202,31 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   );
 
   const handleFinalize = useCallback(
-    () => runWorkflow((ctx) => finalizeVisit(ctx), {
-      recoveryAction: 'finalize',
-      timeoutLabel: 'finalizeVisit',
-      timeoutMs: WORKFLOW_FINALIZE_TIMEOUT_MS,
-    }),
-    [runWorkflow],
+    () => {
+      // Tasks are optional. Persist edits opportunistically, but never hold up
+      // documentation/signature completion when the network is unavailable.
+      void flushTaskDrafts();
+      return runWorkflow((ctx) => finalizeVisit(ctx), {
+        recoveryAction: 'finalize',
+        timeoutLabel: 'finalizeVisit',
+        timeoutMs: WORKFLOW_FINALIZE_TIMEOUT_MS,
+      });
+    },
+    [flushTaskDrafts, runWorkflow],
   );
 
   const handleFinalizeDeferred = useCallback(
-    (approvalReason: string) => runWorkflow((ctx) => finalizeVisitWithDeferredClientSignature(ctx, null, approvalReason), {
-      recoveryAction: 'finalize_deferred',
-      timeoutLabel: 'finalizeVisitDeferred',
-      timeoutMs: WORKFLOW_FINALIZE_TIMEOUT_MS,
-    }),
-    [runWorkflow],
+    (approvalReason: string) => {
+      // Sending the signature request to the client portal is a valid close
+      // path. Optional task edits continue saving independently.
+      void flushTaskDrafts();
+      return runWorkflow((ctx) => finalizeVisitWithDeferredClientSignature(ctx, null, approvalReason), {
+        recoveryAction: 'finalize_deferred',
+        timeoutLabel: 'finalizeVisitDeferred',
+        timeoutMs: WORKFLOW_FINALIZE_TIMEOUT_MS,
+      });
+    },
+    [flushTaskDrafts, runWorkflow],
   );
 
   const handleNoShow = useCallback(

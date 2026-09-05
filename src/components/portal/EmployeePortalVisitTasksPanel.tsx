@@ -157,10 +157,7 @@ export function EmployeePortalVisitTasksPanel({
       onPress={() => !disabled && setStatusPicker({ taskId: task.id, status: task.status })}
       accessibilityRole="button"
     >
-      <Text style={styles.taskTitle}>
-        {task.required ? '★ ' : ''}
-        {task.title}
-      </Text>
+      <Text style={styles.taskTitle}>{task.title}</Text>
       <Text style={styles.taskStatus}>{visitTaskStatusLabel(task.status)}</Text>
       {task.completionNote ? <Text style={styles.taskNote}>{task.completionNote}</Text> : null}
     </Pressable>

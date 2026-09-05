@@ -857,13 +857,6 @@ export async function completeEmployeePortalAssignment(
     return { ok: false, error: 'Pflichtdokumentation fehlt.' };
   }
 
-  const openRequiredTasks = record.tasks.filter(
-    (t) => t.required && t.status !== 'done' && t.status !== 'requires_follow_up',
-  );
-  if (openRequiredTasks.length > 0) {
-    return { ok: false, error: 'Pflichtaufgaben sind noch offen.' };
-  }
-
   const sigOk =
     !record.requiresSignature ||
     hasRequiredSignature(tenantId, assignmentId) ||

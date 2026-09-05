@@ -2,6 +2,7 @@
  * ASSIST.WORKFLOW.3 — Optimistic task drafts with debounced batch save.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
 import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
 import {
@@ -20,6 +21,30 @@ type DraftEntry = {
 
 type DraftMap = Record<string, DraftEntry>;
 
+function taskDraftStorageKey(ctx: AssistExecutionContext): string {
+  return `employee-execution-task-drafts:${ctx.tenantId}:${ctx.employeeId}:${ctx.assignmentId}`;
+}
+
+function parseDrafts(raw: string | null): DraftMap {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as DraftMap;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        ([taskId, draft]) =>
+          Boolean(taskId) &&
+          Boolean(draft) &&
+          typeof draft === 'object' &&
+          typeof draft.status === 'string' &&
+          Number.isFinite(draft.revision),
+      ),
+    );
+  } catch {
+    return {};
+  }
+}
+
 export function useTaskResultDrafts(
   serverTasks: EmployeePortalTaskItem[],
   executionContext: AssistExecutionContext | null,
@@ -33,17 +58,29 @@ export function useTaskResultDrafts(
   const revisionRef = useRef(0);
   const flushingRef = useRef(false);
   const flushAgainRef = useRef(false);
-  const flushRef = useRef<() => Promise<void>>(async () => {});
+  const flushRef = useRef<() => Promise<boolean>>(async () => true);
+  const storageKey = executionContext ? taskDraftStorageKey(executionContext) : null;
+
+  const persistPending = useCallback(async (pending: DraftMap) => {
+    if (!storageKey) return;
+    try {
+      if (Object.keys(pending).length === 0) await AsyncStorage.removeItem(storageKey);
+      else await AsyncStorage.setItem(storageKey, JSON.stringify(pending));
+    } catch {
+      /* the in-memory draft remains available until the next retry */
+    }
+  }, [storageKey]);
 
   const flush = useCallback(async () => {
     if (flushingRef.current) {
       flushAgainRef.current = true;
-      return;
+      return false;
     }
 
     const ctx = executionContext;
     const pending = { ...pendingRef.current };
-    if (!ctx || Object.keys(pending).length === 0) return;
+    if (Object.keys(pending).length === 0) return true;
+    if (!ctx) return false;
 
     const updates: TaskResultBatchItem[] = Object.entries(pending).map(([taskId, d]) => ({
       taskId,
@@ -58,6 +95,8 @@ export function useTaskResultDrafts(
 
       if (!result.ok) {
         setSaveError(result.error ?? 'Aufgaben konnten nicht gespeichert werden.');
+        await persistPending(pendingRef.current);
+        return false;
       } else {
         for (const [taskId, savedDraft] of Object.entries(pending)) {
           if (pendingRef.current[taskId]?.revision === savedDraft.revision) {
@@ -74,10 +113,14 @@ export function useTaskResultDrafts(
           return next;
         });
         setSaveError(null);
+        await persistPending(pendingRef.current);
         onContextSynced(result.data);
+        return Object.keys(pendingRef.current).length === 0;
       }
     } catch {
       setSaveError('Aufgaben konnten nicht gespeichert werden. Die Auswahl bleibt erhalten.');
+      await persistPending(pendingRef.current);
+      return false;
     } finally {
       flushingRef.current = false;
       setSaving(false);
@@ -91,7 +134,7 @@ export function useTaskResultDrafts(
         }, DEBOUNCE_MS);
       }
     }
-  }, [executionContext, onContextSynced]);
+  }, [executionContext, onContextSynced, persistPending]);
 
   useEffect(() => {
     flushRef.current = flush;
@@ -104,6 +147,28 @@ export function useTaskResultDrafts(
       void flushRef.current();
     }, DEBOUNCE_MS);
   }, []);
+
+  useEffect(() => {
+    if (!storageKey) return;
+    let cancelled = false;
+    void AsyncStorage.getItem(storageKey).then((raw) => {
+      if (cancelled) return;
+      const restored = parseDrafts(raw);
+      if (Object.keys(restored).length === 0) return;
+      const merged = { ...pendingRef.current };
+      for (const [taskId, entry] of Object.entries(restored)) {
+        if (!merged[taskId] || entry.revision > merged[taskId].revision) {
+          merged[taskId] = entry;
+        }
+      }
+      pendingRef.current = merged;
+      setDrafts((current) => ({ ...current, ...merged }));
+      scheduleFlush();
+    }).catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [storageKey, scheduleFlush]);
 
   useEffect(() => {
     return () => {
@@ -120,10 +185,11 @@ export function useTaskResultDrafts(
       };
       pendingRef.current[taskId] = entry;
       setDrafts((prev) => ({ ...prev, [taskId]: entry }));
+      void persistPending(pendingRef.current);
       scheduleFlush();
       return { ok: true as const };
     },
-    [scheduleFlush],
+    [persistPending, scheduleFlush],
   );
 
   const optimisticTasks = useMemo(() => {
@@ -144,5 +210,6 @@ export function useTaskResultDrafts(
     saveError,
     updateTask,
     flush,
+    hasPending: Object.keys(drafts).length > 0,
   };
 }

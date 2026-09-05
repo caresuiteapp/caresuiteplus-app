@@ -86,4 +86,34 @@ describe('assignment workflow regression gate', () => {
     expect(ui).toContain('showSignature');
     expect(ui).toContain('showFinalize');
   });
+
+  it('routes the execution message action through the authenticated portal messenger', () => {
+    const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
+    const modal = readSrc('src/components/portal/PortalNewChatModal.tsx');
+    expect(screen).toContain("label: 'Interne Nachricht'");
+    expect(screen).toContain('setMessageModalOpen(true)');
+    expect(screen).toContain('<PortalNewChatModal');
+    expect(screen).toContain('initialSubject={`Einsatz: ${visit.clientName}`}');
+    expect(screen).toContain('router.push(`/portal/employee/messages/${threadId}` as never)');
+    expect(modal).toContain("ensurePortalWriteSession(portalSession, 'messages')");
+    expect(modal).toContain('createPortalOfficeThread');
+  });
+
+  it('persists optional task drafts on Android without blocking either finalization path', () => {
+    const drafts = readSrc('src/hooks/useTaskResultDrafts.ts');
+    const execution = readSrc('src/hooks/useEmployeePortalVisitExecution.ts');
+    const finalize = readSrc('src/features/assistWorkflow/finalizeVisit.ts');
+    const deferred = readSrc('src/features/assistWorkflow/finalizeVisitWithDeferredClientSignature.ts');
+    const legacyCompletion = readSrc('src/lib/portal/employeePortalExecutionService.ts');
+    const tasksPanel = readSrc('src/components/portal/EmployeePortalVisitTasksPanel.tsx');
+    expect(drafts).toContain("employee-execution-task-drafts:${ctx.tenantId}");
+    expect(drafts).toContain('AsyncStorage.setItem');
+    expect(drafts).toContain('AsyncStorage.getItem');
+    expect(execution.match(/void flushTaskDrafts\(\)/g)).toHaveLength(2);
+    expect(execution).not.toContain("errorCode: 'TASK_RESULTS_PENDING'");
+    expect(finalize).toContain('isRequired: false');
+    expect(deferred).toContain('isRequired: false');
+    expect(legacyCompletion).not.toContain("error: 'Pflichtaufgaben sind noch offen.'");
+    expect(tasksPanel).not.toContain("task.required ? '★ '");
+  });
 });

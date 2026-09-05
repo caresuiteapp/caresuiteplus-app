@@ -32,6 +32,8 @@ type PortalNewChatModalProps = {
   variant?: 'default' | 'glass';
   onClose: () => void;
   onCreated: (threadId: string) => void;
+  initialSubject?: string;
+  initialMessage?: string;
 };
 
 export function PortalNewChatModal({
@@ -40,6 +42,8 @@ export function PortalNewChatModal({
   variant = 'default',
   onClose,
   onCreated,
+  initialSubject = '',
+  initialMessage: initialMessageTemplate = '',
 }: PortalNewChatModalProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
@@ -116,12 +120,12 @@ export function PortalNewChatModal({
       setCategoryId(savedDraft.categoryId);
       setError(null);
     } else {
-      setSubject('');
-      setInitialMessage('');
+      setSubject(initialSubject);
+      setInitialMessage(initialMessageTemplate);
       setCategoryId(null);
       setError(null);
     }
-  }, [visible, tenantId, audience, draftActorId]);
+  }, [visible, tenantId, audience, draftActorId, initialSubject, initialMessageTemplate]);
 
   useEffect(() => {
     if (!visible || !tenantId) return;
