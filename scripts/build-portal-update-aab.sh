@@ -1,24 +1,34 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-trap 'echo "AAB-Schritt angehalten. Die Meldung darüber enthält die Ursache. Git Bash bleibt geöffnet." >&2' ERR
-git diff --quiet && git diff --cached --quiet || {
-  echo 'Bitte Änderungen zuerst sichern/committen; der Build soll einem eindeutigen Commit entsprechen.' >&2
-  exit 1
-}
-if test -n "$(git ls-files --others --exclude-standard)"; then
-  echo 'Nicht versionierte Dateien vorhanden. Vor dem Build prüfen und sichern oder außerhalb des Projektordners ablegen.' >&2
-  git ls-files --others --exclude-standard
+repo='caresuiteapp/caresuiteplus-app'
+workflow='android-aab.yml'
+url="https://github.com/$repo/actions/workflows/$workflow"
+
+if ! command -v gh >/dev/null 2>&1; then
+  echo "Den AAB ab jetzt auf GitHub starten: $url"
+  echo 'Dort Run workflow anklicken und den aktuellen veröffentlichten Branch auswählen.'
+  echo 'Einrichtung und Download: GITHUB-ACTIONS.md. Es wurde noch kein Build gestartet.'
   exit 1
 fi
-git merge-base --is-ancestor 5dbcecbb55ce43812867db6d73b9d7089b6af364 HEAD
-echo 'Portal-Update: lokale Prüfung'
-npm run typecheck
-npm run audit:portal-update
-echo 'Android-Paket inklusive aller sechs lokalen Intro-Videos (Version 1.3) prüfen.'
-npm run portal-only:export
-npm run portal-only:export:audit
-echo 'Produktiver Android-AAB; keine Einreichung bei Google Play.'
-git --no-pager log -1 --format='%h %s'
-npx --yes eas-cli@23.2.0 build --platform android --profile portal-only-aab --non-interactive --no-wait
-echo 'Der Auftrag läuft auf EAS weiter. Die oben angezeigte Build-ID zum Prüfen/Herunterladen verwenden.'
+gh auth status --hostname github.com
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo 'Bitte lokale Änderungen zuerst prüfen und committen. GitHub baut nur veröffentlichte Commits.' >&2
+  exit 1
+fi
+branch="$(git symbolic-ref --quiet --short HEAD)" || {
+  echo 'Bitte zuerst den zu bauenden Branch auschecken.' >&2
+  exit 1
+}
+local_sha="$(git rev-parse HEAD)"
+remote_sha="$(gh api "repos/$repo/git/ref/heads/$branch" --jq '.object.sha')" || {
+  echo "Branch fehlt auf GitHub. Zuerst diesen geprüften Branch nach $repo pushen." >&2
+  exit 1
+}
+if [[ "$local_sha" != "$remote_sha" ]]; then
+  echo 'Lokaler Commit und GitHub-Branch unterscheiden sich. Bitte zuerst sicher synchronisieren.' >&2
+  exit 1
+fi
+gh workflow run "$workflow" --repo "$repo" --ref "$branch"
+echo "GitHub-Build angefordert für $branch ($local_sha)."
+echo "Fortschritt und AAB-Download: $url"

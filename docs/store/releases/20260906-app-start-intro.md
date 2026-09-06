@@ -66,9 +66,10 @@ Update. Der Installer kann eine bereits installierte ältere Intro-Fassung
 auf demselben Branch sicher vorwärts aktualisieren. Ungesicherte Änderungen
 oder abweichende Commits werden nicht überschrieben.
 
-Ein neuer AAB ist erforderlich. Das Intro benötigt keine Servermigration;
+Ein neuer AAB ist erforderlich. Der aktuelle Buildweg ist in
+`GITHUB-ACTIONS.md` beschrieben. Das Intro benötigt keine Servermigration;
 die Push-Einrichtung des vorherigen Portal-Updates gilt weiterhin, sofern sie
-noch nicht durchgeführt wurde. Die Build-Anleitung steht in ANLEITUNG.md.
+noch nicht durchgeführt wurde.
 
 Auf dem Android-Gerät die App vollständig beenden und zweimal neu öffnen:
 jeweils das ganze achtsekündige Intro mit dem neuen Ton sehen und hören.

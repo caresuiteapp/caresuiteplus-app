@@ -7,6 +7,10 @@ web-build/
 expo-env.d.ts
 *.orig.*
 *.jks
+*.keystore
+credentials.json
+__pycache__/
+*.pyc
 *.p8
 *.p12
 *.key

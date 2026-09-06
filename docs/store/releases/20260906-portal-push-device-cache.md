@@ -91,21 +91,16 @@ Für eine Pause des automatischen Versands `scripts/sql/pause_portal_push_dispat
 cd "$HOME/CareSuite-Expo57" && bash scripts/build-portal-update-aab.sh
 ```
 
-Das Skript prüft den sauberen Commit, TypeScript, die gezielte Portal-/Intro-Prüfung und den Android-Export einschließlich aller sechs lokalen Videos und startet ausschließlich `portal-only-aab` mit EAS CLI 23.2.0. Die App-Version bleibt 0.3.6; EAS erhöht den entfernten Android-`versionCode`. Die tatsächliche neue Nummer steht im Buildbericht.
+Der aktuelle Ablauf steht in `GITHUB-ACTIONS.md`. Das Skript startet nach der
+Einrichtung den GitHub-Workflow für den veröffentlichten aktuellen Branch.
+TypeScript, Portal-/Intro-Prüfungen und Android-Export laufen auf GitHub.
+Anschließend erzeugt EAS CLI mit `--local` dort den AAB und verwendet die
+bestehende Signierung. Expo erhöht weiterhin den entfernten Android-`versionCode`.
 
-Der Build läuft bei EAS weiter, auch wenn Git Bash geschlossen wird. Mit der angezeigten Build-ID prüfen:
-
-```bash
-npx --yes eas-cli@23.2.0 build:view BUILD-ID
-```
-
-Nach `finished` herunterladen:
-
-```bash
-bash scripts/download-portal-update-aab.sh BUILD-ID
-```
-
-Das Downloadskript prüft Profil, Android-Plattform, Status und Commit und schreibt den fertigen AAB nach Downloads. Bei `IN_PROGRESS` später denselben Downloadbefehl wiederholen; keinen zweiten Build starten. Der Download veröffentlicht nichts. Den AAB anschließend selbst in Google Play zum gewünschten Test bereitstellen.
+Der Auftrag läuft auf GitHub weiter, auch wenn Git Bash geschlossen wird.
+Fortschritt und fertigen AAB unter **Actions → CareSuite Android AAB** öffnen.
+Die ZIP unter **Artifacts** enthält den AAB, seine Prüfsumme und die Builddaten;
+sie ist sieben Tage verfügbar. Der Workflow reicht nichts bei Google Play ein.
 
 ## 4. Auf dem Google-Play-Gerät prüfen
 

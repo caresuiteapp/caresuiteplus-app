@@ -1,0 +1,109 @@
+name: CareSuite Android AAB
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: caresuite-android-production
+  cancel-in-progress: false
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    env:
+      CI: 'true'
+      APP_ENV: production
+      EXPO_PUBLIC_DEMO_MODE: 'false'
+      EXPO_PUBLIC_APP_EDITION: portal-only
+      EXPO_PUBLIC_FOLDER: public-portal
+      EAS_BUILD_GIT_COMMIT_HASH: ${{ github.sha }}
+      CARESUITE_AAB_DIR: ${{ runner.temp }}/caresuite-aab
+    steps:
+      - name: Expo-Zugang vorhanden
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [[ -z "$EXPO_TOKEN" ]]; then
+            echo '::error::Repository-Secret EXPO_TOKEN fehlt. Siehe GITHUB-ACTIONS.md.'
+            exit 1
+          fi
+
+      - name: Quellcode laden
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Node einrichten
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20.19.4'
+          cache: npm
+
+      - name: Gesicherte Paketversionen installieren
+        run: |
+          npm ci
+          npm install --global eas-cli@23.2.0
+
+      - name: Expo-Zugang und produktive Serverkonfiguration prüfen
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas whoami
+          eas env:exec production --non-interactive 'node scripts/verify-portal-production-env.mjs'
+
+      - name: Java einrichten
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android-Werkzeuge einrichten
+        run: |
+          sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.1.12297006'
+          {
+            echo "ANDROID_NDK=$ANDROID_HOME/ndk/27.1.12297006"
+            echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006"
+            echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.1.12297006"
+          } >> "$GITHUB_ENV"
+
+      - name: Portal prüfen und AAB auf GitHub bauen
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas env:exec production --non-interactive 'bash scripts/build-portal-aab-on-runner.sh'
+
+      - name: Signierte AAB und enthaltenes Intro prüfen
+        run: python3 scripts/verify-github-aab.py "$CARESUITE_AAB_DIR/CareSuite-Portal.aab"
+
+      - name: AAB zum Download bereitstellen
+        id: artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: CareSuite-Portal-AAB-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.CARESUITE_AAB_DIR }}/CareSuite-Portal.aab
+            ${{ env.CARESUITE_AAB_DIR }}/SHA256SUMS.txt
+            ${{ env.CARESUITE_AAB_DIR }}/BUILD-INFO.json
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Download anzeigen
+        env:
+          ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
+        run: |
+          {
+            echo '## CareSuite AAB fertig'
+            echo
+            echo "[AAB herunterladen]($ARTIFACT_URL) — sieben Tage verfügbar."
+            echo
+            echo "Quellcode: $GITHUB_SHA"
+            echo
+            echo 'Gebaut auf GitHub mit vorhandener Expo-Signierung. Keine automatische Google-Play-Einreichung.'
+          } >> "$GITHUB_STEP_SUMMARY"
