@@ -1,0 +1,58 @@
+{
+  "version": "1.3",
+  "durationSeconds": 8,
+  "sourceHtmlSha256": "dbedc4fdc5178d36c56c9cb8a67d2e4c0ad5b1a9e86a69540fa8ba43bdf58ad6",
+  "sceneSha256": "899f02a7ffdb45e71210d774aa79098d9a826c6deadbdebb6bfaf623b9707a7a",
+  "sourceAudioSha256": "e7ef3ce1c160edd798370b129cb6953ea6616b4d21e957a857c06c185f87cfc5",
+  "sourceAudioChannels": 2,
+  "formats": [
+    {
+      "id": "phone-portrait",
+      "file": "caresuite-start-portrait.mp4",
+      "width": 1080,
+      "height": 1920,
+      "sha256": "5ae93754a6f4488072afdd93e5f968b0539a50cdb1fb9184d261dace375bb9e2",
+      "bytes": 1108450
+    },
+    {
+      "id": "phone-landscape",
+      "file": "caresuite-start-landscape.mp4",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "7cdbcb0ec05416754dd3d27b48fcc0b503025b4550185b41e9535ac55c170513",
+      "bytes": 825183
+    },
+    {
+      "id": "tablet43-portrait",
+      "file": "caresuite-start-tablet43-portrait.mp4",
+      "width": 1536,
+      "height": 2048,
+      "sha256": "58c986fdfb8a146a483757b620c533df49409d96ca78125c74a7b0a64da745e5",
+      "bytes": 1589777
+    },
+    {
+      "id": "tablet43-landscape",
+      "file": "caresuite-start-tablet43-landscape.mp4",
+      "width": 2048,
+      "height": 1536,
+      "sha256": "989d5ed9f8a6178ce0aa0410a92d11959aa81e8bc1891b7f20260ec050cbb998",
+      "bytes": 1156447
+    },
+    {
+      "id": "tablet1610-portrait",
+      "file": "caresuite-start-tablet1610-portrait.mp4",
+      "width": 1200,
+      "height": 1920,
+      "sha256": "8272e7ffa381a27b016b86933dc7776f9722a7a9d94ae0b848710897aa8b94da",
+      "bytes": 1248939
+    },
+    {
+      "id": "tablet1610-landscape",
+      "file": "caresuite-start-tablet1610-landscape.mp4",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "a314ae46ec38fd91f4c0948a8266e7d0343b894e0dc9563fc4bc6a98cd7c5042",
+      "bytes": 901254
+    }
+  ]
+}

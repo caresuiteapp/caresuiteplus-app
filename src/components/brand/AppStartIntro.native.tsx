@@ -5,9 +5,11 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { AppStartIntroReadyContext, appStartIntroSession } from './appStartIntroSession';
 import { appStartIntroAssets } from './appStartIntroAssets';
+import { selectAppStartIntroFormat } from './selectAppStartIntroFormat';
 
 const BACKGROUND = '#040b19';
-const MAX_STARTUP_MS = 10_000;
+// Eight seconds of video plus up to four seconds for the local decoder to start.
+const MAX_STARTUP_MS = 12_000;
 const FADE_MS = 160;
 
 // Keep Android's native splash until our dark, full-screen intro view is laid out.
@@ -82,10 +84,8 @@ class IntroPlaybackBoundary extends Component<
 
 function IntroVideo({ onFinish }: { onFinish: (fade?: boolean) => void }) {
   const { width, height } = useWindowDimensions();
-  // Select once; rotation resizes the view without restarting the six-second clip.
-  const [source] = useState(() => width > height
-    ? appStartIntroAssets.landscape
-    : appStartIntroAssets.portrait);
+  // Select once; rotation resizes the view without restarting the eight-second clip.
+  const [source] = useState(() => appStartIntroAssets[selectAppStartIntroFormat(width, height)]);
   const player = useVideoPlayer(source, video => {
     video.loop = false;
     video.muted = false;

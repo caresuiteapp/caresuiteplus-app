@@ -84,16 +84,21 @@ if (portalRouteSources.length < 40 || reusedPortalSources.length < 40) {
   fail('portal route graph is incomplete');
 }
 
-// Verify actual packaged bytes, including both offline intro orientations.
+// Verify every v1.3 offline intro against the approved media manifest.
 const sha256 = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
-const introAssets = ['portrait', 'landscape'].map((orientation) => {
-  const source = resolve(`assets/brand/intro/caresuite-start-${orientation}.mp4`);
-  if (!existsSync(source)) fail(`intro source missing: ${orientation}`);
+const introManifest = JSON.parse(readFileSync(resolve('assets/brand/intro/manifest.json'), 'utf8'));
+if (introManifest.version !== '1.3' || introManifest.durationSeconds !== 8 || introManifest.formats.length !== 6) {
+  fail('expected the complete eight-second v1.3 intro with six formats');
+}
+const introAssets = introManifest.formats.map((format) => {
+  const source = resolve('assets/brand/intro', format.file);
+  if (!existsSync(source)) fail(`intro source missing: ${format.id}`);
   const bytes = statSync(source).size;
   const digest = sha256(source);
+  if (digest !== format.sha256) fail(`intro differs from approved v1.3 media: ${format.id}`);
   const packaged = runtimeFiles.find((file) => statSync(file).size === bytes && sha256(file) === digest);
-  if (!packaged) fail(`offline intro video not packaged intact: ${orientation}`);
-  return { orientation, bytes, sha256: digest, packaged: relative(exportRoot, packaged) };
+  if (!packaged) fail(`offline intro video not packaged intact: ${format.id}`);
+  return { format: format.id, bytes, sha256: digest, packaged: relative(exportRoot, packaged) };
 });
 if (!sources.some((source) => source.endsWith('/AppStartIntro.native.tsx'))) {
   fail('native startup intro is missing from the Android route graph');

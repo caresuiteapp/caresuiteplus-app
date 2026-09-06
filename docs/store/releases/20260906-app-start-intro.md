@@ -1,63 +1,80 @@
-# Startintro mit Ton – 6. September 2026
+# Startintro mit Ton — Fassung 1.3, acht Sekunden
 
-Ergänzung zum Portal-Update auf Stand `144cd259`. Beide Portalgruppen verwenden
-denselben Startablauf. Das gelieferte CareSuite-Health-OS-Intro ist unverändert
-als lokales Video mit Stereo-Ton eingebaut.
+Aktualisierung vom 6. September 2026. Das zuvor eingebaute Intro 1.2 wurde
+vollständig gegen die richtige Fassung aus der neuen HTML-Vorschau ersetzt.
+Die gleichzeitig hochgeladene ZIP enthält noch die alte Fassung; die neue
+HTML enthält dagegen die vollständige Szene, den neuen Ton und sechs Formate.
 
 ## Verhalten
 
-- Bei jedem vollständigen App-Neustart einmal sechs Sekunden Wiedergabe.
+- Bei jedem vollständigen App-Neustart einmal acht Sekunden Wiedergabe.
   Kein dauerhaftes „bereits gesehen“ und keine Bindung an ein Benutzerkonto.
-- Hoch- oder Querformat wird beim Start gewählt. Das Bild wird vollständig
-  eingepasst; Drehen des Geräts startet den Clip nicht neu.
-- Die Sitzung kann währenddessen laden. Biometrie, Begrüßung und Push-Dialoge
-  warten auf das Ende des Intros. Geschützte Portalansichten bleiben hinter
-  der bestehenden Biometriesperre.
-- Ton ist eingeschaltet, die Medienlautstärke des Geräts bleibt maßgeblich.
+- Neuer Stereo-Raumklang und ein Lichtbogen vor und hinter dem Originalroboter,
+  entsprechend der gelieferten HTML-Vorschau 1.3.
+- Smartphone, Tablet 4:3 und Tablet 16:10, jeweils hoch und quer. Die Auswahl
+  verwendet das tatsächliche Fensterformat und passt so auch zu einem
+  geteilten Bildschirm oder Foldable. Das vollständige Bild bleibt sichtbar.
+- Drehen während der Wiedergabe startet das Video nicht neu.
+- Die Sitzung kann parallel laden. Biometrie, Begrüßung und Push-Dialoge
+  warten auf das Ende des Intros. Die bestehende Biometriesperre bleibt aktiv.
+- Ton ist eingeschaltet; die Medienlautstärke des Geräts bleibt maßgeblich.
   Nach dem Clip wird der Player pausiert und beim Entfernen freigegeben.
-- Beim Wechsel in den Hintergrund endet die Wiedergabe. Beim gewöhnlichen
-  Zurückkehren oder Navigieren innerhalb der laufenden App erfolgt kein
-  erneutes Intro. Ein neuer App-Prozess spielt es wieder ab.
-- Bei einem Playerfehler wird die App sofort freigegeben; bei ausbleibenden
-  Playerereignissen spätestens nach zehn Sekunden. Ein Fehler darf die
-  Anmeldung nicht dauerhaft blockieren.
+- Beim Wechsel in den Hintergrund endet die Wiedergabe. Normales Zurückkehren
+  und interne Navigation spielen das Intro nicht erneut ab. Ein neuer
+  App-Prozess spielt es wieder ab.
+- Playerfehler geben die App sofort frei; ausbleibende Playerereignisse
+  spätestens nach zwölf Sekunden. Darin sind acht Sekunden Video und vier
+  Sekunden Reserve für den lokalen Decoder enthalten.
 - Die Website hat keine vorgeschaltete Video-Wartezeit.
 
 ## Technische Einbindung
 
-`expo-video ~57.0.3` passend zum vorhandenen Expo SDK 57, eingebunden in beide
-App-Konfigurationen. Hintergrundwiedergabe und Bild-in-Bild sind deaktiviert.
-`AppStartIntro.native.tsx` umschließt beide nativen Root-Layouts; ein gemeinsamer
-React-Kontext steuert den Beginn der nachgelagerten Dialoge. Nur die laufende
-JavaScript-Sitzung merkt sich das Ende. Der native Splash-Hintergrund passt
-zum Video.
+`expo-video ~57.0.3` für das vorhandene Expo SDK 57 bleibt eingebunden.
+Hintergrundwiedergabe und Bild-in-Bild sind deaktiviert. Beide Root-Layouts
+verwenden den gemeinsamen nativen Startablauf. `selectAppStartIntroFormat`
+wählt die passende der sechs statisch eingebundenen Videodateien. Die Daten
+sind direkt im App-Paket enthalten; es wird kein Startvideo heruntergeladen.
 
-Die zehn Interaktionstests prüfen Start/Ende, Tonkonfiguration, verzögerten
-Decoderstart, Fehler, Zeitlimit, Hintergrundwechsel, Wiederstart, Ausrichtung,
-Android-Zurücktaste und Web-Einstieg; enthalten ist ein Test mit der echten
-Biometrie-Gate-Komponente. Sie sind Teil von `npm run audit:portal-update`.
-Das Android-Exportaudit prüft zusätzlich, dass beide Originalvideos tatsächlich
-unverändert im Export liegen und der native Startablauf eingebunden ist.
+Die ursprüngliche HTML-Szene und ihr WAV-Ton wurden unverändert übernommen
+und für die sechs Auflösungen nach H.264/AAC exportiert: 60 fps, acht Sekunden,
+48 kHz und Stereo. Herkunft und Prüfsummen stehen in
+`assets/brand/intro/README.md` und `manifest.json`. Die aktive App verwendet
+keine Videodatei der alten Sechs-Sekunden-Fassung mehr.
 
-## Lokale Prüfergebnisse
+## Prüfung
 
-6.530 Tests bestanden, keine fehlgeschlagen; drei Tests mit erforderlichem
-Live-Zugang ausgelassen. TypeScript und ESLint bestanden. Zehn zusätzliche
-PostgreSQL-Push-Prüfungen bestanden. Android/Hermes-Export und Exportaudit
-bestanden: 24,5 MB Laufzeitdateien einschließlich beider Originalvideos.
+- 103 gezielte Portal-/Intro-Prüfungen bestanden, darunter 16 Introtests.
+  Sie prüfen auch alle sechs Formate, die Verzögerung vor Decoderbereitschaft,
+  den vollständigen achtsekündigen Ablauf und den Übergang zur Biometrie.
+- TypeScript und ESLint für die geänderten Codebereiche bestanden.
+- Alle sechs Videos vollständig mit FFmpeg decodiert; jeweils acht Sekunden,
+  korrekte Auflösung und Stereo-Ton. Identische neue AAC-Tonspur in allen sechs.
+- Endbilder aller Formate und mehrere Zeitpunkte der räumlichen Umkreisung
+  visuell geprüft. Die neue HTML-Quelle ist im Gesamtpaket enthalten.
+- Android/Hermes-Export und Prüfung aller sechs verpackten Videodateien
+  bestanden: 29,5 MB Laufzeitdateien. Keine alte Sechs-Sekunden-MP4 enthalten.
+  Einzelheiten stehen in `PRUEFERGEBNIS.json` im Gesamtpaket.
 
-## Auslieferung und Gerätetest
+Der vollständige frühere Stand 659cc334 wurde mit 6.530 bestandenen Tests
+und drei ausgelassenen Live-Tests geprüft. Für diesen Medienaustausch wurden
+gezielt die betroffenen Portal-/Intro-Prüfungen erneut ausgeführt.
 
-Ein neuer AAB ist erforderlich, weil eine native Video-Abhängigkeit hinzukommt.
-Das bestehende Buildskript prüft nun auch den Android-Export und beide Videos.
-Das Intro benötigt keine Servermigration. Die Push-Einrichtung des vorherigen
-Portal-Updates gilt weiterhin, sofern sie noch nicht durchgeführt wurde.
+## Übernahme und Gerätetest
 
-Auf dem Android-Gerät prüfen: App vollständig beenden und zweimal neu öffnen;
-jeweils das gesamte Intro mit Ton sehen/hören. Anschließend im Flugmodus
-neustarten und Hoch-/Querformat prüfen. Biometrie muss erst danach erscheinen.
-Während des Videos zur Startseite wechseln: Ton muss enden; normales
-Zurückkehren darf den Clip nicht erneut starten. Einen Push bei geschlossener
-App öffnen: nach Intro und gegebenenfalls Entsperren muss das richtige Ziel
-erscheinen. Der lokale Test und Export ersetzen diese native Geräteprüfung
-nicht; hier wurde kein neuer AAB auf einem physischen Gerät ausgeführt.
+Das aktualisierte Gesamtpaket enthält auch das komplette vorherige Portal-
+Update. Der Installer kann eine bereits installierte ältere Intro-Fassung
+auf demselben Branch sicher vorwärts aktualisieren. Ungesicherte Änderungen
+oder abweichende Commits werden nicht überschrieben.
+
+Ein neuer AAB ist erforderlich. Das Intro benötigt keine Servermigration;
+die Push-Einrichtung des vorherigen Portal-Updates gilt weiterhin, sofern sie
+noch nicht durchgeführt wurde. Die Build-Anleitung steht in ANLEITUNG.md.
+
+Auf dem Android-Gerät die App vollständig beenden und zweimal neu öffnen:
+jeweils das ganze achtsekündige Intro mit dem neuen Ton sehen und hören.
+Auch offline, auf Smartphone/Tablet und in beiden Ausrichtungen prüfen.
+Biometrie muss erst nach dem Intro erscheinen. Während der Wiedergabe zur
+Startseite wechseln: Ton muss enden; normales Zurückkehren darf nicht erneut
+starten. Einen Push bei geschlossener App öffnen: nach Intro und Entsperren
+muss das richtige Ziel erscheinen. Hier wurde noch kein neuer AAB gebaut
+oder auf einem physischen Gerät ausgeführt.

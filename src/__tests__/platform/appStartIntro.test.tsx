@@ -32,7 +32,11 @@ vi.mock('@/lib/auth/portalBiometricService', () => ({
   subscribePortalFacePreference: () => () => {},
 }));
 vi.mock('@/components/brand/appStartIntroAssets', () => ({
-  appStartIntroAssets: { portrait: 101, landscape: 102 },
+  appStartIntroAssets: {
+    'phone-portrait': 101, 'phone-landscape': 102,
+    'tablet43-portrait': 103, 'tablet43-landscape': 104,
+    'tablet1610-portrait': 105, 'tablet1610-landscape': 106,
+  },
 }));
 vi.mock('expo-splash-screen', () => ({
   preventAutoHideAsync: vi.fn().mockResolvedValue(true),
@@ -133,7 +137,7 @@ describe('Native app startup intro', () => {
     expect(model.player).toMatchObject({ muted: false, loop: false, volume: 1, staysActiveInBackground: false });
     expect(model.play).toHaveBeenCalledOnce();
     expect(model.hideSplash).toHaveBeenCalled();
-    await act(async () => vi.advanceTimersByTime(5900));
+    await act(async () => vi.advanceTimersByTime(7900));
     expect(host.querySelector('[data-testid="app-start-intro"]')).not.toBeNull();
     await act(async () => emit('playToEnd'));
     expect(host.textContent).toContain('Sitzung lädt parallel');
@@ -145,9 +149,12 @@ describe('Native app startup intro', () => {
   it('waits for a ready decoder and starts only once across repeated status events', async () => {
     model.status = 'loading'; await render();
     expect(model.play).not.toHaveBeenCalled();
+    await act(async () => vi.advanceTimersByTime(3500));
     model.status = 'readyToPlay';
     await act(async () => { emit('statusChange', { status: 'readyToPlay' }); emit('statusChange', { status: 'readyToPlay' }); });
     expect(model.play).toHaveBeenCalledOnce();
+    await act(async () => vi.advanceTimersByTime(7900));
+    expect(host.querySelector('[data-testid="app-start-intro"]')).not.toBeNull();
   });
   it('defers the real biometric gate until the intro ends, then unlocks the portal', async () => {
     await render(<AppStartIntro><PortalBiometricGate><span>Geschütztes Portal</span></PortalBiometricGate></AppStartIntro>);
@@ -169,7 +176,7 @@ describe('Native app startup intro', () => {
   });
   it('fails open when no ready or completion event ever arrives', async () => {
     model.status = 'loading'; await render();
-    await act(async () => vi.advanceTimersByTime(10_000));
+    await act(async () => vi.advanceTimersByTime(12_000));
     expect(host.textContent).toContain('Portal bereit');
     expect(model.play).not.toHaveBeenCalled();
   });
@@ -192,10 +199,22 @@ describe('Native app startup intro', () => {
   });
   it('selects landscape at launch and does not restart the clip on rotation', async () => {
     model.size = { width: 1024, height: 768 }; await render();
-    expect(model.sources).toEqual([102]);
+    expect(model.sources).toEqual([104]);
     model.size = { width: 768, height: 1024 }; await render();
-    expect(model.sources).toEqual([102]);
+    expect(model.sources).toEqual([104]);
     expect(model.play).toHaveBeenCalledOnce();
+  });
+  it.each([
+    ['phone portrait', 390, 844, 101],
+    ['phone landscape', 844, 390, 102],
+    ['tablet 4:3 portrait', 768, 1024, 103],
+    ['tablet 4:3 landscape', 1024, 768, 104],
+    ['tablet 16:10 portrait', 800, 1280, 105],
+    ['tablet 16:10 landscape', 1280, 800, 106],
+  ])('uses the matching local video for %s', async (_name, width, height, asset) => {
+    model.size = { width: Number(width), height: Number(height) };
+    await render();
+    expect(model.sources).toEqual([asset]);
   });
   it('consumes Android back presses during playback and removes its listeners afterwards', async () => {
     await render(); expect([...model.backListeners][0]()).toBe(true);
