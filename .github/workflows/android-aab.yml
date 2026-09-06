@@ -24,7 +24,7 @@ jobs:
       EXPO_PUBLIC_APP_EDITION: portal-only
       EXPO_PUBLIC_FOLDER: public-portal
       EAS_BUILD_GIT_COMMIT_HASH: ${{ github.sha }}
-      CARESUITE_AAB_DIR: ${{ runner.temp }}/caresuite-aab
+      CARESUITE_AAB_DIR: /tmp/caresuite-aab
     steps:
       - name: Expo-Zugang vorhanden
         env:
