@@ -23,6 +23,7 @@ export type PortalSessionRecord = {
 };
 
 let memorySession: PortalSessionRecord | null = null;
+let sessionGeneration = 0;
 
 export function getActivePortalSession(): PortalSessionRecord | null {
   if (!memorySession) return null;
@@ -55,7 +56,9 @@ export async function loadPortalSession(): Promise<PortalSessionRecord | null> {
     return getActivePortalSession();
   }
 
+  const generation = sessionGeneration;
   const raw = await sensitiveAuthStorage.getItem(STORAGE_KEY);
+  if (generation !== sessionGeneration) return getActivePortalSession();
   if (!raw) return null;
 
   try {
@@ -77,11 +80,13 @@ export async function loadPortalSession(): Promise<PortalSessionRecord | null> {
 }
 
 export async function savePortalSession(session: PortalSessionRecord): Promise<void> {
+  sessionGeneration++;
   memorySession = session;
   await sensitiveAuthStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 }
 
 export async function clearPortalSession(): Promise<void> {
+  sessionGeneration++;
   memorySession = null;
   await sensitiveAuthStorage.removeItem(STORAGE_KEY);
 }

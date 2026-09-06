@@ -1,6 +1,7 @@
+import { usePortalViewport } from '@/lib/portal/portalViewportContext';
 import { useClientSignatureAttention } from '@/components/portal/ClientSignatureAttentionProvider';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
@@ -36,6 +37,8 @@ export function PortalClientDocumentDetailScreen() {
   const { colors: themeColors } = useLegacyTheme();
   const { isPhone } = useDeviceClass();
   const { showBottomTabs } = usePlatformLayout();
+  const { footerInFlow } = usePortalViewport();
+  const signing = useRef(false);
   const { can, check, roleLabel } = usePermissions();
   const { tenantId, clientId, actorId } = usePortalActor();
   const canView = can('portal.client.documents.view');
@@ -60,17 +63,19 @@ export function PortalClientDocumentDetailScreen() {
 
   const scrollPadding = useMemo(
     () => ({
-      paddingBottom: showBottomTabs
+      paddingBottom: showBottomTabs && !footerInFlow
         ? PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm)
         : spacing.xxl,
     }),
-    [insets.bottom, showBottomTabs],
+    [insets.bottom, showBottomTabs, footerInFlow],
   );
   const handleSignConfirm = useCallback(
     async (dataUrl: string) => {
-      if (!tenantId || !clientId || !id) return;
+      if (!tenantId || !clientId || !id || signing.current) return;
+      signing.current = true;
       setSignLoading(true);
       setSignError(null);
+      try {
       const result = await saveClientPortalAssistProofSignature({
         tenantId,
         clientId,
@@ -79,7 +84,6 @@ export function PortalClientDocumentDetailScreen() {
         signerName: data?.clientName ?? 'Klient:in',
         signatureDataUrl: dataUrl,
       });
-      setSignLoading(false);
       if (!result.ok) {
         setSignError(
           toPortalUserFacingError(
@@ -94,6 +98,12 @@ export function PortalClientDocumentDetailScreen() {
         'Vielen Dank — Ihre Unterschrift wurde gespeichert und im Leistungsnachweis übernommen.',
       );
       await Promise.all([refresh(), refreshAttention()]);
+      } catch {
+        setSignError("Unterschrift konnte nicht gespeichert werden. Bitte prüfen Sie die Verbindung und versuchen Sie es erneut.");
+      } finally {
+        signing.current = false;
+        setSignLoading(false);
+      }
     },
     [tenantId, clientId, id, actorId, data?.clientName, refresh, refreshAttention],
   );

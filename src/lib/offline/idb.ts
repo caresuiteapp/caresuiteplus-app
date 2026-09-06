@@ -13,6 +13,19 @@ let dbPromise: Promise<IDBDatabase | null> | null = null;
 const NATIVE_INDEX_KEY = 'caresuite.offline.native-index.v1';
 const NATIVE_RECORD_PREFIX = 'caresuite.offline.record.v1';
 let nativeIndexWriteQueue = Promise.resolve();
+let cacheEpoch = 0;
+export function offlineCacheEpoch(): number { return cacheEpoch; }
+const nativeReads = new Map<string, Promise<string | null>>();
+const nativeWrites = new Map<string, Promise<boolean>>();
+const nativeHotCache = new Map<string, { raw: string; readAt: number }>();
+function rememberHotRecord(key: string, raw: string): void {
+  nativeHotCache.delete(key);
+  // Only read models: never cache mutation queues or unsaved drafts in this layer.
+  if (key.includes('.assignments.') && raw.length <= 256_000) {
+    nativeHotCache.set(key, { raw, readAt: Date.now() });
+    if (nativeHotCache.size > 32) nativeHotCache.delete(nativeHotCache.keys().next().value!);
+  }
+}
 
 function isNativeStorage(): boolean {
   return Platform.OS === 'android' || Platform.OS === 'ios';
@@ -45,7 +58,7 @@ async function readNativeIndex(): Promise<string[]> {
 }
 
 async function rememberNativeKey(storageKey: string): Promise<void> {
-  nativeIndexWriteQueue = nativeIndexWriteQueue.then(async () => {
+  nativeIndexWriteQueue = nativeIndexWriteQueue.catch(() => {}).then(async () => {
     const keys = await readNativeIndex();
     if (keys.includes(storageKey)) return;
     await sensitiveAuthStorage.setItem(NATIVE_INDEX_KEY, JSON.stringify([...keys, storageKey]));
@@ -58,14 +71,25 @@ async function putNativeRecord<T extends { key: string }>(
   record: T,
 ): Promise<boolean> {
   const storageKey = nativeRecordKey(storeName, record.key);
-  try {
-    await sensitiveAuthStorage.setItem(storageKey, JSON.stringify(record));
-    await rememberNativeKey(storageKey);
-    return true;
-  } catch (error) {
-    console.warn(`[CareSuite offline] native put(${storeName}) failed:`, mapOpenError(error));
-    return false;
-  }
+  const epoch = cacheEpoch;
+  const raw = JSON.stringify(record);
+  const previous = nativeWrites.get(storageKey);
+  const write = (previous ?? Promise.resolve(true)).catch(() => false).then(async () => {
+    if (epoch !== cacheEpoch) return false;
+    try {
+      await rememberNativeKey(storageKey);
+      if (epoch !== cacheEpoch) return false;
+      await sensitiveAuthStorage.setItem(storageKey, raw);
+      if (epoch === cacheEpoch) rememberHotRecord(storageKey, raw);
+      return epoch === cacheEpoch;
+    } catch (error) {
+      console.warn(`[CareSuite offline] native put(${storeName}) failed:`, mapOpenError(error));
+      return false;
+    }
+  });
+  nativeWrites.set(storageKey, write);
+  try { return await write; }
+  finally { if (nativeWrites.get(storageKey) === write) nativeWrites.delete(storageKey); }
 }
 
 async function getNativeRecord<T extends { key: string }>(
@@ -73,7 +97,25 @@ async function getNativeRecord<T extends { key: string }>(
   key: string,
 ): Promise<T | null> {
   try {
-    const raw = await sensitiveAuthStorage.getItem(nativeRecordKey(storeName, key));
+    const storageKey = nativeRecordKey(storeName, key);
+    const epoch = cacheEpoch;
+    const hot = nativeHotCache.get(storageKey);
+    let raw: string | null;
+    if (hot && Date.now() - hot.readAt < 30_000) raw = hot.raw;
+    else {
+      let reading = nativeReads.get(storageKey);
+      if (!reading) {
+        reading = sensitiveAuthStorage.getItem(storageKey);
+        nativeReads.set(storageKey, reading);
+      }
+      try { raw = await reading; }
+      finally { if (nativeReads.get(storageKey) === reading) nativeReads.delete(storageKey); }
+      if (epoch !== cacheEpoch) return null;
+      // A simultaneous write is authoritative over this older disk read.
+      const written = nativeHotCache.get(storageKey);
+      if (written && written !== hot) raw = written.raw;
+      else if (raw) rememberHotRecord(storageKey, raw);
+    }
     if (!raw) return null;
     const record = JSON.parse(raw) as T;
     return record?.key === key ? record : null;
@@ -93,7 +135,7 @@ function isIndexedDbSupported(): boolean {
 }
 
 function mapOpenError(error: unknown): string {
-  if (error instanceof DOMException) {
+  if (typeof DOMException !== 'undefined' && error instanceof DOMException) {
     if (error.name === 'QuotaExceededError') return 'quota_exceeded';
     if (error.name === 'SecurityError') return 'security_error';
     return error.name;
@@ -313,11 +355,15 @@ export async function getSyncMeta(key = 'default'): Promise<SyncMetaRecord | nul
 }
 
 export async function clearOfflineDb(): Promise<boolean> {
+  cacheEpoch += 1;
+  nativeHotCache.clear();
+  nativeReads.clear();
   resetOfflineDbCacheForTests();
 
   if (isNativeStorage()) {
     try {
-      await nativeIndexWriteQueue;
+      await Promise.allSettled([...nativeWrites.values()]);
+      await nativeIndexWriteQueue.catch(() => {});
       const keys = await readNativeIndex();
       await Promise.all(keys.map((key) => sensitiveAuthStorage.removeItem(key)));
       await sensitiveAuthStorage.removeItem(NATIVE_INDEX_KEY);

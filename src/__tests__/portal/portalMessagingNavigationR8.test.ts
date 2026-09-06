@@ -35,6 +35,7 @@ describe('Portal messaging and navigation R8', () => {
     expect(ids).toEqual([
       'home',
       'assignments',
+      'open-assignments',
       'clients',
       'calendar',
       'time',

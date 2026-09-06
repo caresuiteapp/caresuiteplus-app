@@ -46,8 +46,8 @@ describe('ClientPortalOverviewScreen adaptive engine wiring', () => {
 
   it('surfaces missing client link and timeout instead of infinite loading', () => {
     const hook = readSrc('src/hooks/usePortalContext.ts');
-    expect(hook).toContain('Kein Klient:innenprofil verknüpft');
-    expect(hook).toContain('withTimeout');
+    expect(hook).toContain('Kein Klientenprofil verknüpft');
+    expect(hook).toContain('useAsyncQuery');
     expect(hook).toContain('isResolvingClientLink');
     const overview = readSrc('src/components/portal/AdaptivePortalOverview.tsx');
     expect(overview).toContain('loading && !context');

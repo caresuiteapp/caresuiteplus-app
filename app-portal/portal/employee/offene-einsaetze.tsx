@@ -1,1 +1,1 @@
-export { EmployeeOpenAssignmentsScreen as default } from '@/screens/portal/EmployeeOpenAssignmentsScreen';
+export { default } from '../../../app/portal/employee/offene-einsaetze';

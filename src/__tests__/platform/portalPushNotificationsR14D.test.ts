@@ -22,12 +22,12 @@ describe('R14-D native portal push', () => {
     expect(service).toContain('Notifications.getExpoPushTokenAsync({ projectId: easProjectId })');
   });
 
-  it('makes permission mandatory while keeping protected content off the lock screen', () => {
+  it('offers permission without blocking work and keeps content off the lock screen', () => {
     const gate = read('src/components/portal/PortalPushRegistrationGate.tsx');
-    const sender = read('supabase/functions/office-push-send/index.ts');
-    expect(gate).toContain('Benachrichtigungen erforderlich');
+    const sender = read('supabase/functions/portal-push-dispatch/worker.ts');
+    expect(gate).toContain('Wichtige Hinweise erhalten');
     expect(gate).toContain('App-Einstellungen öffnen');
-    expect(sender).toContain('Öffnen Sie CareSuite, um die geschützte Nachricht anzuzeigen.');
+    expect(sender).toContain('Öffnen Sie CareSuite, um die Informationen in Ihrem Portal anzusehen.');
     expect(sender).not.toContain('body: broadcast.');
   });
 
@@ -39,7 +39,7 @@ describe('R14-D native portal push', () => {
     expect(gate).not.toContain('Push-Verbindung wird wiederhergestellt');
     expect(gate).not.toContain('retryBanner');
     expect(gate).toContain('void register(false)');
-    expect(gate).toContain('setTimeout(() => void register(false), 30_000)');
+    expect(gate).toContain('30_000 * 2 ** retries.current');
   });
 
   it('times out native permission and backend calls instead of blocking the app', () => {
@@ -76,12 +76,15 @@ describe('R14-D native portal push', () => {
     expect(service).toContain("}>('office-push-send', { broadcastId })");
   });
 
-  it('chunks sending, retries transient failures and records tickets', () => {
+  it('queues broadcast delivery through the automatic worker with durable retries and tickets', () => {
     const sender = read('supabase/functions/office-push-send/index.ts');
-    expect(sender).toContain('chunks(devices, 100)');
-    expect(sender).toContain('response.status !== 429');
-    expect(sender).toContain(".from('office_push_deliveries')");
-    expect(sender).toContain("'DeviceNotRegistered'");
+    const worker = read('supabase/functions/portal-push-dispatch/worker.ts');
+    const migration = read('supabase/migrations/20260906160000_portal_automatic_push.sql');
+    expect(sender).toContain('portal_push_enqueue_broadcast');
+    expect(worker).toContain('transport.send');
+    expect(worker).toContain("'DeviceNotRegistered'");
+    expect(migration).toContain('expo_ticket_id');
+    expect(migration).toContain('next_attempt_at');
   });
 
   it('reconciles Expo receipts and invalidates stale device tokens', () => {

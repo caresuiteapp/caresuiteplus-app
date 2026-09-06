@@ -1,17 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Platform } from 'react-native';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from '@/hooks/core';
 import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
 import { loadDashboardProjectionWithCache } from '@/lib/offline/assignmentCacheService';
-import type { AssignmentCacheMeta } from '@/lib/offline/types';
 
 export function useEmployeePortalDashboard() {
   const { tenantId, employeeId, roleKey, actorId, isReady } = usePortalActor();
-  const [cacheMeta, setCacheMeta] = useState<AssignmentCacheMeta>({
-    fromCache: false,
-    cachedAt: null,
-  });
 
   const live = useMemo(() => tenantId && employeeId ? {
     tenantId,
@@ -33,7 +28,6 @@ export function useEmployeePortalDashboard() {
         roleKey,
         actorId ?? '',
       );
-      setCacheMeta({ fromCache: result.fromCache, cachedAt: result.cachedAt });
       return result;
     },
     [tenantId, employeeId, roleKey, actorId],
@@ -50,7 +44,6 @@ export function useEmployeePortalDashboard() {
                 { preferCache: true },
               );
               if (cached.ok && cached.fromCache) {
-                setCacheMeta({ fromCache: true, cachedAt: cached.cachedAt });
                 return cached;
               }
               return null;
@@ -60,6 +53,7 @@ export function useEmployeePortalDashboard() {
       queryKey: JSON.stringify([tenantId, employeeId, roleKey, actorId]),
     },
   );
+  const cacheMeta = query.cacheMeta;
 
   const refresh = query.refresh;
 

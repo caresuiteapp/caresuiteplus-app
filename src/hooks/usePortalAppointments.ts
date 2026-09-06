@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import type { PortalAppointmentItem } from '@/lib/portal';
 import { loadPortalAppointmentsWithCache } from '@/lib/offline/assignmentCacheService';
-import type { AssignmentCacheMeta } from '@/lib/offline/types';
 import { useAuth } from '@/lib/auth/context';
 import { useConnectivity } from '@/hooks/useConnectivity';
 import { usePortalActor } from '@/hooks/usePortalActor';
@@ -29,10 +28,6 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
   const { isOffline } = useConnectivity();
   const profileId = actorId ?? '';
   const [showSuccess, setShowSuccess] = useState(false);
-  const [cacheMeta, setCacheMeta] = useState<AssignmentCacheMeta>({
-    fromCache: false,
-    cachedAt: null,
-  });
 
   const roleMatchesAudience = isRoleAllowedForPortalAudience(roleKey, audience);
   const scopedClientId = audience === 'client' && roleMatchesAudience ? clientId : null;
@@ -76,7 +71,6 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
         scopedClientId,
         { preferCache: isOffline },
       );
-      setCacheMeta({ fromCache: result.fromCache, cachedAt: result.cachedAt });
       return result;
     },
     [profileId, scopedRoleKey, tenantId, scopedClientId, scopedEmployeeId, isOffline],
@@ -96,7 +90,6 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
                 { preferCache: true },
               );
               if (cached.ok && cached.fromCache) {
-                setCacheMeta({ fromCache: true, cachedAt: cached.cachedAt });
                 return cached;
               }
               return null;
@@ -104,6 +97,7 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
           : undefined,
     },
   );
+  const cacheMeta = query.cacheMeta;
 
   const items = useMemo(() => {
     const raw = query.data ?? [];

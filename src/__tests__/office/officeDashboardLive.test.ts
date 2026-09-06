@@ -294,7 +294,7 @@ describe('office dashboard live metrics', () => {
       'utf8',
     );
     expect(queryHook).toContain('withServiceQueryTimeout(fetcher())');
-    expect(queryHook).toContain('requestInFlightRef');
+    expect(queryHook).toContain('requestState.inFlight');
     expect(queryHook).toContain('finally');
     expect(queryHook).toContain('setRefreshing(false)');
   });

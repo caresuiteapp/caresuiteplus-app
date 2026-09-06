@@ -29,8 +29,8 @@ describe('systemweite Datenabfragezeit', () => {
   it('uses the same 120-second limit while resolving portal data', () => {
     const portalContext = source('src/hooks/usePortalContext.ts');
 
-    expect(portalContext).toContain("import { SERVICE_QUERY_TIMEOUT_MS } from '@/lib/services/queryTimeout';");
-    expect(portalContext).toContain('SERVICE_QUERY_TIMEOUT_MS,');
+    expect(portalContext).toContain("import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';");
+    expect(source('src/hooks/core/useAsyncQuery.ts')).toContain('withServiceQueryTimeout(fetcher())');
     expect(portalContext).not.toContain('PORTAL_CONTEXT_TIMEOUT_MS = 25_000');
   });
 });

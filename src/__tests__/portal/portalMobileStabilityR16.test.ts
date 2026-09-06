@@ -39,6 +39,6 @@ describe('R16 portal mobile stability and layout recovery', () => {
     const gate = read('src/components/portal/PortalPushRegistrationGate.tsx');
     expect(gate).not.toContain('retryBanner');
     expect(gate).not.toContain('Benachrichtigungen werden eingerichtet');
-    expect(gate).toContain('if (!permissionMissing) return null;');
+    expect(gate).toContain("result.permissionStatus === 'granted') return null");
   });
 });

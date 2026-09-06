@@ -1,7 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useMemo } from 'react';
 import { Platform } from 'react-native';
 import { loadPortalAppointmentDetailWithCache } from '@/lib/offline/assignmentCacheService';
-import type { AssignmentCacheMeta } from '@/lib/offline/types';
 import { useConnectivity } from '@/hooks/useConnectivity';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
@@ -11,13 +10,11 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
   const { tenantId, employeeId, actorId, roleKey, isReady } = usePortalActor();
   const { isOffline } = useConnectivity();
   const profileId = actorId ?? '';
-  const [cacheMeta, setCacheMeta] = useState<AssignmentCacheMeta>({
-    fromCache: false,
-    cachedAt: null,
-    partialDetail: false,
-    cacheSource: 'live',
-  });
 
+  const live = useMemo(() => tenantId && employeeId ? {
+    tenantId, subscribe: (tid: string, handler: () => void) => subscribeToEmployeePortalChanges(tid, employeeId, handler),
+    pollMs: OPERATIONAL_LIVE_POLL_MS,
+  } : undefined, [tenantId, employeeId]);
   const query = useAsyncQuery(
     async () => {
       const result = await loadPortalAppointmentDetailWithCache(
@@ -28,17 +25,12 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
         employeeId,
         { preferCache: isOffline },
       );
-      setCacheMeta({
-        fromCache: result.fromCache,
-        cachedAt: result.cachedAt,
-        partialDetail: result.partialDetail,
-        cacheSource: result.cacheSource,
-      });
       return result;
     },
     [appointmentId, profileId, roleKey, tenantId, employeeId, isOffline],
     {
       enabled: !!appointmentId && isReady && !!profileId && !!roleKey,
+      queryKey: JSON.stringify([tenantId, employeeId, roleKey, profileId, appointmentId]),
       initialCache:
         Platform.OS !== 'web' && appointmentId && tenantId && employeeId
           ? async () => {
@@ -51,31 +43,17 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
                 { preferCache: true },
               );
               if (cached.ok && cached.fromCache) {
-                setCacheMeta({
-                  fromCache: true,
-                  cachedAt: cached.cachedAt,
-                  partialDetail: cached.partialDetail,
-                  cacheSource: cached.cacheSource,
-                });
                 return cached;
               }
               return null;
             }
           : undefined,
-      live:
-        tenantId && employeeId
-          ? {
-              tenantId,
-              subscribe: (tid, handler) => subscribeToEmployeePortalChanges(tid, employeeId, handler),
-              pollMs: OPERATIONAL_LIVE_POLL_MS,
-            }
-          : undefined,
+      live,
     },
   );
+  const cacheMeta = query.cacheMeta;
 
-  const refresh = useCallback(async () => {
-    await query.refresh();
-  }, [query]);
+  const refresh = query.refresh;
 
   return {
     data: query.data,

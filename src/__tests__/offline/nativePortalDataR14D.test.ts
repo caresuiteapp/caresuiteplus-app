@@ -9,8 +9,8 @@ describe('R14-D native portal data resilience', () => {
   it('stores native offline records in protected device storage', () => {
     const idb = read('src/lib/offline/idb.ts');
     expect(idb).toContain("Platform.OS === 'android' || Platform.OS === 'ios'");
-    expect(idb).toContain('sensitiveAuthStorage.setItem(storageKey, JSON.stringify(record))');
-    expect(idb).toContain('sensitiveAuthStorage.getItem(nativeRecordKey(storeName, key))');
+    expect(idb).toContain('sensitiveAuthStorage.setItem(storageKey, raw)');
+    expect(idb).toContain('sensitiveAuthStorage.getItem(storageKey)');
     expect(idb).toContain('NATIVE_INDEX_KEY');
   });
 
@@ -18,7 +18,7 @@ describe('R14-D native portal data resilience', () => {
     const idb = read('src/lib/offline/idb.ts');
     const auth = read('src/lib/auth/AuthProvider.tsx');
     expect(idb).toContain('Promise.all(keys.map((key) => sensitiveAuthStorage.removeItem(key)))');
-    expect(auth).toContain('void clearOfflineDb()');
+    expect(auth).toContain('await clearOfflineDb()');
   });
 
   it('uses native NetInfo instead of browser-only navigator state', () => {
@@ -32,7 +32,7 @@ describe('R14-D native portal data resilience', () => {
     const query = read('src/hooks/core/useAsyncQuery.ts');
     expect(query).toContain('initialCache?:');
     expect(query).toContain('setDataState(cached.data)');
-    expect(query).toContain('await load(cacheShown)');
+    expect(query).toContain('const liveRequest = load()');
   });
 
   it('bootstraps employee dashboard, list and execution detail from cache', () => {

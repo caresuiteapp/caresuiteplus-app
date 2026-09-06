@@ -10,9 +10,9 @@ describe('Gehaltsstatistik Workspace R8', () => {
     expect(screen).toContain('QUERY_TIMEOUT_MS = 30_000');
     expect(screen).toContain('Vorhandene Monatsdaten bleiben sichtbar und nutzbar');
     expect(screen).toContain('presentation="inline"');
-    expect(queryHook).toContain('const runTrailingRefresh = refreshQueuedRef.current');
+    expect(queryHook).toContain('const runTrailingRefresh = requestState.queued');
     expect(queryHook).toContain('queueMicrotask');
-    expect(queryHook).not.toContain('while (refreshQueuedRef.current)');
+    expect(queryHook).not.toContain('while (requestState.queued)');
   });
 
   it('liefert eine klar gegliederte Monatssteuerung und einen belastbaren Live-Marker', () => {

@@ -1,8 +1,26 @@
 export const CLIENT_PORTAL_HELP = [
-  { title: 'Termine und Einsatzvorschau', text: 'Unter Einsätze sehen Sie Datum, Uhrzeit und Ihre Betreuungskraft. Tippen Sie einen Termin an, um die Vorschau zu öffnen. Über „Einsatz öffnen“ gelangen Sie zu den Einzelheiten. Während einer freigegebenen Anfahrt wird der aktuelle Stand ergänzt.' },
-  { title: 'Leistungsnachweise und Unterschriften', text: 'Ein Leistungsnachweis zeigt, wann und welche Unterstützung stattgefunden hat. Öffnen Sie „Offene Unterschriften“, prüfen Sie die Angaben und unterschreiben Sie im vorgesehenen Feld. Tippen Sie anschließend auf Speichern oder Bestätigen und warten Sie auf die Bestätigung. Wenn Angaben nicht stimmen, schreiben Sie Ihrem Betreuungsteam vor der Unterschrift.' },
-  { title: 'Nachrichten schreiben und lesen', text: 'Unter Nachrichten öffnen Sie ein vorhandenes Gespräch durch Antippen. Mit „Neue Nachricht“ schreiben Sie Ihrem Betreuungsteam. Erst nach dem Senden ist Ihre Nachricht übermittelt. Bei einem Verbindungsfehler bleibt Ihr Text erhalten, damit Sie erneut senden können.' },
-  { title: 'Dokumente finden', text: 'Unter Dokumente finden Sie die Unterlagen, die für Sie freigegeben wurden. Tippen Sie auf einen Eintrag, um ihn zu lesen. Offene Unterschriften bleiben als Aufgabe sichtbar, bis sie erfolgreich gespeichert wurden.' },
-  { title: 'Anmeldung und Benachrichtigungen', text: 'Im Profil verwalten Sie die Anmeldung auf diesem Gerät und die App-Benachrichtigungen. Falls Sie Benachrichtigungen nicht erlaubt haben, können Sie die Freigabe dort in den Geräteeinstellungen nachholen. Die App bleibt auch ohne Push nutzbar.' },
-  { title: 'Größere Schrift und Hilfe', text: 'Über „aA“ können Sie die Darstellung vergrößern. Ein „i“ am CareSuite-Begleiter öffnet eine Erklärung zum aktuellen Bereich. Für eine organisatorische Frage nutzen Sie Nachrichten; Notfallnummern finden Sie weiter unten.' },
+  {
+    title: 'Termine und Einsatzvorschau',
+    text: 'Unter Einsätze sehen Sie Datum, Uhrzeit und Ihre Betreuungskraft. Tippen Sie einen Termin an, um die Vorschau zu öffnen. Über „Einsatz öffnen“ gelangen Sie zu den Einzelheiten. Während einer freigegebenen Anfahrt wird der aktuelle Stand ergänzt.',
+  },
+  {
+    title: 'Leistungsnachweise und Unterschriften',
+    text: 'Ein Leistungsnachweis zeigt, wann und welche Unterstützung stattgefunden hat. Öffnen Sie „Offene Unterschriften“, prüfen Sie die Angaben und unterschreiben Sie im vorgesehenen Feld. Tippen Sie anschließend auf Speichern oder Bestätigen und warten Sie auf die Bestätigung. Wenn Angaben nicht stimmen, schreiben Sie Ihrem Betreuungsteam vor der Unterschrift.',
+  },
+  {
+    title: 'Nachrichten schreiben und lesen',
+    text: 'Unter Nachrichten öffnen Sie ein vorhandenes Gespräch durch Antippen. Mit „Neue Nachricht“ schreiben Sie Ihrem Betreuungsteam. Erst nach dem Senden ist Ihre Nachricht übermittelt. Bei einem Verbindungsfehler bleibt Ihr Text erhalten, damit Sie erneut senden können.',
+  },
+  {
+    title: 'Dokumente finden',
+    text: 'Unter Dokumente finden Sie die Unterlagen, die für Sie freigegeben wurden. Tippen Sie auf einen Eintrag, um ihn zu lesen. Offene Unterschriften bleiben als Aufgabe sichtbar, bis sie erfolgreich gespeichert wurden.',
+  },
+  {
+    title: 'Anmeldung und Benachrichtigungen',
+    text: 'Im Profil verwalten Sie die Anmeldung auf diesem Gerät und die App-Benachrichtigungen. Falls Sie Benachrichtigungen nicht erlaubt haben, können Sie die Freigabe dort in den Geräteeinstellungen nachholen. Die App bleibt auch ohne Push nutzbar.',
+  },
+  {
+    title: 'Größere Schrift und Hilfe',
+    text: 'Über „aA“ können Sie die Darstellung vergrößern. Ein „i“ am CareSuite-Begleiter öffnet eine Erklärung zum aktuellen Bereich. Für eine organisatorische Frage nutzen Sie Nachrichten; Notfallnummern finden Sie weiter unten.',
+  },
 ] as const;

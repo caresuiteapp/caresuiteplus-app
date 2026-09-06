@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import type { ServiceResult } from '@/types';
+import type { AssignmentCacheMeta } from '@/lib/offline/types';
 import {
   NATIVE_SERVICE_QUERY_TIMEOUT_MS,
   withServiceQueryTimeout,
@@ -63,6 +64,12 @@ export function useAsyncQuery<T>(
   const [previewData, setPreviewData] = useState(false);
   const [tableMissing, setTableMissing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [cacheMeta, setCacheMeta] = useState<AssignmentCacheMeta>({ fromCache: false, cachedAt: null });
+  const applyCacheMeta = (result: unknown) => {
+    const meta = result as Partial<AssignmentCacheMeta>;
+    setCacheMeta({ fromCache: Boolean(meta.fromCache), cachedAt: meta.cachedAt ?? null,
+      partialDetail: meta.partialDetail, cacheSource: meta.cacheSource });
+  };
   const dataRef = useRef<T | null>(null);
   // Requests belonging to a previous filter/account may finish after the new one.
   // Give each fetcher generation its own flight lock and reject stale results.
@@ -82,6 +89,7 @@ export function useAsyncQuery<T>(
     setDataState(null);
     setError(null);
     setRefreshError(null);
+    setCacheMeta({ fromCache: false, cachedAt: null });
     setPreviewData(false);
     setTableMissing(false);
     setLoading(options?.enabled !== false);
@@ -109,6 +117,7 @@ export function useAsyncQuery<T>(
         const result = await runQueryWithRetry(fetcher, options?.retryCount ?? 1);
         if (!mounted.current || !enabledRef.current || currentRequest.current !== requestState) return;
         if (result.ok) {
+          applyCacheMeta(result);
           dataRef.current = result.data;
           setDataState(result.data);
           const previewResult = result as {
@@ -175,6 +184,7 @@ export function useAsyncQuery<T>(
         try {
           const cached = (await options.initialCache()) as ServiceResult<T> | null;
           if (!cancelled && currentRequest.current === requestState && dataRef.current === null && cached?.ok) {
+            applyCacheMeta(cached);
             dataRef.current = cached.data;
             setDataState(cached.data);
             setError(null);
@@ -239,7 +249,8 @@ export function useAsyncQuery<T>(
     refreshOnFocus: options?.live?.refreshOnFocus,
   });
 
-  const setData = useCallback((value: T | null | ((prev: T | null) => T | null)) => {
+  const setData = useCallback((value: T | null | ((prev: T | null) => T | null), meta?: AssignmentCacheMeta) => {
+    if (meta) setCacheMeta(meta);
     if (typeof value === 'function') {
       const next = (value as (prev: T | null) => T | null)(dataRef.current);
       dataRef.current = next;
@@ -265,6 +276,7 @@ export function useAsyncQuery<T>(
     silentRefresh,
     reload: load,
     isLiveConnected,
+    cacheMeta,
     isEmpty: !loading && !error && data === null,
   };
 }

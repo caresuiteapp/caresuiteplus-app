@@ -33,7 +33,7 @@ describe('Portal Verwaltung messaging', () => {
     expect(screen).toContain('variant="glass"');
     expect(screen).toContain('Verwaltung');
     expect(messenger).toContain('MessengerShell');
-    expect(messenger).toContain('Verwaltung anschreiben');
+    expect(messenger).toContain('Neue Nachricht');
   });
 
   it('portal messenger keeps thread selection in focus context', () => {

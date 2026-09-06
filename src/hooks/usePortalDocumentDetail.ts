@@ -35,6 +35,7 @@ export function usePortalDocumentDetail(
       }),
     [documentId, profileId, scopedRoleKey, tenantId, scopedClientId],
     {
+      queryKey: JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, documentId]),
       enabled:
         !!documentId &&
         isLinkedReady &&
@@ -59,9 +60,7 @@ export function usePortalDocumentDetail(
     },
   );
 
-  const refresh = useCallback(async () => {
-    await query.refresh();
-  }, [query]);
+  const refresh = query.refresh;
 
   const download = useCallback(async () => {
     return downloadMutation.mutate(null);
@@ -69,7 +68,7 @@ export function usePortalDocumentDetail(
 
   return {
     data: query.data,
-    loading: isResolvingClientLink || query.loading,
+    loading: isResolvingClientLink || (query.loading && !query.data),
     error: !roleMatchesAudience && roleKey
       ? 'Diese Sitzung gehört zu einem anderen Portal.'
       : audience === 'client' && !isResolvingClientLink && !scopedClientId

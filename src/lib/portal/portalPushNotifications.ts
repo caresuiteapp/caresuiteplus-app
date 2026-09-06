@@ -1,3 +1,4 @@
+import * as Application from 'expo-application';
 import { getActivePortalSession } from '@/lib/auth/portalSessionStore';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
@@ -188,7 +189,7 @@ export async function ensurePortalPushRegistration(
         expoPushToken: token,
         platform: Platform.OS,
         appVersion: Constants.expoConfig?.version ?? null,
-        appBuildVersion: Constants.platform?.android?.versionCode ?? null,
+        appBuildVersion: Application.nativeBuildVersion ? Number(Application.nativeBuildVersion) : null,
         expectedAccountId: account.accountId,
         permissionStatus: 'granted',
       }),

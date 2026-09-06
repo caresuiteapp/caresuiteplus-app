@@ -69,7 +69,7 @@ BEGIN
  WHEN 'message' THEN RETURN EXISTS(
   SELECT 1 FROM messages m JOIN message_threads t ON t.id=m.thread_id AND t.tenant_id=m.tenant_id
   WHERE m.id=source AND m.tenant_id=d.tenant_id AND NOT m.is_internal_note AND NOT m.is_system_message AND m.status='sent' AND m.read_at IS NULL AND t.status NOT IN ('deleted','archived')
-   AND (m.sender_employee_id IS NULL OR m.sender_employee_id<>d.employee_id) AND (m.sender_client_id IS NULL OR m.sender_client_id<>d.client_id)
+   AND (m.sender_employee_id IS NULL OR m.sender_employee_id IS DISTINCT FROM d.employee_id) AND (m.sender_client_id IS NULL OR m.sender_client_id IS DISTINCT FROM d.client_id)
    AND ((d.portal_type='client' AND t.thread_type='client' AND t.client_id=d.client_id AND m.sender_profile_id IS NOT NULL)
      OR (d.portal_type='employee' AND t.thread_type='employee' AND t.employee_id=d.employee_id AND m.sender_profile_id IS NOT NULL)
      OR (d.portal_type='employee' AND t.thread_type='employee_group' AND EXISTS (SELECT 1 FROM message_thread_employee_participants p WHERE p.thread_id=t.id AND p.tenant_id=d.tenant_id AND p.employee_id=d.employee_id AND p.is_active AND p.left_at IS NULL)))

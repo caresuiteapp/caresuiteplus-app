@@ -16,7 +16,7 @@ import {
 import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
 
 import { fetchPortalAppointments, fetchPortalAppointmentDetail } from '@/lib/portal/appointmentService';
-import { fetchLiveEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionLiveService';
+import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
 
 type StoreRecord = Record<string, unknown>;
 
@@ -159,12 +159,12 @@ vi.mock('@/lib/portal/appointmentService', async (importOriginal) => {
   };
 });
 
-vi.mock('@/lib/portal/employeePortalExecutionLiveService', async (importOriginal) => {
+vi.mock('@/lib/portal/employeePortalExecutionService', async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import('@/lib/portal/employeePortalExecutionLiveService')>();
+    await importOriginal<typeof import('@/lib/portal/employeePortalExecutionService')>();
   return {
     ...actual,
-    fetchLiveEmployeePortalAssignmentDetail: vi.fn(),
+    fetchEmployeePortalAssignmentDetail: vi.fn(),
   };
 });
 
@@ -176,7 +176,7 @@ describe('OFFLINE.3 detail prefetch integration', () => {
     installMemoryIndexedDb();
     vi.mocked(fetchPortalAppointments).mockReset();
     vi.mocked(fetchPortalAppointmentDetail).mockReset();
-    vi.mocked(fetchLiveEmployeePortalAssignmentDetail).mockReset();
+    vi.mocked(fetchEmployeePortalAssignmentDetail).mockReset();
   });
 
   it('prefetches portal and execution detail caches for three assignments', async () => {
@@ -186,7 +186,7 @@ describe('OFFLINE.3 detail prefetch integration', () => {
       makeItem('asg-c', futureAt(4)),
     ];
 
-    vi.mocked(fetchLiveEmployeePortalAssignmentDetail).mockImplementation(async (_t, id) => ({
+    vi.mocked(fetchEmployeePortalAssignmentDetail).mockImplementation(async (_t, id) => ({
       ok: true,
       data: {
         assignmentId: id,
@@ -272,7 +272,7 @@ describe('OFFLINE.3 detail prefetch integration', () => {
     const candidates = selectPrefetchAssignmentCandidates(items);
     expect(candidates.length).toBe(MAX_PREFETCH_DETAILS);
 
-    vi.mocked(fetchLiveEmployeePortalAssignmentDetail).mockResolvedValue({
+    vi.mocked(fetchEmployeePortalAssignmentDetail).mockResolvedValue({
       ok: false,
       error: 'skip',
     });
@@ -322,7 +322,7 @@ describe('OFFLINE.3 detail prefetch integration', () => {
       };
     });
 
-    vi.mocked(fetchLiveEmployeePortalAssignmentDetail).mockResolvedValue({
+    vi.mocked(fetchEmployeePortalAssignmentDetail).mockResolvedValue({
       ok: false,
       error: 'exec skip',
     });
@@ -365,7 +365,7 @@ describe('OFFLINE.3 detail prefetch integration', () => {
         executionRoute: '/portal/employee/assignments/asg-1/execute',
       },
     });
-    vi.mocked(fetchLiveEmployeePortalAssignmentDetail).mockResolvedValue({ ok: false, error: 'skip' });
+    vi.mocked(fetchEmployeePortalAssignmentDetail).mockResolvedValue({ ok: false, error: 'skip' });
 
     await prefetchEmployeeAssignmentCache('profile-1', 'employee_portal', 'tenant-1', 'emp-1');
     await vi.waitFor(async () => {

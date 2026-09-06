@@ -85,7 +85,7 @@ describe('Assist portal mobile layout', () => {
     expect(mobile).toContain('ClientPortalHomeDashboard');
     expect(home).toContain('resolveClientPortalHeroLines');
     expect(home).toContain('client-portal-premium-home-hero');
-    expect(home).toContain('CareSuite Portalbegleiter');
+    expect(home).toContain('PortalInfoButton');
     expect(mobile).not.toContain('ScrollView');
   });
   it('client portal tabs layout delegates shell to root layout', () => {

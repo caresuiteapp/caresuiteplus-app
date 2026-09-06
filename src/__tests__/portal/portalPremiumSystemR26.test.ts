@@ -42,10 +42,11 @@ describe('portal premium system R26', () => {
     expect(employeeHome).toContain('guideMascotCompact');
   });
 
-  it('keeps the portal mascot and speech bubble inside both mobile welcome heroes', () => {
+  it('keeps employee guidance and opens client guidance on demand', () => {
     const clientHome = read('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
     const employeeHome = read('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx');
-    expect(clientHome).toContain("require('../../../../assets/auth/access-client.png')");
+    expect(clientHome).toContain('<PortalInfoButton');
+    expect(read('src/components/portal/PortalInfoButton.tsx')).toContain('visible={open}');
     expect(employeeHome).toContain("require('../../../../assets/auth/access-employee.png')");
     expect(clientHome).toContain('guideAreaPhone');
     expect(employeeHome).toContain('guideAreaCompact');

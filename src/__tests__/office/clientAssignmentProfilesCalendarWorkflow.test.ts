@@ -171,7 +171,7 @@ describe('Office-Einsatzprofile → Assist-Kalender → freigegebener Einsatz', 
 
     expect(clientPanel).toContain('PremiumInput');
     expect(planner).toContain('CareTimeInput');
-    expect(modal).toContain('<ScrollView');
+    expect(modal).toContain('<PortalKeyboardScrollView');
     expect(modal).toContain('nestedScrollEnabled');
     expect(modal).toContain('showsVerticalScrollIndicator');
     expect(actionButton).toContain("'#FFFFFF'");

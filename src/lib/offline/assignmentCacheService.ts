@@ -23,7 +23,7 @@ import {
 } from '@/lib/portal/employeePortalAppointmentIdentity';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { isBrowserOffline } from './connectivity';
-import { getStoreRecord, openOfflineDb, putStoreRecord, putSyncMeta } from './idb';
+import { getStoreRecord, openOfflineDb, putStoreRecord, putSyncMeta, offlineCacheEpoch } from './idb';
 import type {
   AssignmentCacheMeta,
   AssignmentCacheLoadOptions,
@@ -264,8 +264,10 @@ export async function writeAssignmentListCache(
   tenantId: string,
   employeeId: string,
   items: CachedPortalAppointmentItem[],
+  expectedEpoch = offlineCacheEpoch(),
 ): Promise<boolean> {
   await openOfflineDb();
+  if (expectedEpoch !== offlineCacheEpoch()) return false;
   const normalized = normalizeListItems(items);
   if (items.length > 0 && normalized.length === 0) {
     console.warn(
@@ -300,12 +302,13 @@ export async function mergeAssignmentListCache(
   tenantId: string,
   employeeId: string,
   onlineItems: PortalAppointmentItem[],
+  expectedEpoch = offlineCacheEpoch(),
 ): Promise<CachedPortalAppointmentItem[]> {
   const cached = await readAssignmentListCache(tenantId, employeeId);
   const merged = sortPortalAppointmentItems(
     mergeAssignmentListsWithStalePreservation(onlineItems, cached?.items ?? []),
   );
-  await writeAssignmentListCache(tenantId, employeeId, merged);
+  await writeAssignmentListCache(tenantId, employeeId, merged, expectedEpoch);
   return merged;
 }
 
@@ -329,8 +332,10 @@ export async function writePortalAppointmentDetailCache(
   tenantId: string,
   employeeId: string,
   payload: PortalAppointmentDetail,
+  expectedEpoch = offlineCacheEpoch(),
 ): Promise<boolean> {
   await openOfflineDb();
+  if (expectedEpoch !== offlineCacheEpoch()) return false;
   const assignmentId = payload.assignmentId ?? payload.id;
   if (!assignmentId?.trim()) return false;
   return putStoreRecord<AssignmentPortalDetailCacheRecord>(ASSIGNMENTS_STORE, {
@@ -386,8 +391,10 @@ async function writeExecutionDetailCacheForKey(
   employeeId: string,
   cacheAssignmentId: string,
   payload: EmployeePortalAssignmentDetail,
+  expectedEpoch = offlineCacheEpoch(),
 ): Promise<boolean> {
   await openOfflineDb();
+  if (expectedEpoch !== offlineCacheEpoch()) return false;
   const normalized = normalizeEmployeePortalAssignmentDetail(payload, {
     assignmentId: cacheAssignmentId,
     tenantId,
@@ -432,6 +439,7 @@ export async function loadPortalAppointmentsWithCache(
   clientId?: string | null | undefined,
   options?: AssignmentCacheLoadOptions,
 ): Promise<ServiceResult<CachedPortalAppointmentItem[]> & AssignmentCacheMeta> {
+  const epoch = offlineCacheEpoch();
   await openOfflineDb();
   const cacheActorId = employeeId ?? clientId;
   const scoped = hasScopedEmployeeCache(tenantId, cacheActorId);
@@ -449,9 +457,10 @@ export async function loadPortalAppointmentsWithCache(
 
   const online = await sharedPortalRead(JSON.stringify(['portal-appointments', profileId, roleKey, tenantId, employeeId, clientId]),
     () => fetchPortalAppointments(profileId, roleKey, { tenantId, employeeId, clientId }));
+  if (epoch !== offlineCacheEpoch()) return withCacheMeta({ ok: false, error: 'Sitzung wurde beendet.' }, emptyCacheMeta());
   if (online.ok && scoped) {
-    const merged = await mergeAssignmentListCache(tenantId!, cacheActorId!, online.data);
-    if (employeeId) {
+    const merged = await mergeAssignmentListCache(tenantId!, cacheActorId!, online.data, epoch);
+    if (employeeId && !options?.skipDetailPrefetch && epoch === offlineCacheEpoch()) {
       void import('./assignmentDetailPrefetch').then((mod) =>
         mod.scheduleAssignmentDetailPrefetch(profileId, roleKey, tenantId!, employeeId, merged),
       );
@@ -483,6 +492,7 @@ export async function loadPortalAppointmentDetailWithCache(
   employeeId: string | null | undefined,
   options?: AssignmentCacheLoadOptions,
 ): Promise<ServiceResult<PortalAppointmentDetail> & AssignmentCacheMeta> {
+  const epoch = offlineCacheEpoch();
   await openOfflineDb();
   const scoped = hasScopedEmployeeCache(tenantId, employeeId);
   const assignmentKey = appointmentId?.trim() ?? '';
@@ -517,10 +527,9 @@ export async function loadPortalAppointmentDetailWithCache(
     return withCacheMeta({ ok: false, error: OFFLINE_DETAIL_ERROR }, emptyCacheMeta());
   }
 
-  const online = await fetchPortalAppointmentDetail(appointmentId, profileId, roleKey, {
-    tenantId,
-    employeeId,
-  });
+  const online = await sharedPortalRead(JSON.stringify(['portal-detail', tenantId, employeeId, profileId, roleKey, appointmentId]),
+    () => fetchPortalAppointmentDetail(appointmentId, profileId, roleKey, { tenantId, employeeId }));
+  if (epoch !== offlineCacheEpoch()) return withCacheMeta({ ok: false, error: 'Sitzung wurde beendet.' }, emptyCacheMeta());
   if (online.ok && scoped) {
     const wrote = await writePortalAppointmentDetailCache(tenantId!, employeeId!, online.data);
     if (!wrote) {
@@ -574,6 +583,7 @@ export async function loadExecutionDetailWithCache(
   roleKey: RoleKey | null,
   options?: AssignmentCacheLoadOptions,
 ): Promise<ServiceResult<EmployeePortalAssignmentDetail> & AssignmentCacheMeta> {
+  const epoch = offlineCacheEpoch();
   await openOfflineDb();
   const assignmentKey = assignmentId?.trim() ?? '';
 
@@ -619,6 +629,7 @@ export async function loadExecutionDetailWithCache(
     employeeId,
     roleKey,
   );
+  if (epoch !== offlineCacheEpoch()) return withCacheMeta({ ok: false, error: 'Sitzung wurde beendet.' }, emptyCacheMeta());
   if (online.ok) {
     const normalizedOnline = normalizeEmployeePortalAssignmentDetail(online.data, {
       assignmentId: assignmentKey,
@@ -718,15 +729,7 @@ export async function prefetchEmployeeAssignmentCache(
   tenantId: string,
   employeeId: string,
 ): Promise<void> {
-  await openOfflineDb();
-
-  const listResult = await fetchPortalAppointments(profileId, roleKey, { tenantId, employeeId });
-  if (!listResult.ok || !listResult.data.length) return;
-
-  const merged = await mergeAssignmentListCache(tenantId, employeeId, listResult.data);
-  void import('./assignmentDetailPrefetch').then((mod) =>
-    mod.scheduleAssignmentDetailPrefetch(profileId, roleKey, tenantId, employeeId, merged),
-  );
+  await loadPortalAppointmentsWithCache(profileId, roleKey, tenantId, employeeId);
 }
 
 export function formatAssignmentCacheTimestamp(iso: string | null | undefined): string {

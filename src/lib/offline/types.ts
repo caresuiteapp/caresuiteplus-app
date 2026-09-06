@@ -98,4 +98,6 @@ export type AssignmentCacheMeta = {
 export type AssignmentCacheLoadOptions = {
   /** Skip network fetch and read IndexedDB only (e.g. MP offline). */
   preferCache?: boolean;
+  /** Headless refresh has its own bounded prefetch budget. */
+  skipDetailPrefetch?: boolean;
 };

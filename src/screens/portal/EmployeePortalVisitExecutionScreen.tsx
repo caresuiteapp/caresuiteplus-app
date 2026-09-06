@@ -1,3 +1,4 @@
+import { PortalKeyboardScrollView } from '@/components/keyboard/PortalKeyboard';
 import { EmployeeOpenVisitTimeEditor } from '@/components/portal/EmployeeOpenVisitTimeEditor';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -227,6 +228,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const [messageModalOpen, setMessageModalOpen] = useState(false);
   const [photoReferences, setPhotoReferences] = useState<string[]>([]);
   const [documentationDraftText, setDocumentationDraftText] = useState('');
+  const documentationEditedRef = useRef(false);
   const [documentationSpecialNotes, setDocumentationSpecialNotes] = useState('');
   const [documentationDeviations, setDocumentationDeviations] = useState('');
   const [documentationDeviationJustification, setDocumentationDeviationJustification] =
@@ -303,7 +305,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
   useEffect(() => {
     const storedDocumentation = visit?.documentationNotes?.trim() ?? '';
-    if (!storedDocumentation) return;
+    if (!storedDocumentation || documentationEditedRef.current) return;
     setDocumentationDraftText((current) => current.trim() ? current : storedDocumentation);
   }, [visit?.assignmentId, visit?.documentationNotes]);
 
@@ -416,17 +418,17 @@ export function EmployeePortalVisitExecutionScreen() {
       if (snapshotMatchesRoute && snapshot?.attachmentReferences?.length) {
         setPhotoReferences(snapshot.attachmentReferences);
       }
-      if (snapshotMatchesRoute && typeof snapshot?.documentationDraftText === 'string') {
+      if (!documentationEditedRef.current && snapshotMatchesRoute && typeof snapshot?.documentationDraftText === 'string') {
         setDocumentationDraftText(snapshot.documentationDraftText);
       }
-      if (snapshotMatchesRoute && typeof snapshot?.documentationSpecialNotes === 'string') {
+      if (!documentationEditedRef.current && snapshotMatchesRoute && typeof snapshot?.documentationSpecialNotes === 'string') {
         setDocumentationSpecialNotes(snapshot.documentationSpecialNotes);
       }
-      if (snapshotMatchesRoute && typeof snapshot?.documentationDeviations === 'string') {
+      if (!documentationEditedRef.current && snapshotMatchesRoute && typeof snapshot?.documentationDeviations === 'string') {
         setDocumentationDeviations(snapshot.documentationDeviations);
       }
       if (
-        snapshotMatchesRoute &&
+        !documentationEditedRef.current && snapshotMatchesRoute &&
         typeof snapshot?.documentationDeviationJustification === 'string'
       ) {
         setDocumentationDeviationJustification(snapshot.documentationDeviationJustification);
@@ -1609,7 +1611,7 @@ export function EmployeePortalVisitExecutionScreen() {
           message={showSuccess ? localSuccess : null}
           onDismiss={() => setLocalSuccess(null)}
         />
-        <ScrollView
+        <PortalKeyboardScrollView
           ref={scrollRef}
           contentContainerStyle={[styles.focusStageContent, { paddingBottom: bottomPadding }]}
           keyboardShouldPersistTaps="handled"
@@ -1712,7 +1714,7 @@ export function EmployeePortalVisitExecutionScreen() {
               />
             </View>
           ) : null}
-        </ScrollView>
+        </PortalKeyboardScrollView>
       </View>
 
       {showTasks && visitTasks.length > 0 ? (
@@ -1740,6 +1742,7 @@ export function EmployeePortalVisitExecutionScreen() {
           initialDeviations={documentationDeviations}
           initialDeviationJustification={documentationDeviationJustification}
           onDraftChange={(draft) => {
+            documentationEditedRef.current = true;
             setDocumentationDraftText(draft.shortDescription);
             setDocumentationSpecialNotes(draft.specialNotes);
             setDocumentationDeviations(draft.deviations);
@@ -1898,6 +1901,7 @@ export function EmployeePortalVisitExecutionScreen() {
         sourceText={documentationAiSourceText}
         onClose={() => setAiHelpStandaloneOpen(false)}
         onAccept={(textValue) => {
+          documentationEditedRef.current = true;
           setDocumentationDraftText(textValue);
           setAiHelpStandaloneOpen(false);
           setDocumentationOpen(true);

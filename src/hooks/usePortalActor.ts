@@ -1,5 +1,5 @@
 import { sharedPortalRead } from '@/lib/portal/sharedPortalRead';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/lib/auth/context';
 import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
 import { getPortalDisplayName } from '@/lib/auth/userdisplayname';
@@ -71,6 +71,15 @@ export function usePortalActor(): PortalActor {
   const actorId = isActivePortalSession
     ? (portalSession?.accountId ?? profile?.id ?? null)
     : (profile?.id ?? portalSession?.accountId ?? null);
+  const identity = `${tenantId}:${actorId}:${roleKey}`;
+  const priorIdentity = useRef(identity);
+  if (priorIdentity.current !== identity) {
+    priorIdentity.current = identity;
+    setResolvedClientId(null);
+    setResolvedEmployeeId(null);
+    setClientDisplayName(null);
+    setEmployeeDisplayName(null);
+  }
   const sessionClientId = portalSession?.clientId ?? null;
   const clientId = sessionClientId ?? resolvedClientId ?? null;
   const sessionEmployeeId = portalSession?.employeeId ?? null;

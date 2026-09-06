@@ -71,9 +71,9 @@ describe('client portal experience recovery', () => {
     const prompt = readSrc('src/components/portal/ClientPortalAttentionPrompt.tsx');
     expect(layout).toContain('ClientPortalAttentionPrompt');
     expect(prompt).toContain('Neue Nachricht');
-    expect(prompt).toContain('Unterschrift benötigt');
-    expect(prompt).toContain("router.push('/portal/client/messages'");
-    expect(prompt).toContain("router.push('/portal/client/documents/signatures'");
-    expect(prompt).toContain('sessionStorage');
+    expect(prompt).toContain('Ihre Unterschrift wird benötigt');
+    expect(prompt).toContain('`/portal/client/messages/${unread[0].id}`');
+    expect(prompt).toContain("'/portal/client/documents/signatures'");
+    expect(prompt).toContain('acknowledged.get(accountKey)');
   });
 });

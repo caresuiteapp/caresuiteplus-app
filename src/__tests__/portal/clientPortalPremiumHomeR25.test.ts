@@ -17,7 +17,7 @@ describe('client portal premium home R25', () => {
 
   it('replaces technical portal copy and emoji tiles with a contextual guide', () => {
     const home = read('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
-    expect(home).toContain('CareSuite Portalbegleiter');
+    expect(home).toContain('PortalInfoButton');
     expect(home).toContain('resolveClientPortalHomeGuide');
     expect(home).toContain('Ihre Unterschrift wird benötigt');
     expect(home).toContain('Alles Wichtige ist vorbereitet');

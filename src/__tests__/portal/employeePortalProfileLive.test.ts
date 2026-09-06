@@ -34,7 +34,7 @@ describe('Employee portal profile live wiring', () => {
   it('dashboard hook uses employee portal live refresh', () => {
     const hook = readSrc('src/hooks/useEmployeePortalDashboard.ts');
     expect(hook).toContain('subscribeToEmployeePortalChanges');
-    expect(hook).toContain('live:');
+    expect(hook).toContain('live,');
     expect(hook).toContain('isLiveConnected');
   });
 

@@ -1,3 +1,4 @@
+import { PortalKeyboardScrollView } from '@/components/keyboard/PortalKeyboard';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -60,6 +61,9 @@ export function PortalClientAppointmentDetailScreen() {
   const [changeReason, setChangeReason] = useState('');
   const {
     data,
+    fromCache,
+    cachedAt,
+    refreshError,
     loading,
     error,
     refresh,
@@ -125,7 +129,7 @@ export function PortalClientAppointmentDetailScreen() {
         />
       }
     >
-      <ScrollView
+      <PortalKeyboardScrollView
         ref={scrollRef}
         key={data.id}
         style={styles.scrollViewport}
@@ -136,6 +140,8 @@ export function PortalClientAppointmentDetailScreen() {
       >
         {successMessage ? <SuccessState message={successMessage} /> : null}
 
+        {fromCache ? <Text accessibilityRole="text" style={styles.factHint}>Gespeicherter Stand{cachedAt ? ` vom ${new Date(cachedAt).toLocaleString('de-DE')}` : ''}. Aktuelle Daten werden abgeglichen.</Text> : null}
+        {refreshError ? <Text style={styles.factHint}>Aktualisieren derzeit nicht möglich. Bitte prüfen Sie die Verbindung.</Text> : null}
         <PortalAppointmentDetailHero appointment={data} scope="client" />
 
         <View style={[styles.columns, !isDesktopOrWide && styles.columnsStacked]}>
@@ -237,7 +243,7 @@ export function PortalClientAppointmentDetailScreen() {
             ) : null}
           </View>
         </View>
-      </ScrollView>
+      </PortalKeyboardScrollView>
     </PortalTabScreen>
   );
 }

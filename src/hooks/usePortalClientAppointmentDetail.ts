@@ -1,4 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { Platform } from 'react-native';
+import { readClientAppointmentCache, writeClientAppointmentCache } from '@/lib/offline/clientAppointmentCache';
+import { offlineCacheEpoch } from '@/lib/offline/idb';
 import type { PortalClientAppointmentDetail } from '@/types/portal/client';
 import {
   fetchPortalClientAppointmentDetail,
@@ -6,7 +9,6 @@ import {
 } from '@/lib/portal/appointmentService';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToPortalAssistChanges } from '@/lib/realtime';
-import { useVisibilityAwarePolling } from '@/lib/polling/useVisibilityAwarePolling';
 import { DEFAULT_LIVE_POLL_MS } from './core';
 import { useAsyncQuery, useMutation } from './core';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
@@ -21,39 +23,37 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
     isResolvingClientLink,
   } = usePortalActor();
   const profileId = actorId ?? '';
-  const [tick, setTick] = useState(0);
   const queryKey = JSON.stringify([tenantId, clientId, actorId, roleKey, appointmentId]);
-  const generation = `${queryKey}:${tick}`;
-  const current = useRef(generation);
-  current.current = generation;
-  const [basic, setBasic] = useState<{ key: string; data: PortalClientAppointmentDetail } | null>(null);
+  const current = useRef<string | null>(queryKey);
+  current.current = queryKey;
+  useEffect(() => { current.current = queryKey; return () => { current.current = null; }; }, [queryKey]);
+  const publishBasic = useRef<(detail: PortalClientAppointmentDetail) => void>(() => {});
   const enabled = !!appointmentId && isLinkedReady && !!tenantId && !!clientId;
-
-  useVisibilityAwarePolling({
-    enabled,
-    intervalMs: DEFAULT_LIVE_POLL_MS,
-    onPoll: () => setTick((t) => t + 1),
-  });
-
-  useEffect(() => {
-    if (!enabled || !tenantId || !clientId) return;
-    const unsubscribe = subscribeToPortalAssistChanges(tenantId, clientId, () => {
-      setTick((t) => t + 1);
-    });
-    return unsubscribe;
-  }, [enabled, tenantId, clientId]);
-
+  const scope = { tenantId: tenantId ?? '', accountId: profileId, clientId: clientId ?? '', roleKey };
+  const live = useMemo(() => tenantId && clientId ? {
+    tenantId,
+    subscribe: (tid: string, handler: () => void) => subscribeToPortalAssistChanges(tid, clientId, handler),
+    pollMs: DEFAULT_LIVE_POLL_MS,
+  } : undefined, [tenantId, clientId]);
   const query = useAsyncQuery(
-    () =>
-      fetchPortalClientAppointmentDetail(appointmentId ?? '', profileId, roleKey, {
-        tenantId,
-        clientId,
-      }, (detail) => {
-        if (current.current === generation) setBasic({ key: queryKey, data: detail });
-      }),
-    [appointmentId, profileId, roleKey, tenantId, clientId, tick],
-    { enabled, queryKey },
+    async () => {
+      const epoch = offlineCacheEpoch();
+      const result = await fetchPortalClientAppointmentDetail(appointmentId ?? '', profileId, roleKey, { tenantId, clientId }, (detail) => {
+        if (current.current !== queryKey || offlineCacheEpoch() !== epoch) return;
+        publishBasic.current(detail);
+        void writeClientAppointmentCache(scope, detail, epoch);
+      });
+      if (result.ok && current.current === queryKey && offlineCacheEpoch() === epoch) {
+        void writeClientAppointmentCache(scope, result.data, epoch);
+      }
+      return result;
+    },
+    [appointmentId, profileId, roleKey, tenantId, clientId],
+    { enabled, queryKey, live,
+      initialCache: Platform.OS !== 'web' && enabled ? () => readClientAppointmentCache(scope, appointmentId!) : undefined,
+    },
   );
+  publishBasic.current = detail => query.setData(detail, { fromCache: false, cachedAt: null });
 
   const changeMutation = useMutation(
     (reason: string) =>
@@ -69,15 +69,18 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
   const requestChange = useCallback(
     async (reason: string) => {
       const result = await changeMutation.mutate(reason);
-      if (result) await query.refresh();
+      if (result) await refresh();
       return result;
     },
-    [changeMutation, query],
+    [changeMutation, refresh],
   );
 
   return {
-    data: query.data ?? (basic?.key === queryKey ? basic.data : null),
-    loading: isResolvingClientLink || (query.loading && basic?.key !== queryKey),
+    data: query.data,
+    fromCache: query.cacheMeta.fromCache,
+    cachedAt: query.cacheMeta.cachedAt,
+    refreshError: query.refreshError,
+    loading: isResolvingClientLink || (query.loading && !query.data),
     error:
       !isResolvingClientLink && !clientId
         ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'

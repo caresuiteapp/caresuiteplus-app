@@ -22,7 +22,6 @@ import {
   loadExecutionDetailWithCache,
   writeExecutionDetailCache,
 } from '@/lib/offline/assignmentCacheService';
-import type { AssignmentCacheMeta } from '@/lib/offline/types';
 import { useConnectivity } from '@/hooks/useConnectivity';
 import { buildEmployeePortalLiveRoute } from '@/features/liveTracking/buildEmployeePortalLiveRoute';
 import { saveEmployeeLocationConsent } from '@/features/liveTracking/saveEmployeeLocationConsent';
@@ -238,12 +237,6 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const roleKey = portalRoleKey ?? profile?.roleKey ?? null;
   const authProfileId = profile?.id ?? actorId ?? null;
   const { isOffline } = useConnectivity();
-  const [cacheMeta, setCacheMeta] = useState<AssignmentCacheMeta>({
-    fromCache: false,
-    cachedAt: null,
-    partialDetail: false,
-    cacheSource: 'live',
-  });
   // Ein initial aus dem Gerätespeicher aufgebauter Einsatz ist bei bestehender
   // Verbindung nicht automatisch schreibgeschützt. Die Mutation selbst wird
   // weiterhin serverseitig autorisiert und validiert.
@@ -302,6 +295,10 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     void getEmployeePortalGpsPermissionStatus().then(setGpsPermission);
   }, [assignmentId]);
 
+  const live = useMemo(() => tenantId && employeeId ? {
+    tenantId, subscribe: (tid: string, handler: () => void) => subscribeToEmployeePortalChanges(tid, employeeId, handler),
+    pollMs: LIVE_TRACKING_POLL_MS,
+  } : undefined, [tenantId, employeeId]);
   const query = useAsyncQuery(
     async () => {
       if (!tenantId || !assignmentId || !employeeId) {
@@ -314,17 +311,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         roleKey,
         { preferCache: isOffline },
       );
-      setCacheMeta({
-        fromCache: result.fromCache,
-        cachedAt: result.cachedAt,
-        partialDetail: result.partialDetail,
-        cacheSource: result.cacheSource,
-      });
       return result;
     },
     [tenantId, assignmentId, employeeId, roleKey, isOffline],
     {
       enabled: Boolean(tenantId && assignmentId && employeeId),
+      queryKey: JSON.stringify([tenantId, employeeId, roleKey, authProfileId, assignmentId]),
       initialCache:
         Platform.OS !== 'web' && tenantId && assignmentId && employeeId
           ? async () => {
@@ -336,27 +328,15 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
                 { preferCache: true },
               );
               if (cached.ok && cached.fromCache) {
-                setCacheMeta({
-                  fromCache: true,
-                  cachedAt: cached.cachedAt,
-                  partialDetail: cached.partialDetail,
-                  cacheSource: cached.cacheSource,
-                });
                 return cached;
               }
               return null;
             }
           : undefined,
-      live:
-        tenantId && employeeId
-          ? {
-              tenantId,
-              subscribe: (tid, handler) => subscribeToEmployeePortalChanges(tid, employeeId, handler),
-              pollMs: LIVE_TRACKING_POLL_MS,
-            }
-          : undefined,
+      live,
     },
   );
+  const cacheMeta = query.cacheMeta;
 
   const buildFallbackExecutionContext = useCallback((
     detail: EmployeePortalAssignmentDetail,

@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { EmployeePortalExecutionErrorBoundary } from '@/components/portal/EmployeePortalExecutionErrorBoundary';
-import { EmployeePortalVisitExecutionScreen } from '@/product-workflows/screens/portal/EmployeePortalVisitExecutionScreen';
+import { EmployeePortalVisitExecutionScreen } from '@/screens/portal/EmployeePortalVisitExecutionScreen';
 
 export default function EmployeePortalVisitExecuteRoute() {
   const router = useRouter();
@@ -8,10 +8,11 @@ export default function EmployeePortalVisitExecuteRoute() {
   const assignmentId = Array.isArray(id) ? id[0] : id;
   return (
     <EmployeePortalExecutionErrorBoundary
+      key={assignmentId}
       assignmentId={assignmentId}
       onExit={() => router.replace('/portal/employee/assignments' as never)}
     >
-      <EmployeePortalVisitExecutionScreen />
+      <EmployeePortalVisitExecutionScreen key={assignmentId} />
     </EmployeePortalExecutionErrorBoundary>
   );
 }

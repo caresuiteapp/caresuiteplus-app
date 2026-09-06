@@ -1,3 +1,5 @@
+import { configurePortalBackgroundRefresh } from '@/lib/offline/portalBackgroundRefresh';
+import { cancelAssignmentDetailPrefetch } from '@/lib/offline/assignmentDetailPrefetch';
 import {
   ReactNode,
   useCallback,
@@ -507,24 +509,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
     );
   }, []);
 
+  const backgroundRefreshEnabled = Boolean(portalSession && !portalSession.mustChangePassword && (portalSession.employeeId || portalSession.clientId));
+  useEffect(() => {
+    void configurePortalBackgroundRefresh(backgroundRefreshEnabled);
+  }, [backgroundRefreshEnabled]);
+
   const signOut = useCallback(async () => {
     signOutRequestedRef.current = true;
     setIsLoading(true);
+    cancelAssignmentDetailPrefetch();
     try {
-      await unregisterPortalPushDeviceBeforeLogout();
+      await unregisterPortalPushDeviceBeforeLogout().catch(() => undefined);
       if (portalSession?.sessionToken) {
-        await revokePortalSession(portalSession.sessionToken);
+        await revokePortalSession(portalSession.sessionToken).catch(() => undefined);
       }
       await supabaseSignOut();
+    } finally {
+      await configurePortalBackgroundRefresh(false);
       await clearPortalSession();
-      void clearOfflineDb();
+      await clearOfflineDb();
       clearBusinessWelcomePending();
       setUser(null);
       setProfile(null);
       setSession(null);
       setPortalSession(null);
       setProfileBootstrapError(null);
-    } finally {
       signOutRequestedRef.current = false;
       setIsLoading(false);
     }

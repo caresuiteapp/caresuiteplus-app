@@ -51,7 +51,7 @@ describe('Mitarbeitendenportal Signatur- und Dokumentationswiederherstellung R15
     expect(screen).toContain('const documentationAccessible = Boolean(');
     expect(screen).toContain('!isLocked && (showDocumentationForm || documentationSubmitted)');
     expect(screen).toContain('{documentationAccessible ? (');
-    expect(screen).toContain('disabled={documentationSubmitted && (signatureCaptured || signatureDeferred)}');
+    expect(screen).toContain('disabled={isLocked || readOnlyExecution}');
     expect(screen).toContain('visit?.documentationNotes?.trim()');
     expect(screen).toContain('setDocumentationDraftText(doc.shortDescription)');
   });

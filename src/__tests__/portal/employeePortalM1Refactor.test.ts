@@ -40,6 +40,7 @@ describe('employee portal M.1 refactor', () => {
     expect(EMPLOYEE_PORTAL_NAV_LABELS).toEqual([
       'Übersicht',
       'Einsätze',
+      'Offene Einsätze',
       'Kalender',
       'Nachrichten',
       'Profil',
@@ -52,6 +53,7 @@ describe('employee portal M.1 refactor', () => {
       'Abwesenheiten',
     ]);
     expect(PORTAL_EMPLOYEE_DRAWER_TABS.map((tab) => tab.label)).toEqual([
+      'Offene Einsätze',
       'Uploads',
       'Klientenakten',
       'Arbeitszeiten',
@@ -61,7 +63,7 @@ describe('employee portal M.1 refactor', () => {
       'Abwesenheiten',
     ]);
     const all = resolveEmployeePortalNavigationTabs(PORTAL_EMPLOYEE_TABS);
-    expect(all).toHaveLength(12);
+    expect(all).toHaveLength(13);
     expect(all.map((tab) => tab.label)).not.toContain('Meine Zeiten');
     expect(all.map((tab) => tab.label)).not.toContain('Dokumente');
     expect(all.map((tab) => tab.label)).not.toContain('Offene Aufgaben');

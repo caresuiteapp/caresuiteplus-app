@@ -1,9 +1,12 @@
+import { offlineCacheEpoch } from './idb';
 import type { RoleKey } from '@/types';
 import type { CachedPortalAppointmentItem } from './types';
 import { isBrowserOffline } from './connectivity';
 
 export const MAX_PREFETCH_DETAILS = 6;
 const PREFETCH_THROTTLE_MS = 120;
+const PREFETCH_FRESH_MS = 120_000;
+let activePrefetchKey: string | null = null;
 
 export type PrefetchDetailResult = {
   attempted: number;
@@ -68,17 +71,13 @@ function logPrefetchFailure(assignmentId: string, kind: 'portal' | 'execution', 
 }
 
 function delayMs(ms: number, signal?: AbortSignal): Promise<void> {
-  if (signal?.aborted) return Promise.reject(new DOMException('Aborted', 'AbortError'));
+  const abortError = () => Object.assign(new Error('Aborted'), { name: 'AbortError' });
+  if (signal?.aborted) return Promise.reject(abortError());
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(resolve, ms);
-    signal?.addEventListener(
-      'abort',
-      () => {
-        clearTimeout(timer);
-        reject(new DOMException('Aborted', 'AbortError'));
-      },
-      { once: true },
-    );
+    const finish = () => { signal?.removeEventListener('abort', onAbort); resolve(); };
+    const timer = setTimeout(finish, ms);
+    const onAbort = () => { clearTimeout(timer); signal?.removeEventListener('abort', onAbort); reject(abortError()); };
+    signal?.addEventListener('abort', onAbort, { once: true });
   });
 }
 
@@ -89,50 +88,62 @@ export async function prefetchAssignmentDetailCaches(
   tenantId: string,
   employeeId: string,
   items: CachedPortalAppointmentItem[],
-  options?: { signal?: AbortSignal },
+  options?: { signal?: AbortSignal; limit?: number },
 ): Promise<PrefetchDetailResult> {
-  const { fetchLiveEmployeePortalAssignmentDetail } = await import(
-    '@/lib/portal/employeePortalExecutionLiveService'
+  const epoch = offlineCacheEpoch();
+  const { fetchEmployeePortalAssignmentDetail } = await import(
+    '@/lib/portal/employeePortalExecutionService'
   );
   const { fetchPortalAppointmentDetail } = await import('@/lib/portal/appointmentService');
-  const { writeExecutionDetailCache, writePortalAppointmentDetailCache } = await import(
+  const { writeExecutionDetailCache, writePortalAppointmentDetailCache, readExecutionDetailCache, readPortalAppointmentDetailCache } = await import(
     './assignmentCacheService'
   );
 
-  const candidates = selectPrefetchAssignmentCandidates(items);
+  const candidates = selectPrefetchAssignmentCandidates(items).slice(0, options?.limit ?? MAX_PREFETCH_DETAILS);
   const result: PrefetchDetailResult = {
-    attempted: candidates.length,
+    attempted: 0,
     portalWritten: 0,
     executionWritten: 0,
     failures: [],
   };
 
   for (const item of candidates) {
-    if (options?.signal?.aborted) break;
+    if (options?.signal?.aborted || epoch !== offlineCacheEpoch()) break;
 
     const assignmentId = item.id;
     const failure: PrefetchDetailResult['failures'][number] = { assignmentId };
 
     try {
-      const [executionDetail, portalDetail] = await Promise.all([
-        fetchLiveEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey),
-        fetchPortalAppointmentDetail(assignmentId, profileId, roleKey, { tenantId, employeeId }),
+      const [executionCached, portalCached] = await Promise.all([
+        readExecutionDetailCache(tenantId, employeeId, assignmentId),
+        readPortalAppointmentDetailCache(tenantId, employeeId, assignmentId),
       ]);
+      const fresh = (record: { cachedAt: string } | null) => record && Date.now() - Date.parse(record.cachedAt) < PREFETCH_FRESH_MS;
+      const needsExecution = !fresh(executionCached);
+      const needsPortal = !fresh(portalCached);
+      if ((!needsExecution && !needsPortal) || item.cacheStale) continue;
+      if (options?.signal?.aborted || epoch !== offlineCacheEpoch()) break;
+      result.attempted++;
+      const [executionDetail, portalDetail] = await Promise.all([
+        needsExecution ? fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey) : null,
+        needsPortal ? fetchPortalAppointmentDetail(assignmentId, profileId, roleKey, { tenantId, employeeId }) : null,
+      ]);
+      if (options?.signal?.aborted || epoch !== offlineCacheEpoch()) break;
 
-      if (executionDetail.ok) {
+      if (executionDetail?.ok) {
         const wrote = await writeExecutionDetailCache(tenantId, employeeId, executionDetail.data);
         if (wrote) result.executionWritten += 1;
         else logPrefetchFailure(assignmentId, 'execution', 'write_failed');
-      } else {
+      } else if (executionDetail) {
         failure.executionError = executionDetail.error;
         logPrefetchFailure(assignmentId, 'execution', executionDetail.error);
       }
 
-      if (portalDetail.ok) {
+      if (portalDetail?.ok) {
         const wrote = await writePortalAppointmentDetailCache(tenantId, employeeId, portalDetail.data);
         if (wrote) result.portalWritten += 1;
         else logPrefetchFailure(assignmentId, 'portal', 'write_failed');
-      } else {
+      } else if (portalDetail) {
         failure.portalError = portalDetail.error;
         logPrefetchFailure(assignmentId, 'portal', portalDetail.error);
       }
@@ -141,13 +152,13 @@ export async function prefetchAssignmentDetailCaches(
         result.failures.push(failure);
       }
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') break;
+      if (options?.signal?.aborted) break;
       const message = error instanceof Error ? error.message : 'prefetch_failed';
       result.failures.push({ assignmentId, portalError: message, executionError: message });
       logPrefetchFailure(assignmentId, 'portal', message);
     }
 
-    if (options?.signal?.aborted) break;
+    if (options?.signal?.aborted || epoch !== offlineCacheEpoch()) break;
     if (PREFETCH_THROTTLE_MS > 0) {
       try {
         await delayMs(PREFETCH_THROTTLE_MS, options?.signal);
@@ -160,7 +171,7 @@ export async function prefetchAssignmentDetailCaches(
   return result;
 }
 
-/** Cancel any in-flight detail prefetch and start a new bounded run. */
+/** Coalesce the same visible batch and let initial rendering finish before prefetch. */
 export function scheduleAssignmentDetailPrefetch(
   profileId: string,
   roleKey: RoleKey | null,
@@ -173,21 +184,28 @@ export function scheduleAssignmentDetailPrefetch(
   if (isBrowserOffline()) return;
   if (!items.length) return;
 
+  const key = JSON.stringify([profileId, roleKey, tenantId, employeeId, selectPrefetchAssignmentCandidates(items).map(item => item.id)]);
+  if (activePrefetchKey === key) return;
   activePrefetchAbort?.abort();
+  activePrefetchKey = key;
   const controller = new AbortController();
   activePrefetchAbort = controller;
 
-  void prefetchAssignmentDetailCaches(profileId, roleKey, tenantId, employeeId, items, {
+  void delayMs(750, controller.signal).then(() => prefetchAssignmentDetailCaches(profileId, roleKey, tenantId, employeeId, items, {
     signal: controller.signal,
-  }).finally(() => {
+  })).catch(() => {}).finally(() => {
     if (activePrefetchAbort === controller) {
       activePrefetchAbort = null;
+      activePrefetchKey = null;
     }
   });
 }
 
-/** Test-only: abort in-flight detail prefetch between cases. */
-export function resetAssignmentDetailPrefetchForTests(): void {
+/** Logout also aborts late prefetch writes. */
+export function cancelAssignmentDetailPrefetch(): void {
   activePrefetchAbort?.abort();
   activePrefetchAbort = null;
+  activePrefetchKey = null;
 }
+
+export const resetAssignmentDetailPrefetchForTests = cancelAssignmentDetailPrefetch;

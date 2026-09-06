@@ -135,7 +135,7 @@ describe('realtime wiring', () => {
   it('useEmployeePortalDashboard nutzt Live-Refresh für Einsätze und KPIs', () => {
     const source = readSrc('src/hooks/useEmployeePortalDashboard.ts');
     expect(source).toContain('subscribeToEmployeePortalChanges');
-    expect(source).toContain('live:');
+    expect(source).toContain('live,');
     expect(source).toContain('isLiveConnected');
   });
 

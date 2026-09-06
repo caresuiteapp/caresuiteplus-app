@@ -220,7 +220,7 @@ describe('PortalCodeLoginScreen', () => {
       path.join(__dirname, '..', '..', 'screens', 'auth', 'PortalCodeLoginScreen.tsx'),
       'utf8',
     );
-    expect(source).toContain('Anmeldung Klient:innen Portal');
+    expect(source).toContain('Anmeldung Klientenportal');
     expect(source).toContain('Benutzername');
     expect(source).toContain('Portal-Code (6-stellig)');
     expect(source).toContain('loginClientPortal');
