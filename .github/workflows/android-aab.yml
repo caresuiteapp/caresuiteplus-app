@@ -66,7 +66,11 @@ jobs:
 
       - name: Android-Werkzeuge einrichten
         run: |
-          sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.1.12297006'
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_HOME" --install 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.1.12297006'
+          {
+            echo "$ANDROID_HOME/cmdline-tools/latest/bin"
+            echo "$ANDROID_HOME/platform-tools"
+          } >> "$GITHUB_PATH"
           {
             echo "ANDROID_NDK=$ANDROID_HOME/ndk/27.1.12297006"
             echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006"
