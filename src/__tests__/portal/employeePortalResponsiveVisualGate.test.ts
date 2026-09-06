@@ -57,7 +57,7 @@ describe('employee portal responsive visual gate', () => {
     expect(resolvePortalDesktopChrome(1440)).toBe(true);
   });
 
-  it('gives the live visit its full mobile workspace without a second bottom navigation', () => {
+  it('keeps portal navigation available while the live visit owns its workspace', () => {
     expect(isEmployeeVisitExecutionRoute('/portal/employee/assignments/visit-1/execute')).toBe(true);
     expect(isEmployeeVisitExecutionRoute('/portal/employee/assignments/visit-1')).toBe(false);
     expect(isEmployeeVisitExecutionRoute('/portal/employee/calendar')).toBe(false);
@@ -66,7 +66,9 @@ describe('employee portal responsive visual gate', () => {
     const tab = read('src/screens/portal/PortalTabScreen.tsx');
     const execution = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
 
-    expect(shell).toContain('!desktopChrome && !visitExecutionFocus');
+    expect(shell).toContain('testID="portal-navigation-footer"');
+    expect(shell).toContain('testID="portal-bottom-navigation"');
+    expect(shell).not.toContain('!desktopChrome && !visitExecutionFocus');
     expect(tab).toContain('showBottomTabs && !routeOwnsBottomBar');
     expect(execution).toContain('contentOwnsHero');
     expect(execution.indexOf('<ScrollView')).toBeLessThan(

@@ -128,7 +128,7 @@ export function WorkflowFeedbackOverlay({
         style={[
           styles.dialog,
           loading ? styles.loadingDialog : portal.active && styles.portalDialog,
-          { borderColor: loading ? 'rgba(85, 216, 255, 0.52)' : meta.color },
+          { borderColor: loading ? '#C6DDF5' : meta.color },
         ]}
         {...(Platform.OS === 'web'
           ? ({ dataSet: { csHealthosComponent: 'modal' } } as object)
@@ -136,8 +136,6 @@ export function WorkflowFeedbackOverlay({
       >
         {loading ? (
           <View style={styles.loadingContent}>
-            <View style={styles.loadingGlowCyan} />
-            <View style={styles.loadingGlowViolet} />
             <CareSuiteLoadingIndicator width={240} />
             <Text style={styles.loadingMessage}>{loadingMessage}</Text>
             <Text style={styles.loadingWait}>
@@ -220,7 +218,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(5, 7, 22, 0.54)',
   },
-  loadingBackdrop: { backgroundColor: 'rgba(5, 7, 22, 0.72)' },
+  loadingBackdrop: { backgroundColor: 'rgba(225, 236, 248, 0.65)' },
   dialog: {
     width: '100%',
     maxWidth: 560,
@@ -237,10 +235,11 @@ const styles = StyleSheet.create({
   },
   loadingDialog: {
     overflow: 'hidden',
-    backgroundColor: 'rgba(7, 24, 45, 0.985)',
-    shadowColor: '#55D8FF',
-    shadowOpacity: 0.28,
-    shadowRadius: 38,
+    maxWidth: 380,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#1B4268',
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
     shadowOffset: { width: 0, height: 18 },
   },
   portalDialog: {
@@ -299,33 +298,15 @@ const styles = StyleSheet.create({
     gap: careSpacing.sm,
     paddingVertical: careSpacing.md,
   },
-  loadingGlowCyan: {
-    position: 'absolute',
-    width: 260,
-    height: 260,
-    right: -150,
-    top: -180,
-    borderRadius: 130,
-    backgroundColor: 'rgba(38, 157, 255, 0.18)',
-  },
-  loadingGlowViolet: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    left: -150,
-    bottom: -175,
-    borderRadius: 110,
-    backgroundColor: 'rgba(139, 124, 255, 0.18)',
-  },
   loadingMessage: {
     ...typography.h3,
-    color: '#F4FAFF',
+    color: '#123251',
     textAlign: 'center',
     lineHeight: 28,
   },
   loadingWait: {
     ...typography.caption,
-    color: '#A9BDD3',
+    color: '#456480',
     textAlign: 'center',
     lineHeight: 20,
   },

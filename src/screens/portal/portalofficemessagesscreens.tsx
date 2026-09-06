@@ -61,6 +61,9 @@ export function ClientPortalOfficeMessagesScreen() {
 
 export function EmployeePortalOfficeMessagesScreen() {
   const { can, check } = usePermissions();
+  const { compose } = useLocalSearchParams<{ compose?: string }>();
+  const { active: messengerFocusActive, closeThread } = usePortalMessengerFocus();
+  useEffect(() => () => closeThread(), [closeThread]);
   if (!can('portal.employee.messages.view')) {
     return (
       <PortalTabScreen title="Nachrichten" subtitle="Mitarbeiter:innenportal">
@@ -79,12 +82,13 @@ export function EmployeePortalOfficeMessagesScreen() {
       scroll={false}
     >
       <View style={styles.employeeMessages}>
-        <PortalGlassHero
+        {!messengerFocusActive ? <PortalGlassHero
           title="Ihre Gespräche"
           subtitle="Alles Wichtige an einem Ort – neue Antworten erscheinen sofort."
           showStatusDot
         />
-        <PortalOfficeMessenger audience="employee" variant="glass" />
+        : null}
+        <PortalOfficeMessenger audience="employee" variant="glass" initialComposeOpen={compose === '1' || compose === 'true'} />
       </View>
     </PortalTabScreen>
   );

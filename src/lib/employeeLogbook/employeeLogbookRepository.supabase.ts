@@ -171,7 +171,8 @@ export async function confirmEmployeeLogbookTrip(input: { trip: LogbookTrip; dis
     previous_values: corrected ? { distance_final_km: input.trip.distanceFinalKm, status: input.trip.status } : null,
     updated_at: now,
   }).eq('id', input.trip.id).eq('tenant_id', input.trip.tenantId)
-    .eq('employee_id', input.trip.employeeId).eq('status', 'confirmation_required')
+    .eq('employee_id', input.trip.employeeId).eq('status', input.trip.status)
+    .eq('distance_final_km', input.trip.distanceFinalKm)
     .select('id').maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) {

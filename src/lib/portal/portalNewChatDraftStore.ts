@@ -7,6 +7,9 @@ export type PortalNewChatDraft = {
   updatedAt: number;
 };
 
+// Native has no sessionStorage. Keep unsent drafts across screen changes in this app session.
+const sessionDrafts = new Map<string, PortalNewChatDraft>();
+
 const STORAGE_PREFIX = 'portal-new-chat-draft-';
 
 function storageKey(tenantId: string, audience: PortalOfficeAudience, actorId: string | null): string {
@@ -18,7 +21,9 @@ export function readPortalNewChatDraft(
   audience: PortalOfficeAudience,
   actorId: string | null,
 ): PortalNewChatDraft | null {
-  if (!tenantId?.trim() || typeof globalThis.sessionStorage === 'undefined') return null;
+  if (!tenantId?.trim()) return null;
+  const key = storageKey(tenantId, audience, actorId);
+  if (typeof globalThis.sessionStorage === 'undefined') return sessionDrafts.get(key) ?? null;
 
   try {
     const raw = globalThis.sessionStorage.getItem(storageKey(tenantId, audience, actorId));
@@ -42,8 +47,10 @@ export function writePortalNewChatDraft(
   actorId: string | null,
   draft: Omit<PortalNewChatDraft, 'updatedAt'>,
 ): void {
-  if (!tenantId?.trim() || typeof globalThis.sessionStorage === 'undefined') return;
+  if (!tenantId?.trim()) return;
 
+  sessionDrafts.set(storageKey(tenantId, audience, actorId), { ...draft, updatedAt: Date.now() });
+  if (typeof globalThis.sessionStorage === 'undefined') return;
   try {
     globalThis.sessionStorage.setItem(
       storageKey(tenantId, audience, actorId),
@@ -59,8 +66,10 @@ export function clearPortalNewChatDraft(
   audience: PortalOfficeAudience,
   actorId: string | null,
 ): void {
-  if (!tenantId?.trim() || typeof globalThis.sessionStorage === 'undefined') return;
+  if (!tenantId?.trim()) return;
 
+  sessionDrafts.delete(storageKey(tenantId, audience, actorId));
+  if (typeof globalThis.sessionStorage === 'undefined') return;
   try {
     globalThis.sessionStorage.removeItem(storageKey(tenantId, audience, actorId));
   } catch {

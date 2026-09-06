@@ -20,6 +20,7 @@ type Props = {
   phase: string; refreshToken?: number;
   onConfirmationRequiredChange?: (required: boolean) => void;
   onOpenLogbook?: () => void;
+  onVisitChanged?: () => Promise<unknown>;
 };
 
 /** A single card stays mounted through arrival and service, including late server confirmations. */
@@ -34,6 +35,7 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
   const [kind, setKind] = useState<'with_client' | 'client_errand'>('with_client');
   const [purpose, setPurpose] = useState('');
   const [destination, setDestination] = useState('');
+  const [correctionTrip, setCorrectionTrip] = useState<EmployeeLogbookBundle['trips'][number] | null>(null);
   const [confirmationKm, setConfirmationKm] = useState('');
   const [confirmationReason, setConfirmationReason] = useState('');
   const [confirmationOpen, setConfirmationOpen] = useState(true);
@@ -110,14 +112,17 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
     void finishApproach();
   }, [phase, active, loading, busy, error, finishApproach]);
 
+  const confirmationTrip = pending ?? correctionTrip;
   const km = parseTripKilometres(confirmationKm);
-  const corrected = pending && km !== null && Math.abs(km - pending.distanceFinalKm) >= 0.005;
+  const corrected = confirmationTrip && km !== null && Math.abs(km - confirmationTrip.distanceFinalKm) >= 0.005;
   const canConfirm = km !== null && (!corrected || confirmationReason.trim().length >= 3);
   const confirm = () => {
-    if (!pending || !canConfirm || km === null) return;
+    if (!confirmationTrip || !canConfirm || km === null) return;
     void mutate(async () => {
-      await confirmEmployeeLogbookTrip({ trip: pending, distanceKm: km, reason: confirmationReason });
-      setFeedback('Kilometer bestätigt.');
+      await confirmEmployeeLogbookTrip({ trip: confirmationTrip, distanceKm: km, reason: confirmationReason });
+      setCorrectionTrip(null);
+      if (correctionTrip && corrected) await props.onVisitChanged?.();
+      setFeedback(correctionTrip && corrected ? 'Kilometer korrigiert. Bitte die Unterschrift anschließend erneut einholen.' : 'Kilometer bestätigt.');
     });
   };
   const start = () => void mutate(async () => {
@@ -139,13 +144,13 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
 
   return (
     <SectionPanel title="Fahrtenbuch" subtitle={phase === 'en_route' ? 'Anfahrt zum Einsatz' : 'PKW-Fahrten für diesen Einsatz'}>
-      <Modal visible={Boolean(pending && confirmationOpen)} transparent animationType="fade" onRequestClose={() => { if (!busy) setConfirmationOpen(false); }}>
+      <Modal visible={Boolean(confirmationTrip && confirmationOpen)} transparent animationType="fade" onRequestClose={() => { if (!busy) setConfirmationOpen(false); }}>
         <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.modalCard}>
             <ScrollView contentContainerStyle={styles.stack} keyboardShouldPersistTaps="handled">
               <Text style={styles.title}>Fahrt beendet · Kilometer prüfen</Text>
-              <Text style={styles.copy}>{pending?.purpose}</Text>
-              {pending?.notes ? <Text style={styles.copy}>{pending.notes}</Text> : null}
+              <Text style={styles.copy}>{confirmationTrip?.purpose}</Text>
+              {confirmationTrip?.notes ? <Text style={styles.copy}>{confirmationTrip.notes}</Text> : null}
               <PremiumInput label="Gefahrene Kilometer" value={confirmationKm} onChangeText={setConfirmationKm} keyboardType="decimal-pad" />
               {corrected ? <PremiumInput label="Korrektur kurz begründen (mindestens 3 Zeichen)" value={confirmationReason} onChangeText={setConfirmationReason} /> : null}
               {km === null ? <Text style={styles.error}>Bitte gültige Kilometer eingeben, z. B. 1,2.</Text> : null}
@@ -162,6 +167,13 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
       {feedback ? <InfoBanner message={feedback} variant="info" /> : null}
       {otherActive ? <InfoBanner message="Es läuft noch eine PKW-Fahrt eines anderen Einsatzes. Bitte dort oder im Fahrtenbuch zuerst beenden." variant="warning" /> : null}
       {props.onOpenLogbook && (error || otherActive || (!loading && (!data?.eligibility.eligible || (phase === 'en_route' && !active)))) ? <PremiumButton title="Fahrtenbuch öffnen" variant="secondary" onPress={props.onOpenLogbook} /> : null}
+      {phase !== 'completed' ? (data?.bundle.trips ?? []).filter((trip) => trip.assignmentId === resolveVisitMasterId(assignmentId) && ['completed', 'confirmed', 'corrected'].includes(trip.status)).map((trip) => (
+        <PremiumButton key={trip.id} variant="secondary" title={`${trip.purpose || 'Fahrt'} · ${trip.distanceFinalKm.toFixed(2).replace('.', ',')} km bearbeiten`}
+          disabled={busy || Boolean(pending)} onPress={() => {
+            setCorrectionTrip(trip); setConfirmationKm(trip.distanceFinalKm.toFixed(2).replace('.', ','));
+            setConfirmationReason(''); setConfirmationOpen(true);
+          }} />
+      )) : null}
       {pending ? <PremiumButton title="Kilometer prüfen und bestätigen" fullWidth onPress={() => setConfirmationOpen(true)} /> : null}
       {active ? (
         <View style={styles.stack}>

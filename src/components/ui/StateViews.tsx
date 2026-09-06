@@ -76,6 +76,7 @@ export function LoadingState({ message, presentation = 'overlay' }: LoadingState
         },
         loader: {
           width: loaderWidth,
+          maxWidth: '100%',
           backgroundColor: 'transparent',
         },
         message: {

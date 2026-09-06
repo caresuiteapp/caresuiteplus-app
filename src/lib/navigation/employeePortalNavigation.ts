@@ -7,6 +7,7 @@ import type { ShellTabConfig } from '@/types/navigation/shell';
 export const EMPLOYEE_PORTAL_NAV_TABS: ShellTabConfig[] = [
   { key: 'overview', label: 'Übersicht', icon: '🏠', href: '/portal/employee' },
   { key: 'assignments', label: 'Einsätze', icon: '📋', href: '/portal/employee/assignments' },
+  { key: 'open-assignments', label: 'Offene Einsätze', icon: '📌', href: '/portal/employee/offene-einsaetze' },
   { key: 'calendar', label: 'Kalender', icon: '📅', href: '/portal/employee/calendar' },
   { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/employee/messages' },
   { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/employee/profile' },
@@ -57,6 +58,7 @@ export type EmployeePortalPrimaryTabKey = (typeof EMPLOYEE_PORTAL_PRIMARY_TAB_KE
 
 /** Drawer-only keys (everything after primary bottom nav in canonical order). */
 export const EMPLOYEE_PORTAL_DRAWER_TAB_KEYS = [
+  'open-assignments',
   'uploads',
   'clients',
   'time-tracking',

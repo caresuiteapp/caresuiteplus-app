@@ -82,7 +82,6 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
     [messageInbox.threads],
   );
   const messageBadge = formatNavBadgeLabel(unreadMessageCount);
-  const bottomNavigationOffset = Math.max(insets.bottom, 12) + (layout.isPhone ? 16 : 12);
   const menuBottomPadding = Math.max(insets.bottom + 18, 30);
 
   const navigationLabel = (id: string, label: string) =>
@@ -105,7 +104,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   return (
     <LiquidBackdrop>
       <View style={styles.shell}>
-        {desktopChrome && !visitExecutionFocus ? (
+        {desktopChrome ? (
           <View style={[styles.rail, kind === 'client' && styles.clientRail]}>
             {kind === 'client' ? <LiquidLogo mini /> : <LiquidLogo compact />}
             <ScrollView contentContainerStyle={styles.railItems} showsVerticalScrollIndicator={false}>
@@ -221,9 +220,14 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
           </LiquidSurface>
         </View>
       </View>
-      {!desktopChrome && !visitExecutionFocus ? (
+      <View
+        style={[styles.portalFooter, { paddingBottom: desktopChrome ? 8 : Math.max(insets.bottom, 12) }]}
+        testID="portal-navigation-footer"
+      >
+      {overlay}
+      {!desktopChrome ? (
         <>
-          <View style={[styles.bottomNav, { bottom: bottomNavigationOffset }]}>
+          <View style={styles.bottomNav} testID="portal-bottom-navigation">
             {compactNavigation.map((item) => (
               <Pressable
                 key={item.id}
@@ -245,7 +249,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   numberOfLines={1}
                   style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}
                 >
-                  {item.label}
+                  {item.id === 'open-assignments' ? 'Offen' : item.label}
                 </Text>
                 {item.id === 'messages' && messageBadge ? (
                   <View style={styles.bottomUnreadBadge}>
@@ -352,7 +356,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
           </Modal>
         </>
       ) : null}
-      {overlay}
+      </View>
     </LiquidBackdrop>
   );
 }
@@ -589,11 +593,15 @@ const styles = StyleSheet.create({
   contentFocus: {
     backgroundColor: '#F7FAFE',
   },
+  portalFooter: {
+    flexShrink: 0,
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    gap: 6,
+    backgroundColor: '#F4F8FD',
+  },
   bottomNav: {
-    position: 'absolute',
-    left: 8,
-    right: 8,
-    bottom: 12,
+    flexShrink: 0,
     minHeight: 68,
     paddingHorizontal: 4,
     paddingVertical: 5,
@@ -603,7 +611,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.98)',
     flexDirection: 'row',
     alignItems: 'center',
-    zIndex: liquidLayers.overlay,
     shadowColor: '#12355B',
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.14,

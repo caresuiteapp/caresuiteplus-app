@@ -21,8 +21,8 @@ describe('R16 portal mobile stability and layout recovery', () => {
 
   it('keeps the bottom navigation and menu above Android system controls', () => {
     const shell = read('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
-    expect(shell).toContain('bottomNavigationOffset');
-    expect(shell).toContain('Math.max(insets.bottom, 12) + (layout.isPhone ? 16 : 12)');
+    expect(shell).toContain('testID="portal-navigation-footer"');
+    expect(shell).toContain('paddingBottom: desktopChrome ? 8 : Math.max(insets.bottom, 12)');
     expect(shell).toContain('menuBottomPadding');
     expect(shell).toContain("maxHeight: '72%'");
   });

@@ -77,6 +77,12 @@ export function PortalTabScreen({
     return { paddingBottom: bareBottomPadding };
   }, [bareBottomPadding, messengerFocusActive, showPortalBottomTabs]);
 
+  // Keep a stable parent while the messenger switches inbox/compose/thread.
+  // Swapping PageFrame for a different wrapper remounts the just-opened composer.
+  if (!scroll && /^\/portal\/(employee|client)\/messages(?:\/|$)/.test(pathname)) {
+    return <View style={[styles.bare, styles.bareFocus]} testID="portal-messages-stable-screen">{children}</View>;
+  }
+
   if (isEmployeePortal && routeOwnsBottomBar && !messengerFocusActive) {
     return (
       <View style={styles.employeeVisitFocus} testID="employee-visit-focus-screen">

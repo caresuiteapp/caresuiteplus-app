@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { PlatformModal } from '@/components/layout/platform/platformmodal';
-import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
+import { BackHandler, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PremiumInput } from '@/components/ui';
 import {
   createPortalOfficeThread,
@@ -30,6 +29,7 @@ type PortalNewChatModalProps = {
   visible: boolean;
   audience: PortalOfficeAudience;
   variant?: 'default' | 'glass';
+  presentation?: 'modal' | 'screen';
   onClose: () => void;
   onCreated: (threadId: string) => void;
   initialSubject?: string;
@@ -39,13 +39,14 @@ type PortalNewChatModalProps = {
 export function PortalNewChatModal({
   visible,
   audience,
-  variant = 'default',
+  presentation = 'modal',
   onClose,
   onCreated,
   initialSubject = '',
   initialMessage: initialMessageTemplate = '',
 }: PortalNewChatModalProps) {
   const { c } = useCareLightPalette();
+  const insets = useSafeAreaInsets();
   const { typography } = useLegacyTheme();
   const { portalSession } = useAuth();
   const tenantId = useServiceTenantId();
@@ -69,6 +70,9 @@ export function PortalNewChatModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hydratedOpenRef = useRef(false);
+  const skipDraftWriteRef = useRef(false);
+  const sendLockRef = useRef(false);
+  const [showDetails, setShowDetails] = useState(false);
   const actorAudienceMatches = portalAudienceForRole(roleKey) === audience;
   // Keep the action tappable so a missing account link produces an actionable
   // explanation instead of a permanently disabled, apparently broken button.
@@ -112,6 +116,7 @@ export function PortalNewChatModal({
     }
     if (!tenantId || hydratedOpenRef.current) return;
     hydratedOpenRef.current = true;
+    skipDraftWriteRef.current = true;
 
     const savedDraft = readPortalNewChatDraft(tenantId, audience, draftActorId);
     if (savedDraft) {
@@ -129,7 +134,11 @@ export function PortalNewChatModal({
 
   useEffect(() => {
     if (!visible || !tenantId) return;
-    if (!subject.trim() && !initialMessage.trim() && !categoryId) return;
+    if (skipDraftWriteRef.current) { skipDraftWriteRef.current = false; return; }
+    if (!subject.trim() && !initialMessage.trim() && !categoryId) {
+      clearPortalNewChatDraft(tenantId, audience, draftActorId);
+      return;
+    }
     writePortalNewChatDraft(tenantId, audience, draftActorId, {
       subject,
       initialMessage,
@@ -156,7 +165,9 @@ export function PortalNewChatModal({
         setCategoryWarning(actorResult.error);
         return;
       }
-      const result = await fetchPortalOfficeCategories(tenantId, actorResult.data);
+      const result = await fetchPortalOfficeCategories(tenantId, actorResult.data).catch(() => ({
+        ok: false as const, error: 'Themen konnten nicht geladen werden.',
+      }));
       if (!active) return;
       if (result.ok) {
         setCategories(result.data);
@@ -195,6 +206,7 @@ export function PortalNewChatModal({
   ]);
 
   const handleCreate = async () => {
+    if (sendLockRef.current) return;
     if (!tenantId) {
       setError('Der Mandant konnte nicht geladen werden. Bitte melden Sie sich erneut an.');
       return;
@@ -215,8 +227,8 @@ export function PortalNewChatModal({
       );
       return;
     }
-    if (!subject.trim()) {
-      setError('Bitte einen Betreff eingeben.');
+    if (!initialMessage.trim()) {
+      setError('Bitte geben Sie eine Nachricht ein.');
       return;
     }
 
@@ -232,6 +244,7 @@ export function PortalNewChatModal({
       return;
     }
 
+    sendLockRef.current = true;
     setSubmitting(true);
     setError(null);
     let result: Awaited<ReturnType<typeof createPortalOfficeThread>>;
@@ -244,13 +257,14 @@ export function PortalNewChatModal({
 
       result = await createPortalOfficeThread(tenantId, actorResult.data, {
         categoryId: categoryId ?? null,
-        subject: subject.trim(),
+        subject: subject.trim() || initialMessage.trim().replace(/\s+/g, ' ').slice(0, 80),
         initialMessage: initialMessage.trim() || undefined,
       });
     } catch {
       setError('Die Nachricht konnte nicht gesendet werden. Bitte Verbindung prüfen und erneut versuchen.');
       return;
     } finally {
+      sendLockRef.current = false;
       setSubmitting(false);
     }
 
@@ -268,84 +282,128 @@ export function PortalNewChatModal({
     onClose();
   };
 
-  const title = 'Verwaltung anschreiben';
+  const closeComposer = () => {
+    if (!sendLockRef.current) onClose();
+  };
+  useEffect(() => {
+    if (!visible || presentation !== 'screen' || Platform.OS === 'web') return;
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!sendLockRef.current) onClose();
+      return true;
+    });
+    return () => listener.remove();
+  }, [visible, presentation, onClose]);
 
-  const formBody = (
-    <>
-      <View style={styles.section}>
-        <Text style={styles.label}>Thema</Text>
-        <View style={styles.chips}>
-          {categories.map((category) => {
-            const active = category.id === categoryId;
-            return (
-              <Pressable
-                key={category.id}
-                onPress={() => setCategoryId(category.id)}
-                style={[styles.chip, active && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                  {category.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-          {!categoriesLoading && categories.length === 0 ? (
-            <View style={styles.fallbackChip}>
-              <Text style={styles.chipTextActive}>Allgemeines Anliegen</Text>
-            </View>
-          ) : null}
+  const content = (
+    <KeyboardAvoidingView
+      style={chatStyles.root}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      testID="portal-new-chat-screen"
+    >
+      <View style={chatStyles.header}>
+        <Pressable onPress={closeComposer} disabled={submitting} accessibilityRole="button"
+          accessibilityLabel="Zurück zu Nachrichten" style={chatStyles.back}>
+          <Text style={chatStyles.backText}>← Zurück</Text>
+        </Pressable>
+        <View style={chatStyles.recipient}>
+          <Text style={chatStyles.title}>Verwaltung</Text>
+          <Text style={chatStyles.subtitle}>Neues Gespräch</Text>
         </View>
-        {categoriesLoading ? <Text style={styles.warning}>Themen werden geladen…</Text> : null}
-        {categoryWarning ? <Text style={styles.warning}>{categoryWarning}</Text> : null}
       </View>
-
-      <PremiumInput label="Betreff *" value={subject} onChangeText={setSubject} />
-      <PremiumInput
-        label="Ihre Nachricht"
-        value={initialMessage}
-        onChangeText={setInitialMessage}
-        multiline
-        placeholder="Beschreiben Sie kurz Ihr Anliegen…"
-      />
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Text style={styles.label}>{PORTAL_EMERGENCY_DISCLAIMER}</Text>
-    </>
+      <ScrollView style={chatStyles.conversation} contentContainerStyle={chatStyles.conversationContent}
+        keyboardShouldPersistTaps="handled">
+        <View style={chatStyles.introduction}>
+          <Text style={chatStyles.introductionTitle}>Wie können wir Ihnen helfen?</Text>
+          <Text style={chatStyles.introductionText}>
+            Schreiben Sie Ihre Nachricht an die Verwaltung. Antworten erscheinen hier im Chat.
+          </Text>
+        </View>
+        {initialSubject ? <Text style={chatStyles.context}>{initialSubject}</Text> : null}
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: showDetails }}
+          onPress={() => setShowDetails((value) => !value)} style={chatStyles.detailsButton}>
+          <Text style={chatStyles.backText}>{showDetails ? 'Thema ausblenden' : 'Thema hinzufügen (optional)'}</Text>
+        </Pressable>
+        {showDetails ? (
+          <View style={chatStyles.details}>
+            <PremiumInput label="Betreff (optional)" value={subject} onChangeText={setSubject} />
+            <View style={styles.chips}>
+              {categories.map((category) => (
+                <Pressable key={category.id} accessibilityRole="button"
+                  accessibilityState={{ selected: category.id === categoryId }}
+                  onPress={() => setCategoryId(category.id)}
+                  style={[styles.chip, category.id === categoryId && styles.chipActive]}>
+                  <Text style={[styles.chipText, category.id === categoryId && styles.chipTextActive]}>{category.label}</Text>
+                </Pressable>
+              ))}
+              {!categoriesLoading && categories.length === 0 ? (
+                <Text style={chatStyles.subtitle}>Allgemeines Anliegen</Text>
+              ) : null}
+            </View>
+            {categoriesLoading ? <Text style={chatStyles.subtitle}>Themen werden geladen…</Text> : null}
+            {categoryWarning ? <Text style={chatStyles.subtitle}>{categoryWarning}</Text> : null}
+          </View>
+        ) : null}
+        <Text style={chatStyles.disclaimer}>{PORTAL_EMERGENCY_DISCLAIMER}</Text>
+      </ScrollView>
+      <View style={chatStyles.composer}>
+        {error ? <Text accessibilityRole="alert" style={chatStyles.error}>{error}</Text> : null}
+        <TextInput
+          accessibilityLabel="Ihre Nachricht an die Verwaltung"
+          testID="portal-new-chat-message"
+          value={initialMessage}
+          onChangeText={setInitialMessage}
+          editable={!submitting}
+          multiline
+          placeholder="Nachricht schreiben…"
+          placeholderTextColor="#5B7187"
+          textAlignVertical="top"
+          style={chatStyles.input}
+        />
+        <Pressable accessibilityRole="button" accessibilityLabel="Nachricht senden"
+          accessibilityState={{ disabled: !canSend, busy: submitting }}
+          disabled={!canSend} onPress={handleCreate} style={[chatStyles.send, submitting && chatStyles.sending]}
+          testID="portal-new-chat-send">
+          <Text style={chatStyles.sendText}>{submitting ? 'Wird gesendet…' : 'Nachricht senden'}</Text>
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>
   );
 
-  if (variant === 'glass') {
-    return (
-      <PortalGlassModal
-        visible={visible}
-        title={title}
-        onClose={onClose}
-        primaryLabel="Nachricht senden"
-        onPrimary={handleCreate}
-        primaryLoading={submitting}
-        primaryDisabled={!canSend}
-      >
-        {formBody}
-      </PortalGlassModal>
-    );
-  }
-
+  if (!visible) return null;
+  if (presentation === 'screen') return content;
+  // Assignment compose uses one bounded native screen, without nested modal scroll sheets.
   return (
-    <PlatformModal
-      visible={visible}
-      title={title}
-      onClose={onClose}
-      footerActions={[
-        { title: 'Abbrechen', onPress: onClose, variant: 'glass' },
-        {
-          title: 'Nachricht senden',
-          onPress: handleCreate,
-          loading: submitting,
-          disabled: !canSend,
-        },
-      ]}
-      maxWidth={560}
-    >
-      {formBody}
-    </PlatformModal>
+    <Modal visible animationType="slide" onRequestClose={closeComposer} presentationStyle="fullScreen">
+      <View style={[chatStyles.modal, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        {content}
+      </View>
+    </Modal>
   );
 }
+
+const chatStyles = StyleSheet.create({
+  modal: { flex: 1, backgroundColor: '#F5F9FE' },
+  root: { flex: 1, minHeight: 0, width: '100%', backgroundColor: '#F5F9FE' },
+  header: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12,
+    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#D3E3F5' },
+  back: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 8 },
+  backText: { color: '#0766C9', fontSize: 15, fontWeight: '700' },
+  recipient: { flex: 1, minWidth: 0, gap: 2 },
+  title: { color: '#123251', fontSize: 20, fontWeight: '800' },
+  subtitle: { color: '#456480', fontSize: 14, lineHeight: 20 },
+  conversation: { flex: 1, minHeight: 0 },
+  conversationContent: { flexGrow: 1, padding: 16, gap: 16 },
+  introduction: { backgroundColor: '#E7F1FF', borderRadius: 18, padding: 18, gap: 8 },
+  introductionTitle: { color: '#123251', fontSize: 18, fontWeight: '700' },
+  introductionText: { color: '#355573', fontSize: 16, lineHeight: 24 },
+  context: { color: '#123251', fontSize: 15, fontWeight: '600' },
+  detailsButton: { minHeight: 44, justifyContent: 'center' },
+  details: { gap: 12 },
+  disclaimer: { color: '#5B7187', fontSize: 12, lineHeight: 18 },
+  composer: { flexShrink: 0, padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: '#D3E3F5', backgroundColor: '#FFFFFF' },
+  input: { minHeight: 64, maxHeight: 112, padding: 12, borderWidth: 1, borderColor: '#B9D2EF', borderRadius: 14, backgroundColor: '#F8FBFF', color: '#123251', fontSize: 16 },
+  send: { minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0876E8', padding: 12 },
+  sending: { opacity: 0.65 },
+  sendText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  error: { color: '#A12832', fontSize: 14, lineHeight: 20 },
+});

@@ -1,3 +1,4 @@
+import { EmployeeOpenVisitTimeEditor } from '@/components/portal/EmployeeOpenVisitTimeEditor';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Linking,
@@ -1648,6 +1649,7 @@ export function EmployeePortalVisitExecutionScreen() {
                 phase={phase}
                 refreshToken={logbookRefreshToken}
                 onConfirmationRequiredChange={setLogbookConfirmationRequired}
+                onVisitChanged={refresh}
                 onOpenLogbook={() => router.push('/portal/employee/fahrtenbuch' as never)}
               />
             </EmployeePortalExecutionSectionBoundary>
@@ -1655,9 +1657,10 @@ export function EmployeePortalVisitExecutionScreen() {
 
           {localError || taskSaveError ? <InfoBanner message={localError ?? taskSaveError!} variant="error" /> : null}
           {localWarning || syncWarning ? <InfoBanner message={localWarning ?? formatExecutionSyncWarning(syncWarning!)} variant="warning" /> : null}
+          {!isLocked && !readOnlyExecution ? <EmployeeOpenVisitTimeEditor key={visit.assignmentId} visit={visit} onSaved={refresh} disabled={actionLoading || driveLoading || startServiceLoading} /> : null}
           {renderPhaseContent()}
 
-          {showSignature && !isLocked ? (
+          {(showSignature || (isServiceEnded && documentationSubmitted && signatureCaptured)) && !isLocked ? (
             <View
               onLayout={(event) => {
                 signatureSectionY.current = event.nativeEvent.layout.y;
@@ -1726,7 +1729,7 @@ export function EmployeePortalVisitExecutionScreen() {
       {documentationAccessible ? (
         <EmployeePortalVisitDocumentationPanel
           ref={docPanelRef}
-          disabled={documentationSubmitted && (signatureCaptured || signatureDeferred)}
+          disabled={isLocked || readOnlyExecution}
           loading={actionLoading}
           tenantId={portalTenantId}
           visible={documentationOpen}

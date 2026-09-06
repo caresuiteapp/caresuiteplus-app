@@ -1,3 +1,4 @@
+import { readAllVisitPages } from './visitListPagination';
 import type { ServiceResult } from '@/types';
 import type { WorkflowStatus } from '@/types/core/base';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
@@ -700,7 +701,7 @@ export const visitSupabaseRepository = {
       }
       rows = [...byId.values()];
     } else {
-      const { data, error } = await baseQuery().order('planned_start_at', { ascending: true });
+      const { data, error } = await readAllVisitPages((from, to) => baseQuery().order('planned_start_at', { ascending: true }).order('id', { ascending: true }).range(from, to));
       if (error && shouldFallbackVisitEmbeddedSelect(error)) {
         let flatQuery = fromUnknownTable(supabase, 'assist_visits')
           .select(VISIT_LIST_CORE_SELECT)
@@ -713,7 +714,7 @@ export const visitSupabaseRepository = {
         if (options?.clientId) flatQuery = flatQuery.eq('client_id', options.clientId);
         if (options?.employeeId) flatQuery = flatQuery.eq('employee_id', options.employeeId);
         if (options?.serviceKey) flatQuery = flatQuery.eq('service_key', options.serviceKey);
-        const flatResult = await flatQuery.order('planned_start_at', { ascending: true });
+        const flatResult = await readAllVisitPages((from, to) => flatQuery.order('planned_start_at', { ascending: true }).order('id', { ascending: true }).range(from, to));
         if (flatResult.error) {
           return { ok: false, error: toGermanSupabaseError(flatResult.error) };
         }

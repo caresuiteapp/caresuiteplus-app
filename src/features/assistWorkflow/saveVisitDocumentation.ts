@@ -276,6 +276,7 @@ export async function saveVisitDocumentation(
     ...updatedCtx.detail,
     status: isLiveDocumentation ? updatedCtx.detail.status : 'dokumentation_offen' as const,
     documentationStatus: 'submitted' as const,
+    signatureStatus: 'pending' as const,
     documentationNotes: docText,
   };
   const visitTimes = updatedCtx.visitTimes;

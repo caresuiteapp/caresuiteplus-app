@@ -14,7 +14,8 @@ describe('employee portal mobile bottom navigation R18.6', () => {
     expect(layout).not.toContain(
       '!desktopChrome && !visitExecutionFocus && { marginBottom:',
     );
-    expect(layout).toContain('style={[styles.bottomNav, { bottom: bottomNavigationOffset }]}');
+    expect(layout).toContain('style={styles.bottomNav} testID="portal-bottom-navigation"');
+    expect(layout).toContain('testID="portal-navigation-footer"');
   });
 
   it('keeps exactly one navigation-safe reserve in the page scroll content', () => {

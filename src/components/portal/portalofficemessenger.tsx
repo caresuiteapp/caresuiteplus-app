@@ -25,7 +25,7 @@ type PortalOfficeMessengerProps = {
 export function PortalOfficeMessenger({
   audience,
   variant = 'default',
-  composeLabel = 'Verwaltung anschreiben',
+  composeLabel = 'Neue Nachricht',
   initialComposeOpen = false,
 }: PortalOfficeMessengerProps) {
   const { useMasterDetail } = usePlatformLayout();
@@ -42,7 +42,7 @@ export function PortalOfficeMessenger({
     if (initialComposeOpen) setShowNewChat(true);
   }, [initialComposeOpen]);
 
-  const mobileChatActive = !useMasterDetail && !!selectedThreadId;
+  const mobileChatActive = !useMasterDetail && (!!selectedThreadId || showNewChat);
 
   useEffect(() => {
     setMessengerFocusActive(mobileChatActive);
@@ -90,6 +90,20 @@ export function PortalOfficeMessenger({
     />
   ) : null;
 
+  if (showNewChat) {
+    return (
+      <PortalNewChatModal
+        visible audience={audience} variant={variant} presentation="screen"
+        onClose={() => setShowNewChat(false)}
+        onCreated={(threadId) => {
+          openThread(threadId, 'Verwaltung');
+          setFilter('open');
+          setShowNewChat(false);
+        }}
+      />
+    );
+  }
+
   return (
     <View style={styles.root}>
       {!mobileChatActive ? (
@@ -125,19 +139,7 @@ export function PortalOfficeMessenger({
         />
       </View>
 
-      {showNewChat ? (
-        <PortalNewChatModal
-          visible
-          audience={audience}
-          variant={variant}
-          onClose={() => setShowNewChat(false)}
-          onCreated={(threadId) => {
-            openThread(threadId);
-            setFilter('open');
-            setShowNewChat(false);
-          }}
-        />
-      ) : null}
+
     </View>
   );
 }

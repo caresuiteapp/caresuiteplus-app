@@ -7,8 +7,9 @@ import {
   resumeActiveEmployeeLogbookTracking,
 } from '@/lib/employeeLogbook';
 import { flushAssistLocationPointQueue } from '@/features/liveTracking/assistLocationPointQueue';
-import { returnTripDestinationFromTrip } from '@/lib/portal/employeePortalReturnTrip';
+import { returnTripDestinationFromTrip } from '@/lib/portal/employeePortalReturnTripRules';
 import type { LogbookTrip } from '@/types/modules/employeeLogbook';
+import { isEmployeeVisitExecutionRoute } from '@/lib/portal/portalResponsiveLayout';
 
 const ROUTE_LABELS: Record<string, string> = {
   home_to_client: 'Anfahrt zum Einsatz',
@@ -61,15 +62,12 @@ export function EmployeeLogbookLifecycleGate() {
     () => activeTrip ? returnTripDestinationFromTrip(activeTrip) : null,
     [activeTrip],
   );
-  const executionRouteOpen = Boolean(
-    activeTrip?.assignmentId &&
-    pathname.includes(`/assignments/${activeTrip.assignmentId}/execute`),
-  );
+  const executionRouteOpen = isEmployeeVisitExecutionRoute(pathname);
 
   if (!activeTrip || executionRouteOpen) return null;
 
   const openTrip = () => {
-    if (returnDestination && activeTrip.assignmentId) {
+    if (activeTrip.assignmentId) {
       router.push({
         pathname: '/portal/employee/assignments/[id]/execute',
         params: { id: activeTrip.assignmentId },
@@ -110,23 +108,21 @@ export function EmployeeLogbookLifecycleGate() {
 
 const styles = StyleSheet.create({
   layer: {
-    position: 'absolute',
-    left: 10,
-    right: 10,
-    bottom: 88,
-    zIndex: 12000,
+    // The portal footer reserves this row above its navigation. No overlay.
+    width: '100%',
+    flexShrink: 0,
     alignItems: 'center',
   },
   banner: {
     width: '100%',
     maxWidth: 720,
-    minHeight: 74,
-    borderRadius: 22,
+    minHeight: 58,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(77, 226, 158, 0.75)',
     backgroundColor: 'rgba(3, 24, 38, 0.98)',
     paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 11,

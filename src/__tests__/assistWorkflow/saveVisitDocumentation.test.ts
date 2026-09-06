@@ -112,4 +112,32 @@ describe('saveVisitDocumentation — visit resolution', () => {
       expect(result.error).toContain('nicht zugeordnet');
     }
   }, 15000);
+  it('requires a fresh signature after an open signed visit is documented again', async () => {
+    const upsert = vi.fn(async () => ({ error: null }));
+    vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
+    vi.doMock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
+    vi.doMock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: () => ({ upsert }) }));
+    vi.doMock('@/lib/async/deferredTask', () => ({ scheduleDeferredTask: vi.fn() }));
+    const ctx = buildCtx({ assistVisitId: ASSIGNMENT, assignmentStatus: 'unterschrift_offen', derivedStatus: 'unterschrift_offen' });
+    ctx.detail = { ...ctx.detail, status: 'unterschrift_offen', documentationStatus: 'submitted', signatureStatus: 'captured', actualEndAt: '2026-07-01T10:00:00Z' };
+    const { saveVisitDocumentation } = await import('@/features/assistWorkflow/saveVisitDocumentation');
+    const result = await saveVisitDocumentation({ ctx, documentation: { shortDescription: 'Leistung ergänzt', referralRequired: false, emergencyOrProblem: false } });
+    expect(result.ok).toBe(true);
+    expect(upsert).toHaveBeenCalledOnce();
+    if (result.ok) {
+      expect(result.data.ctx.detail.signatureStatus).toBe('pending');
+      expect(result.data.ctx.allowedActions).not.toContain('finalize_visit');
+      expect(result.data.ctx.allowedActions).toContain('capture_signature');
+    }
+  });
+  it('does not claim a documentation correction succeeded when persistence rejects it', async () => {
+    vi.doMock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: () => ({ upsert: async () => ({ error: { message: 'Einsatz abgeschlossen', code: 'P0001' } }) }) }));
+    const ctx = buildCtx({ assistVisitId: ASSIGNMENT, assignmentStatus: 'unterschrift_offen' });
+    ctx.detail.signatureStatus = 'captured';
+    const { saveVisitDocumentation } = await import('@/features/assistWorkflow/saveVisitDocumentation');
+    const result = await saveVisitDocumentation({ ctx, documentation: { shortDescription: 'Leistung ergänzt', referralRequired: false, emergencyOrProblem: false } });
+    expect(result.ok).toBe(false);
+    expect(ctx.detail.signatureStatus).toBe('captured');
+  });
+
 });
