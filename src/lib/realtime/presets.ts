@@ -52,7 +52,11 @@ export function subscribeToClientPortalDocumentRequestChanges(
       subscriptionKey: `portal-document-requests:${tenantId}:${clientId}`,
       channelName: `portal:document-requests:${tenantId}:${clientId}`,
       demoPollMs: 30_000,
-      specs: [{ table: 'cs_document_requests', filter: clientFilter(clientId) }],
+      specs: [
+        { table: 'cs_document_requests', filter: clientFilter(clientId) },
+        { table: 'assist_visit_proofs', filter: tenantFilter(tenantId) },
+        { table: 'assist_visits', filter: clientFilter(clientId) },
+      ],
     },
     handler,
   );

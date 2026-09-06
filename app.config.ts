@@ -63,6 +63,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
   },
   android: {
+      softwareKeyboardLayoutMode: 'resize',
     adaptiveIcon: {
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundImage: './assets/android-icon-background.png',

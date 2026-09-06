@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from '@/hooks/core';
@@ -13,6 +13,10 @@ export function useEmployeePortalDashboard() {
     cachedAt: null,
   });
 
+  const live = useMemo(() => tenantId && employeeId ? {
+    tenantId,
+    subscribe: (tid: string, handler: () => void) => subscribeToEmployeePortalChanges(tid, employeeId, handler),
+  } : undefined, [tenantId, employeeId]);
   const query = useAsyncQuery(
     async () => {
       if (!tenantId || !employeeId) {
@@ -52,19 +56,12 @@ export function useEmployeePortalDashboard() {
               return null;
             }
           : undefined,
-      live:
-        tenantId && employeeId
-          ? {
-              tenantId,
-              subscribe: (tid, handler) => subscribeToEmployeePortalChanges(tid, employeeId, handler),
-            }
-          : undefined,
+      live,
+      queryKey: JSON.stringify([tenantId, employeeId, roleKey, actorId]),
     },
   );
 
-  const refresh = useCallback(async () => {
-    await query.refresh();
-  }, [query]);
+  const refresh = query.refresh;
 
   return {
     dashboard: query.data ?? null,

@@ -1,5 +1,7 @@
+import { PortalDeviceSettingsCard } from '@/components/auth/PortalDeviceSettingsCard';
+import { PortalKeyboardScrollView } from '@/components/keyboard/PortalKeyboard';
 import { useMemo, useState, useCallback, type ReactNode } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { LockedActionBanner } from '@/components/permissions';
@@ -35,6 +37,7 @@ import {
 } from '@/lib/portal/assist';
 import { profileSectionHasContent } from '@/lib/portal/clientPortalProfileProjection';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
+import { usePortalViewport } from '@/lib/portal/portalViewportContext';
 import type { PortalStructuredRequestPayload } from '@/types/portal/requestPayloads';
 import type { PortalClientContactSummary, PortalClientProfile } from '@/types/portal/client';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -285,14 +288,15 @@ export function ClientPortalProfileScreen() {
 
   const isWide = isTablet || isDesktop;
 
+  const { footerInFlow } = usePortalViewport();
   const contentPadding = useMemo(
     () => ({
       paddingHorizontal: careSpacing.md,
-      paddingBottom: showBottomTabs
+      paddingBottom: footerInFlow ? careSpacing.md : showBottomTabs
         ? PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm)
         : careSpacing.xl + insets.bottom,
     }),
-    [insets.bottom, showBottomTabs],
+    [footerInFlow, insets.bottom, showBottomTabs],
   );
 
   const handleStammdatenRequest = useCallback(
@@ -371,7 +375,7 @@ export function ClientPortalProfileScreen() {
 
   return (
     <PortalTabScreen title="Profil" scroll={false} hideHeaderOnPhone>
-      <ScrollView
+      <PortalKeyboardScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />
@@ -394,6 +398,7 @@ export function ClientPortalProfileScreen() {
         />
 
         <PortalBiometricSettingsCard />
+        <PortalDeviceSettingsCard />
 
         {requestSuccess ? (
           <GlassCard>
@@ -456,7 +461,7 @@ export function ClientPortalProfileScreen() {
             roleLabel={roleLabel}
           />
         )}
-      </ScrollView>
+      </PortalKeyboardScrollView>
 
       <PortalRequestFormModal
         visible={requestModalOpen}

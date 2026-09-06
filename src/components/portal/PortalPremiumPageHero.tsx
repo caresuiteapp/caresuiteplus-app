@@ -34,7 +34,7 @@ function resolveIcon(title: string, kind: PortalPremiumKind): IoniconName {
 }
 
 const breakLongWords = Platform.OS === 'web'
-  ? ({ overflowWrap: 'anywhere', wordBreak: 'break-word' } as unknown as TextStyle)
+  ? ({ overflowWrap: 'normal', wordBreak: 'normal' } as unknown as TextStyle)
   : null;
 
 export function PortalPremiumPageHero({ kind, title, subtitle, eyebrow, compact = false }: Props) {
@@ -64,9 +64,9 @@ export function PortalPremiumPageHero({ kind, title, subtitle, eyebrow, compact 
       <View style={styles.copy}>
         <View style={styles.pill}>
           <Ionicons name={kind === 'employee' ? 'briefcase' : 'shield-checkmark'} color={portalPremium.accent.blueDark} size={14} />
-          <Text style={styles.eyebrow}>{eyebrow}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={styles.eyebrow}>{eyebrow}</Text>
         </View>
-        <Text style={[type.h1, styles.title, mobile && styles.titleMobile, breakLongWords]}>{title}</Text>
+        <Text adjustsFontSizeToFit={title.length < 24} minimumFontScale={0.8} numberOfLines={title.length < 24 ? 1 : undefined} style={[type.h1, styles.title, mobile && styles.titleMobile, breakLongWords]}>{title}</Text>
         {subtitle ? <Text style={[type.body, styles.subtitle, breakLongWords]}>{subtitle}</Text> : null}
       </View>
 
@@ -136,6 +136,7 @@ const styles = StyleSheet.create({
   },
   pill: {
     alignSelf: 'flex-start',
+    maxWidth: '100%',
     minHeight: 30,
     paddingHorizontal: 10,
     borderWidth: 1,
@@ -147,6 +148,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   eyebrow: {
+    flexShrink: 1,
     color: portalPremium.accent.blueDark,
     fontSize: 10,
     lineHeight: 13,

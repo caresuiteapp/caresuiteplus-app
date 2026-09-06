@@ -10,6 +10,8 @@ import { DEFAULT_LIVE_POLL_MS, useLiveRefresh } from './useLiveRefresh';
 
 type UseAsyncQueryOptions = {
   enabled?: boolean;
+  /** Identity of the permitted dataset; changing it immediately clears previous data. */
+  queryKey?: string;
   onSuccess?: () => void;
   live?: LiveRefreshQueryConfig;
   /** Native stale-while-revalidate bootstrap. Cached data is painted before the live request. */
@@ -57,22 +59,44 @@ export function useAsyncQuery<T>(
   const [data, setDataState] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState(false);
   const [tableMissing, setTableMissing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const dataRef = useRef<T | null>(null);
-  const requestInFlightRef = useRef(false);
-  const refreshQueuedRef = useRef(false);
-  dataRef.current = data;
+  // Requests belonging to a previous filter/account may finish after the new one.
+  // Give each fetcher generation its own flight lock and reject stale results.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const requestState = useMemo(() => ({ inFlight: false, queued: false, waiters: [] as (() => void)[] }), [...deps, options?.enabled, options?.queryKey]);
+  const currentRequest = useRef(requestState);
+  currentRequest.current = requestState;
+  const enabledRef = useRef(options?.enabled !== false);
+  enabledRef.current = options?.enabled !== false;
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const scopeRef = useRef(options?.queryKey);
+  const scopeChanged = scopeRef.current !== options?.queryKey;
+  if (scopeChanged) {
+    scopeRef.current = options?.queryKey;
+    dataRef.current = null;
+    setDataState(null);
+    setError(null);
+    setRefreshError(null);
+    setPreviewData(false);
+    setTableMissing(false);
+    setLoading(options?.enabled !== false);
+  } else {
+    dataRef.current = data;
+  }
 
   const load = useCallback(
     async (silent = false) => {
-      if (!options?.enabled && options?.enabled !== undefined) return;
-      if (requestInFlightRef.current) {
-        refreshQueuedRef.current = true;
-        return;
+      if (!enabledRef.current || !mounted.current || currentRequest.current !== requestState) return;
+      if (requestState.inFlight) {
+        requestState.queued = true;
+        return new Promise<void>((resolve) => requestState.waiters.push(resolve));
       }
-      requestInFlightRef.current = true;
+      requestState.inFlight = true;
 
       const isInitialLoad = dataRef.current === null;
       if (!silent && isInitialLoad) {
@@ -81,8 +105,9 @@ export function useAsyncQuery<T>(
       }
 
       try {
-        refreshQueuedRef.current = false;
+        requestState.queued = false;
         const result = await runQueryWithRetry(fetcher, options?.retryCount ?? 1);
+        if (!mounted.current || !enabledRef.current || currentRequest.current !== requestState) return;
         if (result.ok) {
           dataRef.current = result.data;
           setDataState(result.data);
@@ -94,14 +119,18 @@ export function useAsyncQuery<T>(
           setPreviewData(Boolean(previewResult.previewData || previewResult.usedDemoFallback));
           setTableMissing(Boolean(previewResult.tableMissing));
           setError(null);
+          setRefreshError(null);
           options?.onSuccess?.();
         } else if (dataRef.current === null) {
           setDataState(null);
           setPreviewData(false);
           setTableMissing(false);
           setError(result.error);
+        } else {
+          setRefreshError(result.error);
         }
       } catch (cause) {
+        if (!mounted.current || !enabledRef.current || currentRequest.current !== requestState) return;
         if (dataRef.current === null) {
           setDataState(null);
           setPreviewData(false);
@@ -109,23 +138,29 @@ export function useAsyncQuery<T>(
           setError(
             cause instanceof Error ? cause.message : 'Daten konnten nicht geladen werden.',
           );
+        } else {
+          setRefreshError(cause instanceof Error ? cause.message : 'Aktualisieren fehlgeschlagen.');
         }
       } finally {
-        const runTrailingRefresh = refreshQueuedRef.current;
-        refreshQueuedRef.current = false;
-        requestInFlightRef.current = false;
-        if (!silent && isInitialLoad) {
+        const runTrailingRefresh = requestState.queued;
+        const waiters = requestState.waiters.splice(0);
+        requestState.queued = false;
+        requestState.inFlight = false;
+        const current = mounted.current && currentRequest.current === requestState && enabledRef.current;
+        if (current && isInitialLoad) {
           setLoading(false);
         }
-        if (runTrailingRefresh) {
+        if (current && runTrailingRefresh) {
           queueMicrotask(() => {
-            void load(true);
+            void load(true).finally(() => waiters.forEach((resolve) => resolve()));
           });
+        } else {
+          waiters.forEach((resolve) => resolve());
         }
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    deps,
+    [...deps, options?.enabled, options?.queryKey],
   );
 
   useEffect(() => {
@@ -135,22 +170,22 @@ export function useAsyncQuery<T>(
     }
     let cancelled = false;
     void (async () => {
-      let cacheShown = false;
+      const liveRequest = load();
       if (options?.initialCache && dataRef.current === null) {
         try {
           const cached = (await options.initialCache()) as ServiceResult<T> | null;
-          if (!cancelled && cached?.ok) {
+          if (!cancelled && currentRequest.current === requestState && dataRef.current === null && cached?.ok) {
             dataRef.current = cached.data;
             setDataState(cached.data);
             setError(null);
             setLoading(false);
-            cacheShown = true;
+
           }
         } catch {
           // Cache is an acceleration layer; the live request remains authoritative.
         }
       }
-      if (!cancelled) await load(cacheShown);
+      await liveRequest;
     })();
     return () => {
       cancelled = true;
@@ -164,14 +199,14 @@ export function useAsyncQuery<T>(
   }, [load]);
 
   useEffect(() => {
-    if (Platform.OS === 'web' || options?.refreshOnAppFocus === false || options?.enabled === false) {
+    if (Platform.OS === 'web' || options?.live || options?.refreshOnAppFocus === false || options?.enabled === false) {
       return;
     }
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active' && dataRef.current !== null) void load(true);
     });
     return () => subscription.remove();
-  }, [load, options?.enabled, options?.refreshOnAppFocus]);
+  }, [load, options?.enabled, options?.live, options?.refreshOnAppFocus]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -183,6 +218,7 @@ export function useAsyncQuery<T>(
   }, [load]);
 
   const liveEnabled =
+    options?.enabled !== false &&
     options?.live?.enabled !== false &&
     Boolean(options?.live?.tenantId && options?.live?.subscribe);
 
@@ -221,6 +257,7 @@ export function useAsyncQuery<T>(
     setData,
     loading,
     error,
+    refreshError,
     previewData,
     tableMissing,
     refreshing,

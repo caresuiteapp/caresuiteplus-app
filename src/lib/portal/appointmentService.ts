@@ -388,6 +388,7 @@ export async function fetchPortalClientAppointmentDetail(
   profileId: string,
   roleKey: RoleKey | null,
   portalContext?: PortalAppointmentsPortalContext,
+  onBasicDetail?: (detail: PortalClientAppointmentDetail) => void,
 ): Promise<ServiceResult<PortalClientAppointmentDetail>> {
   if (portalAudienceForRole(roleKey) !== 'client') {
     return { ok: false, error: 'Keine Berechtigung für Klient:innen-Einsatzdetails.' };
@@ -406,7 +407,7 @@ export async function fetchPortalClientAppointmentDetail(
   const clientId = portalContext?.clientId ?? null;
 
   if (getServiceMode() === 'supabase' && tenantId?.trim() && clientId?.trim()) {
-    return fetchLivePortalClientAppointmentDetail(tenantId, clientId, appointmentId);
+    return fetchLivePortalClientAppointmentDetail(tenantId, clientId, appointmentId, onBasicDetail);
   }
 
   return runService(async () => {

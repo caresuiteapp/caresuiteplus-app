@@ -1,3 +1,4 @@
+import { useClientSignatureAttention } from '@/components/portal/ClientSignatureAttentionProvider';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -26,6 +27,8 @@ const FILTER_OPTIONS = [
 
 export function ClientDocumentSignaturesScreen() {
   const router = useRouter();
+  const attention = useClientSignatureAttention();
+  const proofs = attention.items.filter((item) => item.kind === 'proof');
   const { tenantId, clientId, roleKey, isLinkedReady } = usePortalActor();
   const { can } = usePermissions();
   const [filter, setFilter] = useState<FilterKey>('open');
@@ -47,6 +50,7 @@ export function ClientDocumentSignaturesScreen() {
         roleKey: roleKey ?? 'client_portal',
         clientId,
         includeCompleted: filter === 'done',
+        summaryOnly: true,
       });
     }, [tenantId, clientId, roleKey, filter]),
     [tenantId, clientId, roleKey, filter],
@@ -56,13 +60,14 @@ export function ClientDocumentSignaturesScreen() {
         roleKey === 'client_portal' &&
         !!tenantId &&
         !!clientId,
+      queryKey: JSON.stringify([tenantId, clientId, roleKey, filter]),
       live: { tenantId, subscribe, pollMs: 30_000, refreshOnFocus: true },
     },
   );
 
   const items =
     filter === 'open'
-      ? (query.data ?? []).filter((r) => r.status !== 'completed' && r.status !== 'archived')
+      ? (query.data ?? []).filter((r) => r.pendingSignatureRoles.some((role) => role === 'client' || role === 'representative'))
       : (query.data ?? []).filter((r) => r.status === 'completed' || r.status === 'archived');
 
   if (!can('portal.client.documents.view' as never)) {
@@ -82,7 +87,7 @@ export function ClientDocumentSignaturesScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator>
         <ClientPortalGuide
           compact
-          title={items.length > 0 && filter === 'open' ? `${items.length} ${items.length === 1 ? 'Dokument wartet' : 'Dokumente warten'} auf Sie` : 'Unterschriften sicher erledigen'}
+          title={items.length + proofs.length > 0 && filter === 'open' ? `${items.length + proofs.length} ${items.length + proofs.length === 1 ? 'Dokument wartet' : 'Dokumente warten'} auf Sie` : 'Unterschriften sicher erledigen'}
           message="Öffnen Sie ein Dokument, lesen Sie es vollständig und unterschreiben Sie direkt mit dem Finger, Stift oder der Maus. Neue Dokumente erscheinen automatisch."
         />
         <View style={styles.toolbar}>
@@ -101,10 +106,15 @@ export function ClientDocumentSignaturesScreen() {
               </Pressable>
             ))}
           </View>
-          <Pressable accessibilityRole="button" onPress={() => void query.refresh()} style={({ pressed }) => [styles.refresh, pressed && styles.pressed]}>
+          <Pressable accessibilityRole="button" onPress={() => void Promise.all([query.refresh(), attention.refresh()])} style={({ pressed }) => [styles.refresh, pressed && styles.pressed]}>
             <Text style={[type.bodyStrong, styles.refreshText]}>↻ Aktualisieren</Text>
           </Pressable>
         </View>
+        {filter === 'open' ? proofs.map((proof) => <Pressable key={proof.id} accessibilityRole="button" onPress={() => router.push(proof.route as never)} style={{ padding: 16, minHeight: 80, borderRadius: 16, borderWidth: 1, borderColor: portalPremium.borderStrong, backgroundColor: '#FFFFFF', gap: 8 }}>
+          <Text style={[type.bodyStrong, { color: portalPremium.text.primary }]}>{proof.title}</Text>
+          <Text style={[type.body, { color: portalPremium.accent.blueDark }]}>Leistungsnachweis prüfen und unterschreiben →</Text>
+        </Pressable>) : null}
+        {attention.error && filter === 'open' ? <ErrorState message={attention.error} onRetry={attention.refresh} /> : null}
         {query.loading && !query.data ? <LoadingState message="Ihre Dokumente werden geladen…" /> : null}
         {query.error ? (
           <ErrorState
@@ -112,7 +122,7 @@ export function ClientDocumentSignaturesScreen() {
             onRetry={query.refresh}
           />
         ) : null}
-        {items.length === 0 && !query.loading && !query.error ? (
+        {items.length === 0 && (filter === 'done' || proofs.length === 0) && !attention.loading && !attention.error && !query.loading && !query.error ? (
           <ClientPortalGuide
             compact
             title={filter === 'open' ? 'Im Moment ist nichts offen' : 'Noch nichts erledigt'}

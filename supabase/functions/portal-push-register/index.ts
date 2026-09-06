@@ -7,6 +7,8 @@ type RequestBody = {
   expoPushToken?: string;
   platform?: 'android' | 'ios';
   appVersion?: string | null;
+  appBuildVersion?: number | null;
+  expectedAccountId?: string;
   permissionStatus?: 'granted' | 'denied' | 'undetermined';
 };
 
@@ -125,9 +127,6 @@ serve(async (req) => {
     const user = await authenticatedUser(req);
     if (!user) return jsonResponse({ ok: false, error: 'Anmeldung erforderlich.' }, 401);
 
-    const identity = await resolvePortalIdentity(user);
-    if (!identity) return jsonResponse({ ok: false, error: 'Portalzugang ist nicht aktiv.' }, 403);
-
     const body = (await req.json()) as RequestBody;
     const token = body.expoPushToken?.trim() ?? '';
     if (!isExpoPushToken(token)) {
@@ -144,6 +143,9 @@ serve(async (req) => {
       if (error) throw error;
       return jsonResponse({ ok: true, unregistered: true });
     }
+
+    const identity = await resolvePortalIdentity(user);
+    if (!identity || (body.expectedAccountId && body.expectedAccountId !== identity.accountId)) return jsonResponse({ ok: false, error: 'Portalzugang ist nicht aktiv oder hat sich geändert.' }, 403);
 
     if (!['android', 'ios'].includes(String(body.platform))) {
       return jsonResponse({ ok: false, error: 'Plattform fehlt.' }, 400);
@@ -163,6 +165,7 @@ serve(async (req) => {
           expo_push_token: token,
           platform: body.platform,
           app_version: body.appVersion?.trim().slice(0, 40) || null,
+          app_build_version: Number.isSafeInteger(body.appBuildVersion) && Number(body.appBuildVersion) > 0 ? body.appBuildVersion : null,
           permission_status: body.permissionStatus ?? 'granted',
           enabled: true,
           last_registered_at: now,

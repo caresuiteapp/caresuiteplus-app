@@ -161,7 +161,7 @@ const portalDefinitions: Record<
     sections: portalSections('employee'),
   },
   client: {
-    title: 'Klient:innenportal',
+    title: 'Klientenportal',
     eyebrow: 'MEINE VERSORGUNG',
     allowedRole: 'client_portal',
     sections: portalSections('client'),

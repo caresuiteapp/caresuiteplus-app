@@ -1,5 +1,6 @@
+import { PortalKeyboardAvoidingView as KeyboardAvoidingView } from '@/components/keyboard/PortalKeyboard';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { BackHandler, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PremiumInput } from '@/components/ui';
 import {

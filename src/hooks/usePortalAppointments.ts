@@ -82,6 +82,7 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
     [profileId, scopedRoleKey, tenantId, scopedClientId, scopedEmployeeId, isOffline],
     {
       enabled: queryEnabled,
+      queryKey: JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, scopedEmployeeId]),
       live: liveConfig,
       initialCache:
         Platform.OS !== 'web' && queryEnabled
@@ -109,11 +110,12 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
     return isEmployeePortal ? filterEmployeePortalAppointments(raw) : raw;
   }, [query.data, isEmployeePortal]);
 
+  const refreshQuery = query.refresh;
   const refresh = useCallback(async () => {
-    await query.refresh();
+    await refreshQuery();
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
-  }, [query]);
+  }, [refreshQuery]);
 
   const missingClientLink =
     authReady &&

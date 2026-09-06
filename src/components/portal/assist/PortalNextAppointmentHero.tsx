@@ -25,7 +25,7 @@ type AppointmentParts = {
 };
 
 const breakLongWords = Platform.OS === 'web'
-  ? ({ overflowWrap: 'anywhere', wordBreak: 'break-word' } as unknown as TextStyle)
+  ? ({ overflowWrap: 'normal', wordBreak: 'normal' } as unknown as TextStyle)
   : null;
 
 function formatAppointmentParts(iso: string): AppointmentParts {

@@ -39,9 +39,7 @@ export function PortalMessengerFocusProvider({ children }: { children: ReactNode
 
   const openThread = useCallback((threadId: string, title?: string) => {
     setSelectedThreadId(threadId);
-    if (title?.trim()) {
-      setThreadTitleState(title.trim());
-    }
+    setThreadTitleState(title?.trim() || 'Chat');
   }, []);
 
   const closeThread = useCallback(() => {

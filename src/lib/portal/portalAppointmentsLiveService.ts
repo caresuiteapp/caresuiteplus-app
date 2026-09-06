@@ -238,6 +238,7 @@ export async function fetchLivePortalClientAppointmentDetail(
   tenantId: string,
   clientId: string,
   assignmentId: string,
+  onBasicDetail?: (detail: PortalClientAppointmentDetail) => void,
 ): Promise<ServiceResult<PortalClientAppointmentDetail>> {
   return runService(async () => {
     if (!tenantId.trim() || !clientId.trim() || !assignmentId.trim()) {
@@ -290,6 +291,21 @@ export async function fetchLivePortalClientAppointmentDetail(
     const detail = visitDetail.data;
     const assignmentStatus = detail.assignmentStatus ?? 'geplant';
 
+    const portalDetail: PortalClientAppointmentDetail = {
+      id: detail.id,
+      title: detail.title,
+      startsAt: detail.scheduledStart,
+      endsAt: detail.scheduledEnd,
+      status: detail.status,
+      location: detail.location || null,
+      caregiverName: detail.employeeName || null,
+      caregiverPhone: null,
+      serviceType: detail.serviceName?.trim() || detail.title,
+      preparationNotes: detail.clientVisibleNotes?.trim() || null,
+      canRequestChange: PLANNED_CHANGE_STATUSES.has(assignmentStatus),
+      liveVisit: null,
+    };
+    onBasicDetail?.(portalDetail);
     let liveVisit: PortalClientAppointmentDetail['liveVisit'] = null;
     try {
       liveVisit = sanitizeClientPortalLiveVisitPayload(
@@ -307,20 +323,7 @@ export async function fetchLivePortalClientAppointmentDetail(
       console.warn('[portalAppointmentsLiveService] live visit projection failed:', cause);
     }
 
-    const portalDetail: PortalClientAppointmentDetail = {
-      id: detail.id,
-      title: detail.title,
-      startsAt: detail.scheduledStart,
-      endsAt: detail.scheduledEnd,
-      status: detail.status,
-      location: detail.location || null,
-      caregiverName: detail.employeeName || null,
-      caregiverPhone: null,
-      serviceType: detail.serviceName?.trim() || detail.title,
-      preparationNotes: detail.clientVisibleNotes?.trim() || null,
-      canRequestChange: PLANNED_CHANGE_STATUSES.has(assignmentStatus),
-      liveVisit,
-    };
+    portalDetail.liveVisit = liveVisit;
     return { ok: true as const, data: portalDetail };
   });
 }

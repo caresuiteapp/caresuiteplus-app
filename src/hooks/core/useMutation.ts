@@ -24,10 +24,8 @@ export function useMutation<TInput, TOutput>(
       setError(null);
       setSuccessMessage(null);
 
+      try {
       const result = await mutator(input);
-      setLoading(false);
-      lockRef.current = false;
-
       if (result.ok) {
         options?.onSuccess?.(result.data);
         if (options?.successMessage) {
@@ -42,6 +40,13 @@ export function useMutation<TInput, TOutput>(
 
       setError(result.error);
       return null;
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Speichern fehlgeschlagen. Bitte versuchen Sie es erneut.');
+        return null;
+      } finally {
+        setLoading(false);
+        lockRef.current = false;
+      }
     },
     [loading, mutator, options],
   );

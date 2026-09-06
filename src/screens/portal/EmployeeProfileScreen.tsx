@@ -1,3 +1,4 @@
+import { PortalDeviceSettingsCard } from '@/components/auth/PortalDeviceSettingsCard';
 import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -135,6 +136,7 @@ export function EmployeeProfileScreen() {
         <PortalEmployeeProfileHero profile={profile} />
 
         <PortalBiometricSettingsCard />
+        <PortalDeviceSettingsCard />
 
         <View style={styles.officeHint}>
           <HealthOSAlert variant="info" title="Stammdaten" message={OFFICE_PROFILE_HINT} />

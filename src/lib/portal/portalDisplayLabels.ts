@@ -1,7 +1,7 @@
 /** Shared German labels for employee/client portal UI — no generic „Portal“ placeholders. */
 
 export const PORTAL_EMPLOYEE_LABEL = 'Mitarbeiterportal';
-export const PORTAL_CLIENT_LABEL = 'Klient:innenportal';
+export const PORTAL_CLIENT_LABEL = 'Klientenportal';
 export const PORTAL_RELATIVE_LABEL = 'Angehörigenportal';
 export const TENANT_NAME_FALLBACK = 'Ihr Unternehmen';
 

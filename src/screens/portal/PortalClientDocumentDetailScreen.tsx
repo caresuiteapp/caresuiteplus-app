@@ -1,3 +1,4 @@
+import { useClientSignatureAttention } from '@/components/portal/ClientSignatureAttentionProvider';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useMemo, useState, useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +31,7 @@ import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 export function PortalClientDocumentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { refresh: refreshAttention } = useClientSignatureAttention();
   const insets = useSafeAreaInsets();
   const { colors: themeColors } = useLegacyTheme();
   const { isPhone } = useDeviceClass();
@@ -91,9 +93,9 @@ export function PortalClientDocumentDetailScreen() {
       setSignSuccess(
         'Vielen Dank — Ihre Unterschrift wurde gespeichert und im Leistungsnachweis übernommen.',
       );
-      await refresh();
+      await Promise.all([refresh(), refreshAttention()]);
     },
-    [tenantId, clientId, id, actorId, data?.clientName, refresh],
+    [tenantId, clientId, id, actorId, data?.clientName, refresh, refreshAttention],
   );
 
   if (!canView) {

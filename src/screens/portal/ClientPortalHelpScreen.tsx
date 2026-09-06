@@ -1,5 +1,7 @@
+import { CLIENT_PORTAL_HELP } from '@/lib/portal/clientPortalHelp';
+import { PortalKeyboardScrollView } from '@/components/keyboard/PortalKeyboard';
 import { useMemo, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -46,6 +48,7 @@ export function ClientPortalHelpScreen() {
   const { width, isDesktop, isTablet } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const [search, setSearch] = useState('');
+  const [openHelp, setOpenHelp] = useState<string | null>(CLIENT_PORTAL_HELP[0].title);
   const normalized = search.trim().toLocaleLowerCase('de-DE');
   const filtered = useMemo(
     () => CLIENT_HELP_CONTACTS.filter((item) => !normalized || `${item.name} ${item.description} ${item.displayNumber ?? ''}`.toLocaleLowerCase('de-DE').includes(normalized)),
@@ -55,11 +58,24 @@ export function ClientPortalHelpScreen() {
 
   return (
     <PortalTabScreen title="Hilfe & Notfallnummern" subtitle="Verlässliche Hilfe in ganz Deutschland" scroll={false}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator>
+      <PortalKeyboardScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator>
         <ClientPortalGuide
           title="Welche Hilfe brauchen Sie?"
           message="Tippen Sie auf eine Telefonnummer, um direkt anzurufen. Bei Lebensgefahr, Feuer oder einem schweren medizinischen Notfall wählen Sie immer 112."
         />
+
+        <View style={styles.section}>
+          <Text style={[type.h2, styles.sectionTitle]}>So nutzen Sie Ihr Klientenportal</Text>
+          {CLIENT_PORTAL_HELP.map((help) => (
+            <View key={help.title} style={styles.card}>
+              <Pressable accessibilityRole="button" accessibilityState={{ expanded: openHelp === help.title }}
+                onPress={() => setOpenHelp(openHelp === help.title ? null : help.title)} style={{ minHeight: 48, justifyContent: 'center' }}>
+                <Text style={[type.bodyStrong, styles.cardTitle]}>{help.title} {openHelp === help.title ? '−' : '+'}</Text>
+              </Pressable>
+              {openHelp === help.title ? <Text style={[type.body, styles.description]}>{help.text}</Text> : null}
+            </View>
+          ))}
+        </View>
 
         <View style={styles.emergencyBar}>
           <Text style={[type.bodyStrong, styles.emergencyText]}>Akute Gefahr?</Text>
@@ -97,7 +113,7 @@ export function ClientPortalHelpScreen() {
         <Text style={[type.caption, styles.footnote]}>
           Stand: 1. August 2026. Öffnungszeiten und Kosten können sich ändern; die verlinkten offiziellen Stellen enthalten die aktuellen Angaben.
         </Text>
-      </ScrollView>
+      </PortalKeyboardScrollView>
     </PortalTabScreen>
   );
 }
@@ -128,7 +144,7 @@ const styles = StyleSheet.create({
     color: portalPremium.text.primary,
   },
   section: { gap: careSpacing.sm },
-  sectionTitle: { color: portalPremium.text.onStrong },
+  sectionTitle: { color: portalPremium.text.primary },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.md },
   card: {
     width: '100%',
@@ -150,6 +166,6 @@ const styles = StyleSheet.create({
   description: { color: portalPremium.text.secondary },
   sourceLink: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   sourceText: { color: portalPremium.accent.blueDark, textDecorationLine: 'underline' },
-  footnote: { color: portalPremium.text.onStrongMuted, paddingBottom: careSpacing.lg },
+  footnote: { color: portalPremium.text.secondary, paddingBottom: careSpacing.lg },
   pressed: { opacity: 0.74 },
 });

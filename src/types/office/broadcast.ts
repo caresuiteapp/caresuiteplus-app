@@ -74,6 +74,7 @@ export type CreateBroadcastInput = {
 export type BroadcastPushSummary = {
   requested: boolean;
   eligibleDevices: number;
+  queued?: number;
   accepted: number;
   failed: number;
   error?: string;

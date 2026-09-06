@@ -85,7 +85,7 @@ export function PortalClientAppointmentDetailScreen() {
     );
   }
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <PortalTabScreen title="Einsatz" subtitle="Ihre Angaben werden vorbereitet">
         <LoadingState message="Ihr Einsatz wird geladen…" />

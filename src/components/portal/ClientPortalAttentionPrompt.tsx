@@ -1,157 +1,54 @@
-import { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
 import { PremiumButton } from '@/components/ui';
-import { careSpacing } from '@/design/tokens/spacing';
-import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
-import { fetchPortalCsDocumentRequests } from '@/lib/documents/csTemplates';
-import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
-import { subscribeToClientPortalDocumentRequestChanges, type RealtimeHandler } from '@/lib/realtime';
+import { useClientSignatureAttention } from './ClientSignatureAttentionProvider';
+import { signatureAttentionKey } from '@/lib/portal/clientSignatureAttention';
+import { portalPremium } from '@/design/tokens/portalPremium';
 
-const DISMISSED_KEY = 'caresuite.clientPortal.attention.dismissed';
-
-function readDismissedFingerprint(): string | null {
-  if (typeof globalThis.sessionStorage === 'undefined') return null;
-  try {
-    return globalThis.sessionStorage.getItem(DISMISSED_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function saveDismissedFingerprint(fingerprint: string): void {
-  if (typeof globalThis.sessionStorage === 'undefined') return;
-  try {
-    globalThis.sessionStorage.setItem(DISMISSED_KEY, fingerprint);
-  } catch {
-    // Session storage is optional; local component state still prevents a loop.
-  }
-}
-
+// Native-safe, account-scoped dismissal for this app run. Never hides an open task.
+const acknowledged = new Map<string, Set<string>>();
 export function ClientPortalAttentionPrompt() {
   const router = useRouter();
   const pathname = usePathname();
-  const { tenantId, clientId, roleKey, isLinkedReady } = usePortalActor();
+  const { tenantId, actorId, isLinkedReady } = usePortalActor();
   const messages = usePortalOfficeMessages('open');
-  const [dismissedFingerprint, setDismissedFingerprint] = useState<string | null>(() =>
-    readDismissedFingerprint(),
-  );
-  const subscribe = useCallback(
-    (currentTenantId: string, handler: RealtimeHandler) => {
-      if (!clientId) return () => undefined;
-      return subscribeToClientPortalDocumentRequestChanges(currentTenantId, clientId, handler);
-    },
-    [clientId],
-  );
-
-  const {
-    data: signatureData,
-    loading: signaturesLoading,
-  } = useAsyncQuery(
-    () => {
-      if (!tenantId || !clientId || !roleKey) {
-        return Promise.resolve({ ok: true as const, data: [] });
-      }
-      return fetchPortalCsDocumentRequests({
-        tenantId,
-        clientId,
-        roleKey,
-        includeCompleted: false,
-      });
-    },
-    [tenantId, clientId, roleKey],
-    {
-      enabled: isLinkedReady && !!tenantId && !!clientId && !!roleKey,
-      live: { tenantId, subscribe, pollMs: 30_000, refreshOnFocus: true },
-    },
-  );
-
-  const unreadThreads = useMemo(
-    () => messages.threads.filter((thread) => thread.unreadCount > 0),
-    [messages.threads],
-  );
-  const unreadCount = unreadThreads.reduce((sum, thread) => sum + thread.unreadCount, 0);
-  const pendingSignatureItems = useMemo(() => signatureData ?? [], [signatureData]);
-  const signatureCount = pendingSignatureItems.length;
-
-  const fingerprint = useMemo(() => {
-    if (unreadCount === 0 && signatureCount === 0) return null;
-    const messagePart = unreadThreads
-      .map((thread) => `${thread.id}:${thread.unreadCount}`)
-      .sort()
-      .join(',');
-    const signaturePart = pendingSignatureItems
-      .map((document) => document.id)
-      .sort()
-      .join(',');
-    return `m=${messagePart}|s=${signaturePart}`;
-  }, [pendingSignatureItems, signatureCount, unreadCount, unreadThreads]);
-
-  const alreadyAtDestination =
-    pathname?.startsWith('/portal/client/messages') ||
-    pathname?.startsWith('/portal/client/documents/signatures');
-  const ready = !messages.loading && !signaturesLoading;
-  const visible = Boolean(
-    ready &&
-      fingerprint &&
-      fingerprint !== dismissedFingerprint &&
-      !alreadyAtDestination,
-  );
-
+  const signatures = useClientSignatureAttention();
+  const [dismissalVersion, setDismissalVersion] = useState(0);
+  const accountKey = JSON.stringify([tenantId, actorId]);
+  const unread = messages.threads.filter((thread) => thread.unreadCount > 0);
+  const unreadCount = unread.reduce((sum, thread) => sum + thread.unreadCount, 0);
+  const keys = useMemo(() => [...signatures.items.map(signatureAttentionKey), ...unread.map((thread) => `message:${thread.id}:${thread.unreadCount}`)], [signatures.items, unread]);
+  const seen = acknowledged.get(accountKey);
+  const atDestination = pathname.startsWith('/portal/client/documents') || pathname.startsWith('/portal/client/messages');
+  const visible = isLinkedReady && !atDestination && keys.some((key) => !seen?.has(key));
   const dismiss = () => {
-    if (fingerprint) {
-      setDismissedFingerprint(fingerprint);
-      saveDismissedFingerprint(fingerprint);
-    }
+    const next = new Set(acknowledged.get(accountKey));
+    keys.forEach((key) => next.add(key));
+    acknowledged.set(accountKey, next);
+    if (acknowledged.size > 20) acknowledged.delete(acknowledged.keys().next().value!);
+    setDismissalVersion(dismissalVersion + 1);
   };
-
+  const openSignatures = () => {
+    dismiss();
+    router.push((signatures.items.length === 1 ? signatures.items[0].route : '/portal/client/documents/signatures') as never);
+  };
   const openMessages = () => {
     dismiss();
-    router.push('/portal/client/messages' as never);
+    router.push((unread.length === 1 ? `/portal/client/messages/${unread[0].id}` : '/portal/client/messages') as never);
   };
-
-  const navigateToSignatures = () => {
-    dismiss();
-    router.push('/portal/client/documents/signatures' as never);
-  };
-
-  const title =
-    unreadCount > 0 && signatureCount > 0
-      ? 'Es gibt Neues für Sie'
-      : unreadCount > 0
-        ? 'Neue Nachricht'
-        : 'Unterschrift benötigt';
-
-  return (
-    <PortalGlassModal
-      visible={visible}
-      title={title}
-      onClose={dismiss}
-      primaryLabel={unreadCount > 0 ? 'Nachrichten öffnen' : 'Dokumente öffnen'}
-      onPrimary={unreadCount > 0 ? openMessages : navigateToSignatures}
-    >
-      <View style={styles.content}>
-        <ClientPortalGuide
-          compact
-          title={title}
-          message={[
-            unreadCount > 0 ? `${unreadCount === 1 ? 'Eine neue Nachricht wartet' : `${unreadCount} neue Nachrichten warten`} auf Sie.` : null,
-            signatureCount > 0 ? `${signatureCount === 1 ? 'Ein Dokument braucht' : `${signatureCount} Dokumente brauchen`} noch Ihre Unterschrift.` : null,
-          ].filter(Boolean).join(' ')}
-        />
-        {unreadCount > 0 && signatureCount > 0 ? (
-          <PremiumButton title="Offene Unterschriften öffnen" variant="secondary" onPress={navigateToSignatures} fullWidth />
-        ) : null}
-      </View>
-    </PortalGlassModal>
-  );
+  const count = signatures.items.length;
+  return <PortalGlassModal visible={visible} title={count ? 'Ihre Unterschrift wird benötigt' : 'Neue Nachrichten für Sie'} onClose={dismiss}
+    primaryLabel={count ? 'Jetzt prüfen und unterschreiben' : 'Nachrichten öffnen'} onPrimary={count ? openSignatures : openMessages}>
+    <View style={{ gap: 12 }}>
+      {count ? <Text style={{ fontSize: 18, lineHeight: 27, color: portalPremium.text.primary }}>
+        {count === 1 ? 'Ein Dokument wartet' : `${count} Dokumente warten`} auf Ihre Unterschrift. Bitte prüfen Sie die Angaben und unterschreiben Sie anschließend. Die Aufgabe bleibt unter „Unterschriften“ sichtbar, bis Ihre Unterschrift gespeichert ist.
+      </Text> : null}
+      {unreadCount ? <Text style={{ fontSize: 17, lineHeight: 25, color: portalPremium.text.secondary }}>{unreadCount === 1 ? 'Eine neue Nachricht wartet' : `${unreadCount} neue Nachrichten warten`} auf Sie.</Text> : null}
+      {count && unreadCount ? <PremiumButton title="Nachrichten öffnen" variant="secondary" onPress={openMessages} /> : null}
+    </View>
+  </PortalGlassModal>;
 }
-
-const styles = StyleSheet.create({
-  content: {
-    gap: careSpacing.md,
-  },
-});

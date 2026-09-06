@@ -1,8 +1,11 @@
+import { getActivePortalSession } from '@/lib/auth/portalSessionStore';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { sensitiveAuthStorage } from '@/lib/security/sensitiveAuthStorage';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
+
+export { isAllowedPortalPushRoute } from './portalPushNavigation';
 
 const TOKEN_STORAGE_KEY = 'caresuite.portal.push-token.v1';
 const TOKEN_TIMEOUT_MS = 15_000;
@@ -129,6 +132,9 @@ export async function ensurePortalPushRegistration(
     };
   }
 
+  const account = getActivePortalSession();
+  if (!account || account.mustChangePassword) return { ok: false, permissionStatus: 'undetermined', error: 'Bitte zuerst vollständig anmelden.', canOpenSettings: false };
+  let lastPermission: PortalPushPermissionStatus = 'undetermined';
   try {
     await withTimeout(configureAndroidChannels(), PERMISSION_TIMEOUT_MS);
     let permission = await withTimeout(
@@ -143,6 +149,7 @@ export async function ensurePortalPushRegistration(
     }
 
     const permissionStatus = normalizePermissionStatus(permission.status);
+    lastPermission = permissionStatus;
     if (!permission.granted) {
       return {
         ok: false,
@@ -169,6 +176,8 @@ export async function ensurePortalPushRegistration(
       )
     ).data;
 
+    if (getActivePortalSession()?.accountId !== account.accountId || getActivePortalSession()?.tenantId !== account.tenantId) throw new Error('Portalzugang hat sich geändert.');
+
     // Persist the native token independently of the backend round-trip. This
     // allows safe logout cleanup and later background registration retries.
     await sensitiveAuthStorage.setItem(TOKEN_STORAGE_KEY, token);
@@ -179,6 +188,8 @@ export async function ensurePortalPushRegistration(
         expoPushToken: token,
         platform: Platform.OS,
         appVersion: Constants.expoConfig?.version ?? null,
+        appBuildVersion: Constants.platform?.android?.versionCode ?? null,
+        expectedAccountId: account.accountId,
         permissionStatus: 'granted',
       }),
       SERVER_TIMEOUT_MS,
@@ -196,7 +207,7 @@ export async function ensurePortalPushRegistration(
   } catch (error) {
     return {
       ok: false,
-      permissionStatus: 'granted',
+      permissionStatus: lastPermission,
       error: toPortalPushUserMessage(error),
       canOpenSettings: false,
     };
@@ -215,12 +226,4 @@ export async function unregisterPortalPushDeviceBeforeLogout(): Promise<void> {
   if (result.ok) {
     await sensitiveAuthStorage.removeItem(TOKEN_STORAGE_KEY);
   }
-}
-
-export function isAllowedPortalPushRoute(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    (value.startsWith('/portal/employee/') || value.startsWith('/portal/client/')) &&
-    !value.includes('..')
-  );
 }

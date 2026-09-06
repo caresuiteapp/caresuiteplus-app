@@ -136,7 +136,7 @@ export async function fetchCsDocumentRequests(
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    const requests = (data ?? []).map((row) => mapRequest(row as Record<string, unknown>));
+    const requests = (data ?? []).map((row) => mapRequest(row as unknown as Record<string, unknown>));
     if (requests.length === 0) return { ok: true, data: [] };
 
     const ids = requests.map((r) => r.id);
@@ -169,6 +169,7 @@ export async function fetchPortalCsDocumentRequests(input: {
   employeeId?: string | null;
   clientId?: string | null;
   includeCompleted?: boolean;
+  summaryOnly?: boolean;
 }): Promise<ServiceResult<CsDocumentRequestListItem[]>> {
   const { tenantId, roleKey, employeeId, clientId, includeCompleted = false } = input;
   const tenantBlock = guardServiceTenant(tenantId);
@@ -192,11 +193,16 @@ export async function fetchPortalCsDocumentRequests(input: {
     const supabase = getSupabaseClient();
     if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
+    const requests: CsDocumentRequest[] = [];
+    const sigByRequest = new Map<string, CsDocumentRequestSignature[]>();
+    const pageSize = 100;
+    for (let offset = 0; ; offset += pageSize) {
     let query = fromUnknownTable(supabase, 'cs_document_requests')
-      .select('*')
+      .select(input.summaryOnly ? 'id, owner_tenant_id, title, recipient_scope, client_id, employee_id, representative_id, status, due_date, portal_visible, priority, created_at, updated_at, completed_at' : '*')
       .eq('owner_tenant_id', tenantId)
       .eq('portal_visible', true)
-      .order('due_date', { ascending: true });
+      .order('due_date', { ascending: true }).order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1);
 
     if (roleKey === 'employee_portal' && employeeId) {
       query = query.eq('employee_id', employeeId).in('recipient_scope', ['employee', 'both']);
@@ -215,15 +221,16 @@ export async function fetchPortalCsDocumentRequests(input: {
     const { data, error } = await query;
     if (error) throw error;
 
-    const requests = (data ?? []).map((row) => mapRequest(row as Record<string, unknown>));
-    const ids = requests.map((r) => r.id);
-    if (ids.length === 0) return { ok: true, data: [] };
+    const page = (data ?? []).map((row) => mapRequest(row as unknown as Record<string, unknown>));
+    requests.push(...page);
+    const ids = page.map((r) => r.id);
+    if (ids.length === 0) break;
 
-    const { data: sigData } = await fromUnknownTable(supabase, 'cs_document_request_signatures')
+    const { data: sigData, error: signatureError } = await fromUnknownTable(supabase, 'cs_document_request_signatures')
       .select('id, request_id, signer_role, signer_name, status, signed_at')
       .in('request_id', ids);
 
-    const sigByRequest = new Map<string, CsDocumentRequestSignature[]>();
+    if (signatureError) throw signatureError;
     for (const row of sigData ?? []) {
       const sig = mapSignature(row as Record<string, unknown>);
       const list = sigByRequest.get(sig.requestId) ?? [];
@@ -231,14 +238,14 @@ export async function fetchPortalCsDocumentRequests(input: {
       sigByRequest.set(sig.requestId, list);
     }
 
+      if (page.length < pageSize) break;
+    }
+
     return {
       ok: true,
       data: requests.map((r) => enrichListItem(r, sigByRequest.get(r.id) ?? [])),
     };
   } catch (error) {
-    if (isMissingTableError(error)) {
-      return { ok: true, data: [] };
-    }
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 }

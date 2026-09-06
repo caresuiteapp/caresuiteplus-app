@@ -1,9 +1,9 @@
+import { PortalKeyboardScrollView } from '@/components/keyboard/PortalKeyboard';
 import { useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
@@ -274,7 +274,7 @@ export function PlatformModal({
           actions={headerActions}
         />
       </View>
-      <ScrollView
+      <PortalKeyboardScrollView
         style={styles.bodyScroll}
         contentContainerStyle={[styles.body, bodyStyle]}
         keyboardShouldPersistTaps="handled"
@@ -283,7 +283,7 @@ export function PlatformModal({
         showsHorizontalScrollIndicator={false}
       >
         {children}
-      </ScrollView>
+      </PortalKeyboardScrollView>
       {footerActions && footerActions.length > 0 ? (
         <View style={styles.footer}>
           {footerActions.map((action) => (

@@ -1,3 +1,4 @@
+import { sharedPortalRead } from '@/lib/portal/sharedPortalRead';
 import type { RoleKey, ServiceResult } from '@/types';
 import type { EmployeePortalDashboardProjection } from '@/types/portalSystem';
 import type { PortalAppointmentDetail } from '@/types/portal/employee';
@@ -446,11 +447,8 @@ export async function loadPortalAppointmentsWithCache(
     return withCacheMeta({ ok: false, error: OFFLINE_LIST_ERROR }, emptyCacheMeta());
   }
 
-  const online = await fetchPortalAppointments(profileId, roleKey, {
-    tenantId,
-    employeeId,
-    clientId,
-  });
+  const online = await sharedPortalRead(JSON.stringify(['portal-appointments', profileId, roleKey, tenantId, employeeId, clientId]),
+    () => fetchPortalAppointments(profileId, roleKey, { tenantId, employeeId, clientId }));
   if (online.ok && scoped) {
     const merged = await mergeAssignmentListCache(tenantId!, cacheActorId!, online.data);
     if (employeeId) {

@@ -1,4 +1,5 @@
-import { useCallback, useEffect } from 'react';
+import { sharedPortalRead } from '@/lib/portal/sharedPortalRead';
+import { useEffect } from 'react';
 import type { PortalOfficeInboxFilter } from '@/lib/office/portalofficemessageservice';
 import {
   fetchPortalOfficeThreads,
@@ -40,7 +41,8 @@ export function usePortalOfficeMessages(
         { clientId, employeeId },
       );
       if (!actorResult.ok) return Promise.resolve(actorResult);
-      return fetchPortalOfficeThreads(tenantId, actorResult.data, filter);
+      return sharedPortalRead(JSON.stringify(['inbox', tenantId, portalAccountId, actorId, roleKey, clientId, employeeId, filter]),
+        () => fetchPortalOfficeThreads(tenantId, actorResult.data, filter));
     },
     [
       tenantId,
@@ -55,12 +57,10 @@ export function usePortalOfficeMessages(
       clientId,
       employeeId,
     ],
-    { enabled: enabled && !!tenantId && isLinkedReady },
+    { enabled: enabled && !!tenantId && isLinkedReady, queryKey: JSON.stringify([tenantId, portalAccountId, roleKey, clientId, employeeId, filter]) },
   );
 
-  const refresh = useCallback(async () => {
-    await query.refresh();
-  }, [query]);
+  const refresh = query.refresh;
 
   useEffect(() => {
     if (!enabled || !tenantId) return;

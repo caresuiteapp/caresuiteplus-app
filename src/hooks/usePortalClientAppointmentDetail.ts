@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { PortalClientAppointmentDetail } from '@/types/portal/client';
 import {
   fetchPortalClientAppointmentDetail,
   requestPortalAppointmentChange,
-} from '@/lib/portal';
+} from '@/lib/portal/appointmentService';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToPortalAssistChanges } from '@/lib/realtime';
 import { useVisibilityAwarePolling } from '@/lib/polling/useVisibilityAwarePolling';
@@ -21,29 +22,37 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
   } = usePortalActor();
   const profileId = actorId ?? '';
   const [tick, setTick] = useState(0);
+  const queryKey = JSON.stringify([tenantId, clientId, actorId, roleKey, appointmentId]);
+  const generation = `${queryKey}:${tick}`;
+  const current = useRef(generation);
+  current.current = generation;
+  const [basic, setBasic] = useState<{ key: string; data: PortalClientAppointmentDetail } | null>(null);
+  const enabled = !!appointmentId && isLinkedReady && !!tenantId && !!clientId;
 
   useVisibilityAwarePolling({
-    enabled: Boolean(tenantId && clientId),
+    enabled,
     intervalMs: DEFAULT_LIVE_POLL_MS,
     onPoll: () => setTick((t) => t + 1),
   });
 
   useEffect(() => {
-    if (!tenantId || !clientId) return;
+    if (!enabled || !tenantId || !clientId) return;
     const unsubscribe = subscribeToPortalAssistChanges(tenantId, clientId, () => {
       setTick((t) => t + 1);
     });
     return unsubscribe;
-  }, [tenantId, clientId]);
+  }, [enabled, tenantId, clientId]);
 
   const query = useAsyncQuery(
     () =>
       fetchPortalClientAppointmentDetail(appointmentId ?? '', profileId, roleKey, {
         tenantId,
         clientId,
+      }, (detail) => {
+        if (current.current === generation) setBasic({ key: queryKey, data: detail });
       }),
     [appointmentId, profileId, roleKey, tenantId, clientId, tick],
-    { enabled: !!appointmentId && isLinkedReady && !!tenantId && !!clientId },
+    { enabled, queryKey },
   );
 
   const changeMutation = useMutation(
@@ -55,9 +64,7 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
     { successMessage: 'Änderungsanfrage gesendet.' },
   );
 
-  const refresh = useCallback(async () => {
-    await query.refresh();
-  }, [query]);
+  const refresh = query.refresh;
 
   const requestChange = useCallback(
     async (reason: string) => {
@@ -69,8 +76,8 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
   );
 
   return {
-    data: query.data,
-    loading: isResolvingClientLink || query.loading,
+    data: query.data ?? (basic?.key === queryKey ? basic.data : null),
+    loading: isResolvingClientLink || (query.loading && basic?.key !== queryKey),
     error:
       !isResolvingClientLink && !clientId
         ? 'Ihr Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an.'

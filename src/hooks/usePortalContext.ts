@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRef } from 'react';
 import type { PortalContext } from '@/lib/portal/types';
 import { resolvePortalContext } from '@/lib/portal/engine/resolvePortalContext';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAuth } from '@/lib/auth/context';
-import { AsyncTimeoutError, withTimeout } from '@/lib/async/withTimeout';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { sharedPortalRead } from '@/lib/portal/sharedPortalRead';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
-import { SERVICE_QUERY_TIMEOUT_MS } from '@/lib/services/queryTimeout';
 
 export type PortalContextState = {
   context: PortalContext | null;
@@ -16,85 +16,25 @@ export type PortalContextState = {
 };
 
 export function usePortalContext(): PortalContextState {
-  const { tenantId, clientId, roleKey, displayName, isReady: actorReady, isResolvingClientLink } =
-    usePortalActor();
+  const { tenantId, clientId, roleKey, actorId, displayName, isReady: actorReady, isResolvingClientLink } = usePortalActor();
   const { portalSession } = useAuth();
-  const [context, setContext] = useState<PortalContext | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const displayNameRef = useRef(displayName);
   displayNameRef.current = displayName;
-
-  const refresh = useCallback(async () => {
-    if (!tenantId || !roleKey) {
-      setContext(null);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    if (!clientId) {
-      if (isResolvingClientLink) {
-        setContext(null);
-        setError(null);
-        setLoading(true);
-        return;
-      }
-      setContext(null);
-      setError('Kein Klient:innenprofil verknüpft. Bitte melden Sie sich erneut an.');
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const resolved = await withTimeout(
-        resolvePortalContext({
-          tenantId,
-          clientId,
-          roleKey,
-          displayName: displayNameRef.current,
-          tenantNameHint: portalSession?.tenantName ?? null,
-        }),
-        SERVICE_QUERY_TIMEOUT_MS,
-        'Portal-Kontext konnte nicht rechtzeitig geladen werden.',
-      );
-      setContext(resolved);
-    } catch (caught) {
-      setContext(null);
-      if (caught instanceof AsyncTimeoutError) {
-        setError(
-          toPortalUserFacingError(
-            caught.message,
-            'Das Portal braucht länger als erwartet. Bitte laden Sie die Seite erneut.',
-          ),
-        );
-      } else {
-        setError('Ihre Übersicht konnte gerade nicht geladen werden.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [tenantId, clientId, roleKey, portalSession?.tenantName, isResolvingClientLink]);
-
-  useEffect(() => {
-    if (!actorReady) {
-      setLoading(true);
-      return;
-    }
-    void refresh();
-  }, [actorReady, refresh]);
-
-  return useMemo(
-    () => ({
-      context,
-      loading,
-      error,
-      refresh,
-      isReady: actorReady && !loading && context !== null,
-    }),
-    [context, loading, error, refresh, actorReady],
-  );
+  const key = JSON.stringify([tenantId, clientId, roleKey, actorId, portalSession?.accountId, portalSession?.tenantName]);
+  const query = useAsyncQuery(async () => {
+    const context = await sharedPortalRead(`context:${key}`, () => resolvePortalContext({
+      tenantId: tenantId!, clientId: clientId!, roleKey: roleKey!,
+      displayName: displayNameRef.current, tenantNameHint: portalSession?.tenantName ?? null,
+    }));
+    return { ok: true as const, data: context };
+  }, [key], { enabled: actorReady && !!tenantId && !!roleKey && !!clientId, queryKey: key });
+  return {
+    context: query.data,
+    loading: !actorReady || isResolvingClientLink || query.loading,
+    error: actorReady && !isResolvingClientLink && !clientId
+      ? 'Kein Klientenprofil verknüpft. Bitte melden Sie sich erneut an.'
+      : query.error ? toPortalUserFacingError(query.error, 'Ihre Übersicht konnte gerade nicht geladen werden.') : null,
+    refresh: query.refresh,
+    isReady: actorReady && query.data !== null,
+  };
 }

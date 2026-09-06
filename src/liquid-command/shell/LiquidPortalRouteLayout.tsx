@@ -24,6 +24,8 @@ import {
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
 import { webScaledFontMetric } from '@/design/web/webFontSize';
 import { PortalPremiumProvider } from '@/design/tokens/portalPremium';
+import { PortalMessengerFocusProvider } from '@/lib/portal/portalMessengerFocusContext';
+import { PortalViewportContext } from '@/lib/portal/portalViewportContext';
 import {
   isEmployeeVisitExecutionRoute,
   resolveCompactPortalLogoWidth,
@@ -368,6 +370,7 @@ export function LiquidPortalRouteLayout({
   kind: PortalKind;
   overlay?: ReactNode;
 }) {
+  const { portalSession } = useAuth();
   let content: ReactNode = <PortalChrome kind={kind} overlay={overlay} />;
   content = <RequireRole>{content}</RequireRole>;
   if (kind === 'employee') {
@@ -378,7 +381,13 @@ export function LiquidPortalRouteLayout({
       {content}
     </RequireAuth>
   );
-  const portalSurface = <LiquidVisualModeProvider mode="orbit">{guarded}</LiquidVisualModeProvider>;
+  const portalSurface = (
+    <PortalMessengerFocusProvider key={`${portalSession?.tenantId ?? ''}:${portalSession?.accountId ?? kind}`}>
+      <PortalViewportContext.Provider value={{ footerInFlow: true }}>
+        <LiquidVisualModeProvider mode="orbit">{guarded}</LiquidVisualModeProvider>
+      </PortalViewportContext.Provider>
+    </PortalMessengerFocusProvider>
+  );
   if (kind === 'client' || kind === 'employee') {
     return <PortalPremiumProvider kind={kind}>{portalSurface}</PortalPremiumProvider>;
   }

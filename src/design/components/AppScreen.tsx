@@ -1,8 +1,8 @@
+import { PortalKeyboardScrollView } from '@/components/keyboard/PortalKeyboard';
 import { ReactNode, useMemo } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   View,
   type ViewStyle,
@@ -64,8 +64,8 @@ export function AppScreen({
     if (Platform.OS === 'web') {
       return webSafeAreaCalc('bottom', MOBILE_AUTH_BOTTOM_RESERVE) as number;
     }
-    return MOBILE_AUTH_BOTTOM_RESERVE + Math.max(insets.bottom, careSpacing.sm);
-  }, [insets.bottom, isPhone]);
+    return careSpacing.md;
+  }, [isPhone]);
 
   const styles = useMemo(
     () =>
@@ -111,18 +111,18 @@ export function AppScreen({
       : undefined;
 
   const body = scroll ? (
-    <ScrollView
+    <PortalKeyboardScrollView
       contentContainerStyle={[styles.scroll, widePad, contentStyle]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
       {children}
-    </ScrollView>
+    </PortalKeyboardScrollView>
   ) : (
     <View style={[styles.static, widePad, contentStyle]}>{children}</View>
   );
 
-  const wrapped = keyboardAvoiding ? (
+  const wrapped = keyboardAvoiding && !scroll ? (
     <KeyboardAvoidingView
       style={styles.inner}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}

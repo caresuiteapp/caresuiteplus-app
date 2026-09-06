@@ -1,3 +1,4 @@
+import { useClientSignatureAttention } from '@/components/portal/ClientSignatureAttentionProvider';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -92,6 +93,8 @@ export function CsDocumentRequestDetailScreen({
 }: Props) {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const attention = useClientSignatureAttention();
+  const signing = useRef(false);
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
   const portalActor = usePortalActor();
@@ -157,8 +160,10 @@ export function CsDocumentRequestDetailScreen({
   }, [id, isPortal, item?.status]);
 
   const handleSign = async (dataUrl: string) => {
-    if (!tenantId || !id) return;
+    if (!tenantId || !id || signing.current) return;
+    signing.current = true;
     setWorking(true);
+    try {
     setActionError(null);
     const result = await signCsDocumentRequest({
       tenantId,
@@ -175,7 +180,6 @@ export function CsDocumentRequestDetailScreen({
           }
         : undefined,
     });
-    setWorking(false);
     if (!result.ok) {
       setActionError(
         isPortal
@@ -189,7 +193,13 @@ export function CsDocumentRequestDetailScreen({
     }
     setSignModal(false);
     setSignSuccess(true);
-    await query.refresh();
+    await Promise.all([query.refresh(), attention.refresh()]);
+    } catch {
+      setActionError("Ihre Unterschrift konnte nicht bestätigt werden. Bitte prüfen Sie das Dokument und versuchen Sie es erneut.");
+    } finally {
+      signing.current = false;
+      setWorking(false);
+    }
   };
 
   const accent = mode === 'office' ? moduleColor('office') : moduleColor('assist');

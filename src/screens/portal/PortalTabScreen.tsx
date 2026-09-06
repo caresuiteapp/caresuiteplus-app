@@ -1,5 +1,6 @@
+import { PortalKeyboardScrollView } from '@/components/keyboard/PortalKeyboard';
 import { ReactNode, useMemo } from 'react';
-import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PortalMobileTabHeader } from '@/components/portal/PortalMobileTabHeader';
 import { ScreenShell } from '@/components/layout/ScreenShell';
@@ -16,6 +17,7 @@ import {
 } from '@/lib/platform/webSafeArea';
 import { spacing } from '@/theme';
 import { isEmployeeVisitExecutionRoute } from '@/lib/portal/portalResponsiveLayout';
+import { usePortalViewport } from '@/lib/portal/portalViewportContext';
 
 type PortalTabScreenProps = {
   title: string;
@@ -48,6 +50,7 @@ export function PortalTabScreen({
   const { isPhone } = useDeviceClass();
   const { showBottomTabs } = usePlatformLayout();
   const { active: messengerFocusActive } = usePortalMessengerFocus();
+  const { footerInFlow } = usePortalViewport();
   const pathname = usePathname();
   const isEmployeePortal = pathname.startsWith('/portal/employee');
   const isClientPortal = pathname.startsWith('/portal/client');
@@ -57,14 +60,15 @@ export function PortalTabScreen({
   const showPortalBottomTabs = showBottomTabs && !routeOwnsBottomBar;
 
   const bareBottomPadding = useMemo(() => {
-    if (messengerFocusActive || !showPortalBottomTabs) return spacing.md;
+    if (footerInFlow || messengerFocusActive || !showPortalBottomTabs) return spacing.md;
     return resolvePortalMobileContentPaddingBottom(insets.bottom);
-  }, [insets.bottom, messengerFocusActive, showPortalBottomTabs]);
+  }, [footerInFlow, insets.bottom, messengerFocusActive, showPortalBottomTabs]);
 
   const barePaddingStyle = useMemo((): ViewStyle => {
     if (messengerFocusActive) {
       return { flex: 1, minHeight: 0, paddingBottom: 0, gap: 0 };
     }
+    if (footerInFlow) return { paddingBottom: spacing.md };
     if (!showPortalBottomTabs) return {};
     if (Platform.OS === 'web') {
       return {
@@ -75,7 +79,7 @@ export function PortalTabScreen({
       };
     }
     return { paddingBottom: bareBottomPadding };
-  }, [bareBottomPadding, messengerFocusActive, showPortalBottomTabs]);
+  }, [bareBottomPadding, footerInFlow, messengerFocusActive, showPortalBottomTabs]);
 
   // Keep a stable parent while the messenger switches inbox/compose/thread.
   // Swapping PageFrame for a different wrapper remounts the just-opened composer.
@@ -109,7 +113,7 @@ export function PortalTabScreen({
 
     if (scroll) {
       return (
-        <ScrollView
+        <PortalKeyboardScrollView
           contentContainerStyle={[styles.employeeScrollContent, barePaddingStyle]}
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
@@ -118,7 +122,7 @@ export function PortalTabScreen({
           testID="employee-portal-tab-scroll"
         >
           {page}
-        </ScrollView>
+        </PortalKeyboardScrollView>
       );
     }
 
@@ -147,7 +151,7 @@ export function PortalTabScreen({
 
     if (scroll) {
       return (
-        <ScrollView
+        <PortalKeyboardScrollView
           contentContainerStyle={[styles.portalScrollContent, barePaddingStyle]}
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
@@ -156,7 +160,7 @@ export function PortalTabScreen({
           testID="client-portal-tab-scroll"
         >
           {page}
-        </ScrollView>
+        </PortalKeyboardScrollView>
       );
     }
 
@@ -179,7 +183,7 @@ export function PortalTabScreen({
 
     if (scroll && !messengerFocusActive) {
       return (
-        <ScrollView
+        <PortalKeyboardScrollView
           contentContainerStyle={styles.bareScrollContent}
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
@@ -188,7 +192,7 @@ export function PortalTabScreen({
           testID="client-portal-tab-scroll"
         >
           {page}
-        </ScrollView>
+        </PortalKeyboardScrollView>
       );
     }
 

@@ -448,6 +448,7 @@ export async function sendBroadcast(
   if (input.sendPushNotification === true && (segment === 'employees' || segment === 'clients')) {
     const pushResult = await invokeEdgeFunction<{
       eligibleDevices: number;
+      queued?: number;
       accepted: number;
       failed: number;
     }>('office-push-send', { broadcastId });

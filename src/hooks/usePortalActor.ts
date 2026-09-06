@@ -1,3 +1,4 @@
+import { sharedPortalRead } from '@/lib/portal/sharedPortalRead';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/auth/context';
 import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
@@ -199,7 +200,7 @@ export function usePortalActor(): PortalActor {
     let cancelled = false;
     setIsResolvingDisplayName(true);
 
-    void fetchClientPortalDisplayName(tenantId, clientId).then((name) => {
+    void sharedPortalRead(JSON.stringify(['client-name', tenantId, actorId, clientId]), () => fetchClientPortalDisplayName(tenantId, clientId)).then((name) => {
       if (cancelled) return;
       if (name) {
         setClientDisplayName(name);
@@ -211,7 +212,7 @@ export function usePortalActor(): PortalActor {
       cancelled = true;
       setIsResolvingDisplayName(false);
     };
-  }, [roleKey, clientId, tenantId]);
+  }, [roleKey, clientId, tenantId, actorId]);
 
   useEffect(() => {
     if (roleKey !== 'employee_portal' || !employeeId || !tenantId) {
@@ -221,7 +222,7 @@ export function usePortalActor(): PortalActor {
 
     let cancelled = false;
 
-    void fetchEmployeePortalDisplayName(tenantId, employeeId).then((name) => {
+    void sharedPortalRead(JSON.stringify(['employee-name', tenantId, actorId, employeeId]), () => fetchEmployeePortalDisplayName(tenantId, employeeId)).then((name) => {
       if (!cancelled && name) {
         setEmployeeDisplayName(name);
       }
@@ -230,7 +231,7 @@ export function usePortalActor(): PortalActor {
     return () => {
       cancelled = true;
     };
-  }, [roleKey, employeeId, tenantId]);
+  }, [roleKey, employeeId, tenantId, actorId]);
 
   const displayName =
     clientDisplayName ??

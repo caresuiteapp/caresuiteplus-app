@@ -1,3 +1,4 @@
+import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import 'react-native-reanimated';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -181,6 +182,7 @@ function RouteScopedLegacyOverlays() {
 export default function RootLayout() {
   return (
     <AuthProvider>
+      <PortalKeyboardProvider>
       <ThemeModeProvider>
         <PerformanceProvider>
           <WebFontScaleProvider>
@@ -200,6 +202,7 @@ export default function RootLayout() {
           </WebFontScaleProvider>
         </PerformanceProvider>
       </ThemeModeProvider>
+          </PortalKeyboardProvider>
     </AuthProvider>
   );
 }

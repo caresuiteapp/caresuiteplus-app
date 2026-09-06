@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { Alert } from 'react-native';
+import { RememberedPortalLoginControls } from '@/components/auth/RememberedPortalLoginControls';
+import { saveRememberedPortalLogin, type RememberedPortalLogin } from '@/lib/auth/rememberedPortalLogin';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
@@ -19,12 +22,18 @@ export function EmployeePortalLoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const submitting = useRef(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (saved?: RememberedPortalLogin) => {
+    if (submitting.current) return;
+    submitting.current = true;
+    const loginUsername = saved?.username ?? username;
+    const loginSecret = saved?.secret ?? password;
+    try {
     setError(null);
     setLoading(true);
-    const result = await loginEmployeePortal(username, password);
-    setLoading(false);
+    const result = await loginEmployeePortal(loginUsername, loginSecret);
 
     if (!result.ok) {
       setError(result.error);
@@ -38,6 +47,11 @@ export function EmployeePortalLoginScreen() {
       return;
     }
 
+    if (saved && (result.data.portalSession.accountId !== saved.accountId || result.data.portalSession.tenantId !== saved.tenantId)) {
+      setError('Das gespeicherte Konto stimmt nicht mehr überein. Bitte normal anmelden.');
+      return;
+    }
+
     const completed = await completePortalLogin(result.data.portalSession, {
       supabaseAccessToken: result.data.supabaseAccessToken,
       supabaseRefreshToken: result.data.supabaseRefreshToken,
@@ -45,6 +59,12 @@ export function EmployeePortalLoginScreen() {
     if (!completed.ok) {
       setError(completed.error);
       return;
+    }
+
+    if (remember && !saved && !completed.data.portalSession.mustChangePassword) {
+      try {
+        await saveRememberedPortalLogin({ version: 1, kind: 'employee', accountId: completed.data.portalSession.accountId, tenantId: completed.data.portalSession.tenantId, username: loginUsername, secret: loginSecret });
+      } catch { Alert.alert('Anmeldung nicht gespeichert', 'Sie werden angemeldet. Die Zugangsdaten konnten auf diesem Gerät nicht gespeichert werden.'); }
     }
 
     try {
@@ -63,6 +83,12 @@ export function EmployeePortalLoginScreen() {
 
     markPortalWelcomePending('employee');
     router.replace(resolvePostLoginRoute('employee_portal') as never);
+    } catch {
+      setError('Die Anmeldung konnte gerade nicht abgeschlossen werden. Bitte erneut versuchen.');
+    } finally {
+      submitting.current = false;
+      setLoading(false);
+    }
   };
 
   return (
@@ -105,7 +131,8 @@ export function EmployeePortalLoginScreen() {
         spellCheck={false}
         textContentType="password"
       />
-      <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
+      <RememberedPortalLoginControls kind="employee" remember={remember} onRememberChange={setRemember} onLogin={handleSubmit} busy={loading} />
+      <PremiumButton title="Einloggen" onPress={() => void handleSubmit()} loading={loading} fullWidth />
     </AuthLayout>
   );
 }

@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PremiumButton } from '@/components/ui';
 import { useAuroraGlassModalStyle } from '@/design/tokens/auroraGlass';
@@ -38,14 +38,7 @@ export function PortalGlassModal({
       bodyStyle={styles.modalBody}
     >
       <View style={styles.body}>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={[styles.formPanel, formPanelStyle]}>{children}</View>
-        </ScrollView>
+        <View style={[styles.formPanel, formPanelStyle]}>{children}</View>
         <View style={styles.actions}>
           <PremiumButton title="Schließen" variant="secondary" onPress={onClose} />
           {primaryLabel && onPrimary ? (

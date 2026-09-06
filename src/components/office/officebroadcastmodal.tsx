@@ -210,7 +210,7 @@ export function OfficeBroadcastModal({ visible, audience, onClose, onSent }: Off
           {push.requested ? (
             <>
               <Text style={styles.optionText}>
-                System-Push: {push.accepted} angenommen · {push.failed} fehlgeschlagen ·{' '}
+                System-Push: {push.queued ?? 0} vorgemerkt · {push.accepted} angenommen · {push.failed} fehlgeschlagen ·{' '}
                 {push.eligibleDevices} registrierte Geräte
               </Text>
               {push.error ? <Text style={styles.error}>{push.error}</Text> : null}

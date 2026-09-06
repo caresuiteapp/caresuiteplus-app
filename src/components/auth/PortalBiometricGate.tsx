@@ -16,7 +16,6 @@ import { useAuth } from '@/lib/auth/context';
 import {
   authenticatePortalFace,
   isPortalFaceUnlockEnabled,
-  setPortalFaceUnlockEnabled,
   subscribePortalFacePreference,
 } from '@/lib/auth/portalBiometricService';
 
@@ -38,6 +37,8 @@ export function PortalBiometricGate({ children }: PortalBiometricGateProps) {
   const backgroundedAtRef = useRef<number | null>(null);
   const authenticatingRef = useRef(false);
   const accountId = portalSession?.accountId ?? null;
+  const currentAccount = useRef(accountId);
+  currentAccount.current = accountId;
   const native = Platform.OS === 'android' || Platform.OS === 'ios';
 
   const unlock = useCallback(async () => {
@@ -48,6 +49,7 @@ export function PortalBiometricGate({ children }: PortalBiometricGateProps) {
     const result = await authenticatePortalFace();
     authenticatingRef.current = false;
     setAuthenticating(false);
+    if (currentAccount.current !== accountId) return;
     if (result.ok) {
       setLocked(false);
       return;
@@ -77,11 +79,9 @@ export function PortalBiometricGate({ children }: PortalBiometricGateProps) {
         if (preferenceEnabled) void unlock();
       } catch {
         if (cancelled) return;
-        // A keystore/keychain read failure must never leave the complete app
-        // behind an endless loading screen.
-        setEnabled(false);
-        setLocked(false);
-        setError(null);
+        setEnabled(true);
+        setLocked(true);
+        setError('Geräteschutz konnte nicht gelesen werden. Bitte sicher entsperren oder normal anmelden.');
       } finally {
         if (!cancelled) {
           setChecking(false);
@@ -129,22 +129,6 @@ export function PortalBiometricGate({ children }: PortalBiometricGateProps) {
     return () => subscription.remove();
   }, [accountId, enabled, native, unlock]);
 
-  useEffect(() => {
-    if (!enabled || !accountId) return;
-    void (async () => {
-      try {
-        const stillEnabled = await isPortalFaceUnlockEnabled(accountId);
-        if (!stillEnabled) {
-          await setPortalFaceUnlockEnabled(accountId, false);
-          setEnabled(false);
-          setLocked(false);
-        }
-      } catch {
-        setEnabled(false);
-        setLocked(false);
-      }
-    })();
-  }, [accountId, enabled]);
 
   if (!native || !accountId) {
     return <>{children}</>;
@@ -161,8 +145,8 @@ export function PortalBiometricGate({ children }: PortalBiometricGateProps) {
         ) : (
           <>
             <View style={styles.copy}>
-              <Text style={[typography.display, styles.center, { color: colors.textPrimary }]}>CareSuite gesperrt</Text>
-              <Text style={[typography.body, styles.center, { color: colors.textSecondary }]}>
+              <Text style={[typography.display, styles.center, { color: portalPremium.text.primary }]}>CareSuite gesperrt</Text>
+              <Text style={[typography.body, styles.center, { color: portalPremium.text.secondary }]}>
                 Bestätigen Sie Ihre Identität mit Gesicht, Fingerabdruck oder Gerätecode, um persönliche Portal- und Gesundheitsdaten anzuzeigen.
               </Text>
               {error ? (

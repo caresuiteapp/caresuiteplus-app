@@ -1,6 +1,6 @@
+import { PortalKeyboardAvoidingView as KeyboardAvoidingView } from '@/components/keyboard/PortalKeyboard';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -224,7 +224,7 @@ export function PortalOfficeThread({
   return (
     <KeyboardAvoidingView
       style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 72 : 0}
     >
       <View style={officeMessengerColumnStyles.columnRoot}>

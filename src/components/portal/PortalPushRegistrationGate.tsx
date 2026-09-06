@@ -1,207 +1,71 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Notifications from 'expo-notifications';
-import { useRouter } from 'expo-router';
-import {
-  AppState,
-  Linking,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useRootNavigationState, useRouter } from 'expo-router';
+import { AppState, Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '@/lib/auth/context';
-import {
-  ensurePortalPushRegistration,
-  isAllowedPortalPushRoute,
-  type PortalPushPermissionStatus,
-} from '@/lib/portal/portalPushNotifications';
+import { ensurePortalPushRegistration, type PortalPushRegistrationResult } from '@/lib/portal/portalPushNotifications';
+import { consumePortalPushResponse, portalPushDestination } from '@/lib/portal/portalPushNavigation';
 
-type GateState = {
-  checking: boolean;
-  permissionStatus: PortalPushPermissionStatus;
-  registered: boolean;
-  error: string | null;
-  canOpenSettings: boolean;
-};
-
-const INITIAL_STATE: GateState = {
-  checking: true,
-  permissionStatus: 'undetermined',
-  registered: false,
-  error: null,
-  canOpenSettings: false,
-};
-
+const dismissed = new Set<string>();
 export function PortalPushRegistrationGate() {
   const router = useRouter();
+  const navigation = useRootNavigationState();
   const { authReady, isAuthenticated, portalSession } = useAuth();
-  const [state, setState] = useState<GateState>(INITIAL_STATE);
-  const requestRunning = useRef(false);
-  const portalActive = authReady && isAuthenticated && Boolean(portalSession);
-
-  const register = useCallback(async (requestPermission: boolean) => {
-    if (Platform.OS === 'web' || requestRunning.current) return;
-    requestRunning.current = true;
-    setState((current) => ({ ...current, checking: true, error: null }));
-    const result = await ensurePortalPushRegistration(requestPermission);
-    requestRunning.current = false;
-    if (result.ok) {
-      setState({
-        checking: false,
-        permissionStatus: 'granted',
-        registered: true,
-        error: null,
-        canOpenSettings: false,
-      });
-      return;
-    }
-    setState({
-      checking: false,
-      permissionStatus: result.permissionStatus,
-      registered: false,
-      error: result.error,
-      canOpenSettings: result.canOpenSettings,
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!portalActive || Platform.OS === 'web') {
-      setState(INITIAL_STATE);
-      return;
-    }
-    // Inspect first. The system permission dialog is only opened after a
-    // deliberate user action, never automatically while the portal hydrates.
-    void register(false);
-  }, [portalActive, register]);
-
-  useEffect(() => {
-    if (
-      !portalActive ||
-      Platform.OS === 'web' ||
-      state.registered ||
-      state.checking ||
-      state.permissionStatus !== 'granted' ||
-      !state.error
-    ) {
-      return;
-    }
-
-    // Token/server failures must not block or cover the portal. Retry quietly
-    // after the app has become usable.
-    const retryTimer = setTimeout(() => void register(false), 30_000);
-    return () => clearTimeout(retryTimer);
-  }, [portalActive, register, state.checking, state.error, state.permissionStatus, state.registered]);
-
+  const accountKey = `${portalSession?.tenantId ?? ''}:${portalSession?.accountId ?? ''}`;
+  const currentAccount = useRef(accountKey); currentAccount.current = accountKey;
+  const [result, setResult] = useState<PortalPushRegistrationResult | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const [response, setResponse] = useState<Notifications.NotificationResponse | null>(null);
+  const running = useRef(new Set<string>());
+  const retries = useRef(0);
+  const portalActive = authReady && isAuthenticated && !!portalSession && !portalSession.mustChangePassword;
+  const register = useCallback(async (ask: boolean) => {
+    if (Platform.OS === 'web' || running.current.has(accountKey) || !portalActive) return;
+    running.current.add(accountKey); setChecking(true);
+    try {
+      const next = await ensurePortalPushRegistration(ask);
+      if (currentAccount.current === accountKey) setResult(next);
+    } finally { running.current.delete(accountKey); if (currentAccount.current === accountKey) setChecking(false); }
+  }, [accountKey, portalActive]);
+  useEffect(() => { setResult(null); setHidden(dismissed.has(accountKey)); retries.current = 0; if (portalActive) void register(false); }, [accountKey, portalActive, register]);
   useEffect(() => {
     if (!portalActive || Platform.OS === 'web') return;
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active') void register(false);
-    });
-    return () => subscription.remove();
+    const listener = AppState.addEventListener('change', state => { if (state === 'active') { retries.current = 0; void register(false); } });
+    return () => listener.remove();
   }, [portalActive, register]);
-
+  useEffect(() => {
+    if (!portalActive || checking || !result || result.ok || result.permissionStatus !== 'granted' || retries.current >= 3) return;
+    const timer = setTimeout(() => { retries.current += 1; void register(false); }, 30_000 * 2 ** retries.current);
+    return () => clearTimeout(timer);
+  }, [portalActive, checking, register, result]);
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    const openResponse = (response: Notifications.NotificationResponse | null | undefined) => {
-      const route = response?.notification.request.content.data?.route;
-      if (isAllowedPortalPushRoute(route)) router.push(route as never);
-    };
-    const subscription = Notifications.addNotificationResponseReceivedListener(openResponse);
-    void Notifications.getLastNotificationResponseAsync().then(openResponse);
-    return () => subscription.remove();
-  }, [router]);
-
-  const styles = useMemo(() => createStyles(), []);
-  if (!portalActive || Platform.OS === 'web' || state.registered) return null;
-
-  if (state.checking && state.permissionStatus === 'undetermined' && !state.error) {
-    return null;
-  }
-
-  const permissionMissing = state.permissionStatus !== 'granted';
-  if (!permissionMissing) return null;
-
-  return (
-    <View style={styles.overlay} accessibilityViewIsModal accessibilityRole="alert">
-      <View style={styles.card}>
-        <View style={styles.iconCircle}>
-          <Text style={styles.icon}>🔔</Text>
-        </View>
-        <Text style={styles.title}>Benachrichtigungen erforderlich</Text>
-        <Text style={styles.body}>
-          CareSuite benötigt Benachrichtigungen, damit wichtige Einsatzänderungen und Mitteilungen
-          aus Office auch bei geschlossener App zuverlässig ankommen.
-        </Text>
-        {state.error && state.permissionStatus === 'denied' ? (
-          <Text style={styles.error}>{state.error}</Text>
-        ) : null}
-        <Pressable
-          style={styles.primaryButton}
-          onPress={() => {
-            if (state.canOpenSettings) void Linking.openSettings();
-            else void register(true);
-          }}
-          disabled={state.checking}
-        >
-          <Text style={styles.primaryButtonText}>
-            {state.checking
-              ? 'Berechtigung wird geprüft …'
-              : state.canOpenSettings
-                ? 'App-Einstellungen öffnen'
-                : 'Benachrichtigungen aktivieren'}
-          </Text>
-        </Pressable>
-        <Text style={styles.privacy}>
-          Auf dem Sperrbildschirm erscheint nur ein neutraler Hinweis. Geschützte Inhalte werden
-          erst nach dem Öffnen und Entsperren von CareSuite angezeigt.
-        </Text>
-      </View>
-    </View>
-  );
+    let active = true;
+    const listener = Notifications.addNotificationResponseReceivedListener(value => setResponse(value));
+    void Notifications.getLastNotificationResponseAsync().then(value => { if (active && value) setResponse(value); }).catch(() => {});
+    return () => { active = false; listener.remove(); };
+  }, []);
+  useEffect(() => {
+    if (!portalActive || !navigation?.key || !response) return;
+    const destination = portalPushDestination(response.notification.request.content.data, portalSession);
+    if (!destination) return;
+    const id = String(response.notification.request.content.data?.notificationId ?? response.notification.request.identifier);
+    if (consumePortalPushResponse(id)) router.push(destination as never);
+    setResponse(null);
+    void Notifications.clearLastNotificationResponseAsync().catch(() => {});
+  }, [navigation?.key, portalActive, portalSession, response, router]);
+  if (Platform.OS === 'web' || !portalActive || hidden || !result || result.ok || result.permissionStatus === 'granted') return null;
+  const close = () => { dismissed.add(accountKey); setHidden(true); };
+  return <Modal visible transparent animationType="fade" onRequestClose={close}>
+    <View style={styles.backdrop}><View style={styles.card} accessibilityViewIsModal>
+      <Text style={styles.title}>Wichtige Hinweise erhalten</Text>
+      <Text style={styles.text}>Neue Einsätze, Nachrichten und offene Unterschriften können auch bei geschlossener App angekündigt werden.</Text>
+      {result.error ? <Text style={styles.text}>{result.error}</Text> : null}
+      <Pressable accessibilityRole="button" disabled={checking} style={styles.action} onPress={() => { if (result.canOpenSettings) void Linking.openSettings(); else void register(true); }}><Text style={styles.actionText}>{checking ? 'Wird geprüft …' : result.canOpenSettings ? 'App-Einstellungen öffnen' : 'Benachrichtigungen erlauben'}</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={close} style={styles.secondary}><Text style={styles.text}>Später – Portal weiter benutzen</Text></Pressable>
+      <Text style={styles.note}>In Ihrem Profil können Sie Benachrichtigungen jederzeit einrichten. Auf dem Sperrbildschirm erscheinen keine Dokumentinhalte.</Text>
+    </View></View>
+  </Modal>;
 }
-
-function createStyles() {
-  return StyleSheet.create({
-    overlay: {
-      ...StyleSheet.absoluteFill,
-      zIndex: 10000,
-      padding: 24,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'rgba(7, 13, 28, 0.88)',
-    },
-    card: {
-      width: '100%',
-      maxWidth: 480,
-      padding: 24,
-      borderRadius: 24,
-      backgroundColor: '#FFFFFF',
-      alignItems: 'center',
-      gap: 14,
-    },
-    iconCircle: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#EEEAFE',
-    },
-    icon: { fontSize: 30 },
-    title: { fontSize: 22, lineHeight: 28, fontWeight: '800', color: '#171B2C', textAlign: 'center' },
-    body: { fontSize: 16, lineHeight: 23, color: '#4B5568', textAlign: 'center' },
-    error: { fontSize: 14, lineHeight: 20, color: '#B42318', textAlign: 'center' },
-    primaryButton: {
-      width: '100%',
-      minHeight: 52,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 18,
-      backgroundColor: '#6246EA',
-    },
-    primaryButtonText: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
-    privacy: { fontSize: 12, lineHeight: 17, color: '#6B7280', textAlign: 'center' },
-  });
-}
+const styles = StyleSheet.create({ backdrop: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: 'rgba(24,53,83,0.28)' }, card: { padding: 20, gap: 16, borderRadius: 24, backgroundColor: '#FFF', maxWidth: 480, alignSelf: 'center', width: '100%' }, title: { fontSize: 22, lineHeight: 30, fontWeight: '800', color: '#10283F' }, text: { fontSize: 16, lineHeight: 24, color: '#304E69' }, action: { minHeight: 52, justifyContent: 'center', alignItems: 'center', borderRadius: 14, backgroundColor: '#0668E8', padding: 12 }, actionText: { color: '#FFF', fontSize: 17, fontWeight: '700' }, secondary: { minHeight: 48, justifyContent: 'center', alignItems: 'center' }, note: { fontSize: 14, lineHeight: 21, color: '#526C84' } });

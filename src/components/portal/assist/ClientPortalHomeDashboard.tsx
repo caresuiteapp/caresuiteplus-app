@@ -1,5 +1,7 @@
+import { ClientSignatureAttentionBanner } from '@/components/portal/ClientSignatureAttentionBanner';
+import { PortalInfoButton } from '@/components/portal/PortalInfoButton';
 import type { ComponentProps } from 'react';
-import { Image, Platform, Pressable, StyleSheet, Text, View, type DimensionValue, type TextStyle, type ViewStyle } from 'react-native';
+import {  Platform, Pressable, StyleSheet, Text, View, type DimensionValue, type TextStyle, type ViewStyle } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -76,7 +78,7 @@ const premiumShadow = Platform.OS === 'web'
   : ({ shadowColor: '#001B42', shadowOpacity: 0.2, shadowRadius: 22, shadowOffset: { width: 0, height: 13 }, elevation: 8 } as ViewStyle);
 
 const breakLongWords = Platform.OS === 'web'
-  ? ({ overflowWrap: 'anywhere', wordBreak: 'break-word' } as unknown as TextStyle)
+  ? ({ overflowWrap: 'normal', wordBreak: 'normal' } as unknown as TextStyle)
   : null;
 
 function plural(count: number, singular: string, pluralForm: string): string {
@@ -212,7 +214,7 @@ function WelcomeHero({
   const heroLines = resolveClientPortalHeroLines({
     displayName: context.displayName,
     tenantName: context.tenantName,
-    moduleLabel: 'Klient:innenportal',
+    moduleLabel: 'Klientenportal',
   });
 
   return (
@@ -229,7 +231,7 @@ function WelcomeHero({
       <View style={[styles.welcomeCopy, compactHero && styles.welcomeCopyPhone]}>
         <View style={styles.portalPill}>
           <Ionicons name="shield-checkmark" color={ink.blue} size={15} />
-          <Text style={styles.portalPillText}>MEIN KLIENT:INNENPORTAL</Text>
+          <Text style={styles.portalPillText}>MEIN KLIENTENPORTAL</Text>
         </View>
         <Text style={[type.h1, styles.welcomeTitle, breakLongWords]}>
           {heroLines.greetingLine}, {heroLines.nameLine}
@@ -237,34 +239,7 @@ function WelcomeHero({
         <Text style={[type.body, styles.welcomeProvider]}>{context.tenantName}</Text>
       </View>
 
-      <View style={[styles.guideArea, compactHero && styles.guideAreaPhone]}>
-        <Image
-          accessibilityIgnoresInvertColors
-          accessibilityLabel="CareSuite Portalbegleiter"
-          resizeMode="contain"
-          source={require('../../../../assets/auth/access-client.png')}
-          style={[styles.guideMascot, compactHero && styles.guideMascotPhone]}
-        />
-        <View style={[styles.guideBubble, compactHero && styles.guideBubblePhone]}>
-          {!compactHero ? <View style={styles.guideBubbleTail} /> : null}
-          <Text style={[type.bodyStrong, styles.guideTitle, breakLongWords]}>{guide.title}</Text>
-          <Text style={[type.caption, styles.guideMessage]}>{guide.message}</Text>
-          {guide.actionLabel && onGuideAction ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={onGuideAction}
-              style={({ pressed }) => [
-                styles.guideAction,
-                compactHero && styles.guideActionPhone,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.guideActionText}>{guide.actionLabel}</Text>
-              <Ionicons name="arrow-forward" color={ink.white} size={16} />
-            </Pressable>
-          ) : null}
-        </View>
-      </View>
+      <PortalInfoButton title={guide.title} message={guide.message} actionLabel={guide.actionLabel} onAction={onGuideAction} />
     </View>
   );
 }
@@ -412,6 +387,7 @@ export function ClientPortalHomeDashboard({
 
   return (
     <View style={styles.dashboard} testID="client-portal-premium-home">
+      <ClientSignatureAttentionBanner />
       <WelcomeHero
         context={context}
         guide={guide}
@@ -892,12 +868,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionTitle: {
-    color: '#FFFFFF',
+    color: ink.primary,
     fontWeight: '900',
   },
   sectionSubtitle: {
     marginTop: 3,
-    color: 'rgba(255,255,255,0.7)',
+    color: ink.secondary,
   },
   actionGrid: {
     width: '100%',

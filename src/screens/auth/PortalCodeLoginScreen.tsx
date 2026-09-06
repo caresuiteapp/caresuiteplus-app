@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { Alert } from 'react-native';
+import { RememberedPortalLoginControls } from '@/components/auth/RememberedPortalLoginControls';
+import { saveRememberedPortalLogin, type RememberedPortalLogin } from '@/lib/auth/rememberedPortalLogin';
 import { Linking, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CareSuiteLogo } from '@/components/brand';
@@ -30,12 +33,18 @@ export function PortalCodeLoginScreen() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const submitting = useRef(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (saved?: RememberedPortalLogin) => {
+    if (submitting.current) return;
+    submitting.current = true;
+    const loginUsername = saved?.username ?? username;
+    const loginSecret = saved?.secret ?? code;
+    try {
     setError(null);
     setLoading(true);
-    const result = await loginClientPortal(username, code);
-    setLoading(false);
+    const result = await loginClientPortal(loginUsername, loginSecret);
 
     if (!result.ok) {
       setError(result.error);
@@ -49,6 +58,11 @@ export function PortalCodeLoginScreen() {
       return;
     }
 
+    if (saved && (result.data.portalSession.accountId !== saved.accountId || result.data.portalSession.tenantId !== saved.tenantId)) {
+      setError('Das gespeicherte Konto stimmt nicht mehr überein. Bitte normal anmelden.');
+      return;
+    }
+
     const completed = await completePortalLogin(result.data.portalSession, {
       supabaseAccessToken: result.data.supabaseAccessToken,
       supabaseRefreshToken: result.data.supabaseRefreshToken,
@@ -58,6 +72,12 @@ export function PortalCodeLoginScreen() {
       return;
     }
 
+    if (remember && !saved && !completed.data.portalSession.mustChangePassword) {
+      try {
+        await saveRememberedPortalLogin({ version: 1, kind: 'client', accountId: completed.data.portalSession.accountId, tenantId: completed.data.portalSession.tenantId, username: loginUsername, secret: loginSecret });
+      } catch { Alert.alert('Anmeldung nicht gespeichert', 'Sie werden angemeldet. Die Zugangsdaten konnten auf diesem Gerät nicht gespeichert werden.'); }
+    }
+
     try {
       await signInPortalSession(completed.data.portalSession);
       markPortalWelcomePending('client');
@@ -65,11 +85,17 @@ export function PortalCodeLoginScreen() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
     }
+    } catch {
+      setError('Die Anmeldung konnte gerade nicht abgeschlossen werden. Bitte erneut versuchen.');
+    } finally {
+      submitting.current = false;
+      setLoading(false);
+    }
   };
 
   return (
     <AuthLayout
-      title="Anmeldung Klient:innen Portal"
+      title="Anmeldung Klientenportal"
       subtitle="Persönlicher Zugang für Klient:innen"
       keyboardAvoiding
     >
@@ -84,6 +110,9 @@ export function PortalCodeLoginScreen() {
           onChangeText={(value) => setUsername(sanitizePortalUsernameInput(value))}
           autoCapitalize="none"
           autoCorrect={false}
+          autoComplete="username"
+          textContentType="username"
+          importantForAutofill="yes"
         />
         <InputField
           label="Portal-Code (6-stellig)"
@@ -91,8 +120,16 @@ export function PortalCodeLoginScreen() {
           onChangeText={(value) => setCode(normalizePortalCodeInput(value))}
           autoCapitalize="characters"
           maxLength={6}
+          secureTextEntry
+          autoCorrect={false}
+          autoComplete="current-password"
+          textContentType="password"
+          importantForAutofill="yes"
+          returnKeyType="go"
+          onSubmitEditing={() => void handleSubmit()}
         />
-        <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
+        <RememberedPortalLoginControls kind="client" remember={remember} onRememberChange={setRemember} onLogin={handleSubmit} busy={loading} />
+      <PremiumButton title="Einloggen" onPress={() => void handleSubmit()} loading={loading} fullWidth />
         <PremiumButton
           title="Hilfe anfordern"
           variant="secondary"
