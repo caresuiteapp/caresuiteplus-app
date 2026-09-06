@@ -1,4 +1,5 @@
 import { useEmployeeGpsTracking } from '@/features/liveTracking/useEmployeeGpsTracking';
+import { createSingleFlight } from '@/lib/services/singleFlight';
 import { captureGoogleRouteReference } from '@/features/liveTracking/googleRouteReference';
 import {
   startEmployeeLiveTracking,
@@ -96,6 +97,8 @@ import {
   didWorkflowActionReachPostcondition,
   type RecoverableWorkflowAction,
 } from '@/features/assistWorkflow/workflowRecoveryVerification';
+
+const runCanonicalMutation = createSingleFlight();
 
 function unwrapWorkflowContextPayload(payload: unknown): AssistExecutionContext | null {
   if (!payload || typeof payload !== 'object') return null;
@@ -799,6 +802,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       if (loadingMode === 'start_service') setStartServiceLoading(true);
       else setWorkflowLoading(true);
 
+      let confirmationTimedOut = false;
       try {
         const writableSession = await ensurePortalWriteSession(portalSession, 'workflow');
         if (!writableSession.ok) {
@@ -808,8 +812,16 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
             errorCode: 'PORTAL_WRITE_SESSION_INVALID',
           };
         }
+        const operation = options?.recoveryAction
+          ? runCanonicalMutation(`${ctx.tenantId}:${ctx.employeeId}:${ctx.assistVisitId}:${options.recoveryAction}`, () => fn(ctx!))
+          : fn(ctx);
+        void operation.then(async () => {
+          if (confirmationTimedOut) await refreshExecutionContext();
+        }, async () => {
+          if (confirmationTimedOut) await refreshExecutionContext();
+        }).catch(() => undefined);
         const result = await withWorkflowTimeout(
-          fn(ctx),
+          operation,
           options?.timeoutMs ??
             (loadingMode === 'start_service'
               ? WORKFLOW_START_SERVICE_TIMEOUT_MS
@@ -862,11 +874,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         return result;
       } catch (error) {
         if (error instanceof WorkflowActionTimeoutError) {
+          confirmationTimedOut = true;
           // A timeout means "confirmation pending", never "write failed". The
           // canonical request keeps running and the readback reconciles the UI.
           void refreshExecutionContext().then(async (recovered) => {
             if (recovered) await syncAfterWorkflow(recovered);
-          });
+          }).catch(() => undefined);
           return {
             ok: false,
             error: 'Die Serverbestätigung läuft noch. Bitte nicht erneut tippen – der Einsatzstatus wird automatisch abgeglichen.',
@@ -905,21 +918,22 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     setEmployeeLevelConsent(local);
     setConsentRevision((n) => n + 1);
 
-    const employeePersisted = await persistInternalLocationConsent(
-      tenantId,
-      employeeId,
-      local.grantedAt ?? new Date().toISOString(),
-      local.explainedAt,
-    );
-
-    const persisted = await saveEmployeeLocationConsent({
-      tenantId,
-      employeeId,
-      routeParamId: assignmentId,
-      profileId: authProfileId,
-      consentExplainedAt: local.explainedAt,
-      localConsent: local,
-    });
+    const [employeePersisted, persisted] = await Promise.all([
+      persistInternalLocationConsent(
+        tenantId,
+        employeeId,
+        local.grantedAt ?? new Date().toISOString(),
+        local.explainedAt,
+      ),
+      saveEmployeeLocationConsent({
+        tenantId,
+        employeeId,
+        routeParamId: assignmentId,
+        profileId: authProfileId,
+        consentExplainedAt: local.explainedAt,
+        localConsent: local,
+      }),
+    ]);
 
     if (!persisted.ok && !employeePersisted.ok) {
       return { ok: false, error: persisted.error ?? employeePersisted.error ?? 'Einwilligung konnte nicht gespeichert werden.' };
@@ -941,7 +955,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         : prev,
     );
 
-    await refreshExecutionContext();
+    void refreshExecutionContext().catch(() => undefined);
     return { ok: true };
   }, [tenantId, assignmentId, employeeId, authProfileId, refreshExecutionContext]);
 

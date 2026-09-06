@@ -142,7 +142,7 @@ describe('kontinuierliche Mitarbeitenden-Liveverfolgung', () => {
     expect(screen).not.toContain('Bitte zuerst Standort-Einwilligung bestätigen.');
     expect(screen).toContain('<EmployeePortalLocationConsentBanner');
     expect(screen).toMatch(
-      /const handleAcceptLocationDisclosure[\s\S]*await grantConsent\(\)[\s\S]*await executeStartDrive\(\)/,
+      /const handleAcceptLocationDisclosure[\s\S]*await withWorkflowTimeout\(grantConsent\(\)[\s\S]*await executeStartDrive\(\)/,
     );
   });
 });

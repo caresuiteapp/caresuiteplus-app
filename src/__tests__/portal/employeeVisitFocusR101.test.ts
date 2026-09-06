@@ -24,16 +24,17 @@ describe('employee visit focus R10.1', () => {
     expect(screen).not.toContain('Zurück zur Übersicht</');
   });
 
-  it('uses a stable vector employee icon in progress and speech bubble', () => {
+  it('keeps one robot in the help button instead of duplicating it in progress', () => {
     const header = read('src/components/portal/EmployeePortalVisitStickyHeader.tsx');
     const progress = read('src/components/portal/EmployeePortalVisitProgressSteps.tsx');
     expect(header).toContain('source={CARESUITE_VISIT_GUIDE_MASCOT}');
-    expect(progress).toContain('source={CARESUITE_VISIT_GUIDE_MASCOT}');
+    expect(progress).not.toContain('CARESUITE_VISIT_GUIDE_MASCOT');
+    expect(header).toContain('employee-visit-guide-toggle');
     expect(header).not.toContain('>👤<');
     expect(progress).not.toContain('>👤<');
   });
 
-  it('shows active workflow problems only in the guide instead of three overlays', () => {
+  it('keeps workflow problems visible while detailed guidance is optional', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     expect(screen).not.toContain('<ErrorState message={localError}');
     expect(screen).not.toContain('<ErrorState message={taskSaveError}');

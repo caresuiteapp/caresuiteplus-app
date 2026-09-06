@@ -29,14 +29,15 @@ describe('employee visit readability R10.3', () => {
     expect(modal).toContain("maxHeight: '92%'");
   });
 
-  it('uses the supplied medical robot as the animated visit guide', () => {
+  it('uses the supplied medical robot once as optional help', () => {
     const assets = read('src/components/brand/brandassets.ts');
     const header = read('src/components/portal/EmployeePortalVisitStickyHeader.tsx');
     const progress = read('src/components/portal/EmployeePortalVisitProgressSteps.tsx');
     expect(assets).toContain('CARESUITE_VISIT_GUIDE_MASCOT');
     expect(assets).toContain('caresuite-visit-guide-robot.png');
     expect(header).toContain('source={CARESUITE_VISIT_GUIDE_MASCOT}');
-    expect(progress).toContain('source={CARESUITE_VISIT_GUIDE_MASCOT}');
+    expect(progress).not.toContain('CARESUITE_VISIT_GUIDE_MASCOT');
+    expect(header).toContain('visible={helpOpen}');
     expect(header).not.toContain('name="person"');
     expect(progress).not.toContain('name="person"');
   });

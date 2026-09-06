@@ -9,6 +9,7 @@ import { spacing, typography } from '@/theme';
 type EmployeePortalVisitSummaryPanelProps = {
   visit: EmployeePortalAssignmentDetail;
   onBack: () => void;
+  onReturnTrip?: () => void;
 };
 
 function formatDateTime(iso: string | null | undefined): string {
@@ -34,6 +35,7 @@ function formatDuration(start: string | null, end: string | null): string {
 export function EmployeePortalVisitSummaryPanel({
   visit,
   onBack,
+  onReturnTrip,
 }: EmployeePortalVisitSummaryPanelProps) {
   const text = employeePortalExecutionText;
   const tasks = Array.isArray(visit.tasks) ? visit.tasks : [];
@@ -53,6 +55,8 @@ export function EmployeePortalVisitSummaryPanel({
   return (
     <PremiumCard contentStyle={styles.wrap}>
       <SuccessState message="Einsatz abgeschlossen" presentation="inline" />
+      <PremiumButton title="Nächsten Einsatz auswählen" fullWidth onPress={onBack} />
+      {onReturnTrip ? <PremiumButton title="Einsatztag beenden · Heim-/Bürofahrt" variant="secondary" fullWidth onPress={onReturnTrip} /> : null}
       <Text style={styles.title}>{visit.clientName}</Text>
       <Text style={styles.label}>Datum & Zeit</Text>
       <Text style={styles.row}>
@@ -93,7 +97,6 @@ export function EmployeePortalVisitSummaryPanel({
             ? 'Nach Klient:innen-Unterschrift'
             : 'Erstellt'}
       </Text>
-      <PremiumButton title="Zurück zur Übersicht" fullWidth onPress={onBack} />
     </PremiumCard>
   );
 }

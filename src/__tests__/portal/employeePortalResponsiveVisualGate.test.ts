@@ -312,7 +312,7 @@ describe('employee portal responsive visual gate', () => {
     expect(summary).toContain('presentation="inline"');
     expect(live).toContain('timerBlockCompact');
     expect(live).toContain('cardCell: { flex: 1, minWidth: 0');
-    expect(sticky).toContain('numberOfLines={compact ? 2 : 1}');
-    expect(progress).toContain('numberOfLines={2}');
+    expect(sticky).toContain('numberOfLines={2}');
+    expect(progress).not.toContain('numberOfLines='); // Progress labels may wrap with large text.
   });
 });

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { EmployeePortalLocationConsent } from '@/types/modules/employeePortalTracking';
 
 type EmployeePortalLocationConsentBannerProps = {
@@ -6,6 +6,7 @@ type EmployeePortalLocationConsentBannerProps = {
   onAccept: () => void;
   onCancel?: () => void;
   loading?: boolean;
+  error?: string | null;
 };
 
 export function EmployeePortalLocationConsentBanner({
@@ -13,6 +14,7 @@ export function EmployeePortalLocationConsentBanner({
   onAccept,
   onCancel,
   loading = false,
+  error,
 }: EmployeePortalLocationConsentBannerProps) {
   return (
     <View
@@ -22,6 +24,7 @@ export function EmployeePortalLocationConsentBanner({
       testID="employee-background-location-disclosure"
     >
       <View style={styles.card}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.iconCircle}>
           <Text style={styles.icon} accessibilityElementsHidden>⌖</Text>
         </View>
@@ -46,6 +49,7 @@ export function EmployeePortalLocationConsentBanner({
         {consent?.explainedAt ? (
           <Text style={styles.alreadyExplained}>Hinweis wurde bereits angezeigt.</Text>
         ) : null}
+        {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
         <Pressable
           style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
           onPress={onAccept}
@@ -67,6 +71,7 @@ export function EmployeePortalLocationConsentBanner({
             <Text style={styles.secondaryButtonText}>Nicht jetzt</Text>
           </Pressable>
         ) : null}
+        </ScrollView>
       </View>
     </View>
   );
@@ -85,14 +90,13 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 560,
     maxHeight: '94%',
-    padding: 24,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: '#9DD9FF',
     backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    gap: 12,
   },
+  content: { padding: 24, alignItems: 'center', gap: 12 },
+  error: { color: '#B4233A', fontSize: 15, lineHeight: 22 },
   iconCircle: {
     width: 58,
     height: 58,

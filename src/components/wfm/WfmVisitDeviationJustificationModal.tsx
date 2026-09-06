@@ -21,7 +21,6 @@ import {
   WFM_DEVIATION_JUSTIFICATION_MIN_LENGTH,
 } from '@/lib/wfm/wfmVisitDeviationAmpelService';
 import type { WfmDeviationEvaluation, WfmDeviationPhase } from '@/types/modules/wfmOfficeTimekeeping';
-import { WFM_DEVIATION_AMPEL_LABELS } from '@/types/modules/wfmOfficeTimekeeping';
 import { formatWfmTime } from '@/lib/wfm/wfmDisplayHelpers';
 import { typography } from '@/theme';
 
@@ -68,7 +67,7 @@ export function WfmVisitDeviationJustificationModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.backdrop}
       >
         <View style={styles.card} testID="visit-deviation-readable-modal">
@@ -88,18 +87,19 @@ export function WfmVisitDeviationJustificationModal({
               <View style={styles.metricCell}>
                 <Text style={styles.metricLabel}>GEPLANT</Text>
                 <Text style={styles.metricValue}>{formatWfmTime(evaluation.plannedAt)}</Text>
+                <Text style={styles.metricLabel}>{evaluation.plannedAt ? new Date(evaluation.plannedAt).toLocaleDateString('de-DE') : 'Datum fehlt'}</Text>
               </View>
               <View style={styles.metricCell}>
                 <Text style={styles.metricLabel}>TATSÄCHLICH</Text>
                 <Text style={styles.metricValue}>{formatWfmTime(evaluation.actualAt)}</Text>
+                <Text style={styles.metricLabel}>{evaluation.actualAt ? new Date(evaluation.actualAt).toLocaleDateString('de-DE') : 'Datum fehlt'}</Text>
               </View>
             </View>
 
             <View style={styles.deviationSummary}>
               <Text style={styles.deviationValue}>{evaluation.deviationMinutes} Min. Abweichung</Text>
               <Text style={styles.deviationDetail}>
-                {formatDeviationDirectionLabel(evaluation.direction, phase)} · Ampel:{' '}
-                {WFM_DEVIATION_AMPEL_LABELS[evaluation.ampel]}
+                {formatDeviationDirectionLabel(evaluation.direction, phase)}
               </Text>
             </View>
 
@@ -132,6 +132,7 @@ export function WfmVisitDeviationJustificationModal({
                 title={submitLabel}
                 onPress={handleSubmit}
                 loading={loading}
+                disabled={justification.trim().length < WFM_DEVIATION_JUSTIFICATION_MIN_LENGTH}
                 fullWidth
               />
             </View>

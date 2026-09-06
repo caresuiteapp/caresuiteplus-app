@@ -73,18 +73,19 @@ describe('Mitarbeitendenportal Einsatz-Tagesworkflow R14', () => {
 
   it('unterstützt mehrere Ziele und Folgefahrten im Einsatzfahrtenbuch', () => {
     const logbook = read('src/components/portal/EmployeePortalVisitLogbookCard.tsx');
-    expect(logbook).toContain("key: 'with_client'");
-    expect(logbook).toContain("key: 'client_errand'");
-    expect(logbook).toContain("key: 'next_client'");
-    expect(logbook).toContain('addLogbookStop');
-    expect(logbook).toContain('Zwischenziel erreicht – weiter aufzeichnen');
+    expect(logbook).toContain("setKind('with_client')");
+    expect(logbook).toContain("setKind('client_errand')");
+    expect(logbook).toContain('Jede Fahrt einzeln beenden');
+    expect(logbook).toContain('Kilometer bestätigen');
+    expect(read('src/components/portal/EmployeePortalVisitSummaryPanel.tsx')).toContain('Nächsten Einsatz auswählen');
+    expect(read('src/components/portal/EmployeePortalVisitSummaryPanel.tsx')).toContain('Einsatztag beenden · Heim-/Bürofahrt');
   });
 
-  it('zeigt GPS-Tagesstatus und einen deutlich sichtbaren Einsatzbegleiter', () => {
+  it('zeigt den GPS-Tagesstatus einmal und einen kompakten Hilfeknopf', () => {
     const header = read('src/components/portal/EmployeePortalVisitStickyHeader.tsx');
     expect(header).toContain('GPS · TAG AKTIV');
-    expect(header).toContain('CARESUITE EINSATZBEGLEITER');
-    expect(header).toContain('compact ? 88 : 108');
+    expect(header).toContain('employee-visit-guide-toggle');
+    expect(header).toContain('visible={helpOpen}');
   });
 
   it('bietet Medien jederzeit prominent im Einsatzkopf an', () => {

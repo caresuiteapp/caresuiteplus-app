@@ -153,8 +153,15 @@ export async function confirmEmployeeLogbookTrip(input: { trip: LogbookTrip; dis
   if (!Number.isFinite(input.distanceKm) || input.distanceKm < 0) throw new Error('Bitte gültige Kilometer eintragen.');
   const corrected = Math.abs(input.distanceKm - input.trip.distanceFinalKm) >= 0.005;
   if (corrected && (input.reason?.trim().length ?? 0) < 3) throw new Error('Bitte die Kilometerkorrektur kurz begründen.');
+  if (!input.trip.endedAt) throw new Error('Die Fahrt muss vor der Kilometerbestätigung beendet werden.');
+  // Repair an interrupted segment close before confirming the parent trip.
+  const segments = await fromUnknownTable(db(), 'employee_logbook_segments')
+    .update({ ended_at: input.trip.endedAt, end_address: input.trip.endAddress })
+    .eq('trip_id', input.trip.id).eq('tenant_id', input.trip.tenantId)
+    .eq('employee_id', input.trip.employeeId).is('ended_at', null);
+  if (segments.error) throw new Error(segments.error.message);
   const now = new Date().toISOString();
-  const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({
+  const { data, error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({
     distance_final_km: input.distanceKm,
     distance_source: corrected ? 'manual' : input.trip.distanceSource,
     route_quality_status: corrected ? 'corrected' : input.trip.routeQualityStatus,
@@ -163,8 +170,21 @@ export async function confirmEmployeeLogbookTrip(input: { trip: LogbookTrip; dis
     employee_confirmation_reason: corrected ? input.reason!.trim() : null,
     previous_values: corrected ? { distance_final_km: input.trip.distanceFinalKm, status: input.trip.status } : null,
     updated_at: now,
-  }).eq('id', input.trip.id).eq('status', 'confirmation_required');
+  }).eq('id', input.trip.id).eq('tenant_id', input.trip.tenantId)
+    .eq('employee_id', input.trip.employeeId).eq('status', 'confirmation_required')
+    .select('id').maybeSingle();
   if (error) throw new Error(error.message);
+  if (!data) {
+    const saved = await fromUnknownTable(db(), 'employee_logbook_trips')
+      .select('status,distance_final_km,employee_confirmed_at')
+      .eq('id', input.trip.id).eq('tenant_id', input.trip.tenantId)
+      .eq('employee_id', input.trip.employeeId).maybeSingle();
+    if (saved.error) throw new Error(saved.error.message);
+    const row = saved.data as Row | null;
+    if (row?.status !== 'confirmed' || !row.employee_confirmed_at || Math.abs(n(row.distance_final_km) - input.distanceKm) >= 0.005) {
+      throw new Error('Kilometerbestätigung nicht gespeichert. Bitte den aktuellen Fahrtenbuchstatus erneut laden.');
+    }
+  }
 }
 
 export async function deleteEmployeeLogbookTrip(input: { trip: LogbookTrip; reason: string }) {

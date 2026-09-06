@@ -47,7 +47,7 @@ describe('Fahrtenbuch R16 · GPS-Wahrheit und Bestandsnachholung', () => {
     const card = read('src/components/portal/EmployeePortalVisitLogbookCard.tsx');
     expect(visit).toContain("logbook.reason === 'no_active_vehicle'");
     expect(visit).toContain('Live-GPS läuft und bleibt gespeichert');
-    expect(card).toContain('Kein aktiver PKW zugeordnet');
+    expect(card).toContain('muss die Verwaltung ein aktives Fahrzeug zuordnen');
   });
 
   it('öffnet den Verwaltungszeitraum ab 24.08. und weist ungeklärte Kilometer aus', () => {

@@ -6,9 +6,8 @@ import {
 } from '@/lib/office/employeeMobilityService';
 import type { TravelRouteType } from '@/types/modules/travelCompensation';
 import type { EmployeeTransportMode } from '@/types/modules/employeeMobility';
-import type { LogbookPoint, LogbookTrip } from '@/types/modules/employeeLogbook';
+import type { EmployeeLogbookBundle, LogbookPoint, LogbookTrip } from '@/types/modules/employeeLogbook';
 import {
-  appendLogbookPoints,
   createLogbookTrip,
   finishLogbookTrip,
   loadEmployeeLogbook,
@@ -29,6 +28,18 @@ import {
   persistLogbookPointDurably,
 } from './employeeLogbookPointQueue';
 import { berlinDateKey, berlinToday } from './employeeLogbookDate';
+import { createSingleFlight } from '@/lib/services/singleFlight';
+
+const runTripStart = createSingleFlight();
+const runTripFinish = createSingleFlight();
+
+async function captureLogbookEndpoint(): Promise<LogbookPoint | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    getCurrentLogbookPoint().catch(() => null),
+    new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), 1_500); }),
+  ]).finally(() => clearTimeout(timer));
+}
 
 export type EmployeeLogbookEligibility = {
   eligible: boolean;
@@ -128,9 +139,10 @@ export async function resolveEmployeeLogbookEligibility(
   tenantId: string,
   employeeId: string,
   selectedTransportMode?: EmployeeTransportMode | null,
+  loadedBundle?: EmployeeLogbookBundle,
 ): Promise<EmployeeLogbookEligibility> {
   const [bundle, mobilityResult] = await Promise.all([
-    loadEmployeeLogbook(tenantId, employeeId),
+    loadedBundle ?? loadEmployeeLogbook(tenantId, employeeId),
     fetchEmployeeMobilitySettings(tenantId, employeeId),
   ]);
   const mobility = mobilityResult.ok
@@ -155,7 +167,7 @@ function resolveApproachRouteType(routeStartType: string): TravelRouteType {
   return 'other_business';
 }
 
-async function startAutomaticTrip(input: {
+function startAutomaticTrip(input: {
   tenantId: string;
   employeeId: string;
   assignmentId: string;
@@ -165,65 +177,67 @@ async function startAutomaticTrip(input: {
   startAddress?: string | null;
   transportMode?: EmployeeTransportMode | null;
 }): Promise<AutomaticLogbookResult> {
-  if (input.transportMode && input.transportMode !== 'car') {
-    return {
-      eligible: false,
-      hasCarMode: false,
-      vehicleId: null,
-      started: false,
-      resumed: false,
-      trip: null,
-      reason: 'non_car_selected',
-    };
-  }
-  const eligibility = await resolveEmployeeLogbookEligibility(
-    input.tenantId,
-    input.employeeId,
-    input.transportMode,
-  );
-  if (!eligibility.eligible) {
-    return { ...eligibility, started: false, resumed: false, trip: null };
-  }
-
-  const bundle = await loadEmployeeLogbook(input.tenantId, input.employeeId);
-  const assignmentId = resolveVisitMasterId(input.assignmentId);
-  const active = bundle.trips.find((trip) => trip.status === 'recording') ?? null;
-  if (active) {
-    if (active.assignmentId !== assignmentId || active.routeType !== input.routeType) {
-      throw new Error('Es läuft bereits eine andere PKW-Fahrt. Bitte diese zuerst abschließen.');
+  return runTripStart(`${input.tenantId}:${input.employeeId}:${resolveVisitMasterId(input.assignmentId)}:${input.routeType}`, async () => {
+    if (input.transportMode && input.transportMode !== 'car') {
+      return {
+        eligible: false,
+        hasCarMode: false,
+        vehicleId: null,
+        started: false,
+        resumed: false,
+        trip: null,
+        reason: 'non_car_selected',
+      };
     }
+    const eligibility = await resolveEmployeeLogbookEligibility(
+      input.tenantId,
+      input.employeeId,
+      input.transportMode,
+    );
+    if (!eligibility.eligible) {
+      return { ...eligibility, started: false, resumed: false, trip: null };
+    }
+
+    const bundle = await loadEmployeeLogbook(input.tenantId, input.employeeId);
+    const assignmentId = resolveVisitMasterId(input.assignmentId);
+    const active = bundle.trips.find((trip) => trip.status === 'recording') ?? null;
+    if (active) {
+      if (active.assignmentId !== assignmentId || active.routeType !== input.routeType) {
+        throw new Error('Es läuft bereits eine andere PKW-Fahrt. Bitte diese zuerst abschließen.');
+      }
+      await startNativeBackgroundTracking({
+        tripId: active.id,
+        tenantId: input.tenantId,
+        employeeId: input.employeeId,
+      });
+      await startForegroundPersistence(active.id, input.tenantId, input.employeeId);
+      return { ...eligibility, started: true, resumed: true, trip: active };
+    }
+
+    await requestLogbookLocationPermission();
+    const firstPoint = await captureLogbookEndpoint();
+    if (!bundle.profile.gpsConsent) {
+      await saveLogbookProfile({ ...bundle.profile, gpsConsent: true });
+    }
+    const trip = await createLogbookTrip({
+      tenantId: input.tenantId,
+      employeeId: input.employeeId,
+      vehicleId: eligibility.vehicleId,
+      routeType: input.routeType,
+      assignmentId,
+      clientId: input.clientId,
+      purpose: input.purpose,
+      startAddress: input.startAddress ?? null,
+    });
+    if (firstPoint) await persistLogbookPointDurably({ tripId: trip.id, tenantId: input.tenantId, employeeId: input.employeeId, point: firstPoint });
     await startNativeBackgroundTracking({
-      tripId: active.id,
+      tripId: trip.id,
       tenantId: input.tenantId,
       employeeId: input.employeeId,
     });
-    await startForegroundPersistence(active.id, input.tenantId, input.employeeId);
-    return { ...eligibility, started: true, resumed: true, trip: active };
-  }
-
-  await requestLogbookLocationPermission();
-  const firstPoint = await getCurrentLogbookPoint();
-  if (!bundle.profile.gpsConsent) {
-    await saveLogbookProfile({ ...bundle.profile, gpsConsent: true });
-  }
-  const trip = await createLogbookTrip({
-    tenantId: input.tenantId,
-    employeeId: input.employeeId,
-    vehicleId: eligibility.vehicleId,
-    routeType: input.routeType,
-    assignmentId,
-    clientId: input.clientId,
-    purpose: input.purpose,
-    startAddress: input.startAddress ?? null,
+    await startForegroundPersistence(trip.id, input.tenantId, input.employeeId);
+    return { ...eligibility, started: true, resumed: false, trip };
   });
-  await appendLogbookPoints(trip.id, input.tenantId, input.employeeId, [firstPoint]);
-  await startNativeBackgroundTracking({
-    tripId: trip.id,
-    tenantId: input.tenantId,
-    employeeId: input.employeeId,
-  });
-  await startForegroundPersistence(trip.id, input.tenantId, input.employeeId);
-  return { ...eligibility, started: true, resumed: false, trip };
 }
 
 export async function startVisitApproachLogbook(input: {
@@ -278,41 +292,53 @@ export async function finishActiveVisitLogbookTrip(input: {
   notes?: string | null;
   allowedRouteTypes?: TravelRouteType[];
 }): Promise<LogbookTrip | null> {
-  const assignmentId = resolveVisitMasterId(input.assignmentId);
-  const bundle = await loadEmployeeLogbook(input.tenantId, input.employeeId);
-  const active = bundle.trips.find(
-    (trip) =>
-      trip.status === 'recording' &&
-      trip.assignmentId === assignmentId &&
-      (!input.allowedRouteTypes || input.allowedRouteTypes.includes(trip.routeType)),
-  );
-  if (!active) return null;
+  return runTripFinish(`${input.tenantId}:${input.employeeId}:${resolveVisitMasterId(input.assignmentId)}`, async () => {
+    const assignmentId = resolveVisitMasterId(input.assignmentId);
+    const bundle = await loadEmployeeLogbook(input.tenantId, input.employeeId);
+    const active = bundle.trips.find(
+      (trip) =>
+        trip.status === 'recording' &&
+        trip.assignmentId === assignmentId &&
+        (!input.allowedRouteTypes || input.allowedRouteTypes.includes(trip.routeType)),
+    );
+    if (!active) return null;
 
-  // Freeze the trip producer before flushing so no late background callback
-  // can arrive between distance calculation and the completed status write.
-  stopForegroundPersistence(active.id);
-  await stopNativeBackgroundTracking();
-  try {
-    await flushLogbookPointQueue();
-    const lastPoint = await getCurrentLogbookPoint();
-    await finishLogbookTrip(active.id, {
-      tenantId: input.tenantId,
-      employeeId: input.employeeId,
-      endAddress: input.endAddress?.trim() || undefined,
-      notes: input.notes?.trim() || undefined,
-      points: [lastPoint],
-    });
-  } catch (error) {
-    await startNativeBackgroundTracking({
-      tripId: active.id,
-      tenantId: input.tenantId,
-      employeeId: input.employeeId,
-    }).catch(() => undefined);
-    await startForegroundPersistence(active.id, input.tenantId, input.employeeId);
-    throw error;
-  }
-  const refreshed = await loadEmployeeLogbook(input.tenantId, input.employeeId);
-  return refreshed.trips.find((trip) => trip.id === active.id) ?? null;
+    // Freeze the trip producer before flushing so no late background callback
+    // can arrive between distance calculation and the completed status write.
+    stopForegroundPersistence(active.id);
+    await stopNativeBackgroundTracking();
+    try {
+      const queue = await flushLogbookPointQueue();
+      if (queue.remaining > 0) throw new Error('GPS-Punkte warten noch auf die Übertragung. Bitte die Verbindung prüfen und den Fahrtenbuchabschluss erneut versuchen.');
+      // Indoors, a last GPS fix may never arrive. Keep all durable route points
+      // and ask the employee to check the measured kilometres instead of
+      // restarting a trip whose destination has already been reached.
+      const lastPoint = await captureLogbookEndpoint();
+      await finishLogbookTrip(active.id, {
+        tenantId: input.tenantId,
+        employeeId: input.employeeId,
+        endAddress: input.endAddress?.trim() || undefined,
+        notes: [input.notes?.trim(), !lastPoint && 'Kein GPS-Endpunkt verfügbar; gefahrene Kilometer bitte prüfen.'].filter(Boolean).join('\n') || undefined,
+        points: lastPoint ? [lastPoint] : [],
+      });
+    } catch (error) {
+      // A response/segment write can fail after the trip status was committed.
+      // Never resume tracking a trip that is already awaiting confirmation.
+      const readback = await loadEmployeeLogbook(input.tenantId, input.employeeId).catch(() => null);
+      const saved = readback?.trips.find((trip) => trip.id === active.id);
+      if (saved && saved.status !== 'recording') return saved;
+      if (!saved) throw error;
+      await startNativeBackgroundTracking({
+        tripId: active.id,
+        tenantId: input.tenantId,
+        employeeId: input.employeeId,
+      }).catch(() => undefined);
+      await startForegroundPersistence(active.id, input.tenantId, input.employeeId);
+      throw error;
+    }
+    const refreshed = await loadEmployeeLogbook(input.tenantId, input.employeeId);
+    return refreshed.trips.find((trip) => trip.id === active.id) ?? null;
+  });
 }
 
 export async function finishVisitApproachLogbook(input: {

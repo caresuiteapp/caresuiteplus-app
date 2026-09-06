@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { buildVisitProgress } from '@/lib/portal/visitProgress';
 
 const root = path.join(__dirname, '..', '..', '..');
 const read = (relativePath: string) => readFileSync(path.join(root, relativePath), 'utf8');
@@ -22,14 +23,16 @@ describe('employee visit step order R10.5', () => {
     expect(screen).toContain('? () => void handlePrimary()');
   });
 
-  it('keeps the robot at documentation until service end and then advances to signature', () => {
-    const progress = read('src/components/portal/EmployeePortalVisitProgressSteps.tsx');
-    const header = read('src/components/portal/EmployeePortalVisitStickyHeader.tsx');
-    expect(progress).toContain('serviceEnded?: boolean');
-    expect(progress).toContain("step.key === 'documentation' && documentationComplete && !serviceEnded");
-    expect(progress).toContain('(serviceEnded && documentationComplete)');
-    expect(progress).toContain('(!requiresSignature || signatureCaptured)');
-    expect(header).toContain('serviceEnded={serviceEnded}');
+  it('advances to signature only after service end and documentation', () => {
+    const input = { status: 'gestartet' as const, serviceEnded: false, documentationComplete: true, requiresSignature: true, signatureCaptured: false };
+    const live = buildVisitProgress(input);
+    expect(live.steps[live.current].label).toBe('Einsatz');
+    const missingDoc = buildVisitProgress({ ...input, serviceEnded: true, documentationComplete: false });
+    expect(missingDoc.steps[missingDoc.current].label).toBe('Doku');
+    const ended = buildVisitProgress({ ...input, serviceEnded: true });
+    expect(ended.steps[ended.current].label).toBe('Unterschrift');
+    const signed = buildVisitProgress({ ...input, serviceEnded: true, signatureCaptured: true });
+    expect(signed.steps[signed.current].label).toBe('Abschluss');
   });
 
   it('allows the signature instruction only after the canonical end condition', () => {

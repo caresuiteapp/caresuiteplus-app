@@ -88,7 +88,7 @@ describe('Google Play portal-only update 0.3.6', () => {
     expect(disclosure).toContain('employee-background-location-disclosure');
     expect(execution).toContain('<EmployeePortalLocationConsentBanner');
     expect(execution).toMatch(
-      /const handleAcceptLocationDisclosure[\s\S]*await grantConsent\(\)[\s\S]*await executeStartDrive\(\)/,
+      /const handleAcceptLocationDisclosure[\s\S]*await withWorkflowTimeout\(grantConsent\(\)[\s\S]*await executeStartDrive\(\)/,
     );
   });
 

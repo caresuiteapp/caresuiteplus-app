@@ -93,7 +93,7 @@ export const ASSIGNMENT_WORKFLOW_INVARIANTS: AssignmentWorkflowInvariant[] = [
   {
     id: 'logbook-failure-isolation',
     files: ['src/screens/portal/EmployeePortalVisitExecutionScreen.tsx'],
-    mustContain: '<EmployeePortalExecutionSectionBoundary assignmentId={visit.assignmentId} section="Fahrtenbuch">',
+    mustContain: /<EmployeePortalExecutionSectionBoundary\b[^>]*assignmentId=\{visit\.assignmentId\}[^>]*section="Fahrtenbuch"[^>]*>\s*<EmployeePortalVisitLogbookCard\b/,
     reason: 'A Fahrtenbuch render failure must not take the complete assignment workflow offline.',
   },
   {

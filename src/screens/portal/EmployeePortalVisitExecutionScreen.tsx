@@ -14,6 +14,7 @@ import { DetailInfoRow } from '@/components/detail';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { LockedActionBanner } from '@/components/permissions';
 import { WorkflowToast } from '@/components/ui/WorkflowToast';
+import { withWorkflowTimeout, WorkflowActionTimeoutError } from '@/features/assistWorkflow/internal/withWorkflowTimeout';
 import {
   EmployeePortalVisitBottomBar,
   EmployeePortalExecutionSectionBoundary,
@@ -39,6 +40,7 @@ import { PortalNewChatModal } from '@/components/portal/PortalNewChatModal';
 import { buildDocumentationAiSourceFromTasks, resolveDocumentationAiSourceText } from '@/lib/portal/buildDocumentationAiSourceText';
 import {
   ErrorState,
+  InfoBanner,
   LoadingState,
   PremiumButton,
   PremiumInput,
@@ -84,7 +86,6 @@ import {
 } from '@/lib/portal/employeePortalReturnTrip';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import {
-  finishVisitApproachLogbook,
   loadLogbookPromptDecision,
   resolveEmployeeLogbookEligibility,
   startVisitApproachLogbook,
@@ -244,7 +245,11 @@ export function EmployeePortalVisitExecutionScreen() {
   const [mobilityHydrated, setMobilityHydrated] = useState(false);
   const [mobilityPersisted, setMobilityPersisted] = useState(false);
   const [logbookRefreshToken, setLogbookRefreshToken] = useState(0);
-  const [logbookConfirmationRequired, setLogbookConfirmationRequired] = useState(false);
+  const [logbookConfirmationRequired, setLogbookConfirmationRequired] = useState(true);
+  const driveInFlight = useRef(false);
+  const consentInFlight = useRef(false);
+  const arrivalInFlight = useRef(false);
+  const [arrivalConfirmationPending, setArrivalConfirmationPending] = useState(false);
   const [locationDisclosureOpen, setLocationDisclosureOpen] = useState(false);
   const [locationDisclosureLoading, setLocationDisclosureLoading] = useState(false);
   const [locationDisclosureAccepted, setLocationDisclosureAccepted] = useState(false);
@@ -793,10 +798,12 @@ export function EmployeePortalVisitExecutionScreen() {
   ]);
 
   const executeStartDrive = useCallback(async () => {
+    if (driveInFlight.current) return;
     if (!mobilityMode) {
       setLocalError('Bitte wähle zuerst deine Mobilität für diese Fahrt aus.');
       return;
     }
+    driveInFlight.current = true;
     setDriveLoading(true);
     setLocalError(null);
     if (!mobilityPersisted && portalTenantId && portalEmployeeId && visit) {
@@ -812,6 +819,7 @@ export function EmployeePortalVisitExecutionScreen() {
           setLocalWarning('Mobilität ist lokal gespeichert; der Serverabgleich läuft später weiter. Die Anfahrt kann beginnen.');
         }
       } catch {
+        driveInFlight.current = false;
         setDriveLoading(false);
         setLocalError('Die Mobilitätsauswahl konnte auf diesem Gerät nicht gesichert werden. Bitte erneut versuchen.');
         return;
@@ -861,32 +869,44 @@ export function EmployeePortalVisitExecutionScreen() {
           : 'Anfahrt konnte nicht gestartet werden. Bitte erneut versuchen.',
       );
     } finally {
+      driveInFlight.current = false;
+      setLogbookRefreshToken((current) => current + 1);
       setDriveLoading(false);
     }
   }, [startDriveTracking, portalTenantId, portalEmployeeId, visit, mobilityMode, mobilityPersisted]);
 
   const handleStartDrive = useCallback(async () => {
-    if (!locationDisclosureAccepted) {
+    if (!locationDisclosureAccepted && !(consent?.granted && consent.explainedAt)) {
       setLocationDisclosureOpen(true);
       return;
     }
     await executeStartDrive();
-  }, [executeStartDrive, locationDisclosureAccepted]);
+  }, [executeStartDrive, locationDisclosureAccepted, consent?.granted, consent?.explainedAt]);
 
   const handleAcceptLocationDisclosure = useCallback(async () => {
+    if (consentInFlight.current) return;
+    consentInFlight.current = true;
     setLocationDisclosureLoading(true);
     setLocalError(null);
-    const result = await grantConsent();
-    if (!result.ok) {
-      setLocalWarning(result.error ?? 'Die Standorterklärung wurde lokal bestätigt und wird später synchronisiert.');
+    try {
+      const result = await withWorkflowTimeout(grantConsent(), 10_000, 'Standorthinweis');
+      if (!result.ok) {
+        setLocalError(result.error ?? 'Die Standorterklärung konnte nicht bestätigt werden. Bitte erneut versuchen.');
+        return;
+      }
+      setLocationDisclosureAccepted(true);
+      setLocationDisclosureOpen(false);
+      await executeStartDrive();
+    } catch (cause) {
+      setLocalError(cause instanceof WorkflowActionTimeoutError ? 'Die Bestätigung dauert länger. Bitte die Verbindung prüfen und erneut versuchen.' : cause instanceof Error ? cause.message : 'Die Standorterklärung konnte nicht bestätigt werden.');
+    } finally {
+      consentInFlight.current = false;
+      setLocationDisclosureLoading(false);
     }
-    setLocationDisclosureAccepted(true);
-    setLocationDisclosureOpen(false);
-    setLocationDisclosureLoading(false);
-    await executeStartDrive();
   }, [executeStartDrive, grantConsent]);
 
   const handleArrived = useCallback(async () => {
+    if (arrivalInFlight.current) return;
     setLocalError(null);
     setLocalWarning(null);
     if (tracking?.geofence?.warning && !tracking.geofence.overridden && !geofenceOverride.trim()) {
@@ -895,49 +915,32 @@ export function EmployeePortalVisitExecutionScreen() {
       return;
     }
     if (geofenceOverride.trim()) setGeofenceOverride(geofenceOverride.trim());
-    const result = await markArrived();
-    if (!result.ok) {
-      if ('errorCode' in result && isWorkflowConfirmationPending(result.errorCode)) {
-        setLocalWarning(result.error ?? 'Die Ankunft wird noch bestätigt. Bitte nicht erneut tippen.');
-      } else setLocalError(result.error ?? 'Ankunft konnte nicht gespeichert werden.');
-    }
-    else {
-      setLocalSuccess('Angekommen — Anfahrt-Timer gestoppt.');
-      if (portalTenantId && portalEmployeeId && visit) {
-        try {
-          const completedTrip = await finishVisitApproachLogbook({
-            tenantId: portalTenantId,
-            employeeId: portalEmployeeId,
-            assignmentId: visit.assignmentId,
-            endAddress: visit.locationAddress,
-          });
-          if (completedTrip) {
-            setLogbookRefreshToken((current) => current + 1);
-            setLogbookConfirmationRequired(true);
-            setLocalSuccess(
-              `Angekommen — bitte jetzt ${completedTrip.distanceFinalKm.toFixed(2).replace('.', ',')} km für die PKW-Anfahrt bestätigen.`,
-            );
-          } else {
-            const eligibility = await resolveEmployeeLogbookEligibility(
-              portalTenantId,
-              portalEmployeeId,
-              mobilityMode,
-            );
-            if (eligibility.eligible) {
-              setLocalWarning('Die Ankunft wurde gespeichert, aber es wurde keine laufende PKW-Anfahrt gefunden. Bitte die Fahrt im Fahrtenbuch prüfen oder manuell ergänzen.');
-            }
-          }
-        } catch (error) {
-          setLocalWarning(
-            error instanceof Error
-              ? `Die Ankunft wurde gespeichert, der Fahrtenbuchabschluss muss jedoch geprüft werden: ${error.message}`
-              : 'Die Ankunft wurde gespeichert, der Fahrtenbuchabschluss muss jedoch geprüft werden.',
-          );
-        }
+    arrivalInFlight.current = true;
+    try {
+      const result = await markArrived();
+      if (!result.ok) {
+        if ('errorCode' in result && isWorkflowConfirmationPending(result.errorCode)) {
+          setArrivalConfirmationPending(true);
+          setLocalWarning(result.error ?? 'Die Ankunft wird noch bestätigt. Bitte nicht erneut tippen.');
+        } else setLocalError(result.error ?? 'Ankunft konnte nicht gespeichert werden.');
+      } else {
+        setLocalSuccess('Ankunft bestätigt.');
+        if (result.arrivalWarning) setLocalWarning(result.arrivalWarning);
       }
-      if (result.arrivalWarning) setLocalWarning(result.arrivalWarning);
+      // The persistent logbook card reconciles the confirmed phase. It also
+      // finishes the approach after a late server response or app restart.
+    } catch (cause) {
+      setLocalError(cause instanceof Error ? cause.message : 'Ankunft konnte nicht bestätigt werden.');
+    } finally { arrivalInFlight.current = false; }
+  }, [markArrived, tracking, geofenceOverride, setGeofenceOverride]);
+
+  useEffect(() => {
+    if (arrivalConfirmationPending && ['arrived', 'live', 'post_service', 'completed'].includes(phase)) {
+      setArrivalConfirmationPending(false);
+      setLocalWarning(null);
+      setLocalError(null);
     }
-  }, [markArrived, tracking, geofenceOverride, setGeofenceOverride, portalTenantId, portalEmployeeId, visit, mobilityMode]);
+  }, [arrivalConfirmationPending, phase]);
 
   const resolveDeviationCheck = useCallback(
     (phaseKey: WfmDeviationPhase) => {
@@ -1061,9 +1064,12 @@ export function EmployeePortalVisitExecutionScreen() {
   );
 
   const handlePrimary = useCallback(async () => {
-    if (!visit || !primaryActionResolved) return;
+    if (!visit || !primaryActionResolved || driveLoading || actionLoading || startServiceLoading) return;
+    if (['start_service', 'end_service'].includes(primaryActionResolved) && mobilityMode === 'car' && logbookConfirmationRequired) {
+      return;
+    }
     await runAllowedAction(primaryActionResolved);
-  }, [visit, primaryActionResolved, runAllowedAction]);
+  }, [visit, primaryActionResolved, runAllowedAction, driveLoading, actionLoading, startServiceLoading, mobilityMode, logbookConfirmationRequired]);
 
   const handleNoShow = useCallback(async () => {
     if (!noShowNote.trim()) {
@@ -1108,7 +1114,7 @@ export function EmployeePortalVisitExecutionScreen() {
     effectiveStatus === 'unterwegs' &&
     primaryActionResolved === 'mark_arrived' &&
     !allowedActions.includes('start_service')
-      ? 'Anfahrt läuft — Angekommen'
+      ? 'Angekommen'
       : primaryLabel;
   const primaryButtonLoading =
     primaryActionResolved === 'start_service'
@@ -1117,7 +1123,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const primaryButtonDisabled =
     readOnlyExecution ||
     (primaryActionResolved === 'start_en_route' && (!mobilityHydrated || !mobilityMode)) ||
-    (primaryActionResolved === 'start_service' && logbookConfirmationRequired) ||
+    (primaryActionResolved != null && ['start_service', 'end_service'].includes(primaryActionResolved) && mobilityMode === 'car' && logbookConfirmationRequired) ||
     (primaryActionResolved === 'start_service'
       ? startServiceLoading || driveLoading
       : actionLoading || driveLoading);
@@ -1184,8 +1190,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const syncWarning = !queryError && !signatureConfirmationPending && phase !== 'completed'
     ? liveContextError ?? refetchWarning
     : null;
-  const completedTaskCount = visitTasks.filter((task) => task.status === 'done').length;
-  const allTasksComplete = visitTasks.length === 0 || completedTaskCount === visitTasks.length;
+  const allTasksComplete = visitTasks.every((task) => task.status === 'done');
   const guide = (() => {
     if (signatureConfirmationPending) {
       return {
@@ -1238,7 +1243,7 @@ export function EmployeePortalVisitExecutionScreen() {
     if (isServiceEnded && showSignature && !signatureCaptured && !signatureDeferred) {
       return {
         tone: 'warning' as const,
-        message: 'Fast fertig: Bitte jetzt die Klient:innen-Unterschrift erfassen.',
+        message: 'Lass vor Ort unterschreiben oder sende die Unterschriftsanfrage über „Einsatz abschließen“ an das Klientenportal. Die Dokumentation muss zuvor gespeichert sein.',
       };
     }
     if (isServiceEnded && !documentationSubmitted) {
@@ -1246,6 +1251,9 @@ export function EmployeePortalVisitExecutionScreen() {
         tone: 'warning' as const,
         message: 'Die Leistung ist beendet. Bitte jetzt die klientensichtbare Dokumentation ausfüllen.',
       };
+    }
+    if (phase === 'live' && mobilityMode === 'car' && logbookConfirmationRequired) {
+      return { tone: 'info' as const, message: 'Bitte die offene PKW-Fahrt oben im Fahrtenbuch beenden und die Kilometer bestätigen. Die Dokumentation kannst du schon ergänzen. Danach kannst du eine weitere Fahrt starten oder den Einsatz beenden.' };
     }
     if (phase === 'live' && documentationSubmitted) {
       return {
@@ -1261,7 +1269,7 @@ export function EmployeePortalVisitExecutionScreen() {
         tone: 'info' as const,
         message: documentationSubmitted
           ? 'Die Dokumentation ist gespeichert. Optionale Aufgaben, Fotos und Videos kannst du weiterhin jederzeit ergänzen.'
-          : `Aufgaben sind optional (${completedTaskCount} von ${visitTasks.length} markiert). Dokumentation und Unterschrift bleiben für den Abschluss verpflichtend.`,
+          : 'Die Einsatzzeit läuft. Weitere PKW-Fahrten startest du oben im Fahrtenbuch und bestätigst jede Strecke am Ziel. Aufgaben sind optional. Öffne „Dokumentation“, beschreibe die Leistung und speichere sie. Nach dem Einsatzende folgt die Unterschrift vor Ort oder die Anfrage ans Klientenportal.',
       };
     }
     if (phase === 'post_service') {
@@ -1274,6 +1282,9 @@ export function EmployeePortalVisitExecutionScreen() {
     }
     if (phase === 'en_route') {
       return { tone: 'info' as const, message: 'Die Anfahrt läuft. Tippe am Ziel auf „Angekommen“.' };
+    }
+    if (phase === 'arrived' && mobilityMode === 'car' && logbookConfirmationRequired) {
+      return { tone: 'info' as const, message: 'Die Ankunft ist gespeichert. Oben im Fahrtenbuch wird die Anfahrt abgeschlossen. Prüfe die Kilometer im Fenster und bestätige sie. Danach wird „Einsatz starten“ freigegeben.' };
     }
     if (phase === 'arrived') {
       return { tone: 'info' as const, message: 'Du bist angekommen. Starte den Einsatz erst beim tatsächlichen Leistungsbeginn.' };
@@ -1338,23 +1349,8 @@ export function EmployeePortalVisitExecutionScreen() {
           <EmployeePortalVisitSummaryPanel
             visit={visit}
             onBack={() => router.replace('/portal/employee/assignments' as never)}
+            onReturnTrip={mobilityMode === 'car' ? () => setReturnTripModalOpen(true) : undefined}
           />
-          {portalTenantId && portalEmployeeId && mobilityMode === 'car' ? (
-            <EmployeePortalExecutionSectionBoundary assignmentId={visit.assignmentId} section="Fahrtenbuch">
-              <EmployeePortalVisitLogbookCard
-                tenantId={portalTenantId}
-                employeeId={portalEmployeeId}
-                assignmentId={visit.assignmentId}
-                clientId={visit.clientId}
-                clientName={visit.clientName}
-                startAddress={visit.locationAddress}
-                plannedEndAt={visit.plannedEndAt}
-                transportMode={mobilityMode}
-                refreshToken={logbookRefreshToken}
-                onConfirmationRequiredChange={setLogbookConfirmationRequired}
-              />
-            </EmployeePortalExecutionSectionBoundary>
-          ) : null}
         </View>
       );
     }
@@ -1451,22 +1447,6 @@ export function EmployeePortalVisitExecutionScreen() {
               />
             ) : null}
           </View>
-          {portalTenantId && portalEmployeeId && mobilityMode === 'car' ? (
-            <EmployeePortalExecutionSectionBoundary assignmentId={visit.assignmentId} section="Fahrtenbuch">
-              <EmployeePortalVisitLogbookCard
-                tenantId={portalTenantId}
-                employeeId={portalEmployeeId}
-                assignmentId={visit.assignmentId}
-                clientId={visit.clientId}
-                clientName={visit.clientName}
-                startAddress={visit.locationAddress}
-                plannedEndAt={visit.plannedEndAt}
-                transportMode={mobilityMode}
-                refreshToken={logbookRefreshToken}
-                onConfirmationRequiredChange={setLogbookConfirmationRequired}
-              />
-            </EmployeePortalExecutionSectionBoundary>
-          ) : null}
         </View>
       );
     }
@@ -1495,26 +1475,10 @@ export function EmployeePortalVisitExecutionScreen() {
             value={mobilityMode}
             onChange={selectMobilityMode}
             compact
-            disabled={actionLoading}
+            disabled={actionLoading || (mobilityMode === 'car' && logbookConfirmationRequired)}
             title="Mobilität für die nächste Fahrt"
           />
 
-          {portalTenantId && portalEmployeeId && mobilityMode === 'car' ? (
-            <EmployeePortalExecutionSectionBoundary assignmentId={visit.assignmentId} section="Fahrtenbuch">
-              <EmployeePortalVisitLogbookCard
-                tenantId={portalTenantId}
-                employeeId={portalEmployeeId}
-                assignmentId={visit.assignmentId}
-                clientId={visit.clientId}
-                clientName={visit.clientName}
-                startAddress={visit.locationAddress}
-                plannedEndAt={visit.plannedEndAt}
-                transportMode={mobilityMode}
-                refreshToken={logbookRefreshToken}
-                onConfirmationRequiredChange={setLogbookConfirmationRequired}
-              />
-            </EmployeePortalExecutionSectionBoundary>
-          ) : null}
 
           {phase === 'live' && primaryButtonLabel && !isLocked && !statusBlocksDoc ? (
             <PremiumButton
@@ -1670,6 +1634,27 @@ export function EmployeePortalVisitExecutionScreen() {
             </SectionPanel>
           ) : null}
 
+          {portalTenantId && portalEmployeeId && mobilityMode === 'car' && phase !== 'preview' ? (
+            <EmployeePortalExecutionSectionBoundary key={`${portalTenantId}:${portalEmployeeId}:${visit.assignmentId}`} assignmentId={visit.assignmentId} section="Fahrtenbuch">
+              <EmployeePortalVisitLogbookCard
+                key={`${portalTenantId}:${portalEmployeeId}:${visit.assignmentId}:${mobilityMode}`}
+                tenantId={portalTenantId}
+                employeeId={portalEmployeeId}
+                assignmentId={visit.assignmentId}
+                clientId={visit.clientId}
+                clientName={visit.clientName}
+                startAddress={visit.locationAddress}
+                transportMode={mobilityMode}
+                phase={phase}
+                refreshToken={logbookRefreshToken}
+                onConfirmationRequiredChange={setLogbookConfirmationRequired}
+                onOpenLogbook={() => router.push('/portal/employee/fahrtenbuch' as never)}
+              />
+            </EmployeePortalExecutionSectionBoundary>
+          ) : null}
+
+          {localError || taskSaveError ? <InfoBanner message={localError ?? taskSaveError!} variant="error" /> : null}
+          {localWarning || syncWarning ? <InfoBanner message={localWarning ?? formatExecutionSyncWarning(syncWarning!)} variant="warning" /> : null}
           {renderPhaseContent()}
 
           {showSignature && !isLocked ? (
@@ -1860,6 +1845,7 @@ export function EmployeePortalVisitExecutionScreen() {
         <EmployeePortalLocationConsentBanner
           consent={consent}
           loading={locationDisclosureLoading}
+          error={localError}
           onAccept={() => void handleAcceptLocationDisclosure()}
           onCancel={() => setLocationDisclosureOpen(false)}
         />

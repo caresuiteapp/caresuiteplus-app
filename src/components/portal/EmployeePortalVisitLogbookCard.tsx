@@ -1,344 +1,207 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
-import { CareEntitySelect } from '@/components/inputs/CareEntitySelect';
-import { InfoBanner, PremiumBadge, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
-import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { InfoBanner, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import {
-  addLogbookStop,
-  confirmEmployeeLogbookTrip,
-  finishActiveVisitLogbookTrip,
-  loadEmployeeLogbook,
-  resolveEmployeeLogbookEligibility,
-  startVisitServiceLogbookTrip,
+  confirmEmployeeLogbookTrip, finishActiveVisitLogbookTrip, finishVisitApproachLogbook,
+  loadEmployeeLogbook, resolveEmployeeLogbookEligibility, startVisitServiceLogbookTrip,
+  type EmployeeLogbookEligibility,
 } from '@/lib/employeeLogbook';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
-import { TRAVEL_ROUTE_TYPE_LABELS } from '@/types/modules/travelCompensation';
 import type { EmployeeLogbookBundle } from '@/types/modules/employeeLogbook';
-import type { EmployeeLogbookEligibility } from '@/lib/employeeLogbook';
 import type { EmployeeTransportMode } from '@/types/modules/employeeMobility';
-import { fetchLivePortalAppointmentsForEmployee } from '@/lib/portal/portalAppointmentsLiveService';
-import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { spacing, typography } from '@/theme';
-
-type TripKind = 'with_client' | 'client_errand' | 'next_client';
-type StopKind = 'client' | 'doctor' | 'pharmacy' | 'shopping' | 'other';
+import { parseTripKilometres, selectVisitLogbookState } from '@/lib/employeeLogbook/visitLogbookState';
+import { withWorkflowTimeout, WorkflowActionTimeoutError } from '@/features/assistWorkflow/internal/withWorkflowTimeout';
 
 type Props = {
-  tenantId: string;
-  employeeId: string;
-  assignmentId: string;
-  clientId: string;
-  clientName: string;
-  startAddress: string;
-  plannedEndAt: string;
-  transportMode: EmployeeTransportMode;
-  refreshToken?: number;
+  tenantId: string; employeeId: string; assignmentId: string; clientId: string;
+  clientName: string; startAddress: string; transportMode: EmployeeTransportMode;
+  phase: string; refreshToken?: number;
   onConfirmationRequiredChange?: (required: boolean) => void;
+  onOpenLogbook?: () => void;
 };
 
-const KIND_OPTIONS: { key: TripKind; label: string; purpose: string }[] = [
-  { key: 'with_client', label: 'Fahrt mit Klient:in', purpose: 'Begleitfahrt mit Klient:in' },
-  { key: 'client_errand', label: 'Besorgungsfahrt', purpose: 'Besorgungsfahrt für Klient:in' },
-  { key: 'next_client', label: 'Weiter zum nächsten Einsatz', purpose: 'Weiterfahrt zum nächsten Einsatz' },
-];
-
-const STOP_OPTIONS: { key: StopKind; label: string }[] = [
-  { key: 'client', label: 'Klient:in' },
-  { key: 'doctor', label: 'Arzt' },
-  { key: 'pharmacy', label: 'Apotheke' },
-  { key: 'shopping', label: 'Einkauf' },
-  { key: 'other', label: 'Weiteres Ziel' },
-];
-
+/** A single card stays mounted through arrival and service, including late server confirmations. */
 export function EmployeePortalVisitLogbookCard(props: Props) {
-  const onConfirmationRequiredChange = props.onConfirmationRequiredChange;
-  const [kind, setKind] = useState<TripKind>('with_client');
-  const [purpose, setPurpose] = useState(`Begleitfahrt mit ${props.clientName}`);
-  const [destination, setDestination] = useState('');
-  const [stopKind, setStopKind] = useState<StopKind>('doctor');
-  const [stopLabel, setStopLabel] = useState('');
-  const [nextAssignmentId, setNextAssignmentId] = useState('');
+  const { tenantId, employeeId, assignmentId, transportMode, phase, onConfirmationRequiredChange } = props;
+  const [data, setData] = useState<{ eligibility: EmployeeLogbookEligibility; bundle: EmployeeLogbookBundle } | null>(null);
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [kind, setKind] = useState<'with_client' | 'client_errand'>('with_client');
+  const [purpose, setPurpose] = useState('');
+  const [destination, setDestination] = useState('');
   const [confirmationKm, setConfirmationKm] = useState('');
   const [confirmationReason, setConfirmationReason] = useState('');
+  const [confirmationOpen, setConfirmationOpen] = useState(true);
+  const mutationRef = useRef(false);
+  const requestRef = useRef(0);
+  const arrivalAttempt = useRef<string | null>(null);
 
-  const query = useAsyncQuery<{ eligibility: EmployeeLogbookEligibility; bundle: EmployeeLogbookBundle | null; appointments: PortalAppointmentItem[] }>(useCallback(async () => {
-    const eligibility = await resolveEmployeeLogbookEligibility(
-      props.tenantId,
-      props.employeeId,
-      props.transportMode,
-    );
-    if (!eligibility.eligible) return { ok: true as const, data: { eligibility, bundle: null, appointments: [] } };
-    const [bundle, appointmentsResult] = await Promise.all([
-      loadEmployeeLogbook(props.tenantId, props.employeeId),
-      fetchLivePortalAppointmentsForEmployee(props.tenantId, props.employeeId),
-    ]);
-    return {
-      ok: true as const,
-      data: { eligibility, bundle, appointments: appointmentsResult.ok ? appointmentsResult.data : [] },
-    };
-  }, [props.tenantId, props.employeeId, props.transportMode]), [props.tenantId, props.employeeId, props.transportMode, props.refreshToken]);
-
-  const assignmentId = resolveVisitMasterId(props.assignmentId);
-  const nextAssignments = useMemo(
-    () => (query.data?.appointments ?? [])
-      .filter((item) => resolveVisitMasterId(item.id) !== assignmentId)
-      .filter((item) => new Date(item.startsAt).getTime() >= new Date(props.plannedEndAt).getTime())
-      .sort((left, right) => new Date(left.startsAt).getTime() - new Date(right.startsAt).getTime()),
-    [assignmentId, props.plannedEndAt, query.data?.appointments],
-  );
-  const selectedNextAssignment = nextAssignments.find((item) => item.id === nextAssignmentId) ?? nextAssignments[0] ?? null;
-  const active = useMemo(
-    () => query.data?.bundle?.trips.find((trip) => trip.status === 'recording') ?? null,
-    [query.data?.bundle?.trips],
-  );
-  const relatedAssignmentIds = useMemo(
-    () => new Set([assignmentId, ...nextAssignments.map((item) => resolveVisitMasterId(item.id))]),
-    [assignmentId, nextAssignments],
-  );
-  const activeForVisit =
-    active?.assignmentId && relatedAssignmentIds.has(resolveVisitMasterId(active.assignmentId))
-      ? active
-      : null;
-  const pendingConfirmation = useMemo(
-    () => query.data?.bundle?.trips.find(
-      (trip) =>
-        trip.status === 'confirmation_required' &&
-        Boolean(trip.assignmentId) &&
-        relatedAssignmentIds.has(resolveVisitMasterId(trip.assignmentId!)),
-    ) ?? null,
-    [query.data?.bundle?.trips, relatedAssignmentIds],
-  );
-  useEffect(() => {
-    onConfirmationRequiredChange?.(Boolean(pendingConfirmation));
-    return () => onConfirmationRequiredChange?.(false);
-  }, [pendingConfirmation, onConfirmationRequiredChange]);
-  useEffect(() => {
-    if (pendingConfirmation) setConfirmationKm(pendingConfirmation.distanceFinalKm.toFixed(2).replace('.', ','));
-  }, [pendingConfirmation]);
-
-  async function confirmDistance() {
-    if (!pendingConfirmation) return;
-    const distanceKm = Number(confirmationKm.replace(',', '.'));
-    setBusy(true); setFeedback(null);
+  const reload = useCallback(async () => {
+    const request = ++requestRef.current;
+    setLoading(true);
     try {
-      await confirmEmployeeLogbookTrip({ trip: pendingConfirmation, distanceKm, reason: confirmationReason });
+      const bundle = await withWorkflowTimeout(loadEmployeeLogbook(tenantId, employeeId), 12_000, 'Fahrtenbuch');
+      const eligibility = await withWorkflowTimeout(resolveEmployeeLogbookEligibility(tenantId, employeeId, transportMode, bundle), 8_000, 'Fahrzeugzuordnung');
+      if (request !== requestRef.current) return;
+      setData({ eligibility, bundle });
+      setError(null);
+    } catch (cause) {
+      if (request === requestRef.current) setError(cause instanceof WorkflowActionTimeoutError ? 'Fahrtenbuch noch nicht erreichbar. Bitte die Verbindung prüfen und erneut laden.' : cause instanceof Error ? cause.message : 'Fahrtenbuch konnte nicht geladen werden.');
+    } finally {
+      if (request === requestRef.current) setLoading(false);
+    }
+  }, [tenantId, employeeId, transportMode]);
+
+  useEffect(() => {
+    void reload();
+    return () => { requestRef.current += 1; };
+  }, [reload, phase, props.refreshToken]);
+  useEffect(() => {
+    const listener = AppState.addEventListener('change', (state) => { if (state === 'active') void reload(); });
+    return () => listener.remove();
+  }, [reload]);
+
+  const { active, pending, otherActive } = selectVisitLogbookState(data?.bundle.trips ?? [], resolveVisitMasterId(assignmentId));
+  const blocked = loading || busy || Boolean(error || active || pending || otherActive);
+  useEffect(() => { onConfirmationRequiredChange?.(blocked); }, [blocked, onConfirmationRequiredChange]);
+  const pendingId = pending?.id;
+  const suggestedKm = pending?.distanceFinalKm;
+  const confirmationId = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    // A refresh must not replace kilometres currently being edited.
+    if (pendingId !== confirmationId.current) {
+      confirmationId.current = pendingId;
+      setConfirmationKm(suggestedKm?.toFixed(2).replace('.', ',') ?? '');
       setConfirmationReason('');
-      await query.refresh();
-      setFeedback('Kilometer bestätigt. Die Fahrt wurde endgültig gespeichert.');
-    } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Kilometer konnten nicht bestätigt werden.');
-    } finally { setBusy(false); }
-  }
-
-  if (query.loading && !query.data) return null;
-  if (!query.data?.eligibility.eligible) {
-    const reason = query.data?.eligibility.reason;
-    return (
-      <SectionPanel
-        title="PKW-Fahrten im Einsatz"
-        subtitle="Die Live-GPS-Aufzeichnung bleibt erhalten, auch wenn das formale Fahrtenbuch noch nicht freigeschaltet ist"
-      >
-        <InfoBanner
-          message={reason === 'no_active_vehicle'
-            ? 'Kein aktiver PKW zugeordnet. Die Verwaltung muss einmalig Kennzeichen und Fahrzeug hinterlegen; danach werden vollständig prüfbare GPS-Bestandsdaten seit dem 24.08.2026 automatisch übernommen.'
-            : 'PKW ist für dieses Mitarbeitendenkonto noch nicht freigeschaltet. Bitte die Mobilitätseinstellungen durch die Verwaltung prüfen lassen.'}
-          variant="warning"
-        />
-      </SectionPanel>
-    );
-  }
-
-  async function start() {
-    if (kind === 'next_client' && !selectedNextAssignment) {
-      setFeedback('Es wurde kein geplanter Folgeeinsatz gefunden. Bitte die Fahrt im Fahrtenbuch manuell zuordnen.');
-      return;
+      setConfirmationOpen(true);
     }
-    const target = kind === 'next_client' && selectedNextAssignment
-      ? {
-          assignmentId: selectedNextAssignment.id,
-          clientId: selectedNextAssignment.clientId,
-          clientName: selectedNextAssignment.clientName || selectedNextAssignment.title,
-          startAddress: selectedNextAssignment.location || props.startAddress,
-        }
-      : props;
-    setBusy(true);
-    setFeedback(null);
+  }, [pendingId, suggestedKm]);
+
+  const mutate = useCallback(async (operation: () => Promise<void>) => {
+    if (mutationRef.current) return;
+    mutationRef.current = true;
+    setBusy(true); setError(null); setFeedback(null);
+    let timedOut = false;
     try {
-      const result = await startVisitServiceLogbookTrip({
-        tenantId: props.tenantId,
-        employeeId: props.employeeId,
-        assignmentId: target.assignmentId,
-        clientId: target.clientId,
-        clientName: target.clientName,
-        kind,
-        purpose,
-        startAddress: target.startAddress,
-        transportMode: props.transportMode,
-      });
-      await query.refresh();
-      setFeedback(result.resumed ? 'Die laufende Fahrt wurde wieder aufgenommen.' : 'PKW-Fahrt und GPS-Aufzeichnung wurden gestartet.');
-    } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Die Fahrt konnte nicht gestartet werden.');
-    } finally {
-      setBusy(false);
-    }
-  }
+      const pendingOperation = operation();
+      void pendingOperation.then(() => { if (timedOut) void reload(); }, () => undefined);
+      await withWorkflowTimeout(pendingOperation, 15_000, 'Fahrt speichern');
+      await reload();
+    } catch (cause) {
+      timedOut = cause instanceof WorkflowActionTimeoutError;
+      setError(timedOut ? 'Serverbestätigung ausstehend. Bitte den Fahrtenbuchstatus prüfen; die laufende Anfrage wird weiter abgeglichen.' : cause instanceof Error ? cause.message : 'Die Fahrt konnte nicht gespeichert werden. Bitte erneut prüfen.');
+    } finally { mutationRef.current = false; setBusy(false); }
+  }, [reload]);
 
-  async function addStop() {
-    if (!activeForVisit) return;
-    setBusy(true);
-    setFeedback(null);
-    try {
-      await addLogbookStop({
-        tenantId: props.tenantId,
-        employeeId: props.employeeId,
-        tripId: activeForVisit.id,
-        assignmentId: activeForVisit.assignmentId,
-        clientId: activeForVisit.clientId,
-        stopKind,
-        label: stopLabel,
-        address: destination,
-      });
-      setStopLabel('');
-      setDestination('');
-      await query.refresh();
-      setFeedback('Zwischenziel gespeichert. Die GPS-Aufzeichnung läuft für die nächste Teilstrecke weiter.');
-    } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Zwischenziel konnte nicht gespeichert werden.');
-    } finally {
-      setBusy(false);
-    }
-  }
+  const finishApproach = useCallback(() => mutate(async () => {
+    await finishVisitApproachLogbook({ tenantId, employeeId, assignmentId, endAddress: props.startAddress });
+  }), [mutate, tenantId, employeeId, assignmentId, props.startAddress]);
 
-  async function finish() {
-    setBusy(true);
-    setFeedback(null);
-    try {
-      const trip = await finishActiveVisitLogbookTrip({
-        tenantId: props.tenantId,
-        employeeId: props.employeeId,
-        assignmentId: activeForVisit?.assignmentId ?? props.assignmentId,
-        endAddress: destination,
-        notes: `Im Einsatzworkflow bei ${props.clientName} abgeschlossen.`,
-        allowedRouteTypes: ['with_client', 'other_business', 'client_to_client'],
-      });
-      await query.refresh();
-      setFeedback(
-        trip
-          ? `Fahrt beendet: ${trip.distanceFinalKm.toFixed(2).replace('.', ',')} km warten auf deine Bestätigung.`
-          : 'Es wurde keine passende laufende Fahrt gefunden.',
-      );
-      setDestination('');
-    } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Die Fahrt konnte nicht abgeschlossen werden.');
-    } finally {
-      setBusy(false);
-    }
-  }
+  useEffect(() => {
+    if (phase !== 'arrived' || !active || loading || busy || error) return;
+    if (arrivalAttempt.current === active.id) return;
+    arrivalAttempt.current = active.id;
+    // Also reconciles a restored visit and an arrival confirmed after timeout.
+    void finishApproach();
+  }, [phase, active, loading, busy, error, finishApproach]);
+
+  const km = parseTripKilometres(confirmationKm);
+  const corrected = pending && km !== null && Math.abs(km - pending.distanceFinalKm) >= 0.005;
+  const canConfirm = km !== null && (!corrected || confirmationReason.trim().length >= 3);
+  const confirm = () => {
+    if (!pending || !canConfirm || km === null) return;
+    void mutate(async () => {
+      await confirmEmployeeLogbookTrip({ trip: pending, distanceKm: km, reason: confirmationReason });
+      setFeedback('Kilometer bestätigt.');
+    });
+  };
+  const start = () => void mutate(async () => {
+    const result = await startVisitServiceLogbookTrip({
+      tenantId, employeeId, assignmentId, clientId: props.clientId, clientName: props.clientName,
+      kind, purpose, startAddress: props.startAddress, transportMode,
+    });
+    if (!result.started) throw new Error('Die PKW-Fahrt wurde nicht gestartet. Bitte die Fahrzeugzuordnung prüfen.');
+    setEditing(false);
+  });
+  const finish = () => void mutate(async () => {
+    const trip = await finishActiveVisitLogbookTrip({
+      tenantId, employeeId, assignmentId, endAddress: destination,
+      notes: 'Im Einsatzworkflow abgeschlossen.',
+    });
+    if (!trip) throw new Error('Keine laufende Fahrt gefunden. Bitte den Fahrtenbuchstatus erneut prüfen.');
+    setDestination('');
+  });
 
   return (
-    <SectionPanel
-      title="PKW-Fahrten im Einsatz"
-      subtitle="Begleitfahrt, Besorgung und mehrere Ziele direkt dem Einsatz und der Klientin bzw. dem Klienten zuordnen"
-    >
-      <Modal visible={Boolean(pendingConfirmation)} transparent animationType="fade" onRequestClose={() => undefined}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.confirmationCard}>
-            <Text style={styles.activeTitle}>Gefahrene Kilometer bestätigen</Text>
-            <Text style={styles.copy}>{pendingConfirmation?.purpose}</Text>
-            <PremiumInput label="Gefahrene Kilometer" value={confirmationKm} onChangeText={setConfirmationKm} keyboardType="decimal-pad" />
-            {pendingConfirmation && Math.abs(Number(confirmationKm.replace(',', '.')) - pendingConfirmation.distanceFinalKm) >= 0.005 ? (
-              <PremiumInput label="Begründung der Korrektur" value={confirmationReason} onChangeText={setConfirmationReason} placeholder="Warum weicht der Wert ab?" />
-            ) : null}
-            <Text style={styles.copy}>Erst nach deiner Bestätigung wird diese PKW-Fahrt endgültig gespeichert und abrechenbar.</Text>
-            <PremiumButton title="Kilometer bestätigen" fullWidth loading={busy} onPress={() => void confirmDistance()} />
+    <SectionPanel title="Fahrtenbuch" subtitle={phase === 'en_route' ? 'Anfahrt zum Einsatz' : 'PKW-Fahrten für diesen Einsatz'}>
+      <Modal visible={Boolean(pending && confirmationOpen)} transparent animationType="fade" onRequestClose={() => { if (!busy) setConfirmationOpen(false); }}>
+        <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalCard}>
+            <ScrollView contentContainerStyle={styles.stack} keyboardShouldPersistTaps="handled">
+              <Text style={styles.title}>Fahrt beendet · Kilometer prüfen</Text>
+              <Text style={styles.copy}>{pending?.purpose}</Text>
+              {pending?.notes ? <Text style={styles.copy}>{pending.notes}</Text> : null}
+              <PremiumInput label="Gefahrene Kilometer" value={confirmationKm} onChangeText={setConfirmationKm} keyboardType="decimal-pad" />
+              {corrected ? <PremiumInput label="Korrektur kurz begründen (mindestens 3 Zeichen)" value={confirmationReason} onChangeText={setConfirmationReason} /> : null}
+              {km === null ? <Text style={styles.error}>Bitte gültige Kilometer eingeben, z. B. 1,2.</Text> : null}
+              {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
+              <Text style={styles.copy}>Vergleiche den Vorschlag mit der gefahrenen Strecke. Erst mit deiner Bestätigung ist die Fahrt abgeschlossen.</Text>
+              <PremiumButton title="Kilometer bestätigen" fullWidth loading={busy} disabled={!canConfirm || loading} onPress={confirm} />
+              <PremiumButton title="Zur Einsatzansicht" variant="ghost" disabled={busy} onPress={() => setConfirmationOpen(false)} />
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
-      <View style={styles.header}>
-        <Text style={styles.copy}>Nur sichtbar, weil für dieses Mitarbeitendenkonto ein aktiver PKW zugeordnet ist.</Text>
-        <PremiumBadge label={activeForVisit ? 'GPS AKTIV' : 'PKW ZUGEORDNET'} variant={activeForVisit ? 'green' : 'cyan'} />
-      </View>
-      {feedback ? <InfoBanner message={feedback} variant={/nicht|konnte|bereits/i.test(feedback) ? 'warning' : 'info'} /> : null}
-      {active && !activeForVisit ? (
-        <InfoBanner message="Es läuft eine Fahrt aus einem anderen Einsatz. Diese muss zuerst im Fahrtenbuch abgeschlossen werden." variant="warning" />
+      {loading ? <Text style={styles.copy}>Fahrtenbuch wird abgeglichen …</Text> : null}
+      {error ? <View style={styles.stack}><InfoBanner message={error} variant="warning" /><PremiumButton title="Fahrtenbuch erneut prüfen" variant="secondary" disabled={busy || loading} onPress={() => void reload()} /></View> : null}
+      {feedback ? <InfoBanner message={feedback} variant="info" /> : null}
+      {otherActive ? <InfoBanner message="Es läuft noch eine PKW-Fahrt eines anderen Einsatzes. Bitte dort oder im Fahrtenbuch zuerst beenden." variant="warning" /> : null}
+      {props.onOpenLogbook && (error || otherActive || (!loading && (!data?.eligibility.eligible || (phase === 'en_route' && !active)))) ? <PremiumButton title="Fahrtenbuch öffnen" variant="secondary" onPress={props.onOpenLogbook} /> : null}
+      {pending ? <PremiumButton title="Kilometer prüfen und bestätigen" fullWidth onPress={() => setConfirmationOpen(true)} /> : null}
+      {active ? (
+        <View style={styles.stack}>
+          <Text style={styles.title}>{phase === 'en_route' || phase === 'arrived' ? 'Anfahrt' : 'Laufende Fahrt'}</Text>
+          <Text style={styles.copy}>{active.purpose}</Text>
+          <Text style={styles.copy}>Beginn {new Date(active.startedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr</Text>
+          {phase === 'en_route' ? <Text style={styles.copy}>Am Ziel unten einmal „Angekommen“ antippen. Danach die Kilometer bestätigen.</Text>
+            : phase === 'arrived' ? <PremiumButton title={busy ? 'Anfahrt wird abgeschlossen …' : 'Anfahrt abschließen · Kilometer prüfen'} fullWidth loading={busy} disabled={loading} onPress={() => void finishApproach()} />
+              : <>
+                <PremiumInput label="Erreichtes Ziel / Adresse" value={destination} onChangeText={setDestination} placeholder="z. B. Arztpraxis, Straße und Ort" />
+                <PremiumButton title="Ziel erreicht · Fahrt beenden" fullWidth loading={busy} disabled={loading} onPress={finish} />
+                <Text style={styles.copy}>Jede Fahrt einzeln beenden und die Kilometer bestätigen. Für das nächste Ziel anschließend eine neue Fahrt starten.</Text>
+              </>}
+        </View>
       ) : null}
-
-      {!active ? (
-        <View style={styles.stack}>
-          <Text style={styles.label}>Fahrt auswählen</Text>
-          <View style={styles.actions}>
-            {KIND_OPTIONS.map((option) => (
-              <PremiumButton
-                key={option.key}
-                title={option.label}
-                size="sm"
-                variant={kind === option.key ? 'primary' : 'secondary'}
-                onPress={() => {
-                  setKind(option.key);
-                  setPurpose(`${option.purpose} · ${props.clientName}`);
-                }}
-              />
-            ))}
+      {!loading && !active && !pending && !otherActive && !error ? (
+        !data?.eligibility.eligible ? <InfoBanner message="Für ein PKW-Fahrtenbuch muss die Verwaltung ein aktives Fahrzeug zuordnen." variant="warning" />
+          : phase === 'live' ? <View style={styles.stack}>
+            {!editing ? <PremiumButton title="Weitere PKW-Fahrt · Arzt, Einkauf …" variant="secondary" onPress={() => setEditing(true)} /> : <>
+              <Text style={styles.copy}>Jede Hin- und Rückfahrt separat starten und am Ziel bestätigen.</Text>
+              <View style={styles.actions}>
+                <PremiumButton title="Mit Klient:in" variant={kind === 'with_client' ? 'primary' : 'secondary'} onPress={() => setKind('with_client')} />
+                <PremiumButton title="Besorgung ohne Klient:in" variant={kind === 'client_errand' ? 'primary' : 'secondary'} onPress={() => setKind('client_errand')} />
+              </View>
+              <PremiumInput label="Ziel / Fahrtzweck" value={purpose} onChangeText={setPurpose} placeholder="z. B. Arztbesuch, Einkauf oder Rückfahrt zur Wohnung" />
+              <PremiumButton title="Diese PKW-Fahrt starten" fullWidth loading={busy} disabled={!purpose.trim()} onPress={start} />
+              <PremiumButton title="Abbrechen" variant="ghost" disabled={busy} onPress={() => setEditing(false)} />
+            </>}
           </View>
-          <PremiumInput label="Fahrtzweck" value={purpose} onChangeText={setPurpose} />
-          {kind === 'next_client' ? (
-            <CareEntitySelect
-              label="Nächsten Einsatz auswählen"
-              value={selectedNextAssignment?.id ?? ''}
-              options={nextAssignments.map((item) => ({
-                value: item.id,
-                label: `${new Date(item.startsAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr · ${item.clientName || item.title}`,
-                description: [item.title, item.location].filter(Boolean).join(' · '),
-              }))}
-              onChange={(value) => {
-                setNextAssignmentId(value);
-                const item = nextAssignments.find((candidate) => candidate.id === value);
-                if (item) setPurpose(`Weiterfahrt zum nächsten Einsatz · ${item.clientName || item.title}`);
-              }}
-              required
-              searchPlaceholder="Folgeeinsatz suchen…"
-              emptyMessage="Kein geplanter Folgeeinsatz vorhanden."
-            />
-          ) : null}
-          <PremiumButton title="PKW-Fahrt und GPS starten" size="lg" fullWidth disabled={kind === 'next_client' && !selectedNextAssignment} loading={busy} onPress={() => void start()} />
-        </View>
-      ) : activeForVisit ? (
-        <View style={styles.stack}>
-          <View style={styles.activeCard}>
-            <Text style={styles.activeTitle}>{TRAVEL_ROUTE_TYPE_LABELS[activeForVisit.routeType]}</Text>
-            <Text style={styles.copy}>{activeForVisit.purpose}</Text>
-            <Text style={styles.copy}>Gestartet: {new Date(activeForVisit.startedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr</Text>
-          </View>
-          <Text style={styles.label}>Zwischenziel oder Abschlussziel</Text>
-          <View style={styles.actions}>
-            {STOP_OPTIONS.map((option) => (
-              <PremiumButton key={option.key} title={option.label} size="sm" variant={stopKind === option.key ? 'primary' : 'secondary'} onPress={() => setStopKind(option.key)} />
-            ))}
-          </View>
-          <PremiumInput label="Name / Zweck des Ziels" value={stopLabel} onChangeText={setStopLabel} placeholder="z. B. Apotheke am Markt" />
-          <PremiumInput label="Adresse / Ziel" value={destination} onChangeText={setDestination} placeholder="Straße, PLZ Ort" />
-          <View style={styles.actions}>
-            <PremiumButton title="Zwischenziel erreicht – weiter aufzeichnen" variant="secondary" disabled={!stopLabel.trim()} loading={busy} onPress={() => void addStop()} />
-            <PremiumButton title="Am Ziel – Fahrt beenden" loading={busy} onPress={() => void finish()} />
-          </View>
-        </View>
+            : <Text style={styles.copy}>{phase === 'arrived' ? 'Keine offene Kilometerbestätigung. Die Einsatzzeit startet mit „Einsatz starten“.' : phase === 'en_route' ? 'Keine laufende PKW-Anfahrt gefunden. Bitte die Fahrt im Fahrtenbuch prüfen.' : 'Keine offene PKW-Fahrt. Nach dem Abschluss kannst du den nächsten Einsatz oder die Heim-/Bürofahrt wählen.'}</Text>
       ) : null}
     </SectionPanel>
   );
 }
 
 const styles = StyleSheet.create({
-  stack: { gap: spacing.sm },
-  header: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
-  label: { ...typography.label, color: portalPremium.text.primary },
-  copy: { ...typography.caption, color: portalPremium.text.secondary, flex: 1 },
-  activeCard: { gap: 4, borderWidth: 1, borderColor: portalPremium.borderSoft, borderRadius: 14, padding: spacing.md, backgroundColor: portalPremium.surfaceSoft },
-  activeTitle: { ...typography.h3, color: portalPremium.text.primary },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(2,16,34,0.72)', alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  confirmationCard: { width: '100%', maxWidth: 520, gap: spacing.md, borderRadius: 20, padding: spacing.lg, backgroundColor: '#FFFFFF' },
+  stack: { gap: spacing.md }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  copy: { ...typography.caption, color: portalPremium.text.secondary },
+  title: { ...typography.h3, color: portalPremium.text.primary },
+  error: { ...typography.body, color: '#B4233A' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(2,16,34,0.65)', justifyContent: 'center', alignItems: 'center', padding: spacing.lg },
+  modalCard: { width: '100%', maxWidth: 520, maxHeight: '90%', borderRadius: 20, padding: spacing.lg, backgroundColor: '#FFFFFF' },
 });

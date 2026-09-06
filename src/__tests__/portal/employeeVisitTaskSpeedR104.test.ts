@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { buildVisitProgress } from '@/lib/portal/visitProgress';
 
 const root = path.join(__dirname, '..', '..', '..');
 const read = (relativePath: string) => readFileSync(path.join(root, relativePath), 'utf8');
@@ -33,14 +34,10 @@ describe('employee visit task speed R10.4', () => {
   });
 
   it('keeps optional tasks out of the blocking step and guides directly to documentation', () => {
-    const progress = read('src/components/portal/EmployeePortalVisitProgressSteps.tsx');
-    const header = read('src/components/portal/EmployeePortalVisitStickyHeader.tsx');
-    expect(progress).toContain('tasksComplete?: boolean');
-    expect(progress).toContain('documentationComplete?: boolean');
-    expect(progress).toContain("if (stepKey === 'tasks')");
-    expect(progress).toContain('return false;');
-    expect(progress).toContain("currentStep === 'documentation'");
-    expect(header).toContain('tasksComplete={tasksComplete}');
+    const progress = buildVisitProgress({ status: 'beendet', serviceEnded: true, documentationComplete: false, requiresSignature: true, signatureCaptured: false });
+    expect(progress.steps.map((step) => step.label)).toEqual(['Anfahrt', 'Einsatz', 'Doku', 'Unterschrift', 'Abschluss']);
+    expect(progress.steps[progress.current].label).toBe('Doku');
+    expect(progress.steps.find((step) => step.label === 'Unterschrift')?.done).toBe(false);
   });
 
   it('offers documentation as the explicit next action after the final task', () => {

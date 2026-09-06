@@ -16,18 +16,19 @@ describe('Fahrtenbuch P0 R18.5', () => {
     const card = read('src/components/portal/EmployeePortalVisitLogbookCard.tsx');
     expect(repository).toContain("status: 'confirmation_required'");
     expect(repository).toContain('confirmEmployeeLogbookTrip');
-    expect(card).toContain('Gefahrene Kilometer bestätigen');
-    expect(card).toContain('Begründung der Korrektur');
+    expect(card).toContain('Fahrt beendet · Kilometer prüfen');
+    expect(card).toContain('Korrektur kurz begründen');
   });
 
   it('refreshes the arrival trip and blocks service start until kilometres are confirmed', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     const card = read('src/components/portal/EmployeePortalVisitLogbookCard.tsx');
     expect(screen).toContain('setLogbookRefreshToken((current) => current + 1)');
-    expect(screen).toContain("primaryActionResolved === 'start_service' && logbookConfirmationRequired");
+    expect(screen).toContain("['start_service', 'end_service'].includes(primaryActionResolved) && mobilityMode === 'car' && logbookConfirmationRequired");
     expect(screen).toContain('onConfirmationRequiredChange={setLogbookConfirmationRequired}');
-    expect(card).toContain('onConfirmationRequiredChange?.(Boolean(pendingConfirmation))');
-    expect(card).toContain('resolveVisitMasterId(trip.assignmentId!)');
+    expect(card).toContain('onConfirmationRequiredChange?.(blocked)');
+    expect(card).toContain('loading || busy || Boolean(error || active || pending || otherActive)');
+    expect(card).toContain('selectVisitLogbookState');
   });
 
   it('shows only explicitly car-enabled employees with an active vehicle', () => {

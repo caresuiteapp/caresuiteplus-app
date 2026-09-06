@@ -1,341 +1,92 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Image, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
+import { useState } from 'react';
+import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CARESUITE_VISIT_GUIDE_MASCOT } from '@/components/brand/brandassets';
-import { PremiumBadge } from '@/components/ui';
-import {
-  employeePortalExecutionShadow,
-  employeePortalExecutionSurface,
-  employeePortalExecutionText,
-} from '@/lib/portal/employeePortalExecutionSurface';
+import { PremiumBadge, PremiumButton } from '@/components/ui';
+import { employeePortalExecutionSurface, employeePortalExecutionText } from '@/lib/portal/employeePortalExecutionSurface';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import type { EmployeePortalLiveTimers } from '@/types/modules/employeePortalTracking';
 import { spacing, typography } from '@/theme';
 import { EmployeePortalVisitProgressSteps } from './EmployeePortalVisitProgressSteps';
 
-type EmployeePortalVisitStickyHeaderProps = {
-  clientName: string;
-  plannedStartAt: string;
-  plannedEndAt: string;
-  effectiveStatus: AssignmentStatus;
-  statusLabelOverride?: string;
+type Props = {
+  clientName: string; plannedStartAt: string; plannedEndAt: string;
+  effectiveStatus: AssignmentStatus; statusLabelOverride?: string;
   timers: EmployeePortalLiveTimers | null;
-  requiresSignature?: boolean;
-  signatureCaptured?: boolean;
-  tasksComplete?: boolean;
-  documentationComplete?: boolean;
-  serviceEnded?: boolean;
-  showProgress?: boolean;
-  onExit?: () => void;
-  guideMessage?: string;
+  requiresSignature?: boolean; signatureCaptured?: boolean; tasksComplete?: boolean;
+  documentationComplete?: boolean; serviceEnded?: boolean; showProgress?: boolean;
+  onExit?: () => void; guideMessage?: string;
   guideTone?: 'info' | 'warning' | 'error' | 'success';
-  guideActionLabel?: string;
-  onGuideAction?: () => void;
-  onOpenMedia?: () => void;
-  dayGpsActive?: boolean;
+  guideActionLabel?: string; onGuideAction?: () => void;
+  onOpenMedia?: () => void; dayGpsActive?: boolean;
 };
 
-function formatTimeRange(startIso: string, endIso: string): string {
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-  return `${fmt(startIso)}–${fmt(endIso)}`;
+function formatLiveTimer(seconds: number): string {
+  const two = (value: number) => String(value).padStart(2, '0');
+  return two(Math.floor(seconds / 3600)) + ':' + two(Math.floor(seconds % 3600 / 60)) + ':' + two(seconds % 60);
 }
 
-function formatLiveTimer(seconds: number | null): string | null {
-  if (seconds == null) return null;
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  const twoDigits = (value: number) => (value < 10 ? `0${value}` : String(value));
-  return `${twoDigits(h)}:${twoDigits(m)}:${twoDigits(s)} (Std:Min:Sek)`;
-}
-
-function liveStatusLabel(status: AssignmentStatus, timers: EmployeePortalLiveTimers | null): string {
-  if (status === 'unterwegs') return 'UNTERWEGS';
-  if (status === 'gestartet') return 'LIVE';
-  if (status === 'pausiert') return 'PAUSE';
-  if (status === 'angekommen') return 'ANGEKOMMEN';
-  if (timers?.activeTimer === 'drive') return 'UNTERWEGS';
-  if (timers?.activeTimer === 'service') return 'LIVE';
-  if (timers?.activeTimer === 'pause') return 'PAUSE';
-  return ASSIGNMENT_STATUS_LABELS[status]?.toUpperCase() ?? status.toUpperCase();
-}
-
-export function EmployeePortalVisitStickyHeader({
-  clientName,
-  plannedStartAt,
-  plannedEndAt,
-  effectiveStatus,
-  statusLabelOverride,
-  timers,
-  requiresSignature = true,
-  signatureCaptured = false,
-  tasksComplete = false,
-  documentationComplete = false,
-  serviceEnded = false,
-  showProgress = true,
-  onExit,
-  guideMessage,
-  guideTone = 'info',
-  guideActionLabel,
-  onGuideAction,
-  onOpenMedia,
-  dayGpsActive = false,
-}: EmployeePortalVisitStickyHeaderProps) {
-  const text = employeePortalExecutionText;
+export function EmployeePortalVisitStickyHeader(props: Props) {
+  const [helpOpen, setHelpOpen] = useState(false);
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const compact = width < 520;
-  const guidePulse = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(guidePulse, {
-          toValue: 1,
-          duration: 1200,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(guidePulse, {
-          toValue: 0,
-          duration: 1200,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [guidePulse]);
-
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        root: {
-          backgroundColor: employeePortalExecutionSurface.background,
-          borderBottomWidth: 1,
-          borderBottomColor: employeePortalExecutionSurface.border,
-          paddingHorizontal: spacing.lg,
-          paddingTop: Platform.OS === 'web' ? spacing.sm : Math.max(insets.top, spacing.sm),
-          paddingBottom: spacing.sm,
-          gap: spacing.xs,
-          ...employeePortalExecutionShadow,
-          ...(Platform.OS === 'web'
-            ? compact
-              ? ({ position: 'relative', zIndex: 1 } as unknown as ViewStyle)
-              : ({ position: 'sticky', top: 0, zIndex: 20 } as unknown as ViewStyle)
-            : null),
-        },
-        topRow: {
-          flexDirection: 'row',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: spacing.sm,
-        },
-        topRowCompact: { alignItems: 'center' },
-        clientName: { ...typography.h3, color: text.primary, flex: 1 },
-        exitButton: {
-          minHeight: 42,
-          paddingHorizontal: compact ? spacing.sm : spacing.md,
-          borderRadius: 999,
-          borderWidth: 1,
-          borderColor: employeePortalExecutionSurface.border,
-          backgroundColor: employeePortalExecutionSurface.background,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        exitLabel: { ...typography.bodyStrong, color: text.primary },
-        timeRange: { ...typography.caption, color: text.secondary },
-        statusRow: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.sm,
-          flexWrap: 'wrap',
-        },
-        liveTimer: { ...typography.bodyStrong, color: text.secondary, fontVariant: ['tabular-nums'] },
-        mediaButton: {
-          marginLeft: 'auto',
-          minHeight: 38,
-          paddingHorizontal: spacing.md,
-          borderRadius: 999,
-          borderWidth: 1,
-          borderColor: '#8B5CF6',
-          backgroundColor: 'rgba(139, 92, 246, 0.10)',
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        mediaButtonText: { ...typography.caption, color: '#6D28D9', fontWeight: '800' },
-        guideRow: {
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.sm,
-          marginTop: spacing.sm,
-          padding: compact ? spacing.xs : spacing.sm,
-          borderRadius: 20,
-          backgroundColor: 'rgba(5, 108, 232, 0.06)',
-        },
-        guideAvatar: {
-          width: compact ? 88 : 108,
-          height: compact ? 88 : 108,
-          alignItems: 'center',
-          justifyContent: 'center',
-        },
-        guideAvatarImage: { width: '100%', height: '100%' },
-        guideBubble: {
-          flex: 1,
-          minWidth: 0,
-          minHeight: compact ? 72 : 88,
-          paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
-          borderWidth: 1,
-          borderRadius: 14,
-          justifyContent: 'center',
-          backgroundColor: '#EFF7FF',
-          borderColor: '#8BC2FF',
-        },
-        guideBubbleWarning: { backgroundColor: '#FFF8E8', borderColor: '#E4AD42' },
-        guideBubbleError: { backgroundColor: '#FFF0F1', borderColor: '#E15B64' },
-        guideBubbleSuccess: { backgroundColor: '#EDFFF5', borderColor: '#42AF78' },
-        guideText: { ...typography.bodyStrong, color: '#10233E' },
-        guideKicker: {
-          ...typography.caption,
-          color: '#056CE8',
-          fontWeight: '900',
-          letterSpacing: 0.6,
-          marginBottom: 3,
-        },
-        guideAction: {
-          alignSelf: 'flex-start',
-          marginTop: spacing.xs,
-          minHeight: 38,
-          paddingHorizontal: spacing.md,
-          borderRadius: 999,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#056CE8',
-        },
-        guideActionText: { ...typography.caption, color: '#FFFFFF', fontWeight: '800' },
-      }),
-    [compact, insets.top, text],
-  );
-
-  const activeSeconds =
-    timers?.activeTimer === 'drive'
-      ? timers.driveSeconds
-      : timers?.activeTimer === 'service'
-        ? timers.serviceSeconds
-        : timers?.activeTimer === 'pause'
-          ? timers.pauseSeconds
-          : null;
-  const liveTimer = formatLiveTimer(activeSeconds);
-  const isLive =
-    effectiveStatus === 'unterwegs' ||
-    effectiveStatus === 'gestartet' ||
-    effectiveStatus === 'pausiert' ||
-    Boolean(timers?.activeTimer);
-  const badgeVariant =
-    effectiveStatus === 'nicht_erschienen' || effectiveStatus === 'storniert'
-      ? 'red'
-      : effectiveStatus === 'abgeschlossen'
-        ? 'green'
-        : isLive
-          ? 'orange'
-          : 'muted';
-
+  const { timers, effectiveStatus, guideMessage, guideActionLabel, onGuideAction } = props;
+  const seconds = timers?.activeTimer === 'drive' ? timers.driveSeconds
+    : timers?.activeTimer === 'service' ? timers.serviceSeconds
+      : timers?.activeTimer === 'pause' ? timers.pauseSeconds : null;
+  const timerLabel = timers?.activeTimer === 'drive' ? 'Anfahrt' : timers?.activeTimer === 'pause' ? 'Pause' : 'Einsatzzeit';
+  const time = (value: string) => new Date(value).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   return (
-    <View style={styles.root}>
-      <View style={[styles.topRow, compact ? styles.topRowCompact : null]}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.clientName} numberOfLines={compact ? 2 : 1}>
-            {clientName}
-          </Text>
-          <Text style={styles.timeRange}>{formatTimeRange(plannedStartAt, plannedEndAt)}</Text>
+    <View style={[styles.root, { paddingTop: Platform.OS === 'web' ? spacing.sm : Math.max(insets.top, spacing.sm) }]}>
+      <View style={styles.row}>
+        <View style={styles.identity}>
+          <Text style={styles.clientName} numberOfLines={2}>{props.clientName}</Text>
+          <Text style={styles.caption}>{time(props.plannedStartAt)}–{time(props.plannedEndAt)}</Text>
         </View>
-        {onExit ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Einsatz-Arbeitsfläche verlassen"
-            onPress={onExit}
-            style={styles.exitButton}
-          >
-            <Text style={styles.exitLabel}>{compact ? '← Zurück' : '← Übersicht'}</Text>
+        {guideMessage ? (
+          <Pressable style={styles.helpButton} accessibilityRole="button" accessibilityLabel="Einsatzbegleiter: Hilfe zum aktuellen Schritt" accessibilityState={{ expanded: helpOpen }} onPress={() => setHelpOpen(true)} testID="employee-visit-guide-toggle">
+            <Image source={CARESUITE_VISIT_GUIDE_MASCOT} resizeMode="contain" style={styles.robot} />
+            <Text style={styles.info}>i</Text>
           </Pressable>
         ) : null}
+        {props.onExit ? <Pressable onPress={props.onExit} style={styles.button} accessibilityRole="button" accessibilityLabel="Einsatz-Arbeitsfläche verlassen"><Text style={styles.buttonText}>← Zurück</Text></Pressable> : null}
       </View>
-      <View style={styles.statusRow}>
-        <PremiumBadge
-          label={statusLabelOverride ?? liveStatusLabel(effectiveStatus, timers)}
-          variant={badgeVariant}
-          dot
-        />
-        {dayGpsActive ? <PremiumBadge label="GPS · TAG AKTIV" variant="green" dot /> : null}
-        {liveTimer ? <Text style={styles.liveTimer}>· {liveTimer}</Text> : null}
-        {onOpenMedia ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Foto, Video oder Datei hinzufügen"
-            onPress={onOpenMedia}
-            style={styles.mediaButton}
-            testID="employee-visit-media-always-available"
-          >
-            <Text style={styles.mediaButtonText}>📷 Medien</Text>
-          </Pressable>
-        ) : null}
+      <View style={styles.row}>
+        <PremiumBadge label={props.statusLabelOverride ?? ASSIGNMENT_STATUS_LABELS[effectiveStatus]} variant={effectiveStatus === 'abgeschlossen' ? 'green' : 'muted'} />
+        {props.dayGpsActive ? <PremiumBadge label="GPS · TAG AKTIV" variant="green" dot /> : null}
+        {props.onOpenMedia ? <Pressable onPress={props.onOpenMedia} style={styles.button} accessibilityRole="button" accessibilityLabel="Foto, Video oder Datei hinzufügen" testID="employee-visit-media-always-available"><Text style={styles.buttonText}>Medien</Text></Pressable> : null}
       </View>
-      {showProgress ? (
-        <EmployeePortalVisitProgressSteps
-          status={effectiveStatus}
-          requiresSignature={requiresSignature}
-          signatureCaptured={signatureCaptured}
-          tasksComplete={tasksComplete}
-          documentationComplete={documentationComplete}
-          serviceEnded={serviceEnded}
-        />
-      ) : null}
-      {guideMessage ? (
-        <View style={styles.guideRow} accessibilityLiveRegion={guideTone === 'error' ? 'assertive' : 'polite'}>
-          <Animated.View
-            accessibilityLabel="Animierter Einsatzbegleiter"
-            style={[
-              styles.guideAvatar,
-              {
-                transform: [
-                  { translateY: guidePulse.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) },
-                  { scale: guidePulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] }) },
-                ],
-              },
-            ]}
-          >
-            <Image
-              source={CARESUITE_VISIT_GUIDE_MASCOT}
-              resizeMode="contain"
-              style={styles.guideAvatarImage}
-            />
-          </Animated.View>
-          <View
-            style={[
-              styles.guideBubble,
-              guideTone === 'warning' ? styles.guideBubbleWarning : null,
-              guideTone === 'error' ? styles.guideBubbleError : null,
-              guideTone === 'success' ? styles.guideBubbleSuccess : null,
-            ]}
-          >
-            <Text style={styles.guideKicker}>CARESUITE EINSATZBEGLEITER</Text>
-            <Text style={styles.guideText}>{guideMessage}</Text>
-            {guideActionLabel && onGuideAction ? (
-              <Pressable
-                accessibilityRole="button"
-                onPress={onGuideAction}
-                style={styles.guideAction}
-              >
-                <Text style={styles.guideActionText}>{guideActionLabel}</Text>
-              </Pressable>
-            ) : null}
+      {seconds !== null ? <Text style={styles.timer} accessibilityLabel={timerLabel + ' ' + formatLiveTimer(seconds) + ' (Std:Min:Sek)'}>{timerLabel} · {formatLiveTimer(seconds)}</Text> : null}
+      {props.showProgress !== false ? <EmployeePortalVisitProgressSteps status={effectiveStatus} requiresSignature={props.requiresSignature} signatureCaptured={props.signatureCaptured} tasksComplete={props.tasksComplete} documentationComplete={props.documentationComplete} serviceEnded={props.serviceEnded} /> : null}
+      <Modal visible={helpOpen} transparent animationType="fade" onRequestClose={() => setHelpOpen(false)}>
+        <View style={[styles.backdrop, { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.lg }]}>
+          <View style={styles.helpCard}>
+            <ScrollView contentContainerStyle={styles.helpContent} keyboardShouldPersistTaps="handled">
+              <Text style={styles.clientName}>Dein nächster Schritt</Text>
+              <Text style={styles.helpText} accessibilityLiveRegion="polite">{guideMessage}</Text>
+              {guideActionLabel && onGuideAction ? <PremiumButton title={guideActionLabel} fullWidth onPress={() => { setHelpOpen(false); onGuideAction(); }} /> : null}
+              <PremiumButton title="Verstanden · zurück zum Einsatz" variant="secondary" fullWidth onPress={() => setHelpOpen(false)} />
+            </ScrollView>
           </View>
         </View>
-      ) : null}
+      </Modal>
     </View>
   );
 }
+const styles = StyleSheet.create({
+  root: { backgroundColor: employeePortalExecutionSurface.background, borderBottomWidth: 1, borderBottomColor: employeePortalExecutionSurface.border, paddingHorizontal: spacing.md, paddingBottom: spacing.sm, gap: spacing.xs },
+  row: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm },
+  identity: { flex: 1, minWidth: 100 },
+  clientName: { ...typography.h3, color: employeePortalExecutionText.primary },
+  caption: { ...typography.caption, color: employeePortalExecutionText.secondary },
+  timer: { ...typography.bodyStrong, color: employeePortalExecutionText.primary, fontVariant: ['tabular-nums'] },
+  button: { minHeight: 44, paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: employeePortalExecutionSurface.border, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  buttonText: { ...typography.caption, color: '#056CE8', fontWeight: '700' },
+  helpButton: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#EFF7FF', borderWidth: 1, borderColor: '#8BC2FF' },
+  robot: { width: 48, height: 48 },
+  info: { position: 'absolute', right: -2, bottom: -2, width: 21, height: 21, borderRadius: 11, textAlign: 'center', lineHeight: 21, backgroundColor: '#056CE8', color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
+  backdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.lg, backgroundColor: 'rgba(2,16,34,0.65)' },
+  helpCard: { width: '100%', maxWidth: 520, maxHeight: '90%', borderRadius: 20, backgroundColor: '#FFFFFF' },
+  helpContent: { padding: spacing.lg, gap: spacing.lg },
+  helpText: { ...typography.body, lineHeight: 25, color: '#10233E' },
+});

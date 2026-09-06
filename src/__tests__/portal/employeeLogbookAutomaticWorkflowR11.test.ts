@@ -22,20 +22,19 @@ describe('Digitales Fahrtenbuch R11 · automatischer PKW-Workflow', () => {
   it('bindet Anfahrt und Ankunft an dieselbe Fahrtenbuchkette', () => {
     const visit = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     expect(visit).toContain('startVisitApproachLogbook');
-    expect(visit).toContain('finishVisitApproachLogbook');
+    expect(read('src/components/portal/EmployeePortalVisitLogbookCard.tsx')).toContain('finishVisitApproachLogbook');
     expect(visit).toContain('EmployeePortalVisitLogbookCard');
   });
 
   it('unterstützt Begleitfahrt, Besorgung, Weiterfahrt und mehrere Zwischenziele', () => {
     const card = read('src/components/portal/EmployeePortalVisitLogbookCard.tsx');
     const repository = read('src/lib/employeeLogbook/employeeLogbookRepository.supabase.ts');
-    expect(card).toContain('Fahrt mit Klient:in');
-    expect(card).toContain('Besorgungsfahrt');
-    expect(card).toContain('Weiter zum nächsten Einsatz');
-    expect(card).toContain('Nächsten Einsatz auswählen');
-    expect(card).toContain('clientId: target.clientId');
-    expect(card).toContain('assignmentId: target.assignmentId');
-    expect(card).toContain('Zwischenziel erreicht – weiter aufzeichnen');
+    expect(card).toContain('Mit Klient:in');
+    expect(card).toContain('Besorgung ohne Klient:in');
+    expect(card).toContain('Jede Fahrt einzeln beenden');
+    expect(card).toContain('tenantId, employeeId, assignmentId, clientId: props.clientId');
+    expect(read('src/components/portal/EmployeePortalVisitSummaryPanel.tsx')).toContain('Nächsten Einsatz auswählen');
+    expect(read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx')).toContain("router.replace('/portal/employee/assignments' as never)");
     expect(repository).toContain(".is('ended_at', null)");
   });
 
