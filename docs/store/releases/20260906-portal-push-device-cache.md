@@ -1,6 +1,6 @@
-# CareSuite Portal-Update: Bedienung, Benachrichtigungen und Gerätespeicher
+# CareSuite Portal-Update mit Startintro, Benachrichtigungen und Gerätespeicher
 
-Stand: 6. September 2026. Basis ist der ausgelieferte Stand `5dbcecbb55ce43812867db6d73b9d7089b6af364` (AAB 34, App 0.3.6). Änderungsbranch: `fix/portal-push-access-20260906`.
+Stand: 6. September 2026. Basis ist der ausgelieferte Stand `5dbcecbb55ce43812867db6d73b9d7089b6af364` (AAB 34, App 0.3.6). Änderungsbranch: `fix/portal-start-intro-20260906`.
 
 Die Änderungen sind im Quellcode umgesetzt und lokal geprüft. Die unten beschriebene Serverinstallation und ein neuer produktiver Android-AAB sind noch erforderlich. Dieses Paket veröffentlicht nichts bei Google Play und hat keine produktiven Daten oder Zugangsdaten verändert.
 
@@ -8,6 +8,7 @@ Die Änderungen sind im Quellcode umgesetzt und lokal geprüft. Die unten beschr
 
 | Bereich | Verhalten im neuen Stand |
 | --- | --- |
+| Startintro | Bei jedem vollständigen App-Neustart sechs Sekunden CareSuite Health OS mit Ton; Hoch-/Querformat lokal eingebunden. Biometrie und Dialoge folgen danach. |
 | Gerätespeicher | Kontogebundene Einsatzlisten und bereits geladene Details auf Android im geschützten nativen Speicher. Häufig gelesene Ansichten erhalten zusätzlich einen begrenzten Arbeitsspeicher-Cache. |
 | Schnellere Einsätze | Gespeicherte Ansichten zuerst anzeigen, parallel den Server abfragen; dieselbe laufende Anfrage zusammenfassen. Die nächsten Mitarbeitendeneinsätze werden verzögert vorgeladen, damit die aktuelle Ansicht Vorrang hat. |
 | Klienten-Vorschau | Basisdaten erscheinen vor einer langsameren GPS-Zusatzabfrage. Alte gespeicherte GPS-Positionen werden nicht als aktuelle Position ausgegeben. |
@@ -26,19 +27,23 @@ Aufgaben bleiben freiwillig. Dokumentation und Unterschrift vor Ort beziehungswe
 
 ## Was bereits geprüft wurde
 
-- Gesamter Vitest-Lauf: **6.520 bestanden, 0 fehlgeschlagen, 3 ausgelassen**. Die drei ausgelassenen Tests benötigen einen Live-Supabase-Zugang; hier wurden keine Zugangsdaten eingesetzt.
+- Gesamter Vitest-Lauf: **6.530 bestanden, 0 fehlgeschlagen, 3 ausgelassen**. Die drei ausgelassenen Tests benötigen einen Live-Supabase-Zugang; hier wurden keine Zugangsdaten eingesetzt.
+- Zehn neue Intro-Interaktionstests einschließlich des Übergangs zur echten Biometrie-Gate-Komponente bestanden; insgesamt 97 gezielte Portal-/Intro-Prüfungen bestanden.
+- Beide Originalvideos bytegenau im Android-Export nachgewiesen.
 - TypeScript und ESLint ohne Codefehler.
 - Zusätzliche PostgreSQL-Prüfung der Push-Migration in einer isolierten PGlite-Datenbank: **10 bestanden**, einschließlich Kontenzuordnung, Zustellung, Wiederholungen und Rechteabgrenzung.
 - Android-API-36-Audit und bestehendes Android-Sicherheitsaudit bestanden.
-- Android/Hermes-Portalexport und Exportaudit bestanden: etwa 23 MB Laufzeitdateien; Verwaltungsquellen und Desktop-Assets ausgeschlossen.
+- Android/Hermes-Portalexport und Exportaudit bestanden: 24,5 MB Laufzeitdateien; Verwaltungsquellen und Desktop-Assets ausgeschlossen.
 - Der Offline-Abgleich mit den installierten Expo-SDK-Abhängigkeiten meldet passende Versionen. Expo Doctor konnte in dieser Umgebung seine Online-Prüfung nicht abschließen; dafür wird kein bestandener Online-Lauf behauptet.
 - Die neuen Serverfunktionen wurden zusätzlich gegen lokal vorhandene Supabase-Typen geprüft. Die Prüfung mit den entfernten Deno-Import-URLs war durch den Netzwerkzugriff blockiert.
 
 Diese Prüfungen ersetzen keinen Gerätetest über Google Play: Gesicht/Fingerabdruck, Tastatur, FCM-Zustellung, Hintergrundbedingungen und der vollständige reale Einsatzabschluss müssen mit dem neuen AAB geprüft werden.
 
+Details zum Intro und dessen Gerätetest stehen zusätzlich in `STARTINTRO.md` im Paket beziehungsweise `docs/store/releases/20260906-app-start-intro.md` im Projekt. Das Intro benötigt wegen der neuen nativen Video-Abhängigkeit einen neuen AAB; es wird nicht durch eine reine Web-Aktualisierung installiert.
+
 ## 1. Quellcode übernehmen
 
-Bei Verwendung des Änderungspakets dessen `installieren.sh` mit **bash** ausführen. Es importiert das Git-Bundle über `FETCH_HEAD`, damit kein bereits ausgecheckter Branch überschrieben wird. Der bestehende Produktbranch bleibt erhalten. Das Bundle enthält den vollständigen Änderungsstand; der direkte GitHub-Upload wurde in dieser Sitzung durch die automatische Freigabeprüfung blockiert.
+Bei Verwendung des Änderungspakets dessen `installieren.sh` mit **bash** ausführen. Es importiert das Git-Bundle über `FETCH_HEAD`, damit kein bereits ausgecheckter Branch überschrieben wird. Der bestehende Produktbranch bleibt erhalten. Das Bundle enthält den vollständigen Änderungsstand einschließlich des Startintros. Es kann sowohl auf den ausgelieferten AAB-34-Quellstand als auch auf das vorherige Portal-Update `144cd259` angewendet werden. Das ältere Paket muss nicht zusätzlich installiert werden.
 
 Im Projektordner danach:
 
@@ -52,7 +57,7 @@ Die Befehle sind für Git Bash. JavaScript-Auszüge gehören nicht direkt in den
 
 ## 2. Push-Server installieren
 
-Die App-Bedienung und der Gerätespeicher benötigen keine neue SQL-Migration. Der automatische Push-Versand benötigt die folgenden Schritte im **Supabase-Projekt `euagyyztvmemuaiumvxm`**.
+Das Startintro, die App-Bedienung und der Gerätespeicher benötigen keine neue SQL-Migration. Bereits erfolgreich abgeschlossene Push-Einrichtung muss nicht wiederholt werden. Der automatische Push-Versand benötigt die folgenden Schritte im **Supabase-Projekt `euagyyztvmemuaiumvxm`**.
 
 1. Im Supabase-SQL-Editor den vollständigen Inhalt von `supabase/migrations/20260906160000_portal_automatic_push.sql` **einmal** ausführen. Die Migration läuft in einer Transaktion und lässt den automatischen Versand zunächst ausgeschaltet. Keine alten Migrationen erneut ausführen.
 2. `scripts/sql/verify_portal_push_installation.sql` ausführen. Die erste Ergebniszeile soll nur `true` enthalten. `versand_aktiv` und `dienst_geschuetzt` dürfen vor der Aktivierung noch `false` sein.
@@ -86,7 +91,7 @@ Für eine Pause des automatischen Versands `scripts/sql/pause_portal_push_dispat
 cd "$HOME/CareSuite-Expo57" && bash scripts/build-portal-update-aab.sh
 ```
 
-Das Skript prüft den sauberen Commit, TypeScript und die gezielte Portal-Prüfung und startet ausschließlich `portal-only-aab` mit EAS CLI 23.2.0. Die App-Version bleibt 0.3.6; EAS erhöht den entfernten Android-`versionCode`. Die tatsächliche neue Nummer steht im Buildbericht.
+Das Skript prüft den sauberen Commit, TypeScript, die gezielte Portal-/Intro-Prüfung und den Android-Export einschließlich der beiden lokalen Videos und startet ausschließlich `portal-only-aab` mit EAS CLI 23.2.0. Die App-Version bleibt 0.3.6; EAS erhöht den entfernten Android-`versionCode`. Die tatsächliche neue Nummer steht im Buildbericht.
 
 Der Build läuft bei EAS weiter, auch wenn Git Bash geschlossen wird. Mit der angezeigten Build-ID prüfen:
 
@@ -103,6 +108,8 @@ bash scripts/download-portal-update-aab.sh BUILD-ID
 Das Downloadskript prüft Profil, Android-Plattform, Status und Commit und schreibt den fertigen AAB nach Downloads. Bei `IN_PROGRESS` später denselben Downloadbefehl wiederholen; keinen zweiten Build starten. Der Download veröffentlicht nichts. Den AAB anschließend selbst in Google Play zum gewünschten Test bereitstellen.
 
 ## 4. Auf dem Google-Play-Gerät prüfen
+
+Zuerst die App vollständig beenden und zweimal neu öffnen: bei jedem Neustart das sechssekündige Intro mit Ton; Biometrie und Portal-Hinweise erst danach. Auch im Flugmodus und in beiden Ausrichtungen prüfen. Wechsel in den Hintergrund beendet den Ton; normales Zurückkehren startet das Intro nicht erneut.
 
 1. Im Mitarbeiterportal einen eigenen Einsatz öffnen, verlassen und erneut öffnen; gespeicherte Ansicht und spätere Aktualisierung prüfen. Bei gedrosseltem Netz darf der Inhalt beim Aktualisieren nicht ständig verschwinden.
 2. Dokumentation ändern, auch vollständig leeren, dann eine Aktualisierung auslösen. Die Eingabe muss erhalten bleiben. Zum nächsten Einsatz wechseln: kein Text des vorherigen Einsatzes darf übernommen werden.

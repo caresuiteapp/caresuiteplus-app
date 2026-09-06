@@ -8,10 +8,12 @@ import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
 import { useClientSignatureAttention } from './ClientSignatureAttentionProvider';
 import { signatureAttentionKey } from '@/lib/portal/clientSignatureAttention';
 import { portalPremium } from '@/design/tokens/portalPremium';
+import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 
 // Native-safe, account-scoped dismissal for this app run. Never hides an open task.
 const acknowledged = new Map<string, Set<string>>();
 export function ClientPortalAttentionPrompt() {
+  const startupReady = useAppStartIntroReady();
   const router = useRouter();
   const pathname = usePathname();
   const { tenantId, actorId, isLinkedReady } = usePortalActor();
@@ -24,7 +26,7 @@ export function ClientPortalAttentionPrompt() {
   const keys = useMemo(() => [...signatures.items.map(signatureAttentionKey), ...unread.map((thread) => `message:${thread.id}:${thread.unreadCount}`)], [signatures.items, unread]);
   const seen = acknowledged.get(accountKey);
   const atDestination = pathname.startsWith('/portal/client/documents') || pathname.startsWith('/portal/client/messages');
-  const visible = isLinkedReady && !atDestination && keys.some((key) => !seen?.has(key));
+  const visible = startupReady && isLinkedReady && !atDestination && keys.some((key) => !seen?.has(key));
   const dismiss = () => {
     const next = new Set(acknowledged.get(accountKey));
     keys.forEach((key) => next.add(key));

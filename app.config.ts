@@ -105,7 +105,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       {
         image: './assets/splash-icon.png',
         resizeMode: 'contain',
-        backgroundColor: '#F8FAFC',
+        backgroundColor: '#040b19',
       },
     ],
     'expo-sharing',
@@ -145,6 +145,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
     ],
     'expo-background-task',
+    ['expo-video', { supportsBackgroundPlayback: false, supportsPictureInPicture: false }],
     [
       'expo-audio',
       {

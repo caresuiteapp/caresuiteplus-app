@@ -55,7 +55,7 @@
         {
           "image": "./assets/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#F8FAFC"
+          "backgroundColor": "#040b19"
         }
       ],
       [
@@ -98,7 +98,14 @@
           "microphonePermission": "CareSuite benötigt Zugriff auf das Mikrofon, damit Videos mit Ton aufgenommen werden können."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": false,
+          "supportsPictureInPicture": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -101,7 +101,7 @@
     "bodymap:r7:acceptance": "node scripts/bodymap-r7-acceptance.mjs",
     "bodymap3d:real-human:render-all": "node scripts/render-all-bodymap-real-human-qa.mjs",
     "bodymap3d:deploy:gitbash": "bash scripts/deploy-bodymap3d-gitbash.sh",
-    "audit:portal-update": "vitest run src/__tests__/portal/portalAsyncInteraction.test.tsx src/__tests__/portal/clientSignatureAttentionInteraction.test.tsx src/__tests__/portal/portalVisitDraftScope.test.tsx src/__tests__/portal/portalNewChatInteraction.test.tsx src/__tests__/portal/employeePortalNavigationAccess.test.tsx src/__tests__/auth/rememberedPortalLogin.test.ts src/__tests__/platform/portalAutomaticPush.test.ts src/__tests__/offline/portalDeviceCache.test.ts src/__tests__/offline/portalBackgroundRefresh.test.ts src/__tests__/offline/assignmentCacheService.test.ts src/__tests__/offline/offline3DetailPrefetch.integration.test.ts",
+    "audit:portal-update": "vitest run src/__tests__/portal/portalAsyncInteraction.test.tsx src/__tests__/portal/clientSignatureAttentionInteraction.test.tsx src/__tests__/portal/portalVisitDraftScope.test.tsx src/__tests__/portal/portalNewChatInteraction.test.tsx src/__tests__/portal/employeePortalNavigationAccess.test.tsx src/__tests__/auth/rememberedPortalLogin.test.ts src/__tests__/platform/portalAutomaticPush.test.ts src/__tests__/offline/portalDeviceCache.test.ts src/__tests__/offline/portalBackgroundRefresh.test.ts src/__tests__/offline/assignmentCacheService.test.ts src/__tests__/offline/offline3DetailPrefetch.integration.test.ts src/__tests__/platform/appStartIntro.test.tsx",
     "audit:portal-push:db": "node --test supabase/tests/portal_automatic_push.test.mjs"
   },
   "dependencies": {
@@ -142,6 +142,7 @@
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.3",
     "expo-task-manager": "~57.0.16",
+    "expo-video": "~57.0.3",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "lodash": "4.18.1",

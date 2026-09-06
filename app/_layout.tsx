@@ -1,5 +1,7 @@
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import 'react-native-reanimated';
+import { AppStartIntro } from '@/components/brand/AppStartIntro';
+import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -168,9 +170,10 @@ function RootShell() {
 }
 
 function RouteScopedLegacyOverlays() {
+  const startupReady = useAppStartIntroReady();
   const pathname = usePathname();
   const isLiquidCommandRoute = isLiquidCommandRoutePath(pathname);
-  if (isLiquidCommandRoute) return null;
+  if (!startupReady || isLiquidCommandRoute) return null;
   return (
     <>
       <BusinessWelcomeGate />
@@ -181,29 +184,31 @@ function RouteScopedLegacyOverlays() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <PortalKeyboardProvider>
-      <ThemeModeProvider>
-        <PerformanceProvider>
-          <WebFontScaleProvider>
-            <GlobalAiProvider>
-              <GlobalWorkflowFeedbackProvider>
-                <ModalStackProvider>
-                  <ScreensaverSettingsProvider>
-                    <HealthOSStoreEditionGuard>
-                      <RouteScopedLegacyOverlays />
-                      <GlobalScreensaver />
-                      <RootShell />
-                    </HealthOSStoreEditionGuard>
-                  </ScreensaverSettingsProvider>
-                </ModalStackProvider>
-              </GlobalWorkflowFeedbackProvider>
-            </GlobalAiProvider>
-          </WebFontScaleProvider>
-        </PerformanceProvider>
-      </ThemeModeProvider>
-          </PortalKeyboardProvider>
-    </AuthProvider>
+    <AppStartIntro>
+      <AuthProvider>
+        <PortalKeyboardProvider>
+          <ThemeModeProvider>
+            <PerformanceProvider>
+              <WebFontScaleProvider>
+                <GlobalAiProvider>
+                  <GlobalWorkflowFeedbackProvider>
+                    <ModalStackProvider>
+                      <ScreensaverSettingsProvider>
+                        <HealthOSStoreEditionGuard>
+                          <RouteScopedLegacyOverlays />
+                          <GlobalScreensaver />
+                          <RootShell />
+                        </HealthOSStoreEditionGuard>
+                      </ScreensaverSettingsProvider>
+                    </ModalStackProvider>
+                  </GlobalWorkflowFeedbackProvider>
+                </GlobalAiProvider>
+              </WebFontScaleProvider>
+            </PerformanceProvider>
+          </ThemeModeProvider>
+        </PortalKeyboardProvider>
+      </AuthProvider>
+    </AppStartIntro>
   );
 }
 

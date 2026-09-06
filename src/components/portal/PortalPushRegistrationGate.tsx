@@ -3,11 +3,13 @@ import * as Notifications from 'expo-notifications';
 import { useRootNavigationState, useRouter } from 'expo-router';
 import { AppState, Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '@/lib/auth/context';
+import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { ensurePortalPushRegistration, type PortalPushRegistrationResult } from '@/lib/portal/portalPushNotifications';
 import { consumePortalPushResponse, portalPushDestination } from '@/lib/portal/portalPushNavigation';
 
 const dismissed = new Set<string>();
 export function PortalPushRegistrationGate() {
+  const startupReady = useAppStartIntroReady();
   const router = useRouter();
   const navigation = useRootNavigationState();
   const { authReady, isAuthenticated, portalSession } = useAuth();
@@ -19,7 +21,7 @@ export function PortalPushRegistrationGate() {
   const [response, setResponse] = useState<Notifications.NotificationResponse | null>(null);
   const running = useRef(new Set<string>());
   const retries = useRef(0);
-  const portalActive = authReady && isAuthenticated && !!portalSession && !portalSession.mustChangePassword;
+  const portalActive = startupReady && authReady && isAuthenticated && !!portalSession && !portalSession.mustChangePassword;
   const register = useCallback(async (ask: boolean) => {
     if (Platform.OS === 'web' || running.current.has(accountKey) || !portalActive) return;
     running.current.add(accountKey); setChecking(true);

@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { basename, join, relative, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 
 const exportRoot = resolve(process.argv[2] ?? 'dist-portal-only');
 const MAX_RUNTIME_BYTES = 50 * 1024 * 1024;
@@ -83,6 +84,21 @@ if (portalRouteSources.length < 40 || reusedPortalSources.length < 40) {
   fail('portal route graph is incomplete');
 }
 
+// Verify actual packaged bytes, including both offline intro orientations.
+const sha256 = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
+const introAssets = ['portrait', 'landscape'].map((orientation) => {
+  const source = resolve(`assets/brand/intro/caresuite-start-${orientation}.mp4`);
+  if (!existsSync(source)) fail(`intro source missing: ${orientation}`);
+  const bytes = statSync(source).size;
+  const digest = sha256(source);
+  const packaged = runtimeFiles.find((file) => statSync(file).size === bytes && sha256(file) === digest);
+  if (!packaged) fail(`offline intro video not packaged intact: ${orientation}`);
+  return { orientation, bytes, sha256: digest, packaged: relative(exportRoot, packaged) };
+});
+if (!sources.some((source) => source.endsWith('/AppStartIntro.native.tsx'))) {
+  fail('native startup intro is missing from the Android route graph');
+}
+
 console.log(
   JSON.stringify(
     {
@@ -95,6 +111,7 @@ console.log(
       reusedPortalRoutes: reusedPortalSources.length,
       excludedAdministrationSources: true,
       excludedDesktopAssets: true,
+      introAssets,
     },
     null,
     2,

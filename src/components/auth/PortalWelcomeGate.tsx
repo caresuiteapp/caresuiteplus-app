@@ -17,6 +17,7 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { ROLE_LABELS } from '@/data/constants';
 import { PortalWelcomeModal } from './PortalWelcomeModal';
+import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 
 const FALLBACK_TENANT = TENANT_NAME_FALLBACK;
 
@@ -35,6 +36,7 @@ function resolvePortalWelcomeKind(
  * Mandatory portal welcome — shown after employee or client login until dismissed.
  */
 export function PortalWelcomeGate() {
+  const startupReady = useAppStartIntroReady();
   const { authReady, isAuthenticated, portalSession, profile, user } = useAuth();
   const { displayName, roleKey } = usePortalActor();
   const tenantId = useServiceTenantId();
@@ -47,7 +49,7 @@ export function PortalWelcomeGate() {
   const accountId = portalSession?.accountId ?? profile?.id ?? '';
 
   useEffect(() => {
-    if (!authReady || !isPortalSession || !portalKind) {
+    if (!startupReady || !authReady || !isPortalSession || !portalKind) {
       setShowWelcome(false);
       return;
     }
@@ -77,7 +79,7 @@ export function PortalWelcomeGate() {
     return () => {
       cancelled = true;
     };
-  }, [authReady, isPortalSession, portalKind, accountId]);
+  }, [authReady, isPortalSession, portalKind, accountId, startupReady]);
 
   useEffect(() => {
     if (!tenantId) {
@@ -104,7 +106,7 @@ export function PortalWelcomeGate() {
     setShowWelcome(false);
   };
 
-  if (!isPortalSession || !welcomeKind) {
+  if (!startupReady || !isPortalSession || !welcomeKind) {
     return null;
   }
 

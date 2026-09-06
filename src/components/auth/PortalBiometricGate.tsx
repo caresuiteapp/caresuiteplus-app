@@ -13,6 +13,7 @@ import { portalPremium } from '@/design/tokens/portalPremium';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useAuth } from '@/lib/auth/context';
+import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import {
   authenticatePortalFace,
   isPortalFaceUnlockEnabled,
@@ -26,6 +27,7 @@ type PortalBiometricGateProps = {
 const BACKGROUND_LOCK_AFTER_MS = 120_000;
 
 export function PortalBiometricGate({ children }: PortalBiometricGateProps) {
+  const startupReady = useAppStartIntroReady();
   const { authReady, portalSession, signOut } = useAuth();
   const { colors, typography } = useLegacyTheme();
   const [checking, setChecking] = useState(false);
@@ -42,7 +44,7 @@ export function PortalBiometricGate({ children }: PortalBiometricGateProps) {
   const native = Platform.OS === 'android' || Platform.OS === 'ios';
 
   const unlock = useCallback(async () => {
-    if (!accountId || authenticatingRef.current) return;
+    if (!startupReady || !accountId || authenticatingRef.current) return;
     authenticatingRef.current = true;
     setAuthenticating(true);
     setError(null);
@@ -56,9 +58,10 @@ export function PortalBiometricGate({ children }: PortalBiometricGateProps) {
     }
     setLocked(true);
     setError(result.error);
-  }, [accountId]);
+  }, [accountId, startupReady]);
 
   useEffect(() => {
+    if (!startupReady) return;
     if (!native || !authReady || !accountId) {
       setChecking(false);
       setCheckedAccountId(null);
@@ -93,7 +96,7 @@ export function PortalBiometricGate({ children }: PortalBiometricGateProps) {
     return () => {
       cancelled = true;
     };
-  }, [accountId, authReady, native, unlock]);
+  }, [accountId, authReady, native, startupReady, unlock]);
 
   useEffect(
     () =>

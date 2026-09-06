@@ -1,4 +1,5 @@
 import 'react-native-reanimated';
+import { AppStartIntro } from '@/components/brand/AppStartIntro';
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -53,19 +54,21 @@ function PortalOnlyRouter() {
 
 export default function PortalOnlyRootLayout() {
   return (
-    <AuthProvider>
-      <ThemeModeProvider>
-        <PerformanceProvider>
-          <WebFontScaleProvider>
-            <PortalKeyboardProvider>
-            <GlobalWorkflowFeedbackProvider>
-              <PortalOnlyRouter />
-            </GlobalWorkflowFeedbackProvider>
-            </PortalKeyboardProvider>
-          </WebFontScaleProvider>
-        </PerformanceProvider>
-      </ThemeModeProvider>
-    </AuthProvider>
+    <AppStartIntro>
+      <AuthProvider>
+        <ThemeModeProvider>
+          <PerformanceProvider>
+            <WebFontScaleProvider>
+              <PortalKeyboardProvider>
+                <GlobalWorkflowFeedbackProvider>
+                  <PortalOnlyRouter />
+                </GlobalWorkflowFeedbackProvider>
+              </PortalKeyboardProvider>
+            </WebFontScaleProvider>
+          </PerformanceProvider>
+        </ThemeModeProvider>
+      </AuthProvider>
+    </AppStartIntro>
   );
 }
 
