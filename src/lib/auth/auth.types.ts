@@ -188,7 +188,9 @@ export type BusinessRegistrationInput = {
   adminEmail: string;
   adminPhone?: string;
   adminPassword: string;
+  /** Internal compatibility only; new companies receive all available areas. */
   selectedModules: ProductKey[];
+  termsAccepted?: boolean;
 };
 
 export type AccessCredentialsReveal = {

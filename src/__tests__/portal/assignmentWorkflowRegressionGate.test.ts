@@ -142,7 +142,8 @@ describe('assignment workflow regression gate', () => {
     expect(persistence).toContain('return { ok: true, data: existing.data }');
     expect(persistence).toContain('.remove([storagePath])');
     expect(persistence).toContain('Durch eine neu erfasste Unterschrift ersetzt.');
-    expect(panel).toContain('if (captureSubmittingRef.current) return');
+    // The released app also blocks pending confirmation, disabled and loading states.
+    expect(panel).toMatch(/if\s*\(captureSubmittingRef\.current\s*\|\|\s*confirmationPending\s*\|\|\s*disabled\s*\|\|\s*loading\)\s*return/);
     expect(panel).toContain('captureSubmittingRef.current = false');
   });
 

@@ -1,0 +1,816 @@
+import { useAuth } from '@/lib/auth';
+import { useLocalSearchParams } from 'expo-router';
+import { PlatformShellLayout as DesktopPlatformShell } from '@/components/platformConsole/PlatformShellLayout.web';
+import { SupportWorkspace } from '@/components/support/SupportWorkspace';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  PlatformAuditLink,
+  PlatformConfirmModal,
+  PlatformDataTable,
+  PlatformEmptyState,
+  PlatformFilterChip,
+  PlatformFilterChipRow,
+  PlatformReadOnlyBanner,
+
+  PlatformStatusBadge,
+  PlatformTenantPicker,
+  statusLabel,
+  PLATFORM_COLORS,
+} from '@/components/platformConsole';
+import { ErrorState, LoadingState } from '@/components/ui';
+import {
+  assignPlatformDiscount,
+  createPlatformDiscount,
+  createPlatformManualInvoice,
+  listPlatformDiscountCatalog,
+  listPlatformFeatureFlags,
+  listPlatformInvoices,
+  listPlatformPayments,
+  listPlatformTenantDiscounts,
+  platformRoleHasCapability,
+  recordPlatformManualPayment,
+  removePlatformDiscount,
+  setPlatformFeatureFlag,
+  updatePlatformInvoiceStatus,
+  updatePlatformPaymentStatus,
+  parsePlatformEurosToCents,
+} from '@/lib/platformConsole';
+import { formatPlatformCents, formatPlatformDate, maskPlatformProviderId } from '@/lib/platformConsole/platformFormat';
+import { usePlatformAuth } from '@/lib/platformConsole/PlatformAuthProvider';
+import type {
+  PlatformDiscountRow,
+  PlatformFeatureFlagRow,
+  PlatformInvoiceRow,
+  PlatformPaymentRow,
+  PlatformTenantDiscountRow,
+} from '@/types/platformConsole';
+import { spacing } from '@/theme';
+
+const INVOICE_STATUSES = [
+  'draft',
+  'open',
+  'paid',
+  'past_due',
+  'failed',
+  'cancelled',
+  'refunded',
+  'partially_paid',
+] as const;
+
+const PAYMENT_STATUSES = ['pending', 'succeeded', 'failed', 'cancelled', 'refunded', 'chargeback'] as const;
+
+type ConfirmState = {
+  title: string;
+  description: string;
+  action: (reason: string) => Promise<void>;
+  danger?: boolean;
+};
+
+function useOperatorConfirm(onSuccess: () => Promise<void>) {
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function runConfirm(reason: string) {
+    if (!confirm) return;
+    setLoading(true);
+    await confirm.action(reason);
+    setLoading(false);
+    setConfirm(null);
+    await onSuccess();
+  }
+
+  const modal = (
+    <PlatformConfirmModal
+      visible={Boolean(confirm)}
+      title={confirm?.title ?? ''}
+      description={confirm?.description ?? ''}
+      danger={confirm?.danger}
+      loading={loading}
+      onCancel={() => setConfirm(null)}
+      onConfirm={(reason) => void runConfirm(reason)}
+    />
+  );
+
+  return { setConfirm, modal };
+}
+
+export function PlatformDiscountsScreen() {
+  const { platformUser } = usePlatformAuth();
+  const canWrite = platformRoleHasCapability(platformUser?.role, 'discounts.write');
+  const [catalog, setCatalog] = useState<PlatformDiscountRow[]>([]);
+  const [assignments, setAssignments] = useState<PlatformTenantDiscountRow[]>([]);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [assignTenantId, setAssignTenantId] = useState('');
+  const [assignKey, setAssignKey] = useState('');
+  const [assignStart, setAssignStart] = useState('');
+  const [assignEnd, setAssignEnd] = useState('');
+  const [newDiscountKey, setNewDiscountKey] = useState('');
+  const [newDiscountName, setNewDiscountName] = useState('');
+  const [newDiscountType, setNewDiscountType] = useState<PlatformDiscountRow['discount_type']>('percentage');
+  const [newDiscountValue, setNewDiscountValue] = useState('');
+  const [newDiscountDescription, setNewDiscountDescription] = useState('');
+  const [lastAuditAction, setLastAuditAction] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const [cat, asg] = await Promise.all([
+      listPlatformDiscountCatalog(),
+      listPlatformTenantDiscounts(),
+    ]);
+    if (!cat.ok) {
+      setError(cat.error);
+      setLoading(false);
+      return;
+    }
+    if (!asg.ok) {
+      setError(asg.error);
+      setLoading(false);
+      return;
+    }
+    setCatalog(cat.data);
+    setAssignments(asg.data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const { setConfirm, modal } = useOperatorConfirm(load);
+
+  const filteredCatalog = useMemo(() => {
+    let rows = catalog;
+    if (statusFilter) rows = rows.filter((r) => r.status === statusFilter);
+    if (typeFilter) rows = rows.filter((r) => r.discount_type === typeFilter);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      rows = rows.filter(
+        (r) => r.discount_key.toLowerCase().includes(q) || r.discount_name.toLowerCase().includes(q),
+      );
+    }
+    return rows;
+  }, [catalog, search, statusFilter, typeFilter]);
+
+  const discountTypes = useMemo(
+    () => [...new Set(catalog.map((r) => r.discount_type))],
+    [catalog],
+  );
+
+  return (
+    <DesktopPlatformShell title="Rabatte" subtitle="Katalog, Zuweisungen und Sonderkonditionen">
+      {!canWrite ? (
+        <PlatformReadOnlyBanner message="Lesemodus — Rabattzuweisungen erfordern discounts.write." />
+      ) : null}
+      <View style={styles.toolbar}>
+        <TextInput
+          style={styles.search}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Rabatt suchen…"
+          placeholderTextColor={PLATFORM_COLORS.muted}
+        />
+      </View>
+      <PlatformFilterChipRow>
+        <PlatformFilterChip label="Alle Status" active={!statusFilter} onPress={() => setStatusFilter('')} />
+        {['active', 'scheduled', 'expired', 'revoked'].map((s) => (
+          <PlatformFilterChip key={s} label={statusLabel(s)} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
+        ))}
+      </PlatformFilterChipRow>
+      <PlatformFilterChipRow>
+        <PlatformFilterChip label="Alle Typen" active={!typeFilter} onPress={() => setTypeFilter('')} />
+        {discountTypes.map((t) => (
+          <PlatformFilterChip key={t} label={t === 'percentage' ? 'Prozent' : t === 'fixed_amount' ? 'Fester Betrag' : t === 'free_months' ? 'Freimonate' : t.replaceAll('_', ' ')} active={typeFilter === t} onPress={() => setTypeFilter(t)} />
+        ))}
+      </PlatformFilterChipRow>
+
+      {loading ? (
+        <LoadingState message="Rabatte werden geladen…" />
+      ) : error ? (
+        <ErrorState title="Rabatte nicht verfügbar" message={error} onRetry={() => void load()} />
+      ) : (
+        <>
+          <Text style={styles.sectionTitle}>Rabattkatalog</Text>
+          <PlatformDataTable
+              columns={[
+                { key: 'key', label: 'Key', render: (r: PlatformDiscountRow) => r.discount_key },
+                { key: 'name', label: 'Name', render: (r: PlatformDiscountRow) => r.discount_name },
+                { key: 'type', label: 'Typ', render: (r: PlatformDiscountRow) => r.discount_type === 'percentage' ? 'Prozent' : r.discount_type === 'fixed_amount' ? 'Fester Betrag' : r.discount_type === 'free_months' ? 'Freimonate' : r.discount_type.replaceAll('_', ' ') },
+                {
+                  key: 'value',
+                  label: 'Wert',
+                  render: (r: PlatformDiscountRow) =>
+                    r.discount_type === 'percentage' ? `${r.value ?? 0}%` : formatPlatformCents(r.value),
+                },
+                { key: 'status', label: 'Status', render: (r: PlatformDiscountRow) => <PlatformStatusBadge status={r.status} /> },
+              ]}
+              data={filteredCatalog}
+              keyExtractor={(r) => r.id}
+          />
+
+          <Text style={styles.sectionTitle}>Mandantenzuweisungen</Text>
+          <PlatformDataTable
+              columns={[
+                { key: 'tenant', label: 'Mandant', render: (r: PlatformTenantDiscountRow) => r.tenant_id.slice(0, 8) },
+                { key: 'key', label: 'Rabatt', render: (r: PlatformTenantDiscountRow) => r.discount_key },
+                { key: 'status', label: 'Status', render: (r: PlatformTenantDiscountRow) => <PlatformStatusBadge status={r.status} /> },
+                { key: 'start', label: 'Start', render: (r: PlatformTenantDiscountRow) => formatPlatformDate(r.starts_at) },
+                { key: 'end', label: 'Ende', render: (r: PlatformTenantDiscountRow) => formatPlatformDate(r.ends_at) },
+                {
+                  key: 'actions',
+                  label: '',
+                  render: (r: PlatformTenantDiscountRow) =>
+                    canWrite && r.status === 'active' ? (
+                      <Pressable
+                        onPress={() =>
+                          setConfirm({
+                            title: 'Rabatt entfernen',
+                            description: `Rabatt „${r.discount_key}" für Mandant ${r.tenant_id} widerrufen.`,
+                            danger: true,
+                            action: async (reason) => {
+                              const res = await removePlatformDiscount(r.tenant_id, r.discount_key, reason);
+                              if (!res.ok) throw new Error(res.error);
+                              setLastAuditAction('discount.removed');
+                            },
+                          })
+                        }
+                      >
+                        <Text style={styles.link}>Entfernen</Text>
+                      </Pressable>
+                    ) : null,
+                },
+              ]}
+              data={assignments}
+              keyExtractor={(r) => r.id}
+          />
+
+          {canWrite ? (
+            <View style={styles.formPanel}>
+              <Text style={styles.sectionTitle}>Rabatt zuweisen</Text>
+              <Text style={styles.label}>Mandant</Text>
+              <PlatformTenantPicker value={assignTenantId} onChange={setAssignTenantId} required />
+              <Text style={styles.label}>Rabatt auswählen</Text>
+              <PlatformFilterChipRow>{catalog.filter((item) => item.status === 'active').map((item) => <PlatformFilterChip key={item.discount_key} label={item.discount_name} active={assignKey === item.discount_key} onPress={() => setAssignKey(item.discount_key)} />)}</PlatformFilterChipRow>
+              <Text style={styles.label}>Start (ISO, optional)</Text>
+              <TextInput style={styles.input} value={assignStart} onChangeText={setAssignStart} placeholder="2026-01-01T00:00:00Z" placeholderTextColor={PLATFORM_COLORS.muted} />
+              <Text style={styles.label}>Ende (ISO, optional)</Text>
+              <TextInput style={styles.input} value={assignEnd} onChangeText={setAssignEnd} placeholder="2026-12-31T23:59:59Z" placeholderTextColor={PLATFORM_COLORS.muted} />
+              <Pressable
+                style={styles.primaryBtn}
+                onPress={() =>
+                  setConfirm({
+                    title: 'Rabatt zuweisen',
+                    description: `Rabatt „${assignKey}" wird Mandant ${assignTenantId} zugewiesen.`,
+                    action: async (reason) => {
+                      const res = await assignPlatformDiscount(assignTenantId.trim(), assignKey.trim(), reason, {
+                        startsAt: assignStart.trim() || undefined,
+                        endsAt: assignEnd.trim() || undefined,
+                      });
+                      if (!res.ok) throw new Error(res.error);
+                      setLastAuditAction('discount.assigned');
+                    },
+                  })
+                }
+              >
+                <Text style={styles.primaryBtnText}>Zuweisen (Grund erforderlich)</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {canWrite ? <View style={styles.formPanel}>
+            <Text style={styles.sectionTitle}>Neuen Rabatt anlegen</Text>
+            <TextInput style={styles.input} value={newDiscountKey} onChangeText={setNewDiscountKey} placeholder="Interner Rabattcode, z. B. partner_10" placeholderTextColor={PLATFORM_COLORS.muted} autoCapitalize="none" />
+            <TextInput style={styles.input} value={newDiscountName} onChangeText={setNewDiscountName} placeholder="Anzeigename" placeholderTextColor={PLATFORM_COLORS.muted} />
+            <PlatformFilterChipRow>{(['percentage','fixed_amount','free_months','lifetime_discount','beta_discount','partner_discount'] as const).map((item) => <PlatformFilterChip key={item} label={item === 'percentage' ? 'Prozent' : item === 'fixed_amount' ? 'Fester Betrag' : item === 'free_months' ? 'Freimonate' : item === 'lifetime_discount' ? 'Dauerhaft' : item === 'beta_discount' ? 'Beta' : 'Partner'} active={newDiscountType === item} onPress={() => setNewDiscountType(item)} />)}</PlatformFilterChipRow>
+            <TextInput style={styles.input} value={newDiscountValue} onChangeText={setNewDiscountValue} placeholder={newDiscountType === 'fixed_amount' ? 'Betrag in Euro' : newDiscountType === 'free_months' ? 'Anzahl Monate' : 'Prozentwert'} placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" />
+            <TextInput style={styles.input} value={newDiscountDescription} onChangeText={setNewDiscountDescription} placeholder="Beschreibung und Anwendungszweck" placeholderTextColor={PLATFORM_COLORS.muted} multiline />
+            <Pressable style={styles.primaryBtn} onPress={() => setConfirm({ title: 'Rabatt anlegen', description: `Rabatt „${newDiscountName || newDiscountKey}" wird im Katalog angelegt.`, action: async (reason) => {
+              const value = newDiscountType === 'fixed_amount' ? parsePlatformEurosToCents(newDiscountValue) : Number(newDiscountValue.replace(',', '.'));
+              if (value === null || !Number.isFinite(value)) throw new Error('Bitte einen gültigen Rabattwert eingeben.');
+              const res = await createPlatformDiscount({ key: newDiscountKey.trim(), name: newDiscountName.trim(), type: newDiscountType, value, description: newDiscountDescription }, reason);
+              if (!res.ok) throw new Error(res.error);
+              setNewDiscountKey(''); setNewDiscountName(''); setNewDiscountValue(''); setNewDiscountDescription(''); setLastAuditAction('discount.created');
+            } })}><Text style={styles.primaryBtnText}>Rabatt anlegen</Text></Pressable>
+          </View> : null}
+
+          {lastAuditAction ? (
+            <View style={styles.auditRow}>
+              <Text style={styles.hint}>Aktion protokolliert.</Text>
+              <PlatformAuditLink action={lastAuditAction} label="Audit-Einträge anzeigen" />
+            </View>
+          ) : null}
+        </>
+      )}
+      {modal}
+    </DesktopPlatformShell>
+  );
+}
+
+export function PlatformBillingScreen() {
+  const { platformUser } = usePlatformAuth();
+  const canWrite = platformRoleHasCapability(platformUser?.role, 'billing.write');
+  const [items, setItems] = useState<PlatformInvoiceRow[]>([]);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<PlatformInvoiceRow | null>(null);
+  const [newStatus, setNewStatus] = useState('');
+  const [lastAuditAction, setLastAuditAction] = useState<string | null>(null);
+  const [invoiceTenant, setInvoiceTenant] = useState('');
+  const [invoiceGross, setInvoiceGross] = useState('');
+  const [invoiceTax, setInvoiceTax] = useState('');
+  const [invoiceDue, setInvoiceDue] = useState(() => new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10));
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const result = await listPlatformInvoices({ status: statusFilter || undefined, search: search.trim() || undefined });
+    if (!result.ok) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+    setItems(result.data);
+    setLoading(false);
+  }, [search, statusFilter]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const { setConfirm, modal } = useOperatorConfirm(load);
+
+  return (
+    <DesktopPlatformShell title="Rechnungen" subtitle="Rechnungsübersicht, Statusverwaltung und Billing Preview">
+      {!canWrite ? <PlatformReadOnlyBanner message="Lesemodus — Statusänderungen erfordern billing.write." /> : null}
+      <View style={styles.toolbar}>
+        <TextInput
+          style={styles.search}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Rechnungsnummer…"
+          placeholderTextColor={PLATFORM_COLORS.muted}
+          onSubmitEditing={() => void load()}
+        />
+        <Pressable style={styles.searchBtn} onPress={() => void load()}>
+          <Text style={styles.link}>Suchen</Text>
+        </Pressable>
+      </View>
+      <PlatformFilterChipRow>
+        <PlatformFilterChip label="Alle" active={!statusFilter} onPress={() => setStatusFilter('')} />
+        {INVOICE_STATUSES.map((s) => (
+          <PlatformFilterChip key={s} label={statusLabel(s)} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
+        ))}
+      </PlatformFilterChipRow>
+
+      {loading ? (
+        <LoadingState message="Rechnungen werden geladen…" />
+      ) : error ? (
+        <ErrorState title="Rechnungen nicht verfügbar" message={error} onRetry={() => void load()} />
+      ) : (
+        <>
+          <PlatformDataTable
+              columns={[
+                { key: 'num', label: 'Nr.', render: (r: PlatformInvoiceRow) => r.invoice_number },
+                { key: 'tenant', label: 'Mandant', render: (r: PlatformInvoiceRow) => r.tenant_id.slice(0, 8) },
+                { key: 'status', label: 'Status', render: (r: PlatformInvoiceRow) => <PlatformStatusBadge status={r.status} /> },
+                { key: 'gross', label: 'Brutto', render: (r: PlatformInvoiceRow) => formatPlatformCents(r.amount_cents, r.currency) },
+                { key: 'net', label: 'Netto', render: (r: PlatformInvoiceRow) => formatPlatformCents(r.net_cents, r.currency) },
+                { key: 'tax', label: 'Steuer', render: (r: PlatformInvoiceRow) => formatPlatformCents(r.tax_cents, r.currency) },
+                { key: 'due', label: 'Fällig', render: (r: PlatformInvoiceRow) => formatPlatformDate(r.due_at) },
+                {
+                  key: 'open',
+                  label: '',
+                  render: (r: PlatformInvoiceRow) => (
+                    <Pressable onPress={() => setSelected(r)}>
+                      <Text style={styles.link}>Details</Text>
+                    </Pressable>
+                  ),
+                },
+              ]}
+              data={items}
+              keyExtractor={(r) => r.id}
+          />
+
+          {selected ? (
+            <View style={styles.formPanel}>
+              <Text style={styles.sectionTitle}>Rechnung {selected.invoice_number}</Text>
+              <Text style={styles.hint}>ID: {selected.id}</Text>
+              {canWrite ? (
+                <>
+                  <Text style={styles.label}>Neuer Status</Text>
+                  <PlatformFilterChipRow>
+                    {INVOICE_STATUSES.map((s) => (
+                      <PlatformFilterChip key={s} label={statusLabel(s)} active={newStatus === s} onPress={() => setNewStatus(s)} />
+                    ))}
+                  </PlatformFilterChipRow>
+                  <Pressable
+                    style={styles.primaryBtn}
+                    disabled={!newStatus}
+                    onPress={() =>
+                      setConfirm({
+                        title: 'Rechnungsstatus ändern',
+                        description: `Rechnung ${selected.invoice_number} → ${newStatus}. Grund ist Pflicht.`,
+                        action: async (reason) => {
+                          const res = await updatePlatformInvoiceStatus(selected.id, newStatus, reason);
+                          if (!res.ok) throw new Error(res.error);
+                          setLastAuditAction('invoice.status_changed');
+                        },
+                      })
+                    }
+                  >
+                    <Text style={styles.primaryBtnText}>Status ändern</Text>
+                  </Pressable>
+                </>
+              ) : null}
+              <PlatformAuditLink tenantId={selected.tenant_id} action="invoice" />
+            </View>
+          ) : null}
+
+          {lastAuditAction ? (
+            <View style={styles.auditRow}>
+              <PlatformAuditLink action={lastAuditAction} label="Letzte Änderung im Audit" />
+            </View>
+          ) : null}
+
+          {canWrite ? <View style={styles.formPanel}>
+            <Text style={styles.sectionTitle}>Manuelle Rechnung erstellen</Text>
+            <Text style={styles.hint}>Für Sonderabrechnungen. Die Rechnung erhält automatisch eine eindeutige Nummer und startet als offen.</Text>
+            <PlatformTenantPicker value={invoiceTenant} onChange={setInvoiceTenant} required />
+            <TextInput style={styles.input} value={invoiceGross} onChangeText={setInvoiceGross} placeholder="Bruttobetrag in Euro" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" />
+            <TextInput style={styles.input} value={invoiceTax} onChangeText={setInvoiceTax} placeholder="Enthaltene Steuer in Euro" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" />
+            <TextInput style={styles.input} value={invoiceDue} onChangeText={setInvoiceDue} placeholder="Fällig am (JJJJ-MM-TT)" placeholderTextColor={PLATFORM_COLORS.muted} />
+            <Pressable style={styles.primaryBtn} onPress={() => setConfirm({ title: 'Rechnung erstellen', description: `Eine offene Rechnung über ${invoiceGross} Euro wird für den gewählten Mandanten erstellt.`, action: async (reason) => {
+              const gross = parsePlatformEurosToCents(invoiceGross); const tax = parsePlatformEurosToCents(invoiceTax);
+              if (gross === null || tax === null) throw new Error('Brutto- und Steuerbetrag müssen gültige Euro-Beträge sein.');
+              const res = await createPlatformManualInvoice(invoiceTenant, gross, tax, invoiceDue, reason); if (!res.ok) throw new Error(res.error);
+              setInvoiceGross(''); setInvoiceTax(''); setLastAuditAction('invoice.created');
+            } })}><Text style={styles.primaryBtnText}>Rechnung erstellen</Text></Pressable>
+          </View> : null}
+        </>
+      )}
+      {modal}
+    </DesktopPlatformShell>
+  );
+}
+
+export function PlatformPaymentsScreen() {
+  const { platformUser } = usePlatformAuth();
+  const canWrite = platformRoleHasCapability(platformUser?.role, 'payments.write');
+  const [items, setItems] = useState<PlatformPaymentRow[]>([]);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [providerFilter, setProviderFilter] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [manualTenant, setManualTenant] = useState('');
+  const [manualInvoice, setManualInvoice] = useState('');
+  const [manualAmount, setManualAmount] = useState('');
+  const [manualStatus, setManualStatus] = useState('succeeded');
+  const [manualInvoices, setManualInvoices] = useState<PlatformInvoiceRow[]>([]);
+  const [lastAuditAction, setLastAuditAction] = useState<string | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<PlatformPaymentRow | null>(null);
+  const [changedPaymentStatus, setChangedPaymentStatus] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const result = await listPlatformPayments({
+      status: statusFilter || undefined,
+      provider: providerFilter || undefined,
+    });
+    if (!result.ok) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+    setItems(result.data);
+    setLoading(false);
+  }, [providerFilter, statusFilter]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    if (!manualTenant) { setManualInvoices([]); setManualInvoice(''); return; }
+    void listPlatformInvoices({ tenantId: manualTenant }).then((result) => { if (result.ok) setManualInvoices(result.data); });
+  }, [manualTenant]);
+
+  const { setConfirm, modal } = useOperatorConfirm(load);
+
+  const providers = useMemo(
+    () => [...new Set(items.map((r) => r.provider).filter(Boolean))] as string[],
+    [items],
+  );
+
+  return (
+    <DesktopPlatformShell title="Zahlungen" subtitle="Zahlungsübersicht — keine Provider-Secrets">
+      {!canWrite ? <PlatformReadOnlyBanner message="Lesemodus — manuelle Zahlungen erfordern payments.write." /> : null}
+      <PlatformFilterChipRow>
+        <PlatformFilterChip label="Alle Status" active={!statusFilter} onPress={() => setStatusFilter('')} />
+        {PAYMENT_STATUSES.map((s) => (
+          <PlatformFilterChip key={s} label={statusLabel(s)} active={statusFilter === s} onPress={() => setStatusFilter(s)} />
+        ))}
+      </PlatformFilterChipRow>
+      <PlatformFilterChipRow>
+        <PlatformFilterChip label="Alle Provider" active={!providerFilter} onPress={() => setProviderFilter('')} />
+        {providers.map((p) => (
+          <PlatformFilterChip key={p} label={p} active={providerFilter === p} onPress={() => setProviderFilter(p)} />
+        ))}
+      </PlatformFilterChipRow>
+
+      {loading ? (
+        <LoadingState message="Zahlungen werden geladen…" />
+      ) : error ? (
+        <ErrorState title="Zahlungen nicht verfügbar" message={error} onRetry={() => void load()} />
+      ) : (
+        <>
+          <PlatformDataTable
+              columns={[
+                { key: 'tenant', label: 'Mandant', render: (r: PlatformPaymentRow) => r.tenant_id.slice(0, 8) },
+                { key: 'status', label: 'Status', render: (r: PlatformPaymentRow) => <PlatformStatusBadge status={r.status} /> },
+                { key: 'amount', label: 'Betrag', render: (r: PlatformPaymentRow) => formatPlatformCents(r.amount_cents) },
+                { key: 'provider', label: 'Provider', render: (r: PlatformPaymentRow) => r.provider ?? '—' },
+                {
+                  key: 'providerId',
+                  label: 'Provider-ID',
+                  render: (r: PlatformPaymentRow) => maskPlatformProviderId(r.provider_payment_id),
+                },
+                { key: 'fail', label: 'Fehler', render: (r: PlatformPaymentRow) => r.failure_reason ?? '—' },
+                { key: 'created', label: 'Erstellt', render: (r: PlatformPaymentRow) => formatPlatformDate(r.created_at) },
+              ]}
+              data={items}
+              keyExtractor={(r) => r.id}
+              selectedId={selectedPayment?.id}
+              onRowPress={(item) => { setSelectedPayment(item); setChangedPaymentStatus(item.status); }}
+          />
+
+          {canWrite ? (
+            <View style={styles.formPanel}>
+              <Text style={styles.sectionTitle}>Manuelle Zahlung erfassen</Text>
+              <PlatformTenantPicker value={manualTenant} onChange={setManualTenant} required />
+              {manualInvoices.length ? <><Text style={styles.label}>Rechnung (optional)</Text><PlatformFilterChipRow><PlatformFilterChip label="Keine Zuordnung" active={!manualInvoice} onPress={() => setManualInvoice('')} />{manualInvoices.map((invoice) => <PlatformFilterChip key={invoice.id} label={invoice.invoice_number} active={manualInvoice === invoice.id} onPress={() => setManualInvoice(invoice.id)} />)}</PlatformFilterChipRow></> : null}
+              <TextInput style={styles.input} value={manualAmount} onChangeText={setManualAmount} placeholder="Betrag in Euro, z. B. 49,90" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="decimal-pad" />
+              <PlatformFilterChipRow>
+                {PAYMENT_STATUSES.map((s) => (
+                  <PlatformFilterChip key={s} label={statusLabel(s)} active={manualStatus === s} onPress={() => setManualStatus(s)} />
+                ))}
+              </PlatformFilterChipRow>
+              <Pressable
+                style={styles.primaryBtn}
+                onPress={() =>
+                  setConfirm({
+                    title: 'Manuelle Zahlung',
+                    description: `Zahlung ${manualAmount} Euro für den gewählten Mandanten erfassen.`,
+                    action: async (reason) => {
+                      const cents = parsePlatformEurosToCents(manualAmount);
+                      if (cents === null) throw new Error('Bitte einen gültigen Euro-Betrag eingeben.');
+                      const res = await recordPlatformManualPayment(
+                        manualTenant.trim(),
+                        manualInvoice.trim() || null,
+                        cents,
+                        manualStatus,
+                        reason,
+                      );
+                      if (!res.ok) throw new Error(res.error);
+                      setLastAuditAction('payment.recorded');
+                    },
+                  })
+                }
+              >
+                <Text style={styles.primaryBtnText}>Erfassen (Grund erforderlich)</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {canWrite && selectedPayment ? <View style={styles.formPanel}>
+            <Text style={styles.sectionTitle}>Zahlungsstatus berichtigen</Text>
+            <Text style={styles.hint}>{formatPlatformCents(selectedPayment.amount_cents)} · {maskPlatformProviderId(selectedPayment.provider_payment_id)}</Text>
+            <PlatformFilterChipRow>{PAYMENT_STATUSES.map((item) => <PlatformFilterChip key={item} label={statusLabel(item)} active={changedPaymentStatus === item} onPress={() => setChangedPaymentStatus(item)} />)}</PlatformFilterChipRow>
+            <Pressable style={styles.primaryBtn} disabled={changedPaymentStatus === selectedPayment.status} onPress={() => setConfirm({ title: 'Zahlungsstatus ändern', description: `Der Status wird auf ${changedPaymentStatus} geändert.`, danger: ['failed','cancelled','chargeback'].includes(changedPaymentStatus), action: async (reason) => {
+              const res = await updatePlatformPaymentStatus(selectedPayment.id, changedPaymentStatus, reason); if (!res.ok) throw new Error(res.error); setLastAuditAction('payment.status_changed');
+            } })}><Text style={styles.primaryBtnText}>Status speichern</Text></Pressable>
+          </View> : null}
+
+          {lastAuditAction ? (
+            <View style={styles.auditRow}>
+              <PlatformAuditLink action={lastAuditAction} />
+            </View>
+          ) : null}
+        </>
+      )}
+      {modal}
+    </DesktopPlatformShell>
+  );
+}
+
+export function PlatformSupportScreen() {
+  const { user } = useAuth();
+  const { company } = useLocalSearchParams<{ company?: string }>();
+  return <DesktopPlatformShell scroll={false} title="Support" subtitle="Tickets, Chat und vom Unternehmen bestätigte Zugriffe"><SupportWorkspace key={user?.id} platformMode initialSearch={typeof company === 'string' ? company : ''} /></DesktopPlatformShell>;
+}
+
+export function PlatformFeatureFlagsScreen() {
+  const { platformUser } = usePlatformAuth();
+  const canWriteGlobal = platformRoleHasCapability(platformUser?.role, 'flags.write');
+  const isOwnerOrDev =
+    platformUser?.role === 'platform_owner' || platformUser?.role === 'platform_developer';
+  const [flags, setFlags] = useState<PlatformFeatureFlagRow[]>([]);
+  const [scopeFilter, setScopeFilter] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [editKey, setEditKey] = useState('');
+  const [editRollout, setEditRollout] = useState('');
+  const [editTenant, setEditTenant] = useState('');
+  const [editScope, setEditScope] = useState('global');
+  const [lastAuditAction, setLastAuditAction] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const result = await listPlatformFeatureFlags({ scope: scopeFilter || undefined });
+    if (!result.ok) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+    setFlags(result.data);
+    setLoading(false);
+  }, [scopeFilter]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const { setConfirm, modal } = useOperatorConfirm(load);
+
+  return (
+    <DesktopPlatformShell title="Feature Flags" subtitle="Globale und mandantenspezifische Schalter">
+      {!canWriteGlobal ? (
+        <PlatformReadOnlyBanner message="Lesemodus — Flag-Änderungen erfordern flags.write (Owner/Developer)." />
+      ) : null}
+
+      <PlatformFilterChipRow>
+        {['', 'global', 'tenant', 'module', 'user', 'beta_group'].map((s) => (
+          <PlatformFilterChip
+            key={s || 'all'}
+            label={s || 'Alle Scopes'}
+            active={scopeFilter === s}
+            onPress={() => setScopeFilter(s)}
+          />
+        ))}
+      </PlatformFilterChipRow>
+
+      {loading ? (
+        <LoadingState message="Feature Flags werden geladen…" />
+      ) : error ? (
+        <ErrorState title="Flags nicht verfügbar" message={error} onRetry={() => void load()} />
+      ) : (
+        <>
+          <PlatformDataTable
+              columns={[
+                { key: 'key', label: 'Key', render: (r: PlatformFeatureFlagRow) => r.flag_key },
+                { key: 'name', label: 'Name', render: (r: PlatformFeatureFlagRow) => r.flag_name },
+                { key: 'scope', label: 'Scope', render: (r: PlatformFeatureFlagRow) => r.scope },
+                {
+                  key: 'enabled',
+                  label: 'Aktiv',
+                  render: (r: PlatformFeatureFlagRow) => (r.enabled ? 'ja' : 'nein'),
+                },
+                {
+                  key: 'rollout',
+                  label: 'Rollout %',
+                  render: (r: PlatformFeatureFlagRow) => String(r.rollout_percentage ?? '—'),
+                },
+                { key: 'start', label: 'Start', render: (r: PlatformFeatureFlagRow) => formatPlatformDate(r.starts_at) },
+                { key: 'end', label: 'Ende', render: (r: PlatformFeatureFlagRow) => formatPlatformDate(r.ends_at) },
+                {
+                  key: 'toggle',
+                  label: '',
+                  render: (r: PlatformFeatureFlagRow) =>
+                    canWriteGlobal && (r.scope !== 'global' || isOwnerOrDev) ? (
+                      <Pressable
+                        onPress={() =>
+                          setConfirm({
+                            title: r.enabled ? 'Flag deaktivieren' : 'Flag aktivieren',
+                            description: `${r.flag_key} → ${r.enabled ? 'aus' : 'an'}. Grund ist Pflicht.`,
+                            action: async (reason) => {
+                              const res = await setPlatformFeatureFlag(r.flag_key, !r.enabled, reason, {
+                                scope: r.scope,
+                                tenantId: r.tenant_id ?? undefined,
+                                rolloutPercentage: r.rollout_percentage ?? undefined,
+                              });
+                              if (!res.ok) throw new Error(res.error);
+                              setLastAuditAction('feature_flag.changed');
+                            },
+                          })
+                        }
+                      >
+                        <Text style={styles.link}>{r.enabled ? 'Deaktivieren' : 'Aktivieren'}</Text>
+                      </Pressable>
+                    ) : null,
+                },
+              ]}
+              data={flags}
+              keyExtractor={(r) => r.id}
+          />
+
+          {canWriteGlobal && isOwnerOrDev ? (
+            <View style={styles.formPanel}>
+              <Text style={styles.sectionTitle}>Flag setzen</Text>
+              <TextInput style={styles.input} value={editKey} onChangeText={setEditKey} placeholder="flag_key" placeholderTextColor={PLATFORM_COLORS.muted} />
+              <TextInput style={styles.input} value={editRollout} onChangeText={setEditRollout} placeholder="Rollout 0-100" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
+              {editScope === 'tenant' ? <PlatformTenantPicker value={editTenant} onChange={setEditTenant} required /> : null}
+              <PlatformFilterChipRow>
+                {['global', 'tenant', 'module', 'user', 'beta_group'].map((s) => (
+                  <PlatformFilterChip key={s} label={s === 'global' ? 'Global' : s === 'tenant' ? 'Mandant' : s === 'module' ? 'Modul' : s === 'user' ? 'Benutzer' : 'Beta-Gruppe'} active={editScope === s} onPress={() => setEditScope(s)} />
+                ))}
+              </PlatformFilterChipRow>
+              <Pressable
+                style={styles.primaryBtn}
+                onPress={() =>
+                  setConfirm({
+                    title: 'Feature Flag aktivieren',
+                    description: `${editKey} (${editScope}) mit Rollout ${editRollout || '100'}%.`,
+                    action: async (reason) => {
+                      const rollout = editRollout.trim() ? Number(editRollout) : 100;
+                      if (rollout < 0 || rollout > 100) throw new Error('Rollout muss 0–100 sein.');
+                      const res = await setPlatformFeatureFlag(editKey.trim(), true, reason, {
+                        scope: editScope,
+                        tenantId: editTenant.trim() || undefined,
+                        rolloutPercentage: rollout,
+                      });
+                      if (!res.ok) throw new Error(res.error);
+                      setLastAuditAction('feature_flag.changed');
+                    },
+                  })
+                }
+              >
+                <Text style={styles.primaryBtnText}>Aktivieren (Grund erforderlich)</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {lastAuditAction ? (
+            <View style={styles.auditRow}>
+              <PlatformAuditLink action={lastAuditAction} />
+            </View>
+          ) : null}
+        </>
+      )}
+      {modal}
+    </DesktopPlatformShell>
+  );
+}
+
+const styles = StyleSheet.create({
+  toolbar: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
+  search: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: PLATFORM_COLORS.border,
+    borderRadius: 8,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 10,
+    color: PLATFORM_COLORS.text,
+    backgroundColor: PLATFORM_COLORS.panel,
+  },
+  searchBtn: { justifyContent: 'center', paddingHorizontal: spacing.md },
+  sectionTitle: { color: PLATFORM_COLORS.text, fontWeight: '700', marginTop: spacing.md, marginBottom: spacing.xs },
+  formPanel: {
+    marginTop: spacing.md,
+    backgroundColor: PLATFORM_COLORS.panel,
+    borderWidth: 1,
+    borderColor: PLATFORM_COLORS.border,
+    borderRadius: 10,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  label: { color: PLATFORM_COLORS.muted, fontSize: 12 },
+  input: {
+    borderWidth: 1,
+    borderColor: PLATFORM_COLORS.border,
+    borderRadius: 8,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 10,
+    color: PLATFORM_COLORS.text,
+    backgroundColor: PLATFORM_COLORS.bg,
+  },
+  primaryBtn: {
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: PLATFORM_COLORS.accent,
+    borderRadius: 8,
+    padding: spacing.sm,
+    alignItems: 'center',
+  },
+  primaryBtnText: { color: PLATFORM_COLORS.accent, fontWeight: '700' },
+  link: { color: PLATFORM_COLORS.accent, fontWeight: '600' },
+  hint: { color: PLATFORM_COLORS.muted, fontSize: 12 },
+  warn: { color: PLATFORM_COLORS.danger, fontSize: 12 },
+  auditRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
+  row: { flexDirection: 'row', gap: spacing.sm },
+});

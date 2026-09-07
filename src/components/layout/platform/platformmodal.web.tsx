@@ -1,0 +1,347 @@
+import { PortalKeyboardScrollView } from '@/components/keyboard/PortalKeyboard';
+import { useEffect, useMemo, useCallback, type ReactNode } from 'react';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import { confirmAction } from '@/lib/platform/confirmAction';
+import { GlassSurface } from '@/components/ui/effects';
+import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { resolveLlganViewGlass } from '@/design/tokens/lightLiquidGlassAuroraNebula';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
+import {
+  popupShellLayout,
+  resolvePopupShellColors,
+} from '@/design/tokens/popupShell';
+import { careRadius } from '@/design/tokens/radius';
+import { careSpacing } from '@/design/tokens/spacing';
+import { spacing } from '@/theme';
+import { portalPremium, usePortalPremiumRuntimeTheme } from '@/design/tokens/portalPremium';
+import { resolvePlatformModalMaxHeight } from '@/lib/platform/platformModalLayout';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GradientModalActionButton } from './gradientmodalactionbutton';
+import type { GradientModalActionButtonVariant } from './gradientmodalactionbutton';
+import { GradientModalHeader } from './gradientmodalheader';
+
+export type PlatformModalAction = {
+  title: string;
+  onPress?: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+  variant?: GradientModalActionButtonVariant;
+};
+
+export type PlatformModalVariant = 'center' | 'bottomSheet';
+
+export type PlatformModalProps = {
+  visible: boolean;
+  title: string;
+  onClose: () => void;
+  onBack?: () => void;
+  headerActions?: ReactNode;
+  footerActions?: PlatformModalAction[];
+  children: ReactNode;
+  variant?: PlatformModalVariant;
+  animationType?: 'fade' | 'slide' | 'none';
+  maxWidth?: number;
+  minWidth?: number;
+  maxHeightRatio?: number;
+  glowColor?: string;
+  subtitle?: string;
+  dismissOnBackdrop?: boolean;
+  statusBarTranslucent?: boolean;
+  bodyStyle?: StyleProp<ViewStyle>;
+  sheetStyle?: StyleProp<ViewStyle>;
+  lockBodyScroll?: boolean;
+  isDirty?: boolean;
+  dirtyCloseMessage?: string;
+  surfaceScope?: 'personal';
+};
+
+const DEFAULT_MAX_WIDTH = popupShellLayout.maxWidthDefault;
+const DEFAULT_MIN_WIDTH = popupShellLayout.minWidthDefault;
+const DEFAULT_MAX_HEIGHT_RATIO = popupShellLayout.maxHeightRatioDefault;
+
+export function PlatformModal({
+  visible,
+  title,
+  onClose,
+  onBack,
+  headerActions,
+  footerActions,
+  children,
+  variant = 'center',
+  animationType,
+  maxWidth = DEFAULT_MAX_WIDTH,
+  minWidth = DEFAULT_MIN_WIDTH,
+  maxHeightRatio = DEFAULT_MAX_HEIGHT_RATIO,
+  glowColor,
+  subtitle,
+  dismissOnBackdrop = true,
+  statusBarTranslucent = true,
+  bodyStyle,
+  sheetStyle,
+  lockBodyScroll = true,
+  isDirty = false,
+  dirtyCloseMessage = 'Ungespeicherte Änderungen verwerfen?',
+  surfaceScope,
+}: PlatformModalProps) {
+  const portalTheme = usePortalPremiumRuntimeTheme();
+  const { isDark, c } = useCareLightPalette();
+  const { isLight } = useLegacyTheme();
+  const auroraActive = useAuroraGlassActive();
+  const lightModal = surfaceScope === 'personal' || portalTheme.active || isLight;
+  const formGlass = resolveLlganViewGlass('form', 'default');
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const compact = screenWidth < 600;
+  const resolvedAnimation = animationType ?? (variant === 'bottomSheet' ? 'slide' : 'fade');
+  const accent = glowColor ?? c.violet;
+  const shellMode = lightModal ? 'light' : 'dark';
+  const shellColors = resolvePopupShellColors(shellMode);
+  const shellRadius = popupShellLayout.borderRadius;
+
+  const sheetWidth = useMemo(() => {
+    if (variant === 'bottomSheet') return undefined;
+    const horizontalPad = spacing.lg * 2;
+    return Math.min(
+      screenWidth - horizontalPad,
+      Math.max(minWidth, Math.min(maxWidth, screenWidth * 0.92)),
+    );
+  }, [maxWidth, minWidth, screenWidth, variant]);
+
+  const sheetMaxHeight = useMemo(
+    () => resolvePlatformModalMaxHeight(screenHeight, variant, maxHeightRatio, spacing.lg * 2),
+    [maxHeightRatio, screenHeight, variant],
+  );
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        backdropCenter: {
+          flex: 1,
+          backgroundColor: lightModal ? shellColors.backdrop : careSuiteModalScrim,
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: compact ? careSpacing.sm : spacing.lg,
+          paddingTop: Math.max(insets.top, compact ? careSpacing.sm : spacing.lg),
+          paddingBottom: Math.max(insets.bottom, compact ? careSpacing.sm : spacing.lg),
+        },
+        backdropBottom: {
+          flex: 1,
+          backgroundColor: lightModal ? shellColors.backdrop : careSuiteModalScrim,
+          justifyContent: 'flex-end',
+        },
+        sheetHost: {
+          width: sheetWidth,
+          maxHeight: sheetMaxHeight,
+          ...(variant === 'bottomSheet'
+            ? { width: '100%' as const, maxHeight: sheetMaxHeight }
+            : {}),
+          ...Platform.select({
+            web: lightModal
+              ? ({
+                  boxShadow: `${formGlass.shadow}, ${popupShellLayout.shadowWebLight}`,
+                } as unknown as ViewStyle)
+              : ({
+                  boxShadow: popupShellLayout.shadowWebDark,
+                } as unknown as ViewStyle),
+            default: {},
+          }),
+        },
+        sheetInner: {
+          flexShrink: 1,
+          minHeight: 0,
+          maxHeight: sheetMaxHeight,
+          flexDirection: 'column',
+          overflow: 'hidden',
+          backgroundColor: portalTheme.active
+            ? portalPremium.surfaceRaised
+            : undefined,
+        },
+        bodyScroll: {
+          flex: 1,
+          minHeight: 0,
+        },
+        body: {
+          padding: compact ? careSpacing.md : careSpacing.lg,
+          gap: careSpacing.sm,
+          flexGrow: 1,
+          flexShrink: 1,
+          minHeight: 0,
+          backgroundColor: portalTheme.active
+            ? portalPremium.surfaceRaised
+            : lightModal
+              ? shellColors.body.background
+              : undefined,
+          ...Platform.select({
+            web: {
+              overflowY: 'auto' as const,
+              overflowX: 'hidden' as const,
+            },
+            default: {},
+          }),
+        },
+        footer: {
+          flexShrink: 0,
+          flexDirection: compact ? 'column' : 'row',
+          alignItems: compact ? 'stretch' : 'center',
+          justifyContent: 'flex-end',
+          flexWrap: 'wrap',
+          gap: careSpacing.sm,
+          paddingHorizontal: careSpacing.lg,
+          paddingBottom: Math.max(insets.bottom + careSpacing.sm, careSpacing.lg),
+          paddingTop: careSpacing.md,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: lightModal
+            ? shellColors.footerBorder
+            : isDark
+              ? shellColors.footerBorder
+              : 'rgba(0,0,0,0.06)',
+          backgroundColor: portalTheme.active
+            ? portalPremium.surfaceRaised
+            : lightModal
+              ? shellColors.body.background
+              : 'rgba(1,8,23,0.98)',
+        },
+      }),
+    [compact, formGlass.shadow, insets.bottom, insets.top, isDark, lightModal, portalTheme.active, shellColors, sheetMaxHeight, sheetWidth, variant],
+  );
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !visible || !lockBodyScroll) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [lockBodyScroll, visible]);
+
+  const requestClose = useCallback(async () => {
+    if (isDirty) {
+      const confirmed = await confirmAction({
+        title: 'Schließen',
+        message: dirtyCloseMessage,
+        confirmLabel: 'Verwerfen',
+        cancelLabel: 'Weiter bearbeiten',
+      });
+      if (!confirmed) return;
+    }
+    onClose();
+  }, [dirtyCloseMessage, isDirty, onClose]);
+
+  const handleBack = onBack
+    ? async () => {
+        if (isDirty) {
+          const confirmed = await confirmAction({
+            title: 'Zurück',
+            message: dirtyCloseMessage,
+            confirmLabel: 'Verwerfen',
+            cancelLabel: 'Weiter bearbeiten',
+          });
+          if (!confirmed) return;
+        }
+        onBack();
+      }
+    : undefined;
+
+  const backdropStyle = variant === 'bottomSheet' ? styles.backdropBottom : styles.backdropCenter;
+
+  const sheetContent = (
+    <SurfaceContrastProvider tone={lightModal ? 'light' : 'dark'}>
+      <GlassSurface
+        radius={variant === 'bottomSheet' ? careRadius.lg : shellRadius}
+        glowColor={accent}
+        glowOpacity={isDark ? 0.22 : 0.12}
+        elevated
+        style={StyleSheet.flatten([styles.sheetInner, sheetStyle])}
+      >
+      <View style={{ flexShrink: 0 }}>
+        <GradientModalHeader
+          title={title}
+          subtitle={subtitle}
+          onBack={handleBack}
+          onClose={() => void requestClose()}
+          actions={headerActions}
+        />
+      </View>
+      <PortalKeyboardScrollView
+        style={styles.bodyScroll}
+        contentContainerStyle={[styles.body, bodyStyle]}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        showsVerticalScrollIndicator
+        showsHorizontalScrollIndicator={false}
+      >
+        {children}
+      </PortalKeyboardScrollView>
+      {footerActions && footerActions.length > 0 ? (
+        <View style={styles.footer}>
+          {footerActions.map((action) => (
+            <GradientModalActionButton
+              key={action.title}
+              title={action.title}
+              onPress={action.onPress}
+              loading={action.loading}
+              disabled={action.disabled}
+              variant={action.variant ?? 'glass'}
+              fullWidth={compact}
+            />
+          ))}
+        </View>
+      ) : null}
+      </GlassSurface>
+    </SurfaceContrastProvider>
+  );
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType={resolvedAnimation}
+      onRequestClose={() => void requestClose()}
+      statusBarTranslucent={statusBarTranslucent}
+    >
+      <View style={backdropStyle} accessibilityViewIsModal>
+        {dismissOnBackdrop ? (
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => void requestClose()}
+            accessibilityLabel="Schließen"
+          />
+        ) : null}
+        <View
+          style={styles.sheetHost}
+          pointerEvents="box-none"
+          {...(Platform.OS === 'web'
+            ? ({
+                dataSet: {
+                  csHealthosComponent: 'modal',
+                  ...(lightModal ? { csDesktopSurface: 'light' } : {}),
+                  ...(surfaceScope === 'personal' ? { csPersonalSurface: 'light' } : {}),
+                },
+              } as object)
+            : {})}
+          {...(variant === 'bottomSheet'
+            ? {}
+            : { onStartShouldSetResponder: () => true })}
+        >
+          {variant === 'bottomSheet' ? (
+            <Pressable onPress={(e) => e.stopPropagation()}>{sheetContent}</Pressable>
+          ) : (
+            sheetContent
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
