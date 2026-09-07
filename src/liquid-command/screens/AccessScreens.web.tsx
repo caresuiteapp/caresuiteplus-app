@@ -70,7 +70,8 @@ function AccessShell({
   const router = useRouter();
   const layout = useLiquidLayout();
   const insets = useSafeAreaInsets();
-  const stacked = layout.isPhone || (layout.isTablet && layout.isPortrait);
+  // Two columns need enough room for both the form and the 370px progress card.
+  const stacked = layout.width < 1100;
   return (
     <LiquidBackdrop>
       <KeyboardAvoidingView

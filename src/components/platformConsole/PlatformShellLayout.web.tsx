@@ -1,5 +1,5 @@
-import { ReactNode, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { PLATFORM_CONSOLE_TITLE, PLATFORM_NAV_ITEMS } from '@/lib/platformConsole/platformNavigation';
 import { getPlatformReleaseInfo, platformRoleHasCapability, PLATFORM_ROLE_LABELS } from '@/lib/platformConsole';
@@ -36,7 +36,10 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
   const isWide = width >= 960;
   const { leftCollapsed, toggleLeft } = useDesktopWorkspacePreferences();
   const [closedGroups, setClosedGroups] = useState<string[]>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const environment = getPlatformReleaseInfo().environment;
+
+  useEffect(() => { setMobileMenuOpen(false); }, [pathname, isWide]);
 
   const navItems = useMemo(
     () => filterNavByRole(platformUser?.role),
@@ -48,6 +51,8 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
       StyleSheet.create({
         root: { flex: 1, minHeight: 0, minWidth: 0, flexDirection: isWide ? 'row' : 'column', backgroundColor: PLATFORM_COLORS.bg },
         sidebar: {
+          flex: isWide ? undefined : 1,
+          minHeight: 0,
           width: isWide ? 248 : undefined,
           backgroundColor: PLATFORM_COLORS.sidebar,
           borderRightWidth: isWide ? 1 : 0,
@@ -56,9 +61,10 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
           paddingVertical: spacing.md,
         },
         brand: { paddingHorizontal: spacing.md, paddingBottom: spacing.md, gap: 3 },
+        brandLogo: { alignSelf: 'flex-start', padding: 8, marginBottom: 6, borderRadius: 8, backgroundColor: PLATFORM_COLORS.panel },
         brandTitle: { color: PLATFORM_COLORS.sidebarText, fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
         brandSub: { color: PLATFORM_COLORS.sidebarMuted, fontSize: 11 },
-        navScroll: { flex: isWide ? 1 : undefined, flexGrow: isWide ? 1 : 0, minHeight: 0 },
+        navScroll: { flex: 1, minHeight: 0 },
         navItem: {
           marginHorizontal: isWide ? spacing.sm : 0,
           paddingHorizontal: spacing.sm,
@@ -85,7 +91,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
           borderColor: PLATFORM_COLORS.border,
         },
         userRole: { color: PLATFORM_COLORS.accent, fontSize: 11, fontWeight: '600' },
-        userEmail: { color: PLATFORM_COLORS.sidebarMuted, fontSize: 11, marginTop: 2 },
+        userEmail: { color: PLATFORM_COLORS.muted, fontSize: 11, marginTop: 2 },
         main: { flex: 1, minWidth: 0, minHeight: 0 },
         header: {
           minHeight: 68,
@@ -94,14 +100,19 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
           borderBottomWidth: 1,
           borderColor: PLATFORM_COLORS.border,
           backgroundColor: PLATFORM_COLORS.panel,
-          flexDirection: isWide ? 'row' : 'column',
-          alignItems: isWide ? 'center' : 'stretch',
+          flexDirection: 'row',
+          alignItems: 'center',
           flexWrap: 'wrap',
           gap: spacing.md,
         },
-        headerCopy: { flexGrow: 1, flexBasis: 240, minWidth: 0 },
+        headerCopy: { flexGrow: 1, flexBasis: isWide ? 240 : 160, minWidth: 0 },
         breadcrumb: { color: PLATFORM_COLORS.muted, fontSize: 10, marginBottom: 3 },
-        headerTools: { flexGrow: 1, minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: spacing.xs },
+        headerTools: { flexGrow: 1, flexBasis: isWide ? 'auto' : '100%', minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: isWide ? 'flex-end' : 'flex-start', gap: spacing.xs },
+        menuButton: { minHeight: 42, justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: PLATFORM_COLORS.borderStrong, paddingHorizontal: 12, backgroundColor: PLATFORM_COLORS.panel },
+        menuButtonText: { color: PLATFORM_COLORS.text, fontWeight: '700', fontSize: 14 },
+        menuBackdrop: { flex: 1, padding: 12, backgroundColor: 'rgba(5,20,43,0.55)' },
+        menuPanel: { flex: 1, minHeight: 0, width: '100%', maxWidth: 360, borderRadius: 12, overflow: 'hidden', backgroundColor: PLATFORM_COLORS.sidebar },
+        menuCloseRow: { padding: spacing.sm, alignItems: 'flex-end' },
         contextPill: { paddingHorizontal: 9, paddingVertical: 7, borderRadius: 999, backgroundColor: PLATFORM_COLORS.panelSoft, borderWidth: 1, borderColor: PLATFORM_COLORS.border },
         contextText: { color: PLATFORM_COLORS.muted, fontSize: 10, fontWeight: '700' },
         securityPill: { paddingHorizontal: 9, paddingVertical: 7, borderRadius: 999, backgroundColor: '#ECFDF5', borderWidth: 1, borderColor: '#BBF7D0' },
@@ -113,29 +124,30 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
     [isWide],
   );
 
-  return (
-    <View style={styles.root}>
-      {!isWide || !leftCollapsed ? <View style={styles.sidebar} nativeID="desktop-module-navigation">
+  const navigation = (
+      <View style={styles.sidebar} nativeID="desktop-module-navigation">
         <View style={styles.brand}>
-          <LiquidLogo compact />
+          <View style={styles.brandLogo}><LiquidLogo width={200} /></View>
           <Text style={styles.brandTitle}>{PLATFORM_CONSOLE_TITLE}</Text>
           <Text style={styles.brandSub}>Sicherer SaaS-Betrieb</Text>
         </View>
-        <ScrollView horizontal={!isWide} style={styles.navScroll} showsHorizontalScrollIndicator={false}>
-          {(isWide ? (['overview', 'customers', 'product', 'finance', 'operations'] as const) : ['mobile'] as const).map((group) => {
-            const groupItems = group === 'mobile' ? navItems : navItems.filter((item) => item.group === group);
+        <ScrollView style={styles.navScroll} keyboardShouldPersistTaps="handled">
+          {(['overview', 'customers', 'product', 'finance', 'operations'] as const).map((group) => {
+            const groupItems = navItems.filter((item) => item.group === group);
             if (!groupItems.length) return null;
             const groupLabel = { overview: 'Übersicht', customers: 'Kunden & Verträge', product: 'Produktverwaltung', finance: 'Finanzen', operations: 'Betrieb', mobile: '' }[group];
             const closed = closedGroups.includes(group);
-            return <View key={group} style={isWide ? styles.navGroup : undefined}>
-              {isWide ? <Pressable style={styles.navGroupHeader} onPress={() => setClosedGroups((current) => current.includes(group) ? current.filter((item) => item !== group) : [...current, group])}><Text style={styles.navGroupLabel}>{groupLabel}</Text><Text style={styles.navGroupLabel}>{closed ? '+' : '−'}</Text></Pressable> : null}
+            return <View key={group} style={styles.navGroup}>
+              <Pressable accessibilityRole="button" accessibilityLabel={groupLabel} accessibilityState={{ expanded: !closed }} style={styles.navGroupHeader} onPress={() => setClosedGroups((current) => current.includes(group) ? current.filter((item) => item !== group) : [...current, group])}><Text style={styles.navGroupLabel}>{groupLabel}</Text><Text style={styles.navGroupLabel}>{closed ? '+' : '−'}</Text></Pressable>
               {!closed ? groupItems.map((item) => {
             const active = pathname === item.path || pathname.startsWith(`${item.path}/`);
             return (
               <Pressable
                 key={item.path}
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
                 style={[styles.navItem, active && styles.navItemActive]}
-                onPress={() => router.push(item.path as never)}
+                onPress={() => { setMobileMenuOpen(false); router.push(item.path as never); }}
               >
                 <Text style={styles.navIcon}>{item.icon}</Text>
                 <Text style={[styles.navLabel, active && styles.navLabelActive]}>{item.label}</Text>
@@ -150,7 +162,22 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
             <Text style={styles.userEmail}>{platformUser.email}</Text>
           </View>
         ) : null}
-      </View> : null}
+      </View>
+  );
+
+  return (
+    <View style={styles.root}>
+      {isWide && !leftCollapsed ? navigation : null}
+      {!isWide ? (
+        <Modal visible={mobileMenuOpen} transparent animationType="none" onRequestClose={() => setMobileMenuOpen(false)}>
+          <Pressable style={styles.menuBackdrop} onPress={() => setMobileMenuOpen(false)}>
+            <Pressable style={styles.menuPanel} onPress={event => event.stopPropagation()}>
+              <View style={styles.menuCloseRow}><Pressable accessibilityRole="button" accessibilityLabel="Navigation schließen" style={styles.menuButton} onPress={() => setMobileMenuOpen(false)}><Text style={styles.menuButtonText}>Schließen ✕</Text></Pressable></View>
+              {navigation}
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
       {isWide ? (
         <DesktopSidebarToggle
           side="left"
@@ -161,8 +188,9 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
         />
       ) : null}
       <View style={styles.main}>
-        {title ? (
+        {title || !isWide ? (
           <View style={styles.header}>
+            {!isWide ? <Pressable accessibilityRole="button" accessibilityLabel="Navigation öffnen" accessibilityState={{ expanded: mobileMenuOpen }} style={styles.menuButton} onPress={() => setMobileMenuOpen(true)}><Text style={styles.menuButtonText}>☰ Menü</Text></Pressable> : null}
             <View style={styles.headerCopy}>
               <Text style={styles.breadcrumb}>Platform Console / {title}</Text>
               <Text accessibilityRole="header" style={styles.headerTitle}>{title}</Text>

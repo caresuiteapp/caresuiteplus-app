@@ -89,6 +89,19 @@ Serverfunktion: `supabase/functions/register-business-tenant/` einschließlich `
 
 Die neue Support-Oberfläche setzt diese Datenbankfunktionen und den privaten Storage-Bucket voraus. Eine alleinige Veröffentlichung des Frontends würde dafür nicht ausreichen. Die Migrationen wurden bisher ausschließlich in der isolierten Prüfdatenbank ausgeführt.
 
+## Sichtprüfung R3 und Korrektur R3.1 für schmale Fenster
+
+Die sechs weiteren Nutzerscreenshots zeigen die erste Registrierungsseite in zwei Fensterbreiten, die Unternehmensliste breit und schmal sowie den oberen Teil einer Unternehmensakte. Die breite Darstellung ist in diesen Bereichen lesbar. In schmalen Fenstern drängte die Fortschrittskarte das Formular zusammen; die vollständig ausgeklappte Plattformnavigation und eine als Höhe wirksame `flexBasis`-Vorgabe schoben den Inhalt weit nach unten. Logo und Konto-E-Mail hatten unzureichenden Kontrast zum jeweiligen Hintergrund.
+
+R3.1 korrigiert diese beobachteten Punkte ausschließlich in den Web-Dateien:
+
+- Unter 1100 CSS-Pixeln steht die Fortschrittskarte unter dem Formular. Das Formular erhält die verfügbare Breite.
+- Unter 960 CSS-Pixeln öffnet der Menüknopf eine eigene Navigationsebene mit internem Scrollbereich. Sie ist anfangs geschlossen und schließt nach einer Bereichsauswahl automatisch. Der Inhalt bleibt an seinem Platz.
+- Der Seitenkopf ordnet seine Elemente in umbrechenden Zeilen an; die unbeabsichtigte feste Leerhöhe entfällt.
+- Das Logo liegt im dunklen Menü auf einer passenden hellen Fläche; die Konto-E-Mail verwendet eine dunkle Schrift auf der weißen Kontokarte.
+
+Der neu gebaute R3.1-Stand besteht die vier DOM-Startprüfungen sowie die ergänzte Menüprüfung: Öffnen, Schließen, Navigation und Rückkehr zur Desktop-Seitenleiste nach einem Breitenwechsel. Das DOM-Modell erhält ausdrücklich gesetzte Fenstermaße, da es keine optische Layoutberechnung ausführt. Die vollständige TypeScript-Prüfung ist mit Exit-Code 0 abgeschlossen; dabei wurde zusätzlich eine optionale Ticketliste im fiktiven Vorschau-Adapter abgesichert. Die optische Bestätigung der neuen R3.1-Darstellung anhand weiterer Nutzerscreenshots steht noch aus. Es wurde nichts veröffentlicht.
+
 ## Reproduzierbare lokale Prüfungen
 
 Im separaten Desktop-Arbeitsverzeichnis:
