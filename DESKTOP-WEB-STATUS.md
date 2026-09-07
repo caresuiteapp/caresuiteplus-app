@@ -40,9 +40,9 @@ Ein alter Quellcode-Test erwartete nur die frühere einzelne Sperrbedingung bei 
 ## Noch offen
 
 1. Browser-Sichtprüfung bei mehreren Bildschirmbreiten und Textgrößen; Anmeldung, Registrierung und Support-Endabläufe in einer Testumgebung. Der Quellcode-Audit ist **keine** Sichtprüfung aller 606 Seiten.
-2. Die auf dem Laptop erstellte Support-Vorschau verwendet die echten neuen UI-Komponenten und ausschließlich fiktive Daten. Die automatische Freigabeprüfung hat die Übertragung ihres gebündelten privaten Quellcodes in diese Prüfumgebung abgelehnt. Dafür ist eine ausdrückliche Freigabe erforderlich.
+2. Die auf dem Laptop erstellte Support-Vorschau verwendet die echten neuen UI-Komponenten und ausschließlich fiktive Daten. Der Nutzer hat die Übertragung zur Browserprüfung ausdrücklich freigegeben. Die Vorschau wurde erneut erstellt und vollständig übertragen (572.373 Byte JavaScript). Die Cloud-Browser-URL-Richtlinie blockiert jedoch das Öffnen der lokalen HTTP-Adresse und des synchronisierten Dateipfads. Die visuelle Prüfung ist daher weiterhin offen; keine Bildschirmgröße oder Browserinteraktion gilt dadurch als geprüft. Eine erneute Übertragungsfreigabe ist nicht erforderlich. Für die Sichtprüfung werden Screenshots der lokalen Vorschau benötigt. Auf dem Laptop ist sie über `%LOCALAPPDATA%\Temp\caresuite-support-preview\index.html` erreichbar.
 3. Produktive Registrierung, Uploads und Support-Zugriffe sind noch nicht mit den neuen Serverfunktionen live getestet. Es wurden keine echten Mandanten zu Testzwecken angelegt oder verändert.
-4. Änderungen sind weder gepusht noch veröffentlicht. Nach abgeschlossener Prüfung ist eine ausdrückliche Veröffentlichungsfreigabe erforderlich; die lokale Projektregel untersagt automatische Deployments. Ein Push auf `main` kann bereits eine Veröffentlichung auslösen.
+4. Der wiedergefundene Implementierungsstand ist lokal mit Commit `79dc2f2b1515771242550fc7141b1a89b982222f` auf `feature/desktop-platform-support-20260907` gesichert. Änderungen sind weder gepusht noch veröffentlicht. Nach abgeschlossener Prüfung ist eine ausdrückliche Veröffentlichungsfreigabe erforderlich; die lokale Projektregel untersagt automatische Deployments. Ein Push auf `main` kann bereits eine Veröffentlichung auslösen.
 
 ## Bestandteile einer späteren Veröffentlichung
 
