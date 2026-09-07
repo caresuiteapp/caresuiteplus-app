@@ -69,6 +69,7 @@ import {
 } from '@/lib/portal/resolveVisitExecutionPhase';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { releaseSignatureCaptureEnvironment } from '@/lib/dom/releaseSignatureCaptureEnvironment';
+import { pollSignatureConfirmation } from '@/lib/portal/pollSignatureConfirmation';
 import {
   ASSIST_WORKFLOW_ACTION_LABELS,
   primaryAllowedAction,
@@ -174,6 +175,7 @@ export function EmployeePortalVisitExecutionScreen() {
     saveTask,
     saveDocumentation,
     saveSignature,
+    signatureSaveError,
     finalizeVisit,
     finalizeVisitDeferred,
     reportNoShow,
@@ -207,6 +209,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const [showNoShowForm, setShowNoShowForm] = useState(false);
   const [awaitingSignature, setAwaitingSignature] = useState(false);
   const [signatureConfirmationPending, setSignatureConfirmationPending] = useState(false);
+  const [signatureConfirmationStalled, setSignatureConfirmationStalled] = useState(false);
   const [deviationModal, setDeviationModal] = useState<{
     phase: WfmDeviationPhase;
     pendingAction: 'start_service' | 'end_service';
@@ -413,6 +416,7 @@ export function EmployeePortalVisitExecutionScreen() {
       if (snapshotMatchesRoute && snapshot?.awaitingSignature) setAwaitingSignature(true);
       if (snapshotMatchesRoute && snapshot?.signatureConfirmationPending) {
         setSignatureConfirmationPending(true);
+        setSignatureConfirmationStalled(true);
       }
       if (snapshotMatchesRoute && snapshot?.showNoShowForm) setShowNoShowForm(true);
       if (snapshotMatchesRoute && snapshot?.attachmentReferences?.length) {
@@ -633,42 +637,39 @@ export function EmployeePortalVisitExecutionScreen() {
     if (!signatureConfirmationPending) return;
     if (signatureCaptured || signatureDeferred) {
       setSignatureConfirmationPending(false);
+      setSignatureConfirmationStalled(false);
       setAwaitingSignature(false);
+      setCloseSignatureCaptureRequest((n) => n + 1);
       setLocalError(null);
       setLocalWarning(null);
-      setLocalSuccess('Unterschrift geprüft und gespeichert — der Einsatz kann abgeschlossen werden.');
+      setLocalSuccess(signatureDeferred
+        ? 'Die Unterschrift wird über das Klientenportal nachgefordert.'
+        : 'Unterschrift geprüft und gespeichert — der Einsatz kann abgeschlossen werden.');
       return;
     }
-
-    let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
-    let attempts = 0;
-    const checkConfirmation = async () => {
-      if (cancelled) return;
-      attempts += 1;
-      try {
-        await signatureConfirmationRefreshRef.current();
-      } finally {
-        if (!cancelled) {
-          const retryDelayMs = attempts < 5 ? 1_500 : attempts < 15 ? 3_000 : 5_000;
-          retryTimer = setTimeout(() => {
-            void checkConfirmation();
-          }, retryDelayMs);
-        }
-      }
-    };
-    retryTimer = setTimeout(() => {
-      void checkConfirmation();
-    }, 800);
-    return () => {
-      cancelled = true;
-      if (retryTimer) clearTimeout(retryTimer);
-    };
+    if (signatureSaveError) {
+      setSignatureConfirmationPending(false);
+      setSignatureConfirmationStalled(false);
+      setLocalError(signatureSaveError);
+      return;
+    }
+    if (signatureConfirmationStalled) return;
+    return pollSignatureConfirmation({
+      refresh: () => signatureConfirmationRefreshRef.current(),
+      onUnconfirmed: () => setSignatureConfirmationStalled(true),
+    });
   }, [
     signatureConfirmationPending,
     signatureCaptured,
     signatureDeferred,
+    signatureSaveError,
+    signatureConfirmationStalled,
   ]);
+
+  const retrySignatureConfirmation = useCallback(() => {
+    setLocalError(null);
+    setSignatureConfirmationStalled(false);
+  }, []);
 
   useEffect(() => {
     if (
@@ -1190,12 +1191,18 @@ export function EmployeePortalVisitExecutionScreen() {
   }
 
   const showSuccess = localSuccess && !localError;
-  const syncWarning = !queryError && !signatureConfirmationPending && phase !== 'completed'
+  const syncWarning = !queryError && (!signatureConfirmationPending || signatureConfirmationStalled) && phase !== 'completed'
     ? liveContextError ?? refetchWarning
     : null;
   const allTasksComplete = visitTasks.every((task) => task.status === 'done');
   const guide = (() => {
     if (signatureConfirmationPending) {
+      if (signatureConfirmationStalled) {
+        return {
+          tone: 'warning' as const,
+          message: 'Die Speicherung der Unterschrift ist noch nicht bestätigt. Prüfe den Serverstatus. Eine offene Erfassung bitte geöffnet lassen; die Unterschrift ist noch nicht als gespeichert bestätigt.',
+        };
+      }
       return {
         tone: 'info' as const,
         message: 'Unterschrift wird gerade geprüft – bitte warten. Der Serverabgleich läuft automatisch; du musst nichts erneut eingeben.',
@@ -1299,8 +1306,9 @@ export function EmployeePortalVisitExecutionScreen() {
   })();
   const guideNeedsRefresh = Boolean(
     phase !== 'completed' &&
-      !signatureConfirmationPending &&
-      (localError || taskSaveError || syncWarning || localWarning || readOnlyExecution),
+      ((!signatureConfirmationPending &&
+        (localError || taskSaveError || syncWarning || localWarning || readOnlyExecution)) ||
+        signatureConfirmationStalled),
   );
   const guideCanOpenDocumentation = Boolean(
     !guideNeedsRefresh &&
@@ -1464,6 +1472,8 @@ export function EmployeePortalVisitExecutionScreen() {
             documentationLastSavedAt={docLastSavedAt}
             signatureCaptured={signatureCaptured || signatureDeferred}
             signatureConfirmationPending={signatureConfirmationPending}
+            signatureConfirmationStalled={signatureConfirmationStalled}
+            onCheckSignature={retrySignatureConfirmation}
             requiresSignature={visit.requiresSignature}
             signatureEnabled={isServiceEnded}
             serviceSeconds={timers?.serviceSeconds ?? null}
@@ -1573,7 +1583,7 @@ export function EmployeePortalVisitExecutionScreen() {
           plannedEndAt={visit.plannedEndAt}
           effectiveStatus={effectiveStatus}
           statusLabelOverride={
-            signatureConfirmationPending ? 'UNTERSCHRIFT WIRD GEPRÜFT' : undefined
+            signatureConfirmationStalled ? 'UNTERSCHRIFT NICHT BESTÄTIGT' : signatureConfirmationPending ? 'UNTERSCHRIFT WIRD GEPRÜFT' : undefined
           }
           timers={timers}
           requiresSignature={visit.requiresSignature}
@@ -1595,7 +1605,9 @@ export function EmployeePortalVisitExecutionScreen() {
                   : undefined
           }
           onGuideAction={
-            guideNeedsRefresh
+            signatureConfirmationStalled
+              ? retrySignatureConfirmation
+              : guideNeedsRefresh
               ? () => void handleGuideRefresh()
               : guideCanEndService
                 ? () => void handlePrimary()
@@ -1671,6 +1683,10 @@ export function EmployeePortalVisitExecutionScreen() {
               <EmployeePortalVisitSignaturePanel
                 clientName={visit.clientName}
                 loading={actionLoading}
+                confirmationPending={signatureConfirmationPending}
+                confirmationStalled={signatureConfirmationStalled}
+                saveError={signatureSaveError}
+                onCheckStatus={retrySignatureConfirmation}
                 modalOnly={phase === 'live' || phase === 'post_service'}
                 compact={phase !== 'live' && phase !== 'post_service'}
                 openCaptureRequest={signatureCaptureRequest}
@@ -1679,6 +1695,7 @@ export function EmployeePortalVisitExecutionScreen() {
                 onModalOpenChange={handleSignatureModalOpenChange}
                 onCapture={async (sig) => {
                   setSignatureConfirmationPending(true);
+                  setSignatureConfirmationStalled(false);
                   setLocalError(null);
                   setLocalWarning(null);
                   setLocalSuccess(null);
@@ -1697,10 +1714,14 @@ export function EmployeePortalVisitExecutionScreen() {
                       awaitingSignature: true,
                     });
                   } else if (isWorkflowConfirmationPending(r.errorCode)) {
-                    setCloseSignatureCaptureRequest((n) => n + 1);
-                    return { ok: true as const };
+                    return {
+                      ...r,
+                      ok: false as const,
+                      error: 'Die Speicherung ist noch nicht bestätigt. Lass dieses Unterschriftsfenster geöffnet; die Erfassung bleibt darin erhalten.',
+                    };
                   } else {
                     setSignatureConfirmationPending(false);
+                    setSignatureConfirmationStalled(false);
                     setAwaitingSignature(true);
                     workflowPersistence.persist({
                       signatureConfirmationPending: false,

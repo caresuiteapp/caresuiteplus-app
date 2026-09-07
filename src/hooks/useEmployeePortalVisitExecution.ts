@@ -256,6 +256,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [startServiceLoading, setStartServiceLoading] = useState(false);
   const [refetchWarning, setRefetchWarning] = useState<string | null>(null);
+  const [signatureSaveError, setSignatureSaveError] = useState<string | null>(null);
+  const signatureSaveAttempt = useRef(0);
   const executionContextRef = useRef<AssistExecutionContext | null>(null);
   const skipContextRefreshRef = useRef(false);
   const serviceStartRepairRef = useRef<string | null>(null);
@@ -758,6 +760,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         timeoutMs?: number;
         preferExistingContext?: boolean;
         recoveryAction?: RecoverableWorkflowAction;
+        onLateFailure?: (message: string) => void;
       },
     ): Promise<{ ok: boolean; data?: T; error?: string; errorCode?: string }> => {
       // Realtime and every successful mutation keep this ref current. Reloading
@@ -795,10 +798,27 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         const operation = options?.recoveryAction
           ? runCanonicalMutation(`${ctx.tenantId}:${ctx.employeeId}:${ctx.assistVisitId}:${options.recoveryAction}`, () => fn(ctx!))
           : fn(ctx);
-        void operation.then(async () => {
-          if (confirmationTimedOut) await refreshExecutionContext();
+        void operation.then(async (settled) => {
+          if (!confirmationTimedOut) return;
+          const confirmedContext = settled.ok ? unwrapWorkflowContextPayload(settled.data) : null;
+          if (confirmedContext) {
+            await syncAfterWorkflow(confirmedContext);
+            return;
+          }
+          const recovered = await refreshExecutionContext();
+          if (recovered && options?.recoveryAction && didWorkflowActionReachPostcondition(options.recoveryAction, ctx!, recovered)) {
+            await syncAfterWorkflow(recovered);
+          } else if (!settled.ok) {
+            options?.onLateFailure?.(settled.error ?? 'Die Speicherung wurde nicht bestätigt. Bitte den Status prüfen.');
+          }
         }, async () => {
-          if (confirmationTimedOut) await refreshExecutionContext();
+          if (!confirmationTimedOut) return;
+          const recovered = await refreshExecutionContext();
+          if (recovered && options?.recoveryAction && didWorkflowActionReachPostcondition(options.recoveryAction, ctx!, recovered)) {
+            await syncAfterWorkflow(recovered);
+          } else {
+            options?.onLateFailure?.('Die Übertragung wurde unterbrochen. Bitte den Status prüfen, bevor du erneut speicherst.');
+          }
         }).catch(() => undefined);
         const result = await withWorkflowTimeout(
           operation,
@@ -1190,8 +1210,16 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   );
 
   const handleSaveSignature = useCallback(
-    (signature: EmployeePortalSignatureCaptureInput) =>
-      runWorkflow((ctx) => saveClientSignature({ ctx, signature }), { recoveryAction: 'save_signature' }),
+    (signature: EmployeePortalSignatureCaptureInput) => {
+      const attempt = ++signatureSaveAttempt.current;
+      setSignatureSaveError(null);
+      return runWorkflow((ctx) => saveClientSignature({ ctx, signature }), {
+        recoveryAction: 'save_signature',
+        onLateFailure: (message) => {
+          if (signatureSaveAttempt.current === attempt) setSignatureSaveError(message);
+        },
+      });
+    },
     [runWorkflow],
   );
 
@@ -1424,6 +1452,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     saveTask: handleSaveTask,
     saveDocumentation: handleSaveDocumentation,
     saveSignature: handleSaveSignature,
+    signatureSaveError,
     finalizeVisit: handleFinalize,
     finalizeVisitDeferred: handleFinalizeDeferred,
     reportNoShow: handleNoShow,

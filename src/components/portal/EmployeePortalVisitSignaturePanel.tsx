@@ -12,6 +12,10 @@ type EmployeePortalVisitSignaturePanelProps = {
   clientName: string;
   disabled?: boolean;
   loading?: boolean;
+  confirmationPending?: boolean;
+  confirmationStalled?: boolean;
+  saveError?: string | null;
+  onCheckStatus?: () => void;
   capturedPreview?: string | null;
   compact?: boolean;
   /** Only render capture modal — no visible card (used when dashboard opens signature). */
@@ -30,6 +34,10 @@ export function EmployeePortalVisitSignaturePanel({
   clientName,
   disabled = false,
   loading = false,
+  confirmationPending = false,
+  confirmationStalled = false,
+  saveError,
+  onCheckStatus,
   capturedPreview,
   compact = true,
   modalOnly = false,
@@ -88,7 +96,7 @@ export function EmployeePortalVisitSignaturePanel({
   );
 
   const handleConfirm = async (dataUrl: string) => {
-    if (captureSubmittingRef.current) return;
+    if (captureSubmittingRef.current || confirmationPending || disabled || loading) return;
     captureSubmittingRef.current = true;
     setCaptureError(null);
     try {
@@ -105,15 +113,25 @@ export function EmployeePortalVisitSignaturePanel({
           result.error ?? 'Die Unterschrift konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.',
         );
       }
+    } catch {
+      setCaptureError('Die Speicherung konnte nicht bestätigt werden. Die Unterschrift bleibt in diesem geöffneten Fenster erhalten.');
     } finally {
       captureSubmittingRef.current = false;
     }
   };
 
+  const captureFeedback = saveError ?? (confirmationStalled
+    ? 'Die Speicherung ist noch nicht bestätigt. Bitte den Status prüfen und dieses Fenster geöffnet lassen.'
+    : captureError ?? (confirmationPending ? 'Unterschrift wird übertragen und geprüft. Bitte dieses Fenster geöffnet lassen.' : null));
+  const captureDisabled = disabled || loading || confirmationPending;
+
   if (modalOnly) {
     return modalVisible ? (
       <CareSignatureModal
         visible
+        disabled={captureDisabled}
+        statusMessage={captureFeedback}
+        onCheckStatus={confirmationStalled ? onCheckStatus : undefined}
         label="Klient:innen-Unterschrift"
         forceFullscreen
         dismissScope={visitId ?? 'signature'}
@@ -151,6 +169,9 @@ export function EmployeePortalVisitSignaturePanel({
         {modalVisible ? (
           <CareSignatureModal
             visible
+            disabled={captureDisabled}
+            statusMessage={captureFeedback}
+            onCheckStatus={confirmationStalled ? onCheckStatus : undefined}
             label="Klient:innen-Unterschrift"
             forceFullscreen
             dismissScope={visitId ?? 'signature'}
@@ -189,6 +210,9 @@ export function EmployeePortalVisitSignaturePanel({
       {modalVisible ? (
         <CareSignatureModal
           visible
+          disabled={captureDisabled}
+          statusMessage={captureFeedback}
+          onCheckStatus={confirmationStalled ? onCheckStatus : undefined}
           label="Klient:innen-Unterschrift"
           forceFullscreen
           dismissScope={visitId ?? 'signature'}

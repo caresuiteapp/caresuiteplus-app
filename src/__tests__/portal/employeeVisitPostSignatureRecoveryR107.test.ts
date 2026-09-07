@@ -6,15 +6,12 @@ const root = path.join(__dirname, '..', '..', '..');
 const read = (relativePath: string) => readFileSync(path.join(root, relativePath), 'utf8');
 
 describe('employee visit post-signature recovery R10.7', () => {
-  it('keeps polling without overlapping requests until the signature is confirmed', () => {
+  it('uses cancellable bounded polling for signature confirmation', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     expect(screen).not.toContain('const poll = setInterval');
-    expect(screen).toContain('const retryDelayMs = attempts < 5');
-    expect(screen).toMatch(
-      /await signatureConfirmationRefreshRef\.current\(\);[\s\S]*finally \{[\s\S]*retryTimer = setTimeout/,
-    );
-    expect(screen).toContain('await signatureConfirmationRefreshRef.current()');
-    expect(screen).toContain('cancelled = true');
+    expect(screen).toContain('return pollSignatureConfirmation({');
+    expect(screen).toContain('refresh: () => signatureConfirmationRefreshRef.current()');
+    expect(screen).toContain('if (signatureConfirmationStalled) return;');
   });
 
   it('keeps an already loaded visit visible during background refresh', () => {

@@ -3,7 +3,6 @@
  * signature request is released to Klient:innenportal for later signing.
  */
 import type { ServiceResult } from '@/types';
-import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 import { buildServiceRecordSnapshot } from '@/features/assistWorkflow/buildServiceRecordHtml';
 import type { AssistExecutionContext } from '@/features/assistWorkflow/types';
 import type { VisitDispositionDetail, VisitTaskStatus } from '@/lib/assist/visitTypes';
@@ -12,7 +11,6 @@ import {
   computeVisitProofPayloadHash,
   fetchLatestVisitProof,
   persistVisitProof,
-  updateVisitProofRow,
 } from '@/lib/assist/assistVisitProofPersistenceService';
 import { invalidatePortalProofCache } from '@/lib/portal/portalProofCacheSignal';
 import { getServiceMode } from '@/lib/services/mode';
@@ -248,31 +246,26 @@ export async function hasPortalDeferredClientSignature(
   );
 }
 
-async function upsertDeferredSignatureClientPortalDocument(
-  tenantId: string,
-  proof: AssistVisitProofRow,
-  clientId: string,
-  options?: { actorProfileId?: string | null; administrative?: boolean },
-): Promise<ServiceResult<{ clientDocumentId: string }>> {
+async function releaseAdministrativeSignatureAtomically(input: {
+  tenantId: string;
+  proofId: string;
+  clientId: string;
+  title: string;
+  payloadSnapshot: Record<string, unknown>;
+  payloadHash: string;
+}): Promise<ServiceResult<{ clientDocumentId: string }>> {
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const snapshot = proof.payloadSnapshot ?? {};
-  const title =
-    String(snapshot.title ?? snapshot.serviceName ?? 'Leistungsnachweis').trim() ||
-    'Leistungsnachweis';
-
-  const rpcName = options?.administrative
-    ? 'admin_upsert_deferred_signature_client_document'
-    : 'employee_portal_upsert_deferred_signature_client_document';
   const { data, error } = await (supabase.rpc(
-    rpcName as never,
+    'admin_release_deferred_signature' as never,
     {
-      p_tenant_id: tenantId,
-      p_proof_id: proof.id,
-      p_client_id: clientId,
-      p_title: title,
-      p_actor_profile_id: options?.actorProfileId ?? null,
+      p_tenant_id: input.tenantId,
+      p_proof_id: input.proofId,
+      p_client_id: input.clientId,
+      p_title: input.title,
+      p_payload_snapshot: input.payloadSnapshot,
+      p_payload_hash: input.payloadHash,
     } as never,
   ) as unknown as Promise<{
     data: unknown;
@@ -283,8 +276,10 @@ async function upsertDeferredSignatureClientPortalDocument(
     return { ok: false, error: error.message };
   }
 
-  const clientDocumentId = typeof data === 'string' ? data : proof.id;
-  return { ok: true, data: { clientDocumentId } };
+  if (typeof data !== 'string' || data !== input.proofId) {
+    return { ok: false, error: 'Klient:innenportal-Freigabe wurde nicht bestätigt. Bitte Status erneut prüfen.' };
+  }
+  return { ok: true, data: { clientDocumentId: data } };
 }
 
 /**
@@ -342,6 +337,9 @@ export async function releaseDeferredClientSignatureRequest(
     };
   }
   if (existing.ok && existing.data) {
+    if (existing.data.signatureId || ['approved', 'exported', 'archived'].includes(existing.data.status)) {
+      return { ok: false, error: 'Der Nachweis ist bereits unterschrieben oder freigegeben. Bitte den aktuellen Nachweis öffnen.' };
+    }
     proofId = existing.data.id;
   } else {
     const created = await persistVisitProof(
@@ -380,33 +378,15 @@ export async function releaseDeferredClientSignatureRequest(
     };
   }
 
-  const payloadUpdated = await updateVisitProofRow(ctx.tenantId, proofId, {
-    payload_snapshot: snapshot,
-    payload_hash: payloadHash,
-    signature_id: null,
-  });
-  if (!payloadUpdated.ok) {
-    return { ok: false, error: payloadUpdated.error ?? 'Unterschriftsanfrage konnte nicht gespeichert werden.' };
-  }
-
-  const released = await updateVisitProofRow(ctx.tenantId, proofId, {
-    portal_visible: true,
-    portal_release_status: 'pending_client_signature',
-    released_to_portal_at: new Date().toISOString(),
-    updated_by: ctx.profileId ?? null,
-  });
-  if (!released.ok) return { ok: false, error: released.error };
-  if (!released.data) return { ok: false, error: 'Portal-Freigabe fehlgeschlagen.' };
-
-  const documentSync = await upsertDeferredSignatureClientPortalDocument(
-    ctx.tenantId,
-    released.data,
+  // Publishing the proof and creating the client's request must commit together.
+  const documentSync = await releaseAdministrativeSignatureAtomically({
+    tenantId: ctx.tenantId,
+    proofId,
     clientId,
-    {
-      actorProfileId: ctx.profileId ?? null,
-      administrative: options?.administrative,
-    },
-  );
+    title: ctx.detail.title,
+    payloadSnapshot: snapshot,
+    payloadHash,
+  });
   if (!documentSync.ok) {
     return { ok: false, error: documentSync.error ?? 'Klient:innenportal-Eintrag fehlgeschlagen.' };
   }

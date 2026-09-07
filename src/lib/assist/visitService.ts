@@ -1,4 +1,5 @@
 import type { RoleKey, ServiceResult } from '@/types';
+import { validateVisitEditCompletion } from './validateVisitEditCompletion';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import {
@@ -1015,6 +1016,10 @@ export async function updateVisitFromWizard(
     if (!existing.ok) return existing;
     if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
+    // Validate before changing form fields, task mirrors or the status itself.
+    const completionError = validateVisitEditCompletion(existing.data, assignmentStatus);
+    if (completionError) return { ok: false, error: completionError };
+
     const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
     const targetVisitId = resolvedId ?? masterVisitId;
 
@@ -1039,6 +1044,11 @@ export async function updateVisitFromWizard(
           candidate.id === targetVisitId || !isProtectedSeriesHistory(candidate)
         ))
         .sort((a, b) => a.scheduledStart.localeCompare(b.scheduledStart));
+
+      for (const candidate of targets) {
+        const completionError = validateVisitEditCompletion(candidate, assignmentStatus);
+        if (completionError) return { ok: false, error: completionError };
+      }
 
       const updatedSnapshots: VisitDispositionDetail[] = [];
       for (const candidate of targets) {

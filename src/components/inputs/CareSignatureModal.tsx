@@ -13,6 +13,7 @@ import { CareSignatureCanvas } from '@/components/inputs/CareSignatureCanvas';
 import { OrientationGate } from '@/components/layout/OrientationGate';
 import { GradientModalHeader } from '@/components/layout/platform/gradientmodalheader';
 import { FullscreenOverlay } from '@/components/ui/FullscreenOverlay';
+import { PremiumButton } from '@/components/ui';
 import { careRadius } from '@/design/tokens/radius';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -30,6 +31,8 @@ type Props = {
   onConfirm: (dataUrl: string) => void;
   onClose: () => void;
   disabled?: boolean;
+  statusMessage?: string | null;
+  onCheckStatus?: () => void;
   /** sessionStorage scope for landscape dismiss — typically visitId. */
   dismissScope?: string;
   /** Use the entire viewport, including desktop and large tablets. */
@@ -102,6 +105,8 @@ export function CareSignatureModal({
   onConfirm,
   onClose,
   disabled,
+  statusMessage,
+  onCheckStatus,
   dismissScope = 'signature',
   forceFullscreen = false,
 }: Props) {
@@ -223,6 +228,13 @@ export function CareSignatureModal({
     />
   );
 
+  const feedback = statusMessage ? (
+    <View style={{ padding: spacing.sm, gap: spacing.xs }}>
+      <Text accessibilityRole="alert" style={styles.subtitle}>{statusMessage}</Text>
+      {onCheckStatus ? <PremiumButton title="Status erneut prüfen" variant="secondary" onPress={onCheckStatus} /> : null}
+    </View>
+  ) : null;
+
   if (fullscreen) {
     if (!visible) return null;
 
@@ -248,6 +260,7 @@ export function CareSignatureModal({
               />
             </View>
             <View style={styles.fullscreenBody} pointerEvents="box-none">
+              {feedback}
               <View style={styles.canvasSlot}>{canvas}</View>
             </View>
           </View>
@@ -268,6 +281,7 @@ export function CareSignatureModal({
         <View style={[styles.sheetHost, { width: sheetWidth, maxHeight: screenHeight * 0.92 }]}>
           <GradientModalHeader title="Unterschrift" onClose={onClose} />
           <View style={styles.body}>
+            {feedback}
             <Text style={styles.subtitle}>
               {label} · Bitte groß und waagerecht unterschreiben. Die Schreibfläche führt Striche am Rand sicher weiter.
             </Text>

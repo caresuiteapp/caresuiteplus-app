@@ -14,6 +14,8 @@ type EmployeePortalVisitLiveDashboardProps = {
   documentationLastSavedAt?: string | null;
   signatureCaptured: boolean;
   signatureConfirmationPending?: boolean;
+  signatureConfirmationStalled?: boolean;
+  onCheckSignature?: () => void;
   requiresSignature: boolean;
   signatureEnabled?: boolean;
   serviceSeconds: number | null;
@@ -52,6 +54,8 @@ export function EmployeePortalVisitLiveDashboard({
   documentationLastSavedAt,
   signatureCaptured,
   signatureConfirmationPending = false,
+  signatureConfirmationStalled = false,
+  onCheckSignature,
   requiresSignature,
   signatureEnabled = true,
   serviceSeconds,
@@ -102,7 +106,9 @@ export function EmployeePortalVisitLiveDashboard({
               icon="✎"
               title="Unterschrift"
               status={
-                signatureConfirmationPending
+                signatureConfirmationStalled
+                  ? 'Speicherung noch nicht bestätigt'
+                  : signatureConfirmationPending
                   ? 'Unterschrift wird gerade geprüft – bitte warten'
                   : signatureCaptured
                     ? 'Gespeichert'
@@ -111,13 +117,15 @@ export function EmployeePortalVisitLiveDashboard({
                       : 'Nach Einsatzende'
               }
               subtitle={
-                signatureConfirmationPending
+                signatureConfirmationStalled
+                  ? 'Antippen, um den Serverstatus erneut zu prüfen.'
+                  : signatureConfirmationPending
                   ? 'Der Serverabgleich läuft automatisch. Bitte nicht erneut tippen.'
                   : undefined
               }
-              onPress={signatureConfirmationPending ? undefined : onOpenSignature}
-              disabled={signatureConfirmationPending || !signatureEnabled}
-              pending={signatureConfirmationPending}
+              onPress={signatureConfirmationStalled ? onCheckSignature : signatureConfirmationPending ? undefined : onOpenSignature}
+              disabled={signatureConfirmationStalled ? !onCheckSignature : signatureConfirmationPending || !signatureEnabled}
+              pending={signatureConfirmationPending && !signatureConfirmationStalled}
               testID="portal-open-signature"
             />
           </View>

@@ -20,7 +20,7 @@ describe('employee portal deferred signature RPC migration', () => {
 });
 
 describe('deferred signature service uses RPC', () => {
-  it('calls employee_portal_upsert_deferred_signature_client_document', () => {
+  it('uses atomic employee and administration release RPCs', () => {
     const service = readFileSync(
       path.join(
         __dirname,
@@ -31,7 +31,8 @@ describe('deferred signature service uses RPC', () => {
       ),
       'utf8',
     );
-    expect(service).toContain('employee_portal_upsert_deferred_signature_client_document');
+    expect(service).toContain('employee_portal_release_deferred_signature');
+    expect(service).toContain('admin_release_deferred_signature');
     expect(service).not.toContain("fromUnknownTable(supabase, 'client_documents').insert");
   });
 });

@@ -1021,14 +1021,25 @@ export const visitSupabaseRepository = {
     if (toStatus === 'gestartet') patch.execution_status = 'in_progress';
     if (toStatus === 'pausiert') patch.execution_status = 'paused';
 
-    const { error } = await fromUnknownTable(supabase, 'assist_visits')
+    const { data: storedStatus, error } = await fromUnknownTable(supabase, 'assist_visits')
       .update(patch)
       .eq('tenant_id', tenantId)
-      .eq('id', visitId);
+      .eq('id', visitId)
+      .select('id, canonical_status')
+      .maybeSingle();
 
     if (error) {
       const detail = '[' + (error.code ?? 'unknown') + ': ' + (error.message ?? 'unbekannter Fehler') + ']';
       return { ok: false, error: toGermanSupabaseError(error) + ' ' + detail };
+    }
+
+    // Verify the mutation itself. The display status can correctly remain
+    // "Unterschrift offen" after execution ends with a pending client request.
+    if (!storedStatus || storedStatus.canonical_status !== remoteStatus) {
+      return {
+        ok: false,
+        error: 'Der Einsatzstatus wurde vom Server nicht übernommen. Bitte Berechtigung und Datenstand prüfen.',
+      };
     }
 
     const legacyStatusSync = await syncLegacyAssignmentStatusFromVisit(
@@ -1067,12 +1078,6 @@ export const visitSupabaseRepository = {
     const refreshed = await this.getById(tenantId, visitId);
     if (!refreshed.ok) return refreshed;
     if (!refreshed.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
-    if (refreshed.data.assignmentStatus !== toStatus) {
-      return {
-        ok: false,
-        error: 'Der Einsatzstatus wurde vom Server nicht übernommen. Bitte Berechtigung und Datenstand prüfen.',
-      };
-    }
 
     if (toStatus === 'storniert') {
       cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', visitId);

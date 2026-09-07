@@ -18,31 +18,32 @@ describe('employee visit signature confirmation R10.6', () => {
     const dashboard = read('src/components/portal/EmployeePortalVisitLiveDashboard.tsx');
     expect(dashboard).toContain('Unterschrift wird gerade geprüft – bitte warten');
     expect(dashboard).toContain('Der Serverabgleich läuft automatisch. Bitte nicht erneut tippen.');
-    expect(dashboard).toContain('onPress={signatureConfirmationPending ? undefined : onOpenSignature}');
-    expect(dashboard).toContain('disabled={signatureConfirmationPending || !signatureEnabled}');
+    expect(dashboard).toContain('signatureConfirmationPending ? undefined : onOpenSignature');
+    expect(dashboard).toContain('signatureConfirmationPending || !signatureEnabled');
+    expect(dashboard).toContain('Speicherung noch nicht bestätigt');
   });
 
-  it('never presents a confirmation timeout as a signature error', () => {
+  it('never reports an unconfirmed timeout as a successful signature capture', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     expect(screen).toMatch(
-      /else if \(isWorkflowConfirmationPending\(r\.errorCode\)\)[\s\S]*return \{ ok: true as const \}/,
+      /else if \(isWorkflowConfirmationPending\(r\.errorCode\)\)[\s\S]*ok: false as const/,
     );
     expect(screen).toMatch(
-      /if \(signatureConfirmationPending\)[\s\S]*tone: 'info' as const[\s\S]*Unterschrift wird gerade geprüft/,
+      /if \(signatureConfirmationPending\)[\s\S]*tone: 'warning' as const[\s\S]*noch nicht bestätigt/,
     );
   });
 
-  it('suppresses transient sync warnings while the signature readback is pending', () => {
+  it('makes readback problems visible after the bounded wait', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
-    expect(screen).toContain('const syncWarning = !queryError && !signatureConfirmationPending');
+    expect(screen).toContain('!signatureConfirmationPending || signatureConfirmationStalled');
     expect(screen).toContain('!signatureConfirmationPending &&');
   });
 
   it('polls automatically and advances only after authoritative confirmation', () => {
     const screen = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
-    expect(screen).toContain('await signatureConfirmationRefreshRef.current()');
-    expect(screen).toContain('const retryDelayMs = attempts < 5');
-    expect(screen).toContain('attempts < 15 ? 3_000 : 5_000');
+    expect(screen).toContain('refresh: () => signatureConfirmationRefreshRef.current()');
+    expect(screen).toContain('return pollSignatureConfirmation({');
+    expect(screen).toContain('onUnconfirmed: () => setSignatureConfirmationStalled(true)');
     expect(screen).not.toContain('const poll = setInterval');
     expect(screen).toContain('Unterschrift geprüft und gespeichert');
     expect(screen).toContain("signatureConfirmationPending ? 'UNTERSCHRIFT WIRD GEPRÜFT'");
