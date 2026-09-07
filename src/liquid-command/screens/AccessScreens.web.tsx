@@ -476,6 +476,14 @@ export function RegisterOrganizationScreen() {
   ) => setForm((current) => ({ ...current, [key]: value }));
 
   const stepError = useMemo(() => {
+    const fieldsByStep = [
+      ['companyName', 'legalForm', 'industry', 'ikNumber'],
+      ['street', 'zip', 'city', 'phone', 'email', 'website'],
+      ['adminFirstName', 'adminLastName', 'adminEmail', 'adminPhone', 'contactFirstName', 'contactLastName', 'contactRole'],
+    ] as const;
+    if (step < fieldsByStep.length && fieldsByStep[step].some(key => (form[key]?.length ?? 0) > 200)) {
+      return 'Bitte Angaben auf höchstens 200 Zeichen begrenzen.';
+    }
     if (step === 0 && (!form.companyName.trim() || !form.legalForm.trim() || !form.industry.trim())) {
       return 'Firmenname, Rechtsform und Einrichtungstyp sind erforderlich.';
     }
@@ -485,8 +493,14 @@ export function RegisterOrganizationScreen() {
     if (step === 2 && (!form.adminFirstName.trim() || !form.adminLastName.trim() || !form.adminEmail.trim())) {
       return 'Vorname, Nachname und E-Mail der Administration sind erforderlich.';
     }
+    if ((step === 1 || step === 2) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((step === 1 ? form.email : form.adminEmail).trim())) {
+      return 'Bitte eine gültige E-Mail-Adresse eingeben.';
+    }
+    if (step === 1 && form.website?.trim() && !/^https?:\/\/[^\s]+$/i.test(form.website.trim())) {
+      return 'Die Website muss mit https:// oder http:// beginnen.';
+    }
     if (step === 3) {
-      if (form.adminPassword.length < 10 || form.adminPassword.length > 128) return 'Das Admin-Passwort muss mindestens 10 Zeichen haben.';
+      if (form.adminPassword.length < 10 || form.adminPassword.length > 128) return 'Das Admin-Passwort muss 10 bis 128 Zeichen lang sein.';
       if (form.adminPassword !== confirmPassword) return 'Die Passwörter stimmen nicht überein.';
       if (!accepted) return 'Datenschutz- und Nutzungsbedingungen müssen bestätigt werden.';
     }
@@ -494,6 +508,7 @@ export function RegisterOrganizationScreen() {
   }, [accepted, confirmPassword, form, step]);
 
   const next = () => {
+    if (!draftReady || submitLock.current) return;
     setError(null);
     if (stepError) {
       setError(stepError);
@@ -503,7 +518,7 @@ export function RegisterOrganizationScreen() {
   };
 
   const submit = async () => {
-    if (submitLock.current) return;
+    if (!draftReady || submitLock.current) return;
     const validation = validateBusinessRegistration(form);
     if (validation || !accepted || form.adminPassword !== confirmPassword) {
       setError(validation ?? 'Bitte Bedingungen bestätigen und Passwortbestätigung prüfen.');
@@ -529,6 +544,10 @@ export function RegisterOrganizationScreen() {
       setLoading(false);
     }
   };
+
+  if (!draftReady) {
+    return <AccessShell eyebrow="REGISTRIERUNG" title="Kostenloses Unternehmen anlegen" subtitle="Gespeicherte Angaben werden geladen…"><LiquidState kind="loading" title="Registrierung wird vorbereitet" message="Ihre gespeicherten Angaben stehen gleich zur Verfügung." /></AccessShell>;
+  }
 
   if (success) {
     return (
@@ -561,8 +580,8 @@ export function RegisterOrganizationScreen() {
             <Pressable
               key={label}
               accessibilityRole="button"
-              accessibilityState={{ selected: step === index, disabled: index > step }}
-              disabled={index > step}
+              accessibilityState={{ selected: step === index, disabled: loading || index > step }}
+              disabled={loading || index > step}
               onPress={() => setStep(index)}
               style={[styles.stepRow, step === index && styles.stepRowActive]}
             >
@@ -585,6 +604,7 @@ export function RegisterOrganizationScreen() {
       }
     >
       <LiquidSurface active contentStyle={styles.formCard}>
+        <LiquidStatus label="Kostenlos · 0 € · keine Kreditkarte" tone="success" />
         {error ? <LiquidState kind="error" title="Angaben prüfen" message={error} /> : null}
         {step === 0 ? (
           <>
@@ -627,10 +647,10 @@ export function RegisterOrganizationScreen() {
               onChangeText={(value) => update('adminPassword', value)}
               secureTextEntry
               required
-              hint="Mindestens 10 Zeichen; keine Wiederverwendung eines Einmalpassworts."
+              hint="10 bis 128 Zeichen; keine Wiederverwendung eines Einmalpassworts."
             />
             <LiquidField label="Passwort bestätigen" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry required />
-            <Link href="/datenschutz" target="_blank" style={{ color: '#8FE4FF', fontSize: 15, textDecorationLine: 'underline' }}>Datenschutzhinweise lesen</Link>
+            <Link href="/datenschutz" target="_blank" style={{ color: '#1D4ED8', fontSize: 15, textDecorationLine: 'underline' }}>Datenschutzhinweise lesen</Link>
             <Pressable
               accessibilityRole="checkbox"
               accessibilityState={{ checked: accepted }}

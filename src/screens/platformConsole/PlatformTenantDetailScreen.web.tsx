@@ -1,5 +1,5 @@
 import { PlatformShellLayout as DesktopPlatformShell } from '@/components/platformConsole/PlatformShellLayout.web';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -105,9 +105,13 @@ type TabKey = (typeof TAB_GROUPS)[number]['tabs'][number]['key'];
 
 
 export function PlatformTenantDetailScreen() {
-
-  const router = useRouter();
   const { tenantId } = useLocalSearchParams<{ tenantId: string }>();
+  const id = typeof tenantId === 'string' ? tenantId : '';
+  return <TenantDetailContent key={id} tenantId={id} />;
+}
+
+function TenantDetailContent({ tenantId }: { tenantId: string }) {
+  const router = useRouter();
 
   const { platformUser } = usePlatformAuth();
 
@@ -138,6 +142,10 @@ export function PlatformTenantDetailScreen() {
   const [actionLoading, setActionLoading] = useState(false);
 
   const [lastAuditAction, setLastAuditAction] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const requestNumber = useRef(0);
+  const actionLock = useRef(false);
+  const mounted = useRef(true);
 
 
 
@@ -148,37 +156,29 @@ export function PlatformTenantDetailScreen() {
 
 
   const load = useCallback(async () => {
-
-    if (!tenantId) return;
-
+    const request = ++requestNumber.current;
     setLoading(true);
-
     setError(null);
-
-    const result = await getPlatformTenantDetail(String(tenantId));
-
-    if (!result.ok) {
-
-      setError(result.error);
-
-      setLoading(false);
-
-      return;
-
+    try {
+      if (!tenantId) throw new Error('Die Unternehmens-ID fehlt. Bitte öffnen Sie das Unternehmen erneut aus der Liste.');
+      const result = await getPlatformTenantDetail(tenantId);
+      if (request !== requestNumber.current) return;
+      if (!result.ok) throw new Error(result.error);
+      setDetail(result.data);
+    } catch (cause) {
+      if (request !== requestNumber.current) return;
+      setError(cause instanceof Error ? cause.message : 'Unternehmensdaten konnten nicht geladen werden.');
+    } finally {
+      if (request === requestNumber.current) setLoading(false);
     }
-
-    setDetail(result.data);
-
-    setLoading(false);
-
   }, [tenantId]);
 
 
 
   useEffect(() => {
-
+    mounted.current = true;
     void load();
-
+    return () => { mounted.current = false; requestNumber.current++; };
   }, [load]);
 
 
@@ -197,23 +197,25 @@ export function PlatformTenantDetailScreen() {
 
   async function runConfirm(reason: string) {
 
-    if (!confirm) return;
-
+    if (!confirm || actionLock.current) return;
+    actionLock.current = true;
+    setActionError(null);
+    setLastAuditAction(null);
     setActionLoading(true);
-
     try {
       await confirm.action(reason);
-
-    if (confirm.auditAction) setLastAuditAction(confirm.auditAction);
-
-    setActionLoading(false);
-
-    setConfirm(null);
-
+      if (!mounted.current) return;
+      if (confirm.auditAction) setLastAuditAction(confirm.auditAction);
+      setConfirm(null);
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Änderung konnte nicht gespeichert werden.');
-    } finally { setActionLoading(false); }
+      if (!mounted.current) return;
+      setConfirm(null);
+      setActionError(cause instanceof Error ? cause.message : 'Änderung konnte nicht gespeichert werden.');
+    } finally {
+      actionLock.current = false;
+      if (mounted.current) setActionLoading(false);
+    }
   }
 
 
@@ -284,6 +286,7 @@ export function PlatformTenantDetailScreen() {
 
 
 
+      {actionError ? <Text accessibilityRole="alert" style={{ color: PLATFORM_COLORS.danger }}>{actionError}</Text> : null}
       {lastAuditAction ? (
 
         <View style={styles.auditBanner}>
@@ -324,7 +327,8 @@ export function PlatformTenantDetailScreen() {
 
                 action: async (reason) => {
 
-                  await updatePlatformTenantStatus(tid, 'suspended', reason);
+                  const result = await updatePlatformTenantStatus(tid, 'suspended', reason);
+                  if (!result.ok) throw new Error(result.error);
 
                 },
 
@@ -344,7 +348,8 @@ export function PlatformTenantDetailScreen() {
 
                 action: async (reason) => {
 
-                  await updatePlatformTenantStatus(tid, 'active', reason);
+                  const result = await updatePlatformTenantStatus(tid, 'active', reason);
+                  if (!result.ok) throw new Error(result.error);
 
                 },
 
@@ -456,7 +461,7 @@ export function PlatformTenantDetailScreen() {
 
         loading={actionLoading}
 
-        onCancel={() => setConfirm(null)}
+        onCancel={() => { if (!actionLock.current) setConfirm(null); }}
 
         onConfirm={(reason) => void runConfirm(reason)}
 
@@ -544,7 +549,7 @@ function OverviewTab({
           <InfoBadgeRow label="Mandantenstatus" status={String(t.status ?? '—')} />
           <InfoBadgeRow label="Lifecycle" status={String(t.lifecycle_status ?? t.lifecycleStatus ?? '—')} />
           <InfoBadgeRow label="Abrechnung" status={String(t.billing_status ?? t.billingStatus ?? '—')} />
-          <InfoRow label="Tarif" value={String(t.plan_key ?? t.planKey ?? detail.plan?.plan_key ?? '—')} />
+          <InfoRow label="Tarif" value={(t.plan_key ?? t.planKey ?? detail.plan?.plan_key) === 'free_platform' ? 'Kostenlos · 0 €' : String(t.plan_key ?? t.planKey ?? detail.plan?.plan_key ?? '—')} />
         </View>
 
         <View style={[styles.panel, styles.recordColumn]}>
@@ -603,8 +608,8 @@ function TenantRecordEditTab({
   const [supportEmail, setSupportEmail] = useState(String(t.support_email ?? ''));
   const [country, setCountry] = useState(String(t.country ?? 'DE'));
   const [timezone, setTimezone] = useState(String(t.timezone ?? 'Europe/Berlin'));
-  const [environmentMode, setEnvironmentMode] = useState<PlatformTenantRecordUpdate['environmentMode']>(
-    initialMode === 'unclassified' ? 'internal_test' : initialMode as PlatformTenantRecordUpdate['environmentMode'],
+  const [environmentMode, setEnvironmentMode] = useState<PlatformTenantRecordUpdate['environmentMode'] | null>(
+    ['production', 'pilot', 'demo', 'sandbox', 'internal_test'].includes(initialMode) ? initialMode as PlatformTenantRecordUpdate['environmentMode'] : null,
   );
   const [environmentNotes, setEnvironmentNotes] = useState(String(t.environmentNotes ?? t.environment_notes ?? ''));
 
@@ -651,9 +656,9 @@ function TenantRecordEditTab({
       </View>
 
       <Pressable
-        style={[styles.saveButton, !environmentNotes.trim() && styles.disabledButton]}
-        disabled={!environmentNotes.trim()}
-        onPress={() => onSave({
+        style={[styles.saveButton, (!environmentMode || !environmentNotes.trim()) && styles.disabledButton]}
+        disabled={!environmentMode || !environmentNotes.trim()}
+        onPress={() => environmentMode && onSave({
           legalName: legalName.trim() || null, slug: slug.trim() || null,
           primaryContactName: contactName.trim() || null, primaryContactEmail: contactEmail.trim() || null,
           primaryContactPhone: contactPhone.trim() || null, billingEmail: billingEmail.trim() || null,

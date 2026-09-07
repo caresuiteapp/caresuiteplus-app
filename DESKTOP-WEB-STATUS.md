@@ -56,6 +56,26 @@ In R2.1 entfällt außerdem das doppelte CareSuite-Präfix vor bereits entsprech
 
 Die Sichtprüfung der in den sechs aktuellen Screenshots gezeigten Support-Bereiche ist damit dokumentiert. Diese Prüfung umfasst keine reale Speicherung, Uploads, bestätigte Freigaben, andere Bildschirmgrößen oder die übrigen Desktop-/Web-Seiten.
 
+## Angewendete Korrekturen für Registrierung und Unternehmensverwaltung – Web-Prüfung R3
+
+Der Nutzer hat die Rückübertragung, Anwendung, Tests und Erstellung der lokalen Vorschau ausdrücklich freigegeben. Der Patch wurde auf ChristianLaptop im Projekt `CareSuite-Desktop-20260907` erfolgreich angewendet. Die zuvor blockierte Übertragung ist damit erledigt. Ausgangspunkt war `cbde8a81`; die Ausgangsdateien wurden zuvor über ihre Git-Blob-IDs abgeglichen.
+
+Angewendet sind folgende Änderungen ausschließlich an Web-Bildschirmen:
+
+- Registrierung wartet auf die Entwurfsladung, bevor Eingaben möglich sind. E-Mail, Website und Feldlängen werden im zugehörigen Schritt geprüft; der kostenlose Einstieg ist auch im Hauptbereich sichtbar. Passwortlängenhinweis und Kontrast des Datenschutzlinks sind korrigiert. Während der Registrierung ist die Schrittleiste gesperrt.
+- Die Unternehmensliste beendet auch bei unerwarteten Ladefehlern ihren Ladezustand und bietet eine Wiederholung an.
+- Unternehmensdetails werden bei einem Wechsel der ID neu initialisiert. Verspätete Antworten können die aktuelle Akte nicht überschreiben. Fehlende IDs und Verbindungsfehler werden angezeigt.
+- Abgelehnte Sperrungen und Entsperrungen erscheinen nicht mehr als erfolgreiche Audit-Aktion. Mehrfaches gleichzeitiges Bestätigen ist gesperrt.
+- Eine bisher ungeklärte Datenklassifizierung erfordert eine ausdrückliche Auswahl, bevor die Akte gespeichert werden kann.
+
+Die acht neuen Interaktionstests in `src/__tests__/platformConsole/desktopCompanyFlows.test.tsx` und die sechs bestehenden Tests zur atomaren Unternehmensanlage bestehen: **14 Tests erfolgreich**. Der vollständige TypeScript-Lauf ist mit **Exit-Code 0** beendet. Der zusätzliche Starttest der fertig gebauten Vorschau hat Registrierung, Unternehmensliste, Unternehmensakte und Support ohne JavaScript-Fehler geladen; **vier DOM-Startprüfungen erfolgreich**. Dies ist keine optische Browserprüfung.
+
+Die lokale Vorschau **Web-Prüfung R3** liegt unter `%LOCALAPPDATA%\Temp\caresuite-company-preview\index.html`. Sie enthält die echten Web-Bildschirme, den tatsächlichen Plattformrahmen und die Provider für Farben und Textgröße. Dienste und Anmeldung sind durch fiktive Daten ersetzt. Es gibt 53 Beispielunternehmen für Suche, Filter und Paginierung. Registrierungen und Änderungen erfolgen nur im Speicher der Vorschau und werden beim vollständigen Neuladen zurückgesetzt. Weitere Verwaltungsregister und die Anmeldung sind ausdrücklich als nicht enthalten gekennzeichnet; beim Support gelten die bisherigen Grenzen des synthetischen Adapters. Produktions-APIs sind im Vorschau-Build ausgeschlossen, Netzwerkverbindungen durch die Vorschau-CSP gesperrt.
+
+Reproduzierbar mit `node scripts/build-company-preview.cjs` und `node scripts/verify-company-preview.cjs`. Der Starttest arbeitet ausschließlich mit einem lokalen DOM-Modell, ohne Browsernavigation, Screenshots oder Netzwerkzugriff. Die nächste optische Prüfung erfolgt weiterhin anhand der Nutzerscreenshots. Es wurde nichts gepusht oder veröffentlicht.
+
+Bei der Prüfung wurde außerdem kein eigener Link zu Nutzungsbedingungen im bestehenden Registrierungsablauf gefunden; vorhanden ist der Datenschutzlink. Es wurden keine Rechtstexte erfunden oder ergänzt.
+
 ## Bestandteile einer späteren Veröffentlichung
 
 Die folgenden vier neuen Migrationen müssen in dieser Reihenfolge und zusammen mit der aktualisierten Serverfunktion und Web-Version veröffentlicht werden:

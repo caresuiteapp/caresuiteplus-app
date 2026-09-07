@@ -43,21 +43,23 @@ export function PlatformTenantsScreen() {
     const request = ++requestNumber.current;
     setLoading(true);
     setError(null);
-    const result = await listPlatformCompanies({
-      search: search.trim() || undefined,
-      status: statusFilter || undefined,
-      billingStatus: billingFilter || undefined,
-      limit: 51, offset, environment: environmentFilter || undefined,
-    });
-    if (request !== requestNumber.current) return;
-    if (!result.ok) {
-      setError(result.error);
-      setLoading(false);
-      return;
+    try {
+      const result = await listPlatformCompanies({
+        search: search.trim() || undefined,
+        status: statusFilter || undefined,
+        billingStatus: billingFilter || undefined,
+        limit: 51, offset, environment: environmentFilter || undefined,
+      });
+      if (request !== requestNumber.current) return;
+      if (!result.ok) throw new Error(result.error);
+      setHasMore(result.data.items.length > 50);
+      setItems(result.data.items.slice(0, 50));
+    } catch (cause) {
+      if (request !== requestNumber.current) return;
+      setError(cause instanceof Error ? cause.message : 'Unternehmen konnten nicht geladen werden.');
+    } finally {
+      if (request === requestNumber.current) setLoading(false);
     }
-    setHasMore(result.data.items.length > 50);
-    setItems(result.data.items.slice(0,50));
-    setLoading(false);
   }, [billingFilter, environmentFilter, search, statusFilter, offset]);
 
   useEffect(() => {
