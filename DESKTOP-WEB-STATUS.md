@@ -44,6 +44,14 @@ Ein alter Quellcode-Test erwartete nur die frühere einzelne Sperrbedingung bei 
 3. Produktive Registrierung, Uploads und Support-Zugriffe sind noch nicht mit den neuen Serverfunktionen live getestet. Es wurden keine echten Mandanten zu Testzwecken angelegt oder verändert.
 4. Der wiedergefundene Implementierungsstand ist lokal mit Commit `79dc2f2b1515771242550fc7141b1a89b982222f` auf `feature/desktop-platform-support-20260907` gesichert. Änderungen sind weder gepusht noch veröffentlicht. Nach abgeschlossener Prüfung ist eine ausdrückliche Veröffentlichungsfreigabe erforderlich; die lokale Projektregel untersagt automatische Deployments. Ein Push auf `main` kann bereits eine Veröffentlichung auslösen.
 
+## Sichtprüfung anhand des Nutzerscreenshots – Support-Layout R2
+
+Der bereitgestellte Screenshot zeigt die geladene Unternehmensansicht der ursprünglichen Support-Vorschau. Sichtbar waren abgeschnittene Statusfilter und ein großer Leerraum zwischen Filtern und Ticketliste.
+
+Ursache: Der horizontale React-Native-Web-ScrollView verwendet standardmäßig `flexGrow: 1` und beanspruchte damit Höhe neben der eigentlichen Ticketliste. Die Filter liegen jetzt in einer normal hohen, umbrechenden Leiste; die Ticketliste behält ihren eigenen Scrollbereich.
+
+Die vier bestehenden Support-Interaktionstests wurden nach der Änderung erneut erfolgreich ausgeführt. Auch die vollständige TypeScript-Prüfung wurde mit Exit-Code 0 abgeschlossen. Die Vorschau wurde neu erstellt und ist oben mit **Support-Layout R2** gekennzeichnet. Eine visuelle Bestätigung der korrigierten Ansicht, des geöffneten Tickets und der Support-Zentrale steht noch aus.
+
 ## Bestandteile einer späteren Veröffentlichung
 
 Die folgenden vier neuen Migrationen müssen in dieser Reihenfolge und zusammen mit der aktualisierten Serverfunktion und Web-Version veröffentlicht werden:
