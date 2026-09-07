@@ -46,7 +46,7 @@ export function SupportAccessPanel({ detail, platformMode, busy, run, refresh }:
   });
   const workspaceRequest=detail.requests.find(request=>request.id===workspace?.requestId);
   return <>
-    <View style={s.section}><Text accessibilityRole="header" style={s.heading}>Zugriffsfreigaben</Text><Text style={s.copy}>Sie bestimmen, welche Daten der Support sehen oder bearbeiten darf. Ohne Bestätigung gibt es keinen Zugriff auf weitere Unternehmensdaten.</Text>
+    <View style={s.section}><Text accessibilityRole="header" style={s.heading}>Zugriffsfreigaben</Text><Text style={s.copy}>{platformMode ? 'Zusätzlichen Datenzugriff können Sie hier anfragen. Erst die berechtigte Unternehmensverwaltung erteilt die Freigabe; sie gilt nur für dieses Ticket und die bestätigte Dauer.' : detail.can_approve ? 'Sie bestimmen, welche Daten der Support sehen oder bearbeiten darf. Ohne Bestätigung gibt es keinen Zugriff auf weitere Unternehmensdaten.' : 'Zusätzlichen Zugriff kann nur Ihre berechtigte Unternehmensverwaltung freigeben. Ohne deren Bestätigung kann der Support keine weiteren Unternehmensdaten einsehen.'}</Text>
       {!detail.requests.length ? <Text style={s.small}>Zu diesem Ticket wurde noch kein zusätzlicher Zugriff angefordert.</Text> : null}
       {detail.requests.map(request=>{
         const active=isSupportAccessActive(request,now);
