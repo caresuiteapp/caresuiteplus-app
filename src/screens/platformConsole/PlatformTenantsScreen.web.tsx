@@ -1,6 +1,6 @@
 import { PlatformShellLayout as DesktopPlatformShell } from '@/components/platformConsole/PlatformShellLayout.web';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   PlatformDataTable,
@@ -19,6 +19,10 @@ import { spacing } from '@/theme';
 
 export function PlatformTenantsScreen() {
   const router = useRouter();
+  const { width: windowWidth } = useWindowDimensions();
+  const [listWidth, setListWidth] = useState<number | null>(null);
+  // Measure the space left by the sidebar; use the viewport until layout is ready.
+  const compactList = listWidth === null ? windowWidth < 1280 : listWidth < 1050;
   const [items, setItems] = useState<PlatformTenantListItem[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -87,7 +91,7 @@ export function PlatformTenantsScreen() {
       { key: 'lifecycleStatus', label: 'Einrichtung', render: (row: PlatformTenantListItem) => row.lifecycleStatus === 'onboarding' ? 'Neu · Einrichtung läuft' : row.lifecycleStatus === 'live' ? 'Im Betrieb' : row.lifecycleStatus },
       {
         key: 'billingStatus',
-        label: 'Billing',
+        label: 'Abrechnung',
         render: (row: PlatformTenantListItem) => <PlatformStatusBadge status={row.billingStatus} />,
       },
       {
@@ -103,7 +107,7 @@ export function PlatformTenantsScreen() {
             );
           }
           return (
-            <Pressable onPress={() => openTenantDetail(row)} accessibilityLabel="Mandant öffnen">
+            <Pressable style={styles.openBtn} onPress={() => openTenantDetail(row)} accessibilityRole="button" accessibilityLabel={`Unternehmen ${row.tenantName} öffnen`}>
               <Text style={styles.link}>Öffnen</Text>
             </Pressable>
           );
@@ -155,22 +159,55 @@ export function PlatformTenantsScreen() {
           </PlatformFilterChipRow>
         </View>
       </View>
-      {loading ? (
-        <LoadingState message="Mandanten werden geladen…" />
-      ) : error ? (
-        <ErrorState title="Liste nicht verfügbar" message={error} onRetry={() => void load()} />
-      ) : (
-        <PlatformDataTable
-            columns={columns.map((col) => ({
-              ...col,
-              minWidth: col.key === 'actions' ? 88 : col.key === 'tenantName' ? 180 : 110,
-            }))}
-            data={items}
-            keyExtractor={(row, index) => resolvePlatformTenantDetailId(row) ?? `tenant-${index}`}
-            emptyTitle="Keine Mandanten"
-            emptyMessage="Passen Sie die Suche an oder prüfen Sie die Berechtigungen."
-          />
-      )}
+      <View style={styles.results} onLayout={({ nativeEvent }) => {
+        if (nativeEvent.layout.width > 0) setListWidth(nativeEvent.layout.width);
+      }}>
+        {loading ? (
+          <LoadingState message="Mandanten werden geladen…" />
+        ) : error ? (
+          <ErrorState title="Liste nicht verfügbar" message={error} onRetry={() => void load()} />
+        ) : compactList ? (
+          <View nativeID="compact-company-list" style={styles.cards}>
+            {items.length === 0 ? (
+              <View style={styles.companyCard}>
+                <Text style={styles.cellPrimary}>Keine Unternehmen</Text>
+                <Text style={styles.muted}>Passen Sie die Suche an oder prüfen Sie die Berechtigungen.</Text>
+              </View>
+            ) : items.map((row, index) => (
+              <View key={resolvePlatformTenantDetailId(row) ?? `tenant-${index}`} style={styles.companyCard}>
+                <View style={styles.cardHeader}>
+                  <Text style={[styles.cellPrimary, styles.cardName]}>{row.tenantName}</Text>
+                  {columns[columns.length - 1].render(row)}
+                </View>
+                <View style={styles.cardFacts}>
+                  {columns.slice(1, -1).map(column => {
+                    const value = column.render(row);
+                    return (
+                      <View key={column.key} style={styles.cardFact}>
+                        <Text style={styles.factLabel}>{column.label}</Text>
+                        {typeof value === 'string' || value == null
+                          ? <Text style={styles.factValue}>{value ?? '—'}</Text>
+                          : value}
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <PlatformDataTable
+              columns={columns.map((col) => ({
+                ...col,
+                minWidth: col.key === 'actions' ? 88 : col.key === 'tenantName' ? 180 : 110,
+              }))}
+              data={items}
+              keyExtractor={(row, index) => resolvePlatformTenantDetailId(row) ?? `tenant-${index}`}
+              emptyTitle="Keine Mandanten"
+              emptyMessage="Passen Sie die Suche an oder prüfen Sie die Berechtigungen."
+            />
+        )}
+      </View>
       <View style={styles.toolbar}>
         <Pressable accessibilityRole="button" disabled={loading || offset===0} style={[styles.searchBtn, (loading || offset===0) && { opacity: 0.4 }]} onPress={() => setOffset(value => Math.max(0,value-50))}><Text style={styles.searchBtnText}>Zurück</Text></Pressable>
         <Text style={styles.muted}>Seite {Math.floor(offset/50)+1}</Text>
@@ -181,6 +218,16 @@ export function PlatformTenantsScreen() {
 }
 
 const styles = StyleSheet.create({
+  results: { minWidth: 0, alignSelf: 'stretch', marginBottom: spacing.md },
+  cards: { gap: spacing.sm },
+  companyCard: { backgroundColor: PLATFORM_COLORS.panel, borderWidth: 1, borderColor: PLATFORM_COLORS.border, borderRadius: 12, padding: spacing.md, gap: spacing.sm },
+  cardHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
+  cardName: { flexGrow: 1, flexShrink: 1, flexBasis: 240, minWidth: 0, fontSize: 16 },
+  openBtn: { minHeight: 44, paddingHorizontal: spacing.sm, justifyContent: 'center' },
+  cardFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  cardFact: { flexGrow: 1, flexShrink: 1, flexBasis: 240, minWidth: 0, alignItems: 'flex-start', gap: 4 },
+  factLabel: { color: PLATFORM_COLORS.muted, fontSize: 12, fontWeight: '600' },
+  factValue: { color: PLATFORM_COLORS.text, fontSize: 14 },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   filters: { gap: spacing.sm, marginBottom: spacing.md },
   filterGroup: { gap: 5 },

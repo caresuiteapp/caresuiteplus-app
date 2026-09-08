@@ -102,6 +102,16 @@ R3.1 korrigiert diese beobachteten Punkte ausschließlich in den Web-Dateien:
 
 Der neu gebaute R3.1-Stand besteht die vier DOM-Startprüfungen sowie die ergänzte Menüprüfung: Öffnen, Schließen, Navigation und Rückkehr zur Desktop-Seitenleiste nach einem Breitenwechsel. Das DOM-Modell erhält ausdrücklich gesetzte Fenstermaße, da es keine optische Layoutberechnung ausführt. Die vollständige TypeScript-Prüfung ist mit Exit-Code 0 abgeschlossen; dabei wurde zusätzlich eine optionale Ticketliste im fiktiven Vorschau-Adapter abgesichert. Die optische Bestätigung der neuen R3.1-Darstellung anhand weiterer Nutzerscreenshots steht noch aus. Es wurde nichts veröffentlicht.
 
+## Sichtprüfung R3.1 und kompakte Unternehmensliste R3.2 – 08.09.2026
+
+Die sieben neuen Nutzerscreenshots bestätigen den kompakten Seitenkopf in schmalen Fenstern, die lesbare Unternehmensakte, das Formular über die volle verfügbare Breite mit nachfolgender Fortschrittskarte sowie den verbesserten Kontrast von Logo und Konto-E-Mail. Das geöffnete schmale Menü ist auf diesen Bildern nicht enthalten; dessen Bedienfolge ist bisher im DOM-Modell geprüft.
+
+Die schmale Unternehmensliste zeigte weiterhin nur die linken Tabellenspalten. Deshalb zeigt R3.2 bei weniger als 1050 CSS-Pixeln tatsächlich verfügbarer Inhaltsbreite Unternehmenskarten. Bis zur ersten Layoutmessung entscheidet die Fensterbreite. Jede Karte enthält Name, Datenart, Status, Tarif, Registrierungsdatum, Einrichtung und Abrechnung sowie die eigene Öffnen-Aktion. Formatierung und Ziel-ID stammen aus denselben Spaltendefinitionen wie in der breiten Tabelle. Suche, Filter und Seiteneinteilung bleiben erhalten. Bei ausreichend Platz wird wieder die Tabelle verwendet.
+
+Die R3.2-Vorschau wurde im bisherigen lokalen Vorschauordner neu gebaut. Vier DOM-Startprüfungen, die Menübedienfolge und der neue Ablauf „kompakte Liste, alle Feldbezeichnungen, Beispielunternehmen 2 öffnen, zurück zur breiten Tabelle“ sind erfolgreich. Die beiden gezielten Testsuiten für Unternehmensabläufe und Registrierung bestehen mit insgesamt 14 Tests. Diese Prüfungen bestätigen Verhalten und Inhalt, keine berechnete Bildschirmgeometrie. Die optische Prüfung der R3.2-Karten anhand eines Nutzerscreenshots steht noch aus.
+
+Die vollständige TypeScript-Prüfung ist mit Exit-Code 0 abgeschlossen. Änderungen betreffen ausschließlich den Web-Bildschirm und seine lokalen Vorschau-/Prüfdateien; die Android-Version wurde nicht verändert. Es wurde nichts gepusht oder veröffentlicht.
+
 ## Reproduzierbare lokale Prüfungen
 
 Im separaten Desktop-Arbeitsverzeichnis:

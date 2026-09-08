@@ -6,7 +6,7 @@ const api = vi.hoisted(() => ({ register: vi.fn(), draft: vi.fn(), saveDraft: vi
 vi.mock('react-native', async () => {
   const React = await import('react');
   const element = (tag: string) => (p: any) => React.createElement(tag, { onClick: p.onPress, disabled: p.disabled, role: p.accessibilityRole, 'aria-label': p.accessibilityLabel }, p.children);
-  return { Platform: { OS: 'web' }, StyleSheet: { create: (s: any) => s }, View: element('div'), Text: element('span'), ScrollView: element('div'), KeyboardAvoidingView: element('div'), Pressable: element('button'), TextInput: (p: any) => React.createElement('input', { value: p.value, 'aria-label': p.accessibilityLabel, onInput: (e: any) => p.onChangeText(e.currentTarget.value) }) };
+  return { useWindowDimensions: () => ({ width: 1440, height: 900, scale: 1, fontScale: 1 }), Platform: { OS: 'web' }, StyleSheet: { create: (s: any) => s }, View: element('div'), Text: element('span'), ScrollView: element('div'), KeyboardAvoidingView: element('div'), Pressable: element('button'), TextInput: (p: any) => React.createElement('input', { value: p.value, 'aria-label': p.accessibilityLabel, onInput: (e: any) => p.onChangeText(e.currentTarget.value) }) };
 });
 vi.mock('expo-router', () => ({ useRouter: () => ({ push: api.push, replace: api.push }), useLocalSearchParams: () => ({ tenantId: api.tenantId }), Link: ({ children }: any) => <a>{children}</a> }));
 vi.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }));

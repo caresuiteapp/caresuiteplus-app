@@ -41,10 +41,23 @@ const path = require('node:path');
   control('Mandanten').click();
   await new Promise(resolve => setTimeout(resolve, 1000));
   if (menu() || !window.document.getElementById('preview').textContent.includes('Musterbetrieb Pflege')) throw new Error('Navigation must close after selecting a company route.');
+  const cards = window.document.getElementById('compact-company-list');
+  if (!cards) throw new Error('Narrow company directory must show the compact list.');
+  for (const label of ['Datenart', 'Status', 'Tarif', 'Registriert', 'Einrichtung', 'Abrechnung']) {
+   if (!cards.firstElementChild.textContent.includes(label)) throw new Error('Company card is missing ' + label);
+  }
+  const openCompany = control('Unternehmen Beispielunternehmen 2 öffnen');
+  if (!openCompany) throw new Error('Company opening action is missing from the compact list.');
+  openCompany.click();
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  if (window.location.hash !== '#/platform/tenants/qa-2' || !window.document.getElementById('preview').textContent.includes('Datenklassifizierung')) throw new Error('Company card must open its own record.');
+  window.location.hash = '/platform/tenants';
+  await new Promise(resolve => setTimeout(resolve, 1000));
   window.happyDOM.setWindowSize({ width: 1440, height: 900 });
   await new Promise(resolve => setTimeout(resolve, 250));
   if (!menu()) throw new Error('Desktop sidebar did not return after resizing.');
-  console.log(JSON.stringify({ narrowMenu: 'open-close-navigate', desktopResize: true, passed: true }));
+  if (window.document.getElementById('compact-company-list')) throw new Error('Wide company directory must return to the table.');
+  console.log(JSON.stringify({ narrowMenu: 'open-close-navigate', compactCompany: 'all-fields-open-qa-2', desktopResize: true, passed: true }));
   if (errors.length) throw new Error(errors.join(' | '));
  } finally { await window.happyDOM.abort(); window.close(); }
 })().catch(error => { console.error(error.message); process.exitCode = 1; });
