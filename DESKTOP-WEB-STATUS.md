@@ -108,9 +108,19 @@ Die sieben neuen Nutzerscreenshots bestätigen den kompakten Seitenkopf in schma
 
 Die schmale Unternehmensliste zeigte weiterhin nur die linken Tabellenspalten. Deshalb zeigt R3.2 bei weniger als 1050 CSS-Pixeln tatsächlich verfügbarer Inhaltsbreite Unternehmenskarten. Bis zur ersten Layoutmessung entscheidet die Fensterbreite. Jede Karte enthält Name, Datenart, Status, Tarif, Registrierungsdatum, Einrichtung und Abrechnung sowie die eigene Öffnen-Aktion. Formatierung und Ziel-ID stammen aus denselben Spaltendefinitionen wie in der breiten Tabelle. Suche, Filter und Seiteneinteilung bleiben erhalten. Bei ausreichend Platz wird wieder die Tabelle verwendet.
 
-Die R3.2-Vorschau wurde im bisherigen lokalen Vorschauordner neu gebaut. Vier DOM-Startprüfungen, die Menübedienfolge und der neue Ablauf „kompakte Liste, alle Feldbezeichnungen, Beispielunternehmen 2 öffnen, zurück zur breiten Tabelle“ sind erfolgreich. Die beiden gezielten Testsuiten für Unternehmensabläufe und Registrierung bestehen mit insgesamt 14 Tests. Diese Prüfungen bestätigen Verhalten und Inhalt, keine berechnete Bildschirmgeometrie. Die optische Prüfung der R3.2-Karten anhand eines Nutzerscreenshots steht noch aus.
+Die R3.2-Vorschau wurde im bisherigen lokalen Vorschauordner neu gebaut. Vier DOM-Startprüfungen, die Menübedienfolge und der neue Ablauf „kompakte Liste, alle Feldbezeichnungen, Beispielunternehmen 2 öffnen, zurück zur breiten Tabelle“ sind erfolgreich. Die beiden gezielten Testsuiten für Unternehmensabläufe und Registrierung bestehen mit insgesamt 14 Tests. Diese Prüfungen bestätigen Verhalten und Inhalt, keine berechnete Bildschirmgeometrie. Der anschließende Nutzerscreenshot von R3.2 bestätigt die schmale Kartenansicht: Beispielunternehmen 2 ist mit allen sechs beschrifteten Angaben und erreichbarer Öffnen-Aktion vollständig sichtbar; Schrift und Statuskennzeichnungen sind lesbar. Die Karten davor und danach sind durch die aktuelle Scrollposition nur teilweise sichtbar. Die Sichtprüfung dieses Listenbereichs ist damit abgeschlossen.
 
 Die vollständige TypeScript-Prüfung ist mit Exit-Code 0 abgeschlossen. Änderungen betreffen ausschließlich den Web-Bildschirm und seine lokalen Vorschau-/Prüfdateien; die Android-Version wurde nicht verändert. Es wurde nichts gepusht oder veröffentlicht.
+
+## Registrierungstexte und Tabellenausrichtung R3.3 – 08.09.2026
+
+Auf ausdrücklichen Nutzerwunsch entfällt der Modulhinweis in der Web-Registrierung. Die Fortschrittskarte enthält nun „Kostenlos starten. Keine Kreditkarte erforderlich.“; die abschließende Prüfung zeigt „Kosten: Kostenlos · 0 €“ anstelle der bisherigen Umfangsangabe. Die automatische Bereitstellung der enthaltenen Funktionen bleibt bestehen.
+
+Der Nutzer beanstandete außerdem die versetzten Inhalte der breiten Unternehmensliste. Deren bisherige Mindestbreiten ließen jede Zelle entsprechend ihrem Text wachsen. Die Web-Unternehmensliste verwendet nun explizite Spaltenbreiten, die für Kopf und alle Datenzeilen identisch sind und sich gemeinsam an der verfügbaren Inhaltsbreite orientieren. Die Öffnen-Aktion erhält die Überschrift „Aktion“ und denselben linken Textbeginn. Bei weniger als 1102 CSS-Pixeln Inhaltsbreite erscheinen weiterhin die bereits optisch bestätigten Karten. Die Änderung ist auf die Web-Unternehmensliste begrenzt.
+
+R3.3 wurde erfolgreich gebaut. Die vier DOM-Startprüfungen sowie Menübedienung, Öffnen der passenden Unternehmensakte und Wechsel zwischen Karten und Tabelle sind erneut erfolgreich. Die Sichtprüfung der neu ausgerichteten breiten Tabelle steht noch aus; ein DOM-Modell ersetzt keine optische Layoutprüfung.
+
+Die vollständige TypeScript-Prüfung von R3.3 ist mit Exit-Code 0 abgeschlossen. Der vom Nutzer ausdrücklich geforderte gleichwertige Stellenwert von Design, Layout, Texten und Funktionen ist in der neuen AGENTS.md als verbindliche Projektvorgabe festgehalten. Es wurde nichts veröffentlicht.
 
 ## Reproduzierbare lokale Prüfungen
 

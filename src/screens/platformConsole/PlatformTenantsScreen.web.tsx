@@ -17,12 +17,19 @@ import { listPlatformCompanies } from '@/lib/platformConsole/platformCompanyDire
 import type { PlatformTenantListItem } from '@/types/platformConsole';
 import { spacing } from '@/theme';
 
+const COMPANY_COLUMN_WIDTHS: Record<string, number> = {
+  tenantName: 210, environment: 150, status: 96, planKey: 132,
+  createdAt: 116, lifecycleStatus: 188, billingStatus: 112, actions: 96,
+};
+const MIN_COMPANY_TABLE_WIDTH = Object.values(COMPANY_COLUMN_WIDTHS).reduce((sum, width) => sum + width, 0);
+
 export function PlatformTenantsScreen() {
   const router = useRouter();
   const { width: windowWidth } = useWindowDimensions();
   const [listWidth, setListWidth] = useState<number | null>(null);
   // Measure the space left by the sidebar; use the viewport until layout is ready.
-  const compactList = listWidth === null ? windowWidth < 1280 : listWidth < 1050;
+  const compactList = listWidth === null ? windowWidth < 1280 : listWidth < MIN_COMPANY_TABLE_WIDTH + 2;
+  const tableWidth = Math.max(MIN_COMPANY_TABLE_WIDTH, (listWidth ?? MIN_COMPANY_TABLE_WIDTH) - 2);
   const [items, setItems] = useState<PlatformTenantListItem[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -96,7 +103,7 @@ export function PlatformTenantsScreen() {
       },
       {
         key: 'actions',
-        label: '',
+        label: 'Aktion',
         render: (row: PlatformTenantListItem) => {
           const detailId = resolvePlatformTenantDetailId(row);
           if (!detailId) {
@@ -199,7 +206,8 @@ export function PlatformTenantsScreen() {
           <PlatformDataTable
               columns={columns.map((col) => ({
                 ...col,
-                minWidth: col.key === 'actions' ? 88 : col.key === 'tenantName' ? 180 : 110,
+                // Explicit widths keep headers and every row on the same grid.
+                width: COMPANY_COLUMN_WIDTHS[col.key] * tableWidth / MIN_COMPANY_TABLE_WIDTH,
               }))}
               data={items}
               keyExtractor={(row, index) => resolvePlatformTenantDetailId(row) ?? `tenant-${index}`}
@@ -223,7 +231,7 @@ const styles = StyleSheet.create({
   companyCard: { backgroundColor: PLATFORM_COLORS.panel, borderWidth: 1, borderColor: PLATFORM_COLORS.border, borderRadius: 12, padding: spacing.md, gap: spacing.sm },
   cardHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
   cardName: { flexGrow: 1, flexShrink: 1, flexBasis: 240, minWidth: 0, fontSize: 16 },
-  openBtn: { minHeight: 44, paddingHorizontal: spacing.sm, justifyContent: 'center' },
+  openBtn: { minHeight: 44, minWidth: 64, alignItems: 'flex-start', justifyContent: 'center' },
   cardFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   cardFact: { flexGrow: 1, flexShrink: 1, flexBasis: 240, minWidth: 0, alignItems: 'flex-start', gap: 4 },
   factLabel: { color: PLATFORM_COLORS.muted, fontSize: 12, fontWeight: '600' },

@@ -600,7 +600,7 @@ export function RegisterOrganizationScreen() {
             </Pressable>
           ))}
           <LiquidStatus label="Kostenlos · 0 €" tone="success" />
-          <LiquidText variant="body">Alle verfügbaren Funktionsbereiche sind enthalten. Keine Kreditkarte, keine Modulauswahl.</LiquidText>
+          <LiquidText variant="body">Kostenlos starten. Keine Kreditkarte erforderlich.</LiquidText>
         </LiquidSurface>
       }
     >
@@ -671,7 +671,7 @@ export function RegisterOrganizationScreen() {
               ['Organisation', `${form.companyName} · ${form.legalForm}`],
               ['Standort', `${form.street}, ${form.zip} ${form.city}`],
               ['Administration', `${form.adminFirstName} ${form.adminLastName} · ${form.adminEmail}`],
-              ['Umfang', 'Alle verfügbaren Funktionsbereiche · kostenlos'],
+              ['Kosten', 'Kostenlos · 0 €'],
               ['Sicherheit', 'Passwort gesetzt · Bedingungen bestätigt'],
             ].map(([label, value]) => (
               <View key={label} style={styles.reviewFact}>
