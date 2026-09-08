@@ -10,7 +10,7 @@ CREATE TABLE public.support_attachments (
   storage_path text NOT NULL UNIQUE,
   state text NOT NULL DEFAULT 'uploading' CHECK(state IN ('uploading','ready','discarding')),
   created_at timestamptz NOT NULL DEFAULT now(),
-  FOREIGN KEY(ticket_id,tenant_id) REFERENCES public.support_tickets(id,tenant_id),
+  FOREIGN KEY(ticket_id,tenant_id) REFERENCES public.support_workspace_tickets(id,tenant_id),
   FOREIGN KEY(message_id,ticket_id,tenant_id) REFERENCES public.support_messages(id,ticket_id,tenant_id)
 );
 CREATE INDEX support_attachments_message ON public.support_attachments(message_id);
@@ -46,7 +46,7 @@ RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp A
 DECLARE v_tenant uuid; v_id uuid:=gen_random_uuid(); v_row public.support_attachments%ROWTYPE;
 BEGIN
   IF NOT public.support_can_write_ticket(p_ticket_id) THEN RAISE EXCEPTION 'support_forbidden' USING ERRCODE='42501'; END IF;
-  SELECT tenant_id INTO v_tenant FROM public.support_tickets WHERE id=p_ticket_id;
+  SELECT tenant_id INTO v_tenant FROM public.support_workspace_tickets WHERE id=p_ticket_id;
   IF (SELECT count(*) FROM public.support_attachments WHERE ticket_id=p_ticket_id AND created_by=auth.uid() AND message_id IS NULL AND created_at>now()-interval '1 hour')>=20 THEN RAISE EXCEPTION 'support_upload_limit' USING ERRCODE='22023'; END IF;
   INSERT INTO public.support_attachments(id,ticket_id,tenant_id,created_by,file_name,mime_type,byte_size,storage_path)
   VALUES(v_id,p_ticket_id,v_tenant,auth.uid(),left(regexp_replace(p_file_name,'[[:cntrl:]/\\]','_','g'),180),p_mime_type,p_byte_size,v_tenant::text||'/'||p_ticket_id::text||'/'||v_id::text) RETURNING * INTO v_row;
@@ -72,7 +72,7 @@ DECLARE v_row public.support_attachments%ROWTYPE;
 BEGIN
   SELECT * INTO v_row FROM public.support_attachments WHERE id=p_attachment_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'support_forbidden' USING ERRCODE='42501'; END IF;
-  PERFORM 1 FROM public.support_tickets WHERE id=v_row.ticket_id FOR UPDATE;
+  PERFORM 1 FROM public.support_workspace_tickets WHERE id=v_row.ticket_id FOR UPDATE;
   SELECT * INTO v_row FROM public.support_attachments WHERE id=p_attachment_id FOR UPDATE;
   IF v_row.created_by IS DISTINCT FROM auth.uid() OR v_row.message_id IS NOT NULL OR NOT public.support_can_write_ticket(v_row.ticket_id) THEN RAISE EXCEPTION 'support_forbidden' USING ERRCODE='42501'; END IF;
   UPDATE public.support_attachments SET state='discarding' WHERE id=p_attachment_id RETURNING * INTO v_row;
@@ -92,10 +92,10 @@ END; $$;
 
 CREATE OR REPLACE FUNCTION public.support_send_message(p_ticket_id uuid,p_body text,p_client_nonce uuid,p_attachment_ids uuid[] DEFAULT '{}')
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
-DECLARE v_ticket public.support_tickets%ROWTYPE; v_message public.support_messages%ROWTYPE; v_name text; v_platform boolean;
+DECLARE v_ticket public.support_workspace_tickets%ROWTYPE; v_message public.support_messages%ROWTYPE; v_name text; v_platform boolean;
 BEGIN
   IF NOT public.support_can_write_ticket(p_ticket_id) THEN RAISE EXCEPTION 'support_forbidden' USING ERRCODE='42501'; END IF;
-  SELECT * INTO v_ticket FROM public.support_tickets WHERE id=p_ticket_id FOR UPDATE;
+  SELECT * INTO v_ticket FROM public.support_workspace_tickets WHERE id=p_ticket_id FOR UPDATE;
   SELECT * INTO v_message FROM public.support_messages WHERE author_id=auth.uid() AND client_nonce=p_client_nonce;
   IF FOUND THEN
     IF v_message.ticket_id<>p_ticket_id OR v_message.body<>trim(coalesce(p_body,'')) THEN RAISE EXCEPTION 'support_invalid_retry' USING ERRCODE='22023'; END IF;
@@ -109,17 +109,17 @@ BEGIN
   INSERT INTO public.support_messages(ticket_id,tenant_id,author_id,author_kind,author_name,body,client_nonce)
   VALUES(p_ticket_id,v_ticket.tenant_id,auth.uid(),CASE WHEN v_platform THEN 'platform' ELSE 'tenant' END,coalesce(nullif(v_name,''),'Unternehmen'),trim(coalesce(p_body,'')),p_client_nonce) RETURNING * INTO v_message;
   UPDATE public.support_attachments SET message_id=v_message.id WHERE id=ANY(p_attachment_ids);
-  UPDATE public.support_tickets SET updated_at=now(),status=CASE WHEN v_platform THEN 'waiting_tenant' ELSE 'waiting_support' END WHERE id=p_ticket_id;
+  UPDATE public.support_workspace_tickets SET updated_at=now(),status=CASE WHEN v_platform THEN 'waiting_tenant' ELSE 'waiting_support' END WHERE id=p_ticket_id;
   INSERT INTO public.support_audit_events(ticket_id,actor_id,event,details) VALUES(p_ticket_id,auth.uid(),'message.sent',jsonb_build_object('message',v_message.id,'attachments',cardinality(p_attachment_ids)));
   RETURN to_jsonb(v_message);
 END; $$;
 
 CREATE OR REPLACE FUNCTION public.support_get_ticket(p_ticket_id uuid,p_before_message_id uuid DEFAULT NULL)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
-DECLARE v_ticket public.support_tickets%ROWTYPE; v_messages jsonb; v_before public.support_messages%ROWTYPE;
+DECLARE v_ticket public.support_workspace_tickets%ROWTYPE; v_messages jsonb; v_before public.support_messages%ROWTYPE;
 BEGIN
   IF NOT public.support_can_read_ticket(p_ticket_id) THEN RAISE EXCEPTION 'support_forbidden' USING ERRCODE='42501'; END IF;
-  SELECT * INTO v_ticket FROM public.support_tickets WHERE id=p_ticket_id;
+  SELECT * INTO v_ticket FROM public.support_workspace_tickets WHERE id=p_ticket_id;
   IF p_before_message_id IS NOT NULL THEN
     SELECT * INTO v_before FROM public.support_messages WHERE id=p_before_message_id AND ticket_id=p_ticket_id;
     IF NOT FOUND THEN RAISE EXCEPTION 'support_invalid_cursor' USING ERRCODE='22023'; END IF;
@@ -143,7 +143,7 @@ DECLARE v_request public.support_access_requests%ROWTYPE; v_status text;
 BEGIN
   SELECT * INTO v_request FROM public.support_access_requests WHERE id=p_request_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'support_access_denied' USING ERRCODE='42501'; END IF;
-  SELECT status INTO v_status FROM public.support_tickets WHERE id=v_request.ticket_id FOR UPDATE;
+  SELECT status INTO v_status FROM public.support_workspace_tickets WHERE id=v_request.ticket_id FOR UPDATE;
   SELECT * INTO v_request FROM public.support_access_requests WHERE id=p_request_id FOR UPDATE;
   IF auth.uid() IS NULL OR NOT public.platform_has_capability('support.write') OR v_status IN ('resolved','closed')
     OR v_request.status<>'approved' OR v_request.expires_at<=clock_timestamp() OR NOT (p_scope=ANY(v_request.scopes))
@@ -211,7 +211,7 @@ END $$;
 DO $$ DECLARE v_table text;
 BEGIN
   IF EXISTS(SELECT 1 FROM pg_publication WHERE pubname='supabase_realtime') THEN
-    FOREACH v_table IN ARRAY ARRAY['support_tickets','support_messages','support_access_requests'] LOOP
+    FOREACH v_table IN ARRAY ARRAY['support_workspace_tickets','support_messages','support_access_requests'] LOOP
       IF NOT EXISTS(SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename=v_table) THEN
         EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I',v_table);
       END IF;

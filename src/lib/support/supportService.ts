@@ -117,7 +117,7 @@ export function subscribeSupport(ticketId: string | null, changed: () => void): 
     for (const table of ['support_messages', 'support_access_requests']) {
       channel.on('postgres_changes', { event: '*', schema: 'public', table, filter: `ticket_id=eq.${ticketId}` }, changed);
     }
-  } else channel.on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, changed);
+  } else channel.on('postgres_changes', { event: '*', schema: 'public', table: 'support_workspace_tickets' }, changed);
   channel.subscribe();
   return () => { void client.removeChannel(channel); };
 }

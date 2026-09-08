@@ -55,7 +55,19 @@ try {
     CREATE FUNCTION platform_assert_capability(text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$ BEGIN IF NOT platform_has_capability($1) THEN RAISE EXCEPTION 'platform_forbidden' USING ERRCODE='42501'; END IF; END $$;
     INSERT INTO products(product_key,name,short_name,is_active,sort_order) SELECT x::product_key,x,x,true,1 FROM unnest(ARRAY['office','assist','pflege','beratung','akademie','stationaer'])x;
     INSERT INTO platform_modules SELECT product_key::text,'available' FROM products;`);
+  // Existing production-era support records must survive the new workspace schema.
+  await db.exec(`CREATE TYPE legacy_support_status AS ENUM('open','waiting_for_customer');
+    CREATE TABLE support_tickets(id uuid PRIMARY KEY,title text NOT NULL,status legacy_support_status NOT NULL DEFAULT 'open');
+    CREATE TABLE support_ticket_messages(id uuid PRIMARY KEY,ticket_id uuid REFERENCES support_tickets(id),body text NOT NULL);
+    INSERT INTO support_tickets VALUES('90000000-0000-4000-8000-000000000001','Existing ticket','waiting_for_customer');
+    INSERT INTO support_ticket_messages VALUES('90000000-0000-4000-8000-000000000002','90000000-0000-4000-8000-000000000001','Existing reply');`);
   for(const file of migrations)await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/migrations',file),'utf8'));
+  await test('existing legacy tickets, replies and foreign keys remain unchanged',async()=>{
+    assert.equal(await scalar("SELECT title AS value FROM support_tickets WHERE id='90000000-0000-4000-8000-000000000001'"),'Existing ticket');
+    assert.equal(await scalar('SELECT body AS value FROM support_ticket_messages'),'Existing reply');
+    await assert.rejects(db.query("DELETE FROM support_tickets WHERE id='90000000-0000-4000-8000-000000000001'"),/foreign key/);
+    assert.equal(await scalar('SELECT count(*)::int AS value FROM support_workspace_tickets'),0);
+  });
   const body={companyName:'Testbetrieb',legalForm:'GmbH',industry:'Pflege',street:'Testweg 1',zip:'12345',city:'Teststadt',phone:'01234',email:'office@example.test',adminFirstName:'Test',adminLastName:'Owner',adminEmail:'owner@example.test',termsAccepted:true,selectedModules:[]};
   const owner=uuid(),otherOwner=uuid(),employee=uuid(),operator=uuid(),otherOperator=uuid();
   for(const [id,email] of [[owner,body.adminEmail],[otherOwner,'other@example.test']])await db.query('INSERT INTO auth.users VALUES($1,$2)',[id,email]);
@@ -101,10 +113,10 @@ try {
   });
   await test('ticket RLS excludes other tenant and non-participating employee',async()=>{
     for(const actor of [otherOwner,employee]){
-      assert.equal(await asUser(actor,'SELECT count(*)::int AS value FROM support_tickets'),0);
+      assert.equal(await asUser(actor,'SELECT count(*)::int AS value FROM support_workspace_tickets'),0);
       await assert.rejects(asUser(actor,'SELECT support_get_ticket($1) AS value',[ticket]),/support_forbidden/);
     }
-    await assert.rejects(asUser(owner,"UPDATE support_tickets SET tenant_id=$1 WHERE id=$2 RETURNING id AS value",[otherTenant,ticket]),/permission denied/);
+    await assert.rejects(asUser(owner,"UPDATE support_workspace_tickets SET tenant_id=$1 WHERE id=$2 RETURNING id AS value",[otherTenant,ticket]),/permission denied/);
   });
   await test('support can read messages but cannot use old tenant-access bypass',async()=>{
     assert.equal((await asUser(operator,'SELECT support_get_ticket($1) AS value',[ticket])).messages.length,1);
