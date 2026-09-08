@@ -358,37 +358,38 @@ export function resolveAssignmentStatusFromExecutionContext(
   const documentationStatus: VisitDocumentationStatus = input.hasDocumentation
     ? 'complete'
     : (input.documentationStatus ?? 'none');
+  const finalizationRecorded = input.assignmentStatus === 'abgeschlossen' ||
+    input.executionStateStatus === 'abgeschlossen';
   const proofStatus: VisitProofStatus = input.hasSignature
-    ? 'verified'
+    ? (finalizationRecorded || input.proofStatus === 'verified' ? 'verified' : 'signed')
     : (input.proofStatus ?? 'none');
 
   const executionStatus: VisitExecutionStatus =
     input.executionStatus ??
     (input.serviceEnded ? 'completed' : 'pending');
 
+  // A persisted post-service status is also an end signal when a list
+  // snapshot does not include time anchors. Artifacts alone are not.
+  const postServiceStatuses: AssignmentStatus[] = [
+    'beendet', 'dokumentation_offen', 'unterschrift_offen', 'abgeschlossen',
+  ];
   const postCompletionSignals =
     executionStatus === 'completed' ||
     input.serviceEnded === true ||
-    input.hasDocumentation === true ||
-    input.hasSignature === true;
+    postServiceStatuses.includes(input.assignmentStatus) ||
+    Boolean(input.executionStateStatus && postServiceStatuses.includes(input.executionStateStatus));
 
   if (postCompletionSignals) {
-    const effectiveExecution: VisitExecutionStatus =
-      executionStatus === 'completed' ||
-      input.serviceEnded ||
-      input.hasDocumentation ||
-      input.hasSignature
-        ? 'completed'
-        : executionStatus;
-
     return deriveAssignmentStatusFromVisitDimensions({
       canonicalStatus: input.assignmentStatus,
-      executionStatus: effectiveExecution,
+      executionStatus: 'completed',
       documentationStatus,
       proofStatus,
     });
   }
 
+  // Documentation may be saved during service. Neither a note nor a
+  // signature proves service end or authorizes a forward status transition.
   let status = input.assignmentStatus;
   if (input.executionStateStatus) {
     status = pickAdvancedAssignmentStatus(status, input.executionStateStatus);

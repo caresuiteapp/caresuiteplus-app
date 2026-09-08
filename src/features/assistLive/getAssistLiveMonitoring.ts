@@ -21,6 +21,8 @@ import { buildWorkspaceAccessContext, canViewAssignment } from '@/lib/permission
 import { fetchVisitDispositionList } from '@/lib/assist/visitService';
 import { resolveAssignmentStatusFromExecutionContext } from '@/lib/assist/visitWorkflow';
 import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
+import type { TimeEventLike } from '@/features/assistWorkflow/calculateVisitTimes';
+import { resolveMonitoringVisitTimers } from './resolveMonitoringVisitTimers';
 import { DAY_MONITOR_STATUS_COLORS } from '@/types/modules/liveMonitor';
 import {
   buildEmployeePortalTrackingSnapshot,
@@ -48,6 +50,7 @@ export type AssistLiveMonitoringRow = DayMonitorAssignmentRow & {
   clientName: string | null;
   tracking: EmployeePortalTrackingSnapshot | null;
   route: AssistLiveRouteSummary | null;
+  trackingTimeEvents?: TimeEventLike[];
 };
 
 export type AssistLiveRouteSummary = {
@@ -265,6 +268,7 @@ export function buildAssistLiveRouteSummary(
 type PersistedTrackingEnrichment = {
   tracking: EmployeePortalTrackingSnapshot;
   route: AssistLiveRouteSummary | null;
+  timeEvents?: TimeEventLike[];
 };
 
 function fallbackDisplayStatus(status: AssignmentStatus): DayMonitorAssignmentRow['displayStatus'] {
@@ -306,13 +310,14 @@ function resolveTrackingStatusFromEvents(
   status: AssignmentStatus,
   events: { eventType: string; occurredAt: string }[],
 ): AssignmentStatus {
+  if (['beendet', 'dokumentation_offen', 'unterschrift_offen', 'abgeschlossen', 'storniert', 'nicht_erschienen'].includes(status)) return status;
   const driveStart = latestEventAt(events, ['drive_start']);
   const driveEnd = driveStart ? latestEventAt(events, ['drive_end', 'arrive'], driveStart) : null;
   const serviceStart = latestEventAt(events, ['service_start']);
   const serviceEnd = serviceStart ? latestEventAt(events, ['service_end'], serviceStart) : null;
 
   if (serviceStart && !serviceEnd) return status === 'pausiert' ? 'pausiert' : 'gestartet';
-  if (driveStart && !driveEnd) return 'unterwegs';
+  if (driveStart && !driveEnd && status !== 'angekommen') return 'unterwegs';
   return status;
 }
 
@@ -476,6 +481,7 @@ async function enrichTrackingFromPersistence(
   }
 
   return {
+    timeEvents: events.map(({ eventType, occurredAt }) => ({ eventType, occurredAt })),
     tracking: {
       ...inMemory,
       consent,
@@ -492,7 +498,7 @@ async function enrichTrackingFromPersistence(
         driveSeconds: persistedTimers?.driveSeconds ?? inMemory.timers.driveSeconds,
         serviceSeconds: persistedTimers?.serviceSeconds ?? inMemory.timers.serviceSeconds,
         pauseSeconds: persistedTimers?.pauseSeconds ?? inMemory.timers.pauseSeconds,
-        activeTimer: persistedTimers?.activeTimer ?? inMemory.timers.activeTimer,
+        activeTimer: persistedTimers ? persistedTimers.activeTimer : inMemory.timers.activeTimer,
         driveStartedAt: persistedTimers?.driveStartedAt ?? inMemory.timers.driveStartedAt,
         serviceStartedAt: persistedTimers?.serviceStartedAt ?? inMemory.timers.serviceStartedAt,
         pauseStartedAt: persistedTimers?.pauseStartedAt ?? inMemory.timers.pauseStartedAt,
@@ -508,6 +514,7 @@ function mapMonitorRowToMonitoringRow(
   clientName: string | null,
   tracking: EmployeePortalTrackingSnapshot | null,
   route: AssistLiveRouteSummary | null,
+  timeEvents?: TimeEventLike[],
 ): AssistLiveMonitoringRow {
   return {
     ...row,
@@ -516,6 +523,7 @@ function mapMonitorRowToMonitoringRow(
     clientName,
     tracking,
     route,
+    trackingTimeEvents: timeEvents,
   };
 }
 
@@ -593,7 +601,7 @@ async function buildRowsFromDayMonitor(
         gpsPermission,
         inMemory,
       );
-      return mapMonitorRowToMonitoringRow(row, null, null, enrichment.tracking, enrichment.route);
+      return mapMonitorRowToMonitoringRow(row, null, null, enrichment.tracking, enrichment.route, enrichment.timeEvents);
     }),
   );
 
@@ -659,8 +667,12 @@ async function enrichLiveMonitorRowsFromExecutionSnapshots(
     }
 
     const displayStatus = fallbackDisplayStatus(status);
+    const timers = row.tracking && row.trackingTimeEvents
+      ? resolveMonitoringVisitTimers(row.trackingTimeEvents, status, snapshot.visitTimes)
+      : null;
     return {
       ...row,
+      tracking: row.tracking && timers ? { ...row.tracking, timers } : row.tracking,
       status,
       displayStatus,
       statusColor: DAY_MONITOR_STATUS_COLORS[displayStatus],
@@ -755,6 +767,7 @@ export async function getAssistLiveMonitoring(
           item.clientName,
           enrichment.tracking,
           enrichment.route,
+          enrichment.timeEvents,
         );
       }),
     );

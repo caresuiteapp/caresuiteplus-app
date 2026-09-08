@@ -148,9 +148,14 @@ export function EmployeePortalVisitSignaturePanel({
       <>
         <EmployeePortalVisitCompactCard
           title="Unterschrift"
-          status={preview ? 'Gespeichert' : 'Noch offen'}
-          subtitle={preview ? 'Unterschrift erfasst' : 'Nach Dokumentation erfassen'}
-          onPress={!disabled ? openSignatureModal : undefined}
+          status={confirmationStalled ? 'Speicherung noch nicht bestätigt' : confirmationPending ? 'Unterschrift wird geprüft' : preview ? 'Gespeichert' : 'Noch offen'}
+          subtitle={confirmationStalled ? 'Bitte den Serverstatus prüfen.' : preview ? 'Unterschrift erfasst' : 'Nach Dokumentation erfassen'}
+          onPress={confirmationStalled ? onCheckStatus : openSignatureModal}
+          disabled={disabled || (confirmationPending && !confirmationStalled)}
+          pending={confirmationPending && !confirmationStalled}
+          warning={confirmationStalled}
+          completed={Boolean(preview) && !confirmationPending && !confirmationStalled}
+          actionLabel={confirmationStalled ? 'Status prüfen →' : 'Öffnen →'}
         />
         {captureError ? <InfoBanner variant="danger" message={captureError} /> : null}
         {preview ? (

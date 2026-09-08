@@ -1,5 +1,6 @@
 import { useEmployeeGpsTracking } from '@/features/liveTracking/useEmployeeGpsTracking';
 import { createSingleFlight } from '@/lib/services/singleFlight';
+import { readVisitSignatureConfirmation, type VisitSignatureConfirmation } from '@/lib/portal/readVisitSignatureConfirmation';
 import { captureGoogleRouteReference } from '@/features/liveTracking/googleRouteReference';
 import {
   startEmployeeLiveTracking,
@@ -98,6 +99,7 @@ import {
 } from '@/features/assistWorkflow/workflowRecoveryVerification';
 
 const runCanonicalMutation = createSingleFlight();
+const runSignatureSubmission = createSingleFlight();
 
 function unwrapWorkflowContextPayload(payload: unknown): AssistExecutionContext | null {
   if (!payload || typeof payload !== 'object') return null;
@@ -258,6 +260,9 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const [refetchWarning, setRefetchWarning] = useState<string | null>(null);
   const [signatureSaveError, setSignatureSaveError] = useState<string | null>(null);
   const signatureSaveAttempt = useRef(0);
+  const signatureScopeKey = JSON.stringify([tenantId, employeeId, authProfileId, assignmentId]);
+  const signatureScopeRef = useRef(signatureScopeKey);
+  signatureScopeRef.current = signatureScopeKey;
   const executionContextRef = useRef<AssistExecutionContext | null>(null);
   const skipContextRefreshRef = useRef(false);
   const serviceStartRepairRef = useRef<string | null>(null);
@@ -692,7 +697,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       let visitTimes = ctx.visitTimes;
       if (ended) {
         const serviceEndedAt =
-          visitTimes?.serviceEndedAt ?? ctx.detail.actualEndAt ?? new Date().toISOString();
+          visitTimes?.serviceEndedAt ?? ctx.detail.actualEndAt ?? null;
         visitTimes = visitTimes
           ? { ...visitTimes, serviceEndedAt, activeTimer: null }
           : {
@@ -1210,18 +1215,64 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   );
 
   const handleSaveSignature = useCallback(
-    (signature: EmployeePortalSignatureCaptureInput) => {
+    (signature: EmployeePortalSignatureCaptureInput) => runSignatureSubmission(signatureScopeKey, () => {
       const attempt = ++signatureSaveAttempt.current;
       setSignatureSaveError(null);
       return runWorkflow((ctx) => saveClientSignature({ ctx, signature }), {
         recoveryAction: 'save_signature',
         onLateFailure: (message) => {
-          if (signatureSaveAttempt.current === attempt) setSignatureSaveError(message);
+          if (signatureScopeRef.current === signatureScopeKey && signatureSaveAttempt.current === attempt) setSignatureSaveError(message);
         },
       });
-    },
-    [runWorkflow],
+    }),
+    [runWorkflow, signatureScopeKey],
   );
+
+  const checkSignatureConfirmation = useCallback(async (): Promise<VisitSignatureConfirmation> => {
+    const ctx = executionContextRef.current;
+    if (
+      isOffline || !ctx?.assistVisitId || ctx.tenantId !== tenantId ||
+      ctx.employeeId !== employeeId || ctx.assignmentId !== assignmentId
+    ) {
+      return { state: 'unavailable', message: 'Die Unterschrift kann gerade nicht geprüft werden. Bitte den Einsatz bei bestehender Verbindung erneut öffnen.' };
+    }
+    const result = await readVisitSignatureConfirmation({
+      tenantId: ctx.tenantId,
+      visitId: ctx.assistVisitId,
+      isWritePending: () => runSignatureSubmission.isPending(signatureScopeKey) ||
+        runCanonicalMutation.isPending(`${ctx.tenantId}:${ctx.employeeId}:${ctx.assistVisitId}:save_signature`),
+    });
+    const latest = executionContextRef.current;
+    if (signatureScopeRef.current !== signatureScopeKey || !latest || latest.assistVisitId !== ctx.assistVisitId) {
+      return { state: 'unavailable', message: 'Der Einsatz wurde gewechselt. Bitte den aktuellen Status erneut prüfen.' };
+    }
+    if (result.state === 'confirmed' || result.state === 'missing') {
+      // Merge only evidence from this scoped read. Do not invent visit times,
+      // advance the canonical status or mark a service proof as generated.
+      const detail = {
+        ...latest.detail,
+        signatureStatus: result.state === 'confirmed' ? 'captured' as const :
+          (latest.detail.requiresSignature ? 'pending' as const : 'none' as const),
+      };
+      const confirmed = {
+        ...latest,
+        detail,
+        allowedActions: resolveAllowedActions({
+          assignmentStatus: latest.assignmentStatus,
+          visitTimes: latest.visitTimes,
+          detail,
+          derivedStatus: latest.derivedStatus,
+          canStartService: false,
+        }),
+      };
+      executionContextRef.current = confirmed;
+      skipContextRefreshRef.current = true;
+      setExecutionContext(confirmed);
+      query.setData(detail);
+      setSignatureSaveError(result.state === 'missing' ? result.message : null);
+    }
+    return result;
+  }, [tenantId, employeeId, assignmentId, signatureScopeKey, isOffline, query]);
 
   const handleFinalize = useCallback(
     () => {
@@ -1453,6 +1504,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     saveDocumentation: handleSaveDocumentation,
     saveSignature: handleSaveSignature,
     signatureSaveError,
+    checkSignatureConfirmation,
     finalizeVisit: handleFinalize,
     finalizeVisitDeferred: handleFinalizeDeferred,
     reportNoShow: handleNoShow,

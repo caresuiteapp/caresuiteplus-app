@@ -87,6 +87,7 @@ export function EmployeePortalVisitLiveDashboard({
             icon="✓"
             title={`${done} von ${tasks.length}`}
             status="Optionale Aufgaben"
+            completed={tasks.length > 0 && done === tasks.length}
             onPress={onOpenTasks}
             testID="portal-open-tasks"
           />
@@ -96,6 +97,7 @@ export function EmployeePortalVisitLiveDashboard({
             icon="▤"
             title="Dokumentation"
             status={documentationStatusLabel(documentationStatus, documentationLastSavedAt)}
+            completed={documentationStatus === 'submitted' || documentationStatus === 'locked'}
             onPress={onOpenDocumentation}
             testID="portal-open-documentation"
           />
@@ -126,6 +128,9 @@ export function EmployeePortalVisitLiveDashboard({
               onPress={signatureConfirmationStalled ? onCheckSignature : signatureConfirmationPending ? undefined : onOpenSignature}
               disabled={signatureConfirmationStalled ? !onCheckSignature : signatureConfirmationPending || !signatureEnabled}
               pending={signatureConfirmationPending && !signatureConfirmationStalled}
+              completed={signatureCaptured && !signatureConfirmationPending && !signatureConfirmationStalled}
+              warning={signatureConfirmationStalled}
+              actionLabel={signatureConfirmationStalled ? 'Status prüfen →' : 'Öffnen →'}
               testID="portal-open-signature"
             />
           </View>
@@ -136,6 +141,7 @@ export function EmployeePortalVisitLiveDashboard({
               icon="▣"
               title="Foto & Video"
               status={attachmentCount > 0 ? `${attachmentCount} intern gespeichert` : 'Jetzt hinzufügen'}
+              completed={attachmentCount > 0}
               subtitle="Gut sichtbar im Einsatz – nicht im Leistungsnachweis"
               accentColor="#8B5CF6"
               onPress={onOpenAttachments}

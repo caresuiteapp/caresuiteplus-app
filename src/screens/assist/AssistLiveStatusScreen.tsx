@@ -381,7 +381,7 @@ export function AssistLiveStatusScreen() {
                       <View style={styles.routeMetrics}>
                         <View style={styles.routeMetricPrimary}>
                           <Text style={styles.routeMetricLabel}>
-                            {row.route.distanceStatus === 'incomplete' ? 'GPS-Teilstrecke' : 'Geprüfte Straßenstrecke'}
+                            {row.route.distanceStatus === 'incomplete' ? 'GPS-Teilstrecke' : row.route.distanceStatus === 'google_reconciled' ? 'GPS + ergänzte Straßenroute' : 'GPS-Strecke'}
                           </Text>
                           <Text style={styles.routeMetricValue}>{formatDistance(row.route.totalDistanceKm)}</Text>
                         </View>

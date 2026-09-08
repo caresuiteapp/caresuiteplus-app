@@ -176,6 +176,7 @@ export function EmployeePortalVisitExecutionScreen() {
     saveDocumentation,
     saveSignature,
     signatureSaveError,
+    checkSignatureConfirmation,
     finalizeVisit,
     finalizeVisitDeferred,
     reportNoShow,
@@ -243,6 +244,15 @@ export function EmployeePortalVisitExecutionScreen() {
   const [aiHelpStandaloneOpen, setAiHelpStandaloneOpen] = useState(false);
   const lastConfirmedStatusRef = useRef<AssignmentStatus | null>(null);
   const signatureConfirmationRefreshRef = useRef(refresh);
+  const signatureCheckInFlightRef = useRef<string | null>(null);
+  const signatureViewScope = JSON.stringify([portalTenantId, portalEmployeeId, id]);
+  const signatureViewScopeRef = useRef(signatureViewScope);
+  signatureViewScopeRef.current = signatureViewScope;
+  const signatureViewMountedRef = useRef(false);
+  useEffect(() => {
+    signatureViewMountedRef.current = true;
+    return () => { signatureViewMountedRef.current = false; };
+  }, []);
   const returnTripPromptHandledRef = useRef(false);
   const pendingCameraRecoveryVisitRef = useRef<string | null>(null);
   const [returnTripPromptRetry, setReturnTripPromptRetry] = useState(0);
@@ -629,22 +639,62 @@ export function EmployeePortalVisitExecutionScreen() {
     }
   }, [effectiveStatus]);
 
+  const checkSignatureAndRecover = useCallback(async () => {
+    if (signatureCheckInFlightRef.current === signatureViewScope) return;
+    signatureCheckInFlightRef.current = signatureViewScope;
+    try {
+      const result = await checkSignatureConfirmation();
+      if (!signatureViewMountedRef.current || signatureViewScopeRef.current !== signatureViewScope) return;
+      if (result.state === 'missing') {
+        setSignatureConfirmationPending(false);
+        setSignatureConfirmationStalled(false);
+        setAwaitingSignature(true);
+        setLocalSuccess(null);
+        setLocalWarning(null);
+        setLocalError(result.message);
+        workflowPersistence.persist({
+          signatureConfirmationPending: false,
+          awaitingSignature: true,
+          signatureCaptured: false,
+        });
+      } else if (result.state === 'confirmed') {
+        setSignatureConfirmationPending(false);
+        setSignatureConfirmationStalled(false);
+        setAwaitingSignature(false);
+        setCloseSignatureCaptureRequest((n) => n + 1);
+        setLocalError(null);
+        setLocalWarning(null);
+        setLocalSuccess('Unterschrift geprüft und gespeichert — der Einsatz kann abgeschlossen werden.');
+        workflowPersistence.persist({
+          signatureConfirmationPending: false,
+          awaitingSignature: false,
+          signatureCaptured: true,
+        });
+      } else if (result.state === 'unavailable') {
+        setSignatureConfirmationStalled(true);
+        setLocalWarning(result.message);
+      }
+      // An active write stays protected until it actually settles. A cached
+      // captured flag must never confirm a replacement currently being saved.
+    } finally {
+      if (signatureCheckInFlightRef.current === signatureViewScope) signatureCheckInFlightRef.current = null;
+    }
+  }, [checkSignatureConfirmation, signatureViewScope, workflowPersistence]);
+
   useEffect(() => {
-    signatureConfirmationRefreshRef.current = refresh;
-  }, [refresh]);
+    signatureConfirmationRefreshRef.current = checkSignatureAndRecover;
+  }, [checkSignatureAndRecover]);
 
   useEffect(() => {
     if (!signatureConfirmationPending) return;
-    if (signatureCaptured || signatureDeferred) {
+    if (signatureDeferred) {
       setSignatureConfirmationPending(false);
       setSignatureConfirmationStalled(false);
       setAwaitingSignature(false);
       setCloseSignatureCaptureRequest((n) => n + 1);
       setLocalError(null);
       setLocalWarning(null);
-      setLocalSuccess(signatureDeferred
-        ? 'Die Unterschrift wird über das Klientenportal nachgefordert.'
-        : 'Unterschrift geprüft und gespeichert — der Einsatz kann abgeschlossen werden.');
+      setLocalSuccess('Die Unterschrift wird über das Klientenportal nachgefordert.');
       return;
     }
     if (signatureSaveError) {
@@ -668,8 +718,10 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const retrySignatureConfirmation = useCallback(() => {
     setLocalError(null);
+    setLocalWarning(null);
     setSignatureConfirmationStalled(false);
-  }, []);
+    void checkSignatureAndRecover();
+  }, [checkSignatureAndRecover]);
 
   useEffect(() => {
     if (
