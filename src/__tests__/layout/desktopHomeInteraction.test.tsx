@@ -35,6 +35,7 @@ const dependencies: Record<string, unknown> = {
   '@/components/layout/TopbarProfileAvatar': { TopbarProfileAvatar: () => null },
   '@/design/web/WebFontScaleProvider': { useWebFontScale: () => ({ scale: api.scale }) },
   '@/lib/platform/desktopGridLayout': { resolveDesktopGridLayout },
+  '@/hooks/useDesktopWeather': { useDesktopWeather: () => ({ status: 'idle', data: null, message: 'Standort verwenden', refresh: vi.fn() }) },
 };
 // Compile the actual Web component; images are omitted and service/host boundaries are simulated.
 const compiled = buildSync({ entryPoints: ['src/liquid-command/screens/CommandCenterScreen.web.tsx'], bundle: true, write: false, format: 'cjs', platform: 'node', jsx: 'automatic', loader: { '.png': 'empty', '.jpg': 'empty' }, external: Object.keys(dependencies) }).outputFiles[0].text;
@@ -101,6 +102,8 @@ describe('Web desktop preferences and navigation', () => {
   });
   it('keeps text-size controls reachable in narrow windows and offers recovery from an empty search', async () => {
     api.width = 780; api.scale = 1.5; await render(); expect(button('Textgröße ändern')).toBeTruthy();
+    expect(host.querySelector('[data-testid=desktop-clock-weather]')).not.toBeNull();
+    expect(label('Standort für Wetter verwenden')).not.toBeNull();
     await click(label('Apps und Widgets öffnen'));
     const field = label('Apps und Widgets durchsuchen') as unknown as HTMLInputElement;
     await act(async () => { field.value = 'KeinTreffer123'; field.dispatchEvent(new Event('input', { bubbles: true })); });
