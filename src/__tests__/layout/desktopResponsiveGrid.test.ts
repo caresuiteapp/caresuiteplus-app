@@ -8,11 +8,11 @@ describe('responsive desktop workspace', () => {
       expect(result.cardWidth * result.columns + result.gap * (result.columns - 1)).toBeCloseTo(width);
       expect(result.columns).toBeGreaterThanOrEqual(1);
       expect(result.columns).toBeLessThanOrEqual(6);
-      if (result.columns > 1) expect(result.cardWidth).toBeGreaterThanOrEqual(248 * scale);
+      if (result.columns > 1) expect(result.cardWidth).toBeGreaterThanOrEqual(300 * scale);
     }
   });
   it('reflows when text is enlarged and handles missing initial measurements', () => {
     expect(resolveDesktopGridLayout(1200, 1.5).columns).toBeLessThan(resolveDesktopGridLayout(1200).columns);
-    expect(resolveDesktopGridLayout(NaN)).toEqual({ columns: 1, gap: 16, cardWidth: 0 });
+    expect(resolveDesktopGridLayout(NaN)).toEqual({ columns: 1, gap: 20, cardWidth: 0 });
   });
 });

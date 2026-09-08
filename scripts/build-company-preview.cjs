@@ -8,6 +8,7 @@ const data = path.join(fixture, 'company-preview-data.ts');
 const quote = JSON.stringify;
 const ui = name => quote(path.join(root, 'src/components', name));
 const virtual = {
+ avatar: `import React from 'react'; import {PremiumAvatar} from ${ui('ui/PremiumAvatar')}; export const TopbarProfileAvatar=props=>React.createElement(PremiumAvatar,props);`,
  serverStorage: `export class AsyncLocalStorage { constructor() { throw new Error('Server-only font context is unavailable in this browser fixture.'); } }`,
  router: `export * from ${quote(path.join(fixture, 'company-preview-router.tsx'))};`,
  storage: `export {storage as default} from ${quote(data)};`,
@@ -27,11 +28,12 @@ function resolveSource(base) {
 }
 (async () => {
  const target = path.join(process.env.TEMP || '/tmp', 'caresuite-company-preview'); fs.mkdirSync(target, { recursive: true });
- const result = await esbuild.build({ absWorkingDir: root, entryPoints: ['scripts/fixtures/company-preview.tsx'], outfile: path.join(target, 'company.js'), bundle: true, minify: true, metafile: true, platform: 'browser', jsx: 'automatic', mainFields: ['browser','module','main'], resolveExtensions: ['.web.tsx','.web.ts','.tsx','.ts','.web.jsx','.web.js','.jsx','.js','.json'], loader: { '.js':'jsx', '.png':'dataurl','.jpg':'dataurl','.ttf':'dataurl','.svg':'dataurl' }, define: { 'process.env':'{}', 'process.browser':'true', 'global':'globalThis', 'process.env.NODE_ENV':'"production"', __DEV__:'false' }, plugins: [{ name: 'synthetic-company-review', setup(build) {
+ const result = await esbuild.build({ absWorkingDir: root, entryPoints: ['scripts/fixtures/company-preview.tsx'], outfile: path.join(target, 'company.js'), bundle: true, minify: true, metafile: true, platform: 'browser', assetNames: 'assets/[name]-[hash]', publicPath: './', jsx: 'automatic', mainFields: ['browser','module','main'], resolveExtensions: ['.web.tsx','.web.ts','.tsx','.ts','.web.jsx','.web.js','.jsx','.js','.json'], loader: { '.js':'jsx', '.png':'file','.jpg':'file','.mp4':'file','.ttf':'dataurl','.svg':'dataurl' }, define: { 'process.env':'{}', 'process.browser':'true', 'global':'globalThis', 'process.env.NODE_ENV':'"production"', __DEV__:'false' }, plugins: [{ name: 'synthetic-company-review', setup(build) {
   build.onResolve({ filter: /.*/ }, args => {
    const spec = args.path;
    let name;
    if (spec === 'node:async_hooks') name = 'serverStorage';
+   else if (spec === '@/components/layout/TopbarProfileAvatar') name = 'avatar';
    else if (spec === 'expo-router') name = 'router';
    else if (spec === '@react-native-async-storage/async-storage') name = 'storage';
    else if (spec === 'react-native-safe-area-context') name = 'safe';
@@ -52,8 +54,8 @@ function resolveSource(base) {
   build.onLoad({ filter: /.*/, namespace: 'company-qa' }, args => ({ contents: virtual[args.path], loader: 'tsx', resolveDir: root }));
  } }] });
  // Browser connections are disabled independently of the synthetic service aliases.
- const csp = "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; media-src data: blob:;";
- fs.writeFileSync(path.join(target, 'index.html'), '<!doctype html><html lang="de"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="'+csp+'"><title>CareSuite – Web-Prüfung R3.3</title><div id="qa"><strong>Web-Prüfung R3.3 · ausschließlich fiktive Daten</strong><a href="#/auth/register">Registrierung</a><a href="#/platform/tenants">Unternehmen</a><a href="?platform=1#/platform/support">Support-Zentrale</a><br>Änderungen gelten nur in dieser Vorschau und werden beim Neuladen zurückgesetzt.</div><div id="preview"></div><script src="company.js"></script></html>');
+ const csp = "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src data:; connect-src 'none'; media-src 'self' data: blob:;";
+ fs.writeFileSync(path.join(target, 'index.html'), '<!doctype html><html lang="de"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="'+csp+'"><title>CareSuite – Web-Prüfung R4</title><div id="qa"><strong>Web-Prüfung R4 · ausschließlich fiktive Daten</strong><a href="#/desktop">Desktop</a><a href="#/auth/register">Registrierung</a><a href="#/platform/tenants">Unternehmen</a><a href="?platform=1#/platform/support">Support-Zentrale</a><br>Änderungen gelten nur in dieser Vorschau und werden beim Neuladen zurückgesetzt.</div><div id="preview"></div><script src="company.js"></script></html>');
  fs.writeFileSync(path.join(target, 'build-inputs.json'), JSON.stringify(Object.keys(result.metafile.inputs), null, 2));
  console.log(JSON.stringify({ ok: true, bytes: fs.statSync(path.join(target, 'company.js')).size, directory: target }));
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

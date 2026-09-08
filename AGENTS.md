@@ -6,6 +6,9 @@ Design, Layout, Texte und Funktionen sind gleichwertige Bestandteile der Umsetzu
 ## Umsetzung
 - Das bestehende CareSuite-Design mit konsistenten Farben, Typografie, Abständen, Rundungen und klarer visueller Hierarchie verwenden. Neue Elemente müssen zur gesamten Oberfläche passen.
 - Breite und schmale Inhaltsbereiche von Beginn an berücksichtigen, einschließlich geöffneter Navigation, Fensterwechsel und vergrößerter Schrift.
+- Auf der Desktop-Startseite bleibt die Navigation am linken Fensterrand. Das Widget-Raster wird separat im verbleibenden Arbeitsbereich zentriert; die gesamte Arbeitsfläche wird nicht gemeinsam nach innen gerückt oder zur Anpassung verkleinert.
+- Widget-Überschriften stehen gut lesbar oberhalb der Bilder. Große Leerflächen und eine unnötig hohe Hintergrundplatte vermeiden. Rechts oben liegt die Bedienleiste bei breiten Fenstern auf Höhe der linken Informationsleiste unterhalb des Logos.
+- Beim Start und vollständigen Neuladen von Web/Desktop werden die vorhandenen App-Intro-Videos vor Freigabe der Anmeldung abgespielt. Seitenwechsel innerhalb desselben Dokuments starten das Intro nicht erneut; Browser-Autoplay-Sperren und Medienfehler dürfen den Zugang nicht dauerhaft blockieren.
 - Tabellenkopf und Datenzeilen verwenden dasselbe Spaltenraster. Unterschiedliche Textlängen dürfen die Spalten nicht gegeneinander verschieben.
 - Karten, Formulare, Filter und Aktionen geordnet ausrichten. Wichtige Angaben und Aktionen müssen bei wenig Platz erreichbar bleiben.
 - Beschriftungen und Eingaben müssen kontrastreich lesbar sein; unbeabsichtigte Überlagerungen, abgeschnittene Inhalte, große Leerflächen und ungünstige Wortumbrüche beheben.
