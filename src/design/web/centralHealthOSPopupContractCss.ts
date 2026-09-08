@@ -120,4 +120,24 @@ export const CENTRAL_HEALTHOS_POPUP_CONTRACT_CSS = `
     color: #F8FBFF !important;
   }
 
+  html [data-cs-desktop-surface="light"] :is(input, textarea, select),
+  html [data-cs-support-surface="light"] :is(input, textarea, select) {
+    font-size: calc(16px * var(--app-font-scale, 1)) !important;
+    line-height: 1.5 !important; min-height: 44px; max-width: 100%; box-sizing: border-box;
+  }
+  html [data-cs-desktop-surface="light"] :is([role="button"], [role="tab"]),
+  html [data-cs-support-surface="light"] [role="button"] {
+    overflow-wrap: anywhere;
+  }
+  html [data-cs-desktop-surface="light"] :is([role="table"], [role="row"], [role="cell"]),
+  html [data-cs-support-surface="light"] { min-width: 0; }
+  html [data-cs-desktop-surface="light"] :is([role="button"], [role="tab"]):focus-visible,
+  html [data-cs-support-surface="light"] [role="button"]:focus-visible {
+    outline: 3px solid #1477D6 !important; outline-offset: 3px;
+  }
+  @media (max-height: 650px) {
+    html [data-cs-desktop-surface="light"] [data-cs-central-popup-page-header="true"] {
+      min-height: 60px !important; padding-top: 8px !important; padding-bottom: 8px !important;
+    }
+  }
 `;

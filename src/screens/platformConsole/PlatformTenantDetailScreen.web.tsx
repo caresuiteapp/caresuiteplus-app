@@ -1,3 +1,5 @@
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
+import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
 import { PlatformShellLayout as DesktopPlatformShell } from '@/components/platformConsole/PlatformShellLayout.web';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -68,7 +70,6 @@ import {
 
   TenantSubscriptionTab,
 
-  TenantSupportTab,
 
   TenantUsersTab,
 
@@ -145,6 +146,12 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
   const [actionError, setActionError] = useState<string | null>(null);
   const requestNumber = useRef(0);
   const actionLock = useRef(false);
+  const [recordDirty, setRecordDirty] = useState(false);
+  const confirmLeave = useUnsavedWebChanges(recordDirty, actionLoading);
+  const changeTab = async (next: TabKey) => {
+    if (next === tab || !await confirmLeave()) return;
+    setRecordDirty(false); setTab(next);
+  };
   const mounted = useRef(true);
 
 
@@ -210,7 +217,6 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
       await load();
     } catch (cause) {
       if (!mounted.current) return;
-      setConfirm(null);
       setActionError(cause instanceof Error ? cause.message : 'Änderung konnte nicht gespeichert werden.');
     } finally {
       actionLock.current = false;
@@ -267,7 +273,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
           {TAB_GROUPS.map((group) => {
             const active = group.key === activeGroup.key;
             return (
-              <Pressable key={group.key} style={[styles.groupTab, active && styles.groupTabActive]} onPress={() => setTab(group.tabs[0].key)}>
+              <Pressable key={group.key} style={[styles.groupTab, active && styles.groupTabActive]} onPress={() => void changeTab(group.tabs[0].key)}>
                 <Text style={[styles.groupTabText, active && styles.groupTabTextActive]}>{group.label}</Text>
               </Pressable>
             );
@@ -276,7 +282,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
         {activeGroup.tabs.length > 1 ? (
           <View style={styles.subTabs}>
             {activeGroup.tabs.map((item) => (
-              <Pressable key={item.key} style={[styles.subTab, item.key === tab && styles.subTabActive]} onPress={() => setTab(item.key)}>
+              <Pressable key={item.key} style={[styles.subTab, item.key === tab && styles.subTabActive]} onPress={() => void changeTab(item.key)}>
                 <Text style={[styles.subTabText, item.key === tab && styles.subTabTextActive]}>{item.label}</Text>
               </Pressable>
             ))}
@@ -365,6 +371,8 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
           <TenantRecordEditTab
             detail={detail}
             canWrite={canEditRecord}
+            onDirtyChange={setRecordDirty}
+            disabled={actionLoading}
             onSave={(update) => setConfirm({
               title: 'Mandantenakte speichern',
               description: `Stammdaten und Datenklassifizierung für „${tenantName}" verbindlich aktualisieren.`,
@@ -448,6 +456,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
 
       <PlatformConfirmModal
+        error={actionError}
 
         visible={Boolean(confirm)}
 
@@ -592,9 +601,13 @@ function TenantRecordEditTab({
   detail,
   canWrite,
   onSave,
+  onDirtyChange,
+  disabled,
 }: {
   detail: PlatformTenantDetail;
   canWrite: boolean;
+  disabled?: boolean;
+  onDirtyChange: (dirty: boolean) => void;
   onSave: (update: PlatformTenantRecordUpdate) => void;
 }) {
   const t = detail.tenant;
@@ -613,8 +626,16 @@ function TenantRecordEditTab({
   );
   const [environmentNotes, setEnvironmentNotes] = useState(String(t.environmentNotes ?? t.environment_notes ?? ''));
 
+  const currentValues = [legalName, slug, contactName, contactEmail, contactPhone, billingEmail, supportEmail, country, timezone, environmentMode, environmentNotes];
+  const initialValues = useRef(currentValues);
+  const dirty = currentValues.some((value, index) => value !== initialValues.current[index]);
+  useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
+  const emailError = [contactEmail, billingEmail, supportEmail].some(value => value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()));
+  const recordError = emailError ? 'Bitte gültige E-Mail-Adressen angeben.' : !/^[A-Za-z]{2}$/.test(country.trim()) ? 'Bitte das zweistellige Länderkürzel angeben, zum Beispiel DE.' : null;
+
   if (!canWrite) {
-    return <View style={styles.panel}><Text style={styles.panelTitle}>Nur Leserechte</Text><Text style={styles.panelHint}>Die Stammdatenpflege erfordert tenants.write.</Text></View>;
+    return <View style={styles.panel}><Text style={styles.panelTitle}>Nur Leserechte</Text><Text style={styles.panelHint}>Ihr Plattformkonto benötigt die Berechtigung zur Unternehmensverwaltung.</Text></View>;
   }
 
   return (
@@ -633,31 +654,33 @@ function TenantRecordEditTab({
           ))}
         </View>
         <PlatformFormField label="Einordnung / Hinweis" required>
-          <TextInput style={[styles.input, styles.multiline]} multiline value={environmentNotes} onChangeText={setEnvironmentNotes} placeholder="Warum ist dieser Mandant Produktion, Pilot oder Test?" placeholderTextColor={PLATFORM_COLORS.muted} />
+          <TextInput editable={!disabled} style={[styles.input, styles.multiline]} multiline value={environmentNotes} onChangeText={setEnvironmentNotes} placeholder="Warum ist dieser Mandant Produktion, Pilot oder Test?" placeholderTextColor={PLATFORM_COLORS.muted} />
         </PlatformFormField>
       </View>
 
       <View style={styles.recordColumns}>
         <View style={[styles.panel, styles.recordColumn]}>
           <Text style={styles.panelTitle}>Unternehmen</Text>
-          <PlatformFormField label="Rechtlicher Name"><TextInput style={styles.input} value={legalName} onChangeText={setLegalName} /></PlatformFormField>
-          <PlatformFormField label="Slug"><TextInput style={styles.input} value={slug} onChangeText={setSlug} autoCapitalize="none" /></PlatformFormField>
-          <PlatformFormField label="Land"><TextInput style={styles.input} value={country} onChangeText={setCountry} autoCapitalize="characters" /></PlatformFormField>
-          <PlatformFormField label="Zeitzone"><TextInput style={styles.input} value={timezone} onChangeText={setTimezone} autoCapitalize="none" /></PlatformFormField>
+          <PlatformFormField label="Rechtlicher Name"><TextInput editable={!disabled} style={styles.input} value={legalName} onChangeText={setLegalName} /></PlatformFormField>
+          <PlatformFormField label="Slug"><TextInput editable={!disabled} style={styles.input} value={slug} onChangeText={setSlug} autoCapitalize="none" /></PlatformFormField>
+          <PlatformFormField label="Land"><TextInput editable={!disabled} style={styles.input} value={country} onChangeText={setCountry} autoCapitalize="characters" /></PlatformFormField>
+          <PlatformFormField label="Zeitzone"><TextInput editable={!disabled} style={styles.input} value={timezone} onChangeText={setTimezone} autoCapitalize="none" /></PlatformFormField>
         </View>
         <View style={[styles.panel, styles.recordColumn]}>
           <Text style={styles.panelTitle}>Kontakt & Abrechnung</Text>
-          <PlatformFormField label="Ansprechperson"><TextInput style={styles.input} value={contactName} onChangeText={setContactName} /></PlatformFormField>
-          <PlatformFormField label="Kontakt-E-Mail"><TextInput style={styles.input} value={contactEmail} onChangeText={setContactEmail} autoCapitalize="none" keyboardType="email-address" /></PlatformFormField>
-          <PlatformFormField label="Telefon"><TextInput style={styles.input} value={contactPhone} onChangeText={setContactPhone} keyboardType="phone-pad" /></PlatformFormField>
-          <PlatformFormField label="Abrechnungs-E-Mail"><TextInput style={styles.input} value={billingEmail} onChangeText={setBillingEmail} autoCapitalize="none" keyboardType="email-address" /></PlatformFormField>
-          <PlatformFormField label="Support-E-Mail"><TextInput style={styles.input} value={supportEmail} onChangeText={setSupportEmail} autoCapitalize="none" keyboardType="email-address" /></PlatformFormField>
+          <PlatformFormField label="Ansprechperson"><TextInput editable={!disabled} style={styles.input} value={contactName} onChangeText={setContactName} /></PlatformFormField>
+          <PlatformFormField label="Kontakt-E-Mail"><TextInput editable={!disabled} style={styles.input} value={contactEmail} onChangeText={setContactEmail} autoCapitalize="none" keyboardType="email-address" /></PlatformFormField>
+          <PlatformFormField label="Telefon"><TextInput editable={!disabled} style={styles.input} value={contactPhone} onChangeText={setContactPhone} keyboardType="phone-pad" /></PlatformFormField>
+          <PlatformFormField label="Abrechnungs-E-Mail"><TextInput editable={!disabled} style={styles.input} value={billingEmail} onChangeText={setBillingEmail} autoCapitalize="none" keyboardType="email-address" /></PlatformFormField>
+          <PlatformFormField label="Support-E-Mail"><TextInput editable={!disabled} style={styles.input} value={supportEmail} onChangeText={setSupportEmail} autoCapitalize="none" keyboardType="email-address" /></PlatformFormField>
         </View>
       </View>
 
+      {recordError ? <Text accessibilityRole="alert" style={styles.panelHint}>{recordError}</Text> : null}
       <Pressable
+        accessibilityRole="button"
         style={[styles.saveButton, (!environmentMode || !environmentNotes.trim()) && styles.disabledButton]}
-        disabled={!environmentMode || !environmentNotes.trim()}
+        disabled={disabled || !dirty || !!recordError || !environmentMode || !environmentNotes.trim()}
         onPress={() => environmentMode && onSave({
           legalName: legalName.trim() || null, slug: slug.trim() || null,
           primaryContactName: contactName.trim() || null, primaryContactEmail: contactEmail.trim() || null,
@@ -703,12 +726,12 @@ const styles = StyleSheet.create({
   groupTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   groupTab: { borderWidth: 1, borderColor: PLATFORM_COLORS.border, borderRadius: 8, backgroundColor: PLATFORM_COLORS.panel, paddingHorizontal: spacing.md, paddingVertical: 9 },
   groupTabActive: { borderColor: PLATFORM_COLORS.accent, backgroundColor: PLATFORM_COLORS.accentSoft },
-  groupTabText: { color: PLATFORM_COLORS.muted, fontSize: 13, fontWeight: '700' },
+  groupTabText: { color: PLATFORM_COLORS.muted, fontSize: font(13), fontWeight: '700' },
   groupTabTextActive: { color: PLATFORM_COLORS.accent },
   subTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, padding: 4, borderRadius: 8, backgroundColor: '#EAF0F7' },
   subTab: { borderRadius: 6, paddingHorizontal: spacing.sm, paddingVertical: 7 },
   subTabActive: { backgroundColor: PLATFORM_COLORS.panel, borderWidth: 1, borderColor: PLATFORM_COLORS.border },
-  subTabText: { color: PLATFORM_COLORS.muted, fontSize: 12, fontWeight: '600' },
+  subTabText: { color: PLATFORM_COLORS.muted, fontSize: font(13), fontWeight: '600' },
   subTabTextActive: { color: PLATFORM_COLORS.text },
 
   content: { paddingTop: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
@@ -735,15 +758,15 @@ const styles = StyleSheet.create({
   environmentPanel: { borderColor: '#FCD34D' },
   dangerPanel: { borderColor: '#FCA5A5' },
   panelHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
-  panelTitle: { color: PLATFORM_COLORS.text, fontSize: 15, fontWeight: '800' },
-  panelHint: { color: PLATFORM_COLORS.muted, fontSize: 12, lineHeight: 18 },
-  environmentExplanation: { color: PLATFORM_COLORS.text, fontSize: 13, lineHeight: 19 },
+  panelTitle: { color: PLATFORM_COLORS.text, fontSize: font(15), fontWeight: '800' },
+  panelHint: { color: PLATFORM_COLORS.muted, fontSize: font(13), lineHeight: font(20) },
+  environmentExplanation: { color: PLATFORM_COLORS.text, fontSize: font(13), lineHeight: font(20) },
   productRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  productName: { color: PLATFORM_COLORS.text, fontSize: 13, fontWeight: '600' },
+  productName: { color: PLATFORM_COLORS.text, fontSize: font(13), fontWeight: '600' },
   environmentOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   environmentOption: { borderWidth: 1, borderColor: PLATFORM_COLORS.border, borderRadius: 999, paddingHorizontal: spacing.sm, paddingVertical: 7, backgroundColor: PLATFORM_COLORS.panelSoft },
   environmentOptionActive: { borderColor: PLATFORM_COLORS.accent, backgroundColor: PLATFORM_COLORS.accentSoft },
-  environmentOptionText: { color: PLATFORM_COLORS.muted, fontSize: 12, fontWeight: '700' },
+  environmentOptionText: { color: PLATFORM_COLORS.muted, fontSize: font(13), fontWeight: '700' },
   environmentOptionTextActive: { color: PLATFORM_COLORS.accent },
   input: { borderWidth: 1, borderColor: PLATFORM_COLORS.border, borderRadius: 8, backgroundColor: PLATFORM_COLORS.panelSoft, color: PLATFORM_COLORS.text, paddingHorizontal: spacing.sm, paddingVertical: 10 },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
@@ -753,9 +776,9 @@ const styles = StyleSheet.create({
 
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
 
-  infoLabel: { color: PLATFORM_COLORS.muted, fontSize: 13 },
+  infoLabel: { color: PLATFORM_COLORS.muted, fontSize: font(13) },
 
-  infoValue: { flex: 1, minWidth: 0, textAlign: 'right', color: PLATFORM_COLORS.text, fontSize: 13, fontWeight: '600' },
+  infoValue: { flex: 1, minWidth: 0, textAlign: 'right', color: PLATFORM_COLORS.text, fontSize: font(13), fontWeight: '600' },
 
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
 
@@ -791,13 +814,13 @@ const styles = StyleSheet.create({
 
   },
 
-  btnText: { color: PLATFORM_COLORS.text, fontSize: 13, fontWeight: '600' },
+  btnText: { color: PLATFORM_COLORS.text, fontSize: font(13), fontWeight: '600' },
 
   moduleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
 
   moduleName: { color: PLATFORM_COLORS.text, fontWeight: '600' },
 
-  moduleMeta: { color: PLATFORM_COLORS.muted, fontSize: 12 },
+  moduleMeta: { color: PLATFORM_COLORS.muted, fontSize: font(13) },
 
   auditBanner: {
 
@@ -811,6 +834,6 @@ const styles = StyleSheet.create({
 
   },
 
-  auditHint: { color: PLATFORM_COLORS.muted, fontSize: 12 },
+  auditHint: { color: PLATFORM_COLORS.muted, fontSize: font(13) },
 
 });

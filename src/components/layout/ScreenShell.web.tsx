@@ -139,7 +139,7 @@ export function ScreenShell({
         },
         centralPopupEyebrow: {
           color: '#0866C2',
-          fontSize: 10,
+          fontSize: 12,
           lineHeight: 14,
           fontWeight: '900',
           letterSpacing: 1.4,
@@ -187,7 +187,7 @@ export function ScreenShell({
       <ScrollView
         style={styles.scrollHost}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator
         keyboardShouldPersistTaps="handled"
       >
         {structuredContent}

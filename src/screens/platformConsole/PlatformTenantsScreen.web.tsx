@@ -1,3 +1,4 @@
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { PlatformShellLayout as DesktopPlatformShell } from '@/components/platformConsole/PlatformShellLayout.web';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
@@ -37,6 +38,8 @@ export function PlatformTenantsScreen() {
   const [environmentFilter, setEnvironmentFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [offset, setOffset] = useState(0);
+  const filtered = !!(search.trim() || statusFilter || billingFilter || environmentFilter);
+  const resetFilters = () => { setSearch(''); setStatusFilter(''); setBillingFilter(''); setEnvironmentFilter(''); setOffset(0); };
   const [hasMore, setHasMore] = useState(false);
   const requestNumber = useRef(0);
   const [error, setError] = useState<string | null>(null);
@@ -166,6 +169,7 @@ export function PlatformTenantsScreen() {
           </PlatformFilterChipRow>
         </View>
       </View>
+      <View style={styles.toolbar}><Text style={styles.muted}>{loading ? "Unternehmen werden geladen …" : error ? "Liste nicht verfügbar" : `${items.length ? offset + 1 : 0}–${offset + items.length} Unternehmen${hasMore ? " · weitere verfügbar" : ""}`}</Text>{filtered ? <Pressable accessibilityRole="button" style={styles.searchBtn} onPress={resetFilters}><Text style={styles.searchBtnText}>Filter zurücksetzen</Text></Pressable> : null}</View>
       <View style={styles.results} onLayout={({ nativeEvent }) => {
         if (nativeEvent.layout.width > 0) setListWidth(nativeEvent.layout.width);
       }}>
@@ -230,16 +234,16 @@ const styles = StyleSheet.create({
   cards: { gap: spacing.sm },
   companyCard: { backgroundColor: PLATFORM_COLORS.panel, borderWidth: 1, borderColor: PLATFORM_COLORS.border, borderRadius: 12, padding: spacing.md, gap: spacing.sm },
   cardHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
-  cardName: { flexGrow: 1, flexShrink: 1, flexBasis: 240, minWidth: 0, fontSize: 16 },
+  cardName: { flexGrow: 1, flexShrink: 1, flexBasis: 240, minWidth: 0, fontSize: font(16) },
   openBtn: { minHeight: 44, minWidth: 64, alignItems: 'flex-start', justifyContent: 'center' },
   cardFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   cardFact: { flexGrow: 1, flexShrink: 1, flexBasis: 240, minWidth: 0, alignItems: 'flex-start', gap: 4 },
-  factLabel: { color: PLATFORM_COLORS.muted, fontSize: 12, fontWeight: '600' },
-  factValue: { color: PLATFORM_COLORS.text, fontSize: 14 },
+  factLabel: { color: PLATFORM_COLORS.muted, fontSize: font(13), fontWeight: '600' },
+  factValue: { color: PLATFORM_COLORS.text, fontSize: font(14) },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   filters: { gap: spacing.sm, marginBottom: spacing.md },
   filterGroup: { gap: 5 },
-  filterLabel: { color: PLATFORM_COLORS.muted, fontSize: 11, fontWeight: '700' },
+  filterLabel: { color: PLATFORM_COLORS.muted, fontSize: font(13), fontWeight: '700' },
   search: {
     flexGrow: 1, flexBasis: 260, minWidth: 0,
     borderWidth: 1,
@@ -247,6 +251,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: spacing.sm,
     paddingVertical: 10,
+    fontSize: font(16), lineHeight: font(24), minHeight: 48,
     color: PLATFORM_COLORS.text,
     backgroundColor: PLATFORM_COLORS.panel,
   },
@@ -261,5 +266,5 @@ const styles = StyleSheet.create({
   searchBtnText: { color: PLATFORM_COLORS.accent, fontWeight: '600' },
   cellPrimary: { color: PLATFORM_COLORS.text, fontWeight: '600' },
   link: { color: PLATFORM_COLORS.accent, fontWeight: '600' },
-  muted: { color: PLATFORM_COLORS.muted, fontSize: 12 },
+  muted: { color: PLATFORM_COLORS.muted, fontSize: font(13) },
 });

@@ -1,3 +1,4 @@
+import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   KeyboardAvoidingView,
@@ -57,6 +58,7 @@ type AccessShellProps = {
   backDisabled?: boolean;
   side?: ReactNode;
   compact?: boolean;
+  scrollKey?: string | number;
 };
 
 function AccessShell({
@@ -68,10 +70,13 @@ function AccessShell({
   backDisabled = false,
   side,
   compact = false,
+  scrollKey,
 }: AccessShellProps) {
   const router = useRouter();
   const layout = useLiquidLayout();
   const insets = useSafeAreaInsets();
+  const scroll = useRef<ScrollView>(null);
+  useEffect(() => { scroll.current?.scrollTo({ y: 0, animated: false }); }, [scrollKey]);
   // Two columns need enough room for both the form and the 370px progress card.
   const stacked = layout.width < 1100;
   return (
@@ -97,6 +102,7 @@ function AccessShell({
           </View>
         ) : null}
         <ScrollView
+          ref={scroll}
           style={styles.accessScrollViewport}
           contentContainerStyle={[
             styles.accessScroll,
@@ -104,7 +110,7 @@ function AccessShell({
             { paddingBottom: Math.max(insets.bottom, layout.isPhone ? 24 : 40) },
           ]}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator
         >
           <View style={[
             styles.accessGrid,
@@ -451,6 +457,10 @@ export function RegisterOrganizationScreen() {
   const [success, setSuccess] = useState<{ username?: string } | null>(null);
   const [draftReady, setDraftReady] = useState(false);
   const submitLock = useRef(false);
+  const draftWrites = useRef<Promise<unknown>>(Promise.resolve());
+  const [draftError, setDraftError] = useState(false);
+  const registrationLayout = useLiquidLayout();
+  useUnsavedWebChanges(!success && (!!form.adminPassword || !!confirmPassword || draftError), loading, 'Nicht gespeicherte Angaben und Passwörter gehen beim Verlassen verloren. Möchten Sie die Registrierung verlassen?');
 
   useEffect(() => {
     void AsyncStorage.getItem(REGISTRATION_DRAFT_KEY).then((value) => {
@@ -471,7 +481,9 @@ export function RegisterOrganizationScreen() {
   useEffect(() => {
     if (!draftReady || success) return;
     const safeDraft = { ...form, adminPassword: '' };
-    void AsyncStorage.setItem(REGISTRATION_DRAFT_KEY, JSON.stringify(safeDraft)).catch(() => undefined);
+    draftWrites.current = draftWrites.current.catch(() => undefined)
+      .then(() => AsyncStorage.setItem(REGISTRATION_DRAFT_KEY, JSON.stringify(safeDraft)))
+      .then(() => setDraftError(false), () => setDraftError(true));
   }, [draftReady, form, success]);
 
   const update = <K extends keyof BusinessRegistrationInput>(
@@ -537,6 +549,7 @@ export function RegisterOrganizationScreen() {
         setError(result.error);
         return;
       }
+      await draftWrites.current;
       await AsyncStorage.removeItem(REGISTRATION_DRAFT_KEY).catch(() => undefined);
       setSuccess({ username: result.data.owner.email });
       setForm(current => ({ ...current, adminPassword: '' }));
@@ -578,7 +591,8 @@ export function RegisterOrganizationScreen() {
       subtitle={registrationSteps[step][1]}
       backRoute="/auth"
       backDisabled={loading}
-      side={
+      scrollKey={step}
+      side={registrationLayout.width < 1100 ? undefined : (
         <LiquidSurface active contentStyle={styles.stepCard}>
           <LiquidText variant="kicker">FORTSCHRITT</LiquidText>
           {registrationSteps.map(([label, detail], index) => (
@@ -587,7 +601,7 @@ export function RegisterOrganizationScreen() {
               accessibilityRole="button"
               accessibilityState={{ selected: step === index, disabled: loading || index > step }}
               disabled={loading || index > step}
-              onPress={() => setStep(index)}
+              onPress={() => { setError(null); setStep(index); }}
               style={[styles.stepRow, step === index && styles.stepRowActive]}
             >
               <View style={[styles.stepNumber, index <= step && styles.stepNumberActive]}>
@@ -606,8 +620,9 @@ export function RegisterOrganizationScreen() {
           <LiquidStatus label="Kostenlos · 0 €" tone="success" />
           <LiquidText variant="body">Kostenlos starten. Keine Kreditkarte erforderlich.</LiquidText>
         </LiquidSurface>
-      }
+      )}
     >
+      {registrationLayout.width < 1100 ? <View style={styles.registrationProgress} accessibilityLabel={`Schritt ${step + 1} von 5: ${registrationSteps[step][0]}`}><View style={styles.registrationProgressTrack}><View style={[styles.registrationProgressFill, { width: `${((step + 1) / registrationSteps.length) * 100}%` }]} /></View><Text style={styles.registrationProgressText}>Schritt {step + 1} von {registrationSteps.length} · {registrationSteps[step][0]}</Text></View> : null}
       <LiquidSurface active contentStyle={styles.formCard}>
         <LiquidStatus label="Kostenlos · 0 € · keine Kreditkarte" tone="success" />
         {error ? <LiquidState kind="error" title={step === 4 ? 'Registrierung nicht abgeschlossen' : 'Angaben prüfen'} message={error} /> : null}
@@ -673,8 +688,14 @@ export function RegisterOrganizationScreen() {
           <View style={styles.reviewFacts}>
             {[
               ['Organisation', `${form.companyName} · ${form.legalForm}`],
+              ['Einrichtung', form.industry],
+              ...(form.ikNumber?.trim() ? [['IK-Nummer', form.ikNumber]] : []),
               ['Standort', `${form.street}, ${form.zip} ${form.city}`],
+              ['Erreichbarkeit', `${form.email} · ${form.phone}`],
+              ...(form.website?.trim() ? [['Website', form.website]] : []),
               ['Administration', `${form.adminFirstName} ${form.adminLastName} · ${form.adminEmail}`],
+              ...(form.adminPhone?.trim() ? [['Telefon Administration', form.adminPhone]] : []),
+              ...([form.contactFirstName, form.contactLastName].some(value => value?.trim()) ? [['Ansprechperson', [form.contactFirstName, form.contactLastName, form.contactRole].filter(Boolean).join(' · ')]] : []),
               ['Kosten', 'Kostenlos · 0 €'],
               ['Sicherheit', 'Passwort gesetzt · Bedingungen bestätigt'],
             ].map(([label, value]) => (
@@ -685,9 +706,10 @@ export function RegisterOrganizationScreen() {
             ))}
           </View>
         ) : null}
+        <Text accessibilityRole={draftError ? "alert" : undefined} style={styles.registrationDraftHint}>{draftError ? "Die Angaben konnten auf diesem Gerät nicht zwischengespeichert werden. Bitte lassen Sie die Seite bis zur Registrierung geöffnet." : "Ihre Angaben werden auf diesem Gerät zwischengespeichert. Passwörter werden nicht gespeichert."}</Text>
         <View style={styles.registrationActions}>
           {step > 0 ? (
-            <LiquidButton label="Zurück" variant="secondary" disabled={loading} onPress={() => setStep((current) => current - 1)} />
+            <LiquidButton label="Zurück" variant="secondary" disabled={loading} onPress={() => { setError(null); setStep((current) => current - 1); }} />
           ) : null}
           {step < registrationSteps.length - 1 ? (
             <LiquidButton label="Weiter" onPress={next} />
@@ -866,6 +888,11 @@ export function EmployeeFirstLoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  registrationProgress: { gap: 8 },
+  registrationProgressTrack: { height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: '#D8E7FA' },
+  registrationProgressFill: { height: '100%', backgroundColor: '#076BE4', borderRadius: 3 },
+  registrationProgressText: { color: '#38546F', fontSize: 15, lineHeight: 22, fontWeight: '600' },
+  registrationDraftHint: { color: '#526B82', fontSize: 14, lineHeight: 21 },
   accessRoot: {
     flex: 1,
     minHeight: 0,
@@ -910,7 +937,7 @@ const styles = StyleSheet.create({
   },
   accessGridCompact: {
     width: '100%',
-    minHeight: 780,
+    minHeight: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
