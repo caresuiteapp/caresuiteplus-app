@@ -1,5 +1,7 @@
 # Desktop-Startseite und Web-Intro R4 – 08.09.2026
 
+Nachtrag: Der unten dokumentierte Vorbereitungsstand ist inzwischen veröffentlicht. Produktionsnachweis und weiterhin offene Prüfgrenzen: [Veröffentlichung am 08.09.2026](desktop-web-production-20260908.md).
+
 ## Auftrag und Umsetzung
 
 Die Nutzerrückmeldung fordert eine links angeordnete Navigation, separat zentrierte Widgets, lesbare Schrift, Überschriften über den Bildern und weniger leere Hintergrundfläche. Die rechte Bedienleiste soll auf Höhe der linken Infoleiste unter dem Logo liegen. Zusätzlich sollen die vorhandenen App-Videos beim Web-/Desktop-Start und bei jedem vollständigen Neuladen vor der Anmeldung abgespielt werden.
