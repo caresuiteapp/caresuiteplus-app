@@ -21,3 +21,7 @@ Design, Layout, Texte und Funktionen sind gleichwertige Bestandteile der Umsetzu
 
 ## Aktueller Arbeitsumfang
 Die laufende Überarbeitung betrifft Desktop und Web. Die fertiggestellte Android-App wird dabei nicht verändert. Firmenregistrierung kostenlos und ohne Modulauswahl; keine Modulwerbung im Registrierungsablauf. Spätere ausdrückliche Nutzeraufträge bestimmen den jeweiligen weiteren Umfang.
+
+
+## Bestehende Arbeitsumgebung verwenden
+Der Nutzer möchte für diesen Auftrag keine zusätzliche Software oder neue Testinfrastruktur. Die Einrichtung über Docker wird nicht weiterverfolgt. Mit dem vorhandenen Projekt, vorhandenen Verbindungen und bestehenden Prüfwerkzeugen arbeiten; keine weiteren Installations- oder Infrastrukturaufgaben an den Nutzer auslagern. Fehlende Ende-zu-Ende-Nachweise präzise offenhalten. Diese Einschränkung ist keine Freigabe für Teständerungen an produktiven Daten oder für eine Veröffentlichung.

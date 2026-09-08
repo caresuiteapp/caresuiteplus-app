@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { confirmAction } from '@/lib/platform/confirmAction';
 import { SupportAccessPanel } from './SupportAccessPanel';
+import { createSupportReadScope } from '@/lib/support/supportReadScope';
 import {
   SUPPORT_STATUS, downloadSupportAttachment, newSupportNonce, pickSupportAttachment,
   removeSupportDraftAttachment, supportRpc, subscribeSupport,
@@ -18,11 +19,14 @@ export function SupportWorkspace({ platformMode = false, initialSearch = '' }: {
   const [offset, setOffset] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [detail, setDetail] = useState<SupportDetail | null>(null);
+  const [loadedDetail, setDetail] = useState<SupportDetail | null>(null);
+  const detail = loadedDetail?.ticket.id === selected ? loadedDetail : null;
   const [older, setOlder] = useState<SupportMessage[]>([]);
   const [hasOlder, setHasOlder] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [queueError, setQueueError] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState('');
   const [attachments, setAttachments] = useState<SupportAttachment[]>([]);
@@ -33,55 +37,55 @@ export function SupportWorkspace({ platformMode = false, initialSearch = '' }: {
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const sendNonce = useRef(newSupportNonce());
   const createNonce = useRef(newSupportNonce());
-  const activeTicket = useRef(selected);
   const mutationLock = useRef(false);
   const oldestLoaded = useRef(false);
-  activeTicket.current = selected;
+  const queueReads = useMemo(() => createSupportReadScope(), [offset, search, status]);
+  const detailReads = useMemo(() => createSupportReadScope(), [selected]);
+  const displayError = error || detailError || queueError;
   const wide = width >= 1040;
 
-  const refreshQueue = useCallback(async () => {
-    const data = await supportRpc<SupportQueue>('support_list_tickets', { p_search: search.trim(), p_status: status, p_offset: offset });
-    setQueue(data);
-  }, [offset, search, status]);
+  const refreshQueue = useCallback(() => queueReads.run(
+    () => supportRpc<SupportQueue>('support_list_tickets', { p_search: search.trim(), p_status: status, p_offset: offset }),
+    data => { setQueue(data); setQueueError(null); setLoading(false); },
+    cause => { setQueue(null); setQueueError(cause instanceof Error ? cause.message : 'Support nicht erreichbar.'); setLoading(false); },
+  ), [offset, search, status, queueReads]);
   const refreshDetail = useCallback(async () => {
     if (!selected) return;
-    const data = await supportRpc<SupportDetail>('support_get_ticket', { p_ticket_id: selected });
-    if (activeTicket.current === selected) { setDetail(data); setUpdatedAt(new Date().toISOString()); }
-  }, [selected]);
+    await detailReads.run(
+      () => supportRpc<SupportDetail>('support_get_ticket', { p_ticket_id: selected }),
+      data => { setDetail(data); setDetailError(null); setHasOlder(!oldestLoaded.current && data.messages.length === 100); setUpdatedAt(new Date().toISOString()); },
+      cause => { setDetail(null); setDetailError(cause instanceof Error ? cause.message : 'Ticket nicht erreichbar.'); },
+    );
+  }, [selected, detailReads]);
 
   useEffect(() => {
+    queueReads.activate();
+    setQueue(null); setQueueError(null); setLoading(true);
     let active = true;
     let timer: ReturnType<typeof setTimeout>;
     const load = async () => {
-      try {
-        const data = await supportRpc<SupportQueue>('support_list_tickets', { p_search: search.trim(), p_status: status, p_offset: offset });
-        if (active) setQueue(data);
-      } catch (cause) { if (active) setError(cause instanceof Error ? cause.message : 'Support nicht erreichbar.'); }
-      finally { if (active) { setLoading(false); timer = setTimeout(load, 15000); } }
+      await refreshQueue();
+      if (active) timer = setTimeout(load, 15000);
     };
     timer = setTimeout(load, 250);
-    return () => { active = false; clearTimeout(timer); };
-  }, [offset, search, status]);
+    return () => { active = false; clearTimeout(timer); queueReads.dispose(); };
+  }, [refreshQueue, queueReads]);
 
   useEffect(() => {
-    setDetail(null); setOlder([]); setHasOlder(false); oldestLoaded.current = false;
-    if (!selected) return;
+    detailReads.activate();
+    setDetail(null); setDetailError(null); setUpdatedAt(null); setOlder([]); setHasOlder(false); oldestLoaded.current = false;
     let active = true;
     let timer: ReturnType<typeof setTimeout>;
     const load = async () => {
-      try {
-        const data = await supportRpc<SupportDetail>('support_get_ticket', { p_ticket_id: selected });
-        if (active) { setDetail(data); setHasOlder(!oldestLoaded.current && data.messages.length === 100); setUpdatedAt(new Date().toISOString()); }
-      } catch (cause) {
-        if (active) { setDetail(null); setError(cause instanceof Error ? cause.message : 'Ticket nicht erreichbar.'); }
-      } finally { if (active) timer = setTimeout(load, 10000); }
+      await refreshDetail();
+      if (active) timer = setTimeout(load, 10000);
     };
-    void load();
-    return () => { active = false; clearTimeout(timer); };
-  }, [selected]);
+    if (selected) void load();
+    return () => { active = false; clearTimeout(timer); detailReads.dispose(); };
+  }, [selected, refreshDetail, detailReads]);
 
-  useEffect(() => subscribeSupport(null, () => { void refreshQueue().catch(() => undefined); }), [refreshQueue]);
-  useEffect(() => selected ? subscribeSupport(selected, () => { void refreshDetail().catch(() => setDetail(null)); }) : undefined, [selected, refreshDetail]);
+  useEffect(() => subscribeSupport(null, () => { void refreshQueue(); }), [refreshQueue]);
+  useEffect(() => selected ? subscribeSupport(selected, () => { void refreshDetail(); }) : undefined, [selected, refreshDetail]);
 
   const action = async (run: () => Promise<void>) => {
     if (mutationLock.current) return;
@@ -120,17 +124,17 @@ export function SupportWorkspace({ platformMode = false, initialSearch = '' }: {
 
   return <View style={supportStyles.root} onLayout={event => setWidth(event.nativeEvent.layout.width)} testID="support-workspace" {...(Platform.OS === 'web' ? { dataSet: { csSupportSurface: 'light' } } : {})}>
     <View style={supportStyles.hero}><View style={supportStyles.heroCopy}><Text accessibilityRole="header" style={supportStyles.title}>{platformMode ? 'Support-Zentrale' : 'Wir helfen Ihnen weiter.'}</Text><Text style={supportStyles.copy}>{platformMode ? 'Tickets bearbeiten, gemeinsam Lösungen finden und bestätigte Zugriffe nachvollziehen.' : 'Direkter Kontakt zu CareSuite. Nachrichten, Dateien und Freigaben bleiben übersichtlich an einem Ort.'}</Text></View>{!wide && (selected || creating) ? <SupportButton secondary label="Zur Ticketliste" disabled={busy} onPress={() => void action(() => choose(null))} /> : null}{!platformMode && queue?.can_create ? <SupportButton label="Neues Ticket" onPress={() => void action(() => choose(null, true))} disabled={busy} /> : null}</View>
-    {error ? <View accessibilityRole="alert" style={supportStyles.error}><Text style={supportStyles.errorText}>{error}</Text><SupportButton secondary label="Aktualisieren" disabled={busy} onPress={() => void action(async () => { await refreshQueue(); await refreshDetail(); })} /></View> : null}
+    {displayError ? <View accessibilityRole="alert" style={supportStyles.error}><Text style={supportStyles.errorText}>{displayError}</Text><SupportButton secondary label="Aktualisieren" disabled={busy} onPress={() => void action(async () => { await refreshQueue(); await refreshDetail(); })} /></View> : null}
     <View style={[supportStyles.workspace, !wide && supportStyles.stacked]}>
       {wide || (!selected && !creating) ? <View style={[supportStyles.queue, !wide && supportStyles.queueCompact]}>
         <SupportField disabled={busy} label="Tickets suchen" value={search} onChangeText={value => { setSearch(value); setOffset(0); }} maxLength={180} />
         <View accessibilityRole="toolbar" accessibilityLabel="Ticketstatus filtern" style={supportStyles.filters}>
-          {[['','Alle'],['open','Offen'],['waiting_support','Support'],['waiting_tenant','Unternehmen'],['resolved','Gelöst'],['closed','Geschlossen']].map(([value,label]) => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: status===value }} onPress={() => { setStatus(value); setOffset(0); }} style={[supportStyles.chip, status===value && supportStyles.chipActive]}><Text style={supportStyles.chipText}>{label}</Text></Pressable>)}
+          {[['','Alle'],['open','Offen'],['waiting_support','Support'],['waiting_tenant','Unternehmen'],['resolved','Gelöst'],['closed','Geschlossen']].map(([value,label]) => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: status===value, disabled: busy }} disabled={busy} onPress={() => { setStatus(value); setOffset(0); }} style={[supportStyles.chip, status===value && supportStyles.chipActive]}><Text style={supportStyles.chipText}>{label}</Text></Pressable>)}
         </View>
         <ScrollView style={supportStyles.queueScroll} contentContainerStyle={supportStyles.queueContent}>
-          {loading ? <ActivityIndicator color="#056CE8" accessibilityLabel="Tickets werden geladen" /> : queue?.tickets.length ? queue.tickets.slice(0,50).map(ticket => <Pressable key={ticket.id} accessibilityRole="button" accessibilityState={{ selected: selected===ticket.id }} onPress={() => void action(() => choose(ticket))} style={[supportStyles.ticketCard, selected===ticket.id && supportStyles.ticketSelected]}><View style={supportStyles.row}><Text style={supportStyles.eyebrow}>#{ticket.number}</Text><Text style={supportStyles.small}>{SUPPORT_STATUS[ticket.status]}</Text></View><Text style={supportStyles.ticketTitle}>{ticket.subject}</Text>{platformMode ? <Text style={supportStyles.copy}>{ticket.tenant_name}</Text> : null}<Text numberOfLines={2} style={supportStyles.small}>{ticket.last_message}</Text><Text style={supportStyles.small}>{supportDate(ticket.updated_at)}{ticket.priority==='urgent' ? ' · Dringend' : ticket.priority==='high' ? ' · Hohe Priorität' : ''}</Text></Pressable>) : <Text style={supportStyles.copy}>Keine Tickets in dieser Ansicht.</Text>}
+          {loading ? <ActivityIndicator color="#056CE8" accessibilityLabel="Tickets werden geladen" /> : queue?.tickets.length ? queue.tickets.slice(0,50).map(ticket => <Pressable key={ticket.id} accessibilityRole="button" accessibilityState={{ selected: selected===ticket.id, disabled: busy }} disabled={busy} onPress={() => void action(() => choose(ticket))} style={[supportStyles.ticketCard, selected===ticket.id && supportStyles.ticketSelected]}><View style={supportStyles.row}><Text style={supportStyles.eyebrow}>#{ticket.number}</Text><Text style={supportStyles.small}>{SUPPORT_STATUS[ticket.status]}</Text></View><Text style={supportStyles.ticketTitle}>{ticket.subject}</Text>{platformMode ? <Text style={supportStyles.copy}>{ticket.tenant_name}</Text> : null}<Text numberOfLines={2} style={supportStyles.small}>{ticket.last_message}</Text><Text style={supportStyles.small}>{supportDate(ticket.updated_at)}{ticket.priority==='urgent' ? ' · Dringend' : ticket.priority==='high' ? ' · Hohe Priorität' : ''}</Text></Pressable>) : <Text style={supportStyles.copy}>{queueError ? 'Tickets konnten nicht geladen werden.' : 'Keine Tickets in dieser Ansicht.'}</Text>}
         </ScrollView>
-        <View style={supportStyles.row}><SupportButton secondary label="Zurück" disabled={offset===0} onPress={() => setOffset(value => Math.max(0,value-50))} /><SupportButton secondary label="Weitere" disabled={!queue || queue.tickets.length<=50} onPress={() => setOffset(value => value+50)} /></View>
+        <View style={supportStyles.row}><SupportButton secondary label="Zurück" disabled={busy || loading || offset===0} onPress={() => setOffset(value => Math.max(0,value-50))} /><SupportButton secondary label="Weitere" disabled={busy || loading || !queue || queue.tickets.length<=50} onPress={() => setOffset(value => value+50)} /></View>
       </View> : null}
       {wide || selected || creating ? <ScrollView style={supportStyles.detailScroll} contentContainerStyle={supportStyles.detailContent} keyboardShouldPersistTaps="handled">
         {creating ? <View style={supportStyles.section}><Text accessibilityRole="header" style={supportStyles.heading}>Neues Support-Ticket</Text><SupportField disabled={busy} label="Betreff" value={subject} onChangeText={value => { setSubject(value); createNonce.current = newSupportNonce(); }} maxLength={180} /><SupportField disabled={busy} label="Was ist passiert?" value={description} onChangeText={value => { setDescription(value); createNonce.current = newSupportNonce(); }} multiline /><Text style={supportStyles.small}>Beschreiben Sie die betroffene Seite und den gewünschten Ablauf. Nach dem Erstellen können Sie Dateien im Chat anhängen.</Text><Text style={supportStyles.label}>Thema</Text><View style={supportStyles.chips}>{[['technical','Technisches Problem'],['account','Unternehmen & Zugang'],['general','Allgemeine Frage']].map(([value,label]) => <SupportButton key={value} secondary={category!==value} label={label} disabled={busy} onPress={() => { setCategory(value); createNonce.current = newSupportNonce(); }} />)}</View><Text style={supportStyles.label}>Priorität</Text><View style={supportStyles.chips}>{[['normal','Normal'],['high','Hoch'],['urgent','Dringend']].map(([value,label]) => <SupportButton key={value} secondary={priority!==value} label={label} disabled={busy} onPress={() => { setPriority(value); createNonce.current = newSupportNonce(); }} />)}</View><SupportButton label={busy ? 'Ticket wird erstellt …' : 'Ticket erstellen'} disabled={busy} onPress={() => void create()} /></View> : detail ? <>
@@ -140,8 +144,8 @@ export function SupportWorkspace({ platformMode = false, initialSearch = '' }: {
             {messages.map(message => <View key={message.id} style={[supportStyles.message, message.author_kind==='platform' && supportStyles.messageSupport]}><View style={supportStyles.row}><Text style={supportStyles.label}>{message.author_kind==='platform' && !/^CareSuite\b/i.test(message.author_name.trim()) ? 'CareSuite · ' : ''}{message.author_name}</Text><Text style={supportStyles.small}>{supportDate(message.created_at)}</Text></View>{message.body ? <Text selectable style={supportStyles.messageBody}>{message.body}</Text> : null}{message.attachments.map(file => <SupportButton key={file.id} secondary label={`↓ ${file.file_name} (${Math.ceil(file.byte_size/1024)} KB)`} disabled={busy} onPress={() => void action(() => downloadSupportAttachment(file))} />)}</View>)}
             {detail.can_write ? <View style={supportStyles.composer}><SupportField disabled={busy} label="Ihre Nachricht" value={draft} onChangeText={value => { setDraft(value); sendNonce.current=newSupportNonce(); }} multiline />{attachments.map(file => <View key={file.id} style={supportStyles.row}><Text style={supportStyles.copy}>{file.file_name}</Text><SupportButton secondary label="Anhang entfernen" disabled={busy} onPress={() => void action(async () => { await removeSupportDraftAttachment(file); setAttachments(current => current.filter(item => item.id!==file.id)); sendNonce.current = newSupportNonce(); })} /></View>)}<View style={supportStyles.chips}><SupportButton secondary label="Datei anhängen" disabled={busy || attachments.length>=5} onPress={() => void action(async () => { if (!selected) return; const file = await pickSupportAttachment(selected); if (file) { setAttachments(current => [...current,file]); sendNonce.current = newSupportNonce(); } })} /><SupportButton label={busy ? 'Bitte warten …' : 'Nachricht senden'} disabled={busy || (!draft.trim() && !attachments.length)} onPress={() => void send()} /></View><Text style={supportStyles.small}>Bis zu 5 Anhänge, jeweils höchstens 20 MB. {platformMode ? 'Nachrichten und Anhänge werden mit dem Unternehmen geteilt. Weitere Unternehmensdaten sind nur im Rahmen einer bestätigten Zugriffsfreigabe zugänglich.' : 'Nachrichten und Anhänge sind für den CareSuite-Support sichtbar. Zusätzlichen Datenzugriff gibt Ihre berechtigte Unternehmensverwaltung separat frei.'}</Text></View> : null}
           </View>
-          <SupportAccessPanel detail={detail} platformMode={platformMode} busy={busy} run={action} refresh={refreshDetail} />
-        </> : <View style={supportStyles.section}><Text accessibilityRole="header" style={supportStyles.heading}>{selected ? 'Ticket wird geladen …' : 'Alles zu Ihrer Anfrage an einem Ort.'}</Text><Text style={supportStyles.copy}>{selected ? 'Der aktuelle Verlauf und die Freigaben werden abgerufen.' : 'Wählen Sie ein Ticket aus oder erstellen Sie eine neue Anfrage. Eine Support-Anfrage gibt keinen allgemeinen Zugriff auf Ihre Unternehmensdaten frei.'}</Text></View>}
+          <SupportAccessPanel key={detail.ticket.id} detail={detail} platformMode={platformMode} busy={busy} run={action} refresh={refreshDetail} />
+        </> : <View style={supportStyles.section}><Text accessibilityRole="header" style={supportStyles.heading}>{selected ? detailError ? 'Ticket nicht erreichbar' : 'Ticket wird geladen …' : 'Alles zu Ihrer Anfrage an einem Ort.'}</Text><Text style={supportStyles.copy}>{selected ? detailError ? 'Bitte aktualisieren Sie die Ansicht, um es erneut zu versuchen.' : 'Der aktuelle Verlauf und die Freigaben werden abgerufen.' : 'Wählen Sie ein Ticket aus oder erstellen Sie eine neue Anfrage. Eine Support-Anfrage gibt keinen allgemeinen Zugriff auf Ihre Unternehmensdaten frei.'}</Text></View>}
       </ScrollView> : null}
     </View>
   </View>;

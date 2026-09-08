@@ -152,3 +152,8 @@ npx.cmd --no-install expo export --platform web
 ```
 
 Diese Befehle veröffentlichen nichts. Die Browser-Vorschau lässt sich mit `node scripts/build-support-preview.cjs` lokal erstellen; sie ist kein Ersatz für die Prüfung der echten angemeldeten Web-Anwendung.
+
+
+## Support-Aktualisierungen abgesichert – 08.09.2026
+
+Verspätete Listen- und Ticketantworten können eine inzwischen gewechselte Ansicht nicht mehr überschreiben. Sieben Support-Interaktionsprüfungen, sechs Prüfungen der Antwortsteuerung, die vollständige TypeScript-Prüfung und die vorhandenen DOM-Vorschauprüfungen sind erfolgreich. Die aktualisierte Vorschau liegt im bisherigen Ordner; das bestätigte Layout bleibt bestehen. Einzelheiten und Prüfgrenzen: [Prüfbericht zu Support-Aktualisierungen](docs/audit/desktop-support-refresh-20260908.md). Angemeldete Backend-Endabläufe und die Veröffentlichung bleiben offen; der Auftrag verwendet weiterhin die vorhandenen Werkzeuge ohne zusätzliche Installation.
