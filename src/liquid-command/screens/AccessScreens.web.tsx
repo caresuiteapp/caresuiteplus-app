@@ -54,6 +54,7 @@ type AccessShellProps = {
   subtitle: string;
   children: ReactNode;
   backRoute?: string;
+  backDisabled?: boolean;
   side?: ReactNode;
   compact?: boolean;
 };
@@ -64,6 +65,7 @@ function AccessShell({
   subtitle,
   children,
   backRoute,
+  backDisabled = false,
   side,
   compact = false,
 }: AccessShellProps) {
@@ -88,6 +90,7 @@ function AccessShell({
                 label="Zurück"
                 icon="‹"
                 variant="ghost"
+                disabled={backDisabled}
                 onPress={() => router.replace(backRoute as never)}
               />
             ) : null}
@@ -574,6 +577,7 @@ export function RegisterOrganizationScreen() {
       title={registrationSteps[step][0]}
       subtitle={registrationSteps[step][1]}
       backRoute="/auth"
+      backDisabled={loading}
       side={
         <LiquidSurface active contentStyle={styles.stepCard}>
           <LiquidText variant="kicker">FORTSCHRITT</LiquidText>
@@ -606,7 +610,7 @@ export function RegisterOrganizationScreen() {
     >
       <LiquidSurface active contentStyle={styles.formCard}>
         <LiquidStatus label="Kostenlos · 0 € · keine Kreditkarte" tone="success" />
-        {error ? <LiquidState kind="error" title="Angaben prüfen" message={error} /> : null}
+        {error ? <LiquidState kind="error" title={step === 4 ? 'Registrierung nicht abgeschlossen' : 'Angaben prüfen'} message={error} /> : null}
         {step === 0 ? (
           <>
             <LiquidField label="Firmenname" value={form.companyName} onChangeText={(value) => update('companyName', value)} required />

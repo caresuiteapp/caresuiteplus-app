@@ -27,7 +27,8 @@ export function validateRegistrationBody(body: Record<string, unknown>): string 
   for (const key of ['website','ikNumber','taxNumber','vatId','adminPhone','contactFirstName','contactLastName','contactRole']) {
     if (body[key] != null && (typeof body[key] !== 'string' || (body[key] as string).length > 200)) return 'Bitte die optionalen Angaben prüfen.';
   }
-  if (body.website && !/^https?:\/\/[^\s]+$/i.test((body.website as string).trim())) return 'Die Website muss mit https:// oder http:// beginnen.';
+  const website = (body.website as string | undefined | null)?.trim();
+  if (website && !/^https?:\/\/[^\s]+$/i.test(website)) return 'Die Website muss mit https:// oder http:// beginnen.';
   return null;
 }
 

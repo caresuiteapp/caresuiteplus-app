@@ -162,3 +162,8 @@ Verspätete Listen- und Ticketantworten können eine inzwischen gewechselte Ansi
 ## Freigaben und Eingabeschutz im Support – 08.09.2026
 
 Ungespeicherte Bearbeitungen werden beim Schließen, Abbrechen und Datensatzwechsel erst nach Bestätigung verworfen. Auch die Ticketnavigation berücksichtigt diese Eingaben und begonnene Zugriffsanfragen. Alle 16 Support-Interaktionstests, die vollständige TypeScript-Prüfung und die vorhandenen DOM-Vorschauprüfungen sind erfolgreich. Details einschließlich der Abgrenzung zu angemeldeten Backend-Endtests und zum Verlassen des gesamten Support-Bereichs stehen im [Prüfbericht zu Freigaben und Eingabeschutz](docs/audit/desktop-support-editing-20260908.md). Die Vorschau wurde im bisherigen Ordner aktualisiert. Keine Veröffentlichung.
+
+
+## Registrierung: Fehler und Wiederholung abgesichert – 08.09.2026
+
+Die Web-Registrierung sperrt während des Sendens auch den oberen Zurück-Knopf und zeigt Übertragungsfehler als „Registrierung nicht abgeschlossen“. Die vorbereitete Servervalidierung akzeptiert eine ausschließlich aus Leerzeichen bestehende optionale Website wie das Formular als leere Angabe. Alle 17 gezielten Tests, die vollständige TypeScript-Prüfung und die bestehenden DOM-Vorschauprüfungen sind erfolgreich. Der vorhandene Vorschauordner ist aktualisiert. Details zu Wiederholung, Entwurf und Passwortschutz sowie den offenen Backend- und Sichtprüfungen stehen im [Prüfbericht zur Registrierung](docs/audit/desktop-registration-retry-20260908.md). Die Serverkorrektur ist noch nicht veröffentlicht; keine Installation, kein Push und kein Deployment.

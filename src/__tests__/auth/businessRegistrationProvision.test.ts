@@ -11,6 +11,12 @@ function setup(responses: Array<unknown | Error>, owner: unknown = null) {
   return {client:client as never,rpc,createUser,deleteUser};
 }
 describe('company registration provisioning',()=>{
+  it('treats whitespace-only optional websites as empty and still checks actual URLs',()=>{
+    for (const website of ['', '   ', '\t \n']) expect(validateRegistrationBody({...body,website})).toBeNull();
+    expect(validateRegistrationBody({...body,website:' https://example.test '})).toBeNull();
+    expect(validateRegistrationBody({...body,website:'javascript:alert(1)'})).not.toBeNull();
+    expect(validateRegistrationBody({...body,website:'example.test'})).not.toBeNull();
+  });
   it('accepts complete registration without a module choice and requires consent',()=>{
     expect(validateRegistrationBody(body)).toBeNull();
     expect(validateRegistrationBody({...body,termsAccepted:false})).not.toBeNull();

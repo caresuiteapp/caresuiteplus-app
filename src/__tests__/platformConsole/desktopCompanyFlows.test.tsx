@@ -56,7 +56,7 @@ const click = async (text: string) => { await act(async () => { button(text).cli
 const write = async (label: string, value: string) => { await act(async () => { input(label).value = value; input(label).dispatchEvent(new Event('input', { bubbles: true })); }); };
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
-  vi.clearAllMocks(); api.tenantId = 'a'; api.draft.mockResolvedValue(JSON.stringify(draft)); api.saveDraft.mockResolvedValue(undefined); api.removeDraft.mockResolvedValue(undefined);
+  vi.clearAllMocks(); api.register.mockReset(); api.tenantId = 'a'; api.draft.mockResolvedValue(JSON.stringify(draft)); api.saveDraft.mockResolvedValue(undefined); api.removeDraft.mockResolvedValue(undefined);
   api.detail.mockImplementation(async (id: string) => detail(id)); api.list.mockResolvedValue({ ok: true, data: { items: [] } }); api.status.mockResolvedValue({ ok: true, data: {} });
   host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host);
 });
@@ -81,11 +81,39 @@ describe('free web registration', () => {
     await act(async () => (host.querySelector('[role="checkbox"]') as HTMLButtonElement).click()); await click('Weiter');
     await click('Unternehmen kostenlos registrieren');
     expect([...host.querySelectorAll('button')].filter(b => b.textContent?.includes('Stammdaten und Leistungsbereich')).every(b => b.disabled)).toBe(true);
+    expect([...host.querySelectorAll('button')].filter(b => b.textContent === 'Zurück').every(b => b.disabled)).toBe(true);
+    await click('Zurück'); expect(api.push).not.toHaveBeenCalled();
     await click('Unternehmen kostenlos registrieren'); expect(api.register).toHaveBeenCalledTimes(1);
     expect(api.register.mock.calls[0][0].selectedModules).toHaveLength(6);
     expect(api.saveDraft.mock.calls.every(([, value]) => JSON.parse(value).adminPassword === '')).toBe(true);
     await act(async () => pending.resolve({ ok: true, data: { owner: { email: draft.adminEmail } } }));
     expect(host.textContent).toContain('Registrierung erfolgreich'); expect(api.removeDraft).toHaveBeenCalled();
+  });
+  it.each(['response', 'exception'])('preserves a failed %s and clears the draft only after a successful retry', async failure => {
+    if (failure === 'exception') api.register.mockRejectedValueOnce(new Error('Verbindung unterbrochen'));
+    else api.register.mockResolvedValueOnce({ ok: false, error: 'Verbindung unterbrochen' });
+    await render(<RegisterOrganizationScreen />); await click('Weiter'); await click('Weiter'); await click('Weiter');
+    await write('Admin-Passwort', 'Testpasswort123'); await write('Passwort bestätigen', 'Testpasswort123');
+    await act(async () => (host.querySelector('[role="checkbox"]') as HTMLButtonElement).click()); await click('Weiter');
+    await click('Unternehmen kostenlos registrieren');
+    expect(host.textContent).toContain('Verbindung unterbrochen');
+    expect(host.textContent).toContain('Registrierung nicht abgeschlossen');
+    expect(button('Unternehmen kostenlos registrieren').disabled).toBe(false);
+    expect(api.removeDraft).not.toHaveBeenCalled();
+    const stored = JSON.parse(api.saveDraft.mock.calls.at(-1)![1]);
+    expect(stored).toMatchObject({ companyName: draft.companyName, adminEmail: draft.adminEmail, adminPassword: '' });
+    const stepBack = [...host.querySelectorAll('button')].filter(b => b.textContent === 'Zurück').at(-1)!;
+    await act(async () => stepBack.click());
+    expect(input('Admin-Passwort').value).toBe('Testpasswort123');
+    expect(input('Passwort bestätigen').value).toBe('Testpasswort123');
+    await click('Weiter');
+    api.register.mockResolvedValueOnce({ ok: true, data: { owner: { email: draft.adminEmail } } });
+    await click('Unternehmen kostenlos registrieren');
+    expect(host.textContent).toContain('Registrierung erfolgreich');
+    expect(api.removeDraft).toHaveBeenCalledTimes(1);
+    const removedAt = api.removeDraft.mock.invocationCallOrder[0];
+    expect(api.saveDraft.mock.invocationCallOrder.every(order => order < removedAt)).toBe(true);
+    await click('Zur Anmeldung'); expect(api.push).toHaveBeenLastCalledWith('/auth/business-login');
   });
 });
 describe('company management failures', () => {
