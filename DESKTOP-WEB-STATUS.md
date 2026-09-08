@@ -157,3 +157,8 @@ Diese Befehle veröffentlichen nichts. Die Browser-Vorschau lässt sich mit `nod
 ## Support-Aktualisierungen abgesichert – 08.09.2026
 
 Verspätete Listen- und Ticketantworten können eine inzwischen gewechselte Ansicht nicht mehr überschreiben. Sieben Support-Interaktionsprüfungen, sechs Prüfungen der Antwortsteuerung, die vollständige TypeScript-Prüfung und die vorhandenen DOM-Vorschauprüfungen sind erfolgreich. Die aktualisierte Vorschau liegt im bisherigen Ordner; das bestätigte Layout bleibt bestehen. Einzelheiten und Prüfgrenzen: [Prüfbericht zu Support-Aktualisierungen](docs/audit/desktop-support-refresh-20260908.md). Angemeldete Backend-Endabläufe und die Veröffentlichung bleiben offen; der Auftrag verwendet weiterhin die vorhandenen Werkzeuge ohne zusätzliche Installation.
+
+
+## Freigaben und Eingabeschutz im Support – 08.09.2026
+
+Ungespeicherte Bearbeitungen werden beim Schließen, Abbrechen und Datensatzwechsel erst nach Bestätigung verworfen. Auch die Ticketnavigation berücksichtigt diese Eingaben und begonnene Zugriffsanfragen. Alle 16 Support-Interaktionstests, die vollständige TypeScript-Prüfung und die vorhandenen DOM-Vorschauprüfungen sind erfolgreich. Details einschließlich der Abgrenzung zu angemeldeten Backend-Endtests und zum Verlassen des gesamten Support-Bereichs stehen im [Prüfbericht zu Freigaben und Eingabeschutz](docs/audit/desktop-support-editing-20260908.md). Die Vorschau wurde im bisherigen Ordner aktualisiert. Keine Veröffentlichung.

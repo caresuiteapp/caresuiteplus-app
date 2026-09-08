@@ -29,6 +29,7 @@ export function SupportWorkspace({ platformMode = false, initialSearch = '' }: {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState('');
+  const [accessDirty, setAccessDirty] = useState(false);
   const [attachments, setAttachments] = useState<SupportAttachment[]>([]);
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
@@ -94,11 +95,12 @@ export function SupportWorkspace({ platformMode = false, initialSearch = '' }: {
     finally { mutationLock.current = false; setBusy(false); }
   };
   const choose = async (ticket: SupportTicket | null, newTicket = false) => {
-    if (draft.trim() || attachments.length || (creating && (subject || description))) {
-      if (!await confirmAction({ title: 'Ungesendeter Entwurf', message: 'Den Entwurf verwerfen und die andere Ansicht öffnen?', confirmLabel: 'Entwurf verwerfen' })) return;
+    if (ticket?.id === selected && !creating && !newTicket) return;
+    if (draft.trim() || attachments.length || accessDirty || (creating && (subject || description))) {
+      if (!await confirmAction({ title: 'Ungespeicherte Eingaben', message: 'Die ungesendeten Nachrichten und ungespeicherten Support-Eingaben verwerfen und die andere Ansicht öffnen?', confirmLabel: 'Eingaben verwerfen' })) return;
       for (const file of attachments) await removeSupportDraftAttachment(file);
     }
-    setDraft(''); setAttachments([]); setSubject(''); setDescription(''); setError(null);
+    setDraft(''); setAccessDirty(false); setAttachments([]); setSubject(''); setDescription(''); setError(null);
     sendNonce.current = newSupportNonce(); createNonce.current = newSupportNonce();
     setSelected(ticket?.id ?? null); setCreating(newTicket);
   };
@@ -144,7 +146,7 @@ export function SupportWorkspace({ platformMode = false, initialSearch = '' }: {
             {messages.map(message => <View key={message.id} style={[supportStyles.message, message.author_kind==='platform' && supportStyles.messageSupport]}><View style={supportStyles.row}><Text style={supportStyles.label}>{message.author_kind==='platform' && !/^CareSuite\b/i.test(message.author_name.trim()) ? 'CareSuite · ' : ''}{message.author_name}</Text><Text style={supportStyles.small}>{supportDate(message.created_at)}</Text></View>{message.body ? <Text selectable style={supportStyles.messageBody}>{message.body}</Text> : null}{message.attachments.map(file => <SupportButton key={file.id} secondary label={`↓ ${file.file_name} (${Math.ceil(file.byte_size/1024)} KB)`} disabled={busy} onPress={() => void action(() => downloadSupportAttachment(file))} />)}</View>)}
             {detail.can_write ? <View style={supportStyles.composer}><SupportField disabled={busy} label="Ihre Nachricht" value={draft} onChangeText={value => { setDraft(value); sendNonce.current=newSupportNonce(); }} multiline />{attachments.map(file => <View key={file.id} style={supportStyles.row}><Text style={supportStyles.copy}>{file.file_name}</Text><SupportButton secondary label="Anhang entfernen" disabled={busy} onPress={() => void action(async () => { await removeSupportDraftAttachment(file); setAttachments(current => current.filter(item => item.id!==file.id)); sendNonce.current = newSupportNonce(); })} /></View>)}<View style={supportStyles.chips}><SupportButton secondary label="Datei anhängen" disabled={busy || attachments.length>=5} onPress={() => void action(async () => { if (!selected) return; const file = await pickSupportAttachment(selected); if (file) { setAttachments(current => [...current,file]); sendNonce.current = newSupportNonce(); } })} /><SupportButton label={busy ? 'Bitte warten …' : 'Nachricht senden'} disabled={busy || (!draft.trim() && !attachments.length)} onPress={() => void send()} /></View><Text style={supportStyles.small}>Bis zu 5 Anhänge, jeweils höchstens 20 MB. {platformMode ? 'Nachrichten und Anhänge werden mit dem Unternehmen geteilt. Weitere Unternehmensdaten sind nur im Rahmen einer bestätigten Zugriffsfreigabe zugänglich.' : 'Nachrichten und Anhänge sind für den CareSuite-Support sichtbar. Zusätzlichen Datenzugriff gibt Ihre berechtigte Unternehmensverwaltung separat frei.'}</Text></View> : null}
           </View>
-          <SupportAccessPanel key={detail.ticket.id} detail={detail} platformMode={platformMode} busy={busy} run={action} refresh={refreshDetail} />
+          <SupportAccessPanel key={detail.ticket.id} onDirtyChange={setAccessDirty} detail={detail} platformMode={platformMode} busy={busy} run={action} refresh={refreshDetail} />
         </> : <View style={supportStyles.section}><Text accessibilityRole="header" style={supportStyles.heading}>{selected ? detailError ? 'Ticket nicht erreichbar' : 'Ticket wird geladen …' : 'Alles zu Ihrer Anfrage an einem Ort.'}</Text><Text style={supportStyles.copy}>{selected ? detailError ? 'Bitte aktualisieren Sie die Ansicht, um es erneut zu versuchen.' : 'Der aktuelle Verlauf und die Freigaben werden abgerufen.' : 'Wählen Sie ein Ticket aus oder erstellen Sie eine neue Anfrage. Eine Support-Anfrage gibt keinen allgemeinen Zugriff auf Ihre Unternehmensdaten frei.'}</Text></View>}
       </ScrollView> : null}
     </View>

@@ -7,7 +7,7 @@ import { SupportButton, SupportField, supportDate, supportStyles as s } from './
 const FIELD_LABELS: Record<string,string> = { name:'Unternehmensname',legal_name:'Juristischer Name',street:'Straße',house_number:'Hausnummer',postal_code:'Postleitzahl',city:'Ort',email:'E-Mail',phone:'Telefon',website:'Website',title:'Einsatz',assignment_date:'Datum',planned_start_at:'Geplanter Beginn',planned_end_at:'Geplantes Ende',actual_start_at:'Tatsächlicher Beginn',actual_end_at:'Tatsächliches Ende',canonical_status:'Einsatzstatus',documentation_status:'Dokumentation',proof_status:'Nachweis',internal_notes:'Interne Notizen',client_number:'Klientennummer',employee_number:'Personalnummer',first_name:'Vorname',last_name:'Nachname',status:'Status',portal_enabled:'Portal aktiv' };
 const AUDIT_LABELS: Record<string,string> = { 'ticket.created':'Ticket erstellt','ticket.status':'Ticketstatus geändert','ticket.assigned':'Support-Betreuung zugewiesen','message.sent':'Nachricht gesendet','access.requested':'Zugriff angefordert','access.approve':'Zugriff durch Unternehmen bestätigt','access.reject':'Zugriff abgelehnt','access.revoke':'Zugriff widerrufen','workspace.read':'Freigegebene Daten eingesehen','workspace.updated':'Freigegebene Daten bearbeitet' };
 
-export function SupportAccessPanel({ detail, platformMode, busy, run, refresh }: { detail: SupportDetail; platformMode: boolean; busy: boolean; run: (action: () => Promise<void>) => Promise<void>; refresh: () => Promise<void> }) {
+export function SupportAccessPanel({ detail, platformMode, busy, run, refresh, onDirtyChange }: { detail: SupportDetail; platformMode: boolean; busy: boolean; run: (action: () => Promise<void>) => Promise<void>; refresh: () => Promise<void>; onDirtyChange?: (dirty: boolean) => void }) {
   const [reason,setReason] = useState('');
   const [scopes,setScopes] = useState<SupportScope[]>(['company.read']);
   const [minutes,setMinutes] = useState(60);
@@ -15,18 +15,35 @@ export function SupportAccessPanel({ detail, platformMode, busy, run, refresh }:
   const [workspace,setWorkspace] = useState<{ requestId:string; scope:SupportScope; rows:SupportRecord[]; offset:number } | null>(null);
   const [editing,setEditing] = useState<SupportRecord | null>(null);
   const [patch,setPatch] = useState<Record<string,string>>({});
+  const hasEdits = !!editing && Object.keys(patch).length > 0;
+  useEffect(() => { onDirtyChange?.(hasEdits || !!reason.trim()); }, [hasEdits, reason, onDirtyChange]);
+  useEffect(() => () => { onDirtyChange?.(false); }, [onDirtyChange]);
   useEffect(() => { const timer=setInterval(() => setNow(Date.now()),1000); return () => clearInterval(timer); },[]);
   useEffect(() => {
     if (workspace && !detail.requests.some(request => request.id===workspace.requestId && isSupportAccessActive(request,now))) { setWorkspace(null); setEditing(null); setPatch({}); }
   },[detail.requests,now,workspace]);
   const toggle = (scope:SupportScope) => setScopes(current => current.includes(scope) ? current.filter(value => value!==scope && !(scope==='company.read' && value==='company.write') && !(scope==='assignments.read' && value==='assignments.notes.write')) : withRequiredReadScopes([...current,scope]));
+  const confirmDiscard = (message: string) => !hasEdits || confirmAction({ title: 'Ungespeicherte Bearbeitung', message, confirmLabel: 'Änderungen verwerfen' });
+  const closeWorkspace = () => run(async () => {
+    if (!await confirmDiscard('Die ungespeicherten Änderungen verwerfen und den Arbeitsbereich schließen?')) return;
+    setWorkspace(null); setEditing(null); setPatch({});
+  });
+  const editRecord = (record: SupportRecord) => run(async () => {
+    if (editing?.id === record.id) return;
+    if (!await confirmDiscard('Die ungespeicherten Änderungen verwerfen und einen anderen Datensatz bearbeiten?')) return;
+    setEditing(record); setPatch({});
+  });
+  const cancelEditing = () => run(async () => {
+    if (!await confirmDiscard('Die ungespeicherten Änderungen verwerfen und die Bearbeitung beenden?')) return;
+    setEditing(null); setPatch({});
+  });
   const decide = (request:SupportAccess,decision:'approve'|'reject'|'revoke') => run(async () => {
     const message=decision==='approve' ? `${request.requester_name} erhält für ${request.duration_minutes} Minuten diese Rechte:\n\n${request.scopes.map(scope => SUPPORT_SCOPES[scope]).join('\n')}\n\nGrund: ${request.reason}\n\nDie Freigabe gilt nur für dieses Ticket und kann jederzeit widerrufen werden.` : decision==='reject' ? 'Die Anfrage ablehnen? Es wird kein Zugriff erteilt.' : 'Den Zugriff zu diesem Ticket jetzt beenden? Weitere Datenaufrufe und Änderungen werden sofort gesperrt.';
     if (!await confirmAction({title:decision==='approve'?'Support-Zugriff ausdrücklich freigeben':decision==='reject'?'Zugriff ablehnen':'Freigabe widerrufen',message,confirmLabel:decision==='approve'?'Zugriff freigeben':'Bestätigen'})) return;
     await supportRpc('support_decide_access',{p_request_id:request.id,p_decision:decision}); await refresh();
   });
   const loadWorkspace=(requestId:string,scope:SupportScope,offset=0)=>run(async()=>{
-    if (editing && Object.keys(patch).length && !await confirmAction({ title: 'Ungespeicherte Bearbeitung', message: 'Die Änderungen verwerfen und eine andere Datenansicht öffnen?', confirmLabel: 'Verwerfen' })) return;
+    if (!await confirmDiscard('Die ungespeicherten Änderungen verwerfen und eine andere Datenansicht öffnen?')) return;
     try {
       const result=await supportRpc<{rows:SupportRecord[]}>('support_workspace_read',{p_request_id:requestId,p_scope:scope,p_offset:offset});
       setEditing(null); setPatch({}); setWorkspace({requestId,scope,offset,rows:result.rows});
@@ -61,11 +78,11 @@ export function SupportAccessPanel({ detail, platformMode, busy, run, refresh }:
       })}
       {platformMode && detail.can_support_write && !['resolved','closed'].includes(detail.ticket.status) ? <View style={s.composer}><Text style={s.label}>Zusätzlichen Zugriff anfordern</Text><SupportField disabled={busy} label="Warum wird dieser Zugriff benötigt?" value={reason} onChangeText={setReason} multiline maxLength={1000} />{(Object.keys(SUPPORT_SCOPES) as SupportScope[]).map(scope=><Pressable key={scope} accessibilityRole="checkbox" accessibilityState={{checked:scopes.includes(scope),disabled:busy}} disabled={busy} onPress={()=>toggle(scope)} style={s.row}><Text style={s.copy}>{scopes.includes(scope)?'☑':'☐'} {SUPPORT_SCOPES[scope]}</Text></Pressable>)}<Text style={s.label}>Dauer der Freigabe</Text><View style={s.chips}>{[15,30,60,120].map(value=><SupportButton key={value} label={`${value} Minuten`} secondary={minutes!==value} disabled={busy} onPress={()=>setMinutes(value)} />)}</View><SupportButton label="Freigabe beim Unternehmen anfragen" disabled={busy || reason.trim().length<10 || !scopes.length} onPress={()=>void run(async()=>{await supportRpc('support_request_access',{p_ticket_id:detail.ticket.id,p_reason:reason.trim(),p_scopes:withRequiredReadScopes(scopes),p_duration_minutes:minutes});setReason('');await refresh();})} /></View>:null}
     </View>
-    {workspace && workspaceRequest && isSupportAccessActive(workspaceRequest,now) ? <View style={s.section}><Text accessibilityRole="header" style={s.heading}>Freigegebener Arbeitsbereich</Text><View style={s.notice}><Text style={s.label}>{detail.ticket.tenant_name} · Ticket #{detail.ticket.number}</Text><Text style={s.copy}>{SUPPORT_SCOPES[workspace.scope]}</Text><Text style={s.small}>Zugriff bis {supportDate(workspaceRequest.expires_at!)}. Jeder Aufruf wird geprüft und protokolliert.</Text><SupportButton secondary label="Arbeitsbereich schließen" onPress={()=>{setWorkspace(null);setEditing(null);setPatch({});}} /></View>
+    {workspace && workspaceRequest && isSupportAccessActive(workspaceRequest,now) ? <View style={s.section}><Text accessibilityRole="header" style={s.heading}>Freigegebener Arbeitsbereich</Text><View style={s.notice}><Text style={s.label}>{detail.ticket.tenant_name} · Ticket #{detail.ticket.number}</Text><Text style={s.copy}>{SUPPORT_SCOPES[workspace.scope]}</Text><Text style={s.small}>Zugriff bis {supportDate(workspaceRequest.expires_at!)}. Jeder Aufruf wird geprüft und protokolliert.</Text><SupportButton secondary label="Arbeitsbereich schließen" disabled={busy} onPress={()=>void closeWorkspace()} /></View>
       {!workspace.rows.length?<Text style={s.copy}>Keine Datensätze in dieser Ansicht.</Text>:null}
       {workspace.rows.slice(0,50).map(record=><View key={record.id} style={s.message}><Text style={s.label}>{String(record.name||record.title||[record.first_name,record.last_name].filter(Boolean).join(' ')||'Datensatz')}</Text>{Object.entries(record).filter(([key])=>FIELD_LABELS[key]).map(([key,value])=><View key={key} style={s.row}><Text style={s.small}>{FIELD_LABELS[key]}</Text><Text selectable style={s.copy}>{typeof value==='boolean'?(value?'Ja':'Nein'):value==null?'—':String(value)}</Text></View>)}
-        {((workspace.scope==='company.read' && workspaceRequest.scopes.includes('company.write'))||(workspace.scope==='assignments.read' && workspaceRequest.scopes.includes('assignments.notes.write'))) ? <SupportButton secondary label={workspace.scope==='company.read'?'Unternehmensdaten bearbeiten':'Interne Notiz bearbeiten'} disabled={busy} onPress={()=>{setEditing(record);setPatch({});}}/>:null}
-        {editing?.id===record.id ? <View style={s.composer}>{(workspace.scope==='company.read'?['name','legal_name','street','house_number','postal_code','city','email','phone','website']:['internal_notes']).map(key=><SupportField key={key} disabled={busy} label={FIELD_LABELS[key]} value={patch[key]??String(record[key]??'')} onChangeText={value=>setPatch(current=>({...current,[key]:value}))} multiline={key==='internal_notes'} maxLength={key==='internal_notes'?10000:200}/>)}<View style={s.chips}><SupportButton label="Änderung speichern" disabled={busy || !Object.keys(patch).length} onPress={()=>void save()}/><SupportButton secondary label="Bearbeitung abbrechen" disabled={busy} onPress={()=>{setEditing(null);setPatch({});}}/></View></View>:null}
+        {((workspace.scope==='company.read' && workspaceRequest.scopes.includes('company.write'))||(workspace.scope==='assignments.read' && workspaceRequest.scopes.includes('assignments.notes.write'))) ? <SupportButton secondary label={workspace.scope==='company.read'?'Unternehmensdaten bearbeiten':'Interne Notiz bearbeiten'} disabled={busy} onPress={()=>void editRecord(record)}/>:null}
+        {editing?.id===record.id ? <View style={s.composer}>{(workspace.scope==='company.read'?['name','legal_name','street','house_number','postal_code','city','email','phone','website']:['internal_notes']).map(key=><SupportField key={key} disabled={busy} label={FIELD_LABELS[key]} value={patch[key]??String(record[key]??'')} onChangeText={value=>setPatch(current=>({...current,[key]:value}))} multiline={key==='internal_notes'} maxLength={key==='internal_notes'?10000:200}/>)}<View style={s.chips}><SupportButton label="Änderung speichern" disabled={busy || !Object.keys(patch).length} onPress={()=>void save()}/><SupportButton secondary label="Bearbeitung abbrechen" disabled={busy} onPress={()=>void cancelEditing()}/></View></View>:null}
       </View>)}
       {workspace.scope!=='company.read'?<View style={s.chips}><SupportButton secondary label="Vorherige Datensätze" disabled={busy || !workspace.offset} onPress={()=>void loadWorkspace(workspace.requestId,workspace.scope,Math.max(0,workspace.offset-50))}/><SupportButton secondary label="Weitere Datensätze" disabled={busy || workspace.rows.length<=50} onPress={()=>void loadWorkspace(workspace.requestId,workspace.scope,workspace.offset+50)}/></View>:null}
     </View>:null}

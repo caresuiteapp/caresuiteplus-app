@@ -2,13 +2,13 @@
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-const api=vi.hoisted(()=>({ rpc:vi.fn(), pick:vi.fn(), changed:undefined as undefined|(()=>void), queueChanged:undefined as undefined|(()=>void) }));
+const api=vi.hoisted(()=>({ rpc:vi.fn(), pick:vi.fn(), confirm:vi.fn(), changed:undefined as undefined|(()=>void), queueChanged:undefined as undefined|(()=>void) }));
 vi.mock('react-native',async()=>{
  const React=await import('react');
  const element=(tag:string)=>(props:any)=>React.createElement(tag,{onClick:props.onPress,disabled:props.disabled,'aria-label':props.accessibilityLabel,role:props.accessibilityRole},props.children);
  return {Platform:{OS:'web'},StyleSheet:{create:(styles:any)=>styles},Text:element('span'),View:element('div'),ScrollView:element('div'),Pressable:element('button'),ActivityIndicator:element('span'),TextInput:(props:any)=>React.createElement('textarea',{'aria-label':props.accessibilityLabel,readOnly:props.editable===false,value:props.value,onInput:(event:any)=>props.onChangeText(event.currentTarget.value)})};
 });
-vi.mock('@/lib/platform/confirmAction',()=>({confirmAction:async()=>true}));
+vi.mock('@/lib/platform/confirmAction',()=>({confirmAction:api.confirm}));
 vi.mock('@/lib/support/supportService',()=>({
  SUPPORT_STATUS:{open:'Offen'},SUPPORT_SCOPES:{'company.read':'Unternehmensdaten einsehen'},newSupportNonce:()=>crypto.randomUUID(),supportRpc:api.rpc,
  subscribeSupport:(_id:string|null,callback:()=>void)=>{if(_id)api.changed=callback;else api.queueChanged=callback;return()=>undefined;},isSupportAccessActive:()=>false,isSupportPermissionError:()=>false,withRequiredReadScopes:(s:any)=>s,
@@ -23,7 +23,7 @@ async function click(text:string){await act(async()=>{button(text).click();});}
 async function write(text:string){await act(async()=>{const input=host.querySelector('textarea[aria-label="Ihre Nachricht"]') as HTMLTextAreaElement;input.value=text;input.dispatchEvent(new Event('input',{bubbles:true}));});}
 beforeEach(async()=>{
  (globalThis as any).IS_REACT_ACT_ENVIRONMENT=true;
- vi.useFakeTimers();api.rpc.mockReset();api.pick.mockReset();api.changed=undefined;api.queueChanged=undefined;
+ vi.useFakeTimers();api.rpc.mockReset();api.pick.mockReset();api.confirm.mockReset();api.confirm.mockResolvedValue(true);api.changed=undefined;api.queueChanged=undefined;
  api.rpc.mockImplementation(async(name:string)=>name==='support_list_tickets'?{tickets:[ticket],can_create:true}:detail());
  host=document.createElement('div');document.body.appendChild(host);root=createRoot(host);
  await act(async()=>{root.render(<SupportWorkspace/>);});
@@ -32,6 +32,18 @@ beforeEach(async()=>{
 });
 afterEach(async()=>{await act(async()=>root.unmount());host.remove();vi.useRealTimers();});
 describe('support messages',()=>{
+ it('preserves an unfinished access request when leaving its ticket is declined',async()=>{
+   api.rpc.mockImplementation(async(name:string)=>name==='support_list_tickets'?{tickets:[ticket],can_create:true}:{...detail(),can_support_write:true});
+   await act(async()=>{root.render(<SupportWorkspace platformMode/>);api.changed?.();});
+   const reason=()=>host.querySelector('textarea[aria-label="Warum wird dieser Zugriff benötigt?"]') as HTMLTextAreaElement;
+   await act(async()=>{reason().value='Gespeicherten Einsatzstatus prüfen';reason().dispatchEvent(new Event('input',{bubbles:true}));});
+   api.confirm.mockResolvedValueOnce(false);
+   await click('Zur Ticketliste');
+   expect(reason()?.value).toBe('Gespeicherten Einsatzstatus prüfen');
+   await click('Zur Ticketliste');
+   expect(reason()).toBeNull();
+   expect(host.querySelector('textarea[aria-label="Tickets suchen"]')).not.toBeNull();
+ });
  it('preserves an unsent draft while a server event refreshes the thread',async()=>{
    await write('Nicht überschreiben');
    await act(async()=>{api.changed?.();});
