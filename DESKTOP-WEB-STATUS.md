@@ -1,8 +1,8 @@
-# CareSuite Desktop und Web – Arbeitsstand vom 07.09.2026
+# CareSuite Desktop und Web – Arbeitsstand vom 08.09.2026
 
 Die Änderungen liegen im separaten Arbeitsverzeichnis `C:\Users\Kevin Reinhardt\CareSuite-Desktop-20260907`, Branch `feature/desktop-platform-support-20260907`. Ausgangsstand ist `c5c6eb162e535b91bbf65b7c55aec83e5795b2f8`.
 
-**Status: Implementierung vorbereitet, noch nicht veröffentlicht. Die vollständige Sichtprüfung im Browser steht aus.**
+**Status: R3.3 vom Nutzer als passend bestätigt und lokal gesichert. Die bisher gezeigten Vorschauansichten sind abgenommen. Angemeldete Backend-Endabläufe, weitere Bildschirm- und Textgrößen sowie die Veröffentlichung bleiben offen.**
 
 ## Umfang
 
@@ -118,9 +118,23 @@ Auf ausdrücklichen Nutzerwunsch entfällt der Modulhinweis in der Web-Registrie
 
 Der Nutzer beanstandete außerdem die versetzten Inhalte der breiten Unternehmensliste. Deren bisherige Mindestbreiten ließen jede Zelle entsprechend ihrem Text wachsen. Die Web-Unternehmensliste verwendet nun explizite Spaltenbreiten, die für Kopf und alle Datenzeilen identisch sind und sich gemeinsam an der verfügbaren Inhaltsbreite orientieren. Die Öffnen-Aktion erhält die Überschrift „Aktion“ und denselben linken Textbeginn. Bei weniger als 1102 CSS-Pixeln Inhaltsbreite erscheinen weiterhin die bereits optisch bestätigten Karten. Die Änderung ist auf die Web-Unternehmensliste begrenzt.
 
-R3.3 wurde erfolgreich gebaut. Die vier DOM-Startprüfungen sowie Menübedienung, Öffnen der passenden Unternehmensakte und Wechsel zwischen Karten und Tabelle sind erneut erfolgreich. Die Sichtprüfung der neu ausgerichteten breiten Tabelle steht noch aus; ein DOM-Modell ersetzt keine optische Layoutprüfung.
+R3.3 wurde erfolgreich gebaut. Die vier DOM-Startprüfungen sowie Menübedienung, Öffnen der passenden Unternehmensakte und Wechsel zwischen Karten und Tabelle sind erneut erfolgreich. Die optische Bestätigung der neu ausgerichteten breiten Tabelle stand bei Übergabe noch aus und wurde anschließend durch die Nutzerrückmeldung zu R3.3 erteilt; ein DOM-Modell ersetzt keine optische Layoutprüfung.
 
 Die vollständige TypeScript-Prüfung von R3.3 ist mit Exit-Code 0 abgeschlossen. Der vom Nutzer ausdrücklich geforderte gleichwertige Stellenwert von Design, Layout, Texten und Funktionen ist in der neuen AGENTS.md als verbindliche Projektvorgabe festgehalten. Es wurde nichts veröffentlicht.
+
+## Nutzerbestätigung R3.3 – 08.09.2026
+
+Kevin Reinhardt hat auf die Übergabe von R3.3 mit „Ja alles richtig“ geantwortet. Damit ist die Rückmeldung zur zuletzt angepassten Vorschau einschließlich Tabellenausrichtung und Registrierungstexten positiv abgeschlossen. Diese Bestätigung stammt vom Nutzer; in diesem Schritt wurden keine weiteren Screenshots ausgewertet oder zusätzlichen Browserprüfungen durchgeführt.
+
+Der Abgleich auf ChristianLaptop bestätigt R3.3 unter Commit `00dca6e5` auf `feature/desktop-platform-support-20260907`; das Arbeitsverzeichnis war vor der Fortschreibung dieses Berichts sauber. Der Qualitätsmaßstab in `AGENTS.md` ist ebenfalls vorhanden. Für diese reine Statusdokumentation sind keine erneuten Funktionstests erforderlich.
+
+Für den Gesamtabschluss bleiben offen:
+
+1. Angemeldete Abläufe in einer geeigneten Testumgebung: vollständige Registrierung, Unternehmensverwaltung, Support-Nachrichten und private Uploads sowie Anfordern, Bestätigen, Nutzen, Widerrufen und Ablaufen von Support-Zugriffen mit getrennten Rollen.
+2. Noch nicht belegte visuelle Zustände: geöffnete schmale Plattformnavigation, weitere Fenster-/Textgrößen und die übrigen Desktop-/Web-Arbeitsflächen im beauftragten Umfang.
+3. Gemeinsame Veröffentlichung der vier oben aufgeführten Migrationen, der aktualisierten Registrierungsfunktion und der Web-Version nach Abschluss der Prüfungen und ausdrücklicher Veröffentlichungsfreigabe. Die Bestätigung zu R3.3 ist eine Rückmeldung zur Vorschau und keine Veröffentlichungsfreigabe.
+
+Es wurden in diesem Schritt keine Anwendungsdateien, produktiven Daten oder Android-Dateien geändert und keine Veröffentlichung ausgelöst.
 
 ## Reproduzierbare lokale Prüfungen
 
