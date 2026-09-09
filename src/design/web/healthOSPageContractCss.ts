@@ -317,8 +317,8 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
       inset 0 1px 0 rgba(255,255,255,.96) !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-healthos-component="card"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="card"]:not([data-cs-healthos-surface="dark"]),
+  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"]:not([data-cs-healthos-surface="dark"]),
   html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"],
   html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] {
     background:
@@ -330,6 +330,17 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
       inset 0 1px 0 rgba(255,255,255,.96) !important;
   }
 
+  html[data-cs-portal-premium] [data-cs-healthos-component="card"][data-cs-healthos-surface="dark"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"][data-cs-healthos-surface="dark"] {
+    background:
+      radial-gradient(circle at 92% -20%, rgba(105,216,255,.16), transparent 43%),
+      linear-gradient(145deg, #123653, #0A2743 56%, #06182E) !important;
+    border-color: rgba(105,216,255,.40) !important;
+    box-shadow:
+      0 18px 40px rgba(0,8,24,.26),
+      inset 0 1px 0 rgba(255,255,255,.10) !important;
+  }
+
   /*
    * Compatibility bridge for productive screens that still carry the former
    * dark palette as React Native inline text colours. Only descendants of a
@@ -339,8 +350,8 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
   html[data-cs-portal-premium] [data-cs-healthos-component="screen-header"] [style*="color: rgba(255, 255, 255"],
   html[data-cs-portal-premium] [data-cs-healthos-component="list-overview"] [style*="color: rgba(255, 255, 255"],
   html[data-cs-portal-premium] [data-cs-healthos-component="section"] [style*="color: rgba(255, 255, 255"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="card"] [style*="color: rgba(255, 255, 255"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"] [style*="color: rgba(255, 255, 255"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="card"]:not([data-cs-healthos-surface="dark"]) [style*="color: rgba(255, 255, 255"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"]:not([data-cs-healthos-surface="dark"]) [style*="color: rgba(255, 255, 255"],
   html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"] [style*="color: rgba(255, 255, 255"],
   html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgba(255, 255, 255"],
   html[data-cs-portal-premium] [data-cs-healthos-component="table"]:not([data-cs-healthos-surface="dark"]) [style*="color: rgba(255, 255, 255"] {
@@ -350,24 +361,24 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
   html[data-cs-portal-premium] [data-cs-healthos-component="screen-header"] [style*="color: rgb(255, 255, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="list-overview"] [style*="color: rgb(255, 255, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="section"] [style*="color: rgb(255, 255, 255)"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="card"] [style*="color: rgb(255, 255, 255)"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="card"]:not([data-cs-healthos-surface="dark"]) [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"]:not([data-cs-healthos-surface="dark"]) [style*="color: rgb(255, 255, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"] [style*="color: rgb(255, 255, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgb(255, 255, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="table"]:not([data-cs-healthos-surface="dark"]) [style*="color: rgb(255, 255, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="screen-header"] [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="list-overview"] [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="section"] [style*="color: rgb(248, 246, 255)"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="card"] [style*="color: rgb(248, 246, 255)"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"] [style*="color: rgb(248, 246, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="card"]:not([data-cs-healthos-surface="dark"]) [style*="color: rgb(248, 246, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"]:not([data-cs-healthos-surface="dark"]) [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"] [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="table"]:not([data-cs-healthos-surface="dark"]) [style*="color: rgb(248, 246, 255)"] {
     color: #061B35 !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"]:focus-within,
-  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"]:hover,
+  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"]:not([data-cs-healthos-surface="dark"]):focus-within,
+  html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"]:not([data-cs-healthos-surface="dark"]):hover,
   html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"]:hover {
     border-color: rgba(5,108,232,.58) !important;
     background:

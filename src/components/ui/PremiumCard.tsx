@@ -21,6 +21,7 @@ import {
 import { withAlpha } from '@/design/tokens/motion';
 import { motion, radius } from '@/theme';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 type Props = {
@@ -31,6 +32,7 @@ type Props = {
   accentColor?: string;
   variant?: 'default' | 'elevated';
   sheen?: boolean;
+  onDarkSurface?: boolean;
 };
 
 const webCursor =
@@ -48,6 +50,7 @@ export function PremiumCard({
   accentColor = spatialCareColors.cyanLight,
   variant = 'default',
   sheen = true,
+  onDarkSurface = false,
 }: Props) {
   const portal = usePortalPremiumTheme();
   const { isPhone } = useDeviceClass();
@@ -63,9 +66,11 @@ export function PremiumCard({
           borderRadius: portal.active && isPhone ? 16 : radius.card,
           overflow: 'hidden',
           borderWidth: 1,
-          borderColor: portal.active
-            ? withAlpha(accentColor, variant === 'elevated' ? 0.48 : 0.3)
-            : withAlpha(accentColor, variant === 'elevated' ? 0.58 : 0.34),
+          borderColor: onDarkSurface
+            ? withAlpha(accentColor, variant === 'elevated' ? 0.68 : 0.46)
+            : portal.active
+              ? withAlpha(accentColor, variant === 'elevated' ? 0.48 : 0.3)
+              : withAlpha(accentColor, variant === 'elevated' ? 0.58 : 0.34),
           shadowColor: accentColor,
           shadowOffset: { width: 0, height: 14 },
           shadowOpacity: portal.active && isPhone ? 0.1 : variant === 'elevated' ? 0.24 : 0.14,
@@ -112,30 +117,41 @@ export function PremiumCard({
           ...StyleSheet.absoluteFill,
           borderRadius: radius.card,
           borderWidth: 1,
-          borderColor: portal.active ? portalPremium.innerBorder : spatialCare.borderGlow,
+          borderColor: onDarkSurface
+            ? spatialCare.borderGlow
+            : portal.active
+              ? portalPremium.innerBorder
+              : spatialCare.borderGlow,
         },
         content: {
           padding: portal.active && isPhone ? 14 : 20,
           zIndex: 2,
         },
       }),
-    [accentColor, isPhone, portal.active, variant],
+    [accentColor, isPhone, onDarkSurface, portal.active, variant],
   );
 
   const body = (
     <LlganGlassShell
       kind="card"
       style={styles.host}
-      dataSet={{ csHealthosComponent: onPress ? 'interactive-card' : 'card' }}
+      dataSet={{
+        csHealthosComponent: onPress ? 'interactive-card' : 'card',
+        csHealthosSurface: onDarkSurface ? 'dark' : 'light',
+      }}
     >
       <LinearGradient
-        colors={portal.active
+        colors={onDarkSurface
           ? variant === 'elevated'
-            ? ['#FFFFFF', '#EEF6FF', '#DDEEFF']
-            : ['#FFFFFF', '#F5FAFF', '#E8F3FF']
-          : variant === 'elevated'
-            ? ['#FFFFFF', '#F2F8FF', '#EAF4FF']
-            : ['#FFFFFF', '#F7FBFF', '#EEF7FF']}
+            ? ['#173F66', '#0D2B49', '#071A31']
+            : ['#123653', '#0A2743', '#06182E']
+          : portal.active
+            ? variant === 'elevated'
+              ? ['#FFFFFF', '#EEF6FF', '#DDEEFF']
+              : ['#FFFFFF', '#F5FAFF', '#E8F3FF']
+            : variant === 'elevated'
+              ? ['#FFFFFF', '#F2F8FF', '#EAF4FF']
+              : ['#FFFFFF', '#F7FBFF', '#EEF7FF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -144,7 +160,9 @@ export function PremiumCard({
       {sheen ? <View style={styles.glow} pointerEvents="none" /> : null}
       <View style={styles.innerBorder} pointerEvents="none" />
       <View style={styles.edge} pointerEvents="none" />
-      <View style={[styles.content, contentStyle]}>{children}</View>
+      <SurfaceContrastProvider tone={onDarkSurface ? 'dark' : 'light'}>
+        <View style={[styles.content, contentStyle]}>{children}</View>
+      </SurfaceContrastProvider>
     </LlganGlassShell>
   );
 

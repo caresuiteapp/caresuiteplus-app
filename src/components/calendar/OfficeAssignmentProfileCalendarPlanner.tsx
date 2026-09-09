@@ -359,7 +359,10 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }
   return (
     <>
       <View style={[styles.workspace, compact && styles.workspaceCompact]}>
-        <PremiumCard style={[styles.palette, compact && styles.paletteCompact]}>
+        <PremiumCard
+          onDarkSurface
+          style={[styles.palette, compact && styles.paletteCompact]}
+        >
           <View style={styles.paletteHeader}>
             <View style={styles.paletteTitleWrap}>
               <Text style={styles.paletteEyebrow}>SCHNELLPLANUNG</Text>
