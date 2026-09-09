@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  AccessibilityInfo,
-  Animated,
-  Easing,
   Image,
   ImageBackground,
   Modal,
@@ -16,6 +13,7 @@ import {
   View,
   type ImageSourcePropType,
   type TextProps,
+  type ViewStyle,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -23,7 +21,7 @@ import { useAuth } from "@/lib/auth";
 import { PortalTextSizeControls } from "@/components/portal/accessibility/PortalTextSizeControls";
 import { TopbarProfileAvatar } from "@/components/layout/TopbarProfileAvatar";
 import { useDesktopWeather } from "@/hooks/useDesktopWeather";
-import { resolveDesktopGridLayout } from "@/lib/platform/desktopGridLayout";
+import { desktopWorkspaceCss } from "./desktopWorkspaceCss.web";
 import { useWebFontScale } from "@/design/web/WebFontScaleProvider";
 
 type Category = "Übersicht" | "Versorgung" | "Team" | "Verwaltung";
@@ -47,8 +45,6 @@ const LEGACY_FAVORITES_STORAGE_KEY = "caresuite.healthos.top-widgets.v1";
 const SIDEBAR_STORAGE_KEY = "caresuite.healthos.sidebar-open.v2";
 const BACKGROUND_STORAGE_KEY = "caresuite.healthos.desktop-background.v1";
 const DESKTOP_SLOT_COUNT = 12;
-
-const NATIVE_MOTION = Platform.OS !== "web";
 
 const BACKGROUNDS: readonly BackgroundDefinition[] = [
   { id: "alien-planet", label: "Alien Planet", image: require("../../../assets/healthos/caresuite-alien-planet-no-logo.png") },
@@ -396,9 +392,10 @@ export function CommandCenterScreen() {
   const { width, height } = useWindowDimensions();
   const { scale: fontScale } = useWebFontScale();
   const compact = width < 900 * fontScale;
-  const [gridWidth, setGridWidth] = useState(0);
-  const [gridHeight, setGridHeight] = useState(0);
-  const gridLayout = resolveDesktopGridLayout(gridWidth, fontScale, gridHeight);
+  const workspaceCss = useMemo(() => desktopWorkspaceCss(fontScale), [fontScale]);
+  const sidebarWidth = Math.round(260 * Math.max(1, fontScale));
+  const railWidth = Math.round(60 * Math.max(1, fontScale));
+  const menuToggleRef = useRef<View>(null);
   const shortViewport = height < 600 * fontScale;
   const narrow = width < 1240 * fontScale;
   const owner = auth.user?.id ?? "local";
@@ -423,8 +420,6 @@ export function CommandCenterScreen() {
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("Alle");
   const [query, setQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
-  const sidebarMotion = useRef(new Animated.Value(sidebarOpen ? 1 : 0)).current;
   const profile = auth.profile;
   const displayName = profile?.displayName || auth.user?.displayName || "Profil";
   const role = roleLabel(profile?.roleKey);
@@ -439,15 +434,6 @@ export function CommandCenterScreen() {
   }, [category, query]);
 
   useEffect(() => { const timer = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(timer); }, []);
-  useEffect(() => {
-    let mounted = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((value) => mounted && setReducedMotion(value));
-    const subscription = AccessibilityInfo.addEventListener("reduceMotionChanged", setReducedMotion);
-    return () => { mounted = false; subscription.remove(); };
-  }, []);
-  useEffect(() => {
-    Animated.timing(sidebarMotion, { toValue: sidebarOpen ? 1 : 0, duration: reducedMotion ? 0 : 380, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
-  }, [reducedMotion, sidebarMotion, sidebarOpen]);
   useEffect(() => setMobileSidebarOpen(false), [compact]);
   useEffect(() => {
     let active = true;
@@ -474,7 +460,10 @@ export function CommandCenterScreen() {
     if (loadedOwner === owner) void AsyncStorage.multiSet([[desktopKey, JSON.stringify(desktopIds)], [sidebarKey, String(sidebarOpen)], [backgroundKey, backgroundId]]).catch(() => undefined);
   }, [backgroundId, backgroundKey, desktopIds, desktopKey, loadedOwner, owner, sidebarKey, sidebarOpen]);
 
-  const closeNavigation = () => compact ? setMobileSidebarOpen(false) : setSidebarOpen(false);
+  const closeNavigation = () => {
+    if (compact) setMobileSidebarOpen(false);
+    else { setSidebarOpen(false); menuToggleRef.current?.focus(); }
+  };
   const openCenter = (tab: CenterTab = "apps") => { setMobileSidebarOpen(false); setCenterTab(tab); setCenterOpen(true); };
   const openWidget = (widget: WidgetDefinition) => { setCenterOpen(false); setMobileSidebarOpen(false); router.push(widget.route as never); };
   const openNavWidget = (id: string) => { const widget = WIDGET_BY_ID.get(id); if (widget) openWidget(widget); };
@@ -503,6 +492,7 @@ export function CommandCenterScreen() {
 
   return (
     <ImageBackground source={activeBackground.image} resizeMode="cover" style={[styles.background, shortViewport && styles.shortBackground]} testID="responsive-desktop">
+      <style>{workspaceCss}</style>
       <View style={[styles.desktopFrame, compact && styles.desktopFrameCompact]}>
       <View style={styles.atmosphere} />
       <View style={styles.topbar}>
@@ -521,7 +511,7 @@ export function CommandCenterScreen() {
           </View>
         </View>
         <View style={[styles.glass, styles.actions]} testID="desktop-topbar-actions">
-          <Pressable accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => compact ? setMobileSidebarOpen(value => !value) : setSidebarOpen(value => !value)} style={[styles.iconButton, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>
+          <Pressable ref={menuToggleRef} accessibilityRole="button" {...({ "aria-controls": compact ? undefined : "desktop-home-navigation" } as object)} accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => compact ? setMobileSidebarOpen(value => !value) : setSidebarOpen(value => !value)} style={[styles.iconButton, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>
           <PortalTextSizeControls />
           {!compact ? <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>Live</Text></View> : null}
           <Pressable accessibilityLabel="Apps und Widgets öffnen" onPress={() => openCenter()} style={styles.appsButton}><Text style={styles.appsGlyph}>▦</Text>{!compact ? <Text style={styles.appsText}>Apps & Widgets</Text> : null}</Pressable>
@@ -530,58 +520,61 @@ export function CommandCenterScreen() {
         </View>
       </View>
 
-      {!compact && !sidebarOpen ? <Animated.View
-        style={[
-          styles.sidebarReopenHost,
-          compact && styles.sidebarReopenHostCompact,
-          {
-            pointerEvents: sidebarOpen ? "none" : "auto",
-            opacity: sidebarMotion.interpolate({ inputRange: [0, 0.28, 1], outputRange: [1, 0, 0] }),
-            transform: [
-              { translateX: sidebarMotion.interpolate({ inputRange: [0, 1], outputRange: [0, -24] }) },
-              { scale: sidebarMotion.interpolate({ inputRange: [0, 1], outputRange: [1, 0.92] }) },
-            ],
-          },
-        ]}
-      >
-        <Pressable accessibilityLabel="Navigation öffnen" accessibilityState={{ expanded: false }} onPress={() => setSidebarOpen(true)} style={({ pressed }) => [styles.glass, styles.sidebarReopen, pressed && styles.sidebarReopenPressed]}>
-          <Text style={styles.sidebarReopenGlyph}>☰</Text>
-          <Text style={styles.sidebarReopenLabel}>MENÜ</Text>
-          <Text style={styles.sidebarReopenArrow}>›</Text>
-        </Pressable>
-      </Animated.View> : null}
+      <View style={[styles.workspace, compact && styles.workspaceCompact, {
+        gridTemplateColumns: compact ? 'minmax(0, 1fr)' : `${sidebarOpen ? sidebarWidth : railWidth}px minmax(0, 1fr)`,
+      } as unknown as ViewStyle, shortViewport && { flex: 0, height: Math.max(420, height * 0.7) }]}
+        dataSet={{ csDesktopNavigationWorkspace: 'true' }}>
+        {!compact ? <View style={styles.navigationColumn}>
+          <View nativeID="desktop-home-navigation"
+            {...({ inert: !sidebarOpen ? true : undefined, "aria-hidden": !sidebarOpen,
+              onKeyDown: (event: { key: string; preventDefault: () => void; stopPropagation: () => void }) => {
+                if (event.key === 'Escape' && sidebarOpen) { event.preventDefault(); event.stopPropagation(); closeNavigation(); }
+              } } as object)}
+            dataSet={{ csDesktopNavigationContent: 'true' }}
+            style={[styles.glass, styles.sidebar, styles.navigationContent, {
+              width: sidebarWidth, opacity: sidebarOpen ? 1 : 0, pointerEvents: sidebarOpen ? 'auto' : 'none',
+              transform: [{ translateX: sidebarOpen ? 0 : -12 }],
+            }]}>{sidebarContent}</View>
+          <View {...({ inert: sidebarOpen ? true : undefined, "aria-hidden": sidebarOpen } as object)}
+            dataSet={{ csDesktopNavigationRail: 'true' }}
+            style={[styles.navigationRail, { opacity: sidebarOpen ? 0 : 1, pointerEvents: sidebarOpen ? 'none' : 'auto' }]}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Navigation öffnen" accessibilityState={{ expanded: false }}
+              {...({ "aria-controls": "desktop-home-navigation" } as object)}
+              onPress={() => { setSidebarOpen(true); menuToggleRef.current?.focus(); }}
+              style={({ pressed }) => [styles.glass, styles.sidebarReopen, pressed && styles.sidebarReopenPressed]}>
+              <Text style={styles.sidebarReopenGlyph}>☰</Text>
+              <Text style={styles.sidebarReopenLabel}>Menü</Text>
+              <Text style={styles.sidebarReopenArrow}>›</Text>
+            </Pressable>
+          </View>
+        </View> : null}
 
-      <View style={[styles.workspace, (compact || !sidebarOpen) && styles.workspaceCompact, shortViewport && { flex: 0, height: Math.max(420, height * 0.7) }]}>
-        {!compact ? <Animated.View {...({ inert: !sidebarOpen ? true : undefined, "aria-hidden": !sidebarOpen } as object)} nativeID="desktop-home-navigation" style={[styles.glass, styles.sidebar, { pointerEvents: sidebarOpen ? "auto" : "none", width: sidebarMotion.interpolate({ inputRange: [0, 1], outputRange: [0, Math.round(260 * fontScale)] }), opacity: sidebarMotion, transform: [{ translateX: sidebarMotion.interpolate({ inputRange: [0, 1], outputRange: [-26, 0] }) }] }]}>
-          {sidebarContent}
-        </Animated.View> : null}
-
-        <Animated.View
+        <View
           {...(Platform.OS === "web" ? ({ dataSet: { healthosWorkspaceRevision: "r11-app-center", healthosResponsiveArtworkRevision: "r9", healthosVisualDensityRevision: "r11-calm" } } as object) : {})}
           style={styles.desktopPanel}
         >
           <View style={[styles.glass, styles.desktopHeader]}><View style={styles.desktopHeading}><Text style={styles.eyebrow}>PERSÖNLICHER ARBEITSPLATZ</Text><Text style={styles.desktopTitle}>Mein Desktop</Text></View><View style={styles.desktopActions}><View style={styles.countPill}><View style={styles.liveDot} /><Text style={styles.countText}>{desktopIds.length}/{DESKTOP_SLOT_COUNT} aktiv</Text></View><Pressable accessibilityState={{ selected: editMode }} onPress={() => setEditMode((value) => !value)} style={[styles.editButton, editMode && styles.editButtonActive]}><Text style={styles.editText}>{editMode ? "✓  Fertig" : "✎  Bearbeiten"}</Text></Pressable></View></View>
-          <ScrollView style={styles.gridScroll} onLayout={(event) => setGridHeight(event.nativeEvent.layout.height)} contentContainerStyle={styles.gridScrollContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
-            <View style={[styles.grid, { gap: gridLayout.gap }]} onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)} testID="desktop-widget-grid">
+          <ScrollView style={styles.gridScroll} dataSet={{ csDesktopWidgetViewport: "true" }} contentContainerStyle={styles.gridScrollContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
+            <View style={styles.grid} dataSet={{ csDesktopWidgetGrid: "true" }} testID="desktop-widget-grid">
               {slots.map((widget, index) => (
-                <View key={widget?.id ?? `empty-${index}`} style={[styles.cell, { width: gridWidth ? gridLayout.cardWidth : '100%' }]}>
+                <View key={widget?.id ?? `empty-${index}`} style={styles.cell}>
                   {widget ? (
                     <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} öffnen`} onPress={() => !editMode && openWidget(widget)} style={({ pressed }) => [styles.widgetCard, pressed && !editMode && styles.widgetPressed, editMode && styles.widgetEditing]}>
-                      <View style={[styles.labelBar, { minHeight: gridLayout.labelHeight }]}><Text accessibilityRole="header" style={styles.widgetLabel}>{widget.label}</Text><Text style={styles.arrow}>↗</Text></View>
-                      <View style={[styles.imageStage, { height: gridLayout.imageHeight }]}>
+                      <View style={styles.labelBar} dataSet={{ csDesktopWidgetLabel: "true" }}><Text accessibilityRole="header" style={styles.widgetLabel}>{widget.label}</Text><Text style={styles.arrow}>↗</Text></View>
+                      <View style={styles.imageStage} dataSet={{ csDesktopWidgetArtwork: "true" }}>
                         <Image source={widget.images.medium} resizeMode="contain" style={styles.widgetImage} />
                         <View style={styles.categoryPill}><Text style={styles.categoryText}>{widget.category}</Text></View>
                         {editMode ? <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} entfernen`} onPress={(event) => { event.stopPropagation(); togglePinned(widget.id); }} style={styles.removeButton}><Text style={styles.removeText}>×</Text></Pressable> : null}
                       </View>
                     </Pressable>
                   ) : (
-                    <Pressable accessibilityRole="button" accessibilityLabel="App oder Widget hinzufügen" onPress={() => setCenterOpen(true)} style={[styles.emptyCard, { minHeight: gridLayout.cardHeight }]}><Text style={styles.emptyPlus}>＋</Text><Text style={styles.emptyTitle}>Hinzufügen</Text><Text style={styles.emptyCopy}>App oder Widget auswählen</Text></Pressable>
+                    <Pressable accessibilityRole="button" accessibilityLabel="App oder Widget hinzufügen" onPress={() => setCenterOpen(true)} style={styles.emptyCard} dataSet={{ csDesktopWidgetEmpty: "true" }}><Text style={styles.emptyPlus}>＋</Text><Text style={styles.emptyTitle}>Hinzufügen</Text><Text style={styles.emptyCopy}>App oder Widget auswählen</Text></Pressable>
                   )}
                 </View>
               ))}
             </View>
           </ScrollView>
-        </Animated.View>
+        </View>
       </View>
 
       <Modal transparent animationType="fade" visible={compact && mobileSidebarOpen} onRequestClose={() => setMobileSidebarOpen(false)}>
@@ -633,10 +626,12 @@ const styles = StyleSheet.create({
   livePill: { height: 46, borderRadius: 15, paddingHorizontal: 13, borderWidth: 1, borderColor: "rgba(70,171,255,0.42)", flexDirection: "row", alignItems: "center", gap: 7 }, liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#58D8C1", ...(Platform.OS === "web" ? ({ boxShadow: "0 0 8px rgba(88,216,193,0.9)" } as const) : ({ shadowColor: "#58D8C1", shadowOpacity: 0.9, shadowRadius: 8 } as const)) }, liveText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
   appsButton: { minHeight: 46, paddingVertical: 8, borderRadius: 15, paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(104,222,255,0.58)", backgroundColor: "rgba(9,75,111,0.78)", flexDirection: "row", alignItems: "center", gap: 8 }, appsGlyph: { color: "#83E8FF", fontSize: 21 }, appsText: { color: "#F3FCFF", fontSize: 16, fontWeight: "900" },
   profileTrigger: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 4 }, profileCopy: { maxWidth: 180, alignItems: "flex-end" }, profileName: { color: "#FFF", fontSize: 16, fontWeight: "900" }, profileRole: { color: "#BFD8EE", fontSize: 13, marginTop: 2, fontWeight: "700" },
-  workspace: { flex: 1, minHeight: 0, minWidth: 0, zIndex: 5, flexDirection: "row", justifyContent: "flex-start", gap: 18 }, workspaceCompact: { gap: 0 },
-  sidebarReopenHost: { position: "absolute", zIndex: 24, left: 10, top: "46%" }, sidebarReopenHostCompact: { left: 4, top: "44%" },
-  sidebarReopen: { width: 58, minHeight: 126, borderRadius: 22, alignItems: "center", justifyContent: "center", gap: 9, borderColor: "rgba(103,224,255,0.62)", backgroundColor: "rgba(3,28,58,0.9)", ...transitionWeb }, sidebarReopenPressed: { transform: [{ scale: 0.96 }], backgroundColor: "rgba(10,75,105,0.94)" },
-  sidebarReopenGlyph: { color: "#8BE8FF", fontSize: 21, fontWeight: "900" }, sidebarReopenLabel: { color: "#F2FBFF", fontSize: 13, lineHeight: 12, fontWeight: "900", letterSpacing: 1.2 }, sidebarReopenArrow: { color: "#8BE8FF", fontSize: 28, lineHeight: 28, fontWeight: "500" },
+  workspace: { flex: 1, minHeight: 0, minWidth: 0, zIndex: 5, display: "grid", alignItems: "stretch", gap: 18 } as unknown as ViewStyle, workspaceCompact: { gap: 0 },
+  navigationColumn: { minWidth: 0, minHeight: 0, position: "relative", overflow: "hidden", borderRadius: 28 },
+  navigationContent: { position: "absolute", top: 0, bottom: 0, left: 0 },
+  navigationRail: { position: "absolute", top: 0, left: 0, right: 0, alignItems: "stretch" },
+  sidebarReopen: { width: "100%", minHeight: 116, paddingVertical: 12, borderRadius: 22, alignItems: "center", justifyContent: "center", gap: 9, borderColor: "rgba(103,224,255,0.62)", backgroundColor: "rgba(3,28,58,0.9)", ...transitionWeb }, sidebarReopenPressed: { transform: [{ scale: 0.96 }], backgroundColor: "rgba(10,75,105,0.94)" },
+  sidebarReopenGlyph: { color: "#8BE8FF", fontSize: 21, fontWeight: "900" }, sidebarReopenLabel: { color: "#F2FBFF", fontSize: 13, lineHeight: 20, fontWeight: "700" }, sidebarReopenArrow: { color: "#8BE8FF", fontSize: 28, lineHeight: 28, fontWeight: "500" },
   navigationBackdrop: { flex: 1, backgroundColor: "rgba(0,5,16,0.68)", padding: 12, alignItems: "flex-start" }, sidebarDrawer: { backgroundColor: "#091B32", maxWidth: "100%" }, navScroller: { flex: 1, minHeight: 0 },
   sidebar: { flexShrink: 0, height: "100%", borderRadius: 28, overflow: "hidden" }, sidebarInner: { flex: 1, minHeight: 0, padding: 12 }, sidebarHeader: { minHeight: 61, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 5, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "rgba(139,211,255,0.16)" },
   eyebrow: { color: "#72DEFF", fontSize: 12, lineHeight: 18, fontWeight: "800", letterSpacing: 1.2 }, sidebarTitle: { color: "#FFF", fontSize: 22, fontWeight: "900" }, closeSmall: { width: 34, height: 34, borderRadius: 12, borderWidth: 1, borderColor: "rgba(126,214,255,0.28)", alignItems: "center", justifyContent: "center" }, closeSmallText: { color: "#CDEFFF", fontSize: 25 },
@@ -646,7 +641,7 @@ const styles = StyleSheet.create({
   sidebarBackground: { minHeight: 64, paddingVertical: 10, marginTop: 7, borderRadius: 16, borderWidth: 1, borderColor: "rgba(152,190,255,0.28)", backgroundColor: "rgba(26,47,91,0.62)", paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 10 }, sidebarBackgroundGlyph: { color: "#A8CFFF", fontSize: 21 },
   desktopPanel: { flex: 1, minHeight: 0, minWidth: 0 }, topLine: { position: "absolute", top: 0, left: 54, right: 54, height: 1, backgroundColor: "rgba(204,244,255,0.62)" },
   desktopHeader: { alignSelf: "center", width: "100%", maxWidth: 2400, borderRadius: 20, padding: 12, flexShrink: 0, flexWrap: "wrap", minHeight: 74, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16 }, desktopHeading: { flexGrow: 1, flexBasis: 280, maxWidth: "100%", minWidth: 0 }, desktopTitle: { color: "#F7FCFF", fontSize: 28, lineHeight: 34, fontWeight: "900", letterSpacing: -0.6 }, desktopSubtitle: { color: "#D2E5F4", fontSize: 16, lineHeight: 24, fontWeight: "700" }, desktopActions: { flexWrap: "wrap", flexDirection: "row", gap: 7 }, countPill: { minHeight: 42, paddingVertical: 8, borderRadius: 13, paddingHorizontal: 10, borderWidth: 1, borderColor: "rgba(105,207,242,0.22)", flexDirection: "row", alignItems: "center", gap: 6 }, countText: { color: "#CEE6F3", fontSize: 13, fontWeight: "900" }, editButton: { minHeight: 42, paddingVertical: 8, borderRadius: 13, paddingHorizontal: 11, borderWidth: 1, borderColor: "rgba(126,214,255,0.28)", backgroundColor: "rgba(7,36,67,0.7)", justifyContent: "center" }, editButtonActive: { borderColor: "rgba(103,230,197,0.62)", backgroundColor: "rgba(24,107,91,0.68)" }, editText: { color: "#EAF8FF", fontSize: 16, fontWeight: "900" },
-  gridScroll: { flex: 1, minHeight: 0 }, gridScrollContent: { paddingTop: 12, paddingBottom: 12 }, grid: { width: "100%", maxWidth: 2400, alignSelf: "center", flexDirection: "row", flexWrap: "wrap", gap: 20, minWidth: 0 }, cell: { minWidth: 0 },
+  gridScroll: { flex: 1, minHeight: 0, minWidth: 0 }, gridScrollContent: { paddingTop: 12, paddingBottom: 12 }, grid: { width: "100%", maxWidth: 2400, alignSelf: "center", minWidth: 0 }, cell: { minWidth: 0, maxWidth: "100%" },
   widgetCard: { flex: 1, borderRadius: 18, borderWidth: 1, borderColor: "rgba(131,203,245,0.22)", backgroundColor: "rgba(1,12,29,0.78)", overflow: "hidden", ...transitionWeb }, widgetHovered: { transform: [{ translateY: -3 }, { scale: 1.012 }], borderColor: "rgba(102,221,255,0.62)", ...(Platform.OS === "web" ? ({ boxShadow: "0 8px 20px rgba(66,206,255,0.38)" } as const) : ({ shadowColor: "#42CEFF", shadowOpacity: 0.38, shadowRadius: 20 } as const)) }, widgetPressed: { transform: [{ scale: 0.988 }] }, widgetEditing: { borderColor: "rgba(96,225,194,0.46)", backgroundColor: "rgba(4,35,45,0.82)" },
   imageStage: { height: 178, margin: 10, marginTop: 0, marginBottom: 10, borderRadius: 13, backgroundColor: "rgba(4,23,47,0.5)", alignItems: "center", justifyContent: "center", overflow: "hidden" }, widgetImage: { width: "100%", maxWidth: 400, height: "100%", opacity: 0.92 }, categoryPill: { position: "absolute", top: 7, left: 7, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 4, backgroundColor: "rgba(1,14,31,0.78)" }, categoryText: { color: "#B9DCEB", fontSize: 11, fontWeight: "900", textTransform: "uppercase" }, removeButton: { position: "absolute", top: 7, right: 7, width: 44, height: 44, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,159,176,0.52)", backgroundColor: "rgba(91,15,33,0.9)", alignItems: "center", justifyContent: "center" }, removeText: { color: "#FFD4DC", fontSize: 20 },
   labelBar: { minHeight: 64, paddingVertical: 8, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 12 }, widgetLabel: { flex: 1, minWidth: 0, color: "#F3FBFF", fontSize: 18, lineHeight: 24, fontWeight: "700" }, arrow: { color: "#77DFFF", fontSize: 13, fontWeight: "900" },
