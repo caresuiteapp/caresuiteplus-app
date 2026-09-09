@@ -22,9 +22,12 @@ type Props = {
 /** One stable writing surface across desktop, tablet, orientation and viewport changes. */
 export function CareSignatureModal({ visible, label, onConfirm, onClose, disabled = false,
   closeDisabled, statusMessage, onCheckStatus, dismissScope = 'signature' }: Props) {
-  const { height: windowHeight } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const viewport = useWebVisualViewport();
   const height = viewport.height ?? windowHeight;
+  const width = viewport.width ?? windowWidth;
+  const offsetTop = viewport.offsetTop ?? 0;
+  const offsetLeft = viewport.offsetLeft ?? 0;
   const [dirty, setDirty] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +50,13 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
   const feedback = error ?? statusMessage ?? (submitting ? 'Unterschrift wird übertragen. Bitte das Fenster geöffnet lassen.' : null);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={() => void requestClose()}>
-      <View style={[styles.viewport, { height }]} accessibilityViewIsModal>
+      <View
+        style={[
+          styles.viewport,
+          { height, width, top: offsetTop, left: offsetLeft },
+        ]}
+        accessibilityViewIsModal
+      >
         <View style={[styles.sheet, { height: Math.max(420, height) }]}>
           <View style={styles.header}>
             <View style={styles.heading}>
@@ -75,7 +84,12 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
   );
 }
 const styles = StyleSheet.create({
-  viewport: { width: '100%', overflow: 'scroll', backgroundColor: '#f3f7fc' },
+  viewport: {
+    position: 'fixed',
+    zIndex: 2147483000,
+    overflow: 'scroll',
+    backgroundColor: '#f3f7fc',
+  },
   sheet: { width: '100%', maxWidth: 1600, alignSelf: 'center', padding: 12, gap: 12 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 16, flexShrink: 0 },
   heading: { flex: 1, minWidth: 0, gap: 4 },

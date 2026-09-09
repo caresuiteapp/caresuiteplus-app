@@ -105,6 +105,9 @@ export function PlatformModal({
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const viewport = useWebVisualViewport();
   const visibleHeight = viewport.height ?? screenHeight;
+  const visibleWidth = viewport.width ?? screenWidth;
+  const viewportOffsetTop = viewport.offsetTop ?? 0;
+  const viewportOffsetLeft = viewport.offsetLeft ?? 0;
   const insets = useSafeAreaInsets();
   const compact = screenWidth < 600;
   const resolvedAnimation = animationType ?? (variant === 'bottomSheet' ? 'slide' : 'fade');
@@ -117,10 +120,10 @@ export function PlatformModal({
     if (variant === 'bottomSheet') return undefined;
     const horizontalPad = spacing.lg * 2;
     return Math.min(
-      screenWidth - horizontalPad,
-      Math.max(minWidth, Math.min(maxWidth, screenWidth * 0.92)),
+      visibleWidth - horizontalPad,
+      Math.max(minWidth, Math.min(maxWidth, visibleWidth * 0.92)),
     );
-  }, [maxWidth, minWidth, screenWidth, variant]);
+  }, [maxWidth, minWidth, variant, visibleWidth]);
 
   const sheetMaxHeight = useMemo(
     () => resolvePlatformModalMaxHeight(visibleHeight, variant, maxHeightRatio, spacing.lg * 2),
@@ -133,6 +136,18 @@ export function PlatformModal({
         backdropCenter: {
           flex: 1,
           backgroundColor: lightModal ? shellColors.backdrop : careSuiteModalScrim,
+          ...Platform.select({
+            web: {
+              position: 'fixed' as const,
+              top: viewportOffsetTop,
+              left: viewportOffsetLeft,
+              width: visibleWidth,
+              height: visibleHeight,
+              zIndex: 2147483000,
+              overflow: 'hidden' as const,
+            },
+            default: {},
+          }),
           justifyContent: 'center',
           alignItems: 'center',
           paddingHorizontal: compact ? careSpacing.sm : spacing.lg,
@@ -143,6 +158,18 @@ export function PlatformModal({
           flex: 1,
           backgroundColor: lightModal ? shellColors.backdrop : careSuiteModalScrim,
           justifyContent: 'flex-end',
+          ...Platform.select({
+            web: {
+              position: 'fixed' as const,
+              top: viewportOffsetTop,
+              left: viewportOffsetLeft,
+              width: visibleWidth,
+              height: visibleHeight,
+              zIndex: 2147483000,
+              overflow: 'hidden' as const,
+            },
+            default: {},
+          }),
         },
         sheetHost: {
           width: sheetWidth,
@@ -217,7 +244,7 @@ export function PlatformModal({
               : 'rgba(1,8,23,0.98)',
         },
       }),
-    [compact, formGlass.shadow, insets.bottom, insets.top, isDark, lightModal, portalTheme.active, shellColors, sheetMaxHeight, sheetWidth, variant],
+    [compact, formGlass.shadow, insets.bottom, insets.top, isDark, lightModal, portalTheme.active, shellColors, sheetMaxHeight, sheetWidth, variant, viewportOffsetLeft, viewportOffsetTop, visibleHeight, visibleWidth],
   );
 
   useEffect(() => {
@@ -314,7 +341,7 @@ export function PlatformModal({
       onRequestClose={() => void requestClose()}
       statusBarTranslucent={statusBarTranslucent}
     >
-      <View style={[backdropStyle, { flex: 0, height: visibleHeight }]} accessibilityViewIsModal>
+      <View style={backdropStyle} accessibilityViewIsModal>
         {dismissOnBackdrop ? (
           <Pressable
             style={StyleSheet.absoluteFill}
@@ -339,7 +366,12 @@ export function PlatformModal({
             : { onStartShouldSetResponder: () => true })}
         >
           {variant === 'bottomSheet' ? (
-            <Pressable onPress={(e) => e.stopPropagation()}>{sheetContent}</Pressable>
+            <Pressable
+              style={{ maxHeight: sheetMaxHeight, flexShrink: 1, minHeight: 0 }}
+              onPress={(e) => e.stopPropagation()}
+            >
+              {sheetContent}
+            </Pressable>
           ) : (
             sheetContent
           )}
