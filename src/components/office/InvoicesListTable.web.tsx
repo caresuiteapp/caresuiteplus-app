@@ -1,0 +1,134 @@
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
+import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
+import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
+import { formatCurrency } from '@/lib/office';
+import type { InvoiceListItem } from '@/types/modules/billing';
+import { INVOICE_STATUS_LABELS } from '@/lib/office/invoiceStatus';
+
+
+type InvoicesListTableProps = {
+  invoices: InvoiceListItem[];
+  selectedId?: string | null;
+  onInvoicePress?: (id: string) => void;
+  onOpenDetail?: (id: string) => void;
+  sortColumnKey?: string | null;
+  sortDirection?: 'asc' | 'desc';
+  onSortColumn?: (columnKey: string) => void;
+};
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function statusVariant(status: InvoiceListItem['status']) {
+  switch (status) {
+    case 'paid':
+      return 'green' as const;
+    case 'overdue':
+    case 'cancelled':
+      return 'red' as const;
+    case 'ready':
+    case 'sent':
+    case 'partly_paid':
+    case 'draft':
+      return 'orange' as const;
+    default:
+      return 'muted' as const;
+  }
+}
+
+export function InvoicesListTable({
+  invoices,
+  selectedId = null,
+  onInvoicePress,
+  onOpenDetail,
+  sortColumnKey = null,
+  sortDirection = 'asc',
+  onSortColumn,
+}: InvoicesListTableProps) {
+  const tableText = useTableTextStyles();
+
+  return (
+    <PremiumDataTable
+      data={invoices}
+      keyExtractor={(item) => item.id}
+      selectedId={selectedId}
+      sortColumnKey={sortColumnKey}
+      sortDirection={sortDirection}
+      onSortColumn={onSortColumn}
+      onRowPress={onInvoicePress ? (item) => onInvoicePress(item.id) : undefined}
+      columns={[
+        {
+          key: 'invoiceNumber',
+          label: 'Nummer',
+          flex: 1.2,
+          sortable: true,
+          render: (item) => <Text style={tableText.name}>{item.invoiceNumber}</Text>,
+        },
+        {
+          key: 'clientName',
+          label: 'Klient:in',
+          flex: 1.5,
+          render: (item) => (
+            <Text style={styles.meta}>
+              {item.clientName}
+            </Text>
+          ),
+        },
+        {
+          key: 'amount',
+          label: 'Betrag',
+          align: 'right',
+          minWidth: 160,
+          flex: 1,
+          render: (item) => (
+            <Text style={styles.amount}>{formatCurrency(item.amountCents, item.currency)}</Text>
+          ),
+        },
+        {
+          key: 'dueDate',
+          label: 'Fällig',
+          flex: 1,
+          sortable: true,
+          render: (item) => <Text style={styles.meta}>{formatDate(item.dueDate)}</Text>,
+        },
+        {
+          key: 'status',
+          label: 'Status',
+          flex: 1,
+          render: (item) => (
+            <PremiumBadge
+              label={INVOICE_STATUS_LABELS[item.status]}
+              variant={statusVariant(item.status)}
+              dot
+            />
+          ),
+        },
+        {
+          key: 'actions',
+          label: '',
+          flex: 0.8,
+          render: (item) =>
+            onOpenDetail ? (
+              <PremiumButton
+                title="Öffnen"
+                variant="secondary"
+                size="sm"
+                onPress={() => onOpenDetail(item.id)}
+              />
+            ) : null,
+        },
+      ]}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  meta: { color: '#526B82', fontSize: font(15), lineHeight: font(23) },
+  amount: { color: '#102B49', fontWeight: '700', fontSize: font(16), lineHeight: font(24), fontVariant: ['tabular-nums'] },
+});

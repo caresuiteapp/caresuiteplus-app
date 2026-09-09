@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { usePathname, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getBreadcrumbs } from '@/lib/navigation';
@@ -17,8 +17,8 @@ import {
 } from '@/lib/navigation/healthosRoutePresentation';
 import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { AutoScrollView } from './AutoScrollView';
-import { ScreenHeader } from './ScreenHeader';
-import { HealthOSPageSurface, HealthOSPageZone } from './HealthOSPageSurface';
+import { ScreenHeader } from './ScreenHeader.web';
+import { HealthOSPageSurface, HealthOSPageZone } from './HealthOSPageSurface.web';
 
 type ScreenShellProps = {
   title: string;
@@ -81,6 +81,7 @@ export function ScreenShell({
           flex: 1,
           flexGrow: 1,
           width: '100%',
+          minWidth: 0,
           alignSelf: 'stretch',
           minHeight: 0,
           backgroundColor: 'transparent',
@@ -89,6 +90,7 @@ export function ScreenShell({
           flex: 1,
           flexGrow: 1,
           width: '100%',
+          minWidth: 0,
           backgroundColor: 'transparent',
         },
         scrollContent: {
@@ -103,12 +105,14 @@ export function ScreenShell({
           flexGrow: 1,
           minHeight: 0,
           width: '100%',
+          minWidth: 0,
           padding: spacing.md,
           gap: spacing.md,
           backgroundColor: 'transparent',
         },
         popupBody: {
           width: '100%',
+          minWidth: 0,
           gap: spacing.md,
         },
         centralPopupWorkspace: {
@@ -116,55 +120,11 @@ export function ScreenShell({
           flexGrow: 1,
           minHeight: 0,
           width: '100%',
+          minWidth: 0,
           overflow: 'hidden',
           backgroundColor: '#F2F6FC',
         },
-        centralPopupPageHeader: {
-          minHeight: isPhone ? 66 : 84,
-          flexShrink: 0,
-          paddingHorizontal: isPhone ? spacing.md : spacing.lg,
-          paddingVertical: isPhone ? spacing.sm : spacing.md,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: spacing.md,
-          borderBottomWidth: 1,
-          borderBottomColor: 'rgba(117,211,255,0.28)',
-          backgroundColor: '#FFFFFF',
-        },
-        centralPopupTitleGroup: {
-          flex: 1,
-          minWidth: 0,
-        },
-        centralPopupEyebrow: {
-          color: '#0866C2',
-          fontSize: 12,
-          lineHeight: 14,
-          fontWeight: '900',
-          letterSpacing: 1.4,
-          textTransform: 'uppercase',
-        },
-        centralPopupTitle: {
-          color: '#102B49',
-          fontSize: isPhone ? 19 : 24,
-          lineHeight: isPhone ? 24 : 30,
-          fontWeight: '900',
-          letterSpacing: -0.4,
-          marginTop: 2,
-        },
-        centralPopupSubtitle: {
-          color: '#526B82',
-          fontSize: 12,
-          lineHeight: 17,
-          fontWeight: '600',
-          marginTop: 2,
-        },
-        centralPopupActions: {
-          flexShrink: 1,
-          maxWidth: '100%',
-          alignItems: 'flex-end',
-        },
+
       }),
     [bottomPad, isAuthRoute, isPhone],
   );
@@ -174,7 +134,7 @@ export function ScreenShell({
       <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone>
       <HealthOSPageZone kind="filters">{filtersSlot}</HealthOSPageZone>
       <HealthOSPageZone kind="tabs">{tabsSlot}</HealthOSPageZone>
-      <HealthOSPageZone kind="content">{children}</HealthOSPageZone>
+      <HealthOSPageZone kind="content" fill={!shellScroll}>{children}</HealthOSPageZone>
     </>
   );
 
@@ -210,19 +170,8 @@ export function ScreenShell({
             ? ({ dataSet: { csCentralPopupWorkspace: 'true', csDesktopSurface: 'light' } } as object)
             : {})}
         >
-          <View
-            style={styles.centralPopupPageHeader}
-            {...(Platform.OS === 'web'
-              ? ({ dataSet: { csCentralPopupPageHeader: 'true' } } as object)
-              : {})}
-          >
-            <View style={styles.centralPopupTitleGroup}>
-              <Text style={styles.centralPopupEyebrow}>CareSuite HealthOS</Text>
-              <Text numberOfLines={2} style={styles.centralPopupTitle}>{title}</Text>
-              {subtitle ? <Text numberOfLines={2} style={styles.centralPopupSubtitle}>{subtitle}</Text> : null}
-            </View>
-            {effectiveRightSlot ? <View style={styles.centralPopupActions}>{effectiveRightSlot}</View> : null}
-          </View>
+          <ScreenHeader title={title} subtitle={subtitle} breadcrumbTrail={breadcrumbTrail}
+            showBack={showBack} onBack={onBack} rightSlot={effectiveRightSlot} compact={compactHeader} />
           <HealthOSPageSurface padded={false}>{body}</HealthOSPageSurface>
         </View>
       </SurfaceContrastProvider>
