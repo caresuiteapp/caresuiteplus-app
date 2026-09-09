@@ -1941,7 +1941,7 @@ export function EmployeePortalVisitExecutionScreen() {
         onClose={() => setPhotoModalOpen(false)}
         onUploaded={(paths) => {
           setPhotoReferences(paths);
-          setLocalSuccess('Foto/Video dauerhaft am Einsatz gespeichert.');
+          setLocalSuccess('Datei am Einsatz gespeichert.');
         }}
       />
 
@@ -1953,7 +1953,8 @@ export function EmployeePortalVisitExecutionScreen() {
         onClose={() => setVoiceModalOpen(false)}
         onAppendText={appendDocumentationNote}
         onAudioUploaded={(storagePath) => {
-          setPhotoReferences((prev) => [...prev, storagePath]);
+          setPhotoReferences((prev) => [...new Set([...prev, storagePath])]);
+          setLocalSuccess('Sprachnotiz am Einsatz gespeichert.');
         }}
       />
 

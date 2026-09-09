@@ -10,6 +10,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { useWebVisualViewport } from '@/hooks/useWebVisualViewport.web';
 import { confirmAction } from '@/lib/platform/confirmAction';
 import { GlassSurface } from '@/components/ui/effects';
 import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
@@ -102,6 +103,8 @@ export function PlatformModal({
   const lightModal = surfaceScope === 'personal' || portalTheme.active || isLight;
   const formGlass = resolveLlganViewGlass('form', 'default');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const viewport = useWebVisualViewport();
+  const visibleHeight = viewport.height ?? screenHeight;
   const insets = useSafeAreaInsets();
   const compact = screenWidth < 600;
   const resolvedAnimation = animationType ?? (variant === 'bottomSheet' ? 'slide' : 'fade');
@@ -120,8 +123,8 @@ export function PlatformModal({
   }, [maxWidth, minWidth, screenWidth, variant]);
 
   const sheetMaxHeight = useMemo(
-    () => resolvePlatformModalMaxHeight(screenHeight, variant, maxHeightRatio, spacing.lg * 2),
-    [maxHeightRatio, screenHeight, variant],
+    () => resolvePlatformModalMaxHeight(visibleHeight, variant, maxHeightRatio, spacing.lg * 2),
+    [maxHeightRatio, visibleHeight, variant],
   );
 
   const styles = useMemo(
@@ -311,7 +314,7 @@ export function PlatformModal({
       onRequestClose={() => void requestClose()}
       statusBarTranslucent={statusBarTranslucent}
     >
-      <View style={backdropStyle} accessibilityViewIsModal>
+      <View style={[backdropStyle, { flex: 0, height: visibleHeight }]} accessibilityViewIsModal>
         {dismissOnBackdrop ? (
           <Pressable
             style={StyleSheet.absoluteFill}
