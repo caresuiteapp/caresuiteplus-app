@@ -496,7 +496,6 @@ export function CommandCenterScreen() {
       <View style={[styles.desktopFrame, compact && styles.desktopFrameCompact]}>
       <View style={styles.atmosphere} />
       <View style={styles.topbar}>
-        <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, compact && styles.logoCompact]} />
         <View style={[styles.informationRow, compact && styles.informationRowCompact]}>
         <View style={[styles.glass, styles.infoCard]} testID="desktop-clock-weather">
           <View style={styles.clock}><Text style={styles.time}>{now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</Text><Text style={styles.date}>{new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(now)}</Text></View>
@@ -518,6 +517,7 @@ export function CommandCenterScreen() {
           <Pressable accessibilityLabel={`Kontomenü von ${displayName} öffnen`} onPress={() => setProfileOpen(true)} style={styles.profileTrigger}>{!narrow ? <View style={styles.profileCopy}><Text style={styles.profileName}>{displayName}</Text><Text style={styles.profileRole}>{role}</Text></View> : null}<TopbarProfileAvatar name={displayName} avatarUrl={profile?.avatarUrl?.trim() || undefined} avatarVersion={profile?.updatedAt ?? profile?.avatarUrl} accentColor="#56C7FF" size="lg" /></Pressable>
         </View>
         </View>
+        <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, compact && styles.logoCompact]} />
       </View>
 
       <View style={[styles.workspace, compact && styles.workspaceCompact, {
