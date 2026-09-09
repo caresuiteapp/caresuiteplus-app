@@ -232,8 +232,16 @@ function AssignmentsListViewContent({
       },
       filterLabel: {
         ...typography.label,
-        marginTop: spacing.xs,
-        color: "#CBE2F4",
+        color: "#EAF7FF",
+        fontWeight: "800",
+      },
+      filterPanelTitle: {
+        ...typography.h3,
+        color: "#F7FBFF",
+      },
+      filterPanelHint: {
+        ...typography.caption,
+        color: "#AFC7DA",
       },
       list: { paddingBottom: spacing.xxl, backgroundColor: "transparent" },
       loadMore: { marginTop: spacing.sm, marginBottom: spacing.md },
@@ -249,7 +257,7 @@ function AssignmentsListViewContent({
       },
       embeddedTitle: { ...typography.h3, color: "#F7FBFF" },
       embeddedMeta: { ...typography.caption, color: "#AFC7DA" },
-      filterRows: { gap: spacing.xs },
+      filterRows: { gap: spacing.md },
       filterToggleRow: {
         flexDirection: "row",
         flexWrap: "wrap",
@@ -257,15 +265,32 @@ function AssignmentsListViewContent({
         alignItems: "center",
       },
       filterToggle: { minWidth: 180 },
+      filterPanelHeader: {
+        gap: 2,
+        paddingBottom: spacing.xs,
+        borderBottomWidth: 1,
+        borderBottomColor: "rgba(105, 216, 255, 0.18)",
+      },
       filterPairRow: {
         flexDirection: "row",
         flexWrap: "wrap",
+        alignItems: "flex-start",
         gap: spacing.md,
       },
       filterHalf: {
-        flex: 1,
-        minWidth: 200,
-        gap: spacing.xs,
+        flexGrow: 1,
+        flexShrink: 1,
+        flexBasis: isMobile ? "100%" : 340,
+        minWidth: 0,
+      },
+      filterSection: {
+        width: "100%",
+        gap: spacing.sm,
+        padding: spacing.sm,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(105, 216, 255, 0.16)",
+        backgroundColor: "rgba(18, 52, 82, 0.58)",
       },
       viewToggleRow: {
         flexDirection: "row",
@@ -306,7 +331,7 @@ function AssignmentsListViewContent({
         backgroundColor: "rgba(7, 27, 50, 0.78)",
       },
     });
-  }, [typography]);
+  }, [isMobile, typography]);
 
   const buildMobileActions = useCallback(
     (assignment: AssignmentListItem): AssignmentMobileAction[] => {
@@ -497,61 +522,85 @@ function AssignmentsListViewContent({
 
       {filtersExpanded ? (
         <View style={[styles.filterRows, styles.filtersPanel]}>
-          <Text style={styles.filterLabel}>Zeitraum</Text>
-          <FilterChipGroup
-            onDarkSurface
-            options={ASSIGNMENT_DATE_RANGE_FILTERS}
-            value={dateRange}
-            onChange={(value) => !Array.isArray(value) && setDateRange(value)}
-            wrap
-          />
-
-          <Text style={styles.filterLabel}>Status</Text>
-          <FilterChipGroup
-            onDarkSurface
-            options={statusFilters}
-            value={statusFilter}
-            onChange={(value) =>
-              !Array.isArray(value) && setStatusFilter(value)
-            }
-            wrap
-          />
+          <View style={styles.filterPanelHeader}>
+            <Text style={styles.filterPanelTitle}>Einsätze filtern</Text>
+            <Text style={styles.filterPanelHint}>
+              Zeitraum, Status, Mitarbeitende und Leistung gezielt eingrenzen
+            </Text>
+          </View>
 
           <View style={styles.filterPairRow}>
             <View style={styles.filterHalf}>
-              <Text style={styles.filterLabel}>Mitarbeiter:in</Text>
-              <FilterChipGroup
-                onDarkSurface
-                options={employeeOptions}
-                value={employeeFilter}
-                onChange={(value) =>
-                  !Array.isArray(value) && setEmployeeFilter(value)
-                }
-                wrap
-              />
+              <View style={styles.filterSection}>
+                <Text style={styles.filterLabel}>Zeitraum</Text>
+                <FilterChipGroup
+                  onDarkSurface
+                  options={ASSIGNMENT_DATE_RANGE_FILTERS}
+                  value={dateRange}
+                  onChange={(value) =>
+                    !Array.isArray(value) && setDateRange(value)
+                  }
+                  wrap
+                />
+              </View>
             </View>
             <View style={styles.filterHalf}>
-              <Text style={styles.filterLabel}>Leistung</Text>
-              <FilterChipGroup
-                onDarkSurface
-                options={serviceOptions}
-                value={serviceFilter}
-                onChange={(value) =>
-                  !Array.isArray(value) && setServiceFilter(value)
-                }
-                wrap
-              />
+              <View style={styles.filterSection}>
+                <Text style={styles.filterLabel}>Status</Text>
+                <FilterChipGroup
+                  onDarkSurface
+                  options={statusFilters}
+                  value={statusFilter}
+                  onChange={(value) =>
+                    !Array.isArray(value) && setStatusFilter(value)
+                  }
+                  wrap
+                />
+              </View>
             </View>
           </View>
 
-          <Text style={styles.filterLabel}>Sortierung</Text>
-          <FilterChipGroup
-            onDarkSurface
-            options={sortOptions}
-            value={sortKey}
-            onChange={(value) => !Array.isArray(value) && setSortKey(value)}
-            wrap
-          />
+          <View style={styles.filterPairRow}>
+            <View style={styles.filterHalf}>
+              <View style={styles.filterSection}>
+                <Text style={styles.filterLabel}>Mitarbeiter:in</Text>
+                <FilterChipGroup
+                  onDarkSurface
+                  options={employeeOptions}
+                  value={employeeFilter}
+                  onChange={(value) =>
+                    !Array.isArray(value) && setEmployeeFilter(value)
+                  }
+                  wrap
+                />
+              </View>
+            </View>
+            <View style={styles.filterHalf}>
+              <View style={styles.filterSection}>
+                <Text style={styles.filterLabel}>Leistung</Text>
+                <FilterChipGroup
+                  onDarkSurface
+                  options={serviceOptions}
+                  value={serviceFilter}
+                  onChange={(value) =>
+                    !Array.isArray(value) && setServiceFilter(value)
+                  }
+                  wrap
+                />
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Sortierung</Text>
+            <FilterChipGroup
+              onDarkSurface
+              options={sortOptions}
+              value={sortKey}
+              onChange={(value) => !Array.isArray(value) && setSortKey(value)}
+              wrap
+            />
+          </View>
         </View>
       ) : null}
     </View>

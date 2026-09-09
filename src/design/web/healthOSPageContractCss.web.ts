@@ -343,7 +343,7 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
   html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"] [style*="color: rgba(255, 255, 255"],
   html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"] [style*="color: rgba(255, 255, 255"],
   html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgba(255, 255, 255"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="table"] [style*="color: rgba(255, 255, 255"] {
+  html[data-cs-portal-premium] [data-cs-healthos-component="table"]:not([data-cs-healthos-surface="dark"]) [style*="color: rgba(255, 255, 255"] {
     color: #566D83 !important;
   }
 
@@ -354,7 +354,7 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
   html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"] [style*="color: rgb(255, 255, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"] [style*="color: rgb(255, 255, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgb(255, 255, 255)"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="table"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium] [data-cs-healthos-component="table"]:not([data-cs-healthos-surface="dark"]) [style*="color: rgb(255, 255, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="screen-header"] [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="list-overview"] [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="section"] [style*="color: rgb(248, 246, 255)"],
@@ -362,7 +362,7 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
   html[data-cs-portal-premium] [data-cs-healthos-component="interactive-card"] [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="kpi-card"] [style*="color: rgb(248, 246, 255)"],
   html[data-cs-portal-premium] [data-cs-healthos-component="module-tile"] [style*="color: rgb(248, 246, 255)"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="table"] [style*="color: rgb(248, 246, 255)"] {
+  html[data-cs-portal-premium] [data-cs-healthos-component="table"]:not([data-cs-healthos-surface="dark"]) [style*="color: rgb(248, 246, 255)"] {
     color: #061B35 !important;
   }
 
@@ -398,19 +398,63 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
     box-shadow: none !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-healthos-component="filter-chip"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="tab"],
-  html[data-cs-portal-premium] [data-cs-healthos-component="filter-select"] {
-    border-color: rgba(5,108,232,.22) !important;
+  html[data-cs-portal-premium] [data-cs-healthos-component="filter-chip"]:not([data-cs-healthos-surface="dark"]),
+  html[data-cs-portal-premium] [data-cs-healthos-component="tab"]:not([data-cs-healthos-surface="dark"]),
+  html[data-cs-portal-premium] [data-cs-healthos-component="filter-select"]:not([data-cs-healthos-surface="dark"]) {
+    border-color: rgba(5,108,232,.28) !important;
     background: linear-gradient(145deg, #FFFFFF, #EAF4FF) !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-healthos-component="table"] {
+  html[data-cs-portal-premium] [data-cs-healthos-component="filter-chip"]:not([data-cs-healthos-surface="dark"]) * {
+    color: #294D70 !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="filter-chip"][data-cs-healthos-selected="true"]:not([data-cs-healthos-surface="dark"]) {
+    border-color: #056CE8 !important;
+    background: linear-gradient(145deg, #147FF0, #0562CF) !important;
+    box-shadow: 0 7px 18px rgba(5,108,232,.22) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="filter-chip"][data-cs-healthos-selected="true"]:not([data-cs-healthos-surface="dark"]) * {
+    color: #FFFFFF !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="filter-chip"][data-cs-healthos-surface="dark"] {
+    border-color: rgba(105,216,255,.46) !important;
+    background: linear-gradient(145deg, #173B5D, #0C2845) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="filter-chip"][data-cs-healthos-surface="dark"] * {
+    color: #EAF7FF !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="filter-chip"][data-cs-healthos-surface="dark"][data-cs-healthos-selected="true"] {
+    border-color: #78D9FF !important;
+    background: linear-gradient(145deg, #1268A5, #0A4B7B) !important;
+    box-shadow:
+      0 7px 18px rgba(0,8,24,.26),
+      inset 0 1px 0 rgba(255,255,255,.15) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="filter-chip"][data-cs-healthos-surface="dark"][data-cs-healthos-selected="true"] * {
+    color: #FFFFFF !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="table"]:not([data-cs-healthos-surface="dark"]) {
     background: linear-gradient(145deg, #FFFFFF, #EEF7FF) !important;
     border-color: rgba(5,108,232,.22) !important;
     box-shadow:
       0 16px 38px rgba(0,38,82,.14),
       inset 0 1px 0 rgba(255,255,255,.94) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-component="table"][data-cs-healthos-surface="dark"] {
+    background: linear-gradient(145deg, rgba(15,39,71,.96), rgba(7,22,44,.98)) !important;
+    border-color: rgba(105,232,255,.30) !important;
+    box-shadow:
+      0 22px 52px rgba(0,8,24,.34),
+      inset 0 1px 0 rgba(255,255,255,.12) !important;
   }
 
   html[data-cs-portal-premium] [data-cs-healthos-component="list-row"] {
@@ -432,26 +476,46 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
       inset 0 1px 0 rgba(255,255,255,.96) !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] input,
-  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] textarea,
-  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] select {
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] input:not([data-cs-healthos-surface="dark"]),
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] textarea:not([data-cs-healthos-surface="dark"]),
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] select:not([data-cs-healthos-surface="dark"]) {
     color: #061B35 !important;
     caret-color: #056CE8 !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] input::placeholder,
-  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] textarea::placeholder {
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] input:not([data-cs-healthos-surface="dark"])::placeholder,
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] textarea:not([data-cs-healthos-surface="dark"])::placeholder {
     color: #647D94 !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] input:focus,
-  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] textarea:focus,
-  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] select:focus {
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] input:not([data-cs-healthos-surface="dark"]):focus,
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] textarea:not([data-cs-healthos-surface="dark"]):focus,
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] select:not([data-cs-healthos-surface="dark"]):focus {
     border-color: rgba(5,108,232,.62) !important;
     outline-color: rgba(5,108,232,.14) !important;
     box-shadow:
       0 0 0 1px rgba(5,108,232,.20),
       0 10px 26px rgba(0,38,82,.12) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] :is(input, textarea, select)[data-cs-healthos-surface="dark"] {
+    color: #F7FBFF !important;
+    caret-color: #69D8FF !important;
+    background: #071A31 !important;
+    border-color: rgba(105,216,255,.48) !important;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] :is(input, textarea)[data-cs-healthos-surface="dark"]::placeholder {
+    color: #91ACC3 !important;
+    opacity: 1;
+  }
+
+  html[data-cs-portal-premium] [data-cs-healthos-page="surface"] :is(input, textarea, select)[data-cs-healthos-surface="dark"]:focus {
+    border-color: #69D8FF !important;
+    outline-color: rgba(105,216,255,.20) !important;
+    box-shadow:
+      0 0 0 1px rgba(105,216,255,.26),
+      0 12px 30px rgba(0,8,24,.30) !important;
   }
 
   @media (max-width: 767px) {

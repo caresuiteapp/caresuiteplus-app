@@ -60,6 +60,7 @@ export function FilterChip({
             dataSet: {
               csHealthosComponent: "filter-chip",
               csHealthosSurface: onDarkSurface ? "dark" : "adaptive",
+              csHealthosSelected: selected ? "true" : "false",
             },
           } as object)
         : {})}
