@@ -22,6 +22,7 @@ import { PortalTextSizeControls } from "@/components/portal/accessibility/Portal
 import { TopbarProfileAvatar } from "@/components/layout/TopbarProfileAvatar";
 import { useDesktopWeather } from "@/hooks/useDesktopWeather";
 import { desktopWorkspaceCss } from "./desktopWorkspaceCss.web";
+import { DesktopWeatherLocationDialog } from "./DesktopWeatherLocationDialog.web";
 import { useWebFontScale } from "@/design/web/WebFontScaleProvider";
 
 type Category = "Übersicht" | "Versorgung" | "Team" | "Verwaltung";
@@ -392,6 +393,7 @@ export function CommandCenterScreen() {
   const { width, height } = useWindowDimensions();
   const { scale: fontScale } = useWebFontScale();
   const compact = width < 900 * fontScale;
+  const informationWidth = Math.max(0, Math.min(width - (compact ? 24 : 40), Math.round(420 * Math.max(1, fontScale))));
   const workspaceCss = useMemo(() => desktopWorkspaceCss(fontScale), [fontScale]);
   const sidebarWidth = Math.round(260 * Math.max(1, fontScale));
   const railWidth = Math.round(60 * Math.max(1, fontScale));
@@ -400,6 +402,7 @@ export function CommandCenterScreen() {
   const narrow = width < 1240 * fontScale;
   const owner = auth.user?.id ?? "local";
   const weather = useDesktopWeather(owner);
+  const [weatherLocationOpen, setWeatherLocationOpen] = useState(false);
   const desktopKey = `${DESKTOP_WIDGETS_STORAGE_KEY}.${owner}`;
   const previousDesktopKey = `${PREVIOUS_DESKTOP_WIDGETS_STORAGE_KEY}.${owner}`;
   const sidebarKey = `${SIDEBAR_STORAGE_KEY}.${owner}`;
@@ -497,15 +500,15 @@ export function CommandCenterScreen() {
       <View style={styles.atmosphere} />
       <View style={styles.topbar}>
         <View style={[styles.informationRow, compact && styles.informationRowCompact]}>
-        <View style={[styles.glass, styles.infoCard]} testID="desktop-clock-weather">
+        <View style={[styles.glass, styles.infoCard, { width: informationWidth }]} testID="desktop-clock-weather">
           <View style={styles.clock}><Text style={styles.time}>{now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</Text><Text style={styles.date}>{new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(now)}</Text></View>
           <View style={styles.weather} testID="desktop-weather">
             <Text style={styles.weatherIcon}>{weather.data?.glyph ?? "☁"}</Text>
-            <View style={styles.weatherCopy}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Wetterort ändern" onPress={() => setWeatherLocationOpen(true)} style={styles.weatherCopy}>
               <Text style={styles.weatherTitle}>{weather.data ? `${weather.data.temperature} °C · ${weather.data.label}` : "Standortwetter"}</Text>
               <Text style={styles.weatherPlace}>{weather.message}</Text>
-              {weather.data ? <Text style={styles.weatherSource} accessibilityRole="link" {...({ href: "https://brightsky.dev/", target: "_blank", rel: "noopener noreferrer" } as object)}>DWD · Bright Sky</Text> : null}
-            </View>
+              <Text style={styles.weatherEdit}>Ort ändern</Text>
+            </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel={weather.status === "idle" ? "Standort für Wetter verwenden" : "Wetter aktualisieren"} disabled={weather.status === "loading"} onPress={weather.refresh} style={styles.weatherRefresh}><Text style={styles.weatherLink}>{weather.status === "loading" ? "…" : weather.status === "idle" ? "⌖" : "↻"}</Text></Pressable>
           </View>
         </View>
@@ -517,7 +520,7 @@ export function CommandCenterScreen() {
           <Pressable accessibilityLabel={`Kontomenü von ${displayName} öffnen`} onPress={() => setProfileOpen(true)} style={styles.profileTrigger}>{!narrow ? <View style={styles.profileCopy}><Text style={styles.profileName}>{displayName}</Text><Text style={styles.profileRole}>{role}</Text></View> : null}<TopbarProfileAvatar name={displayName} avatarUrl={profile?.avatarUrl?.trim() || undefined} avatarVersion={profile?.updatedAt ?? profile?.avatarUrl} accentColor="#56C7FF" size="lg" /></Pressable>
         </View>
         </View>
-        <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, compact && styles.logoCompact]} />
+        <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, { width: informationWidth, height: informationWidth / 8 }]} />
       </View>
 
       <View style={[styles.workspace, compact && styles.workspaceCompact, {
@@ -577,6 +580,8 @@ export function CommandCenterScreen() {
         </View>
       </View>
 
+      <DesktopWeatherLocationDialog visible={weatherLocationOpen} place={weather.place} preferenceError={weather.preferenceError}
+        onChoose={weather.choosePlace} onClose={() => setWeatherLocationOpen(false)} />
       <Modal transparent animationType="fade" visible={compact && mobileSidebarOpen} onRequestClose={() => setMobileSidebarOpen(false)}>
         <Pressable onPress={() => setMobileSidebarOpen(false)} style={styles.navigationBackdrop}>
           <Pressable onPress={event => event.stopPropagation()} style={[styles.glass, styles.sidebar, styles.sidebarDrawer, { width: Math.min(width - 24, 300 * fontScale) }]}>{sidebarContent}</Pressable>
@@ -614,13 +619,13 @@ const styles = StyleSheet.create({
   topbar: { zIndex: 20, flexShrink: 0, gap: 8 },
   informationRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "stretch", justifyContent: "space-between", gap: 12 },
   informationRowCompact: { alignItems: "flex-start" },
-  logo: { width: 340, maxWidth: "100%", height: 42 }, logoCompact: { width: 205, height: 34 },
-  infoCard: { maxWidth: "100%", minHeight: 64, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 14 },
+  logo: { maxWidth: "100%", alignSelf: "flex-start" },
+  infoCard: { maxWidth: "100%", minHeight: 80, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 14 },
   clock: { flexShrink: 1, minWidth: 150 },
-  time: { color: "#FFF", fontSize: 27, lineHeight: 30, fontWeight: "900", letterSpacing: -1.2 }, date: { color: "#D8EAFF", fontSize: 13, fontWeight: "700" },
-  weather: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1, maxWidth: "100%" }, weatherCopy: { flexShrink: 1, maxWidth: 230 },
+  time: { color: "#FFF", fontSize: 34, lineHeight: 39, fontWeight: "900", letterSpacing: -1 }, date: { color: "#D8EAFF", fontSize: 15, lineHeight: 21, fontWeight: "700" },
+  weather: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 1, maxWidth: "100%" }, weatherCopy: { flexShrink: 1, minHeight: 44, maxWidth: 210, justifyContent: "center" },
   weatherIcon: { color: "#8FE4FF", fontSize: 25 }, weatherTitle: { color: "#FFF", fontSize: 16, lineHeight: 21, fontWeight: "800" }, weatherPlace: { color: "#BCD4EC", fontSize: 12, lineHeight: 17 },
-  weatherRefresh: { minHeight: 44, minWidth: 32, alignItems: "center", justifyContent: "center" }, weatherLink: { color: "#8FE4FF", fontSize: 13, lineHeight: 18, textDecorationLine: "underline" }, weatherSource: { color: "#BCD4EC", fontSize: 11, lineHeight: 16, textDecorationLine: "underline" },
+  weatherRefresh: { minHeight: 44, minWidth: 36, alignItems: "center", justifyContent: "center" }, weatherLink: { color: "#8FE4FF", fontSize: 17, lineHeight: 22 }, weatherEdit: { color: "#8FE4FF", fontSize: 12, lineHeight: 18, fontWeight: "700" },
   actions: { flexWrap: "wrap", maxWidth: "100%", minHeight: 64, borderRadius: 20, padding: 6, flexDirection: "row", alignItems: "center", gap: 8 },
   iconButton: { width: 46, height: 46, borderRadius: 15, borderWidth: 1, borderColor: "rgba(146,205,255,0.25)", backgroundColor: "rgba(8,29,59,0.64)", alignItems: "center", justifyContent: "center" }, iconButtonActive: { borderColor: "rgba(102,224,255,0.72)", backgroundColor: "rgba(13,91,130,0.76)" }, iconGlyph: { color: "#FFF", fontSize: 20 },
   livePill: { height: 46, borderRadius: 15, paddingHorizontal: 13, borderWidth: 1, borderColor: "rgba(70,171,255,0.42)", flexDirection: "row", alignItems: "center", gap: 7 }, liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#58D8C1", ...(Platform.OS === "web" ? ({ boxShadow: "0 0 8px rgba(88,216,193,0.9)" } as const) : ({ shadowColor: "#58D8C1", shadowOpacity: 0.9, shadowRadius: 8 } as const)) }, liveText: { color: "#FFF", fontSize: 16, fontWeight: "800" },

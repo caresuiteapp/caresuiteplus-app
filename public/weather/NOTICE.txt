@@ -1,0 +1,6 @@
+German postal places: GeoNames postal code dataset, https://download.geonames.org/export/zip/DE.zip
+Downloaded 2026-09-09. Copyright GeoNames contributors, CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
+Source: https://www.geonames.org/
+Modified for CareSuite: selected German postal place names, federal states, districts and rounded coordinates; invalid and duplicate records removed; sorted by place. Coordinates represent approximate postal areas.
+Weather data: Deutscher Wetterdienst, provided through https://brightsky.dev/
+Terms: https://www.dwd.de/EN/service/legal_notice/legal_notice.html
