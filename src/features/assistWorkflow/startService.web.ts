@@ -10,6 +10,8 @@ import { ensureVisitTimeEvent } from './saveVisitTimeEvent';
 import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from './resolveAllowedActions';
 import { checkVisitDeviationGate } from '@/lib/wfm/wfmOfficeTimekeepingService';
 import { scheduleDeferredTask } from '@/lib/async/deferredTask';
+import { getServiceMode } from '@/lib/services/mode';
+import { startServiceAtomic } from './startServiceAtomic.web';
 import type { AssistExecutionContext } from './types';
 import type { VisitTimesSummary } from './calculateVisitTimes';
 import {
@@ -278,6 +280,8 @@ export async function startService(
   if (isAssignmentLocked(ctx.assignmentStatus) || ctx.detail.isLocked) {
     return startServiceError('START_SERVICE_INVALID_TRANSITION', ctx, 'Einsatz ist abgeschlossen oder gesperrt.');
   }
+
+  if (getServiceMode() === 'supabase') return startServiceAtomic(ctx, options);
 
   const hasArrived =
     Boolean(ctx.visitTimes?.arrivedAt) ||
