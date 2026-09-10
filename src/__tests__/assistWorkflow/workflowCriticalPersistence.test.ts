@@ -12,11 +12,11 @@ describe('critical employee workflow persistence', () => {
     expect(file).toContain("ctx.assignmentStatus !== 'gestartet'");
     expect(file).toContain("timeoutLabel: 'repairServiceStart'");
   });
-  it('awaits arrival source records but defers live-monitor projections', () => {
+  it('awaits arrival source records and their status projections before allowing service start', () => {
     const file = source('src/features/assistWorkflow/markArrived.ts');
     expect(file).toContain('await upsertAssistVisitExecutionState');
     expect(file).toContain('await mirrorAssistVisitStatusFromAssignment');
-    expect(file).toContain('scheduleDeferredTask');
+    expect(file).not.toContain('scheduleDeferredTask');
     expect(file).toContain('await persistEmployeePortalStatusTransition');
   });
 
@@ -53,9 +53,9 @@ describe('critical employee workflow persistence', () => {
 
   it('keeps ordinary actions bounded but gives canonical service start a mobile-safe budget', () => {
     const file = source('src/features/assistWorkflow/internal/withWorkflowTimeout.ts');
-    expect(file).toContain('WORKFLOW_ACTION_TIMEOUT_MS = 15_000');
-    expect(file).toContain('WORKFLOW_START_SERVICE_TIMEOUT_MS = 20_000');
-    expect(file).toContain('WORKFLOW_END_SERVICE_TIMEOUT_MS = 15_000');
+    expect(file).toContain('WORKFLOW_ACTION_TIMEOUT_MS = 45_000');
+    expect(file).toContain('WORKFLOW_START_SERVICE_TIMEOUT_MS = 60_000');
+    expect(file).toContain('WORKFLOW_END_SERVICE_TIMEOUT_MS = 60_000');
   });
 
   it('never blocks the canonical service start on GPS permission or position capture', () => {
