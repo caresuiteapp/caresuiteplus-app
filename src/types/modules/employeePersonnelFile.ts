@@ -1,82 +1,86 @@
-import type { RoleKey } from '@/types/core/auth';
-import type { TenantScopedEntity } from '../core/base';
-import type { EmployeePayrollPersonnelBundle } from './employeePayrollPersonnel';
+import type { RoleKey } from "@/types/core/auth";
+import type { TenantScopedEntity } from "../core/base";
+import type { EmployeePayrollPersonnelBundle } from "./employeePayrollPersonnel";
 
 export type EmployeeEmploymentStatus =
-  | 'applicant'
-  | 'onboarding'
-  | 'active'
-  | 'paused'
-  | 'sick_long_term'
-  | 'on_leave'
-  | 'suspended'
-  | 'terminated'
-  | 'archived';
+  | "applicant"
+  | "onboarding"
+  | "active"
+  | "paused"
+  | "sick_long_term"
+  | "on_leave"
+  | "suspended"
+  | "terminated"
+  | "archived";
 
 export type EmployeeQualificationType =
-  | 'nursing_qualification'
-  | 'first_aid'
-  | 'hygiene_training'
-  | 'medication_administration'
-  | 'dementia_care'
-  | 'driving_license'
-  | 'professional_development'
-  | 'other';
+  | "nursing_qualification"
+  | "first_aid"
+  | "hygiene_training"
+  | "medication_administration"
+  | "dementia_care"
+  | "driving_license"
+  | "professional_development"
+  | "other";
 
 export type EmployeeQualificationStatus =
-  | 'valid'
-  | 'expires_soon'
-  | 'expired'
-  | 'missing'
-  | 'pending_review'
-  | 'rejected';
+  | "valid"
+  | "expires_soon"
+  | "expired"
+  | "missing"
+  | "pending_review"
+  | "rejected";
 
 export type EmployeeBackgroundCheckStatus =
-  | 'not_required'
-  | 'missing'
-  | 'requested'
-  | 'submitted'
-  | 'verified'
-  | 'expired'
-  | 'rejected';
+  | "not_required"
+  | "missing"
+  | "requested"
+  | "submitted"
+  | "verified"
+  | "expired"
+  | "rejected";
 
 export type EmployeeDocumentCategory =
-  | 'contract'
-  | 'agreement'
-  | 'privacy'
-  | 'confidentiality'
-  | 'briefing'
-  | 'background_check'
-  | 'qualification'
-  | 'certificate'
-  | 'warning'
-  | 'termination'
-  | 'handover_protocol'
-  | 'return_protocol'
-  | 'other';
+  | "contract"
+  | "agreement"
+  | "privacy"
+  | "confidentiality"
+  | "briefing"
+  | "background_check"
+  | "qualification"
+  | "certificate"
+  | "warning"
+  | "termination"
+  | "handover_protocol"
+  | "return_protocol"
+  | "offboarding_termination_notice"
+  | "offboarding_termination_confirmation"
+  | "offboarding_vacation_certificate"
+  | "offboarding_employment_certificate"
+  | "offboarding_payroll"
+  | "offboarding_reference"
+  | "offboarding_return_protocol"
+  | "offboarding_other"
+  | "other";
 
 export type EmployeeWorkMaterialStatus =
-  | 'issued'
-  | 'return_pending'
-  | 'damaged'
-  | 'lost'
-  | 'returned';
+  "issued" | "return_pending" | "damaged" | "lost" | "returned";
 
-export type EmployeeDeployabilityResult = 'assignable' | 'warning' | 'blocked';
+export type EmployeeDeployabilityResult = "assignable" | "warning" | "blocked";
 
 export type EmployeePersonnelTabKey =
-  | 'overview'
-  | 'personnel_file'
-  | 'master_data'
-  | 'employment'
-  | 'roles_permissions'
-  | 'portal'
-  | 'qualifications'
-  | 'background_check'
-  | 'documents'
-  | 'deployability'
-  | 'work_materials'
-  | 'audit';
+  | "overview"
+  | "personnel_file"
+  | "master_data"
+  | "employment"
+  | "roles_permissions"
+  | "portal"
+  | "qualifications"
+  | "background_check"
+  | "documents"
+  | "deployability"
+  | "work_materials"
+  | "audit";
 
 export type EmployeeMasterData = {
   firstName: string;
@@ -160,7 +164,7 @@ export type EmployeeDocumentRecord = TenantScopedEntity & {
 export type EmployeeWorkMaterialRecord = TenantScopedEntity & {
   employeeId: string;
   itemName: string;
-  category: 'uniform' | 'equipment' | 'keys' | 'other';
+  category: "uniform" | "equipment" | "keys" | "other";
   status: EmployeeWorkMaterialStatus;
   issuedAt: string | null;
   returnDueAt: string | null;
@@ -183,7 +187,7 @@ export type EmployeeDeployabilityCheck = {
 export type EmployeeDeployabilityIssue = {
   code: string;
   message: string;
-  severity: 'warning' | 'error';
+  severity: "warning" | "error";
 };
 
 export type EmployeeAuditEvent = TenantScopedEntity & {
@@ -192,7 +196,10 @@ export type EmployeeAuditEvent = TenantScopedEntity & {
   actorId: string | null;
   actorRole: RoleKey | null;
   summary: string;
-  fieldChanges?: Record<string, { before: string | null; after: string | null }>;
+  fieldChanges?: Record<
+    string,
+    { before: string | null; after: string | null }
+  >;
 };
 
 export type EmployeePersonnelOverview = {
@@ -202,11 +209,15 @@ export type EmployeePersonnelOverview = {
   roleTitle: string | null;
   employmentStatus: EmployeeEmploymentStatus;
   portalActive: boolean;
-  qualificationStatus: EmployeeQualificationStatus | 'mixed';
+  qualificationStatus: EmployeeQualificationStatus | "mixed";
   backgroundCheckStatus: EmployeeBackgroundCheckStatus;
   deployability: EmployeeDeployabilityResult;
   openTasks: string[];
-  nextExpiryDates: { label: string; date: string; type: 'qualification' | 'background_check' | 'document' }[];
+  nextExpiryDates: {
+    label: string;
+    date: string;
+    type: "qualification" | "background_check" | "document";
+  }[];
 };
 
 export type EmployeePersonnelFile = {

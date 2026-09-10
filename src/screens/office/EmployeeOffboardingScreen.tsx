@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import * as DocumentPicker from "expo-document-picker";
 import {
   Pressable,
   StyleSheet,
@@ -41,6 +42,11 @@ import {
   startOffboardingSession,
 } from "@/lib/office/offboarding";
 import { getServiceMode } from "@/lib/services/mode";
+import { fetchEmployeePersonnelFile } from "@/lib/office/employeePersonnelFileService";
+import {
+  deleteEmployeePersonnelDocument,
+  uploadEmployeePersonnelDocument,
+} from "@/lib/office/employeePersonnelUpdateService";
 import {
   OFFBOARDING_STEP_LABELS,
   TERMINATION_TYPE_LABELS,
@@ -49,6 +55,10 @@ import {
   type TerminationType,
 } from "@/types/modules/employeeOffboarding";
 import type { ServiceResult } from "@/types";
+import type {
+  EmployeeDocumentCategory,
+  EmployeeDocumentRecord,
+} from "@/types/modules/employeePersonnelFile";
 import { radius, spacing, typography } from "@/theme";
 
 const TERMINATION_TYPES = Object.entries(TERMINATION_TYPE_LABELS) as [
@@ -198,6 +208,8 @@ const STEP_ROUTES: Partial<Record<OffboardingStepKey, string>> = {
   uniform: "/business/office/inventory/employees",
   keys_access: "/business/office/inventory/employees",
   devices: "/business/office/inventory/employees",
+  lock_portal_access: "/business/office/access/employee-portal",
+  external_access_prepared: "/business/connect",
   completion_documents: "/business/office/documents",
   reference_prepared: "/business/office/documents",
 };
@@ -275,34 +287,96 @@ const ACCESS_KINDS = [
   ["cloud", "Cloud und Dateifreigaben"],
 ] as const;
 
+type OffboardingDocumentType = {
+  key: string;
+  label: string;
+  category: EmployeeDocumentCategory;
+  helper: string;
+};
+
+const MAX_OFFBOARDING_DOCUMENT_BYTES = 15 * 1024 * 1024;
+
+const OFFBOARDING_DOCUMENT_TYPES: OffboardingDocumentType[] = [
+  {
+    key: "termination_notice",
+    label: "Kündigung / Aufhebungsvertrag",
+    category: "offboarding_termination_notice",
+    helper: "Ausgangsdokument der Beendigung",
+  },
+  {
+    key: "termination_confirmation",
+    label: "Beendigungsbestätigung",
+    category: "offboarding_termination_confirmation",
+    helper: "Bestätigung des Austritts und des letzten Beschäftigungstags",
+  },
+  {
+    key: "vacation_certificate",
+    label: "Urlaubsbescheinigung",
+    category: "offboarding_vacation_certificate",
+    helper: "Resturlaub und bereits gewährter Urlaub",
+  },
+  {
+    key: "employment_certificate",
+    label: "Arbeitsbescheinigung",
+    category: "offboarding_employment_certificate",
+    helper: "Bescheinigung für die Agentur für Arbeit",
+  },
+  {
+    key: "payroll",
+    label: "Entgelt- und SV-Unterlagen",
+    category: "offboarding_payroll",
+    helper: "Schlussabrechnung und Sozialversicherungsnachweise",
+  },
+  {
+    key: "reference",
+    label: "Arbeitszeugnis",
+    category: "offboarding_reference",
+    helper: "Geprüfte und freigegebene Zeugnisfassung",
+  },
+  {
+    key: "return_protocol",
+    label: "Unterschriebenes Rückgabeprotokoll",
+    category: "offboarding_return_protocol",
+    helper: "Rückgaben, Abweichungen und Bestätigung",
+  },
+  {
+    key: "other",
+    label: "Sonstige Offboarding-Unterlage",
+    category: "offboarding_other",
+    helper: "Weitere austrittsbezogene Unterlage",
+  },
+];
+
 const DOCUMENT_PACKAGES: {
   stepKey: OffboardingStepKey;
   title: string;
-  items: string[];
+  items: { label: string; category: EmployeeDocumentCategory }[];
 }[] = [
   {
     stepKey: "completion_documents",
     title: "Abschlussunterlagen",
-    items: [
-      "Beendigungsbestätigung",
-      "Urlaubsbescheinigung",
-      "Arbeitsbescheinigung",
-      "Entgelt- und SV-Unterlagen",
-    ],
+    items: OFFBOARDING_DOCUMENT_TYPES.filter((item) =>
+      [
+        "termination_confirmation",
+        "vacation_certificate",
+        "employment_certificate",
+        "payroll",
+      ].includes(item.key),
+    ).map(({ label, category }) => ({ label, category })),
   },
   {
     stepKey: "reference_prepared",
     title: "Arbeitszeugnis",
-    items: ["Zeugnisentwurf", "Inhaltliche Prüfung", "Freigabe und Ausgabe"],
+    items: OFFBOARDING_DOCUMENT_TYPES.filter(
+      (item) => item.key === "reference",
+    ).map(({ label, category }) => ({ label, category })),
   },
   {
     stepKey: "return_protocol",
     title: "Rückgabe- und Abschlussprotokoll",
-    items: [
-      "Firmeneigentum",
-      "Zugänge und Geräte",
-      "Abweichungen und Verantwortliche",
-    ],
+    items: OFFBOARDING_DOCUMENT_TYPES.filter(
+      (item) => item.key === "return_protocol",
+    ).map(({ label, category }) => ({ label, category })),
   },
 ];
 
@@ -348,6 +422,19 @@ export function EmployeeOffboardingScreen({
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [documentTypeKey, setDocumentTypeKey] = useState(
+    "termination_confirmation",
+  );
+  const [documentTitle, setDocumentTitle] = useState("Beendigungsbestätigung");
+  const [pickedDocument, setPickedDocument] = useState<{
+    fileName: string;
+    mimeType: string;
+    contentBase64: string;
+    sizeBytes: number;
+  } | null>(null);
+  const [pendingDocumentDeleteId, setPendingDocumentDeleteId] = useState<
+    string | null
+  >(null);
   const liveMode = getServiceMode() === "supabase";
 
   const query = useAsyncQuery(
@@ -375,6 +462,16 @@ export function EmployeeOffboardingScreen({
     },
     [tenantId, id, exitDate],
     { enabled: liveMode && !!tenantId && !!id && canView },
+  );
+
+  const personnelFileQuery = useAsyncQuery(
+    async () => {
+      if (!tenantId || !id)
+        return { ok: false as const, error: "Personalakte nicht verfügbar." };
+      return fetchEmployeePersonnelFile(tenantId, id, profile?.roleKey);
+    },
+    [tenantId, id, profile?.roleKey],
+    { enabled: !!tenantId && !!id && canView },
   );
 
   const auditQuery = useAsyncQuery(
@@ -411,21 +508,128 @@ export function EmployeeOffboardingScreen({
       const result = await action();
       if (!result.ok) {
         setActionError(result.error);
-        return;
+        return false;
       }
       setActionSuccess(successMessage);
       await query.refresh();
       await auditQuery.refresh();
+      await personnelFileQuery.refresh();
       if (liveMode) await productionQuery.refresh();
+      return true;
     } catch (error) {
       setActionError(
         error instanceof Error
           ? error.message
           : "Aktion konnte nicht ausgeführt werden.",
       );
+      return false;
     } finally {
       setBusyAction(null);
     }
+  };
+
+  const selectDocumentType = (key: string) => {
+    const definition = OFFBOARDING_DOCUMENT_TYPES.find(
+      (entry) => entry.key === key,
+    );
+    if (!definition) return;
+    setDocumentTypeKey(key);
+    setDocumentTitle(definition.label);
+  };
+
+  const pickOffboardingDocument = async () => {
+    setActionError(null);
+    const result = await DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: true,
+      multiple: false,
+      type: [
+        "application/pdf",
+        "image/*",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ],
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const asset = result.assets[0];
+    if (
+      typeof asset.size === "number" &&
+      asset.size > MAX_OFFBOARDING_DOCUMENT_BYTES
+    ) {
+      setActionError("Die Datei darf höchstens 15 MB groß sein.");
+      return;
+    }
+
+    try {
+      const response = await fetch(asset.uri);
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      if (bytes.length > MAX_OFFBOARDING_DOCUMENT_BYTES) {
+        setActionError("Die Datei darf höchstens 15 MB groß sein.");
+        return;
+      }
+      let binary = "";
+      for (let index = 0; index < bytes.length; index += 1) {
+        binary += String.fromCharCode(bytes[index] ?? 0);
+      }
+      setPickedDocument({
+        fileName: asset.name ?? "offboarding-dokument.pdf",
+        mimeType: asset.mimeType ?? "application/octet-stream",
+        contentBase64: btoa(binary),
+        sizeBytes: asset.size ?? bytes.length,
+      });
+    } catch {
+      setActionError("Die ausgewählte Datei konnte nicht gelesen werden.");
+    }
+  };
+
+  const uploadOffboardingDocument = async () => {
+    if (!tenantId || !id || !pickedDocument || !documentTitle.trim()) return;
+    const definition = OFFBOARDING_DOCUMENT_TYPES.find(
+      (entry) => entry.key === documentTypeKey,
+    );
+    if (!definition) return;
+
+    const saved = await runAction(
+      "document-upload",
+      `„${documentTitle.trim()}“ wurde der Personalakte von ${query.data?.employeeName ?? "der ausgewählten Person"} zugeordnet.`,
+      () =>
+        uploadEmployeePersonnelDocument(
+          tenantId,
+          id,
+          {
+            ...pickedDocument,
+            title: documentTitle.trim(),
+            category: definition.category,
+            sensitive: true,
+            releasedToPortal: false,
+          },
+          profile?.roleKey,
+          profile?.id,
+        ),
+    );
+    if (saved) {
+      setPickedDocument(null);
+      setDocumentTitle(definition.label);
+    }
+  };
+
+  const removeOffboardingDocument = async (
+    document: EmployeeDocumentRecord,
+  ) => {
+    if (!tenantId || !id) return;
+    const removed = await runAction(
+      `document-delete-${document.id}`,
+      `„${document.title}“ wurde entfernt. Die Änderung ist im Prüfpfad dokumentiert.`,
+      () =>
+        deleteEmployeePersonnelDocument(
+          tenantId,
+          id,
+          document.id,
+          profile?.roleKey,
+          profile?.id,
+        ),
+    );
+    if (removed) setPendingDocumentDeleteId(null);
   };
 
   if (!canView) {
@@ -494,6 +698,33 @@ export function EmployeeOffboardingScreen({
     ),
   );
   const archived = progress.session.overallStatus === "completed";
+  const personnelDocuments = personnelFileQuery.data?.documents ?? [];
+  const offboardingCategories = new Set(
+    OFFBOARDING_DOCUMENT_TYPES.map((entry) => entry.category),
+  );
+  const offboardingDocuments = personnelDocuments.filter((document) =>
+    offboardingCategories.has(document.category),
+  );
+  const packageEvidence = new Map<OffboardingStepKey, boolean>(
+    DOCUMENT_PACKAGES.map((documentPackage) => [
+      documentPackage.stepKey,
+      documentPackage.items.every((item) =>
+        offboardingDocuments.some(
+          (document) => document.category === item.category,
+        ),
+      ),
+    ]),
+  );
+  const completionDocumentsReady =
+    packageEvidence.get("completion_documents") === true;
+  const referenceDocumentReady =
+    packageEvidence.get("reference_prepared") === true;
+  const returnProtocolDocumentReady =
+    packageEvidence.get("return_protocol") === true;
+  const selectedDocumentType =
+    OFFBOARDING_DOCUMENT_TYPES.find((entry) => entry.key === documentTypeKey) ??
+    OFFBOARDING_DOCUMENT_TYPES[0];
+
   const productionChecks = productionQuery.data?.checks ?? [];
   const failedProductionChecks = productionChecks.filter(
     (entry) => !entry.passed,
@@ -515,8 +746,68 @@ export function EmployeeOffboardingScreen({
     const stepKey = BLOCKER_STEP_MAP[blocker.checkKey];
     return !stepKey || !productionByStep.has(stepKey);
   });
+  if (personnelFileQuery.data) {
+    if (
+      !completionDocumentsReady &&
+      !effectiveBlockers.some(
+        (blocker) => blocker.checkKey === "documents_incomplete",
+      )
+    ) {
+      effectiveBlockers.push({
+        checkKey: "documents_incomplete",
+        message:
+          "Die vier Pflichtunterlagen sind noch nicht vollständig in der Personalakte hinterlegt.",
+        count:
+          DOCUMENT_PACKAGES[0]?.items.filter(
+            (item) =>
+              !offboardingDocuments.some(
+                (document) => document.category === item.category,
+              ),
+          ).length ?? null,
+      });
+    }
+    if (
+      !referenceDocumentReady &&
+      !effectiveBlockers.some(
+        (blocker) => blocker.checkKey === "reference_missing",
+      )
+    ) {
+      effectiveBlockers.push({
+        checkKey: "reference_missing",
+        message:
+          "Ein geprüftes Arbeitszeugnis ist noch nicht in der Personalakte hinterlegt.",
+        count: 1,
+      });
+    }
+    if (
+      !returnProtocolDocumentReady &&
+      !effectiveBlockers.some(
+        (blocker) => blocker.checkKey === "return_protocol_missing",
+      )
+    ) {
+      effectiveBlockers.push({
+        checkKey: "return_protocol_missing",
+        message:
+          "Das unterschriebene Rückgabe- und Abschlussprotokoll fehlt in der Personalakte.",
+        count: 1,
+      });
+    }
+  }
   const effectiveSteps = progress.steps.map((step) => {
     const livePassed = productionByStep.get(step.stepKey);
+    const documentPackage = DOCUMENT_PACKAGES.find(
+      (entry) => entry.stepKey === step.stepKey,
+    );
+    if (
+      personnelFileQuery.data &&
+      documentPackage &&
+      packageEvidence.get(step.stepKey) !== true
+    ) {
+      return {
+        ...step,
+        status: "blocked" as OffboardingStepStatus,
+      };
+    }
     if (livePassed === undefined) return step;
     return {
       ...step,
@@ -551,12 +842,17 @@ export function EmployeeOffboardingScreen({
     return { ...phase, completed, blocked, total: steps.length };
   });
   const protocolReady =
+    completionDocumentsReady &&
+    referenceDocumentReady &&
     effectiveBlockers.every(
       (blocker) => blocker.checkKey === "return_protocol_missing",
     ) &&
     (!liveMode || productionQuery.data?.passed === true);
   const clearanceReady =
     !!progress.clearance?.protocolGeneratedAt &&
+    completionDocumentsReady &&
+    referenceDocumentReady &&
+    returnProtocolDocumentReady &&
     effectiveBlockers.length === 0 &&
     (!liveMode || productionQuery.data?.passed === true);
   const overallStatusLabel =
@@ -1113,9 +1409,13 @@ export function EmployeeOffboardingScreen({
                       <Text style={styles.productionMessage}>
                         {entry.message}
                       </Text>
-                      {!entry.passed && route ? (
+                      {route ? (
                         <PremiumButton
-                          title="Vorgang bearbeiten"
+                          title={
+                            entry.passed
+                              ? "Details bearbeiten"
+                              : "Vorgang bearbeiten"
+                          }
                           size="sm"
                           variant="secondary"
                           onPress={() => router.push(route as never)}
@@ -1180,16 +1480,14 @@ export function EmployeeOffboardingScreen({
                 Laufende Arbeitszeitsitzungen und Fahrten beenden, Pausen prüfen
                 und das Zeitkonto abstimmen.
               </Text>
-              {!workTimeReady ? (
-                <PremiumButton
-                  title="Arbeitszeit bearbeiten"
-                  size="sm"
-                  variant="secondary"
-                  onPress={() =>
-                    router.push("/business/office/time-tracking" as never)
-                  }
-                />
-              ) : null}
+              <PremiumButton
+                title="Arbeitszeit bearbeiten"
+                size="sm"
+                variant="secondary"
+                onPress={() =>
+                  router.push("/business/office/time-tracking" as never)
+                }
+              />
             </View>
 
             <View
@@ -1217,16 +1515,16 @@ export function EmployeeOffboardingScreen({
                 Belege, Vorschüsse und offene Erstattungen vor der
                 Schlussabrechnung vollständig prüfen.
               </Text>
-              {!expensesReady ? (
-                <PremiumButton
-                  title="Auslagen prüfen"
-                  size="sm"
-                  variant="secondary"
-                  onPress={() =>
-                    router.push("/business/office/invoices" as never)
-                  }
-                />
-              ) : null}
+              <PremiumButton
+                title={
+                  expensesReady ? "Auslagen bearbeiten" : "Auslagen prüfen"
+                }
+                size="sm"
+                variant="secondary"
+                onPress={() =>
+                  router.push("/business/office/invoices" as never)
+                }
+              />
             </View>
 
             <View
@@ -1254,18 +1552,18 @@ export function EmployeeOffboardingScreen({
                 Zuschläge, Resturlaub, Zeitkonto, Auslagen und Austrittswerte
                 für die Entgeltabrechnung freigeben.
               </Text>
-              {!payrollExportReady ? (
-                <PremiumButton
-                  title="Lohnexport vorbereiten"
-                  size="sm"
-                  variant="secondary"
-                  onPress={() =>
-                    router.push(
-                      "/business/office/time-tracking/export" as never,
-                    )
-                  }
-                />
-              ) : null}
+              <PremiumButton
+                title={
+                  payrollExportReady
+                    ? "Lohnexport bearbeiten"
+                    : "Lohnexport vorbereiten"
+                }
+                size="sm"
+                variant="secondary"
+                onPress={() =>
+                  router.push("/business/office/time-tracking/export" as never)
+                }
+              />
             </View>
           </View>
         </SectionPanel>
@@ -1386,6 +1684,20 @@ export function EmployeeOffboardingScreen({
               />
             </View>
           ) : null}
+          <View style={[styles.actionsRow, compact && styles.stack]}>
+            <PremiumButton
+              title="Portal- und Gerätezustand bearbeiten"
+              variant="secondary"
+              onPress={() =>
+                router.push("/business/office/access/employee-portal" as never)
+              }
+            />
+            <PremiumButton
+              title="Externe Zugänge und Sperrnachweise bearbeiten"
+              variant="secondary"
+              onPress={() => router.push("/business/connect" as never)}
+            />
+          </View>
         </SectionPanel>
       ) : null}
 
@@ -1506,6 +1818,12 @@ export function EmployeeOffboardingScreen({
                       (item) => item.stepKey === step.stepKey,
                     ) + 1;
                   const liveControlled = productionByStep.has(step.stepKey);
+                  const documentPackage = DOCUMENT_PACKAGES.find(
+                    (entry) => entry.stepKey === step.stepKey,
+                  );
+                  const documentEvidenceReady =
+                    !documentPackage ||
+                    packageEvidence.get(step.stepKey) === true;
                   return (
                     <View
                       key={step.id}
@@ -1561,9 +1879,9 @@ export function EmployeeOffboardingScreen({
                           >
                             {STEP_STATUS_LABELS[step.status]}
                           </Text>
-                          {route && !done ? (
+                          {route ? (
                             <PremiumButton
-                              title="Öffnen"
+                              title={done ? "Bearbeiten" : "Öffnen"}
                               size="sm"
                               variant="secondary"
                               onPress={() => router.push(route as never)}
@@ -1587,6 +1905,14 @@ export function EmployeeOffboardingScreen({
                             onLightSurface
                             viewContext="form"
                           />
+                          {!documentEvidenceReady ? (
+                            <InfoBanner
+                              title="Dokumentnachweis fehlt"
+                              message="Bitte zuerst alle Pflichtunterlagen dieses Pakets direkt im Bereich „Abschlussunterlagen“ hochladen."
+                              variant="warning"
+                              presentation="inline"
+                            />
+                          ) : null}
                           <PremiumButton
                             title={
                               done
@@ -1596,7 +1922,11 @@ export function EmployeeOffboardingScreen({
                             size="sm"
                             variant="secondary"
                             loading={busyAction === `step-${step.stepKey}`}
-                            disabled={!done && !stepNotes[step.stepKey]?.trim()}
+                            disabled={
+                              !done &&
+                              (!stepNotes[step.stepKey]?.trim() ||
+                                !documentEvidenceReady)
+                            }
                             onPress={() =>
                               tenantId &&
                               id &&
@@ -1629,61 +1959,301 @@ export function EmployeeOffboardingScreen({
       </SectionPanel>
 
       <SectionPanel
-        title="5. Abschlussunterlagen"
-        subtitle="Dokumentenpakete vollständig erstellen, prüfen und nachweisbar freigeben"
+        title="5. Abschlussunterlagen und Personalakte"
+        subtitle="Unterlagen direkt hochladen, eindeutig zuordnen, prüfen und bei Bedarf korrigieren"
       >
-        <View style={styles.documentGrid}>
-          {DOCUMENT_PACKAGES.map((documentPackage) => {
-            const step = effectiveSteps.find(
-              (item) => item.stepKey === documentPackage.stepKey,
-            );
-            const done =
-              step?.status === "completed" || step?.status === "not_applicable";
-            return (
-              <View
-                key={documentPackage.stepKey}
-                style={[styles.documentCard, done && styles.documentCardDone]}
-              >
-                <View style={styles.documentHeader}>
-                  <Text style={styles.documentTitle}>
-                    {documentPackage.title}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.statusPill,
-                      done ? styles.statusPillDone : styles.statusPillPending,
-                    ]}
+        <InfoBanner
+          title="Direkt mit der Personalakte verknüpft"
+          message={`Jeder Upload wird vertraulich unter ${progress.employeeName} gespeichert. Dokumentart, Dateiname, Zeitpunkt und Änderungen bleiben im Prüfpfad nachvollziehbar.`}
+          variant="info"
+          presentation="inline"
+        />
+
+        {canManage ? (
+          <View style={styles.documentUploadPanel}>
+            <View style={styles.documentUploadHeader}>
+              <View style={styles.documentUploadCopy}>
+                <Text style={styles.eyebrow}>NEUE UNTERLAGE</Text>
+                <Text style={styles.documentUploadTitle}>
+                  Dokument manuell hinzufügen
+                </Text>
+                <Text style={styles.documentUploadSubtitle}>
+                  PDF, Bild oder Word-Datei · maximal 15 MB · nur für
+                  berechtigte Personalverantwortliche
+                </Text>
+              </View>
+              <Text style={[styles.statusPill, styles.statusPillPending]}>
+                Vertraulich
+              </Text>
+            </View>
+
+            <Text style={styles.fieldLabel}>Dokumentart</Text>
+            <View style={styles.choiceGrid}>
+              {OFFBOARDING_DOCUMENT_TYPES.map((definition) => {
+                const selected = definition.key === documentTypeKey;
+                return (
+                  <Pressable
+                    key={definition.key}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => selectDocumentType(definition.key)}
+                    style={[styles.choice, selected && styles.choiceSelected]}
                   >
-                    {done ? "Vollständig" : "Ausstehend"}
-                  </Text>
-                </View>
-                {documentPackage.items.map((item) => (
-                  <View key={item} style={styles.documentItem}>
                     <Text
                       style={[
-                        styles.documentCheck,
-                        done && styles.documentCheckDone,
+                        styles.choiceText,
+                        selected && styles.choiceTextSelected,
                       ]}
                     >
-                      {done ? "✓" : "•"}
+                      {definition.label}
                     </Text>
-                    <Text style={styles.documentItemText}>{item}</Text>
-                  </View>
-                ))}
-                {documentPackage.stepKey !== "return_protocol" ? (
-                  <PremiumButton
-                    title="Dokumentenbereich öffnen"
-                    size="sm"
-                    variant="secondary"
-                    onPress={() =>
-                      router.push("/business/office/documents" as never)
-                    }
-                  />
-                ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.documentTypeHelper}>
+              {selectedDocumentType?.helper}
+            </Text>
+
+            <PremiumInput
+              label="Bezeichnung in der Personalakte"
+              value={documentTitle}
+              onChangeText={setDocumentTitle}
+              placeholder="Eindeutige Dokumentbezeichnung"
+              onLightSurface
+              viewContext="form"
+            />
+
+            <View style={[styles.documentPickerRow, compact && styles.stack]}>
+              <View style={styles.documentPickerCopy}>
+                <Text style={styles.documentPickerLabel}>
+                  {pickedDocument
+                    ? pickedDocument.fileName
+                    : "Noch keine Datei ausgewählt"}
+                </Text>
+                <Text style={styles.documentPickerMeta}>
+                  {pickedDocument
+                    ? `${(pickedDocument.sizeBytes / 1024 / 1024).toFixed(2)} MB · wird vertraulich gespeichert`
+                    : "Datei auswählen und anschließend verbindlich hochladen"}
+                </Text>
               </View>
-            );
-          })}
-        </View>
+              <PremiumButton
+                title={pickedDocument ? "Datei ersetzen" : "Datei auswählen"}
+                size="sm"
+                variant="secondary"
+                onPress={pickOffboardingDocument}
+              />
+              <PremiumButton
+                title="Der Personalakte zuordnen"
+                size="sm"
+                loading={busyAction === "document-upload"}
+                disabled={!pickedDocument || !documentTitle.trim()}
+                onPress={uploadOffboardingDocument}
+              />
+            </View>
+          </View>
+        ) : null}
+
+        {personnelFileQuery.loading && !personnelFileQuery.data ? (
+          <LoadingState message="Zugeordnete Personalunterlagen werden geladen…" />
+        ) : personnelFileQuery.error ? (
+          <InfoBanner
+            title="Personalunterlagen konnten nicht geladen werden"
+            message={personnelFileQuery.error}
+            variant="danger"
+            presentation="inline"
+          />
+        ) : (
+          <>
+            <View style={styles.documentGrid}>
+              {DOCUMENT_PACKAGES.map((documentPackage) => {
+                const attachedCount = documentPackage.items.filter((item) =>
+                  offboardingDocuments.some(
+                    (document) => document.category === item.category,
+                  ),
+                ).length;
+                const evidenceReady =
+                  attachedCount === documentPackage.items.length;
+                const workflowStep = progress.steps.find(
+                  (item) => item.stepKey === documentPackage.stepKey,
+                );
+                const workflowDone =
+                  workflowStep?.status === "completed" ||
+                  workflowStep?.status === "not_applicable";
+
+                return (
+                  <View
+                    key={documentPackage.stepKey}
+                    style={[
+                      styles.documentCard,
+                      evidenceReady && styles.documentCardDone,
+                    ]}
+                  >
+                    <View style={styles.documentHeader}>
+                      <View style={styles.documentPackageCopy}>
+                        <Text style={styles.documentTitle}>
+                          {documentPackage.title}
+                        </Text>
+                        <Text style={styles.documentPackageMeta}>
+                          {attachedCount} von {documentPackage.items.length}{" "}
+                          Unterlagen hinterlegt
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.statusPill,
+                          evidenceReady
+                            ? styles.statusPillDone
+                            : styles.statusPillPending,
+                        ]}
+                      >
+                        {evidenceReady
+                          ? "Nachweise vollständig"
+                          : "Unvollständig"}
+                      </Text>
+                    </View>
+                    {documentPackage.items.map((item) => {
+                      const attached = offboardingDocuments.filter(
+                        (document) => document.category === item.category,
+                      );
+                      return (
+                        <View key={item.category} style={styles.documentItem}>
+                          <Text
+                            style={[
+                              styles.documentCheck,
+                              attached.length > 0 && styles.documentCheckDone,
+                            ]}
+                          >
+                            {attached.length > 0 ? "✓" : "•"}
+                          </Text>
+                          <View style={styles.documentItemCopy}>
+                            <Text style={styles.documentItemTitle}>
+                              {item.label}
+                            </Text>
+                            <Text style={styles.documentItemText}>
+                              {attached.length > 0
+                                ? attached
+                                    .map((document) => document.fileName)
+                                    .join(", ")
+                                : "Noch keine Datei zugeordnet"}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                    <Text style={styles.documentPackageHint}>
+                      {evidenceReady && !workflowDone
+                        ? "Alle Dateien sind vorhanden. Die fachliche Prüfung muss im 20-Schritte-Arbeitsplan noch bestätigt werden."
+                        : evidenceReady
+                          ? "Dateinachweise und fachliche Bestätigung sind vollständig."
+                          : "Fehlende Dateien oben auswählen und direkt hochladen."}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+
+            <View style={styles.assignedDocumentsPanel}>
+              <View style={styles.documentUploadHeader}>
+                <View style={styles.documentUploadCopy}>
+                  <Text style={styles.documentUploadTitle}>
+                    Zugeordnete Offboarding-Unterlagen
+                  </Text>
+                  <Text style={styles.documentUploadSubtitle}>
+                    {offboardingDocuments.length} Dokument
+                    {offboardingDocuments.length === 1 ? "" : "e"} in der
+                    Personalakte von {progress.employeeName}
+                  </Text>
+                </View>
+                <PremiumButton
+                  title="Gesamte Personalakte öffnen"
+                  size="sm"
+                  variant="secondary"
+                  onPress={() =>
+                    router.push("/business/office/documents" as never)
+                  }
+                />
+              </View>
+
+              {offboardingDocuments.length === 0 ? (
+                <EmptyState
+                  title="Noch keine Unterlagen zugeordnet"
+                  message="Wählen Sie oben Dokumentart und Datei aus. Der Upload wird sofort dieser Personalakte zugeordnet."
+                />
+              ) : (
+                <View style={styles.assignedDocumentList}>
+                  {offboardingDocuments.map((document) => {
+                    const definition = OFFBOARDING_DOCUMENT_TYPES.find(
+                      (entry) => entry.category === document.category,
+                    );
+                    const confirmDelete =
+                      pendingDocumentDeleteId === document.id;
+                    return (
+                      <View
+                        key={document.id}
+                        style={styles.assignedDocumentRow}
+                      >
+                        <View style={styles.assignedDocumentIcon}>
+                          <Text style={styles.assignedDocumentIconText}>D</Text>
+                        </View>
+                        <View style={styles.assignedDocumentCopy}>
+                          <Text style={styles.assignedDocumentTitle}>
+                            {document.title}
+                          </Text>
+                          <Text style={styles.assignedDocumentMeta}>
+                            {definition?.label ?? "Offboarding-Unterlage"} ·{" "}
+                            {document.fileName} ·{" "}
+                            {formatDateTime(document.createdAt)}
+                          </Text>
+                          <Text style={styles.assignedDocumentSecurity}>
+                            Vertraulich · nicht für das Mitarbeitendenportal
+                            freigegeben
+                          </Text>
+                        </View>
+                        {canManage ? (
+                          confirmDelete ? (
+                            <View style={styles.documentDeleteActions}>
+                              <Text style={styles.documentDeleteWarning}>
+                                Datei wirklich entfernen?
+                              </Text>
+                              <PremiumButton
+                                title="Entfernen bestätigen"
+                                size="sm"
+                                variant="danger"
+                                loading={
+                                  busyAction ===
+                                  `document-delete-${document.id}`
+                                }
+                                onPress={() =>
+                                  removeOffboardingDocument(document)
+                                }
+                              />
+                              <PremiumButton
+                                title="Abbrechen"
+                                size="sm"
+                                variant="secondary"
+                                onPress={() => setPendingDocumentDeleteId(null)}
+                              />
+                            </View>
+                          ) : (
+                            <PremiumButton
+                              title="Zuordnung korrigieren"
+                              size="sm"
+                              variant="secondary"
+                              onPress={() =>
+                                setPendingDocumentDeleteId(document.id)
+                              }
+                            />
+                          )
+                        ) : null}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          </>
+        )}
       </SectionPanel>
 
       <SectionPanel
@@ -2695,6 +3265,173 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: "#395571",
+  },
+  documentUploadPanel: {
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: "#8DC5F7",
+    borderRadius: radius.lg,
+    backgroundColor: "#F4FAFF",
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  documentUploadHeader: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  documentUploadCopy: {
+    flex: 1,
+    minWidth: 240,
+  },
+  documentUploadTitle: {
+    fontSize: 20,
+    lineHeight: 26,
+    color: "#09213F",
+    fontWeight: "900",
+  },
+  documentUploadSubtitle: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: "#526A84",
+    marginTop: 3,
+  },
+  documentTypeHelper: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#395571",
+    fontWeight: "700",
+    marginTop: -spacing.sm,
+  },
+  documentPickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: "#BFD8F1",
+    borderRadius: radius.md,
+    backgroundColor: "#FFFFFF",
+    padding: spacing.md,
+  },
+  documentPickerCopy: {
+    flex: 1,
+    minWidth: 220,
+  },
+  documentPickerLabel: {
+    fontSize: 15,
+    lineHeight: 20,
+    color: "#09213F",
+    fontWeight: "900",
+  },
+  documentPickerMeta: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#607A94",
+    marginTop: 2,
+  },
+  documentPackageCopy: {
+    flex: 1,
+    minWidth: 180,
+  },
+  documentPackageMeta: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#607A94",
+    fontWeight: "700",
+    marginTop: 2,
+  },
+  documentItemCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  documentItemTitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#09213F",
+    fontWeight: "800",
+  },
+  documentPackageHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#526A84",
+    fontWeight: "700",
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#C8DDF0",
+  },
+  assignedDocumentsPanel: {
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: "#BFD8F1",
+    borderRadius: radius.lg,
+    backgroundColor: "#FFFFFF",
+    padding: spacing.lg,
+    marginTop: spacing.md,
+  },
+  assignedDocumentList: {
+    gap: spacing.sm,
+  },
+  assignedDocumentRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: "#D3E3F2",
+    borderRadius: radius.md,
+    backgroundColor: "#F8FBFF",
+    padding: spacing.md,
+  },
+  assignedDocumentIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#DCEEFF",
+    borderWidth: 1,
+    borderColor: "#8DC5F7",
+  },
+  assignedDocumentIconText: {
+    color: "#056CE8",
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  assignedDocumentCopy: {
+    flex: 1,
+    minWidth: 220,
+  },
+  assignedDocumentTitle: {
+    fontSize: 15,
+    lineHeight: 20,
+    color: "#09213F",
+    fontWeight: "900",
+  },
+  assignedDocumentMeta: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#526A84",
+    marginTop: 2,
+  },
+  assignedDocumentSecurity: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#08735A",
+    fontWeight: "800",
+    marginTop: spacing.xs,
+  },
+  documentDeleteActions: {
+    minWidth: 190,
+    gap: spacing.xs,
+  },
+  documentDeleteWarning: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: "#A62039",
+    fontWeight: "900",
   },
   auditList: {
     gap: 0,
