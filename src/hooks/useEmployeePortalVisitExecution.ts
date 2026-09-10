@@ -780,6 +780,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       if (loadingMode === 'start_service') setStartServiceLoading(true);
       else setWorkflowLoading(true);
       let confirmationTimedOut = false;
+      let reconcilePendingWorkflow: (() => Promise<void>) | null = null;
       try {
         // Realtime and every successful mutation keep this ref current. Reloading
         // the complete assignment before every button press added several network
@@ -810,8 +811,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         const operation = options?.recoveryAction
           ? runCanonicalMutation(`${ctx.tenantId}:${ctx.employeeId}:${ctx.assistVisitId}:${options.recoveryAction}`, () => fn(ctx!))
           : fn(ctx);
-        void operation.then(async (settled) => {
-          if (!confirmationTimedOut) return;
+        reconcilePendingWorkflow = () => operation.then(async (settled) => {
           const confirmedContext = settled.ok ? unwrapWorkflowContextPayload(settled.data) : null;
           if (confirmedContext) {
             await syncAfterWorkflow(confirmedContext);
@@ -824,7 +824,6 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
             options?.onLateFailure?.(settled.error ?? 'Die Speicherung wurde nicht bestätigt. Bitte den Status prüfen.');
           }
         }, async () => {
-          if (!confirmationTimedOut) return;
           const recovered = await refreshExecutionContext();
           if (recovered && options?.recoveryAction && didWorkflowActionReachPostcondition(options.recoveryAction, ctx!, recovered)) {
             await syncAfterWorkflow(recovered);
@@ -834,10 +833,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         })
           .catch(() => undefined)
           .finally(() => {
-            if (confirmationTimedOut) {
-              workflowInFlight.current = false;
-              setWorkflowConfirmationPending(false);
-            }
+            workflowInFlight.current = false;
+            setWorkflowConfirmationPending(false);
           });
         const result = await withWorkflowTimeout(
           operation,
@@ -892,21 +889,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
         return result;
       } catch (error) {
-        if (error instanceof WorkflowActionTimeoutError) {
+        if (error instanceof WorkflowActionTimeoutError && reconcilePendingWorkflow) {
           confirmationTimedOut = true;
           setWorkflowConfirmationPending(true);
-          // Attach after the timeout flag is set. If the request settled in the
-          // same event-loop turn, this still releases the blocking overlay.
-          void operation.then(
-            () => {
-              workflowInFlight.current = false;
-              setWorkflowConfirmationPending(false);
-            },
-            () => {
-              workflowInFlight.current = false;
-              setWorkflowConfirmationPending(false);
-            },
-          );
+          // Register after the timeout so even an already-settled request is
+          // reconciled exactly once. Keep the lock until reconciliation ends.
+          void reconcilePendingWorkflow();
           // A timeout means "confirmation pending", never "write failed". The
           // canonical request keeps running and the readback reconciles the UI.
           void refreshExecutionContext().then(async (recovered) => {

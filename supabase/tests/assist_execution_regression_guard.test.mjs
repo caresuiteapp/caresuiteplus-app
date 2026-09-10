@@ -7,9 +7,9 @@ const db = new PGlite();
 const migration = name => readFileSync(new URL('../migrations/'+name+'.sql',import.meta.url),'utf8');
 await db.exec(`
 CREATE TYPE assignment_status AS ENUM ('planned','confirmed','on_the_way','arrived','started','paused','finished','documentation_open','signature_open','completed','cancelled','no_show');
-CREATE TABLE assignments(id text primary key,tenant_id text,client_id text,employee_id text,status assignment_status,on_the_way_at timestamptz,arrived_at timestamptz,actual_start_at timestamptz,actual_end_at timestamptz,finished_at timestamptz);
+CREATE TABLE assignments(id text primary key,tenant_id text,client_id text,employee_id text,status assignment_status,on_the_way_at timestamptz,arrived_at timestamptz,actual_start_at timestamptz,actual_end_at timestamptz,finished_at timestamptz,updated_at timestamptz);
 CREATE TABLE assist_visits(id text primary key,tenant_id text,client_id text,employee_id text,legacy_assignment_id text,planning_status text,canonical_status text,execution_status text,on_the_way_at timestamptz,arrived_at timestamptz,actual_start_at timestamptz,actual_end_at timestamptz,finished_at timestamptz,updated_at timestamptz);
-CREATE TABLE assist_visit_execution_state(tenant_id text,visit_id text,assignment_status text,current_step text,service_started_at timestamptz,service_ended_at timestamptz,finalized_at timestamptz);
+CREATE TABLE assist_visit_execution_state(tenant_id text,visit_id text,assignment_status text,current_step text,service_started_at timestamptz,service_ended_at timestamptz,finalized_at timestamptz,updated_at timestamptz);
 CREATE TABLE assist_time_events(tenant_id text,visit_id text,event_type text);
 INSERT INTO assist_visits(id,tenant_id,planning_status,canonical_status,execution_status,actual_start_at) VALUES
 ('repair','one','confirmed','arrived','arrived','2026-09-10 09:00Z'),
@@ -38,7 +38,7 @@ for(const [status,execution,local,step,end,finalized] of [
   await db.exec(`
 INSERT INTO assignments(id,tenant_id,status,actual_start_at,actual_end_at) VALUES('v','one','${status}','2026-09-10 09:00Z',${endSql});
 INSERT INTO assist_visits(id,tenant_id,canonical_status,execution_status,actual_start_at,actual_end_at) VALUES('v','one','${status}','${execution}','2026-09-10 09:00Z',${endSql});
-INSERT INTO assist_visit_execution_state VALUES('one','v','${local}','${step}','2026-09-10 09:00Z',${endSql},${finalized?endSql:'NULL'});
+INSERT INTO assist_visit_execution_state(tenant_id,visit_id,assignment_status,current_step,service_started_at,service_ended_at,finalized_at) VALUES('one','v','${local}','${step}','2026-09-10 09:00Z',${endSql},${finalized?endSql:'NULL'});
 UPDATE assist_visits SET canonical_status='arrived',execution_status='arrived';
 UPDATE assignments SET status='arrived';
 UPDATE assist_visit_execution_state SET assignment_status='angekommen',current_step='arrived';
