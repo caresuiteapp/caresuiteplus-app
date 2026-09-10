@@ -115,6 +115,35 @@ export function WorkflowFeedbackOverlay({
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [dismiss, loading, visible]);
 
+  useLayoutEffect(() => {
+    if (Platform.OS !== 'web' || !portalHost || !loading) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const siblings = [...document.body.children]
+      .filter((node): node is HTMLElement => node instanceof HTMLElement && node !== portalHost)
+      .map(node => ({ node, inert: node.inert }));
+    for (const { node } of siblings) node.inert = true;
+    portalHost.tabIndex = -1;
+    portalHost.setAttribute('role', 'dialog');
+    portalHost.setAttribute('aria-modal', 'true');
+    portalHost.setAttribute('aria-label', 'Vorgang wird verarbeitet');
+    portalHost.focus({ preventScroll: true });
+    const keepFocus = (event: KeyboardEvent) => {
+      if (event.key === 'Tab' || event.key === 'Escape') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        portalHost.focus({ preventScroll: true });
+      }
+    };
+    document.addEventListener('keydown', keepFocus, true);
+    return () => {
+      document.removeEventListener('keydown', keepFocus, true);
+      for (const { node, inert } of siblings) node.inert = inert;
+      portalHost.removeAttribute('aria-modal');
+      portalHost.removeAttribute('role');
+      if (previousFocus?.isConnected && !previousFocus.inert) previousFocus.focus({ preventScroll: true });
+    };
+  }, [loading, portalHost]);
+
   const meta = feedbackMeta[kind];
   const content = (
     <View

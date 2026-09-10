@@ -257,6 +257,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   } | null>(null);
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [startServiceLoading, setStartServiceLoading] = useState(false);
+  const [workflowConfirmationPending, setWorkflowConfirmationPending] = useState(false);
+  const workflowInFlight = useRef(false);
   const [refetchWarning, setRefetchWarning] = useState<string | null>(null);
   const [signatureSaveError, setSignatureSaveError] = useState<string | null>(null);
   const signatureSaveAttempt = useRef(0);
@@ -768,30 +770,35 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         onLateFailure?: (message: string) => void;
       },
     ): Promise<{ ok: boolean; data?: T; error?: string; errorCode?: string }> => {
-      // Realtime and every successful mutation keep this ref current. Reloading
-      // the complete assignment before every button press added several network
-      // round trips and made mobile actions feel stalled. Server-side transition
-      // validation remains authoritative; stale states are refreshed on demand.
-      let ctx =
-        options?.preferExistingContext !== false && executionContextRef.current
-          ? executionContextRef.current
-          : null;
-      if (!ctx) {
-        ctx = await refreshExecutionContext(query.data ?? undefined);
+      // Acquire synchronously, before context/session reads or React can render.
+      if (workflowInFlight.current) {
+        return { ok: false, error: 'Die vorherige Aktion wird noch bestätigt. Bitte warten.', errorCode: 'WORKFLOW_ACTION_TIMEOUT_UNCONFIRMED' };
       }
-      if (!ctx) {
-        ctx = executionContext;
-      }
-      if (!ctx) {
-        return { ok: false, error: 'Einsatzkontext fehlt.', errorCode: 'START_SERVICE_CONTEXT_MISSING' };
-      }
-
+      workflowInFlight.current = true;
       const loadingMode = options?.loadingMode ?? 'generic';
+      setWorkflowConfirmationPending(false);
       if (loadingMode === 'start_service') setStartServiceLoading(true);
       else setWorkflowLoading(true);
-
       let confirmationTimedOut = false;
       try {
+        // Realtime and every successful mutation keep this ref current. Reloading
+        // the complete assignment before every button press added several network
+        // round trips and made mobile actions feel stalled. Server-side transition
+        // validation remains authoritative; stale states are refreshed on demand.
+        let ctx =
+          options?.preferExistingContext !== false && executionContextRef.current
+            ? executionContextRef.current
+            : null;
+        if (!ctx) {
+          ctx = await refreshExecutionContext(query.data ?? undefined);
+        }
+        if (!ctx) {
+          ctx = executionContext;
+        }
+        if (!ctx) {
+          return { ok: false, error: 'Einsatzkontext fehlt.', errorCode: 'START_SERVICE_CONTEXT_MISSING' };
+        }
+
         const writableSession = await ensurePortalWriteSession(portalSession, 'workflow');
         if (!writableSession.ok) {
           return {
@@ -824,7 +831,14 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           } else {
             options?.onLateFailure?.('Die Übertragung wurde unterbrochen. Bitte den Status prüfen, bevor du erneut speicherst.');
           }
-        }).catch(() => undefined);
+        })
+          .catch(() => undefined)
+          .finally(() => {
+            if (confirmationTimedOut) {
+              workflowInFlight.current = false;
+              setWorkflowConfirmationPending(false);
+            }
+          });
         const result = await withWorkflowTimeout(
           operation,
           options?.timeoutMs ??
@@ -862,7 +876,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           // repeat an already completed step.
           const refreshed = await withWorkflowTimeout(
             refreshExecutionContext(),
-            800,
+            WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS,
             'workflowRecoveryReadback',
           ).catch(() => null);
           if (refreshed) {
@@ -880,6 +894,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       } catch (error) {
         if (error instanceof WorkflowActionTimeoutError) {
           confirmationTimedOut = true;
+          setWorkflowConfirmationPending(true);
           // A timeout means "confirmation pending", never "write failed". The
           // canonical request keeps running and the readback reconciles the UI.
           void refreshExecutionContext().then(async (recovered) => {
@@ -898,6 +913,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           errorCode: 'WORKFLOW_UNEXPECTED_ERROR',
         };
       } finally {
+        if (!confirmationTimedOut) workflowInFlight.current = false;
         if (loadingMode === 'start_service') setStartServiceLoading(false);
         else setWorkflowLoading(false);
       }
@@ -1489,6 +1505,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     queryError: query.error,
     actionLoading: workflowLoading,
     startServiceLoading,
+    workflowConfirmationPending,
     refetchWarning,
     taskSaving: taskDrafts.saving,
     taskSaveError: taskDrafts.saveError,

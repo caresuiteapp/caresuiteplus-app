@@ -1,12 +1,12 @@
-/** Bounded waits protect against truly stalled requests without misclassifying mobile latency. */
-export const WORKFLOW_ACTION_TIMEOUT_MS = 15_000;
-export const WORKFLOW_MARK_ARRIVED_TIMEOUT_MS = 15_000;
-export const WORKFLOW_END_SERVICE_TIMEOUT_MS = 15_000;
-/** Mobile start persists status plus the canonical service_start event. */
-export const WORKFLOW_START_SERVICE_TIMEOUT_MS = 20_000;
-export const WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS = 10_000;
+/** Slow mobile links may need time to commit and reconcile all workflow mirrors. */
+export const WORKFLOW_ACTION_TIMEOUT_MS = 45_000;
+export const WORKFLOW_MARK_ARRIVED_TIMEOUT_MS = 60_000;
+export const WORKFLOW_END_SERVICE_TIMEOUT_MS = 60_000;
+/** Start persists the canonical status, timer event and protected mirrors atomically. */
+export const WORKFLOW_START_SERVICE_TIMEOUT_MS = 60_000;
+export const WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS = 30_000;
 /** Proof lookup/generation needs the largest mobile-network budget. */
-export const WORKFLOW_FINALIZE_TIMEOUT_MS = 25_000;
+export const WORKFLOW_FINALIZE_TIMEOUT_MS = 90_000;
 
 export class WorkflowActionTimeoutError extends Error {
   constructor(label: string, ms: number) {

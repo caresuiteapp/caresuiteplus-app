@@ -21,7 +21,6 @@ import { logAssistWorkflowError, createAssistWorkflowError, assistWorkflowErrorT
 import { getServiceMode } from '@/lib/services/mode';
 import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
 import type { AssistExecutionContext } from './types';
-import { scheduleDeferredTask } from '@/lib/async/deferredTask';
 
 export type ArrivalMode = 'gps' | 'without_gps' | 'manual';
 
@@ -47,24 +46,29 @@ async function persistArrivedExecutionMirrors(
   ctx: AssistExecutionContext,
   visitTimes: AssistExecutionContext['visitTimes'],
 ): Promise<ServiceResult<void>> {
-  scheduleDeferredTask(`assist-arrival-projection:${ctx.tenantId}:${ctx.assignmentId}`, async () => {
-    const executionState = await upsertAssistVisitExecutionState(
+  // Arrival must be fully mirrored before the UI enables service start.
+  // A deferred arrival projection can otherwise finish after service_start and
+  // regress the canonical status back to "angekommen".
+  const executionState = await upsertAssistVisitExecutionState(
+    ctx.tenantId,
+    ctx.assignmentId,
+    'angekommen',
+    { employeeId: ctx.employeeId, visitTimes },
+  );
+  if (!executionState.ok) return { ok: false, error: executionState.error };
+
+  if (getServiceMode() === 'supabase') {
+    const mirrored = await mirrorAssistVisitStatusFromAssignment(
       ctx.tenantId,
       ctx.assignmentId,
       'angekommen',
-      { employeeId: ctx.employeeId, visitTimes },
+      ctx.profileId ?? null,
     );
-    if (!executionState.ok) throw new Error(executionState.error);
-    if (getServiceMode() === 'supabase') {
-      const mirrored = await mirrorAssistVisitStatusFromAssignment(
-        ctx.tenantId,
-        ctx.assignmentId,
-        'angekommen',
-        ctx.profileId ?? null,
-      );
-      if (!mirrored.ok) throw new Error(mirrored.error);
+    if (!mirrored.ok) {
+      return { ok: false, error: mirrored.error ?? 'Ankunftsstatus konnte nicht vollständig gespiegelt werden.' };
     }
-  });
+  }
+
   return { ok: true, data: undefined };
 }
 

@@ -44,6 +44,7 @@ import {
   ErrorState,
   InfoBanner,
   LoadingState,
+  WorkflowFeedbackOverlay,
   PremiumButton,
   PremiumInput,
   SectionPanel,
@@ -160,6 +161,7 @@ export function EmployeePortalVisitExecutionScreen() {
     hasAssignment,
     actionLoading,
     startServiceLoading,
+    workflowConfirmationPending,
     refetchWarning,
     taskSaving,
     taskSaveError,
@@ -270,7 +272,39 @@ export function EmployeePortalVisitExecutionScreen() {
   const [locationDisclosureLoading, setLocationDisclosureLoading] = useState(false);
   const [locationDisclosureAccepted, setLocationDisclosureAccepted] = useState(false);
 
+  const blockingWorkflowLoading = Boolean(
+    loading ||
+      driveLoading ||
+      actionLoading ||
+      startServiceLoading ||
+      workflowConfirmationPending ||
+      arrivalConfirmationPending ||
+      taskSaving ||
+      locationDisclosureLoading ||
+      deviationSubmitting ||
+      (signatureConfirmationPending && !signatureConfirmationStalled),
+  );
+  const blockingWorkflowMessage = workflowConfirmationPending || arrivalConfirmationPending
+    ? 'Die Serverbestätigung läuft weiter. Der aktuelle Status wird automatisch abgeglichen.'
+    : signatureConfirmationPending
+      ? 'Die Unterschrift wird sicher gespeichert und vom Server bestätigt.'
+      : startServiceLoading
+        ? 'Einsatzstart wird verbindlich gespeichert.'
+        : loading
+          ? 'Einsatzdaten werden vollständig geladen.'
+          : 'Bitte warten – die Änderung wird vollständig gespeichert.';
+
   const assistVisitId = executionContext?.assistVisitId ?? null;
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined' || !blockingWorkflowLoading) return;
+    const preventClose = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', preventClose);
+    return () => window.removeEventListener('beforeunload', preventClose);
+  }, [blockingWorkflowLoading]);
 
   useEffect(() => {
     if (!portalTenantId || !portalEmployeeId || !visit?.assignmentId) return;
@@ -1219,6 +1253,7 @@ export function EmployeePortalVisitExecutionScreen() {
   if (loading && !visit) {
     return (
       <PortalTabScreen title={shellTitle} subtitle="Wird geladen…">
+        <WorkflowFeedbackOverlay loading loadingMessage="Einsatz wird vollständig geladen…" />
         <LoadingState message="Einsatz wird geladen…" />
       </PortalTabScreen>
     );
@@ -1628,6 +1663,10 @@ export function EmployeePortalVisitExecutionScreen() {
       contentOwnsHero
       scroll={false}
     >
+      <WorkflowFeedbackOverlay
+        loading={blockingWorkflowLoading}
+        loadingMessage={blockingWorkflowMessage}
+      />
       <View style={styles.focusRoot} testID="employee-visit-fullscreen-workspace">
         <EmployeePortalVisitStickyHeader
           clientName={visit.clientName}
