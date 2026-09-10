@@ -131,4 +131,33 @@ WHERE coalesce(v.planning_status, '') NOT IN ('cancelled','draft')
       AND e.event_type = 'service_end'
   );
 
+UPDATE public.assignments a
+SET status = 'started'::public.assignment_status,
+    updated_at = clock_timestamp()
+WHERE a.actual_start_at IS NOT NULL
+  AND a.actual_end_at IS NULL
+  AND a.finished_at IS NULL
+  AND a.status::TEXT IN ('planned','confirmed','on_the_way','arrived')
+  AND EXISTS (
+    SELECT 1 FROM public.assist_time_events e
+    WHERE e.tenant_id = a.tenant_id
+      AND e.visit_id = a.id
+      AND e.event_type = 'service_start'
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM public.assist_time_events e
+    WHERE e.tenant_id = a.tenant_id
+      AND e.visit_id = a.id
+      AND e.event_type = 'service_end'
+  );
+
+UPDATE public.assist_visit_execution_state s
+SET assignment_status = 'gestartet',
+    current_step = 'in_service',
+    updated_at = clock_timestamp()
+WHERE s.service_started_at IS NOT NULL
+  AND s.service_ended_at IS NULL
+  AND s.finalized_at IS NULL
+  AND s.assignment_status IN ('geplant','bestaetigt','unterwegs','angekommen');
+
 COMMIT;

@@ -895,6 +895,18 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         if (error instanceof WorkflowActionTimeoutError) {
           confirmationTimedOut = true;
           setWorkflowConfirmationPending(true);
+          // Attach after the timeout flag is set. If the request settled in the
+          // same event-loop turn, this still releases the blocking overlay.
+          void operation.then(
+            () => {
+              workflowInFlight.current = false;
+              setWorkflowConfirmationPending(false);
+            },
+            () => {
+              workflowInFlight.current = false;
+              setWorkflowConfirmationPending(false);
+            },
+          );
           // A timeout means "confirmation pending", never "write failed". The
           // canonical request keeps running and the readback reconciles the UI.
           void refreshExecutionContext().then(async (recovered) => {

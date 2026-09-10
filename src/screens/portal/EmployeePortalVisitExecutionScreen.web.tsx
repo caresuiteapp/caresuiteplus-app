@@ -16,7 +16,6 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
@@ -520,8 +519,6 @@ export function EmployeePortalVisitExecutionScreen() {
   const primaryLabel = primaryActionResolved
     ? ASSIST_WORKFLOW_ACTION_LABELS[primaryActionResolved]
     : undefined;
-
-  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     releaseSignatureCaptureEnvironment();
