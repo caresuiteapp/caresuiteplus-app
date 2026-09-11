@@ -66,8 +66,22 @@ Google-Konfiguration. Der nächste Schritt im Produkt ist „Google-Konto verbin
 
 ## Veröffentlichung
 
-Die automatische Freigabeprüfung hat das Anwenden der Produktionsmigration, die
-Registrierung der Migration und das Deployen der zwei Edge Functions abgelehnt,
-weil eine ausdrückliche Freigabe dieser Produktionsänderung fehlt. Der Aufruf
-wurde vor Ausführung blockiert; eine erfolgreiche Live-Veröffentlichung wird
-nicht behauptet. Die Änderung liegt zur Durchsicht auf dem separaten Feature-Branch.
+Die zunächst fehlende Produktionsfreigabe wurde am 11.09.2026 vom Nutzer
+ausdrücklich erteilt. Der aktuelle Hauptbranch mit der Aufgaben-Korrektur
+a30feec5 wurde konfliktfrei übernommen; alle 40 Tests und die Browserprüfung
+mit synthetischen Daten bestanden danach erneut.
+
+Die Migration 20260911193000 ist in Produktion angewendet und im
+Migrationsverzeichnis registriert. Die Abschlussfunktion ist ausschließlich für
+service_role ausführbar. Beide Google Edge Functions sind aktiv auf Version 4;
+auth behält den öffentlichen OAuth-Callback, proxy behält die JWT-Prüfung.
+CORS-Anfragen antworteten mit 200, nicht angemeldete POST-Anfragen mit 401.
+
+Web/Desktop wird über den bestehenden Weg GitHub main → Vercel veröffentlicht.
+Die endgültigen Build- und Live-Ergebnisse sind an den Vercel-Statusmeldungen
+des veröffentlichten Commits zu prüfen. Der Android-Workflow wird nur manuell
+ausgelöst und gehört nicht zu dieser Veröffentlichung.
+
+AVENTA hat zum Zeitpunkt der Backend-Verifikation weiterhin keine abgeschlossene
+Google-Kontoverbindung. Kontofreigabe, reale Dienstzugriffe und Token-Refresh
+bleiben deshalb getrennt vom erfolgreichen technischen Deployment nachzuweisen.
