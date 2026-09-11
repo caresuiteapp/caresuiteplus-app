@@ -11,7 +11,7 @@ import { TRAVEL_ROUTE_TYPE_LABELS } from '@/types/modules/travelCompensation';
 function escapeHtml(value: string) { return value.replace(/[&<>"']/g, (character) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[character] ?? character); }
 
 export async function buildLogbookPdf(input: { employeeName: string; from: string; to: string; trips: LogbookTrip[]; vehicles: LogbookVehicle[]; segments?: LogbookSegment[]; receipts?: LogbookReceipt[]; confirmations?: LogbookDailyConfirmation[] }) {
-  const selected = input.trips.filter((trip) => isLogbookTripInBerlinRange(trip.startedAt, input.from, input.to));
+  const selected = input.trips.filter((trip) => trip.status !== 'cancelled' && isLogbookTripInBerlinRange(trip.startedAt, input.from, input.to));
   const totalTrips = selected.filter((trip) => ['completed', 'corrected', 'confirmed'].includes(trip.status));
   const totalKm = totalTrips.reduce((sum, trip) => sum + trip.distanceFinalKm, 0);
   const totalCents = totalTrips.reduce((sum, trip) => sum + trip.mileageAmountCents, 0);

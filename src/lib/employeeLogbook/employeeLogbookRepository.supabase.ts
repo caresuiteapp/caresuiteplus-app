@@ -12,7 +12,7 @@ function mapProfile(row: Row | null, tenantId: string, employeeId: string): Logb
   return { tenantId, employeeId, defaultVehicleId: nullable(row?.default_vehicle_id), mileageRateCents: n(row?.mileage_rate_cents) || 30, gpsConsent: Boolean(row?.gps_consent), licenseFrontPath: nullable(row?.license_front_path), licenseBackPath: nullable(row?.license_back_path) };
 }
 function mapVehicle(row: Row): LogbookVehicle { return { id: s(row.id), tenantId: s(row.tenant_id), employeeId: s(row.employee_id), ownership: row.ownership === 'company' ? 'company' : 'private', plate: s(row.plate), make: nullable(row.make), model: nullable(row.model), active: row.active !== false }; }
-function mapTrip(row: Row): LogbookTrip { return { id: s(row.id), tenantId: s(row.tenant_id), employeeId: s(row.employee_id), assignmentId: nullable(row.assignment_id), clientId: nullable(row.client_id), vehicleId: nullable(row.vehicle_id), routeType: s(row.route_type) as LogbookTrip['routeType'], purpose: s(row.purpose), manualReason: nullable(row.manual_reason), status: s(row.status) as LogbookTrip['status'], startedAt: s(row.started_at), endedAt: nullable(row.ended_at), startAddress: nullable(row.start_address), endAddress: nullable(row.end_address), distanceGpsKm: n(row.distance_gps_km), distanceFinalKm: n(row.distance_final_km), durationSeconds: n(row.duration_seconds), countsAsWorkTime: Boolean(row.counts_as_work_time), worktimeDeductionMinutes: n(row.worktime_deduction_minutes), mileageRateCents: n(row.mileage_rate_cents), mileageAmountCents: n(row.mileage_amount_cents), gpsCaptured: Boolean(row.gps_captured), distanceSource: (s(row.distance_source) || 'gps') as LogbookTrip['distanceSource'], googleRouteDistanceKm: row.google_route_distance_km == null ? null : n(row.google_route_distance_km), googleRouteDurationMinutes: row.google_route_duration_minutes == null ? null : n(row.google_route_duration_minutes), routeQualityStatus: (s(row.route_quality_status) || 'measured') as LogbookTrip['routeQualityStatus'], correctedAt: nullable(row.corrected_at), notes: nullable(row.notes) }; }
+function mapTrip(row: Row): LogbookTrip { return { id: s(row.id), tenantId: s(row.tenant_id), employeeId: s(row.employee_id), assignmentId: nullable(row.assignment_id), clientId: nullable(row.client_id), vehicleId: nullable(row.vehicle_id), routeType: s(row.route_type) as LogbookTrip['routeType'], purpose: s(row.purpose), manualReason: nullable(row.manual_reason), status: s(row.status) as LogbookTrip['status'], startedAt: s(row.started_at), endedAt: nullable(row.ended_at), startAddress: nullable(row.start_address), endAddress: nullable(row.end_address), distanceGpsKm: n(row.distance_gps_km), distanceFinalKm: n(row.distance_final_km), durationSeconds: n(row.duration_seconds), countsAsWorkTime: Boolean(row.counts_as_work_time), worktimeDeductionMinutes: n(row.worktime_deduction_minutes), mileageRateCents: n(row.mileage_rate_cents), mileageAmountCents: n(row.mileage_amount_cents), gpsCaptured: Boolean(row.gps_captured), distanceSource: (s(row.distance_source) || 'gps') as LogbookTrip['distanceSource'], googleRouteDistanceKm: row.google_route_distance_km == null ? null : n(row.google_route_distance_km), googleRouteDurationMinutes: row.google_route_duration_minutes == null ? null : n(row.google_route_duration_minutes), routeQualityStatus: (s(row.route_quality_status) || 'measured') as LogbookTrip['routeQualityStatus'], correctedAt: nullable(row.corrected_at), notes: nullable(row.notes), source: nullable(row.source) }; }
 function mapConfirmation(row: Row): LogbookDailyConfirmation { return { id: s(row.id), workDate: s(row.work_date), tripCount: n(row.trip_count), distanceKm: n(row.distance_km), signatureData: s(row.signature_data), signerName: s(row.signer_name), confirmedAt: s(row.confirmed_at) }; }
 function mapSegment(row: Row): LogbookSegment { return { id: s(row.id), tripId: s(row.trip_id), sequenceNo: n(row.sequence_no), assignmentId: nullable(row.assignment_id), clientId: nullable(row.client_id), stopKind: s(row.stop_kind) as LogbookSegment['stopKind'], label: s(row.label), startAddress: nullable(row.start_address), endAddress: nullable(row.end_address), startedAt: nullable(row.started_at), endedAt: nullable(row.ended_at), distanceKm: n(row.distance_km) }; }
 function mapReceipt(row: Row): LogbookReceipt { return { id: s(row.id), tripId: nullable(row.trip_id), category: s(row.category) as LogbookReceipt['category'], amountCents: n(row.amount_cents), fileName: s(row.file_name), storagePath: s(row.storage_path), expenseDate: s(row.expense_date) }; }
@@ -199,29 +199,44 @@ export async function deleteEmployeeLogbookTrip(input: { trip: LogbookTrip; reas
   if (drivingIds.length) {
     const claims = await fromUnknownTable(db(), 'employee_expense_claims')
       .select('id').eq('tenant_id', input.trip.tenantId).eq('employee_id', input.trip.employeeId)
-      .in('driving_log_id', drivingIds).limit(1);
+      .in('driving_log_id', drivingIds).eq('status', 'reimbursed').limit(1);
     if (claims.error) throw new Error(claims.error.message);
-    if ((claims.data ?? []).length) throw new Error('Diese Fahrt ist bereits mit einer Auslage oder Abrechnung verknüpft und kann nicht gelöscht werden.');
+    if ((claims.data ?? []).length) throw new Error('Diese Fahrt wurde bereits ausgezahlt und kann nicht gelöscht werden.');
   }
   const now = new Date().toISOString();
-  const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({
+  const { data, error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({
     status: 'cancelled',
     correction_reason: `Gelöscht: ${input.reason.trim()}`,
     corrected_at: now,
     previous_values: { status: input.trip.status, distance_final_km: input.trip.distanceFinalKm, purpose: input.trip.purpose },
     notes: [input.trip.notes, `Durch die Verwaltung gelöscht: ${input.reason.trim()}`].filter(Boolean).join('\n'),
     updated_at: now,
-  }).eq('id', input.trip.id).neq('status', 'recording');
+  }).eq('id', input.trip.id).eq('tenant_id', input.trip.tenantId)
+    .eq('employee_id', input.trip.employeeId).eq('status', input.trip.status)
+    .select('id,status').maybeSingle();
   if (error) throw new Error(error.message);
+  if ((data as Row | null)?.status !== 'cancelled') {
+    // A retry is successful only if the same scoped trip is already cancelled.
+    const saved = await fromUnknownTable(db(), 'employee_logbook_trips')
+      .select('id,status').eq('id', input.trip.id).eq('tenant_id', input.trip.tenantId)
+      .eq('employee_id', input.trip.employeeId).maybeSingle();
+    if (saved.error) throw new Error(saved.error.message);
+    if ((saved.data as Row | null)?.status !== 'cancelled') {
+      throw new Error('Die Fahrt wurde nicht gelöscht. Sie wurde inzwischen geändert oder Sie haben keine Berechtigung. Bitte die Ansicht neu laden.');
+    }
+  }
 }
 
 export async function correctLogbookTrip(trip: LogbookTrip, distanceKm: number, reason: string) {
+  if (trip.status === 'cancelled' || trip.status === 'recording') throw new Error('Diese Fahrt kann nicht korrigiert werden. Bitte die Ansicht neu laden.');
   if (!reason.trim()) throw new Error('Für jede Korrektur ist eine Begründung erforderlich.');
-  const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({ distance_final_km: distanceKm, distance_source: 'office_corrected', route_quality_status: 'corrected', status: 'corrected', corrected_at: new Date().toISOString(), correction_reason: reason.trim(), previous_values: { distance_final_km: trip.distanceFinalKm, status: trip.status }, updated_at: new Date().toISOString() }).eq('id', trip.id);
+  const { data, error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({ distance_final_km: distanceKm, distance_source: 'office_corrected', route_quality_status: 'corrected', status: 'corrected', corrected_at: new Date().toISOString(), correction_reason: reason.trim(), previous_values: { distance_final_km: trip.distanceFinalKm, status: trip.status }, updated_at: new Date().toISOString() }).eq('id', trip.id).eq('tenant_id', trip.tenantId).eq('employee_id', trip.employeeId).eq('status', trip.status).select('id').maybeSingle();
   if (error) throw new Error(error.message);
+  if (!data) throw new Error('Korrektur nicht gespeichert. Die Fahrt wurde inzwischen geändert oder gelöscht. Bitte die Ansicht neu laden.');
 }
 
 export async function correctLogbookTripDetails(input: CorrectLogbookTripInput) {
+  if (input.trip.status === 'cancelled' || input.trip.status === 'recording') throw new Error('Diese Fahrt kann nicht korrigiert werden. Bitte die Ansicht neu laden.');
   if (!input.vehicleId) throw new Error('Bitte einen aktiven PKW auswählen.');
   if (input.purpose.trim().length < 3) throw new Error('Bitte einen aussagekräftigen Fahrtzweck eintragen.');
   if (input.reason.trim().length < 3) throw new Error('Für jede Korrektur ist eine Begründung erforderlich.');
@@ -232,7 +247,7 @@ export async function correctLogbookTripDetails(input: CorrectLogbookTripInput) 
     throw new Error('Start- und Endzeit sind ungültig.');
   }
   const authUser = (await db().auth.getUser()).data.user;
-  const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({
+  const { data, error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({
     vehicle_id: input.vehicleId,
     assignment_id: input.assignmentId ?? null,
     client_id: input.clientId ?? null,
@@ -263,8 +278,9 @@ export async function correctLogbookTripDetails(input: CorrectLogbookTripInput) 
       status: input.trip.status,
     },
     updated_at: new Date().toISOString(),
-  }).eq('id', input.trip.id);
+  }).eq('id', input.trip.id).eq('tenant_id', input.trip.tenantId).eq('employee_id', input.trip.employeeId).eq('status', input.trip.status).select('id').maybeSingle();
   if (error) throw new Error(error.message);
+  if (!data) throw new Error('Korrektur nicht gespeichert. Die Fahrt wurde inzwischen geändert oder gelöscht. Bitte die Ansicht neu laden.');
 }
 
 export async function confirmLogbookDay(input: { tenantId: string; employeeId: string; workDate: string; signerName: string; signatureData: string; trips: LogbookTrip[] }) {

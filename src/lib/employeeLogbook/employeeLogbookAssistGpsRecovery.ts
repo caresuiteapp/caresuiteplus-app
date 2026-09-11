@@ -293,9 +293,19 @@ export async function synchronizeEmployeeLogbookFromAssistGps(input: {
         ).map((leg) => ({ candidate, leg })),
   );
 
+  const existingSources = new Set<string>();
+  if (ready.length) {
+    const existing = await fromUnknownTable(supabase, 'employee_logbook_trips')
+      .select('source').eq('tenant_id', input.tenantId).eq('employee_id', input.employeeId)
+      .in('source', ready.map(({ leg }) => leg.source));
+    if (existing.error) throw new Error(existing.error.message);
+    for (const row of (existing.data ?? []) as Row[]) existingSources.add(stringValue(row.source));
+  }
+
   let importedCount = 0;
   let importedDistanceKm = 0;
   for (const { candidate, leg } of ready) {
+    if (existingSources.has(leg.source)) continue;
     const insert = await fromUnknownTable(supabase, 'employee_logbook_trips').insert({
       tenant_id: input.tenantId,
       employee_id: input.employeeId,

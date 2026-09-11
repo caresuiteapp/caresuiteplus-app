@@ -135,9 +135,7 @@ describe('Fahrtenbuch P0 R18.4 · veraltete Aufzeichnungen und echte Fahrtabschn
     expect(recovery).toContain('assist_gps_recovery_r18:');
     expect(recovery).toContain("reviewRequired: window.kind !== 'approach'");
     expect(recovery).toContain("leg.reviewRequired ? 'review_required' : 'completed'");
-    expect(panel).toContain('erkannte Fahrtabschnitte');
-    expect(panel).toContain('VERALTET · BEENDET');
-    expect(panel).toContain('PRÜFUNG NÖTIG');
+    expect(panel).toContain('EmployeeLogbookGpsRecoveryPanel');
     expect(panel).toContain("trip.status === 'review_required' ? '—'");
   });
 });

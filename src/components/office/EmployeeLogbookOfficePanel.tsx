@@ -1,3 +1,6 @@
+import { PlatformModal } from '@/components/layout/platform/platformmodal';
+import { EmployeeLogbookGpsRecoveryPanel } from './EmployeeLogbookGpsRecoveryPanel';
+import type { EmployeeLogbookGpsRecoveryCandidate } from '@/lib/employeeLogbook/employeeLogbookAssistGpsRecovery';
 import { subscribeToWfmLiveChanges } from '@/lib/realtime/presets';
 import { notifyWfmOfficeDataChanged } from '@/lib/wfm/wfmOfficeDataChanged';
 import type { WfmOfficeTimePeriod } from '@/types/modules/wfmOfficeTimekeeping';
@@ -54,6 +57,9 @@ type Props = {
 const today = berlinToday;
 
 export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName, canEdit, period, onChanged, onEditorStateChange }: Props) {
+  const [narrow, setNarrow] = useState(true);
+  const [removedTrips, setRemovedTrips] = useState<Set<string>>(() => new Set());
+  const [gpsMessage, setGpsMessage] = useState<string | null>(null);
   const [plate, setPlate] = useState('');
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
@@ -93,8 +99,10 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   const [manualClientId, setManualClientId] = useState('');
 
   const savingRef = useRef(false);
+  const originalCorrection = useRef('');
   const initialized = useRef('');
   const recoveryChecked = useRef('');
+  const recoveryCache = useRef<{ scope: string; candidates: EmployeeLogbookGpsRecoveryCandidate[] }>({ scope: '', candidates: [] });
   const query = useAsyncQuery(
     useCallback(async () => {
       try {
@@ -102,13 +110,13 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
         const shouldRecover = recoveryChecked.current !== scope;
         let staleRepair: Awaited<ReturnType<typeof repairStaleEmployeeLogbookState>> | null = null;
         let bundle = await loadEmployeeLogbook(tenantId, employeeId);
-        let gpsRecoveryCandidates = [] as Awaited<ReturnType<typeof loadEmployeeLogbookGpsRecoveryCandidates>>;
+        let gpsRecoveryCandidates = recoveryCache.current.scope === scope ? recoveryCache.current.candidates : [];
         let gpsRecoveryError: string | null = null;
         try {
-          if (shouldRecover) { staleRepair = await repairStaleEmployeeLogbookState(tenantId, employeeId); bundle = await loadEmployeeLogbook(tenantId, employeeId); }
+          if (shouldRecover && canEdit) { staleRepair = await repairStaleEmployeeLogbookState(tenantId, employeeId); bundle = await loadEmployeeLogbook(tenantId, employeeId); }
           if (shouldRecover) gpsRecoveryCandidates = await loadEmployeeLogbookGpsRecoveryCandidates(tenantId, employeeId);
           const activeVehicle = bundle.vehicles.find((vehicle) => vehicle.active) ?? null;
-          if (activeVehicle && shouldRecover) {
+          if (activeVehicle && shouldRecover && canEdit) {
             const synchronized = await synchronizeEmployeeLogbookFromAssistGps({
               tenantId,
               employeeId,
@@ -127,6 +135,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
             ? recoveryError.message
             : 'GPS-Bestandsdaten konnten nicht geprüft werden.';
         }
+        if (shouldRecover) recoveryCache.current = { scope, candidates: gpsRecoveryCandidates };
         recoveryChecked.current = scope;
         return { ok: true as const, data: { ...bundle, gpsRecoveryCandidates, gpsRecoveryError, staleRepair } };
       } catch (error) {
@@ -135,9 +144,9 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
           error: error instanceof Error ? error.message : 'Fahrtenbuch konnte nicht geladen werden.',
         };
       }
-    }, [tenantId, employeeId]),
-    [tenantId, employeeId],
-    { queryKey: `office-logbook:${tenantId}:${employeeId}`, live: { tenantId, subscribe: subscribeToWfmLiveChanges, enabled: !selectedTripId && !manualOpen && !saving, pollMs: 30_000, refreshOnFocus: true } },
+    }, [tenantId, employeeId, canEdit]),
+    [tenantId, employeeId, canEdit],
+    { queryKey: `office-logbook:${tenantId}:${employeeId}`, live: { tenantId, subscribe: subscribeToWfmLiveChanges, enabled: !selectedTripId && !deleteTripId && !manualOpen && !saving, pollMs: 30_000, refreshOnFocus: true } },
   );
   const linkOptionsQuery = useAsyncQuery(useCallback(async () => {
     const [assignments, clients] = await Promise.all([
@@ -163,16 +172,15 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   }, [query.data, tenantId, employeeId]);
 
   useEffect(() => { if (period) { setFrom(period.fromDate); setTo(period.toDate); } }, [period?.fromDate, period?.toDate]);
-  useEffect(() => { onEditorStateChange?.({ dirty: Boolean(selectedTripId || manualOpen || deleteTripId), busy: saving, childOpen: false }); }, [selectedTripId, manualOpen, deleteTripId, saving, onEditorStateChange]);
+  useEffect(() => { onEditorStateChange?.({ dirty: Boolean(selectedTripId || manualOpen || deleteTripId), busy: saving, childOpen: Boolean(selectedTripId || manualOpen || deleteTripId) }); }, [selectedTripId, manualOpen, deleteTripId, saving, onEditorStateChange]);
   useEffect(() => () => onEditorStateChange?.({ dirty: false, busy: false, childOpen: false }), [onEditorStateChange]);
   const refreshRelated = async () => { notifyWfmOfficeDataChanged(tenantId); await Promise.all([query.refresh(), onChanged?.()]); };
 
-  const visibleTrips = useMemo(
-    () => (query.data?.trips ?? []).filter((trip) => trip.status !== 'cancelled').filter((trip) => {
-      return isLogbookTripInBerlinRange(trip.startedAt, from, to);
-    }),
-    [from, query.data?.trips, to],
-  );
+  const currentTrips = useMemo(() => (query.data?.trips ?? []).map((trip) =>
+    removedTrips.has(`${tenantId}:${employeeId}:${trip.id}`) ? { ...trip, status: 'cancelled' as const } : trip,
+  ), [query.data?.trips, removedTrips, tenantId, employeeId]);
+  const visibleTrips = useMemo(() => currentTrips.filter((trip) => trip.status !== 'cancelled' &&
+    isLogbookTripInBerlinRange(trip.startedAt, from, to)), [currentTrips, from, to]);
 
   const totals = useMemo(() => {
     const completed = visibleTrips.filter((trip) => ['completed', 'corrected', 'confirmed'].includes(trip.status));
@@ -183,29 +191,13 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
     };
   }, [visibleTrips]);
 
-  const gpsRecovery = useMemo(() => {
-    const candidates = query.data?.gpsRecoveryCandidates ?? [];
-    const pending = candidates.filter((candidate) => !candidate.imported);
-    return {
-      pending,
-      pendingDistanceKm: pending.reduce((sum, candidate) => sum + candidate.finalDistanceKm, 0),
-      legCount: pending.reduce((sum, candidate) => sum + candidate.legs.filter((leg) => !leg.imported).length, 0),
-      unresolvedCount: pending.filter((candidate) => candidate.unresolvedGapCount > 0).length,
-      activeCount: pending.filter((candidate) => candidate.active).length,
-      staleCount: pending.filter((candidate) => candidate.stale).length,
-      legacyReviewCount: pending.filter((candidate) => candidate.legacyImportRequiresReview).length,
-      readyCount: pending.filter((candidate) =>
-        !candidate.active && candidate.legs.some((leg) =>
-          !leg.imported && leg.unresolvedGapCount === 0 && leg.finalDistanceKm >= 0.05,
-        ),
-      ).reduce((sum, candidate) => sum + candidate.legs.filter((leg) =>
-        !leg.imported && leg.unresolvedGapCount === 0 && leg.finalDistanceKm >= 0.05,
-      ).length, 0),
-    };
-  }, [query.data?.gpsRecoveryCandidates]);
   const activeVehicleForRecovery = query.data?.vehicles.find((vehicle) => vehicle.active) ?? null;
 
+  const correctionDirty = Boolean(selectedTripId && (correctionReason.trim() || originalCorrection.current !== JSON.stringify([correctedDistance, correctionRouteType, correctionPurpose, correctionStartedAt, correctionEndedAt, correctionStartAddress, correctionEndAddress, correctionVehicleId, correctionAssignmentId, correctionClientId])));
+
   function beginTripCorrection(trip: LogbookTrip) {
+    originalCorrection.current = JSON.stringify([trip.distanceFinalKm.toFixed(2).replace('.', ','), trip.routeType, trip.purpose, berlinDateTimeInput(trip.startedAt), trip.endedAt ? berlinDateTimeInput(trip.endedAt) : '', trip.startAddress ?? '', trip.endAddress ?? '', trip.vehicleId ?? '', trip.assignmentId ?? '', trip.clientId ?? '']);
+    setDeleteTripId(null); setManualOpen(false);
     setSelectedTripId(trip.id);
     setCorrectedDistance(trip.distanceFinalKm.toFixed(2).replace('.', ','));
     setCorrectionReason('');
@@ -221,12 +213,51 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
     setFeedback(null);
   }
 
+  function beginTripDeletion(trip: LogbookTrip) {
+    setSelectedTripId(null); setManualOpen(false);
+    setDeleteTripId(trip.id); setDeleteReason(''); setFeedback(null);
+  }
+
+  function beginManualTrip(candidate?: EmployeeLogbookGpsRecoveryCandidate) {
+    setSelectedTripId(null); setDeleteTripId(null); setFeedback(null);
+    setManualDate(candidate ? berlinDateTimeInput(candidate.startedAt).slice(0, 10) : today());
+    // A GPS session includes service time; never prefill it as driving time.
+    setManualStartTime(''); setManualEndTime(''); setManualDistance(''); setManualReason('');
+    setManualPurpose(candidate ? `Dienstfahrt · ${candidate.title}` : '');
+    setManualStartAddress(''); setManualEndAddress(candidate?.endAddress ?? '');
+    setManualVehicleId(activeVehicleForRecovery?.id ?? null);
+    setManualAssignmentId(candidate?.assignmentId ?? ''); setManualClientId(candidate?.clientId ?? '');
+    setManualLinkMode(candidate?.assignmentId ? 'assignment' : 'reason');
+    setManualRouteType('other_business'); setManualOpen(true);
+  }
+
+  async function runGpsAction(sessionId?: string, legId?: string) {
+    if (savingRef.current || (sessionId && !canEdit)) return;
+    savingRef.current = true; setSaving(true); setGpsMessage(null);
+    try {
+      let candidates = await loadEmployeeLogbookGpsRecoveryCandidates(tenantId, employeeId);
+      if (sessionId && legId) {
+        if (!activeVehicleForRecovery) throw new Error('Bitte zuerst ein aktives Fahrzeug hinterlegen.');
+        const candidate = candidates.find((item) => item.sessionId === sessionId);
+        const leg = candidate?.legs.find((item) => item.id === legId);
+        if (!candidate || !leg) throw new Error('Der Fahrtabschnitt hat sich geändert. Bitte erneut prüfen.');
+        const result = await synchronizeEmployeeLogbookFromAssistGps({ tenantId, employeeId, vehicleId: activeVehicleForRecovery.id, candidates: [{ ...candidate, legs: [leg] }] });
+        setGpsMessage(result.importedCount ? 'Fahrt übernommen. Arbeitszeitkonto und Gehaltsstatistik werden aktualisiert.' : 'Keine neue Fahrt übernommen. Der Abschnitt ist bereits erfasst, gelöscht oder noch nicht vollständig prüfbar.');
+        candidates = await loadEmployeeLogbookGpsRecoveryCandidates(tenantId, employeeId);
+      } else setGpsMessage('GPS-Aufzeichnungen wurden erneut geprüft.');
+      recoveryCache.current = { scope: `${tenantId}:${employeeId}`, candidates };
+      await refreshRelated();
+    } catch (error) {
+      setGpsMessage(error instanceof Error ? error.message : 'GPS-Prüfung fehlgeschlagen.');
+    } finally { savingRef.current = false; setSaving(false); }
+  }
+
   async function saveTripCorrection() {
     if (!canEdit || savingRef.current) return;
     const trip = query.data?.trips.find((item) => item.id === selectedTripId);
     if (!trip) return;
     const distance = Number(correctedDistance.replace(',', '.'));
-    if (!Number.isFinite(distance) || distance < 0) {
+    if (!correctedDistance.trim() || !Number.isFinite(distance) || distance < 0) {
       setFeedback('Bitte eine gültige Kilometerzahl eintragen.');
       return;
     }
@@ -271,6 +302,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
     setSaving(true); setFeedback(null);
     try {
       await deleteEmployeeLogbookTrip({ trip, reason: deleteReason });
+      setRemovedTrips((previous) => new Set(previous).add(`${tenantId}:${employeeId}:${trip.id}`));
       setDeleteTripId(null); setDeleteReason(''); setSelectedTripId(null);
       await refreshRelated();
       setFeedback('Die Fahrt wurde aus dem aktiven Fahrtenbuch entfernt und revisionssicher protokolliert.');
@@ -282,6 +314,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   async function saveManualTrip() {
     if (!canEdit || savingRef.current) return;
     const distance = Number(manualDistance.replace(',', '.'));
+    if (!manualDistance.trim() || !Number.isFinite(distance) || distance < 0) { setFeedback('Bitte eine gültige Kilometerzahl eintragen.'); return; }
     if (!manualVehicleId) {
       setFeedback('Bitte zuerst einen aktiven PKW zuordnen und auswählen.');
       return;
@@ -326,7 +359,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
       setManualAssignmentId('');
       setManualClientId('');
       await refreshRelated();
-      setFeedback('Die Fahrt wurde manuell erfasst, abgerechnet und im Audit protokolliert.');
+      setFeedback('Die Fahrt wurde gespeichert. Arbeitszeit und Kilometererstattung wurden aktualisiert.');
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Manuelle Fahrt konnte nicht gespeichert werden.');
     } finally {
@@ -379,11 +412,12 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   if (!query.data) return <ErrorState message="Fahrtenbuchdaten sind nicht verfügbar." />;
 
   return (
-    <View style={styles.stack} testID="employee-logbook-office-panel">
+    <View style={styles.stack} onLayout={(event) => setNarrow(event.nativeEvent.layout.width < 1080)} testID="employee-logbook-office-panel">
       <InfoBanner
         message="Verwaltungsbereich: Fahrzeugstammdaten, Kilometersatz und vollständige PDF-Nachweise sind im Mitarbeitendenportal nicht sichtbar."
         variant="info"
       />
+      {query.refreshError ? <InfoBanner message={`Aktualisierung fehlgeschlagen: ${query.refreshError}`} variant="warning" /> : null}
       {feedback ? <InfoBanner message={feedback} variant={feedback.includes('gültig') || feedback.includes('fehl') ? 'warning' : 'info'} /> : null}
       {query.data.gpsRecoveryError ? (
         <InfoBanner
@@ -397,81 +431,10 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
           variant="warning"
         />
       ) : null}
-      {gpsRecovery.pending.length > 0 ? (
-        <SectionPanel
-          title="Automatische GPS-Aufzeichnungen seit 24.08.2026"
-          subtitle="Jede Sitzung wird in einzelne Anfahrt-, Dienst- und Zwischenfahrten zerlegt; Einsatzstillstand zählt nicht als Fahrt"
-        >
-          <View style={styles.manualIntro}>
-            <View style={styles.grow}>
-              <Text style={styles.formLabel}>
-                {gpsRecovery.pending.length} GPS-Sitzung{gpsRecovery.pending.length === 1 ? '' : 'en'} · {gpsRecovery.legCount} erkannte Fahrtabschnitte
-              </Text>
-              <Text style={styles.manualText}>
-                Aktuell messbar bzw. über Google-Straßenrouten ergänzt: {gpsRecovery.pendingDistanceKm.toFixed(2).replace('.', ',')} km.
-                {gpsRecovery.unresolvedCount > 0 ? ` ${gpsRecovery.unresolvedCount} Aufzeichnung(en) enthalten noch ungeklärte GPS-Lücken und werden ausdrücklich nicht als endgültige Kilometer abgerechnet.` : ''}
-                {gpsRecovery.activeCount > 0 ? ` ${gpsRecovery.activeCount} Aufzeichnung(en) laufen noch.` : ''}
-                {gpsRecovery.staleCount > 0 ? ` ${gpsRecovery.staleCount} veraltete Aufzeichnung(en) wurden als beendet erkannt und laufen nicht weiter.` : ''}
-                {gpsRecovery.legacyReviewCount > 0 ? ` ${gpsRecovery.legacyReviewCount} frühere R16-Gesamtimport(e) bleiben bis zur Abschnittsprüfung gesperrt.` : ''}
-              </Text>
-            </View>
-            <PremiumButton title="GPS-Bestandsdaten erneut prüfen" variant="secondary" onPress={() => { recoveryChecked.current = ''; void query.refresh(); }} />
-          </View>
-          {!activeVehicleForRecovery ? (
-            <InfoBanner
-              message="Für diese Mitarbeiterin bzw. diesen Mitarbeiter ist noch kein aktiver PKW hinterlegt. Die GPS-Daten bleiben erhalten, können aber erst nach der Fahrzeugzuordnung revisionssicher in das Fahrtenbuch übernommen werden."
-              variant="warning"
-            />
-          ) : gpsRecovery.readyCount > 0 ? (
-            <InfoBanner
-              message={`${gpsRecovery.readyCount} belastbare GPS-Fahrtabschnitt(e) werden dem aktiven Fahrzeug ${activeVehicleForRecovery.plate} zugeordnet. Nicht eindeutig klassifizierbare Dienst- und Zwischenfahrten bleiben bis zur Verwaltungskorrektur gesperrt.`}
-              variant="info"
-            />
-          ) : null}
-          <View style={styles.recoveryList}>
-            {gpsRecovery.pending.map((candidate) => (
-              <View key={candidate.sessionId} style={styles.recoverySession}>
-                <View style={styles.recoveryHeader}>
-                  <View style={styles.grow}>
-                    <Text style={styles.tripPrimary}>{new Date(candidate.startedAt).toLocaleDateString('de-DE')} · {candidate.title}</Text>
-                    <Text style={styles.tripSecondary}>
-                      {new Date(candidate.startedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                      {' – '}
-                      {candidate.endedAt ? new Date(candidate.endedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : 'aktuell aktiv'}
-                      {' · '}{candidate.pointCount} GPS-Punkte
-                    </Text>
-                  </View>
-                  <PremiumBadge
-                    label={candidate.active ? 'LIVE' : candidate.stale ? 'VERALTET · BEENDET' : candidate.unresolvedGapCount > 0 ? 'LÜCKEN OFFEN' : 'GEPRÜFT'}
-                    variant={candidate.active ? 'green' : candidate.stale || candidate.unresolvedGapCount > 0 ? 'orange' : 'cyan'}
-                  />
-                </View>
-                {candidate.legs.length === 0 ? (
-                  <InfoBanner message="Keine belastbare PKW-Fahrt erkannt. Stationäre Einsatzzeit und GPS-Jitter werden nicht als Kilometer übernommen." variant="warning" />
-                ) : candidate.legs.map((leg) => (
-                  <View key={leg.id} style={styles.recoveryLeg}>
-                    <View style={styles.grow}>
-                      <Text style={styles.tripPrimary}>{TRAVEL_ROUTE_TYPE_LABELS[leg.routeType]} · {leg.purpose}</Text>
-                      <Text style={styles.tripSecondary}>
-                        {new Date(leg.startedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} – {new Date(leg.endedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                        {' · '}{leg.pointCount} Punkte · GPS {leg.measuredDistanceKm.toFixed(2).replace('.', ',')} km
-                        {leg.googleGapDistanceKm > 0 ? ` + Google ${leg.googleGapDistanceKm.toFixed(2).replace('.', ',')} km` : ''}
-                      </Text>
-                    </View>
-                    <Text style={styles.recoveryDistance}>
-                      {leg.unresolvedGapCount > 0 ? 'nicht abrechenbar' : `${leg.finalDistanceKm.toFixed(2).replace('.', ',')} km`}
-                    </Text>
-                    <PremiumBadge
-                      label={leg.imported ? (leg.reviewRequired ? 'IN PRÜFUNG' : 'ÜBERNOMMEN') : leg.unresolvedGapCount > 0 ? `${leg.unresolvedGapCount} LÜCKE(N)` : leg.reviewRequired ? 'PRÜFUNG NÖTIG' : 'BEREIT'}
-                      variant={leg.imported && !leg.reviewRequired ? 'green' : leg.unresolvedGapCount > 0 || leg.reviewRequired ? 'orange' : 'cyan'}
-                    />
-                  </View>
-                ))}
-              </View>
-            ))}
-          </View>
-        </SectionPanel>
-      ) : null}
+      <EmployeeLogbookGpsRecoveryPanel candidates={query.data.gpsRecoveryCandidates} trips={currentTrips}
+        from={from} to={to} canEdit={canEdit} busy={saving} hasVehicle={Boolean(activeVehicleForRecovery)} message={gpsMessage}
+        onRecheck={() => void runGpsAction()} onImport={(sessionId, legId) => void runGpsAction(sessionId, legId)}
+        onEdit={beginTripCorrection} onDelete={beginTripDeletion} onManual={beginManualTrip} />
 
       <View style={styles.metrics}>
         <PremiumCard style={styles.metricCard}><Text style={styles.metricLabel}>Fahrten</Text><Text style={styles.metricValue}>{totals.count}</Text></PremiumCard>
@@ -482,10 +445,101 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
       <SectionPanel title="Fahrt manuell erfassen" subtitle="Für fehlgeschlagene GPS-Aufzeichnungen oder nachträglich gemeldete Dienstfahrten">
         <View style={styles.manualIntro}>
           <Text style={styles.manualText}>Jede manuelle Fahrt erhält eine Herkunftskennzeichnung und eine Pflichtbegründung. Kilometer, Fahrzeit, Arbeitszeitbezug und Erstattung werden anschließend automatisch berechnet.</Text>
-          <PremiumButton title={manualOpen ? 'Eingabe schließen' : 'Neue Fahrt erfassen'} disabled={!canEdit} onPress={() => setManualOpen((value) => !value)} />
+          <PremiumButton title="Neue Fahrt erfassen" disabled={!canEdit || saving} onPress={() => beginManualTrip()} />
         </View>
-        {manualOpen ? (
-          <View style={styles.manualForm}>
+      </SectionPanel>
+
+      <SectionPanel title="Fahrten im Zeitraum" subtitle="Route, GPS-Distanz, Arbeitszeitbezug, Erstattung und Prüfstatus vollständig einsehen">
+        <View style={[styles.tripHeader, narrow && styles.hidden]}>
+          <Text style={[styles.tripHeaderText, styles.tripDate]}>DATUM</Text>
+          <Text style={[styles.tripHeaderText, styles.tripRoute]}>FAHRT & ROUTE</Text>
+          <Text style={[styles.tripHeaderText, styles.tripNumber]}>DAUER</Text>
+          <Text style={[styles.tripHeaderText, styles.tripNumber]}>KM</Text>
+          <Text style={[styles.tripHeaderText, styles.tripNumber]}>ERSTATTUNG</Text>
+          <Text style={[styles.tripHeaderText, styles.tripAction]}>AKTION</Text>
+        </View>
+        {visibleTrips.length === 0 ? (
+          <InfoBanner message="Im gewählten Zeitraum liegen keine Fahrten vor." variant="info" />
+        ) : visibleTrips.map((trip) => {
+          const selected = selectedTripId === trip.id;
+          const durationMinutes = Math.max(0, Math.round(trip.durationSeconds / 60));
+          const segments = query.data!.segments.filter((segment) => segment.tripId === trip.id).sort((a, b) => a.sequenceNo - b.sequenceNo);
+          const receipts = query.data!.receipts.filter((receipt) => receipt.tripId === trip.id);
+          return (
+            <View key={trip.id} style={[styles.tripBlock, selected && styles.tripBlockSelected]}>
+              <View style={[styles.tripRow, narrow && styles.tripRowNarrow]}>
+                <View style={styles.tripDate}>
+                  <Text style={styles.tripPrimary}>{new Date(trip.startedAt).toLocaleDateString('de-DE')}</Text>
+                  <Text style={styles.tripSecondary}>{new Date(trip.startedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}{trip.endedAt ? ` – ${new Date(trip.endedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}` : ' · läuft'}</Text>
+                </View>
+                <View style={[styles.tripRoute, narrow && styles.fullWidth]}>
+                  <Text style={styles.tripPrimary}>{TRAVEL_ROUTE_TYPE_LABELS[trip.routeType] ?? trip.routeType}</Text>
+                  <Text style={styles.tripSecondary}>{trip.purpose || 'Ohne Zweckangabe'}</Text>
+                  <Text style={styles.tripSecondary}>{trip.startAddress ?? 'GPS-Start'} → {trip.endAddress ?? (trip.status === 'recording' ? 'Fahrt läuft' : 'GPS-Ziel')}</Text>
+                  {segments.length ? <Text style={styles.tripSecondary}>Stopps: {segments.map((segment) => segment.label).join(' → ')}</Text> : null}
+                  <View style={styles.tripBadges}>
+                    <PremiumBadge label={trip.status === 'recording' ? 'AUFZEICHNUNG LÄUFT' : trip.status === 'confirmation_required' ? 'BESTÄTIGUNG AUSSTEHEND' : trip.status === 'review_required' ? 'PRÜFUNG ERFORDERLICH' : trip.status === 'corrected' ? 'KORRIGIERT' : trip.status === 'confirmed' ? 'BESTÄTIGT' : 'ABGESCHLOSSEN'} variant={trip.status === 'recording' || trip.status === 'review_required' || trip.status === 'confirmation_required' ? 'orange' : trip.status === 'corrected' ? 'cyan' : 'green'} />
+                    <PremiumBadge label={trip.countsAsWorkTime ? 'ARBEITSZEIT' : `${trip.worktimeDeductionMinutes} MIN. ABZUG`} variant={trip.countsAsWorkTime ? 'green' : 'muted'} />
+                    <PremiumBadge
+                      label={trip.distanceSource === 'google_fallback' ? 'GOOGLE-ERSATZROUTE' : trip.distanceSource === 'office_corrected' ? 'VERWALTUNGSKORREKTUR' : trip.distanceSource === 'manual' ? 'MANUELL' : 'GPS GEMESSEN'}
+                      variant={trip.distanceSource === 'google_fallback' ? 'orange' : trip.distanceSource === 'gps' ? 'cyan' : 'muted'}
+                    />
+                    {segments.length ? <PremiumBadge label={`${segments.length} STOPPS`} variant="cyan" /> : null}
+                    {receipts.length ? <PremiumBadge label={`${receipts.length} BELEGE`} variant="muted" /> : null}
+                  </View>
+                </View>
+                <Text style={[styles.tripPrimary, styles.tripNumber, narrow && styles.numberNarrow]}>{narrow ? 'Dauer: ' : ''}{durationMinutes ? `${Math.floor(durationMinutes / 60)}:${String(durationMinutes % 60).padStart(2, '0')} h` : '—'}</Text>
+                <Text style={[styles.tripPrimary, styles.tripNumber, narrow && styles.numberNarrow]}>{narrow ? 'Km: ' : ''}{trip.status === 'review_required' ? '—' : trip.status === 'confirmation_required' ? '—' : trip.distanceFinalKm.toFixed(2).replace('.', ',')}</Text>
+                <Text style={[styles.tripPrimary, styles.tripNumber, narrow && styles.numberNarrow]}>{narrow ? 'Erstattung: ' : ''}{trip.status === 'review_required' ? 'gesperrt' : trip.status === 'confirmation_required' ? 'gesperrt' : `${(trip.mileageAmountCents / 100).toFixed(2).replace('.', ',')} €`}</Text>
+                <View style={[styles.tripAction, narrow && styles.actionsNarrow]}>
+                  <PremiumButton title={selected ? 'Schließen' : 'Korrigieren'} size="sm" variant="secondary" disabled={!canEdit || saving || trip.status === 'recording'} onPress={() => selected ? setSelectedTripId(null) : beginTripCorrection(trip)} />
+                  <PremiumButton title="Löschen" size="sm" variant="ghost" disabled={!canEdit || saving || trip.status === 'recording'} onPress={() => beginTripDeletion(trip)} />
+                </View>
+              </View>
+
+            </View>
+          );
+        })}
+      </SectionPanel>
+
+      <SectionPanel title="Fahrzeug & Kilometersatz" subtitle="Ausschließlich durch die Verwaltung bearbeitbar">
+        <View style={styles.chips}>
+          {(['private', 'company'] as const).map((key) => (
+            <PremiumButton
+              key={key}
+              title={key === 'private' ? 'Privatfahrzeug' : 'Firmenfahrzeug'}
+              size="sm"
+              variant={ownership === key ? 'primary' : 'secondary'}
+              disabled={!canEdit}
+              onPress={() => setOwnership(key)}
+            />
+          ))}
+          <PremiumBadge label={canEdit ? 'VERWALTUNG' : 'NUR LESEN'} variant="cyan" />
+        </View>
+        <View style={styles.cols}>
+          <PremiumInput label="Kennzeichen" accessibilityLabel="Kennzeichen" value={plate} onChangeText={setPlate} editable={canEdit} style={styles.grow} />
+          <PremiumInput label="Hersteller" accessibilityLabel="Hersteller" value={make} onChangeText={setMake} editable={canEdit} style={styles.grow} />
+          <PremiumInput label="Modell" accessibilityLabel="Modell" value={model} onChangeText={setModel} editable={canEdit} style={styles.grow} />
+          <PremiumInput label="EUR je km" accessibilityLabel="EUR je km" value={rate} onChangeText={setRate} editable={canEdit} style={styles.grow} />
+        </View>
+        {canEdit ? <PremiumButton title="Fahrzeugdaten speichern" loading={saving} onPress={() => void saveVehicleSettings()} /> : null}
+      </SectionPanel>
+
+      <SectionPanel title="Zeitraum & PDF" subtitle="Vollständigen Fahrtenbuchnachweis für die Personal- und Abrechnungsverwaltung erstellen">
+        <View style={styles.cols}>
+          <PremiumInput label="Von" accessibilityLabel="Von" value={from} onChangeText={setFrom} style={styles.grow} />
+          <PremiumInput label="Bis" accessibilityLabel="Bis" value={to} onChangeText={setTo} style={styles.grow} />
+        </View>
+        <PremiumButton
+          title="Fahrtenbuch als PDF erstellen"
+          onPress={() => buildLogbookPdf({ employeeName, from, to, trips: currentTrips, vehicles: query.data!.vehicles, segments: query.data!.segments, receipts: query.data!.receipts, confirmations: query.data!.confirmations })}
+        />
+      </SectionPanel>
+
+      <PlatformModal visible={manualOpen} title="Fahrt manuell erfassen" onClose={() => { if (!savingRef.current) setManualOpen(false); }}
+        variant="center" maxWidth={1000} minWidth={280} maxHeightRatio={0.94} dismissOnBackdrop={!saving}
+        isDirty={Boolean(manualPurpose || manualDistance || manualReason)}>
+          <View style={styles.manualForm} pointerEvents={saving ? 'none' : 'auto'}>
             <Text style={styles.formLabel}>Fahrtart</Text>
             <View style={styles.routeTypes}>
               {(Object.keys(TRAVEL_ROUTE_TYPE_LABELS) as TravelRouteType[]).map((routeType) => (
@@ -493,10 +547,10 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
               ))}
             </View>
             <View style={styles.cols}>
-              <PremiumInput label="Datum (JJJJ-MM-TT)" value={manualDate} onChangeText={setManualDate} style={styles.manualSmall} />
-              <PremiumInput label="Startzeit (HH:MM)" value={manualStartTime} onChangeText={setManualStartTime} style={styles.manualSmall} />
-              <PremiumInput label="Endzeit (HH:MM)" value={manualEndTime} onChangeText={setManualEndTime} style={styles.manualSmall} />
-              <PremiumInput label="Kilometer" value={manualDistance} onChangeText={setManualDistance} keyboardType="decimal-pad" style={styles.manualSmall} />
+              <PremiumInput label="Datum (JJJJ-MM-TT)" accessibilityLabel="Datum (JJJJ-MM-TT)" value={manualDate} onChangeText={setManualDate} style={styles.manualSmall} />
+              <PremiumInput label="Startzeit (HH:MM)" accessibilityLabel="Startzeit (HH:MM)" value={manualStartTime} onChangeText={setManualStartTime} style={styles.manualSmall} />
+              <PremiumInput label="Endzeit (HH:MM)" accessibilityLabel="Endzeit (HH:MM)" value={manualEndTime} onChangeText={setManualEndTime} style={styles.manualSmall} />
+              <PremiumInput label="Kilometer" accessibilityLabel="Kilometer" value={manualDistance} onChangeText={setManualDistance} keyboardType="decimal-pad" style={styles.manualSmall} />
             </View>
             <Text style={styles.formLabel}>Verbindliche Zuordnung</Text>
             <View style={styles.routeTypes}>
@@ -534,9 +588,9 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
               />
             ) : null}
             <View style={styles.cols}>
-              <PremiumInput label="Fahrtzweck" value={manualPurpose} onChangeText={setManualPurpose} placeholder="z. B. Dienstfahrt zur Klientin" style={styles.grow} />
-              <PremiumInput label="Startadresse" value={manualStartAddress} onChangeText={setManualStartAddress} style={styles.grow} />
-              <PremiumInput label="Zieladresse" value={manualEndAddress} onChangeText={setManualEndAddress} style={styles.grow} />
+              <PremiumInput label="Fahrtzweck" accessibilityLabel="Fahrtzweck" value={manualPurpose} onChangeText={setManualPurpose} placeholder="z. B. Dienstfahrt zur Klientin" style={styles.grow} />
+              <PremiumInput label="Startadresse" accessibilityLabel="Startadresse" value={manualStartAddress} onChangeText={setManualStartAddress} style={styles.grow} />
+              <PremiumInput label="Zieladresse" accessibilityLabel="Zieladresse" value={manualEndAddress} onChangeText={setManualEndAddress} style={styles.grow} />
             </View>
             {query.data.vehicles.length ? (
               <View style={styles.vehicleSelect}>
@@ -546,64 +600,18 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
                 </View>
               </View>
             ) : <InfoBanner message="Es ist kein aktiver PKW hinterlegt. Eine manuelle Fahrtenbucherfassung ist erst nach der Fahrzeugzuordnung möglich." variant="warning" />}
-            <PremiumInput label="Pflichtbegründung für manuelle Erfassung" value={manualReason} onChangeText={setManualReason} placeholder="z. B. GPS-Berechtigung war deaktiviert" />
+            <PremiumInput label="Pflichtbegründung für manuelle Erfassung" accessibilityLabel="Pflichtbegründung für manuelle Erfassung" value={manualReason} onChangeText={setManualReason} placeholder="z. B. GPS-Berechtigung war deaktiviert" />
+            {feedback ? <InfoBanner message={feedback} variant="warning" /> : null}
             <View style={styles.correctionActions}>
-              <PremiumButton title="Abbrechen" variant="ghost" onPress={() => setManualOpen(false)} />
+              <PremiumButton title="Abbrechen" variant="ghost" disabled={saving} onPress={() => setManualOpen(false)} />
               <PremiumButton title="Manuelle Fahrt speichern" loading={saving} disabled={!manualVehicleId} onPress={() => void saveManualTrip()} />
             </View>
           </View>
-        ) : null}
-      </SectionPanel>
+      </PlatformModal>
+      <PlatformModal visible={Boolean(selectedTripId)} title="Fahrt bearbeiten" onClose={() => { if (!savingRef.current) setSelectedTripId(null); }}
+        variant="center" maxWidth={1000} minWidth={280} maxHeightRatio={0.94} dismissOnBackdrop={!saving} isDirty={correctionDirty}>
 
-      <SectionPanel title="Fahrten im Zeitraum" subtitle="Route, GPS-Distanz, Arbeitszeitbezug, Erstattung und Prüfstatus vollständig einsehen">
-        <View style={styles.tripHeader}>
-          <Text style={[styles.tripHeaderText, styles.tripDate]}>DATUM</Text>
-          <Text style={[styles.tripHeaderText, styles.tripRoute]}>FAHRT & ROUTE</Text>
-          <Text style={[styles.tripHeaderText, styles.tripNumber]}>DAUER</Text>
-          <Text style={[styles.tripHeaderText, styles.tripNumber]}>KM</Text>
-          <Text style={[styles.tripHeaderText, styles.tripNumber]}>ERSTATTUNG</Text>
-          <Text style={[styles.tripHeaderText, styles.tripAction]}>AKTION</Text>
-        </View>
-        {visibleTrips.length === 0 ? (
-          <InfoBanner message="Im gewählten Zeitraum liegen keine Fahrten vor." variant="info" />
-        ) : visibleTrips.map((trip) => {
-          const selected = selectedTripId === trip.id;
-          const durationMinutes = Math.max(0, Math.round(trip.durationSeconds / 60));
-          const segments = query.data!.segments.filter((segment) => segment.tripId === trip.id).sort((a, b) => a.sequenceNo - b.sequenceNo);
-          const receipts = query.data!.receipts.filter((receipt) => receipt.tripId === trip.id);
-          return (
-            <View key={trip.id} style={[styles.tripBlock, selected && styles.tripBlockSelected]}>
-              <View style={styles.tripRow}>
-                <View style={styles.tripDate}>
-                  <Text style={styles.tripPrimary}>{new Date(trip.startedAt).toLocaleDateString('de-DE')}</Text>
-                  <Text style={styles.tripSecondary}>{new Date(trip.startedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}{trip.endedAt ? ` – ${new Date(trip.endedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}` : ' · läuft'}</Text>
-                </View>
-                <View style={styles.tripRoute}>
-                  <Text style={styles.tripPrimary}>{TRAVEL_ROUTE_TYPE_LABELS[trip.routeType] ?? trip.routeType}</Text>
-                  <Text style={styles.tripSecondary}>{trip.purpose || 'Ohne Zweckangabe'}</Text>
-                  <Text style={styles.tripSecondary}>{trip.startAddress ?? 'GPS-Start'} → {trip.endAddress ?? (trip.status === 'recording' ? 'Fahrt läuft' : 'GPS-Ziel')}</Text>
-                  {segments.length ? <Text style={styles.tripSecondary}>Stopps: {segments.map((segment) => segment.label).join(' → ')}</Text> : null}
-                  <View style={styles.tripBadges}>
-                    <PremiumBadge label={trip.status === 'recording' ? 'AUFZEICHNUNG LÄUFT' : trip.status === 'confirmation_required' ? 'BESTÄTIGUNG AUSSTEHEND' : trip.status === 'review_required' ? 'PRÜFUNG ERFORDERLICH' : trip.status === 'corrected' ? 'KORRIGIERT' : trip.status === 'confirmed' ? 'BESTÄTIGT' : 'ABGESCHLOSSEN'} variant={trip.status === 'recording' || trip.status === 'review_required' || trip.status === 'confirmation_required' ? 'orange' : trip.status === 'corrected' ? 'cyan' : 'green'} />
-                    <PremiumBadge label={trip.countsAsWorkTime ? 'ARBEITSZEIT' : `${trip.worktimeDeductionMinutes} MIN. ABZUG`} variant={trip.countsAsWorkTime ? 'green' : 'muted'} />
-                    <PremiumBadge
-                      label={trip.distanceSource === 'google_fallback' ? 'GOOGLE-ERSATZROUTE' : trip.distanceSource === 'office_corrected' ? 'VERWALTUNGSKORREKTUR' : trip.distanceSource === 'manual' ? 'MANUELL' : 'GPS GEMESSEN'}
-                      variant={trip.distanceSource === 'google_fallback' ? 'orange' : trip.distanceSource === 'gps' ? 'cyan' : 'muted'}
-                    />
-                    {segments.length ? <PremiumBadge label={`${segments.length} STOPPS`} variant="cyan" /> : null}
-                    {receipts.length ? <PremiumBadge label={`${receipts.length} BELEGE`} variant="muted" /> : null}
-                  </View>
-                </View>
-                <Text style={[styles.tripPrimary, styles.tripNumber]}>{durationMinutes ? `${Math.floor(durationMinutes / 60)}:${String(durationMinutes % 60).padStart(2, '0')} h` : '—'}</Text>
-                <Text style={[styles.tripPrimary, styles.tripNumber]}>{trip.status === 'review_required' ? '—' : trip.status === 'confirmation_required' ? '—' : trip.distanceFinalKm.toFixed(2).replace('.', ',')}</Text>
-                <Text style={[styles.tripPrimary, styles.tripNumber]}>{trip.status === 'review_required' ? 'gesperrt' : trip.status === 'confirmation_required' ? 'gesperrt' : `${(trip.mileageAmountCents / 100).toFixed(2).replace('.', ',')} €`}</Text>
-                <View style={styles.tripAction}>
-                  <PremiumButton title={selected ? 'Schließen' : 'Korrigieren'} size="sm" variant="secondary" disabled={!canEdit || trip.status === 'recording'} onPress={() => selected ? setSelectedTripId(null) : beginTripCorrection(trip)} />
-                  <PremiumButton title="Löschen" size="sm" variant="ghost" disabled={!canEdit || trip.status === 'recording'} onPress={() => { setDeleteTripId(trip.id); setDeleteReason(''); setFeedback(null); }} />
-                </View>
-              </View>
-              {selected ? (
-                <View style={styles.correctionPanel}>
+                <View style={styles.correctionPanel} pointerEvents={saving ? 'none' : 'auto'}>
                   <Text style={styles.formLabel}>Fahrtart und Fahrzeug</Text>
                   <View style={styles.routeTypes}>
                     {(Object.keys(TRAVEL_ROUTE_TYPE_LABELS) as TravelRouteType[]).map((routeType) => <PremiumButton key={routeType} title={TRAVEL_ROUTE_TYPE_LABELS[routeType]} size="sm" variant={correctionRouteType === routeType ? 'primary' : 'secondary'} onPress={() => setCorrectionRouteType(routeType)} />)}
@@ -612,13 +620,13 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
                     {query.data!.vehicles.filter((vehicle) => vehicle.active).map((vehicle) => <PremiumButton key={vehicle.id} title={`${vehicle.plate}${vehicle.make ? ` · ${vehicle.make}` : ''}`} size="sm" variant={correctionVehicleId === vehicle.id ? 'primary' : 'secondary'} onPress={() => setCorrectionVehicleId(vehicle.id)} />)}
                   </View>
                   <View style={styles.cols}>
-                    <PremiumInput label="Fahrtzweck" value={correctionPurpose} onChangeText={setCorrectionPurpose} style={styles.grow} />
-                    <PremiumInput label="Start (JJJJ-MM-TTTHH:MM)" value={correctionStartedAt} onChangeText={setCorrectionStartedAt} style={styles.grow} />
-                    <PremiumInput label="Ende (JJJJ-MM-TTTHH:MM)" value={correctionEndedAt} onChangeText={setCorrectionEndedAt} style={styles.grow} />
+                    <PremiumInput label="Fahrtzweck" accessibilityLabel="Fahrtzweck" value={correctionPurpose} onChangeText={setCorrectionPurpose} style={styles.grow} />
+                    <PremiumInput label="Start (JJJJ-MM-TTTHH:MM)" accessibilityLabel="Start (JJJJ-MM-TTTHH:MM)" value={correctionStartedAt} onChangeText={setCorrectionStartedAt} style={styles.grow} />
+                    <PremiumInput label="Ende (JJJJ-MM-TTTHH:MM)" accessibilityLabel="Ende (JJJJ-MM-TTTHH:MM)" value={correctionEndedAt} onChangeText={setCorrectionEndedAt} style={styles.grow} />
                   </View>
                   <View style={styles.cols}>
-                    <PremiumInput label="Startadresse" value={correctionStartAddress} onChangeText={setCorrectionStartAddress} style={styles.grow} />
-                    <PremiumInput label="Zieladresse" value={correctionEndAddress} onChangeText={setCorrectionEndAddress} style={styles.grow} />
+                    <PremiumInput label="Startadresse" accessibilityLabel="Startadresse" value={correctionStartAddress} onChangeText={setCorrectionStartAddress} style={styles.grow} />
+                    <PremiumInput label="Zieladresse" accessibilityLabel="Zieladresse" value={correctionEndAddress} onChangeText={setCorrectionEndAddress} style={styles.grow} />
                   </View>
                   <View style={styles.cols}>
                     <CareEntitySelect
@@ -643,68 +651,42 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
                     />
                   </View>
                   <View style={styles.cols}>
-                    <PremiumInput label="Korrigierte Kilometer" value={correctedDistance} onChangeText={setCorrectedDistance} keyboardType="decimal-pad" style={styles.grow} />
-                    <PremiumInput label="Pflichtbegründung" value={correctionReason} onChangeText={setCorrectionReason} placeholder="Warum weicht die Strecke von der GPS-Aufzeichnung ab?" style={styles.correctionReason} />
+                    <PremiumInput label="Korrigierte Kilometer" accessibilityLabel="Korrigierte Kilometer" value={correctedDistance} onChangeText={setCorrectedDistance} keyboardType="decimal-pad" style={styles.grow} />
+                    <PremiumInput label="Pflichtbegründung" accessibilityLabel="Pflichtbegründung" value={correctionReason} onChangeText={setCorrectionReason} placeholder="Warum weicht die Strecke von der GPS-Aufzeichnung ab?" style={styles.correctionReason} />
                   </View>
-                  <View style={styles.correctionActions}>
-                    <PremiumButton title="Abbrechen" variant="ghost" onPress={() => setSelectedTripId(null)} />
+                  {feedback ? <InfoBanner message={feedback} variant="warning" /> : null}
+<View style={styles.correctionActions}>
+                    <PremiumButton title="Abbrechen" variant="ghost" disabled={saving} onPress={() => setSelectedTripId(null)} />
                     <PremiumButton title="Korrektur speichern" loading={saving} onPress={() => void saveTripCorrection()} />
                   </View>
                 </View>
-              ) : null}
-              {deleteTripId === trip.id ? (
-                <View style={styles.correctionPanel}>
-                  <InfoBanner message="Die Fahrt wird aus dem aktiven Fahrtenbuch entfernt. Der Löschvorgang bleibt revisionssicher protokolliert. Bereits abgerechnete Fahrten sind geschützt." variant="warning" />
-                  <PremiumInput label="Löschgrund" value={deleteReason} onChangeText={setDeleteReason} placeholder="Warum soll diese Fahrt gelöscht werden?" />
-                  <View style={styles.correctionActions}>
-                    <PremiumButton title="Abbrechen" variant="ghost" onPress={() => { setDeleteTripId(null); setDeleteReason(''); }} />
+
+
+      </PlatformModal>
+      <PlatformModal visible={Boolean(deleteTripId)} title="Fahrt löschen" onClose={() => { if (!savingRef.current) setDeleteTripId(null); }}
+        variant="center" maxWidth={720} minWidth={280} maxHeightRatio={0.94} dismissOnBackdrop={!saving} isDirty={Boolean(deleteReason)}>
+
+                <View style={styles.correctionPanel} pointerEvents={saving ? 'none' : 'auto'}>
+                  <InfoBanner message="Die Fahrt wird aus dem aktiven Fahrtenbuch entfernt. Der Löschvorgang bleibt revisionssicher protokolliert. Bereits ausgezahlte Fahrten sind geschützt." variant="warning" />
+                  <PremiumInput label="Löschgrund" accessibilityLabel="Löschgrund" value={deleteReason} onChangeText={setDeleteReason} placeholder="Warum soll diese Fahrt gelöscht werden?" />
+                  {feedback ? <InfoBanner message={feedback} variant="warning" /> : null}
+<View style={styles.correctionActions}>
+                    <PremiumButton title="Abbrechen" variant="ghost" disabled={saving} onPress={() => { setDeleteTripId(null); setDeleteReason(''); }} />
                     <PremiumButton title="Fahrt löschen" loading={saving} disabled={deleteReason.trim().length < 3} onPress={() => void deleteTrip()} />
                   </View>
                 </View>
-              ) : null}
-            </View>
-          );
-        })}
-      </SectionPanel>
 
-      <SectionPanel title="Fahrzeug & Kilometersatz" subtitle="Ausschließlich durch die Verwaltung bearbeitbar">
-        <View style={styles.chips}>
-          {(['private', 'company'] as const).map((key) => (
-            <PremiumButton
-              key={key}
-              title={key === 'private' ? 'Privatfahrzeug' : 'Firmenfahrzeug'}
-              size="sm"
-              variant={ownership === key ? 'primary' : 'secondary'}
-              disabled={!canEdit}
-              onPress={() => setOwnership(key)}
-            />
-          ))}
-          <PremiumBadge label={canEdit ? 'VERWALTUNG' : 'NUR LESEN'} variant="cyan" />
-        </View>
-        <View style={styles.cols}>
-          <PremiumInput label="Kennzeichen" value={plate} onChangeText={setPlate} editable={canEdit} style={styles.grow} />
-          <PremiumInput label="Hersteller" value={make} onChangeText={setMake} editable={canEdit} style={styles.grow} />
-          <PremiumInput label="Modell" value={model} onChangeText={setModel} editable={canEdit} style={styles.grow} />
-          <PremiumInput label="EUR je km" value={rate} onChangeText={setRate} editable={canEdit} style={styles.grow} />
-        </View>
-        {canEdit ? <PremiumButton title="Fahrzeugdaten speichern" loading={saving} onPress={() => void saveVehicleSettings()} /> : null}
-      </SectionPanel>
-
-      <SectionPanel title="Zeitraum & PDF" subtitle="Vollständigen Fahrtenbuchnachweis für die Personal- und Abrechnungsverwaltung erstellen">
-        <View style={styles.cols}>
-          <PremiumInput label="Von" value={from} onChangeText={setFrom} style={styles.grow} />
-          <PremiumInput label="Bis" value={to} onChangeText={setTo} style={styles.grow} />
-        </View>
-        <PremiumButton
-          title="Fahrtenbuch als PDF erstellen"
-          onPress={() => buildLogbookPdf({ employeeName, from, to, trips: query.data!.trips, vehicles: query.data!.vehicles, segments: query.data!.segments, receipts: query.data!.receipts, confirmations: query.data!.confirmations })}
-        />
-      </SectionPanel>
+      </PlatformModal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  hidden: { display: 'none' },
+  fullWidth: { flexBasis: '100%', minWidth: 0 },
+  tripRowNarrow: { flexWrap: 'wrap', alignItems: 'flex-start' },
+  actionsNarrow: { width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  numberNarrow: { width: 'auto', flexShrink: 1, textAlign: 'left' },
   stack: { gap: careSpacing.md },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   metricCard: { flex: 1, minWidth: 190 },
@@ -712,7 +694,7 @@ const styles = StyleSheet.create({
   metricValue: { ...typography.h3, color: portalPremium.text.primary, marginTop: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, alignItems: 'center' },
   cols: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
-  grow: { flex: 1, minWidth: 220 },
+  grow: { flex: 1, minWidth: 180 },
   tripHeader: { flexDirection: 'row', alignItems: 'center', gap: careSpacing.sm, paddingHorizontal: careSpacing.sm, paddingVertical: careSpacing.xs, borderRadius: 10, backgroundColor: '#E7F1FB' },
   tripHeaderText: { ...typography.caption, color: '#31597F', fontSize: 10, fontWeight: '900', letterSpacing: 0.4 },
   tripBlock: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#C8DBED', backgroundColor: '#FFFFFF' },
@@ -726,18 +708,13 @@ const styles = StyleSheet.create({
   tripSecondary: { ...typography.caption, color: '#4C6885', fontSize: 11, lineHeight: 15 },
   tripBadges: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
   correctionPanel: { gap: careSpacing.sm, padding: careSpacing.md, borderTopWidth: 1, borderTopColor: '#B7D8F7', backgroundColor: '#EEF7FF' },
-  correctionReason: { flex: 2, minWidth: 320 },
+  correctionReason: { flex: 2, minWidth: 180 },
   correctionActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: careSpacing.sm },
   manualIntro: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: careSpacing.md },
-  manualText: { ...typography.body, flex: 1, minWidth: 280, color: '#31597F', fontSize: 12, lineHeight: 18 },
+  manualText: { ...typography.body, flex: 1, minWidth: 180, color: '#31597F', fontSize: 12, lineHeight: 18 },
   manualForm: { gap: careSpacing.md, paddingTop: careSpacing.sm, borderTopWidth: 1, borderTopColor: '#C8DBED' },
   formLabel: { ...typography.caption, color: '#0B2342', fontWeight: '900' },
   routeTypes: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
   manualSmall: { flex: 1, minWidth: 160 },
   vehicleSelect: { gap: careSpacing.xs },
-  recoveryList: { gap: careSpacing.sm },
-  recoverySession: { gap: careSpacing.sm, padding: careSpacing.sm, borderWidth: 1, borderColor: '#B7D8F7', borderRadius: 14, backgroundColor: '#F6FBFF' },
-  recoveryHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: careSpacing.sm },
-  recoveryLeg: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: careSpacing.sm, padding: careSpacing.sm, borderRadius: 10, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D8E8F5' },
-  recoveryDistance: { ...typography.bodyStrong, color: '#0878C7', minWidth: 105, textAlign: 'right', fontVariant: ['tabular-nums'] },
 });

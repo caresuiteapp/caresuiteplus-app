@@ -16,6 +16,7 @@ export type LogbookProfile = {
 };
 
 export type LogbookTrip = {
+  source?: string | null;
   id: string; tenantId: string; employeeId: string; assignmentId: string | null;
   clientId: string | null; vehicleId: string | null; routeType: TravelRouteType;
   purpose: string; manualReason: string | null; status: LogbookTripStatus;
