@@ -1,3 +1,4 @@
+import { applyStoredOfficeEntry, readStoredOfficeEntry } from './wfmOfficeStoredEntry';
 import type { ServiceResult } from '@/types';
 import type { WfmOfficeTimeEntry, WfmOfficeTimeEntryStatus } from '@/types/modules/wfmOfficeTimekeeping';
 import { shouldAutoPendingReview } from './wfmVisitDeviationAmpelService';
@@ -60,6 +61,10 @@ export interface WfmTimeEntryReview {
   officeComment: string | null;
   reviewedAt: string | null;
   reviewedBy: string | null;
+  updatedAt?: string | null;
+  exportStatus?: string;
+  officeEntry?: WfmOfficeTimeEntry | null;
+  metadata?: Record<string, unknown>;
 }
 
 export interface WfmTimeReviewAction {
@@ -72,6 +77,9 @@ export interface WfmTimeReviewAction {
   comment: string | null;
   actorId: string | null;
   createdAt: string;
+  reason?: string | null;
+  oldValue?: unknown;
+  newValue?: unknown;
 }
 
 export interface ParsedOfficeEntryId {
@@ -91,6 +99,8 @@ export interface ReviewTransitionInput {
   officeComment?: string | null;
   actorId: string;
   actionComment?: string | null;
+  officeEntry?: WfmOfficeTimeEntry;
+  expectedUpdatedAt?: string | null;
 }
 
 const UUID_RE =
@@ -218,7 +228,7 @@ export function mapUiReviewDecisionToDb(
 }
 
 export function isOpenReviewStatus(status: WfmTimeReviewStatus | WfmOfficeTimeEntryStatus): boolean {
-  return status === 'pending_review' || status === 'needs_clarification';
+  return status === 'pending_review' || status === 'needs_clarification' || status === 'corrected';
 }
 
 export function resolveEntryKindFromOfficeEntry(entry: WfmOfficeTimeEntry): WfmTimeReviewEntryKind {
@@ -282,6 +292,10 @@ function mapReviewRow(row: Record<string, unknown>): WfmTimeEntryReview {
     officeComment: (row.office_comment as string | null) ?? null,
     reviewedAt: (row.reviewed_at as string | null) ?? null,
     reviewedBy: (row.reviewed_by as string | null) ?? null,
+    updatedAt: (row.updated_at as string | null) ?? null,
+    exportStatus: row.export_status as string | undefined,
+    metadata: (row.metadata ?? {}) as Record<string, unknown>,
+    officeEntry: readStoredOfficeEntry((row.metadata as Record<string, unknown> | null)?.office_time_entry, String(row.tenant_id), String(row.employee_id), String(row.work_date)),
   };
 }
 
@@ -364,6 +378,7 @@ export async function upsertReview(
   actorId: string,
   input: ReviewTransitionInput,
 ): Promise<ServiceResult<WfmTimeEntryReview>> {
+  if (input.officeEntry && getServiceMode() === 'supabase' && !getSupabaseClient()) return { ok: false, error: 'Keine Datenbankverbindung. Die Buchung wurde nicht gespeichert.' };
   const parsed = parseOfficeEntryId(input.entryId);
   const sourceReferenceId = input.rawReferenceId ?? parsed?.rawReferenceId ?? input.entryId;
   const sourceEntryKind = input.entryKind ?? parsed?.entryKind ?? 'manual';
@@ -388,6 +403,10 @@ export async function upsertReview(
   if (shouldUseDemoStore()) {
     const key = demoKey(tenantId, ctx.referenceKey);
     const existing = demoReviews.get(key);
+    if (input.officeEntry && (existing?.updatedAt ?? null) !== (input.expectedUpdatedAt ?? null)) {
+      return { ok: false, error: 'Die Buchung wurde inzwischen geändert. Bitte neu öffnen und erneut prüfen.' };
+    }
+    const revision = new Date(Math.max(Date.now(), Date.parse(existing?.updatedAt ?? '') + 1 || 0)).toISOString();
     const prevStatus = existing?.reviewStatus ?? null;
     const review: WfmTimeEntryReview = {
       id: existing?.id ?? crypto.randomUUID(),
@@ -403,6 +422,8 @@ export async function upsertReview(
       officeComment: input.officeComment ?? input.reviewNote ?? existing?.officeComment ?? null,
       reviewedAt: isDecision ? now : existing?.reviewedAt ?? null,
       reviewedBy: isDecision ? actorId : existing?.reviewedBy ?? null,
+      updatedAt: revision,
+      officeEntry: input.officeEntry ? { ...input.officeEntry, employeeId: ctx.employeeId } : existing?.officeEntry,
     };
     demoReviews.set(key, review);
     demoActions.push({
@@ -422,6 +443,22 @@ export async function upsertReview(
   const supabase = getSupabaseClient();
   if (!supabase) {
     return { ok: false, error: 'Supabase-Client nicht verfügbar.' };
+  }
+
+  // No in-memory or non-atomic fallback for monetary time values.
+  if (input.officeEntry) {
+    const { officeRevision: _revision, ...snapshot } = input.officeEntry;
+    const result = await (supabase as unknown as { rpc: (name: string, args: Record<string, unknown>) => { single: () => Promise<{ data: unknown; error: import('@supabase/supabase-js').PostgrestError | null }> } }).rpc('wfm_save_office_time_entry', {
+      p_tenant_id: tenantId, p_employee_id: ctx.employeeId, p_work_date: ctx.workDate,
+      p_entry_kind: ctx.entryKind, p_reference_id: ctx.referenceId, p_reference_key: ctx.referenceKey,
+      p_office_entry: { ...snapshot, tenantId, employeeId: ctx.employeeId, workDate: ctx.workDate },
+      p_reason: input.reviewNote ?? '', p_expected_updated_at: input.expectedUpdatedAt ?? null,
+    }).single();
+    if (result.error || !result.data) return { ok: false, error: result.error?.code === 'PGRST202'
+      ? 'Die dauerhafte Zeitspeicherung ist noch nicht verfügbar. Bitte später erneut versuchen.'
+      : result.error?.code === '40001' ? 'Die Buchung wurde inzwischen geändert. Bitte neu öffnen und erneut prüfen.'
+      : result.error ? toGermanSupabaseError(result.error) : 'Der Server hat die Speicherung nicht bestätigt.' };
+    return { ok: true, data: mapReviewRow(result.data as Record<string, unknown>) };
   }
 
   const rpcResult = await (supabase as unknown as {
@@ -476,7 +513,7 @@ export async function upsertReview(
     office_comment: input.officeComment ?? input.reviewNote ?? existing?.officeComment ?? null,
     reviewed_at: isDecision ? now : existing?.reviewedAt ?? null,
     reviewed_by: isDecision ? actorId : existing?.reviewedBy ?? null,
-    metadata: { source: 'wfm_p21_service' },
+    metadata: { ...existing?.metadata, source: 'wfm_p21_service' },
   };
 
   const { data, error } = await fromUnknownTable(supabase, REVIEWS_TABLE)
@@ -527,7 +564,8 @@ export async function transitionReviewStatus(
       rawReferenceId,
     }).referenceKey,
   );
-  if (existingResult.ok && existingResult.data) {
+  if (!existingResult.ok) return existingResult;
+  if (existingResult.data) {
     const current = existingResult.data.reviewStatus;
     if (TERMINAL_REVIEW_STATUSES.has(current) && input.nextStatus !== 'open') {
       return {
@@ -711,6 +749,7 @@ export async function listReviewActionsForReviews(
         comment: (r.comment as string | null) ?? null,
         actorId: (r.actor_id as string | null) ?? null,
         createdAt: String(r.created_at),
+        reason: (r.reason as string | null) ?? null, oldValue: r.old_value, newValue: r.new_value,
       };
     }),
   };
@@ -734,18 +773,20 @@ export function applyReviewToEntry(
   latestAction?: WfmTimeReviewAction | null,
 ): WfmOfficeTimeEntry {
   if (!review) return entry;
+  entry = applyStoredOfficeEntry(entry, review.officeEntry);
   const uiStatus = mapDbReviewStatusToUi(review.reviewStatus);
   return {
     ...entry,
     reviewStatus: uiStatus,
     status: uiStatus,
+    officeRevision: review.updatedAt ?? null,
     officeComment: review.officeComment ?? review.reviewNote ?? entry.officeComment,
     reviewNote: review.reviewNote ?? entry.reviewNote ?? null,
     reviewedAt: review.reviewedAt ?? entry.reviewedAt ?? null,
     reviewedBy: review.reviewedBy ?? entry.reviewedBy ?? null,
     lastReviewAction: latestAction?.action ?? entry.lastReviewAction ?? null,
     lastReviewComment: latestAction?.comment ?? entry.lastReviewComment ?? null,
-    exportStatus: deriveExportStatusFromReview(review.reviewStatus, entry.exportStatus),
+    exportStatus: ['exported', 'changed_after_export'].includes(review.exportStatus ?? '') ? 'exported' : deriveExportStatusFromReview(review.reviewStatus, entry.exportStatus),
   };
 }
 

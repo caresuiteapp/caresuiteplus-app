@@ -1,3 +1,6 @@
+import { calculateOfficeLogbookTime, officeAbsenceMinutes } from './wfmOfficeLinkedTotals';
+import { isLogbookTripInBerlinRange } from '@/lib/employeeLogbook/employeeLogbookDate';
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import type { RoleKey, ServiceResult } from '@/types';
 import type { WfmOfficeEmployeeTimeAccount, WfmOfficeTimeEntry } from '@/types/modules/wfmOfficeTimekeeping';
 import { enforcePermission } from '@/lib/permissions';
@@ -136,7 +139,7 @@ export async function getWfmOfficeEmployeeTimeAccounts(
     const supabase = getSupabaseClient();
     if (supabase) {
       const employeeIds = [...byEmployee.keys()];
-      const [accountResult, contractResult, statementResult] = await Promise.all([
+      const [accountResult, contractResult, statementResult, absenceResult, tripResult] = await Promise.all([
         fromUnknownTable(supabase, 'workforce_time_accounts')
           .select(
             'employee_id, period_year, period_month, target_minutes, actual_minutes, overtime_minutes, undertime_minutes, travel_minutes, absence_minutes, vacation_days_used, sick_days',
@@ -154,7 +157,28 @@ export async function getWfmOfficeEmployeeTimeAccounts(
           .order('period_year', { ascending: false })
           .order('period_month', { ascending: false })
           .order('version', { ascending: false }),
+        fromUnknownTable(supabase, 'workforce_absences').select('employee_id, absence_type, status, starts_at, ends_at')
+          .eq('tenant_id', tenantId).in('employee_id', employeeIds)
+          .lte('starts_at', `${overview.data.period.toDate}T23:59:59`).gte('ends_at', `${overview.data.period.fromDate}T00:00:00`),
+        // Page through the period: Supabase's default result limit must not truncate large teams.
+        (async () => {
+          const rows: Row[] = [];
+          const { fromDate, toDate } = overview.data.period;
+          const lower = new Date(`${fromDate}T00:00:00Z`); lower.setUTCDate(lower.getUTCDate() - 1);
+          for (let offset = 0; ; offset += 500) {
+            const result = await fromUnknownTable(supabase, 'employee_logbook_trips')
+              .select('id, employee_id, started_at, ended_at, status, counts_as_work_time')
+              .eq('tenant_id', tenantId).in('employee_id', employeeIds)
+              .gte('started_at', lower.toISOString()).lte('started_at', `${toDate}T23:59:59Z`)
+              .order('started_at').order('id').range(offset, offset + 499);
+            if (result.error) return result;
+            const page = (result.data ?? []) as Row[]; rows.push(...page);
+            if (page.length < 500) return { data: rows, error: null };
+          }
+        })(),
       ]);
+      const sourceError = [accountResult, contractResult, statementResult, absenceResult, tripResult].find(result => result.error)?.error;
+      if (sourceError) return { ok: false, error: toGermanSupabaseError(sourceError) };
 
       const from = new Date(`${overview.data.period.fromDate}T00:00:00`);
       const to = new Date(`${overview.data.period.toDate}T23:59:59`);
@@ -176,11 +200,12 @@ export async function getWfmOfficeEmployeeTimeAccounts(
             account.sickDays += numberValue(row.sick_days);
           }
           if (key < fromMonth || key > toMonth) continue;
-          account.targetMinutes += numberValue(row.target_minutes);
+          const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
+          const monthEnd = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
+          if (monthStart >= overview.data.period.fromDate && monthEnd <= overview.data.period.toDate) account.targetMinutes += numberValue(row.target_minutes);
           account.overtimeMinutes += numberValue(row.overtime_minutes);
           account.undertimeMinutes += numberValue(row.undertime_minutes);
-          account.travelMinutes += numberValue(row.travel_minutes);
-          account.absenceMinutes += numberValue(row.absence_minutes);
+
         }
       }
 
@@ -196,8 +221,20 @@ export async function getWfmOfficeEmployeeTimeAccounts(
             overview.data.period.fromDate,
             overview.data.period.toDate,
           );
-          if (contractTarget > 0) account.targetMinutes = contractTarget;
+          if (row.work_days && typeof row.work_days === 'object') account.targetMinutes = contractTarget;
+          account.absenceMinutes = ((absenceResult.data ?? []) as Row[])
+            .filter(absence => stringValue(absence.employee_id) === account.employeeId)
+            .reduce((sum, absence) => sum + officeAbsenceMinutes(absence, row.work_days, overview.data.period.fromDate, overview.data.period.toDate), 0);
         }
+      }
+
+      for (const account of byEmployee.values()) {
+        const trips = ((tripResult.data ?? []) as Row[]).filter(trip => stringValue(trip.employee_id) === account.employeeId
+          && isLogbookTripInBerlinRange(stringValue(trip.started_at), overview.data.period.fromDate, overview.data.period.toDate));
+        const totals = calculateOfficeLogbookTime(trips.map(trip => ({ started_at: trip.started_at, ended_at: trip.ended_at, status: trip.status, counts_as_work_time: trip.counts_as_work_time })), account.entries);
+        account.travelMinutes = totals.travelMinutes;
+        account.actualMinutes += totals.additionalMinutes;
+        account.logbookAdditionalMinutes = totals.additionalMinutes;
       }
 
       if (!statementResult.error) {

@@ -105,7 +105,7 @@ describe('Payroll und WFM verwenden einen gemeinsamen aktuellen Datenstand', () 
     expect(lines).toHaveLength(1);
     expect(lines[0]?.assignmentId).toBe('visit-1');
     expect(lines[0]?.plannedMinutes).toBe(120);
-    expect(lines[0]?.actualMinutes).toBe(120);
+    expect(lines[0]?.actualMinutes).toBe(90);
   });
 
   it('derives the 2026 minijob cap from personnel employment type and hourly wage', () => {

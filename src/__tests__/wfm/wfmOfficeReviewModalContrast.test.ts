@@ -12,8 +12,8 @@ describe('WFM review popup and contrast contract', () => {
     expect(history).toContain('<PlatformModal');
     expect(history).toContain('visible={Boolean(selected)}');
     expect(history).toContain('variant="center"');
-    expect(history).toContain('maxHeightRatio={0.92}');
-    expect(history).toContain('{reviewQueueMode ? (');
+    expect(history).toContain('maxHeightRatio={0.94}');
+    expect(history).toContain('isDirty={dirty}');
     expect(table).toContain('const mobileReview = reviewQueueMode && reviewWidth < REVIEW_MIN_TABLE_WIDTH + 32');
   });
 

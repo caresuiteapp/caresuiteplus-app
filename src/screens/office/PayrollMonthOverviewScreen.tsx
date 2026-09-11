@@ -1,4 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { officeMonthKey } from '@/lib/wfm/wfmOfficeMonth';
+import { WfmOfficeMonthSelector } from '@/components/wfm/WfmOfficeMonthSelector';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, LoadingState, PremiumButton, PremiumInput, useWorkflowFeedback } from '@/components/ui';
@@ -58,13 +61,16 @@ function statementTone(status: string | null): 'Green' | 'Orange' | 'Cyan' | 'Mu
 export function PayrollMonthOverviewScreen() {
   const { colors } = useLegacyTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const params = useLocalSearchParams<{ month?: string; employeeId?: string }>();
+  const requestedMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(params.month ?? '') ? params.month! : officeMonthKey();
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth() + 1);
+  const [year, setYear] = useState(Number(requestedMonth.slice(0, 4)));
+  const [month, setMonth] = useState(Number(requestedMonth.slice(5, 7)));
+  useEffect(() => { setYear(Number(requestedMonth.slice(0, 4))); setMonth(Number(requestedMonth.slice(5, 7))); }, [requestedMonth]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [syncIssue, setSyncIssue] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(params.employeeId ? { [params.employeeId]: true } : {});
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [reviewAmounts, setReviewAmounts] = useState<Record<string, string>>({});
   const feedback = useWorkflowFeedback();
@@ -95,11 +101,13 @@ export function PayrollMonthOverviewScreen() {
     [tenantId, canView, year, month, roleKey],
     {
       enabled: Boolean(tenantId && canView),
+      queryKey: `payroll:${tenantId}:${year}-${month}`,
       live: { tenantId, subscribe: subscribeToWfmLiveChanges, pollMs: 30_000, refreshOnFocus: true },
     },
   );
 
   const data = query.data;
+  useEffect(() => { if (params.employeeId) setExpanded(previous => ({ ...previous, [params.employeeId!]: true })); }, [params.employeeId]);
   const pendingExpenseCount = useMemo(() => data?.employees.reduce(
     (sum, employee) => sum + employee.expenseClaims.filter((claim) => claim.status === 'submitted' || claim.status === 'needs_info').length,
     0,
@@ -207,11 +215,8 @@ export function PayrollMonthOverviewScreen() {
             <Text style={styles.eyebrow}>OFFICE · LOHN- UND ZEITSTEUERUNG</Text>
             <Text style={styles.heroTitle}>{monthLabel(year, month)}</Text>
             <Text style={styles.heroDescription}>Ist-Arbeitszeit, Monatsprognose, Zeitkonten, Auslagen und PDF-Freigaben in einem belastbaren Monatsabschluss.</Text>
-            <View style={styles.periodControls}>
-              <Pressable onPress={() => changeMonth(-1)} accessibilityRole="button" accessibilityLabel="Vorheriger Monat" style={({ pressed }) => [styles.periodButton, pressed && styles.pressed]}><Text style={styles.periodIcon}>←</Text><Text style={styles.periodText}>Vorheriger Monat</Text></Pressable>
-              <Pressable onPress={goToCurrentMonth} accessibilityRole="button" style={({ pressed }) => [styles.currentButton, pressed && styles.pressed]}><Text style={styles.currentText}>Aktueller Monat</Text></Pressable>
-              <Pressable onPress={() => changeMonth(1)} accessibilityRole="button" accessibilityLabel="Nächster Monat" style={({ pressed }) => [styles.periodButton, pressed && styles.pressed]}><Text style={styles.periodText}>Nächster Monat</Text><Text style={styles.periodIcon}>→</Text></Pressable>
-            </View>
+            <WfmOfficeMonthSelector value={`${year}-${String(month).padStart(2, '0')}`} onChange={value => { if (busyId) return; setYear(Number(value.slice(0, 4))); setMonth(Number(value.slice(5, 7))); setMessage(null); setSyncIssue(null); }} />
+
           </View>
           <View style={styles.heroActions}>
             <View style={styles.syncCard}><View style={[styles.syncDot, query.refreshing && styles.syncDotBusy]} /><View style={styles.flex}><Text style={styles.syncTitle}>{query.refreshing ? 'AKTUALISIERUNG LÄUFT' : query.isLiveConnected ? 'LIVE VERBUNDEN' : 'DATENSTAND'}</Text><Text style={styles.syncTime}>{syncLabel(data?.generatedAt)}</Text></View></View>

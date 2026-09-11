@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
+import { PlatformModal } from '@/components/layout/platform';
 import {
   EmptyState,
   ErrorState,
   InfoBanner,
   LoadingState,
+  ListFilterSelect,
   PremiumBadge,
   PremiumButton,
   PremiumDataTable,
@@ -39,6 +41,9 @@ import {
 } from '@/components/wfm/WfmOfficeTimekeepingLayout';
 import { typography } from '@/theme';
 import { WfmEmployeeTimeAccountWorkspace } from '@/components/wfm/WfmEmployeeTimeAccountWorkspace';
+import { WfmOfficeMonthSelector } from './WfmOfficeMonthSelector';
+import { officeMonthKey, officeMonthLabel, officeMonthPeriod, officePeriodLabel } from '@/lib/wfm/wfmOfficeMonth';
+import { resolveOfficeTimePeriod } from '@/lib/wfm/wfmOfficeDateRange';
 
 function formatDays(days: number | null): string {
   if (days == null) return '—';
@@ -58,7 +63,14 @@ export function WfmZeitkontenScreen() {
   const text = useAuroraAdaptiveText();
   const accent = moduleColor('office');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [employeeFilter, setEmployeeFilter] = useState('');
+  const [accountTab, setAccountTab] = useState<'overview' | 'bookings'>('overview');
+  const [editorState, setEditorState] = useState({ dirty: false, busy: false, childOpen: false });
+  const [selectedMonth, setSelectedMonth] = useState(() => officeMonthKey());
   const [periodPreset, setPeriodPreset] = useState<'today' | 'this_week' | 'this_month'>('this_month');
+  const period = useMemo(() => periodPreset === 'this_month'
+    ? officeMonthPeriod(selectedMonth) : resolveOfficeTimePeriod(periodPreset), [periodPreset, selectedMonth]);
+  const periodLabel = periodPreset === 'this_month' ? officeMonthLabel(selectedMonth) : officePeriodLabel(period);
   const feedback = useWorkflowFeedback();
   const loadingFeedbackId = useRef<string | null>(null);
 
@@ -107,13 +119,13 @@ export function WfmZeitkontenScreen() {
     useCallback(async () => {
       if (!tenantId || !canView) return { ok: true as const, data: [] };
       return getWfmOfficeEmployeeTimeAccounts(tenantId, roleKey, {
-        preset: periodPreset,
-        employeeId: selectedEmployeeId,
+        preset: 'custom', fromDate: period.fromDate, toDate: period.toDate,
       });
-    }, [tenantId, canView, roleKey, periodPreset, selectedEmployeeId]),
-    [tenantId, canView, roleKey, periodPreset, selectedEmployeeId],
+    }, [tenantId, canView, roleKey, period.fromDate, period.toDate]),
+    [tenantId, canView, roleKey, period.fromDate, period.toDate],
     {
       enabled: !!tenantId && canView,
+      queryKey: `wfm-accounts:${tenantId}:${period.fromDate}:${period.toDate}`,
       live: {
         tenantId,
         subscribe: subscribeToWfmLiveChanges,
@@ -125,9 +137,7 @@ export function WfmZeitkontenScreen() {
 
   const timeDataLoading =
     accountsQuery.loading ||
-    accountsQuery.refreshing ||
-    teamQuery.loading ||
-    teamQuery.refreshing;
+    teamQuery.loading;
 
   useEffect(() => {
     if (timeDataLoading && !loadingFeedbackId.current) {
@@ -222,32 +232,27 @@ export function WfmZeitkontenScreen() {
       width: 72,
       render: (account) => (
         <Text style={{ ...typography.caption, color: text.primary, fontWeight: '600' }}>
-          {formatWfmDurationMinutes(account.saldoMinutes)}
+          {account.saldoMinutes === 0 ? '0:00 h' : `${account.saldoMinutes < 0 ? '−' : '+'}${formatWfmDurationMinutes(Math.abs(account.saldoMinutes))}`}
         </Text>
       ),
     },
     {
       key: 'action',
       label: 'Aktion',
-      width: 96,
+      width: 130,
       align: 'right',
       render: (account) => (
         <PremiumButton
-          title={account.openReviewCount > 0 ? 'Prüfen' : 'Details'}
+          title={canCorrect ? 'Bearbeiten' : 'Details'}
           variant={account.openReviewCount > 0 ? 'secondary' : 'ghost'}
           onPress={() => {
-            if (account.openReviewCount > 0) {
-              router.push('/business/office/time-tracking/pruefqueue' as never);
-            } else {
-              setSelectedEmployeeId((current) =>
-                current === account.employeeId ? null : account.employeeId,
-              );
-            }
+            setAccountTab(canCorrect ? 'bookings' : 'overview');
+            setSelectedEmployeeId(account.employeeId);
           }}
         />
       ),
     },
-  ], [router, text]);
+  ], [canCorrect, text]);
 
   if (!canView) {
     return (
@@ -261,9 +266,10 @@ export function WfmZeitkontenScreen() {
   const overview = teamQuery.data;
   const kpis = overview?.kpis;
   const teamRows = overview?.rows ?? [];
-  const accounts = accountsQuery.data ?? [];
+  const allAccounts = accountsQuery.data ?? [];
+  const accounts = employeeFilter ? allAccounts.filter(account => account.employeeId === employeeFilter) : allAccounts;
   const accountKpis = summarizeOfficeTimeAccountKpis(accounts);
-  const selectedAccount = accounts.find((a) => a.employeeId === selectedEmployeeId) ?? null;
+  const selectedAccount = allAccounts.find((a) => a.employeeId === selectedEmployeeId) ?? null;
   const selectedRow = teamRows.find((r) => r.employeeId === selectedEmployeeId) ?? null;
 
   const kpiItems = [
@@ -278,8 +284,8 @@ export function WfmZeitkontenScreen() {
   return (
     <View style={styles.root} testID="wfm-zeitkonten-screen">
       <WfmOfficeSectionHeading
-        title="Arbeitszeit- und Gehaltsvorbereitung"
-        subtitle="Soll/Ist, Einsatzzeiten, Zeitkonto, Urlaub, Korrekturen und Freigaben vollständig prüfen"
+        title="Zeitkonten"
+        subtitle="Zeitraum auswählen, Mitarbeitende öffnen und Zeitbuchungen direkt bearbeiten."
       />
 
       <View style={styles.payrollPreparation}>
@@ -308,18 +314,20 @@ export function WfmZeitkontenScreen() {
               { key: 'this_month', label: 'Monat' },
             ]}
             value={periodPreset}
-            onChange={setPeriodPreset}
+            onChange={(next) => { setPeriodPreset(next); setSelectedEmployeeId(null); }}
           />
         }
         secondarySlot={
-          <PremiumButton
-            title="Alle Mitarbeitende"
-            variant={!selectedEmployeeId ? 'secondary' : 'ghost'}
-            onPress={() => setSelectedEmployeeId(null)}
-          />
+          <ListFilterSelect label="Mitarbeitende" value={employeeFilter}
+            options={[{ key: '', label: 'Alle Mitarbeitenden' }, ...allAccounts.map(a => ({ key: a.employeeId, label: a.employeeName }))]}
+            onChange={setEmployeeFilter} style={{ minWidth: 220, flex: 1 }} />
         }
       />
 
+      {periodPreset === 'this_month' ? <WfmOfficeMonthSelector value={selectedMonth}
+        onChange={(month) => { setSelectedMonth(month); setSelectedEmployeeId(null); }} /> : null}
+      <Text style={[styles.periodLabel, { color: text.primary }]}>{periodLabel} · {officePeriodLabel(period)}</Text>
+      {accountsQuery.refreshError ? <InfoBanner message={`Aktualisierung fehlgeschlagen: ${accountsQuery.refreshError}`} variant="warning" /> : null}
       <WfmOfficeCompactKpiStrip items={kpiItems} maxVisible={6} />
 
       <Text style={[styles.teamSummary, { color: text.secondary }]}>
@@ -351,28 +359,34 @@ export function WfmZeitkontenScreen() {
             data={accounts}
             keyExtractor={(account) => account.employeeId}
             selectedId={selectedEmployeeId}
-            onRowPress={(account) =>
-              setSelectedEmployeeId((current) =>
-                current === account.employeeId ? null : account.employeeId,
-              )
-            }
+            onRowPress={(account) => { setAccountTab(canCorrect ? 'bookings' : 'overview'); setSelectedEmployeeId(account.employeeId); }}
             emptyMessage="Keine Zeitkonten im Zeitraum."
           />
         )}
       </View>
 
+      <PlatformModal visible={Boolean(selectedEmployeeId)}
+        title={selectedAccount ? `Zeitkonto · ${selectedAccount.employeeName}` : 'Zeitkonto'}
+        subtitle={`${periodLabel} · ${officePeriodLabel(period)}`} maxWidth={1440} minWidth={300} maxHeightRatio={0.94}
+        dismissOnBackdrop={false} isDirty={editorState.dirty && !editorState.childOpen}
+        onClose={() => { if (!editorState.busy && !editorState.childOpen) setSelectedEmployeeId(null); }}
+        bodyStyle={{ padding: careSpacing.sm, backgroundColor: '#F4F9FF' }}>
       {selectedAccount && tenantId && reviewerId ? (
         <WfmEmployeeTimeAccountWorkspace
+          key={`${selectedAccount.employeeId}:${period.fromDate}:${period.toDate}`}
           account={selectedAccount}
           tenantId={tenantId}
           reviewerId={reviewerId}
           roleKey={roleKey}
           canCorrect={canCorrect}
           canManage={canManage}
-          periodLabel={periodPreset === 'today' ? 'Heute' : periodPreset === 'this_week' ? 'Diese Woche' : 'Aktueller Monat'}
+          periodLabel={periodLabel} period={period} initialTab={accountTab}
+          onChanged={async () => { await Promise.all([accountsQuery.refresh(), teamQuery.refresh()]); }}
+          onEditorStateChange={setEditorState}
           onClose={() => setSelectedEmployeeId(null)}
         />
       ) : null}
+      </PlatformModal>
 
       <View style={styles.collapsible}>
         <WfmOfficeSectionHeading title="ArbZG-Teamwarnungen" />
@@ -432,7 +446,8 @@ export function TimeTrackingTeamScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, width: '100%', gap: careSpacing.md, paddingBottom: careSpacing.lg },
+  root: { flexShrink: 0, width: '100%', gap: careSpacing.md, paddingBottom: careSpacing.lg },
+  periodLabel: { ...typography.body, fontWeight: '700', paddingVertical: 4 },
   payrollPreparation: {
     width: '100%',
     padding: careSpacing.md,

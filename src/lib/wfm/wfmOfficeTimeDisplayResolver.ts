@@ -98,11 +98,11 @@ function resolveCapabilities(entry: WfmOfficeTimeEntry): {
   canReject: boolean;
   canRequestClarification: boolean;
 } {
-  const terminal = entry.reviewStatus === 'exported' || entry.reviewStatus === 'locked';
+  const terminal = entry.reviewStatus === 'exported' || entry.reviewStatus === 'locked' || entry.exportStatus === 'exported';
   const open =
     entry.reviewStatus === 'pending_review' ||
     entry.reviewStatus === 'needs_clarification' ||
-    entry.reviewStatus === 'open';
+    entry.reviewStatus === 'open' || entry.reviewStatus === 'corrected';
   return {
     canOpenDetails: true,
     canEdit: !terminal,
@@ -126,8 +126,8 @@ export function resolveWfmOfficeTimeDisplay(entry: WfmOfficeTimeEntry): WfmOffic
   const timeEntryEnd = entry.actualEndAt ?? null;
   const hasTimeEntry = Boolean(timeEntryStart || timeEntryEnd);
   const timeEntryDurationMinutes = hasTimeEntry
-    ? entry.netMinutes > 0
-      ? entry.netMinutes
+    ? Number.isFinite(entry.netMinutes) && (entry.netMinutes > 0 || entry.source === 'correction' || entry.source === 'manual_addition')
+      ? Math.max(0, entry.netMinutes)
       : minutesBetween(timeEntryStart, timeEntryEnd)
     : 0;
 
@@ -135,7 +135,7 @@ export function resolveWfmOfficeTimeDisplay(entry: WfmOfficeTimeEntry): WfmOffic
   const approvedStart = approved ? timeEntryStart ?? assignmentActualStart : null;
   const approvedEnd = approved ? timeEntryEnd ?? assignmentActualEnd : null;
   const approvedDurationMinutes = approved
-    ? timeEntryDurationMinutes > 0
+    ? hasTimeEntry
       ? timeEntryDurationMinutes
       : minutesBetween(approvedStart, approvedEnd)
     : 0;

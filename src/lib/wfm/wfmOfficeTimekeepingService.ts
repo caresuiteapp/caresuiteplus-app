@@ -1,3 +1,6 @@
+import { notifyWfmOfficeDataChanged } from './wfmOfficeDataChanged';
+import { recalculateOfficeEntry, validateOfficeTimeValues } from './wfmOfficeStoredEntry';
+import { enrichOfficeTimeEntryDisplay } from './wfmOfficeTimeDisplayResolver';
 import type { RoleKey, ServiceResult } from '@/types';
 import type {
   WfmOfficeCorrectionInput,
@@ -20,7 +23,6 @@ import { enumerateWorkDates, resolveOfficeTimePeriod } from './wfmOfficeDateRang
 import { writeWfmOfficeAudit } from './wfmOfficeAuditService';
 import {
   appendOfficeMessage,
-  createEntryId,
   createMessageId,
   getEntryOverlay,
   getManualEntry,
@@ -74,45 +76,15 @@ function mergeEntryReviewOverlay(
   reviewMap: Map<string, WfmTimeEntryReview>,
   latestActionMap: Map<string, import('./wfmTimeReviewService').WfmTimeReviewAction>,
 ): WfmOfficeTimeEntry {
-  // Older versions prematurely materialised pending reviews for future
-  // assignments. An upcoming visit must remain planned and must never inflate
-  // the open-review counter, even if such a stale review row still exists.
-  if (entry.rowKind === 'planned_upcoming') {
-    return {
-      ...entry,
-      status: 'open',
-      reviewStatus: 'open',
-      exportStatus: 'not_exported',
-      flags: entry.flags.filter((flag) => flag !== 'missing_booking'),
-    };
-  }
   const overlay = getEntryOverlay(entry.id) ?? {};
   const referenceKey = buildReferenceKeyFromEntry(entry.tenantId, entry);
   const review = reviewMap.get(referenceKey);
-  const latestAction = review ? latestActionMap.get(review.id) ?? null : null;
-  const withReview = applyReviewToEntry(entry, review, latestAction);
-  if (!review && overlay.reviewStatus) {
-    return {
-      ...withReview,
-      ...overlay,
-      id: entry.id,
-      reviewStatus: overlay.reviewStatus ?? withReview.reviewStatus,
-      status: overlay.status ?? overlay.reviewStatus ?? withReview.status,
-    };
+  if (entry.rowKind === 'planned_upcoming' && !review?.officeEntry) {
+    return { ...entry, status: 'open', reviewStatus: 'open', exportStatus: 'not_exported',
+      flags: entry.flags.filter(flag => flag !== 'missing_booking') };
   }
-  return {
-    ...withReview,
-    ...overlay,
-    id: entry.id,
-    reviewStatus: withReview.reviewStatus,
-    status: withReview.status,
-    exportStatus: withReview.exportStatus,
-    reviewNote: withReview.reviewNote,
-    reviewedAt: withReview.reviewedAt,
-    reviewedBy: withReview.reviewedBy,
-    lastReviewAction: withReview.lastReviewAction,
-    lastReviewComment: withReview.lastReviewComment,
-  };
+  const latestAction = review ? latestActionMap.get(review.id) ?? null : null;
+  return enrichOfficeTimeEntryDisplay(applyReviewToEntry({ ...entry, ...overlay }, review, latestAction));
 }
 
 async function resolveReviewContextForEntry(
@@ -345,7 +317,7 @@ async function buildEntriesForDate(
   profiles: Map<string, EmployeeProfile>,
 ): Promise<WfmOfficeTimeEntry[]> {
   const sessionsResult = await listSessionsForDate(tenantId, workDate);
-  if (!sessionsResult.ok) return [];
+  if (!sessionsResult.ok) throw new Error(sessionsResult.error);
 
   const entries: WfmOfficeTimeEntry[] = [];
   const visitIdsHandled = new Set<string>();
@@ -356,7 +328,8 @@ async function buildEntriesForDate(
       name: `Mitarbeitende ${session.employeeId.slice(0, 8)}`,
     };
     const eventsResult = await fetchSessionEvents(tenantId, session.id);
-    const events = eventsResult.ok ? eventsResult.data : [];
+    if (!eventsResult.ok) throw new Error(eventsResult.error);
+    const events = eventsResult.data;
 
     const visitStartEvents = events.filter((e) => e.eventType === 'visit_started');
     for (const startEvent of visitStartEvents) {
@@ -534,17 +507,31 @@ export async function getWfmOfficeTimeOverview(
   const dates = enumerateWorkDates(period.fromDate, period.toDate);
 
   const plannedResult = await listPlannedVisitsForPeriod(tenantId, period.fromDate, period.toDate);
-  const plannedVisits = plannedResult.ok ? plannedResult.data : [];
+  if (!plannedResult.ok) return plannedResult;
+  const plannedVisits = plannedResult.data;
+  const reviewsResult = await listReviewsForPeriod(tenantId, period.fromDate, period.toDate);
+  if (!reviewsResult.ok) return reviewsResult;
 
   const allActualEntries: WfmOfficeTimeEntry[] = [];
   const employeeIdSet = new Set<string>();
 
-  for (const workDate of dates) {
-    const dayEntries = await buildEntriesForDate(tenantId, workDate, new Map());
-    for (const e of dayEntries) {
-      employeeIdSet.add(e.employeeId);
-      allActualEntries.push(e);
-    }
+  try {
+  for (let index = 0; index < dates.length; index += 4) {
+    const days = await Promise.all(dates.slice(index, index + 4).map(date => buildEntriesForDate(tenantId, date, new Map())));
+    for (const entry of days.flat()) { employeeIdSet.add(entry.employeeId); allActualEntries.push(entry); }
+  }
+  } catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : 'Die Zeitbuchungen konnten nicht vollständig geladen werden.' };
+  }
+  for (const review of reviewsResult.data) {
+    if (!review.officeEntry) continue;
+    const alreadyPresent = allActualEntries.some(entry => buildReferenceKeyFromEntry(tenantId, entry) === review.referenceKey);
+    const hasPlan = plannedVisits.some(visit => visit.employeeId === review.employeeId && visit.workDate === review.workDate && (visit.assignmentId === review.referenceId || visit.visitId === review.referenceId));
+    if (review.entryKind !== 'manual' && (alreadyPresent || hasPlan)) continue;
+    employeeIdSet.add(review.employeeId);
+    const index = allActualEntries.findIndex(entry => entry.id === review.officeEntry!.id);
+    if (index < 0) allActualEntries.push(review.officeEntry);
+    else allActualEntries[index] = review.officeEntry;
   }
 
   for (const planned of plannedVisits) {
@@ -566,7 +553,7 @@ export async function getWfmOfficeTimeOverview(
 
   const joined = joinOfficeTimekeepingData(plannedVisits, enrichedActual, employeeNames);
 
-  const reviewsResult = await listReviewsForPeriod(tenantId, period.fromDate, period.toDate);
+
   const reviewMap = new Map<string, WfmTimeEntryReview>();
   if (reviewsResult.ok) {
     for (const review of reviewsResult.data) {
@@ -653,6 +640,7 @@ export async function adoptWfmAssignmentActualToBooking(
   actorRoleKey: RoleKey | null,
   entryId: string,
   reason: string,
+  entryContext?: WfmOfficeTimeEntry | null,
 ): Promise<ServiceResult<WfmOfficeTimeEntry>> {
   const denied = enforcePermission(actorRoleKey, 'time.tracking.admin.correct');
   if (denied) return denied;
@@ -660,7 +648,8 @@ export async function adoptWfmAssignmentActualToBooking(
     return { ok: false, error: 'Übernahme aus Einsatz ohne Begründung ist nicht erlaubt.' };
   }
 
-  const overview = await getWfmOfficeTimeOverview(tenantId, actorRoleKey, { preset: 'last_30_days' });
+  const overview = entryContext ? { ok: true as const, data: { entries: [entryContext] } }
+    : await getWfmOfficeTimeOverview(tenantId, actorRoleKey, { preset: 'last_30_days' });
   if (!overview.ok) return overview;
   const entry = overview.data.entries.find((e) => e.id === entryId);
   if (!entry) return { ok: false, error: 'Eintrag nicht gefunden.' };
@@ -672,7 +661,7 @@ export async function adoptWfmAssignmentActualToBooking(
   if (entry.exportStatus === 'exported') {
     return {
       ok: false,
-      error: 'Exportierter Eintrag — Übernahme nur über P2.3 Re-Export-Flow.',
+      error: 'Diese Buchung wurde bereits exportiert. Bitte den gesonderten Korrekturablauf verwenden.',
     };
   }
 
@@ -686,119 +675,45 @@ export async function adoptWfmAssignmentActualToBooking(
 }
 
 export async function applyWfmOfficeTimeCorrection(
-  tenantId: string,
-  actorId: string,
-  actorRoleKey: RoleKey | null,
-  input: WfmOfficeCorrectionInput,
-  entryContext?: WfmOfficeTimeEntry | null,
+  tenantId: string, actorId: string, actorRoleKey: RoleKey | null,
+  input: WfmOfficeCorrectionInput, entryContext?: WfmOfficeTimeEntry | null,
 ): Promise<ServiceResult<WfmOfficeTimeEntry>> {
   const denied = enforcePermission(actorRoleKey, 'time.tracking.admin.correct');
   if (denied) return denied;
-
-  if (!input.reason.trim()) {
-    return { ok: false, error: 'Korrektur ohne Begründung ist nicht erlaubt.' };
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  if (!input.reason.trim()) return { ok: false, error: 'Korrektur ohne Begründung ist nicht erlaubt.' };
+  const existing = entryContext ?? getManualEntry(input.entryId);
+  if (!existing || existing.id !== input.entryId || existing.tenantId !== tenantId) {
+    return { ok: false, error: 'Bitte die Buchung im gewünschten Zeitraum erneut öffnen.' };
   }
-
-  const overlay = getEntryOverlay(input.entryId) ?? {};
-  const existing = getManualEntry(input.entryId);
-  const currentStatus = overlay.reviewStatus ?? existing?.reviewStatus ?? 'open';
-
-  if (TERMINAL_STATUSES.has(currentStatus)) {
-    return {
-      ok: false,
-      error: 'Exportierte oder gesperrte Einträge können nur mit besonderer Korrektur geändert werden.',
-    };
+  if (existing.exportStatus === 'exported' || TERMINAL_STATUSES.has(existing.reviewStatus) || existing.canEdit === false) {
+    return { ok: false, error: 'Exportierte oder gesperrte Buchungen benötigen den gesonderten Korrekturablauf.' };
   }
-
-  if (input.actualStartAt && input.actualEndAt) {
-    if (new Date(input.actualEndAt) <= new Date(input.actualStartAt)) {
-      return { ok: false, error: 'Endzeit muss nach Startzeit liegen.' };
-    }
-  }
-
-  const patch: Partial<WfmOfficeTimeEntry> = {
-    ...overlay,
-    source: 'correction',
-    workKind: input.workKind ?? overlay.workKind,
-  };
-  if (input.actualStartAt !== undefined) patch.actualStartAt = input.actualStartAt;
-  if (input.actualEndAt !== undefined) patch.actualEndAt = input.actualEndAt;
-  if (input.pauseMinutes !== undefined) patch.pauseMinutes = input.pauseMinutes ?? 0;
-  setEntryOverlay(input.entryId, patch);
-
-  const reviewCtx = await resolveReviewContextForEntry(tenantId, input.entryId, entryContext);
-  const nextReviewStatus: WfmTimeReviewStatus = input.status
-    ? (input.status as WfmTimeReviewStatus)
-    : 'corrected';
-  const reviewResult = await transitionReviewStatus(tenantId, actorId, {
-    entryId: input.entryId,
-    employeeId: existing?.employeeId ?? reviewCtx.employeeId,
-    workDate: existing?.workDate ?? reviewCtx.workDate,
-    entryKind: reviewCtx.entryKind,
-    rawReferenceId: reviewCtx.rawReferenceId,
-    nextStatus: nextReviewStatus,
-    reviewNote: input.reason,
-    officeComment: input.reason,
-    actorId,
-    actionComment: input.reason,
+  const edited = { ...existing, source: 'correction' as const, officeComment: input.reason.trim(),
+    actualStartAt: input.actualStartAt === undefined ? existing.actualStartAt : input.actualStartAt,
+    actualEndAt: input.actualEndAt === undefined ? existing.actualEndAt : input.actualEndAt,
+    pauseMinutes: input.pauseMinutes ?? existing.pauseMinutes, workKind: input.workKind ?? existing.workKind };
+  const invalid = validateOfficeTimeValues(edited.actualStartAt, edited.actualEndAt, edited.pauseMinutes);
+  if (invalid) return { ok: false, error: invalid };
+  const snapshot = recalculateOfficeEntry(edited);
+  const reviewCtx = await resolveReviewContextForEntry(tenantId, input.entryId, existing);
+  const result = await transitionReviewStatus(tenantId, actorId, {
+    entryId: input.entryId, employeeId: reviewCtx.employeeId, workDate: reviewCtx.workDate,
+    entryKind: reviewCtx.entryKind, rawReferenceId: reviewCtx.rawReferenceId,
+    nextStatus: 'corrected', reviewNote: input.reason.trim(), officeComment: input.reason.trim(),
+    actorId, actionComment: input.reason.trim(), officeEntry: snapshot,
+    expectedUpdatedAt: existing.officeRevision ?? null,
   });
-  if (!reviewResult.ok) return reviewResult;
-
-  await writeWfmOfficeAudit(tenantId, actorRoleKey, {
-    entityType: 'wfm_office_time_entry',
-    entityId: input.entryId,
-    action: 'correction',
-    actorId,
-    summary: `Office-Korrektur für Eintrag ${input.entryId}`,
-    reason: input.reason,
-    source: 'office',
-    field: 'multiple',
-    metadata: { patch },
-  });
-
-  const overview = await getWfmOfficeTimeOverview(tenantId, actorRoleKey, { preset: 'last_30_days' });
-  const entry = overview.ok ? overview.data.entries.find((e) => e.id === input.entryId) : null;
-  if (entry) return { ok: true, data: { ...entry, ...patch, id: input.entryId } as WfmOfficeTimeEntry };
-
-  return {
-    ok: true,
-    data: {
-      id: input.entryId,
-      tenantId,
-      employeeId: existing?.employeeId ?? 'unknown',
-      employeeName: existing?.employeeName ?? '—',
-      workDate: existing?.workDate ?? todayWorkDate(),
-      assignmentId: null,
-      visitId: null,
-      clientLabel: null,
-      plannedStartAt: null,
-      plannedEndAt: null,
-      actualStartAt: patch.actualStartAt ?? null,
-      actualEndAt: patch.actualEndAt ?? null,
-      startDeviationMinutes: null,
-      endDeviationMinutes: null,
-      startAmpel: null,
-      endAmpel: null,
-      overallAmpel: null,
-      startJustification: null,
-      endJustification: null,
-      startJustificationAt: null,
-      endJustificationAt: null,
-      pauseMinutes: patch.pauseMinutes ?? 0,
-      grossMinutes: 0,
-      netMinutes: 0,
-      travelMinutes: null,
-      workKind: patch.workKind ?? 'korrektur',
-      status: 'corrected',
-      source: 'correction',
-      reviewStatus: 'corrected',
-      exportStatus: 'not_exported',
-      sessionId: null,
-      officeComment: null,
-      hasOpenOfficeMessage: false,
-      flags: [],
-    },
-  };
+  if (!result.ok) return result;
+  const saved = recalculateOfficeEntry(applyReviewToEntry(snapshot, result.data));
+  if (getServiceMode() !== 'supabase') {
+    if (getManualEntry(input.entryId)) saveManualEntry(saved);
+    await writeWfmOfficeAudit(tenantId, actorRoleKey, { entityType: 'wfm_office_time_entry', entityId: input.entryId,
+      action: 'correction', actorId, summary: 'Arbeitszeitkorrektur gespeichert', reason: input.reason, metadata: { patch: saved } });
+  }
+  notifyWfmOfficeDataChanged(tenantId);
+  return { ok: true, data: saved };
 }
 
 export async function createWfmOfficeManualEntry(
@@ -813,15 +728,16 @@ export async function createWfmOfficeManualEntry(
   if (!input.reason.trim()) {
     return { ok: false, error: 'Nachtrag ohne Begründung ist nicht erlaubt.' };
   }
-  if (new Date(input.actualEndAt) <= new Date(input.actualStartAt)) {
-    return { ok: false, error: 'Endzeit muss nach Startzeit liegen.' };
-  }
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  const invalid = validateOfficeTimeValues(input.actualStartAt, input.actualEndAt, input.pauseMinutes);
+  if (invalid) return { ok: false, error: invalid };
 
   const profiles = await fetchEmployeeProfiles(tenantId, [input.employeeId]);
   const profile = profiles.get(input.employeeId);
   const grossMinutes = minutesBetween(input.actualStartAt, input.actualEndAt);
   const netMinutes = Math.max(0, grossMinutes - input.pauseMinutes);
-  const id = createEntryId();
+  const id = input.entryId ?? crypto.randomUUID();
 
   const entry: WfmOfficeTimeEntry = {
     id,
@@ -860,8 +776,6 @@ export async function createWfmOfficeManualEntry(
     flags: [],
   };
 
-  saveManualEntry(entry);
-
   const reviewResult = await upsertReview(tenantId, actorId, {
     entryId: id,
     employeeId: input.employeeId,
@@ -871,21 +785,17 @@ export async function createWfmOfficeManualEntry(
     reviewNote: input.reason,
     officeComment: input.reason,
     actorId,
-    actionComment: 'Synthetic manual entry pending review',
+    actionComment: input.reason, officeEntry: entry, expectedUpdatedAt: null,
   });
   if (!reviewResult.ok) return reviewResult;
-
-  await writeWfmOfficeAudit(tenantId, actorRoleKey, {
-    entityType: 'wfm_office_time_entry',
-    entityId: id,
-    action: 'manual_addition',
-    actorId,
-    summary: `Office-Nachtrag für ${entry.employeeName} am ${input.workDate}`,
-    reason: input.reason,
-    source: 'office',
-  });
-
-  return { ok: true, data: entry };
+  const saved = recalculateOfficeEntry(applyReviewToEntry(entry, reviewResult.data));
+  if (getServiceMode() !== 'supabase') {
+    saveManualEntry(saved);
+    await writeWfmOfficeAudit(tenantId, actorRoleKey, { entityType: 'wfm_office_time_entry', entityId: id,
+      action: 'manual_addition', actorId, summary: `Office-Nachtrag für ${saved.employeeName} am ${saved.workDate}`, reason: input.reason, source: 'office' });
+  }
+  notifyWfmOfficeDataChanged(tenantId);
+  return { ok: true, data: saved };
 }
 
 export async function reviewWfmOfficeTimeEntry(
@@ -911,7 +821,7 @@ export async function reviewWfmOfficeTimeEntry(
   const existing = getManualEntry(entryId);
   const reviewCtx = await resolveReviewContextForEntry(tenantId, entryId, entryContext);
   const currentStatus =
-    overlay.reviewStatus ?? existing?.reviewStatus ?? ('open' as WfmOfficeTimeEntryStatus);
+    entryContext?.reviewStatus ?? overlay.reviewStatus ?? existing?.reviewStatus ?? ('open' as WfmOfficeTimeEntryStatus);
 
   if (TERMINAL_STATUSES.has(currentStatus) && decision !== 'open') {
     return { ok: false, error: 'Exportierter oder gesperrter Eintrag — Warnung: besondere Korrektur nötig.' };
@@ -963,7 +873,7 @@ export async function reviewWfmOfficeTimeEntry(
   });
 
   const merged: WfmOfficeTimeEntry = {
-    ...(existing ?? {
+    ...(entryContext ?? existing ?? {
       id: entryId,
       tenantId,
       employeeId: reviewCtx.employeeId,
@@ -1006,7 +916,8 @@ export async function reviewWfmOfficeTimeEntry(
     exportStatus,
   };
 
-  return { ok: true, data: merged };
+  notifyWfmOfficeDataChanged(tenantId);
+  return { ok: true, data: enrichOfficeTimeEntryDisplay(applyReviewToEntry(merged, reviewResult.data)) };
 }
 
 export async function submitVisitDeviationJustification(

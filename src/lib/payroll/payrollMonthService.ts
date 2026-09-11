@@ -1,3 +1,5 @@
+import { resolveWfmOfficeTimeDisplay } from '@/lib/wfm/wfmOfficeTimeDisplayResolver';
+import { officeAbsenceMinutes } from '@/lib/wfm/wfmOfficeLinkedTotals';
 import type { RoleKey, ServiceResult } from '@/types';
 import type {
   CreateExpenseClaimInput,
@@ -308,7 +310,9 @@ export function employeeAssignmentTimeLines(
       ?? null;
     const hasCapturedTime = Boolean(actualStartAt || actualEndAt || entry.actualDisplayStatus === 'captured' || entry.netMinutes > 0);
     const status = entry.assignmentStatus ?? existing?.status ?? entry.reviewStatus ?? null;
-    const actualMinutes = resolvePayrollPerformedMinutes({
+    const actualMinutes = resolveWfmOfficeTimeDisplay(entry).hasTimeEntry
+      ? resolveWfmOfficeTimeDisplay(entry).timeEntryDurationMinutes
+      : resolvePayrollPerformedMinutes({
       status,
       explicitMinutes: hasCapturedTime ? entry.netMinutes : 0,
       actualStartAt,
@@ -359,17 +363,11 @@ function buildEmployeeSnapshot(input: {
   year: number; month: number; latestStatement: PayrollStatement | null;
 }): PayrollEmployeeMonth {
   const employeeId = asString(input.employee.id);
-  const dailyMinutes = averageDailyMinutes(input.contract?.work_days);
   let vacationMinutes = 0; let sickMinutes = 0; let otherPaidAbsenceMinutes = 0;
   for (const absence of input.absenceRows) {
     if (asString(absence.employee_id) !== employeeId || !['approved', 'active', 'completed'].includes(asString(absence.status))) continue;
-    const minutes = absenceMinutesInPeriod(
-      absence,
-      input.contract?.work_days,
-      input.year,
-      input.month,
-      dailyMinutes,
-    );
+    const { fromDate, toDate } = periodRange(input.year, input.month);
+    const minutes = officeAbsenceMinutes(absence, input.contract?.work_days, fromDate, toDate);
     const type = asString(absence.absence_type);
     if (type === 'vacation') vacationMinutes += minutes;
     else if (type === 'sick_leave' || type === 'child_sick_leave') sickMinutes += minutes;
@@ -380,9 +378,7 @@ function buildEmployeeSnapshot(input: {
     (sum, line) => sum + line.actualMinutes,
     0,
   );
-  const actualWorkMinutes = input.assignmentTimeLines.length > 0
-    ? assignmentActualMinutes
-    : account?.actualMinutes ?? 0;
+  const actualWorkMinutes = account ? account.actualMinutes : assignmentActualMinutes;
   const assignmentPlannedMinutes = input.assignmentTimeLines.reduce(
     (sum, line) => sum + line.plannedMinutes,
     0,

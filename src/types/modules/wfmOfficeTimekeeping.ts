@@ -97,6 +97,8 @@ export interface WfmOfficeTimePeriod {
 }
 
 export interface WfmOfficeTimeEntry {
+  /** Revision of the persisted review; used to reject stale corrections. */
+  officeRevision?: string | null;
   id: string;
   tenantId: string;
   employeeId: string;
@@ -228,6 +230,7 @@ export interface WfmOfficeEmployeeTimeAccount {
   overtimeMinutes: number;
   undertimeMinutes: number;
   travelMinutes: number;
+  logbookAdditionalMinutes?: number;
   absenceMinutes: number;
   vacationDaysUsed: number;
   sickDays: number;
@@ -325,6 +328,8 @@ export interface WfmOfficeCorrectionInput {
 }
 
 export interface WfmOfficeManualEntryInput {
+  /** Stable UUID retained by the form until the server confirms the save. */
+  entryId?: string;
   employeeId: string;
   workDate: string;
   workKind: WfmOfficeWorkKind;

@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { CareDateInput } from '@/components/inputs';
 import { PlatformModal } from '@/components/layout/platform';
-import { PremiumButton, useWorkflowFeedback } from '@/components/ui';
+import { PremiumButton, ErrorState, LoadingState, InfoBanner, useWorkflowFeedback } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -16,6 +16,7 @@ import { listWfmOfficeAuditForEntry } from '@/lib/wfm/wfmOfficeAuditService';
 import { subscribeToWfmLiveChanges } from '@/lib/realtime/presets';
 import type {
   WfmOfficePeriodPreset,
+  WfmOfficeTimePeriod,
   WfmOfficeTimeEntry,
   WfmOfficeTimeFilters,
 } from '@/types/modules/wfmOfficeTimekeeping';
@@ -29,12 +30,14 @@ import {
   WfmOfficeFilterBar,
   WfmOfficePeriodChips,
   WfmOfficeSectionHeading,
-  WfmOfficeSplitWorkArea,
   WfmOfficeStatusChip,
   WORKTIME_SURFACE,
 } from './WfmOfficeTimekeepingLayout';
+import { officePeriodLabel } from '@/lib/wfm/wfmOfficeMonth';
 import { WfmOfficeTimeEntryTable } from './WfmOfficeTimeEntryTable';
 import { WfmOfficeTimeReviewDetailPanel } from './WfmOfficeTimeReviewDetailPanel';
+
+export type WfmEditorState = { dirty: boolean; busy: boolean; childOpen: boolean };
 
 type Props = {
   tenantId: string;
@@ -47,6 +50,9 @@ type Props = {
   initialEmployeeName?: string | null;
   initialPreset?: WfmOfficePeriodPreset;
   lockEmployeeFilter?: boolean;
+  period?: WfmOfficeTimePeriod;
+  onChanged?: () => Promise<void>;
+  onEditorStateChange?: (state: WfmEditorState) => void;
 };
 
 const PRESETS: WfmOfficePeriodPreset[] = [
@@ -71,6 +77,7 @@ export function WfmOfficeTimeHistoryPanel({
   initialEmployeeName = null,
   initialPreset,
   lockEmployeeFilter = false,
+  period, onChanged, onEditorStateChange,
 }: Props) {
   const feedback = useWorkflowFeedback();
   const accent = moduleColor('office');
@@ -79,7 +86,10 @@ export function WfmOfficeTimeHistoryPanel({
   );
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<WfmOfficeTimeEntry | null>(null);
+  const selectedId = selected?.id ?? null;
+  const savingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
   const [filterAmpel, setFilterAmpel] = useState<string | null>(initialFilterAmpel);
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(initialEmployeeId);
   const [employeeOptions, setEmployeeOptions] = useState<{ id: string; name: string }[]>([]);
@@ -101,16 +111,18 @@ export function WfmOfficeTimeHistoryPanel({
   const historyQuery = useAsyncQuery(
     useCallback(async () => {
       return getWfmOfficeTimeOverview(tenantId, roleKey, {
-        preset,
-        fromDate: preset === 'custom' ? customFrom : null,
-        toDate: preset === 'custom' ? customTo : null,
+        preset: period ? 'custom' : preset,
+        fromDate: period?.fromDate ?? (preset === 'custom' ? customFrom : null),
+        toDate: period?.toDate ?? (preset === 'custom' ? customTo : null),
         filters,
       });
-    }, [tenantId, roleKey, preset, customFrom, customTo, filters]),
-    [tenantId, roleKey, preset, customFrom, customTo, filters],
+    }, [tenantId, roleKey, preset, customFrom, customTo, filters, period?.fromDate, period?.toDate]),
+    [tenantId, roleKey, preset, customFrom, customTo, filters, period?.fromDate, period?.toDate],
     {
       enabled: !!tenantId,
+      queryKey: `wfm-history:${tenantId}:${period?.fromDate ?? preset}:${period?.toDate ?? customFrom}:${customTo}:${filterEmployeeId}:${filterAmpel}`,
       live: {
+        enabled: !selectedId,
         tenantId,
         subscribe: subscribeToWfmLiveChanges,
         pollMs: 10_000,
@@ -122,15 +134,14 @@ export function WfmOfficeTimeHistoryPanel({
   const auditQuery = useAsyncQuery(
     useCallback(async () => {
       if (!tenantId || !selectedId) return { ok: true as const, data: [] };
-      return listWfmOfficeAuditForEntry(tenantId, roleKey, selectedId);
+      return listWfmOfficeAuditForEntry(tenantId, roleKey, selectedId, selected);
     }, [tenantId, roleKey, selectedId]),
     [tenantId, roleKey, selectedId],
-    { enabled: !!tenantId && !!selectedId },
+    { enabled: !!tenantId && !!selectedId, queryKey: `audit:${tenantId}:${selectedId}` },
   );
 
   const overview = historyQuery.data;
-  const selected: WfmOfficeTimeEntry | null =
-    overview?.entries.find((e) => e.id === selectedId) ?? null;
+  const selectEntry = (id: string | null) => setSelected(overview?.entries.find(entry => entry.id === id) ?? null);
   const kpis = overview?.kpis;
 
   useEffect(() => {
@@ -138,12 +149,6 @@ export function WfmOfficeTimeHistoryPanel({
       setEmployeeOptions(overview.employees);
     }
   }, [filterEmployeeId, overview?.employees]);
-
-  useEffect(() => {
-    if (selectedId && overview && !overview.entries.some((entry) => entry.id === selectedId)) {
-      setSelectedId(null);
-    }
-  }, [overview, selectedId]);
 
   useEffect(() => {
     if (!selected) {
@@ -155,18 +160,31 @@ export function WfmOfficeTimeHistoryPanel({
     setEditStartAt(selected.actualStartAt ?? selected.assignmentActualStartAt ?? '');
     setEditEndAt(selected.actualEndAt ?? selected.assignmentActualEndAt ?? '');
     setEditPauseMinutes(String(selected.pauseMinutes ?? 0));
-  }, [selected]);
+  // Keep a stable draft while background data refreshes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
   const closeReviewDetail = () => {
-    setSelectedId(null);
+    if (savingRef.current) return;
+    setSelected(null);
     setReviewNote('');
     setCorrectionReason('');
   };
 
+  const dirty = Boolean(selected && (reviewNote.trim() || correctionReason.trim()
+    || editStartAt !== (selected.actualStartAt ?? selected.assignmentActualStartAt ?? '')
+    || editEndAt !== (selected.actualEndAt ?? selected.assignmentActualEndAt ?? '')
+    || editPauseMinutes !== String(selected.pauseMinutes ?? 0)));
+  useEffect(() => { onEditorStateChange?.({ dirty, busy: saving, childOpen: Boolean(selectedId) }); }, [dirty, saving, selectedId, onEditorStateChange]);
+  useEffect(() => () => onEditorStateChange?.({ dirty: false, busy: false, childOpen: false }), [onEditorStateChange]);
+  const beginSave = () => { if (savingRef.current || !canCorrect) return false; savingRef.current = true; setSaving(true); return true; };
+  const finishSave = () => { savingRef.current = false; setSaving(false); };
+  const refreshSavedData = async () => { await Promise.all([historyQuery.refresh(), auditQuery.refresh(), onChanged?.()]); };
+
   const runReview = async (
     decision: 'approved' | 'rejected' | 'exported' | 'locked' | 'needs_clarification',
   ) => {
-    if (!selectedId) return;
+    if (!selectedId || !beginSave()) return;
     const loadingId = feedback.showLoading('Prüfung wird gespeichert…');
     try {
       const result = await reviewWfmOfficeTimeEntry(
@@ -187,8 +205,8 @@ export function WfmOfficeTimeHistoryPanel({
         'Prüfung gespeichert',
       );
       setReviewNote('');
-      await historyQuery.refresh();
-      setSelectedId(null);
+      await refreshSavedData();
+      setSelected(null);
     } catch (error) {
       feedback.showError(
         error instanceof Error ? error.message : 'Die Prüfung konnte nicht gespeichert werden.',
@@ -196,6 +214,7 @@ export function WfmOfficeTimeHistoryPanel({
       );
     } finally {
       feedback.dismiss(loadingId);
+      finishSave();
     }
   };
 
@@ -207,6 +226,7 @@ export function WfmOfficeTimeHistoryPanel({
       );
       return;
     }
+    if (!beginSave()) return;
     const loadingId = feedback.showLoading('Arbeitszeitkorrektur wird gespeichert…');
     try {
       const result = await applyWfmOfficeTimeCorrection(
@@ -218,7 +238,7 @@ export function WfmOfficeTimeHistoryPanel({
           reason: correctionReason,
           actualStartAt: editStartAt || null,
           actualEndAt: editEndAt || null,
-          pauseMinutes: Number(editPauseMinutes) || 0,
+          pauseMinutes: Number(editPauseMinutes),
         },
         selected,
       );
@@ -228,8 +248,8 @@ export function WfmOfficeTimeHistoryPanel({
       }
       feedback.showSuccess('Die Arbeitszeitkorrektur wurde gespeichert.', 'Korrektur gespeichert');
       setCorrectionReason('');
-      void historyQuery.refresh();
-      void auditQuery.refresh();
+      setSelected(result.data);
+      await refreshSavedData();
     } catch (error) {
       feedback.showError(
         error instanceof Error ? error.message : 'Die Korrektur konnte nicht gespeichert werden.',
@@ -237,11 +257,12 @@ export function WfmOfficeTimeHistoryPanel({
       );
     } finally {
       feedback.dismiss(loadingId);
+      finishSave();
     }
   };
 
   const runAdoptAssignment = async () => {
-    if (!selectedId) return;
+    if (!selectedId || !beginSave()) return;
     const reason = correctionReason.trim() || reviewNote.trim() || 'Übernahme aus Einsatz-Ist';
     const loadingId = feedback.showLoading('Einsatz-Ist wird als Buchung übernommen…');
     try {
@@ -251,14 +272,19 @@ export function WfmOfficeTimeHistoryPanel({
         roleKey,
         selectedId,
         reason,
+        selected,
       );
       if (!result.ok) {
         feedback.showError(result.error, 'Übernahme nicht möglich');
         return;
       }
       feedback.showSuccess('Einsatz-Ist wurde als Buchung übernommen.', 'Übernahme gespeichert');
-      void historyQuery.refresh();
-      void auditQuery.refresh();
+      setSelected(result.data);
+      setEditStartAt(result.data.actualStartAt ?? '');
+      setEditEndAt(result.data.actualEndAt ?? '');
+      setEditPauseMinutes(String(result.data.pauseMinutes));
+      setCorrectionReason('');
+      await refreshSavedData();
     } catch (error) {
       feedback.showError(
         error instanceof Error ? error.message : 'Einsatz-Ist konnte nicht übernommen werden.',
@@ -266,6 +292,7 @@ export function WfmOfficeTimeHistoryPanel({
       );
     } finally {
       feedback.dismiss(loadingId);
+      finishSave();
     }
   };
 
@@ -349,11 +376,11 @@ export function WfmOfficeTimeHistoryPanel({
     <>
       <WfmOfficeSectionHeading
         title={reviewQueueMode ? 'Offene Prüfungen' : 'Arbeitszeit-Historie'}
-        subtitle={overview ? `${overview.period.fromDate} – ${overview.period.toDate}` : undefined}
+        subtitle={period ? officePeriodLabel(period) : overview ? officePeriodLabel(overview.period) : undefined}
       />
 
       <WfmOfficeFilterBar
-        periodSlot={
+        periodSlot={period ? <WfmOfficeStatusChip label={officePeriodLabel(period)} selected /> :
           <WfmOfficePeriodChips
             options={periodOptions}
             value={preset}
@@ -403,7 +430,7 @@ export function WfmOfficeTimeHistoryPanel({
         }
       />
 
-      {preset === 'custom' ? (
+      {!period && preset === 'custom' ? (
         <View style={styles.customRow}>
           <View style={styles.dateField}>
             <CareDateInput
@@ -432,10 +459,13 @@ export function WfmOfficeTimeHistoryPanel({
 
       {kpis ? <WfmOfficeCompactKpiStrip items={kpiItems} maxVisible={6} /> : null}
 
+      {historyQuery.loading ? <LoadingState message="Zeitbuchungen werden geladen…" presentation="inline" /> : null}
+      {historyQuery.error ? <ErrorState title="Zeitbuchungen nicht verfügbar" message={historyQuery.error} onRetry={() => void historyQuery.refresh()} /> : null}
+      {historyQuery.refreshError ? <InfoBanner message={historyQuery.refreshError} variant="warning" /> : null}
       <WfmOfficeTimeEntryTable
         entries={overview?.entries ?? []}
         selectedId={selectedId}
-        onSelect={setSelectedId}
+        onSelect={selectEntry}
         reviewQueueMode={reviewQueueMode}
       />
 
@@ -470,7 +500,8 @@ export function WfmOfficeTimeHistoryPanel({
       onEditEndAtChange={setEditEndAt}
       onEditPauseMinutesChange={setEditPauseMinutes}
       exportedWarning={selected.exportStatus === 'exported'}
-      embedded={reviewQueueMode}
+      embedded
+      saving={saving}
     />
   ) : null;
 
@@ -479,45 +510,20 @@ export function WfmOfficeTimeHistoryPanel({
       style={styles.root}
       testID={reviewQueueMode ? 'wfm-offene-pruefungen' : 'wfm-arbeitszeit-historie'}
     >
-      {reviewQueueMode ? (
-        <>
-          <View style={styles.reviewQueueMain}>{mainContent}</View>
-          <PlatformModal
-            visible={Boolean(selected)}
-            title={
-              selected ? `Arbeitszeit prüfen · ${selected.employeeName}` : 'Arbeitszeit prüfen'
-            }
-            subtitle={
-              selected
-                ? `${selected.workDate} · ${WFM_OFFICE_WORK_KIND_LABELS[selected.workKind]}`
-                : undefined
-            }
-            onClose={closeReviewDetail}
-            variant="center"
-            maxWidth={920}
-            minWidth={320}
-            maxHeightRatio={0.92}
-            dismissOnBackdrop
-            bodyStyle={styles.reviewModalBody}
-            isDirty={Boolean(reviewNote.trim() || correctionReason.trim())}
-            dirtyCloseMessage="Eingaben verwerfen und Prüfung schließen?"
-          >
-            {detailPanel}
-          </PlatformModal>
-        </>
-      ) : (
-        <WfmOfficeSplitWorkArea
-          main={mainContent}
-          detail={detailPanel}
-          detailOpen={Boolean(selected)}
-        />
-      )}
+      <View style={styles.reviewQueueMain}>{mainContent}</View>
+      <PlatformModal visible={Boolean(selected)} title={selected ? `Arbeitszeit bearbeiten · ${selected.employeeName}` : 'Arbeitszeit bearbeiten'}
+        subtitle={selected ? `${selected.workDate} · ${WFM_OFFICE_WORK_KIND_LABELS[selected.workKind]}` : undefined}
+        onClose={closeReviewDetail} variant="center" maxWidth={980} minWidth={300} maxHeightRatio={0.94}
+        dismissOnBackdrop={!saving} bodyStyle={styles.reviewModalBody} isDirty={dirty}
+        dirtyCloseMessage="Ungespeicherte Änderungen verwerfen und Buchung schließen?">
+        {detailPanel}
+      </PlatformModal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, gap: careSpacing.sm },
+  root: { width: '100%', flexShrink: 0, gap: careSpacing.sm },
   reviewQueueMain: { flex: 1, minWidth: 0, gap: careSpacing.sm },
   reviewModalBody: {
     padding: careSpacing.sm,

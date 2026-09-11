@@ -1,4 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { subscribeToWfmLiveChanges } from '@/lib/realtime/presets';
+import { notifyWfmOfficeDataChanged } from '@/lib/wfm/wfmOfficeDataChanged';
+import type { WfmOfficeTimePeriod } from '@/types/modules/wfmOfficeTimekeeping';
+import type { WfmEditorState } from '@/components/wfm/WfmOfficeTimeHistoryPanel';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { CareEntitySelect } from '@/components/inputs/CareEntitySelect';
 import {
@@ -42,66 +46,21 @@ type Props = {
   employeeId: string;
   employeeName: string;
   canEdit: boolean;
+  period?: WfmOfficeTimePeriod;
+  onChanged?: () => Promise<void>;
+  onEditorStateChange?: (state: WfmEditorState) => void;
 };
 
 const today = berlinToday;
 
-export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName, canEdit }: Props) {
-  const query = useAsyncQuery(
-    useCallback(async () => {
-      try {
-        const staleRepair = await repairStaleEmployeeLogbookState(tenantId, employeeId);
-        let bundle = await loadEmployeeLogbook(tenantId, employeeId);
-        let gpsRecoveryCandidates = [] as Awaited<ReturnType<typeof loadEmployeeLogbookGpsRecoveryCandidates>>;
-        let gpsRecoveryError: string | null = null;
-        try {
-          gpsRecoveryCandidates = await loadEmployeeLogbookGpsRecoveryCandidates(tenantId, employeeId);
-          const activeVehicle = bundle.vehicles.find((vehicle) => vehicle.active) ?? null;
-          if (activeVehicle) {
-            const synchronized = await synchronizeEmployeeLogbookFromAssistGps({
-              tenantId,
-              employeeId,
-              vehicleId: activeVehicle.id,
-              candidates: gpsRecoveryCandidates,
-            });
-            if (synchronized.importedCount > 0) {
-              [bundle, gpsRecoveryCandidates] = await Promise.all([
-                loadEmployeeLogbook(tenantId, employeeId),
-                loadEmployeeLogbookGpsRecoveryCandidates(tenantId, employeeId),
-              ]);
-            }
-          }
-        } catch (recoveryError) {
-          gpsRecoveryError = recoveryError instanceof Error
-            ? recoveryError.message
-            : 'GPS-Bestandsdaten konnten nicht geprüft werden.';
-        }
-        return { ok: true as const, data: { ...bundle, gpsRecoveryCandidates, gpsRecoveryError, staleRepair } };
-      } catch (error) {
-        return {
-          ok: false as const,
-          error: error instanceof Error ? error.message : 'Fahrtenbuch konnte nicht geladen werden.',
-        };
-      }
-    }, [tenantId, employeeId]),
-    [tenantId, employeeId],
-  );
-  const linkOptionsQuery = useAsyncQuery(useCallback(async () => {
-    const [assignments, clients] = await Promise.all([
-      fetchLivePortalAppointmentsForEmployee(tenantId, employeeId),
-      fetchEmployeePortalClientRecords(tenantId, employeeId),
-    ]);
-    if (!assignments.ok) return assignments;
-    if (!clients.ok) return clients;
-    return { ok: true as const, data: { assignments: assignments.data, clients: clients.data } };
-  }, [tenantId, employeeId]), [tenantId, employeeId]);
+export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName, canEdit, period, onChanged, onEditorStateChange }: Props) {
   const [plate, setPlate] = useState('');
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
   const [ownership, setOwnership] = useState<LogbookVehicleOwnership>('private');
   const [rate, setRate] = useState('0,30');
-  const [from, setFrom] = useState(EMPLOYEE_LOGBOOK_RECOVERY_SINCE.slice(0, 10));
-  const [to, setTo] = useState(today());
+  const [from, setFrom] = useState(period?.fromDate ?? EMPLOYEE_LOGBOOK_RECOVERY_SINCE.slice(0, 10));
+  const [to, setTo] = useState(period?.toDate ?? today());
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
@@ -133,8 +92,67 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   const [manualAssignmentId, setManualAssignmentId] = useState('');
   const [manualClientId, setManualClientId] = useState('');
 
+  const savingRef = useRef(false);
+  const initialized = useRef('');
+  const recoveryChecked = useRef('');
+  const query = useAsyncQuery(
+    useCallback(async () => {
+      try {
+        const scope = `${tenantId}:${employeeId}`;
+        const shouldRecover = recoveryChecked.current !== scope;
+        let staleRepair: Awaited<ReturnType<typeof repairStaleEmployeeLogbookState>> | null = null;
+        let bundle = await loadEmployeeLogbook(tenantId, employeeId);
+        let gpsRecoveryCandidates = [] as Awaited<ReturnType<typeof loadEmployeeLogbookGpsRecoveryCandidates>>;
+        let gpsRecoveryError: string | null = null;
+        try {
+          if (shouldRecover) { staleRepair = await repairStaleEmployeeLogbookState(tenantId, employeeId); bundle = await loadEmployeeLogbook(tenantId, employeeId); }
+          if (shouldRecover) gpsRecoveryCandidates = await loadEmployeeLogbookGpsRecoveryCandidates(tenantId, employeeId);
+          const activeVehicle = bundle.vehicles.find((vehicle) => vehicle.active) ?? null;
+          if (activeVehicle && shouldRecover) {
+            const synchronized = await synchronizeEmployeeLogbookFromAssistGps({
+              tenantId,
+              employeeId,
+              vehicleId: activeVehicle.id,
+              candidates: gpsRecoveryCandidates,
+            });
+            if (synchronized.importedCount > 0) {
+              [bundle, gpsRecoveryCandidates] = await Promise.all([
+                loadEmployeeLogbook(tenantId, employeeId),
+                loadEmployeeLogbookGpsRecoveryCandidates(tenantId, employeeId),
+              ]);
+            }
+          }
+        } catch (recoveryError) {
+          gpsRecoveryError = recoveryError instanceof Error
+            ? recoveryError.message
+            : 'GPS-Bestandsdaten konnten nicht geprüft werden.';
+        }
+        recoveryChecked.current = scope;
+        return { ok: true as const, data: { ...bundle, gpsRecoveryCandidates, gpsRecoveryError, staleRepair } };
+      } catch (error) {
+        return {
+          ok: false as const,
+          error: error instanceof Error ? error.message : 'Fahrtenbuch konnte nicht geladen werden.',
+        };
+      }
+    }, [tenantId, employeeId]),
+    [tenantId, employeeId],
+    { queryKey: `office-logbook:${tenantId}:${employeeId}`, live: { tenantId, subscribe: subscribeToWfmLiveChanges, enabled: !selectedTripId && !manualOpen && !saving, pollMs: 30_000, refreshOnFocus: true } },
+  );
+  const linkOptionsQuery = useAsyncQuery(useCallback(async () => {
+    const [assignments, clients] = await Promise.all([
+      fetchLivePortalAppointmentsForEmployee(tenantId, employeeId),
+      fetchEmployeePortalClientRecords(tenantId, employeeId),
+    ]);
+    if (!assignments.ok) return assignments;
+    if (!clients.ok) return clients;
+    return { ok: true as const, data: { assignments: assignments.data, clients: clients.data } };
+  }, [tenantId, employeeId]), [tenantId, employeeId], { queryKey: `logbook-links:${tenantId}:${employeeId}`, live: { tenantId, subscribe: subscribeToWfmLiveChanges, pollMs: 30_000, refreshOnFocus: true } });
   useEffect(() => {
     if (!query.data) return;
+    const key = `${tenantId}:${employeeId}`;
+    if (initialized.current === key) return;
+    initialized.current = key;
     const vehicle = query.data.vehicles.find((item) => item.active);
     setPlate(vehicle?.plate ?? '');
     setMake(vehicle?.make ?? '');
@@ -142,7 +160,12 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
     setOwnership(vehicle?.ownership ?? 'private');
     setRate((query.data.profile.mileageRateCents / 100).toFixed(2).replace('.', ','));
     setManualVehicleId((current) => current ?? vehicle?.id ?? null);
-  }, [query.data]);
+  }, [query.data, tenantId, employeeId]);
+
+  useEffect(() => { if (period) { setFrom(period.fromDate); setTo(period.toDate); } }, [period?.fromDate, period?.toDate]);
+  useEffect(() => { onEditorStateChange?.({ dirty: Boolean(selectedTripId || manualOpen || deleteTripId), busy: saving, childOpen: false }); }, [selectedTripId, manualOpen, deleteTripId, saving, onEditorStateChange]);
+  useEffect(() => () => onEditorStateChange?.({ dirty: false, busy: false, childOpen: false }), [onEditorStateChange]);
+  const refreshRelated = async () => { notifyWfmOfficeDataChanged(tenantId); await Promise.all([query.refresh(), onChanged?.()]); };
 
   const visibleTrips = useMemo(
     () => (query.data?.trips ?? []).filter((trip) => trip.status !== 'cancelled').filter((trip) => {
@@ -199,6 +222,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   }
 
   async function saveTripCorrection() {
+    if (!canEdit || savingRef.current) return;
     const trip = query.data?.trips.find((item) => item.id === selectedTripId);
     if (!trip) return;
     const distance = Number(correctedDistance.replace(',', '.'));
@@ -210,6 +234,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
       setFeedback('Für eine Fahrtenbuchkorrektur ist eine Begründung erforderlich.');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     setFeedback(null);
     try {
@@ -229,30 +254,33 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
       });
       setSelectedTripId(null);
       setCorrectionReason('');
-      await query.refresh();
+      await refreshRelated();
       setFeedback('Die Kilometerkorrektur wurde gespeichert und revisionssicher protokolliert.');
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Korrektur fehlgeschlagen.');
     } finally {
-      setSaving(false);
+      savingRef.current = false; setSaving(false);
     }
   }
 
   async function deleteTrip() {
+    if (!canEdit || savingRef.current) return;
     const trip = query.data?.trips.find((item) => item.id === deleteTripId);
     if (!trip) return;
+    savingRef.current = true;
     setSaving(true); setFeedback(null);
     try {
       await deleteEmployeeLogbookTrip({ trip, reason: deleteReason });
       setDeleteTripId(null); setDeleteReason(''); setSelectedTripId(null);
-      await query.refresh();
+      await refreshRelated();
       setFeedback('Die Fahrt wurde aus dem aktiven Fahrtenbuch entfernt und revisionssicher protokolliert.');
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Die Fahrt konnte nicht gelöscht werden.');
-    } finally { setSaving(false); }
+    } finally { savingRef.current = false; setSaving(false); }
   }
 
   async function saveManualTrip() {
+    if (!canEdit || savingRef.current) return;
     const distance = Number(manualDistance.replace(',', '.'));
     if (!manualVehicleId) {
       setFeedback('Bitte zuerst einen aktiven PKW zuordnen und auswählen.');
@@ -270,6 +298,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
       setFeedback('Bitte Datum und Uhrzeiten vollständig im angegebenen Format eintragen.');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     setFeedback(null);
     try {
@@ -296,16 +325,17 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
       setManualReason('');
       setManualAssignmentId('');
       setManualClientId('');
-      await query.refresh();
+      await refreshRelated();
       setFeedback('Die Fahrt wurde manuell erfasst, abgerechnet und im Audit protokolliert.');
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Manuelle Fahrt konnte nicht gespeichert werden.');
     } finally {
-      setSaving(false);
+      savingRef.current = false; setSaving(false);
     }
   }
 
   async function saveVehicleSettings() {
+    if (!canEdit || savingRef.current) return;
     if (!query.data) return;
     if (plate.trim().length < 2) {
       setFeedback('Bitte ein gültiges Kennzeichen eintragen.');
@@ -316,6 +346,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
       setFeedback('Bitte einen gültigen Kilometersatz eintragen.');
       return;
     }
+    savingRef.current = true;
     setSaving(true);
     setFeedback(null);
     try {
@@ -334,12 +365,12 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
         ...query.data.profile,
         mileageRateCents: Math.round(parsedRate * 100),
       });
-      await query.refresh();
+      await refreshRelated();
       setFeedback('Fahrzeug und Kilometersatz wurden durch die Verwaltung gespeichert.');
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Speichern fehlgeschlagen.');
     } finally {
-      setSaving(false);
+      savingRef.current = false; setSaving(false);
     }
   }
 
@@ -360,9 +391,9 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
           variant="warning"
         />
       ) : null}
-      {query.data.staleRepair.sessionsClosed > 0 || query.data.staleRepair.tripsQuarantined > 0 || query.data.staleRepair.legacyTripsQuarantined > 0 ? (
+      {(query.data.staleRepair?.sessionsClosed ?? 0) > 0 || (query.data.staleRepair?.tripsQuarantined ?? 0) > 0 || (query.data.staleRepair?.legacyTripsQuarantined ?? 0) > 0 ? (
         <InfoBanner
-          message={`Fahrtenbuchbereinigung ausgeführt: ${query.data.staleRepair.sessionsClosed} veraltete GPS-Sitzung(en) beendet, ${query.data.staleRepair.tripsQuarantined} über Nacht offene Fahrt(en) in die Prüfung verschoben und ${query.data.staleRepair.legacyTripsQuarantined} fehlerhafte R16-Gesamtimport(e) für Abrechnung und Erstattung gesperrt.`}
+          message={`Fahrtenbuchbereinigung ausgeführt: ${query.data.staleRepair?.sessionsClosed} veraltete GPS-Sitzung(en) beendet, ${query.data.staleRepair?.tripsQuarantined} über Nacht offene Fahrt(en) in die Prüfung verschoben und ${query.data.staleRepair?.legacyTripsQuarantined} fehlerhafte R16-Gesamtimport(e) für Abrechnung und Erstattung gesperrt.`}
           variant="warning"
         />
       ) : null}
@@ -384,7 +415,7 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
                 {gpsRecovery.legacyReviewCount > 0 ? ` ${gpsRecovery.legacyReviewCount} frühere R16-Gesamtimport(e) bleiben bis zur Abschnittsprüfung gesperrt.` : ''}
               </Text>
             </View>
-            <PremiumButton title="GPS-Bestandsdaten erneut prüfen" variant="secondary" onPress={() => void query.refresh()} />
+            <PremiumButton title="GPS-Bestandsdaten erneut prüfen" variant="secondary" onPress={() => { recoveryChecked.current = ''; void query.refresh(); }} />
           </View>
           {!activeVehicleForRecovery ? (
             <InfoBanner

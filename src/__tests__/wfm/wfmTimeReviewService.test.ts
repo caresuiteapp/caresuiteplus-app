@@ -166,7 +166,7 @@ describe('wfmTimeReviewService', () => {
     expect(listed.data!.length).toBe(1);
   });
 
-  it('counts open reviews without approved/corrected', async () => {
+  it('counts corrected entries awaiting approval as open reviews', async () => {
     await upsertReview(TENANT, ACTOR, {
       entryId: 'entry-open-1',
       employeeId: EMP,
@@ -202,9 +202,9 @@ describe('wfmTimeReviewService', () => {
 
     const openCount = await countOpenReviewsForPeriod(TENANT, WORK_DATE, WORK_DATE);
     expect(openCount.ok).toBe(true);
-    expect(openCount.data).toBe(2);
+    expect(openCount.data).toBe(3);
     expect(isOpenReviewStatus('approved')).toBe(false);
-    expect(isOpenReviewStatus('corrected')).toBe(false);
+    expect(isOpenReviewStatus('corrected')).toBe(true);
     expect(isOpenReviewStatus('needs_clarification')).toBe(true);
   });
 
