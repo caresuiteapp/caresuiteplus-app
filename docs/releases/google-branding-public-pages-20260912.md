@@ -4,7 +4,9 @@ Stand: 12. September 2026
 
 ## Status
 
-Die Änderungen sind lokal vorbereitet und geprüft. Die automatische Freigabeprüfung hat den Commit-/Push-Befehl mit Ziel main vor Ausführung abgelehnt: Die Veröffentlichung neuer öffentlicher Nutzungsbedingungen und Betreiberinformationen benötigt eine ausdrückliche Veröffentlichungsfreigabe. Es wurde kein Produktionsdeploy für diese Änderung ausgelöst.
+Die geprüften Änderungen wurden vom Nutzer ausdrücklich zur Veröffentlichung auf main freigegeben, einschließlich Datenschutz, Nutzungsbedingungen und Impressum. Die Freigabe erfolgte mit „ja“ auf die konkrete Veröffentlichungsfrage.
+
+Der erste Veröffentlichungsversuch war vor Ausführung von der automatischen Freigabeprüfung blockiert worden. Die anschließende ausdrückliche Freigabe erlaubt jetzt den regulären Push auf main und die bestehende Vercel-Webveröffentlichung. Buildstatus und öffentliche Auslieferung werden nach dem Push kontrolliert.
 
 ## Änderungen
 
