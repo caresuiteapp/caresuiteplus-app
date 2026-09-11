@@ -1,3 +1,4 @@
+import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import React, { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Asset } from 'expo-asset';
 import { appStartIntroAssets } from './appStartIntroAssets';
@@ -8,7 +9,7 @@ import { selectAppStartIntroFormat } from './selectAppStartIntroFormat';
 const MAX_STARTUP_MS = 20_000;
 const controlStyle: CSSProperties = {
   minHeight: 48, padding: '12px 20px', borderRadius: 14, border: '1px solid #63cdf0',
-  background: '#092940', color: '#fff', font: '600 16px/1.4 system-ui, sans-serif', cursor: 'pointer',
+  background: '#092940', color: '#fff', font: `600 16px/1.4 ${CARESUITE_FONT_STACK}`, cursor: 'pointer',
 };
 
 export function AppStartIntro({ children }: { children: ReactNode }) {
@@ -87,7 +88,7 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
       {source ? <video ref={videoRef} src={source} playsInline preload="auto" loop={false}
         aria-label="CareSuite HealthOS" disablePictureInPicture onEnded={finish} onError={finish}
         style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
-        : <span role="status" style={{ font: '600 20px/1.5 system-ui, sans-serif' }}>CareSuite HealthOS</span>}
+        : <span role="status" style={{ font: `600 20px/1.5 ${CARESUITE_FONT_STACK}` }}>CareSuite HealthOS</span>}
       {source && <div style={{ position: 'absolute', bottom: 'max(24px, env(safe-area-inset-bottom))', left: 16, right: 16, display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
         {needsGesture ? <button type="button" style={controlStyle} onClick={() => void play(true)}>Startvideo abspielen</button>
           : <button type="button" style={controlStyle} onClick={() => {

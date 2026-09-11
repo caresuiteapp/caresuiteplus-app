@@ -1,3 +1,5 @@
+import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
+import { CENTURY_GOTHIC_CSS, CARESUITE_FONT_STYLE_ID } from '@/design/web/centuryGothicCss';
 import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
 import { DISABLE_HOVER_EFFECTS_CSS } from '@/product-workflows/design/web/disableHoverEffectsCss';
@@ -22,6 +24,7 @@ export default function Root({ children }: PropsWithChildren) {
           content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
         />
         <ScrollViewStyleReset />
+        <style id={CARESUITE_FONT_STYLE_ID} dangerouslySetInnerHTML={{ __html: CENTURY_GOTHIC_CSS }} />
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -71,7 +74,7 @@ export default function Root({ children }: PropsWithChildren) {
                   radial-gradient(circle at 72% 18%, rgba(28, 142, 255, 0.16), transparent 38%),
                   linear-gradient(145deg, #ffffff 0%, #f3f8ff 58%, #e9f4ff 100%);
                 color: #0b1220;
-                font-family: Arial, Helvetica, sans-serif;
+                font-family: ${CARESUITE_FONT_STACK};
                 text-align: center;
               }
               #caresuite-web-boot-card {

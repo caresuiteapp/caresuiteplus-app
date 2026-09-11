@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumCard, PremiumInput } from '@/components/ui';
@@ -111,5 +112,5 @@ export function DocumentTemplateEditor({
 const styles = StyleSheet.create({
   wrap: { gap: spacing.md },
   section: { ...typography.h3, marginBottom: spacing.sm },
-  preview: { ...typography.caption, fontFamily: 'monospace' },
+  preview: { ...typography.caption, fontFamily: careSuiteAppFontFamily ?? 'monospace' },
 });

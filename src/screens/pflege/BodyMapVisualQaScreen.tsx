@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import { useLocalSearchParams } from 'expo-router';
@@ -218,6 +219,6 @@ const styles = StyleSheet.create({
     color: '#66a3ff',
     fontSize: 11,
     fontWeight: '700',
-    fontFamily: 'monospace',
+    fontFamily: careSuiteAppFontFamily ?? 'monospace',
   },
 });

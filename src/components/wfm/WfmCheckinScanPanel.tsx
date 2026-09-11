@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, TextInput } from 'react-native';
 import { PremiumButton, SectionPanel, SuccessState, ErrorState } from '@/components/ui';
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: careSpacing.sm,
     marginBottom: careSpacing.sm,
-    fontFamily: 'monospace',
+    fontFamily: careSuiteAppFontFamily ?? 'monospace',
     fontSize: 18,
     letterSpacing: 2,
     textAlign: 'center',

@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FilterChipGroup, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   rowPressed: { backgroundColor: colors.bgElevated },
-  token: { ...typography.caption, fontFamily: 'monospace', color: colors.primary },
+  token: { ...typography.caption, fontFamily: careSuiteAppFontFamily ?? 'monospace', color: colors.primary },
   label: { ...typography.bodyStrong },
   example: { ...typography.caption, color: colors.textMuted },
 });

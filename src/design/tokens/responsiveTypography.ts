@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import type { TextStyle } from 'react-native';
 import { webScaledFontMetric } from '@/design/web/webFontSize';
 import { resolveResponsiveValue, type ResponsiveValueMap } from './responsiveValue';
@@ -35,54 +36,63 @@ export function resolveGalaxyTypography(width: number) {
 
   return {
     h1: {
+      fontFamily: careSuiteAppFontFamily,
       fontSize: size(h1.fontSize),
       lineHeight: size(h1.lineHeight),
       fontWeight: '800',
       color: galaxyPalette.textPrimary,
     } as TextStyle,
     h2: {
+      fontFamily: careSuiteAppFontFamily,
       fontSize: size(h2.fontSize),
       lineHeight: size(h2.lineHeight),
       fontWeight: '700',
       color: galaxyPalette.textPrimary,
     } as TextStyle,
     cardTitle: {
+      fontFamily: careSuiteAppFontFamily,
       fontSize: size(cardTitle.fontSize),
       lineHeight: size(cardTitle.lineHeight),
       fontWeight: '600',
       color: galaxyPalette.textPrimary,
     } as TextStyle,
     body: {
+      fontFamily: careSuiteAppFontFamily,
       fontSize: size(15),
       lineHeight: size(22),
       fontWeight: '400',
       color: galaxyPalette.textSecondary,
     } as TextStyle,
     bodyStrong: {
+      fontFamily: careSuiteAppFontFamily,
       fontSize: size(15),
       lineHeight: size(22),
       fontWeight: '600',
       color: galaxyPalette.textPrimary,
     } as TextStyle,
     label: {
+      fontFamily: careSuiteAppFontFamily,
       fontSize: size(12),
       lineHeight: size(16),
       fontWeight: '600',
       color: galaxyPalette.textSecondary,
     } as TextStyle,
     button: {
+      fontFamily: careSuiteAppFontFamily,
       fontSize: size(16),
       lineHeight: size(22),
       fontWeight: '600',
       color: galaxyPalette.textPrimary,
     } as TextStyle,
     caption: {
+      fontFamily: careSuiteAppFontFamily,
       fontSize: size(13),
       lineHeight: size(18),
       fontWeight: '400',
       color: galaxyPalette.textMuted,
     } as TextStyle,
     eyebrow: {
+      fontFamily: careSuiteAppFontFamily,
       fontSize: size(11),
       lineHeight: size(14),
       fontWeight: '700',

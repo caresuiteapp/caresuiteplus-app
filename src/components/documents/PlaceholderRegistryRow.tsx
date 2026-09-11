@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumCard } from '@/components/ui';
 import {
@@ -48,7 +49,7 @@ export function PlaceholderRegistryRow({ entry, compact }: Props) {
 const styles = StyleSheet.create({
   card: { gap: spacing.xs },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  token: { ...typography.caption, fontFamily: 'monospace', color: colors.primary, flex: 1 },
+  token: { ...typography.caption, fontFamily: careSuiteAppFontFamily ?? 'monospace', color: colors.primary, flex: 1 },
   scope: { ...typography.caption, color: colors.textMuted },
   label: { ...typography.bodyStrong },
   meta: { ...typography.caption, color: colors.textMuted },

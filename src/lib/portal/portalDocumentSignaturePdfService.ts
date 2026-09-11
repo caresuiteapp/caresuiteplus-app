@@ -1,3 +1,4 @@
+import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import { Platform } from 'react-native';
 import type { PortalSignatureCapture, PortalSignatureDocument } from '@/types/portal/documentSignatures';
 import { computeDocumentContentHash } from '@/lib/documents/documentHashService';
@@ -82,7 +83,7 @@ export function buildPortalSignatureFinalHtml(input: {
     <!DOCTYPE html>
     <html lang="de">
       <head><meta charset="utf-8" /><title>${escapeHtml(input.document.title)}</title></head>
-      <body style="font-family:Arial,sans-serif;color:#111;padding:24px;">
+      <body style="font-family: ${CARESUITE_FONT_STACK};color:#111;padding:24px;">
         <h1>${escapeHtml(input.document.title)}</h1>
         ${bodyHtml}
         ${signatureBlocks ? `<hr /><h2>Weitere Unterschriften</h2>${signatureBlocks}` : ''}

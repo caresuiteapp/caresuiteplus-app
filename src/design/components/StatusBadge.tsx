@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { StyleSheet, Text, View } from 'react-native';
 import { resolveAccentTextChipStyle } from '@/design/tokens/accentContrast';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -233,6 +234,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 12,
     color: galaxyPalette.textMuted,
-    fontFamily: 'monospace',
+    fontFamily: careSuiteAppFontFamily ?? 'monospace',
   },
 });

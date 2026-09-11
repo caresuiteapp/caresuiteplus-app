@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import {
   buildAssistMapImageUrl,
@@ -184,6 +185,6 @@ const styles = StyleSheet.create({
   coordLine: {
     ...typography.caption,
     color: '#9DB6CA',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontFamily: careSuiteAppFontFamily ?? (Platform.OS === 'ios' ? 'Menlo' : 'monospace'),
   },
 });

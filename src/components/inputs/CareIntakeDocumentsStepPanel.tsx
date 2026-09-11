@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
@@ -114,7 +115,7 @@ function buildStyles(
     textPreview: { maxHeight: 480, backgroundColor: safeColors.bgElevated, padding: spacing.sm, borderRadius: 8 },
     previewText: {
       ...caption,
-      fontFamily: Platform.OS === 'web' ? 'Georgia, serif' : undefined,
+      fontFamily: careSuiteAppFontFamily,
       lineHeight: 20,
       color: safeColors.textPrimary,
     },

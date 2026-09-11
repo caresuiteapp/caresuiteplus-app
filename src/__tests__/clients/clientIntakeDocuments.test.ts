@@ -357,7 +357,7 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     const preview = renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form, { name: 'Demo Pflegedienst' }));
     expect(preview.html).toContain('<!DOCTYPE html>');
     expect(preview.html).toContain('document-legal');
-    expect(preview.html).toContain('Times New Roman');
+    expect(preview.html).toContain('Century Gothic');
   });
 
   it('27. Migration legt Tabellen und RLS/GRANTs an', () => {

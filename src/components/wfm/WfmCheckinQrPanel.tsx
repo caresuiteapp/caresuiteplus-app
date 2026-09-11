@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { PremiumButton, SectionPanel, SuccessState, ErrorState } from '@/components/ui';
@@ -99,11 +100,11 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     letterSpacing: 4,
-    fontFamily: 'monospace',
+    fontFamily: careSuiteAppFontFamily ?? 'monospace',
   },
   qrPayload: {
     marginTop: careSpacing.xs,
-    fontFamily: 'monospace',
+    fontFamily: careSuiteAppFontFamily ?? 'monospace',
     fontSize: 11,
   },
 });

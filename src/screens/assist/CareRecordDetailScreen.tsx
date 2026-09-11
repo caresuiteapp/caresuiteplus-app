@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
@@ -138,5 +139,5 @@ const styles = StyleSheet.create({
   status: { ...typography.caption, marginBottom: spacing.sm },
   content: { ...typography.body },
   previewLabel: { ...typography.label, marginBottom: spacing.xs },
-  preview: { ...typography.caption, fontFamily: 'monospace' },
+  preview: { ...typography.caption, fontFamily: careSuiteAppFontFamily ?? 'monospace' },
 });

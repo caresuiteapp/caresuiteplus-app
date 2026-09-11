@@ -1,3 +1,4 @@
+import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 /**
  * Shared Leistungsnachweis HTML layout (v2) — A4-oriented, print-friendly.
  */
@@ -54,7 +55,7 @@ export function visitProofPdfStyles(): string {
     @page { size: A4; margin: 14mm; }
     * { box-sizing: border-box; }
     body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-family: ${CARESUITE_FONT_STACK};
       color: #1f2937;
       margin: 0;
       padding: 0;

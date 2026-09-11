@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { useMemo } from 'react';
 import type { TextStyle } from 'react-native';
 import { useAuroraAdaptiveText, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
@@ -46,6 +47,7 @@ export function useAuthFlowTypography() {
       eyebrow: accentEyebrow,
       backLink: {
         color: backLinkColor,
+        fontFamily: careSuiteAppFontFamily,
         fontSize: sizes.body.fontSize,
         fontWeight: '600' as const,
       } as TextStyle,

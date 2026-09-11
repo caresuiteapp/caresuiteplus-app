@@ -1,3 +1,4 @@
+import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import { memo, useEffect, useMemo, useRef, useState, type Ref } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
@@ -52,7 +53,7 @@ function buildInfoContent(marker: GoogleMapsLiveMarker, demoMode: boolean): stri
       : null,
   ].filter(Boolean);
   const coordinates = `${marker.latitude.toFixed(5)}, ${marker.longitude.toFixed(5)}`;
-  return `<div style="box-sizing:border-box;min-width:240px;max-width:320px;padding:12px 14px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;line-height:1.55;color:#102A43;background:#FFFFFF"><div style="margin-bottom:6px;font-size:14px;font-weight:800;color:#071F3D">${parts[0] ?? ''}</div><div style="color:#334E68">${parts.slice(1).join('<br/>')}</div><div style="margin-top:8px;padding-top:7px;border-top:1px solid #D7E6F2;color:#486581;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px">GPS ${escapeHtml(coordinates)}</div></div>`;
+  return `<div style="box-sizing:border-box;min-width:240px;max-width:320px;padding:12px 14px;font-family:${CARESUITE_FONT_STACK};font-size:13px;line-height:1.55;color:#102A43;background:#FFFFFF"><div style="margin-bottom:6px;font-size:14px;font-weight:800;color:#071F3D">${parts[0] ?? ''}</div><div style="color:#334E68">${parts.slice(1).join('<br/>')}</div><div style="margin-top:8px;padding-top:7px;border-top:1px solid #D7E6F2;color:#486581;font-family:${CARESUITE_FONT_STACK};font-size:11px">GPS ${escapeHtml(coordinates)}</div></div>`;
 }
 
 function escapeHtml(value: string): string {

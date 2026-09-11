@@ -1,3 +1,4 @@
+import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import type { PageLayoutConfig } from '@/types/documents/tenantDocumentSettings';
 
 /** DIN A4 Hochformat — Standard für Geschäftsdokumente */
@@ -13,7 +14,7 @@ export const A4_PAGE_LAYOUT: PageLayoutConfig = {
   baseFontSizePt: 10.5,
   headingFontSizePt: 14,
   lineHeight: 1.2,
-  fontFamily: 'Arial, Helvetica, system-ui, sans-serif',
+  fontFamily: CARESUITE_FONT_STACK,
 };
 
 export const DOCUMENT_LAYOUT_AREAS = [

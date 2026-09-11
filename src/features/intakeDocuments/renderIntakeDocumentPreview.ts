@@ -1,3 +1,4 @@
+import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import type { IntakeDocumentSignature, IntakeDocumentTemplate } from './intakeDocumentTypes';
 import type { IntakePlaceholderContext } from './buildIntakeDocumentContext';
 
@@ -8,7 +9,7 @@ export const INTAKE_DOCUMENT_CSS = `
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    font-family: "Times New Roman", Georgia, "DejaVu Serif", serif;
+    font-family: ${CARESUITE_FONT_STACK};
     font-size: 11pt;
     line-height: 1.45;
     color: #1a1a1a;

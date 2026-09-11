@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FilterChipGroup, InfoBanner, SectionPanel } from '@/components/ui';
 import type { DocumentPreviewOutput } from '@/features/documents/templateEngine/documentPreviewRenderer';
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
   frame: { borderWidth: 1, borderColor: colors.borderSoft, borderRadius: 8, overflow: 'hidden' },
   frameMobile: { maxWidth: 390, alignSelf: 'center', width: '100%' },
   textPreview: { maxHeight: 320, backgroundColor: colors.bgElevated, padding: spacing.sm, borderRadius: 8 },
-  previewText: { ...typography.caption, fontFamily: 'monospace' },
+  previewText: { ...typography.caption, fontFamily: careSuiteAppFontFamily ?? 'monospace' },
   meta: { ...typography.caption, color: colors.textMuted },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   badge: {

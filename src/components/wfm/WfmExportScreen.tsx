@@ -1,3 +1,4 @@
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
@@ -816,7 +817,7 @@ const styles = StyleSheet.create({
   periodLabel: { marginBottom: careSpacing.md, fontWeight: '600' },
   periodDetail: { marginBottom: careSpacing.sm },
   periodRow: { flexDirection: 'row', gap: careSpacing.sm },
-  preview: { fontFamily: 'monospace', fontSize: 12, lineHeight: 18 },
+  preview: { fontFamily: careSuiteAppFontFamily ?? 'monospace', fontSize: 12, lineHeight: 18 },
   metaLine: { marginBottom: careSpacing.xs, fontSize: 13 },
   entryLine: { marginBottom: careSpacing.xs, fontSize: 13 },
   blockedLine: { marginBottom: careSpacing.xs, fontSize: 13, fontStyle: 'italic' },

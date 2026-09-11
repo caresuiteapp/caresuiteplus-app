@@ -1,3 +1,4 @@
+import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import type {
   PortalSignatureRequirement,
   PortalSignatureSignerRole,
@@ -48,7 +49,7 @@ export function wrapSignatureDocumentPreviewHtml(bodyHtml: string): string {
 <head>
   <meta charset="utf-8" />
   <style>
-    body { font-family: Arial, sans-serif; color: #111; padding: 16px; max-width: 800px; margin: 0 auto; line-height: 1.5; }
+    body { font-family: ${CARESUITE_FONT_STACK}; color: #111; padding: 16px; max-width: 800px; margin: 0 auto; line-height: 1.5; }
     .portal-signature-field, .cs-block-signature {
       border: 1px dashed #64748b; padding: 12px; margin-top: 16px; background: #f8fafc; border-radius: 8px;
     }
