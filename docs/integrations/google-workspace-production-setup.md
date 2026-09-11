@@ -34,8 +34,11 @@ kontrollierte Tokenmigration ersetzt werden.
 
 ## Deployment
 
-1. Migration `0269_google_workspace_live.sql` anwenden.
-2. Edge Functions `google-workspace-auth` und `google-workspace-proxy` deployen.
+1. Migrationen `0269_google_workspace_live.sql` und
+   `20260911193000_google_workspace_oauth_completion.sql` anwenden.
+2. Edge Functions `google-workspace-auth` (OAuth-Callback: `--no-verify-jwt`)
+   und `google-workspace-proxy` deployen. Beide prüfen angemeldete CareSuite-Nutzer
+   serverseitig; lediglich der mit einmaligem State geschützte Callback ist öffentlich.
 3. Die Secrets ausschließlich serverseitig in Supabase setzen.
 4. In CareSuite unter `Connect > Kommunikationskanäle > Google Workspace` mit
    einem Business-Admin verbinden.
@@ -49,7 +52,22 @@ kontrollierte Tokenmigration ersetzt werden.
 - Keine Secrets in Expo-, Browser- oder Android-Umgebungsvariablen.
 - Keine Domain-wide Delegation ohne gesonderte Mandantenentscheidung und
   dokumentierte Workspace-Admin-Freigabe.
+- Das gemeinsame Betriebskonto ist serverseitig auf Geschäftsführung und Verwaltung
+  beschränkt. Portalrollen erhalten keinen Zugriff auf das betriebliche Postfach.
 - Schreibende Aktionen werden nur mit `confirmed: true` ausgeführt.
 - Audit-Einträge enthalten keine E-Mail-, Dokument- oder Gesundheitsinhalte.
 - Scopes werden nicht angenommen, sondern aus der tatsächlichen Google-Antwort
   abgeleitet. Nicht freigegebene Dienste bleiben sichtbar als „Freigabe fehlt“.
+
+
+## Web/Desktop
+
+Die Arbeitsansicht liegt unter `/business/connect/google-workspace`. Die fünf
+Google-Widgets lassen sich im bestehenden Bereich „Apps & Widgets“ zum Desktop
+hinzufügen. Datenabruf erfolgt auf Anforderung und bei sichtbarer Seite etwa alle
+zwei Minuten; dies ist keine automatische Übernahme in CareSuite-Fachakten.
+
+Verifikation: `node scripts/verify-google-workspace-web.mjs`. Die Browserprüfung
+verwendet synthetische Daten und versendet keine echten Nachrichten. Einzelheiten
+und die verbleibende Prüfung nach echter Kontofreigabe stehen im Releasebericht
+`docs/releases/google-workspace-web-20260911.md`.

@@ -4,6 +4,9 @@ import {
   normalizeGoogleWorkspaceRole,
 } from './googleWorkspaceRole.ts';
 
+export class WorkspaceError extends Error {
+  constructor(message: string, readonly statusCode = 500, readonly code = 'workspace_error') { super(message); }
+}
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -42,6 +45,10 @@ export const GOOGLE_WORKSPACE_CAPABILITIES = {
 
 export type GoogleWorkspaceConnection = {
   id: string;
+  connected_at: string;
+  last_sync_at: string | null;
+  last_health_check_at: string | null;
+  last_error_code: string | null;
   tenant_id: string;
   connected_user_id: string | null;
   connection_status: string;
@@ -132,6 +139,7 @@ export function publicConnection(connection: GoogleWorkspaceConnection | null) {
   if (!connection) {
     return {
       status: 'not_connected',
+      connectedAt: null, lastSyncAt: null, lastHealthCheckAt: null, lastErrorCode: null,
       email: null,
       domain: null,
       expiresAt: null,
@@ -141,11 +149,15 @@ export function publicConnection(connection: GoogleWorkspaceConnection | null) {
   }
   return {
     status: connection.connection_status,
+    connectedAt: connection.connected_at,
+    lastSyncAt: connection.last_sync_at,
+    lastHealthCheckAt: connection.last_health_check_at,
+    lastErrorCode: connection.last_error_code,
     email: connection.primary_email,
     domain: connection.hosted_domain,
     expiresAt: connection.token_expires_at,
     scopes: connection.granted_scopes ?? [],
-    capabilities: connection.capabilities ?? buildCapabilities(connection.granted_scopes ?? []),
+    capabilities: buildCapabilities(connection.connection_status === 'connected' ? connection.granted_scopes ?? [] : []),
   };
 }
 
@@ -186,7 +198,7 @@ export async function resolveWorkspaceActor(
 
 export function assertWorkspaceAdmin(role: string): void {
   if (!isGoogleWorkspaceAdminRole(role)) {
-    throw new Error('Nur Administrierende dürfen Google Workspace verbinden.');
+    throw new WorkspaceError('Google Workspace steht nur der Geschäftsführung und Verwaltung zur Verfügung.', 403, 'workspace_access_denied');
   }
 }
 
@@ -207,7 +219,7 @@ export async function exchangeRefreshToken(refreshToken: string): Promise<{
   });
   const payload = await response.json();
   if (!response.ok || !payload.access_token) {
-    throw new Error(payload.error_description ?? payload.error ?? 'Google-Token konnte nicht erneuert werden.');
+    throw new WorkspaceError(payload.error === 'invalid_grant' ? 'Google-Anmeldung abgelaufen. Bitte Konto erneut verbinden.' : 'Google-Anmeldung konnte nicht erneuert werden. Bitte später erneut versuchen.', payload.error === 'invalid_grant' ? 409 : 503, payload.error === 'invalid_grant' ? 'google_authorization_required' : 'google_unavailable');
   }
   return payload;
 }
@@ -223,15 +235,22 @@ export async function getValidAccessToken(
     return decryptWorkspaceSecret(connection.access_token_cipher);
   }
   if (!connection.refresh_token_cipher) throw new Error('Google-Refresh-Token fehlt.');
-  const refreshed = await exchangeRefreshToken(
-    await decryptWorkspaceSecret(connection.refresh_token_cipher),
-  );
+  let refreshed: Awaited<ReturnType<typeof exchangeRefreshToken>>;
+  try { refreshed = await exchangeRefreshToken(await decryptWorkspaceSecret(connection.refresh_token_cipher)); }
+  catch (error) {
+    if (error instanceof WorkspaceError && error.code === 'google_authorization_required') {
+      await service.from('google_workspace_connections').update({ connection_status: 'degraded', last_error_code: error.code, last_error_message: error.message, updated_at: new Date().toISOString() }).eq('id', connection.id).eq('connected_at', connection.connected_at).eq('connection_status', 'connected');
+    }
+    throw error;
+  }
+  const scopes = typeof refreshed.scope === 'string' ? refreshed.scope.split(' ').filter(Boolean) : connection.granted_scopes;
   const encrypted = await encryptWorkspaceSecret(refreshed.access_token);
   const nextExpiry = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
-  await service
+  const { data: saved, error } = await service
     .from('google_workspace_connections')
     .update({
       access_token_cipher: encrypted,
+      granted_scopes: scopes, capabilities: buildCapabilities(scopes),
       token_expires_at: nextExpiry,
       connection_status: 'connected',
       last_health_check_at: new Date().toISOString(),
@@ -239,6 +258,10 @@ export async function getValidAccessToken(
       last_error_message: null,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', connection.id);
+    .eq('id', connection.id)
+    .eq('connected_at', connection.connected_at)
+    .eq('connection_status', 'connected')
+    .select('id').maybeSingle();
+  if (error || !saved) throw new Error('Die Google-Verbindung wurde inzwischen geändert. Bitte erneut laden.');
   return refreshed.access_token;
 }

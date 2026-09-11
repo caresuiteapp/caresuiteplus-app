@@ -22,6 +22,10 @@ export type GoogleWorkspaceConnectionStatus =
 
 export type GoogleWorkspaceConnection = {
   status: GoogleWorkspaceConnectionStatus;
+  connectedAt?: string | null;
+  lastSyncAt?: string | null;
+  lastHealthCheckAt?: string | null;
+  lastErrorCode?: string | null;
   email: string | null;
   domain: string | null;
   expiresAt: string | null;
