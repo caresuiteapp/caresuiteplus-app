@@ -1,5 +1,5 @@
 {
-  "buildCommand": "EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web",
+  "buildCommand": "EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web && node scripts/build-public-branding-pages.mjs --output dist",
   "outputDirectory": "dist",
   "headers": [
     {
@@ -44,6 +44,38 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/caresuite",
+      "destination": "/caresuite/index.html"
+    },
+    {
+      "source": "/caresuite/",
+      "destination": "/caresuite/index.html"
+    },
+    {
+      "source": "/datenschutz",
+      "destination": "/datenschutz/index.html"
+    },
+    {
+      "source": "/datenschutz/",
+      "destination": "/datenschutz/index.html"
+    },
+    {
+      "source": "/nutzungsbedingungen",
+      "destination": "/nutzungsbedingungen/index.html"
+    },
+    {
+      "source": "/nutzungsbedingungen/",
+      "destination": "/nutzungsbedingungen/index.html"
+    },
+    {
+      "source": "/impressum",
+      "destination": "/impressum/index.html"
+    },
+    {
+      "source": "/impressum/",
+      "destination": "/impressum/index.html"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

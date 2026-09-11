@@ -469,6 +469,11 @@ export function AccessHubBaseScreen({
               stacked={stacked}
             />
           ) : null}
+          <nav aria-label="Informationen zu CareSuite" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px 22px', marginTop: 10 }}>
+            {[['/caresuite', 'Über CareSuite'], ['/datenschutz', 'Datenschutz'], ['/nutzungsbedingungen', 'Nutzungsbedingungen'], ['/impressum', 'Kontakt & Impressum']].map(([href, label]) => (
+              <a key={href} href={href} style={{ fontFamily: 'CenturyGothic, Arial, sans-serif', color: '#145786', fontSize: 14, lineHeight: 1.6, textUnderlineOffset: 3 }}>{label}</a>
+            ))}
+          </nav>
         </View>
       </ScrollView>
     </View>
