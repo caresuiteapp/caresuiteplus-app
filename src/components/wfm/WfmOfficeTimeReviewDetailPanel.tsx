@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { CareTimeInput } from '@/components/inputs';
-import { ListFilterSelect, PremiumButton } from '@/components/ui';
+import { CareDateInput, CareTimeInput } from '@/components/inputs';
+import { PremiumButton } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { WORKTIME_SURFACE, WORKTIME_TEXT } from './WfmOfficeTimekeepingLayout';
@@ -44,6 +44,7 @@ type Props = {
   onEditPauseMinutesChange: (value: string) => void;
   exportedWarning?: boolean;
   embedded?: boolean;
+  saving?: boolean;
 };
 
 const REVIEW_TEXT = WORKTIME_TEXT;
@@ -92,15 +93,20 @@ export function WfmOfficeTimeReviewDetailPanel({
   onEditPauseMinutesChange,
   exportedWarning = false,
   embedded = false,
+  saving = false,
 }: Props) {
   const accent = moduleColor('office');
   const display = resolveWfmOfficeTimeDisplay(entry);
   const [showHistory, setShowHistory] = useState(false);
   const [startTime, setStartTime] = useState(localTime(editStartAt));
   const [endTime, setEndTime] = useState(localTime(editEndAt));
+  const localDate = (iso: string) => { const date = new Date(iso); return Number.isFinite(date.getTime()) ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` : entry.workDate; };
+  const [endDate, setEndDate] = useState(localDate(editEndAt));
 
-  useEffect(() => setStartTime(localTime(editStartAt)), [editStartAt, entry.id]);
-  useEffect(() => setEndTime(localTime(editEndAt)), [editEndAt, entry.id]);
+  useEffect(() => setStartTime(localTime(entry.actualStartAt ?? entry.assignmentActualStartAt ?? '')), [entry.id, entry.actualStartAt, entry.assignmentActualStartAt]);
+  useEffect(() => { setEndTime(localTime(entry.actualEndAt ?? entry.assignmentActualEndAt ?? '')); setEndDate(localDate(entry.actualEndAt ?? entry.assignmentActualEndAt ?? ''));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry.id, entry.actualEndAt, entry.assignmentActualEndAt]);
 
   return (
     <View
@@ -123,7 +129,7 @@ export function WfmOfficeTimeReviewDetailPanel({
         </View>
       ) : null}
 
-      <View style={styles.panelBody}>
+      <View style={styles.panelBody} pointerEvents={saving ? "none" : "auto"}>
         <SectionBlock title="Einsatz">
           <Text style={styles.line}>{entry.clientLabel ?? entry.assignmentTitle ?? '—'}</Text>
           <Text style={styles.line}>
@@ -168,7 +174,7 @@ export function WfmOfficeTimeReviewDetailPanel({
         <SectionBlock title="Prüfung">
           {exportedWarning ? (
             <Text style={styles.warningText}>
-              Warnung: Eintrag exportiert — Änderungen erfordern P2.3 Re-Export.
+              Diese Buchung wurde bereits exportiert. Änderungen benötigen einen gesonderten Korrekturabschluss mit erneutem Export.
             </Text>
           ) : null}
           <TextInput
@@ -191,9 +197,7 @@ export function WfmOfficeTimeReviewDetailPanel({
                   value={startTime}
                   onChange={(value) => {
                     setStartTime(value);
-                    if (!value) onEditStartAtChange('');
-                    const iso = isoAtWorkDate(entry.workDate, value);
-                    if (iso) onEditStartAtChange(iso);
+                    onEditStartAtChange(isoAtWorkDate(entry.workDate, value) ?? '');
                   }}
                   showFormatHint={false}
                 />
@@ -204,23 +208,17 @@ export function WfmOfficeTimeReviewDetailPanel({
                   value={endTime}
                   onChange={(value) => {
                     setEndTime(value);
-                    if (!value) onEditEndAtChange('');
-                    const iso = isoAtWorkDate(entry.workDate, value);
-                    if (iso) onEditEndAtChange(iso);
+                    onEditEndAtChange(isoAtWorkDate(endDate, value) ?? '');
                   }}
                   showFormatHint={false}
                 />
               </View>
             </View>
-            <ListFilterSelect
-              label="Pause"
-              value={editPauseMinutes}
-              onChange={onEditPauseMinutesChange}
-              options={[0, 5, 10, 15, 20, 30, 45, 60, 90, 120].map((minutes) => ({
-                key: String(minutes),
-                label: `${minutes} Minuten`,
-              }))}
-            />
+            <CareDateInput label="Enddatum" value={endDate} showFormatHint={false}
+              onChange={(value) => { setEndDate(value); onEditEndAtChange(isoAtWorkDate(value, endTime) ?? ''); }} />
+            <Text style={styles.line}>Pause in Minuten</Text>
+            <TextInput accessibilityLabel="Pause in Minuten" value={editPauseMinutes}
+              onChangeText={onEditPauseMinutesChange} keyboardType="number-pad" style={styles.input} />
             <TextInput
               value={correctionReason}
               onChangeText={onCorrectionReasonChange}
@@ -239,7 +237,9 @@ export function WfmOfficeTimeReviewDetailPanel({
                 />
               ) : null}
               <PremiumButton
-                title="Speichern"
+                title="Korrektur speichern"
+                loading={saving}
+                disabled={saving}
                 variant="secondary"
                 onPress={onSaveCorrection}
                 onDarkSurface
@@ -269,6 +269,9 @@ export function WfmOfficeTimeReviewDetailPanel({
           </SectionBlock>
         ) : null}
 
+        {(!canCorrect || entry.canEdit === false) ? <Text style={styles.line}>
+          {!canCorrect ? 'Ihre Rolle besitzt keine Berechtigung zum Bearbeiten von Arbeitszeiten.' : 'Diese Buchung ist geschützt. Der Prüf- oder Exportstatus muss im dafür vorgesehenen Freigabeablauf geklärt werden.'}
+        </Text> : null}
         <SectionBlock title="Historie">
           <PremiumButton
             title={showHistory ? 'Historie ausblenden' : 'Historie anzeigen'}

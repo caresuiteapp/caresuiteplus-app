@@ -299,6 +299,12 @@ export function subscribeToWfmLiveChanges(
       channelName: `wfm:live:${tenantId}`,
       demoPollMs: 10_000,
       specs: [
+        { table: 'employee_logbook_trips', filter: tenantFilter(tenantId) },
+        { table: 'employee_logbook_profiles', filter: tenantFilter(tenantId) },
+        { table: 'employee_logbook_vehicles', filter: tenantFilter(tenantId) },
+        { table: 'employee_logbook_receipts', filter: tenantFilter(tenantId) },
+        { table: 'workforce_time_events', filter: tenantFilter(tenantId) },
+        { table: 'assist_time_events', filter: tenantFilter(tenantId) },
         { table: 'workforce_work_sessions', filter: tenantFilter(tenantId) },
         { table: 'workforce_time_entry_reviews', filter: tenantFilter(tenantId) },
         { table: 'workforce_time_review_actions', filter: tenantFilter(tenantId) },

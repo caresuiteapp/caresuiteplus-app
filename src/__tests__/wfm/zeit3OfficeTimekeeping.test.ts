@@ -159,7 +159,7 @@ describe('ZEIT.3 deviation gate + office workflow', () => {
   });
 
   it('correction with reason writes audit', async () => {
-    setEntryOverlay('entry-audit', { reviewStatus: 'open' });
+    await createWfmOfficeManualEntry(TENANT, ACTOR, ROLE, { entryId: 'entry-audit', employeeId: EMP, workDate: '2026-07-04', workKind: 'buero', actualStartAt: plannedAt(9), actualEndAt: plannedAt(10), pauseMinutes: 0, reason: 'Nachtrag' });
     const r = await applyWfmOfficeTimeCorrection(TENANT, ACTOR, ROLE, {
       entryId: 'entry-audit',
       reason: 'Korrektur laut Telefonat',

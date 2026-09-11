@@ -20,7 +20,7 @@ describe('Gehaltsstatistik Workspace R8', () => {
     expect(screen).toContain('OFFICE · LOHN- UND ZEITSTEUERUNG');
     expect(screen).toContain('Mitarbeitendenabrechnungen');
     expect(screen).toContain('Daten aktualisieren');
-    expect(screen).toContain('Aktueller Monat');
+    expect(screen).toContain('WfmOfficeMonthSelector');
     expect(screen).toContain('PDF-FREIGABEN');
   });
 

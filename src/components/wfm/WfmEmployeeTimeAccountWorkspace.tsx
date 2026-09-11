@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -17,9 +17,13 @@ import type { RoleKey } from '@/types';
 import type { WfmOfficeEmployeeTimeAccount } from '@/types/modules/wfmOfficeTimekeeping';
 import { getPayrollPdfUrl } from '@/lib/payroll';
 import { Linking } from 'react-native';
-import { WfmOfficeTimeHistoryPanel } from './WfmOfficeTimeHistoryPanel';
+import { WfmOfficeTimeHistoryPanel, type WfmEditorState } from './WfmOfficeTimeHistoryPanel';
 
-type AccountTab = 'overview' | 'bookings' | 'logbook' | 'absence' | 'payroll';
+import { WfmOfficeManualEntryPanel } from './WfmOfficeManualEntryPanel';
+import { confirmAction } from '@/lib/platform/confirmAction';
+import type { WfmOfficeTimePeriod } from '@/types/modules/wfmOfficeTimekeeping';
+
+type AccountTab = 'overview' | 'bookings' | 'logbook' | 'absence' | 'payroll' | 'manual';
 
 type Props = {
   account: WfmOfficeEmployeeTimeAccount;
@@ -29,6 +33,10 @@ type Props = {
   canCorrect: boolean;
   canManage: boolean;
   periodLabel: string;
+  period: WfmOfficeTimePeriod;
+  initialTab?: AccountTab;
+  onChanged?: () => Promise<void>;
+  onEditorStateChange?: (state: WfmEditorState) => void;
   onClose: () => void;
 };
 
@@ -93,17 +101,39 @@ function ProgressLine({ label, value, total, valueLabel }: { label: string; valu
   );
 }
 
-export function WfmEmployeeTimeAccountWorkspace({ account, tenantId, reviewerId, roleKey, canCorrect, canManage, periodLabel, onClose }: Props) {
+export function WfmEmployeeTimeAccountWorkspace({ account, tenantId, reviewerId, roleKey, canCorrect, canManage, periodLabel, period, initialTab = 'overview', onChanged, onEditorStateChange, onClose }: Props) {
   const router = useRouter();
-  const [tab, setTab] = useState<AccountTab>('overview');
+  const [tab, setTab] = useState<AccountTab>(initialTab);
+  const [editor, setEditor] = useState<WfmEditorState>({ dirty: false, busy: false, childOpen: false });
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const reportEditor = useCallback((state: WfmEditorState) => { setEditor(state); onEditorStateChange?.(state); }, [onEditorStateChange]);
+  const selectTab = async (next: AccountTab) => {
+    if (next === tab || editor.busy || editor.childOpen) return;
+    if (editor.dirty && !await confirmAction({ title: 'Ungespeicherter Nachtrag', message: 'Möchten Sie den Nachtrag verwerfen und den Bereich wechseln?', confirmLabel: 'Verwerfen' })) return;
+    setTab(next);
+  };
+  const closeWorkspace = async () => {
+    if (editor.busy || editor.childOpen) return;
+    if (editor.dirty && !await confirmAction({ title: 'Ungespeicherte Änderungen', message: 'Möchten Sie die Änderungen verwerfen und das Zeitkonto schließen?', confirmLabel: 'Verwerfen' })) return;
+    onClose();
+  };
+  const payrollParams = { employeeId: account.employeeId, month: period.fromDate.slice(0, 7) };
+  const statements = account.payrollStatements.filter(item => {
+    const month = `${item.periodYear}-${String(item.periodMonth).padStart(2, '0')}`;
+    return month >= period.fromDate.slice(0, 7) && month <= period.toDate.slice(0, 7);
+  });
   const openEntries = useMemo(() => listOpenReviewEntriesForEmployee(account), [account]);
   const missingEntries = useMemo(() => account.entries.filter((entry) => entry.flags.includes('missing_booking')), [account.entries]);
   const unplannedEntries = useMemo(() => account.entries.filter((entry) => entry.flags.includes('unplanned')), [account.entries]);
 
   async function openPayrollPdf(path: string | null) {
     if (!path) return;
-    const result = await getPayrollPdfUrl(path);
-    if (result.ok) await Linking.openURL(result.data);
+    setPdfError(null);
+    try {
+      const result = await getPayrollPdfUrl(path);
+      if (!result.ok) { setPdfError(result.error); return; }
+      await Linking.openURL(result.data);
+    } catch { setPdfError('Das PDF konnte nicht geöffnet werden. Bitte erneut versuchen.'); }
   }
 
   return (
@@ -118,13 +148,13 @@ export function WfmEmployeeTimeAccountWorkspace({ account, tenantId, reviewerId,
           </View>
         </View>
         <View style={styles.heroActions}>
-          <PremiumButton title="Nachtrag erfassen" variant="secondary" disabled={!canManage} onPress={() => router.push('/business/office/time-tracking/nachtraege' as never)} />
-          <PremiumButton title="Offene Fälle prüfen" disabled={!openEntries.length} onPress={() => setTab('bookings')} />
-          <PremiumButton title="Schließen" variant="ghost" onPress={onClose} />
+          <PremiumButton title="Nachtrag erfassen" variant="secondary" disabled={!canCorrect || editor.busy} onPress={() => void selectTab('manual')} />
+          <PremiumButton title="Offene Fälle prüfen" disabled={!openEntries.length} onPress={() => void selectTab('bookings')} />
+          <PremiumButton title="Schließen" variant="secondary" disabled={editor.busy} onPress={() => void closeWorkspace()} />
         </View>
       </View>
 
-      <SegmentedTabs tabs={TABS} activeKey={tab} onSelect={(key) => setTab(key as AccountTab)} layout="wrap" />
+      <SegmentedTabs tabs={canCorrect ? [...TABS, { key: 'manual', label: 'Nachtrag erfassen' }] : TABS} activeKey={tab} onSelect={(key) => void selectTab(key as AccountTab)} layout="wrap" />
 
       {tab === 'overview' ? (
         <View style={styles.sectionStack}>
@@ -133,7 +163,7 @@ export function WfmEmployeeTimeAccountWorkspace({ account, tenantId, reviewerId,
             <MetricCard label="Istzeit" value={formatWfmDurationMinutes(account.actualMinutes)} hint={`${account.entries.length} Buchungen`} />
             <MetricCard label="Saldo" value={formatSignedDuration(account.saldoMinutes)} hint={account.saldoMinutes >= 0 ? 'Guthaben' : 'Rückstand'} tone={account.saldoMinutes >= 0 ? 'good' : 'warning'} />
             <MetricCard label="Genehmigt" value={formatWfmDurationMinutes(account.approvedMinutes)} hint="Geprüfte Arbeitszeit" />
-            <MetricCard label="Fahrzeit" value={formatWfmDurationMinutes(account.travelMinutes)} hint="Aus Zeitkonto" />
+            <MetricCard label="Fahrzeit" value={formatWfmDurationMinutes(account.travelMinutes)} hint="Anrechenbare Zeit aus dem Fahrtenbuch" />
             <MetricCard label="Abwesenheit" value={formatWfmDurationMinutes(account.absenceMinutes)} hint="Gutgeschriebene Zeit" />
             <MetricCard label="Resturlaub" value={formatDays(account.remainingVacationDays)} hint={`${formatDays(account.vacationDaysUsed)} genommen`} />
             <MetricCard label="Krankheit" value={formatDays(account.sickDays)} hint="Im Kalenderjahr" />
@@ -141,7 +171,7 @@ export function WfmEmployeeTimeAccountWorkspace({ account, tenantId, reviewerId,
 
           <View style={styles.twoColumns}>
             <View style={styles.panel}>
-              <Text style={styles.panelTitle}>Monatsfortschritt</Text>
+              <Text style={styles.panelTitle}>Fortschritt im Zeitraum</Text>
               <Text style={styles.panelSubtitle}>Erfassung, Prüfung und Export auf einen Blick</Text>
               <ProgressLine label="Erfasst gegen Soll" value={account.actualMinutes} total={account.targetMinutes || account.plannedMinutes} valueLabel={`${formatWfmDurationMinutes(account.actualMinutes)} / ${formatWfmDurationMinutes(account.targetMinutes || account.plannedMinutes)}`} />
               <ProgressLine label="Genehmigt" value={account.approvedMinutes} total={account.actualMinutes} valueLabel={formatWfmDurationMinutes(account.approvedMinutes)} />
@@ -155,8 +185,8 @@ export function WfmEmployeeTimeAccountWorkspace({ account, tenantId, reviewerId,
               <View style={styles.issueRow}><Text style={styles.issueLabel}>Fehlende Buchungen</Text><PremiumBadge label={String(missingEntries.length)} variant={missingEntries.length ? 'orange' : 'muted'} /></View>
               <View style={styles.issueRow}><Text style={styles.issueLabel}>Ungeplante Zeiten</Text><PremiumBadge label={String(unplannedEntries.length)} variant={unplannedEntries.length ? 'orange' : 'muted'} /></View>
               <View style={styles.actionRow}>
-                <PremiumButton title="Zeitbuchungen bearbeiten" variant="secondary" onPress={() => setTab('bookings')} />
-                <PremiumButton title="Fahrtenbuch öffnen" variant="secondary" onPress={() => setTab('logbook')} />
+                <PremiumButton title="Zeitbuchungen bearbeiten" variant="secondary" onPress={() => void selectTab('bookings')} />
+                <PremiumButton title="Fahrtenbuch öffnen" variant="secondary" onPress={() => void selectTab('logbook')} />
               </View>
             </View>
           </View>
@@ -166,12 +196,16 @@ export function WfmEmployeeTimeAccountWorkspace({ account, tenantId, reviewerId,
       {tab === 'bookings' ? (
         <View style={styles.sectionStack}>
           {!canCorrect ? <InfoBanner message="Sie können Zeitbuchungen prüfen. Für direkte Zeitkorrekturen fehlt Ihrer Rolle die Berechtigung ‚Arbeitszeit-Korrekturen bearbeiten‘." variant="warning" /> : null}
-          <WfmOfficeTimeHistoryPanel tenantId={tenantId} reviewerId={reviewerId} roleKey={roleKey} canCorrect={canCorrect} initialEmployeeId={account.employeeId} initialEmployeeName={account.employeeName} initialPreset="this_month" lockEmployeeFilter />
+          <WfmOfficeTimeHistoryPanel tenantId={tenantId} reviewerId={reviewerId} roleKey={roleKey} canCorrect={canCorrect} initialEmployeeId={account.employeeId} initialEmployeeName={account.employeeName} period={period} lockEmployeeFilter onChanged={onChanged} onEditorStateChange={reportEditor} />
         </View>
       ) : null}
 
+      {tab === 'manual' && canCorrect ? (
+        <WfmOfficeManualEntryPanel tenantId={tenantId} actorId={reviewerId} roleKey={roleKey} employees={[{ id: account.employeeId, name: account.employeeName }]} initialDate={period.fromDate} onChanged={onChanged} onEditorStateChange={reportEditor} />
+      ) : null}
+
       {tab === 'logbook' ? (
-        <EmployeeLogbookOfficePanel tenantId={tenantId} employeeId={account.employeeId} employeeName={account.employeeName} canEdit={canManage} />
+        <EmployeeLogbookOfficePanel tenantId={tenantId} employeeId={account.employeeId} employeeName={account.employeeName} canEdit={canManage} period={period} onChanged={onChanged} onEditorStateChange={reportEditor} />
       ) : null}
 
       {tab === 'absence' ? (
@@ -196,15 +230,16 @@ export function WfmEmployeeTimeAccountWorkspace({ account, tenantId, reviewerId,
       {tab === 'payroll' ? (
         <View style={styles.sectionStack}>
           <View style={styles.actionRow}>
-            <PremiumButton title="Gehaltsstatistik öffnen" onPress={() => router.push('/business/office/payroll' as never)} />
+            <PremiumButton title="Gehaltsstatistik öffnen" onPress={() => router.push({ pathname: '/business/office/payroll', params: payrollParams } as never)} />
             <PremiumButton title="Arbeitszeit exportieren" variant="secondary" onPress={() => router.push('/business/office/time-tracking/export' as never)} />
           </View>
           <View style={styles.panel}>
-            <Text style={styles.panelTitle}>Gespeicherte Monatsabschlüsse</Text>
+            <Text style={styles.panelTitle}>Gespeicherte Monatsabschlüsse · {periodLabel}</Text>
+            {pdfError ? <InfoBanner message={pdfError} variant="error" /> : null}
             <Text style={styles.panelSubtitle}>Versionierte Gehaltsstatistiken und PDF-Nachweise</Text>
-            {!account.payrollStatements.length ? (
+            {!statements.length ? (
               <InfoBanner message="Für diese Person ist noch kein Monatsabschluss mit PDF gespeichert. Öffnen Sie die Gehaltsstatistik, prüfen Sie den Monat und erstellen Sie anschließend den Abschluss." variant="info" />
-            ) : account.payrollStatements.map((statement) => (
+            ) : statements.map((statement) => (
               <View key={statement.id} style={styles.statementRow}>
                 <View style={styles.statementCopy}>
                   <Text style={styles.statementTitle}>{String(statement.periodMonth).padStart(2, '0')}/{statement.periodYear}</Text>
@@ -223,11 +258,11 @@ export function WfmEmployeeTimeAccountWorkspace({ account, tenantId, reviewerId,
 const styles = StyleSheet.create({
   root: { width: '100%', gap: careSpacing.md, borderWidth: 1, borderColor: COLORS.border, borderRadius: 20, padding: careSpacing.md, backgroundColor: COLORS.panel },
   hero: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: careSpacing.md, padding: careSpacing.lg, borderRadius: 16, backgroundColor: '#0D3159' },
-  heroCopy: { flex: 1, minWidth: 260, gap: 6 },
+  heroCopy: { flexGrow: 1, flexBasis: 260, minWidth: 0, gap: 6 },
   eyebrow: { color: '#8ED4FF', fontSize: 10, lineHeight: 14, fontWeight: '900', letterSpacing: 1 },
   title: { color: '#FFFFFF', fontSize: 25, lineHeight: 31, fontWeight: '900' },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
-  heroActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: careSpacing.xs },
+  heroActions: { flexDirection: 'row', flexWrap: 'wrap', flexShrink: 1, maxWidth: '100%', justifyContent: 'flex-end', gap: careSpacing.xs },
   sectionStack: { gap: careSpacing.md },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   metricCard: { flexGrow: 1, flexBasis: 185, minWidth: 170, maxWidth: 280, minHeight: 112, padding: careSpacing.md, borderColor: '#C7DBEF', backgroundColor: COLORS.card },
@@ -235,7 +270,7 @@ const styles = StyleSheet.create({
   metricValue: { marginTop: 7, fontSize: 23, lineHeight: 29, fontWeight: '900' },
   metricHint: { marginTop: 4, color: COLORS.muted, fontSize: 11, lineHeight: 15, fontWeight: '600' },
   twoColumns: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.md },
-  panel: { flex: 1, minWidth: 300, gap: careSpacing.sm, borderWidth: 1, borderColor: COLORS.border, borderRadius: 16, padding: careSpacing.md, backgroundColor: COLORS.card },
+  panel: { flexGrow: 1, flexBasis: 300, minWidth: 0, width: '100%', gap: careSpacing.sm, borderWidth: 1, borderColor: COLORS.border, borderRadius: 16, padding: careSpacing.md, backgroundColor: COLORS.card },
   panelTitle: { color: COLORS.ink, fontSize: 17, lineHeight: 22, fontWeight: '900' },
   panelSubtitle: { color: COLORS.secondary, fontSize: 12, lineHeight: 17, fontWeight: '600' },
   progressBlock: { gap: 5, paddingTop: careSpacing.xs },

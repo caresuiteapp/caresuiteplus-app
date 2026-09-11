@@ -15,7 +15,7 @@ describe('WFM Mitarbeitenden-Zeitkonto Workspace R10', () => {
     expect(workspace).toContain('Fahrtenbuch');
     expect(workspace).toContain('Abwesenheiten');
     expect(workspace).toContain('Gehaltsstatistik & PDF');
-    expect(workspace).toContain('Monatsfortschritt');
+    expect(workspace).toContain('Fortschritt im Zeitraum');
     expect(workspace).toContain('Handlungsbedarf');
   });
 
@@ -25,7 +25,7 @@ describe('WFM Mitarbeitenden-Zeitkonto Workspace R10', () => {
 
     expect(workspace).toContain('WfmOfficeTimeHistoryPanel');
     expect(workspace).toContain('lockEmployeeFilter');
-    expect(workspace).toContain('/business/office/time-tracking/nachtraege');
+    expect(workspace).toContain('WfmOfficeManualEntryPanel');
     expect(workspace).toContain('/business/office/time-tracking/export');
     expect(history).toContain('applyWfmOfficeTimeCorrection');
     expect(history).toContain('reviewWfmOfficeTimeEntry');

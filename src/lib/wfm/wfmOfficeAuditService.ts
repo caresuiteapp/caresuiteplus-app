@@ -1,3 +1,5 @@
+import { buildReferenceKeyFromEntry, getReviewByReferenceKey, listReviewActionsForReviews } from './wfmTimeReviewService';
+import type { WfmOfficeTimeEntry } from '@/types/modules/wfmOfficeTimekeeping';
 import type { RoleKey, ServiceResult } from '@/types';
 import type { WfmOfficeAuditEntry } from '@/types/modules/wfmOfficeTimekeeping';
 import { enforcePermission } from '@/lib/permissions';
@@ -133,6 +135,7 @@ export async function listWfmOfficeAuditForEntry(
   tenantId: string,
   actorRoleKey: RoleKey | null,
   entryId: string,
+  entry?: WfmOfficeTimeEntry | null,
 ): Promise<ServiceResult<WfmOfficeAuditEntry[]>> {
   const denied = enforcePermission(actorRoleKey, 'time.tracking.team.view');
   if (denied) return denied;
@@ -141,9 +144,28 @@ export async function listWfmOfficeAuditForEntry(
     return { ok: true, data: listAuditForEntity(tenantId, entryId) };
   }
 
-  const localEntries = listAuditForEntity(tenantId, entryId);
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  let localEntries = listAuditForEntity(tenantId, entryId);
+  if (entry) {
+    const review = await getReviewByReferenceKey(tenantId, buildReferenceKeyFromEntry(tenantId, entry));
+    if (!review.ok) return review;
+    if (review.data) {
+      const actions = await listReviewActionsForReviews(tenantId, [review.data.id]);
+      if (!actions.ok) return actions;
+      for (const action of actions.data) appendAuditEntry(tenantId, {
+        id: action.id, tenantId, entityType: 'wfm_office_time_entry', entityId: entryId,
+        action: action.action, actorId: action.actorId, summary: action.comment || 'Prüfstatus aktualisiert',
+        field: action.newValue ? 'Arbeitszeit' : 'Prüfstatus',
+        oldValue: action.oldValue ? JSON.stringify(action.oldValue) : action.prevStatus,
+        newValue: action.newValue ? JSON.stringify(action.newValue) : action.newStatus,
+        reason: action.reason ?? action.comment, source: 'office', metadata: {}, createdAt: action.createdAt,
+      });
+    }
+  }
+  localEntries = listAuditForEntity(tenantId, entryId);
   const supabase = getSupabaseClient();
-  if (!supabase) return { ok: true, data: localEntries };
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
   const { data, error } = await fromUnknownTable(supabase, TABLE)
     .select('*')
