@@ -41,8 +41,8 @@ type ProofRow = {
 type VisitRow = {
   id: string;
   title: string | null;
-  scheduled_start: string | null;
-  scheduled_end: string | null;
+  planned_start_at: string | null;
+  planned_end_at: string | null;
 };
 
 function mapReleasedProof(proof: ProofRow, visit?: VisitRow | null): ClientPortalAssistVisitProof {
@@ -60,8 +60,8 @@ function mapReleasedProof(proof: ProofRow, visit?: VisitRow | null): ClientPorta
     serviceName: readString(snapshot, 'serviceName'),
     clientName: readString(snapshot, 'clientName'),
     employeeName: readString(snapshot, 'employeeName'),
-    scheduledStart: readString(snapshot, 'scheduledStart') ?? visit?.scheduled_start ?? null,
-    scheduledEnd: readString(snapshot, 'scheduledEnd') ?? visit?.scheduled_end ?? null,
+    scheduledStart: readString(snapshot, 'scheduledStart') ?? visit?.planned_start_at ?? null,
+    scheduledEnd: readString(snapshot, 'scheduledEnd') ?? visit?.planned_end_at ?? null,
     documentationNote:
       readString(snapshot, 'documentationNote') ?? readString(snapshot, 'documentation'),
     signedAt,
@@ -80,10 +80,12 @@ async function queryReleasedProofs(tenantId: string, clientId: string, proofId?:
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
   const result = await fetchAllPortalRows<JoinedProof>((from, to) => {
     let query = fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.proofs)
-      .select('id, visit_id, proof_number, payload_snapshot, pdf_storage_path, released_to_portal_at, portal_release_status, signature_id, assist_visits!inner(id, title, scheduled_start, scheduled_end, client_id, tenant_id)', { count: 'exact' })
+      .select('id, visit_id, proof_number, payload_snapshot, pdf_storage_path, released_to_portal_at, portal_release_status, signature_id, assist_visits!inner(id, title, planned_start_at, planned_end_at, client_id, tenant_id)', { count: 'exact' })
       .eq('tenant_id', tenantId)
       .eq('assist_visits.tenant_id', tenantId)
       .eq('assist_visits.client_id', clientId)
+      .neq('assist_visits.planning_status', 'draft')
+      .not('assist_visits.canonical_status', 'in', '(cancelled,no_show)')
       .eq('portal_visible', true)
       .in('portal_release_status', ['released', 'pending_client_signature'])
       .order('released_to_portal_at', { ascending: false }).order('id', { ascending: true });

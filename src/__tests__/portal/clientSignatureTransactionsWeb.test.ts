@@ -1,4 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
+import { computeSha256Hex } from '@/lib/assist/assistExecutionHashService';
 import { readFileSync } from 'node:fs';
 import { beforeAll, beforeEach, afterAll, expect, it } from 'vitest';
 
@@ -10,7 +11,7 @@ const visit = '00000000-0000-0000-0000-000000000003';
 const proof = '00000000-0000-0000-0000-000000000004';
 const signature = '00000000-0000-0000-0000-000000000005';
 const request = '00000000-0000-0000-0000-000000000006';
-const hash = 'a'.repeat(64);
+let hash: string;
 const pdf = `tenant/${tenant}/assist/visits/${visit}/proofs/${proof}-${signature}-test.pdf`;
 const sigPath = `tenant/${tenant}/assist/visits/${visit}/signatures/${signature}.png`;
 const schema = `
@@ -26,11 +27,13 @@ CREATE TABLE client_documents(id uuid PRIMARY KEY, tenant_id uuid, client_id uui
 CREATE TABLE assist_visit_execution_state(tenant_id uuid, visit_id uuid, current_step text, assignment_status text, signature_complete boolean, proof_generated boolean, finalized_at timestamptz, updated_at timestamptz, PRIMARY KEY(tenant_id, visit_id));
 CREATE TABLE cs_document_requests(id uuid PRIMARY KEY, owner_tenant_id uuid, client_id uuid, portal_visible boolean, recipient_scope text, status text, rendered_html text, updated_at timestamptz, completed_at timestamptz);
 CREATE TABLE cs_document_request_signatures(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), request_id uuid, signer_role text, status text, signer_name text, signature_data_url text, signed_at timestamptz, updated_at timestamptz);
-CREATE TABLE audit_logs(tenant_id uuid, action text, entity_type text, entity_id uuid, table_name text, metadata jsonb);
+CREATE TYPE audit_action_type AS ENUM ('create','read','update','delete','login','logout','export','download','upload','signature','status_change','permission_change','system');
+CREATE TABLE audit_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), tenant_id uuid, action audit_action_type NOT NULL DEFAULT 'system', record_id uuid, table_name text, title text, new_data jsonb, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE storage.objects(bucket_id text, name text PRIMARY KEY);
 CREATE FUNCTION fail_test_write() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'injected write failure'; END $$;
 `;
 beforeAll(async () => {
+  hash = await computeSha256Hex('signed proof fixture');
   db = new PGlite(); await db.exec(schema);
   await db.exec(readFileSync('supabase/migrations/20260911120000_client_portal_signature_completion.sql', 'utf8'));
 }, 30000);
@@ -54,6 +57,7 @@ it('commits proof, signed portal document and workflow together', async () => {
   expect((await db.query('SELECT status, signature_id, pdf_storage_path FROM assist_visit_proofs')).rows[0]).toEqual({ status: 'pending_review', signature_id: signature, pdf_storage_path: pdf });
   expect((await db.query('SELECT signature_required, storage_path FROM client_documents')).rows[0]).toEqual({ signature_required: false, storage_path: pdf });
   expect((await db.query('SELECT signature_complete, proof_generated FROM assist_visit_execution_state')).rows[0]).toEqual({ signature_complete: true, proof_generated: true });
+  expect((await db.query("SELECT action,record_id,new_data->>'event' AS event FROM audit_logs")).rows[0]).toEqual({ action: 'signature', record_id: proof, event: 'client_portal_proof_signed' });
 });
 it('rolls back portal and proof changes if the final workflow write fails', async () => {
   await db.exec('CREATE TRIGGER test_failure BEFORE INSERT ON assist_visit_execution_state FOR EACH ROW EXECUTE FUNCTION fail_test_write()');
@@ -84,6 +88,7 @@ it('preserves original contract text and escapes the signer name when adding the
   expect(row.status).toBe('completed'); expect(row.rendered_html).toContain('<p>Originalvertrag</p>');
   expect(row.rendered_html).toContain('&lt;Test &amp; Person&gt;'); expect(row.rendered_html).not.toContain('[SIGNATURE:');
   await expect(signDocument()).resolves.toBeDefined();
+  expect((await db.query("SELECT action,record_id,new_data->>'event' AS event FROM audit_logs")).rows).toEqual([{ action: 'signature', record_id: request, event: 'document_request_signed' }]);
 });
 it('leaves the office signature pending after the client has signed', async () => {
   await db.exec(`INSERT INTO cs_document_request_signatures(request_id,signer_role,status) VALUES('${request}','office','pending')`);

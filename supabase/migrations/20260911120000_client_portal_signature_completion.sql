@@ -61,7 +61,7 @@ BEGIN
     RAISE EXCEPTION 'Unterschrift gehört zu einer früheren Nachweisfassung';
   END IF;
   IF p_pdf_storage_path NOT LIKE ('tenant/' || p_tenant_id || '/assist/visits/' || v_proof.visit_id || '/proofs/' || p_proof_id || '-' || p_signature_id || '-%.pdf')
-     OR p_pdf_hash !~ '^[a-f0-9]{64}$' OR p_signed_payload_hash !~ '^[a-f0-9]{64}$'
+     OR p_pdf_hash !~ '^(sha256:)?[a-f0-9]{64}$' OR p_signed_payload_hash !~ '^(sha256:)?[a-f0-9]{64}$'
      OR p_pdf_storage_path IS NULL OR p_pdf_hash IS NULL OR p_signed_payload_hash IS NULL THEN
     RAISE EXCEPTION 'Nachweisdatei ist ungültig';
   END IF;
@@ -103,9 +103,9 @@ BEGIN
     current_step = 'completed', assignment_status = 'abgeschlossen', signature_complete = true,
     proof_generated = true, finalized_at = excluded.finalized_at, updated_at = now();
 
-  INSERT INTO public.audit_logs (tenant_id, action, entity_type, entity_id, table_name, metadata)
-    VALUES (p_tenant_id, 'client_portal_proof_signed', 'assist_visit_proof', p_proof_id, 'assist_visit_proofs',
-      jsonb_build_object('signature_id', p_signature_id, 'signed_at', v_signature.signed_at, 'actor_user_id', auth.uid()));
+  INSERT INTO public.audit_logs (tenant_id, action, record_id, table_name, title, new_data)
+    VALUES (p_tenant_id, 'signature', p_proof_id, 'assist_visit_proofs', 'Leistungsnachweis im Klientenportal unterzeichnet',
+      jsonb_build_object('event', 'client_portal_proof_signed', 'signature_id', p_signature_id, 'signed_at', v_signature.signed_at, 'actor_user_id', auth.uid()));
 
   RETURN jsonb_build_object('proofId', p_proof_id, 'signatureId', p_signature_id,
     'signedAt', v_snapshot->>'clientPortalSignedAt', 'proofPersisted', true);
@@ -213,9 +213,9 @@ BEGIN
   UPDATE public.cs_document_requests SET status = CASE WHEN v_all_done THEN 'completed' ELSE 'partially_signed' END,
     rendered_html = v_html, completed_at = CASE WHEN v_all_done THEN v_signed_at ELSE NULL END, updated_at = v_signed_at
     WHERE id = p_request_id AND owner_tenant_id = p_tenant_id;
-  INSERT INTO public.audit_logs (tenant_id, action, entity_type, entity_id, table_name, metadata)
-    VALUES (p_tenant_id, 'document_request_signed', 'cs_document_request', p_request_id, 'cs_document_requests',
-      jsonb_build_object('signer_role', p_signer_role, 'signed_at', v_signed_at, 'actor_user_id', auth.uid()));
+  INSERT INTO public.audit_logs (tenant_id, action, record_id, table_name, title, new_data)
+    VALUES (p_tenant_id, 'signature', p_request_id, 'cs_document_requests', 'Dokument im Klientenportal unterzeichnet',
+      jsonb_build_object('event', 'document_request_signed', 'signer_role', p_signer_role, 'signed_at', v_signed_at, 'actor_user_id', auth.uid()));
   RETURN p_request_id;
 END;
 $$;

@@ -4,9 +4,9 @@ vi.mock('@/lib/portal/assist/portalAssistVisitProofService', () => ({ listReleas
 vi.mock('@/lib/client/clientPortalSettingsService', () => ({ fetchClientPortalSettingsResolved: async () => ({ ok: true, data: {} }), canClientPortalSeeFeature: () => true }));
 vi.mock('@/lib/services/serviceRunner', () => ({ runService: (fn: () => unknown) => fn() }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
-vi.mock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: () => {
-  const query = { select: () => query, eq: () => query, order: () => query,
-    range: async (from: number, to: number) => ({ data: f.rows.slice(from, to + 1), error: f.fail ? { message: 'offline' } : null, count: f.rows.length }) };
+vi.mock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: (_client: unknown, table: string) => {
+  const query = { select: () => query, eq: () => query, in: () => query, order: () => query,
+    range: async (from: number, to: number) => ({ data: table === 'service_records' ? [] : f.rows.slice(from, to + 1), error: f.fail ? { message: 'offline' } : null, count: table === 'service_records' ? 0 : f.rows.length }) };
   return query;
 } }));
 import { listPortalServiceProofs } from '@/lib/portal/assist/portalServiceProofService.web';
@@ -38,4 +38,10 @@ it('does not label a document signed without signature evidence', async () => {
   const result = await listPortalServiceProofs('t', 'c');
   if (!result.ok) throw new Error(result.error);
   expect(result.data[0].status).toBe('offen');
+});
+
+it('does not revive a withdrawn or cancelled proof from a stale portal mirror', async () => {
+  f.rows = [{ id: 'withdrawn', source: 'assist_visit_proof', signature_required: true }];
+  f.assist.mockResolvedValue({ ok: true, data: [] });
+  expect(await listPortalServiceProofs('t', 'c')).toEqual({ ok: true, data: [] });
 });

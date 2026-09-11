@@ -19,14 +19,18 @@ Pflicht vor dem Web-Rollout: `supabase/migrations/20260911120000_client_portal_s
 
 ## Verifikation
 
-Ergebnis: **95 Tests in 12 Suites bestanden**, davon 19 PostgreSQL-Transaktionstests. Die projektweite Typprüfung meldet bestehende Fehler außerhalb dieser Änderung; in den neuen Dateien wurden keine Typfehler festgestellt.
+Ergebnis: **96 Tests in 12 Suites bestanden**, davon 19 PostgreSQL-Transaktionstests. Die projektweite Typprüfung meldet bestehende Fehler außerhalb dieser Änderung; in den neuen Dateien wurden keine Typfehler festgestellt.
 
 Die gezielten Tests umfassen Dialogbedienung, Kontowechsel, sofortige Aktualisierung, Pagination mit 620 Einträgen bei einem Serverlimit von 75, Portal-/Nachweisabgleich, PDF-/Upload-/RPC-Fehler und wiederholte Fertigstellung. PostgreSQL-Tests mit der bereits vorhandenen PGlite-Abhängigkeit prüfen die tatsächliche Migration in einer isolierten Datenbank: Transaktionen, Rückrollen, Mandanten-/Klientenzuordnung, zurückgezogene Freigaben, Signaturgültigkeit, geänderte Dokumente, Vorlagenunterschriften und Wiederherstellung alter PDF-Rückläufe. Die Test-Authentifizierungsfunktionen und das Schema sind isolierte Fixtures; sie ersetzen keine Prüfung der produktiven Konten und Policies.
 
 Sichtprüfung des echten neuen Dialogs mit dem vorhandenen Browser und Century Gothic: 1440 × 1000, 390 × 844, sowie 390 × 844 mit 150 % App-Schriftgröße. Screenshots wurden visuell geprüft. Kein horizontaler Überlauf, Aktion erreichbar, Fokus im Dialog, Escape/Hintergrund blockiert. Die Umgebung hinter dem Dialog ist eine Testoberfläche; ein authentifizierter Produktivdurchlauf ist noch offen.
 
-## Offener Freigabeschritt
+## Produktivabgleich am 11.09.2026
 
-Die automatische Sicherheitsprüfung hat `vercel env pull` abgelehnt, weil damit produktive Umgebungsvariablen einschließlich möglicher Zugangsdaten abgerufen würden und diese Freigabe fehlt. Keine produktiven Umgebungsvariablen wurden abgerufen, keine Migration angewendet und kein produktiver Signaturvorgang verändert.
+Die Produktivmigration wurde nach ausdrücklicher Freigabe gezielt angewendet und in der Migrationshistorie erfasst. Der Abgleich berücksichtigt die tatsächliche Audit-Tabelle, das SHA-256-Präfix der Anwendung und die produktiven Terminspalten. Transaktionstests verwenden die reale Prüfsummenfunktion und den produktiven Audit-Feldvertrag.
 
-Nach Freigabe: erforderliche produktive Verbindung sicher auflösen, Ist-Zustand aller Klienten des betroffenen Mandanten lesend prüfen, Schema und Policies mit der Migration abgleichen, Migration anwenden, Web-Version veröffentlichen und den Live-Stand verifizieren. Echte Klientenunterschriften werden nicht zu Testzwecken erzeugt.
+Die aktiven verknüpften Portalkonten des betroffenen Mandanten wurden lesend unter den tatsächlichen Datenbank-Zugriffsregeln geprüft. Fremde Nachweise waren nicht sichtbar; die erwarteten offenen Nachweise waren erreichbar. Die Prüfung schließt Datensätze ohne verknüpfte Anmeldung nicht als funktionsfähige Portalzugänge ein.
+
+Eine veraltete offene Anforderung zu einem stornierten Einsatz wurde nach erneuter Zustandsprüfung mit Audit-Eintrag zurückgenommen. Alte Portal-Dokumente können stornierte oder zurückgezogene Nachweise nicht wieder als offene Aufgaben einblenden. Ein Altfall mit vorhandener, nicht eindeutig zugeordneter Unterschrift bleibt zur fachlichen Prüfung erhalten; es wurde keine Ersatzunterschrift erzeugt oder eine vorhandene Unterschrift ungeprüft übernommen.
+
+Ein echter Signaturabschluss durch einen Klienten im produktiven Browser wurde nicht stellvertretend durchgeführt. Die belastbaren Nachweise sind gezielte Funktions-/Transaktionstests, echte Browserprüfung der Oberfläche und lesende Prüfung der produktiven Kontozuordnung, Freigaben und Berechtigungen.

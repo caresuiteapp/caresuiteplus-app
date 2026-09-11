@@ -93,7 +93,7 @@ export async function listPortalServiceProofs(
 
     const documentResult = await fetchAllPortalRows<Record<string, unknown> & { id: string }>((from, to) => fromUnknownTable(supabase, 'client_documents')
       .select(
-        'id, tenant_id, client_id, title, file_name, mime_type, storage_path, category, status, portal_visible, signature_required, signed_at, service_record_id, service_month, created_at',
+        'id, tenant_id, client_id, title, file_name, mime_type, storage_path, category, source, status, portal_visible, signature_required, signed_at, service_record_id, service_month, created_at',
         { count: 'exact' },
       )
       .eq('tenant_id', tenantId)
@@ -104,7 +104,7 @@ export async function listPortalServiceProofs(
       .order('created_at', { ascending: false }).order('id', { ascending: true }).range(from, to));
 
     if (!documentResult.ok) return documentResult;
-    const combined = await appendAssistVisitProofs(tenantId, clientId, documentResult.data.map((row) => mapProofRow(row as Record<string, unknown>)));
+    const combined = await appendAssistVisitProofs(tenantId, clientId, documentResult.data.filter((row) => row.source !== 'assist_visit_proof').map((row) => mapProofRow(row as Record<string, unknown>)));
     if (!combined.ok || combined.data.length > 0) return combined;
 
     const serviceRecordResult = await fetchAllPortalRows<Record<string, unknown> & { id: string }>((from, to) => fromUnknownTable(supabase, 'service_records')

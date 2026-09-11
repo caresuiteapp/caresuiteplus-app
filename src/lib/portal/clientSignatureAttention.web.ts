@@ -28,6 +28,8 @@ export async function fetchClientPendingProofs(
       .eq('tenant_id', tenantId)
       .eq('assist_visits.tenant_id', tenantId)
       .eq('assist_visits.client_id', clientId)
+      .neq('assist_visits.planning_status', 'draft')
+      .not('assist_visits.canonical_status', 'in', '(cancelled,no_show)')
       .eq('portal_visible', true)
       .eq('portal_release_status', 'pending_client_signature')
       .order('id', { ascending: true })
