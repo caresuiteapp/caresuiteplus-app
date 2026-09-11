@@ -34,3 +34,5 @@ Die aktiven verknüpften Portalkonten des betroffenen Mandanten wurden lesend un
 Eine veraltete offene Anforderung zu einem stornierten Einsatz wurde nach erneuter Zustandsprüfung mit Audit-Eintrag zurückgenommen. Alte Portal-Dokumente können stornierte oder zurückgezogene Nachweise nicht wieder als offene Aufgaben einblenden. Ein Altfall mit vorhandener, nicht eindeutig zugeordneter Unterschrift bleibt zur fachlichen Prüfung erhalten; es wurde keine Ersatzunterschrift erzeugt oder eine vorhandene Unterschrift ungeprüft übernommen.
 
 Ein echter Signaturabschluss durch einen Klienten im produktiven Browser wurde nicht stellvertretend durchgeführt. Die belastbaren Nachweise sind gezielte Funktions-/Transaktionstests, echte Browserprüfung der Oberfläche und lesende Prüfung der produktiven Kontozuordnung, Freigaben und Berechtigungen.
+
+Die Web-Variante der Nachweis-Firmendaten verwendet die vorhandene Umsatzsteuer-ID-Spalte. Der Produktivabruf best?tigt das neue Pflicht-Popup sowie beide Abschlussfunktionen im ausgelieferten Web-Bundle.
