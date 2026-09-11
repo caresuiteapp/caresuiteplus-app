@@ -1,13 +1,10 @@
+import { CARESUITE_PDF_FONT, registerCareSuitePdfFont, createCareSuitePdfText } from '@/lib/documents/centuryGothicPdf';
 import type { RoleKey, ServiceResult } from '@/types';
 import type { InvoiceDetail } from '@/types/modules/invoiceDetail';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
-import {
-  CARESUITE_PDF_FONT_BOLD_BASE64,
-  CARESUITE_PDF_FONT_REGULAR_BASE64,
-} from '@/lib/office/invoicePdfFonts';
 
 export type InvoicePdfCompany = {
   legalName: string;
@@ -293,11 +290,9 @@ export async function renderInvoicePdfDocument(data: InvoicePdfData): Promise<Pr
   // @ts-expect-error jspdf ships no type declarations for its ESM browser entry
   const { jsPDF } = await import('jspdf/dist/jspdf.es.min.js');
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-  pdf.addFileToVFS('CareSuiteSans-Regular.ttf', CARESUITE_PDF_FONT_REGULAR_BASE64);
-  pdf.addFont('CareSuiteSans-Regular.ttf', 'CareSuiteSans', 'normal', 'Identity-H');
-  pdf.addFileToVFS('CareSuiteSans-Bold.ttf', CARESUITE_PDF_FONT_BOLD_BASE64);
-  pdf.addFont('CareSuiteSans-Bold.ttf', 'CareSuiteSans', 'bold', 'Identity-H');
-  pdf.setFont('CareSuiteSans', 'normal');
+  registerCareSuitePdfFont(pdf);
+  const writePdfText = createCareSuitePdfText(pdf);
+  pdf.setFont(CARESUITE_PDF_FONT, 'normal');
   const { invoice, company } = data;
   const logo = await prepareLogo(company.logoUrl);
   const width = 210;
@@ -344,85 +339,85 @@ export async function renderInvoicePdfDocument(data: InvoicePdfData): Promise<Pr
         );
       } catch { /* Rechtlicher Name links bleibt als Fallback sichtbar. */ }
     }
-    pdf.setFont('CareSuiteSans', 'bold');
+    pdf.setFont(CARESUITE_PDF_FONT, 'bold');
     pdf.setFontSize(12);
     pdf.setTextColor(...ink);
-    pdf.text(pdf.splitTextToSize(company.legalName, 108), left, 16);
-    pdf.setFont('CareSuiteSans', 'normal');
+    writePdfText(pdf.splitTextToSize(company.legalName, 108), left, 16);
+    pdf.setFont(CARESUITE_PDF_FONT, 'normal');
     pdf.setFontSize(8.2);
     pdf.setTextColor(...muted);
-    pdf.text(`${company.street} ${company.houseNumber} · ${company.postalCode} ${company.city}`, left, 23);
+    writePdfText(`${company.street} ${company.houseNumber} · ${company.postalCode} ${company.city}`, left, 23);
   };
 
   const drawFooter = (page: number, totalPages: number) => {
     pdf.setDrawColor(...line);
     pdf.line(left, 270, right, 270);
-    pdf.setFont('CareSuiteSans', 'normal');
+    pdf.setFont(CARESUITE_PDF_FONT, 'normal');
     pdf.setFontSize(6.5);
     pdf.setTextColor(...muted);
     const companyLines = [company.legalName, `${company.street} ${company.houseNumber}`, `${company.postalCode} ${company.city}`];
     const contactLines = [company.phone, company.email, company.website].filter(Boolean);
     const bankLines = [`${company.bankName}`, `IBAN ${company.iban}`, company.bic ? `BIC ${company.bic}` : ''].filter(Boolean);
-    pdf.text(pdf.splitTextToSize(companyLines.join(' · '), 48), left, 276);
-    pdf.text(pdf.splitTextToSize(contactLines.join('\n'), 48), 74, 276);
-    pdf.text(pdf.splitTextToSize(bankLines.join('\n'), 62), 130, 276);
+    writePdfText(pdf.splitTextToSize(companyLines.join(' · '), 48), left, 276);
+    writePdfText(pdf.splitTextToSize(contactLines.join('\n'), 48), 74, 276);
+    writePdfText(pdf.splitTextToSize(bankLines.join('\n'), 62), 130, 276);
     const registerParts = [
       company.representativeName ? `Vertreten durch ${company.representativeName}` : '',
       company.registerCourt,
       company.registerNumber,
     ].filter(Boolean).join(' · ');
     const legalParts = [company.taxNumber ? `St.-Nr. ${company.taxNumber}` : '', company.vatId ? `USt-IdNr. ${company.vatId}` : '', company.ikNumber ? `IK ${company.ikNumber}` : ''].filter(Boolean).join(' · ');
-    pdf.text(registerParts, left, 287);
-    pdf.text(legalParts, left, 291);
-    pdf.setFont('CareSuiteSans', 'bold');
+    writePdfText(registerParts, left, 287);
+    writePdfText(legalParts, left, 291);
+    pdf.setFont(CARESUITE_PDF_FONT, 'bold');
     pdf.setTextColor(...ink);
-    pdf.text('Erstellt mit: CareSuite HealthOS Software Technologie', 130, 287);
-    pdf.setFont('CareSuiteSans', 'normal');
+    writePdfText('Erstellt mit: CareSuite HealthOS Software Technologie', 130, 287);
+    pdf.setFont(CARESUITE_PDF_FONT, 'normal');
     pdf.setTextColor(...muted);
-    pdf.text(`Rechnungs-ID: ${invoice.id}`, 130, 291);
-    pdf.text(`Seite ${page} von ${totalPages}`, right, 295, { align: 'right' });
+    writePdfText(`Rechnungs-ID: ${invoice.id}`, 130, 291);
+    writePdfText(`Seite ${page} von ${totalPages}`, right, 295, { align: 'right' });
   };
 
   drawHeader();
   pdf.setDrawColor(...line);
   pdf.line(left, 29, right, 29);
-  pdf.setFont('CareSuiteSans', 'normal');
+  pdf.setFont(CARESUITE_PDF_FONT, 'normal');
   pdf.setFontSize(7.5);
   pdf.setTextColor(...muted);
-  pdf.text(`${company.legalName} · ${company.street} ${company.houseNumber} · ${company.postalCode} ${company.city}`, left, 36);
+  writePdfText(`${company.legalName} · ${company.street} ${company.houseNumber} · ${company.postalCode} ${company.city}`, left, 36);
 
   pdf.setFontSize(10.5);
   pdf.setTextColor(...ink);
-  pdf.setFont('CareSuiteSans', 'bold');
+  pdf.setFont(CARESUITE_PDF_FONT, 'bold');
   pdf.setFontSize(8);
   pdf.setTextColor(...muted);
-  pdf.text('RECHNUNGSEMPFÄNGER:IN', left, 44);
-  pdf.setFont('CareSuiteSans', 'normal');
+  writePdfText('RECHNUNGSEMPFÄNGER:IN', left, 44);
+  pdf.setFont(CARESUITE_PDF_FONT, 'normal');
   pdf.setFontSize(10.2);
   pdf.setTextColor(...ink);
-  pdf.text(invoice.clientName, left, 51);
-  pdf.text(`${invoice.recipient.street} ${invoice.recipient.houseNumber}`, left, 57);
-  pdf.text(`${invoice.recipient.postalCode} ${invoice.recipient.city}`, left, 63);
-  if (invoice.recipient.country && invoice.recipient.country !== 'Deutschland') pdf.text(invoice.recipient.country, left, 69);
+  writePdfText(invoice.clientName, left, 51);
+  writePdfText(`${invoice.recipient.street} ${invoice.recipient.houseNumber}`, left, 57);
+  writePdfText(`${invoice.recipient.postalCode} ${invoice.recipient.city}`, left, 63);
+  if (invoice.recipient.country && invoice.recipient.country !== 'Deutschland') writePdfText(invoice.recipient.country, left, 69);
 
-  pdf.setFont('CareSuiteSans', 'bold');
+  pdf.setFont(CARESUITE_PDF_FONT, 'bold');
   pdf.setFontSize(24);
-  pdf.text('Rechnung', left, 82);
+  writePdfText('Rechnung', left, 82);
   pdf.setFontSize(10.5);
   pdf.setTextColor(...violet);
-  pdf.text(invoice.invoiceNumber, left, 90);
-  pdf.setFont('CareSuiteSans', 'normal');
+  writePdfText(invoice.invoiceNumber, left, 90);
+  pdf.setFont(CARESUITE_PDF_FONT, 'normal');
   pdf.setFontSize(7.2);
   pdf.setTextColor(...muted);
-  pdf.text(`Rechnungs-ID: ${invoice.id}`, left, 96);
+  writePdfText(`Rechnungs-ID: ${invoice.id}`, left, 96);
 
   if (invoice.status === 'draft') {
     pdf.setFillColor(255, 245, 235);
     pdf.roundedRect(left, 99, 43, 7, 3.5, 3.5, 'F');
-    pdf.setFont('CareSuiteSans', 'bold');
+    pdf.setFont(CARESUITE_PDF_FONT, 'bold');
     pdf.setFontSize(7.2);
     pdf.setTextColor(220, 94, 30);
-    pdf.text('ENTWURF · NICHT VERSENDET', left + 3, 103.7);
+    writePdfText('ENTWURF · NICHT VERSENDET', left + 3, 103.7);
   }
 
   pdf.setFillColor(...pale);
@@ -436,37 +431,37 @@ export async function renderInvoicePdfDocument(data: InvoicePdfData): Promise<Pr
   ];
   let infoY = 44;
   info.forEach(([label, current]) => {
-    pdf.setFont('CareSuiteSans', 'normal');
+    pdf.setFont(CARESUITE_PDF_FONT, 'normal');
     pdf.setFontSize(7.1);
     pdf.setTextColor(...muted);
-    pdf.text(label, 121, infoY);
-    pdf.setFont('CareSuiteSans', 'bold');
+    writePdfText(label, 121, infoY);
+    pdf.setFont(CARESUITE_PDF_FONT, 'bold');
     pdf.setFontSize(8.1);
     pdf.setTextColor(...ink);
-    pdf.text(current, 151, infoY);
+    writePdfText(current, 151, infoY);
     infoY += 8.2;
   });
 
-  pdf.setFont('CareSuiteSans', 'normal');
+  pdf.setFont(CARESUITE_PDF_FONT, 'normal');
   pdf.setFontSize(9.2);
   pdf.setTextColor(...ink);
-  pdf.text('Sehr geehrte Damen und Herren,', left, 112);
+  writePdfText('Sehr geehrte Damen und Herren,', left, 112);
   pdf.setTextColor(...muted);
-  pdf.text('für die im genannten Zeitraum erbrachten Leistungen berechnen wir:', left, 119);
+  writePdfText('für die im genannten Zeitraum erbrachten Leistungen berechnen wir:', left, 119);
 
   let y = 128;
   const drawTableHead = () => {
     pdf.setFillColor(...ink);
     pdf.roundedRect(left, y, contentWidth, 10, 1.5, 1.5, 'F');
-    pdf.setFont('CareSuiteSans', 'bold');
+    pdf.setFont(CARESUITE_PDF_FONT, 'bold');
     pdf.setFontSize(7.2);
     pdf.setTextColor(255, 255, 255);
-    pdf.text('POS.', 21, y + 6.3);
-    pdf.text('LEISTUNG', 32, y + 6.3);
-    pdf.text('MENGE', 114, y + 6.3, { align: 'right' });
-    pdf.text('EINZELPREIS', 146, y + 6.3, { align: 'right' });
-    pdf.text('MWST.', 164, y + 6.3, { align: 'right' });
-    pdf.text('GESAMT', right - 3, y + 6.3, { align: 'right' });
+    writePdfText('POS.', 21, y + 6.3);
+    writePdfText('LEISTUNG', 32, y + 6.3);
+    writePdfText('MENGE', 114, y + 6.3, { align: 'right' });
+    writePdfText('EINZELPREIS', 146, y + 6.3, { align: 'right' });
+    writePdfText('MWST.', 164, y + 6.3, { align: 'right' });
+    writePdfText('GESAMT', right - 3, y + 6.3, { align: 'right' });
     y += 12;
   };
   drawTableHead();
@@ -484,20 +479,20 @@ export async function renderInvoicePdfDocument(data: InvoicePdfData): Promise<Pr
       pdf.setFillColor(...pale);
       pdf.rect(left, y - 1, contentWidth, rowHeight, 'F');
     }
-    pdf.setFont('CareSuiteSans', 'normal');
+    pdf.setFont(CARESUITE_PDF_FONT, 'normal');
     pdf.setFontSize(8.5);
     pdf.setTextColor(...ink);
-    pdf.text(String(index + 1), 24, y + 5, { align: 'center' });
-    pdf.text(descriptionLines, 32, y + 5);
+    writePdfText(String(index + 1), 24, y + 5, { align: 'center' });
+    writePdfText(descriptionLines, 32, y + 5);
     const normalizedUnit = item.unit?.toLowerCase();
     const unit = item.unit
       ? ` ${normalizedUnit === 'hour' || normalizedUnit === 'stunde' ? 'Std.' : item.unit}`
       : '';
-    pdf.text(`${formatQuantity(item.quantity)}${unit}`, 114, y + 5, { align: 'right' });
-    pdf.text(formatMoney(item.unitPriceCents), 146, y + 5, { align: 'right' });
-    pdf.text(`${formatQuantity(item.taxRatePercent ?? 0)} %`, 164, y + 5, { align: 'right' });
-    pdf.setFont('CareSuiteSans', 'bold');
-    pdf.text(formatMoney(item.totalCents), right - 3, y + 5, { align: 'right' });
+    writePdfText(`${formatQuantity(item.quantity)}${unit}`, 114, y + 5, { align: 'right' });
+    writePdfText(formatMoney(item.unitPriceCents), 146, y + 5, { align: 'right' });
+    writePdfText(`${formatQuantity(item.taxRatePercent ?? 0)} %`, 164, y + 5, { align: 'right' });
+    pdf.setFont(CARESUITE_PDF_FONT, 'bold');
+    writePdfText(formatMoney(item.totalCents), right - 3, y + 5, { align: 'right' });
     y += rowHeight;
   });
 
@@ -510,34 +505,34 @@ export async function renderInvoicePdfDocument(data: InvoicePdfData): Promise<Pr
   }
   y += 8;
   const totalsX = 124;
-  pdf.setFont('CareSuiteSans', 'normal');
+  pdf.setFont(CARESUITE_PDF_FONT, 'normal');
   pdf.setFontSize(9);
   pdf.setTextColor(...muted);
-  pdf.text('Nettobetrag', totalsX, y);
+  writePdfText('Nettobetrag', totalsX, y);
   pdf.setTextColor(...ink);
-  pdf.text(formatMoney(netTotal), right, y, { align: 'right' });
+  writePdfText(formatMoney(netTotal), right, y, { align: 'right' });
   y += 7;
   pdf.setTextColor(...muted);
-  pdf.text('Umsatzsteuer', totalsX, y);
+  writePdfText('Umsatzsteuer', totalsX, y);
   pdf.setTextColor(...ink);
-  pdf.text(formatMoney(taxTotal), right, y, { align: 'right' });
+  writePdfText(formatMoney(taxTotal), right, y, { align: 'right' });
   y += 8;
   pdf.setDrawColor(...violet);
   pdf.setLineWidth(0.7);
   pdf.line(totalsX, y - 4, right, y - 4);
-  pdf.setFont('CareSuiteSans', 'bold');
+  pdf.setFont(CARESUITE_PDF_FONT, 'bold');
   pdf.setFontSize(11.5);
-  pdf.text('Rechnungsbetrag', totalsX, y + 2);
+  writePdfText('Rechnungsbetrag', totalsX, y + 2);
   pdf.setTextColor(...violet);
-  pdf.text(formatMoney(invoice.amountCents), right, y + 2, { align: 'right' });
+  writePdfText(formatMoney(invoice.amountCents), right, y + 2, { align: 'right' });
   y += 14;
 
   const taxNotice = invoice.taxNotice?.trim() || (taxTotal === 0 ? 'Umsatzsteuerfreie Leistung.' : '');
   if (taxNotice) {
-    pdf.setFont('CareSuiteSans', 'normal');
+    pdf.setFont(CARESUITE_PDF_FONT, 'normal');
     pdf.setFontSize(8.3);
     pdf.setTextColor(...muted);
-    pdf.text(pdf.splitTextToSize(taxNotice, contentWidth), left, y);
+    writePdfText(pdf.splitTextToSize(taxNotice, contentWidth), left, y);
     y += 10;
   }
   if (y + 31 > 264) {
@@ -549,20 +544,20 @@ export async function renderInvoicePdfDocument(data: InvoicePdfData): Promise<Pr
   pdf.roundedRect(left, y, contentWidth, 28, 3, 3, 'F');
   pdf.setFillColor(...violet);
   pdf.roundedRect(left, y, 3, 28, 1.5, 1.5, 'F');
-  pdf.setFont('CareSuiteSans', 'bold');
+  pdf.setFont(CARESUITE_PDF_FONT, 'bold');
   pdf.setFontSize(9.5);
   pdf.setTextColor(...ink);
-  pdf.text(`Zahlbar bis ${formatDate(invoice.dueDate)}`, left + 7, y + 8);
-  pdf.setFont('CareSuiteSans', 'normal');
+  writePdfText(`Zahlbar bis ${formatDate(invoice.dueDate)}`, left + 7, y + 8);
+  pdf.setFont(CARESUITE_PDF_FONT, 'normal');
   pdf.setFontSize(8.2);
-  pdf.text(`Bitte überweisen Sie den Rechnungsbetrag auf ${company.iban} bei ${company.bankName}.`, left + 7, y + 16);
-  pdf.setFont('CareSuiteSans', 'bold');
-  pdf.text(`Verwendungszweck: ${invoice.invoiceNumber}`, left + 7, y + 23);
+  writePdfText(`Bitte überweisen Sie den Rechnungsbetrag auf ${company.iban} bei ${company.bankName}.`, left + 7, y + 16);
+  pdf.setFont(CARESUITE_PDF_FONT, 'bold');
+  writePdfText(`Verwendungszweck: ${invoice.invoiceNumber}`, left + 7, y + 23);
 
   if (company.footerText) {
     pdf.setFontSize(7.5);
     pdf.setTextColor(...muted);
-    pdf.text(pdf.splitTextToSize(company.footerText, contentWidth), left, Math.min(y + 36, 264));
+    writePdfText(pdf.splitTextToSize(company.footerText, contentWidth), left, Math.min(y + 36, 264));
   }
 
   const pages = pdf.getNumberOfPages();

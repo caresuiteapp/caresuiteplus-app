@@ -1,10 +1,5 @@
 import { Platform } from 'react-native';
-import { CARESUITE_FONT_STACK } from './fontFamily';
+import { CARESUITE_FONT_STACK, CARESUITE_NATIVE_FONT_FAMILY } from './fontFamily';
 
-/**
- * Web/Desktop uses the installed Century Gothic family. Native registration
- * must follow when licensed app font assets are supplied; an unregistered
- * family name would silently fall back to the platform font.
- */
 export const careSuiteAppFontFamily =
-  Platform.OS === 'web' ? CARESUITE_FONT_STACK : undefined;
+  Platform.OS === 'web' ? CARESUITE_FONT_STACK : CARESUITE_NATIVE_FONT_FAMILY;

@@ -1,3 +1,4 @@
+import { CareSuiteFontProvider } from '@/design/CareSuiteFontProvider';
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import 'react-native-reanimated';
 import { AppStartIntro } from '@/components/brand/AppStartIntro';
@@ -27,6 +28,9 @@ import { isHealthOSContextualPopupRoute } from '@/lib/navigation/healthosRoutePr
 import { isLiquidCommandRoutePath } from '@/liquid-command/navigation/isLiquidCommandRoute';
 import { HealthOSStoreEditionGuard } from '@/lib/platform/HealthOSStoreEditionGuard';
 import '@/lib/employeeLogbook/employeeLogbookTracking';
+
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
+const careSuiteNavigationFonts = Object.fromEntries(Object.entries(DefaultTheme.fonts).map(([key, value]) => [key, { ...value, fontFamily: careSuiteAppFontFamily }])) as typeof DefaultTheme.fonts;
 
 applyInvisibleScrollIndicators();
 installSystemTextDefaults();
@@ -98,10 +102,12 @@ function RootShell() {
   const navigationTheme = isDark
     ? {
         ...DarkTheme,
+        fonts: careSuiteNavigationFonts,
         colors: { ...DarkTheme.colors, background: SURFACE_COLOR, card: SURFACE_COLOR },
       }
     : {
         ...DefaultTheme,
+        fonts: careSuiteNavigationFonts,
         colors: {
           ...DefaultTheme.colors,
           background: SURFACE_COLOR,
@@ -184,7 +190,7 @@ function RouteScopedLegacyOverlays() {
 
 export default function RootLayout() {
   return (
-    <AppStartIntro>
+    <CareSuiteFontProvider><AppStartIntro>
       <AuthProvider>
         <PortalKeyboardProvider>
           <ThemeModeProvider>
@@ -208,7 +214,7 @@ export default function RootLayout() {
           </ThemeModeProvider>
         </PortalKeyboardProvider>
       </AuthProvider>
-    </AppStartIntro>
+    </AppStartIntro></CareSuiteFontProvider>
   );
 }
 

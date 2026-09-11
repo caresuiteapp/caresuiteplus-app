@@ -1,3 +1,4 @@
+import { CARESUITE_DOCUMENT_FONT_CSS } from '@/design/fonts/documentFontCss';
 import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import type { IntakeDocumentSignature, IntakeDocumentTemplate } from './intakeDocumentTypes';
 import type { IntakePlaceholderContext } from './buildIntakeDocumentContext';
@@ -5,6 +6,7 @@ import type { IntakePlaceholderContext } from './buildIntakeDocumentContext';
 const PLACEHOLDER_PATTERN = /\{\{([a-z0-9_.]+)\}\}/gi;
 
 export const INTAKE_DOCUMENT_CSS = `
+${CARESUITE_DOCUMENT_FONT_CSS}
   @page { size: A4; margin: 25mm 20mm 20mm 25mm; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }

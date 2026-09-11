@@ -1,4 +1,4 @@
-import { CARESUITE_FONT_STACK } from '../tokens/fontFamily';
+import { CARESUITE_FONT_STACK, CARESUITE_WEB_FONT_FAMILY, CARESUITE_FONT_URL } from '../tokens/fontFamily';
 
 export const CARESUITE_FONT_STYLE_ID = 'caresuite-century-gothic';
 
@@ -9,6 +9,13 @@ export const CARESUITE_FONT_STYLE_ID = 'caresuite-century-gothic';
  * Inline icon font families retain precedence; never force them with !important.
  */
 export const CENTURY_GOTHIC_CSS = `
+@font-face {
+  font-family: '${CARESUITE_WEB_FONT_FAMILY}';
+  src: url('${CARESUITE_FONT_URL}') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 html:root body,
 html:root body :is(div, span, p, a, h1, h2, h3, h4, h5, h6, li, dt, dd, td, th,
   label, legend, summary, button, input, textarea, select, option, optgroup,

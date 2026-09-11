@@ -1,3 +1,4 @@
+import { CARESUITE_DOCUMENT_FONT_CSS } from '@/design/fonts/documentFontCss';
 import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import type { TemplateRequiredFieldInput } from '@/features/documents/templateEngine/types';
 import type {
@@ -9,6 +10,7 @@ import type {
 import type { DocumentTemplateTypeKey } from '@/features/documents/templateEngine/types';
 
 export const STANDARD_SYSTEM_TEMPLATE_CSS = `
+${CARESUITE_DOCUMENT_FONT_CSS}
 .cs-document-root { font-family: ${CARESUITE_FONT_STACK}; font-size: 11pt; line-height: 1.45; color: #1a1a1a; }
 h1 { font-size: 16pt; margin: 16px 0 8px; }
 h2 { font-size: 13pt; margin: 12px 0 6px; }

@@ -1,3 +1,4 @@
+import { CareSuiteFontProvider } from '@/design/CareSuiteFontProvider';
 import 'react-native-reanimated';
 import { AppStartIntro } from '@/components/brand/AppStartIntro';
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
@@ -17,11 +18,15 @@ import { applyInvisibleScrollIndicators } from '@/design/scroll/applyInvisibleSc
 import { installSystemTextDefaults } from '@/design/installSystemTextDefaults';
 import '@/lib/employeeLogbook/employeeLogbookTracking';
 
+import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
+const careSuiteNavigationFonts = Object.fromEntries(Object.entries(DefaultTheme.fonts).map(([key, value]) => [key, { ...value, fontFamily: careSuiteAppFontFamily }])) as typeof DefaultTheme.fonts;
+
 applyInvisibleScrollIndicators();
 installSystemTextDefaults();
 
 const portalNavigationTheme = {
   ...DefaultTheme,
+        fonts: careSuiteNavigationFonts,
   colors: {
     ...DefaultTheme.colors,
     background: 'transparent',
@@ -54,7 +59,7 @@ function PortalOnlyRouter() {
 
 export default function PortalOnlyRootLayout() {
   return (
-    <AppStartIntro>
+    <CareSuiteFontProvider><AppStartIntro>
       <AuthProvider>
         <ThemeModeProvider>
           <PerformanceProvider>
@@ -68,7 +73,7 @@ export default function PortalOnlyRootLayout() {
           </PerformanceProvider>
         </ThemeModeProvider>
       </AuthProvider>
-    </AppStartIntro>
+    </AppStartIntro></CareSuiteFontProvider>
   );
 }
 

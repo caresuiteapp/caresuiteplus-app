@@ -1,3 +1,4 @@
+import { CARESUITE_DOCUMENT_FONT_CSS } from '@/design/fonts/documentFontCss';
 import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 /**
  * Shared Leistungsnachweis HTML layout (v2) — A4-oriented, print-friendly.
@@ -52,6 +53,7 @@ function escapeHtml(value: string): string {
 
 export function visitProofPdfStyles(): string {
   return `
+${CARESUITE_DOCUMENT_FONT_CSS}
     @page { size: A4; margin: 14mm; }
     * { box-sizing: border-box; }
     body {

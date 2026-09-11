@@ -1,27 +1,25 @@
-# Century Gothic – Arbeitsstand 11.09.2026
+# Century Gothic – eingebetteter Stand 11.09.2026
 
-Die Oberflächen verwendeten Systemschriften und einzelne feste Schriftzuweisungen. Der Auftrag verlangt Century Gothic in der gesamten Software.
+## Umsetzung
+- Vom Nutzer bereitgestellte Datei CenturyGothic.ttf unverändert übernommen (137.568 Bytes).
+- SHA-256: 64654e2515da88ca0c470c69b45341a0dda7f066a5f0c72cd6f2a929cdedd461.
+- Web/Desktop lädt die Schrift über eine eigene Font-Familie, Preload und versionierte URL; eine lokale Installation ist nicht erforderlich.
+- Gemeinsame Text-/Eingabekomponenten und ein Babel-Importadapter erfassen app-eigene RN-Texte. Fremdbibliotheken, Symbolschriften und explizite Styles behalten ihre Funktion.
+- Native App lädt die Schrift aus dem App-Bundle vor dem Intro; ein Ladefehler blockiert die App nicht dauerhaft.
+- Standard-Dokumente tragen die Schrift als eingebettete Daten. Rechnungs- und Fahrtenbuch-PDFs verwenden die eingebettete Century Gothic.
+- Einzig Regular wurde geliefert. Web/OS erzeugen Fett und Kursiv synthetisch; PDF-Fettschrift wird mit zusätzlichem Strich dargestellt. Keine separaten Original-Schnitte behauptet.
+- Individuelle Dokument-CI-Einstellungen und bereits finalisierte Dokumente bleiben erhalten.
 
-## Umgesetzt
-- Gemeinsame Schriftdefinition für Web/Desktop, Typografievarianten und neue HTML-Dokumente.
-- Globale Regel für HTML und React Native Web, einschließlich ungestylter Texte, Formulare und Portals.
-- Start-/Ladetexte, Kartenhinweise, Dokumentvorschauen, Platzhalter und bisherige Monospace-Anzeigen im Web verwenden dieselbe Definition.
-- Symbolschriften behalten ihre eigene Font-Familie.
-- Größen, Schriftvergrößerung und Gewichtungen bleiben erhalten.
+## Nachweise
+- 79 bestehende Tests in sieben betroffenen Suites bestanden.
+- Babel-Adapter: benannte Imports und Aliase umgestellt; Bibliotheken und eigene Basis-Komponente korrekt ausgenommen.
+- Browser meldet für geprüfte Texte CenturyGothic mit isCustomFont=true; Feather bleibt Feather.
+- Prüfansichten 1920, 1366, 768 und 390 Pixel, zusätzlich 390 Pixel bei 150 % Schriftgröße; kein horizontaler Seitenüberlauf und keine JS-Fehler.
+- Aktuelle Screenshots und eine echte Rechnung aus fiktiven Regressionsdaten visuell geprüft.
+- PDF-Text extrahierbar, einschließlich ÄÖÜäöüß und Eurozeichen; beide verwendeten CenturyGothic-PDF-Ressourcen enthalten FontFile2.
+- Web-Export erfolgreich; Preload/Font-Regel und identische Schriftdatei im Export bestätigt.
+- Portal-only Android-Export erfolgreich; identische Schriftdatei auch als natives Bundle-Asset enthalten.
+- Projektweiter Typecheck weiterhin mit Fehlern außerhalb der geänderten Dateien; keine Diagnose in den geänderten Dateien.
 
-## Geprüft
-- 76 bestehende Tests in sechs betroffenen Suites bestanden.
-- Chromium meldet CenturyGothic, CenturyGothic-Bold und CenturyGothic-Italic für die geprüften Textknoten; Feather bleibt Feather.
-- Browser-Fixture mit echten RN-Web Text-/Input-Komponenten, Typografietokens, Expo Feather und WorkflowFeedbackOverlay: 1920, 1366, 768 und 390 Pixel sowie 390 Pixel bei 150 % Schriftgröße.
-- Screenshots von breiter/schmaler Darstellung, vergrößerter Schrift, Ladefenster und HTML-Dokumentvorschau visuell geprüft.
-- Kein horizontaler Seitenüberlauf in diesen Prüfansichten; keine JavaScript-Fehler.
-- Web-Export erfolgreich. Die UI-Fixture ersetzt keine Prüfung sämtlicher angemeldeter Fachseiten.
-
-## Für die vollständige Umstellung noch erforderlich
-Century Gothic ist auf dem geprüften Windows-Rechner installiert. Im Projekt fehlen lizenzierte Web-/App-Schriftdateien. Die CSS-Schriftliste nutzt derzeit die lokale Installation; ohne diese wird Sans-Serif verwendet.
-
-Benötigt werden Webfonts (WOFF2) sowie App-/PDF-Schriften (TTF), mit passenden Nutzungsrechten und den Schnitten Regular, Bold, Italic und Bold Italic. Danach folgen Einbettung, native Registrierung, die direkt mit jsPDF erzeugten Rechnungs-/Fahrtenbuch-PDFs und die Prüfung ohne lokale Schriftinstallation.
-
-Individuelle Dokument-CI-Einstellungen und bereits finalisierte Dokumente werden nicht durch eine Datenmigration verändert. Kein Produktionsdeployment für diese Änderung erfolgt.
-
-Die Windows-Installation allein erlaubt keine Weiterverteilung als Web-/App-Font: https://learn.microsoft.com/en-us/typography/fonts/font-faq
+## Veröffentlichungsumfang
+Web/Desktop kann über main/Vercel ausgerollt werden. Ein neues Google-Play-Release wurde nicht ausgelöst. Die native Darstellung auf einem physischen Endgerät und sämtliche angemeldeten Fachseiten wurden nicht vollständig visuell geprüft.

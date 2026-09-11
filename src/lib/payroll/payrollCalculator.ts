@@ -1,3 +1,4 @@
+import { CARESUITE_DOCUMENT_FONT_CSS } from '@/design/fonts/documentFontCss';
 import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import type {
   PayrollAssignmentTimeLine,
@@ -294,7 +295,7 @@ export function buildPayrollStatementHtml(snapshot: PayrollStatementSnapshot, ve
   }
 
   const pages = pageContents.map((content, index) => payrollPage(content, index + 1, pageContents.length)).join('');
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${CARESUITE_DOCUMENT_FONT_CSS}
     @page{size:A4;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}body{font-family: ${CARESUITE_FONT_STACK};color:#17192b;font-size:11px;line-height:1.45}
     .pdf-page{position:relative;width:794px;height:1123px;padding:48px 46px 42px;background:#fff;overflow:hidden;break-after:page}.pdf-content{height:100%;overflow:hidden}
     footer{position:absolute;left:46px;right:46px;bottom:18px;padding-top:7px;border-top:1px solid #ececf1;color:#777b8e;font-size:8px;text-align:right}

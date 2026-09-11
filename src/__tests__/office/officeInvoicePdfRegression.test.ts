@@ -102,7 +102,7 @@ describe('Office Rechnungs-PDF', () => {
     expect(source).toContain("'tenant-logo',");
     expect(source).toContain("'SLOW',");
     expect(source).not.toContain("'FAST'");
-    expect(source).toContain("pdf.addFont('CareSuiteSans-Regular.ttf'");
-    expect(source).toContain("pdf.addFont('CareSuiteSans-Bold.ttf'");
+    expect(source).toContain('registerCareSuitePdfFont(pdf)');
+    expect(source).toContain('createCareSuitePdfText(pdf)');
   });
 });

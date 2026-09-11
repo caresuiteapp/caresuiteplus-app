@@ -1,4 +1,4 @@
-import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
+import { CARESUITE_FONT_STACK, CARESUITE_FONT_URL } from '@/design/tokens/fontFamily';
 import { CENTURY_GOTHIC_CSS, CARESUITE_FONT_STYLE_ID } from '@/design/web/centuryGothicCss';
 import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
@@ -23,6 +23,7 @@ export default function Root({ children }: PropsWithChildren) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
         />
+        <link rel="preload" href={CARESUITE_FONT_URL} as="font" type="font/ttf" crossOrigin="anonymous" />
         <ScrollViewStyleReset />
         <style id={CARESUITE_FONT_STYLE_ID} dangerouslySetInnerHTML={{ __html: CENTURY_GOTHIC_CSS }} />
         <style

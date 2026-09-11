@@ -1,3 +1,4 @@
+import { CARESUITE_DOCUMENT_FONT_CSS } from '@/design/fonts/documentFontCss';
 import type { DocumentContext } from './types';
 import type { DocumentTemplateTypeKey } from './types';
 import type { TenantDocumentSettings } from '@/types/documents/tenantDocumentSettings';
@@ -14,6 +15,7 @@ function esc(value: string): string {
 export function buildDocumentCiCss(settings: TenantDocumentSettings): string {
   const p = settings.pageLayout;
   return `
+${CARESUITE_DOCUMENT_FONT_CSS}
 :root {
   --cs-primary: ${settings.primaryColor};
   --cs-secondary: ${settings.secondaryColor};

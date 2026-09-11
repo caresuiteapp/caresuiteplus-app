@@ -1,3 +1,4 @@
+import { CARESUITE_DOCUMENT_FONT_CSS } from '@/design/fonts/documentFontCss';
 import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import { Platform } from 'react-native';
 import type { PortalSignatureCapture, PortalSignatureDocument } from '@/types/portal/documentSignatures';
@@ -82,7 +83,7 @@ export function buildPortalSignatureFinalHtml(input: {
   return `
     <!DOCTYPE html>
     <html lang="de">
-      <head><meta charset="utf-8" /><title>${escapeHtml(input.document.title)}</title></head>
+      <head><meta charset="utf-8" /><title>${escapeHtml(input.document.title)}</title><style>${CARESUITE_DOCUMENT_FONT_CSS}</style></head>
       <body style="font-family: ${CARESUITE_FONT_STACK};color:#111;padding:24px;">
         <h1>${escapeHtml(input.document.title)}</h1>
         ${bodyHtml}
