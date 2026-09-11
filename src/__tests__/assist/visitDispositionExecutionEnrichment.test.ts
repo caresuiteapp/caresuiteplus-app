@@ -144,7 +144,7 @@ describe('visitDispositionExecutionEnrichment', () => {
     expect(signatureField?.missing).toBe(false);
     expect(signatureField?.value).toBe('Metadaten ohne Signaturbild');
     expect(preview.signatureImageUrl).toBeNull();
-    expect(preview.readyForExport).toBe(true);
+    expect(preview.readyForExport).toBe(false); // Required household tasks remain open despite the signature.
   });
 
   it('uses execution_state service end when assignment actual_end_at was overwritten by finalize', () => {

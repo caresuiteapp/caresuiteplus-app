@@ -14,9 +14,10 @@ type VisitProofPreviewPanelProps = {
     signatureImageUrl?: string | null;
   };
   loading?: boolean;
+  pendingChanges?: number;
 };
 
-export function VisitProofPreviewPanel({ preview, loading }: VisitProofPreviewPanelProps) {
+export function VisitProofPreviewPanel({ preview, loading, pendingChanges = 0 }: VisitProofPreviewPanelProps) {
   const text = useAuroraAdaptiveText();
 
   const styles = useMemo(
@@ -42,7 +43,7 @@ export function VisitProofPreviewPanel({ preview, loading }: VisitProofPreviewPa
     [text],
   );
 
-  const checklistFields = preview.fields.filter((field) => field.label !== 'Unterschrift');
+  const checklistFields = preview.fields.filter((field) => field.label !== 'Unterschrift' && field.label !== 'Dokumentation');
   const signatureImageUrl =
     preview.signatureImageUrl ??
     (preview.signature?.dataUrl?.trim() ? preview.signature.dataUrl : null);
@@ -57,6 +58,7 @@ export function VisitProofPreviewPanel({ preview, loading }: VisitProofPreviewPa
 
   return (
     <SectionPanel title="Leistungsnachweis-Vorschau" subtitle={preview.serviceName}>
+      {pendingChanges > 0 ? <InfoBanner variant="warning" message={`${pendingChanges} vorgemerkte Aufgabenänderung(en) in dieser Vorschau. Diese Änderungen sind noch nicht gespeichert und gehören noch nicht zum unterschriebenen Nachweis.`} /> : null}
       {!preview.readyForExport ? (
         <InfoBanner variant="warning" title="Unvollständig" message={preview.incompleteHint} />
       ) : null}
@@ -64,8 +66,8 @@ export function VisitProofPreviewPanel({ preview, loading }: VisitProofPreviewPa
       <View style={styles.header}>
         <Text style={styles.title}>{preview.title}</Text>
         <PremiumBadge
-          label={preview.readyForExport ? 'Prüfbereit' : 'Unvollständig'}
-          variant={preview.readyForExport ? 'green' : 'orange'}
+          label={pendingChanges ? 'Ungespeicherte Vorschau' : preview.readyForExport ? 'Prüfbereit' : 'Unvollständig'}
+          variant={!pendingChanges && preview.readyForExport ? 'green' : 'orange'}
           dot
         />
       </View>

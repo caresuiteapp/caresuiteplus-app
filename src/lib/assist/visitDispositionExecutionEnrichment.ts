@@ -4,6 +4,7 @@
  * documentation and signatures when assist_visits snapshot is stale.
  */
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import { buildAdministrativeDocumentationText } from './administrativeFollowUpState';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
 import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
@@ -83,8 +84,7 @@ function buildDocumentationText(row: {
   referral_required?: boolean | null;
   emergency_or_problem?: boolean | null;
 }): string | null {
-  const short = row.short_description?.trim();
-  return short || null;
+  return buildAdministrativeDocumentationText(row);
 }
 
 type WorkflowTaskContext = {
@@ -223,7 +223,7 @@ export function mergeVisitDispositionWithExecution(input: {
     dims.documentation = 'complete';
   }
   if (hasSignature) {
-    dims.proof = 'signed';
+    dims.proof = detail.proofStatus === 'verified' ? 'verified' : 'signed';
   } else if (hasDocumentation || assignmentStatus === 'beendet' || assignmentStatus === 'dokumentation_offen') {
     dims.proof = 'pending';
   }
@@ -262,8 +262,9 @@ export function mergeVisitDispositionWithExecution(input: {
     executionStatus: dims.execution,
     documentationStatus: dims.documentation,
     proofStatus: dims.proof,
-    billingStatus: dims.billing,
-    portalStatus: dims.portal,
+    // Completing follow-up does not itself invoice or archive a visit.
+    billingStatus: detail.billingStatus,
+    portalStatus: detail.portalStatus,
     allowedStatusTransitions: dedupeStatusTransitionButtons(
       getVisitAllowedTransitions(assignmentStatus),
     ),

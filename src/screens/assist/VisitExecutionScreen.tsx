@@ -1,3 +1,5 @@
+import { visitWorkflowLabel } from '@/lib/assist/administrativeFollowUpState';
+import { VISIT_DOCUMENTATION_STATUS_LABELS, VISIT_PROOF_STATUS_LABELS } from '@/lib/assist/visitTypes';
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -75,6 +77,8 @@ export function VisitExecutionScreen() {
     loading,
     error,
     actionError,
+    refreshError,
+    refreshAfterSave,
     actionLoading,
     successMessage,
     refresh,
@@ -83,6 +87,7 @@ export function VisitExecutionScreen() {
   } = useVisitDispositionDetail(id);
 
   const [documentationNote, setDocumentationNote] = useState('');
+  const [administrativeTaskDrafts, setAdministrativeTaskDrafts] = useState<Record<string, VisitTaskStatus>>({});
   const { blocks: docBlocks } = useAssistDocumentationBlocks();
   const [localSuccess, setLocalSuccess] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -94,10 +99,8 @@ export function VisitExecutionScreen() {
     [documentationNote, visit?.documentationNotes],
   );
 
-  const proofPreview = useMemo(
-    () => (visit ? buildVisitProofPreview(visit, docText) : null),
-    [visit, docText],
-  );
+  const pendingTaskCount = visit?.tasks.filter(task => administrativeTaskDrafts[task.id] != null && administrativeTaskDrafts[task.id] !== task.status).length ?? 0;
+  const proofPreview = useMemo(() => visit ? buildVisitProofPreview({ ...visit, tasks: visit.tasks.map(task => ({ ...task, status: administrativeTaskDrafts[task.id] ?? task.status })) }, docText) : null, [visit, docText, administrativeTaskDrafts]);
 
   const handleUpdateTask = useCallback(
     async (taskId: string, status: VisitTaskStatus, notDoneReason?: string) => {
@@ -182,7 +185,7 @@ export function VisitExecutionScreen() {
     await changeStatus(next);
   }, [visit, changeStatus, docText]);
 
-  if (loading) {
+  if (loading && !visit) {
     return (
       <ScreenShell title="Einsatz durchführen" subtitle="Wird geladen…">
         <LoadingState message="Einsatzdaten werden geladen…" />
@@ -222,15 +225,15 @@ export function VisitExecutionScreen() {
       <WorkflowToast message={successMessage ?? localSuccess} onDismiss={() => setLocalSuccess(null)} />
       {localError ? <ErrorState message={localError} /> : null}
       {actionError ? <ErrorState message={actionError} /> : null}
+      {refreshError ? <ErrorState message={`Aktualisierung fehlgeschlagen: ${refreshError}`} onRetry={refresh} /> : null}
 
       <AssistSetupHintsBanner maxVisible={2} />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <PremiumCard accentColor={colors.amber}>
-          <Text style={styles.phase}>{ASSIGNMENT_STATUS_LABELS[visit.assignmentStatus]}</Text>
           <PremiumBadge
-            label={ASSIGNMENT_STATUS_LABELS[visit.assignmentStatus]}
-            variant="orange"
+            label={visitWorkflowLabel(visit.assignmentStatus, visit.proofStatus)}
+            variant={visit.assignmentStatus === 'abgeschlossen' ? 'green' : 'orange'}
             dot
           />
         </PremiumCard>
@@ -241,10 +244,10 @@ export function VisitExecutionScreen() {
           <DetailInfoRow label="Leistung" value={visit.serviceName || visit.title} />
           <DetailInfoRow label="Adresse" value={visit.addressSnapshot || visit.location} />
           <DetailInfoRow label="Planzeit" value={`${formatDateTime(visit.scheduledStart)} – ${formatDateTime(visit.scheduledEnd)}`} />
-          <DetailInfoRow label="Workflow" value={ASSIGNMENT_STATUS_LABELS[visit.assignmentStatus]} />
-          <DetailInfoRow label="Dokumentation" value={visit.documentationStatus} />
-          <DetailInfoRow label="Nachweis / Signatur" value={visit.proofStatus} />
-          <DetailInfoRow label="Aufgaben" value={`${visit.tasks.filter((task) => task.status !== 'open').length} von ${visit.tasks.length} bearbeitet`} />
+          <DetailInfoRow label="Workflow" value={visitWorkflowLabel(visit.assignmentStatus, visit.proofStatus)} />
+          <DetailInfoRow label="Dokumentation" value={VISIT_DOCUMENTATION_STATUS_LABELS[visit.documentationStatus]} />
+          <DetailInfoRow label="Nachweis / Signatur" value={VISIT_PROOF_STATUS_LABELS[visit.proofStatus]} />
+          <DetailInfoRow label="Aufgaben" value={`${visit.tasks.filter((task) => task.status !== 'open').length} von ${visit.tasks.length} gespeichert${pendingTaskCount ? ` · ${pendingTaskCount} Änderung(en) vorgemerkt` : ''}`} />
           {visit.errorMessage ? <DetailInfoRow label="Fehler" value={`${visit.errorCode ?? 'Fehler'}: ${visit.errorMessage}`} /> : null}
         </SectionPanel>
 
@@ -265,7 +268,7 @@ export function VisitExecutionScreen() {
           </SectionPanel>
         ) : null}
 
-        {showAdministrativeFollowUp && tenantId ? <AdministrativeVisitFollowUpPanel visit={visit} tenantId={tenantId} onSaved={refresh} onMessage={(message, isError) => { if (isError) { setLocalSuccess(null); setLocalError(message); } else { setLocalError(null); setLocalSuccess(message); } }} /> : null}
+        {showAdministrativeFollowUp && tenantId ? <AdministrativeVisitFollowUpPanel key={visit.id} onTaskDraftsChange={setAdministrativeTaskDrafts} visit={visit} tenantId={tenantId} onSaved={refreshAfterSave} onMessage={(message, isError) => { if (isError) { setLocalSuccess(null); setLocalError(message); } else { setLocalError(null); setLocalSuccess(message); } }} /> : null}
 
         {!canManage ? (
           <LockedActionBanner
@@ -405,7 +408,7 @@ export function VisitExecutionScreen() {
           />
         ) : null}
 
-        {proofPreview ? <VisitProofPreviewPanel preview={proofPreview} /> : null}
+        {proofPreview ? <VisitProofPreviewPanel preview={proofPreview} pendingChanges={pendingTaskCount} /> : null}
 
         <PremiumButton
           title="Einsatzdetails"

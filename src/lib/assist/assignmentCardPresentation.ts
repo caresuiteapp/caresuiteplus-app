@@ -1,8 +1,6 @@
+import { visitWorkflowLabel } from './administrativeFollowUpState';
 import type { AssignmentListItem } from '@/types/modules/assist';
-import {
-  ASSIGNMENT_STATUS_LABELS,
-  type AssignmentStatus,
-} from '@/types/modules/assignmentStatus';
+import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { assignmentStatusToDimensions, isVisitIncomplete } from '@/lib/assist/visitWorkflow';
 import {
@@ -112,19 +110,17 @@ export function resolveAssignmentCardBadge(assignment: AssignmentListItem): Assi
   const assignmentStatus = resolveAssignmentListItemStatus(assignment);
   return {
     assignmentStatus,
-    label: ASSIGNMENT_STATUS_LABELS[assignmentStatus],
+    label: visitWorkflowLabel(assignmentStatus, assignment.proofStatus as VisitProofStatus),
     variant: BADGE_VARIANT_BY_ASSIGNMENT_STATUS[assignmentStatus],
   };
 }
 
 export function resolveAssignmentCardAccent(assignment: AssignmentListItem): AssignmentCardAccent {
   const assignmentStatus = resolveAssignmentListItemStatus(assignment);
-  return (
-    ACCENT_BY_ASSIGNMENT_STATUS[assignmentStatus] ?? {
-      ...DEFAULT_ACCENT,
-      label: ASSIGNMENT_STATUS_LABELS[assignmentStatus] ?? assignmentStatus,
-    }
-  );
+  return {
+    ...(ACCENT_BY_ASSIGNMENT_STATUS[assignmentStatus] ?? DEFAULT_ACCENT),
+    label: visitWorkflowLabel(assignmentStatus, assignment.proofStatus as VisitProofStatus),
+  };
 }
 
 /** Enrich list items with canonical status and disposition dimensions for card rendering. */

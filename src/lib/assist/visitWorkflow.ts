@@ -320,6 +320,9 @@ export function deriveAssignmentStatusFromVisitDimensions(input: {
   }
 
   if (executionStatus === 'completed') {
+    // Explicit administrative completion plus a real signed proof is complete;
+    // missing signatures still win over stale completion markers.
+    if (canonicalStatus === 'abgeschlossen' && documentationStatus === 'complete' && proofStatus === 'signed') return 'abgeschlossen';
     // Visit dimensions win over stale canonical_status (e.g. confirmed/completed in DB).
     return deriveCompletedExecutionStatus(documentationStatus, proofStatus);
   }

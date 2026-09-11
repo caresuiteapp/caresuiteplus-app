@@ -125,7 +125,8 @@ export function buildVisitProofPreview(
     },
   ];
 
-  const readyForExport = fields.filter((f) => f.required).every((f) => !f.missing);
+  const openRequiredTasks = visit.tasks.filter(task => task.isRequired && task.status === 'open');
+  const readyForExport = fields.filter((f) => f.required).every((f) => !f.missing) && openRequiredTasks.length === 0;
 
   return {
     visitId: visit.id,
@@ -143,7 +144,7 @@ export function buildVisitProofPreview(
     signatureImageUrl,
     fields,
     readyForExport,
-    incompleteHint:
+    incompleteHint: openRequiredTasks.length ? `Noch offene Pflichtaufgaben: ${openRequiredTasks.map(task => task.title).join(', ')}.` :
       'Der Leistungsnachweis wird nach Einsatzabschluss erstellt. Prüfung und Freigabe finden Sie unter Assist → Nachweise → Prüfung.',
   };
 }
