@@ -16,7 +16,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LiquidLogo } from '../components/LiquidPrimitives';
 import { liquidColors, liquidShadows } from '../foundation/tokens';
 import { useLiquidLayout } from '../foundation/useLiquidLayout';
 
@@ -436,18 +435,26 @@ export function AccessHubBaseScreen({
       >
         <View style={[styles.content, stacked && styles.contentStacked]}>
           <View style={[styles.header, stacked && styles.headerStacked]}>
-            <View style={[styles.logo, stacked && styles.logoStacked]}>
-              <LiquidLogo width={stacked ? 286 : 560} />
-            </View>
+            <Text
+              accessibilityRole="header"
+              accessibilityLabel="CareSuite HealthOS"
+              numberOfLines={1}
+              style={[
+                styles.logo,
+                stacked && {
+                  fontSize: Math.min(40, (layout.width - 48) / 9.6),
+                  lineHeight: 50,
+                },
+              ]}
+            >
+              CareSuite<Text style={styles.logoAccent}> HealthOS</Text>
+            </Text>
             <Text style={styles.eyebrow}>IHR ZUGANG</Text>
             <Text
               accessibilityRole="header"
               style={[styles.headline, stacked && styles.headlineStacked]}
             >
               Wo möchten Sie starten?
-            </Text>
-            <Text style={[styles.subtitle, stacked && styles.subtitleStacked]}>
-              Wählen Sie den passenden Bereich und melden Sie sich sicher an.
             </Text>
           </View>
           <View style={[styles.accessGrid, stacked && styles.accessGridStacked]} testID="access-hub-options">
@@ -503,12 +510,22 @@ const styles = StyleSheet.create({
   contentStacked: { maxWidth: 560, gap: 14, alignSelf: 'center' },
   header: { alignItems: 'center', gap: 7, marginBottom: 6 },
   headerStacked: { gap: 6, marginBottom: 4 },
-  logo: { width: 560, maxWidth: '90%', minHeight: 56, marginBottom: 4, alignItems: 'center', justifyContent: 'center' },
-  logoStacked: { width: 310, minHeight: 40, marginBottom: 6 },
+  logo: {
+    width: '100%',
+    maxWidth: 720,
+    marginBottom: 8,
+    color: '#0B2A4A',
+    fontSize: 52,
+    lineHeight: 64,
+    fontWeight: '700',
+    letterSpacing: -0.65,
+    textAlign: 'center',
+  },
+  logoAccent: { color: '#1683FF', fontWeight: '700' },
   eyebrow: {
     color: liquidColors.blue200,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '900',
     letterSpacing: 1.8,
     textAlign: 'center',
@@ -522,13 +539,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   headlineStacked: { fontSize: 26, lineHeight: 32, letterSpacing: -0.55 },
-  subtitle: {
-    color: liquidColors.white72,
-    fontSize: 17,
-    lineHeight: 25,
-    textAlign: 'center',
-  },
-  subtitleStacked: { maxWidth: 390, fontSize: 14, lineHeight: 20 },
   accessGrid: { width: '100%', flexDirection: 'row', alignItems: 'stretch', gap: 20 },
   accessGridStacked: { flexDirection: 'column', gap: 12 },
   accessCardFrame: { minWidth: 0, borderRadius: 20, ...liquidShadows.panel },
