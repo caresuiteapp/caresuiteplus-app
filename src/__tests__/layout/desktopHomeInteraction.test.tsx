@@ -9,7 +9,7 @@ const memory = new Map<string, string>();
 const api = { owner: 'a', width: 1440, scale: 1, push: vi.fn(), getItem: vi.fn(), multiSet: vi.fn() };
 const flatten = (style: any): any => Array.isArray(style) ? Object.assign({}, ...style.map(flatten)) : style ?? {};
 const Box = (p: any) => <div data-testid={p.testID} id={p.nativeID} aria-hidden={p['aria-hidden']} style={flatten(p.style)}>{p.children}</div>;
-const Pressable = (p: any) => <div role="button" aria-label={p.accessibilityLabel} aria-expanded={p.accessibilityState?.expanded} aria-disabled={p.disabled} onClick={p.disabled ? undefined : p.onPress}>{p.children}</div>;
+const Pressable = (p: any) => <div role={p.accessibilityRole ?? "button"} aria-label={p.accessibilityLabel} aria-selected={p.accessibilityState?.selected} aria-expanded={p.accessibilityState?.expanded} aria-disabled={p.disabled} onClick={p.disabled ? undefined : p.onPress}>{p.children}</div>;
 class Value {
   constructor(public value: number) {}
   setValue(value: number) { this.value = value; }
@@ -30,6 +30,8 @@ const dependencies: Record<string, unknown> = {
   react: React, 'react/jsx-runtime': await import('react/jsx-runtime'), 'react-native': native,
   'expo-router': { useRouter: () => ({ push: api.push }) },
   '@react-native-async-storage/async-storage': { getItem: api.getItem, multiSet: api.multiSet },
+  '@/components/googleWorkspace/GoogleWorkspaceWidget.web': { GoogleWorkspaceWidget: (p: any) => <div data-preview={p.preview}>{p.service}</div> },
+  './DesktopWeatherLocationDialog.web': { DesktopWeatherLocationDialog: () => null },
   '@/lib/auth': { useAuth: () => ({ user: { id: api.owner }, profile: { displayName: 'Testverwaltung' }, signOut: vi.fn() }) },
   '@/components/portal/accessibility/PortalTextSizeControls': { PortalTextSizeControls: () => <button>Textgröße ändern</button> },
   '@/components/layout/TopbarProfileAvatar': { TopbarProfileAvatar: () => null },
@@ -95,7 +97,7 @@ describe('Web desktop preferences and navigation', () => {
     memory.set(sidebarKey(), 'true'); api.width = 780; await render();
     expect(host.querySelector('[role="dialog"]')).toBeNull();
     await click(label('Navigation öffnen')); expect(host.querySelector('[role="dialog"]')).not.toBeNull();
-    await click(button('◇Klient:innen›')); expect(api.push).toHaveBeenCalledWith('/business/office/clients');
+    await click(label('Seite Klient:innen öffnen')); expect(api.push).toHaveBeenCalledWith('/business/office/clients');
     expect(host.querySelector('[role="dialog"]')).toBeNull(); expect(memory.get(sidebarKey())).toBe('true');
     api.width = 1440; await render(); expect(label('Navigation schließen')).not.toBeNull();
     api.width = 780; await render(); expect(host.querySelector('[role="dialog"]')).toBeNull();
@@ -105,10 +107,60 @@ describe('Web desktop preferences and navigation', () => {
     expect(host.querySelector('[data-testid=desktop-clock-weather]')).not.toBeNull();
     expect(label('Standort für Wetter verwenden')).not.toBeNull();
     await click(label('Apps und Widgets öffnen'));
-    const field = label('Apps und Widgets durchsuchen') as unknown as HTMLInputElement;
+    const field = label('Apps durchsuchen') as unknown as HTMLInputElement;
     await act(async () => { field.value = 'KeinTreffer123'; field.dispatchEvent(new Event('input', { bubbles: true })); });
-    expect(host.textContent).toContain('Keine passenden Apps oder Widgets');
-    await click(button('Suche und Filter zurücksetzen')); expect(field.value).toBe('');
-    expect(host.textContent).toContain('Versorgungslage und Außendienst live verfolgen');
+    expect(host.textContent).toContain('Keine passenden Apps');
+    await click(button('Suche zurücksetzen')); expect(field.value).toBe('');
+    expect(host.textContent).toContain('Übersicht · Arbeitsbereiche');
+  });
+});
+
+
+const dialog = () => host.querySelector('[role="dialog"]')!;
+const catalogButton = (text: string) => [...dialog().querySelectorAll<HTMLElement>('[role="button"], [role="tab"]')].find(b => b.textContent === text)!;
+const typeInto = async (name: string, value: string) => {
+  const input = label(name) as unknown as HTMLInputElement;
+  await act(async () => { input.value = value; input.dispatchEvent(new Event('input', { bubbles: true })); });
+};
+
+describe('App centre categories and distinct actions', () => {
+  it('opens full apps without changing the desktop and lists every Workspace service', async () => {
+    await render(); const before = memory.get(key()); await click(label('Apps und Widgets öffnen'));
+    expect(catalogButton('Alle')).toBeUndefined(); await click(catalogButton('Workspace'));
+    expect(dialog().textContent).toContain('Google Meet'); expect(dialog().textContent).toContain('Kontakte');
+    expect(dialog().textContent).not.toContain('Desktop voll');
+    expect(dialog().querySelector('[data-testid="widget-catalog"]')).toBeNull();
+    await click(label('App Kontakte öffnen'));
+    expect(api.push).toHaveBeenCalledWith('/business/connect/google-workspace?service=contacts');
+    expect(memory.get(key())).toBe(before);
+  });
+  it('removes and adds desktop widgets in place, enforces capacity, and preserves the category', async () => {
+    await render(); await click(label('Apps und Widgets öffnen')); await click(catalogButton('Widgets'));
+    await click(catalogButton('Workspace'));
+    expect(label('Gmail zum Desktop hinzufügen')?.getAttribute('aria-disabled')).toBe('true');
+    expect(dialog().querySelector('[data-testid="app-catalog"]')).toBeNull();
+    await click(catalogButton('Versorgung')); await click(label('Klient:innen vom Desktop entfernen'));
+    expect(dialog().textContent).toContain('11 von 12'); expect(api.push).not.toHaveBeenCalled();
+    await click(catalogButton('Workspace')); await click(label('Gmail zum Desktop hinzufügen'));
+    expect(JSON.parse(memory.get(key())!)).toContain('google-gmail');
+    expect(dialog().textContent).toContain('12 von 12');
+    await click(label('Gmail vom Desktop entfernen'));
+    expect(JSON.parse(memory.get(key())!)).not.toContain('google-gmail'); expect(api.push).not.toHaveBeenCalled();
+    await typeInto('Widgets durchsuchen', 'kein-treffer'); await click(catalogButton('Suche zurücksetzen'));
+    expect(dialog().textContent).toContain('Workspace · Desktop-Widgets');
+  });
+  it('opens the Widgets tab when adding an empty desktop tile', async () => {
+    memory.set(key(), '[]'); await render(); await click(label('Widget hinzufügen'));
+    expect(dialog().querySelector('[data-testid="widget-catalog"]')).not.toBeNull();
+  });
+  it('finds pages outside the old shortlist and opens their actual destination', async () => {
+    await render(); await typeInto('Seiten in der Navigation suchen', 'MD-Prüfbereitschaft');
+    expect(label('Seite MD-Prüfbereitschaft öffnen')).not.toBeNull();
+    expect(label('Seite Rechnungen öffnen')).toBeNull();
+    await click(label('Seite MD-Prüfbereitschaft öffnen'));
+    expect(api.push).toHaveBeenCalledWith('/pflege/md-pruefbereitschaft');
+    await typeInto('Seiten in der Navigation suchen', 'Kontakte');
+    await click(label('Seite Kontakte öffnen'));
+    expect(api.push).toHaveBeenLastCalledWith('/business/connect/google-workspace?service=contacts');
   });
 });
