@@ -80,5 +80,27 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/plattform",
+      "destination": "/platform",
+      "permanent": false
+    },
+    {
+      "source": "/plattform/:path*",
+      "destination": "/platform/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/command",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/command/",
+      "destination": "/",
+      "permanent": false
+    }
   ]
 }
