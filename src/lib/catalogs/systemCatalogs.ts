@@ -1,3 +1,4 @@
+import { COMPANY_CONTACT_FUNCTIONS } from './companyContactFunctionCatalog';
 import { COMPANY_REGISTRATION_CATALOG } from './companyRegistrationCatalog';
 import type { SystemCatalog, SystemCatalogEntry, SystemCatalogKey } from './systemCatalog.types';
 
@@ -13,6 +14,10 @@ export const SYSTEM_CATALOGS: Record<SystemCatalogKey, SystemCatalog> = {
   company_industry: {
     key: 'company_industry', label: 'Einrichtungstyp / Branche',
     entries: COMPANY_REGISTRATION_CATALOG.industry.map((row, sortOrder) => ({ key: row.key, label: row.label, sortOrder })),
+  },
+  company_contact_function: {
+    key: 'company_contact_function', label: 'Funktion der Ansprechperson',
+    entries: COMPANY_CONTACT_FUNCTIONS.map((row, sortOrder) => ({ key: row.key, label: row.label, sortOrder })),
   },
   leistungsart: {
     key: 'leistungsart',

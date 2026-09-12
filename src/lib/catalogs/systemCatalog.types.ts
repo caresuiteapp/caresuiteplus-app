@@ -2,6 +2,7 @@
 export type SystemCatalogKey =
   | 'company_legal_form'
   | 'company_industry'
+  | 'company_contact_function'
   | 'leistungsart'
   | 'client_status'
   | 'salutation'

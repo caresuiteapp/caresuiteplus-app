@@ -1,3 +1,4 @@
+import { canonicalCompanyContactFunction } from '@/lib/catalogs/companyContactFunctionCatalog';
 import { normalizeCompanyRegistrationSelection, validateCompanyRegistrationSelection } from '@/lib/catalogs/companyRegistrationCatalog';
 import { FREE_REGISTRATION_PRODUCTS, validateBusinessRegistration } from './businessRegistrationPolicy';
 import type { Session } from '@supabase/supabase-js';
@@ -51,7 +52,7 @@ export async function registerBusinessTenant(
         displayName: string;
       };
       credentials: { username: string };
-    }>('register-business-tenant', { ...normalizeCompanyRegistrationSelection(input), selectedModules: undefined });
+    }>('register-business-tenant', { ...normalizeCompanyRegistrationSelection({ ...input, contactRole: canonicalCompanyContactFunction(input.contactRole) ?? input.contactRole }), selectedModules: undefined });
 
     if (!registration.ok) {
       return { ok: false, error: registration.error };

@@ -1,3 +1,4 @@
+import { COMPANY_CONTACT_FUNCTIONS, resolveCompanyContactFunction } from '@/lib/catalogs/companyContactFunctionCatalog';
 import React, { useId, type CSSProperties } from 'react';
 import {
   COMPANY_REGISTRATION_CATALOG,
@@ -6,7 +7,7 @@ import {
 } from '@/lib/catalogs/companyRegistrationCatalog';
 
 type Props = {
-  kind: CompanyCatalogKind;
+  kind: CompanyCatalogKind | 'contact_function';
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -23,7 +24,8 @@ const control: CSSProperties = {
 
 export function CompanyRegistrationSelect({ kind, label, value, onChange, disabled, showError }: Props) {
   const id = useId();
-  const choice = resolveCompanyCatalogChoice(kind, value);
+  const choices = kind === 'contact_function' ? COMPANY_CONTACT_FUNCTIONS : COMPANY_REGISTRATION_CATALOG[kind];
+  const choice = kind === 'contact_function' ? resolveCompanyContactFunction(value) : resolveCompanyCatalogChoice(kind, value);
   const other = choice?.key === 'sonstige';
   const detail = other && /^sonstige:/i.test(value) ? value.replace(/^sonstige:\s?/i, '') : '';
   const invalid = Boolean(showError && (!choice || (other && detail.trim().length < 2)));
@@ -31,7 +33,9 @@ export function CompanyRegistrationSelect({ kind, label, value, onChange, disabl
     ? `Bisherige Angabe: ${value}. Bitte ordnen Sie diese einer Vorgabe zu oder wählen Sie „Sonstige“.`
     : kind === 'legal_form'
       ? 'Wählen Sie die Rechtsform, unter der Ihr Unternehmen geführt wird.'
-      : 'Wählen Sie den hauptsächlichen Leistungsbereich Ihrer Einrichtung.';
+      : kind === 'industry'
+        ? 'Wählen Sie den hauptsächlichen Leistungsbereich Ihrer Einrichtung.'
+        : 'Wählen Sie die Funktion der Ansprechperson im Unternehmen.';
 
   return (
     <div className="cs-registration-choice" style={{ display: 'grid', gap: 8, minWidth: 0 }}>
@@ -48,12 +52,12 @@ export function CompanyRegistrationSelect({ kind, label, value, onChange, disabl
         aria-describedby={`${id}-hint`}
         style={{ ...control, cursor: disabled ? 'default' : 'pointer', borderColor: invalid ? '#B42318' : '#C8D5E5' }}
         onChange={event => {
-          const selected = COMPANY_REGISTRATION_CATALOG[kind].find(row => row.key === event.target.value);
+          const selected = choices.find(row => row.key === event.target.value);
           if (selected) onChange(selected.key === 'sonstige' ? 'Sonstige: ' : selected.label);
         }}
       >
         <option value="" disabled>Bitte auswählen …</option>
-        {COMPANY_REGISTRATION_CATALOG[kind].map(row => (
+        {choices.map(row => (
           <option key={row.key} value={row.key}>{row.optionLabel ?? row.label}</option>
         ))}
       </select>
@@ -61,7 +65,7 @@ export function CompanyRegistrationSelect({ kind, label, value, onChange, disabl
       {other ? (
         <div style={{ display: 'grid', gap: 8, minWidth: 0 }}>
           <label htmlFor={`${id}-other`} style={{ color: '#172B45', fontWeight: 600 }}>
-            {kind === 'legal_form' ? 'Andere Rechtsform angeben' : 'Anderen Einrichtungstyp angeben'} *
+            {kind === 'legal_form' ? 'Andere Rechtsform angeben' : kind === 'industry' ? 'Anderen Einrichtungstyp angeben' : 'Andere Funktion angeben'} *
           </label>
           <input
             id={`${id}-other`}

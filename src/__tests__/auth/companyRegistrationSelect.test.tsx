@@ -11,9 +11,9 @@ beforeEach(() => {
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
-function Form({ initial = '' }: { initial?: string }) {
+function Form({ initial = '', kind = 'legal_form' }: { initial?: string; kind?: 'legal_form' | 'contact_function' }) {
   const [value, setValue] = useState(initial);
-  return <><CompanyRegistrationSelect kind="legal_form" label="Rechtsform" value={value} onChange={setValue} /><output>{value}</output></>;
+  return <><CompanyRegistrationSelect kind={kind} label={kind === 'contact_function' ? 'Funktion' : 'Rechtsform'} value={value} onChange={setValue} /><output>{value}</output></>;
 }
 async function select(key: string) {
   await act(async () => { const el = host.querySelector('select')!; el.value = key; el.dispatchEvent(new Event('change', { bubbles: true })); });
@@ -40,4 +40,19 @@ it('requires a separate explanation for other and removes it after a catalog sel
   await select('gmbh');
   expect(host.querySelector('input')).toBeNull();
   expect(host.querySelector('output')!.textContent).toBe('GmbH');
+});
+
+it('uses the existing contact function and writes the selected canonical label', async () => {
+  await act(async () => root.render(<Form kind="contact_function" initial="Geschäftsführung" />));
+  expect(host.querySelector('select')!.value).toBe('geschaeftsfuehrung');
+  expect(host.querySelector('label')!.textContent).toContain('Funktion');
+  await select('pflegedienstleitung');
+  expect(host.querySelector('output')!.textContent).toBe('Pflegedienstleitung (PDL)');
+});
+it('provides a function-specific description for other and retains old unclassified text', async () => {
+  await act(async () => root.render(<Form kind="contact_function" initial="Frühere individuelle Funktion" />));
+  expect(host.textContent).toContain('Frühere individuelle Funktion');
+  await select('sonstige');
+  expect(host.textContent).toContain('Andere Funktion angeben');
+  expect(host.querySelector('input')!.value).toBe('');
 });

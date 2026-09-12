@@ -1,3 +1,4 @@
+import { canonicalCompanyContactFunction, validateCompanyContactFunction } from '@/lib/catalogs/companyContactFunctionCatalog';
 import { CompanyRegistrationSelect } from '../components/CompanyRegistrationSelect.web';
 import { validateCompanyRegistrationSelection } from '@/lib/catalogs/companyRegistrationCatalog';
 import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
@@ -515,6 +516,10 @@ export function RegisterOrganizationScreen() {
     if (step === 2 && (!form.adminFirstName.trim() || !form.adminLastName.trim() || !form.adminEmail.trim())) {
       return 'Vorname, Nachname und E-Mail der Administration sind erforderlich.';
     }
+    if (step === 2) {
+      const functionError = validateCompanyContactFunction(form.contactRole);
+      if (functionError) return functionError;
+    }
     if ((step === 1 || step === 2) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((step === 1 ? form.email : form.adminEmail).trim())) {
       return 'Bitte eine gültige E-Mail-Adresse eingeben.';
     }
@@ -541,7 +546,7 @@ export function RegisterOrganizationScreen() {
 
   const submit = async () => {
     if (!draftReady || submitLock.current) return;
-    const validation = validateCompanyRegistrationSelection(form) ?? validateBusinessRegistration(form);
+    const validation = validateCompanyRegistrationSelection(form) ?? validateCompanyContactFunction(form.contactRole) ?? validateBusinessRegistration(form);
     if (validation || !accepted || form.adminPassword !== confirmPassword) {
       setError(validation ?? 'Bitte Bedingungen bestätigen und Passwortbestätigung prüfen.');
       return;
@@ -662,7 +667,7 @@ export function RegisterOrganizationScreen() {
             <LiquidField label="Admin Telefon" value={form.adminPhone ?? ''} onChangeText={(value) => update('adminPhone', value)} keyboardType="phone-pad" />
             <LiquidField label="Ansprechperson Vorname" value={form.contactFirstName} onChangeText={(value) => update('contactFirstName', value)} />
             <LiquidField label="Ansprechperson Nachname" value={form.contactLastName} onChangeText={(value) => update('contactLastName', value)} />
-            <LiquidField label="Funktion" value={form.contactRole} onChangeText={(value) => update('contactRole', value)} />
+            <CompanyRegistrationSelect kind="contact_function" label="Funktion" value={form.contactRole} onChange={(value) => update('contactRole', value)} disabled={loading} showError={Boolean(error)} />
           </>
         ) : null}
         {step === 3 ? (
@@ -701,7 +706,8 @@ export function RegisterOrganizationScreen() {
               ...(form.website?.trim() ? [['Website', form.website]] : []),
               ['Administration', `${form.adminFirstName} ${form.adminLastName} · ${form.adminEmail}`],
               ...(form.adminPhone?.trim() ? [['Telefon Administration', form.adminPhone]] : []),
-              ...([form.contactFirstName, form.contactLastName].some(value => value?.trim()) ? [['Ansprechperson', [form.contactFirstName, form.contactLastName, form.contactRole].filter(Boolean).join(' · ')]] : []),
+              ...([form.contactFirstName, form.contactLastName].some(value => value?.trim()) ? [['Ansprechperson', [form.contactFirstName, form.contactLastName].filter(Boolean).join(' · ')]] : []),
+              ['Funktion', canonicalCompanyContactFunction(form.contactRole) ?? form.contactRole],
               ['Kosten', 'Kostenlos · 0 €'],
               ['Sicherheit', 'Passwort gesetzt · Bedingungen bestätigt'],
             ].map(([label, value]) => (
