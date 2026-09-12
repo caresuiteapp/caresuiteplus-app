@@ -6,18 +6,18 @@ export function desktopWorkspaceCss(fontScale: number) {
   const threshold = (columns: number) => columns * minimum + (columns - 1) * gap;
   const labelHeight = Math.ceil(48 * scale + 16);
   return `
-    input[aria-label="Apps durchsuchen"],
-    input[aria-label="Widgets durchsuchen"],
-    input[aria-label="Seiten in der Navigation suchen"] {
+    input#desktop-catalog-search,
+    input#desktop-navigation-search {
       background: transparent !important;
       color: #EAF6FF !important;
-      caret-color: #81DFFF;
+      -webkit-text-fill-color: #EAF6FF !important;
+      caret-color: #81DFFF !important;
       border: 0 !important;
     }
-    input[aria-label="Apps durchsuchen"]::placeholder,
-    input[aria-label="Widgets durchsuchen"]::placeholder,
-    input[aria-label="Seiten in der Navigation suchen"]::placeholder {
+    input#desktop-catalog-search::placeholder,
+    input#desktop-navigation-search::placeholder {
       color: #AFC9DC !important;
+      -webkit-text-fill-color: #AFC9DC !important;
       opacity: 1;
     }
     [data-testid="app-catalog"], [data-testid="widget-catalog"] {
