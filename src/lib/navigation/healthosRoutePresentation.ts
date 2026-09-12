@@ -3,7 +3,9 @@ const FULL_PAGE_PREFIXES = [
   '/portal',
   '/client-portal',
   '/employee-portal',
-  '/platform/login',
+  '/platform',
+  '/plattform',
+  '/command',
   '/impressum',
   '/datenschutz',
   '/christianreinhardt',
@@ -33,7 +35,8 @@ function normalizeRoutePattern(routePattern: string): string {
 /**
  * CareSuite HealthOS has one central surface. Every authenticated internal
  * destination is presented above it as a large contextual popup. Authentication,
- * public portals/legal pages and sequential execution flows remain full pages.
+ * the separate platform console, public portals/legal pages and sequential
+ * execution flows remain full pages.
  */
 export function isHealthOSContextualPopupRoute(routePattern: string): boolean {
   const normalized = normalizeRoutePattern(routePattern);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PlatformKpiGrid, PlatformShellLayout, PLATFORM_COLORS } from '@/components/platformConsole';
 import { ErrorState, LoadingState } from '@/components/ui';
@@ -52,24 +52,23 @@ export function PlatformDashboardScreen() {
 
   return (
     <PlatformShellLayout
-      title="Platform Dashboard"
-      subtitle="Mandanten, Billing, Module und Systemstatus auf einen Blick"
+      title="Plattform-Dashboard"
+      subtitle="Mandanten, Abrechnung, Support und Systemstatus auf einen Blick"
     >
-      <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.content}>
         <View style={styles.commandPanel}>
           <View style={styles.commandHeader}>
-            <View>
+            <View style={styles.commandCopy}>
               <Text style={styles.commandTitle}>Operator-Aufgaben</Text>
               <Text style={styles.commandSub}>Kritische Vorgänge, die jetzt Aufmerksamkeit benötigen.</Text>
             </View>
-            <Pressable style={styles.refresh} onPress={() => void load()}><Text style={styles.refreshText}>Aktualisieren</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Dashboard aktualisieren" style={styles.refresh} onPress={() => void load()}><Text style={styles.refreshText}>Aktualisieren</Text></Pressable>
           </View>
           <View style={styles.taskGrid}>
             {[
               { label: 'Überfällige Rechnungen', count: summary.billing.pastDueInvoices, path: '/platform/billing', tone: '#B45309' },
               { label: 'Fehlgeschlagene Zahlungen', count: summary.billing.failedPayments, path: '/platform/payments', tone: '#B91C1C' },
               { label: 'Gesperrte Mandanten', count: summary.tenants.suspended, path: '/platform/tenants', tone: '#B91C1C' },
-              { label: 'Ablaufende Modul-Tests', count: summary.modules.trialExpiring, path: '/platform/modules', tone: '#B45309' },
               { label: 'Aktive Support-Sessions', count: summary.system.activeSupportSessions, path: '/platform/support', tone: '#0369A1' },
             ].map((task) => (
               <Pressable key={task.label} style={styles.task} onPress={() => router.push(task.path as never)}>
@@ -93,7 +92,7 @@ export function PlatformDashboardScreen() {
           ]}
         />
 
-        <Text style={styles.sectionTitle}>Billing</Text>
+        <Text style={styles.sectionTitle}>Abrechnung</Text>
         <PlatformKpiGrid
           items={[
             { label: 'Offene Rechnungen', value: summary.billing.openInvoices },
@@ -103,11 +102,9 @@ export function PlatformDashboardScreen() {
           ]}
         />
 
-        <Text style={styles.sectionTitle}>Module & System</Text>
+        <Text style={styles.sectionTitle}>System & Support</Text>
         <PlatformKpiGrid
           items={[
-            { label: 'Beta-Module aktiv', value: summary.modules.betaActive },
-            { label: 'Trial läuft ab (<7 Tage)', value: summary.modules.trialExpiring, tone: 'warning' },
             { label: 'Feature Flags aktiv', value: summary.system.activeFeatureFlags },
             { label: 'Support-Sessions', value: summary.system.activeSupportSessions },
             {
@@ -126,7 +123,7 @@ export function PlatformDashboardScreen() {
             ))}
           </View>
         ) : null}
-      </ScrollView>
+      </View>
     </PlatformShellLayout>
   );
 }
@@ -144,13 +141,14 @@ const styles = StyleSheet.create({
   },
   auditLine: { color: PLATFORM_COLORS.muted, fontSize: 12 },
   commandPanel: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: PLATFORM_COLORS.border, borderRadius: 16, padding: spacing.lg, gap: spacing.md },
-  commandHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md },
+  commandHeader: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: spacing.md },
+  commandCopy: { flexGrow: 1, flexShrink: 1, flexBasis: 240, minWidth: 0 },
   commandTitle: { color: PLATFORM_COLORS.text, fontSize: 18, fontWeight: '800' },
   commandSub: { color: PLATFORM_COLORS.muted, fontSize: 12, marginTop: 3 },
   refresh: { borderWidth: 1, borderColor: PLATFORM_COLORS.borderStrong, borderRadius: 9, paddingHorizontal: spacing.sm, paddingVertical: 8 },
   refreshText: { color: PLATFORM_COLORS.accent, fontWeight: '700', fontSize: 12 },
   taskGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  task: { minWidth: 160, flexGrow: 1, flexBasis: '18%', borderRadius: 12, borderWidth: 1, borderColor: PLATFORM_COLORS.border, backgroundColor: PLATFORM_COLORS.panelSoft, padding: spacing.md },
+  task: { minWidth: 160, flexGrow: 1, flexBasis: '22%', borderRadius: 12, borderWidth: 1, borderColor: PLATFORM_COLORS.border, backgroundColor: PLATFORM_COLORS.panelSoft, padding: spacing.md },
   taskCount: { fontSize: 24, fontWeight: '800' },
   taskLabel: { color: PLATFORM_COLORS.text, fontSize: 12, fontWeight: '700', marginTop: 4 },
   taskOpen: { color: PLATFORM_COLORS.accent, fontSize: 11, marginTop: spacing.sm, fontWeight: '700' },

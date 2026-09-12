@@ -14,6 +14,20 @@ describe('HealthOS central route presentation', () => {
     expect(isHealthOSContextualPopupRoute('/assist/live-status')).toBe(true);
   });
 
+  it.each([
+    '/platform', '/platform/', '/platform/dashboard', '/platform/tenants/tenant-id',
+    '/platform/support', '/platform/login', '/platform/forbidden',
+    'platform', 'platform/(console)', 'platform/(console)/dashboard',
+    'app/platform/(console)/dashboard.tsx', 'app/platform/index.tsx',
+    '/plattform', '/plattform/dashboard', '/command', '/command/',
+  ])('keeps the platform console and legacy entry %s outside desktop popup chrome', (route) => {
+    expect(isHealthOSContextualPopupRoute(route)).toBe(false);
+  });
+
+  it.each(['/business/company', '/business/dashboard', '/business/platform', '/command-center', '/platform-tools'])('preserves desktop popup presentation for %s', (route) => {
+    expect(isHealthOSContextualPopupRoute(route)).toBe(true);
+  });
+
   it('keeps authentication and public portals outside the popup presenter', () => {
     expect(isHealthOSContextualPopupRoute('/auth/business-login')).toBe(false);
     expect(isHealthOSContextualPopupRoute('/portal/employee')).toBe(false);
