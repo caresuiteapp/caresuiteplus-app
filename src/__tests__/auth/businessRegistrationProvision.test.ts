@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { normalizeCompanyRegistrationSelection } from '@/lib/catalogs/companyRegistrationCatalog';
 import { provisionBusinessRegistration, validateRegistrationBody } from '../../../supabase/functions/register-business-tenant/provision';
 
 const body = { companyName:'Betrieb',legalForm:'GmbH',industry:'Pflege',street:'Weg 1',zip:'12345',city:'Berlin',phone:'0123',email:'office@example.test',adminFirstName:'Test',adminLastName:'Owner',adminEmail:'owner@example.test',adminPassword:'LongTestPassword!',termsAccepted:true,selectedModules:[] };
@@ -52,5 +53,21 @@ describe('company registration provisioning',()=>{
     const c=setup([new Error('network'),new Error('network')],{id:'owner-row',tenant_id:'company',username:'admin',email:body.adminEmail,role_key:'owner',display_name:'Test Owner'});
     expect((await provisionBusinessRegistration(c.client,body)).status).toBe(201);
     expect(c.deleteUser).not.toHaveBeenCalled();
+  });
+  it('canonicalizes catalog selections and forwards stable keys with the workspace',async()=>{
+    const c=setup([{data:{ok:true,tenantId:'company'},error:null}]);
+    const selected=normalizeCompanyRegistrationSelection({...body,legalForm:'UG',industry:'Alltagsbegleitung'});
+    const result=await provisionBusinessRegistration(c.client,selected);
+    expect(result.status).toBe(201);
+    expect(c.rpc.mock.calls[0][1].p_data).toMatchObject({legalForm:'UG (haftungsbeschränkt)',legalFormKey:'ug',industry:'Ambulante Alltagsbegleitung',industryKey:'alltagsbegleitung',registrationCatalogVersion:'2026-09-12'});
+  });
+  it('rejects stale or mismatched catalog values before creating an account',async()=>{
+    const selected=normalizeCompanyRegistrationSelection({...body,legalForm:'GmbH',industry:'Alltagsbegleitung'});
+    for(const changed of [{legalFormKey:'ug'},{industryKey:'pflegedienst'},{registrationCatalogVersion:'old'},{industry:'unbekannter_wert'},{industry:'Sonstige: '}]){
+      const c=setup([]);
+      expect((await provisionBusinessRegistration(c.client,{...selected,...changed})).status).toBe(400);
+      expect(c.createUser).not.toHaveBeenCalled();
+      expect(c.rpc).not.toHaveBeenCalled();
+    }
   });
 });

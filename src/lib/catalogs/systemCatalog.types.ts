@@ -1,5 +1,7 @@
 /** Systemkatalog-Schlüssel (Spec 17.1–17.47) */
 export type SystemCatalogKey =
+  | 'company_legal_form'
+  | 'company_industry'
   | 'leistungsart'
   | 'client_status'
   | 'salutation'
