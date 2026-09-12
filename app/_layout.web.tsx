@@ -82,7 +82,9 @@ function RootShell() {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
     // The central popup owns its complete dark HealthOS theme. Leaving the
     // former bright ORBIT attribute enabled here repainted every popup page.
-    const internalOrbit = isLiquidCommandRoute && !isPortalRoutePath(pathname) && !currentRouteIsPopup;
+    // The platform console owns its palette, including semantic KPI colors.
+    const platformConsoleRoute = pathname === '/platform' || pathname.startsWith('/platform/');
+    const internalOrbit = isLiquidCommandRoute && !isPortalRoutePath(pathname) && !currentRouteIsPopup && !platformConsoleRoute;
     document.documentElement.toggleAttribute('data-cs-orbit-internal', internalOrbit);
     document.documentElement.toggleAttribute('data-cs-central-home', pathname === '/');
     document.documentElement.toggleAttribute('data-cs-central-popup', currentRouteIsPopup);
