@@ -331,26 +331,9 @@ export async function listPlatformSystemSettings(): Promise<ServiceResult<Record
     };
   }
 
-  const { data, error } = await platformSelect<{
-    id: string;
-    setting_key: string;
-    value: unknown;
-    description: string | null;
-    is_sensitive: boolean;
-    updated_at: string;
-  }>(
-    'platform_system_settings',
-    'id, setting_key, value, description, is_sensitive, updated_at',
-    'setting_key',
-  );
+  const { data, error } = await platformRpc<Record<string, unknown>[]>('platform_list_console_settings');
   if (error) return { ok: false, error: error.message };
-
-  const sanitized = (data ?? []).map((row) => ({
-    ...row,
-    value: row.is_sensitive ? '[maskiert]' : row.value,
-  }));
-
-  return { ok: true, data: sanitized as Record<string, unknown>[] };
+  return { ok: true, data: data ?? [] };
 }
 
 export async function listPlatformOperatorUsers(): Promise<ServiceResult<PlatformOperatorUserRow[]>> {
@@ -533,6 +516,8 @@ function mapInvoiceRow(row: Record<string, unknown>): PlatformInvoiceRow {
     invoice_number: String(row.invoice_number ?? '—'),
     status: String(row.status),
     amount_cents: total,
+    provider: row.provider == null ? null : String(row.provider),
+    invoice_url: row.invoice_url == null ? null : String(row.invoice_url),
     tax_cents: tax,
     net_cents: subtotal,
     currency: String(row.currency ?? 'EUR'),
@@ -550,6 +535,7 @@ function mapPaymentRow(row: Record<string, unknown>): PlatformPaymentRow {
     invoice_id: row.invoice_id != null ? String(row.invoice_id) : null,
     amount_cents: Number(row.amount_cents ?? 0),
     status: String(row.status),
+    currency: String(row.currency ?? 'EUR'),
     provider: row.provider != null ? String(row.provider) : null,
     provider_payment_id: row.external_payment_id != null ? String(row.external_payment_id) : null,
     payment_method: row.payment_method != null ? String(row.payment_method) : null,

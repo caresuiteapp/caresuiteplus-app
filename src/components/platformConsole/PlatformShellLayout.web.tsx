@@ -54,7 +54,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
         sidebar: {
           flex: isWide ? undefined : 1,
           minHeight: 0,
-          width: isWide ? 248 : undefined,
+          width: isWide ? 268 : undefined,
           backgroundColor: PLATFORM_COLORS.sidebar,
           borderRightWidth: isWide ? 1 : 0,
           borderBottomWidth: isWide ? 0 : 1,
@@ -81,7 +81,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
         navGroupHeader: { marginHorizontal: spacing.sm, paddingHorizontal: spacing.sm, paddingVertical: 7, flexDirection: 'row', justifyContent: 'space-between' },
         navGroupLabel: { color: PLATFORM_COLORS.sidebarMuted, fontSize: font(13), fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 },
         navIcon: { color: PLATFORM_COLORS.accent, width: 18, textAlign: 'center' },
-        navLabel: { color: PLATFORM_COLORS.sidebarText, fontSize: font(16) },
+        navLabel: { color: PLATFORM_COLORS.sidebarText, fontSize: font(15), flexShrink: 1 },
         navLabelActive: { color: PLATFORM_COLORS.sidebarText, fontWeight: '700' },
         userBox: {
           marginTop: spacing.sm,
@@ -201,7 +201,7 @@ export function PlatformShellLayout({ children, title, subtitle, scroll = true }
             <View style={styles.headerTools}>
               <PortalTextSizeControls />
               <PlatformGlobalSearch />
-              <View style={styles.securityPill}><Text style={styles.securityText}>✓ Audit aktiv</Text></View>
+              <View style={styles.securityPill}><Text style={styles.securityText}>Rollenbasierter Zugriff</Text></View>
               <View style={styles.contextPill}><Text style={styles.contextText}>{environment === 'production' ? 'Produktion' : environment}</Text></View>
               {platformUser ? <View style={styles.contextPill}><Text style={styles.contextText}>{PLATFORM_ROLE_LABELS[platformUser.role]}</Text></View> : null}
             </View>

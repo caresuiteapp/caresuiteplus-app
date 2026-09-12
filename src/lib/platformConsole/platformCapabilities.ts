@@ -76,7 +76,7 @@ export function platformRoleHasCapability(
   if (!role) return false;
   const caps = ROLE_CAPABILITIES[role];
   if (caps === 'all') return true;
-  return caps.includes(capability);
+  return caps?.includes(capability) ?? false;
 }
 
 export function platformRoleCanWrite(role: PlatformRoleKey | null | undefined): boolean {

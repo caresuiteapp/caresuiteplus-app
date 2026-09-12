@@ -259,6 +259,8 @@ export type PlatformTenantDiscountRow = {
 };
 
 export type PlatformInvoiceRow = {
+  provider?: string | null;
+  invoice_url?: string | null;
   id: string;
   tenant_id: string;
   invoice_number: string;
@@ -274,6 +276,7 @@ export type PlatformInvoiceRow = {
 };
 
 export type PlatformPaymentRow = {
+  currency?: string;
   id: string;
   tenant_id: string;
   invoice_id: string | null;

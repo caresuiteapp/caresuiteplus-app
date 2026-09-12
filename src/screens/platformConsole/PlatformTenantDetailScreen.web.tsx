@@ -11,7 +11,7 @@ import {
 
   PlatformAuditLink,
 
-  PlatformConfirmModal,
+
 
   PlatformFormField,
 
@@ -76,6 +76,10 @@ import {
 } from './PlatformTenantOperatorTabs';
 
 import { spacing } from '@/theme';
+import { PlatformConfirmModal } from '@/components/platformConsole/PlatformConfirmModal.web';
+import type { PlatformCapability } from '@/types/platformConsole';
+import { ConsoleStyle, ConsoleBadge } from '@/components/platformConsole/ConsoleWorkspaceUi.web';
+import { consoleDate, consoleLabel } from '@/lib/platformConsole/consoleWorkspaceModel';
 
 
 
@@ -102,6 +106,29 @@ const TAB_GROUPS = [
 ] as const;
 
 type TabKey = (typeof TAB_GROUPS)[number]['tabs'][number]['key'];
+const TAB_CAPABILITIES: Record<TabKey, PlatformCapability> = {
+  overview:'tenants.read',recordEdit:'tenants.write',subscription:'plans.read',entitlements:'modules.read',limits:'plans.read',
+  flags:'flags.read',billing:'billing.read',preview:'billing.read',payments:'payments.read',credits:'billing.read',
+  discounts:'discounts.read',users:'tenants.read',support:'support.read',diagnosis:'tenants.read',audit:'audit.read',
+};
+const TAB_DESCRIPTIONS: Record<TabKey,string> = {
+  overview:'Unternehmensstatus, Kontaktdaten und aktivierte Funktionen im Zusammenhang prüfen.',
+  recordEdit:'Rechtliche Angaben, Ansprechpartner, E-Mail-Adressen und Datenumgebung verbindlich pflegen.',
+  subscription:'Vertragsversion, Laufzeit, Status und zugeordnete Erweiterungen für dieses Unternehmen bearbeiten.',
+  entitlements:'Den tatsächlich berechneten Funktionszugriff einschließlich seiner Vertragsgrundlage prüfen.',
+  limits:'Vereinbarte Kapazitäten und die aktuell zugrunde liegenden Vertragslimits nachvollziehen.',
+  flags:'Technische Freigaben für genau dieses Unternehmen prüfen und mit Begründung ändern.',
+  billing:'Rechnungen, Fälligkeiten und dokumentierte Zahlungsstände dieses Unternehmens prüfen.',
+  preview:'Die nächste Abrechnung aus den aktuell hinterlegten Vertragsgrundlagen berechnen und kontrollieren.',
+  payments:'Dokumentierte Zahlungseingänge, Rechnungszuordnungen und fehlgeschlagene Vorgänge nachvollziehen.',
+  credits:'Guthabenbestand und Buchungshistorie prüfen; Korrekturen benötigen eine nachvollziehbare Grundlage.',
+  discounts:'Aktive Sonderkonditionen und ihre Laufzeiten prüfen, zuweisen oder beenden.',
+  users:'Die dem Unternehmen zugeordneten Konten und ihre Kontaktinformationen einsehen.',
+  support:'Unternehmensbezogene Supportanfragen und bestätigte Datenzugriffe im Support-Arbeitsbereich bearbeiten.',
+  diagnosis:'Einrichtungsstand und betriebliche Auffälligkeiten prüfen, bevor Sie einen Fehler eskalieren.',
+  audit:'Änderungen an diesem Unternehmen mit Zeitpunkt, ausführender Rolle und Begründung nachvollziehen.',
+};
+
 
 
 
@@ -119,6 +146,8 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
   const [detail, setDetail] = useState<PlatformTenantDetail | null>(null);
 
   const [tab, setTab] = useState<TabKey>('overview');
+  const visibleGroups=TAB_GROUPS.map(group=>({...group,tabs:group.tabs.filter(item=>platformRoleHasCapability(platformUser?.role,TAB_CAPABILITIES[item.key]))})).filter(group=>group.tabs.length>0);
+  useEffect(()=>{if(!platformRoleHasCapability(platformUser?.role,TAB_CAPABILITIES[tab]))setTab('overview');},[platformUser?.role,tab]);
 
   const [loading, setLoading] = useState(true);
 
@@ -260,7 +289,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
   const tid = String(tenantId);
 
-  const activeGroup = TAB_GROUPS.find((group) => group.tabs.some((item) => item.key === tab)) ?? TAB_GROUPS[0];
+  const activeGroup = visibleGroups.find((group) => group.tabs.some((item) => item.key === tab)) ?? visibleGroups[0];
 
 
 
@@ -270,19 +299,19 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
       <View style={styles.navigation}>
         <View style={styles.groupTabs}>
-          {TAB_GROUPS.map((group) => {
-            const active = group.key === activeGroup.key;
+          {visibleGroups.map((group) => {
+            const active = group.key === activeGroup?.key;
             return (
-              <Pressable key={group.key} style={[styles.groupTab, active && styles.groupTabActive]} onPress={() => void changeTab(group.tabs[0].key)}>
+              <Pressable accessibilityRole="tab" accessibilityState={{selected:active}} key={group.key} style={[styles.groupTab, active && styles.groupTabActive]} onPress={() => void changeTab(group.tabs[0].key)}>
                 <Text style={[styles.groupTabText, active && styles.groupTabTextActive]}>{group.label}</Text>
               </Pressable>
             );
           })}
         </View>
-        {activeGroup.tabs.length > 1 ? (
+        {activeGroup && activeGroup.tabs.length > 1 ? (
           <View style={styles.subTabs}>
             {activeGroup.tabs.map((item) => (
-              <Pressable key={item.key} style={[styles.subTab, item.key === tab && styles.subTabActive]} onPress={() => void changeTab(item.key)}>
+              <Pressable accessibilityRole="tab" accessibilityState={{selected:item.key===tab}} key={item.key} style={[styles.subTab, item.key === tab && styles.subTabActive]} onPress={() => void changeTab(item.key)}>
                 <Text style={[styles.subTabText, item.key === tab && styles.subTabTextActive]}>{item.label}</Text>
               </Pressable>
             ))}
@@ -308,6 +337,12 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
 
       <ScrollView contentContainerStyle={styles.content}>
+        <div className="cs-console"><ConsoleStyle /><section className="cs-hero" style={{padding:'20px 24px'}}><div>
+          <div className="cs-eyebrow">Unternehmensakte · {activeGroup?.label??'Übersicht'}</div>
+          <h2>{activeGroup?.tabs.find(item=>item.key===tab)?.label??'Übersicht'}</h2>
+          <p>{TAB_DESCRIPTIONS[tab]}</p>
+          <div className="cs-actions" style={{marginTop:12}}><ConsoleBadge value={detail.tenant.status} label={consoleLabel(detail.tenant.status)}/><small>Unternehmens-ID: {tid} · Stand: {consoleDate(detail.tenant.updated_at??detail.tenant.updatedAt)}</small></div>
+        </div></section></div>
 
         {tab === 'overview' ? (
 
