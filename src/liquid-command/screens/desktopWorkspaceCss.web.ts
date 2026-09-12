@@ -6,6 +6,30 @@ export function desktopWorkspaceCss(fontScale: number) {
   const threshold = (columns: number) => columns * minimum + (columns - 1) * gap;
   const labelHeight = Math.ceil(48 * scale + 16);
   return `
+    input[aria-label="Apps durchsuchen"],
+    input[aria-label="Widgets durchsuchen"],
+    input[aria-label="Seiten in der Navigation suchen"] {
+      background: transparent !important;
+      color: #EAF6FF !important;
+      caret-color: #81DFFF;
+      border: 0 !important;
+    }
+    input[aria-label="Apps durchsuchen"]::placeholder,
+    input[aria-label="Widgets durchsuchen"]::placeholder,
+    input[aria-label="Seiten in der Navigation suchen"]::placeholder {
+      color: #AFC9DC !important;
+      opacity: 1;
+    }
+    [data-testid="app-catalog"], [data-testid="widget-catalog"] {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, ${280 * scale}px), 1fr));
+      gap: 10px;
+      margin: 0;
+    }
+    [data-testid="app-catalog"] > div, [data-testid="widget-catalog"] > div {
+      min-width: 0;
+      padding: 0;
+    }
     [data-cs-desktop-navigation-workspace] {
       transition: grid-template-columns 240ms cubic-bezier(.2,.8,.2,1);
     }
