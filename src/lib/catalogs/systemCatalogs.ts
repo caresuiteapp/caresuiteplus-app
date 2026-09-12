@@ -1,3 +1,4 @@
+import { COMPANY_REGISTRATION_CATALOG } from './companyRegistrationCatalog';
 import type { SystemCatalog, SystemCatalogEntry, SystemCatalogKey } from './systemCatalog.types';
 
 function entries(items: [string, string][]): SystemCatalogEntry[] {
@@ -5,6 +6,14 @@ function entries(items: [string, string][]): SystemCatalogEntry[] {
 }
 
 export const SYSTEM_CATALOGS: Record<SystemCatalogKey, SystemCatalog> = {
+  company_legal_form: {
+    key: 'company_legal_form', label: 'Rechtsform',
+    entries: COMPANY_REGISTRATION_CATALOG.legal_form.map((row, sortOrder) => ({ key: row.key, label: row.label, sortOrder })),
+  },
+  company_industry: {
+    key: 'company_industry', label: 'Einrichtungstyp / Branche',
+    entries: COMPANY_REGISTRATION_CATALOG.industry.map((row, sortOrder) => ({ key: row.key, label: row.label, sortOrder })),
+  },
   leistungsart: {
     key: 'leistungsart',
     label: 'Leistungsart / Klient:innenart',

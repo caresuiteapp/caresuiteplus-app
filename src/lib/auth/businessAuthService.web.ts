@@ -1,3 +1,4 @@
+import { normalizeCompanyRegistrationSelection, validateCompanyRegistrationSelection } from '@/lib/catalogs/companyRegistrationCatalog';
 import { FREE_REGISTRATION_PRODUCTS, validateBusinessRegistration } from './businessRegistrationPolicy';
 import type { Session } from '@supabase/supabase-js';
 import type { ServiceResult } from '@/types';
@@ -36,7 +37,7 @@ function createId(prefix: string): string {
 export async function registerBusinessTenant(
   input: BusinessRegistrationInput,
 ): Promise<ServiceResult<{ tenantId: string; owner: TenantUser; credentials?: AccessCredentialsReveal }>> {
-  const validationError = validateBusinessRegistration(input);
+  const validationError = validateCompanyRegistrationSelection(input) ?? validateBusinessRegistration(input);
   if (validationError) return { ok: false, error: validationError };
   if (getServiceMode() === 'supabase') {
     const registration = await invokeEdgeFunction<{
@@ -50,7 +51,7 @@ export async function registerBusinessTenant(
         displayName: string;
       };
       credentials: { username: string };
-    }>('register-business-tenant', { ...input, selectedModules: undefined });
+    }>('register-business-tenant', { ...normalizeCompanyRegistrationSelection(input), selectedModules: undefined });
 
     if (!registration.ok) {
       return { ok: false, error: registration.error };

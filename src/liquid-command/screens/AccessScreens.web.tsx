@@ -1,3 +1,5 @@
+import { CompanyRegistrationSelect } from '../components/CompanyRegistrationSelect.web';
+import { validateCompanyRegistrationSelection } from '@/lib/catalogs/companyRegistrationCatalog';
 import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
@@ -503,6 +505,10 @@ export function RegisterOrganizationScreen() {
     if (step === 0 && (!form.companyName.trim() || !form.legalForm.trim() || !form.industry.trim())) {
       return 'Firmenname, Rechtsform und Einrichtungstyp sind erforderlich.';
     }
+    if (step === 0) {
+      const selectionError = validateCompanyRegistrationSelection(form);
+      if (selectionError) return selectionError;
+    }
     if (step === 1 && (!form.street.trim() || !form.zip.trim() || !form.city.trim() || !form.phone.trim() || !form.email.trim())) {
       return 'Anschrift, Telefon und Organisations-E-Mail sind erforderlich.';
     }
@@ -535,7 +541,7 @@ export function RegisterOrganizationScreen() {
 
   const submit = async () => {
     if (!draftReady || submitLock.current) return;
-    const validation = validateBusinessRegistration(form);
+    const validation = validateCompanyRegistrationSelection(form) ?? validateBusinessRegistration(form);
     if (validation || !accepted || form.adminPassword !== confirmPassword) {
       setError(validation ?? 'Bitte Bedingungen bestätigen und Passwortbestätigung prüfen.');
       return;
@@ -629,8 +635,8 @@ export function RegisterOrganizationScreen() {
         {step === 0 ? (
           <>
             <LiquidField label="Firmenname" value={form.companyName} onChangeText={(value) => update('companyName', value)} required />
-            <LiquidField label="Rechtsform" value={form.legalForm} onChangeText={(value) => update('legalForm', value)} required />
-            <LiquidField label="Einrichtungstyp / Branche" value={form.industry} onChangeText={(value) => update('industry', value)} required />
+            <CompanyRegistrationSelect kind="legal_form" label="Rechtsform" value={form.legalForm} onChange={(value) => update('legalForm', value)} disabled={loading} showError={Boolean(error)} />
+            <CompanyRegistrationSelect kind="industry" label="Einrichtungstyp / Branche" value={form.industry} onChange={(value) => update('industry', value)} disabled={loading} showError={Boolean(error)} />
             <LiquidField label="IK-Nummer" value={form.ikNumber ?? ''} onChangeText={(value) => update('ikNumber', value)} />
           </>
         ) : null}

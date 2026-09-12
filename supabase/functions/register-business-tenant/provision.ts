@@ -1,3 +1,9 @@
+import { COMPANY_REGISTRATION_CATALOG_VERSION, normalizeCompanyRegistrationSelection, validateCompanyRegistrationSelection } from '../_shared/companyRegistrationCatalog.ts';
+
+function usesCompanyCatalog(body: Record<string, unknown>): boolean {
+  return body.registrationCatalogVersion != null || body.legalFormKey != null || body.industryKey != null;
+}
+
 type RegistrationError = { code?: string; message?: string };
 type RegistrationResult<T> = { data: T; error: RegistrationError | null };
 type RegistrationLookup = {
@@ -27,12 +33,24 @@ export function validateRegistrationBody(body: Record<string, unknown>): string 
   for (const key of ['website','ikNumber','taxNumber','vatId','adminPhone','contactFirstName','contactLastName','contactRole']) {
     if (body[key] != null && (typeof body[key] !== 'string' || (body[key] as string).length > 200)) return 'Bitte die optionalen Angaben prüfen.';
   }
+  if (usesCompanyCatalog(body)) {
+    if (body.registrationCatalogVersion !== COMPANY_REGISTRATION_CATALOG_VERSION) return 'Die Auswahlvorgaben wurden aktualisiert. Bitte laden Sie die Registrierung neu.';
+    const selectionError = validateCompanyRegistrationSelection(body);
+    if (selectionError) return selectionError;
+    const selected = normalizeCompanyRegistrationSelection({ legalForm: body.legalForm as string, industry: body.industry as string });
+    if (body.legalFormKey !== selected.legalFormKey || body.industryKey !== selected.industryKey) return 'Rechtsform und Einrichtungstyp stimmen nicht mit den Auswahlvorgaben überein.';
+  }
   const website = (body.website as string | undefined | null)?.trim();
   if (website && !/^https?:\/\/[^\s]+$/i.test(website)) return 'Die Website muss mit https:// oder http:// beginnen.';
   return null;
 }
 
 export async function provisionBusinessRegistration(client: RegistrationClient, body: Record<string, unknown>) {
+  const validation = validateRegistrationBody(body);
+  if (validation) return { status: 400, body: { ok: false, error: validation } };
+  if (usesCompanyCatalog(body)) {
+    body = { ...body, ...normalizeCompanyRegistrationSelection({ legalForm: body.legalForm as string, industry: body.industry as string }) };
+  }
   const email = (body.adminEmail as string).trim().toLowerCase();
   const { data, error } = await client.auth.admin.createUser({
     email,
