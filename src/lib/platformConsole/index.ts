@@ -87,14 +87,6 @@ export {
 } from './platformCapabilities';
 export { PLATFORM_NAV_ITEMS } from './platformNavigation';
 export {
-  approveBodyMapMedicalReview,
-  listBodyMapMedicalReviews,
-  resetDemoBodyMapMedicalReviews,
-  revokeBodyMapMedicalReview,
-  saveBodyMapMedicalReview,
-  startBodyMapMedicalReview,
-} from './bodyMapMedicalReviewService';
-export {
   calculateBillingPreview,
   calculatePlatformPricing,
   calculateTenantEntitlements,

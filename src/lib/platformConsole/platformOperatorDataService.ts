@@ -109,7 +109,7 @@ export async function listPlatformTenantSubscriptions(
 }
 
 export async function listPlatformTenantAddons(
-  tenantId: string,
+  tenantId?: string,
 ): Promise<ServiceResult<Record<string, unknown>[]>> {
   if (getServiceMode() === 'demo') {
     return { ok: true, data: [] };
@@ -117,7 +117,7 @@ export async function listPlatformTenantAddons(
   return selectPlatformRows('platform_tenant_addons', {
     orderBy: 'created_at',
     ascending: false,
-    eq: { tenant_id: tenantId },
+    eq: tenantId ? { tenant_id: tenantId } : undefined,
   });
 }
 

@@ -8,7 +8,9 @@ vi.mock('react-native', async () => {
   const element = (tag: string) => (p: any) => React.createElement(tag, { onClick: p.onPress, disabled: p.disabled, role: p.accessibilityRole, 'aria-label': p.accessibilityLabel }, p.children);
   return { useWindowDimensions: () => ({ width: 1440, height: 900, scale: 1, fontScale: 1 }), Platform: { OS: 'web' }, StyleSheet: { create: (s: any) => s }, View: element('div'), Text: element('span'), ScrollView: element('div'), KeyboardAvoidingView: element('div'), Pressable: element('button'), TextInput: (p: any) => React.createElement('input', { value: p.value, 'aria-label': p.accessibilityLabel, onInput: (e: any) => p.onChangeText(e.currentTarget.value) }) };
 });
-vi.mock('expo-router', () => ({ useRouter: () => ({ push: api.push, replace: api.push }), useLocalSearchParams: () => ({ tenantId: api.tenantId }), Link: ({ children }: any) => <a>{children}</a> }));
+vi.mock('expo-router', () => ({ useRouter: () => ({ push: api.push, replace: api.push }), useNavigation: () => ({ dispatch: api.push }), useLocalSearchParams: () => ({ tenantId: api.tenantId }), Link: ({ children }: any) => <a>{children}</a> }));
+vi.mock('expo-router/react-navigation', () => ({ usePreventRemove: vi.fn() }));
+vi.mock('@/components/platformConsole/PlatformConfirmModal.web', () => ({ PlatformConfirmModal: ({ visible, onConfirm, onCancel, loading }: any) => visible ? <div><button disabled={loading} onClick={() => onConfirm('Grund zum Testen')}>Bestätigen</button><button onClick={onCancel}>Abbrechen</button></div> : null }));
 vi.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }));
 vi.mock('@react-native-async-storage/async-storage', () => ({ default: { getItem: api.draft, setItem: api.saveDraft, removeItem: api.removeDraft } }));
 vi.mock('@/lib/auth', () => ({ registerBusinessTenant: api.register, useAuth: vi.fn(), completeFirstLogin: vi.fn(), loginBusinessUser: vi.fn(), loginEmployeePortal: vi.fn() }));
