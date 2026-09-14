@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import type { ReactNode } from 'react';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { RequireAuth, RequireRole } from '@/lib/auth';
@@ -27,7 +28,7 @@ function LiquidModuleStack() {
       screenOptions={{
         headerShown: false,
         contentStyle: transparentContent,
-        animation: 'fade',
+        animation: Platform.OS === 'web' ? 'none' : 'fade',
       }}
     />
   );

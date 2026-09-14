@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PlatformShellLayout, PLATFORM_COLORS } from '@/components/platformConsole';
@@ -22,7 +23,7 @@ export function PlatformForbiddenScreen() {
         <PremiumButton
           title="Zum Business-Bereich"
           variant="secondary"
-          onPress={() => router.replace('/business' as never)}
+          onPress={() => router.replace(BUSINESS_HOME_ROUTE as never)}
         />
       </View>
     </View>

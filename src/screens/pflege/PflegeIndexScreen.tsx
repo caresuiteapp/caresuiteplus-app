@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PflegeDashboardView } from '@/components/dashboard/PflegeDashboardView';
@@ -52,7 +53,7 @@ export function PflegeIndexScreen() {
       title="Pflege"
       subtitle="Pflegeplanung, Dokumentation und Maßnahmensteuerung"
       breadcrumbs={[
-        { label: 'Start', href: '/business' },
+        { label: 'Start', href: BUSINESS_HOME_ROUTE },
         { label: 'Pflege' },
       ]}
     >

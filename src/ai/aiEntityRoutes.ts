@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
 
 export type AiEntityType =
@@ -42,13 +43,13 @@ export function resolveEntityRoute(
 
 export function resolveModuleHomeRoute(module: string): string {
   const map: Record<string, string> = {
-    business: '/business',
+    business: BUSINESS_HOME_ROUTE,
     office: '/business/office',
     assist: '/assist',
     beratung: '/beratung',
     akademie: '/akademie',
     stationaer: '/stationaer',
-    dashboard: '/business',
+    dashboard: BUSINESS_HOME_ROUTE,
   };
-  return map[module] ?? '/business';
+  return map[module] ?? BUSINESS_HOME_ROUTE;
 }

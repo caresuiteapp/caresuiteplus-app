@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AkademieDashboardView } from '@/components/dashboard/AkademieDashboardView';
@@ -62,7 +63,7 @@ export function AkademieIndexScreen() {
       title="Akademie"
       subtitle="Kurse, Pflichtschulungen und Zertifikate im Überblick"
       breadcrumbs={[
-        { label: 'Start', href: '/business' },
+        { label: 'Start', href: BUSINESS_HOME_ROUTE },
         { label: 'Akademie' },
       ]}
     >

@@ -1,4 +1,5 @@
 import type { AuthLoginType } from '@/lib/auth/auth.types';
+import { BUSINESS_HOME_ROUTE } from './businessHome';
 import type { PortalSessionRecord } from '@/lib/auth/portalSessionStore';
 import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import type { RoleKey } from '@/types';
@@ -27,7 +28,7 @@ export function resolveSessionHomeRoute(
     return '/portal/employee';
   }
 
-  return '/business';
+  return BUSINESS_HOME_ROUTE;
 }
 
 /** Public entry — portal choice only when there is no active session. */

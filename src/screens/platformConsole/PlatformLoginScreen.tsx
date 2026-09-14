@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -91,7 +92,7 @@ export function PlatformLoginScreen() {
 
         <PremiumButton title="Anmelden" onPress={() => void handleSubmit()} loading={submitting} />
 
-        <Pressable onPress={() => router.replace('/business' as never)}>
+        <Pressable onPress={() => router.replace(BUSINESS_HOME_ROUTE as never)}>
           <Text style={styles.backLink}>Zurück zur App</Text>
         </Pressable>
       </View>

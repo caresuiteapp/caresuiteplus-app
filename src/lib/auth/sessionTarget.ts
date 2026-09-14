@@ -1,4 +1,5 @@
 import { resolveSessionHomeRoute } from '@/lib/navigation/sessionRouting';
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types';
 import { resolveEmployeeFirstLoginHref } from './loginRouter';
 import type { PortalSessionRecord } from './portalSessionStore';
@@ -10,7 +11,7 @@ export type SessionTargetInput = {
   session?: AuthSession | null;
 };
 
-const BUSINESS_FALLBACK_HOME = '/business';
+const BUSINESS_FALLBACK_HOME = BUSINESS_HOME_ROUTE;
 
 export function resolveEffectiveRoleKey(
   profile: Profile | null,
@@ -40,7 +41,7 @@ export function resolveAuthSessionTarget(input: SessionTargetInput) {
     homePath = BUSINESS_FALLBACK_HOME;
   }
 
-  const canRedirectHome = hasSessionTarget && homePath !== '/';
+  const canRedirectHome = hasSessionTarget && (homePath !== '/' || BUSINESS_HOME_ROUTE === '/');
 
   return { roleKey, hasSessionTarget, homePath, canRedirectHome };
 }

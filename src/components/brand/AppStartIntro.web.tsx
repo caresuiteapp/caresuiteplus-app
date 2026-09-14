@@ -16,6 +16,7 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(() => appStartIntroSession.completed);
   const [source, setSource] = useState<string>();
   const [muted, setMuted] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const [needsGesture, setNeedsGesture] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const active = useRef(false);
@@ -84,11 +85,15 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
       {children}
     </div>
     {!ready && <div data-caresuite-start-intro="" role="region" aria-label="CareSuite Startvideo"
-      style={{ position: 'fixed', inset: 0, zIndex: 2147483647, background: '#040b19', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', isolation: 'isolate' }}>
+      style={{ position: 'fixed', inset: 0, zIndex: 2147483647, background: playing ? '#040b19' : '#F3F8FF', color: playing ? '#fff' : '#123251', display: 'flex', alignItems: 'center', justifyContent: 'center', isolation: 'isolate' }}>
       {source ? <video ref={videoRef} src={source} playsInline preload="auto" loop={false}
-        aria-label="CareSuite HealthOS" disablePictureInPicture onEnded={finish} onError={finish}
-        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
-        : <span role="status" style={{ font: `600 20px/1.5 ${CARESUITE_FONT_STACK}` }}>CareSuite HealthOS</span>}
+        aria-label="CareSuite HealthOS" disablePictureInPicture onPlaying={() => setPlaying(true)} onEnded={finish} onError={finish}
+        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain', opacity: playing ? 1 : 0 }} />
+        : null}
+      {!playing && <div role="status" style={{ position: 'absolute', padding: 24, textAlign: 'center', font: `600 20px/1.5 ${CARESUITE_FONT_STACK}` }}>
+        <div style={{ color: '#0876E8', marginBottom: 16 }}>CareSuite HealthOS</div>
+        <span style={{ fontSize: 16 }}>Startvideo wird vorbereitet…</span>
+      </div>}
       {source && <div style={{ position: 'absolute', bottom: 'max(24px, env(safe-area-inset-bottom))', left: 16, right: 16, display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
         {needsGesture ? <button type="button" style={controlStyle} onClick={() => void play(true)}>Startvideo abspielen</button>
           : <button type="button" style={controlStyle} onClick={() => {

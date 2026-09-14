@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { PremiumBadge, PremiumCard, PremiumButton } from '@/components/ui';
 import { ScreenShell } from '@/components/layout';
 import { typography } from '@/theme';
@@ -34,7 +35,7 @@ export function PlaceholderModuleScreen({
         title="Zurück zum Business-Bereich"
         variant="secondary"
         fullWidth
-        onPress={() => router.replace('/business' as never)}
+        onPress={() => router.replace(BUSINESS_HOME_ROUTE as never)}
       />
     </ScreenShell>
   );

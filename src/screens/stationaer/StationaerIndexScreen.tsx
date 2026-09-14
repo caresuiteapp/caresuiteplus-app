@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StationaerDashboardView } from '@/components/dashboard/StationaerDashboardView';
@@ -60,7 +61,7 @@ export function StationaerIndexScreen() {
       title="Stationär"
       subtitle="Bewohner:innen, Belegung und Einrichtungsalltag im Überblick"
       breadcrumbs={[
-        { label: 'Start', href: '/business' },
+        { label: 'Start', href: BUSINESS_HOME_ROUTE },
         { label: 'Stationär' },
       ]}
     >

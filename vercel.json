@@ -101,6 +101,26 @@
       "source": "/command/",
       "destination": "/",
       "permanent": false
+    },
+    {
+      "source": "/business",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/business/",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/business/dashboard",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/zentrale",
+      "destination": "/",
+      "permanent": false
     }
   ]
 }

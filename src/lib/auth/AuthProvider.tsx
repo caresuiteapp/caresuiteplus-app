@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { runAppTransition } from '@/lib/react/runAppTransition';
+import { Platform } from 'react-native';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { AuthSession, AuthUser, Profile } from '@/types';
 import {
@@ -270,11 +271,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         if (authMode === 'supabase') {
-          void restoreSupabaseSession(restoredPortal);
+          const restoration = restoreSupabaseSession(restoredPortal);
 
           const handle = onAuthStateChange((event: AuthChangeEvent, supabaseSession) => {
             if (cancelled) return;
             if (event === 'TOKEN_REFRESHED') return;
+            // Web already restores explicitly. INITIAL_SESSION used to run a
+            // second profile/tenant bootstrap while the first was still pending.
+            if (Platform.OS === 'web' && event === 'INITIAL_SESSION') return;
 
             void (async () => {
               try {
@@ -313,6 +317,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             })();
           });
           unsubscribeAuth = handle.unsubscribe;
+          // Keep route guards pending until the initial identity is known.
+          // Otherwise they briefly render login/legacy pages and redirect again.
+          if (Platform.OS === 'web') await restoration;
         }
       } finally {
         if (!cancelled) {
@@ -339,6 +346,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [user, session]);
 
   useEffect(() => {
+    // Web awaits its initial restore and stays subscribed to auth changes.
+    if (Platform.OS === 'web') return;
     if (authMode !== 'supabase' || !isInitialized || isLoading) return;
     if (Boolean((user && session) || portalSession)) return;
 

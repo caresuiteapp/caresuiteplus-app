@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { resolveMainModuleAccent } from '@/lib/navigation/mainModuleAccent';
 import { hasEffectiveModuleGateAccess } from '@/lib/modules/moduleAccessService';
 import { resolveModuleNavState } from '@/lib/modules/moduleVisibilityService';
@@ -80,7 +81,7 @@ export const MAIN_MODULE_RAIL: readonly MainModuleRailItem[] = [
     key: 'zentrale',
     label: 'Zentrale',
     icon: '🏠',
-    path: '/business',
+    path: BUSINESS_HOME_ROUTE,
     accentColor: resolveMainModuleAccent('zentrale'),
   },
   {

@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { ReactNode, useEffect } from 'react';
 import { runAppTransition } from '@/lib/react/runAppTransition';
 import { usePathname, useRouter } from 'expo-router';
@@ -52,7 +53,7 @@ export function RequireModuleVisibility({ children }: RequireModuleVisibilityPro
       <ErrorState
         title={titleForReason(decision.reason)}
         message={decision.message ?? 'Dieser Bereich ist derzeit nicht verfügbar.'}
-        onRetry={() => router.replace('/business' as never)}
+        onRetry={() => router.replace(BUSINESS_HOME_ROUTE as never)}
       />
     );
   }

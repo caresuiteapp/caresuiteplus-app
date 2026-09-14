@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import type { ModuleNavConfig } from '@/types/navigation/platform';
 
 export const zentraleNav: ModuleNavConfig = {
@@ -7,7 +8,7 @@ export const zentraleNav: ModuleNavConfig = {
     {
       title: 'Übersicht',
       items: [
-        { key: 'dashboard', label: 'Dashboard', icon: '📊', href: '/business' },
+        { key: 'dashboard', label: 'Dashboard', icon: '📊', href: BUSINESS_HOME_ROUTE },
         { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/business/messages' },
         { key: 'reporting', label: 'Reporting', icon: '📈', href: '/business/reporting' },
       ],

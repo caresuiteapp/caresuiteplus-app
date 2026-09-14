@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { BeratungDashboardView } from '@/components/dashboard/BeratungDashboardView';
@@ -57,7 +58,7 @@ export function BeratungIndexScreen() {
       title="Beratung"
       subtitle="Fälle, Protokolle und Wiedervorlagen im Überblick"
       breadcrumbs={[
-        { label: 'Start', href: '/business' },
+        { label: 'Start', href: BUSINESS_HOME_ROUTE },
         { label: 'Beratung' },
       ]}
     >

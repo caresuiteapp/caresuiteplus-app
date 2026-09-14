@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+import { BUSINESS_HOME_ROUTE } from './businessHome';
 import type { ProductKey, RoleKey } from '@/types';
 import { hasEffectiveModuleGateAccess, hasLegacyTenantModuleGateAccess, isPlatformExplicitDeny, resolveProductModuleAccessDecision } from '@/lib/modules/moduleAccessService';
 import { isProductScopeKey } from '@/lib/modules/moduleVisibilityConfig';
@@ -34,7 +36,7 @@ export function getPostLoginRedirect(roleKey: RoleKey): string {
     case 'family_portal':
       return '/portal/client';
     default:
-      return DEMO_BUSINESS_ENTRY_ROUTE;
+      return Platform.OS === 'web' ? BUSINESS_HOME_ROUTE : DEMO_BUSINESS_ENTRY_ROUTE;
   }
 }
 
@@ -111,7 +113,7 @@ export function checkModuleAccess(
   if (navState.effectiveStatus === 'disabled') {
     return {
       shouldRedirect: true,
-      target: '/business',
+      target: BUSINESS_HOME_ROUTE,
       reason: 'module_disabled',
       message: navState.blockReason ?? 'Dieses Modul ist derzeit nicht verfügbar.',
     };
@@ -120,7 +122,7 @@ export function checkModuleAccess(
   if (navState.effectiveStatus === 'coming_soon') {
     return {
       shouldRedirect: true,
-      target: '/business',
+      target: BUSINESS_HOME_ROUTE,
       reason: 'module_coming_soon',
       message: navState.blockReason ?? 'Dieses Modul ist in Vorbereitung.',
     };
@@ -129,7 +131,7 @@ export function checkModuleAccess(
   if (navState.effectiveStatus === 'internal' && !navState.isNavigable) {
     return {
       shouldRedirect: true,
-      target: '/business',
+      target: BUSINESS_HOME_ROUTE,
       reason: 'module_internal',
       message: navState.blockReason ?? 'Dieser Bereich ist nur für Administratoren verfügbar.',
     };

@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import type { DashboardKpi } from '@/types/dashboard';
 import type { MainModuleKey, ModuleNavConfig, ModuleNavItem } from '@/types/navigation/platform';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
@@ -163,7 +164,7 @@ export const officeContextPanelNav: ModuleNavConfig = {
     {
       title: 'Übersicht',
       items: [
-        { key: 'dashboard', label: 'Dashboard', icon: 'kpiChart', href: '/business' },
+        { key: 'dashboard', label: 'Dashboard', icon: 'kpiChart', href: BUSINESS_HOME_ROUTE },
         { key: 'messages', label: 'Nachrichten', icon: 'messageWave', href: '/business/messages' },
         { key: 'reporting', label: 'Reporting', icon: 'trendChart', href: '/business/reporting' },
         { key: 'tasks', label: 'Aufgaben & Vorgänge', icon: 'taskCheck', href: '/business/office/access/tasks' },

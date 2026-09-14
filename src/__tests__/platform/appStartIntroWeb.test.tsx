@@ -37,6 +37,16 @@ afterEach(async () => {
 });
 
 describe('Web startup intro', () => {
+  it('keeps video preparation light until an actual frame is playing', async () => {
+    await render();
+    const overlay = host.querySelector<HTMLElement>('[data-caresuite-start-intro]')!;
+    expect(overlay.style.background).toBe('#F3F8FF');
+    expect(video().style.opacity).toBe('0');
+    expect(host.textContent).toContain('Startvideo wird vorbereitet');
+    await emit('playing');
+    expect(video().style.opacity).toBe('1');
+    expect(host.textContent).not.toContain('Startvideo wird vorbereitet');
+  });
   it('mounts routing underneath but keeps login hidden and inert until the local video ends', async () => {
     await render();
     expect(content().hasAttribute('inert')).toBe(true);

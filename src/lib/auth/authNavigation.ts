@@ -1,9 +1,10 @@
 import type { Href } from 'expo-router';
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import type { AuthLoginType } from './auth.types';
 import { resolvePostLoginRoute } from './loginRouter';
 
-/** Canonical business dashboard entry — matches app/business/(tabs)/index. */
-export const BUSINESS_DASHBOARD_ROUTE = '/business' as Href;
+/** Canonical home for the current platform. */
+export const BUSINESS_DASHBOARD_ROUTE = BUSINESS_HOME_ROUTE as Href;
 
 export function resolveBusinessDashboardRoute(): Href {
   return BUSINESS_DASHBOARD_ROUTE;

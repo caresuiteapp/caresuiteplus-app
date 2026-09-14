@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import type { AppShellArea, ModuleSwitcherItem, ShellTabConfig } from '@/types/navigation/shell';
 import type { RoleKey } from '@/types';
 import { MODULE_NAV_CONFIG } from '@/data/navigation/moduleNavConfig';
@@ -59,7 +60,7 @@ export const STATIONAER_TABS: ShellTabConfig[] = [
 ];
 
 export const BUSINESS_TABS: ShellTabConfig[] = [
-  { key: 'index', label: 'Dashboard', icon: '📊', href: '/business' },
+  { key: 'index', label: 'Dashboard', icon: '📊', href: BUSINESS_HOME_ROUTE },
   {
     key: 'schedule',
     label: 'Dienstplan',

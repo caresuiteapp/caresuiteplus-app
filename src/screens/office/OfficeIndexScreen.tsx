@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -68,7 +69,7 @@ export function OfficeIndexScreen() {
     >
       <HealthOSBreadcrumbs
         segments={[
-          { label: 'Start', href: '/business' },
+          { label: 'Start', href: BUSINESS_HOME_ROUTE },
           { label: 'Office', href: '/office' },
           { label: 'Übersicht' },
         ]}

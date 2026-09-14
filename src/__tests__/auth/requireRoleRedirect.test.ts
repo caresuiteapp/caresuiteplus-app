@@ -7,9 +7,9 @@ describe('checkRoleAccess portal guards', () => {
     expect(decision.shouldRedirect).toBe(false);
   });
 
-  it('redirects wrong roles to their home route instead of public start', () => {
+  it('redirects wrong roles directly to the web desktop', () => {
     const decision = checkRoleAccess('/portal/client', 'business_admin');
     expect(decision.shouldRedirect).toBe(true);
-    expect(decision.target).not.toBe('/');
+    expect(decision.target).toBe('/');
   });
 });

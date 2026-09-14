@@ -1,3 +1,4 @@
+import { BUSINESS_HOME_ROUTE } from '@/lib/navigation/businessHome';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
 import type { TenantSearchEntityKind } from './tenantSearchTypes';
 
@@ -39,6 +40,6 @@ export function resolveTenantSearchHref(
     case 'care_plan':
       return `/pflege/plans/${id}`;
     default:
-      return '/business';
+      return BUSINESS_HOME_ROUTE;
   }
 }
