@@ -33,3 +33,13 @@ React beschreibt Fehler 418 als Abweichung zwischen Server-HTML und Client-Baum 
 Die Korrekturen sind auf einem separaten Branch vorbereitet. Eine Veröffentlichung auf `main` ist durch diesen Bericht nicht belegt.
 Der öffentliche Live-Einstieg und die bisherige Weiterleitung wurden im Browser überprüft. Eine vollständige angemeldete Ende-zu-Ende-Prüfung aller Fachseiten sowie eine visuelle Freigabe der neuen Version in breiten und schmalen Fenstern stehen noch aus. Die DOM-Tests ersetzen keine visuelle Prüfung.
 Es wird keine gemessene prozentuale Ladezeitverbesserung behauptet. Die Tests belegen den Wegfall redundanter Erstabfragen und das unterbundene Rendern alter Einstiegsseiten; reale Antwortzeiten der Fachseiten müssen mit einer angemeldeten Sitzung gemessen werden.
+
+## Nachprüfung der ersten Veröffentlichung
+
+Commit `3f16f519` wurde mit ausdrücklicher Nutzerfreigabe auf `main` veröffentlicht. Die Live-Prüfung bestätigte den hellen Ladebildschirm und die Weiterleitungen der kleingeschriebenen alten Einstiegspfade. Sie fand aber weiterhin React-Fehler 418 beim Neuladen von `/auth/business-login` sowie einen fehlenden Alias für `/Business`.
+
+Die Wurzelkorrektur war zunächst nur in `app/_layout.tsx` eingebunden; Expo verwendet im Web die vorhandene separate Datei `app/_layout.web.tsx`. Die Korrektur wurde in diese tatsächlich aktive Datei übernommen. Die Basisdatei wird wieder auf den ursprünglichen Stand zurückgesetzt. Ein neuer Export-Check vergleicht die tatsächlich erzeugten React-Wurzeln von Startseite, Anmeldung und Business-Unterseite und wird vor jeder Vercel-Veröffentlichung ausgeführt. Die Schreibweisen `/Business`, `/Business/`, `/Business/dashboard` und `/Zentrale` erhalten ebenfalls Server-Weiterleitungen.
+
+Der lokale Export hatte trotz geänderter Web-Datei zunächst das bisherige Paket wiederverwendet. Der vollständige Neuaufbau mit `--clear` enthält die Korrektur; diese Option ist deshalb auch im Vercel-Befehl hinterlegt. Der Export-Check verwirft den bisherigen Stand mit abweichenden React-Wurzeln und besteht beim sauberen Neuaufbau für alle drei geprüften Einstiegspfade. Die 58 Funktionsprüfungen wurden erneut vollständig bestanden (56 im gemeinsamen Lauf, zwei Rollenprüfungen separat).
+
+Der erneute vollständige TypeScript-Vergleich der Nachkorrektur ergibt dieselben 42 Diagnosen wie der ursprüngliche Hauptbranch; keine zusätzliche Diagnose. Die folgende Live-Prüfung muss die erfolgreiche Veröffentlichung dieser Ergänzung noch bestätigen.

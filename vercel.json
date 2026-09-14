@@ -1,5 +1,5 @@
 {
-  "buildCommand": "EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web && node scripts/build-public-branding-pages.mjs --output dist",
+  "buildCommand": "EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web --clear && node scripts/audit-web-navigation-export.mjs dist && node scripts/build-public-branding-pages.mjs --output dist",
   "outputDirectory": "dist",
   "headers": [
     {
@@ -82,6 +82,26 @@
     }
   ],
   "redirects": [
+    {
+      "source": "/Business",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/Business/",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/Business/dashboard",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/Zentrale",
+      "destination": "/",
+      "permanent": false
+    },
     {
       "source": "/plattform",
       "destination": "/platform",

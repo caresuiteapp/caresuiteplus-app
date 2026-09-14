@@ -1,11 +1,12 @@
 import { PortalPremiumProvider } from '@/design/tokens/portalPremium.web';
+import { WebNavigationMount } from '@/components/navigation/WebNavigationMount';
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import 'react-native-reanimated';
 import { AppStartIntro } from '@/components/brand/AppStartIntro';
 import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { Pressable, Text, View, StyleSheet, Platform, useWindowDimensions, type ViewStyle } from 'react-native';
 import { applyInvisibleScrollIndicators } from '@/product-workflows/design/scroll/applyInvisibleScrollIndicators';
 import { ThemeModeProvider, useThemeMode } from '@/product-workflows/design/ThemeModeProvider';
@@ -16,7 +17,7 @@ import { isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 import { GlobalScreensaver, ScreensaverSettingsProvider } from '@/product-workflows/components/screensaver';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { ModalStackProvider } from '@/product-workflows/components/navigation/ModalStackProvider';
-import { AuthProvider } from '@/lib/auth';
+import { AuthProvider, useAuth } from '@/lib/auth';
 import { BusinessWelcomeGate } from '@/product-workflows/components/auth/BusinessWelcomeGate';
 import { PortalWelcomeGate } from '@/product-workflows/components/auth/PortalWelcomeGate';
 import { PerformanceProvider, useDevicePerformance, shouldUseHeavyEffects } from '@/lib/performance';
@@ -38,6 +39,7 @@ if (__DEV__ && Platform.OS === 'web') {
 }
 
 const SURFACE_COLOR = 'transparent';
+const useWebLayoutEffect = typeof document !== 'undefined' ? useLayoutEffect : useEffect;
 
 const POPUP_TITLES: Record<string, string> = {
   company: 'Unternehmen', dashboard: 'Unternehmen', clients: 'Klient:innen', employees: 'Personal',
@@ -56,6 +58,8 @@ function popupTitle(pathname: string): string {
 }
 
 function RootShell() {
+  const { authReady } = useAuth();
+  const startupReady = useAppStartIntroReady();
   const { mode } = useThemeMode();
   const pathname = usePathname();
   const router = useRouter();
@@ -67,18 +71,17 @@ function RootShell() {
   const isLiquidCommandRoute = isLiquidCommandRoutePath(pathname);
   const hostsGlobalBackground = !isPortalRoutePath(pathname);
 
-  useEffect(() => {
-    cleanupOrphanedFullscreenOverlays();
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  useWebLayoutEffect(() => {
+    if (authReady && startupReady && typeof document !== 'undefined') {
       document.getElementById('caresuite-web-boot')?.remove();
     }
-  }, []);
+  }, [authReady, startupReady]);
 
   useEffect(() => {
     cleanupOrphanedFullscreenOverlays();
   }, [pathname]);
 
-  useEffect(() => {
+  useWebLayoutEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
     // The central popup owns its complete dark HealthOS theme. Leaving the
     // former bright ORBIT attribute enabled here repainted every popup page.
@@ -137,7 +140,7 @@ function RootShell() {
                         paddingHorizontal: compactPopup ? 8 : 24,
                       }
                     : { backgroundColor: SURFACE_COLOR },
-                  animation: contextualPopup ? 'fade' : 'slide_from_right',
+                  animation: 'none',
                   presentation: contextualPopup ? 'transparentModal' : 'card',
                 };
               }}
@@ -199,11 +202,11 @@ export default function RootLayout() {
                   <GlobalWorkflowFeedbackProvider>
                     <ModalStackProvider>
                       <ScreensaverSettingsProvider>
-                        <HealthOSStoreEditionGuard>
+                        <WebNavigationMount><HealthOSStoreEditionGuard>
                           <RouteScopedLegacyOverlays />
                           <GlobalScreensaver />
                           <RootShell />
-                        </HealthOSStoreEditionGuard>
+                        </HealthOSStoreEditionGuard></WebNavigationMount>
                       </ScreensaverSettingsProvider>
                     </ModalStackProvider>
                   </GlobalWorkflowFeedbackProvider>
