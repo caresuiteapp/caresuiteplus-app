@@ -14,7 +14,7 @@ describe('Fahrtenbuch P0 R18.5', () => {
   it('keeps finished trips blocked until employee confirmation', () => {
     const repository = read('src/lib/employeeLogbook/employeeLogbookRepository.supabase.ts');
     const card = read('src/components/portal/EmployeePortalVisitLogbookCard.tsx');
-    expect(repository).toContain("status: 'confirmation_required'");
+    // Actual status transitions and readback are covered by logbookCompletionPersistence.test.ts.
     expect(repository).toContain('confirmEmployeeLogbookTrip');
     expect(card).toContain('Fahrt beendet · Kilometer prüfen');
     expect(card).toContain('Korrektur kurz begründen');

@@ -12,9 +12,10 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { typography } from '@/theme';
 import { TRAVEL_ROUTE_TYPE_LABELS, type TravelRouteType } from '@/types/modules/travelCompensation';
 import type { LogbookPoint, LogbookTrip } from '@/types/modules/employeeLogbook';
-import { acquireEmployeeLogbookForegroundTracking, addLogbookStop, appendLogbookPoints, berlinDateKey, berlinToday, confirmLogbookDay, createLogbookReceipt, createLogbookTrip, finishLogbookTrip, flushLogbookPointQueue, getCurrentLogbookPoint, loadEmployeeLogbook, requestLogbookLocationPermission, resolveEmployeeLogbookEligibility, saveLogbookProfile, startNativeBackgroundTracking, stopAutomaticLogbookTracking, uploadLogbookFile, type EmployeeGpsWatchHandle } from '@/lib/employeeLogbook';
+import { acquireEmployeeLogbookForegroundTracking, addLogbookStop, appendLogbookPoints, berlinDateKey, berlinToday, confirmLogbookDay, createLogbookReceipt, createLogbookTrip, finishEmployeeLogbookRecording, confirmEmployeeLogbookTrip, getCurrentLogbookPoint, loadEmployeeLogbook, requestLogbookLocationPermission, resolveEmployeeLogbookEligibility, saveLogbookProfile, startNativeBackgroundTracking, uploadLogbookFile, type EmployeeGpsWatchHandle } from '@/lib/employeeLogbook';
 import { fetchLivePortalAppointmentsForEmployee } from '@/lib/portal/portalAppointmentsLiveService';
 import { fetchEmployeePortalClientRecords } from '@/lib/portal/employeePortalClientRecordsService';
+import { parseTripKilometres } from '@/lib/employeeLogbook/visitLogbookState';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 
 type Tab = 'overview' | 'record' | 'trips' | 'receipts' | 'profile';
@@ -48,6 +49,7 @@ export function EmployeeLogbookScreen() {
   }, [actor.tenantId, actor.employeeId]), [actor.tenantId, actor.employeeId], { enabled: !!actor.tenantId && !!actor.employeeId });
 
   const active = query.data?.trips.find((trip) => trip.status === 'recording') ?? null;
+  const staleActive = active && berlinDateKey(active.startedAt) < berlinToday();
   const [routeType, setRouteType] = useState<TravelRouteType>('home_to_client'); const [purpose, setPurpose] = useState('Anfahrt zum Einsatz');
   const [linkMode, setLinkMode] = useState<'assignment' | 'client' | 'none'>('assignment');
   const [assignmentId, setAssignmentId] = useState(''); const [clientId, setClientId] = useState(''); const [manualReason, setManualReason] = useState(''); const [startAddress, setStartAddress] = useState(''); const [endAddress, setEndAddress] = useState(''); const [notes, setNotes] = useState('');
@@ -59,7 +61,7 @@ export function EmployeeLogbookScreen() {
 
   useEffect(() => () => watcher?.remove(), [watcher]);
   useEffect(() => {
-    if (!active || watcher || finishingTripIdRef.current === active.id || !actor.tenantId || !actor.employeeId) return;
+    if (!active || berlinDateKey(active.startedAt) < berlinToday() || watcher || finishingTripIdRef.current === active.id || !actor.tenantId || !actor.employeeId) return;
     let cancelled = false;
     void (async () => {
       await startNativeBackgroundTracking({ tripId: active.id, tenantId: actor.tenantId!, employeeId: actor.employeeId! });
@@ -92,16 +94,15 @@ export function EmployeeLogbookScreen() {
     } finally { setBusy(false); }
   }
   async function finish() {
-    if (!active || !actor.tenantId || !actor.employeeId) return;
+    if (!active || !actor.tenantId || !actor.employeeId || finishingTripIdRef.current) return;
     finishingTripIdRef.current = active.id;
     setBusy(true); setFeedback(null);
     try {
-      watcher?.remove(); setWatcher(null); await stopAutomaticLogbookTracking(active.id);
-      await flushLogbookPointQueue();
-      const last = await getCurrentLogbookPoint();
-      await finishLogbookTrip(active.id, { tenantId: actor.tenantId, employeeId: actor.employeeId, endAddress, notes, points: [last] });
-      setPoints([]); setEndAddress(''); setNotes(''); await query.refresh(); setFeedback('Fahrt abgeschlossen. Kilometer, Vergütung und Fahrzeitabzug wurden berechnet.');
-    } catch (error) { setFeedback(error instanceof Error ? error.message : 'Fahrt konnte nicht abgeschlossen werden.'); } finally { finishingTripIdRef.current = null; setBusy(false); }
+      watcher?.remove(); setWatcher(null);
+      const saved = await finishEmployeeLogbookRecording({ trip: active, tenantId: actor.tenantId, employeeId: actor.employeeId, endAddress, notes });
+      setPoints([]); setEndAddress(''); setNotes(''); await query.refresh();
+      setFeedback(saved.status === 'review_required' ? 'Alte Fahrt zur Verwaltungsprüfung beendet. Zeiten und Kilometer bleiben bis zur Prüfung gesperrt.' : 'Fahrt gestoppt. Bitte jetzt die Kilometer prüfen und bestätigen.');
+    } catch (error) { await query.refresh(); setFeedback(error instanceof Error ? error.message : 'Fahrt konnte nicht abgeschlossen werden.'); } finally { finishingTripIdRef.current = null; setBusy(false); }
   }
   async function openMaps() {
     const origin = encodeURIComponent(startAddress || `${points[0]?.latitude ?? ''},${points[0]?.longitude ?? ''}`); const destination = encodeURIComponent(endAddress);
@@ -111,7 +112,7 @@ export function EmployeeLogbookScreen() {
 
   if (!actor.isReady || query.loading && !query.data || eligibilityQuery.loading && !eligibilityQuery.data) return <PortalTabScreen title="Fahrtenbuch"><LoadingState message="Fahrtenbuch wird sicher geladen…" /></PortalTabScreen>;
   if (query.error && !query.data) return <PortalTabScreen title="Fahrtenbuch"><ErrorState title="Fahrtenbuch nicht verfügbar" message={query.error} onRetry={() => void query.refresh()} /></PortalTabScreen>;
-  if (eligibilityQuery.data && !eligibilityQuery.data.eligible) {
+  if (eligibilityQuery.data && !eligibilityQuery.data.eligible && !active && !query.data?.trips.some((trip) => trip.status === 'confirmation_required')) {
     return <PortalTabScreen title="Fahrtenbuch" subtitle="Eigenständiges Mobilitätsmodul">
       <InfoBanner
         variant="info"
@@ -125,11 +126,13 @@ export function EmployeeLogbookScreen() {
   return <PortalTabScreen title="Fahrtenbuch" subtitle="GPS-Fahrten, Kilometervergütung, Belege und Tagesbestätigung" scroll>
     <View style={styles.page} testID="employee-logbook-screen">
       <PremiumCard variant="elevated" contentStyle={styles.hero}>
-        <View style={styles.heroCopy}><Text style={styles.eyebrow}>DIGITALES FAHRTENBUCH</Text><Text style={styles.heroTitle}>{active ? 'Fahrt wird aufgezeichnet' : 'Bereit für die nächste Fahrt'}</Text><Text style={styles.heroText}>{active ? `${TRAVEL_ROUTE_TYPE_LABELS[active.routeType]} · gestartet ${new Date(active.startedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}` : 'Automatische GPS-Kilometer, klare Fahrzeittrennung und direkte Gehaltsstatistik.'}</Text></View>
-        <PremiumBadge label={active ? 'GPS AKTIV' : 'BEREIT'} variant={active ? 'green' : 'cyan'} />
+        <View style={styles.heroCopy}><Text style={styles.eyebrow}>DIGITALES FAHRTENBUCH</Text><Text style={styles.heroTitle}>{staleActive ? 'Alte Fahrt benötigt Prüfung' : active ? 'Fahrt wird aufgezeichnet' : 'Bereit für die nächste Fahrt'}</Text><Text style={styles.heroText}>{active ? `${TRAVEL_ROUTE_TYPE_LABELS[active.routeType]} · gestartet ${new Date(active.startedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}` : 'Automatische GPS-Kilometer, klare Fahrzeittrennung und direkte Gehaltsstatistik.'}</Text></View>
+        <PremiumBadge label={staleActive ? 'PRÜFUNG OFFEN' : active ? 'GPS AKTIV' : 'BEREIT'} variant={active ? 'green' : 'cyan'} />
       </PremiumCard>
       <InfoBanner variant="warning" message="Während der Fahrt: Gerät eingeschaltet lassen. Im Browser/PWA CareSuite nicht schließen und den Bildschirm nicht sperren. Standort und mobile Daten müssen aktiv sein. In der Android-App läuft die Aufzeichnung mit sichtbarer Dauerbenachrichtigung im Hintergrund weiter." />
       {feedback ? <InfoBanner variant={feedback.includes('nicht') || feedback.includes('Bitte') ? 'warning' : 'info'} message={feedback} /> : null}
+      {active && berlinDateKey(active.startedAt) < berlinToday() ? <SectionPanel title="Alte Fahrt noch offen" subtitle={`Beginn ${new Date(active.startedAt).toLocaleString('de-DE')}`}><InfoBanner presentation="inline" variant="warning" message="Diese Aufzeichnung wird nicht weitergeführt. Beende sie zur Verwaltungsprüfung, damit der aktuelle Einsatz fortgesetzt werden kann. Die ursprünglichen GPS-Punkte bleiben erhalten." /><PremiumButton title="Alte Fahrt zur Prüfung abschließen" fullWidth loading={busy} disabled={busy} onPress={() => void finish()} /></SectionPanel> : null}
+      {bundle.trips.filter((trip) => trip.status === 'confirmation_required').map((trip) => <TripConfirmationPanel key={trip.id} trip={trip} refresh={query.refresh} setFeedback={setFeedback} />)}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
         {([['overview','Übersicht'],['record','Aufzeichnen'],['trips','Meine Fahrten'],['receipts','Belege'],['profile','Führerschein']] as [Tab,string][]).map(([key,label]) => <Pressable key={key} onPress={() => setTab(key)} style={[styles.tab, tab === key && styles.tabActive]}><Text style={[styles.tabText, tab === key && styles.tabTextActive]}>{label}</Text></Pressable>)}
       </ScrollView>
@@ -236,6 +239,32 @@ function RecordPanel(p: any) {
       <View style={styles.actions}><PremiumButton title="Navigation in Google Maps öffnen" variant="secondary" onPress={() => void p.openMaps()} /><PremiumButton title="Fahrt abschließen" size="lg" loading={p.busy} onPress={() => void p.finish()} /></View>
       <Text style={styles.privacy}>Google Maps erhält die von Ihnen gewählte Start-/Zielangabe nur beim Öffnen. CareSuite führt parallel die eigene Fahrtenaufzeichnung.</Text>
     </View>}
+  </SectionPanel>;
+}
+
+function TripConfirmationPanel({ trip, refresh, setFeedback }: { trip: LogbookTrip; refresh: () => Promise<unknown>; setFeedback: (message: string | null) => void }) {
+  const [kilometres, setKilometres] = useState(() => trip.distanceFinalKm.toFixed(2).replace('.', ','));
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const locked = useRef(false);
+  const km = parseTripKilometres(kilometres);
+  const corrected = km !== null && Math.abs(km - trip.distanceFinalKm) >= 0.005;
+  const confirm = async () => {
+    if (locked.current || km === null || (corrected && reason.trim().length < 3)) return;
+    locked.current = true; setSaving(true); setError(null);
+    try {
+      await confirmEmployeeLogbookTrip({ trip, distanceKm: km, reason });
+      await refresh(); setFeedback('Kilometer bestätigt. Die Fahrt ist abgeschlossen.');
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Bestätigung fehlgeschlagen.'); }
+    finally { locked.current = false; setSaving(false); }
+  };
+  return <SectionPanel title="Fahrt gestoppt · Kilometer bestätigen" subtitle={`${new Date(trip.startedAt).toLocaleString('de-DE')} · ${trip.purpose}`}>
+    {trip.notes ? <Text style={styles.muted}>{trip.notes}</Text> : null}
+    <PremiumInput label="Gefahrene Kilometer" value={kilometres} onChangeText={setKilometres} keyboardType="decimal-pad" />
+    {corrected ? <PremiumInput label="Korrektur begründen (mindestens 3 Zeichen)" value={reason} onChangeText={setReason} /> : null}
+    {error ? <InfoBanner variant="warning" message={error} /> : null}
+    <PremiumButton title="Kilometer bestätigen" fullWidth loading={saving} disabled={saving || km === null || (corrected && reason.trim().length < 3)} onPress={() => void confirm()} />
   </SectionPanel>;
 }
 

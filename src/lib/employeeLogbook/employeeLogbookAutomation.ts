@@ -10,6 +10,7 @@ import type { EmployeeLogbookBundle, LogbookPoint, LogbookTrip } from '@/types/m
 import {
   createLogbookTrip,
   finishLogbookTrip,
+  loadLogbookTrip,
   loadEmployeeLogbook,
   saveLogbookProfile,
 } from './employeeLogbookRepository.supabase';
@@ -133,6 +134,34 @@ function stopForegroundPersistence(tripId: string): void {
 export async function stopAutomaticLogbookTracking(tripId: string): Promise<void> {
   stopForegroundPersistence(tripId);
   await stopNativeBackgroundTracking();
+}
+
+/** One completion path for the logbook, return journey and stale-trip recovery. */
+export function finishEmployeeLogbookRecording(input: {
+  trip: LogbookTrip; tenantId: string; employeeId: string; endAddress?: string; notes?: string;
+}): Promise<LogbookTrip> {
+  return runTripFinish(`recording:${input.tenantId}:${input.employeeId}:${input.trip.id}`, async () => {
+    const current = await loadLogbookTrip(input.trip.id, input.tenantId, input.employeeId);
+    if (current.status === 'cancelled') throw new Error('Diese Fahrt wurde storniert. Bitte den Fahrtenbuchstatus neu laden.');
+    if (current.status !== 'recording') return current;
+    await stopAutomaticLogbookTracking(current.id);
+    const stale = berlinDateKey(current.startedAt) < berlinToday();
+    try {
+      const queue = await flushLogbookPointQueue();
+      if (queue.remaining > 0 && !stale) throw new Error('GPS-Punkte warten noch auf die Übertragung. Bitte die Verbindung prüfen und den Abschluss erneut versuchen.');
+      const lastPoint = stale ? null : await captureLogbookEndpoint();
+      return await finishLogbookTrip(current.id, {
+        tenantId: input.tenantId, employeeId: input.employeeId, endAddress: input.endAddress,
+        notes: [input.notes, !lastPoint && 'Kein neuer GPS-Endpunkt verfügbar; Zeiten und Kilometer bitte prüfen.'].filter(Boolean).join('\n'),
+        points: lastPoint ? [lastPoint] : [],
+      });
+    } catch (error) {
+      // A lost response or failed segment close may follow a committed trip.
+      const saved = await loadLogbookTrip(current.id, input.tenantId, input.employeeId).catch(() => null);
+      if (saved && !['recording', 'cancelled'].includes(saved.status)) return saved;
+      throw error;
+    }
+  });
 }
 
 export async function resolveEmployeeLogbookEligibility(

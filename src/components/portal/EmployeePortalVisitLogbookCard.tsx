@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { InfoBanner, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import {
+  finishEmployeeLogbookRecording,
   confirmEmployeeLogbookTrip, finishActiveVisitLogbookTrip, finishVisitApproachLogbook,
   loadEmployeeLogbook, resolveEmployeeLogbookEligibility, startVisitServiceLogbookTrip,
   type EmployeeLogbookEligibility,
 } from '@/lib/employeeLogbook';
+import { berlinDateKey, berlinToday } from '@/lib/employeeLogbook/employeeLogbookDate';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import type { EmployeeLogbookBundle } from '@/types/modules/employeeLogbook';
 import type { EmployeeTransportMode } from '@/types/modules/employeeMobility';
@@ -69,6 +71,7 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
   }, [reload]);
 
   const { active, pending, otherActive } = selectVisitLogbookState(data?.bundle.trips ?? [], resolveVisitMasterId(assignmentId));
+  const staleTrip = [active, otherActive].find((trip) => trip && berlinDateKey(trip.startedAt) < berlinToday());
   const blocked = loading || busy || Boolean(error || active || pending || otherActive);
   useEffect(() => { onConfirmationRequiredChange?.(blocked); }, [blocked, onConfirmationRequiredChange]);
   const pendingId = pending?.id;
@@ -165,7 +168,11 @@ export function EmployeePortalVisitLogbookCard(props: Props) {
       {loading ? <Text style={styles.copy}>Fahrtenbuch wird abgeglichen …</Text> : null}
       {error ? <View style={styles.stack}><InfoBanner message={error} variant="warning" /><PremiumButton title="Fahrtenbuch erneut prüfen" variant="secondary" disabled={busy || loading} onPress={() => void reload()} /></View> : null}
       {feedback ? <InfoBanner message={feedback} variant="info" /> : null}
-      {otherActive ? <InfoBanner message="Es läuft noch eine PKW-Fahrt eines anderen Einsatzes. Bitte dort oder im Fahrtenbuch zuerst beenden." variant="warning" /> : null}
+      {staleTrip ? <View style={styles.stack}><InfoBanner presentation="inline" variant="warning" message={`Noch offene Fahrt vom ${new Date(staleTrip.startedAt).toLocaleDateString('de-DE')}. Sie kann zur Verwaltungsprüfung beendet werden. Zeiten und Kilometer werden dabei nicht freigegeben.`} /><PremiumButton title="Alte Fahrt zur Prüfung abschließen" fullWidth loading={busy} disabled={busy || loading} onPress={() => void mutate(async () => {
+        await finishEmployeeLogbookRecording({ trip: staleTrip, tenantId, employeeId });
+        setFeedback('Alte Fahrt zur Verwaltungsprüfung beendet. Der Fahrtenbuchstatus wird aktualisiert.');
+      })} /></View> : null}
+      {otherActive && !staleTrip ? <InfoBanner message="Es läuft noch eine PKW-Fahrt eines anderen Einsatzes. Bitte dort oder im Fahrtenbuch zuerst beenden." variant="warning" /> : null}
       {props.onOpenLogbook && (error || otherActive || (!loading && (!data?.eligibility.eligible || (phase === 'en_route' && !active)))) ? <PremiumButton title="Fahrtenbuch öffnen" variant="secondary" onPress={props.onOpenLogbook} /> : null}
       {phase !== 'completed' ? (data?.bundle.trips ?? []).filter((trip) => trip.assignmentId === resolveVisitMasterId(assignmentId) && ['completed', 'confirmed', 'corrected'].includes(trip.status)).map((trip) => (
         <PremiumButton key={trip.id} variant="secondary" title={`${trip.purpose || 'Fahrt'} · ${trip.distanceFinalKm.toFixed(2).replace('.', ',')} km bearbeiten`}

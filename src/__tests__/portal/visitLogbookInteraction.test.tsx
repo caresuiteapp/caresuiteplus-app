@@ -30,7 +30,7 @@ const harness = vi.hoisted(() => {
     },
   };
 });
-const mocks = vi.hoisted(() => ({ load: vi.fn(), eligible: vi.fn(), finish: vi.fn(), confirm: vi.fn(), start: vi.fn(), focus: null as ((state: string) => void) | null }));
+const mocks = vi.hoisted(() => ({ load: vi.fn(), eligible: vi.fn(), finish: vi.fn(), confirm: vi.fn(), recover: vi.fn(), start: vi.fn(), focus: null as ((state: string) => void) | null }));
 vi.mock('react', async (original) => ({ ...await original<object>(), ...harness }));
 vi.mock('react-native', () => ({
   AppState: { addEventListener: (_: string, cb: (state: string) => void) => { mocks.focus = cb; return { remove: vi.fn() }; } },
@@ -45,6 +45,7 @@ vi.mock('@/components/portal/EmployeePortalVisitProgressSteps', () => ({ Employe
 vi.mock('@/lib/employeeLogbook', () => ({
   loadEmployeeLogbook: mocks.load, resolveEmployeeLogbookEligibility: mocks.eligible,
   finishVisitApproachLogbook: mocks.finish, finishActiveVisitLogbookTrip: mocks.finish,
+  finishEmployeeLogbookRecording: mocks.recover,
   confirmEmployeeLogbookTrip: mocks.confirm, startVisitServiceLogbookTrip: mocks.start,
 }));
 
@@ -133,6 +134,25 @@ describe('employee arrival card and optional robot help', () => {
     const after = await settle(); const modal = after.find((n) => n.type === 'Modal')!;
     expect(nodes(modal).some((n) => n.props.children === 'Keine Schreibberechtigung')).toBe(true);
     expect(props.onConfirmationRequiredChange).toHaveBeenLastCalledWith(true);
+  });
+  it('stops an old trip for review and unblocks the current visit only after reload', async () => {
+    const old = { ...trip('recording'), id: 'old-trip', assignmentId: 'other', startedAt: '2020-01-01T07:00:00Z' };
+    trips = [old]; mocks.recover.mockImplementation(async () => { trips = [{ ...old, status: 'review_required' }]; return trips[0]; });
+    render(); const tree = await settle();
+    expect(props.onConfirmationRequiredChange).toHaveBeenLastCalledWith(true);
+    const recover = button(tree, 'Alte Fahrt zur Prüfung abschließen').onPress;
+    recover(); recover(); await settle();
+    expect(mocks.recover).toHaveBeenCalledTimes(1);
+    expect(mocks.recover).toHaveBeenCalledWith(expect.objectContaining({ trip: old, tenantId: props.tenantId, employeeId: props.employeeId }));
+    expect(props.onConfirmationRequiredChange).toHaveBeenLastCalledWith(false);
+  });
+  it('keeps the visit blocked if the old-trip recovery is rejected by the server', async () => {
+    trips = [{ ...trip('recording'), assignmentId: 'other', startedAt: '2020-01-01T07:00:00Z' }];
+    mocks.recover.mockRejectedValue(new Error('Server lehnt Abschluss ab'));
+    render(); button(await settle(), 'Alte Fahrt zur Prüfung abschließen').onPress();
+    const tree = await settle();
+    expect(props.onConfirmationRequiredChange).toHaveBeenLastCalledWith(true);
+    expect(tree.some((node) => node.props.message === 'Server lehnt Abschluss ab')).toBe(true);
   });
   it('opens robot explanations only after tapping i, and supports closing them', () => {
     const headerProps = { clientName: 'Testklient', plannedStartAt: '2026-09-06T08:00:00Z', plannedEndAt: '2026-09-06T09:00:00Z', effectiveStatus: 'angekommen' as const, timers: null, guideMessage: 'Bitte Kilometer prüfen.' };

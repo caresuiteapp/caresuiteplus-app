@@ -1,7 +1,10 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import type { CorrectLogbookTripInput, CreateManualLogbookTripInput, EmployeeLogbookBundle, LogbookDailyConfirmation, LogbookPoint, LogbookProfile, LogbookReceipt, LogbookSegment, LogbookTrip, LogbookVehicle, StartLogbookTripInput } from '@/types/modules/employeeLogbook';
-import { berlinDateKey } from './employeeLogbookDate';
+import { berlinDateKey, berlinToday } from './employeeLogbookDate';
+import { createSingleFlight } from '@/lib/services/singleFlight';
+
+const runTripCompletion = createSingleFlight();
 
 type Row = Record<string, unknown>;
 const s = (value: unknown) => typeof value === 'string' ? value : '';
@@ -110,46 +113,69 @@ export async function appendLogbookPoints(tripId: string, tenantId: string, empl
   if (error) throw new Error(error.message);
 }
 
-export async function finishLogbookTrip(tripId: string, input: { tenantId: string; employeeId: string; endAddress?: string; notes?: string; points: LogbookPoint[] }) {
-  await appendLogbookPoints(tripId, input.tenantId, input.employeeId, input.points);
-  const { calculateTrackDistanceKm } = await import('./employeeLogbookMath');
-  const { data: stored, error: pointsError } = await fromUnknownTable(db(), 'employee_logbook_points').select('latitude,longitude,accuracy,altitude,speed,heading,recorded_at').eq('trip_id', tripId).order('recorded_at', { ascending: true });
-  if (pointsError) throw new Error(pointsError.message);
-  const allPoints = ((stored ?? []) as Row[]).map((row): LogbookPoint => ({ latitude: n(row.latitude), longitude: n(row.longitude), accuracy: row.accuracy == null ? null : n(row.accuracy), altitude: row.altitude == null ? null : n(row.altitude), speed: row.speed == null ? null : n(row.speed), heading: row.heading == null ? null : n(row.heading), recordedAt: s(row.recorded_at) }));
-  const distanceKm = calculateTrackDistanceKm(allPoints);
-  const { data: tripData, error: tripError } = await fromUnknownTable(db(), 'employee_logbook_trips')
-    .select('google_route_distance_km,notes')
-    .eq('id', tripId)
-    .single();
-  if (tripError) throw new Error(tripError.message);
-  const tripRow = tripData as Row;
-  const googleDistanceKm = tripRow.google_route_distance_km == null ? null : n(tripRow.google_route_distance_km);
-  const usablePoints = allPoints.filter((point) => point.accuracy == null || point.accuracy <= 120);
-  let maxGapSeconds = 0;
-  for (let index = 1; index < usablePoints.length; index += 1) {
-    const gap = (new Date(usablePoints[index].recordedAt).getTime() - new Date(usablePoints[index - 1].recordedAt).getTime()) / 1000;
-    if (Number.isFinite(gap)) maxGapSeconds = Math.max(maxGapSeconds, gap);
-  }
-  const gpsIncomplete = usablePoints.length < 3 || maxGapSeconds > 90 ||
-    (googleDistanceKm != null && googleDistanceKm > 0.2 && distanceKm < googleDistanceKm * 0.5);
-  const useGoogleFallback = gpsIncomplete && googleDistanceKm != null && googleDistanceKm > 0;
-  const finalDistanceKm = useGoogleFallback ? googleDistanceKm : distanceKm;
-  const existingNotes = input.notes?.trim() || nullable(tripRow.notes);
-  const qualityNote = useGoogleFallback
-    ? `GPS-Aufzeichnung unvollständig; ${googleDistanceKm.toFixed(2)} km aus der beim Navigationsstart gespeicherten Google-Sollroute übernommen.`
-    : null;
-  const notes = [existingNotes, qualityNote].filter(Boolean).join('\n') || null;
-  const endedAt = new Date().toISOString();
-  const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({ ended_at: endedAt, end_address: input.endAddress?.trim() || null, notes, distance_gps_km: distanceKm, distance_final_km: finalDistanceKm, distance_source: useGoogleFallback ? 'google_fallback' : 'gps', route_quality_status: useGoogleFallback ? 'estimated_due_to_gps_gap' : 'measured', status: 'confirmation_required', gps_captured: allPoints.length > 1, updated_at: endedAt }).eq('id', tripId);
+export async function loadLogbookTrip(tripId: string, tenantId: string, employeeId: string): Promise<LogbookTrip> {
+  const { data, error } = await fromUnknownTable(db(), 'employee_logbook_trips')
+    .select('*').eq('id', tripId).eq('tenant_id', tenantId).eq('employee_id', employeeId).maybeSingle();
   if (error) throw new Error(error.message);
-  const { error: segmentError } = await fromUnknownTable(db(), 'employee_logbook_segments')
-    .update({ ended_at: endedAt, end_address: input.endAddress?.trim() || null })
-    .eq('trip_id', tripId)
-    .is('ended_at', null);
-  if (segmentError) throw new Error(segmentError.message);
+  if (!data) throw new Error('Die Fahrt konnte für dieses Mitarbeitendenkonto nicht geladen werden.');
+  return mapTrip(data as Row);
+}
+
+export function finishLogbookTrip(tripId: string, input: { tenantId: string; employeeId: string; endAddress?: string; notes?: string; points: LogbookPoint[] }): Promise<LogbookTrip> {
+  return runTripCompletion(`${input.tenantId}:${input.employeeId}:${tripId}`, async () => {
+    const current = await loadLogbookTrip(tripId, input.tenantId, input.employeeId);
+    // A retry must never reopen a confirmed trip or replace its original end time.
+    if (current.status === 'cancelled') throw new Error('Diese Fahrt wurde storniert. Bitte den Fahrtenbuchstatus neu laden.');
+    if (current.status !== 'recording') return current;
+    const stale = berlinDateKey(current.startedAt) < berlinToday();
+    if (!stale) await appendLogbookPoints(tripId, input.tenantId, input.employeeId, input.points);
+    const { calculateTrackDistanceKm } = await import('./employeeLogbookMath');
+    const stored: Row[] = [];
+    for (let offset = 0; ; offset += 500) {
+      const page = await fromUnknownTable(db(), 'employee_logbook_points')
+        .select('latitude,longitude,accuracy,altitude,speed,heading,recorded_at')
+        .eq('trip_id', tripId).eq('tenant_id', input.tenantId).eq('employee_id', input.employeeId)
+        .order('recorded_at', { ascending: true }).order('id', { ascending: true }).range(offset, offset + 499);
+      if (page.error) throw new Error(page.error.message);
+      const rows = (page.data ?? []) as Row[];
+      stored.push(...rows);
+      if (rows.length < 500) break;
+    }
+    const allPoints = stored.filter((row) => !stale || (new Date(s(row.recorded_at)).getTime() >= new Date(current.startedAt).getTime() && berlinDateKey(s(row.recorded_at)) === berlinDateKey(current.startedAt))).map((row): LogbookPoint => ({ latitude: n(row.latitude), longitude: n(row.longitude), accuracy: row.accuracy == null ? null : n(row.accuracy), altitude: row.altitude == null ? null : n(row.altitude), speed: row.speed == null ? null : n(row.speed), heading: row.heading == null ? null : n(row.heading), recordedAt: s(row.recorded_at) }));
+    const distanceKm = calculateTrackDistanceKm(allPoints);
+    const googleDistanceKm = current.googleRouteDistanceKm;
+    const usablePoints = allPoints.filter((point) => point.accuracy == null || point.accuracy <= 120);
+    let maxGapSeconds = 0;
+    for (let index = 1; index < usablePoints.length; index += 1) {
+      const gap = (new Date(usablePoints[index].recordedAt).getTime() - new Date(usablePoints[index - 1].recordedAt).getTime()) / 1000;
+      if (Number.isFinite(gap)) maxGapSeconds = Math.max(maxGapSeconds, gap);
+    }
+    const gpsIncomplete = usablePoints.length < 3 || maxGapSeconds > 90 ||
+      (googleDistanceKm != null && googleDistanceKm > 0.2 && distanceKm < googleDistanceKm * 0.5);
+    const useGoogleFallback = !stale && gpsIncomplete && googleDistanceKm != null && googleDistanceKm > 0;
+    const finalDistanceKm = useGoogleFallback ? googleDistanceKm : distanceKm;
+    const existingNotes = [current.notes, input.notes?.trim()].filter(Boolean).join('\n');
+    const qualityNote = useGoogleFallback
+      ? `GPS-Aufzeichnung unvollständig; ${googleDistanceKm.toFixed(2)} km aus der beim Navigationsstart gespeicherten Google-Sollroute übernommen.`
+      : null;
+    const notes = [existingNotes, qualityNote, stale && 'Alte offene Aufzeichnung zur Verwaltungsprüfung beendet. Endzeit ist nur der letzte gespeicherte Punkt am Starttag (ohne Punkt: Startzeit), keine bestätigte Ankunft. Originalpunkte bleiben erhalten; Zeiten und Kilometer müssen geprüft werden.'].filter(Boolean).join('\n') || null;
+    const endedAt = stale ? (allPoints[allPoints.length - 1]?.recordedAt || current.startedAt) : new Date().toISOString();
+    const { error } = await fromUnknownTable(db(), 'employee_logbook_trips').update({ ended_at: endedAt, end_address: input.endAddress?.trim() || current.endAddress, notes, distance_gps_km: distanceKm, distance_final_km: finalDistanceKm, distance_source: useGoogleFallback ? 'google_fallback' : 'gps', route_quality_status: useGoogleFallback ? 'estimated_due_to_gps_gap' : 'measured', status: stale ? 'review_required' : 'confirmation_required', gps_captured: allPoints.length > 1, updated_at: new Date().toISOString() }).eq('id', tripId).eq('tenant_id', input.tenantId).eq('employee_id', input.employeeId).eq('status', 'recording');
+    if (error) throw new Error(error.message);
+    const saved = await loadLogbookTrip(tripId, input.tenantId, input.employeeId);
+    if (saved.status === 'recording' || !saved.endedAt) throw new Error('Fahrtabschluss nicht gespeichert. Bitte den aktuellen Fahrtenbuchstatus erneut laden.');
+    if (saved.status === 'review_required') return saved; // Office also reviews the original open segments.
+    const { error: segmentError } = await fromUnknownTable(db(), 'employee_logbook_segments')
+      .update({ ended_at: saved.endedAt, end_address: saved.endAddress })
+      .eq('trip_id', tripId).eq('tenant_id', input.tenantId).eq('employee_id', input.employeeId)
+      .is('ended_at', null);
+    if (segmentError) throw new Error(segmentError.message);
+    return saved;
+  });
 }
 
 export async function confirmEmployeeLogbookTrip(input: { trip: LogbookTrip; distanceKm: number; reason?: string | null }) {
+  if (!['confirmation_required', 'completed', 'confirmed', 'corrected'].includes(input.trip.status)) throw new Error('Diese Fahrt muss zuerst beendet beziehungsweise durch die Verwaltung geprüft werden.');
   if (!Number.isFinite(input.distanceKm) || input.distanceKm < 0) throw new Error('Bitte gültige Kilometer eintragen.');
   const corrected = Math.abs(input.distanceKm - input.trip.distanceFinalKm) >= 0.005;
   if (corrected && (input.reason?.trim().length ?? 0) < 3) throw new Error('Bitte die Kilometerkorrektur kurz begründen.');

@@ -2,14 +2,15 @@ import { Platform } from 'react-native';
 import {
   appendLogbookPoints,
   createLogbookTrip,
-  finishLogbookTrip,
-  flushLogbookPointQueue,
+  finishEmployeeLogbookRecording,
+  berlinDateKey,
+  berlinToday,
   getCurrentLogbookPoint,
   loadEmployeeLogbook,
+  loadLogbookTrip,
   requestLogbookLocationPermission,
   saveLogbookProfile,
   startNativeBackgroundTracking,
-  stopNativeBackgroundTracking,
   stopNativeAssistBackgroundTracking,
 } from '@/lib/employeeLogbook';
 import { resolveEmployeeLogbookEligibility } from '@/lib/employeeLogbook/employeeLogbookAutomation';
@@ -80,6 +81,7 @@ export async function startEmployeeReturnTrip(input: {
       destination &&
       existing.assignmentId === resolveVisitMasterId(input.assignmentId)
     ) {
+      if (berlinDateKey(existing.startedAt) < berlinToday()) throw new Error('Diese Rückfahrt stammt von einem früheren Tag. Bitte im Fahrtenbuch zur Verwaltungsprüfung abschließen.');
       await startNativeBackgroundTracking({
         tripId: existing.id,
         tenantId: input.tenantId,
@@ -132,6 +134,8 @@ export async function startEmployeeReturnTripForegroundTracking(input: {
   employeeId: string;
 }): Promise<EmployeeGpsWatchHandle | null> {
   if (Platform.OS !== 'web') return null;
+  const trip = await loadLogbookTrip(input.tripId, input.tenantId, input.employeeId);
+  if (trip.status !== 'recording' || berlinDateKey(trip.startedAt) < berlinToday()) return null;
   return acquireEmployeeLogbookForegroundTracking(input);
 }
 
@@ -141,22 +145,13 @@ export async function finishEmployeeReturnTrip(input: {
   employeeId: string;
   destination: EmployeeReturnTripDestination;
 }): Promise<LogbookTrip> {
-  // Stop only the logbook consumer. A still-active Assist context keeps the
-  // shared native provider alive until the assignment workflow ends.
-  await stopNativeBackgroundTracking();
-  await flushLogbookPointQueue();
-  const lastPoint = await getCurrentLogbookPoint();
-  await finishLogbookTrip(input.trip.id, {
+  const completed = await finishEmployeeLogbookRecording({
+    trip: input.trip,
     tenantId: input.tenantId,
     employeeId: input.employeeId,
     endAddress: returnTripDestinationLabel(input.destination),
     notes: 'Automatisch nach dem letzten Tageseinsatz im Mitarbeiterportal erfasst.',
-    points: [lastPoint],
   });
-
-  const bundle = await loadEmployeeLogbook(input.tenantId, input.employeeId);
-  const completed = bundle.trips.find((trip) => trip.id === input.trip.id);
-  if (!completed) throw new Error('Die abgeschlossene Rückfahrt konnte nicht erneut geladen werden.');
   // Return/home/office is the explicit end of the recorded workday. The
   // assignment consumer is released only here so GPS stays active through the
   // complete final leg but cannot continue after the employee finished it.

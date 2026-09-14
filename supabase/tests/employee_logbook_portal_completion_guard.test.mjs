@@ -231,4 +231,51 @@ await test('legacy completed and office-corrected trips remain editable only for
     await db.exec(`RESET ROLE; DELETE FROM assist_visits WHERE id='${visit}';`);
   }
 });
+
+await test('stale-completion migration is repeatable and changes no trip data', async () => {
+  const before = await row();
+  await db.exec('RESET ROLE;');
+  await db.exec(migration('20260914100000_employee_logbook_stale_completion'));
+  await db.exec(migration('20260914100000_employee_logbook_stale_completion'));
+  await db.exec('SET ROLE authenticated;');
+  assert.deepEqual(await row(), before);
+});
+async function seedOldRecording() {
+  await seed();
+  await db.exec(`RESET ROLE; SELECT set_config('test.portal','false',false);
+    UPDATE employee_logbook_trips SET started_at=(date_trunc('day', now() AT TIME ZONE 'Europe/Berlin') - interval '3 days' + interval '9 hours') AT TIME ZONE 'Europe/Berlin' WHERE id='${trip}';
+    SELECT set_config('test.portal','true',false); SET ROLE authenticated;`);
+}
+const review = (extra='') => db.exec(`UPDATE employee_logbook_trips SET status='review_required',ended_at=started_at+interval '30 minutes',notes='Alte Aufzeichnung zur Verwaltungsprüfung beendet.' ${extra} WHERE id='${trip}'`);
+await test('an old recording can enter review but cannot approve kilometres or rewrite ownership', async () => {
+  await seedOldRecording(); const before = await row();
+  await review(',distance_final_km=999,mileage_amount_cents=99999,mileage_rate_cents=999');
+  const saved = await row();
+  assert.equal(saved.status,'review_required');
+  assert.equal(Number(saved.distance_final_km),Number(before.distance_final_km));
+  assert.equal(saved.mileage_amount_cents,before.mileage_amount_cents);
+  assert.equal(saved.mileage_rate_cents,before.mileage_rate_cents);
+  assert.equal(saved.employee_confirmed_at,null);
+  await assert.rejects(confirm, /nur die Verwaltung/);
+  await assert.rejects(() => db.exec(`UPDATE employee_logbook_trips SET status='recording' WHERE id='${trip}'`), /nur die Verwaltung/);
+});
+await test('today, guessed current endpoints and missing review notes are rejected', async () => {
+  await seed(); await assert.rejects(review, /Nur alte offene/);
+  await seedOldRecording();
+  await assert.rejects(() => db.exec(`UPDATE employee_logbook_trips SET status='review_required',ended_at=now(),notes='Alte Aufzeichnung zur Prüfung' WHERE id='${trip}'`), /Nur alte offene/);
+  await assert.rejects(() => db.exec(`UPDATE employee_logbook_trips SET status='review_required',ended_at=started_at WHERE id='${trip}'`), /Nur alte offene/);
+  assert.equal((await row()).status,'recording');
+});
+await test('review cannot access another employee or move a trip between employees', async () => {
+  await seedOldRecording();
+  await assert.rejects(() => review(",employee_id='20000000-0000-0000-0000-000000000002'"), /Zuordnung/);
+  await db.exec("SELECT set_config('test.employee','20000000-0000-0000-0000-000000000002',false);");
+  await review(); assert.equal(await row(),undefined);
+  await db.exec(`SELECT set_config('test.employee','${employee}',false);`);
+  assert.equal((await row()).status,'recording');
+});
+await test('normal confirmation and segment protection remain intact after stale recovery change', async () => {
+  await seed(); await end(); await assert.rejects(confirm,/offenen Teilstrecken/);
+  await closeSegment(); await confirm(); assert.equal((await row()).status,'confirmed');
+});
 await db.close();

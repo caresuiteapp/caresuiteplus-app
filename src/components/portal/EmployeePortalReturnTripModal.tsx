@@ -21,7 +21,7 @@ import {
 } from '@/lib/portal/employeePortalReturnTrip';
 import type { LogbookTrip } from '@/types/modules/employeeLogbook';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
-import { confirmEmployeeLogbookTrip, saveLogbookPromptDecision } from '@/lib/employeeLogbook';
+import { berlinDateKey, berlinToday, confirmEmployeeLogbookTrip, saveLogbookPromptDecision } from '@/lib/employeeLogbook';
 import type { EmployeeGpsWatchHandle } from '@/lib/employeeLogbook';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { spacing, typography } from '@/theme';
@@ -114,6 +114,11 @@ export function EmployeePortalReturnTripModal({
           setMode('confirmation');
           return;
         }
+        if (berlinDateKey(active.startedAt) < berlinToday()) {
+          setTrip(active); setDestination(activeDestination);
+          setError('Alte Rückfahrt offen. Mit Abschluss erneut versuchen wird sie zur Verwaltungsprüfung beendet.');
+          setMode('error'); return;
+        }
         const resumed = await startEmployeeReturnTrip({
           tenantId,
           employeeId,
@@ -190,25 +195,10 @@ export function EmployeePortalReturnTripModal({
       setCompletedTrip(completed);
       setConfirmationKm(completed.distanceFinalKm.toFixed(2).replace('.', ','));
       setConfirmationReason('');
-      setMode('confirmation');
+      setMode(completed.status === 'confirmation_required' ? 'confirmation' : 'complete');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Rückfahrt konnte nicht abgeschlossen werden.');
-      try {
-        const resumed = await startEmployeeReturnTrip({
-          tenantId,
-          employeeId,
-          assignmentId,
-          clientId,
-          clientName,
-          startAddress,
-          destination,
-        });
-        if (resumed.trip.id === trip.id) {
-          await attachWebWatcher(resumed.trip);
-        }
-      } catch {
-        // The visible retry remains available even when tracking recovery fails.
-      }
+      // Keep the reached destination stopped; retry must never create a new trip.
       setMode('error');
     }
   }, [
@@ -408,9 +398,9 @@ export function EmployeePortalReturnTripModal({
               <>
                 <View style={styles.successCard}>
                   <Text style={styles.successMark}>✓</Text>
-                  <Text style={styles.successTitle}>Tagesabschluss vollständig</Text>
+                  <Text style={styles.successTitle}>{completedTrip.status === 'review_required' ? 'Aufzeichnung zur Prüfung beendet' : 'Tagesabschluss vollständig'}</Text>
                   <Text style={styles.successText}>
-                    {completedTrip.distanceFinalKm.toFixed(2).replace('.', ',')} km wurden im Fahrtenbuch gespeichert. GPS-Aufzeichnung und Rückfahrt sind beendet.
+                    {completedTrip.status === 'review_required' ? 'Die alte Fahrt ist gestoppt. Zeiten und Kilometer bleiben bis zur Verwaltungsprüfung gesperrt.' : `${completedTrip.distanceFinalKm.toFixed(2).replace('.', ',')} km wurden im Fahrtenbuch gespeichert. GPS-Aufzeichnung und Rückfahrt sind beendet.`}
                   </Text>
                 </View>
                 <PremiumButton title="Fertig" size="lg" fullWidth onPress={close} />
