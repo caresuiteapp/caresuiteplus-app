@@ -4,7 +4,7 @@ import {
   activatePurchasedModule,
   deactivateModule,
 } from '@/lib/modules/moduleAccessService';
-import { OFFICE_MODULE_KEY } from '@/lib/modules/constants';
+import { isUnreleasedModuleKey, OFFICE_MODULE_KEY } from '@/lib/modules/constants';
 import { saveTenantModuleSettings } from './tenantCenterService';
 import {
   getTenantModuleSettingsCache,
@@ -47,6 +47,13 @@ export async function setTenantModuleEnabled(
 
   if (!tenantId?.trim()) {
     return { ok: false, error: 'Kein Mandant.' };
+  }
+
+  if (enabled && isUnreleasedModuleKey(productKey)) {
+    return {
+      ok: false,
+      error: 'Dieses Fachmodul ist noch nicht veröffentlicht und bleibt für alle Mandanten deaktiviert.',
+    };
   }
 
   if (productKey === OFFICE_MODULE_KEY) {

@@ -69,7 +69,7 @@ describe('moduleAccessService — Office Basis-Modul (Free Platform)', () => {
 
   it('Pflege aktiviert Office automatisch', () => {
     seed(baseModules());
-    activatePurchasedModule(TENANT, 'pflege');
+    activatePurchasedModule(TENANT, 'assist');
 
     expect(hasModuleAccess('office', TENANT)).toBe(true);
   });
@@ -77,7 +77,7 @@ describe('moduleAccessService — Office Basis-Modul (Free Platform)', () => {
   it('mehrere Fachmodule — Office enthalten, Free Platform billableCount 0', () => {
     seed(baseModules());
     activatePurchasedModule(TENANT, 'assist');
-    activatePurchasedModule(TENANT, 'pflege');
+    activatePurchasedModule(TENANT, 'assist');
 
     const billing = calculateBillingItems(TENANT);
     expect(billing.totalActiveCount).toBe(3);

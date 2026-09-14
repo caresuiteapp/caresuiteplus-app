@@ -96,7 +96,7 @@ describe('Platform tenant module enforcement', () => {
     expect(hasEffectiveModuleGateAccess('pflege', TENANT)).toBe(false);
   });
 
-  it('5. active trial → Zugriff erlaubt', () => {
+  it('5. active trial eines unveröffentlichten Moduls bleibt gesperrt', () => {
     seedPlatformTenantModulesForDemo(TENANT, [
       {
         moduleKey: 'care',
@@ -108,7 +108,7 @@ describe('Platform tenant module enforcement', () => {
         manualOverride: false,
       },
     ]);
-    expect(hasEffectiveModuleGateAccess('pflege', TENANT)).toBe(true);
+    expect(hasEffectiveModuleGateAccess('pflege', TENANT)).toBe(false);
   });
 
   it('6. missing platform entry + tenant_products aktiv → Fallback erlaubt', () => {

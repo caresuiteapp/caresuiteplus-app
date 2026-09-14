@@ -18,6 +18,7 @@ import {
   ALL_PRODUCT_KEYS,
   isPurchasedAccessSource,
   isSpecialtyModuleKey,
+  isUnreleasedModuleKey,
   OFFICE_MODULE_KEY,
   SPECIALTY_MODULE_KEYS,
 } from './constants';
@@ -147,6 +148,17 @@ function syncOfficeInclusion(modules: TenantProduct[]): void {
 }
 
 function toEffectiveAccess(module: TenantProduct): EffectiveModuleAccess {
+  if (isUnreleasedModuleKey(module.productKey)) {
+    return {
+      ...module,
+      isActive: false,
+      isEffective: false,
+      accessSource: 'disabled',
+      accessSourceLabel: ACCESS_SOURCE_LABELS.disabled,
+      billingStatus: 'premium_prepared',
+      premiumReady: false,
+    };
+  }
   return {
     ...module,
     isEffective: module.isActive,
@@ -227,6 +239,8 @@ export function hasModuleAccess(
   moduleKey: ProductKey,
   tenantId: string = DEMO_TENANT_ID,
 ): boolean {
+  if (isUnreleasedModuleKey(moduleKey)) return false;
+
   const modules = getTenantModules(tenantId);
   const module = modules.find((entry) => entry.productKey === moduleKey);
   const fallbackAllowed =
@@ -270,6 +284,10 @@ export function activatePurchasedModule(
   tenantId: string,
   moduleKey: ProductKey,
 ): ServiceResult<TenantProduct[]> {
+  if (isUnreleasedModuleKey(moduleKey)) {
+    return { ok: false, error: `Modul „${moduleKey}" ist noch nicht veröffentlicht.` };
+  }
+
   if (isFreePlatformEnabled()) {
     return activateFreeModule(tenantId, moduleKey);
   }
@@ -298,6 +316,10 @@ export function activateFreeModule(
   tenantId: string,
   moduleKey: ProductKey,
 ): ServiceResult<TenantProduct[]> {
+  if (isUnreleasedModuleKey(moduleKey)) {
+    return { ok: false, error: `Modul „${moduleKey}" ist noch nicht veröffentlicht.` };
+  }
+
   const modules = ensureTenantStore(tenantId);
   let target = modules.find((entry) => entry.productKey === moduleKey);
 
@@ -356,6 +378,8 @@ export function hasLegacyTenantModuleGateAccess(
   moduleKey: ProductKey,
   tenantId: string = DEMO_TENANT_ID,
 ): boolean {
+  if (isUnreleasedModuleKey(moduleKey)) return false;
+
   const modules = getTenantModules(tenantId);
   const direct = modules.find((entry) => entry.productKey === moduleKey);
   if (direct?.billingStatus === 'admin_disabled') {
@@ -378,6 +402,8 @@ export function hasEffectiveModuleGateAccess(
   moduleKey: ProductKey,
   tenantId: string = DEMO_TENANT_ID,
 ): boolean {
+  if (isUnreleasedModuleKey(moduleKey)) return false;
+
   const fallbackAllowed = hasLegacyTenantModuleGateAccess(moduleKey, tenantId);
 
   if (hasPlatformModuleHydration(tenantId)) {
@@ -392,4 +418,10 @@ export function hasEffectiveModuleGateAccess(
   return fallbackAllowed;
 }
 
-export { ACCESS_SOURCE_LABELS, SPECIALTY_MODULE_KEYS, OFFICE_MODULE_KEY };
+export {
+  ACCESS_SOURCE_LABELS,
+  SPECIALTY_MODULE_KEYS,
+  OFFICE_MODULE_KEY,
+  UNRELEASED_MODULE_KEYS,
+  isUnreleasedModuleKey,
+};

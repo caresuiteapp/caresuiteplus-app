@@ -101,14 +101,14 @@ describe('tenantModuleToggleService', () => {
     expect(rows.map((row) => row.moduleKey)).toEqual(['office', 'assist', 'akademie']);
   });
 
-  it('aktiviert Beratung über Hub und zeigt Modul in Navigation', async () => {
+  it('hält Beratung im Hub und in der Navigation global gesperrt', async () => {
     const result = await setTenantModuleEnabled(TENANT, 'beratung', true, ADMIN);
-    expect(result.ok).toBe(true);
-    expect(getTenantModuleSettingsCache(TENANT).beratungEnabled).toBe(true);
-    expect(hasModuleAccess('beratung', TENANT)).toBe(true);
+    expect(result.ok).toBe(false);
+    expect(getTenantModuleSettingsCache(TENANT).beratungEnabled).toBe(false);
+    expect(hasModuleAccess('beratung', TENANT)).toBe(false);
 
     const railKeys = getVisibleMainModuleRailItems({ tenantId: TENANT, roleKey: ADMIN }).map((m) => m.key);
-    expect(railKeys).toContain('beratung');
+    expect(railKeys).not.toContain('beratung');
   });
 
   it('steuert Akademie nur über moduleAccessService', async () => {
@@ -118,7 +118,7 @@ describe('tenantModuleToggleService', () => {
     expect(getEffectiveModuleAccess(TENANT).find((m) => m.productKey === 'akademie')?.isEffective).toBe(false);
 
     const activate = await setTenantModuleEnabled(TENANT, 'akademie', true, ADMIN);
-    expect(activate.ok).toBe(true);
-    expect(hasModuleAccess('akademie', TENANT)).toBe(true);
+    expect(activate.ok).toBe(false);
+    expect(hasModuleAccess('akademie', TENANT)).toBe(false);
   });
 });

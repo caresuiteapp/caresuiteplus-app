@@ -76,13 +76,13 @@ describe('Free Platform Strategy', () => {
     activateRegistrationModules(TENANT, ['assist', 'pflege']);
     expect(hasModuleAccess('office', TENANT)).toBe(true);
     expect(hasModuleAccess('assist', TENANT)).toBe(true);
-    expect(hasModuleAccess('pflege', TENANT)).toBe(true);
+    expect(hasModuleAccess('pflege', TENANT)).toBe(false);
   });
 
   it('canAccessModule allows active modules without payment check', () => {
     initializeModuleAccessStore(TENANT, baseModules());
     activateFreeModule(TENANT, 'beratung');
-    expect(canAccessModule('beratung', TENANT)).toBe(true);
+    expect(canAccessModule('beratung', TENANT)).toBe(false);
     expect(canAccessModule('stationaer', TENANT)).toBe(false);
   });
 
