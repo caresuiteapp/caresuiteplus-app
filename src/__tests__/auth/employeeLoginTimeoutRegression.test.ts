@@ -30,4 +30,13 @@ describe('employee login timeout regressions', () => {
     expect(accessScreens).toContain('if (submitting.current) return;');
     expect(accessScreens).toContain('submitting.current = false;');
   });
+
+  it('uses trusted signed claims when the shared profile bootstrap is unavailable', () => {
+    const provider = source('src/lib/auth/AuthProvider.tsx');
+
+    expect(provider).toContain('applyTrustedSessionFallback');
+    expect(provider).toContain('supabaseSession.user.app_metadata');
+    expect(provider).toContain('editable user_metadata is never');
+    expect(provider).toContain('await hydrateSupabaseSession(\n      sessionResult.data');
+  });
 });

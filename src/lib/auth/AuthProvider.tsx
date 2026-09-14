@@ -11,7 +11,7 @@ import {
 import { runAppTransition } from '@/lib/react/runAppTransition';
 import { Platform } from 'react-native';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
-import type { AuthSession, AuthUser, Profile } from '@/types';
+import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types';
 import {
   getSession,
   onAuthStateChange,
@@ -114,6 +114,64 @@ function applyPortalAuthFallback(
   setSession(minimal.session);
 }
 
+const TRUSTED_SESSION_ROLE_KEYS: readonly RoleKey[] = [
+  'business_admin',
+  'business_manager',
+  'billing',
+  'dispatch',
+  'nurse',
+  'caregiver',
+  'counselor',
+  'akademie_admin',
+  'employee_portal',
+  'client_portal',
+  'family_portal',
+];
+
+/**
+ * Keeps a valid signed-in user operational when the profile endpoint is slow.
+ * Only signed app_metadata claims are trusted; editable user_metadata is never
+ * used to grant a role or tenant here.
+ */
+function applyTrustedSessionFallback(
+  supabaseSession: Session,
+  setUser: (user: AuthUser | null) => void,
+  setProfile: (profile: Profile | null) => void,
+  setSession: (session: AuthSession | null) => void,
+): boolean {
+  const metadata = supabaseSession.user.app_metadata ?? {};
+  const roleClaim = typeof metadata.role_key === 'string' ? metadata.role_key : '';
+  const tenantClaim = typeof metadata.tenant_id === 'string' ? metadata.tenant_id.trim() : '';
+  if (!TRUSTED_SESSION_ROLE_KEYS.includes(roleClaim as RoleKey) || !tenantClaim) return false;
+
+  const roleKey = roleClaim as RoleKey;
+  const minimal = buildMinimalAuthState(supabaseSession);
+  const displayNameClaim = metadata.display_name;
+  const displayName = typeof displayNameClaim === 'string' && displayNameClaim.trim()
+    ? displayNameClaim.trim()
+    : null;
+  const now = new Date().toISOString();
+  const user = { ...minimal.user, displayName, roleKey };
+
+  setUser(user);
+  setProfile({
+    id: supabaseSession.user.id,
+    tenantId: tenantClaim,
+    roleId: null,
+    roleKey,
+    firstName: null,
+    lastName: null,
+    displayName,
+    email: supabaseSession.user.email ?? null,
+    phone: null,
+    avatarUrl: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  setSession({ ...minimal.session, user });
+  return true;
+}
+
 function alignBootstrapWithPortalSession(
   bootstrap: Extract<Awaited<ReturnType<typeof bootstrapTenantContext>>, { ok: true }>,
   record: PortalSessionRecord,
@@ -177,8 +235,36 @@ async function hydrateSupabaseSession(
       return { ok: true };
     }
 
+    if (applyTrustedSessionFallback(supabaseSession, setUser, setProfile, setSession)) {
+      setProfileBootstrapError(null);
+      const metadata = supabaseSession.user.app_metadata ?? {};
+      const roleKey = metadata.role_key as RoleKey;
+      const tenantId = metadata.tenant_id as string;
+      void fetchRuntimePermissions(roleKey, tenantId);
+      void hydrateTenantModulesFromSupabase(tenantId);
+      void hydrateTenantModuleSettings(tenantId);
+      return { ok: true };
+    }
+
     return { ok: false, error: bootstrap.error };
   } catch (cause) {
+    if (portalRecord) {
+      applyPortalAuthFallback(supabaseSession, portalRecord, setUser, setProfile, setSession);
+      setProfileBootstrapError(null);
+      return { ok: true };
+    }
+
+    if (applyTrustedSessionFallback(supabaseSession, setUser, setProfile, setSession)) {
+      setProfileBootstrapError(null);
+      const metadata = supabaseSession.user.app_metadata ?? {};
+      const roleKey = metadata.role_key as RoleKey;
+      const tenantId = metadata.tenant_id as string;
+      void fetchRuntimePermissions(roleKey, tenantId);
+      void hydrateTenantModulesFromSupabase(tenantId);
+      void hydrateTenantModuleSettings(tenantId);
+      return { ok: true };
+    }
+
     return {
       ok: false,
       error:
@@ -470,30 +556,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const sessionResult = await getSession();
     if (!sessionResult.ok || !sessionResult.data) return;
 
-    const bootstrap = await bootstrapTenantContext(sessionResult.data);
-    if (!bootstrap.ok) {
-      applyPortalAuthFallback(
-        sessionResult.data,
-        record,
-        setUser,
-        setProfile,
-        setSession,
-      );
-      setProfileBootstrapError(null);
-      void fetchRuntimePermissions(record.roleKey, record.tenantId);
-      void hydrateTenantModulesFromSupabase(record.tenantId);
-      void hydrateTenantModuleSettings(record.tenantId);
-      return;
-    }
-
-    setProfileBootstrapError(null);
-    const aligned = alignBootstrapWithPortalSession(bootstrap, record);
-    applyBootstrap(aligned, setUser, setProfile, setSession);
-    if (aligned.profile.roleKey && aligned.profile.tenantId) {
-      void fetchRuntimePermissions(aligned.profile.roleKey, aligned.profile.tenantId);
-      void hydrateTenantModulesFromSupabase(aligned.profile.tenantId);
-      void hydrateTenantModuleSettings(aligned.profile.tenantId);
-    }
+    await hydrateSupabaseSession(
+      sessionResult.data,
+      setUser,
+      setProfile,
+      setSession,
+      setProfileBootstrapError,
+      record,
+    );
   }, []);
 
   const updatePortalSession = useCallback(async (patch: Partial<PortalSessionRecord>) => {
