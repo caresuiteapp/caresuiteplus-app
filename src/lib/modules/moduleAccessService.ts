@@ -21,6 +21,7 @@ import {
   isUnreleasedModuleKey,
   OFFICE_MODULE_KEY,
   SPECIALTY_MODULE_KEYS,
+  UNRELEASED_MODULE_KEYS,
 } from './constants';
 
 export {
