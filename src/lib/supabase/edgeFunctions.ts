@@ -16,6 +16,28 @@ type FunctionInvokeError = Error & {
   context?: Response;
 };
 
+const EDGE_FUNCTION_REQUEST_TIMEOUT_MS = 15_000;
+
+async function withEdgeFunctionTimeout<T>(
+  request: PromiseLike<T>,
+  functionName: string,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      request,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(`Edge Function ${functionName} hat zu lange gedauert.`));
+        }, EDGE_FUNCTION_REQUEST_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 async function extractEdgeFunctionError(error: unknown): Promise<string> {
   if (error && typeof error === 'object' && 'name' in error) {
     const namedError = error as FunctionInvokeError;
@@ -92,7 +114,23 @@ export async function invokeEdgeFunction<TResponse>(
     return { ok: false, error: 'Supabase-Client nicht verfügbar.' };
   }
 
-  const { data, error } = await client.functions.invoke(functionName, { body });
+  let result: Awaited<ReturnType<typeof client.functions.invoke>>;
+  try {
+    result = await withEdgeFunctionTimeout(
+      client.functions.invoke(functionName, { body }),
+      functionName,
+    );
+  } catch (cause) {
+    const timedOut = cause instanceof Error && cause.message.includes('hat zu lange gedauert');
+    return {
+      ok: false,
+      error: timedOut
+        ? 'Die Anfrage antwortet nicht. Bitte Verbindung prüfen und erneut versuchen.'
+        : await extractEdgeFunctionError(cause),
+    };
+  }
+
+  const { data, error } = result;
 
   if (error) {
     return { ok: false, error: await extractEdgeFunctionError(error) };

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -248,13 +248,16 @@ export function EmployeeAccessScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
 
   const submit = async () => {
+    if (submitting.current) return;
     setError(null);
     if (!username.trim() || !password) {
       setError('Benutzername und Passwort sind erforderlich.');
       return;
     }
+    submitting.current = true;
     setLoading(true);
     try {
       const result = await loginEmployeePortal(username, password);
@@ -279,6 +282,7 @@ export function EmployeeAccessScreen() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Anmeldung fehlgeschlagen.');
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };

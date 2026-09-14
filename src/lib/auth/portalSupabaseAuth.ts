@@ -70,10 +70,22 @@ export async function signInWithPortalSupabaseTokens(
     return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
   }
 
-  const { data, error } = await client.auth.setSession({
-    access_token: tokens.accessToken,
-    refresh_token: tokens.refreshToken,
-  });
+  let result: Awaited<ReturnType<typeof client.auth.setSession>>;
+  try {
+    result = await withPortalSessionTimeout(
+      client.auth.setSession({
+        access_token: tokens.accessToken,
+        refresh_token: tokens.refreshToken,
+      }),
+    );
+  } catch {
+    return {
+      ok: false,
+      error: 'Die sichere Sitzung antwortet nicht. Bitte Verbindung prüfen und erneut versuchen.',
+    };
+  }
+
+  const { data, error } = result;
 
   if (error || !data.session) {
     return { ok: false, error: toGermanAuthError(error) };
