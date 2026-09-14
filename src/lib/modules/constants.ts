@@ -25,8 +25,22 @@ export const UNRELEASED_MODULE_KEYS: readonly ProductKey[] = [
   'akademie',
 ];
 
-export function isUnreleasedModuleKey(productKey: ProductKey): boolean {
-  return UNRELEASED_MODULE_KEYS.includes(productKey);
+export function isUnreleasedModuleKey(productKey: string): productKey is ProductKey {
+  return UNRELEASED_MODULE_KEYS.includes(productKey as ProductKey);
+}
+
+/** Returns the globally locked product for one of its root or deep-link routes. */
+export function getUnreleasedModuleKeyFromPath(path: string): ProductKey | null {
+  const pathname = path.split(/[?#]/, 1)[0]?.toLocaleLowerCase('de-DE') ?? '';
+  return (
+    UNRELEASED_MODULE_KEYS.find(
+      (productKey) => pathname === `/${productKey}` || pathname.startsWith(`/${productKey}/`),
+    ) ?? null
+  );
+}
+
+export function isUnreleasedModuleRoute(path: string): boolean {
+  return getUnreleasedModuleKeyFromPath(path) !== null;
 }
 
 export function isSpecialtyModuleKey(productKey: ProductKey): boolean {

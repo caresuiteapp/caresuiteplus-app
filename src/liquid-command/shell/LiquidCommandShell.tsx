@@ -44,9 +44,14 @@ import {
   getEditionModules,
   getEditionShortcuts,
 } from '@/lib/platform/healthOSStoreEdition';
+import { isUnreleasedModuleKey, isUnreleasedModuleRoute } from '@/lib/modules/constants';
 
-const editionModules = getEditionModules(liquidModules);
-const editionShortcuts = getEditionShortcuts(liquidGlobalShortcuts);
+const editionModules = getEditionModules(liquidModules).filter(
+  (module) => !isUnreleasedModuleKey(module.key),
+);
+const editionShortcuts = getEditionShortcuts(liquidGlobalShortcuts).filter(
+  (shortcut) => !isUnreleasedModuleRoute(shortcut.route),
+);
 
 type LiquidCommandShellProps = {
   activeModule: LiquidModuleKey;

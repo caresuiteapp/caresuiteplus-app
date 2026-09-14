@@ -7,6 +7,7 @@ import { beratungNav } from '@/lib/navigation/moduleNav/beratungNav';
 import { akademieNav } from '@/lib/navigation/moduleNav/akademieNav';
 import { zentraleNav } from '@/lib/navigation/moduleNav/zentraleNav';
 import { WORKSPACE_SERVICES, workspaceHref } from '@/lib/googleWorkspace/workspaceModel';
+import { isUnreleasedModuleKey, isUnreleasedModuleRoute } from '@/lib/modules/constants';
 
 export const DESKTOP_CATEGORIES = ['Übersicht', 'Versorgung', 'Team', 'Verwaltung', 'Workspace'] as const;
 export type DesktopCategory = (typeof DESKTOP_CATEGORIES)[number];
@@ -26,6 +27,9 @@ export function buildDesktopApps(widgetApps: readonly DesktopApp[], roleKey?: st
   const knownRoutes = new Set(widgetApps.map(app => app.route));
   const seen = new Set<string>(['/']);
   const add = (app: DesktopApp) => {
+    // Unreleased products must not leak into navigation, Apps or search through
+    // static catalogues, module sub-pages or old global shortcuts.
+    if (isUnreleasedModuleRoute(app.route)) return;
     // Prefer the existing business destination when the Office menu uses its alias.
     const businessAlias = app.route.replace(/^\/office(?=\/|\?|$)/, '/business/office');
     const route = knownRoutes.has(businessAlias) ? businessAlias : app.route;
@@ -41,6 +45,7 @@ export function buildDesktopApps(widgetApps: readonly DesktopApp[], roleKey?: st
   add({ id: 'workspace-activity', label: 'Workspace-Aktivitäten', description: 'Abrufe und Aktionen Ihrer Google-Verbindung.',
     category: 'Workspace', route: workspaceHref('activity'), glyph: '◷' });
   liquidModules.forEach(module => {
+    if (isUnreleasedModuleKey(module.key)) return;
     const category = moduleCategory[module.key] ?? 'Verwaltung';
     add({ id: `module-${module.key}`, label: module.label, description: module.description,
       route: module.route, category, group: module.label, glyph: module.glyph });
@@ -48,6 +53,7 @@ export function buildDesktopApps(widgetApps: readonly DesktopApp[], roleKey?: st
       id: `${module.key}-${area.id}`, category, group: module.label, glyph: module.glyph }));
   });
   [zentraleNav, officeNav, assistNav, pflegeNav, stationaerNav, beratungNav, akademieNav].forEach(module => {
+    if (isUnreleasedModuleKey(module.moduleKey)) return;
     module.groups.forEach(group => group.items.forEach(item => {
       if (item.allowedRoles && !item.allowedRoles.some(role => role === roleKey)) return;
       add({ id: `${module.moduleKey}-${item.key}`, label: item.label, route: item.href,

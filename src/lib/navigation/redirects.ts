@@ -9,6 +9,7 @@ import {
 } from '@/lib/modules/moduleVisibilityService';
 import { getRouteByPath } from './routes';
 import { DEMO_BUSINESS_ENTRY_ROUTE } from './demoNavigation';
+import { getUnreleasedModuleKeyFromPath } from '@/lib/modules/constants';
 
 export type RedirectReason =
   | 'unauthenticated'
@@ -154,6 +155,16 @@ export function checkProductAccess(
   roleKey?: RoleKey | null,
   tenantId?: string | null,
 ): RedirectDecision {
+  // Route-prefix lock runs before route lookup so even an old, aliased or newly
+  // added deep link cannot expose an unreleased product.
+  if (getUnreleasedModuleKeyFromPath(path)) {
+    return {
+      shouldRedirect: true,
+      target: BUSINESS_HOME_ROUTE,
+      reason: 'module_disabled',
+      message: 'Dieses Modul ist noch nicht für die Öffentlichkeit freigegeben.',
+    };
+  }
   const route = getRouteByPath(path);
   if (!route?.productKey) {
     return { shouldRedirect: false, target: path };
