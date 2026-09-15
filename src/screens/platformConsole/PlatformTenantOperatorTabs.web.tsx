@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   PlatformAuditLink,
-  PlatformConfirmModal,
   PlatformFilterChip,
   PlatformFilterChipRow,
   PlatformStatusBadge,
   PLATFORM_COLORS,
 } from '@/components/platformConsole';
+import { PlatformConfirmModal } from '@/components/platformConsole/PlatformConfirmModal.web';
 import { LoadingState } from '@/components/ui';
 import type { PlatformTenantDetail } from '@/lib/platformConsole';
 import {

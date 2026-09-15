@@ -11,6 +11,7 @@ fi
 
 node scripts/verify-portal-production-env.mjs
 npm run typecheck
+npm run android:api36:audit
 npm run audit:portal-update
 npm run portal-only:export
 npm run portal-only:export:audit

@@ -77,7 +77,7 @@
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
             "minSdkVersion": 24,
-            "enableProguardInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true
           }
         }
@@ -105,7 +105,8 @@
           "supportsBackgroundPlayback": false,
           "supportsPictureInPicture": false
         }
-      ]
+      ],
+      "./plugins/withAndroidReleaseOptimization"
     ],
     "experiments": {
       "typedRoutes": true,

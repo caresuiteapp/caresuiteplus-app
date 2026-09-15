@@ -69,9 +69,9 @@ export function PremiumDataTable<T>({ columns, data, keyExtractor, selectedId, o
           </Pressable> : null}
         </View>;
       })}</View>
-    </> : <View accessibilityRole="table" style={[styles.table, darkSurface && styles.darkCard]} testID="table-container">
-      <View accessibilityRole="row" style={[styles.header, grid, darkSurface && styles.darkHeader]}>
-        {columns.map(col => <View accessibilityRole="columnheader" key={col.key} style={styles.cell}
+    </> : <View role="table" style={[styles.table, darkSurface && styles.darkCard]} testID="table-container">
+      <View role="row" style={[styles.header, grid, darkSurface && styles.darkHeader]}>
+        {columns.map(col => <View role="columnheader" key={col.key} style={styles.cell}
           {...{ 'aria-sort': sortColumnKey === col.key ? (sortDirection === 'desc' ? 'descending' : 'ascending') : undefined }}>
           {col.sortable && onSortColumn ? sortButton(col) : <Text style={[styles.label, { color: muted, textAlign: col.align ?? 'left' }]}>{col.label}</Text>}
         </View>)}
@@ -89,7 +89,7 @@ export function PremiumDataTable<T>({ columns, data, keyExtractor, selectedId, o
               event.preventDefault(); onRowPress(item);
             }
           }}>
-          {columns.map(col => <View accessibilityRole="cell" key={col.key} dataSet={{ csWorkspaceCell: 'true' }}
+          {columns.map(col => <View role="cell" key={col.key} dataSet={{ csWorkspaceCell: 'true' }}
             style={[styles.cell, { alignItems: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'stretch' }]}>
             {renderCell(col, item)}
           </View>)}

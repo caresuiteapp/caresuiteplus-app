@@ -43,14 +43,14 @@ export function PlatformDataTable<T>({ columns, data, keyExtractor, selectedId, 
           {onRowPress ? <Pressable accessibilityRole="button" accessibilityLabel="Datensatz öffnen" onPress={() => onRowPress(item)} style={styles.open}><Text style={styles.openText}>Details öffnen →</Text></Pressable> : null}
         </View>;
       })}</View> :
-      <View accessibilityRole="table" style={styles.table}>
-        <View accessibilityRole="row" style={[styles.header, grid]}>{columns.map(col =>
-          <View accessibilityRole="columnheader" key={col.key} style={styles.cell}><Text style={[styles.columnLabel, { textAlign: col.align ?? 'left' }]}>{col.label}</Text></View>
+      <View role="table" style={styles.table}>
+        <View role="row" style={[styles.header, grid]}>{columns.map(col =>
+          <View role="columnheader" key={col.key} style={styles.cell}><Text style={[styles.columnLabel, { textAlign: col.align ?? 'left' }]}>{col.label}</Text></View>
         )}</View>
         {data.map((item, index) => {
           const id = keyExtractor(item, index);
-          return <View accessibilityRole="row" key={id} style={[styles.row, grid, index % 2 === 1 && styles.alternate, selectedId === id && styles.selected]}>
-            {columns.map((col, columnIndex) => <View accessibilityRole="cell" key={col.key} style={[styles.cell, { alignItems: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start' }]}>
+          return <View role="row" key={id} style={[styles.row, grid, index % 2 === 1 && styles.alternate, selectedId === id && styles.selected]}>
+            {columns.map((col, columnIndex) => <View role="cell" key={col.key} style={[styles.cell, { alignItems: col.align === 'right' ? 'flex-end' : col.align === 'center' ? 'center' : 'flex-start' }]}>
               {onRowPress && columnIndex === 0 ? <Pressable accessibilityRole="button" onPress={() => onRowPress(item)} style={styles.rowOpen}>{renderCell(col, item)}</Pressable> : renderCell(col, item)}
             </View>)}
           </View>;

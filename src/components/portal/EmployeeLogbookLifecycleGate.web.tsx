@@ -166,9 +166,9 @@ const styles = StyleSheet.create({
     shadowRadius: 9,
   },
   copy: { flex: 1, minWidth: 0, gap: 2 },
-  kicker: { color: '#6FF0B6', fontSize: font(13), lineHeight: font(18), lineHeight: 13, fontWeight: '900', letterSpacing: 1 },
+  kicker: { color: '#6FF0B6', fontSize: font(13), lineHeight: 13, fontWeight: '900', letterSpacing: 1 },
   title: { color: '#FFFFFF', fontSize: 15, lineHeight: 20, fontWeight: '900' },
-  meta: { color: '#BBD3E4', fontSize: font(13), lineHeight: font(18), lineHeight: 15, fontWeight: '600' },
+  meta: { color: '#BBD3E4', fontSize: font(13), lineHeight: 15, fontWeight: '600' },
   action: {
     minWidth: 82,
     minHeight: 38,
@@ -178,5 +178,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
-  actionText: { color: '#FFFFFF', fontSize: font(13), lineHeight: font(18), lineHeight: 14, fontWeight: '900' },
+  actionText: { color: '#FFFFFF', fontSize: font(13), lineHeight: 14, fontWeight: '900' },
 });

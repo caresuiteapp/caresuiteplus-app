@@ -260,7 +260,7 @@ describe('Google Play readiness — store sight', () => {
 
   it('enables R8 minify and ProGuard rules for Play deobfuscation mapping', () => {
     const appConfig = readSrc('app.config.ts');
-    expect(appConfig).toContain('enableProguardInReleaseBuilds: true');
+    expect(appConfig).toContain('enableMinifyInReleaseBuilds: true');
     expect(appConfig).toContain('android-proguard-rules.pro');
     const appJson = JSON.parse(readSrc('app.json'));
     expect(appConfig).toContain(

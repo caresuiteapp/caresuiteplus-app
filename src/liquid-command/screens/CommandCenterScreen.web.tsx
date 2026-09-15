@@ -20,7 +20,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "@/lib/auth";
 import { PortalTextSizeControls } from "@/components/portal/accessibility/PortalTextSizeControls";
 import { TopbarProfileAvatar } from "@/components/layout/TopbarProfileAvatar";
-import { useDesktopWeather } from "@/hooks/useDesktopWeather";
+import { useDesktopWeather } from "@/hooks/useDesktopWeather.web";
 import { desktopWorkspaceCss } from "./desktopWorkspaceCss.web";
 import { DesktopWeatherLocationDialog } from "./DesktopWeatherLocationDialog.web";
 import { useWebFontScale } from "@/design/web/WebFontScaleProvider";
