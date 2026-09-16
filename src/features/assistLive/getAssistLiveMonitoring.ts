@@ -615,8 +615,12 @@ function buildMapMarkers(rows: AssistLiveMonitoringRow[]): AssistLiveMapMarker[]
       id: row.assignmentId,
       latitude: row.tracking!.lastPosition!.latitude,
       longitude: row.tracking!.lastPosition!.longitude,
-      label: row.title,
-      subtitle: row.tracking?.trackingActive ? 'Live-Tracking aktiv' : undefined,
+      label: row.clientName?.trim() || 'Klientenname nicht verfügbar',
+      subtitle: [
+        row.title,
+        row.employeeName ? `Mitarbeitende: ${row.employeeName}` : null,
+        row.tracking?.trackingActive ? 'Live-Tracking aktiv' : null,
+      ].filter(Boolean).join(' · '),
       capturedAt: row.tracking!.lastPosition!.capturedAt,
       accuracyMeters: row.tracking!.lastPosition!.accuracyMeters,
     }));

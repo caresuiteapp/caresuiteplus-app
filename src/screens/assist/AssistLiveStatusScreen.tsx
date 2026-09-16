@@ -296,11 +296,15 @@ export function AssistLiveStatusScreen() {
                     style={[styles.assignmentCard, isSelected && styles.selectedCard]}
                   >
                 <View style={styles.cardHeader}>
-                  <Text style={styles.title}>{row.title}</Text>
+                  <View style={styles.assignmentIdentity}>
+                    <Text style={styles.clientLabel}>Klient:in</Text>
+                    <Text style={styles.clientName}>{row.clientName?.trim() || 'Klientenname nicht verfügbar'}</Text>
+                    <Text style={styles.title}>{row.title}</Text>
+                  </View>
                   <HealthOSStatusBadge domain="assignment" technicalValue={row.status} dot />
                 </View>
                 {row.employeeName ? (
-                  <Text style={styles.meta}>{row.employeeName}</Text>
+                  <Text style={styles.meta}>Mitarbeitende: {row.employeeName}</Text>
                 ) : null}
                 <Text style={styles.meta}>
                   {formatTime(row.plannedStartAt)} – {formatTime(row.plannedEndAt)}
@@ -466,7 +470,7 @@ export function AssistLiveStatusScreen() {
           routeIdentity={mapRow?.assignmentId ?? null}
           selectedMarkerId={selectedAssignmentId ?? mapRow?.assignmentId ?? null}
           onMarkerSelect={setSelectedAssignmentId}
-          markerLabel={mapRow?.title ?? undefined}
+          markerLabel={mapRow ? `${mapRow.clientName?.trim() || 'Klientenname nicht verfügbar'} · ${mapRow.title}` : undefined}
           demoMode={demoMapPreview && !mapRow?.tracking?.lastPosition}
           fallbackMessage={GPS_TRACKING_BACKEND_EMPTY_MESSAGE}
           height={splitLayout ? 360 : 300}
@@ -480,7 +484,10 @@ export function AssistLiveStatusScreen() {
               <Text style={styles.routeAuditEyebrow}>GPS-STRECKENPRÜFUNG</Text>
               <Text style={styles.routeAuditTitle}>Aufzeichnung im Detail</Text>
               <Text style={styles.routeAuditSubtitle}>
-                {mapRow.employeeName ?? 'Mitarbeitende'} · {mapRow.title}
+                Klient:in: {mapRow.clientName?.trim() || 'Klientenname nicht verfügbar'}
+              </Text>
+              <Text style={styles.routeAuditSubtitle}>
+                Mitarbeitende: {mapRow.employeeName ?? 'nicht zugeordnet'} · {mapRow.title}
               </Text>
             </View>
             <View style={[styles.routeQualityBadge, mapRow.route.unresolvedGapCount > 0 && styles.routeQualityBadgeWarning]}>
@@ -818,8 +825,11 @@ const styles = StyleSheet.create({
   assignmentList: { gap: 10 },
   assignmentCard: { backgroundColor: '#F7FBFF', borderColor: '#C9E2F6' },
   selectedCard: { borderWidth: 2, borderColor: '#1DA7EA', backgroundColor: '#EFF9FF' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-  title: { ...typography.bodyStrong, color: '#0A223D', flex: 1, fontSize: 15, lineHeight: 20 },
+  cardHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
+  assignmentIdentity: { flexGrow: 1, flexShrink: 1, flexBasis: 220, minWidth: 0, gap: 3 },
+  clientLabel: { ...typography.caption, color: '#526B83', fontSize: 11, lineHeight: 15 },
+  clientName: { ...typography.bodyStrong, color: '#0A223D', fontSize: 18, lineHeight: 24 },
+  title: { ...typography.bodyStrong, color: '#0A223D', fontSize: 14, lineHeight: 20 },
   meta: { ...typography.caption, color: '#526B83', marginTop: spacing.xs },
   trackingBlock: { marginTop: spacing.sm, gap: 3 },
   trackingLine: { ...typography.caption, color: '#39546D' },
