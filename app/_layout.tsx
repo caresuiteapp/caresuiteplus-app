@@ -1,7 +1,6 @@
-import { CareSuiteFontProvider } from '@/design/CareSuiteFontProvider';
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import 'react-native-reanimated';
-import { AppStartIntro } from '@/components/brand/AppStartIntro';
+import { AppStartup } from '@/components/brand/AppStartup';
 import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -190,7 +189,7 @@ function RouteScopedLegacyOverlays() {
 
 export default function RootLayout() {
   return (
-    <CareSuiteFontProvider><AppStartIntro>
+    <AppStartup>
       <AuthProvider>
         <PortalKeyboardProvider>
           <ThemeModeProvider>
@@ -214,7 +213,7 @@ export default function RootLayout() {
           </ThemeModeProvider>
         </PortalKeyboardProvider>
       </AuthProvider>
-    </AppStartIntro></CareSuiteFontProvider>
+    </AppStartup>
   );
 }
 

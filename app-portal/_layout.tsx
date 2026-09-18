@@ -1,6 +1,5 @@
-import { CareSuiteFontProvider } from '@/design/CareSuiteFontProvider';
 import 'react-native-reanimated';
-import { AppStartIntro } from '@/components/brand/AppStartIntro';
+import { AppStartup } from '@/components/brand/AppStartup';
 import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -59,7 +58,7 @@ function PortalOnlyRouter() {
 
 export default function PortalOnlyRootLayout() {
   return (
-    <CareSuiteFontProvider><AppStartIntro>
+    <AppStartup>
       <AuthProvider>
         <ThemeModeProvider>
           <PerformanceProvider>
@@ -73,7 +72,7 @@ export default function PortalOnlyRootLayout() {
           </PerformanceProvider>
         </ThemeModeProvider>
       </AuthProvider>
-    </AppStartIntro></CareSuiteFontProvider>
+    </AppStartup>
   );
 }
 

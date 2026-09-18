@@ -8,7 +8,7 @@ import { appStartIntroAssets } from './appStartIntroAssets';
 import { selectAppStartIntroFormat } from './selectAppStartIntroFormat';
 
 const BACKGROUND = '#040b19';
-// Eight seconds of video plus up to four seconds for the local decoder to start.
+// Bound decoder loading and playback separately so a slow start cannot cut the clip short.
 const MAX_STARTUP_MS = 12_000;
 const FADE_MS = 160;
 
@@ -21,10 +21,12 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
   const opacity = useRef(new Animated.Value(1)).current;
   const finishing = useRef(false);
   const mounted = useRef(true);
+  const deadline = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const finish = useCallback((fade = false) => {
     if (finishing.current || !mounted.current) return;
     finishing.current = true;
+    clearTimeout(deadline.current);
     appStartIntroSession.completed = true;
     hideSplash();
     const reveal = () => { if (mounted.current) setVisible(false); };
@@ -34,6 +36,11 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
     } else reveal();
   }, [opacity]);
 
+  const armWatchdog = useCallback(() => {
+    clearTimeout(deadline.current);
+    if (!finishing.current) deadline.current = setTimeout(() => finish(), MAX_STARTUP_MS);
+  }, [finish]);
+
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; opacity.stopAnimation(); };
@@ -42,14 +49,14 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!visible) return;
     // Decoder/native errors must never strand the user on a startup screen.
-    const deadline = setTimeout(() => finish(), MAX_STARTUP_MS);
+    armWatchdog();
     const state = AppState.addEventListener('change', next => {
       if (next === 'background' || next === 'inactive') finish();
     });
     const back = BackHandler.addEventListener('hardwareBackPress', () => true);
     if (AppState.currentState === 'background') finish();
-    return () => { clearTimeout(deadline); state.remove(); back.remove(); };
-  }, [finish, visible]);
+    return () => { clearTimeout(deadline.current); state.remove(); back.remove(); };
+  }, [armWatchdog, finish, visible]);
 
   return (
     <AppStartIntroReadyContext.Provider value={!visible}>
@@ -64,7 +71,7 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
             accessibilityViewIsModal accessibilityLabel="CareSuite Health OS startet">
             <StatusBar hidden style="light" />
             <IntroPlaybackBoundary onFailure={finish}>
-              <IntroVideo onFinish={finish} />
+              <IntroVideo onFinish={finish} onStarted={armWatchdog} />
             </IntroPlaybackBoundary>
           </Animated.View>
         ) : null}
@@ -82,7 +89,7 @@ class IntroPlaybackBoundary extends Component<
   render() { return this.state.failed ? null : this.props.children; }
 }
 
-function IntroVideo({ onFinish }: { onFinish: (fade?: boolean) => void }) {
+function IntroVideo({ onFinish, onStarted }: { onFinish: (fade?: boolean) => void; onStarted: () => void }) {
   const { width, height } = useWindowDimensions();
   // Select once; rotation resizes the view without restarting the eight-second clip.
   const [source] = useState(() => appStartIntroAssets[selectAppStartIntroFormat(width, height)]);
@@ -101,14 +108,14 @@ function IntroVideo({ onFinish }: { onFinish: (fade?: boolean) => void }) {
     let started = false;
     const stop = () => { try { player.pause(); } catch { /* Already released. */ } };
     const fail = () => { if (live) { stop(); onFinish(); } };
-    const start = () => {
-      if (!live || started || player.status !== 'readyToPlay') return;
+    const start = (status = player.status) => {
+      if (!live || started || status !== 'readyToPlay') return;
       started = true;
-      try { player.play(); } catch { fail(); }
+      try { player.play(); onStarted(); } catch { fail(); }
     };
     const status = player.addListener('statusChange', event => {
       if (event.status === 'error') fail();
-      else start();
+      else start(event.status);
     });
     const end = player.addListener('playToEnd', () => {
       if (live) { stop(); onFinish(true); }
@@ -116,7 +123,7 @@ function IntroVideo({ onFinish }: { onFinish: (fade?: boolean) => void }) {
     if (player.status === 'error') fail();
     else start();
     return () => { live = false; status.remove(); end.remove(); stop(); };
-  }, [onFinish, player]);
+  }, [onFinish, onStarted, player]);
 
   return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain"
     nativeControls={false} surfaceType="textureView" allowsPictureInPicture={false}

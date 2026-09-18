@@ -33,10 +33,29 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await act(async () => root.unmount()); host.remove();
+  document.getElementById('caresuite-web-boot')?.remove();
   vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.clearAllTimers(); vi.useRealTimers();
 });
 
 describe('Web startup intro', () => {
+  it('takes over the document loader before playback even while routing is still loading', async () => {
+    const boot = document.createElement('div');
+    boot.id = 'caresuite-web-boot';
+    boot.style.cssText = 'position:fixed;inset:0;z-index:2147483647';
+    boot.textContent = 'Anwendung wird sicher geladen';
+    document.body.prepend(boot);
+    play.mockImplementation(() => {
+      expect(document.getElementById('caresuite-web-boot')).toBeNull();
+      return Promise.resolve();
+    });
+    await render(<span>Sitzung lädt noch</span>);
+    expect(boot.isConnected).toBe(false);
+    expect(video()).not.toBeNull();
+    expect(host.textContent).toContain('Sitzung lädt noch');
+    expect(content().hasAttribute('inert')).toBe(true);
+    await click('Weiter zur Anmeldung');
+    expect(content().hasAttribute('inert')).toBe(false);
+  });
   it('keeps video preparation light until an actual frame is playing', async () => {
     await render();
     const overlay = host.querySelector<HTMLElement>('[data-caresuite-start-intro]')!;

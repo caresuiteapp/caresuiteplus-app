@@ -1,5 +1,5 @@
 import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
-import React, { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Asset } from 'expo-asset';
 import { appStartIntroAssets } from './appStartIntroAssets';
 import { appStartIntroSession, AppStartIntroReadyContext } from './appStartIntroSession';
@@ -23,6 +23,12 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
   const active = useRef(false);
   const attempt = useRef(0);
   const deadline = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useLayoutEffect(() => {
+    // The static document loader sits above the React root. Hand off as soon as
+    // the intro mounts, without waiting for fonts, authentication or RootShell.
+    document.getElementById('caresuite-web-boot')?.remove();
+  }, []);
 
   const finish = useCallback(() => {
     if (!active.current) return;

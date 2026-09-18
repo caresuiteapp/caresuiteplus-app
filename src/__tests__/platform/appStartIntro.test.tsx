@@ -3,12 +3,13 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppStartIntro } from '@/components/brand/AppStartIntro.native';
-import { AppStartIntro as WebIntro } from '@/components/brand/AppStartIntro';
+import { AppStartup } from '@/components/brand/AppStartup';
 import { appStartIntroSession, useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { PortalBiometricGate } from '@/components/auth/PortalBiometricGate';
 
 const model = vi.hoisted(() => ({
   status: 'readyToPlay',
+  fontsLoaded: false,
   size: { width: 390, height: 844 },
   stateListeners: new Set<(state: string) => void>(),
   backListeners: new Set<() => boolean>(),
@@ -18,6 +19,11 @@ const model = vi.hoisted(() => ({
   player: null as unknown as Record<string, unknown>,
   biometricPreference: vi.fn().mockResolvedValue(true),
   authenticate: vi.fn().mockResolvedValue({ ok: true }),
+}));
+vi.mock('@/components/brand/AppStartIntro', async () => await import('@/components/brand/AppStartIntro.native'));
+vi.mock('@/design/CareSuiteFontProvider', () => ({
+  CareSuiteFontProvider: ({ children }: { children: React.ReactNode }) => model.fontsLoaded
+    ? <>{children}</> : <span>Schrift lädt</span>,
 }));
 vi.mock('@/components/ui', () => ({ PremiumButton: () => null }));
 vi.mock('@/design/tokens/themeBridge', () => ({
@@ -120,6 +126,7 @@ beforeEach(() => {
   (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
   vi.useFakeTimers(); vi.clearAllMocks();
   model.status = 'readyToPlay'; model.size = { width: 390, height: 844 };
+  model.fontsLoaded = false;
   model.sources.length = 0; model.stateListeners.clear(); model.backListeners.clear();
   model.eventListeners.clear(); appStartIntroSession.completed = false;
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
@@ -155,6 +162,25 @@ describe('Native app startup intro', () => {
     expect(model.play).toHaveBeenCalledOnce();
     await act(async () => vi.advanceTimersByTime(7900));
     expect(host.querySelector('[data-testid="app-start-intro"]')).not.toBeNull();
+  });
+  it('starts from the native ready event even before the status property has caught up', async () => {
+    model.status = 'loading'; await render();
+    await act(async () => emit('statusChange', { status: 'readyToPlay' }));
+    expect(model.play).toHaveBeenCalledOnce();
+    await act(async () => emit('statusChange', { status: 'readyToPlay' }));
+    expect(model.play).toHaveBeenCalledOnce();
+  });
+  it('allows the full clip after a slow decoder start', async () => {
+    model.status = 'loading'; await render();
+    await act(async () => vi.advanceTimersByTime(7000));
+    model.status = 'readyToPlay';
+    await act(async () => emit('statusChange', { status: 'readyToPlay' }));
+    await act(async () => vi.advanceTimersByTime(7900));
+    expect(host.querySelector('[data-testid="native-video"]')).not.toBeNull();
+    expect(host.textContent).toContain('Sitzung lädt parallel');
+    await act(async () => emit('playToEnd'));
+    await act(async () => vi.advanceTimersByTime(160));
+    expect(host.textContent).toContain('Portal bereit');
   });
   it('defers the real biometric gate until the intro ends, then unlocks the portal', async () => {
     await render(<AppStartIntro><PortalBiometricGate><span>Geschütztes Portal</span></PortalBiometricGate></AppStartIntro>);
@@ -223,9 +249,18 @@ describe('Native app startup intro', () => {
     expect(model.backListeners.size).toBe(0);
     expect(model.stateListeners.size).toBe(0);
   });
-  it('opens the website without creating a player or delaying the page', async () => {
-    await render(<WebIntro><PortalProbe /></WebIntro>);
+  it('starts the shared root intro and releases the splash while fonts are still loading', async () => {
+    await render(<AppStartup><PortalProbe /></AppStartup>);
+    expect(host.textContent).toContain('Schrift lädt');
+    expect(host.querySelector('[data-testid="native-video"]')).not.toBeNull();
+    expect(model.play).toHaveBeenCalledOnce();
+    expect(model.hideSplash).toHaveBeenCalled();
+    model.fontsLoaded = true;
+    await render(<AppStartup><PortalProbe /></AppStartup>);
+    expect(host.textContent).toContain('Sitzung lädt parallel');
+    expect(model.play).toHaveBeenCalledOnce();
+    await act(async () => emit('playToEnd'));
+    await act(async () => vi.advanceTimersByTime(160));
     expect(host.textContent).toContain('Portal bereit');
-    expect(model.sources).toHaveLength(0);
   });
 });
