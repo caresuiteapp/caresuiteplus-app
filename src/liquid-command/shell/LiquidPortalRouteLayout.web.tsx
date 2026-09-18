@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, RequireAuth, RequireEmployeePasswordSetup, RequireRole } from '@/lib/auth';
@@ -58,7 +58,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const pathname = usePathname();
   const router = useRouter();
   const layout = useLiquidLayout();
-  const { height: visibleHeight, keyboardVisible } = useWebVisualViewport();
+  const { height: visibleHeight, width: visibleWidth, offsetTop, offsetLeft, keyboardVisible } = useWebVisualViewport();
   const insets = useSafeAreaInsets();
   const auth = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -107,7 +107,10 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   };
 
   return (
-    <View style={[styles.viewport, visibleHeight !== null ? { maxHeight: visibleHeight } : null]}><LiquidBackdrop>
+    <View testID="portal-visual-viewport" style={[styles.viewport, visibleHeight !== null ? {
+      position: 'fixed', top: offsetTop, left: offsetLeft,
+      height: visibleHeight, width: visibleWidth ?? '100%',
+    } as unknown as ViewStyle : null]}><LiquidBackdrop>
       <View style={styles.shell}>
         {desktopChrome ? (
           <View style={[styles.rail, kind === 'client' && styles.clientRail]}>
@@ -209,7 +212,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
             </View>
           </View> : null}
           <LiquidSurface
-            solid={desktopChrome && !visitExecutionFocus}
+            solid
             style={[
               styles.contentFrame,
               !desktopChrome && styles.contentFrameCompact,
@@ -249,10 +252,10 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   size={20}
                 />
                 <Text
-                  numberOfLines={2}
+                  numberOfLines={1}
                   style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}
                 >
-                  {item.id === 'open-assignments' ? 'Offen' : item.label}
+                  {item.id === 'open-assignments' ? 'Offen' : item.id === 'logbook' ? 'Fahrten' : item.label}
                 </Text>
                 {item.id === 'messages' && messageBadge ? (
                   <View style={styles.bottomUnreadBadge}>

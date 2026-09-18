@@ -13,6 +13,7 @@ export function useWebVisualViewport() {
     if (typeof window === 'undefined') return;
     const visual = window.visualViewport;
     let baseline = window.innerHeight;
+    let keyboardWasVisible = false;
     let frame = 0;
     const update = () => {
       cancelAnimationFrame(frame);
@@ -24,8 +25,12 @@ export function useWebVisualViewport() {
         const width = Math.round(Math.min(window.innerWidth, visual?.width ?? window.innerWidth));
         const offsetTop = Math.max(0, Math.round(visual?.offsetTop ?? 0));
         const offsetLeft = Math.max(0, Math.round(visual?.offsetLeft ?? 0));
-        if (!editing) baseline = window.innerHeight;
-        const keyboardVisible = editing && baseline - height > 120;
+        // Keep the unoccluded baseline until the keyboard has actually closed.
+        // Android can shrink innerHeight too; focusout precedes the closing animation.
+        if (!editing && !keyboardWasVisible) baseline = window.innerHeight;
+        const keyboardVisible = (editing || keyboardWasVisible) && baseline - height > 120;
+        keyboardWasVisible = keyboardVisible;
+        if (!keyboardVisible && !editing) baseline = window.innerHeight;
         setViewport(previous =>
           previous.height === height &&
           previous.width === width &&
