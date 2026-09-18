@@ -1,5 +1,5 @@
 import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Asset } from 'expo-asset';
 import { appStartIntroAssets } from './appStartIntroAssets';
 import { appStartIntroSession, AppStartIntroReadyContext } from './appStartIntroSession';
@@ -7,15 +7,10 @@ import { selectAppStartIntroFormat } from './selectAppStartIntroFormat';
 
 // Memory only: route changes keep the result; each new document plays again.
 const MAX_STARTUP_MS = 20_000;
-const controlStyle: CSSProperties = {
-  minHeight: 48, padding: '12px 20px', borderRadius: 14, border: '1px solid #63cdf0',
-  background: '#092940', color: '#fff', font: `600 16px/1.4 ${CARESUITE_FONT_STACK}`, cursor: 'pointer',
-};
 
 export function AppStartIntro({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(() => appStartIntroSession.completed);
   const [source, setSource] = useState<string>();
-  const [muted, setMuted] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [needsGesture, setNeedsGesture] = useState(false);
   const [playbackError, setPlaybackError] = useState(false);
@@ -57,6 +52,17 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
     deadline.current = setTimeout(recover, MAX_STARTUP_MS);
   }, [recover]);
 
+  const requestGesture = useCallback(() => {
+    if (!active.current) return;
+    attempt.current += 1;
+    videoRef.current?.pause();
+    setPlaying(false);
+    setNeedsGesture(true);
+    clearTimeout(deadline.current);
+    // No silent fallback. Wait for a genuine tap, but never block login forever.
+    deadline.current = setTimeout(finish, MAX_STARTUP_MS);
+  }, [finish]);
+
   useEffect(() => {
     if (ready) return;
     active.current = true;
@@ -75,37 +81,32 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
     };
   }, [armWatchdog, recover, ready]);
 
-  const play = useCallback(async (withSound: boolean, restart = false) => {
+  const play = useCallback(async (restart = false) => {
     const video = videoRef.current;
     if (!video || !active.current) return;
     const currentAttempt = ++attempt.current;
     const current = () => active.current && currentAttempt === attempt.current;
     armWatchdog();
-    if (video.error) video.load();
-    if (restart) video.currentTime = 0;
-    video.muted = !withSound;
-    video.volume = 1;
-    setMuted(!withSound);
     setNeedsGesture(false);
     setPlaybackError(false);
     try {
+      if (video.error) video.load();
+      if (restart) video.currentTime = 0;
+      video.muted = false;
+      video.volume = 1;
+      // Keep play() inside the click call stack for Safari's activation policy.
       await video.play();
-    } catch {
+    } catch (error) {
       if (!current()) return;
-      // Browsers may block audible autoplay even though the file is ready.
-      video.muted = true;
-      setMuted(true);
-      try {
-        await video.play();
-      } catch {
-        if (current()) setNeedsGesture(true);
-      }
+      const name = error && typeof error === 'object' && 'name' in error ? error.name : '';
+      if (name === 'NotAllowedError' || name === 'AbortError') requestGesture();
+      else recover();
     }
-  }, [armWatchdog]);
+  }, [armWatchdog, recover, requestGesture]);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (source && !ready) void play(true);
+    if (source && !ready) void play();
     return () => video?.pause();
   }, [source, ready, play]);
 
@@ -116,28 +117,31 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
     </div>
     {!ready && <div data-caresuite-start-intro="" role="region" aria-label="CareSuite Startvideo"
       style={{ position: 'fixed', inset: 0, zIndex: 2147483647, background: playing ? '#040b19' : '#F3F8FF', color: playing ? '#fff' : '#123251', display: 'flex', alignItems: 'center', justifyContent: 'center', isolation: 'isolate' }}>
-      {source ? <video ref={videoRef} src={source} playsInline preload="auto" loop={false}
+      {source ? <video ref={videoRef} src={source} playsInline preload="auto" loop={false} muted={false} controls={false}
         aria-label="CareSuite HealthOS" disablePictureInPicture
-        onPlaying={() => { setPlaying(true); setNeedsGesture(false); armWatchdog(); }}
-        onPause={() => { if (active.current && !videoRef.current?.ended) setNeedsGesture(true); }}
-        onVolumeChange={() => setMuted(Boolean(videoRef.current?.muted))}
+        onPlaying={() => {
+          if (!active.current) return;
+          if (videoRef.current?.muted || videoRef.current?.volume === 0) { requestGesture(); return; }
+          setPlaying(true); setNeedsGesture(false); setPlaybackError(false); armWatchdog();
+        }}
+        onPause={() => {
+          const video = videoRef.current;
+          if (active.current && video?.paused && !video.ended && !video.error) requestGesture();
+        }}
+        onVolumeChange={() => { if (videoRef.current?.muted || videoRef.current?.volume === 0) requestGesture(); }}
         onEnded={finish} onError={recover}
         style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain', opacity: playing ? 1 : 0 }} />
         : null}
       {!playing && <div role="status" style={{ position: 'absolute', padding: 24, textAlign: 'center', font: `600 20px/1.5 ${CARESUITE_FONT_STACK}` }}>
         <div style={{ color: '#0876E8', marginBottom: 16 }}>CareSuite HealthOS</div>
-        <span style={{ fontSize: 16 }}>{playbackError ? 'Das Startvideo konnte nicht abgespielt werden.'
-          : needsGesture ? 'Tippen Sie auf Abspielen, um das Intro mit Musik zu starten.'
+        <span style={{ fontSize: 16 }}>{playbackError ? 'Das Startvideo konnte nicht abgespielt werden. Zum erneuten Starten tippen.'
+          : needsGesture ? 'Zum Starten mit Musik tippen'
             : 'Startvideo wird vorbereitet…'}</span>
       </div>}
-      <div style={{ position: 'absolute', bottom: 'max(24px, env(safe-area-inset-bottom))', left: 16, right: 16, display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
-        {source && (needsGesture ? <button type="button" style={controlStyle} onClick={() => void play(true, true)}>{playbackError ? 'Erneut abspielen' : 'Startvideo mit Musik abspielen'}</button>
-          : <button type="button" style={controlStyle} onClick={() => {
-            if (muted) void play(true, true);
-            else { if (videoRef.current) videoRef.current.muted = true; setMuted(true); }
-          }}>{muted ? 'Mit Musik neu starten' : 'Ton ausschalten'}</button>)}
-        <button type="button" style={controlStyle} onClick={finish}>Weiter zur Anmeldung</button>
-      </div>
+      {needsGesture && source && <button type="button" aria-label="Intro mit Musik starten"
+        onClick={() => void play(true)}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', padding: 0,
+          border: 0, borderRadius: 0, background: 'transparent', cursor: 'pointer', outlineOffset: -8 }} />}
     </div>}
   </AppStartIntroReadyContext.Provider>;
 }
