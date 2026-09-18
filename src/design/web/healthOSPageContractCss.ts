@@ -294,6 +294,21 @@ export const HEALTHOS_PAGE_CONTRACT_CSS = `
    * Without an equally explicit portal scope they repaint otherwise-correct
    * React Native portal cards dark after render.
    */
+  html[data-cs-portal-premium="employee"] [data-cs-healthos-page="surface"],
+  html[data-cs-portal-premium="client"] [data-cs-healthos-page="surface"] {
+    color: #061B35;
+    background: #F7FBFF !important;
+    border-color: rgba(5,108,232,.18) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html[data-cs-portal-premium="employee"] [data-cs-healthos-page="surface"]::before,
+  html[data-cs-portal-premium="client"] [data-cs-healthos-page="surface"]::before {
+    display: none;
+  }
+
   html[data-cs-portal-premium] [data-cs-healthos-component="screen-header"] {
     background:
       radial-gradient(circle at 86% -12%, rgba(112,181,255,.26), transparent 40%),

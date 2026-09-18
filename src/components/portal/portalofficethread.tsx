@@ -26,6 +26,7 @@ import { useLightLiquidGlassShell, useMessagingGlassSurface } from '@/design/tok
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { webSafeAreaPadding } from '@/lib/platform/webSafeArea';
 import { spacing } from '@/theme';
+import { usePortalViewport } from '@/lib/portal/portalViewportContext';
 import { usePortalOfficeThreadDetail } from '@/hooks/useportalofficethreaddetail';
 import { isEmployeeGroupChatThread } from '@/lib/office/employeeGroupChatService';
 import {
@@ -57,6 +58,7 @@ export function PortalOfficeThread({
   const useLightGlass = useLightLiquidGlassShell();
   const useLightUi = useLightGlass || isLight;
   const insets = useSafeAreaInsets();
+  const { footerInFlow } = usePortalViewport();
   const scrollRef = useRef<ScrollView>(null);
   const isGlass = variant === 'glass';
   const { surfaces, onDarkSurface, ink } = useMessagingGlassSurface(isGlass);
@@ -91,7 +93,7 @@ export function PortalOfficeThread({
     return () => clearTimeout(timer);
   }, [detail?.messages.length, detail?.id]);
 
-  const composerBottomInset = webSafeAreaPadding(
+  const composerBottomInset = footerInFlow ? spacing.xs : webSafeAreaPadding(
     'bottom',
     Math.max(insets.bottom, spacing.sm),
   ) as number;
@@ -224,6 +226,7 @@ export function PortalOfficeThread({
   return (
     <KeyboardAvoidingView
       style={styles.root}
+      enabled={Platform.OS !== 'web'}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 72 : 0}
     >

@@ -18,6 +18,7 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
   const [muted, setMuted] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [needsGesture, setNeedsGesture] = useState(false);
+  const [playbackError, setPlaybackError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const active = useRef(false);
   const attempt = useRef(0);
@@ -33,33 +34,54 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
     setReady(true);
   }, []);
 
+  const recover = useCallback(() => {
+    if (!active.current) return;
+    attempt.current += 1;
+    videoRef.current?.pause();
+    setPlaying(false);
+    setPlaybackError(true);
+    setNeedsGesture(true);
+    clearTimeout(deadline.current);
+    // Offer recovery first, while still guaranteeing access if media never loads.
+    deadline.current = setTimeout(finish, MAX_STARTUP_MS);
+  }, [finish]);
+
+  const armWatchdog = useCallback(() => {
+    clearTimeout(deadline.current);
+    deadline.current = setTimeout(recover, MAX_STARTUP_MS);
+  }, [recover]);
+
   useEffect(() => {
     if (ready) return;
     active.current = true;
-    deadline.current = setTimeout(finish, MAX_STARTUP_MS);
+    armWatchdog();
     try {
       // Choose once, after hydration. Resizing must not restart a playing clip.
       const format = selectAppStartIntroFormat(window.innerWidth, window.innerHeight);
       setSource(Asset.fromModule(appStartIntroAssets[format]).uri);
     } catch {
-      finish();
+      recover();
     }
     return () => {
       active.current = false;
       attempt.current += 1;
       clearTimeout(deadline.current);
-      videoRef.current?.pause();
     };
-  }, [finish, ready]);
+  }, [armWatchdog, recover, ready]);
 
-  const play = useCallback(async (withSound: boolean) => {
+  const play = useCallback(async (withSound: boolean, restart = false) => {
     const video = videoRef.current;
     if (!video || !active.current) return;
     const currentAttempt = ++attempt.current;
     const current = () => active.current && currentAttempt === attempt.current;
+    armWatchdog();
+    if (video.error) video.load();
+    if (restart) video.currentTime = 0;
     video.muted = !withSound;
+    video.volume = 1;
     setMuted(!withSound);
     setNeedsGesture(false);
+    setPlaybackError(false);
     try {
       await video.play();
     } catch {
@@ -73,10 +95,12 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
         if (current()) setNeedsGesture(true);
       }
     }
-  }, []);
+  }, [armWatchdog]);
 
   useEffect(() => {
+    const video = videoRef.current;
     if (source && !ready) void play(true);
+    return () => video?.pause();
   }, [source, ready, play]);
 
   return <AppStartIntroReadyContext.Provider value={ready}>
@@ -87,20 +111,27 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
     {!ready && <div data-caresuite-start-intro="" role="region" aria-label="CareSuite Startvideo"
       style={{ position: 'fixed', inset: 0, zIndex: 2147483647, background: playing ? '#040b19' : '#F3F8FF', color: playing ? '#fff' : '#123251', display: 'flex', alignItems: 'center', justifyContent: 'center', isolation: 'isolate' }}>
       {source ? <video ref={videoRef} src={source} playsInline preload="auto" loop={false}
-        aria-label="CareSuite HealthOS" disablePictureInPicture onPlaying={() => setPlaying(true)} onEnded={finish} onError={finish}
+        aria-label="CareSuite HealthOS" disablePictureInPicture
+        onPlaying={() => { setPlaying(true); setNeedsGesture(false); armWatchdog(); }}
+        onPause={() => { if (active.current && !videoRef.current?.ended) setNeedsGesture(true); }}
+        onVolumeChange={() => setMuted(Boolean(videoRef.current?.muted))}
+        onEnded={finish} onError={recover}
         style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain', opacity: playing ? 1 : 0 }} />
         : null}
       {!playing && <div role="status" style={{ position: 'absolute', padding: 24, textAlign: 'center', font: `600 20px/1.5 ${CARESUITE_FONT_STACK}` }}>
         <div style={{ color: '#0876E8', marginBottom: 16 }}>CareSuite HealthOS</div>
-        <span style={{ fontSize: 16 }}>Startvideo wird vorbereitet…</span>
+        <span style={{ fontSize: 16 }}>{playbackError ? 'Das Startvideo konnte nicht abgespielt werden.'
+          : needsGesture ? 'Tippen Sie auf Abspielen, um das Intro mit Musik zu starten.'
+            : 'Startvideo wird vorbereitet…'}</span>
       </div>}
-      {source && <div style={{ position: 'absolute', bottom: 'max(24px, env(safe-area-inset-bottom))', left: 16, right: 16, display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
-        {needsGesture ? <button type="button" style={controlStyle} onClick={() => void play(true)}>Startvideo abspielen</button>
+      <div style={{ position: 'absolute', bottom: 'max(24px, env(safe-area-inset-bottom))', left: 16, right: 16, display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
+        {source && (needsGesture ? <button type="button" style={controlStyle} onClick={() => void play(true, true)}>{playbackError ? 'Erneut abspielen' : 'Startvideo mit Musik abspielen'}</button>
           : <button type="button" style={controlStyle} onClick={() => {
-            if (muted) void play(true);
+            if (muted) void play(true, true);
             else { if (videoRef.current) videoRef.current.muted = true; setMuted(true); }
-          }}>{muted ? 'Ton einschalten' : 'Ton ausschalten'}</button>}
-      </div>}
+          }}>{muted ? 'Mit Musik neu starten' : 'Ton ausschalten'}</button>)}
+        <button type="button" style={controlStyle} onClick={finish}>Weiter zur Anmeldung</button>
+      </div>
     </div>}
   </AppStartIntroReadyContext.Provider>;
 }

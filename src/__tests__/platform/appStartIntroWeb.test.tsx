@@ -62,20 +62,26 @@ describe('Web startup intro', () => {
   it('falls back to muted autoplay and lets a gesture enable sound', async () => {
     play.mockRejectedValueOnce(new DOMException('Autoplay blocked', 'NotAllowedError'));
     await render(); expect(play).toHaveBeenCalledTimes(2); expect(video().muted).toBe(true);
-    await click('Ton einschalten'); expect(video().muted).toBe(false); expect(play).toHaveBeenCalledTimes(3);
+    video().currentTime = 6;
+    await click('Mit Musik neu starten'); expect(video().muted).toBe(false); expect(play).toHaveBeenCalledTimes(3);
+    expect(video().currentTime).toBe(0);
     await click('Ton ausschalten'); expect(video().muted).toBe(true);
   });
   it('offers a manual start if both autoplay attempts are blocked', async () => {
     play.mockRejectedValueOnce(new Error('sound blocked')).mockRejectedValueOnce(new Error('autoplay blocked'));
     await render(); expect(content().hasAttribute('inert')).toBe(true);
-    await click('Startvideo abspielen'); expect(play).toHaveBeenCalledTimes(3);
-    expect(host.textContent).not.toContain('Startvideo abspielen'); await emit('ended');
+    await click('Startvideo mit Musik abspielen'); expect(play).toHaveBeenCalledTimes(3);
+    expect(host.textContent).not.toContain('Startvideo mit Musik abspielen'); await emit('ended');
     expect(host.textContent).toBe('Anmelden');
   });
-  it('releases login on a broken video or after a stalled startup', async () => {
-    await render(); await emit('error'); expect(host.textContent).toBe('Anmelden');
+  it('offers retry or immediate access on a broken video and bounds stalled recovery', async () => {
+    await render(); await emit('error');
+    expect(host.textContent).toContain('Erneut abspielen');
+    await click('Weiter zur Anmeldung'); expect(host.textContent).toBe('Anmelden');
     await act(async () => root.render(<div />)); appStartIntroSession.completed = false;
     await render(); await act(async () => vi.advanceTimersByTime(20_000));
+    expect(host.textContent).toContain('Erneut abspielen');
+    await act(async () => vi.advanceTimersByTime(20_000));
     expect(video()).toBeNull(); expect(host.textContent).toBe('Anmelden');
   });
   it('does not replay during navigation or root remount, but a new document session starts it again', async () => {
@@ -94,7 +100,22 @@ describe('Web startup intro', () => {
   it('ignores an autoplay rejection after the intro has already been released', async () => {
     let reject!: (reason: Error) => void;
     play.mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
-    await render(); await emit('error'); await act(async () => reject(new Error('late')));
+    await render(); await click('Weiter zur Anmeldung'); await act(async () => reject(new Error('late')));
     expect(play).toHaveBeenCalledOnce(); expect(host.textContent).toBe('Anmelden');
+  });
+  it('gives a late manual start a full playback window instead of the original deadline', async () => {
+    play.mockRejectedValueOnce(new Error('blocked')).mockRejectedValueOnce(new Error('blocked'));
+    await render(); await act(async () => vi.advanceTimersByTime(19_000));
+    await click('Startvideo mit Musik abspielen'); await emit('playing');
+    await act(async () => vi.advanceTimersByTime(8_000));
+    expect(video()).not.toBeNull();
+    expect(host.textContent).not.toContain('Erneut abspielen');
+    await emit('ended'); expect(host.textContent).toBe('Anmelden');
+  });
+  it('offers a gesture when Safari pauses a previously started video', async () => {
+    await render(); await emit('playing'); await emit('pause');
+    expect(host.textContent).toContain('Startvideo mit Musik abspielen');
+    await click('Startvideo mit Musik abspielen'); await emit('playing');
+    expect(host.textContent).not.toContain('Startvideo mit Musik abspielen');
   });
 });

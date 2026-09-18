@@ -94,7 +94,7 @@ export function ChatComposer({
         toolButtonActive: { backgroundColor: `${c.violet}16`, borderColor: c.violet },
         toolText: { ...typography.caption, color: onDarkSurface ? ink.primary : c.text, fontWeight: '700' },
         inputShell: {
-          minHeight: 82,
+          minHeight: isCompact ? 62 : 82,
           maxHeight: 132,
           flexDirection: 'row',
           alignItems: 'flex-end',
@@ -113,7 +113,8 @@ export function ChatComposer({
         },
         input: {
           flex: 1,
-          minHeight: 66,
+          minWidth: 0,
+          minHeight: isCompact ? 46 : 66,
           maxHeight: 116,
           paddingTop: 8,
           paddingBottom: 6,
