@@ -26,7 +26,13 @@ import { DesktopWeatherLocationDialog } from "./DesktopWeatherLocationDialog.web
 import { useWebFontScale } from "@/design/web/WebFontScaleProvider";
 
 import { GoogleWorkspaceWidget } from "@/components/googleWorkspace/GoogleWorkspaceWidget.web";
-import { buildDesktopApps, DESKTOP_CATEGORIES, type DesktopApp, type DesktopCategory } from "../navigation/desktopAppCatalog.web";
+import {
+  buildDesktopApps,
+  buildDesktopNavigationGroups,
+  DESKTOP_CATEGORIES,
+  type DesktopApp,
+  type DesktopCategory,
+} from "../navigation/desktopAppCatalog.web";
 import type { WorkspaceService } from "@/lib/googleWorkspace/workspaceModel";
 
 type Category = DesktopCategory;
@@ -439,9 +445,7 @@ export function CommandCenterScreen() {
     `${app.label} ${app.description} ${app.category} ${app.group ?? ""}`.toLocaleLowerCase("de-DE").includes(value.trim().toLocaleLowerCase("de-DE"));
   const filteredApps = apps.filter(app => app.category === category && matchesSearch(app, query));
   const filteredWidgets = WIDGETS.filter(widget => widget.category === category && matchesSearch(widget, query));
-  const navigationGroups = CATEGORIES.map(title => ({ title,
-    items: apps.filter(app => app.category === title && matchesSearch(app, navigationQuery)),
-  })).filter(group => group.items.length > 0);
+  const navigationGroups = buildDesktopNavigationGroups(apps, navigationQuery);
   const resultCount = centerTab === "apps" ? filteredApps.length : filteredWidgets.length;
 
   useEffect(() => { const timer = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(timer); }, []);

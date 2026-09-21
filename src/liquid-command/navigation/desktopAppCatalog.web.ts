@@ -15,6 +15,12 @@ export type DesktopApp = {
   id: string; label: string; description: string; route: string;
   category: DesktopCategory; group?: string; glyph?: string;
 };
+export const DESKTOP_NAVIGATION_SECTIONS = ['Assist', 'Office', 'Einstellungen'] as const;
+export type DesktopNavigationSection = (typeof DESKTOP_NAVIGATION_SECTIONS)[number];
+export type DesktopNavigationGroup = {
+  title: DesktopNavigationSection;
+  items: DesktopApp[];
+};
 const moduleCategory: Record<string, DesktopCategory> = {
   home: 'Übersicht', zentrale: 'Übersicht', office: 'Verwaltung',
   assist: 'Versorgung', pflege: 'Versorgung', stationaer: 'Versorgung', beratung: 'Versorgung',
@@ -66,4 +72,56 @@ export function buildDesktopApps(widgetApps: readonly DesktopApp[], roleKey?: st
     id: `platform-${area.id}`, category: 'Verwaltung', group: 'Plattform', glyph: '▦' }));
   add({ id: 'support', label: 'Support & Hilfe', description: 'Chat, Tickets und Freigaben.', route: '/support', category: 'Verwaltung', glyph: '?' });
   return apps;
+}
+
+const SETTINGS_ROUTES = new Set([
+  '/business/office/permissions',
+  '/business/integrations',
+  '/business/templates',
+  ...liquidWorkAreas.settings.map(area => area.route),
+]);
+
+function desktopNavigationSection(app: DesktopApp): DesktopNavigationSection | null {
+  const route = app.route.split('?')[0];
+
+  if (
+    route === '/settings' ||
+    route.startsWith('/settings/') ||
+    route === '/support' ||
+    SETTINGS_ROUTES.has(route)
+  ) return 'Einstellungen';
+
+  if (route === '/assist' || route.startsWith('/assist/')) return 'Assist';
+
+  if (
+    route === '/office' ||
+    route.startsWith('/office/') ||
+    route === '/business/office' ||
+    route.startsWith('/business/office/') ||
+    route === '/business/messages' ||
+    route.startsWith('/business/messages/')
+  ) return 'Office';
+
+  return null;
+}
+
+/**
+ * The desktop sidebar is the operational CareSuite navigation. It deliberately
+ * exposes only the three agreed workspaces; product catalogues such as Robotics
+ * remain available outside this navigation and cannot leak in through widgets.
+ */
+export function buildDesktopNavigationGroups(
+  apps: readonly DesktopApp[],
+  query = '',
+): DesktopNavigationGroup[] {
+  const needle = query.trim().toLocaleLowerCase('de-DE');
+  const matches = (app: DesktopApp) => !needle ||
+    `${app.label} ${app.description} ${app.group ?? ''}`
+      .toLocaleLowerCase('de-DE')
+      .includes(needle);
+
+  return DESKTOP_NAVIGATION_SECTIONS.map(title => ({
+    title,
+    items: apps.filter(app => desktopNavigationSection(app) === title && matches(app)),
+  })).filter(group => group.items.length > 0);
 }
