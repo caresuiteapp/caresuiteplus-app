@@ -2,15 +2,15 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ListFilterSelect, PremiumButton } from '@/components/ui';
 import { officeMonthKey, shiftOfficeMonth } from '@/lib/wfm/wfmOfficeMonth';
 
-type Props = { value: string; onChange: (month: string) => void };
+type Props = { value: string; onChange: (month: string) => void; currentMonth?: string };
 const months = Array.from({ length: 12 }, (_, index) => ({
   key: String(index + 1).padStart(2, '0'),
   label: new Intl.DateTimeFormat('de-DE', { month: 'long' }).format(new Date(2026, index, 15)),
 }));
 
-export function WfmOfficeMonthSelector({ value, onChange }: Props) {
+export function WfmOfficeMonthSelector({ value, onChange, currentMonth = officeMonthKey() }: Props) {
   const [year, month] = value.split('-');
-  const currentYear = new Date().getFullYear();
+  const currentYear = Number(currentMonth.slice(0, 4));
   const firstYear = Math.min(currentYear - 10, Number(year));
   const lastYear = Math.max(currentYear + 5, Number(year));
   const years = Array.from({ length: lastYear - firstYear + 1 }, (_, index) => ({
@@ -29,7 +29,7 @@ export function WfmOfficeMonthSelector({ value, onChange }: Props) {
         <Text style={styles.glyph}>‹</Text>
       </Pressable>
       <PremiumButton title="Aktueller Monat" variant="secondary"
-        onPress={() => onChange(officeMonthKey())} />
+        onPress={() => onChange(currentMonth)} />
       <Pressable accessibilityRole="button" accessibilityLabel="Nächster Monat"
         onPress={() => onChange(shiftOfficeMonth(value, 1))} style={styles.arrow}>
         <Text style={styles.glyph}>›</Text>

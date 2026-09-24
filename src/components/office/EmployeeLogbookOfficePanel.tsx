@@ -43,6 +43,7 @@ import { typography } from '@/theme';
 import { fetchLivePortalAppointmentsForEmployee } from '@/lib/portal/portalAppointmentsLiveService';
 import { fetchEmployeePortalClientRecords } from '@/lib/portal/employeePortalClientRecordsService';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
+import { officePeriodLabel } from '@/lib/wfm/wfmOfficeMonth';
 
 type Props = {
   tenantId: string;
@@ -50,13 +51,14 @@ type Props = {
   employeeName: string;
   canEdit: boolean;
   period?: WfmOfficeTimePeriod;
+  periodReadOnly?: boolean;
   onChanged?: () => Promise<void>;
   onEditorStateChange?: (state: WfmEditorState) => void;
 };
 
 const today = berlinToday;
 
-export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName, canEdit, period, onChanged, onEditorStateChange }: Props) {
+export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName, canEdit, period, periodReadOnly = false, onChanged, onEditorStateChange }: Props) {
   const [narrow, setNarrow] = useState(true);
   const [removedTrips, setRemovedTrips] = useState<Set<string>>(() => new Set());
   const [gpsMessage, setGpsMessage] = useState<string | null>(null);
@@ -65,8 +67,11 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
   const [model, setModel] = useState('');
   const [ownership, setOwnership] = useState<LogbookVehicleOwnership>('private');
   const [rate, setRate] = useState('0,30');
-  const [from, setFrom] = useState(period?.fromDate ?? EMPLOYEE_LOGBOOK_RECOVERY_SINCE.slice(0, 10));
-  const [to, setTo] = useState(period?.toDate ?? today());
+  const [customFrom, setFrom] = useState(period?.fromDate ?? EMPLOYEE_LOGBOOK_RECOVERY_SINCE.slice(0, 10));
+  const [customTo, setTo] = useState(period?.toDate ?? today());
+  // A parent-controlled month must apply to every view in the same render.
+  const from = periodReadOnly && period ? period.fromDate : customFrom;
+  const to = periodReadOnly && period ? period.toDate : customTo;
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
@@ -526,10 +531,14 @@ export function EmployeeLogbookOfficePanel({ tenantId, employeeId, employeeName,
       </SectionPanel>
 
       <SectionPanel title="Zeitraum & PDF" subtitle="Vollständigen Fahrtenbuchnachweis für die Personal- und Abrechnungsverwaltung erstellen">
-        <View style={styles.cols}>
+        {periodReadOnly && period ? (
+          <Text style={styles.tripSecondary}>
+            Ausgewählter Zeitraum: {officePeriodLabel(period)}. Die Monatsauswahl oben gilt auch für den PDF-Nachweis.
+          </Text>
+        ) : <View style={styles.cols}>
           <PremiumInput label="Von" accessibilityLabel="Von" value={from} onChangeText={setFrom} style={styles.grow} />
           <PremiumInput label="Bis" accessibilityLabel="Bis" value={to} onChangeText={setTo} style={styles.grow} />
-        </View>
+        </View>}
         <PremiumButton
           title="Fahrtenbuch als PDF erstellen"
           onPress={() => buildLogbookPdf({ employeeName, from, to, trips: currentTrips, vehicles: query.data!.vehicles, segments: query.data!.segments, receipts: query.data!.receipts, confirmations: query.data!.confirmations })}

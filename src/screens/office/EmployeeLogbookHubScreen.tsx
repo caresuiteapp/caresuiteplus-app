@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,7 +12,8 @@ import {
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { EmployeeLogbookOfficePanel } from '@/components/office/EmployeeLogbookOfficePanel';
 import { PersonalWorkspaceSurface } from '@/components/office/PersonalWorkspaceSurface';
-import { EmptyState, ErrorState, LoadingState, PremiumBadge } from '@/components/ui';
+import { WfmOfficeMonthSelector } from '@/components/wfm/WfmOfficeMonthSelector';
+import { EmptyState, ErrorState, LoadingState, PremiumBadge, SectionPanel } from '@/components/ui';
 import { useEmployeeList } from '@/hooks/useEmployeeList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -19,6 +21,8 @@ import type { EmployeeListItem } from '@/types/modules/employeeList';
 import { spacing, typography } from '@/theme';
 import { fetchEmployeeMobilitySettings } from '@/lib/office/employeeMobilityService';
 import { loadEmployeeLogbook } from '@/lib/employeeLogbook';
+import { berlinToday } from '@/lib/employeeLogbook/employeeLogbookDate';
+import { officeMonthPeriod, officePeriodLabel } from '@/lib/wfm/wfmOfficeMonth';
 
 function employeeName(employee: EmployeeListItem) {
   return `${employee.firstName} ${employee.lastName}`.trim();
@@ -31,6 +35,8 @@ export function EmployeeLogbookHubScreen() {
   const { allItems, loading, error, refresh } = useEmployeeList();
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(() => berlinToday().slice(0, 7));
+  const selectedPeriod = useMemo(() => officeMonthPeriod(selectedMonth), [selectedMonth]);
   const [eligibleEmployeeIds, setEligibleEmployeeIds] = useState<Set<string>>(new Set());
   const [eligibilityLoading, setEligibilityLoading] = useState(true);
   const stacked = width < 1040;
@@ -167,11 +173,22 @@ export function EmployeeLogbookHubScreen() {
                   </View>
                   <PremiumBadge label={can('office.employees.edit') ? 'BEARBEITEN' : 'NUR LESEN'} variant={can('office.employees.edit') ? 'green' : 'muted'} />
                 </View>
+                {Platform.OS === 'web' ? (
+                  <SectionPanel title="Monatsauswahl" subtitle={`${officePeriodLabel(selectedPeriod)} · GPS-Aufzeichnungen, Fahrten, Summen und PDF-Nachweis`}>
+                    <WfmOfficeMonthSelector
+                      value={selectedMonth}
+                      onChange={setSelectedMonth}
+                      currentMonth={berlinToday().slice(0, 7)}
+                    />
+                  </SectionPanel>
+                ) : null}
                 <EmployeeLogbookOfficePanel
                   canEdit={can('office.employees.edit')}
                   employeeId={selectedEmployee.id}
                   employeeName={employeeName(selectedEmployee)}
                   tenantId={tenantId}
+                  period={Platform.OS === 'web' ? selectedPeriod : undefined}
+                  periodReadOnly={Platform.OS === 'web'}
                 />
               </>
             ) : (
