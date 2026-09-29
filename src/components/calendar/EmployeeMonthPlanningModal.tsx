@@ -23,6 +23,31 @@ function cleanSlots(rows: PlanningDraft[]): PlanningSlot[] {
   return rows.map(({ id, date, kind, startTime, endTime, label }) => ({ id, date, kind, startTime, endTime, label: label.trim() }));
 }
 
+// Web-only control: the global form-input background covers RN Web's transparent Switch input.
+// A native button keeps the entire label clickable and supports both Space and Enter.
+function PlanningCheckbox({ checked, disabled, onChange, accessibilityLabel, label }: {
+  checked: boolean; disabled: boolean; onChange: (checked: boolean) => void; accessibilityLabel: string; label: string;
+}) {
+  const [focused, setFocused] = useState(false);
+  return <button type="button" role="checkbox" aria-checked={checked} aria-label={accessibilityLabel}
+    disabled={disabled} onClick={() => onChange(!checked)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minWidth: 0, minHeight: 44,
+      padding: '9px 12px', margin: 0, boxSizing: 'border-box', borderRadius: 10,
+      border: `1px solid ${checked ? '#086FDF' : '#9DB9D8'}`, background: checked ? '#EAF3FF' : '#FFFFFF',
+      color: '#173859', fontFamily: 'inherit', fontSize: 14, lineHeight: '20px', textAlign: 'left',
+      cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1,
+      outline: focused ? '3px solid #086FDF' : 'none', outlineOffset: 2 }}>
+    <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
+      width: 24, height: 24, flexShrink: 0, boxSizing: 'border-box', borderRadius: 5,
+      border: `2px solid ${checked ? '#086FDF' : '#316398'}`, background: checked ? '#086FDF' : '#FFFFFF' }}>
+      {checked ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+        <path d="m5 12 4 4L19 6" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg> : null}
+    </span>
+    <span style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{label}</span>
+  </button>;
+}
+
 export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName, month, initial, events, onClose, onSaved }: Props) {
   const { width } = useWindowDimensions();
   const [rows, setRows] = useState<PlanningDraft[]>(() => (initial?.slots ?? []).map((row) => ({ ...row })));
@@ -131,14 +156,11 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
             <Text style={styles.problemLinkText}>Zur ersten offenen Zeile</Text>
           </Pressable> : null}
         </View> : <Text accessibilityLiveRegion="polite" style={styles.hint}>{importBusy ? 'Erkennung läuft…' : saving ? 'Monatsplan wird gespeichert…' : error ? 'Noch nicht gespeichert. Bitte den Hinweis unten beachten.' : importResult && !reviewed ? 'Alle Angaben sind vollständig. Bitte die Prüfung bestätigen.' : conflicts.length && !conflictsReviewed ? 'Bitte die Terminkonflikte bestätigen.' : `${rows.length} Einträge · bereit zum Speichern.`}</Text>}
-        {importResult ? <View style={styles.line}>
-          <Switch accessibilityLabel="Import und Personenzuordnung vollständig geprüft" value={reviewed} onValueChange={setReviewed} disabled={busy} />
-          <Text style={styles.checkText}>Person, Monat und alle Einträge geprüft.</Text>
-        </View> : null}
-        {conflicts.length ? <View style={styles.line}>
-          <Switch accessibilityLabel="Planungskonflikte geprüft" value={conflictsReviewed} onValueChange={setConflictsReviewed} disabled={busy} />
-          <Text style={styles.checkText}>Terminkonflikte am {conflicts.map((d) => d.slice(8)).join(', ')}. geprüft; trotzdem speichern.</Text>
-        </View> : null}
+        {importResult ? <PlanningCheckbox accessibilityLabel="Import und Personenzuordnung vollständig geprüft"
+          checked={reviewed} onChange={setReviewed} disabled={busy} label="Person, Monat und alle Einträge geprüft." /> : null}
+        {conflicts.length ? <PlanningCheckbox accessibilityLabel="Planungskonflikte geprüft"
+          checked={conflictsReviewed} onChange={setConflictsReviewed} disabled={busy}
+          label={`Terminkonflikte am ${conflicts.map((d) => d.slice(8)).join(', ')}. geprüft; trotzdem speichern.`} /> : null}
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       </View> : undefined}
       footerActions={[
@@ -167,7 +189,9 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
           <View style={styles.line}>
             <PremiumButton title="Verfügbar" variant={kind === 'available' ? 'primary' : 'secondary'} disabled={busy} onPress={() => setKind('available')} />
             <PremiumButton title="Abwesend / Fremdjob" variant={kind === 'blocked' ? 'primary' : 'secondary'} disabled={busy} onPress={() => setKind('blocked')} />
-            <Text style={styles.text}>Ganztägig</Text><Switch accessibilityLabel="Ganztägig für ausgewählte Tage" value={allDay} onValueChange={setAllDay} disabled={busy} />
+            {localImport ? <PlanningCheckbox accessibilityLabel="Ganztägig für ausgewählte Tage" checked={allDay}
+              onChange={setAllDay} disabled={busy} label="Ganztägig für ausgewählte Tage" />
+              : <><Text style={styles.text}>Ganztägig</Text><Switch accessibilityLabel="Ganztägig für ausgewählte Tage" value={allDay} onValueChange={setAllDay} disabled={busy} /></>}
           </View>
           <View style={styles.line}>
             <TextInput style={styles.time} accessibilityLabel="Beginn für ausgewählte Tage" value={start} onChangeText={setStart} placeholder="08:00" placeholderTextColor="#64748B" editable={!busy && !allDay} maxLength={5} />
@@ -190,10 +214,8 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
           ] as const).map(([value, title]) => <PremiumButton key={value} size="sm" title={title} disabled={busy} variant={interpretation === value ? 'primary' : 'secondary'} onPress={() => setInterpretation(value)} />)}</View>
           <TextInput style={styles.note} value={employer} onChangeText={setEmployer} editable={!busy} maxLength={160} accessibilityLabel="Unser Arbeitgebername für die Zuordnung" placeholder="Unser Arbeitgebername bei gemischten Plänen, z. B. AVENTA" placeholderTextColor="#64748B" />
           {localImport ? <>
-            <View style={styles.line}>
-              <Switch accessibilityLabel="PDF trotz Textschicht als Scan lesen" value={forceOcr} onValueChange={setForceOcr} disabled={busy} />
-              <Text style={styles.checkText}>PDF als Scan lesen, wenn die Textschicht unvollständig ist</Text>
-            </View>
+            <PlanningCheckbox accessibilityLabel="PDF trotz Textschicht als Scan lesen" checked={forceOcr}
+              onChange={setForceOcr} disabled={busy} label="PDF als Scan lesen, wenn die Textschicht unvollständig ist" />
             <View style={styles.line}><Text style={styles.text}>Foto drehen:</Text>{[0, 90, 180, 270].map((degrees) => <PremiumButton key={degrees} size="sm" title={`${degrees}°`} variant={rotation === degrees ? 'primary' : 'secondary'} disabled={busy} onPress={() => setRotation(degrees)} />)}</View>
             <Text style={styles.hint}>PDF, JPG, PNG oder WebP · bis 10 MB und 12 PDF-Seiten. Bitte einen Plan pro Person wählen. Beim ersten Fotoimport werden die Erkennungsdateien von CareSuite geladen.</Text>
           </> : null}
