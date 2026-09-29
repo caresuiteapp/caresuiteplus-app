@@ -56,6 +56,9 @@ export function GradientModalActionButton({
   return (
     <Pressable
       onPress={loading || disabled ? undefined : onPress}
+      disabled={loading || disabled}
+      aria-disabled={loading || disabled}
+      accessibilityState={{ disabled: loading || disabled, busy: loading }}
       style={({ pressed }) => [
         styles.base,
         lightModal && isSecondary && !isDanger && glassButtons.secondary,

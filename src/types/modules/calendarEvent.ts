@@ -38,6 +38,8 @@ export type CalendarEvent = {
   clientName?: string;
   /** Mitarbeitendenname — primär für Einsätze. */
   employeeName?: string;
+  /** Stable identity for filtering; names are never used for authorization or matching. */
+  employeeId?: string;
   /** Leistung / Servicetitel — sekundär für Einsätze. */
   serviceTitle?: string;
   record?: import('@/types/calendar').CalendarEventRecord;

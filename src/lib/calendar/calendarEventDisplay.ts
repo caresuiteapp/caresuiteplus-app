@@ -99,6 +99,7 @@ export function enrichCalendarEventWithAssignment(
   assignment: {
     clientName: string;
     employeeName: string;
+    employeeId?: string | null;
     title: string;
     serviceName?: string | null;
     assignmentStatus?: string | null;
@@ -112,6 +113,7 @@ export function enrichCalendarEventWithAssignment(
 
   return {
     ...event,
+    employeeId: event.employeeId ?? assignment.employeeId ?? undefined,
     status: assignment.assignmentStatus ?? event.status,
     isAtRisk: assignment.isAtRisk ?? event.isAtRisk,
     isIncomplete: assignment.isIncomplete ?? event.isIncomplete,

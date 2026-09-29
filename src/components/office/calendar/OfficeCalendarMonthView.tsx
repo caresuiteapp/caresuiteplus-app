@@ -14,6 +14,7 @@ import {
   orderedWeekdayLabels,
   toDateKey,
 } from '@/lib/office/calendarDateUtils';
+import { EmployeePlanabilityBadge } from '@/components/calendar/EmployeePlanabilityBadge';
 import { OfficeCalendarEventChip } from './OfficeCalendarEventChip';
 import {
   buildAssignmentProfileDropTargetProps,
@@ -28,6 +29,7 @@ type OfficeCalendarMonthViewProps = {
   onEventPress?: (event: CalendarEvent) => void;
   selectedAssignmentProfileId?: string | null;
   onAssignmentProfileDrop?: AssignmentProfileDropHandler;
+  planabilityByDay?: Record<string, import('@/lib/calendar/employeeMonthPlanning').DayPlanability>;
 };
 
 export function OfficeCalendarMonthView({
@@ -38,6 +40,7 @@ export function OfficeCalendarMonthView({
   onEventPress,
   selectedAssignmentProfileId,
   onAssignmentProfileDrop,
+  planabilityByDay,
 }: OfficeCalendarMonthViewProps) {
   const portal = usePortalPremiumTheme();
   const today = new Date();
@@ -96,6 +99,7 @@ export function OfficeCalendarMonthView({
               ]}
             >
               <Text style={[styles.dayNum, !inMonth && styles.dayNumOutside]}>{date.getDate()}</Text>
+              {planabilityByDay?.[key] ? <EmployeePlanabilityBadge value={planabilityByDay[key]} /> : null}
               <View style={styles.events}>
                 {visible.map((event) => (
                   <OfficeCalendarEventChip

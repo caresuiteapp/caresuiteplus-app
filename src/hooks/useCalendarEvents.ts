@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -38,16 +38,25 @@ export function useCalendarEvents(
   const settingsScope = resolveSettingsScope(resolvedConfig);
   const { settings } = useTenantCalendarSettings(settingsScope);
 
+  const requestKey = `${tenantId}:${rangeStart}:${rangeEnd}:${JSON.stringify(resolvedConfig)}`;
+  const [loadedRange, setLoadedRange] = useState<{ key: string; ok: boolean } | null>(null);
   const query = useAsyncQuery(
-    () => {
+    async () => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-      return getCalendarEvents({
-        tenantId,
-        actorRoleKey: profile?.roleKey,
-        rangeStart,
-        rangeEnd,
-        config: resolvedConfig,
-      });
+      try {
+        const result = await getCalendarEvents({
+          tenantId,
+          actorRoleKey: profile?.roleKey,
+          rangeStart,
+          rangeEnd,
+          config: resolvedConfig,
+        });
+        setLoadedRange({ key: requestKey, ok: result.ok });
+        return result;
+      } catch (cause) {
+        setLoadedRange({ key: requestKey, ok: false });
+        throw cause;
+      }
     },
     [tenantId, profile?.roleKey, rangeStart, rangeEnd, resolvedConfig],
     { enabled: !!tenantId },
@@ -59,5 +68,5 @@ export function useCalendarEvents(
     return filterEventsByVisibleTypes(query.data, settings.visibleTypes);
   }, [query.data, settings]);
 
-  return { ...query, events, settings, config: resolvedConfig };
+  return { ...query, events, allEvents: query.data ?? [], calendarReady: loadedRange?.key === requestKey && loadedRange.ok, settings, config: resolvedConfig };
 }

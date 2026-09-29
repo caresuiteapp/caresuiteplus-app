@@ -55,6 +55,7 @@ type PlannerRenderState = {
 type Props = {
   children: (state: PlannerRenderState) => ReactNode;
   onScheduled: () => void | Promise<void>;
+  employeeIdFilter?: string;
 };
 
 const ASSIGNMENT_DROP_DATE_DATA_KEY = 'csAssignmentDropDate';
@@ -158,7 +159,7 @@ export function buildAssignmentProfileDropTargetProps(
   };
 }
 
-export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }: Props) {
+export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled, employeeIdFilter }: Props) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const compact = width < 1100;
@@ -188,7 +189,8 @@ export function OfficeAssignmentProfileCalendarPlanner({ children, onScheduled }
   const activeDragProfileId = useRef<string | null>(null);
   const dragPointer = useRef({ x: 0, y: 0 });
   const dragScrollFrame = useRef<number | null>(null);
-  const profiles = useMemo(() => query.data ?? [], [query.data]);
+  const profiles = useMemo(() => (query.data ?? []).filter((profile) => !employeeIdFilter || profile.employeeId === employeeIdFilter), [query.data, employeeIdFilter]);
+  useEffect(() => { setSelectedProfileId(null); setPendingProfileId(null); setPendingDate(null); }, [employeeIdFilter]);
   const employeeGroups = useMemo<EmployeeProfileGroup[]>(() => {
     const normalizedSearch = profileSearch.trim().toLocaleLowerCase('de-DE');
     const grouped = new Map<string, ClientAssignmentProfile[]>();

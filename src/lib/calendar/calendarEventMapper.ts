@@ -204,6 +204,7 @@ export function mapCalendarEventRecordToUi(record: CalendarEventRecord): Calenda
     type: uiType,
     color: resolveCalendarEventColor(record.moduleKey, record.eventType, record.colorKey),
     allDay: record.allDay,
+    employeeId: record.relatedEmployeeId ?? undefined,
     sourceId: record.sourceId ?? undefined,
     sourceType: record.sourceType,
     moduleKey: record.moduleKey,

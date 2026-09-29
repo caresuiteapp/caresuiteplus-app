@@ -111,6 +111,7 @@ export function buildBirthdayEvents(
         moduleKey: 'assist',
         status: 'aktiv',
         href: kind === 'employee' ? `/office/employees/${row.id}` : `/office/clients/${row.id}`,
+        employeeId: kind === 'employee' ? row.id : undefined,
         employeeName: kind === 'employee' ? nameOf(row) : undefined,
         clientName: kind === 'client' ? nameOf(row) : undefined,
       }];
@@ -141,6 +142,7 @@ export function buildAbsenceEvents(
         moduleKey: 'assist',
         status: row.status,
         href: `/office/employees/${row.employee_id}`,
+        employeeId: row.employee_id,
         employeeName,
       } satisfies CalendarEvent;
     });

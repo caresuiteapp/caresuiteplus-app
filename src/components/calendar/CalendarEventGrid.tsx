@@ -21,6 +21,7 @@ type CalendarEventGridProps = {
   onSelectMonth?: (monthIndex: number) => void;
   selectedAssignmentProfileId?: string | null;
   onAssignmentProfileDrop?: AssignmentProfileDropHandler;
+  planabilityByDay?: Record<string, import('@/lib/calendar/employeeMonthPlanning').DayPlanability>;
 };
 
 export function CalendarEventGrid({
@@ -35,6 +36,7 @@ export function CalendarEventGrid({
   onSelectMonth,
   selectedAssignmentProfileId,
   onAssignmentProfileDrop,
+  planabilityByDay,
 }: CalendarEventGridProps) {
   if (viewMode === 'day') {
     return (
@@ -67,6 +69,7 @@ export function CalendarEventGrid({
   if (viewMode === 'month') {
     return (
       <OfficeCalendarMonthView
+        planabilityByDay={planabilityByDay}
         anchor={anchor}
         events={events}
         weekStartDay={weekStartDay}
