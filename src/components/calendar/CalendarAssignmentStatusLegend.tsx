@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import {
   ASSIGNMENT_CALENDAR_VISUALS,
   type AssignmentCalendarState,
@@ -13,10 +13,21 @@ const STATES: AssignmentCalendarState[] = [
   'cancelled',
 ];
 
+// Opaque surfaces keep the status text readable on both light and dark calendar panels.
+const WEB_STATUS_BACKGROUNDS: Record<AssignmentCalendarState, string> = {
+  scheduled: '#EFF6FF',
+  active: '#ECFEFF',
+  open: '#FFFBEB',
+  problem: '#FEF2F2',
+  completed: '#F0FDF4',
+  cancelled: '#F1F5F9',
+};
+
 export function CalendarAssignmentStatusLegend() {
+  const web = Platform.OS === 'web';
   return (
-    <View style={styles.shell} accessibilityLabel="Farblegende für Einsatzstatus">
-      <Text style={styles.title}>EINSATZSTATUS</Text>
+    <View style={[styles.shell, web && styles.webShell]} accessibilityLabel="Farblegende für Einsatzstatus">
+      <Text style={[styles.title, web && styles.webTitle]}>EINSATZSTATUS</Text>
       <View style={styles.items}>
         {STATES.map((state) => {
           const visual = ASSIGNMENT_CALENDAR_VISUALS[state];
@@ -25,11 +36,12 @@ export function CalendarAssignmentStatusLegend() {
               key={state}
               style={[
                 styles.item,
-                { backgroundColor: visual.tint, borderColor: visual.outline },
+                web && styles.webItem,
+                { backgroundColor: web ? WEB_STATUS_BACKGROUNDS[state] : visual.tint, borderColor: visual.outline },
               ]}
             >
-              <Text style={[styles.symbol, { color: visual.color }]}>{visual.symbol}</Text>
-              <Text style={[styles.label, { color: visual.color }]}>{visual.legendLabel}</Text>
+              <Text style={[styles.symbol, web && styles.webSymbol, { color: visual.color }]}>{visual.symbol}</Text>
+              <Text style={[styles.label, web && styles.webLabel, { color: visual.color }]}>{visual.legendLabel}</Text>
             </View>
           );
         })}
@@ -79,4 +91,17 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     fontWeight: '800',
   },
+  webShell: {
+    padding: 12,
+    gap: 10,
+    backgroundColor: '#F3F8FE',
+    borderWidth: 1,
+    borderColor: '#C8DAEE',
+    borderTopColor: '#C8DAEE',
+    borderRadius: 14,
+  },
+  webTitle: { color: '#173859', fontSize: 11, lineHeight: 16 },
+  webItem: { minHeight: 34, maxWidth: '100%', paddingHorizontal: 12, paddingVertical: 7, gap: 7 },
+  webSymbol: { width: 14, fontSize: 13, lineHeight: 18 },
+  webLabel: { fontSize: 13, lineHeight: 18, flexShrink: 1, minWidth: 0 },
 });

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { CalendarViewMode } from '@/types/modules/calendarEvent';
 import { useActiveGlassTokens, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
@@ -39,7 +39,7 @@ export function CalendarViewSwitcher({
     : baseModes;
 
   return (
-    <View style={styles.chips}>
+    <View style={[styles.chips, Platform.OS === 'web' && styles.webChips]}>
       {modes.map((mode) => {
         const active = viewMode === mode.key;
         return (
@@ -50,11 +50,13 @@ export function CalendarViewSwitcher({
               styles.chip,
               { borderColor: glass.border, backgroundColor: glass.chip },
               active && { backgroundColor: glass.chipActive, borderColor: accentColor },
+              Platform.OS === 'web' && styles.webChip,
+              Platform.OS === 'web' && active && { backgroundColor: '#DDEEFF', borderColor: accentColor },
             ]}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
           >
-            <Text style={[styles.chipLabel, { color: active ? activeLabelColor : text.primary }]}>
+            <Text style={[styles.chipLabel, { color: active ? activeLabelColor : text.primary }, Platform.OS === 'web' && styles.webChipLabel]}>
               {mode.label}
             </Text>
           </Pressable>
@@ -79,5 +81,18 @@ const styles = StyleSheet.create({
   chipLabel: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  webChip: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EAF3FF',
+    borderColor: '#B7D0EC',
+  },
+  webChips: { flexShrink: 1, maxWidth: '100%', alignItems: 'center' },
+  webChipLabel: {
+    color: '#102B49',
+    lineHeight: 20,
+    textAlign: 'center',
   },
 });
