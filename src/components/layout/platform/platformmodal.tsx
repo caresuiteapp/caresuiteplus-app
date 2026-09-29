@@ -49,6 +49,7 @@ export type PlatformModalProps = {
   onBack?: () => void;
   headerActions?: ReactNode;
   footerActions?: PlatformModalAction[];
+  footerContent?: ReactNode;
   children: ReactNode;
   variant?: PlatformModalVariant;
   animationType?: 'fade' | 'slide' | 'none';
@@ -78,6 +79,7 @@ export function PlatformModal({
   onBack,
   headerActions,
   footerActions,
+  footerContent,
   children,
   variant = 'center',
   animationType,
@@ -284,9 +286,10 @@ export function PlatformModal({
       >
         {children}
       </PortalKeyboardScrollView>
-      {footerActions && footerActions.length > 0 ? (
+      {footerContent || (footerActions && footerActions.length > 0) ? (
         <View style={styles.footer}>
-          {footerActions.map((action) => (
+          {footerContent ? <View style={{ width: '100%', minWidth: 0 }}>{footerContent}</View> : null}
+          {footerActions?.map((action) => (
             <GradientModalActionButton
               key={action.title}
               title={action.title}

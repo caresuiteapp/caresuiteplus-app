@@ -1,7 +1,5 @@
 import type { WeekStartDay } from '@/types/modules/calendarEvent';
 
-const MS_PER_DAY = 86_400_000;
-
 export const DEFAULT_CALENDAR_TIMEZONE = 'Europe/Berlin';
 
 /** Calendar date (YYYY-MM-DD) for an instant in the given IANA timezone. */
@@ -175,10 +173,13 @@ export function eventOverlapsDay(
   }
 
   const dayStart = startOfDay(day).getTime();
-  const dayEnd = dayStart + MS_PER_DAY - 1;
+  // Calendar days can contain 23 or 25 hours at a daylight-saving transition.
+  // Timed events end exclusively: 24:00 belongs to the preceding day only.
+  const nextDayStart = startOfDay(addDays(day, 1)).getTime();
   const start = new Date(eventStart).getTime();
   const end = new Date(eventEnd).getTime();
-  return start <= dayEnd && end >= dayStart;
+  if (end === start) return start >= dayStart && start < nextDayStart;
+  return end > start && start < nextDayStart && end > dayStart;
 }
 
 export function eventsForDay<T extends { start: string; end: string; allDay?: boolean }>(

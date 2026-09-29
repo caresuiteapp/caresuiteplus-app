@@ -1,10 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { berlinTimestamp, datesInMonth, dayPlanability, eventIntervalForDate, filterEmployeeEvents, planningAbsenceEvents, subtractIntervals, validatePlanningSlots, type PlanningSlot } from '@/lib/calendar/employeeMonthPlanning';
+import { berlinTimestamp, datesInMonth, dayPlanability, eventIntervalForDate, filterEmployeeEvents, planningAbsenceEvents, subtractIntervals, validatePlanningSlots, withDefaultAvailabilityEnd, type PlanningSlot } from '@/lib/calendar/employeeMonthPlanning';
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
 const date = '2026-10-01';
 const slot = (patch: Partial<PlanningSlot> = {}): PlanningSlot => ({ id: 's', date, kind: 'available', startTime: '08:00', endTime: '17:00', label: '', ...patch });
 const event = (patch: Partial<CalendarEvent> = {}): CalendarEvent => ({ id: 'e', employeeId: 'a', title: 'Einsatz', type: 'einsatz', color: '#fff', start: berlinTimestamp(date, '10:00'), end: berlinTimestamp(date, '11:00'), ...patch });
 describe('employee month planning', () => {
+  it('defaults a missing availability end to midnight and keeps it editable', () => {
+    const draft = withDefaultAvailabilityEnd(slot({ startTime: '17:00', endTime: '' }));
+    expect(draft.endTime).toBe('24:00'); expect(draft.endTimeDefaulted).toBe(true);
+    expect(validatePlanningSlots([draft], '2026-10')).toEqual([]);
+    expect(withDefaultAvailabilityEnd({ ...draft, endTime: '20:00' }).endTime).toBe('20:00');
+  });
+  it('does not fabricate an unknown start or an external/unclassified end', () => {
+    const missingStart = withDefaultAvailabilityEnd(slot({ startTime: '', endTime: '' }));
+    expect(missingStart.startTime).toBe(''); expect(validatePlanningSlots([missingStart], '2026-10').length).toBeGreaterThan(0);
+    expect(withDefaultAvailabilityEnd(slot({ kind: 'blocked', endTime: '' })).endTime).toBe('');
+    expect(withDefaultAvailabilityEnd({ ...slot({ endTime: '' }), requiresClassification: true }).endTime).toBe('');
+    expect(withDefaultAvailabilityEnd(slot({ endTime: '18:00' })).endTime).toBe('18:00');
+  });
   it('computes remaining time around appointments and another job', () => {
     const result = dayPlanability(date, [slot(), slot({ id: 'b', kind: 'blocked', startTime: '12:00', endTime: '14:00' })], [event()]);
     expect(result.free).toEqual([{ start: 480, end: 600 }, { start: 660, end: 720 }, { start: 840, end: 1020 }]);

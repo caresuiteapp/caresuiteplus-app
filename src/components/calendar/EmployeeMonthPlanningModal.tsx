@@ -5,7 +5,7 @@ import { PremiumButton } from '@/components/ui/PremiumButton';
 import { importEmployeePlan, type PlanImportResult } from '@/lib/calendar/employeePlanImport';
 import { parseEmployeePlanText } from '@/lib/calendar/localPlanParser';
 import {
-  datesInMonth, dayPlanability, validatePlanningSlots,
+  datesInMonth, dayPlanability, validatePlanningSlots, withDefaultAvailabilityEnd,
   type EmployeeMonthPlan, type PlanningDraft, type PlanningKind, type PlanningSlot,
 } from '@/lib/calendar/employeeMonthPlanning';
 import { saveEmployeeMonth } from '@/lib/calendar/employeeMonthPlanningService';
@@ -29,7 +29,7 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [kind, setKind] = useState<PlanningKind>('available');
   const [start, setStart] = useState('08:00');
-  const [end, setEnd] = useState('17:00');
+  const [end, setEnd] = useState(Platform.OS === 'web' ? '24:00' : '17:00');
   const [label, setLabel] = useState('');
   const [allDay, setAllDay] = useState(false);
   const [employer, setEmployer] = useState('');
@@ -51,19 +51,39 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
   const [error, setError] = useState<string | null>(null);
   const dates = useMemo(() => datesInMonth(month), [month]);
   const validation = useMemo(() => [...validatePlanningSlots(rows, month), ...rows.flatMap((r, i) => r.requiresClassification ? [`Zeile ${i + 1}: bitte Verfügbar oder Gesperrt ausdrücklich zuordnen.`] : [])], [rows, month]);
+  const rowProblems = useMemo(() => {
+    const result = new Map<number, string[]>();
+    for (const message of validation) {
+      const match = /^Zeile (\d+):/.exec(message);
+      if (match) { const index = Number(match[1]) - 1; result.set(index, [...(result.get(index) ?? []), message]); }
+    }
+    return result;
+  }, [validation]);
   const dirty = JSON.stringify(cleanSlots(rows)) !== JSON.stringify(initial?.slots ?? []);
   const conflicts = useMemo(() => validation.length ? [] : dates.filter((d) => dayPlanability(d, rows, events).conflict), [dates, rows, events, validation]);
   const busy = importBusy || saving;
+  const saveBlocked = busy || !!validation.length || !!(importResult && !reviewed) || (!!conflicts.length && !conflictsReviewed);
+  const resetReview = () => { setConflictsReviewed(false); setReviewed(false); setError(null); };
+  const showFirstProblem = () => {
+    const index = rowProblems.keys().next().value;
+    if (localImport && index !== undefined && typeof document !== 'undefined') {
+      document.getElementById(`planning-row-${rows[index].id}`)?.scrollIntoView({ block: 'center', behavior: 'auto' });
+    }
+  };
   const update = (id: string, patch: Partial<PlanningDraft>) => {
-    setRows((current) => current.map((row) => row.id === id ? { ...row, ...patch } : row));
-    setConflictsReviewed(false); setReviewed(false);
+    setRows((current) => current.map((row) => {
+      if (row.id !== id) return row;
+      const changed = { ...row, ...patch, ...(patch.endTime !== undefined ? { endTimeDefaulted: false } : {}) };
+      return localImport ? withDefaultAvailabilityEnd(changed) : changed;
+    }));
+    resetReview();
   };
   const addSelected = () => {
     const additions: PlanningSlot[] = [...selected].sort().map((date) => ({ id: newId(), date, kind, startTime: allDay ? '00:00' : start, endTime: allDay ? '24:00' : end, label }));
     const errors = validatePlanningSlots(additions, month);
     if (errors.length) { setError(errors[0]); return; }
     setRows((current) => [...current, ...additions.filter((s) => !current.some((c) => c.date === s.date && c.kind === s.kind && c.startTime === s.startTime && c.endTime === s.endTime && c.label === s.label))].sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)));
-    setConflictsReviewed(false); setError(null);
+    resetReview();
   };
   const analyze = async () => {
     const controller = new AbortController(); importAbort.current = controller;
@@ -74,9 +94,10 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
         onProgress: (progress) => { if (mounted.current && !controller.signal.aborted) setImportProgress(`${progress.message}${progress.progress ? ` ${Math.round(progress.progress * 100)} %` : ''}`); },
       });
       if (result && mounted.current && !controller.signal.aborted) {
-        setImportResult(result); setReviewed(false); setConflictsReviewed(false);
+        const importedRows = localImport ? result.rows.map(withDefaultAvailabilityEnd) : result.rows;
+        setImportResult({ ...result, rows: importedRows }); setReviewed(false); setConflictsReviewed(false);
         setSourceText(result.extractedText ?? '');
-        setRows((current) => [...current, ...result.rows].sort((a, b) => a.date.localeCompare(b.date)));
+        setRows((current) => [...current, ...importedRows].sort((a, b) => a.date.localeCompare(b.date)));
       }
     } catch (e) { if (mounted.current && !controller.signal.aborted) setError(e instanceof Error ? e.message : 'Import fehlgeschlagen.'); }
     finally { if (mounted.current) { setImportBusy(false); setImportProgress(''); } importAbort.current = null; }
@@ -85,14 +106,14 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
     try {
       const parsed = parseEmployeePlanText(sourceText, { month, employer, interpretation, employeeName });
       const result: PlanImportResult = { ...parsed, filename: importResult?.filename ?? 'Eingegebener Text', extractedText: sourceText,
-        extraction: 'Text auf diesem Gerät ausgewertet', rows: parsed.rows.map((r) => ({ ...r, id: newId() })) };
+        extraction: 'Text auf diesem Gerät ausgewertet', rows: parsed.rows.map((r) => withDefaultAvailabilityEnd({ ...r, id: newId() })) };
       const previousIds = new Set(importResult?.rows.map((r) => r.id) ?? []);
       setRows((current) => [...current.filter((r) => !previousIds.has(r.id)), ...result.rows].sort((a, b) => a.date.localeCompare(b.date)));
       setImportResult(result); setReviewed(false); setConflictsReviewed(false); setError(null);
     } catch (e) { setError(e instanceof Error ? e.message : 'Text konnte nicht ausgewertet werden.'); }
   };
   const save = async () => {
-    if (busy || validation.length || (importResult && !reviewed) || (conflicts.length && !conflictsReviewed)) return;
+    if (saveBlocked) return;
     setSaving(true); setError(null);
     try {
       await saveEmployeeMonth(tenantId, employeeId, month, initial?.revision ?? 0, cleanSlots(rows));
@@ -103,8 +124,25 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
   return (
     <PlatformModal visible title={localImport && width < 600 ? 'Monatsplanung' : 'Verfügbarkeiten & Abwesenheiten'} subtitle={`${employeeName} · ${month} · Europe/Berlin`}
       onClose={() => { if (!busy) onClose(); }} isDirty={dirty} maxWidth={1080} dismissOnBackdrop={!busy}
+      footerContent={localImport ? <View style={styles.saveReview}>
+        {validation.length ? <View style={styles.importInfo}>
+          <Text accessibilityLiveRegion="polite" style={styles.error}>Noch {validation.length} {validation.length === 1 ? 'Angabe' : 'Angaben'} korrigieren. {validation[0]}</Text>
+          {rowProblems.size ? <Pressable accessibilityRole="button" disabled={busy} onPress={showFirstProblem} style={styles.problemLink}>
+            <Text style={styles.problemLinkText}>Zur ersten offenen Zeile</Text>
+          </Pressable> : null}
+        </View> : <Text accessibilityLiveRegion="polite" style={styles.hint}>{importBusy ? 'Erkennung läuft…' : saving ? 'Monatsplan wird gespeichert…' : error ? 'Noch nicht gespeichert. Bitte den Hinweis unten beachten.' : importResult && !reviewed ? 'Alle Angaben sind vollständig. Bitte die Prüfung bestätigen.' : conflicts.length && !conflictsReviewed ? 'Bitte die Terminkonflikte bestätigen.' : `${rows.length} Einträge · bereit zum Speichern.`}</Text>}
+        {importResult ? <View style={styles.line}>
+          <Switch accessibilityLabel="Import und Personenzuordnung vollständig geprüft" value={reviewed} onValueChange={setReviewed} disabled={busy} />
+          <Text style={styles.checkText}>Person, Monat und alle Einträge geprüft.</Text>
+        </View> : null}
+        {conflicts.length ? <View style={styles.line}>
+          <Switch accessibilityLabel="Planungskonflikte geprüft" value={conflictsReviewed} onValueChange={setConflictsReviewed} disabled={busy} />
+          <Text style={styles.checkText}>Terminkonflikte am {conflicts.map((d) => d.slice(8)).join(', ')}. geprüft; trotzdem speichern.</Text>
+        </View> : null}
+        {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
+      </View> : undefined}
       footerActions={[
-        { title: saving ? 'Wird gespeichert…' : 'Monatsplan speichern', onPress: save, disabled: busy || !!validation.length || !!(importResult && !reviewed) || (!!conflicts.length && !conflictsReviewed), loading: saving },
+        { title: saving ? 'Wird gespeichert…' : 'Monatsplan speichern', onPress: save, disabled: saveBlocked, loading: saving },
       ]}>
       <View style={styles.body}>
         <Text style={styles.hint}>Verfügbare Zeiten und Planungssperren gelten nur für diese Person und diesen Monat. Nicht gemeldete Tage bleiben offen. Bestehende Urlaubs- und Krankmeldungen werden zusätzlich berücksichtigt.</Text>
@@ -139,7 +177,7 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
           </View>
           <View style={styles.line}>
             <PremiumButton title={`${selected.size} Tage hinzufügen`} disabled={busy || !selected.size} onPress={addSelected} />
-            <PremiumButton title={localImport ? 'Gewählte Tage leeren' : 'Einträge dieser Tage entfernen'} variant="ghost" disabled={busy || !selected.size} onPress={() => { setRows((current) => current.filter((r) => !selected.has(r.date))); setConflictsReviewed(false); }} />
+            <PremiumButton title={localImport ? 'Gewählte Tage leeren' : 'Einträge dieser Tage entfernen'} variant="ghost" disabled={busy || !selected.size} onPress={() => { setRows((current) => current.filter((r) => !selected.has(r.date))); resetReview(); }} />
           </View>
         </View>
         <View style={styles.card}>
@@ -170,7 +208,8 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
             <Text style={styles.text}>Erkannte Person: {importResult.personName || 'nicht angegeben'} · erkannter Monat: {importResult.documentMonth || 'nicht angegeben'}</Text>
             <Text style={styles.hint}>Zielperson: {employeeName}. Bitte Zuordnung und alle Zeilen prüfen. Unklare Zuordnungen müssen vor dem Speichern ausdrücklich festgelegt werden.</Text>
             {importResult.documentMonth && importResult.documentMonth !== month ? <Text style={styles.error}>Der erkannte Monat stimmt nicht mit dem Zielmonat {month} überein.</Text> : null}
-            {importResult.warnings.map((warning, i) => <Text key={i} style={styles.warning}>{warning}</Text>)}
+            {localImport && importResult.warnings.length ? <Text style={styles.hint}>Hinweise aus der ursprünglichen Erkennung. Den aktuellen Prüfstand findest du beim Speicherknopf.</Text> : null}
+            {importResult.warnings.filter((warning) => !localImport || !/^\d+ Zeitfenster ohne vollständige Uhrzeiten\./.test(warning)).map((warning, i) => <Text key={i} style={styles.warning}>{warning}</Text>)}
             {!importResult.rows.length ? <Text style={styles.warning}>Keine Zeitfenster erkannt. Bitte Angaben manuell erfassen oder ein deutlicheres Bild verwenden.</Text> : null}
             {importResult.unrecognized?.length ? <View style={styles.importInfo}><Text style={styles.text}>Nicht zugeordnete Zeilen</Text>{importResult.unrecognized.map((line, i) => <Text key={i} style={styles.hint}>{line}</Text>)}</View> : null}
           </View> : null}
@@ -186,9 +225,10 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
         <View style={styles.card}>
           <Text style={styles.heading}>3 · Monatsplan prüfen und bearbeiten · {rows.length} Einträge</Text>
           <Text style={styles.hint}>Zeiten in HH:MM. 24:00 bedeutet Tagesende. Nachtdienste auf zwei Tage aufteilen. Mehrere Zeitfenster pro Tag sind möglich. Einträge aus wiederholten Uploads bitte auf Doppelungen prüfen.</Text>
+          {localImport ? <Text style={styles.hint}>Bei Verfügbarkeiten wird eine fehlende Endzeit automatisch auf 24:00 Uhr gesetzt und kann angepasst werden.</Text> : null}
           {rows.length === 0 ? <Text style={styles.text}>Noch keine Angaben für diesen Monat.</Text> : null}
           {rows.map((row, index) => (
-            <View key={row.id} style={[styles.row, row.uncertain && styles.uncertain]}>
+            <View key={row.id} nativeID={`planning-row-${row.id}`} style={[styles.row, row.uncertain && styles.uncertain, localImport && rowProblems.has(index) && styles.invalidRow]}>
               <View style={styles.line}>
                 <Text style={styles.rowIndex}>{index + 1}</Text>
                 <TextInput style={styles.dateInput} accessibilityLabel={`Zeile ${index + 1} Datum`} value={row.date} editable={!busy} onChangeText={(date) => update(row.id, { date })} maxLength={10} />
@@ -200,25 +240,27 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
                 <TextInput style={styles.time} accessibilityLabel={`Zeile ${index + 1} Beginn`} value={row.startTime} editable={!busy} placeholder="Beginn" placeholderTextColor="#64748B" onChangeText={(startTime) => update(row.id, { startTime })} maxLength={5} />
                 <TextInput style={styles.time} accessibilityLabel={`Zeile ${index + 1} Ende`} value={row.endTime} editable={!busy} placeholder="Ende" placeholderTextColor="#64748B" onChangeText={(endTime) => update(row.id, { endTime })} maxLength={5} />
                 <PremiumButton size="sm" title="Ganztägig" variant="ghost" disabled={busy} onPress={() => update(row.id, { startTime: '00:00', endTime: '24:00' })} />
-                <PremiumButton size="sm" title="Entfernen" variant="ghost" disabled={busy} onPress={() => { setRows((current) => current.filter((r) => r.id !== row.id)); setConflictsReviewed(false); }} />
+                <PremiumButton size="sm" title="Entfernen" variant="ghost" disabled={busy} onPress={() => { setRows((current) => current.filter((r) => r.id !== row.id)); resetReview(); }} />
               </View>
               <TextInput style={styles.note} accessibilityLabel={`Zeile ${index + 1} Bezeichnung`} value={row.label} editable={!busy} onChangeText={(nextLabel) => update(row.id, { label: nextLabel })} maxLength={160} />
               {row.sourceText ? <Text style={styles.hint}>Fundstelle: {row.sourceText}</Text> : null}
+              {localImport && row.endTimeDefaulted ? <Text style={styles.hint}>Ende automatisch auf 24:00 Uhr ergänzt · bei Bedarf ändern.</Text> : null}
               {row.uncertain ? <Text style={styles.warning}>Erkennung unsicher – Datum, Zuordnung und Zeiten ausdrücklich prüfen.</Text> : null}
+              {localImport ? rowProblems.get(index)?.map((message) => <Text key={message} style={styles.error}>{message}</Text>) : null}
             </View>
           ))}
           {validation.slice(0, 6).map((message) => <Text key={message} style={styles.error}>{message}</Text>)}
           {validation.length > 6 ? <Text style={styles.error}>Weitere {validation.length - 6} Angaben sind unvollständig.</Text> : null}
-          {importResult ? <View style={styles.line}>
+          {importResult && !localImport ? <View style={styles.line}>
             <Switch accessibilityLabel="Import und Personenzuordnung vollständig geprüft" value={reviewed} onValueChange={setReviewed} disabled={busy} />
             <Text style={styles.checkText}>Ich habe Person, Monat, alle erkannten Zeilen und fehlende Angaben geprüft.</Text>
           </View> : null}
           {conflicts.length ? <>
             <Text style={styles.warning}>Planungskonflikte mit bestehenden Terminen: {conflicts.map((d) => d.slice(8)).join(', ')}. {month}. Bestehende Einsätze bleiben bestehen und müssen umgeplant werden.</Text>
-            <View style={styles.line}><Switch accessibilityLabel="Planungskonflikte geprüft" value={conflictsReviewed} onValueChange={setConflictsReviewed} disabled={busy} /><Text style={styles.checkText}>Konflikte geprüft; Monatsplan trotzdem speichern.</Text></View>
+            {!localImport ? <View style={styles.line}><Switch accessibilityLabel="Planungskonflikte geprüft" value={conflictsReviewed} onValueChange={setConflictsReviewed} disabled={busy} /><Text style={styles.checkText}>Konflikte geprüft; Monatsplan trotzdem speichern.</Text></View> : null}
           </> : null}
         </View>
-        {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
+        {error && !localImport ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       </View>
     </PlatformModal>
   );
@@ -234,6 +276,9 @@ const styles = StyleSheet.create({
   note: { minWidth: 180, flexGrow: 1, minHeight: 42, padding: 10, borderWidth: 1, borderColor: '#99B3D2', borderRadius: 10, backgroundColor: '#FFF', color: '#112D50' },
   row: { padding: 12, borderRadius: 12, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#D0DCEC', gap: 8 },
   rowIndex: { color: '#526C89', minWidth: 18 }, uncertain: { borderColor: '#D5961A', backgroundColor: '#FFFAE9' },
+  invalidRow: { borderColor: '#AC1635', backgroundColor: '#FFF5F6' },
+  saveReview: { gap: 6, padding: 10, borderRadius: 12, backgroundColor: '#F3F8FE' }, problemLink: { alignSelf: 'flex-start', paddingVertical: 6, minHeight: 32, justifyContent: 'center' },
+  problemLinkText: { color: '#086FDF', fontSize: 13, fontWeight: '700', textDecorationLine: 'underline' },
   error: { color: '#AC1635', fontSize: 14 }, warning: { color: '#845209', fontSize: 13, lineHeight: 19 },
   checkText: { color: '#173859', flex: 1, minWidth: 170, fontSize: 14 }, importInfo: { gap: 6 },
   sourceInput: { minHeight: 200, textAlignVertical: 'top', fontSize: 14, lineHeight: 21, flexGrow: 0 },

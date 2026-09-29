@@ -52,6 +52,35 @@ ist für den neuen Web-Import erforderlich.
 
 ## Build und Prüfung
 
+Auf ausdrücklichen Nutzerwunsch ergänzt der Web-Dialog fehlende Endzeiten bei
+als verfügbar zugeordneten Einträgen mit 24:00 Uhr. Die Ergänzung ist sichtbar
+gekennzeichnet und bearbeitbar; erkannte Endzeiten bleiben erhalten. Beginnzeiten
+werden nicht erfunden, fremde Dienste und unklare Zuordnungen behalten ihre
+Pflichtprüfung. Auch die manuelle Schnellerfassung startet mit Ende 24:00 Uhr.
+
+Die Web-Monatsplanung zeigt den aktuellen Prüfstand und die Importbestätigung
+fest beim Speicherknopf. Fehlende Angaben werden zusätzlich an der jeweiligen
+Zeile angezeigt; „Zur ersten offenen Zeile“ führt direkt dorthin. Die ursprüngliche
+Anzahl fehlender Uhrzeiten aus der Erkennung wird durch die laufende Validierung
+ersetzt. Eine Importbestätigung allein übergeht weder ungültige Angaben noch
+offene Zuordnungen. Konflikte mit Terminen erfordern weiterhin eine eigene
+Bestätigung. Änderungen, Hinzufügen und Entfernen setzen die Bestätigungen zurück.
+Fehler beim Speichern bleiben im festen Prüfbereich sichtbar; die Eingaben bleiben
+für einen erneuten Versuch im geöffneten Fenster erhalten.
+
+Regression am tatsächlichen Web-Dialog prüfen: 30 importierte Zeilen korrigieren,
+fehlende Zeiten und offene Zuordnung ergänzen, bestätigen und speichern;
+Speicherfehler mit erhaltenem Entwurf und Wiederholung; separate Konfliktbestätigung;
+manuelle Eingabe ohne Import. Breite und schmale Fenster (1440, 600, 390 Pixel)
+einschließlich sichtbarer Bestätigungen und Fehlermeldungen prüfen.
+
+Die Monats-, Wochen- und Tagesansicht verwenden für Ereignisse mit Uhrzeit ein
+exklusives Ende. Eine Sperre am 06.10. von 00:00 bis 24:00 erscheint deshalb nur
+am 06.10.; echte Nachtdienste reichen weiterhin in den Folgetag. Die Tagesgrenze
+ist die nächste örtliche Mitternacht, auch bei 23-/25-Stunden-Tagen. Bestehende
+ganztägige Abwesenheiten behalten ihre inklusiven Datumsgrenzen. Die gespeicherten
+Monatspläne werden durch diese Darstellungskorrektur nicht verändert.
+
 `npm run web` bereitet die Reader-Dateien über `preweb` vor. Der Produktionsbuild
 wird mit `npm run build:web:production` gestartet. Dieser kurze Aufruf steht auch
 in `vercel.json`, weil Vercel dort höchstens 256 Zeichen für `buildCommand` erlaubt.

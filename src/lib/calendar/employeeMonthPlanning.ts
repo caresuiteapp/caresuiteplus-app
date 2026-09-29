@@ -9,7 +9,14 @@ export type PlanningSlot = {
   endTime: string;
   label: string;
 };
-export type PlanningDraft = PlanningSlot & { sourceText?: string; uncertain?: boolean; requiresClassification?: boolean };
+export type PlanningDraft = PlanningSlot & { sourceText?: string; uncertain?: boolean; requiresClassification?: boolean; endTimeDefaulted?: boolean };
+
+/** User-selected availability default; known end times and unclassified/external shifts stay intact. */
+export function withDefaultAvailabilityEnd(row: PlanningDraft): PlanningDraft {
+  return row.kind === 'available' && !row.requiresClassification && !row.endTime.trim()
+    ? { ...row, endTime: '24:00', endTimeDefaulted: true }
+    : row;
+}
 export type EmployeeMonthPlan = {
   tenant_id: string;
   employee_id: string;
