@@ -52,7 +52,11 @@ ist für den neuen Web-Import erforderlich.
 
 ## Build und Prüfung
 
-`npm run web` bereitet die Reader-Dateien über `preweb` vor. Der Vercel-Build führt
+`npm run web` bereitet die Reader-Dateien über `preweb` vor. Der Produktionsbuild
+wird mit `npm run build:web:production` gestartet. Dieser kurze Aufruf steht auch
+in `vercel.json`, weil Vercel dort höchstens 256 Zeichen für `buildCommand` erlaubt.
+Der vorangestellte Konfigurationscheck prüft diese Grenze auch beim lokalen Build.
+Expo verwendet zwei Worker wie bei der Referenzprüfung. Der Vercel-Build führt
 `scripts/prepare-calendar-reader.mjs` vor dem Expo-Export aus und prüft anschließend
 mit `scripts/audit-calendar-reader-export.mjs dist` alle benötigten Reader-Dateien.
 Bei direktem `expo export` vorher `npm run calendar:reader:prepare` ausführen.
