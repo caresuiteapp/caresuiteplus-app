@@ -106,7 +106,7 @@
     "calendar:reader:prepare": "node scripts/prepare-calendar-reader.mjs",
     "preweb": "npm run calendar:reader:prepare",
     "calendar:reader:verify": "npm run calendar:reader:prepare && node scripts/verify-calendar-reader.mjs",
-    "build:web:production": "node scripts/audit-vercel-config.mjs && node scripts/prepare-calendar-reader.mjs && EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web --clear --max-workers 2 && node scripts/audit-calendar-reader-export.mjs dist && node scripts/audit-web-navigation-export.mjs dist && node scripts/build-public-branding-pages.mjs --output dist"
+    "build:web:production": "node scripts/audit-vercel-config.mjs && node scripts/prepare-calendar-reader.mjs && node scripts/prepare-neo-voice.mjs && EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web --clear --max-workers 2 && node scripts/audit-neo-voice-export.mjs dist && node scripts/audit-calendar-reader-export.mjs dist && node scripts/audit-web-navigation-export.mjs dist && node scripts/build-public-branding-pages.mjs --output dist"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.15",

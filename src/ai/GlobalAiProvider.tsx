@@ -36,6 +36,7 @@ import {
   requestMicrophoneAccess,
 } from '@/lib/platform/microphonePermission';
 import { VoiceOrb } from './VoiceOrb';
+import { RobotNavigationAssistant } from './robot/RobotNavigationAssistant';
 import { CARESUITE_KI_UI_ENABLED } from './aiFeatureFlags';
 import {
   exchangeRealtimeCallOffer,
@@ -530,6 +531,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
   return (
     <AiContext.Provider value={value}>
       {children}
+      <RobotNavigationAssistant />
       {showAi ? (
         <View style={aiOverlayStyle} pointerEvents="box-none">
           <VoiceOrb

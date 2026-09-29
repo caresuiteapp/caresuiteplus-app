@@ -45,3 +45,28 @@ supabase/.branches/
 
 # Generated local PDF/OCR browser assets (rebuilt from package-lock).
 public/calendar-reader/
+
+# Neo local voice assets are generated and verified during the web build.
+.caresuite-robot-backup/
+/public/neo-voice/v1/licenses/espeak-ng-source.tar.gz
+/public/neo-voice/v1/licenses/piper-phonemize-source.tar.gz
+/public/neo-voice/v1/ort-wasm-simd.wasm
+/public/neo-voice/v1/ort-wasm.wasm
+/public/neo-voice/v1/ort.wasm.min.js
+/public/neo-voice/v1/piper_phonemize.data
+/public/neo-voice/v1/piper_phonemize.js
+/public/neo-voice/v1/piper_phonemize.wasm
+/public/neo-voice/v1/voice-00.bin
+/public/neo-voice/v1/voice-01.bin
+/public/neo-voice/v1/voice-02.bin
+/public/neo-voice/v1/voice-03.bin
+/public/neo-voice/v1/voice-04.bin
+/public/neo-voice/v1/voice-05.bin
+/public/neo-voice/v1/voice-06.bin
+/public/neo-voice/v1/voice-07.bin
+/public/neo-voice/v1/voice-08.bin
+/public/neo-voice/v1/voice-09.bin
+/public/neo-voice/v1/voice-10.bin
+/public/neo-voice/v1/voice-11.bin
+/public/neo-voice/v1/voice-12.bin
+/public/neo-voice/v1/voice-13.bin

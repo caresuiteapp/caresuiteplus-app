@@ -1,0 +1,481 @@
+{
+  "modelSha256": "9df1c43c61149ef9b39e618e2b861fbe41e1fcea9390b2dac62e8761573ea4f1",
+  "sampleRate": 22050,
+  "piperVersion": "1.4.2",
+  "lengthScale": 1.18,
+  "noiseScale": 0.6,
+  "noiseWScale": 0.7,
+  "targetLoudnessLUFS": -20,
+  "replies": 63,
+  "uniqueClips": 52,
+  "clips": [
+    {
+      "clipId": "9d55406b70f70ca4",
+      "text": "Klar, zur Startseite.",
+      "duration": 1.428,
+      "bytes": 15196,
+      "peak": 0.678,
+      "rms": 0.0757,
+      "sha256": "d2cc5f732147108810f7ef47ebadc1c277dba41c00c57abbb20f1e44d3e51c14"
+    },
+    {
+      "clipId": "b866425b6f67350d",
+      "text": "Geht klar.",
+      "duration": 1.08,
+      "bytes": 11800,
+      "peak": 0.6716,
+      "rms": 0.0917,
+      "sha256": "5cbeb5b5180e798953de435ca9680cff9c15d04a2a6805ca652283eaede35264"
+    },
+    {
+      "clipId": "adfddceb40522e4e",
+      "text": "Zurück zur Übersicht.",
+      "duration": 1.173,
+      "bytes": 12584,
+      "peak": 0.6176,
+      "rms": 0.0987,
+      "sha256": "6ebf32335606f57e2ba0e9e5f6dc66ca38c0d2662357b32117e981637bef08ea"
+    },
+    {
+      "clipId": "57bc38fc0f2520ea",
+      "text": "Klar, zu den Klienten.",
+      "duration": 1.625,
+      "bytes": 17286,
+      "peak": 0.5783,
+      "rms": 0.1021,
+      "sha256": "f6ebf62392f3f696a3ffa819c63bb91b3a632d6d0536ad86670d63547a38e084"
+    },
+    {
+      "clipId": "dae124448d15e8fa",
+      "text": "Alles klar.",
+      "duration": 0.778,
+      "bytes": 8665,
+      "peak": 0.6585,
+      "rms": 0.1014,
+      "sha256": "3b1ea398267830454425326f643cbf7774ef1b89abb7216e53d45473ede531d9"
+    },
+    {
+      "clipId": "218f342fdf4c5795",
+      "text": "Ich hole dir die Übersicht.",
+      "duration": 1.207,
+      "bytes": 13106,
+      "peak": 0.5849,
+      "rms": 0.0964,
+      "sha256": "68c95285575d2f2c17939783e99ff7a9b68f510fc02c18a45a5e3304ee98a7fc"
+    },
+    {
+      "clipId": "06d39f9651dab387",
+      "text": "Klar, zum Team.",
+      "duration": 1.312,
+      "bytes": 14151,
+      "peak": 0.6143,
+      "rms": 0.1031,
+      "sha256": "6769736c9dfd4449f2db01886bc41e6dc0d960133d4acf39d9e611361a28dcbc"
+    },
+    {
+      "clipId": "cb4cfa7791eb7140",
+      "text": "Zu den Mitarbeitenden.",
+      "duration": 1.37,
+      "bytes": 14674,
+      "peak": 0.6357,
+      "rms": 0.0953,
+      "sha256": "e41205290168b0300f8b52ee0fdc1e5b458be43b7e40a0d720133849241c23db"
+    },
+    {
+      "clipId": "9ae510f3a895c85d",
+      "text": "Klar, zum Kalender.",
+      "duration": 1.138,
+      "bytes": 12323,
+      "peak": 0.5005,
+      "rms": 0.0982,
+      "sha256": "69c177a3e46d18707284ea0fe31160bba2879159e47b73c6d87dcd7ad655b378"
+    },
+    {
+      "clipId": "250559ff8fa84391",
+      "text": "Zum Kalender, geht klar.",
+      "duration": 1.649,
+      "bytes": 17547,
+      "peak": 0.6664,
+      "rms": 0.0971,
+      "sha256": "c14171fa802e8b6898a09f68649fe8ff8f7860a6118afed50ba384ce1e123bb8"
+    },
+    {
+      "clipId": "3562b883ae956843",
+      "text": "Klar, zu den Einsätzen.",
+      "duration": 1.428,
+      "bytes": 15196,
+      "peak": 0.5459,
+      "rms": 0.1033,
+      "sha256": "7624063f6146882ad492c1ddd0118f8d1ac6f5408f8d6f278c0b44430f1cc511"
+    },
+    {
+      "clipId": "9d11dae677634bd9",
+      "text": "Ich hole dir die Einsatzübersicht.",
+      "duration": 1.66,
+      "bytes": 17547,
+      "peak": 0.5452,
+      "rms": 0.0949,
+      "sha256": "3dd0b73b871a6bacc83023aba363b75d8e93d0eec23861e4332dca7aa7d5ff30"
+    },
+    {
+      "clipId": "9ba757815809b65a",
+      "text": "Klar, zu den Nachweisen.",
+      "duration": 1.811,
+      "bytes": 19114,
+      "peak": 0.6352,
+      "rms": 0.1008,
+      "sha256": "c48ab57d4443c7fe59b2422c635e90dde002ac9354423bbdc5835471f6a5b444"
+    },
+    {
+      "clipId": "c7218b48cd8b6f99",
+      "text": "Zu den Leistungsnachweisen.",
+      "duration": 1.8,
+      "bytes": 18853,
+      "peak": 0.6331,
+      "rms": 0.0955,
+      "sha256": "d0e6024cc1e763ec3c7ff588666a0175ac2e6f2e4e18da2c2a64546155f120a3"
+    },
+    {
+      "clipId": "8d2cc99a06dbd33e",
+      "text": "Klar, zu den Rechnungen.",
+      "duration": 1.556,
+      "bytes": 16502,
+      "peak": 0.6503,
+      "rms": 0.1014,
+      "sha256": "93f20883d61994e17f6c230c3d142805555f29157d9be049195b235ddcdfc06c"
+    },
+    {
+      "clipId": "e248c9dbdfca748a",
+      "text": "Ich hole dir die Rechnungsübersicht.",
+      "duration": 1.834,
+      "bytes": 19376,
+      "peak": 0.6507,
+      "rms": 0.0972,
+      "sha256": "e5ca49e2b171c78d81620fccb33c1ee524bdc1802bbdce872ee107bf53799626"
+    },
+    {
+      "clipId": "61797ceaa8add2bd",
+      "text": "Klar, zu den Dokumenten.",
+      "duration": 1.602,
+      "bytes": 17025,
+      "peak": 0.5828,
+      "rms": 0.1024,
+      "sha256": "5c30180c4645cda8966b9c7d231069d237ed7328663224d7b0cbffa65a96f33e"
+    },
+    {
+      "clipId": "1f02e6730f2843ce",
+      "text": "Zur Dokumentenablage.",
+      "duration": 1.347,
+      "bytes": 14412,
+      "peak": 0.5739,
+      "rms": 0.0992,
+      "sha256": "61fdfa81da54f0cf4d2ba09c93aca3741cb2dcfc0cc12bf454772f81653f4460"
+    },
+    {
+      "clipId": "1154957a97f733ec",
+      "text": "Klar, zu den Nachrichten.",
+      "duration": 1.765,
+      "bytes": 18592,
+      "peak": 0.574,
+      "rms": 0.0958,
+      "sha256": "8bc67d5a66ad38039343bdb64256ea2c7c8b91a9c1b07e7216ff4880b5300486"
+    },
+    {
+      "clipId": "49a6f08be588f85f",
+      "text": "Zum Postfach.",
+      "duration": 0.987,
+      "bytes": 10755,
+      "peak": 0.6739,
+      "rms": 0.0816,
+      "sha256": "562356589a4a060baf94014ce423dd2d3810d43001a4eea8fb52160b83c14dda"
+    },
+    {
+      "clipId": "8b7173e596e37527",
+      "text": "Klar, zu den Terminen.",
+      "duration": 1.544,
+      "bytes": 16502,
+      "peak": 0.4935,
+      "rms": 0.099,
+      "sha256": "1e772bcf38b45997bc0e60f29c60a5c557f40cfdff0835d083a8f1a8028b5c02"
+    },
+    {
+      "clipId": "e2f92c4d55f9bd5f",
+      "text": "Ich hole dir die Terminübersicht.",
+      "duration": 1.683,
+      "bytes": 17808,
+      "peak": 0.5368,
+      "rms": 0.0964,
+      "sha256": "ac0cf90d52c62d3dd0c5ca65ea0fad44f16269f82e3b2627702d5cc22d09336f"
+    },
+    {
+      "clipId": "6136f5c89b436bc0",
+      "text": "Klar, zum Fahrtenbuch.",
+      "duration": 1.8,
+      "bytes": 18853,
+      "peak": 0.6665,
+      "rms": 0.0956,
+      "sha256": "c032b41cecd2e077e76dd562efc5a571dcdbaa8650aaae1e15c3a1fa92f3e1a6"
+    },
+    {
+      "clipId": "dc359baa4cc7fe56",
+      "text": "Zum Fahrtenbuch, geht klar.",
+      "duration": 1.834,
+      "bytes": 19376,
+      "peak": 0.6413,
+      "rms": 0.099,
+      "sha256": "75643241dba4468c9e33eef55753a012d1858316fed430f288f33d1ca6d31692"
+    },
+    {
+      "clipId": "6812f96b77af52e7",
+      "text": "Klar, zur Zeiterfassung.",
+      "duration": 1.788,
+      "bytes": 18853,
+      "peak": 0.6708,
+      "rms": 0.0831,
+      "sha256": "1f49dae6e4d74f7cfe0c5e6a6d6acfd6a2f7eb1d456e8e9dda2701e403be2ded"
+    },
+    {
+      "clipId": "584b37d20d66338c",
+      "text": "Zu deinen Arbeitszeiten.",
+      "duration": 1.625,
+      "bytes": 17286,
+      "peak": 0.5442,
+      "rms": 0.0955,
+      "sha256": "e158a1f0430700096a1a14454628b4fa2e021ac1c8e888c8b00e94aa284d8953"
+    },
+    {
+      "clipId": "69e792eafe450242",
+      "text": "Klar, zu den Einstellungen.",
+      "duration": 1.509,
+      "bytes": 15980,
+      "peak": 0.5183,
+      "rms": 0.1031,
+      "sha256": "4fe3a56ce8983ec688cb03896bd8a6f99c8a8c03f03a4cec78e789fc7edd2f9e"
+    },
+    {
+      "clipId": "5918694bb34fd955",
+      "text": "Zu den Einstellungen, geht klar.",
+      "duration": 1.8,
+      "bytes": 18853,
+      "peak": 0.5507,
+      "rms": 0.1004,
+      "sha256": "d52120f1ac759df6af7307cd7404af0de0236b5ac4f0827386c635cc0d46fdc4"
+    },
+    {
+      "clipId": "0896b0189101753f",
+      "text": "Die Akte habe ich gefunden.",
+      "duration": 1.509,
+      "bytes": 15980,
+      "peak": 0.6721,
+      "rms": 0.0907,
+      "sha256": "80216df3d094100568c5752ac6f0babe3304cee44791494a231308c5669483d6"
+    },
+    {
+      "clipId": "42cfb0a16ce9b6df",
+      "text": "Hab sie. Ich gehe zur Akte.",
+      "duration": 1.925,
+      "bytes": 20159,
+      "peak": 0.6674,
+      "rms": 0.0868,
+      "sha256": "8e9f676383908ae710140c975934450987ef7aa0c1ab8271d48bc93380a198f0"
+    },
+    {
+      "clipId": "4651f3d80711191f",
+      "text": "Alles klar, zur Akte.",
+      "duration": 1.521,
+      "bytes": 16241,
+      "peak": 0.6297,
+      "rms": 0.1042,
+      "sha256": "90d2dfe4f29bde3ca4035b1dee197798b23c17bb9724434048def99cadc363e4"
+    },
+    {
+      "clipId": "57a28934af005eb0",
+      "text": "Einen Moment.",
+      "duration": 0.917,
+      "bytes": 10233,
+      "peak": 0.3945,
+      "rms": 0.1013,
+      "sha256": "f3fe256e7b00d6ff097525acc8297c576cebf102f6757829f3c2bf2c28cfe6ca"
+    },
+    {
+      "clipId": "7c300a561b413415",
+      "text": "Ich schaue kurz nach.",
+      "duration": 1.393,
+      "bytes": 14935,
+      "peak": 0.6413,
+      "rms": 0.0908,
+      "sha256": "c89dc40877f915f66380aef731d6b188e436274af2fa8880ad20fa98bddb184f"
+    },
+    {
+      "clipId": "905ca6ce4d94a30e",
+      "text": "Da passen mehrere Personen. Sag bitte noch den vollständigen Namen.",
+      "duration": 4.096,
+      "bytes": 41841,
+      "peak": 0.5835,
+      "rms": 0.1056,
+      "sha256": "b136d6c0732c9366abed5f6c6775bd7471fa821bb5fa29995ba69ec160d339dc"
+    },
+    {
+      "clipId": "5bc5c371fdde1f3b",
+      "text": "Auch mit dem Namen finde ich mehrere Akten. Bitte wähle die Person in der Klientenübersicht.",
+      "duration": 5.28,
+      "bytes": 53857,
+      "peak": 0.6719,
+      "rms": 0.1137,
+      "sha256": "60959f3cd8d57318e9a6062cd1596aab4319614418861e3f49893433bce8f2ef"
+    },
+    {
+      "clipId": "2bb923e657968507",
+      "text": "Zu dem Namen finde ich keine Akte. Versuch es noch einmal mit Vor- und Nachnamen.",
+      "duration": 4.365,
+      "bytes": 44714,
+      "peak": 0.674,
+      "rms": 0.101,
+      "sha256": "e1e331c254abbdcd24757def35fca3ce3f017483e879131192778fb97f5b65a2"
+    },
+    {
+      "clipId": "b8f83cc82dd14d4d",
+      "text": "Dafür fehlt dir die Berechtigung.",
+      "duration": 1.683,
+      "bytes": 17808,
+      "peak": 0.5734,
+      "rms": 0.0975,
+      "sha256": "8a61490bed1a90906a69757417920fa2def4f22432488c45e06fc2f9b292281f"
+    },
+    {
+      "clipId": "bfdc236b159c63a4",
+      "text": "Auf diese Seite hast du keinen Zugriff.",
+      "duration": 2.055,
+      "bytes": 21465,
+      "peak": 0.6538,
+      "rms": 0.1009,
+      "sha256": "33e249b76dfb10045326e2d2843b419cccae0fa1518dfcd968371718552e700f"
+    },
+    {
+      "clipId": "4f61059071d2e4ca",
+      "text": "Das habe ich nicht ganz verstanden. Wohin möchtest du?",
+      "duration": 3.167,
+      "bytes": 32698,
+      "peak": 0.6453,
+      "rms": 0.1046,
+      "sha256": "dc5560025e159092c40f94f6ad1f84600fd77cd9835e3cc6f56e53640756e2c3"
+    },
+    {
+      "clipId": "2a8b71f273d5f924",
+      "text": "Welche Seite meinst du?",
+      "duration": 1.44,
+      "bytes": 15457,
+      "peak": 0.5264,
+      "rms": 0.101,
+      "sha256": "6a0130235304f28cd38b2966e2d1b067eb05f595c80e421594587cfe68dca295"
+    },
+    {
+      "clipId": "2beb6014a8a4caa1",
+      "text": "Sag einfach, wohin du möchtest. Zum Beispiel: Kalender öffnen. Oder: Akte von Anna Müller öffnen.",
+      "duration": 6.914,
+      "bytes": 70053,
+      "peak": 0.5806,
+      "rms": 0.0939,
+      "sha256": "cfdc615ad212d7d398e222b2285d6403f2e966a347a5f89c37d0a180bc6928f4"
+    },
+    {
+      "clipId": "6516d6c03217095e",
+      "text": "Alles klar, lassen wir das.",
+      "duration": 1.672,
+      "bytes": 17547,
+      "peak": 0.669,
+      "rms": 0.1029,
+      "sha256": "75143fcc39542da4c18a9be88480d9210caffce37a05a6bd319e9d1bb57caaac"
+    },
+    {
+      "clipId": "3c05d8f0e76545d4",
+      "text": "Okay, abgebrochen.",
+      "duration": 1.544,
+      "bytes": 16502,
+      "peak": 0.6584,
+      "rms": 0.098,
+      "sha256": "543fee92b2b8cc4cb84c855e34bb6548ac499f5332f0fe61fa397a41d57e68f2"
+    },
+    {
+      "clipId": "be0413bb4a929a41",
+      "text": "Klar, zurück.",
+      "duration": 1.207,
+      "bytes": 13106,
+      "peak": 0.6687,
+      "rms": 0.0937,
+      "sha256": "5d0128a162f89a5a943a00b6081f4673abcea2f855e64b3f5e7ae655e669193e"
+    },
+    {
+      "clipId": "3f87cb557a32c3e2",
+      "text": "Eine Seite zurück.",
+      "duration": 1.057,
+      "bytes": 11539,
+      "peak": 0.6619,
+      "rms": 0.1035,
+      "sha256": "82d5100c37f89f8253940fb39c9522015a9dbabe181b5f35ce583e95856806f7"
+    },
+    {
+      "clipId": "bb88af7204e280f9",
+      "text": "Hier geht es nicht weiter zurück.",
+      "duration": 1.567,
+      "bytes": 16502,
+      "peak": 0.5719,
+      "rms": 0.0975,
+      "sha256": "c448f3134321a6fede3d97f34ad11a988e1d79b6e2dacbc2b1492a8267fe3ab3"
+    },
+    {
+      "clipId": "bd69c55c66c7d137",
+      "text": "Das klappt gerade leider nicht. Versuch es gleich noch einmal.",
+      "duration": 3.608,
+      "bytes": 37139,
+      "peak": 0.6694,
+      "rms": 0.1025,
+      "sha256": "e50fa086746848ff4a60b293a980aaf638c013b5c8a1aadcc9606c7af9335f57"
+    },
+    {
+      "clipId": "d913030bb18d419e",
+      "text": "Das geht im Moment leider nicht.",
+      "duration": 1.846,
+      "bytes": 19376,
+      "peak": 0.5427,
+      "rms": 0.0975,
+      "sha256": "b3f92c5842fb2d03d9450c065eccfd066d15d15f7828d7d253bee6cfc7b21bba"
+    },
+    {
+      "clipId": "d61ce292b83557b0",
+      "text": "Ich habe dich nicht gehört. Versuch es noch einmal.",
+      "duration": 2.807,
+      "bytes": 29041,
+      "peak": 0.5936,
+      "rms": 0.099,
+      "sha256": "8141e0d734e32c1478a4e069e25b2026d1ec8e5a709dcc226a11aa1841b27d1f"
+    },
+    {
+      "clipId": "898fb4af3a606564",
+      "text": "Da kam nichts an. Sag es bitte noch einmal.",
+      "duration": 2.772,
+      "bytes": 28780,
+      "peak": 0.6549,
+      "rms": 0.0968,
+      "sha256": "693a6a9fcae6f0d75506663fc991d60c96a568627eaef20d4ed0d28154579318"
+    },
+    {
+      "clipId": "f89ddf20c7b2704f",
+      "text": "Das Mikrofon ist gesperrt. Bitte gib es im Browser frei.",
+      "duration": 3.829,
+      "bytes": 39229,
+      "peak": 0.6252,
+      "rms": 0.101,
+      "sha256": "195f1ae4c45ca0b195c030ae58be142c577701f6e33b2d864d38fc6d0cd1e7e5"
+    },
+    {
+      "clipId": "233aa046e9fb2a9f",
+      "text": "Die Spracherkennung ist in diesem Browser gerade nicht verfügbar.",
+      "duration": 3.541,
+      "bytes": 36355,
+      "peak": 0.6086,
+      "rms": 0.0996,
+      "sha256": "1f4e147a4de8396e241600ded6d33b072144e9d762acd724f9e6da91d147f7c5"
+    }
+  ]
+}

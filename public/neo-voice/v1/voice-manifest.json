@@ -1,0 +1,76 @@
+{
+  "url": "https://huggingface.co/Thorsten-Voice/Piper/resolve/4c56824d7a76ee98b08a6e9046e640727397fac7/de_DE-thorsten-high.onnx",
+  "sha256": "9df1c43c61149ef9b39e618e2b861fbe41e1fcea9390b2dac62e8761573ea4f1",
+  "parts": [
+    {
+      "file": "voice-00.bin",
+      "bytes": 8388608,
+      "sha256": "0b9595986b65d3974922699603e4dabacbf531ac0aa3cb64d31c4768c0bd937e"
+    },
+    {
+      "file": "voice-01.bin",
+      "bytes": 8388608,
+      "sha256": "46cdfd0ddfd85d42bbc87885127fd357eaaa38a9f42419e0a0f96f47001a2145"
+    },
+    {
+      "file": "voice-02.bin",
+      "bytes": 8388608,
+      "sha256": "cf2fcf440b5c89f27c476311f50a1bf0fad841889909687619884c6aa4a70613"
+    },
+    {
+      "file": "voice-03.bin",
+      "bytes": 8388608,
+      "sha256": "69bd1ec0ccca1baf19a2688d3f9d25e42fb6925510025236cd000b8b60129e71"
+    },
+    {
+      "file": "voice-04.bin",
+      "bytes": 8388608,
+      "sha256": "abdd23fad3338819ee02e1e0a1f9b4a1cecaea3934adc6708252b79b9d86dc32"
+    },
+    {
+      "file": "voice-05.bin",
+      "bytes": 8388608,
+      "sha256": "032add49f2290c00fa651e30b3e07fac355a3d7d6490bf37e83b25ecca3b24f4"
+    },
+    {
+      "file": "voice-06.bin",
+      "bytes": 8388608,
+      "sha256": "b79d3a60f829d64a8a5a07223aa65207c51d32f9375f38dab36f5418d115ba5e"
+    },
+    {
+      "file": "voice-07.bin",
+      "bytes": 8388608,
+      "sha256": "8693e20d97bcdfba7f44cd7eb179bb6eb0dcc1974dfb233299c9563779d8c97a"
+    },
+    {
+      "file": "voice-08.bin",
+      "bytes": 8388608,
+      "sha256": "7d6c9484455c0a92616b8b686574e8a7bf40506ac5dec43476cba27b0fcc6c85"
+    },
+    {
+      "file": "voice-09.bin",
+      "bytes": 8388608,
+      "sha256": "47de2303ab1674d94467f9b557b48c23658e1510c6bcdc9e35283848598347d7"
+    },
+    {
+      "file": "voice-10.bin",
+      "bytes": 8388608,
+      "sha256": "e33773b7e7ca3eef49919dd27712638dd0e5fbd7a89e21eaa7346635ea693bf1"
+    },
+    {
+      "file": "voice-11.bin",
+      "bytes": 8388608,
+      "sha256": "e46a8f2aea1f9e9cceddf73157593e91ec1acc1522f242a2d042c5621fff30c4"
+    },
+    {
+      "file": "voice-12.bin",
+      "bytes": 8388608,
+      "sha256": "3975ecbb8db94fec24f9bd22405fc8d4a7b42e0604ec8afb0205cf48115f3aeb"
+    },
+    {
+      "file": "voice-13.bin",
+      "bytes": 4843297,
+      "sha256": "b2b545d717d2c0189cd4f69e478d37caedcec48082cf8751954eaa47c3bf9fdf"
+    }
+  ]
+}

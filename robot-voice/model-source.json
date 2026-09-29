@@ -1,0 +1,14 @@
+{
+  "model": {
+    "url": "https://huggingface.co/Thorsten-Voice/Piper/resolve/4c56824d7a76ee98b08a6e9046e640727397fac7/de_DE-thorsten-high.onnx",
+    "sha256": "9df1c43c61149ef9b39e618e2b861fbe41e1fcea9390b2dac62e8761573ea4f1"
+  },
+  "config": {
+    "url": "https://huggingface.co/Thorsten-Voice/Piper/resolve/4c56824d7a76ee98b08a6e9046e640727397fac7/de_DE-thorsten-high.onnx.json",
+    "sha256": "6de734444e4c3f9e33b7ebe2746dbc19b71e85f613e79c65acf623200b99a76a"
+  },
+  "modelLicense": "MIT (repository metadata)",
+  "datasetLicense": "CC0 (model card)",
+  "engineLicense": "Legacy MP3 generator: Piper 1.4.2, GPL-3.0-or-later; Python engine not distributed in app",
+  "browserRuntimeLicenses": "ONNX Runtime Web MIT; Piper Phonemize MIT; embedded eSpeak NG GPLv3. See public/neo-voice/v1/licenses/THIRD-PARTY.md."
+}
