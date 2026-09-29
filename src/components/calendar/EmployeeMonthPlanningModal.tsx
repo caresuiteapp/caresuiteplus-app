@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
 import { PremiumButton } from '@/components/ui/PremiumButton';
 import { importEmployeePlan, type PlanImportResult } from '@/lib/calendar/employeePlanImport';
+import { parseEmployeePlanText } from '@/lib/calendar/localPlanParser';
 import {
   datesInMonth, dayPlanability, validatePlanningSlots,
   type EmployeeMonthPlan, type PlanningDraft, type PlanningKind, type PlanningSlot,
@@ -23,6 +24,7 @@ function cleanSlots(rows: PlanningDraft[]): PlanningSlot[] {
 }
 
 export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName, month, initial, events, onClose, onSaved }: Props) {
+  const { width } = useWindowDimensions();
   const [rows, setRows] = useState<PlanningDraft[]>(() => (initial?.slots ?? []).map((row) => ({ ...row })));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [kind, setKind] = useState<PlanningKind>('available');
@@ -34,6 +36,15 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
   const [interpretation, setInterpretation] = useState<'availability' | 'external' | 'mixed'>('availability');
   const [importResult, setImportResult] = useState<PlanImportResult | null>(null);
   const [importBusy, setImportBusy] = useState(false);
+  const [importProgress, setImportProgress] = useState('');
+  const [sourceText, setSourceText] = useState('');
+  const [showSource, setShowSource] = useState(false);
+  const [forceOcr, setForceOcr] = useState(false);
+  const [rotation, setRotation] = useState(0);
+  const importAbort = useRef<AbortController | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; importAbort.current?.abort(); }; }, []);
+  const localImport = Platform.OS === 'web';
   const [reviewed, setReviewed] = useState(false);
   const [conflictsReviewed, setConflictsReviewed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -55,15 +66,30 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
     setConflictsReviewed(false); setError(null);
   };
   const analyze = async () => {
-    setImportBusy(true); setError(null);
+    const controller = new AbortController(); importAbort.current = controller;
+    setImportBusy(true); setError(null); setImportProgress('Datei auswählen…');
     try {
-      const result = await importEmployeePlan({ tenantId, employeeId, month, employer, interpretation });
-      if (result) {
+      const result = await importEmployeePlan({ tenantId, employeeId, employeeName, month, employer, interpretation,
+        signal: controller.signal, forceOcr, rotation,
+        onProgress: (progress) => { if (mounted.current && !controller.signal.aborted) setImportProgress(`${progress.message}${progress.progress ? ` ${Math.round(progress.progress * 100)} %` : ''}`); },
+      });
+      if (result && mounted.current && !controller.signal.aborted) {
         setImportResult(result); setReviewed(false); setConflictsReviewed(false);
+        setSourceText(result.extractedText ?? '');
         setRows((current) => [...current, ...result.rows].sort((a, b) => a.date.localeCompare(b.date)));
       }
-    } catch (e) { setError(e instanceof Error ? e.message : 'Import fehlgeschlagen.'); }
-    finally { setImportBusy(false); }
+    } catch (e) { if (mounted.current && !controller.signal.aborted) setError(e instanceof Error ? e.message : 'Import fehlgeschlagen.'); }
+    finally { if (mounted.current) { setImportBusy(false); setImportProgress(''); } importAbort.current = null; }
+  };
+  const reparse = () => {
+    try {
+      const parsed = parseEmployeePlanText(sourceText, { month, employer, interpretation, employeeName });
+      const result: PlanImportResult = { ...parsed, filename: importResult?.filename ?? 'Eingegebener Text', extractedText: sourceText,
+        extraction: 'Text auf diesem Gerät ausgewertet', rows: parsed.rows.map((r) => ({ ...r, id: newId() })) };
+      const previousIds = new Set(importResult?.rows.map((r) => r.id) ?? []);
+      setRows((current) => [...current.filter((r) => !previousIds.has(r.id)), ...result.rows].sort((a, b) => a.date.localeCompare(b.date)));
+      setImportResult(result); setReviewed(false); setConflictsReviewed(false); setError(null);
+    } catch (e) { setError(e instanceof Error ? e.message : 'Text konnte nicht ausgewertet werden.'); }
   };
   const save = async () => {
     if (busy || validation.length || (importResult && !reviewed) || (conflicts.length && !conflictsReviewed)) return;
@@ -75,7 +101,7 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
     finally { setSaving(false); }
   };
   return (
-    <PlatformModal visible title="Verfügbarkeiten & Abwesenheiten" subtitle={`${employeeName} · ${month} · Europe/Berlin`}
+    <PlatformModal visible title={localImport && width < 600 ? 'Monatsplanung' : 'Verfügbarkeiten & Abwesenheiten'} subtitle={`${employeeName} · ${month} · Europe/Berlin`}
       onClose={() => { if (!busy) onClose(); }} isDirty={dirty} maxWidth={1080} dismissOnBackdrop={!busy}
       footerActions={[
         { title: saving ? 'Wird gespeichert…' : 'Monatsplan speichern', onPress: save, disabled: busy || !!validation.length || !!(importResult && !reviewed) || (!!conflicts.length && !conflictsReviewed), loading: saving },
@@ -113,25 +139,49 @@ export function EmployeeMonthPlanningModal({ tenantId, employeeId, employeeName,
           </View>
           <View style={styles.line}>
             <PremiumButton title={`${selected.size} Tage hinzufügen`} disabled={busy || !selected.size} onPress={addSelected} />
-            <PremiumButton title="Einträge dieser Tage entfernen" variant="ghost" disabled={busy || !selected.size} onPress={() => { setRows((current) => current.filter((r) => !selected.has(r.date))); setConflictsReviewed(false); }} />
+            <PremiumButton title={localImport ? 'Gewählte Tage leeren' : 'Einträge dieser Tage entfernen'} variant="ghost" disabled={busy || !selected.size} onPress={() => { setRows((current) => current.filter((r) => !selected.has(r.date))); setConflictsReviewed(false); }} />
           </View>
         </View>
         <View style={styles.card}>
           <Text style={styles.heading}>2 · Dienstplan aus PDF oder Foto übernehmen</Text>
-          <Text style={styles.hint}>Die Datei wird zur Analyse über den CareSuite-Server an OpenAI übertragen. Das Ergebnis bleibt ein Entwurf. Fehlende Zeiten werden nicht ergänzt.</Text>
+          <Text style={styles.hint}>{localImport
+            ? 'Erkennung auf diesem Gerät · ohne KI-API und ohne Guthaben. PDF oder Foto bleiben während der Analyse in deinem Browser. Erst der geprüfte Monatsplan wird gespeichert. Gedruckte Pläne werden am besten erkannt; Handschrift und undeutliche Fotos bitte sorgfältig nachprüfen.'
+            : 'Die Datei wird zur Analyse über den CareSuite-Server an OpenAI übertragen. Das Ergebnis bleibt ein Entwurf. Fehlende Zeiten werden nicht ergänzt.'}</Text>
           <View style={styles.line}>{([
             ['availability', 'Meine Verfügbarkeiten'], ['external', 'Fremder Dienstplan'], ['mixed', 'Gemischter Plan'],
           ] as const).map(([value, title]) => <PremiumButton key={value} size="sm" title={title} disabled={busy} variant={interpretation === value ? 'primary' : 'secondary'} onPress={() => setInterpretation(value)} />)}</View>
           <TextInput style={styles.note} value={employer} onChangeText={setEmployer} editable={!busy} maxLength={160} accessibilityLabel="Unser Arbeitgebername für die Zuordnung" placeholder="Unser Arbeitgebername bei gemischten Plänen, z. B. AVENTA" placeholderTextColor="#64748B" />
-          <PremiumButton title={importBusy ? 'Dienstplan wird analysiert…' : 'PDF / Foto auswählen & analysieren'} loading={importBusy} disabled={busy || (interpretation === 'mixed' && !employer.trim())} onPress={analyze} />
+          {localImport ? <>
+            <View style={styles.line}>
+              <Switch accessibilityLabel="PDF trotz Textschicht als Scan lesen" value={forceOcr} onValueChange={setForceOcr} disabled={busy} />
+              <Text style={styles.checkText}>PDF als Scan lesen, wenn die Textschicht unvollständig ist</Text>
+            </View>
+            <View style={styles.line}><Text style={styles.text}>Foto drehen:</Text>{[0, 90, 180, 270].map((degrees) => <PremiumButton key={degrees} size="sm" title={`${degrees}°`} variant={rotation === degrees ? 'primary' : 'secondary'} disabled={busy} onPress={() => setRotation(degrees)} />)}</View>
+            <Text style={styles.hint}>PDF, JPG, PNG oder WebP · bis 10 MB und 12 PDF-Seiten. Bitte einen Plan pro Person wählen. Beim ersten Fotoimport werden die Erkennungsdateien von CareSuite geladen.</Text>
+          </> : null}
+          <View style={styles.line}>
+            <PremiumButton title={importBusy ? 'Dienstplan wird gelesen…' : localImport ? 'PDF / Foto analysieren' : 'PDF / Foto auswählen & analysieren'} loading={importBusy} disabled={busy || (interpretation === 'mixed' && !employer.trim())} onPress={analyze} />
+            {localImport && importBusy ? <PremiumButton title="Erkennung abbrechen" variant="secondary" onPress={() => importAbort.current?.abort()} /> : null}
+          </View>
+          {localImport && importBusy ? <Text accessibilityLiveRegion="polite" style={styles.hint}>{importProgress}</Text> : null}
           {importResult ? <View style={styles.importInfo}>
             <Text style={styles.text}>{importResult.filename} · {importResult.rows.length} erkannte Zeitfenster</Text>
+            {importResult.extraction ? <Text style={styles.hint}>{importResult.extraction}</Text> : null}
             <Text style={styles.text}>Erkannte Person: {importResult.personName || 'nicht angegeben'} · erkannter Monat: {importResult.documentMonth || 'nicht angegeben'}</Text>
             <Text style={styles.hint}>Zielperson: {employeeName}. Bitte Zuordnung und alle Zeilen prüfen. Unklare Zuordnungen müssen vor dem Speichern ausdrücklich festgelegt werden.</Text>
             {importResult.documentMonth && importResult.documentMonth !== month ? <Text style={styles.error}>Der erkannte Monat stimmt nicht mit dem Zielmonat {month} überein.</Text> : null}
             {importResult.warnings.map((warning, i) => <Text key={i} style={styles.warning}>{warning}</Text>)}
             {!importResult.rows.length ? <Text style={styles.warning}>Keine Zeitfenster erkannt. Bitte Angaben manuell erfassen oder ein deutlicheres Bild verwenden.</Text> : null}
+            {importResult.unrecognized?.length ? <View style={styles.importInfo}><Text style={styles.text}>Nicht zugeordnete Zeilen</Text>{importResult.unrecognized.map((line, i) => <Text key={i} style={styles.hint}>{line}</Text>)}</View> : null}
           </View> : null}
+          {localImport ? <>
+            <PremiumButton title={showSource ? 'Textfeld schließen' : 'Text prüfen / einfügen'} size="sm" variant="secondary" disabled={busy} onPress={() => setShowSource((value) => !value)} />
+            {showSource ? <View style={styles.importInfo}>
+              <Text style={styles.hint}>Eine Zeile je Datum, z. B. „01.10.2026 08:00–12:00 verfügbar“. Bei Teamplänen nur die Angaben der Zielperson belassen. Die erneute Auswertung ersetzt die Zeilen des letzten Imports einschließlich dortiger Korrekturen.</Text>
+              <TextInput multiline style={[styles.note, styles.sourceInput]} value={sourceText} onChangeText={setSourceText} editable={!busy} maxLength={100000} accessibilityLabel="Erkannter Dienstplantext" placeholder="Text aus der Vorlage hier einfügen oder korrigieren…" placeholderTextColor="#64748B" />
+              <PremiumButton title={importResult ? 'Text neu auswerten' : 'Text auswerten'} disabled={busy || !sourceText.trim() || (interpretation === 'mixed' && !employer.trim())} onPress={reparse} />
+            </View> : null}
+          </> : null}
         </View>
         <View style={styles.card}>
           <Text style={styles.heading}>3 · Monatsplan prüfen und bearbeiten · {rows.length} Einträge</Text>
@@ -186,4 +236,5 @@ const styles = StyleSheet.create({
   rowIndex: { color: '#526C89', minWidth: 18 }, uncertain: { borderColor: '#D5961A', backgroundColor: '#FFFAE9' },
   error: { color: '#AC1635', fontSize: 14 }, warning: { color: '#845209', fontSize: 13, lineHeight: 19 },
   checkText: { color: '#173859', flex: 1, minWidth: 170, fontSize: 14 }, importInfo: { gap: 6 },
+  sourceInput: { minHeight: 200, textAlignVertical: 'top', fontSize: 14, lineHeight: 21, flexGrow: 0 },
 });

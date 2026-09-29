@@ -102,7 +102,10 @@
     "bodymap3d:real-human:render-all": "node scripts/render-all-bodymap-real-human-qa.mjs",
     "bodymap3d:deploy:gitbash": "bash scripts/deploy-bodymap3d-gitbash.sh",
     "audit:portal-update": "vitest run src/__tests__/portal/portalAsyncInteraction.test.tsx src/__tests__/portal/clientSignatureAttentionInteraction.test.tsx src/__tests__/portal/portalVisitDraftScope.test.tsx src/__tests__/portal/portalNewChatInteraction.test.tsx src/__tests__/portal/employeePortalNavigationAccess.test.tsx src/__tests__/auth/rememberedPortalLogin.test.ts src/__tests__/platform/portalAutomaticPush.test.ts src/__tests__/offline/portalDeviceCache.test.ts src/__tests__/offline/portalBackgroundRefresh.test.ts src/__tests__/offline/assignmentCacheService.test.ts src/__tests__/offline/offline3DetailPrefetch.integration.test.ts src/__tests__/platform/appStartIntro.test.tsx",
-    "audit:portal-push:db": "node --test supabase/tests/portal_automatic_push.test.mjs"
+    "audit:portal-push:db": "node --test supabase/tests/portal_automatic_push.test.mjs",
+    "calendar:reader:prepare": "node scripts/prepare-calendar-reader.mjs",
+    "preweb": "npm run calendar:reader:prepare",
+    "calendar:reader:verify": "npm run calendar:reader:prepare && node scripts/verify-calendar-reader.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.15",
@@ -165,13 +168,17 @@
     "@babel/core": "^7.25.2",
     "@electric-sql/pglite": "0.3.15",
     "@resvg/resvg-js": "^2.6.2",
+    "@tesseract.js-data/deu": "1.0.0",
+    "@tesseract.js-data/eng": "1.0.0",
     "@types/react": "~19.2.0",
     "@types/react-dom": "~19.2.0",
     "@types/three": "^0.170.0",
     "eslint": "^8.57.0",
     "eslint-config-expo": "~57.0.2",
     "happy-dom": "20.14.0",
+    "pdfjs-dist": "5.4.624",
     "playwright": "^1.62.1",
+    "tesseract.js": "7.0.0",
     "typescript": "~6.0.3",
     "vitest": "^3.2.6"
   },

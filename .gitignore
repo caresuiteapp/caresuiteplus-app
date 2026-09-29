@@ -42,3 +42,6 @@ supabase/.temp/
 supabase/.branches/
 .vercel
 .env*
+
+# Generated local PDF/OCR browser assets (rebuilt from package-lock).
+public/calendar-reader/

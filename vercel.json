@@ -1,5 +1,5 @@
 {
-  "buildCommand": "EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web --clear && node scripts/audit-web-navigation-export.mjs dist && node scripts/build-public-branding-pages.mjs --output dist",
+  "buildCommand": "node scripts/prepare-calendar-reader.mjs && EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web --clear && node scripts/audit-calendar-reader-export.mjs dist && node scripts/audit-web-navigation-export.mjs dist && node scripts/build-public-branding-pages.mjs --output dist",
   "outputDirectory": "dist",
   "headers": [
     {

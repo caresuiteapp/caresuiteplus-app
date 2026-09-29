@@ -3,11 +3,12 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import type { PlanningDraft } from './employeeMonthPlanning';
+import type { LocalReaderOptions } from './localPlanReader';
 
-export type PlanImportResult = { personName: string | null; documentMonth: string | null; warnings: string[]; rows: PlanningDraft[]; filename: string };
+export type PlanImportResult = { personName: string | null; documentMonth: string | null; warnings: string[]; rows: PlanningDraft[]; filename: string; extractedText?: string; unrecognized?: string[]; extraction?: string };
 export async function importEmployeePlan(input: {
-  tenantId: string; employeeId: string; month: string; employer: string; interpretation: 'availability' | 'external' | 'mixed';
-}): Promise<PlanImportResult | null> {
+  tenantId: string; employeeId: string; employeeName?: string; month: string; employer: string; interpretation: 'availability' | 'external' | 'mixed';
+} & LocalReaderOptions): Promise<PlanImportResult | null> {
   const picked = await DocumentPicker.getDocumentAsync({
     type: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'], multiple: false, copyToCacheDirectory: true,
   });
