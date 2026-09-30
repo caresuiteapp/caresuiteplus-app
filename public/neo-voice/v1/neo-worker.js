@@ -17,6 +17,8 @@ ort.env.logLevel = 'error';
 let session, phonemizer, config, readyPromise, phonemeResult;
 const canceled = new Set();
 let queue = Promise.resolve();
+// Generate a calmer cadence in the model; playback remains at normal pitch/rate.
+const VOICE_TUNING = { noise: 0.55, length: 1.45, durationNoise: 0.45, sentencePause: 0.24 };
 
 async function fileBytes(file) {
   const url = new URL(file, self.location.href).href;
@@ -101,6 +103,35 @@ function speechIds(text) {
   ids.push(...map['$']);
   return ids;
 }
+function sentenceInputs(ids) {
+  // Piper's CLI concatenates separately framed sentences. Passing multiple
+  // BOS/EOS pairs to one inference produces uneven joins. Render each complete
+  // sentence, then join its audio with a short, consistent breathing pause.
+  const eos = config.phoneme_id_map['$'][0];
+  const sentences = [];
+  let start = 0;
+  for (let i = 0; i < ids.length; i++) {
+    if (ids[i] === eos) { sentences.push(ids.slice(start, i + 1)); start = i + 1; }
+  }
+  if (start !== ids.length || !sentences.length) throw new Error('voice-invalid-sentence');
+  return sentences;
+}
+function joinSentences(chunks, rate) {
+  const lead = Math.round(rate * 0.07), tail = Math.round(rate * 0.12);
+  const gap = Math.round(rate * VOICE_TUNING.sentencePause);
+  const pcm = new Float32Array(lead + tail + chunks.reduce((n, c) => n + c.length, 0) + gap * (chunks.length - 1));
+  let offset = lead;
+  for (const chunk of chunks) {
+    // Keep every generated sample; only soften the outer 10 ms against clicks.
+    const fade = Math.min(Math.round(rate * 0.01), Math.floor(chunk.length / 2));
+    for (let i = 0; i < chunk.length; i++) {
+      const edge = Math.min(1, i / fade, (chunk.length - 1 - i) / fade);
+      pcm[offset + i] = chunk[i] * Math.sin(edge * Math.PI / 2) ** 2;
+    }
+    offset += chunk.length + gap;
+  }
+  return pcm;
+}
 function wav(pcm, rate) {
   const buffer = new ArrayBuffer(44 + pcm.length * 2), view = new DataView(buffer);
   const label = (at, value) => { for (let i = 0; i < value.length; i++) view.setUint8(at + i, value.charCodeAt(i)); };
@@ -126,14 +157,19 @@ self.onmessage = ({ data }) => {
       if (typeof data.text !== 'string' || !data.text.trim() || data.text.length > 360) throw new Error('voice-invalid-text');
       const ids = speechIds(data.text);
       if (!ids?.length || ids.length > 1800) throw new Error('voice-invalid-phonemes');
-      const feeds = {
-        input: new ort.Tensor('int64', BigInt64Array.from(ids.map(BigInt)), [1, ids.length]),
-        input_lengths: new ort.Tensor('int64', BigInt64Array.from([BigInt(ids.length)]), [1]),
-        scales: new ort.Tensor('float32', Float32Array.from([0.60, 1.18, 0.70]), [3]),
-      };
-      const output = await session.run(feeds);
-      if (canceled.delete(data.id)) return;
-      const audio = wav(output.output.data, config.audio.sample_rate);
+      const chunks = [];
+      for (const sentence of sentenceInputs(ids)) {
+        if (canceled.delete(data.id)) return;
+        const feeds = {
+          input: new ort.Tensor('int64', BigInt64Array.from(sentence.map(BigInt)), [1, sentence.length]),
+          input_lengths: new ort.Tensor('int64', BigInt64Array.from([BigInt(sentence.length)]), [1]),
+          scales: new ort.Tensor('float32', Float32Array.from([VOICE_TUNING.noise, VOICE_TUNING.length, VOICE_TUNING.durationNoise]), [3]),
+        };
+        const output = await session.run(feeds);
+        if (canceled.delete(data.id)) return;
+        chunks.push(new Float32Array(output.output.data));
+      }
+      const audio = wav(joinSentences(chunks, config.audio.sample_rate), config.audio.sample_rate);
       self.postMessage({ id: data.id, audio }, [audio]);
     } catch { self.postMessage({ id: data.id, error: 'local-voice-unavailable' }); }
   });

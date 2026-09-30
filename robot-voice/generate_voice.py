@@ -1,4 +1,6 @@
-"""Build CareSuite's fixed local reply recordings. Requires Piper 1.4.2 and FFmpeg.
+"""Historical renderer for recordings before Neo v6; use render-browser.mjs now.
+
+Build CareSuite's fixed local reply recordings. Requires Piper 1.4.2 and FFmpeg.
 
 This is a rendering tool for developers, never part of the app's runtime.
 Usage: python generate_voice.py --model PATH --catalog PATH --output DIR
