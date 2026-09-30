@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
+import { usePortalPremiumTheme } from '@/design/tokens/portalPremium.web';
 
 export type DataTableColumn<T> = {
   key: string; label: string; flex?: number; width?: number; minWidth?: number;
@@ -20,6 +21,8 @@ export function PremiumDataTable<T>({ columns, data, keyExtractor, selectedId, o
   emptyMessage = 'Keine Einträge', sortColumnKey, sortDirection = 'asc', onSortColumn,
   fixedLayout = false, solidSurface = false, darkSurface = false, minTableWidth }: Props<T>) {
   const [width, setWidth] = useState(0);
+  const theme = usePortalPremiumTheme();
+  const dense = theme.kind === 'workspace' && width < 560;
   const minimumFor = (column: DataTableColumn<T>) => Math.max(64, column.width ?? column.minWidth ?? 144);
   const minimum = Math.max(minTableWidth ?? 0, columns.reduce((sum, col) => sum + minimumFor(col), 0));
   const compact = width === 0 || width < minimum;
@@ -57,9 +60,9 @@ export function PremiumDataTable<T>({ columns, data, keyExtractor, selectedId, o
       </View> : null}
       <View style={styles.cards}>{data.map(item => {
         const id = keyExtractor(item);
-        return <View key={id} style={[styles.card, darkSurface && styles.darkCard, selectedId === id && (darkSurface ? styles.darkSelected : styles.selected)]}>
-          <View style={[styles.fields, { gridTemplateColumns: width >= 560 ? 'repeat(2,minmax(0,1fr))' : 'minmax(0,1fr)' } as unknown as ViewStyle]}>
-            {columns.map((col, index) => <View key={col.key} style={[styles.field, index === 0 && styles.firstField]} dataSet={{ csWorkspaceCell: 'true' }}>
+        return <View key={id} style={[styles.card, dense && styles.denseCard, darkSurface && styles.darkCard, selectedId === id && (darkSurface ? styles.darkSelected : styles.selected)]}>
+          <View style={[styles.fields, dense && styles.denseFields, { gridTemplateColumns: width >= 560 ? 'repeat(2,minmax(0,1fr))' : 'minmax(0,1fr)' } as unknown as ViewStyle]}>
+            {columns.map((col, index) => <View key={col.key} style={[styles.field, dense && styles.denseField, index === 0 && styles.firstField]} dataSet={{ csWorkspaceCell: 'true' }}>
               <Text style={[styles.label, { color: muted }]}>{col.label || 'Aktionen'}</Text>
               {renderCell(col, item)}
             </View>)}
@@ -110,6 +113,9 @@ const styles = StyleSheet.create({
   sortBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 16, marginBottom: 12 },
   cards: { gap: 14 },
   card: { minWidth: 0, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CCDBEA', borderRadius: 16, padding: 18, gap: 16 },
+  denseCard: { padding: 12, gap: 10 },
+  denseFields: { gap: 10 },
+  denseField: { gap: 3 },
   darkCard: { backgroundColor: '#0A2340', borderColor: '#345971' },
   selected: { backgroundColor: '#E7F2FF', borderColor: '#1477D6' },
   darkSelected: { backgroundColor: '#16446B', borderColor: '#69D7FF' },

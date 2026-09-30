@@ -1,4 +1,5 @@
-import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import {
   DesktopListViewToggle,
   PremiumButton,
@@ -41,9 +42,11 @@ export function EmployeesListHero({
   onViewModeChange,
   showViewToggle = false,
 }: EmployeesListHeroProps) {
+  const { width } = useWindowDimensions();
+  const mobileWeb = Platform.OS === 'web' && width < 900;
   return (
-    <View style={styles.surface}>
-      <View style={styles.headingRow}>
+    <View style={[styles.surface, mobileWeb && styles.mobileSurface]}>
+      <View style={[styles.headingRow, mobileWeb && styles.mobileHeading]}>
         <View style={styles.headingCopy}>
           <Text style={styles.eyebrow}>PERSONALÜBERSICHT</Text>
           <Text style={styles.title}>Team auf einen Blick</Text>
@@ -62,16 +65,16 @@ export function EmployeesListHero({
 
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (
-          <View key={kpi.id} style={styles.kpiCard}>
+          <View key={kpi.id} style={[styles.kpiCard, mobileWeb && styles.mobileKpi]}>
             <View style={[styles.kpiRail, { backgroundColor: kpi.accentColor }]} />
             <Text style={styles.kpiLabel}>{kpi.label}</Text>
-            <Text style={styles.kpiValue}>{kpi.value}</Text>
+            <Text style={[styles.kpiValue, mobileWeb && styles.mobileKpiValue]}>{kpi.value}</Text>
             <Text style={styles.kpiMeta}>{kpi.subValue ?? 'Keine offenen Hinweise'}</Text>
           </View>
         ))}
       </View>
 
-      <View style={styles.utilityRow}>
+      <View style={[styles.utilityRow, mobileWeb && styles.mobileHeading]}>
         {showViewToggle && onViewModeChange ? (
           <DesktopListViewToggle value={viewMode} onChange={onViewModeChange} />
         ) : <View />}
@@ -89,6 +92,10 @@ export function EmployeesListHero({
 }
 
 const styles = StyleSheet.create({
+  mobileSurface: { padding: 12, gap: 10 },
+  mobileHeading: { flexWrap: 'wrap', gap: 8 },
+  mobileKpi: { flexBasis: 130, minWidth: 120, minHeight: 80, padding: 10, paddingLeft: 14 },
+  mobileKpiValue: { fontSize: font(22), lineHeight: font(28) },
   surface: {
     width: '100%', minWidth: 0, padding: spacing.lg, gap: spacing.md,
     borderRadius: 18, borderWidth: 1, borderColor: 'rgba(76, 151, 214, 0.34)',

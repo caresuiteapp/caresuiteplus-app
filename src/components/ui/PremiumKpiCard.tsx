@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
@@ -41,15 +41,21 @@ export function PremiumKpiCard({
 }: Props) {
   const { colors, typography } = useLegacyTheme();
   const portal = usePortalPremiumTheme();
+  const { width } = useWindowDimensions();
+  const dense = Platform.OS === 'web' && portal.kind === 'workspace' && width < 900;
   const resolvedAccent = accentColor ?? colors.cyan;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         wrapper: {
-          flex: 1,
-          minWidth: 168,
-          minHeight: 108,
+          // Legacy surface CSS resets min-width. A real flex basis keeps KPI
+          // rows wrapping instead of squeezing every card into a single row.
+          ...(Platform.OS === 'web'
+            ? { flexGrow: 1, flexShrink: 1, flexBasis: dense ? 124 : 168 }
+            : { flex: 1 }),
+          minWidth: dense ? 124 : 168,
+          minHeight: dense ? 90 : 108,
           borderRadius: radius.lg,
           borderWidth: 1,
           borderColor: portal.active ? portalPremium.border : systemLiquidGlass.borderStrong,
@@ -98,8 +104,8 @@ export function PremiumKpiCard({
           opacity: 0.85,
         },
         content: {
-          minHeight: 106,
-          padding: 16,
+          minHeight: dense ? 88 : 106,
+          padding: dense ? 12 : 16,
           gap: 3,
           justifyContent: 'center',
         },
@@ -137,6 +143,7 @@ export function PremiumKpiCard({
         },
       }),
     [
+      dense,
       labelCase,
       portal.active,
       resolvedAccent,

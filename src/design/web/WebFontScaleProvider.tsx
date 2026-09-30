@@ -8,7 +8,9 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Platform } from 'react-native';
+import { Platform, useWindowDimensions } from 'react-native';
+import { usePathname } from 'expo-router';
+import { isMobileWorkspace, MOBILE_WORKSPACE_BASE_SCALE, MOBILE_WORKSPACE_FONT_KEY } from './mobileWorkspaceDensity';
 import {
   WEB_FONT_SCALE_DEFAULT,
   WEB_FONT_SCALE_STORAGE_KEY,
@@ -21,6 +23,8 @@ import {
 
 type WebFontScaleContextValue = {
   scale: WebFontScale;
+  /** Actual text metric; the displayed percentage remains relative to the baseline. */
+  effectiveScale: number;
   increase: () => void;
   decrease: () => void;
   reset: () => void;
@@ -30,36 +34,51 @@ type WebFontScaleContextValue = {
 
 const WebFontScaleContext = createContext<WebFontScaleContextValue | null>(null);
 
-function applyWebFontScaleCss(scale: WebFontScale): void {
+function applyWebFontScaleCss(scale: number): void {
   if (Platform.OS !== 'web' || typeof document === 'undefined') return;
   document.documentElement.style.setProperty('--app-font-scale', String(scale));
 }
 
 export function WebFontScaleProvider({ children }: { children: ReactNode }) {
-  const [scale, setScale] = useState<WebFontScale>(WEB_FONT_SCALE_DEFAULT);
+  const pathname = usePathname();
+  const { width } = useWindowDimensions();
+  const compactWorkspace = isMobileWorkspace(pathname, width);
+  const [regularScale, setRegularScale] = useState<WebFontScale>(WEB_FONT_SCALE_DEFAULT);
+  const [mobileScale, setMobileScale] = useState<WebFontScale>(WEB_FONT_SCALE_DEFAULT);
+  const scale = compactWorkspace ? mobileScale : regularScale;
+  const effectiveScale = scale * (compactWorkspace ? MOBILE_WORKSPACE_BASE_SCALE : 1);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
     let cancelled = false;
-    void AsyncStorage.getItem(WEB_FONT_SCALE_STORAGE_KEY).then((stored) => {
+    void Promise.all([
+      AsyncStorage.getItem(WEB_FONT_SCALE_STORAGE_KEY),
+      AsyncStorage.getItem(MOBILE_WORKSPACE_FONT_KEY),
+    ]).then(([stored, mobileStored]) => {
       if (cancelled) return;
       const parsed = stored != null ? Number(stored) : NaN;
       const next = isWebFontScale(parsed) ? parsed : WEB_FONT_SCALE_DEFAULT;
-      setScale(next);
-      applyWebFontScaleCss(next);
-    });
+      setRegularScale(next);
+      const mobileParsed = mobileStored != null ? Number(mobileStored) : NaN;
+      // Existing 90/100% preferences adopt the new normal. Keep larger text selected.
+      setMobileScale(isWebFontScale(mobileParsed) ? mobileParsed : next > 1 ? next : 1);
+    }).catch(() => { /* Storage can be unavailable in private browsing. */ });
 
     return () => {
       cancelled = true;
     };
   }, []);
 
+  useEffect(() => {
+    applyWebFontScaleCss(effectiveScale);
+  }, [effectiveScale]);
+
   const persistScale = useCallback((next: WebFontScale) => {
-    setScale(next);
-    applyWebFontScaleCss(next);
-    void AsyncStorage.setItem(WEB_FONT_SCALE_STORAGE_KEY, String(next));
-  }, []);
+    if (compactWorkspace) setMobileScale(next);
+    else setRegularScale(next);
+    void AsyncStorage.setItem(compactWorkspace ? MOBILE_WORKSPACE_FONT_KEY : WEB_FONT_SCALE_STORAGE_KEY, String(next)).catch(() => {});
+  }, [compactWorkspace]);
 
   const increase = useCallback(() => {
     const idx = indexOfWebFontScale(scale);
@@ -82,13 +101,14 @@ export function WebFontScaleProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       scale,
+      effectiveScale,
       increase,
       decrease,
       reset,
       canIncrease: scale < WEB_FONT_SCALE_STEPS[WEB_FONT_SCALE_STEPS.length - 1],
       canDecrease: scale > WEB_FONT_SCALE_STEPS[0],
     }),
-    [decrease, increase, reset, scale],
+    [decrease, increase, reset, scale, effectiveScale],
   );
 
   return <WebFontScaleContext.Provider value={value}>{children}</WebFontScaleContext.Provider>;

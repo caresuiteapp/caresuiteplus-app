@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { SurfaceContrastProvider, useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
 import { usePortalPremiumTheme } from '@/design/tokens/portalPremium.web';
@@ -13,18 +13,20 @@ export function SectionPanel({ title, subtitle, children, headerAlign = 'left', 
   accentColor, fillHeight = false, surface = 'glass', onDarkSurface = false }: Props) {
   const tone = useSurfaceContrastTone();
   const portal = usePortalPremiumTheme();
+  const { width } = useWindowDimensions();
+  const dense = portal.kind === 'workspace' && width < 900;
   const dark = onDarkSurface || (tone === 'dark' && !portal.active);
   const open = surface === 'open';
   const userSubtitle = resolveUserFacingSubtitle(subtitle);
   return <SurfaceContrastProvider tone={dark ? 'dark' : 'light'}>
     <View style={[styles.panel, dark && styles.dark, open && styles.open, fillHeight && styles.fill]}
       dataSet={{ csWorkspaceComponent: 'section', csWorkspaceTone: dark ? 'dark' : 'light' }}>
-      <View style={[styles.header, open && styles.openHeader, { alignItems: headerAlign === 'center' ? 'center' : 'flex-start', borderBottomColor: dark ? '#31526E' : '#DCE8F2' }]}>
+      <View style={[styles.header, dense && styles.denseHeader, open && styles.openHeader, { alignItems: headerAlign === 'center' ? 'center' : 'flex-start', borderBottomColor: dark ? '#31526E' : '#DCE8F2' }]}>
         <View pointerEvents="none" style={[styles.rail, { backgroundColor: accentColor ?? (dark ? '#69D7FF' : '#1477D6') }]} />
         <Text accessibilityRole="header" style={[styles.title, headerVariant === 'hero' && styles.hero, { color: dark ? '#F3F8FF' : '#102B49', textAlign: headerAlign }]}>{title}</Text>
         {userSubtitle ? <Text style={[styles.subtitle, { color: dark ? '#BED6E8' : '#526B82', textAlign: headerAlign }]}>{userSubtitle}</Text> : null}
       </View>
-      <View style={[styles.body, open && styles.openBody, fillHeight && styles.fill]}>{children}</View>
+      <View style={[styles.body, dense && styles.denseBody, open && styles.openBody, fillHeight && styles.fill]}>{children}</View>
     </View>
   </SurfaceContrastProvider>;
 }
@@ -40,5 +42,7 @@ const styles = StyleSheet.create({
   hero: { fontSize: font(28), lineHeight: font(36) },
   subtitle: { fontSize: font(15), lineHeight: font(23), maxWidth: '100%' },
   body: { width: '100%', minWidth: 0, padding: 20, gap: 16 },
+  denseHeader: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 12 },
+  denseBody: { padding: 14, gap: 12 },
   openHeader: { paddingHorizontal: 0 }, openBody: { paddingHorizontal: 0 },
 });

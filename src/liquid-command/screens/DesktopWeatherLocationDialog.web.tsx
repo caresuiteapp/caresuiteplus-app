@@ -36,7 +36,7 @@ export function DesktopWeatherLocationDialog({ visible, place, preferenceError, 
   onClose: () => void;
 }) {
   const { width, height } = useWindowDimensions();
-  const { scale } = useWebFontScale();
+  const { effectiveScale: scale } = useWebFontScale();
   const [query, setQuery] = useState('');
   const [entries, setEntries] = useState<PlaceEntry[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');

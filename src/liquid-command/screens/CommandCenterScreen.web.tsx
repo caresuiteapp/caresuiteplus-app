@@ -18,7 +18,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/lib/auth";
-import { PortalTextSizeControls } from "@/components/portal/accessibility/PortalTextSizeControls";
+import { PortalTextSizeControls } from "@/components/portal/accessibility/PortalTextSizeControls.web";
 import { TopbarProfileAvatar } from "@/components/layout/TopbarProfileAvatar";
 import { useDesktopWeather } from "@/hooks/useDesktopWeather";
 import { desktopWorkspaceCss } from "./desktopWorkspaceCss.web";
@@ -389,7 +389,7 @@ function roleLabel(key: string | null | undefined) {
 }
 
 function Text({ style, ...props }: TextProps) {
-  const { scale } = useWebFontScale();
+  const { effectiveScale: scale } = useWebFontScale();
   const flattened = StyleSheet.flatten(style);
   const scaled = Platform.OS === "web" && scale !== 1 ? {
     fontSize: typeof flattened?.fontSize === "number" ? flattened.fontSize * scale : undefined,
@@ -402,14 +402,17 @@ export function CommandCenterScreen() {
   const router = useRouter();
   const auth = useAuth();
   const { width, height } = useWindowDimensions();
-  const { scale: fontScale } = useWebFontScale();
+  const { scale: fontScale, effectiveScale } = useWebFontScale();
+  const mobile = width < 900;
   const compact = width < 900 * fontScale;
   const informationWidth = Math.max(0, Math.min(width - (compact ? 24 : 40), Math.round(420 * Math.max(1, fontScale))));
-  const workspaceCss = useMemo(() => desktopWorkspaceCss(fontScale), [fontScale]);
+  const workspaceCss = useMemo(() => desktopWorkspaceCss(effectiveScale, mobile), [effectiveScale, mobile]);
   const sidebarWidth = Math.round(260 * Math.max(1, fontScale));
   const railWidth = Math.round(60 * Math.max(1, fontScale));
   const menuToggleRef = useRef<View>(null);
   const shortViewport = height < 600 * fontScale;
+  const [topbarHeight, setTopbarHeight] = useState(0);
+  const shortWorkspaceHeight = Math.max(220, height - topbarHeight - (compact ? 36 : 56));
   const narrow = width < 1240 * fontScale;
   const owner = auth.user?.id ?? "local";
   const weather = useDesktopWeather(owner);
@@ -528,36 +531,39 @@ export function CommandCenterScreen() {
   return (
     <ImageBackground source={activeBackground.image} resizeMode="cover" style={[styles.background, shortViewport && styles.shortBackground]} testID="responsive-desktop">
       <style>{workspaceCss}</style>
-      <View style={[styles.desktopFrame, compact && styles.desktopFrameCompact]}>
+      <View style={[styles.desktopFrame, compact && styles.desktopFrameCompact, shortViewport && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", minHeight: "100%" }]}>
       <View style={styles.atmosphere} />
-      <View style={styles.topbar}>
+      <View style={styles.topbar} onLayout={(event) => {
+        const next = Math.ceil(event.nativeEvent.layout.height);
+        setTopbarHeight(current => current === next ? current : next);
+      }}>
         <View style={[styles.informationRow, compact && styles.informationRowCompact]}>
-        <View style={[styles.glass, styles.infoCard, { width: informationWidth }]} testID="desktop-clock-weather">
-          <View style={styles.clock}><Text style={styles.time}>{now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</Text><Text style={styles.date}>{new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(now)}</Text></View>
-          <View style={styles.weather} testID="desktop-weather">
+        <View style={[styles.glass, styles.infoCard, mobile && styles.infoCardMobile, { width: informationWidth }]} testID="desktop-clock-weather">
+          <View style={[styles.clock, mobile && styles.clockMobile]}><Text style={[styles.time, mobile && styles.timeMobile]}>{now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</Text><Text style={[styles.date, mobile && styles.dateMobile]}>{new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(now)}</Text></View>
+          <View style={[styles.weather, mobile && styles.weatherMobile]} testID="desktop-weather">
             <Text style={styles.weatherIcon}>{weather.data?.glyph ?? "☁"}</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Wetterort ändern" onPress={() => setWeatherLocationOpen(true)} style={styles.weatherCopy}>
-              <Text style={styles.weatherTitle}>{weather.data ? `${weather.data.temperature} °C · ${weather.data.label}` : "Standortwetter"}</Text>
+              <Text style={styles.weatherTitle}>{weather.data ? `${weather.data.temperature} °C · ${weather.data.label}` : mobile ? "Wetter" : "Standortwetter"}</Text>
               <Text style={styles.weatherPlace}>{weather.message}</Text>
               <Text style={styles.weatherEdit}>Ort ändern</Text>
             </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel={weather.status === "idle" ? "Standort für Wetter verwenden" : "Wetter aktualisieren"} disabled={weather.status === "loading"} onPress={weather.refresh} style={styles.weatherRefresh}><Text style={styles.weatherLink}>{weather.status === "loading" ? "…" : weather.status === "idle" ? "⌖" : "↻"}</Text></Pressable>
           </View>
         </View>
-        <View style={[styles.glass, styles.actions]} testID="desktop-topbar-actions">
-          <Pressable ref={menuToggleRef} accessibilityRole="button" {...({ "aria-controls": compact ? undefined : "desktop-home-navigation" } as object)} accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => compact ? setMobileSidebarOpen(value => !value) : setSidebarOpen(value => !value)} style={[styles.iconButton, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>
-          <PortalTextSizeControls />
+        <View style={[styles.glass, styles.actions, mobile && styles.actionsMobile]} testID="desktop-topbar-actions">
+          <Pressable ref={menuToggleRef} accessibilityRole="button" {...({ "aria-controls": compact ? undefined : "desktop-home-navigation" } as object)} accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => compact ? setMobileSidebarOpen(value => !value) : setSidebarOpen(value => !value)} style={[styles.iconButton, mobile && styles.iconButtonMobile, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>
+          <PortalTextSizeControls dense={mobile} />
           {!compact ? <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>Live</Text></View> : null}
-          <Pressable accessibilityLabel="Apps und Widgets öffnen" onPress={() => openCenter()} style={styles.appsButton}><Text style={styles.appsGlyph}>▦</Text>{!compact ? <Text style={styles.appsText}>Apps & Widgets</Text> : null}</Pressable>
-          <Pressable accessibilityLabel={`Kontomenü von ${displayName} öffnen`} onPress={() => setProfileOpen(true)} style={styles.profileTrigger}>{!narrow ? <View style={styles.profileCopy}><Text style={styles.profileName}>{displayName}</Text><Text style={styles.profileRole}>{role}</Text></View> : null}<TopbarProfileAvatar name={displayName} avatarUrl={profile?.avatarUrl?.trim() || undefined} avatarVersion={profile?.updatedAt ?? profile?.avatarUrl} accentColor="#56C7FF" size="lg" /></Pressable>
+          <Pressable accessibilityLabel="Apps und Widgets öffnen" onPress={() => openCenter()} style={[styles.appsButton, mobile && styles.appsButtonMobile]}><Text style={styles.appsGlyph}>▦</Text>{!compact ? <Text style={styles.appsText}>Apps & Widgets</Text> : null}</Pressable>
+          <Pressable accessibilityLabel={`Kontomenü von ${displayName} öffnen`} onPress={() => setProfileOpen(true)} style={[styles.profileTrigger, mobile && styles.profileTriggerMobile]}>{!narrow ? <View style={styles.profileCopy}><Text style={styles.profileName}>{displayName}</Text><Text style={styles.profileRole}>{role}</Text></View> : null}<TopbarProfileAvatar name={displayName} avatarUrl={profile?.avatarUrl?.trim() || undefined} avatarVersion={profile?.updatedAt ?? profile?.avatarUrl} accentColor="#56C7FF" size={mobile ? "sm" : "lg"} /></Pressable>
         </View>
         </View>
-        <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, { width: informationWidth, height: informationWidth / 8 }]} />
+        <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, compact && styles.logoCompact, { width: informationWidth, height: informationWidth / 8 }]} />
       </View>
 
       <View style={[styles.workspace, compact && styles.workspaceCompact, {
         gridTemplateColumns: compact ? 'minmax(0, 1fr)' : `${sidebarOpen ? sidebarWidth : railWidth}px minmax(0, 1fr)`,
-      } as unknown as ViewStyle, shortViewport && { flex: 0, height: Math.max(420, height * 0.7) }]}
+      } as unknown as ViewStyle, shortViewport && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", height: shortWorkspaceHeight }]}
         dataSet={{ csDesktopNavigationWorkspace: 'true' }}>
         {!compact ? <View style={styles.navigationColumn}>
           <View nativeID="desktop-home-navigation"
@@ -588,7 +594,18 @@ export function CommandCenterScreen() {
           {...(Platform.OS === "web" ? ({ dataSet: { healthosWorkspaceRevision: "r11-app-center", healthosResponsiveArtworkRevision: "r9", healthosVisualDensityRevision: "r11-calm" } } as object) : {})}
           style={styles.desktopPanel}
         >
-          <View style={[styles.glass, styles.desktopHeader]}><View style={styles.desktopHeading}><Text style={styles.eyebrow}>PERSÖNLICHER ARBEITSPLATZ</Text><Text style={styles.desktopTitle}>Mein Desktop</Text></View><View style={styles.desktopActions}><View style={styles.countPill}><View style={styles.liveDot} /><Text style={styles.countText}>{desktopIds.length}/{DESKTOP_SLOT_COUNT} aktiv</Text></View><Pressable accessibilityState={{ selected: editMode }} onPress={() => setEditMode((value) => !value)} style={[styles.editButton, editMode && styles.editButtonActive]}><Text style={styles.editText}>{editMode ? "✓  Fertig" : "✎  Bearbeiten"}</Text></Pressable></View></View>
+          <View testID="desktop-workspace-header" style={[styles.glass, styles.desktopHeader, mobile && styles.desktopHeaderMobile]}>
+            <View style={[styles.desktopHeading, mobile && styles.desktopHeadingMobile]}>
+              <Text style={[styles.eyebrow, mobile && styles.eyebrowMobile]}>{mobile ? "Persönlicher Arbeitsplatz" : "PERSÖNLICHER ARBEITSPLATZ"}</Text>
+              {!mobile ? <Text style={styles.desktopTitle}>Mein Desktop</Text> : null}
+            </View>
+            <View style={styles.desktopActions}>
+              <View style={[styles.countPill, mobile && styles.countPillMobile]}><View style={styles.liveDot} /><Text style={[styles.countText, mobile && styles.countTextMobile]}>{mobile ? `${desktopIds.length} aktiv` : `${desktopIds.length}/${DESKTOP_SLOT_COUNT} aktiv`}</Text></View>
+              <Pressable accessibilityRole="button" accessibilityLabel={editMode ? "Desktop-Bearbeitung abschließen" : "Desktop bearbeiten"} accessibilityState={{ selected: editMode }} onPress={() => setEditMode((value) => !value)} style={[styles.editButton, mobile && styles.editButtonMobile, editMode && styles.editButtonActive]}>
+                <Text style={[styles.editText, mobile && styles.editTextMobile]}>{editMode ? "✓ Fertig" : "✎ Bearbeiten"}</Text>
+              </Pressable>
+            </View>
+          </View>
           <ScrollView style={styles.gridScroll} dataSet={{ csDesktopWidgetViewport: "true" }} contentContainerStyle={styles.gridScrollContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
             <View style={styles.grid} dataSet={{ csDesktopWidgetGrid: "true" }} testID="desktop-widget-grid">
               {slots.map((widget, index) => (
@@ -597,7 +614,7 @@ export function CommandCenterScreen() {
                     <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} öffnen`} onPress={() => !editMode && openWidget(widget)} style={({ pressed }) => [styles.widgetCard, pressed && !editMode && styles.widgetPressed, editMode && styles.widgetEditing]}>
                       <View style={styles.labelBar} dataSet={{ csDesktopWidgetLabel: "true" }}><Text accessibilityRole="header" style={styles.widgetLabel}>{widget.label}</Text><Text style={styles.arrow}>↗</Text></View>
                       <View style={styles.imageStage} dataSet={{ csDesktopWidgetArtwork: "true" }}>
-                        <>{widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} fontScale={fontScale}/> : <Image source={widget.images!.medium} resizeMode="contain" style={styles.widgetImage} />}</>
+                        <>{widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} fontScale={effectiveScale}/> : <Image source={widget.images!.medium} resizeMode="contain" style={styles.widgetImage} />}</>
                         {!widget.workspaceService && <View style={styles.categoryPill}><Text style={styles.categoryText}>{widget.category}</Text></View>}
                         {editMode ? <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} entfernen`} onPress={(event) => { event.stopPropagation(); togglePinned(widget.id); }} style={styles.removeButton}><Text style={styles.removeText}>×</Text></Pressable> : null}
                       </View>
@@ -659,7 +676,7 @@ export function CommandCenterScreen() {
                     <View style={styles.centerBody}><Text style={styles.centerCardTitle}>{widget.label}</Text>
                       <Text style={styles.catalogKind}>{widget.workspaceService ? "Live-Widget · Vorschau" : "Schnellzugriff · Vorschau"}</Text></View>
                     <View style={[styles.centerImageStage, { height: 120 * fontScale }]}>
-                      {widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} preview fontScale={fontScale}/>
+                      {widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} preview fontScale={effectiveScale}/>
                         : <Image source={widget.images!.small} resizeMode="contain" style={styles.centerImage} />}
                     </View>
                     <View style={styles.centerBody}>
@@ -692,6 +709,23 @@ const glassWeb = Platform.OS === "web" ? ({ backdropFilter: "blur(26px) saturate
 const glassNativeShadow = Platform.OS !== "web" ? ({ shadowColor: "#2BB8FF", shadowOpacity: 0.2, shadowRadius: 26, shadowOffset: { width: 0, height: 12 } } as const) : null;
 const transitionWeb = Platform.OS === "web" ? ({ transition: "transform 300ms cubic-bezier(.2,.8,.2,1), border-color 240ms ease" } as const) : null;
 const styles = StyleSheet.create({
+  actionsMobile: { alignSelf: "center", minHeight: 52, padding: 4, gap: 4, borderRadius: 16, justifyContent: "center" },
+  iconButtonMobile: { width: 44, height: 44, borderRadius: 12 },
+  appsButtonMobile: { width: 44, minHeight: 44, paddingHorizontal: 0, justifyContent: "center", borderRadius: 12 },
+  profileTriggerMobile: { minHeight: 44, minWidth: 44, paddingHorizontal: 0, justifyContent: "center" },
+  logoCompact: { alignSelf: "center" },
+  infoCardMobile: { minHeight: 70, flexWrap: "nowrap", paddingHorizontal: 10, paddingVertical: 7, gap: 8, borderRadius: 16 },
+  clockMobile: { minWidth: 0, flexBasis: "42%" },
+  weatherMobile: { flex: 1, minWidth: 0, gap: 4 },
+  dateMobile: { fontSize: 13, lineHeight: 18 },
+  timeMobile: { fontSize: 30, lineHeight: 35 },
+  desktopHeaderMobile: { minHeight: 62, padding: 8, gap: 6, borderRadius: 16 },
+  desktopHeadingMobile: { flexBasis: 80 },
+  eyebrowMobile: { fontSize: 13, lineHeight: 18, letterSpacing: 0.2 },
+  countTextMobile: { fontSize: 12 },
+  countPillMobile: { minHeight: 36, paddingHorizontal: 6, paddingVertical: 6, alignSelf: "center", gap: 4 },
+  editButtonMobile: { minHeight: 44, paddingHorizontal: 8, paddingVertical: 6 },
+  editTextMobile: { fontSize: 13 },
   navSearch: { borderWidth: 1, borderColor: "rgba(126,205,255,0.3)", borderRadius: 12, paddingHorizontal: 10, marginBottom: 12, backgroundColor: "rgba(1,11,28,0.7)" },
   navEntryCopy: { flex: 1, minWidth: 0, gap: 3 },
   navEntryContext: { color: "#AFC9DC", fontSize: 11, lineHeight: 16 },
@@ -713,7 +747,7 @@ const styles = StyleSheet.create({
   desktopFrame: { flex: 1, minHeight: 0, width: "100%", padding: 20, gap: 16 }, desktopFrameCompact: { padding: 12, gap: 12 }, loadingHost: { justifyContent: "center", alignItems: "center", padding: 24 }, loadingCard: { width: "100%", maxWidth: 600, borderRadius: 24, padding: 24, gap: 18 },
   topbar: { zIndex: 20, flexShrink: 0, gap: 8 },
   informationRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "stretch", justifyContent: "space-between", gap: 12 },
-  informationRowCompact: { alignItems: "flex-start" },
+  informationRowCompact: { width: "100%", flexDirection: "column", flexWrap: "nowrap", alignItems: "center", justifyContent: "center" },
   logo: { maxWidth: "100%", alignSelf: "flex-start" },
   infoCard: { maxWidth: "100%", minHeight: 80, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 14 },
   clock: { flexShrink: 1, minWidth: 150 },

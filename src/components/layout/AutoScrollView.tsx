@@ -71,7 +71,9 @@ export function AutoScrollView({
           overflowY: 'auto' as const,
           overflowX: allowHorizontalOverflow ? ('auto' as const) : ('hidden' as const),
           WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-y',
+          // Permit a nested table/calendar to pan horizontally, and preserve
+          // browser pinch zoom. The overflow properties choose the scroll axes.
+          touchAction: 'pan-x pan-y pinch-zoom',
           overscrollBehavior: 'contain',
           scrollbarGutter: 'stable',
         } as ViewStyle)

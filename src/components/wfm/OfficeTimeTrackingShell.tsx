@@ -33,6 +33,7 @@ export function OfficeTimeTrackingShell() {
   const { width } = useWindowDimensions();
   const accent = moduleColor('office');
   const compact = width < 760;
+  const mobileWeb = Platform.OS === 'web' && width < 900;
   const activeTab = resolveOfficeTimeTrackingTabKey(pathname);
   const ownCaptureActive = isOfficeTimeTrackingOwnCaptureRoute(pathname);
 
@@ -43,33 +44,45 @@ export function OfficeTimeTrackingShell() {
         ? ({ dataSet: { csWfmSurface: 'light', csPersonalSurface: 'light' } } as object)
         : {})}
     >
-      <View style={styles.header}>
-        <View style={styles.headerLead}>
-          <View
-            style={[
-              styles.iconTile,
-              { backgroundColor: `${accent}18`, borderColor: `${accent}45` },
-            ]}
-          >
-            <Text style={styles.icon}>⏱</Text>
-          </View>
+      <View style={[styles.header, mobileWeb && styles.headerMobile]}>
+        <View style={[styles.headerLead, mobileWeb && { gap: 8 }]}>
+          {!mobileWeb ? (
+            <View
+              style={[
+                styles.iconTile,
+                { backgroundColor: `${accent}18`, borderColor: `${accent}45` },
+              ]}
+            >
+              <Text style={styles.icon}>⏱</Text>
+            </View>
+          ) : null}
           <View style={styles.headerText}>
-            <Text style={[styles.eyebrow, { color: accent }]}>OFFICE · WORKFORCE MANAGEMENT</Text>
-            <Text style={styles.title}>Arbeitszeit</Text>
-            <Text style={styles.subtitle}>
-              Zeiten erfassen, Abweichungen prüfen und Freigaben zentral steuern
+            {!mobileWeb ? (
+              <Text style={[styles.eyebrow, { color: accent }]}>OFFICE · WORKFORCE MANAGEMENT</Text>
+            ) : null}
+            <Text style={[styles.title, mobileWeb && { fontSize: 20, lineHeight: 26 }]}>
+              Arbeitszeit
             </Text>
+            {!mobileWeb ? (
+              <Text style={styles.subtitle}>
+                Zeiten erfassen, Abweichungen prüfen und Freigaben zentral steuern
+              </Text>
+            ) : null}
           </View>
         </View>
-        <View style={styles.headerActions}>
+        <View style={[styles.headerActions, mobileWeb && { gap: 6, flexWrap: 'nowrap' }]}>
           <Pressable
             onPress={() => router.push('/business/office/payroll' as never)}
-            style={({ pressed }) => [styles.payrollLink, pressed && styles.ownLinkPressed]}
+            style={({ pressed }) => [
+              styles.payrollLink,
+              mobileWeb && styles.actionMobile,
+              pressed && styles.ownLinkPressed,
+            ]}
             accessibilityRole="link"
             accessibilityLabel="Gehaltsstatistik und Monatsabschluss öffnen"
           >
             <Text style={styles.payrollLinkIcon}>€</Text>
-            {!compact ? (
+            {!compact && !mobileWeb ? (
               <View>
                 <Text style={styles.payrollLinkKicker}>MONATSABSCHLUSS</Text>
                 <Text style={styles.payrollLinkText}>Gehaltsstatistik</Text>
@@ -80,6 +93,7 @@ export function OfficeTimeTrackingShell() {
             onPress={() => router.push(OFFICE_TIME_TRACKING_OWN_HREF as never)}
             style={({ pressed }) => [
               styles.ownLink,
+              mobileWeb && styles.actionMobile,
               { borderColor: ownCaptureActive ? accent : SHELL_TEXT.border },
               ownCaptureActive && { backgroundColor: `${accent}14` },
               pressed && styles.ownLinkPressed,
@@ -88,7 +102,7 @@ export function OfficeTimeTrackingShell() {
             accessibilityLabel="Eigene Erfassung öffnen"
           >
             <Text style={[styles.ownLinkIcon, { color: accent }]}>＋</Text>
-            {!compact ? (
+            {!compact && !mobileWeb ? (
               <View>
                 <Text style={styles.ownLinkKicker}>PERSÖNLICH</Text>
                 <Text
@@ -105,7 +119,10 @@ export function OfficeTimeTrackingShell() {
         </View>
       </View>
 
-      <View style={styles.navigationSurface}>
+      <View style={[
+        styles.navigationSurface,
+        mobileWeb && { marginHorizontal: 4, marginTop: 4, borderRadius: 12 },
+      ]}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator
@@ -158,8 +175,8 @@ export function OfficeTimeTrackingShell() {
         </ScrollView>
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.workspace}>
+      <View style={[styles.content, mobileWeb && { padding: 4 }]}>
+        <View style={[styles.workspace, mobileWeb && { padding: 6, borderRadius: 14 }]}>
           <ScrollView
             testID="office-time-workspace-scroll"
             style={styles.workspaceScroll}
@@ -208,6 +225,20 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     gap: careSpacing.md,
+  },
+  headerMobile: {
+    gap: 8,
+    padding: 8,
+    marginHorizontal: 4,
+    marginTop: 4,
+    borderRadius: 14,
+  },
+  actionMobile: {
+    minHeight: 44,
+    width: 44,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    justifyContent: 'center',
   },
   iconTile: {
     width: 44,

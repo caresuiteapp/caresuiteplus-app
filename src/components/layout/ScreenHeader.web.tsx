@@ -15,9 +15,9 @@ export function ScreenHeader({ title, subtitle, breadcrumbTrail, showBack = true
   const [width, setWidth] = useState(0);
   const narrow = width > 0 ? width < 640 : isPhone;
   const back = () => onBack ? onBack() : router.canGoBack() ? router.back() : router.replace('/' as never);
-  return <View onLayout={event => setWidth(event.nativeEvent.layout.width)} style={[styles.header, compact && styles.compact]} dataSet={{ csWorkspaceComponent: 'screen-header', csWorkspaceTone: 'light' }}>
+  return <View onLayout={event => setWidth(event.nativeEvent.layout.width)} style={[styles.header, narrow && styles.phoneHeader, compact && styles.compact]} dataSet={{ csWorkspaceComponent: 'screen-header', csWorkspaceTone: 'light' }}>
     {showBack ? <Pressable accessibilityRole="button" accessibilityLabel="Zurück" onPress={back} style={styles.back}><Text style={styles.backText}>← Zurück</Text></Pressable> : null}
-    <View style={styles.copy}>
+    <View style={[styles.copy, narrow && styles.phoneCopy]}>
       {breadcrumbTrail && (!narrow || !simplifyOnPhone) ? <BreadcrumbTrail trail={breadcrumbTrail} /> : null}
       <Text accessibilityRole="header" style={[styles.title, compact && styles.compactTitle]}>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -28,6 +28,8 @@ export function ScreenHeader({ title, subtitle, breadcrumbTrail, showBack = true
 const styles = StyleSheet.create({
   header: { minWidth: 0, width: '100%', minHeight: 82, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 16, paddingHorizontal: 20, paddingVertical: 14, flexShrink: 0, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderColor: '#CCDBEA' },
   compact: { minHeight: 64, paddingVertical: 10 },
+  phoneHeader: { minHeight: 64, paddingHorizontal: 12, paddingVertical: 9, gap: 8 },
+  phoneCopy: { flexBasis: 160 },
   copy: { flexGrow: 1, flexBasis: 220, minWidth: 0, gap: 4 },
   title: { color: '#102B49', fontSize: font(24), lineHeight: font(31), fontWeight: '800' },
   compactTitle: { fontSize: font(21), lineHeight: font(28) },

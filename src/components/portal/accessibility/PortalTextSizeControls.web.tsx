@@ -4,9 +4,9 @@ import { useWebFontScale } from '@/design/web/WebFontScaleProvider';
 import { liquidClassicColors, liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
 import { useLiquidVisualMode } from '@/liquid-command/components/LiquidPrimitives';
 
-type Props = { compact?: boolean };
+type Props = { compact?: boolean; dense?: boolean };
 
-export function PortalTextSizeControls({ compact = false }: Props) {
+export function PortalTextSizeControls({ compact = false, dense = false }: Props) {
   const { scale, increase, decrease, reset, canIncrease, canDecrease } = useWebFontScale();
   const orbit = useLiquidVisualMode() === 'orbit';
   const label = formatWebFontScaleLabel(scale);
@@ -28,7 +28,7 @@ export function PortalTextSizeControls({ compact = false }: Props) {
   return (
     <View
       accessibilityLabel={`Textgröße ${label}`}
-      style={[styles.wrap, orbit && styles.orbitWrap, compact && styles.wrapCompact]}
+      style={[styles.wrap, orbit && styles.orbitWrap, compact && styles.wrapCompact, dense && styles.denseWrap]}
       testID="portal-text-size-controls"
     >
       <Pressable
@@ -37,7 +37,7 @@ export function PortalTextSizeControls({ compact = false }: Props) {
         accessibilityState={{ disabled: !canDecrease }}
         disabled={!canDecrease}
         onPress={decrease}
-        style={({ pressed }) => [styles.button, compact && styles.buttonCompact, !canDecrease && styles.disabled, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.button, compact && styles.buttonCompact, dense && styles.denseButton, !canDecrease && styles.disabled, pressed && styles.pressed]}
       >
         <Text style={[styles.smallA, orbit && styles.orbitText]}>A−</Text>
       </Pressable>
@@ -45,7 +45,7 @@ export function PortalTextSizeControls({ compact = false }: Props) {
         accessibilityRole="button"
         accessibilityLabel={`Textgröße ${label}. Auf 100 Prozent zurücksetzen`}
         onPress={reset}
-        style={({ pressed }) => [styles.value, compact && styles.valueCompact, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.value, compact && styles.valueCompact, dense && styles.denseValue, pressed && styles.pressed]}
       >
         <Text style={[styles.largeA, orbit && styles.orbitAccent]}>aA</Text>
         {!compact ? <Text style={[styles.percent, orbit && styles.orbitMuted]}>{label}</Text> : null}
@@ -56,7 +56,7 @@ export function PortalTextSizeControls({ compact = false }: Props) {
         accessibilityState={{ disabled: !canIncrease }}
         disabled={!canIncrease}
         onPress={increase}
-        style={({ pressed }) => [styles.button, compact && styles.buttonCompact, !canIncrease && styles.disabled, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.button, compact && styles.buttonCompact, dense && styles.denseButton, !canIncrease && styles.disabled, pressed && styles.pressed]}
       >
         <Text style={[styles.bigA, orbit && styles.orbitText]}>A+</Text>
       </Pressable>
@@ -65,6 +65,9 @@ export function PortalTextSizeControls({ compact = false }: Props) {
 }
 
 const styles = StyleSheet.create({
+  denseWrap: { padding: 0, gap: 0 },
+  denseButton: { minWidth: 44, minHeight: 44 },
+  denseValue: { minWidth: 44, minHeight: 44 },
   wrap: {
     minHeight: 42,
     padding: 3,

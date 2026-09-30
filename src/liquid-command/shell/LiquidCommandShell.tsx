@@ -720,13 +720,14 @@ export function LiquidCommandShell({
   const module = getLiquidModule(activeModule);
   const actionLabel = primaryActionLabel ?? module.primaryAction;
   const action = onPrimaryAction ?? (() => setPaletteOpen(true));
+  const boundedPopup = Platform.OS === 'web' && pathname !== '/' && contentMode === 'fill';
   const measuredFillHeight =
-    contentMode === 'fill' && pageScrollHeight > 0
+    !boundedPopup && contentMode === 'fill' && pageScrollHeight > 0
       ? Math.max(320, pageScrollHeight + fillContentOffset)
       : null;
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    if (Platform.OS !== 'web' || typeof document === 'undefined' || pathname !== '/') return;
 
     const handleDocumentWheel = (event: WheelEvent) => {
       const outer = document.querySelector<HTMLElement>(
@@ -768,9 +769,9 @@ export function LiquidCommandShell({
 
     document.addEventListener('wheel', handleDocumentWheel, { capture: true, passive: false });
     return () => document.removeEventListener('wheel', handleDocumentWheel, { capture: true });
-  }, []);
+  }, [pathname]);
 
-  if (layout.formFactor === 'phone-landscape-blocked' && !allowPhoneLandscape) {
+  if (Platform.OS !== 'web' && layout.formFactor === 'phone-landscape-blocked' && !allowPhoneLandscape) {
     return <RotateDeviceScreen />;
   }
 
@@ -790,8 +791,8 @@ export function LiquidCommandShell({
         <View
           style={[
             styles.contentFill,
-            { padding: layout.contentPadding },
-            !layout.isDesktop && styles.contentFillCompact,
+            { padding: boundedPopup && layout.isPhone ? 0 : layout.contentPadding },
+            !layout.isDesktop && !boundedPopup && styles.contentFillCompact,
           ]}
         >
           {showPageHeader ? (
@@ -866,7 +867,11 @@ export function LiquidCommandShell({
           ? ({ dataSet: { csCentralPopupWorkspace: 'true' } } as object)
           : {})}
       >
-        <ScrollView
+        {boundedPopup ? (
+          <View style={styles.centralPopupFill} testID="liquid-command-page-fill">
+            {workspaceContent}
+          </View>
+        ) : <ScrollView
           testID="liquid-command-page-scroll"
           style={styles.centralPopupScroll}
           contentContainerStyle={styles.centralPopupScrollContent}
@@ -875,7 +880,7 @@ export function LiquidCommandShell({
           showsVerticalScrollIndicator={false}
         >
           {workspaceContent}
-        </ScrollView>
+        </ScrollView>}
         <CommandPalette visible={paletteOpen} onClose={() => setPaletteOpen(false)} />
         <NotificationCenter visible={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
         <ProfileMenu visible={profileOpen} onClose={() => setProfileOpen(false)} />
@@ -953,6 +958,7 @@ export function LiquidCommandShell({
 const styles = StyleSheet.create({
   centralPopupContent: {
     flex: 1,
+    ...(Platform.OS === 'web' ? { minHeight: 0, minWidth: 0 } : {}),
     backgroundColor: 'rgba(4, 17, 37, 0.96)',
     overflow: 'hidden',
     borderRadius: 28,
@@ -963,7 +969,8 @@ const styles = StyleSheet.create({
     shadowRadius: 32,
     shadowOffset: { width: 0, height: 18 },
   },
-  centralPopupScroll: { flex: 1 },
+  centralPopupFill: { flex: 1, minHeight: 0, minWidth: 0 },
+  centralPopupScroll: { flex: 1, ...(Platform.OS === 'web' ? { minHeight: 0, minWidth: 0 } : {}) },
   centralPopupScrollContent: { flexGrow: 1 },
   orbitModuleBar: {
     minHeight: 76,

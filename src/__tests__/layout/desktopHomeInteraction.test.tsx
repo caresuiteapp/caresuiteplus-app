@@ -33,9 +33,9 @@ const dependencies: Record<string, unknown> = {
   '@/components/googleWorkspace/GoogleWorkspaceWidget.web': { GoogleWorkspaceWidget: (p: any) => <div data-preview={p.preview}>{p.service}</div> },
   './DesktopWeatherLocationDialog.web': { DesktopWeatherLocationDialog: () => null },
   '@/lib/auth': { useAuth: () => ({ user: { id: api.owner }, profile: { displayName: 'Testverwaltung' }, signOut: vi.fn() }) },
-  '@/components/portal/accessibility/PortalTextSizeControls': { PortalTextSizeControls: () => <button>Textgröße ändern</button> },
+  '@/components/portal/accessibility/PortalTextSizeControls.web': { PortalTextSizeControls: () => <button>Textgröße ändern</button> },
   '@/components/layout/TopbarProfileAvatar': { TopbarProfileAvatar: () => null },
-  '@/design/web/WebFontScaleProvider': { useWebFontScale: () => ({ scale: api.scale }) },
+  '@/design/web/WebFontScaleProvider': { useWebFontScale: () => ({ scale: api.scale, effectiveScale: api.scale * (api.width < 900 ? 0.9 : 1) }) },
   '@/lib/platform/desktopGridLayout': { resolveDesktopGridLayout },
   '@/hooks/useDesktopWeather': { useDesktopWeather: () => ({ status: 'idle', data: null, message: 'Standort verwenden', refresh: vi.fn() }) },
 };
@@ -70,7 +70,7 @@ describe('Web desktop preferences and navigation', () => {
     expect(host.textContent).toContain(`${ids.length ? 2 : 0}/12 aktiv`);
   });
   it('keeps a removed widget removed after remounting the desktop', async () => {
-    await render(); await click(button('✎  Bearbeiten')); await click(label('Klient:innen entfernen'));
+    await render(); await click(label('Desktop bearbeiten')); await click(label('Klient:innen entfernen'));
     expect(label('Klient:innen öffnen')).toBeNull();
     await act(async () => root.unmount()); root = createRoot(host); await render();
     expect(label('Klient:innen öffnen')).toBeNull(); expect(host.textContent).toContain('11/12 aktiv');
@@ -97,7 +97,7 @@ describe('Web desktop preferences and navigation', () => {
     memory.set(sidebarKey(), 'true'); api.width = 780; await render();
     expect(host.querySelector('[role="dialog"]')).toBeNull();
     await click(label('Navigation öffnen')); expect(host.querySelector('[role="dialog"]')).not.toBeNull();
-    await click(label('Seite Klient:innen öffnen')); expect(api.push).toHaveBeenCalledWith('/business/office/clients');
+    await click(label('Seite Klient:innen öffnen')); expect(api.push).toHaveBeenCalledWith('/assist/zugeordnete-klienten');
     expect(host.querySelector('[role="dialog"]')).toBeNull(); expect(memory.get(sidebarKey())).toBe('true');
     api.width = 1440; await render(); expect(label('Navigation schließen')).not.toBeNull();
     api.width = 780; await render(); expect(host.querySelector('[role="dialog"]')).toBeNull();
@@ -153,14 +153,14 @@ describe('App centre categories and distinct actions', () => {
     memory.set(key(), '[]'); await render(); await click(label('Widget hinzufügen'));
     expect(dialog().querySelector('[data-testid="widget-catalog"]')).not.toBeNull();
   });
-  it('finds pages outside the old shortlist and opens their actual destination', async () => {
-    await render(); await typeInto('Seiten in der Navigation suchen', 'MD-Prüfbereitschaft');
-    expect(label('Seite MD-Prüfbereitschaft öffnen')).not.toBeNull();
+  it('finds released pages outside the old shortlist and opens their actual destination', async () => {
+    await render(); await typeInto('Seiten in der Navigation suchen', 'Audit');
+    expect(label('Seite Audit öffnen')).not.toBeNull();
     expect(label('Seite Rechnungen öffnen')).toBeNull();
-    await click(label('Seite MD-Prüfbereitschaft öffnen'));
-    expect(api.push).toHaveBeenCalledWith('/pflege/md-pruefbereitschaft');
-    await typeInto('Seiten in der Navigation suchen', 'Kontakte');
-    await click(label('Seite Kontakte öffnen'));
-    expect(api.push).toHaveBeenLastCalledWith('/business/connect/google-workspace?service=contacts');
+    await click(label('Seite Audit öffnen'));
+    expect(api.push).toHaveBeenCalledWith('/business/office/audit-log');
+    await typeInto('Seiten in der Navigation suchen', 'Hilfe');
+    await click(label('Seite Support & Hilfe öffnen'));
+    expect(api.push).toHaveBeenLastCalledWith('/support');
   });
 });

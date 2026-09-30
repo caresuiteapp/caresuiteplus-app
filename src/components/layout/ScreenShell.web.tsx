@@ -89,14 +89,15 @@ export function ScreenShell({
         scrollHost: {
           flex: 1,
           flexGrow: 1,
+          minHeight: 0,
           width: '100%',
           minWidth: 0,
           backgroundColor: 'transparent',
         },
         scrollContent: {
           flexGrow: isPhone && isAuthRoute ? undefined : 1,
-          padding: spacing.md,
-          gap: spacing.md,
+          padding: isPhone && !isPortalShell ? 10 : spacing.md,
+          gap: isPhone && !isPortalShell ? 10 : spacing.md,
           paddingBottom: bottomPad,
           backgroundColor: 'transparent',
         },
@@ -106,8 +107,8 @@ export function ScreenShell({
           minHeight: 0,
           width: '100%',
           minWidth: 0,
-          padding: spacing.md,
-          gap: spacing.md,
+          padding: isPhone && !isPortalShell ? 10 : spacing.md,
+          gap: isPhone && !isPortalShell ? 10 : spacing.md,
           backgroundColor: 'transparent',
         },
         popupBody: {
@@ -126,7 +127,7 @@ export function ScreenShell({
         },
 
       }),
-    [bottomPad, isAuthRoute, isPhone],
+    [bottomPad, isAuthRoute, isPhone, isPortalShell],
   );
 
   const structuredContent = (
@@ -158,7 +159,9 @@ export function ScreenShell({
   );
 
   const rootStyle: ViewStyle[] = [styles.root];
-  if (useMobileTouchScroll && Platform.OS === 'web') rootStyle.push(webShellViewportLockStyle());
+  // Nested popup pages inherit their available height. A second 100dvh extends
+  // their scroll viewport below the popup and hides the final form/list rows.
+  if (useMobileTouchScroll && !contextualPopup && Platform.OS === 'web') rootStyle.push(webShellViewportLockStyle());
 
   if (contextualPopup) {
     return (

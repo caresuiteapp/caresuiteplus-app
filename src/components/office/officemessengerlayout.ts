@@ -13,7 +13,9 @@ export function officeMessengerContainerHeight(viewportHeight: number) {
   if (Platform.OS === 'web') {
     return {
       flex: 1,
-      minHeight: 'calc(100vh - 220px)' as unknown as number,
+      // The popup and page header have already reserved their chrome. A viewport
+      // estimate here pushes the message composer below the visible workspace.
+      minHeight: 0,
     };
   }
 

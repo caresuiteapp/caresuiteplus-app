@@ -282,10 +282,13 @@ const styles = StyleSheet.create({
   centralPopupGlobalCloseText: { color: '#FFFFFF', fontSize: 34, lineHeight: 36, fontWeight: '300', marginTop: -3 },
   root: {
     flex: 1,
+    minHeight: 0,
+    maxHeight: '100dvh' as ViewStyle['maxHeight'],
     backgroundColor: 'transparent',
   },
   contentLayer: {
     flex: 1,
+    minHeight: 0,
     position: 'relative',
     backgroundColor: 'transparent',
   },
@@ -297,7 +300,7 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         width: '100vw',
-        height: '100vh',
+        height: '100dvh',
         zIndex: 0,
       } as unknown as ViewStyle)
     : ({
@@ -306,6 +309,7 @@ const styles = StyleSheet.create({
       } as ViewStyle),
   foregroundLayer: {
     flex: 1,
+    minHeight: 0,
     zIndex: 1,
     backgroundColor: 'transparent',
   },

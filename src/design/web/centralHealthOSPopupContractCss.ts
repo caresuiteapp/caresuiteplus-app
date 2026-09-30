@@ -122,7 +122,7 @@ export const CENTRAL_HEALTHOS_POPUP_CONTRACT_CSS = `
 
   html [data-cs-desktop-surface="light"] :is(input, textarea, select),
   html [data-cs-support-surface="light"] :is(input, textarea, select) {
-    font-size: calc(16px * var(--app-font-scale, 1)) !important;
+    font-size: max(16px, calc(16px * var(--app-font-scale, 1))) !important;
     line-height: 1.5 !important; min-height: 44px; max-width: 100%; box-sizing: border-box;
   }
   html [data-cs-desktop-surface="light"] :is([role="button"], [role="tab"]),

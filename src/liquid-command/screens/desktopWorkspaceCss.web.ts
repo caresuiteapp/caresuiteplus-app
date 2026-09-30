@@ -1,10 +1,10 @@
 /** Keep sidebar motion, track widths and artwork height in the same browser layout pass. */
-export function desktopWorkspaceCss(fontScale: number) {
+export function desktopWorkspaceCss(fontScale: number, mobile = false) {
   const scale = Math.max(1, Number.isFinite(fontScale) ? fontScale : 1);
-  const gap = 14;
-  const minimum = 240 * scale;
+  const gap = mobile ? 10 : 14;
+  const minimum = (mobile ? 160 : 240) * scale;
   const threshold = (columns: number) => columns * minimum + (columns - 1) * gap;
-  const labelHeight = Math.ceil(48 * scale + 16);
+  const labelHeight = Math.ceil((mobile ? 32 : 48) * scale + (mobile ? 12 : 16));
   return `
     input#desktop-catalog-search,
     input#desktop-navigation-search {
@@ -73,6 +73,15 @@ export function desktopWorkspaceCss(fontScale: number) {
         [data-cs-desktop-widget-grid] { --cs-desktop-columns: 6; --cs-desktop-rows: 2; }
       }
     }
+    ${mobile ? `
+    [data-cs-desktop-widget-label] { padding: 6px 10px; gap: 6px; }
+    [data-cs-desktop-widget-label] [role="heading"] {
+      font-size: ${16 * fontScale}px !important;
+      line-height: ${21 * fontScale}px !important;
+    }
+    [data-cs-desktop-widget-artwork] { height: 90px !important; margin: 0 7px 7px; }
+    [data-cs-desktop-widget-empty] { min-height: ${labelHeight + 98}px; }
+    ` : ''}
     [data-cs-desktop-navigation-workspace] :is([role="button"],button):focus-visible {
       outline: 2px solid #81DCFF;
       outline-offset: -3px;
