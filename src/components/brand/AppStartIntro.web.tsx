@@ -146,9 +146,19 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
         [data-caresuite-intro-actions] button:hover { background: #0560C4; border-color: #0560C4; }
         [data-caresuite-intro-actions] button:focus-visible { outline: 4px solid #123251; outline-offset: 5px; }
         [data-caresuite-intro-actions] button[data-caresuite-intro-continue] { background: #fff; color: #123251; border-color: #A8BED3; }
-        @media (min-width: 1800px) and (min-height: 950px) {
-          [data-caresuite-intro-panel] { width: min(90%, 1120px); padding: 64px; border-radius: 36px; }
-          [data-caresuite-intro-actions] button { min-height: 72px; padding: 18px 36px; }
+        @media (min-width: 901px) {
+          [data-caresuite-intro-panel] { width: min(100%, 780px); padding: 36px; }
+          [data-caresuite-intro-brand] { font-size: clamp(28px, 2.4vw, 44px); }
+          [data-caresuite-intro-message] { font-size: clamp(18px, 1.25vw, 22px); }
+          [data-caresuite-intro-hint] { font-size: 16px; }
+          [data-caresuite-intro-actions] button { min-height: 52px; padding: 12px 24px; font-size: 18px; }
+        }
+        @media (min-width: 901px) and (max-height: 800px) {
+          [data-caresuite-intro-panel] { padding: 28px; }
+          [data-caresuite-intro-brand] { margin-bottom: 16px; font-size: 36px; }
+          [data-caresuite-intro-message] { font-size: 20px; }
+          [data-caresuite-intro-actions] { margin-top: 20px; gap: 12px; }
+          [data-caresuite-intro-actions] button { min-height: 48px; padding: 10px 22px; }
         }
         @media (max-height: 520px) {
           [data-caresuite-intro-panel] { padding: 20px; }

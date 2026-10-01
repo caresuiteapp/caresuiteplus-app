@@ -77,7 +77,41 @@ export const webStartChoiceStyles = String.raw`
 @keyframes cs-start-ring{0%{opacity:0;scale:.05}15%{opacity:.65}100%{opacity:0;scale:2.8}}
 @keyframes cs-start-starlight{from{opacity:.22}to{opacity:.7}}
 @keyframes cs-start-drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(8%,9%,0)}}
-@media(min-width:1800px) and (min-height:950px){.cs-start-inner{max-width:1770px;padding:28px 70px 18px}.cs-start-brand{width:320px}.cs-start-motion{font-size:15px;min-height:54px;padding:10px 19px}.cs-start-motion svg{width:21px;height:21px}.cs-start-heading{margin-top:34px;margin-bottom:28px}.cs-start-heading h1{font-size:60px}.cs-start-eyebrow{font-size:12px;margin-bottom:14px}.cs-start-introduction{font-size:17px;max-width:800px;margin-top:12px}.cs-start-choices{max-width:1420px;gap:32px}.cs-start-card{border-radius:30px}.cs-start-card-media{height:230px}.cs-start-media-label{font-size:11px;left:28px;top:24px}.cs-start-software .cs-start-media-label{top:auto;bottom:21px}.cs-start-media-word{font-size:43px;left:35px;bottom:28px}.cs-start-card-content{padding:26px 34px 24px}.cs-start-card-kicker{font-size:12px}.cs-start-card-title{font-size:36px;margin-top:12px}.cs-start-card-description{font-size:16px;min-height:54px;max-width:470px;margin-top:10px}.cs-start-card-action{font-size:15px;margin-top:20px;padding-top:18px}.cs-start-arrow{width:40px;height:40px}.cs-start-arrow svg{width:22px;height:22px}.cs-start-footer{max-width:1420px;font-size:12px;margin-top:18px;padding-top:12px}}
+/* Large screens gain surrounding space; content keeps a bounded visual scale. */
+@media(min-width:901px){
+  .cs-start-inner{max-width:1280px;padding:28px 48px 24px;justify-content:center}
+  .cs-start-brand{width:260px}
+  .cs-start-heading{margin:clamp(28px,4vh,48px) 0 26px}
+  .cs-start-heading h1{font-size:clamp(36px,2.6vw,48px)}
+  .cs-start-choices{max-width:1040px}
+  .cs-start-card-media{height:180px;flex-shrink:0}
+  .cs-start-media-word{font-size:32px;left:26px;bottom:20px}
+  .cs-start-desktop-image{top:26px}
+  .cs-start-card-content{padding:22px 26px}
+  .cs-start-card-title{font-size:29px;margin-top:10px}
+  .cs-start-card-description{margin-top:10px}
+  .cs-start-card-action{padding-top:17px;margin-top:18px}
+  .cs-start-footer{max-width:1040px;margin-top:18px;padding-top:12px}
+}
+/* Compress the image stages and spacing when TV/browser chrome leaves less height. */
+@media(min-width:901px) and (max-height:800px){
+  .cs-start-inner{padding:20px 36px}
+  .cs-start-brand{width:240px}
+  .cs-start-heading{margin:24px 0 22px}
+  .cs-start-eyebrow{margin-bottom:12px}
+  .cs-start-heading h1{font-size:38px}
+  .cs-start-introduction{margin-top:12px}
+  .cs-start-card-media{height:145px}
+  .cs-start-media-label{top:14px;left:20px}
+  .cs-start-media-word{font-size:28px;left:23px;bottom:16px}
+  .cs-start-desktop-image{top:18px}
+  .cs-start-software .cs-start-media-label{top:auto;bottom:12px}
+  .cs-start-card-content{padding:18px 24px}
+  .cs-start-card-title{font-size:28px;margin-top:8px}
+  .cs-start-card-description{margin-top:9px}
+  .cs-start-card-action{padding-top:13px;margin-top:14px}
+  .cs-start-footer{margin-top:15px;padding-top:8px}
+}
 @media(max-width:900px){.cs-start-inner{padding:25px 28px}.cs-start-brand{width:245px}.cs-start-heading{margin:44px 0 30px}.cs-start-heading h1{font-size:39px;max-width:640px;margin:auto}.cs-start-choices{gap:18px}.cs-start-card-media{height:190px}.cs-start-card-content{padding:23px}.cs-start-card-title{font-size:28px}.cs-start-card-description{font-size:13px;min-height:65px}.cs-start-card-action{font-size:12px}.cs-start-media-word{font-size:30px;left:23px}}
 @media(max-width:620px){.cs-start-inner{padding:20px 20px 24px}.cs-start-topbar{gap:10px;flex-wrap:wrap}.cs-start-brand{width:225px;max-width:100%}.cs-start-motion{min-height:44px;padding:8px 11px;font-size:10px;margin-left:auto}.cs-start-motion svg{width:15px;height:15px}.cs-start-heading{margin:35px 0 25px;text-align:left}.cs-start-eyebrow{justify-content:flex-start;font-size:9px;letter-spacing:.14em;margin-bottom:15px}.cs-start-heading h1{font-size:35px;line-height:1.12;letter-spacing:-.045em}.cs-start-heading h1>span{display:block;margin-top:3px;max-width:320px}.cs-start-introduction{font-size:13px;line-height:1.6;margin-top:15px;max-width:340px;text-wrap:initial}.cs-start-choices{grid-template-columns:1fr;gap:19px;max-width:460px}.cs-start-card{border-radius:21px}.cs-start-card-media{height:170px}.cs-start-card-content{padding:22px 23px 19px}.cs-start-card-title{font-size:29px;margin-top:9px}.cs-start-card-description{font-size:13px;min-height:0;max-width:310px;margin-top:10px}.cs-start-card-kicker{font-size:9px}.cs-start-card-action{font-size:13px;margin-top:18px;padding-top:16px;min-height:54px}.cs-start-media-label{left:18px;top:15px;font-size:8px}.cs-start-media-word{left:24px;bottom:20px;font-size:31px}.cs-start-desktop-image{top:27px}.cs-start-footer{font-size:9px;align-items:flex-start;margin-top:17px;gap:12px}.cs-start-footer>span:last-child{max-width:145px;text-align:right}}
 @media(prefers-reduced-motion:reduce){.cs-start-screen *{animation:none!important;transition:none!important}.cs-start-card{transform:none!important}.cs-start-halo{will-change:auto}}

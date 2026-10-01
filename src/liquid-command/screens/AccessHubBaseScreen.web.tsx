@@ -152,14 +152,14 @@ function AccessCard({
   option,
   index,
   stacked,
-  spacious = false,
+  compact = false,
   reducedMotion,
   onPress,
 }: {
   option: AccessOption;
   index: number;
   stacked: boolean;
-  spacious?: boolean;
+  compact?: boolean;
   reducedMotion: boolean;
   onPress: () => void;
 }) {
@@ -267,13 +267,13 @@ function AccessCard({
         style={({ pressed }) => [
           styles.accessCard,
           stacked && styles.accessCardStacked,
-          spacious && styles.accessCardSpacious,
+          compact && styles.accessCardCompact,
           hovered && styles.accessCardHovered,
           pressed && styles.accessCardPressed,
         ]}
       >
-        <View style={[styles.robotStage, stacked && styles.robotStageStacked, spacious && styles.robotStageSpacious]}>
-          <View style={[styles.robotGlow, hovered && styles.robotGlowHovered]} />
+        <View style={[styles.robotStage, stacked && styles.robotStageStacked, compact && styles.robotStageCompact]}>
+          <View style={[styles.robotGlow, compact && styles.robotGlowCompact, hovered && styles.robotGlowHovered]} />
           <Animated.View
             style={{
               transform: [
@@ -286,13 +286,13 @@ function AccessCard({
               accessibilityLabel={option.imageAccessibilityLabel}
               resizeMode="contain"
               source={option.image}
-              style={[styles.robotImage, stacked && styles.robotImageStacked, spacious && styles.robotImageSpacious]}
+              style={[styles.robotImage, stacked && styles.robotImageStacked, compact && styles.robotImageCompact]}
             />
           </Animated.View>
         </View>
-        <View style={[styles.cardCopy, stacked && styles.cardCopyStacked]}>
-          <Text style={[styles.accessTitle, stacked && styles.accessTitleStacked, spacious && styles.accessTitleSpacious]}>{option.title}</Text>
-          <View style={[styles.accessCta, hovered && styles.accessCtaHovered, spacious && styles.ctaSpacious]}>
+        <View style={[styles.cardCopy, stacked && styles.cardCopyStacked, compact && styles.cardCopyCompact]}>
+          <Text style={[styles.accessTitle, stacked && styles.accessTitleStacked, compact && styles.accessTitleCompact]}>{option.title}</Text>
+          <View style={[styles.accessCta, stacked && styles.accessCtaStacked, hovered && styles.accessCtaHovered]}>
             <LinearGradient
               colors={hovered ? ['#248cff', '#096ee9'] : ['#1683ff', '#056ce8']}
               start={{ x: 0, y: 0 }}
@@ -311,7 +311,7 @@ function AccessCard({
                 },
               ]}
             />
-            <Text style={[styles.accessCtaLabel, spacious && styles.ctaLabelSpacious]}>Anmelden</Text>
+            <Text style={styles.accessCtaLabel}>Anmelden</Text>
             <Animated.View
               style={{
                 transform: [
@@ -330,12 +330,12 @@ function AccessCard({
 
 function RegistrationCard({
   stacked,
-  spacious = false,
+  compact = false,
   reducedMotion,
   onPress,
 }: {
   stacked: boolean;
-  spacious?: boolean;
+  compact?: boolean;
   reducedMotion: boolean;
   onPress: () => void;
 }) {
@@ -380,12 +380,12 @@ function RegistrationCard({
         style={({ pressed }) => [
           styles.registrationCard,
           stacked && styles.registrationCardStacked,
-          spacious && styles.registrationCardSpacious,
+          compact && styles.registrationCardCompact,
           hovered && styles.registrationCardHovered,
           pressed && styles.accessCardPressed,
         ]}
       >
-        <View style={styles.registrationIcon}>
+        <View style={[styles.registrationIcon, compact && styles.registrationIconCompact]}>
           <LinearGradient
             colors={['rgba(53,151,255,0.30)', 'rgba(22,131,255,0.08)']}
             style={StyleSheet.absoluteFill}
@@ -393,10 +393,10 @@ function RegistrationCard({
           <Ionicons color={liquidColors.blue200} name="business-outline" size={32} />
         </View>
         <View style={[styles.registrationCopy, stacked && styles.registrationCopyStacked]}>
-          <Text style={[styles.registrationTitle, stacked && styles.registrationTextCentered, spacious && styles.registrationTitleSpacious]}>
+          <Text style={[styles.registrationTitle, stacked && styles.registrationTextCentered, compact && styles.registrationTitleCompact]}>
             Unternehmen kostenlos registrieren
           </Text>
-          <Text style={[styles.registrationSubtitle, stacked && styles.registrationTextCentered, spacious && styles.registrationSubtitleSpacious]}>
+          <Text style={[styles.registrationSubtitle, stacked && styles.registrationTextCentered, compact && styles.registrationSubtitleCompact]}>
             CareSuite HealthOS: 0 € · alle verfügbaren Funktionsbereiche · keine Kreditkarte
           </Text>
         </View>
@@ -404,11 +404,10 @@ function RegistrationCard({
           style={[
             styles.registrationCta,
             stacked && styles.registrationCtaStacked,
-            spacious && styles.ctaSpacious,
             hovered && styles.accessCtaHovered,
           ]}
         >
-          <Text style={[styles.accessCtaLabel, spacious && styles.ctaLabelSpacious]}>Kostenlos starten</Text>
+          <Text style={styles.accessCtaLabel}>Kostenlos starten</Text>
           <Ionicons color={liquidColors.white} name="chevron-forward" size={19} />
         </View>
       </Pressable>
@@ -428,7 +427,9 @@ export function AccessHubBaseScreen({
   const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
   const stacked = layout.width < 900;
-  const spacious = layout.width >= 1800 && layout.height >= 950;
+  // Large displays keep the same readable canvas; short displays reduce
+  // individual elements instead of enlarging or scaling the whole interface.
+  const compact = !stacked && layout.height <= 800;
 
   return (
     <View style={styles.root} testID="web-access-hub">
@@ -440,14 +441,13 @@ export function AccessHubBaseScreen({
         .cs-display-switch button {font:inherit;font-size:16px;line-height:1.4;min-height:48px;padding:12px 24px;border-radius:999px;background:#fff;border:1px solid #a9c9ed;color:#145786;cursor:pointer}
         .cs-display-switch button:hover {background:#e7f2ff;border-color:#0876e8}
         .cs-display-switch span {color:#496a88;font-size:14px;line-height:1.6}
-        @media(min-width:1800px) and (min-height:950px) {.cs-display-switch button{font-size:22px;min-height:60px}.cs-display-switch span{font-size:18px}}
       `}</style>
       <AnimatedBackdrop reducedMotion={reducedMotion} />
       <ScrollView
         bounces={false}
         contentContainerStyle={[
           styles.scrollContent,
-          spacious && styles.scrollContentSpacious,
+          compact && styles.scrollContentCompact,
           stacked && styles.scrollContentStacked,
           stacked && {
             paddingTop: Math.max(24, insets.top + 16),
@@ -456,15 +456,15 @@ export function AccessHubBaseScreen({
         ]}
         showsVerticalScrollIndicator
       >
-        <View style={[styles.content, stacked && styles.contentStacked, spacious && styles.contentSpacious]}>
-          <View style={[styles.header, stacked && styles.headerStacked]}>
+        <View style={[styles.content, stacked && styles.contentStacked, compact && styles.contentCompact]}>
+          <View style={[styles.header, stacked && styles.headerStacked, compact && styles.headerCompact]}>
             <Text
               accessibilityRole="header"
               accessibilityLabel="CareSuite HealthOS"
               numberOfLines={1}
               style={[
                 styles.logo,
-                spacious && styles.logoSpacious,
+                compact && styles.logoCompact,
                 stacked && {
                   fontSize: Math.min(40, (layout.width - 48) / 9.6),
                   lineHeight: 50,
@@ -473,15 +473,15 @@ export function AccessHubBaseScreen({
             >
               CareSuite<Text style={styles.logoAccent}> HealthOS</Text>
             </Text>
-            <Text style={styles.eyebrow}>IHR ZUGANG</Text>
+            <Text style={[styles.eyebrow, compact && styles.eyebrowCompact]}>IHR ZUGANG</Text>
             <Text
               accessibilityRole="header"
-              style={[styles.headline, stacked && styles.headlineStacked, spacious && styles.headlineSpacious]}
+              style={[styles.headline, stacked && styles.headlineStacked, compact && styles.headlineCompact]}
             >
               Wo möchten Sie starten?
             </Text>
           </View>
-          <View style={[styles.accessGrid, stacked && styles.accessGridStacked]} testID="access-hub-options">
+          <View style={[styles.accessGrid, stacked && styles.accessGridStacked, compact && styles.accessGridCompact]} testID="access-hub-options">
             {options.map((option, index) => (
               <AccessCard
                 key={option.id}
@@ -490,7 +490,7 @@ export function AccessHubBaseScreen({
                 option={option}
                 reducedMotion={reducedMotion}
                 stacked={stacked}
-                spacious={spacious}
+                compact={compact}
               />
             ))}
           </View>
@@ -499,12 +499,12 @@ export function AccessHubBaseScreen({
               onPress={() => router.push('/auth/register' as never)}
               reducedMotion={reducedMotion}
               stacked={stacked}
-              spacious={spacious}
+              compact={compact}
             />
           ) : null}
-          <nav aria-label="Informationen zu CareSuite" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px 22px', marginTop: 10 }}>
+          <nav aria-label="Informationen zu CareSuite" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: compact ? '6px 22px' : '10px 22px', marginTop: compact ? 0 : 10 }}>
             {[['/caresuite', 'Über CareSuite'], ['/landingpage', 'Landingpage'], ['/datenschutz', 'Datenschutz'], ['/nutzungsbedingungen', 'Nutzungsbedingungen'], ['/impressum', 'Kontakt & Impressum']].map(([href, label]) => (
-              <a key={href} href={href} style={{ fontFamily: 'CenturyGothic, Arial, sans-serif', color: '#145786', fontSize: spacious ? 20 : 14, lineHeight: 1.6, padding: '8px 4px', minHeight: 44, display: 'inline-flex', alignItems: 'center', textUnderlineOffset: 3 }}>{label}</a>
+              <a key={href} href={href} style={{ fontFamily: 'CenturyGothic, Arial, sans-serif', color: '#145786', fontSize: 14, lineHeight: 1.6, padding: '8px 4px', minHeight: 44, display: 'inline-flex', alignItems: 'center', textUnderlineOffset: 3 }}>{label}</a>
             ))}
           </nav>
           <div className="cs-display-switch">
@@ -529,27 +529,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 28,
-    paddingVertical: 38,
+    paddingVertical: 28,
   },
   scrollContentStacked: {
     justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 24,
   },
-  scrollContentSpacious: { paddingHorizontal: 64, paddingVertical: 48 },
-  contentSpacious: { maxWidth: 1720, gap: 28 },
-  logoSpacious: { maxWidth: 980, fontSize: 70, lineHeight: 84 },
-  headlineSpacious: { fontSize: 48, lineHeight: 58 },
-  accessCardSpacious: { minHeight: 450, padding: 26, borderRadius: 28 },
-  robotStageSpacious: { minHeight: 282 },
-  robotImageSpacious: { width: 300, height: 300 },
-  accessTitleSpacious: { fontSize: 32, lineHeight: 40 },
-  ctaSpacious: { minHeight: 64, paddingHorizontal: 26 },
-  ctaLabelSpacious: { fontSize: 21, lineHeight: 28 },
-  registrationCardSpacious: { minHeight: 128, padding: 26, gap: 24 },
-  registrationTitleSpacious: { fontSize: 28, lineHeight: 36 },
-  registrationSubtitleSpacious: { fontSize: 19, lineHeight: 28 },
-  content: { width: '100%', maxWidth: 1180, gap: 20 },
+  scrollContentCompact: { paddingVertical: 20 },
+  contentCompact: { gap: 12 },
+  headerCompact: { gap: 4, marginBottom: 0 },
+  logoCompact: { fontSize: 38, lineHeight: 46, marginBottom: 4 },
+  eyebrowCompact: { fontSize: 12, lineHeight: 18 },
+  headlineCompact: { fontSize: 28, lineHeight: 36 },
+  accessGridCompact: { gap: 16 },
+  accessCardCompact: { minHeight: 260, padding: 14 },
+  robotStageCompact: { minHeight: 144 },
+  robotImageCompact: { width: 144, height: 144 },
+  robotGlowCompact: { width: 142, height: 142, borderRadius: 71 },
+  cardCopyCompact: { gap: 8 },
+  accessTitleCompact: { fontSize: 20, lineHeight: 26 },
+  registrationCardCompact: { minHeight: 88, padding: 12, gap: 14 },
+  registrationIconCompact: { width: 56, height: 56, borderRadius: 15 },
+  registrationTitleCompact: { fontSize: 18, lineHeight: 24 },
+  registrationSubtitleCompact: { fontSize: 13, lineHeight: 19 },
+  content: { width: '100%', maxWidth: 1180, gap: 18 },
   contentStacked: { maxWidth: 560, gap: 14, alignSelf: 'center' },
   header: { alignItems: 'center', gap: 7, marginBottom: 6 },
   headerStacked: { gap: 6, marginBottom: 4 },
@@ -558,8 +562,8 @@ const styles = StyleSheet.create({
     maxWidth: 720,
     marginBottom: 8,
     color: '#0B2A4A',
-    fontSize: 52,
-    lineHeight: 64,
+    fontSize: 44,
+    lineHeight: 54,
     fontWeight: '700',
     letterSpacing: -0.65,
     textAlign: 'center',
@@ -575,8 +579,8 @@ const styles = StyleSheet.create({
   },
   headline: {
     color: liquidColors.white,
-    fontSize: 38,
-    lineHeight: 46,
+    fontSize: 32,
+    lineHeight: 40,
     fontWeight: '900',
     letterSpacing: -1.25,
     textAlign: 'center',
@@ -593,8 +597,8 @@ const styles = StyleSheet.create({
     flexBasis: 'auto',
   },
   accessCard: {
-    minHeight: 352,
-    padding: 18,
+    minHeight: 310,
+    padding: 16,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(112,181,255,0.48)',
@@ -622,7 +626,7 @@ const styles = StyleSheet.create({
   robotStage: {
     width: '100%',
     flex: 1,
-    minHeight: 238,
+    minHeight: 192,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -647,9 +651,9 @@ const styles = StyleSheet.create({
     shadowRadius: 34,
   },
   robotGlowHovered: { backgroundColor: 'rgba(22,131,255,0.21)', shadowOpacity: 0.5 },
-  robotImage: { width: 244, height: 244 },
+  robotImage: { width: 192, height: 192 },
   robotImageStacked: { width: 118, height: 118 },
-  cardCopy: { width: '100%', alignItems: 'center', gap: 12 },
+  cardCopy: { width: '100%', alignItems: 'center', gap: 10 },
   cardCopyStacked: {
     width: '100%',
     minWidth: 0,
@@ -659,8 +663,8 @@ const styles = StyleSheet.create({
   },
   accessTitle: {
     color: liquidColors.white,
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 22,
+    lineHeight: 28,
     fontWeight: '900',
     textAlign: 'center',
   },
@@ -672,7 +676,7 @@ const styles = StyleSheet.create({
   },
   accessCta: {
     width: '100%',
-    minHeight: 50,
+    minHeight: 48,
     paddingHorizontal: 18,
     borderRadius: 12,
     borderWidth: 1,
@@ -688,6 +692,7 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 7,
   },
+  accessCtaStacked: { minHeight: 50 },
   accessCtaHovered: { borderColor: liquidColors.blue200, shadowOpacity: 0.48 },
   accessCtaLabel: {
     color: liquidColors.onAccent,
