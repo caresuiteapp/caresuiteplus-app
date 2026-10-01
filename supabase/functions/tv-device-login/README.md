@@ -2,9 +2,13 @@
 
 Diese Funktion implementiert eine kurzlebige Gerätefreigabe für `administration`, `employee` und `client`. Der QR-Code enthält ausschließlich den zufälligen `userCode`. Das separate `deviceSecret` verbleibt im ursprünglichen Browser. Sitzungstoken, Passwörter und Geräteschlüssel gehören niemals in URLs, QR-Codes, Logs oder Analytics.
 
-## Bereitstellung und Voraussetzungen
+## Produktiver Bereitstellungsstand
 
-1. `supabase/sql/tv_device_login.sql` auf der vorgesehenen Supabase-Umgebung prüfen und anwenden; anschließend nach dem vorhandenen Projektverfahren in die Migrationshistorie übernehmen. Die Datei wurde bewusst nicht als bereits angewandte Migration ausgegeben.
+Am 1. Oktober 2026 auf `euagyyztvmemuaiumvxm` eingerichtet: Migration `20261001002430_tv_device_login_pairing`, Edge Function `tv-device-login` Version 1, Status `ACTIVE`. Tabellen-/RPC-Rechte wurden per Metadatenabfrage geprüft. Web-Rollout und echter Zwei-Geräte-Anmeldedurchlauf stehen noch aus.
+
+## Bereitstellung auf weiteren Umgebungen und Voraussetzungen
+
+1. `supabase/sql/tv_device_login.sql` auf der vorgesehenen Supabase-Umgebung prüfen und anwenden; anschließend nach dem vorhandenen Projektverfahren in die Migrationshistorie übernehmen. Auf Produktion ist dieser Schritt bereits erfolgt; dort nicht erneut ausführen. Die vom Server erzeugte Migrationsversion ist im Repository enthalten.
 2. Die Edge Function `tv-device-login` mit ihren lokalen Dateien und den vorhandenen Abhängigkeiten `_shared/crypto.ts`, `_shared/http.ts` und `_shared/portalAuth.ts` bereitstellen. In `supabase/config.toml` steht `verify_jwt = false`, weil die Anforderung eines neuen QR-Codes und dessen Statusabfrage ohne bereits angemeldeten Benutzer funktionieren müssen. Freigeben/Ablehnen prüft die Benutzersitzung innerhalb der Funktion mit `auth.getUser()` und der aktuellen Auth-Sitzung in der Datenbank.
 3. Die bestehenden serverseitigen Variablen `SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY` müssen wie bei den Portal-Login-Funktionen verfügbar sein. Sie gehören ausschließlich in die Funktionsumgebung. `TV_DEVICE_LOGIN_ALLOWED_ORIGINS` ist optional; Standard sind `https://www.caresuiteplus.app` und `https://caresuiteplus.app`. Weitere Test-Ursprünge bei Bedarf explizit konfigurieren, keine Wildcard.
 4. Web-Frontend erst zusammen mit dem eingerichteten Backend veröffentlichen und danach einen echten Ablauf mit dafür freigegebenen Testkonten je Rolle prüfen. Ein Web-Deploy allein richtet die Tabelle und Funktion nicht ein.
@@ -42,4 +46,4 @@ Statuswerte: `pending`, `approved`, `consumed`, `denied`, `expired`, `cancelled`
 
 `node --test supabase/tests/tv_device_login.test.mjs` führt mit Node 24 die Handler-/Policy-Tests ohne zusätzliche Testpakete aus. Die Tests decken die drei Rollen, explizite Freigabe, falsche Geräteschlüssel, Rollenwechsel, parallelen Bezug, Ablauf, Ablehnung, Abbruch, Quellenwiderruf, Fehler bei der Ausstellung, Kontosperren, Mandantensperren, MFA und Erstanmeldung ab.
 
-Diese Tests verwenden einen injizierten Speicher/Issuer. Sie belegen nicht die tatsächlichen Supabase-Tabellenrechte, die GoTrue-Konfiguration oder einen Ablauf zwischen zwei echten Browsergeräten. Die SQL-Datei und Funktion wurden hier nicht produktiv angewandt oder aufgerufen. Nach Bereitstellung sind die tatsächlichen Rechte sowie ein freigegebener Ende-zu-Ende-Test einschließlich Abbruch/Ablauf, zweimaligem Bezug und MFA-Ablehnung nachzuweisen.
+Diese Tests verwenden einen injizierten Speicher/Issuer. Sie belegen nicht die tatsächlichen Supabase-Tabellenrechte, die GoTrue-Konfiguration oder einen Ablauf zwischen zwei echten Browsergeräten. Die SQL-Datei und Funktion wurden inzwischen produktiv bereitgestellt und die Tabellen-/RPC-Rechte geprüft; eine echte Sitzungsausstellung wurde noch nicht durchgeführt. Nach Bereitstellung sind die tatsächlichen Rechte sowie ein freigegebener Ende-zu-Ende-Test einschließlich Abbruch/Ablauf, zweimaligem Bezug und MFA-Ablehnung nachzuweisen.
