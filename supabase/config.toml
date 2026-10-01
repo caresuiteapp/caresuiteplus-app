@@ -29,3 +29,8 @@ enable_signup = true
 enable_confirmations = false
 [functions.portal-push-dispatch]
 verify_jwt = false
+
+# Public challenge creation; approvals validate the authenticated caller in the handler.
+# Polling and consumption require the separate 256-bit device secret.
+[functions.tv-device-login]
+verify_jwt = false

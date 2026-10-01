@@ -6,6 +6,7 @@ import type {
 } from '@supabase/supabase-js';
 import { getSupabaseClient } from './client';
 import { getAuthRedirectBaseUrl, isDemoMode, isSupabaseConfigured } from './config';
+import { clearTvDeviceSession, getAuthSignOutOptions } from './authSignOutScope';
 
 export type AuthServiceResult<T> =
   | { ok: true; data: T }
@@ -126,11 +127,18 @@ export async function signOut(): Promise<AuthServiceResult<null>> {
     return { ok: true, data: null };
   }
 
-  const { error } = await client.auth.signOut();
+  let options: Awaited<ReturnType<typeof getAuthSignOutOptions>>;
+  try {
+    options = await withAuthRequestTimeout(getAuthSignOutOptions(client), 'Sitzungsprüfung');
+  } catch (cause) {
+    return { ok: false, error: toGermanAuthError(cause instanceof Error ? cause : null) };
+  }
+  const { error } = await (options ? client.auth.signOut(options) : client.auth.signOut());
   if (error) {
     return { ok: false, error: toGermanAuthError(error) };
   }
 
+  clearTvDeviceSession();
   return { ok: true, data: null };
 }
 

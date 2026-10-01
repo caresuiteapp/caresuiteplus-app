@@ -152,12 +152,14 @@ function AccessCard({
   option,
   index,
   stacked,
+  spacious = false,
   reducedMotion,
   onPress,
 }: {
   option: AccessOption;
   index: number;
   stacked: boolean;
+  spacious?: boolean;
   reducedMotion: boolean;
   onPress: () => void;
 }) {
@@ -259,15 +261,18 @@ function AccessCard({
         accessibilityHint={`Öffnet die Anmeldung für ${option.title}`}
         onHoverIn={() => setHovered(true)}
         onHoverOut={() => setHovered(false)}
+        onFocus={() => setHovered(true)}
+        onBlur={() => setHovered(false)}
         onPress={onPress}
         style={({ pressed }) => [
           styles.accessCard,
           stacked && styles.accessCardStacked,
+          spacious && styles.accessCardSpacious,
           hovered && styles.accessCardHovered,
           pressed && styles.accessCardPressed,
         ]}
       >
-        <View style={[styles.robotStage, stacked && styles.robotStageStacked]}>
+        <View style={[styles.robotStage, stacked && styles.robotStageStacked, spacious && styles.robotStageSpacious]}>
           <View style={[styles.robotGlow, hovered && styles.robotGlowHovered]} />
           <Animated.View
             style={{
@@ -281,13 +286,13 @@ function AccessCard({
               accessibilityLabel={option.imageAccessibilityLabel}
               resizeMode="contain"
               source={option.image}
-              style={[styles.robotImage, stacked && styles.robotImageStacked]}
+              style={[styles.robotImage, stacked && styles.robotImageStacked, spacious && styles.robotImageSpacious]}
             />
           </Animated.View>
         </View>
         <View style={[styles.cardCopy, stacked && styles.cardCopyStacked]}>
-          <Text style={[styles.accessTitle, stacked && styles.accessTitleStacked]}>{option.title}</Text>
-          <View style={[styles.accessCta, hovered && styles.accessCtaHovered]}>
+          <Text style={[styles.accessTitle, stacked && styles.accessTitleStacked, spacious && styles.accessTitleSpacious]}>{option.title}</Text>
+          <View style={[styles.accessCta, hovered && styles.accessCtaHovered, spacious && styles.ctaSpacious]}>
             <LinearGradient
               colors={hovered ? ['#248cff', '#096ee9'] : ['#1683ff', '#056ce8']}
               start={{ x: 0, y: 0 }}
@@ -306,7 +311,7 @@ function AccessCard({
                 },
               ]}
             />
-            <Text style={styles.accessCtaLabel}>Anmelden</Text>
+            <Text style={[styles.accessCtaLabel, spacious && styles.ctaLabelSpacious]}>Anmelden</Text>
             <Animated.View
               style={{
                 transform: [
@@ -325,10 +330,12 @@ function AccessCard({
 
 function RegistrationCard({
   stacked,
+  spacious = false,
   reducedMotion,
   onPress,
 }: {
   stacked: boolean;
+  spacious?: boolean;
   reducedMotion: boolean;
   onPress: () => void;
 }) {
@@ -367,10 +374,13 @@ function RegistrationCard({
         accessibilityHint="Öffnet die Registrierung für eine neue Organisation"
         onHoverIn={() => setHovered(true)}
         onHoverOut={() => setHovered(false)}
+        onFocus={() => setHovered(true)}
+        onBlur={() => setHovered(false)}
         onPress={onPress}
         style={({ pressed }) => [
           styles.registrationCard,
           stacked && styles.registrationCardStacked,
+          spacious && styles.registrationCardSpacious,
           hovered && styles.registrationCardHovered,
           pressed && styles.accessCardPressed,
         ]}
@@ -383,10 +393,10 @@ function RegistrationCard({
           <Ionicons color={liquidColors.blue200} name="business-outline" size={32} />
         </View>
         <View style={[styles.registrationCopy, stacked && styles.registrationCopyStacked]}>
-          <Text style={[styles.registrationTitle, stacked && styles.registrationTextCentered]}>
+          <Text style={[styles.registrationTitle, stacked && styles.registrationTextCentered, spacious && styles.registrationTitleSpacious]}>
             Unternehmen kostenlos registrieren
           </Text>
-          <Text style={[styles.registrationSubtitle, stacked && styles.registrationTextCentered]}>
+          <Text style={[styles.registrationSubtitle, stacked && styles.registrationTextCentered, spacious && styles.registrationSubtitleSpacious]}>
             CareSuite HealthOS: 0 € · alle verfügbaren Funktionsbereiche · keine Kreditkarte
           </Text>
         </View>
@@ -394,10 +404,11 @@ function RegistrationCard({
           style={[
             styles.registrationCta,
             stacked && styles.registrationCtaStacked,
+            spacious && styles.ctaSpacious,
             hovered && styles.accessCtaHovered,
           ]}
         >
-          <Text style={styles.accessCtaLabel}>Kostenlos starten</Text>
+          <Text style={[styles.accessCtaLabel, spacious && styles.ctaLabelSpacious]}>Kostenlos starten</Text>
           <Ionicons color={liquidColors.white} name="chevron-forward" size={19} />
         </View>
       </Pressable>
@@ -417,23 +428,35 @@ export function AccessHubBaseScreen({
   const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
   const stacked = layout.width < 900;
+  const spacious = layout.width >= 1800 && layout.height >= 950;
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} testID="web-access-hub">
+      <style>{`
+        [data-testid="web-access-hub"] :is(button,[role="button"],a):focus-visible {
+          outline: 3px solid #0876e8; outline-offset: 5px;
+        }
+        .cs-display-switch {display:flex;justify-content:center;gap:12px;flex-wrap:wrap;align-items:center}
+        .cs-display-switch button {font:inherit;font-size:16px;line-height:1.4;min-height:48px;padding:12px 24px;border-radius:999px;background:#fff;border:1px solid #a9c9ed;color:#145786;cursor:pointer}
+        .cs-display-switch button:hover {background:#e7f2ff;border-color:#0876e8}
+        .cs-display-switch span {color:#496a88;font-size:14px;line-height:1.6}
+        @media(min-width:1800px) and (min-height:950px) {.cs-display-switch button{font-size:22px;min-height:60px}.cs-display-switch span{font-size:18px}}
+      `}</style>
       <AnimatedBackdrop reducedMotion={reducedMotion} />
       <ScrollView
         bounces={false}
         contentContainerStyle={[
           styles.scrollContent,
+          spacious && styles.scrollContentSpacious,
           stacked && styles.scrollContentStacked,
           stacked && {
             paddingTop: Math.max(24, insets.top + 16),
             paddingBottom: Math.max(32, insets.bottom + 24),
           },
         ]}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator
       >
-        <View style={[styles.content, stacked && styles.contentStacked]}>
+        <View style={[styles.content, stacked && styles.contentStacked, spacious && styles.contentSpacious]}>
           <View style={[styles.header, stacked && styles.headerStacked]}>
             <Text
               accessibilityRole="header"
@@ -441,6 +464,7 @@ export function AccessHubBaseScreen({
               numberOfLines={1}
               style={[
                 styles.logo,
+                spacious && styles.logoSpacious,
                 stacked && {
                   fontSize: Math.min(40, (layout.width - 48) / 9.6),
                   lineHeight: 50,
@@ -452,11 +476,15 @@ export function AccessHubBaseScreen({
             <Text style={styles.eyebrow}>IHR ZUGANG</Text>
             <Text
               accessibilityRole="header"
-              style={[styles.headline, stacked && styles.headlineStacked]}
+              style={[styles.headline, stacked && styles.headlineStacked, spacious && styles.headlineSpacious]}
             >
               Wo möchten Sie starten?
             </Text>
           </View>
+          <div className="cs-display-switch">
+            <button type="button" onClick={() => router.push('/device/tv' as never)}>TV-Ansicht · mit dem Handy anmelden</button>
+            <span>Für große Bildschirme und Fernseher</span>
+          </div>
           <View style={[styles.accessGrid, stacked && styles.accessGridStacked]} testID="access-hub-options">
             {options.map((option, index) => (
               <AccessCard
@@ -466,6 +494,7 @@ export function AccessHubBaseScreen({
                 option={option}
                 reducedMotion={reducedMotion}
                 stacked={stacked}
+                spacious={spacious}
               />
             ))}
           </View>
@@ -474,11 +503,12 @@ export function AccessHubBaseScreen({
               onPress={() => router.push('/auth/register' as never)}
               reducedMotion={reducedMotion}
               stacked={stacked}
+              spacious={spacious}
             />
           ) : null}
           <nav aria-label="Informationen zu CareSuite" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px 22px', marginTop: 10 }}>
             {[['/caresuite', 'Über CareSuite'], ['/landingpage', 'Landingpage'], ['/datenschutz', 'Datenschutz'], ['/nutzungsbedingungen', 'Nutzungsbedingungen'], ['/impressum', 'Kontakt & Impressum']].map(([href, label]) => (
-              <a key={href} href={href} style={{ fontFamily: 'CenturyGothic, Arial, sans-serif', color: '#145786', fontSize: 14, lineHeight: 1.6, textUnderlineOffset: 3 }}>{label}</a>
+              <a key={href} href={href} style={{ fontFamily: 'CenturyGothic, Arial, sans-serif', color: '#145786', fontSize: spacious ? 20 : 14, lineHeight: 1.6, padding: '8px 4px', minHeight: 44, display: 'inline-flex', alignItems: 'center', textUnderlineOffset: 3 }}>{label}</a>
             ))}
           </nav>
         </View>
@@ -506,6 +536,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 24,
   },
+  scrollContentSpacious: { paddingHorizontal: 64, paddingVertical: 48 },
+  contentSpacious: { maxWidth: 1720, gap: 28 },
+  logoSpacious: { maxWidth: 980, fontSize: 70, lineHeight: 84 },
+  headlineSpacious: { fontSize: 48, lineHeight: 58 },
+  accessCardSpacious: { minHeight: 450, padding: 26, borderRadius: 28 },
+  robotStageSpacious: { minHeight: 282 },
+  robotImageSpacious: { width: 300, height: 300 },
+  accessTitleSpacious: { fontSize: 32, lineHeight: 40 },
+  ctaSpacious: { minHeight: 64, paddingHorizontal: 26 },
+  ctaLabelSpacious: { fontSize: 21, lineHeight: 28 },
+  registrationCardSpacious: { minHeight: 128, padding: 26, gap: 24 },
+  registrationTitleSpacious: { fontSize: 28, lineHeight: 36 },
+  registrationSubtitleSpacious: { fontSize: 19, lineHeight: 28 },
   content: { width: '100%', maxWidth: 1180, gap: 20 },
   contentStacked: { maxWidth: 560, gap: 14, alignSelf: 'center' },
   header: { alignItems: 'center', gap: 7, marginBottom: 6 },

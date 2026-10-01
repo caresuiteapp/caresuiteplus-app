@@ -49,7 +49,7 @@ describe('Web startup intro', () => {
     await render();
     expect(play).toHaveBeenCalledOnce();
     expect(video().muted).toBe(false);
-    expect(host.textContent).toContain('Zum Starten mit Musik tippen');
+    expect(host.textContent).toContain('Starten Sie das Intro mit Musik.');
   });
   it('takes over the document loader before playback even while routing is still loading', async () => {
     const boot = document.createElement('div');
@@ -91,40 +91,55 @@ describe('Web startup intro', () => {
     expect(video()).toBeNull(); expect(content().hasAttribute('inert')).toBe(false);
     expect(host.textContent).toBe('Anmelden'); expect(pause).toHaveBeenCalled();
   });
-  it('starts with sound from a tap on the whole intro and removes the activation surface', async () => {
+  it('focuses a visible native start button for keyboard and remote activation, then removes it during playback', async () => {
     play.mockRejectedValueOnce(new DOMException('Autoplay blocked', 'NotAllowedError'));
     await render(); expect(play).toHaveBeenCalledOnce(); expect(video().muted).toBe(false);
     expect(host.textContent).not.toContain('Weiter zur Anmeldung');
     const activation = host.querySelector<HTMLButtonElement>('[aria-label="Intro mit Musik starten"]')!;
     expect(activation.tagName).toBe('BUTTON'); expect(activation.tabIndex).toBe(0);
+    expect(activation.textContent).toBe('Intro mit Musik starten');
+    expect(document.activeElement).toBe(activation);
+    expect(activation.getAttribute('aria-describedby')).toBe('caresuite-intro-activation-hint');
     video().currentTime = 3;
     await tapIntro(); expect(video().muted).toBe(false); expect(play).toHaveBeenCalledTimes(2);
     expect(video().currentTime).toBe(0);
     await emit('playing');
     expect(host.querySelector('[data-caresuite-start-intro] button')).toBeNull();
-    expect(host.textContent).not.toContain('Zum Starten mit Musik tippen');
+    expect(host.textContent).not.toContain('Starten Sie das Intro mit Musik.');
   });
   it('keeps waiting for an audible start if the browser also rejects the first tap', async () => {
     play.mockRejectedValue(new DOMException('Sound blocked', 'NotAllowedError'));
     await render(); expect(content().hasAttribute('inert')).toBe(true);
     await tapIntro(); expect(play).toHaveBeenCalledTimes(2);
     expect(video().muted).toBe(false);
-    expect(host.textContent).toContain('Zum Starten mit Musik tippen');
+    expect(host.textContent).toContain('Starten Sie das Intro mit Musik.');
     await act(async () => vi.advanceTimersByTime(20_000));
     expect(video()).toBeNull(); expect(host.textContent).toBe('Anmelden');
     expect(play).toHaveBeenCalledTimes(2);
   });
   it('allows a tap to retry a media error with sound', async () => {
     await render(); await emit('error');
-    expect(host.textContent).toContain('Zum erneuten Starten tippen');
+    expect(host.textContent).toContain('Das Startvideo konnte nicht abgespielt werden.');
     await tapIntro(); await emit('playing');
     expect(play).toHaveBeenCalledTimes(2); expect(video().muted).toBe(false);
     expect(host.querySelector('[data-caresuite-start-intro] button')).toBeNull();
     await emit('ended'); expect(host.textContent).toBe('Anmelden');
   });
+  it('allows continuing without media only after a genuine playback error', async () => {
+    await render();
+    expect(host.querySelector('[data-caresuite-intro-continue]')).toBeNull();
+    await emit('error');
+    const recovery = host.querySelector<HTMLButtonElement>('[data-caresuite-intro-continue]')!;
+    expect(recovery.textContent).toBe('Weiter zur Anmeldung');
+    await act(async () => recovery.click());
+    expect(video()).toBeNull();
+    expect(content().hasAttribute('inert')).toBe(false);
+    expect(appStartIntroSession.completed).toBe(true);
+    expect(play).toHaveBeenCalledOnce();
+  });
   it('releases login automatically if media stalls and recovery is unused', async () => {
     await render(); await act(async () => vi.advanceTimersByTime(20_000));
-    expect(host.textContent).toContain('Zum erneuten Starten tippen');
+    expect(host.textContent).toContain('Das Startvideo konnte nicht abgespielt werden.');
     await act(async () => vi.advanceTimersByTime(20_000));
     expect(video()).toBeNull(); expect(host.textContent).toBe('Anmelden');
   });
@@ -154,20 +169,20 @@ describe('Web startup intro', () => {
     await tapIntro(); await emit('playing');
     await act(async () => vi.advanceTimersByTime(8_000));
     expect(video()).not.toBeNull();
-    expect(host.textContent).not.toContain('Zum erneuten Starten tippen');
+    expect(host.textContent).not.toContain('Das Startvideo konnte nicht abgespielt werden.');
     await emit('ended'); expect(host.textContent).toBe('Anmelden');
   });
   it('offers a gesture when Safari pauses a previously started video', async () => {
     await render(); await emit('playing'); await emit('pause');
-    expect(host.textContent).toContain('Zum Starten mit Musik tippen');
+    expect(host.textContent).toContain('Starten Sie das Intro mit Musik.');
     await tapIntro(); await emit('playing');
-    expect(host.textContent).not.toContain('Zum Starten mit Musik tippen');
+    expect(host.textContent).not.toContain('Starten Sie das Intro mit Musik.');
   });
   it('pauses instead of continuing silently if the media element becomes muted', async () => {
     await render(); await emit('playing');
     video().muted = true; await emit('volumechange');
     expect(pause).toHaveBeenCalled();
-    expect(host.textContent).toContain('Zum Starten mit Musik tippen');
+    expect(host.textContent).toContain('Starten Sie das Intro mit Musik.');
     await tapIntro(); await emit('playing');
     expect(video().muted).toBe(false); expect(video().volume).toBe(1);
     expect(host.querySelector('[data-caresuite-start-intro] button')).toBeNull();
@@ -176,13 +191,13 @@ describe('Web startup intro', () => {
     await render(); await emit('playing');
     Object.defineProperty(video(), 'paused', { configurable: true, value: false });
     await emit('pause');
-    expect(host.textContent).not.toContain('Zum Starten mit Musik tippen');
+    expect(host.textContent).not.toContain('Starten Sie das Intro mit Musik.');
     expect(video().style.opacity).toBe('1');
   });
   it('treats unsupported media as an error rather than an autoplay permission request', async () => {
     play.mockRejectedValueOnce(new DOMException('Unsupported source', 'NotSupportedError'));
     await render();
-    expect(host.textContent).toContain('Zum erneuten Starten tippen');
+    expect(host.textContent).toContain('Das Startvideo konnte nicht abgespielt werden.');
     await act(async () => vi.advanceTimersByTime(20_000));
     expect(host.textContent).toBe('Anmelden');
   });

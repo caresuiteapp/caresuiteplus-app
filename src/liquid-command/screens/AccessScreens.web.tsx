@@ -1,3 +1,4 @@
+import { resolveTvLoginReturn } from '@/lib/auth/tvDeviceLoginReturn.web';
 import { canonicalCompanyContactFunction, validateCompanyContactFunction } from '@/lib/catalogs/companyContactFunctionCatalog';
 import { CompanyRegistrationSelect } from '../components/CompanyRegistrationSelect.web';
 import { validateCompanyRegistrationSelection } from '@/lib/catalogs/companyRegistrationCatalog';
@@ -196,7 +197,7 @@ export function BusinessAccessScreen() {
         return;
       }
       await signInWithSupabaseSession(result.data.supabaseSession);
-      router.replace('/' as never);
+      router.replace(resolveTvLoginReturn('/') as never);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Anmeldung fehlgeschlagen.');
     } finally {
@@ -286,9 +287,9 @@ export function EmployeeAccessScreen() {
       }
       await signInPortalSession(completed.data.portalSession);
       router.replace(
-        result.data.mustChangePassword
+        resolveTvLoginReturn(result.data.mustChangePassword
           ? '/auth/employee-first-login'
-          : '/portal/employee' as never,
+          : '/portal/employee') as never,
       );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Anmeldung fehlgeschlagen.');
@@ -368,7 +369,7 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
         return;
       }
       await signInPortalSession(completed.data.portalSession);
-      router.replace('/portal/client' as never);
+      router.replace(resolveTvLoginReturn('/portal/client') as never);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Portal-Anmeldung fehlgeschlagen.');
     } finally {
@@ -877,7 +878,7 @@ export function EmployeeFirstLoginScreen() {
       return;
     }
     await updatePortalSession({ mustChangePassword: false });
-    router.replace('/portal/employee' as never);
+    router.replace(resolveTvLoginReturn('/portal/employee') as never);
   };
 
   return (
