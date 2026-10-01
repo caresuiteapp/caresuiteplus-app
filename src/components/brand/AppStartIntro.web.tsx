@@ -178,7 +178,7 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
             : needsGesture ? 'Starten Sie das Intro mit Musik.'
               : 'Startvideo wird vorbereitet…'}</p>
           {needsGesture && <p id="caresuite-intro-activation-hint" data-caresuite-intro-hint="">
-            {playbackError ? 'Erneut versuchen oder direkt zur Anmeldung weitergehen.' : 'Mit Maus, Touch oder OK auf Ihrer Fernbedienung. Die Eingabetaste funktioniert ebenfalls.'}
+            {playbackError ? 'Erneut versuchen oder direkt zu CareSuite weitergehen.' : 'Mit Maus, Touch oder OK auf Ihrer Fernbedienung. Die Eingabetaste funktioniert ebenfalls.'}
           </p>}
         </div>
         {needsGesture && <div data-caresuite-intro-actions="">
@@ -187,7 +187,7 @@ export function AppStartIntro({ children }: { children: ReactNode }) {
             {playbackError ? 'Intro erneut starten' : 'Intro mit Musik starten'}
           </button>}
           {playbackError && <button ref={continueButtonRef} type="button" data-caresuite-intro-continue="" onClick={finish}>
-            Weiter zur Anmeldung
+            Weiter zu CareSuite
           </button>}
         </div>}
       </div>}

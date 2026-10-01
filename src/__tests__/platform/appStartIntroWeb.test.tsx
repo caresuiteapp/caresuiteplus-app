@@ -94,7 +94,7 @@ describe('Web startup intro', () => {
   it('focuses a visible native start button for keyboard and remote activation, then removes it during playback', async () => {
     play.mockRejectedValueOnce(new DOMException('Autoplay blocked', 'NotAllowedError'));
     await render(); expect(play).toHaveBeenCalledOnce(); expect(video().muted).toBe(false);
-    expect(host.textContent).not.toContain('Weiter zur Anmeldung');
+    expect(host.textContent).not.toContain('Weiter zu CareSuite');
     const activation = host.querySelector<HTMLButtonElement>('[aria-label="Intro mit Musik starten"]')!;
     expect(activation.tagName).toBe('BUTTON'); expect(activation.tabIndex).toBe(0);
     expect(activation.textContent).toBe('Intro mit Musik starten');
@@ -130,7 +130,7 @@ describe('Web startup intro', () => {
     expect(host.querySelector('[data-caresuite-intro-continue]')).toBeNull();
     await emit('error');
     const recovery = host.querySelector<HTMLButtonElement>('[data-caresuite-intro-continue]')!;
-    expect(recovery.textContent).toBe('Weiter zur Anmeldung');
+    expect(recovery.textContent).toBe('Weiter zu CareSuite');
     await act(async () => recovery.click());
     expect(video()).toBeNull();
     expect(content().hasAttribute('inert')).toBe(false);

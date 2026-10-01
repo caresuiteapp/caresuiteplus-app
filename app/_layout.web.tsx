@@ -4,6 +4,7 @@ import { PortalKeyboardProvider } from '@/components/keyboard/PortalKeyboard';
 import 'react-native-reanimated';
 import { AppStartIntro } from '@/components/brand/AppStartIntro';
 import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
+import { WebStartDestinationProvider, useWebStartDestination } from '@/components/brand/WebStartDestination.web';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useLayoutEffect } from 'react';
@@ -59,6 +60,7 @@ function popupTitle(pathname: string): string {
 
 function RootShell() {
   const { authReady } = useAuth();
+  const { showChoice } = useWebStartDestination();
   const startupReady = useAppStartIntroReady();
   const { mode } = useThemeMode();
   const pathname = usePathname();
@@ -69,7 +71,7 @@ function RootShell() {
   const hydrated = useHydrated();
   const perf = useDevicePerformance();
   const isLiquidCommandRoute = isLiquidCommandRoutePath(pathname);
-  const hostsGlobalBackground = !isPortalRoutePath(pathname);
+  const hostsGlobalBackground = !isPortalRoutePath(pathname) && !showChoice;
 
   useWebLayoutEffect(() => {
     if (authReady && startupReady && typeof document !== 'undefined') {
@@ -87,16 +89,16 @@ function RootShell() {
     // former bright ORBIT attribute enabled here repainted every popup page.
     // The platform console owns its palette, including semantic KPI colors.
     const platformConsoleRoute = pathname === '/platform' || pathname.startsWith('/platform/');
-    const internalOrbit = isLiquidCommandRoute && !isPortalRoutePath(pathname) && !currentRouteIsPopup && !platformConsoleRoute;
+    const internalOrbit = isLiquidCommandRoute && !showChoice && !isPortalRoutePath(pathname) && !currentRouteIsPopup && !platformConsoleRoute;
     document.documentElement.toggleAttribute('data-cs-orbit-internal', internalOrbit);
-    document.documentElement.toggleAttribute('data-cs-central-home', pathname === '/');
+    document.documentElement.toggleAttribute('data-cs-central-home', pathname === '/' && !showChoice);
     document.documentElement.toggleAttribute('data-cs-central-popup', currentRouteIsPopup);
     return () => {
       document.documentElement.removeAttribute('data-cs-orbit-internal');
       document.documentElement.removeAttribute('data-cs-central-home');
       document.documentElement.removeAttribute('data-cs-central-popup');
     };
-  }, [currentRouteIsPopup, isLiquidCommandRoute, pathname]);
+  }, [currentRouteIsPopup, isLiquidCommandRoute, pathname, showChoice]);
 
   const backgroundAnimated =
     hydrated && hostsGlobalBackground && shouldUseHeavyEffects(perf);
@@ -191,32 +193,40 @@ function RouteScopedLegacyOverlays() {
   );
 }
 
+function SoftwareScreensaver() {
+  const { showChoice } = useWebStartDestination();
+  const startupReady = useAppStartIntroReady();
+  return startupReady && !showChoice ? <GlobalScreensaver /> : null;
+}
+
 export default function RootLayout() {
   return (
     <AppStartIntro>
-      <AuthProvider>
-        <PortalKeyboardProvider>
-          <ThemeModeProvider>
-            <PerformanceProvider>
-              <WebFontScaleProvider>
-                <GlobalAiProvider>
-                  <GlobalWorkflowFeedbackProvider>
-                    <ModalStackProvider>
-                      <ScreensaverSettingsProvider>
-                        <WebNavigationMount><HealthOSStoreEditionGuard>
-                          <RouteScopedLegacyOverlays />
-                          <GlobalScreensaver />
-                          <RootShell />
-                        </HealthOSStoreEditionGuard></WebNavigationMount>
-                      </ScreensaverSettingsProvider>
-                    </ModalStackProvider>
-                  </GlobalWorkflowFeedbackProvider>
-                </GlobalAiProvider>
-              </WebFontScaleProvider>
-            </PerformanceProvider>
-          </ThemeModeProvider>
-        </PortalKeyboardProvider>
-      </AuthProvider>
+      <WebStartDestinationProvider>
+        <AuthProvider>
+          <PortalKeyboardProvider>
+            <ThemeModeProvider>
+              <PerformanceProvider>
+                <WebFontScaleProvider>
+                  <GlobalAiProvider>
+                    <GlobalWorkflowFeedbackProvider>
+                      <ModalStackProvider>
+                        <ScreensaverSettingsProvider>
+                          <WebNavigationMount><HealthOSStoreEditionGuard>
+                            <RouteScopedLegacyOverlays />
+                            <SoftwareScreensaver />
+                            <RootShell />
+                          </HealthOSStoreEditionGuard></WebNavigationMount>
+                        </ScreensaverSettingsProvider>
+                      </ModalStackProvider>
+                    </GlobalWorkflowFeedbackProvider>
+                  </GlobalAiProvider>
+                </WebFontScaleProvider>
+              </PerformanceProvider>
+            </ThemeModeProvider>
+          </PortalKeyboardProvider>
+        </AuthProvider>
+      </WebStartDestinationProvider>
     </AppStartIntro>
   );
 }
