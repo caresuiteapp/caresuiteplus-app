@@ -1,0 +1,118 @@
+[
+  {
+    "id": "planung-vertiefung",
+    "kicker": "PLANUNG, DIE DEN ALLTAG KENNT",
+    "title": "Ein voller Kalender ist noch kein guter Plan.",
+    "intro": "Einsatzplanung beginnt lange vor dem ersten Termin. Ihr bringt Menschen, verfügbare Zeit und benötigte Unterstützung zusammen – und müsst den Plan weiterführen, wenn sich im Alltag etwas verändert. HealthOS gibt dieser Aufgabe eine gemeinsame Arbeitsfläche: mit unterschiedlichen Kalenderperspektiven, Mitarbeiterauswahl und den Informationen, die eine Planung nachvollziehbar machen.",
+    "paragraphs": [
+      "Die richtige Ansicht hängt von der Frage ab. Für einen konkreten Einsatz braucht ihr andere Details als für die Vorbereitung des nächsten Monats. Im Kalender stehen Tag, Woche, Monat, Agenda, Liste und Jahr zur Verfügung. Ihr könnt einen einzelnen Zeitraum betrachten, aufeinanderfolgende Termine prüfen oder den größeren Zusammenhang herstellen. In der Monatsansicht stehen Einsätze mit ihren Zeitangaben neben Urlaub, Weiterbildung und Geburtstagen. Dadurch werden Einträge sichtbar, die im Arbeitsalltag zusammenwirken, obwohl sie unterschiedliche Aufgaben erfüllen. Die Auswahl von Mitarbeitenden grenzt die Betrachtung ein: Ihr entscheidet, wessen Planung ihr gerade beurteilen möchtet, und behaltet den Bezug zwischen Person, Termin und Zeitraum.",
+      "Verfügbarkeit ist dabei mehr als eine freie Stelle im Kalender. Ein sinnvoller Plan muss berücksichtigen, wann jemand eingesetzt werden kann und welche Abwesenheiten bereits bekannt sind. HealthOS führt diese Informationen in der Planungsumgebung zusammen. Ihr könnt die nächste Entscheidung damit auf einen konkreten Ausschnitt stützen: Welche Einsätze liegen bereits an? Welche Zeiten sind belegt? Welcher Zeitraum muss erneut betrachtet werden? Die Statusdarstellung hält außerdem die Verbindung zur Durchführung. Ein geplanter Einsatz, ein laufender Vorgang und eine abgeschlossene Aufgabe bedeuten für die Organisation jeweils etwas anderes. Diese Unterschiede helfen euch, zwischen Vorbereitung, aktueller Arbeit und späterer Prüfung zu wechseln, ohne den Zusammenhang des Einsatzes aus dem Blick zu verlieren."
+    ],
+    "facets": [
+      {
+        "title": "Sechs Ansichten, sechs sinnvolle Blickwinkel",
+        "text": "Der Tagesfokus macht einen eng begrenzten Zeitraum zugänglich. Woche und Monat zeigen die Verteilung über mehrere Tage. Agenda und Liste unterstützen die Betrachtung aufeinanderfolgender Einträge; die Jahresansicht öffnet die langfristige Perspektive. Ihr müsst deshalb nicht jede Planungsfrage in demselben Raster beantworten. Wählt die Darstellung, die zur Entscheidung passt, und wechselt anschließend wieder in den Detailausschnitt für die konkrete Bearbeitung."
+      },
+      {
+        "title": "Personenbezogen prüfen",
+        "text": "Die Mitarbeiterauswahl lenkt die Aufmerksamkeit auf die Menschen, deren Termine ihr tatsächlich prüfen wollt. Das ist beispielsweise hilfreich, wenn ihr einen Arbeitstag vorbereitet, eine Abwesenheit einordnet oder die Verteilung bestehender Einsätze betrachtet. Zusammen mit Verfügbarkeiten entsteht eine nachvollziehbare Grundlage für die weitere Planung. Die fachliche Entscheidung bleibt bei euch; die Oberfläche stellt die dafür vorgesehenen Informationen im passenden Kontext bereit."
+      },
+      {
+        "title": "Volle Tage verständlich halten",
+        "text": "Auch ein gut gefüllter Monat muss lesbar bleiben. Zeitangaben machen Einsätze konkret, während Hinweise auf weitere Einträge auch umfangreichere Tage zugänglich halten. Urlaub und Weiterbildung stehen im selben zeitlichen Zusammenhang. So könnt ihr einen Tag zunächst als Teil des Monats beurteilen und anschließend genauer betrachten, was dort stattfindet. Der Kalender wird damit zu einem Arbeitsinstrument für Übersicht und Detail, statt nur Termine anzuzeigen."
+      }
+    ],
+    "example": {
+      "title": "Eine Planungsfrage aus dem Alltag",
+      "text": "Ihr bereitet die kommende Woche vor und möchtet die Termine einer Mitarbeiterin prüfen. Zuerst grenzt ihr den Kalender über die Mitarbeiterauswahl ein. Anschließend betrachtet ihr die Woche und wechselt für einen dicht belegten Tag in eine detailliertere Ansicht. Bestehende Einsätze, bekannte Verfügbarkeiten und eingetragene Abwesenheiten liefern den Bezug für eure nächste Entscheidung. Das Beispiel beschreibt eine Arbeitsweise; die tatsächliche Einsatzverteilung legt ihr nach euren betrieblichen Anforderungen fest."
+    },
+    "closing": "Gute Planung entsteht aus dem Zusammenspiel von Überblick und Aufmerksamkeit für den Einzelfall. HealthOS unterstützt beide Perspektiven und verbindet sie mit dem weiteren Einsatzablauf."
+  },
+  {
+    "id": "mobilitaet-vertiefung",
+    "kicker": "ZWISCHEN START UND HEIMWEG",
+    "title": "Ein Arbeitstag besteht aus mehr als Einsatzzeit.",
+    "intro": "Der Tag beginnt nicht erst an der Wohnungstür der betreuten Person. Anfahrt, Einsatz, Wege zum nächsten Termin und Heimfahrt gehören zum tatsächlichen Arbeitsablauf. HealthOS berücksichtigt diese Übergänge und gibt Mobilität, Einsätzen und persönlichen Zeitübersichten einen festen Platz in derselben Arbeitsumgebung.",
+    "paragraphs": [
+      "Das Fahrtenbuch bildet die unterschiedlichen Wege des Arbeitstags ab: die erste Anfahrt, Fahrten zwischen mehreren Terminen und den Weg nach Hause. Dabei ist Mobilität nicht auf ein einziges Verkehrsmittel reduziert. PKW, öffentlicher Nahverkehr, Fahrrad, E-Scooter und Fußwege können im vorgesehenen Ablauf berücksichtigt werden. Für Fahrten mit einem Fahrzeug steht die Fahrzeugzuordnung zur Verfügung. GPS und Geofencing unterstützen die Erfassung; manuelle Angaben ergänzen die Bearbeitung, wenn ein Weg nachgetragen oder konkretisiert werden muss. So erhält die Dokumentation einen Bezug zum tatsächlich durchgeführten Tag. Ihr könnt die erfassten Wege anschließend im passenden Zeitraum betrachten, statt Mobilität nur als einzelne Zahl ohne Zusammenhang zu behandeln.",
+      "Parallel dazu führt der persönliche Arbeitsbereich zu den eigenen Einsätzen. Die Tagesübersicht zeigt geplante Stunden und offene Dokumentation und macht damit unterschiedliche Zustände sichtbar: Was liegt noch vor mir? Welche Informationen muss ich zu einem Einsatz ergänzen? Welche Aufgaben gehören zum Abschluss? Das Arbeitszeitkonto lässt sich nach Monaten betrachten und ergänzt diesen Tagesfokus um einen längeren Zeitraum. Für Rückfragen ist genau diese zeitliche Einordnung hilfreich. Ihr könnt auf den betreffenden Monat zurückgehen und die zugehörigen Vorgänge prüfen. Die Übersicht unterstützt eure betriebliche Bewertung; wie Zeiten und Wege arbeitsvertraglich oder abrechnungstechnisch behandelt werden, legt weiterhin eure Organisation fest."
+    ],
+    "facets": [
+      {
+        "title": "Übergänge ausdrücklich berücksichtigen",
+        "text": "Nach einem Einsatz beginnt häufig bereits der nächste Weg. Das Fahrtenbuch ist deshalb auf mehr als die erste Strecke eines Tages ausgerichtet. Mehrere Fahrten lassen sich im Tagesablauf berücksichtigen, ebenso die Heimfahrt am Ende. Das schafft einen konkreten Bezug für die spätere Prüfung: Ihr betrachtet, welche Wege zu diesem Arbeitstag gehören und an welcher Stelle sie im Ablauf entstanden sind."
+      },
+      {
+        "title": "Erfassung mit passender Ergänzung",
+        "text": "GPS-gestützte Erfassung und manuelle Bearbeitung übernehmen unterschiedliche Aufgaben. Standortinformationen können den Verlauf unterstützen; eine manuelle Angabe hilft dabei, einen fehlenden oder zu konkretisierenden Weg zu bearbeiten. Die Fahrzeugzuordnung ergänzt den Bezug zum genutzten PKW. Entscheidend ist eine nachvollziehbare Erfassung, die ihr im vorgesehenen Prozess prüfen könnt. Ein aufgezeichneter Wert ersetzt dabei nicht die Aufmerksamkeit für den tatsächlichen Ablauf."
+      },
+      {
+        "title": "Den passenden Monat wiederfinden",
+        "text": "Rückfragen entstehen nicht immer am selben Tag. Die Monatsauswahl macht frühere Fahrten und das Arbeitszeitkonto gezielt zugänglich. Ihr beginnt damit bei einem klar abgegrenzten Zeitraum und könnt die darin liegenden Angaben einordnen. Das unterstützt Gespräche über zurückliegende Arbeitstage und die betriebliche Prüfung. Tagesorientierung und Monatsrückblick erfüllen dabei verschiedene Aufgaben, greifen aber auf denselben Arbeitsalltag zurück."
+      }
+    ],
+    "example": {
+      "title": "Ein Tag mit mehreren Stationen",
+      "text": "Am Morgen steht die Anfahrt zum ersten Einsatz an, danach folgt ein weiterer Termin an einem anderen Ort. Die Wege und die jeweiligen Einsätze bilden unterschiedliche Teile desselben Arbeitstags. Am Abend kommt die Heimfahrt hinzu. Im späteren Monatsrückblick könnt ihr den betreffenden Zeitraum erneut aufrufen und Angaben zu Fahrten und Arbeitszeit prüfen. Der Nutzen liegt in der nachvollziehbaren Abfolge – unabhängig davon, wie eure Organisation die einzelnen Zeiten bewertet."
+    },
+    "closing": "Wer den ganzen Tag verstehen möchte, muss auch die Wege dazwischen sehen können. HealthOS bringt diese Perspektive in den digitalen Arbeitsalltag ein."
+  },
+  {
+    "id": "dokumentation-vertiefung",
+    "kicker": "VOM EINSATZ ZUM NACHWEIS",
+    "title": "Eine Leistung ist erbracht. Der Vorgang geht weiter.",
+    "intro": "Nach einem persönlichen Einsatz folgen Aufgaben, die für die weitere Bearbeitung entscheidend sind: dokumentieren, bestätigen und den Nachweis bereitstellen. HealthOS führt diese Schritte im Einsatzablauf zusammen. Dabei bleibt erkennbar, welche Informationen bereits vorliegen und wo noch eine erforderliche Unterschrift fehlt.",
+    "paragraphs": [
+      "Dokumentation hält fest, was für den jeweiligen Einsatz und seine Weiterbearbeitung relevant ist. Leistungen, Beobachtungen und Hinweise erhalten einen konkreten Bezug zum Vorgang. Dieser Zusammenhang ist wichtig, weil spätere Rückfragen häufig nicht bei einer einzelnen Notiz stehen bleiben: Sie betreffen den Einsatz, seinen Zeitpunkt und das, was dort durchgeführt wurde. Die persönliche Tagesübersicht macht offene Dokumentation sichtbar und unterstützt damit den Blick auf noch ausstehende Aufgaben. Ihr könnt den Abschluss eines Arbeitstags gezielt prüfen, statt allein aus einem vergangenen Termin auf einen vollständig bearbeiteten Vorgang zu schließen. Dokumentation und organisatorischer Status erfüllen hier unterschiedliche, aufeinander bezogene Aufgaben.",
+      "Die erforderliche Unterschrift bildet einen weiteren Schritt im Abschluss. Fehlt sie, wird aus dem Vorgang dadurch kein bereits bestätigter Nachweis. Der offene Fall kann im vorgesehenen Freigabeprozess weiterbearbeitet und zur Unterschrift im Klientenportal bereitgestellt werden. Dort trennt ein eigener Bereich offene und erledigte Dokumente. Die Unterlagen können gelesen und im vorgesehenen Ablauf mit Finger, Stift oder Maus unterschrieben werden. Nach der erforderlichen Bestätigung entsteht der zugehörige Leistungsnachweis als PDF. Im Portal bleiben freigegebene Nachweise über ihre Leistungsbezeichnung, ihren Zeitraum und den Unterschriftsstatus wieder auffindbar. So ist der Abschluss nicht nur ein einzelner Moment, sondern auch später noch ein nachvollziehbarer Bezugspunkt."
+    ],
+    "facets": [
+      {
+        "title": "Offene Arbeit als offene Arbeit zeigen",
+        "text": "Ein erledigter Termin beantwortet noch nicht jede Frage zur Dokumentation. Die Übersicht offener Aufgaben schafft dafür einen eigenen Anhaltspunkt. Auch im Unterschriftenbereich werden ausstehende und abgeschlossene Dokumente getrennt betrachtet. Diese Unterscheidung unterstützt eine sachliche Nachbearbeitung: Ihr könnt gezielt prüfen, welcher Schritt noch fehlt, ohne einen unvollständigen Vorgang mit einem bestätigten Abschluss gleichzusetzen. Das ist besonders bei späteren Rückfragen hilfreich."
+      },
+      {
+        "title": "Fehlende Signaturen weiterführen",
+        "text": "Wenn eine erforderliche Unterschrift vor Ort nicht zustande kommt, braucht der Vorgang einen erkennbaren nächsten Schritt. Der vorgesehene Freigabeprozess führt die Bearbeitung im Klientenportal weiter. Das Dokument hat dort einen eigenen Platz und kann vor der Unterschrift gelesen werden. Die Unterscheidung zwischen offen und erledigt macht den Bearbeitungsstand verständlich. Eine noch fehlende Bestätigung bleibt so eine konkrete Aufgabe im Ablauf."
+      },
+      {
+        "title": "Nachweise mit Zusammenhang bereitstellen",
+        "text": "Ein PDF ist nützlicher, wenn klar ist, wozu es gehört. Die Nachweisübersicht nennt Leistung und Monat und zeigt den Unterschriftsstatus. Der jeweilige Eintrag führt zur PDF-Ansicht. Wer einen zurückliegenden Zeitraum prüfen möchte, erhält damit Orientierung vor dem Öffnen des Dokuments. Die Aufnahme aus der Demo zeigt genau diese Struktur anhand freigegebener Leistungsnachweise und macht den späteren Zugriff anschaulich."
+      }
+    ],
+    "example": {
+      "title": "Wenn der Abschluss noch einen Schritt braucht",
+      "text": "Ein Einsatz ist durchgeführt und dokumentiert, die notwendige Unterschrift fehlt jedoch noch. Ihr behandelt den Vorgang deshalb als offen und führt ihn über den vorgesehenen Freigabeweg weiter. Im Klientenportal kann das bereitgestellte Dokument gelesen und unterschrieben werden. Nach der erforderlichen Bestätigung steht der zugehörige Nachweis zur Verfügung. Das Beispiel zeigt, warum Einsatzdurchführung, Dokumentation und Bestätigung im Arbeitsablauf getrennt erkennbar bleiben müssen, obwohl sie zusammengehören."
+    },
+    "closing": "Der Wert eines digitalen Abschlusses liegt in seiner Nachvollziehbarkeit: vom dokumentierten Einsatz über die erforderliche Bestätigung bis zum später erreichbaren Nachweis."
+  },
+  {
+    "id": "transparenz-vertiefung",
+    "kicker": "INFORMATIONEN, DIE ERREICHBAR BLEIBEN",
+    "title": "Zusammenarbeit braucht einen gemeinsamen Bezug.",
+    "intro": "Ein Termin, eine Nachricht, eine freigegebene Unterlage und eine Budgetfrage können denselben Unterstützungsalltag betreffen. HealthOS gibt diesen Informationen eigene, verständliche Zugänge. Im Klientenportal werden die nächsten Einsätze, Gespräche, Dokumente und Budgetangaben zu einer konkreten Verbindung zwischen Betreuung und Organisation.",
+    "paragraphs": [
+      "Die Terminübersicht unterscheidet kommende und vergangene Einsätze. Eine Einsatzkarte nennt Zeitraum, geplante Dauer, Mitarbeitende, Leistung und Status; die Vorschau führt zum jeweiligen Einsatz. Bereits auf der Startseite ist der nächste Termin mit Datum, Uhrzeit und Leistung erreichbar. Dort kann auch eine Änderung mitgeteilt werden. Ergänzend führen Schnellzugriffe zu Nachrichten, Dokumentupload, Einsatzanfrage und Rückrufanforderung. Diese Wege unterstützen unterschiedliche Anliegen: Einen Termin nachzusehen ist etwas anderes, als eine Veränderung mitzuteilen oder eine Rückmeldung zu erbitten. Das Portal gibt jedem Anliegen einen passenden Einstieg und hält den Bezug zur tatsächlichen Zusammenarbeit sichtbar, ohne dass jede Information erst in einem persönlichen Gespräch abgefragt werden muss.",
+      "Auch finanzielle Übersicht braucht Kontext. Die Budgetansicht trennt gebuchte Leistungen von zusätzlichen Möglichkeiten und verbindet verfügbare Beträge mit möglichen Stunden. Verbrauchte und für Einsätze geplante Anteile stehen dabei im Zusammenhang. So kann eine Zahl besser eingeordnet werden: Was wurde bereits berücksichtigt, und welche Anteile sind für kommende Einsätze vorgesehen? Daneben bündelt die Dokumentübersicht freigegebene Unterlagen wie Vereinbarungen und Unterstützungspläne. Der in der Demo gezeigte Plan ist direkt im Portal lesbar und verbindet Ziele, Schwerpunkte und persönliche Wünsche mit Status und Aktualisierungsdatum. Budget und Dokumente beantworten unterschiedliche Fragen, werden aber beide dort erreichbar, wo Klient:innen ihre eigene Unterstützung nachvollziehen möchten."
+    ],
+    "facets": [
+      {
+        "title": "Gespräche in ihrem Verlauf lesen",
+        "text": "Die Nachrichtenansicht führt Themen, Status und Chatverlauf zusammen. Eine Gesprächsliste mit Suche hilft beim Zugang zum passenden Austausch. Die Oberfläche bietet Texteingabe, Anhänge und Sprachnachrichten. Im Demo-Beispiel geht es um eine Terminabstimmung. Der Verlauf macht sichtbar, was zu diesem Thema bereits besprochen wurde, und schafft damit einen Bezug für die nächste Antwort. Die organisatorische Abstimmung erhält einen festen Platz im Portal."
+      },
+      {
+        "title": "Unterlagen mit erkennbarer Freigabe",
+        "text": "Die Dokumentübersicht unterscheidet Dokumentarten und zeigt Freigaben. Vereinbarungen und Unterstützungspläne sind dadurch als konkrete Unterlagen erreichbar; erforderliche Unterschriften führen in einen eigenen Bereich. Beim Unterstützungsplan zeigt die Demo außerdem Status und Aktualisierungsdatum neben dem lesbaren Inhalt. Diese Angaben helfen, eine Unterlage einzuordnen. Sie ersetzen nicht ihre sorgfältige Lektüre, geben aber Orientierung vor und während der Beschäftigung mit dem Dokument."
+      },
+      {
+        "title": "Beträge und Stunden zusammen betrachten",
+        "text": "Ein Budget wird verständlicher, wenn es neben einem Betrag auch einen Bezug zur vorgesehenen Unterstützung gibt. HealthOS zeigt mögliche Stunden sowie verbrauchte und geplante Anteile in derselben Ansicht. Die Trennung gebuchter Leistungen von zusätzlichen Möglichkeiten hilft bei der Orientierung. Die Darstellung informiert über die im System geführte Situation; ein angezeigter Wert ist dabei keine eigenständige Bewilligung oder Zusage einer Kostenerstattung durch eine Pflegekasse."
+      }
+    ],
+    "example": {
+      "title": "Eine Rückfrage mit konkretem Ausgangspunkt",
+      "text": "Ein kommender Einsatz ist im Portal sichtbar, gleichzeitig besteht eine Frage zum Termin. Klient:innen können die Einsatzangaben ansehen und ihr Anliegen über den vorgesehenen Zugang mitteilen. Im Nachrichtenbereich bleibt die Abstimmung im Gesprächsverlauf erhalten. Wenn zusätzlich eine freigegebene Unterlage benötigt wird, ist diese über die Dokumentübersicht erreichbar. Aus einer allgemeinen Rückfrage wird dadurch ein Austausch mit konkreten Informationen über Termin, Dokument oder bereits besprochenes Thema."
+    },
+    "closing": "Transparenz bedeutet hier, relevante Informationen auffindbar und einordbar zu machen. Das schafft eine gemeinsame Grundlage für Rückfragen, Abstimmung und die weitere Unterstützung."
+  }
+]
