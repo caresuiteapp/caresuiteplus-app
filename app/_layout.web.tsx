@@ -181,7 +181,8 @@ function RouteScopedLegacyOverlays() {
   const startupReady = useAppStartIntroReady();
   const pathname = usePathname();
   const isLiquidCommandRoute = isLiquidCommandRoutePath(pathname);
-  if (!startupReady || isLiquidCommandRoute) return null;
+  const isDeviceLogin = pathname === '/device/confirm' || pathname === '/device/tv';
+  if (!startupReady || isLiquidCommandRoute || isDeviceLogin) return null;
   return (
     <>
       <BusinessWelcomeGate />

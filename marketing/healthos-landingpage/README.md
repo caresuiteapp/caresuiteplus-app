@@ -1,6 +1,6 @@
 # CareSuite HealthOS landing page
 
-Standalone public marketing page deployed at `/landingpage` by the existing Expo/Vercel deployment. The editable React source is here; the generated and prerendered output is committed in `public/landingpage`. This keeps the production Expo build independent of the marketing toolchain.
+Standalone public marketing page prepared for `/landingpage` through the existing Expo/Vercel deployment. The editable React source is here; the generated and prerendered output is committed in `public/landingpage`. This keeps the production Expo build independent of the marketing toolchain. See `../../TV_WEB_RELEASE.md` for the actual release status and deployment prerequisites.
 
 ## Rebuild
 
