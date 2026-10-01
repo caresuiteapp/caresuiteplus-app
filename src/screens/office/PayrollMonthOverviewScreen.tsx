@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { officeMonthKey } from '@/lib/wfm/wfmOfficeMonth';
 import { WfmOfficeMonthSelector } from '@/components/wfm/WfmOfficeMonthSelector';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, LoadingState, PremiumButton, PremiumInput, useWorkflowFeedback } from '@/components/ui';
@@ -22,6 +22,8 @@ import {
 } from '@/lib/payroll';
 import { subscribeToWfmLiveChanges } from '@/lib/realtime/presets';
 import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
+import { confirmAction } from '@/lib/platform/confirmAction';
+import { approvePayrollExpenses, openPayrollExpenseClaims, preparePayrollExpenseApproval } from '@/lib/payroll/payrollExpenseApproval';
 import type { ExpenseClaimStatus, PayrollEmployeeMonth } from '@/types/modules/payrollMonth';
 import { typography } from '@/theme';
 
@@ -68,6 +70,8 @@ export function PayrollMonthOverviewScreen() {
   const [month, setMonth] = useState(Number(requestedMonth.slice(5, 7)));
   useEffect(() => { setYear(Number(requestedMonth.slice(0, 4))); setMonth(Number(requestedMonth.slice(5, 7))); }, [requestedMonth]);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const busyRef = useRef(false);
+  const [bulkProgress, setBulkProgress] = useState<{ employeeId: string; text: string } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [syncIssue, setSyncIssue] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>(params.employeeId ? { [params.employeeId]: true } : {});
@@ -80,6 +84,19 @@ export function PayrollMonthOverviewScreen() {
   const roleKey = profile?.roleKey ?? null;
   const canView = can('office.employees.view');
   const canEdit = can('office.employees.edit');
+  const actionsBlocked = Platform.OS === 'web' && Boolean(busyId);
+  const approvalScope = JSON.stringify([tenantId, profile?.id, roleKey, canEdit, year, month]);
+  const scopeRef = useRef<string | null>(approvalScope);
+  scopeRef.current = approvalScope;
+  useEffect(() => { scopeRef.current = approvalScope; return () => { scopeRef.current = null; }; }, [approvalScope]);
+
+  function beginAction(id: string) {
+    if (Platform.OS === 'web' && busyRef.current) return false;
+    busyRef.current = true;
+    setBusyId(id);
+    return true;
+  }
+  function finishAction() { busyRef.current = false; setBusyId(null); }
 
   const query = useAsyncQuery(
     useCallback(async () => {
@@ -102,7 +119,7 @@ export function PayrollMonthOverviewScreen() {
     {
       enabled: Boolean(tenantId && canView),
       queryKey: `payroll:${tenantId}:${year}-${month}`,
-      live: { tenantId, subscribe: subscribeToWfmLiveChanges, pollMs: 30_000, refreshOnFocus: true },
+      live: { enabled: !actionsBlocked, tenantId, subscribe: subscribeToWfmLiveChanges, pollMs: 30_000, refreshOnFocus: true },
     },
   );
 
@@ -128,8 +145,8 @@ export function PayrollMonthOverviewScreen() {
   }
 
   async function publish(employee: PayrollEmployeeMonth) {
-    if (!tenantId) return;
-    setBusyId(employee.employeeId); setMessage(null);
+    if (!tenantId || !canEdit || !beginAction(employee.employeeId)) return;
+    setMessage(null);
     const loadingId = feedback.showLoading(`${employee.employeeName}: Abrechnung und PDF werden erstellt…`);
     try {
       const result = await withServiceQueryTimeout(
@@ -144,7 +161,7 @@ export function PayrollMonthOverviewScreen() {
       const errorMessage = error instanceof Error ? error.message : 'Die Abrechnung konnte nicht veröffentlicht werden.';
       setMessage(errorMessage); feedback.showError(errorMessage, 'Veröffentlichung fehlgeschlagen');
     } finally {
-      feedback.dismiss(loadingId); setBusyId(null);
+      feedback.dismiss(loadingId); finishAction();
     }
   }
 
@@ -168,7 +185,7 @@ export function PayrollMonthOverviewScreen() {
     status: Extract<ExpenseClaimStatus, 'approved' | 'partially_approved' | 'rejected' | 'needs_info'>,
     originalCents: number,
   ) {
-    if (!tenantId) return;
+    if (!tenantId || !canEdit || (Platform.OS === 'web' && busyRef.current)) return;
     const rawAmount = reviewAmounts[claimId]?.trim().replace(',', '.');
     const parsedAmount = rawAmount ? Number(rawAmount) : originalCents / 100;
     const approvedAmountCents = Math.round(parsedAmount * 100);
@@ -180,7 +197,8 @@ export function PayrollMonthOverviewScreen() {
       feedback.showError('Für eine Rückfrage oder Ablehnung ist ein Prüfvermerk erforderlich.', 'Prüfvermerk fehlt'); return;
     }
     const effectiveStatus = status === 'approved' && approvedAmountCents < originalCents ? 'partially_approved' : status;
-    setBusyId(claimId); setMessage(null);
+    if (!beginAction(claimId)) return;
+    setMessage(null);
     const loadingId = feedback.showLoading('Auslage wird geprüft und gespeichert…');
     try {
       const result = await withServiceQueryTimeout(reviewExpenseClaim({
@@ -194,7 +212,53 @@ export function PayrollMonthOverviewScreen() {
       const errorMessage = error instanceof Error ? error.message : 'Die Auslage konnte nicht geprüft werden.';
       setMessage(errorMessage); feedback.showError(errorMessage, 'Prüfung fehlgeschlagen');
     } finally {
-      feedback.dismiss(loadingId); setBusyId(null);
+      feedback.dismiss(loadingId); finishAction();
+    }
+  }
+
+  async function approveAllExpenses(employee: PayrollEmployeeMonth) {
+    if (Platform.OS !== 'web' || !tenantId || !canEdit || busyRef.current || query.loading || query.refreshing) return;
+    const prepared = preparePayrollExpenseApproval(employee.expenseClaims,
+      { tenantId, employeeId: employee.employeeId, year, month }, reviewAmounts, reviewNotes);
+    if (!prepared.ok) { feedback.showError(prepared.error, 'Beträge prüfen'); return; }
+    const { items, totalCents } = prepared.data;
+    if (!items.length || !beginAction(`expenses:${employee.employeeId}`)) return;
+    const scope = approvalScope;
+    let loadingId: ReturnType<typeof feedback.showLoading> | undefined;
+    try {
+      const partial = items.filter(item => item.status === 'partially_approved').length;
+      const needsInfo = items.filter(item => item.claim.status === 'needs_info').length;
+      const confirmed = await confirmAction({ title: 'Alle offenen Monatsbelege genehmigen?',
+        message: `${employee.employeeName} · ${monthLabel(year, month)}\n${items.length} Belege · ${formatPayrollMoney(totalCents)}\nDie angezeigten Beträge und Prüfvermerke werden übernommen.${partial ? `\n${partial} Belege werden mit reduziertem Betrag teilweise genehmigt.` : ''}${needsInfo ? `\nBei ${needsInfo} Belegen ist noch eine Rückfrage offen. Mit der Genehmigung wird diese abgeschlossen.` : ''}`,
+        confirmLabel: 'Alle genehmigen' });
+      if (!confirmed || scopeRef.current !== scope) return;
+      setMessage(null);
+      loadingId = feedback.showLoading('Monatsbelege werden genehmigt…');
+      setBulkProgress({ employeeId: employee.employeeId, text: `0 von ${items.length} Belegen bearbeitet` });
+      const result = await approvePayrollExpenses(items, item => {
+        if (scopeRef.current !== scope) return Promise.resolve({ ok: false as const, error: 'Die Monatsansicht wurde gewechselt. Bitte erneut prüfen.' });
+        return withServiceQueryTimeout(reviewExpenseClaim({ tenantId, claimId: item.claim.id,
+          status: item.status, approvedAmountCents: item.approvedAmountCents, officeNote: item.officeNote,
+          expectedUpdatedAt: item.claim.updatedAt,
+        }, roleKey), 'Auslagenprüfung', QUERY_TIMEOUT_MS);
+      }, (done, total) => setBulkProgress({ employeeId: employee.employeeId, text: `${done} von ${total} Belegen bearbeitet` }));
+      if (scopeRef.current !== scope) return;
+      const saved = new Map(result.saved.map(claim => [claim.id, claim]));
+      query.setData(current => current ? { ...current, employees: current.employees.map(row =>
+        row.employeeId === employee.employeeId ? { ...row, expenseClaims: row.expenseClaims.map(claim => saved.get(claim.id) ?? claim) } : row),
+      } : current);
+      const approvedCents = result.saved.reduce((sum, claim) => sum + (claim.approvedAmountCents ?? 0), 0);
+      const summary = `${result.saved.length} von ${items.length} Belegen genehmigt · ${formatPayrollMoney(approvedCents)}.${result.failed.length ? ` ${result.failed.length} Genehmigungen konnten nicht bestätigt werden.\n${result.failed.slice(0, 3).map(({ claim, error }) => `${claim.expenseDate} · ${claim.description}: ${error}`).join('\n')}` : ''}`;
+      setMessage(summary);
+      if (result.failed.length) feedback.showWarning(summary, 'Monatsbelege prüfen');
+      else feedback.showSuccess(summary, 'Monatsbelege genehmigt');
+      await query.refresh();
+    } catch (error) {
+      const text = error instanceof Error ? error.message : 'Die Sammelgenehmigung konnte nicht abgeschlossen werden.';
+      setMessage(text); feedback.showError(text, 'Monatsbelege prüfen');
+    } finally {
+      if (loadingId !== undefined) feedback.dismiss(loadingId);
+      setBulkProgress(null); finishAction();
     }
   }
 
@@ -215,16 +279,16 @@ export function PayrollMonthOverviewScreen() {
             <Text style={styles.eyebrow}>OFFICE · LOHN- UND ZEITSTEUERUNG</Text>
             <Text style={styles.heroTitle}>{monthLabel(year, month)}</Text>
             <Text style={styles.heroDescription}>Ist-Arbeitszeit, Monatsprognose, Zeitkonten, Auslagen und PDF-Freigaben in einem belastbaren Monatsabschluss.</Text>
-            <WfmOfficeMonthSelector value={`${year}-${String(month).padStart(2, '0')}`} onChange={value => { if (busyId) return; setYear(Number(value.slice(0, 4))); setMonth(Number(value.slice(5, 7))); setMessage(null); setSyncIssue(null); }} />
+            <WfmOfficeMonthSelector value={`${year}-${String(month).padStart(2, '0')}`} onChange={value => { if (busyId || busyRef.current) return; setYear(Number(value.slice(0, 4))); setMonth(Number(value.slice(5, 7))); setMessage(null); setSyncIssue(null); }} />
 
           </View>
           <View style={styles.heroActions}>
             <View style={styles.syncCard}><View style={[styles.syncDot, query.refreshing && styles.syncDotBusy]} /><View style={styles.flex}><Text style={styles.syncTitle}>{query.refreshing ? 'AKTUALISIERUNG LÄUFT' : query.isLiveConnected ? 'LIVE VERBUNDEN' : 'DATENSTAND'}</Text><Text style={styles.syncTime}>{syncLabel(data?.generatedAt)}</Text></View></View>
-            <Pressable disabled={query.refreshing} onPress={() => void query.refresh()} accessibilityRole="button" style={({ pressed }) => [styles.refreshButton, pressed && styles.pressed, query.refreshing && styles.disabled]}><Text style={styles.refreshIcon}>↻</Text><Text style={styles.refreshText}>{query.refreshing ? 'Wird aktualisiert' : 'Daten aktualisieren'}</Text></Pressable>
+            <Pressable disabled={query.refreshing || actionsBlocked} onPress={() => void query.refresh()} accessibilityRole="button" style={({ pressed }) => [styles.refreshButton, pressed && styles.pressed, query.refreshing && styles.disabled]}><Text style={styles.refreshIcon}>↻</Text><Text style={styles.refreshText}>{query.refreshing ? 'Wird aktualisiert' : 'Daten aktualisieren'}</Text></Pressable>
           </View>
         </View>
 
-        {syncIssue ? <View style={styles.issueBanner}><View style={styles.issueIcon}><Text style={styles.issueIconText}>!</Text></View><View style={styles.flex}><Text style={styles.issueTitle}>Aktualisierung nicht vollständig</Text><Text style={styles.issueText}>{syncIssue} Vorhandene Monatsdaten bleiben sichtbar und nutzbar.</Text></View><Pressable onPress={() => void query.refresh()} style={styles.issueAction}><Text style={styles.issueActionText}>Erneut versuchen</Text></Pressable></View> : null}
+        {syncIssue ? <View style={styles.issueBanner}><View style={styles.issueIcon}><Text style={styles.issueIconText}>!</Text></View><View style={styles.flex}><Text style={styles.issueTitle}>Aktualisierung nicht vollständig</Text><Text style={styles.issueText}>{syncIssue} Vorhandene Monatsdaten bleiben sichtbar und nutzbar.</Text></View><Pressable disabled={actionsBlocked} onPress={() => void query.refresh()} style={styles.issueAction}><Text style={styles.issueActionText}>Erneut versuchen</Text></Pressable></View> : null}
         {message ? <View style={styles.messageBanner}><Text style={styles.messageText}>{message}</Text><Pressable onPress={() => setMessage(null)} accessibilityLabel="Meldung schließen"><Text style={styles.closeText}>×</Text></Pressable></View> : null}
 
         <View style={styles.kpiGrid}>
@@ -242,6 +306,9 @@ export function PayrollMonthOverviewScreen() {
             const isExpanded = expanded[employee.employeeId] ?? defaultExpanded;
             const status = employee.latestStatement?.status ?? null;
             const tone = statementTone(status);
+            const expenseScope = { tenantId: tenantId ?? '', employeeId: employee.employeeId, year, month };
+            const openExpenses = openPayrollExpenseClaims(employee.expenseClaims, expenseScope);
+            const preparedExpenses = preparePayrollExpenseApproval(employee.expenseClaims, expenseScope, reviewAmounts, reviewNotes);
             return <View key={employee.employeeId} style={[styles.employeeCard, isExpanded && styles.employeeCardOpen]}>
               <Pressable
                 onPress={() => setExpanded((current) => ({ ...current, [employee.employeeId]: !(current[employee.employeeId] ?? defaultExpanded) }))}
@@ -272,14 +339,33 @@ export function PayrollMonthOverviewScreen() {
                   ['Genehmigte Auslagen', formatPayrollMoney(employee.approvedExpensesCents)], ['Prognose Auszahlung', formatPayrollMoney(employee.projectedTotalPayoutCents)],
                 ].map(([label, value], financeIndex) => <View key={label} style={[styles.financeCell, financeIndex === 1 && styles.financeAccent]}><Text style={styles.financeLabel}>{label}</Text><Text style={financeIndex === 1 ? styles.financeValueAccent : styles.financeValue}>{value}</Text></View>)}</View>
                 {employee.latestStatement?.employeeDecisionReason ? <View style={styles.rejection}><Text style={styles.rejectionTitle}>Ablehnungsgrund der Mitarbeitenden</Text><Text style={styles.rejectionText}>{employee.latestStatement.employeeDecisionReason}</Text></View> : null}
-                <View style={styles.actions}>{employee.latestStatement?.pdfPath ? <PremiumButton title="PDF öffnen" variant="secondary" onPress={() => void openPdf(employee.latestStatement?.pdfPath ?? null)} /> : null}{canEdit && !['confirmed', 'locked', 'paid'].includes(status ?? '') ? <PremiumButton title={employee.latestStatement ? 'Neue Version veröffentlichen' : 'PDF erstellen & veröffentlichen'} loading={busyId === employee.employeeId} onPress={() => void publish(employee)} /> : null}</View>
+                <View style={styles.actions}>{employee.latestStatement?.pdfPath ? <PremiumButton title="PDF öffnen" variant="secondary" onPress={() => void openPdf(employee.latestStatement?.pdfPath ?? null)} /> : null}{canEdit && !['confirmed', 'locked', 'paid'].includes(status ?? '') ? <PremiumButton title={employee.latestStatement ? 'Neue Version veröffentlichen' : 'PDF erstellen & veröffentlichen'} loading={busyId === employee.employeeId} disabled={actionsBlocked} onPress={() => void publish(employee)} /> : null}</View>
 
                 {employee.pendingPortalUploads.length ? <View style={styles.detailSection}><View style={styles.sectionHeading}><View><Text style={styles.detailEyebrow}>PORTAL-DOKUMENTE</Text><Text style={styles.detailTitle}>Neu eingereichte Portal-Dokumente</Text></View><View style={styles.sectionCount}><Text style={styles.sectionCountText}>{employee.pendingPortalUploads.length}</Text></View></View><Text style={styles.detailHint}>Über „Meine Uploads“ eingereicht und zur Office-Prüfung vorgemerkt.</Text>{employee.pendingPortalUploads.map((upload) => <View key={upload.id} style={styles.documentRow}><View style={styles.documentIcon}><Text style={styles.documentIconText}>PDF</Text></View><View style={styles.flex}><Text style={styles.documentName}>{upload.fileName}</Text><Text style={styles.documentMeta}>{new Date(upload.createdAt).toLocaleDateString('de-DE')} · {upload.category ?? 'Sonstiges'} · {upload.status === 'wird_geprueft' ? 'In Prüfung' : 'Eingereicht'}</Text></View><PremiumButton title="Öffnen" size="sm" variant="ghost" onPress={() => void openPdf(upload.storagePath)} /></View>)}</View> : null}
 
-                {employee.expenseClaims.length ? <View style={styles.detailSection}><View style={styles.sectionHeading}><View><Text style={styles.detailEyebrow}>AUSLAGEN UND ERSTATTUNGEN</Text><Text style={styles.detailTitle}>Monatsbelege</Text></View><View style={styles.sectionCount}><Text style={styles.sectionCountText}>{employee.expenseClaims.length}</Text></View></View>{employee.expenseClaims.map((claim) => {
+                {employee.expenseClaims.length ? <View style={styles.detailSection}>
+                  <View style={styles.sectionHeading}>
+                    <View><Text style={styles.detailEyebrow}>AUSLAGEN UND ERSTATTUNGEN</Text><Text style={styles.detailTitle}>Monatsbelege</Text></View>
+                    <View style={styles.expenseSectionActions}>
+                      <View style={styles.sectionCount}><Text style={styles.sectionCountText}>{employee.expenseClaims.length}</Text></View>
+                      {Platform.OS === 'web' && canEdit ? <PremiumButton
+                        title={`Alle genehmigen (${openExpenses.length})`} size="sm"
+                        accessibilityLabel={`Alle offenen Monatsbelege für ${employee.employeeName} im ${monthLabel(year, month)} genehmigen`}
+                        disabled={actionsBlocked || query.loading || query.refreshing || !openExpenses.length}
+                        loading={busyId === `expenses:${employee.employeeId}`}
+                        onPress={() => void approveAllExpenses(employee)} /> : null}
+                    </View>
+                  </View>
+                  {Platform.OS === 'web' && canEdit ? <Text style={styles.bulkExpenseHint} accessibilityLiveRegion="polite">
+                    {bulkProgress?.employeeId === employee.employeeId ? bulkProgress.text : !openExpenses.length
+                      ? 'Keine offenen Belege zur Genehmigung.'
+                      : preparedExpenses.ok ? `${openExpenses.length} offene Belege · ${formatPayrollMoney(preparedExpenses.data.totalCents)} · ${monthLabel(year, month)}. Angezeigte Beträge und Prüfvermerke werden übernommen.`
+                        : preparedExpenses.error}
+                  </Text> : null}
+                  {employee.expenseClaims.map((claim) => {
                   const claimOpen = claim.status === 'submitted' || claim.status === 'needs_info';
                   return <View key={claim.id} style={styles.expenseRow}><View style={styles.expenseHeading}><View style={styles.expenseCopy}><Text style={styles.expenseTitle}>{claim.description}</Text><Text style={styles.expenseMeta}>{claim.expenseDate} · {EXPENSE_STATUS_LABEL[claim.status] ?? claim.status}{claim.automaticSource ? ' · automatisch aus Fahrtenbuch' : ''}</Text>{claim.mileageKm != null ? <Text style={styles.expenseMeta}>{claim.mileageKm.toLocaleString('de-DE')} km × {((claim.mileageRateCents ?? 0) / 100).toFixed(2).replace('.', ',')} EUR</Text> : null}</View><Text style={styles.expenseAmount}>{formatPayrollMoney(claim.amountCents)}</Text>{claim.receiptPath ? <PremiumButton title="Beleg" size="sm" variant="ghost" onPress={() => void openPdf(claim.receiptPath)} /> : null}</View>
-                    {claimOpen && canEdit ? <View style={styles.reviewArea}><View style={styles.reviewFields}><PremiumInput label="Genehmigter Betrag (EUR)" value={reviewAmounts[claim.id] ?? (claim.amountCents / 100).toFixed(2).replace('.', ',')} onChangeText={(value: string) => setReviewAmounts((old) => ({ ...old, [claim.id]: value }))} keyboardType="decimal-pad" /><PremiumInput label="Prüfvermerk / Ablehnungsgrund" value={reviewNotes[claim.id] ?? ''} onChangeText={(value: string) => setReviewNotes((old) => ({ ...old, [claim.id]: value }))} /></View><View style={styles.actions}><PremiumButton title="Genehmigen" size="sm" loading={busyId === claim.id} onPress={() => void review(claim.id, 'approved', claim.amountCents)} /><PremiumButton title="Rückfrage" size="sm" variant="secondary" onPress={() => void review(claim.id, 'needs_info', claim.amountCents)} /><PremiumButton title="Ablehnen" size="sm" variant="secondary" onPress={() => void review(claim.id, 'rejected', claim.amountCents)} /></View></View> : null}
+                    {claimOpen && canEdit ? <View style={styles.reviewArea}><View style={styles.reviewFields}><PremiumInput label="Genehmigter Betrag (EUR)" editable={!actionsBlocked} value={reviewAmounts[claim.id] ?? (claim.amountCents / 100).toFixed(2).replace('.', ',')} onChangeText={(value: string) => setReviewAmounts((old) => ({ ...old, [claim.id]: value }))} keyboardType="decimal-pad" /><PremiumInput label="Prüfvermerk / Ablehnungsgrund" editable={!actionsBlocked} value={reviewNotes[claim.id] ?? ''} onChangeText={(value: string) => setReviewNotes((old) => ({ ...old, [claim.id]: value }))} /></View><View style={styles.actions}><PremiumButton title="Genehmigen" size="sm" loading={busyId === claim.id} disabled={actionsBlocked} onPress={() => void review(claim.id, 'approved', claim.amountCents)} /><PremiumButton title="Rückfrage" size="sm" variant="secondary" disabled={actionsBlocked} onPress={() => void review(claim.id, 'needs_info', claim.amountCents)} /><PremiumButton title="Ablehnen" size="sm" variant="secondary" disabled={actionsBlocked} onPress={() => void review(claim.id, 'rejected', claim.amountCents)} /></View></View> : null}
                   </View>;
                 })}</View> : null}
               </View> : null}
@@ -292,6 +378,8 @@ export function PayrollMonthOverviewScreen() {
 }
 
 const createStyles = (colors: LegacyColors) => StyleSheet.create({
+  expenseSectionActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, maxWidth: '100%' },
+  bulkExpenseHint: { color: '#31597F', fontSize: 12, lineHeight: 18 },
   page: { width: '100%', gap: 16, paddingBottom: careSpacing.xxl }, flex: { flex: 1, minWidth: 0 },
   inlineState: { minHeight: 360, borderRadius: 24, borderWidth: 1, borderColor: colors.borderSoft, backgroundColor: colors.bgSurface, alignItems: 'center', justifyContent: 'center', padding: 24 },
   inlineHint: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },

@@ -658,11 +658,19 @@ export async function uploadExpenseReceipt(input: { tenantId: string; employeeId
   } catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'Beleg-Upload fehlgeschlagen.' }; }
 }
 
-export async function reviewExpenseClaim(input: { tenantId: string; claimId: string; status: Extract<ExpenseClaimStatus, 'approved' | 'partially_approved' | 'rejected' | 'needs_info'>; approvedAmountCents?: number | null; officeNote?: string | null; rejectionReason?: string | null }, actorRoleKey?: RoleKey | null): Promise<ServiceResult<PayrollExpenseClaim>> {
+export async function reviewExpenseClaim(input: { tenantId: string; claimId: string; status: Extract<ExpenseClaimStatus, 'approved' | 'partially_approved' | 'rejected' | 'needs_info'>; approvedAmountCents?: number | null; officeNote?: string | null; rejectionReason?: string | null; expectedUpdatedAt?: string }, actorRoleKey?: RoleKey | null): Promise<ServiceResult<PayrollExpenseClaim>> {
   const denied = enforcePermission<PayrollExpenseClaim>(actorRoleKey, 'office.employees.edit'); if (denied) return denied;
   const supabase = getSupabaseClient(); if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
   if (input.status === 'rejected' && (input.rejectionReason?.trim().length ?? 0) < 5) return { ok: false, error: 'Für die Ablehnung ist ein Grund erforderlich.' };
-  const { data, error } = await fromUnknownTable(supabase, 'employee_expense_claims').update({ status: input.status, approved_amount_cents: input.status === 'approved' || input.status === 'partially_approved' ? input.approvedAmountCents ?? null : null, office_note: input.officeNote?.trim() || null, rejection_reason: input.status === 'rejected' ? input.rejectionReason?.trim() : null, tax_treatment: input.status === 'approved' || input.status === 'partially_approved' ? 'reimbursement' : 'review', reviewed_at: new Date().toISOString(), reviewed_by: (await supabase.auth.getUser()).data.user?.id ?? null }).eq('tenant_id', input.tenantId).eq('id', input.claimId).select('*').single();
+  let update = fromUnknownTable(supabase, 'employee_expense_claims').update({ status: input.status, approved_amount_cents: input.status === 'approved' || input.status === 'partially_approved' ? input.approvedAmountCents ?? null : null, office_note: input.officeNote?.trim() || null, rejection_reason: input.status === 'rejected' ? input.rejectionReason?.trim() : null, tax_treatment: input.status === 'approved' || input.status === 'partially_approved' ? 'reimbursement' : 'review', reviewed_at: new Date().toISOString(), reviewed_by: (await supabase.auth.getUser()).data.user?.id ?? null }).eq('tenant_id', input.tenantId).eq('id', input.claimId);
+  if (input.expectedUpdatedAt !== undefined) {
+    if (!input.expectedUpdatedAt.trim()) return { ok: false, error: 'Der Bearbeitungsstand fehlt. Bitte die Monatsdaten aktualisieren.' };
+    update = update.eq('updated_at', input.expectedUpdatedAt).in('status', ['submitted', 'needs_info']);
+  }
+  const { data, error } = await update.select('*').single();
+  if (input.expectedUpdatedAt !== undefined && ((!error && !data) || error?.code === 'PGRST116')) {
+    return { ok: false, error: 'Der Beleg wurde inzwischen geändert oder geprüft, oder ist nicht mehr zugänglich. Bitte aktualisieren und erneut prüfen.' };
+  }
   if (error || !data) return { ok: false, error: toGermanSupabaseError(error) }; return { ok: true, data: mapExpense(data as Row) };
 }
 
