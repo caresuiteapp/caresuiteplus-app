@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { PremiumButton, PremiumDataTable, type DataTableColumn } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
 import { WORKTIME_SURFACE, WORKTIME_TEXT } from './WfmOfficeTimekeepingLayout';
@@ -11,6 +11,7 @@ import {
   formatWfmReviewQueuePlannedDuration,
 } from '@/lib/wfm/wfmDisplayHelpers';
 import { resolveWfmOfficeTimeDisplay } from '@/lib/wfm/wfmOfficeTimeDisplayResolver';
+import { canApproveWfmOfficeTimeEntry } from '@/lib/wfm/wfmOfficeTimeApproval';
 import type { WfmOfficeTimeEntry } from '@/types/modules/wfmOfficeTimekeeping';
 import {
   WFM_DEVIATION_AMPEL_LABELS,
@@ -23,6 +24,12 @@ type Props = {
   selectedId: string | null;
   onSelect: (entryId: string | null) => void;
   reviewQueueMode?: boolean;
+  approval?: {
+    selectedIds: ReadonlySet<string>;
+    onToggle: (entryId: string) => void;
+    onApprove: (entry: WfmOfficeTimeEntry) => void;
+    busy: boolean;
+  };
 };
 
 const REVIEW_COL = {
@@ -92,6 +99,9 @@ function ReadableStatusBadge({ label, tone }: { label: string; tone: BadgeTone }
 }
 
 function rowStatusLabel(entry: WfmOfficeTimeEntry): string {
+  if (Platform.OS === 'web' && ['approved', 'rejected', 'exported', 'locked'].includes(entry.reviewStatus)) {
+    return WFM_OFFICE_TIME_STATUS_LABELS[entry.reviewStatus];
+  }
   if (entry.rowKind === 'planned_upcoming') {
     return 'Geplant';
   }
@@ -211,22 +221,58 @@ function ReviewActionButton({
   selected,
   reviewQueueMode,
   onPress,
+  entry,
+  approval,
 }: {
   selected: boolean;
   reviewQueueMode: boolean;
   onPress: () => void;
+  entry: WfmOfficeTimeEntry;
+  approval?: Props['approval'];
 }) {
   return (
     <View style={styles.actionCell}>
+      {approval && canApproveWfmOfficeTimeEntry(entry) ? (
+        <PremiumButton
+          title="Genehmigen"
+          accessibilityLabel={`Arbeitszeit vom ${entry.workDate} für ${entry.employeeName} genehmigen`}
+          size="sm"
+          style={styles.approvalButton}
+          disabled={approval.busy}
+          onPress={() => approval.onApprove(entry)}
+          onDarkSurface
+        />
+      ) : null}
       <PremiumButton
         title={reviewQueueMode ? 'Prüfen' : selected ? 'Schließen' : 'Details'}
         variant={reviewQueueMode && !selected ? 'secondary' : 'ghost'}
         size="sm"
         style={COMPACT_ACTION_BUTTON}
         onPress={onPress}
+        disabled={approval?.busy}
         onDarkSurface
       />
     </View>
+  );
+}
+
+function ApprovalCheckbox({ entry, approval }: { entry: WfmOfficeTimeEntry; approval: NonNullable<Props['approval']> }) {
+  const eligible = canApproveWfmOfficeTimeEntry(entry);
+  const checked = eligible && approval.selectedIds.has(entry.id);
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityLabel={`Arbeitszeit vom ${entry.workDate} für ${entry.employeeName} auswählen`}
+      accessibilityHint={eligible ? 'Für die gemeinsame Genehmigung auswählen.' : 'Nur offene, vollständig erfasste Arbeitszeiten können genehmigt werden.'}
+      accessibilityState={{ checked, disabled: !eligible || approval.busy }}
+      disabled={!eligible || approval.busy}
+      onPress={(event) => { event.stopPropagation(); approval.onToggle(entry.id); }}
+      style={[styles.checkboxTouch, !eligible && styles.checkboxDisabled]}
+    >
+      <View style={[styles.checkboxBox, checked && styles.checkboxChecked]}>
+        {checked ? <Text style={styles.checkboxMark}>✓</Text> : null}
+      </View>
+    </Pressable>
   );
 }
 
@@ -234,10 +280,12 @@ function ReviewQueueMobileCard({
   entry,
   selected,
   onSelect,
+  approval,
 }: {
   entry: WfmOfficeTimeEntry;
   selected: boolean;
   onSelect: (entryId: string | null) => void;
+  approval?: Props['approval'];
 }) {
   const istStack = formatWfmReviewQueueIstStack(entry);
 
@@ -254,6 +302,7 @@ function ReviewQueueMobileCard({
       testID={`wfm-review-card-${entry.id}`}
     >
       <View style={styles.mobileCardHeader}>
+        {approval ? <ApprovalCheckbox entry={entry} approval={approval} /> : null}
         <Text style={[styles.mobileCardDate, { color: TABLE_TEXT.primary }]}>{entry.workDate}</Text>
         <WfmReviewStatusBadge entry={entry} />
       </View>
@@ -284,6 +333,8 @@ function ReviewQueueMobileCard({
         <ReviewActionButton
           selected={selected}
           reviewQueueMode
+          entry={entry}
+          approval={approval}
           onPress={() => onSelect(selected ? null : entry.id)}
         />
       </View>
@@ -296,6 +347,7 @@ export function WfmOfficeTimeEntryTable({
   selectedId,
   onSelect,
   reviewQueueMode = false,
+  approval,
 }: Props) {
   const { width } = useWindowDimensions();
   const [availableWidth, setAvailableWidth] = useState(0);
@@ -303,9 +355,16 @@ export function WfmOfficeTimeEntryTable({
   // table expands across every available pixel and only changes to cards when
   // its complete minimum layout genuinely no longer fits.
   const reviewWidth = availableWidth || width;
-  const mobileReview = reviewQueueMode && reviewWidth < REVIEW_MIN_TABLE_WIDTH + 32;
+  const minimumTableWidth = REVIEW_MIN_TABLE_WIDTH + (approval ? 110 : 0);
+  const mobileReview = reviewQueueMode && reviewWidth < minimumTableWidth + 32;
+
+  const selectionColumns: DataTableColumn<WfmOfficeTimeEntry>[] = approval ? [{
+    key: 'approvalSelection', label: 'Auswahl', width: 80, align: 'center',
+    render: (entry) => <ApprovalCheckbox entry={entry} approval={approval} />,
+  }] : [];
 
   const defaultColumns: DataTableColumn<WfmOfficeTimeEntry>[] = [
+    ...selectionColumns,
     {
       key: 'date',
       label: 'Datum',
@@ -356,7 +415,7 @@ export function WfmOfficeTimeEntryTable({
     {
       key: 'action',
       label: 'Aktion',
-      width: 110,
+      width: approval ? 160 : 110,
       align: 'right',
       render: (entry) => {
         const selected = selectedId === entry.id;
@@ -364,6 +423,8 @@ export function WfmOfficeTimeEntryTable({
           <ReviewActionButton
             selected={selected}
             reviewQueueMode={reviewQueueMode}
+            entry={entry}
+            approval={approval}
             onPress={() => onSelect(selected ? null : entry.id)}
           />
         );
@@ -372,6 +433,7 @@ export function WfmOfficeTimeEntryTable({
   ];
 
   const reviewColumns: DataTableColumn<WfmOfficeTimeEntry>[] = [
+    ...selectionColumns,
     {
       key: 'date',
       label: 'Datum',
@@ -457,7 +519,7 @@ export function WfmOfficeTimeEntryTable({
     {
       key: 'action',
       label: 'Aktion',
-      width: REVIEW_COL.action,
+      width: approval ? 160 : REVIEW_COL.action,
       align: 'right',
       render: (entry) => {
         const selected = selectedId === entry.id;
@@ -465,6 +527,8 @@ export function WfmOfficeTimeEntryTable({
           <ReviewActionButton
             selected={selected}
             reviewQueueMode
+            entry={entry}
+            approval={approval}
             onPress={() => onSelect(selected ? null : entry.id)}
           />
         );
@@ -508,6 +572,7 @@ export function WfmOfficeTimeEntryTable({
                 entry={entry}
                 selected={selectedId === entry.id}
                 onSelect={onSelect}
+                approval={approval}
               />
             ))
           )}
@@ -523,7 +588,7 @@ export function WfmOfficeTimeEntryTable({
             emptyMessage="Keine Arbeitszeiteinträge im gewählten Zeitraum."
             fixedLayout
             solidSurface={false}
-            minTableWidth={REVIEW_MIN_TABLE_WIDTH}
+            minTableWidth={minimumTableWidth}
           />
         </View>
       )}
@@ -585,7 +650,14 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'flex-end',
     justifyContent: 'center',
+    gap: 6,
   },
+  approvalButton: { minWidth: 120, maxWidth: 136, height: 38, paddingHorizontal: 10 },
+  checkboxTouch: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  checkboxBox: { width: 22, height: 22, borderWidth: 2, borderColor: '#58799B', borderRadius: 5, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  checkboxChecked: { backgroundColor: '#0867CF', borderColor: '#0867CF' },
+  checkboxMark: { color: '#FFFFFF', fontSize: 16, lineHeight: 18, fontWeight: '800' },
+  checkboxDisabled: { opacity: 0.35 },
   footerHint: {
     ...typography.body,
     fontSize: 13,

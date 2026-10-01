@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { CareDateInput } from '@/components/inputs';
 import { PlatformModal } from '@/components/layout/platform';
 import { PremiumButton, ErrorState, LoadingState, InfoBanner, useWorkflowFeedback } from '@/components/ui';
@@ -34,6 +34,8 @@ import {
   WORKTIME_SURFACE,
 } from './WfmOfficeTimekeepingLayout';
 import { officePeriodLabel } from '@/lib/wfm/wfmOfficeMonth';
+import { confirmAction } from '@/lib/platform/confirmAction';
+import { approveWfmOfficeTimeSelection, canApproveWfmOfficeTimeEntry, selectedWfmApprovalEntries } from '@/lib/wfm/wfmOfficeTimeApproval';
 import { WfmOfficeTimeEntryTable } from './WfmOfficeTimeEntryTable';
 import { WfmOfficeTimeReviewDetailPanel } from './WfmOfficeTimeReviewDetailPanel';
 
@@ -90,6 +92,8 @@ export function WfmOfficeTimeHistoryPanel({
   const selectedId = selected?.id ?? null;
   const savingRef = useRef(false);
   const [saving, setSaving] = useState(false);
+  const [approvalProgress, setApprovalProgress] = useState<string | null>(null);
+  const [approvalState, setApprovalState] = useState({ scope: '', selectedIds: new Set<string>() });
   const [filterAmpel, setFilterAmpel] = useState<string | null>(initialFilterAmpel);
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(initialEmployeeId);
   const [employeeOptions, setEmployeeOptions] = useState<{ id: string; name: string }[]>([]);
@@ -122,7 +126,7 @@ export function WfmOfficeTimeHistoryPanel({
       enabled: !!tenantId,
       queryKey: `wfm-history:${tenantId}:${period?.fromDate ?? preset}:${period?.toDate ?? customFrom}:${customTo}:${filterEmployeeId}:${filterAmpel}`,
       live: {
-        enabled: !selectedId,
+        enabled: !selectedId && !saving,
         tenantId,
         subscribe: subscribeToWfmLiveChanges,
         pollMs: 10_000,
@@ -141,8 +145,36 @@ export function WfmOfficeTimeHistoryPanel({
   );
 
   const overview = historyQuery.data;
-  const selectEntry = (id: string | null) => setSelected(overview?.entries.find(entry => entry.id === id) ?? null);
+  const canQuickApprove = Platform.OS === 'web' && canCorrect && Boolean(reviewerId);
+  const approvalScope = JSON.stringify([tenantId, roleKey, reviewerId, filterEmployeeId, filterAmpel, preset, customFrom, customTo, period?.fromDate, period?.toDate]);
+  const scopeRef = useRef(approvalScope);
+  scopeRef.current = approvalScope;
+  const currentApproval = approvalState.scope === approvalScope ? approvalState : null;
+  const entries = overview?.entries ?? [];
+  const approvalEntries = entries.filter(entry => entry.tenantId === tenantId && canApproveWfmOfficeTimeEntry(entry));
+  const selectedApprovalEntries = selectedWfmApprovalEntries(approvalEntries, currentApproval?.selectedIds ?? new Set<string>());
+  const selectedApprovalIds = new Set(selectedApprovalEntries.map(entry => entry.id));
+  const allApprovalSelected = approvalEntries.length > 0 && selectedApprovalEntries.length === approvalEntries.length;
+  const selectEntry = (id: string | null) => {
+    if (!savingRef.current) setSelected(entries.find(entry => entry.id === id) ?? null);
+  };
+  const changeApprovalSelection = (entryId?: string) => {
+    if (!canQuickApprove || savingRef.current || historyQuery.loading || historyQuery.error) return;
+    const nextIds = new Set(selectedApprovalIds);
+    if (entryId) {
+      if (!approvalEntries.some(entry => entry.id === entryId)) return;
+      if (nextIds.has(entryId)) nextIds.delete(entryId); else nextIds.add(entryId);
+    } else {
+      nextIds.clear();
+      if (!allApprovalSelected) approvalEntries.forEach(entry => nextIds.add(entry.id));
+    }
+    setApprovalState({ scope: approvalScope, selectedIds: nextIds });
+  };
   const kpis = overview?.kpis;
+
+  useEffect(() => {
+    setApprovalState(current => current.scope === approvalScope ? current : { scope: approvalScope, selectedIds: new Set<string>() });
+  }, [approvalScope]);
 
   useEffect(() => {
     if (!filterEmployeeId && overview?.employees) {
@@ -180,6 +212,63 @@ export function WfmOfficeTimeHistoryPanel({
   const beginSave = () => { if (savingRef.current || !canCorrect) return false; savingRef.current = true; setSaving(true); return true; };
   const finishSave = () => { savingRef.current = false; setSaving(false); };
   const refreshSavedData = async () => { await Promise.all([historyQuery.refresh(), auditQuery.refresh(), onChanged?.()]); };
+
+  const runQuickApproval = async (requestedEntries: WfmOfficeTimeEntry[]) => {
+    if (!canQuickApprove || selectedId || historyQuery.loading || historyQuery.error) return;
+    const requestedIds = new Set(requestedEntries.map(entry => entry.id));
+    const targets = selectedWfmApprovalEntries(approvalEntries, requestedIds);
+    if (!targets.length || !beginSave()) return;
+    const scope = approvalScope;
+    let loadingId: ReturnType<typeof feedback.showLoading> | undefined;
+    try {
+      const deviations = targets.filter(entry => entry.overallAmpel === 'red' || entry.overallAmpel === 'blue').length;
+      const scopeLabel = overview ? officePeriodLabel(overview.period) : '';
+      const confirmed = await confirmAction({
+        title: targets.length === 1 ? 'Arbeitszeit genehmigen' : `${targets.length} Arbeitszeiten genehmigen`,
+        message: `${targets.length === 1 ? `${targets[0].employeeName} · ${targets[0].workDate}` : `${targets.length} ausgewählte Einträge · ${scopeLabel}`}\nDie erfassten Ist-Zeiten werden genehmigt.${deviations ? `\nDavon ${deviations} mit roten oder blauen Abweichungen. Bitte diese Abweichungen vor der Genehmigung prüfen.` : ''}`,
+        confirmLabel: 'Genehmigen',
+      });
+      if (!confirmed || scopeRef.current !== scope) return;
+      loadingId = feedback.showLoading('Arbeitszeiten werden genehmigt…');
+      setApprovalProgress(`0 von ${targets.length} bearbeitet`);
+      const confirmedEntries = new Map<string, WfmOfficeTimeEntry>();
+      const outcome = await approveWfmOfficeTimeSelection(targets, async entry => {
+        if (scopeRef.current !== scope || entry.tenantId !== tenantId) {
+          return { ok: false as const, error: 'Die Ansicht wurde gewechselt. Bitte erneut auswählen.' };
+        }
+        const result = await reviewWfmOfficeTimeEntry(tenantId, reviewerId, roleKey, entry.id, 'approved', undefined, entry);
+        if (result.ok && result.data.id === entry.id && result.data.reviewStatus === 'approved') {
+          confirmedEntries.set(entry.id, result.data);
+        }
+        return result;
+      }, (done, total) => setApprovalProgress(`${done} von ${total} bearbeitet`));
+      if (scopeRef.current === scope) {
+        historyQuery.setData(current => current ? {
+          ...current,
+          entries: current.entries.map(entry => confirmedEntries.get(entry.id) ?? entry),
+        } : current);
+        setApprovalState(current => {
+          const selectedIds = new Set(current.scope === scope ? current.selectedIds : []);
+          outcome.approvedIds.forEach(id => selectedIds.delete(id));
+          outcome.failed.forEach(({ entry }) => selectedIds.add(entry.id));
+          return { scope, selectedIds };
+        });
+      }
+      if (outcome.failed.length) {
+        feedback.showWarning(`${outcome.approvedIds.length} genehmigt, ${outcome.failed.length} nicht genehmigt. Nicht genehmigte Einträge bleiben ausgewählt.\n${outcome.failed.slice(0, 3).map(({ entry, error }) => `${entry.employeeName} · ${entry.workDate}: ${error}`).join('\n')}`, 'Genehmigung prüfen');
+      } else {
+        feedback.showSuccess(`${outcome.approvedIds.length} ${outcome.approvedIds.length === 1 ? 'Arbeitszeit wurde' : 'Arbeitszeiten wurden'} genehmigt.`, 'Genehmigung gespeichert');
+      }
+      try { if (scopeRef.current === scope) await refreshSavedData(); }
+      catch { feedback.showWarning('Die Genehmigungen wurden verarbeitet. Die Übersicht konnte nicht vollständig aktualisiert werden. Bitte aktualisieren.', 'Übersicht aktualisieren'); }
+    } catch (error) {
+      feedback.showError(error instanceof Error ? error.message : 'Die Genehmigung konnte nicht gespeichert werden.', 'Genehmigung nicht abgeschlossen');
+    } finally {
+      if (loadingId !== undefined) feedback.dismiss(loadingId);
+      setApprovalProgress(null);
+      finishSave();
+    }
+  };
 
   const runReview = async (
     decision: 'approved' | 'rejected' | 'exported' | 'locked' | 'needs_clarification',
@@ -384,7 +473,7 @@ export function WfmOfficeTimeHistoryPanel({
           <WfmOfficePeriodChips
             options={periodOptions}
             value={preset}
-            onChange={(p) => setPreset(p)}
+            onChange={(p) => { if (!savingRef.current) setPreset(p); }}
           />
         }
         secondarySlot={
@@ -397,14 +486,14 @@ export function WfmOfficeTimeHistoryPanel({
             <WfmOfficeStatusChip
               label="Alle MA"
               selected={!filterEmployeeId}
-              onPress={() => setFilterEmployeeId(null)}
+              onPress={() => { if (!savingRef.current) setFilterEmployeeId(null); }}
             />
             {employeeOptions.map((emp) => (
               <WfmOfficeStatusChip
                 key={emp.id}
                 label={emp.name}
                 selected={filterEmployeeId === emp.id}
-                onPress={() => setFilterEmployeeId(emp.id)}
+                onPress={() => { if (!savingRef.current) setFilterEmployeeId(emp.id); }}
               />
             ))}
           </>
@@ -414,17 +503,17 @@ export function WfmOfficeTimeHistoryPanel({
             <WfmOfficeStatusChip
               label="Rot/Blau"
               selected={filterAmpel === 'rot_blau'}
-              onPress={() => setFilterAmpel((v) => (v === 'rot_blau' ? null : 'rot_blau'))}
+              onPress={() => { if (!savingRef.current) setFilterAmpel((v) => (v === 'rot_blau' ? null : 'rot_blau')); }}
             />
             <WfmOfficeStatusChip
               label="Offen"
               selected={filterAmpel === 'pending'}
-              onPress={() => setFilterAmpel((v) => (v === 'pending' ? null : 'pending'))}
+              onPress={() => { if (!savingRef.current) setFilterAmpel((v) => (v === 'pending' ? null : 'pending')); }}
             />
             <WfmOfficeStatusChip
               label="Office-Meldungen"
               selected={filterAmpel === 'office_msg'}
-              onPress={() => setFilterAmpel((v) => (v === 'office_msg' ? null : 'office_msg'))}
+              onPress={() => { if (!savingRef.current) setFilterAmpel((v) => (v === 'office_msg' ? null : 'office_msg')); }}
             />
           </>
         }
@@ -436,7 +525,7 @@ export function WfmOfficeTimeHistoryPanel({
             <CareDateInput
               label="Von"
               value={customFrom}
-              onChange={setCustomFrom}
+              onChange={value => { if (!savingRef.current) setCustomFrom(value); }}
               showFormatHint={false}
             />
           </View>
@@ -444,12 +533,13 @@ export function WfmOfficeTimeHistoryPanel({
             <CareDateInput
               label="Bis"
               value={customTo}
-              onChange={setCustomTo}
+              onChange={value => { if (!savingRef.current) setCustomTo(value); }}
               showFormatHint={false}
             />
           </View>
           <PremiumButton
             title="Anwenden"
+            disabled={saving}
             variant="secondary"
             onPress={() => void historyQuery.refresh()}
             onDarkSurface
@@ -462,15 +552,46 @@ export function WfmOfficeTimeHistoryPanel({
       {historyQuery.loading ? <LoadingState message="Zeitbuchungen werden geladen…" presentation="inline" /> : null}
       {historyQuery.error ? <ErrorState title="Zeitbuchungen nicht verfügbar" message={historyQuery.error} onRetry={() => void historyQuery.refresh()} /> : null}
       {historyQuery.refreshError ? <InfoBanner message={historyQuery.refreshError} variant="warning" /> : null}
+      {canQuickApprove ? (
+        <View style={styles.approvalToolbar} testID="wfm-time-approval-toolbar">
+          <Text style={styles.approvalTitle}>Arbeitszeiten genehmigen</Text>
+          <Text style={styles.approvalHint}>Die Auswahl gilt für die angezeigten Personen, Filter und den gewählten Zeitraum. Nur offene Einträge mit vollständigen Ist-Zeiten sind auswählbar.</Text>
+          <View style={styles.approvalActions}>
+            <View style={styles.approvalAction}>
+              <PremiumButton title={allApprovalSelected ? 'Auswahl aufheben' : 'Alle auswählen'} variant="secondary" fullWidth
+                disabled={saving || historyQuery.loading || Boolean(historyQuery.error) || !approvalEntries.length}
+                onPress={() => changeApprovalSelection()} />
+            </View>
+            <View style={styles.approvalAction}>
+              <PremiumButton title={`Auswahl genehmigen (${selectedApprovalEntries.length})`} fullWidth
+                disabled={saving || historyQuery.loading || Boolean(historyQuery.error) || !selectedApprovalEntries.length}
+                onPress={() => void runQuickApproval(selectedApprovalEntries)} />
+            </View>
+            <View style={styles.approvalAction}>
+              <PremiumButton title={`Alle genehmigen (${approvalEntries.length})`} variant="secondary" fullWidth
+                disabled={saving || historyQuery.loading || Boolean(historyQuery.error) || !approvalEntries.length}
+                onPress={() => void runQuickApproval(approvalEntries)} />
+            </View>
+          </View>
+          <Text style={styles.approvalHint} accessibilityLiveRegion="polite">{approvalProgress ?? `${selectedApprovalEntries.length} von ${approvalEntries.length} genehmigungsfähigen Einträgen ausgewählt`}</Text>
+        </View>
+      ) : null}
       <WfmOfficeTimeEntryTable
-        entries={overview?.entries ?? []}
+        entries={entries}
         selectedId={selectedId}
         onSelect={selectEntry}
         reviewQueueMode={reviewQueueMode}
+        approval={canQuickApprove ? {
+          selectedIds: selectedApprovalIds,
+          onToggle: changeApprovalSelection,
+          onApprove: entry => void runQuickApproval([entry]),
+          busy: saving || historyQuery.loading || Boolean(historyQuery.error),
+        } : undefined}
       />
 
       <PremiumButton
         title="Aktualisieren"
+        disabled={saving}
         variant="ghost"
         onPress={() => void historyQuery.refresh()}
         onDarkSurface
@@ -524,6 +645,11 @@ export function WfmOfficeTimeHistoryPanel({
 
 const styles = StyleSheet.create({
   root: { width: '100%', flexShrink: 0, gap: careSpacing.sm },
+  approvalToolbar: { gap: 10, padding: 16, borderWidth: 1, borderColor: '#B8D1EA', borderRadius: 16, backgroundColor: '#F4F9FF' },
+  approvalTitle: { color: '#0B2342', fontSize: 16, lineHeight: 22, fontWeight: '700' },
+  approvalHint: { color: '#31597F', fontSize: 13, lineHeight: 19 },
+  approvalActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
+  approvalAction: { flexBasis: 220, flexGrow: 1, flexShrink: 1, minWidth: 0 },
   reviewQueueMain: { flex: 1, minWidth: 0, gap: careSpacing.sm },
   reviewModalBody: {
     padding: careSpacing.sm,
