@@ -1,0 +1,110 @@
+[
+  {
+    "id": "verwaltung",
+    "title": "Der Überblick, aus dem ein guter Arbeitstag entsteht.",
+    "kicker": "FÜR VERWALTUNG UND ORGANISATION",
+    "intro": "In der Verwaltung laufen viele Perspektiven zusammen: Wer ist verfügbar? Welche Unterstützung ist vereinbart? Welche Einsätze stehen bevor? Und welche Unterlagen fehlen für die Weiterbearbeitung? CareSuite HealthOS gibt diesen Aufgaben einen gemeinsamen Arbeitsraum. Ihr beginnt auf eurem Desktop, wechselt in die passende Kalenderperspektive und verfolgt einen Vorgang bis zu Dokumentation, Nachweis und Abrechnung. Entscheidend ist dabei der Zusammenhang. Eine Zeitangabe gehört zu einem Einsatz, der Einsatz zu einer Person und der Nachweis zu einer tatsächlich erbrachten Leistung. Die Oberfläche unterstützt euch dabei, diese Beziehungen im Blick zu behalten. So könnt ihr euch gezielt mit der nächsten Entscheidung beschäftigen und findet auch bei Rückfragen wieder zum betreffenden Vorgang zurück.",
+    "sections": [
+      {
+        "title": "Ein Arbeitsplatz, der eure Aufgaben zusammenführt",
+        "paragraphs": [
+          "Der HealthOS-Desktop bündelt Apps, Widgets und häufig benötigte Bereiche. Ihr könnt die Anordnung an euren Arbeitsalltag anpassen und wichtige Informationen dort platzieren, wo ihr regelmäßig hinseht. Die Seitensuche und die einklappbare Navigation ergänzen diesen Einstieg. Das hilft besonders dann, wenn ihr mehrfach am Tag zwischen Planung, Klient:innen und organisatorischen Aufgaben wechselt. Der Desktop wird damit zum Ausgangspunkt für konkrete Arbeit: erst orientieren, dann den passenden Bereich öffnen und den betreffenden Vorgang bearbeiten.",
+          "Nicht jede Person im Büro arbeitet mit demselben Schwerpunkt. Für die Einsatzplanung steht der Kalender im Vordergrund; bei der Nachbearbeitung sind Zeiten, Dokumentation und Nachweise wichtiger. Die anpassbare Oberfläche unterstützt unterschiedliche Zugänge zu diesen Aufgaben. In unserer echten Demo seht ihr einen eingerichteten Arbeitsplatz mit zwölf aktiven Widgets. Das Beispiel zeigt, wie Informationen auf einer Fläche zusammenkommen können. Welche Anordnung für euch sinnvoll ist, ergibt sich aus euren Zuständigkeiten und den Aufgaben, die ihr im Tagesverlauf tatsächlich bearbeitet."
+        ],
+        "takeaway": "Häufig benötigte Informationen erhalten einen festen Platz auf eurem persönlichen Desktop."
+      },
+      {
+        "title": "Planung vom einzelnen Termin bis zum ganzen Jahr",
+        "paragraphs": [
+          "Die passende Perspektive entscheidet darüber, was in einer Planung auffällt. Eine kurzfristige Rückfrage verlangt den genauen Blick auf einen Einsatz; eine bevorstehende Abwesenheit betrifft möglicherweise mehrere Tage. Die Verwaltung kann zwischen diesen Betrachtungen wechseln und die Auswahl auf die relevanten Mitarbeitenden eingrenzen. Dadurch wird aus der allgemeinen Frage nach einer freien Zeit eine konkrete Prüfung: Welche Person ist betroffen, welche Unterstützung wird gebraucht und welche bestehenden Termine müssen berücksichtigt werden? Die verschiedenen Kalenderansichten geben euch den Raum, solche Entscheidungen in der passenden zeitlichen Perspektive vorzubereiten.",
+          "Ein voller Kalender enthält mehr als Einsätze. Urlaub, Weiterbildungen und weitere Termine beeinflussen, wie ihr einen Tag organisiert. Die Monatsansicht führt diese Einträge zusammen und macht zusätzliche Einträge auch an dicht belegten Tagen zugänglich. Statusdarstellungen helfen bei der Einordnung der zugehörigen Vorgänge. Wenn sich etwas ändert, könnt ihr den betroffenen Zeitraum und die zuständigen Mitarbeitenden gezielt betrachten. Die Entscheidung über eine passende Besetzung bleibt bei euch; die Oberfläche liefert dafür den zeitlichen und personellen Überblick."
+        ],
+        "takeaway": "Wählt die Ansicht nach eurer Planungsfrage und betrachtet Verfügbarkeit, Zeitraum und Einsatz gemeinsam."
+      },
+      {
+        "title": "Die Weiterbearbeitung beginnt mit einem klaren Bezug",
+        "paragraphs": [
+          "Nach einem Einsatz folgt die Prüfung: Welche Zeiten wurden erfasst, welche Wege dokumentiert und welche Bestätigungen liegen vor? HealthOS hält die zugehörigen Bereiche innerhalb derselben Software erreichbar. Die Verwaltung kann Arbeitszeiten und Fahrten nach Monaten betrachten und sich mit den jeweiligen Vorgängen beschäftigen. Eine fehlende Angabe wird dadurch zu einer konkreten Rückfrage. Ihr könnt klären, welchen Einsatz sie betrifft und was für den nächsten Bearbeitungsschritt gebraucht wird. Das unterstützt eine sorgfältige Nachbearbeitung im eigenen betrieblichen Ablauf.",
+          "Dokumentierte Leistungen und Leistungsnachweise bilden den Bezug für die Rechnungsbearbeitung. Budgetbereiche ergänzen diese Sicht um die zugeordneten Leistungen und verfügbaren Mittel. Im Klientenportal werden verbrauchte und bereits geplante Anteile zusammen mit Beträgen und möglichen Stunden dargestellt. Dadurch können sich Verwaltung und Klient:innen bei Rückfragen auf dieselben Themen beziehen. Die Prüfung von Unterlagen, Leistungsumfang und Abrechnung bleibt eine fachliche Aufgabe. CareSuite stellt die Informationen und Bearbeitungsbereiche bereit, mit denen ihr diese Aufgabe strukturiert und nachvollziehbar angehen könnt."
+        ],
+        "takeaway": "Zeiten, Fahrten, Nachweise und Budgets liefern den Bezug für eure weitere Bearbeitung."
+      }
+    ],
+    "scenario": {
+      "title": "Eine Änderung am Morgen. Ein klarer nächster Schritt.",
+      "text": "Eine Mitarbeiterin meldet eine Abwesenheit, während bereits eine Rückfrage zu einem Termin eingeht. Ihr öffnet den betreffenden Zeitraum, betrachtet die vorgesehenen Einsätze und grenzt den Kalender auf die relevanten Mitarbeitenden ein. Verfügbarkeit und übrige Termine helfen euch, eine passende Anpassung zu beurteilen. Anschließend könnt ihr die Abstimmung über die vorgesehenen Kommunikationswege fortsetzen. Bei der späteren Nachbearbeitung greift ihr auf die zum Einsatz gehörenden Zeiten und Unterlagen zurück. Aus der spontanen Änderung wird so eine Folge konkreter Entscheidungen: Überblick gewinnen, Planung bearbeiten, Beteiligte einbeziehen und den Vorgang abschließend prüfen."
+    }
+  },
+  {
+    "id": "mitarbeitende",
+    "title": "Für den ganzen Arbeitstag. Und die Menschen darin.",
+    "kicker": "FÜR MITARBEITENDE IM EINSATZ",
+    "intro": "Ein Arbeitstag besteht aus mehr als einer Liste von Terminen. Dazwischen liegen Wege, persönliche Begegnungen, Absprachen und Aufgaben, die nach dem Einsatz noch abgeschlossen werden müssen. Der Mitarbeiterbereich von CareSuite HealthOS verbindet diese Teile mit eurem persönlichen Tagesablauf. Die Übersicht führt zu den eigenen Einsätzen, zeigt geplante Stunden und macht offene Dokumentation sichtbar. Arbeitszeit, Fahrtenbuch, Nachrichten und Dokumente ergänzen den Zugang. Ihr könnt euch vor einem Termin orientieren, während des Tages die vorgesehenen Schritte bearbeiten und anschließend den Abschluss prüfen. Das Ziel ist ein nachvollziehbarer Arbeitsfluss, in dem organisatorische Angaben ihren Platz haben und der Kontakt zu den betreuten Menschen im Mittelpunkt bleiben kann.",
+    "sections": [
+      {
+        "title": "Mit Orientierung in den Tag starten",
+        "paragraphs": [
+          "Der persönliche Einstieg richtet den Blick auf die eigenen Aufgaben. Welche Einsätze sind vorgesehen? Wie viele Stunden sind geplant? Wo ist noch Dokumentation offen? Diese Informationen stehen in der Tagesübersicht zusammen. Von dort gelangt ihr zum aktuellen Einsatz und zu den Bereichen, die ihr regelmäßig benötigt. Das erleichtert die Orientierung zu Arbeitsbeginn ebenso wie den erneuten Einstieg zwischen zwei Terminen. Ihr müsst euren Arbeitstag dabei nicht jedes Mal gedanklich neu zusammensetzen, sondern könnt euch am sichtbaren Zusammenhang orientieren.",
+          "Auch eine gute Planung lässt Raum für Rückfragen. Nachrichten und Dokumente geben der Abstimmung mit dem Büro einen eigenen Ort innerhalb der Software. Wenn Angaben zum Einsatz geklärt werden müssen, könnt ihr euch auf den betreffenden Vorgang beziehen und die vorhandenen Informationen heranziehen. Die persönliche Übersicht ergänzt diese Zusammenarbeit um den Blick auf eure Aufgaben. Damit bleiben Tagesplanung und Nachbearbeitung miteinander verbunden: Ein beendeter Termin und eine noch offene Dokumentation lassen sich als unterschiedliche Schritte desselben Arbeitstags einordnen."
+        ],
+        "takeaway": "Eigene Einsätze, geplante Stunden und offene Aufgaben geben eurem Tag eine erkennbare Struktur."
+      },
+      {
+        "title": "Wege erfassen, wie sie tatsächlich stattfinden",
+        "paragraphs": [
+          "Zum Arbeitstag gehören die Anfahrt, Wege zwischen mehreren Einsätzen und die Heimfahrt. Das Fahrtenbuch berücksichtigt diese Abschnitte im vorgesehenen Ablauf. Dabei bleibt Mobilität vielfältig: PKW, öffentlicher Nahverkehr, Fahrrad, E-Scooter und Fußwege können berücksichtigt werden. Fahrzeugzuordnungen ergänzen die Erfassung dort, wo sie gebraucht werden. So kann die Dokumentation der Wege zum tatsächlichen Tagesverlauf passen. Gerade bei mehreren Terminen ist es hilfreich, die einzelnen Strecken in ihrer Reihenfolge und mit Bezug zum Einsatz zu betrachten.",
+          "Wenn eine Fahrt später geklärt werden muss, zählt der Bezug zum tatsächlichen Tagesablauf. Ihr könnt den betreffenden Zeitraum wieder aufrufen, die vorhandenen Angaben ansehen und gemeinsam mit der Verwaltung prüfen, was ergänzt werden muss. Dabei hilft eine konkrete Rückfrage mehr als eine unklare Gesamtsumme: Geht es um die Anfahrt, einen Zwischenweg oder die Heimfahrt? Welche Zuordnung gehört zu diesem Abschnitt? Die verschiedenen Möglichkeiten zur Erfassung unterstützen diese Bearbeitung. Im ausführlichen Mobilitätskapitel erfahrt ihr, wie technische Unterstützung, manuelle Angaben und die Monatsbetrachtung zusammenspielen."
+        ],
+        "takeaway": "Anfahrt, Zwischenwege und Heimfahrt erhalten einen nachvollziehbaren Platz im Arbeitstag."
+      },
+      {
+        "title": "Den Einsatz mit Dokumentation und Bestätigung abschließen",
+        "paragraphs": [
+          "Die geleistete Unterstützung wird durch die zugehörige Dokumentation nachvollziehbar. Leistungen, Beobachtungen und relevante Hinweise gehören zum jeweiligen Einsatz. Dadurch finden spätere Rückfragen einen konkreten Bezugspunkt. Die Tagesübersicht macht offene Dokumentation sichtbar, damit auch nach dem persönlichen Kontakt erkennbar bleibt, wo noch Arbeit erforderlich ist. Beim Abschluss zählt der gesamte Vorgang: die erfasste Durchführung, die Angaben zur Leistung und die benötigte Bestätigung. Ihr könnt diese Schritte im vorgesehenen Ablauf bearbeiten und anschließend gezielt nach offenen Punkten sehen.",
+          "Erforderliche Unterschriften lassen sich mit Finger, Stift oder Maus erfassen. Fehlt eine Signatur, kann der offene Vorgang im vorgesehenen Freigabeprozess weiterbearbeitet werden. Nach der erforderlichen Bestätigung entsteht der zugehörige Leistungsnachweis als PDF. Das persönliche Arbeitszeitkonto ergänzt diese Einsatzperspektive um den Blick auf einen ganzen Monat. Erfasste Zeiten und zugehörige Einsätze bleiben für Rückfragen erreichbar. So könnt ihr einzelne Arbeitstage und längere Zeiträume betrachten, ohne Dokumentation, Bestätigung und Zeitübersicht miteinander zu verwechseln."
+        ],
+        "takeaway": "Durchführung, Dokumentation, Unterschrift und Zeitübersicht bleiben als zusammengehörige Arbeitsschritte erreichbar."
+      }
+    ],
+    "scenario": {
+      "title": "Zwei Einsätze. Mehrere Wege. Ein nachvollziehbarer Tag.",
+      "text": "Ihr beginnt mit dem Blick auf eure Tagesübersicht und öffnet den ersten vorgesehenen Einsatz. Auf dem Weg dorthin nutzt ihr die passende Erfassung für eure Mobilität. Nach der Begleitung haltet ihr die relevanten Angaben fest und bearbeitet die erforderliche Bestätigung. Es folgt die Fahrt zum nächsten Termin. Am Tagesende betrachtet ihr offene Dokumentation und den Abschluss der vorgesehenen Schritte einschließlich der Heimfahrt. Falls eine Unterschrift fehlt oder eine Angabe geklärt werden muss, kann der betreffende Vorgang weiterbearbeitet werden. In der Monatsübersicht findet ihr die Zeiten und Wege später für eine gemeinsame Prüfung wieder."
+    }
+  },
+  {
+    "id": "klienten",
+    "title": "Die eigene Unterstützung verstehen und mitgestalten.",
+    "kicker": "FÜR KLIENT:INNEN",
+    "intro": "Wer Unterstützung erhält, möchte wissen, was als Nächstes passiert. Wann findet der nächste Termin statt? Welche Leistung ist geplant? Wo liegt eine Vereinbarung, und an wen kann ich eine Rückfrage richten? Das Klientenportal von CareSuite HealthOS gibt diesen Fragen einen eigenen Zugang. Termine, Budgetinformationen, Dokumente und Nachrichten stehen dort in verständlichen Bereichen bereit. Der nächste Einsatz ist direkt auf der Startseite sichtbar. Von hier aus könnt ihr weitere Angaben ansehen, eine Änderung mitteilen oder Kontakt aufnehmen. Auch zurückliegende Leistungen und freigegebene Nachweise bleiben erreichbar. Das Portal ergänzt den persönlichen Austausch und hilft euch, die eigene Unterstützung anhand konkreter Informationen zu begleiten.",
+    "sections": [
+      {
+        "title": "Termine und verfügbare Möglichkeiten im Blick",
+        "paragraphs": [
+          "Die Startseite zeigt den nächsten Einsatz mit Datum, Uhrzeit und Leistung. In der Terminübersicht sind kommende und vergangene Einsätze voneinander getrennt. Die jeweilige Einsatzkarte nennt den Status, den Zeitraum, die geplante Dauer, die Mitarbeitenden und die vorgesehene Leistung. Eine Vorschau führt zu weiteren Angaben. Ihr könnt damit sowohl den nächsten Termin vorbereiten als auch auf einen zurückliegenden Einsatz schauen. Wenn sich etwas ändern soll, bietet das Portal einen Einstieg, um die Änderung mitzuteilen und die Abstimmung anzustoßen.",
+          "Die Budgetansicht ergänzt den Kalender um eine weitere Frage: Welche Unterstützung ist bereits gebucht, was wurde verbraucht und welche Anteile sind für kommende Einsätze eingeplant? Verfügbare Beträge werden zusammen mit möglichen Stunden dargestellt. Gebuchte Leistungen und zusätzliche Möglichkeiten haben dabei getrennte Bereiche. Das hilft, Zahlen auf eine konkrete Unterstützung zu beziehen. Bei Unklarheiten könnt ihr die angezeigten Angaben mit dem Büro besprechen. Die Darstellung schafft eine gemeinsame Grundlage für Rückfragen; eine neue Vereinbarung entsteht durch die dazugehörige Abstimmung."
+        ],
+        "takeaway": "Seht kommende Termine und setzt verfügbare Beträge mit geplanter Unterstützung in Beziehung."
+      },
+      {
+        "title": "Unterlagen lesen, Bestätigungen bearbeiten, Nachweise finden",
+        "paragraphs": [
+          "Die Dokumentübersicht ordnet Unterlagen nach Art und zeigt ihre Freigaben. Vereinbarungen und Unterstützungspläne sind direkt erreichbar. Freigegebene Inhalte können im Portal gelesen werden. Der echte Demo-Unterstützungsplan zeigt beispielsweise Ziele, Schwerpunkte und persönliche Wünsche zusammen mit dem Dokumentstatus und dem Aktualisierungsdatum. Damit steht mehr als nur ein Dateiname zur Verfügung: Ihr könnt den Inhalt in Ruhe ansehen und bei Rückfragen auf die betreffende Unterlage Bezug nehmen. Ein Dokumentupload ergänzt die Möglichkeiten, benötigte Unterlagen an das Büro zu übermitteln.",
+          "Für erforderliche Unterschriften gibt es einen eigenen Bereich mit offenen und erledigten Dokumenten. Hinweise erklären das Lesen und die Unterschrift mit Finger, Stift oder Maus. So könnt ihr erkennen, ob noch eine Bestätigung aussteht oder ein Vorgang bereits bearbeitet wurde. Freigegebene Leistungsnachweise erscheinen wiederum mit Leistungsbezeichnung, Monat und Unterschriftsstatus. Die zugehörige PDF-Ansicht lässt sich aus der Übersicht öffnen. Auch später bleibt damit ein Zugang zu den bereitgestellten Nachweisen vorhanden, wenn ihr eine Leistung oder einen Zeitraum nachvollziehen möchtet."
+        ],
+        "takeaway": "Wichtige Unterlagen und ausstehende Bestätigungen haben im Portal einen klaren, wieder auffindbaren Ort."
+      },
+      {
+        "title": "Mit dem Büro in Verbindung bleiben",
+        "paragraphs": [
+          "Eine Rückfrage entsteht oft direkt beim Blick auf einen Termin oder ein Dokument. Der Nachrichtenbereich bietet dafür Gespräche mit Thema, Status und Verlauf. Die Gesprächsliste und die Suche helfen beim Wiederfinden einer Abstimmung. Innerhalb eines Chats stehen Texteingabe, Anhänge und Sprachnachrichten zur Verfügung. Ihr könnt also die vorhandenen Möglichkeiten passend zu eurem Anliegen nutzen. Der Verlauf hält fest, worauf ihr euch bezieht, sodass eine spätere Nachricht an die bisherige Unterhaltung anknüpfen kann und das Thema wieder erkennbar ist.",
+          "Schnellzugriffe auf der Startseite führen außerdem zu Einsatzanfragen und Rückrufanforderungen. Für einen zusätzlichen Unterstützungswunsch oder eine Frage, die ihr persönlich besprechen möchtet, gibt es damit einen vorgesehenen Einstieg. Eine übermittelte Anfrage ist der Beginn der Abstimmung mit dem Büro. Welche Unterstützung vereinbart wird und wann sie stattfinden kann, wird anschließend geklärt. Das Portal macht diesen Kontakt zugänglich und verbindet ihn mit euren übrigen Informationen: Ihr könnt Termine ansehen, Unterlagen nachlesen und euer Anliegen mit dem passenden Bezug formulieren."
+        ],
+        "takeaway": "Nachrichten, Einsatzanfragen und Rückrufanforderungen bieten passende Einstiege für unterschiedliche Anliegen."
+      }
+    ],
+    "scenario": {
+      "title": "Eine Terminfrage direkt aus dem eigenen Überblick klären.",
+      "text": "Ihr seht auf der Startseite, wann der nächste Einsatz geplant ist, und öffnet die Terminangaben. Die Uhrzeit passt diesmal nicht. Über die vorgesehene Möglichkeit teilt ihr den Änderungswunsch mit und könnt die weitere Abstimmung im Nachrichtenbereich verfolgen. Für eine zusätzliche Frage schaut ihr in eure freigegebenen Unterlagen oder bittet um einen Rückruf. Nach einem zurückliegenden Einsatz findet ihr den bereitgestellten Leistungsnachweis mit Monat und Status wieder. Das Portal begleitet damit mehrere kleine Schritte, die im Alltag zusammengehören: vorbereiten, nachfragen, Informationen prüfen und erbrachte Unterstützung später nachvollziehen."
+    }
+  }
+]

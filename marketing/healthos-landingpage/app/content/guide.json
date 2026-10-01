@@ -1,0 +1,140 @@
+{
+  "introduction": {
+    "title": "Ein gemeinsamer Arbeitsplatz für einen Alltag mit vielen Perspektiven.",
+    "paragraphs": [
+      "Versorgung entsteht im Zusammenspiel vieler kleiner Entscheidungen. Ein Termin wird geplant, eine Fahrt beginnt, eine Leistung wird dokumentiert, eine Rückfrage erreicht das Büro. Für die Beteiligten gehört all das zu demselben Tag. CareSuite HealthOS bringt diese Aufgaben in eine gemeinsame digitale Arbeitsumgebung. Der Einstieg orientiert sich dabei an der jeweiligen Rolle: Die Verwaltung organisiert den Betrieb, Mitarbeitende konzentrieren sich auf ihre Einsätze und Klient:innen erhalten einen eigenen Zugang zu den Informationen, die für sie bestimmt sind.",
+      "Das OS-Prinzip macht aus dieser Funktionsvielfalt einen persönlichen Arbeitsplatz. Auf dem Desktop stehen Apps und Widgets im Mittelpunkt. Kalender, Aufgaben und häufig benötigte Bereiche lassen sich von dort aus erreichen; Suche und Navigation unterstützen den Wechsel zwischen den Themen. Die Oberfläche vermittelt damit zuerst Orientierung: Wo stehe ich gerade, was braucht Aufmerksamkeit und wie komme ich zur passenden Aufgabe? Dahinter bleibt genug Raum für die ausführliche Bearbeitung einzelner Vorgänge.",
+      "Auf dieser Seite könnt ihr CareSuite aus mehreren Blickwinkeln kennenlernen. Die Originalaufnahmen zeigen echte Oberflächen mit fiktiven Demo-Daten. Der Ablauf verbindet die einzelnen Funktionen mit dem Arbeitstag. Die folgenden Kapitel erläutern, wie sich die Software im eigenen Betrieb beurteilen lässt, welche Fragen beim Einstieg helfen und weshalb eine klare Aufgabenverteilung ebenso wichtig ist wie eine gute Oberfläche. So wird aus einem ersten Eindruck eine fundierte Produktentscheidung."
+    ]
+  },
+  "onboarding": [
+    {
+      "title": "Den eigenen Betrieb als Ausgangspunkt nehmen.",
+      "text": "Beginnt mit einem konkreten Arbeitstag: Welche Termine werden geplant, wer fährt wohin und welche Informationen müssen nach einem Einsatz im Büro ankommen? Ein solcher Ausschnitt macht den Einstieg greifbar. Stellt daneben die Sicht einer Person aus der Verwaltung, eines Teammitglieds und einer Klientin oder eines Klienten. Dadurch werden Übergaben sichtbar, die im Alltag leicht selbstverständlich erscheinen. Für einen ersten Durchlauf eignen sich überschaubare Beispiele mit bereitgestellten Demo-Daten. Entscheidend ist zunächst, dass das Team denselben Vorgang aus seinen unterschiedlichen Arbeitsbereichen wiedererkennt und die nächsten Bearbeitungsschritte versteht.",
+      "checklist": [
+        "Einen typischen Tagesablauf und seine Beteiligten auswählen.",
+        "Die benötigten Informationen je Rolle benennen.",
+        "Offene Fragen aus dem ersten Durchlauf gemeinsam festhalten."
+      ]
+    },
+    {
+      "title": "Arbeitsplätze und Zuständigkeiten zusammen denken.",
+      "text": "Ein gut eingerichteter Einstieg bildet die tatsächliche Arbeit ab. Die Verwaltung benötigt beispielsweise Planung und betriebliche Übersichten, Mitarbeitende ihre Einsätze und persönliche Zeiten. Klient:innen sollen ihre Termine und freigegebenen Unterlagen finden. Nutzt die vorhandenen Zugänge, um diese Perspektiven getrennt zu prüfen. Auf dem HealthOS-Desktop helfen Apps, Widgets und die anpassbare Anordnung dabei, oft verwendete Themen näher an den Einstieg zu rücken. Legt im Team außerdem fest, wer Rückfragen bearbeitet und welche Person für einen offenen Vorgang zuständig ist. Die Software erhält dadurch einen klaren organisatorischen Rahmen.",
+      "checklist": [
+        "Die passenden Arbeitsbereiche für das Team zuordnen.",
+        "Häufig genutzte Funktionen auf dem Arbeitsplatz berücksichtigen.",
+        "Verantwortliche für Rückfragen und offene Vorgänge bestimmen."
+      ]
+    },
+    {
+      "title": "Einen Vorgang bis zum Abschluss kennenlernen.",
+      "text": "Der Nutzen einer Funktion wird besonders deutlich, wenn ihr ihren Zusammenhang mit den nächsten Schritten erlebt. Betrachtet deshalb einen Einsatz von der Planung über Anfahrt und Durchführung bis zur Dokumentation und erforderlichen Bestätigung. Prüft anschließend, wo der Nachweis erscheint und welche Informationen im Klientenportal zugänglich werden. Nehmt auch einen unvollständigen Vorgang hinzu, etwa eine noch ausstehende Unterschrift. Das Team lernt so nicht nur den abgeschlossenen Zustand kennen, sondern auch die Orientierung bei offenen Aufgaben. Für die Beurteilung sind beide Situationen wichtig, weil sie unterschiedliche Fragen an die Oberfläche stellen.",
+      "checklist": [
+        "Planung, Durchführung und Dokumentation am selben Beispiel verfolgen.",
+        "Einen offenen und einen abgeschlossenen Zustand vergleichen.",
+        "Die sichtbaren Ergebnisse in den beteiligten Portalen prüfen."
+      ]
+    },
+    {
+      "title": "Den Einstieg anhand konkreter Erfahrungen auswerten.",
+      "text": "Nach den ersten Durchläufen braucht es eine gemeinsame Rückschau. Welche Informationen wurden sofort gefunden? Wo musste das Team nachfragen? Welche Ansicht unterstützt die eigene Planung am besten? Sammelt solche Beobachtungen direkt am jeweiligen Vorgang. Eine kurze, nachvollziehbare Liste hilft bei der weiteren Einrichtung mehr als ein allgemeines Urteil über die Software. Bezieht dabei auch die Perspektive der Klient:innen ein: Verständliche Termine, auffindbare Dokumente und ein klarer Kontaktweg gehören zum Gesamteindruck. Aus diesen Erfahrungen lässt sich der nächste betriebliche Schritt gezielt vorbereiten.",
+      "checklist": [
+        "Rückmeldungen aus allen drei Rollen zusammenführen.",
+        "Fragen zur Bedienung und zur betrieblichen Zuständigkeit unterscheiden.",
+        "Den nächsten Einsatzbereich anhand der Ergebnisse auswählen."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Was bedeutet HealthOS im täglichen Umgang mit der Software?",
+      "answer": "HealthOS beschreibt die Idee einer zusammenhängenden Arbeitsumgebung. Der Desktop bündelt Apps, Widgets und Zugänge zu den betrieblichen Aufgaben. Ihr beginnt an einem gemeinsamen Einstieg und öffnet von dort den Bereich, den ihr gerade benötigt. Das ist besonders hilfreich, wenn ein Arbeitstag häufig zwischen Planung, Personalthemen, Dokumenten und Rückfragen wechselt. Ob die Anordnung zum eigenen Betrieb passt, lässt sich an einem konkreten Beispiel gut beurteilen: Öffnet die häufigsten Aufgaben nacheinander und prüft, ob sich der Weg durch die Oberfläche für das Team schlüssig anfühlt."
+    },
+    {
+      "question": "Welche Kalenderansicht eignet sich für welche Planungsfrage?",
+      "answer": "Beginnt mit der Entscheidung, die ihr treffen möchtet. Für eine Rückfrage zu einem einzelnen Einsatz braucht ihr einen engen Ausschnitt; für die Verteilung kommender Aufgaben eher einen längeren Zeitraum. Betrachtet anschließend die betroffenen Mitarbeitenden und wechselt erst dann zu den einzelnen Terminen. Auf diese Weise lässt sich die Planung nach einer konkreten Frage lesen, statt alle Informationen gleichzeitig beurteilen zu müssen. Im ausführlichen Planungskapitel erklären wir die verfügbaren Kalenderperspektiven und ihre jeweiligen Einsatzmöglichkeiten. Entscheidend bleibt, welchen Zusammenhang ihr für eure nächste organisatorische Entscheidung benötigt.",
+      "link": {
+        "href": "#planung-vertiefung",
+        "label": "Kalender und Einsatzplanung im Detail"
+      }
+    },
+    {
+      "question": "Wie wird der Desktop zu einem persönlichen Arbeitsplatz?",
+      "answer": "Apps und Widgets machen häufig benötigte Bereiche direkt am Einstieg sichtbar. Die anpassbare Anordnung, die Seitensuche und die einklappbare Navigation helfen, den Arbeitsplatz auf die eigene Nutzung auszurichten. Eine Person mit Schwerpunkt Einsatzplanung wird andere Einstiege regelmäßig benötigen als jemand, der vor allem Dokumente und betriebliche Rückfragen bearbeitet. Sinnvoll ist eine bewusste Auswahl der wichtigsten Themen. Prüft bei der Einrichtung, welche Informationen sofort sichtbar sein sollen und welche Funktionen ihr bei Bedarf über die Navigation öffnet. So bleibt die Oberfläche auch bei vielen Aufgaben verständlich."
+    },
+    {
+      "question": "Wie lässt sich die Erfassung von Fahrten im Team beurteilen?",
+      "answer": "Wählt einen realistischen Tagesverlauf und vergleicht nach der Erfassung, ob seine einzelnen Wege verständlich wiederzufinden sind. Prüft besonders die Übergänge zwischen zwei Einsätzen und die Zuordnung zum verwendeten Verkehrsmittel. Haltet fest, an welcher Stelle eine Rückfrage entsteht und welche Angaben bei der Klärung helfen. So beurteilt ihr die Erfassung aus der Sicht der Mitarbeitenden und der späteren Bearbeitung im Büro. Das Mobilitätskapitel erläutert die technischen Möglichkeiten und die Zeitübersichten; beim ersten Durchlauf geht es vor allem darum, dass das Team denselben zurückgelegten Weg nachvollziehen kann.",
+      "link": {
+        "href": "#mobilitaet-vertiefung",
+        "label": "Mobilität und Arbeitszeit genauer kennenlernen"
+      }
+    },
+    {
+      "question": "Woran erkennen Mitarbeitende, dass nach einem Einsatz noch etwas offen ist?",
+      "answer": "Der persönliche Arbeitsbereich zeigt neben Einsätzen und geplanten Stunden auch offene Dokumentation. Diese Hinweise geben dem Team einen Einstieg in die weitere Bearbeitung. Der fachliche Zusammenhang bleibt der jeweilige Einsatz: Was wurde durchgeführt und welche Angaben werden für den nächsten Schritt gebraucht? Für die Einführung lohnt es sich, einen offenen Vorgang bewusst anzusehen. So wird deutlich, an welcher Stelle Mitarbeitende fortsetzen und wann eine Rückfrage an die Verwaltung sinnvoll ist. Die betriebliche Verantwortung für das Nachhalten offener Aufgaben sollte im Team ebenfalls klar sein."
+    },
+    {
+      "question": "Was passiert im Arbeitsablauf, wenn eine Unterschrift noch fehlt?",
+      "answer": "Die erforderliche Bestätigung gehört zum Abschluss des Vorgangs. Fehlt sie, bleibt der Vorgang offen und kann im vorgesehenen Freigabeprozess weiterbearbeitet werden. Im Klientenportal gibt es dafür einen eigenen Unterschriftenbereich mit getrennten Registern für offene und erledigte Dokumente. Die Oberfläche erläutert das Lesen und Unterschreiben mit Finger, Stift oder Maus. Für einen verständlichen Ablauf ist wichtig, dass die beteiligten Personen wissen, welches Dokument auf ihre Bearbeitung wartet und an wen sie sich mit Fragen zum Inhalt wenden können.",
+      "link": {
+        "href": "#dokumentation-vertiefung",
+        "label": "Vom offenen Vorgang zum Leistungsnachweis"
+      }
+    },
+    {
+      "question": "Wie können Klient:innen eine Rückfrage zu einem Termin anstoßen?",
+      "answer": "Der nächste Einsatz ist im Klientenportal mit Datum, Uhrzeit und Leistung sichtbar. Von dort kann die betreffende Person den Einsatz ansehen oder eine Änderung mitteilen. Weitere Einstiege führen zu Nachrichten, einer Einsatzanfrage oder einer Rückrufanforderung. Diese Wege geben dem Anliegen einen festen Platz in der digitalen Zusammenarbeit. Welche Rückmeldung anschließend erforderlich ist, hängt vom konkreten Anliegen und der Bearbeitung durch das zuständige Team ab. Eine mitgeteilte Änderung sollte deshalb als Abstimmungsbedarf verstanden werden, dessen Ergebnis gemeinsam nachvollziehbar sein muss."
+    },
+    {
+      "question": "Wie lassen sich die Angaben zu Budget und Stunden einordnen?",
+      "answer": "Die Budgetansicht stellt gebuchte Leistungen und zusätzliche Möglichkeiten getrennt dar. Verfügbare Beträge stehen im Zusammenhang mit möglichen Stunden; verbrauchte und für Einsätze geplante Anteile ergänzen die Übersicht. Dadurch können Klient:innen die dargestellten Werte auf ihre eigene Planung beziehen. Bei Rückfragen hilft es, die betreffende Leistung und den ausgewählten Zeitraum gemeinsam anzusehen. Die Übersicht ist eine Softwaredarstellung der hinterlegten Informationen. Sie sollte deshalb im Zusammenhang mit den jeweiligen Vereinbarungen und der betrieblichen Bearbeitung betrachtet werden, insbesondere wenn Angaben geklärt oder aktualisiert werden müssen."
+    },
+    {
+      "question": "Was macht eine Dokumentenübersicht im Alltag wirklich hilfreich?",
+      "answer": "Ein Dokument muss nicht nur vorhanden, sondern auch verständlich eingeordnet sein. Die gezeigte Übersicht unterscheidet Dokumentarten und macht Freigaben sichtbar. Vereinbarungen und Unterstützungspläne sind von dort erreichbar; benötigte Unterschriften haben einen eigenen Bereich. Beim geöffneten Unterstützungsplan zeigen Status und Aktualisierungsdatum zusätzlichen Kontext zum Inhalt. Für Klient:innen ergibt sich daraus ein nachvollziehbarer Weg: Unterlage finden, lesen und bei Bedarf eine Rückfrage stellen. Für das Team bleibt wichtig, die bereitgestellten Inhalte aktuell und für die jeweilige Person verständlich zu halten."
+    },
+    {
+      "question": "Wie bleiben Rückfragen und Antworten im Nachrichtenbereich nachvollziehbar?",
+      "answer": "Die Nachrichtenansicht ordnet Gespräche nach Themen und zeigt im ausgewählten Chat den Verlauf sowie den Status. Die Oberfläche bietet Eingabe, Anhänge und Sprachnachrichten. Das echte Beispiel auf dieser Seite zeigt eine fiktive Terminabstimmung. Für die tägliche Zusammenarbeit lohnt es sich, Anliegen verständlich zu benennen und zusammengehörige Rückfragen im passenden Gespräch zu halten. So können die Beteiligten den bisherigen Austausch leichter einordnen. Welche Themen über diesen Kontaktweg bearbeitet werden und wer auf Seiten des Betriebs antwortet, sollte das Team beim Einstieg festlegen."
+    },
+    {
+      "question": "Wie finden Klient:innen Nachweise aus einem vergangenen Monat wieder?",
+      "answer": "Freigegebene Leistungsnachweise erscheinen im Klientenportal mit Leistungsbezeichnung, Zeitraum und Unterschriftsstatus. Der jeweilige Eintrag führt zur zugehörigen PDF-Ansicht. Damit lässt sich auch eine zurückliegende Leistung gezielt wieder aufrufen. Für eine Rückfrage sind der betreffende Monat und die Leistungsbezeichnung gute gemeinsame Bezugspunkte. Die gezeigten Originalaufnahmen machen dabei sichtbar, wie sich Übersicht und Dokumentzugang ergänzen. Wer den Ablauf zum ersten Mal ausprobiert, kann einen bekannten Nachweis auswählen und prüfen, ob Zeitraum, Status und Dokumentinhalt verständlich zusammenpassen."
+    },
+    {
+      "question": "Warum gibt es getrennte Zugänge für die drei Rollen?",
+      "answer": "Verwaltung, Mitarbeitende und Klient:innen bearbeiten unterschiedliche Aufgaben und benötigen unterschiedliche Informationen. Die getrennten Zugänge machen diese Perspektiven schon beim Einstieg deutlich. Die Verwaltung organisiert betriebliche Abläufe, Mitarbeitende finden ihren persönlichen Arbeitstag und Klient:innen erhalten ihre vorgesehenen Informationen und Kontaktmöglichkeiten. Welche Funktionen und Inhalte im Einzelnen verfügbar sind, richtet sich nach dem Arbeitsbereich und den zugewiesenen Rechten. Bei der Einrichtung sollte deshalb für jede Rolle klar sein, welche Aufgaben sie übernimmt und welche Informationen sie für diese Aufgaben tatsächlich benötigt."
+    },
+    {
+      "question": "Zeigen die Produktbilder eine echte Software oder gestaltete Beispieloberflächen?",
+      "answer": "Die Produktwelt enthält Originalaufnahmen aus der CareSuite-Demo. Sie zeigen die tatsächlichen Weboberflächen der Verwaltung, der Mitarbeitenden und der Klient:innen. Die dargestellten Personen und Vorgänge sind fiktive Demo-Daten. Über die Rollenfilter könnt ihr gezielt einen Arbeitsbereich auswählen; Raster, Einzelansicht und Großansicht ermöglichen unterschiedliche Betrachtungen. Auch leere Zustände sind enthalten, etwa im Unterschriftenbereich. Dadurch seht ihr nicht ausschließlich gefüllte Übersichten, sondern bekommt einen Eindruck davon, wie die Software unterschiedliche Bearbeitungsstände tatsächlich darstellt."
+    },
+    {
+      "question": "Was bedeuten Entwicklung und Hosting in Deutschland für die Produktentscheidung?",
+      "answer": "CareSuite HealthOS wird in Deutschland entwickelt und in Deutschland gehostet. Diese Angaben geben euch eine konkrete Grundlage, um Herkunft und Datenverarbeitung in eure Produktentscheidung einzubeziehen. Für den betrieblichen Einsatz gehören dazu außerdem die aktuellen Datenschutz- und Vertragsunterlagen sowie die vorgesehenen Rollen und Zugänge. Sie beschreiben die konkreten Rahmenbedingungen. Der Standort allein beantwortet nicht jede organisatorische Frage. Ein vollständiger Blick verbindet deshalb die Herkunft der Software mit den tatsächlichen Abläufen, Verantwortlichkeiten und Unterlagen des jeweiligen Betriebs."
+    },
+    {
+      "question": "Wer ist Neo und wie funktioniert seine Stimme auf dieser Seite?",
+      "answer": "Neo ist der männliche digitale Assistent von CareSuite HealthOS. Auf dieser Landingpage begrüßt er euch mit einer kurzen persönlichen Vorstellung. Seine Sprachwiedergabe hängt davon ab, welche passenden Stimmen euer Gerät und Browser bereitstellen. Für die männliche Stimme wird eine geeignete verfügbare Auswahl benötigt; steht sie nicht bereit, bleibt seine Vorstellung lesbar. Ihr könnt die Wiedergabe bewusst starten oder stoppen. Neo bleibt damit ein persönlicher Einstieg in die Produktwelt, während ihr selbst bestimmt, ob ihr die Seite mit Ton oder in Ruhe entdecken möchtet."
+    },
+    {
+      "question": "Woran lässt sich ein erfolgreicher erster Produktdurchlauf erkennen?",
+      "answer": "Ein guter erster Durchlauf beantwortet konkrete Fragen: Finden die Beteiligten ihre Aufgaben? Verstehen sie offene und abgeschlossene Zustände? Ist nachvollziehbar, welche Information im nächsten Arbeitsschritt gebraucht wird? Sammelt dazu Beobachtungen aus allen drei Rollen. Besonders wertvoll sind Stellen, an denen jemand ohne zusätzliche Erklärung weiterkommt, sowie Stellen mit wiederkehrenden Rückfragen. Daraus lässt sich ableiten, welche Einrichtung, Einführung oder betriebliche Abstimmung als Nächstes nötig ist. Die Entscheidung beruht dann auf einem erlebten Ablauf und auf den Anforderungen des eigenen Teams."
+    }
+  ],
+  "decisions": [
+    {
+      "title": "Die Oberfläche am eigenen Alltag messen.",
+      "text": "Ein eindrucksvoller erster Blick ist der Anfang. Für die betriebliche Entscheidung zählt, ob das Team die richtigen Informationen im passenden Moment erreicht. Nutzt deshalb echte Fragestellungen aus Planung, Durchführung und Nachbereitung. Prüft einen typischen Tag ebenso wie einen offenen Vorgang. Auf diese Weise wird sichtbar, welche Bereiche bereits gut zum eigenen Ablauf passen und wo ihr vor dem nächsten Schritt noch Klarheit benötigt."
+    },
+    {
+      "title": "Web und Android als gemeinsamen Zugang betrachten.",
+      "text": "Im Büro und unterwegs entstehen unterschiedliche Anforderungen an eine Arbeitsumgebung. CareSuite bietet Webzugänge und einen Android-Zugang. Betrachtet deshalb die Geräte, die im eigenen Betrieb tatsächlich genutzt werden, zusammen mit der jeweiligen Rolle. Entscheidend ist, welche Aufgabe eine Person auf diesem Gerät erledigen soll und welche Funktionen ihr dafür bereitstehen. Diese Betrachtung hilft, die digitale Arbeit vom Arbeitsplatz bis zum Einsatz sinnvoll zu organisieren."
+    },
+    {
+      "title": "Kostenlos kennenlernen. Bewusst entscheiden.",
+      "text": "CareSuite HealthOS ist kostenlos nutzbar. Dadurch könnt ihr euch mit der Software auseinandersetzen und die für euren Betrieb wichtigen Abläufe kennenlernen. Für geschützte Bereiche benötigt ihr ein eigenes Konto oder bereitgestellte Demo-Zugangsdaten. Bezieht bei der Entscheidung auch die aktuellen Nutzungsbedingungen, Datenschutzinformationen und betrieblichen Zuständigkeiten ein. Der nächste Schritt sollte sich daraus ergeben, dass das Team den Nutzen, die Bedienung und seine eigene Arbeitsweise miteinander abgeglichen hat."
+    }
+  ]
+}

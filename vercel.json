@@ -45,6 +45,14 @@
   ],
   "rewrites": [
     {
+      "source": "/landingpage",
+      "destination": "/landingpage/index.html"
+    },
+    {
+      "source": "/landingpage/",
+      "destination": "/landingpage/index.html"
+    },
+    {
       "source": "/caresuite",
       "destination": "/caresuite/index.html"
     },
